@@ -398,7 +398,7 @@ export class MemoryEmbeddingService {
 
       this.emitCompatibilityDiagnosticsForCreate(compatibility);
 
-      await this.ensureMetadataDefaults(db);
+      // #753: metadata table-wide repair는 migrate/bootstrap 1회 — hot path에서 호출하지 않음
       await this.insertMemoryEmbeddingForCreate(db, memoryId, provider, embeddingResult, compatibility);
 
       return {
@@ -446,8 +446,6 @@ export class MemoryEmbeddingService {
     let queryEmbeddingProviders: EmbeddingProvider[] | undefined;
 
     try {
-      await this.ensureMetadataDefaults(db);
-
       const queryEmbedding = await this.embeddingService.generateEmbedding(query);
       if (!queryEmbedding) {
         return { results: [] };
@@ -531,8 +529,6 @@ export class MemoryEmbeddingService {
     }>;
   }> {
     try {
-      await this.ensureMetadataDefaults(db);
-
       // 전체 통계
       const stats = await DatabaseUtils.all(db, `
         SELECT 
@@ -589,53 +585,6 @@ export class MemoryEmbeddingService {
         return normalized as EmbeddingProvider;
       default:
         return this.defaultProvider;
-    }
-  }
-
-  private async ensureMetadataDefaults(db: Database.Database): Promise<void> {
-    try {
-      await DatabaseUtils.run(db, `
-        UPDATE memory_embedding
-        SET embedding_provider = COALESCE(
-          NULLIF(embedding_provider, ''),
-          CASE
-            WHEN model IN ('lightweight-hybrid', 'tfidf') THEN 'tfidf'
-            WHEN model LIKE '%minilm%' THEN 'minilm'
-            WHEN model LIKE '%openai%' THEN 'openai'
-            WHEN model LIKE '%gemini%' THEN 'gemini'
-            WHEN model = 'mock' THEN 'mock'
-            ELSE ?
-          END
-        ),
-        projection_type = COALESCE(NULLIF(projection_type, ''), 'native'),
-        precision = COALESCE(precision, 32),
-        normalized = COALESCE(normalized, 0),
-        version = COALESCE(version, 1),
-        dim = CASE
-          WHEN dim IS NULL OR dim = 0 THEN json_array_length(embedding)
-          ELSE dim
-        END,
-        dimensions = CASE
-          WHEN dimensions IS NULL OR dimensions = 0 THEN json_array_length(embedding)
-          ELSE dimensions
-        END,
-        created_by = COALESCE(created_by, 'legacy')
-        WHERE embedding_provider IS NULL
-           OR embedding_provider = ''
-           OR dimensions IS NULL
-           OR dimensions = 0
-           OR projection_type IS NULL
-           OR projection_type = ''
-           OR precision IS NULL
-           OR precision = 0
-           OR normalized IS NULL
-           OR version IS NULL
-           OR version = 0
-           OR created_by IS NULL
-      `, [this.defaultProvider]);
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      this.writeEmbeddingStderr('warn', `임베딩 메타데이터 보정 실패: ${maskedError.message}`);
     }
   }
 }

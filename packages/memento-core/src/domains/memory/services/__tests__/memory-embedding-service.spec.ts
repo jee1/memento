@@ -10,6 +10,36 @@ import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { EmbeddingResult } from '../../../shared/types/embedding.types.js';
 
+/** #753 — table-wide metadata repair UPDATE issued via DatabaseUtils.run */
+function trackTableWideMetadataRepairUpdates(): {
+  getCount: () => number;
+  dispose: () => void;
+} {
+  let count = 0;
+  const originalRun = DatabaseUtils.run;
+  DatabaseUtils.run = function (
+    db: Database.Database,
+    sql: string,
+    params: unknown[] = [],
+    maxRetries: number = 3
+  ) {
+    if (
+      typeof sql === 'string' &&
+      /UPDATE\s+memory_embedding/i.test(sql) &&
+      /created_by\s*=\s*COALESCE\s*\(\s*created_by\s*,\s*'legacy'\s*\)/i.test(sql)
+    ) {
+      count += 1;
+    }
+    return originalRun.call(DatabaseUtils, db, sql, params as any[], maxRetries);
+  };
+  return {
+    getCount: () => count,
+    dispose: () => {
+      DatabaseUtils.run = originalRun;
+    },
+  };
+}
+
 // UnifiedEmbeddingService 모킹
 vi.mock('./unified-embedding-service.js', () => {
   return {
@@ -332,6 +362,99 @@ describe('MemoryEmbeddingService', () => {
       const available = service.isAvailable();
 
       expect(typeof available).toBe('boolean');
+    });
+  });
+
+  describe('#753 hot path metadata repair (query-count)', () => {
+    it('createAndStoreEmbedding은 테이블 전역 metadata repair UPDATE를 실행하지 않아야 함', async () => {
+      const tracker = trackTableWideMetadataRepairUpdates();
+      try {
+        const memoryId = createTestMemory(db, {
+          content: 'Hot path create should not repair',
+          type: 'episodic',
+        });
+        await service.createAndStoreEmbedding(
+          db,
+          memoryId,
+          'Hot path create should not repair',
+          'episodic'
+        );
+        expect(tracker.getCount()).toBe(0);
+      } finally {
+        tracker.dispose();
+      }
+    });
+
+    it('searchBySimilarity는 테이블 전역 metadata repair UPDATE를 실행하지 않아야 함', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'Hot path search should not repair',
+        type: 'episodic',
+      });
+      await service.createAndStoreEmbedding(
+        db,
+        memoryId,
+        'Hot path search should not repair',
+        'episodic'
+      );
+
+      const tracker = trackTableWideMetadataRepairUpdates();
+      try {
+        await service.searchBySimilarity(db, 'Hot path search', { limit: 5 });
+        expect(tracker.getCount()).toBe(0);
+      } finally {
+        tracker.dispose();
+      }
+    });
+
+    it('getEmbeddingStats는 테이블 전역 metadata repair UPDATE를 실행하지 않아야 함', async () => {
+      const tracker = trackTableWideMetadataRepairUpdates();
+      try {
+        await service.getEmbeddingStats(db);
+        expect(tracker.getCount()).toBe(0);
+      } finally {
+        tracker.dispose();
+      }
+    });
+
+    it('신규 임베딩 행은 created_by 등 metadata 기본값을 가져야 함', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'New row metadata defaults',
+        type: 'episodic',
+      });
+      const result = await service.createAndStoreEmbedding(
+        db,
+        memoryId,
+        'New row metadata defaults',
+        'episodic'
+      );
+      if (!service.isAvailable() || !result) {
+        return;
+      }
+      const row = DatabaseUtils.get(
+        db,
+        `SELECT embedding_provider, projection_type, precision, normalized, version, created_by, dimensions, dim
+         FROM memory_embedding WHERE memory_id = ?`,
+        [memoryId]
+      ) as
+        | {
+            embedding_provider: string;
+            projection_type: string;
+            precision: number;
+            normalized: number;
+            version: number;
+            created_by: string;
+            dimensions: number;
+            dim: number;
+          }
+        | undefined;
+      expect(row).toBeDefined();
+      expect(row!.embedding_provider).toBeTruthy();
+      expect(row!.projection_type).toBeTruthy();
+      expect(row!.precision).toBe(32);
+      expect(row!.version).toBe(1);
+      expect(row!.created_by).toBe('memory_embedding_service');
+      expect(row!.dimensions).toBeGreaterThan(0);
+      expect(row!.dim).toBeGreaterThan(0);
     });
   });
 

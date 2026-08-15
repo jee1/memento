@@ -9,6 +9,7 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
+import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
 import {
   checkVecCardinality,
   listExistingVecTables,
@@ -244,6 +245,11 @@ function migrateDatabase() {
     }
 
     logger.info('✅ 임베딩 인덱스 및 트리거 정비 완료');
+
+    // #753: embedding metadata 보정은 migrate/bootstrap 1회 (hot path 금지)
+    logger.info('🔧 memory_embedding metadata 기본값 보정 중...');
+    ensureMemoryEmbeddingMetadataDefaults(db);
+    logger.info('✅ memory_embedding metadata 기본값 보정 완료');
     
     // 기존 데이터에 기본값 설정
     logger.info('🔧 기존 데이터 업데이트 중...');
