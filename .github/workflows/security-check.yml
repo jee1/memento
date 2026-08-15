@@ -35,6 +35,14 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
+
+      # Production audit gate (#756): runs `npm audit --omit=dev`.
+      # Fails when fixable High/Moderate remain. Upstream-blocked ML transitive
+      # deps (onnxruntime-node / sharp / adm-zip via @huggingface/transformers)
+      # are accepted and documented in docs/reference/{ko,en}/security.md —
+      # do NOT add force overrides.
+      - name: Production npm audit
+        run: node scripts/check-production-audit-fixable.mjs
       
       - name: Type Check
         run: npm run type-check

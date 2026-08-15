@@ -2,6 +2,19 @@
 
 HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰**, **레거시 단일 키**가 서로 다른 경로를 보호합니다. 대시보드·그래프는 쿠키 세션으로, programmatic MCP·quality API는 Bearer 토큰으로 나뉘므로, 배포 전에 어떤 표면을 어디에 노출할지 먼저 정한 뒤 아래 설정을 맞추면 됩니다.
 
+## Production dependency audit (#756)
+
+- **CI gate**: `.github/workflows/security-check.yml`가 `node scripts/check-production-audit-fixable.mjs`를 실행합니다. 내부에서 `npm audit --omit=dev`를 돌리며, **fixable High/Moderate/Critical이 1건이라도 있으면 실패**합니다.
+- **정책**: wanted 범위(minor/patch) 안에서만 해소합니다. `npm audit fix --force`·`overrides`로 ML 스택을 끌어올리지 않습니다 (`AGENTS.md` deps wanted-only).
+- **Upstream-blocked (accepted risk, no force-override)** — 2026-08-15 재측정:
+
+| Package path | Advisory / notes | Why blocked | Tracking |
+|--------------|------------------|-------------|----------|
+| `adm-zip` ← `onnxruntime-node` ← `@huggingface/transformers` | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) (High) — crafted ZIP → large allocation | Upstream `onnxruntime-node` pins vulnerable `adm-zip`; no non-force fix in our lockfile | Re-check on `@huggingface/transformers` / `onnxruntime-node` upgrades; issue #756 |
+| `sharp` ← `@huggingface/transformers` | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) (High) — libvips CVEs; requires `sharp>=0.35` | Parent still depends on `sharp<0.35`; force override risk for native/ABI | Same; prefer upstream bump over override |
+
+- **Exploitability note**: MiniLM / local embedding 경로에서만 해당 transitive가 로드됩니다. ZIP/이미지 입력을 신뢰하지 않는 운영에서는 노출면이 제한적입니다. 새 fixable High/Moderate가 생기면 CI가 막습니다.
+
 ## HTTP API 인증·인가
 
 - **현재 상태**: HTTP 서버는 **분리된 신뢰 모델**을 사용합니다.
