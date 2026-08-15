@@ -77,6 +77,16 @@ npx memento-mcp-server@latest setup
 
 **반복 사용 시 주의**: 매번 npx로 실행하면 다운로드가 발생할 수 있으므로 반복 사용에는 **글로벌 설치**(`npm i -g memento-mcp-server`) 또는 로컬 설치 후 `./node_modules/.bin/memento` 사용을 권장합니다. 모드 구분: MCP 서버(`memento-mcp-server` / stdio), HTTP 서버(`memento-dev`), CLI(`memento` — recall, remember, forget, memory_injection). CLI 가이드: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
 
+### MCP 공식 레지스트리
+
+Memento는 MCP 공식 레지스트리에 `io.github.jee1/memento-mcp-server` 이름으로 등재됩니다. 레지스트리를 읽는 클라이언트·마켓플레이스에서 이 이름으로 찾을 수 있습니다.
+
+```bash
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.jee1/memento-mcp-server"
+```
+
+등재 메타데이터는 루트 [`server.json`](server.json)에 있고, 정식 릴리스마다 `release.yml`이 npm 배포 후 버전을 맞춰 자동으로 갱신합니다 (pre-release는 등재하지 않습니다).
+
 ### Docker 방식 (프로덕션용)
 ```bash
 docker-compose -f docker-compose.dev.yml up -d   # 개발

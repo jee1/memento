@@ -66,6 +66,16 @@ npx memento-mcp-server@latest start
 
 **Repeated use**: Running via npx each time triggers a download. For frequent use, prefer **global install** (`npm i -g memento-mcp-server`) or local install with `./node_modules/.bin/memento`. Mode breakdown: MCP server (`memento-mcp-server` / stdio), HTTP server (`memento-dev`), CLI (`memento` — recall, remember, forget, memory_injection). CLI guide: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
 
+### Official MCP Registry
+
+Memento is listed in the official MCP registry as `io.github.jee1/memento-mcp-server`. Registry-aware clients and marketplaces resolve it by that name.
+
+```bash
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.jee1/memento-mcp-server"
+```
+
+The listing metadata lives in the root [`server.json`](server.json); every stable release publishes it automatically from `release.yml` after the npm publish (pre-releases are not listed).
+
 ### Docker Method (For Production)
 ```bash
 docker-compose -f docker-compose.dev.yml up -d   # Development
