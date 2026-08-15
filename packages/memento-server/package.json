@@ -8,8 +8,7 @@
   "bin": {
     "memento": "./dist/cli.js",
     "memento-mcp-server": "./dist/server/index.js",
-    "memento-dev": "./dist/server/http-server.js",
-    "memento-mcp": "./dist/server/index.js"
+    "memento-dev": "./dist/server/http-server.js"
   },
   "scripts": {
     "build": "tsc",

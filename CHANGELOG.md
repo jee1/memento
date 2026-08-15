@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Breaking
+
+- **CLI bin alias `memento-mcp` removed** (#766): use `memento-mcp-server` only (same stdio entrypoint). The short alias collided with the unrelated npm/GitHub project `gannonh/memento-mcp`. Update MCP host configs and scripts that invoked `memento-mcp`. npm package name remains `memento-mcp-server`.
+
 ### Changed
 
 - **Recall latency** (#735): `include_metadata` 경로의 고정 150ms 대기를 제거하고, pending `recordRecall` 통계를 `getStats`/`getStatsById`에서 즉시 읽는다. hybrid search는 FTS와 vector 분기를 `Promise.all`로 동시에 시작한다. ranking weight·score breakdown은 그대로다.

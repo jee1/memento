@@ -28,6 +28,17 @@ if (!bin) {
 
 let hasErrors = false;
 
+const FORBIDDEN_BIN_ALIASES = ['memento-mcp'];
+
+for (const forbidden of FORBIDDEN_BIN_ALIASES) {
+  if (Object.prototype.hasOwnProperty.call(bin, forbidden)) {
+    console.error(
+      `❌ forbidden bin alias "${forbidden}" collides with unrelated packages; use memento-mcp-server (#766)`
+    );
+    hasErrors = true;
+  }
+}
+
 // bin 필드의 각 파일 검증
 for (const [name, path] of Object.entries(bin)) {
   // npm 공개 패키지는 workspace 내부 경로를 bin으로 노출하면 npx 설치 시 의존성 해석이 깨질 수 있음
