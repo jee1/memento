@@ -66,12 +66,12 @@ If you run the HTTP server separately, clients that support it can also connect 
 
 ## Storing Memories
 
-The simplest way to store information is through the `remember` MCP tool, which any connected MCP client (Claude Desktop, Cursor, etc.) can call directly. When the HTTP server is also running, you can store memories programmatically using the `@memento/client` package.
+The simplest way to store information is through the `remember` MCP tool, which any connected MCP client (Claude Desktop, Cursor, etc.) can call directly. When the HTTP server is also running, you can store memories programmatically using the `@jee1/memento-client` package.
 
 The HTTP server defaults to `http://localhost:9001` (configurable via `MCP_SERVER_PORT` or `PORT`). Start it with `npm run dev:http` during development.
 
 ```typescript
-import { MementoClient } from '@memento/client';
+import { MementoClient } from '@jee1/memento-client';
 
 const client = new MementoClient({
   serverUrl: 'http://localhost:9001',

@@ -94,7 +94,7 @@ npm workspaces 모노레포입니다. 도메인·DB·MCP 도구 구현은 **`pac
 packages/
 ├── memento-core/     # @memento/core — 도메인 로직, DB, MCP 도구
 ├── memento-server/   # MCP stdio + HTTP 서버
-└── memento-client/   # @memento/client — 서버 연결 클라이언트
+└── memento-client/   # @jee1/memento-client — 서버 연결 클라이언트
 apps/
 └── experimental-example/   # in-process 사용 예시
 scripts/              # 빌드·검증·운영 보조 스크립트

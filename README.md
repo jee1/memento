@@ -32,15 +32,22 @@ AI가 "기억하는 척"하는 것이 아니라, 기억을 생성·분류·강�
 
 ### 📦 모노레포 구조
 
-이 저장소는 **npm workspaces** 모노레포입니다. `@memento/core`가 도메인·DB·MCP 도구를 담고, `memento-server`가 stdio/HTTP로 이를 노출합니다. 앱이나 스크립트에서 REST로 붙을 때는 `@memento/client`, OpenClaw 같은 외부 비서에는 `@memento/assistant`, 에이전트 세션·프로버넌스 계약에는 `@memento/agent-integration`을 씁니다. 실험 코드는 `apps/` 아래에 두었습니다.
+이 저장소는 **npm workspaces** 모노레포입니다. `@memento/core`가 도메인·DB·MCP 도구를 담고, `memento-server`가 stdio/HTTP로 이를 노출합니다. 앱이나 스크립트에서 REST로 붙을 때는 `@jee1/memento-client`, OpenClaw 같은 외부 비서에는 `@jee1/memento-assistant`, 에이전트 세션·프로버넌스 계약은 `@memento/agent-integration`이 담당하지만 이는 **내부 전용 패키지**로 npm에 발행되지 않습니다(서버 tarball에 번들). 실험 코드는 `apps/` 아래에 두었습니다.
+
+npm에 발행되는 패키지는 셋입니다: `memento-mcp-server`(서버), `@jee1/memento-client`, `@jee1/memento-assistant`.
+
+```bash
+npm i @jee1/memento-client      # REST 클라이언트
+npm i @jee1/memento-assistant   # 외부 비서용 auto-recall/save SDK
+```
 
 | 경로 | 설명 |
 |------|------|
 | **packages/memento-core** (`@memento/core`) | 도메인·인프라·공유 라이브러리. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB 초기화·마이그레이션은 루트에서 `npm run db:init` / `npm run db:migrate`로 실행. |
 | **packages/memento-server** | core를 사용하는 MCP/HTTP 서버. 루트 `npm run dev`, `npm start`, `npm run dev:http` 등으로 실행. |
-| **packages/memento-client** (`@memento/client`) | 서버 연결용 클라이언트 라이브러리. |
-| **packages/memento-assistant** (`@memento/assistant`) | 외부 AI 비서용 recall/remember SDK. |
-| **packages/memento-agent-integration** (`@memento/agent-integration`) | 에이전트 통합 계약·어댑터. |
+| **packages/memento-client** (`@jee1/memento-client`) | 서버 연결용 클라이언트 라이브러리. |
+| **packages/memento-assistant** (`@jee1/memento-assistant`) | 외부 AI 비서용 recall/remember SDK. |
+| **packages/memento-agent-integration** (`@memento/agent-integration`) | 에이전트 통합 계약·어댑터. 내부 전용(`private`), npm 미발행. |
 | **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core`를 in-process로 사용). |
 
 상세 구조·빌드·테스트 명령은 [AGENTS.md](AGENTS.md)를 참조하세요.
@@ -150,7 +157,7 @@ npm run build && npm run start:http       # 프로덕션
 
 OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
 
-`@memento/assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
+`@jee1/memento-assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
 
 ## 💡 사용 예시
 
@@ -211,7 +218,7 @@ await client.callTool({
 
 - **mcp.json 설정**: Claude Desktop, Cursor, Claude Code 등 MCP 호스트에 Memento를 등록하는 방식 (코드 불필요)
 - **MCP 프로토콜** (`@modelcontextprotocol/sdk`): 커스텀 에이전트 코드에서 MCP 프로토콜로 직접 연결하는 방식
-- **HTTP API 클라이언트** (`@memento/client`): TypeScript/JavaScript 코드에서 Memento 서버의 REST API를 프로그래밍 방식으로 사용하는 방식
+- **HTTP API 클라이언트** (`@jee1/memento-client`): TypeScript/JavaScript 코드에서 Memento 서버의 REST API를 프로그래밍 방식으로 사용하는 방식
 
 ### 0. mcp.json 설정 (Claude Desktop · Cursor · Claude Code)
 
@@ -320,12 +327,12 @@ const results = await client.callTool({
 });
 ```
 
-### 2. HTTP API 클라이언트 (`@memento/client`)
+### 2. HTTP API 클라이언트 (`@jee1/memento-client`)
 
-`@memento/client`는 MCP 프로토콜이 아닌 **HTTP REST API 래퍼**입니다. TypeScript/JavaScript 애플리케이션에서 `/tools/*` 엔드포인트를 직접 호출할 때 사용합니다.
+`@jee1/memento-client`는 MCP 프로토콜이 아닌 **HTTP REST API 래퍼**입니다. TypeScript/JavaScript 애플리케이션에서 `/tools/*` 엔드포인트를 직접 호출할 때 사용합니다.
 
 ```typescript
-import { MementoClient } from "@memento/client";
+import { MementoClient } from "@jee1/memento-client";
 
 const client = new MementoClient({
   serverUrl: "http://localhost:9001",

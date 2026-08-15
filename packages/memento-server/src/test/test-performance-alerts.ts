@@ -3,7 +3,7 @@
  * 성능 알림 서비스의 기능을 테스트하고 알림을 확인
  */
 
-import { createMementoClient } from '@memento/clientindex.js';
+import { createMementoClient } from '@jee1/memento-client';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 async function testPerformanceAlerts() {

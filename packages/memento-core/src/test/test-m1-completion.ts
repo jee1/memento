@@ -3,7 +3,7 @@
  * 3단계 구현 완료 후 전체 기능 검증
  */
 
-import { createMementoClient } from '@memento/client';
+import { createMementoClient } from '@jee1/memento-client';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 async function testM1Completion() {

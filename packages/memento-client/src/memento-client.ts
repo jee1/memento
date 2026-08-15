@@ -3,7 +3,7 @@
  *
  * @example
  * ```typescript
- * import { MementoClient } from '@memento/client';
+ * import { MementoClient } from '@jee1/memento-client';
  *
  * const client = new MementoClient({
  *   serverUrl: 'http://localhost:8080',

@@ -35,7 +35,7 @@ memento/
 ├── packages/
 │   ├── memento-core/       # @memento/core — domains, infrastructure, shared
 │   ├── memento-server/     # MCP/HTTP server entry points
-│   └── memento-client/     # @memento/client — HTTP client library
+│   └── memento-client/     # @jee1/memento-client — HTTP client library
 ├── apps/
 │   └── experimental-example/
 ├── tests/                  # root integration tests

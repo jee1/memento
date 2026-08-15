@@ -1,5 +1,5 @@
 {
-  "name": "@memento/assistant",
+  "name": "@jee1/memento-assistant",
   "version": "0.1.0",
   "description": "Memento SDK for external personal AI assistants (auto-recall + auto-save backend)",
   "type": "module",
@@ -7,7 +7,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -29,11 +30,19 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@memento/client": "*",
+    "@jee1/memento-client": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
     "vitest": "^3.2.6"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jee1/memento.git",
+    "directory": "packages/memento-assistant"
   }
 }

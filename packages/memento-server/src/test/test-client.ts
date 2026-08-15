@@ -3,7 +3,7 @@
  * E2E 시나리오: remember/recall/pin/unpin/forget 결과에 대한 assertion으로 회귀 방지.
  */
 
-import { createMementoClient } from '@memento/clientindex.js';
+import { createMementoClient } from '@jee1/memento-client';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 function assert(condition: unknown, message: string): asserts condition {

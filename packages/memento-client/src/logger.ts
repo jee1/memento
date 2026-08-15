@@ -1,5 +1,5 @@
 /**
- * Minimal logger for @memento/client (no dependency on repo shared).
+ * Minimal logger for @jee1/memento-client (no dependency on repo shared).
  * Uses console; level can be set via LOG_LEVEL (debug | info | warn | error).
  */
 

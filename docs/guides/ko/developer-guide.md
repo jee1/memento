@@ -35,7 +35,7 @@ memento/
 ├── packages/
 │   ├── memento-core/       # @memento/core — 도메인·인프라·공유
 │   ├── memento-server/     # MCP/HTTP 서버 진입점
-│   └── memento-client/     # @memento/client — HTTP 클라이언트 라이브러리
+│   └── memento-client/     # @jee1/memento-client — HTTP 클라이언트 라이브러리
 ├── apps/
 │   └── experimental-example/
 ├── tests/                  # 루트 통합 테스트

@@ -4,7 +4,7 @@
  * OpenAI API 연동 및 벡터 검색 테스트
  */
 
-import { createMementoClient } from '@memento/client';
+import { createMementoClient } from '@jee1/memento-client';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 async function testEmbeddingFunctionality() {

@@ -1,5 +1,5 @@
 /**
- * @memento/client 타입 정의
+ * @jee1/memento-client 타입 정의
  * Memento MCP Server와 통신하기 위한 클라이언트 라이브러리 타입들
  */
 

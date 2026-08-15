@@ -1,6 +1,6 @@
-# `@memento/assistant` SDK Quickstart
+# `@jee1/memento-assistant` SDK Quickstart
 
-이 문서는 `@memento/assistant` SDK를 사용해 외부 비서에 Memento 장기기억을 붙이는 방법을 다룹니다. 베어 MCP 방식과의 차이, stdio/HTTP 빠른 시작, 라이프사이클 훅 통합 위치, 환경변수 레퍼런스, 그리고 Memento가 다운돼도 비서가 멈추지 않는 degraded 모드까지 순서대로 안내합니다.
+이 문서는 `@jee1/memento-assistant` SDK를 사용해 외부 비서에 Memento 장기기억을 붙이는 방법을 다룹니다. 베어 MCP 방식과의 차이, stdio/HTTP 빠른 시작, 라이프사이클 훅 통합 위치, 환경변수 레퍼런스, 그리고 Memento가 다운돼도 비서가 멈추지 않는 degraded 모드까지 순서대로 안내합니다.
 
 ---
 
@@ -8,7 +8,7 @@
 
 베어 MCP 방식은 비서의 LLM이 `recall`·`remember` 도구를 **자기 의지로** 호출하는 구조입니다. 즉 LLM이 깜빡이면 기억을 불러오거나 저장하지 않습니다. SDK는 이 호출을 비서 루프에서 **결정론적으로 자동화**합니다.
 
-| 특성 | 베어 MCP | @memento/assistant SDK |
+| 특성 | 베어 MCP | @jee1/memento-assistant SDK |
 |------|---------|------------------------|
 | 회상 트리거 | LLM 자기 의지 | 매 턴 자동 |
 | 저장 트리거 | LLM 자기 의지 | 매 턴 자동 |
@@ -25,13 +25,13 @@
 설치:
 
 ```bash
-npm install @memento/assistant
+npm install @jee1/memento-assistant
 ```
 
 환경변수를 별도로 설정하지 않으면 SDK는 `npx -y memento-mcp-server@latest`를 자식 프로세스로 자동 기동합니다. 로컬에서 빠르게 시작하는 가장 간단한 경로입니다.
 
 ```ts
-import { MementoAssistant } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
 
 const memory = MementoAssistant.fromEnv(
   { ownerId: 'user-123', channel: 'telegram' },
@@ -86,7 +86,7 @@ export MEMENTO_URL=http://host.docker.internal:9001
 나머지 코드는 stdio 예제와 완전히 동일합니다. `MementoAssistant.fromEnv`가 환경변수를 읽어 트랜스포트를 자동으로 선택합니다.
 
 ```ts
-import { MementoAssistant } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
 
 const memory = MementoAssistant.fromEnv(
   { ownerId: 'user-123', channel: 'telegram' },

@@ -98,7 +98,7 @@ export class FeedbackTool extends BaseTool {
           helpful: { type: 'boolean', description: 'true=helpful, false=not_helpful' },
           comment: {
             type: 'string',
-            description: `선택 코멘트 (@memento/client feedback과 동일), 최대 ${FEEDBACK_COMMENT_MAX_LEN}자`,
+            description: `선택 코멘트 (@jee1/memento-client feedback과 동일), 최대 ${FEEDBACK_COMMENT_MAX_LEN}자`,
             maxLength: FEEDBACK_COMMENT_MAX_LEN
           },
           score: { type: 'number', description: '선택 점수' },

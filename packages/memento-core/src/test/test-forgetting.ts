@@ -3,7 +3,7 @@
  * 망각 알고리즘과 간격 반복 테스트
  */
 
-import { createMementoClient } from '@memento/client';
+import { createMementoClient } from '@jee1/memento-client';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 async function testForgettingFunctionality() {

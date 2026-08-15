@@ -1,6 +1,6 @@
 // packages/memento-assistant/src/transport/http-transport.ts
-import { MementoClient } from '@memento/client';
-import type { CreateMemoryParams, RememberResult as ClientRememberResult, SearchFilters } from '@memento/client';
+import { MementoClient } from '@jee1/memento-client';
+import type { CreateMemoryParams, RememberResult as ClientRememberResult, SearchFilters } from '@jee1/memento-client';
 import type { Transport, RecallParams, RecallResult, RememberParams, RememberResult } from './transport.js';
 
 export interface HttpTransportOptions {

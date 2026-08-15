@@ -4,7 +4,7 @@
  * Memento MCP 서버의 성능 측정 및 분석
  */
 
-import { createMementoClient } from '@memento/client';
+import { createMementoClient } from '@jee1/memento-client';
 import { PerformanceMonitor } from '@memento/core/domains/monitoring/services/performance-monitor.js';
 import { SearchCacheService } from '@memento/corecache/cache-service.js';
 import { AsyncTaskQueue } from '@memento/coreasync-optimizer.js';

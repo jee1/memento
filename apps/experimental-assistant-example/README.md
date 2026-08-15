@@ -1,6 +1,6 @@
 # experimental-assistant-example
 
-`@memento/assistant` SDK를 사용하는 최소 echo bot 예제.
+`@jee1/memento-assistant` SDK를 사용하는 최소 echo bot 예제.
 
 LLM 호출 없이 `stdin → SDK → stdout` 흐름만으로 SDK API가 실제로 동작하는지 확인할 수 있습니다.
 

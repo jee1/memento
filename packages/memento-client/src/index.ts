@@ -1,11 +1,11 @@
 /**
- * @memento/client - Memento MCP Server 클라이언트 라이브러리
+ * @jee1/memento-client - Memento MCP Server 클라이언트 라이브러리
  * 
  * AI Agent의 기억을 관리하고 컨텍스트를 주입하는 TypeScript 라이브러리입니다.
  * 
  * @example
  * ```typescript
- * import { MementoClient, MemoryManager, ContextInjector } from '@memento/client';
+ * import { MementoClient, MemoryManager, ContextInjector } from '@jee1/memento-client';
  * 
  * // 클라이언트 생성 및 연결
  * const client = new MementoClient({

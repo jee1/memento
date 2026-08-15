@@ -25,7 +25,7 @@
 
 ## 더 깊은 통합 (옵션)
 
-베어 MCP만으로 부족하면 `@memento/assistant` SDK를 사용해 *결정론적 자동 회상/저장*을 얻을 수 있습니다.
+베어 MCP만으로 부족하면 `@jee1/memento-assistant` SDK를 사용해 *결정론적 자동 회상/저장*을 얻을 수 있습니다.
 
 - **빠른 시작**: [`_shared/sdk-quickstart.md`](./_shared/sdk-quickstart.md)
 - Node.js / TypeScript 비서에서 두 개의 훅(`beforeUserTurn` / `afterAssistantTurn`)만 붙이면 됩니다.

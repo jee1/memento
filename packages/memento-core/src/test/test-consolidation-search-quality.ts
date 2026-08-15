@@ -3,7 +3,7 @@
  * 실제 데이터로 검색 품질 측정 및 Consolidation 점수 반영 전/후 비교
  */
 
-import { createMementoClient } from '@memento/client';
+import { createMementoClient } from '@jee1/memento-client';
 import {
   seedTestDatabase,
   cleanupTestDatabase

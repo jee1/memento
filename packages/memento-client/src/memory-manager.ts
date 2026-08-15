@@ -4,7 +4,7 @@
  * 
  * @example
  * ```typescript
- * import { MemoryManager } from '@memento/client';
+ * import { MemoryManager } from '@jee1/memento-client';
  * 
  * const manager = new MemoryManager(client);
  * 

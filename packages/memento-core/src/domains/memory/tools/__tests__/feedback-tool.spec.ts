@@ -35,7 +35,7 @@ describe('FeedbackTool', () => {
     expect(data.error).toBe('memory not found');
   });
 
-  it('유효한 피드백은 feedback_id·created_at 반환 (@memento/client 계약)', async () => {
+  it('유효한 피드백은 feedback_id·created_at 반환 (@jee1/memento-client 계약)', async () => {
     const r = await tool.handle(
       {
         memory_id: 'mem_tool_fb_1',

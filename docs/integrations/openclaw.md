@@ -147,16 +147,16 @@ OpenClaw 고유의 함정 두 가지를 짚어 둡니다.
 
 ---
 
-## 한 단계 더: `@memento/assistant`로 자동 회상/저장
+## 한 단계 더: `@jee1/memento-assistant`로 자동 회상/저장
 
-베어 MCP로 기본 통합이 완료됐다면 `@memento/assistant` SDK를 추가해 **매 턴 결정론적 자동 recall/remember**를 얻을 수 있습니다.
+베어 MCP로 기본 통합이 완료됐다면 `@jee1/memento-assistant` SDK를 추가해 **매 턴 결정론적 자동 recall/remember**를 얻을 수 있습니다.
 
 ### 게이트웨이 레벨 통합 (권장)
 
 skill 레벨에 개별 통합하면 매 skill마다 중복 코드가 생깁니다. **게이트웨이 메시지 파이프라인에 한 번** 붙이는 편이 효율적입니다.
 
 ```ts
-import { MementoAssistant } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
 
 const memory = MementoAssistant.fromEnv(
   {

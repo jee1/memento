@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpTransport } from './http-transport.js';
 
-vi.mock('@memento/client', () => {
+vi.mock('@jee1/memento-client', () => {
   return {
     MementoClient: vi.fn().mockImplementation(() => ({
       connect: vi.fn().mockResolvedValue(undefined),
@@ -36,7 +36,7 @@ describe('HttpTransport', () => {
   });
 
   it('auto-connects on first call — connect called exactly once', async () => {
-    const { MementoClient } = await import('@memento/client');
+    const { MementoClient } = await import('@jee1/memento-client');
     const MockClient = MementoClient as any;
     MockClient.mockClear();
     const t = new HttpTransport({ baseUrl: 'http://localhost:9001', token: 'tok' });

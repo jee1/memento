@@ -1,17 +1,17 @@
-# @memento/assistant
+# @jee1/memento-assistant
 
 외부 AI 비서(OpenClaw 등)가 Memento를 **공유 장기 기억**으로 쓰게 해 주는 SDK입니다. LLM 호출은 비서 쪽에 그대로 두고, Memento 쪽에는 두 훅만 붙이면 됩니다. 사용자 턴 직전에 `beforeUserTurn`으로 관련 기억을 끌어오고, 비서 응답이 끝난 뒤 `afterAssistantTurn`으로 대화를 저장합니다.
 
 ## 설치
 
 ```bash
-npm install @memento/assistant
+npm install @jee1/memento-assistant
 ```
 
 ## 5분 빠른 시작 (stdio — MCP 서버 자동 시작)
 
 ```ts
-import { MementoAssistant } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
 
 const memory = MementoAssistant.fromEnv(
   { ownerId: 'user-123', channel: 'telegram' },
@@ -106,8 +106,8 @@ if (ctx.degraded) {
 ## 테스트에서 MockTransport 사용
 
 ```ts
-import { MementoAssistant } from '@memento/assistant';
-import { MockTransport } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
+import { MockTransport } from '@jee1/memento-assistant';
 
 const t = new MockTransport();
 t.fixture('m:1', { content: '사용자 이름: Alice', type: 'semantic' });
@@ -122,9 +122,9 @@ expect(ctx.systemContext).toContain('Alice');
 이 저장소 루트에서 패키지를 빌드·검증하려면 [루트 `package.json`](../../package.json)의 워크스페이스 스크립트를 사용합니다. 예:
 
 ```bash
-npm run build -w @memento/assistant
-npm run type-check -w @memento/assistant
-npm run test -w @memento/assistant
+npm run build -w @jee1/memento-assistant
+npm run type-check -w @jee1/memento-assistant
+npm run test -w @jee1/memento-assistant
 ```
 
 ## FAQ
