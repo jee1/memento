@@ -47,18 +47,21 @@ export default defineConfig({
     testTimeout: 30000,
     setupFiles: ['./packages/memento-core/src/test/vitest.setup.ts'],
     // CI 환경에서 DB 관련 및 무거운 테스트 스킵
+    // migration-runner: PR CI excludes; nightly opts in via VITEST_INCLUDE_MIGRATION_RUNNER=1 (#751)
     ...(process.env.CI && {
       exclude: [
-        'node_modules', 
-        'dist', 
-        '**/test/**/*db*.{test,spec}.{js,ts}', 
+        'node_modules',
+        'dist',
+        '**/test/**/*db*.{test,spec}.{js,ts}',
         '**/test/**/*database*.{test,spec}.{js,ts}',
         '**/test/**/*integration*.{test,spec}.{js,ts}',
         '**/test/**/*m1*.{test,spec}.{js,ts}',
         '**/test/**/*performance*.{test,spec}.{js,ts}',
         '**/test/**/*error-handling*.{test,spec}.{js,ts}',
         'packages/memento-core/src/domains/monitoring/services/quality-assurance/*.spec.ts',
-        '**/migration-runner.integration.spec.ts'
+        ...(process.env.VITEST_INCLUDE_MIGRATION_RUNNER === '1'
+          ? []
+          : ['**/migration-runner.integration.spec.ts']),
       ]
     }),
     ...(process.env.CI && {
