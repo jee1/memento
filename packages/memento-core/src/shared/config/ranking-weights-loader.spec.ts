@@ -11,6 +11,7 @@ import {
   loadRankingWeights,
   getRankingWeights,
   getRankingVersion,
+  getRankingVersionPayload,
   resetRankingWeightsCache,
   type RankingWeightsConfig
 } from './ranking-weights-loader.js';
@@ -171,6 +172,14 @@ alpha = 0.45
       expect(first).toMatch(/^ranking-sha256:[a-f0-9]{12}$/);
       expect(second).toBe(first);
       expect(first).not.toBe(getRankingVersion());
+    });
+
+    it('includes hybrid vector threshold, prefetch, and under-fill policy (#789)', () => {
+      const payload = getRankingVersionPayload();
+      expect(payload.hybrid_vector_threshold).toBe(0.38);
+      expect(payload.vector_prefetch_multiplier).toBe(2);
+      expect(payload.vector_underfill_fill).toBe(true);
+      expect(getRankingVersion()).toMatch(/^ranking-sha256:[a-f0-9]{12}$/);
     });
 
     it('should cache loaded config', () => {

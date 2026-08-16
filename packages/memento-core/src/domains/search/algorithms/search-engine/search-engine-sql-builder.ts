@@ -195,7 +195,7 @@ export async function buildSearchStatement(
     sql += `${whereClause}${conditions.join(' AND ')}`;
   }
 
-  sql += ' ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?';
+  sql += ' ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?';
   sqlParams.push(limit * 3);
 
   return { sql, params: sqlParams, usedFtsQuery };

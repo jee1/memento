@@ -143,6 +143,8 @@ export interface HybridSearchQuery {
   match_trigger_conditions?: boolean;
   context?: TriggerContext;
   include_score_breakdown?: boolean;
+  /** When true, return per-stage candidate IDs without changing default ranking. */
+  includeFunnel?: boolean;
 }
 
 export interface HybridSearchResult {

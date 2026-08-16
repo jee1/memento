@@ -88,4 +88,21 @@ describe('buildSearchStatement', () => {
     ]);
   });
 
+  it('FTS5 rank는 낮은 값이 더 좋으므로 ASC로 정렬한다 (#787)', async () => {
+    const result = await buildSearchStatement({
+      db: {} as never,
+      searchQuery: 'bm25 order',
+      limit: 10,
+      hasIdFilter: false,
+      preferFts: true,
+      checkFTS5Availability: async () => true,
+      buildFTSQuery: (query) => query,
+      buildReflectionNotesSearchCondition: () => null,
+    });
+
+    expect(result.sql).toMatch(/ORDER BY fts_rank ASC/);
+    expect(result.sql).not.toMatch(/ORDER BY fts_rank DESC/);
+    const limitIndex = result.sql.lastIndexOf('LIMIT ?');
+    expect(result.sql.search(/ORDER BY fts_rank ASC/)).toBeLessThan(limitIndex);
+  });
 });

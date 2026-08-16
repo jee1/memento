@@ -353,6 +353,27 @@ describe('벡터 검색 품질 검증 헬퍼', () => {
       expect(results[2].id).toBe('id2'); // finalScore 0.75
       expect(results[0].score).toBe(0.85);
     });
+
+    it('records weighted fusion relevance instead of vectorScore || textScore (#788)', () => {
+      const searchResults: HybridSearchResult[] = [
+        {
+          id: 'overlap',
+          content: 'both',
+          type: 'episodic',
+          importance: 0.5,
+          created_at: '2024-01-01',
+          pinned: false,
+          textScore: 0.9,
+          vectorScore: 0.2,
+          finalScore: 0.5,
+          recall_reason: 'test',
+        },
+      ];
+
+      const [result] = generateConsolidationSearchResults(searchResults);
+      expect(result?.relevance).toBeCloseTo(0.9 * 0.4 + 0.2 * 0.6, 8);
+      expect(result?.relevance).not.toBe(0.2);
+    });
   });
 
   describe('generateOrderPreservationReport', () => {

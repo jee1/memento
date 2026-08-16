@@ -86,6 +86,11 @@
       "types": "./dist/domains/embedding/services/vector-compatibility-service.d.ts",
       "import": "./dist/domains/embedding/services/vector-compatibility-service.js",
       "default": "./dist/domains/embedding/services/vector-compatibility-service.js"
+    },
+    "./domains/memory/services/knowledge-context-bundle-builder.js": {
+      "types": "./dist/domains/memory/services/knowledge-context-bundle-builder.d.ts",
+      "import": "./dist/domains/memory/services/knowledge-context-bundle-builder.js",
+      "default": "./dist/domains/memory/services/knowledge-context-bundle-builder.js"
     }
   },
   "scripts": {

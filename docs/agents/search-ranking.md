@@ -18,6 +18,22 @@ S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weig
 
 vec 인덱스 적재량을 점검할 때는 raw provider 행 수와 1:1로 비교하면 안 됩니다. 각 테이블의 트리거 조건(`embedding_provider` + `dimensions` + `projection_type = 'native'`, legacy 384 테이블은 `dimensions = 384`)을 그대로 쓰는 `checkVecCardinality()`를 사용하세요.
 
+## FTS5 BM25 계약 (Issue #787)
+
+SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값은 **음수일 수 있습니다**. 빈 쿼리·LIKE fallback SQL은 `0 as fts_rank`를 쓰므로 `0`은 BM25 없음(lexical relevance)입니다.
+
+텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank))`로 (0, 1) relevance에 올린 뒤 기존 가중합에 넣습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다.
+
+FTS 쿼리 combinator(짧은 AND / 토큰 5개 초과 시 앞 8개 OR)는 `search-engine-fts-query.ts`의 현재 값을 유지합니다. LoCoMo ablation 전까지 `config/ranking-weights.toml`도 재튜닝하지 않습니다.
+
+## Hybrid fusion relevance (Issue #788)
+
+combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/usage/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.
+
+## Hybrid vector threshold and under-fill (Issue #789)
+
+하이브리드 벡터 fetch는 `threshold: 0`으로 prefetch(`limit * VECTOR_SEARCH_LIMIT_MULTIPLIER`, 상한 100)를 받습니다. funnel의 `thresholded_vector`는 `HYBRID_VECTOR_THRESHOLD`(0.38) 이상만 남깁니다. thresholded 개수가 `query.limit`보다 적으면 raw prefetch에서 유사도 내림차순으로 채워 fusion에 넣습니다(`VECTOR_UNDERFILL_FILL`). hashed TF-IDF가 0.38 아래에 있어도 gold가 fusion 전에 전부 사라지지 않게 하기 위함입니다. 0.38 숫자와 prefetch 배수는 LoCoMo ablation 전까지 유지하고, `config/ranking-weights.toml`은 재튜닝하지 않습니다. 이 상수는 `getRankingVersion()` 해시에 포함됩니다.
+
 ## 런타임 가중치 재로드 (Issue #667)
 
 `ζ`(relation_weight) 같은 랭킹 계수는 `config/ranking-weights.toml`에서 읽히므로, 코드 배포 없이 TOML 파일만 수정해 계수를 바꿀 수 있습니다. 방법은 간단합니다. `MEMENTO_RANKING_WEIGHTS_PATH` 환경변수로 TOML 파일의 절대 경로를 지정하거나, 미설정 시에는 기본값인 `config/ranking-weights.toml`이 사용됩니다. 파일을 수정한 뒤에는 **Memento 프로세스를 재시작**해야 합니다. 가중치는 프로세스 기동 시 캐시되며 현재 hot reload는 지원하지 않습니다.

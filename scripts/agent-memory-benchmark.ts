@@ -17,7 +17,7 @@ import {
   type AgentMemoryRetrievalQuery,
   type AgentMemoryTaskCase,
 } from './agent-memory-benchmark-adapter.js';
-import { runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
+import { meanFunnelGoldFraction, runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
 
 type BaselineName = 'grep' | 'fts_only' | 'vector' | 'rrf_sim' | 'memento_prod' | 'graph_rrf';
 
@@ -85,6 +85,7 @@ export interface ProductionScorecard {
   dataset_sha256: string;
   seed: number;
   ranking_profile: string;
+  ranking_version: string;
   embedding_provider: string;
   production_path: string;
   query_count: number;
@@ -92,6 +93,10 @@ export interface ProductionScorecard {
   non_abstention_query_count: number;
   recall_at_5: number;
   recall_at_10: number;
+  /** Gold hit rate in FTS SQL candidates (`raw_text` funnel stage). */
+  sql_candidate_recall: number;
+  /** Gold hit rate after SearchEngine top-N (`text_topN` funnel stage). */
+  engine_topn_recall: number;
   mrr: number;
   ndcg_at_10: number;
   latency_ms: { p50: number; p95: number };
@@ -112,6 +117,11 @@ export interface AgentMemoryBenchmarkReport {
     seed: number;
     graph_rrf: boolean;
     production?: boolean;
+    ranking_version?: string;
+    ranking_weights_path_override?: boolean;
+    eligible_query_ids_sha256?: string;
+    excluded_query_ids_sha256?: string;
+    evaluator_revision?: string;
   };
   retrieval: Partial<Record<BaselineName, BaselineMetrics>>;
   by_category?: Partial<Record<BaselineName, Record<string, CategoryMetrics>>>;
@@ -224,6 +234,28 @@ export function evaluateRankedResults(
   };
 }
 
+export function summarizeInjectionTokenSplit(
+  requestedTokenBudget: number,
+  evaluations: Array<{
+    serialized_token_estimate: number;
+    fixed_item_gold_fraction: number;
+    fixed_token_gold_fraction: number;
+  }>,
+): {
+  requested_token_budget: number;
+  serialized_token_mean: number;
+  fixed_item_gold_fraction_mean: number;
+  fixed_token_gold_fraction_mean: number;
+} {
+  const n = evaluations.length || 1;
+  return {
+    requested_token_budget: requestedTokenBudget,
+    serialized_token_mean: evaluations.reduce((sum, row) => sum + row.serialized_token_estimate, 0) / n,
+    fixed_item_gold_fraction_mean: evaluations.reduce((sum, row) => sum + row.fixed_item_gold_fraction, 0) / n,
+    fixed_token_gold_fraction_mean: evaluations.reduce((sum, row) => sum + row.fixed_token_gold_fraction, 0) / n,
+  };
+}
+
 export function evaluateGraphAdoptionGate(
   baseline: BaselineMetrics,
   graph: BaselineMetrics,
@@ -271,6 +303,49 @@ export function evaluateGraphAdoptionGate(
   return {
     enabled: true,
     adoption_candidate: checks.every((check) => check.passed),
+    checks,
+  };
+}
+
+export interface ProposedQualityGateInput {
+  recall_at_10: number;
+  zero_hit_rate: number;
+  p95_ms: number;
+  category_regression: boolean;
+}
+
+export function evaluateProposedQualityGate(input: ProposedQualityGateInput): {
+  passed: boolean;
+  checks: GateCheck[];
+} {
+  const checks: GateCheck[] = [
+    {
+      name: 'recall_at_10',
+      threshold: 0.8,
+      observed: input.recall_at_10,
+      passed: input.recall_at_10 >= 0.8,
+    },
+    {
+      name: 'zero_hit_rate',
+      threshold: 0.2,
+      observed: input.zero_hit_rate,
+      passed: input.zero_hit_rate < 0.2,
+    },
+    {
+      name: 'p95_ms',
+      threshold: 1000,
+      observed: input.p95_ms,
+      passed: input.p95_ms < 1000,
+    },
+    {
+      name: 'category_regression',
+      threshold: 0,
+      observed: input.category_regression ? 1 : 0,
+      passed: !input.category_regression,
+    },
+  ];
+  return {
+    passed: checks.every((check) => check.passed),
     checks,
   };
 }
@@ -435,6 +510,11 @@ export async function runProductionAgentMemoryBenchmark(
     .sort((a, b) => a.localeCompare(b));
 
   report.reproduction.production = true;
+  report.reproduction.ranking_version = production.ranking_version;
+  report.reproduction.ranking_weights_path_override = production.ranking_weights_path_override;
+  report.reproduction.evaluator_revision = dataset.manifest.benchmark_version;
+  report.reproduction.eligible_query_ids_sha256 = hashIdList(dataset.queries.map((query) => query.id));
+  report.reproduction.excluded_query_ids_sha256 = hashIdList(excludedQueryIds(dataset));
   report.retrieval.memento_prod = metrics;
   report.end_to_end.memento_prod = evaluateEndToEnd(
     dataset.e2eCases,
@@ -460,6 +540,7 @@ export async function runProductionAgentMemoryBenchmark(
     dataset_revision: dataset.manifest.source_revision,
     dataset_sha256: report.reproduction.fixture_sha256,
     ranking_profile: production.ranking_profile,
+    ranking_version: production.ranking_version,
     embedding_provider: production.embedding_provider,
     seed: report.reproduction.seed,
     query_count: metrics.query_count,
@@ -467,6 +548,8 @@ export async function runProductionAgentMemoryBenchmark(
     non_abstention_query_count: dataset.queries.length,
     recall_at_5: metrics.recall_at_5,
     recall_at_10: metrics.recall_at_10,
+    sql_candidate_recall: meanFunnelGoldFraction(production.evaluations, 'raw_text'),
+    engine_topn_recall: meanFunnelGoldFraction(production.evaluations, 'text_topN'),
     mrr: metrics.mrr,
     ndcg_at_10: metrics.ndcg_at_10,
     latency_ms: metrics.latency_ms,
@@ -971,6 +1054,19 @@ function hashDataset(dataset: AgentMemoryBenchmarkDataset): string {
   return createHash('sha256')
     .update(JSON.stringify(dataset))
     .digest('hex');
+}
+
+function hashIdList(ids: string[]): string {
+  return createHash('sha256')
+    .update([...ids].sort((a, b) => a.localeCompare(b)).join('\n'))
+    .digest('hex');
+}
+
+function excludedQueryIds(dataset: AgentMemoryBenchmarkDataset): string[] {
+  const eligible = new Set(dataset.queries.map((query) => query.id));
+  return (dataset.taskCases ?? [])
+    .filter((testCase) => testCase.abstention || !eligible.has(testCase.id))
+    .map((testCase) => testCase.id);
 }
 
 function readGitSha(): string {

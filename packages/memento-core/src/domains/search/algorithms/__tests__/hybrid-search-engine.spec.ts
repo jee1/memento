@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
-import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType, resolveHybridVectorPrefetchLimit } from '../hybrid-search-engine.js';
+import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType, resolveHybridVectorPrefetchLimit, SearchResultCombiner } from '../hybrid-search-engine.js';
 import type { ITextSearchEngine, IEmbeddingService, IVectorSearchEngine, ISearchResultCombiner, IAdaptiveWeightCalculator, ISearchLogger, IProceduralMemoryMatcher } from '../hybrid-search-engine.js';
 import Database from 'better-sqlite3';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
@@ -361,7 +361,7 @@ describe('HybridSearchEngine', () => {
         expect.objectContaining({
           types: typeFilters,
           limit: 10,
-          threshold: 0.38,
+          threshold: 0,
           includeContent: true
         }),
         expect.any(String) // provider 파라미터
@@ -440,7 +440,7 @@ describe('HybridSearchEngine', () => {
         expect.objectContaining({
           type: typeFilters,
           limit: 10,
-          threshold: 0.38
+          threshold: 0
         })
       );
     });
@@ -571,6 +571,74 @@ describe('HybridSearchEngine', () => {
       });
       expect(mockWeightCalculator.calculateWeights).toHaveBeenCalledWith('test query', 0.6, 0.4);
       expect(mockResultCombiner.combine).toHaveBeenCalledWith(mockTextResults, mockVectorResults, 0.4, 0.6);
+    });
+
+    it('includeFunnel이면 candidate_funnel 단계 순서와 id를 반환한다', async () => {
+      const mockTextResults = [
+        { id: '1', content: 'test content 1', score: 0.8, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false },
+        { id: '3', content: 'test content 3', score: 0.5, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+      ];
+      const mockVectorResults = [
+        { id: '2', content: 'below threshold', similarity: 0.1, type: 'semantic', importance: 0.8, created_at: '2024-01-01', pinned: false },
+        { id: '1', content: 'test content 1', similarity: 0.9, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false },
+      ];
+      const mockCombinedResults = [
+        { id: '1', content: 'test content 1', textScore: 0.8, vectorScore: 0.9, finalScore: 0.86, recall_reason: '하이브리드' },
+      ];
+
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: mockTextResults, total_count: 2, query_time: 10 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue(mockVectorResults);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue(mockCombinedResults);
+
+      const result = await hybridSearchEngine.search(mockDb, {
+        query: 'test query',
+        limit: 1,
+        includeFunnel: true,
+      });
+
+      expect(result.candidate_funnel).toEqual({
+        raw_text: ['1', '3'],
+        text_topN: ['1'],
+        raw_vector: ['2', '1'],
+        thresholded_vector: ['1'],
+        union: ['1', '3'],
+        final_top10: ['1'],
+        vector_threshold: 0.38,
+        vector_prefetch: 2,
+        text_weight: 0.4,
+        vector_weight: 0.6,
+      });
+    });
+
+    it('fills under-threshold vector hits when thresholded pool is shorter than limit (#789)', async () => {
+      const mockTextResults = [
+        { id: 'text', content: 'text only', score: 0.4, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+      ];
+      const mockVectorResults = [
+        { id: 'high', content: 'above', similarity: 0.9, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'mid', content: 'below', similarity: 0.2, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'low', content: 'far', similarity: 0.05, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+      ];
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: mockTextResults, total_count: 1, query_time: 1 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue(mockVectorResults);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+
+      const result = await hybridSearchEngine.search(mockDb, {
+        query: 'underfill',
+        limit: 3,
+        includeFunnel: true,
+      });
+
+      expect(result.candidate_funnel?.raw_vector).toEqual(['high', 'mid', 'low']);
+      expect(result.candidate_funnel?.thresholded_vector).toEqual(['high']);
+      const combinedVectors = (mockResultCombiner.combine as Mock).mock.calls[0]?.[1] as Array<{ id: string }>;
+      expect(combinedVectors.map((item) => item.id)).toEqual(['high', 'mid', 'low']);
     });
   });
 
@@ -2823,6 +2891,97 @@ describe('ISearchResultCombiner 인터페이스', () => {
       // Then: HybridSearchResult[] 타입을 반환함
       const result = mockCombiner.combine([], [], 0.5, 0.5);
       expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('adaptive fusion weights (#788)', () => {
+    it('final order follows adaptive text/vector weights on overlap candidates', async () => {
+      const stamp = '2024-01-01T00:00:00.000Z';
+      const textEngine = createMockTextSearchEngine();
+      const embeddingService = createMockEmbeddingService();
+      const vectorEngine = createMockVectorSearchEngine();
+      const weightCalculator = createMockWeightCalculator();
+      const logger = createMockLogger();
+      const engine = new HybridSearchEngine(
+        textEngine,
+        embeddingService,
+        vectorEngine,
+        new SearchResultCombiner(),
+        weightCalculator,
+        logger,
+      );
+
+      (textEngine.search as Mock).mockResolvedValue({
+        items: [
+          {
+            id: 'lexical',
+            content: 'lexical hit',
+            type: 'semantic',
+            importance: 0.5,
+            created_at: stamp,
+            last_accessed: stamp,
+            pinned: false,
+            tags: [],
+            score: 0.9,
+          },
+          {
+            id: 'semantic',
+            content: 'semantic hit',
+            type: 'semantic',
+            importance: 0.5,
+            created_at: stamp,
+            last_accessed: stamp,
+            pinned: false,
+            tags: [],
+            score: 0.2,
+          },
+        ],
+        total_count: 2,
+        query_time: 0,
+      });
+      (vectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (embeddingService.isAvailable as Mock).mockReturnValue(true);
+      (embeddingService.searchBySimilarity as Mock).mockResolvedValue([
+        {
+          id: 'lexical',
+          content: 'lexical hit',
+          type: 'semantic',
+          importance: 0.5,
+          created_at: stamp,
+          last_accessed: stamp,
+          pinned: false,
+          tags: [],
+          similarity: 0.2,
+          score: 0.2,
+        },
+        {
+          id: 'semantic',
+          content: 'semantic hit',
+          type: 'semantic',
+          importance: 0.5,
+          created_at: stamp,
+          last_accessed: stamp,
+          pinned: false,
+          tags: [],
+          similarity: 0.9,
+          score: 0.9,
+        },
+      ]);
+
+      (weightCalculator.calculateWeights as Mock).mockReturnValue({
+        textWeight: 0.9,
+        vectorWeight: 0.1,
+      });
+      const textHeavy = await engine.search(mockDb, { query: 'fusion', limit: 10 });
+
+      (weightCalculator.calculateWeights as Mock).mockReturnValue({
+        textWeight: 0.1,
+        vectorWeight: 0.9,
+      });
+      const vectorHeavy = await engine.search(mockDb, { query: 'fusion', limit: 10 });
+
+      expect(textHeavy.items[0]?.id).toBe('lexical');
+      expect(vectorHeavy.items[0]?.id).toBe('semantic');
     });
   });
 });
