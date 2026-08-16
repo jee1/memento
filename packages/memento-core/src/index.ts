@@ -132,6 +132,12 @@ export { getVectorSearchEngine } from './domains/search/algorithms/vector-search
 export { SearchEngine } from './domains/search/algorithms/search-engine.js';
 export { HybridSearchEngine, createHybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
 export { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
+// #768: triple → 문장 재조립 (복구 스크립트가 동일 렌더러를 쓰도록 공개)
+export {
+  buildTripleSentence,
+  hasBrokenTripleConjugation,
+  legacyTripleSentence
+} from './domains/memory/services/semantic-memory/triple-sentence.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';

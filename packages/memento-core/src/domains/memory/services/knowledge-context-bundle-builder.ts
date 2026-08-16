@@ -12,6 +12,7 @@ import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embeddin
 import { logger } from '../../../shared/utils/logger.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
+import { hasBrokenTripleConjugation } from './semantic-memory/triple-sentence.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
@@ -329,6 +330,17 @@ export async function buildKnowledgeContextBundle(
     memories = memories.filter((m) => m.project_id != null && m.project_id === projectId);
   }
   memories = filterByOwner(memories, ownerId);
+
+  // #768: 옛 triple 템플릿이 남긴 이중 활용 문장(`정의됨합니다`)은 주입 예산만 축내므로 제외한다.
+  // 신규 생성은 SemanticMemoryScoring이 이미 막고, 남은 기존 행은 복구 스크립트가 다시 렌더한다.
+  const corruptedCount = memories.filter((memory) => hasBrokenTripleConjugation(memory.content)).length;
+  if (corruptedCount > 0) {
+    memories = memories.filter((memory) => !hasBrokenTripleConjugation(memory.content));
+    logger.warn('[knowledge-context-bundle] 손상된 triple 문장 제외', {
+      excluded: corruptedCount,
+      hint: 'npm run memory:repair-triple-sentences -- --apply',
+    });
+  }
 
   logger.debug('[knowledge-context-bundle] 검색된 기억', { count: memories.length });
 
