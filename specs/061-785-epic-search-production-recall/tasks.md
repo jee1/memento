@@ -139,13 +139,13 @@ Tests are required (constitution I). Write failing tests first.
 
 ## Phase 8: Polish
 
-- [ ] T039 [P] CHANGELOG Unreleased for #785 children actually shipped
-- [ ] T040 [P] Update `docs/agents/search-ranking.md` with FTS5 BM25 sign and fusion relevance contracts
-- [ ] T041 `npm run lint` && `npm run type-check`
-- [ ] T042 Targeted tests (search-engine, hybrid-search-engine, ranker/combiner, adapter, benchmark)
-- [ ] T043 `npm test`
-- [ ] T044 graphify rebuild: `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"`
-- [ ] T045 Record LoCoMo 1,536 solo-run scorecard (if `.local/locomo/` present) against SC-006; do not commit corpus
+- [x] T039 [P] CHANGELOG Unreleased for #785 children actually shipped
+- [x] T040 [P] Update `docs/agents/search-ranking.md` with FTS5 BM25 sign and fusion relevance contracts
+- [x] T041 `npm run lint` && `npm run type-check`
+- [x] T042 Targeted tests (search-engine, hybrid-search-engine, ranker/combiner, adapter, benchmark)
+- [x] T043 `npm test`
+- [x] T044 graphify rebuild: `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"`
+- [x] T045 Record LoCoMo 1,536 solo-run scorecard (if `.local/locomo/` present) against SC-006; do not commit corpus
 
 ---
 

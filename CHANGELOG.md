@@ -40,6 +40,7 @@
 
 ### Added
 
+- **Production recall funnel + ranking hash** (#786): production adapter records per-query stages `raw_text → text_topN → raw_vector → thresholded_vector → union → final_top10` with gold any/all/fraction. Scorecard `ranking_version` is `ranking-sha256:…`; reproduction includes clean git SHA, weights-path override, eligible/excluded query ID hashes. Ranking algorithm unchanged in this slice.
 - **remember write-path near-duplicate** (#730): `remember`가 INSERT 직전에 동일 `type`·`owner_id`·`project_id` 스코프에서 벡터 유사 후보를 검색합니다. 기본 `MEMENTO_REMEMBER_DEDUP_MODE=warn`은 저장 성공 + `similarity_warning`(candidates·`suggestion: incremental`). `strict`는 거절, `update_mode=incremental`은 working/episodic/semantic top 후보 UPDATE. env: `MEMENTO_REMEMBER_DEDUP_THRESHOLD`(기본 0.85).
 - **Production agent-memory recall benchmark** (#737): synthetic reciprocal-rank fusion baseline is now `rrf_sim`; opt-in `npm run quality:agent-memory:production` seeds a disposable fixture-ID-preserving database and runs production `HybridSearchEngine.search` (same engine as RecallTool / memory_injection) with TF-IDF embeddings. The `memento_prod` scorecard records dataset revision/hash, ranking profile, provider, retrieval metrics, p95 budget, abstentions, failed queries, and a non-degradation gate against `fts_only`.
 - **MCP transport parity spec** (#681): `runtime-transport-parity.spec.ts` — stdio·HTTP·WebSocket `tools/call`이 동일한 `ToolResult`를 반환하는지 검증.
