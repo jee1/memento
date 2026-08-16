@@ -1,0 +1,26 @@
+{
+  "name": "memento",
+  "owner": {
+    "name": "jee1",
+    "url": "https://github.com/jee1"
+  },
+  "description": "Memento — MCP memory server for AI agents (working/episodic/semantic/procedural)",
+  "plugins": [
+    {
+      "name": "memento",
+      "source": "./plugins/memento",
+      "displayName": "Memento Memory",
+      "description": "Long-term memory for Claude Code: recall before work, remember after, with forgetting and procedural version control.",
+      "author": {
+        "name": "jee1",
+        "url": "https://github.com/jee1"
+      },
+      "homepage": "https://github.com/jee1/memento#readme",
+      "repository": "https://github.com/jee1/memento",
+      "license": "MIT",
+      "category": "memory",
+      "keywords": ["mcp", "memory", "recall", "knowledge-graph", "sqlite"],
+      "tags": ["memory", "mcp", "context"]
+    }
+  ]
+}
