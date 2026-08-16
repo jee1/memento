@@ -1,13 +1,16 @@
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { HybridSearchEngine } from '@memento/core';
-import { loadAgentMemoryFixture } from './agent-memory-benchmark-adapter.js';
+import { adaptLoCoMo, loadAgentMemoryFixture } from './agent-memory-benchmark-adapter.js';
 import {
   FUNNEL_STAGE_ORDER,
   buildFunnelStages,
   goldHitStats,
   meanFunnelGoldFraction,
+  runProductionInjectionBenchmark,
   runProductionRecallBenchmark,
+  selectedIdsFromInjectionPrompt,
+  ENABLE_READER_ARMS,
 } from './agent-memory-production-adapter.js';
 
 const FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark');
@@ -91,6 +94,47 @@ describe('agent memory production adapter', () => {
       const byName = Object.fromEntries(evaluation.funnel.map((stage) => [stage.name, stage]));
       expect(byName.raw_vector.candidate_count).toBeGreaterThanOrEqual(byName.thresholded_vector.candidate_count);
       expect(byName.raw_text.candidate_count).toBeGreaterThanOrEqual(byName.text_topN.candidate_count);
+    }
+  }, 120_000);
+
+  it('keeps engine production_path and runs a separate injection bundle strategy (#790)', async () => {
+    const dataset = loadAgentMemoryFixture(FIXTURE_DIR);
+    const engine = await runProductionRecallBenchmark(dataset, dataset.manifest.top_k);
+    const injection = await runProductionInjectionBenchmark(dataset, {
+      topK: dataset.manifest.top_k,
+      tokenBudget: dataset.manifest.token_budget,
+    });
+
+    expect(engine.production_path).toBe('hybridSearchEngine.search');
+    expect(injection.production_path).toBe('buildKnowledgeContextBundle');
+    expect(injection.evaluations).toHaveLength(dataset.queries.length);
+    expect(injection.requested_token_budget).toBe(dataset.manifest.token_budget);
+    expect(injection.reader_arms).toBeUndefined();
+    expect(ENABLE_READER_ARMS).toBe(false);
+  }, 120_000);
+
+  it('connects engine IDs to injection selected content on the synthetic LoCoMo-shape fixture (#790)', async () => {
+    const dataset = adaptLoCoMo(join(FIXTURE_DIR, 'locomo-shape-sample.json'));
+    const injection = await runProductionInjectionBenchmark(dataset, {
+      topK: dataset.manifest.top_k,
+      tokenBudget: dataset.manifest.token_budget,
+    });
+    const documents = new Map(dataset.documents.map((document) => [document.id, document]));
+
+    expect(injection.evaluations.some((evaluation) => evaluation.selected_ids.length > 0)).toBe(true);
+    for (const evaluation of injection.evaluations) {
+      expect(evaluation.engine_ids.length).toBeGreaterThan(0);
+      expect(evaluation.serialized_token_estimate).toBeGreaterThanOrEqual(0);
+      expect(evaluation.fixed_item_gold_fraction).toBeGreaterThanOrEqual(0);
+      expect(evaluation.fixed_token_gold_fraction).toBeGreaterThanOrEqual(0);
+      const reconstructed = selectedIdsFromInjectionPrompt(evaluation.prompt_text, dataset.documents);
+      expect(reconstructed).toEqual(evaluation.selected_ids);
+      for (const id of evaluation.selected_ids) {
+        const document = documents.get(id);
+        expect(document).toBeDefined();
+        expect(evaluation.prompt_text).toContain(document!.content.slice(0, 24));
+        expect(evaluation.engine_ids).toContain(id);
+      }
     }
   }, 120_000);
 });

@@ -120,18 +120,18 @@ Tests are required (constitution I). Write failing tests first.
 
 ### Tests (fail first)
 
-- [ ] T030 [US5] Adapter/benchmark tests: engine strategy keeps an explicit `production_path: hybridSearchEngine.search`; injection strategy invokes real injection/bundle path
-- [ ] T031 [P] [US5] Provenance test: engine IDs connect to selected injection IDs/content on `tests/fixtures/agent-memory-benchmark/locomo-shape-sample.json`
-- [ ] T032 [US5] Gate unit tests for Recall@10 ≥ 0.80, zero-hit < 20%, p95 < 1s, category regression flag
+- [x] T030 [US5] Adapter/benchmark tests: engine strategy keeps an explicit `production_path: hybridSearchEngine.search`; injection strategy invokes real injection/bundle path
+- [x] T031 [P] [US5] Provenance test: engine IDs connect to selected injection IDs/content on `tests/fixtures/agent-memory-benchmark/locomo-shape-sample.json`
+- [x] T032 [US5] Gate unit tests for Recall@10 ≥ 0.80, zero-hit < 20%, p95 < 1s, category regression flag
 
 ### Implementation
 
-- [ ] T033 [US5] Add injection arm using `packages/memento-core/src/domains/memory/services/knowledge-context-bundle-builder.ts` (or `memory_injection` tool path) from `scripts/agent-memory-production-adapter.ts` without requiring MCP to grow a new public ID list field
-- [ ] T034 [US5] Record requested vs serialized tokens (headers/query/footer) and split fixed-item Recall@k vs fixed-token coverage in `scripts/agent-memory-benchmark.ts`
-- [ ] T035 [US5] Keep LoCoMo adversarial/empty-evidence out of retrieval metrics; abstention QA separate (existing adapter rules)
-- [ ] T036 [US5] Optional reader arms (no-context / oracle / production injection / FTS context) behind a flag; default off in CI
-- [ ] T037 [US5] Update `docs/_work/testing/ko/benchmark-datasets.md` so internal session-retrieval ≠ official LoCoMo QA
-- [ ] T038 [US5] Run `npm run quality:locomo:test` and benchmark/adapter specs
+- [x] T033 [US5] Add injection arm using `packages/memento-core/src/domains/memory/services/knowledge-context-bundle-builder.ts` (or `memory_injection` tool path) from `scripts/agent-memory-production-adapter.ts` without requiring MCP to grow a new public ID list field
+- [x] T034 [US5] Record requested vs serialized tokens (headers/query/footer) and split fixed-item Recall@k vs fixed-token coverage in `scripts/agent-memory-benchmark.ts`
+- [x] T035 [US5] Keep LoCoMo adversarial/empty-evidence out of retrieval metrics; abstention QA separate (existing adapter rules)
+- [x] T036 [US5] Optional reader arms (no-context / oracle / production injection / FTS context) behind a flag; default off in CI
+- [x] T037 [US5] Update `docs/_work/testing/ko/benchmark-datasets.md` so internal session-retrieval ≠ official LoCoMo QA
+- [x] T038 [US5] Run `npm run quality:locomo:test` and benchmark/adapter specs
 
 **Checkpoint**: US5 independently testable. Full 1,536 gate is local/nightly, not CI.
 

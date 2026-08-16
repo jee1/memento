@@ -9,6 +9,8 @@
 
 여기서 뽑는 숫자는 **검색 품질(retrieval)** 입니다. recall@5·recall@10·MRR·nDCG@10을 카테고리별로 나누고, 각 행에 그 카테고리의 **쿼리당 주입 토큰 수**를 함께 적습니다. 정확도만 단독으로 읽으면 "토큰을 더 넣어 점수를 올린" 경우와 구분되지 않기 때문에, 두 값은 항상 같은 행에 둡니다.
 
+`memento_prod`는 세션 단위 검색 엔진 primitive(`hybridSearchEngine.search`)입니다. 공식 LoCoMo QA(판정자 정답률)와 숫자가 같아 보이지 않습니다. 실제 `memory_injection` 경로는 scoped candidate multiplier·다른 기본 가중치·요약·token selection을 거치므로, 그 경로는 `buildKnowledgeContextBundle` 전략으로 따로 재고 engine ID → 주입 본문 provenance로 연결합니다 (#790).
+
 LLM 판정자가 매기는 **정답률(accuracy)** 은 별도 경로입니다. LongMemEval-S에 대해서만 `npm run quality:longmemeval:validate`로 운영하며, 이 문서의 작업에서 LoCoMo로 확장하지 않았습니다. 1,986개 질문에 판정자를 붙이는 일은 자체 벤치마크 설계에 가깝고, 이슈 #767의 비범위입니다.
 
 ## 2. 라이선스 — LoCoMo는 비상업(NonCommercial)

@@ -234,6 +234,28 @@ export function evaluateRankedResults(
   };
 }
 
+export function summarizeInjectionTokenSplit(
+  requestedTokenBudget: number,
+  evaluations: Array<{
+    serialized_token_estimate: number;
+    fixed_item_gold_fraction: number;
+    fixed_token_gold_fraction: number;
+  }>,
+): {
+  requested_token_budget: number;
+  serialized_token_mean: number;
+  fixed_item_gold_fraction_mean: number;
+  fixed_token_gold_fraction_mean: number;
+} {
+  const n = evaluations.length || 1;
+  return {
+    requested_token_budget: requestedTokenBudget,
+    serialized_token_mean: evaluations.reduce((sum, row) => sum + row.serialized_token_estimate, 0) / n,
+    fixed_item_gold_fraction_mean: evaluations.reduce((sum, row) => sum + row.fixed_item_gold_fraction, 0) / n,
+    fixed_token_gold_fraction_mean: evaluations.reduce((sum, row) => sum + row.fixed_token_gold_fraction, 0) / n,
+  };
+}
+
 export function evaluateGraphAdoptionGate(
   baseline: BaselineMetrics,
   graph: BaselineMetrics,
@@ -281,6 +303,49 @@ export function evaluateGraphAdoptionGate(
   return {
     enabled: true,
     adoption_candidate: checks.every((check) => check.passed),
+    checks,
+  };
+}
+
+export interface ProposedQualityGateInput {
+  recall_at_10: number;
+  zero_hit_rate: number;
+  p95_ms: number;
+  category_regression: boolean;
+}
+
+export function evaluateProposedQualityGate(input: ProposedQualityGateInput): {
+  passed: boolean;
+  checks: GateCheck[];
+} {
+  const checks: GateCheck[] = [
+    {
+      name: 'recall_at_10',
+      threshold: 0.8,
+      observed: input.recall_at_10,
+      passed: input.recall_at_10 >= 0.8,
+    },
+    {
+      name: 'zero_hit_rate',
+      threshold: 0.2,
+      observed: input.zero_hit_rate,
+      passed: input.zero_hit_rate < 0.2,
+    },
+    {
+      name: 'p95_ms',
+      threshold: 1000,
+      observed: input.p95_ms,
+      passed: input.p95_ms < 1000,
+    },
+    {
+      name: 'category_regression',
+      threshold: 0,
+      observed: input.category_regression ? 1 : 0,
+      passed: !input.category_regression,
+    },
+  ];
+  return {
+    passed: checks.every((check) => check.passed),
     checks,
   };
 }

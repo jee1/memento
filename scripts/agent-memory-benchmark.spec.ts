@@ -5,10 +5,12 @@ import {
   deterministicProjection,
   evaluateGraphAdoptionGate,
   evaluateProductionVsFtsGate,
+  evaluateProposedQualityGate,
   evaluateRankedResults,
   reciprocalRankFusion,
   runProductionAgentMemoryBenchmark,
   runAgentMemoryBenchmark,
+  summarizeInjectionTokenSplit,
   tokenize,
 } from './agent-memory-benchmark.js';
 
@@ -250,5 +252,49 @@ describe('agent memory benchmark runner', () => {
     expect(report.reproduction.eligible_query_ids_sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(report.reproduction.excluded_query_ids_sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(report.gates.production_vs_fts.enabled).toBe(true);
+    expect(report.scorecard?.production_path).toBe('hybridSearchEngine.search');
+  });
+});
+
+describe('proposed quality gate (#790)', () => {
+  const passing = {
+    recall_at_10: 0.80,
+    zero_hit_rate: 0.19,
+    p95_ms: 999,
+    category_regression: false,
+  };
+
+  it('passes Recall@10 ≥ 0.80, zero-hit < 20%, p95 < 1s, no category regression', () => {
+    const report = evaluateProposedQualityGate(passing);
+    expect(report.passed).toBe(true);
+    expect(report.checks.every((check) => check.passed)).toBe(true);
+  });
+
+  it('fails when Recall@10 is below 0.80', () => {
+    expect(evaluateProposedQualityGate({ ...passing, recall_at_10: 0.799 }).passed).toBe(false);
+  });
+
+  it('fails when zero-hit rate is 20% or higher', () => {
+    expect(evaluateProposedQualityGate({ ...passing, zero_hit_rate: 0.20 }).passed).toBe(false);
+  });
+
+  it('fails when p95 is 1000ms or higher', () => {
+    expect(evaluateProposedQualityGate({ ...passing, p95_ms: 1000 }).passed).toBe(false);
+  });
+
+  it('fails when a category regresses', () => {
+    expect(evaluateProposedQualityGate({ ...passing, category_regression: true }).passed).toBe(false);
+  });
+
+  it('splits requested vs serialized tokens and fixed-item vs fixed-token coverage', () => {
+    expect(summarizeInjectionTokenSplit(240, [
+      { serialized_token_estimate: 100, fixed_item_gold_fraction: 1, fixed_token_gold_fraction: 0.5 },
+      { serialized_token_estimate: 200, fixed_item_gold_fraction: 0, fixed_token_gold_fraction: 0.5 },
+    ])).toEqual({
+      requested_token_budget: 240,
+      serialized_token_mean: 150,
+      fixed_item_gold_fraction_mean: 0.5,
+      fixed_token_gold_fraction_mean: 0.5,
+    });
   });
 });

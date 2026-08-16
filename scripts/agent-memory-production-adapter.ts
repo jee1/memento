@@ -13,6 +13,7 @@ import {
   createMementoCore,
   type MemoryItem,
 } from '@memento/core';
+import { buildKnowledgeContextBundle } from '@memento/core/domains/memory/services/knowledge-context-bundle-builder.js';
 import type {
   AgentMemoryBenchmarkDataset,
   AgentMemoryDocument,
@@ -205,6 +206,123 @@ export async function runProductionRecallBenchmark(
       text_weight: textWeight,
       vector_weight: vectorWeight,
       fallback_used: fallbackUsed,
+    };
+  } finally {
+    if (services?.batchScheduler) {
+      await services.batchScheduler.stop();
+    }
+    if (db) {
+      closeDatabase(db);
+    }
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+const INJECTION_CONTENT_NEEDLE_CHARS = 24;
+const INJECTION_MAX_MEMORIES = 5;
+
+export const ENABLE_READER_ARMS = false;
+
+export function selectedIdsFromInjectionPrompt(
+  promptText: string,
+  documents: AgentMemoryDocument[],
+): string[] {
+  return documents
+    .filter((document) => {
+      const needle = document.content.trim().slice(0, INJECTION_CONTENT_NEEDLE_CHARS);
+      return needle.length > 0 && promptText.includes(needle);
+    })
+    .map((document) => document.id);
+}
+
+export interface ProductionInjectionEvaluation {
+  queryId: string;
+  relevantIds: string[];
+  engine_ids: string[];
+  selected_ids: string[];
+  prompt_text: string;
+  serialized_token_estimate: number;
+  fixed_item_gold_fraction: number;
+  fixed_token_gold_fraction: number;
+  latencyMs: number;
+}
+
+export interface ProductionInjectionRun {
+  production_path: 'buildKnowledgeContextBundle';
+  requested_token_budget: number;
+  evaluations: ProductionInjectionEvaluation[];
+  reader_arms?: undefined;
+}
+
+export async function runProductionInjectionBenchmark(
+  dataset: AgentMemoryBenchmarkDataset,
+  options: { topK: number; tokenBudget: number },
+): Promise<ProductionInjectionRun> {
+  const directory = await mkdtemp(join(tmpdir(), 'memento-agent-memory-injection-'));
+  const dbPath = join(directory, 'benchmark.db');
+  let db: Awaited<ReturnType<typeof createMementoCore>>['db'] | undefined;
+  let services: Awaited<ReturnType<typeof createMementoCore>>['services'] | undefined;
+
+  try {
+    const core = await createMementoCore({ dbPath });
+    db = core.db;
+    services = core.services;
+    await importFixture(dataset.documents, db, services.embeddingService);
+    void options.topK;
+
+    const evaluations: ProductionInjectionEvaluation[] = [];
+    for (const query of dataset.queries) {
+      const projectId = query.scopeId;
+      const hasScope = typeof projectId === 'string' && projectId.length > 0;
+      let engineIds: string[] = [];
+      const search = services.hybridSearchEngine.search.bind(services.hybridSearchEngine);
+      services.hybridSearchEngine.search = (async (dbArg, searchQuery) => {
+        const result = await search(dbArg, searchQuery);
+        engineIds = result.items
+          .map((item) => item.id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0);
+        return result;
+      }) as typeof services.hybridSearchEngine.search;
+      const startedAt = performance.now();
+      try {
+        const bundle = await buildKnowledgeContextBundle(
+          {
+            db,
+            hybridSearchEngine: services.hybridSearchEngine,
+            consolidationScoreService: services.consolidationScoreService,
+            writeCoalescingManager: services.writeCoalescingManager,
+          },
+          {
+            query: query.query,
+            tokenBudget: options.tokenBudget,
+            maxMemories: INJECTION_MAX_MEMORIES,
+            projectId: hasScope ? projectId : undefined,
+          },
+        );
+        const selectedIds = selectedIdsFromInjectionPrompt(bundle.promptText, dataset.documents);
+        evaluations.push({
+          queryId: query.id,
+          relevantIds: query.relevantIds,
+          engine_ids: engineIds,
+          selected_ids: selectedIds,
+          prompt_text: bundle.promptText,
+          serialized_token_estimate: bundle.tokenEstimate,
+          fixed_item_gold_fraction: goldHitStats(
+            engineIds.slice(0, INJECTION_MAX_MEMORIES),
+            query.relevantIds,
+          ).gold_fraction,
+          fixed_token_gold_fraction: goldHitStats(selectedIds, query.relevantIds).gold_fraction,
+          latencyMs: performance.now() - startedAt,
+        });
+      } finally {
+        services.hybridSearchEngine.search = search;
+      }
+    }
+
+    return {
+      production_path: 'buildKnowledgeContextBundle',
+      requested_token_budget: options.tokenBudget,
+      evaluations,
     };
   } finally {
     if (services?.batchScheduler) {
