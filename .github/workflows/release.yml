@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # MCP 공식 레지스트리 OIDC 인증용 (#763)
 
 jobs:
   release:
@@ -350,3 +351,44 @@ jobs:
         run: |
           echo "ℹ️ Release already exists for tag ${{ steps.check_release.outputs.tag_name }}. Skipping creation."
           echo "✅ npm package published successfully!"
+
+      # MCP 공식 레지스트리 등재 (#763)
+      # 정식 릴리스만 등재한다 (pre-release는 npm dist-tag next로만 배포).
+      # 레지스트리는 메타데이터만 보관하므로 npm publish 이후에 실행해야 하고,
+      # GitHub Release 생성 이후에 두어 등재 실패가 Release 생성을 막지 않게 한다.
+      - name: Sync server.json version (MCP Registry)
+        if: steps.version.outputs.npm_tag == 'latest'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          if [ -z "$VERSION" ]; then
+            echo "E_MCP_REGISTRY_VERSION: version output is empty"
+            exit 1
+          fi
+          jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.json.tmp
+          mv server.json.tmp server.json
+          cat server.json
+
+      - name: Install mcp-publisher
+        if: steps.version.outputs.npm_tag == 'latest'
+        run: |
+          set -euo pipefail
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help >/dev/null
+
+      - name: Publish to MCP Registry
+        if: steps.version.outputs.npm_tag == 'latest'
+        run: |
+          set -euo pipefail
+          ./mcp-publisher login github-oidc
+          # npm 메타데이터 전파 지연으로 mcpName 검증이 실패할 수 있어 재시도한다.
+          for attempt in 1 2 3; do
+            if ./mcp-publisher publish; then
+              echo "✅ Published to MCP Registry"
+              exit 0
+            fi
+            echo "⚠️ MCP Registry publish attempt $attempt failed; retrying in 20s"
+            sleep 20
+          done
+          echo "E_MCP_REGISTRY_PUBLISH: failed after 3 attempts"
+          exit 1
