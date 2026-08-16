@@ -58,7 +58,7 @@ Existing `ranking_profile` may remain as a human label. Gate consumers prefer `r
 
 Shared quality fields (compat): `recall@5`, `recall@10`, `mrr`, `ndcg@10`, `p50`, `p95`, `query_count`, `abstention_count`, `failed_queries`.
 
-Added: `zero_hit_rate`, `recall_any`, `recall_all`, `funnel` aggregates (mean/p50/p95 candidate_count, `<10 results` rate) by strategy and category.
+Added: `zero_hit_rate`, `recall_any`, `recall_all`, `funnel` aggregates (mean/p50/p95 candidate_count, `<10 results` rate) by strategy and category. US2 (#787) also reports `sql_candidate_recall` (`raw_text` gold fraction) separately from `engine_topn_recall` (`text_topN`).
 
 Injection-only: `requested_token_budget`, `serialized_token_count`, `fixed_token_evidence_coverage`.
 

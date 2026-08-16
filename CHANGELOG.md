@@ -21,6 +21,7 @@
 
 ### Fixed
 
+- **FTS5 BM25 rank contract** (#787): text search SQL orders by `fts_rank ASC` (SQLite bm25 is lower-is-better, including negatives). `applyRanking` maps signed rank with `1/(1+exp(rank))` and treats `0` as the empty-query sentinel instead of requiring `ftsRank > 0`. Production scorecard reports `sql_candidate_recall` (`raw_text`) separately from `engine_topn_recall` (`text_topN`). Ranking weights and FTS AND/OR combinator are unchanged pending LoCoMo ablation.
 - **Nightly MigrationRunner truthfulness** (#751): `vitest.config.ts` gates `**/migration-runner.integration.spec.ts` CI exclude on `VITEST_INCLUDE_MIGRATION_RUNNER=1` (default PR CI still excludes). Nightly sets the flag and fails the step when collected MigrationRunner tests == 0.
 - **Recall nested `filters` wire + channel isolation** (#754): HTTP/client가 보내는 nested `filters`(tags/type 등)를 공유 `executeTool`에서 1회 top-level로 flatten한다(MCP top-level 필드 우선). 텍스트 검색 SQL·recall post-filter가 tags ⊇(AND)를 적용해 `crossChannelRecall=off` 채널 격리를 복원하고, assistant `channel-isolation` e2e unskip 및 `test:ci`에 `test/` 포함.
 - **Ops scripts monorepo import paths** (#750): root-registered ops CLIs no longer import removed root `src/`; they use `@memento/core` public/workspace exports (plus minimal package exports for embedding/path/stopwords helpers and a thin `shared/ops/search-quality-cli-helpers` re-export). Unused legacy/archive scripts that still pointed at root `src/` were deleted. CI `test:ci:scripts` now includes parameterized CLI spawn smoke (not SQL-clone integration).

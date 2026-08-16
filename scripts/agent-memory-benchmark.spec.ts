@@ -234,9 +234,12 @@ describe('agent memory benchmark runner', () => {
       p95_budget_ms: expect.any(Number),
       recall_at_5: expect.any(Number),
       recall_at_10: expect.any(Number),
+      sql_candidate_recall: expect.any(Number),
+      engine_topn_recall: expect.any(Number),
       mrr: expect.any(Number),
       ndcg_at_10: expect.any(Number),
     }));
+    expect(report.scorecard?.sql_candidate_recall).toBeGreaterThanOrEqual(report.scorecard?.engine_topn_recall ?? 0);
     const headSha = execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: process.cwd(),
       encoding: 'utf8',

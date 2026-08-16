@@ -35,6 +35,18 @@ export function calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Da
   return Math.min(boost, 1.2);
 }
 
+/**
+ * SQLite FTS5 `rank` (bm25) is lower-is-better and typically negative.
+ * `0` is the empty-query / LIKE-fallback sentinel — treat it as “no BM25”.
+ * Sigmoid maps signed rank onto (0, 1) while preserving order.
+ */
+export function ftsRankToRelevance(ftsRank: number): number | null {
+  if (!Number.isFinite(ftsRank) || ftsRank === 0) {
+    return null;
+  }
+  return 1 / (1 + Math.exp(ftsRank));
+}
+
 export function generateRecallReason(
   relevance: number,
   recency: number,
@@ -74,9 +86,11 @@ export function applyRanking(
   return results
     .map((row) => {
       const ftsRank = typeof row.fts_rank === 'number' ? row.fts_rank : Number(row.fts_rank ?? 0);
-      const relevance = ftsRank > 0 ?
-        Math.min(ftsRank / 100, 1.0) :
-        ranking.calculateRelevance({
+      const bm25Relevance = ftsRankToRelevance(ftsRank);
+      const usedBm25 = bm25Relevance !== null;
+      const relevance = usedBm25
+        ? bm25Relevance
+        : ranking.calculateRelevance({
           query,
           content: row.content,
           tags: typeof row.tags === 'string' ? (JSON.parse(row.tags) as string[]) : []
@@ -112,32 +126,20 @@ export function applyRanking(
       const useConsolidationPath =
         mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined;
 
-      const baseFeatures: SearchFeatures = ftsRank > 0
-        ? {
-            relevance: 0.3,
-            recency,
-            importance,
-            usage,
-            duplication_penalty: duplicationPenalty,
-            feedback_score,
-            ...(useConsolidationPath && consolidationScore !== undefined
-              ? { consolidation_score: consolidationScore }
-              : {})
-          }
-        : {
-            relevance,
-            recency,
-            importance,
-            usage,
-            duplication_penalty: duplicationPenalty,
-            feedback_score,
-            ...(useConsolidationPath && consolidationScore !== undefined
-              ? { consolidation_score: consolidationScore }
-              : {})
-          };
+      const baseFeatures: SearchFeatures = {
+        relevance,
+        recency,
+        importance,
+        usage,
+        duplication_penalty: duplicationPenalty,
+        feedback_score,
+        ...(useConsolidationPath && consolidationScore !== undefined
+          ? { consolidation_score: consolidationScore }
+          : {})
+      };
 
       const baseScore = ranking.calculateFinalScore(baseFeatures);
-      const preBoost = ftsRank > 0 ? ftsRank * 0.7 + baseScore * 0.3 : baseScore;
+      const preBoost = usedBm25 ? relevance * 0.7 + baseScore * 0.3 : baseScore;
 
       const factBoost = calculateFactMetadataBoost(
         row.num_times != null ? Number(row.num_times) : 1,
@@ -164,7 +166,7 @@ export function applyRanking(
         pinned: Boolean(row.pinned),
         tags: typeof row.tags === 'string' ? (JSON.parse(row.tags) as string[]) : [],
         score: finalScore,
-        recall_reason: generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0),
+        recall_reason: generateRecallReason(relevance, recency, importance, finalScore, usedBm25),
       };
       if (row.task_goal != null) result.task_goal = row.task_goal;
       if (row.steps != null) result.steps = row.steps;
@@ -195,9 +197,9 @@ export function applyRanking(
           includeBreakdown: true
         });
         if (bd.breakdown) {
-          const ftsPart = ftsRank > 0 ? ftsRank * 0.7 : 0;
+          const ftsPart = usedBm25 ? relevance * 0.7 : 0;
           const scaled: ScoreBreakdown =
-            ftsRank > 0
+            usedBm25
               ? {
                   relevance: {
                     score: (bd.breakdown.relevance.score * 0.3 + ftsPart) * factBoost,

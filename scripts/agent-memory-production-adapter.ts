@@ -96,6 +96,20 @@ export function buildFunnelStages(
   });
 }
 
+export function meanFunnelGoldFraction(
+  evaluations: Array<{ funnel: FunnelStage[] }>,
+  stageName: FunnelStageName,
+): number {
+  if (evaluations.length === 0) {
+    return 0;
+  }
+  const total = evaluations.reduce((sum, evaluation) => {
+    const stage = evaluation.funnel.find((entry) => entry.name === stageName);
+    return sum + (stage?.gold_fraction ?? 0);
+  }, 0);
+  return total / evaluations.length;
+}
+
 export async function runProductionRecallBenchmark(
   dataset: AgentMemoryBenchmarkDataset,
   topK: number,

@@ -17,7 +17,7 @@ import {
   type AgentMemoryRetrievalQuery,
   type AgentMemoryTaskCase,
 } from './agent-memory-benchmark-adapter.js';
-import { runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
+import { meanFunnelGoldFraction, runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
 
 type BaselineName = 'grep' | 'fts_only' | 'vector' | 'rrf_sim' | 'memento_prod' | 'graph_rrf';
 
@@ -93,6 +93,10 @@ export interface ProductionScorecard {
   non_abstention_query_count: number;
   recall_at_5: number;
   recall_at_10: number;
+  /** Gold hit rate in FTS SQL candidates (`raw_text` funnel stage). */
+  sql_candidate_recall: number;
+  /** Gold hit rate after SearchEngine top-N (`text_topN` funnel stage). */
+  engine_topn_recall: number;
   mrr: number;
   ndcg_at_10: number;
   latency_ms: { p50: number; p95: number };
@@ -479,6 +483,8 @@ export async function runProductionAgentMemoryBenchmark(
     non_abstention_query_count: dataset.queries.length,
     recall_at_5: metrics.recall_at_5,
     recall_at_10: metrics.recall_at_10,
+    sql_candidate_recall: meanFunnelGoldFraction(production.evaluations, 'raw_text'),
+    engine_topn_recall: meanFunnelGoldFraction(production.evaluations, 'text_topN'),
     mrr: metrics.mrr,
     ndcg_at_10: metrics.ndcg_at_10,
     latency_ms: metrics.latency_ms,

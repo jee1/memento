@@ -6,6 +6,7 @@ import {
   FUNNEL_STAGE_ORDER,
   buildFunnelStages,
   goldHitStats,
+  meanFunnelGoldFraction,
   runProductionRecallBenchmark,
 } from './agent-memory-production-adapter.js';
 
@@ -45,6 +46,10 @@ describe('production recall funnel helpers', () => {
     expect(stages.map((stage) => stage.name)).toEqual([...FUNNEL_STAGE_ORDER]);
     expect(stages[0]).toMatchObject({ name: 'raw_text', candidate_count: 2, gold_any: true, gold_all: false });
     expect(stages[5]).toMatchObject({ name: 'final_top10', candidate_count: 1, gold_fraction: 0.5 });
+
+    expect(meanFunnelGoldFraction([{ funnel: stages }], 'raw_text')).toBe(0.5);
+    expect(meanFunnelGoldFraction([{ funnel: stages }], 'text_topN')).toBe(0.5);
+    expect(meanFunnelGoldFraction([], 'raw_text')).toBe(0);
   });
 });
 

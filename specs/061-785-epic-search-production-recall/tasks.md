@@ -52,16 +52,16 @@ Tests are required (constitution I). Write failing tests first.
 
 ### Tests (fail first)
 
-- [ ] T010 [US2] Add real in-memory FTS5 ordering test in `packages/memento-core/src/domains/search/algorithms/__tests__/search-engine.spec.ts` (or sibling spec): best BM25 match first
-- [ ] T011 [P] [US2] Add negative-rank relevance test covering `packages/memento-core/src/domains/search/algorithms/search-engine/search-engine-ranking.ts` (`ftsRank > 0` must not be required)
+- [x] T010 [US2] Add real in-memory FTS5 ordering test in `packages/memento-core/src/domains/search/algorithms/__tests__/search-engine.spec.ts` (or sibling spec): best BM25 match first
+- [x] T011 [P] [US2] Add negative-rank relevance test covering `packages/memento-core/src/domains/search/algorithms/search-engine/search-engine-ranking.ts` (`ftsRank > 0` must not be required)
 
 ### Implementation
 
-- [ ] T012 [US2] Fix `ORDER BY fts_rank` in `packages/memento-core/src/domains/search/algorithms/search-engine/search-engine-sql-builder.ts` to SQLite BM25 contract (keep filters-before-LIMIT)
-- [ ] T013 [US2] Convert signed FTS5 rank to relevance with order preserved in `search-engine-ranking.ts`
-- [ ] T014 [US2] Ablate short-AND / long first-8 OR / all-token OR via `packages/memento-core/src/domains/search/algorithms/search-engine/search-engine-fts-query.ts` + `HYBRID_SEARCH` constants; record results under this spec dir; pick the semantics that improves zero-hit and candidate recall within latency budget
-- [ ] T015 [US2] Report SQL candidate recall and engine top-N recall separately in scorecard types (`scripts/agent-memory-benchmark.ts` / adapter)
-- [ ] T016 [US2] Run search-engine + hybrid-search-engine targeted tests, type-check, lint, core search specs
+- [x] T012 [US2] Fix `ORDER BY fts_rank` in `packages/memento-core/src/domains/search/algorithms/search-engine/search-engine-sql-builder.ts` to SQLite BM25 contract (keep filters-before-LIMIT)
+- [x] T013 [US2] Convert signed FTS5 rank to relevance with order preserved in `search-engine-ranking.ts`
+- [x] T014 [US2] Ablate short-AND / long first-8 OR / all-token OR via `packages/memento-core/src/domains/search/algorithms/search-engine/search-engine-fts-query.ts` + `HYBRID_SEARCH` constants; record results under this spec dir; pick the semantics that improves zero-hit and candidate recall within latency budget
+- [x] T015 [US2] Report SQL candidate recall and engine top-N recall separately in scorecard types (`scripts/agent-memory-benchmark.ts` / adapter)
+- [x] T016 [US2] Run search-engine + hybrid-search-engine targeted tests, type-check, lint, core search specs
 
 **Checkpoint**: US2 independently testable. Funnel still records text stages.
 
