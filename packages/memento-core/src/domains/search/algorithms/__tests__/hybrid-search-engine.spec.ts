@@ -572,6 +572,46 @@ describe('HybridSearchEngine', () => {
       expect(mockWeightCalculator.calculateWeights).toHaveBeenCalledWith('test query', 0.6, 0.4);
       expect(mockResultCombiner.combine).toHaveBeenCalledWith(mockTextResults, mockVectorResults, 0.4, 0.6);
     });
+
+    it('includeFunnel이면 candidate_funnel 단계 순서와 id를 반환한다', async () => {
+      const mockTextResults = [
+        { id: '1', content: 'test content 1', score: 0.8, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false },
+        { id: '3', content: 'test content 3', score: 0.5, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+      ];
+      const mockVectorResults = [
+        { id: '2', content: 'below threshold', similarity: 0.1, type: 'semantic', importance: 0.8, created_at: '2024-01-01', pinned: false },
+        { id: '1', content: 'test content 1', similarity: 0.9, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false },
+      ];
+      const mockCombinedResults = [
+        { id: '1', content: 'test content 1', textScore: 0.8, vectorScore: 0.9, finalScore: 0.86, recall_reason: '하이브리드' },
+      ];
+
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: mockTextResults, total_count: 2, query_time: 10 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue(mockVectorResults);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue(mockCombinedResults);
+
+      const result = await hybridSearchEngine.search(mockDb, {
+        query: 'test query',
+        limit: 1,
+        includeFunnel: true,
+      });
+
+      expect(result.candidate_funnel).toEqual({
+        raw_text: ['1', '3'],
+        text_topN: ['1'],
+        raw_vector: ['2', '1'],
+        thresholded_vector: ['1'],
+        union: ['1', '3'],
+        final_top10: ['1'],
+        vector_threshold: 0.38,
+        vector_prefetch: 2,
+        text_weight: 0.4,
+        vector_weight: 0.6,
+      });
+    });
   });
 
   describe('관계 그래프 통합 테스트', () => {

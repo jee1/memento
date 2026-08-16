@@ -17,3 +17,27 @@ export function normalizeSearchBySimilarityOutcome(
     query_embedding_providers: raw.query_embedding_providers,
   };
 }
+
+export function collectResultIds(items: Array<{ id?: unknown; memory_id?: unknown }>): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const id = typeof item.id === 'string' && item.id.length > 0
+      ? item.id
+      : typeof item.memory_id === 'string' && item.memory_id.length > 0
+        ? item.memory_id
+        : undefined;
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+export function filterByVectorThreshold<T extends { similarity?: number }>(
+  items: T[],
+  threshold: number
+): T[] {
+  return items.filter((item) => (typeof item.similarity === 'number' ? item.similarity : 0) >= threshold);
+}

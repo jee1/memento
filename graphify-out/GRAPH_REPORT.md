@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-08-16)
 
 ## Corpus Check
-- 1458 files · ~1,620,874 words
+- 1458 files · ~1,627,780 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6765 nodes · 7759 edges · 1450 communities detected
+- 6771 nodes · 7768 edges · 1450 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1492,12 +1492,12 @@ Cohesion: 0.06
 Nodes (1): BatchScheduler
 
 ### Community 1 - "Community 1"
-Cohesion: 0.07
-Nodes (1): PerformanceMonitor
+Cohesion: 0.1
+Nodes (36): buildVectorIndex(), canonicalContent(), categoryBreakdown(), createFtsIndex(), datasetLabel(), emptyMetrics(), evaluateBaselines(), evaluateEndToEnd() (+28 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.1
-Nodes (34): buildVectorIndex(), canonicalContent(), categoryBreakdown(), createFtsIndex(), datasetLabel(), emptyMetrics(), evaluateBaselines(), evaluateEndToEnd() (+26 more)
+Cohesion: 0.07
+Nodes (1): PerformanceMonitor
 
 ### Community 3 - "Community 3"
 Cohesion: 0.1
@@ -2917,319 +2917,319 @@ Nodes (4): errorHandler(), isAppErrorContract(), resolveSeverityAndCategory(), r
 
 ### Community 357 - "Community 357"
 Cohesion: 0.47
-Nodes (3): asNonEmptyString(), parseBackfillRequest(), parseRequest()
+Nodes (3): cleanupTestDatabase(), createTestDatabaseWithoutServices(), setupTestDatabase()
 
 ### Community 358 - "Community 358"
 Cohesion: 0.47
-Nodes (4): getAdmin(), getEmbeddingMapHandler(), seedEmbeddings(), vecJson()
+Nodes (3): asNonEmptyString(), parseBackfillRequest(), parseRequest()
 
 ### Community 359 - "Community 359"
-Cohesion: 0.33
-Nodes (0): 
+Cohesion: 0.47
+Nodes (4): getAdmin(), getEmbeddingMapHandler(), seedEmbeddings(), vecJson()
 
 ### Community 360 - "Community 360"
-Cohesion: 0.6
-Nodes (5): assertReviewQueueSchema(), parsePositiveInteger(), parseReviewQueueCleanupArgs(), resolveDatabasePath(), runReviewQueueCleanup()
+Cohesion: 0.33
+Nodes (0): 
 
 ### Community 361 - "Community 361"
 Cohesion: 0.6
-Nodes (5): forgetParams(), memoryInjectionParams(), parseArgvToParams(), recallParams(), rememberParams()
+Nodes (5): assertReviewQueueSchema(), parsePositiveInteger(), parseReviewQueueCleanupArgs(), resolveDatabasePath(), runReviewQueueCleanup()
 
 ### Community 362 - "Community 362"
-Cohesion: 0.53
-Nodes (5): defaultProbe(), options(), readSettings(), runCodex(), runCodexConnect()
+Cohesion: 0.6
+Nodes (5): forgetParams(), memoryInjectionParams(), parseArgvToParams(), recallParams(), rememberParams()
 
 ### Community 363 - "Community 363"
 Cohesion: 0.53
-Nodes (4): parseAgentAskInvocation(), stripGlobalCliArgs(), validateAgentAskFlagArgv(), validateAgentAskRawTypes()
+Nodes (5): defaultProbe(), options(), readSettings(), runCodex(), runCodexConnect()
 
 ### Community 364 - "Community 364"
+Cohesion: 0.53
+Nodes (4): parseAgentAskInvocation(), stripGlobalCliArgs(), validateAgentAskFlagArgv(), validateAgentAskRawTypes()
+
+### Community 365 - "Community 365"
 Cohesion: 0.4
 Nodes (2): feedback(), recordRecallFeedback()
 
-### Community 365 - "Community 365"
+### Community 366 - "Community 366"
 Cohesion: 0.53
 Nodes (4): isValidImportance(), isValidMemoryType(), isValidPrivacyScope(), validateCreateMemoryParams()
 
-### Community 366 - "Community 366"
+### Community 367 - "Community 367"
 Cohesion: 0.53
 Nodes (1): DependencyValidator
 
-### Community 367 - "Community 367"
+### Community 368 - "Community 368"
 Cohesion: 0.33
 Nodes (1): TestMigration
 
-### Community 368 - "Community 368"
-Cohesion: 0.33
-Nodes (0): 
-
 ### Community 369 - "Community 369"
 Cohesion: 0.33
-Nodes (1): FlipConsolidationRelationDirectionsMigration
+Nodes (0): 
 
 ### Community 370 - "Community 370"
 Cohesion: 0.33
-Nodes (1): TelemetryDailyMetricsMigration
+Nodes (1): FlipConsolidationRelationDirectionsMigration
 
 ### Community 371 - "Community 371"
 Cohesion: 0.33
-Nodes (1): TelemetryEventsMigration
+Nodes (1): TelemetryDailyMetricsMigration
 
 ### Community 372 - "Community 372"
 Cohesion: 0.33
-Nodes (0): 
+Nodes (1): TelemetryEventsMigration
 
 ### Community 373 - "Community 373"
 Cohesion: 0.33
-Nodes (1): ExampleMigration
+Nodes (0): 
 
 ### Community 374 - "Community 374"
+Cohesion: 0.33
+Nodes (1): ExampleMigration
+
+### Community 375 - "Community 375"
 Cohesion: 0.4
 Nodes (1): FeedbackRepositorySQLite
 
-### Community 375 - "Community 375"
+### Community 376 - "Community 376"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 376 - "Community 376"
+### Community 377 - "Community 377"
 Cohesion: 0.47
 Nodes (2): generateId(), KgTripleRepositorySqlite
 
-### Community 377 - "Community 377"
+### Community 378 - "Community 378"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 378 - "Community 378"
+### Community 379 - "Community 379"
 Cohesion: 0.33
 Nodes (1): HealthChecker
 
-### Community 379 - "Community 379"
+### Community 380 - "Community 380"
 Cohesion: 0.47
 Nodes (3): RelationValidatorExecutor, resolveMementoRepoRoot(), resolveTsxCommand()
-
-### Community 380 - "Community 380"
-Cohesion: 0.33
-Nodes (0): 
 
 ### Community 381 - "Community 381"
 Cohesion: 0.33
 Nodes (0): 
 
 ### Community 382 - "Community 382"
-Cohesion: 0.6
-Nodes (5): buildExactMatchQuery(), calculateSimilarity(), determineMergeStrategy(), runFallbackSearchAnd(), runFallbackSearchOr()
-
-### Community 383 - "Community 383"
-Cohesion: 0.33
-Nodes (1): CacheKeyGenerator
-
-### Community 384 - "Community 384"
-Cohesion: 0.6
-Nodes (5): extractProceduralMemory(), extractSkillName(), extractSteps(), extractWorkflowName(), generateTriggerConditions()
-
-### Community 385 - "Community 385"
-Cohesion: 0.6
-Nodes (5): forceCleanupTransaction(), getTransactionState(), isInTransaction(), runTransaction(), setTransactionState()
-
-### Community 386 - "Community 386"
-Cohesion: 0.53
-Nodes (4): getRetryOptions(), loadRetryOptions(), validateRetryConfig(), validateRetryOptions()
-
-### Community 387 - "Community 387"
-Cohesion: 0.6
-Nodes (5): determinePreferredProvider(), determineProviderForAuto(), determineProviderForGemini(), determineProviderForOllama(), determineProviderForOpenAI()
-
-### Community 388 - "Community 388"
-Cohesion: 0.33
-Nodes (1): VectorSearchFactory
-
-### Community 389 - "Community 389"
-Cohesion: 0.47
-Nodes (3): defaultTfidfVecRegistry(), mockSqliteMaster(), sqliteMasterPreparedMock()
-
-### Community 390 - "Community 390"
-Cohesion: 0.4
-Nodes (2): clampSimilarity(), cosineDistanceToSimilarity()
-
-### Community 391 - "Community 391"
-Cohesion: 0.6
-Nodes (5): buildItemScopeClause(), buildItemWhereSql(), buildScopedCandidateSql(), buildScopeParams(), executeHybridQuery()
-
-### Community 392 - "Community 392"
-Cohesion: 0.6
-Nodes (5): makeConsolidationQuality(), makeContext(), makeFeedbackQuality(), makeMemoryQuality(), makeSearchQuality()
-
-### Community 393 - "Community 393"
 Cohesion: 0.33
 Nodes (0): 
 
+### Community 383 - "Community 383"
+Cohesion: 0.6
+Nodes (5): buildExactMatchQuery(), calculateSimilarity(), determineMergeStrategy(), runFallbackSearchAnd(), runFallbackSearchOr()
+
+### Community 384 - "Community 384"
+Cohesion: 0.33
+Nodes (1): CacheKeyGenerator
+
+### Community 385 - "Community 385"
+Cohesion: 0.6
+Nodes (5): extractProceduralMemory(), extractSkillName(), extractSteps(), extractWorkflowName(), generateTriggerConditions()
+
+### Community 386 - "Community 386"
+Cohesion: 0.6
+Nodes (5): forceCleanupTransaction(), getTransactionState(), isInTransaction(), runTransaction(), setTransactionState()
+
+### Community 387 - "Community 387"
+Cohesion: 0.53
+Nodes (4): getRetryOptions(), loadRetryOptions(), validateRetryConfig(), validateRetryOptions()
+
+### Community 388 - "Community 388"
+Cohesion: 0.6
+Nodes (5): determinePreferredProvider(), determineProviderForAuto(), determineProviderForGemini(), determineProviderForOllama(), determineProviderForOpenAI()
+
+### Community 389 - "Community 389"
+Cohesion: 0.33
+Nodes (1): VectorSearchFactory
+
+### Community 390 - "Community 390"
+Cohesion: 0.47
+Nodes (3): defaultTfidfVecRegistry(), mockSqliteMaster(), sqliteMasterPreparedMock()
+
+### Community 391 - "Community 391"
+Cohesion: 0.4
+Nodes (2): clampSimilarity(), cosineDistanceToSimilarity()
+
+### Community 392 - "Community 392"
+Cohesion: 0.6
+Nodes (5): buildItemScopeClause(), buildItemWhereSql(), buildScopedCandidateSql(), buildScopeParams(), executeHybridQuery()
+
+### Community 393 - "Community 393"
+Cohesion: 0.6
+Nodes (5): makeConsolidationQuality(), makeContext(), makeFeedbackQuality(), makeMemoryQuality(), makeSearchQuality()
+
 ### Community 394 - "Community 394"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 395 - "Community 395"
 Cohesion: 0.53
 Nodes (5): parseImportanceThreshold(), parseMemoryReviewQueueControlEnv(), parseMemoryReviewSelectionEnv(), parseNonNegativeInt(), parsePositiveInt()
 
-### Community 395 - "Community 395"
+### Community 396 - "Community 396"
 Cohesion: 0.4
 Nodes (1): SemanticMemoryCrud
 
-### Community 396 - "Community 396"
+### Community 397 - "Community 397"
 Cohesion: 0.47
 Nodes (1): SemanticMemorySimilarity
 
-### Community 397 - "Community 397"
+### Community 398 - "Community 398"
 Cohesion: 0.4
 Nodes (1): SemanticMemoryUpdateService
 
-### Community 398 - "Community 398"
+### Community 399 - "Community 399"
 Cohesion: 0.53
 Nodes (1): SummarizationService
 
-### Community 399 - "Community 399"
+### Community 400 - "Community 400"
 Cohesion: 0.47
 Nodes (3): chunkSucceeded(), failureMessageFromResult(), TriplePipelineOrchestrator
 
-### Community 400 - "Community 400"
+### Community 401 - "Community 401"
 Cohesion: 0.4
 Nodes (2): calculateF1Score(), calculateTypeMetrics()
 
-### Community 401 - "Community 401"
+### Community 402 - "Community 402"
 Cohesion: 0.6
 Nodes (5): executePerformanceAlerts(), handleList(), handleResolve(), handleSearch(), handleStats()
 
-### Community 402 - "Community 402"
+### Community 403 - "Community 403"
 Cohesion: 0.47
 Nodes (1): RuntimeDiagnosticsLogger
 
-### Community 403 - "Community 403"
+### Community 404 - "Community 404"
 Cohesion: 0.4
 Nodes (2): escapeHtml(), generateHtmlReport()
 
-### Community 404 - "Community 404"
-Cohesion: 0.47
-Nodes (1): MigrateEmbeddingsTool
-
 ### Community 405 - "Community 405"
 Cohesion: 0.47
-Nodes (3): cleanupTestDatabase(), createTestDatabaseWithoutServices(), setupTestDatabase()
+Nodes (1): MigrateEmbeddingsTool
 
 ### Community 406 - "Community 406"
 Cohesion: 0.6
 Nodes (5): buildKendallPositionMaps(), calculateKendallTau(), computeKendallTauBFromPairCounts(), countKendallTauBPairCategories(), tallyKendallPairBucket()
 
 ### Community 407 - "Community 407"
+Cohesion: 0.47
+Nodes (3): buildFunnelStages(), importFixture(), runProductionRecallBenchmark()
+
+### Community 408 - "Community 408"
 Cohesion: 0.53
 Nodes (5): collectTsFiles(), isIgnoredLine(), main(), parseArgs(), scanFile()
 
-### Community 408 - "Community 408"
+### Community 409 - "Community 409"
 Cohesion: 0.6
 Nodes (5): findThrows(), isTestFile(), main(), scanDirectory(), shouldExcludeDir()
 
-### Community 409 - "Community 409"
+### Community 410 - "Community 410"
 Cohesion: 0.4
 Nodes (2): emptyState(), loadState()
 
-### Community 410 - "Community 410"
+### Community 411 - "Community 411"
 Cohesion: 0.6
 Nodes (5): recordJsonlSkip(), recordMonitorError(), runMonitorCycle(), syncFingerprint(), withFingerprint()
 
-### Community 411 - "Community 411"
+### Community 412 - "Community 412"
 Cohesion: 0.53
 Nodes (4): loadSessions(), loadTimeline(), selectSession(), value()
 
-### Community 412 - "Community 412"
+### Community 413 - "Community 413"
 Cohesion: 0.4
 Nodes (2): number(), setCount()
 
-### Community 413 - "Community 413"
+### Community 414 - "Community 414"
 Cohesion: 0.6
 Nodes (5): invalidateDryRun(), readTranscriptFile(), renderImportResult(), submitTranscript(), transcriptValue()
 
-### Community 414 - "Community 414"
+### Community 415 - "Community 415"
 Cohesion: 0.6
 Nodes (5): maybeStartReviewCandidatesEventSource(), registerVisibilityForPoll(), resumePollingAfterStreamLoss(), startPollingIfNeeded(), stopReviewCandidatesStream()
 
-### Community 415 - "Community 415"
+### Community 416 - "Community 416"
 Cohesion: 0.6
 Nodes (3): broadcastReviewCandidatesChanged(), buildReviewCandidatesChangedEnvelope(), parseReviewCandidatesChangedRelayUrls()
-
-### Community 416 - "Community 416"
-Cohesion: 0.4
-Nodes (0): 
 
 ### Community 417 - "Community 417"
 Cohesion: 0.4
 Nodes (0): 
 
 ### Community 418 - "Community 418"
-Cohesion: 0.6
-Nodes (3): attachReviewCandidatesSse(), notifyReviewCandidatesChanged(), writeSafe()
+Cohesion: 0.4
+Nodes (0): 
 
 ### Community 419 - "Community 419"
 Cohesion: 0.6
-Nodes (3): getLockFilePath(), isProcessAlive(), tryAcquireLock()
+Nodes (3): attachReviewCandidatesSse(), notifyReviewCandidatesChanged(), writeSafe()
 
 ### Community 420 - "Community 420"
+Cohesion: 0.6
+Nodes (3): getLockFilePath(), isProcessAlive(), tryAcquireLock()
+
+### Community 421 - "Community 421"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 421 - "Community 421"
+### Community 422 - "Community 422"
 Cohesion: 0.5
 Nodes (1): StdioServer
 
-### Community 422 - "Community 422"
-Cohesion: 0.4
-Nodes (1): SseServer
-
 ### Community 423 - "Community 423"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (1): SseServer
 
 ### Community 424 - "Community 424"
 Cohesion: 0.4
 Nodes (0): 
 
 ### Community 425 - "Community 425"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 426 - "Community 426"
 Cohesion: 0.6
 Nodes (3): parseLimit(), parseQuery(), readSingleQueryValue()
 
-### Community 426 - "Community 426"
+### Community 427 - "Community 427"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 427 - "Community 427"
+### Community 428 - "Community 428"
 Cohesion: 0.6
 Nodes (3): createClaudeCodeHttpTransport(), readStream(), runClaudeCodeHookCommand()
 
-### Community 428 - "Community 428"
+### Community 429 - "Community 429"
 Cohesion: 0.5
 Nodes (2): seedTwoProjectMemories(), stopBatchSchedulerSingleton()
 
-### Community 429 - "Community 429"
+### Community 430 - "Community 430"
 Cohesion: 0.6
 Nodes (3): createCodexHttpTransport(), readStream(), runCodexHookCommand()
 
-### Community 430 - "Community 430"
+### Community 431 - "Community 431"
 Cohesion: 0.6
 Nodes (3): parseOptions(), readSettings(), runClaudeCodeConnect()
 
-### Community 431 - "Community 431"
+### Community 432 - "Community 432"
 Cohesion: 0.5
 Nodes (2): debugErr(), writeErr()
 
-### Community 432 - "Community 432"
+### Community 433 - "Community 433"
 Cohesion: 0.5
 Nodes (1): ReflexionProceduralMemoryService
 
-### Community 433 - "Community 433"
+### Community 434 - "Community 434"
 Cohesion: 0.4
 Nodes (0): 
-
-### Community 434 - "Community 434"
-Cohesion: 0.6
-Nodes (4): autoReflect(), checkQueueBacklog(), processFailureEvent(), queueFailureEvent()
 
 ### Community 435 - "Community 435"
-Cohesion: 0.4
-Nodes (0): 
+Cohesion: 0.6
+Nodes (4): autoReflect(), checkQueueBacklog(), processFailureEvent(), queueFailureEvent()
 
 ### Community 436 - "Community 436"
 Cohesion: 0.4
@@ -3256,12 +3256,12 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 442 - "Community 442"
-Cohesion: 0.5
-Nodes (2): countMonitoringAlertBuckets(), runMonitoring()
-
-### Community 443 - "Community 443"
 Cohesion: 0.4
 Nodes (0): 
+
+### Community 443 - "Community 443"
+Cohesion: 0.5
+Nodes (2): countMonitoringAlertBuckets(), runMonitoring()
 
 ### Community 444 - "Community 444"
 Cohesion: 0.4
@@ -3272,16 +3272,16 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 446 - "Community 446"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 447 - "Community 447"
 Cohesion: 0.6
 Nodes (3): formatMementoResourceUri(), isMementoResourceKind(), parseMementoResourceUri()
 
-### Community 447 - "Community 447"
+### Community 448 - "Community 448"
 Cohesion: 0.5
 Nodes (2): getStopWords(), isStopWord()
-
-### Community 448 - "Community 448"
-Cohesion: 0.4
-Nodes (0): 
 
 ### Community 449 - "Community 449"
 Cohesion: 0.4
@@ -3289,15 +3289,15 @@ Nodes (0):
 
 ### Community 450 - "Community 450"
 Cohesion: 0.4
-Nodes (1): LLMClientInitializer
+Nodes (0): 
 
 ### Community 451 - "Community 451"
-Cohesion: 0.6
-Nodes (3): getOllamaErrorMessage(), handleOllamaResponse(), testOllamaConnection()
+Cohesion: 0.4
+Nodes (1): LLMClientInitializer
 
 ### Community 452 - "Community 452"
-Cohesion: 0.4
-Nodes (0): 
+Cohesion: 0.6
+Nodes (3): getOllamaErrorMessage(), handleOllamaResponse(), testOllamaConnection()
 
 ### Community 453 - "Community 453"
 Cohesion: 0.4
@@ -3308,204 +3308,204 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 455 - "Community 455"
-Cohesion: 0.5
-Nodes (1): QueryFilterStrategy
+Cohesion: 0.4
+Nodes (0): 
 
 ### Community 456 - "Community 456"
 Cohesion: 0.5
-Nodes (1): NHopSearchStrategy
+Nodes (1): QueryFilterStrategy
 
 ### Community 457 - "Community 457"
+Cohesion: 0.5
+Nodes (1): NHopSearchStrategy
+
+### Community 458 - "Community 458"
 Cohesion: 0.4
 Nodes (1): FallbackSearchService
 
-### Community 458 - "Community 458"
+### Community 459 - "Community 459"
 Cohesion: 0.5
 Nodes (1): FallbackStrategy
 
-### Community 459 - "Community 459"
+### Community 460 - "Community 460"
 Cohesion: 0.4
 Nodes (1): EvolutionDemoNotFoundError
 
-### Community 460 - "Community 460"
+### Community 461 - "Community 461"
 Cohesion: 0.6
 Nodes (1): AdaptiveWeightCalculator
 
-### Community 461 - "Community 461"
+### Community 462 - "Community 462"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 462 - "Community 462"
+### Community 463 - "Community 463"
 Cohesion: 0.7
 Nodes (4): buildOuterWhereSql(), buildScopedCandidateSql(), buildScopeParams(), executeKnnQuery()
 
-### Community 463 - "Community 463"
+### Community 464 - "Community 464"
 Cohesion: 0.5
 Nodes (2): checkVecAvailability(), isVecTableRegistered()
 
-### Community 464 - "Community 464"
+### Community 465 - "Community 465"
 Cohesion: 0.6
 Nodes (3): computeNormalizationRange(), selectScore(), VectorSearchResultNormalizer
 
-### Community 465 - "Community 465"
+### Community 466 - "Community 466"
 Cohesion: 0.5
 Nodes (2): parseRememberSuccess(), ToolContextRememberPersistenceAdapter
 
-### Community 466 - "Community 466"
+### Community 467 - "Community 467"
 Cohesion: 0.4
 Nodes (1): ToolContextKnowledgeContextAdapter
 
-### Community 467 - "Community 467"
+### Community 468 - "Community 468"
 Cohesion: 0.5
 Nodes (1): DeterministicMockLlmAdapter
 
-### Community 468 - "Community 468"
+### Community 469 - "Community 469"
 Cohesion: 0.7
 Nodes (4): assertUnreachable(), buildProceduralStepsJson(), mapKnowledgeCandidateToRememberParams(), normalizeOwnerId()
 
-### Community 469 - "Community 469"
+### Community 470 - "Community 470"
 Cohesion: 0.4
 Nodes (1): PersonalKnowledgeAgentService
 
-### Community 470 - "Community 470"
+### Community 471 - "Community 471"
 Cohesion: 0.6
 Nodes (3): getExistingReflectionNotes(), parseReflectionNotes(), prepareReflectionNotes()
 
-### Community 471 - "Community 471"
-Cohesion: 0.4
-Nodes (0): 
-
 ### Community 472 - "Community 472"
 Cohesion: 0.4
-Nodes (1): MemoryReviewCandidateError
+Nodes (0): 
 
 ### Community 473 - "Community 473"
 Cohesion: 0.4
-Nodes (1): IntrospectionScanCache
+Nodes (1): MemoryReviewCandidateError
 
 ### Community 474 - "Community 474"
 Cohesion: 0.4
-Nodes (1): ConsolidationOutboxWorker
+Nodes (1): IntrospectionScanCache
 
 ### Community 475 - "Community 475"
 Cohesion: 0.4
-Nodes (1): FailingRepo
+Nodes (1): ConsolidationOutboxWorker
 
 ### Community 476 - "Community 476"
+Cohesion: 0.4
+Nodes (1): FailingRepo
+
+### Community 477 - "Community 477"
 Cohesion: 0.5
 Nodes (2): AddRelationTool, memoryItemHasOwnerIdColumn()
 
-### Community 477 - "Community 477"
+### Community 478 - "Community 478"
 Cohesion: 0.4
 Nodes (1): RelationGraphQuery
 
-### Community 478 - "Community 478"
+### Community 479 - "Community 479"
 Cohesion: 0.5
 Nodes (1): RelationGraphCycleDetector
 
-### Community 479 - "Community 479"
+### Community 480 - "Community 480"
 Cohesion: 0.4
 Nodes (1): TokenBucketRateLimiter
 
-### Community 480 - "Community 480"
+### Community 481 - "Community 481"
 Cohesion: 0.6
 Nodes (1): TripleParser
 
-### Community 481 - "Community 481"
+### Community 482 - "Community 482"
 Cohesion: 0.7
 Nodes (4): extractJsonObjectFromLlmText(), parseLlmRelationsResponse(), prepareOllamaRelationJsonContent(), trimToValidJsonObject()
 
-### Community 482 - "Community 482"
+### Community 483 - "Community 483"
 Cohesion: 0.5
 Nodes (2): calculateQualityMetrics(), calculateQualityMetricsWithAnalysis()
 
-### Community 483 - "Community 483"
+### Community 484 - "Community 484"
 Cohesion: 0.5
 Nodes (2): processMigrationRow(), safeParseEmbedding()
 
-### Community 484 - "Community 484"
+### Community 485 - "Community 485"
 Cohesion: 0.4
 Nodes (1): DatabaseMetricsReader
 
-### Community 485 - "Community 485"
+### Community 486 - "Community 486"
 Cohesion: 0.4
 Nodes (1): CpuUsageTracker
 
-### Community 486 - "Community 486"
+### Community 487 - "Community 487"
 Cohesion: 0.5
 Nodes (2): analyzeTrend(), getPerformanceSummary()
 
-### Community 487 - "Community 487"
+### Community 488 - "Community 488"
 Cohesion: 0.5
 Nodes (2): createMetrics(), toBytes()
 
-### Community 488 - "Community 488"
+### Community 489 - "Community 489"
 Cohesion: 0.4
 Nodes (1): RelationMetricsCollector
 
-### Community 489 - "Community 489"
+### Community 490 - "Community 490"
 Cohesion: 0.5
 Nodes (2): calculateMRR(), SearchMetricsCollector
 
-### Community 490 - "Community 490"
+### Community 491 - "Community 491"
 Cohesion: 0.4
 Nodes (1): PerformanceBenchmark
 
-### Community 491 - "Community 491"
+### Community 492 - "Community 492"
 Cohesion: 0.7
 Nodes (4): createSeededBenchmarkDatabase(), mulberry32(), normalizeMemoryType(), seedOneCorpusRow()
 
-### Community 492 - "Community 492"
+### Community 493 - "Community 493"
 Cohesion: 0.5
 Nodes (2): listUstarGzipEntries(), readTarString()
 
-### Community 493 - "Community 493"
+### Community 494 - "Community 494"
 Cohesion: 0.7
 Nodes (4): main(), parseArgs(), printHelp(), printThresholds()
 
-### Community 494 - "Community 494"
+### Community 495 - "Community 495"
 Cohesion: 0.7
 Nodes (4): applyRepair(), buildRepairPlan(), main(), printPlan()
 
-### Community 495 - "Community 495"
+### Community 496 - "Community 496"
 Cohesion: 0.7
 Nodes (4): checkMigrationVersion(), fixTriggers(), getTriggerInfo(), main()
 
-### Community 496 - "Community 496"
+### Community 497 - "Community 497"
 Cohesion: 0.7
 Nodes (4): createSessionGate(), ensureSessionGate(), resetSessionGate(), unlockSessionGate()
 
-### Community 497 - "Community 497"
+### Community 498 - "Community 498"
 Cohesion: 0.6
 Nodes (4): buildComparisonHintMarkup(), renderPointSegment(), syncSegmentSelection(), updateComparisonHint()
 
-### Community 498 - "Community 498"
+### Community 499 - "Community 499"
 Cohesion: 0.7
 Nodes (4): clearPollTimer(), getReviewQueueBoot(), schedulePollAfterMs(), schedulePollAfterMsUnlessSse()
 
-### Community 499 - "Community 499"
+### Community 500 - "Community 500"
 Cohesion: 0.7
 Nodes (4): renderConsolidationPanel(), renderEpisodicSources(), renderSearchComparison(), renderSemanticResult()
 
-### Community 500 - "Community 500"
+### Community 501 - "Community 501"
 Cohesion: 0.7
 Nodes (4): activateTab(), focusActiveTabButton(), getTabButtons(), setRovingTabindex()
 
-### Community 501 - "Community 501"
+### Community 502 - "Community 502"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 502 - "Community 502"
+### Community 503 - "Community 503"
 Cohesion: 0.83
 Nodes (3): findFreePort(), startTestHttpServer(), waitForHealth()
 
-### Community 503 - "Community 503"
+### Community 504 - "Community 504"
 Cohesion: 0.67
 Nodes (2): collectEnvKeys(), expectNoDuplicateKeys()
-
-### Community 504 - "Community 504"
-Cohesion: 0.5
-Nodes (0): 
 
 ### Community 505 - "Community 505"
 Cohesion: 0.5
@@ -3516,20 +3516,20 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 507 - "Community 507"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 508 - "Community 508"
 Cohesion: 0.83
 Nodes (3): createOwnerScopeMiddleware(), hasOwnerIdInBody(), isOwnerScopedToolRequest()
 
-### Community 508 - "Community 508"
+### Community 509 - "Community 509"
 Cohesion: 0.5
 Nodes (0): 
-
-### Community 509 - "Community 509"
-Cohesion: 0.67
-Nodes (2): handlePostPersonalRun(), parsePersonalRunBody()
 
 ### Community 510 - "Community 510"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): handlePostPersonalRun(), parsePersonalRunBody()
 
 ### Community 511 - "Community 511"
 Cohesion: 0.5
@@ -3541,23 +3541,23 @@ Nodes (0):
 
 ### Community 513 - "Community 513"
 Cohesion: 0.5
-Nodes (1): BraveSearchProvider
+Nodes (0): 
 
 ### Community 514 - "Community 514"
-Cohesion: 0.83
-Nodes (3): canonicalize(), normalizeAgentEvent(), normalizeJson()
+Cohesion: 0.5
+Nodes (1): BraveSearchProvider
 
 ### Community 515 - "Community 515"
 Cohesion: 0.83
-Nodes (3): diagnoseClaudeCode(), parseVersion(), versionAtLeast()
+Nodes (3): canonicalize(), normalizeAgentEvent(), normalizeJson()
 
 ### Community 516 - "Community 516"
-Cohesion: 0.67
-Nodes (2): fixture(), fixtureUrl()
+Cohesion: 0.83
+Nodes (3): diagnoseClaudeCode(), parseVersion(), versionAtLeast()
 
 ### Community 517 - "Community 517"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): fixture(), fixtureUrl()
 
 ### Community 518 - "Community 518"
 Cohesion: 0.5
@@ -3568,32 +3568,32 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 520 - "Community 520"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 521 - "Community 521"
 Cohesion: 0.83
 Nodes (3): createServerContext(), createToolContext(), createToolContextFromServerContext()
 
-### Community 521 - "Community 521"
+### Community 522 - "Community 522"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 522 - "Community 522"
+### Community 523 - "Community 523"
 Cohesion: 0.67
 Nodes (2): attemptRestart(), performHealthCheck()
 
-### Community 523 - "Community 523"
+### Community 524 - "Community 524"
 Cohesion: 0.5
 Nodes (1): DatabaseOptimizeTool
 
-### Community 524 - "Community 524"
+### Community 525 - "Community 525"
 Cohesion: 0.5
 Nodes (0): 
-
-### Community 525 - "Community 525"
-Cohesion: 0.83
-Nodes (3): isDuplicateColumnError(), loadVecExtension(), migrateDatabase()
 
 ### Community 526 - "Community 526"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.83
+Nodes (3): isDuplicateColumnError(), loadVecExtension(), migrateDatabase()
 
 ### Community 527 - "Community 527"
 Cohesion: 0.5
@@ -3616,48 +3616,48 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 532 - "Community 532"
-Cohesion: 0.67
-Nodes (2): isTripleExtractionQueueJob(), resolveBatchJobTimeout()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 533 - "Community 533"
 Cohesion: 0.67
-Nodes (2): buildMemoryReviewCandidateUpsertInputs(), runMemoryReviewCandidatesJob()
+Nodes (2): isTripleExtractionQueueJob(), resolveBatchJobTimeout()
 
 ### Community 534 - "Community 534"
-Cohesion: 0.5
-Nodes (1): TripleExtractionBatchJob
+Cohesion: 0.67
+Nodes (2): buildMemoryReviewCandidateUpsertInputs(), runMemoryReviewCandidatesJob()
 
 ### Community 535 - "Community 535"
 Cohesion: 0.5
-Nodes (1): QualityMeasurementBatchJob
+Nodes (1): TripleExtractionBatchJob
 
 ### Community 536 - "Community 536"
 Cohesion: 0.5
-Nodes (1): SleepConsolidationBatchJob
+Nodes (1): QualityMeasurementBatchJob
 
 ### Community 537 - "Community 537"
 Cohesion: 0.5
-Nodes (1): TelemetryCleanupBatchJob
+Nodes (1): SleepConsolidationBatchJob
 
 ### Community 538 - "Community 538"
-Cohesion: 0.67
-Nodes (2): getTripleExtractionRetryCount(), shouldRetryTripleExtraction()
+Cohesion: 0.5
+Nodes (1): TelemetryCleanupBatchJob
 
 ### Community 539 - "Community 539"
 Cohesion: 0.67
-Nodes (2): buildBatchSchedulerRunContext(), createMutableJobRef()
+Nodes (2): getTripleExtractionRetryCount(), shouldRetryTripleExtraction()
 
 ### Community 540 - "Community 540"
+Cohesion: 0.67
+Nodes (2): buildBatchSchedulerRunContext(), createMutableJobRef()
+
+### Community 541 - "Community 541"
 Cohesion: 0.83
 Nodes (3): isTestEnvironment(), isValidationDisabled(), isValidConfigurationEnvironment()
 
-### Community 541 - "Community 541"
+### Community 542 - "Community 542"
 Cohesion: 0.67
 Nodes (2): validateReflectionNote(), validateReflectionNotes()
-
-### Community 542 - "Community 542"
-Cohesion: 0.5
-Nodes (0): 
 
 ### Community 543 - "Community 543"
 Cohesion: 0.5
@@ -3665,191 +3665,191 @@ Nodes (0):
 
 ### Community 544 - "Community 544"
 Cohesion: 0.5
-Nodes (1): SearchLocalTool
+Nodes (0): 
 
 ### Community 545 - "Community 545"
 Cohesion: 0.5
-Nodes (1): GetAnchorTool
+Nodes (1): SearchLocalTool
 
 ### Community 546 - "Community 546"
 Cohesion: 0.5
-Nodes (1): SetAnchorTool
+Nodes (1): GetAnchorTool
 
 ### Community 547 - "Community 547"
 Cohesion: 0.5
-Nodes (1): ClearAnchorTool
+Nodes (1): SetAnchorTool
 
 ### Community 548 - "Community 548"
 Cohesion: 0.5
-Nodes (1): RestoreAnchorsTool
+Nodes (1): ClearAnchorTool
 
 ### Community 549 - "Community 549"
+Cohesion: 0.5
+Nodes (1): RestoreAnchorsTool
+
+### Community 550 - "Community 550"
 Cohesion: 0.83
 Nodes (3): buildSnapshotsFromFixture(), getFixtureSnapshot(), key()
 
-### Community 550 - "Community 550"
+### Community 551 - "Community 551"
 Cohesion: 0.5
 Nodes (1): SearchResultCombiner
 
-### Community 551 - "Community 551"
-Cohesion: 0.67
-Nodes (2): createProviderVectorSearchTask(), runSingleProviderVectorSearch()
-
 ### Community 552 - "Community 552"
 Cohesion: 0.67
-Nodes (2): computeProcessAttributeFit(), toSet()
+Nodes (2): createProviderVectorSearchTask(), runSingleProviderVectorSearch()
 
 ### Community 553 - "Community 553"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 554 - "Community 554"
-Cohesion: 0.83
-Nodes (3): buildFTSQuery(), makeFTSSafe(), preprocessQuery()
+Cohesion: 0.67
+Nodes (2): computeProcessAttributeFit(), toSet()
 
 ### Community 555 - "Community 555"
 Cohesion: 0.5
-Nodes (1): ForgettingStatsTool
+Nodes (0): 
 
 ### Community 556 - "Community 556"
 Cohesion: 0.83
-Nodes (3): mapJob(), querySystemMetrics(), toolBucketFromEvents()
+Nodes (3): buildFTSQuery(), makeFTSSafe(), preprocessQuery()
 
 ### Community 557 - "Community 557"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): ForgettingStatsTool
 
 ### Community 558 - "Community 558"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.83
+Nodes (3): mapJob(), querySystemMetrics(), toolBucketFromEvents()
 
 ### Community 559 - "Community 559"
 Cohesion: 0.5
-Nodes (1): GetTelemetrySummaryTool
+Nodes (0): 
 
 ### Community 560 - "Community 560"
-Cohesion: 0.83
-Nodes (3): baseTags(), extractKnowledgeCandidates(), pushUnique()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 561 - "Community 561"
 Cohesion: 0.5
-Nodes (1): PersonalAgentLlmError
+Nodes (1): GetTelemetrySummaryTool
 
 ### Community 562 - "Community 562"
-Cohesion: 0.5
-Nodes (1): OpenAiChatLlmAdapter
+Cohesion: 0.83
+Nodes (3): baseTags(), extractKnowledgeCandidates(), pushUnique()
 
 ### Community 563 - "Community 563"
 Cohesion: 0.5
-Nodes (1): OllamaChatLlmAdapter
+Nodes (1): PersonalAgentLlmError
 
 ### Community 564 - "Community 564"
 Cohesion: 0.5
-Nodes (1): GeminiChatLlmAdapter
+Nodes (1): OpenAiChatLlmAdapter
 
 ### Community 565 - "Community 565"
-Cohesion: 0.83
-Nodes (3): handleMemoryItem(), persistMemoryItem(), shouldSkipNearDupSearch()
+Cohesion: 0.5
+Nodes (1): OllamaChatLlmAdapter
 
 ### Community 566 - "Community 566"
 Cohesion: 0.5
-Nodes (1): RememberTool
+Nodes (1): GeminiChatLlmAdapter
 
 ### Community 567 - "Community 567"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.83
+Nodes (3): handleMemoryItem(), persistMemoryItem(), shouldSkipNearDupSearch()
 
 ### Community 568 - "Community 568"
 Cohesion: 0.5
-Nodes (1): MemoryInjectionPrompt
+Nodes (1): RememberTool
 
 ### Community 569 - "Community 569"
 Cohesion: 0.5
-Nodes (1): GetMemoryNeighborsTool
+Nodes (0): 
 
 ### Community 570 - "Community 570"
 Cohesion: 0.5
-Nodes (1): ProceduralRollbackTool
+Nodes (1): MemoryInjectionPrompt
 
 ### Community 571 - "Community 571"
 Cohesion: 0.5
-Nodes (1): CleanupMemoryTool
+Nodes (1): GetMemoryNeighborsTool
 
 ### Community 572 - "Community 572"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): ProceduralRollbackTool
 
 ### Community 573 - "Community 573"
 Cohesion: 0.5
-Nodes (1): ProceduralDiffTool
+Nodes (1): CleanupMemoryTool
 
 ### Community 574 - "Community 574"
 Cohesion: 0.5
-Nodes (1): GetIntrospectionSummaryTool
+Nodes (0): 
 
 ### Community 575 - "Community 575"
 Cohesion: 0.5
-Nodes (1): RememberProcedureTool
+Nodes (1): ProceduralDiffTool
 
 ### Community 576 - "Community 576"
 Cohesion: 0.5
-Nodes (1): IntrospectionHealTool
+Nodes (1): GetIntrospectionSummaryTool
 
 ### Community 577 - "Community 577"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): RememberProcedureTool
 
 ### Community 578 - "Community 578"
-Cohesion: 0.83
-Nodes (3): computeProceduralDiff(), fieldDiff(), parseStepsJson()
+Cohesion: 0.5
+Nodes (1): IntrospectionHealTool
 
 ### Community 579 - "Community 579"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 580 - "Community 580"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.83
+Nodes (3): computeProceduralDiff(), fieldDiff(), parseStepsJson()
 
 ### Community 581 - "Community 581"
 Cohesion: 0.5
-Nodes (1): VisualizeRelationsTool
+Nodes (0): 
 
 ### Community 582 - "Community 582"
 Cohesion: 0.5
-Nodes (1): RemoveRelationTool
+Nodes (0): 
 
 ### Community 583 - "Community 583"
 Cohesion: 0.5
-Nodes (1): ExtractRelationsTool
+Nodes (1): VisualizeRelationsTool
 
 ### Community 584 - "Community 584"
 Cohesion: 0.5
-Nodes (1): RelationRetryManager
+Nodes (1): RemoveRelationTool
 
 ### Community 585 - "Community 585"
-Cohesion: 0.67
-Nodes (2): filterRelationRows(), filterRelationRowsWithWarning()
+Cohesion: 0.5
+Nodes (1): ExtractRelationsTool
 
 ### Community 586 - "Community 586"
 Cohesion: 0.5
-Nodes (1): RelationGraphTraversal
+Nodes (1): RelationRetryManager
 
 ### Community 587 - "Community 587"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): filterRelationRows(), filterRelationRowsWithWarning()
 
 ### Community 588 - "Community 588"
-Cohesion: 0.67
-Nodes (2): createBulkMemories(), createTestMemory()
+Cohesion: 0.5
+Nodes (1): RelationGraphTraversal
 
 ### Community 589 - "Community 589"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 590 - "Community 590"
-Cohesion: 0.5
-Nodes (1): TripleNormalizer
+Cohesion: 0.67
+Nodes (2): createBulkMemories(), createTestMemory()
 
 ### Community 591 - "Community 591"
 Cohesion: 0.5
@@ -3857,7 +3857,7 @@ Nodes (0):
 
 ### Community 592 - "Community 592"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): TripleNormalizer
 
 ### Community 593 - "Community 593"
 Cohesion: 0.5
@@ -3868,68 +3868,68 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 595 - "Community 595"
-Cohesion: 0.83
-Nodes (3): applyRollbackDelete(), applyRollbackRestore(), rollback()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 596 - "Community 596"
 Cohesion: 0.5
-Nodes (1): GetMetaMemoryStatsTool
+Nodes (0): 
 
 ### Community 597 - "Community 597"
-Cohesion: 0.5
-Nodes (1): PerformanceStatsTool
+Cohesion: 0.83
+Nodes (3): applyRollbackDelete(), applyRollbackRestore(), rollback()
 
 ### Community 598 - "Community 598"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): GetMetaMemoryStatsTool
 
 ### Community 599 - "Community 599"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): PerformanceStatsTool
 
 ### Community 600 - "Community 600"
 Cohesion: 0.5
-Nodes (1): CategoryQualityAggregator
+Nodes (0): 
 
 ### Community 601 - "Community 601"
 Cohesion: 0.5
-Nodes (1): ConsolidationMetricsCollector
+Nodes (0): 
 
 ### Community 602 - "Community 602"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): CategoryQualityAggregator
 
 ### Community 603 - "Community 603"
 Cohesion: 0.5
-Nodes (1): StorageMetricsCollector
+Nodes (1): ConsolidationMetricsCollector
 
 ### Community 604 - "Community 604"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 605 - "Community 605"
-Cohesion: 0.83
-Nodes (3): flattenNestedToolFilters(), hoistTypeField(), isPlainObject()
+Cohesion: 0.5
+Nodes (1): StorageMetricsCollector
 
 ### Community 606 - "Community 606"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 607 - "Community 607"
-Cohesion: 0.67
-Nodes (2): buildBenchmarkCorpus(), normalizeTags()
+Cohesion: 0.83
+Nodes (3): flattenNestedToolFilters(), hoistTypeField(), isPlainObject()
 
 ### Community 608 - "Community 608"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 609 - "Community 609"
-Cohesion: 0.83
-Nodes (3): main(), parseArgs(), printHelp()
+Cohesion: 0.67
+Nodes (2): buildBenchmarkCorpus(), normalizeTags()
 
 ### Community 610 - "Community 610"
-Cohesion: 0.67
-Nodes (2): importFixture(), runProductionRecallBenchmark()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 611 - "Community 611"
 Cohesion: 0.83
@@ -3937,23 +3937,23 @@ Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 612 - "Community 612"
 Cohesion: 0.83
-Nodes (3): acquireLongMemEval(), buildLongMemEvalDatasetUrl(), main()
+Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 613 - "Community 613"
 Cohesion: 0.83
-Nodes (3): main(), parseArgs(), printHelp()
+Nodes (3): acquireLongMemEval(), buildLongMemEvalDatasetUrl(), main()
 
 ### Community 614 - "Community 614"
 Cohesion: 0.83
-Nodes (3): main(), measureToolSurface(), serializeToolListing()
+Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 615 - "Community 615"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.83
+Nodes (3): main(), measureToolSurface(), serializeToolListing()
 
 ### Community 616 - "Community 616"
-Cohesion: 0.83
-Nodes (3): main(), parseArgs(), printHelp()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 617 - "Community 617"
 Cohesion: 0.83
@@ -3965,111 +3965,111 @@ Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 619 - "Community 619"
 Cohesion: 0.83
-Nodes (3): anyCategoryFailsMrrGate(), formatCategoryReportLine(), main()
+Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 620 - "Community 620"
 Cohesion: 0.83
-Nodes (3): acquireLoCoMo(), buildLoCoMoDatasetUrl(), main()
+Nodes (3): anyCategoryFailsMrrGate(), formatCategoryReportLine(), main()
 
 ### Community 621 - "Community 621"
 Cohesion: 0.83
-Nodes (3): findLatestRunDir(), main(), parseReportArgs()
+Nodes (3): acquireLoCoMo(), buildLoCoMoDatasetUrl(), main()
 
 ### Community 622 - "Community 622"
+Cohesion: 0.83
+Nodes (3): findLatestRunDir(), main(), parseReportArgs()
+
+### Community 623 - "Community 623"
 Cohesion: 1.0
 Nodes (3): renderManagedIssueBody(), startMarker(), upsertManagedIssueBody()
 
-### Community 623 - "Community 623"
+### Community 624 - "Community 624"
 Cohesion: 0.67
 Nodes (2): inferLevel(), parseAppLogLine()
 
-### Community 624 - "Community 624"
+### Community 625 - "Community 625"
 Cohesion: 0.67
 Nodes (2): createMonitorRuntime(), runForever()
 
-### Community 625 - "Community 625"
+### Community 626 - "Community 626"
 Cohesion: 0.67
 Nodes (2): main(), runExample()
 
-### Community 626 - "Community 626"
+### Community 627 - "Community 627"
 Cohesion: 0.5
 Nodes (0): 
-
-### Community 627 - "Community 627"
-Cohesion: 0.83
-Nodes (3): buildDetailRows(), buildTagsHtml(), getTypeBadgeClass()
 
 ### Community 628 - "Community 628"
 Cohesion: 0.83
-Nodes (3): postCandidateAction(), showActionToast(), showError()
+Nodes (3): buildDetailRows(), buildTagsHtml(), getTypeBadgeClass()
 
 ### Community 629 - "Community 629"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.83
+Nodes (3): postCandidateAction(), showActionToast(), showError()
 
 ### Community 630 - "Community 630"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 631 - "Community 631"
-Cohesion: 0.67
-Nodes (2): ensureTooltip(), showTooltip()
-
-### Community 632 - "Community 632"
-Cohesion: 0.83
-Nodes (3): initAgentSessionsPanel(), on(), wirePanel()
-
-### Community 633 - "Community 633"
-Cohesion: 1.0
-Nodes (3): getSelectedAgentId(), loadAgentIdOptions(), loadMapData()
-
-### Community 634 - "Community 634"
-Cohesion: 0.83
-Nodes (3): renderMemoryGroups(), renderMemoryStats(), renderSnapshot()
-
-### Community 635 - "Community 635"
 Cohesion: 0.5
 Nodes (0): 
 
+### Community 632 - "Community 632"
+Cohesion: 0.67
+Nodes (2): ensureTooltip(), showTooltip()
+
+### Community 633 - "Community 633"
+Cohesion: 0.83
+Nodes (3): initAgentSessionsPanel(), on(), wirePanel()
+
+### Community 634 - "Community 634"
+Cohesion: 1.0
+Nodes (3): getSelectedAgentId(), loadAgentIdOptions(), loadMapData()
+
+### Community 635 - "Community 635"
+Cohesion: 0.83
+Nodes (3): renderMemoryGroups(), renderMemoryStats(), renderSnapshot()
+
 ### Community 636 - "Community 636"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 637 - "Community 637"
 Cohesion: 0.83
 Nodes (3): appendLabeledLine(), closeSidePanel(), openSidePanel()
 
-### Community 637 - "Community 637"
+### Community 638 - "Community 638"
 Cohesion: 0.67
 Nodes (1): SlowTransport
 
-### Community 638 - "Community 638"
+### Community 639 - "Community 639"
 Cohesion: 1.0
 Nodes (2): beforeUserTurn(), withTimeout()
 
-### Community 639 - "Community 639"
+### Community 640 - "Community 640"
 Cohesion: 0.67
 Nodes (0): 
-
-### Community 640 - "Community 640"
-Cohesion: 1.0
-Nodes (2): createMockResponse(), sendOptions()
 
 ### Community 641 - "Community 641"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): createMockResponse(), sendOptions()
 
 ### Community 642 - "Community 642"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 643 - "Community 643"
-Cohesion: 1.0
-Nodes (2): createMockResponse(), runAdminAuthProbe()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 644 - "Community 644"
 Cohesion: 1.0
-Nodes (2): buildMcpManualCorsHeaders(), resolveCorsAllowOrigin()
+Nodes (2): createMockResponse(), runAdminAuthProbe()
 
 ### Community 645 - "Community 645"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): buildMcpManualCorsHeaders(), resolveCorsAllowOrigin()
 
 ### Community 646 - "Community 646"
 Cohesion: 0.67
@@ -4096,12 +4096,12 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 652 - "Community 652"
-Cohesion: 1.0
-Nodes (2): loadEnv(), resolveEnvPath()
-
-### Community 653 - "Community 653"
 Cohesion: 0.67
 Nodes (0): 
+
+### Community 653 - "Community 653"
+Cohesion: 1.0
+Nodes (2): loadEnv(), resolveEnvPath()
 
 ### Community 654 - "Community 654"
 Cohesion: 0.67
@@ -4116,40 +4116,40 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 657 - "Community 657"
-Cohesion: 1.0
-Nodes (2): compareServices(), testServerSynchronization()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 658 - "Community 658"
 Cohesion: 1.0
-Nodes (2): assert(), testMementoClient()
+Nodes (2): compareServices(), testServerSynchronization()
 
 ### Community 659 - "Community 659"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): assert(), testMementoClient()
 
 ### Community 660 - "Community 660"
 Cohesion: 0.67
-Nodes (1): NoopSearchProvider
+Nodes (0): 
 
 ### Community 661 - "Community 661"
 Cohesion: 0.67
-Nodes (1): git()
+Nodes (1): NoopSearchProvider
 
 ### Community 662 - "Community 662"
-Cohesion: 1.0
-Nodes (2): invalid(), runClaudeCodeHook()
+Cohesion: 0.67
+Nodes (1): git()
 
 ### Community 663 - "Community 663"
 Cohesion: 1.0
-Nodes (2): log(), shouldLog()
+Nodes (2): invalid(), runClaudeCodeHook()
 
 ### Community 664 - "Community 664"
 Cohesion: 1.0
-Nodes (2): hybridSearch(), recall()
+Nodes (2): log(), shouldLog()
 
 ### Community 665 - "Community 665"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): hybridSearch(), recall()
 
 ### Community 666 - "Community 666"
 Cohesion: 0.67
@@ -4160,24 +4160,24 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 668 - "Community 668"
-Cohesion: 1.0
-Nodes (2): getIntegratedMetrics(), getReflexionMetrics()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 669 - "Community 669"
 Cohesion: 1.0
-Nodes (2): mergeProceduralSteps(), updateProceduralMemoryIncremental()
+Nodes (2): getIntegratedMetrics(), getReflexionMetrics()
 
 ### Community 670 - "Community 670"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): mergeProceduralSteps(), updateProceduralMemoryIncremental()
 
 ### Community 671 - "Community 671"
-Cohesion: 1.0
-Nodes (2): addMissingColumn(), ensureMemoryItemTripleExtractionColumns()
-
-### Community 672 - "Community 672"
 Cohesion: 0.67
 Nodes (0): 
+
+### Community 672 - "Community 672"
+Cohesion: 1.0
+Nodes (2): addMissingColumn(), ensureMemoryItemTripleExtractionColumns()
 
 ### Community 673 - "Community 673"
 Cohesion: 0.67
@@ -4196,20 +4196,20 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 677 - "Community 677"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 678 - "Community 678"
 Cohesion: 1.0
 Nodes (2): buildMemoryReviewCandidatesRunDiagnosticsPayload(), readRunDetails()
 
-### Community 678 - "Community 678"
+### Community 679 - "Community 679"
 Cohesion: 0.67
 Nodes (0): 
-
-### Community 679 - "Community 679"
-Cohesion: 1.0
-Nodes (2): isIsolatedCandidate(), runAnchorAutoRefresh()
 
 ### Community 680 - "Community 680"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): isIsolatedCandidate(), runAnchorAutoRefresh()
 
 ### Community 681 - "Community 681"
 Cohesion: 0.67
@@ -4252,24 +4252,24 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 691 - "Community 691"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 692 - "Community 692"
 Cohesion: 1.0
 Nodes (2): isTransientCapacityError(), logExternalApiRetry()
 
-### Community 692 - "Community 692"
+### Community 693 - "Community 693"
 Cohesion: 0.67
 Nodes (1): RuleBasedProceduralExtractor
 
-### Community 693 - "Community 693"
+### Community 694 - "Community 694"
 Cohesion: 1.0
 Nodes (2): getVectorTableName(), validateTableName()
 
-### Community 694 - "Community 694"
+### Community 695 - "Community 695"
 Cohesion: 1.0
 Nodes (2): issue(), validateConfiguration()
-
-### Community 695 - "Community 695"
-Cohesion: 0.67
-Nodes (0): 
 
 ### Community 696 - "Community 696"
 Cohesion: 0.67
@@ -4280,52 +4280,52 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 698 - "Community 698"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 699 - "Community 699"
 Cohesion: 1.0
 Nodes (2): resolveLlmModel(), resolveProviderDefaultModel()
 
-### Community 699 - "Community 699"
-Cohesion: 0.67
-Nodes (0): 
-
 ### Community 700 - "Community 700"
 Cohesion: 0.67
-Nodes (1): SearchError
+Nodes (0): 
 
 ### Community 701 - "Community 701"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (1): SearchError
 
 ### Community 702 - "Community 702"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 703 - "Community 703"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 704 - "Community 704"
 Cohesion: 1.0
 Nodes (2): avgCandidateCountForPeriod(), querySearchQuality()
 
-### Community 704 - "Community 704"
+### Community 705 - "Community 705"
 Cohesion: 0.67
 Nodes (0): 
-
-### Community 705 - "Community 705"
-Cohesion: 1.0
-Nodes (2): parsePersonalAgentLlmEnv(), readProviderToken()
 
 ### Community 706 - "Community 706"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): parsePersonalAgentLlmEnv(), readProviderToken()
 
 ### Community 707 - "Community 707"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 708 - "Community 708"
-Cohesion: 1.0
-Nodes (2): finalizeMemoryItemRecallEnvelope(), getMetaStatsForResults()
-
-### Community 709 - "Community 709"
 Cohesion: 0.67
 Nodes (0): 
+
+### Community 709 - "Community 709"
+Cohesion: 1.0
+Nodes (2): finalizeMemoryItemRecallEnvelope(), getMetaStatsForResults()
 
 ### Community 710 - "Community 710"
 Cohesion: 0.67
@@ -4341,19 +4341,19 @@ Nodes (0):
 
 ### Community 713 - "Community 713"
 Cohesion: 0.67
-Nodes (1): MetaMemoryIntrospectionService
+Nodes (0): 
 
 ### Community 714 - "Community 714"
-Cohesion: 1.0
-Nodes (2): generateMemoryId(), rollbackToVersion()
+Cohesion: 0.67
+Nodes (1): MetaMemoryIntrospectionService
 
 ### Community 715 - "Community 715"
 Cohesion: 1.0
-Nodes (2): selectionWindowLimit(), selectMemoryReviewCandidates()
+Nodes (2): generateMemoryId(), rollbackToVersion()
 
 ### Community 716 - "Community 716"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): selectionWindowLimit(), selectMemoryReviewCandidates()
 
 ### Community 717 - "Community 717"
 Cohesion: 0.67
@@ -4384,24 +4384,24 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 724 - "Community 724"
-Cohesion: 1.0
-Nodes (2): mergeTripleLists(), tripleDedupeKey()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 725 - "Community 725"
 Cohesion: 1.0
-Nodes (2): determineRelationLlmProvider(), isOllamaPreferredSlotAvailable()
+Nodes (2): mergeTripleLists(), tripleDedupeKey()
 
 ### Community 726 - "Community 726"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): determineRelationLlmProvider(), isOllamaPreferredSlotAvailable()
 
 ### Community 727 - "Community 727"
 Cohesion: 0.67
-Nodes (1): AgentIntegrationError
+Nodes (0): 
 
 ### Community 728 - "Community 728"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (1): AgentIntegrationError
 
 ### Community 729 - "Community 729"
 Cohesion: 0.67
@@ -4412,28 +4412,28 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 731 - "Community 731"
-Cohesion: 1.0
-Nodes (2): compareToolResults(), testToolConsistency()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 732 - "Community 732"
 Cohesion: 1.0
-Nodes (2): createQualityTables(), testQualityAssuranceE2E()
+Nodes (2): compareToolResults(), testToolConsistency()
 
 ### Community 733 - "Community 733"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): createQualityTables(), testQualityAssuranceE2E()
 
 ### Community 734 - "Community 734"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 735 - "Community 735"
-Cohesion: 1.0
-Nodes (2): calculateRanks(), calculateSpearmanRho()
-
-### Community 736 - "Community 736"
 Cohesion: 0.67
 Nodes (0): 
+
+### Community 736 - "Community 736"
+Cohesion: 1.0
+Nodes (2): calculateRanks(), calculateSpearmanRho()
 
 ### Community 737 - "Community 737"
 Cohesion: 0.67
@@ -4444,36 +4444,36 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 739 - "Community 739"
-Cohesion: 1.0
-Nodes (2): main(), option()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 740 - "Community 740"
 Cohesion: 1.0
-Nodes (2): fetchJson(), testDockerServer()
+Nodes (2): main(), option()
 
 ### Community 741 - "Community 741"
 Cohesion: 1.0
-Nodes (2): fixTfidfDimensions(), loadVecExtension()
+Nodes (2): fetchJson(), testDockerServer()
 
 ### Community 742 - "Community 742"
 Cohesion: 1.0
-Nodes (2): main(), reappearanceRate()
+Nodes (2): fixTfidfDimensions(), loadVecExtension()
 
 ### Community 743 - "Community 743"
 Cohesion: 1.0
-Nodes (2): passingReports(), sampleReport()
+Nodes (2): main(), reappearanceRate()
 
 ### Community 744 - "Community 744"
 Cohesion: 1.0
-Nodes (2): createFingerprint(), normalizeMessage()
+Nodes (2): passingReports(), sampleReport()
 
 ### Community 745 - "Community 745"
 Cohesion: 1.0
-Nodes (2): limitUtf8Bytes(), sanitizeExcerpt()
+Nodes (2): createFingerprint(), normalizeMessage()
 
 ### Community 746 - "Community 746"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): limitUtf8Bytes(), sanitizeExcerpt()
 
 ### Community 747 - "Community 747"
 Cohesion: 0.67
@@ -4496,7 +4496,7 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 752 - "Community 752"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 753 - "Community 753"
@@ -7290,295 +7290,293 @@ Nodes (0):
 ## Knowledge Gaps
 - **2 isolated node(s):** `TimeoutError`, `InjectionTimeoutError`
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 752`** (2 nodes): `afterAssistantTurn()`, `after-assistant-turn.ts`
+- **Thin community `Community 753`** (2 nodes): `afterAssistantTurn()`, `after-assistant-turn.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 753`** (2 nodes): `shouldAutoRecall()`, `auto-recall-policy.ts`
+- **Thin community `Community 754`** (2 nodes): `shouldAutoRecall()`, `auto-recall-policy.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 754`** (2 nodes): `rememberDispatch()`, `auto-remember-policy.ts`
+- **Thin community `Community 755`** (2 nodes): `rememberDispatch()`, `auto-remember-policy.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 755`** (2 nodes): `createTransportFromEnv()`, `factory.ts`
+- **Thin community `Community 756`** (2 nodes): `createTransportFromEnv()`, `factory.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 756`** (2 nodes): `test-basic.js`, `testBasicFunctionality()`
+- **Thin community `Community 757`** (2 nodes): `test-basic.js`, `testBasicFunctionality()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 757`** (2 nodes): `basicUsageExample()`, `basic-usage.ts`
+- **Thin community `Community 758`** (2 nodes): `basicUsageExample()`, `basic-usage.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 758`** (2 nodes): `advancedUsageExample()`, `advanced-usage.ts`
+- **Thin community `Community 759`** (2 nodes): `advancedUsageExample()`, `advanced-usage.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 759`** (2 nodes): `telemetry-cli.spec.ts`, `makeNullRunner()`
+- **Thin community `Community 760`** (2 nodes): `telemetry-cli.spec.ts`, `makeNullRunner()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 760`** (2 nodes): `readShellSources()`, `dashboard-memory-evolution-demo-shell.spec.ts`
+- **Thin community `Community 761`** (2 nodes): `readShellSources()`, `dashboard-memory-evolution-demo-shell.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 761`** (2 nodes): `server-factory.ts`, `createServerFactory()`
+- **Thin community `Community 762`** (2 nodes): `server-factory.ts`, `createServerFactory()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 762`** (2 nodes): `setupWebSocketServer()`, `http-server-websocket.ts`
+- **Thin community `Community 763`** (2 nodes): `setupWebSocketServer()`, `http-server-websocket.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 763`** (2 nodes): `stdio-server-impl.ts`, `startStdioServer()`
+- **Thin community `Community 764`** (2 nodes): `stdio-server-impl.ts`, `startStdioServer()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 764`** (2 nodes): `simple-mcp-server.ts`, `startSimpleMcpServer()`
+- **Thin community `Community 765`** (2 nodes): `simple-mcp-server.ts`, `startSimpleMcpServer()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 765`** (2 nodes): `mapToolExecutionErrorToJsonRpc()`, `mcp-tool-call-error.ts`
+- **Thin community `Community 766`** (2 nodes): `mapToolExecutionErrorToJsonRpc()`, `mcp-tool-call-error.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 766`** (2 nodes): `tool-result.utils.ts`, `extractToolResultPayload()`
+- **Thin community `Community 767`** (2 nodes): `tool-result.utils.ts`, `extractToolResultPayload()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 767`** (2 nodes): `getRequest()`, `http-rate-limit.middleware.spec.ts`
+- **Thin community `Community 768`** (2 nodes): `getRequest()`, `http-rate-limit.middleware.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 768`** (2 nodes): `tool-context.middleware.ts`, `createToolContextMiddleware()`
+- **Thin community `Community 769`** (2 nodes): `tool-context.middleware.ts`, `createToolContextMiddleware()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 769`** (2 nodes): `session-auth.middleware.spec.ts`, `createMockResponse()`
+- **Thin community `Community 770`** (2 nodes): `session-auth.middleware.spec.ts`, `createMockResponse()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 770`** (2 nodes): `createMockResponse()`, `http-audit.middleware.spec.ts`
+- **Thin community `Community 771`** (2 nodes): `createMockResponse()`, `http-audit.middleware.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 771`** (2 nodes): `service-injector.middleware.ts`, `createServiceInjector()`
+- **Thin community `Community 772`** (2 nodes): `service-injector.middleware.ts`, `createServiceInjector()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 772`** (2 nodes): `createAdminAuthMiddleware()`, `admin-auth.middleware.ts`
+- **Thin community `Community 773`** (2 nodes): `createAdminAuthMiddleware()`, `admin-auth.middleware.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 773`** (2 nodes): `runMiddleware()`, `owner-scope.middleware.spec.ts`
+- **Thin community `Community 774`** (2 nodes): `runMiddleware()`, `owner-scope.middleware.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 774`** (2 nodes): `session-store.ts`, `createSessionStore()`
+- **Thin community `Community 775`** (2 nodes): `session-store.ts`, `createSessionStore()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 775`** (2 nodes): `createAgentRouter()`, `agent.routes.ts`
+- **Thin community `Community 776`** (2 nodes): `createAgentRouter()`, `agent.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 776`** (2 nodes): `request()`, `maintenance.routes.spec.ts`
+- **Thin community `Community 777`** (2 nodes): `request()`, `maintenance.routes.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 777`** (2 nodes): `invoke()`, `agent-personal.routes.spec.ts`
+- **Thin community `Community 778`** (2 nodes): `invoke()`, `agent-personal.routes.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 778`** (2 nodes): `prepareEvent()`, `agent.routes.events.ts`
+- **Thin community `Community 779`** (2 nodes): `prepareEvent()`, `agent.routes.events.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 779`** (2 nodes): `createAdminRouter()`, `admin.routes.ts`
+- **Thin community `Community 780`** (2 nodes): `createAdminRouter()`, `admin.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 780`** (2 nodes): `createMcpRouter()`, `mcp.routes.ts`
+- **Thin community `Community 781`** (2 nodes): `createMcpRouter()`, `mcp.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 781`** (2 nodes): `tools.routes.ts`, `createToolsRouter()`
+- **Thin community `Community 782`** (2 nodes): `tools.routes.ts`, `createToolsRouter()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 782`** (2 nodes): `request()`, `audit.routes.spec.ts`
+- **Thin community `Community 783`** (2 nodes): `request()`, `audit.routes.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 783`** (2 nodes): `createApiRouter()`, `api.routes.ts`
+- **Thin community `Community 784`** (2 nodes): `createApiRouter()`, `api.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 784`** (2 nodes): `quality.routes.ts`, `createQualityRouter()`
+- **Thin community `Community 785`** (2 nodes): `quality.routes.ts`, `createQualityRouter()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 785`** (2 nodes): `runtime-transport-parity.spec.ts`, `listToolNames()`
+- **Thin community `Community 786`** (2 nodes): `runtime-transport-parity.spec.ts`, `listToolNames()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 786`** (2 nodes): `registerAdminEvolutionDemoRoutes()`, `admin-evolution-demo.routes.ts`
+- **Thin community `Community 787`** (2 nodes): `registerAdminEvolutionDemoRoutes()`, `admin-evolution-demo.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 787`** (2 nodes): `registerAdminStatsAndHealthRoutes()`, `admin-stats-and-health.routes.ts`
+- **Thin community `Community 788`** (2 nodes): `registerAdminStatsAndHealthRoutes()`, `admin-stats-and-health.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 788`** (2 nodes): `buildGraphResponse()`, `admin-graph-response.ts`
+- **Thin community `Community 789`** (2 nodes): `buildGraphResponse()`, `admin-graph-response.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 789`** (2 nodes): `registerAdminToolRoutes()`, `admin-tools.routes.ts`
+- **Thin community `Community 790`** (2 nodes): `registerAdminToolRoutes()`, `admin-tools.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 790`** (2 nodes): `registerAdminBatchRoutes()`, `admin-batch.routes.ts`
+- **Thin community `Community 791`** (2 nodes): `registerAdminBatchRoutes()`, `admin-batch.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 791`** (2 nodes): `registerAdminForgettingRoutes()`, `admin-forgetting.routes.ts`
+- **Thin community `Community 792`** (2 nodes): `registerAdminForgettingRoutes()`, `admin-forgetting.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 792`** (2 nodes): `registerAdminGraphRoute()`, `admin-graph.routes.ts`
+- **Thin community `Community 793`** (2 nodes): `registerAdminGraphRoute()`, `admin-graph.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 793`** (2 nodes): `registerAdminRuntimePerformanceRoutes()`, `admin-runtime-performance.routes.ts`
+- **Thin community `Community 794`** (2 nodes): `registerAdminRuntimePerformanceRoutes()`, `admin-runtime-performance.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 794`** (2 nodes): `registerAdminTelemetryRoutes()`, `admin-telemetry.routes.ts`
+- **Thin community `Community 795`** (2 nodes): `registerAdminTelemetryRoutes()`, `admin-telemetry.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 795`** (2 nodes): `effectiveTelemetryPeriod()`, `admin-telemetry-utils.ts`
+- **Thin community `Community 796`** (2 nodes): `effectiveTelemetryPeriod()`, `admin-telemetry-utils.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 796`** (2 nodes): `argv()`, `agent-ask.spec.ts`
+- **Thin community `Community 797`** (2 nodes): `argv()`, `agent-ask.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 797`** (2 nodes): `runDemo()`, `agent-ops-demo.ts`
+- **Thin community `Community 798`** (2 nodes): `runDemo()`, `agent-ops-demo.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 798`** (2 nodes): `event()`, `claude-code-hook.spec.ts`
+- **Thin community `Community 799`** (2 nodes): `event()`, `claude-code-hook.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 799`** (2 nodes): `event()`, `codex-hook.spec.ts`
+- **Thin community `Community 800`** (2 nodes): `event()`, `codex-hook.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 800`** (2 nodes): `promptApproveInteractive()`, `approval.ts`
+- **Thin community `Community 801`** (2 nodes): `promptApproveInteractive()`, `approval.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 801`** (2 nodes): `agentAskHelpText()`, `help.ts`
+- **Thin community `Community 802`** (2 nodes): `agentAskHelpText()`, `help.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 802`** (2 nodes): `test-simple-alerts.ts`, `testSimpleAlerts()`
+- **Thin community `Community 803`** (2 nodes): `test-simple-alerts.ts`, `testSimpleAlerts()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 803`** (2 nodes): `test-http-server-v2-simple.ts`, `testBasicFunctionality()`
+- **Thin community `Community 804`** (2 nodes): `test-http-server-v2-simple.ts`, `testBasicFunctionality()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 804`** (2 nodes): `test-performance-monitoring.ts`, `testPerformanceMonitoring()`
+- **Thin community `Community 805`** (2 nodes): `test-performance-monitoring.ts`, `testPerformanceMonitoring()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 805`** (2 nodes): `test-error-logging.ts`, `testErrorLogging()`
+- **Thin community `Community 806`** (2 nodes): `test-error-logging.ts`, `testErrorLogging()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 806`** (2 nodes): `testFetch()`, `debug-http-v2.ts`
+- **Thin community `Community 807`** (2 nodes): `testFetch()`, `debug-http-v2.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 807`** (2 nodes): `test-reflexion-error-cases.spec.ts`, `initializeTestDatabase()`
+- **Thin community `Community 808`** (2 nodes): `test-reflexion-error-cases.spec.ts`, `initializeTestDatabase()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 808`** (2 nodes): `test-reflexion-e2e.spec.ts`, `testReflexionE2E()`
+- **Thin community `Community 809`** (2 nodes): `test-reflexion-e2e.spec.ts`, `testReflexionE2E()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 809`** (2 nodes): `test-alerts-direct.ts`, `testAlertsDirect()`
+- **Thin community `Community 810`** (2 nodes): `test-alerts-direct.ts`, `testAlertsDirect()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 810`** (2 nodes): `test-performance-alerts.ts`, `testPerformanceAlerts()`
+- **Thin community `Community 811`** (2 nodes): `test-performance-alerts.ts`, `testPerformanceAlerts()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 811`** (2 nodes): `test-security-path-traversal.ts`, `testPathTraversalE2E()`
+- **Thin community `Community 812`** (2 nodes): `test-security-path-traversal.ts`, `testPathTraversalE2E()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 812`** (2 nodes): `test-security-sql-injection.ts`, `testSqlInjectionE2E()`
+- **Thin community `Community 813`** (2 nodes): `test-security-sql-injection.ts`, `testSqlInjectionE2E()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 813`** (2 nodes): `search-factory.ts`, `createSearchProvider()`
+- **Thin community `Community 814`** (2 nodes): `search-factory.ts`, `createSearchProvider()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 814`** (2 nodes): `types.ts`, `loadAgentConfig()`
+- **Thin community `Community 815`** (2 nodes): `types.ts`, `loadAgentConfig()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 815`** (2 nodes): `queue-runtime.spec.ts`, `transport()`
+- **Thin community `Community 816`** (2 nodes): `queue-runtime.spec.ts`, `transport()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 816`** (2 nodes): `test-fixtures.ts`, `eventFixture()`
+- **Thin community `Community 817`** (2 nodes): `test-fixtures.ts`, `eventFixture()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 817`** (2 nodes): `diagnoseCodex()`, `diagnostics.ts`
+- **Thin community `Community 818`** (2 nodes): `diagnoseCodex()`, `diagnostics.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 818`** (2 nodes): `runner.ts`, `runCodexHook()`
+- **Thin community `Community 819`** (2 nodes): `runner.ts`, `runCodexHook()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 819`** (2 nodes): `utils.spec.ts`, `buildMemory()`
+- **Thin community `Community 820`** (2 nodes): `utils.spec.ts`, `buildMemory()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 820`** (2 nodes): `createMementoClient()`, `factory.ts`
+- **Thin community `Community 821`** (2 nodes): `createMementoClient()`, `factory.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 821`** (2 nodes): `initializeServices()`, `bootstrap.ts`
+- **Thin community `Community 822`** (2 nodes): `initializeServices()`, `bootstrap.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 822`** (2 nodes): `write-and-meta.ts`, `createWriteCoalescingMetaAndScore()`
+- **Thin community `Community 823`** (2 nodes): `write-and-meta.ts`, `createWriteCoalescingMetaAndScore()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 823`** (2 nodes): `createBatchTelemetryRelationAndSleep()`, `batch-telemetry-relation.ts`
+- **Thin community `Community 824`** (2 nodes): `createBatchTelemetryRelationAndSleep()`, `batch-telemetry-relation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 824`** (2 nodes): `createAnchorStack()`, `anchor-stack.ts`
+- **Thin community `Community 825`** (2 nodes): `createAnchorStack()`, `anchor-stack.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 825`** (2 nodes): `startFailureAndReflexion()`, `failure-reflexion.ts`
+- **Thin community `Community 826`** (2 nodes): `startFailureAndReflexion()`, `failure-reflexion.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 826`** (2 nodes): `search-and-embedding.ts`, `createSearchEmbeddingAndOptimizerServices()`
+- **Thin community `Community 827`** (2 nodes): `search-and-embedding.ts`, `createSearchEmbeddingAndOptimizerServices()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 827`** (2 nodes): `createMonitoringAndSchedulers()`, `monitoring-schedulers.ts`
+- **Thin community `Community 828`** (2 nodes): `createMonitoringAndSchedulers()`, `monitoring-schedulers.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 828`** (2 nodes): `runtime-diagnostics-sampler.ts`, `createRuntimeDiagnosticsSampler()`
+- **Thin community `Community 829`** (2 nodes): `runtime-diagnostics-sampler.ts`, `createRuntimeDiagnosticsSampler()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 829`** (2 nodes): `createInput()`, `consolidation-score-service.spec.ts`
+- **Thin community `Community 830`** (2 nodes): `createInput()`, `consolidation-score-service.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 830`** (2 nodes): `relation-graph-factory.ts`, `createRelationGraph()`
+- **Thin community `Community 831`** (2 nodes): `relation-graph-factory.ts`, `createRelationGraph()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 831`** (2 nodes): `reflexion-procedural-create.ts`, `createProceduralMemory()`
+- **Thin community `Community 832`** (2 nodes): `reflexion-procedural-create.ts`, `createProceduralMemory()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 832`** (2 nodes): `reflexion-procedural-update-replace.ts`, `updateProceduralMemoryReplace()`
+- **Thin community `Community 833`** (2 nodes): `reflexion-procedural-update-replace.ts`, `updateProceduralMemoryReplace()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 833`** (2 nodes): `reflexion-procedural-extraction.ts`, `resolveExtractedProceduralMemory()`
+- **Thin community `Community 834`** (2 nodes): `reflexion-procedural-extraction.ts`, `resolveExtractedProceduralMemory()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 834`** (2 nodes): `reflexion-procedural-update-versioned.ts`, `updateProceduralMemoryVersioned()`
+- **Thin community `Community 835`** (2 nodes): `reflexion-procedural-update-versioned.ts`, `updateProceduralMemoryVersioned()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 835`** (2 nodes): `createBaseSchema()`, `database-lock-scenarios.integration.spec.ts`
+- **Thin community `Community 836`** (2 nodes): `createBaseSchema()`, `database-lock-scenarios.integration.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 836`** (2 nodes): `wal-checkpoint-scheduler.spec.ts`, `uniqueWalTestDbPath()`
+- **Thin community `Community 837`** (2 nodes): `wal-checkpoint-scheduler.spec.ts`, `uniqueWalTestDbPath()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 837`** (2 nodes): `openLockTestDatabase()`, `database-lock-monitor.spec.ts`
+- **Thin community `Community 838`** (2 nodes): `openLockTestDatabase()`, `database-lock-monitor.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 838`** (2 nodes): `createProgress()`, `migration-monitor-service.spec.ts`
+- **Thin community `Community 839`** (2 nodes): `createProgress()`, `migration-monitor-service.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 839`** (2 nodes): `createCoreMemoryRepository()`, `core-memory-repository.factory.ts`
+- **Thin community `Community 840`** (2 nodes): `createCoreMemoryRepository()`, `core-memory-repository.factory.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 840`** (2 nodes): `createCoreMemoryTable()`, `core-memory-auto-load.integration.spec.ts`
+- **Thin community `Community 841`** (2 nodes): `createCoreMemoryTable()`, `core-memory-auto-load.integration.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 841`** (2 nodes): `vec-cosine-metric.integration.spec.ts`, `vector()`
+- **Thin community `Community 842`** (2 nodes): `vec-cosine-metric.integration.spec.ts`, `vector()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 842`** (2 nodes): `ensureMemoryEmbeddingMetadataDefaults()`, `ensure-memory-embedding-metadata-defaults.ts`
+- **Thin community `Community 843`** (2 nodes): `ensureMemoryEmbeddingMetadataDefaults()`, `ensure-memory-embedding-metadata-defaults.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 843`** (2 nodes): `bootstrapNewDatabaseSchema()`, `init-bootstrap-new-db.ts`
+- **Thin community `Community 844`** (2 nodes): `bootstrapNewDatabaseSchema()`, `init-bootstrap-new-db.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 844`** (2 nodes): `log()`, `init-log.ts`
+- **Thin community `Community 845`** (2 nodes): `log()`, `init-log.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 845`** (2 nodes): `createDbPath()`, `db-integrity-preflight.spec.ts`
+- **Thin community `Community 846`** (2 nodes): `createDbPath()`, `db-integrity-preflight.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 846`** (2 nodes): `migrateExistingDatabaseIfNeeded()`, `init-migrate-existing.ts`
+- **Thin community `Community 847`** (2 nodes): `migrateExistingDatabaseIfNeeded()`, `init-migrate-existing.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 847`** (2 nodes): `recordBundledSchemaSqlMigrationBaseline()`, `init-migration-baseline.ts`
+- **Thin community `Community 848`** (2 nodes): `recordBundledSchemaSqlMigrationBaseline()`, `init-migration-baseline.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 848`** (2 nodes): `configureSqliteSession()`, `init-sqlite-session.ts`
+- **Thin community `Community 849`** (2 nodes): `configureSqliteSession()`, `init-sqlite-session.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 849`** (2 nodes): `createModernSchemaWithNullMetadata()`, `ensure-memory-embedding-metadata-defaults.spec.ts`
+- **Thin community `Community 850`** (2 nodes): `createModernSchemaWithNullMetadata()`, `ensure-memory-embedding-metadata-defaults.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 850`** (2 nodes): `createBaseSchema()`, `migration-runner.integration.spec.ts`
+- **Thin community `Community 851`** (2 nodes): `createBaseSchema()`, `migration-runner.integration.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 851`** (2 nodes): `createBaseSchema()`, `008-arigraph-schema-expansion.spec.ts`
+- **Thin community `Community 852`** (2 nodes): `createBaseSchema()`, `008-arigraph-schema-expansion.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 852`** (2 nodes): `createBaseSchema()`, `011-meta-memory-stats-schema.spec.ts`
+- **Thin community `Community 853`** (2 nodes): `createBaseSchema()`, `011-meta-memory-stats-schema.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 853`** (2 nodes): `createBaseSchema()`, `009-quality-assurance-schema.spec.ts`
+- **Thin community `Community 854`** (2 nodes): `createBaseSchema()`, `009-quality-assurance-schema.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 854`** (2 nodes): `createBaseSchema()`, `002-mirix-schema-expansion.spec.ts`
+- **Thin community `Community 855`** (2 nodes): `createBaseSchema()`, `002-mirix-schema-expansion.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 855`** (2 nodes): `createSchemaWith018()`, `019-backfill-kg-triple-from-memory-item.spec.ts`
+- **Thin community `Community 856`** (2 nodes): `createSchemaWith018()`, `019-backfill-kg-triple-from-memory-item.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 856`** (2 nodes): `createBaseSchema()`, `004-anchor-table.spec.ts`
+- **Thin community `Community 857`** (2 nodes): `createBaseSchema()`, `004-anchor-table.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 857`** (2 nodes): `applicableTypesFor()`, `038-relation-type-registry-seeds.spec.ts`
+- **Thin community `Community 858`** (2 nodes): `applicableTypesFor()`, `038-relation-type-registry-seeds.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 858`** (2 nodes): `createBaseSchema()`, `010-add-core-memory-version.spec.ts`
+- **Thin community `Community 859`** (2 nodes): `createBaseSchema()`, `010-add-core-memory-version.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 859`** (2 nodes): `createBaseSchema()`, `007-procedural-memory-enhancement.spec.ts`
+- **Thin community `Community 860`** (2 nodes): `createBaseSchema()`, `007-procedural-memory-enhancement.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 860`** (2 nodes): `createBaseSchema()`, `003-consolidation-score-fields.spec.ts`
+- **Thin community `Community 861`** (2 nodes): `createBaseSchema()`, `003-consolidation-score-fields.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 861`** (2 nodes): `mergeBatchSchedulerJobConfig()`, `batch-scheduler-default-config.ts`
+- **Thin community `Community 862`** (2 nodes): `mergeBatchSchedulerJobConfig()`, `batch-scheduler-default-config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 862`** (2 nodes): `collectBatchSchedulerDatabaseStats()`, `batch-scheduler-database-stats.ts`
+- **Thin community `Community 863`** (2 nodes): `collectBatchSchedulerDatabaseStats()`, `batch-scheduler-database-stats.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 863`** (2 nodes): `validateBatchJobConfig()`, `batch-scheduler-validate-config.ts`
+- **Thin community `Community 864`** (2 nodes): `validateBatchJobConfig()`, `batch-scheduler-validate-config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 864`** (2 nodes): `createCoordinator()`, `batch-job-execution-coordinator.spec.ts`
+- **Thin community `Community 865`** (2 nodes): `createCoordinator()`, `batch-job-execution-coordinator.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 865`** (2 nodes): `retry-manager.spec.ts`, `shouldRetry()`
+- **Thin community `Community 866`** (2 nodes): `retry-manager.spec.ts`, `shouldRetry()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 866`** (2 nodes): `baseResult()`, `memory-review-candidates-run-diagnostics.spec.ts`
+- **Thin community `Community 867`** (2 nodes): `baseResult()`, `memory-review-candidates-run-diagnostics.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 867`** (2 nodes): `initializeTestDatabase()`, `batch-scheduler-consolidation-score.spec.ts`
+- **Thin community `Community 868`** (2 nodes): `initializeTestDatabase()`, `batch-scheduler-consolidation-score.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 868`** (2 nodes): `failingJob()`, `job-execution-retry.spec.ts`
+- **Thin community `Community 869`** (2 nodes): `failingJob()`, `job-execution-retry.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 869`** (2 nodes): `executionCoordinator()`, `batch-scheduler.test-setup.ts`
+- **Thin community `Community 870`** (2 nodes): `executionCoordinator()`, `batch-scheduler.test-setup.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 870`** (2 nodes): `quality-measurement-batch-job.spec.ts`, `createQualityTables()`
+- **Thin community `Community 871`** (2 nodes): `quality-measurement-batch-job.spec.ts`, `createQualityTables()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 871`** (2 nodes): `triple-extraction-batch-job.types.ts`, `getErrorCode()`
+- **Thin community `Community 872`** (2 nodes): `triple-extraction-batch-job.types.ts`, `getErrorCode()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 872`** (2 nodes): `logBatchSchedulerMessage()`, `batch-scheduler-logging.ts`
+- **Thin community `Community 873`** (2 nodes): `logBatchSchedulerMessage()`, `batch-scheduler-logging.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 873`** (2 nodes): `checkBatchSchedulerHealth()`, `batch-scheduler-health.ts`
+- **Thin community `Community 874`** (2 nodes): `checkBatchSchedulerHealth()`, `batch-scheduler-health.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 874`** (2 nodes): `getBatchSchedulerDetailedStats()`, `batch-scheduler-stats.ts`
+- **Thin community `Community 875`** (2 nodes): `getBatchSchedulerDetailedStats()`, `batch-scheduler-stats.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 875`** (2 nodes): `parseOwnerScopeMode()`, `owner-scope-mode.ts`
+- **Thin community `Community 876`** (2 nodes): `parseOwnerScopeMode()`, `owner-scope-mode.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 876`** (2 nodes): `rotateJsonlIfNeeded()`, `jsonl-rotation.ts`
+- **Thin community `Community 877`** (2 nodes): `rotateJsonlIfNeeded()`, `jsonl-rotation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 877`** (2 nodes): `emitTfidfFallbackWarningIfNeeded()`, `embedding-provider-diagnostics.ts`
+- **Thin community `Community 878`** (2 nodes): `emitTfidfFallbackWarningIfNeeded()`, `embedding-provider-diagnostics.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 878`** (2 nodes): `validateAndNormalizeDbPath()`, `db-path.ts`
+- **Thin community `Community 879`** (2 nodes): `validateAndNormalizeDbPath()`, `db-path.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 879`** (2 nodes): `operation()`, `error-handling.spec.ts`
+- **Thin community `Community 880`** (2 nodes): `operation()`, `error-handling.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 880`** (2 nodes): `ensureMemoryReviewCandidateSchema()`, `ensure-memory-review-candidate-schema.ts`
+- **Thin community `Community 881`** (2 nodes): `ensureMemoryReviewCandidateSchema()`, `ensure-memory-review-candidate-schema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 881`** (2 nodes): `withErrorHandling()`, `error-handling.ts`
+- **Thin community `Community 882`** (2 nodes): `withErrorHandling()`, `error-handling.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 882`** (2 nodes): `ensureMetaMemoryStatsSchema()`, `ensure-meta-memory-stats-schema.ts`
+- **Thin community `Community 883`** (2 nodes): `ensureMetaMemoryStatsSchema()`, `ensure-meta-memory-stats-schema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 883`** (2 nodes): `procedural-memory-change-detector.spec.ts`, `initializeTestDatabase()`
+- **Thin community `Community 884`** (2 nodes): `procedural-memory-change-detector.spec.ts`, `initializeTestDatabase()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 884`** (2 nodes): `ensureQualityAssuranceSchema()`, `ensure-quality-assurance-schema.ts`
+- **Thin community `Community 885`** (2 nodes): `ensureQualityAssuranceSchema()`, `ensure-quality-assurance-schema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 885`** (2 nodes): `procedural-memory-extractor.spec.ts`, `initializeTestDatabase()`
+- **Thin community `Community 886`** (2 nodes): `procedural-memory-extractor.spec.ts`, `initializeTestDatabase()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 886`** (2 nodes): `schema-initialization.ts`, `initializeDatabase()`
+- **Thin community `Community 887`** (2 nodes): `schema-initialization.ts`, `initializeDatabase()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 887`** (2 nodes): `assertMacroCategory()`, `benchmark.types.ts`
+- **Thin community `Community 888`** (2 nodes): `assertMacroCategory()`, `benchmark.types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 888`** (2 nodes): `validateConfig()`, `index.ts`
+- **Thin community `Community 889`** (2 nodes): `validateConfig()`, `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 889`** (2 nodes): `initializeGemini()`, `gemini.ts`
+- **Thin community `Community 890`** (2 nodes): `initializeGemini()`, `gemini.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 890`** (2 nodes): `initializeOpenAI()`, `openai.ts`
+- **Thin community `Community 891`** (2 nodes): `initializeOpenAI()`, `openai.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 891`** (2 nodes): `source-uri.ts`, `validateSource()`
+- **Thin community `Community 892`** (2 nodes): `source-uri.ts`, `validateSource()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 892`** (2 nodes): `set-anchor-tool.spec.ts`, `initializeTestDatabase()`
+- **Thin community `Community 893`** (2 nodes): `set-anchor-tool.spec.ts`, `initializeTestDatabase()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 893`** (2 nodes): `search-local-tool.spec.ts`, `initializeTestDatabase()`
+- **Thin community `Community 894`** (2 nodes): `search-local-tool.spec.ts`, `initializeTestDatabase()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 894`** (2 nodes): `vector-search-engine-types.ts`, `isInitializableVectorSearchEngine()`
+- **Thin community `Community 895`** (2 nodes): `vector-search-engine-types.ts`, `isInitializableVectorSearchEngine()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 895`** (2 nodes): `resolveRepoRankingProfile()`, `hybrid-search.factory.spec.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 896`** (2 nodes): `normalizeSearchBySimilarityOutcome()`, `hybrid-search-outcome-utils.ts`
+- **Thin community `Community 896`** (2 nodes): `resolveRepoRankingProfile()`, `hybrid-search.factory.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 897`** (2 nodes): `search-engine-sql-builder.ts`, `buildSearchStatement()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -8695,9 +8693,9 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+- **Should `Community 2` be split into smaller, more focused modules?**
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**

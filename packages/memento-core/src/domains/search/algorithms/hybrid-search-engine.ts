@@ -23,6 +23,8 @@ import { SearchLogger } from './search-logger.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
+import { collectResultIds } from './hybrid-search-outcome-utils.js';
+import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import type {
   HybridSearchQuery,
   HybridSearchResult,
@@ -135,6 +137,18 @@ export class HybridSearchEngine {
     reranked_count: number;
     tfidf_query_embedding_fallback?: boolean;
     tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
+    candidate_funnel?: {
+      raw_text: string[];
+      text_topN: string[];
+      raw_vector: string[];
+      thresholded_vector: string[];
+      union: string[];
+      final_top10: string[];
+      vector_threshold: number;
+      vector_prefetch: number;
+      text_weight: number;
+      vector_weight: number;
+    };
   }> {
     const searchId = this.generateSearchId();
     const startTime = process.hrtime.bigint();
@@ -172,6 +186,14 @@ export class HybridSearchEngine {
       };
       this.logger.logSearchComplete(searchId, logData, queryTime);
 
+      const rawText = collectResultIds(textResults as Array<{ id?: unknown }>);
+      const limit = query.limit || 10;
+      const textTopN = rawText.slice(0, limit);
+      const rawVector = vectorOut.raw_ids ?? [];
+      const thresholdedVector = vectorOut.thresholded_ids ?? collectResultIds(vectorOut.results);
+      const unionIds = [...new Set([...rawText, ...thresholdedVector])];
+      const finalIds = collectResultIds(finalResults);
+
       return {
         items: finalResults,
         total_count: finalResults.length,
@@ -184,6 +206,18 @@ export class HybridSearchEngine {
         query_embedding_providers: vectorOut.query_embedding_providers,
         tfidf_query_embedding_fallback: vectorOut.tfidf_query_embedding_fallback,
         tfidf_query_embedding_fallback_providers: vectorOut.tfidf_query_embedding_fallback_providers,
+        candidate_funnel: {
+          raw_text: rawText,
+          text_topN: textTopN,
+          raw_vector: rawVector,
+          thresholded_vector: thresholdedVector,
+          union: unionIds,
+          final_top10: finalIds,
+          vector_threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+          vector_prefetch: resolveHybridVectorPrefetchLimit(query.limit),
+          text_weight: weights.textWeight,
+          vector_weight: weights.vectorWeight,
+        },
       };
     } catch (error) {
       this.logger.logSearchError(searchId, error, query);

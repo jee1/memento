@@ -6,7 +6,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
-import { normalizeSearchBySimilarityOutcome } from './hybrid-search-outcome-utils.js';
+import { normalizeSearchBySimilarityOutcome, collectResultIds, filterByVectorThreshold } from './hybrid-search-outcome-utils.js';
 import {
   createProviderVectorSearchTask,
   executeProviderSearchesWithOverallTimeout,
@@ -46,6 +46,8 @@ export type HybridVectorSearchOutput = {
   query_embedding_providers?: EmbeddingProvider[];
   tfidf_query_embedding_fallback?: boolean;
   tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
+  raw_ids?: string[];
+  thresholded_ids?: string[];
 };
 
 export class HybridVectorSearchExecutor {
@@ -116,12 +118,14 @@ export class HybridVectorSearchExecutor {
           fallback_used: false,
           tfidf_query_embedding_fallback: false,
           tfidf_query_embedding_fallback_providers: undefined,
+          raw_ids: [],
+          thresholded_ids: [],
         };
       }
 
       const searchOptions = {
         limit: resolveHybridVectorPrefetchLimit(query.limit),
-        threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+        threshold: query.includeFunnel ? 0 : HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
         types: query.filters?.type,
         includeContent: true,
         ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
@@ -157,7 +161,10 @@ export class HybridVectorSearchExecutor {
         (sid, step, data) => this.searchLogger.logSearchStep(sid, step, data)
       );
 
-      const vectorResults = this.normalizeAndDeduplicateResults(allResults);
+      const rankingPool = query.includeFunnel
+        ? filterByVectorThreshold(allResults, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD)
+        : allResults;
+      const vectorResults = this.normalizeAndDeduplicateResults(rankingPool);
       const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
 
       this.searchLogger.logSearchStep(searchId, 'VEC 벡터 검색 완료', {
@@ -175,6 +182,8 @@ export class HybridVectorSearchExecutor {
         fallback_used: false,
         tfidf_query_embedding_fallback: tfidfQueryEmbeddingFallback,
         tfidf_query_embedding_fallback_providers: tfidfQueryEmbeddingFallbackProviders,
+        raw_ids: collectResultIds(allResults),
+        thresholded_ids: collectResultIds(rankingPool),
       };
     } catch (error) {
       this.searchLogger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
@@ -307,14 +316,14 @@ export class HybridVectorSearchExecutor {
   ): Promise<Omit<HybridVectorSearchOutput, 'fallback_used'>> {
     if (!this.embeddingService.isAvailable()) {
       this.searchLogger.logSearchStep(searchId, '임베딩 서비스 사용 불가', {});
-      return { results: [] };
+      return { results: [], raw_ids: [], thresholded_ids: [] };
     }
 
     const fallbackStart = process.hrtime.bigint();
     const raw = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type,
       limit: resolveHybridVectorPrefetchLimit(query.limit),
-      threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+      threshold: query.includeFunnel ? 0 : HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
       ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
         ? { project_id: query.filters.project_id }
         : {}),
@@ -359,10 +368,18 @@ export class HybridVectorSearchExecutor {
     }
 
     return {
-      results,
+      results: query.includeFunnel
+        ? filterByVectorThreshold(results, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD)
+        : results,
       query_embedding_providers,
       tfidf_query_embedding_fallback,
       tfidf_query_embedding_fallback_providers,
+      raw_ids: collectResultIds(results),
+      thresholded_ids: collectResultIds(
+        query.includeFunnel
+          ? filterByVectorThreshold(results, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD)
+          : results
+      ),
     };
   }
 

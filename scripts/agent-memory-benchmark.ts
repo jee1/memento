@@ -85,6 +85,7 @@ export interface ProductionScorecard {
   dataset_sha256: string;
   seed: number;
   ranking_profile: string;
+  ranking_version: string;
   embedding_provider: string;
   production_path: string;
   query_count: number;
@@ -112,6 +113,11 @@ export interface AgentMemoryBenchmarkReport {
     seed: number;
     graph_rrf: boolean;
     production?: boolean;
+    ranking_version?: string;
+    ranking_weights_path_override?: boolean;
+    eligible_query_ids_sha256?: string;
+    excluded_query_ids_sha256?: string;
+    evaluator_revision?: string;
   };
   retrieval: Partial<Record<BaselineName, BaselineMetrics>>;
   by_category?: Partial<Record<BaselineName, Record<string, CategoryMetrics>>>;
@@ -435,6 +441,11 @@ export async function runProductionAgentMemoryBenchmark(
     .sort((a, b) => a.localeCompare(b));
 
   report.reproduction.production = true;
+  report.reproduction.ranking_version = production.ranking_version;
+  report.reproduction.ranking_weights_path_override = production.ranking_weights_path_override;
+  report.reproduction.evaluator_revision = dataset.manifest.benchmark_version;
+  report.reproduction.eligible_query_ids_sha256 = hashIdList(dataset.queries.map((query) => query.id));
+  report.reproduction.excluded_query_ids_sha256 = hashIdList(excludedQueryIds(dataset));
   report.retrieval.memento_prod = metrics;
   report.end_to_end.memento_prod = evaluateEndToEnd(
     dataset.e2eCases,
@@ -460,6 +471,7 @@ export async function runProductionAgentMemoryBenchmark(
     dataset_revision: dataset.manifest.source_revision,
     dataset_sha256: report.reproduction.fixture_sha256,
     ranking_profile: production.ranking_profile,
+    ranking_version: production.ranking_version,
     embedding_provider: production.embedding_provider,
     seed: report.reproduction.seed,
     query_count: metrics.query_count,
@@ -971,6 +983,19 @@ function hashDataset(dataset: AgentMemoryBenchmarkDataset): string {
   return createHash('sha256')
     .update(JSON.stringify(dataset))
     .digest('hex');
+}
+
+function hashIdList(ids: string[]): string {
+  return createHash('sha256')
+    .update([...ids].sort((a, b) => a.localeCompare(b)).join('\n'))
+    .digest('hex');
+}
+
+function excludedQueryIds(dataset: AgentMemoryBenchmarkDataset): string[] {
+  const eligible = new Set(dataset.queries.map((query) => query.id));
+  return (dataset.taskCases ?? [])
+    .filter((testCase) => testCase.abstention || !eligible.has(testCase.id))
+    .map((testCase) => testCase.id);
 }
 
 function readGitSha(): string {

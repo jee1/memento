@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -227,10 +228,24 @@ describe('agent memory benchmark runner', () => {
       dataset_revision: expect.any(String),
       dataset_sha256: report.reproduction.fixture_sha256,
       ranking_profile: expect.any(String),
+      ranking_version: expect.stringMatching(/^ranking-sha256:[a-f0-9]{12}$/),
       embedding_provider: 'tfidf',
       failed_queries: expect.any(Array),
       p95_budget_ms: expect.any(Number),
+      recall_at_5: expect.any(Number),
+      recall_at_10: expect.any(Number),
+      mrr: expect.any(Number),
+      ndcg_at_10: expect.any(Number),
     }));
+    const headSha = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    }).trim();
+    expect(report.reproduction.git_sha).toBe(headSha);
+    expect(report.reproduction.ranking_version).toMatch(/^ranking-sha256:[a-f0-9]{12}$/);
+    expect(report.reproduction.ranking_weights_path_override).toBe(Boolean(process.env.MEMENTO_RANKING_WEIGHTS_PATH));
+    expect(report.reproduction.eligible_query_ids_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(report.reproduction.excluded_query_ids_sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(report.gates.production_vs_fts.enabled).toBe(true);
   });
 });
