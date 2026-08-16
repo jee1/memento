@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../../bootstrap.js';
 import {
-  getToolRegistry,
+  getExposedTools,
   executeTool,
   createToolContext,
   logger,
@@ -172,11 +172,10 @@ function createServerToolContext(
 function handleToolsList(message: McpRequestMessage): JsonRpcResponse {
   logger.info('MCP tools/list request processing');
   try {
-    const toolRegistry = getToolRegistry();
     return {
       jsonrpc: '2.0',
       id: message.id,
-      result: { tools: toolRegistry.getAll() }
+      result: { tools: getExposedTools() }
     };
   } catch (toolsError) {
     logger.error('tools/list processing error', {

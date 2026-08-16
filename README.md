@@ -435,9 +435,11 @@ http://localhost:9001/graph
 
 ## 📋 API 문서
 
-### MCP Tools (핵심 22개)
+### MCP Tools (등록 22개, 기본 노출 4개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리·관계·텔레메트리 도구 22개를 노출합니다. 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.
+> **중요**: 서버에는 도구 22개가 등록되어 있지만, `tools/list`에는 기본적으로 **`recall`·`remember`·`memory_injection`·`feedback` 4개만** 노출됩니다(v1.18+). 도구 정의는 세션 내내 클라이언트 컨텍스트를 점유하므로, 늘 켜두는 서버일수록 기본 표면을 줄이는 편이 낫습니다(측정: 5,860 → 2,954 추정 토큰, 49.6% 감소).
+>
+> 나머지 18개는 **등록된 채로 남아 호출은 그대로 됩니다** — 목록에서만 빠집니다. 전부 나열하려면 `MEMENTO_TOOLSET=full`을 설정하세요. 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 여전히 HTTP API로만 제공됩니다.
 
 #### 기본 메모리 관리 (8개)
 | Tool | 설명 | 파라미터 |
@@ -645,7 +647,7 @@ npm run test -- --coverage
 
 Memento는 개인용 로컬 서버로 시작해, 팀 협업을 거쳐, 조직 규모의 메모리 플랫폼으로 성장하도록 설계되어 있다.
 
-**M1: 개인용 (현재)** — 지금 사용할 수 있는 형태다. SQLite 임베디드, FTS5 + sqlite-vec 인덱스, 로컬 실행. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구). 22개 MCP 도구, 관리 기능은 HTTP API로 분리.
+**M1: 개인용 (현재)** — 지금 사용할 수 있는 형태다. SQLite 임베디드, FTS5 + sqlite-vec 인덱스, 로컬 실행. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구). MCP 도구 22개 등록·기본 노출 4개(`MEMENTO_TOOLSET=full`로 전체), 관리 기능은 HTTP API로 분리.
 
 **M2: 팀 협업 (계획)** — SQLite 서버 모드, API Key 인증, Docker 단일 컨테이너. 여러 팀원이 하나의 기억 백엔드를 공유한다.
 

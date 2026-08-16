@@ -271,7 +271,7 @@ await client.forget(result.memory_id);
 
 ### Core Memory Management (MCP Client)
 
-22 tools are exposed via MCP. Operational functions (anchor restore, embedding migration, episodic→semantic conversion, meta stats) are HTTP API only.
+22 tools are registered, but `tools/list` advertises only four by default (v1.18+): `recall`, `remember`, `memory_injection`, `feedback`. Tool definitions occupy the client's context for the whole session, and Memento is a server people leave running — trimming the default listing cuts that from ~5,860 to ~2,954 estimated tokens (49.6%). The other 18 stay registered and callable; they are only withheld from the listing. Set `MEMENTO_TOOLSET=full` to advertise all of them. Operational functions (anchor restore, embedding migration, episodic→semantic conversion, meta stats) remain HTTP API only.
 
 - **Memory storage**: `working`, `episodic`, `semantic`, `procedural` types
 - **Memory search**: Hybrid search (FTS5 text + vector)
@@ -497,7 +497,7 @@ Retrieval quality against public datasets (LongMemEval-S, LoCoMo) runs through t
 
 Memento is designed to grow: from a personal local server, through team collaboration, to an organization-scale memory platform.
 
-**M1: Personal (current)** — the form you can use today. SQLite embedded, FTS5 + sqlite-vec indexes, local execution. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key). 22 MCP tools, management functions separated into HTTP API.
+**M1: Personal (current)** — the form you can use today. SQLite embedded, FTS5 + sqlite-vec indexes, local execution. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key). 22 registered MCP tools with four listed by default (`MEMENTO_TOOLSET=full` lists all), management functions separated into HTTP API.
 
 **M2: Team (planned)** — SQLite server mode, API Key auth, Docker single container. Multiple teammates share one memory backend.
 

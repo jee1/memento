@@ -21,4 +21,4 @@ Memento의 **심장**에 해당하는 라이브러리입니다. 기억 저장·�
 
 저장소 루트의 [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)를 참고하세요.
 
-**MCP 도구**: 22개 — `src/tools/index.ts`의 `coreTools` 배열과 동기화합니다.
+**MCP 도구**: 등록 22개 — `src/tools/index.ts`의 `coreTools` 배열과 동기화합니다. `tools/list` 기본 노출은 같은 파일의 `CORE_TOOLSET` 4개이며, `getExposedTools()`가 `MEMENTO_TOOLSET`에 따라 필터링합니다 (#769).
