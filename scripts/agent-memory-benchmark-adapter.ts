@@ -23,6 +23,10 @@ export interface AgentMemoryBenchmarkManifest {
   top_k: number;
   token_budget: number;
   redaction_count?: number;
+  /** false when the dataset license forbids commercial use (e.g. CC BY-NC 4.0). */
+  commercial_use?: boolean;
+  /** Queries dropped because the upstream evidence could not be resolved. */
+  skipped_query_count?: number;
   gates: AgentMemoryBenchmarkGateThresholds;
 }
 
@@ -331,6 +335,174 @@ function adaptOfficialLongMemEvalS(
   return dataset;
 }
 
+/**
+ * LoCoMo question categories, taken from the upstream scorer
+ * (`task_eval/evaluation.py`: category 1 uses multi-hop partial F1, 2/3/4 use
+ * plain F1, 5 is scored as "no information available").
+ */
+export const LOCOMO_CATEGORY_LABELS: Record<number, string> = {
+  1: 'multi_hop',
+  2: 'temporal_reasoning',
+  3: 'open_domain_knowledge',
+  4: 'single_hop',
+  5: 'adversarial',
+};
+
+const LOCOMO_SESSION_KEY_PATTERN = /^session_(\d+)$/;
+const LOCOMO_EVIDENCE_PATTERN = /D(\d+):\d+/g;
+const LOCOMO_DATE_PATTERN = /^(\d{1,2}):(\d{2})\s*(am|pm)\s+on\s+(\d{1,2})\s+([A-Za-z]+),\s*(\d{4})$/i;
+const MONTHS = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+interface LoCoMoTurn {
+  speaker: string;
+  dia_id: string;
+  text: string;
+  blip_caption?: string;
+}
+
+interface LoCoMoQa {
+  question: string;
+  answer?: string | number;
+  adversarial_answer?: string;
+  evidence?: unknown[];
+  category: number;
+}
+
+interface LoCoMoSample {
+  sample_id: string;
+  qa: LoCoMoQa[];
+  conversation: Record<string, unknown>;
+}
+
+interface LoCoMoAdapterOptions {
+  sourceRevision?: string;
+}
+
+/**
+ * Adapts `snap-research/locomo` `data/locomo10.json` into the retrieval benchmark
+ * contract. One document per conversation session; ground truth is resolved at
+ * session granularity because upstream `evidence` turn indices are occasionally
+ * malformed or dangling. Adversarial (category 5) questions are kept as task
+ * cases only — their evidence points at the turn the *wrong* answer derives from,
+ * so scoring retrieval against it measures nothing.
+ *
+ * Dataset license is CC BY-NC 4.0: never vendor the raw file or derived corpora.
+ */
+export function adaptLoCoMo(
+  inputPath: string,
+  options: LoCoMoAdapterOptions = {},
+): AgentMemoryBenchmarkDataset {
+  const samples = readJson<LoCoMoSample[]>(inputPath, 'LoCoMo input');
+  if (!Array.isArray(samples) || samples.length === 0) {
+    throw new Error('LoCoMo input has no samples');
+  }
+
+  const documents: AgentMemoryDocument[] = [];
+  const queries: AgentMemoryRetrievalQuery[] = [];
+  const e2eCases: AgentMemoryE2ECase[] = [];
+  const taskCases: AgentMemoryTaskCase[] = [];
+  let redactionCount = 0;
+  let skippedQueryCount = 0;
+
+  for (const sample of samples) {
+    assertLoCoMoSample(sample);
+    const sessionKeys = Object.keys(sample.conversation)
+      .filter((key) => LOCOMO_SESSION_KEY_PATTERN.test(key))
+      .sort((a, b) => locomoSessionNumber(a) - locomoSessionNumber(b));
+    if (sessionKeys.length === 0) {
+      throw new Error(`LoCoMo sample ${sample.sample_id} has no sessions`);
+    }
+
+    const documentIdBySessionNumber = new Map<number, string>();
+    let latestSessionDate = '1970-01-01T00:00:00.000Z';
+    for (const sessionKey of sessionKeys) {
+      const turns = sample.conversation[sessionKey] as LoCoMoTurn[];
+      const sessionNumber = locomoSessionNumber(sessionKey);
+      const documentId = `${sample.sample_id}:${sessionKey}`;
+      const redacted = redactSecretMarkers(formatLoCoMoSession(turns));
+      redactionCount += redacted.count;
+      latestSessionDate = normalizeLoCoMoDate(
+        sample.conversation[`${sessionKey}_date_time`],
+      );
+      documentIdBySessionNumber.set(sessionNumber, documentId);
+      documents.push({
+        id: documentId,
+        sessionId: documentId,
+        scopeId: sample.sample_id,
+        content: redacted.content,
+        type: 'episodic',
+        createdAt: latestSessionDate,
+        provenanceObservationIds: [],
+      });
+    }
+
+    sample.qa.forEach((qa, index) => {
+      const questionId = `${sample.sample_id}:qa-${String(index).padStart(4, '0')}`;
+      const abstention = qa.category === 5;
+      const relevantIds = resolveLoCoMoEvidence(qa.evidence, documentIdBySessionNumber);
+      taskCases.push({
+        id: questionId,
+        questionType: LOCOMO_CATEGORY_LABELS[qa.category] ?? `category_${qa.category}`,
+        question: qa.question,
+        expectedAnswer: String(qa.answer ?? qa.adversarial_answer ?? ''),
+        questionDate: latestSessionDate,
+        requiredEvidenceSessionIds: [...relevantIds],
+        abstention,
+      });
+      if (abstention) {
+        return;
+      }
+      if (relevantIds.length === 0) {
+        skippedQueryCount++;
+        return;
+      }
+      queries.push({
+        id: questionId,
+        scopeId: sample.sample_id,
+        query: qa.question,
+        relevantIds,
+        targetSessionIds: [...relevantIds],
+      });
+      e2eCases.push({
+        id: `locomo-${questionId}`,
+        queryId: questionId,
+        requiredEvidenceIds: relevantIds,
+        tokenBudget: 4096,
+      });
+    });
+  }
+
+  const dataset: AgentMemoryBenchmarkDataset = {
+    manifest: {
+      benchmark_version: 'locomo10-adapter-v1',
+      name: 'LoCoMo-10 conversational session retrieval benchmark',
+      license: 'CC BY-NC 4.0 (snap-research/locomo); non-commercial use only, acquired separately',
+      redistribution: 'allowed',
+      license_reviewed: true,
+      secret_reviewed: true,
+      synthetic: false,
+      source_revision: options.sourceRevision ?? 'unrecorded',
+      seed: 1097,
+      top_k: 10,
+      token_budget: 4096,
+      redaction_count: redactionCount,
+      commercial_use: false,
+      skipped_query_count: skippedQueryCount,
+      gates: defaultGateThresholds(),
+    },
+    documents: documents.sort((a, b) => a.id.localeCompare(b.id)),
+    queries,
+    graphEdges: [],
+    e2eCases,
+    taskCases,
+  };
+  assertDatasetSafe(dataset);
+  return dataset;
+}
+
 export function assertDatasetSafe(dataset: AgentMemoryBenchmarkDataset): void {
   const { manifest } = dataset;
   if (!manifest.license_reviewed || manifest.redistribution !== 'allowed') {
@@ -484,6 +656,96 @@ function normalizeLongMemEvalDate(value: string | undefined): string {
   return Number.isNaN(parsed.getTime())
     ? '1970-01-01T00:00:00.000Z'
     : parsed.toISOString();
+}
+
+function assertLoCoMoSample(sample: LoCoMoSample): void {
+  if (
+    !sample
+    || typeof sample.sample_id !== 'string'
+    || !Array.isArray(sample.qa)
+    || !sample.conversation
+    || typeof sample.conversation !== 'object'
+  ) {
+    throw new Error('Invalid LoCoMo sample contract');
+  }
+  for (const qa of sample.qa) {
+    if (typeof qa.question !== 'string' || !Number.isInteger(qa.category)) {
+      throw new Error(`Invalid LoCoMo QA entry in ${sample.sample_id}`);
+    }
+  }
+  for (const key of Object.keys(sample.conversation)) {
+    if (!LOCOMO_SESSION_KEY_PATTERN.test(key)) {
+      continue;
+    }
+    const turns = sample.conversation[key];
+    if (!Array.isArray(turns) || turns.length === 0) {
+      throw new Error(`Invalid LoCoMo session ${key} in ${sample.sample_id}`);
+    }
+    for (const turn of turns as LoCoMoTurn[]) {
+      if (typeof turn.speaker !== 'string' || typeof turn.text !== 'string') {
+        throw new Error(`Invalid LoCoMo turn in ${sample.sample_id}/${key}`);
+      }
+    }
+  }
+}
+
+function locomoSessionNumber(sessionKey: string): number {
+  return Number.parseInt(LOCOMO_SESSION_KEY_PATTERN.exec(sessionKey)?.[1] ?? '', 10);
+}
+
+function formatLoCoMoSession(turns: LoCoMoTurn[]): string {
+  return turns
+    .map((turn) => {
+      const caption = turn.blip_caption ? ` [image: ${turn.blip_caption}]` : '';
+      return `${turn.speaker}: ${turn.text}${caption}`;
+    })
+    .join('\n');
+}
+
+/**
+ * Upstream evidence strings are mostly `"D3:12"` but a handful pack several
+ * references into one string (`"D9:1 D4:4"`) or are truncated (`"D"`), and a few
+ * turn indices do not exist. Extract every well-formed session reference and drop
+ * the rest — callers treat an empty result as "not resolvable".
+ */
+function resolveLoCoMoEvidence(
+  evidence: unknown[] | undefined,
+  documentIdBySessionNumber: Map<number, string>,
+): string[] {
+  const documentIds = new Set<string>();
+  for (const entry of evidence ?? []) {
+    if (typeof entry !== 'string') {
+      continue;
+    }
+    for (const match of entry.matchAll(LOCOMO_EVIDENCE_PATTERN)) {
+      const documentId = documentIdBySessionNumber.get(Number.parseInt(match[1] ?? '', 10));
+      if (documentId) {
+        documentIds.add(documentId);
+      }
+    }
+  }
+  return [...documentIds].sort((a, b) => a.localeCompare(b));
+}
+
+function normalizeLoCoMoDate(value: unknown): string {
+  const match = typeof value === 'string' ? LOCOMO_DATE_PATTERN.exec(value.trim()) : null;
+  if (!match) {
+    return '1970-01-01T00:00:00.000Z';
+  }
+  const [, rawHour, minute, meridiem, day, monthName, year] = match;
+  const monthIndex = MONTHS.indexOf(monthName!.toLowerCase());
+  if (monthIndex < 0) {
+    return '1970-01-01T00:00:00.000Z';
+  }
+  const hour12 = Number.parseInt(rawHour!, 10) % 12;
+  const hour = meridiem!.toLowerCase() === 'pm' ? hour12 + 12 : hour12;
+  return new Date(Date.UTC(
+    Number.parseInt(year!, 10),
+    monthIndex,
+    Number.parseInt(day!, 10),
+    hour,
+    Number.parseInt(minute!, 10),
+  )).toISOString();
 }
 
 function assertNoSecretMarkers(content: string, documentId: string): void {

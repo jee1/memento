@@ -167,6 +167,40 @@ describe('agent memory benchmark runner', () => {
     expect(first.reproduction.git_sha).toMatch(/^[a-f0-9]{7,40}$|^unknown$/);
   });
 
+  it('pairs per-category retrieval quality with the per-query token cost', () => {
+    const report = runAgentMemoryBenchmark({
+      loCoMoPath: join(FIXTURE_DIR, 'locomo-shape-sample.json'),
+    });
+
+    expect(report.reproduction.fixture_dir).toBe('locomo-shape-sample.json');
+    const categories = report.by_category?.fts_only;
+    // open_domain_knowledge is absent: the fixture's only such question has no
+    // resolvable evidence, so it is skipped rather than scored against nothing.
+    expect(Object.keys(categories ?? {})).toEqual([
+      'multi_hop',
+      'single_hop',
+      'temporal_reasoning',
+    ]);
+    // Accuracy on its own is misleading — every category row carries its cost.
+    for (const metrics of Object.values(categories ?? {})) {
+      expect(metrics.injected_tokens.mean).toBeGreaterThan(0);
+      expect(metrics.recall_at_10).toBeGreaterThanOrEqual(0);
+      expect(metrics).not.toHaveProperty('latency_ms');
+    }
+    // Adversarial questions never enter retrieval scoring.
+    expect(categories).not.toHaveProperty('adversarial');
+    // Category query counts add up to the scored query set.
+    const scored = Object.values(categories ?? {})
+      .reduce((sum, metrics) => sum + metrics.query_count, 0);
+    expect(scored).toBe(report.retrieval.fts_only?.query_count);
+  });
+
+  it('omits the category breakdown when a dataset carries no task cases', () => {
+    const report = runAgentMemoryBenchmark({ fixtureDir: FIXTURE_DIR });
+
+    expect(report.by_category).toBeUndefined();
+  });
+
   it('preserves the benchmark-v3 fixture contract by using a separate fixture root', () => {
     const report = runAgentMemoryBenchmark({
       fixtureDir: FIXTURE_DIR,

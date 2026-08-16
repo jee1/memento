@@ -1,9 +1,11 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  adaptLoCoMo,
   adaptLongMemEvalS,
   assertDatasetSafe,
   loadAgentMemoryFixture,
+  LOCOMO_CATEGORY_LABELS,
   type AgentMemoryBenchmarkDataset,
 } from './agent-memory-benchmark-adapter.js';
 
@@ -92,6 +94,66 @@ describe('agent memory benchmark adapter', () => {
         expectedAnswer: '0',
         abstention: true,
       }),
+    ]);
+  });
+
+  it('normalizes LoCoMo at session granularity and records the NonCommercial license', () => {
+    const dataset = adaptLoCoMo(join(FIXTURE_DIR, 'locomo-shape-sample.json'), {
+      sourceRevision: 'fixture-revision',
+    });
+
+    expect(dataset.manifest.license).toMatch(/CC BY-NC 4\.0/);
+    expect(dataset.manifest.commercial_use).toBe(false);
+    expect(dataset.manifest.source_revision).toBe('fixture-revision');
+    expect(dataset.documents.map((document) => document.id)).toEqual([
+      'synthetic-conv-1:session_1',
+      'synthetic-conv-1:session_2',
+      'synthetic-conv-1:session_3',
+    ]);
+    // Session date "1:56 pm on 8 May, 2023" is normalized to UTC.
+    expect(dataset.documents[0]?.createdAt).toBe('2023-05-08T13:56:00.000Z');
+    // blip_caption is kept so image-grounded turns stay retrievable.
+    expect(dataset.documents[1]?.content).toContain('[image: a potted fig tree beside a window]');
+    expect(() => assertDatasetSafe(dataset)).not.toThrow();
+  });
+
+  it('resolves packed LoCoMo evidence and drops references it cannot map', () => {
+    const dataset = adaptLoCoMo(join(FIXTURE_DIR, 'locomo-shape-sample.json'));
+    const queryById = new Map(dataset.queries.map((query) => [query.id, query]));
+
+    // "D1:1; D2:2" packs two references into a single string.
+    expect(queryById.get('synthetic-conv-1:qa-0002')?.relevantIds).toEqual([
+      'synthetic-conv-1:session_1',
+      'synthetic-conv-1:session_2',
+    ]);
+    // "D" is unparseable and "D2:99" is a dangling turn index within a real session.
+    expect(queryById.get('synthetic-conv-1:qa-0005')?.relevantIds).toEqual([
+      'synthetic-conv-1:session_1',
+      'synthetic-conv-1:session_2',
+    ]);
+    // The empty-evidence question is skipped as a retrieval query but stays auditable.
+    expect(queryById.has('synthetic-conv-1:qa-0003')).toBe(false);
+    expect(dataset.manifest.skipped_query_count).toBe(1);
+  });
+
+  it('keeps LoCoMo adversarial questions out of retrieval scoring', () => {
+    const dataset = adaptLoCoMo(join(FIXTURE_DIR, 'locomo-shape-sample.json'));
+    const adversarial = dataset.taskCases?.find((testCase) => testCase.abstention);
+
+    expect(LOCOMO_CATEGORY_LABELS[5]).toBe('adversarial');
+    expect(adversarial?.id).toBe('synthetic-conv-1:qa-0004');
+    expect(adversarial?.questionType).toBe('adversarial');
+    expect(adversarial?.expectedAnswer).toBe('the studio downtown');
+    expect(dataset.queries.some((query) => query.id === adversarial?.id)).toBe(false);
+    expect(dataset.e2eCases.some((testCase) => testCase.queryId === adversarial?.id)).toBe(false);
+    // Every non-adversarial category label matches the upstream scorer's grouping.
+    expect(dataset.taskCases?.map((testCase) => testCase.questionType)).toEqual([
+      'single_hop',
+      'temporal_reasoning',
+      'multi_hop',
+      'open_domain_knowledge',
+      'adversarial',
+      'multi_hop',
     ]);
   });
 

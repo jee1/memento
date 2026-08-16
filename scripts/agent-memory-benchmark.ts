@@ -3,9 +3,10 @@
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
+  adaptLoCoMo,
   adaptLongMemEvalS,
   assertDatasetSafe,
   loadAgentMemoryFixture,
@@ -14,6 +15,7 @@ import {
   type AgentMemoryDocument,
   type AgentMemoryE2ECase,
   type AgentMemoryRetrievalQuery,
+  type AgentMemoryTaskCase,
 } from './agent-memory-benchmark-adapter.js';
 import { runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
 
@@ -48,6 +50,12 @@ export interface BaselineMetrics {
   duplicate_rate: number;
   max_session_concentration: number;
 }
+
+/**
+ * Per-category retrieval quality paired with the per-query injection cost.
+ * Latency is omitted so the breakdown stays byte-stable across runs.
+ */
+export type CategoryMetrics = Omit<BaselineMetrics, 'latency_ms'>;
 
 interface EndToEndMetrics {
   case_count: number;
@@ -106,6 +114,7 @@ export interface AgentMemoryBenchmarkReport {
     production?: boolean;
   };
   retrieval: Partial<Record<BaselineName, BaselineMetrics>>;
+  by_category?: Partial<Record<BaselineName, Record<string, CategoryMetrics>>>;
   end_to_end: Partial<Record<BaselineName, EndToEndMetrics>>;
   gates: {
     graph_rrf: GraphGateReport;
@@ -117,6 +126,7 @@ export interface AgentMemoryBenchmarkReport {
 export interface RunOptions {
   fixtureDir?: string;
   longMemEvalSPath?: string;
+  loCoMoPath?: string;
   graphRrf?: boolean;
   seed?: number;
   production?: boolean;
@@ -299,11 +309,44 @@ export function evaluateProductionVsFtsGate(
   };
 }
 
+export function loadDataset(options: RunOptions = {}): AgentMemoryBenchmarkDataset {
+  if (options.loCoMoPath) {
+    const path = resolve(options.loCoMoPath);
+    return adaptLoCoMo(path, { sourceRevision: readAcquisitionRevision(path) });
+  }
+  if (options.longMemEvalSPath) {
+    const path = resolve(options.longMemEvalSPath);
+    return adaptLongMemEvalS(path, { sourceRevision: readAcquisitionRevision(path) });
+  }
+  return loadAgentMemoryFixture(resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR));
+}
+
+/**
+ * Acquisition scripts drop an `acquisition-receipt.json` beside the dataset.
+ * Reading the revision from it keeps the report's provenance tied to the file
+ * that was actually downloaded rather than to a constant in this repository.
+ */
+function readAcquisitionRevision(datasetPath: string): string | undefined {
+  const receiptPath = join(dirname(datasetPath), 'acquisition-receipt.json');
+  if (!existsSync(receiptPath)) {
+    return undefined;
+  }
+  try {
+    const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as { revision?: unknown };
+    return typeof receipt.revision === 'string' ? receipt.revision : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function datasetLabel(options: RunOptions, fixtureDir: string): string {
+  const path = options.loCoMoPath ?? options.longMemEvalSPath;
+  return path ? basename(resolve(path)) : fixtureDir;
+}
+
 export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBenchmarkReport {
   const fixtureDir = resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR);
-  const dataset = options.longMemEvalSPath
-    ? adaptLongMemEvalS(resolve(options.longMemEvalSPath))
-    : loadAgentMemoryFixture(fixtureDir);
+  const dataset = loadDataset(options);
   assertDatasetSafe(dataset);
   const seed = options.seed ?? dataset.manifest.seed;
   const topK = dataset.manifest.top_k;
@@ -311,6 +354,7 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
   const queryRankings = evaluateBaselines(dataset, topK, graphRrf);
   const retrieval: AgentMemoryBenchmarkReport['retrieval'] = {};
   const endToEnd: AgentMemoryBenchmarkReport['end_to_end'] = {};
+  const byCategory: NonNullable<AgentMemoryBenchmarkReport['by_category']> = {};
 
   for (const [name, evaluations] of queryRankings) {
     retrieval[name] = evaluateRankedResults(
@@ -323,6 +367,15 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
       dataset.queries,
       evaluations,
     );
+    const categories = categoryBreakdown(
+      evaluations,
+      dataset.taskCases,
+      topK,
+      dataset.manifest.token_budget,
+    );
+    if (categories) {
+      byCategory[name] = categories;
+    }
   }
 
   const rrfSim = retrieval.rrf_sim ?? emptyMetrics();
@@ -339,9 +392,7 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
     schema_version: 1,
     reproduction: {
       benchmark_version: dataset.manifest.benchmark_version,
-      fixture_dir: options.longMemEvalSPath
-        ? basename(resolve(options.longMemEvalSPath))
-        : fixtureDir,
+      fixture_dir: datasetLabel(options, fixtureDir),
       fixture_sha256: hashDataset(dataset),
       git_sha: readGitSha(),
       node_version: process.version,
@@ -351,6 +402,7 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
       graph_rrf: graphRrf,
     },
     retrieval,
+    ...(Object.keys(byCategory).length > 0 ? { by_category: byCategory } : {}),
     end_to_end: endToEnd,
     gates: {
       graph_rrf: graphGate,
@@ -367,10 +419,7 @@ export async function runProductionAgentMemoryBenchmark(
   options: RunOptions = {},
 ): Promise<AgentMemoryBenchmarkReport> {
   const report = runAgentMemoryBenchmark(options);
-  const fixtureDir = resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR);
-  const dataset = options.longMemEvalSPath
-    ? adaptLongMemEvalS(resolve(options.longMemEvalSPath))
-    : loadAgentMemoryFixture(fixtureDir);
+  const dataset = loadDataset(options);
   const production = await runProductionRecallBenchmark(dataset, dataset.manifest.top_k);
   const metrics = evaluateRankedResults(
     production.evaluations,
@@ -392,6 +441,15 @@ export async function runProductionAgentMemoryBenchmark(
     dataset.queries,
     production.evaluations,
   );
+  const productionCategories = categoryBreakdown(
+    production.evaluations,
+    dataset.taskCases,
+    dataset.manifest.top_k,
+    dataset.manifest.token_budget,
+  );
+  if (productionCategories) {
+    report.by_category = { ...report.by_category, memento_prod: productionCategories };
+  }
   report.gates.production_vs_fts = evaluateProductionVsFtsGate(
     report.retrieval.fts_only ?? emptyMetrics(),
     metrics,
@@ -418,6 +476,47 @@ export async function runProductionAgentMemoryBenchmark(
   return report;
 }
 
+/**
+ * Groups query evaluations by the question type recorded in `taskCases`, so a
+ * report shows retrieval quality *and* the per-query injected token cost side by
+ * side for each category (multi-session recall, temporal reasoning, ...).
+ * Returns undefined when the dataset carries no task cases.
+ */
+export function categoryBreakdown(
+  evaluations: QueryEvaluation[],
+  taskCases: AgentMemoryTaskCase[] | undefined,
+  topK: number,
+  tokenBudget: number,
+): Record<string, CategoryMetrics> | undefined {
+  if (!taskCases || taskCases.length === 0) {
+    return undefined;
+  }
+  const typeByQueryId = new Map(taskCases.map((testCase) => [testCase.id, testCase.questionType]));
+  const grouped = new Map<string, QueryEvaluation[]>();
+  for (const evaluation of evaluations) {
+    const questionType = typeByQueryId.get(evaluation.queryId);
+    if (!questionType) {
+      continue;
+    }
+    grouped.set(questionType, [...(grouped.get(questionType) ?? []), evaluation]);
+  }
+  if (grouped.size === 0) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    [...grouped.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([questionType, group]) => {
+        const { latency_ms: _latency, ...metrics } = evaluateRankedResults(
+          group,
+          topK,
+          tokenBudget,
+        );
+        return [questionType, metrics];
+      }),
+  );
+}
+
 export function deterministicProjection(report: AgentMemoryBenchmarkReport): unknown {
   return {
     schema_version: report.schema_version,
@@ -434,6 +533,7 @@ export function deterministicProjection(report: AgentMemoryBenchmarkReport): unk
         } : metrics,
       ]),
     ),
+    by_category: report.by_category,
     end_to_end: report.end_to_end,
     gate_quality: report.gates.graph_rrf.checks.filter(
       (check) => !check.name.startsWith('p95_latency'),
@@ -893,6 +993,8 @@ function parseArgs(argv: string[]): CliOptions {
       options.fixtureDir = argv[++index];
     } else if (arg === '--longmemeval-s' && argv[index + 1]) {
       options.longMemEvalSPath = argv[++index];
+    } else if (arg === '--locomo' && argv[index + 1]) {
+      options.loCoMoPath = argv[++index];
     } else if (arg === '--output' && argv[index + 1]) {
       options.outputPath = argv[++index];
     } else if (arg === '--seed' && argv[index + 1]) {
@@ -911,8 +1013,10 @@ function parseArgs(argv: string[]): CliOptions {
       throw new Error(`Unknown argument: ${arg}`);
     }
   }
-  if (options.fixtureDir && options.longMemEvalSPath) {
-    throw new Error('--fixture and --longmemeval-s are mutually exclusive');
+  const sources = [options.fixtureDir, options.longMemEvalSPath, options.loCoMoPath]
+    .filter(Boolean).length;
+  if (sources > 1) {
+    throw new Error('--fixture, --longmemeval-s, and --locomo are mutually exclusive');
   }
   return options;
 }
