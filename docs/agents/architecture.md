@@ -4,7 +4,7 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 ## 패키지 구성
 
-저장소는 여섯 개의 패키지로 나뉩니다. `packages/memento-core`(`@memento/core`)가 핵심으로, 도메인 로직·DB·서비스를 모두 담당합니다. `packages/memento-server`는 MCP stdio와 HTTP 관리 서버를 제공하고, `packages/memento-client`(`@memento/client`)는 서버에 연결하는 클라이언트입니다. `packages/memento-assistant`(`@memento/assistant`)는 에이전트 어시스턴트 유틸리티를, `packages/memento-agent-integration`(`@memento/agent-integration`)은 에이전트 통합 계약과 어댑터를 담습니다. `apps/experimental-example`은 core를 in-process로 사용하는 데모 앱입니다.
+저장소는 여섯 개의 패키지로 나뉩니다. `packages/memento-core`(`@memento/core`)가 핵심으로, 도메인 로직·DB·서비스를 모두 담당합니다. `packages/memento-server`는 MCP stdio와 HTTP 관리 서버를 제공하고, `packages/memento-client`(`@jee1/memento-client`)는 서버에 연결하는 클라이언트입니다. `packages/memento-assistant`(`@jee1/memento-assistant`)는 에이전트 어시스턴트 유틸리티를, `packages/memento-agent-integration`(`@memento/agent-integration`)은 에이전트 통합 계약과 어댑터를 담습니다(내부 전용, npm 미발행). `apps/experimental-example`은 core를 in-process로 사용하는 데모 앱입니다.
 
 ## 도메인 구조
 

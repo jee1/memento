@@ -35,7 +35,7 @@ describe("CI workflow", () => {
     expect(workflow).toContain("test-agent-integration:");
     expect(workflow).toContain("npm run test:ci -w @memento/agent-integration");
     expect(workflow).toContain("test-assistant:");
-    expect(workflow).toContain("npm run test:ci -w @memento/assistant");
+    expect(workflow).toContain("npm run test:ci -w @jee1/memento-assistant");
     expect(workflow).toContain("test-scripts:");
     expect(workflow).toContain("npm run test:ci:scripts");
   });

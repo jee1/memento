@@ -2,7 +2,7 @@
 
 이 문서는 **베어 MCP 모드**에서 외부 비서(OpenClaw / NanoClaw / ZeroClaw 등)에 Memento를 붙일 때 권장하는 시스템 프롬프트 패턴을 다룹니다.
 
-베어 MCP 모드란 비서의 LLM이 Memento의 `recall` / `remember` 도구를 **자기 의지로** 호출하는 형태입니다. v0.2에서 제공될 `@memento/assistant` SDK는 이 호출을 자동화하지만, **v0.1은 베어 MCP만 제공**하므로 LLM이 부지런히 도구를 호출하도록 만드는 일은 전적으로 **시스템 프롬프트의 책임**입니다.
+베어 MCP 모드란 비서의 LLM이 Memento의 `recall` / `remember` 도구를 **자기 의지로** 호출하는 형태입니다. v0.2에서 제공될 `@jee1/memento-assistant` SDK는 이 호출을 자동화하지만, **v0.1은 베어 MCP만 제공**하므로 LLM이 부지런히 도구를 호출하도록 만드는 일은 전적으로 **시스템 프롬프트의 책임**입니다.
 
 > "프롬프트가 곧 정책"이 v0.1의 운용 모델입니다. 비서 LLM이 새 주제마다 `recall`을 부르고, 사용자의 사실/선호/약속을 들으면 `remember`로 저장하도록 유도해야 합니다. 그 정책 문장이 아래 블록입니다.
 
@@ -166,7 +166,7 @@ Memento는 **augmentation**이지 **dependency**가 아닙니다. 서버가 죽�
 
 ---
 
-## 한 단계 더: `@memento/assistant` 사용 시
+## 한 단계 더: `@jee1/memento-assistant` 사용 시
 
 SDK가 매 턴 `<memento>...</memento>` 펜스 블록을 자동으로 만들어 시스템 프롬프트에 합성합니다.
 이 경우 위의 권장 프롬프트는 *짧아져도* 됩니다 — recall 호출 의지를 LLM에 부탁할 필요가 없으니까요.

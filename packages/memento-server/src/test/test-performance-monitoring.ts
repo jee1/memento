@@ -3,7 +3,7 @@
  * Memento MCP 서버의 성능 모니터링 도구들 테스트
  */
 
-import { createMementoClient } from '@memento/clientindex.js';
+import { createMementoClient } from '@jee1/memento-client';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 async function testPerformanceMonitoring() {

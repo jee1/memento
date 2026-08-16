@@ -16,7 +16,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, 'packages/memento-core/src/index.ts'),
       },
       {
-        find: '@memento/client',
+        find: '@jee1/memento-client',
         replacement: path.resolve(__dirname, 'packages/memento-client/src/index.ts'),
       },
     ],

@@ -32,15 +32,22 @@ The goal is not to make AI "pretend to remember." It's to make AI an **agent tha
 
 ### 📦 Monorepo Structure
 
-This repository is an **npm workspaces** monorepo. `@memento/core` holds domain logic, the database, and MCP tools; `memento-server` exposes them over stdio and HTTP. Use `@memento/client` for REST from your apps, `@memento/assistant` to wire external assistants, and `@memento/agent-integration` for session and provenance contracts. Experiments live under `apps/`.
+This repository is an **npm workspaces** monorepo. `@memento/core` holds domain logic, the database, and MCP tools; `memento-server` exposes them over stdio and HTTP. Use `@jee1/memento-client` for REST from your apps, `@jee1/memento-assistant` to wire external assistants, and `@memento/agent-integration` for session and provenance contracts — the latter is **internal only** and is not published to npm (it ships bundled inside the server tarball). Experiments live under `apps/`.
+
+Three packages are published to npm: `memento-mcp-server` (the server), `@jee1/memento-client`, and `@jee1/memento-assistant`.
+
+```bash
+npm i @jee1/memento-client      # REST client
+npm i @jee1/memento-assistant   # auto recall/save SDK for external assistants
+```
 
 | Path | Description |
 |------|-------------|
 | **packages/memento-core** (`@memento/core`) | Domain, infrastructure, and shared library. Entry points: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB init and migration run from the root via `npm run db:init` / `npm run db:migrate`. |
 | **packages/memento-server** | MCP/HTTP server built on core. Run via root `npm run dev`, `npm start`, `npm run dev:http`, etc. |
-| **packages/memento-client** (`@memento/client`) | Client library for connecting to the server. |
-| **packages/memento-assistant** (`@memento/assistant`) | SDK for external AI assistants (recall/remember). |
-| **packages/memento-agent-integration** (`@memento/agent-integration`) | Agent integration contracts and adapters. |
+| **packages/memento-client** (`@jee1/memento-client`) | Client library for connecting to the server. |
+| **packages/memento-assistant** (`@jee1/memento-assistant`) | SDK for external AI assistants (recall/remember). |
+| **packages/memento-agent-integration** (`@memento/agent-integration`) | Agent integration contracts and adapters. Internal only (`private`), not published to npm. |
 | **apps/** | Experimental apps (e.g., `experimental-example` uses `@memento/core` in-process). |
 
 For detailed structure, build, and test commands, see [AGENTS.md](AGENTS.md).
@@ -106,7 +113,7 @@ With this setup, all agents connect to one HTTP/WebSocket interface, and the SQL
 
 Personal AI assistants like OpenClaw, NanoClaw, and ZeroClaw can use Memento as a shared long-term memory backend. Guide: [docs/integrations/](./docs/integrations/README.md)
 
-Use the `@memento/assistant` SDK for automatic recall/remember in two lines of code — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
+Use the `@jee1/memento-assistant` SDK for automatic recall/remember in two lines of code — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
 
 ## 🛠️ Usage
 
@@ -114,7 +121,7 @@ Three ways to connect to Memento:
 
 - **mcp.json config**: Register Memento in MCP host apps like Claude Desktop, Cursor, or Claude Code — no code required
 - **MCP protocol** (`@modelcontextprotocol/sdk`): Connect directly from custom agent code
-- **HTTP API client** (`@memento/client`): Call Memento's REST API from TypeScript/JavaScript applications
+- **HTTP API client** (`@jee1/memento-client`): Call Memento's REST API from TypeScript/JavaScript applications
 
 ### mcp.json Config (Claude Desktop · Cursor · Claude Code)
 
@@ -218,12 +225,12 @@ const results = await client.callTool({
 });
 ```
 
-### HTTP API Client (`@memento/client`)
+### HTTP API Client (`@jee1/memento-client`)
 
-`@memento/client` is an **HTTP REST API wrapper**, not an MCP client. Use it to call Memento's `/tools/*` endpoints directly from TypeScript/JavaScript applications.
+`@jee1/memento-client` is an **HTTP REST API wrapper**, not an MCP client. Use it to call Memento's `/tools/*` endpoints directly from TypeScript/JavaScript applications.
 
 ```typescript
-import { MementoClient } from "@memento/client";
+import { MementoClient } from "@jee1/memento-client";
 
 const client = new MementoClient({
   serverUrl: "http://localhost:9001",

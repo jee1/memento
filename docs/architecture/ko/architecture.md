@@ -27,7 +27,7 @@ memento-core  ←  memento-server
 - **MCP 서버** (`cli.ts`): AI 에이전트가 직접 연결. stdio, SSE, Streamable HTTP 트랜스포트를 지원한다.
 - **HTTP 관리 서버** (`http-server.ts`): 대시보드, 배치 수동 실행, 에이전트 세션 관리 등 운영 API를 제공한다.
 
-**`packages/memento-client` (`@memento/client`)**
+**`packages/memento-client` (`@jee1/memento-client`)**
 서버에 원격으로 연결하는 클라이언트 라이브러리.
 
 **`packages/memento-assistant`**

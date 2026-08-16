@@ -13,7 +13,7 @@ Last updated: 2026-06-17
 ## Active Technologies
 
 - TypeScript 5.x, Node.js ≥24, ES modules, npm workspaces
-- `packages/memento-core` (`@memento/core`), `memento-server`, `@memento/client`, `@memento/assistant`, `@memento/agent-integration`
+- `packages/memento-core` (`@memento/core`), `memento-server`, `@jee1/memento-client`, `@jee1/memento-assistant`, `@memento/agent-integration`
 - SQLite (`better-sqlite3`, `sqlite-vec`), Zod, Vitest, Express 5.x
 - Admin UI: `static/js/`, D3.js; 스타일은 `static/css/tokens.css` 토큰 우선
 

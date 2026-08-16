@@ -4,7 +4,7 @@
  * 다양한 가중치 조합에서 품질 비교 및 튜닝 가이드라인 제공
  */
 
-import { createMementoClient } from '@memento/client';
+import { createMementoClient } from '@jee1/memento-client';
 import {
   seedTestDatabase,
   cleanupTestDatabase

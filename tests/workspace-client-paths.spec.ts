@@ -13,13 +13,13 @@ function readJson(relativePath: string): PackageJson {
 }
 
 describe('workspace client path contracts', () => {
-  it('root client scripts should target the official @memento/client workspace', () => {
+  it('root client scripts should target the official @jee1/memento-client workspace', () => {
     const root = readJson('package.json');
 
-    expect(root.scripts?.['build:client']).toBe('npm run build -w @memento/client');
-    expect(root.scripts?.['dev:client']).toBe('npm run dev -w @memento/client');
-    expect(root.scripts?.['clean:client']).toBe('npm run clean -w @memento/client');
-    expect(root.scripts?.['publish:client']).toBe('npm publish --workspace @memento/client');
+    expect(root.scripts?.['build:client']).toBe('npm run build -w @jee1/memento-client');
+    expect(root.scripts?.['dev:client']).toBe('npm run dev -w @jee1/memento-client');
+    expect(root.scripts?.['clean:client']).toBe('npm run clean -w @jee1/memento-client');
+    expect(root.scripts?.['publish:client']).toBe('npm publish --workspace @jee1/memento-client');
   });
 
   it('legacy packages/mcp-client should not claim the official package name', () => {

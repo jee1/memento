@@ -43,4 +43,4 @@ evidence 파일 형식:
 - queue drop 0건
 - 중복 adapter/event row 0건
 - 장애 시 agent unblocked rate 100%
-- benchmark-v3, MCP 도구, `@memento/assistant` 회귀 모두 통과
+- benchmark-v3, MCP 도구, `@jee1/memento-assistant` 회귀 모두 통과

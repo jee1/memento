@@ -4,7 +4,7 @@
  * 
  * @example
  * ```typescript
- * import { ContextInjector } from '@memento/client';
+ * import { ContextInjector } from '@jee1/memento-client';
  * 
  * const injector = new ContextInjector(client);
  * 

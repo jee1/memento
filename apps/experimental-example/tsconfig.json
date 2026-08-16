@@ -12,7 +12,7 @@
     "paths": {
       "@memento/core": ["../../packages/memento-core/src/index.ts"],
       "@memento/core/*": ["../../packages/memento-core/src/*"],
-      "@memento/client": ["../../packages/memento-client/src/index.ts"]
+      "@jee1/memento-client": ["../../packages/memento-client/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

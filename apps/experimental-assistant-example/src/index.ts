@@ -1,5 +1,5 @@
 /* eslint-disable no-console, no-constant-condition */
-import { MementoAssistant } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
 import * as readline from 'node:readline/promises';
 
 async function main() {

@@ -66,12 +66,12 @@ HTTP 서버를 별도로 실행한 경우에는 클라이언트가 지원하면 
 
 ## 기억 저장하기
 
-AI 에이전트와의 대화에서 중요한 정보를 기억으로 저장하는 가장 간단한 방법은 MCP의 `remember` 도구를 호출하는 것입니다. HTTP 서버가 실행 중일 때는 `@memento/client` 패키지로도 동일하게 저장할 수 있습니다.
+AI 에이전트와의 대화에서 중요한 정보를 기억으로 저장하는 가장 간단한 방법은 MCP의 `remember` 도구를 호출하는 것입니다. HTTP 서버가 실행 중일 때는 `@jee1/memento-client` 패키지로도 동일하게 저장할 수 있습니다.
 
 HTTP 서버는 기본적으로 `http://localhost:9001`에서 실행됩니다(`MCP_SERVER_PORT` 또는 `PORT` 환경 변수로 변경 가능). 개발 중에는 `npm run dev:http`로 시작할 수 있습니다.
 
 ```typescript
-import { MementoClient } from '@memento/client';
+import { MementoClient } from '@jee1/memento-client';
 
 const client = new MementoClient({
   serverUrl: 'http://localhost:9001',
@@ -190,7 +190,7 @@ memento remember "핵심 아키텍처 결정 사항" --type episodic --tags "arc
 # MCP 도구: pin(memoryId)
 ```
 
-`@memento/client`에서는 `client.pin(memoryId)` / `client.unpin(memoryId)`로 고정하고 해제합니다.
+`@jee1/memento-client`에서는 `client.pin(memoryId)` / `client.unpin(memoryId)`로 고정하고 해제합니다.
 
 ### 기억 삭제
 
@@ -204,7 +204,7 @@ memento forget --id mem_xxxxx
 memento forget --id mem_xxxxx --hard --confirm true
 ```
 
-`@memento/client`에서는 `client.forget(memoryId, hard)` 형태로 호출합니다.
+`@jee1/memento-client`에서는 `client.forget(memoryId, hard)` 형태로 호출합니다.
 
 ### 피드백 제공
 

@@ -189,8 +189,8 @@ interface RememberResult {
 #### 사용 예시
 
 ```typescript
-// Use the workspace package `@memento/client` (see `packages/memento-client`).
-import { createMementoClient } from '@memento/client';
+// Use the workspace package `@jee1/memento-client` (see `packages/memento-client`).
+import { createMementoClient } from '@jee1/memento-client';
 
 const client = createMementoClient();
 await client.connect();

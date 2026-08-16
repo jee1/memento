@@ -151,7 +151,7 @@ JSON 키 이름과 transport 식별자(`type`, `transport` 등)는 비서마다 
 
 ### owner_id / 채널 태그
 
-여러 비서가 같은 Memento에 붙을 때 `owner_id`를 동일하게 두면 채널을 넘나들며 기억을 공유합니다. 채널을 구분하려면 `tags`에 `channel:telegram` 같은 라벨을 넣으세요. 이 모델은 v0.2의 `@memento/assistant` SDK가 자동 적용하며, 베어 MCP만 쓸 때는 비서 시스템 프롬프트에서 명시해야 합니다 ([`./system-prompt.md`](./system-prompt.md)).
+여러 비서가 같은 Memento에 붙을 때 `owner_id`를 동일하게 두면 채널을 넘나들며 기억을 공유합니다. 채널을 구분하려면 `tags`에 `channel:telegram` 같은 라벨을 넣으세요. 이 모델은 v0.2의 `@jee1/memento-assistant` SDK가 자동 적용하며, 베어 MCP만 쓸 때는 비서 시스템 프롬프트에서 명시해야 합니다 ([`./system-prompt.md`](./system-prompt.md)).
 
 ---
 

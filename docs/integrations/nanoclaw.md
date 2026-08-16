@@ -178,9 +178,9 @@ NanoClaw 자체 로그 위치(agent group 컨테이너의 stdout, journald, 또�
 
 ---
 
-## 한 단계 더: `@memento/assistant`로 자동 회상/저장
+## 한 단계 더: `@jee1/memento-assistant`로 자동 회상/저장
 
-베어 MCP로 기본 통합이 완료됐다면 `@memento/assistant` SDK를 추가해 **매 턴 결정론적 자동 recall/remember**를 얻을 수 있습니다.
+베어 MCP로 기본 통합이 완료됐다면 `@jee1/memento-assistant` SDK를 추가해 **매 턴 결정론적 자동 recall/remember**를 얻을 수 있습니다.
 
 ### NanoClaw 컨테이너에서 사용 시 주의
 
@@ -194,7 +194,7 @@ MEMENTO_TOKEN=<admin-api-key>
 ```
 
 ```ts
-import { MementoAssistant } from '@memento/assistant';
+import { MementoAssistant } from '@jee1/memento-assistant';
 
 const memory = MementoAssistant.fromEnv(
   {

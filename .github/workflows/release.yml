@@ -239,6 +239,29 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # 스코프 SDK 패키지 발행 (#765)
+      # 루트 패키지와 버전 정책이 다르므로, 이미 npm에 있는 버전이면 건너뛴다.
+      # (변경을 배포하려면 해당 워크스페이스의 version을 올릴 것)
+      - name: Publish workspace SDK packages to npm
+        if: steps.version.outputs.npm_tag == 'latest'
+        run: |
+          set -euo pipefail
+          # client → assistant 순서 (assistant가 client를 런타임 의존)
+          for ENTRY in "packages/memento-client:@jee1/memento-client" "packages/memento-assistant:@jee1/memento-assistant"; do
+            PKG_PATH="${ENTRY%%:*}"
+            PKG="${ENTRY#*:}"
+            PKG_VERSION="$(node -p "require('./$PKG_PATH/package.json').version")"
+            if npm view "$PKG@$PKG_VERSION" version >/dev/null 2>&1; then
+              echo "ℹ️ $PKG@$PKG_VERSION already on npm, skipping"
+              continue
+            fi
+            echo "📦 Publishing $PKG@$PKG_VERSION"
+            npm publish --workspace "$PKG" --access public
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Check if Release exists
         id: check_release
         run: |

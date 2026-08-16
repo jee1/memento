@@ -23,7 +23,7 @@ export function createHttpClient(
     timeout: options.timeout,
     headers: {
       'Content-Type': 'application/json',
-      'User-Agent': '@memento/client/0.1.0',
+      'User-Agent': '@jee1/memento-client/0.1.0',
     },
   });
 

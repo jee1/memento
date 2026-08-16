@@ -1,5 +1,5 @@
 /**
- * @memento/client 유틸리티 함수들
+ * @jee1/memento-client 유틸리티 함수들
  * 클라이언트 라이브러리 사용을 편리하게 하는 헬퍼 함수들
  */
 

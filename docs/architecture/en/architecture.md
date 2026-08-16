@@ -27,7 +27,7 @@ Exposes `@memento/core` as two server types:
 - **MCP server** (`cli.ts`): the endpoint AI agents connect to. Supports stdio, SSE, and Streamable HTTP transports.
 - **HTTP admin server** (`http-server.ts`): dashboard, batch manual triggers, agent session management, operational APIs.
 
-**`packages/memento-client` (`@memento/client`)**
+**`packages/memento-client` (`@jee1/memento-client`)**
 Client library for connecting to the server remotely.
 
 **`packages/memento-assistant`**
