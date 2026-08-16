@@ -24,6 +24,20 @@ import type {
   RelationInfoRow,
 } from './hybrid-search-types.js';
 
+/**
+ * Combiner fusion score: both channels contribute; 0 is a real score, not a missing signal.
+ */
+export function hybridFusionRelevance(
+  textScore: number | undefined,
+  vectorScore: number | undefined,
+  textWeight: number,
+  vectorWeight: number,
+): number {
+  const text = typeof textScore === 'number' && Number.isFinite(textScore) ? textScore : 0;
+  const vector = typeof vectorScore === 'number' && Number.isFinite(vectorScore) ? vectorScore : 0;
+  return text * textWeight + vector * vectorWeight;
+}
+
 export class HybridResultRanker {
   constructor(
     private resultCombiner: ISearchResultCombiner,
@@ -57,7 +71,8 @@ export class HybridResultRanker {
           combinedResults,
           ctx,
           includeRelations,
-          query.include_score_breakdown === true
+          query.include_score_breakdown === true,
+          weights
         );
       }
 
@@ -89,7 +104,8 @@ export class HybridResultRanker {
     results: HybridSearchResult[],
     ctx: RankingContext,
     includeRelations: boolean,
-    includeScoreBreakdown: boolean
+    includeScoreBreakdown: boolean,
+    weights: HybridWeights
   ): void {
     results.forEach(result => {
       const relationWeight = ctx.relationWeights.get(result.id);
@@ -117,9 +133,16 @@ export class HybridResultRanker {
           ? computeProcessAttributeFit(ctx.processAttributes, memoryDetails)
           : undefined;
       const feedback_score = sigmoidNormalizedNet(ctx.feedbackScores.get(result.id) ?? 0);
+      const fusionRelevance = hybridFusionRelevance(
+        result.textScore,
+        result.vectorScore,
+        weights.textWeight,
+        weights.vectorWeight
+      );
 
       const baseFeatures = this.buildBaseFeatures(
         result,
+        fusionRelevance,
         relationWeight || 0,
         proceduralMatch,
         feedback_score,
@@ -130,7 +153,7 @@ export class HybridResultRanker {
         result.consolidation_score = consolidationScore;
         this.applyScore(result, {
           ...baseFeatures,
-          relevance: result.vectorScore,
+          relevance: fusionRelevance,
           consolidation_score: consolidationScore,
         }, includeScoreBreakdown);
       } else {
@@ -141,13 +164,14 @@ export class HybridResultRanker {
 
   private buildBaseFeatures(
     result: HybridSearchResult,
+    fusionRelevance: number,
     relationWeight: number,
     proceduralMatch: ProceduralMemoryMatch | undefined,
     feedbackScore: number,
     processAttributeFit: number | undefined
   ): SearchFeatures {
     return {
-      relevance: result.vectorScore || result.textScore || 0,
+      relevance: fusionRelevance,
       recency: this.calculateRecency(result.created_at),
       importance: result.importance || 0.5,
       usage: this.calculateUsage(result.last_accessed),

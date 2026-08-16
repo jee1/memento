@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
-import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType, resolveHybridVectorPrefetchLimit } from '../hybrid-search-engine.js';
+import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType, resolveHybridVectorPrefetchLimit, SearchResultCombiner } from '../hybrid-search-engine.js';
 import type { ITextSearchEngine, IEmbeddingService, IVectorSearchEngine, ISearchResultCombiner, IAdaptiveWeightCalculator, ISearchLogger, IProceduralMemoryMatcher } from '../hybrid-search-engine.js';
 import Database from 'better-sqlite3';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
@@ -2863,6 +2863,97 @@ describe('ISearchResultCombiner 인터페이스', () => {
       // Then: HybridSearchResult[] 타입을 반환함
       const result = mockCombiner.combine([], [], 0.5, 0.5);
       expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('adaptive fusion weights (#788)', () => {
+    it('final order follows adaptive text/vector weights on overlap candidates', async () => {
+      const stamp = '2024-01-01T00:00:00.000Z';
+      const textEngine = createMockTextSearchEngine();
+      const embeddingService = createMockEmbeddingService();
+      const vectorEngine = createMockVectorSearchEngine();
+      const weightCalculator = createMockWeightCalculator();
+      const logger = createMockLogger();
+      const engine = new HybridSearchEngine(
+        textEngine,
+        embeddingService,
+        vectorEngine,
+        new SearchResultCombiner(),
+        weightCalculator,
+        logger,
+      );
+
+      (textEngine.search as Mock).mockResolvedValue({
+        items: [
+          {
+            id: 'lexical',
+            content: 'lexical hit',
+            type: 'semantic',
+            importance: 0.5,
+            created_at: stamp,
+            last_accessed: stamp,
+            pinned: false,
+            tags: [],
+            score: 0.9,
+          },
+          {
+            id: 'semantic',
+            content: 'semantic hit',
+            type: 'semantic',
+            importance: 0.5,
+            created_at: stamp,
+            last_accessed: stamp,
+            pinned: false,
+            tags: [],
+            score: 0.2,
+          },
+        ],
+        total_count: 2,
+        query_time: 0,
+      });
+      (vectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (embeddingService.isAvailable as Mock).mockReturnValue(true);
+      (embeddingService.searchBySimilarity as Mock).mockResolvedValue([
+        {
+          id: 'lexical',
+          content: 'lexical hit',
+          type: 'semantic',
+          importance: 0.5,
+          created_at: stamp,
+          last_accessed: stamp,
+          pinned: false,
+          tags: [],
+          similarity: 0.2,
+          score: 0.2,
+        },
+        {
+          id: 'semantic',
+          content: 'semantic hit',
+          type: 'semantic',
+          importance: 0.5,
+          created_at: stamp,
+          last_accessed: stamp,
+          pinned: false,
+          tags: [],
+          similarity: 0.9,
+          score: 0.9,
+        },
+      ]);
+
+      (weightCalculator.calculateWeights as Mock).mockReturnValue({
+        textWeight: 0.9,
+        vectorWeight: 0.1,
+      });
+      const textHeavy = await engine.search(mockDb, { query: 'fusion', limit: 10 });
+
+      (weightCalculator.calculateWeights as Mock).mockReturnValue({
+        textWeight: 0.1,
+        vectorWeight: 0.9,
+      });
+      const vectorHeavy = await engine.search(mockDb, { query: 'fusion', limit: 10 });
+
+      expect(textHeavy.items[0]?.id).toBe('lexical');
+      expect(vectorHeavy.items[0]?.id).toBe('semantic');
     });
   });
 });

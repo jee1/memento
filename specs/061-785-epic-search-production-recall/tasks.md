@@ -75,16 +75,16 @@ Tests are required (constitution I). Write failing tests first.
 
 ### Tests (fail first)
 
-- [ ] T017 [US3] Add overlap + monotonic tests next to `packages/memento-core/src/domains/search/algorithms/hybrid-result-ranker.ts` (existing ranker/combiner specs)
-- [ ] T018 [P] [US3] Add text-only / vector-only scale-fallback tests in combiner/ranker specs
-- [ ] T019 [US3] Add adaptive-weight final-ordering integration test in `packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine.spec.ts`
+- [x] T017 [US3] Add overlap + monotonic tests next to `packages/memento-core/src/domains/search/algorithms/hybrid-result-ranker.ts` (existing ranker/combiner specs)
+- [x] T018 [P] [US3] Add text-only / vector-only scale-fallback tests in combiner/ranker specs
+- [x] T019 [US3] Add adaptive-weight final-ordering integration test in `packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine.spec.ts`
 
 ### Implementation
 
-- [ ] T020 [US3] Stop overwriting combiner relevance with `vectorScore || textScore` in `hybrid-result-ranker.ts`; do not fold importance/recency/usage/feedback into relevance
-- [ ] T021 [US3] Align `packages/memento-core/src/test/helpers/vector-search-quality-metrics/report-comparison.ts` with the same relevance contract
-- [ ] T022 [US3] Record current / weighted-preserved / RRF-sim comparison note under this spec dir (synthetic CI + local LoCoMo if present)
-- [ ] T023 [US3] Run ranker + combiner + hybrid-search-engine targeted tests
+- [x] T020 [US3] Stop overwriting combiner relevance with `vectorScore || textScore` in `hybrid-result-ranker.ts`; do not fold importance/recency/usage/feedback into relevance
+- [x] T021 [US3] Align `packages/memento-core/src/test/helpers/vector-search-quality-metrics/report-comparison.ts` with the same relevance contract
+- [x] T022 [US3] Record current / weighted-preserved / RRF-sim comparison note under this spec dir (synthetic CI + local LoCoMo if present)
+- [x] T023 [US3] Run ranker + combiner + hybrid-search-engine targeted tests
 
 **Checkpoint**: US3 independently testable. No vector threshold change yet.
 

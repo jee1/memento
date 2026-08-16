@@ -13,6 +13,8 @@ import {
   loadBenchmarkManifest,
 } from '../search-quality-benchmark-fixtures.js';
 import type { HybridSearchResult } from '../../../domains/search/algorithms/hybrid-search-engine.js';
+import { hybridFusionRelevance } from '../../../domains/search/algorithms/hybrid-result-ranker.js';
+import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import {
   calculatePrecisionAtK,
   calculateRecallAtK,
@@ -115,7 +117,12 @@ export function generateConsolidationSearchResults(
         id: result.id,
         score: finalScore,
         finalScore,
-        relevance: result.vectorScore || result.textScore || 0
+        relevance: hybridFusionRelevance(
+          result.textScore,
+          result.vectorScore,
+          HYBRID_SEARCH.DEFAULT_TEXT_WEIGHT,
+          HYBRID_SEARCH.DEFAULT_VECTOR_WEIGHT
+        )
       };
     })
     .filter((result) => result.score !== undefined && result.score !== null && !isNaN(result.score))
