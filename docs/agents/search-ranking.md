@@ -30,6 +30,10 @@ FTS 쿼리 combinator(짧은 AND / 토큰 5개 초과 시 앞 8개 OR)는 `searc
 
 combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/usage/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.
 
+## Hybrid vector threshold and under-fill (Issue #789)
+
+하이브리드 벡터 fetch는 `threshold: 0`으로 prefetch(`limit * VECTOR_SEARCH_LIMIT_MULTIPLIER`, 상한 100)를 받습니다. funnel의 `thresholded_vector`는 `HYBRID_VECTOR_THRESHOLD`(0.38) 이상만 남깁니다. thresholded 개수가 `query.limit`보다 적으면 raw prefetch에서 유사도 내림차순으로 채워 fusion에 넣습니다(`VECTOR_UNDERFILL_FILL`). hashed TF-IDF가 0.38 아래에 있어도 gold가 fusion 전에 전부 사라지지 않게 하기 위함입니다. 0.38 숫자와 prefetch 배수는 LoCoMo ablation 전까지 유지하고, `config/ranking-weights.toml`은 재튜닝하지 않습니다. 이 상수는 `getRankingVersion()` 해시에 포함됩니다.
+
 ## 런타임 가중치 재로드 (Issue #667)
 
 `ζ`(relation_weight) 같은 랭킹 계수는 `config/ranking-weights.toml`에서 읽히므로, 코드 배포 없이 TOML 파일만 수정해 계수를 바꿀 수 있습니다. 방법은 간단합니다. `MEMENTO_RANKING_WEIGHTS_PATH` 환경변수로 TOML 파일의 절대 경로를 지정하거나, 미설정 시에는 기본값인 `config/ranking-weights.toml`이 사용됩니다. 파일을 수정한 뒤에는 **Memento 프로세스를 재시작**해야 합니다. 가중치는 프로세스 기동 시 캐시되며 현재 hot reload는 지원하지 않습니다.

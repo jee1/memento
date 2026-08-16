@@ -41,3 +41,49 @@ export function filterByVectorThreshold<T extends { similarity?: number }>(
 ): T[] {
   return items.filter((item) => (typeof item.similarity === 'number' ? item.similarity : 0) >= threshold);
 }
+
+function itemId(item: { id?: unknown; memory_id?: unknown }): string | undefined {
+  if (typeof item.id === 'string' && item.id.length > 0) {
+    return item.id;
+  }
+  if (typeof item.memory_id === 'string' && item.memory_id.length > 0) {
+    return item.memory_id;
+  }
+  return undefined;
+}
+
+/**
+ * Keep thresholded hits first, then top up from raw (higher similarity first)
+ * until minCount. Used when hashed TF-IDF scores sit below HYBRID_VECTOR_THRESHOLD.
+ */
+export function fillUnderfilledVectorResults<T extends { similarity?: number; id?: unknown; memory_id?: unknown }>(
+  thresholded: T[],
+  raw: T[],
+  minCount: number,
+): T[] {
+  if (thresholded.length >= minCount) {
+    return thresholded;
+  }
+  const seen = new Set<string>();
+  const filled: T[] = [];
+  for (const item of thresholded) {
+    const id = itemId(item);
+    if (id) {
+      seen.add(id);
+    }
+    filled.push(item);
+  }
+  const rest = [...raw].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
+  for (const item of rest) {
+    if (filled.length >= minCount) {
+      break;
+    }
+    const id = itemId(item);
+    if (!id || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    filled.push(item);
+  }
+  return filled;
+}

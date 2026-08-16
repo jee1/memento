@@ -361,7 +361,7 @@ describe('HybridSearchEngine', () => {
         expect.objectContaining({
           types: typeFilters,
           limit: 10,
-          threshold: 0.38,
+          threshold: 0,
           includeContent: true
         }),
         expect.any(String) // provider 파라미터
@@ -440,7 +440,7 @@ describe('HybridSearchEngine', () => {
         expect.objectContaining({
           type: typeFilters,
           limit: 10,
-          threshold: 0.38
+          threshold: 0
         })
       );
     });
@@ -611,6 +611,34 @@ describe('HybridSearchEngine', () => {
         text_weight: 0.4,
         vector_weight: 0.6,
       });
+    });
+
+    it('fills under-threshold vector hits when thresholded pool is shorter than limit (#789)', async () => {
+      const mockTextResults = [
+        { id: 'text', content: 'text only', score: 0.4, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+      ];
+      const mockVectorResults = [
+        { id: 'high', content: 'above', similarity: 0.9, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'mid', content: 'below', similarity: 0.2, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'low', content: 'far', similarity: 0.05, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+      ];
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: mockTextResults, total_count: 1, query_time: 1 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue(mockVectorResults);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+
+      const result = await hybridSearchEngine.search(mockDb, {
+        query: 'underfill',
+        limit: 3,
+        includeFunnel: true,
+      });
+
+      expect(result.candidate_funnel?.raw_vector).toEqual(['high', 'mid', 'low']);
+      expect(result.candidate_funnel?.thresholded_vector).toEqual(['high']);
+      const combinedVectors = (mockResultCombiner.combine as Mock).mock.calls[0]?.[1] as Array<{ id: string }>;
+      expect(combinedVectors.map((item) => item.id)).toEqual(['high', 'mid', 'low']);
     });
   });
 

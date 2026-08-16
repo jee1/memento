@@ -37,7 +37,7 @@
 
 ## Decision 5 — Vector policy after fusion restore
 
-**Choice**: Ablate threshold `{0, 0.2, 0.38}` × prefetch `{20, 32, 60}` on observed provider distributions. Pick per-provider threshold **or** top-k fill when under-filled. Record choice in ranking hash.
+**Choice**: Keep `HYBRID_VECTOR_THRESHOLD = 0.38` as funnel diagnostic. Fetch at threshold 0. Fill ranking pool from raw prefetch when thresholded count `< query.limit`. Prefetch multiplier stays 2. Record threshold, prefetch, and fill flag in ranking hash. See `vector-threshold-ablation.md`.
 
 **Why**: `HYBRID_VECTOR_THRESHOLD = 0.38` and `VECTOR_SEARCH_LIMIT_MULTIPLIER = 2` are provider-agnostic. Production tfidf is hashed 512-d; baseline sparse TF-IDF is a different score family. LoCoMo scopes have ≤32 sessions.
 

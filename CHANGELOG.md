@@ -21,6 +21,7 @@
 
 ### Fixed
 
+- **Hybrid vector under-fill** (#789): hybrid vector fetch uses `threshold: 0` and keeps `HYBRID_VECTOR_THRESHOLD` 0.38 as the funnel diagnostic. When thresholded hits are fewer than `query.limit`, remaining raw prefetch (similarity desc, unique ids) fills the ranking pool before min-max. Prefetch multiplier stays 2. Ranking hash includes threshold, prefetch multiplier, and fill flag. Ranking weights.toml is unchanged.
 - **Hybrid fusion relevance** (#788): `HybridResultRanker` keeps combiner `textScore * textWeight + vectorScore * vectorWeight` as the relevance feature instead of overwriting with `vectorScore || textScore`. Consolidation path and quality-report helpers use the same contract. Ranking weights.toml is unchanged.
 - **FTS5 BM25 rank contract** (#787): text search SQL orders by `fts_rank ASC` (SQLite bm25 is lower-is-better, including negatives). `applyRanking` maps signed rank with `1/(1+exp(rank))` and treats `0` as the empty-query sentinel instead of requiring `ftsRank > 0`. Production scorecard reports `sql_candidate_recall` (`raw_text`) separately from `engine_topn_recall` (`text_topN`). Ranking weights and FTS AND/OR combinator are unchanged pending LoCoMo ablation.
 - **Nightly MigrationRunner truthfulness** (#751): `vitest.config.ts` gates `**/migration-runner.integration.spec.ts` CI exclude on `VITEST_INCLUDE_MIGRATION_RUNNER=1` (default PR CI still excludes). Nightly sets the flag and fails the step when collected MigrationRunner tests == 0.

@@ -6,7 +6,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
-import { normalizeSearchBySimilarityOutcome, collectResultIds, filterByVectorThreshold } from './hybrid-search-outcome-utils.js';
+import { normalizeSearchBySimilarityOutcome, collectResultIds, filterByVectorThreshold, fillUnderfilledVectorResults } from './hybrid-search-outcome-utils.js';
 import {
   createProviderVectorSearchTask,
   executeProviderSearchesWithOverallTimeout,
@@ -125,7 +125,7 @@ export class HybridVectorSearchExecutor {
 
       const searchOptions = {
         limit: resolveHybridVectorPrefetchLimit(query.limit),
-        threshold: query.includeFunnel ? 0 : HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+        threshold: 0,
         types: query.filters?.type,
         includeContent: true,
         ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
@@ -161,9 +161,10 @@ export class HybridVectorSearchExecutor {
         (sid, step, data) => this.searchLogger.logSearchStep(sid, step, data)
       );
 
-      const rankingPool = query.includeFunnel
-        ? filterByVectorThreshold(allResults, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD)
-        : allResults;
+      const thresholded = filterByVectorThreshold(allResults, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
+      const rankingPool = HYBRID_SEARCH.VECTOR_UNDERFILL_FILL
+        ? fillUnderfilledVectorResults(thresholded, allResults, query.limit || 10)
+        : thresholded;
       const vectorResults = this.normalizeAndDeduplicateResults(rankingPool);
       const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
 
@@ -183,7 +184,7 @@ export class HybridVectorSearchExecutor {
         tfidf_query_embedding_fallback: tfidfQueryEmbeddingFallback,
         tfidf_query_embedding_fallback_providers: tfidfQueryEmbeddingFallbackProviders,
         raw_ids: collectResultIds(allResults),
-        thresholded_ids: collectResultIds(rankingPool),
+        thresholded_ids: collectResultIds(thresholded),
       };
     } catch (error) {
       this.searchLogger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
@@ -323,7 +324,7 @@ export class HybridVectorSearchExecutor {
     const raw = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type,
       limit: resolveHybridVectorPrefetchLimit(query.limit),
-      threshold: query.includeFunnel ? 0 : HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+      threshold: 0,
       ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
         ? { project_id: query.filters.project_id }
         : {}),
@@ -367,19 +368,18 @@ export class HybridVectorSearchExecutor {
       }
     }
 
+    const thresholded = filterByVectorThreshold(results, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
+    const rankingPool = HYBRID_SEARCH.VECTOR_UNDERFILL_FILL
+      ? fillUnderfilledVectorResults(thresholded, results, query.limit || 10)
+      : thresholded;
+
     return {
-      results: query.includeFunnel
-        ? filterByVectorThreshold(results, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD)
-        : results,
+      results: rankingPool,
       query_embedding_providers,
       tfidf_query_embedding_fallback,
       tfidf_query_embedding_fallback_providers,
       raw_ids: collectResultIds(results),
-      thresholded_ids: collectResultIds(
-        query.includeFunnel
-          ? filterByVectorThreshold(results, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD)
-          : results
-      ),
+      thresholded_ids: collectResultIds(thresholded),
     };
   }
 

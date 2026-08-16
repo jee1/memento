@@ -98,15 +98,15 @@ Tests are required (constitution I). Write failing tests first.
 
 ### Tests (fail first)
 
-- [ ] T024 [US4] Add executor tests in `packages/memento-core/src/domains/search/algorithms/` covering threshold 0/0.2/0.38 behavior and under-fill fallback
+- [x] T024 [US4] Add executor tests in `packages/memento-core/src/domains/search/algorithms/` covering threshold 0/0.2/0.38 behavior and under-fill fallback
 
 ### Implementation
 
-- [ ] T025 [US4] Record provider raw similarity gold/non-gold from adapter runs (artifact only; no LoCoMo DF in core)
-- [ ] T026 [US4] Ablate prefetch 20/32/60 × thresholds; record in spec dir; implement chosen policy in `hybrid-vector-search-executor.ts` + `packages/memento-core/src/shared/config/constants.ts`
-- [ ] T027 [US4] Measure min-max normalization on/off; hashed tfidf vs sparse baseline under same reranker; do not add a new embedding dependency
-- [ ] T028 [US4] Ensure chosen constants change `getRankingVersion()` / recorded ranking hash
-- [ ] T029 [US4] Run hybrid-vector + hybrid-search-engine targeted tests
+- [x] T025 [US4] Record provider raw similarity gold/non-gold from adapter runs (artifact only; no LoCoMo DF in core)
+- [x] T026 [US4] Ablate prefetch 20/32/60 × thresholds; record in spec dir; implement chosen policy in `hybrid-vector-search-executor.ts` + `packages/memento-core/src/shared/config/constants.ts`
+- [x] T027 [US4] Measure min-max normalization on/off; hashed tfidf vs sparse baseline under same reranker; do not add a new embedding dependency
+- [x] T028 [US4] Ensure chosen constants change `getRankingVersion()` / recorded ranking hash
+- [x] T029 [US4] Run hybrid-vector + hybrid-search-engine targeted tests
 
 **Checkpoint**: US4 independently testable. Fusion tests still green.
 

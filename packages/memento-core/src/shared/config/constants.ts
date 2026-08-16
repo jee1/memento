@@ -125,6 +125,11 @@ export const HYBRID_SEARCH = {
   HYBRID_VECTOR_THRESHOLD: 0.38,
 
   /**
+   * When thresholded vector hits < query limit, fill from raw prefetch (#789).
+   */
+  VECTOR_UNDERFILL_FILL: true,
+
+  /**
    * 기본 벡터 가중치
    */
   DEFAULT_VECTOR_WEIGHT: 0.6,

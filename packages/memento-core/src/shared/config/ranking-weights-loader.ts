@@ -14,6 +14,7 @@ import {
   clearConfigCacheByPrefix,
   findProjectRoot
 } from './config-loader-utils.js';
+import { HYBRID_SEARCH } from './constants.js';
 
 export interface RankingWeights {
   alpha: number; // relevance 가중치
@@ -185,9 +186,23 @@ export function getRankingWeights(configPath?: string): RankingWeightsConfig {
   return getCachedConfig(cacheKey, () => loadRankingWeights(configPath));
 }
 
+export function getRankingVersionPayload(configPath?: string): {
+  weights: RankingWeightsConfig;
+  hybrid_vector_threshold: number;
+  vector_prefetch_multiplier: number;
+  vector_underfill_fill: boolean;
+} {
+  return {
+    weights: getRankingWeights(configPath),
+    hybrid_vector_threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+    vector_prefetch_multiplier: HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
+    vector_underfill_fill: HYBRID_SEARCH.VECTOR_UNDERFILL_FILL,
+  };
+}
+
 export function getRankingVersion(configPath?: string): string {
   const hash = createHash('sha256')
-    .update(JSON.stringify(getRankingWeights(configPath)))
+    .update(JSON.stringify(getRankingVersionPayload(configPath)))
     .digest('hex')
     .slice(0, 12);
   return `ranking-sha256:${hash}`;
