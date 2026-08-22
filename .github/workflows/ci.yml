@@ -81,6 +81,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
+      - name: Build @memento/core (schema asset parity)
+        run: npm run build -w @memento/core
       - name: Run tests (packages/memento-core)
         run: npm run test:ci:core
       - name: Upload test results
