@@ -2,7 +2,7 @@ import { mementoConfig } from '../../config/index.js';
 import { getRetryOptions } from '../../config/retry-options-loader.js';
 import { logger } from '../../utils/logger.js';
 import type { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
-import type { LLMProvider } from '../../types/index.js';
+import type { LLMProvider } from '../../types/memory.types.js';
 import type { LLMClientInitializationResult } from './types.js';
 import { addWarning, getErrorMessage } from './shared-helpers.js';
 

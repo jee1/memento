@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { TripleExtractionService } from '../../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
-import type { SemanticMemoryUpdateService } from '../../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
+import type { SemanticMemoryUpdateService } from '../../../../domains/memory/semantic/semantic-memory-update-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import type {
   ResolvedTripleExtractionBatchJobConfig,

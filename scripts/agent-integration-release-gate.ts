@@ -1,8 +1,8 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs, openDb, type CliDatabase } from './lib/cli.js';
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import Database from 'better-sqlite3';
 
 export interface ReleaseGateEvidence {
   hook_return_latency_ms: number[];
@@ -44,7 +44,7 @@ function percentile(values: number[], ratio: number): number | null {
   return sorted[Math.ceil(sorted.length * ratio) - 1] ?? null;
 }
 
-function tableExists(db: Database.Database, table: string): boolean {
+function tableExists(db: CliDatabase, table: string): boolean {
   return Boolean(db.prepare(`
     SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?
   `).get(table));
@@ -66,7 +66,7 @@ function check(
   };
 }
 
-function scanSecrets(db: Database.Database, secrets: string[]): number {
+function scanSecrets(db: CliDatabase, secrets: string[]): number {
   if (secrets.length === 0) return 0;
   const sources: Array<[string, string]> = [
     ['agent_observation', 'payload_json'],
@@ -87,7 +87,7 @@ function scanSecrets(db: Database.Database, secrets: string[]): number {
   return leaks;
 }
 
-function derivedMemoryCounts(db: Database.Database): { derived: number; covered: number } {
+function derivedMemoryCounts(db: CliDatabase): { derived: number; covered: number } {
   const summaryRows = db.prepare(`
     SELECT summary_memory_id AS memory_id
     FROM agent_session
@@ -112,7 +112,7 @@ function derivedMemoryCounts(db: Database.Database): { derived: number; covered:
 }
 
 export function evaluateAgentIntegrationReleaseGate(
-  db: Database.Database,
+  db: CliDatabase,
   evidence: ReleaseGateEvidence,
 ): ReleaseGateReport {
   const capture = db.prepare(`
@@ -245,8 +245,8 @@ export function evaluateAgentIntegrationReleaseGate(
 }
 
 function argument(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : undefined;
+  const index = parseCliArgs().args.indexOf(name);
+  return index >= 0 ? parseCliArgs().args[index + 1] : undefined;
 }
 
 function main(): void {
@@ -263,7 +263,7 @@ function main(): void {
   const evidence = JSON.parse(
     readFileSync(resolve(evidencePath), 'utf8'),
   ) as ReleaseGateEvidence;
-  const db = new Database(resolve(databasePath), { readonly: true });
+  const db = openDb(resolve(databasePath), { readonly: true });
   try {
     const report = evaluateAgentIntegrationReleaseGate(db, evidence);
     const serialized = `${JSON.stringify(report, null, 2)}\n`;
@@ -275,6 +275,6 @@ function main(): void {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main();
 }

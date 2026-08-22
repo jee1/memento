@@ -9,12 +9,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { initializeDatabase } from '@memento/core/infrastructure/database/database/init.js';
+import { initializeDatabase } from '@memento/core/infrastructure/database/sqlite/init.js';
 import { initializeServices } from '../bootstrap.js';
 import type { ServerServices } from '../bootstrap.js';
 import { cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';
 import { insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
-import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
+import { RecallTool } from '@memento/core/domains/memory/recall/recall-tool.js';
 import type { ToolContext } from '@memento/coretypes.js';
 
 describe('test-sleep-consolidation-isolation', () => {

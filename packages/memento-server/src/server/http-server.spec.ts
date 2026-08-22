@@ -5,6 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import {
   setupTestDatabase,
   cleanupTestDatabase,
@@ -155,13 +157,21 @@ describe('HTTP Server', () => {
   });
 
   describe('헬스 체크 엔드포인트', () => {
-    it('/health 엔드포인트가 등록되어 있어야 함', () => {
-      // Given: Express 앱
-      const app = __test.getApp();
+    it('/health가 실제 HTTP에서 healthy 상태를 반환해야 함', async () => {
+      const server = createServer(__test.getApp());
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const port = (server.address() as AddressInfo).port;
+        const response = await fetch(`http://127.0.0.1:${port}/health`);
+        const body = await response.json() as { status?: string };
 
-      // When: 라우트 확인
-      // Then: 앱이 정의되어 있어야 함 (실제 엔드포인트 테스트는 통합 테스트에서)
-      expect(app).toBeDefined();
+        expect(response.status).toBe(200);
+        expect(body.status).toBe('healthy');
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => error ? reject(error) : resolve());
+        });
+      }
     });
   });
 
@@ -203,23 +213,45 @@ describe('HTTP Server', () => {
   });
 
   describe('정리 경로', () => {
-    it('cleanup이 runtimeDiagnosticsSamplerCleanup을 호출해야 함', async () => {
+    it('cleanup이 batch scheduler 중지를 대기한 후 데이터베이스 유지보수를 중지해야 함', async () => {
       const runtimeDiagnosticsSamplerCleanup = vi.fn().mockResolvedValue(undefined);
       const runtimeDiagnosticsLogger = {
         writeEvent: vi.fn().mockResolvedValue(undefined)
       };
+      let releaseBatchSchedulerStop!: () => void;
+      const batchSchedulerStop = vi.fn(() => new Promise<void>((resolve) => {
+        releaseBatchSchedulerStop = resolve;
+      }));
+      const walCheckpointStop = vi.fn().mockResolvedValue(undefined);
+      const databaseLockStop = vi.fn();
       __test.setTestDependencies({
-        database: db,
+        database: null,
         serverServices: {
           ...ctx!.services,
+          batchScheduler: { stop: batchSchedulerStop } as ServerServices['batchScheduler'],
+          walCheckpointScheduler: { stop: walCheckpointStop } as ServerServices['walCheckpointScheduler'],
+          databaseLockMonitor: { stop: databaseLockStop } as ServerServices['databaseLockMonitor'],
           runtimeDiagnosticsSamplerCleanup,
           runtimeDiagnosticsLogger
         }
       });
 
-      await cleanup();
+      const cleanupPromise = cleanup();
+      await vi.waitFor(() => expect(batchSchedulerStop).toHaveBeenCalledTimes(1));
+
+      expect(walCheckpointStop).not.toHaveBeenCalled();
+      expect(databaseLockStop).not.toHaveBeenCalled();
+
+      releaseBatchSchedulerStop();
+      await cleanupPromise;
 
       expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+      expect(walCheckpointStop).toHaveBeenCalledTimes(1);
+      expect(databaseLockStop).toHaveBeenCalledTimes(1);
+      expect(batchSchedulerStop.mock.invocationCallOrder[0])
+        .toBeLessThan(walCheckpointStop.mock.invocationCallOrder[0]);
+      expect(walCheckpointStop.mock.invocationCallOrder[0])
+        .toBeLessThan(databaseLockStop.mock.invocationCallOrder[0]);
       expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'server_cleanup_start',

@@ -31,8 +31,8 @@
 - `src/types/embedding.types.ts` - 임베딩 타입 확장
 - `docker-compose.base.yml` - Docker 공통 서비스 정의 앵커
 - `docker-compose.yml` - 기본 환경 설정 통합
-- `docker-compose.dev.yml` - 개발 환경 설정 통합
-- `docker-compose.prod.yml` - 프로덕션 환경 설정 통합
+- `docker/docker-compose.dev.yml` - 개발 환경 설정 통합
+- `docker/docker-compose.prod.yml` - 프로덕션 환경 설정 통합
 - `src/test/embedding-migration.test.ts` - 마이그레이션 테스트 (새로 생성)
 - `src/services/model-availability-service.spec.ts` - 모델 가용성 테스트 (새로 생성)
 - `src/test/vector-compatibility.test.ts` - 벡터 호환성 테스트 (새로 생성)

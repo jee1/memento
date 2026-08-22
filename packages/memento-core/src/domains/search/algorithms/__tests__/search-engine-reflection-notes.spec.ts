@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { SearchEngine, type SearchQuery } from '../search-engine.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 import { 
   initializeMigrationStatusTable, 
   setMigrationStatus
@@ -456,8 +457,8 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
       setMigrationStatus(db, 'pending');
 
       const now = new Date();
-      const oldDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
-      const recentDate = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString();
+      const oldDate = new Date(now.getTime() - 90 * DAY_MS).toISOString();
+      const recentDate = new Date(now.getTime() - DAY_MS).toISOString();
 
       // fact_high를 먼저 삽입해 rowid가 작아 검색 결과 순서에서 먼저 오도록 함. 중복 패널티가 fact_low에만 적용되어도 fact_high가 boost로 우선.
       DatabaseUtils.run(db, `
@@ -480,4 +481,3 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
     });
   });
 });
-

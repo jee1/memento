@@ -6,7 +6,7 @@ After changing the schema, also update the relevant sections of [database-design
 
 ## Core Components
 
-The migration system lives under `packages/memento-core/src/infrastructure/database/database/migration/` and is composed of five components.
+The migration system lives under `packages/memento-core/src/infrastructure/database/sqlite/migration/` and is composed of five components.
 
 **MigrationRunner** is the execution engine. It runs a single migration inside a transaction, attempts automatic rollback on failure, and returns a `MigrationResult` object with success status, timing, and any error.
 
@@ -23,7 +23,7 @@ The migration system lives under `packages/memento-core/src/infrastructure/datab
 Canonical migrations live at:
 
 ```
-packages/memento-core/src/infrastructure/database/database/migration/migrations/
+packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/
 ```
 
 Files follow the naming convention `{version}-{name}.ts`. Three-digit zero-padded version numbers are recommended.

@@ -1,11 +1,13 @@
 /**
  * 상대적 시간 문자열 생성
  */
+const DAY_MS = 86_400_000;
+
 export function getRelativeTime(date: string | Date): string {
   const now = new Date();
   const target = new Date(date);
   const diffMs = now.getTime() - target.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffMs / DAY_MS);
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
@@ -28,7 +30,7 @@ export function createDateRangeFilter(days: number): {
   time_to: string;
 } {
   const now = new Date();
-  const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const from = new Date(now.getTime() - days * DAY_MS);
 
   return {
     time_from: from.toISOString(),

@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AgentIntegrationSchemaMigration } from '../../../infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
+import { AgentIntegrationSchemaMigration } from '../../../infrastructure/database/sqlite/migration/migrations/035-agent-integration-schema.js';
 import { SqliteAgentIntegrationRepository } from '../../../infrastructure/database/repositories/sqlite-agent-integration-repository.js';
 import { AgentIntegrationError, AgentLifecycleService } from './agent-lifecycle-service.js';
 

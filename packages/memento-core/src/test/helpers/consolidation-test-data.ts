@@ -5,6 +5,7 @@
 
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../shared/utils/database.js';
+import { DAY_MS } from '../../shared/utils/date.js';
 import type { MemoryType } from '../../index.js';
 
 export interface TestMemoryItem {
@@ -268,7 +269,7 @@ export function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] 
     const type = types[i % types.length];
     const content = contents[i % contents.length];
     const daysAgo = Math.floor(i / 2);
-    const createdAt = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    const createdAt = new Date(now.getTime() - daysAgo * DAY_MS);
     
     // consolidation_score를 다양하게 설정
     // 높은 recall_count와 최근 접근일수록 높은 점수
@@ -389,7 +390,7 @@ export function generateScenarioBasedTestData(
       const type = types[scenarioIndex % types.length];
       const content = baseContents[scenarioIndex % baseContents.length];
       const daysAgo = rng.randomInt(0, 30);
-      const createdAt = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+      const createdAt = new Date(now.getTime() - daysAgo * DAY_MS);
       
       // 시나리오에 맞는 consolidation_score 생성
       const consolidationScore = rng.randomFloat(
@@ -557,4 +558,3 @@ export function cleanupTestDatabase(db: Database.Database): void {
     // 데이터베이스가 이미 닫혔을 수 있음
   }
 }
-

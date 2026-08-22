@@ -3,19 +3,6 @@
  * 의존성 역전 원칙(DIP) 적용
  */
 
-export interface PreparedStatement {
-  all(...params: unknown[]): unknown[];
-  get(...params: unknown[]): unknown;
-  run(...params: unknown[]): { changes: number; lastInsertRowid: number };
-}
-
-export interface DatabaseConnection {
-  prepare(sql: string): PreparedStatement;
-  exec(sql: string): void;
-  close(): void;
-  isOpen(): boolean;
-}
-
 export interface VectorSearchRepository {
   search(query: VectorSearchQuery): Promise<VectorSearchResult[]>;
   hybridSearch(query: VectorSearchQuery): Promise<VectorSearchResult[]>; // HybridSearchResult[]에서 VectorSearchResult[]로 변경

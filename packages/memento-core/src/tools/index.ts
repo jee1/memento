@@ -5,8 +5,8 @@
 
 import { ToolRegistry } from './tool-registry.js';
 import type { ToolContext } from './types.js';
-import { RememberTool } from '../domains/memory/tools/remember-tool.js';
-import { RecallTool } from '../domains/memory/tools/recall-tool.js';
+import { RememberTool } from '../domains/memory/remember/remember-tool.js';
+import { RecallTool } from '../domains/memory/recall/recall-tool.js';
 import { ForgetTool } from '../domains/memory/tools/forget-tool.js';
 import { PinTool } from '../domains/memory/tools/pin-tool.js';
 import { UnpinTool } from '../domains/memory/tools/unpin-tool.js';
@@ -16,10 +16,10 @@ import { SetAnchorTool } from '../domains/anchor/tools/set-anchor-tool.js';
 import { GetAnchorTool } from '../domains/anchor/tools/get-anchor-tool.js';
 import { SearchLocalTool } from '../domains/anchor/tools/search-local-tool.js';
 import { ClearAnchorTool } from '../domains/anchor/tools/clear-anchor-tool.js';
-import { ProceduralDiffTool } from '../domains/memory/tools/procedural-diff-tool.js';
-import { ProceduralRollbackTool } from '../domains/memory/tools/procedural-rollback-tool.js';
-import { RememberProcedureTool } from '../domains/memory/tools/remember-procedure-tool.js';
-import { GetIntrospectionSummaryTool } from '../domains/memory/tools/get-introspection-summary-tool.js';
+import { ProceduralDiffTool } from '../domains/memory/procedural/procedural-diff-tool.js';
+import { ProceduralRollbackTool } from '../domains/memory/procedural/procedural-rollback-tool.js';
+import { RememberProcedureTool } from '../domains/memory/procedural/remember-procedure-tool.js';
+import { GetIntrospectionSummaryTool } from '../domains/memory/introspection/get-introspection-summary-tool.js';
 import { FeedbackTool } from '../domains/memory/tools/feedback-tool.js';
 import { GetTelemetrySummaryTool } from '../domains/telemetry/tools/get-telemetry-summary-tool.js';
 import { ExtractTriplesTool } from '../domains/relation/tools/extract-triples-tool.js';

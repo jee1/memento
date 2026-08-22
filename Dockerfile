@@ -12,7 +12,6 @@ COPY packages/memento-core/package*.json ./packages/memento-core/
 COPY packages/memento-server/package*.json ./packages/memento-server/
 COPY packages/memento-agent-integration/package*.json ./packages/memento-agent-integration/
 COPY packages/memento-client/package*.json ./packages/memento-client/
-COPY packages/mcp-client/package*.json ./packages/mcp-client/
 COPY apps/experimental-example/package*.json ./apps/experimental-example/
 
 # Install all dependencies (including dev dependencies for build) without running scripts

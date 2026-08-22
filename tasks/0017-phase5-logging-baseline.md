@@ -34,11 +34,11 @@
 ### 파일별 console.* 개수 (상위 10개)
 1. `src/domains/search/algorithms/vector-search-engine.ts`: 32개
 2. `src/server/http-server.ts`: 31개 🔴 (핵심 모듈)
-3. `src/infrastructure/database/database/migration/migration-runner.ts`: 21개
+3. `src/infrastructure/database/sqlite/migration/migration-runner.ts`: 21개
 4. `src/domains/memory/services/memory-embedding-service.ts`: 16개
-5. `src/infrastructure/database/database/migrate.ts`: 15개
+5. `src/infrastructure/database/sqlite/migrate.ts`: 15개
 6. `src/server/simple-mcp-server.ts`: 14개 🔴 (핵심 모듈)
-7. `src/infrastructure/database/database/migration/backup-manager.ts`: 10개
+7. `src/infrastructure/database/sqlite/migration/backup-manager.ts`: 10개
 8. `src/domains/memory/services/memory-neighbor-service.ts`: 9개
 
 ### anchor 도메인 console.* 사용
@@ -56,8 +56,8 @@
 2. `src/domains/memory/services/memory-neighbor-service.ts`: 9개
 
 ### 낮음 (인프라)
-1. `src/infrastructure/database/database/migration/migration-runner.ts`: 21개
-2. `src/infrastructure/database/database/migrate.ts`: 15개
+1. `src/infrastructure/database/sqlite/migration/migration-runner.ts`: 21개
+2. `src/infrastructure/database/sqlite/migrate.ts`: 15개
 
 ## 다음 단계
 

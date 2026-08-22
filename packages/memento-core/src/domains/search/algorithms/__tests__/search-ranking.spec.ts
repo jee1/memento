@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics, type SearchProfile } from '../search-ranking.js';
 import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.interface.js';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 
 describe('SearchRanking', () => {
   let ranking: SearchRanking;
@@ -342,21 +343,21 @@ describe('SearchRanking', () => {
 
   describe('calculateRecency', () => {
     it('최근 생성된 메모리의 높은 최근성', () => {
-      const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000); // 1일 전
+      const recentDate = new Date(Date.now() - DAY_MS); // 1일 전
       const recency = ranking.calculateRecency(recentDate, 'episodic');
       
       expect(recency).toBeGreaterThan(0.8);
     });
 
     it('오래된 메모리의 낮은 최근성', () => {
-      const oldDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000); // 1년 전
+      const oldDate = new Date(Date.now() - 365 * DAY_MS); // 1년 전
       const recency = ranking.calculateRecency(oldDate, 'episodic');
       
       expect(recency).toBeLessThan(0.1);
     });
 
     it('메모리 타입별 반감기 테스트', () => {
-      const baseDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10일 전
+      const baseDate = new Date(Date.now() - 10 * DAY_MS); // 10일 전
       
       const workingRecency = ranking.calculateRecency(baseDate, 'working');
       const episodicRecency = ranking.calculateRecency(baseDate, 'episodic');
@@ -446,7 +447,7 @@ describe('SearchRanking', () => {
         viewCount: 0,
         citeCount: 0,
         editCount: 0,
-        lastAccessed: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) // 1일 전
+        lastAccessed: new Date(Date.now() - DAY_MS) // 1일 전
       };
 
       const usage = ranking.calculateUsage(metrics);
@@ -498,7 +499,7 @@ describe('SearchRanking', () => {
     });
 
     it('calculateUsageSimple', () => {
-      const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
+      const recentDate = new Date(Date.now() - DAY_MS);
       const usage = ranking.calculateUsageSimple(recentDate);
       
       expect(usage).toBeGreaterThan(0);
@@ -585,6 +586,20 @@ describe('SearchRanking', () => {
       
       // 차원 불일치 시 임베딩 점수는 0이어야 함
       expect(relevance).toBeGreaterThanOrEqual(0);
+    });
+
+    it('preserves NaN vector elements as an invalid relevance score', () => {
+      const relevance = ranking.calculateRelevance({
+        query: 'test',
+        content: 'test content',
+        tags: [],
+        embeddingSimilarity: {
+          queryEmbedding: [Number.NaN, 1],
+          docEmbedding: [1, 1],
+        },
+      });
+
+      expect(relevance).toBeNaN();
     });
   });
 

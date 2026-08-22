@@ -4,7 +4,8 @@
  */
 
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
-import type { EmbeddingProvider, MemoryType } from '../../../shared/types/index.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 
 export type VectorResultWithProvider = VectorSearchResult & { provider: string };

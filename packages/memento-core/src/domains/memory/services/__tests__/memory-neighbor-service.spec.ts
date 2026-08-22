@@ -24,10 +24,10 @@ describe('MemoryNeighborService', () => {
   let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
   let embeddingService: MemoryEmbeddingService;
 
-  beforeEach(() => {
-    // Create in-memory database for testing
+  beforeEach(async () => {
+    // This suite deliberately permits malformed legacy embedding rows.
     db = new Database(':memory:');
-    DatabaseUtils.initializeDatabase(db);
+    await DatabaseUtils.initializeDatabase(db);
     
     vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);
@@ -290,4 +290,3 @@ describe('MemoryNeighborService', () => {
     });
   });
 });
-

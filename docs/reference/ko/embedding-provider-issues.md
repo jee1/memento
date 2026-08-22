@@ -5,7 +5,7 @@ Memento는 MiniLM·OpenAI·Gemini·TF-IDF 등 여러 임베딩 백엔드를 선�
 ## 임베딩 제공자 전환 시 확인해야 할 문제점
 
 ### 1. Docker 환경 변수 기본값
-- `docker-compose.yml`, `docker-compose.dev.yml`, `docker-compose.prod.yml`에서 `EMBEDDING_PROVIDER` 기본값이 오랫동안 `lightweight`(`tfidf`)로 설정되어 있었다.  
+- `docker-compose.yml`, `docker/docker-compose.dev.yml`, `docker/docker-compose.prod.yml`에서 `EMBEDDING_PROVIDER` 기본값이 오랫동안 `lightweight`(`tfidf`)로 설정되어 있었다.
 - `.env`에서 값을 비워 두어도 Compose 기본값 때문에 컨테이너 내부에서는 항상 `lightweight`로 재설정되었다.  
 - 이로 인해 `UnifiedEmbeddingService`의 provider priority를 조정해도 설정 단계에서 이미 경량 모델이 선택되어 우선순위가 반영되지 않았다.  
 - 해결: Compose 환경 변수 기본값을 `minilm`(또는 원하는 모델)로 변경하고, `.env`와 일치하도록 관리한다.

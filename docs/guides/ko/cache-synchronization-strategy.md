@@ -86,4 +86,4 @@ if (zeroVersionCount.count > 0) {
 
 - CoreMemory 서비스: `packages/memento-core/src/domains/memory/services/core-memory-service.ts`
 - 캐시 서비스: `packages/memento-core/src/domains/memory/services/core-memory-cache-service.ts`
-- 마이그레이션 010: `packages/memento-core/src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts`
+- 마이그레이션 010: `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/010-add-core-memory-version.ts`

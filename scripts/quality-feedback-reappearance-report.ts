@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * SC-001: 도입 전/후 top-5 재등장률 비교 리포트 (기준선)
  *
@@ -32,7 +33,7 @@ export function reappearanceRate(snap: Snapshot, relevantByQuery: Record<string,
 }
 
 function main(): void {
-  const argv = process.argv.slice(2);
+  const argv = parseCliArgs().args;
   if (argv.length < 4) {
     console.log(`Usage:
   npx tsx scripts/quality-feedback-reappearance-report.ts --before <before.json> --after <after.json> --relevant <relevant.json>
@@ -81,6 +82,6 @@ before/after.json 형식: { "results": { "q1": ["id_x", ...], ... } }
   }, null, 2));
 }
 
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? '')) {
+if (isMain(import.meta.url)) {
   main();
 }

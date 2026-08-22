@@ -2,7 +2,7 @@
 
 ## Relevant Files
 
-- `src/domains/memory/tools/recall-tool.ts` - recall 도구의 메인 구현 파일. 새로운 파라미터 추가 및 자동 앵커 설정/이웃 기억 포함 로직 구현
+- `src/domains/memory/recall/recall-tool.ts` - recall 도구의 메인 구현 파일. 새로운 파라미터 추가 및 자동 앵커 설정/이웃 기억 포함 로직 구현
 - `src/domains/memory/tools/__tests__/recall-tool.spec.ts` - recall 도구의 단위 테스트 파일. 새로운 기능에 대한 테스트 추가
 - `src/services/anchor-manager.ts` - 앵커 관리 서비스 (하위 호환성 래퍼). 앵커 조회 및 설정에 사용
 - `src/domains/anchor/services/anchor/anchor-manager.ts` - 앵커 관리자 구현. 앵커 CRUD 작업 담당

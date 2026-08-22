@@ -22,7 +22,7 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
  * 로깅 메타데이터 스키마
  * MCP 스펙 준수: 공통 필드 포함
  * 
- * @see LoggingContext, LogMetadataSchema in logging-helpers.ts
+ * @see LogMetadataSchema
  */
 export interface LogMetadataSchema {
   // 공통 컨텍스트 필드
@@ -245,7 +245,7 @@ let isLoggingInProgress = false;
  * 
  * 구현 완료:
  * - Rate limiting: 로그 전송 빈도 제한 (logging-rate-limiter.ts)
- * - 컨텍스트 포함: agentId, slot, memoryId, traceId 등 (logging-helpers.ts)
+ * - 컨텍스트 포함: agentId, slot, memoryId, traceId 등
  * 
  * 중복 로그 방지:
  * - isLoggingInProgress 플래그로 동시 호출 방지

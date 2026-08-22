@@ -335,7 +335,7 @@ await mcp_memento_recall({
 ## Technical Considerations
 
 ### 구현 위치
-- 파일: `src/domains/memory/tools/recall-tool.ts`
+- 파일: `src/domains/memory/recall/recall-tool.ts`
 - 수정 사항:
   1. `RecallSchema`에 새 파라미터 추가
   2. `handle` 메서드에서 자동 앵커 설정 로직 추가

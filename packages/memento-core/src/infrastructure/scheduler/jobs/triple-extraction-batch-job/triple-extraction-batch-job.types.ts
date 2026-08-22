@@ -1,4 +1,4 @@
-import type { BatchJobResult } from '../../batch-scheduler-types.js';
+import type { BatchJobResult } from '../../batch-scheduler/batch-scheduler-types.js';
 
 export function getErrorCode(error: unknown): unknown {
   return typeof error === 'object' && error !== null && 'code' in error

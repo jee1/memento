@@ -1,6 +1,6 @@
 import { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 export async function runTelemetryCleanupBatch(ctx: BatchSchedulerRunContext): Promise<void> {

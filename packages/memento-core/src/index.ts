@@ -3,7 +3,7 @@
  * createMementoCore로 DB·서비스 초기화 후 서버/앱에서 ToolContext·getToolRegistry 사용.
  */
 
-import { initializeDatabase, closeDatabase as closeDb } from './infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase as closeDb } from './infrastructure/database/sqlite/init.js';
 import { initializeServices } from './bootstrap.js';
 import { validateAndNormalizeDbPath } from './shared/utils/db-path.js';
 
@@ -34,7 +34,7 @@ export function closeDatabase(db: import('better-sqlite3').Database): void {
   closeDb(db);
 }
 
-export { initializeDatabase } from './infrastructure/database/database/init.js';
+export { initializeDatabase } from './infrastructure/database/sqlite/init.js';
 export { createToolContext, createServerContext } from './context.js';
 export {
   getToolRegistry,
@@ -69,11 +69,11 @@ export { ensureMemoryReviewCandidateSchema } from './shared/utils/ensure-memory-
 export {
   selectMemoryReviewCandidates,
   selectionWindowLimit
-} from './domains/memory/services/memory-review-candidate-selection-service.js';
+} from './domains/memory/review/memory-review-candidate-selection-service.js';
 export {
   parseMemoryReviewQueueControlEnv,
   parseMemoryReviewSelectionEnv
-} from './domains/memory/services/memory-review-candidate-selection-env.js';
+} from './domains/memory/review/memory-review-candidate-selection-env.js';
 export type {
   MemoryReviewStaleAnchorKind as StaleAnchorKind,
   MemoryReviewCandidateSourceRow as SourceRow,
@@ -82,7 +82,7 @@ export type {
   MemoryReviewCandidateSelectionThresholds as Thresholds,
   MemoryReviewCandidateSelectionOptions as Options,
   MemoryReviewQueueControlConfig
-} from './domains/memory/services/memory-review-candidate-selection.types.js';
+} from './domains/memory/review/memory-review-candidate-selection.types.js';
 export {
   upsertPendingMemoryReviewCandidates,
   getMemoryReviewCandidateById,
@@ -93,19 +93,19 @@ export {
   markMemoryReviewCandidateExpired,
   bulkUpdatePendingMemoryReviewCandidates,
   countPendingMemoryReviewCandidatesBySelector,
-} from './domains/memory/services/memory-review-candidate-persistence-service.js';
+} from './domains/memory/review/memory-review-candidate-persistence-service.js';
 export {
   computeMemoryReviewQueueHealthLive,
   recordMemoryReviewQueueHealthSnapshot,
   listMemoryReviewQueueHealthSnapshots,
   maybeRecordMemoryReviewQueueHealthSnapshot,
   memoryReviewQueueHealthSnapshotTableReady,
-} from './domains/memory/services/memory-review-queue-health-service.js';
+} from './domains/memory/review/memory-review-queue-health-service.js';
 export type {
   MemoryReviewQueueHealthLive,
   ReviewQueueWindowCounts,
   MemoryReviewQueueHealthSnapshotRow,
-} from './domains/memory/services/memory-review-queue-health-service.js';
+} from './domains/memory/review/memory-review-queue-health-service.js';
 export type {
   MemoryReviewCandidateStatus,
   MemoryReviewCandidateRow,
@@ -115,12 +115,12 @@ export type {
   BulkMemoryReviewCandidateSelector,
   BulkMemoryReviewCandidatesResult,
   ListMemoryReviewCandidatesQuery,
-} from './domains/memory/services/memory-review-candidate-persistence.types.js';
+} from './domains/memory/review/memory-review-candidate-persistence.types.js';
 export {
   MemoryReviewCandidateError,
   MEMORY_REVIEW_CANDIDATE_NOT_FOUND,
   MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
-} from './domains/memory/services/memory-review-candidate-persistence-error.js';
+} from './domains/memory/review/memory-review-candidate-persistence-error.js';
 export {
   parseAdminMemoryItemIdParam,
   getAdminMemoryItemPreviewById,
@@ -129,7 +129,7 @@ export type { AdminMemoryItemPreview } from './domains/memory/services/admin-mem
 export { logger } from './shared/utils/logger.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export { withErrorHandling } from './shared/utils/error-handling.js';
-export type { MemoryItem } from './shared/types/index.js';
+export type { MemoryItem } from './shared/types/memory.types.js';
 export type { ApiScope, ApiTokenEntry } from './shared/types/api-token.js';
 export type { IErrorLoggingService } from './shared/interfaces/error-logging.interface.js';
 export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';
@@ -146,15 +146,15 @@ export {
   buildTripleSentence,
   hasBrokenTripleConjugation,
   legacyTripleSentence
-} from './domains/memory/services/semantic-memory/triple-sentence.js';
+} from './domains/memory/semantic/triple-sentence.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 export { QualityAssuranceService } from './domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 export { QualityThresholdManager } from './domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
 export { PIIMasker } from './shared/utils/pii-masker.js';
-export { SchemaVersionManager } from './infrastructure/database/database/migration/schema-version-manager.js';
-export { MigrationDetector } from './infrastructure/database/database/migration/migration-detector.js';
+export { SchemaVersionManager } from './infrastructure/database/sqlite/migration/schema-version-manager.js';
+export { MigrationDetector } from './infrastructure/database/sqlite/migration/migration-detector.js';
 export { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 export { RelationExtractor } from './domains/relation/services/relation-extractor.js';
 export {
@@ -162,7 +162,7 @@ export {
   type ExpectedRelation,
   type ExtractedRelation,
 } from './domains/relation/services/relation-quality-validator.js';
-export { RelationEngineSchemaMigration } from './infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+export { RelationEngineSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 export { EmbeddingReindexService } from './domains/embedding/services/embedding-reindex-service.js';
 export type { EmbeddingHealthDiagnostics, EmbeddingReindexOptions, EmbeddingReindexResult, ReindexByIdsResult } from './domains/embedding/services/embedding-reindex-service.js';
 export type { EmbeddingProvider } from './shared/types/embedding.types.js';
@@ -202,9 +202,9 @@ export { RemoveRelationTool } from './domains/relation/tools/remove-relation-too
 export { VisualizeRelationsTool } from './domains/relation/tools/visualize-relations-tool.js';
 export { ExtractTriplesTool } from './domains/relation/tools/extract-triples-tool.js';
 export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.js';
-export { ConvertEpisodicToSemanticTool } from './domains/memory/tools/convert-episodic-to-semantic-tool.js';
+export { ConvertEpisodicToSemanticTool } from './domains/memory/semantic/convert-episodic-to-semantic-tool.js';
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
-export { GetIntrospectionSummaryTool } from './domains/memory/tools/get-introspection-summary-tool.js';
+export { GetIntrospectionSummaryTool } from './domains/memory/introspection/get-introspection-summary-tool.js';
 export { FeedbackTool } from './domains/memory/tools/feedback-tool.js';
 export { ExportMemoriesTool } from './domains/memory/tools/export-memories-tool.js';
 export { validateSource } from './shared/validation/source-uri.js';
@@ -217,17 +217,17 @@ export {
   type MementoResourceKind,
   type MementoResourceUriParts,
 } from './shared/utils/memento-resource-uri.js';
-export { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
+export { IntrospectionScanCache } from './domains/memory/introspection/introspection-scan-cache.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
-export { IntrospectionHealTool } from './domains/memory/tools/introspection-heal-tool.js';
+export { IntrospectionHealTool } from './domains/memory/introspection/introspection-heal-tool.js';
 export {
   IntrospectionHealingService,
   INTROSPECTION_HEAL_POLICY_NAME,
-} from './domains/memory/services/introspection-healing-service.js';
+} from './domains/memory/introspection/introspection-healing-service.js';
 export type {
   IntrospectionHealOptions,
   IntrospectionHealResult,
-} from './domains/memory/services/introspection-healing-service.js';
+} from './domains/memory/introspection/introspection-healing-service.js';
 export {
   SleepConsolidationService,
   ConsolidationAlreadyRunningError
@@ -268,13 +268,13 @@ export type { ToolContext, ToolResult, ToolDefinition } from './tools/types.js';
 export type { TelemetryPeriod, EventType } from './domains/telemetry/types/telemetry.types.js';
 export { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 export { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
-export { TelemetryEventsMigration } from './infrastructure/database/database/migration/migrations/027-telemetry-events.js';
-export { TelemetryDailyMetricsMigration } from './infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
-export { MetaMemoryStatsSchemaMigration } from './infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.js';
-export { MemoryReviewCandidateSchemaMigration } from './infrastructure/database/database/migration/migrations/033-memory-review-candidate-schema.js';
-export { ReviewQueueHealthSnapshotMigration } from './infrastructure/database/database/migration/migrations/034-review-queue-health-snapshot.js';
-export { AgentIntegrationSchemaMigration } from './infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
-export { AgentMemoryPromotionSchemaMigration } from './infrastructure/database/database/migration/migrations/036-agent-memory-promotion-schema.js';
+export { TelemetryEventsMigration } from './infrastructure/database/sqlite/migration/migrations/027-telemetry-events.js';
+export { TelemetryDailyMetricsMigration } from './infrastructure/database/sqlite/migration/migrations/028-telemetry-daily-metrics.js';
+export { MetaMemoryStatsSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/011-meta-memory-stats-schema.js';
+export { MemoryReviewCandidateSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/033-memory-review-candidate-schema.js';
+export { ReviewQueueHealthSnapshotMigration } from './infrastructure/database/sqlite/migration/migrations/034-review-queue-health-snapshot.js';
+export { AgentIntegrationSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/035-agent-integration-schema.js';
+export { AgentMemoryPromotionSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/036-agent-memory-promotion-schema.js';
 export { SqliteAgentIntegrationRepository } from './infrastructure/database/repositories/sqlite-agent-integration-repository.js';
 export {
   AgentIntegrationError,
@@ -350,33 +350,7 @@ export type {
 export { SqliteHybridAgentContextSource } from './domains/agent-integration/services/sqlite-hybrid-agent-context-source.js';
 export type { SqliteHybridAgentContextSourceOptions } from './domains/agent-integration/services/sqlite-hybrid-agent-context-source.js';
 
-export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';
-
-// Evolution demo (Issue #341, #396)
-export {
-  listEvolutionDemoScenarios,
-  getEvolutionDemoSnapshot,
-  EvolutionDemoNotFoundError,
-  EVOLUTION_DEMO_SCENARIO_IDS,
-  EvolutionDemoMemorySummarySchema,
-  EvolutionDemoEpisodicSourceSchema,
-  EvolutionDemoSemanticResultSchema,
-  EvolutionDemoSearchComparisonSchema,
-  EvolutionDemoSnapshotSchema,
-  EvolutionDemoPointSchema,
-  EvolutionDemoScenarioSchema,
-  EvolutionDemoScenarioCatalogSchema,
-} from './domains/evolution-demo/index.js';
-export type {
-  EvolutionDemoMemorySummary,
-  EvolutionDemoEpisodicSource,
-  EvolutionDemoSemanticResult,
-  EvolutionDemoSearchComparison,
-  EvolutionDemoSnapshot,
-  EvolutionDemoPoint,
-  EvolutionDemoScenario,
-  EvolutionDemoScenarioCatalog,
-} from './domains/evolution-demo/index.js';
+export type { RecallResultItem } from './domains/memory/recall/recall-tool.js';
 
 export { MEMENTO_LATEST_SCHEMA_VERSION } from './shared/constants/schema-version.js';
 export {
@@ -407,12 +381,13 @@ export type {
   ForgettingEventRow,
   ListForgettingEventsOptions,
 } from './domains/forgetting/repositories/forgetting-event-repository.js';
-export { MemoryForgettingEventMigration } from './infrastructure/database/database/migration/migrations/037-memory-forgetting-event.js';
-export { AuditHashChainMigration } from './infrastructure/database/database/migration/migrations/040-audit-hash-chain.js';
-export { VecCosineMetricMigration } from './infrastructure/database/database/migration/migrations/041-vec-cosine-metric.js';
+export { MemoryForgettingEventMigration } from './infrastructure/database/sqlite/migration/migrations/037-memory-forgetting-event.js';
+export { AuditHashChainMigration } from './infrastructure/database/sqlite/migration/migrations/040-audit-hash-chain.js';
+export { VecCosineMetricMigration } from './infrastructure/database/sqlite/migration/migrations/041-vec-cosine-metric.js';
+export { AuditTransportExpansionMigration } from './infrastructure/database/sqlite/migration/migrations/042-audit-transport-expansion.js';
 export {
   VEC_DISTANCE_METRIC,
   VEC_TABLES,
   checkVecCardinality,
-} from './infrastructure/database/database/vec-schema.js';
-export type { VecCardinalityRow } from './infrastructure/database/database/vec-schema.js';
+} from './infrastructure/database/sqlite/vec-schema.js';
+export type { VecCardinalityRow } from './infrastructure/database/sqlite/vec-schema.js';

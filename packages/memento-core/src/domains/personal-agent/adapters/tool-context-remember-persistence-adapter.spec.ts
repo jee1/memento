@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { RememberTool } from '../../memory/tools/remember-tool.js';
+import { RememberTool } from '../../memory/remember/remember-tool.js';
 import { ToolContextRememberPersistenceAdapter } from './tool-context-remember-persistence-adapter.js';
 import type { KnowledgeCandidate } from '../types/agent-types.js';
 import type { ToolContext } from '../../../tools/types.js';

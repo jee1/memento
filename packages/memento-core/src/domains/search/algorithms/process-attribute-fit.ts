@@ -3,7 +3,7 @@
  * process별 주제/속성과 메모리 항목의 적합도(0~1)를 계산. recall 스코어링에 사용.
  */
 
-import type { ProcessAttribute } from '../../../shared/types/index.js';
+import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 
 export interface ProcessAttributeFitItem {
   tags?: string[];

@@ -1,16 +1,14 @@
 import type Database from 'better-sqlite3';
 import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
-import type {
-  MemorySearchFilters,
-  MemoryType,
-  PrivacyScope,
-} from '../../../shared/types/index.js';
+import type { MemoryType, PrivacyScope } from '../../../shared/types/memory.types.js';
+import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import type {
   AgentContextCandidate,
   AgentContextRecallSource,
   AgentContextScope,
   AgentContextSourceResult,
 } from './agent-context-recall-service.js';
+import { clamp01 } from '../../../shared/utils/clamp.js';
 
 export interface SqliteHybridAgentContextSourceOptions {
   db: Database.Database;
@@ -64,7 +62,7 @@ export class SqliteHybridAgentContextSource implements AgentContextRecallSource 
           relevance: bestHits.get(row.id) ?? 0,
           importance: row.importance,
           createdAt: row.created_at,
-          provenanceConfidence: clampConfidence(row.confidence),
+          provenanceConfidence: clamp01(row.confidence ?? Number.NaN, 0.5),
           privacyScope,
           ownerId: row.owner_id,
           projectId: row.project_id,
@@ -161,13 +159,6 @@ function asPrivacyScope(value: string): PrivacyScope | null {
   return value === 'private' || value === 'team' || value === 'public'
     ? value
     : null;
-}
-
-function clampConfidence(value: number | null): number {
-  if (value === null || !Number.isFinite(value)) {
-    return 0.5;
-  }
-  return Math.min(1, Math.max(0, value));
 }
 
 function parseTags(value: string | null): string[] {

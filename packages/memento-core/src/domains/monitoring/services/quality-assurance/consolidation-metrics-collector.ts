@@ -6,7 +6,7 @@ import {
   generateVectorOnlySearchResults,
   generateConsolidationSearchResults,
   type OrderPreservationReport,
-} from '../../../../test/helpers/vector-search-quality-metrics.js';
+} from './vector-search-quality-metrics.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import type { HybridSearchQuery } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { CollectedMetrics, ConsolidationMetricsOptions } from './quality-metrics-types.js';

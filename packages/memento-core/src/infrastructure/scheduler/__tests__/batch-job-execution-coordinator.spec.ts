@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BatchJobExecutionCoordinator } from '../batch-job-execution-coordinator.js';
-import type { BatchJobConfig } from '../batch-scheduler-types.js';
+import { BatchJobExecutionCoordinator } from '../batch-scheduler/batch-job-execution-coordinator.js';
+import type { BatchJobConfig } from '../batch-scheduler/batch-scheduler-types.js';
 import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 

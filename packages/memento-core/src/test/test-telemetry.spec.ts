@@ -3,13 +3,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { TelemetryEventsMigration } from '@memento/core/infrastructure/database/database/migration/migrations/027-telemetry-events.js';
-import { TelemetryDailyMetricsMigration } from '@memento/core/infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
+import { TelemetryEventsMigration } from '@memento/core/infrastructure/database/sqlite/migration/migrations/027-telemetry-events.js';
+import { TelemetryDailyMetricsMigration } from '@memento/core/infrastructure/database/sqlite/migration/migrations/028-telemetry-daily-metrics.js';
 import { TelemetryRepository } from '@memento/core/domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from '@memento/core/domains/telemetry/services/telemetry-service.js';
-import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
-import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
+import { RecallTool } from '@memento/core/domains/memory/recall/recall-tool.js';
 import type { ToolContext } from '@memento/core/types.js';
+import { setupTestDatabase } from './helpers/test-database.js';
 
 async function telemetryDb(): Promise<Database.Database> {
   const db = new Database(':memory:');
@@ -29,8 +29,7 @@ describe('test-telemetry (SC-002 recall overhead)', () => {
   let db: Database.Database;
 
   beforeEach(async () => {
-    db = new Database(':memory:');
-    await DatabaseUtils.initializeDatabase(db);
+    db = await setupTestDatabase();
     await new TelemetryEventsMigration().up(db);
     await new TelemetryDailyMetricsMigration().up(db);
   });

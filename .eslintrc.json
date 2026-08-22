@@ -86,7 +86,6 @@
         "tests/**/*.ts",
         "src/test/**/*.ts",
         "packages/memento-core/src/test/**/*.ts",
-        "packages/mcp-client/examples/**/*.ts",
         "scripts/**/*.ts"
       ],
       "rules": {
@@ -120,8 +119,8 @@
     {
       "files": [
         "src/server/index.ts",
-        "src/infrastructure/database/database/init.ts",
-        "src/infrastructure/database/database/migrate.ts"
+        "src/infrastructure/database/sqlite/init.ts",
+        "src/infrastructure/database/sqlite/migrate.ts"
       ],
       "rules": {
         "no-console": "off"

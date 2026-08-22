@@ -10,11 +10,11 @@ import { AsyncTaskQueue } from './async-optimizer.js';
 import Database from 'better-sqlite3';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
 import { ReflexionReflectionRecorder } from './reflexion-reflection-recorder.js';
-import type { ExtractedProceduralMemory } from '../shared/utils/procedural-memory-extractor.js';
-import type { ReflectionNotes } from '../shared/utils/procedural-memory-extractor.types.js';
+import type { ExtractedProceduralMemory } from '../domains/memory/procedural/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import {
   attemptRestart,
-  startHealthCheck as startHealthCheckModule,
+  performHealthCheck as performHealthCheckModule,
   type ReflexionWorkerHealthDeps
 } from './reflexion-worker/reflexion-worker-health.js';
 import {
@@ -64,8 +64,6 @@ export class ReflexionWorker implements IReflexionWorker {
     failedCount: 0,
     restartCount: 0
   };
-  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
   private lastHealthCheck: number = Date.now();
 
   constructor(
@@ -83,11 +81,6 @@ export class ReflexionWorker implements IReflexionWorker {
       this.proceduralMemoryService,
       this.WINDOW_SIZE_MS
     );
-
-    // 중복 윈도우 정리 (1분마다)
-    this.cleanupInterval = setInterval(() => {
-      this.reflectionRecorder.cleanupDuplicateWindow();
-    }, 60 * 1000);
   }
 
   private getHealthDeps(): ReflexionWorkerHealthDeps {
@@ -104,10 +97,6 @@ export class ReflexionWorker implements IReflexionWorker {
       getLastHealthCheck: () => this.lastHealthCheck,
       setLastHealthCheck: (timestamp: number) => {
         this.lastHealthCheck = timestamp;
-      },
-      getHealthCheckInterval: () => this.healthCheckInterval,
-      setHealthCheckInterval: (interval: ReturnType<typeof setInterval> | null) => {
-        this.healthCheckInterval = interval;
       },
       maxRestartAttempts: this.MAX_RESTART_ATTEMPTS
     };
@@ -155,9 +144,6 @@ export class ReflexionWorker implements IReflexionWorker {
       // 이벤트 큐 시작
       await this.eventQueue.start();
 
-      // 헬스체크 시작
-      this.startHealthCheck();
-
       this.status.isRunning = true;
       this.lastHealthCheck = Date.now();
       logger.info('ReflexionWorker 시작됨');
@@ -185,16 +171,6 @@ export class ReflexionWorker implements IReflexionWorker {
       await this.eventQueue.stop();
       await this.failureDetector.stopQueue();
 
-      if (this.cleanupInterval) {
-        clearInterval(this.cleanupInterval);
-        this.cleanupInterval = null;
-      }
-
-      if (this.healthCheckInterval) {
-        clearInterval(this.healthCheckInterval);
-        this.healthCheckInterval = null;
-      }
-
       this.status.isRunning = false;
       logger.info('ReflexionWorker 중지됨');
 
@@ -208,10 +184,14 @@ export class ReflexionWorker implements IReflexionWorker {
   }
 
   /**
-   * 헬스체크 시작
+   * 헬스체크 수행
    */
-  private startHealthCheck(): void {
-    startHealthCheckModule(this.getHealthDeps());
+  performHealthCheck(): void {
+    performHealthCheckModule(this.getHealthDeps());
+  }
+
+  cleanupDuplicateWindow(): void {
+    this.reflectionRecorder.cleanupDuplicateWindow();
   }
 
   /**

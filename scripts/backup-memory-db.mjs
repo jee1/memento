@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { openDb } from './lib/cli.ts';
 /**
  * Create a consistent SQLite backup using the online backup API (not cp/copyFileSync).
  *
@@ -6,7 +7,6 @@
  *   DB_PATH=~/.memento/data/memory.db node scripts/backup-memory-db.mjs
  *   npm run db:backup
  */
-import Database from 'better-sqlite3';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -36,7 +36,7 @@ if (fs.existsSync(backupPath)) {
   fs.unlinkSync(backupPath);
 }
 
-const source = new Database(dbPath, { readonly: true, fileMustExist: true });
+const source = openDb(dbPath, { readonly: true, fileMustExist: true });
 source.pragma('busy_timeout = 10000');
 
 try {
@@ -72,7 +72,7 @@ if (backupStat.size === 0) {
   process.exit(1);
 }
 
-const verify = new Database(backupPath, { readonly: true });
+const verify = openDb(backupPath, { readonly: true });
 const quickCheck = verify.pragma('quick_check', { simple: true });
 let memoryItemCount = null;
 try {

@@ -35,6 +35,7 @@ const mockState = vi.hoisted(() => {
   };
 
   const batchScheduler = {
+    setDatabaseMaintenance: vi.fn(),
     setDiagnosticsLogger: vi.fn(),
     setTelemetryCleanupRepository: vi.fn(),
     setIntrospectionScanCache: vi.fn(),
@@ -133,10 +134,6 @@ vi.mock('./domains/monitoring/services/error-logging-service.js', () => ({
   ErrorLoggingService: vi.fn().mockImplementation(() => ({}))
 }));
 
-vi.mock('./domains/monitoring/services/performance-alert-service.js', () => ({
-  PerformanceAlertService: vi.fn().mockImplementation(() => ({}))
-}));
-
 vi.mock('./shared/utils/write-coalescing.js', () => ({
   WriteCoalescingManager: vi.fn().mockImplementation(() => ({}))
 }));
@@ -174,8 +171,8 @@ vi.mock('./infrastructure/async-optimizer.js', () => ({
   AsyncTaskQueue: vi.fn().mockImplementation(() => ({}))
 }));
 
-vi.mock('./infrastructure/database/database-optimizer.js', () => ({
-  DatabaseOptimizer: vi.fn().mockImplementation(() => ({}))
+vi.mock('./infrastructure/database/on-demand-database-optimizer.js', () => ({
+  OnDemandDatabaseOptimizer: vi.fn().mockImplementation(() => ({}))
 }));
 
 vi.mock('./infrastructure/consolidation-score-service.js', () => ({
@@ -185,6 +182,10 @@ vi.mock('./infrastructure/consolidation-score-service.js', () => ({
 vi.mock('./infrastructure/reflexion-worker.js', () => ({
   ReflexionWorker: class {
     start = vi.fn().mockResolvedValue(undefined);
+    getStatus = vi.fn().mockReturnValue({ isRunning: true });
+    queueFailureEvent = vi.fn().mockResolvedValue(true);
+    cleanupDuplicateWindow = vi.fn();
+    performHealthCheck = vi.fn();
   }
 }));
 
@@ -217,11 +218,11 @@ vi.mock('./infrastructure/database/database-lock-monitor.js', () => ({
   }
 }));
 
-vi.mock('./domains/memory/services/meta-memory-service.js', () => ({
+vi.mock('./domains/memory/introspection/meta-memory-service.js', () => ({
   MetaMemoryService: vi.fn().mockImplementation(() => ({}))
 }));
 
-vi.mock('./domains/memory/services/introspection-scan-cache.js', () => ({
+vi.mock('./domains/memory/introspection/introspection-scan-cache.js', () => ({
   IntrospectionScanCache: vi.fn().mockImplementation(() => ({}))
 }));
 
@@ -282,13 +283,17 @@ describe('initializeServices bootstrap wiring', () => {
     });
   }
 
-  it('BATCH_SCHEDULER_ENABLED=false이면 batch scheduler를 시작하지 않아야 한다', async () => {
+  it('BATCH_SCHEDULER_ENABLED=false이면 인프라 유지보수 잡만 시작해야 한다', async () => {
     mockState.mementoConfig.batchSchedulerEnabled = false;
 
     const { initializeServices } = await loadBootstrap();
     await initializeServices({} as never);
 
-    expect(mockState.batchScheduler.start).not.toHaveBeenCalled();
+    expect(mockState.batchScheduler.start).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      false
+    );
     expect(mockState.batchScheduler.setTelemetryCleanupRepository).toHaveBeenCalled();
     expect(mockState.batchScheduler.setIntrospectionScanCache).toHaveBeenCalled();
     expect(mockState.batchScheduler.setSleepConsolidationService).toHaveBeenCalled();
@@ -302,6 +307,10 @@ describe('initializeServices bootstrap wiring', () => {
 
     expect(mockState.walCheckpointSchedulerStart).not.toHaveBeenCalled();
     expect(mockState.databaseLockMonitorStart).toHaveBeenCalled();
+    expect(mockState.batchScheduler.setDatabaseMaintenance).toHaveBeenCalledWith(
+      null,
+      expect.anything()
+    );
   });
 
   it('DB_LOCK_MONITOR_ENABLED=false이면 데이터베이스 락 모니터를 시작하지 않아야 한다', async () => {
@@ -312,6 +321,10 @@ describe('initializeServices bootstrap wiring', () => {
 
     expect(mockState.walCheckpointSchedulerStart).toHaveBeenCalled();
     expect(mockState.databaseLockMonitorStart).not.toHaveBeenCalled();
+    expect(mockState.batchScheduler.setDatabaseMaintenance).toHaveBeenCalledWith(
+      expect.anything(),
+      null
+    );
   });
 
   it('diagnostics가 활성화되면 bootstrap 이벤트와 주기 샘플링을 연결해야 한다', async () => {

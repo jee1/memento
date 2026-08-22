@@ -38,10 +38,10 @@ npx memento-mcp-server@latest start
 ### 🥉 **3rd Priority: Docker Method (For Production)**
 ```bash
 # Development environment
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
 
 # Production environment
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 ```
 
 ### 🛠️ **4th Priority: Source Code Method (For Developers)**
@@ -106,25 +106,25 @@ memento-mcp-server setup
 #### Development Environment
 ```bash
 # Run development Docker Compose
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
 
 # Check logs
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml logs -f
 
 # Stop
-docker-compose -f docker-compose.dev.yml down
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml down
 ```
 
 #### Production Environment
 ```bash
 # Run production Docker Compose
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 
 # Check logs
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml logs -f
 
 # Stop
-docker-compose -f docker-compose.prod.yml down
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml down
 ```
 
 #### Basic Docker Compose
@@ -190,7 +190,6 @@ npm run db:migrate
 ```bash
 npm run dev              # MCP server development mode
 npm run dev:http         # HTTP/WebSocket server development mode
-npm run dev:http-v2      # HTTP server v2 development mode
 ```
 
 ### Production Commands
@@ -203,20 +202,9 @@ npm run start:http       # HTTP/WebSocket server production run
 ### Test Commands
 ```bash
 npm run test             # Run all tests
-npm run test:client      # Client tests
-npm run test:search      # Search functionality tests
-npm run test:embedding   # Embedding functionality tests
-npm run test:lightweight-embedding # Lightweight embedding tests
-npm run test:gemini-embedding # Gemini embedding tests
-npm run test:forgetting  # Forgetting policy tests
-npm run test:performance # Performance benchmarks
-npm run test:monitoring  # Performance monitoring tests
-npm run test:error-logging # Error logging tests
-npm run test:performance-alerts # Performance alert tests
-npm run test:vector-search # Vector search tests
-npm run test:memory-injection # Memory injection tests
-npm run test:batch-scheduler # Batch scheduler tests
-npm run test:consolidation-quality # Consolidation Score quality validation
+npm run test:ci:core     # Core search, embedding, and memory tests
+npm run test:ci:server   # Server and monitoring tests
+npm test -w @jee1/memento-client # Client tests
 npm run benchmark:consolidation-quality # Consolidation Score benchmark
 ```
 
@@ -372,7 +360,7 @@ journalctl -u memento-mcp-server -f
 After installation, proceed with the following steps:
 
 1. **Check Server Status**: `http://localhost:9001/health`
-2. **Connect MCP Client**: [Client Guide](packages/mcp-client/README.md)
+2. **Connect MCP Client**: [Client Guide](packages/memento-client/README.md)
 3. **Test API**: [API Documentation](docs/api/en/api-reference.md)
 4. **Learn Usage**: [User Manual](docs/guides/en/user-manual.md)
 

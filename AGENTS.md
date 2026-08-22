@@ -29,7 +29,7 @@ npm run lint && npm run type-check  # 커밋 전 필수
 
 ## 3. 에이전트 필수 습관
 
-Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 그 결과를 실제로 썼다면 `feedback`(helpful/not_helpful)을 남기고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다. 저신뢰·고실패 기억이 쌓이면(`introspection_hint`/`get_introspection_summary`) 운영자가 `POST /admin/introspection/heal`(dry-run 우선)로 정리합니다 — recall→feedback→heal 체크리스트는 [agent-workflow.md §MCP·메모리](./docs/agents/agent-workflow.md#mcp메모리--작업-전후-기억-루프)를 보세요. **코드를 고치는** 에이전트는 구조를 추측하기 전에 `graphify-out/GRAPH_REPORT.md`를 보고, 수정 후 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
+Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 그 결과를 실제로 썼다면 `feedback`(helpful/not_helpful)을 남기고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다. 저신뢰·고실패 기억이 쌓이면(`introspection_hint`/`get_introspection_summary`) 운영자가 `POST /admin/introspection/heal`(dry-run 우선)로 정리합니다 — recall→feedback→heal 체크리스트는 [agent-workflow.md §MCP·메모리](./docs/agents/agent-workflow.md#mcp메모리--작업-전후-기억-루프)를 보세요. **코드를 고치는** 에이전트는 graphify 리포트가 없거나 오래됐다면 먼저 재빌드하고 `graphify-out/GRAPH_REPORT.md`를 확인하며, 수정 후에도 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
 
 상세 워크플로: [agent-workflow.md](./docs/agents/agent-workflow.md)
 
@@ -45,15 +45,15 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **Claude Code 플러그인 (#764)**: 마켓플레이스는 루트 `.claude-plugin/marketplace.json`, 플러그인 본체는 `plugins/memento/`(`.mcp.json`·`skills/`). 수정 후 `claude plugin validate . --strict` 통과 필수이고, 사용자에게 업데이트가 나가려면 `plugins/memento/.claude-plugin/plugin.json`의 `version`을 올려야 함
 - **triple 문장 재조립 (#768)**: canonical predicate는 `사용함`·`정의됨` 같은 ㅁ 명사화형 — 문자열에 `합니다`를 덧붙이지 말고 `buildTripleSentence()`를 쓸 것(조사·활용 처리, 재조립 불가 시 `null`→원문 폴백). 기존 손상 행은 `npm run memory:repair-triple-sentences`(dry-run) → `-- --apply`
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
-- **graphify 커밋**: 루트 `graphify-out/`만; `packages/memento-core/graphify-out/cache/`는 무시
+- **graphify 생성물**: `graphify-out/` 전체는 로컬 생성물 — 재빌드해서 사용하고 커밋 금지
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
 - **git worktree**: 브랜치 삭제·`gh pr merge --delete-branch` 전에 `git worktree remove <path>` 필수 (attach 상태면 로컬 브랜치 삭제 실패)
 - **gh pr merge**: 머지는 성공해도 worktree 미제거 시 로컬 브랜치 삭제만 실패 — `worktree remove` 후 `git branch -D`(squash merge는 `-d` 불가)·`git fetch --prune`
-- **병렬 HTTP 보안 PR**: #662→#663→#664 순 merge·rebase 권장(토큰→audit `keyId`→owner scope); 독립 CI(#665)는 선행 가능 — **CHANGELOG·http-server·graphify-out 충돌** 예상
-- **graphify merge 충돌**: `git checkout origin/main -- graphify-out/` 후 graphify 재빌드가 수동 conflict보다 빠름
+- **병렬 HTTP 보안 PR**: #662→#663→#664 순 merge·rebase 권장(토큰→audit `keyId`→owner scope); 독립 CI(#665)는 선행 가능 — **CHANGELOG·http-server 충돌** 예상
 - **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
+- **도구 실행 경계 (#793)**: stdio·HTTP MCP·WebSocket·REST의 `tools/call`은 모두 `server/audit-tool-dispatch.ts`의 `dispatchTool()`을 경유 — transport에서 `executeTool()` 직접 호출 금지(동시성·audit·에러 매핑 분기 방지)
 - **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
 - **Express `programmaticAuth`**: `declare global`은 `programmatic-auth.middleware.ts` 한 곳만 — audit 등 다른 미들웨어에서 중복 선언 시 TS2717
 - **CI npm ci flake**: `onnxruntime-node` NuGet `ETIMEDOUT`은 코드 버그 아님 — `gh run rerun --failed`
@@ -68,8 +68,8 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 - **recall search_quality 텔레메트리**: `ranking_version`은 hybrid면 `HybridSearchEngine.getRankingVersion()`(생성 시 캐시, `ranking-sha256:`+가중치 SHA12) 아니면 `getRankingVersion()`; funnel은 SQL `json_extract`로 `text_candidate_count`/`vector_candidate_count`/`union_candidate_count`(없으면 `candidate_count`) — extra_data 전량 JS 파싱 금지, 키 변경 시 admin `/telemetry/search-quality`·`get_telemetry_summary`·telemetry-cli 동시 갱신
 - **feedback_quality 텔레메트리 (#729)**: `recall_without_feedback_rate` 등 키 변경 시 `get_telemetry_summary`·admin `/telemetry/feedback`·`npm run telemetry -- --type feedback-quality` 동시 갱신; 관측 지표는 [agent-workflow.md](./docs/agents/agent-workflow.md)
-- **LoCoMo 라이선스 (#767)**: CC BY-NC 4.0 — `.local/locomo/` 원본·파생 코퍼스 커밋 금지, 픽스처는 합성만(`locomo-shape-sample.json`), 공개 문서엔 집계·ID·해시만. 어댑터는 세션 단위 정답·category 5(adversarial) 검색 제외·해석 불가 evidence는 `skipped_query_count`; 절차는 [benchmark-datasets.md](./docs/_work/testing/ko/benchmark-datasets.md)
-- **nightly category-report (#731)**: weekly `nightly-tests.yml`이 `npm run quality:benchmark:category-report` 실행 — `REQUIRED_MACRO_CATEGORIES` 누락·평가 불가 GT 또는 카테고리 MRR < 0.5면 exit 1; PR gate 아님(승격·범위는 2026-09-01까지 재검토)
+- **LoCoMo 라이선스 (#767)**: CC BY-NC 4.0 — `.local/locomo/` 원본·파생 코퍼스 커밋 금지, 픽스처는 합성만(`locomo-shape-sample.json`), 공개 문서엔 집계·ID·해시만. 어댑터는 세션 단위 정답·category 5(adversarial) 검색 제외·해석 불가 evidence는 `skipped_query_count`; 절차는 [benchmark-datasets.md](./docs/guides/ko/benchmark-datasets.md)
+- **nightly category-report (#731)**: weekly `nightly-tests.yml`이 `npm run quality -- benchmark category-report` 실행 — `REQUIRED_MACRO_CATEGORIES` 누락·평가 불가 GT 또는 카테고리 MRR < 0.5면 exit 1; PR gate 아님(승격·범위는 2026-09-01까지 재검토)
 - **infrastructure repo 분해**: `packages/memento-core/src/infrastructure/database/repositories/` — composition(`*-store.ts`); public export는 오케스트레이터 파일만 (#610)
 - **composition 분해 후 CI**: `test-core`는 memento-core 전체 vitest — 도메인 `__tests__`만 green이면 부족; 다른 경로 spec이 `(orchestrator as any).privateMethod` 호출 시 orchestrator에 위임 래퍼 필수 (예: `006-fts5-reflection-notes.spec.ts` → `buildReflectionNotesSearchCondition`)
 - **scheduler jobs 타입**: `BatchJobResult` 등은 `batch-scheduler-types.js`에서 import (`batch-scheduler.js`는 jobs↔scheduler 순환 참조)

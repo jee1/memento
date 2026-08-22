@@ -4,7 +4,7 @@
  */
 
 import { mementoConfig } from './index.js';
-import type { MementoConfig } from '../types/index.js';
+import type { MementoConfig } from '../types/memory.types.js';
 
 export type LlmUseCase =
   | 'triple_extraction'

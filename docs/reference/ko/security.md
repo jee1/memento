@@ -71,7 +71,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 
 Docker Swarm 또는 Compose secrets로 민감 값을 이미지·compose YAML에 넣지 않습니다.
 
-- **예시**: `docker-compose.prod.secrets.example.yml` — `secrets:` 블록과 `file:` 기반 external secret 정의 (평문 API 키 없음).
+- **예시**: `docker/docker-compose.prod.secrets.example.yml` — `secrets:` 블록과 `file:` 기반 external secret 정의 (평문 API 키 없음).
 - **컨테이너 내 경로**: `/run/secrets/<name>`에 마운트. `start-container.sh` 또는 entrypoint에서 해당 파일을 읽어 `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MEMENTO_API_TOKENS` 등에 주입합니다.
 - **볼륨과 분리**: DB 데이터 볼륨(`~/.memento/data`)과 시크릿 마운트를 혼동하지 마세요. 백업·복제 시 시크릿 파일이 포함되지 않게 합니다.
 

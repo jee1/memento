@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { ProcessAttribute } from '../../../shared/types/index.js';
+import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 import type { IProcessAttributeRepository } from '../../../domains/memory/repositories/process-attribute-repository.interface.js';
 
 interface ProcessAttributeRow {

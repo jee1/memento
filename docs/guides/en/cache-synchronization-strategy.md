@@ -85,4 +85,4 @@ Memento currently targets single-server deployments. Distributed support can be 
 
 - CoreMemory service: `packages/memento-core/src/domains/memory/services/core-memory-service.ts`
 - Cache service: `packages/memento-core/src/domains/memory/services/core-memory-cache-service.ts`
-- Migration 010: `packages/memento-core/src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts`
+- Migration 010: `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/010-add-core-memory-version.ts`

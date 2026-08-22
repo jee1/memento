@@ -163,11 +163,13 @@ artifacts/longmemeval-s/
 
 # Claude Code agent worktrees (must not be gitlinks; breaks actions/checkout post cleanup)
 .claude/worktrees/
+/.claude/settings.local.json
 
 # Editor metadata
 .obsidian/
 
-# graphify cache artifacts (generated locally)
-graphify-out/cache/
+# Local generated artifacts and implicit Compose overrides
+graphify-out/
+/docker-compose.override.yml
 
 tmp/tune-weights/

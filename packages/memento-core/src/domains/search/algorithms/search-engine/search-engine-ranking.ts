@@ -3,8 +3,9 @@
  */
 
 import { mementoConfig } from '../../../../shared/config/index.js';
-import type { MemorySearchResult } from '../../../../shared/types/index.js';
+import type { MemorySearchResult } from '../../../../shared/types/search.types.js';
 import type { ScoreBreakdown } from '../../../../shared/types/search.types.js';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.interface.js';
 import { SearchRanking, type SearchFeatures } from '../search-ranking.js';
 import type { SearchEngineRow } from './search-engine.types.js';
@@ -29,7 +30,7 @@ export function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: 
 export function calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Date | null): number {
   const logFactor = Math.log(1 + Math.max(0, numTimes));
   const recencyFactor = lastMentionedAt
-    ? 1 / (1 + (Date.now() - lastMentionedAt.getTime()) / (30 * 24 * 60 * 60 * 1000))
+    ? 1 / (1 + (Date.now() - lastMentionedAt.getTime()) / (30 * DAY_MS))
     : 1;
   const boost = 1 + 0.1 * logFactor * recencyFactor;
   return Math.min(boost, 1.2);

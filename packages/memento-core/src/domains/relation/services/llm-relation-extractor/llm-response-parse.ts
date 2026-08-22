@@ -1,139 +1,36 @@
 import { ALL_RELATION_TYPES, type RelationType } from '../../../../shared/types/relation.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import type { ParseResult } from './types.js';
+import { extractJsonObjectFromLlmText as extractBalancedJsonObject } from '../llm-json.js';
 
 export function extractJsonObjectFromLlmText(text: string): string | null {
-    if (!text || typeof text !== 'string') {
-      return null;
-    }
-    
-    let jsonText = text.trim();
-    
-    // 마크다운 코드 블록 제거
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```.*$/s, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```.*$/s, '');
-    }
-
-    // 첫 번째 '{'부터 시작하는 JSON 객체 찾기
-    const firstBrace = jsonText.indexOf('{');
-    if (firstBrace === -1) {
+    const extracted = extractBalancedJsonObject(text);
+    if (extracted === null) {
       logger.warn('JSON 객체 시작 문자({)를 찾을 수 없습니다', {
-        textLength: jsonText.length,
-        textPreview: jsonText.substring(0, 200)
+        textLength: text.length,
+        textPreview: text.substring(0, 200)
       });
       return null;
     }
 
-    // 중괄호 매칭하여 JSON 객체 끝 찾기
-    // 이 방법은 JSON 뒤에 추가 텍스트가 있어도 정확하게 JSON 객체만 추출할 수 있습니다
-    let braceCount = 0;
-    let inString = false;
-    let escapeNext = false;
-    let jsonEnd = -1;
-    
-    for (let i = firstBrace; i < jsonText.length; i++) {
-      const char = jsonText[i];
-      
-      if (escapeNext) {
-        escapeNext = false;
-        continue;
-      }
-      
-      if (char === '\\') {
-        escapeNext = true;
-        continue;
-      }
-      
-      if (char === '"' && !escapeNext) {
-        inString = !inString;
-        continue;
-      }
-      
-      if (!inString) {
-        if (char === '{') {
-          braceCount++;
-        } else if (char === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            // JSON 객체 끝 찾음
-            jsonEnd = i + 1;
-            break;
-          }
-        }
-      }
-    }
-    
-    if (jsonEnd === -1) {
-      // 중괄호가 닫히지 않음 - 경고 로그
+    if (!extracted.endsWith('}')) {
       logger.warn('JSON 객체가 완전히 닫히지 않았습니다', {
-        braceCount,
-        textLength: jsonText.length,
-        extractedPreview: jsonText.substring(firstBrace, Math.min(firstBrace + 200, jsonText.length))
+        textLength: text.length,
+        extractedPreview: extracted.substring(0, 200)
       });
-      // 그래도 시도해보기 (마지막 '}'까지 추출)
-      const lastBrace = jsonText.lastIndexOf('}');
-      if (lastBrace !== -1 && lastBrace > firstBrace) {
-        return jsonText.substring(firstBrace, lastBrace + 1);
-      }
-      return jsonText.substring(firstBrace);
     }
-    
-    // JSON 객체만 추출 (추가 텍스트 제거)
-    const extracted = jsonText.substring(firstBrace, jsonEnd).trim();
-    
-    // 추출된 JSON이 유효한지 빠르게 확인
-    // 이 검증은 JSON.parse()가 실패하지 않도록 보장합니다
+
     try {
-      const _parsed = JSON.parse(extracted);
-      // 파싱 성공 시 유효한 JSON 반환
-      return extracted;
+      JSON.parse(extracted);
     } catch (error) {
-      // 유효하지 않은 JSON인 경우, 에러 타입에 따라 처리
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      const isTrailingTextError = errorMsg.includes('Unexpected non-whitespace character after JSON');
-      
-      if (isTrailingTextError) {
-        // JSON 뒤에 추가 텍스트가 있는 경우, 더 정확하게 추출 시도
-        // 중괄호 매칭이 정확했지만, JSON.parse()가 여전히 추가 텍스트를 감지
-        // 이는 JSON 내부에 문제가 있거나, 추출 범위가 정확하지 않을 수 있음
-        // 점진적으로 JSON 끝을 조정하여 유효한 JSON 찾기
-        let validJson = null;
-        for (let i = extracted.length; i > 0; i--) {
-          const testJson = extracted.substring(0, i).trim();
-          if (testJson.endsWith('}')) {
-            try {
-              JSON.parse(testJson);
-              validJson = testJson;
-              logger.debug('JSON 점진적 추출 성공 (extractJSON 내부)', {
-                originalLength: extracted.length,
-                validLength: validJson.length,
-                removedChars: extracted.length - validJson.length
-              });
-              break;
-            } catch {
-              // 계속 시도
-            }
-          }
-        }
-        
-        if (validJson) {
-          return validJson;
-        }
-      }
-      
-      // 유효한 JSON을 찾지 못한 경우, 로그를 남기고 추출된 JSON 반환
-      // parseLLMResponse에서 추가 정리 시도
       logger.warn('추출된 JSON이 유효하지 않습니다', {
-        error: errorMsg,
+        error: error instanceof Error ? error.message : String(error),
         extractedLength: extracted.length,
         extractedPreview: extracted.substring(0, 200),
-        originalPreview: jsonText.substring(0, 300)
+        originalPreview: text.substring(0, 300)
       });
-      // 그래도 반환 (parseLLMResponse에서 추가 정리 시도)
-      return extracted;
     }
+    return extracted;
   }
 
 export function trimToValidJsonObject(content: string): string {

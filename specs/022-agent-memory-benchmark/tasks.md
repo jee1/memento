@@ -42,7 +42,7 @@
 
 ## Validation Notes
 
-- `npm run quality:agent-memory:test`: 2 files, 11 tests passed.
+- `npx vitest run scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts`: 2 files, 11 tests passed.
 - native fixture와 LongMemEval-S sample CLI smoke: passed.
 - graph-RRF fixture: R@10 `0.8333 -> 1.0000`, MRR/NDCG 비열화 없음, adoption gate passed.
 - benchmark-v3: category verification passed; 4 files, 18 regression tests passed.

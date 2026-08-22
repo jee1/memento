@@ -128,7 +128,7 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 세 계층의 모니터링이 있다:
 - **`ErrorLoggingService`**: LOW/MEDIUM/HIGH/CRITICAL 심각도와 DATABASE/NETWORK/VALIDATION 등 카테고리별 구조화된 오류 로깅.
-- **`PerformanceAlertService`**: 응답 시간·메모리 사용량·오류율·처리량이 임계값을 초과하면 경보를 생성한다. 경보는 JSONL 파일과 컬러 콘솔에 기록된다.
+- **`PerformanceMonitor`**: 메모리·CPU·데이터베이스 크기·쿼리 시간 경보를 모니터 소유 단일 스토어에 생성한다. `performance_alerts` 도구와 텔레메트리 요약이 같은 생명주기 상태를 읽고, 알림 서비스는 경보를 복제하지 않고 전달 이벤트만 발행한다.
 - **`FailureDetector` + `ReflexionWorker`**: 반복 실패 패턴을 감지하고, `MetaMemoryIntrospectionService`가 신뢰도 낮은 기억을 식별해 자기 교정을 돕는다.
 
 ### telemetry
@@ -198,7 +198,7 @@ Memento는 현재 **SQLite(better-sqlite3)** 단일 스토리지를 사용한다
 - **`memory_review_candidate`**: 복습 후보 목록.
 - **`kg_triple`**: 기억에서 추출된 Knowledge Graph Triple (중복 제거 포함).
 
-스키마 변경은 `packages/memento-core/src/infrastructure/database/database/migration/migrations/` 아래 번호 순으로 실행되는 마이그레이션으로 관리된다. 실행 가능한 DDL의 원본은 `schema.sql`이다.
+스키마 변경은 `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/` 아래 번호 순으로 실행되는 마이그레이션으로 관리된다. 실행 가능한 DDL의 원본은 `schema.sql`이다.
 
 PostgreSQL, Redis, Kubernetes 기반 멀티테넌트 확장은 현재 구현되어 있지 않다. 향후 로드맵 항목이다.
 
@@ -209,7 +209,7 @@ PostgreSQL, Redis, Kubernetes 기반 멀티테넌트 확장은 현재 구현되�
 서버가 시작될 때 `initializeServices(db)`가 다음 순서로 서비스를 초기화한다:
 
 1. **검색 + 임베딩**: `HybridSearchEngine`, `MemoryEmbeddingService`, `ForgettingPolicyService`, `DatabaseOptimizer`
-2. **모니터링**: `ErrorLoggingService`, `PerformanceAlertService`
+2. **구조화 로깅**: `ErrorLoggingService`
 3. **앵커 스택**: `VectorSearchEngine`, `AnchorManager`
 4. **실패 감지**: `FailureDetector`, `ReflexionWorker`
 5. **모니터링 스케줄러**: `PerformanceMonitor`, `WalCheckpointScheduler`, `DatabaseLockMonitor`, `RuntimeDiagnosticsLogger`

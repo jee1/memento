@@ -6,8 +6,6 @@
 import {
 closeDatabase,
 createMementoCore,
-createToolContext,
-executeTool,
 getExposedTools,
 mementoConfig,
 validateConfig,
@@ -30,7 +28,8 @@ import { mcpLogger } from './mcp-logger.js';
 import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import { ServerState } from './server-state.js';
 import { releaseLock } from './utils/instance-lock.js';
-import { assertToolAuditCoverage, recordToolAudit } from './audit-tool-dispatch.js';
+import { dispatchTool } from './audit-tool-dispatch.js';
+import { startServer as startHttpServer } from './http-server.js';
 
 // 전역 상태 및 인스턴스
 let server: Server;
@@ -49,26 +48,6 @@ const initPromise = new Promise<void>((resolve, reject) => {
   resolveInit = resolve;
   rejectInit = reject;
 });
-
-// Semaphore for concurrency
-export class Semaphore {
-  private permits: number;
-  private waiting: Array<() => void> = [];
-  constructor(permits: number) { this.permits = permits; }
-  async acquire(): Promise<void> {
-    if (this.permits > 0) { this.permits--; return; }
-    return new Promise(resolve => { this.waiting.push(resolve); });
-  }
-  release(): void {
-    this.permits++;
-    if (this.waiting.length > 0) {
-      const resolve = this.waiting.shift()!;
-      this.permits--;
-      resolve();
-    }
-  }
-}
-const concurrencyLimiter = new Semaphore(20);
 
 // process.stderr.write 가드 (Issue #179 방어)
 // Node 20+에서 stderr.write(undefined/null) 호출 시 발생하는 ERR_INVALID_ARG_TYPE 방지
@@ -118,23 +97,13 @@ function registerHandlers() {
     await initPromise;
     if (!db || !serverServices) throw new Error('Server not initialized');
 
-    return await concurrencyLimiter.acquire().then(async () => {
-      try {
-        const context = createToolContext(db!, serverServices!);
-        const auditContext = { transport: 'mcp_stdio' as const };
-        assertToolAuditCoverage(db!, request.params.name, request.params.arguments, auditContext);
-        try {
-          const result = await executeTool(request.params.name, request.params.arguments, context);
-          recordToolAudit(db!, request.params.name, request.params.arguments, auditContext, 'success');
-          return result;
-        } catch (error) {
-          recordToolAudit(db!, request.params.name, request.params.arguments, auditContext, 'failure');
-          throw error;
-        }
-      } finally {
-        concurrencyLimiter.release();
-      }
-    });
+    return dispatchTool(
+      request.params.name,
+      request.params.arguments,
+      db,
+      serverServices,
+      { transport: 'mcp_stdio' },
+    );
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [] }));
@@ -206,6 +175,8 @@ export async function cleanup() {
       if (serverServices.runtimeDiagnosticsSamplerCleanup) {
         await serverServices.runtimeDiagnosticsSamplerCleanup();
       }
+
+      await serverServices.batchScheduler?.stop();
       
       await serverServices.walCheckpointScheduler.stop();
       serverServices.databaseLockMonitor.stop();
@@ -252,21 +223,30 @@ process.on('uncaughtException', (error: Error) => {
 });
 
 // Entry point
-import { basename } from 'path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'url';
-import { createServerFactory } from './server-factory.js';
 
 const currentFile = fileURLToPath(import.meta.url);
-const currentFileName = basename(currentFile);
 const scriptPath = process.argv[1] || '';
-const isMainModule = currentFileName === 'index.js' || (scriptPath && (scriptPath.endsWith('index.js') || scriptPath.endsWith('index.ts')));
+const isMainModule = scriptPath !== '' && currentFile === resolve(scriptPath);
+
+export function resolveServerStart(transportType = process.env.TRANSPORT_TYPE) {
+  const normalizedType = transportType?.toLowerCase() || 'stdio';
+
+  if (normalizedType === 'stdio') return startServer;
+  if (normalizedType === 'sse') return startHttpServer;
+
+  throw new Error(
+    `지원되지 않는 TRANSPORT_TYPE: ${transportType}. 'stdio' 또는 'sse'를 사용하세요.`,
+  );
+}
 
 if (isMainModule) {
-  const factory = createServerFactory();
-  const srv = factory.createServerFromEnv();
-  srv.start().catch((error: unknown) => {
-    const err = error instanceof Error ? error : new Error(String(error));
-    process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
-    process.exit(1);
-  });
+  Promise.resolve()
+    .then(() => resolveServerStart()())
+    .catch((error: unknown) => {
+      const err = error instanceof Error ? error : new Error(String(error));
+      process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
+      process.exit(1);
+    });
 }

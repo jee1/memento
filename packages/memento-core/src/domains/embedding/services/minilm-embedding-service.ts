@@ -17,6 +17,12 @@ import type {
   SimilarityResult, 
   EmbeddingData 
 } from '../../../shared/types/embedding.types.js';
+import {
+  estimateEmbeddingTokens,
+  generateEmbeddingCacheKey,
+  rankSimilarEmbeddings,
+  truncateEmbeddingText,
+} from './embedding-helpers.js';
 
 type FeatureExtractionModel = (
   text: string,
@@ -53,7 +59,6 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private static readonly MODEL_NAME = 'all-MiniLM-L6-v2';
   private static readonly DIMENSIONS = 384;
   private static readonly MAX_TOKENS = 256;
-  private static readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
   
   private readonly modelName = MiniLMEmbeddingService.MODEL_NAME;
   private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
@@ -73,7 +78,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   async generateEmbedding(text: string): Promise<EmbeddingResult | null> {
     this.validateInput(text);
     
-    const cacheKey = this.generateCacheKey(text);
+    const cacheKey = generateEmbeddingCacheKey('minilm', text);
     const cached = this.cache.get(cacheKey);
     if (cached) {
       return cached;
@@ -94,8 +99,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         embedding,
         model: this.modelName,
         usage: {
-          prompt_tokens: this.estimateTokens(text),
-          total_tokens: this.estimateTokens(text)
+          prompt_tokens: estimateEmbeddingTokens(text),
+          total_tokens: estimateEmbeddingTokens(text)
         }
       };
 
@@ -144,23 +149,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       return [];
     }
 
-    const similarities = embeddings.map(item => {
-      const similarity = this.calculateCosineSimilarity(
-        queryEmbedding.embedding, 
-        item.embedding
-      );
-      return {
-        id: item.id,
-        content: item.content,
-        similarity,
-        score: similarity
-      };
-    });
-
-    return similarities
-      .filter(item => item.similarity >= threshold)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold);
   }
 
   /**
@@ -270,64 +259,11 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    * 클린코드: 단일 책임 원칙 - 전처리만 담당
    */
   private preprocessText(text: string): string {
-    return text
+    const normalized = text
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .substring(0, this.maxTokens * 4); // 토큰 수 제한
-  }
-
-  /**
-   * 캐시 키 생성
-   */
-  private generateCacheKey(text: string): string {
-    return `minilm:${this.hashText(text)}`;
-  }
-
-  /**
-   * 텍스트 해시 생성
-   */
-  private hashText(text: string): string {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // 32bit 정수로 변환
-    }
-    return hash.toString(36);
-  }
-
-  /**
-   * 토큰 수 추정
-   */
-  private estimateTokens(text: string): number {
-    // 간단한 토큰 추정 (실제로는 더 정교한 방법 필요)
-    return Math.ceil(text.length / 4);
-  }
-
-  /**
-   * 코사인 유사도 계산
-   * 클린코드: 단일 책임 원칙 - 수학 계산만 담당
-   */
-  private calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
-    if (vecA.length !== vecB.length) {
-      throw new Error('벡터 차원이 일치하지 않습니다');
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < vecA.length; i++) {
-      const a = vecA[i] ?? 0;
-      const b = vecB[i] ?? 0;
-      dotProduct += a * b;
-      normA += a * a;
-      normB += b * b;
-    }
-
-    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-    return magnitude === 0 ? 0 : dotProduct / magnitude;
+      .replace(/\s+/g, ' ');
+    return truncateEmbeddingText(normalized, this.maxTokens);
   }
 
   /**

@@ -4,6 +4,7 @@
  */
 
 import { logger } from '../../../../shared/utils/logger.js';
+import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 
@@ -85,7 +86,7 @@ export class QueryFilterService implements IQueryFilterService {
             // 쿼리 임베딩과 메모리 임베딩 간 유사도 계산
             let querySim = 0;
             if (queryEmbedding.length === memoryEmbedding.embedding.length) {
-              querySim = this.cosineSimilarity(queryEmbedding, memoryEmbedding.embedding);
+              querySim = cosineSimilarity(queryEmbedding, memoryEmbedding.embedding);
             } else {
               // 차원이 다르면 텍스트 기반 간단한 매칭
               querySim = this.calculateTextSimilarity(query, result.content);
@@ -146,30 +147,6 @@ export class QueryFilterService implements IQueryFilterService {
   }
 
   /**
-   * 코사인 유사도 계산
-   */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) {
-      throw new Error('벡터 차원이 일치하지 않습니다');
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      const aVal = a[i] ?? 0;
-      const bVal = b[i] ?? 0;
-      dotProduct += aVal * bVal;
-      normA += aVal * aVal;
-      normB += bVal * bVal;
-    }
-
-    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-    return magnitude === 0 ? 0 : dotProduct / magnitude;
-  }
-
-  /**
    * 텍스트 기반 유사도 계산
    */
   private calculateTextSimilarity(query: string, content: string): number {
@@ -199,4 +176,3 @@ export class QueryFilterService implements IQueryFilterService {
     );
   }
 }
-

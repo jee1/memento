@@ -6,9 +6,10 @@ import type Database from 'better-sqlite3';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
 import type { SleepConsolidationRunResult } from '../../../shared/types/consolidation.types.js';
 import type { RelationType } from '../../../shared/types/relation.js';
-import type { MemoryType } from '../../../shared/types/index.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri } from '../../../shared/utils/memento-resource-uri.js';
+import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';
@@ -48,24 +49,6 @@ function newSemanticId(): string {
 
 const REL_EXTRACTED_FROM: RelationType = 'extracted_from';
 const REL_SUPPORTED_BY: RelationType = 'supported_by';
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0) {
-    return 0;
-  }
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i = 0; i < a.length; i++) {
-    const x = a[i] ?? 0;
-    const y = b[i] ?? 0;
-    dot += x * y;
-    na += x * x;
-    nb += y * y;
-  }
-  const denom = Math.sqrt(na) * Math.sqrt(nb);
-  return denom === 0 ? 0 : dot / denom;
-}
 
 function getMergeSimilarityThreshold(): number {
   const raw = process.env.CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD;

@@ -4,6 +4,7 @@ import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
 import os from 'os';
 import { logger } from '../../../../shared/utils/logger.js';
+import { alertNotificationService } from '../alert-notification-service.js';
 
 const toBytes = (mb: number): number => mb * 1024 * 1024;
 
@@ -533,6 +534,57 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     const m = monitor.getMemoryMetrics();
     expect(m.usagePercent).toBeCloseTo(50, 5);
     expect(m.heapShareOfBudgetPercent).toBeCloseTo(6.25, 5);
+  });
+});
+
+describe('PerformanceMonitor alert lifecycle', () => {
+  it('notification delivery metadata follows resolve, clear, import, and cleanup without copying alert state', async () => {
+    alertNotificationService.clear();
+    const monitor = new PerformanceMonitor({ databaseSizeMB: 100, alertRearmMs: 0 });
+    await (monitor as any).checkAlerts(
+      createMetrics({ database: { size: toBytes(120), memoryCount: 100, queryTime: 0 } })
+    );
+    const [alert] = monitor.getActiveAlerts();
+
+    expect(alertNotificationService.getActiveAlerts()).toContainEqual(
+      expect.objectContaining({ id: alert.id, acknowledged: false })
+    );
+    expect(alertNotificationService.getAlerts()[0]).not.toHaveProperty('message');
+    expect(monitor.resolveAlert(alert.id, 'operator', 'vacuumed')).toBe(true);
+    expect(alertNotificationService.getActiveAlerts()).toEqual([]);
+    expect(monitor.getAlertStats()).toMatchObject({ total: 1, active: 0, resolved: 1 });
+    expect(monitor.getAllAlerts()[0]).toMatchObject({
+      resolvedBy: 'operator',
+      resolution: 'vacuumed',
+    });
+
+    alert.timestamp = new Date(0);
+    monitor.cleanupOldAlerts(1);
+    expect(monitor.getAllAlerts()).toEqual([]);
+    expect(alertNotificationService.getAlerts()).toEqual([]);
+
+    await (monitor as any).checkAlerts(
+      createMetrics({ database: { size: toBytes(120), memoryCount: 100, queryTime: 0 } })
+    );
+    expect(alertNotificationService.getAlerts()).toHaveLength(1);
+    monitor.clearAlerts();
+    expect(alertNotificationService.getAlerts()).toEqual([]);
+
+    await monitor.importMetrics(JSON.stringify({
+      alerts: [{
+        id: 'imported-alert',
+        type: 'database',
+        severity: 'warning',
+        message: 'Imported database alert',
+        value: 120,
+        threshold: 100,
+        timestamp: new Date().toISOString(),
+        resolved: false,
+      }],
+    }));
+    expect(monitor.getAllAlerts()[0].timestamp).toBeInstanceOf(Date);
+    expect(alertNotificationService.getAlerts()).toEqual([]);
+    alertNotificationService.clear();
   });
 });
 

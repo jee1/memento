@@ -32,7 +32,7 @@ export function handleApproveCandidate(req: Request, res: Response, ctx: AgentRo
     if (!promotionService) {
       throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     }
-    const candidateId = (req.params as Record<string, string>).id;
+    const candidateId = requireString(req.params.id, 'candidate_id');
     return res.json(promotionCandidateDto(
       promotionService.approveCandidate(candidateId),
     ));
@@ -47,7 +47,7 @@ export function handleRejectCandidate(req: Request, res: Response, ctx: AgentRou
     if (!promotionService) {
       throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     }
-    const candidateId = (req.params as Record<string, string>).id;
+    const candidateId = requireString(req.params.id, 'candidate_id');
     return res.json(promotionCandidateDto(
       promotionService.rejectCandidate(
         candidateId,

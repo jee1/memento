@@ -1,5 +1,6 @@
 /**
- * Telemetry persistence — specs/006 + data-model.md
+ * Telemetry persistence — immutable baseline data model:
+ * https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/006-observability-telemetry/data-model.md
  */
 
 import type Database from 'better-sqlite3';

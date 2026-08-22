@@ -25,101 +25,16 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RestoreAnchorsTool } from '../restore-anchors-tool.js';
 import type { ToolContext } from '../types.js';
 import { AnchorManager } from '../../services/anchor/anchor-manager.js';
-import { AnchorCacheService } from '../../services/anchor/anchor-cache-service.js';
-import { AnchorSearchService } from '../../services/anchor/anchor-search-service.js';
-import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
-import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
-
-/**
- * 테스트용 데이터베이스 초기화
- */
-function initializeTestDatabase(db: Database.Database): void {
-  DatabaseUtils.initializeDatabase(db);
-  
-  // anchor 테이블 생성
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS anchor (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      agent_id TEXT NOT NULL,
-      slot TEXT CHECK (slot IN ('A', 'B', 'C')) NOT NULL,
-      memory_id TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
-      UNIQUE(agent_id, slot)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
-    CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
-    CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
-  `);
-}
+import { createAnchorToolTestContext } from './anchor-tool-test-context.js';
 
 describe('RestoreAnchorsTool', () => {
   let db: Database.Database;
   let tool: RestoreAnchorsTool;
   let context: ToolContext;
   let anchorManager: AnchorManager;
-  let cacheService: AnchorCacheService;
-  let searchService: AnchorSearchService;
-  let embeddingService: MemoryEmbeddingService;
-  let hybridSearchEngine: HybridSearchEngine;
-  let vectorSearchEngine: VectorSearchEngine;
-
-  function createMockEmbeddingService(): MemoryEmbeddingService {
-    return {
-      createAndStoreEmbedding: vi.fn(),
-      searchBySimilarity: vi.fn(),
-      migrateProvider: vi.fn(),
-      isAvailable: vi.fn().mockReturnValue(false)
-    } as unknown as MemoryEmbeddingService;
-  }
-
-  function createMockHybridSearchEngine(): HybridSearchEngine {
-    return {
-      search: vi.fn().mockResolvedValue({ items: [], total_count: 0 }),
-      isEmbeddingAvailable: vi.fn().mockReturnValue(false)
-    } as unknown as HybridSearchEngine;
-  }
-
-  function createMockVectorSearchEngine(): VectorSearchEngine {
-    return {
-      initialize: vi.fn(),
-      search: vi.fn().mockResolvedValue([]),
-      isAvailable: vi.fn().mockReturnValue(true)
-    } as unknown as VectorSearchEngine;
-  }
-
-  beforeEach(() => {
-    db = new Database(':memory:');
-    initializeTestDatabase(db);
-
-    embeddingService = createMockEmbeddingService();
-    hybridSearchEngine = createMockHybridSearchEngine();
-    vectorSearchEngine = createMockVectorSearchEngine();
-    
-    // 의존성 주입 패턴에 맞게 서비스 생성
-    cacheService = new AnchorCacheService();
-    cacheService.setDatabase(db);
-    cacheService.setEmbeddingService(embeddingService);
-    
-    searchService = new AnchorSearchService(cacheService);
-    searchService.setDatabase(db);
-    searchService.setHybridSearchEngine(hybridSearchEngine);
-    searchService.setVectorSearchEngine(vectorSearchEngine);
-    
-    anchorManager = new AnchorManager(cacheService, searchService);
-    anchorManager.setDatabase(db);
-
+  beforeEach(async () => {
+    ({ db, context, anchorManager } = await createAnchorToolTestContext());
     tool = new RestoreAnchorsTool();
-
-    context = {
-      db,
-      services: {
-        anchorManager
-      }
-    };
   });
 
   afterEach(() => {

@@ -5,7 +5,7 @@
 import type { EmbeddingProvider } from './embedding.types.js';
 
 /**
- * benchmark-v3 오프라인 시드(createSeededBenchmarkDatabase)는 TF-IDF + mock 벡터를 저장한다.
+ * benchmark-v3 오프라인 시드 스크립트는 TF-IDF + mock 벡터를 저장한다.
  * 하이브리드 검색 시 쿼리 임베딩도 동일 provider로 고정해 환경의 EMBEDDING_PROVIDER와 무관하게 결정론적 베이스라인을 만든다.
  * mock provider는 콘텐츠 기반 해시 벡터로 TF-IDF와 상관관계가 낮아 alpha 가중치 조정 효과를 측정할 수 있다.
  */

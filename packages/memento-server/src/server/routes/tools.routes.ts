@@ -4,13 +4,20 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { executeTool,getExposedTools,getToolRegistry,logger } from '@memento/core';
+import { getExposedTools, logger } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { Router } from 'express';
 import type { WebSocket } from 'ws';
 import type { ServerServices } from '../bootstrap.js';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
 import { extractToolResultPayload } from '../handlers/tool-result.utils.js';
+import { dispatchTool, mapToolDispatchError } from '../audit-tool-dispatch.js';
+
+function httpStatusForToolError(code: number): number {
+  if (code === -32602) return 400;
+  if (code === -32601) return 404;
+  return 500;
+}
 
 /**
  * Tools 라우터 생성
@@ -49,20 +56,20 @@ export function createToolsRouter(
     const params = req.body;
 
     try {
-      const _toolRegistry = getToolRegistry();
-
       // Phase 0: 미들웨어에서 주입된 ToolContext 사용
-      if (!req.toolContext) {
+      if (!req.toolContext || !serverServices) {
         return res.status(500).json({
           error: 'ToolContext not initialized',
           message: 'ToolContext가 초기화되지 않았습니다. tool-context 미들웨어를 먼저 적용하세요.'
         });
       }
 
-      const toolContext = req.toolContext;
-
       // 도구 실행
-      const toolResult = await executeTool(name, params, toolContext);
+      const toolResult = await dispatchTool(name, params, db, serverServices, {
+        transport: 'rest',
+        actorId: req.programmaticAuth?.keyId,
+        agentId: req.toolContext.agentId,
+      });
 
       const actualResult = extractToolResultPayload(toolResult);
 
@@ -85,18 +92,20 @@ export function createToolsRouter(
         timestamp: new Date().toISOString()
       });
     } catch (error) {
+      const mapped = mapToolDispatchError(error);
       logger.error('Tool execution failed', {
         tool: name,
-        error: error instanceof Error ? error.message : String(error)
+        code: mapped.code,
+        error: mapped.data,
       });
-      return res.status(500).json({
-        error: 'Tool execution failed',
+      return res.status(httpStatusForToolError(mapped.code)).json({
+        error: mapped.protocolMessage,
+        code: mapped.code,
         tool: name,
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: typeof mapped.data === 'string' ? mapped.data : mapped.protocolMessage,
       });
     }
   });
 
   return router;
 }
-

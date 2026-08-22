@@ -1,10 +1,11 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.js';
 /**
  * benchmark-v3 queries + category-mapping.json 검증 — query_id → category → macro_category
  *
  * FR-005: query_id→카테고리는 queries.json이 아닌 category-mapping.json의 query_id_to_category에서 유지한다.
  *
- * 사용: npm run quality:benchmark:verify-categories
+ * 사용: npm run quality -- benchmark verify-categories
  */
 
 import { join, dirname } from 'path';
@@ -12,7 +13,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import {
   loadBenchmarkQueries,
-} from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
+} from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
 import {
   assertMacroCategory,
   type MacroCategory,
@@ -77,6 +78,6 @@ function main(): void {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? '')) {
+if (isMain(import.meta.url)) {
   main();
 }

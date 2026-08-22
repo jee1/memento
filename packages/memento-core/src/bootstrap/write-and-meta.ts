@@ -3,9 +3,9 @@ import { mementoConfig } from '../shared/config/index.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../shared/utils/write-coalescing.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { logger } from '../shared/utils/logger.js';
-import type { SqlParam } from '../shared/types/index.js';
+import type { SqlParam } from '../shared/types/memory.types.js';
 import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
-import { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
+import { MetaMemoryService } from '../domains/memory/introspection/meta-memory-service.js';
 
 export function createWriteCoalescingMetaAndScore(db: Database.Database): {
   writeCoalescingManager: WriteCoalescingManager;
@@ -59,7 +59,7 @@ export function createWriteCoalescingMetaAndScore(db: Database.Database): {
   if (mementoConfig.consolidationScoreEnabled) {
     consolidationScoreService = new ConsolidationScoreService();
   }
-  const metaMemoryService = new MetaMemoryService(db, writeCoalescingManager);
+  const metaMemoryService = new MetaMemoryService(db);
   logger.info('MetaMemoryService 초기화 완료');
   return { writeCoalescingManager, consolidationScoreService, metaMemoryService };
 }

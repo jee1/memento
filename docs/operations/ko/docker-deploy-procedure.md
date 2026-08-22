@@ -8,7 +8,7 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 관련 문서:
 
 - [배포 전 환경변수 점검](../env-deployment-checklist.md)
-- [Docker 설정 가이드](../../../DOCKER_SETUP_GUIDE.md)
+- [Docker 설정 가이드](../DOCKER_SETUP_GUIDE.md)
 - [scripts/ 스크립트 인덱스](scripts-index.md)
 
 ---
@@ -220,4 +220,4 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 | health는 ok인데 검색 품질 저하 | `memory_embedding` 건수 확인; `--only-tables memory_embedding` 병합 검토 |
 | quarantine 디스크 과다 | pre-recover·최신 backup 확인 후 중복 quarantine 파일 정리 |
 
-추가 Docker 설정은 [DOCKER_SETUP_GUIDE.md](../../../DOCKER_SETUP_GUIDE.md)를 참고하세요.
+추가 Docker 설정은 [DOCKER_SETUP_GUIDE.md](../DOCKER_SETUP_GUIDE.md)를 참고하세요.

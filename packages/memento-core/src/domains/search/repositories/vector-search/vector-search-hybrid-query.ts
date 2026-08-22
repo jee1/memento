@@ -4,7 +4,7 @@
 
 import type Database from 'better-sqlite3';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
-import type { SqlParam } from '../../../../shared/types/index.js';
+import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { mapHybridResults } from './vector-search-result-mapper.js';
 import type {

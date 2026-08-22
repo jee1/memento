@@ -1,21 +1,21 @@
 import type Database from 'better-sqlite3';
-import { MetaMemoryIntrospectionService } from '../../../domains/memory/services/meta-memory-introspection-service.js';
-import { parseMemoryReviewQueueControlEnv } from '../../../domains/memory/services/memory-review-candidate-selection-env.js';
-import { selectMemoryReviewCandidates } from '../../../domains/memory/services/memory-review-candidate-selection-service.js';
+import { MetaMemoryIntrospectionService } from '../../../domains/memory/introspection/meta-memory-introspection-service.js';
+import { parseMemoryReviewQueueControlEnv } from '../../../domains/memory/review/memory-review-candidate-selection-env.js';
+import { selectMemoryReviewCandidates } from '../../../domains/memory/review/memory-review-candidate-selection-service.js';
 import {
   bulkUpdatePendingMemoryReviewCandidates,
   countPendingMemoryReviewCandidates,
   upsertPendingMemoryReviewCandidates
-} from '../../../domains/memory/services/memory-review-candidate-persistence-service.js';
-import { recordMemoryReviewQueueHealthSnapshot } from '../../../domains/memory/services/memory-review-queue-health-service.js';
+} from '../../../domains/memory/review/memory-review-candidate-persistence-service.js';
+import { recordMemoryReviewQueueHealthSnapshot } from '../../../domains/memory/review/memory-review-queue-health-service.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import {
   assertSchedulerDbOpen,
   createEmptyBatchJobResult,
   finalizeBatchJobTiming
-} from '../batch-scheduler-internal-helpers.js';
+} from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 export function buildMemoryReviewCandidateUpsertInputs(

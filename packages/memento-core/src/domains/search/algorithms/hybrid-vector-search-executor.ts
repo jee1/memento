@@ -1,7 +1,8 @@
 import Database from 'better-sqlite3';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import type { EmbeddingProvider, StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
+import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';

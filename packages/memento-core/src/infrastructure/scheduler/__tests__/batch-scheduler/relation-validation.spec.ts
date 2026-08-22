@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { BatchScheduler } from '../../batch-scheduler.js';
+import { BatchScheduler } from '../../batch-scheduler/batch-scheduler.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import * as configModule from '../../../../shared/config/index.js';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 import { executionCoordinator } from './batch-scheduler.test-setup.js';
 
 describe('BatchScheduler', () => {
@@ -87,7 +88,7 @@ describe('BatchScheduler', () => {
         cleanupInterval: 60000,
         monitoringInterval: 10000,
         consolidationScoreIncrementalInterval: 60 * 60 * 1000,
-        consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000,
+        consolidationScoreFullSweepInterval: DAY_MS,
         consolidationScoreFullSweepHour: new Date().getHours(), // 현재 시간으로 설정하여 즉시 실행
         enableLogging: true
       });

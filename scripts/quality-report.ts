@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * 품질 리포트 생성 CLI 스크립트
  * 
@@ -20,7 +21,6 @@
 
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import Database from 'better-sqlite3';
 import { QualityAssuranceService, initializeDatabase } from '@memento/core';
 
 type ReportFormat = 'markdown' | 'json' | 'html';
@@ -50,7 +50,7 @@ interface CliOptions {
  * 명령줄 인자 파싱
  */
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {};
 
   for (let i = 0; i < args.length; i++) {
@@ -198,7 +198,7 @@ async function main(): Promise<void> {
 }
 
 // 스크립트 직접 실행 시
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   main().catch(error => {
     console.error('❌ 치명적 오류:', error);
     process.exit(1);

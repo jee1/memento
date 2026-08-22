@@ -26,6 +26,8 @@ import type {
   TripleExtractionResult,
 } from '../../../../shared/types/triple-extraction.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { TokenBucketRateLimiter } from '../../../../shared/utils/token-bucket-rate-limiter.js';
+import { determineLlmProvider } from '../llm-provider-selection.js';
 import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
 import { TripleCacheService } from '../../../../shared/utils/triple-cache.js';
 import { EntityLinker } from './entity-linker.js';
@@ -43,7 +45,6 @@ import {
   TRIPLE_EXTRACTION_LLM_UNAVAILABLE_MESSAGE,
   type TripleLlmActiveProvider,
 } from './triple-extraction-llm-pipeline.js';
-import { TokenBucketRateLimiter } from './triple-extraction-rate-limiter.js';
 import {
   createTripleExtractionFailureResult,
   normalizeTripleExtractionResult,
@@ -168,34 +169,15 @@ export class TripleExtractionService {
   private determineProvider(
     requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
   ): 'openai' | 'gemini' | 'ollama' | null {
-    if (requestedProvider === 'auto') {
-      if (this.openaiClient) return 'openai';
-      if (this.geminiClient) return 'gemini';
-      return null;
-    }
-
-    if (requestedProvider === 'openai' && this.openaiClient) {
-      return 'openai';
-    }
-    if (requestedProvider === 'gemini' && this.geminiClient) {
-      return 'gemini';
-    }
-    if (requestedProvider === 'ollama') {
-      if (this.initializedProviders.includes('ollama')) {
-        return 'ollama';
-      }
-    }
-
-    if (requestedProvider === 'openai') {
-      if (this.geminiClient) return 'gemini';
-    } else if (requestedProvider === 'gemini') {
-      if (this.openaiClient) return 'openai';
-    } else if (requestedProvider === 'ollama') {
-      if (this.openaiClient) return 'openai';
-      if (this.geminiClient) return 'gemini';
-    }
-
-    return null;
+    return determineLlmProvider(
+      requestedProvider,
+      {
+        openai: this.openaiClient !== null,
+        gemini: this.geminiClient !== null,
+        ollama: this.initializedProviders.includes('ollama'),
+      },
+      { includeOllamaInAuto: false, includeOllamaInFallback: false },
+    );
   }
 
   isAvailable(): boolean {

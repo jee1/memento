@@ -46,6 +46,7 @@ function stripGlobalArgvForAgentDetection(argv: string[]): string[] {
   const out: string[] = [];
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
+    if (arg === undefined) continue;
     if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
       if (argv[i + 1]) i++;
       continue;
@@ -60,12 +61,16 @@ function parseGlobalFlags(argv: string[]): { dbPath?: string; envFile?: string; 
   const out: { dbPath?: string; envFile?: string; configDir?: string } = {};
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg === '--db-path' && argv[i + 1]) {
-      out.dbPath = argv[++i];
-    } else if (arg === '--env-file' && argv[i + 1]) {
-      out.envFile = argv[++i];
-    } else if (arg === '--config-dir' && argv[i + 1]) {
-      out.configDir = argv[++i];
+    const value = argv[i + 1];
+    if (arg === '--db-path' && value !== undefined) {
+      out.dbPath = value;
+      i++;
+    } else if (arg === '--env-file' && value !== undefined) {
+      out.envFile = value;
+      i++;
+    } else if (arg === '--config-dir' && value !== undefined) {
+      out.configDir = value;
+      i++;
     }
   }
   return out;
@@ -75,6 +80,7 @@ function parseGlobalFlags(argv: string[]): { dbPath?: string; envFile?: string; 
 function findSubcommandWithIndex(argv: string[]): { subcommand?: string; subIdx?: number } {
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
+    if (arg === undefined) continue;
     if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
       if (argv[i + 1]) i++;
       continue;
@@ -93,6 +99,7 @@ function subcommandArgvFrom(argv: string[], subIdx: number): string[] {
   const filtered: string[] = [];
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
+    if (arg === undefined) continue;
     if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
       if (rest[i + 1]) i++;
       continue;
@@ -118,6 +125,7 @@ function parseCli(argv: string[]): {
   let commandToken: string | undefined;
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
+    if (arg === undefined) continue;
     if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
       if (argv[i + 1]) i++;
       continue;

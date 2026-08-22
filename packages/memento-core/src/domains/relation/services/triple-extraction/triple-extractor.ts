@@ -14,6 +14,7 @@ import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js
 import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
 import { logExternalApiRetry } from '../../../../shared/utils/external-api-retry-logging.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { determineLlmProvider } from '../llm-provider-selection.js';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
@@ -384,61 +385,15 @@ export class TripleExtractor implements ITripleExtractor {
   private determineProvider(
     requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
   ): 'openai' | 'gemini' | 'ollama' | null {
-    // 'auto' 모드: 사용 가능한 첫 번째 provider 반환
-    if (requestedProvider === 'auto') {
-      if (this.openaiClient) return 'openai';
-      if (this.geminiClient) return 'gemini';
-      // Ollama는 연결 테스트가 필요하므로 여기서는 null 반환
-      // (실제 사용 시 extractWithOllama에서 처리)
-      return null;
-    }
-    
-    // 요청된 provider가 사용 가능한지 확인
-    if (this.isProviderAvailable(requestedProvider)) {
-      return requestedProvider;
-    }
-    
-    // Fallback 로직: 요청된 provider가 사용 불가능한 경우 대체 provider 시도
-    return this.getFallbackProvider(requestedProvider);
-  }
-
-  /**
-   * Provider 사용 가능 여부 확인
-   */
-  private isProviderAvailable(provider: 'openai' | 'gemini' | 'ollama'): boolean {
-    switch (provider) {
-      case 'openai':
-        return this.openaiClient !== null;
-      case 'gemini':
-        return this.geminiClient !== null;
-      case 'ollama':
-        return this.initializedProviders.includes('ollama');
-      default:
-        return false;
-    }
-  }
-
-  /**
-   * Fallback provider 반환
-   */
-  private getFallbackProvider(
-    requestedProvider: 'openai' | 'gemini' | 'ollama'
-  ): 'openai' | 'gemini' | 'ollama' | null {
-    switch (requestedProvider) {
-      case 'openai':
-        // OpenAI가 사용 불가능하면 Gemini로 fallback
-        return this.geminiClient ? 'gemini' : null;
-      case 'gemini':
-        // Gemini가 사용 불가능하면 OpenAI로 fallback
-        return this.openaiClient ? 'openai' : null;
-      case 'ollama':
-        // Ollama가 사용 불가능하면 OpenAI -> Gemini 순서로 fallback
-        if (this.openaiClient) return 'openai';
-        if (this.geminiClient) return 'gemini';
-        return null;
-      default:
-        return null;
-    }
+    return determineLlmProvider(
+      requestedProvider,
+      {
+        openai: this.openaiClient !== null,
+        gemini: this.geminiClient !== null,
+        ollama: this.initializedProviders.includes('ollama'),
+      },
+      { includeOllamaInAuto: false, includeOllamaInFallback: false },
+    );
   }
 
   /**

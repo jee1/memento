@@ -1,6 +1,6 @@
 # Feature Specification: Hash-Chained Audit Log
 
-**Feature Branch**: `049-memento-uri`
+**Feature Branch**: `062-memento-uri`
 **Created**: 2026-07-12
 **Status**: Implemented
 **Parent**: #655, dependent issue #660

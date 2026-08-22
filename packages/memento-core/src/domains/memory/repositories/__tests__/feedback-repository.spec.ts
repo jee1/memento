@@ -1,16 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { sigmoidNormalizedNet } from '../feedback-repository.interface.js';
 import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 describe('FeedbackRepository', () => {
   let db: Database.Database;
   let repo: FeedbackRepository;
 
   beforeEach(async () => {
-    db = new Database(':memory:');
-    await DatabaseUtils.initializeDatabase(db);
+    db = await setupTestDatabase();
     db.prepare(
       `INSERT INTO memory_item (id, type, content) VALUES ('mem_fb_test_1', 'semantic', 'test')`
     ).run();

@@ -2,11 +2,12 @@
  * 검색 엔진 단위 테스트
  */
 
+import type Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SearchEngine, type SearchQuery } from '../search-engine.js';
-import { MockDatabase } from '../../../../test/mock-database.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';
 
 function createCountingSearchDb() {
   const counters = {
@@ -205,14 +206,14 @@ function createSearchRows(count = 2) {
 
 describe('SearchEngine', () => {
   let searchEngine: SearchEngine;
-  let mockDb: MockDatabase;
+  let testDb: Database.Database;
   let originalFallbackEnabled: boolean;
   let originalFallbackEnv: string | undefined;
   let originalNodeEnv: string | undefined;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     searchEngine = new SearchEngine();
-    mockDb = new MockDatabase();
+    testDb = await setupTestDatabase();
     vi.spyOn(searchEngine as any, 'executeQuery').mockResolvedValue(createSearchRows());
     originalFallbackEnabled = mementoConfig.fts5FallbackEnabled;
     originalFallbackEnv = process.env.MEMENTO_FTS5_FALLBACK_ENABLED;
@@ -222,6 +223,7 @@ describe('SearchEngine', () => {
   });
 
   afterEach(() => {
+    testDb.close();
     vi.restoreAllMocks();
     (mementoConfig as { fts5FallbackEnabled: boolean }).fts5FallbackEnabled = originalFallbackEnabled;
     if (originalFallbackEnv === undefined) {
@@ -270,7 +272,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -285,7 +287,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -298,7 +300,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -314,7 +316,7 @@ describe('SearchEngine', () => {
         }
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -330,7 +332,7 @@ describe('SearchEngine', () => {
         }
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -346,7 +348,7 @@ describe('SearchEngine', () => {
         }
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -363,7 +365,7 @@ describe('SearchEngine', () => {
         }
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -376,7 +378,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -389,7 +391,7 @@ describe('SearchEngine', () => {
         limit: 5
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -526,25 +528,25 @@ describe('SearchEngine', () => {
 
   describe('checkFTS5Availability', () => {
     it('FTS5 사용 가능한 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(mockDb);
+      const result = await (searchEngine as any).checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
 
     it('FTS5 테이블이 없는 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(mockDb);
+      const result = await (searchEngine as any).checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
 
     it('FTS5 테이블에 데이터가 없는 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(mockDb);
+      const result = await (searchEngine as any).checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
 
     it('FTS5 쿼리 실패하는 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(mockDb);
+      const result = await (searchEngine as any).checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
@@ -804,7 +806,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -817,7 +819,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -825,13 +827,13 @@ describe('SearchEngine', () => {
     });
 
     it('데이터베이스 오류 처리', async () => {
-      // MockDatabase는 오류를 던지지 않으므로 정상 동작 확인
+      // The canonical fresh schema should support an empty-result search.
       const query: SearchQuery = {
         query: 'test',
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -844,7 +846,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -857,7 +859,7 @@ describe('SearchEngine', () => {
         limit: 10
       };
 
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
 
       expect(result).toBeDefined();
       expect(result.items).toBeDefined();
@@ -873,7 +875,7 @@ describe('SearchEngine', () => {
       };
 
       const startTime = Date.now();
-      const result = await searchEngine.search(mockDb, query);
+      const result = await searchEngine.search(testDb, query);
       const endTime = Date.now();
 
       expect(result).toBeDefined();
@@ -892,7 +894,7 @@ describe('SearchEngine', () => {
       
       // 100번 반복 검색
       for (let i = 0; i < 100; i++) {
-        await searchEngine.search(mockDb, query);
+        await searchEngine.search(testDb, query);
       }
       
       const endTime = Date.now();

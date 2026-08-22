@@ -3,7 +3,8 @@
  */
 
 import { config } from 'dotenv';
-import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../types/index.js';
+import type { EmbeddingProvider } from '../types/embedding.types.js';
+import type { LLMProvider, MementoConfig } from '../types/memory.types.js';
 import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
 import { parseOwnerScopeMode } from '../utils/owner-scope-mode.js';

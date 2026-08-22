@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 import { ForgettingAlgorithm, type ForgettingFeatures, type ForgettingResult } from '../forgetting-algorithm.js';
 
 describe('ForgettingAlgorithm', () => {
@@ -192,8 +193,8 @@ describe('ForgettingAlgorithm', () => {
   describe('calculateFeatures', () => {
     it('정상적인 특징 계산', () => {
       const memory = {
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7일 전
-        last_accessed: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2일 전
+        created_at: new Date(Date.now() - 7 * DAY_MS).toISOString(), // 7일 전
+        last_accessed: new Date(Date.now() - 2 * DAY_MS).toISOString(), // 2일 전
         importance: 0.7,
         pinned: false,
         type: 'episodic',
@@ -215,7 +216,7 @@ describe('ForgettingAlgorithm', () => {
 
     it('last_accessed가 없는 경우', () => {
       const memory = {
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 7 * DAY_MS).toISOString(),
         importance: 0.5,
         pinned: true,
         type: 'semantic'
@@ -229,7 +230,7 @@ describe('ForgettingAlgorithm', () => {
     });
 
     it('다양한 메모리 타입별 반감기 테스트', () => {
-      const baseDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10일 전
+      const baseDate = new Date(Date.now() - 10 * DAY_MS); // 10일 전
       
       const workingMemory = {
         created_at: baseDate.toISOString(),
@@ -258,7 +259,7 @@ describe('ForgettingAlgorithm', () => {
       const memories = [
         {
           id: 'mem1',
-          created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30일 전
+          created_at: new Date(Date.now() - 30 * DAY_MS).toISOString(), // 30일 전
           importance: 0.2,
           pinned: false,
           type: 'episodic',
@@ -268,7 +269,7 @@ describe('ForgettingAlgorithm', () => {
         },
         {
           id: 'mem2',
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1일 전
+          created_at: new Date(Date.now() - DAY_MS).toISOString(), // 1일 전
           importance: 0.8,
           pinned: true,
           type: 'semantic',
@@ -295,7 +296,7 @@ describe('ForgettingAlgorithm', () => {
     it('단일 메모리 처리', () => {
       const memories = [{
         id: 'mem1',
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 7 * DAY_MS).toISOString(),
         importance: 0.5,
         pinned: false,
         type: 'episodic'
@@ -312,14 +313,14 @@ describe('ForgettingAlgorithm', () => {
       const memories = [
         {
           id: 'mem1',
-          created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), // 60일 전
+          created_at: new Date(Date.now() - 60 * DAY_MS).toISOString(), // 60일 전
           importance: 0.1,
           pinned: false,
           type: 'episodic'
         },
         {
           id: 'mem2',
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1일 전
+          created_at: new Date(Date.now() - DAY_MS).toISOString(), // 1일 전
           importance: 0.9,
           pinned: true,
           type: 'semantic'

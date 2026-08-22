@@ -58,4 +58,9 @@ describe('audit.routes', () => {
     const response = await request(port, '/entries?action=other');
     expect(response).toMatchObject({ status: 400, body: { error: 'action is invalid' } });
   });
+
+  it.each(['mcp_ws', 'rest'])('accepts the %s transport filter', async (transport) => {
+    const response = await request(port, `/entries?transport=${transport}`);
+    expect(response).toMatchObject({ status: 200, body: { count: 0, entries: [] } });
+  });
 });

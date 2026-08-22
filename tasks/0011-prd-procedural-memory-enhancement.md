@@ -96,7 +96,7 @@
 
 1.2.3. **마이그레이션 파일**:
    - 파일명: `007-procedural-memory-enhancement.sql`
-   - 위치: `src/infrastructure/database/database/migration/migrations/`
+   - 위치: `src/infrastructure/database/sqlite/migration/migrations/`
    - 참고: 006번은 이미 `006-fts5-reflection-notes.*` 파일들이 사용 중이므로 007번으로 할당
 
 ### 2. MCP Tool 인터페이스 확장

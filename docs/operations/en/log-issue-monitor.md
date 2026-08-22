@@ -7,13 +7,13 @@ Log Issue Monitor is an **opt-in overlay** that periodically scans Memento runti
 ```bash
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
-  -f docker-compose.mem-limits.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.mem-limits.yml \
   up -d
 ```
 
-Per-container memory caps live in `docker-compose.mem-limits.yml` (defaults: MCP 768MB, monitor 256MB, docker-diagnostics 128MB). Override with `MEMENTO_MCP_MEM_LIMIT` and related env vars.
+Per-container memory caps live in `docker/docker-compose.mem-limits.yml` (defaults: MCP 768MB, monitor 256MB, docker-diagnostics 128MB). Override with `MEMENTO_MCP_MEM_LIMIT` and related env vars.
 
 ## Local-Only Mode
 
@@ -24,9 +24,9 @@ To explicitly disable GitHub sync, set:
 ```bash
 LOG_ISSUE_MONITOR_DRY_RUN=true docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
-  -f docker-compose.mem-limits.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -37,9 +37,9 @@ To enable GitHub Issue creation, provide a token with Issues write permission th
 ```bash
 GITHUB_TOKEN=... docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
-  -f docker-compose.mem-limits.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -59,7 +59,7 @@ When an open issue already contains the same fingerprint, the monitor updates on
 
 ## Container memory limits
 
-Docker Desktop may not expose sub-1GB per-container limits in the UI. Use the `docker-compose.mem-limits.yml` overlay instead.
+Docker Desktop may not expose sub-1GB per-container limits in the UI. Use the `docker/docker-compose.mem-limits.yml` overlay instead.
 
 | Environment variable | Default | Service |
 | --- | --- | --- |
@@ -117,8 +117,8 @@ Files such as `app-runtime.jsonl` in the hundreds of MB match this failure mode.
 ```bash
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
   stop log-issue-monitor
 
 mv ~/.memento/logs/diagnostics/app-runtime.jsonl \
@@ -135,8 +135,8 @@ done
 
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
   start log-issue-monitor
 ```
 

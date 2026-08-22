@@ -16,6 +16,7 @@ export interface ISchedulerStatus {
 
 export interface IBatchScheduler {
   addJob(name: string, job: () => Promise<void>, priority?: number, retryCount?: number): boolean;
+  stop(): Promise<void>;
   getStatus(): ISchedulerStatus;
   isJobQueued(name: string): boolean;
   isJobRunning(name: string): boolean;

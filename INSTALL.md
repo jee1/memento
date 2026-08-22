@@ -38,10 +38,10 @@ npx memento-mcp-server@latest start
 ### 🥉 **3순위: Docker 방식 (프로덕션용)**
 ```bash
 # 개발 환경
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
 
 # 프로덕션 환경
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 ```
 
 ### 🛠️ **4순위: 소스코드 방식 (개발자용)**
@@ -119,25 +119,25 @@ memento-mcp-server setup
 #### 개발 환경
 ```bash
 # 개발용 Docker Compose 실행
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
 
 # 로그 확인
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml logs -f
 
 # 중지
-docker-compose -f docker-compose.dev.yml down
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml down
 ```
 
 #### 프로덕션 환경
 ```bash
 # 프로덕션용 Docker Compose 실행
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 
 # 로그 확인
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml logs -f
 
 # 중지
-docker-compose -f docker-compose.prod.yml down
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml down
 ```
 
 #### 기본 Docker Compose
@@ -203,7 +203,6 @@ npm run db:migrate
 ```bash
 npm run dev              # MCP 서버 개발 모드
 npm run dev:http         # HTTP/WebSocket 서버 개발 모드
-npm run dev:http-v2      # HTTP 서버 v2 개발 모드
 ```
 
 ### 프로덕션 명령어
@@ -216,20 +215,9 @@ npm run start:http       # HTTP/WebSocket 서버 프로덕션 실행
 ### 테스트 명령어
 ```bash
 npm run test             # 모든 테스트 실행
-npm run test:client      # 클라이언트 테스트
-npm run test:search      # 검색 기능 테스트
-npm run test:embedding   # 임베딩 기능 테스트
-npm run test:lightweight-embedding # 경량 임베딩 테스트
-npm run test:gemini-embedding # Gemini 임베딩 테스트
-npm run test:forgetting  # 망각 정책 테스트
-npm run test:performance # 성능 벤치마크
-npm run test:monitoring  # 성능 모니터링 테스트
-npm run test:error-logging # 에러 로깅 테스트
-npm run test:performance-alerts # 성능 알림 테스트
-npm run test:vector-search # 벡터 검색 테스트
-npm run test:memory-injection # 메모리 주입 테스트
-npm run test:batch-scheduler # 배치 스케줄러 테스트
-npm run test:consolidation-quality # Consolidation Score 품질 검증
+npm run test:ci:core     # core 검색·임베딩·메모리 테스트
+npm run test:ci:server   # server·모니터링 테스트
+npm test -w @jee1/memento-client # 클라이언트 테스트
 npm run benchmark:consolidation-quality # Consolidation Score 벤치마크
 ```
 
@@ -451,7 +439,7 @@ journalctl -u memento-mcp-server -f
 설치가 완료되면 다음 단계를 진행하세요:
 
 1. **서버 상태 확인**: `http://localhost:9001/health`
-2. **MCP 클라이언트 연결**: [클라이언트 가이드](packages/mcp-client/README.md)
+2. **MCP 클라이언트 연결**: [클라이언트 가이드](packages/memento-client/README.md)
 3. **API 테스트**: [API 문서](docs/api/ko/api-reference.md)
 4. **사용법 학습**: [사용자 매뉴얼](docs/guides/ko/user-manual.md)
 

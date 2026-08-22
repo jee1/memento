@@ -131,7 +131,7 @@
 - **원클릭**
   - `curl -sSL .../install.sh | bash`.
 - **Docker**
-  - `docker-compose -f docker-compose.dev.yml` / `docker-compose.prod.yml` 등.
+  - `docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml` / `docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml` 등.
 - **소스**
   - `npm install` → `npm run quick-start` 또는 `npm run dev` / `npm run dev:http`(v2는 `dev:http-v2`).
 

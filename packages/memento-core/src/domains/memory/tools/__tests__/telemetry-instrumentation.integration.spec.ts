@@ -3,24 +3,23 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { TelemetryEventsMigration } from '../../../../infrastructure/database/database/migration/migrations/027-telemetry-events.js';
-import { TelemetryDailyMetricsMigration } from '../../../../infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
-import { AgentIntegrationSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
-import { AgentMemoryPromotionSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/036-agent-memory-promotion-schema.js';
+import { TelemetryEventsMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/027-telemetry-events.js';
+import { TelemetryDailyMetricsMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/028-telemetry-daily-metrics.js';
+import { AgentIntegrationSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/035-agent-integration-schema.js';
+import { AgentMemoryPromotionSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/036-agent-memory-promotion-schema.js';
 import { TelemetryRepository } from '../../../telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from '../../../telemetry/services/telemetry-service.js';
 import { FeedbackTool } from '../feedback-tool.js';
-import { RecallTool } from '../recall-tool.js';
+import { RecallTool } from '../../recall/recall-tool.js';
 import type { ToolContext } from '../../../../tools/types.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 describe('telemetry instrumentation (feedback + service)', () => {
   let db: Database.Database;
   let telemetryService: TelemetryService;
 
   beforeEach(async () => {
-    db = new Database(':memory:');
-    await DatabaseUtils.initializeDatabase(db);
+    db = await setupTestDatabase();
     await new AgentIntegrationSchemaMigration().up(db);
     await new AgentMemoryPromotionSchemaMigration().up(db);
     await new TelemetryEventsMigration().up(db);

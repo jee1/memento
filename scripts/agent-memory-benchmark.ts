@@ -1,6 +1,6 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs, openDb, type CliDatabase } from './lib/cli.js';
 
-import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -739,10 +739,10 @@ function rankByGrep(
 }
 
 function createFtsIndex(documents: AgentMemoryDocument[]): {
-  db: Database.Database;
+  db: CliDatabase;
   close: () => void;
 } {
-  const db = new Database(':memory:');
+  const db = openDb(':memory:');
   db.exec('CREATE VIRTUAL TABLE documents USING fts5(id UNINDEXED, content, session_id UNINDEXED)');
   const insert = db.prepare('INSERT INTO documents (id, content, session_id) VALUES (?, ?, ?)');
   const transaction = db.transaction((rows: AgentMemoryDocument[]) => {
@@ -755,7 +755,7 @@ function createFtsIndex(documents: AgentMemoryDocument[]): {
 }
 
 function rankByFts(
-  fts: { db: Database.Database },
+  fts: { db: CliDatabase },
   query: string,
   limit: number,
 ): string[] {
@@ -1118,7 +1118,7 @@ function parseArgs(argv: string[]): CliOptions {
 }
 
 async function main(): Promise<void> {
-  const options = parseArgs(process.argv.slice(2));
+  const options = parseArgs(parseCliArgs().args);
   const report = options.production
     ? await runProductionAgentMemoryBenchmark(options)
     : runAgentMemoryBenchmark(options);
@@ -1137,7 +1137,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? '')) {
+if (isMain(import.meta.url)) {
   main()
     .then(() => process.exit(0))
     .catch((error) => {

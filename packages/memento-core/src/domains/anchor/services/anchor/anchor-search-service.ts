@@ -15,9 +15,6 @@ import { NHopSearchService } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';
 import { LocalSearchService } from './local-search-service.js';
-import { NHopSearchStrategy } from './n-hop-search-strategy.js';
-import { QueryFilterStrategy } from './query-filter-strategy.js';
-import { FallbackStrategy } from './fallback-strategy.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
 import { AnchorReanchorService } from './anchor-reanchor-service.js';
 import type { AutoReanchorResult } from './anchor-reanchor-service.js';
@@ -117,14 +114,11 @@ export class AnchorSearchService implements IAnchorSearchService {
     
     // Phase 3.6: LocalSearchService 초기화
     if (!this.localSearchService) {
-      const nHopSearchStrategy = new NHopSearchStrategy(this.nHopSearchService);
-      const queryFilterStrategy = new QueryFilterStrategy(this.queryFilterService);
-      const fallbackStrategy = new FallbackStrategy(this.fallbackSearchService);
       this.localSearchService = new LocalSearchService(
         this.cacheService,
-        nHopSearchStrategy,
-        queryFilterStrategy,
-        fallbackStrategy
+        this.nHopSearchService,
+        this.queryFilterService,
+        this.fallbackSearchService
       );
     }
     this.localSearchService.setDatabase(db);

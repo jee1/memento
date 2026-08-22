@@ -47,7 +47,6 @@ export class PerformanceMonitor implements CpuUsageHost {
   private cpuTracker = new CpuUsageTracker();
   private metricsHistory: PerformanceMetrics[] = [];
   private maxHistorySize = 1000;
-  private monitoringInterval: NodeJS.Timeout | null = null;
   // Scheduled path: only advanced by tick=true — keeps 5-min window intact
   scheduledCpuUsage: NodeJS.CpuUsage | null = null;
   scheduledMeasurementTime: number | null = null;
@@ -175,8 +174,8 @@ export class PerformanceMonitor implements CpuUsageHost {
     }
   }
 
-  resolveAlert(alertId: string): boolean {
-    return this.alertManager.resolveAlert(alertId);
+  resolveAlert(alertId: string, resolvedBy?: string, resolution?: string): boolean {
+    return this.alertManager.resolveAlert(alertId, resolvedBy, resolution);
   }
 
   async getMetrics(): Promise<PerformanceMetricsSnapshot> {
@@ -232,31 +231,6 @@ export class PerformanceMonitor implements CpuUsageHost {
 
   private generateRecommendations(alerts: PerformanceAlert[]): string[] {
     return generateRecommendations(alerts);
-  }
-
-  startMonitoring(intervalMs: number = 60000): void {
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-    }
-
-    this.monitoringInterval = setInterval(async () => {
-      try {
-        await this.collectMetrics({ tick: true });
-      } catch (error) {
-        logger.error('성능 모니터링 중 오류', { error: error instanceof Error ? error.message : String(error) });
-      }
-    }, intervalMs);
-  }
-
-  stopMonitoring(): void {
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-      this.monitoringInterval = null;
-    }
-  }
-
-  isMonitoring(): boolean {
-    return this.monitoringInterval !== null;
   }
 
   recordSearch(type: 'text' | 'vector' | 'hybrid', duration: number, cacheHit: boolean = false): void {

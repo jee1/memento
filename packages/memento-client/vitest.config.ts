@@ -1,10 +1,10 @@
 import { defineConfig } from 'vitest/config';
+import { baseTestConfig } from '../../vitest.base.js';
 
 export default defineConfig({
   test: {
+    ...baseTestConfig,
     globals: true,
-    environment: 'node',
     include: ['src/**/*.spec.ts'],
-    exclude: ['node_modules', 'dist'],
   },
 });

@@ -177,6 +177,7 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
   router.get('/memory/review-candidates/stream', (_req, res) => {
     try {
       attachReviewCandidatesSse(res);
+      return;
     } catch (error) {
       logger.error('Review candidates SSE attach failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -187,6 +188,7 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
           message: error instanceof Error ? error.message : 'Unknown error'
         });
       }
+      return;
     }
   });
 

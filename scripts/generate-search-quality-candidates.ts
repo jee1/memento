@@ -1,8 +1,8 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 
 import { writeFileSync, mkdirSync } from 'fs';
 import { isAbsolute, join } from 'path';
-import Database from 'better-sqlite3';
 import { initializeDatabase, closeDatabase } from '@memento/core';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
@@ -10,8 +10,8 @@ import {
   loadBenchmarkCorpus,
   type BenchmarkQuery,
   type BenchmarkCorpusEntry,
-} from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
-import { mergeCandidateIds } from '@memento/core/shared/ops/search-quality-cli-helpers.js';
+} from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
+import { mergeCandidateIds } from './lib/search-quality-candidate-builder.js';
 
 interface CliOptions {
   benchmarkDir: string;
@@ -21,7 +21,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     benchmarkDir: join(process.cwd(), 'tests', 'fixtures', 'search-quality', 'benchmark-v3'),
     limit: 30,
@@ -69,8 +69,8 @@ with random negatives, and writes label-candidates.json. Does NOT write
 ground-truth.json (human labeling only).
 
 Usage:
-  npm run quality:benchmark:candidates
-  npm run quality:benchmark:candidates -- --benchmark-dir tests/fixtures/search-quality/benchmark-v3 --limit 30 --random-negatives 10
+  npm run quality -- benchmark candidates
+  npm run quality -- benchmark candidates -- --benchmark-dir tests/fixtures/search-quality/benchmark-v3 --limit 30 --random-negatives 10
 
 Options:
   --benchmark-dir <dir>   Benchmark directory (default: tests/fixtures/search-quality/benchmark-v3)
@@ -128,7 +128,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  let db: Database.Database | null = null;
+  let db: CliDatabase | null = null;
 
   try {
     const queries = loadBenchmarkQueries(options.benchmarkDir);

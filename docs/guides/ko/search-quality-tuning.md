@@ -29,10 +29,10 @@ autoresearch 하네스는 **비교 → 탐색 → 리포트** 세 npm 스크립�
 
 ### 1. 두 프로파일 비교
 
-기존 프로파일 파일 두 개를 통계적으로 비교하려면 `quality:benchmark:compare-profiles`를 사용합니다.
+기존 프로파일 파일 두 개를 통계적으로 비교하려면 `npm run quality -- benchmark compare-profiles`를 사용합니다.
 
 ```bash
-npm run quality:benchmark:compare-profiles -- \
+npm run quality -- benchmark compare-profiles -- \
   --profile-a default \
   --profile-b feedback-heavy
 ```
@@ -51,10 +51,10 @@ npm run quality:benchmark:compare-profiles -- \
 
 ### 2. 가중치 자동 탐색
 
-baseline 프로파일을 기준으로 랜덤하게 N개의 후보 가중치를 생성·평가하려면 `quality:benchmark:tune-weights`를 사용합니다.
+baseline 프로파일을 기준으로 랜덤하게 N개의 후보 가중치를 생성·평가하려면 `npm run quality -- benchmark tune-weights`를 사용합니다.
 
 ```bash
-npm run quality:benchmark:tune-weights -- \
+npm run quality -- benchmark tune-weights -- \
   --candidates 50 \
   --seed 42 \
   --baseline-profile default
@@ -91,14 +91,14 @@ composite = 0.45 × ndcg_at_10
 
 ### 3. 튜닝 결과 리포트
 
-마지막 run의 결과를 표 형식으로 확인하려면 `quality:benchmark:tune-report`를 사용합니다.
+마지막 run의 결과를 표 형식으로 확인하려면 `npm run quality -- benchmark tune-report`를 사용합니다.
 
 ```bash
 # 최신 run 자동 탐색
-npm run quality:benchmark:tune-report
+npm run quality -- benchmark tune-report
 
 # 특정 run 지정
-npm run quality:benchmark:tune-report -- --run-dir tmp/tune-weights/run-42
+npm run quality -- benchmark tune-report -- --run-dir tmp/tune-weights/run-42
 ```
 
 리포트는 seed·평가된 후보 수·거부된 후보 수·baseline 복합 점수·최고 복합 점수와 함께, 상위 후보들을 MRR·NDCG·Recall·레이턴시 기준으로 정렬한 표를 출력합니다.
@@ -117,7 +117,7 @@ cp tmp/tune-weights/run-42/candidates/candidate-17.toml \
 그 다음 비교 스크립트로 실제 개선 여부를 확인합니다.
 
 ```bash
-npm run quality:benchmark:compare-profiles -- \
+npm run quality -- benchmark compare-profiles -- \
   --profile-a default \
   --profile-b tuned-v1
 ```
@@ -137,14 +137,14 @@ git commit -m "perf(ranking): tune weights — seed 42, candidate 17, composite 
 ## 전체 워크플로 요약
 
 ```
-1. npm run quality:benchmark:tune-weights -- --candidates 50 --seed 42
+1. npm run quality -- benchmark tune-weights -- --candidates 50 --seed 42
          ↓
-2. npm run quality:benchmark:tune-report
+2. npm run quality -- benchmark tune-report
    (best_toml_path 확인, mrr_verdict 확인)
          ↓
 3. best TOML → config/ranking-profiles/<name>.toml 저장
          ↓
-4. npm run quality:benchmark:compare-profiles -- --profile-a default --profile-b <name>
+4. npm run quality -- benchmark compare-profiles -- --profile-a default --profile-b <name>
    (verdict: b_better 확인)
          ↓
 5. ranking-weights.toml + default.toml 동시 업데이트

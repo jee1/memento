@@ -1,5 +1,5 @@
 import { tripleExtractionLogger } from '../../logging/triple-extraction-logger.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 export async function runConsolidationScoreIncremental(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {

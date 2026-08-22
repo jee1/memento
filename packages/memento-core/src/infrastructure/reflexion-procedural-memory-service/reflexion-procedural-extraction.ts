@@ -1,11 +1,11 @@
-import { LlmProceduralExtractor } from '../../domains/memory/services/procedural-llm-extractor.js';
+import { LlmProceduralExtractor } from '../../domains/memory/procedural/procedural-llm-extractor.js';
 import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
 import { mementoConfig } from '../../shared/config/index.js';
 import {
   extractProceduralMemory,
   type ExtractedProceduralMemory
-} from '../../shared/utils/procedural-memory-extractor.js';
-import type { ReflectionNotes } from '../../shared/utils/procedural-memory-extractor.types.js';
+} from '../../domains/memory/procedural/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 
 export async function resolveExtractedProceduralMemory(
   reflectionNote: ReflectionNotes | Record<string, unknown>,

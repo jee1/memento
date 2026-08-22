@@ -6,7 +6,7 @@ import { createHash, randomUUID } from 'crypto';
 import type Database from 'better-sqlite3';
 import { MEMENTO_LATEST_SCHEMA_VERSION } from '../../../shared/constants/schema-version.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { SchemaVersionManager } from '../../../infrastructure/database/database/migration/schema-version-manager.js';
+import { SchemaVersionManager } from '../../../infrastructure/database/sqlite/migration/schema-version-manager.js';
 
 export const MEMORY_JSONL_FORMAT_VERSION = 1;
 

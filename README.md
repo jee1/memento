@@ -107,11 +107,13 @@ curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.jee
 
 ### Docker 방식 (프로덕션용)
 ```bash
-docker-compose -f docker-compose.dev.yml up -d   # 개발
-docker-compose -f docker-compose.prod.yml up -d  # 프로덕션
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d   # 개발
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d  # 프로덕션
 ```
 
-**Log Issue Monitor**: 운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 `docker-compose.issue-monitor.yml` 오버레이를 사용합니다. 자세한 절차: [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md).
+이동된 환경 오버레이를 첫 파일로 사용할 때도 Compose 프로젝트 이름은 기본 `memento`로 유지됩니다. 다른 이름이 필요하면 `COMPOSE_PROJECT_NAME`을 설정하세요.
+
+**Log Issue Monitor**: 운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 `docker/docker-compose.issue-monitor.yml` 오버레이를 사용합니다. 자세한 절차: [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md).
 
 ### 소스코드 방식 (개발자용)
 
@@ -431,7 +433,7 @@ http://localhost:9001/graph
 - [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md)
 - [API 레퍼런스](docs/api/ko/api-reference.md)
 - [설정 가이드](docs/guides/ko/embedding-configuration.md)
-- [Consolidation Score 테스트 가이드](docs/_work/testing/ko/consolidation-quality-testing.md)
+- [Consolidation Score 테스트 가이드](docs/guides/ko/consolidation-quality-testing.md)
 
 ## 📋 API 문서
 
@@ -592,28 +594,16 @@ TTL_SOFT_PROCEDURAL=90
 ```bash
 npm run test
 
-npm run test:client
-npm run test:search
-npm run test:embedding
-npm run test:lightweight-embedding
-npm run test:gemini-embedding
-npm run test:forgetting
-npm run test:performance
-npm run test:monitoring
-npm run test:error-logging
-npm run test:performance-alerts
-npm run test:consolidation-quality
-npm run test:vector-search
-npm run test:memory-injection
-npm run test:batch-scheduler
+npm run test:ci:core
+npm run test:ci:server
+npm test -w @jee1/memento-client
 npm run benchmark:consolidation-quality
-npm run test:embedding-benchmark
 
 npm run test -- --watch
 npm run test -- --coverage
 ```
 
-공개 데이터셋(LongMemEval-S·LoCoMo)으로 검색 품질을 재는 하네스는 `npm run quality:longmemeval:acquire`·`npm run quality:locomo:acquire`로 데이터를 받은 뒤 `npm run quality:locomo:benchmark`로 돌립니다. 원본 데이터는 커밋하지 않으며, LoCoMo는 **CC BY-NC 4.0(비상업)** 이라 상업적 사용이 불가합니다. 절차와 현재 수치는 [benchmark-datasets.md](docs/_work/testing/ko/benchmark-datasets.md)에 있고, 프로덕션 검색이 단순 FTS 베이스라인을 넘지 못한 상태라 대외 수치로 쓰지 않습니다.
+공개 데이터셋(LongMemEval-S·LoCoMo)으로 검색 품질을 재는 하네스는 `npm run quality -- longmemeval acquire`·`npm run quality -- locomo acquire`로 데이터를 받은 뒤 `npm run quality -- locomo benchmark`로 돌립니다. 원본 데이터는 커밋하지 않으며, LoCoMo는 **CC BY-NC 4.0(비상업)** 이라 상업적 사용이 불가합니다. 절차와 현재 수치는 [benchmark-datasets.md](docs/guides/ko/benchmark-datasets.md)에 있고, 프로덕션 검색이 단순 FTS 베이스라인을 넘지 못한 상태라 대외 수치로 쓰지 않습니다.
 
 ## 📚 개발자 가이드라인
 

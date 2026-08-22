@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import type Database from 'better-sqlite3';
+import { startInterval } from '../../../infrastructure/scheduler/interval.js';
 import type { ServerServices } from '../../bootstrap.js';
 import { logger, mementoConfig } from '@memento/core';
 import { buildMcpManualCorsHeaders } from '../../utils/cors-policy.js';
@@ -55,7 +56,7 @@ export async function handleMcpSseConnection(
     res.write(`event: endpoint\ndata: /messages?sessionId=${sessionId}\n\n`);
     res.write(`data: {"type": "ready"}\n\n`);
 
-    const keepAliveInterval = setInterval(() => {
+    const keepAliveInterval = startInterval(() => {
       if (res.writableEnded) {
         clearInterval(keepAliveInterval);
         return;

@@ -7,7 +7,7 @@
 # deploy.sh가 최소 한 번 성공적으로 실행되어야 rollback 이미지가 존재합니다.
 set -euo pipefail
 
-COMPOSE_FILE="docker-compose.prod.yml"
+COMPOSE_FILE="docker/docker-compose.prod.yml"
 SERVICE="memento-prod"
 IMAGE="memento-prod:latest"
 ROLLBACK_IMAGE="memento-prod:rollback"
@@ -29,6 +29,10 @@ else
 fi
 
 cd "$(dirname "$0")/.."
+ENV_FILE_ARGS=()
+if [[ -f .env ]]; then
+  ENV_FILE_ARGS=(--env-file .env)
+fi
 
 log "=== Memento 롤백 시작 ==="
 
@@ -53,7 +57,7 @@ docker tag "$ROLLBACK_IMAGE" "$IMAGE"
 
 # 컨테이너 재시작
 log "컨테이너 재시작..."
-$DC -f "$COMPOSE_FILE" up -d "$SERVICE"
+$DC -p "${COMPOSE_PROJECT_NAME:-memento}" "${ENV_FILE_ARGS[@]}" -f "$COMPOSE_FILE" up -d "$SERVICE"
 
 # 헬스체크 대기
 log "헬스체크 대기 (최대 ${MAX_WAIT}초)..."
@@ -61,7 +65,7 @@ for i in $(seq 1 $MAX_WAIT); do
   if curl -sf "$HEALTH_URL" >/dev/null 2>&1; then
     log "=== 롤백 성공! (${i}초 소요) ==="
     log "현재 실행 중인 이미지: $ROLLBACK_ID"
-    $DC -f "$COMPOSE_FILE" ps
+    $DC -p "${COMPOSE_PROJECT_NAME:-memento}" "${ENV_FILE_ARGS[@]}" -f "$COMPOSE_FILE" ps
     exit 0
   fi
   printf "."
@@ -71,6 +75,6 @@ echo ""
 
 err "롤백 후 헬스체크도 실패했습니다."
 err "수동 확인:"
-err "  docker-compose -f $COMPOSE_FILE logs $SERVICE"
-err "  docker-compose -f $COMPOSE_FILE ps"
+err "  $DC -p \"${COMPOSE_PROJECT_NAME:-memento}\" -f $COMPOSE_FILE logs $SERVICE"
+err "  $DC -p \"${COMPOSE_PROJECT_NAME:-memento}\" -f $COMPOSE_FILE ps"
 exit 1

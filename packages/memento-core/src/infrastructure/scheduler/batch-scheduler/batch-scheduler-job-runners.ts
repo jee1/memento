@@ -1,4 +1,4 @@
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from './batch-scheduler-types.js';
 import {
   runHealthCheck,
   runMemoryCleanup,

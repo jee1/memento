@@ -30,7 +30,7 @@ stdio도 **기술적으로는 가능**합니다 (`## 옵션: stdio 마운트 패
 
 ```bash
 # 저장소 클론 후
-docker compose -f docker-compose.prod.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 ```
 
 기본 포트는 `9001`이고, MCP 라우트는 `/mcp`, 헬스 체크는 `/health` 입니다. 컨테이너에서 호스트로 접근하려면 호스트의 방화벽이 `9001`을 막지 않도록 두거나, NanoClaw 컨테이너와 같은 docker network에 Memento를 올려두세요.
@@ -159,7 +159,7 @@ curl -i -H "Authorization: Bearer $MEMENTO_TOKEN" \
   http://localhost:9001/api/v1/quality/snapshot
 
 # Memento 컨테이너 로그에서 NanoClaw의 호출이 보이는지
-docker compose -f docker-compose.prod.yml logs --tail=50 memento
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml logs --tail=50 memento
 ```
 
 `/health`가 `200`, 토큰 검증이 `200`이면 NanoClaw가 같은 헤더로 보낼 때도 통과합니다. `401`이면 [`./_shared/auth.md`](./_shared/auth.md)와 [`./_shared/troubleshooting.md`](./_shared/troubleshooting.md#401-unauthorized) 참조.

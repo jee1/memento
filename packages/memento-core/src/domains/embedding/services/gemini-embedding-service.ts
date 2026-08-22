@@ -12,6 +12,13 @@ import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manage
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { logger, isCliQuiet } from '../../../shared/utils/logger.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
+import {
+  cleanupEmbeddingCache,
+  estimateEmbeddingTokens,
+  generateEmbeddingCacheKey,
+  rankSimilarEmbeddings,
+  truncateEmbeddingText,
+} from './embedding-helpers.js';
 
 export interface GeminiEmbeddingResult {
   embedding: number[];
@@ -35,8 +42,6 @@ export class GeminiEmbeddingService {
   private readonly model: string;
   private readonly maxTokens = 2048; // Gemini text-embedding-004 최대 토큰
   private embeddingCache: Map<string, GeminiEmbeddingResult> = new Map(); // 임베딩 캐시
-  private batchQueue: string[] = []; // 배치 처리 큐
-  private batchTimeout: NodeJS.Timeout | null = null;
   private readonly retryManager: RetryManager;
 
   constructor() {
@@ -86,7 +91,7 @@ export class GeminiEmbeddingService {
     }
 
     // 1. 캐시 확인
-    const cacheKey = this.generateCacheKey(text);
+    const cacheKey = generateEmbeddingCacheKey('gemini_embedding', text, true);
     const cached = this.embeddingCache.get(cacheKey);
     if (cached) {
       return cached;
@@ -104,7 +109,7 @@ export class GeminiEmbeddingService {
         }
 
         // 토큰 수 제한 확인
-        const truncatedText = this.truncateText(text);
+        const truncatedText = truncateEmbeddingText(text, this.maxTokens);
         
         // RetryManager를 사용하여 외부 API 호출 재시도
         const retryOptions = getRetryOptions();
@@ -152,14 +157,14 @@ export class GeminiEmbeddingService {
           embedding: Array.from(embedding) as number[],
           model: this.model,
           usage: {
-            prompt_tokens: this.estimateTokens(truncatedText),
-            total_tokens: this.estimateTokens(truncatedText),
+            prompt_tokens: estimateEmbeddingTokens(truncatedText),
+            total_tokens: estimateEmbeddingTokens(truncatedText),
           },
         };
 
         // 캐시에 저장
         this.embeddingCache.set(cacheKey, embeddingResult);
-        this.cleanupCache();
+        cleanupEmbeddingCache(this.embeddingCache);
         
         return embeddingResult;
       } catch (error) {
@@ -185,7 +190,7 @@ export class GeminiEmbeddingService {
 
       // 캐시에 저장
       this.embeddingCache.set(cacheKey, result);
-      this.cleanupCache();
+      cleanupEmbeddingCache(this.embeddingCache);
       
       return result;
     } catch (error) {
@@ -210,112 +215,9 @@ export class GeminiEmbeddingService {
       return [];
     }
 
-    // 코사인 유사도 계산
-    const similarities = embeddings.map(item => {
-      const similarity = this.cosineSimilarity(queryEmbedding.embedding, item.embedding);
-      return {
-        id: item.id,
-        content: item.content,
-        similarity,
-        score: similarity
-      };
+    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold, {
+      nanAsZero: true,
     });
-
-    // 유사도 순으로 정렬하고 임계값 필터링
-    return similarities
-      .filter(item => item.similarity >= threshold)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
-  }
-
-  /**
-   * 코사인 유사도 계산
-   */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) {
-      throw new Error('벡터 차원이 일치하지 않습니다');
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      const aVal = a[i] || 0;
-      const bVal = b[i] || 0;
-      dotProduct += aVal * bVal;
-      normA += aVal * aVal;
-      normB += bVal * bVal;
-    }
-
-    normA = Math.sqrt(normA);
-    normB = Math.sqrt(normB);
-
-    if (normA === 0 || normB === 0) {
-      return 0;
-    }
-
-    return dotProduct / (normA * normB);
-  }
-
-  /**
-   * 캐시 키 생성
-   */
-  private generateCacheKey(text: string): string {
-    // 텍스트 해시를 사용하여 캐시 키 생성
-    return `gemini_embedding:${this.hashText(text)}`;
-  }
-
-  /**
-   * 텍스트 해시 생성
-   */
-  private hashText(text: string): string {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // 32비트 정수로 변환
-    }
-    return Math.abs(hash).toString(36);
-  }
-
-  /**
-   * 캐시 정리
-   */
-  private cleanupCache(): void {
-    const maxCacheSize = 1000;
-    if (this.embeddingCache.size > maxCacheSize) {
-      const entries = Array.from(this.embeddingCache.entries());
-      this.embeddingCache.clear();
-      // 최신 500개만 유지
-      entries.slice(-500).forEach(([key, value]) => {
-        this.embeddingCache.set(key, value);
-      });
-    }
-  }
-
-  /**
-   * 텍스트를 토큰 제한에 맞게 자르기
-   */
-  private truncateText(text: string): string {
-    // 간단한 토큰 추정 (1 토큰 ≈ 4 문자)
-    const estimatedTokens = text.length / 4;
-    
-    if (estimatedTokens <= this.maxTokens) {
-      return text;
-    }
-
-    // 토큰 제한에 맞게 자르기
-    const maxChars = this.maxTokens * 4;
-    return text.substring(0, maxChars);
-  }
-
-  /**
-   * 토큰 수 추정
-   */
-  private estimateTokens(text: string): number {
-    // 간단한 추정: 1 토큰 ≈ 4 문자
-    return Math.ceil(text.length / 4);
   }
 
   /**

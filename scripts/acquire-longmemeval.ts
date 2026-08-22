@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 import { createHash } from 'node:crypto';
 import {
@@ -63,13 +64,13 @@ export async function acquireLongMemEval(
 }
 
 async function main(): Promise<void> {
-  const outputPath = process.argv[2]
+  const outputPath = parseCliArgs().args[0]
     ?? join(process.cwd(), '.local/longmemeval', LONGMEMEVAL_DATASET_FILE);
-  const revision = process.argv[3] ?? LONGMEMEVAL_DATASET_REVISION;
+  const revision = parseCliArgs().args[1] ?? LONGMEMEVAL_DATASET_REVISION;
   await acquireLongMemEval(outputPath, revision);
   process.stdout.write(`${outputPath}\n`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMain(import.meta.url)) {
   await main();
 }

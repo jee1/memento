@@ -1,4 +1,4 @@
-import type { BatchJobResult } from './batch-scheduler-types.js';
+import type { BatchJobResult } from './batch-scheduler/batch-scheduler-types.js';
 
 /** Issue #293: diagnostics / log aggregation용 고정 타입 */
 export const MEMORY_REVIEW_CANDIDATES_RUN_EVENT_TYPE = 'memory_review_candidates_run' as const;

@@ -1,5 +1,6 @@
 /**
- * telemetry-cli 단위 테스트 (specs/007-telemetry-cli-mcp)
+ * telemetry-cli 단위 테스트 — immutable baseline spec:
+ * https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/007-telemetry-cli-mcp/spec.md
  */
 
 import { describe, it, expect } from 'vitest';

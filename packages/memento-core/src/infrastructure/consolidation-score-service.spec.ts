@@ -5,6 +5,7 @@
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 // MUST be at the top before any imports
 import { vi } from 'vitest';
+import { DAY_MS } from '../shared/utils/date.js';
 vi.mock('@huggingface/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
@@ -196,7 +197,7 @@ describe('ConsolidationScoreService', () => {
 
     it('should use createdAt when lastAccessedAt is null', () => {
       const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const oneDayAgo = new Date(now.getTime() - DAY_MS);
       const result = service.calculateTimeElapsed(null, oneDayAgo, now);
       expect(result).toBeCloseTo(24.0, 2);
     });
@@ -238,7 +239,7 @@ describe('ConsolidationScoreService', () => {
       return {
         recallCount: 1,
         lastAccessedAt: now,
-        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+        createdAt: new Date(now.getTime() - DAY_MS),
         gValue: 1.0,
         type: 'episodic',
         pinned: false,
@@ -265,7 +266,7 @@ describe('ConsolidationScoreService', () => {
       const input = createInput({
         gValue: null,
         recallCount: 3,
-        lastAccessedAt: new Date(now.getTime() - 24 * 60 * 60 * 1000), // 24시간 전
+        lastAccessedAt: new Date(now.getTime() - DAY_MS), // 24시간 전
         createdAt: new Date(now.getTime() - 48 * 60 * 60 * 1000) // 48시간 전
       });
       const result = service.calculateScore(input);
@@ -275,7 +276,7 @@ describe('ConsolidationScoreService', () => {
 
     it('should use createdAt when lastAccessedAt is null', () => {
       const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const oneDayAgo = new Date(now.getTime() - DAY_MS);
       const input = createInput({
         lastAccessedAt: null,
         createdAt: oneDayAgo
@@ -295,7 +296,7 @@ describe('ConsolidationScoreService', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const input = createInput({ pinned: true });
       // 매우 오래된 메모리로 설정하여 점수가 낮아지도록 함
-      const veryOld = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const veryOld = new Date(Date.now() - 365 * DAY_MS);
       const oldInput = createInput({
         pinned: true,
         lastAccessedAt: veryOld,
@@ -319,8 +320,8 @@ describe('ConsolidationScoreService', () => {
         createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000)
       });
       const old = createInput({
-        lastAccessedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7일 전
-        createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000)
+        lastAccessedAt: new Date(now.getTime() - 7 * DAY_MS), // 7일 전
+        createdAt: new Date(now.getTime() - 8 * DAY_MS)
       });
       const recentResult = service.calculateScore(recent);
       const oldResult = service.calculateScore(old);
@@ -329,7 +330,7 @@ describe('ConsolidationScoreService', () => {
 
     it('should return higher score for higher recallCount with same time elapsed', () => {
       const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const oneDayAgo = new Date(now.getTime() - DAY_MS);
       
       // gValue를 null로 설정하여 recallCount에 따라 재계산되도록 함
       const lowRecall = createInput({
@@ -401,7 +402,7 @@ describe('ConsolidationScoreService', () => {
 
     it('should handle very large recallCount', () => {
       const now = new Date();
-      const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      const oneYearAgo = new Date(now.getTime() - 365 * DAY_MS);
       const input: ConsolidationScoreInput = {
         recallCount: 1000,
         lastAccessedAt: now,
@@ -422,7 +423,7 @@ describe('ConsolidationScoreService', () => {
       const input: ConsolidationScoreInput = {
         recallCount: 0,
         lastAccessedAt: null,
-        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+        createdAt: new Date(now.getTime() - DAY_MS),
         gValue: null,
         type: 'episodic',
         pinned: false
@@ -441,7 +442,7 @@ describe('ConsolidationScoreService', () => {
         const input: ConsolidationScoreInput = {
           recallCount: 1,
           lastAccessedAt: now,
-          createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+          createdAt: new Date(now.getTime() - DAY_MS),
           gValue: 1.0,
           type,
           pinned: false
@@ -470,4 +471,3 @@ describe('ConsolidationScoreService', () => {
     });
   });
 });
-

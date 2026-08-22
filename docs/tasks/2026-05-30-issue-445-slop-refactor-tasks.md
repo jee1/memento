@@ -46,7 +46,7 @@ TK-015 blockedBy TK-017
 ## Phase 0: 준비 (Setup)
 
 - [ ] TK-001 [AC-1] [setup] Issue #445 후속 작업용 feature 브랜치 `chore/issue-445-slop-refactor`를 main에서 생성
-- [ ] TK-002 [P] [AC-4] [setup] `slop-detector --project <path> --js --config .slopconfig.yaml`로 Before slop 점수 기록 — 대상: `packages/memento-core/src/domains/memory/tools/recall-tool.ts`, `static/js/review-candidates-panel.js`, `static/js/memory-evolution-demo-shell.js`
+- [ ] TK-002 [P] [AC-4] [setup] `slop-detector --project <path> --js --config .slopconfig.yaml`로 Before slop 점수 기록 — 대상: `packages/memento-core/src/domains/memory/recall/recall-tool.ts`, `static/js/review-candidates-panel.js`, `static/js/memory-evolution-demo-shell.js`
 
 ## Phase 1: 기반 (Foundation)
 
@@ -55,9 +55,9 @@ TK-015 blockedBy TK-017
 ## Phase 2: AC-1 — recall-tool.ts CRITICAL_DEFICIT 제거 (PR-A)
 
 - [ ] TK-004 [AC-1] 모듈 분리 전 `packages/memento-core/src/domains/memory/tools/__tests__/recall-tool.spec.ts` 103개 케이스 전부 통과 확인 — proves T-1
-- [ ] TK-005 [AC-1] `packages/memento-core/src/domains/memory/tools/recall-tool.ts` constructor의 MCP schema JSON을 `recall-tool-schema.ts` 또는 신규 `recall-tool-definition.ts`로 이동 — proves T-1
+- [ ] TK-005 [AC-1] `packages/memento-core/src/domains/memory/recall/recall-tool.ts` constructor의 MCP schema JSON을 `recall-tool-schema.ts` 또는 신규 `recall-tool-definition.ts`로 이동 — proves T-1
 - [ ] TK-006 [AC-1] search/post-search/envelope 파이프라인을 `packages/memento-core/src/domains/memory/tools/` 하위 sibling 모듈로 분리 (예: `recall-tool-search-execution.ts`, `recall-tool-post-search.ts`, `recall-tool-envelope.ts`) — proves T-1
-- [ ] TK-007 [AC-1] `packages/memento-core/src/domains/memory/tools/recall-tool.ts`의 `RecallTool.handle`을 coordinator 전용으로 축소; outer `handleFailure`·inner search telemetry rethrow 경로 유지 — proves T-1
+- [ ] TK-007 [AC-1] `packages/memento-core/src/domains/memory/recall/recall-tool.ts`의 `RecallTool.handle`을 coordinator 전용으로 축소; outer `handleFailure`·inner search telemetry rethrow 경로 유지 — proves T-1
 - [ ] TK-008 [AC-1] PR-A에서 `packages/memento-core/src/domains/memory/tools/__tests__/telemetry-instrumentation.integration.spec.ts` recall 실패 체인 실행 — proves T-2
 - [ ] TK-013 [AC-3] **PR-A merge 전** repo root에서 `npm test`, `npm run lint`, `npm run type-check` 실행 (`package.json` 스크립트); 모두 exit 0 — PR-A 품질 게이트
 

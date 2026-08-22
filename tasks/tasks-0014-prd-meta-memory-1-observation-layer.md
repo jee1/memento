@@ -2,15 +2,15 @@
 
 ## Relevant Files
 
-- `src/infrastructure/database/database/migration/migrations/007-meta-memory-observation-fields.sql` - Meta-Memory 관찰 필드 추가 마이그레이션 스크립트
-- `src/infrastructure/database/database/migration/migrations/007-meta-memory-observation-fields.ts` - Meta-Memory 관찰 필드 추가 마이그레이션 TypeScript 구현
-- `src/infrastructure/database/database/migration/migrations/007-meta-memory-observation-fields.spec.ts` - 마이그레이션 단위 테스트
+- `src/infrastructure/database/sqlite/migration/migrations/007-meta-memory-observation-fields.sql` - Meta-Memory 관찰 필드 추가 마이그레이션 스크립트
+- `src/infrastructure/database/sqlite/migration/migrations/007-meta-memory-observation-fields.ts` - Meta-Memory 관찰 필드 추가 마이그레이션 TypeScript 구현
+- `src/infrastructure/database/sqlite/migration/migrations/007-meta-memory-observation-fields.spec.ts` - 마이그레이션 단위 테스트
 - `src/domains/monitoring/services/memory-observation-service.ts` - 기억 단위 관찰 지표 수집 서비스
 - `src/domains/monitoring/services/memory-observation-service.spec.ts` - MemoryObservationService 단위 테스트
 - `src/domains/monitoring/services/tool-observation-service.ts` - 도구 단위 관찰 지표 수집 서비스
 - `src/domains/monitoring/services/tool-observation-service.spec.ts` - ToolObservationService 단위 테스트
-- `src/domains/memory/tools/remember-tool.ts` - Remember Tool에 관찰 데이터 수집 로직 통합
-- `src/domains/memory/tools/recall-tool.ts` - Recall Tool에 관찰 데이터 수집 로직 통합
+- `src/domains/memory/remember/remember-tool.ts` - Remember Tool에 관찰 데이터 수집 로직 통합
+- `src/domains/memory/recall/recall-tool.ts` - Recall Tool에 관찰 데이터 수집 로직 통합
 - `src/domains/memory/tools/__tests__/remember-tool.spec.ts` - Remember Tool 관찰 통합 테스트
 - `src/domains/memory/tools/__tests__/recall-tool.spec.ts` - Recall Tool 관찰 통합 테스트
 - `src/domains/monitoring/services/memory-stats-service.ts` - 기억 단위 통계 조회 서비스
@@ -28,7 +28,7 @@
 ### Notes
 
 - 단위 테스트는 각 서비스/도구 파일과 같은 디렉토리에 `.spec.ts` 확장자로 배치합니다.
-- 마이그레이션 파일은 `src/infrastructure/database/database/migration/migrations/` 디렉토리에 배치합니다.
+- 마이그레이션 파일은 `src/infrastructure/database/sqlite/migration/migrations/` 디렉토리에 배치합니다.
 - 관찰 서비스는 `src/domains/monitoring/services/` 디렉토리에 배치합니다.
 - MCP Tool은 `src/domains/monitoring/tools/` 디렉토리에 배치합니다.
 - `npm test` 명령으로 모든 테스트를 실행할 수 있습니다.

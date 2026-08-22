@@ -96,9 +96,11 @@ The listing metadata lives in the root [`server.json`](server.json); every stabl
 
 ### Docker Method (For Production)
 ```bash
-docker-compose -f docker-compose.dev.yml up -d   # Development
-docker-compose -f docker-compose.prod.yml up -d  # Production
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d   # Development
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d  # Production
 ```
+
+When a moved environment overlay is the first file, the Compose project name still defaults to `memento`. Set `COMPOSE_PROJECT_NAME` to override it.
 
 ### Source Code Method (For Developers)
 ```bash
@@ -444,26 +446,16 @@ TTL_SOFT_PROCEDURAL=90
 ```bash
 npm run test
 
-npm run test:client
-npm run test:search
-npm run test:embedding
-npm run test:lightweight-embedding
-npm run test:gemini-embedding
-npm run test:forgetting
-npm run test:performance
-npm run test:monitoring
-npm run test:error-logging
-npm run test:performance-alerts
-npm run test:vector-search
-npm run test:memory-injection
-npm run test:batch-scheduler
-npm run test:embedding-benchmark
+npm run test:ci:core
+npm run test:ci:server
+npm test -w @jee1/memento-client
+npm run benchmark:consolidation-quality
 
 npm run test -- --watch
 npm run test -- --coverage
 ```
 
-Retrieval quality against public datasets (LongMemEval-S, LoCoMo) runs through the same harness: acquire with `npm run quality:longmemeval:acquire` / `npm run quality:locomo:acquire`, then run `npm run quality:locomo:benchmark`. Raw datasets are never committed, and LoCoMo is **CC BY-NC 4.0 (NonCommercial)**, so its numbers cannot back commercial claims. The procedure and current results live in [benchmark-datasets.md](docs/_work/testing/ko/benchmark-datasets.md); the production search path does not yet beat a plain FTS baseline, so these figures are kept as an internal regression metric rather than published.
+Retrieval quality against public datasets (LongMemEval-S, LoCoMo) runs through the same harness: acquire with `npm run quality -- longmemeval acquire` / `npm run quality -- locomo acquire`, then run `npm run quality -- locomo benchmark`. Raw datasets are never committed, and LoCoMo is **CC BY-NC 4.0 (NonCommercial)**, so its numbers cannot back commercial claims. The procedure and current results live in [benchmark-datasets.md](docs/guides/ko/benchmark-datasets.md); the production search path does not yet beat a plain FTS baseline, so these figures are kept as an internal regression metric rather than published.
 
 ## 📚 Developer Guidelines
 

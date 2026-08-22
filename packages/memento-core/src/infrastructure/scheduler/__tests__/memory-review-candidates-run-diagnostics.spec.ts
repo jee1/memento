@@ -3,7 +3,7 @@ import {
   buildMemoryReviewCandidatesRunDiagnosticsPayload,
   MEMORY_REVIEW_CANDIDATES_RUN_EVENT_TYPE
 } from '../memory-review-candidates-run-diagnostics.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 
 function baseResult(over: Partial<BatchJobResult> = {}): BatchJobResult {
   const start = new Date('2026-05-09T10:00:00.000Z');

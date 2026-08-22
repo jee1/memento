@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { daysBetween } from '../../../../shared/utils/date.js';
 import type {
   ResolvedTripleExtractionBatchJobConfig,
   TripleExtractionTargetMemory
@@ -58,9 +59,7 @@ export function shouldRetryTripleExtraction(
     }
 
     const lastAttemptDate = new Date(lastAttempt);
-    const daysSinceLastAttempt = Math.floor(
-      (now.getTime() - lastAttemptDate.getTime()) / (24 * 60 * 60 * 1000)
-    );
+    const daysSinceLastAttempt = Math.floor(daysBetween(now, lastAttemptDate));
 
     const backoffDays = config.retryBackoffDays[retryCount] ??
       config.retryBackoffDays[config.retryBackoffDays.length - 1] ?? 1;

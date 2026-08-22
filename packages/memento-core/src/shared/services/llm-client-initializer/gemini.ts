@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../../config/index.js';
-import type { LLMProvider } from '../../types/index.js';
+import type { LLMProvider } from '../../types/memory.types.js';
 import type { LLMClientInitializationResult } from './types.js';
 import {
   addWarning,

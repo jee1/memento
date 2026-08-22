@@ -15,7 +15,7 @@ model: auto
 
 ## `ts-pre-reviewer`와의 구분
 
-- **`ts-pre-reviewer`**: TypeScript 사전 리뷰, 고정 출력 형식, `docs/_work/code_review/` 문서 작성이 목표일 때 적합하다
+- **`ts-pre-reviewer`**: TypeScript 사전 리뷰와 고정 출력 형식이 필요할 때 적합하다
 - **`code-review-specialist`**: 언어·형식에 덜 묶인 **일반 코드 리뷰**(PR 품질·리스크·병합 판단). 필요 시 위 경로에 코멘트를 옮기라고 **제안만** 할 수 있다
 
 ## 리뷰 축 (체크리스트)

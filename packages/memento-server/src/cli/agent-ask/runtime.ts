@@ -341,6 +341,7 @@ async function collectPersistenceBlock(
       return { kind: 'exit', code: 130 };
     }
     const c = runResult.candidates[i];
+    if (c === undefined) continue;
     const ans = await interaction.promptFn(c, i, runResult.candidates.length, interruptRef);
     if (ans === 'interrupt') {
       await writeErr('중단되어 저장하지 않습니다.\n');

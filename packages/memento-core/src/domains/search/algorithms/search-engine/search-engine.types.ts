@@ -2,7 +2,7 @@
  * SearchEngine 내부 타입
  */
 
-import type { MemorySearchFilters } from '../../../../shared/types/index.js';
+import type { MemorySearchFilters } from '../../../../shared/types/search.types.js';
 
 export interface SearchQuery {
   query: string;

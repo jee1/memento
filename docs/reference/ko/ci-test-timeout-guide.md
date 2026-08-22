@@ -14,14 +14,13 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 
 - **현재**: 
   - **lint-typecheck**: lint + 콘솔/retry 검사 + type-check (한 job).
-  - **test-root**, **test-core**, **test-server**, **test-client**, **test-search-quality**: 위 job 통과 후 **동시에** 5개 테스트 job 실행.
-  - 각 테스트 job은 **해당 영역만** 실행 (`test:ci:root`, `test:ci:core`, `test:ci:server`, `test:ci -w @memento/client`, `test:vector-search-quality:ci`).
+  - **test-root**, **test-core**, **test-server**, **test-client**, **test-agent-integration**, **test-assistant**, **test-scripts**: 위 job 통과 후 **동시에** 7개 테스트 job 실행.
+  - 각 PR 테스트 job은 **해당 영역만** 실행 (`test:ci:root`, `test:ci:core`, `test:ci:server`, client/agent-integration/assistant workspace의 `test:ci`, `test:ci:scripts`).
   - **중복 제거**: 루트 test:ci로 “전체”를 한 번에 돌리지 않고, 영역별로 나눠 한 번씩만 실행.
-  - **test-search-quality** (#665): 랭킹·벡터 검색 benchmark 회귀 감지. 랭킹 가중치 변경 PR에서 실패 시 merge 차단.
-  - **nightly category-report** (#731): 매주 `quality:benchmark:category-report`를 실행하고, 필수 카테고리의 평가 가능한 Ground Truth가 없거나 MRR이 하나라도 0.5 미만이면 실패.
+  - **weekly test-search-quality** (#665, #731): `nightly-tests.yml`에서 매주 `npm run test:vector-search-quality:ci`와 `npm run quality -- benchmark category-report`를 실행한다. 필수 카테고리의 평가 가능한 Ground Truth가 없거나 MRR이 하나라도 0.5 미만이면 nightly job이 실패하며, 현재 PR merge gate는 아님.
 
 - **효과**:  
-  - 총 소요 시간 ≈ **lint-typecheck 시간 + max(test-root, test-core, test-server, test-client)**.  
+  - 총 소요 시간 ≈ **lint-typecheck 시간 + max(7개 병렬 테스트 job의 실행 시간)**.
   - 이전처럼 “전체 테스트 + client 한 번 더”가 아니라, 가장 느린 하나의 테스트 job 시간만큼만 추가됨.
 
 ### 2. 사용 스크립트
@@ -30,50 +29,35 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 - `test:ci:root` — 루트 `tests/` 전용 (Vitest).
 - `test:ci:core` — `packages/memento-core/src/`.
 - `test:ci:server` — `packages/memento-server/src/`.
-- 클라이언트 — CI에서는 `npm run build` 후 `npm run test:ci -w @memento/client` 한 번만 실행.
+- 클라이언트 — CI에서는 `npm run build` 후 `npm run test:ci -w @jee1/memento-client` 한 번만 실행.
+- 에이전트 통합 — `npm run test:ci -w @memento/agent-integration`.
+- 어시스턴트 — 필요한 workspace dist와 client를 빌드한 뒤 `npm run test:ci -w @jee1/memento-assistant`.
+- 운영 스크립트 — core를 빌드한 뒤 `npm run test:ci:scripts`.
 
 ### 3. job별 타임아웃
 
 - lint-typecheck: 15분  
 - test-root / test-core: 각 45분  
-- test-server: 20분  
-- test-client: 25분 (build 포함)  
-- test-search-quality: 45분 (`test:vector-search-quality:ci` + `quality:benchmark:category-report`, JUnit/JSON 리포트)
+- test-server / test-agent-integration / test-scripts: 각 20분
+- test-client / test-assistant: 각 25분 (필요한 build 포함)
+- weekly test-search-quality: 45분 (`npm run test:vector-search-quality:ci` + `npm run quality -- benchmark category-report`, JUnit/JSON 리포트; `nightly-tests.yml`)
 
 필요 시 각 job의 `timeout-minutes`만 조정하면 됨.
 
-### 4. Vitest CI exclude inventory (`vitest.config.ts` L49–62)
+### 4. Vitest CI exclude inventory (`vitest.base.ts`)
 
-PR job(`test:ci:*`)은 `CI=true`일 때 아래 패턴을 **자동 제외**합니다.  
-**만료 정책**: 2026-09-01까지 분기별(또는 exclude 변경 시) 재검토. 만료 전에 PR gate 복원 또는 nightly subset 확대 여부를 결정합니다.
+공통 설정은 일반 CI에서 **`**/*.nightly.spec.ts`만 자동 제외**합니다. `VITEST_INCLUDE_NIGHTLY=1`이면 이 제외도 해제됩니다. 파일명에 `db`, `database`, `integration`, `performance`, `m1`, `error-handling`이 들어간 일반 spec은 별도 패턴으로 제외하지 않으며 PR의 해당 영역 job에서 수집됩니다.
 
-| 패턴 | 제외 대상 | 사유 | 대체 job / 실행 경로 | 검토 만료 |
-|------|-----------|------|----------------------|-----------|
-| `**/test/**/*db*.{test,spec}.{js,ts}` | DB 직접 접근 테스트 | wall-clock·SQLite 의존 | `nightly-tests.yml` → `test-integration-subset` | 2026-09-01 |
-| `**/test/**/*database*.{test,spec}.{js,ts}` | database 명명 테스트 | 동일 | nightly integration subset | 2026-09-01 |
-| `**/test/**/*integration*.{test,spec}.{js,ts}` | 통합 테스트 | 느림·환경 의존 | nightly `test-integration-subset` (핵심 3건 직접 실행) | 2026-09-01 |
-| `**/test/**/*m1*.{test,spec}.{js,ts}` | M1 마일스톤 스위트 | 레거시·무거움 | nightly 확대 후보 (미포함) | 2026-09-01 |
-| `**/test/**/*performance*.{test,spec}.{js,ts}` | 성능 벤치마크 | 변동·시간 | 로컬 / 수동 benchmark | 2026-09-01 |
-| `**/test/**/*error-handling*.{test,spec}.{js,ts}` | 에러 핸들링 E2E | 긴 tail 시나리오 | nightly 확대 후보 | 2026-09-01 |
-| `packages/memento-core/src/domains/monitoring/services/quality-assurance/*.spec.ts` | QA 모니터링 스위트 | CI wall-clock | 로컬 `vitest` 직접 실행 | 2026-09-01 |
-| `**/migration-runner.integration.spec.ts` | 마이그레이션 통합 | DB·스키마 전체 | nightly `test-integration-subset` | 2026-09-01 |
+`ci.yml`은 현재 `SKIP_DB_TESTS=true`, `SKIP_INTEGRATION_TESTS=true`를 환경 변수로 제공하지만, 이는 Vitest 수집 제외 패턴이 아닙니다. 개별 spec이 그 변수를 명시적으로 읽어 skip하도록 작성된 경우에만 해당 spec 내부 동작에 영향을 줍니다.
 
-**환경 변수 스킵** (workflow `env`, PR 기본값):
-
-| 변수 | PR (`ci.yml`) | Weekly (`nightly-tests.yml`) |
-|------|---------------|------------------------------|
-| `SKIP_DB_TESTS` | `true` | `false` |
-| `SKIP_INTEGRATION_TESTS` | `true` | `false` |
-
-**검색 품질 benchmark**는 exclude 대상이 아니며, PR gate **`test-search-quality`** job에서 `npm run test:vector-search-quality:ci`로 항상 실행합니다 (#665).
-카테고리 리포트도 Vitest exclude 대상이 아니며 weekly **`nightly-tests.yml`**의 `test-search-quality` job에서 별도 blocking gate로 실행합니다 (#731). 이 gate를 PR로 승격할지, nightly 범위를 조정할지는 exclude inventory와 함께 **2026-09-01**까지 재검토합니다.
+**검색 품질 benchmark와 카테고리 리포트**는 weekly **`nightly-tests.yml`**의 `test-search-quality` job에서 각각 `npm run test:vector-search-quality:ci`와 `npm run quality -- benchmark category-report`로 실행합니다 (#665, #731). 현재 PR merge gate는 아니며, PR로 승격할지나 nightly 범위를 조정할지는 exclude inventory와 함께 **2026-09-01**까지 재검토합니다.
 
 ---
 
 ## 현황 참고
 
-- **테스트 규모**: 루트 `tests/` 약 225, memento-core 약 197, memento-server 13, memento-client 1 (총 약 436).
-- **이미 적용된 완화**: `SKIP_DB_TESTS`, `SKIP_INTEGRATION_TESTS`, `vitest.config.ts`의 CI 전용 exclude(일부 db/integration/performance 등).
+- **PR 테스트 토폴로지**: `lint-typecheck` 뒤 root/core/server/client/agent-integration/assistant/scripts 7개 영역 job을 병렬 실행.
+- **CI 전용 파일 제외**: 일반 PR 수집에서는 `*.nightly.spec.ts`만 제외하며, ordinary DB·integration·performance spec은 수집 대상.
 
 ---
 

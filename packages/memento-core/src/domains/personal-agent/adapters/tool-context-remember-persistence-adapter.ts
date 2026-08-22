@@ -1,5 +1,5 @@
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { RememberTool } from '../../memory/tools/remember-tool.js';
+import { RememberTool } from '../../memory/remember/remember-tool.js';
 import { mapKnowledgeCandidateToRememberParams } from '../mappers/knowledge-candidate-to-remember-params.js';
 import type { IPersistencePort } from '../ports/persistence-port.js';
 import type {

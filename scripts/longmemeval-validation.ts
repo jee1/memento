@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 import { createHash } from 'node:crypto';
 import {
@@ -290,10 +291,10 @@ function parseCli(argv: string[]): ValidationOptions {
 }
 
 function main(): void {
-  const result = runLongMemEvalValidation(parseCli(process.argv.slice(2)));
+  const result = runLongMemEvalValidation(parseCli(parseCliArgs().args));
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMain(import.meta.url)) {
   main();
 }

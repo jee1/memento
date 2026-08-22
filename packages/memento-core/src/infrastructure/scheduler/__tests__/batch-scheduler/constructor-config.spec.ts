@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BatchScheduler } from '../../batch-scheduler.js';
+import { BatchScheduler } from '../../batch-scheduler/batch-scheduler.js';
 
 describe('BatchScheduler', () => {
   describe('생성자 및 설정 검증', () => {
@@ -34,6 +34,21 @@ describe('BatchScheduler', () => {
           monitoringInterval: 5000 // 10초 미만
         });
       }).toThrow('monitoringInterval must be at least 10 seconds');
+    });
+
+    it.each([
+      ['walCheckpointInterval', 0],
+      ['walCheckpointInterval', Number.POSITIVE_INFINITY],
+      ['lockMonitorInterval', -1],
+      ['lockMonitorInterval', Number.NaN],
+      ['reflexionCleanupInterval', 0],
+      ['reflexionCleanupInterval', Number.POSITIVE_INFINITY],
+      ['reflexionHealthCheckInterval', -1],
+      ['reflexionHealthCheckInterval', Number.NaN],
+    ] as const)('%s이 양의 유한수가 아니면 에러를 던져야 함', (key, value) => {
+      expect(() => {
+        new BatchScheduler({ [key]: value });
+      }).toThrow(`${key} must be a positive finite number`);
     });
 
     it('maxBatchSize가 0이면 에러를 던져야 함', () => {

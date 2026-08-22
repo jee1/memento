@@ -6,6 +6,7 @@ import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import * as vectorSearchEngineModule from '../../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {
@@ -27,10 +28,8 @@ describe('GetMemoryNeighborsTool', () => {
   let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
   let embeddingService: MemoryEmbeddingService;
 
-  beforeEach(() => {
-    // Create in-memory database for testing
-    db = new Database(':memory:');
-    DatabaseUtils.initializeDatabase(db);
+  beforeEach(async () => {
+    db = await setupTestDatabase();
     
     vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);
@@ -327,4 +326,3 @@ describe('GetMemoryNeighborsTool', () => {
     });
   });
 });
-

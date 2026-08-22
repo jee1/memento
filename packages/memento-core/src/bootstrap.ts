@@ -13,7 +13,6 @@ import { MemoryEmbeddingService } from './domains/memory/services/memory-embeddi
 import { ForgettingPolicyService } from './domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 import { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
-import { PerformanceAlertService } from './domains/monitoring/services/performance-alert-service.js';
 import type { WriteCoalescingManager } from './shared/utils/write-coalescing.js';
 import { createAnchorStack } from './bootstrap/anchor-stack.js';
 import { createWriteCoalescingMetaAndScore } from './bootstrap/write-and-meta.js';
@@ -32,8 +31,8 @@ import { SleepConsolidationService } from './domains/consolidation/services/slee
 import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
-import type { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
-import { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
+import type { MetaMemoryService } from './domains/memory/introspection/meta-memory-service.js';
+import { IntrospectionScanCache } from './domains/memory/introspection/introspection-scan-cache.js';
 import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
 
@@ -45,7 +44,6 @@ export interface ServerServices {
   performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
   databaseOptimizer: IDatabaseOptimizer;
   errorLoggingService: ErrorLoggingService;
-  performanceAlertService: PerformanceAlertService;
   consolidationScoreService?: IConsolidationScoreService;
   writeCoalescingManager: WriteCoalescingManager;
   metaMemoryService: MetaMemoryService;
@@ -79,7 +77,6 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       databaseOptimizer,
     } = createSearchEmbeddingAndOptimizerServices(db);
     const errorLoggingService = new ErrorLoggingService();
-    const performanceAlertService = new PerformanceAlertService('./logs');
     const { vectorSearchEngine, anchorManager, anchorSearchService } = await createAnchorStack(
       db,
       embeddingService,
@@ -106,7 +103,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       embeddingService,
       runtimeDiagnosticsLogger,
       reflexionWorker,
-      anchorManager
+      anchorManager,
+      mementoConfig.walCheckpointEnabled ? walCheckpointScheduler : undefined,
+      mementoConfig.dbLockMonitorEnabled ? databaseLockMonitor : undefined
     );
     anchorSearchService.setRelationGraph(relationGraph);
     hybridSearchEngine.setRelationGraph(relationGraph);
@@ -125,7 +124,6 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       performanceMonitor,
       databaseOptimizer,
       errorLoggingService,
-      performanceAlertService,
       consolidationScoreService,
       writeCoalescingManager,
       metaMemoryService,

@@ -1,5 +1,4 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { isMain } from '../lib/cli.js';
 import { loadMonitorConfig } from './config.js';
 import { GitHubIssueClient } from './github-client.js';
 import { runMonitorCycle } from './monitor.js';
@@ -7,13 +6,7 @@ import { readDockerLogs, readJsonlFiles as readJsonlFilesFromSources } from './s
 import type { MonitorConfig } from './types.js';
 
 function isExecutedAsMainCli(): boolean {
-  const invoked = process.argv[1];
-  if (!invoked) return false;
-  try {
-    return path.resolve(invoked) === fileURLToPath(import.meta.url);
-  } catch {
-    return false;
-  }
+  return isMain(import.meta.url);
 }
 
 export function createMonitorRuntime(env: NodeJS.ProcessEnv = process.env): {

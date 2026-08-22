@@ -5,7 +5,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { randomUUID } from 'crypto';
 import { setImmediate } from 'timers';
-import type { BatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler.js';
+import type { BatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler/batch-scheduler.js';
 import {
   TelemetryRepository,
   type ConsolidationQualityResult,

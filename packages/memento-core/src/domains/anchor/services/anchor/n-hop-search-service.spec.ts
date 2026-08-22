@@ -13,7 +13,7 @@ import type { VectorSearchEngine } from '../../../search/algorithms/vector-searc
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
-import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 
 describe('NHopSearchService', () => {
   let service: NHopSearchService;

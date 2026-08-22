@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AgentIntegrationSchemaMigration } from '../../../infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
-import { AgentMemoryPromotionSchemaMigration } from '../../../infrastructure/database/database/migration/migrations/036-agent-memory-promotion-schema.js';
+import { AgentIntegrationSchemaMigration } from '../../../infrastructure/database/sqlite/migration/migrations/035-agent-integration-schema.js';
+import { AgentMemoryPromotionSchemaMigration } from '../../../infrastructure/database/sqlite/migration/migrations/036-agent-memory-promotion-schema.js';
 import { SqliteAgentIntegrationRepository } from '../../../infrastructure/database/repositories/sqlite-agent-integration-repository.js';
 import type { PersistedAgentEventInput } from '../types.js';
 import {

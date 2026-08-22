@@ -20,7 +20,7 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { CACHE, CONFIDENCE, LIMITS, LLM_COST, RATE_LIMITER } from '../../../shared/constants/relation-constants.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
-import type { MemoryItem } from '../../../shared/types/index.js';
+import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type {
 ExtractOptions,
 IRelationExtractor,
@@ -30,16 +30,12 @@ RelationType
 import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { TokenBucketRateLimiter } from '../../../shared/utils/token-bucket-rate-limiter.js';
+import { determineLlmProvider } from './llm-provider-selection.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { RelationCache } from './relation-cache.js';
 import { RelationRetryManager } from './relation-retry-manager.js';
 
-import { TokenBucketRateLimiter } from './llm-relation-extractor/token-bucket-rate-limiter.js';
-import {
-  determineRelationLlmProvider,
-  isOllamaPreferredSlotAvailable,
-  type RelationProviderSelectionContext
-} from './llm-relation-extractor/provider-selection.js';
 import { filterRelationCandidatesByEmbedding } from './llm-relation-extractor/embedding-candidate-filter.js';
 import { parseLlmRelationsResponse } from './llm-relation-extractor/llm-response-parse.js';
 import {
@@ -166,12 +162,15 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   }
 
 
-  private selectionContext(): RelationProviderSelectionContext {
+  private isOllamaAvailable(): boolean {
+    return this.preferredProvider === 'ollama' && mementoConfig.llmProvider === 'ollama';
+  }
+
+  private providerAvailability() {
     return {
-      openaiClient: this.openaiClient,
-      geminiClient: this.geminiClient,
-      preferredProvider: this.preferredProvider,
-      llmProviderConfig: mementoConfig.llmProvider
+      openai: this.openaiClient !== null,
+      gemini: this.geminiClient !== null,
+      ollama: this.isOllamaAvailable(),
     };
   }
 
@@ -179,7 +178,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private determineProvider(
     requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
   ): 'openai' | 'gemini' | 'ollama' | null {
-    return determineRelationLlmProvider(this.selectionContext(), requestedProvider);
+    return determineLlmProvider(requestedProvider, this.providerAvailability());
   }
 
   private async filterCandidatesByEmbedding(
@@ -375,7 +374,7 @@ ${memoryList}
     const hasAvailableClient =
       this.openaiClient !== null ||
       this.geminiClient !== null ||
-      isOllamaPreferredSlotAvailable(this.selectionContext());
+      this.isOllamaAvailable();
 
     if (!hasAvailableClient) {
       throw new Error(

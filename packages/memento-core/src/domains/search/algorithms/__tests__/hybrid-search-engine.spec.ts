@@ -10,12 +10,13 @@ import Database from 'better-sqlite3';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../../../../test/helpers/consolidation-test-data.js';
-import type { StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
+import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
 import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
 import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {
@@ -2815,8 +2816,7 @@ describe('FR-004 피드백 집계 지연 (getNetScores, 하이브리드 combine 
   }
 
   it('feedback_event 대량 행이 있어도 getNetScores p95 증가분이 50ms 미만', async () => {
-    const db = new Database(':memory:');
-    await DatabaseUtils.initializeDatabase(db);
+    const db = await setupTestDatabase();
     const repo = new FeedbackRepository(db);
     const ids = Array.from({ length: 200 }, (_, i) => `mem_lat_${i}`);
     for (const id of ids) {

@@ -1,15 +1,15 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { basename, join, resolve } from 'path';
-import Database from 'better-sqlite3';
 import { initializeDatabase, closeDatabase, DatabaseUtils } from '@memento/core';
 import {
   buildBenchmarkCorpus,
   type BenchmarkCorpusEntry,
   type BenchmarkSourceMemory,
-} from '@memento/core/shared/ops/search-quality-cli-helpers.js';
-import { loadBenchmarkCorpus, type BenchmarkManifest } from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
+} from './lib/search-quality-benchmark-builder.js';
+import { loadBenchmarkCorpus, type BenchmarkManifest } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
 
 interface CliOptions {
   outputDir: string;
@@ -18,7 +18,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     outputDir: join('tests', 'fixtures', 'search-quality', 'benchmark-v3'),
     dryRun: false,
@@ -55,10 +55,10 @@ Requires an already-initialized Memento database (memory_item table must exist).
 Use DB_PATH to point to your existing database if it is not in the default location.
 
 Usage:
-  npm run quality:benchmark:export
-  DB_PATH=/path/to/memory.db npm run quality:benchmark:export
-  npm run quality:benchmark:export -- --dry-run
-  npm run quality:benchmark:export -- --output-dir tests/fixtures/search-quality/benchmark-v3
+  npm run quality -- benchmark export
+  DB_PATH=/path/to/memory.db npm run quality -- benchmark export
+  npm run quality -- benchmark export -- --dry-run
+  npm run quality -- benchmark export -- --output-dir tests/fixtures/search-quality/benchmark-v3
 
 Options:
   --output-dir <dir>   Export directory (default: tests/fixtures/search-quality/benchmark-v3)
@@ -104,7 +104,7 @@ function createManifest(outputDir: string, corpus: BenchmarkCorpusEntry[]): Benc
   };
 }
 
-async function loadSourceMemories(db: Database.Database): Promise<BenchmarkSourceMemory[]> {
+async function loadSourceMemories(db: CliDatabase): Promise<BenchmarkSourceMemory[]> {
   return DatabaseUtils.all(
     db,
     `SELECT id, type, content, tags, created_at
@@ -135,7 +135,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  let db: Database.Database | null = null;
+  let db: CliDatabase | null = null;
 
   try {
     db = await initializeDatabase();
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
       console.error(
         'Error: memory_item table not found. The database must be initialized first.\n' +
           '  - Use DB_PATH to point to an existing Memento database, e.g.:\n' +
-          '    DB_PATH=./data/memory.db npm run quality:benchmark:export\n' +
+          '    DB_PATH=./data/memory.db npm run quality -- benchmark export\n' +
           '  - Or run "npm run db:init -w @memento/core" first (then export will have 0 memories until you add data).'
       );
       process.exitCode = 1;
@@ -188,8 +188,8 @@ function printDatabaseHint(error: unknown): void {
   if (msg.includes('no such table') && msg.includes('memory_item')) {
     console.error(
       '\nHint: Use an already-initialized Memento database (memory_item must exist).\n' +
-        '  DB_PATH=/path/to/your/memory.db npm run quality:benchmark:export\n' +
-        'Example (main repo data): DB_PATH=../data/memory.db npm run quality:benchmark:export'
+        '  DB_PATH=/path/to/your/memory.db npm run quality -- benchmark export\n' +
+        'Example (main repo data): DB_PATH=../data/memory.db npm run quality -- benchmark export'
     );
   }
 }

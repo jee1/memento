@@ -1,3 +1,5 @@
+import { daysBetween } from '../../../shared/utils/date.js';
+
 /**
  * 오래되고 사용되지 않는 기억을 자동으로 식별하여 저장 공간을 효율적으로 관리합니다.
  * Memento-Goals.md에 정의된 검증된 망각 공식을 구현하여 일관되고 공정한 망각 결정을 보장합니다.
@@ -140,7 +142,7 @@ export class ForgettingAlgorithm {
    * 반감기 기반 지수 감쇠를 사용하여 시간이 지날수록 망각 가능성이 증가하도록 설계합니다.
    */
   private calculateRecency(createdAt: Date, type: string): number {
-    const ageDays = this.getAgeInDays(createdAt);
+    const ageDays = daysBetween(new Date(), createdAt);
     const halfLife = this.getHalfLife(type);
     
     return Math.exp(-Math.log(2) * ageDays / halfLife);
@@ -175,19 +177,10 @@ export class ForgettingAlgorithm {
    * 30일 반감기를 사용하여 시간에 따른 감쇠를 반영합니다.
    */
   private calculateAccessScore(lastAccessed: Date): number {
-    const daysSinceAccess = this.getAgeInDays(lastAccessed);
+    const daysSinceAccess = daysBetween(new Date(), lastAccessed);
     
     // 30일 반감기를 사용하여 시간에 따른 자연스러운 감쇠를 반영합니다.
     return Math.exp(-daysSinceAccess / 30);
-  }
-
-  /**
-   * 시간이 지날수록 기억의 관련성이 자연스럽게 감쇠하므로, 메모리의 생성 시간으로부터 경과된 일수를 계산하여 최근성 평가에 사용합니다.
-   */
-  private getAgeInDays(date: Date): number {
-    const now = new Date();
-    const diffTime = now.getTime() - date.getTime();
-    return diffTime / (1000 * 60 * 60 * 24);
   }
 
   /**

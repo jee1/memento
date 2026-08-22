@@ -1,3 +1,5 @@
+import { DAY_MS, daysBetween } from '../../../shared/utils/date.js';
+
 /**
  * 학습 효율을 극대화하기 위해 최적의 리뷰 시점을 계산합니다.
  * Memento-Goals.md에 정의된 검증된 간격 반복 공식을 구현하여 과학적 근거에 기반한 학습 스케줄을 제공합니다.
@@ -94,9 +96,9 @@ export class SpacedRepetitionAlgorithm {
     features: SpacedRepetitionFeatures
   ): ReviewSchedule {
     const nextInterval = this.calculateNextInterval(currentInterval, features);
-    const nextReview = new Date(lastReviewDate.getTime() + nextInterval * 24 * 60 * 60 * 1000);
+    const nextReview = new Date(lastReviewDate.getTime() + nextInterval * DAY_MS);
     
-    const timeSinceLastReview = this.getDaysSince(lastReviewDate);
+    const timeSinceLastReview = daysBetween(new Date(), lastReviewDate);
     const recallProb = this.calculateRecallProbability(timeSinceLastReview, nextInterval);
     const needsReview = this.needsReview(timeSinceLastReview, nextInterval);
     
@@ -232,12 +234,4 @@ export class SpacedRepetitionAlgorithm {
     return Math.ceil(baseInterval * adjustmentFactor);
   }
 
-  /**
-   * 특정 날짜로부터 경과된 일수를 계산하여 시간 기반 계산에 사용합니다.
-   */
-  private getDaysSince(date: Date): number {
-    const now = new Date();
-    const diffTime = now.getTime() - date.getTime();
-    return diffTime / (1000 * 60 * 60 * 24);
-  }
 }

@@ -148,8 +148,7 @@ describe('root quality gate contracts', () => {
     expect(packageLock.packages?.['node_modules/@google/genai']).toBeDefined();
     expect(packageLock.packages?.['node_modules/@google/generative-ai']).toBeUndefined();
 
-    const sourceFiles = collectSourceFiles(join(process.cwd(), 'packages'))
-      .filter((file) => !file.includes('/_archived/'));
+    const sourceFiles = collectSourceFiles(join(process.cwd(), 'packages'));
 
     const offenders = sourceFiles.filter((file) =>
       readFileSync(file, 'utf-8').includes('@google/generative-ai')

@@ -235,8 +235,8 @@ npx memento-mcp-server@latest recall --query "ping"
 lsof -i :9001 || ss -ltnp | grep 9001
 
 # 6) Docker 컨테이너 상태와 로그 끝부분
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs --tail=200 memento
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml ps
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml logs --tail=200 memento
 
 # 7) 로그에서 토큰이 새고 있지 않은지 (반드시 빈 결과여야 함)
 grep -Ei "authorization|bearer|x-api-key" /path/to/server.log

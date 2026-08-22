@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.js';
 
 /**
  * simple-update.js 래퍼
@@ -14,9 +15,9 @@
  *   node dist/scripts/simple-update-wrapper.js
  */
 
-import { initializeDatabase, closeDatabase } from '../packages/memento-core/src/infrastructure/database/database/init.js';
-import { MigrationRunner } from '../packages/memento-core/src/infrastructure/database/database/migration/migration-runner.js';
-import { MigrationDetector } from '../packages/memento-core/src/infrastructure/database/database/migration/migration-detector.js';
+import { initializeDatabase, closeDatabase } from '../packages/memento-core/src/infrastructure/database/sqlite/init.js';
+import { MigrationRunner } from '../packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.js';
+import { MigrationDetector } from '../packages/memento-core/src/infrastructure/database/sqlite/migration/migration-detector.js';
 import { logger } from '../packages/memento-core/src/shared/utils/logger.js';
 
 /**
@@ -97,7 +98,7 @@ async function runUpdateMigration() {
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   runUpdateMigration().catch((error) => {
     logger.error('❌ 스크립트 실행 중 오류 발생', {
       error: error instanceof Error ? error.message : String(error),

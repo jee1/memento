@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * Query forgetting event audit log from CLI.
  *
@@ -18,7 +19,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = { limit: 50, help: false };
 
   for (let i = 0; i < args.length; i++) {

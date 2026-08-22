@@ -5,7 +5,7 @@ import type {
   AgentSessionStatus,
   PersistedAgentEventInput,
 } from '../../../domains/agent-integration/types.js';
-import { AgentIntegrationSchemaMigration } from '../database/migration/migrations/035-agent-integration-schema.js';
+import { AgentIntegrationSchemaMigration } from '../sqlite/migration/migrations/035-agent-integration-schema.js';
 import { SqliteAgentIntegrationRepository } from './sqlite-agent-integration-repository.js';
 
 describe('SqliteAgentIntegrationRepository session read models', () => {

@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 
 import { DatabaseUtils } from '../../shared/utils/database.js';
-import type { ExtractedProceduralMemory } from '../../shared/utils/procedural-memory-extractor.js';
+import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/procedural-memory-extractor.js';
 import { logger } from '../../shared/utils/logger.js';
 
 export function updateProceduralMemoryReplace(

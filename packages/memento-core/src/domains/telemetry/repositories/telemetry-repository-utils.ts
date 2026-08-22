@@ -1,20 +1,21 @@
 import type { TelemetryPeriod } from '../types/telemetry.types.js';
+import { DAY_MS } from '../../../shared/utils/date.js';
 
 export function periodCutoffIso(period: TelemetryPeriod): string {
   const d = new Date();
   if (period === '24h') {
-    d.setTime(d.getTime() - 24 * 60 * 60 * 1000);
+    d.setTime(d.getTime() - DAY_MS);
   } else if (period === '7d') {
-    d.setTime(d.getTime() - 7 * 24 * 60 * 60 * 1000);
+    d.setTime(d.getTime() - 7 * DAY_MS);
   } else {
-    d.setTime(d.getTime() - 30 * 24 * 60 * 60 * 1000);
+    d.setTime(d.getTime() - 30 * DAY_MS);
   }
   return d.toISOString();
 }
 
 export function rolling24hCutoffIso(): string {
   const d = new Date();
-  d.setTime(d.getTime() - 24 * 60 * 60 * 1000);
+  d.setTime(d.getTime() - DAY_MS);
   return d.toISOString();
 }
 

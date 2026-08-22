@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.js';
 /**
  * macro_category별 MRR·NDCG 리포트 (CI 게이트: MRR < 0.5 → exit 1)
  *
@@ -11,7 +12,7 @@
 
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import { QualityMetricsCollector } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
 import type { CategoryQualityReport } from '../packages/memento-core/src/shared/types/benchmark.types.js';
 
@@ -76,7 +77,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? '')) {
+if (isMain(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

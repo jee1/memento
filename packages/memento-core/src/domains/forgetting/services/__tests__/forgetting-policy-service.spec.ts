@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../forgetting-policy-service.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 
 describe('ForgettingPolicyService', () => {
   let service: ForgettingPolicyService;
@@ -51,7 +52,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // created_at을 과거로 설정
-      const oldDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000); // 31일 전
+      const oldDate = new Date(Date.now() - 31 * DAY_MS); // 31일 전
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -74,7 +75,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // created_at을 매우 과거로 설정
-      const veryOldDate = new Date(Date.now() - 181 * 24 * 60 * 60 * 1000); // 181일 전
+      const veryOldDate = new Date(Date.now() - 181 * DAY_MS); // 181일 전
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -114,7 +115,7 @@ describe('ForgettingPolicyService', () => {
         importance: 0.5,
         pinned: false
       });
-      const oldDeleted = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const oldDeleted = new Date(Date.now() - 3 * DAY_MS).toISOString();
       DatabaseUtils.run(db, `
         UPDATE memory_item
         SET is_deleted = 1, deleted_at = ?, pinned = 1
@@ -315,7 +316,7 @@ describe('ForgettingPolicyService', () => {
 
       // 메모리 생성 시간을 365일 전으로 설정 (TTL soft: 30일 초과, 망각 점수 최대화)
       // episodic 반감기가 30일이므로 365일이면 recency가 매우 낮아짐
-      const threeHundredSixtyFiveDaysAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      const threeHundredSixtyFiveDaysAgo = new Date(now.getTime() - 365 * DAY_MS);
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -392,7 +393,7 @@ describe('ForgettingPolicyService', () => {
 
       // 30일 전으로 시간 설정 (TTL soft: 2일 초과, 망각 점수 최대화)
       // working 반감기가 2일이므로 30일이면 recency가 매우 낮아짐
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * DAY_MS);
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -462,7 +463,7 @@ describe('ForgettingPolicyService', () => {
 
       // 730일 전으로 시간 설정 (TTL soft: 180일 초과, 망각 점수 최대화)
       // semantic 반감기가 180일이므로 730일이면 recency가 매우 낮아짐
-      const sevenHundredThirtyDaysAgo = new Date(now.getTime() - 730 * 24 * 60 * 60 * 1000);
+      const sevenHundredThirtyDaysAgo = new Date(now.getTime() - 730 * DAY_MS);
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -520,7 +521,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // 10일 전으로 시간 설정 (JS에서 계산한 ISO 문자열 사용)
-      const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const tenDaysAgo = new Date(now.getTime() - 10 * DAY_MS);
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -581,7 +582,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // TTL 초과 날짜로 설정 (soft TTL: 2일, hard TTL: 7일)
-      const softTTLDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000); // 3일 전
+      const softTTLDate = new Date(Date.now() - 3 * DAY_MS); // 3일 전
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -603,7 +604,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // episodic soft TTL: 30일, hard TTL: 180일
-      const softTTLDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000); // 31일 전
+      const softTTLDate = new Date(Date.now() - 31 * DAY_MS); // 31일 전
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -624,7 +625,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // semantic soft TTL: 180일, hard TTL: 365일
-      const softTTLDate = new Date(Date.now() - 181 * 24 * 60 * 60 * 1000); // 181일 전
+      const softTTLDate = new Date(Date.now() - 181 * DAY_MS); // 181일 전
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -645,7 +646,7 @@ describe('ForgettingPolicyService', () => {
       });
 
       // procedural soft TTL: 90일, hard TTL: 180일
-      const softTTLDate = new Date(Date.now() - 91 * 24 * 60 * 60 * 1000); // 91일 전
+      const softTTLDate = new Date(Date.now() - 91 * DAY_MS); // 91일 전
       DatabaseUtils.run(db, `
         UPDATE memory_item 
         SET created_at = ?
@@ -689,4 +690,3 @@ describe('ForgettingPolicyService', () => {
     });
   });
 });
-

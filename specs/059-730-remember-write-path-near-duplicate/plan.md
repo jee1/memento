@@ -68,8 +68,8 @@ Reuse:
 | Path | Change |
 |------|--------|
 | `packages/memento-core/src/shared/config/` | env 파서: threshold, mode |
-| `packages/memento-core/src/domains/memory/tools/remember-tool-memory-item.ts` | pre-insert candidate + branch |
-| `packages/memento-core/src/domains/memory/tools/remember-near-duplicate.ts` (신규, 선택) | candidate 검색·warning shape 순수 함수 — 파일 비대화 시 추출 |
+| `packages/memento-core/src/domains/memory/remember/remember-tool-memory-item.ts` | pre-insert candidate + branch |
+| `packages/memento-core/src/domains/memory/remember/remember-near-duplicate.ts` (신규, 선택) | candidate 검색·warning shape 순수 함수 — 파일 비대화 시 추출 |
 | `packages/memento-core/src/domains/memory/tools/__tests__/remember-tool.spec.ts` 또는 전용 spec | FR-009 케이스 |
 | `docs/agents/agent-workflow.md` (또는 remember 가이드) | warn→incremental 습관 |
 | `docs/agents/commands.md` | env 표 |

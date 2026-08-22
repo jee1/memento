@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 /**
  * Ground Truth 데이터 생성 CLI 스크립트
  * 
@@ -18,7 +19,6 @@
 
 import { existsSync } from 'fs';
 import { join } from 'path';
-import Database from 'better-sqlite3';
 import { initializeDatabase, DatabaseUtils } from '@memento/core';
 import {
   generateGroundTruth,
@@ -26,7 +26,7 @@ import {
   loadGroundTruth,
   type GroundTruthGenerationOptions,
   type GroundTruth
-} from '@memento/core/test/helpers/vector-search-quality-metrics.js';
+} from '@memento/core/domains/monitoring/services/quality-assurance/vector-search-quality-metrics.js';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import { getStopWords } from '@memento/core/shared/utils/stopwords.js';
 
@@ -56,7 +56,7 @@ interface CliOptions {
  * 명령줄 인자 파싱
  */
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {};
 
   for (let i = 0; i < args.length; i++) {
@@ -131,7 +131,7 @@ Ground Truth 데이터 생성 CLI
 /**
  * 데이터베이스에서 메모리 ID 목록 조회
  */
-async function getMemoryIds(db: Database.Database, limit: number = 1000): Promise<string[]> {
+async function getMemoryIds(db: CliDatabase, limit: number = 1000): Promise<string[]> {
   const memories = await DatabaseUtils.all(
     db,
     'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT ?',
@@ -189,7 +189,7 @@ function extractKeywordsFromMemories(
  * 실제 검색을 수행하여 관련 메모리 찾기
  */
 async function generateGroundTruthFromSearch(
-  db: Database.Database,
+  db: CliDatabase,
   queries: string[],
   relevantCount: number = 5
 ): Promise<GroundTruth[]> {
@@ -349,10 +349,9 @@ async function main(): Promise<void> {
 }
 
 // 스크립트 직접 실행 시
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((error) => {
     console.error('예상치 못한 오류:', error);
     process.exit(1);
   });
 }
-

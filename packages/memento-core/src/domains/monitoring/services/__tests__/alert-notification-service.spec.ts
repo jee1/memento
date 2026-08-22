@@ -14,8 +14,20 @@ describe('AlertNotificationService', () => {
       message: 'Test alert'
     });
 
-    expect(service.getAlerts()).toHaveLength(1);
+    expect(service.getAlerts()).toEqual([
+      expect.objectContaining({ id: 'test-alert', acknowledged: false })
+    ]);
+    expect(service.getAlerts()[0]).not.toHaveProperty('message');
+    expect(service.getAlerts()[0]).not.toHaveProperty('severity');
     expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'test-alert',
+        source: 'system',
+        severity: 'warning',
+        message: 'Test alert'
+      })
+    );
   });
 
   it('acknowledges alerts', () => {

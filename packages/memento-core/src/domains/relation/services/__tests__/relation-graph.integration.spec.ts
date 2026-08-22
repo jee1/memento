@@ -14,7 +14,7 @@ import Database from 'better-sqlite3';
 import type { RelationGraph } from '../relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 
 /**

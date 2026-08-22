@@ -2,6 +2,7 @@
  * 관계 추출 엔진 관련 상수
  * 매직 넘버를 상수로 추출하여 유지보수성을 향상시킵니다.
  */
+import { DAY_MS } from '../utils/date.js';
 
 /**
  * 신뢰도 관련 상수
@@ -54,11 +55,11 @@ export const CACHE = {
   /** L1 캐시 TTL (밀리초) - 10분 */
   L1_TTL_MS: 10 * 60 * 1000,
   /** L2 캐시 TTL (밀리초) - 7일 */
-  L2_TTL_MS: 7 * 24 * 60 * 60 * 1000,
+  L2_TTL_MS: 7 * DAY_MS,
   /** 관계 추출 캐시 크기 (항목 수) */
   EXTRACTION_SIZE: 1000,
   /** 관계 추출 캐시 TTL (밀리초) - 7일 */
-  EXTRACTION_TTL_MS: 7 * 24 * 60 * 60 * 1000
+  EXTRACTION_TTL_MS: 7 * DAY_MS
 } as const;
 
 /**
@@ -96,5 +97,5 @@ export const TIME = {
   /** 1시간 */
   HOUR_MS: 60 * 60 * 1000,
   /** 1일 */
-  DAY_MS: 24 * 60 * 60 * 1000
+  DAY_MS
 } as const;

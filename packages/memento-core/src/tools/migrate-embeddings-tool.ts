@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { UnifiedEmbeddingService } from '../domains/embedding/services/unified-embedding-service.js';
-import type { EmbeddingProvider } from '../shared/types/index.js';
+import type { EmbeddingProvider } from '../shared/types/embedding.types.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../domains/embedding/services/vector-compatibility-service.js';
 import { logger } from '../shared/utils/logger.js';

@@ -16,21 +16,21 @@ SDD는 Design → SPECIFY → PLAN → Implement 네 단계로 진행됩니다. 
 
 ## 문서 위치
 
-기능마다 하나의 디렉터리를 두고, Design·SPEC·PLAN을 같은 경로에 함께 둡니다.
+기능마다 하나의 번호 디렉터리를 두고, Design·SPEC·PLAN을 같은 경로에 함께 둡니다. 번호와 상태는 [`specs/README.md`](../../../specs/README.md)에서 관리합니다.
 
 ```
-docs/_work/plans/ko/YYYY-MM-DD-<기능명>/
+specs/NNN-<기능명>/
 ├── design.md                # 설계·브레인스토밍 (Design)
 ├── spec.md                  # 구현 명세 (SPECIFY)
-├── implementation-plan.md   # 구현 계획 (PLAN)
+├── plan.md                  # 구현 계획 (PLAN)
 ├── Structure.md             # (선택) 아키텍처·디렉터리 구조
 ├── Tech.md                  # (선택) 기술 스택·DB·제약
 └── Product.md               # (선택) 비즈니스 맥락·기존 기능과의 연관
 ```
 
-예를 들어 `docs/_work/plans/ko/2026-03-11-memento-cli-for-ai/`처럼 날짜와 기능명을 조합한 디렉터리를 만들고, 그 안에 세 개의 핵심 문서를 둡니다. 복잡한 기능이거나 여러 세션·에이전트가 참여할 때는 Memory Bank(Structure.md, Tech.md, Product.md)를 추가하면 구현 시 구조·기술·제품 맥락을 일관되게 유지할 수 있습니다.
+예를 들어 `specs/061-785-epic-search-production-recall/`처럼 번호와 기능명을 조합한 디렉터리를 만들고, 그 안에 핵심 문서를 둡니다. 새 번호는 `specs/README.md`에 기록된 최대 번호에 1을 더해 배정하며, 비어 있거나 아카이브된 번호를 재사용하지 않습니다. 복잡한 기능이거나 여러 세션·에이전트가 참여할 때는 Memory Bank(Structure.md, Tech.md, Product.md)를 추가할 수 있습니다.
 
-이슈만 있고 기능 디렉터리를 아직 만들지 않았다면 `docs/_work/design/` 또는 `docs/_work/brainstorms/`에 설계 문서를 먼저 작성할 수 있습니다. SPEC·PLAN을 작성할 때 기능 디렉터리를 만들고, 설계 문서를 `design.md`로 복사하거나 링크로 참조하면 됩니다.
+이슈만 있고 기능 디렉터리를 아직 만들지 않았다면 새 번호의 `specs/NNN-<기능명>/`을 만들고 `design.md`부터 작성합니다. SPEC·PLAN을 작성할 때 같은 디렉터리의 `spec.md`와 `plan.md`로 이어갑니다.
 
 ## SPEC 작성 요건
 
@@ -41,11 +41,11 @@ spec.md에는 다음 항목이 포함되어야 합니다.
 - **요구사항**: REQ-XXX 형식, 각 항목별 수용 조건 포함
 - **제약**: CON-XXX 형식 (보안, 호환성, 기술 제약 등)
 - **수용 기준**: AC1, AC2, … — "완료" 판단 기준
-- **다음 단계**: 같은 디렉터리의 `implementation-plan.md` 링크
+- **다음 단계**: 같은 디렉터리의 `plan.md` 링크
 
 ## PLAN 작성 요건
 
-implementation-plan.md에는 다음 항목이 포함되어야 합니다.
+plan.md에는 다음 항목이 포함되어야 합니다.
 
 - **메타데이터**: 기능명, 문서 유형(PLAN), 기준 명세(spec.md 링크), 관련 이슈
 - **개요**: 목표, 구현 위치, 의존성
@@ -59,9 +59,9 @@ implementation-plan.md에는 다음 항목이 포함되어야 합니다.
 
 새 기능을 시작할 때 권장하는 순서는 다음과 같습니다.
 
-1. `docs/_work/plans/ko/YYYY-MM-DD-<기능명>/` 디렉터리를 만들고 `design.md`를 작성합니다.
+1. 현재 최대 번호에 1을 더한 `specs/NNN-<기능명>/` 디렉터리를 만들고 `design.md`를 작성합니다.
 2. 설계가 충분히 정리되면 `spec.md`를 작성하여 범위·REQ/CON/AC를 확정합니다.
-3. `implementation-plan.md`를 작성합니다. 필요하면 Memory Bank를 추가합니다.
+3. `plan.md`를 작성합니다. 필요하면 Memory Bank를 추가합니다.
 4. PLAN의 Task 단위로 구현하고, SPEC의 AC로 완료를 검증합니다.
 
 ## 체크리스트
@@ -75,5 +75,5 @@ implementation-plan.md에는 다음 항목이 포함되어야 합니다.
 
 ## 참고 문서
 
-- `docs/README.md` — 명세(specs)·계획(plans) 섹션 인덱스
-- `docs/_work/plans/ko/2026-03-11-memento-cli-for-ai/` — 실제 사용 예시 (design.md, spec.md, implementation-plan.md 포함)
+- [`specs/README.md`](../../../specs/README.md) — 번호·제목·상태·관련 이슈의 진실 공급원
+- [`specs/061-785-epic-search-production-recall/`](../../../specs/061-785-epic-search-production-recall/) — 실제 사용 예시

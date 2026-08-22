@@ -427,17 +427,6 @@ describe('VectorSearchRepositoryImpl', () => {
       for (const row of rows) {
         insertItem.run(row.id, row.content, row.projectId, row.ownerId, row.processId, row.sessionId);
         insertEmb.run(row.id, embeddingJson, 512, 512);
-
-        const embeddingId = db.prepare(
-          `SELECT id FROM memory_embedding WHERE memory_id = ?`
-        ).get(row.id) as { id: number } | undefined;
-
-        if (embeddingId) {
-          db.exec(`
-            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
-            VALUES (${embeddingId.id}, '${embeddingJson}')
-          `);
-        }
       }
 
       return true;
@@ -531,24 +520,10 @@ describe('VectorSearchRepositoryImpl', () => {
         const memoryId = `mem_out_of_scope_${index}`;
         insertItem.run(memoryId, `out of scope ${index}`, 'other-project');
         insertEmbedding.run(memoryId, outOfScopeVector);
-        const embedding = db.prepare(
-          'SELECT id FROM memory_embedding WHERE memory_id = ?'
-        ).get(memoryId) as { id: number };
-        db.exec(
-          `INSERT INTO memory_item_vec_tfidf (rowid, embedding)
-           VALUES (${embedding.id}, '${outOfScopeVector}')`
-        );
       }
 
       insertItem.run('mem_in_scope_exact', 'in scope exact candidate', 'target-project');
       insertEmbedding.run('mem_in_scope_exact', inScopeVector);
-      const inScopeEmbedding = db.prepare(
-        'SELECT id FROM memory_embedding WHERE memory_id = ?'
-      ).get('mem_in_scope_exact') as { id: number };
-      db.exec(
-        `INSERT INTO memory_item_vec_tfidf (rowid, embedding)
-         VALUES (${inScopeEmbedding.id}, '${inScopeVector}')`
-      );
 
       const results = await repository.search({
         queryVector: new Array(512).fill(0),
@@ -1220,4 +1195,3 @@ describe('VectorSearchRepositoryImpl', () => {
     });
   });
 });
-

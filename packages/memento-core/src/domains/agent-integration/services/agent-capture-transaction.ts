@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { DAY_MS } from '../../../shared/utils/date.js';
 import type { AgentIntegrationRepository } from '../repositories/agent-integration-repository.js';
 import type {
   AgentSession,
@@ -91,7 +92,7 @@ export function executeAgentCaptureTransaction(
 
   const lateArrival = event.sequenceNo < session.maxSequenceNo || TERMINAL_STATUSES.has(session.status);
   const expiresAt = new Date(
-    Date.parse(receivedAt) + options.retentionDays * 24 * 60 * 60 * 1000,
+    Date.parse(receivedAt) + options.retentionDays * DAY_MS,
   ).toISOString();
   const observation = repository.createObservation({
     ...event,

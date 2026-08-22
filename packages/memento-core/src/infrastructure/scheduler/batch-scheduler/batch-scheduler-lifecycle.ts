@@ -1,11 +1,11 @@
 import type Database from 'better-sqlite3';
 import type { IReflexionWorker } from '../../../shared/interfaces/reflexion-worker.interface.js';
-import { validateBatchJobConfig } from '../batch-scheduler-validate-config.js';
-import type { BatchJobConfig } from '../batch-scheduler-types.js';
+import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
+import type { BatchJobConfig } from './batch-scheduler-types.js';
 import type { HealthChecker } from '../health-checker.js';
 import type { JobQueue } from '../job-queue.js';
 import type { PerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
-import { registerAllRecurringJobs } from '../batch-recurring-schedules.js';
+import { registerAllRecurringJobs } from './batch-recurring-schedules.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 import type { BatchSchedulerRecurringContextSource } from './batch-scheduler-context.js';
 import { buildBatchRecurringScheduleContext } from './batch-scheduler-context.js';
@@ -27,7 +27,12 @@ export interface BatchSchedulerStartDeps {
   }) => void;
 }
 
-export async function startBatchScheduler(deps: BatchSchedulerStartDeps, db: Database.Database, reflexionWorker?: IReflexionWorker): Promise<void> {
+export async function startBatchScheduler(
+  deps: BatchSchedulerStartDeps,
+  db: Database.Database,
+  reflexionWorker?: IReflexionWorker,
+  registerBatchJobs = true
+): Promise<void> {
   validateBatchJobConfig(deps.config);
   const startTime = new Date();
 
@@ -48,7 +53,9 @@ export async function startBatchScheduler(deps: BatchSchedulerStartDeps, db: Dat
     });
   }
 
-  registerAllRecurringJobs(buildBatchRecurringScheduleContext(deps.getRecurringContextSource()));
+  if (registerBatchJobs) {
+    registerAllRecurringJobs(buildBatchRecurringScheduleContext(deps.getRecurringContextSource()));
+  }
   deps.startJobProcessor();
 
   deps.log('BatchScheduler started', {

@@ -129,7 +129,7 @@ The **Sleep Consolidation** service distills episodic memories into semantic one
 Three monitoring layers:
 
 - **`ErrorLoggingService`**: structured error logging with LOW/MEDIUM/HIGH/CRITICAL severity and categories (DATABASE, NETWORK, VALIDATION, etc.).
-- **`PerformanceAlertService`**: generates alerts when response time, memory usage, error rate, or throughput exceed thresholds. Alerts are written to JSONL files and the console.
+- **`PerformanceMonitor`**: generates memory, CPU, database-size, and query-time alerts in one monitor-owned store. The `performance_alerts` tool and telemetry summary read that same lifecycle state, while the notification service emits delivery events without copying the alerts.
 - **`FailureDetector` + `ReflexionWorker`**: detect repeated failure patterns; `MetaMemoryIntrospectionService` identifies low-confidence memories to support self-correction.
 
 ### telemetry
@@ -202,7 +202,7 @@ Key tables:
 | `memory_review_candidate` | Spaced-repetition review queue (migration 033) |
 | `kg_triple` | Deduplicated Knowledge Graph triples extracted from episodic memories (migration 018) |
 
-Schema changes are managed by numbered migration scripts in `packages/memento-core/src/infrastructure/database/database/migration/migrations/`. The canonical DDL source is `schema.sql`.
+Schema changes are managed by numbered migration scripts in `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/`. The canonical DDL source is `schema.sql`.
 
 PostgreSQL, Redis, and Kubernetes-based multi-tenant scaling are not yet implemented. They are on the future roadmap.
 
@@ -213,7 +213,7 @@ PostgreSQL, Redis, and Kubernetes-based multi-tenant scaling are not yet impleme
 When the server starts, `initializeServices(db)` initializes services in this order:
 
 1. **Search + embedding**: `HybridSearchEngine`, `MemoryEmbeddingService`, `ForgettingPolicyService`, `DatabaseOptimizer`
-2. **Monitoring**: `ErrorLoggingService`, `PerformanceAlertService`
+2. **Structured logging**: `ErrorLoggingService`
 3. **Anchor stack**: `VectorSearchEngine`, `AnchorManager`
 4. **Failure detection**: `FailureDetector`, `ReflexionWorker`
 5. **Monitoring schedulers**: `PerformanceMonitor`, `WalCheckpointScheduler`, `DatabaseLockMonitor`, `RuntimeDiagnosticsLogger`

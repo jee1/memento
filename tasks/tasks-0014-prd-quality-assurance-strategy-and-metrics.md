@@ -2,7 +2,7 @@
 
 ## Relevant Files
 
-- `src/infrastructure/database/database/migration/migrations/XXX-quality-assurance-schema.ts` - 품질 측정을 위한 데이터베이스 스키마 마이그레이션 (quality_measurement_history, quality_metrics, quality_thresholds 테이블 생성)
+- `src/infrastructure/database/sqlite/migration/migrations/XXX-quality-assurance-schema.ts` - 품질 측정을 위한 데이터베이스 스키마 마이그레이션 (quality_measurement_history, quality_metrics, quality_thresholds 테이블 생성)
 - `src/services/quality-assurance/quality-assurance-service.ts` - 중앙 품질 관리 서비스 (Orchestrator)
 - `src/services/quality-assurance/quality-metrics-collector.ts` - Collector: 품질 지표 수집
 - `src/services/quality-assurance/quality-evaluator.ts` - Evaluator: 임계값 비교 및 품질 평가
@@ -30,7 +30,7 @@
   - `RelationQualityValidator` (`src/domains/relation/services/relation-quality-validator.ts`)
   - `VectorSearchQualityMetrics` (`src/test/helpers/vector-search-quality-metrics.ts`)
   - `ConsolidationScoreQualityTests` (관련 테스트 파일들)
-- 데이터베이스 마이그레이션은 기존 마이그레이션 시스템을 따릅니다 (`src/infrastructure/database/database/migration/`).
+- 데이터베이스 마이그레이션은 기존 마이그레이션 시스템을 따릅니다 (`src/infrastructure/database/sqlite/migration/`).
 - HTTP API 라우터는 기존 라우터 구조를 따릅니다 (`src/server/routes/api.routes.ts` 참고).
 - CLI 명령어는 `package.json`의 scripts에 추가됩니다.
 - 배치 작업은 `BatchScheduler`에 통합됩니다 (`src/infrastructure/scheduler/batch-scheduler.ts`).
@@ -40,8 +40,8 @@
 
 - [x] 1.0 데이터베이스 스키마 및 마이그레이션 구현
   - [x] 1.1 마이그레이션 버전 번호 확인 및 결정 (기존 마이그레이션 버전 확인 후 다음 버전 할당)
-  - [x] 1.2 `src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.sql` 파일 생성 (quality_measurement_history, quality_metrics, quality_thresholds 테이블 및 인덱스 정의)
-  - [x] 1.3 `src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts` 마이그레이션 클래스 구현 (Migration 인터페이스 구현, up/down/validateBefore/validateAfter 메서드)
+  - [x] 1.2 `src/infrastructure/database/sqlite/migration/migrations/009-quality-assurance-schema.sql` 파일 생성 (quality_measurement_history, quality_metrics, quality_thresholds 테이블 및 인덱스 정의)
+  - [x] 1.3 `src/infrastructure/database/sqlite/migration/migrations/009-quality-assurance-schema.ts` 마이그레이션 클래스 구현 (Migration 인터페이스 구현, up/down/validateBefore/validateAfter 메서드)
   - [x] 1.4 마이그레이션 단위 테스트 작성 (`009-quality-assurance-schema.spec.ts`)
   - [x] 1.5 마이그레이션 실행 및 검증 (테스트 데이터베이스에서 마이그레이션 실행 후 스키마 검증)
 

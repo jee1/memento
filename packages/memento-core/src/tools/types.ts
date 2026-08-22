@@ -9,7 +9,6 @@ import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-sea
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import type { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
-import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import type { RelationGraphPort } from '../domains/relation/ports/relation-graph.port.js';
@@ -19,8 +18,8 @@ import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.inter
 import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
 import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
-import type { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
-import type { IntrospectionScanCache } from '../domains/memory/services/introspection-scan-cache.js';
+import type { MetaMemoryService } from '../domains/memory/introspection/meta-memory-service.js';
+import type { IntrospectionScanCache } from '../domains/memory/introspection/introspection-scan-cache.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import type { TelemetryService } from '../domains/telemetry/services/telemetry-service.js';
 
@@ -65,8 +64,6 @@ export interface ToolContext {
     databaseOptimizer?: IDatabaseOptimizer;
     /** 에러 로깅 서비스 */
     errorLoggingService?: ErrorLoggingService;
-    /** 성능 알림 서비스 */
-    performanceAlertService?: PerformanceAlertService;
     /** 성능 모니터링 통합 서비스 (주석 처리됨, 향후 사용 예정) */
     performanceMonitoringIntegration?: unknown; // 향후 타입 정의 예정
     /** 통합 점수 서비스 (기능 플래그에 따라 초기화) */
@@ -142,4 +139,3 @@ export const CommonSchemas = {
   // AriGraph Pipeline 필드
   EnableTripleExtraction: z.boolean().default(true).optional(), // Triple 추출 활성화 여부 (기본값: true)
 };
-

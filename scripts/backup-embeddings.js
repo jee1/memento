@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.ts';
 
 /**
  * 임베딩 백업 스크립트
@@ -107,7 +108,7 @@ async function backupEmbeddings() {
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   backupEmbeddings().catch((error) => {
     console.error('❌ 스크립트 실행 중 오류 발생:', error);
     process.exit(1);

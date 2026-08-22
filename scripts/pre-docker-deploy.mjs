@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.ts';
 /**
  * Safe guard before `docker compose up` / image rebuild:
  * 1) online backup via sqlite backup API
@@ -12,7 +13,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const force = process.argv.includes('--force');
+const force = parseCliArgs().args.includes('--force');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const backupScript = path.join(root, 'scripts', 'backup-memory-db.mjs');
 

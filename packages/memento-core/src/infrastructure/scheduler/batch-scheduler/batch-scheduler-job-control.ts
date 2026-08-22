@@ -1,4 +1,4 @@
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from './batch-scheduler-types.js';
 import type { JobQueue } from '../job-queue.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 import {
@@ -6,7 +6,7 @@ import {
   scheduleHealthcheckJob,
   scheduleMemoryReviewCandidatesInterval,
   scheduleMonitoringJob
-} from '../batch-recurring-schedules.js';
+} from './batch-recurring-schedules.js';
 import {
   buildBatchSchedulerRecurringScheduleContextFromSource,
   getBatchSchedulerRecurringContextSource,

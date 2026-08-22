@@ -1,4 +1,4 @@
-import { closeDatabase, getBatchScheduler, logger, type ServerServices } from '@memento/core';
+import { closeDatabase, logger, type ServerServices } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 
@@ -59,6 +59,15 @@ export async function performCleanup(refs: CleanupRefs): Promise<void> {
         }
       }
 
+      if (serverServices.batchScheduler) {
+        try {
+          await serverServices.batchScheduler.stop();
+          logger.info('배치 스케줄러 중지됨');
+        } catch (error) {
+          logger.error('배치 스케줄러 중지 실패', { error });
+        }
+      }
+
       if (serverServices.walCheckpointScheduler) {
         try {
           await serverServices.walCheckpointScheduler.stop();
@@ -83,10 +92,6 @@ export async function performCleanup(refs: CleanupRefs): Promise<void> {
       await serverServices.writeCoalescingManager.destroy();
       logger.info('Write Coalescing Manager 정리 완료');
     }
-
-    const batchScheduler = getBatchScheduler();
-    await batchScheduler.stop();
-    logger.info('배치 스케줄러 중지됨');
 
     const db = refs.getDb();
     if (db) {

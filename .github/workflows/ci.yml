@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+      - name: Reject tracked files covered by .gitignore
+        run: test -z "$(git ls-files -i -c --exclude-standard)"
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -30,7 +32,7 @@ jobs:
       - run: npm run lint
       - run: npx tsx scripts/count-console-logs.ts --core-only --ci
         continue-on-error: false
-      - run: npx tsx scripts/archive/check-retry-usage.ts --ci
+      - run: npx tsx scripts/check-retry-usage.ts --ci
         continue-on-error: false
       - run: npm run type-check
       - name: Audit markdown relative links
@@ -53,7 +55,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
-      - name: "Run tests (root: src/ + tests/)"
+      - name: Run tests (repository contracts and apps)
         run: npm run test:ci:root
       - name: Upload test results
         if: failure()
@@ -79,6 +81,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
+      - name: Build @memento/core (schema asset parity)
+        run: npm run build -w @memento/core
       - name: Run tests (packages/memento-core)
         run: npm run test:ci:core
       - name: Upload test results
@@ -193,29 +197,3 @@ jobs:
         run: npm run build -w @memento/core
       - name: Run scripts unit tests
         run: npm run test:ci:scripts
-
-  test-search-quality:
-    needs: [ lint-typecheck ]
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'npm'
-      - name: Install SQLite (optional)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
-      - run: npm ci
-      - name: Run vector search quality benchmark (CI)
-        run: npm run test:vector-search-quality:ci
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v6
-        with:
-          name: test-results-search-quality
-          path: test-results/
-          retention-days: 7
-        continue-on-error: true

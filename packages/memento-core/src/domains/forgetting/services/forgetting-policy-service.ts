@@ -4,6 +4,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { daysBetween } from '../../../shared/utils/date.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
@@ -276,7 +277,7 @@ export class ForgettingPolicyService {
    * 소프트 삭제 후보 확인
    */
   private isSoftDeleteCandidate(memory: PolicyMemoryRow, forgetScore: number): boolean {
-    const ageDays = this.getAgeInDays(new Date(memory.created_at));
+    const ageDays = daysBetween(new Date(), new Date(memory.created_at));
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
     
     return forgetScore >= this.config.softDeleteThreshold && 
@@ -288,7 +289,7 @@ export class ForgettingPolicyService {
    * 하드 삭제 후보 확인
    */
   private isHardDeleteCandidate(memory: PolicyMemoryRow, forgetScore: number): boolean {
-    const ageDays = this.getAgeInDays(new Date(memory.created_at));
+    const ageDays = daysBetween(new Date(), new Date(memory.created_at));
     const ttl = this.config.ttlHard[memory.type as keyof typeof this.config.ttlHard];
     
     return forgetScore >= this.config.hardDeleteThreshold && 
@@ -405,15 +406,6 @@ export class ForgettingPolicyService {
           : schedule.next_review,
       }),
     });
-  }
-
-  /**
-   * 나이 계산 (일 단위)
-   */
-  private getAgeInDays(date: Date): number {
-    const now = new Date();
-    const diffTime = now.getTime() - date.getTime();
-    return diffTime / (1000 * 60 * 60 * 24);
   }
 
   /**

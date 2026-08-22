@@ -12,12 +12,12 @@
 - `src/infrastructure/database/factories/__tests__/core-memory-repository.factory.spec.ts` - Factory 테스트 (신규 생성)
 - `src/domains/memory/repositories/core-memory-repository.ts` - 기존 클래스 제거 대상 (리팩토링)
 - `src/domains/memory/services/core-memory-service.ts` - 인터페이스 의존으로 변경 (수정)
-- `src/infrastructure/database/database/init.ts` - Factory 사용으로 변경 (수정)
-- `src/domains/memory/tools/remember-tool.ts` - Factory 사용으로 변경 (수정)
-- `src/domains/memory/tools/recall-tool.ts` - Factory 사용으로 변경 (수정)
+- `src/infrastructure/database/sqlite/init.ts` - Factory 사용으로 변경 (수정)
+- `src/domains/memory/remember/remember-tool.ts` - Factory 사용으로 변경 (수정)
+- `src/domains/memory/recall/recall-tool.ts` - Factory 사용으로 변경 (수정)
 - `src/domains/memory/repositories/__tests__/core-memory-repository.spec.ts` - 비동기 시그니처로 업데이트 (수정)
 - `src/domains/memory/services/__tests__/core-memory-service.spec.ts` - 비동기 시그니처 및 Mock 사용으로 업데이트 (수정)
-- `src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts` - Factory 사용으로 변경 (수정)
+- `src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts` - Factory 사용으로 변경 (수정)
 - `src/domains/memory/repositories/__tests__/core-memory-repository.contract.spec.ts` - 인터페이스 계약 테스트 (신규 생성)
 
 ### Notes
@@ -255,14 +255,14 @@
     - Then: Factory를 통해 Repository를 생성하는지 테스트
 
   **GREEN: 테스트를 통과시키는 최소한의 코드 작성**
-  - [x] 5.2.4 `src/infrastructure/database/database/init.ts` 업데이트
+  - [x] 5.2.4 `src/infrastructure/database/sqlite/init.ts` 업데이트
     - `CoreMemoryRepository` 직접 인스턴스화 제거
     - Factory 함수(`createCoreMemoryRepository`) 사용으로 변경
     - `db` 객체를 Factory에 전달하여 Repository 생성
-  - [x] 5.2.5 `src/domains/memory/tools/remember-tool.ts` 업데이트
+  - [x] 5.2.5 `src/domains/memory/remember/remember-tool.ts` 업데이트
     - `new CoreMemoryRepository(context.db!)` 제거
     - Factory 함수 사용으로 변경
-  - [x] 5.2.6 `src/domains/memory/tools/recall-tool.ts` 업데이트
+  - [x] 5.2.6 `src/domains/memory/recall/recall-tool.ts` 업데이트
     - `new CoreMemoryRepository(context.db!)` 제거
     - Factory 함수 사용으로 변경
   - [x] 5.2.7 테스트 실행하여 모든 테스트 통과 확인
@@ -291,7 +291,7 @@
       - `vi.fn()` 또는 `vi.mock()`을 사용하여 Mock 생성
       - 각 테스트에서 필요한 동작만 Mock으로 정의
       - 데이터베이스 설정 및 정리 코드 제거 (빠른 실행, 독립적 테스트)
-  - [x] 5.3.4 `src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts` 업데이트
+  - [x] 5.3.4 `src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts` 업데이트
     - `new CoreMemoryRepository(db)` 제거
     - Factory 함수 사용으로 변경
   - [x] 5.3.5 테스트 실행하여 모든 테스트 통과 확인
@@ -349,7 +349,7 @@
   - [x] 6.2.3 Factory 테스트 실행
     - [x] 6.2.3.1 `npm test src/infrastructure/database/factories/__tests__/core-memory-repository.factory.spec.ts` 실행
   - [x] 6.2.4 통합 테스트 실행
-    - [x] 6.2.4.1 `npm test src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts` 실행
+    - [x] 6.2.4.1 `npm test src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts` 실행
   - [x] 6.2.5 CI 환경 테스트 실행
     - [x] 6.2.5.1 `npm run test:ci` 실행하여 CI 환경에서도 통과 확인
 

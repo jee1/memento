@@ -86,13 +86,6 @@ export class ForgetTool extends BaseTool {
     );
   }
 
-  /**
-   * 제공자별 vec0 테이블명 반환 (lightweight → memory_item_vec 포함)
-   */
-  private getVectorTableName(provider: string, dimensions?: number): string {
-    return getValidatedVectorTableName(provider, dimensions);
-  }
-
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     this.logInfo('Forget 도구 호출됨', { params });
     
@@ -418,7 +411,7 @@ export class ForgetTool extends BaseTool {
 
       if (embeddingInfo) {
         const provider = embeddingInfo.embedding_provider || 'tfidf';
-        const tableName = this.getVectorTableName(provider);
+        const tableName = getValidatedVectorTableName(provider);
         
         await DatabaseUtils.run(
           context.db!,

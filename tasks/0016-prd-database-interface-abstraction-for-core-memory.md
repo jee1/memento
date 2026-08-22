@@ -91,8 +91,8 @@
 
 **FR-7**: 호출부 업데이트
 - `CoreMemoryService`가 인터페이스에 의존하도록 변경
-- `src/infrastructure/database/database/init.ts`에서 Factory를 통해 Repository 생성
-- `src/domains/memory/tools/remember-tool.ts`, `recall-tool.ts` 등 호출부 업데이트
+- `src/infrastructure/database/sqlite/init.ts`에서 Factory를 통해 Repository 생성
+- `src/domains/memory/remember/remember-tool.ts`, `recall-tool.ts` 등 호출부 업데이트
 
 ### 4.4 타입 정의
 
@@ -304,8 +304,8 @@ src/
 ### 9.4 통합 테스트
 
 - 실제 SQLite 데이터베이스를 사용한 통합 테스트 유지
-- `src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts` 유지
-- **테스트 실행**: `npm test src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts`
+- `src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts` 유지
+- **테스트 실행**: `npm test src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts`
 
 ### 9.5 성능 회귀 테스트
 
@@ -387,14 +387,14 @@ src/
 
 **CoreMemory 관련 호출부만 업데이트** (Vector*Repository는 제외):
 1. `CoreMemoryService` 업데이트 (인터페이스 의존으로 변경)
-2. `src/infrastructure/database/database/init.ts` 업데이트 (Factory 사용)
+2. `src/infrastructure/database/sqlite/init.ts` 업데이트 (Factory 사용)
 3. 도구(Tool) 파일들 업데이트:
-   - `src/domains/memory/tools/remember-tool.ts`
-   - `src/domains/memory/tools/recall-tool.ts`
+   - `src/domains/memory/remember/remember-tool.ts`
+   - `src/domains/memory/recall/recall-tool.ts`
 4. 테스트 파일 업데이트:
    - `src/domains/memory/repositories/__tests__/core-memory-repository.spec.ts`
    - `src/domains/memory/services/__tests__/core-memory-service.spec.ts`
-   - `src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts`
+   - `src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts`
 
 **제외 대상** (이번 작업 범위 아님):
 - `VectorSearchRepository`, `VectorIndexRepository`, `VectorPerformanceRepository` 관련 코드
@@ -403,7 +403,7 @@ src/
 
 #### 4.2 호출부 전환 체크리스트
 - [ ] `CoreMemoryService`가 인터페이스에 의존하도록 변경
-- [ ] `src/infrastructure/database/database/init.ts`에서 Factory 사용
+- [ ] `src/infrastructure/database/sqlite/init.ts`에서 Factory 사용
 - [ ] `remember-tool.ts`에서 Factory 사용
 - [ ] `recall-tool.ts`에서 Factory 사용
 - [ ] 모든 CoreMemory 관련 테스트 파일에서 Factory 사용
@@ -448,7 +448,7 @@ src/
 
 5. **통합 테스트 실행**:
    ```bash
-   npm test src/infrastructure/database/database/core-memory-auto-load.integration.spec.ts
+   npm test src/infrastructure/database/sqlite/core-memory-auto-load.integration.spec.ts
    ```
 
 6. **CI 환경 테스트**:
@@ -526,9 +526,9 @@ src/
 - `src/domains/memory/repositories/core-memory-repository.interface.ts`: 신규 생성
 - `src/domains/memory/repositories/core-memory-database.interface.ts`: 신규 생성
 - `src/domains/memory/services/core-memory-service.ts`: 호출부 업데이트 필요
-- `src/infrastructure/database/database/init.ts`: Factory 사용으로 변경
-- `src/domains/memory/tools/remember-tool.ts`: Factory 사용으로 변경
-- `src/domains/memory/tools/recall-tool.ts`: Factory 사용으로 변경
+- `src/infrastructure/database/sqlite/init.ts`: Factory 사용으로 변경
+- `src/domains/memory/remember/remember-tool.ts`: Factory 사용으로 변경
+- `src/domains/memory/recall/recall-tool.ts`: Factory 사용으로 변경
 
 **변경하지 않을 파일** (영향 범위 제한):
 - `src/shared/interfaces/database.interface.ts`: 기존 인터페이스 유지 (변경 없음)

@@ -11,8 +11,8 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import { CommonSchemas, type ToolContext, type ToolResult } from '../../../tools/types.js';
 import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundle-builder.js';
 import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
-import { handleAutoSetAnchor } from './recall-tool-anchor-rotation.js';
-import type { RecallToolHost } from './recall-tool-host.js';
+import { handleAutoSetAnchor } from '../recall/recall-tool-anchor-rotation.js';
+import type { RecallToolHost } from '../recall/recall-tool-host.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),

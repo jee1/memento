@@ -4,7 +4,7 @@
 
 ## 파일 위치
 
-- **모듈 경로**: `src/infrastructure/database/database/init.ts`
+- **모듈 경로**: `src/infrastructure/database/sqlite/init.ts`
 - **함수명**: `initializeDatabase`
 - **export 타입**: Named export
 
@@ -63,7 +63,7 @@ export async function initializeDatabase(): Promise<Database.Database>
 ### 기본 사용법 (TypeScript)
 
 ```typescript
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js';
 import Database from 'better-sqlite3';
 
 async function main() {
@@ -89,7 +89,7 @@ main();
 ### JavaScript에서 사용 (CommonJS)
 
 ```javascript
-const { initializeDatabase } = require('../dist/infrastructure/database/database/init.js');
+const { initializeDatabase } = require('../dist/infrastructure/database/sqlite/init.js');
 
 async function main() {
   try {
@@ -112,7 +112,7 @@ main();
 ### 에러 처리
 
 ```typescript
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js';
 
 async function main() {
   try {
@@ -136,7 +136,7 @@ async function main() {
 ### 데이터베이스 닫기
 
 ```typescript
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/sqlite/init.js';
 
 async function main() {
   const db = await initializeDatabase();
@@ -155,7 +155,7 @@ async function main() {
 ### quality-report.ts
 
 ```typescript
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js';
 
 async function generateReport() {
   const db = await initializeDatabase();
@@ -171,7 +171,7 @@ async function generateReport() {
 ### quality-thresholds.ts
 
 ```typescript
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js';
 
 async function manageThresholds() {
   const db = await initializeDatabase();
@@ -211,7 +211,7 @@ db.pragma('journal_mode = WAL');
 
 ```typescript
 // ✅ 새로운 방식 (권장)
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js';
 
 const db = await initializeDatabase();
 // 모든 초기화가 자동으로 완료됨
@@ -232,7 +232,7 @@ const db = await initializeDatabase();
 
 ## 참고 자료
 
-- `src/infrastructure/database/database/init.ts` - 구현 파일
+- `src/infrastructure/database/sqlite/init.ts` - 구현 파일
 - `src/shared/config/index.ts` - 설정 파일 (mementoConfig)
 - `scripts/quality-report.ts` - 사용 예제 1
 - `scripts/quality-thresholds.ts` - 사용 예제 2

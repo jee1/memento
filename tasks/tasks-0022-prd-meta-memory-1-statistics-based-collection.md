@@ -4,13 +4,13 @@
 
 ## Relevant Files
 
-- `src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.sql` - 메타 메모리 통계 테이블 스키마 마이그레이션
+- `src/infrastructure/database/sqlite/migration/migrations/011-meta-memory-stats-schema.sql` - 메타 메모리 통계 테이블 스키마 마이그레이션
 - `src/shared/types/index.ts` - MetaMemoryStats 타입 정의 및 RecallResponse 인터페이스 확장
 - `src/services/meta-memory-service.ts` - 메타 메모리 통계 수집 및 관리 서비스
 - `src/services/meta-memory-service.spec.ts` - MetaMemoryService 단위 테스트
 - `src/domains/monitoring/tools/get-meta-memory-stats-tool.ts` - 메타 메모리 통계 조회 MCP 도구
 - `src/domains/monitoring/tools/get-meta-memory-stats-tool.spec.ts` - get-meta-memory-stats-tool 단위 테스트
-- `src/domains/memory/tools/recall-tool.ts` - Recall Tool에 메타 통계 수집 로직 통합
+- `src/domains/memory/recall/recall-tool.ts` - Recall Tool에 메타 통계 수집 로직 통합
 - `src/server/bootstrap.ts` - MetaMemoryService 초기화 및 ServerServices에 추가
 - `src/shared/types/index.ts` - ServerServices 인터페이스에 metaMemoryService 필드 추가
 

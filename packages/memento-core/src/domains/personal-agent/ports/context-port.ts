@@ -1,4 +1,4 @@
-import type { MemoryType } from '../../../shared/types/index.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { KnowledgeCandidate } from '../types/agent-types.js';
 import type { KnowledgeContextBundle } from '../../memory/services/knowledge-context-bundle-builder.js';
 

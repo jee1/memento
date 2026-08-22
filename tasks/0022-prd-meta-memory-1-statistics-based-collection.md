@@ -504,7 +504,7 @@ src/
 
 ### 통합 지점
 
-1. **RecallTool**: 메타 통계 수집 로직 통합 (`src/domains/memory/tools/recall-tool.ts`)
+1. **RecallTool**: 메타 통계 수집 로직 통합 (`src/domains/memory/recall/recall-tool.ts`)
 2. **ServerServices**: `MetaMemoryService` 초기화 및 주입 (`src/server/bootstrap.ts`)
 3. **ToolContext**: `metaMemoryService` 제공 (`src/shared/types/index.ts`의 `ServerServices` 인터페이스)
 4. **Tools Registry**: `get_meta_memory_stats` 도구 등록 (`src/tools/index.ts`)

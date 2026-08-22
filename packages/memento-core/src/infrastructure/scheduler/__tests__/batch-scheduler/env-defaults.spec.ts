@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BatchScheduler } from '../../batch-scheduler.js';
+import { BatchScheduler } from '../../batch-scheduler/batch-scheduler.js';
 
 // DB 없이 실행 가능한 env var 기본값 테스트 (better-sqlite3 의존 없음)
 describe('BatchScheduler 기본값 및 env var', () => {

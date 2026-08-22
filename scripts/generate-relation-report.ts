@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs, openDb, type CliDatabase } from './lib/cli.js';
 /**
  * 관계 추출 품질 리포트 생성 스크립트
  * PR 리뷰 시 "Relation Extraction Report" 자동 생성
@@ -12,7 +13,6 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import Database from 'better-sqlite3';
 import {
   RelationExtractor,
   RelationQualityValidator,
@@ -36,7 +36,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {};
 
   for (let i = 0; i < args.length; i++) {
@@ -102,7 +102,7 @@ function loadTestDataset(sampleSize?: number): ExpectedRelation[] {
 /**
  * 테스트용 기본 스키마 생성
  */
-function createBaseSchema(db: Database.Database): void {
+function createBaseSchema(db: CliDatabase): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS memory_item (
       id TEXT PRIMARY KEY,
@@ -133,7 +133,7 @@ function createBaseSchema(db: Database.Database): void {
  * 테스트용 메모리 생성
  */
 function createTestMemory(
-  db: Database.Database,
+  db: CliDatabase,
   id: string,
   content: string,
   type: string = 'episodic'
@@ -362,7 +362,7 @@ async function main() {
   console.log(`옵션:`, options);
 
   // Given: 데이터베이스 및 서비스 초기화
-  const db = new Database(':memory:');
+  const db = openDb(':memory:');
   createBaseSchema(db);
   
   const migration = new RelationEngineSchemaMigration();

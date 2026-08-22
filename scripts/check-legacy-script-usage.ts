@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 /**
  * 레거시 스크립트 사용 여부 확인 스크립트
@@ -280,8 +281,8 @@ function printText(result: CheckResult): void {
 }
 
 // 메인 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
-  const useJSON = process.argv.includes('--json');
+if (isMain(import.meta.url)) {
+  const useJSON = parseCliArgs().args.includes('--json');
   const result = checkLegacyScriptUsage();
   
   if (useJSON) {
@@ -291,7 +292,7 @@ if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(
   }
   
   // CI 모드: 미사용 스크립트가 있으면 exit code 1
-  if (process.argv.includes('--ci') && result.summary.unused > 0) {
+  if (parseCliArgs().args.includes('--ci') && result.summary.unused > 0) {
     process.exit(1);
   }
 }

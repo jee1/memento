@@ -5,9 +5,9 @@
  */
 
 import Database from 'better-sqlite3';
-import { ensureMemoryItemTripleExtractionColumns } from '../../database/database/ensure-memory-item-triple-extraction-columns.js';
+import { ensureMemoryItemTripleExtractionColumns } from '../../database/sqlite/ensure-memory-item-triple-extraction-columns.js';
 import { TripleExtractionService } from '../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
+import { SemanticMemoryUpdateService } from '../../../domains/memory/semantic/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { createRelationGraph } from '../../relation-graph-factory.js';
 import type {

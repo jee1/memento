@@ -12,7 +12,7 @@ import {
 import {
   generateQualityReport,
   type GroundTruth
-} from './helpers/search-quality-metrics.js';
+} from '../domains/monitoring/services/quality-assurance/search-quality-metrics.js';
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -371,4 +371,3 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
 }
 
 export { runConsolidationQualityBenchmark, saveBaselineSnapshot, loadBaselineSnapshot };
-

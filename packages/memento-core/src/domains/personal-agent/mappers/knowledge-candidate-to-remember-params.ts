@@ -1,4 +1,4 @@
-import type { RememberParams } from '../../memory/tools/remember-tool.js';
+import type { RememberParams } from '../../memory/remember/remember-tool.js';
 import type { KnowledgeCandidate } from '../types/agent-types.js';
 
 export interface RememberParamsMappingContext {

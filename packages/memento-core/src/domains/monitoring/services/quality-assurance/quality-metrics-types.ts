@@ -1,5 +1,5 @@
-import type { SearchResult, GroundTruth } from '../../../../test/helpers/search-quality-metrics.js';
-import type { SearchResultPair } from '../../../../test/helpers/vector-search-quality-metrics.js';
+import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
+import type { SearchResultPair } from './vector-search-quality-metrics.js';
 import type { ExpectedRelation, ExtractedRelation } from '../../../relation/services/relation-quality-validator.js';
 
 export interface CollectedMetrics {

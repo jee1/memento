@@ -16,4 +16,4 @@ Benchmark data lives under `tests/fixtures/search-quality/benchmark-v3/`.
 
 ## Three scripts
 
-The harness splits into **compare → tune → report**. Use `quality:benchmark:compare-profiles` to A/B two profile files, `quality:benchmark:tune-weights` to search candidate weights, and `quality:benchmark:tune-report` to read a tuning run summary. See the Korean guide for full command examples and flags.
+The harness splits into **compare → tune → report**. Use `npm run quality -- benchmark compare-profiles` to A/B two profile files, `npm run quality -- benchmark tune-weights` to search candidate weights, and `npm run quality -- benchmark tune-report` to read a tuning run summary. See the Korean guide for full command examples and flags.

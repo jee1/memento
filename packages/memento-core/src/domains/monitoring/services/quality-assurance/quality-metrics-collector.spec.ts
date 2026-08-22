@@ -5,8 +5,8 @@ import { tmpdir } from 'os';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { QualityMetricsCollector, type CollectedMetrics } from './quality-metrics-collector.js';
-import type { SearchResult, GroundTruth } from '../../../../test/helpers/search-quality-metrics.js';
-import type { SearchResultPair } from '../../../../test/helpers/vector-search-quality-metrics.js';
+import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
+import type { SearchResultPair } from './vector-search-quality-metrics.js';
 import type { ExpectedRelation, ExtractedRelation } from '../../../relation/services/relation-quality-validator.js';
 
 describe('QualityMetricsCollector', () => {

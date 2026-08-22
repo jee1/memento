@@ -1,9 +1,5 @@
 # 파일 위치·필요성 감사
 
-본 문서는 **2026-03-03 저장소 정리** 설계에 통합되었습니다.
+본 문서는 **2026-03-03 저장소 정리** 시점의 기록입니다. 당시 설계·구현 계획·scripts 인벤토리는 출시가 끝난 프로세스 산출물이므로 `archive/pre-issue-801-cleanup` 브랜치에 보존했습니다.
 
-- **설계 문서**: [design.md](../../_work/plans/ko/2026-03-03-repo-cleanup/design.md) — 범위, 단계별 작업, 예외·리스크
-- **구현 계획**: [implementation-plan.md](../../_work/plans/ko/2026-03-03-repo-cleanup/implementation-plan.md)
-- **scripts 인벤토리**: [2026-03-03-scripts-inventory.md](../../_work/plans/ko/2026-03-03-scripts-inventory.md)
-
-파일별 위치 적합성·필요 여부·개선 방안은 위 문서를 참고하세요.
+현재 문서 위치 정책은 [docs 분류 체계](../../docs-classification.md), 기능 명세 번호와 상태는 [`specs/README.md`](../../../specs/README.md)를 기준으로 확인하세요.

@@ -3,20 +3,24 @@ import { mementoConfig } from '../shared/config/index.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { SleepConsolidationService } from '../domains/consolidation/services/sleep-consolidation-service.js';
 import { createRelationGraph } from '../infrastructure/relation-graph-factory.js';
-import { IntrospectionScanCache } from '../domains/memory/services/introspection-scan-cache.js';
+import { IntrospectionScanCache } from '../domains/memory/introspection/introspection-scan-cache.js';
 import { TelemetryRepository } from '../domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from '../domains/telemetry/services/telemetry-service.js';
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { RuntimeDiagnosticsLogger } from '../domains/monitoring/services/runtime-diagnostics-logger.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
+import type { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
+import type { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
 
 export async function createBatchTelemetryRelationAndSleep(
   db: Database.Database,
   embeddingService: MemoryEmbeddingService,
   runtimeDiagnosticsLogger: RuntimeDiagnosticsLogger,
   reflexionWorker: IReflexionWorker | undefined,
-  anchorManager?: AnchorManager
+  anchorManager?: AnchorManager,
+  walCheckpointScheduler?: WalCheckpointScheduler,
+  databaseLockMonitor?: DatabaseLockMonitor
 ): Promise<{
   introspectionScanCache: IntrospectionScanCache;
   telemetryRepository: TelemetryRepository;
@@ -28,6 +32,10 @@ export async function createBatchTelemetryRelationAndSleep(
   const introspectionScanCache = new IntrospectionScanCache();
   const telemetryRepository = new TelemetryRepository(db);
   const batchScheduler = getBatchScheduler();
+  batchScheduler.setDatabaseMaintenance(
+    walCheckpointScheduler ?? null,
+    databaseLockMonitor ?? null
+  );
   batchScheduler.setDiagnosticsLogger(runtimeDiagnosticsLogger);
   batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
   const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
@@ -42,9 +50,7 @@ export async function createBatchTelemetryRelationAndSleep(
     telemetryService
   });
   batchScheduler.setSleepConsolidationService(sleepConsolidationService);
-  if (mementoConfig.batchSchedulerEnabled) {
-    await batchScheduler.start(db, reflexionWorker);
-  }
+  await batchScheduler.start(db, reflexionWorker, mementoConfig.batchSchedulerEnabled);
 
   return {
     introspectionScanCache,

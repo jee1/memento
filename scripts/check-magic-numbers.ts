@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * 매직 넘버 검색 스크립트
  * 
@@ -231,7 +232,7 @@ function printResultsText(results: FileResult[]): void {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const format = args.find(arg => arg.startsWith('--format='))?.split('=')[1] || 'json';
   const outputPath = args.find(arg => arg.startsWith('--output='))?.split('=')[1];
   const coreOnly = args.includes('--core-only');

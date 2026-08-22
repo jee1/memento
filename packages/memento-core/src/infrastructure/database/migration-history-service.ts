@@ -11,6 +11,7 @@ import type {
 import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../shared/types/embedding.types.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
+import { DAY_MS } from '../../shared/utils/date.js';
 
 const DEFAULT_HISTORY_LIMIT = 50;
 
@@ -235,7 +236,7 @@ class MigrationHistoryService {
     let deleted = 0;
 
     if (options.olderThanDays && options.olderThanDays > 0) {
-      const cutoff = new Date(Date.now() - options.olderThanDays * 24 * 60 * 60 * 1000).toISOString();
+      const cutoff = new Date(Date.now() - options.olderThanDays * DAY_MS).toISOString();
       const statement = db.prepare(
         `
         DELETE FROM migration_history

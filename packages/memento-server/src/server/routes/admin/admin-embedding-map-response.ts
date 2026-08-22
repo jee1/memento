@@ -79,7 +79,12 @@ function getCacheKey(provider: string, limit: number, effectiveK: number): strin
 function distSq(a: number[], b: number[]): number {
   let s = 0;
   for (let i = 0; i < a.length; i++) {
-    const d = a[i] - b[i];
+    const left = a[i];
+    const right = b[i];
+    if (left === undefined || right === undefined) {
+      throw new Error('Embedding dimensions do not match');
+    }
+    const d = left - right;
     s += d * d;
   }
   return s;
@@ -120,7 +125,11 @@ export function kMeans(
     return [];
   }
   const effK = Math.min(Math.max(1, k), n);
-  const d = points[0].length;
+  const firstPoint = points[0];
+  if (firstPoint === undefined) {
+    return [];
+  }
+  const d = firstPoint.length;
   const centroids: number[][] = [];
   const used = new Set<number>();
   let guard = 0;
@@ -131,10 +140,15 @@ export function kMeans(
       continue;
     }
     used.add(idx);
-    centroids.push([...points[idx]]);
+    const point = points[idx];
+    if (point !== undefined) {
+      centroids.push([...point]);
+    }
   }
   while (centroids.length < effK) {
-    centroids.push([...points[centroids.length % n]]);
+    const point = points[centroids.length % n];
+    if (point === undefined) return [];
+    centroids.push([...point]);
   }
 
   const assignments = new Array<number>(n).fill(0);
@@ -144,8 +158,12 @@ export function kMeans(
     for (let i = 0; i < n; i++) {
       let best = 0;
       let bestD = Infinity;
+      const point = points[i];
+      if (point === undefined) continue;
       for (let c = 0; c < effK; c++) {
-        const ds = distSq(points[i], centroids[c]);
+        const centroid = centroids[c];
+        if (centroid === undefined) continue;
+        const ds = distSq(point, centroid);
         if (ds < bestD) {
           bestD = ds;
           best = c;
@@ -161,19 +179,34 @@ export function kMeans(
     const sums = Array.from({ length: effK }, () => new Array(d).fill(0));
     for (let i = 0; i < n; i++) {
       const c = assignments[i];
-      counts[c]++;
+      const point = points[i];
+      if (c === undefined || point === undefined) continue;
+      counts[c] = (counts[c] ?? 0) + 1;
       for (let j = 0; j < d; j++) {
-        sums[c][j] += points[i][j];
+        const coordinate = point[j];
+        const clusterSum = sums[c];
+        if (coordinate === undefined || clusterSum === undefined) continue;
+        clusterSum[j] = (clusterSum[j] ?? 0) + coordinate;
       }
     }
 
     for (let c = 0; c < effK; c++) {
       if (counts[c] === 0) {
-        centroids[c] = [...points[Math.floor(rng() * n)]];
+        const point = points[Math.floor(rng() * n)];
+        if (point !== undefined) {
+          centroids[c] = [...point];
+        }
         continue;
       }
+      const centroid = centroids[c];
+      const clusterSum = sums[c];
+      const count = counts[c];
+      if (centroid === undefined || clusterSum === undefined || count === undefined) continue;
       for (let j = 0; j < d; j++) {
-        centroids[c][j] = sums[c][j] / counts[c];
+        const sum = clusterSum[j];
+        if (sum !== undefined) {
+          centroid[j] = sum / count;
+        }
       }
     }
 
@@ -348,11 +381,19 @@ export async function buildEmbeddingMapResponse(
         const memType = VALID_MEMORY_TYPES.has(t)
           ? (t as EmbeddingPoint['type'])
           : 'semantic';
+        const coordinates = coords2d[i];
+        const cluster = clusterIds[i];
+        if (coordinates?.[0] === undefined || coordinates[1] === undefined || cluster === undefined) {
+          throw new EmbeddingMapBuildError('임베딩 맵 좌표를 생성하지 못했습니다.', 'CORRUPTED_EMBEDDINGS', {
+            provider: params.provider,
+            count: n,
+          });
+        }
         return {
           id: p.row.id,
-          x: coords2d[i][0]!,
-          y: coords2d[i][1]!,
-          cluster: clusterIds[i]!,
+          x: coordinates[0],
+          y: coordinates[1],
+          cluster,
           type: memType,
           content: p.row.content,
           tags: parseTags(p.row.tags),

@@ -12,7 +12,7 @@ S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weig
 
 ## 벡터 similarity 계약: cosine (Issue #713)
 
-`relevance`에 들어가는 벡터 유사도는 **cosine similarity** 하나로 고정돼 있습니다. 모든 sqlite-vec 가상 테이블은 `vec0(embedding float[N] distance_metric=cosine)`로 생성되며, metric을 생략하면 sqlite-vec 기본값인 L2가 적용되어 계약이 깨집니다. 대상 테이블은 legacy 384 공용 테이블인 `memory_item_vec`과 제공자별 `memory_item_vec_{tfidf,minilm,openai,gemini,mock}`이고, 정의는 `packages/memento-core/src/infrastructure/database/database/vec-schema.ts`의 `VEC_TABLES` 하나에서만 관리합니다. `schema.sql`(신규 DB)·마이그레이션 041·`migrate.ts`가 모두 이 정의를 따릅니다.
+`relevance`에 들어가는 벡터 유사도는 **cosine similarity** 하나로 고정돼 있습니다. 모든 sqlite-vec 가상 테이블은 `vec0(embedding float[N] distance_metric=cosine)`로 생성되며, metric을 생략하면 sqlite-vec 기본값인 L2가 적용되어 계약이 깨집니다. 대상 테이블은 legacy 384 공용 테이블인 `memory_item_vec`과 제공자별 `memory_item_vec_{tfidf,minilm,openai,gemini,mock}`이고, 정의는 `packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts`의 `VEC_TABLES` 하나에서만 관리합니다. `schema.sql`(신규 DB)·마이그레이션 041·`migrate.ts`가 모두 이 정의를 따릅니다.
 
 검색 결과 매핑은 `similarity = clamp(1 − cosine_distance, 0, 1)`입니다. cosine distance는 [0, 2] 범위이므로 양의 비례 벡터는 similarity 1.0, 직교는 0, 반대 방향(distance 2)은 하한 clamp로 0이 됩니다. 앵커 slot threshold 0.8/0.6/0.4도 이 cosine similarity 기준입니다.
 

@@ -148,7 +148,7 @@ Memento 프로젝트는 MCP(Model Context Protocol) 서버로서 복잡한 메�
   - 사용 중인 스크립트는 정식 마이그레이션 시스템을 호출하는 래퍼로 변경
 
 **FR-4.2**: 정식 마이그레이션 시스템 확인
-- `src/infrastructure/database/database/migration/` 디렉토리의 마이그레이션 시스템 확인
+- `src/infrastructure/database/sqlite/migration/` 디렉토리의 마이그레이션 시스템 확인
 - 마이그레이션 시스템 인터페이스 문서화
 
 **FR-4.3**: 레거시 스크립트 래퍼화
@@ -358,7 +358,7 @@ Memento 프로젝트는 MCP(Model Context Protocol) 서버로서 복잡한 메�
    - 사용되지 않는 스크립트는 제거 대상으로 표시
 
 3. **정식 마이그레이션 시스템 확인**
-   - `src/infrastructure/database/database/migration/` 디렉토리의 마이그레이션 시스템 확인
+   - `src/infrastructure/database/sqlite/migration/` 디렉토리의 마이그레이션 시스템 확인
    - 마이그레이션 시스템 인터페이스 문서화
 
 4. **레거시 스크립트 래퍼화**

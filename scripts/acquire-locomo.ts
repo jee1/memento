@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 import { createHash } from 'node:crypto';
 import {
@@ -73,9 +74,9 @@ export async function acquireLoCoMo(
 }
 
 async function main(): Promise<void> {
-  const outputPath = process.argv[2]
+  const outputPath = parseCliArgs().args[0]
     ?? join(process.cwd(), '.local/locomo', LOCOMO_DATASET_FILE);
-  const revision = process.argv[3] ?? LOCOMO_DATASET_REVISION;
+  const revision = parseCliArgs().args[1] ?? LOCOMO_DATASET_REVISION;
   await acquireLoCoMo(outputPath, revision);
   process.stdout.write(`${outputPath}\n`);
   process.stdout.write(
@@ -83,6 +84,6 @@ async function main(): Promise<void> {
   );
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMain(import.meta.url)) {
   await main();
 }

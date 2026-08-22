@@ -3,6 +3,7 @@
  */
 
 import { PERF_ALERT_REARM_MS_DEFAULT, resolveValidatedNumber } from '../../../shared/config/environment.js';
+import { DAY_MS } from '../../../shared/utils/date.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { alertNotificationService } from './alert-notification-service.js';
 import { getMemoryPressureDenominatorBytes, memoryRatioToPercent } from './memory-pressure-utils.js';
@@ -30,7 +31,7 @@ export class PerformanceAlertManager {
       alertRearmMs: resolveValidatedNumber(
         'PERF_ALERT_REARM_MS',
         PERF_ALERT_REARM_MS_DEFAULT,
-        n => n >= 0 && n <= 7 * 24 * 60 * 60 * 1000,
+        n => n >= 0 && n <= 7 * DAY_MS,
         '범위 0-604800000'
       ),
       ...thresholds
@@ -56,8 +57,8 @@ export class PerformanceAlertManager {
     // 메모리 사용률 검사
     const memoryUsagePercent = metrics.memory.usagePercent;
     if (memoryUsagePercent <= this.thresholds.memoryUsagePercent) {
-      // 조건 해소 시 알림을 시스템이 자동 해제한다. resolveAlert()의 acknowledgeAlert() 연쇄 호출은
-      // 알림 서비스에서 해당 알림을 제거하기 위한 의도된 동작이다.
+      // 조건 해소 시 알림을 시스템이 자동 해제한다. resolveAlert()는 같은 ID의 전달 메타데이터도
+      // acknowledge 처리해 알림 상태와 전달 상태를 맞춘다.
       const existing = Array.from(this.alerts.values())
         .find(a => a.type === 'memory' && !a.resolved);
       if (existing) this.resolveAlert(existing.id);
@@ -78,6 +79,13 @@ export class PerformanceAlertManager {
           message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% RSS (${formatBytes(metrics.memory.rss)} / ${formatBytes(memoryDenominator)})`,
           value: memoryUsagePercent,
           threshold: this.thresholds.memoryUsagePercent,
+          metric: 'memory_usage_percent',
+          context: {
+            component: 'process',
+            operation: 'rss-sample',
+            rssBytes: metrics.memory.rss,
+            denominatorBytes: memoryDenominator
+          },
           timestamp: now,
           resolved: false
         });
@@ -108,6 +116,12 @@ export class PerformanceAlertManager {
           message: `Large database size: ${dbSizeMB.toFixed(1)}MB (${metrics.database.memoryCount} memories)`,
           value: dbSizeMB,
           threshold: this.thresholds.databaseSizeMB,
+          metric: 'database_size_mb',
+          context: {
+            component: 'database',
+            operation: 'size-sample',
+            memoryCount: metrics.database.memoryCount
+          },
           timestamp: now,
           resolved: false
         });
@@ -144,6 +158,8 @@ export class PerformanceAlertManager {
           message: `Slow query detected: ${metrics.database.queryTime}ms (threshold: ${this.thresholds.queryTimeMs}ms)`,
           value: metrics.database.queryTime,
           threshold: this.thresholds.queryTimeMs,
+          metric: 'query_time_ms',
+          context: { component: 'database', operation: 'query' },
           timestamp: now,
           resolved: false
         });
@@ -153,7 +169,7 @@ export class PerformanceAlertManager {
     // CPU 사용률 검사
     const cpuUsagePercent = metrics.cpu.percent;
     if (cpuUsagePercent <= this.thresholds.cpuUsagePercent) {
-      // memory와 동일: 조건 해소 시 시스템 auto-resolve. acknowledgeAlert() 연쇄는 의도된 동작.
+      // memory와 동일: 조건 해소 시 시스템 auto-resolve하고 전달 메타데이터도 acknowledge한다.
       const existing = Array.from(this.alerts.values())
         .find(a => a.type === 'cpu' && !a.resolved);
       if (existing) this.resolveAlert(existing.id);
@@ -173,6 +189,13 @@ export class PerformanceAlertManager {
           message: `High CPU usage: ${cpuUsagePercent.toFixed(1)}%`,
           value: cpuUsagePercent,
           threshold: this.thresholds.cpuUsagePercent,
+          metric: 'cpu_usage_percent',
+          context: {
+            component: 'process',
+            operation: 'cpu-sample',
+            userMicros: metrics.cpu.user,
+            systemMicros: metrics.cpu.system
+          },
           timestamp: now,
           resolved: false
         });
@@ -246,10 +269,13 @@ export class PerformanceAlertManager {
   /**
    * 알림 해결
    */
-  resolveAlert(alertId: string): boolean {
+  resolveAlert(alertId: string, resolvedBy: string = 'system', resolution?: string): boolean {
     const alert = this.alerts.get(alertId);
     if (alert) {
       alert.resolved = true;
+      alert.resolvedAt = new Date();
+      alert.resolvedBy = resolvedBy;
+      alert.resolution = resolution;
       this.lastResolvedAtByType.set(alert.type, Date.now());
       logger.info('Performance alert resolved', { alertId });
       alertNotificationService.acknowledgeAlert(alertId);
@@ -271,16 +297,22 @@ export class PerformanceAlertManager {
   }
 
   clearAlerts(): void {
+    for (const id of this.alerts.keys()) {
+      alertNotificationService.removeAlert(id);
+    }
     this.alerts.clear();
     this.lastResolvedAtByType.clear();
     this.queryConsecutiveOkCount = 0;
   }
 
   importAlerts(alerts: PerformanceAlert[]): void {
-    this.alerts.clear();
-    this.lastResolvedAtByType.clear();
+    this.clearAlerts();
     alerts.forEach(alert => {
-      this.alerts.set(alert.id, alert);
+      this.alerts.set(alert.id, {
+        ...alert,
+        timestamp: new Date(alert.timestamp),
+        resolvedAt: alert.resolvedAt ? new Date(alert.resolvedAt) : undefined
+      });
     });
   }
 
@@ -338,6 +370,7 @@ export class PerformanceAlertManager {
     for (const [id, alert] of this.alerts) {
       if (alert.resolved && alert.timestamp < cutoffTime) {
         this.alerts.delete(id);
+        alertNotificationService.removeAlert(id);
         removedCount++;
       }
     }

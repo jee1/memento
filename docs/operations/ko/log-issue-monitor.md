@@ -7,13 +7,13 @@ Log Issue Monitor는 Memento 운영 로그와 Docker diagnostics 파일을 주�
 ```bash
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
-  -f docker-compose.mem-limits.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.mem-limits.yml \
   up -d
 ```
 
-컨테이너별 메모리 상한은 `docker-compose.mem-limits.yml`에서 설정합니다 (Desktop UI 1GB 제한과 무관). 기본값은 MCP 768MB, monitor 256MB, docker-diagnostics 128MB이며 `.env` 또는 셸에서 `MEMENTO_MCP_MEM_LIMIT` 등으로 조절할 수 있습니다.
+컨테이너별 메모리 상한은 `docker/docker-compose.mem-limits.yml`에서 설정합니다 (Desktop UI 1GB 제한과 무관). 기본값은 MCP 768MB, monitor 256MB, docker-diagnostics 128MB이며 `.env` 또는 셸에서 `MEMENTO_MCP_MEM_LIMIT` 등으로 조절할 수 있습니다.
 
 ## Local-only 모드
 
@@ -24,9 +24,9 @@ docker compose \
 ```bash
 LOG_ISSUE_MONITOR_DRY_RUN=true docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
-  -f docker-compose.mem-limits.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -37,9 +37,9 @@ GitHub Issue 생성을 켜려면 Issues write 권한이 있는 token을 `GITHUB_
 ```bash
 GITHUB_TOKEN=... docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
-  -f docker-compose.mem-limits.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -59,7 +59,7 @@ GITHUB_TOKEN=... docker compose \
 
 ## 컨테이너 메모리 상한
 
-Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다. `docker-compose.mem-limits.yml` 오버레이로 cgroup 상한을 서비스별로 둡니다.
+Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다. `docker/docker-compose.mem-limits.yml` 오버레이로 cgroup 상한을 서비스별로 둡니다.
 
 | 환경변수 | 기본값 | 서비스 |
 | --- | --- | --- |
@@ -121,8 +121,8 @@ tail -3 ~/.memento/logs/log-issue-monitor/monitor-errors.jsonl
 ```bash
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
   stop log-issue-monitor
 
 mv ~/.memento/logs/diagnostics/app-runtime.jsonl \
@@ -140,8 +140,8 @@ done
 
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.diagnostics.yml \
-  -f docker-compose.issue-monitor.yml \
+  -f docker/docker-compose.diagnostics.yml \
+  -f docker/docker-compose.issue-monitor.yml \
   start log-issue-monitor
 ```
 

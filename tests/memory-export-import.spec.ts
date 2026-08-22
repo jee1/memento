@@ -16,7 +16,7 @@ import {
   cleanupTestDatabase,
   createTestMemory,
   setupTestDatabase,
-} from '../packages/memento-core/src/test/helpers/test-database.js';
+} from '../packages/memento-core/test/helpers/test-database.js';
 import { DatabaseUtils } from '../packages/memento-core/src/shared/utils/database.js';
 
 describe('memory export/import JSONL round-trip', () => {

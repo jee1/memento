@@ -3,9 +3,15 @@ import type { AlertEvent } from '../../../shared/types/alerts.types.js';
 
 const ALERT_EMITTER_EVENT = 'alert';
 
+export interface AlertDelivery {
+  id: string;
+  createdAt: Date;
+  acknowledged: boolean;
+}
+
 export class AlertNotificationService {
   private readonly emitter = new EventEmitter();
-  private readonly alerts: Map<string, AlertEvent> = new Map();
+  private readonly deliveries: Map<string, AlertDelivery> = new Map();
 
   emitAlert(
     event: Omit<AlertEvent, 'createdAt' | 'acknowledged'> & { createdAt?: Date; acknowledged?: boolean }
@@ -15,31 +21,38 @@ export class AlertNotificationService {
       createdAt: event.createdAt ?? new Date(),
       acknowledged: event.acknowledged ?? false
     };
-    this.alerts.set(withDefaults.id, withDefaults);
+    this.deliveries.set(withDefaults.id, {
+      id: withDefaults.id,
+      createdAt: withDefaults.createdAt,
+      acknowledged: withDefaults.acknowledged
+    });
     this.emitter.emit(ALERT_EMITTER_EVENT, withDefaults);
     return withDefaults;
   }
 
-  getAlerts(): AlertEvent[] {
-    return Array.from(this.alerts.values()).sort(
+  getAlerts(): AlertDelivery[] {
+    return Array.from(this.deliveries.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
   }
 
-  getActiveAlerts(): AlertEvent[] {
-    return this.getAlerts().filter(alert => !alert.acknowledged);
+  getActiveAlerts(): AlertDelivery[] {
+    return this.getAlerts().filter(delivery => !delivery.acknowledged);
   }
 
   acknowledgeAlert(alertId: string): boolean {
-    const alert = this.alerts.get(alertId);
-    if (!alert) {
+    const delivery = this.deliveries.get(alertId);
+    if (!delivery) {
       return false;
     }
-    if (!alert.acknowledged) {
-      alert.acknowledged = true;
-      this.alerts.set(alertId, alert);
+    if (!delivery.acknowledged) {
+      delivery.acknowledged = true;
     }
     return true;
+  }
+
+  removeAlert(alertId: string): boolean {
+    return this.deliveries.delete(alertId);
   }
 
   subscribe(listener: (event: AlertEvent) => void): () => void {
@@ -50,7 +63,7 @@ export class AlertNotificationService {
   }
 
   clear(): void {
-    this.alerts.clear();
+    this.deliveries.clear();
   }
 }
 

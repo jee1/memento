@@ -6,6 +6,7 @@
  */
 
 import type { ConsolidationCluster } from '../../../shared/types/consolidation.types.js';
+import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
 export interface EpisodicWithEmbedding {
@@ -24,24 +25,6 @@ export class ClusteringService {
     const raw = process.env.CONSOLIDATION_MIN_CLUSTER_SIZE;
     const n = raw ? parseInt(raw, 10) : 2;
     return Number.isFinite(n) && n >= 2 ? n : 2;
-  }
-
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length || a.length === 0) {
-      return 0;
-    }
-    let dot = 0;
-    let na = 0;
-    let nb = 0;
-    for (let i = 0; i < a.length; i++) {
-      const x = a[i] ?? 0;
-      const y = b[i] ?? 0;
-      dot += x * y;
-      na += x * x;
-      nb += y * y;
-    }
-    const denom = Math.sqrt(na) * Math.sqrt(nb);
-    return denom === 0 ? 0 : dot / denom;
   }
 
   /**
@@ -68,7 +51,7 @@ export class ClusteringService {
         if (assigned.has(other.row.id)) {
           continue;
         }
-        const sim = this.cosineSimilarity(seed.embedding, other.embedding);
+        const sim = cosineSimilarity(seed.embedding, other.embedding);
         if (sim >= threshold) {
           members.push(other);
           assigned.add(other.row.id);
@@ -92,7 +75,7 @@ export class ClusteringService {
       let simCount = 0;
       for (let i = 0; i < members.length; i++) {
         for (let j = i + 1; j < members.length; j++) {
-          simSum += this.cosineSimilarity(
+          simSum += cosineSimilarity(
             members[i]!.embedding,
             members[j]!.embedding
           );

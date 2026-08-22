@@ -25,6 +25,7 @@ export function stripGlobalCliArgs(argv: string[]): string[] {
   const out: string[] = [];
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
+    if (arg === undefined) continue;
     if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
       if (argv[i + 1]) i++;
       continue;
@@ -56,17 +57,20 @@ export function parseAgentAskInvocation(argv: string[]): ParsedAgentAsk {
   if (tail.length === 0) {
     return { kind: 'usage', message: 'agent ask: 사용자 메시지가 필요합니다.' };
   }
-  if (tail[0] === '--help' || tail[0] === '-h') {
+  const userMessage = tail[0];
+  if (userMessage === undefined) {
+    return { kind: 'usage', message: 'agent ask: 사용자 메시지가 필요합니다.' };
+  }
+  if (userMessage === '--help' || userMessage === '-h') {
     return { kind: 'help' };
   }
-  if (tail[0].startsWith('-')) {
+  if (userMessage.startsWith('-')) {
     return {
       kind: 'usage',
       message: 'agent ask: 사용자 메시지는 ask 바로 다음에 와야 합니다(플래그 아님).',
     };
   }
-  const userMessage = tail[0];
-  if (!String(userMessage).trim()) {
+  if (!userMessage.trim()) {
     return { kind: 'usage', message: 'agent ask: 사용자 메시지가 비어 있습니다.' };
   }
 
@@ -89,16 +93,15 @@ export function parseAgentAskInvocation(argv: string[]): ParsedAgentAsk {
   const json = raw.json === true;
   const noSave = raw.no_save === true;
 
+  if (raw.llm === true) {
+    return { kind: 'usage', message: 'agent ask: --llm 에는 mock 을 지정하세요.' };
+  }
   if (raw.llm !== undefined && raw.llm !== 'mock') {
     return {
       kind: 'usage',
       message: 'agent ask: --llm 값은 현재 mock만 지원합니다.',
     };
   }
-  if (raw.llm === true) {
-    return { kind: 'usage', message: 'agent ask: --llm 에는 mock 을 지정하세요.' };
-  }
-
   return {
     kind: 'run',
     userMessage,
@@ -124,6 +127,10 @@ const AGENT_ASK_VALUE_FLAGS = new Set(['project_id', 'token_budget', 'llm']);
 export function validateAgentAskFlagArgv(flagArgv: string[]): string | null {
   for (let i = 0; i < flagArgv.length; ) {
     const arg = flagArgv[i];
+    if (arg === undefined) {
+      i += 1;
+      continue;
+    }
     if (arg === '-h' || arg === '--help') {
       i += 1;
       continue;
@@ -178,4 +185,3 @@ export function resolveDbPath(pre: PreCliOptions): string {
   if (fromEnv) return fromEnv;
   return mementoConfig.dbPath;
 }
-

@@ -1,6 +1,6 @@
 import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
-import type { ExtractedProceduralMemory } from '../../shared/utils/procedural-memory-extractor.js';
-import type { ReflectionNotes } from '../../shared/utils/procedural-memory-extractor.types.js';
+import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 import type { ReflexionProceduralMemoryService } from '../reflexion-procedural-memory-service.js';
 
 export interface ReflexionWorkerFailureHandlerDeps {

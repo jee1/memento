@@ -6,8 +6,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { RememberTool } from '@memento/core/domains/memory/tools/remember-tool.js';
-import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
+import { RememberTool } from '@memento/core/domains/memory/remember/remember-tool.js';
+import { RecallTool } from '@memento/core/domains/memory/recall/recall-tool.js';
 import type { ToolContext } from '@memento/core/index.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 import { HybridSearchEngine } from '@memento/core/domains/search/algorithms/hybrid-search-engine.js';

@@ -60,7 +60,10 @@ export class CacheService<T = unknown> {
     entry.accessCount++;
     entry.lastAccessed = Date.now();
     this.hits++;
-    
+
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
     return entry.data;
   }
 
@@ -68,13 +71,14 @@ export class CacheService<T = unknown> {
    * 캐시에 데이터 저장
    */
   set(key: string, data: T, ttl?: number): void {
+    const existingEntry = this.cache.get(key);
+
     // 기존 키가 아닌 경우에만 크기 제한 확인
-    if (!this.cache.has(key) && this.cache.size >= this.maxSize) {
+    if (!existingEntry && this.cache.size >= this.maxSize) {
       this.evictLeastRecentlyUsed();
     }
 
     // 기존 항목이 있으면 접근 통계 업데이트
-    const existingEntry = this.cache.get(key);
     const now = Date.now();
     
     const entry: CacheEntry<T> = {
@@ -85,6 +89,9 @@ export class CacheService<T = unknown> {
       lastAccessed: now // set() 호출 시 lastAccessed를 현재 시간으로 업데이트 (LRU 정확성 보장)
     };
 
+    if (existingEntry) {
+      this.cache.delete(key);
+    }
     this.cache.set(key, entry);
   }
 
@@ -149,17 +156,8 @@ export class CacheService<T = unknown> {
    * LRU 방식으로 오래된 항목 제거
    */
   private evictLeastRecentlyUsed(): void {
-    let oldestKey = '';
-    let oldestTime = Number.MAX_SAFE_INTEGER;
-
-    for (const [key, entry] of this.cache) {
-      if (entry.lastAccessed < oldestTime) {
-        oldestTime = entry.lastAccessed;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
+    const oldestKey = this.cache.keys().next().value;
+    if (oldestKey !== undefined) {
       this.cache.delete(oldestKey);
     }
   }
@@ -237,17 +235,8 @@ export class CacheService<T = unknown> {
    * 가장 오래된 항목 반환 (LRU)
    */
   getLeastRecentlyUsed(): T | null {
-    let oldestKey = '';
-    let oldestTime = Date.now();
-
-    for (const [key, entry] of this.cache) {
-      if (entry.lastAccessed < oldestTime) {
-        oldestTime = entry.lastAccessed;
-        oldestKey = key;
-      }
-    }
-
-    return oldestKey ? this.cache.get(oldestKey)?.data || null : null;
+    const oldestKey = this.cache.keys().next().value;
+    return oldestKey === undefined ? null : this.cache.get(oldestKey)?.data ?? null;
   }
 
   /**

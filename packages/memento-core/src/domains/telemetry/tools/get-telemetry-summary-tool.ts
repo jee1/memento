@@ -1,5 +1,6 @@
 /**
- * get_telemetry_summary MCP 도구 (specs/007-telemetry-cli-mcp)
+ * get_telemetry_summary MCP 도구 — immutable baseline spec:
+ * https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/007-telemetry-cli-mcp/spec.md
  *
  * 에이전트가 자신의 검색 품질·메모리 품질 지표를 조회합니다.
  * ALS context에서 ownerId를 자동으로 추출합니다.
@@ -58,6 +59,14 @@ export class GetTelemetrySummaryTool extends BaseTool {
       const memoryResult = telemetryService.getMemoryQuality(period, ownerId);
       const consolidationQuality = telemetryService.getConsolidationQuality(period, ownerId);
       const feedbackQuality = telemetryService.getFeedbackQuality(period, ownerId);
+      const performanceAlerts = context.services.performanceMonitor?.getAlertStats() ?? {
+        total: 0,
+        active: 0,
+        resolved: 0,
+        byType: {},
+        bySeverity: {},
+        recent: [],
+      };
 
       const result = {
         period,
@@ -97,6 +106,14 @@ export class GetTelemetrySummaryTool extends BaseTool {
           feedback_with_ranking_context_count: feedbackQuality.feedback_with_ranking_context_count,
           recall_count: feedbackQuality.recall_count,
           recall_without_feedback_rate: feedbackQuality.recall_without_feedback_rate,
+        },
+        performance_alerts: {
+          total: performanceAlerts.total,
+          active: performanceAlerts.active,
+          resolved: performanceAlerts.resolved,
+          by_type: performanceAlerts.byType,
+          by_severity: performanceAlerts.bySeverity,
+          recent: performanceAlerts.recent,
         },
         timestamp: new Date().toISOString(),
       };

@@ -12,15 +12,15 @@
 다음 스크립트들은 이미 `initializeDatabase`를 사용하므로 리팩토링 대상에서 제외:
 
 1. **quality-report.ts**
-   - 사용: `import { initializeDatabase } from '../src/infrastructure/database/database/init.js'`
+   - 사용: `import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js'`
    - 상태: ✅ 공통 모듈 사용 중
 
 2. **quality-thresholds.ts**
-   - 사용: `import { initializeDatabase } from '../src/infrastructure/database/database/init.js'`
+   - 사용: `import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js'`
    - 상태: ✅ 공통 모듈 사용 중
 
 3. **generate-ground-truth.ts**
-   - 사용: `import { initializeDatabase } from '../src/infrastructure/database/database/init.js'`
+   - 사용: `import { initializeDatabase } from '../src/infrastructure/database/sqlite/init.js'`
    - 상태: ✅ 공통 모듈 사용 중
 
 ## 2. 메모리 DB만 사용 (제외)

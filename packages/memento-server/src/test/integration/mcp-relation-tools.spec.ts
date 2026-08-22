@@ -15,7 +15,7 @@ import { AddRelationTool } from '@memento/core/domains/relation/tools/add-relati
 import { RemoveRelationTool } from '@memento/core/domains/relation/tools/remove-relation-tool.js';
 import { VisualizeRelationsTool } from '@memento/core/domains/relation/tools/visualize-relations-tool.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '@memento/core/infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '@memento/core/infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 import type { RelationGraph } from '@memento/core/domains/relation/services/relation-graph.js';
 import { createRelationGraph } from '@memento/core/infrastructure/relation-graph-factory.js';
 import { LLMBasedRelationExtractor } from '@memento/core/domains/relation/services/llm-based-relation-extractor.js';

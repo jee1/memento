@@ -5,7 +5,7 @@ import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import type { ParseResult } from './types.js';
-import type { TokenBucketRateLimiter } from './token-bucket-rate-limiter.js';
+import type { TokenBucketRateLimiter } from '../../../../shared/utils/token-bucket-rate-limiter.js';
 
 export interface OpenAiRelationExtractDeps {
   rateLimiter: TokenBucketRateLimiter;

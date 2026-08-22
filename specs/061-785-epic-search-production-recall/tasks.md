@@ -130,8 +130,8 @@ Tests are required (constitution I). Write failing tests first.
 - [x] T034 [US5] Record requested vs serialized tokens (headers/query/footer) and split fixed-item Recall@k vs fixed-token coverage in `scripts/agent-memory-benchmark.ts`
 - [x] T035 [US5] Keep LoCoMo adversarial/empty-evidence out of retrieval metrics; abstention QA separate (existing adapter rules)
 - [x] T036 [US5] Optional reader arms (no-context / oracle / production injection / FTS context) behind a flag; default off in CI
-- [x] T037 [US5] Update `docs/_work/testing/ko/benchmark-datasets.md` so internal session-retrieval ≠ official LoCoMo QA
-- [x] T038 [US5] Run `npm run quality:locomo:test` and benchmark/adapter specs
+- [x] T037 [US5] Update `docs/guides/ko/benchmark-datasets.md` so internal session-retrieval ≠ official LoCoMo QA
+- [x] T038 [US5] Run `npx vitest run scripts/acquire-locomo.spec.ts scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts`
 
 **Checkpoint**: US5 independently testable. Full 1,536 gate is local/nightly, not CI.
 

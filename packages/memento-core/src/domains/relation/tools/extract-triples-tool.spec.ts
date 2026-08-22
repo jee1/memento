@@ -17,16 +17,14 @@ vi.mock('../services/triple-extraction/triple-extraction-service.js', () => ({
 }));
 
 vi.mock('../services/triple-extraction/triple-pipeline-orchestrator.js', () => ({
-  TriplePipelineOrchestrator: vi.fn().mockImplementation(() => ({
-    run: vi.fn().mockResolvedValue({
-      triples: [
-        { subject: 'Alice', predicate: 'knows', object: 'Bob' },
-        { subject: 'Alice', predicate: 'likes', object: 'Tea' },
-      ],
-      chunkErrors: [{ chunkIndex: 0, reason: 'llm_parse_fail', message: 'x' }],
-      chunksProcessed: 2,
-    }),
-  })),
+  runTriplePipeline: vi.fn().mockResolvedValue({
+    triples: [
+      { subject: 'Alice', predicate: 'knows', object: 'Bob' },
+      { subject: 'Alice', predicate: 'likes', object: 'Tea' },
+    ],
+    chunkErrors: [{ chunkIndex: 0, reason: 'llm_parse_fail', message: 'x' }],
+    chunksProcessed: 2,
+  }),
 }));
 
 function createMemoryDbWithKgTriple(): Database.Database {

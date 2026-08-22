@@ -6,24 +6,24 @@ import {
   calculateNDCGAtK,
   type SearchResult,
   type GroundTruth,
-} from '../../../../test/helpers/search-quality-metrics.js';
+} from './search-quality-metrics.js';
 import {
   calculateKendallTau,
   loadGroundTruth,
   generateVectorOnlySearchResults,
   generateConsolidationSearchResults,
-} from '../../../../test/helpers/vector-search-quality-metrics.js';
+} from './vector-search-quality-metrics.js';
 import {
   loadBenchmarkManifest,
   assertStrictBenchmark,
   buildBenchmarkQueryLookup,
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
-} from '../../../../test/helpers/search-quality-benchmark-fixtures.js';
+} from './search-quality-benchmark-fixtures.js';
 import {
   normalizeBenchmarkGroundTruths,
   verifyReviewableBenchmark,
-} from '../../../../test/helpers/search-quality-review-verifier.js';
+} from './search-quality-review-verifier.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { CollectedMetrics, SearchMetricsOptions } from './quality-metrics-types.js';

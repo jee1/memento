@@ -4,11 +4,8 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { SearchLocalTool } from '../search-local-tool.js';
 import type { ToolContext } from '../types.js';
 import { AnchorManager, AnchorError } from '../../services/anchor/anchor-manager.js';
-import { AnchorCacheService } from '../../services/anchor/anchor-cache-service.js';
-import { AnchorSearchService } from '../../services/anchor/anchor-search-service.js';
-import { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
-import { createHybridSearchEngine, type HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine, type VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
+import { createAnchorToolTestContext } from './anchor-tool-test-context.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {
@@ -45,92 +42,16 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   };
 });
 
-/**
- * 테스트용 데이터베이스 초기화
- */
-function initializeTestDatabase(db: Database.Database): void {
-  DatabaseUtils.initializeDatabase(db);
-  
-  // anchor 테이블 생성
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS anchor (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      agent_id TEXT NOT NULL,
-      slot TEXT CHECK (slot IN ('A', 'B', 'C')) NOT NULL,
-      memory_id TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
-      UNIQUE(agent_id, slot)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
-    CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
-    CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
-  `);
-
-  // memory_embedding 테이블에 projection_type 컬럼 추가 (테스트용)
-  try {
-    db.exec(`
-      ALTER TABLE memory_embedding ADD COLUMN projection_type TEXT NOT NULL DEFAULT 'native';
-    `);
-  } catch (error: any) {
-    // 컬럼이 이미 존재하는 경우 무시
-    if (!error.message.includes('duplicate column name')) {
-      throw error;
-    }
-  }
-
-  // UNIQUE 제약조건 업데이트 (memory_id만이 아닌 복합 키)
-  try {
-    // 기존 UNIQUE 제약조건 제거 (SQLite는 직접 제거 불가, 테이블 재생성 필요)
-    // 테스트에서는 단순히 컬럼만 추가하고 사용
-  } catch (error) {
-    // 무시
-  }
-}
-
 describe('SearchLocalTool', () => {
   let db: Database.Database;
   let tool: SearchLocalTool;
   let context: ToolContext;
   let anchorManager: AnchorManager;
-  let cacheService: AnchorCacheService;
-  let searchService: AnchorSearchService;
-  let embeddingService: MemoryEmbeddingService;
   let hybridSearchEngine: HybridSearchEngine;
-  let vectorSearchEngine: VectorSearchEngine;
 
-  beforeEach(() => {
-    db = new Database(':memory:');
-    initializeTestDatabase(db);
-
-    embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = createHybridSearchEngine();
-    vectorSearchEngine = getVectorSearchEngine();
-    
-    // 의존성 주입 패턴에 맞게 서비스 생성
-    cacheService = new AnchorCacheService();
-    cacheService.setDatabase(db);
-    cacheService.setEmbeddingService(embeddingService);
-    
-    searchService = new AnchorSearchService(cacheService);
-    searchService.setDatabase(db);
-    searchService.setHybridSearchEngine(hybridSearchEngine);
-    searchService.setVectorSearchEngine(vectorSearchEngine);
-    
-    anchorManager = new AnchorManager(cacheService, searchService);
-    anchorManager.setDatabase(db);
-
+  beforeEach(async () => {
+    ({ db, context, anchorManager, hybridSearchEngine } = await createAnchorToolTestContext());
     tool = new SearchLocalTool();
-
-    context = {
-      db,
-      services: {
-        anchorManager,
-        hybridSearchEngine
-      }
-    };
   });
 
   afterEach(() => {
@@ -138,12 +59,7 @@ describe('SearchLocalTool', () => {
     if (anchorManager) {
       anchorManager = null as any;
     }
-    if (hybridSearchEngine) {
-      hybridSearchEngine = null as any;
-    }
-    if (embeddingService) {
-      embeddingService = null as any;
-    }
+    hybridSearchEngine = null as any;
     if (tool) {
       tool = null as any;
     }
@@ -481,4 +397,3 @@ describe('SearchLocalTool', () => {
     });
   });
 });
-

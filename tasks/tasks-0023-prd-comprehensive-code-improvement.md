@@ -35,8 +35,8 @@
 - `.cursor/rules/mcp-tools-architecture.mdc` - 규칙 문서 (5개만 노출 규정)
 
 ### 로깅 정책 통일 관련
-- `src/infrastructure/database/database/migrate.ts` - console.* 사용
-- `src/infrastructure/database/database/migration/migration-runner.ts` - console.* 사용
+- `src/infrastructure/database/sqlite/migrate.ts` - console.* 사용
+- `src/infrastructure/database/sqlite/migration/migration-runner.ts` - console.* 사용
 - `src/infrastructure/scheduler/batch-scheduler.ts` - console.* 사용
 - `src/infrastructure/logging/triple-extraction-logger.ts` - console.* 사용
 - `src/shared/utils/logger.ts` - 표준 로거 (교체 대상)
@@ -423,7 +423,7 @@
       - 로깅 필드 스키마 문서 작성 완료: docs/logging-schema.md
       - console.* 사용 현황 확인: migrate.ts(15개), migration-runner.ts(21개), batch-scheduler.ts(2개), triple-extraction-logger.ts(3개)
   - [x] 6.2 [TDD RED] migrate.ts의 console.* 제거를 위한 테스트 작성
-    - Given: src/infrastructure/database/database/migrate.ts에 console.* 사용
+    - Given: src/infrastructure/database/sqlite/migrate.ts에 console.* 사용
     - When: 표준 로거를 사용하는 코드에 대한 테스트 작성
     - Then: 테스트가 실패 상태로 작성됨
       - 테스트 작성 완료: migrate.spec.ts에 로깅 정책 통일 테스트 추가
@@ -440,7 +440,7 @@
       - console.* 사용 0개 확인 ✅
       - TDD GREEN 단계 완료
   - [x] 6.4 [TDD RED] migration-runner.ts의 console.* 제거를 위한 테스트 작성
-    - Given: src/infrastructure/database/database/migration/migration-runner.ts에 console.* 사용
+    - Given: src/infrastructure/database/sqlite/migration/migration-runner.ts에 console.* 사용
     - When: 표준 로거를 사용하는 코드에 대한 테스트 작성
     - Then: 테스트가 실패 상태로 작성됨
       - 테스트 작성 완료: migration-runner.spec.ts에 로깅 정책 통일 테스트 추가
@@ -511,7 +511,7 @@
     - Then: ESLint가 console.* 사용을 감지하고 테스트/CLI 파일은 허용됨
       - 기본 규칙: `no-console: "error"` 설정 완료
       - 테스트 파일 예외: `**/*.spec.ts`, `**/test-*.ts`, `scripts/**`, `src/test/**`에 `no-console: "off"` 설정
-      - CLI 파일 예외: `src/server/index.ts`, `src/infrastructure/database/database/init.ts`, `src/infrastructure/database/database/migrate.ts`에 `no-console: "off"` 설정
+      - CLI 파일 예외: `src/server/index.ts`, `src/infrastructure/database/sqlite/init.ts`, `src/infrastructure/database/sqlite/migrate.ts`에 `no-console: "off"` 설정
       - 실제 소스 파일에서 console.* 사용 0개 확인 ✅
       - ESLint 설정 검증 완료 ✅
     - Then: ESLint 규칙이 올바르게 설정되고 경고 없음
@@ -692,7 +692,7 @@
       - 린트: 경고만 있고 에러 없음 ✅
   - [x] 9.2 [검증] 성능 저하 없음 확인
     - Given: 모든 리팩토링이 완료됨
-    - When: npm run test:performance 벤치마크를 실행하여 리팩토링 전후 성능 비교
+    - When: 당시 전용 성능 벤치마크를 실행하여 리팩토링 전후 성능 비교
     - Then: 성능 저하가 ±5% 이내임
       - 메모리 작업: 86.00 ops/sec, 성공률 100% ✅
       - 검색 작업: 8.04 ops/sec, 성공률 100% ✅

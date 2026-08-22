@@ -112,7 +112,7 @@ logger.error('작업 실패', { error: error.message, operation: 'search' });
 
 ```bash
 npm test                   # 전체 테스트 (Vitest)
-npm run test:search        # 검색 시나리오 테스트
+npm run test:ci:core       # core 검색·메모리 테스트
 npm run test -- --coverage # 커버리지 포함
 npm run test -- --watch    # 감시 모드
 ```

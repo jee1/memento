@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.ts';
 
 import fs from 'fs';
 import path from 'path';
@@ -99,13 +100,13 @@ async function createDataDirectory() {
 async function initializeDatabase() {
   try {
     logStep('데이터베이스 초기화', 'SQLite 데이터베이스 설정 중...');
-    
+
     // 최신 @memento/core 초기화를 직접 실행
-    execSync('npx tsx packages/memento-core/src/infrastructure/database/database/init.ts', { 
-      cwd: projectRoot, 
-      stdio: 'inherit' 
+    execSync('npx tsx packages/memento-core/src/infrastructure/database/sqlite/init.ts', {
+      cwd: projectRoot,
+      stdio: 'inherit'
     });
-    
+
     logSuccess('데이터베이스 초기화 완료');
   } catch (error) {
     logError(`데이터베이스 초기화 실패: ${error.message}`);
@@ -300,7 +301,7 @@ async function main() {
 }
 
 // 스크립트가 직접 실행된 경우에만 main 함수 호출
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main();
 }
 

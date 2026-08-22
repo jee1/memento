@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 /**
  * 두 랭킹 프로파일을 benchmark-v3로 비교 — MRR·NDCG·paired permutation test
  *
- * 사용: npm run quality:benchmark:compare-profiles -- --profile-a default --profile-b feedback-heavy
+ * 사용: npm run quality -- benchmark compare-profiles -- --profile-a default --profile-b feedback-heavy
  *
  * DB는 운영 DB_PATH가 아니라 corpus.jsonl을 시드한 임시 DB만 사용한다.
  *
@@ -13,25 +14,24 @@
  * 1) `mrr_significant`·`mrr_p_value`·`verdict` 확인
  * 2) 우승 프로파일 TOML 내용을 `config/ranking-weights.toml`에 반영(필요 시 `default.toml` 동기화)
  * 3) PR 머지 — CI는 머지된 커밋의 TOML을 읽는다
- * 상세: `specs/004-recall-quality-feedback-loop/contracts/mcp-tools.md` §3.3
+ * 상세: `https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/004-recall-quality-feedback-loop/contracts/mcp-tools.md` §3.3
  */
 
 import { existsSync } from 'fs';
 import { join, dirname, resolve, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
-import type Database from 'better-sqlite3';
-import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
-} from '../packages/memento-core/src/test/helpers/search-quality-benchmark-fixtures.js';
-import { normalizeBenchmarkGroundTruths } from '../packages/memento-core/src/test/helpers/search-quality-review-verifier.js';
+} from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
+import { normalizeBenchmarkGroundTruths } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-review-verifier.js';
 import {
   calculateNDCGAtK,
   calculateRecallAtK,
   type SearchResult,
-} from '../packages/memento-core/src/test/helpers/search-quality-metrics.js';
+} from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-metrics.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER } from '@memento/core/shared/types/benchmark.types.js';
 
@@ -100,7 +100,7 @@ export function pairedPermutationPValue(
 }
 
 export async function evaluateProfile(
-  db: Database.Database,
+  db: CliDatabase,
   profilePath: string,
   benchmarkDir: string = BENCHMARK_DIR,
 ): Promise<ProfileEvalResult> {
@@ -221,7 +221,7 @@ export function parseArgs(argv: string[]): { profileA: string; profileB: string 
 }
 
 async function main(): Promise<void> {
-  const { profileA, profileB } = parseArgs(process.argv.slice(2));
+  const { profileA, profileB } = parseArgs(parseCliArgs().args);
   const resolveProfile = (nameOrPath: string) =>
     isAbsolute(nameOrPath)
       ? nameOrPath.endsWith('.toml') ? nameOrPath : `${nameOrPath}.toml`
@@ -268,7 +268,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? '')) {
+if (isMain(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

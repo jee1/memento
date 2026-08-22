@@ -1,11 +1,11 @@
 import Database from 'better-sqlite3';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type {
-  EmbeddingProvider,
   MemorySearchFilters,
-  MemoryType,
   ProcessAttribute,
-} from '../../../shared/types/index.js';
-import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
+  ScoreBreakdown,
+} from '../../../shared/types/search.types.js';
 import type {
   SearchBySimilarityOutcome,
   VectorSearchResult,

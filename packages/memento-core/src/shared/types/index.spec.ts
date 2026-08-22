@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryType, MemoryTypeRequest, isMemoryItemType, SqlParam } from './index.js';
-import type { MetaMemoryStats, GetMetaMemoryStatsParams, MetaMemoryStatsResult } from './index.js';
-import type { RecallResponse } from '../../domains/memory/tools/recall-tool.js';
-import { isSqlParam } from '../utils/type-guards.js';
+import type {
+  GetMetaMemoryStatsParams,
+  MemoryType,
+  MemoryTypeRequest,
+  MetaMemoryStats,
+  MetaMemoryStatsResult,
+  SqlParam,
+} from './memory.types.js';
+import type { RecallResponse } from '../../domains/memory/recall/recall-tool.js';
+import { isFullMemoryItemTypeSet, isMemoryItemType, isSqlParam } from '../utils/type-guards.js';
 
 describe('MemoryTypeRequest and isMemoryItemType', () => {
   describe('isMemoryItemType', () => {
@@ -68,6 +74,14 @@ describe('MemoryTypeRequest and isMemoryItemType', () => {
       // But we can test that isMemoryItemType properly filters it
       expect(isMemoryItemType(requestType)).toBe(false);
     });
+  });
+});
+
+describe('isFullMemoryItemTypeSet', () => {
+  it('accepts only the complete memory_item type set', () => {
+    expect(isFullMemoryItemTypeSet(['working', 'episodic', 'semantic', 'procedural'])).toBe(true);
+    expect(isFullMemoryItemTypeSet(['working', 'episodic', 'procedural'])).toBe(false);
+    expect(isFullMemoryItemTypeSet(['working', 'episodic', 'procedural', 'procedural'])).toBe(false);
   });
 });
 
@@ -495,4 +509,3 @@ describe('SqlParam type and isSqlParam type guard', () => {
     });
   });
 });
-

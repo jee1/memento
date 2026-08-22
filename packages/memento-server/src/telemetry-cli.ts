@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Memento Telemetry CLI (specs/007-telemetry-cli-mcp)
+ * Memento Telemetry CLI — immutable baseline spec:
+ * https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/007-telemetry-cli-mcp/spec.md
  * HTTP 서버 없이 텔레메트리 지표를 터미널에서 확인합니다.
  * Usage: npm run telemetry [-- [options]]
  */

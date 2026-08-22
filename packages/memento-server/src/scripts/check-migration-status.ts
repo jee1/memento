@@ -171,11 +171,11 @@ async function checkMigrationStatus(): Promise<void> {
     logSection('대기 중인 마이그레이션 확인');
     
     // monorepo 구조에 맞게 마이그레이션 경로 조정
-    // memento-core 패키지의 infrastructure/database/database/migration/migrations 위치
+    // memento-core 패키지의 infrastructure/database/sqlite/migration/migrations 위치
     const coreDir = __dirname.includes('/dist/')
       ? join(__dirname, '../../../memento-core/dist')
       : join(__dirname, '../../../memento-core/src');
-    const migrationsDir = join(coreDir, 'infrastructure/database/database/migration/migrations');
+    const migrationsDir = join(coreDir, 'infrastructure/database/sqlite/migration/migrations');
     
     const detector = new MigrationDetector(migrationsDir);
     const detectionResult = await detector.detectPendingMigrations(db);

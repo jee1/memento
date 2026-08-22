@@ -11,6 +11,10 @@ export function parseArgvToParams(argv: string[]): Record<string, unknown> {
   let i = 0;
   while (i < argv.length) {
     const arg = argv[i];
+    if (arg === undefined) {
+      i += 1;
+      continue;
+    }
     if (arg.startsWith('--') && arg.length > 2) {
       const key = arg.slice(2).replace(/-/g, '_');
       const next = argv[i + 1];
