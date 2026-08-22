@@ -12,12 +12,13 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 import type { RelationGraph } from '../relation-graph.js';
 import { CyclicRelationError, DuplicateRelationError } from '../relation-errors.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
-import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 
 /**
  * 테스트용 기본 스키마 생성
@@ -769,7 +770,7 @@ describe('RelationGraph', () => {
         expect(first).toHaveLength(1);
 
         // When: 8일 후 (L1, L2 캐시 모두 만료)
-        vi.advanceTimersByTime(8 * 24 * 60 * 60 * 1000); // 8일
+        vi.advanceTimersByTime(8 * DAY_MS); // 8일
 
         // When: 두 번째 조회 (L1, L2 만료, DB에서 조회)
         const second = await relationGraph.getRelations('mem1');

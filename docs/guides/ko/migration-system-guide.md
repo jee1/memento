@@ -6,7 +6,7 @@
 
 ## 핵심 컴포넌트
 
-마이그레이션 시스템은 `packages/memento-core/src/infrastructure/database/database/migration/` 아래에 위치하며 다섯 개의 컴포넌트로 구성됩니다.
+마이그레이션 시스템은 `packages/memento-core/src/infrastructure/database/sqlite/migration/` 아래에 위치하며 다섯 개의 컴포넌트로 구성됩니다.
 
 **MigrationRunner**는 마이그레이션 실행 엔진입니다. 개별 마이그레이션을 트랜잭션 내에서 실행하고, 실패 시 자동 롤백을 시도하며, 실행 결과를 `MigrationResult` 객체로 반환합니다.
 
@@ -23,7 +23,7 @@
 정식 마이그레이션은 다음 경로에 위치합니다.
 
 ```
-packages/memento-core/src/infrastructure/database/database/migration/migrations/
+packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/
 ```
 
 파일 명명 규칙은 `{버전}-{이름}.ts`입니다. 버전은 3자리 숫자 형식을 권장합니다.

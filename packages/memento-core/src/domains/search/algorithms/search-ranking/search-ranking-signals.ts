@@ -3,13 +3,14 @@
  */
 
 import type { UsageMetrics } from './search-ranking.types.js';
+import { daysBetween } from '../../../../shared/utils/date.js';
 
 /**
  * 시간에 따른 기억의 자연스러운 감쇠를 반영하여 최신 정보를 우선 제공합니다.
  * 반감기 기반 지수 감쇠를 사용하여 시간이 지날수록 점수가 감소하도록 설계했습니다.
  */
 export function calculateRecency(createdAt: Date, type: string): number {
-  const ageDays = getAgeInDays(createdAt);
+  const ageDays = daysBetween(new Date(), createdAt);
   const halfLife = getHalfLife(type);
 
   return Math.exp(-Math.log(2) * ageDays / halfLife);
@@ -146,7 +147,7 @@ export function calculateRelationWeight(
 export function calculateUsageSimple(lastAccessed?: Date): number {
   if (!lastAccessed) return 0.1;
 
-  const daysSinceAccess = getAgeInDays(lastAccessed);
+  const daysSinceAccess = daysBetween(new Date(), lastAccessed);
   return Math.exp(-daysSinceAccess / 30);
 }
 
@@ -171,15 +172,6 @@ function calculateTextSimilarity(text1: string, text2: string): number {
   const union = new Set([...words1, ...words2]);
 
   return union.size > 0 ? intersection.size / union.size : 0;
-}
-
-/**
- * 메모리의 생성 시간으로부터 경과된 일수를 계산하여 최근성 평가에 사용합니다.
- */
-function getAgeInDays(date: Date): number {
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  return diffTime / (1000 * 60 * 60 * 24);
 }
 
 /**

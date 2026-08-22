@@ -73,7 +73,7 @@ agent-memory-benchmark
 | `packages/memento-core/.../shared/config/constants.ts` | named constants after ablation | #787 #789 |
 | `packages/memento-core/.../hybrid-search-engine.ts` | expose stage counts already computed | #786 |
 | `packages/memento-core/.../knowledge-context-bundle-builder.ts` | injection selected IDs/tokens | #790 |
-| `docs/_work/testing/ko/benchmark-datasets.md` | session-retrieval vs official QA | #790 |
+| `docs/guides/ko/benchmark-datasets.md` | session-retrieval vs official QA | #790 |
 | `docs/agents/search-ranking.md` | BM25 + fusion relevance 계약 | #787 #788 |
 
 ## Data flow

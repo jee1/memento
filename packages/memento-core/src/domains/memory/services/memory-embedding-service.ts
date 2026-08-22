@@ -10,7 +10,7 @@ import type {
   VectorCompatibilityAssessment,
   VectorCompatibilityIssue
 } from '../../../shared/types/embedding.types.js';
-import type { MemoryType } from '../../../shared/types/index.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
@@ -414,14 +414,6 @@ export class MemoryEmbeddingService {
   }
 
   /**
-   * 제공자별 vec0 테이블명 반환
-   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
-   */
-  private getVectorTableName(provider: string): string {
-    return getValidatedVectorTableName(provider);
-  }
-
-  /**
    * 벡터 유사도 검색
    */
   async searchBySimilarity(
@@ -453,7 +445,7 @@ export class MemoryEmbeddingService {
 
       const provider = this.normalizeProvider(queryEmbedding.provider);
       queryEmbeddingProviders = [provider];
-      const tableName = this.getVectorTableName(provider);
+      const tableName = getValidatedVectorTableName(provider);
       const { sql, params } = this.buildVecSimilarityQuery(
         provider,
         tableName,

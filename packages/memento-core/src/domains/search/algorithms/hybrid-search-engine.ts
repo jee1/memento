@@ -5,7 +5,8 @@
 
 import Database from 'better-sqlite3';
 import { getRankingVersion, getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
-import type { EmbeddingProvider, StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
+import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';

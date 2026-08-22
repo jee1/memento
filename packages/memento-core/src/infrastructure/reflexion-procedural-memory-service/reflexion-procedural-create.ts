@@ -1,10 +1,10 @@
 import type Database from 'better-sqlite3';
 
-import { getNextVersionNumber } from '../../domains/memory/services/procedural-versioning.js';
+import { getNextVersionNumber } from '../../domains/memory/procedural/procedural-versioning.js';
 import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
-import type { ExtractedProceduralMemory } from '../../shared/utils/procedural-memory-extractor.js';
-import type { ReflectionNotes } from '../../shared/utils/procedural-memory-extractor.types.js';
+import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../../shared/utils/logger.js';
 
 export async function createProceduralMemory(

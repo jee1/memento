@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * 품질 임계값 관리 CLI 스크립트
  * 
@@ -19,7 +20,6 @@
  *   npm run quality:thresholds get search precision_at_5
  */
 
-import Database from 'better-sqlite3';
 import { join } from 'path';
 import { QualityThresholdManager, initializeDatabase } from '@memento/core';
 
@@ -40,7 +40,7 @@ interface CliOptions {
  * 명령줄 인자 파싱
  */
 function parseArgs(): { command: string; options: CliOptions } {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const command = args[0] || 'help';
   const options: CliOptions = {};
 
@@ -269,7 +269,7 @@ async function main(): Promise<void> {
 }
 
 // 스크립트 직접 실행 시
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   main().catch(error => {
     console.error('❌ 치명적 오류:', error);
     process.exit(1);

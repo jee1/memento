@@ -105,7 +105,6 @@ describe('initializeServices', () => {
       expect(services.performanceMonitor).toBeDefined();
       expect(services.databaseOptimizer).toBeDefined();
       expect(services.errorLoggingService).toBeDefined();
-      expect(services.performanceAlertService).toBeDefined();
     });
 
     it('반환된 서비스 객체가 ServerServices 인터페이스를 만족해야 함', async () => {
@@ -119,7 +118,6 @@ describe('initializeServices', () => {
       expect(services).toHaveProperty('performanceMonitor');
       expect(services).toHaveProperty('databaseOptimizer');
       expect(services).toHaveProperty('errorLoggingService');
-      expect(services).toHaveProperty('performanceAlertService');
     });
   });
 
@@ -356,7 +354,6 @@ describe('initializeServices', () => {
       expect(services.forgettingPolicyService).toBeDefined();
       expect(services.databaseOptimizer).toBeDefined();
       expect(services.errorLoggingService).toBeDefined();
-      expect(services.performanceAlertService).toBeDefined();
 
       // PerformanceMonitor가 초기화되어야 함
       expect(services.performanceMonitor).toBeDefined();
@@ -398,12 +395,6 @@ describe('initializeServices', () => {
       services = await initializeServices(db);
       expect(services.errorLoggingService).toBeDefined();
       expect(services.errorLoggingService).toHaveProperty('logError');
-    });
-
-    it('performanceAlertService가 PerformanceAlertService 인스턴스여야 함', async () => {
-      services = await initializeServices(db);
-      expect(services.performanceAlertService).toBeDefined();
-      expect(services.performanceAlertService).toHaveProperty('getActiveAlerts');
     });
 
     it('performanceMonitor가 PerformanceMonitor 인스턴스여야 함', async () => {
@@ -470,4 +461,3 @@ describe('initializeServices', () => {
     });
   });
 });
-

@@ -44,7 +44,7 @@ Keep current pack/prepack path; extend root runtime deps (and/or existing `prepa
 |-------|----------|
 | Client sends nested `filters` | `packages/memento-client/src/client/search-client.ts:25-28` — `post('/tools/recall', { query, filters, limit, ... })` |
 | HTTP tools pass body through unchanged | `packages/memento-server/src/server/routes/tools.routes.ts:50-66` — `params = req.body` → `executeTool(name, params, ...)` (no flatten) |
-| Core `RecallTool` reads top-level fields | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:76-86` — destructures `type`, `tags`, `privacy_scope`, etc. from `params` (not `params.filters`) |
+| Core `RecallTool` reads top-level fields | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:76-86` — destructures `type`, `tags`, `privacy_scope`, etc. from `params` (not `params.filters`) |
 | Channel isolation E2E skipped | `packages/memento-assistant/test/e2e/channel-isolation.e2e.spec.ts:12` — `it.skip('... server does not enforce tags filter ...')` |
 | Assistant builds channel tags into `filters.tags` | `packages/memento-assistant/src/lifecycle/before-user-turn.spec.ts:71-78`; `scoping/channel-scope.ts` adds `channel:*` when `crossChannelRecall=off` |
 | Assistant CI runs `src` only | `packages/memento-assistant/package.json:16` — `"test:ci": "vitest --run src --reporter=basic"`; `.github/workflows/ci.yml` `test-assistant` runs `npm run test:ci -w @memento/assistant` |
@@ -69,7 +69,7 @@ Normalize once at the shared executeTool / HTTP recall entry (accept nested `fil
 
 | Claim | Location |
 |-------|----------|
-| Scripts still import root `../src/...` | e.g. `scripts/migrate-embedding-data.js:16` — `from '../src/infrastructure/database/database/init.js'`; same pattern across maintenance/quality scripts |
+| Scripts still import root `../src/...` | e.g. `scripts/migrate-embedding-data.js:16` — `from '../src/infrastructure/database/sqlite/init.js'`; same pattern across maintenance/quality scripts |
 | File count | **25** files under `scripts/` (incl. `scripts/archive/*`) match `../src/` or `/src/` imports (issue said “20 active” — archive explains most of the delta) |
 | Root npm scripts wired to broken paths | **16** root `package.json` script entries, including `migrate:embedding` / `:analyze` / `:rollback` (`:107-109`), `backup:embeddings` / `regenerate:embeddings` / `debug:embeddings` / `fix:vector-dimensions` (`:123-128`), `quality:*` / `db:check-trigger` / `db:fix-trigger` (`:54-55`, `:61-69` region) |
 | Integration test reimplements SQL, does not run CLI | `scripts/__tests__/migrate-embedding-data.integration.spec.ts:57-223` — uses `@memento/core/.../init.js` + inline SQL; never spawns `migrate-embedding-data.js` |
@@ -95,12 +95,12 @@ Point registered ops scripts at `@memento/core` public (or workspace) exports; d
 
 | Claim | Location |
 |-------|----------|
-| Rebuild entry | `packages/memento-core/src/infrastructure/database/database/migrate.ts:91` (`if (needsRebuild)`) |
+| Rebuild entry | `packages/memento-core/src/infrastructure/database/sqlite/migrate.ts:91` (`if (needsRebuild)`) |
 | Create new table | `:98-116` `CREATE TABLE memory_embedding__new` |
 | Copy data | `:139-170` `INSERT INTO memory_embedding__new ... SELECT ... FROM memory_embedding` |
 | Drop live / rename | `:172` `DROP TABLE memory_embedding`; `:175` `ALTER TABLE ... RENAME TO memory_embedding` |
 | No explicit transaction | `migrateDatabase` `:41-263` — no `db.transaction` / `BEGIN`/`COMMIT`; failures only log+rethrow (`:256-259`) |
-| Shipped CLI path | `packages/memento-core/package.json:61` — `"db:migrate": "node dist/infrastructure/database/database/migrate.js"`; root `package.json:51` delegates `db:migrate` to that workspace |
+| Shipped CLI path | `packages/memento-core/package.json:61` — `"db:migrate": "node dist/infrastructure/database/sqlite/migrate.js"`; root `package.json:51` delegates `db:migrate` to that workspace |
 
 ### Recommended approach
 

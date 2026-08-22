@@ -12,7 +12,7 @@
 - `src/domains/search/algorithms/hybrid-search-engine.ts` - 하이브리드 검색 엔진 (매직 넘버 하드코딩됨)
 - `scripts/simple-migrate.js` - 레거시 마이그레이션 스크립트
 - `scripts/simple-update.js` - 레거시 업데이트 스크립트
-- `src/infrastructure/database/database/migration/` - 정식 마이그레이션 시스템
+- `src/infrastructure/database/sqlite/migration/` - 정식 마이그레이션 시스템
 - `.eslintrc.json` - ESLint 설정 파일 (no-console 규칙 이미 설정됨)
 - `src/server/index.ts` - MCP 서버 진입점 (console.log 오버라이드됨)
 - `src/services/` - 서비스 레이어 (console.log 사용 확인 필요)

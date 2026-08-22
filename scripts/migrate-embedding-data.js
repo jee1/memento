@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.ts';
 
 /**
  * 임베딩 데이터 마이그레이션 스크립트
@@ -12,7 +13,6 @@
  */
 
 import { initializeDatabase, closeDatabase } from '@memento/core';
-import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync, copyFileSync } from 'fs';
@@ -244,7 +244,7 @@ class EmbeddingMigration {
     console.log('🔄 데이터 마이그레이션 중...');
     
     // 기존 데이터를 새로운 통합 시스템으로 재생성할지 결정
-    const shouldRegenerate = process.argv.includes('--regenerate');
+    const shouldRegenerate = parseCliArgs().args.includes('--regenerate');
     
     if (shouldRegenerate) {
       console.log('🔄 기존 임베딩 데이터 재생성 모드');
@@ -337,10 +337,10 @@ class EmbeddingMigration {
 }
 
 // CLI 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   const migration = new EmbeddingMigration();
   
-  const command = process.argv[2];
+  const command = parseCliArgs().args[0];
   
   switch (command) {
     case 'migrate':

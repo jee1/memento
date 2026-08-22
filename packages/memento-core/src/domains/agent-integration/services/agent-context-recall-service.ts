@@ -1,4 +1,6 @@
-import type { MemoryType, PrivacyScope } from '../../../shared/types/index.js';
+import type { MemoryType, PrivacyScope } from '../../../shared/types/memory.types.js';
+import { clamp01 } from '../../../shared/utils/clamp.js';
+import { DAY_MS } from '../../../shared/utils/date.js';
 
 export type AgentContextScopeLevel = 'session' | 'process' | 'project' | 'owner';
 export type AgentContextStatus = 'ok' | 'empty' | 'degraded';
@@ -326,7 +328,7 @@ function scoreCandidate(
 ): number {
   const ageMs = Math.max(0, Date.parse(now) - Date.parse(candidate.createdAt));
   const recency = Number.isFinite(ageMs)
-    ? Math.max(0, 1 - ageMs / (90 * 24 * 60 * 60 * 1000))
+    ? Math.max(0, 1 - ageMs / (90 * DAY_MS))
     : 0;
   const score =
     clamp01(candidate.relevance) * 0.45
@@ -335,13 +337,6 @@ function scoreCandidate(
     + clamp01(candidate.provenanceConfidence) * 0.2
     + SCOPE_BONUS[scopeLevel];
   return Number(score.toFixed(8));
-}
-
-function clamp01(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-  return Math.min(1, Math.max(0, value));
 }
 
 function compareRankedCandidates(a: RankedCandidate, b: RankedCandidate): number {

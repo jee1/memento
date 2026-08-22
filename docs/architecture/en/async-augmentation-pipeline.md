@@ -14,7 +14,7 @@ When `remember` or `remember_procedure` is called:
 - The response is returned **immediately after the write**. No augmentation step (triple extraction, consolidation, etc.) is awaited.
 - If the memory is episodic, `BatchScheduler.addJob()` registers a per-item triple extraction job in the queue before returning.
 
-Implementation: `packages/memento-core/src/domains/memory/tools/remember-tool.ts` and `remember-procedure-tool.ts`.
+Implementation: `packages/memento-core/src/domains/memory/remember/remember-tool.ts` and `remember-procedure-tool.ts`.
 
 ## Background Refinement
 

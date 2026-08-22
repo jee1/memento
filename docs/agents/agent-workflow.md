@@ -50,13 +50,13 @@ env: [commands.md — remember dedup](./commands.md#remember-near-duplicate-730)
 
 ## graphify — 코드 지도를 먼저 보기
 
-코드를 분석하거나 리팩터를 시작하기 전에 `graphify-out/GRAPH_REPORT.md`를 확인하면 전체 구조를 추측 없이 파악할 수 있습니다. `graphify-out/wiki/index.md`가 있다면 위키를 우선 참고하세요. 코드를 수정한 뒤에는 반드시 graphify를 재빌드해야 리포트가 최신 상태를 반영합니다.
+`graphify-out/`은 Git에 커밋하지 않는 로컬 생성물입니다. 코드를 분석하거나 리팩터를 시작할 때 리포트가 없거나 오래됐다면 먼저 재빌드한 뒤 `graphify-out/GRAPH_REPORT.md`를 확인하세요. `graphify-out/wiki/index.md`가 있다면 위키를 우선 참고하세요. 코드를 수정한 뒤에도 반드시 다시 빌드해야 리포트가 최신 상태를 반영합니다.
 
 ```bash
 python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
 ```
 
-PR에 포함하는 graphify 아티팩트는 저장소 루트 `graphify-out/`만입니다. `packages/memento-core/graphify-out/cache/`는 제외하세요.
+graphify 아티팩트는 모두 로컬에서 재생성하며 PR에 포함하지 않습니다.
 
 ## 기술 부채·아키텍처 검사
 
@@ -78,6 +78,6 @@ UI를 손볼 때는 `static/css/tokens.css`에 정의된 디자인 토큰부터 
 
 커밋할 때 `.cursor/hooks.json`에 설정된 `revise-claude-md` 훅이 `AGENTS.md`·`CLAUDE.md`를 자동으로 갱신·스테이징합니다. 이 훅을 건너뛰고 싶으면 `REVISE_CLAUDE_MD_SKIP=1` 환경변수를 설정하세요. 이후 전역 훅으로 `npm run lint` / `test` / `build`와 staged diff 리뷰가 이어집니다.
 
-재현이 어려운 버그나 운영 함정을 해결한 뒤 PR을 준비할 때는 `/ce-compound`를 제안받을 수 있습니다(검증 완료 후). 해결 사례는 `docs/_work/solutions/`에 남기고, PR 템플릿의 「지식 복리」 섹션을 채워 팀이 같은 함정에 다시 빠지지 않도록 하세요.
+재현이 어려운 버그나 운영 함정을 해결한 뒤 PR을 준비할 때는 `/ce-compound`를 제안받을 수 있습니다(검증 완료 후). 생성된 초안을 그대로 쌓지 말고 재사용 가능한 절차는 기존 공식 가이드에, 장기 설계 결정은 ADR에 반영한 뒤 PR 템플릿의 「지식 복리」 섹션을 채우세요.
 
 관련 문서: [docs/README.md](../README.md) · [CONTRIBUTING.md](../../CONTRIBUTING.md) · [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)

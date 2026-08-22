@@ -1,4 +1,4 @@
-import type { BatchJobExecutionCoordinator } from '../batch-job-execution-coordinator.js';
+import type { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
 import type { JobQueue } from '../job-queue.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 

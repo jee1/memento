@@ -69,7 +69,7 @@ Memento를 호스트(노트북·홈서버·VPS) 1대에 띄우고, 다른 디바
 
 ```bash
 # 저장소 클론 후
-docker compose -f docker-compose.prod.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 ```
 
 기본 노출 포트는 **9001**입니다 (`MCP_SERVER_PORT` 환경변수로 변경 가능). compose 파일은 `nginx`도 함께 띄우므로 80 포트를 점유한다는 점에 주의하세요.
@@ -137,8 +137,8 @@ JSON 키 이름과 transport 식별자(`type`, `transport` 등)는 비서마다 
    ```bash
    cp ~/.memento/memory.db* /srv/memento/data/
    ```
-3. `docker-compose.prod.yml`의 볼륨 마운트가 그 디렉터리를 가리키도록 `docker-compose.override.yml`을 작성하거나 환경변수를 설정합니다.
-4. `docker compose -f docker-compose.prod.yml up -d`로 띄우고 `/health`를 확인합니다.
+3. `docker/docker-compose.prod.yml`의 볼륨 마운트가 그 디렉터리를 가리키도록 `docker-compose.override.yml`을 작성하거나 환경변수를 설정합니다.
+4. `docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d`로 띄우고 `/health`를 확인합니다.
 5. 비서 측 MCP 설정을 stdio 항목에서 HTTP 항목으로 교체하고, 같은 사용자 식별자(`owner_id`)로 회상이 되는지 검증합니다.
 
 ### HTTP → stdio 다운그레이드

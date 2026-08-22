@@ -12,13 +12,10 @@
 
 **실행 방법:**
 ```bash
-npm run test:multi-provider-performance
+npm run test:ci:core
 ```
 
-또는 직접 실행:
-```bash
-npx tsx packages/memento-core/src/test/multi-provider-search-performance-benchmark.ts
-```
+전용 multi-provider benchmark runner는 제거되었습니다. 현재 회귀 확인은 core 테스트 스위트를 사용하고, 이 문서는 과거 측정 방법과 해석 기준을 보존합니다.
 
 **측정 항목:**
 - 단일 Provider 검색 성능 (각 provider별)
@@ -61,13 +58,10 @@ npx tsx packages/memento-core/src/test/multi-provider-search-performance-benchma
 
 **실행 방법:**
 ```bash
-npm run test:single-provider-regression
+npm run test:ci:core
 ```
 
-또는 직접 실행:
-```bash
-npx tsx packages/memento-core/src/test/test-single-provider-regression.ts
-```
+전용 single-provider regression runner도 제거되었으므로 현재 core 테스트 스위트로 회귀를 확인합니다.
 
 **검증 항목:**
 - 단일 Provider 검색 성능 (평균 500ms 이하 기준)
@@ -148,5 +142,4 @@ npx tsx packages/memento-core/src/test/test-single-provider-regression.ts
 ## 추가 리소스
 
 - [Hybrid Search Engine 소스](../../../packages/memento-core/src/domains/search/algorithms/hybrid-search-engine.ts)
-- [Performance Benchmark 스크립트](../../../packages/memento-core/src/test/performance-benchmark.ts)
-- [Regression Test 스크립트](../../../packages/memento-core/src/test/test-regression.ts)
+- [Single-provider regression suite](../../../packages/memento-core/src/test/single-provider-regression.integration.spec.ts)

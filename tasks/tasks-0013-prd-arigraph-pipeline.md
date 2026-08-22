@@ -11,11 +11,11 @@
 - `src/services/triple-extraction/predicate-canonicalizer.ts` - Predicate 정규화 로직
 - `src/services/triple-extraction/entity-linker.ts` - Entity Linking 로직
 - `prompts/triple-extraction.txt` - Triple 추출용 LLM 프롬프트 템플릿
-- `src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.sql` - AriGraph 파이프라인 스키마 마이그레이션
-- `src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.spec.ts` - 마이그레이션 테스트
-- `src/domains/memory/tools/remember-tool.ts` - remember tool에 Triple 추출 파이프라인 통합
-- `src/domains/memory/tools/convert-episodic-to-semantic-tool.ts` - 수동 변환 MCP Tool 구현
-- `src/domains/memory/tools/convert-episodic-to-semantic-tool.spec.ts` - 수동 변환 Tool 테스트
+- `src/infrastructure/database/sqlite/migration/migrations/008-arigraph-schema-expansion.sql` - AriGraph 파이프라인 스키마 마이그레이션
+- `src/infrastructure/database/sqlite/migration/migrations/008-arigraph-schema-expansion.spec.ts` - 마이그레이션 테스트
+- `src/domains/memory/remember/remember-tool.ts` - remember tool에 Triple 추출 파이프라인 통합
+- `src/domains/memory/semantic/convert-episodic-to-semantic-tool.ts` - 수동 변환 MCP Tool 구현
+- `src/domains/memory/semantic/convert-episodic-to-semantic-tool.spec.ts` - 수동 변환 Tool 테스트
 - `src/infrastructure/scheduler/batch-scheduler.ts` - BatchScheduler에 Triple 추출 배치 작업 추가
 - `src/infrastructure/scheduler/jobs/triple-extraction-batch-job.ts` - Triple 추출 배치 작업 구현
 - `src/infrastructure/scheduler/jobs/triple-extraction-batch-job.spec.ts` - 배치 작업 테스트

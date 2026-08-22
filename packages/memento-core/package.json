@@ -12,25 +12,20 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./test/helpers/benchmark-search-database.js": {
-      "types": "./dist/test/helpers/benchmark-search-database.d.ts",
-      "import": "./dist/test/helpers/benchmark-search-database.js",
-      "default": "./dist/test/helpers/benchmark-search-database.js"
+    "./domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js": {
+      "types": "./dist/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.d.ts",
+      "import": "./dist/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js",
+      "default": "./dist/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js"
     },
-    "./test/helpers/search-quality-benchmark-fixtures.js": {
-      "types": "./dist/test/helpers/search-quality-benchmark-fixtures.d.ts",
-      "import": "./dist/test/helpers/search-quality-benchmark-fixtures.js",
-      "default": "./dist/test/helpers/search-quality-benchmark-fixtures.js"
+    "./domains/monitoring/services/quality-assurance/search-quality-review-verifier.js": {
+      "types": "./dist/domains/monitoring/services/quality-assurance/search-quality-review-verifier.d.ts",
+      "import": "./dist/domains/monitoring/services/quality-assurance/search-quality-review-verifier.js",
+      "default": "./dist/domains/monitoring/services/quality-assurance/search-quality-review-verifier.js"
     },
-    "./test/helpers/search-quality-review-verifier.js": {
-      "types": "./dist/test/helpers/search-quality-review-verifier.d.ts",
-      "import": "./dist/test/helpers/search-quality-review-verifier.js",
-      "default": "./dist/test/helpers/search-quality-review-verifier.js"
-    },
-    "./test/helpers/search-quality-metrics.js": {
-      "types": "./dist/test/helpers/search-quality-metrics.d.ts",
-      "import": "./dist/test/helpers/search-quality-metrics.js",
-      "default": "./dist/test/helpers/search-quality-metrics.js"
+    "./domains/monitoring/services/quality-assurance/search-quality-metrics.js": {
+      "types": "./dist/domains/monitoring/services/quality-assurance/search-quality-metrics.d.ts",
+      "import": "./dist/domains/monitoring/services/quality-assurance/search-quality-metrics.js",
+      "default": "./dist/domains/monitoring/services/quality-assurance/search-quality-metrics.js"
     },
     "./domains/search/factories/hybrid-search.factory.js": {
       "types": "./dist/domains/search/factories/hybrid-search.factory.d.ts",
@@ -52,15 +47,10 @@
       "import": "./dist/shared/types/benchmark.types.js",
       "default": "./dist/shared/types/benchmark.types.js"
     },
-    "./shared/ops/search-quality-cli-helpers.js": {
-      "types": "./dist/shared/ops/search-quality-cli-helpers.d.ts",
-      "import": "./dist/shared/ops/search-quality-cli-helpers.js",
-      "default": "./dist/shared/ops/search-quality-cli-helpers.js"
-    },
-    "./test/helpers/vector-search-quality-metrics.js": {
-      "types": "./dist/test/helpers/vector-search-quality-metrics.d.ts",
-      "import": "./dist/test/helpers/vector-search-quality-metrics.js",
-      "default": "./dist/test/helpers/vector-search-quality-metrics.js"
+    "./domains/monitoring/services/quality-assurance/vector-search-quality-metrics.js": {
+      "types": "./dist/domains/monitoring/services/quality-assurance/vector-search-quality-metrics.d.ts",
+      "import": "./dist/domains/monitoring/services/quality-assurance/vector-search-quality-metrics.js",
+      "default": "./dist/domains/monitoring/services/quality-assurance/vector-search-quality-metrics.js"
     },
     "./shared/utils/path-validator.js": {
       "types": "./dist/shared/utils/path-validator.d.ts",
@@ -97,8 +87,8 @@
     "build": "tsc && npm run copy:assets",
     "copy:assets": "node scripts/copy-assets.js",
     "type-check": "tsc --declaration --emitDeclarationOnly",
-    "db:init": "node dist/infrastructure/database/database/init.js",
-    "db:migrate": "node dist/infrastructure/database/database/migrate.js"
+    "db:init": "node dist/infrastructure/database/sqlite/init.js",
+    "db:migrate": "node dist/infrastructure/database/sqlite/migrate.js"
   },
   "engines": {
     "node": ">=24.0.0"

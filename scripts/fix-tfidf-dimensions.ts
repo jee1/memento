@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 /**
  * TF-IDF 벡터 차원 마이그레이션 스크립트
@@ -75,7 +76,7 @@ async function fixTfidfDimensions() {
     console.log('\n⚠️ 경고: 이 작업은 384차원 TF-IDF 임베딩을 512차원으로 재생성합니다.');
     console.log('백업을 먼저 수행하는 것을 권장합니다.');
     
-    if (!process.argv.includes('--confirm')) {
+    if (!parseCliArgs().args.includes('--confirm')) {
       console.log('\n❌ 확인 플래그가 없어 작업을 중단합니다.');
       console.log('사용법: npx tsx scripts/fix-tfidf-dimensions.js --confirm');
       return;
@@ -325,7 +326,7 @@ async function fixTfidfDimensions() {
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   fixTfidfDimensions().catch((error) => {
     console.error('❌ 스크립트 실행 중 오류 발생:', error);
     process.exit(1);

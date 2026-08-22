@@ -3,6 +3,7 @@
  */
 
 import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { clamp01 } from '../../../../shared/utils/clamp.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import type { RawVectorSearchResult } from './vector-search.types.js';
 import type { VectorSearchExecutionOptions } from './vector-search.types.js';
@@ -33,14 +34,7 @@ export function cosineDistanceToSimilarity(distance: number): number {
   if (typeof distance !== 'number' || !Number.isFinite(distance)) {
     return 0;
   }
-  return clampSimilarity(1 - distance);
-}
-
-function clampSimilarity(similarity: number): number {
-  if (typeof similarity !== 'number' || !Number.isFinite(similarity)) {
-    return 0;
-  }
-  return Math.min(1, Math.max(0, similarity));
+  return clamp01(1 - distance);
 }
 
 export function mapKnnResults(
@@ -83,7 +77,7 @@ export function mapHybridResults(
   return results
     .map(result => {
       // 하이브리드 SQL은 `1 - distance`를 이미 계산해 넘기므로 clamp만 적용한다 (issue #713).
-      const vectorSimilarity = clampSimilarity(
+      const vectorSimilarity = clamp01(
         typeof result.vector_similarity === 'number'
           ? result.vector_similarity
           : (result.similarity as number)

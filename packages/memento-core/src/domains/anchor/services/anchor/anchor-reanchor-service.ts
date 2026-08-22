@@ -11,6 +11,8 @@ import type {
 import { DatabaseValidationError, VectorDimensionMismatchError } from './anchor-interfaces.js';
 import type { NHopSearchResult, NHopSearchService } from './n-hop-search-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { daysBetween } from '../../../../shared/utils/date.js';
+import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 import { ErrorCategory, ErrorSeverity, ErrorLoggingService } from '../../../../domains/monitoring/services/error-logging-service.js';
 
 export type AutoReanchorResult = {
@@ -75,7 +77,7 @@ export class AnchorReanchorService {
       if (memory.last_accessed) {
         const lastAccessed = new Date(memory.last_accessed);
         const now = new Date();
-        const daysSinceAccess = (now.getTime() - lastAccessed.getTime()) / (1000 * 60 * 60 * 24);
+        const daysSinceAccess = daysBetween(now, lastAccessed);
         recencyScore = Math.max(0, 1.0 - daysSinceAccess / 30);
       }
 
@@ -85,7 +87,7 @@ export class AnchorReanchorService {
       if (queryEmbedding) {
         const memoryEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
         if (memoryEmbedding?.embedding) {
-          semanticScore = this.cosineSimilarity(queryEmbedding, memoryEmbedding.embedding);
+          semanticScore = this.calculateVectorSimilarity(queryEmbedding, memoryEmbedding.embedding);
         }
       }
 
@@ -93,7 +95,7 @@ export class AnchorReanchorService {
       if (anchorEmbedding) {
         const memoryEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
         if (memoryEmbedding?.embedding) {
-          anchorComparisonScore = 1.0 - this.cosineSimilarity(anchorEmbedding, memoryEmbedding.embedding);
+          anchorComparisonScore = 1.0 - this.calculateVectorSimilarity(anchorEmbedding, memoryEmbedding.embedding);
         }
       }
 
@@ -323,7 +325,7 @@ export class AnchorReanchorService {
     }
   }
 
-  private cosineSimilarity(a: number[], b: number[]): number {
+  private calculateVectorSimilarity(a: number[], b: number[]): number {
     if (a.length !== b.length) {
       const error = new VectorDimensionMismatchError(a.length, b.length);
       const errorLoggingService = this.getErrorLoggingService();
@@ -343,20 +345,7 @@ export class AnchorReanchorService {
       throw error;
     }
 
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      const aVal = a[i] ?? 0;
-      const bVal = b[i] ?? 0;
-      dotProduct += aVal * bVal;
-      normA += aVal * aVal;
-      normB += bVal * bVal;
-    }
-
-    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-    return magnitude === 0 ? 0 : dotProduct / magnitude;
+    return cosineSimilarity(a, b);
   }
 
   private generateReanchorReason(

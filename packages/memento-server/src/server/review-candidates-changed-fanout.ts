@@ -4,7 +4,8 @@
  * Keeps in-process SSE (single-node) and optionally POSTs the same logical event
  * to comma-separated webhook URLs — simulating a broker hop for loss/latency experiments.
  *
- * Envelope aligns with docs/_work/solutions/2026-05-09-review-queue-boundary-idempotency-contract.md §3.3.
+ * Envelope aligns with the immutable baseline contract §3.3:
+ * https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/docs/_work/solutions/2026-05-09-review-queue-boundary-idempotency-contract.md
  */
 import { randomUUID } from 'node:crypto';
 import { notifyReviewCandidatesChanged } from './review-candidates-sse-hub.js';

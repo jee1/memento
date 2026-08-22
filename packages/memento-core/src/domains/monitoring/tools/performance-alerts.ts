@@ -4,6 +4,40 @@
  */
 
 import type { ToolContext } from '../../../tools/types.js';
+import type { PerformanceAlert } from '../services/performance-monitor.js';
+
+const PUBLIC_ALERT_TYPES = [
+  'response_time',
+  'memory_usage',
+  'error_rate',
+  'throughput',
+  'database_performance',
+  'cache_performance',
+  'cpu_usage',
+] as const;
+
+type PublicAlertType = typeof PUBLIC_ALERT_TYPES[number];
+
+const INTERNAL_TO_PUBLIC_TYPE: Record<PerformanceAlert['type'], PublicAlertType> = {
+  memory: 'memory_usage',
+  cpu: 'cpu_usage',
+  database: 'database_performance',
+  query: 'response_time',
+};
+
+const PUBLIC_TO_INTERNAL_TYPE: Partial<Record<PublicAlertType, PerformanceAlert['type']>> = {
+  memory_usage: 'memory',
+  cpu_usage: 'cpu',
+  database_performance: 'database',
+  response_time: 'query',
+};
+
+const DEFAULT_METRIC: Record<PerformanceAlert['type'], string> = {
+  memory: 'memory_usage_percent',
+  cpu: 'cpu_usage_percent',
+  database: 'database_size_mb',
+  query: 'query_time_ms',
+};
 
 export const performanceAlertsTool = {
   name: 'performance_alerts',
@@ -31,7 +65,7 @@ export const performanceAlertsTool = {
       },
       type: {
         type: 'string',
-        enum: ['response_time', 'memory_usage', 'error_rate', 'throughput', 'database_performance', 'cache_performance'],
+        enum: PUBLIC_ALERT_TYPES,
         description: '알림 타입 필터'
       },
       resolved: {
@@ -76,14 +110,14 @@ export async function executePerformanceAlerts(args: Record<string, unknown>, co
   
   try {
     // 성능 알림 서비스가 없으면 기본 응답
-    if (!context.services.performanceAlertService) {
+    if (!context.services.performanceMonitor) {
       return {
         success: false,
         error: 'Performance alert service not available',
         stats: {
           totalAlerts: 0,
           alertsByLevel: { info: 0, warning: 0, critical: 0 },
-          alertsByType: { response_time: 0, memory_usage: 0, error_rate: 0, throughput: 0, database_performance: 0, cache_performance: 0 },
+          alertsByType: createTypeBuckets(),
           recentAlerts: [],
           averageResolutionTime: 0,
           activeAlerts: 0
@@ -119,27 +153,45 @@ export async function executePerformanceAlerts(args: Record<string, unknown>, co
 }
 
 async function handleStats(context: ToolContext, hours: number) {
-  if (!context.services.performanceAlertService) {
+  if (!context.services.performanceMonitor) {
     throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
   }
-  const stats = context.services.performanceAlertService.getAlertStats(hours);
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  const alerts = context.services.performanceMonitor.getAllAlerts()
+    .filter(alert => alert.timestamp.getTime() >= cutoff);
+  const resolvedAlerts = alerts.filter(alert => alert.resolved && alert.resolvedAt);
+  const alertsByLevel = {
+    info: 0,
+    warning: alerts.filter(alert => alert.severity === 'warning').length,
+    critical: alerts.filter(alert => alert.severity === 'critical').length,
+  };
+  const alertsByType = createTypeBuckets();
+  for (const alert of alerts) {
+    alertsByType[INTERNAL_TO_PUBLIC_TYPE[alert.type]]++;
+  }
+  const recentAlerts = alerts
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 10);
+  const averageResolutionTime = resolvedAlerts.length === 0
+    ? 0
+    : resolvedAlerts.reduce(
+      (sum, alert) => sum + alert.resolvedAt!.getTime() - alert.timestamp.getTime(),
+      0
+    ) / resolvedAlerts.length;
+  const stats = {
+    totalAlerts: alerts.length,
+    alertsByLevel,
+    alertsByType,
+    recentAlerts,
+    averageResolutionTime,
+    activeAlerts: alerts.filter(alert => !alert.resolved).length,
+  };
   
   return {
     success: true,
     stats: {
       ...stats,
-      recentAlerts: stats.recentAlerts.map((alert) => ({
-        id: alert.id,
-        timestamp: alert.timestamp.toISOString(),
-        level: alert.level,
-        type: alert.type,
-        metric: alert.metric,
-        value: alert.value,
-        threshold: alert.threshold,
-        message: alert.message,
-        resolved: alert.resolved,
-        resolvedAt: alert.resolvedAt?.toISOString()
-      }))
+      recentAlerts: stats.recentAlerts.map(serializeRecentAlert)
     },
     summary: {
       totalAlerts: stats.totalAlerts,
@@ -151,64 +203,45 @@ async function handleStats(context: ToolContext, hours: number) {
 }
 
 async function handleList(context: ToolContext, hours: number, limit: number) {
-  if (!context.services.performanceAlertService) {
+  if (!context.services.performanceMonitor) {
     throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
   }
-  const activeAlerts = context.services.performanceAlertService.getActiveAlerts();
-  const recentAlerts = context.services.performanceAlertService.searchAlerts({
-    startDate: new Date(Date.now() - hours * 60 * 60 * 1000),
-    limit
-  });
+  const activeAlerts = context.services.performanceMonitor.getActiveAlerts();
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  const recentAlerts = context.services.performanceMonitor.getAllAlerts()
+    .filter(alert => alert.timestamp.getTime() >= cutoff)
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, limit);
 
   return {
     success: true,
-    activeAlerts: activeAlerts.map((alert) => ({
-      id: alert.id,
-      timestamp: alert.timestamp.toISOString(),
-      level: alert.level,
-      type: alert.type,
-      metric: alert.metric,
-      value: alert.value,
-      threshold: alert.threshold,
-      message: alert.message,
-      context: alert.context
-    })),
-    recentAlerts: recentAlerts.map((alert) => ({
-      id: alert.id,
-      timestamp: alert.timestamp.toISOString(),
-      level: alert.level,
-      type: alert.type,
-      metric: alert.metric,
-      value: alert.value,
-      threshold: alert.threshold,
-      message: alert.message,
-      resolved: alert.resolved,
-      resolvedAt: alert.resolvedAt?.toISOString()
-    }))
+    activeAlerts: activeAlerts.map(serializeActiveAlert),
+    recentAlerts: recentAlerts.map(serializeRecentAlert)
   };
 }
 
 async function handleSearch(context: ToolContext, filters: Record<string, unknown>) {
-  if (!context.services.performanceAlertService) {
+  if (!context.services.performanceMonitor) {
     throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
   }
-  const alerts = context.services.performanceAlertService.searchAlerts(filters);
+  const cutoff = typeof filters.hours === 'number'
+    ? Date.now() - filters.hours * 60 * 60 * 1000
+    : undefined;
+  const internalType = typeof filters.type === 'string'
+    ? PUBLIC_TO_INTERNAL_TYPE[filters.type as PublicAlertType]
+    : undefined;
+  const hasUnsupportedType = filters.type !== undefined && internalType === undefined;
+  const alerts = context.services.performanceMonitor.getAllAlerts()
+    .filter(alert => filters.level === undefined || alert.severity === filters.level)
+    .filter(alert => !hasUnsupportedType && (internalType === undefined || alert.type === internalType))
+    .filter(alert => filters.resolved === undefined || alert.resolved === filters.resolved)
+    .filter(alert => cutoff === undefined || alert.timestamp.getTime() >= cutoff)
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, typeof filters.limit === 'number' ? filters.limit : undefined);
 
   return {
     success: true,
-    alerts: alerts.map((alert) => ({
-      id: alert.id,
-      timestamp: alert.timestamp.toISOString(),
-      level: alert.level,
-      type: alert.type,
-      metric: alert.metric,
-      value: alert.value,
-      threshold: alert.threshold,
-      message: alert.message,
-      context: alert.context,
-      resolved: alert.resolved,
-      resolvedAt: alert.resolvedAt?.toISOString()
-    })),
+    alerts: alerts.map(serializeSearchAlert),
     total: alerts.length
   };
 }
@@ -221,11 +254,11 @@ async function handleResolve(context: ToolContext, alertId: string | undefined, 
     };
   }
 
-  if (!context.services.performanceAlertService) {
+  if (!context.services.performanceMonitor) {
     throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
   }
 
-  const success = context.services.performanceAlertService.resolveAlert(alertId, resolvedBy, resolution);
+  const success = context.services.performanceMonitor.resolveAlert(alertId, resolvedBy, resolution);
   
   if (!success) {
     return {
@@ -243,4 +276,45 @@ async function handleResolve(context: ToolContext, alertId: string | undefined, 
     resolution,
     resolvedAt: new Date().toISOString()
   };
+}
+
+function serializeBaseAlert(alert: PerformanceAlert) {
+  return {
+    id: alert.id,
+    timestamp: alert.timestamp.toISOString(),
+    level: alert.severity,
+    type: INTERNAL_TO_PUBLIC_TYPE[alert.type],
+    metric: alert.metric ?? DEFAULT_METRIC[alert.type],
+    value: alert.value,
+    threshold: alert.threshold,
+    message: alert.message,
+  };
+}
+
+function serializeActiveAlert(alert: PerformanceAlert) {
+  return {
+    ...serializeBaseAlert(alert),
+    context: alert.context ?? {},
+  };
+}
+
+function serializeRecentAlert(alert: PerformanceAlert) {
+  return {
+    ...serializeBaseAlert(alert),
+    resolved: alert.resolved,
+    resolvedAt: alert.resolvedAt?.toISOString(),
+  };
+}
+
+function serializeSearchAlert(alert: PerformanceAlert) {
+  return {
+    ...serializeBaseAlert(alert),
+    context: alert.context ?? {},
+    resolved: alert.resolved,
+    resolvedAt: alert.resolvedAt?.toISOString(),
+  };
+}
+
+function createTypeBuckets(): Record<PublicAlertType, number> {
+  return Object.fromEntries(PUBLIC_ALERT_TYPES.map(type => [type, 0])) as Record<PublicAlertType, number>;
 }

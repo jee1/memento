@@ -73,7 +73,6 @@ import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services
  * SQLite 데이터베이스 락을 주기적으로 모니터링하고 자동으로 해결
  */
 export class DatabaseLockMonitor {
-  private intervalId: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private lockStartTime: number | null = null;
   private busyCount: number = 0;
@@ -99,7 +98,6 @@ export class DatabaseLockMonitor {
     }
 
     this.isRunning = true;
-    this.monitor();
 
     this.logger?.info('데이터베이스 락 모니터 시작됨', {
       intervalMs: this.config.intervalMs
@@ -118,11 +116,6 @@ export class DatabaseLockMonitor {
       return;
     }
 
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
-
     this.isRunning = false;
     this.lockStartTime = null;
     this.busyCount = 0;
@@ -136,22 +129,22 @@ export class DatabaseLockMonitor {
   }
 
   /**
-   * 주기적 모니터링
+   * 단일 락 상태 프로브
    */
-  private monitor(): void {
-    this.intervalId = setInterval(async () => {
-      try {
-        const status = await this.checkLockStatus();
-        this.handleLockStatus(status);
-        this.updateBusyStatistics();
-      } catch (error) {
-        this.logger?.error('락 모니터링 실패', { error });
-        await this.writeDiagnosticsEvent({
-          type: 'database_lock_monitor_error',
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }, this.config.intervalMs);
+  async probe(): Promise<LockStatus> {
+    try {
+      const status = await this.checkLockStatus();
+      await this.handleLockStatus(status);
+      this.updateBusyStatistics();
+      return status;
+    } catch (error) {
+      this.logger?.error('락 모니터링 실패', { error });
+      await this.writeDiagnosticsEvent({
+        type: 'database_lock_monitor_error',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   /**

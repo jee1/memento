@@ -243,8 +243,8 @@ Memento 프로젝트는 MCP(Model Context Protocol) 서버로서 복잡한 메�
 **FR-6.2**: 비테스트 코드의 `console.*` 제거
 - 현재 상태: 비테스트 코드에서 117개 발견
 - 우선순위:
-  1. `src/infrastructure/database/database/migrate.ts`
-  2. `src/infrastructure/database/database/migration/migration-runner.ts`
+  1. `src/infrastructure/database/sqlite/migrate.ts`
+  2. `src/infrastructure/database/sqlite/migration/migration-runner.ts`
   3. `src/infrastructure/scheduler/batch-scheduler.ts`
   4. `src/infrastructure/logging/triple-extraction-logger.ts`
 - 목표: 비테스트 코드에서 `console.*` 0개
@@ -634,8 +634,8 @@ src/
    - ESLint 규칙 설정 (테스트/CLI 예외)
 
 2. **우선순위 파일 교체**
-   - `src/infrastructure/database/database/migrate.ts` 교체
-   - `src/infrastructure/database/database/migration/migration-runner.ts` 교체
+   - `src/infrastructure/database/sqlite/migrate.ts` 교체
+   - `src/infrastructure/database/sqlite/migration/migration-runner.ts` 교체
    - `src/infrastructure/scheduler/batch-scheduler.ts` 교체
    - `src/infrastructure/logging/triple-extraction-logger.ts` 교체
 
@@ -698,7 +698,7 @@ src/
    - **해결 방안**: 주석으로 이유 명시 필수, 가능한 경우 타입 가드 함수 사용
 
 5. **성능 영향 측정**: 리팩토링 전후 성능 벤치마크를 어느 정도의 정확도로 측정할 것인가?
-   - **해결 방안**: `npm run test:performance` 벤치마크를 사용하여 ±5% 이내 목표 설정
+   - **해결 방안**: 당시 전용 성능 벤치마크를 사용하여 ±5% 이내 목표 설정
 
 6. **마이그레이션 기간**: 각 Phase별 예상 소요 기간은 얼마인가?
    - **해결 방안**: 총 3개월 이상의 장기 계획으로 단계적 진행
@@ -828,7 +828,7 @@ src/
 ### 전체 완료 기준
 
 - [ ] 모든 Phase 완료
-- [ ] 성능 저하 없음 (±5% 이내, `npm run test:performance` 벤치마크)
+- [ ] 성능 저하 없음 (당시 전용 벤치마크 기준 ±5% 이내)
 - [ ] 모든 기존 테스트 통과 (`npm test`)
 - [ ] 전체 파이프라인 CI 게이트 통과 (모든 측정 스크립트 포함)
   ```bash

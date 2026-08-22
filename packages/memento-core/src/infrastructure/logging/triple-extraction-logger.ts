@@ -14,6 +14,7 @@
 import fsPromises from 'fs/promises';
 import path from 'path';
 import type { TripleExtractionResult } from '../../shared/types/triple-extraction.js';
+import { DAY_MS } from '../../shared/utils/date.js';
 import { logger } from '../../shared/utils/logger.js';
 import { validateFilePath } from '../../shared/utils/path-validator.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
@@ -268,7 +269,7 @@ export class TripleExtractionLogger {
       await this.ensureLogDirectory();
       const files = await fsPromises.readdir(this.logDir);
       const now = Date.now();
-      const retentionMs = retentionDays * 24 * 60 * 60 * 1000;
+      const retentionMs = retentionDays * DAY_MS;
       let deletedCount = 0;
 
       for (const file of files) {
@@ -309,4 +310,3 @@ export class TripleExtractionLogger {
  * 싱글톤 인스턴스
  */
 export const tripleExtractionLogger = new TripleExtractionLogger();
-

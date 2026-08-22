@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.ts';
 /**
  * Production dependency audit gate (#756).
  *
@@ -20,7 +21,7 @@ import { readFileSync } from 'node:fs';
 const FAIL_SEVERITIES = new Set(['critical', 'high', 'moderate']);
 
 function loadReport() {
-  const argPath = process.argv[2];
+  const argPath = parseCliArgs().args[0];
   if (argPath) {
     return JSON.parse(readFileSync(argPath, 'utf8'));
   }

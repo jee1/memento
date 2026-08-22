@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { AddRelationTool } from '../add-relation-tool.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 import type { RelationGraph } from '../../services/relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import type { ToolContext } from '../types.js';

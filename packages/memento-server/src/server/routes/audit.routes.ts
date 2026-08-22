@@ -7,7 +7,7 @@ import type Database from 'better-sqlite3';
 import { Router } from 'express';
 
 const AUDIT_ACTIONS = new Set<AuditAction>(['read', 'write', 'delete', 'admin', 'auth_denied']);
-const AUDIT_TRANSPORTS = new Set<AuditTransport>(['mcp_stdio', 'mcp_http', 'http_admin']);
+const AUDIT_TRANSPORTS = new Set<AuditTransport>(['mcp_stdio', 'mcp_http', 'mcp_ws', 'rest', 'http_admin']);
 
 function readSingleQueryValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 
 import { mkdirSync, writeFileSync } from 'fs';
 import { isAbsolute, join } from 'path';
-import { buildReviewChecklistMarkdown } from '@memento/core/shared/ops/search-quality-cli-helpers.js';
+import { buildReviewChecklistMarkdown } from './lib/search-quality-review-checklist.js';
 
 interface CliOptions {
   benchmarkDir: string;
@@ -11,7 +12,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     benchmarkDir: join(process.cwd(), 'tests', 'fixtures', 'search-quality', 'benchmark-v3'),
     help: false,
@@ -49,9 +50,9 @@ function printHelp(): void {
 Search quality review checklist generator
 
 Usage:
-  npm run quality:benchmark:checklist
-  npm run quality:benchmark:checklist -- --benchmark-dir tests/fixtures/search-quality/benchmark-v3
-  npm run quality:benchmark:checklist -- --output review-checklist.md
+  npm run quality -- benchmark checklist
+  npm run quality -- benchmark checklist -- --benchmark-dir tests/fixtures/search-quality/benchmark-v3
+  npm run quality -- benchmark checklist -- --output review-checklist.md
 `);
 }
 

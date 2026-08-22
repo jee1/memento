@@ -17,7 +17,8 @@ import {
   cleanupTestDatabase,
   type TestDatabaseContext,
 } from './test/helpers/test-database.js';
-import { createToolContext, executeTool } from '@memento/core';
+import { createToolContext, executeTool, mementoConfig } from '@memento/core';
+import { createMementoClient } from '@jee1/memento-client';
 
 describe('CLI 통합 (server-info + callToolViaHttp)', () => {
   let tmpDir: string;
@@ -122,6 +123,48 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
       query: '통합 테스트',
     });
     expect(result).toBeDefined();
+  });
+
+  it('MementoClient가 remember/recall/pin/unpin/forget 생명주기를 실제 HTTP로 수행한다', async () => {
+    const client = createMementoClient({
+      serverUrl: `http://127.0.0.1:${port}`,
+      logLevel: 'silent',
+    });
+
+    const savedTypeParamMode = mementoConfig.typeParamMode;
+    mementoConfig.typeParamMode = 'warn';
+    await client.connect();
+    try {
+      const remembered = await client.remember({
+        content: '클라이언트 생명주기 통합 테스트 기억',
+        type: 'episodic',
+        tags: ['client-lifecycle'],
+      });
+      expect(remembered.memory_id).toEqual(expect.any(String));
+
+      const recalled = await client.recall('클라이언트 생명주기', undefined, 5);
+      expect(recalled.items.some((item) => item.id === remembered.memory_id)).toBe(true);
+
+      await expect(client.pin(remembered.memory_id)).resolves.toMatchObject({
+        memory_id: remembered.memory_id,
+      });
+      expect(
+        ctx.db.prepare('SELECT pinned FROM memory_item WHERE id = ?').get(remembered.memory_id),
+      ).toEqual({ pinned: 1 });
+      await expect(client.unpin(remembered.memory_id)).resolves.toMatchObject({
+        memory_id: remembered.memory_id,
+      });
+      expect(
+        ctx.db.prepare('SELECT pinned FROM memory_item WHERE id = ?').get(remembered.memory_id),
+      ).toEqual({ pinned: 0 });
+      await expect(client.forget(remembered.memory_id)).resolves.toMatchObject({
+        memory_id: remembered.memory_id,
+        deleted_type: 'soft',
+      });
+    } finally {
+      await client.disconnect();
+      mementoConfig.typeParamMode = savedTypeParamMode;
+    }
   });
 
   it('동시성: N회 병렬 호출 후 DB 무결성이 유지된다', async () => {

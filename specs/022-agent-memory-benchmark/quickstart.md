@@ -11,7 +11,7 @@
 ## Run Fixture Benchmark
 
 ```bash
-npm run quality:agent-memory:benchmark -- \
+npx tsx scripts/agent-memory-benchmark.ts \
   --fixture tests/fixtures/agent-memory-benchmark \
   --output /tmp/agent-memory-benchmark.json
 ```
@@ -19,7 +19,7 @@ npm run quality:agent-memory:benchmark -- \
 Graph experiment:
 
 ```bash
-npm run quality:agent-memory:benchmark -- \
+npx tsx scripts/agent-memory-benchmark.ts \
   --fixture tests/fixtures/agent-memory-benchmark \
   --graph-rrf \
   --output /tmp/agent-memory-benchmark-graph.json
@@ -28,7 +28,7 @@ npm run quality:agent-memory:benchmark -- \
 ## Validate LongMemEval-S Contract
 
 ```bash
-npm run quality:agent-memory:benchmark -- \
+npx tsx scripts/agent-memory-benchmark.ts \
   --longmemeval-s tests/fixtures/agent-memory-benchmark/longmemeval-s-sample.jsonl \
   --output /tmp/longmemeval-s-report.json
 ```
@@ -46,7 +46,7 @@ Latency는 환경 의존이다. 공개 품질 재현 비교에서는 latency를 
 
 ```bash
 npx vitest run scripts/agent-memory-benchmark*.spec.ts
-npm run quality:benchmark:verify-categories
+npm run quality -- benchmark verify-categories
 npx vitest run scripts/compare-weight-profiles.spec.ts scripts/quality-benchmark-category-report.spec.ts
 npm run lint
 npm run type-check

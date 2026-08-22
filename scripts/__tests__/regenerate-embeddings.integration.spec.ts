@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { initializeDatabase, closeDatabase } from '@memento/core/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '@memento/core/infrastructure/database/sqlite/init.js';
 import Database from 'better-sqlite3';
 
 describe('regenerate-embeddings 통합 테스트', () => {

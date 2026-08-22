@@ -54,9 +54,8 @@ Memento 프로젝트의 4가지 임베딩 제공자에 대한 성능 벤치마�
 ## 벤치마크 실행
 
 ```bash
-# 전체 벤치마크
-npm run test:embedding-benchmark
-
-# 특정 서비스만
-npm run test:embedding-benchmark
+# 현재 임베딩 회귀 테스트
+npm run test:ci:core
 ```
+
+전용 임베딩 성능 runner는 제거되었습니다. 아래 측정값은 과거 벤치마크 기록으로 유지합니다.

@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 
-import { determineMergeStrategy, type ExtractedProceduralMemory } from '../shared/utils/procedural-memory-extractor.js';
-import type { ReflectionNotes } from '../shared/utils/procedural-memory-extractor.types.js';
+import { determineMergeStrategy, type ExtractedProceduralMemory } from '../domains/memory/procedural/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { logger } from '../shared/utils/logger.js';
 import { createProceduralMemory } from './reflexion-procedural-memory-service/reflexion-procedural-create.js';

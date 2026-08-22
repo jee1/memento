@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase, type TestDatabaseContext } from './test/helpers/test-database.js';
 import { initializeServices, getToolRegistry, getBatchScheduler, type ServerServices } from '@memento/core';
-import * as core from '@memento/core';
 import { createToolContext, createServerContext } from './context.js';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
@@ -40,7 +39,6 @@ describe('MCP 서버 진입점', () => {
       expect(services.performanceMonitor).toBeDefined();
       expect(services.databaseOptimizer).toBeDefined();
       expect(services.errorLoggingService).toBeDefined();
-      expect(services.performanceAlertService).toBeDefined();
       expect(services.anchorManager).toBeDefined();
     });
   });
@@ -102,7 +100,6 @@ describe('MCP 서버 진입점', () => {
       expect(toolContext.services.performanceMonitor).toBeDefined();
       expect(toolContext.services.databaseOptimizer).toBeDefined();
       expect(toolContext.services.errorLoggingService).toBeDefined();
-      expect(toolContext.services.performanceAlertService).toBeDefined();
       expect(toolContext.services.anchorManager).toBeDefined();
     });
   });
@@ -481,48 +478,52 @@ describe('MCP 서버 진입점', () => {
   });
 
   describe('정리 경로', () => {
-    it('cleanup이 runtimeDiagnosticsSamplerCleanup을 호출해야 함', async () => {
+    it('cleanup이 진단 샘플러 후 batch scheduler와 데이터베이스 리소스를 중지해야 함', async () => {
       const runtimeDiagnosticsSamplerCleanup = vi.fn().mockResolvedValue(undefined);
       const runtimeDiagnosticsLogger = {
         writeEvent: vi.fn().mockResolvedValue(undefined)
       };
-      const getBatchSchedulerSpy = vi.spyOn(core, 'getBatchScheduler').mockReturnValue({
-        stop: vi.fn().mockResolvedValue(undefined)
-      } as any);
+      const batchSchedulerStop = vi.fn().mockResolvedValue(undefined);
+      const walCheckpointStop = vi.fn().mockResolvedValue(undefined);
+      const databaseLockStop = vi.fn();
 
-      try {
-        __test.setTestDependencies({
-          database: null,
-          serverServices: {
-            walCheckpointScheduler: { stop: vi.fn().mockResolvedValue(undefined) } as any,
-            databaseLockMonitor: { stop: vi.fn() } as any,
-            writeCoalescingManager: {
-              flush: vi.fn().mockResolvedValue(undefined),
-              destroy: vi.fn().mockResolvedValue(undefined)
-            } as any,
-            runtimeDiagnosticsSamplerCleanup,
-            runtimeDiagnosticsLogger
-          } as any
-        });
+      __test.setTestDependencies({
+        database: null,
+        serverServices: {
+          batchScheduler: { stop: batchSchedulerStop } as any,
+          walCheckpointScheduler: { stop: walCheckpointStop } as any,
+          databaseLockMonitor: { stop: databaseLockStop } as any,
+          writeCoalescingManager: {
+            flush: vi.fn().mockResolvedValue(undefined),
+            destroy: vi.fn().mockResolvedValue(undefined)
+          } as any,
+          runtimeDiagnosticsSamplerCleanup,
+          runtimeDiagnosticsLogger
+        } as any
+      });
 
-        await cleanup();
+      await cleanup();
 
-        expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
-        expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'server_cleanup_start',
-            transport: 'stdio'
-          })
-        );
-        expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'server_cleanup_finish',
-            transport: 'stdio'
-          })
-        );
-      } finally {
-        getBatchSchedulerSpy.mockRestore();
-      }
+      expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+      expect(batchSchedulerStop).toHaveBeenCalledTimes(1);
+      expect(walCheckpointStop).toHaveBeenCalledTimes(1);
+      expect(databaseLockStop).toHaveBeenCalledTimes(1);
+      expect(runtimeDiagnosticsSamplerCleanup.mock.invocationCallOrder[0])
+        .toBeLessThan(batchSchedulerStop.mock.invocationCallOrder[0]);
+      expect(batchSchedulerStop.mock.invocationCallOrder[0])
+        .toBeLessThan(walCheckpointStop.mock.invocationCallOrder[0]);
+      expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'server_cleanup_start',
+          transport: 'stdio'
+        })
+      );
+      expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'server_cleanup_finish',
+          transport: 'stdio'
+        })
+      );
     });
   });
 

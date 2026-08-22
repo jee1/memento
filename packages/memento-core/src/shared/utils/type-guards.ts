@@ -3,7 +3,21 @@
  * 데이터베이스 조회 결과의 타입 안전성을 보장하기 위한 타입 가드 함수들
  */
 
-import type { MemoryType, PrivacyScope, MemoryItem, SqlParam } from '../types/index.js';
+import type {
+  MemoryItem,
+  MemoryType,
+  MemoryTypeRequest,
+  PrivacyScope,
+  SqlParam,
+} from '../types/memory.types.js';
+
+/** memory_item 하이브리드 검색에 쓰이는 네 타입 */
+export const MEMORY_ITEM_TYPES: readonly MemoryType[] = [
+  'working',
+  'episodic',
+  'semantic',
+  'procedural',
+];
 
 /**
  * 데이터베이스에서 조회한 메모리 행 타입
@@ -52,6 +66,20 @@ export function isMemoryRow(value: unknown): value is MemoryRow {
  */
 export function isMemoryType(value: string): value is MemoryType {
   return value === 'working' || value === 'episodic' || value === 'semantic' || value === 'procedural';
+}
+
+/** core/vault 요청 타입을 제외한 memory_item 타입인지 확인 */
+export function isMemoryItemType(type: MemoryTypeRequest): type is MemoryType {
+  return isMemoryType(type);
+}
+
+/** 네 memory_item 타입을 모두 포함하는지 확인 */
+export function isFullMemoryItemTypeSet(types: readonly MemoryType[]): boolean {
+  if (types.length !== MEMORY_ITEM_TYPES.length) {
+    return false;
+  }
+  const set = new Set(types);
+  return MEMORY_ITEM_TYPES.every(type => set.has(type));
 }
 
 /**

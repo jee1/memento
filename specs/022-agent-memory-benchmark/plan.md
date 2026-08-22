@@ -86,8 +86,8 @@ tests/fixtures/agent-memory-benchmark/
 
 ```bash
 npx vitest run scripts/agent-memory-benchmark*.spec.ts
-npm run quality:agent-memory:benchmark -- --output /tmp/agent-memory-benchmark.json
-npm run quality:benchmark:verify-categories
+npx tsx scripts/agent-memory-benchmark.ts --output /tmp/agent-memory-benchmark.json
+npm run quality -- benchmark verify-categories
 npx vitest run scripts/compare-weight-profiles.spec.ts scripts/quality-benchmark-category-report.spec.ts
 npm run lint
 npm run type-check

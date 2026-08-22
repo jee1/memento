@@ -2,13 +2,13 @@ import type Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { ForgettingPolicyService } from '../../../domains/forgetting/services/forgetting-policy-service.js';
 import type { PerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
-import type { IntrospectionScanCache } from '../../../domains/memory/services/introspection-scan-cache.js';
+import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { AnchorManager } from '../../../domains/anchor/services/anchor/anchor-manager.js';
 import type { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
-import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler-types.js';
-import type { BatchJobExecutionCoordinator } from '../batch-job-execution-coordinator.js';
+import type { BatchJobConfig, BatchJobResult } from './batch-scheduler-types.js';
+import type { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
 import type { JobQueue } from '../job-queue.js';
 import type { HealthChecker } from '../health-checker.js';
 import type { FileLogger } from '../file-logger.js';
@@ -22,7 +22,7 @@ import type {
   BatchSchedulerRunContext,
   MutableJobRef
 } from '../handlers/batch-scheduler-run-context.js';
-import type { BatchRecurringScheduleContext } from '../batch-recurring-schedules.js';
+import type { BatchRecurringScheduleContext } from './batch-recurring-schedules.js';
 
 export interface BatchSchedulerContextSource {
   db: Database.Database | null;

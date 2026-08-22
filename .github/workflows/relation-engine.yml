@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/domains/relation/**/*.ts'
       - 'src/shared/types/relation*.ts'
-      - 'src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.*'
+      - 'packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.*'
       - 'tests/fixtures/relation_testset.json'
       - 'scripts/generate-relation-report.ts'
       - '.github/workflows/relation-engine.yml'
@@ -15,7 +15,7 @@ on:
     paths:
       - 'src/domains/relation/**/*.ts'
       - 'src/shared/types/relation*.ts'
-      - 'src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.*'
+      - 'packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.*'
       - 'tests/fixtures/relation_testset.json'
       - 'scripts/generate-relation-report.ts'
       - '.github/workflows/relation-engine.yml'

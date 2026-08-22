@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { BatchScheduler } from '../../batch-scheduler.js';
+import { BatchScheduler } from '../../batch-scheduler/batch-scheduler.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { FileLogger } from '../../file-logger.js';

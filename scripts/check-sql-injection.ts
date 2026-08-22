@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * SQL Injection 취약점 검사 스크립트
  * 
@@ -54,7 +55,7 @@ interface CheckResult {
  * 명령줄 인자 파싱
  */
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     exclude: ['**/node_modules/**', '**/dist/**', '**/*.d.ts', '**/*.spec.ts']
   };
@@ -589,7 +590,7 @@ async function main(): Promise<void> {
 }
 
 // 스크립트 직접 실행 시
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   main().catch(error => {
     console.error('❌ 치명적 오류:', error);
     process.exit(1);

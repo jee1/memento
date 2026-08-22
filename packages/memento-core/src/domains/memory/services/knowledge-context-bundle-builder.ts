@@ -6,13 +6,14 @@
 import type Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
-import { isFullMemoryItemTypeSet, type MemoryType } from '../../../shared/types/index.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { isFullMemoryItemTypeSet } from '../../../shared/utils/type-guards.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
-import { hasBrokenTripleConjugation } from './semantic-memory/triple-sentence.js';
+import { hasBrokenTripleConjugation } from '../semantic/triple-sentence.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;

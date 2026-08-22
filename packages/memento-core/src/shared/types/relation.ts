@@ -3,7 +3,7 @@
  * 기억 간의 의미적 관계를 추출하고 관리하기 위한 타입들
  */
 
-import type { MemoryItem, MemoryType } from './index.js';
+import type { MemoryItem, MemoryType } from './memory.types.js';
 
 /**
  * 관계 추출 후보

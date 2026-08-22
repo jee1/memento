@@ -47,6 +47,11 @@ export interface PerformanceAlert {
   message: string;
   value: number;
   threshold: number;
+  metric?: string;
+  context?: Record<string, unknown>;
   timestamp: Date;
   resolved: boolean;
+  resolvedAt?: Date;
+  resolvedBy?: string;
+  resolution?: string;
 }

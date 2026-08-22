@@ -6,10 +6,10 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { join } from 'path';
 import { existsSync } from 'fs';
 import Database from 'better-sqlite3';
-import { initializeDatabase } from '@memento/core/infrastructure/database/database/init.js';
+import { initializeDatabase } from '@memento/core/infrastructure/database/sqlite/init.js';
 import { initializeServices } from '../bootstrap.js';
 import type { ServerServices } from '../bootstrap.js';
-import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
+import { RecallTool } from '@memento/core/domains/memory/recall/recall-tool.js';
 import { FeedbackRepositorySQLite as FeedbackRepository } from '@memento/core/infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';

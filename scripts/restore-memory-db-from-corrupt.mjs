@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs, openDb } from './lib/cli.ts';
 /**
  * Copy readable rows from a corrupt-but-queryable memory.db into a clean schema shell.
  * Usage (host):
@@ -7,14 +8,13 @@
  *     --source /data/memory.db.pre-recover-20260615T120932Z.db \
  *     --target /data/memory-restored-final.db
  */
-import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { normalizeReflectionNotes } from '../packages/memento-core/dist/shared/utils/reflection-notes-normalize.js';
 
 function parseArgs(argv) {
   const out = { source: '', target: '', onlyTables: null };
-  for (let i = 2; i < argv.length; i += 1) {
+  for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--source') out.source = argv[++i] ?? '';
     if (argv[i] === '--target') out.target = argv[++i] ?? '';
     if (argv[i] === '--only-tables') {
@@ -77,7 +77,7 @@ function shouldSkipTable(name) {
   );
 }
 
-const { source, target, onlyTables } = parseArgs(process.argv);
+const { source, target, onlyTables } = parseArgs(parseCliArgs().args);
 if (!fs.existsSync(source)) {
   throw new Error(`Source not found: ${source}`);
 }
@@ -92,7 +92,7 @@ for (const suffix of ['-wal', '-shm']) {
   if (fs.existsSync(sidecar)) fs.unlinkSync(sidecar);
 }
 
-const tgt = new Database(target);
+const tgt = openDb(target);
 tgt.function('normalize_reflection_notes', { deterministic: true }, (value) =>
   normalizeReflectionNotes(value)
 );

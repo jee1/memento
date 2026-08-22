@@ -7,13 +7,12 @@
 
 ## 1. 분류 원칙
 
-- **공식 vs 작업**
-  - **공식 문서**: 사용자·운영자·신규 기여자가 제품을 이해하고 쓰기 위해 유지되는 문서(`guides/`, `architecture/`, `api/`, `operations/`, `reference/`, `blog/` 등).
-  - **`_work/` 문서**: 계획·리뷰·검증·실험·리서치 등 **진행 중이거나 히스토리 성격**이 강한 산출물. 링크가 자주 바뀌거나 SDD 폴더 구조를 그대로 반영한다.
+- **지속적으로 유지할 문서만 저장**: 사용자·운영자·신규 기여자가 제품을 이해하고 쓰기 위해 필요한 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/`, `blog/` 등에 둔다. 일회성 계획·검증 로그·생성 결과는 커밋하지 않는다.
+- **명세와 결정 분리**: 기능 설계·구현 상태는 루트 [`specs/`](../specs/README.md), 장기 설계 결정은 `adr/`에서 관리한다.
 - **대상·용도**: 누가/무엇을 위해 보는 문서인지로 상위 구분한다.
-- **언어**: 공식 문서는 해당 카테고리의 **`en/`** 또는 **`ko/`** 하위에 둔다. `_work/`는 경로별로 `ko/`·`en/`·플랫 파일이 혼재할 수 있다.
+- **언어**: 공식 문서는 해당 카테고리의 **`en/`** 또는 **`ko/`** 하위에 둔다.
 - **Diataxis 참고**: Tutorial · How-to · Reference · **Explanation**(개념·이유 설명)을 의도에 맞게 배치한다.
-- **네러티브 문체**: 공식 문서는 **읽히는 글**을 기본으로 한다. 표·불릿·코드 블록은 레퍼런스·체크리스트·복사용 예시에 두고, 절의 서두·개요·전환은 완결된 문장으로 **맥락 → 선택 → 다음 행동**이 이어지게 쓴다. (예: "포트가 충돌하면 `.env`에서 `MCP_SERVER_PORT`를 바꾼 뒤 서버를 재시작합니다.") API 필드 목록·환경 변수 표·MCP 도구 표처럼 **조회용** 구간은 표를 유지해도 된다. `_work/` 초안도 가능하면 같은 톤을 맞춘다.
+- **네러티브 문체**: 공식 문서는 **읽히는 글**을 기본으로 한다. 표·불릿·코드 블록은 레퍼런스·체크리스트·복사용 예시에 두고, 절의 서두·개요·전환은 완결된 문장으로 **맥락 → 선택 → 다음 행동**이 이어지게 쓴다. (예: "포트가 충돌하면 `.env`에서 `MCP_SERVER_PORT`를 바꾼 뒤 서버를 재시작합니다.") API 필드 목록·환경 변수 표·MCP 도구 표처럼 **조회용** 구간은 표를 유지해도 된다.
 
 ---
 
@@ -32,25 +31,9 @@
 
 ---
 
-## 3. `_work/` 문서 카테고리
+## 3. 디렉터리 → 카테고리 매핑
 
-| 카테고리 | 설명 | 예시 경로 | audience(기본) | 상태 기본값 |
-|----------|------|-----------|----------------|-------------|
-| **계획·제안 (plans)** | 이슈별 SDD 폴더·로드맵·제안 | `_work/plans/ko/`, `_work/plans/en/`, `_work/plans/*.md` | contributor, agent | draft / archived |
-| **설계 초안 (design)** | 기능 전 설계·리뷰 초안 | `_work/design/` | contributor, agent | draft |
-| **브레인스토밍 (brainstorms)** | 탐색적 논의 | `_work/brainstorms/` | contributor | draft |
-| **코드 리뷰 (code_review)** | 사전 리뷰·리뷰 요청 | `_work/code_review/ko/`, `_work/code_review/en/` | contributor | completed |
-| **검증·보고 (reviews)** | 단계 검증·테스트 보고 | `_work/reviews/ko/`, `_work/reviews/en/` | contributor | completed |
-| **테스트 가이드 (testing)** | 품질 시나리오·벤치 가이드 | `_work/testing/ko/`, `_work/testing/en/` | contributor | draft |
-| **리서치 (research)** | 조사·MVP 검토 | `_work/research/ko/` 등 | contributor | draft |
-| **해결 사례 (solutions)** | 원인·해결 정리 | `_work/solutions/**` | contributor | stable |
-| **이슈 메모 (issues)** | 미착수 제안·노트 | `_work/issues/` | contributor | draft |
-
----
-
-## 4. 디렉터리 → 카테고리 매핑
-
-| 디렉터리 | 공식/작업 | 카테고리 |
+| 디렉터리 | 구분 | 카테고리 |
 |----------|-----------|----------|
 | `docs/guides/en/`, `docs/guides/ko/` | 공식 | 가이드 |
 | `docs/architecture/en/`, `docs/architecture/ko/` | 공식 | 아키텍처 |
@@ -60,19 +43,10 @@
 | `docs/blog/` | 공식 | 블로그 |
 | `docs/integrations/` | 공식 | 통합·외부 연동 |
 | `docs/adr/` | 공식 | 아키텍처 결정 기록 |
-| `docs/_work/plans/**` | 작업 | 계획·제안 |
-| `docs/_work/design/**` | 작업 | 설계 초안 |
-| `docs/_work/brainstorms/**` | 작업 | 브레인스토밍 |
-| `docs/_work/code_review/**` | 작업 | 코드 리뷰 |
-| `docs/_work/reviews/**` | 작업 | 검증·보고 |
-| `docs/_work/testing/**` | 작업 | 테스트 가이드 |
-| `docs/_work/research/**` | 작업 | 리서치 |
-| `docs/_work/solutions/**` | 작업 | 해결 사례 |
-| `docs/_work/issues/**` | 작업 | 이슈 메모 |
 
 ---
 
-## 5. 메타데이터 (`audience` / `type` / `status`)
+## 4. 메타데이터 (`audience` / `type` / `status`)
 
 문서 헤더나 PR에 다음을 맞추면 검색·온보딩에 도움이 된다.
 
@@ -80,14 +54,14 @@
 |------|---------|------|
 | **audience** | `user`, `integrator`, `operator`, `contributor`, `agent` | 1차 독자. 복수면 쉼표로 병기 가능. |
 | **type** (Diataxis) | `tutorial`, `how-to`, `reference`, `explanation` | 문서가 답하려는 질문 유형. |
-| **status** | `stable`, `draft`, `completed`, `archived`, `ephemeral` | 유지보수 기대치. `_work/`는 기본 `draft` 또는 `completed`(리뷰·검증 완료 건). |
+| **status** | `stable`, `draft`, `completed`, `archived`, `ephemeral` | 유지보수 기대치. 현재 문서 트리에는 지속적으로 관리할 상태만 남긴다. |
 
 ---
 
-## 6. 찾아보기
+## 5. 찾아보기
 
 - **전체 포털**: [docs/README.md](README.md)
 - **DB·마이그레이션**: [architecture/ko/database-design.md](architecture/ko/database-design.md) / [en](architecture/en/database-design.md), [guides/ko/migration-system-guide.md](guides/ko/migration-system-guide.md) / [en](guides/en/migration-system-guide.md)
-- **이슈별 계획·SDD**: [_work/plans/ko/](_work/plans/ko/)
+- **이슈별 계획·SDD**: [`specs/README.md`](../specs/README.md)
 
-추가 문서는 공식이면 해당 공식 카테고리에 두고 README 포털에 링크를 더하고, 작업 산출물이면 `_work/` 아래 적절한 폴더에 둔다.
+추가 문서는 해당 공식 카테고리에 두고 README 포털에 링크를 더합니다. 기능 명세와 계획은 `specs/`, 재사용 가능한 테스트 절차는 `guides/`, 장기 설계 결정은 `adr/`에 둡니다. 일회성 증거와 프로세스 산출물은 저장소에 누적하지 않습니다.

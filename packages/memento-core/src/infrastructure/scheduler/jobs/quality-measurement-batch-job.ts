@@ -15,7 +15,7 @@
 import Database from 'better-sqlite3';
 import { QualityAssuranceService } from '../../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { logger } from '../../../shared/utils/logger.js';
-import type { BatchJobResult } from '../batch-scheduler.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 
 /**
  * 품질 측정 배치 작업 설정

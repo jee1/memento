@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.ts';
 
 /**
  * 벡터 차원 통일 스크립트
@@ -57,7 +58,7 @@ async function fixVectorDimensions() {
     console.log('백업을 먼저 수행하는 것을 권장합니다.');
     console.log('계속하려면 스크립트를 --confirm 플래그와 함께 실행하세요.');
 
-    if (!process.argv.includes('--confirm')) {
+    if (!parseCliArgs().args.includes('--confirm')) {
       console.log('\n❌ 확인 플래그가 없어 작업을 중단합니다.');
       console.log('사용법: npx tsx scripts/fix-vector-dimensions.js --confirm');
       return;
@@ -175,7 +176,7 @@ async function fixVectorDimensions() {
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   fixVectorDimensions().catch((error) => {
     console.error('❌ 스크립트 실행 중 오류 발생:', error);
     process.exit(1);

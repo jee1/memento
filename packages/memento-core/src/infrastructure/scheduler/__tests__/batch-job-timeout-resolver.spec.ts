@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { BatchJobConfig } from '../batch-scheduler-types.js';
+import type { BatchJobConfig } from '../batch-scheduler/batch-scheduler-types.js';
 import {
   isJobTimeoutError,
   isTripleExtractionQueueJob,
   resolveBatchJobTimeout,
-} from '../batch-job-timeout-resolver.js';
+} from '../batch-scheduler/batch-job-timeout-resolver.js';
 
 const baseConfig = {
   jobTimeout: 5 * 60 * 1000,

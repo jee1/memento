@@ -8,7 +8,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { normalizeChatMessagesToText, type ChatMessageInput } from '../services/triple-extraction/triple-input-normalizer.js';
 import { TripleExtractionService } from '../services/triple-extraction/triple-extraction-service.js';
-import { TriplePipelineOrchestrator } from '../services/triple-extraction/triple-pipeline-orchestrator.js';
+import { runTriplePipeline } from '../services/triple-extraction/triple-pipeline-orchestrator.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import type { TripleExtractionOptions } from '../../../shared/types/triple-extraction.js';
 
@@ -118,11 +118,12 @@ export class ExtractTriplesTool extends BaseTool {
 
     const extractionOptions: TripleExtractionOptions = {};
     const extractionService = new TripleExtractionService();
-    const orchestrator = new TriplePipelineOrchestrator();
 
     try {
-      const result = await orchestrator.run(
-        { text, chunkSize, chunkOverlap, extractionOptions },
+      const result = await runTriplePipeline(
+        text,
+        chunkSize,
+        chunkOverlap,
         (chunk) => extractionService.extractTriples(chunk, extractionOptions),
       );
 

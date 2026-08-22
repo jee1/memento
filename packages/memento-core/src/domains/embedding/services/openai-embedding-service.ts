@@ -18,6 +18,13 @@ import { LightweightEmbeddingService } from './lightweight-embedding-service.js'
 import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
 import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
+import {
+  cleanupEmbeddingCache,
+  estimateEmbeddingTokens,
+  generateEmbeddingCacheKey,
+  rankSimilarEmbeddings,
+  truncateEmbeddingText,
+} from './embedding-helpers.js';
 
 export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
   private client: OpenAI | null = null;
@@ -82,7 +89,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
   async generateEmbedding(text: string): Promise<EmbeddingResult | null> {
     this.validateInput(text);
 
-    const cacheKey = this.generateCacheKey(text);
+    const cacheKey = generateEmbeddingCacheKey('openai', text);
     const cached = this.cache.get(cacheKey);
     if (cached) {
       return cached;
@@ -96,7 +103,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       const result = await this.generateOpenAIEmbedding(text);
       if (result) {
         this.cache.set(cacheKey, result);
-        this.cleanupCache();
+        cleanupEmbeddingCache(this.cache);
       }
       return result;
     } catch (error) {
@@ -121,16 +128,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       return [];
     }
 
-    return embeddings
-      .map(item => ({
-        id: item.id,
-        content: item.content,
-        similarity: this.cosineSimilarity(queryEmbedding.embedding, item.embedding),
-        score: this.cosineSimilarity(queryEmbedding.embedding, item.embedding)
-      }))
-      .filter(item => item.similarity >= threshold)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold);
   }
 
   private async generateOpenAIEmbedding(text: string): Promise<EmbeddingResult | null> {
@@ -138,7 +136,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
     }
 
-    const truncatedText = this.truncateText(text);
+    const truncatedText = truncateEmbeddingText(text, this.maxTokens);
     
     // RetryManager를 사용하여 외부 API 호출 재시도
     const retryOptions = getRetryOptions();
@@ -184,8 +182,8 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       model: this.model,
       provider: 'openai',
       usage: {
-        prompt_tokens: response.usage?.prompt_tokens ?? this.estimateTokens(truncatedText),
-        total_tokens: response.usage?.total_tokens ?? this.estimateTokens(truncatedText)
+        prompt_tokens: response.usage?.prompt_tokens ?? estimateEmbeddingTokens(truncatedText),
+        total_tokens: response.usage?.total_tokens ?? estimateEmbeddingTokens(truncatedText)
       }
     };
   }
@@ -199,7 +197,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
           provider: fallbackResult.provider ?? 'tfidf'
         };
         this.cache.set(cacheKey, patchedResult);
-        this.cleanupCache();
+        cleanupEmbeddingCache(this.cache);
         return patchedResult;
       }
       return null;
@@ -216,64 +214,4 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
     }
   }
 
-  private truncateText(text: string): string {
-    const estimatedTokens = this.estimateTokens(text);
-    if (estimatedTokens <= this.maxTokens) {
-      return text;
-    }
-    const maxChars = this.maxTokens * 4;
-    return text.substring(0, maxChars);
-  }
-
-  private estimateTokens(text: string): number {
-    return Math.ceil(text.length / 4);
-  }
-
-  private cosineSimilarity(vecA: number[], vecB: number[]): number {
-    if (vecA.length !== vecB.length) {
-      throw new Error('벡터 차원이 일치하지 않습니다');
-    }
-
-    let dot = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < vecA.length; i++) {
-      const a = vecA[i] ?? 0;
-      const b = vecB[i] ?? 0;
-      dot += a * b;
-      normA += a * a;
-      normB += b * b;
-    }
-
-    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-    return denominator === 0 ? 0 : dot / denominator;
-  }
-
-  private generateCacheKey(text: string): string {
-    return `openai:${this.hashText(text)}`;
-  }
-
-  private hashText(text: string): string {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash |= 0; // 32bit 변환
-    }
-    return hash.toString(36);
-  }
-
-  private cleanupCache(): void {
-    const MAX_CACHE_SIZE = 1000;
-    if (this.cache.size <= MAX_CACHE_SIZE) {
-      return;
-    }
-
-    const entries = Array.from(this.cache.entries());
-    this.cache.clear();
-    entries.slice(-MAX_CACHE_SIZE / 2).forEach(([key, value]) => {
-      this.cache.set(key, value);
-    });
-  }
 }

@@ -1,7 +1,7 @@
 # 모노레포 전환 현황 조사 보고서
 
 **목적**: 모노레포 + memento-core/server/client 분리 계획을 위한 현재 저장소 상태·패턴 정리.
-**컨텍스트**: [docs/_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).
+**컨텍스트**: 2026-03-04 모노레포 분리 설계에서 3패키지 분리(Approach A)를 선택했습니다. 출시가 끝난 설계 산출물은 `archive/pre-issue-801-cleanup` 브랜치에 보존했습니다.
 **범위**: 구현 계획 없음. 현재 상태와 관찰된 패턴만 기술.
 
 > **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md) 참조.
@@ -23,7 +23,7 @@
 
 ### 1.2 결론 (전환 후 반영됨)
 
-- 모노레포 전환 완료: workspaces 정의, core→server→client 빌드 순서, CI에 패키지별 빌드·테스트 포함. 상세는 [implementation-plan.md](../../_work/plans/ko/2026-03-04-monorepo-memento-core/implementation-plan.md) 참조.
+- 모노레포 전환 완료: workspaces 정의, core→server→client 빌드 순서, CI에 패키지별 빌드·테스트 포함. 현재 구조는 [개발자 가이드](../../guides/ko/developer-guide.md)와 [아키텍처](../../architecture/ko/)를 기준으로 합니다.
 
 ---
 
@@ -68,8 +68,8 @@
 
 - **구조**: `src/server/`(MCP 진입), `src/domains/`, `src/shared/`, `src/infrastructure/`. DB는 `src/infrastructure/database/`, 스키마·마이그레이션 빌드 시 복사.
 - **빌드**: `npm run build` = tsc + `copy:assets`. 산출물 `dist/`, 수동 편집 금지.
-- **테스트**: Vitest. 단위(`*.spec.ts`), E2E(`src/test/test-*.ts`). `npm test`, `npm run test:client` 등 시나리오 스크립트.
-- **DB**: `npm run db:init` → `src/infrastructure/database/database/init.ts`, 스키마 변경 시 `npm run db:migrate`. 설계 명세 `docs/architecture/ko/database-design.md`.
+- **테스트**: Vitest. 단위(`*.spec.ts`), E2E(`src/test/test-*.ts`). 전체는 `npm test`, 패키지별로는 `npm run test:ci:core`, `npm run test:ci:server`, `npm test -w @jee1/memento-client`를 사용합니다.
+- **DB**: `npm run db:init` → `src/infrastructure/database/sqlite/init.ts`, 스키마 변경 시 `npm run db:migrate`. 설계 명세 `docs/architecture/ko/database-design.md`.
 - **문서**: `docs/README.md` 목차·분류.
 
 ### 3.2 README / 배포
@@ -81,7 +81,7 @@
 
 - **docs/README.md**: 가이드·아키텍처·API·계획·테스트·운영·참조·리서치 등 분류.
 - **DB·초기화**:
-  - `docs/architecture/ko/database-design.md`: 스키마 설계, DDL 진실 공급원은 `src/infrastructure/database/database/schema.sql` + 마이그레이션.
+  - `docs/architecture/ko/database-design.md`: 스키마 설계, DDL 진실 공급원은 `src/infrastructure/database/sqlite/schema.sql` + 마이그레이션.
   - `docs/guides/ko/migration-system-guide.md`: MigrationRunner, 마이그레이션 디렉터리(`migration/migrations/` vs 레거시 `migrations/`), 인터페이스.
 
 ---
@@ -122,7 +122,7 @@
 
 - **env**: `env.example` 및 `src/shared/config/environment.ts` 기본값 `DB_PATH=./data/memory.db`.
 - **실제 사용**: `src/shared/config/index.ts`의 `mementoConfig.dbPath`가 `resolveString('DB_PATH')`로 로드.
-  `src/infrastructure/database/database/init.ts`는 `mementoConfig`를 통해 DB 경로를 사용.
+  `src/infrastructure/database/sqlite/init.ts`는 `mementoConfig`를 통해 DB 경로를 사용.
 
 ### 5.2 설정 로드
 
@@ -131,7 +131,7 @@
 
 ### 5.3 초기화
 
-- **스크립트**: `npm run db:init` → `src/infrastructure/database/database/init.ts`.
+- **스크립트**: `npm run db:init` → `src/infrastructure/database/sqlite/init.ts`.
 - **역할**: 스키마 적용, 마이그레이션 감지/실행(MigrationDetector, MigrationRunner), 레거시 호환 컬럼 추가, core_memory/knowledge_vault 등 초기화.
   `init.ts`는 이미 `shared/config`, `domains/memory/services/core-memory-*`, `shared/utils` 등에 의존.
 - **문서**:
@@ -156,7 +156,7 @@
 | server 의존 | infrastructure(init, scheduler 등), shared, domains, tools |
 | tools 의존 | domains/*/tools, tool-registry |
 | DB 경로 | `DB_PATH`(env), `mementoConfig.dbPath` |
-| DB 초기화 | `src/infrastructure/database/database/init.ts`, 마이그레이션 `migration/migrations/` |
+| DB 초기화 | `src/infrastructure/database/sqlite/init.ts`, 마이그레이션 `migration/migrations/` |
 | 빌드 에셋 | `copy-assets.js`: schema → dist/database, migrations → dist/infrastructure/..., prompts, config → dist |
 | CI | 루트만: lint, type-check, test:ci, build. 클라이언트 미포함 |
 

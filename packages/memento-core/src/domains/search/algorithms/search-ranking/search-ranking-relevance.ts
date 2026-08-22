@@ -3,6 +3,7 @@
  */
 
 import type { RelevanceInput } from './search-ranking.types.js';
+import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 
 /**
  * 단일 지표만으로는 검색 관련성을 정확히 평가할 수 없으므로, 다양한 관련성 지표를 가중 평균하여 종합적인 관련성 점수를 계산합니다.
@@ -58,13 +59,7 @@ export function calculateRelevanceSimple(query: string, content: string, tags: s
 function calculateEmbeddingSimilarity(queryEmbedding: number[], docEmbedding: number[]): number {
   if (queryEmbedding.length !== docEmbedding.length) return 0;
 
-  const innerProduct = dotProduct(queryEmbedding, docEmbedding);
-  const magnitudeA = magnitude(queryEmbedding);
-  const magnitudeB = magnitude(docEmbedding);
-
-  if (magnitudeA === 0 || magnitudeB === 0) return 0;
-
-  const cosine = innerProduct / (magnitudeA * magnitudeB);
+  const cosine = cosineSimilarity(queryEmbedding, docEmbedding);
   return Math.max(0, cosine); // 음수 유사도를 0으로 제한하여 점수 범위의 일관성을 유지합니다.
 }
 
@@ -173,19 +168,4 @@ function generateNgrams(text: string, n: number): Set<string> {
     ngrams.add(text.substring(i, i + n));
   }
   return ngrams;
-}
-
-/**
- * 두 벡터의 내적을 계산하여 방향성 유사성을 측정합니다.
- * 코사인 유사도 계산의 기초가 되는 연산을 수행합니다.
- */
-function dotProduct(a: number[], b: number[]): number {
-  return a.reduce((sum, val, i) => sum + val * (b[i] || 0), 0);
-}
-
-/**
- * 벡터의 유클리드 노름을 계산하여 코사인 유사도 계산에 필요한 벡터 크기를 구합니다.
- */
-function magnitude(vector: number[]): number {
-  return Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
 }

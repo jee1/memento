@@ -4,10 +4,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { BatchScheduler } from '../batch-scheduler.js';
+import { BatchScheduler } from '../batch-scheduler/batch-scheduler.js';
 import { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import * as configModule from '../../../shared/config/index.js';
+import { DAY_MS } from '../../../shared/utils/date.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -67,7 +68,7 @@ describe('BatchScheduler와 ConsolidationScoreWorker 통합', () => {
       monitoringInterval: 5 * 60 * 1000,
       healthCheckInterval: 30 * 1000,
       consolidationScoreIncrementalInterval: 60 * 60 * 1000, // 1시간
-      consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000, // 24시간
+      consolidationScoreFullSweepInterval: DAY_MS, // 24시간
       consolidationScoreFullSweepHour: 3, // 새벽 3시
       maxBatchSize: 1000,
       enableLogging: false,
@@ -227,4 +228,3 @@ describe('BatchScheduler와 ConsolidationScoreWorker 통합', () => {
     expect(consolidationJobs.length).toBeGreaterThan(0);
   });
 });
-

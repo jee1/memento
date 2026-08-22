@@ -22,7 +22,7 @@
 - 새 마이그레이션은 `npm run db:migrate`로 적용되며, 롤백 스크립트도 함께 제공해야 합니다.
 - 현재 `npm run db:migrate -- --down`은 별도 처리 로직이 없어 동일 업 마이그레이션을 다시 실행하므로, 실제 롤백이 필요할 경우 새로운 다운 전용 스크립트를 호출하거나 수동으로 실행해야 합니다.
 - 통합 테스트는 sqlite-vec 확장이 없을 때와 있을 때의 폴백 경로를 모두 검사하는 것이 좋습니다.
-- 테스트 실행: `npm test` (전체) · `npm run test:search` (검색 시나리오) · 필요 시 개별 파일을 Vitest로 실행.
+- 테스트 실행: `npm test` (전체) · `npm run test:ci:core` (core 검색 시나리오) · 필요 시 개별 파일을 Vitest로 실행.
 
 ## Tasks
 
@@ -52,4 +52,4 @@
   - [x] 5.1 임베딩 저장부터 vec0 반영, 벡터 검색까지 이어지는 통합 테스트 시나리오를 각 제공자(TF-IDF, MiniLM, OpenAI, Gemini)별로 작성하거나 기존 테스트를 확장한다.
 - [x] 5.2 다중 타입 필터, 차원 불일치, vec0 미설치 등 회귀 위험이 높은 경로를 커버하는 단위/통합 테스트를 `vector-search-engine.spec.ts`, `hybrid-search-engine.spec.ts` 등에 추가한다.
 - [x] 5.3 업데이트된 동작을 개발자 문서(`docs/prd-vector-search-stability-2025-10.md` 등)에 반영하고, 변경 사항을 공유하기 위한 릴리스 노트 초안을 준비한다.
-- [x] 5.4 `npm test`, `npm run test:search`를 실행해 전체 스위트가 통과하는지 확인하고, 실패 시 원인 분석과 수정 계획을 남긴다.
+- [x] 5.4 `npm test`, `npm run test:ci:core`를 실행해 전체 스위트가 통과하는지 확인하고, 실패 시 원인 분석과 수정 계획을 남긴다.

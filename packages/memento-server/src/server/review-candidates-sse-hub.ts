@@ -3,6 +3,7 @@
  * Admin routes should call `broadcastReviewCandidatesChanged` (#297) so optional HTTP relay runs too.
  */
 import type { Response } from 'express';
+import { startInterval } from '../infrastructure/scheduler/interval.js';
 
 const clients = new Set<Response>();
 
@@ -48,7 +49,7 @@ export function attachReviewCandidatesSse(res: Response): void {
 
   clients.add(res);
 
-  const ping = setInterval(() => {
+  const ping = startInterval(() => {
     if (!writeSafe(res, ': ping\n\n')) {
       clearInterval(ping);
       clients.delete(res);

@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger.js';
-import type { LLMProvider } from '../../types/index.js';
+import type { LLMProvider } from '../../types/memory.types.js';
 import type { LLMClientInitializationResult } from './types.js';
 
 /**

@@ -26,6 +26,8 @@ import {
   resetBatchScheduler
 } from '@memento/core';
 
+const DAY_MS = 86_400_000;
+
 async function listen(app: express.Express): Promise<{ server: http.Server; port: number }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(app);
@@ -128,6 +130,59 @@ function deleteAdmin(port: number, path: string): Promise<{ statusCode: number; 
     req.end();
   });
 }
+
+describe('admin.routes live stats and maintenance', () => {
+  it('preserves performance, forgetting, optimize, and cleanup route contracts', async () => {
+    const database = new Database(':memory:');
+    database.exec(`
+      CREATE TABLE memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        pinned INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+      INSERT INTO memory_item (id, type, pinned, created_at) VALUES
+        ('working-old', 'working', 0, datetime('now', '-3 days')),
+        ('semantic-pinned', 'semantic', 1, datetime('now'));
+    `);
+    const app = express();
+    app.use(express.json());
+    app.use('/admin', createAdminRouter(database, null));
+    const { server, port } = await listen(app);
+
+    try {
+      const performance = await getAdmin(port, '/admin/stats/performance');
+      expect(performance.statusCode).toBe(200);
+      expect(JSON.parse(performance.body)).toMatchObject({
+        message: '성능 통계 조회 완료',
+        stats: { total_memories: 2, working_memories: 1, semantic_memories: 1 },
+      });
+
+      const forgetting = await getAdmin(port, '/admin/stats/forgetting');
+      expect(forgetting.statusCode).toBe(200);
+      expect(JSON.parse(forgetting.body)).toMatchObject({ message: '망각 통계 조회 완료' });
+
+      const optimize = await postAdminJson(port, '/admin/database/optimize', {});
+      expect(optimize.statusCode).toBe(200);
+      expect(JSON.parse(optimize.body)).toMatchObject({ message: '데이터베이스 최적화 완료' });
+
+      const cleanup = await postAdminJson(port, '/admin/memory/cleanup', {});
+      expect(cleanup.statusCode).toBe(200);
+      expect(JSON.parse(cleanup.body)).toMatchObject({
+        message: '메모리 정리 완료',
+        deleted_count: 1,
+      });
+      expect(database.prepare('SELECT id FROM memory_item ORDER BY id').all()).toEqual([
+        { id: 'semantic-pinned' },
+      ]);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => error ? reject(error) : resolve());
+      });
+      database.close();
+    }
+  });
+});
 
 describe('admin.routes consolidation', () => {
   let db: Database.Database;
@@ -998,7 +1053,7 @@ describe('Project memory admin routes', () => {
   });
 
   it('GET /admin/memory/project/:project_id/cleanup/preview returns would_delete without deleting', async () => {
-    const old = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
+    const old = new Date(Date.now() - 100 * DAY_MS).toISOString();
     db.exec(`INSERT INTO memory_item (id, type, content, importance, project_id, created_at, is_deleted) VALUES ('old1', 'episodic', 'old', 0.5, 'proj-preview', '${old}', 0)`);
 
     const { server, port } = await listen(makeApp(db));
@@ -1016,7 +1071,7 @@ describe('Project memory admin routes', () => {
   });
 
   it('DELETE /admin/memory/project/:project_id/cleanup deletes old memories', async () => {
-    const old = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
+    const old = new Date(Date.now() - 100 * DAY_MS).toISOString();
     db.exec(`INSERT INTO memory_item (id, type, content, importance, project_id, created_at, is_deleted) VALUES ('del1', 'episodic', 'del', 0.5, 'proj-del', '${old}', 0)`);
 
     const { server, port } = await listen(makeApp(db));

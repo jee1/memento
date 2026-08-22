@@ -5,7 +5,7 @@
 
 import Database from 'better-sqlite3';
 import { mcpLogger } from '../../../server/mcp-logger.js';
-import type { MemorySearchResult } from '../../../shared/types/index.js';
+import type { MemorySearchResult } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { SearchRanking } from './search-ranking.js';

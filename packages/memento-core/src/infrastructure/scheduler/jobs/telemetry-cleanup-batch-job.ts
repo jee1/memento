@@ -4,7 +4,7 @@
 
 import { randomUUID } from 'crypto';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
-import type { BatchJobResult } from '../batch-scheduler.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/utils/logger.js';
 

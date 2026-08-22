@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 
 /**
  * 트리거 상태 확인 및 수정 스크립트
@@ -10,7 +11,6 @@
  */
 
 import { initializeDatabase, mementoConfig } from '@memento/core';
-import Database from 'better-sqlite3';
 
 interface TriggerInfo {
   name: string;
@@ -21,7 +21,7 @@ interface TriggerInfo {
 /**
  * 트리거 정보 조회
  */
-function getTriggerInfo(db: Database.Database, triggerName: string): TriggerInfo | null {
+function getTriggerInfo(db: CliDatabase, triggerName: string): TriggerInfo | null {
   const result = db
     .prepare(`
       SELECT name, sql FROM sqlite_master 
@@ -48,7 +48,7 @@ function getTriggerInfo(db: Database.Database, triggerName: string): TriggerInfo
 /**
  * 트리거 수정
  */
-function fixTriggers(db: Database.Database): void {
+function fixTriggers(db: CliDatabase): void {
   console.log('🔧 트리거 수정 중...\n');
 
   // 기존 트리거 삭제
@@ -117,7 +117,7 @@ function fixTriggers(db: Database.Database): void {
 /**
  * 마이그레이션 버전 확인
  */
-function checkMigrationVersion(db: Database.Database): void {
+function checkMigrationVersion(db: CliDatabase): void {
   const tableExists = db
     .prepare(`
       SELECT name FROM sqlite_master 
@@ -165,12 +165,12 @@ function checkMigrationVersion(db: Database.Database): void {
 }
 
 async function main() {
-  const shouldFix = process.argv.includes('--fix');
+  const shouldFix = parseCliArgs().args.includes('--fix');
   
   console.log('🔍 트리거 상태 확인 중...\n');
   console.log(`데이터베이스 경로: ${mementoConfig.dbPath}\n`);
 
-  let db: Database.Database | null = null;
+  let db: CliDatabase | null = null;
 
   try {
     db = await initializeDatabase();

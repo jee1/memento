@@ -2,7 +2,7 @@
 
 **Purpose**: Single design specification for the Memento MCP Server SQLite schema — table and column roles, naming conventions, indexes, constraints, and migration history.
 
-**Note**: The canonical executable DDL is `packages/memento-core/src/infrastructure/database/database/schema.sql` plus migration scripts. This document is explanatory.
+**Note**: The canonical executable DDL is `packages/memento-core/src/infrastructure/database/sqlite/schema.sql` plus migration scripts. This document is explanatory.
 
 **Related**: [Migration system guide](../../guides/en/migration-system-guide.md), [Full table ERD](../ko/database-erd.md).
 
@@ -108,7 +108,7 @@ Partial indexes on `type = 'episodic'` keep the triple extraction pipeline fast 
 
 ## 4. Migrations
 
-Migration files live in `packages/memento-core/src/infrastructure/database/database/migration/migrations/`. Each file is numbered (e.g., `002_`, `003_`...) and runs once. The `MigrationHistoryService` tracks which have been applied.
+Migration files live in `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/`. Each file is numbered (e.g., `002_`, `003_`...) and runs once. The `MigrationHistoryService` tracks which have been applied.
 
 Run pending migrations with:
 ```bash

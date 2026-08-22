@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 
-vi.mock('../domains/memory/services/procedural-llm-extractor.js', () => ({
+vi.mock('../domains/memory/procedural/procedural-llm-extractor.js', () => ({
   LlmProceduralExtractor: class {
     async extract(): Promise<null> {
       return null;
@@ -22,7 +22,7 @@ import { DatabaseUtils } from '../shared/utils/database.js';
 import {
   createProceduralMemorySnapshot,
   hasProceduralMemoryChanged,
-} from '../shared/utils/procedural-memory-change-detector.js';
+} from '../domains/memory/procedural/procedural-memory-change-detector.js';
 import { createHybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { createQueryCounter, type QueryCounter } from '../test/helpers/query-counter.js';

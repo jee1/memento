@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * Path Traversal 취약점 검사 스크립트
  * 
@@ -57,7 +58,7 @@ interface CheckResult {
  * 명령줄 인자 파싱
  */
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     exclude: ['**/node_modules/**', '**/dist/**', '**/*.d.ts', '**/*.spec.ts', '**/__tests__/**']
   };

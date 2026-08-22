@@ -1,10 +1,10 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { stringify } from '@iarna/toml';
-import type Database from 'better-sqlite3';
-import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import {
   loadRankingWeights,
   type RankingWeights,
@@ -126,7 +126,7 @@ function selectBest(passed: CandidateRecord[]): CandidateRecord | null {
 }
 
 async function main(): Promise<void> {
-  const args = parseTuneArgs(process.argv.slice(2));
+  const args = parseTuneArgs(parseCliArgs().args);
   const rand = mulberry32(args.seed);
 
   const baselineProfilePath = join(PROFILES_DIR, `${args.baselineProfile}.toml`);
@@ -280,10 +280,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (
-  import.meta.url === `file://${process.argv[1]}` ||
-  import.meta.url.endsWith(process.argv[1] ?? '')
-) {
+if (isMain(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

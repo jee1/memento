@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertStrictBenchmark,
   loadBenchmarkManifest,
-} from './search-quality-benchmark-fixtures.js';
+} from '../../domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
 
 describe('search-quality-benchmark-fixtures', () => {
   it('manifest 파일이 없으면 예외를 던진다', () => {

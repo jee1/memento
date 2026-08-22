@@ -1,6 +1,6 @@
 # 문서 전수 검수 체크리스트
 
-스펙: [doc-sync-automation-design.md](../../superpowers/specs/2026-05-03-doc-sync-automation-design.md)
+기능 명세의 번호와 상태는 [`specs/README.md`](../../../specs/README.md)에서 관리한다.
 
 각 항목은 처리 시 `[x]`로 표시한다. 보류 시 이슈 번호를 옆에 적는다.
 
@@ -14,7 +14,7 @@
 - [ ] `docs/api/` (ko/en)
 - [ ] `docs/architecture/`, `docs/operations/`, `docs/reference/`, `docs/integrations/`
 - [ ] `packages/*/README.md`, `apps/*/README.md`
-- [ ] `docs/superpowers/specs/`, `docs/superpowers/plans/` (제품 문서와 충돌 시 제품 문서 우선)
+- [ ] `specs/` (제품 문서와 충돌 시 제품 문서 우선)
 
 ## 생성·파생 문서
 

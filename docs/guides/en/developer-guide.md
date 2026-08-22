@@ -112,7 +112,7 @@ Tests are Vitest-based and follow the `**/*.spec.ts` pattern. Unit tests are col
 
 ```bash
 npm test                     # run all tests (Vitest)
-npm run test:search          # search scenario tests
+npm run test:ci:core         # core search and memory tests
 npm run test -- --coverage   # with coverage
 npm run test -- --watch      # watch mode
 ```

@@ -3,7 +3,7 @@
  */
 
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
-import type { BatchJobResult } from '../batch-scheduler.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import { FileLogger } from '../file-logger.js';
 
 export interface SleepConsolidationBatchJobDeps {

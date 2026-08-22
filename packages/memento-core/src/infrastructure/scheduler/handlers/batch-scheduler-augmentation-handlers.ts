@@ -1,6 +1,6 @@
 import { TripleExtractionBatchJob } from '../jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 export async function runTripleExtractionBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {

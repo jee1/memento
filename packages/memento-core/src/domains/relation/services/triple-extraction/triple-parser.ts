@@ -9,6 +9,7 @@
 
 import type { ITripleParser } from './interfaces.js';
 import type { Triple } from '../../../../shared/types/triple-extraction.js';
+import { extractJsonObjectFromLlmText } from '../llm-json.js';
 
 /**
  * Triple 파서 클래스
@@ -121,15 +122,7 @@ export class TripleParser implements ITripleParser {
       jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```.*$/s, '');
     }
 
-    // 첫 번째 '{'부터 마지막 '}'까지 추출
-    const firstBrace = jsonText.indexOf('{');
-    const lastBrace = jsonText.lastIndexOf('}');
-
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-      return null;
-    }
-
-    return jsonText.substring(firstBrace, lastBrace + 1).trim();
+    return extractJsonObjectFromLlmText(jsonText, { end: 'last-brace' });
   }
 
   /**

@@ -14,10 +14,10 @@ const projectRoot = join(__dirname, '..');
 const repoRoot = join(projectRoot, '..', '..');
 
 const distDatabaseDir = join(projectRoot, 'dist', 'database');
-const distMigrationDir = join(projectRoot, 'dist', 'infrastructure', 'database', 'database', 'migration', 'migrations');
-const sourceSchemaFile = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'schema.sql');
+const distMigrationDir = join(projectRoot, 'dist', 'infrastructure', 'database', 'sqlite', 'migration', 'migrations');
+const sourceSchemaFile = join(projectRoot, 'src', 'infrastructure', 'database', 'sqlite', 'schema.sql');
 const targetSchemaFile = join(distDatabaseDir, 'schema.sql');
-const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
+const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'sqlite', 'migration', 'migrations');
 
 // 추가 자산
 const distPromptsDir = join(projectRoot, 'dist', 'prompts');

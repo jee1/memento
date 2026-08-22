@@ -4,14 +4,14 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { ForgettingPolicyService } from '../../../domains/forgetting/services/forgetting-policy-service.js';
 import type { JobQueue } from '../job-queue.js';
 import type { HealthChecker } from '../health-checker.js';
 import type { FileLogger } from '../file-logger.js';
 import type { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import type { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
-import type { IntrospectionScanCache } from '../../../domains/memory/services/introspection-scan-cache.js';
+import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
 import type { TripleExtractionBatchJob } from '../jobs/triple-extraction-batch-job.js';
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';

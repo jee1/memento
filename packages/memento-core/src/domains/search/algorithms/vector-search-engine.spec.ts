@@ -823,40 +823,6 @@ describe('VectorSearchEngine', () => {
     });
   });
 
-  describe('getVectorTableName', () => {
-    it('다양한 제공자별 테이블명', () => {
-      const tfidfTable = (vectorEngine as any).getVectorTableName('tfidf');
-      const minilmTable = vectorEngine.getVectorTableName('minilm');
-      const openaiTable = vectorEngine.getVectorTableName('openai');
-      const geminiTable = vectorEngine.getVectorTableName('gemini');
-      const defaultTable = vectorEngine.getVectorTableName('unknown');
-
-      expect(tfidfTable).toBe('memory_item_vec_tfidf');
-      expect(minilmTable).toBe('memory_item_vec_minilm');
-      expect(openaiTable).toBe('memory_item_vec_openai');
-      expect(geminiTable).toBe('memory_item_vec_gemini');
-      expect(defaultTable).toBe('memory_item_vec_tfidf');
-    });
-
-    it('화이트리스트 검증: 허용된 테이블명만 반환', () => {
-      // Given: 허용된 provider들
-      // When: getVectorTableName 호출
-      // Then: 화이트리스트에 있는 테이블명만 반환되어야 함
-      const allowedProviders = ['tfidf', 'minilm', 'openai', 'gemini'];
-      const allowedTableNames = [
-        'memory_item_vec_tfidf',
-        'memory_item_vec_minilm',
-        'memory_item_vec_openai',
-        'memory_item_vec_gemini'
-      ];
-
-      for (const provider of allowedProviders) {
-        const tableName = vectorEngine.getVectorTableName(provider);
-        expect(allowedTableNames).toContain(tableName);
-      }
-    });
-  });
-
   describe('엣지 케이스', () => {
     it('매우 큰 벡터 처리', async () => {
       // DB 초기화 필요 (검증을 위해)

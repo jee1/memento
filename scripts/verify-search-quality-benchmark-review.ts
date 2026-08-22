@@ -1,7 +1,8 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 
 import { isAbsolute, join } from 'path';
-import { verifyReviewableBenchmark } from '../packages/memento-core/src/test/helpers/search-quality-review-verifier.js';
+import { verifyReviewableBenchmark } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-review-verifier.js';
 
 interface CliOptions {
   benchmarkDir: string;
@@ -10,7 +11,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     benchmarkDir: join(process.cwd(), 'tests', 'fixtures', 'search-quality', 'benchmark-v3'),
     requireReviewed: true,
@@ -46,9 +47,9 @@ function printHelp(): void {
 Search quality benchmark review verifier
 
 Usage:
-  npm run quality:benchmark:verify-review
-  npm run quality:benchmark:verify-review -- --benchmark-dir tests/fixtures/search-quality/benchmark-v3
-  npm run quality:benchmark:verify-review -- --allow-unreviewed
+  npm run quality -- benchmark verify-review
+  npm run quality -- benchmark verify-review -- --benchmark-dir tests/fixtures/search-quality/benchmark-v3
+  npm run quality -- benchmark verify-review -- --allow-unreviewed
 `);
 }
 

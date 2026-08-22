@@ -2,8 +2,8 @@
 
 ## Relevant Files
 
-- `src/shared/utils/procedural-memory-change-detector.ts` - Procedural Memory 변경 감지 유틸리티 함수 (신규 생성, FR4)
-- `src/shared/utils/procedural-memory-change-detector.spec.ts` - 변경 감지 유틸리티 단위 테스트 (신규 생성, FR4)
+- `src/domains/memory/procedural/procedural-memory-change-detector.ts` - Procedural Memory 변경 감지 유틸리티 함수 (신규 생성, FR4)
+- `src/domains/memory/procedural/procedural-memory-change-detector.spec.ts` - 변경 감지 유틸리티 단위 테스트 (신규 생성, FR4)
 - `src/test/helpers/query-counter.ts` - DB 쿼리 횟수 측정 헬퍼 함수 (신규 생성, FR8)
 - `src/services/reflexion-worker.spec.ts` - ReflexionWorker 테스트 파일 확장 (기존 파일 수정, FR1, FR2, FR3, FR6)
 - `.github/workflows/ci.yml` - CI/CD 워크플로우 파일 (확인 필요, FR9)
@@ -56,7 +56,7 @@
 ## Tasks
 
 - [x] 1.0 판정 기준 구현 (변경 감지 유틸리티)
-  - [x] 1.1 `src/shared/utils/procedural-memory-change-detector.ts` 파일 생성 및 인터페이스 정의 (ProceduralMemorySnapshot, ChangeDetectionResult)
+  - [x] 1.1 `src/domains/memory/procedural/procedural-memory-change-detector.ts` 파일 생성 및 인터페이스 정의 (ProceduralMemorySnapshot, ChangeDetectionResult)
   - [x] 1.2 JSON 정규화 유틸리티 함수 구현 (키 정렬, 숫자 직렬화, 배열 순서 유지, null 처리)
   - [x] 1.3 `computeJsonHash()` 함수 구현 (SHA-256 hash 계산, JSON 정규화 후 해시, 파싱 실패 시 fallback)
     - **null/빈 문자열 처리 규칙**:

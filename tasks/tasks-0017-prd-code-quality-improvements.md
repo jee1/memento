@@ -229,5 +229,4 @@
 - [x] **파일 크기 검증**: `node scripts/check-file-sizes.ts` (핵심 파일 500줄 이하) ✅
 - [x] **타입 안정성 검증**: `node scripts/count-any-types.ts` (`any` 타입 50개 이하) ✅ (현재 약 8개)
 - [x] **로깅 일원화 검증**: `node scripts/count-console-logs.ts` (핵심 모듈 `console.*` 0개) ✅ (anchor 도메인 0개)
-- [x] **성능 검증**: `npm run test:performance` (리팩토링 전후 성능 ±5% 이내) ✅ (성능 벤치마크 실행 완료, 리팩토링으로 인한 성능 저하 없음 확인)
-
+- [x] **성능 검증**: 당시 전용 성능 벤치마크로 리팩토링 전후 ±5% 이내를 확인함. 해당 일회성 runner는 이후 제거됨.

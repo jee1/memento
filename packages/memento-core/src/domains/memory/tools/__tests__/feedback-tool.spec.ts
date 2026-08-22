@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { FeedbackTool } from '../feedback-tool.js';
 import type { ToolContext } from '../../../../tools/types.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 function parseData(r: { content: Array<{ text?: string }> }): Record<string, unknown> {
   const text = r.content[0]?.text;
@@ -15,8 +15,7 @@ describe('FeedbackTool', () => {
   let context: ToolContext;
 
   beforeEach(async () => {
-    db = new Database(':memory:');
-    await DatabaseUtils.initializeDatabase(db);
+    db = await setupTestDatabase();
     db.prepare(
       `INSERT INTO memory_item (id, type, content) VALUES ('mem_tool_fb_1', 'semantic', 'x')`
     ).run();

@@ -19,7 +19,7 @@ export async function handlePostSessions(
 ): Promise<Response> {
   try {
     const { service, db, injectionService, buildInjection, recordInjection, initialInjectionTokenBudget } = ctx;
-    if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+    if (!service || !db) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     const prepared = prepareEvent(req.body);
     if (prepared.eventType !== 'SESSION_START') {
       throw new AgentIntegrationError('SESSION_START is required', 'INTERNAL_ERROR', 400);
@@ -39,7 +39,7 @@ export async function handlePostSessions(
     return res.status(201).json({
       session: sessionDto(service.getSession(prepared.sessionId)!),
       observation: observationDto(
-        new SqliteAgentIntegrationRepository(db!).getObservation(result.observationId)!,
+        new SqliteAgentIntegrationRepository(db).getObservation(result.observationId)!,
       ),
       result: {
         event_id: result.eventId,
@@ -123,7 +123,7 @@ export function handlePostObservationsIngest(req: Request, res: Response, ctx: A
     if (events.length > BATCH_EVENTS) {
       throw new AgentIntegrationError('Agent event batch exceeds configured limits', 'BATCH_TOO_LARGE', 413);
     }
-    const preparedEvents = events.map((item: unknown) => prepareBatchEvent(item));
+    const preparedEvents: BatchPrepResult[] = events.map((item: unknown) => prepareBatchEvent(item));
     const safeBatchBytes = Buffer.byteLength(
       JSON.stringify(preparedEvents.flatMap(item => item.prepared ? [item.prepared] : [])),
       'utf8',

@@ -3,7 +3,7 @@
  * sqlite-vec를 사용하여 대용량 벡터 데이터에서도 빠른 유사도 검색을 수행합니다.
  * Memento MCP Server의 핵심 벡터 검색 컴포넌트로서 의미 기반 검색 기능을 제공합니다.
  * 
- * 리팩토링: VectorSearchContainer와 Facade 패턴을 사용하여 개선된 구조를 활용합니다.
+ * VectorSearchContainer가 제공하는 검색·인덱스·성능 서비스를 사용합니다.
  * 기존 인터페이스는 유지하여 하위 호환성을 보장합니다.
  */
 
@@ -12,7 +12,6 @@ import { VECTOR_SEARCH } from '../../../shared/config/constants.js';
 import type {
 VectorSearchQuery
 } from '../../../shared/types/vector-search.types.js';
-import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
 
 // 기존 인터페이스 유지 (하위 호환성)
@@ -91,8 +90,7 @@ export class VectorSearchEngine {
       provider
     };
 
-    const facade = this.container.getFacade();
-    return await facade.search(query);
+    return await this.container.getServices().searchService.search(query);
   }
 
   /**
@@ -115,8 +113,7 @@ export class VectorSearchEngine {
       provider
     };
 
-    const facade = this.container.getFacade();
-    return await facade.hybridSearch(query);
+    return await this.container.getServices().searchService.hybridSearch(query);
   }
 
   /**
@@ -134,8 +131,7 @@ export class VectorSearchEngine {
     }
     
     try {
-      const facade = this.container.getFacade();
-      const status = facade.getIndexStatus();
+      const status = this.container.getServices().indexManager.getIndexStatus();
       // dimensions를 512로 설정 (기존 동작 유지)
       return {
         ...status,
@@ -161,8 +157,7 @@ export class VectorSearchEngine {
     }
     
     try {
-      const facade = this.container.getFacade();
-      return await facade.rebuildIndex();
+      return await this.container.getServices().indexManager.rebuildIndex();
     } catch {
       return false;
     }
@@ -189,8 +184,7 @@ export class VectorSearchEngine {
     }
     
     try {
-      const facade = this.container.getFacade();
-      return await facade.runPerformanceTest(queryVector, iterations);
+      return await this.container.getServices().performanceTester.runPerformanceTest(queryVector, iterations);
     } catch {
       return {
         averageTime: 0,
@@ -218,17 +212,6 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 각 임베딩 provider별로 다른 벡터 테이블을 사용하여 차원 불일치를 방지합니다.
-   * provider에 따라 적절한 테이블명을 반환하여 정확한 검색을 보장합니다.
-   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
-   * 
-   * @internal 테스트를 위해 public으로 유지
-   */
-  getVectorTableName(provider: string): string {
-    return getValidatedVectorTableName(provider);
-  }
-
-  /**
    * 벡터 검색 기능이 사용 가능한지 확인하여 호출자가 적절한 처리를 할 수 있도록 합니다.
    */
   isAvailable(): boolean {
@@ -236,8 +219,7 @@ export class VectorSearchEngine {
       return false;
     }
     try {
-      const facade = this.container.getFacade();
-      return facade.isAvailable();
+      return this.container.getServices().indexManager.isAvailable();
     } catch {
       return false;
     }

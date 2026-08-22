@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { DAY_MS } from '../../../shared/utils/date.js';
 import { SpacedRepetitionAlgorithm, type SpacedRepetitionFeatures, type ReviewSchedule } from './spaced-repetition.js';
 
 describe('SpacedRepetitionAlgorithm', () => {
@@ -200,7 +201,7 @@ describe('SpacedRepetitionAlgorithm', () => {
     it('정상적인 리뷰 스케줄 생성', () => {
       const memoryId = 'mem1';
       const currentInterval = 7;
-      const lastReviewDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000); // 5일 전
+      const lastReviewDate = new Date(Date.now() - 5 * DAY_MS); // 5일 전
       const features: SpacedRepetitionFeatures = {
         importance: 0.8,
         usage: 0.6,
@@ -242,14 +243,14 @@ describe('SpacedRepetitionAlgorithm', () => {
         features
       );
 
-      const expectedNextReview = new Date(lastReviewDate.getTime() + schedule.current_interval * 24 * 60 * 60 * 1000);
+      const expectedNextReview = new Date(lastReviewDate.getTime() + schedule.current_interval * DAY_MS);
       expect(schedule.next_review.getTime()).toBeCloseTo(expectedNextReview.getTime(), 0); // 정확한 시간 비교
     });
 
     it('배수 계산', () => {
       const memoryId = 'mem3';
       const currentInterval = 10;
-      const lastReviewDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+      const lastReviewDate = new Date(Date.now() - 5 * DAY_MS);
       const features: SpacedRepetitionFeatures = {
         importance: 0.8,
         usage: 0.6,
@@ -275,7 +276,7 @@ describe('SpacedRepetitionAlgorithm', () => {
         {
           id: 'mem1',
           current_interval: 7,
-          last_review: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+          last_review: new Date(Date.now() - 5 * DAY_MS),
           importance: 0.8,
           usage: 0.6,
           helpful_feedback: 0.7,
@@ -284,7 +285,7 @@ describe('SpacedRepetitionAlgorithm', () => {
         {
           id: 'mem2',
           current_interval: 14,
-          last_review: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+          last_review: new Date(Date.now() - 10 * DAY_MS),
           importance: 0.5,
           usage: 0.4,
           helpful_feedback: 0.3,
@@ -316,7 +317,7 @@ describe('SpacedRepetitionAlgorithm', () => {
       const schedule: ReviewSchedule = {
         memory_id: 'mem1',
         current_interval: 30,
-        next_review: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+        next_review: new Date(Date.now() + 5 * DAY_MS),
         recall_probability: 0.2, // 낮은 리콜 확률
         needs_review: true,
         multiplier: 1.5
@@ -332,7 +333,7 @@ describe('SpacedRepetitionAlgorithm', () => {
       const schedule: ReviewSchedule = {
         memory_id: 'mem2',
         current_interval: 3,
-        next_review: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+        next_review: new Date(Date.now() + DAY_MS),
         recall_probability: 0.9, // 높은 리콜 확률
         needs_review: false,
         multiplier: 1.1
@@ -555,7 +556,7 @@ describe('SpacedRepetitionAlgorithm', () => {
       const memories = Array.from({ length: 1000 }, (_, i) => ({
         id: `mem${i}`,
         current_interval: 7 + (i % 30),
-        last_review: new Date(Date.now() - (i % 30) * 24 * 60 * 60 * 1000),
+        last_review: new Date(Date.now() - (i % 30) * DAY_MS),
         importance: Math.random(),
         usage: Math.random(),
         helpful_feedback: Math.random(),

@@ -51,7 +51,7 @@ dry-run(기본값)과 apply 모드를 지원하고, 액션별 처리 건수·실
 
 ### 1. `IntrospectionHealingService` (신규)
 
-`packages/memento-core/src/domains/memory/services/introspection-healing-service.ts`
+`packages/memento-core/src/domains/memory/introspection/introspection-healing-service.ts`
 
 ```ts
 interface IntrospectionHealOptions {
@@ -103,7 +103,7 @@ apply 모드 쓰기:
 
 ### 3. `IntrospectionHealTool` (신규, `BaseTool` 서브클래스, MCP 미등록)
 
-`packages/memento-core/src/domains/memory/tools/introspection-heal-tool.ts`. `MigrateEmbeddingsTool`과
+`packages/memento-core/src/domains/memory/introspection/introspection-heal-tool.ts`. `MigrateEmbeddingsTool`과
 동일한 형태 (zod 파라미터 검증, dry_run 기본값, 성공/실패 카운트 반환). `tools/index.ts`에는 추가하지
 않고 `packages/memento-core/src/index.ts`에서만 export한다.
 

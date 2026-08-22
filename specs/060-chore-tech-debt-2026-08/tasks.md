@@ -81,7 +81,7 @@
 ### Implementation
 
 - [ ] T013 [US2] Flatten nested `filters` **once** at shared `executeTool` in `packages/memento-core/src/tools/index.ts` (canonical); keep top-level MCP fields valid
-- [ ] T014 [US2] Align HTTP entry only if needed in `packages/memento-server/src/server/routes/tools.routes.ts` — **no duplicate flatten**; `packages/memento-core/src/domains/memory/tools/recall-tool.ts`는 검증/회귀 위주
+- [ ] T014 [US2] Align HTTP entry only if needed in `packages/memento-server/src/server/routes/tools.routes.ts` — **no duplicate flatten**; `packages/memento-core/src/domains/memory/recall/recall-tool.ts`는 검증/회귀 위주
 - [ ] T015 [US2] Update `packages/memento-assistant/package.json` `test:ci` to include `test/` (not `src` only)
 
 ### Verify / PR
@@ -126,11 +126,11 @@
 
 ### Tests first (MUST FAIL)
 
-- [ ] T024 [US4] Add failing failure-injection test (abort after copy / before rename) asserting live `memory_embedding` + rows survive — target `packages/memento-core/src/infrastructure/database/database/migrate.ts` (`needsRebuild` path ~L91–175); place under migrate-adjacent `__tests__`
+- [ ] T024 [US4] Add failing failure-injection test (abort after copy / before rename) asserting live `memory_embedding` + rows survive — target `packages/memento-core/src/infrastructure/database/sqlite/migrate.ts` (`needsRebuild` path ~L91–175); place under migrate-adjacent `__tests__`
 
 ### Implementation
 
-- [ ] T025 [US4] Wrap create/copy/drop/rename only in better-sqlite3 `db.transaction(...)` in `packages/memento-core/src/infrastructure/database/database/migrate.ts` (no new migration framework; confirm vec-trigger drop in/out of atomic unit per research)
+- [ ] T025 [US4] Wrap create/copy/drop/rename only in better-sqlite3 `db.transaction(...)` in `packages/memento-core/src/infrastructure/database/sqlite/migrate.ts` (no new migration framework; confirm vec-trigger drop in/out of atomic unit per research)
 
 ### Verify / PR
 
@@ -201,7 +201,7 @@
 
 ### Implementation
 
-- [ ] T039 [US7] Move `ensureMetadataDefaults` SQL to bootstrap / `packages/memento-core/src/infrastructure/database/database/migrate.ts` (or existing init path) once
+- [ ] T039 [US7] Move `ensureMetadataDefaults` SQL to bootstrap / `packages/memento-core/src/infrastructure/database/sqlite/migrate.ts` (or existing init path) once
 - [ ] T040 [US7] Remove hot-path calls at ~L401, ~L449, ~L534 in `memory-embedding-service.ts`; ensure new rows get metadata defaults (`created_by = 'legacy'` semantics preserved)
 
 ### Verify / PR

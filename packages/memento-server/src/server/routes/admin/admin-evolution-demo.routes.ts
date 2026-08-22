@@ -3,12 +3,12 @@
  */
 
 import type { Router } from 'express';
+import { logger } from '@memento/core';
 import {
   getEvolutionDemoSnapshot,
   listEvolutionDemoScenarios,
   EvolutionDemoNotFoundError,
-  logger,
-} from '@memento/core';
+} from './evolution-demo/index.js';
 
 export function registerAdminEvolutionDemoRoutes(router: Router): void {
   router.get('/evolution-demo/scenarios', (_req, res) => {

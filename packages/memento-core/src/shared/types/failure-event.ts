@@ -1,7 +1,7 @@
 /**
  * 실패 이벤트 타입 (shared 레이어)
  * 하는 일: Shared→Domain 의존 제거. procedural-memory-extractor 등이 domain 없이 타입만 참조.
- * 연관: domains/monitoring/services/failure-detector.ts, shared/utils/procedural-memory-extractor.ts
+ * 연관: domains/monitoring/services/failure-detector.ts, domains/memory/procedural/procedural-memory-extractor.ts
  */
 
 export interface FailureEvent {

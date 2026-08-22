@@ -1,9 +1,10 @@
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
-import type { ProcessAttribute } from '../../../shared/types/index.js';
+import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { daysBetween } from '../../../shared/utils/date.js';
 import { sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.interface.js';
 import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { ProcessAttributeRepositorySqlite } from '../../../infrastructure/database/repositories/process-attribute-repository-sqlite.impl.js';
@@ -403,7 +404,7 @@ export class HybridResultRanker {
     if (!createdAt) return 0.5;
 
     const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
-    const ageDays = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+    const ageDays = daysBetween(new Date(), created);
 
     return Math.exp(-Math.log(2) * ageDays / 30);
   }
@@ -412,7 +413,7 @@ export class HybridResultRanker {
     if (!lastAccessed) return 0.1;
 
     const accessed = typeof lastAccessed === 'string' ? new Date(lastAccessed) : lastAccessed;
-    const daysSinceAccess = (Date.now() - accessed.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceAccess = daysBetween(new Date(), accessed);
 
     return Math.exp(-daysSinceAccess / 30);
   }

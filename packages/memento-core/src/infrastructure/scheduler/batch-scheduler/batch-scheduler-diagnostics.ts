@@ -1,5 +1,5 @@
 import type { RuntimeDiagnosticsLogger } from '../../../domains/monitoring/services/runtime-diagnostics-logger.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from './batch-scheduler-types.js';
 import { buildMemoryReviewCandidatesRunDiagnosticsPayload } from '../memory-review-candidates-run-diagnostics.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 

@@ -1,6 +1,6 @@
 /**
  * `memento agent ask` — in-process 개인 지식 Agent 한 턴 (#236).
- * 설계: docs/superpowers/specs/2026-05-14-issue-236-agent-ask-cli-design.md
+ * 설계 기록은 archive/pre-issue-801-cleanup 브랜치에 보존됩니다.
  * 테스트 훅: `AgentAskRuntimeHooks` (#237, Vitest에서 stdin/승인 주입).
  */
 

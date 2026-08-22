@@ -27,13 +27,13 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'domains/embedding/services/gemini-embedding-service.ts', rationale: 'RetryManager for external embedding API' },
   { path: 'domains/embedding/services/openai-embedding-service.ts', rationale: 'RetryManager for external embedding API' },
   { path: 'domains/memory/services/memory-jsonl-portability.ts', rationale: 'SchemaVersionManager for JSONL portability' },
-  { path: 'domains/memory/services/procedural-llm-extractor.ts', rationale: 'RetryManager for LLM extraction' },
-  { path: 'domains/memory/services/semantic-memory/semantic-memory-crud.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
-  { path: 'domains/memory/services/semantic-memory/semantic-memory-update-pipeline.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
-  { path: 'domains/memory/services/semantic-memory/semantic-memory-update-service.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
+  { path: 'domains/memory/procedural/procedural-llm-extractor.ts', rationale: 'RetryManager for LLM extraction' },
+  { path: 'domains/memory/semantic/semantic-memory-crud.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
+  { path: 'domains/memory/semantic/semantic-memory-update-pipeline.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
+  { path: 'domains/memory/semantic/semantic-memory-update-service.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
   { path: 'domains/memory/tools/feedback-tool.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
-  { path: 'domains/memory/tools/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
-  { path: 'domains/memory/tools/remember-tool-vault.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
+  { path: 'domains/memory/recall/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
+  { path: 'domains/memory/remember/remember-tool-vault.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
   { path: 'domains/relation/services/triple-extraction/triple-extraction-service.ts', rationale: 'tripleExtractionLogger infra logger' },
   { path: 'domains/relation/tools/extract-triples-tool.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
   { path: 'domains/search/algorithms/hybrid-result-ranker.ts', rationale: 'Feedback/ProcessAttribute SQLite repos until port injection' },
@@ -337,6 +337,7 @@ describe('dependency boundaries', () => {
     const cycleFiles = [
       'infrastructure/scheduler/batch-scheduler.ts',
       'infrastructure/scheduler/batch-scheduler/batch-scheduler-singleton.ts',
+      'infrastructure/scheduler/batch-scheduler/batch-scheduler.ts',
     ] as const;
 
     const cycles = await findCyclesAmong(cycleFiles);

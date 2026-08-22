@@ -10,14 +10,14 @@ import {
 import {
   calculateNDCGAtK,
   type SearchResult,
-} from '../../../../test/helpers/search-quality-metrics.js';
+} from './search-quality-metrics.js';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
-} from '../../../../test/helpers/search-quality-benchmark-fixtures.js';
+} from './search-quality-benchmark-fixtures.js';
 import {
   normalizeBenchmarkGroundTruths,
-} from '../../../../test/helpers/search-quality-review-verifier.js';
+} from './search-quality-review-verifier.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import { calculateMRR } from './search-metrics-collector.js';
 

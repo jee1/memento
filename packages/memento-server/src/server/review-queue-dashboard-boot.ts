@@ -17,7 +17,7 @@ export const DEFAULT_REVIEW_QUEUE_DASHBOARD_BOOT: ReviewQueueDashboardBoot = {
 export const REVIEW_QUEUE_DASHBOARD_BOOT_MARKER = '<!--MEMENTO_REVIEW_QUEUE_BOOT-->';
 
 const MIN_POLL_MS = 10_000;
-const MAX_POLL_MS = 24 * 60 * 60 * 1000;
+const MAX_POLL_MS = 86_400_000;
 
 function parsePositiveIntMs(raw: string | undefined, fallback: number): number {
   if (raw == null || raw.trim() === '') {

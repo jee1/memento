@@ -196,7 +196,7 @@
 
 **유틸리티 함수 정의**:
 
-**위치**: `src/shared/utils/procedural-memory-change-detector.ts` (신규 생성)
+**위치**: `src/domains/memory/procedural/procedural-memory-change-detector.ts` (신규 생성)
 
 **인터페이스**:
 ```typescript
@@ -273,7 +273,7 @@ function computeJsonHash(jsonString: string | null): string;
 - 이미 정렬/직렬화된 데이터: 정규화 후 해시 계산 (일관성 유지)
 
 **구현 요구사항**:
-- `src/shared/utils/procedural-memory-change-detector.ts` 파일 생성
+- `src/domains/memory/procedural/procedural-memory-change-detector.ts` 파일 생성
 - `createProceduralMemorySnapshot()` 함수 구현
   - `memory_item` 테이블의 모든 관련 필드 조회 (content, importance, privacy_scope, last_accessed 포함)
   - `memory_link` 테이블에서 `version_of` 관계 조회
@@ -561,7 +561,7 @@ afterEach(async () => {
 ### 의존성
 
 - `src/infrastructure/reflexion-worker.ts`: ReflexionWorker 클래스
-- `src/shared/utils/procedural-memory-extractor.ts`: 추출 유틸리티
+- `src/domains/memory/procedural/procedural-memory-extractor.ts`: 추출 유틸리티
 - `src/shared/utils/database.ts`: DatabaseUtils
 - `crypto` 모듈: hash 계산 (판정 기준)
 
@@ -629,6 +629,6 @@ afterEach(async () => {
 - [GitHub Issue #67](https://github.com/jee1/memento/issues/67)
 - `src/infrastructure/reflexion-worker.ts`: ReflexionWorker 구현
 - `src/services/reflexion-worker.spec.ts`: 기존 테스트
-- `src/shared/utils/procedural-memory-extractor.ts`: 추출 유틸리티
+- `src/domains/memory/procedural/procedural-memory-extractor.ts`: 추출 유틸리티
 - `tasks/0011-prd-procedural-memory-enhancement.md`: Procedural Memory 강화 PRD
 

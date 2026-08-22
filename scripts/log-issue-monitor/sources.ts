@@ -228,7 +228,7 @@ export async function readDockerLogs(
       lastNoContainerLogAt = now;
       process.stderr.write(
         `log-issue-monitor: no running or stopped container matched LOG_ISSUE_MONITOR_CONTAINER_NAME=${JSON.stringify(containerName)}. ` +
-          `Compose often names containers like "<project>_memento-mcp-server_1"; set the env to that name, or use docker-compose.diagnostics.yml (container_name).\n`,
+          `Compose often names containers like "<project>_memento-mcp-server_1"; set the env to that name, or use docker/docker-compose.diagnostics.yml (container_name).\n`,
       );
     }
     return [];

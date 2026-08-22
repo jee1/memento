@@ -3,7 +3,7 @@ import type Database from 'better-sqlite3';
 
 export const AUDIT_MODE_ENV = 'MEMENTO_AUDIT_MODE';
 
-export type AuditTransport = 'mcp_stdio' | 'mcp_http' | 'http_admin';
+export type AuditTransport = 'mcp_stdio' | 'mcp_http' | 'mcp_ws' | 'rest' | 'http_admin';
 export type AuditAction = 'read' | 'write' | 'delete' | 'admin' | 'auth_denied';
 export type AuditResultStatus = 'success' | 'failure' | 'denied';
 export type AuditEvidenceMode = 'full' | 'redacted' | 'metadata_only' | 'unavailable';

@@ -15,8 +15,8 @@ import { RelationExtractor } from '../../../../domains/relation/services/relatio
 import { RelationQualityValidator } from '../relation-quality-validator.js';
 import type { ExpectedRelation, ExtractedRelation } from '../relation-quality-validator.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
-import type { MemoryItem } from '../../../../shared/types/index.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
+import type { MemoryItem } from '../../../../shared/types/memory.types.js';
 import type { RelationCandidate } from '../../../../shared/types/relation.js';
 
 /**

@@ -49,7 +49,6 @@ describe("CI workflow", () => {
     ) as { scripts: Record<string, string> };
 
     expect(rootPkg.scripts["test:ci:scripts"]).toContain("scripts");
-    expect(rootPkg.scripts["test:ci:scripts"]).toContain("*.integration.spec.ts");
     expect(rootPkg.scripts["test:ci:scripts"]).not.toContain("acquire-longmemeval.spec.ts");
     expect(assistantPkg.scripts["test:ci"]).toContain("vitest --run src");
     expect(assistantPkg.scripts["test:ci"]).not.toContain("--passWithNoTests");

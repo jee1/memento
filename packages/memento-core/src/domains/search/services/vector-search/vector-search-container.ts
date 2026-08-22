@@ -6,11 +6,19 @@
 import Database from 'better-sqlite3';
 import { VectorPerformanceRepositoryImpl } from '../../repositories/vector-performance.repository.js';
 import { VectorSearchRepositoryImpl } from '../../repositories/vector-search.repository.js';
-import { VectorSearchFacade } from './vector-search-facade.js';
+import { VectorIndexManager } from './vector-index-manager.js';
+import { VectorPerformanceTester } from './vector-performance-tester.js';
+import { VectorSearchService } from './vector-search.service.js';
+
+interface VectorSearchServices {
+  searchService: VectorSearchService;
+  indexManager: VectorIndexManager;
+  performanceTester: VectorPerformanceTester;
+}
 
 export class VectorSearchContainer {
   private static instance: VectorSearchContainer | null = null;
-  private facade: VectorSearchFacade | null = null;
+  private services: VectorSearchServices | null = null;
   private db: Database.Database | null = null;
 
   private constructor() {}
@@ -30,45 +38,29 @@ export class VectorSearchContainer {
    */
   setDatabase(db: Database.Database): void {
     this.db = db;
-    this.facade = null; // 기존 파사드 무효화
+    this.services = null;
   }
 
-  /**
-   * 벡터 검색 파사드 반환
-   */
-  getFacade(): VectorSearchFacade {
-    if (!this.facade) {
+  getServices(): VectorSearchServices {
+    if (!this.services) {
       if (!this.db) {
         throw new Error('데이터베이스가 설정되지 않았습니다');
       }
-      this.facade = this.createFacade();
+      const searchRepository = new VectorSearchRepositoryImpl(this.db);
+      this.services = {
+        searchService: new VectorSearchService(searchRepository),
+        indexManager: new VectorIndexManager(searchRepository),
+        performanceTester: new VectorPerformanceTester(new VectorPerformanceRepositoryImpl(this.db)),
+      };
     }
-    return this.facade;
-  }
-
-  /**
-   * 파사드 생성
-   */
-  private createFacade(): VectorSearchFacade {
-    if (!this.db) {
-      throw new Error('데이터베이스가 설정되지 않았습니다');
-    }
-
-    const searchRepository = new VectorSearchRepositoryImpl(this.db);
-    const performanceRepository = new VectorPerformanceRepositoryImpl(this.db);
-    
-    return new VectorSearchFacade(
-      searchRepository,
-      searchRepository, // 인덱스 리포지토리로 재사용
-      performanceRepository
-    );
+    return this.services;
   }
 
   /**
    * 컨테이너 초기화
    */
   reset(): void {
-    this.facade = null;
+    this.services = null;
     this.db = null;
   }
 
@@ -77,12 +69,5 @@ export class VectorSearchContainer {
    */
   isConnected(): boolean {
     return this.db !== null;
-  }
-
-  /**
-   * 파사드 상태 확인
-   */
-  isFacadeReady(): boolean {
-    return this.facade !== null;
   }
 }

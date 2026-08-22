@@ -49,7 +49,7 @@ Production path reuses the same `HybridSearchEngine` that `RecallTool` and `memo
 3. Spy/stub proof that `hybridSearchEngine.search` is invoked.
 4. Gate unit tests (pass/fail thresholds).
 5. Scorecard schema fields present.
-6. `npm run quality:agent-memory:test`; type-check; lint; graphify rebuild.
+6. `npx vitest run scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts scripts/agent-memory-production-adapter.spec.ts`; type-check; lint; graphify rebuild.
 
 ## Risks
 

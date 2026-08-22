@@ -246,6 +246,31 @@ export function createHttpAuditMiddleware(config: HttpAuditMiddlewareConfig = {}
   };
 }
 
+/** Records the HTTP upgrade boundary that Express middleware cannot observe. */
+export function recordWebSocketRequestAudit(
+  db: Database.Database,
+  agentId?: string | null,
+): void {
+  try {
+    new AuditHashChainService(db).append({
+      actorId: null,
+      agentId: agentId ?? null,
+      transport: 'mcp_ws',
+      toolOrEndpoint: '/websocket',
+      action: 'read',
+      resultStatus: 'success',
+      evidenceMode: 'metadata_only',
+      requestSeen: true,
+      responseSeen: true,
+      toolArgsState: 'omitted',
+      outputState: 'omitted',
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`[memento-http-audit] failed to append WebSocket request record: ${message}\n`);
+  }
+}
+
 /**
  * Strict mode checks its prerequisites before a sensitive operation runs. The
  * finish listener still writes the final result, but an unavailable audit

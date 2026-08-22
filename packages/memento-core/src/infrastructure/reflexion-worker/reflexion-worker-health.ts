@@ -9,19 +9,7 @@ export interface ReflexionWorkerHealthDeps {
   checkQueueBacklog: () => void;
   getLastHealthCheck: () => number;
   setLastHealthCheck: (timestamp: number) => void;
-  getHealthCheckInterval: () => ReturnType<typeof setInterval> | null;
-  setHealthCheckInterval: (interval: ReturnType<typeof setInterval> | null) => void;
   maxRestartAttempts: number;
-}
-
-/**
- * 헬스체크 시작
- */
-export function startHealthCheck(deps: ReflexionWorkerHealthDeps): void {
-  // 30초마다 헬스체크
-  deps.setHealthCheckInterval(setInterval(() => {
-    performHealthCheck(deps);
-  }, 30 * 1000));
 }
 
 /**

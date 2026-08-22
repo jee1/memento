@@ -3,7 +3,8 @@ import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-sea
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
-import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
+import { OnDemandDatabaseOptimizer } from '../infrastructure/database/on-demand-database-optimizer.js';
+import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
 
 export function createSearchEmbeddingAndOptimizerServices(db: import('better-sqlite3').Database): {
   searchEngine: SearchEngine;
@@ -11,7 +12,7 @@ export function createSearchEmbeddingAndOptimizerServices(db: import('better-sql
   queryEmbeddingService: MemoryEmbeddingService;
   hybridSearchEngine: HybridSearchEngine;
   forgettingPolicyService: ForgettingPolicyService;
-  databaseOptimizer: DatabaseOptimizer;
+  databaseOptimizer: IDatabaseOptimizer;
 } {
   const searchEngine = new SearchEngine();
   const embeddingService = new MemoryEmbeddingService();
@@ -19,7 +20,7 @@ export function createSearchEmbeddingAndOptimizerServices(db: import('better-sql
   const queryEmbeddingService = new MemoryEmbeddingService();
   const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db, queryEmbeddingService);
   const forgettingPolicyService = new ForgettingPolicyService();
-  const databaseOptimizer = new DatabaseOptimizer(db);
+  const databaseOptimizer = new OnDemandDatabaseOptimizer(db);
   return {
     searchEngine,
     embeddingService,

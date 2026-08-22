@@ -7,9 +7,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { runUpdateMigration } from '../simple-update-wrapper.js';
-import { MigrationRunner } from '@memento/core/infrastructure/database/database/migration/migration-runner.js';
-import { MigrationDetector } from '@memento/core/infrastructure/database/database/migration/migration-detector.js';
-import { setupTestDatabase, cleanupTestDatabase } from '@memento/core/test/helpers/test-database.js';
+import { MigrationRunner } from '@memento/core/infrastructure/database/sqlite/migration/migration-runner.js';
+import { MigrationDetector } from '@memento/core/infrastructure/database/sqlite/migration/migration-detector.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../packages/memento-core/test/helpers/test-database.js';
 
 describe('4.4.1 simple-update-wrapper 테스트', () => {
   let db: Database.Database;
@@ -70,4 +70,3 @@ describe('4.4.1 simple-update-wrapper 테스트', () => {
     }
   });
 });
-

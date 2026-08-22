@@ -49,7 +49,6 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
       performanceMonitor: serverContext.services.performanceMonitor,
       databaseOptimizer: serverContext.services.databaseOptimizer,
       errorLoggingService: serverContext.services.errorLoggingService,
-      performanceAlertService: serverContext.services.performanceAlertService,
       consolidationScoreService: serverContext.services.consolidationScoreService,
       writeCoalescingManager: serverContext.services.writeCoalescingManager,
       anchorManager: serverContext.services.anchorManager,

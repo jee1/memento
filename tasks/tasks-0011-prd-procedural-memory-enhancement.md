@@ -5,12 +5,12 @@
 ## Relevant Files
 
 ### 데이터베이스 스키마 및 마이그레이션
-- `src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.sql` - Procedural Memory 스키마 확장 마이그레이션 SQL (신규 생성)
+- `src/infrastructure/database/sqlite/migration/migrations/007-procedural-memory-enhancement.sql` - Procedural Memory 스키마 확장 마이그레이션 SQL (신규 생성)
   - `memory_item` 테이블에 `workflow_name`, `skill_name`, `trigger_conditions` 필드 추가
   - `memory_link` 테이블의 `relation_type` enum 확장 (버전 관리용: 'version_of' 추가)
-- `src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts` - 마이그레이션 실행 클래스 (신규 생성)
-- `src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.spec.ts` - 마이그레이션 테스트 (신규 생성)
-- `src/infrastructure/database/database/schema.sql` - 데이터베이스 스키마 정의 (업데이트)
+- `src/infrastructure/database/sqlite/migration/migrations/007-procedural-memory-enhancement.ts` - 마이그레이션 실행 클래스 (신규 생성)
+- `src/infrastructure/database/sqlite/migration/migrations/007-procedural-memory-enhancement.spec.ts` - 마이그레이션 테스트 (신규 생성)
+- `src/infrastructure/database/sqlite/schema.sql` - 데이터베이스 스키마 정의 (업데이트)
 
 ### 타입 시스템 및 검증
 - `src/shared/types/index.ts` - 타입 정의 (MemoryItem, RememberParams, RecallParams, MemorySearchResult 확장) (수정됨)
@@ -21,9 +21,9 @@
 - `src/domains/relation/services/relation-graph.ts` - 관계 그래프 서비스 (허용 타입 필터/쿼리 점검 및 'VERSION_OF' 지원) (수정됨)
 
 ### MCP Tools
-- `src/domains/memory/tools/remember-tool.ts` - remember Tool 확장 (workflow_name, skill_name, trigger_conditions, update_mode 지원) (수정됨)
+- `src/domains/memory/remember/remember-tool.ts` - remember Tool 확장 (workflow_name, skill_name, trigger_conditions, update_mode 지원) (수정됨)
 - `src/domains/memory/tools/__tests__/remember-tool.spec.ts` - remember Tool 테스트 (수정됨)
-- `src/domains/memory/tools/recall-tool.ts` - recall Tool 확장 (새 검색 옵션 및 반환 형식 선택) (수정됨)
+- `src/domains/memory/recall/recall-tool.ts` - recall Tool 확장 (새 검색 옵션 및 반환 형식 선택) (수정됨)
 - `src/domains/memory/tools/__tests__/recall-tool.spec.ts` - recall Tool 테스트 (수정됨)
 
 ### 저장/조회 레이어
@@ -35,8 +35,8 @@
 ### Reflexion 연동
 - `src/infrastructure/reflexion-worker.ts` - Reflexion Worker 확장 (reflection_notes를 procedural memory로 자동 변환) (수정됨)
 - `src/services/reflexion-worker.spec.ts` - Reflexion Worker 테스트 (수정됨, 기존 파일 위치 유지)
-- `src/shared/utils/procedural-memory-extractor.ts` - Reflexion 결과에서 procedural memory 정보 추출 유틸리티 (신규 생성)
-- `src/shared/utils/procedural-memory-extractor.spec.ts` - 추출 유틸리티 테스트 (신규 생성, 같은 디렉토리에 배치)
+- `src/domains/memory/procedural/procedural-memory-extractor.ts` - Reflexion 결과에서 procedural memory 정보 추출 유틸리티 (신규 생성)
+- `src/domains/memory/procedural/procedural-memory-extractor.spec.ts` - 추출 유틸리티 테스트 (신규 생성, 같은 디렉토리에 배치)
 
 ### 검색 기능
 - `src/domains/search/algorithms/hybrid-search-engine.ts` - 하이브리드 검색 엔진 (procedural memory 특화 가중치 추가) (수정됨)
@@ -52,7 +52,7 @@
   - `src/services/`: 같은 디렉토리에 `.spec.ts` 파일 배치 (예: `reflexion-worker.spec.ts`)
   - 기존 파일 위치는 유지하며, 신규 파일은 해당 디렉토리의 기존 패턴을 따릅니다.
 - `npm test` 명령으로 전체 테스트를 실행할 수 있습니다.
-- 마이그레이션 스크립트는 `src/infrastructure/database/database/migration/migrations/` 디렉토리에 버전별로 관리하며, `.sql`, `.ts`, `.spec.ts` 파일 조합으로 구성됩니다.
+- 마이그레이션 스크립트는 `src/infrastructure/database/sqlite/migration/migrations/` 디렉토리에 버전별로 관리하며, `.sql`, `.ts`, `.spec.ts` 파일 조합으로 구성됩니다.
 - 기존 `task_goal`, `steps`, `reflection_notes` 필드는 그대로 유지하며, 새 필드(`workflow_name`, `skill_name`, `trigger_conditions`)와 병행 사용합니다.
 - 업데이트 모드(교체/증분/버전 관리)는 remember Tool 핸들러에서 처리하며, 버전 관리 모드의 경우 `memory_link` 테이블을 활용합니다.
 - **중요: `memory_link` relation_type enum 확장 및 변환 매핑**:
@@ -70,7 +70,7 @@
     - **'duplicates' 처리**: DB에는 존재하지만 TypeScript enum에 대응값이 없음 (005 마이그레이션에서 제거됨). `fromDbRelationType`에서 `null` 반환하여 무시, `relation-graph.ts`에서도 필터링하여 처리하지 않음
     - 사용 위치: `remember-tool.ts`에서 memory_link 생성 시 `toDbRelationType` 사용, DB 조회 시 `fromDbRelationType` 사용
   - **수정 대상 파일**:
-    - `src/infrastructure/database/database/schema.sql` (마이그레이션 007)
+    - `src/infrastructure/database/sqlite/schema.sql` (마이그레이션 007)
     - `src/shared/utils/database.ts` (테스트용 DB 생성 함수)
     - `src/test/test-http-server-v2.ts` (인라인 스키마)
 
@@ -80,7 +80,7 @@
   - [x] 1.1 `007-procedural-memory-enhancement.sql` 파일 생성 (memory_item 테이블 필드 추가, memory_link relation_type enum 확장)
   - [x] 1.2 `007-procedural-memory-enhancement.ts` 마이그레이션 클래스 구현 (Migration 인터페이스 구현, validateBefore/validateAfter 포함)
   - [x] 1.3 `007-procedural-memory-enhancement.spec.ts` 마이그레이션 테스트 작성 (up/down, 검증 로직 테스트)
-  - [x] 1.4 `src/infrastructure/database/database/schema.sql` 업데이트 (새 필드 및 enum 확장 반영)
+  - [x] 1.4 `src/infrastructure/database/sqlite/schema.sql` 업데이트 (새 필드 및 enum 확장 반영)
   - [x] 1.5 `src/shared/utils/database.ts`의 `initializeDatabase` 메서드 업데이트 (테스트용 DB 생성 시 새 필드 및 enum 포함)
   - [x] 1.6 `src/test/test-http-server-v2.ts`의 인라인 스키마 업데이트 (memory_link relation_type enum 확장)
 
@@ -138,7 +138,7 @@
   - [x] 5.4 `src/domains/search/repositories/__tests__/vector-search.repository.spec.ts` 테스트 작성/수정 (새 필드 반환 검증)
 
 - [x] 6.0 Reflexion 자동 연동 (reflection_notes를 procedural memory로 자동 변환)
-  - [x] 6.1 `src/shared/utils/procedural-memory-extractor.ts` 유틸리티 생성 (reflection_notes에서 workflow_name, skill_name, steps 추출)
+  - [x] 6.1 `src/domains/memory/procedural/procedural-memory-extractor.ts` 유틸리티 생성 (reflection_notes에서 workflow_name, skill_name, steps 추출)
   - [x] 6.2 `procedural-memory-extractor.ts`에 trigger_conditions 자동 생성 로직 구현 (실패 이벤트 정보 기반)
   - [x] 6.3 `procedural-memory-extractor.ts`에 유사도 기반 병합 로직 구현 (기존 procedural memory와 유사도 계산, 임계값 기반 업데이트/생성 결정)
   - [x] 6.4 `src/infrastructure/reflexion-worker.ts`에 자동 변환 로직 통합 (reflection_notes 생성 시 procedural memory 변환 시도)
@@ -148,7 +148,7 @@
     - `autoReflect` 메서드에서 자동 변환 호출
   - [x] 6.5 `reflexion-worker.ts`에 업데이트 모드 선택 로직 추가 (기본값: 증분 모드, 유사도 기반 자동 결정)
     - `determineMergeStrategy`를 사용하여 유사도 기반 업데이트 모드 결정
-  - [x] 6.6 `src/shared/utils/procedural-memory-extractor.spec.ts` 테스트 작성 (추출 로직, 유사도 계산, 병합 로직 테스트)
+  - [x] 6.6 `src/domains/memory/procedural/procedural-memory-extractor.spec.ts` 테스트 작성 (추출 로직, 유사도 계산, 병합 로직 테스트)
   - [x] 6.7 `src/services/reflexion-worker.spec.ts` 테스트 수정 (자동 변환 통합 테스트)
 
 - [x] 7.0 검색 기능 강화 (하이브리드 랭킹에 procedural memory 특화 가중치 추가)

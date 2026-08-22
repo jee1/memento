@@ -1,19 +1,73 @@
 import {
   AuditHashChainService,
   assertAuditCoverage,
+  createToolContext,
+  executeTool,
   formatMementoResourceUri,
   getAuditMode,
   isStrictAuditAction,
   type AuditAction,
   type AuditTransport,
+  type ServerServices,
+  type ToolContext,
+  type ToolResult,
 } from '@memento/core';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import type Database from 'better-sqlite3';
+import { mapToolExecutionErrorToJsonRpc } from './utils/mcp-tool-call-error.js';
 
 export type ToolAuditContext = {
   transport: AuditTransport;
   actorId?: string | null;
   agentId?: string | null;
 };
+
+type ToolExecutor = (name: string, args: unknown, context: ToolContext) => Promise<ToolResult>;
+
+export type ToolDispatcher = (
+  name: string,
+  args: unknown,
+  db: Database.Database,
+  services: ServerServices,
+  auditContext: ToolAuditContext,
+) => Promise<ToolResult>;
+
+export class ToolDispatchError extends McpError {
+  constructor(
+    code: number,
+    readonly protocolMessage: string,
+    data?: unknown,
+  ) {
+    super(code, protocolMessage, data);
+  }
+}
+
+class Semaphore {
+  private available: number;
+  private readonly waiting: Array<() => void> = [];
+
+  constructor(permits: number) {
+    if (!Number.isInteger(permits) || permits < 1) throw new Error('maxConcurrency must be a positive integer');
+    this.available = permits;
+  }
+
+  async acquire(): Promise<void> {
+    if (this.available > 0) {
+      this.available -= 1;
+      return;
+    }
+    await new Promise<void>((resolve) => this.waiting.push(resolve));
+  }
+
+  release(): void {
+    const next = this.waiting.shift();
+    if (next) {
+      next();
+      return;
+    }
+    this.available += 1;
+  }
+}
 
 function auditActionForTool(name: string): AuditAction {
   if (name === 'forget' || name.startsWith('remove_') || name.startsWith('delete_')) return 'delete';
@@ -88,3 +142,57 @@ export function recordToolAudit(
     process.stderr.write(`[memento-audit] failed to append tool dispatch record: ${message}\n`);
   }
 }
+
+export function mapToolDispatchError(error: unknown): ToolDispatchError {
+  if (error instanceof ToolDispatchError) return error;
+  if (error instanceof McpError) {
+    const prefix = `MCP error ${error.code}: `;
+    const protocolMessage = error.message.startsWith(prefix) ? error.message.slice(prefix.length) : error.message;
+    return new ToolDispatchError(error.code, protocolMessage, error.data);
+  }
+  const mapped = mapToolExecutionErrorToJsonRpc(error);
+  if (mapped) return new ToolDispatchError(mapped.code, mapped.message, mapped.data);
+  return new ToolDispatchError(
+    ErrorCode.InternalError,
+    'Internal error',
+    error instanceof Error ? error.message : String(error),
+  );
+}
+
+export function createToolDispatcher(options: {
+  maxConcurrency?: number;
+  execute?: ToolExecutor;
+} = {}): ToolDispatcher {
+  const limiter = new Semaphore(options.maxConcurrency ?? 20);
+
+  return async (name, args, db, services, auditContext) => {
+    await limiter.acquire();
+    let executionStarted = false;
+    try {
+      assertToolAuditCoverage(db, name, args, auditContext);
+      executionStarted = true;
+      const context = createToolContext({
+        db,
+        services,
+        ...(auditContext.agentId ? { agentId: auditContext.agentId } : {}),
+      });
+      const result = await (options.execute ?? executeTool)(name, args, context);
+      recordToolAudit(db, name, args, auditContext, 'success');
+      return result;
+    } catch (error) {
+      if (executionStarted) {
+        try {
+          recordToolAudit(db, name, args, auditContext, 'failure');
+        } catch (auditError) {
+          throw mapToolDispatchError(auditError);
+        }
+      }
+      throw mapToolDispatchError(error);
+    } finally {
+      limiter.release();
+    }
+  };
+}
+
+/** Shared tool execution boundary for stdio, HTTP MCP, WebSocket, and REST. */
+export const dispatchTool = createToolDispatcher();

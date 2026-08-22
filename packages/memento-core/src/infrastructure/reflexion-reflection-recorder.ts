@@ -8,7 +8,7 @@ import {
   serializeReflectionNotes,
   type ExistingReflectionNotes
 } from '../shared/utils/reflection-notes-merge.js';
-import type { ReflectionNotes } from '../shared/utils/procedural-memory-extractor.types.js';
+import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../shared/utils/logger.js';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
 

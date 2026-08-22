@@ -4,7 +4,7 @@
  */
 
 import { CONFIDENCE,LIMITS } from '../../../shared/constants/relation-constants.js';
-import type { MemoryItem } from '../../../shared/types/index.js';
+import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type {
 ExtractOptions,
 IRelationExtractor,

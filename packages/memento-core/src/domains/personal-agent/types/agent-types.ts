@@ -1,4 +1,4 @@
-import type { MemoryType } from '../../../shared/types/index.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { LLMProviderMetadata } from '../ports/llm-port.js';
 
 export type KnowledgeCandidateCategory = 'preference' | 'decision' | 'learning' | 'procedure';

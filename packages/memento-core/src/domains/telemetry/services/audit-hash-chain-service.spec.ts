@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import Database from 'better-sqlite3';
-import { AuditHashChainMigration } from '../../../infrastructure/database/database/migration/migrations/040-audit-hash-chain.js';
+import { AuditHashChainMigration } from '../../../infrastructure/database/sqlite/migration/migrations/040-audit-hash-chain.js';
 import {
   AUDIT_MODE_ENV,
   AuditCoverageError,

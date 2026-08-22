@@ -20,7 +20,7 @@ export function handleGetSessions(req: Request, res: Response, ctx: AgentRouterC
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
       limit: typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined,
       status: typeof req.query.status === 'string'
-        ? req.query.status as Parameters<typeof service.listSessions>[0]['status']
+        ? req.query.status as NonNullable<Parameters<typeof service.listSessions>[0]>['status']
         : undefined,
       adapterName: typeof req.query.adapter_name === 'string'
         ? req.query.adapter_name
@@ -78,7 +78,8 @@ export function handlePostInjectionUsage(req: Request, res: Response, ctx: Agent
     if (!service || !telemetryRepository) {
       throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     }
-    const session = service.getSession(req.params.id);
+    const sessionId = requireString(req.params.id, 'session_id');
+    const session = service.getSession(sessionId);
     if (!session) {
       throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
     }
@@ -157,10 +158,11 @@ export function handleGetSessionInjections(req: Request, res: Response, ctx: Age
     if (!service || !db) {
       throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     }
-    if (!service.getSession(req.params.id)) {
+    const sessionId = requireString(req.params.id, 'session_id');
+    if (!service.getSession(sessionId)) {
       throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
     }
-    return res.json(buildInjectionDetails(db, req.params.id));
+    return res.json(buildInjectionDetails(db, sessionId));
   } catch (error) {
     return writeError(res, error);
   }
@@ -170,11 +172,12 @@ export function handleGetSessionById(req: Request, res: Response, ctx: AgentRout
   try {
     const { service } = ctx;
     if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
-    const session = service.getSession(req.params.id);
+    const sessionId = requireString(req.params.id, 'session_id');
+    const session = service.getSession(sessionId);
     if (!session) throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
     return res.json({
       session: sessionDto(session),
-      aggregate: service.listObservations(req.params.id, { limit: 1 }).aggregate,
+      aggregate: service.listObservations(sessionId, { limit: 1 }).aggregate,
     });
   } catch (error) {
     return writeError(res, error);
@@ -185,14 +188,15 @@ export function handleGetSessionObservations(req: Request, res: Response, ctx: A
   try {
     const { service } = ctx;
     if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
-    if (!service.getSession(req.params.id)) {
+    const sessionId = requireString(req.params.id, 'session_id');
+    if (!service.getSession(sessionId)) {
       throw new AgentIntegrationError(
         'Agent session not found',
         'SESSION_NOT_STARTED',
         404,
       );
     }
-    const page = service.listObservations(req.params.id, {
+    const page = service.listObservations(sessionId, {
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
       limit: typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined,
       eventType: typeof req.query.event_type === 'string' ? req.query.event_type : undefined,
@@ -214,7 +218,8 @@ export function handleGetSessionExport(req: Request, res: Response, ctx: AgentRo
   try {
     const { service } = ctx;
     if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
-    const exported = service.exportSession(req.params.id);
+    const sessionId = requireString(req.params.id, 'session_id');
+    const exported = service.exportSession(sessionId);
     if (!exported) throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
     return res.json({
       session: sessionDto(exported.session),
@@ -230,7 +235,8 @@ export function handleDeleteSession(req: Request, res: Response, ctx: AgentRoute
   try {
     const { service } = ctx;
     if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
-    if (!service.deleteSession(req.params.id)) {
+    const sessionId = requireString(req.params.id, 'session_id');
+    if (!service.deleteSession(sessionId)) {
       throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
     }
     return res.status(204).send();

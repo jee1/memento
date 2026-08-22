@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { TelemetryEventsMigration } from '../../../infrastructure/database/database/migration/migrations/027-telemetry-events.js';
-import { TelemetryDailyMetricsMigration } from '../../../infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
+import { TelemetryEventsMigration } from '../../../infrastructure/database/sqlite/migration/migrations/027-telemetry-events.js';
+import { TelemetryDailyMetricsMigration } from '../../../infrastructure/database/sqlite/migration/migrations/028-telemetry-daily-metrics.js';
 import { TelemetryRepository, percentile95Sorted } from './telemetry-repository.js';
 
 async function openTelemetryDb(): Promise<Database.Database> {

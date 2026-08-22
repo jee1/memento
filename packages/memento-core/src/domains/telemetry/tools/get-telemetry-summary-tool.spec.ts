@@ -1,9 +1,12 @@
 /**
- * GetTelemetrySummaryTool 테스트 (specs/007-telemetry-cli-mcp)
+ * GetTelemetrySummaryTool 테스트 — immutable baseline spec:
+ * https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/007-telemetry-cli-mcp/spec.md
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GetTelemetrySummaryTool } from './get-telemetry-summary-tool.js';
+import { PerformanceMonitor } from '../../monitoring/services/performance-monitor.js';
+import { executePerformanceAlerts } from '../../monitoring/tools/performance-alerts.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { TelemetryService } from '../services/telemetry-service.js';
 import type {
@@ -236,5 +239,35 @@ describe('GetTelemetrySummaryTool', () => {
     const data = JSON.parse(result.content[0].text);
     expect(data.feedback_quality.recall_count).toBe(12);
     expect(data.feedback_quality.recall_without_feedback_rate).toBe(1);
+  });
+
+  it('8) monitor가 생성한 알림을 ToolContext 텔레메트리 요약에서 노출한다', async () => {
+    const performanceMonitor = new PerformanceMonitor({
+      memoryUsagePercent: 0,
+      cpuUsagePercent: 100,
+      databaseSizeMB: Number.MAX_SAFE_INTEGER,
+    });
+    await performanceMonitor.collectMetrics();
+    const [alert] = performanceMonitor.getActiveAlerts();
+    const context = makeContext();
+    context.services.performanceMonitor = performanceMonitor;
+
+    const result = await tool.handle({}, context);
+    const data = JSON.parse(result.content[0].text);
+
+    expect(data.performance_alerts.active).toBe(1);
+    expect(data.performance_alerts.recent[0].id).toBe(alert.id);
+
+    const listResult = await executePerformanceAlerts({ action: 'list' }, context);
+    expect(listResult).toMatchObject({
+      success: true,
+      activeAlerts: [{
+        id: alert.id,
+        level: alert.severity,
+        type: 'memory_usage',
+        metric: 'memory_usage_percent',
+        context: expect.objectContaining({ component: 'process', operation: 'rss-sample' }),
+      }],
+    });
   });
 });

@@ -1,6 +1,6 @@
 # Memento 문서 포털
 
-Memento 문서는 **제품을 쓰는 사람**과 **제품을 만드는 사람**이 같은 저장소 안에서 길을 잃지 않도록 설계되어 있습니다. `docs/` 아래에는 설치부터 API, 배포까지 이어지는 **공식 문서**가 있고, 진행 중인 설계·리뷰·검증 기록은 **`_work/`** 에 모여 있습니다. 카테고리가 헷갈릴 때는 [docs-classification.md](docs-classification.md)를 보면, 각 폴더가 어떤 질문에 답하는지 정리되어 있습니다.
+Memento 문서는 **제품을 쓰는 사람**과 **제품을 만드는 사람**이 같은 저장소 안에서 길을 잃지 않도록 설계되어 있습니다. `docs/` 아래에는 설치부터 API, 배포, 품질 검증까지 이어지는 **공식 문서**가 있습니다. 카테고리가 헷갈릴 때는 [docs-classification.md](docs-classification.md)를 보면, 각 폴더가 어떤 질문에 답하는지 정리되어 있습니다.
 
 ---
 
@@ -46,6 +46,10 @@ Memento를 다른 앱이나 에이전트에 붙일 때는, **무엇을 호출할
 | 앵커 연결 확인 | [how-to-check-anchor-connections.md](guides/ko/how-to-check-anchor-connections.md) | [how-to-check-anchor-connections.md](guides/en/how-to-check-anchor-connections.md) |
 | Recall 성능 튜닝 | [recall-performance-tuning.md](guides/ko/recall-performance-tuning.md) | [recall-performance-tuning.md](guides/en/recall-performance-tuning.md) |
 | 검색 품질 튜닝 | [search-quality-tuning.md](guides/ko/search-quality-tuning.md) | [search-quality-tuning.md](guides/en/search-quality-tuning.md) |
+| 공개 벤치마크 데이터셋 | [benchmark-datasets.md](guides/ko/benchmark-datasets.md) | — |
+| Consolidation 품질 검증 | [consolidation-quality-testing.md](guides/ko/consolidation-quality-testing.md) | — |
+| LongMemEval-S 검증 | [longmemeval-s-validation.md](guides/ko/longmemeval-s-validation.md) | — |
+| 검색 품질 벤치마크 제작 | [search-quality-benchmarking.md](guides/ko/search-quality-benchmarking.md) | — |
 | 마이그레이션 시스템 | [migration-system-guide.md](guides/ko/migration-system-guide.md) | [migration-system-guide.md](guides/en/migration-system-guide.md) |
 | MCP 서버 사용 지침 | [mcp-server-instructions.md](guides/ko/mcp-server-instructions.md) | [mcp-server-instructions.md](guides/en/mcp-server-instructions.md) |
 | SDD 워크플로 | [sdd-workflow.md](guides/ko/sdd-workflow.md) | — |
@@ -100,30 +104,12 @@ Memento가 **왜 이렇게 나뉘어 있는지**를 이해하려면 아키텍처
 
 ### 명세·태스크 (저장소 루트)
 
-기능 단위 설계와 작업 목록은 루트 [specs/](../specs/)와 [tasks/](../tasks/)에 있습니다. Spec Kit으로 진행하는 이슈는 `specs/0NN-<slug>/` 패턴을 따릅니다.
+기능 단위 설계와 작업 목록은 루트 [specs/](../specs/README.md)와 [tasks/](../tasks/)에 있습니다. Spec Kit으로 진행하는 이슈는 `specs/NNN-<slug>/` 패턴을 따르며, 번호와 상태는 `specs/README.md`에서 관리합니다.
 
 ### 블로그
 
 비정기 회고와 공지는 [blog/](blog/)에 올라갑니다.
 
-### 내부 작업 문서 (`docs/_work/`)
+출시가 끝난 일회성 계획·검증 로그·생성 결과는 현재 문서 트리에 누적하지 않습니다. 재사용 가능한 절차는 공식 가이드로 승격하고, 설계 결정은 ADR에 남기며, 기능 명세와 작업 상태는 루트 `specs/`에서 관리합니다. 정리 전 자료가 필요하면 `specs/README.md`에 기록된 불변 기준선을 사용합니다.
 
-`_work/`는 **아직 제품 문서로 굳지 않은** 산출물의 보관함입니다. 이슈별 계획, 코드 리뷰 초안, 검증 보고, 품질 시나리오가 시간순으로 쌓입니다. 최종 사용자가 꼭 읽을 필요는 없지만, 기여자와 에이전트가 맥락을 이어 붙일 때 자주 참조합니다.
-
-| 경로 | 설명 |
-|------|------|
-| [_work/plans/](_work/plans/) | 이슈별 design / spec / implementation-plan, 로드맵, 제안 |
-| [_work/design/](_work/design/) | 설계·리뷰 초안 |
-| [_work/brainstorms/](_work/brainstorms/) | 브레인스토밍 |
-| [_work/code_review/](_work/code_review/) | 사전 코드 리뷰·리뷰 요청 |
-| [_work/reviews/](_work/reviews/) | 단계별 검증·테스트 보고 |
-| [_work/testing/](_work/testing/) | consolidation·검색 품질 등 작업용 테스트 가이드 |
-| [_work/research/](_work/research/) | 리서치 노트 |
-| [_work/solutions/](_work/solutions/) | 이슈 해결 사례 |
-| [_work/issues/](_work/issues/) | 이슈 메모·기능 제안 |
-
-- Plans 영문 안내: [_work/plans/en/README.md](_work/plans/en/README.md)
-
----
-
-공식 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/` 아래 **언어별 `ko/`·`en/`** 폴더를 기본으로 합니다. `_work/`는 작업 문서라 경로마다 언어 배치가 다를 수 있습니다. 새 문서를 쓸 때는 [docs-classification.md](docs-classification.md)의 **네러티브 문체** 지침을 따르는 것을 권장합니다.
+공식 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/` 아래 **언어별 `ko/`·`en/`** 폴더를 기본으로 합니다. 새 문서를 쓸 때는 [docs-classification.md](docs-classification.md)의 **네러티브 문체** 지침을 따르는 것을 권장합니다.

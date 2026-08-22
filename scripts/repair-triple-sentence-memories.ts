@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 /**
  * #768: 옛 triple 템플릿이 남긴 손상된 semantic memory 문장을 다시 렌더한다.
  *
@@ -11,7 +12,6 @@
  *   DB_PATH=./data/memory.db npm run memory:repair-triple-sentences -- --apply
  */
 
-import Database from 'better-sqlite3';
 import {
   buildTripleSentence,
   closeDatabase,
@@ -58,7 +58,7 @@ const MISSING_COMPONENT_SQL = `
     AND (subject IS NULL OR predicate IS NULL OR object IS NULL)
 `;
 
-export function buildRepairPlan(db: Database.Database): RepairPlan {
+export function buildRepairPlan(db: CliDatabase): RepairPlan {
   const candidates = db.prepare(CANDIDATE_SQL).all() as CandidateRow[];
   const repairable: RepairPlanEntry[] = [];
   const unrenderable: string[] = [];
@@ -81,7 +81,7 @@ export function buildRepairPlan(db: Database.Database): RepairPlan {
   return { repairable, unrenderable, missingComponents };
 }
 
-async function applyRepair(db: Database.Database, plan: RepairPlan): Promise<void> {
+async function applyRepair(db: CliDatabase, plan: RepairPlan): Promise<void> {
   const update = db.prepare('UPDATE memory_item SET content = ? WHERE id = ?');
   const runAll = db.transaction((entries: RepairPlanEntry[]) => {
     for (const entry of entries) {
@@ -125,8 +125,8 @@ function printPlan(plan: RepairPlan, apply: boolean): void {
 }
 
 async function main(): Promise<void> {
-  const apply = process.argv.includes('--apply');
-  let db: Database.Database | null = null;
+  const apply = parseCliArgs().args.includes('--apply');
+  let db: CliDatabase | null = null;
 
   try {
     db = await initializeDatabase();
@@ -146,7 +146,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('repair-triple-sentence-memories.ts')) {
+if (isMain(import.meta.url)) {
   main().catch((error) => {
     console.error('복구 실패:', error);
     process.exit(1);

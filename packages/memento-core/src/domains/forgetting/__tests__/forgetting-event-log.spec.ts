@@ -5,7 +5,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
-import { MemoryForgettingEventMigration } from '../../../infrastructure/database/database/migration/migrations/037-memory-forgetting-event.js';
+import { MemoryForgettingEventMigration } from '../../../infrastructure/database/sqlite/migration/migrations/037-memory-forgetting-event.js';
+import { DAY_MS } from '../../../shared/utils/date.js';
 import {
   DEFAULT_FORGETTING_POLICY_NAME,
   ForgettingEventRepository,
@@ -66,8 +67,8 @@ describe('forgetting event log', () => {
       importance: 0.01,
     });
 
-    const oldSoft = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-    const oldHard = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const oldSoft = new Date(Date.now() - 10 * DAY_MS).toISOString();
+    const oldHard = new Date(Date.now() - 10 * DAY_MS).toISOString();
     DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ? WHERE id = ?', [oldSoft, softId]);
     DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ? WHERE id = ?', [oldHard, hardId]);
 

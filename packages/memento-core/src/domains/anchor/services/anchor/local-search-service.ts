@@ -7,7 +7,9 @@ import type Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
 import type { AnchorSlot,IAnchorCacheService,SearchOptions } from './anchor-interfaces.js';
 import type { AnchorInfoRow,QueryResult } from './database-types.js';
-import type { IFallbackStrategy,INHopSearchStrategy,IQueryFilterStrategy,NHopSearchResult } from './search-strategy-interfaces.js';
+import type { IFallbackSearchService } from './fallback-search-service.js';
+import type { INHopSearchService, NHopSearchResult } from './n-hop-search-service.js';
+import type { IQueryFilterService } from './query-filter-service.js';
 
 /**
  * 앵커 정보 및 임베딩
@@ -24,20 +26,20 @@ export interface AnchorWithEmbedding {
 export class LocalSearchService {
   private db: Database.Database | null = null;
   private cacheService: IAnchorCacheService;
-  private nHopSearchStrategy: INHopSearchStrategy;
-  private queryFilterStrategy: IQueryFilterStrategy;
-  private fallbackStrategy: IFallbackStrategy;
+  private nHopSearchService: INHopSearchService;
+  private queryFilterService: IQueryFilterService;
+  private fallbackSearchService: IFallbackSearchService;
 
   constructor(
     cacheService: IAnchorCacheService,
-    nHopSearchStrategy: INHopSearchStrategy,
-    queryFilterStrategy: IQueryFilterStrategy,
-    fallbackStrategy: IFallbackStrategy
+    nHopSearchService: INHopSearchService,
+    queryFilterService: IQueryFilterService,
+    fallbackSearchService: IFallbackSearchService
   ) {
     this.cacheService = cacheService;
-    this.nHopSearchStrategy = nHopSearchStrategy;
-    this.queryFilterStrategy = queryFilterStrategy;
-    this.fallbackStrategy = fallbackStrategy;
+    this.nHopSearchService = nHopSearchService;
+    this.queryFilterService = queryFilterService;
+    this.fallbackSearchService = fallbackSearchService;
   }
 
   /**
@@ -96,7 +98,7 @@ export class LocalSearchService {
     limit: number,
     useRelations: boolean = true
   ): Promise<NHopSearchResult[]> {
-    return this.nHopSearchStrategy.search(
+    return this.nHopSearchService.searchNHop(
       anchorEmbedding,
       provider,
       anchorMemoryId,
@@ -119,7 +121,7 @@ export class LocalSearchService {
       return results;
     }
 
-    return this.queryFilterStrategy.filter(query, results, provider);
+    return this.queryFilterService.filterByQuery(query, results, provider);
   }
 
   /**
@@ -170,7 +172,7 @@ export class LocalSearchService {
       });
 
       const limit = options?.limit ?? 10;
-      const fallbackResult = await this.fallbackStrategy.fallback(
+      const fallbackResult = await this.fallbackSearchService.fallbackToGlobalSearch(
         query,
         { ...options, limit: limit - localResults.length },
         startTime

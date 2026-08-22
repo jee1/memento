@@ -1,4 +1,5 @@
-import { isMemoryItemType, type MemoryType, type MemoryTypeRequest } from '../../../shared/types/index.js';
+import type { MemoryType, MemoryTypeRequest } from '../../../shared/types/memory.types.js';
+import { isMemoryItemType } from '../../../shared/utils/type-guards.js';
 
 /**
  * memory_injection / knowledge context 공통: core·vault 제거 후 memory_item 검색용 타입만 남긴다.

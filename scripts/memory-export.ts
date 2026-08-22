@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * Export memory_item rows (+ optional relations) to JSONL with manifest header.
  *
@@ -18,7 +19,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const args = parseCliArgs().args;
   const options: CliOptions = {
     output: `memory-export-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`,
     includeRelations: false,

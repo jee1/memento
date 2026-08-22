@@ -3,15 +3,15 @@ import { ForgettingPolicyService } from '../../../domains/forgetting/services/fo
 import { getPerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
 import type { RuntimeDiagnosticsLogger } from '../../../domains/monitoring/services/runtime-diagnostics-logger.js';
 import { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
-import type { IntrospectionScanCache } from '../../../domains/memory/services/introspection-scan-cache.js';
+import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { AnchorManager } from '../../../domains/anchor/services/anchor/anchor-manager.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler-types.js';
-import { validateBatchJobConfig } from '../batch-scheduler-validate-config.js';
-import { mergeBatchSchedulerJobConfig } from '../batch-scheduler-default-config.js';
-import { BatchJobExecutionCoordinator } from '../batch-job-execution-coordinator.js';
+import type { BatchJobConfig, BatchJobResult } from './batch-scheduler-types.js';
+import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
+import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
+import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
 import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { HealthChecker } from '../health-checker.js';
@@ -28,7 +28,7 @@ import {
   writeBatchSchedulerDiagnosticsEvent
 } from './batch-scheduler-diagnostics.js';
 import { logBatchSchedulerMessage } from './batch-scheduler-logging.js';
-import type { BatchJobExecutionCoordinator as Coordinator } from '../batch-job-execution-coordinator.js';
+import type { BatchJobExecutionCoordinator as Coordinator } from './batch-job-execution-coordinator.js';
 
 export interface BatchSchedulerDependencyOverrides {
   jobQueue?: JobQueue;

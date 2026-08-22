@@ -122,7 +122,6 @@ import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services
  * SQLite WAL 파일의 주기적 체크포인트를 관리
  */
 export class WalCheckpointScheduler {
-  private intervalId: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private dedicatedConnection: Database.Database | null = null;
   private checkpointInProgress: boolean = false; // 동시 실행 방지 플래그
@@ -152,9 +151,6 @@ export class WalCheckpointScheduler {
       this.dedicatedConnection.pragma('journal_mode = WAL');
     }
 
-    // 주기적 체크포인트 시작
-    this.scheduleCheckpoint();
-
     this.logger?.info('WAL 체크포인트 스케줄러 시작됨', {
       intervalMs: this.config.intervalMs,
       useDedicatedConnection: this.config.useDedicatedConnection
@@ -172,12 +168,6 @@ export class WalCheckpointScheduler {
   async stop(): Promise<void> {
     if (!this.isRunning) {
       return;
-    }
-
-    // 타이머 정리
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
     }
 
     // 전용 커넥션 종료
@@ -349,26 +339,6 @@ export class WalCheckpointScheduler {
       // 체크포인트 완료 후 플래그 해제
       this.checkpointInProgress = false;
     }
-  }
-
-  /**
-   * 주기적 체크포인트 스케줄링
-   * 동시 실행 방지: checkpointInProgress 플래그로 중첩 실행 방지
-   */
-  private scheduleCheckpoint(): void {
-    this.intervalId = setInterval(async () => {
-      // 이미 체크포인트가 진행 중이면 스킵
-      if (this.checkpointInProgress) {
-        this.logger?.warn('체크포인트가 이미 진행 중입니다. 이번 주기는 스킵합니다.');
-        return;
-      }
-      
-      try {
-        await this.checkpoint(CheckpointMode.PASSIVE);
-      } catch (error) {
-        this.logger?.error('주기적 체크포인트 실패', { error });
-      }
-    }, this.config.intervalMs);
   }
 
   /**

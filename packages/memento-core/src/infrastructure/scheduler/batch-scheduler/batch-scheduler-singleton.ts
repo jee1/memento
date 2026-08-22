@@ -7,4 +7,4 @@ export {
   getBatchScheduler,
   createBatchScheduler,
   resetBatchScheduler,
-} from '../batch-scheduler.js';
+} from './batch-scheduler.js';

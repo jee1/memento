@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
-import type { MemoryType } from '../../../shared/types/index.js';
+import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { vectorCompatibilityService } from './vector-compatibility-service.js';
 
 export interface EmbeddingReindexOptions {

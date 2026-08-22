@@ -15,7 +15,7 @@
 
 **Acceptance Scenarios**:
 
-1. **Given** 분리 후 `packages/memento-core/src/domains/memory/services/semantic-memory/`, **When** `wc -l`로 줄 수 확인, **Then** 어떤 단일 파일도 500줄을 초과하지 않는다.
+1. **Given** 분리 후 `packages/memento-core/src/domains/memory/semantic/`, **When** `wc -l`로 줄 수 확인, **Then** 어떤 단일 파일도 500줄을 초과하지 않는다.
 2. **Given** 기존 public API (`SemanticMemoryUpdateService`, import 경로 `semantic-memory-update-service.js`), **When** import 경로 유지, **Then** 외부 호출부 변경 없이 빌드·테스트 통과.
 
 ### User Story 2 — semantic memory 동작 회귀 없음 (Priority: P1)

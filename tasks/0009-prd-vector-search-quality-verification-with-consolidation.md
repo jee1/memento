@@ -315,7 +315,7 @@ src/test/
 - `src/test/test-vector-search-quality-with-consolidation.ts`: 새로 생성 (메인 테스트 파일)
 - `src/test/helpers/vector-search-quality-metrics.ts`: 새로 생성 (순서 보존 지표 계산 헬퍼)
 - `src/algorithms/hybrid-search-engine.ts`: 벡터 유사도만 사용한 검색 옵션 추가 (필요시)
-- `docs/_work/testing/ko/consolidation-quality-testing.md`: 문서 업데이트
+- `docs/guides/ko/consolidation-quality-testing.md`: 문서 업데이트
 
 ### 테스트 시나리오
 1. 벡터 유사도만 사용한 검색 결과 생성
@@ -355,4 +355,4 @@ src/test/
 - `src/test/consolidation-search-quality-benchmark.ts`: 벤치마크 테스트 구조 참고
 - `src/test/helpers/search-quality-metrics.ts`: 품질 지표 계산 로직 재사용
 - `src/algorithms/search-ranking.ts`: Consolidation 점수 계산 로직 참고
-- `docs/_work/testing/ko/consolidation-quality-testing.md`: 품질 검증 가이드 참고
+- `docs/guides/ko/consolidation-quality-testing.md`: 품질 검증 가이드 참고

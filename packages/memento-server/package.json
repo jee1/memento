@@ -14,10 +14,8 @@
     "build": "tsc",
     "dev": "tsx watch src/server/index.ts",
     "dev:http": "tsx watch src/server/http-server.ts",
-    "dev:http-v2": "echo 'HTTP v2 not in server package yet'",
     "start": "node dist/server/index.js",
     "start:http": "node dist/server/http-server.js",
-    "start:http-v2": "echo 'HTTP v2 not in server package yet'",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

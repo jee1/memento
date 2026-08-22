@@ -57,7 +57,7 @@ Memento 저장소는 `ai-slop-detector` 정적 스캔으로 AI 생성 코드의 
 
 2026-05-30 `slop-detector --project packages --js --config .slopconfig.yaml` 실행 결과, 896개 JS/TS 파일 중 Critical 59건이 보고되었다 [ref:A-2]. 그러나 이 중 대부분은 Vitest `describe`/`it` 블록, `src/test/**` 벤치마크, `mcp-client/examples/**` 예제로 인한 노이즈다. 저장소는 정책 A에 따라 커밋된 ignore로 테스트 파일을 숨기지 않으므로, 백로그는 **프로덕션 소스 Critical**만 우선한다 [ref:A-3].
 
-프로덕션 경로에서는 `packages/memento-core/src/domains/memory/tools/recall-tool.ts` 단 1건이 Critical(Score 50.0)로 남아 있다. slop-detector는 `constructor`(205줄), `recallCoreMemoryDirect`, `finalizeMemoryItemRecallEnvelope`(202줄, complexity 40), `runMemoryItemPostSearchPipeline`(complexity 34) 등을 God function으로 분류한다 [ref:A-4]. 이 파일은 MCP `recall` 도구의 진입점이며, 검색·필터·앵커·이웃·메타 통계까지 end-to-end 오케스트레이션을 담당한다.
+프로덕션 경로에서는 `packages/memento-core/src/domains/memory/recall/recall-tool.ts` 단 1건이 Critical(Score 50.0)로 남아 있다. slop-detector는 `constructor`(205줄), `recallCoreMemoryDirect`, `finalizeMemoryItemRecallEnvelope`(202줄, complexity 40), `runMemoryItemPostSearchPipeline`(complexity 34) 등을 God function으로 분류한다 [ref:A-4]. 이 파일은 MCP `recall` 도구의 진입점이며, 검색·필터·앵커·이웃·메타 통계까지 end-to-end 오케스트레이션을 담당한다.
 
 dashboard `static/js` 8파일 스캔에서는 Critical 2건이 확인되었다. `review-candidates-panel.js`(1014줄 IIFE, complexity 251)와 `memory-evolution-demo-shell.js`(893줄 IIFE, complexity 196)가 해당한다 [ref:A-5]. 두 스크립트는 `static/dashboard.html`에서 `<script>` 태그로 직접 로드되며, bundler 없이 전역 `initReviewCandidatesPanel` / `__MEMENTO_EVOLUTION_DEMO_SHELL__` API를 노출한다 [ref:A-6].
 
@@ -110,7 +110,7 @@ Issue #445는 recall, review panel, evolution shell을 각각 독립 PR로 제�
 |------|------|
 | 결정 | PR-A(`recall-tool.ts`), PR-B(`review-candidates-panel.js`), PR-C(`memory-evolution-demo-shell.js`) 순으로 착수한다 |
 | 상태 | 확정 |
-| 코드 | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:70`, `static/js/review-candidates-panel.js:4` |
+| 코드 | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:70`, `static/js/review-candidates-panel.js:4` |
 
 **근거 설명:** slop 리팩터는 기능 추가가 아니라 구조 정리이므로, blast radius를 파일 단위로 제한하는 것이 회귀 탐지에 유리하다. recall-tool은 103개 integration spec이 있어 단독 PR로도 충분한 CI 신호를 제공한다. dashboard JS는 string spec만 있으므로 파일별 PR이 실패 지점을 좁힌다.
 
@@ -124,7 +124,7 @@ Issue #445는 recall, review panel, evolution shell을 각각 독립 PR로 제�
 |------|------|
 | 결정 | direct lookup / search execution / post-search / envelope / procedural enrich / auto-anchor / neighbors / side-effects를 `recall-tool-*.ts`로 추출 |
 | 상태 | 확정 |
-| 코드 | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:1025-1080` — 명시적 3단 pipeline |
+| 코드 | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:1025-1080` — 명시적 3단 pipeline |
 
 **근거 설명:** `handle` 내부는 이미 `executeHybridOrTextSearchForMemoryItem` → `runMemoryItemPostSearchPipeline` → `finalizeMemoryItemRecallEnvelope` 순서로 호출된다. 이 seam을 파일 경계로 승격하면 slop God function LOC가 분산되고, #328 memory-embedding-service·#330 triple-extraction 패턴과 일치한다. MCP JSON schema는 `recall-tool-schema.ts` 또는 `recall-tool-definition.ts`로 이동해 constructor를 얇게 만든다.
 
@@ -324,7 +324,7 @@ AC는 Issue #445 완료 기준과 PRD 제안 PR 단위를 verifiable pass/fail�
 
 | AC ID | PRD | 인수조건 | 우선순위 | 완료 판정 |
 |-------|-----|----------|----------|-----------|
-| AC-1 | [source:prd#프로덕션-critical-1건] | Given `recall-tool.ts` 리팩터 후 When `slop-detector --project packages/memento-core/src/domains/memory/tools/recall-tool.ts --js` Then `[CRITICAL_DEFICIT]` for that path is absent | Must | T-6 slop scan + T-1/T-2 CI green |
+| AC-1 | [source:prd#프로덕션-critical-1건] | Given `recall-tool.ts` 리팩터 후 When `slop-detector --project packages/memento-core/src/domains/memory/recall/recall-tool.ts --js` Then `[CRITICAL_DEFICIT]` for that path is absent | Must | T-6 slop scan + T-1/T-2 CI green |
 | AC-2 | [source:prd#staticjs-요약-8-파일] | Given PR-B/C merged When `slop-detector --project static/js --js` Then `review-candidates-panel.js` and `memory-evolution-demo-shell.js` are not `[CRITICAL_DEFICIT]` | Must | T-6 slop scan + T-3/T-4 CI green |
 | AC-3 | [source:prd#완료-기준-품질] | Given any PR in scope When `npm test`, `npm run lint`, `npm run type-check` Then all exit 0 | Must | T-1/T-3 CI green |
 | AC-4 | [source:prd#완료-기준-재스캔] | Given PR opened When reviewer reads PR body Then Before/After slop command output summary for touched files is present | Should | T-6 + manual PR check |
@@ -377,12 +377,12 @@ Phase 1(PR-A): `recall-tool.ts` pipeline extraction — highest production risk,
 | A-1 | slop workflow는 advisory이며 merge 필수 아님 | [source:prd#관련] | `.github/workflows/slop-detector-js.yml:32-43` | |
 | A-2 | packages 896 JS/TS, Critical 59 | [source:prd#packages-요약] | Issue #445 body | https://pypi.org/project/ai-slop-detector/ |
 | A-3 | spec 대량 ignore 정책 A | [source:prd#packages-요약] | Issue #313 | |
-| A-4 | recall-tool.ts Critical God functions | [source:prd#프로덕션-critical-1건] | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:70-801` | |
+| A-4 | recall-tool.ts Critical God functions | [source:prd#프로덕션-critical-1건] | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:70-801` | |
 | A-5 | dashboard JS Critical 2건 | [source:prd#staticjs-요약-8-파일] | `static/js/review-candidates-panel.js`, `static/js/memory-evolution-demo-shell.js` | |
 | A-6 | dashboard script direct load | [source:prd#staticjs-요약-8-파일] | `static/dashboard.html:383-387` | |
 | A-7 | RecallTool registry | [source:prd#프로덕션-critical-1건] | `packages/memento-core/src/tools/index.ts:29` | |
-| A-8 | handle orchestration | [source:prd#프로덕션-critical-1건] | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:803-1108` | |
-| A-9 | existing recall-tool-* modules | [source:prd#제안-pr-단위] | `packages/memento-core/src/domains/memory/tools/recall-tool-schema.ts` | |
+| A-8 | handle orchestration | [source:prd#프로덕션-critical-1건] | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:803-1108` | |
+| A-9 | existing recall-tool-* modules | [source:prd#제안-pr-단위] | `packages/memento-core/src/domains/memory/recall/recall-tool-schema.ts` | |
 | A-10 | test:ci:core gate | [source:prd#완료-기준-품질] | `package.json` (`test:ci:core`) | https://vitest.dev/guide/ |
 | A-11 | spec gaps version_filter/introspection | (code analysis) | `packages/memento-core/src/domains/memory/tools/__tests__/recall-tool.spec.ts` | |
 | A-12 | review tab hook | [source:prd#staticjs-요약-8-파일] | `static/js/dashboard-tabs.js:81-82` | |
@@ -390,8 +390,8 @@ Phase 1(PR-A): `recall-tool.ts` pipeline extraction — highest production risk,
 | A-14 | memento-server serves static | (code) | `packages/memento-server` static mount | |
 | A-15 | evolution demo tab hook | [source:prd#staticjs-요약-8-파일] | `static/js/dashboard-tabs.js:63-67` | |
 | A-16 | test:ci:server gate | [source:prd#완료-기준-품질] | `package.json` (`test:ci:server`) | |
-| A-17 | handle outer catch / handleFailure | (code) | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:1083-1106` | |
-| A-18 | search inner catch telemetry | (code) | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:462-476` | |
+| A-17 | handle outer catch / handleFailure | (code) | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:1083-1106` | |
+| A-18 | search inner catch telemetry | (code) | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:462-476` | |
 
 ## 부록 B. Ch.4 결정 전문
 
@@ -403,7 +403,7 @@ Issue #445는 recall, review panel, evolution shell을 각각 독립 PR로 제�
 |------|------|
 | 결정 | PR-A(`recall-tool.ts`), PR-B(`review-candidates-panel.js`), PR-C(`memory-evolution-demo-shell.js`) 순으로 착수한다 |
 | 상태 | 확정 |
-| 코드 | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:70`, `static/js/review-candidates-panel.js:4` |
+| 코드 | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:70`, `static/js/review-candidates-panel.js:4` |
 
 **근거 설명:** slop 리팩터는 기능 추가가 아니라 구조 정리이므로, blast radius를 파일 단위로 제한하는 것이 회귀 탐지에 유리하다. recall-tool은 103개 integration spec이 있어 단독 PR로도 충분한 CI 신호를 제공한다. dashboard JS는 string spec만 있으므로 파일별 PR이 실패 지점을 좁힌다.
 
@@ -415,7 +415,7 @@ Issue #445는 recall, review panel, evolution shell을 각각 독립 PR로 제�
 |------|------|
 | 결정 | direct lookup / search execution / post-search / envelope / procedural enrich / auto-anchor / neighbors / side-effects를 `recall-tool-*.ts`로 추출 |
 | 상태 | 확정 |
-| 코드 | `packages/memento-core/src/domains/memory/tools/recall-tool.ts:1025-1080` — 명시적 3단 pipeline |
+| 코드 | `packages/memento-core/src/domains/memory/recall/recall-tool.ts:1025-1080` — 명시적 3단 pipeline |
 
 **근거 설명:** `handle` 내부는 이미 `executeHybridOrTextSearchForMemoryItem` → `runMemoryItemPostSearchPipeline` → `finalizeMemoryItemRecallEnvelope` 순서로 호출된다. 이 seam을 파일 경계로 승격하면 slop God function LOC가 분산되고, #328 memory-embedding-service·#330 triple-extraction 패턴과 일치한다. MCP JSON schema는 `recall-tool-schema.ts` 또는 `recall-tool-definition.ts`로 이동해 constructor를 얇게 만든다.
 

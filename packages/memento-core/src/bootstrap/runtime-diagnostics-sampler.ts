@@ -1,6 +1,6 @@
 import type { RuntimeDiagnosticsLogger } from '../domains/monitoring/services/runtime-diagnostics-logger.js';
 import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.interface.js';
-import type { MementoConfig } from '../shared/types/index.js';
+import type { MementoConfig } from '../shared/types/memory.types.js';
 import { logger } from '../shared/utils/logger.js';
 
 export function createRuntimeDiagnosticsSampler({

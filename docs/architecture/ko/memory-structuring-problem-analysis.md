@@ -98,7 +98,7 @@ Sleep Consolidation은 기존에 같은 주제의 semantic이 있는지 확인�
 
 **관련 코드:**
 - [`forgetting-policy-service.ts:276`](../../../packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts) — `softDeleteMemory` 구현
-- [`schema.sql:5`](../../../packages/memento-core/src/infrastructure/database/database/schema.sql) — `memory_item` 스키마
+- [`schema.sql:5`](../../../packages/memento-core/src/infrastructure/database/sqlite/schema.sql) — `memory_item` 스키마
 
 ```typescript
 // forgetting-policy-service.ts — "소프트 삭제" 실제 구현
@@ -149,8 +149,8 @@ CREATE TABLE IF NOT EXISTS memory_item (
 ### 문제 6: `schema.sql`과 migration 008 사이의 컬럼 누락
 
 **관련 코드:**
-- [`schema.sql:46`](../../../packages/memento-core/src/infrastructure/database/database/schema.sql) — `memory_item` DDL
-- [`008-arigraph-schema-expansion.sql`](../../../packages/memento-core/src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.sql) — migration 008 SQL
+- [`schema.sql:46`](../../../packages/memento-core/src/infrastructure/database/sqlite/schema.sql) — `memory_item` DDL
+- [`008-arigraph-schema-expansion.sql`](../../../packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/008-arigraph-schema-expansion.sql) — migration 008 SQL
 
 `schema.sql`의 `memory_item` 테이블에 아래 3개 컬럼이 누락되어 있다:
 
@@ -787,4 +787,4 @@ GROUP BY triple_extracted, triple_extracted_status;
 | `packages/memento-core/src/domains/consolidation/repositories/consolidation-repository.ts` | consolidation DB 쿼리 |
 | `packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts` | TTL 기반 망각 정책 |
 | `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts` | 배치 스케줄러 |
-| `packages/memento-core/src/domains/memory/tools/remember-tool.ts` | 기억 저장 (fire-and-forget 트리거) |
+| `packages/memento-core/src/domains/memory/remember/remember-tool.ts` | 기억 저장 (fire-and-forget 트리거) |

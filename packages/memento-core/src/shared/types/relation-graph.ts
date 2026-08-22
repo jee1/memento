@@ -4,7 +4,7 @@
  */
 
 import type { RelationType, RelationCategory } from './relation.js';
-import type { MemoryType } from './index.js';
+import type { MemoryType } from './memory.types.js';
 
 /**
  * 메모리 관계 (데이터베이스 저장용)

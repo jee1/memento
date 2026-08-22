@@ -13,28 +13,36 @@ npm run db:migrate   # 보류 중인 마이그레이션 실행
 
 ## 개발 서버 실행
 
-개발 중에는 watch 모드로 서버를 띄워 두면 코드 수정이 바로 반영됩니다. `npm run dev`는 MCP stdio 서버를, `npm run dev:http`는 HTTP 관리 서버를 watch 모드로 실행합니다. v2 HTTP 서버가 필요하면 `npm run dev:http-v2`를 씁니다. 컴파일된 바이너리를 직접 실행할 때는 `npm run start`(MCP)와 `npm run start:http`(HTTP) 중 하나를 선택합니다.
+개발 중에는 watch 모드로 서버를 띄워 두면 코드 수정이 바로 반영됩니다. `npm run dev`는 MCP stdio 서버를, `npm run dev:http`는 HTTP 관리 서버를 watch 모드로 실행합니다. 컴파일된 바이너리를 직접 실행할 때는 `npm run start`(MCP)와 `npm run start:http`(HTTP) 중 하나를 선택합니다.
 
 ```bash
 npm run dev          # MCP 서버 (Watch)
 npm run dev:http     # HTTP 관리 서버 (Watch)
-npm run dev:http-v2  # HTTP v2 관리 서버 (Watch)
 npm run start        # 컴파일된 MCP 서버
 npm run start:http   # 컴파일된 HTTP 서버
 ```
 
 ## 테스트 및 품질 검증
 
-코드를 커밋하기 전에는 `lint`, `type-check`, `test` 세 가지가 모두 통과해야 합니다. 검색 관련 변경이 있다면 `npm run test:search`로 검색 시나리오를 별도로 돌려 봅니다.
+코드를 커밋하기 전에는 `lint`, `type-check`, `test` 세 가지가 모두 통과해야 합니다. 검색 관련 변경이 있다면 `npm run test:ci:core`로 core 검색 테스트를 별도로 돌려 봅니다.
 
 ```bash
 npm test             # 전체 테스트
 npm run lint         # 린트
 npm run type-check   # 타입 체크
-npm run test:search  # 검색 시나리오 테스트
+npm run test:ci:core # core 검색·메모리 테스트
 ```
 
 커밋 전 `lint`, `type-check`, `test` 통과는 필수입니다.
+
+## 배포 tarball 점검
+
+루트 패키지 tarball은 워크스페이스 링크를 임시 번들로 바꿨다가 반드시 복구해야 합니다. `pack:tarball`은 성공·실패 모두 복구를 보장하며, 중단된 수동 작업 뒤에는 `restore-workspace`로 즉시 원복합니다.
+
+```bash
+npm run pack:tarball -- --dry-run
+npm run restore-workspace
+```
 
 ## Git worktree — 이슈 격리 작업
 

@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { SleepConsolidationService } from './sleep-consolidation-service.js';
 import { ConsolidationOutboxWorker } from './consolidation-outbox-worker.js';
 import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-schema.js';
-import { EventOutboxMigration } from '../../../infrastructure/database/database/migration/migrations/039-event-outbox.js';
+import { EventOutboxMigration } from '../../../infrastructure/database/sqlite/migration/migrations/039-event-outbox.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 

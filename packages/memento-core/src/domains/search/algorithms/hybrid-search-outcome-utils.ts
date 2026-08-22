@@ -3,7 +3,7 @@
  */
 
 import type { VectorSearchResult, SearchBySimilarityOutcome } from '../../memory/services/memory-embedding-service.js';
-import type { EmbeddingProvider } from '../../../shared/types/index.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 
 /** 테스트 목업(배열 반환)과 MemoryEmbeddingService(객체 반환) 모두 수용 */
 export function normalizeSearchBySimilarityOutcome(

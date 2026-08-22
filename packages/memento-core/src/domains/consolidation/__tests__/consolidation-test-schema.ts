@@ -1,7 +1,7 @@
 /**
  * Sleep consolidation 단위 테스트용 최소 스키마 (:memory:)
  *
- * `memory_embedding` 제약은 프로덕션 `infrastructure/database/database/schema.sql`의
+ * `memory_embedding` 제약은 프로덕션 `infrastructure/database/sqlite/schema.sql`의
  * 해당 테이블과 동일하게 유지한다: UNIQUE(memory_id, embedding_provider, projection_type).
  */
 

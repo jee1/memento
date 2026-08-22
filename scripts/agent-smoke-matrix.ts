@@ -1,3 +1,4 @@
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 import { spawn } from 'node:child_process';
 import {
   mkdtemp,
@@ -750,7 +751,7 @@ function parseOptions(argv: readonly string[]): CliOptions {
 
 async function main(): Promise<number> {
   try {
-    const options = parseOptions(process.argv.slice(2));
+    const options = parseOptions(parseCliArgs().args);
     const report = await runAgentSmokeMatrix();
     const liveSatisfied = !options.requireLive
       || (
@@ -771,6 +772,6 @@ async function main(): Promise<number> {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+if (isMain(import.meta.url)) {
   process.exitCode = await main();
 }

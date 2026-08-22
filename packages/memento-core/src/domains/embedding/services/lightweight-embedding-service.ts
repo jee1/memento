@@ -8,6 +8,7 @@ import { getStopWords } from '../../../shared/utils/stopwords.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
+import { estimateEmbeddingTokens, rankSimilarEmbeddings } from './embedding-helpers.js';
 
 export interface LightweightEmbeddingResult {
   embedding: number[];
@@ -68,8 +69,8 @@ export class LightweightEmbeddingService {
         model: this.model,
         provider: 'tfidf' as EmbeddingProvider,
         usage: {
-          prompt_tokens: this.estimateTokens(text),
-          total_tokens: this.estimateTokens(text),
+          prompt_tokens: estimateEmbeddingTokens(text),
+          total_tokens: estimateEmbeddingTokens(text),
         },
       };
     } catch (error) {
@@ -94,22 +95,9 @@ export class LightweightEmbeddingService {
       return [];
     }
 
-    // 코사인 유사도 계산
-    const similarities = embeddings.map(item => {
-      const similarity = this.cosineSimilarity(queryEmbedding.embedding, item.embedding);
-      return {
-        id: item.id,
-        content: item.content,
-        similarity,
-        score: similarity
-      };
+    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold, {
+      nanAsZero: true,
     });
-
-    // 유사도 순으로 정렬하고 임계값 필터링
-    return similarities
-      .filter(item => item.similarity >= threshold)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
   }
 
   /**
@@ -266,44 +254,6 @@ export class LightweightEmbeddingService {
       hash = hash & hash; // 32비트 정수로 변환
     }
     return Math.abs(hash) % this.dimensions;
-  }
-
-  /**
-   * 코사인 유사도 계산
-   */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) {
-      throw new Error('벡터 차원이 일치하지 않습니다');
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      const aVal = a[i] || 0;
-      const bVal = b[i] || 0;
-      dotProduct += aVal * bVal;
-      normA += aVal * aVal;
-      normB += bVal * bVal;
-    }
-
-    normA = Math.sqrt(normA);
-    normB = Math.sqrt(normB);
-
-    if (normA === 0 || normB === 0) {
-      return 0;
-    }
-
-    return dotProduct / (normA * normB);
-  }
-
-  /**
-   * 토큰 수 추정
-   */
-  private estimateTokens(text: string): number {
-    // 간단한 추정: 1 토큰 ≈ 4 문자
-    return Math.ceil(text.length / 4);
   }
 
   /**

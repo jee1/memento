@@ -1,5 +1,6 @@
-import type { BatchJobResult } from '../batch-scheduler-types.js';
-import { createEmptyBatchJobResult, finalizeBatchJobTiming } from '../batch-scheduler-internal-helpers.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
+import { DAY_MS } from '../../../shared/utils/date.js';
+import { createEmptyBatchJobResult, finalizeBatchJobTiming } from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 const SLOTS = ['A', 'B', 'C'] as const;
@@ -86,7 +87,7 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
         const existing = existingAnchors.find(a => a.slot === slot);
         if (existing) {
           const updatedAt = new Date(existing.updated_at).getTime();
-          const daysSince = (now - updatedAt) / (1000 * 60 * 60 * 24);
+          const daysSince = (now - updatedAt) / DAY_MS;
           if (daysSince < stalenessThresholdDays) {
             continue;
           }

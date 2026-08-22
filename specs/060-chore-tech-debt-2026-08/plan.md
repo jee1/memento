@@ -76,7 +76,7 @@ npm run type-check && npm run lint
 **Touch:**
 - `packages/memento-core/src/tools/index.ts` (`executeTool` normalize)
 - `packages/memento-server/src/server/routes/tools.routes.ts` (필요 시 진입 정렬; 중복 flatten 금지)
-- `packages/memento-core/src/domains/memory/tools/recall-tool.ts` (검증·회귀만; 가능하면 해석은 경계층)
+- `packages/memento-core/src/domains/memory/recall/recall-tool.ts` (검증·회귀만; 가능하면 해석은 경계층)
 - `packages/memento-assistant/test/e2e/channel-isolation.e2e.spec.ts` (`it.skip` 제거)
 - `packages/memento-assistant/package.json` (`test:ci`에 `test/` 포함)
 - filters flatten 단위/통합 테스트
@@ -117,7 +117,7 @@ npm run type-check && npm run lint
 **Decision (locked):** create/copy/drop/rename만 기존 better-sqlite3 `db.transaction(...)`로 감싼다. 신규 migration 프레임워크 없음.
 
 **Touch:**
-- `packages/memento-core/src/infrastructure/database/database/migrate.ts`
+- `packages/memento-core/src/infrastructure/database/sqlite/migrate.ts`
 - failure-injection · 성공 · 멱등 테스트 (migrate 인접 `__tests__`)
 
 **Verify:**
@@ -171,7 +171,7 @@ npm run type-check && npm run lint
 
 **Touch:**
 - `packages/memento-core/src/domains/memory/services/memory-embedding-service.ts`
-- `packages/memento-core/src/infrastructure/database/database/migrate.ts` 및/또는 schema init/bootstrap
+- `packages/memento-core/src/infrastructure/database/sqlite/migrate.ts` 및/또는 schema init/bootstrap
 - query-count · legacy fixture 테스트
 
 **Verify:**
@@ -249,9 +249,9 @@ scripts/verify-npm-pack-bundle.js
 scripts/*                          # #750 registered ops only
 scripts/__tests__/
 packages/memento-core/src/tools/index.ts
-packages/memento-core/src/domains/memory/tools/recall-tool.ts
+packages/memento-core/src/domains/memory/recall/recall-tool.ts
 packages/memento-core/src/domains/memory/services/memory-embedding-service.ts
-packages/memento-core/src/infrastructure/database/database/migrate.ts
+packages/memento-core/src/infrastructure/database/sqlite/migrate.ts
 packages/memento-core/src/test/architecture/dependency-boundaries.spec.ts
 packages/memento-core/src/shared/utils/database.ts   # #749 cycle
 packages/memento-core/.../batch-scheduler*           # #749 cycle

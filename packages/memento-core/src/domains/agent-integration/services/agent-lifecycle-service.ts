@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { DAY_MS } from '../../../shared/utils/date.js';
 import type { AgentIntegrationRepository } from '../repositories/agent-integration-repository.js';
 import type {
   AgentDashboardAggregate,
@@ -50,7 +51,7 @@ export class AgentLifecycleService {
     this.retentionDays = boundedNumber(options.retentionDays, 30, 1, 90);
     this.abandonedTtlMs = boundedNumber(
       options.abandonedTtlMs,
-      24 * 60 * 60 * 1000,
+      DAY_MS,
       1,
       Number.MAX_SAFE_INTEGER,
     );

@@ -23,7 +23,7 @@
 - 참고: `src/domains/search/algorithms/vector-search-engine-migration.ts` - 마이그레이션 가이드 (작업 범위 외, 참고용)
 
 ### 데이터베이스 연결 관련
-- `src/infrastructure/database/database/init.ts` - 공통 DB 연결 모듈 (initializeDatabase 함수)
+- `src/infrastructure/database/sqlite/init.ts` - 공통 DB 연결 모듈 (initializeDatabase 함수)
 - `scripts/check-db-integrity.js` - DB 무결성 검사 스크립트 (리팩토링 대상 예상)
 - `scripts/fix-migration.js` - 마이그레이션 수정 스크립트 (리팩토링 대상 예상)
 - `scripts/migrate-embedding-data.js` - 임베딩 데이터 마이그레이션 스크립트 (리팩토링 대상 예상)
@@ -123,7 +123,7 @@
   - [x] 3.1.3 Given: 리팩토링 대상 목록 완료, When: 이미 공통 모듈을 사용하는 스크립트 제외, Then: 최종 리팩토링 대상 스크립트 목록 확정 (11개: 높은 우선순위 6개, 중간 우선순위 5개)
 
 - [x] 3.2 공통 DB 연결 모듈 인터페이스 확인 및 문서화
-  - [x] 3.2.1 Given: src/infrastructure/database/database/init.ts 존재, When: initializeDatabase 함수 인터페이스 분석, Then: 인터페이스 문서 작성 완료 (tasks/database-init-interface-documentation.md)
+  - [x] 3.2.1 Given: src/infrastructure/database/sqlite/init.ts 존재, When: initializeDatabase 함수 인터페이스 분석, Then: 인터페이스 문서 작성 완료 (tasks/database-init-interface-documentation.md)
   - [x] 3.2.2 Given: 인터페이스 문서 작성 완료, When: 공통 모듈 사용 예제 코드 작성, Then: 예제 코드 검증 완료 (문서에 포함)
 
 - [x] 3.3 check-db-integrity.js 리팩토링

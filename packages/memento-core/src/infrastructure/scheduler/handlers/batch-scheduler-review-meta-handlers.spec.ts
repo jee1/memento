@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { MetaMemoryStatsSchemaMigration } from '../../database/database/migration/migrations/011-meta-memory-stats-schema.js';
-import { MemoryReviewCandidateSchemaMigration } from '../../database/database/migration/migrations/033-memory-review-candidate-schema.js';
+import { MetaMemoryStatsSchemaMigration } from '../../database/sqlite/migration/migrations/011-meta-memory-stats-schema.js';
+import { MemoryReviewCandidateSchemaMigration } from '../../database/sqlite/migration/migrations/033-memory-review-candidate-schema.js';
 import {
   listMemoryReviewCandidates,
   upsertPendingMemoryReviewCandidates,
-} from '../../../domains/memory/services/memory-review-candidate-persistence-service.js';
+} from '../../../domains/memory/review/memory-review-candidate-persistence-service.js';
 import { runMemoryReviewCandidatesJob } from './batch-scheduler-review-meta-handlers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 

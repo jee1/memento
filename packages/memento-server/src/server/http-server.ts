@@ -233,33 +233,41 @@ app.get('/graph', (req, res) => {
   });
 });
 
-async function initializeCoreServices(): Promise<void> {
-  if (!db || !serverServices) {
-    const core = await createMementoCore({
-      dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
-    });
-    db = core.db;
-    serverServices = core.services;
+async function initializeCoreServices(): Promise<{
+  database: Database.Database;
+  services: ServerServices;
+}> {
+  if (db && serverServices) {
+    return { database: db, services: serverServices };
   }
+  const core = await createMementoCore({
+    dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
+  });
+  db = core.db;
+  serverServices = core.services;
+  return { database: core.db, services: core.services };
 }
 
-function setupMiddleware(): void {
-  getVectorSearchEngine().initialize(db!);
-  app.use(createServiceInjector(serverServices!, db!));
+function setupMiddleware(database: Database.Database, services: ServerServices): void {
+  getVectorSearchEngine().initialize(database);
+  app.use(createServiceInjector(services, database));
   adminSessionStore = createSessionStore({
     idleTtlMs: DASHBOARD_SESSION_IDLE_TTL_MS,
     absoluteTtlMs: DASHBOARD_SESSION_ABSOLUTE_TTL_MS
   });
 }
 
-function createContextInjectionService(): AgentContextInjectionService {
+function createContextInjectionService(
+  database: Database.Database,
+  services: ServerServices,
+): AgentContextInjectionService {
   const injectionTimeoutMs = Number(process.env.MEMENTO_AGENT_INJECTION_TIMEOUT_MS);
   return new AgentContextInjectionService({
     recallService: new AgentContextRecallService({
       sources: [
         new SqliteHybridAgentContextSource({
-          db: db!,
-          hybridSearchEngine: serverServices!.hybridSearchEngine,
+          db: database,
+          hybridSearchEngine: services.hybridSearchEngine,
         }),
       ],
     }),
@@ -267,37 +275,38 @@ function createContextInjectionService(): AgentContextInjectionService {
   });
 }
 
-function createAllRouters(): void {
+function createAllRouters(database: Database.Database, services: ServerServices): void {
   const retentionDays = Number(process.env.MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS);
   const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
   const initialInjectionTokenBudget = Number(process.env.MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET);
 
-  toolsRouter = createToolsRouter(db!, serverServices!, anchorMapSubscribers);
-  adminRouter = createAdminRouter(db!, serverServices!);
-  apiRouter = createApiRouter(db!, serverServices!);
+  toolsRouter = createToolsRouter(database, services, anchorMapSubscribers);
+  adminRouter = createAdminRouter(database, services);
+  apiRouter = createApiRouter(database, services);
   authRouter = createAuthRouter({
     expectedKey: mementoConfig.adminApiKey,
     store: adminSessionStore!,
     cookieName: DASHBOARD_SESSION_COOKIE_NAME,
     secureCookie: process.env.NODE_ENV === 'production'
   });
-  mcpRouter = createMcpRouter(db!, serverServices!, transports);
+  mcpRouter = createMcpRouter(database, services, transports);
 
-  const qualityRouter = createQualityRouter(db!);
-  const maintenanceRouter = createMaintenanceRouter(db!, serverServices!);
-  const agentRouter = createAgentRouter(db!, {
+  const qualityRouter = createQualityRouter(database);
+  const maintenanceRouter = createMaintenanceRouter(database, services);
+  const agentRouter = createAgentRouter(database, {
     retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
     abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
-    contextInjectionService: createContextInjectionService(),
+    contextInjectionService: createContextInjectionService(database, services),
     initialInjectionTokenBudget: Number.isFinite(initialInjectionTokenBudget) ? initialInjectionTokenBudget : undefined,
-    serverServices: serverServices!,
+    serverServices: services,
   });
 
-  const auditRouter = createAuditRouter(db!);
-  registerRoutes(qualityRouter, maintenanceRouter, agentRouter, auditRouter);
+  const auditRouter = createAuditRouter(database);
+  registerRoutes(database, qualityRouter, maintenanceRouter, agentRouter, auditRouter);
 }
 
 function registerRoutes(
+  database: Database.Database,
   qualityRouter: express.Router,
   maintenanceRouter: express.Router,
   agentRouter: express.Router,
@@ -327,14 +336,14 @@ function registerRoutes(
 
   const toolsRateLimit = createToolsRateLimitMiddleware();
   const adminRateLimit = createAdminRateLimitMiddleware();
-  const httpAudit = createHttpAuditMiddleware({ database: db! });
+  const httpAudit = createHttpAuditMiddleware({ database });
   const mcpHttpAudit = createHttpAuditMiddleware({
-    database: db!,
+    database,
     shouldAudit: (req) => isProtectedMcpProgrammaticPath(req.path),
   });
-  const adminHttpAudit = createHttpAuditMiddleware({ database: db!, transport: 'http_admin' });
-  const strictToolsAudit = createStrictAuditCoverageMiddleware({ database: db! });
-  const strictAdminAudit = createStrictAuditCoverageMiddleware({ database: db!, transport: 'http_admin' });
+  const adminHttpAudit = createHttpAuditMiddleware({ database, transport: 'http_admin' });
+  const strictToolsAudit = createStrictAuditCoverageMiddleware({ database });
+  const strictAdminAudit = createStrictAuditCoverageMiddleware({ database, transport: 'http_admin' });
 
   app.use(
     '/tools',
@@ -385,9 +394,9 @@ async function initializeServer() {
     logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
     logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
 
-    await initializeCoreServices();
-    setupMiddleware();
-    createAllRouters();
+    const core = await initializeCoreServices();
+    setupMiddleware(core.database, core.services);
+    createAllRouters(core.database, core.services);
 
     logger.info('서비스 초기화 완료');
     await writeRuntimeDiagnosticsEvent('server_start');

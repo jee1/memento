@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { describe, expect, it } from 'vitest';
-import { normalizeBenchmarkGroundTruths, verifyReviewableBenchmark } from './search-quality-review-verifier.js';
+import { normalizeBenchmarkGroundTruths, verifyReviewableBenchmark } from '../../domains/monitoring/services/quality-assurance/search-quality-review-verifier.js';
 
 function writeFixtureDir(options: {
   manifest?: Record<string, unknown>;

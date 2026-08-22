@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.js';
 
 /**
  * Measures how much client context the MCP tool definitions occupy (#769).
@@ -75,6 +76,6 @@ function main(): void {
   }, null, 2)}\n`);
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop() ?? '')) {
+if (isMain(import.meta.url)) {
   main();
 }

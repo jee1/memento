@@ -8,9 +8,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { LocalSearchService } from './local-search-service.js';
-import { NHopSearchStrategy } from './n-hop-search-strategy.js';
-import { QueryFilterStrategy } from './query-filter-strategy.js';
-import { FallbackStrategy } from './fallback-strategy.js';
 import { AnchorCacheService } from './anchor-cache-service.js';
 import { NHopSearchService } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
@@ -23,9 +20,9 @@ describe('LocalSearchService', () => {
   let service: LocalSearchService;
   let cacheService: AnchorCacheService;
   let db: Database.Database;
-  let nHopSearchStrategy: NHopSearchStrategy;
-  let queryFilterStrategy: QueryFilterStrategy;
-  let fallbackStrategy: FallbackStrategy;
+  let nHopSearchService: NHopSearchService;
+  let queryFilterService: QueryFilterService;
+  let fallbackSearchService: FallbackSearchService;
   let mockVectorSearchEngine: VectorSearchEngine;
   let mockHybridSearchEngine: HybridSearchEngine;
 
@@ -35,9 +32,9 @@ describe('LocalSearchService', () => {
     cacheService = new AnchorCacheService();
     cacheService.setDatabase(db);
 
-    const nHopSearchService = new NHopSearchService(cacheService);
-    const queryFilterService = new QueryFilterService(cacheService);
-    const fallbackSearchService = new FallbackSearchService();
+    nHopSearchService = new NHopSearchService(cacheService);
+    queryFilterService = new QueryFilterService(cacheService);
+    fallbackSearchService = new FallbackSearchService();
 
     mockVectorSearchEngine = {
       initialize: vi.fn(),
@@ -57,15 +54,11 @@ describe('LocalSearchService', () => {
     fallbackSearchService.setDatabase(db);
     fallbackSearchService.setHybridSearchEngine(mockHybridSearchEngine);
 
-    nHopSearchStrategy = new NHopSearchStrategy(nHopSearchService);
-    queryFilterStrategy = new QueryFilterStrategy(queryFilterService);
-    fallbackStrategy = new FallbackStrategy(fallbackSearchService);
-
     service = new LocalSearchService(
       cacheService,
-      nHopSearchStrategy,
-      queryFilterStrategy,
-      fallbackStrategy
+      nHopSearchService,
+      queryFilterService,
+      fallbackSearchService
     );
     service.setDatabase(db);
   });
@@ -129,7 +122,7 @@ describe('LocalSearchService', () => {
       const limit = 10;
       const useRelations = true;
 
-      vi.spyOn(nHopSearchStrategy, 'search').mockResolvedValue([
+      vi.spyOn(nHopSearchService, 'searchNHop').mockResolvedValue([
         {
           memory_id: 'memory-1',
           content: 'Test content',
@@ -155,7 +148,7 @@ describe('LocalSearchService', () => {
       // Then: N-hop 검색 결과가 반환되어야 함
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
-      expect(nHopSearchStrategy.search).toHaveBeenCalled();
+      expect(nHopSearchService.searchNHop).toHaveBeenCalled();
     });
   });
 
@@ -176,14 +169,14 @@ describe('LocalSearchService', () => {
       ];
       const provider = 'tfidf';
 
-      vi.spyOn(queryFilterStrategy, 'filter').mockResolvedValue(results);
+      vi.spyOn(queryFilterService, 'filterByQuery').mockResolvedValue(results);
 
       // When: applyQueryFilter를 호출하면
       const result = await service.applyQueryFilter(query, results, provider);
 
       // Then: 필터링된 결과가 반환되어야 함
       expect(result).toBeDefined();
-      expect(queryFilterStrategy.filter).toHaveBeenCalledWith(query, results, provider);
+      expect(queryFilterService.filterByQuery).toHaveBeenCalledWith(query, results, provider);
     });
 
     it('쿼리가 없으면 원본 결과를 반환해야 함', async () => {
@@ -237,7 +230,7 @@ describe('LocalSearchService', () => {
         query_time: 100
       };
 
-      vi.spyOn(fallbackStrategy, 'fallback').mockResolvedValue(fallbackResult);
+      vi.spyOn(fallbackSearchService, 'fallbackToGlobalSearch').mockResolvedValue(fallbackResult);
 
       // When: handleFallback을 호출하면
       const result = await service.handleFallback(
@@ -251,7 +244,7 @@ describe('LocalSearchService', () => {
       // Then: Fallback 결과가 반환되어야 함
       expect(result).toBeDefined();
       expect(result.fallbackUsed).toBe(true);
-      expect(fallbackStrategy.fallback).toHaveBeenCalled();
+      expect(fallbackSearchService.fallbackToGlobalSearch).toHaveBeenCalled();
     });
 
     it('Local 결과가 충분하면 Fallback을 수행하지 않아야 함', async () => {
@@ -282,4 +275,3 @@ describe('LocalSearchService', () => {
     });
   });
 });
-

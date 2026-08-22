@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { parseArgs as parseCliArgs } from './lib/cli.js';
 /**
  * Debt marker 검사 스크립트 (Issue #586)
  *
@@ -57,7 +58,7 @@ const IGNORE_LINE_PATTERNS: RegExp[] = [
 function parseArgs(): { productionOnly: boolean; scanRoot: string } {
   let productionOnly = false;
   let scanRoot = DEFAULT_SCAN_ROOT;
-  for (const arg of process.argv.slice(2)) {
+  for (const arg of parseCliArgs().args) {
     if (arg === '--production-only') productionOnly = true;
     else if (arg.startsWith('--path=')) scanRoot = arg.slice('--path='.length);
     else if (arg === '--help' || arg === '-h') {

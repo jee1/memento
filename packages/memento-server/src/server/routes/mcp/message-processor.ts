@@ -9,10 +9,9 @@ import {
   MemoryNeighborService,
   getVectorSearchEngine
 } from '@memento/core';
-import { mapToolExecutionErrorToJsonRpc } from '../../utils/mcp-tool-call-error.js';
 import {
-  assertToolAuditCoverage,
-  recordToolAudit,
+  dispatchTool,
+  mapToolDispatchError,
   type ToolAuditContext,
 } from '../../audit-tool-dispatch.js';
 import { createJsonRpcError } from './json-rpc.js';
@@ -163,10 +162,10 @@ function createServerToolContext(
   db: Database.Database | null,
   serverServices: ServerServices | null
 ): ReturnType<typeof createToolContext> | null {
-  if (!serverServices) {
+  if (!db || !serverServices) {
     return null;
   }
-  return createToolContext({ db: db!, services: serverServices });
+  return createToolContext({ db, services: serverServices });
 }
 
 function handleToolsList(message: McpRequestMessage): JsonRpcResponse {
@@ -201,15 +200,12 @@ async function handleToolsCall(
     return createJsonRpcError(message.id, -32602, 'Invalid params', 'Tool name is required');
   }
 
-  const toolContext = createServerToolContext(db, serverServices);
-  if (!toolContext) {
+  if (!db || !serverServices) {
     return createJsonRpcError(message.id, -32603, 'Internal error', '서비스가 초기화되지 않았습니다');
   }
 
   try {
-    assertToolAuditCoverage(db!, name, args, auditContext);
-    const toolResult = await executeTool(name, args, toolContext);
-    recordToolAudit(db!, name, args, auditContext, 'success');
+    const toolResult = await dispatchTool(name, args, db, serverServices, auditContext);
     return {
       jsonrpc: '2.0',
       id: message.id,
@@ -217,20 +213,13 @@ async function handleToolsCall(
       result: toolResult
     };
   } catch (error) {
-    try {
-      recordToolAudit(db!, name, args, auditContext, 'failure');
-    } catch (auditError) {
-      logger.warn('MCP tool audit record failed', {
-        tool: name,
-        error: auditError instanceof Error ? auditError.message : String(auditError),
-      });
-    }
-    const mapped = mapToolExecutionErrorToJsonRpc(error);
-    if (mapped) {
+    const mapped = mapToolDispatchError(error);
+    if (mapped.code === -32602) {
       logger.warn('MCP tools/call rejected invalid params', { tool: name, error: mapped.data });
-      return createJsonRpcError(message.id, mapped.code, mapped.message, mapped.data);
+    } else {
+      logger.warn('MCP tools/call failed', { tool: name, code: mapped.code, error: mapped.data });
     }
-    throw error;
+    return createJsonRpcError(message.id, mapped.code, mapped.protocolMessage, mapped.data);
   }
 }
 

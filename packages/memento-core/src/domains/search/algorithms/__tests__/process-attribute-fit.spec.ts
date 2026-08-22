@@ -15,7 +15,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { computeProcessAttributeFit } from '../process-attribute-fit.js';
-import type { ProcessAttribute } from '../../../../shared/types/index.js';
+import type { ProcessAttribute } from '../../../../shared/types/search.types.js';
 
 describe('computeProcessAttributeFit', () => {
   it('Given: process attr에 budget·재정, memory에 tags=["budget"], workflow_name=재정, When: computeProcessAttributeFit, Then: score > 0', () => {

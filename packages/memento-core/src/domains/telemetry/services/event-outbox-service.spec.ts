@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import Database from 'better-sqlite3';
-import { EventOutboxMigration } from '../../../infrastructure/database/database/migration/migrations/039-event-outbox.js';
+import { EventOutboxMigration } from '../../../infrastructure/database/sqlite/migration/migrations/039-event-outbox.js';
 import { EVENT_OUTBOX_ENABLED_ENV, EventOutboxService } from './event-outbox-service.js';
 
 describe('EventOutboxService', () => {

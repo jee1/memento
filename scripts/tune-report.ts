@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 import { readdirSync, readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -59,12 +60,12 @@ interface Summary {
 }
 
 async function main(): Promise<void> {
-  const { runDir: explicitRunDir } = parseReportArgs(process.argv.slice(2));
+  const { runDir: explicitRunDir } = parseReportArgs(parseCliArgs().args);
 
   const runDir = explicitRunDir ?? findLatestRunDir(DEFAULT_TUNE_DIR);
   if (!runDir) {
     console.error(
-      'No run directory found. Run `npm run quality:benchmark:tune-weights` first or specify --run-dir <path>.',
+      'No run directory found. Run `npm run quality -- benchmark tune-weights` first or specify --run-dir <path>.',
     );
     process.exit(1);
   }
@@ -131,10 +132,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (
-  import.meta.url === `file://${process.argv[1]}` ||
-  import.meta.url.endsWith(process.argv[1] ?? '')
-) {
+if (isMain(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

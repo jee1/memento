@@ -15,10 +15,10 @@
 | quality-thresholds.ts | 품질 임계값 | `npm run quality:thresholds` |
 | quality-report.ts | 품질 리포트 | `npm run quality:report` |
 | generate-ground-truth.ts | ground truth 생성 | `npm run quality:ground-truth:generate` |
-| compare-weight-profiles.ts | 랭킹 프로파일 A/B 비교 (MRR·NDCG·permutation test) | `npm run quality:benchmark:compare-profiles` |
-| tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality:benchmark:tune-weights` |
-| tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality:benchmark:tune-report` |
-| migrate-embedding-data.js | 임베딩 데이터 마이그레이션 | `npm run migrate:embedding`, `migrate:embedding:analyze`, `migrate:embedding:rollback` |
+| compare-weight-profiles.ts | 랭킹 프로파일 A/B 비교 (MRR·NDCG·permutation test) | `npm run quality -- benchmark compare-profiles` |
+| tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality -- benchmark tune-weights` |
+| tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality -- benchmark tune-report` |
+| migrate-embedding-data.js | 임베딩 데이터 마이그레이션 | `npm run migrate:embedding`, `node scripts/migrate-embedding-data.js analyze`, `node scripts/migrate-embedding-data.js rollback` |
 | backup-memory-db.mjs | memory.db online backup (배포 전) | `npm run db:backup` |
 | pre-docker-deploy.mjs | 배포 전 백업 + quick_check | `npm run db:pre-docker-deploy` |
 | restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
@@ -37,23 +37,7 @@
 | 검증 | check-db-integrity.js, check-embedding-dimensions.ts, check-sql-injection.ts, check-magic-numbers.ts, count-console-logs.ts 등 | CI 또는 수동 품질 검사 |
 | 마이그레이션/레거시 | run-migration.js, fix-migration.js, safe-migration.js, migrate-embedding-data.js | DB/임베딩 마이그레이션 |
 | 문서·리포트 생성 | generate-relation-report.ts, generate-file-audit-table.cjs, update-file-audit-doc.cjs | 문서·감사 테이블 생성 |
-| 백업/복원 | backup-daily.bat, restore-legacy.ps1, restore-legacy.sh | 운영용. backup-daily.bat는 PRD 0019 등에서 참조. 미사용 시 제거 검토. |
-| direct-sql-migration.sql | 일회성 SQL 마이그레이션 | → `scripts/archive/`로 이동됨 (2026-03-03). |
-
-## scripts/archive/ (보관용)
-
-다음 스크립트는 일회성·검증 보조용으로 `scripts/archive/`로 이동되어 있습니다. 이전 경로가 필요하면 여기서 확인하세요.
-
-| 이전 경로 | 비고 |
-|-----------|------|
-| scripts/direct-sql-migration.sql | 일회성 SQL |
-| scripts/restore-legacy.ps1, scripts/restore-legacy.sh | 레거시 복원 |
-| scripts/analyze-benchmark-test-data.ts, scripts/analyze-simple-throws.ts | 분석용 |
-| scripts/check-convertible-episodic-memories.ts, scripts/check-embedding-dimensions.ts | 검증 보조 |
-| scripts/check-no-console-violations.ts, scripts/check-retry-usage.ts | 검증 보조 |
-| scripts/docker-migration.sh, scripts/start-container.sh | Docker 일회성 |
-| scripts/fix-vec-table-dimensions.ts, scripts/remove-benchmark-test-data.ts | 보조 |
-
-인벤토리: [docs/_work/plans/ko/2026-03-03-scripts-inventory.md](../../_work/plans/ko/2026-03-03-scripts-inventory.md)
+| 백업 | backup-daily.bat | 운영용. PRD 0019 등에서 참조. 미사용 시 제거 검토. |
+| check-retry-usage.ts | 재시도 구현 정책 검증 | CI 또는 `npx tsx scripts/check-retry-usage.ts --ci` |
 
 전체 목록은 `scripts/` 디렉터리를 참고하고, `package.json`의 `scripts` 필드에 등록된 항목을 우선 사용하세요.

@@ -11,7 +11,7 @@
 - **remember / remember_procedure** 호출 시:
   - 메모리 항목을 DB에 **append-only**로 저장한다.
   - 응답은 **저장 직후** 반환한다. Augmentation(Triple 추출, 콘솔리데이션 등) 완료를 기다리지 않는다.
-- 구현: `packages/memento-core/src/domains/memory/tools/remember-tool.ts`, `remember-procedure-tool.ts`에서 DB write 성공 후 즉시 반환. Triple 추출 등은 `BatchScheduler.addJob()`으로 JobQueue에만 등록.
+- 구현: `packages/memento-core/src/domains/memory/remember/remember-tool.ts`, `remember-procedure-tool.ts`에서 DB write 성공 후 즉시 반환. Triple 추출 등은 `BatchScheduler.addJob()`으로 JobQueue에만 등록.
 
 ## 워커 정제
 

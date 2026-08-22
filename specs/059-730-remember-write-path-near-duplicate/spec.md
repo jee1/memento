@@ -5,7 +5,7 @@
 **Status**: Implemented
 **Issue**: [#730](https://github.com/jee1/memento/issues/730)
 **Parent Epic**: [#727](https://github.com/jee1/memento/issues/727) (Memory quality ops loop)
-**Related**: #728/#729/#731/#732 (형제); `specs/012-fix-memory-structuring` US4 / FR-008 (선행 `similarity_warning`)
+**Related**: #728/#729/#731/#732 (형제); [012 기준선 명세](https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/012-fix-memory-structuring/spec.md) US4 / FR-008 (선행 `similarity_warning`)
 
 ## Problem Statement
 
@@ -13,14 +13,14 @@
 쌓이고 introspection 저신뢰·검색 `duplication_penalty` 부담이 커진다. sleep-consolidation semantic merge는
 **배치**이며 write 시점 방어가 약하다.
 
-012 US4로 post-insert `similarity_warning`({ count, similar_ids })가 이미 존재하지만:
+[012 US4 기준선](https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/012-fix-memory-structuring/spec.md)에서 post-insert `similarity_warning`({ count, similar_ids })가 이미 존재하지만:
 
 - 임계값 **하드코딩 0.85** (env 없음)
 - **project_id** 스코프 없음 (type + owner만)
 - **merge / incremental 갱신** 경로 없음 (항상 새 row INSERT 후 경고만)
 - **strict reject** 옵션 없음
 - 에이전트용 “중복이면 incremental” 가이드 없음
-- `remember-tool.spec.ts`에 `similarity_warning` 회귀 테스트가 현재 없음(012 T026 흔적 소실 가능)
+- `remember-tool.spec.ts`에 `similarity_warning` 회귀 테스트가 현재 없음([012 T026 기준선](https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/012-fix-memory-structuring/tasks.md) 흔적 소실 가능)
 
 본 이슈는 검색측 `duplication_penalty`와 역할을 분리한 **쓰기 방어**를 완성한다.
 

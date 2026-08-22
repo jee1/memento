@@ -1,12 +1,12 @@
 import type { MemoryCleanupResult } from '../../../domains/forgetting/services/forgetting-policy-service.js';
 import type { PerformanceAlert } from '../../../domains/monitoring/services/performance-monitor.js';
-import type { BatchJobResult } from '../batch-scheduler-types.js';
+import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import {
   assertSchedulerDbOpen,
   createEmptyBatchJobResult,
   finalizeBatchJobTiming
-} from '../batch-scheduler-internal-helpers.js';
-import { collectBatchSchedulerDatabaseStats } from '../batch-scheduler-database-stats.js';
+} from '../batch-scheduler/batch-scheduler-internal-helpers.js';
+import { collectBatchSchedulerDatabaseStats } from '../batch-scheduler/batch-scheduler-database-stats.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 function countMonitoringAlertBuckets(alerts: PerformanceAlert[]): {

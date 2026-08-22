@@ -67,7 +67,7 @@
   - source: `mem_1759474586112_5s2ug9j1k`
   - type: `episodic`
   - tags: `testing`, `memento`, `performance-optimization`
-  - content: Memento 프로젝트의 전체 테스트 실행 방법을 분석했습니다. npm test로 기본 테스트, npm run test:coverage로 커버리지 포함 테스트, 그리고 다양한 개별 기능별 테스트 스크립트들이 있습니다. 현재 feature/m1-performance-optimizatio…
+  - content: Memento 프로젝트의 전체 테스트 실행 방법을 분석했습니다. `npm test`로 기본 테스트, `npm test -- --coverage`로 커버리지 포함 테스트를 실행합니다. 현재 feature/m1-performance-optimizatio…
 - [ ] `bench_mem_000249`
   - source: `mem_1758931089027_dtnwky2a0`
   - type: `episodic`
@@ -386,12 +386,12 @@
   - source: `mem_1773756350404_ymgndx40d`
   - type: `semantic`
   - tags: `search-quality`, `benchmark-corpus`, `server-run`, `knowledge`
-  - content: Memento MCP 서버 실행 기본 명령은 루트 기준 `npm run dev`, `npm start`이며 HTTP 서버는 `npm run dev:http` 또는 `npm run dev:http-v2`를 사용한다. 서버 진입점은 `packages/memento-server`이고 빌드 …
+  - content: Memento MCP 서버 실행 기본 명령은 루트 기준 `npm run dev`, `npm start`이며 HTTP 서버는 `npm run dev:http`를 사용한다. 서버 진입점은 `packages/memento-server`이고 빌드 …
 - [x] `bench_mem_003427`
   - source: `mem_1773828882873_k1pazm4ot`
   - type: `semantic`
   - tags: `search-quality`, `benchmark-corpus`, `server-run`, `knowledge`
-  - content: 질문: Memento MCP 서버는 어떻게 실행하나. 답: 루트에서 `npm run dev`로 MCP 개발 서버를 실행하고, `npm start`로 빌드된 서버를 실행한다. HTTP 서버가 필요하면 `npm run dev:http` 또는 `npm run dev:http-v2`를 사용한…
+  - content: 질문: Memento MCP 서버는 어떻게 실행하나. 답: 루트에서 `npm run dev`로 MCP 개발 서버를 실행하고, `npm start`로 빌드된 서버를 실행한다. HTTP 서버가 필요하면 `npm run dev:http`를 사용한…
 
 ### Candidate Memories
 
@@ -399,7 +399,7 @@
   - source: `mem_1773828882873_k1pazm4ot`
   - type: `semantic`
   - tags: `search-quality`, `benchmark-corpus`, `server-run`, `knowledge`
-  - content: 질문: Memento MCP 서버는 어떻게 실행하나. 답: 루트에서 `npm run dev`로 MCP 개발 서버를 실행하고, `npm start`로 빌드된 서버를 실행한다. HTTP 서버가 필요하면 `npm run dev:http` 또는 `npm run dev:http-v2`를 사용한…
+  - content: 질문: Memento MCP 서버는 어떻게 실행하나. 답: 루트에서 `npm run dev`로 MCP 개발 서버를 실행하고, `npm start`로 빌드된 서버를 실행한다. HTTP 서버가 필요하면 `npm run dev:http`를 사용한…
 - [ ] `bench_mem_002566`
   - source: `mem_1768229269763_paydkstjl`
   - type: `episodic`
@@ -618,7 +618,7 @@
   - source: `mem_1773828883065_ghgs1kwae`
   - type: `semantic`
   - tags: `search-quality`, `benchmark-corpus`, `testing`, `ci`, `knowledge`
-  - content: 질문: 이 저장소에서 테스트와 CI는 어떻게 돌리나. 답: 루트에서 `npm test`, `npm run type-check`, `npm run lint`를 실행한다. 검색 품질 벤치마크는 `npm run test:vector-search-quality`와 `npm run test:v…
+  - content: 질문: 이 저장소에서 테스트와 CI는 어떻게 돌리나. 답: 루트에서 `npm test`, `npm run type-check`, `npm run lint`를 실행한다. 검색 품질 벤치마크는 `npm run test:vector-search-quality`로 실행한다.
 
 ### Candidate Memories
 
@@ -626,7 +626,7 @@
   - source: `mem_1773828883065_ghgs1kwae`
   - type: `semantic`
   - tags: `search-quality`, `benchmark-corpus`, `testing`, `ci`, `knowledge`
-  - content: 질문: 이 저장소에서 테스트와 CI는 어떻게 돌리나. 답: 루트에서 `npm test`, `npm run type-check`, `npm run lint`를 실행한다. 검색 품질 벤치마크는 `npm run test:vector-search-quality`와 `npm run test:v…
+  - content: 질문: 이 저장소에서 테스트와 CI는 어떻게 돌리나. 답: 루트에서 `npm test`, `npm run type-check`, `npm run lint`를 실행한다. 검색 품질 벤치마크는 `npm run test:vector-search-quality`로 실행한다.
 - [ ] `bench_mem_000941`
   - source: `mem_f005277613b846b4b9932ad9f0a4e0bf`
   - type: `semantic`
@@ -2022,4 +2022,3 @@
   - type: `episodic`
   - tags: `arigraph`, `remember-tool`, `triple-extraction`, `completed`
   - content: AriGraph Pipeline 구현 작업 진행: 5.2 remember Tool에서 type='episodic'일 때 Triple 추출 파이프라인 호출 로직 구현 완료 작업 내용: - remember-tool.ts에 Triple 추출 파이프라인 통합 - PRD 4.1 remember…
-

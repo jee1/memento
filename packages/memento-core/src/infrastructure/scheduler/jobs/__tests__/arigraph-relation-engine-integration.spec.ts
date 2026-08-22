@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { TripleExtractionService } from '../../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
+import { SemanticMemoryUpdateService } from '../../../../domains/memory/semantic/semantic-memory-update-service.js';
 import type { RelationGraph } from '../../../../domains/relation/services/relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';

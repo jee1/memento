@@ -26,7 +26,7 @@
 - [x] `MementoClient.recordRecallFeedback()` one-liner helper
 - [x] Client integration test
 - [x] `get_telemetry_summary` + `/admin/telemetry/feedback` with helpful_rate
-- [x] `specs/004-recall-quality-feedback-loop` SC 갱신
+- [x] [`specs/004-recall-quality-feedback-loop` SC 갱신](https://github.com/jee1/memento/blob/44ad88e2583b6486a30ca362729c68ebdeb45702/specs/004-recall-quality-feedback-loop/spec.md)
 
 ### #667
 - [x] `add_relation` / `get_relations` / `remove_relation` MCP registry
@@ -47,7 +47,7 @@
 
 ### #670
 - [x] `docs/reference/ko/security.md` secrets + encryption notes
-- [x] `docker-compose.prod.secrets.example.yml`
+- [x] `docker/docker-compose.prod.secrets.example.yml`
 
 ### #671
 - [x] `validateSource()` + remember validation

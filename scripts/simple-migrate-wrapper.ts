@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMain } from './lib/cli.js';
 
 /**
  * simple-migrate.js 래퍼
@@ -14,7 +15,7 @@
  *   node dist/scripts/simple-migrate-wrapper.js
  */
 
-import { initializeDatabase, closeDatabase } from '../packages/memento-core/src/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '../packages/memento-core/src/infrastructure/database/sqlite/init.js';
 import { logger } from '../packages/memento-core/src/shared/utils/logger.js';
 
 /**
@@ -96,7 +97,7 @@ async function analyzeEmbeddings() {
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+if (isMain(import.meta.url)) {
   analyzeEmbeddings().catch((error) => {
     logger.error('❌ 스크립트 실행 중 오류 발생', {
       error: error instanceof Error ? error.message : String(error),
