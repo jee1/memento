@@ -270,15 +270,16 @@ describe('MigrationRunner', () => {
       }
     });
 
-    it('logs thrown retention cleanup failures and still runs the migration', async () => {
+    it('logs thrown retention cleanup failures without full filesystem paths and still runs the migration', async () => {
       const manager = runner.getBackupManager();
+      const leakedBackupPath = '/tmp/memento-secret-root/backups/memory-backup-1.0-2026-08-23T00-00-00-000Z.db';
       const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
         backupPath: 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db',
         timestamp: new Date('2026-08-23T00:00:00.000Z'),
         size: 4096,
       });
       const cleanup = vi.spyOn(manager, 'cleanupBackups').mockRejectedValue(
-        new Error('cleanup failed token=abcdefghijklmnopqrstuvwxyz')
+        new Error(`EACCES: permission denied, unlink '${leakedBackupPath}' token=abcdefghijklmnopqrstuvwxyz`)
       );
       const warn = vi.spyOn(logger, 'warn');
       const up = vi.fn(async (database: Database.Database) => {
@@ -291,9 +292,11 @@ describe('MigrationRunner', () => {
         expect(result.success).toBe(true);
         expect(up).toHaveBeenCalledOnce();
         expect(warn).toHaveBeenCalledWith('백업 보존 정리 실패', {
-          error: 'cleanup failed token=[TOKEN]',
+          error: "EACCES: permission denied, unlink 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db' token=[TOKEN]",
           errorName: 'Error',
         });
+        expect(JSON.stringify(warn.mock.calls)).not.toContain(leakedBackupPath);
+        expect(JSON.stringify(warn.mock.calls)).not.toContain('/tmp/memento-secret-root/backups');
       } finally {
         warn.mockRestore();
         create.mockRestore();

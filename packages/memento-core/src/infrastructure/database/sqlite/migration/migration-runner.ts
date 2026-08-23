@@ -6,13 +6,24 @@
 
 import type Database from 'better-sqlite3';
 import { createHash } from 'crypto';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { logger } from '../../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 import { BackupManager } from './backup-manager.js';
 import { MigrationLogger } from './migration-logger.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import type { Migration,MigrationOptions,MigrationResult } from './types.js';
+
+function normalizeCleanupError(error: unknown): { message: string; name: string } {
+  const masked = error instanceof Error
+    ? PIIMasker.maskError(error)
+    : { message: String(error), name: 'Error' };
+
+  return {
+    message: masked.message.replace(/\/[^\s'"]+/g, path => basename(path)),
+    name: masked.name,
+  };
+}
 
 /**
  * 마이그레이션 실행기
@@ -94,9 +105,7 @@ export class MigrationRunner {
             });
           }
         } catch (cleanupError) {
-          const maskedCleanupError = cleanupError instanceof Error
-            ? PIIMasker.maskError(cleanupError)
-            : { message: String(cleanupError), name: 'Error' };
+          const maskedCleanupError = normalizeCleanupError(cleanupError);
           logger.warn('백업 보존 정리 실패', {
             error: maskedCleanupError.message,
             errorName: maskedCleanupError.name,
