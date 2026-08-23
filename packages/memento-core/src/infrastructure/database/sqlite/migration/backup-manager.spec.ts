@@ -207,6 +207,80 @@ describe('BackupManager', () => {
       }
     });
 
+    it('removes the current attempt after incomplete backup metadata', async () => {
+      const fileDb = openWalDatabase();
+      const realBackup = fileDb.backup.bind(fileDb);
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async destination => {
+        const metadata = await realBackup(destination);
+        return { ...metadata, remainingPages: 1 };
+      }) as Database.Database['backup']);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-incomplete');
+        expectNoAttemptResidue();
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('removes the current attempt after destination page size mismatch', async () => {
+      const fileDb = openWalDatabase();
+      const realPragma = Database.prototype.pragma;
+      const pragmaSpy = vi.spyOn(Database.prototype, 'pragma').mockImplementation(function (
+        this: Database.Database,
+        source: string,
+        options?: Database.PragmaOptions
+      ) {
+        if (
+          source === 'page_size' &&
+          partialNamePattern.test(basename(this.name))
+        ) {
+          return 8192;
+        }
+        return realPragma.call(this, source, options);
+      });
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-validation-failed');
+        expectNoAttemptResidue();
+      } finally {
+        pragmaSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it.each([
+      ['journal mode switch throws', () => {
+        throw new Error('raw journal mode path leak');
+      }],
+      ['journal mode remains wal', () => 'wal'],
+    ])('removes the current attempt when %s', async (_name, journalResult) => {
+      const fileDb = openWalDatabase();
+      const realPragma = Database.prototype.pragma;
+      const pragmaSpy = vi.spyOn(Database.prototype, 'pragma').mockImplementation(function (
+        this: Database.Database,
+        source: string,
+        options?: Database.PragmaOptions
+      ) {
+        if (
+          (source === 'journal_mode = DELETE' || source === 'journal_mode') &&
+          partialNamePattern.test(basename(this.name))
+        ) {
+          return journalResult();
+        }
+        return realPragma.call(this, source, options);
+      });
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-validation-failed');
+        expectNoAttemptResidue();
+      } finally {
+        pragmaSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
     it('removes the current attempt after full integrity validation fails', async () => {
       const fileDb = openWalDatabase();
       const realPragma = Database.prototype.pragma;

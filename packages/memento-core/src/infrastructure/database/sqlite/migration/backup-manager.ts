@@ -364,19 +364,26 @@ export class BackupManager {
           throw backupFailure('backup-checkpoint-incomplete');
         }
 
-        verify.pragma('journal_mode = DELETE');
-        const journalMode = verify.pragma('journal_mode', { simple: true }) as string;
-        totalPages = verify.pragma('page_count', { simple: true }) as number;
-        const pageSize = verify.pragma('page_size', { simple: true }) as number;
-        const integrity = verify.pragma('integrity_check') as Array<{ integrity_check: string }>;
+        try {
+          verify.pragma('journal_mode = DELETE');
+          const journalMode = verify.pragma('journal_mode', { simple: true }) as string;
+          totalPages = verify.pragma('page_count', { simple: true }) as number;
+          const pageSize = verify.pragma('page_size', { simple: true }) as number;
+          const integrity = verify.pragma('integrity_check') as Array<{ integrity_check: string }>;
 
-        if (
-          journalMode !== 'delete' ||
-          totalPages !== metadata.totalPages ||
-          pageSize !== sourcePageSize ||
-          integrity.length !== 1 ||
-          integrity[0]?.integrity_check !== 'ok'
-        ) {
+          if (
+            journalMode !== 'delete' ||
+            totalPages !== metadata.totalPages ||
+            pageSize !== sourcePageSize ||
+            integrity.length !== 1 ||
+            integrity[0]?.integrity_check !== 'ok'
+          ) {
+            throw backupFailure('backup-validation-failed');
+          }
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith('backup-')) {
+            throw error;
+          }
           throw backupFailure('backup-validation-failed');
         }
       } finally {
