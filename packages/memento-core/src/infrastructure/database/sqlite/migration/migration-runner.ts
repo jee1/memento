@@ -6,6 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import { createHash } from 'crypto';
+import { dirname, join } from 'node:path';
 import { logger } from '../../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 import { BackupManager } from './backup-manager.js';
@@ -22,7 +23,11 @@ export class MigrationRunner {
   private logger: MigrationLogger;
 
   constructor(private db: Database.Database, logger?: MigrationLogger) {
-    this.backupManager = new BackupManager();
+    const dbName = (this.db as Database.Database & { name?: string }).name;
+    const backupsDir = dbName && dbName !== ':memory:'
+      ? join(dirname(dbName), 'backups')
+      : undefined;
+    this.backupManager = new BackupManager(backupsDir);
     this.versionManager = new SchemaVersionManager(db);
     this.logger = logger || new MigrationLogger();
   }
@@ -76,6 +81,27 @@ export class MigrationRunner {
         const maskedBackupData = PIIMasker.maskObject({ size: backup.size });
         this.logger.info(`백업 생성 완료: ${maskedBackupPath}`, maskedBackupData);
         logger.info(`✅ 백업 생성 완료: ${maskedBackupPath}`);
+        try {
+          const cleanup = await this.backupManager.cleanupBackups({
+            mode: 'apply',
+            includeInterrupted: false,
+          });
+          if (!cleanup.ok) {
+            logger.warn('백업 보존 정리 미완료', {
+              failedCount: cleanup.failedCount,
+              skippedCount: cleanup.skippedCount,
+              artifacts: cleanup.artifacts.filter(item => item.status !== 'deleted'),
+            });
+          }
+        } catch (cleanupError) {
+          const maskedCleanupError = cleanupError instanceof Error
+            ? PIIMasker.maskError(cleanupError)
+            : { message: String(cleanupError), name: 'Error' };
+          logger.warn('백업 보존 정리 실패', {
+            error: maskedCleanupError.message,
+            errorName: maskedCleanupError.name,
+          });
+        }
       }
 
       // 3. 트랜잭션 시작
@@ -239,4 +265,3 @@ export class MigrationRunner {
     return this.versionManager;
   }
 }
-
