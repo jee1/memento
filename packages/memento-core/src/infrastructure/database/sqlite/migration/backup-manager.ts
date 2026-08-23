@@ -85,6 +85,21 @@ export interface CleanupOptions {
   includeInterrupted?: boolean;
 }
 
+interface FileIdentity {
+  dev: bigint | number;
+  ino: bigint | number;
+  mode: number;
+  size: number;
+  mtimeMs: number;
+}
+
+interface CleanupCandidate {
+  path: string;
+  outcome: CleanupArtifactOutcome;
+  identity: FileIdentity | null;
+  selectedBytes: number;
+}
+
 const TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/;
 const AUTOMATIC_NAME = new RegExp(
   `^memory-backup-(\\d+(?:\\.\\d+)+)-${TIMESTAMP_PATTERN.source}\\.db$`
@@ -136,6 +151,28 @@ function classifySelection(
   return null;
 }
 
+function getIdentity(stats: fs.Stats): FileIdentity {
+  return {
+    dev: stats.dev,
+    ino: stats.ino,
+    mode: stats.mode,
+    size: stats.size,
+    mtimeMs: stats.mtimeMs,
+  };
+}
+
+function sameIdentity(before: FileIdentity, after: FileIdentity): boolean {
+  return before.dev === after.dev &&
+    before.ino === after.ino &&
+    before.mode === after.mode &&
+    before.size === after.size &&
+    before.mtimeMs === after.mtimeMs;
+}
+
+function isEnoent(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
+}
+
 function emptyCleanupReport(mode: CleanupMode, error: CleanupReport['error']): CleanupReport {
   return {
     ok: error === null,
@@ -153,15 +190,25 @@ function emptyCleanupReport(mode: CleanupMode, error: CleanupReport['error']): C
   };
 }
 
-function buildPreviewReport(
+function buildCleanupReport(
   mode: CleanupMode,
   inspectedCount: number,
-  artifacts: CleanupArtifactOutcome[]
+  candidates: CleanupCandidate[],
+  reclaimedBytes: number
 ): CleanupReport {
+  const artifacts = candidates.map(candidate => candidate.outcome);
+  const failedCount = artifacts.filter(artifact => artifact.status === 'failed').length;
+
   return {
     ...emptyCleanupReport(mode, null),
+    ok: failedCount === 0,
     inspectedCount,
     selectedCount: artifacts.length,
+    selectedBytes: candidates.reduce((total, candidate) => total + candidate.selectedBytes, 0),
+    deletedCount: artifacts.filter(artifact => artifact.status === 'deleted').length,
+    reclaimedBytes,
+    skippedCount: artifacts.filter(artifact => artifact.status === 'skipped').length,
+    failedCount,
     ignoredCount: inspectedCount - artifacts.length,
     artifacts,
   };
@@ -284,51 +331,6 @@ export class BackupManager {
     }
   }
 
-  /**
-   * 오래된 백업 파일 정리 (기본 30일)
-   */
-  async cleanupOldBackups(retentionDays: number = 30): Promise<number> {
-    try {
-      const files = fs.readdirSync(this.backupsDir);
-      const now = Date.now();
-      const retentionMs = retentionDays * DAY_MS;
-      let deletedCount = 0;
-
-      for (const file of files) {
-        if (!file.endsWith('.db')) {
-          continue;
-        }
-
-        const filePath = join(this.backupsDir, file);
-        const stats = fs.statSync(filePath);
-        const age = now - stats.mtimeMs;
-
-        if (age > retentionMs) {
-          fs.unlinkSync(filePath);
-          deletedCount++;
-          logger.info('🗑️  오래된 백업 삭제', {
-            file
-          });
-        }
-      }
-
-      if (deletedCount > 0) {
-        logger.info('✅ 백업 정리 완료', {
-          deletedCount
-        });
-      }
-
-      return deletedCount;
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.error('❌ 백업 정리 실패', {
-        error: maskedError.message,
-        errorName: maskedError.name
-      });
-      return 0;
-    }
-  }
-
   async cleanupBackups(options: CleanupOptions = {}): Promise<CleanupReport> {
     const mode = options.mode ?? 'preview';
     const now = options.now ?? new Date();
@@ -341,12 +343,89 @@ export class BackupManager {
       return emptyCleanupReport(mode, 'scan-failed');
     }
 
-    const artifacts = names.flatMap(name => {
+    const candidates = names.sort().flatMap<CleanupCandidate>(name => {
       const reason = classifySelection(name, cutoff, options.includeInterrupted ?? false);
-      return reason === null ? [] : [{ id: name, status: 'selected' as const, reason, detail: null }];
+      const path = join(this.backupsDir, name);
+
+      try {
+        const stats = fs.lstatSync(path);
+
+        if (reason === null || !stats.isFile()) {
+          return [];
+        }
+
+        return [{
+          path,
+          outcome: { id: name, status: 'selected' as const, reason, detail: null },
+          identity: getIdentity(stats),
+          selectedBytes: stats.size,
+        }];
+      } catch {
+        if (reason === null) {
+          return [];
+        }
+
+        return [{
+          path,
+          outcome: { id: name, status: 'failed' as const, reason, detail: 'inspect-failed' as const },
+          identity: null,
+          selectedBytes: 0,
+        }];
+      }
     });
 
-    return buildPreviewReport(mode, names.length, artifacts);
+    if (mode === 'preview') {
+      return buildCleanupReport(mode, names.length, candidates, 0);
+    }
+
+    let reclaimedBytes = 0;
+
+    for (const candidate of candidates) {
+      if (candidate.identity === null) {
+        continue;
+      }
+
+      try {
+        const currentStats = fs.lstatSync(candidate.path);
+        const currentIdentity = getIdentity(currentStats);
+
+        if (!currentStats.isFile() || !sameIdentity(candidate.identity, currentIdentity)) {
+          candidate.outcome = {
+            ...candidate.outcome,
+            status: 'skipped',
+            detail: 'changed-before-delete',
+          };
+          continue;
+        }
+      } catch (error) {
+        const missing = isEnoent(error);
+        candidate.outcome = {
+          ...candidate.outcome,
+          status: missing ? 'skipped' : 'failed',
+          detail: missing ? 'missing-before-delete' : 'inspect-failed',
+        };
+        continue;
+      }
+
+      try {
+        fs.unlinkSync(candidate.path);
+        candidate.outcome = {
+          ...candidate.outcome,
+          status: 'deleted',
+          detail: null,
+        };
+        reclaimedBytes += candidate.selectedBytes;
+      } catch (error) {
+        const missing = isEnoent(error);
+        candidate.outcome = {
+          ...candidate.outcome,
+          status: missing ? 'skipped' : 'failed',
+          detail: missing ? 'missing-before-delete' : 'delete-failed',
+        };
+      }
+    }
+
+    return buildCleanupReport(mode, names.length, candidates, reclaimedBytes);
   }
 
   /**
