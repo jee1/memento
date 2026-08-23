@@ -102,3 +102,49 @@ export async function runQuarantine(args: {
 
   return { batches, deleted, failed: [...stuck] };
 }
+
+/**
+ * FR-009a: forget 은 삭제 건당 event_outbox 에 memory.forgotten 을 적재하고 정리 로직이 없다.
+ * FR-006d: memory_forgetting_event 는 FK 가 없어 자동 정리되지 않는다.
+ * FR-006f: 살아 있는 기억의 로그는 건드리지 않는다 — 그것은 #810 범위다.
+ *   그래서 NOT IN (SELECT id FROM memory_item) 이 아니라 격리된 ID 목록으로만 지운다.
+ */
+export function cleanupResidue(
+  db: CliDatabase,
+  args: { startedAt: string; deletedIds: string[] },
+): { outbox: number; forgettingEvents: number } {
+  const outbox = db.prepare(`
+    DELETE FROM event_outbox WHERE event_type = 'memory.forgotten' AND created_at >= ?
+  `).run(args.startedAt).changes;
+
+  const deleteEvent = db.prepare('DELETE FROM memory_forgetting_event WHERE memory_id = ?');
+  let forgettingEvents = 0;
+  const deleteAll = db.transaction((ids: string[]) => {
+    for (const id of ids) {
+      forgettingEvents += deleteEvent.run(id).changes;
+    }
+  });
+  deleteAll(args.deletedIds);
+
+  return { outbox, forgettingEvents };
+}
+
+export function readDeletedIds(progressFile: string): string[] {
+  if (!existsSync(progressFile)) {
+    return [];
+  }
+  return readFileSync(progressFile, 'utf8')
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+    .flatMap((line) => (JSON.parse(line) as ProgressRow).ok);
+}
+
+/** FR-010: 잔재 정리가 VACUUM 보다 앞이어야 한다 — 아니면 감소량이 크게 과소 보고된다. */
+export function vacuumAndMeasure(db: CliDatabase, dbPath: string): {
+  before: number; after: number; reclaimed: number;
+} {
+  const before = statSync(dbPath).size;
+  db.exec('VACUUM');
+  const after = statSync(dbPath).size;
+  return { before, after, reclaimed: before - after };
+}

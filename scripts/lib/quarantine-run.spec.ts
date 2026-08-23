@@ -7,7 +7,8 @@ import { createFixtureDb, insertMemory } from './quarantine-fixture.js';
 import { appendJsonl } from './quarantine-report.js';
 import { countTargets } from './quarantine-targets.js';
 import {
-  type ForgetFn, parseBatchResult, type ProgressRow, runQuarantine,
+  cleanupResidue, type ForgetFn, parseBatchResult, type ProgressRow, readDeletedIds,
+  runQuarantine, vacuumAndMeasure,
 } from './quarantine-run.js';
 
 let dir: string;
@@ -144,6 +145,77 @@ describe('runQuarantine (FR-005, FR-005b, SC-006a)', () => {
     expect(rows[0]!.ok).toEqual(['mem_a']);
     expect(rows[0]!.batch).toBe(1);
     expect(typeof rows[0]!.at).toBe('string');
+    db.close();
+  });
+});
+
+describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
+  function createResidueDb(): Database.Database {
+    const db = createFixtureDb();
+    db.exec(`
+      CREATE TABLE event_outbox (id INTEGER PRIMARY KEY, event_type TEXT, created_at TEXT);
+      CREATE TABLE memory_forgetting_event (id INTEGER PRIMARY KEY, memory_id TEXT, action TEXT);
+    `);
+    return db;
+  }
+
+  it('이번 실행분 memory.forgotten 만 지운다 (SC-005a)', () => {
+    const db = createResidueDb();
+    db.prepare("INSERT INTO event_outbox VALUES (1,'memory.forgotten','2026-08-23T10:00:00Z')").run();
+    db.prepare("INSERT INTO event_outbox VALUES (2,'memory.forgotten','2026-08-20T10:00:00Z')").run();
+    db.prepare("INSERT INTO event_outbox VALUES (3,'memory.created','2026-08-23T10:00:00Z')").run();
+
+    const result = cleanupResidue(db, { startedAt: '2026-08-23T09:00:00Z', deletedIds: [] });
+
+    expect(result.outbox).toBe(1);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM event_outbox').get()).toEqual({ n: 2 });
+    db.close();
+  });
+
+  it('격리된 ID 를 참조하는 forgetting_event 만 지운다 (SC-005b)', () => {
+    const db = createResidueDb();
+    db.prepare("INSERT INTO memory_forgetting_event VALUES (1,'mem_gone','hard')").run();
+    db.prepare("INSERT INTO memory_forgetting_event VALUES (2,'mem_alive','review')").run();
+
+    const result = cleanupResidue(db, { startedAt: '2026-08-23T09:00:00Z', deletedIds: ['mem_gone'] });
+
+    expect(result.forgettingEvents).toBe(1);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM memory_forgetting_event WHERE memory_id = 'mem_alive'").get())
+      .toEqual({ n: 1 });
+    db.close();
+  });
+});
+
+describe('readDeletedIds', () => {
+  it('진행 기록에서 성공 ID 를 모은다', () => {
+    const file = join(dir, 'progress.jsonl');
+    appendJsonl(file, { batch: 1, at: 'x', ok: ['mem_a', 'mem_b'], failed: [] });
+    appendJsonl(file, { batch: 2, at: 'x', ok: ['mem_c'], failed: [{ id: 'mem_d', error: 'e' }] });
+
+    expect(readDeletedIds(file)).toEqual(['mem_a', 'mem_b', 'mem_c']);
+  });
+
+  it('파일이 없으면 빈 배열이다', () => {
+    expect(readDeletedIds(join(dir, 'nope.jsonl'))).toEqual([]);
+  });
+});
+
+describe('vacuumAndMeasure (FR-010, SC-007)', () => {
+  it('전후 파일 크기와 감소량을 기록한다', () => {
+    const file = join(dir, 'vac.db');
+    const db = new Database(file);
+    db.exec('CREATE TABLE blob_rows (id INTEGER PRIMARY KEY, payload TEXT)');
+    const insert = db.prepare('INSERT INTO blob_rows (payload) VALUES (?)');
+    // 트랜잭션 없이 개별 INSERT 하면 커밋마다 fsync 가 돌아 테스트가 수십 초로 늘어난다.
+    db.transaction(() => {
+      for (let i = 0; i < 2000; i += 1) insert.run('x'.repeat(500));
+    })();
+    db.exec('DELETE FROM blob_rows');
+
+    const result = vacuumAndMeasure(db, file);
+
+    expect(result.before).toBeGreaterThan(result.after);
+    expect(result.reclaimed).toBe(result.before - result.after);
     db.close();
   });
 });
