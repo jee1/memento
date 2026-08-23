@@ -1,7 +1,7 @@
 # /speckit.superspec.execute 실행 상태
 feature: 065-804-triple-semantic-quarantine
-updated: 2026-08-23 (리허설 완료)
-branch: jee1/chore-memory-triple-semantic-23-664-dry-run
+updated: 2026-08-23 (롤백 리허설·유출 확인 완료, PR #815 머지)
+branch: jee1/chore-065-rollback-rehearsal-sidecar-gate  # 러너 본체는 #815 로 머지 (74662b1a)
 
 phases:
   - id: 1
@@ -88,6 +88,25 @@ probe:
   after:  { total: 50, form_one: 0,  human_ratio: 1.0 }
   verdict: "SC-001 통과 (형태(1) 0건) · SC-001a 통과 (0.0% → 100.0%)"
 
+rollback_rehearsal:
+  date: 2026-08-23
+  clause: FR-007a / T026 Step 2
+  before: { rows: 5888, semantic: 2112 }
+  after:  { rows: 30002, episodic: 3463, procedural: 249, semantic: 26226, working: 64 }
+  checks: "cmp 결과 백업과 바이트 동일 · quick_check ok · fts 30002 = memory_item · kg_triple 24261"
+  note: |
+    memory_item_vec 는 세지 못했다 — openReadonly 는 vec0 확장을 붙이지 않는다.
+    파일이 백업과 바이트 동일하므로 vec 도 필연적으로 동일하다.
+
+sidecar_gate_fix:
+  clause: FR-007c
+  before: "-wal·-shm 이 존재하면 중단"
+  after:  "백업의 -wal 이 비어 있지 않으면 중단 (-shm 은 신호 아님)"
+  why: |
+    SQLite 는 읽기 전용으로 한 번만 열어도 sidecar 를 만든다. FR-007b 의 구동 검증이
+    바로 그렇게 하므로, 존재를 실패로 보면 정상 백업이 게이트에 걸린다.
+    비어 있지 않은 -wal 만 위험 신호다 — 부분 복사이거나, 백업 후 누가 붙어서 썼다는 뜻.
+
 next_action: |
   T021 라이브 실행만 남았다. 선행 조건 모두 충족:
   ✅ 백업 (크기 비율 1.0000)
@@ -98,3 +117,7 @@ next_action: |
   남은 것: 서버 정지 → execute → cleanup --from execute → vacuum → 재기동.
   정지 창구는 리허설 실측 300.6초 + 재집계 + VACUUM 를 근거로 잡는다.
   실행은 사람의 명시적 승인이 필요하다.
+
+  주의: 백업 이후 라이브가 계속 자라고 있다 (2026-08-23 17:34 기준 553,254,912 바이트,
+  백업 시점 552,050,688). 서버가 붙어 쓰는 중이므로 실행 시점에 백업을 다시 뜨고
+  QUARANTINE_EXPECTED_TARGETS 를 재집계해야 한다. 24,113 은 2026-08-23 오전 값이다.

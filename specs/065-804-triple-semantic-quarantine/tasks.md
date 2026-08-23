@@ -2979,7 +2979,7 @@ graphify 게이트는 **비적용**이다(plan.md Constitution Check). `packages
 `npm run memory:quarantine-065 -- <command>` 를 만들었다. **빌드 선행이 필요하므로 npm script
 경로가 정답이다.** `quickstart.md` 와 `contracts/runner-cli.md` 의 호출 예시를 갱신한다.
 
-- [ ] **Step 2: 롤백 절차를 사본으로 리허설한다 (FR-007a)**
+- [x] **Step 2: 롤백 절차를 사본으로 리허설한다 (FR-007a)** — 2026-08-23 완료
 
 ```bash
 cp /tmp/quarantine-copy-b.db /tmp/rollback-target.db
@@ -2988,6 +2988,14 @@ cp "$BACKUP" /tmp/rollback-target.db
 sqlite3 /tmp/rollback-target.db "SELECT type, COUNT(*) FROM memory_item GROUP BY type;"
 ```
 Expected: 격리 전 건수와 일치
+
+실측: 격리 후 상태 5,888행(semantic 2,112)에 사본 A를 덮어쓰니 **30,002행**
+(episodic 3,463 · procedural 249 · semantic 26,226 · working 64)이 그대로 돌아왔다.
+`cmp` 결과 백업과 **바이트 동일**, `quick_check ok`, `memory_item_fts` 30,002 = `memory_item`,
+`kg_triple` 24,261, `memory_embedding` 28,562. 리허설 후 임시 파일은 삭제했다.
+
+`memory_item_vec` 는 세지 못했다 — `openReadonly` 는 `vec0` 확장을 붙이지 않는다.
+파일이 백업과 바이트 동일하므로 vec 테이블도 필연적으로 동일하다.
 
 - [x] **Step 3: 커밋**
 
@@ -3000,7 +3008,7 @@ git commit -m "docs(065): align runner invocation examples with the npm script"
 
 ### T027 [P] 본문 유출 최종 확인 (SC-007b)
 
-- [ ] **Step 1: 커밋된 파일에 기억 본문이 없는지 확인한다**
+- [x] **Step 1: 커밋된 파일에 기억 본문이 없는지 확인한다** — 추적·이력 모두 0건
 
 ```bash
 git status --porcelain
@@ -3008,9 +3016,13 @@ git log --oneline -20 --name-only | grep -E 'quarantine-065|\.local/' || echo "�
 ```
 Expected: `.local/quarantine-065/` 아래 파일이 하나도 추적되지 않는다
 
-- [ ] **Step 2: 공개 문서에 집계만 실렸는지 확인한다**
+- [x] **Step 2: 공개 문서에 집계만 실렸는지 확인한다** — 예외 1건을 남기고 통과
 
 spec·plan·tasks·이슈·PR 본문에 기억 **본문**이 아니라 건수·분포·ID·해시만 있는지 본다.
+
+**예외**: `spec.md:23-25` 의 템플릿 문장 3줄은 남긴다. 이슈 #804 본문에서 그대로 옮긴 것이고,
+파이프라인이 생성한 조각이라 사람이 쓴 기억이 아니며, 이것이 없으면 문제 정의가 성립하지 않는다.
+FR-006b 가 막으려는 것은 표본 A 50건 같은 **사람이 쓴 본문**이다.
 
 ---
 
@@ -3018,18 +3030,18 @@ spec·plan·tasks·이슈·PR 본문에 기억 **본문**이 아니라 건수·�
 
 이 작업의 범위 밖이지만 실측으로 드러난 것들이다.
 
-- [ ] **Step 1: 폴백률 급증 이슈를 연다**
+- [x] **Step 1: 폴백률 급증 이슈를 연다** — #813
 
 재조립 실패율 2026-05 0.0% → 08 **11.6%**. 원인은 predicate 의 마지막 글자가 한글이 아니거나
 구(句) 형태인 것(`triple-sentence.ts:18-19`). 격리 이후에도 계속 쌓이므로 FR-001b 의 제외 근거가
 언제까지 유효한지를 좌우한다. #805 와 묶어 판단한다.
 
-- [ ] **Step 2: `backups/` 누적 이슈를 연다**
+- [x] **Step 2: `backups/` 누적 이슈를 연다** — #814
 
 6,899개 · 5.0GB. 이 중 6,880개는 `backup-manager.ts` 의 **마이그레이션 백업**이고 `db:backup`
 산출물이 아니다. 0바이트 파일과 `-wal`/`-shm` 잔재가 남는 이유도 함께 본다.
 
-- [ ] **Step 3: 재추출 복구 경로를 문서로 남긴다 (FR-006l)**
+- [x] **Step 3: 재추출 복구 경로를 문서로 남긴다 (FR-006l)** — [recovery.md](./recovery.md)
 
 `relations.jsonl` 의 `extracted_from` 반대편이 출처 episodic ID 다. 재추출이 필요해지면 그
 목록으로 `triple_extracted` 를 리셋한다. **선행 조건**: #805(재오염 차단)와 재조립 실패 원인 해소.
