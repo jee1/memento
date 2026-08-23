@@ -209,6 +209,25 @@ describe('MigrationRunner', () => {
       expect(table).toBeUndefined();
     });
 
+    it('does not begin migration work when backup creation validation fails', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockRejectedValue(new Error('backup-integrity-failed'));
+      const up = vi.fn(async (database: Database.Database) => {
+        database.exec('CREATE TABLE should_not_exist (id TEXT PRIMARY KEY)');
+      });
+
+      try {
+        const result = await runner.runMigration(testMigrationWithUp(up), { validate: false });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('backup-integrity-failed');
+        expect(up).not.toHaveBeenCalled();
+        expect(db.inTransaction).toBe(false);
+      } finally {
+        create.mockRestore();
+      }
+    });
+
     it('runs retention cleanup after a successful backup without blocking migration on report failure', async () => {
       const manager = runner.getBackupManager();
       const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
