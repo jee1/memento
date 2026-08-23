@@ -1,5 +1,9 @@
 #!/usr/bin/env node
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { isMain } from './lib/cli.js';
+import { assertAbsoluteDbPath, openReadonly, QuarantineGateError } from './lib/quarantine-gates.js';
+import { buildDryRunReport, resolveOutDir } from './lib/quarantine-report.js';
 /**
  * #804: triple 추출 파이프라인이 만든 템플릿 문장 semantic 을 기존 forget 도구로 격리한다.
  *
@@ -62,11 +66,31 @@ export function parseOptions(argv: string[]): Options {
 
 async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
-  console.log(`[quarantine-065] ${options.command} (구현 예정)`);
+  const dbPath = assertAbsoluteDbPath(process.env.DB_PATH);
+  const outDir = resolveOutDir(options.out, process.cwd());
+  mkdirSync(outDir, { recursive: true });
+
+  if (options.command === 'report') {
+    const db = openReadonly(dbPath);
+    try {
+      const file = join(outDir, 'dry-run-report.md');
+      writeFileSync(file, buildDryRunReport(db, { sampleSize: options.sampleSize }), 'utf8');
+      console.log(`[quarantine-065] 리포트: ${file}`);
+    } finally {
+      db.close();
+    }
+    return;
+  }
+
+  throw new Error(`아직 구현되지 않은 명령: ${options.command}`);
 }
 
 if (isMain(import.meta.url)) {
   main().catch((error: unknown) => {
+    if (error instanceof QuarantineGateError) {
+      console.error(`[중단] ${error.message}`);
+      process.exit(error.code);
+    }
     console.error(error);
     process.exit(1);
   });
