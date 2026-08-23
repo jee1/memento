@@ -45,9 +45,10 @@ describe('buildDryRunReport (FR-003, SC-003b·003c)', () => {
     const report = buildDryRunReport(db, { sampleSize: 50 });
 
     for (const heading of [
-      '## 대상 건수', '## 본문 형태 분포', '## 오탐 전수 검증', '## 표본 A',
-      '## 귀속 분포', '## kg_triple 보존', '## 연쇄 영향', '## 형태 (2) 월별 추이',
-      '## 격리 제외 pinned',
+      '## 대상 건수', '## importance 구간 분포', '## 본문 형태 분포',
+      '## 백필 버스트 구간 분리', '## 오탐 전수 검증', '## 표본 A', '## 코퍼스 대조',
+      '## 귀속 분포', '## kg_triple 보존', '## 형태 (2) 원본 생존', '## 연쇄 영향',
+      '## 형태 (2) 월별 추이', '## 격리 제외 pinned',
     ]) {
       expect(report).toContain(heading);
     }
@@ -85,6 +86,21 @@ describe('exportRelations (FR-006i, SC-005c)', () => {
       target_id: 'mem_t', relation_type: 'extracted_from', other_id: 'mem_src', other_type: 'episodic',
     });
     expect(readFileSync(file, 'utf8')).not.toContain('사람이 쓴 원문');
+    db.close();
+  });
+});
+
+describe('buildDryRunReport 누락 방지 (I-1 회귀)', () => {
+  it('FK 가 없는 memory_forgetting_event 의 고아 수를 연쇄 영향 절에 포함한다 (FR-006d)', () => {
+    const db = createFixtureDb();
+    insertMemory(db, { id: 'mem_t', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    db.prepare("INSERT INTO memory_forgetting_event (id, memory_id, action) VALUES (1,'mem_t','review')").run();
+
+    const report = buildDryRunReport(db, { sampleSize: 50 });
+
+    expect(report).toContain('memory_forgetting_event');
+    expect(report).toMatch(/memory_forgetting_event.*FK 없음.*1/s);
     db.close();
   });
 });

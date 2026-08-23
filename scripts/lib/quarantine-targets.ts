@@ -276,3 +276,109 @@ export function cascadeImpact(db: CliDatabase): Array<{
     return { table: ref.table_name, column: ref.column_name, onDelete: ref.on_delete, rows: row.n };
   });
 }
+
+/** FR-004 (a): 대상이 episodic·procedural 집합과 겹치지 않음을 코퍼스 수준으로 확인한다. */
+export function corpusOverlap(db: CliDatabase): {
+  targets: number; episodic: number; procedural: number; overlap: number;
+} {
+  const row = db.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM memory_item WHERE ${TARGET_WHERE}) AS targets,
+      (SELECT COUNT(*) FROM memory_item WHERE type = 'episodic') AS episodic,
+      (SELECT COUNT(*) FROM memory_item WHERE type = 'procedural') AS procedural,
+      (SELECT COUNT(*) FROM memory_item
+        WHERE type IN ('episodic', 'procedural')
+          AND id IN (SELECT id FROM memory_item WHERE ${TARGET_WHERE})) AS overlap
+  `).get() as { targets: number; episodic: number; procedural: number; overlap: number };
+  return row;
+}
+
+/**
+ * FR-004c: 형태 (2) 는 본문이 원본 episodic 사본이므로 content 일치로 대조할 수 있다.
+ * 앞 80자를 쓰는 이유는 원본이 이후 수정됐을 수 있기 때문이다.
+ */
+export function fallbackOriginSurvival(db: CliDatabase): {
+  total: number; survived: number; orphanIds: string[];
+} {
+  const rows = db.prepare(`
+    SELECT
+      m.id AS id,
+      EXISTS (
+        SELECT 1 FROM memory_item e
+        WHERE e.type = 'episodic'
+          AND (e.content = m.content OR substr(e.content, 1, 80) = substr(m.content, 1, 80))
+      ) AS survived
+    FROM memory_item m
+    WHERE m.type = 'semantic'
+      AND m.subject IS NOT NULL AND m.subject <> ''
+      AND m.id NOT IN (
+        SELECT id FROM memory_item
+        WHERE ${FORM_UNIVERSE} AND ((${FORM_ONE_EXPR}) OR (${FORM_THREE_EXPR}))
+      )
+    ORDER BY m.id
+  `).all() as Array<{ id: string; survived: number }>;
+
+  return {
+    total: rows.length,
+    survived: rows.filter((row) => row.survived === 1).length,
+    orphanIds: rows.filter((row) => row.survived !== 1).map((row) => row.id),
+  };
+}
+
+/**
+ * FR-006d: memory_forgetting_event 는 FK 가 없어 cascadeImpact 의
+ * pragma_foreign_key_list 로는 구조적으로 잡히지 않는다. 별도로 센다.
+ */
+export function orphanForgettingEvents(db: CliDatabase): number {
+  const exists = db.prepare(`
+    SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'memory_forgetting_event'
+  `).get() as { n: number };
+  if (exists.n === 0) {
+    return 0;
+  }
+  const row = db.prepare(`
+    SELECT COUNT(*) AS n FROM memory_forgetting_event
+    WHERE memory_id IN (SELECT id FROM memory_item WHERE ${TARGET_WHERE})
+  `).get() as { n: number };
+  return row.n;
+}
+
+/** 에픽 #803 의 백필이 돌던 구간. 시기 조건은 판별식에 넣지 않고 보고로만 쓴다 (FR-002c). */
+const BURST_MONTHS = ['2026-04', '2026-05'];
+
+export interface BurstSplit {
+  interval: string;
+  total: number;
+  one: number;
+  two: number;
+  three: number;
+}
+
+/** FR-002b·SC-003b: 구간 안/밖으로 나눈 건수와 구간별 형태 분포. 새로운 편중을 감시한다. */
+export function burstIntervalSplit(db: CliDatabase): BurstSplit[] {
+  const rows = db.prepare(`
+    SELECT
+      CASE WHEN substr(created_at, 1, 7) IN (${BURST_MONTHS.map(() => '?').join(',')})
+           THEN 'in' ELSE 'out' END AS bucket,
+      COUNT(*) AS total,
+      SUM(CASE WHEN ${FORM_ONE_EXPR} THEN 1 ELSE 0 END) AS one,
+      SUM(CASE WHEN ${FORM_THREE_EXPR} THEN 1 ELSE 0 END) AS three
+    FROM memory_item
+    WHERE ${FORM_UNIVERSE}
+    GROUP BY bucket
+  `).all(...BURST_MONTHS) as Array<{ bucket: string; total: number; one: number | null; three: number | null }>;
+
+  return (['in', 'out'] as const).map((bucket) => {
+    const row = rows.find((candidate) => candidate.bucket === bucket);
+    const total = row?.total ?? 0;
+    const one = row?.one ?? 0;
+    const three = row?.three ?? 0;
+    return {
+      interval: bucket === 'in' ? '구간 안 (2026-04·05)' : '구간 밖',
+      total,
+      one,
+      three,
+      two: total - one - three,
+    };
+  });
+}

@@ -9,9 +9,10 @@ import { dirname, join, resolve, sep } from 'node:path';
 import type { CliDatabase } from './cli.js';
 import { QuarantineGateError } from './quarantine-gates.js';
 import {
-  attributionCounts, cascadeImpact, classifyForms, countTargets, crossVerifyTargets,
-  fallbackTrendByMonth, importanceBuckets, kgPredicateNormalization, kgPreservation,
-  listPreservedFormIds, pinnedCandidates, sampleTargets, TARGET_WHERE,
+  attributionCounts, burstIntervalSplit, cascadeImpact, classifyForms, corpusOverlap, countTargets,
+  crossVerifyTargets, fallbackOriginSurvival, fallbackTrendByMonth, importanceBuckets,
+  kgPredicateNormalization, kgPreservation, listPreservedFormIds, orphanForgettingEvents,
+  pinnedCandidates, sampleTargets, TARGET_WHERE,
 } from './quarantine-targets.js';
 
 /**
@@ -49,6 +50,9 @@ export function buildDryRunReport(db: CliDatabase, options: { sampleSize: number
   const attribution = attributionCounts(db);
   const pinned = pinnedCandidates(db);
   const preserved = listPreservedFormIds(db);
+  const overlap = corpusOverlap(db);
+  const origins = fallbackOriginSurvival(db);
+  const orphanEvents = orphanForgettingEvents(db);
 
   return [
     '# dry-run 리포트 — 자동 triple semantic 격리 (#804)',
@@ -62,6 +66,10 @@ export function buildDryRunReport(db: CliDatabase, options: { sampleSize: number
     '> `recall_count` 주의(FR-001f): `remember` 로 만든 기억은 1에서, `createSemanticMemory` 는',
     '> 이 컬럼을 INSERT 에 넣지 않아 0에서 시작한다. 두 값을 직접 비교하면 착시가 생긴다.',
     '',
+    '## importance 구간 분포',
+    '',
+    table(['구간', '건수'], importanceBuckets(db).map((row) => [row.bucket, row.count])),
+    '',
     '## 본문 형태 분포',
     '',
     table(['형태', '건수', '처리'], [
@@ -72,6 +80,13 @@ export function buildDryRunReport(db: CliDatabase, options: { sampleSize: number
     ]),
     '',
     `보존되는 형태 (2)(3) ID ${preserved.length}건: ${preserved.join(', ') || '없음'}`,
+    '',
+    '## 백필 버스트 구간 분리',
+    '',
+    table(['구간', '합계', '(1) 템플릿', '(2) 폴백', '(3) 조인'],
+      burstIntervalSplit(db).map((row) => [row.interval, row.total, row.one, row.two, row.three])),
+    '',
+    '> 시기 조건은 판별식에 넣지 않는다(FR-002c). 이 표의 용도는 구간별 편중 감시다.',
     '',
     '## 오탐 전수 검증',
     '',
@@ -88,6 +103,17 @@ export function buildDryRunReport(db: CliDatabase, options: { sampleSize: number
     sampleTargets(db, options.sampleSize)
       .map((row, index) => `${index + 1}. \`${row.id}\` (importance ${row.importance ?? 'NULL'})\n   - ${row.content}`)
       .join('\n') || '표본 없음',
+    '',
+    '## 코퍼스 대조',
+    '',
+    table(['집합', '건수'], [
+      ['격리 대상', overlap.targets],
+      ['episodic', overlap.episodic],
+      ['procedural', overlap.procedural],
+      ['**교집합**', overlap.overlap],
+    ]),
+    '',
+    overlap.overlap === 0 ? '교집합 0 — 보존 대상이 섞이지 않았다' : '**교집합이 0이 아니다 — 중단**',
     '',
     '## 귀속 분포',
     '',
@@ -106,10 +132,24 @@ export function buildDryRunReport(db: CliDatabase, options: { sampleSize: number
     `predicate 정규화: 한글 종결 ${predicate.hangulEnding}/${predicate.total} · `
       + `공백 포함 ${predicate.withSpace} · 평균 ${predicate.avgLength.toFixed(1)}자`,
     '',
+    '## 형태 (2) 원본 생존',
+    '',
+    `${origins.survived}/${origins.total} 건이 동일 본문(또는 앞 80자 일치) episodic 을 가진다.`,
+    '',
+    origins.orphanIds.length === 0
+      ? '원본 없는 행 없음'
+      : `원본 없는 행 ${origins.orphanIds.length}건: ${origins.orphanIds.join(', ')}`,
+    '',
     '## 연쇄 영향',
     '',
-    table(['테이블', '컬럼', 'ON DELETE', '행 수'],
-      cascadeImpact(db).map((row) => [row.table, row.column, row.onDelete, row.rows])),
+    table(['테이블', '컬럼', 'ON DELETE', '행 수'], [
+      ...cascadeImpact(db).map((row) => [row.table, row.column, row.onDelete, row.rows]),
+      // FK 가 없어 pragma_foreign_key_list 에 안 잡힌다. 러너가 cleanup 으로 직접 지운다.
+      ['memory_forgetting_event', 'memory_id', 'FK 없음 → cleanup', orphanEvents],
+    ]),
+    '',
+    '> `memory_forgetting_event` 는 FK 가 없어 자동 정리되지 않는다. `cleanup` 을 건너뛰고',
+    '> `vacuum` 하면 감소량이 이 행 수만큼 과소 보고된다(FR-010).',
     '',
     '## 형태 (2) 월별 추이',
     '',

@@ -8,7 +8,7 @@ import { appendJsonl } from './quarantine-report.js';
 import { countTargets } from './quarantine-targets.js';
 import {
   cleanupResidue, type ForgetFn, parseBatchResult, type ProgressRow, readDeletedIds,
-  compareProbes, type ProbeEntry, runQuarantine, vacuumAndMeasure,
+  compareProbes, createForgetFn, type ProbeEntry, runQuarantine, vacuumAndMeasure,
 } from './quarantine-run.js';
 
 let dir: string;
@@ -151,23 +151,14 @@ describe('runQuarantine (FR-005, FR-005b, SC-006a)', () => {
 });
 
 describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
-  function createResidueDb(): Database.Database {
-    const db = createFixtureDb();
-    db.exec(`
-      CREATE TABLE event_outbox (
-        id INTEGER PRIMARY KEY, event_type TEXT, target_uri TEXT,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE TABLE memory_forgetting_event (id INTEGER PRIMARY KEY, memory_id TEXT, action TEXT);
-    `);
-    return db;
-  }
+  // event_outbox · memory_forgetting_event 는 픽스처가 라이브 스키마대로 만든다.
+  const createResidueDb = createFixtureDb;
 
   it('격리된 ID 의 memory.forgotten 만 지운다 (SC-005a)', () => {
     const db = createResidueDb();
-    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (1,'memory.forgotten','memento://default/memory/mem_gone')").run();
-    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (2,'memory.forgotten','memento://default/memory/mem_other')").run();
-    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (3,'memory.created','memento://default/memory/mem_gone')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri, payload_json, idempotency_key) VALUES ('1','memory.forgotten','memento://default/memory/mem_gone','{}','k1')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri, payload_json, idempotency_key) VALUES ('2','memory.forgotten','memento://default/memory/mem_other','{}','k2')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri, payload_json, idempotency_key) VALUES ('3','memory.created','memento://default/memory/mem_gone','{}','k3')").run();
 
     const result = cleanupResidue(db, { deletedIds: ['mem_gone'] });
 
@@ -180,7 +171,7 @@ describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
     // event_outbox.created_at 은 INSERT 컬럼 목록에 없어 'YYYY-MM-DD HH:MM:SS' 로 들어간다.
     // 운영자가 넘기는 date -Iseconds 는 'YYYY-MM-DDTHH:MM:SS+09:00' 이라 문자열 비교가 항상 거짓이었다.
     const db = createResidueDb();
-    db.prepare(`INSERT INTO event_outbox (id, event_type, target_uri) VALUES (1,'memory.forgotten','memento://default/memory/mem_gone')`).run();
+    db.prepare(`INSERT INTO event_outbox (id, event_type, target_uri, payload_json, idempotency_key) VALUES ('1','memory.forgotten','memento://default/memory/mem_gone','{}','k1')`).run();
     db.prepare("UPDATE event_outbox SET created_at = '2026-08-23 12:00:00'").run();
 
     expect(cleanupResidue(db, { deletedIds: ['mem_gone'] }).outbox).toBe(1);
@@ -189,8 +180,8 @@ describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
 
   it('ID 가 다른 ID 의 부분 문자열이어도 오삭제하지 않는다', () => {
     const db = createResidueDb();
-    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (1,'memory.forgotten','memento://default/memory/mem_a1')").run();
-    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (2,'memory.forgotten','memento://default/memory/mem_a12')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri, payload_json, idempotency_key) VALUES ('1','memory.forgotten','memento://default/memory/mem_a1','{}','k1')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri, payload_json, idempotency_key) VALUES ('2','memory.forgotten','memento://default/memory/mem_a12','{}','k2')").run();
 
     expect(cleanupResidue(db, { deletedIds: ['mem_a1'] }).outbox).toBe(1);
     expect(db.prepare("SELECT COUNT(*) AS n FROM event_outbox WHERE id = 2").get()).toEqual({ n: 1 });
@@ -199,8 +190,8 @@ describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
 
   it('격리된 ID 를 참조하는 forgetting_event 만 지운다 (SC-005b)', () => {
     const db = createResidueDb();
-    db.prepare("INSERT INTO memory_forgetting_event VALUES (1,'mem_gone','hard')").run();
-    db.prepare("INSERT INTO memory_forgetting_event VALUES (2,'mem_alive','review')").run();
+    db.prepare("INSERT INTO memory_forgetting_event (id, memory_id, action) VALUES (1,'mem_gone','hard')").run();
+    db.prepare("INSERT INTO memory_forgetting_event (id, memory_id, action) VALUES (2,'mem_alive','review')").run();
 
     const result = cleanupResidue(db, { deletedIds: ['mem_gone'] });
 
@@ -288,5 +279,50 @@ describe('compareProbes (SC-001, SC-001a)', () => {
 
   it('반환이 0건이면 비율을 0 으로 둔다', () => {
     expect(compareProbes([], []).humanRatioBefore).toBe(0);
+  });
+});
+
+describe('createForgetFn 통합 (I-3: 실제 forget 도구 경유)', () => {
+  it('executeTool 로 ForgetTool 에 도달해 실제로 지우고 연쇄를 남기지 않는다', async () => {
+    const db = createFixtureDb();
+    insertMemory(db, { id: 'mem_real', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    db.prepare("INSERT INTO memory_item_tag VALUES ('mem_real','triple')").run();
+    db.prepare("INSERT INTO memory_embedding (memory_id) VALUES ('mem_real')").run();
+
+    const forget = createForgetFn(db);
+    const outcome = await forget(['mem_real']);
+
+    expect(outcome.successful).toEqual(['mem_real']);
+    expect(outcome.failed).toEqual([]);
+    expect(countTargets(db)).toBe(0);
+    // FK CASCADE 가 실제로 돌았는지 — PRAGMA foreign_keys 가 꺼져 있으면 여기서 깨진다
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item_tag').get()).toEqual({ n: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_embedding').get()).toEqual({ n: 0 });
+    db.close();
+  });
+
+  it('forget 이 적재한 outbox 행을 cleanupResidue 가 실제로 지운다', async () => {
+    // event_outbox 는 MEMENTO_EVENT_OUTBOX_ENABLED=true 일 때만 적재된다 (기본 off).
+    // 라이브 event_outbox 가 0행인 것도 이 때문이다 — FR-009a 는 이 플래그가 켜진 배포에서만 의미가 있다.
+    const previous = process.env.MEMENTO_EVENT_OUTBOX_ENABLED;
+    process.env.MEMENTO_EVENT_OUTBOX_ENABLED = 'true';
+    const db = createFixtureDb();
+    insertMemory(db, { id: 'mem_real', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+
+    await createForgetFn(db)(['mem_real']);
+
+    const before = db.prepare("SELECT COUNT(*) AS n FROM event_outbox WHERE event_type='memory.forgotten'").get();
+    expect(before).toEqual({ n: 1 });
+
+    expect(cleanupResidue(db, { deletedIds: ['mem_real'] }).outbox).toBe(1);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM event_outbox').get()).toEqual({ n: 0 });
+    db.close();
+    if (previous === undefined) {
+      delete process.env.MEMENTO_EVENT_OUTBOX_ENABLED;
+    } else {
+      process.env.MEMENTO_EVENT_OUTBOX_ENABLED = previous;
+    }
   });
 });

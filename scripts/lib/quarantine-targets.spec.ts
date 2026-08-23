@@ -3,7 +3,8 @@ import { createFixtureDb, insertMemory } from './quarantine-fixture.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   attributionCounts, classifyForms, countTargets, crossVerifyTargets, fallbackTrendByMonth,
-  importanceBuckets, kgPredicateNormalization, kgPreservation, listPreservedFormIds, listTargetIds,
+  burstIntervalSplit, corpusOverlap, fallbackOriginSurvival, importanceBuckets,
+  kgPredicateNormalization, kgPreservation, listPreservedFormIds, listTargetIds, orphanForgettingEvents,
   pinnedCandidates, sampleTargets,
 } from './quarantine-targets.js';
 
@@ -200,5 +201,66 @@ describe('kg_triple 보존 대조 (FR-004 b, SC-004a)', () => {
     const metrics = kgPredicateNormalization(db);
     expect(metrics.total).toBe(2);
     expect(metrics.hangulEnding).toBe(1);
+  });
+});
+
+describe('코퍼스 대조 (FR-004 a)', () => {
+  it('대상과 episodic·procedural 의 교집합이 0 임을 센다', () => {
+    insertMemory(db, { id: 'mem_t', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    insertMemory(db, { id: 'mem_e', type: 'episodic', content: '사람이 쓴 기록' });
+    insertMemory(db, { id: 'mem_p', type: 'procedural', content: '절차' });
+
+    expect(corpusOverlap(db)).toEqual({ targets: 1, episodic: 1, procedural: 1, overlap: 0 });
+  });
+});
+
+describe('형태 (2) 원본 생존 대조 (FR-004c)', () => {
+  it('본문 앞 80자가 일치하는 episodic 이 있으면 생존으로 센다', () => {
+    insertMemory(db, { id: 'mem_f2', subject: '러너', predicate: 'x', object: 'y',
+      content: '어제 회의에서 러너 실행 순서를 다시 정리했다' });
+    insertMemory(db, { id: 'mem_src', type: 'episodic',
+      content: '어제 회의에서 러너 실행 순서를 다시 정리했다' });
+
+    expect(fallbackOriginSurvival(db)).toEqual({ total: 1, survived: 1, orphanIds: [] });
+  });
+
+  it('원본이 없으면 ID 를 남긴다', () => {
+    insertMemory(db, { id: 'mem_f2', subject: '러너', predicate: 'x', object: 'y',
+      content: '원본이 사라진 폴백 본문' });
+
+    expect(fallbackOriginSurvival(db)).toEqual({ total: 1, survived: 0, orphanIds: ['mem_f2'] });
+  });
+});
+
+describe('고아가 될 forgetting_event (FR-006d)', () => {
+  it('FK 가 없어 cascadeImpact 가 못 보는 행을 따로 센다', () => {
+    insertMemory(db, { id: 'mem_t', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    db.prepare("INSERT INTO memory_forgetting_event (id, memory_id, action) VALUES (1,'mem_t','review')").run();
+    db.prepare("INSERT INTO memory_forgetting_event (id, memory_id, action) VALUES (2,'mem_t','review')").run();
+    db.prepare("INSERT INTO memory_forgetting_event (id, memory_id, action) VALUES (3,'mem_alive','review')").run();
+
+    expect(orphanForgettingEvents(db)).toBe(2);
+  });
+
+  it('참조 행이 없으면 0 을 준다', () => {
+    expect(orphanForgettingEvents(db)).toBe(0);
+  });
+});
+
+describe('백필 버스트 구간 분리 (FR-002b, SC-003b)', () => {
+  it('2026-04·05 안과 밖을 나눠 형태별로 센다', () => {
+    insertMemory(db, { id: 'mem_in', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', created_at: '2026-04-10T00:00:00Z' });
+    insertMemory(db, { id: 'mem_out1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', created_at: '2026-08-10T00:00:00Z' });
+    insertMemory(db, { id: 'mem_out2', subject: '러너', predicate: 'x', object: 'y',
+      content: '사람이 쓴 원문', created_at: '2026-08-11T00:00:00Z' });
+
+    expect(burstIntervalSplit(db)).toEqual([
+      { interval: '구간 안 (2026-04·05)', total: 1, one: 1, two: 0, three: 0 },
+      { interval: '구간 밖', total: 2, one: 1, two: 1, three: 0 },
+    ]);
   });
 });
