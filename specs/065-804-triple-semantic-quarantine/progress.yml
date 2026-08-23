@@ -1,0 +1,63 @@
+# /speckit.superspec.execute 실행 상태
+feature: 065-804-triple-semantic-quarantine
+updated: 2026-08-23
+branch: jee1/chore-memory-triple-semantic-23-664-dry-run
+
+phases:
+  - id: 1
+    name: Setup
+    status: done
+    tasks: [T001, T002]
+  - id: 2
+    name: Foundational
+    status: done
+    tasks: [T003, T004, T005]
+  - id: 3
+    name: "US1 — dry-run (P1, MVP)"
+    status: done
+    tasks: [T006, T007, T008, T009, T010, T011, T012, T013]
+    note: |
+      T013 라이브 dry-run 실행 완료 (읽기 전용). 라이브 무변경 확인.
+      표본 A 50건 중 에이전트 육안 확인 10건 통과, 나머지 40건은 사람 검토 대기.
+  - id: 4
+    name: "US2 — 실행 러너 (P2)"
+    status: code-done
+    tasks_done: [T014, T015, T016, T017, T018]
+    tasks_blocked: [T019, T020, T021]
+    note: |
+      러너 코드는 완성. T019(백업·사본 A 구동 검증)·T020(사본 B 리허설)·T021(라이브 실행)은
+      운영자 승인 게이트이며 미실행.
+  - id: 5
+    name: "US3 — 검증 (P3)"
+    status: code-done
+    tasks_done: [T022]
+    tasks_blocked: [T023, T024]
+    note: T023(프로브)은 T021의 선행 조건. 서버 구동이 필요해 미실행.
+  - id: 6
+    name: Polish
+    status: partial
+    tasks_done: [T025, T026]
+    tasks_blocked: [T027, T028]
+    note: T026 Step 2(롤백 리허설)는 백업이 필요해 미실행.
+
+quality_gates:
+  lint: "pass (0 errors, quarantine 파일 경고 0)"
+  type_check: pass
+  test: "pass (471 files / 5,012 tests)"
+  file_sizes: "pass (신규 10파일 최대 278줄, 임계 500)"
+  graphify: "비적용 — packages/ 무변경 (헌법 v1.2.0 IV)"
+
+measurements:
+  date: 2026-08-23
+  targets: 24113
+  cross_verify: "위치 비교 24113 = 이스케이프 LIKE 24113, subject 결여 0"
+  kg_preservation: "100.00% (24113/24113)"
+  form_counts: { one: 24113, two: 120, three: 0, universe: 24233 }
+  relations_exported: 54876
+  fallback_rate_2026_08: 0.116
+  pinned_candidates: 0
+  attribution: "project/owner/non-private/soft-deleted 전부 0"
+
+next_action: |
+  운영자 승인 후 T019 → T023 Step 2 → T020 → T023 Step 4·5 → T021 → T024 순서.
+  T023(before 프로브)이 T021의 선행 조건이다 — 게이트 12가 before.json 을 요구한다.
