@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const scriptPath = 'scripts/backup-memory-db.mjs';
@@ -116,7 +117,7 @@ FrozenDate.prototype = RealDate.prototype;
 globalThis.Date = FrozenDate;
 `);
 
-    const result = runBackup(dbPath, ['--import', freezeDatePath]);
+    const result = runBackup(dbPath, ['--import', pathToFileURL(freezeDatePath).href]);
 
     expect(result.status).toBe(1);
     const output = parseJson(result.stderr);
