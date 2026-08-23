@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildDryRunReport, appendJsonl, resolveOutDir } from './quarantine-report.js';
+import { appendJsonl, buildDryRunReport, exportRelations, resolveOutDir } from './quarantine-report.js';
 import { createFixtureDb, insertMemory } from './quarantine-fixture.js';
 
 let dir: string;
@@ -57,6 +57,34 @@ describe('buildDryRunReport (FR-003, SC-003b·003c)', () => {
   it('recall_count 출발값 차이를 주석으로 남긴다 (FR-001f)', () => {
     const db = createFixtureDb();
     expect(buildDryRunReport(db, { sampleSize: 50 })).toContain('createSemanticMemory');
+    db.close();
+  });
+});
+
+describe('exportRelations (FR-006i, SC-005c)', () => {
+  it('본문 없이 식별자만 한 줄씩 쓴다', () => {
+    const db = createFixtureDb();
+    db.exec(`
+      CREATE TABLE memory_relation (
+        source_id TEXT REFERENCES memory_item(id) ON DELETE CASCADE,
+        target_id TEXT REFERENCES memory_item(id) ON DELETE CASCADE,
+        relation_type TEXT
+      )
+    `);
+    insertMemory(db, { id: 'mem_t', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    insertMemory(db, { id: 'mem_src', type: 'episodic', content: '사람이 쓴 원문' });
+    db.prepare("INSERT INTO memory_relation VALUES ('mem_t','mem_src','extracted_from')").run();
+
+    const file = join(dir, 'relations.jsonl');
+    const summary = exportRelations(db, file);
+
+    expect(summary).toEqual({ rows: 1, byType: { extracted_from: 1 } });
+    const line = JSON.parse(readFileSync(file, 'utf8').trim());
+    expect(line).toEqual({
+      target_id: 'mem_t', relation_type: 'extracted_from', other_id: 'mem_src', other_type: 'episodic',
+    });
+    expect(readFileSync(file, 'utf8')).not.toContain('사람이 쓴 원문');
     db.close();
   });
 });

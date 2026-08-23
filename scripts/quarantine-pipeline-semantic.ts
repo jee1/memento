@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isMain } from './lib/cli.js';
 import { assertAbsoluteDbPath, openReadonly, QuarantineGateError } from './lib/quarantine-gates.js';
-import { buildDryRunReport, resolveOutDir } from './lib/quarantine-report.js';
+import { buildDryRunReport, exportRelations, resolveOutDir } from './lib/quarantine-report.js';
 /**
  * #804: triple 추출 파이프라인이 만든 템플릿 문장 semantic 을 기존 forget 도구로 격리한다.
  *
@@ -76,6 +76,19 @@ async function main(): Promise<void> {
       const file = join(outDir, 'dry-run-report.md');
       writeFileSync(file, buildDryRunReport(db, { sampleSize: options.sampleSize }), 'utf8');
       console.log(`[quarantine-065] 리포트: ${file}`);
+    } finally {
+      db.close();
+    }
+    return;
+  }
+
+  if (options.command === 'export-relations') {
+    const db = openReadonly(dbPath);
+    try {
+      const file = join(outDir, 'relations.jsonl');
+      const summary = exportRelations(db, file);
+      console.log(`[quarantine-065] 관계 ${summary.rows}행 → ${file}`);
+      console.log(JSON.stringify(summary.byType, null, 2));
     } finally {
       db.close();
     }

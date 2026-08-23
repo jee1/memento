@@ -4,14 +4,14 @@
  * 표본에 기억 본문이 들어가므로 경로 규칙을 여기서 강제한다 (FR-006b).
  */
 
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import type { CliDatabase } from './cli.js';
 import { QuarantineGateError } from './quarantine-gates.js';
 import {
   attributionCounts, cascadeImpact, classifyForms, countTargets, crossVerifyTargets,
   fallbackTrendByMonth, importanceBuckets, kgPredicateNormalization, kgPreservation,
-  listPreservedFormIds, pinnedCandidates, sampleTargets,
+  listPreservedFormIds, pinnedCandidates, sampleTargets, TARGET_WHERE,
 } from './quarantine-targets.js';
 
 /**
@@ -121,4 +121,34 @@ export function buildDryRunReport(db: CliDatabase, options: { sampleSize: number
     pinned.length === 0 ? '없음' : pinned.map((id) => `- \`${id}\``).join('\n'),
     '',
   ].join('\n');
+}
+
+/**
+ * FR-006i: memory_relation 은 source·target 양쪽이 CASCADE 라 대상이 한쪽 끝인 관계가 전부 사라진다.
+ * 반대쪽 끝은 예외 없이 생존 기억이고 kg_triple 이 이 정보를 보존하지 않으므로,
+ * 이 내보내기가 유일한 복구 근거다 (FR-006l).
+ */
+export function exportRelations(db: CliDatabase, file: string): {
+  rows: number; byType: Record<string, number>;
+} {
+  const rows = db.prepare(`
+    SELECT r.source_id AS target_id, r.relation_type, r.target_id AS other_id, o.type AS other_type
+    FROM memory_relation r
+    JOIN memory_item o ON o.id = r.target_id
+    WHERE r.source_id IN (SELECT id FROM memory_item WHERE ${TARGET_WHERE})
+    UNION ALL
+    SELECT r.target_id AS target_id, r.relation_type, r.source_id AS other_id, o.type AS other_type
+    FROM memory_relation r
+    JOIN memory_item o ON o.id = r.source_id
+    WHERE r.target_id IN (SELECT id FROM memory_item WHERE ${TARGET_WHERE})
+  `).all() as Array<{ target_id: string; relation_type: string; other_id: string; other_type: string }>;
+
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length > 0 ? '\n' : ''), 'utf8');
+
+  const byType: Record<string, number> = {};
+  for (const row of rows) {
+    byType[row.relation_type] = (byType[row.relation_type] ?? 0) + 1;
+  }
+  return { rows: rows.length, byType };
 }
