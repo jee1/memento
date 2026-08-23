@@ -18,9 +18,12 @@ function normalizeCleanupError(error: unknown): { message: string; name: string 
   const masked = error instanceof Error
     ? PIIMasker.maskError(error)
     : { message: String(error), name: 'Error' };
+  const pathBasename = (path: string): string => basename(path.replace(/\\/g, '/'));
 
   return {
-    message: masked.message.replace(/\/[^\s'"]+/g, path => basename(path)),
+    message: masked.message
+      .replace(/(['"])([^'"]*[\\/][^'"]*)\1/g, (_match, quote: string, path: string) => `${quote}${pathBasename(path)}${quote}`)
+      .replace(/(?:[A-Za-z]:)?[\\/][^\s'"]*[\\/][^\s'"]+/g, path => pathBasename(path)),
     name: masked.name,
   };
 }
