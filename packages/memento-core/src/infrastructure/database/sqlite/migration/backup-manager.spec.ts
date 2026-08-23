@@ -7,45 +7,34 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BackupManager } from './backup-manager.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { existsSync, unlinkSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('BackupManager', () => {
   let db: Database.Database;
   let backupManager: BackupManager;
-  let testBackupsDir: string;
+  let testRoot: string;
+  let dbPath: string;
+  let backupsDir: string;
 
   beforeEach(async () => {
     db = await setupTestDatabase();
-    // 테스트용 백업 디렉토리
-    testBackupsDir = join(process.cwd(), 'data', 'test-backups');
-    backupManager = new BackupManager(testBackupsDir);
+    testRoot = mkdtempSync(join(tmpdir(), 'memento-backup-manager-'));
+    dbPath = join(testRoot, 'memory.db');
+    backupsDir = join(testRoot, 'backups');
+    backupManager = new BackupManager(backupsDir);
   });
 
-  afterEach(async () => {
-    // 비동기 작업이 완료될 때까지 대기
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+  afterEach(() => {
     // 데이터베이스 정리
     try {
-      await cleanupTestDatabase(db);
+      cleanupTestDatabase(db);
     } catch (error) {
       // 정리 실패는 무시
     }
-    
-    // 테스트 백업 파일 정리
-    try {
-      if (existsSync(testBackupsDir)) {
-        const files = require('fs').readdirSync(testBackupsDir);
-        for (const file of files) {
-          if (file.endsWith('.db')) {
-            unlinkSync(join(testBackupsDir, file));
-          }
-        }
-      }
-    } catch (error) {
-      // 정리 실패는 무시
-    }
+
+    rmSync(testRoot, { recursive: true, force: true });
   });
 
   describe('createBackup', () => {
@@ -63,7 +52,7 @@ describe('BackupManager', () => {
     it('존재하지 않는 백업 파일 복원 시 에러를 발생시켜야 함', async () => {
       // When & Then: 존재하지 않는 백업 파일 복원 시 에러 발생
       try {
-        await backupManager.restoreBackup('/nonexistent/backup.db', '/target/db.db');
+        await backupManager.restoreBackup('/nonexistent/backup.db', dbPath);
         // 에러가 발생하지 않으면 테스트 실패
         expect(true).toBe(false);
       } catch (error) {
@@ -81,7 +70,7 @@ describe('BackupManager', () => {
       // Then: 디렉토리 경로가 반환되어야 함
       expect(dir).toBeDefined();
       expect(typeof dir).toBe('string');
-      expect(dir).toBe(testBackupsDir);
+      expect(dir).toBe(backupsDir);
     });
   });
 
@@ -96,4 +85,3 @@ describe('BackupManager', () => {
     });
   });
 });
-
