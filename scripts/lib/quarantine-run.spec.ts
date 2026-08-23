@@ -8,7 +8,7 @@ import { appendJsonl } from './quarantine-report.js';
 import { countTargets } from './quarantine-targets.js';
 import {
   cleanupResidue, type ForgetFn, parseBatchResult, type ProgressRow, readDeletedIds,
-  runQuarantine, vacuumAndMeasure,
+  compareProbes, type ProbeEntry, runQuarantine, vacuumAndMeasure,
 } from './quarantine-run.js';
 
 let dir: string;
@@ -217,5 +217,45 @@ describe('vacuumAndMeasure (FR-010, SC-007)', () => {
     expect(result.before).toBeGreaterThan(result.after);
     expect(result.reclaimed).toBe(result.before - result.after);
     db.close();
+  });
+});
+
+describe('compareProbes (SC-001, SC-001a)', () => {
+  it('격리 후 형태 (1) 이 0건이면 통과로 본다', () => {
+    const before: ProbeEntry[] = [{
+      query: '검색 랭킹 공식', returned: [
+        { id: 'mem_t1', type: 'semantic', form: 1 },
+        { id: 'mem_e1', type: 'episodic', form: 0 },
+      ],
+    }];
+    const after: ProbeEntry[] = [{
+      query: '검색 랭킹 공식', returned: [
+        { id: 'mem_e1', type: 'episodic', form: 0 },
+        { id: 'mem_p1', type: 'procedural', form: 0 },
+      ],
+    }];
+
+    expect(compareProbes(before, after)).toEqual({
+      formOneAfter: 0,
+      humanRatioBefore: 0.5,
+      humanRatioAfter: 1,
+      humanRatioImproved: true,
+      passed: true,
+    });
+  });
+
+  it('형태 (1) 이 남아 있으면 실패로 본다', () => {
+    const probes: ProbeEntry[] = [{ query: 'q', returned: [{ id: 'mem_t', type: 'semantic', form: 1 }] }];
+    expect(compareProbes(probes, probes).passed).toBe(false);
+  });
+
+  it('보존된 형태 (2) 가 반환돼도 실패가 아니다 (SC-001 단서)', () => {
+    const before: ProbeEntry[] = [{ query: 'q', returned: [{ id: 'mem_t', type: 'semantic', form: 1 }] }];
+    const after: ProbeEntry[] = [{ query: 'q', returned: [{ id: 'mem_f2', type: 'semantic', form: 2 }] }];
+    expect(compareProbes(before, after).formOneAfter).toBe(0);
+  });
+
+  it('반환이 0건이면 비율을 0 으로 둔다', () => {
+    expect(compareProbes([], []).humanRatioBefore).toBe(0);
   });
 });

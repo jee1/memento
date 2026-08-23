@@ -148,3 +148,44 @@ export function vacuumAndMeasure(db: CliDatabase, dbPath: string): {
   const after = statSync(dbPath).size;
   return { before, after, reclaimed: before - after };
 }
+
+export interface ProbeEntry {
+  query: string;
+  returned: Array<{ id: string; type: string; form: 0 | 1 | 2 | 3 }>;
+}
+
+export interface ProbeComparison {
+  formOneAfter: number;
+  humanRatioBefore: number;
+  humanRatioAfter: number;
+  humanRatioImproved: boolean;
+  passed: boolean;
+}
+
+/** 사람이 쓴 기억 = episodic·procedural·triple 컬럼이 없는 semantic (form 0) */
+function humanRatio(entries: ProbeEntry[]): number {
+  const all = entries.flatMap((entry) => entry.returned);
+  if (all.length === 0) {
+    return 0;
+  }
+  return all.filter((row) => row.form === 0).length / all.length;
+}
+
+/**
+ * SC-001: 격리 후 형태 (1) 이 0건. 보존된 형태 (2)(3) 반환은 의도된 동작이므로 실패가 아니다.
+ * SC-001a: 사람이 쓴 기억의 비율 상승. 두 사본이 프로브를 1회씩만 받으므로 상승분은 격리 효과다.
+ */
+export function compareProbes(before: ProbeEntry[], after: ProbeEntry[]): ProbeComparison {
+  const formOneAfter = after.flatMap((entry) => entry.returned).filter((row) => row.form === 1).length;
+  const humanRatioBefore = humanRatio(before);
+  const humanRatioAfter = humanRatio(after);
+  const humanRatioImproved = humanRatioAfter > humanRatioBefore;
+
+  return {
+    formOneAfter,
+    humanRatioBefore,
+    humanRatioAfter,
+    humanRatioImproved,
+    passed: formOneAfter === 0 && humanRatioImproved,
+  };
+}
