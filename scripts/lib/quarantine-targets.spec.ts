@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { countTargets, listTargetIds } from './quarantine-targets.js';
+import {
+  classifyForms, countTargets, listPreservedFormIds, listTargetIds,
+} from './quarantine-targets.js';
 
 export function createFixtureDb(): Database.Database {
   const db = new Database(':memory:');
@@ -96,5 +98,33 @@ describe('격리 대상 판별식 (FR-001, FR-002i)', () => {
       content: '러너는forget를 호출합니다',
     });
     expect(countTargets(db)).toBe(0);
+  });
+});
+
+describe('본문 형태 분류 (FR-002f, FR-002g)', () => {
+  it('세 형태를 각각 센다', () => {
+    insertMemory(db, { id: 'mem_f1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    insertMemory(db, { id: 'mem_f2', subject: '러너', predicate: 'pragma()', object: 'forget',
+      content: '어제 회의에서 러너 실행 순서를 다시 정리했다' });
+    insertMemory(db, { id: 'mem_f3', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너 · 호출 · forget' });
+
+    expect(classifyForms(db)).toEqual({ total: 3, one: 1, two: 1, three: 1 });
+  });
+
+  it('pinned 도 모수에 넣는다 (제외 규모를 알기 위함)', () => {
+    insertMemory(db, { id: 'mem_f4', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', pinned: 1 });
+    expect(classifyForms(db).one).toBe(1);
+    expect(countTargets(db)).toBe(0);
+  });
+
+  it('보존되는 형태 (2)(3) 의 ID 를 남긴다 (SC-003c)', () => {
+    insertMemory(db, { id: 'mem_f2', subject: '러너', predicate: 'x', object: 'y',
+      content: '사람이 쓴 원문이 그대로 들어온 경우' });
+    insertMemory(db, { id: 'mem_f3', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너 · 호출 · forget' });
+    expect(listPreservedFormIds(db).sort()).toEqual(['mem_f2', 'mem_f3']);
   });
 });

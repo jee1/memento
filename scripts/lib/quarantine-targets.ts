@@ -28,3 +28,46 @@ export function listTargetIds(db: CliDatabase, limit?: number): string[] {
   const rows = (limit === undefined ? db.prepare(sql).all() : db.prepare(sql).all(limit)) as Array<{ id: string }>;
   return rows.map((row) => row.id);
 }
+
+/** 형태 분류의 모수: subject 를 가진 semantic 전체 (pinned 포함 — 제외 규모를 알아야 한다) */
+const FORM_UNIVERSE = `type = 'semantic' AND subject IS NOT NULL AND subject <> ''`;
+
+const FORM_ONE_EXPR = `
+  substr(content, 1, length(trim(subject))) = trim(subject)
+  AND substr(content, length(trim(subject)) + 2, 1) = ' '
+`;
+
+/** 형태 (3) 도 LIKE 가 아니라 등호 비교를 쓴다 (FR-002i) */
+const FORM_THREE_EXPR = `content = trim(subject) || ' · ' || trim(predicate) || ' · ' || trim(object)`;
+
+export interface FormCounts {
+  total: number;
+  one: number;
+  two: number;
+  three: number;
+}
+
+export function classifyForms(db: CliDatabase): FormCounts {
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN ${FORM_ONE_EXPR} THEN 1 ELSE 0 END) AS one,
+      SUM(CASE WHEN ${FORM_THREE_EXPR} THEN 1 ELSE 0 END) AS three
+    FROM memory_item
+    WHERE ${FORM_UNIVERSE}
+  `).get() as { total: number; one: number | null; three: number | null };
+
+  const one = row.one ?? 0;
+  const three = row.three ?? 0;
+  return { total: row.total, one, three, two: row.total - one - three };
+}
+
+/** FR-001b·SC-003c: 격리에서 제외되는 형태 (2)(3) 의 ID 목록 */
+export function listPreservedFormIds(db: CliDatabase): string[] {
+  const rows = db.prepare(`
+    SELECT id FROM memory_item
+    WHERE ${FORM_UNIVERSE} AND NOT (${FORM_ONE_EXPR})
+    ORDER BY id
+  `).all() as Array<{ id: string }>;
+  return rows.map((row) => row.id);
+}
