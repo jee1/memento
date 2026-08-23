@@ -274,6 +274,9 @@ describe('MigrationRunner', () => {
         expect(result.success).toBe(true);
         expect(up).toHaveBeenCalledOnce();
         expect(warn).toHaveBeenCalledWith('백업 보존 정리 미완료', {
+          mode: 'apply',
+          inspectedCount: 0,
+          selectedCount: 2,
           failedCount: 1,
           skippedCount: 1,
           artifacts: [
@@ -285,6 +288,46 @@ describe('MigrationRunner', () => {
             },
           ],
         });
+      } finally {
+        warn.mockRestore();
+        create.mockRestore();
+        cleanup.mockRestore();
+      }
+    });
+
+    it('logs scan-failed retention cleanup reports with a safe pathless summary and still runs the migration', async () => {
+      const manager = runner.getBackupManager();
+      const unsafeBackupDir = '/tmp/memento secret root/backups';
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db',
+        timestamp: new Date('2026-08-23T00:00:00.000Z'),
+        size: 4096,
+      });
+      const cleanup = vi.spyOn(manager, 'cleanupBackups').mockResolvedValue({
+        ...emptyApplyReport,
+        ok: false,
+        error: 'scan-failed',
+      });
+      const warn = vi.spyOn(logger, 'warn');
+      const up = vi.fn(async (database: Database.Database) => {
+        database.exec('CREATE TABLE IF NOT EXISTS cleanup_scan_failure (id TEXT PRIMARY KEY)');
+      });
+
+      try {
+        const result = await runner.runMigration(testMigrationWithUp(up), { validate: false });
+
+        expect(result.success).toBe(true);
+        expect(up).toHaveBeenCalledOnce();
+        expect(warn).toHaveBeenCalledWith('백업 보존 정리 미완료', {
+          error: 'scan-failed',
+          mode: 'apply',
+          inspectedCount: 0,
+          selectedCount: 0,
+          failedCount: 0,
+          skippedCount: 0,
+          artifacts: [],
+        });
+        expect(JSON.stringify(warn.mock.calls)).not.toContain(unsafeBackupDir);
       } finally {
         warn.mockRestore();
         create.mockRestore();

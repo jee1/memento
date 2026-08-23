@@ -102,6 +102,10 @@ export class MigrationRunner {
           });
           if (!cleanup.ok) {
             logger.warn('백업 보존 정리 미완료', {
+              ...(cleanup.error ? { error: cleanup.error } : {}),
+              mode: cleanup.mode,
+              inspectedCount: cleanup.inspectedCount,
+              selectedCount: cleanup.selectedCount,
               failedCount: cleanup.failedCount,
               skippedCount: cleanup.skippedCount,
               artifacts: cleanup.artifacts.filter(item => item.status !== 'deleted'),
