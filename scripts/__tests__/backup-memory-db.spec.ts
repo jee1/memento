@@ -132,4 +132,48 @@ globalThis.Date = FrozenDate;
     expect(readFileSync(existingBackup, 'utf8')).toBe('existing backup');
     expect(readdirSync(backupsDir).filter(name => /-wal$|-shm$|partial/.test(name))).toEqual([]);
   });
+
+  it('reports safe cleanup residue basenames when failed backup cleanup leaves a partial', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const injectResiduePath = join(root, 'inject-residue.mjs');
+    createDb(dbPath);
+    writeFileSync(injectResiduePath, `
+import { createRequire } from 'node:module';
+
+const require = createRequire(process.cwd() + '/package.json');
+const Database = require('better-sqlite3');
+const fs = require('node:fs');
+
+Database.prototype.backup = async function(target) {
+  fs.writeFileSync(target, 'partial backup residue');
+  throw new Error('injected backup failure');
+};
+
+const realUnlinkSync = fs.unlinkSync;
+fs.unlinkSync = function(target) {
+  if (String(target).includes('.memory-backup-partial-') && String(target).endsWith('.db')) {
+    const error = new Error('injected unlink failure');
+    error.code = 'EACCES';
+    throw error;
+  }
+  return realUnlinkSync.apply(this, arguments);
+};
+`);
+
+    const result = runBackup(dbPath, ['--import', pathToFileURL(injectResiduePath).href]);
+
+    expect(result.status).toBe(1);
+    const output = parseJson(result.stderr);
+    expect(output).toMatchObject({
+      ok: false,
+      stage: 'create-backup',
+      reason: 'backup-write-failed',
+    });
+    expect(output.residue).toEqual([
+      expect.stringMatching(/^\.memory-backup-partial-[0-9a-f-]+\.db$/),
+    ]);
+    expect(JSON.stringify(output)).not.toContain(root);
+    expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
 });

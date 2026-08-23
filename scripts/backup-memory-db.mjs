@@ -20,16 +20,23 @@ function resolveDbPath() {
   return path.join(os.homedir(), '.memento', 'data', 'memory.db');
 }
 
-function fail(stage, reason, hint) {
-  process.stderr.write(`${JSON.stringify({ ok: false, stage, reason, hint })}\n`);
+function fail(stage, reason, hint, details = {}) {
+  process.stderr.write(`${JSON.stringify({ ok: false, stage, reason, hint, ...details })}\n`);
   process.exit(1);
 }
 
-function safeBackupReason(error) {
+function safeBackupFailure(error) {
   if (!(error instanceof Error)) {
-    return 'backup-failed';
+    return { reason: 'backup-failed' };
   }
-  return error.message.split(/\s+/)[0] || 'backup-failed';
+
+  const reason = error.message.split(/\s+/)[0] || 'backup-failed';
+  const residueText = error.message.match(/\bresidue=([^\s]+)/)?.[1];
+  const residue = residueText
+    ?.split(',')
+    .filter(name => name && path.basename(name) === name);
+
+  return residue && residue.length > 0 ? { reason, residue } : { reason };
 }
 
 function countMemoryItems(backupPath) {
@@ -61,10 +68,12 @@ try {
   const manager = new BackupManager(path.join(path.dirname(dbPath), 'backups'));
   backup = await manager.createBackup(source);
 } catch (error) {
+  const failure = safeBackupFailure(error);
   fail(
     'create-backup',
-    safeBackupReason(error),
-    'Stop the MCP server (docker compose stop) and retry if the DB is locked.'
+    failure.reason,
+    'Stop the MCP server (docker compose stop) and retry if the DB is locked.',
+    'residue' in failure ? { residue: failure.residue } : {}
   );
 } finally {
   source.close();
