@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { assertAbsoluteDbPath, openForWrite, openReadonly, QuarantineGateError } from './quarantine-gates.js';
+import {
+  assertAbsoluteDbPath, type Gate, openForWrite, openReadonly, QuarantineGateError, runGates,
+} from './quarantine-gates.js';
 
 let dir: string;
 let dbPath: string;
@@ -55,5 +57,30 @@ describe('openForWrite', () => {
     const db = openForWrite(dbPath);
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
     db.close();
+  });
+});
+
+describe('runGates', () => {
+  const pass = (id: number, code: number): Gate => ({ id, name: `게이트 ${id}`, code, check: () => true });
+
+  it('전부 통과하면 null 을 반환한다', () => {
+    expect(runGates([pass(1, 10), pass(2, 11)])).toBeNull();
+  });
+
+  it('첫 실패에서 멈추고 그 뒤 게이트를 평가하지 않는다', () => {
+    let laterCalled = false;
+    const gates: Gate[] = [
+      pass(1, 10),
+      { id: 2, name: '백업 크기 대조', code: 14, check: () => '사본 A 가 라이브의 3% 크기입니다' },
+      { id: 3, name: '뒤 게이트', code: 15, check: () => { laterCalled = true; return true; } },
+    ];
+
+    expect(runGates(gates)).toEqual({ code: 14, reason: '사본 A 가 라이브의 3% 크기입니다' });
+    expect(laterCalled).toBe(false);
+  });
+
+  it('사유를 주지 않으면 게이트 이름으로 사유를 만든다', () => {
+    const gates: Gate[] = [{ id: 9, name: 'kg_triple 보존율', code: 18, check: () => '' }];
+    expect(runGates(gates)?.reason).toContain('kg_triple 보존율');
   });
 });

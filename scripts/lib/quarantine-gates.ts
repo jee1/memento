@@ -42,3 +42,29 @@ export function openForWrite(dbPath: string): CliDatabase {
   }
   return db;
 }
+
+export interface Gate {
+  /** 계약 문서의 게이트 번호 (1~12) */
+  id: number;
+  name: string;
+  /** 실패 시 종료 코드 (10~21) */
+  code: number;
+  /** 통과면 true, 실패면 사유 문자열 */
+  check: () => true | string;
+}
+
+export interface GateFailure {
+  code: number;
+  reason: string;
+}
+
+/** 계약: 순서대로 평가하고 하나라도 실패하면 삭제를 0건 수행한 채 비영점 코드로 종료한다. */
+export function runGates(gates: Gate[]): GateFailure | null {
+  for (const gate of gates) {
+    const outcome = gate.check();
+    if (outcome !== true) {
+      return { code: gate.code, reason: outcome || `게이트 ${gate.id} 실패: ${gate.name}` };
+    }
+  }
+  return null;
+}
