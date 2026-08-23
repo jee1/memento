@@ -105,6 +105,28 @@ DB_PATH=./data/memory.db npm run memory:repair-triple-sentences -- --apply # 적
 triple 컬럼이 없는 손상 행은 복구 불가로 ID만 보고합니다. 주입 단계에서는
 `memory_injection`이 이중 활용 문장을 자동으로 제외하므로, 복구 전에도 프롬프트는 오염되지 않습니다.
 
+## 파이프라인 템플릿 semantic 격리 (#804)
+
+triple 추출 파이프라인이 만든 템플릿 문장 semantic 기억을 `npm run memory:quarantine-065`로
+기존 `forget` 도구를 통해 격리합니다.
+`report`·`export-relations`는 대상 DB를 **읽기만** 하고, `rehearse`는 사본에서만 동작하며
+(프로덕션 경로를 지정하면 종료 코드 12로 거부), `execute`는 12개 중단 게이트를 전부 통과해야
+삭제를 시작합니다. `DB_PATH`는 절대 경로여야 합니다.
+
+```bash
+# dry-run 리포트 + 관계 내보내기 (라이브 읽기 전용)
+DB_PATH=$HOME/.memento/data/memory.db npm run memory:quarantine-065 -- report
+DB_PATH=$HOME/.memento/data/memory.db npm run memory:quarantine-065 -- export-relations
+
+# 사본에서 전량 리허설 — 소요 시간 실측용
+DB_PATH=/tmp/quarantine-copy-b.db npm run memory:quarantine-065 -- rehearse
+```
+
+라이브 실행(`execute` → `cleanup` → `vacuum`)은 서버 정지가 전제이며 되돌릴 수 없습니다.
+백업·사본 구동 검증·리허설을 마친 뒤 전체 절차와 게이트별 종료 코드를
+[specs/065-804-triple-semantic-quarantine/quickstart.md](../../specs/065-804-triple-semantic-quarantine/quickstart.md)와
+[contracts/runner-cli.md](../../specs/065-804-triple-semantic-quarantine/contracts/runner-cli.md)에서 확인하세요.
+
 ## Introspection 치유 (#728)
 
 `meta_memory_introspection` 스캔이 찾은 저신뢰·고실패 메모리를 re-embed/demote/soft-delete/review로

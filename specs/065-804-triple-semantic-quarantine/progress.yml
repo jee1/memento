@@ -1,0 +1,100 @@
+# /speckit.superspec.execute 실행 상태
+feature: 065-804-triple-semantic-quarantine
+updated: 2026-08-23 (리허설 완료)
+branch: jee1/chore-memory-triple-semantic-23-664-dry-run
+
+phases:
+  - id: 1
+    name: Setup
+    status: done
+    tasks: [T001, T002]
+  - id: 2
+    name: Foundational
+    status: done
+    tasks: [T003, T004, T005]
+  - id: 3
+    name: "US1 — dry-run (P1, MVP)"
+    status: done
+    tasks: [T006, T007, T008, T009, T010, T011, T012, T013]
+    note: |
+      T013 라이브 dry-run 실행 완료 (읽기 전용). 라이브 무변경 확인.
+      표본 A 50건 중 에이전트 육안 확인 10건 통과, 나머지 40건은 사람 검토 대기.
+  - id: 4
+    name: "US2 — 실행 러너 (P2)"
+    status: rehearsed
+    tasks_done: [T014, T015, T016, T017, T018, T019, T020]
+    tasks_blocked: [T021]
+    note: |
+      T019 백업 완료 (크기 비율 1.0000, sidecar 정리).
+      T020 사본 B 전량 리허설 통과 — 24,114건 / 300.6초 / 실패 0 / 잔재 0 / 회수 406MB.
+      1회차 리허설은 세션 UDF 부재로 전량 실패했고 그 결함을 수정했다(커밋 6c0043ed).
+      T021 라이브 실행만 남았으며 서버 정지와 사람의 승인이 필요하다.
+      사본 A 구동 검증(FR-007b)과 before/after 프로브(T023)는 서버 기동이 필요해 미실행.
+  - id: 5
+    name: "US3 — 검증 (P3)"
+    status: code-done
+    tasks_done: [T022]
+    tasks_blocked: [T023, T024]
+    note: T023(프로브)은 T021의 선행 조건. 서버 구동이 필요해 미실행.
+  - id: 6
+    name: Polish
+    status: partial
+    tasks_done: [T025, T026]
+    tasks_blocked: [T027, T028]
+    note: T026 Step 2(롤백 리허설)는 백업이 필요해 미실행.
+
+quality_gates:
+  lint: "pass (0 errors, quarantine 파일 경고 0)"
+  type_check: pass
+  test: "pass (471 files / 5,012 tests)"
+  file_sizes: "pass (신규 10파일 최대 278줄, 임계 500)"
+  graphify: "비적용 — packages/ 무변경 (헌법 v1.2.0 IV)"
+
+measurements:
+  date: 2026-08-23
+  targets: 24113
+  cross_verify: "위치 비교 24113 = 이스케이프 LIKE 24113, subject 결여 0"
+  kg_preservation: "100.00% (24113/24113)"
+  form_counts: { one: 24113, two: 120, three: 0, universe: 24233 }
+  relations_exported: 54876
+  fallback_rate_2026_08: 0.116
+  pinned_candidates: 0
+  attribution: "project/owner/non-private/soft-deleted 전부 0"
+
+rehearsal:
+  date: 2026-08-23
+  batches: 242
+  deleted: 24114
+  failed: 0
+  elapsed_seconds: 300.6
+  cleanup: { forgetting_event: 225601, outbox: 0 }
+  vacuum: { before: 552050688, after: 126533632, reclaimed: 425517056 }
+  verification: "잔여 0 · 고아 0 · fts 5888=memory_item 5888 · kg_triple 24261 보존 · episodic/procedural 불변"
+  first_attempt_failure: |
+    242배치 전량 실패 (no such function: normalize_reflection_notes).
+    configureSqliteSession 이 등록하는 런타임 UDF 가 러너 연결에 없었다.
+    쓰기 명령을 initializeDatabase 경유로 바꿔 해결 (커밋 6c0043ed).
+
+follow_up_issues:
+  - "#813 triple 재조립 폴백률 11.6% 급증 (predicate 비한글 종결)"
+  - "#814 backups/ 6,900개·5.5GB 누적 및 0바이트·sidecar 잔재"
+
+probe:
+  tool: memory_injection
+  note: |
+    recall 로 재면 템플릿이 0건으로 나온다 — 두 도구의 랭킹이 다르다.
+    스펙(FR-003a)이 memory_injection 을 지정한 이유가 여기 있다.
+  before: { total: 37, form_one: 37, human_ratio: 0.0 }
+  after:  { total: 50, form_one: 0,  human_ratio: 1.0 }
+  verdict: "SC-001 통과 (형태(1) 0건) · SC-001a 통과 (0.0% → 100.0%)"
+
+next_action: |
+  T021 라이브 실행만 남았다. 선행 조건 모두 충족:
+  ✅ 백업 (크기 비율 1.0000)
+  ✅ 사본 A 구동 검증 (FR-007b) — 질의 10/10, 확장 테이블 전부 열림
+  ✅ 사본 B 전량 리허설 (FR-006g) — 24,114건 / 300.6초 / 실패 0 / 잔재 0
+  ✅ before.json (게이트 12)
+  ✅ relations.jsonl (게이트 11)
+  남은 것: 서버 정지 → execute → cleanup --from execute → vacuum → 재기동.
+  정지 창구는 리허설 실측 300.6초 + 재집계 + VACUUM 를 근거로 잡는다.
+  실행은 사람의 명시적 승인이 필요하다.

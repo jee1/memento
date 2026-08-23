@@ -159,6 +159,7 @@ demo/node_modules/
 compound-engineering.local.md
 .local/longmemeval/
 .local/locomo/
+.local/quarantine-065/
 artifacts/longmemeval-s/
 
 # Claude Code agent worktrees (must not be gitlinks; breaks actions/checkout post cleanup)

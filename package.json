@@ -50,6 +50,7 @@
     "memory:export": "tsx scripts/memory-export.ts",
     "memory:import": "tsx scripts/memory-import.ts",
     "forgetting:events": "tsx scripts/forgetting-events-query.ts",
+    "memory:quarantine-065": "npm run build -w @memento/core && tsx scripts/quarantine-pipeline-semantic.ts",
     "generate-relation-report": "tsx scripts/generate-relation-report.ts",
     "weekly-relation-validation": "tsx scripts/weekly-relation-validation.ts",
     "mcp:tool-surface": "npm run build -w @memento/core && tsx scripts/measure-mcp-tool-surface.ts",
