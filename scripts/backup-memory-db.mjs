@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { openDb } from './lib/cli.ts';
+import { BackupManager } from '@memento/core';
 /**
  * Create a consistent SQLite backup using the online backup API (not cp/copyFileSync).
  *
@@ -7,9 +8,10 @@ import { openDb } from './lib/cli.ts';
  *   DB_PATH=~/.memento/data/memory.db node scripts/backup-memory-db.mjs
  *   npm run db:backup
  */
-import fs from 'fs';
 import os from 'os';
 import path from 'path';
+
+process.env.MEMENTO_CLI_QUIET ??= '1';
 
 function resolveDbPath() {
   if (process.env.DB_PATH) {
@@ -18,79 +20,63 @@ function resolveDbPath() {
   return path.join(os.homedir(), '.memento', 'data', 'memory.db');
 }
 
-function timestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-');
+function fail(stage, reason, hint) {
+  process.stderr.write(`${JSON.stringify({ ok: false, stage, reason, hint })}\n`);
+  process.exit(1);
+}
+
+function safeBackupReason(error) {
+  if (!(error instanceof Error)) {
+    return 'backup-failed';
+  }
+  return error.message.split(/\s+/)[0] || 'backup-failed';
+}
+
+function countMemoryItems(backupPath) {
+  const verify = openDb(backupPath, { readonly: true });
+  try {
+    return verify.prepare('SELECT count(*) AS c FROM memory_item').get().c;
+  } catch {
+    return null;
+  } finally {
+    verify.close();
+  }
 }
 
 const dbPath = resolveDbPath();
-if (!fs.existsSync(dbPath)) {
-  console.error(JSON.stringify({ ok: false, error: `DB not found: ${dbPath}` }));
-  process.exit(1);
+let source;
+try {
+  source = openDb(dbPath, { readonly: true, fileMustExist: true });
+} catch {
+  fail(
+    'resolve-db',
+    'db-not-found',
+    'Set DB_PATH to an existing SQLite database file and retry.'
+  );
 }
-
-const backupDir = path.join(path.dirname(dbPath), 'backups');
-fs.mkdirSync(backupDir, { recursive: true });
-const backupPath = path.join(backupDir, `memory-backup-${timestamp()}.db`);
-
-if (fs.existsSync(backupPath)) {
-  fs.unlinkSync(backupPath);
-}
-
-const source = openDb(dbPath, { readonly: true, fileMustExist: true });
 source.pragma('busy_timeout = 10000');
 
+let backup;
 try {
-  await source.backup(backupPath);
+  const manager = new BackupManager(path.join(path.dirname(dbPath), 'backups'));
+  backup = await manager.createBackup(source);
 } catch (error) {
-  source.close();
-  if (fs.existsSync(backupPath)) {
-    fs.unlinkSync(backupPath);
-  }
-  console.error(
-    JSON.stringify({
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-      hint: 'Stop the MCP server (docker compose stop) and retry if the DB is locked.',
-    })
+  fail(
+    'create-backup',
+    safeBackupReason(error),
+    'Stop the MCP server (docker compose stop) and retry if the DB is locked.'
   );
-  process.exit(1);
 } finally {
   source.close();
 }
 
-for (const suffix of ['-wal', '-shm']) {
-  const sidecar = backupPath + suffix;
-  if (fs.existsSync(sidecar)) {
-    fs.unlinkSync(sidecar);
-  }
-}
-
-const backupStat = fs.statSync(backupPath);
-if (backupStat.size === 0) {
-  fs.unlinkSync(backupPath);
-  console.error(JSON.stringify({ ok: false, error: 'Backup file is empty', dbPath, backupPath }));
-  process.exit(1);
-}
-
-const verify = openDb(backupPath, { readonly: true });
-const quickCheck = verify.pragma('quick_check', { simple: true });
-let memoryItemCount = null;
-try {
-  memoryItemCount = verify.prepare('SELECT count(*) AS c FROM memory_item').get().c;
-} catch {
-  // schema without memory_item (test DB)
-}
-verify.close();
-
 const result = {
-  ok: quickCheck === 'ok',
+  ok: true,
   dbPath,
-  backupPath,
-  quick_check: quickCheck,
-  memory_item: memoryItemCount,
+  backupPath: backup.backupPath,
+  quick_check: backup.integrityCheck,
+  integrity_check: backup.integrityCheck,
+  memory_item: countMemoryItems(backup.backupPath),
 };
 
-console.log(JSON.stringify(result, null, 2));
-if (!result.ok) {
-  process.exit(1);
-}
+process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
