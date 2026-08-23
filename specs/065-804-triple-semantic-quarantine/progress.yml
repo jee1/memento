@@ -1,6 +1,6 @@
 # /speckit.superspec.execute 실행 상태
 feature: 065-804-triple-semantic-quarantine
-updated: 2026-08-23 (롤백 리허설·유출 확인 완료, PR #815 머지)
+updated: 2026-08-23 (라이브 격리 실행 완료)
 branch: jee1/chore-065-rollback-rehearsal-sidecar-gate  # 러너 본체는 #815 로 머지 (74662b1a)
 
 phases:
@@ -107,17 +107,31 @@ sidecar_gate_fix:
     바로 그렇게 하므로, 존재를 실패로 보면 정상 백업이 게이트에 걸린다.
     비어 있지 않은 -wal 만 위험 신호다 — 부분 복사이거나, 백업 후 누가 붙어서 썼다는 뜻.
 
-next_action: |
-  T021 라이브 실행만 남았다. 선행 조건 모두 충족:
-  ✅ 백업 (크기 비율 1.0000)
-  ✅ 사본 A 구동 검증 (FR-007b) — 질의 10/10, 확장 테이블 전부 열림
-  ✅ 사본 B 전량 리허설 (FR-006g) — 24,114건 / 300.6초 / 실패 0 / 잔재 0
-  ✅ before.json (게이트 12)
-  ✅ relations.jsonl (게이트 11)
-  남은 것: 서버 정지 → execute → cleanup --from execute → vacuum → 재기동.
-  정지 창구는 리허설 실측 300.6초 + 재집계 + VACUUM 를 근거로 잡는다.
-  실행은 사람의 명시적 승인이 필요하다.
+live_execution:
+  date: 2026-08-23
+  task: T021 / T024
+  downtime: "21:40:26 → 21:58:25 KST (17분 59초)"
+  stopped: "docker compose stop memento-mcp-server (컨테이너 하나가 유일한 writer)"
+  backup: "memory-backup-2026-08-23T12-40-47-375Z.db · 비율 1.0000 · -wal 0바이트"
+  recount: { expected: 24138, planned_earlier: 24113, drift_percent: 0.10 }
+  rehearsal: { batches: 242, deleted: 24138, failed: 0, seconds: 309.5 }
+  execute:   { batches: 242, deleted: 24138, failed: 0, seconds: 325.3 }
+  cleanup:   { forgetting_event: 229523, outbox: 0 }
+  vacuum:    { before: 556228608, after: 128688128, reclaimed: 427540480 }
+  after_counts: { episodic: 3482, procedural: 252, semantic: 2129, working: 64 }
+  preserved: "kg_triple 24285 (100%) · 형태(2)(3) 145 · pinned 1 · 귀속 111"
+  verification: "quick_check ok · 잔여 대상 0 · 고아 embedding/relation 0 · outbox memory.forgotten 0 · fts = memory_item"
+  probe:
+    before: { total: 37, form_one: 37, human_ratio: 0.0 }
+    after:  { total: 50, form_one: 0,  human_ratio: 1.0 }
+    note: "after 는 라이브가 아니라 .backup 스냅샷에서 쟀다 (FR-003b)"
+  relations_backup: "~/.memento/data/backups/relations-2026-08-23T12-40-47Z.jsonl (55,234행)"
 
-  주의: 백업 이후 라이브가 계속 자라고 있다 (2026-08-23 17:34 기준 553,254,912 바이트,
-  백업 시점 552,050,688). 서버가 붙어 쓰는 중이므로 실행 시점에 백업을 다시 뜨고
-  QUARANTINE_EXPECTED_TARGETS 를 재집계해야 한다. 24,113 은 2026-08-23 오전 값이다.
+next_action: |
+  완료. #804 의 모든 체크박스가 채워졌다.
+
+  남은 후속:
+  - #805 confidence 영속화 — 재오염을 막지 않으면 같은 파편이 다시 쌓인다 (최우선)
+  - #813 폴백률 11.6% — 형태 (2) 보존 근거의 유효 기간을 좌우한다
+  - recovery.md 의 재추출 경로는 #805 와 재조립 실패 원인이 해소된 뒤에만 쓴다
+    근거 파일: ~/.memento/data/backups/relations-2026-08-23T12-40-47Z.jsonl
