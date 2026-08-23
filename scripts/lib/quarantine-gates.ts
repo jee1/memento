@@ -5,7 +5,9 @@
  * 게이트는 process.exit 을 부르지 않고 값을 반환한다. 그래야 종료 코드를 단위 테스트할 수 있다.
  */
 
-import { isAbsolute } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { isAbsolute, resolve } from 'node:path';
 import { openDb, type CliDatabase } from './cli.js';
 
 /** 계약(contracts/runner-cli.md)의 종료 코드 10~21 을 그대로 나른다. */
@@ -25,6 +27,32 @@ export function assertAbsoluteDbPath(dbPath: string | undefined): string {
 }
 
 /**
+ * 프로덕션 DB 의 기본 경로. 배포 환경이 다르면 MEMENTO_PRODUCTION_DB 로 덮어쓴다.
+ */
+export function resolveProductionDbPath(): string {
+  return process.env.MEMENTO_PRODUCTION_DB ?? resolve(homedir(), '.memento/data/memory.db');
+}
+
+/**
+ * C-1: `rehearse` 는 `execute` 와 같은 파괴적 루프를 돌지만 중단 게이트를 평가하지 않는다.
+ * 사본 전용이라는 전제가 DB_PATH 하나에만 걸려 있으므로, 그 전제를 여기서 강제한다.
+ * 잊고 라이브를 가리키면 백업·서버 정지 확인 없이 전량이 삭제된다.
+ *
+ * realpath 로 비교하는 이유: 심링크나 `./` 표기로 같은 파일을 다르게 쓸 수 있다.
+ */
+export function assertRehearsalTarget(dbPath: string, productionPath = resolveProductionDbPath()): void {
+  if (!existsSync(productionPath) || !existsSync(dbPath)) {
+    return;
+  }
+  if (realpathSync(dbPath) === realpathSync(productionPath)) {
+    throw new QuarantineGateError(
+      12,
+      `rehearse 는 사본 전용입니다 — DB_PATH 가 프로덕션을 가리킵니다: ${dbPath}`,
+    );
+  }
+}
+
+/**
  * SC-004: 읽기 명령의 무변경을 약속이 아니라 구조로 만든다.
  * initializeDatabase() 는 마이그레이션과 스키마 보정을 돌리므로 절대 쓰지 않는다.
  */
@@ -35,6 +63,9 @@ export function openReadonly(dbPath: string): CliDatabase {
 /** FR-006: better-sqlite3 는 FK 를 기본 OFF 로 연다. 켜지지 않으면 연쇄 정리가 통째로 실패한다. */
 export function openForWrite(dbPath: string): CliDatabase {
   const db = openDb(dbPath);
+  // rehearse·cleanup·vacuum 에는 서버 정지 게이트가 없다. 다른 프로세스가 붙어 있을 때
+  // SQLITE_BUSY 로 즉시 죽으면 진행 기록이 실패로 뒤덮여 실제 문제를 가린다.
+  db.pragma('busy_timeout = 5000');
   db.pragma('foreign_keys = ON');
   if (db.pragma('foreign_keys', { simple: true }) !== 1) {
     db.close();
@@ -79,6 +110,12 @@ export interface ExecuteGateInputs {
   copyBRehearsalPassed: boolean;
   falsePositives: { agree: boolean; emptySubject: number };
   kgPreservationRate: number;
+  /** QUARANTINE_EXPECTED_TARGETS 가 유효한 양수로 주어졌는가 */
+  expectedDeclared: boolean;
+  /** --resume 인데 진행 기록이 없는가 (--out 경로 오기입) */
+  progressMissingOnResume: boolean;
+  progressFile: string;
+  /** expectedDeclared 가 false 면 NaN 이 온다 */
   driftPercent: number;
   driftTolerance: number;
   relationsExportExists: boolean;
@@ -124,8 +161,19 @@ export function buildExecuteGates(input: ExecuteGateInputs): Gate[] {
       check: () => input.kgPreservationRate >= 1
         || `보존율 ${(input.kgPreservationRate * 100).toFixed(4)}% — 차이만큼이 진짜 소실입니다` },
     { id: 10, name: '실행 직전 재집계 편차', code: 19,
-      check: () => Math.abs(input.driftPercent) <= input.driftTolerance
-        || `편차 ${input.driftPercent.toFixed(2)}% 가 허용치 ${input.driftTolerance}% 를 넘습니다` },
+      check: () => {
+        if (!input.expectedDeclared) {
+          return 'QUARANTINE_EXPECTED_TARGETS 가 없습니다 — 재집계 대조를 건너뛸 수 없습니다';
+        }
+        if (input.progressMissingOnResume) {
+          return `재개인데 진행 기록이 없습니다: ${input.progressFile} — --out 경로를 확인하세요`;
+        }
+        if (!Number.isFinite(input.driftPercent)) {
+          return '재집계 편차를 계산할 수 없습니다 (기대값이 0 이하)';
+        }
+        return Math.abs(input.driftPercent) <= input.driftTolerance
+          || `편차 ${input.driftPercent.toFixed(2)}% 가 허용치 ${input.driftTolerance}% 를 넘습니다`;
+      } },
     { id: 11, name: 'relations.jsonl 존재', code: 20,
       check: () => input.relationsExportExists || '관계 내보내기가 없습니다 — 유일한 복구 근거입니다' },
     { id: 12, name: 'before.json 존재', code: 21,

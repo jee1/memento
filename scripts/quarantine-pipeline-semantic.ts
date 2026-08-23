@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import { isMain, type CliDatabase } from './lib/cli.js';
 import {
-  assertAbsoluteDbPath, buildExecuteGates, type ExecuteGateInputs, openForWrite, openReadonly,
-  QuarantineGateError, runGates,
+  assertAbsoluteDbPath, assertRehearsalTarget, buildExecuteGates, type ExecuteGateInputs,
+  openForWrite, openReadonly, QuarantineGateError, runGates,
 } from './lib/quarantine-gates.js';
 import { appendJsonl, buildDryRunReport, exportRelations, resolveOutDir } from './lib/quarantine-report.js';
 import { countTargets, crossVerifyTargets, kgPreservation } from './lib/quarantine-targets.js';
@@ -26,21 +26,19 @@ function collectGateInputs(
   const cross = crossVerifyTargets(db);
   const kg = kgPreservation(db);
 
-  // 게이트 10 은 fail-closed 여야 한다. 미설정이면 편차 0 으로 통과시키는 것이 아니라 막는다.
+  // 게이트 10 은 fail-closed 다. 다만 여기서 던지지 않고 값으로 넘긴다 —
+  // 조기 throw 는 계약의 "순서대로 평가"를 깨서, 서버가 켜져 있는데도(코드 12) 코드 19 를 보게 만든다.
   const declared = Number.parseInt(process.env.QUARANTINE_EXPECTED_TARGETS ?? '', 10);
-  if (!Number.isFinite(declared) || declared <= 0) {
-    throw new QuarantineGateError(19, 'QUARANTINE_EXPECTED_TARGETS 가 없습니다 — 재집계 대조를 건너뛸 수 없습니다');
-  }
+  const expectedDeclared = Number.isFinite(declared) && declared > 0;
+
   // FR-004b: 재개 시에는 직전 진행 기록의 누적 성공 수를 반영한 기대값과 대조한다.
   // --out 을 1회차와 다르게 주면 진행 기록을 못 찾아 누적분이 0이 되고 편차 게이트가 헛돈다.
-  const progressFile = join(outDir, 'progress.jsonl');
-  if (options.resume && !existsSync(progressFile)) {
-    throw new QuarantineGateError(19, `재개인데 진행 기록이 없습니다: ${progressFile} — --out 경로를 확인하세요`);
-  }
-  const alreadyDeleted = options.resume ? readDeletedIds(progressFile).length : 0;
+  const progressFile = join(outDir, `${options.command}.progress.jsonl`);
+  const progressMissingOnResume = options.resume && !existsSync(progressFile);
+  const alreadyDeleted = options.resume && !progressMissingOnResume ? readDeletedIds(progressFile).length : 0;
   const expected = declared - alreadyDeleted;
   const actual = countTargets(db);
-  const driftPercent = expected <= 0 ? 100 : ((actual - expected) / expected) * 100;
+  const driftPercent = !expectedDeclared || expected <= 0 ? Number.NaN : ((actual - expected) / expected) * 100;
 
   return {
     dbPathIsAbsolute: isAbsolute(dbPath),
@@ -56,6 +54,9 @@ function collectGateInputs(
     copyBRehearsalPassed: envFlag('QUARANTINE_REHEARSAL_OK'),
     falsePositives: { agree: cross.agree, emptySubject: cross.emptySubject },
     kgPreservationRate: kg.rate,
+    expectedDeclared,
+    progressMissingOnResume,
+    progressFile,
     driftPercent,
     driftTolerance: options.driftTolerance,
     relationsExportExists: existsSync(join(outDir, 'relations.jsonl')),
@@ -82,7 +83,6 @@ export interface Options {
   sampleSize: number;
   driftTolerance: number;
   resume: boolean;
-  yes: boolean;
 }
 
 function numberFlag(argv: string[], name: string, fallback: number): number {
@@ -109,16 +109,20 @@ export function parseOptions(argv: string[]): Options {
     throw new Error(`--batch-size 는 1~100 이어야 합니다 (forget maxItems 100): ${batchSize}`);
   }
 
+  const sampleSize = numberFlag(argv, '--sample-size', 50);
+  if (sampleSize < 1) {
+    // LIMIT -1 은 SQLite 에서 "제한 없음"이라 표본이 전수로 부풀어 리포트에 본문이 전부 실린다.
+    throw new Error(`--sample-size 는 1 이상이어야 합니다: ${sampleSize}`);
+  }
+
   const outIndex = argv.indexOf('--out');
   return {
     command,
     out: outIndex === -1 ? '.local/quarantine-065' : (argv[outIndex + 1] ?? '.local/quarantine-065'),
     batchSize,
-    sampleSize: numberFlag(argv, '--sample-size', 50),
+    sampleSize,
     driftTolerance: numberFlag(argv, '--drift-tolerance', 5),
     resume: argv.includes('--resume'),
-    // 계약: --yes 는 execute 에 무시된다. 파괴적 실행은 대화형 확인을 건너뛸 수 없다.
-    yes: command === 'execute' ? false : argv.includes('--yes'),
   };
 }
 
@@ -153,9 +157,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  const progressFile = join(outDir, 'progress.jsonl');
+  // rehearse 와 execute 가 같은 파일에 append 하면 execute --resume 이 리허설 ID 까지 세어
+  // 누적 삭제분을 과대계산하고 편차 게이트가 오발한다. 명령별로 분리한다.
+  const progressFile = join(outDir, `${options.command}.progress.jsonl`);
 
   if (options.command === 'rehearse' || options.command === 'execute') {
+    if (options.command === 'rehearse') {
+      // C-1: 리허설은 사본 전용이다. 게이트를 평가하지 않으므로 이 확인이 유일한 방어다.
+      assertRehearsalTarget(dbPath);
+    }
     const db = openForWrite(dbPath);
     try {
       if (options.command === 'execute') {
@@ -171,7 +181,8 @@ async function main(): Promise<void> {
         onBatch: (row) => appendJsonl(progressFile, row),
       });
       console.log(
-        `[quarantine-065] ${summary.batches}배치 · 삭제 ${summary.deleted}건 · 실패 ${summary.failed.length}건`,
+        `[quarantine-065] ${summary.batches}배치 · 삭제 ${summary.deleted}건 · 실패 ${summary.failed.length}건`
+          + ` · 소요 ${(summary.elapsedMs / 1000).toFixed(1)}초`,
       );
     } finally {
       db.close();
@@ -180,15 +191,12 @@ async function main(): Promise<void> {
   }
 
   if (options.command === 'cleanup') {
-    // 실행 시작 시각이 없으면 outbox DELETE 가 0행을 지우고도 조용히 성공한다.
-    // 지금 시각으로 대체하지 않는다 — 그 폴백이 정확히 실패를 감추는 경로다.
-    const runStartedAt = process.env.QUARANTINE_STARTED_AT;
-    if (!runStartedAt) {
-      throw new QuarantineGateError(1, 'QUARANTINE_STARTED_AT 이 필요합니다 (execute 직전에 export 한 값)');
-    }
+    // 정리 대상은 시간 범위가 아니라 실제로 지운 ID 다 (quarantine-run.ts 의 주석 참조).
+    // 따라서 execute 가 남긴 진행 기록이 유일한 입력이고, 없으면 cleanupResidue 가 던진다.
+    const executeProgressFile = join(outDir, 'execute.progress.jsonl');
     const db = openForWrite(dbPath);
     try {
-      const result = cleanupResidue(db, { startedAt: runStartedAt, deletedIds: readDeletedIds(progressFile) });
+      const result = cleanupResidue(db, { deletedIds: readDeletedIds(executeProgressFile) });
       console.log(
         `[quarantine-065] outbox ${result.outbox}행 · forgetting_event ${result.forgettingEvents}행 정리`,
       );

@@ -10,7 +10,6 @@ describe('parseOptions', () => {
       sampleSize: 50,
       driftTolerance: 5,
       resume: false,
-      yes: false,
     });
   });
 
@@ -22,7 +21,8 @@ describe('parseOptions', () => {
     expect(() => parseOptions(['nuke'])).toThrow(/nuke/);
   });
 
-  it('execute 에서는 --yes 를 무시한다', () => {
-    expect(parseOptions(['execute', '--yes']).yes).toBe(false);
+  it('음수 표본 크기를 거부한다 (LIMIT -1 은 SQLite 에서 제한 없음이다)', () => {
+    expect(() => parseOptions(['report', '--sample-size', '-1'])).toThrow(/1 이상/);
+    expect(() => parseOptions(['report', '--sample-size', '0'])).toThrow(/1 이상/);
   });
 });

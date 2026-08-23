@@ -23,7 +23,7 @@ export function resolveOutDir(out: string, repoRoot: string): string {
   const insideRepo = abs === repoRoot || abs.startsWith(repoRoot + sep);
   const insideLocal = abs.startsWith(join(repoRoot, '.local') + sep);
   if (insideRepo && !insideLocal) {
-    throw new QuarantineGateError(1, `산출물은 저장소 안이면 .local/ 아래여야 합니다: ${abs}`);
+    throw new QuarantineGateError(23, `산출물은 저장소 안이면 .local/ 아래여야 합니다: ${abs}`);
   }
   return abs;
 }

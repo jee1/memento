@@ -82,7 +82,8 @@ describe('runQuarantine (FR-005, FR-005b, SC-006a)', () => {
     const summary = await runQuarantine({ db, forget, batchSize: 2, onBatch: () => {} });
 
     expect(calls.map((call) => call.length)).toEqual([2, 2, 1]);
-    expect(summary).toEqual({ batches: 3, deleted: 5, failed: [] });
+    expect(summary).toMatchObject({ batches: 3, deleted: 5, failed: [] });
+    expect(summary.elapsedMs).toBeGreaterThanOrEqual(0);
     db.close();
   });
 
@@ -153,22 +154,46 @@ describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
   function createResidueDb(): Database.Database {
     const db = createFixtureDb();
     db.exec(`
-      CREATE TABLE event_outbox (id INTEGER PRIMARY KEY, event_type TEXT, created_at TEXT);
+      CREATE TABLE event_outbox (
+        id INTEGER PRIMARY KEY, event_type TEXT, target_uri TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
       CREATE TABLE memory_forgetting_event (id INTEGER PRIMARY KEY, memory_id TEXT, action TEXT);
     `);
     return db;
   }
 
-  it('이번 실행분 memory.forgotten 만 지운다 (SC-005a)', () => {
+  it('격리된 ID 의 memory.forgotten 만 지운다 (SC-005a)', () => {
     const db = createResidueDb();
-    db.prepare("INSERT INTO event_outbox VALUES (1,'memory.forgotten','2026-08-23T10:00:00Z')").run();
-    db.prepare("INSERT INTO event_outbox VALUES (2,'memory.forgotten','2026-08-20T10:00:00Z')").run();
-    db.prepare("INSERT INTO event_outbox VALUES (3,'memory.created','2026-08-23T10:00:00Z')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (1,'memory.forgotten','memento://default/memory/mem_gone')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (2,'memory.forgotten','memento://default/memory/mem_other')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (3,'memory.created','memento://default/memory/mem_gone')").run();
 
-    const result = cleanupResidue(db, { startedAt: '2026-08-23T09:00:00Z', deletedIds: [] });
+    const result = cleanupResidue(db, { deletedIds: ['mem_gone'] });
 
     expect(result.outbox).toBe(1);
     expect(db.prepare('SELECT COUNT(*) AS n FROM event_outbox').get()).toEqual({ n: 2 });
+    db.close();
+  });
+
+  it('CURRENT_TIMESTAMP 표기(공백 구분)에도 동작한다 — 시간 비교를 쓰지 않는다', () => {
+    // event_outbox.created_at 은 INSERT 컬럼 목록에 없어 'YYYY-MM-DD HH:MM:SS' 로 들어간다.
+    // 운영자가 넘기는 date -Iseconds 는 'YYYY-MM-DDTHH:MM:SS+09:00' 이라 문자열 비교가 항상 거짓이었다.
+    const db = createResidueDb();
+    db.prepare(`INSERT INTO event_outbox (id, event_type, target_uri) VALUES (1,'memory.forgotten','memento://default/memory/mem_gone')`).run();
+    db.prepare("UPDATE event_outbox SET created_at = '2026-08-23 12:00:00'").run();
+
+    expect(cleanupResidue(db, { deletedIds: ['mem_gone'] }).outbox).toBe(1);
+    db.close();
+  });
+
+  it('ID 가 다른 ID 의 부분 문자열이어도 오삭제하지 않는다', () => {
+    const db = createResidueDb();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (1,'memory.forgotten','memento://default/memory/mem_a1')").run();
+    db.prepare("INSERT INTO event_outbox (id, event_type, target_uri) VALUES (2,'memory.forgotten','memento://default/memory/mem_a12')").run();
+
+    expect(cleanupResidue(db, { deletedIds: ['mem_a1'] }).outbox).toBe(1);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM event_outbox WHERE id = 2").get()).toEqual({ n: 1 });
     db.close();
   });
 
@@ -177,11 +202,17 @@ describe('cleanupResidue (FR-006d, FR-006f, FR-009a)', () => {
     db.prepare("INSERT INTO memory_forgetting_event VALUES (1,'mem_gone','hard')").run();
     db.prepare("INSERT INTO memory_forgetting_event VALUES (2,'mem_alive','review')").run();
 
-    const result = cleanupResidue(db, { startedAt: '2026-08-23T09:00:00Z', deletedIds: ['mem_gone'] });
+    const result = cleanupResidue(db, { deletedIds: ['mem_gone'] });
 
     expect(result.forgettingEvents).toBe(1);
     expect(db.prepare("SELECT COUNT(*) AS n FROM memory_forgetting_event WHERE memory_id = 'mem_alive'").get())
       .toEqual({ n: 1 });
+    db.close();
+  });
+
+  it('정리할 ID 가 없으면 조용히 성공하지 않는다', () => {
+    const db = createResidueDb();
+    expect(() => cleanupResidue(db, { deletedIds: [] })).toThrow(/진행 기록/);
     db.close();
   });
 });

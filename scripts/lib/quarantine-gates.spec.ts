@@ -1,10 +1,10 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  assertAbsoluteDbPath, buildExecuteGates, type ExecuteGateInputs, type Gate,
+  assertAbsoluteDbPath, assertRehearsalTarget, buildExecuteGates, type ExecuteGateInputs, type Gate,
   openForWrite, openReadonly, QuarantineGateError, runGates,
 } from './quarantine-gates.js';
 
@@ -92,7 +92,9 @@ describe('buildExecuteGates (계약 중단 게이트)', () => {
     backup: { exists: true, sizeRatio: 0.99, sidecarsClean: true },
     copyABootVerified: true, copyBRehearsalPassed: true,
     falsePositives: { agree: true, emptySubject: 0 },
-    kgPreservationRate: 1, driftPercent: 0.11, driftTolerance: 5,
+    kgPreservationRate: 1,
+    expectedDeclared: true, progressMissingOnResume: false, progressFile: '/tmp/progress.jsonl',
+    driftPercent: 0.11, driftTolerance: 5,
     relationsExportExists: true, beforeProbeExists: true,
   };
 
@@ -111,6 +113,8 @@ describe('buildExecuteGates (계약 중단 게이트)', () => {
     ['오탐', { falsePositives: { agree: false, emptySubject: 0 } }, 17],
     ['kg 보존율', { kgPreservationRate: 0.999 }, 18],
     ['재집계 편차', { driftPercent: 7 }, 19],
+    ['기대값 미선언', { expectedDeclared: false, driftPercent: Number.NaN }, 19],
+    ['재개인데 진행 기록 없음', { progressMissingOnResume: true }, 19],
     ['relations.jsonl', { relationsExportExists: false }, 20],
     ['before.json', { beforeProbeExists: false }, 21],
   ])('%s 실패 시 종료 코드 %i', (_name, patch, code) => {
@@ -119,5 +123,37 @@ describe('buildExecuteGates (계약 중단 게이트)', () => {
 
   it('kg_triple 보존율은 100% 미만이면 무조건 막는다', () => {
     expect(runGates(buildExecuteGates({ ...passing, kgPreservationRate: 0.9999 }))?.code).toBe(18);
+  });
+});
+
+describe('assertRehearsalTarget (C-1: rehearse 게이트 우회 차단)', () => {
+  it('대상이 프로덕션 DB 면 종료 코드 12 로 거부한다', () => {
+    expect(() => assertRehearsalTarget(dbPath, dbPath)).toThrow(QuarantineGateError);
+    try {
+      assertRehearsalTarget(dbPath, dbPath);
+    } catch (error) {
+      expect((error as QuarantineGateError).code).toBe(12);
+      expect((error as QuarantineGateError).message).toContain('사본 전용');
+    }
+  });
+
+  it('심링크로 우회해도 잡는다', () => {
+    const link = join(dir, 'looks-like-a-copy.db');
+    symlinkSync(dbPath, link);
+    expect(() => assertRehearsalTarget(link, dbPath)).toThrow(QuarantineGateError);
+  });
+
+  it('경로 표기가 달라도 같은 파일이면 잡는다', () => {
+    expect(() => assertRehearsalTarget(join(dir, '.', 'memory.db'), dbPath)).toThrow(QuarantineGateError);
+  });
+
+  it('진짜 사본이면 통과한다', () => {
+    const copy = join(dir, 'copy-b.db');
+    copyFileSync(dbPath, copy);
+    expect(() => assertRehearsalTarget(copy, dbPath)).not.toThrow();
+  });
+
+  it('프로덕션 경로가 존재하지 않으면 통과시킨다 (다른 머신)', () => {
+    expect(() => assertRehearsalTarget(dbPath, join(dir, 'no-such-production.db'))).not.toThrow();
   });
 });
