@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  assertAbsoluteDbPath, type Gate, openForWrite, openReadonly, QuarantineGateError, runGates,
+  assertAbsoluteDbPath, buildExecuteGates, type ExecuteGateInputs, type Gate,
+  openForWrite, openReadonly, QuarantineGateError, runGates,
 } from './quarantine-gates.js';
 
 let dir: string;
@@ -82,5 +83,41 @@ describe('runGates', () => {
   it('사유를 주지 않으면 게이트 이름으로 사유를 만든다', () => {
     const gates: Gate[] = [{ id: 9, name: 'kg_triple 보존율', code: 18, check: () => '' }];
     expect(runGates(gates)?.reason).toContain('kg_triple 보존율');
+  });
+});
+
+describe('buildExecuteGates (계약 중단 게이트)', () => {
+  const passing: ExecuteGateInputs = {
+    dbPathIsAbsolute: true, foreignKeysOn: true, serverStopped: true, integrityCheckPassed: true,
+    backup: { exists: true, sizeRatio: 0.99, sidecarsClean: true },
+    copyABootVerified: true, copyBRehearsalPassed: true,
+    falsePositives: { agree: true, emptySubject: 0 },
+    kgPreservationRate: 1, driftPercent: 0.11, driftTolerance: 5,
+    relationsExportExists: true, beforeProbeExists: true,
+  };
+
+  it('전부 통과하면 null 이다', () => {
+    expect(runGates(buildExecuteGates(passing))).toBeNull();
+  });
+
+  it.each([
+    ['dbPathIsAbsolute', { dbPathIsAbsolute: false }, 10],
+    ['foreignKeysOn', { foreignKeysOn: false }, 11],
+    ['serverStopped', { serverStopped: false }, 12],
+    ['integrityCheckPassed', { integrityCheckPassed: false }, 13],
+    ['backup 크기', { backup: { exists: true, sizeRatio: 0.02, sidecarsClean: true } }, 14],
+    ['copyABootVerified', { copyABootVerified: false }, 15],
+    ['copyBRehearsalPassed', { copyBRehearsalPassed: false }, 16],
+    ['오탐', { falsePositives: { agree: false, emptySubject: 0 } }, 17],
+    ['kg 보존율', { kgPreservationRate: 0.999 }, 18],
+    ['재집계 편차', { driftPercent: 7 }, 19],
+    ['relations.jsonl', { relationsExportExists: false }, 20],
+    ['before.json', { beforeProbeExists: false }, 21],
+  ])('%s 실패 시 종료 코드 %i', (_name, patch, code) => {
+    expect(runGates(buildExecuteGates({ ...passing, ...patch as Partial<ExecuteGateInputs> }))?.code).toBe(code);
+  });
+
+  it('kg_triple 보존율은 100% 미만이면 무조건 막는다', () => {
+    expect(runGates(buildExecuteGates({ ...passing, kgPreservationRate: 0.9999 }))?.code).toBe(18);
   });
 });
