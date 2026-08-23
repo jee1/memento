@@ -94,6 +94,32 @@ describe('BackupManager', () => {
       ).rejects.toThrow();
     });
 
+    it('removes stale in-progress partial (+ wal/shm) before writing a new backup', async () => {
+      const staleBase = '.memory-backup-partial-a1b2c3d4-e5f6-4789-a012-3456789abcde.db';
+      const nearMiss = '.memory-backup-partial-a1b2c3d4-e5f6-5789-a012-3456789abcde.db';
+      mkdirSync(backupsDir, { recursive: true });
+      writeFileSync(join(backupsDir, staleBase), 'stale-partial');
+      writeFileSync(join(backupsDir, `${staleBase}-wal`), 'wal');
+      writeFileSync(join(backupsDir, `${staleBase}-shm`), 'shm');
+      writeFileSync(join(backupsDir, nearMiss), 'near-miss');
+
+      const fileDb = openWalDatabase();
+      try {
+        const result = await backupManager.createBackup(fileDb, '2.0');
+        const names = backupDirectoryNames();
+
+        expect(names).not.toContain(staleBase);
+        expect(names).not.toContain(`${staleBase}-wal`);
+        expect(names).not.toContain(`${staleBase}-shm`);
+        expect(names).toContain(nearMiss);
+        expect(names).toContain(basename(result.backupPath));
+        expect(existsSync(result.backupPath)).toBe(true);
+        expect(result.integrityCheck).toBe('ok');
+      } finally {
+        fileDb.close();
+      }
+    });
+
     it('publishes a standalone validated online backup containing committed WAL content', async () => {
       const fileDb = new Database(dbPath);
       const publicationEvents: string[] = [];

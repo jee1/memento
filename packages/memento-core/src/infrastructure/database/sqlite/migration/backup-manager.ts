@@ -281,6 +281,32 @@ function removeAttemptSidecars(inProgressPath: string): boolean {
   return removeArtifacts([`${inProgressPath}-wal`, `${inProgressPath}-shm`]).length === 0;
 }
 
+/** Best-effort: drop leftover strict in-progress names (+ -wal/-shm) before a new attempt (FR-018). */
+function removeStaleInProgressArtifacts(backupsDir: string): void {
+  let names: string[];
+  try {
+    names = fs.readdirSync(backupsDir);
+  } catch {
+    return;
+  }
+
+  const bases = new Set<string>();
+  for (const name of names) {
+    if (IN_PROGRESS_NAME.test(name)) {
+      bases.add(name);
+      continue;
+    }
+    const sidecarBase = getSidecarBaseName(name);
+    if (sidecarBase !== null && IN_PROGRESS_NAME.test(sidecarBase)) {
+      bases.add(sidecarBase);
+    }
+  }
+
+  for (const base of bases) {
+    removeAttemptArtifacts(join(backupsDir, base));
+  }
+}
+
 function emptyCleanupReport(mode: CleanupMode, error: CleanupReport['error']): CleanupReport {
   return {
     ok: error === null,
@@ -376,6 +402,8 @@ export class BackupManager {
       if (!backupDb.name || !fs.existsSync(backupDb.name)) {
         throw new Error('백업할 데이터베이스 파일을 찾을 수 없습니다');
       }
+
+      removeStaleInProgressArtifacts(this.backupsDir);
 
       const sourcePageSize = backupDb.pragma('page_size', { simple: true }) as number;
       let metadata: Awaited<ReturnType<BackupCapableDatabase['backup']>>;
