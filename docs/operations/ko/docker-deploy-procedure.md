@@ -73,6 +73,15 @@ npm run db:pre-docker-deploy
 
 > **주의:** 컨테이너가 DB를 잡고 있는 상태에서 백업하면 0바이트 파일이 생길 수 있습니다. 반드시 **1단계 중지 후** 실행하세요.
 
+백업 backlog를 정리해야 하면 먼저 preview를 확인합니다. Preview는 기본값이라 삭제하지 않습니다.
+
+```bash
+npm run db:backup:cleanup
+npm run db:backup:cleanup -- --apply
+```
+
+`-- --apply` 전에는 MCP 서버, restore 명령, 다른 backup/cleanup 프로세스를 모두 중지해야 합니다. Cleanup은 동일 선택자를 preview와 apply에 사용하고, expired automatic migration backup, zero-byte backup, orphaned backup sidecar, interrupted attempt만 대상으로 삼습니다. Non-zero operator-created backup은 오래되어도 보존됩니다.
+
 ### 3. (선택) 코드 품질 게이트
 
 ```bash
@@ -118,15 +127,19 @@ curl -sf http://localhost:9001/health
 | 명령 | 용도 |
 |------|------|
 | `npm run db:backup` | online backup만 수행 (서버 중지 후 권장) |
+| `npm run db:backup:cleanup` | 기존 backup directory 정리 preview; 삭제 없음 |
+| `npm run db:backup:cleanup -- --apply` | preview와 같은 선택자를 실제 삭제에 적용; MCP/restore/cleanup 중지 후 실행 |
 | `npm run db:pre-docker-deploy` | 백업 + `quick_check`; 실패 시 배포 중단 |
 | `npm run db:pre-docker-deploy -- --force` | 검사 실패해도 계속 (**위험**, 손상 DB 확인 후에만) |
 | `npm run db:restore-from-corrupt` | 손상 DB에서 테이블별 복구 (아래 복구 절 참고) |
 
-환경 변수 `DB_PATH`로 대상 DB를 바꿀 수 있습니다 (기본: `~/.memento/data/memory.db`).
+환경 변수 `DB_PATH`로 대상 DB를 바꿀 수 있습니다 (기본: `~/.memento/data/memory.db`). 프로덕션에서는 절대 경로를 쓰세요. 환경 변수 안의 `~`는 Node가 자동 확장하지 않습니다.
 
 ```bash
 DB_PATH=/custom/path/memory.db npm run db:backup
 ```
+
+`db:backup` 무인자 실행의 성공 JSON 필드는 기존 계약을 유지합니다. Operator가 복구에 써야 하는 성공 출력에는 경로가 포함될 수 있지만, 오류와 cleanup report는 안전한 basename 중심으로 보고하고 DB 절대 경로나 backup directory 경로를 노출하지 않습니다.
 
 ---
 
@@ -208,6 +221,12 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 3. **정상 종료** — `docker compose stop` (kill -9 지양); `stop_grace_period: 30s` 활용
 4. **백업 보관** — `~/.memento/data/backups/`에 타임스탬프 백업 유지; 오래된 quarantine 중복본은 정리 검토
 5. **배포 전 환경변수** — [env-deployment-checklist.md](../env-deployment-checklist.md)
+
+이번 backup-retention 수정에서 재현된 원인은 세 가지입니다.
+
+- Migration backup이 WAL snapshot이 아니라 live main file을 복사해 partial completed `.db`를 남길 수 있었습니다.
+- Operator backup script가 validation 전에 sidecar를 먼저 정리해, 이후 검증 실패 시 sidecar residue가 공유 cleanup 경로를 지나지 못했습니다.
+- 넓은 `mtime` 기반 cleanup helper는 production caller가 없어 반복 migration backup 누적을 줄이지 못했고, 직접 호출해도 operator backup까지 선택할 수 있었습니다.
 
 ---
 

@@ -62,11 +62,15 @@ DB 백업과 복구, Docker 배포는 자주 쓰는 운영 명령입니다. Dock
 
 ```bash
 npm run db:backup                 # 메모리 DB 백업
+npm run db:backup:cleanup         # 백업 backlog 정리 preview (기본, 삭제 없음)
+npm run db:backup:cleanup -- --apply # preview와 같은 선택자를 실제 삭제에 적용
 npm run db:restore-from-corrupt   # 손상 DB 복구
 npm run db:pre-docker-deploy      # Docker 배포 전 무결성 점검
 npm run docker:build              # 이미지 빌드
 npm run docker:up                 # 컨테이너 기동
 ```
+
+`db:backup`의 무인자 JSON 성공 출력은 기존 계약을 유지합니다. `db:backup:cleanup`은 기본이 preview라 파일을 지우지 않고, `-- --apply`를 명시해야 삭제합니다. Apply 전에는 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 모두 중지하세요. `DB_PATH`는 프로덕션에서 절대 경로를 쓰고, 환경 변수 안의 `~`는 확장되지 않습니다. Cleanup은 non-zero operator 백업을 보존하고, 실패 보고에는 절대 DB 경로나 백업 디렉터리를 싣지 않습니다.
 
 전체 배포 절차는 [docker-deploy-procedure.md](../operations/ko/docker-deploy-procedure.md)에 정리되어 있습니다.
 
