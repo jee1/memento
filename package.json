@@ -41,6 +41,7 @@
     "type-check": "npm run type-check -w @memento/agent-integration && npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @jee1/memento-client && npm run type-check -w @jee1/memento-assistant && npm run type-check -w experimental-example",
     "db:init": "npm run db:init -w @memento/core",
     "db:backup": "node scripts/backup-memory-db.mjs",
+    "db:backup:cleanup": "node scripts/backup-memory-db.mjs --cleanup",
     "db:restore-from-corrupt": "node scripts/restore-memory-db-from-corrupt.mjs",
     "db:pre-docker-deploy": "node scripts/pre-docker-deploy.mjs",
     "db:migrate": "npm run db:migrate -w @memento/core",

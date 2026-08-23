@@ -25,6 +25,14 @@ function fail(stage, reason, hint, details = {}) {
   process.exit(1);
 }
 
+function failUsage() {
+  fail(
+    'usage',
+    'invalid-arguments',
+    'Usage: node scripts/backup-memory-db.mjs [--cleanup [--apply]]'
+  );
+}
+
 function safeBackupFailure(error) {
   if (!(error instanceof Error)) {
     return { reason: 'backup-failed' };
@@ -50,7 +58,27 @@ function countMemoryItems(backupPath) {
   }
 }
 
+const args = process.argv.slice(2);
+const cleanup = args[0] === '--cleanup';
+const apply = cleanup && args[1] === '--apply' && args.length === 2;
+const valid = args.length === 0 || (cleanup && (args.length === 1 || apply));
+
+if (!valid) {
+  failUsage();
+}
+
 const dbPath = resolveDbPath();
+const manager = new BackupManager(path.join(path.dirname(dbPath), 'backups'));
+
+if (cleanup) {
+  const report = await manager.cleanupBackups({
+    mode: apply ? 'apply' : 'preview',
+    includeInterrupted: true,
+  });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  process.exit(report.ok ? 0 : 1);
+}
+
 let source;
 try {
   source = openDb(dbPath, { readonly: true, fileMustExist: true });
@@ -65,7 +93,6 @@ source.pragma('busy_timeout = 10000');
 
 let backup;
 try {
-  const manager = new BackupManager(path.join(path.dirname(dbPath), 'backups'));
   backup = await manager.createBackup(source);
 } catch (error) {
   const failure = safeBackupFailure(error);

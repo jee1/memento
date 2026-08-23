@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -42,8 +44,48 @@ function runBackup(dbPath: string, extraNodeArgs: string[] = []) {
   });
 }
 
+function runBackupScript(dbPath: string, scriptArgs: string[], extraNodeArgs: string[] = []) {
+  return spawnSync(process.execPath, [...extraNodeArgs, scriptPath, ...scriptArgs], {
+    cwd: process.cwd(),
+    env: { ...process.env, DB_PATH: dbPath },
+    encoding: 'utf8',
+  });
+}
+
 function parseJson(text: string): Record<string, unknown> {
   return JSON.parse(text);
+}
+
+function writeBackupArtifact(backupsDir: string, name: string, content: string): void {
+  writeFileSync(join(backupsDir, name), content);
+}
+
+function backupDirNames(backupsDir: string): string[] {
+  return readdirSync(backupsDir).sort();
+}
+
+function inodeSnapshot(backupsDir: string): Record<string, { ino: number | bigint; size: number; mtimeMs: number }> {
+  return Object.fromEntries(backupDirNames(backupsDir).map(name => {
+    const stats = lstatSync(join(backupsDir, name));
+    return [name, { ino: stats.ino, size: stats.size, mtimeMs: stats.mtimeMs }];
+  }));
+}
+
+function expectCleanupKeys(output: Record<string, unknown>): void {
+  expect(Object.keys(output)).toEqual([
+    'ok',
+    'error',
+    'mode',
+    'inspectedCount',
+    'selectedCount',
+    'selectedBytes',
+    'deletedCount',
+    'reclaimedBytes',
+    'skippedCount',
+    'failedCount',
+    'ignoredCount',
+    'artifacts',
+  ]);
 }
 
 afterEach(() => {
@@ -173,6 +215,235 @@ fs.unlinkSync = function(target) {
     expect(output.residue).toEqual([
       expect.stringMatching(/^\.memory-backup-partial-[0-9a-f-]+\.db$/),
     ]);
+    expect(JSON.stringify(output)).not.toContain(root);
+    expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
+
+  it('previews cleanup without changing backup artifacts', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    const expired = 'memory-backup-2.0-2000-01-01T00-00-00-000Z.db';
+    const retained = 'memory-backup-2.0-2099-01-01T00-00-00-000Z.db';
+    const operator = 'memory-backup-2000-01-01T00-00-00-000Z.db';
+    const partial = '.memory-backup-partial-00000000-0000-4000-8000-000000000000.db';
+    const partialWal = `${partial}-wal`;
+    createDb(dbPath);
+    mkdirSync(backupsDir);
+    writeBackupArtifact(backupsDir, expired, 'expired');
+    writeBackupArtifact(backupsDir, retained, 'keep');
+    writeBackupArtifact(backupsDir, operator, 'operator');
+    writeBackupArtifact(backupsDir, partial, 'bad');
+    writeBackupArtifact(backupsDir, partialWal, 'side');
+    const before = inodeSnapshot(backupsDir);
+
+    const preview = runBackupScript(dbPath, ['--cleanup']);
+
+    expect(preview.status).toBe(0);
+    expect(preview.stderr).toBe('');
+    const output = parseJson(preview.stdout);
+    expectCleanupKeys(output);
+    expect(output).toEqual({
+      ok: true,
+      error: null,
+      mode: 'preview',
+      inspectedCount: 5,
+      selectedCount: 3,
+      selectedBytes: 14,
+      deletedCount: 0,
+      reclaimedBytes: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      ignoredCount: 2,
+      artifacts: [
+        { id: partial, status: 'selected', reason: 'interrupted-attempt', detail: null },
+        { id: partialWal, status: 'selected', reason: 'orphaned-sidecar', detail: null },
+        { id: expired, status: 'selected', reason: 'expired-automatic', detail: null },
+      ],
+    });
+    expect(inodeSnapshot(backupsDir)).toEqual(before);
+    expect(JSON.stringify(output)).not.toContain(root);
+    expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
+
+  it('applies cleanup only for exact --cleanup --apply intent', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    const expired = 'memory-backup-2.0-2000-01-01T00-00-00-000Z.db';
+    const retained = 'memory-backup-2.0-2099-01-01T00-00-00-000Z.db';
+    const operator = 'memory-backup-2000-01-01T00-00-00-000Z.db';
+    const partial = '.memory-backup-partial-00000000-0000-4000-8000-000000000000.db';
+    const partialWal = `${partial}-wal`;
+    createDb(dbPath);
+    mkdirSync(backupsDir);
+    writeBackupArtifact(backupsDir, expired, 'expired');
+    writeBackupArtifact(backupsDir, retained, 'keep');
+    writeBackupArtifact(backupsDir, operator, 'operator');
+    writeBackupArtifact(backupsDir, partial, 'bad');
+    writeBackupArtifact(backupsDir, partialWal, 'side');
+
+    const apply = runBackupScript(dbPath, ['--cleanup', '--apply']);
+
+    expect(apply.status).toBe(0);
+    expect(apply.stderr).toBe('');
+    const output = parseJson(apply.stdout);
+    expectCleanupKeys(output);
+    expect(output).toEqual({
+      ok: true,
+      error: null,
+      mode: 'apply',
+      inspectedCount: 5,
+      selectedCount: 3,
+      selectedBytes: 14,
+      deletedCount: 3,
+      reclaimedBytes: 14,
+      skippedCount: 0,
+      failedCount: 0,
+      ignoredCount: 2,
+      artifacts: [
+        { id: partial, status: 'deleted', reason: 'interrupted-attempt', detail: null },
+        { id: partialWal, status: 'deleted', reason: 'orphaned-sidecar', detail: null },
+        { id: expired, status: 'deleted', reason: 'expired-automatic', detail: null },
+      ],
+    });
+    expect(backupDirNames(backupsDir)).toEqual([retained, operator].sort());
+    expect(JSON.stringify(output)).not.toContain(root);
+    expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
+
+  it('rejects cleanup usage errors before database access or deletion', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'missing.db');
+    const backupsDir = join(root, 'backups');
+    const expired = 'memory-backup-2.0-2000-01-01T00-00-00-000Z.db';
+    mkdirSync(backupsDir);
+    writeBackupArtifact(backupsDir, expired, 'expired');
+    const beforeUsageError = backupDirNames(backupsDir);
+
+    for (const args of [
+      ['--apply'],
+      ['--unknown'],
+      ['--cleanup', '--unknown'],
+      ['--cleanup', '--apply', '--extra'],
+    ]) {
+      const usageError = runBackupScript(dbPath, args);
+
+      expect(usageError.status).toBe(1);
+      expect(usageError.stdout).toBe('');
+      expect(parseJson(usageError.stderr)).toEqual({
+        ok: false,
+        stage: 'usage',
+        reason: 'invalid-arguments',
+        hint: 'Usage: node scripts/backup-memory-db.mjs [--cleanup [--apply]]',
+      });
+      expect(backupDirNames(backupsDir)).toEqual(beforeUsageError);
+    }
+  });
+
+  it('exits 1 with a pathless scan failure when backups cannot be listed', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsPath = join(root, 'backups');
+    writeFileSync(backupsPath, 'not a directory');
+
+    const result = runBackupScript(dbPath, ['--cleanup']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe('');
+    const output = parseJson(result.stdout);
+    expectCleanupKeys(output);
+    expect(output).toEqual({
+      ok: false,
+      error: 'scan-failed',
+      mode: 'preview',
+      inspectedCount: 0,
+      selectedCount: 0,
+      selectedBytes: 0,
+      deletedCount: 0,
+      reclaimedBytes: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      ignoredCount: 0,
+      artifacts: [],
+    });
+    expect(JSON.stringify(output)).not.toContain(root);
+    expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
+
+  it('exits 1 when apply skips or fails selected artifacts', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    const skipName = 'memory-backup-2.0-2000-01-01T00-00-00-000Z.db';
+    const failName = 'memory-backup-2.0-2000-01-02T00-00-00-000Z.db';
+    const skipPath = join(backupsDir, skipName);
+    const failPath = join(backupsDir, failName);
+    const injectApplyFailurePath = join(root, 'inject-apply-failure.mjs');
+    createDb(dbPath);
+    mkdirSync(backupsDir);
+    writeBackupArtifact(backupsDir, skipName, 'skip');
+    writeBackupArtifact(backupsDir, failName, 'failed');
+    writeFileSync(injectApplyFailurePath, `
+import { createRequire } from 'node:module';
+
+const require = createRequire(process.cwd() + '/package.json');
+const fs = require('node:fs');
+const realLstatSync = fs.lstatSync;
+const realUnlinkSync = fs.unlinkSync;
+const skipPath = ${JSON.stringify(skipPath)};
+const failPath = ${JSON.stringify(failPath)};
+const lstatCalls = new Map();
+
+fs.lstatSync = function(target) {
+  const key = String(target);
+  const count = (lstatCalls.get(key) ?? 0) + 1;
+  lstatCalls.set(key, count);
+  if (key === skipPath && count === 2) {
+    fs.writeFileSync(skipPath, 'changed');
+  }
+  return realLstatSync.apply(this, arguments);
+};
+
+fs.unlinkSync = function(target) {
+  if (String(target) === failPath) {
+    const error = new Error('injected unlink failure');
+    error.code = 'EACCES';
+    throw error;
+  }
+  return realUnlinkSync.apply(this, arguments);
+};
+`);
+
+    const result = runBackupScript(
+      dbPath,
+      ['--cleanup', '--apply'],
+      ['--import', pathToFileURL(injectApplyFailurePath).href]
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe('');
+    const output = parseJson(result.stdout);
+    expectCleanupKeys(output);
+    expect(output).toEqual({
+      ok: false,
+      error: null,
+      mode: 'apply',
+      inspectedCount: 2,
+      selectedCount: 2,
+      selectedBytes: 10,
+      deletedCount: 0,
+      reclaimedBytes: 0,
+      skippedCount: 1,
+      failedCount: 1,
+      ignoredCount: 0,
+      artifacts: [
+        { id: skipName, status: 'skipped', reason: 'expired-automatic', detail: 'changed-before-delete' },
+        { id: failName, status: 'failed', reason: 'expired-automatic', detail: 'delete-failed' },
+      ],
+    });
+    expect(existsSync(skipPath)).toBe(true);
+    expect(existsSync(failPath)).toBe(true);
     expect(JSON.stringify(output)).not.toContain(root);
     expect(JSON.stringify(output)).not.toContain(dbPath);
   });
