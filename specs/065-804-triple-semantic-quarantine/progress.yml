@@ -79,9 +79,22 @@ follow_up_issues:
   - "#813 triple 재조립 폴백률 11.6% 급증 (predicate 비한글 종결)"
   - "#814 backups/ 6,900개·5.5GB 누적 및 0바이트·sidecar 잔재"
 
+probe:
+  tool: memory_injection
+  note: |
+    recall 로 재면 템플릿이 0건으로 나온다 — 두 도구의 랭킹이 다르다.
+    스펙(FR-003a)이 memory_injection 을 지정한 이유가 여기 있다.
+  before: { total: 37, form_one: 37, human_ratio: 0.0 }
+  after:  { total: 50, form_one: 0,  human_ratio: 1.0 }
+  verdict: "SC-001 통과 (형태(1) 0건) · SC-001a 통과 (0.0% → 100.0%)"
+
 next_action: |
-  T021 라이브 실행만 남았다. 선행 조건:
-  1. 사본 A 구동 검증 (FR-007b) — 서버 기동 필요
-  2. before 프로브 (T023 Step 2) — 게이트 12가 before.json 을 요구
-  3. 서버 정지 후 execute → cleanup --from execute → vacuum
+  T021 라이브 실행만 남았다. 선행 조건 모두 충족:
+  ✅ 백업 (크기 비율 1.0000)
+  ✅ 사본 A 구동 검증 (FR-007b) — 질의 10/10, 확장 테이블 전부 열림
+  ✅ 사본 B 전량 리허설 (FR-006g) — 24,114건 / 300.6초 / 실패 0 / 잔재 0
+  ✅ before.json (게이트 12)
+  ✅ relations.jsonl (게이트 11)
+  남은 것: 서버 정지 → execute → cleanup --from execute → vacuum → 재기동.
   정지 창구는 리허설 실측 300.6초 + 재집계 + VACUUM 를 근거로 잡는다.
+  실행은 사람의 명시적 승인이 필요하다.
