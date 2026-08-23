@@ -747,5 +747,186 @@ describe('BackupManager', () => {
       ]);
       expect(JSON.stringify(report)).not.toContain(testRoot);
     });
+
+    it('selects only owned invalid artifacts across the destructive boundary', async () => {
+      const zeroAutomatic = 'memory-backup-2.0-2026-08-01T00-00-00-000Z.db';
+      const zeroOperator = 'memory-backup-2026-08-01T00-00-00-000Z.db';
+      const completed = 'memory-backup-2.0-2026-08-02T00-00-00-000Z.db';
+      const completedWal = `${completed}-wal`;
+      const completedShm = `${completed}-shm`;
+      const operatorSidecar = 'memory-backup-2026-08-02T00-00-00-000Z.db-wal';
+      const partialName = '.memory-backup-partial-00000000-0000-4000-8000-000000000000.db';
+      const partialWal = `${partialName}-wal`;
+      const partialNearMiss = '.memory-backup-partial-00000000-0000-3000-8000-000000000000.db';
+      const partialSidecarNearMiss = `${partialNearMiss}-wal`;
+      const liveDbPath = join(backupsDir, 'memory.db');
+      const symlinkName = 'memory-backup-2.0-2026-08-03T00-00-00-000Z.db-wal';
+      const directoryName = 'memory-backup-2.0-2026-08-04T00-00-00-000Z.db-shm';
+      const outsideTarget = join(testRoot, 'outside-target.db');
+
+      writeBackup(zeroAutomatic, 0);
+      writeBackup(zeroOperator, 0);
+      writeBackup(completed, 5);
+      writeBackup(completedWal, 7);
+      writeBackup(completedShm, 11);
+      writeBackup(operatorSidecar, 13);
+      writeBackup(partialName, 17);
+      writeBackup(partialWal, 19);
+      writeBackup(partialNearMiss, 23);
+      writeBackup(partialSidecarNearMiss, 29);
+      writeFileSync(liveDbPath, 'live');
+      writeFileSync(`${liveDbPath}-wal`, 'wal');
+      writeFileSync(`${liveDbPath}-shm`, 'shm');
+      writeFileSync(outsideTarget, 'outside');
+      symlinkSync(outsideTarget, join(backupsDir, symlinkName));
+      mkdirSync(join(backupsDir, directoryName));
+
+      const routine = await backupManager.cleanupBackups({ mode: 'apply', includeInterrupted: false, now });
+      const selectedReasons = routine.artifacts.map(item => item.reason);
+
+      expect(selectedReasons).toEqual(expect.arrayContaining([
+        'zero-byte-backup',
+        'orphaned-sidecar',
+      ]));
+      expect(routine).toMatchObject({
+        ok: true,
+        selectedCount: 5,
+        deletedCount: 5,
+        selectedBytes: 31,
+        reclaimedBytes: 31,
+        ignoredCount: 10,
+      });
+      expect(routine.artifacts).toEqual([
+        { id: zeroAutomatic, status: 'deleted', reason: 'zero-byte-backup', detail: null },
+        { id: completedShm, status: 'deleted', reason: 'orphaned-sidecar', detail: null },
+        { id: completedWal, status: 'deleted', reason: 'orphaned-sidecar', detail: null },
+        { id: zeroOperator, status: 'deleted', reason: 'zero-byte-backup', detail: null },
+        { id: operatorSidecar, status: 'deleted', reason: 'orphaned-sidecar', detail: null },
+      ]);
+      expect(existsSync(outsideTarget)).toBe(true);
+      expect(existsSync(`${liveDbPath}-wal`)).toBe(true);
+      expect(existsSync(`${liveDbPath}-shm`)).toBe(true);
+      expect(existsSync(join(backupsDir, partialName))).toBe(true);
+      expect(existsSync(join(backupsDir, partialWal))).toBe(true);
+      expect(existsSync(join(backupsDir, partialNearMiss))).toBe(true);
+      expect(existsSync(join(backupsDir, partialSidecarNearMiss))).toBe(true);
+      expect(JSON.stringify(routine)).not.toContain(testRoot);
+
+      const explicit = await backupManager.cleanupBackups({ mode: 'apply', includeInterrupted: true, now });
+
+      expect(explicit.artifacts).toEqual([
+        { id: partialName, status: 'deleted', reason: 'interrupted-attempt', detail: null },
+        { id: partialWal, status: 'deleted', reason: 'orphaned-sidecar', detail: null },
+      ]);
+      expect(explicit).toMatchObject({
+        ok: true,
+        selectedCount: 2,
+        deletedCount: 2,
+        selectedBytes: 36,
+        reclaimedBytes: 36,
+      });
+      expect(existsSync(join(backupsDir, partialNearMiss))).toBe(true);
+      expect(existsSync(join(backupsDir, partialSidecarNearMiss))).toBe(true);
+      expect(JSON.stringify(explicit)).not.toContain(testRoot);
+    });
+
+    it('revalidates type, size, mtime, and inode before deletion and continues afterward', async () => {
+      const changedInodeCandidate = 'memory-backup-2.0-2026-06-01T00-00-00-000Z.db';
+      const changedMtimeCandidate = 'memory-backup-2.0-2026-06-02T00-00-00-000Z.db';
+      const changedSizeCandidate = 'memory-backup-2.0-2026-06-03T00-00-00-000Z.db';
+      const changedTypeCandidate = 'memory-backup-2.0-2026-06-04T00-00-00-000Z.db';
+      const disappearingCandidate = 'memory-backup-2.0-2026-06-05T00-00-00-000Z.db';
+      const unlinkFailureCandidate = 'memory-backup-2.0-2026-06-06T00-00-00-000Z.db';
+      const deletedCandidate = 'memory-backup-2.0-2026-06-07T00-00-00-000Z.db';
+      const changedInodePath = writeBackup(changedInodeCandidate, 4);
+      const changedMtimePath = writeBackup(changedMtimeCandidate, 5);
+      const changedSizePath = writeBackup(changedSizeCandidate, 6);
+      const changedTypePath = writeBackup(changedTypeCandidate, 7);
+      const disappearingPath = writeBackup(disappearingCandidate, 8);
+      const unlinkFailurePath = writeBackup(unlinkFailureCandidate, 9);
+      const deletedPath = writeBackup(deletedCandidate, 10);
+
+      const realLstatSync = fs.lstatSync.bind(fs);
+      const realUnlinkSync = fs.unlinkSync.bind(fs);
+      const lstatCalls = new Map<string, number>();
+      const lstatSpy = vi.spyOn(fs, 'lstatSync').mockImplementation(((path: fs.PathLike) => {
+        const key = String(path);
+        const count = (lstatCalls.get(key) ?? 0) + 1;
+        lstatCalls.set(key, count);
+        if (count === 2) {
+          if (key === changedInodePath) {
+            const stats = realLstatSync(path);
+            return {
+              ...stats,
+              isFile: () => true,
+              ino: typeof stats.ino === 'bigint' ? stats.ino + 1n : stats.ino + 1,
+            } as fs.Stats;
+          } else if (key === changedMtimePath) {
+            fs.utimesSync(changedMtimePath, new Date('2026-08-23T00:00:01.000Z'), new Date('2026-08-23T00:00:01.000Z'));
+          } else if (key === changedSizePath) {
+            writeFileSync(changedSizePath, 'changed');
+          } else if (key === changedTypePath) {
+            rmSync(changedTypePath);
+            mkdirSync(changedTypePath);
+          } else if (key === disappearingPath) {
+            rmSync(disappearingPath);
+          }
+        }
+        return realLstatSync(path);
+      }) as typeof fs.lstatSync);
+      const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(((path: fs.PathLike) => {
+        if (String(path) === unlinkFailurePath) {
+          const error = new Error('EPERM') as NodeJS.ErrnoException;
+          error.code = 'EPERM';
+          throw error;
+        }
+        return realUnlinkSync(path);
+      }) as typeof fs.unlinkSync);
+
+      try {
+        const report = await backupManager.cleanupBackups({ mode: 'apply', now });
+
+        expect(report).toMatchObject({
+          ok: false,
+          mode: 'apply',
+          inspectedCount: 7,
+          selectedCount: 7,
+          selectedBytes: 49,
+          deletedCount: 1,
+          reclaimedBytes: 10,
+          skippedCount: 5,
+          failedCount: 1,
+          ignoredCount: 0,
+        });
+        expect(report.artifacts).toEqual([
+          { id: changedInodeCandidate, status: 'skipped', reason: 'expired-automatic', detail: 'changed-before-delete' },
+          { id: changedMtimeCandidate, status: 'skipped', reason: 'expired-automatic', detail: 'changed-before-delete' },
+          { id: changedSizeCandidate, status: 'skipped', reason: 'expired-automatic', detail: 'changed-before-delete' },
+          { id: changedTypeCandidate, status: 'skipped', reason: 'expired-automatic', detail: 'changed-before-delete' },
+          { id: disappearingCandidate, status: 'skipped', reason: 'expired-automatic', detail: 'missing-before-delete' },
+          { id: unlinkFailureCandidate, status: 'failed', reason: 'expired-automatic', detail: 'delete-failed' },
+          { id: deletedCandidate, status: 'deleted', reason: 'expired-automatic', detail: null },
+        ]);
+        expect(report.artifacts).toContainEqual(expect.objectContaining({
+          status: 'skipped',
+          detail: 'changed-before-delete',
+        }));
+        expect(report.selectedCount).toBe(
+          report.deletedCount + report.skippedCount + report.failedCount
+        );
+        expectInvariants(report);
+        expect(existsSync(changedInodePath)).toBe(true);
+        expect(existsSync(changedMtimePath)).toBe(true);
+        expect(existsSync(changedSizePath)).toBe(true);
+        expect(existsSync(changedTypePath)).toBe(true);
+        expect(existsSync(disappearingPath)).toBe(false);
+        expect(existsSync(unlinkFailurePath)).toBe(true);
+        expect(existsSync(deletedPath)).toBe(false);
+        expect(JSON.stringify(report)).not.toContain(testRoot);
+      } finally {
+        lstatSpy.mockRestore();
+        unlinkSpy.mockRestore();
+      }
+    });
   });
 });

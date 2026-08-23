@@ -130,24 +130,46 @@ function isOperatorBackupName(name: string): boolean {
   return match !== null && parseBackupTimestamp(match, 1) !== null;
 }
 
-function classifySelection(
+function getAutomaticBackupCreatedAt(name: string): number | null {
+  const match = name.match(AUTOMATIC_NAME);
+
+  return match ? parseBackupTimestamp(match, 2) : null;
+}
+
+function isCompletedBackupName(name: string): boolean {
+  return getAutomaticBackupCreatedAt(name) !== null || isOperatorBackupName(name);
+}
+
+function getSidecarBaseName(name: string): string | null {
+  if (name.endsWith('-wal') || name.endsWith('-shm')) {
+    return name.slice(0, -4);
+  }
+
+  return null;
+}
+
+function classifyNameSelection(
   name: string,
   cutoff: number,
   includeInterrupted: boolean
 ): CleanupSelectionReason | null {
-  const automaticMatch = name.match(AUTOMATIC_NAME);
+  const sidecarBase = getSidecarBaseName(name);
 
-  if (automaticMatch) {
-    const createdAt = parseBackupTimestamp(automaticMatch, 2);
-
-    if (createdAt !== null && createdAt < cutoff) {
-      return 'expired-automatic';
-    }
-
-    return null;
+  if (
+    sidecarBase !== null &&
+    (isCompletedBackupName(sidecarBase) ||
+      (includeInterrupted && IN_PROGRESS_NAME.test(sidecarBase)))
+  ) {
+    return 'orphaned-sidecar';
   }
 
-  if (isOperatorBackupName(name)) {
+  const createdAt = getAutomaticBackupCreatedAt(name);
+
+  if (createdAt !== null && createdAt < cutoff) {
+    return 'expired-automatic';
+  }
+
+  if (createdAt !== null || isOperatorBackupName(name)) {
     return null;
   }
 
@@ -156,6 +178,23 @@ function classifySelection(
   }
 
   return null;
+}
+
+function classifyInspectedSelection(
+  name: string,
+  stats: fs.Stats,
+  cutoff: number,
+  includeInterrupted: boolean
+): CleanupSelectionReason | null {
+  if (!stats.isFile()) {
+    return null;
+  }
+
+  if (stats.size === 0 && isCompletedBackupName(name)) {
+    return 'zero-byte-backup';
+  }
+
+  return classifyNameSelection(name, cutoff, includeInterrupted);
 }
 
 function getIdentity(stats: fs.Stats): FileIdentity {
@@ -500,13 +539,15 @@ export class BackupManager {
     }
 
     const candidates = names.sort().flatMap<CleanupCandidate>(name => {
-      const reason = classifySelection(name, cutoff, options.includeInterrupted ?? false);
+      const includeInterrupted = options.includeInterrupted ?? false;
+      const nameReason = classifyNameSelection(name, cutoff, includeInterrupted);
       const path = join(this.backupsDir, name);
 
       try {
         const stats = fs.lstatSync(path);
+        const reason = classifyInspectedSelection(name, stats, cutoff, includeInterrupted);
 
-        if (reason === null || !stats.isFile()) {
+        if (reason === null) {
           return [];
         }
 
@@ -517,13 +558,13 @@ export class BackupManager {
           selectedBytes: stats.size,
         }];
       } catch {
-        if (reason === null) {
+        if (nameReason === null) {
           return [];
         }
 
         return [{
           path,
-          outcome: { id: name, status: 'failed' as const, reason, detail: 'inspect-failed' as const },
+          outcome: { id: name, status: 'failed' as const, reason: nameReason, detail: 'inspect-failed' as const },
           identity: null,
           selectedBytes: 0,
         }];
