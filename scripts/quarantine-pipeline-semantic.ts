@@ -32,7 +32,12 @@ function collectGateInputs(
     throw new QuarantineGateError(19, 'QUARANTINE_EXPECTED_TARGETS 가 없습니다 — 재집계 대조를 건너뛸 수 없습니다');
   }
   // FR-004b: 재개 시에는 직전 진행 기록의 누적 성공 수를 반영한 기대값과 대조한다.
-  const alreadyDeleted = options.resume ? readDeletedIds(join(outDir, 'progress.jsonl')).length : 0;
+  // --out 을 1회차와 다르게 주면 진행 기록을 못 찾아 누적분이 0이 되고 편차 게이트가 헛돈다.
+  const progressFile = join(outDir, 'progress.jsonl');
+  if (options.resume && !existsSync(progressFile)) {
+    throw new QuarantineGateError(19, `재개인데 진행 기록이 없습니다: ${progressFile} — --out 경로를 확인하세요`);
+  }
+  const alreadyDeleted = options.resume ? readDeletedIds(progressFile).length : 0;
   const expected = declared - alreadyDeleted;
   const actual = countTargets(db);
   const driftPercent = expected <= 0 ? 100 : ((actual - expected) / expected) * 100;
