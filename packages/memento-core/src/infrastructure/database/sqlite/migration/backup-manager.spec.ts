@@ -7,7 +7,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BackupManager } from './backup-manager.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import fs, { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import fs, {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 
@@ -38,6 +47,45 @@ describe('BackupManager', () => {
   });
 
   describe('createBackup', () => {
+    const partialNamePattern = /^\.memory-backup-partial-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.db$/;
+
+    function openWalDatabase(): Database.Database {
+      const fileDb = new Database(dbPath);
+      fileDb.pragma('journal_mode = WAL');
+      fileDb.pragma('wal_autocheckpoint = 0');
+      fileDb.exec(`
+        CREATE TABLE wal_notes (id INTEGER PRIMARY KEY, note TEXT NOT NULL);
+        INSERT INTO wal_notes (note) VALUES ('committed in wal');
+      `);
+      return fileDb;
+    }
+
+    async function captureCreateFailure(
+      fileDb: Database.Database,
+      expectedReason: string
+    ): Promise<Error> {
+      try {
+        await backupManager.createBackup(fileDb, '2.0');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        const caught = error as Error;
+        expect(caught.message).toContain(expectedReason);
+        expect(caught.message).not.toContain(testRoot);
+        expect(JSON.stringify(caught)).not.toContain(testRoot);
+        return caught;
+      }
+
+      throw new Error(`expected ${expectedReason}`);
+    }
+
+    function backupDirectoryNames(): string[] {
+      return fs.readdirSync(backupsDir).sort();
+    }
+
+    function expectNoAttemptResidue(): void {
+      expect(backupDirectoryNames()).toEqual([]);
+    }
+
     it('메모리 데이터베이스는 백업 API를 사용할 수 없어야 함', async () => {
       // Given: 메모리 데이터베이스
       // When & Then: 백업 생성 시 에러 발생 (메모리 DB는 백업 API 미지원)
@@ -49,7 +97,6 @@ describe('BackupManager', () => {
     it('publishes a standalone validated online backup containing committed WAL content', async () => {
       const fileDb = new Database(dbPath);
       const publicationEvents: string[] = [];
-      const partialNamePattern = /^\.memory-backup-partial-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.db$/;
       const realLinkSync = fs.linkSync.bind(fs);
       const realUnlinkSync = fs.unlinkSync.bind(fs);
       const linkSpy = vi.spyOn(fs, 'linkSync').mockImplementation(((existingPath, newPath) => {
@@ -101,6 +148,233 @@ describe('BackupManager', () => {
       }
     });
 
+    it('removes partial db, wal, and shm when the online backup write fails', async () => {
+      const fileDb = openWalDatabase();
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async destination => {
+        const path = String(destination);
+        writeFileSync(path, 'partial');
+        writeFileSync(`${path}-wal`, 'wal');
+        writeFileSync(`${path}-shm`, 'shm');
+        throw new Error('raw write path leak');
+      }) as Database.Database['backup']);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-write-failed');
+        expectNoAttemptResidue();
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it.each([
+      ['zero-byte backup', 0],
+      ['snapshot size mismatch', 1],
+    ])('removes the current attempt after %s validation fails', async (_name, reportedSize) => {
+      const fileDb = openWalDatabase();
+      const realStatSync = fs.statSync.bind(fs);
+      const statSpy = vi.spyOn(fs, 'statSync').mockImplementation(((path, options?: fs.StatOptions) => {
+        const stats = realStatSync(path, options as never);
+        if (partialNamePattern.test(basename(String(path)))) {
+          return { ...stats, size: reportedSize };
+        }
+        return stats;
+      }) as typeof fs.statSync);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-size-mismatch');
+        expectNoAttemptResidue();
+      } finally {
+        statSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('removes the current attempt after snapshot page metadata mismatch', async () => {
+      const fileDb = openWalDatabase();
+      const realBackup = fileDb.backup.bind(fileDb);
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async destination => {
+        const metadata = await realBackup(destination);
+        return { ...metadata, totalPages: metadata.totalPages + 1 };
+      }) as Database.Database['backup']);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-validation-failed');
+        expectNoAttemptResidue();
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('removes the current attempt after full integrity validation fails', async () => {
+      const fileDb = openWalDatabase();
+      const realPragma = Database.prototype.pragma;
+      const pragmaSpy = vi.spyOn(Database.prototype, 'pragma').mockImplementation(function (
+        this: Database.Database,
+        source: string,
+        options?: Database.PragmaOptions
+      ) {
+        if (source === 'integrity_check' && partialNamePattern.test(basename(this.name))) {
+          return [{ integrity_check: 'row 1 missing from index' }];
+        }
+        return realPragma.call(this, source, options);
+      });
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-validation-failed');
+        expectNoAttemptResidue();
+      } finally {
+        pragmaSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('removes the current attempt after backup checkpoint fails', async () => {
+      const fileDb = openWalDatabase();
+      const realPragma = Database.prototype.pragma;
+      const pragmaSpy = vi.spyOn(Database.prototype, 'pragma').mockImplementation(function (
+        this: Database.Database,
+        source: string,
+        options?: Database.PragmaOptions
+      ) {
+        if (source === 'wal_checkpoint(TRUNCATE)' && partialNamePattern.test(basename(this.name))) {
+          return [{ busy: 1, log: 1, checkpointed: 0 }];
+        }
+        return realPragma.call(this, source, options);
+      });
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-checkpoint-incomplete');
+        expectNoAttemptResidue();
+      } finally {
+        pragmaSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('fails safely when an attempt sidecar cannot be removed after validation', async () => {
+      const fileDb = openWalDatabase();
+      const realClose = Database.prototype.close;
+      const realUnlinkSync = fs.unlinkSync.bind(fs);
+      let failedSidecar = false;
+      const closeSpy = vi.spyOn(Database.prototype, 'close').mockImplementation(function (this: Database.Database) {
+        const path = this.name;
+        const result = realClose.call(this);
+        if (partialNamePattern.test(basename(path))) {
+          writeFileSync(`${path}-wal`, 'wal');
+          writeFileSync(`${path}-shm`, 'shm');
+        }
+        return result;
+      });
+      const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(((path) => {
+        if (!failedSidecar && String(path).endsWith('-wal')) {
+          failedSidecar = true;
+          const error = new Error('sidecar unlink denied') as NodeJS.ErrnoException;
+          error.code = 'EACCES';
+          throw error;
+        }
+        return realUnlinkSync(path);
+      }) as typeof fs.unlinkSync);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-sidecar-cleanup-failed');
+        expectNoAttemptResidue();
+      } finally {
+        closeSpy.mockRestore();
+        unlinkSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('removes the current attempt after file sync fails', async () => {
+      const fileDb = openWalDatabase();
+      const fsyncSpy = vi.spyOn(fs, 'fsyncSync').mockImplementation(() => {
+        throw new Error('raw fsync path leak');
+      });
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-fsync-failed');
+        expectNoAttemptResidue();
+      } finally {
+        fsyncSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('refuses a completed-name collision without overwriting it', async () => {
+      const fileDb = openWalDatabase();
+      const isoSpy = vi.spyOn(Date.prototype, 'toISOString')
+        .mockReturnValue('2026-08-23T00:00:00.000Z');
+      const completed = join(
+        backupsDir,
+        'memory-backup-2.0-2026-08-23T00-00-00-000Z.db'
+      );
+      writeFileSync(completed, 'existing');
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-collision');
+        expect(readFileSync(completed, 'utf8')).toBe('existing');
+        expect(backupDirectoryNames().filter(name => name.includes('partial'))).toEqual([]);
+      } finally {
+        isoSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('removes both link names when post-link partial unlink fails', async () => {
+      const fileDb = openWalDatabase();
+      const realUnlinkSync = fs.unlinkSync.bind(fs);
+      let failedPartial = false;
+      const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(((path) => {
+        if (!failedPartial && partialNamePattern.test(basename(String(path)))) {
+          failedPartial = true;
+          const error = new Error('partial unlink denied') as NodeJS.ErrnoException;
+          error.code = 'EACCES';
+          throw error;
+        }
+        return realUnlinkSync(path);
+      }) as typeof fs.unlinkSync);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-post-link-cleanup-failed');
+        expectNoAttemptResidue();
+      } finally {
+        unlinkSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('reports cleanup residue by basename when a failed attempt cannot be fully removed', async () => {
+      const fileDb = openWalDatabase();
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async destination => {
+        writeFileSync(String(destination), 'partial');
+        throw new Error('raw write path leak');
+      }) as Database.Database['backup']);
+      const realUnlinkSync = fs.unlinkSync.bind(fs);
+      let residueName = '';
+      const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(((path) => {
+        if (partialNamePattern.test(basename(String(path)))) {
+          residueName = basename(String(path));
+          const error = new Error('partial cleanup denied') as NodeJS.ErrnoException;
+          error.code = 'EACCES';
+          throw error;
+        }
+        return realUnlinkSync(path);
+      }) as typeof fs.unlinkSync);
+
+      try {
+        const error = await captureCreateFailure(fileDb, 'backup-write-failed');
+        expect(error.message).toContain(residueName);
+        expect(error.message).not.toContain(join(backupsDir, residueName));
+        expect(backupDirectoryNames()).toEqual([residueName]);
+      } finally {
+        backupSpy.mockRestore();
+        unlinkSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
   });
 
   describe('restoreBackup', () => {
@@ -141,6 +415,10 @@ describe('BackupManager', () => {
     function expectInvariants(report: Awaited<ReturnType<BackupManager['cleanupBackups']>>): void {
       expect(report.inspectedCount).toBe(report.selectedCount + report.ignoredCount);
       expect(report.artifacts).toHaveLength(report.selectedCount);
+    }
+
+    function backupDirectoryNames(): string[] {
+      return fs.readdirSync(backupsDir).sort();
     }
 
     it('previews fixed filename retention without selecting operator backups or non-file children', async () => {
@@ -370,6 +648,29 @@ describe('BackupManager', () => {
         artifacts: [],
       });
       expectInvariants(report);
+      expect(JSON.stringify(report)).not.toContain(testRoot);
+    });
+
+    it('preserves crash-leftover completed and partial names during routine cleanup', async () => {
+      const completed = writeBackup('memory-backup-2.0-2026-08-23T00-00-00-000Z.db', 8);
+      const partialName = '.memory-backup-partial-00000000-0000-4000-8000-000000000000.db';
+      const partial = join(backupsDir, partialName);
+      linkSync(completed, partial);
+
+      const report = await backupManager.cleanupBackups({ mode: 'apply', includeInterrupted: false, now });
+
+      expect(report).toMatchObject({
+        ok: true,
+        selectedCount: 0,
+        deletedCount: 0,
+        ignoredCount: 2,
+        artifacts: [],
+      });
+      expect(basename(completed)).not.toBe(partialName);
+      expect(backupDirectoryNames()).toEqual([
+        partialName,
+        'memory-backup-2.0-2026-08-23T00-00-00-000Z.db',
+      ]);
       expect(JSON.stringify(report)).not.toContain(testRoot);
     });
   });

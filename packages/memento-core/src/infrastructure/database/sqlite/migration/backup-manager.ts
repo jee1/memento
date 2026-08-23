@@ -7,7 +7,7 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import { randomUUID } from 'node:crypto';
-import { join, dirname } from 'path';
+import { basename, dirname, join } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
@@ -180,6 +180,68 @@ function isEnoent(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
 }
 
+function hasFsCode(error: unknown, code: string): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
+}
+
+function backupFailure(reason: string, residue: string[] = []): Error {
+  return new Error(residue.length === 0 ? reason : `${reason} residue=${residue.join(',')}`);
+}
+
+function normalizeBackupFailure(error: unknown, residue: string[]): Error {
+  if (!(error instanceof Error)) {
+    return backupFailure('backup-failed', residue);
+  }
+
+  if (error.message.includes('residue=')) {
+    return error;
+  }
+
+  if (
+    error.message.startsWith('backup-') ||
+    error.message.startsWith('메모리 데이터베이스') ||
+    error.message.startsWith('백업할 데이터베이스')
+  ) {
+    return backupFailure(error.message, residue);
+  }
+
+  return backupFailure('backup-failed', residue);
+}
+
+function removeArtifacts(paths: string[]): string[] {
+  const remaining: string[] = [];
+  const seen = new Set<string>();
+
+  for (const candidate of paths) {
+    if (seen.has(candidate)) {
+      continue;
+    }
+    seen.add(candidate);
+
+    try {
+      fs.unlinkSync(candidate);
+    } catch (error) {
+      if (!isEnoent(error)) {
+        remaining.push(basename(candidate));
+      }
+    }
+  }
+
+  return remaining;
+}
+
+function attemptArtifactPaths(inProgressPath: string): string[] {
+  return [inProgressPath, `${inProgressPath}-wal`, `${inProgressPath}-shm`];
+}
+
+function removeAttemptArtifacts(inProgressPath: string): string[] {
+  return removeArtifacts(attemptArtifactPaths(inProgressPath));
+}
+
+function removeAttemptSidecars(inProgressPath: string): boolean {
+  return removeArtifacts([`${inProgressPath}-wal`, `${inProgressPath}-shm`]).length === 0;
+}
+
 function emptyCleanupReport(mode: CleanupMode, error: CleanupReport['error']): CleanupReport {
   return {
     ok: error === null,
@@ -276,9 +338,14 @@ export class BackupManager {
       }
 
       const sourcePageSize = backupDb.pragma('page_size', { simple: true }) as number;
-      const metadata = await backupDb.backup(inProgressPath);
+      let metadata: Awaited<ReturnType<BackupCapableDatabase['backup']>>;
+      try {
+        metadata = await backupDb.backup(inProgressPath);
+      } catch {
+        throw backupFailure('backup-write-failed');
+      }
       if (metadata.remainingPages !== 0) {
-        throw new Error('backup-incomplete');
+        throw backupFailure('backup-incomplete');
       }
 
       const verify = new Database(inProgressPath);
@@ -291,10 +358,10 @@ export class BackupManager {
         }>;
         const checkpoint = checkpointRows[0];
         if (!checkpoint) {
-          throw new Error('backup-checkpoint-incomplete');
+          throw backupFailure('backup-checkpoint-incomplete');
         }
         if (checkpoint.busy !== 0 || checkpoint.log !== checkpoint.checkpointed) {
-          throw new Error('backup-checkpoint-incomplete');
+          throw backupFailure('backup-checkpoint-incomplete');
         }
 
         verify.pragma('journal_mode = DELETE');
@@ -310,28 +377,50 @@ export class BackupManager {
           integrity.length !== 1 ||
           integrity[0]?.integrity_check !== 'ok'
         ) {
-          throw new Error('backup-validation-failed');
+          throw backupFailure('backup-validation-failed');
         }
       } finally {
         verify.close();
+      }
+
+      if (!removeAttemptSidecars(inProgressPath)) {
+        throw backupFailure('backup-sidecar-cleanup-failed');
       }
 
       const expectedSize = metadata.totalPages * sourcePageSize;
       const stats = fs.statSync(inProgressPath);
       const size = stats.size;
       if (size === 0 || size !== expectedSize) {
-        throw new Error('backup-size-mismatch');
+        throw backupFailure('backup-size-mismatch');
       }
 
-      const fd = fs.openSync(inProgressPath, 'r');
+      let fd: number | null = null;
       try {
+        fd = fs.openSync(inProgressPath, 'r');
         fs.fsyncSync(fd);
+      } catch {
+        throw backupFailure('backup-fsync-failed');
       } finally {
-        fs.closeSync(fd);
+        if (fd !== null) {
+          fs.closeSync(fd);
+        }
       }
 
-      fs.linkSync(inProgressPath, backupPath);
-      fs.unlinkSync(inProgressPath);
+      try {
+        fs.linkSync(inProgressPath, backupPath);
+      } catch (error) {
+        throw backupFailure(hasFsCode(error, 'EEXIST') ? 'backup-collision' : 'backup-publication-failed');
+      }
+
+      try {
+        fs.unlinkSync(inProgressPath);
+      } catch {
+        const residue = removeArtifacts([
+          ...attemptArtifactPaths(inProgressPath),
+          ...attemptArtifactPaths(backupPath),
+        ]);
+        throw backupFailure('backup-post-link-cleanup-failed', residue);
+      }
 
       logger.info('✅ 백업 생성 완료', {
         backupPath,
@@ -347,12 +436,13 @@ export class BackupManager {
         integrityCheck: 'ok',
       };
     } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      const safeError = normalizeBackupFailure(error, removeAttemptArtifacts(inProgressPath));
+      const maskedError = PIIMasker.maskError(safeError);
       logger.error('❌ 백업 생성 실패', {
         error: maskedError.message,
         errorName: maskedError.name
       });
-      throw error;
+      throw safeError;
     }
   }
 
