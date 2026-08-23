@@ -681,7 +681,7 @@ describe('BackupManager', () => {
         const report = await backupManager.cleanupBackups({ mode: 'apply', now });
 
         expect(report).toMatchObject({
-          ok: true,
+          ok: false,
           mode: 'apply',
           inspectedCount: 2,
           selectedCount: 2,

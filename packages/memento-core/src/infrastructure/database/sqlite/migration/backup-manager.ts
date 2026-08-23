@@ -267,16 +267,17 @@ function buildCleanupReport(
 ): CleanupReport {
   const artifacts = candidates.map(candidate => candidate.outcome);
   const failedCount = artifacts.filter(artifact => artifact.status === 'failed').length;
+  const skippedCount = artifacts.filter(artifact => artifact.status === 'skipped').length;
 
   return {
     ...emptyCleanupReport(mode, null),
-    ok: failedCount === 0,
+    ok: failedCount === 0 && skippedCount === 0,
     inspectedCount,
     selectedCount: artifacts.length,
     selectedBytes: candidates.reduce((total, candidate) => total + candidate.selectedBytes, 0),
     deletedCount: artifacts.filter(artifact => artifact.status === 'deleted').length,
     reclaimedBytes,
-    skippedCount: artifacts.filter(artifact => artifact.status === 'skipped').length,
+    skippedCount,
     failedCount,
     ignoredCount: inspectedCount - artifacts.length,
     artifacts,
