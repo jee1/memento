@@ -117,6 +117,8 @@ describe('buildExecuteGates (계약 중단 게이트)', () => {
     ['serverStopped', { serverStopped: false }, 12],
     ['integrityCheckPassed', { integrityCheckPassed: false }, 13],
     ['backup 크기', { backup: { exists: true, sizeRatio: 0.02, sidecarsClean: true } }, 14],
+    ['backup 부재', { backup: { exists: false, sizeRatio: 0.99, sidecarsClean: true } }, 14],
+    ['backup -wal 잔재', { backup: { exists: true, sizeRatio: 0.99, sidecarsClean: false } }, 14],
     ['copyABootVerified', { copyABootVerified: false }, 15],
     ['copyBRehearsalPassed', { copyBRehearsalPassed: false }, 16],
     ['오탐', { falsePositives: { agree: false, emptySubject: 0 } }, 17],
