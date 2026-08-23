@@ -10,6 +10,7 @@ describe('parseOptions', () => {
       sampleSize: 50,
       driftTolerance: 5,
       resume: false,
+      from: 'execute',
     });
   });
 
@@ -24,5 +25,19 @@ describe('parseOptions', () => {
   it('음수 표본 크기를 거부한다 (LIMIT -1 은 SQLite 에서 제한 없음이다)', () => {
     expect(() => parseOptions(['report', '--sample-size', '-1'])).toThrow(/1 이상/);
     expect(() => parseOptions(['report', '--sample-size', '0'])).toThrow(/1 이상/);
+  });
+});
+
+describe('--from (cleanup 이 정리할 실행분)', () => {
+  it('기본은 execute 다 — 라이브 정리가 리허설 기록을 집지 않게', () => {
+    expect(parseOptions(['cleanup']).from).toBe('execute');
+  });
+
+  it('리허설 뒤 정리는 명시적으로 고른다', () => {
+    expect(parseOptions(['cleanup', '--from', 'rehearse']).from).toBe('rehearse');
+  });
+
+  it('삭제를 수행하는 두 명령 외에는 거부한다', () => {
+    expect(() => parseOptions(['cleanup', '--from', 'report'])).toThrow(/execute|rehearse/);
   });
 });

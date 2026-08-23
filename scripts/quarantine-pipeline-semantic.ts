@@ -83,6 +83,8 @@ export interface Options {
   sampleSize: number;
   driftTolerance: number;
   resume: boolean;
+  /** cleanup 이 어느 실행분의 진행 기록을 정리할지 */
+  from: 'execute' | 'rehearse';
 }
 
 function numberFlag(argv: string[], name: string, fallback: number): number {
@@ -115,6 +117,13 @@ export function parseOptions(argv: string[]): Options {
     throw new Error(`--sample-size 는 1 이상이어야 합니다: ${sampleSize}`);
   }
 
+  const fromIndex = argv.indexOf('--from');
+  const from = fromIndex === -1 ? 'execute' : argv[fromIndex + 1];
+  if (from !== 'execute' && from !== 'rehearse') {
+    // 라이브 정리가 사본 리허설 기록을 집으면 살아 있는 기억의 로그를 지운다 (FR-006f 위반).
+    throw new Error(`--from 은 execute 또는 rehearse 여야 합니다: ${from ?? '(없음)'}`);
+  }
+
   const outIndex = argv.indexOf('--out');
   return {
     command,
@@ -123,6 +132,7 @@ export function parseOptions(argv: string[]): Options {
     sampleSize,
     driftTolerance: numberFlag(argv, '--drift-tolerance', 5),
     resume: argv.includes('--resume'),
+    from,
   };
 }
 
@@ -192,8 +202,10 @@ async function main(): Promise<void> {
 
   if (options.command === 'cleanup') {
     // 정리 대상은 시간 범위가 아니라 실제로 지운 ID 다 (quarantine-run.ts 의 주석 참조).
-    // 따라서 execute 가 남긴 진행 기록이 유일한 입력이고, 없으면 cleanupResidue 가 던진다.
-    const executeProgressFile = join(outDir, 'execute.progress.jsonl');
+    // 어느 실행분을 정리할지는 --from 이 정한다. 기본 execute — 라이브 정리가 사본
+    // 리허설 기록을 집어 살아 있는 기억의 로그를 지우는 일을 막는다 (FR-006f).
+    const executeProgressFile = join(outDir, `${options.from}.progress.jsonl`);
+    console.log(`[quarantine-065] 정리 근거: ${executeProgressFile}`);
     const db = await openForWrite(dbPath);
     try {
       const result = cleanupResidue(db, { deletedIds: readDeletedIds(executeProgressFile) });
