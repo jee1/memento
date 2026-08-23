@@ -326,3 +326,53 @@ describe('createForgetFn 통합 (I-3: 실제 forget 도구 경유)', () => {
     }
   });
 });
+
+describe('runQuarantine 계통 실패 조기 중단 (리허설 실측 반영)', () => {
+  it('한 건도 성공하지 못한 채 배치가 끝나면 즉시 중단한다', async () => {
+    const db = createFixtureDb();
+    for (let i = 0; i < 300; i += 1) {
+      insertMemory(db, { id: `mem_${i}`, subject: '러너', predicate: '호출', object: 'forget',
+        content: '러너는 forget를 호출합니다' });
+    }
+    let calls = 0;
+    const forget: ForgetFn = async (ids) => {
+      calls += 1;
+      return {
+        successful: [],
+        failed: ids.map((id) => ({ id, error: 'no such function: normalize_reflection_notes' })),
+        total: ids.length,
+      };
+    };
+
+    await expect(runQuarantine({ db, forget, batchSize: 100, onBatch: () => {} }))
+      .rejects.toThrow(/한 건도 삭제되지 않았습니다/);
+    // 242배치를 헛돌지 않고 첫 배치에서 멈춘다
+    expect(calls).toBe(1);
+    db.close();
+  });
+
+  it('일부라도 성공했다면 산발 실패는 건너뛰고 계속한다', async () => {
+    const db = createFixtureDb();
+    insertMemory(db, { id: 'mem_ok', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    insertMemory(db, { id: 'mem_stuck', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+
+    const forget: ForgetFn = async (ids) => {
+      const ok = ids.filter((id) => id !== 'mem_stuck');
+      if (ok.length > 0) {
+        db.prepare(`DELETE FROM memory_item WHERE id IN (${ok.map(() => '?').join(',')})`).run(...ok);
+      }
+      return {
+        successful: ok,
+        failed: ids.filter((id) => id === 'mem_stuck').map((id) => ({ id, error: '핀된 기억' })),
+        total: ids.length,
+      };
+    };
+
+    const summary = await runQuarantine({ db, forget, batchSize: 100, onBatch: () => {} });
+    expect(summary.deleted).toBe(1);
+    expect(summary.failed).toEqual(['mem_stuck']);
+    db.close();
+  });
+});

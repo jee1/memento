@@ -2,6 +2,7 @@ import { copyFileSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
+import { initializeDatabase } from '@memento/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   assertAbsoluteDbPath, assertRehearsalTarget, buildExecuteGates, type ExecuteGateInputs, type Gate,
@@ -54,9 +55,17 @@ describe('openReadonly', () => {
 });
 
 describe('openForWrite', () => {
-  it('foreign_keys 를 켜고 되읽어 확인한다', () => {
-    const db = openForWrite(dbPath);
+  it('서버와 같은 세션으로 열어 커스텀 UDF 를 등록한다', async () => {
+    // initializeDatabase 로 실제 스키마를 부트스트랩한 DB 여야 한다.
+    // 이 함수는 마이그레이션을 돌리므로 최소 스키마로는 통과하지 않는다 — 그게 의도다.
+    const realPath = join(dir, 'real.db');
+    const seeded = await initializeDatabase(realPath);
+    seeded.close();
+
+    const db = await openForWrite(realPath);
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+    // 이 UDF 가 없으면 memory_item_fts_delete 트리거가 죽어 DELETE 가 전량 실패한다.
+    expect(db.prepare("SELECT normalize_reflection_notes(NULL) AS v").get()).toBeDefined();
     db.close();
   });
 });

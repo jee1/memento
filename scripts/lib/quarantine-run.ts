@@ -101,6 +101,15 @@ export async function runQuarantine(args: {
     if (outcome.successful.length === 0 && outcome.failed.length === 0) {
       throw new Error(`배치 ${batches}: 성공도 실패도 없습니다 — 진행이 불가능해 중단합니다`);
     }
+
+    // 계통 실패를 산발 실패처럼 넘기지 않는다. 사본 B 리허설에서 세션에 커스텀 UDF 가 없어
+    // 24,114건이 전량 실패했는데 러너가 242배치를 헛돌고 종료 코드 0 을 냈다.
+    if (deleted === 0 && outcome.failed.length > 0) {
+      const sample = outcome.failed[0]?.error ?? '(사유 없음)';
+      throw new Error(
+        `배치 ${batches}: 한 건도 삭제되지 않았습니다 (${outcome.failed.length}건 실패) — 계통 실패로 보고 중단합니다. 첫 사유: ${sample}`,
+      );
+    }
   }
 
   return { batches, deleted, failed: [...stuck], elapsedMs: Date.now() - startedAt };

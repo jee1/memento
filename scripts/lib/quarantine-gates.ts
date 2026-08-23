@@ -8,6 +8,7 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, resolve } from 'node:path';
+import { initializeDatabase } from '@memento/core';
 import { openDb, type CliDatabase } from './cli.js';
 
 /** 계약(contracts/runner-cli.md)의 종료 코드 10~21 을 그대로 나른다. */
@@ -60,9 +61,23 @@ export function openReadonly(dbPath: string): CliDatabase {
   return openDb(dbPath, { readonly: true });
 }
 
-/** FR-006: better-sqlite3 는 FK 를 기본 OFF 로 연다. 켜지지 않으면 연쇄 정리가 통째로 실패한다. */
-export function openForWrite(dbPath: string): CliDatabase {
-  const db = openDb(dbPath);
+/**
+ * FR-006 + 사본 B 리허설 실측(2026-08-23).
+ *
+ * 쓰기 명령은 **서버와 똑같은 세션**으로 열어야 한다. `memory_item_fts_delete` 트리거가
+ * `normalize_reflection_notes` 를 부르는데, 그 함수는 스키마가 아니라 연결마다
+ * `configureSqliteSession` 이 `db.function()` 으로 등록하는 런타임 UDF 다. 맨 연결로 열면
+ * DELETE 가 트리거에서 `no such function` 으로 죽는다 — 리허설에서 24,114건 전량 실패했다.
+ * `sqlite-vec` 도 같은 곳에서 로드되므로 `memory_item_vec_*` 정리에도 필요하다.
+ *
+ * `configureSqliteSession` 과 `normalizeReflectionNotes` 는 둘 다 `@memento/core` 의 공개
+ * export 가 아니고 `exports` 맵에도 없다(ForgetTool 과 같은 함정). 공개 경로는
+ * `initializeDatabase` 하나뿐이고, 그것이 곧 서버가 부팅 때 쓰는 경로다.
+ *
+ * 읽기 명령에는 쓰지 않는다 — 이 함수는 마이그레이션과 스키마 보정을 실행한다.
+ */
+export async function openForWrite(dbPath: string): Promise<CliDatabase> {
+  const db = await initializeDatabase(dbPath);
   // rehearse·cleanup·vacuum 에는 서버 정지 게이트가 없다. 다른 프로세스가 붙어 있을 때
   // SQLITE_BUSY 로 즉시 죽으면 진행 기록이 실패로 뒤덮여 실제 문제를 가린다.
   db.pragma('busy_timeout = 5000');

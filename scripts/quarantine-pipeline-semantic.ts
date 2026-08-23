@@ -166,7 +166,7 @@ async function main(): Promise<void> {
       // C-1: 리허설은 사본 전용이다. 게이트를 평가하지 않으므로 이 확인이 유일한 방어다.
       assertRehearsalTarget(dbPath);
     }
-    const db = openForWrite(dbPath);
+    const db = await openForWrite(dbPath);
     try {
       if (options.command === 'execute') {
         const failure = runGates(buildExecuteGates(collectGateInputs(db, dbPath, outDir, options)));
@@ -194,7 +194,7 @@ async function main(): Promise<void> {
     // 정리 대상은 시간 범위가 아니라 실제로 지운 ID 다 (quarantine-run.ts 의 주석 참조).
     // 따라서 execute 가 남긴 진행 기록이 유일한 입력이고, 없으면 cleanupResidue 가 던진다.
     const executeProgressFile = join(outDir, 'execute.progress.jsonl');
-    const db = openForWrite(dbPath);
+    const db = await openForWrite(dbPath);
     try {
       const result = cleanupResidue(db, { deletedIds: readDeletedIds(executeProgressFile) });
       console.log(
@@ -207,7 +207,7 @@ async function main(): Promise<void> {
   }
 
   if (options.command === 'vacuum') {
-    const db = openForWrite(dbPath);
+    const db = await openForWrite(dbPath);
     try {
       const result = vacuumAndMeasure(db, dbPath);
       console.log(`[quarantine-065] ${result.before} → ${result.after} 바이트 (회수 ${result.reclaimed})`);
