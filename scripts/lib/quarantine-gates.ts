@@ -152,13 +152,16 @@ export function buildExecuteGates(input: ExecuteGateInputs): Gate[] {
         || '프로덕션 서버가 살아 있습니다 (SQLITE_BUSY · 신규 유입 · 망각 정책 위험)' },
     { id: 4, name: 'db:pre-docker-deploy 무결성 점검', code: 13,
       check: () => input.integrityCheckPassed || '무결성 점검이 실패했습니다' },
-    { id: 5, name: '백업 존재 · 크기 대조 · sidecar', code: 14,
+    { id: 5, name: '백업 존재 · 크기 대조 · -wal 비어 있음', code: 14,
       check: () => {
         if (!input.backup.exists) return '백업(사본 A)이 없습니다';
         if (input.backup.sizeRatio < BACKUP_MIN_SIZE_RATIO) {
           return `사본 A 가 라이브의 ${(input.backup.sizeRatio * 100).toFixed(1)}% 크기입니다 — 부분 파일 의심`;
         }
-        if (!input.backup.sidecarsClean) return '-wal/-shm sidecar 잔재가 남아 있습니다';
+        // 존재 여부가 아니라 크기다. 읽기 전용으로 한 번만 열어도 -wal·-shm 은 생기므로
+        // 존재를 실패로 보면 정상 백업이 걸린다. 비어 있지 않은 -wal 만 위험 신호다 —
+        // 복사가 덜 끝났거나, 백업 후 누군가 붙어서 썼다는 뜻이다.
+        if (!input.backup.sidecarsClean) return '백업의 -wal 이 비어 있지 않습니다 — 부분 복사 또는 백업 후 쓰기';
         return true;
       } },
     { id: 6, name: '사본 A 구동 검증', code: 15,

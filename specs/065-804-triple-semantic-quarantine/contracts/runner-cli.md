@@ -53,6 +53,10 @@ npm script 를 쓰는 이유는 그것이 `npm run build -w @memento/core` 를 �
 
 전부 fail-closed 다. 확인하지 않은 항목에 `1` 을 넣으면 게이트가 장식이 된다.
 
+`QUARANTINE_BACKUP_SIDECARS_CLEAN` 의 뜻은 **백업(사본 A)의 `-wal` 이 없거나 0바이트**다.
+sidecar 의 *존재* 가 아니다 — 읽기 전용으로 한 번만 열어도 `-wal`·`-shm` 은 생긴다.
+확인은 `test ! -s "<사본 A 경로>-wal"` 로 한다(성공 = clean). `-shm` 은 판정에 쓰지 않는다.
+
 ### `rehearse` 는 사본 전용이다
 
 `rehearse` 는 `execute` 와 같은 파괴적 루프를 돌지만 **중단 게이트를 평가하지 않는다.**
@@ -82,7 +86,7 @@ npm script 를 쓰는 이유는 그것이 `npm run build -w @memento/core` 를 �
 | 2 | `PRAGMA foreign_keys = ON` | FR-006 | 11 |
 | 3 | 러너 외 쓰기 프로세스 없음 (서버 정지 확인) | FR-008a | 12 |
 | 4 | `npm run db:pre-docker-deploy` 통과 | FR-008 | 13 |
-| 5 | 백업 존재 + 크기 대조 + sidecar 확인 | FR-007c | 14 |
+| 5 | 백업 존재 + 크기 대조 + 백업 `-wal` 비어 있음 | FR-007c | 14 |
 | 6 | 사본 A 구동 검증 통과 | FR-007b | 15 |
 | 7 | 사본 B 리허설 통과 | FR-006g | 16 |
 | 8 | 오탐 전수 검증 0건 | FR-002j | 17 |

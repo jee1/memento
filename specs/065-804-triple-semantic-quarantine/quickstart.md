@@ -21,6 +21,10 @@ npm run db:backup
 ls -la "$(dirname "$DB_PATH")/backups/" | tail -3
 ls -la "$DB_PATH"
 
+# 백업 -wal 이 비어 있는지 (FR-007c). 성공 = clean.
+#   존재 여부가 아니라 크기다. 읽기 전용으로 한 번만 열어도 -wal·-shm 은 생긴다.
+test ! -s "<사본 A 경로>-wal" && echo "clean" || echo "중단: -wal 에 미반영 쓰기가 남아 있다"
+
 # 사본 B 복제
 cp "<사본 A 경로>" /tmp/quarantine-copy-b.db
 ```
@@ -42,8 +46,10 @@ npm run memory:quarantine-065 -- export-relations
 ## 2단계 — 사본에서 전후 프로브와 리허설
 
 ```bash
-# 사본 A에 서버를 붙여 before 기록
-DB_PATH=<사본 A 경로> npm run dev &
+# 사본 A의 *복제본* 에 서버를 붙여 before 기록
+#   백업 원본에 직접 구동하면 안 된다 — ReflexionWorker 가 procedural 을 새로 쓴다(실측 249→250).
+cp "<사본 A 경로>" /tmp/quarantine-copy-a.db
+DB_PATH=/tmp/quarantine-copy-a.db npm run dev &
 #   질의 10개를 memory_injection으로 호출 → before.json
 kill %1
 
