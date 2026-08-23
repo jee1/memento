@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   attributionCounts, classifyForms, countTargets, crossVerifyTargets, fallbackTrendByMonth,
-  importanceBuckets, listPreservedFormIds, listTargetIds, pinnedCandidates, sampleTargets,
+  importanceBuckets, kgPredicateNormalization, kgPreservation, listPreservedFormIds, listTargetIds,
+  pinnedCandidates, sampleTargets,
 } from './quarantine-targets.js';
 
 export function createFixtureDb(): Database.Database {
@@ -214,5 +215,33 @@ describe('표본과 분포 (FR-002d, FR-003, FR-001c, FR-001d)', () => {
       { month: '2026-07', total: 1, fallback: 0, rate: 0 },
       { month: '2026-08', total: 1, fallback: 1, rate: 1 },
     ]);
+  });
+});
+
+describe('kg_triple 보존 대조 (FR-004 b, SC-004a)', () => {
+  it('전량 보존되면 rate 가 1 이다', () => {
+    insertMemory(db, { id: 'mem_k1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    db.prepare("INSERT INTO kg_triple (subject, predicate, object) VALUES ('러너','호출','forget')").run();
+
+    expect(kgPreservation(db)).toEqual({ total: 1, missing: 0, rate: 1 });
+  });
+
+  it('보존되지 않은 조합을 missing 으로 센다', () => {
+    insertMemory(db, { id: 'mem_k2', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+
+    const result = kgPreservation(db);
+    expect(result.missing).toBe(1);
+    expect(result.rate).toBe(0);
+  });
+
+  it('predicate 정규화 지표를 낸다 (FR-004d, SC-004b)', () => {
+    db.prepare("INSERT INTO kg_triple (subject, predicate, object) VALUES ('a','호출','b')").run();
+    db.prepare("INSERT INTO kg_triple (subject, predicate, object) VALUES ('a','pragma(mode)','b')").run();
+
+    const metrics = kgPredicateNormalization(db);
+    expect(metrics.total).toBe(2);
+    expect(metrics.hangulEnding).toBe(1);
   });
 });

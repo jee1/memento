@@ -204,3 +204,75 @@ export function fallbackTrendByMonth(db: CliDatabase): MonthlyFallback[] {
 
   return rows.map((row) => ({ ...row, rate: row.total === 0 ? 0 : row.fallback / row.total }));
 }
+
+export interface KgPreservation { total: number; missing: number; rate: number }
+
+/** FR-004 (b): 자연어 서술이 사라져도 구조화된 사실은 남는다 — 이 확인이 그것을 보장한다. */
+export function kgPreservation(db: CliDatabase): KgPreservation {
+  // 바깥 조건을 서브쿼리로 분리한다. TARGET_WHERE 의 컬럼을 EXISTS 안에 그대로 두면
+  // subject/predicate/object 가 kg_triple 쪽으로 해석돼 조용히 틀린 답이 나온다.
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN EXISTS (
+        SELECT 1 FROM kg_triple k
+        WHERE k.subject = m.subject AND k.predicate = m.predicate AND k.object = m.object
+      ) THEN 0 ELSE 1 END) AS missing
+    FROM memory_item m
+    WHERE m.id IN (SELECT id FROM memory_item WHERE ${TARGET_WHERE})
+  `).get() as { total: number; missing: number | null };
+
+  const missing = row.missing ?? 0;
+  return { total: row.total, missing, rate: row.total === 0 ? 1 : (row.total - missing) / row.total };
+}
+
+/**
+ * FR-004d: 보존되는 저장소가 어떤 상태였는지의 기준선.
+ * 한글 종결은 마지막 글자의 코드포인트가 완성형 한글 구간(가~힣)인지로 본다.
+ */
+export function kgPredicateNormalization(db: CliDatabase): {
+  total: number; hangulEnding: number; withSpace: number; avgLength: number;
+} {
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN unicode(substr(predicate, length(predicate), 1)) BETWEEN 44032 AND 55203
+               THEN 1 ELSE 0 END) AS hangulEnding,
+      SUM(CASE WHEN predicate LIKE '% %' THEN 1 ELSE 0 END) AS withSpace,
+      AVG(length(predicate)) AS avgLength
+    FROM kg_triple
+    WHERE predicate IS NOT NULL AND predicate <> ''
+  `).get() as { total: number; hangulEnding: number | null; withSpace: number | null; avgLength: number | null };
+
+  return {
+    total: row.total,
+    hangulEnding: row.hangulEnding ?? 0,
+    withSpace: row.withSpace ?? 0,
+    avgLength: row.avgLength ?? 0,
+  };
+}
+
+/**
+ * FR-006a·006e: 연쇄로 사라질 행과 NULL 이 될 참조를 미리 센다.
+ * pragma_foreign_key_list 로 실제 스키마에서 읽으므로 스키마가 바뀌어도 따라간다.
+ */
+export function cascadeImpact(db: CliDatabase): Array<{
+  table: string; column: string; onDelete: string; rows: number;
+}> {
+  const refs = db.prepare(`
+    SELECT m.name AS table_name, fk."from" AS column_name, fk.on_delete AS on_delete
+    FROM sqlite_master m
+    JOIN pragma_foreign_key_list(m.name) fk
+    WHERE m.type = 'table' AND fk."table" = 'memory_item'
+    ORDER BY m.name, fk."from"
+  `).all() as Array<{ table_name: string; column_name: string; on_delete: string }>;
+
+  return refs.map((ref) => {
+    // 식별자는 스키마에서 읽은 값이므로 사용자 입력이 아니다.
+    const row = db.prepare(`
+      SELECT COUNT(*) AS n FROM "${ref.table_name}"
+      WHERE "${ref.column_name}" IN (SELECT id FROM memory_item WHERE ${TARGET_WHERE})
+    `).get() as { n: number };
+    return { table: ref.table_name, column: ref.column_name, onDelete: ref.on_delete, rows: row.n };
+  });
+}
