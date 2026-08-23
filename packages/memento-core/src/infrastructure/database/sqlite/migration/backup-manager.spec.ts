@@ -495,6 +495,103 @@ describe('BackupManager', () => {
       return fs.readdirSync(backupsDir).sort();
     }
 
+    it('reconciles preview, apply, and second apply for 6900 tiny backlog artifacts', async () => {
+      const counts = {
+        expiredAutomatic: 6835,
+        currentAutomatic: 20,
+        operator: 20,
+        zeroByte: 9,
+        sidecar: 16,
+      } as const;
+      expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(6900);
+
+      const automaticName = (version: string, base: string, index: number): string => {
+        const stamp = new Date(Date.parse(base) + index).toISOString().replace(/[:.]/g, '-');
+        return `memory-backup-${version}-${stamp}.db`;
+      };
+      const operatorName = (base: string, index: number): string => {
+        const stamp = new Date(Date.parse(base) + index).toISOString().replace(/[:.]/g, '-');
+        return `memory-backup-${stamp}.db`;
+      };
+      const sumLstatBytes = (names: string[]): number =>
+        names.reduce((sum, name) => sum + fs.lstatSync(join(backupsDir, name)).size, 0);
+      const reasonCounts = (artifacts: Awaited<ReturnType<BackupManager['cleanupBackups']>>['artifacts']) =>
+        artifacts.reduce<Record<string, number>>((totals, artifact) => {
+          totals[artifact.reason] = (totals[artifact.reason] ?? 0) + 1;
+          return totals;
+        }, {});
+
+      const expiredAutomatic = Array.from({ length: counts.expiredAutomatic }, (_, index) =>
+        automaticName('2.0', '2026-06-01T00:00:00.000Z', index)
+      );
+      const currentAutomatic = Array.from({ length: counts.currentAutomatic }, (_, index) =>
+        automaticName('2.0', '2026-08-01T00:00:00.000Z', index)
+      );
+      const operator = Array.from({ length: counts.operator }, (_, index) =>
+        operatorName('2026-06-01T00:00:00.000Z', index)
+      );
+      const zeroByteAutomatic = Array.from({ length: 5 }, (_, index) =>
+        automaticName('2.0', '2026-08-02T00:00:00.000Z', index)
+      );
+      const zeroByteOperator = Array.from({ length: 4 }, (_, index) =>
+        operatorName('2026-08-02T00:00:00.000Z', index)
+      );
+      const zeroByte = [...zeroByteAutomatic, ...zeroByteOperator];
+      const sidecar = Array.from({ length: counts.sidecar }, (_, index) => {
+        const suffix = index % 2 === 0 ? '-wal' : '-shm';
+        return `${automaticName('2.0', '2026-06-02T00:00:00.000Z', index)}${suffix}`;
+      });
+
+      for (const name of [...expiredAutomatic, ...currentAutomatic, ...operator, ...sidecar]) {
+        writeBackup(name, 1);
+      }
+      for (const name of zeroByte) {
+        writeBackup(name, 0);
+      }
+
+      expect(sumLstatBytes(expiredAutomatic)).toBe(6835);
+      expect(sumLstatBytes(currentAutomatic)).toBe(20);
+      expect(sumLstatBytes(operator)).toBe(20);
+      expect(sumLstatBytes(zeroByte)).toBe(0);
+      expect(sumLstatBytes(sidecar)).toBe(16);
+      expect(sumLstatBytes(backupDirectoryNames())).toBe(6835 + 20 + 20 + 16);
+
+      const preview = await backupManager.cleanupBackups({ mode: 'preview', now });
+      const apply = await backupManager.cleanupBackups({ mode: 'apply', now });
+      const secondApply = await backupManager.cleanupBackups({ mode: 'apply', now });
+
+      expect(preview.selectedCount).toBe(6835 + 9 + 16);
+      expect(preview.selectedBytes).toBe(6835 + 16);
+      expect(preview.inspectedCount).toBe(6900);
+      expect(preview.ignoredCount).toBe(20 + 20);
+      expect(preview.artifacts).toHaveLength(preview.selectedCount);
+      expect(reasonCounts(preview.artifacts)).toEqual({
+        'expired-automatic': 6835,
+        'orphaned-sidecar': 16,
+        'zero-byte-backup': 9,
+      });
+      expect(apply.artifacts.map(item => [item.id, item.reason]).sort())
+        .toEqual(preview.artifacts.map(item => [item.id, item.reason]).sort());
+      expect(apply.selectedCount).toBe(apply.deletedCount);
+      expect(apply.reclaimedBytes).toBe(6835 + 16);
+      expect(apply.inspectedCount).toBe(apply.selectedCount + apply.ignoredCount);
+      expect(apply.artifacts).toHaveLength(apply.selectedCount);
+      expect(reasonCounts(apply.artifacts)).toEqual({
+        'expired-automatic': 6835,
+        'orphaned-sidecar': 16,
+        'zero-byte-backup': 9,
+      });
+      expect(secondApply).toMatchObject({
+        inspectedCount: 40,
+        selectedCount: 0,
+        deletedCount: 0,
+        reclaimedBytes: 0,
+        ignoredCount: 40,
+      });
+      expect(secondApply.artifacts).toEqual([]);
+      expect(backupDirectoryNames()).toEqual([...currentAutomatic, ...operator].sort());
+    });
+
     it('previews fixed filename retention without selecting operator backups or non-file children', async () => {
       const expiredAutomatic = 'memory-backup-2.0-2026-06-01T00-00-00-000Z.db';
       const inspectFailedAutomatic = 'memory-backup-2.0-2026-06-02T00-00-00-000Z.db';
