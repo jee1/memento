@@ -112,3 +112,95 @@ export function crossVerifyTargets(db: CliDatabase): FalsePositiveCheck {
     agree: positional === escapedLikeRow.n && emptySubjectRow.n === 0,
   };
 }
+
+export interface SampleRow {
+  id: string;
+  subject: string;
+  content: string;
+  importance: number | null;
+}
+
+/**
+ * FR-002d: ORDER BY id LIMIT n OFFSET <random> 은 연속 블록을 뽑아 같은 세션의 행만 나온다.
+ * 반드시 ORDER BY random() 을 쓴다.
+ */
+export function sampleTargets(db: CliDatabase, size: number): SampleRow[] {
+  return db.prepare(`
+    SELECT id, subject, content, importance
+    FROM memory_item
+    WHERE ${TARGET_WHERE}
+    ORDER BY random()
+    LIMIT ?
+  `).all(size) as SampleRow[];
+}
+
+export interface Bucket { bucket: string; count: number }
+
+export function importanceBuckets(db: CliDatabase): Bucket[] {
+  return db.prepare(`
+    SELECT
+      CASE
+        WHEN importance IS NULL THEN 'NULL'
+        WHEN importance >= 0.8 THEN '0.8~1.0'
+        WHEN importance >= 0.6 THEN '0.6~0.8'
+        WHEN importance >= 0.4 THEN '0.4~0.6'
+        WHEN importance >= 0.2 THEN '0.2~0.4'
+        ELSE '0.0~0.2'
+      END AS bucket,
+      COUNT(*) AS count
+    FROM memory_item
+    WHERE ${TARGET_WHERE}
+    GROUP BY bucket
+    ORDER BY bucket
+  `).all() as Bucket[];
+}
+
+export interface Attribution {
+  total: number;
+  withProject: number;
+  withOwner: number;
+  nonPrivate: number;
+  softDeleted: number;
+}
+
+/** FR-001d: NULL 이 아닌 값이 나타나면 파이프라인이 귀속을 채우기 시작했다는 뜻이다. */
+export function attributionCounts(db: CliDatabase): Attribution {
+  return db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN project_id IS NOT NULL THEN 1 ELSE 0 END) AS withProject,
+      SUM(CASE WHEN owner_id IS NOT NULL THEN 1 ELSE 0 END) AS withOwner,
+      SUM(CASE WHEN privacy_scope IS NOT NULL AND privacy_scope <> 'private' THEN 1 ELSE 0 END) AS nonPrivate,
+      SUM(CASE WHEN is_deleted THEN 1 ELSE 0 END) AS softDeleted
+    FROM memory_item
+    WHERE ${TARGET_WHERE}
+  `).get() as Attribution;
+}
+
+/** FR-001a: 판별식에 걸릴 뻔했으나 pinned 라 빠진 항목. forget 은 pinned 에서 예외를 던진다. */
+export function pinnedCandidates(db: CliDatabase): string[] {
+  const rows = db.prepare(`
+    SELECT id FROM memory_item
+    WHERE ${FORM_UNIVERSE} AND pinned = TRUE AND (${FORM_ONE_EXPR})
+    ORDER BY id
+  `).all() as Array<{ id: string }>;
+  return rows.map((row) => row.id);
+}
+
+export interface MonthlyFallback { month: string; total: number; fallback: number; rate: number }
+
+/** FR-001c: 형태 (2) 비중이 커지면 FR-001b 의 제외 근거(무시 가능)가 무너진다. */
+export function fallbackTrendByMonth(db: CliDatabase): MonthlyFallback[] {
+  const rows = db.prepare(`
+    SELECT
+      substr(created_at, 1, 7) AS month,
+      COUNT(*) AS total,
+      SUM(CASE WHEN (${FORM_ONE_EXPR}) OR (${FORM_THREE_EXPR}) THEN 0 ELSE 1 END) AS fallback
+    FROM memory_item
+    WHERE ${FORM_UNIVERSE}
+    GROUP BY month
+    ORDER BY month
+  `).all() as Array<{ month: string; total: number; fallback: number }>;
+
+  return rows.map((row) => ({ ...row, rate: row.total === 0 ? 0 : row.fallback / row.total }));
+}

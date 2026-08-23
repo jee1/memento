@@ -1,7 +1,8 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  classifyForms, countTargets, crossVerifyTargets, listPreservedFormIds, listTargetIds,
+  attributionCounts, classifyForms, countTargets, crossVerifyTargets, fallbackTrendByMonth,
+  importanceBuckets, listPreservedFormIds, listTargetIds, pinnedCandidates, sampleTargets,
 } from './quarantine-targets.js';
 
 export function createFixtureDb(): Database.Database {
@@ -156,5 +157,62 @@ describe('오탐 전수 검증 (FR-002j, SC-003)', () => {
     const result = crossVerifyTargets(db);
     expect(result.positional).toBe(1);
     expect(result.escapedLike).toBe(1);
+  });
+});
+
+describe('표본과 분포 (FR-002d, FR-003, FR-001c, FR-001d)', () => {
+  it('표본은 ORDER BY random() 으로 뽑고 요청 크기를 넘지 않는다', () => {
+    for (let i = 0; i < 5; i += 1) {
+      insertMemory(db, { id: `mem_s${i}`, subject: '러너', predicate: '호출', object: 'forget',
+        content: '러너는 forget를 호출합니다' });
+    }
+    const sample = sampleTargets(db, 3);
+    expect(sample).toHaveLength(3);
+    expect(new Set(sample.map((row) => row.id)).size).toBe(3);
+  });
+
+  it('모수가 표본 크기보다 작으면 전수를 준다', () => {
+    insertMemory(db, { id: 'mem_s1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+    expect(sampleTargets(db, 50)).toHaveLength(1);
+  });
+
+  it('importance 구간별로 센다', () => {
+    insertMemory(db, { id: 'mem_i1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', importance: 0.9 });
+    insertMemory(db, { id: 'mem_i2', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', importance: 0.3 });
+
+    const buckets = importanceBuckets(db);
+    expect(buckets.find((b) => b.bucket === '0.8~1.0')?.count).toBe(1);
+    expect(buckets.find((b) => b.bucket === '0.2~0.4')?.count).toBe(1);
+  });
+
+  it('귀속이 전부 NULL 이면 그렇게 보고한다 (FR-001d)', () => {
+    insertMemory(db, { id: 'mem_a1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+
+    expect(attributionCounts(db)).toEqual({
+      withProject: 0, withOwner: 0, nonPrivate: 0, softDeleted: 0, total: 1,
+    });
+  });
+
+  it('pinned 후보를 별도 목록으로 남긴다 (FR-001a)', () => {
+    insertMemory(db, { id: 'mem_pin', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', pinned: 1 });
+    expect(pinnedCandidates(db)).toEqual(['mem_pin']);
+  });
+
+  it('형태 (2) 의 월별 추이를 낸다 (FR-001c)', () => {
+    insertMemory(db, { id: 'mem_m1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다', created_at: '2026-07-02T00:00:00Z' });
+    insertMemory(db, { id: 'mem_m2', subject: '러너', predicate: 'pragma()', object: 'forget',
+      content: '사람이 쓴 원문 그대로', created_at: '2026-08-02T00:00:00Z' });
+
+    const trend = fallbackTrendByMonth(db);
+    expect(trend).toEqual([
+      { month: '2026-07', total: 1, fallback: 0, rate: 0 },
+      { month: '2026-08', total: 1, fallback: 1, rate: 1 },
+    ]);
   });
 });
