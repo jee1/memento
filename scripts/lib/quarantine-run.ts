@@ -51,3 +51,54 @@ export function createForgetFn(db: CliDatabase): ForgetFn {
     return parseBatchResult(result as TextToolResult);
   };
 }
+
+export interface ProgressRow {
+  batch: number;
+  at: string;
+  ok: string[];
+  failed: Array<{ id: string; error: string }>;
+}
+
+export interface RunSummary {
+  batches: number;
+  deleted: number;
+  failed: string[];
+}
+
+/**
+ * FR-005b: 재개는 커서가 아니라 판별식 재평가로 한다.
+ * 매 배치마다 대상을 다시 조회하므로 이미 지워진 건은 자연히 빠진다.
+ * 영구 실패 ID 는 건너뛴다 — 핀된 항목이 있으면 같은 지점에서 무한히 실패한다.
+ */
+export async function runQuarantine(args: {
+  db: CliDatabase;
+  forget: ForgetFn;
+  batchSize: number;
+  onBatch: (row: ProgressRow) => void;
+}): Promise<RunSummary> {
+  const stuck = new Set<string>();
+  let batches = 0;
+  let deleted = 0;
+
+  for (;;) {
+    const remaining = listTargetIds(args.db).filter((id) => !stuck.has(id));
+    if (remaining.length === 0) {
+      break;
+    }
+    const ids = remaining.slice(0, args.batchSize);
+    batches += 1;
+
+    const outcome = await args.forget(ids);
+    deleted += outcome.successful.length;
+    for (const failure of outcome.failed) {
+      stuck.add(failure.id);
+    }
+    args.onBatch({ batch: batches, at: new Date().toISOString(), ok: outcome.successful, failed: outcome.failed });
+
+    if (outcome.successful.length === 0 && outcome.failed.length === 0) {
+      throw new Error(`배치 ${batches}: 성공도 실패도 없습니다 — 진행이 불가능해 중단합니다`);
+    }
+  }
+
+  return { batches, deleted, failed: [...stuck] };
+}
