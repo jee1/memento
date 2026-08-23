@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BackupManager } from './backup-manager.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -82,6 +82,23 @@ describe('BackupManager', () => {
       // Then: 정리 결과가 반환되어야 함
       expect(typeof deletedCount).toBe('number');
       expect(deletedCount).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('cleanupBackups', () => {
+    it.each([
+      ['memory-backup-2.0-2026-06-01T00-00-00-000Z.db', true],
+      ['memory-backup-2026-06-01T00-00-00-000Z.db', false],
+      ['memory-backup-2.0-not-a-date.db', false],
+      ['memory-backup-2.0-2099-06-01T00-00-00-000Z.db', false],
+    ])('classifies only valid expired automatic names: %s', async (name, selected) => {
+      writeFileSync(join(backupsDir, name), 'x');
+
+      const report = await backupManager.cleanupBackups({
+        now: new Date('2026-08-23T00:00:00.000Z'),
+      });
+
+      expect(report.artifacts.some(item => item.id === name)).toBe(selected);
     });
   });
 });
