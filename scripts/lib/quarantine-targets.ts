@@ -71,3 +71,44 @@ export function listPreservedFormIds(db: CliDatabase): string[] {
   `).all() as Array<{ id: string }>;
   return rows.map((row) => row.id);
 }
+
+export interface FalsePositiveCheck {
+  /** FR-002i 위치 비교 */
+  positional: number;
+  /** _ · % · \ 를 이스케이프한 LIKE — 독립 제2 방식 */
+  escapedLike: number;
+  /** 대상 중 subject 가 빈 행 (구조적으로 0이어야 한다) */
+  emptySubject: number;
+  agree: boolean;
+}
+
+/**
+ * FR-002j: 오탐 판정은 표본이 아니라 전수 검증으로 한다.
+ * 표본 50건은 오탐률 6% 미만만 보장하므로 판정 근거가 될 수 없다.
+ */
+export function crossVerifyTargets(db: CliDatabase): FalsePositiveCheck {
+  const positional = countTargets(db);
+
+  // TS 소스의 '\\' 는 SQL 문자열 안에서 백슬래시 1개다. 백슬래시를 먼저 이스케이프해야 한다.
+  const escapedLikeRow = db.prepare(`
+    SELECT COUNT(*) AS n FROM memory_item
+    WHERE type = 'semantic'
+      AND subject IS NOT NULL AND subject <> ''
+      AND pinned = FALSE
+      AND content LIKE
+        replace(replace(replace(trim(subject), '\\', '\\\\'), '_', '\\_'), '%', '\\%') || '_ %'
+        ESCAPE '\\'
+  `).get() as { n: number };
+
+  const emptySubjectRow = db.prepare(`
+    SELECT COUNT(*) AS n FROM memory_item
+    WHERE (${TARGET_WHERE}) AND (subject IS NULL OR trim(subject) = '')
+  `).get() as { n: number };
+
+  return {
+    positional,
+    escapedLike: escapedLikeRow.n,
+    emptySubject: emptySubjectRow.n,
+    agree: positional === escapedLikeRow.n && emptySubjectRow.n === 0,
+  };
+}

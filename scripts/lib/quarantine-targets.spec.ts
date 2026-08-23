@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  classifyForms, countTargets, listPreservedFormIds, listTargetIds,
+  classifyForms, countTargets, crossVerifyTargets, listPreservedFormIds, listTargetIds,
 } from './quarantine-targets.js';
 
 export function createFixtureDb(): Database.Database {
@@ -126,5 +126,35 @@ describe('본문 형태 분류 (FR-002f, FR-002g)', () => {
     insertMemory(db, { id: 'mem_f3', subject: '러너', predicate: '호출', object: 'forget',
       content: '러너 · 호출 · forget' });
     expect(listPreservedFormIds(db).sort()).toEqual(['mem_f2', 'mem_f3']);
+  });
+});
+
+describe('오탐 전수 검증 (FR-002j, SC-003)', () => {
+  it('두 방식이 일치하면 agree 가 true 다', () => {
+    insertMemory(db, { id: 'mem_c1', subject: '러너', predicate: '호출', object: 'forget',
+      content: '러너는 forget를 호출합니다' });
+
+    expect(crossVerifyTargets(db)).toEqual({
+      positional: 1, escapedLike: 1, emptySubject: 0, agree: true,
+    });
+  });
+
+  it('subject 안의 _ 를 이스케이프해 위치 비교와 같은 답을 낸다', () => {
+    insertMemory(db, { id: 'mem_c2', subject: 'a_c', predicate: '호출', object: 'x',
+      content: 'abc는 x를 호출합니다' });
+
+    const result = crossVerifyTargets(db);
+    expect(result.positional).toBe(0);
+    expect(result.escapedLike).toBe(0);
+    expect(result.agree).toBe(true);
+  });
+
+  it('subject 안의 % 도 이스케이프한다', () => {
+    insertMemory(db, { id: 'mem_c3', subject: '50%', predicate: '초과', object: '임계',
+      content: '50%는 임계를 초과합니다' });
+
+    const result = crossVerifyTargets(db);
+    expect(result.positional).toBe(1);
+    expect(result.escapedLike).toBe(1);
   });
 });
