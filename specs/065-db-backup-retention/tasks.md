@@ -50,7 +50,7 @@ before adding behavior.
 
 ### T001 — Isolate the backup-manager test filesystem
 
-- [ ] T001 [SUBAGENT] Replace the shared `data/test-backups` fixture with one temporary directory per test and preserve the 4-test baseline.
+- [x] T001 [SUBAGENT] Replace the shared `data/test-backups` fixture with one temporary directory per test and preserve the 4-test baseline.
 
 **Files:**
 
@@ -62,7 +62,7 @@ before adding behavior.
 - Produces: `testRoot`, `dbPath`, and `backupsDir` fixtures that later tasks may extend without
   sharing files across tests.
 
-- [ ] **Step 1: Run the current baseline**
+- [x] **Step 1: Run the current baseline**
 
   Run:
 
@@ -72,7 +72,7 @@ before adding behavior.
 
   Expected: PASS, 1 file and 4 tests.
 
-- [ ] **Step 2: Replace the shared directory and sleep with isolated setup/teardown**
+- [x] **Step 2: Replace the shared directory and sleep with isolated setup/teardown**
 
   Use the existing Node stdlib only:
 
@@ -93,13 +93,13 @@ before adding behavior.
 
   Remove the fixed `100ms` delay; use explicit timestamps in later tests.
 
-- [ ] **Step 3: Prove behavior did not change**
+- [x] **Step 3: Prove behavior did not change**
 
   Run the command from Step 1.
 
   Expected: PASS, 1 file and 4 tests; no `data/test-backups` residue.
 
-- [ ] **Step 4: Commit the test-harness change**
+- [x] **Step 4: Commit the test-harness change**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -118,7 +118,7 @@ before adding behavior.
 
 ### T002 — Define strict backup identities and cleanup report types
 
-- [ ] T002 [TDD] Add strict automatic/operator/in-progress/sidecar parsing and the cleanup report types to the existing manager module.
+- [x] T002 [TDD] Add strict automatic/operator/in-progress/sidecar parsing and the cleanup report types to the existing manager module.
 
 **Files:**
 
@@ -175,7 +175,7 @@ before adding behavior.
   }
   ```
 
-- [ ] **Step 1: Write failing filename-classification tests**
+- [x] **Step 1: Write failing filename-classification tests**
 
   Add table cases through the observable preview report rather than exporting a parser:
 
@@ -194,7 +194,7 @@ before adding behavior.
   });
   ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   Run:
 
@@ -204,7 +204,7 @@ before adding behavior.
 
   Expected: FAIL because `cleanupBackups` and its report do not exist.
 
-- [ ] **Step 3: Add the minimum strict parser and empty report assembly**
+- [x] **Step 3: Add the minimum strict parser and empty report assembly**
 
   Keep helpers private in `backup-manager.ts`; validate normalized dates by round-tripping:
 
@@ -239,7 +239,7 @@ before adding behavior.
   cutoff-equal timestamps, and never uses `mtime` as age. T003 adds filesystem identity/byte
   inspection and the apply branch without changing these names.
 
-- [ ] **Step 4: Run GREEN and type-check the package**
+- [x] **Step 4: Run GREEN and type-check the package**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts --reporter=default
@@ -248,7 +248,7 @@ before adding behavior.
 
   Expected: both commands exit 0.
 
-- [ ] **Step 5: Commit the shared contract**
+- [x] **Step 5: Commit the shared contract**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -272,7 +272,7 @@ reported without blocking migration.
 
 ### T003 — Implement fixed automatic retention and per-artifact reconciliation
 
-- [ ] T003 [TDD] [US1] Implement preview/apply cleanup with operator preservation, one cutoff, immediate revalidation, and per-file continuation.
+- [x] T003 [TDD] [US1] Implement preview/apply cleanup with operator preservation, one cutoff, immediate revalidation, and per-file continuation.
 
 **Files:**
 
@@ -287,7 +287,7 @@ reported without blocking migration.
   `artifacts.length = selectedCount`, and apply invariant
   `selectedCount = deletedCount + skippedCount + failedCount`.
 
-- [ ] **Step 1: Write failing retention and reconciliation tests**
+- [x] **Step 1: Write failing retention and reconciliation tests**
 
   Replace the legacy `cleanupOldBackups` test with `cleanupBackups`; do not carry its configurable
   mtime behavior forward. Cover one fixed `now`, expired/current/boundary/future automatic files,
@@ -323,7 +323,7 @@ reported without blocking migration.
   });
   ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts --reporter=default
@@ -331,7 +331,7 @@ reported without blocking migration.
 
   Expected: FAIL on apply behavior, preservation, revalidation, and failure reconciliation.
 
-- [ ] **Step 3: Implement the single-pass selector and apply branch**
+- [x] **Step 3: Implement the single-pass selector and apply branch**
 
   Use `readdirSync` plus `lstatSync` on direct children. Record and compare the same fields before
   unlink:
@@ -359,13 +359,13 @@ reported without blocking migration.
   `cleanupOldBackups(retentionDays)` method and its old test instead of retaining a second
   mtime-based, configurable deletion rule; repository search has no production caller to preserve.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
   Run the T002 test/type-check commands.
 
   Expected: all backup-manager tests and core type-check pass.
 
-- [ ] **Step 5: Commit retention behavior**
+- [x] **Step 5: Commit retention behavior**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -374,7 +374,7 @@ reported without blocking migration.
 
 ### T004 — Run retention after a successful automatic backup without blocking migration
 
-- [ ] T004 [TDD] [US1] Sequence apply cleanup after publication and isolate an unsuccessful maintenance report from migration success.
+- [x] T004 [TDD] [US1] Sequence apply cleanup after publication and isolate an unsuccessful maintenance report from migration success.
 
 **Files:**
 
@@ -388,7 +388,7 @@ reported without blocking migration.
 - Produces: one routine cleanup call after each successful automatic backup; no throw from retention
   failure/report failure into `migration.up()`.
 
-- [ ] **Step 1: Write RED tests for order and failure isolation**
+- [x] **Step 1: Write RED tests for order and failure isolation**
 
   Spy through the existing `runner.getBackupManager()`:
 
@@ -435,7 +435,7 @@ reported without blocking migration.
   manager, and proves a new backup plus current/operator files remain while expired automatic files
   are gone. This is the integrated SC-001 acceptance path, not a composition of mocks.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.spec.ts --reporter=default
@@ -443,7 +443,7 @@ reported without blocking migration.
 
   Expected: FAIL because the runner does not call retention.
 
-- [ ] **Step 3: Add the nonblocking maintenance branch**
+- [x] **Step 3: Add the nonblocking maintenance branch**
 
   Resolve the manager's default directory from the opened file database's `db.name` in the runner
   constructor; retain current in-memory behavior for tests. Add `dirname`/`join` imports from
@@ -482,7 +482,7 @@ reported without blocking migration.
 
   Use the repository's existing error-normalization style; do not include the backup directory.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.spec.ts packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts --reporter=default
@@ -490,7 +490,7 @@ reported without blocking migration.
 
   Expected: both files pass.
 
-- [ ] **Step 5: Commit runner sequencing**
+- [x] **Step 5: Commit runner sequencing**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.ts packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.spec.ts
@@ -499,7 +499,7 @@ reported without blocking migration.
 
 ### T005 — Lock the no-pending-migration startup invariant
 
-- [ ] T005 [P] [SUBAGENT] [US1] Add 100 repeated no-pending startup simulations proving zero automatic backup calls.
+- [x] T005 [P] [SUBAGENT] [US1] Add 100 repeated no-pending startup simulations proving zero automatic backup calls.
 
 **Files:**
 
@@ -510,7 +510,7 @@ reported without blocking migration.
 - Consumes: `migrateExistingDatabaseIfNeeded(db)` and the existing detector guard.
 - Produces: regression evidence for FR-024/SC-007; no production API.
 
-- [ ] **Step 1: Add the guard regression**
+- [x] **Step 1: Add the guard regression**
 
   Mock `MigrationDetector.detectPendingMigrations` to return `pendingMigrations: []` and spy on the
   `MigrationRunner` construction/backup boundary. Invoke initialization 100 times:
@@ -526,7 +526,7 @@ reported without blocking migration.
   Prefer module mocks already used by nearby initialization specs; do not alter production code if
   the existing guard passes.
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/init-migrate-existing.spec.ts --reporter=default
@@ -535,7 +535,7 @@ reported without blocking migration.
   Expected: PASS 100 simulations with zero runner/backup calls. If it fails, fix only the guard in
   `init-migrate-existing.ts`, rerun, and include that file in the commit.
 
-- [ ] **Step 3: Commit the invariant**
+- [x] **Step 3: Commit the invariant**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/init-migrate-existing.spec.ts packages/memento-core/src/infrastructure/database/sqlite/init-migrate-existing.ts
@@ -544,7 +544,7 @@ reported without blocking migration.
 
 ### T006 — User Story 1 review gate
 
-- [ ] T006 [REVIEW] [US1] Review only the US1 diff and do not start US2 until retention selection, failure isolation, and no-pending startup evidence are accepted.
+- [x] T006 [REVIEW] [US1] Review only the US1 diff and do not start US2 until retention selection, failure isolation, and no-pending startup evidence are accepted.
 
 **Review evidence:**
 
@@ -569,7 +569,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
 ### T007 — Build the validated online-snapshot success path
 
-- [ ] T007 [TDD] [SUBAGENT] [US2] Replace live-file copying with online backup, snapshot-relative size checks, standalone conversion, full integrity, sync, and non-overwriting publication.
+- [x] T007 [TDD] [SUBAGENT] [US2] Replace live-file copying with online backup, snapshot-relative size checks, standalone conversion, full integrity, sync, and non-overwriting publication.
 
 **Files:**
 
@@ -599,7 +599,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
   A version produces an automatic name; absent version produces the established operator name.
 
-- [ ] **Step 1: Write WAL success and publication-order tests**
+- [x] **Step 1: Write WAL success and publication-order tests**
 
   Use a real file database in WAL mode, insert committed content, and assert the final backup sees
   it. Spy on the validation gate and `linkSync`/`unlinkSync` order or inject filesystem failures via
@@ -617,7 +617,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
   Assert the completed path does not exist while validation is deliberately paused/failing.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts --reporter=default
@@ -626,7 +626,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   Expected: FAIL because automatic creation uses `copyFileSync`, lacks metadata/integrity gates, and
   writes directly to the completed name.
 
-- [ ] **Step 3: Implement the minimum success pipeline**
+- [x] **Step 3: Implement the minimum success pipeline**
 
   Keep it in `backup-manager.ts` and change the type-only `better-sqlite3` import to the runtime
   default import needed to open the unpublished destination:
@@ -682,13 +682,13 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   T004 already makes `MigrationRunner` resolve its default backup directory from that opened
   database, not a different global `DB_PATH`. Do not checkpoint or unlink live-database sidecars.
 
-- [ ] **Step 4: Run GREEN and core type-check**
+- [x] **Step 4: Run GREEN and core type-check**
 
   Run the T002 Step 4 commands.
 
   Expected: all backup-manager tests pass and types match the declared interface.
 
-- [ ] **Step 5: Commit the success boundary**
+- [x] **Step 5: Commit the success boundary**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -697,7 +697,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
 ### T008 — Close every handled backup failure exit
 
-- [ ] T008 [TDD] [US2] Remove the complete current-attempt artifact set on handled failures, refuse collisions, and keep crash leftovers distinguishable without sweeping other active partials.
+- [x] T008 [TDD] [US2] Remove the complete current-attempt artifact set on handled failures, refuse collisions, and keep crash leftovers distinguishable without sweeping other active partials.
 
 **Files:**
 
@@ -710,7 +710,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 - Produces: one internal attempt cleanup path covering `.db`, `-wal`, and `-shm`; thrown errors name
   only safe artifact IDs and failure stages.
 
-- [ ] **Step 1: Add one failure-table test covering every gate**
+- [x] **Step 1: Add one failure-table test covering every gate**
 
   Inject failures at backup write, zero/size/page mismatch, full integrity, checkpoint, sidecar
   removal, file sync, hard-link collision, and post-link partial unlink. For example, freeze the
@@ -741,13 +741,13 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   `cleanupBackups({ mode: 'apply', includeInterrupted: false })` preserves the partial. T012 owns its
   later explicit stopped-server removal.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   Run the T007 focused test command.
 
   Expected: one or more injected exits leave residue, overwrite/unlink a collision, or leak paths.
 
-- [ ] **Step 3: Centralize attempt cleanup and collision handling**
+- [x] **Step 3: Centralize attempt cleanup and collision handling**
 
   Keep the helper private and bounded to the strict attempt basename:
 
@@ -774,7 +774,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   an overlapping active operator backup. T012 performs interrupted-attempt recovery only when the
   explicit cleanup prerequisite has stopped backup activity.
 
-- [ ] **Step 4: Run GREEN and the full core migration subset**
+- [x] **Step 4: Run GREEN and the full core migration subset**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.spec.ts packages/memento-core/src/infrastructure/database/sqlite/migration/migration-detector.spec.ts --reporter=default
@@ -783,7 +783,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
   Expected: all commands exit 0 and no test leaves backup artifacts.
 
-- [ ] **Step 5: Commit failure closure**
+- [x] **Step 5: Commit failure closure**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -792,7 +792,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
 ### T009 — Prove backup failure blocks the dependent migration
 
-- [ ] T009 [P] [SUBAGENT] [US2] Add a runner regression that rejects creation/validation failure before `migration.up()` and the transaction begin.
+- [x] T009 [P] [SUBAGENT] [US2] Add a runner regression that rejects creation/validation failure before `migration.up()` and the transaction begin.
 
 **Files:**
 
@@ -803,7 +803,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 - Consumes: thrown failure from `BackupManager.createBackup`.
 - Produces: FR-016/SC-006 regression evidence; no new runtime API.
 
-- [ ] **Step 1: Add the regression**
+- [x] **Step 1: Add the regression**
 
   ```ts
   vi.spyOn(runner.getBackupManager(), 'createBackup')
@@ -816,7 +816,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   expect(db.inTransaction).toBe(false);
   ```
 
-- [ ] **Step 2: Run and preserve the existing implementation if green**
+- [x] **Step 2: Run and preserve the existing implementation if green**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.spec.ts --reporter=default
@@ -825,7 +825,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   Expected: PASS because the existing outer runner boundary already stops before `BEGIN`; change
   production code only if the test demonstrates otherwise.
 
-- [ ] **Step 3: Commit the regression evidence**
+- [x] **Step 3: Commit the regression evidence**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.spec.ts
@@ -834,7 +834,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
 ### T010 — Route the existing operator backup command through the shared manager
 
-- [ ] T010 [P] [TDD] [SUBAGENT] [US2] Export `BackupManager`, preserve no-argument `db:backup`, and replace the script's duplicate validation/cleanup ordering.
+- [x] T010 [P] [TDD] [SUBAGENT] [US2] Export `BackupManager`, preserve no-argument `db:backup`, and replace the script's duplicate validation/cleanup ordering.
 
 **Files:**
 
@@ -849,7 +849,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   `CleanupReport`; unchanged no-argument CLI keys `ok`, `dbPath`, `backupPath`, and `memory_item`,
   preserving `quick_check: "ok"` as a compatibility alias and adding `integrity_check: "ok"`.
 
-- [ ] **Step 1: Write subprocess RED tests for operator backup**
+- [x] **Step 1: Write subprocess RED tests for operator backup**
 
   Create a temporary DB and invoke the script with an absolute `DB_PATH`. Assert one standalone
   operator name, full-integrity success, no sidecars/partials, safe failure output, and collision
@@ -867,7 +867,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
   expect(readdirSync(backupsDir).filter(name => /-wal$|-shm$|partial/.test(name))).toEqual([]);
   ```
 
-- [ ] **Step 2: Run RED after building core**
+- [x] **Step 2: Run RED after building core**
 
   ```bash
   npm run build -w @memento/core
@@ -876,7 +876,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
   Expected: FAIL because the script owns a separate quick-check path and deletes name collisions.
 
-- [ ] **Step 3: Export and delegate**
+- [x] **Step 3: Export and delegate**
 
   Add only the existing class/types to `packages/memento-core/src/index.ts`. Keep argument-free script
   behavior and memory count, but delegate creation:
@@ -896,13 +896,13 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
   Failure JSON contains a safe stage/reason and hint, not `dbPath`, `backupPath`, or raw error paths.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
   Run the T010 Step 2 commands plus `npm run type-check`.
 
   Expected: operator subprocess tests and repository type-check pass.
 
-- [ ] **Step 5: Commit operator reuse**
+- [x] **Step 5: Commit operator reuse**
 
   ```bash
   git add packages/memento-core/src/index.ts scripts/backup-memory-db.mjs scripts/__tests__/backup-memory-db.spec.ts
@@ -911,7 +911,7 @@ failed attempts leave no silent `.db`, `-wal`, or `-shm` residue.
 
 ### T011 — User Story 2 review gate
 
-- [ ] T011 [REVIEW] [US2] Review the backup state machine, WAL safety, collision behavior, and every injected failure before exposing backlog deletion.
+- [x] T011 [REVIEW] [US2] Review the backup state machine, WAL safety, collision behavior, and every injected failure before exposing backlog deletion.
 
 **Review evidence:**
 
@@ -935,7 +935,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
 ### T012 — Complete invalid-artifact and TOCTOU safety coverage
 
-- [ ] T012 [TDD] [SUBAGENT] [US3] Select zero-byte recognized backups, recognized sidecars, and strict partials while preserving links, directories, live sidecars, and changed candidates.
+- [x] T012 [TDD] [SUBAGENT] [US3] Select zero-byte recognized backups, recognized sidecars, and strict partials while preserving links, directories, live sidecars, and changed candidates.
 
 **Files:**
 
@@ -948,7 +948,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 - Produces: the complete selection reasons and outcome details documented in
   `contracts/backup-cleanup-cli.md`.
 
-- [ ] **Step 1: Add RED cases for the destructive boundary**
+- [x] **Step 1: Add RED cases for the destructive boundary**
 
   Test zero-byte automatic/operator files, completed/partial `-wal` and `-shm`, live DB sidecars,
   symlinks pointing outside, directories with matching names, disappearing files, and candidates
@@ -971,20 +971,20 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   expect(existsSync(`${liveDbPath}-wal`)).toBe(true);
   ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   Run the T007 focused test command.
 
   Expected: FAIL on one or more invalid-artifact, link, or changed-candidate cases.
 
-- [ ] **Step 3: Extend only the existing classifier/apply loop**
+- [x] **Step 3: Extend only the existing classifier/apply loop**
 
   Associate a sidecar only when removing `-wal`/`-shm` leaves a base matching a completed or strict
   partial backup grammar. Gate `interrupted-attempt` selection on `includeInterrupted === true`.
   Call `lstat` immediately before `unlink`, require `isFile()` and the T003 fingerprint, and use safe
   `detail` values. Do not introduce recursive traversal or a filesystem abstraction.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts --reporter=default
@@ -993,7 +993,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
   Expected: all safety cases and type-check pass.
 
-- [ ] **Step 5: Commit the cleanup safety boundary**
+- [x] **Step 5: Commit the cleanup safety boundary**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -1002,7 +1002,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
 ### T013 — Prove 6,900-artifact parity, exact totals, and idempotence
 
-- [ ] T013 [P] [TDD] [US3] Add a tiny 6,900-entry fixture matching the reported backlog shape and verify preview/apply/second-apply reconciliation.
+- [x] T013 [P] [TDD] [US3] Add a tiny 6,900-entry fixture matching the reported backlog shape and verify preview/apply/second-apply reconciliation.
 
 **Files:**
 
@@ -1013,7 +1013,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 - Consumes: final `cleanupBackups` behavior.
 - Produces: SC-003/SC-004 scale evidence without allocating 5.5 GB.
 
-- [ ] **Step 1: Generate the fixture in the test body**
+- [x] **Step 1: Generate the fixture in the test body**
 
   Create tiny payloads with exact categories totaling 6,900 entries:
 
@@ -1032,7 +1032,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   zero-byte files across recognized automatic and operator names. Assert actual bytes from `lstat`,
   not a simulated 5.5 GB allocation.
 
-- [ ] **Step 2: Assert preview/apply parity and second-apply emptiness**
+- [x] **Step 2: Assert preview/apply parity and second-apply emptiness**
 
   ```ts
   expect(preview.selectedCount).toBe(6835 + 9 + 16);
@@ -1055,7 +1055,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   });
   ```
 
-- [ ] **Step 3: Run the focused scale test twice**
+- [x] **Step 3: Run the focused scale test twice**
 
   ```bash
   npx vitest run packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts -t "6900" --reporter=default
@@ -1065,7 +1065,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   Expected: both runs pass with exact counts and no fixture residue. If performance fails, optimize
   the existing one-pass loop only; do not add concurrency or a cache without measurement.
 
-- [ ] **Step 4: Commit scale evidence**
+- [x] **Step 4: Commit scale evidence**
 
   ```bash
   git add packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.spec.ts
@@ -1074,7 +1074,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
 ### T014 — Add preview-first cleanup mode to the existing operator CLI
 
-- [ ] T014 [P] [TDD] [US3] Implement strict `--cleanup [--apply]` parsing, JSON reporting, exit codes, and the `db:backup:cleanup` npm alias.
+- [x] T014 [P] [TDD] [US3] Implement strict `--cleanup [--apply]` parsing, JSON reporting, exit codes, and the `db:backup:cleanup` npm alias.
 
 **Files:**
 
@@ -1090,7 +1090,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   `npm run db:backup:cleanup -- --apply` apply; exit 0 on complete result and exit 1 on usage,
   scan, skipped, or failed result.
 
-- [ ] **Step 1: Add subprocess RED tests for argument and JSON contracts**
+- [x] **Step 1: Add subprocess RED tests for argument and JSON contracts**
 
   Test no flags still create a backup; `--cleanup` previews without inode changes; exact
   `--cleanup --apply` deletes selected files; `--apply` alone and unknown/extra flags exit 1 without
@@ -1107,7 +1107,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   expect(readdirSync(backupsDir)).toEqual(beforeUsageError);
   ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
   ```bash
   npm run build -w @memento/core
@@ -1116,7 +1116,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
   Expected: FAIL because cleanup flags and npm alias are absent.
 
-- [ ] **Step 3: Implement exact parsing and delegation**
+- [x] **Step 3: Implement exact parsing and delegation**
 
   ```js
   const args = process.argv.slice(2);
@@ -1142,7 +1142,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   "db:backup:cleanup": "node scripts/backup-memory-db.mjs --cleanup"
   ```
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
   ```bash
   npm run build -w @memento/core
@@ -1152,7 +1152,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   Expected: build and CLI tests pass. T015 documents the new alias before the US3 gate runs
   `docs:verify-npm-scripts`.
 
-- [ ] **Step 5: Commit the CLI contract**
+- [x] **Step 5: Commit the CLI contract**
 
   ```bash
   git add scripts/backup-memory-db.mjs scripts/__tests__/backup-memory-db.spec.ts package.json
@@ -1161,7 +1161,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
 ### T015 — Document root causes, command safety, and deployment usage
 
-- [ ] T015 [P] [SUBAGENT] [US3] Document the new cleanup alias, preview/apply prerequisite, reproduced artifact causes, and unchanged operator-backup contract.
+- [x] T015 [P] [SUBAGENT] [US3] Document the new cleanup alias, preview/apply prerequisite, reproduced artifact causes, and unchanged operator-backup contract.
 
 **Files:**
 
@@ -1176,7 +1176,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 - Produces: operator instructions that satisfy FR-001 and make the new npm alias discoverable to
   `docs:verify-npm-scripts`.
 
-- [ ] **Step 1: Add concise operational documentation**
+- [x] **Step 1: Add concise operational documentation**
 
   Document these exact commands:
 
@@ -1191,7 +1191,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
   remain; paths are not included in failure reports. Record the three reproduced causes: migration
   main-file copy, operator validation after early sidecar cleanup, and uncalled broad `mtime` cleanup.
 
-- [ ] **Step 2: Verify documentation and links**
+- [x] **Step 2: Verify documentation and links**
 
   ```bash
   npm run docs:verify-npm-scripts
@@ -1200,7 +1200,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
   Expected: both commands exit 0.
 
-- [ ] **Step 3: Commit operator documentation**
+- [x] **Step 3: Commit operator documentation**
 
   ```bash
   git add docs/agents/commands.md docs/operations/ko/docker-deploy-procedure.md docs/operations/ko/scripts-index.md CHANGELOG.md
@@ -1209,7 +1209,7 @@ preserve live/operator/unknown paths, reconcile every result, and make the secon
 
 ### T016 — User Story 3 review gate
 
-- [ ] T016 [REVIEW] [US3] Review the 6,900-entry evidence, CLI contract, destructive path boundary, and operator documentation before cross-cutting verification.
+- [x] T016 [REVIEW] [US3] Review the 6,900-entry evidence, CLI contract, destructive path boundary, and operator documentation before cross-cutting verification.
 
 **Review evidence:**
 
@@ -1231,7 +1231,7 @@ repository-wide completion evidence.
 
 ### T017 — Run superspec code review and resolve all blocking findings
 
-- [ ] T017 [REVIEW] [SUBAGENT] Run `$speckit-superspec-review specs/065-db-backup-retention/spec.md`, fix every confidence-qualified blocking finding with a RED/GREEN regression, and repeat until no blocker remains.
+- [x] T017 [REVIEW] [SUBAGENT] Run `$speckit-superspec-review specs/065-db-backup-retention/spec.md`, fix every confidence-qualified blocking finding with a RED/GREEN regression, and repeat until no blocker remains.
 
 **Files:**
 
@@ -1252,14 +1252,14 @@ it GREEN. Commit fixes separately with Lore trailers and the exact tested comman
 
 ### T018 — Run final quality gates and rebuild graphify
 
-- [ ] T018 [REVIEW] Execute the full validation sequence, inspect generated architecture evidence, and leave zero known errors before completion.
+- [x] T018 [REVIEW] Execute the full validation sequence, inspect generated architecture evidence, and leave zero known errors before completion.
 
 **Files:**
 
 - Verify: all changed source, test, documentation, and package metadata files.
 - Generate locally only: `graphify-out/GRAPH_REPORT.md` and related `graphify-out/` files.
 
-- [ ] **Step 1: Run the focused feature suite**
+- [x] **Step 1: Run the focused feature suite**
 
   ```bash
   npx vitest run \
@@ -1272,7 +1272,7 @@ it GREEN. Commit fixes separately with Lore trailers and the exact tested comman
 
   Expected: all feature tests pass, including the 6,900-entry and 100-startup cases.
 
-- [ ] **Step 2: Run mandatory repository gates**
+- [x] **Step 2: Run mandatory repository gates**
 
   ```bash
   npm run docs:verify-npm-scripts
@@ -1284,7 +1284,7 @@ it GREEN. Commit fixes separately with Lore trailers and the exact tested comman
 
   Expected: every command exits 0. A failure blocks completion and returns to the owning TDD task.
 
-- [ ] **Step 3: Rebuild and inspect graphify**
+- [x] **Step 3: Rebuild and inspect graphify**
 
   ```bash
   python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
@@ -1295,13 +1295,13 @@ it GREEN. Commit fixes separately with Lore trailers and the exact tested comman
   Expected: the report exists, no new prohibited dependency direction or cycle is reported, and
   `graphify-out/` is not staged.
 
-- [ ] **Step 4: Reproduce the disposable CLI quickstart**
+- [x] **Step 4: Reproduce the disposable CLI quickstart**
 
   Follow `specs/065-db-backup-retention/quickstart.md` with an absolute disposable `DB_PATH`.
   Expected: backup and preview exit 0, apply reconciles the preview, and the second apply reports
   zero selected/deleted artifacts and zero reclaimed bytes.
 
-- [ ] **Step 5: Commit only final verification fixes, if any**
+- [x] **Step 5: Commit only final verification fixes, if any**
 
   If no file changed, do not create an empty commit. If verification required a fix, use its own
   RED/GREEN evidence and a Lore message; never stage `graphify-out/`.

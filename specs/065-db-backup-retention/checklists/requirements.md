@@ -32,4 +32,3 @@
 ## Notes
 
 - Validation passed on 2026-08-23 with no clarification markers or deferred quality issues.
-
