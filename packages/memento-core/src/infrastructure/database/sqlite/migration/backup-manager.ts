@@ -332,7 +332,7 @@ export class BackupManager {
   }
 
   async cleanupBackups(options: CleanupOptions = {}): Promise<CleanupReport> {
-    const mode = options.mode ?? 'preview';
+    const mode: CleanupMode = options.mode === 'apply' ? 'apply' : 'preview';
     const now = options.now ?? new Date();
     const cutoff = now.getTime() - 30 * DAY_MS;
     let names: string[];

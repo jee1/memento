@@ -155,6 +155,30 @@ describe('BackupManager', () => {
       }
     });
 
+    it('treats invalid runtime cleanup modes as preview and does not delete', async () => {
+      const expiredAutomatic = 'memory-backup-2.0-2026-06-01T00-00-00-000Z.db';
+      const expiredPath = writeBackup(expiredAutomatic, 5);
+
+      const report = await backupManager.cleanupBackups({
+        mode: 'dry-run',
+        now,
+      } as Parameters<BackupManager['cleanupBackups']>[0]);
+
+      expect(report).toMatchObject({
+        ok: true,
+        mode: 'preview',
+        selectedCount: 1,
+        selectedBytes: 5,
+        deletedCount: 0,
+        reclaimedBytes: 0,
+        artifacts: [
+          { id: expiredAutomatic, status: 'selected', reason: 'expired-automatic', detail: null },
+        ],
+      });
+      expectInvariants(report);
+      expect(existsSync(expiredPath)).toBe(true);
+    });
+
     it('applies cleanup with per-file ENOENT and unlink-failure reconciliation', async () => {
       const missingCandidate = 'memory-backup-2.0-2026-06-01T00-00-00-000Z.db';
       const unlinkFailureCandidate = 'memory-backup-2.0-2026-06-02T00-00-00-000Z.db';
