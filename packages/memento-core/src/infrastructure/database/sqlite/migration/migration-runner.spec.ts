@@ -212,6 +212,7 @@ describe('MigrationRunner', () => {
     it('does not begin migration work when backup creation validation fails', async () => {
       const manager = runner.getBackupManager();
       const create = vi.spyOn(manager, 'createBackup').mockRejectedValue(new Error('backup-integrity-failed'));
+      const exec = vi.spyOn(db, 'exec');
       const up = vi.fn(async (database: Database.Database) => {
         database.exec('CREATE TABLE should_not_exist (id TEXT PRIMARY KEY)');
       });
@@ -222,8 +223,10 @@ describe('MigrationRunner', () => {
         expect(result.success).toBe(false);
         expect(result.error).toContain('backup-integrity-failed');
         expect(up).not.toHaveBeenCalled();
+        expect(exec).not.toHaveBeenCalledWith('BEGIN TRANSACTION');
         expect(db.inTransaction).toBe(false);
       } finally {
+        exec.mockRestore();
         create.mockRestore();
       }
     });
