@@ -4,8 +4,9 @@
  * 마이그레이션 전 자동 백업 생성 및 복원 기능을 제공합니다.
  */
 
-import type Database from 'better-sqlite3';
+import Database from 'better-sqlite3';
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
 import { join, dirname } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
@@ -38,6 +39,12 @@ export interface BackupResult {
    * 백업 파일 크기 (bytes)
    */
   size: number;
+
+  expectedSize: number;
+
+  totalPages: number;
+
+  integrityCheck: 'ok';
 }
 
 export type CleanupMode = 'preview' | 'apply';
@@ -248,11 +255,14 @@ export class BackupManager {
   /**
    * 데이터베이스 백업 생성
    */
-  async createBackup(db: Database.Database, migrationVersion: string): Promise<BackupResult> {
+  async createBackup(db: Database.Database, migrationVersion?: string): Promise<BackupResult> {
     const timestamp = new Date();
     const timestampStr = timestamp.toISOString().replace(/[:.]/g, '-');
-    const backupFileName = `memory-backup-${migrationVersion}-${timestampStr}.db`;
+    const backupFileName = migrationVersion
+      ? `memory-backup-${migrationVersion}-${timestampStr}.db`
+      : `memory-backup-${timestampStr}.db`;
     const backupPath = join(this.backupsDir, backupFileName);
+    const inProgressPath = join(this.backupsDir, `.memory-backup-partial-${randomUUID()}.db`);
 
     try {
       // 데이터베이스 파일 경로 가져오기
@@ -261,22 +271,67 @@ export class BackupManager {
         throw new Error('메모리 데이터베이스는 파일 백업을 지원하지 않습니다');
       }
 
-      const dbPath = backupDb.name || mementoConfig.dbPath;
-      
-      // 파일 시스템을 통한 백업 (더 안정적)
-      if (fs.existsSync(dbPath)) {
-        fs.copyFileSync(dbPath, backupPath);
-      } else {
-        // 메모리 데이터베이스인 경우 backup API 사용 시도
-        try {
-          await backupDb.backup(backupPath);
-        } catch (backupError) {
-          throw new Error(`백업 생성 실패: ${backupError}`);
-        }
+      if (!backupDb.name || !fs.existsSync(backupDb.name)) {
+        throw new Error('백업할 데이터베이스 파일을 찾을 수 없습니다');
       }
 
-      const stats = fs.statSync(backupPath);
+      const sourcePageSize = backupDb.pragma('page_size', { simple: true }) as number;
+      const metadata = await backupDb.backup(inProgressPath);
+      if (metadata.remainingPages !== 0) {
+        throw new Error('backup-incomplete');
+      }
+
+      const verify = new Database(inProgressPath);
+      let totalPages: number;
+      try {
+        const checkpointRows = verify.pragma('wal_checkpoint(TRUNCATE)') as Array<{
+          busy: number;
+          log: number;
+          checkpointed: number;
+        }>;
+        const checkpoint = checkpointRows[0];
+        if (!checkpoint) {
+          throw new Error('backup-checkpoint-incomplete');
+        }
+        if (checkpoint.busy !== 0 || checkpoint.log !== checkpoint.checkpointed) {
+          throw new Error('backup-checkpoint-incomplete');
+        }
+
+        verify.pragma('journal_mode = DELETE');
+        const journalMode = verify.pragma('journal_mode', { simple: true }) as string;
+        totalPages = verify.pragma('page_count', { simple: true }) as number;
+        const pageSize = verify.pragma('page_size', { simple: true }) as number;
+        const integrity = verify.pragma('integrity_check') as Array<{ integrity_check: string }>;
+
+        if (
+          journalMode !== 'delete' ||
+          totalPages !== metadata.totalPages ||
+          pageSize !== sourcePageSize ||
+          integrity.length !== 1 ||
+          integrity[0]?.integrity_check !== 'ok'
+        ) {
+          throw new Error('backup-validation-failed');
+        }
+      } finally {
+        verify.close();
+      }
+
+      const expectedSize = metadata.totalPages * sourcePageSize;
+      const stats = fs.statSync(inProgressPath);
       const size = stats.size;
+      if (size === 0 || size !== expectedSize) {
+        throw new Error('backup-size-mismatch');
+      }
+
+      const fd = fs.openSync(inProgressPath, 'r');
+      try {
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
+
+      fs.linkSync(inProgressPath, backupPath);
+      fs.unlinkSync(inProgressPath);
 
       logger.info('✅ 백업 생성 완료', {
         backupPath,
@@ -286,7 +341,10 @@ export class BackupManager {
       return {
         backupPath,
         timestamp,
-        size
+        size,
+        expectedSize,
+        totalPages,
+        integrityCheck: 'ok',
       };
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };

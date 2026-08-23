@@ -9,7 +9,7 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import fs, { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 describe('BackupManager', () => {
   let db: Database.Database;
@@ -44,6 +44,61 @@ describe('BackupManager', () => {
       await expect(
         backupManager.createBackup(db, '1.0')
       ).rejects.toThrow();
+    });
+
+    it('publishes a standalone validated online backup containing committed WAL content', async () => {
+      const fileDb = new Database(dbPath);
+      const publicationEvents: string[] = [];
+      const partialNamePattern = /^\.memory-backup-partial-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.db$/;
+      const realLinkSync = fs.linkSync.bind(fs);
+      const realUnlinkSync = fs.unlinkSync.bind(fs);
+      const linkSpy = vi.spyOn(fs, 'linkSync').mockImplementation(((existingPath, newPath) => {
+        expect(existsSync(String(newPath))).toBe(false);
+        expect(existsSync(String(existingPath))).toBe(true);
+        expect(basename(String(existingPath))).toMatch(partialNamePattern);
+        publicationEvents.push('link');
+        return realLinkSync(existingPath, newPath);
+      }) as typeof fs.linkSync);
+      const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(((path) => {
+        if (partialNamePattern.test(basename(String(path)))) {
+          expect(publicationEvents).toEqual(['link']);
+          publicationEvents.push('unlink-partial');
+        }
+        return realUnlinkSync(path);
+      }) as typeof fs.unlinkSync);
+
+      try {
+        fileDb.pragma('journal_mode = WAL');
+        fileDb.pragma('wal_autocheckpoint = 0');
+        fileDb.exec(`
+          CREATE TABLE wal_notes (id INTEGER PRIMARY KEY, note TEXT NOT NULL);
+          INSERT INTO wal_notes (note) VALUES ('committed in wal');
+        `);
+
+        const result = await backupManager.createBackup(fileDb, '2.0');
+        const backup = new Database(result.backupPath, { readonly: true });
+
+        try {
+          expect(backup.prepare('SELECT note FROM wal_notes').pluck().get()).toBe('committed in wal');
+          expect(result.size).toBeGreaterThan(0);
+          expect(result.size).toBe(result.expectedSize);
+          expect(result.integrityCheck).toBe('ok');
+          expect(backup.pragma('page_count', { simple: true })).toBe(result.totalPages);
+          expect(backup.pragma('page_size', { simple: true })).toBe(result.expectedSize / result.totalPages);
+          expect(backup.pragma('journal_mode', { simple: true })).toBe('delete');
+        } finally {
+          backup.close();
+        }
+
+        expect(existsSync(`${result.backupPath}-wal`)).toBe(false);
+        expect(existsSync(`${result.backupPath}-shm`)).toBe(false);
+        expect(fs.readdirSync(backupsDir)).toEqual([basename(result.backupPath)]);
+        expect(publicationEvents).toEqual(['link', 'unlink-partial']);
+      } finally {
+        linkSpy.mockRestore();
+        unlinkSpy.mockRestore();
+        fileDb.close();
+      }
     });
 
   });
