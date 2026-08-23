@@ -41,17 +41,35 @@ npm script 를 쓰는 이유는 그것이 `npm run build -w @memento/core` 를 �
 | `--sample-size <n>` | `50` | 표본 A 크기 (FR-002d) |
 | `--drift-tolerance <pct>` | `5` | 재집계 허용 편차 (FR-004b) |
 | `--resume` | off | 중단 지점부터 재개. 판별식 재평가로 남은 대상만 처리 (FR-005b) |
-| `--yes` | off | 대화형 확인 생략. **`execute`에는 무시된다** |
+| (`--yes` 는 폐지) | — | 대화형 확인이 구현된 적이 없어 죽은 플래그였다. 보호는 중단 게이트가 한다 |
 
 ### 필수 환경 변수 (파괴적 명령)
 
 | 변수 | 쓰는 명령 | 없으면 |
 |---|---|---|
 | `QUARANTINE_EXPECTED_TARGETS` | `execute` | 종료 코드 19 — 재집계 대조를 건너뛸 수 없다 |
-| `QUARANTINE_STARTED_AT` | `cleanup` | 종료 코드 1 — outbox 정리가 0행을 지우고도 성공한 척한다 |
+| (`QUARANTINE_STARTED_AT` 은 폐지) | — | outbox 정리가 시간 범위 대신 격리 ID 로 대상을 고른다. `execute.progress.jsonl` 이 유일한 입력이다 |
 | `QUARANTINE_SERVER_STOPPED`·`_INTEGRITY_OK`·`_BACKUP_OK`·`_BACKUP_RATIO`·`_BACKUP_SIDECARS_CLEAN`·`_COPY_A_BOOTED`·`_REHEARSAL_OK` | `execute` | 해당 게이트 실패 (코드 12~16) |
 
 전부 fail-closed 다. 확인하지 않은 항목에 `1` 을 넣으면 게이트가 장식이 된다.
+
+### `rehearse` 는 사본 전용이다
+
+`rehearse` 는 `execute` 와 같은 파괴적 루프를 돌지만 **중단 게이트를 평가하지 않는다.**
+따라서 대상 경로가 프로덕션이면 종료 코드 12 로 거부한다. 프로덕션 경로는
+`MEMENTO_PRODUCTION_DB` 로 덮어쓸 수 있고, 기본값은 `~/.memento/data/memory.db` 다.
+심링크·상대 표기 우회를 막으려고 `realpath` 로 비교한다.
+
+### 진행 기록 파일
+
+명령별로 분리한다 — `execute.progress.jsonl` · `rehearse.progress.jsonl`.
+공유하면 `execute --resume` 이 리허설 삭제분까지 세어 편차 게이트가 오발한다.
+
+### 종료 코드 추가
+
+| 코드 | 뜻 |
+|---:|---|
+| 23 | 산출물 경로가 저장소 안 `.local/` 밖 |
 
 ## 중단 게이트
 
