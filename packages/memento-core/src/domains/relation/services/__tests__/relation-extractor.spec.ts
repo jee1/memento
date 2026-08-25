@@ -106,6 +106,11 @@ describe('RelationExtractor', () => {
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailable').mockImplementation(
       mockLLMExtractor.isAvailable
     );
+    // 비동기 판정은 동기 판정에 위임한다. 기존 케이스가 mockLLMExtractor.isAvailable 로
+    // 가용성을 제어하는 의미를 유지하면서, 실제 초기화를 기다리지 않게 한다.
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockImplementation(
+      async () => mockLLMExtractor.isAvailable()
+    );
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'extractRelations').mockImplementation(
       mockLLMExtractor.extractRelations
     );
@@ -584,6 +589,54 @@ describe('RelationExtractor', () => {
       // Then: LLM만 사용되어야 함
       expect(candidates).toEqual(llmCandidates);
       expect(mockRuleExtractor.extractRelations).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('초기화 레이스 (이슈 #819)', () => {
+    it('하이브리드 폴백은 초기화 완료를 보장하는 비동기 판정을 사용한다', async () => {
+      // Given: 초기화 전 동기 판정은 false — 이것이 #819 의 재현 조건
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      const ruleCandidates = [
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련'
+        }
+      ];
+      const llmCandidates = [
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'DERIVED_FROM' as RelationType,
+          confidence: 0.9,
+          method: 'llm' as const,
+          evidence: 'LLM 판단'
+        }
+      ];
+
+      mockLLMExtractor.isAvailable.mockReturnValue(false);
+      const asyncSpy = vi
+        .spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync')
+        .mockResolvedValue(true);
+
+      mockRuleExtractor.extractRelations.mockResolvedValue(ruleCandidates);
+      mockLLMExtractor.extractRelations.mockResolvedValue(llmCandidates);
+
+      // When: 규칙 기반 신뢰도가 낮아 폴백 분기로 들어간다
+      const candidates = await extractor.extractRelations(newMemory, [existingMemory], {
+        method: 'hybrid',
+        minConfidence: 0.5
+      });
+
+      // Then: 비동기 판정을 거쳐 LLM 을 실제로 시도한다
+      expect(asyncSpy).toHaveBeenCalled();
+      expect(mockLLMExtractor.extractRelations).toHaveBeenCalled();
+      expect(candidates.some(c => c.method === 'llm')).toBe(true);
     });
   });
 });

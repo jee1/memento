@@ -133,8 +133,8 @@ export class RelationExtractor implements IRelationExtractor {
 
     // 규칙 기반 결과가 없거나 신뢰도가 낮으면 LLM fallback
     if (!hasAnyResults || !hasHighConfidenceResults) {
-      // LLM이 사용 가능한지 확인
-      if (!this.llmExtractor.isAvailable()) {
+      // LLM이 사용 가능한지 확인 (진행 중인 초기화 완료까지 대기)
+      if (!(await this.llmExtractor.isAvailableAsync())) {
         logger.info('LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환', { memoryId: newMemory.id });
         return ruleCandidates;
       }
