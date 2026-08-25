@@ -96,8 +96,8 @@ export class RelationExtractor implements IRelationExtractor {
     }
 
     if (method === 'llm') {
-      // LLM만 사용하는 경우, LLM이 사용 가능한지 확인
-      if (!this.llmExtractor.isAvailable()) {
+      // LLM만 사용하는 경우, LLM이 사용 가능한지 확인 (초기화 완료까지 대기)
+      if (!(await this.llmExtractor.isAvailableAsync())) {
         throw new Error('LLM 서비스가 사용 불가능합니다. 규칙 기반 추출을 사용하거나 API 키를 설정해주세요.');
       }
       return await this.llmExtractor.extractRelations(newMemory, existingMemories, extractOptions);

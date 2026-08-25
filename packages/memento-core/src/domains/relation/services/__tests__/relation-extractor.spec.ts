@@ -638,5 +638,41 @@ describe('RelationExtractor', () => {
       expect(mockLLMExtractor.extractRelations).toHaveBeenCalled();
       expect(candidates.some(c => c.method === 'llm')).toBe(true);
     });
+
+    it('LLM 전용 요청은 초기화 미완을 이유로 실패하지 않는다', async () => {
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      const llmCandidates = [
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'DERIVED_FROM' as RelationType,
+          confidence: 0.9,
+          method: 'llm' as const,
+          evidence: 'LLM 판단'
+        }
+      ];
+
+      // 초기화 전 동기 판정은 false
+      mockLLMExtractor.isAvailable.mockReturnValue(false);
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(true);
+      mockLLMExtractor.extractRelations.mockResolvedValue(llmCandidates);
+
+      await expect(
+        extractor.extractRelations(newMemory, [existingMemory], { method: 'llm' })
+      ).resolves.toEqual(llmCandidates);
+    });
+
+    it('초기화 완료 후에도 프로바이더가 없으면 LLM 전용 요청은 명확한 오류를 낸다', async () => {
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
+
+      await expect(
+        extractor.extractRelations(newMemory, [existingMemory], { method: 'llm' })
+      ).rejects.toThrow('LLM 서비스가 사용 불가능합니다');
+    });
   });
 });
