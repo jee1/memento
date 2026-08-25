@@ -179,7 +179,6 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     return this.isAvailable();
   }
 
-
   /**
    * 로컬(ollama) 프로바이더 사용 가능 여부.
    *
