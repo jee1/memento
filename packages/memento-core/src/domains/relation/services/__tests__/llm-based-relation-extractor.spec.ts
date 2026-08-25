@@ -636,6 +636,47 @@ describe('LLMBasedRelationExtractor', () => {
     });
   });
 
+  describe('isAvailableAsync (이슈 #819)', () => {
+    it('초기화가 아직 끝나지 않았어도 완료 후의 결과를 반환한다', async () => {
+      // Given: 초기화를 테스트가 직접 완료시킬 수 있도록 게이트를 건다
+      let openGate!: (result: LLMClientInitializationResult) => void;
+      const gate = new Promise<LLMClientInitializationResult>((resolve) => {
+        openGate = resolve;
+      });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockReturnValue(gate);
+
+      const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+
+      // 동기 판정은 초기화 전 상태를 그대로 본다 (= #819 재현 조건)
+      expect(extractor.isAvailable()).toBe(false);
+
+      // When: 비동기 판정을 먼저 시작하고, 그 뒤에 초기화를 완료시킨다
+      const pending = extractor.isAvailableAsync();
+      const OpenAI = (await import('openai')).default;
+      openGate({
+        preferredProvider: 'openai',
+        openaiClient: new OpenAI({ apiKey: 'test-key' }),
+        geminiClient: null,
+        initializedProviders: ['openai'],
+        warnings: []
+      });
+
+      // Then: 초기화 완료 후의 결과를 반환한다
+      await expect(pending).resolves.toBe(true);
+    });
+
+    it('초기화가 실패로 끝나도 예외를 던지지 않고 false 를 반환한다', async () => {
+      // Given: 초기화가 거부되는 상황 (생성자의 catch 가 흡수한다)
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize')
+        .mockRejectedValue(new Error('초기화 실패'));
+
+      const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+
+      // Then: 예외 없이 false
+      await expect(extractor.isAvailableAsync()).resolves.toBe(false);
+    });
+  });
+
   describe('fallback 로직 검증', () => {
     /**
      * Given: preferredProvider가 null이고 OpenAI 클라이언트만 초기화된 상태

@@ -161,6 +161,20 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     return false;
   }
 
+  /**
+   * LLM 서비스 사용 가능 여부 확인 (초기화 완료 보장)
+   *
+   * 생성자에서 시작된 비동기 초기화가 끝난 뒤에 판정한다. 초기화 실패는
+   * 생성자의 catch 가 이미 흡수하므로 여기서 예외가 새어 나가지 않는다.
+   *
+   * 외부 호출자는 이 판정을 사용한다. 동기 `isAvailable()` 은 초기화 완료
+   * 이후에만 유효하다 (이슈 #819).
+   */
+  async isAvailableAsync(): Promise<boolean> {
+    await this.initializationPromise;
+    return this.isAvailable();
+  }
+
 
   private isOllamaAvailable(): boolean {
     return this.preferredProvider === 'ollama' && mementoConfig.llmProvider === 'ollama';
