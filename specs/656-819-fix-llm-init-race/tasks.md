@@ -1010,6 +1010,14 @@ T001~T010 완료. T011 게이트 결과는 아래 표. 계획 스니펫과 달�
 | 인접 spec 회귀 (4개) | PASS — 32 tests |
 | `npm run lint` | PASS — 0 errors (242 warnings, 전부 기존 것) |
 | `npm run type-check` | PASS — exit 0 |
-| `npm test` (전체) | 아래 결과 참조 |
-| graphify 재빌드 | 아래 결과 참조 |
+| `npm test` (전체) | PASS — 471 files, 5047 passed / 1 skipped, exit 0 |
+| graphify 재빌드 | 완료 — 6357 nodes · 7207 edges · 1400 communities. `graphify-out/` 은 gitignore 되어 커밋되지 않음 |
+| quickstart 시나리오 3 | PASS — `LLM_PROVIDER=auto` + 클라우드 키 없음에서 `preferredProvider='ollama'`, `isAvailableAsync()=true`, `isOllamaAvailable()=true`, `determineProvider('auto')='ollama'` |
+| quickstart 시나리오 2 | 전체 스위트 로그로 확인 — 관계 추출이 실제 LLM 호출까지 도달한다(이 머신은 `llama3` 미설치라 호출이 실패하고 `reason: 'llm_call_failed'` 로 기록됨). 수정 전에는 `LLM 서비스가 사용 불가능하여...` 에서 끊겨 호출 시도 자체가 0회였다. |
+| quickstart 시나리오 4 | 전체 스위트 PASS 로 확인 — 미설정 경로의 저장·규칙 기반 결과가 그대로다 |
 | 사람 리뷰 · push · PR | **대기 중** — 승인 전 진행 안 함 |
+
+### 남은 관측 사항 (범위 밖)
+
+- 로컬 프로바이더가 떠 있지만 모델이 설치되지 않은 환경에서는 이제 저장마다 실제 LLM 호출이 시도되고 실패한다. 수정 전에는 호출 자체가 없었다. 이것은 의도한 동작(LLM 을 실제로 쓰기 시작함)이며 실패는 `reason: 'llm_call_failed'` 로 구분되어 남는다. 관계 추출은 fire-and-forget 이라 저장 응답은 지연되지 않는다.
+- `llm-based-relation-extractor.spec.ts` 의 config 모킹 경로 결함(위 표 T005 행)은 별도 이슈감이다.

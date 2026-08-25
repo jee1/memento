@@ -41,14 +41,15 @@ tasks:
   T008: {status: done, commit: ed0d72da, note: "also seeded isAvailableAsync spies in two sibling specs"}
   T009: {status: done, note: "0 external production callers of the sync check"}
   T010: {status: done, commit: 1d11e95e}
-  T011: {status: in_progress, note: "lint/type-check pass; full suite and graphify below; human review, push and PR still pending approval"}
+  T011: {status: gates_passed_review_pending, note: "lint, type-check, full suite and graphify all pass; human review, push and PR still pending approval"}
 
 gates:
   adjacent_spec_regression: pass
   lint: pass
   type_check: pass
-  full_test_suite: pending
-  graphify_rebuild: pending
+  full_test_suite: "pass — 471 files, 5047 passed / 1 skipped"
+  graphify_rebuild: "pass — 6357 nodes, 7207 edges; graphify-out/ not committed"
+  quickstart_scenario_3: "pass — auto + local provider verified live"
   human_review: pending
   push_or_pr: blocked_on_approval
 
