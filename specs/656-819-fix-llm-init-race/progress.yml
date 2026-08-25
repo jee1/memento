@@ -49,6 +49,7 @@ gates:
   type_check: pass
   full_test_suite: "pass — 471 files, 5047 passed / 1 skipped"
   graphify_rebuild: "pass — 6357 nodes, 7207 edges; graphify-out/ not committed"
+  quickstart_scenario_2: "pass — real ollama run produced a method: llm relation (FOLLOWS, 0.8)"
   quickstart_scenario_3: "pass — auto + local provider verified live"
   human_review: pending
   push_or_pr: blocked_on_approval

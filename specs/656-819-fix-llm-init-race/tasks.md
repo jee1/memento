@@ -1013,7 +1013,7 @@ T001~T010 완료. T011 게이트 결과는 아래 표. 계획 스니펫과 달�
 | `npm test` (전체) | PASS — 471 files, 5047 passed / 1 skipped, exit 0 |
 | graphify 재빌드 | 완료 — 6357 nodes · 7207 edges · 1400 communities. `graphify-out/` 은 gitignore 되어 커밋되지 않음 |
 | quickstart 시나리오 3 | PASS — `LLM_PROVIDER=auto` + 클라우드 키 없음에서 `preferredProvider='ollama'`, `isAvailableAsync()=true`, `isOllamaAvailable()=true`, `determineProvider('auto')='ollama'` |
-| quickstart 시나리오 2 | 전체 스위트 로그로 확인 — 관계 추출이 실제 LLM 호출까지 도달한다(이 머신은 `llama3` 미설치라 호출이 실패하고 `reason: 'llm_call_failed'` 로 기록됨). 수정 전에는 `LLM 서비스가 사용 불가능하여...` 에서 끊겨 호출 시도 자체가 0회였다. |
+| quickstart 시나리오 2 (SC-001·SC-002) | PASS — 실제 로컬 프로바이더(`OLLAMA_MODEL=gemma2:2b`)로 hybrid 추출 실행: `규칙 기반 결과 부족, LLM fallback 시도` → `LLM fallback 완료` → `[{"method":"llm","relation_type":"FOLLOWS","confidence":0.8}]`. `LLM 서비스가 사용 불가능하여...` 로그는 나오지 않았다. |
 | quickstart 시나리오 4 | 전체 스위트 PASS 로 확인 — 미설정 경로의 저장·규칙 기반 결과가 그대로다 |
 | 사람 리뷰 · push · PR | **대기 중** — 승인 전 진행 안 함 |
 
