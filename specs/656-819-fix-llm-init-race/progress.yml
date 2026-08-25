@@ -1,0 +1,57 @@
+feature: 656-819-fix-llm-init-race
+issue: 819
+branch: 656-819-fix-llm-init-race
+updated: 2026-08-26
+state: implementation_complete_pending_review
+
+phases:
+  - id: 1
+    name: Setup
+    status: done
+    tasks: [T001]
+  - id: 2
+    name: Foundational
+    status: done
+    tasks: [T002, T003]
+  - id: 3
+    name: "US1 — hybrid fallback actually tries the LLM (P1, MVP)"
+    status: done
+    tasks: [T004, T005]
+  - id: 4
+    name: "US2 — llm-only path survives startup timing (P2)"
+    status: done
+    tasks: [T006]
+  - id: 5
+    name: "US3 — fallback reasons are distinguishable (P3)"
+    status: done
+    tasks: [T007]
+  - id: 6
+    name: Polish
+    status: gates_run_review_pending
+    tasks: [T008, T009, T010, T011]
+
+tasks:
+  T001: {status: done, note: "baseline green — 4 files, 69 tests"}
+  T002: {status: done, commit: 8f832720, note: "isAvailableAsync(); tests gate LLMClientInitializer.initialize instead of forging private fields"}
+  T003: {status: done, commit: 11590e7e, note: "await before guard; removed dead initializationCompleted; edge-case spec rewritten, not just re-worded"}
+  T004: {status: done, commit: 29afbcfc, note: "hybrid fallback — the #819 symptom"}
+  T005: {status: done, commit: 672fa419, note: "FR-010; test drives the real mementoConfig because this spec's config mock path is one level short"}
+  T006: {status: done, commit: 4e332845}
+  T007: {status: done, commit: cea0e379, note: "reason vocabulary fixed at 3 values; no credential values logged"}
+  T008: {status: done, commit: ed0d72da, note: "also seeded isAvailableAsync spies in two sibling specs"}
+  T009: {status: done, note: "0 external production callers of the sync check"}
+  T010: {status: done, commit: 1d11e95e}
+  T011: {status: in_progress, note: "lint/type-check pass; full suite and graphify below; human review, push and PR still pending approval"}
+
+gates:
+  adjacent_spec_regression: pass
+  lint: pass
+  type_check: pass
+  full_test_suite: pending
+  graphify_rebuild: pending
+  human_review: pending
+  push_or_pr: blocked_on_approval
+
+out_of_scope_findings:
+  - "llm-based-relation-extractor.spec.ts mocks '../../../shared/config/index.js', which resolves to a path that does not exist from __tests__/. The source reads the real mementoConfig, so config-dependent assertions in that spec are not actually controlled. Worth its own issue."
+  - "RelationExtractor is constructed per request; reusing one instance is tracked separately and was explicitly kept out of this change."
