@@ -705,6 +705,37 @@ describe('LLMBasedRelationExtractor', () => {
     });
   });
 
+  describe('프로바이더 판정 일관성 (FR-010)', () => {
+    it('자동 선택 모드에서 로컬 프로바이더가 채택되면 사용 가능으로 본다', async () => {
+      // Given: 클라우드 자격 증명 없이 자동 선택으로 ollama 가 채택된 환경
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'ollama',
+        openaiClient: null,
+        geminiClient: null,
+        initializedProviders: ['ollama'],
+        warnings: []
+      });
+      // 이 spec 의 config 모킹은 상대 경로가 한 단계 얕아 소스에 적용되지 않는다.
+      // 소스는 실제 mementoConfig 를 읽으므로 자동 선택 환경을 그쪽에서 재현한다.
+      const configModule = await import('../../../../shared/config/index.js');
+      const originalProvider = configModule.mementoConfig.llmProvider;
+      (configModule.mementoConfig as any).llmProvider = 'auto';
+
+      try {
+        const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+        await (extractor as any).initializationPromise;
+
+        // Then: 가용성 판정과 실행 경로가 쓰는 판정이 일치해야 한다
+        expect(extractor.isAvailable()).toBe(true);
+        expect((extractor as any).isOllamaAvailable()).toBe(true);
+        // @ts-expect-error - private 메서드 접근 (테스트 목적)
+        expect(extractor.determineProvider('auto')).toBe('ollama');
+      } finally {
+        (configModule.mementoConfig as any).llmProvider = originalProvider;
+      }
+    });
+  });
+
   describe('fallback 로직 검증', () => {
     /**
      * Given: preferredProvider가 null이고 OpenAI 클라이언트만 초기화된 상태

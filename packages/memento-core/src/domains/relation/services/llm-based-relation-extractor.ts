@@ -173,8 +173,15 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   }
 
 
+  /**
+   * 로컬(ollama) 프로바이더 사용 가능 여부.
+   *
+   * preferredProvider 는 초기화가 연결 점검에 성공했을 때만 'ollama' 가 되므로
+   * 설정값을 다시 확인하지 않는다. 설정값까지 요구하면 자동 선택으로 ollama 가
+   * 채택된 환경에서 isAvailable() 과 실행 경로의 판정이 어긋난다 (FR-010).
+   */
   private isOllamaAvailable(): boolean {
-    return this.preferredProvider === 'ollama' && mementoConfig.llmProvider === 'ollama';
+    return this.preferredProvider === 'ollama';
   }
 
   private providerAvailability() {
