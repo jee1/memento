@@ -105,8 +105,11 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     this.initializationPromise = this.initializeClients().then((provider) => {
       this.preferredProvider = provider;
     }).catch((error) => {
-      logger.error('LLM 클라이언트 초기화 실패', { 
-        error: error instanceof Error ? error.message : String(error) 
+      // reason 은 폴백 사유를 한 필드명으로 grep 하기 위한 것이다.
+      // error.message 외의 값은 넣지 않는다 — 자격 증명이 로그에 새면 안 된다.
+      logger.error('LLM 클라이언트 초기화 실패', {
+        error: error instanceof Error ? error.message : String(error),
+        reason: 'init_failed'
       });
       this.preferredProvider = null;
       this.openaiClient = null;

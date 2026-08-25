@@ -135,7 +135,10 @@ export class RelationExtractor implements IRelationExtractor {
     if (!hasAnyResults || !hasHighConfidenceResults) {
       // LLM이 사용 가능한지 확인 (진행 중인 초기화 완료까지 대기)
       if (!(await this.llmExtractor.isAvailableAsync())) {
-        logger.info('LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환', { memoryId: newMemory.id });
+        logger.info('LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환', {
+          memoryId: newMemory.id,
+          reason: 'provider_not_configured'
+        });
         return ruleCandidates;
       }
 
@@ -168,9 +171,10 @@ export class RelationExtractor implements IRelationExtractor {
         
         return filtered;
       } catch (error) {
-        logger.error('LLM fallback 실패, 규칙 기반 결과 반환', { 
+        logger.error('LLM fallback 실패, 규칙 기반 결과 반환', {
           error: error instanceof Error ? error.message : String(error),
-          memoryId: newMemory.id 
+          memoryId: newMemory.id,
+          reason: 'llm_call_failed'
         });
         return ruleCandidates;
       }

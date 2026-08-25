@@ -18,6 +18,7 @@ import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { RelationCache } from '../relation-cache.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => {
@@ -673,6 +674,63 @@ describe('RelationExtractor', () => {
       await expect(
         extractor.extractRelations(newMemory, [existingMemory], { method: 'llm' })
       ).rejects.toThrow('LLM 서비스가 사용 불가능합니다');
+    });
+
+    it('LLM 미가용 폴백 로그에 사유가 남는다', async () => {
+      const infoSpy = vi.spyOn(logger, 'info');
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      mockRuleExtractor.extractRelations.mockResolvedValue([
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련'
+        }
+      ]);
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
+
+      await extractor.extractRelations(newMemory, [existingMemory], {
+        method: 'hybrid',
+        minConfidence: 0.5
+      });
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        'LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환',
+        expect.objectContaining({ reason: 'provider_not_configured' })
+      );
+    });
+
+    it('LLM 호출 실패 폴백 로그에 사유가 남는다', async () => {
+      const errorSpy = vi.spyOn(logger, 'error');
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      mockRuleExtractor.extractRelations.mockResolvedValue([
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련'
+        }
+      ]);
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(true);
+      mockLLMExtractor.extractRelations.mockRejectedValue(new Error('boom'));
+
+      await extractor.extractRelations(newMemory, [existingMemory], {
+        method: 'hybrid',
+        minConfidence: 0.5
+      });
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'LLM fallback 실패, 규칙 기반 결과 반환',
+        expect.objectContaining({ reason: 'llm_call_failed' })
+      );
     });
   });
 });
