@@ -71,7 +71,6 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private geminiClient: GoogleGenAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private readonly initializationPromise: Promise<void>;
-  private initializationCompleted = false;
   private readonly embeddingService: UnifiedEmbeddingService;
   private readonly cache: ICacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
@@ -112,8 +111,6 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       this.preferredProvider = null;
       this.openaiClient = null;
       this.geminiClient = null;
-    }).finally(() => {
-      this.initializationCompleted = true;
     });
   }
 
@@ -372,14 +369,10 @@ ${memoryList}
     existingMemories: MemoryItem[],
     options?: ExtractOptions
   ): Promise<RelationCandidate[]> {
-    const initializationWasPending = !this.initializationCompleted;
-    if (initializationWasPending && this.preferredProvider === null) {
-      throw new Error('LLM 서비스가 사용 불가능합니다');
-    }
-
-    if (this.initializationPromise && initializationWasPending) {
-      await this.initializationPromise;
-    }
+    // 초기화 완료를 먼저 기다린 뒤에 가용성을 판정한다. 이전 코드는 await 앞에서
+    // 던져, 초기화가 진행 중인 신규 인스턴스가 await 에 도달하지 못했다 (이슈 #819).
+    // 진짜 미가용은 아래의 hasAvailableClient 검사가 처리한다.
+    await this.initializationPromise;
 
     if (existingMemories.length === 0) {
       return [];
