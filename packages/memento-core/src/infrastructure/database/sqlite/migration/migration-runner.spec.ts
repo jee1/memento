@@ -7,11 +7,22 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MigrationRunner } from './migration-runner.js';
 import type { Migration, MigrationResult } from '../types.js';
 import Database from 'better-sqlite3';
+import type { CleanupReport } from './backup-manager.js';
 import { BackupManager } from './backup-manager.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import { DependencyValidator } from './dependency-validator.js';
 import { MigrationLogger } from './migration-logger.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 /**
  * 테스트용 마이그레이션 구현
@@ -65,6 +76,41 @@ const SCHEMA_VERSION_TABLE = `
     description TEXT
   )
 `;
+
+const emptyApplyReport: CleanupReport = {
+  ok: true,
+  error: null,
+  mode: 'apply',
+  inspectedCount: 0,
+  selectedCount: 0,
+  selectedBytes: 0,
+  deletedCount: 0,
+  reclaimedBytes: 0,
+  skippedCount: 0,
+  failedCount: 0,
+  ignoredCount: 0,
+  artifacts: [],
+};
+
+function automaticBackupName(version: string, date: Date): string {
+  return `memory-backup-${version}-${date.toISOString().replace(/[:.]/g, '-')}.db`;
+}
+
+function operatorBackupName(date: Date): string {
+  return `memory-backup-${date.toISOString().replace(/[:.]/g, '-')}.db`;
+}
+
+function testMigrationWithUp(up: ReturnType<typeof vi.fn>): Migration {
+  return {
+    version: '1.0',
+    name: 'test-migration',
+    description: 'Test migration for testing',
+    up,
+    async down() {},
+    async validateBefore() {},
+    async validateAfter() {},
+  };
+}
 
 describe('MigrationRunner', () => {
   let db: Database.Database;
@@ -161,6 +207,217 @@ describe('MigrationRunner', () => {
         SELECT name FROM sqlite_master WHERE type='table' AND name='test_table'
       `).get();
       expect(table).toBeUndefined();
+    });
+
+    it('does not begin migration work when backup creation validation fails', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockRejectedValue(new Error('backup-integrity-failed'));
+      const exec = vi.spyOn(db, 'exec');
+      const up = vi.fn(async (database: Database.Database) => {
+        database.exec('CREATE TABLE should_not_exist (id TEXT PRIMARY KEY)');
+      });
+
+      try {
+        const result = await runner.runMigration(testMigrationWithUp(up), { validate: false });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('backup-integrity-failed');
+        expect(up).not.toHaveBeenCalled();
+        expect(exec).not.toHaveBeenCalledWith('BEGIN TRANSACTION');
+        expect(db.inTransaction).toBe(false);
+      } finally {
+        exec.mockRestore();
+        create.mockRestore();
+      }
+    });
+
+    it('runs retention cleanup after a successful backup without blocking migration on report failure', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db',
+        timestamp: new Date('2026-08-23T00:00:00.000Z'),
+        size: 4096,
+      });
+      const cleanup = vi.spyOn(manager, 'cleanupBackups').mockResolvedValue({
+        ...emptyApplyReport,
+        ok: false,
+        selectedCount: 2,
+        failedCount: 1,
+        skippedCount: 1,
+        artifacts: [
+          {
+            id: 'memory-backup-1.0-2026-06-01T00-00-00-000Z.db',
+            status: 'failed',
+            reason: 'expired-automatic',
+            detail: 'delete-failed',
+          },
+          {
+            id: 'memory-backup-1.0-2026-06-02T00-00-00-000Z.db',
+            status: 'deleted',
+            reason: 'expired-automatic',
+            detail: null,
+          },
+        ],
+      });
+      const warn = vi.spyOn(logger, 'warn');
+      const up = vi.fn(async (database: Database.Database) => {
+        database.exec('CREATE TABLE IF NOT EXISTS cleanup_order (id TEXT PRIMARY KEY)');
+      });
+
+      try {
+        const result = await runner.runMigration(testMigrationWithUp(up), { validate: false });
+
+        expect(create).toHaveBeenCalledOnce();
+        expect(cleanup).toHaveBeenCalledWith({ mode: 'apply', includeInterrupted: false });
+        expect(create.mock.invocationCallOrder[0]).toBeLessThan(cleanup.mock.invocationCallOrder[0]);
+        expect(cleanup.mock.invocationCallOrder[0]).toBeLessThan(up.mock.invocationCallOrder[0]);
+        expect(result.success).toBe(true);
+        expect(up).toHaveBeenCalledOnce();
+        expect(warn).toHaveBeenCalledWith('백업 보존 정리 미완료', {
+          mode: 'apply',
+          inspectedCount: 0,
+          selectedCount: 2,
+          failedCount: 1,
+          skippedCount: 1,
+          artifacts: [
+            {
+              id: 'memory-backup-1.0-2026-06-01T00-00-00-000Z.db',
+              status: 'failed',
+              reason: 'expired-automatic',
+              detail: 'delete-failed',
+            },
+          ],
+        });
+      } finally {
+        warn.mockRestore();
+        create.mockRestore();
+        cleanup.mockRestore();
+      }
+    });
+
+    it('logs scan-failed retention cleanup reports with a safe pathless summary and still runs the migration', async () => {
+      const manager = runner.getBackupManager();
+      const unsafeBackupDir = '/tmp/memento secret root/backups';
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db',
+        timestamp: new Date('2026-08-23T00:00:00.000Z'),
+        size: 4096,
+      });
+      const cleanup = vi.spyOn(manager, 'cleanupBackups').mockResolvedValue({
+        ...emptyApplyReport,
+        ok: false,
+        error: 'scan-failed',
+      });
+      const warn = vi.spyOn(logger, 'warn');
+      const up = vi.fn(async (database: Database.Database) => {
+        database.exec('CREATE TABLE IF NOT EXISTS cleanup_scan_failure (id TEXT PRIMARY KEY)');
+      });
+
+      try {
+        const result = await runner.runMigration(testMigrationWithUp(up), { validate: false });
+
+        expect(result.success).toBe(true);
+        expect(up).toHaveBeenCalledOnce();
+        expect(warn).toHaveBeenCalledWith('백업 보존 정리 미완료', {
+          error: 'scan-failed',
+          mode: 'apply',
+          inspectedCount: 0,
+          selectedCount: 0,
+          failedCount: 0,
+          skippedCount: 0,
+          artifacts: [],
+        });
+        expect(JSON.stringify(warn.mock.calls)).not.toContain(unsafeBackupDir);
+      } finally {
+        warn.mockRestore();
+        create.mockRestore();
+        cleanup.mockRestore();
+      }
+    });
+
+    it('logs thrown retention cleanup failures without full filesystem paths and still runs the migration', async () => {
+      const manager = runner.getBackupManager();
+      const leakedBackupPath = '/tmp/memento secret root/backups/memory-backup-1.0-2026-08-23T00-00-00-000Z.db';
+      const leakedWindowsBackupPath = String.raw`C:\Users\memento secret root\backups\memory-backup-1.0-2026-08-22T00-00-00-000Z.db`;
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db',
+        timestamp: new Date('2026-08-23T00:00:00.000Z'),
+        size: 4096,
+      });
+      const cleanup = vi.spyOn(manager, 'cleanupBackups').mockRejectedValue(
+        new Error(`EACCES: permission denied, unlink '${leakedBackupPath}' and '${leakedWindowsBackupPath}' token=abcdefghijklmnopqrstuvwxyz`)
+      );
+      const warn = vi.spyOn(logger, 'warn');
+      const up = vi.fn(async (database: Database.Database) => {
+        database.exec('CREATE TABLE IF NOT EXISTS cleanup_throw (id TEXT PRIMARY KEY)');
+      });
+
+      try {
+        const result = await runner.runMigration(testMigrationWithUp(up), { validate: false });
+
+        expect(result.success).toBe(true);
+        expect(up).toHaveBeenCalledOnce();
+        expect(warn).toHaveBeenCalledWith('백업 보존 정리 실패', {
+          error: "EACCES: permission denied, unlink 'memory-backup-1.0-2026-08-23T00-00-00-000Z.db' and 'memory-backup-1.0-2026-08-22T00-00-00-000Z.db' token=[TOKEN]",
+          errorName: 'Error',
+        });
+        expect(JSON.stringify(warn.mock.calls)).not.toContain(leakedBackupPath);
+        expect(JSON.stringify(warn.mock.calls)).not.toContain('/tmp/memento secret root/backups');
+        expect(JSON.stringify(warn.mock.calls)).not.toContain(leakedWindowsBackupPath);
+        expect(JSON.stringify(warn.mock.calls)).not.toContain(String.raw`C:\Users\memento secret root\backups`);
+      } finally {
+        warn.mockRestore();
+        create.mockRestore();
+        cleanup.mockRestore();
+      }
+    });
+
+    it('applies automatic retention in the opened file database sibling backups directory', async () => {
+      const testRoot = mkdtempSync(join(tmpdir(), 'memento-migration-runner-'));
+      const fileDbPath = join(testRoot, 'memory.db');
+      const backupsDir = join(testRoot, 'backups');
+      const expiredAutomatic = automaticBackupName('0.9', new Date(Date.now() - 31 * 24 * 60 * 60 * 1000));
+      const currentAutomatic = automaticBackupName('0.9', new Date(Date.now() - 29 * 24 * 60 * 60 * 1000));
+      const oldOperator = operatorBackupName(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+      let fileDb: Database.Database | null = null;
+
+      try {
+        mkdirSync(backupsDir, { recursive: true });
+        writeFileSync(join(backupsDir, expiredAutomatic), 'expired');
+        writeFileSync(join(backupsDir, currentAutomatic), 'current');
+        writeFileSync(join(backupsDir, oldOperator), 'operator');
+
+        fileDb = new Database(fileDbPath);
+        fileDb.exec(SCHEMA_VERSION_TABLE);
+        fileDb.exec('CREATE TABLE source_data (id TEXT PRIMARY KEY)');
+        fileDb.prepare('INSERT INTO source_data (id) VALUES (?)').run('seed');
+
+        const fileRunner = new MigrationRunner(fileDb);
+        const result = await fileRunner.runMigration({
+          version: '1.0',
+          name: 'file-db-cleanup',
+          description: 'File database cleanup acceptance',
+          async up(database) {
+            database.exec('CREATE TABLE retained_after_cleanup (id TEXT PRIMARY KEY)');
+          },
+          async down(database) {
+            database.exec('DROP TABLE IF EXISTS retained_after_cleanup');
+          },
+          async validateBefore() {},
+          async validateAfter() {},
+        });
+
+        const names = readdirSync(backupsDir).sort();
+
+        expect(result.success).toBe(true);
+        expect(existsSync(join(backupsDir, expiredAutomatic))).toBe(false);
+        expect(names).toContain(currentAutomatic);
+        expect(names).toContain(oldOperator);
+        expect(names.some(name => /^memory-backup-1\.0-\d{4}-\d{2}-\d{2}T/.test(name))).toBe(true);
+      } finally {
+        fileDb?.close();
+        rmSync(testRoot, { recursive: true, force: true });
+      }
     });
   });
 
@@ -469,4 +726,3 @@ describe('MigrationRunner', () => {
     });
   });
 });
-
