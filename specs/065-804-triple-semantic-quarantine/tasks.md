@@ -2664,19 +2664,19 @@ import('@memento/core').then(async (m) => {
 ⚠️ **되돌리기 어려운 작업이다. 앞의 모든 `[REVIEW]` 게이트가 통과한 뒤에만 시작한다.**
 정지 구간은 **재집계부터 `VACUUM` 완료까지**다(FR-008b).
 
-- [ ] **Step 1: 프로덕션 서버를 정지한다**
+- [x] **Step 1: 프로덕션 서버를 정지한다** — 2026-08-23 21:40:26 KST
 
 ```bash
 docker compose stop   # 또는 운영 방식에 맞게
 ```
 
-- [ ] **Step 2: 무결성을 점검한다 (게이트 4)**
+- [x] **Step 2: 무결성을 점검한다 (게이트 4)** — `quick_check ok` · 백업 재생성 (비율 1.0000)
 
 ```bash
 npm run db:pre-docker-deploy
 ```
 
-- [ ] **Step 3: 게이트 입력을 사람이 확인한 값으로 채운다**
+- [x] **Step 3: 게이트 입력을 사람이 확인한 값으로 채운다** — 8개 전부 실측 확인 후 설정
 
 ```bash
 export DB_PATH="$HOME/.memento/data/memory.db"
@@ -2695,7 +2695,7 @@ export QUARANTINE_STARTED_AT=$(date -Iseconds)
 코드 19, 1). `--resume` 으로 재개하면 러너가 `progress.jsonl` 의 누적 성공 수를 기대값에서 빼고
 편차를 계산하므로(FR-004b), 재개할 때도 같은 값을 그대로 쓴다.
 
-- [ ] **Step 4: 격리를 실행한다**
+- [x] **Step 4: 격리를 실행한다** — 242배치 · 24,138건 · 실패 0 · 325.3초
 
 ```bash
 npm run memory:quarantine-065 -- execute
@@ -2703,7 +2703,7 @@ npm run memory:quarantine-065 -- execute
 게이트에서 멈추면 종료 코드로 원인을 본다(10~21). 중단 후에는 `--resume` 으로 재개한다.
 부분 삭제 상태는 손상이 아니다(FR-005c).
 
-- [ ] **Step 5: 잔재를 정리하고 공간을 회수한다 (순서 중요)**
+- [x] **Step 5: 잔재를 정리하고 공간을 회수한다 (순서 중요)** — `forgetting_event` 229,523행 · `VACUUM` 556,228,608 → 128,688,128
 
 ```bash
 npm run memory:quarantine-065 -- cleanup
@@ -2711,7 +2711,7 @@ npm run memory:quarantine-065 -- vacuum
 ```
 `cleanup` 을 건너뛰고 `vacuum` 하면 감소량이 37.7MB 이상 과소 보고된다(FR-010).
 
-- [ ] **Step 6: 실패 시 롤백 (판별식이 틀렸다고 판단한 경우에만)**
+- [x] **Step 6: 실패 시 롤백 (판별식이 틀렸다고 판단한 경우에만)** — 해당 없음. 실패 0건
 
 ```bash
 docker compose stop
@@ -2719,6 +2719,21 @@ rm -f "$DB_PATH" "$DB_PATH-wal" "$DB_PATH-shm"
 cp "$BACKUP" "$DB_PATH"
 docker compose start
 ```
+
+### 2026-08-23 실행 실측
+
+| 항목 | 값 |
+|---|---|
+| 정지 구간 | 21:40:26 → 21:58:25 KST (**17분 59초**) |
+| 대상 재집계 | **24,138건** (계획 시점 24,113 → +25, 편차 0.10%) |
+| 실행 | 242배치 · 삭제 24,138 · 실패 **0** · **325.3초** |
+| 잔재 정리 | `memory_forgetting_event` 229,523행 · `event_outbox` 0행 |
+| `VACUUM` | 556,228,608 → 128,688,128 (**회수 408MB, 77%**) |
+| 리허설(사본 B) | 242배치 · 24,138 · 실패 0 · 309.5초 — 라이브와 5% 이내 |
+
+사후 검증: `quick_check ok` · 잔여 대상 **0** · episodic 3,482 · procedural 252 **불변** ·
+semantic 26,267 → 2,129 · `kg_triple` 24,285 **100% 보존** · 형태 (2)(3) 145건 보존 ·
+pinned 1 · 귀속 111 불변 · 고아 embedding/relation 0 · `memory_item_fts` = `memory_item`.
 
 **Checkpoint**: User Story 2 완료. 대상이 사라지고 연쇄 잔재가 정리됐다.
 
@@ -2902,7 +2917,7 @@ Expected: `formOneAfter: 0`, `humanRatioImproved: true`, `passed: true`
 
 ### T024 [REVIEW] 사후 확인과 재기동
 
-- [ ] **Step 1: 보존 대상이 그대로인지 확인한다 (SC-002, SC-003a, SC-003d, SC-003f)**
+- [x] **Step 1: 보존 대상이 그대로인지 확인한다 (SC-002, SC-003a, SC-003d, SC-003f)** — 전부 통과
 
 ```bash
 sqlite3 "file:$DB_PATH?mode=ro" "
@@ -2917,7 +2932,7 @@ SELECT 'form_2_3', COUNT(*) FROM memory_item
 Expected: episodic·procedural 이 실행 직전 재집계값과 동일. pinned·귀속 건수 불변.
 형태 (2)(3) 전량 보존(실측 기준 120건).
 
-- [ ] **Step 2: 연쇄 잔재 0행을 확인한다 (SC-005, SC-005a, SC-005b)**
+- [x] **Step 2: 연쇄 잔재 0행을 확인한다 (SC-005, SC-005a, SC-005b)** — 고아 embedding 0 · 고아 relation 0 · `event_outbox` `memory.forgotten` 0
 
 T020 Step 4·5 와 같은 쿼리를 라이브에 돌린다. `event_outbox` 의 `memory.forgotten` 0행(SC-005a)과
 격리된 ID 를 참조하는 `memory_forgetting_event` 0행(SC-005b)을 함께 센다 — 격리 대상이 아닌
@@ -2925,16 +2940,16 @@ T020 Step 4·5 와 같은 쿼리를 라이브에 돌린다. `event_outbox` 의 `
 **`initializeDatabase` 를 쓰지 않는다** — 마이그레이션이 라이브에 쓴다. 사본에 붙인 서버
 인스턴스로 확인하거나, `sqlite-vec` 확장만 로드한 읽기 전용 스크립트를 쓴다.
 
-- [ ] **Step 3: 크기 감소를 기록한다 (SC-007)**
+- [x] **Step 3: 크기 감소를 기록한다 (SC-007)** — 회수 427,540,480바이트 (408MB, 77%)
 
 기대 회수량: 임베딩 약 193.96MB + `memory_forgetting_event` 고아 약 37.7MB + 본문 약 1.0MB.
 **실제 감소량이 이보다 크게 작으면 잔재 정리가 누락된 것이다.**
 
-- [ ] **Step 4: 정지 구간 길이를 기록한다 (SC-008c)**
+- [x] **Step 4: 정지 구간 길이를 기록한다 (SC-008c)** — 21:40:26 → 21:58:25 = **17분 59초**
 
 재집계 시작 ~ `VACUUM` 완료. 리허설 소요와 **별도로** 남긴다.
 
-- [ ] **Step 5: 재기동한다 (FR-008c)**
+- [x] **Step 5: 재기동한다 (FR-008c)** — 21:58:25 `health: healthy`, `database: connected`
 
 ```bash
 docker compose start
