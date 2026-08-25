@@ -145,7 +145,11 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   }
 
   /**
-   * LLM 서비스 사용 가능 여부 확인
+   * LLM 서비스 사용 가능 여부 확인 (동기)
+   *
+   * **초기화 완료 이후에만 유효하다.** 생성 직후에는 preferredProvider 가
+   * 아직 정해지지 않아 항상 false 를 반환한다 (이슈 #819).
+   * 외부 호출자는 `isAvailableAsync()` 를 사용한다.
    */
   isAvailable(): boolean {
     if (this.preferredProvider === 'openai') {
