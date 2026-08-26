@@ -39,7 +39,7 @@ description: "Task breakdown for 656-819-fix-llm-init-race"
 - 완료 전 `npm run lint`, `npm run type-check`, `npm test` 를 통과해야 한다(헌법 IV).
 - production 코드를 건드리므로 완료 전 graphify 를 재빌드하고 `graphify-out/GRAPH_REPORT.md` 를 확인한다. `graphify-out/` 은 커밋하지 않는다(헌법 IV).
 - 작업 브랜치는 `656-819-fix-llm-init-race`. **main 에 직접 커밋하지 않는다.** push·PR 생성은 사용자 승인 후에만 한다.
-- 사유 필드 어휘는 세 값으로 고정한다: `provider_not_configured`, `init_failed`, `llm_call_failed`.
+- 사유 필드 어휘는 세 값으로 고정한다: `llm_unavailable`, `init_failed`, `llm_call_failed`. (2026-08-26 리뷰 반영: 폴백 지점은 미설정과 연결 실패를 구분할 수 없어 `provider_not_configured` → `llm_unavailable` 로 정정. 아래 리뷰 후속 조치 참조)
 
 ---
 
@@ -649,7 +649,7 @@ Refs #819"
 
 **Interfaces:**
 - Consumes: 기존 `logger`
-- Produces: 로그 필드 `reason`. 값은 `'provider_not_configured'` | `'init_failed'` | `'llm_call_failed'` 세 개로 고정한다. 새 타입·API 를 만들지 않는다(FR-005).
+- Produces: 로그 필드 `reason`. 값은 `'llm_unavailable'` | `'init_failed'` | `'llm_call_failed'` 세 개로 고정한다. 새 타입·API 를 만들지 않는다(FR-005).
 
 - [x] **Step 1: 실패 테스트 작성**
 
@@ -684,7 +684,7 @@ Refs #819"
 
     expect(infoSpy).toHaveBeenCalledWith(
       'LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환',
-      expect.objectContaining({ reason: 'provider_not_configured' })
+      expect.objectContaining({ reason: 'llm_unavailable' })
     );
   });
 
@@ -733,7 +733,7 @@ Refs #819"
   ```ts
         logger.info('LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환', {
           memoryId: newMemory.id,
-          reason: 'provider_not_configured'
+          reason: 'llm_unavailable'
         });
   ```
 
@@ -860,7 +860,7 @@ FR-009 는 런타임 시나리오가 아니라 정적으로 확인한다 — 초
 
   ### Changed
 
-  - 규칙 기반 폴백 로그가 사유(`provider_not_configured` / `init_failed` / `llm_call_failed`)를 구분함 (#819)
+  - 규칙 기반 폴백 로그가 사유(`llm_unavailable` / `init_failed` / `llm_call_failed`)를 구분함 (#819)
   ```
 
 - [x] **Step 2: 커밋**
@@ -1020,4 +1020,21 @@ T001~T010 완료. T011 게이트 결과는 아래 표. 계획 스니펫과 달�
 ### 남은 관측 사항 (범위 밖)
 
 - 로컬 프로바이더가 떠 있지만 모델이 설치되지 않은 환경에서는 이제 저장마다 실제 LLM 호출이 시도되고 실패한다. 수정 전에는 호출 자체가 없었다. 이것은 의도한 동작(LLM 을 실제로 쓰기 시작함)이며 실패는 `reason: 'llm_call_failed'` 로 구분되어 남는다. 관계 추출은 fire-and-forget 이라 저장 응답은 지연되지 않는다.
-- `llm-based-relation-extractor.spec.ts` 의 config 모킹 경로 결함(위 표 T005 행)은 별도 이슈감이다.
+- `llm-based-relation-extractor.spec.ts` 의 config 모킹 경로 결함(위 표 T005 행)은 별도 이슈 **#821** 로 등록했다. 같은 결함이 `relation-extractor.spec.ts:24` 에도 있어 함께 담았다.
+
+---
+
+## 리뷰 후속 조치 (2026-08-26)
+
+`/speckit.superspec.review` 결과는 [checklist-review.md](./checklist-review.md). Critical 0건, Important 1건, Suggestion 3건. 아래는 이 브랜치에서 처리한 내용이다.
+
+| 항목 | 처리 |
+|------|------|
+| **Important** 폴백 로그가 초기화·연결 실패를 `provider_not_configured` 로 잘못 단정 | 폴백 지점 사유를 중립값 `llm_unavailable` 로 교체(`relation-extractor.ts:141`). 근거: `LLMClientInitializer.initialize()` 가 키 부재도 연결 점검 실패도 모두 `warnings` 로 흡수하고 `preferredProvider: null` 로 정상 resolve 하므로, 폴백 지점은 원인을 알 수 없다. 원인을 여기까지 전달하려면 공유 initializer 에 구조화된 실패 종류가 필요해 Non-Goal 과 충돌한다. `data-model.md` 사유 표와 `CHANGELOG.md` 문구를 이 동작에 맞춰 정합화했다. |
+| **Suggestion** `relation-extractor.spec.ts` 의 logger spy 미복원 | 파일 최상위 `describe` 에 `afterEach(() => vi.restoreAllMocks())` 추가. |
+| **Suggestion** 조기 throw 제거로 인한 직접 호출자 동작 변경이 CHANGELOG 에 없음 | `CHANGELOG.md` Changed 에 한 줄 추가(예외 문구 통일 + 빈 배열 시 `[]` 반환, production 호출자 영향 없음). |
+| **Suggestion** `vi.mock` config 경로 결함 | 후속 이슈 **#821** 로 분리. 사례가 두 곳이다 — `llm-based-relation-extractor.spec.ts:122` 와 `relation-extractor.spec.ts:23`. 고치면 config 의존 테스트의 실제 조건이 바뀌어 전수 재검토가 필요하므로 이번 브랜치 밖. |
+
+**게이트 재실행 (2026-08-26, 리뷰 반영 후)**: 인접 spec 4개 78 tests PASS · `npm run lint` 0 errors(242 warnings, 전부 기존) · `npm run type-check` exit 0 · `npm test` 471 files / 5047 passed / 1 skipped, exit 0 · graphify 재빌드 6357 nodes · 7207 edges · 1400 communities(`graphify-out/` 미커밋 확인).
+
+FR-005 / SC-005 의 "세 사유 구분" 은 다음과 같이 착지했다: 하이브리드 폴백 로그가 `llm_unavailable` / `llm_call_failed` 를 구분하고, 초기화가 예외로 끝난 경우는 생성자 로그가 `init_failed` 를 남기며, 미가용의 구체적 원인은 초기화 시점의 `LLM 초기화 경고` 로그가 담는다. 운영자는 폴백 로그와 같은 기억의 초기화 로그를 대조해 판별한다.

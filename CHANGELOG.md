@@ -17,7 +17,8 @@
 
 ### Changed
 
-- **규칙 기반 폴백 로그 사유 구분** (#819): 폴백 로그에 `reason` 필드가 붙어 미설정(`provider_not_configured`)·초기화 실패(`init_failed`)·LLM 호출 실패(`llm_call_failed`)를 구분합니다. 값은 세 개로 고정이며 기존 로그 문구는 그대로입니다.
+- **규칙 기반 폴백 로그 사유 구분** (#819): 폴백 로그에 `reason` 필드가 붙습니다. 하이브리드 폴백은 LLM 미가용(`llm_unavailable`)과 LLM 호출 실패(`llm_call_failed`)를 구분하고, 초기화가 예외로 끝난 경우는 생성자 로그가 `init_failed`로 남깁니다. 미가용의 구체적 원인(키 부재 / 연결 점검 실패)은 `LLMClientInitializer`가 모두 warning으로 흡수하므로 폴백 지점에서는 알 수 없고, 초기화 시점의 `LLM 초기화 경고` 로그에 남습니다. 값은 세 개로 고정이며 기존 로그 문구는 그대로입니다.
+- **`LLMBasedRelationExtractor.extractRelations` 직접 호출 시 동작 변경** (#819): 초기화 완료 전 조기 throw를 제거하면서 이 클래스를 **직접** 호출하는 경우 두 가지가 달라졌습니다 — 미가용 시 예외 문구가 `'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 …'`로 통일되고, `existingMemories`가 빈 배열이면 예외 대신 `[]`를 반환합니다. production 호출자는 `RelationExtractor` 하나뿐이며 그쪽 문구와 빈 배열 처리는 변경 없습니다.
 - **Recall latency** (#735): `include_metadata` 경로의 고정 150ms 대기를 제거하고, pending `recordRecall` 통계를 `getStats`/`getStatsById`에서 즉시 읽는다. hybrid search는 FTS와 vector 분기를 `Promise.all`로 동시에 시작한다. ranking weight·score breakdown은 그대로다.
 
 ### Fixed
