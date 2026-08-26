@@ -135,9 +135,12 @@ export class RelationExtractor implements IRelationExtractor {
     if (!hasAnyResults || !hasHighConfidenceResults) {
       // LLM이 사용 가능한지 확인 (진행 중인 초기화 완료까지 대기)
       if (!(await this.llmExtractor.isAvailableAsync())) {
+        // 사유는 중립값이다. 초기화가 끝났는데도 프로바이더가 없다는 것만 알 수 있고,
+        // 그 원인(키 부재 / 연결 실패)은 LLMClientInitializer 가 warning 으로 흡수하므로
+        // 여기서는 알 수 없다. 구체적 원인은 'LLM 초기화 경고' 로그가 남긴다.
         logger.info('LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환', {
           memoryId: newMemory.id,
-          reason: 'provider_not_configured'
+          reason: 'llm_unavailable'
         });
         return ruleCandidates;
       }

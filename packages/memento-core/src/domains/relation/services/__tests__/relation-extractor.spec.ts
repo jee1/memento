@@ -10,7 +10,7 @@
  * - 배치 처리 테스트
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RelationExtractor } from '../relation-extractor.js';
 import { RuleBasedRelationExtractor } from '../rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from '../llm-based-relation-extractor.js';
@@ -146,6 +146,12 @@ describe('RelationExtractor', () => {
         extractWithOpenAISpy = vi.spyOn(llmExtractorAny, 'extractWithOpenAI');
       }
     }
+  });
+
+  afterEach(() => {
+    // logger spy 등 call-through spy 가 다음 테스트로 새지 않게 한다.
+    // 루트 vitest.config.ts 에 restoreMocks 설정이 없다.
+    vi.restoreAllMocks();
   });
 
   describe('하이브리드 추출 플로우', () => {
@@ -698,9 +704,12 @@ describe('RelationExtractor', () => {
         minConfidence: 0.5
       });
 
+      // 사유는 중립값이다. 이 지점은 초기화가 왜 프로바이더를 못 정했는지 모른다 —
+      // LLMClientInitializer 가 키 부재·연결 실패를 모두 warning 으로 흡수하기 때문이다.
+      // 구체적 원인은 인접한 'LLM 초기화 경고' 로그가 남긴다.
       expect(infoSpy).toHaveBeenCalledWith(
         'LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환',
-        expect.objectContaining({ reason: 'provider_not_configured' })
+        expect.objectContaining({ reason: 'llm_unavailable' })
       );
     });
 
