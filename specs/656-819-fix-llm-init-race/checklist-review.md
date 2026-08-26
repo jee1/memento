@@ -23,7 +23,7 @@ Critical 0건. Important 1건 해소 후 머지 가능.
 | FR-002 | PASS | 하이브리드 폴백 분기가 비동기 판정 사용(`relation-extractor.ts:137`) |
 | FR-003 | PASS | `await` 앞 조기 throw 제거. 초기화 완료 후 `hasAvailableClient` 만 실패 판정 |
 | FR-004 | PASS | 생성자 `.catch()` 흡수 → `initializationPromise` 는 항상 resolve → 판정이 예외 대신 false. 폴백은 `ruleCandidates` 반환 |
-| FR-005 | **PARTIAL** | 어휘 3종은 존재하나 폴백 지점(`relation-extractor.ts:140`)이 상수로 고정. `init_failed` 는 실질 도달 불가. 자격 증명 미노출 조항은 PASS(고정 리터럴 3개) |
+| FR-005 | **PARTIAL** → 후속 조치 후 PASS | 어휘 3종은 존재하나 폴백 지점(`relation-extractor.ts:140`)이 상수로 고정. `init_failed` 는 실질 도달 불가. 자격 증명 미노출 조항은 PASS(고정 리터럴 3개) |
 | FR-006 | PASS | `extract-relations-tool.ts` 무변경. 요청 파라미터·응답 필드·`method` 의미 불변 |
 | FR-007 | PASS | `relation-extractor.ts:118-132` 고신뢰 경로가 `:137` 판정 **전에** return. 대기 0 |
 | FR-008 | PASS | 새 설정값·env 0. 상한은 기존 `external_api` 재시도 정책 |
@@ -33,7 +33,7 @@ Critical 0건. Important 1건 해소 후 머지 가능.
 | SC-002 | PASS | 해당 로그는 `isAvailableAsync()` 가 false 일 때만 발생 |
 | SC-003 | PASS | 미설정 환경 판정 결과 동일(false), `ruleCandidates` 반환 경로 무변경 |
 | SC-004 | PASS | 고신뢰 경로에 await 추가 없음 |
-| SC-005 | **PARTIAL** | 폴백 로그 한 줄만으로는 미설정과 초기화/연결 실패가 구분되지 않음(FR-005 참조) |
+| SC-005 | **PARTIAL** → 후속 조치 후 PASS | 폴백 로그 한 줄만으로는 미설정과 초기화/연결 실패가 구분되지 않음(FR-005 참조) |
 
 ### Edge Cases
 
@@ -127,6 +127,7 @@ Critical 0건. Important 1건 해소 후 머지 가능.
 | Suggestion — logger spy 미복원 | `relation-extractor.spec.ts` 최상위 `describe` 에 `afterEach(() => vi.restoreAllMocks())` 추가. |
 | Suggestion — 내부 API 변경 미기재 | `CHANGELOG.md` Changed 에 한 줄 추가. |
 | Suggestion — `vi.mock` 경로 결함 | 후속 이슈 **#821** 등록(두 사례 포함). 이번 브랜치 밖. |
+| 산출물 정합 | `spec.md` FR-005·SC-005 도 정정했다. 구분 불가가 드러난 것은 요구사항 자체의 전제였으므로, 하위 산출물만 맞추면 requirements 원본이 코드와 어긋난 채 남는다(헌법 Development Workflow). |
 
 FR-005 / SC-005 최종 착지: 하이브리드 폴백 로그가 `llm_unavailable` / `llm_call_failed` 를 구분하고, 초기화가 예외로 끝난 경우는 생성자 로그가 `init_failed` 를 남기며, 미가용의 구체적 원인은 초기화 시점의 `LLM 초기화 경고` 로그가 담는다.
 
