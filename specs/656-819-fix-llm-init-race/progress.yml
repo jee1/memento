@@ -2,7 +2,7 @@ feature: 656-819-fix-llm-init-race
 issue: 819
 branch: 656-819-fix-llm-init-race
 updated: 2026-08-26
-state: review_findings_applied_pending_human_review
+state: pr_open
 
 phases:
   - id: 1
@@ -52,8 +52,8 @@ gates:
   graphify_rebuild: "pass — 6357 nodes, 7207 edges; graphify-out/ not committed"
   quickstart_scenario_2: "pass — real ollama run produced a method: llm relation (FOLLOWS, 0.8)"
   quickstart_scenario_3: "pass — auto + local provider verified live"
-  human_review: pending
-  push_or_pr: blocked_on_approval
+  human_review: "pass — approved 2026-08-26"
+  push_or_pr: "done — PR #822"
 
 out_of_scope_findings:
   - "llm-based-relation-extractor.spec.ts:122 mocks '../../../shared/config/index.js' and relation-extractor.spec.ts:24 mocks '../config/index.js'; both resolve to paths that do not exist from __tests__/. The sources read the real mementoConfig, so config-dependent assertions in those specs are not actually controlled. Filed as issue #821."
