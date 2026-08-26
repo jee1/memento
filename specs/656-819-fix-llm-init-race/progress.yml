@@ -1,0 +1,84 @@
+feature: 656-819-fix-llm-init-race
+issue: 819
+branch: 656-819-fix-llm-init-race
+updated: 2026-08-26
+state: pr_open
+
+phases:
+  - id: 1
+    name: Setup
+    status: done
+    tasks: [T001]
+  - id: 2
+    name: Foundational
+    status: done
+    tasks: [T002, T003]
+  - id: 3
+    name: "US1 — hybrid fallback actually tries the LLM (P1, MVP)"
+    status: done
+    tasks: [T004, T005]
+  - id: 4
+    name: "US2 — llm-only path survives startup timing (P2)"
+    status: done
+    tasks: [T006]
+  - id: 5
+    name: "US3 — fallback reasons are distinguishable (P3)"
+    status: done
+    tasks: [T007]
+  - id: 6
+    name: Polish
+    status: gates_run_review_pending
+    tasks: [T008, T009, T010, T011]
+
+tasks:
+  T001: {status: done, note: "baseline green — 4 files, 69 tests"}
+  T002: {status: done, commit: 8f832720, note: "isAvailableAsync(); tests gate LLMClientInitializer.initialize instead of forging private fields"}
+  T003: {status: done, commit: 11590e7e, note: "await before guard; removed dead initializationCompleted; edge-case spec rewritten, not just re-worded"}
+  T004: {status: done, commit: 29afbcfc, note: "hybrid fallback — the #819 symptom"}
+  T005: {status: done, commit: 672fa419, note: "FR-010; test drives the real mementoConfig because this spec's config mock path is one level short"}
+  T006: {status: done, commit: 4e332845}
+  T007: {status: done, commit: cea0e379, note: "reason vocabulary fixed at 3 values; no credential values logged. Amended 2026-08-26 after review: hybrid fallback reason is now the neutral llm_unavailable — see review_followup"}
+  T008: {status: done, commit: ed0d72da, note: "also seeded isAvailableAsync spies in two sibling specs"}
+  T009: {status: done, note: "0 external production callers of the sync check"}
+  T010: {status: done, commit: 1d11e95e}
+  T011: {status: gates_passed_review_pending, note: "lint, type-check, full suite and graphify all pass, re-run 2026-08-26 after the review follow-up; human review, push and PR still pending approval"}
+
+gates:
+  rerun_after_review_followup: "2026-08-26 — all gates re-run after the review fixes"
+  adjacent_spec_regression: pass
+  lint: pass
+  type_check: pass
+  full_test_suite: "pass — 471 files, 5047 passed / 1 skipped"
+  graphify_rebuild: "pass — 6357 nodes, 7207 edges; graphify-out/ not committed"
+  quickstart_scenario_2: "pass — real ollama run produced a method: llm relation (FOLLOWS, 0.8)"
+  quickstart_scenario_3: "pass — auto + local provider verified live"
+  human_review: "pass — approved 2026-08-26"
+  push_or_pr: "done — PR #822"
+
+out_of_scope_findings:
+  - "llm-based-relation-extractor.spec.ts:122 mocks '../../../shared/config/index.js' and relation-extractor.spec.ts:24 mocks '../config/index.js'; both resolve to paths that do not exist from __tests__/. The sources read the real mementoConfig, so config-dependent assertions in those specs are not actually controlled. Filed as issue #821."
+  - "RelationExtractor is constructed per request; reusing one instance is tracked separately and was explicitly kept out of this change."
+
+review:
+  command: "/speckit.superspec.review"
+  protocol: "superpowers requesting-code-review — one general-purpose reviewer subagent, read-only"
+  report: specs/656-819-fix-llm-init-race/checklist-review.md
+  range: "merge-base f8b5d858..6b1427cd"
+  verdict: "conditional — critical 0, important 1, suggestion 3"
+  spec_compliance: "FR-001..FR-004, FR-006..FR-010 pass; FR-005 and SC-005 were PARTIAL before the follow-up below"
+
+review_followup:
+  important_fallback_reason:
+    status: applied
+    change: "relation-extractor.ts fallback reason provider_not_configured -> llm_unavailable; data-model.md, CHANGELOG.md and tasks.md reconciled"
+    rationale: "LLMClientInitializer.initialize() absorbs both missing-key and connection-test failures into warnings and resolves with preferredProvider: null, so the fallback site cannot tell them apart. Asserting a specific cause there produced a false label. Carrying the cause down would require a structured failure kind in the shared initializer, which the spec's Non-Goals exclude."
+    tdd: "assertion flipped first (RED: expected 'provider_not_configured'), then source (GREEN)"
+  suggestion_logger_spy:
+    status: applied
+    change: "afterEach(() => vi.restoreAllMocks()) added to relation-extractor.spec.ts"
+  suggestion_changelog_internal_api:
+    status: applied
+    change: "CHANGELOG Changed entry for the direct-caller behaviour shift (error message, empty-array return)"
+  suggestion_vi_mock_paths:
+    status: deferred
+    issue: 821

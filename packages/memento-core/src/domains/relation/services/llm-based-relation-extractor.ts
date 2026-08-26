@@ -71,7 +71,6 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private geminiClient: GoogleGenAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private readonly initializationPromise: Promise<void>;
-  private initializationCompleted = false;
   private readonly embeddingService: UnifiedEmbeddingService;
   private readonly cache: ICacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
@@ -106,14 +105,15 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     this.initializationPromise = this.initializeClients().then((provider) => {
       this.preferredProvider = provider;
     }).catch((error) => {
-      logger.error('LLM 클라이언트 초기화 실패', { 
-        error: error instanceof Error ? error.message : String(error) 
+      // reason 은 폴백 사유를 한 필드명으로 grep 하기 위한 것이다.
+      // error.message 외의 값은 넣지 않는다 — 자격 증명이 로그에 새면 안 된다.
+      logger.error('LLM 클라이언트 초기화 실패', {
+        error: error instanceof Error ? error.message : String(error),
+        reason: 'init_failed'
       });
       this.preferredProvider = null;
       this.openaiClient = null;
       this.geminiClient = null;
-    }).finally(() => {
-      this.initializationCompleted = true;
     });
   }
 
@@ -145,7 +145,11 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   }
 
   /**
-   * LLM 서비스 사용 가능 여부 확인
+   * LLM 서비스 사용 가능 여부 확인 (동기)
+   *
+   * **초기화 완료 이후에만 유효하다.** 생성 직후에는 preferredProvider 가
+   * 아직 정해지지 않아 항상 false 를 반환한다 (이슈 #819).
+   * 외부 호출자는 `isAvailableAsync()` 를 사용한다.
    */
   isAvailable(): boolean {
     if (this.preferredProvider === 'openai') {
@@ -161,9 +165,29 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     return false;
   }
 
+  /**
+   * LLM 서비스 사용 가능 여부 확인 (초기화 완료 보장)
+   *
+   * 생성자에서 시작된 비동기 초기화가 끝난 뒤에 판정한다. 초기화 실패는
+   * 생성자의 catch 가 이미 흡수하므로 여기서 예외가 새어 나가지 않는다.
+   *
+   * 외부 호출자는 이 판정을 사용한다. 동기 `isAvailable()` 은 초기화 완료
+   * 이후에만 유효하다 (이슈 #819).
+   */
+  async isAvailableAsync(): Promise<boolean> {
+    await this.initializationPromise;
+    return this.isAvailable();
+  }
 
+  /**
+   * 로컬(ollama) 프로바이더 사용 가능 여부.
+   *
+   * preferredProvider 는 초기화가 연결 점검에 성공했을 때만 'ollama' 가 되므로
+   * 설정값을 다시 확인하지 않는다. 설정값까지 요구하면 자동 선택으로 ollama 가
+   * 채택된 환경에서 isAvailable() 과 실행 경로의 판정이 어긋난다 (FR-010).
+   */
   private isOllamaAvailable(): boolean {
-    return this.preferredProvider === 'ollama' && mementoConfig.llmProvider === 'ollama';
+    return this.preferredProvider === 'ollama';
   }
 
   private providerAvailability() {
@@ -358,14 +382,10 @@ ${memoryList}
     existingMemories: MemoryItem[],
     options?: ExtractOptions
   ): Promise<RelationCandidate[]> {
-    const initializationWasPending = !this.initializationCompleted;
-    if (initializationWasPending && this.preferredProvider === null) {
-      throw new Error('LLM 서비스가 사용 불가능합니다');
-    }
-
-    if (this.initializationPromise && initializationWasPending) {
-      await this.initializationPromise;
-    }
+    // 초기화 완료를 먼저 기다린 뒤에 가용성을 판정한다. 이전 코드는 await 앞에서
+    // 던져, 초기화가 진행 중인 신규 인스턴스가 await 에 도달하지 못했다 (이슈 #819).
+    // 진짜 미가용은 아래의 hasAvailableClient 검사가 처리한다.
+    await this.initializationPromise;
 
     if (existingMemories.length === 0) {
       return [];

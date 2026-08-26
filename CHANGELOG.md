@@ -17,10 +17,14 @@
 
 ### Changed
 
+- **규칙 기반 폴백 로그 사유 구분** (#819): 폴백 로그에 `reason` 필드가 붙습니다. 하이브리드 폴백은 LLM 미가용(`llm_unavailable`)과 LLM 호출 실패(`llm_call_failed`)를 구분하고, 초기화가 예외로 끝난 경우는 생성자 로그가 `init_failed`로 남깁니다. 미가용의 구체적 원인(키 부재 / 연결 점검 실패)은 `LLMClientInitializer`가 모두 warning으로 흡수하므로 폴백 지점에서는 알 수 없고, 초기화 시점의 `LLM 초기화 경고` 로그에 남습니다. 값은 세 개로 고정이며 기존 로그 문구는 그대로입니다.
+- **`LLMBasedRelationExtractor.extractRelations` 직접 호출 시 동작 변경** (#819): 초기화 완료 전 조기 throw를 제거하면서 이 클래스를 **직접** 호출하는 경우 두 가지가 달라졌습니다 — 미가용 시 예외 문구가 `'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 …'`로 통일되고, `existingMemories`가 빈 배열이면 예외 대신 `[]`를 반환합니다. production 호출자는 `RelationExtractor` 하나뿐이며 그쪽 문구와 빈 배열 처리는 변경 없습니다.
 - **Recall latency** (#735): `include_metadata` 경로의 고정 150ms 대기를 제거하고, pending `recordRecall` 통계를 `getStats`/`getStatsById`에서 즉시 읽는다. hybrid search는 FTS와 vector 분기를 `Promise.all`로 동시에 시작한다. ranking weight·score breakdown은 그대로다.
 
 ### Fixed
 
+- **관계 추출기의 조용한 규칙 기반 폴백** (#819): `RelationExtractor`가 `LLMBasedRelationExtractor.isAvailable()`을 동기로 호출했는데, `preferredProvider`는 생성자의 비동기 초기화가 끝난 뒤에야 정해집니다. remember·`extract_relations` 모두 요청마다 추출기를 새로 만들기 때문에 이 판정은 항상 초기화 이전 상태를 봤고, LLM이 설정돼 있어도 관계 추출이 한 번도 시도되지 않았습니다. 초기화 완료를 기다린 뒤 판정하는 `isAvailableAsync()`를 추가하고 두 판정 지점을 그쪽으로 옮겼습니다. 규칙 기반 고신뢰 결과가 나오는 빠른 경로는 판정 자체를 하지 않으므로 대기가 붙지 않습니다.
+- **로컬 프로바이더 자동 선택 시 판정 불일치** (#819): `isOllamaAvailable()`이 `preferredProvider === 'ollama'` 외에 `LLM_PROVIDER` 설정값까지 `ollama`이길 요구했습니다. 설정을 `auto`로 두고 클라우드 자격 증명 없이 로컬 프로바이더만 띄운 환경에서는 초기화가 ollama를 채택해도 설정값은 `auto`라 가용성 판정과 실행 경로가 어긋났습니다. `preferredProvider`는 연결 점검에 성공했을 때만 `ollama`가 되므로 설정값 조건을 제거했습니다.
 - **Hybrid vector under-fill** (#789): hybrid vector fetch uses `threshold: 0` and keeps `HYBRID_VECTOR_THRESHOLD` 0.38 as the funnel diagnostic. When thresholded hits are fewer than `query.limit`, remaining raw prefetch (similarity desc, unique ids) fills the ranking pool before min-max. Prefetch multiplier stays 2. Ranking hash includes threshold, prefetch multiplier, and fill flag. Ranking weights.toml is unchanged.
 - **memory_injection parity arm** (#790): production scorecard keeps `production_path: hybridSearchEngine.search`. A separate adapter arm calls `buildKnowledgeContextBundle` (same path as `memory_injection`), reconstructs selected IDs from serialized prompt content, and evaluates the proposed gate (Recall@10 ≥ 0.80, zero-hit < 20%, p95 < 1s).
 - **Hybrid fusion relevance** (#788): `HybridResultRanker` keeps combiner `textScore * textWeight + vectorScore * vectorWeight` as the relevance feature instead of overwriting with `vectorScore || textScore`. Consolidation path and quality-report helpers use the same contract. Ranking weights.toml is unchanged.

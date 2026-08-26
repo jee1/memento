@@ -636,6 +636,106 @@ describe('LLMBasedRelationExtractor', () => {
     });
   });
 
+  describe('isAvailableAsync (이슈 #819)', () => {
+    it('초기화가 아직 끝나지 않았어도 완료 후의 결과를 반환한다', async () => {
+      // Given: 초기화를 테스트가 직접 완료시킬 수 있도록 게이트를 건다
+      let openGate!: (result: LLMClientInitializationResult) => void;
+      const gate = new Promise<LLMClientInitializationResult>((resolve) => {
+        openGate = resolve;
+      });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockReturnValue(gate);
+
+      const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+
+      // 동기 판정은 초기화 전 상태를 그대로 본다 (= #819 재현 조건)
+      expect(extractor.isAvailable()).toBe(false);
+
+      // When: 비동기 판정을 먼저 시작하고, 그 뒤에 초기화를 완료시킨다
+      const pending = extractor.isAvailableAsync();
+      const OpenAI = (await import('openai')).default;
+      openGate({
+        preferredProvider: 'openai',
+        openaiClient: new OpenAI({ apiKey: 'test-key' }),
+        geminiClient: null,
+        initializedProviders: ['openai'],
+        warnings: []
+      });
+
+      // Then: 초기화 완료 후의 결과를 반환한다
+      await expect(pending).resolves.toBe(true);
+    });
+
+    it('초기화가 실패로 끝나도 예외를 던지지 않고 false 를 반환한다', async () => {
+      // Given: 초기화가 거부되는 상황 (생성자의 catch 가 흡수한다)
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize')
+        .mockRejectedValue(new Error('초기화 실패'));
+
+      const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+
+      // Then: 예외 없이 false
+      await expect(extractor.isAvailableAsync()).resolves.toBe(false);
+    });
+  });
+
+  describe('extractRelations 초기화 가드 (이슈 #819)', () => {
+    it('초기화가 진행 중이어도 완료 후 프로바이더가 있으면 던지지 않는다', async () => {
+      // Given: 초기화를 테스트가 직접 완료시킬 수 있도록 게이트를 건다
+      let openGate!: (result: LLMClientInitializationResult) => void;
+      const gate = new Promise<LLMClientInitializationResult>((resolve) => {
+        openGate = resolve;
+      });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockReturnValue(gate);
+
+      const OpenAI = (await import('openai')).default;
+      const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+      const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
+
+      // When: 초기화가 끝나기 전에 호출하고, 그 뒤에 초기화를 완료시킨다
+      const pending = extractor.extractRelations(newMemory, []);
+      openGate({
+        preferredProvider: 'openai',
+        openaiClient: new OpenAI({ apiKey: 'test-key' }),
+        geminiClient: null,
+        initializedProviders: ['openai'],
+        warnings: []
+      });
+
+      // Then: 기존 기억이 없으므로 빈 배열. 초기화 대기 이후에 이 분기에 도달해야 한다.
+      await expect(pending).resolves.toEqual([]);
+    });
+  });
+
+  describe('프로바이더 판정 일관성 (FR-010)', () => {
+    it('자동 선택 모드에서 로컬 프로바이더가 채택되면 사용 가능으로 본다', async () => {
+      // Given: 클라우드 자격 증명 없이 자동 선택으로 ollama 가 채택된 환경
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'ollama',
+        openaiClient: null,
+        geminiClient: null,
+        initializedProviders: ['ollama'],
+        warnings: []
+      });
+      // 이 spec 의 config 모킹은 상대 경로가 한 단계 얕아 소스에 적용되지 않는다.
+      // 소스는 실제 mementoConfig 를 읽으므로 자동 선택 환경을 그쪽에서 재현한다.
+      const configModule = await import('../../../../shared/config/index.js');
+      const originalProvider = configModule.mementoConfig.llmProvider;
+      (configModule.mementoConfig as any).llmProvider = 'auto';
+
+      try {
+        const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+        await (extractor as any).initializationPromise;
+
+        // Then: 가용성 판정과 실행 경로가 쓰는 판정이 일치해야 한다
+        expect(extractor.isAvailable()).toBe(true);
+        expect((extractor as any).isOllamaAvailable()).toBe(true);
+        // @ts-expect-error - private 메서드 접근 (테스트 목적)
+        expect(extractor.determineProvider('auto')).toBe('ollama');
+      } finally {
+        (configModule.mementoConfig as any).llmProvider = originalProvider;
+      }
+    });
+  });
+
   describe('fallback 로직 검증', () => {
     /**
      * Given: preferredProvider가 null이고 OpenAI 클라이언트만 초기화된 상태
@@ -1978,55 +2078,30 @@ describe('LLMBasedRelationExtractor', () => {
     });
 
     it('should throw error when LLM service is not available', async () => {
-      // Given: LLM 서비스가 사용 불가능한 상태
-      const configModule = await import('../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = undefined;
-      (configModule.mementoConfig as any).geminiApiKey = undefined;
-      (configModule.mementoConfig as any).llmProvider = 'auto';
-      mockConfig.openaiApiKey = undefined;
-      mockConfig.geminiApiKey = undefined;
-      mockConfig.llmProvider = 'auto';
-      
-      const unavailableExtractor = new LLMBasedRelationExtractor();
-      
-      // preferredProvider를 null로 설정하여 사용 불가능 상태로 만들기
-      // (실제 환경 변수에 llmProvider가 'ollama'로 설정되어 있을 수 있으므로)
-      (unavailableExtractor as any).preferredProvider = null;
-      
-      // isAvailable()이 false를 반환하도록 하기 위해
-      // mementoConfig.llmProvider가 'ollama'가 아니도록 확인
-      const actualLLMProvider = configModule.mementoConfig.llmProvider;
-      if (actualLLMProvider === 'ollama') {
-        // llmProvider가 'ollama'인 경우 isAvailable()이 true를 반환하므로
-        // 이 테스트는 스킵하거나 다른 방식으로 검증
-        // 대신 preferredProvider가 null인지만 확인
-        expect((unavailableExtractor as any).preferredProvider).toBe(null);
-        // isAvailable()이 true를 반환하는 것은 llmProvider가 'ollama'이기 때문
-        expect(unavailableExtractor.isAvailable()).toBe(true);
-        return;
-      }
+      // Given: 초기화가 어떤 프로바이더도 확보하지 못한 상태
+      // (beforeEach 의 openai spy 를 이 테스트에서만 덮어쓴다)
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: null,
+        openaiClient: null,
+        geminiClient: null,
+        initializedProviders: [],
+        warnings: ['사용 가능한 LLM provider가 없습니다.']
+      });
+
+      const unavailableExtractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+      await (unavailableExtractor as any).initializationPromise;
+
+      expect(unavailableExtractor.isAvailable()).toBe(false);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
         createTestMemory('mem2', '기존 기능', 'episodic')
       ];
 
-      // isAvailable()이 false를 반환하는지 확인
-      const isAvailableResult = unavailableExtractor.isAvailable();
-      
-      if (!isAvailableResult) {
-        // When/Then: 에러가 발생해야 함
-        await expect(
-          unavailableExtractor.extractRelations(newMemory, existingMemories)
-        ).rejects.toThrow('LLM 서비스가 사용 불가능합니다');
-      } else {
-        // isAvailable()이 true를 반환하는 경우 (예: llmProvider가 'ollama'인 경우)
-        // 이 경우는 실제 환경에 따라 다르게 동작할 수 있으므로
-        // preferredProvider가 null인지만 확인
-        expect((unavailableExtractor as any).preferredProvider).toBe(null);
-        // isAvailable()이 true를 반환하는 것은 llmProvider가 'ollama'이기 때문
-        expect(isAvailableResult).toBe(true);
-      }
+      // When/Then: 초기화 완료 후의 가드가 설정 안내를 담은 오류를 낸다
+      await expect(
+        unavailableExtractor.extractRelations(newMemory, existingMemories)
+      ).rejects.toThrow('LLM 서비스를 사용할 수 없습니다');
     });
 
     it('should return empty array when existing memories is empty', async () => {

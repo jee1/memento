@@ -79,6 +79,8 @@ describe('ExtractRelationsTool', () => {
     
     // LLMBasedRelationExtractor의 isAvailable 메서드 모킹 (타임아웃 방지)
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailable').mockReturnValue(false);
+    // 비동기 판정도 함께 막는다. 그러지 않으면 실제 초기화(프로바이더 연결 점검)를 기다린다.
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
     
     // Given: in-memory 데이터베이스 생성 및 초기화
     db = new Database(':memory:');
