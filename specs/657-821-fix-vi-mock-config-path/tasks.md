@@ -402,7 +402,7 @@ git commit -m "test(821): move #819 real-global config mutation onto the mock
 - Consumes: T002 의 `mockConfig`, T003 의 복원 규율
 - Produces: 없음
 
-- [ ] **Step 1: `actualConfig` 지점을 고친다 (이름·주석·실제 3중 불일치)**
+- [x] **Step 1: `actualConfig` 지점을 고친다 (이름·주석·실제 3중 불일치)**
 
 line 287-289 는 주석이 "실제 mementoConfig를 가져와서" 라고 말하지만 3단계 경로라 **팬텀 mock 을 받아왔다**. 교정 후에는 소스와 같은 대체 값 객체를 보므로 분기가 결정적이 된다.
 
@@ -418,7 +418,7 @@ line 287-289 는 주석이 "실제 mementoConfig를 가져와서" 라고 말하�
 
 실행해서 다른 결과가 나오면 그대로 두지 말고 Step 4 의 분류 절차로 보낸다.
 
-- [ ] **Step 2: 중복 대입을 정리한다**
+- [x] **Step 2: 중복 대입을 정리한다**
 
 line 746-750 은 동적 import 로 얻은 객체와 `mockConfig` 에 **같은 값을 두 번** 넣는다. 교정 후 둘은 동일 객체다.
 
@@ -428,7 +428,7 @@ line 746-750 은 동적 import 로 얻은 객체와 `mockConfig` 에 **같은 �
       process.env.LLM_PROVIDER = 'auto';
 ```
 
-- [ ] **Step 3: 남은 `configModule` 지점을 같은 형태로 통일한다**
+- [x] **Step 3: 남은 `configModule` 지점을 같은 형태로 통일한다**
 
 ```bash
 SPEC=packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
@@ -439,7 +439,7 @@ grep -n "configModule" "$SPEC"
 
 `llmProvider` 를 지정하는 지점에는 **반드시** `process.env.LLM_PROVIDER` 도 같이 지정한다(FR-015).
 
-- [ ] **Step 4: 전량 실행하고 실패를 분류한다**
+- [x] **Step 4: 전량 실행하고 실패를 분류한다**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 
@@ -455,12 +455,12 @@ Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests
 | (기입) | 조건 미명시 / 소스 결함 | (기입) |
 ```
 
-- [ ] **Step 5: 전량 통과 확인**
+- [x] **Step 5: 전량 통과 확인**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 Expected: PASS (FR-004). 소스 결함으로 분류된 항목이 있으면 그 테스트에 **별도 이슈 링크 주석**을 달고, 이 태스크 종료 시 이슈 번호를 위 표에 채운다.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts \

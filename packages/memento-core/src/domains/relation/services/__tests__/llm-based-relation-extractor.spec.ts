@@ -273,11 +273,15 @@ describe('LLMBasedRelationExtractor', () => {
 
   describe('초기화 및 LLM 제공자 선택', () => {
     it('should return false when no LLM service is available', async () => {
-      // Given: API 키가 없는 환경
-      // mockConfig를 초기화하여 API 키가 없도록 설정
+      // Given: 자격 증명이 필요한 프로바이더를 요청했는데 키가 없는 환경.
+      // 'auto' 로는 이 조건이 만들어지지 않는다 - ollama 는 키 없이도 채택되므로
+      // 자동 선택에서는 항상 쓸 수 있는 프로바이더가 남는다(#819 가 확인한 동작).
+      // 따라서 '사용 가능한 LLM 서비스가 없다'를 만들려면 클라우드 프로바이더를
+      // 명시적으로 요청해야 한다. 환경 변수가 대체 값보다 우선하므로 함께 고정한다.
       mockConfig.openaiApiKey = undefined;
       mockConfig.geminiApiKey = undefined;
-      mockConfig.llmProvider = 'auto';
+      mockConfig.llmProvider = 'openai';
+      process.env.LLM_PROVIDER = 'openai';
       
       // When: LLMBasedRelationExtractor 인스턴스 생성
       extractor = new LLMBasedRelationExtractor();
@@ -285,44 +289,16 @@ describe('LLMBasedRelationExtractor', () => {
       // 초기화 완료 대기
       await (extractor as any).initializationPromise;
       
-      // Then: 사용 불가능 상태여야 함
-      // 초기화가 완료된 후 preferredProvider를 확인
-      // API 키가 없으면 preferredProvider가 null이어야 함
-      // 하지만 실제 환경에서는 API 키가 있을 수 있으므로,
-      // preferredProvider가 null인 경우에만 테스트 통과
-      const preferredProvider = (extractor as any).preferredProvider;
-      const isAvailableResult = extractor.isAvailable();
-      
-      // 실제 mementoConfig를 가져와서 llmProvider 확인
-      const actualConfig = await import('../../../../shared/config/index.js');
-      const actualLLMProvider = actualConfig.mementoConfig.llmProvider;
-      
-      // preferredProvider가 null이면 사용 불가능해야 함
-      // (단, llmProvider가 'ollama'인 경우는 isAvailable()이 true를 반환할 수 있음)
-      if (preferredProvider === null) {
-        // API 키가 없어서 초기화가 실패한 경우
-        // llmProvider가 'ollama'가 아니면 isAvailable()이 false를 반환해야 함
-        if (actualLLMProvider !== 'ollama') {
-          expect(isAvailableResult).toBe(false);
-        }
-        // llmProvider가 'ollama'인 경우는 isAvailable()이 true를 반환할 수 있음
-        // (Ollama는 연결 테스트가 필요하므로)
-      } else {
-        // preferredProvider가 null이 아닌 경우 (실제 환경에 API 키가 있음)
-        // 이 경우 테스트를 스킵하거나, preferredProvider를 null로 강제 설정하여 테스트
-        // 테스트의 의도는 "API 키가 없을 때"이므로, preferredProvider를 null로 설정
-        (extractor as any).preferredProvider = null;
-        const isAvailableAfterNull = extractor.isAvailable();
-        if (actualLLMProvider !== 'ollama') {
-          expect(isAvailableAfterNull).toBe(false);
-        }
-      }
+      // Then: 사용 불가능 상태여야 함.
+      // 소스와 이 테스트가 같은 대체 값 객체를 보므로 결과가 결정적이다 -
+      // 실제 환경 값에 따라 갈리던 방어 분기는 더 이상 필요 없다.
+      expect((extractor as any).preferredProvider).toBeNull();
+      expect(extractor.isAvailable()).toBe(false);
     });
 
     it('should initialize with OpenAI when API key is available', async () => {
       // Given: OpenAI API 키가 설정된 환경
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = 'test-key';
+      mockConfig.openaiApiKey = 'test-key';
 
       // When: LLMBasedRelationExtractor 인스턴스 생성
       extractor = new LLMBasedRelationExtractor();
@@ -335,9 +311,8 @@ describe('LLMBasedRelationExtractor', () => {
 
     it('should initialize with Gemini when only Gemini API key is available', async () => {
       // Given: Gemini API 키만 설정된 환경
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = undefined;
-      (configModule.mementoConfig as any).geminiApiKey = 'test-key';
+      mockConfig.openaiApiKey = undefined;
+      mockConfig.geminiApiKey = 'test-key';
 
       // When: LLMBasedRelationExtractor 인스턴스 생성
       extractor = new LLMBasedRelationExtractor();
@@ -549,8 +524,8 @@ describe('LLMBasedRelationExtractor', () => {
     it('should return null when all providers are unavailable', async () => {
       // Given: 모든 클라이언트가 초기화되지 않은 상태
       // mementoConfig.llmProvider를 'auto'로 설정하여 ollama fallback 방지
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).llmProvider = 'auto';
+      mockConfig.llmProvider = 'auto';
+      process.env.LLM_PROVIDER = 'auto';
       mockConfig.llmProvider = 'auto';
       
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -749,8 +724,8 @@ describe('LLMBasedRelationExtractor', () => {
     it('should fallback to OpenAI when preferredProvider is null and only OpenAI client is initialized', async () => {
       // Given: preferredProvider가 null이고 OpenAI 클라이언트만 초기화된 상태
       // mementoConfig.llmProvider를 'auto'로 설정
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).llmProvider = 'auto';
+      mockConfig.llmProvider = 'auto';
+      process.env.LLM_PROVIDER = 'auto';
       mockConfig.llmProvider = 'auto';
       
       const mockOpenAIClient = {} as any;
@@ -828,8 +803,8 @@ describe('LLMBasedRelationExtractor', () => {
     it('should fallback to Gemini when preferredProvider is null and only Gemini client is initialized', async () => {
       // Given: preferredProvider가 null이고 Gemini 클라이언트만 초기화된 상태
       // mementoConfig.llmProvider를 'auto'로 설정
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).llmProvider = 'auto';
+      mockConfig.llmProvider = 'auto';
+      process.env.LLM_PROVIDER = 'auto';
       mockConfig.llmProvider = 'auto';
       
       const mockGeminiClient = {} as any;
@@ -1035,8 +1010,8 @@ describe('LLMBasedRelationExtractor', () => {
      */
     it('should return null and handle error when all providers are unavailable', async () => {
       // Given: 모든 provider가 사용 불가능한 상태
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).llmProvider = 'auto';
+      mockConfig.llmProvider = 'auto';
+      process.env.LLM_PROVIDER = 'auto';
       mockConfig.llmProvider = 'auto';
       
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -1107,8 +1082,8 @@ describe('LLMBasedRelationExtractor', () => {
      */
     it('should throw error with clear message when actualProvider is null in extractRelations', async () => {
       // Given: actualProvider가 null이 되는 상태 설정
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).llmProvider = 'auto';
+      mockConfig.llmProvider = 'auto';
+      process.env.LLM_PROVIDER = 'auto';
       mockConfig.llmProvider = 'auto';
       
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -1174,9 +1149,9 @@ describe('LLMBasedRelationExtractor', () => {
     let extractWithOpenAISpy: any;
 
     beforeEach(async () => {
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = 'test-key';
-      (configModule.mementoConfig as any).llmProvider = 'openai';
+      mockConfig.openaiApiKey = 'test-key';
+      mockConfig.llmProvider = 'openai';
+      process.env.LLM_PROVIDER = 'openai';
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       
@@ -1364,9 +1339,9 @@ describe('LLMBasedRelationExtractor', () => {
     let extractWithOpenAISpy: any;
 
     beforeEach(async () => {
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = 'test-key';
-      (configModule.mementoConfig as any).llmProvider = 'openai';
+      mockConfig.openaiApiKey = 'test-key';
+      mockConfig.llmProvider = 'openai';
+      process.env.LLM_PROVIDER = 'openai';
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       
@@ -1501,9 +1476,9 @@ describe('LLMBasedRelationExtractor', () => {
     let extractWithOpenAISpy: any;
 
     beforeEach(async () => {
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = 'test-key';
-      (configModule.mementoConfig as any).llmProvider = 'openai';
+      mockConfig.openaiApiKey = 'test-key';
+      mockConfig.llmProvider = 'openai';
+      process.env.LLM_PROVIDER = 'openai';
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       
@@ -1789,9 +1764,9 @@ describe('LLMBasedRelationExtractor', () => {
     let extractWithOpenAISpy: any;
 
     beforeEach(async () => {
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = 'test-key';
-      (configModule.mementoConfig as any).llmProvider = 'openai';
+      mockConfig.openaiApiKey = 'test-key';
+      mockConfig.llmProvider = 'openai';
+      process.env.LLM_PROVIDER = 'openai';
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       
@@ -2044,9 +2019,9 @@ describe('LLMBasedRelationExtractor', () => {
     let extractWithOpenAISpy: any;
 
     beforeEach(async () => {
-      const configModule = await import('../../../../shared/config/index.js');
-      (configModule.mementoConfig as any).openaiApiKey = 'test-key';
-      (configModule.mementoConfig as any).llmProvider = 'openai';
+      mockConfig.openaiApiKey = 'test-key';
+      mockConfig.llmProvider = 'openai';
+      process.env.LLM_PROVIDER = 'openai';
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       

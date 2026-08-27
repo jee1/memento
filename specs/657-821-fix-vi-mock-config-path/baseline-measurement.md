@@ -98,3 +98,21 @@ Test Files  1 passed (1)
 | 교정 후 | `["ollama"]` / `["openai"]` / `["gemini"]` — 각 테스트가 `mockConfig` 로 지정한 값 |
 
 **아직 확립되지 않은 것**: §3 의 전역 플립 probe 를 교정 후에 다시 돌려도 36/36 이 유지된다. 대부분의 테스트가 `vi.spyOn(LLMClientInitializer.prototype, 'initialize')` 로 초기화 경로 자체를 대체하기 때문에 이 거친 probe 로는 민감도가 드러나지 않는다. SC-001(위양성 0)의 확립은 T006 Step 1 의 몫이다 — T003 이 `beforeEach` 를 `Object.assign(mockConfig, createMockConfig())` 로 바꾸고 나면 기준값 편집이 전 테스트에 전파되어 정밀한 측정이 가능해진다.
+
+---
+
+## 7. 교정 후 실패 분류 (T005)
+
+`configModule` 우회 12블록을 `mockConfig` 직접 지정으로 통일하고, `actualConfig` 방어 분기를 제거하자 **실패 1건**이 드러났다.
+
+| 테스트 | 실패 | 분류 | 처리 |
+|--------|------|------|------|
+| `should return false when no LLM service is available` | `AssertionError: expected 'ollama' to be null` | **조건 미명시** | Given 을 고침. 단언은 그대로 |
+
+**왜 조건 미명시인가**: 이 테스트는 `llmProvider: 'auto'` + API 키 없음으로 "사용 가능한 LLM 서비스가 없는 환경" 을 만들려 했다. 그런데 `'auto'` 에서는 ollama 가 키 없이도 채택되므로(#819 가 확인한 동작) 항상 쓸 수 있는 프로바이더가 남는다. 테스트 이름이 주장하는 상태가 애초에 만들어지지 않았다. 교정 전에는 모킹이 소스에 닿지 않아 이 모순이 드러나지 않았다.
+
+처리: Given 을 `llmProvider: 'openai'`(자격 증명이 필요한 프로바이더를 요청했는데 키가 없음)로 바꿨다. **단언 2개는 글자 하나 안 바뀌었다** — `preferredProvider` 가 `null`, `isAvailable()` 이 `false`. FR-005 를 지켰다.
+
+**소스 결함으로 분류된 항목: 없음.** FR-011 로 분리할 이슈 없음.
+
+이 실패 자체가 SC-001 의 증거다. 교정 전에는 `mockConfig` 값을 전부 뒤집어도 36/36 이었는데, 이제 한 테스트의 `llmProvider` 값 하나가 통과/실패를 가른다.
