@@ -901,7 +901,7 @@ git commit -m "feat(821): add static gate for unresolvable relative vi.mock path
 - Consumes: T009 의 `BaselineEntry` 스키마와 `validateBaseline`
 - Produces: 없음
 
-- [ ] **Step 1: 후속 이슈를 먼저 연다**
+- [x] **Step 1: 후속 이슈를 먼저 연다**
 
 `followUp` 이 `#TBD` 로 남으면 SC-007("예외 목록의 모든 항목은 후속 추적 대상을 가진다")이 도입 시점에 곧바로 깨진다. 최소 형태는 2건이다.
 
@@ -912,7 +912,7 @@ gh issue create --title "memory/search/server 스펙의 vi.mock 상대 경로 3�
   --body "memory-embedding-service.spec.ts 1건, hybrid-search-engine.spec.ts 1건, quality.routes.spec.ts 1건. 원 이슈 #821."
 ```
 
-- [ ] **Step 2: baseline 파일을 쓴다 (위 이슈 번호로 `#NNN`·`#MMM` 을 채운다)**
+- [x] **Step 2: baseline 파일을 쓴다 (위 이슈 번호로 `#NNN`·`#MMM` 을 채운다)**
 
 ```json
 [
@@ -967,19 +967,19 @@ gh issue create --title "memory/search/server 스펙의 vi.mock 상대 경로 3�
 ]
 ```
 
-- [ ] **Step 3: 도입 시점에 설명되지 않는 위반이 0인지 확인 (SC-007)**
+- [x] **Step 3: 도입 시점에 설명되지 않는 위반이 0인지 확인 (SC-007)**
 
 Run: `npx tsx scripts/check-vi-mock-paths.ts --ci; echo "exit=$?"`
 Expected: `위반 (차단) 0건`, `예외 등재 (baseline) 8건`, `정리 대상 0건`, `exit=0`.
 
-- [ ] **Step 4: 스키마 검증이 도는지 확인 (계약 C5)**
+- [x] **Step 4: 스키마 검증이 도는지 확인 (계약 C5)**
 
 임시로 첫 항목의 `"reason"` 을 `""` 로 바꾼다.
 
 Run: `npx tsx scripts/check-vi-mock-paths.ts --ci; echo "exit=$?"`
 Expected: `baseline 파일 오류: baseline[0]: 'reason' 가 비어 있습니다.` / `exit=1`. 확인 후 되돌린다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/vi-mock-path-baseline.json
