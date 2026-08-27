@@ -34,6 +34,8 @@ jobs:
         continue-on-error: false
       - run: npx tsx scripts/check-retry-usage.ts --ci
         continue-on-error: false
+      - run: npx tsx scripts/check-vi-mock-paths.ts --ci
+        continue-on-error: false
       - run: npm run type-check
       - name: Audit markdown relative links
         run: npm run docs:audit-links

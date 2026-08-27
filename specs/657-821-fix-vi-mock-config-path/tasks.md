@@ -998,7 +998,7 @@ git commit -m "chore(821): baseline the 8 pre-existing vi.mock path violations
 - Consumes: T009 의 CLI, T010 의 baseline
 - Produces: 없음
 
-- [ ] **Step 1: npm 스크립트를 추가한다**
+- [x] **Step 1: npm 스크립트를 추가한다**
 
 `package.json` 의 `"check-debt-markers"` 줄 다음에 넣는다.
 
@@ -1006,7 +1006,7 @@ git commit -m "chore(821): baseline the 8 pre-existing vi.mock path violations
     "check:vi-mock-paths": "tsx scripts/check-vi-mock-paths.ts",
 ```
 
-- [ ] **Step 2: CI 스텝을 추가한다**
+- [x] **Step 2: CI 스텝을 추가한다**
 
 `.github/workflows/ci.yml` 의 `lint` 잡, `- run: npx tsx scripts/check-retry-usage.ts --ci` 바로 다음 줄에 넣는다.
 
@@ -1014,7 +1014,7 @@ git commit -m "chore(821): baseline the 8 pre-existing vi.mock path violations
       - run: npx tsx scripts/check-vi-mock-paths.ts --ci
 ```
 
-- [ ] **Step 3: 의도적 위반이 차단되는지 확인한다 (SC-005, 계약 C2)**
+- [x] **Step 3: 의도적 위반이 차단되는지 확인한다 (SC-005, 계약 C2)**
 
 임시 파일 `packages/memento-core/src/domains/relation/services/__tests__/tmp-gate-probe.spec.ts` 를 만든다.
 
@@ -1034,12 +1034,12 @@ rm packages/memento-core/src/domains/relation/services/__tests__/tmp-gate-probe.
 npx tsx scripts/check-vi-mock-paths.ts --ci; echo "exit=$?"   # 기대: exit=0
 ```
 
-- [ ] **Step 4: 오탐이 0인지 확인한다 (SC-005 후단, 계약 C3/C6)**
+- [x] **Step 4: 오탐이 0인지 확인한다 (SC-005 후단, 계약 C3/C6)**
 
 Run: `npx tsx scripts/check-vi-mock-paths.ts --format=json`
 Expected: `violations` 길이 0, `baselined` 길이 8, `staleBaseline` 길이 0. 패키지 이름 모킹(`vi.mock('openai')` 등)은 `scanned` 에 아예 들어가지 않는다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package.json .github/workflows/ci.yml
