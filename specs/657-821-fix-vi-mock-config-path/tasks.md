@@ -323,12 +323,12 @@ git commit -m "test(821): restore mock config baseline and pin both provider cha
 - Consumes: T002 의 `mockConfig`, T003 의 `beforeEach`/`afterEach` 복원
 - Produces: 없음 (테스트 본문 정리)
 
-- [ ] **Step 1: 현재 상태를 본다**
+- [x] **Step 1: 현재 상태를 본다**
 
 Run: `sed -n '708,737p' packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 Expected: 주석에 "이 spec 의 config 모킹은 상대 경로가 한 단계 얕아 소스에 적용되지 않는다" 가 있고, 실 설정 모듈을 4단계로 가져와 `llmProvider` 를 직접 바꾼 뒤 `try/finally` 로 되돌린다. **교정 후 그 주석은 거짓이 된다.**
 
-- [ ] **Step 2: 테스트 본문을 모킹 기반으로 교체한다**
+- [x] **Step 2: 테스트 본문을 모킹 기반으로 교체한다**
 
 ```ts
   describe('프로바이더 판정 일관성 (FR-010)', () => {
@@ -358,7 +358,7 @@ Expected: 주석에 "이 spec 의 config 모킹은 상대 경로가 한 단계 �
   });
 ```
 
-- [ ] **Step 3: 실 설정 모듈을 직접 만지는 곳이 남았는지 확인**
+- [x] **Step 3: 실 설정 모듈을 직접 만지는 곳이 남았는지 확인**
 
 ```bash
 SPEC=packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
@@ -366,12 +366,12 @@ grep -n "originalProvider\|finally" "$SPEC"          # 기대: 출력 없음
 grep -c "await import('\.\./\.\./\.\./\.\./shared/config/index\.js')" "$SPEC"   # 기대: 13 (720 이 빠져 14→13)
 ```
 
-- [ ] **Step 4: 이 테스트만 돌린다**
+- [x] **Step 4: 이 테스트만 돌린다**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts -t "자동 선택 모드에서 로컬 프로바이더가 채택되면"`
 Expected: PASS. #819 가 검증하려던 의도(가용성 판정과 실행 경로 판정의 일치)가 그대로 유지된다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts

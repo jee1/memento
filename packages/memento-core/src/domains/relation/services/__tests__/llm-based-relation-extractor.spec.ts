@@ -724,24 +724,19 @@ describe('LLMBasedRelationExtractor', () => {
         initializedProviders: ['ollama'],
         warnings: []
       });
-      // 이 spec 의 config 모킹은 상대 경로가 한 단계 얕아 소스에 적용되지 않는다.
-      // 소스는 실제 mementoConfig 를 읽으므로 자동 선택 환경을 그쪽에서 재현한다.
-      const configModule = await import('../../../../shared/config/index.js');
-      const originalProvider = configModule.mementoConfig.llmProvider;
-      (configModule.mementoConfig as any).llmProvider = 'auto';
+      // 이 테스트가 전제하는 설정 조건을 두 채널 모두에 명시한다.
+      // 기준 상태 복원은 beforeEach/afterEach 가 맡으므로 try/finally 가 필요 없다.
+      mockConfig.llmProvider = 'auto';
+      process.env.LLM_PROVIDER = 'auto';
 
-      try {
-        const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
-        await (extractor as any).initializationPromise;
+      const extractor = new LLMBasedRelationExtractor(await createMockEmbeddingService());
+      await (extractor as any).initializationPromise;
 
-        // Then: 가용성 판정과 실행 경로가 쓰는 판정이 일치해야 한다
-        expect(extractor.isAvailable()).toBe(true);
-        expect((extractor as any).isOllamaAvailable()).toBe(true);
-        // @ts-expect-error - private 메서드 접근 (테스트 목적)
-        expect(extractor.determineProvider('auto')).toBe('ollama');
-      } finally {
-        (configModule.mementoConfig as any).llmProvider = originalProvider;
-      }
+      // Then: 가용성 판정과 실행 경로가 쓰는 판정이 일치해야 한다
+      expect(extractor.isAvailable()).toBe(true);
+      expect((extractor as any).isOllamaAvailable()).toBe(true);
+      // @ts-expect-error - private 메서드 접근 (테스트 목적)
+      expect(extractor.determineProvider('auto')).toBe('ollama');
     });
   });
 

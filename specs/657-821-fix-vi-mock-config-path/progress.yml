@@ -1,0 +1,60 @@
+feature: 657-821-fix-vi-mock-config-path
+branch: jee1/relation-spec-2-vi.mock-config
+updated: 2026-08-27
+executor: speckit.superspec.execute (executing-plans, inline)
+
+phases:
+  - id: 1
+    name: Setup - 위양성 기준선 측정
+    status: done
+    tasks: [T001]
+  - id: 2
+    name: Foundational - 원자적 경로 교정
+    status: done
+    tasks: [T002]
+    gate: REVIEW - 사용자 승인 완료 (/speckit.superspec.execute)
+  - id: 3
+    name: US3 - 조건 자체 지정과 기준 상태 복원
+    status: done
+    tasks: [T003, T004]
+  - id: 4
+    name: US2 - 드러난 실패 전수 정리
+    status: pending
+    tasks: [T005, T006, T007]
+  - id: 5
+    name: US1 보조 - 죽은 모킹 선언 제거
+    status: pending
+    tasks: [T008]
+  - id: 6
+    name: US4 - 재발 방지 차단 게이트
+    status: pending
+    tasks: [T009, T010, T011]
+  - id: 7
+    name: Polish - 완료 게이트
+    status: pending
+    tasks: [T012]
+
+commits:
+  - e7252c9d docs(821) spec/plan/research/contracts/tasks
+  - 38913e70 test(821) 위양성 기준선 (T001)
+  - 16665751 fix(821) 원자적 경로 교정 (T002)
+  - d64f1bad test(821) 기준 상태 복원 + 두 채널 고정 (T003)
+  - "(T004 커밋 예정)"
+
+verification:
+  spec_under_test: 36 / 36 passed
+  relation_domain: 32 files / 401 tests passed
+  real_global_mutation_sites: 0
+  four_level_dynamic_imports: 13
+  three_level_remaining: 0
+
+open_items:
+  - SC-001 (위양성 0) 미확립. T006 Step 1 에서 정밀 측정 예정.
+  - 대부분 테스트가 vi.spyOn(LLMClientInitializer.prototype,'initialize') 로 초기화
+    경로를 대체해 거친 전역 플립 probe 로는 민감도가 드러나지 않는다.
+  - Memento remember 5회 연속 -32603. 읽기는 정상. 기록은 spec 산출물에 보존.
+
+notes:
+  - "[SUBAGENT]/[P] 마커는 인라인 실행. T008 은 12줄 삭제, T006/T007 은 측정 실행뿐이라
+    서브에이전트 디스패치 대상이 아니다."
+  - push 하지 않음. feature 브랜치 로컬 커밋만.
