@@ -39,7 +39,7 @@
 - Consumes: 없음 (첫 태스크)
 - Produces: `baseline-measurement.md` — T006 이 교정 후 수치와 대조할 기준값
 
-- [ ] **Step 1: 결함을 눈으로 확인**
+- [x] **Step 1: 결함을 눈으로 확인**
 
 ```bash
 SPEC=packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
@@ -52,12 +52,12 @@ grep -c "await import('\.\./\.\./\.\./\.\./shared/config/index\.js')" "$SPEC"   
 sed -n '93,95p' "$SPEC"   # 같은 파일이 이미 shared/ 를 4단계로 쓰고 있다는 증거
 ```
 
-- [ ] **Step 2: 교정 전 스위트를 돌려 통과를 확인**
+- [x] **Step 2: 교정 전 스위트를 돌려 통과를 확인**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 Expected: **PASS — 36 tests passed.** (교정 전에도 전량 통과한다. 통과는 품질 신호가 아니다.)
 
-- [ ] **Step 3: 대체 값을 바꿔도 결과가 안 변하는지 측정 (위양성의 정의)**
+- [x] **Step 3: 대체 값을 바꿔도 결과가 안 변하는지 측정 (위양성의 정의)**
 
 **`createMockConfig()` 의 기본값(line 111)을 건드려도 아무것도 측정되지 않는다** — 교정 전 `beforeEach`(line 215)가 매 테스트 직전에 `mockConfig.llmProvider = 'auto';` 로 덮어쓰기 때문이다. 반드시 그 `beforeEach` 대입을 바꿔야 한다.
 
@@ -70,7 +70,7 @@ Expected: 결과를 그대로 기록한다. 소스는 이 값을 아예 보지 �
 
 (T006 Step 1 은 이 문제가 없다. T003 이후의 `beforeEach` 는 `Object.assign(mockConfig, createMockConfig())` 이므로 `createMockConfig()` 편집이 그대로 전파된다.)
 
-- [ ] **Step 4: 환경 변수에 좌우되는지 측정**
+- [x] **Step 4: 환경 변수에 좌우되는지 측정**
 
 ```bash
 grep -n "^LLM_PROVIDER" .env    # 기대: line 71 LLM_PROVIDER=ollama
@@ -78,7 +78,7 @@ LLM_PROVIDER=openai npx vitest run packages/memento-core/src/domains/relation/se
 ```
 Expected: 결과 기록. 교정 후 T006 에서 이 값이 무관해져야 한다(SC-002).
 
-- [ ] **Step 5: 측정 결과를 파일로 남긴다**
+- [x] **Step 5: 측정 결과를 파일로 남긴다**
 
 `specs/657-821-fix-vi-mock-config-path/baseline-measurement.md` 를 아래 내용으로 만든다.
 
@@ -94,7 +94,7 @@ Expected: 결과 기록. 교정 후 T006 에서 이 값이 무관해져야 한�
 | 4단계 실 모듈 동적 import | 1 (line 720, #819) |
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add specs/657-821-fix-vi-mock-config-path/baseline-measurement.md
