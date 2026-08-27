@@ -204,21 +204,20 @@ describe('LLMBasedRelationExtractor', () => {
   let mockGeminiGenerateContent: any;
   let mockGenerateEmbedding: any;
   let mockSearchSimilar: any;
+  // 환경 변수 채널 보관함. LLM_PROVIDER 는 모킹된 mementoConfig.llmProvider 보다
+  // 우선하므로(shared/services/llm-client-initializer/shared-helpers.ts:33)
+  // 테스트마다 고정하고 끝나면 되돌린다.
+  const originalEnv: Record<string, string | undefined> = {};
 
   beforeEach(async () => {
-    // 환경 변수 모킹 (실제 환경 변수가 있어도 테스트에서는 사용하지 않도록)
-    const originalOpenAIKey = process.env.OPENAI_API_KEY;
-    const originalGeminiKey = process.env.GEMINI_API_KEY;
-    const originalLLMProvider = process.env.LLM_PROVIDER;
-    
-    delete process.env.OPENAI_API_KEY;
-    delete process.env.GEMINI_API_KEY;
+    // 환경 변수 채널 고정 + 원래 값 보관 (afterEach 에서 복원)
+    originalEnv.LLM_PROVIDER = process.env.LLM_PROVIDER;
     process.env.LLM_PROVIDER = 'auto';
-    
-    // 모킹된 config 초기화
-    mockConfig.openaiApiKey = undefined;
-    mockConfig.geminiApiKey = undefined;
-    mockConfig.llmProvider = 'auto';
+
+    // 대체 값 객체를 기준 상태로 되돌린다.
+    // 반드시 제자리 갱신이어야 한다 - 재할당하면 모킹된 모듈이 옛 객체를
+    // 계속 참조해 복원이 무효가 된다.
+    Object.assign(mockConfig, createMockConfig());
 
     // 모킹된 함수 가져오기
     const openaiModule = await import('openai');
@@ -264,7 +263,12 @@ describe('LLMBasedRelationExtractor', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    // 환경 변수 복원은 필요 없음 (각 테스트마다 새로 설정)
+    // 고정한 환경 변수를 실행 전 상태로 되돌린다 (FR-015)
+    if (originalEnv.LLM_PROVIDER === undefined) {
+      delete process.env.LLM_PROVIDER;
+    } else {
+      process.env.LLM_PROVIDER = originalEnv.LLM_PROVIDER;
+    }
   });
 
   describe('초기화 및 LLM 제공자 선택', () => {

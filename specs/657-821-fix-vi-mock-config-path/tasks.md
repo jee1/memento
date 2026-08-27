@@ -233,7 +233,7 @@ mockConfig 는 vi.hoisted 로 끌어올린다 - 교정 후에는 모킹이 정�
 - Consumes: T002 의 `createMockConfig`, `mockConfig`
 - Produces: `describe` 스코프의 `originalEnv: Record<string, string | undefined>` — 테스트 본문에서 직접 쓰지 않는다. 각 테스트는 `mockConfig.X = ...` 와 `process.env.LLM_PROVIDER = ...` 로만 조건을 만든다.
 
-- [ ] **Step 1: 왜 두 채널인지 확인한다**
+- [x] **Step 1: 왜 두 채널인지 확인한다**
 
 ```bash
 sed -n '32,35p' packages/memento-core/src/shared/services/llm-client-initializer/shared-helpers.ts
@@ -241,7 +241,7 @@ sed -n '253,255p' packages/memento-core/src/shared/config/environment.ts
 ```
 Expected: `getSelectedProvider()` 가 `getRawEnvValue('LLM_PROVIDER') || mementoConfig.llmProvider` 이고, `getRawEnvValue` 는 `process.env[key]` 를 **라이브로** 읽는다. 즉 환경 변수가 모킹된 값을 덮는다 → 대체 값만 지정해서는 조건이 안 만들어진다.
 
-- [ ] **Step 2: `describe` 상단에 환경 변수 보관함을 선언한다**
+- [x] **Step 2: `describe` 상단에 환경 변수 보관함을 선언한다**
 
 `$SPEC` line 195-201 의 `let` 선언 묶음 끝(`let mockSearchSimilar: any;` 다음)에 추가한다.
 
@@ -251,7 +251,7 @@ Expected: `getSelectedProvider()` 가 `getRawEnvValue('LLM_PROVIDER') || memento
   const originalEnv: Record<string, string | undefined> = {};
 ```
 
-- [ ] **Step 3: `beforeEach` 앞머리를 교체한다**
+- [x] **Step 3: `beforeEach` 앞머리를 교체한다**
 
 기존 line 204-216 (`const originalOpenAIKey = ...` 부터 `mockConfig.llmProvider = 'auto';` 까지)을 아래로 교체한다.
 
@@ -267,7 +267,7 @@ Expected: `getSelectedProvider()` 가 `getRawEnvValue('LLM_PROVIDER') || memento
 
 제거되는 것: `originalOpenAIKey`/`originalGeminiKey`/`originalLLMProvider` 3개(담아두기만 하고 아무 데도 안 씀), `delete process.env.OPENAI_API_KEY`, `delete process.env.GEMINI_API_KEY`(도달 범위 안에 이 두 키의 라이브 읽기가 없다 — 설정 모듈 생성 시점에 한 번만 읽고, 교정 후엔 그 값이 대체 값 객체에서 온다), 그리고 `mockConfig` 3개 필드 개별 대입(`Object.assign` 이 10개 전부 덮는다).
 
-- [ ] **Step 4: `afterEach` 를 교체한다**
+- [x] **Step 4: `afterEach` 를 교체한다**
 
 기존 line 260-263 을 아래로 교체한다.
 
@@ -283,7 +283,7 @@ Expected: `getSelectedProvider()` 가 `getRawEnvValue('LLM_PROVIDER') || memento
   });
 ```
 
-- [ ] **Step 5: 삭제한 환경 변수 조작이 정말 죽은 코드였는지 확인**
+- [x] **Step 5: 삭제한 환경 변수 조작이 정말 죽은 코드였는지 확인**
 
 ```bash
 grep -rn "getRawEnvValue\|process\.env\.OPENAI_API_KEY\|process\.env\.GEMINI_API_KEY" \
@@ -294,7 +294,7 @@ grep -rn "getRawEnvValue\|process\.env\.OPENAI_API_KEY\|process\.env\.GEMINI_API
 ```
 Expected: `getRawEnvValue('LLM_PROVIDER')` 한 줄만. API 키 환경 변수의 라이브 읽기는 **없다**.
 
-- [ ] **Step 6: 실행 전후 환경 변수가 같은지 확인 (SC-008)**
+- [x] **Step 6: 실행 전후 환경 변수가 같은지 확인 (SC-008)**
 
 Run:
 ```bash
@@ -303,7 +303,7 @@ LLM_PROVIDER=sentinel npx vitest run \
 ```
 Expected: 통과. 파일 내부의 복원 여부는 T007 의 순서 무관성으로 확인한다.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
