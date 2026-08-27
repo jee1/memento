@@ -20,19 +20,6 @@ import { UnifiedEmbeddingService } from '../../../embedding/services/unified-emb
 import { RelationCache } from '../relation-cache.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
-// mementoConfig 모킹
-vi.mock('../config/index.js', () => {
-  const mockConfig = {
-    openaiApiKey: undefined as string | undefined,
-    geminiApiKey: undefined as string | undefined,
-    openaiModel: 'gpt-4o-mini',
-    geminiModel: 'gemini-1.5-flash'
-  };
-  return {
-    mementoConfig: mockConfig
-  };
-});
-
 // OpenAI 모킹
 vi.mock('openai', () => {
   const mockCreate = vi.fn();

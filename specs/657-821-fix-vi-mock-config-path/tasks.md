@@ -550,7 +550,7 @@ git commit -m "test(821): confirm order independence after baseline restoration"
 - Consumes: 없음 (T002 와 독립 — 다른 파일이라 병렬 가능)
 - Produces: 없음
 
-- [ ] **Step 1: 정말 죽었는지 확인한다**
+- [x] **Step 1: 정말 죽었는지 확인한다**
 
 ```bash
 SPEC2=packages/memento-core/src/domains/relation/services/__tests__/relation-extractor.spec.ts
@@ -560,16 +560,16 @@ grep -rn "mementoConfig" packages/memento-core/src/domains/relation/services/rel
 ```
 Expected: 이 스펙에서 그 모듈을 가져오는 곳이 **하나도 없다** → factory 가 한 번도 실행되지 않는다. 대상 소스도 config 를 읽지 않는다. 경로를 고쳐도 아무 효과가 없으므로 **제거가 올바른 해소**다(FR-012, Q1).
 
-- [ ] **Step 2: 블록을 통째로 지운다**
+- [x] **Step 2: 블록을 통째로 지운다**
 
 `// mementoConfig 모킹` 주석부터 그 `vi.mock(...)` 블록의 닫는 `});` 까지 (line 22~33) 삭제한다. 다른 `vi.mock('openai')`·`vi.mock('@google/genai')` 는 **건드리지 않는다**.
 
-- [ ] **Step 3: 단언이 그대로인지 확인한다 (FR-012 후단)**
+- [x] **Step 3: 단언이 그대로인지 확인한다 (FR-012 후단)**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/relation-extractor.spec.ts`
 Expected: PASS. 제거 전후 통과 수가 같아야 한다. 달라지면 그 선언이 사실은 죽지 않았다는 뜻이니 되돌리고 Step 1 을 다시 한다.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/memento-core/src/domains/relation/services/__tests__/relation-extractor.spec.ts
