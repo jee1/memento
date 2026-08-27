@@ -76,3 +76,25 @@ Test Files  1 passed (1)
 | 모킹 값 전부 뒤집었을 때 | 36 / 36 (**변화 없음**) | | **실패 발생** (SC-001) |
 | `LLM_PROVIDER` 4종 | 전부 36 passed | | 전부 동일 (SC-002) |
 | 실행 로그의 `initializedProviders` | `["openai","gemini"]` (실 키 도달) | | 모킹 값에서 유래 |
+
+---
+
+## 6. T002 직후 상태 (원자적 경로 교정)
+
+| 확인 | 결과 |
+|------|------|
+| 스펙 파일 로드 | 성공 (`ReferenceError` 없음 — `vi.hoisted()` 가 TDZ 를 막았다) |
+| 3단계 잔존 (동적 import / `vi.mock`) | 0 / 0 |
+| 4단계 동적 import | 14 |
+| 대상 스펙 | 36 / 36 통과 — **실패 0건** |
+| relation 도메인 전체 | 32 files / 401 tests 통과 (부수 피해 0) |
+| 소스가 읽는 config 항목 (FR-008) | `llmProvider`·`openaiApiKey`·`geminiApiKey`·`ollamaBaseUrl`·`ollamaModel` 5개 — 전부 `createMockConfig()` 에 있음 |
+
+**모킹이 실제로 살아났다는 증거는 통과 수가 아니라 실행 로그다.**
+
+| | `initializedProviders` |
+|---|---|
+| 교정 전 | `["openai","gemini"]` — 실제 `.env` 키가 소스에 도달 |
+| 교정 후 | `["ollama"]` / `["openai"]` / `["gemini"]` — 각 테스트가 `mockConfig` 로 지정한 값 |
+
+**아직 확립되지 않은 것**: §3 의 전역 플립 probe 를 교정 후에 다시 돌려도 36/36 이 유지된다. 대부분의 테스트가 `vi.spyOn(LLMClientInitializer.prototype, 'initialize')` 로 초기화 경로 자체를 대체하기 때문에 이 거친 probe 로는 민감도가 드러나지 않는다. SC-001(위양성 0)의 확립은 T006 Step 1 의 몫이다 — T003 이 `beforeEach` 를 `Object.assign(mockConfig, createMockConfig())` 로 바꾸고 나면 기준값 편집이 전 테스트에 전파되어 정밀한 측정이 가능해진다.

@@ -119,7 +119,7 @@ git commit -m "test(821): record false-positive baseline before mock path fix"
 - Consumes: T001 의 기준선
 - Produces: 파일 스코프에 `createMockConfig()` 와 `mockConfig` — T003·T004·T005 가 이 두 이름을 그대로 쓴다. `mockConfig` 는 **참조가 고정된 단일 객체**이며 절대 재할당하지 않는다.
 
-- [ ] **Step 1: mockConfig 를 vi.hoisted 로 끌어올린다**
+- [x] **Step 1: mockConfig 를 vi.hoisted 로 끌어올린다**
 
 `$SPEC` 의 line 106~121 (`// mementoConfig 모킹 - 실제 환경 변수를 고려하여 동적으로 모킹` 주석부터 `const mockConfig = createMockConfig();` 까지)을 아래로 교체한다.
 
@@ -146,7 +146,7 @@ const { createMockConfig, mockConfig } = vi.hoisted(() => {
 });
 ```
 
-- [ ] **Step 2: vi.mock 대상 경로를 4단계로 바꾼다**
+- [x] **Step 2: vi.mock 대상 경로를 4단계로 바꾼다**
 
 같은 파일의 `vi.mock('../../../shared/config/index.js', ...)` 블록을 아래로 교체한다.
 
@@ -158,7 +158,7 @@ vi.mock('../../../../shared/config/index.js', () => {
 });
 ```
 
-- [ ] **Step 3: 동적 재가져오기 13곳을 같은 편집에서 일괄 치환**
+- [x] **Step 3: 동적 재가져오기 13곳을 같은 편집에서 일괄 치환**
 
 ```bash
 SPEC=packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
@@ -167,7 +167,7 @@ sed -i "s#await import('\.\./\.\./\.\./shared/config/index\.js')#await import('.
 
 `await import('` 앵커 + 정확히 3개의 `../` 를 요구하므로 이미 4단계인 line 720 은 걸리지 않는다.
 
-- [ ] **Step 4: 치환 결과를 센다**
+- [x] **Step 4: 치환 결과를 센다**
 
 ```bash
 grep -c "await import('\.\./\.\./\.\./\.\./shared/config/index\.js')" "$SPEC"   # 기대: 14
@@ -175,7 +175,7 @@ grep -c "await import('\.\./\.\./\.\./shared/config/index\.js')"      "$SPEC"   
 grep -n "vi.mock('\.\./\.\./\.\./shared/config"                       "$SPEC"   # 기대: 출력 없음
 ```
 
-- [ ] **Step 5: 대체 값이 소스가 읽는 항목을 전부 덮는지 확인 (FR-008)**
+- [x] **Step 5: 대체 값이 소스가 읽는 항목을 전부 덮는지 확인 (FR-008)**
 
 ```bash
 grep -rhn "mementoConfig\." \
@@ -187,7 +187,7 @@ grep -rhn "mementoConfig\." \
 ```
 Expected: `geminiApiKey`, `llmProvider`, `ollamaBaseUrl`, `ollamaModel`, `openaiApiKey` 5개. 전부 `createMockConfig()` 안에 있어야 한다(현재 10개 필드는 이 5개의 상위집합이다). 목록에 없는 이름이 나오면 그 필드를 `createMockConfig()` 에 추가한다 — 모킹이 살아난 뒤에는 빠진 항목이 `undefined` 로 소스에 흘러든다.
 
-- [ ] **Step 6: 스펙 파일이 로드되는지 확인 (이 단계의 진짜 게이트)**
+- [x] **Step 6: 스펙 파일이 로드되는지 확인 (이 단계의 진짜 게이트)**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 Expected: **테스트 실패는 허용된다. 로드 실패는 허용되지 않는다.**
@@ -195,7 +195,7 @@ Expected: **테스트 실패는 허용된다. 로드 실패는 허용되지 않�
 - `Failed to resolve import` 가 보이면 Step 3 의 치환이 덜 된 것이다.
 - 개별 `expect` 실패는 정상이다 — 모킹이 처음으로 살아나 조건이 바뀐 결과이며, T005 에서 처리한다.
 
-- [ ] **Step 7: 실패 목록을 남긴다 (T005 의 입력)**
+- [x] **Step 7: 실패 목록을 남긴다 (T005 의 입력)**
 
 ```bash
 npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts \
@@ -203,7 +203,7 @@ npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm
 grep -c "FAIL" /tmp/821-after-fix.txt
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
