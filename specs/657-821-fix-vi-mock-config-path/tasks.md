@@ -609,7 +609,7 @@ git commit -m "test(821): drop the vi.mock declaration nothing ever imports
 
   T010 이 baseline 파일을, T011 이 CLI 를 쓴다.
 
-- [ ] **Step 1: 실패하는 테스트를 쓴다**
+- [x] **Step 1: 실패하는 테스트를 쓴다**
 
 `scripts/check-vi-mock-paths.spec.ts`:
 
@@ -705,12 +705,12 @@ describe('validateBaseline', () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npx vitest run scripts/check-vi-mock-paths.spec.ts`
 Expected: FAIL — `Failed to resolve import "./check-vi-mock-paths.js"`
 
-- [ ] **Step 3: 최소 구현을 쓴다**
+- [x] **Step 3: 최소 구현을 쓴다**
 
 `scripts/check-vi-mock-paths.ts`:
 
@@ -818,12 +818,12 @@ export function scan(root: string, baseline: BaselineEntry[]): ScanResult {
 }
 ```
 
-- [ ] **Step 4: 테스트가 통과하는지 확인한다**
+- [x] **Step 4: 테스트가 통과하는지 확인한다**
 
 Run: `npx vitest run scripts/check-vi-mock-paths.spec.ts`
 Expected: PASS — 10 tests.
 
-- [ ] **Step 5: CLI 진입점을 붙인다**
+- [x] **Step 5: CLI 진입점을 붙인다**
 
 같은 파일 끝에 추가한다.
 
@@ -877,12 +877,12 @@ if (process.argv[1] && resolve(process.argv[1]).endsWith('check-vi-mock-paths.ts
 }
 ```
 
-- [ ] **Step 6: 실제 저장소에 돌려 기대 수치를 확인한다**
+- [x] **Step 6: 실제 저장소에 돌려 기대 수치를 확인한다**
 
 Run: `npx tsx scripts/check-vi-mock-paths.ts`
 Expected: `상대경로 57건 스캔` (T008 이 선언 1건을 통째로 지웠으므로 58 → 57. T002 는 경로만 바꿨을 뿐 선언은 남아 계속 집계된다), `위반 (차단) 8건`. baseline 미생성이라 8건 전부 violation 이고, 그 목록이 research R8 의 표와 정확히 일치해야 한다.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/check-vi-mock-paths.ts scripts/check-vi-mock-paths.spec.ts
