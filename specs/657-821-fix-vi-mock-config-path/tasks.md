@@ -1061,7 +1061,7 @@ git commit -m "ci(821): block new unresolvable vi.mock paths in the lint job"
 - Consumes: T001~T011 전부
 - Produces: 없음
 
-- [ ] **Step 1: Constitution IV 게이트를 돌린다**
+- [x] **Step 1: Constitution IV 게이트를 돌린다**
 
 ```bash
 npm run lint
@@ -1070,14 +1070,14 @@ npm test
 ```
 Expected: 3개 모두 PASS. `npm test` 는 `test:prepare`(빌드) 후 전체 스위트를 돈다 — 이번 작업으로 새로 깨진 다른 스펙이 0건이어야 한다(SC-006).
 
-- [ ] **Step 2: graphify 비적용을 확인한다**
+- [x] **Step 2: graphify 비적용을 확인한다**
 
 ```bash
 git diff --stat main...HEAD -- packages/ | grep -v "__tests__" || echo "프로덕션 코드 변경 없음 - graphify 게이트 비적용"
 ```
 Expected: `__tests__/` 밖의 `packages/` 변경이 없다. 있으면 FR-011 을 어긴 것이니 되돌리고 별도 이슈로 분리한다.
 
-- [ ] **Step 3: 성공 기준을 대조한다**
+- [x] **Step 3: 성공 기준을 대조한다**
 
 | SC | 확인 방법 | 근거 태스크 |
 |----|-----------|-------------|
@@ -1090,7 +1090,7 @@ Expected: `__tests__/` 밖의 `packages/` 변경이 없다. 있으면 FR-011 을
 | SC-007 | violations 0 / baselined 8 / stale 0 | T010 Step 3 |
 | SC-008 | 환경 변수 복원 + 두 채널 일치 | T003 Step 4-6, T005 Step 3 |
 
-- [ ] **Step 4: 체크리스트에 완료 기록을 남긴다**
+- [x] **Step 4: 체크리스트에 완료 기록을 남긴다**
 
 `specs/657-821-fix-vi-mock-config-path/checklists/requirements.md` 끝에 추가한다.
 
@@ -1102,7 +1102,7 @@ Expected: `__tests__/` 밖의 `packages/` 변경이 없다. 있으면 FR-011 을
 - FR-011 로 분리한 소스 결함: (있으면 이슈 번호, 없으면 "없음") 기입.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specs/657-821-fix-vi-mock-config-path/checklists/requirements.md

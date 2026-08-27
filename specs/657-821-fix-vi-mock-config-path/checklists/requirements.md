@@ -52,3 +52,11 @@
 - Q4 는 소스 결함이 아니라 테스트 규율 문제로 판정했다. 근거는 우선순위가 소스에 의도로 문서화돼 있다는 점이며, 따라서 FR-011(소스 결함 분리) 대상이 아니다.
 
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
+
+### 구현 완료 후 재검증 (2026-08-27)
+
+- Constitution IV 게이트 3종 통과: `npm run lint`(0 errors, 312 warnings — 전부 기존 항목이고 신규 파일은 경고 0), `npm run type-check`(6개 워크스페이스 전부), `npm test`(474 files / 5097 passed / 1 skipped / 0 failed).
+- graphify 게이트 **비적용** 확인. `packages/` 변경이 `__tests__/` 안으로만 한정된다(프로덕션 코드 0줄).
+- SC-001~SC-008 전수 대조 완료 (tasks.md T012 Step 3 표, 근거는 baseline-measurement.md).
+- FR-011 로 분리한 소스 결함: **없음**. 교정 후 드러난 실패 1건은 전부 조건 미명시로 판명됐다.
+- 범위 밖 위반 8건은 baseline 등재 + 후속 이슈 #824(embedding 5건)·#825(memory/search/server 3건)로 추적한다.
