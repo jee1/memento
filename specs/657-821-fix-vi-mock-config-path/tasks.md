@@ -480,14 +480,14 @@ mockConfig 를 직접 지정하며, llmProvider 는 환경 변수 채널도 함�
 - Consumes: T001 의 기준값, T005 의 통과 상태
 - Produces: 없음
 
-- [ ] **Step 1: 대체 값을 바꾸면 결과가 바뀌는지 확인 (T001 Step 3 의 역방향)**
+- [x] **Step 1: 대체 값을 바꾸면 결과가 바뀌는지 확인 (T001 Step 3 의 역방향)**
 
 `$SPEC` 의 `createMockConfig()` 안 `llmProvider: 'auto'` 를 임시로 `'openai'` 로 바꾼다.
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 Expected: **실패가 발생한다.** 교정 전엔 36/36 유지였다. 값 변경이 결과에 반영된다는 증거이고, 이것이 SC-001 이 요구하는 것이다. 확인 후 `'auto'` 로 되돌린다.
 
-- [ ] **Step 2: 환경 변수 3종으로 결과가 같은지 확인 (SC-002)**
+- [x] **Step 2: 환경 변수 3종으로 결과가 같은지 확인 (SC-002)**
 
 ```bash
 SPEC=packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
@@ -497,7 +497,7 @@ LLM_PROVIDER=openai  npx vitest run "$SPEC"  # 다른 값
 ```
 Expected: 3회 모두 동일한 통과/실패 결과. `beforeEach` 가 `LLM_PROVIDER` 를 고정하므로 바깥 값이 무관해진다.
 
-- [ ] **Step 3: 측정 결과를 기록하고 Commit**
+- [x] **Step 3: 측정 결과를 기록하고 Commit**
 
 ```bash
 git add specs/657-821-fix-vi-mock-config-path/baseline-measurement.md
@@ -513,7 +513,7 @@ git commit -m "test(821): verify false positives are gone and result is env-inde
 - Consumes: T003 의 복원 규율
 - Produces: 없음
 
-- [ ] **Step 1: 순서를 섞어 돌린다**
+- [x] **Step 1: 순서를 섞어 돌린다**
 
 ```bash
 SPEC=packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts
@@ -523,12 +523,12 @@ npx vitest run "$SPEC" --sequence.shuffle
 ```
 Expected: 3회 모두 동일 결과. 다르면 어떤 테스트가 `mockConfig` 나 `process.env` 를 기준 상태 밖으로 남긴 것이다 — T003 의 복원 대상에서 빠진 항목을 찾는다.
 
-- [ ] **Step 2: 반복 실행 동일성**
+- [x] **Step 2: 반복 실행 동일성**
 
 Run: `npx vitest run packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts --repeat 2`
 Expected: PASS.
 
-- [ ] **Step 3: 기록하고 Commit**
+- [x] **Step 3: 기록하고 Commit**
 
 ```bash
 git add specs/657-821-fix-vi-mock-config-path/baseline-measurement.md

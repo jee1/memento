@@ -116,3 +116,42 @@ Test Files  1 passed (1)
 **소스 결함으로 분류된 항목: 없음.** FR-011 로 분리할 이슈 없음.
 
 이 실패 자체가 SC-001 의 증거다. 교정 전에는 `mockConfig` 값을 전부 뒤집어도 36/36 이었는데, 이제 한 테스트의 `llmProvider` 값 하나가 통과/실패를 가른다.
+
+---
+
+## 8. 교정 전후 대조 (T006, T007)
+
+### SC-001 — 위양성 소멸
+
+**T001 §3 과 글자 하나 다르지 않은 probe** 로 측정했다. `mockConfig.llmProvider = 'auto'` 전 지점(11곳) → `'gemini'`, `mockConfig.openaiApiKey = undefined` 전 지점(2곳) → 가짜 키.
+
+| | 결과 |
+|---|---|
+| 교정 전 | **36 / 36 통과** — 민감도 0 |
+| 교정 후 | **1 failed / 35 passed** — 민감도 발생 |
+
+교정 전에는 모킹 값을 어떻게 뒤집어도 결과가 미동도 하지 않았다. 이제는 값 하나가 통과/실패를 가른다.
+
+`createMockConfig()` 의 **기준값**만 뒤집는 probe 는 이제 36/36 이 나오는데, 이것은 결함이 아니라 FR-007 이 의도한 결과다 — config 에 의존하는 테스트가 전부 자기 전제를 스스로 명시하므로 기준값이 덮인다. 기준값에 의존하는 단언이 남아 있지 않다는 뜻이다.
+
+나머지 10곳의 `llmProvider` 대입이 뒤집혀도 결과가 안 변하는 것은 그 테스트들이 `vi.spyOn(LLMClientInitializer.prototype, 'initialize')` 로 초기화 경로 자체를 대체하고 다른 것을 검증하기 때문이다. 그 단언들은 애초에 config 값을 주장하지 않는다.
+
+### SC-002 — 환경 무관성
+
+| `LLM_PROVIDER` | 교정 전 | 교정 후 |
+|----------------|---------|---------|
+| 미설정 | 36 passed | 36 passed |
+| `ollama` | 36 passed | 36 passed |
+| `openai` | 36 passed | 36 passed |
+| `gemini` | 36 passed | 36 passed |
+
+결과는 같지만 **이유가 달라졌다.** 교정 전에는 소스가 실 설정을 읽는데 `beforeEach` 가 우연히 `LLM_PROVIDER` 를 덮어써서 무관했고, 그 변경은 복원되지 않았다. 이제는 두 채널(`process.env.LLM_PROVIDER` + `mockConfig.llmProvider`)을 테스트가 명시적으로 고정하고 `afterEach` 가 되돌린다.
+
+### SC-003 — 순서·반복 무관성
+
+| 실행 | 결과 |
+|------|------|
+| `--sequence.shuffle` 3회 | 36 passed (3회 모두 동일) |
+| 평문 반복 2회 | 36 passed (2회 모두 동일) |
+
+`--repeat` 은 vitest 3.2.6 의 최상위 플래그에 없어 반복 실행으로 대체했다(같은 증거).
