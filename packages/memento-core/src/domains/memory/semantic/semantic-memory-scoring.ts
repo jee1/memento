@@ -6,6 +6,7 @@ import type { ExtractionInfo, Triple } from '../../../shared/types/triple-extrac
 import { EntityLinker } from '../../relation/services/triple-extraction/entity-linker.js';
 import { PredicateCanonicalizer } from '../../relation/services/triple-extraction/predicate-canonicalizer.js';
 import { buildTripleSentence } from './triple-sentence.js';
+import type { NormalizedTripleSnapshot } from './semantic-memory-update-types.js';
 
 /** 폴백으로 원문을 보존할 때의 최대 길이 (episodic 원문은 길 수 있다) */
 const FALLBACK_TEXT_MAX_LENGTH = 500;
@@ -42,17 +43,15 @@ export class SemanticMemoryScoring {
   }
 
   normalizeTripleForKg(triple: Triple): { subject: string; predicate: string; object: string } {
-    const predicateResult = this.canonicalizer.canonicalize(triple.predicate);
-    const subjectResult = this.entityLinker.link(triple.subject);
-    const objectResult = this.entityLinker.link(triple.object);
+    const snapshot = this.prepareNormalizedTriple(triple, 0);
     return {
-      subject: subjectResult.linked,
-      predicate: predicateResult.canonical,
-      object: objectResult.linked
+      subject: snapshot.subject,
+      predicate: snapshot.predicate,
+      object: snapshot.object
     };
   }
 
-  calculateConfidence(triple: Triple, _extractionInfo: ExtractionInfo): number {
+  prepareNormalizedTriple(triple: Triple, index: number): NormalizedTripleSnapshot {
     let confidence = 0.0;
 
     if (triple.subject && triple.predicate && triple.object) {
@@ -73,10 +72,49 @@ export class SemanticMemoryScoring {
       confidence += 0.2;
     }
 
-    return Math.min(1.0, Math.max(0.0, confidence));
+    return {
+      index,
+      subject: subjectResult.linked,
+      predicate: predicateResult.canonical,
+      object: objectResult.linked,
+      predicateCanonicalized: predicateResult.success,
+      subjectLinked: subjectResult.success,
+      objectLinked: objectResult.success,
+      confidence: Math.min(1.0, Math.max(0.0, confidence))
+    };
   }
 
-  calculateImportance(episodicImportance: number, episodeCount: number): number {
+  passesConfidenceThreshold(confidence: number, threshold: number): boolean {
+    return Number.isFinite(confidence) && confidence >= 0 && confidence <= 1 && confidence > threshold;
+  }
+
+  calculateAggregateConfidence(existing: number | null, numTimes: number, next: number): number {
+    if (existing === null) {
+      return next;
+    }
+
+    const aggregate = (existing * numTimes + next) / (numTimes + 1);
+    return aggregate === 1 && (existing < 1 || next < 1) ? 1 - Number.EPSILON / 2 : aggregate;
+  }
+
+  calculateConfidence(triple: Triple, _extractionInfo: ExtractionInfo): number {
+    return this.prepareNormalizedTriple(triple, 0).confidence;
+  }
+
+  calculateImportance(episodicImportance: number, aggregateConfidence: number, finalNumTimes?: number): number {
+    if (finalNumTimes === undefined) {
+      return this.calculateLegacyImportance(episodicImportance, aggregateConfidence);
+    }
+
+    const base = episodicImportance * aggregateConfidence;
+    const importance = aggregateConfidence === 1 && base > 0 && finalNumTimes > 1
+      ? Math.min(1, base + Math.log(finalNumTimes + 1) / Math.log(10) * 0.1)
+      : base;
+
+    return Math.min(1.0, Math.max(0.0, importance));
+  }
+
+  private calculateLegacyImportance(episodicImportance: number, episodeCount: number): number {
     let importance = episodicImportance;
 
     if (episodeCount > 1) {
@@ -92,13 +130,11 @@ export class SemanticMemoryScoring {
     normalizedPredicate: string;
     normalizedObject: string;
   } {
-    const predicateResult = this.canonicalizer.canonicalize(triple.predicate);
-    const subjectResult = this.entityLinker.link(triple.subject);
-    const objectResult = this.entityLinker.link(triple.object);
+    const snapshot = this.prepareNormalizedTriple(triple, 0);
     return {
-      normalizedSubject: subjectResult.linked,
-      normalizedPredicate: predicateResult.canonical,
-      normalizedObject: objectResult.linked
+      normalizedSubject: snapshot.subject,
+      normalizedPredicate: snapshot.predicate,
+      normalizedObject: snapshot.object
     };
   }
 }

@@ -37,6 +37,17 @@ export interface SemanticMemoryUpdateOptions {
   similarityThreshold?: number;
 }
 
+export interface NormalizedTripleSnapshot {
+  index: number;
+  subject: string;
+  predicate: string;
+  object: string;
+  predicateCanonicalized: boolean;
+  subjectLinked: boolean;
+  objectLinked: boolean;
+  confidence: number;
+}
+
 export interface PreparedUpdateData {
   confidenceThreshold: number;
   similarityThreshold: number;
