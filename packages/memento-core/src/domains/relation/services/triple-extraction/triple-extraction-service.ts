@@ -17,6 +17,7 @@ import OpenAI from 'openai';
 import { tripleExtractionLogger } from '../../../../infrastructure/logging/triple-extraction-logger.js';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { resolveLlmProvider } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
@@ -127,6 +128,7 @@ export class TripleExtractionService {
         this.updateCostMetrics(provider, promptTokens, completionTokens),
       defaultTemperature: this.DEFAULT_TEMPERATURE,
       defaultMaxTokens: this.DEFAULT_MAX_TOKENS,
+      initPreferredProvider: this.preferredProvider,
     };
   }
 
@@ -240,7 +242,7 @@ export class TripleExtractionService {
     }
 
     try {
-      const provider = options.provider || this.preferredProvider || 'auto';
+      const provider = options.provider || resolveLlmProvider('triple_extraction');
       const { result, rawLLMOutput } = await this.extractWithLLM(
         normalizedObservation,
         provider,

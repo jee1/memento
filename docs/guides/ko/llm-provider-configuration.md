@@ -82,9 +82,39 @@ LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
 
 모델 선택 순서를 정리하면 다음과 같습니다.
 
-1. 해당 용도의 `LLM_MODEL_*` 환경 변수 (설정된 경우)
+1. 해당 용도의 `LLM_MODEL_*` 환경 변수 (설정된 경우) — **단, 런타임 제공자가 모델이 묶인 제공자(아래 바인딩 규칙)와 같을 때만**
 2. 제공자의 기본 LLM 모델 (`OPENAI_LLM_MODEL` 등)
 3. 코드 하드코딩 기본값 (gpt-4o-mini, gemini-2.0-flash, llama3)
+
+빈 문자열·공백만 있는 `LLM_MODEL_*` 값은 미설정과 같습니다.
+
+## 용도별 제공자 오버라이드
+
+트리플 추출·관계 추출·절차 기억(procedural)에 대해 전역 `LLM_PROVIDER`와 다른 제공자를 선호할 수 있습니다. (공고화 consolidation·personal-agent·임베딩은 이 축과 무관합니다.)
+
+```bash
+# 용도별 제공자 오버라이드 (선택사항; 미설정·빈 값 → 전역 LLM_PROVIDER)
+LLM_PROVIDER_TRIPLE_EXTRACTION=     # openai | gemini | ollama | auto
+LLM_PROVIDER_RELATION_EXTRACTION=
+LLM_PROVIDER_PROCEDURAL=
+```
+
+동작 요약:
+
+- **정규화**: 앞뒤 공백 제거 후 소문자. 허용 토큰은 전역 `LLM_PROVIDER`와 동일 (`openai` / `gemini` / `ollama` / `auto`).
+- **잘못된 값**: 해당 용도 오버라이드를 무시하고 전역 경로를 쓰며, 설정 로드/초기화 시 `[CONFIG WARN]`을 **설정당 한 번** 남깁니다. 프로세스를 중단하지 않습니다.
+- **prefer-then-fallback**: 유효한 오버라이드는 그 용도의 **선호** 제공자입니다. 사용 불가면 기존 폴백 정책을 따르며, “절대 폴백 금지” 모드는 없습니다.
+- **전역과 동일 값**: 유효한 no-op입니다 (바인딩·Ollama readiness에 그대로 쓰입니다).
+- **Ollama readiness**: 전역이 클라우드여도, 위 세 오버라이드 중 하나라도 `ollama`이면 초기화 시 Ollama 연결 검사를 수행합니다.
+
+### 모델 오버라이드 바인딩 (폴백 시 모델명 누수 방지)
+
+`LLM_MODEL_*`는 다음 **바인딩 제공자**에만 적용됩니다.
+
+1. 해당 용도에 유효한 `LLM_PROVIDER_*`가 있으면 → 그 제공자
+2. 없으면 → 그 호출에서 해석된 전역 기본 제공자
+
+런타임 제공자가 바인딩 제공자와 달라지면(폴백 등) 해당 `LLM_MODEL_*`는 **적용하지 않고** 런타임 제공자의 기본 모델을 쓰며, 이 결정은 구조화 로그로 관측됩니다. 모델 폐기만으로 작업이 실패하지는 않습니다.
 
 ## 폴백 동작
 

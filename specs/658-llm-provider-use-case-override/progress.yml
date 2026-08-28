@@ -1,0 +1,12 @@
+# specs/658-llm-provider-use-case-override/progress.yml
+feature: llm-provider-use-case-override
+created: 2026-08-27
+current_phase: review
+phases:
+  constitution: { status: done, updated: 2026-08-27 }
+  specify:      { status: done, updated: 2026-08-27 }
+  brainstorm:   { status: done, updated: 2026-08-27, sessions: 4, closed: true }
+  plan:         { status: done, updated: 2026-08-27 }
+  tasks:        { status: done, updated: 2026-08-27 }
+  execute:      { status: done, updated: 2026-08-27 }
+  review:       { status: done, updated: 2026-08-28, verdict: approved_after_fixes }

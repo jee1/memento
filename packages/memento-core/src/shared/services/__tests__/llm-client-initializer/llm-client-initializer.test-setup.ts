@@ -12,6 +12,7 @@ const mockMementoConfig = vi.hoisted(() => ({
   geminiModel: 'gemini-1.5-flash',
   geminiLlmModel: 'gemini-2.0-flash',
   llmModelOverrides: {},
+  llmProviderOverrides: {},
   llmProvider: 'auto' as const
 }));
 
@@ -60,6 +61,7 @@ export function resetLlmClientInitializerTestEnv(): void {
   mockMementoConfig.geminiModel = 'gemini-1.5-flash';
   mockMementoConfig.geminiLlmModel = 'gemini-2.0-flash';
   mockMementoConfig.llmModelOverrides = {};
+  mockMementoConfig.llmProviderOverrides = {};
   mockMementoConfig.llmProvider = 'auto';
   globalThis.fetch = originalFetch;
   globalThis.AbortSignal = originalAbortSignal;

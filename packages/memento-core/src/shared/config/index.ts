@@ -13,6 +13,7 @@ import {
   parseRememberDedupThreshold,
 } from '../utils/remember-dedup-config.js';
 import { parseTypeParamMode } from '../utils/type-param-validator.js';
+import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
 import { resolveApiTokens } from './api-tokens.js';
 import {
   providerDimensionDefaults,
@@ -30,6 +31,33 @@ config();
 
 const embeddingProvider = (resolveString('EMBEDDING_PROVIDER') as EmbeddingProvider) || 'minilm';
 const llmProvider = (resolveString('LLM_PROVIDER') as LLMProvider) || 'auto';
+
+const llmProviderOverrideWarnedKeys = new Set<string>();
+const llmProviderOverrides: MementoConfig['llmProviderOverrides'] = {};
+const tripleProviderOverride = loadLlmProviderOverrideFromEnv(
+  'LLM_PROVIDER_TRIPLE_EXTRACTION',
+  getRawEnvValue('LLM_PROVIDER_TRIPLE_EXTRACTION'),
+  llmProviderOverrideWarnedKeys
+);
+if (tripleProviderOverride !== undefined) {
+  llmProviderOverrides.triple_extraction = tripleProviderOverride;
+}
+const relationProviderOverride = loadLlmProviderOverrideFromEnv(
+  'LLM_PROVIDER_RELATION_EXTRACTION',
+  getRawEnvValue('LLM_PROVIDER_RELATION_EXTRACTION'),
+  llmProviderOverrideWarnedKeys
+);
+if (relationProviderOverride !== undefined) {
+  llmProviderOverrides.relation_extraction = relationProviderOverride;
+}
+const proceduralProviderOverride = loadLlmProviderOverrideFromEnv(
+  'LLM_PROVIDER_PROCEDURAL',
+  getRawEnvValue('LLM_PROVIDER_PROCEDURAL'),
+  llmProviderOverrideWarnedKeys
+);
+if (proceduralProviderOverride !== undefined) {
+  llmProviderOverrides.procedural = proceduralProviderOverride;
+}
 
 const embeddingDimensions: number =
   (resolveOptionalNumber('EMBEDDING_DIMENSIONS') ??
@@ -64,6 +92,7 @@ export const mementoConfig: MementoConfig = {
     procedural: resolveOptionalString('LLM_MODEL_PROCEDURAL'),
     consolidation: resolveOptionalString('LLM_MODEL_CONSOLIDATION'),
   },
+  llmProviderOverrides,
 
   // 검색 설정
   searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),

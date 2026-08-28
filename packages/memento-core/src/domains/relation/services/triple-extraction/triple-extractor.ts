@@ -10,7 +10,7 @@
 import OpenAI from 'openai';
 import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../../../../shared/config/index.js';
-import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
+import { resolveBoundLlmProvider, resolveLlmModel, resolveLlmProvider } from '../../../../shared/config/llm-model-resolver.js';
 import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
 import { logExternalApiRetry } from '../../../../shared/utils/external-api-retry-logging.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -76,10 +76,11 @@ export class TripleExtractor implements ITripleExtractor {
       observation: text
     });
 
-    // Provider 선택
-    const requestedProvider = options?.provider === 'auto' || !options?.provider
-      ? 'auto'
-      : options.provider;
+    // Provider 선택 (per-job override → global; options.provider wins when explicit)
+    const requestedProvider =
+      options?.provider && options.provider !== 'auto'
+        ? options.provider
+        : resolveLlmProvider('triple_extraction');
     const provider = this.determineProvider(requestedProvider);
 
     if (!provider) {
@@ -152,7 +153,9 @@ export class TripleExtractor implements ITripleExtractor {
       throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
     }
 
-    const model = resolveLlmModel('openai', 'triple_extraction');
+    const model = resolveLlmModel('openai', 'triple_extraction', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('triple_extraction', this.preferredProvider),
+    });
     const temperature = options?.temperature ?? this.DEFAULT_TEMPERATURE;
     const maxTokens = options?.maxTokens ?? this.DEFAULT_MAX_TOKENS;
     const retryOptions = getRetryOptions();
@@ -200,7 +203,9 @@ export class TripleExtractor implements ITripleExtractor {
       throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');
     }
 
-    const modelName = resolveLlmModel('gemini', 'triple_extraction');
+    const modelName = resolveLlmModel('gemini', 'triple_extraction', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('triple_extraction', this.preferredProvider),
+    });
     const temperature = options?.temperature ?? this.DEFAULT_TEMPERATURE;
     const maxTokens = options?.maxTokens ?? this.DEFAULT_MAX_TOKENS;
     const retryOptions = getRetryOptions();
@@ -244,7 +249,9 @@ export class TripleExtractor implements ITripleExtractor {
     options?: TripleExtractionOptions
   ): Promise<string> {
     const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-    const model = resolveLlmModel('ollama', 'triple_extraction');
+    const model = resolveLlmModel('ollama', 'triple_extraction', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('triple_extraction', this.preferredProvider),
+    });
     const temperature = options?.temperature ?? this.DEFAULT_TEMPERATURE;
     const maxTokens = options?.maxTokens ?? this.DEFAULT_MAX_TOKENS;
 

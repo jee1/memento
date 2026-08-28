@@ -8,7 +8,7 @@ alwaysApply: true
 
 상세: [AGENTS.md](../../AGENTS.md) · [docs/agents/](../../docs/agents/README.md)
 
-Last updated: 2026-06-17
+Last updated: 2026-08-27
 
 ## Active Technologies
 
@@ -16,6 +16,7 @@ Last updated: 2026-06-17
 - `packages/memento-core` (`@memento/core`), `memento-server`, `@jee1/memento-client`, `@jee1/memento-assistant`, `@memento/agent-integration`
 - SQLite (`better-sqlite3`, `sqlite-vec`), Zod, Vitest, Express 5.x
 - Admin UI: `static/js/`, D3.js; 스타일은 `static/css/tokens.css` 토큰 우선
+- LLM use-case provider overrides (658 / #820): `LLM_PROVIDER_TRIPLE_EXTRACTION` / `_RELATION_EXTRACTION` / `_PROCEDURAL` + FR-004 model binding in `llm-model-resolver`
 
 ## Project Structure
 
@@ -49,6 +50,7 @@ TypeScript strict, 2-space indent, kebab-case 파일명 — [DEVELOPMENT_RULES.m
 
 ## Recent Changes
 
+- 658-llm-provider-use-case-override (#820): per-job `LLM_PROVIDER_*` for triple/relation/procedural; FR-004 cross-provider model guard; Ollama readiness when job override selects ollama — plan in `specs/658-llm-provider-use-case-override/`
 - `docs/agents/` 분리: AGENTS.md 마스터 + commands/architecture/agent-workflow 상세
 - Docker DB 운영 스크립트 (`db:backup`, `db:pre-docker-deploy`, `db:restore-from-corrupt`)
 - 015-fix-anchor-map-search: `static/js/anchor-map.js` 검색 시 nodes 미초기화 수정

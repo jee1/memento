@@ -55,6 +55,7 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
 - **도구 실행 경계 (#793)**: stdio·HTTP MCP·WebSocket·REST의 `tools/call`은 모두 `server/audit-tool-dispatch.ts`의 `dispatchTool()`을 경유 — transport에서 `executeTool()` 직접 호출 금지(동시성·audit·에러 매핑 분기 방지)
 - **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
+- **LLM provider use-case override (#820)**: triple/relation/procedural — `LLM_PROVIDER_*`(unset→global, invalid→`[CONFIG WARN]` 1회); call site `resolveLlmProvider`/`resolveBoundLlmProvider`; `resolveLlmModel(...,{boundProvider})` — runtime≠bound면 `LLM_MODEL_*` 폐기; job override `ollama`면 global cloud여도 Ollama readiness; Ollama 가용성은 `initializedProviders.includes('ollama')`(preferred만 X); consolidation provider override 없음 — `specs/658-llm-provider-use-case-override/`
 - **Express `programmaticAuth`**: `declare global`은 `programmatic-auth.middleware.ts` 한 곳만 — audit 등 다른 미들웨어에서 중복 선언 시 TS2717
 - **CI npm ci flake**: `onnxruntime-node` NuGet `ETIMEDOUT`은 코드 버그 아님 — `gh run rerun --failed`
 - **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)

@@ -6,7 +6,7 @@ import type { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
-import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
+import { resolveBoundLlmProvider, resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import type { TripleExtractionOptions } from '../../../../shared/types/triple-extraction.js';
 import { logExternalApiRetry } from '../../../../shared/utils/external-api-retry-logging.js';
@@ -21,6 +21,7 @@ export interface TripleLlmCallDeps {
   ) => void;
   defaultTemperature: number;
   defaultMaxTokens: number;
+  initPreferredProvider?: 'openai' | 'gemini' | 'ollama' | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -38,7 +39,9 @@ export async function extractRawWithOpenAI(
   prompt: string,
   options: TripleExtractionOptions
 ): Promise<string> {
-  const model = resolveLlmModel('openai', 'triple_extraction');
+  const model = resolveLlmModel('openai', 'triple_extraction', mementoConfig, {
+    boundProvider: resolveBoundLlmProvider('triple_extraction', deps.initPreferredProvider ?? null),
+  });
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
 
@@ -95,7 +98,9 @@ export async function extractRawWithGemini(
   prompt: string,
   options: TripleExtractionOptions
 ): Promise<string> {
-  const modelName = resolveLlmModel('gemini', 'triple_extraction');
+  const modelName = resolveLlmModel('gemini', 'triple_extraction', mementoConfig, {
+    boundProvider: resolveBoundLlmProvider('triple_extraction', deps.initPreferredProvider ?? null),
+  });
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
 
@@ -149,7 +154,9 @@ export async function extractRawWithOllama(
   options: TripleExtractionOptions
 ): Promise<string> {
   const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-  const model = resolveLlmModel('ollama', 'triple_extraction');
+  const model = resolveLlmModel('ollama', 'triple_extraction', mementoConfig, {
+    boundProvider: resolveBoundLlmProvider('triple_extraction', deps.initPreferredProvider ?? null),
+  });
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
 

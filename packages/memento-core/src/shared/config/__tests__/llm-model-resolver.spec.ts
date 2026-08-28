@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { resolveLlmModel, type LlmModelConfigSlice } from '../llm-model-resolver.js';
+import {
+  resolveBoundLlmProvider,
+  resolveLlmModel,
+  resolveLlmProvider,
+  type LlmModelConfigSlice,
+} from '../llm-model-resolver.js';
 
 const baseConfig: LlmModelConfigSlice = {
   openaiLlmModel: 'gpt-4o',
@@ -8,6 +13,48 @@ const baseConfig: LlmModelConfigSlice = {
   llmModelOverrides: {},
 };
 
+describe('resolveLlmProvider', () => {
+  it('returns override when set', () => {
+    const config = {
+      llmProvider: 'openai' as const,
+      llmProviderOverrides: { triple_extraction: 'ollama' as const },
+    };
+    expect(resolveLlmProvider('triple_extraction', config)).toBe('ollama');
+  });
+
+  it('falls back to global when override unset', () => {
+    const config = { llmProvider: 'gemini' as const, llmProviderOverrides: {} };
+    expect(resolveLlmProvider('relation_extraction', config)).toBe('gemini');
+  });
+
+  it('override equal to global is valid no-op', () => {
+    const config = {
+      llmProvider: 'openai' as const,
+      llmProviderOverrides: { procedural: 'openai' as const },
+    };
+    expect(resolveLlmProvider('procedural', config)).toBe('openai');
+  });
+});
+
+describe('resolveBoundLlmProvider', () => {
+  it('returns concrete requested provider', () => {
+    const config = {
+      llmProvider: 'openai' as const,
+      llmProviderOverrides: { triple_extraction: 'gemini' as const },
+    };
+    expect(resolveBoundLlmProvider('triple_extraction', 'openai', config)).toBe('gemini');
+  });
+
+  it('returns initPreferred when requested is auto', () => {
+    const config = {
+      llmProvider: 'auto' as const,
+      llmProviderOverrides: {},
+    };
+    expect(resolveBoundLlmProvider('triple_extraction', 'openai', config)).toBe('openai');
+    expect(resolveBoundLlmProvider('triple_extraction', null, config)).toBeNull();
+  });
+});
+
 describe('resolveLlmModel', () => {
   it('returns provider LLM default when no use-case override', () => {
     expect(resolveLlmModel('openai', undefined, baseConfig)).toBe('gpt-4o');
@@ -15,14 +62,59 @@ describe('resolveLlmModel', () => {
     expect(resolveLlmModel('ollama', undefined, baseConfig)).toBe('qwen3:latest');
   });
 
-  it('prefers use-case override over provider default', () => {
+  it('applies use-case override only when runtime equals bound', () => {
     const config: LlmModelConfigSlice = {
       ...baseConfig,
       llmModelOverrides: {
         triple_extraction: 'cheap-mini-model',
       },
     };
-    expect(resolveLlmModel('gemini', 'triple_extraction', config)).toBe('cheap-mini-model');
+    expect(
+      resolveLlmModel('gemini', 'triple_extraction', config, { boundProvider: 'gemini' })
+    ).toBe('cheap-mini-model');
+  });
+
+  it('discards override when runtime differs from bound and logs once', () => {
+    const discarded: unknown[] = [];
+    const config: LlmModelConfigSlice = {
+      ...baseConfig,
+      llmModelOverrides: { triple_extraction: 'gpt-cloud-only' },
+    };
+    expect(
+      resolveLlmModel('ollama', 'triple_extraction', config, {
+        boundProvider: 'openai',
+        onModelOverrideDiscarded: (i) => discarded.push(i),
+      })
+    ).toBe(baseConfig.ollamaModel || 'llama3');
+    expect(discarded).toHaveLength(1);
+  });
+
+  it('treats whitespace model override as unset', () => {
+    const config: LlmModelConfigSlice = {
+      ...baseConfig,
+      llmModelOverrides: { procedural: '   ' },
+    };
+    expect(
+      resolveLlmModel('openai', 'procedural', config, { boundProvider: 'openai' })
+    ).toBe(baseConfig.openaiLlmModel || 'gpt-4o-mini');
+  });
+
+  it('skips override when boundProvider is null (auto + no preferred)', () => {
+    const config: LlmModelConfigSlice = {
+      ...baseConfig,
+      llmModelOverrides: { relation_extraction: 'should-not-leak' },
+    };
+    expect(
+      resolveLlmModel('gemini', 'relation_extraction', config, { boundProvider: null })
+    ).not.toBe('should-not-leak');
+  });
+
+  it('does not apply override when useCase set but options omitted', () => {
+    const config: LlmModelConfigSlice = {
+      ...baseConfig,
+      llmModelOverrides: { triple_extraction: 'cheap-mini-model' },
+    };
+    expect(resolveLlmModel('gemini', 'triple_extraction', config)).toBe('gemini-3-flash-preview');
   });
 
   it('does not fall back to GEMINI_MODEL embedding name for gemini LLM', () => {
