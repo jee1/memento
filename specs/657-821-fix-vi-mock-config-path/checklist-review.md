@@ -1,6 +1,6 @@
 # Code Review: relation 도메인 config 모킹 교정 (#821)
 
-**Date**: 2026-08-28 · **Range**: `064c8b69..773ab60f` · **Branch**: `jee1/relation-spec-2-vi.mock-config`
+**Date**: 2026-08-28 · **Range**: `064c8b69..c2b75699` · **Branch**: `657-821-fix-vi-mock-config-path`
 **Protocol**: superpowers `requesting-code-review` — 별도 리뷰어 서브에이전트 디스패치 + superspec 차원(spec 준수 / constitution 준수 / brainstorm 커버리지) 대조
 
 **Verdict: 수정 후 머지 (With fixes).** Critical 0건, Important 4건, Minor/Suggestion 10건.

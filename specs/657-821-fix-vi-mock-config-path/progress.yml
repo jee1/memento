@@ -1,5 +1,5 @@
 feature: 657-821-fix-vi-mock-config-path
-branch: jee1/relation-spec-2-vi.mock-config
+branch: 657-821-fix-vi-mock-config-path
 updated: 2026-08-27
 executor: speckit.superspec.execute (executing-plans, inline)
 status: complete

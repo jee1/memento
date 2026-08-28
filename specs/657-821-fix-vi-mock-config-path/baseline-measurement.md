@@ -1,6 +1,6 @@
 # 교정 전 기준선 측정 (T001)
 
-**측정일**: 2026-08-27 · **브랜치**: `jee1/relation-spec-2-vi.mock-config`
+**측정일**: 2026-08-27 · **브랜치**: `657-821-fix-vi-mock-config-path`
 **대상**: `packages/memento-core/src/domains/relation/services/__tests__/llm-based-relation-extractor.spec.ts`
 
 모든 실행은 저장소 루트에서 `npx vitest run <spec> --reporter=basic`.
