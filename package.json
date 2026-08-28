@@ -26,7 +26,7 @@
     "docs:audit-links": "node scripts/audit-markdown-links.mjs",
     "docs:verify-npm-scripts": "node scripts/verify-doc-npm-scripts.mjs",
     "check-debt-markers": "tsx scripts/check-debt-markers.ts",
-  "check:vi-mock-paths": "tsx scripts/check-vi-mock-paths.ts",
+    "check:vi-mock-paths": "tsx scripts/check-vi-mock-paths.ts",
     "start": "npm run start -w memento-server",
     "start:http": "npm run start:http -w memento-server",
     "test": "npm run test:prepare && vitest --run",

@@ -47,6 +47,16 @@ constitution:
 follow_up_issues:
   - "#824 embedding provider 스펙 5건"
   - "#825 memory/search/server 스펙 3건"
+  - "#826 게이트 범위 확장 (vi.doMock · 템플릿 리터럴 · stale 강제 · baseline 다중 매칭)"
+
+code_review:
+  date: 2026-08-28
+  protocol: "requesting-code-review - 리뷰어 서브에이전트 + superspec 차원 대조"
+  findings: "Critical 0 / Important 4 / Minor 10"
+  resolved: "Important 4 전부. Minor 는 R-12 제외 전부"
+  verdict: "머지 가능"
+  document: specs/657-821-fix-vi-mock-config-path/checklist-review.md
+  post_fix_verification: "lint 0 errors / type-check / 474 files 5104 passed 1 skipped 0 failed"
 
 notes:
   - "FR-011 로 분리한 소스 결함 없음. 드러난 실패 1건은 조건 미명시로 판명."

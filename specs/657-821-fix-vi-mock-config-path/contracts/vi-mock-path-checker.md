@@ -13,13 +13,15 @@
 npx tsx scripts/check-vi-mock-paths.ts [옵션]
 ```
 
+저장소 루트는 스크립트 위치에서 유도한다. 실행 시 `cwd` 와 무관하게 같은 범위를 스캔하고, 보고 경로와 baseline 키가 같은 기준을 쓴다.
+
 기존 `scripts/check-retry-usage.ts` · `scripts/count-console-logs.ts` 의 관례를 따른다.
 
 | 옵션 | 기본값 | 의미 |
 |------|--------|------|
 | `--ci` | off | 위반이 있으면 exit code 1. 없으면 0 |
 | `--format=<text\|json>` | `text` | 출력 형식 |
-| `--path=<dir>` | 저장소 루트 | 스캔 시작 지점 |
+| `--baseline=<path>` | `scripts/vi-mock-path-baseline.json` | 예외 목록 파일. 상대 경로는 저장소 루트 기준 |
 
 **npm 스크립트**: `npm run check:vi-mock-paths` → `tsx scripts/check-vi-mock-paths.ts`
 
@@ -31,7 +33,9 @@ npx tsx scripts/check-vi-mock-paths.ts [옵션]
 
 ### 판정
 
-1. `vi.mock('<specifier>')` / `vi.mock("<specifier>")` 를 정규식으로 수집한다.
+1. **줄 시작에 오는** `vi.mock('<specifier>')` / `vi.mock("<specifier>")` 를 수집한다(`/^[ \t]*vi\.mock\(/gm`). 앵커가 없으면 주석과 문자열 리터럴 안의 텍스트까지 위반으로 집어낸다.
+
+   **범위 한계**: `vi.doMock` 과 템플릿 리터럴 인자는 같은 실패 양상을 갖지만 이번 범위 밖이다 → #826.
 2. `<specifier>` 가 `.` 로 시작하지 **않으면 건너뛴다** — 패키지 이름 모킹은 이 게이트의 대상이 아니다 (FR-010).
 3. 스펙 파일 디렉터리 기준으로 해석하고, 아래 후보 중 **하나라도** 존재하면 통과:
    - `.js` → `.ts` 치환
@@ -53,7 +57,7 @@ npx tsx scripts/check-vi-mock-paths.ts [옵션]
 ### 출력 (text)
 
 ```
-vi.mock 경로 검사 — 상대경로 58건 스캔
+vi.mock 경로 검사 - 상대경로 57건 스캔
 
 위반 (차단) 0건
 예외 등재 (baseline) 8건
@@ -114,7 +118,9 @@ OK
 | C3 | 패키지 이름 모킹(`vi.mock('openai')`) | 실행 | 레코드 자체가 안 생김 — 오탐 0 (FR-010) |
 | C4 | baseline 항목의 스펙 파일이 실제로 고쳐짐 | 실행 | exit 0 유지 + `stale-baseline` 에 보고 (FR-014) |
 | C5 | baseline 항목에서 `reason` 삭제 | `--ci` 실행 | exit 1, baseline 스키마 오류 보고 |
-| C6 | 정상 모킹 48건 | 실행 | 하나도 위반으로 보고되지 않음 (SC-005 후단) |
+| C6 | 정상 모킹 49건 | 실행 | 하나도 위반으로 보고되지 않음 (SC-005 후단) |
+| C7 | 주석 처리된 모킹, 문자열 리터럴 안의 모킹 | 실행 | 수집되지 않음 — 줄 시작 앵커 |
+| C8 | `index.ts` 가 없는 디렉터리를 가리키는 모킹 | 실행 | 해석 실패로 판정 |
 
 C1~C6 은 `scripts/check-vi-mock-paths.spec.ts` 로 자동화한다(선례: `scripts/lib/quarantine-gates.spec.ts`).
 

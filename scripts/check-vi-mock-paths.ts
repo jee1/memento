@@ -9,12 +9,16 @@
  * 이번 범위 밖의 기존 위반은 scripts/vi-mock-path-baseline.json 에 사유·후속
  * 추적과 함께 등재해 통과시킨다. 새 위반만 차단한다.
  *
+ * 범위 한계: `vi.mock` + 따옴표 리터럴만 본다. `vi.doMock` 과 템플릿 리터럴
+ * 인자는 같은 실패 양상을 갖지만 이번 범위 밖이다(#826).
+ *
  * 사용법:
- *   npx tsx scripts/check-vi-mock-paths.ts [--ci] [--format=text|json] [--path=<dir>]
+ *   npx tsx scripts/check-vi-mock-paths.ts [--ci] [--format=text|json] [--baseline=<path>]
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
-import { parseArgs as parseCliArgs } from './lib/cli.js';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 export interface MockRef {
   file: string;
@@ -38,24 +42,39 @@ export interface ScanResult {
 
 const SPEC_FILE = /\.(spec|test)\.tsx?$/;
 const SKIP_DIR = new Set(['node_modules', 'dist', '.git', 'coverage', 'graphify-out', 'test-results']);
-const VI_MOCK = /vi\.mock\(\s*['"]([^'"]+)['"]/g;
-const BASELINE_PATH = 'scripts/vi-mock-path-baseline.json';
+// 줄 시작 앵커가 필수다. 앵커가 없으면 주석(`// vi.mock('...')`)과 문자열
+// 리터럴("vi.mock('...')")까지 위반으로 집어낸다 - 차단 게이트에서 오탐 비용이 크다.
+const VI_MOCK = /^[ \t]*vi\.mock\(\s*['"]([^'"]+)['"]/gm;
+
+// 저장소 루트는 스크립트 위치에서 유도한다. cwd 에 의존하지 않아야
+// CI 든 로컬이든 baseline 경로와 보고 경로가 같은 기준을 쓴다.
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const DEFAULT_BASELINE = join(REPO_ROOT, 'scripts/vi-mock-path-baseline.json');
+
+function isFile(path: string): boolean {
+  return statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+}
 
 export function resolvesToModule(fromDir: string, specifier: string): boolean {
   const base = resolve(fromDir, specifier);
-  const candidates = [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')];
+  // base 자체는 파일일 때만 인정한다. existsSync 로는 디렉터리도 통과해서
+  // index.ts 가 없는 디렉터리를 해석 가능으로 오판한다.
+  const candidates = [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts')];
   if (base.endsWith('.js')) {
     const stem = base.slice(0, -3);
     candidates.push(`${stem}.ts`, `${stem}.tsx`);
   }
-  return candidates.some((candidate) => existsSync(candidate));
+  return isFile(base) || candidates.some(isFile);
 }
 
 function walk(dir: string, out: string[]): void {
   for (const name of readdirSync(dir)) {
     if (SKIP_DIR.has(name)) continue;
     const full = join(dir, name);
-    if (statSync(full).isDirectory()) walk(full, out);
+    // 깨진 심볼릭 링크에서 throw 하면 게이트 전체가 죽는다.
+    const stat = statSync(full, { throwIfNoEntry: false });
+    if (!stat) continue;
+    if (stat.isDirectory()) walk(full, out);
     else if (SPEC_FILE.test(name)) out.push(full);
   }
 }
@@ -123,27 +142,34 @@ export function scan(root: string, baseline: BaselineEntry[]): ScanResult {
   return { scanned: refs.length, violations, baselined, staleBaseline };
 }
 
+export function loadBaseline(path: string): BaselineEntry[] {
+  return validateBaseline(existsSync(path) ? JSON.parse(readFileSync(path, 'utf-8')) : []);
+}
+
 function main(): void {
   const { values } = parseCliArgs({
     options: {
       ci: { type: 'boolean', default: false },
       format: { type: 'string', default: 'text' },
-      path: { type: 'string', default: process.cwd() },
+      baseline: { type: 'string', default: DEFAULT_BASELINE },
     },
   });
-  const root = resolve(String(values.path));
   const ci = Boolean(values.ci);
+  const baselineFile = isAbsolute(String(values.baseline))
+    ? String(values.baseline)
+    : join(REPO_ROOT, String(values.baseline));
 
   let baseline: BaselineEntry[] = [];
-  const baselineFile = join(root, BASELINE_PATH);
+  let baselineError: string | null = null;
   try {
-    baseline = validateBaseline(existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf-8')) : []);
+    baseline = loadBaseline(baselineFile);
   } catch (error) {
-    console.error(`baseline 파일 오류: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(ci ? 1 : 0);
+    // 스캔은 계속한다. 여기서 종료하면 로컬 실행자가 아무 결과도 못 본다.
+    baselineError = error instanceof Error ? error.message : String(error);
+    console.error(`baseline 파일 오류: ${baselineError}`);
   }
 
-  const result = scan(root, baseline);
+  const result = scan(REPO_ROOT, baseline);
 
   if (values.format === 'json') {
     console.log(JSON.stringify(result, null, 2));
@@ -162,13 +188,13 @@ function main(): void {
     for (const stale of result.staleBaseline) {
       console.log(`  ${stale.file} -> ${stale.specifier}`);
     }
-    console.log(result.violations.length === 0 ? '\nOK' : '\n새 위반이 있습니다.');
+    console.log(result.violations.length === 0 && !baselineError ? '\nOK' : '\n새 위반이 있습니다.');
   }
 
-  if (ci && result.violations.length > 0) process.exit(1);
+  if (ci && (result.violations.length > 0 || baselineError)) process.exit(1);
   process.exit(0);
 }
 
-if (process.argv[1] && resolve(process.argv[1]).endsWith('check-vi-mock-paths.ts')) {
+if (isMain(import.meta.url)) {
   main();
 }

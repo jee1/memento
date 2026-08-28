@@ -263,6 +263,10 @@ describe('LLMBasedRelationExtractor', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // 테스트가 끝난 직후 대체 값 객체가 기준 상태여야 한다 (SC-004).
+    // beforeEach 에도 같은 복원이 있지만, 그것만으로는 '다음 테스트 시작 전'
+    // 까지 이전 테스트의 변경이 남는다.
+    Object.assign(mockConfig, createMockConfig());
     // 고정한 환경 변수를 실행 전 상태로 되돌린다 (FR-015)
     if (originalEnv.LLM_PROVIDER === undefined) {
       delete process.env.LLM_PROVIDER;
@@ -526,7 +530,6 @@ describe('LLMBasedRelationExtractor', () => {
       // mementoConfig.llmProvider를 'auto'로 설정하여 ollama fallback 방지
       mockConfig.llmProvider = 'auto';
       process.env.LLM_PROVIDER = 'auto';
-      mockConfig.llmProvider = 'auto';
       
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: null,
@@ -726,7 +729,6 @@ describe('LLMBasedRelationExtractor', () => {
       // mementoConfig.llmProvider를 'auto'로 설정
       mockConfig.llmProvider = 'auto';
       process.env.LLM_PROVIDER = 'auto';
-      mockConfig.llmProvider = 'auto';
       
       const mockOpenAIClient = {} as any;
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -805,7 +807,6 @@ describe('LLMBasedRelationExtractor', () => {
       // mementoConfig.llmProvider를 'auto'로 설정
       mockConfig.llmProvider = 'auto';
       process.env.LLM_PROVIDER = 'auto';
-      mockConfig.llmProvider = 'auto';
       
       const mockGeminiClient = {} as any;
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -1012,7 +1013,6 @@ describe('LLMBasedRelationExtractor', () => {
       // Given: 모든 provider가 사용 불가능한 상태
       mockConfig.llmProvider = 'auto';
       process.env.LLM_PROVIDER = 'auto';
-      mockConfig.llmProvider = 'auto';
       
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: null,
@@ -1084,7 +1084,6 @@ describe('LLMBasedRelationExtractor', () => {
       // Given: actualProvider가 null이 되는 상태 설정
       mockConfig.llmProvider = 'auto';
       process.env.LLM_PROVIDER = 'auto';
-      mockConfig.llmProvider = 'auto';
       
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: null,
@@ -1152,8 +1151,6 @@ describe('LLMBasedRelationExtractor', () => {
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       process.env.LLM_PROVIDER = 'openai';
-      mockConfig.openaiApiKey = 'test-key';
-      mockConfig.llmProvider = 'openai';
       
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
@@ -1342,8 +1339,6 @@ describe('LLMBasedRelationExtractor', () => {
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       process.env.LLM_PROVIDER = 'openai';
-      mockConfig.openaiApiKey = 'test-key';
-      mockConfig.llmProvider = 'openai';
       
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
@@ -1479,8 +1474,6 @@ describe('LLMBasedRelationExtractor', () => {
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       process.env.LLM_PROVIDER = 'openai';
-      mockConfig.openaiApiKey = 'test-key';
-      mockConfig.llmProvider = 'openai';
       
       const OpenAI = (await import('openai')).default;
       const mockOpenAIClient = new OpenAI({ apiKey: 'test-key' });
@@ -1767,8 +1760,6 @@ describe('LLMBasedRelationExtractor', () => {
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       process.env.LLM_PROVIDER = 'openai';
-      mockConfig.openaiApiKey = 'test-key';
-      mockConfig.llmProvider = 'openai';
       
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
@@ -2022,8 +2013,6 @@ describe('LLMBasedRelationExtractor', () => {
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       process.env.LLM_PROVIDER = 'openai';
-      mockConfig.openaiApiKey = 'test-key';
-      mockConfig.llmProvider = 'openai';
       
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();

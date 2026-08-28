@@ -1,13 +1,15 @@
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { collectMockRefs, resolvesToModule, scan, validateBaseline } from './check-vi-mock-paths.js';
+import { collectMockRefs, loadBaseline, resolvesToModule, scan, validateBaseline } from './check-vi-mock-paths.js';
 
-// 픽스처를 조립해서 쓴다. 이 파일에 `vi.mock(` 리터럴이 그대로 있으면
-// 검사기가 자기 테스트 데이터를 위반으로 집어낸다.
-const MOCK_CALL = 'vi.mo' + 'ck';
-const mockLine = (specifier: string) => `${MOCK_CALL}('${specifier}', () => ({}));`;
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// 검사기는 줄 시작 앵커를 쓰므로 아래 픽스처 조립 줄은 스스로에게 걸리지 않는다.
+const mockLine = (specifier: string) => `vi.mock('${specifier}', () => ({}));`;
 
 let root: string;
 
@@ -30,6 +32,11 @@ describe('resolvesToModule', () => {
   it('실재하지 않는 경로는 해석하지 못한다', () => {
     expect(resolvesToModule(join(root, 'src', '__tests__'), '../../nope/index.js')).toBe(false);
   });
+
+  it('index.ts 가 없는 디렉터리는 해석하지 못한다', () => {
+    mkdirSync(join(root, 'src', 'bare-dir'));
+    expect(resolvesToModule(join(root, 'src', '__tests__'), '../bare-dir')).toBe(false);
+  });
 });
 
 describe('collectMockRefs', () => {
@@ -41,6 +48,16 @@ describe('collectMockRefs', () => {
   it('줄 번호를 1-based 로 기록한다', () => {
     writeSpec(['// head', mockLine('../real.js')]);
     expect(collectMockRefs(root)[0].line).toBe(2);
+  });
+
+  it('주석 처리된 모킹은 수집하지 않는다', () => {
+    writeSpec([`// ${mockLine('../../commented-out.js')}`, mockLine('../real.js')]);
+    expect(collectMockRefs(root).map((r) => r.specifier)).toEqual(['../real.js']);
+  });
+
+  it('문자열 리터럴 안의 모킹은 수집하지 않는다', () => {
+    writeSpec([`const sample = "${mockLine('../../inside-a-string.js')}";`]);
+    expect(collectMockRefs(root)).toHaveLength(0);
   });
 });
 
@@ -87,4 +104,51 @@ describe('validateBaseline', () => {
   it('followUp 이 없으면 거부한다', () => {
     expect(() => validateBaseline([{ file: 'a', specifier: 'b', reason: 'r' }])).toThrow(/followUp/);
   });
+});
+
+describe('loadBaseline', () => {
+  it('파일이 없으면 빈 목록이다', () => {
+    expect(loadBaseline(join(root, 'absent.json'))).toEqual([]);
+  });
+});
+
+// CLI 계층. 순수 함수 테스트만으로는 인자 파싱·baseline 로드·exit code 가
+// 검증되지 않는다 - 차단 게이트에서는 exit code 자체가 계약이다.
+describe('CLI', () => {
+  const runGate = (args: string[]) => {
+    try {
+      const stdout = execFileSync('npx', ['tsx', 'scripts/check-vi-mock-paths.ts', ...args], {
+        cwd: REPO_ROOT,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      return { code: 0, stdout };
+    } catch (error) {
+      const e = error as { status?: number; stdout?: string };
+      return { code: e.status ?? -1, stdout: e.stdout ?? '' };
+    }
+  };
+
+  it('C1+C6: 실제 저장소를 기본 baseline 으로 돌리면 exit 0 이고 위반이 없다', () => {
+    const { code, stdout } = runGate(['--ci']);
+    expect(stdout).toContain('위반 (차단) 0건');
+    expect(stdout).toContain('정리 대상 (baseline 에 있으나 위반 아님) 0건');
+    expect(code).toBe(0);
+  }, 60_000);
+
+  it('C5: baseline 스키마가 깨지면 --ci 에서 exit 1 이다', () => {
+    const broken = join(root, 'broken-baseline.json');
+    writeFileSync(broken, JSON.stringify([{ file: 'a', specifier: 'b', reason: '', followUp: '#1' }]));
+    const { code, stdout } = runGate(['--ci', `--baseline=${broken}`]);
+    expect(stdout).not.toContain('\nOK');
+    expect(code).toBe(1);
+  }, 60_000);
+
+  it('baseline 이 비면 기존 위반 8건이 그대로 드러나 exit 1 이다', () => {
+    const empty = join(root, 'empty-baseline.json');
+    writeFileSync(empty, '[]');
+    const { code, stdout } = runGate(['--ci', `--baseline=${empty}`]);
+    expect(stdout).toContain('위반 (차단) 8건');
+    expect(code).toBe(1);
+  }, 60_000);
 });

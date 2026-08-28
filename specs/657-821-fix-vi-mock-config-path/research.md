@@ -63,7 +63,7 @@ Technical Context 에 `NEEDS CLARIFICATION` 은 없다. 아래는 계획을 실�
   ```
 
 **Alternatives considered**:
-- *처음부터 `importOriginal` 확산* — 보류. 실측으로 불필요함이 확인됐고, 실 config 모듈을 로드하는 부작용이 늘어난다. 오류가 실제로 나면 그때 붙인다.
+- *`importOriginal` 스프레드로 승격* — **기각(2026-08-28 코드 리뷰 반영).** 초기 판단은 "오류가 나면 승격" 이었으나 그 경로는 해롭다. 실제 `shared/config/index.ts` 가 로드 시점에 dotenv `config()` 를 호출하므로, 저장소 루트의 `.env` 가 `beforeEach` 의 환경 변수 캡처보다 먼저 `process.env` 를 채운다 — 이번 작업이 제거한 바로 그 결합을 되살린다. 게다가 이 사각지대는 조용하지 않다: 임포트 그래프가 커져 다른 export 가 필요해지면 스펙 로드 시 `TypeError` 로 요란하게 실패한다. 필요해지면 무해한 인라인 스텁을 factory 에 직접 추가한다.
 
 ---
 
