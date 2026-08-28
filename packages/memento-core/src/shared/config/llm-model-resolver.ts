@@ -88,7 +88,7 @@ export function resolveLlmProvider(
   useCase: InScopeLlmProviderUseCase,
   config: LlmProviderConfigSlice = mementoConfig
 ): LLMProvider {
-  const override = config.llmProviderOverrides[useCase];
+  const override = config.llmProviderOverrides?.[useCase];
   if (override !== undefined) {
     return override;
   }

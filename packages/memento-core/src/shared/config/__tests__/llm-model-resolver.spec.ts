@@ -27,6 +27,11 @@ describe('resolveLlmProvider', () => {
     expect(resolveLlmProvider('relation_extraction', config)).toBe('gemini');
   });
 
+  it('falls back to global when llmProviderOverrides is undefined', () => {
+    const config = { llmProvider: 'gemini' as const };
+    expect(resolveLlmProvider('relation_extraction', config)).toBe('gemini');
+  });
+
   it('override equal to global is valid no-op', () => {
     const config = {
       llmProvider: 'openai' as const,

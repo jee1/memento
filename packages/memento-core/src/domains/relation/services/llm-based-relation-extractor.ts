@@ -136,7 +136,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     // LLMClientInitializer 결과를 사용하여 클라이언트 설정
     this.openaiClient = result.openaiClient;
     this.geminiClient = result.geminiClient;
-    this.initializedProviders = result.initializedProviders;
+    this.initializedProviders = result.initializedProviders ?? [];
     
     // 경고 메시지 로깅
     if (result.warnings.length > 0 && result.preferredProvider === null) {
