@@ -6,6 +6,9 @@
 
 import { vi } from 'vitest';
 
+// Agent/shell may export ADMIN_API_KEY; subprocess CLI/script tests expect clean stderr.
+delete process.env.ADMIN_API_KEY;
+
 // @huggingface/transformers 모킹 (onnxruntime-node 로딩 방지)
 // 모든 테스트에서 일관되게 모킹되도록 전역 설정
 vi.mock('@huggingface/transformers', () => {

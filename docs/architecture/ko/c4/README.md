@@ -2,7 +2,7 @@
 
 Memento를 [C4 Model](https://c4model.com/)로 표현한 다이어그램 모음입니다. Simon Brown의 4단계( Context → Container → Component → Code ) 중 **Level 1~3**까지를 다룹니다. 신규 기여자가 “시스템 전체 → 배포 단위 → Core 내부” 순으로 맥락을 잡을 때 이 문서를 시작점으로 쓰면 됩니다.
 
-상세 도메인 설명·DB 스키마·비동기 파이프라인은 각각 [아키텍처 개요](../architecture.md), [database-design.md](../database-design.md), [async-augmentation-pipeline.md](../async-augmentation-pipeline.md)를 참조하세요.
+상세 도메인 설명·DB 스키마·비동기 파이프라인은 각각 [아키텍처 개요](../architecture.md), [database-design.md](../database-design.md), [async-augmentation-pipeline.md](../async-augmentation-pipeline.md)를 참조하세요. ARC42(제약·품질·ADR·리스크) 형식은 [ARC42 아키텍처 문서](../arc42.md)를 참조하세요.
 
 ## 다이어그램 목록
 
