@@ -35,6 +35,14 @@ npm run test:ci:core # core 검색·메모리 테스트
 
 커밋 전 `lint`, `type-check`, `test` 통과는 필수입니다.
 
+테스트 모킹 경로도 CI `lint-typecheck` 잡에서 검사합니다. 존재하지 않는 모듈을 가리키는 상대 경로 `vi.mock` 은 같은 경로의 동적 import 까지 함께 가로채기 때문에 실행 중에는 드러나지 않고 스펙이 조용히 전량 통과합니다(#821). 정적 스캔이라야 잡힙니다.
+
+```bash
+npm run check:vi-mock-paths   # 상대 경로 vi.mock 의 대상 모듈 실재 여부 검사
+```
+
+`--ci` 를 붙이면 새 위반에서 종료 코드 1로 차단합니다. 이번 범위 밖의 기존 위반은 `scripts/vi-mock-path-baseline.json` 에 사유와 후속 추적 이슈를 붙여 등재해 두었고, 항목이 해소되면 검사가 `정리 대상` 으로 보고하니 목록에서 지우면 됩니다. 범위 한계(`vi.doMock`·템플릿 리터럴)는 #826 에서 다룹니다.
+
 ## 배포 tarball 점검
 
 루트 패키지 tarball은 워크스페이스 링크를 임시 번들로 바꿨다가 반드시 복구해야 합니다. `pack:tarball`은 성공·실패 모두 복구를 보장하며, 중단된 수동 작업 뒤에는 `restore-workspace`로 즉시 원복합니다.

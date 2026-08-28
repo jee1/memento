@@ -26,8 +26,10 @@ import {
   expandHomeDirPath
 } from './environment.js';
 
-// 환경 변수 로드
-config();
+// 환경 변수 로드 (테스트 subprocess는 repo .env 유입 방지)
+if (process.env.NODE_ENV !== 'test') {
+  config();
+}
 
 const embeddingProvider = (resolveString('EMBEDDING_PROVIDER') as EmbeddingProvider) || 'minilm';
 const llmProvider = (resolveString('LLM_PROVIDER') as LLMProvider) || 'auto';

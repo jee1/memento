@@ -53,6 +53,13 @@ export function resolveEnvPath(options: EnvLoaderOptions = {}): string {
  * 없으면 무시(에러 아님).
  */
 export function loadEnv(options: EnvLoaderOptions = {}): void {
+  const hasExplicitSource =
+    (options.envFile !== undefined && options.envFile !== '') ||
+    options.configDir !== undefined ||
+    process.env.MEMENTO_CONFIG_DIR !== undefined;
+  if (process.env.NODE_ENV === 'test' && !hasExplicitSource) {
+    return;
+  }
   const resolved = resolveEnvPath(options);
   if (fs.existsSync(resolved)) {
     config({ path: resolved });

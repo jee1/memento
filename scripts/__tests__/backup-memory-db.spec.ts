@@ -10,12 +10,12 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const scriptPath = 'scripts/backup-memory-db.mjs';
+const scriptPath = resolve('scripts/backup-memory-db.mjs');
 const frozenTimestamp = '2026-08-23T01:02:03.456Z';
 const frozenBackupName = 'memory-backup-2026-08-23T01-02-03-456Z.db';
 
@@ -39,7 +39,7 @@ function createDb(dbPath: string): void {
 function runBackup(dbPath: string, extraNodeArgs: string[] = []) {
   return spawnSync(process.execPath, [...extraNodeArgs, scriptPath], {
     cwd: process.cwd(),
-    env: { ...process.env, DB_PATH: dbPath },
+    env: { ...process.env, NODE_ENV: 'test', DB_PATH: dbPath },
     encoding: 'utf8',
   });
 }
@@ -47,7 +47,7 @@ function runBackup(dbPath: string, extraNodeArgs: string[] = []) {
 function runBackupScript(dbPath: string, scriptArgs: string[], extraNodeArgs: string[] = []) {
   return spawnSync(process.execPath, [...extraNodeArgs, scriptPath, ...scriptArgs], {
     cwd: process.cwd(),
-    env: { ...process.env, DB_PATH: dbPath },
+    env: { ...process.env, NODE_ENV: 'test', DB_PATH: dbPath },
     encoding: 'utf8',
   });
 }

@@ -69,10 +69,14 @@ function runCli(
   args: string[],
   options: NodeJS.ProcessEnv | RunCliOptions = {},
 ): Promise<{ stdout: string; stderr: string; code: number }> {
-  const { env: optEnv, cwd: optCwd } = typeof (options as RunCliOptions).cwd === 'string'
-    ? (options as RunCliOptions)
-    : { env: options as NodeJS.ProcessEnv, cwd: undefined };
-  const env = optEnv !== undefined ? optEnv : { ...process.env };
+  let optEnv: NodeJS.ProcessEnv | undefined;
+  let optCwd: string | undefined;
+  if (typeof (options as RunCliOptions).cwd === 'string') {
+    ({ env: optEnv, cwd: optCwd } = options as RunCliOptions);
+  } else if (Object.keys(options).length > 0) {
+    optEnv = options as NodeJS.ProcessEnv;
+  }
+  const env = { ...process.env, NODE_ENV: 'test', ...optEnv };
   const cwd = optCwd ?? process.cwd();
 
   return new Promise((resolve) => {

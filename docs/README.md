@@ -75,6 +75,8 @@ Memento를 다른 앱이나 에이전트에 붙일 때는, **무엇을 호출할
 
 Memento가 **왜 이렇게 나뉘어 있는지**를 이해하려면 아키텍처 문서를 읽습니다. DB ERD와 비동기 보강 파이프라인, FTS5 마이그레이션 전략처럼 설계 결정이 드러나는 문서들이 여기에 모여 있습니다.
 
+- C4 Model (Context · Container · Component): [KO](architecture/ko/c4/README.md)
+- ARC42 아키텍처 명세 (제약·품질·ADR·리스크): [KO](architecture/ko/arc42.md)
 - DB ERD: [KO](architecture/ko/database-erd.md) / [EN](architecture/en/database-erd.md) (영문은 KO 링크 안내)
 - 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
 - FTS5 무중단 마이그레이션: [KO](architecture/ko/zero-downtime-fts5-migration.md) / [EN](architecture/en/zero-downtime-fts5-migration.md)
