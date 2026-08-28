@@ -17,6 +17,7 @@ import OpenAI from 'openai';
 import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { resolveLlmProvider } from '../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { CACHE, CONFIDENCE, LIMITS, LLM_COST, RATE_LIMITER } from '../../../shared/constants/relation-constants.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
@@ -70,6 +71,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private openaiClient: OpenAI | null = null;
   private geminiClient: GoogleGenAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
+  private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
   private readonly initializationPromise: Promise<void>;
   private readonly embeddingService: UnifiedEmbeddingService;
   private readonly cache: ICacheService<RelationCandidate[]>; // 7일 TTL
@@ -114,6 +116,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       this.preferredProvider = null;
       this.openaiClient = null;
       this.geminiClient = null;
+      this.initializedProviders = [];
     });
   }
 
@@ -133,6 +136,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     // LLMClientInitializer 결과를 사용하여 클라이언트 설정
     this.openaiClient = result.openaiClient;
     this.geminiClient = result.geminiClient;
+    this.initializedProviders = result.initializedProviders ?? [];
     
     // 경고 메시지 로깅
     if (result.warnings.length > 0 && result.preferredProvider === null) {
@@ -158,7 +162,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     if (this.preferredProvider === 'gemini') {
       return this.geminiClient !== null;
     }
-    if (this.preferredProvider === 'ollama') {
+    if (this.preferredProvider === 'ollama' || this.isOllamaAvailable()) {
       return true;
     }
 
@@ -180,14 +184,11 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   }
 
   /**
-   * 로컬(ollama) 프로바이더 사용 가능 여부.
-   *
-   * preferredProvider 는 초기화가 연결 점검에 성공했을 때만 'ollama' 가 되므로
-   * 설정값을 다시 확인하지 않는다. 설정값까지 요구하면 자동 선택으로 ollama 가
-   * 채택된 환경에서 isAvailable() 과 실행 경로의 판정이 어긋난다 (FR-010).
+   * Job-scoped Ollama readiness (FR-005): global preferred 가 cloud 여도
+   * initializedProviders 에 ollama 가 있으면 per-job override 경로에서 사용 가능.
    */
   private isOllamaAvailable(): boolean {
-    return this.preferredProvider === 'ollama';
+    return this.initializedProviders.includes('ollama');
   }
 
   private providerAvailability() {
@@ -224,7 +225,8 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       retryManager: this.retryManager,
       calculateAndLogCost: (provider, promptTokens, completionTokens) =>
         this.calculateAndLogCost(provider, promptTokens, completionTokens),
-      parseLlmRelationsResponse
+      parseLlmRelationsResponse,
+      initPreferredProvider: this.preferredProvider,
     };
   }
 
@@ -234,7 +236,8 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       retryManager: this.retryManager,
       calculateAndLogCost: (provider, promptTokens, completionTokens) =>
         this.calculateAndLogCost(provider, promptTokens, completionTokens),
-      parseLlmRelationsResponse
+      parseLlmRelationsResponse,
+      initPreferredProvider: this.preferredProvider,
     };
   }
 
@@ -244,7 +247,8 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       retryManager: this.retryManager,
       calculateAndLogCost: (provider, promptTokens, completionTokens) =>
         this.calculateAndLogCost(provider, promptTokens, completionTokens),
-      parseLlmRelationsResponse
+      parseLlmRelationsResponse,
+      initPreferredProvider: this.preferredProvider,
     };
   }
 
@@ -439,7 +443,7 @@ ${memoryList}
     // Provider 결정 (fallback 로직 포함)
     // preferredProvider가 null이거나 클라이언트가 초기화되지 않았을 때 
     // 다른 사용 가능한 provider로 자동 전환
-    const requestedProvider = this.preferredProvider || mementoConfig.llmProvider || 'auto';
+    const requestedProvider = resolveLlmProvider('relation_extraction');
     const actualProvider = this.determineProvider(
       requestedProvider as 'openai' | 'gemini' | 'ollama' | 'auto'
     );

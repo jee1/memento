@@ -1,5 +1,6 @@
 import type OpenAI from 'openai';
-import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
+import { resolveBoundLlmProvider, resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -16,6 +17,7 @@ export interface OpenAiRelationExtractDeps {
     completionTokens: number
   ) => number;
   parseLlmRelationsResponse: (text: string) => ParseResult;
+  initPreferredProvider?: 'openai' | 'gemini' | 'ollama' | null;
 }
 
 export async function extractRelationsWithOpenAI(
@@ -31,7 +33,9 @@ export async function extractRelationsWithOpenAI(
     await deps.rateLimiter.consume();
 
     try {
-      const model = resolveLlmModel('openai', 'relation_extraction');
+      const model = resolveLlmModel('openai', 'relation_extraction', mementoConfig, {
+        boundProvider: resolveBoundLlmProvider('relation_extraction', deps.initPreferredProvider ?? null),
+      });
       const retryOptions = getRetryOptions();
       const response = await deps.retryManager.retry(
         async () => {

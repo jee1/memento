@@ -74,6 +74,12 @@ export interface MementoConfig {
     procedural?: string;
     consolidation?: string;
   };
+  /** 용도별 LLM provider override (unset 시 llmProvider 사용) */
+  llmProviderOverrides: {
+    triple_extraction?: LLMProvider;
+    relation_extraction?: LLMProvider;
+    procedural?: LLMProvider;
+  };
   searchDefaultLimit: number;
   searchMaxLimit: number;
   forgetTTL: {

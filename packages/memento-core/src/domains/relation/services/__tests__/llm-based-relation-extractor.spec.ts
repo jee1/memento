@@ -118,6 +118,7 @@ const { createMockConfig, mockConfig } = vi.hoisted(() => {
     geminiModel: 'gemini-1.5-flash',
     geminiLlmModel: 'gemini-2.0-flash',
     llmModelOverrides: {} as Record<string, string | undefined>,
+    llmProviderOverrides: {} as Record<string, string | undefined>,
     ollamaBaseUrl: undefined as string | undefined,
     ollamaModel: undefined as string | undefined
   });
@@ -620,6 +621,32 @@ describe('LLMBasedRelationExtractor', () => {
 
       // Then: 사용 가능한 첫 번째 provider인 'gemini'를 반환해야 함
       expect(result).toBe('gemini');
+    });
+
+    /**
+     * Given: global init preferred is openai but job override requests ollama and Ollama passed readiness
+     * When: 'ollama' provider is requested (via resolveLlmProvider job override)
+     * Then: 'ollama' should be returned (not fallback to openai)
+     */
+    it('returns ollama when job override selects ollama and initializedProviders includes ollama', async () => {
+      const mockOpenAIClient = {} as any;
+      const mockInitializeResult: LLMClientInitializationResult = {
+        preferredProvider: 'openai' as const,
+        openaiClient: mockOpenAIClient,
+        geminiClient: null,
+        initializedProviders: ['openai', 'ollama'] as ('openai' | 'gemini' | 'ollama')[],
+        warnings: [],
+      };
+
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue(mockInitializeResult);
+
+      extractor = new LLMBasedRelationExtractor();
+      await (extractor as any).initializationPromise;
+
+      // @ts-expect-error - private method access for test
+      expect(extractor.determineProvider('ollama')).toBe('ollama');
+      // @ts-expect-error - private method access for test
+      expect(extractor.isOllamaAvailable()).toBe(true);
     });
   });
 

@@ -169,5 +169,49 @@ describe('LLMClientInitializer', () => {
 
       loggerWarnSpy.mockRestore();
     });
+
+    it('tests Ollama when only a job override selects ollama', async () => {
+      process.env.LLM_PROVIDER = 'openai';
+      mockMementoConfig.llmProvider = 'openai';
+      mockMementoConfig.llmProviderOverrides = { triple_extraction: 'ollama' };
+      mockMementoConfig.openaiApiKey = 'sk-test';
+      mockMementoConfig.ollamaBaseUrl = 'http://localhost:11434';
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ models: [] }),
+      });
+      global.fetch = mockFetch as typeof global.fetch;
+
+      const mockAbortSignal = new EventTarget() as AbortSignal;
+      const mockTimeout = vi.fn((ms: number) => mockAbortSignal);
+      global.AbortSignal = {
+        ...originalAbortSignal,
+        timeout: mockTimeout,
+      } as typeof AbortSignal;
+
+      const initializer = new LLMClientInitializer();
+      const result = await initializer.initialize();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:11434/api/tags',
+        expect.objectContaining({ method: 'GET' })
+      );
+      expect(result.initializedProviders).toContain('ollama');
+    });
+
+    it('does not require new Ollama test when overrides unset and provider is openai', async () => {
+      process.env.LLM_PROVIDER = 'openai';
+      mockMementoConfig.llmProvider = 'openai';
+      mockMementoConfig.llmProviderOverrides = {};
+      mockMementoConfig.openaiApiKey = 'sk-test';
+
+      const mockFetch = vi.fn();
+      global.fetch = mockFetch as typeof global.fetch;
+
+      await new LLMClientInitializer().initialize();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 });

@@ -5,7 +5,11 @@
 
 import { logger } from '../../../shared/utils/logger.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { resolveLlmModel } from '../../../shared/config/llm-model-resolver.js';
+import {
+  resolveBoundLlmProvider,
+  resolveLlmModel,
+  resolveLlmProvider,
+} from '../../../shared/config/llm-model-resolver.js';
 import type { IProceduralMemoryExtractor, ExtractedProceduralMemory, ReflectionNotes } from './procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../../monitoring/services/failure-detector.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
@@ -13,6 +17,23 @@ import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js
 import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import OpenAI from 'openai';
+
+type ConcreteLlmProvider = 'openai' | 'gemini' | 'ollama';
+
+function pickProceduralProvider(
+  requested: 'openai' | 'gemini' | 'ollama' | 'auto',
+  availability: Record<ConcreteLlmProvider, boolean>
+): ConcreteLlmProvider | null {
+  const order: ConcreteLlmProvider[] =
+    requested === 'auto'
+      ? ['openai', 'gemini', 'ollama']
+      : requested === 'openai'
+        ? ['openai', 'gemini', 'ollama']
+        : requested === 'gemini'
+          ? ['gemini', 'openai', 'ollama']
+          : ['ollama', 'openai', 'gemini'];
+  return order.find((provider) => availability[provider]) ?? null;
+}
 
 const SYSTEM_PROMPT = `Reflexion 결과에서 절차적 기억(workflow, skill, steps, trigger_conditions)만 추출한다.
 다른 설명 없이 아래 JSON 형태 한 개만 출력한다.
@@ -89,12 +110,21 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     this.initResult = result;
 
     const timeoutMs = mementoConfig.proceduralLlmExtractorTimeoutMs ?? 10000;
+    const requested = resolveLlmProvider('procedural');
+    const actual = pickProceduralProvider(requested, {
+      openai: result.openaiClient !== null,
+      gemini: result.geminiClient !== null,
+      ollama: result.initializedProviders.includes('ollama'),
+    });
 
-    if (result.preferredProvider === 'openai' && result.openaiClient) {
+    if (actual === 'openai' && result.openaiClient) {
       return this.callOpenAI(result.openaiClient, messages, timeoutMs);
     }
-    if (result.preferredProvider === 'gemini' && result.geminiClient) {
+    if (actual === 'gemini' && result.geminiClient) {
       return this.callGemini(result.geminiClient, messages, timeoutMs);
+    }
+    if (actual === 'ollama') {
+      return this.callOllama(messages, timeoutMs);
     }
 
     throw new Error('사용 가능한 LLM provider 없음');
@@ -109,7 +139,9 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     const res = await this.retryManager.retry(
       async () => {
         return await client.chat.completions.create({
-          model: resolveLlmModel('openai', 'procedural'),
+          model: resolveLlmModel('openai', 'procedural', mementoConfig, {
+            boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+          }),
           messages: messages as OpenAI.ChatCompletionMessageParam[],
           temperature: 0.3,
           max_tokens: 1024,
@@ -138,7 +170,9 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     const retryOptions = getRetryOptions();
     return await this.retryManager.retry(
       async () => {
-        const model = resolveLlmModel('gemini', 'procedural');
+        const model = resolveLlmModel('gemini', 'procedural', mementoConfig, {
+          boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+        });
         const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -160,6 +194,51 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
           const msg = error.message.toLowerCase();
           return msg.includes('network error') || msg.includes('rate limit') || msg.includes('503');
         }
+      }
+    );
+  }
+
+  private async callOllama(
+    messages: Array<{ role: string; content: string }>,
+    timeoutMs: number
+  ): Promise<string> {
+    const retryOptions = getRetryOptions();
+    const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
+    const model = resolveLlmModel('ollama', 'procedural', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+    });
+    const prompt = messages.map((m) => `${m.role}: ${m.content}`).join('\n\n');
+
+    return await this.retryManager.retry(
+      async () => {
+        const response = await fetch(`${baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            prompt,
+            stream: false,
+            format: 'json',
+            options: { temperature: 0.3 },
+          }),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!response.ok) {
+          throw new Error(`Ollama HTTP ${response.status}`);
+        }
+        const payload = (await response.json()) as { response?: string };
+        if (!payload.response) {
+          throw new Error('Ollama 응답 내용 없음');
+        }
+        return payload.response;
+      },
+      {
+        maxAttempts: retryOptions.external_api.maxAttempts,
+        baseDelay: retryOptions.external_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          const msg = error.message.toLowerCase();
+          return msg.includes('network') || msg.includes('timeout') || msg.includes('503');
+        },
       }
     );
   }

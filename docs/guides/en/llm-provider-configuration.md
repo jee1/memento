@@ -78,11 +78,41 @@ LLM_MODEL_PROCEDURAL=            # procedural memory processing
 LLM_MODEL_CONSOLIDATION=         # episodic → semantic consolidation
 ```
 
-When set, these values take precedence over the provider's default model (`OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`, or `OLLAMA_MODEL`). The resolution order for any given LLM call is:
+When set, these values take precedence over the provider's default model (`OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`, or `OLLAMA_MODEL`) — **only while the runtime provider still equals the bound provider** (see binding rule below). The resolution order for any given LLM call is:
 
-1. The corresponding `LLM_MODEL_*` variable (if set)
+1. The corresponding `LLM_MODEL_*` variable (if set and bound provider matches runtime)
 2. The provider's default model variable (`OPENAI_LLM_MODEL`, etc.)
 3. The code's hardcoded fallback (gpt-4o-mini, gemini-2.0-flash, llama3)
+
+Empty or whitespace-only `LLM_MODEL_*` values are treated as unset.
+
+## Per-Job Provider Overrides
+
+For triple extraction, relation extraction, and procedural extraction you can prefer a different provider than the global `LLM_PROVIDER`. (Consolidation, personal-agent, and embedding stay on their existing axes.)
+
+```bash
+# Per-job provider overrides (optional; unset/empty → global LLM_PROVIDER)
+LLM_PROVIDER_TRIPLE_EXTRACTION=     # openai | gemini | ollama | auto
+LLM_PROVIDER_RELATION_EXTRACTION=
+LLM_PROVIDER_PROCEDURAL=
+```
+
+Behavior:
+
+- **Normalization**: trim + lowercase; same allowed tokens as global `LLM_PROVIDER`.
+- **Invalid values**: treated as unset for that job, with a one-time `[CONFIG WARN]` at config load/init — process does not abort.
+- **Prefer-then-fallback**: a valid override is the job's **preferred** provider; unavailability uses the existing fallback policy (not a hard pin).
+- **Override equals global**: valid no-op (still used for model binding and Ollama readiness).
+- **Ollama readiness**: if any of the three overrides is `ollama`, initialization runs the Ollama connection check even when the global default is cloud.
+
+### Model-override binding (no cross-provider model leak)
+
+Each `LLM_MODEL_*` is bound to:
+
+1. The job's valid `LLM_PROVIDER_*` if set, otherwise
+2. The global default provider resolved for that invocation
+
+If the runtime provider diverges from that bound provider (e.g. after fallback), the mismatched model name is **not** applied; the runtime provider's default model is used instead. That discard is logged and does not by itself fail the job.
 
 ## Fallback Behavior
 

@@ -56,7 +56,9 @@ export class SummarizationService {
     try {
       const apiKey = process.env.OPENAI_API_KEY?.trim();
       if (apiKey) {
-        const model = resolveLlmModel('openai', 'consolidation');
+        const model = resolveLlmModel('openai', 'consolidation', undefined, {
+          boundProvider: 'openai',
+        });
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -86,7 +88,9 @@ export class SummarizationService {
 
       const geminiKey = process.env.GEMINI_API_KEY?.trim();
       if (geminiKey) {
-        const model = resolveLlmModel('gemini', 'consolidation');
+        const model = resolveLlmModel('gemini', 'consolidation', undefined, {
+          boundProvider: 'gemini',
+        });
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
