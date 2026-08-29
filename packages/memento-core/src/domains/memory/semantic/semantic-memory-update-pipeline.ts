@@ -193,27 +193,13 @@ export class SemanticMemoryUpdatePipeline {
       snapshot.predicate,
       snapshot.object
     );
-    let hasIneligibleGlobalRepresentative = false;
     if (existingKg?.representative_memory_id) {
-      const targetRow = this.db.prepare(`
-        SELECT
-          type,
-          owner_id AS ownerId,
-          project_id AS projectId,
-          is_deleted AS isDeleted
-        FROM memory_item
-        WHERE id = ?
-      `).get(existingKg.representative_memory_id) as {
-        type: string;
-        ownerId: string | null;
-        projectId: string | null;
-        isDeleted: number;
-      } | undefined;
-      const isEligibleRepresentative = targetRow?.type === 'semantic' &&
-        targetRow.isDeleted === 0 &&
-        targetRow.ownerId === source.ownerId &&
-        targetRow.projectId === source.projectId;
-      if (isEligibleRepresentative) {
+      const target = this.similarity.findEligibleSemanticMemoryById(
+        existingKg.representative_memory_id,
+        snapshot,
+        source
+      );
+      if (target) {
         this.db.prepare(
           'UPDATE memory_item SET num_times = num_times + 1, last_mentioned_at = ?, recall_count = recall_count + 1 WHERE id = ?'
         ).run(new Date().toISOString(), existingKg.representative_memory_id);
@@ -228,12 +214,13 @@ export class SemanticMemoryUpdatePipeline {
         );
         return { confidence };
       }
-      hasIneligibleGlobalRepresentative = true;
     }
 
-    const duplicate = hasIneligibleGlobalRepresentative
-      ? null
-      : await this.similarity.findDuplicateSemanticMemory(triple, similarityThreshold);
+    const duplicate = await this.similarity.findDuplicateSemanticMemory(
+      snapshot,
+      source,
+      similarityThreshold
+    );
 
     if (duplicate) {
       await this.crud.updateExistingSemanticMemory(duplicate.id, triple, policy, confidence);
@@ -328,6 +315,7 @@ export class SemanticMemoryUpdatePipeline {
     return {
       episodicMemoryId: options.episodicMemoryId,
       episodicImportance: optionalUnitNumber(options.episodicImportance, 0.5, 'episodicImportance'),
+      episodicImportanceProvided: options.episodicImportance !== undefined,
       confidenceThreshold: optionalUnitNumber(
         options.confidenceThreshold,
         DEFAULT_CONFIDENCE_THRESHOLD,

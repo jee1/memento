@@ -296,19 +296,25 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       const kgTripleRepo = (service as unknown as {
         kgTripleRepo: { upsertTriple: (...args: unknown[]) => string };
       }).kgTripleRepo;
-      vi.spyOn(kgTripleRepo, 'upsertTriple').mockImplementation(() => {
-        throw new Error('synthetic KG write failure');
-      });
+      const upsertTriple = kgTripleRepo.upsertTriple.bind(kgTripleRepo);
+      vi.spyOn(kgTripleRepo, 'upsertTriple')
+        .mockImplementationOnce(() => {
+          throw new Error('synthetic KG write failure');
+        })
+        .mockImplementation((...args) => upsertTriple(...args));
 
       const result = await service.updateSemanticMemory(
-        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        {
+          triples: [validTriple('first'), validTriple('second')],
+          extractionInfo: validExtractionInfo()
+        },
         { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
       );
 
-      expect(result).toMatchObject({ created: 0, updated: 0, skipped: 1 });
-      expect(countRows('memory_item', "type = 'semantic'")).toBe(0);
-      expect(countRows('kg_triple')).toBe(0);
-      expect(countRows('memory_relation')).toBe(0);
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 1 });
+      expect(countRows('memory_item', "type = 'semantic'")).toBe(1);
+      expect(countRows('kg_triple')).toBe(1);
+      expect(readSemantic(result.semanticMemoryIds[0])?.subject).toBe('second');
     });
 
     it('keeps an ineligible global KG representative while committing a scoped fallback', async () => {
@@ -362,6 +368,110 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
         WHERE id = 'global-kg'
       `)).toEqual({ representative_memory_id: 'global-representative' });
       expect(countRows('kg_triple')).toBe(1);
+
+      insertEpisodic('episode-2', 0.6, 'owner-1', 'project-1');
+      const second = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-2', confidenceThreshold: 0.7 }
+      );
+
+      expect(second).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+      expect(second.semanticMemoryIds).toEqual(result.semanticMemoryIds);
+      expect(countRows('memory_item', "type = 'semantic'")).toBe(2);
+      expect(countRows('kg_triple')).toBe(1);
+    });
+
+    it('does not update a same-scope user-authored global representative', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertGlobalRepresentative({
+        originSource: JSON.stringify({ tool: 'remember', caller: 'user' })
+      });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(readSemantic('global-representative')).toMatchObject({
+        confidence: 0.9,
+        importance: 0.9,
+        num_times: 4
+      });
+    });
+
+    it('does not update a stale-structure global representative', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertGlobalRepresentative({ subject: 'stale subject' });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(readSemantic('global-representative')).toMatchObject({
+        subject: 'stale subject',
+        confidence: 0.9,
+        importance: 0.9,
+        num_times: 4
+      });
+    });
+
+    it.each([
+      ['invalid confidence', { confidence: 1.1 }],
+      ['NULL importance', { importance: null }],
+      ['invalid num_times', { numTimes: 0 }],
+      ['exhausted num_times', { numTimes: Number.MAX_SAFE_INTEGER }]
+    ])('does not update a global representative with %s', async (_name, overrides) => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertGlobalRepresentative(overrides);
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(readSemantic('global-representative')).toMatchObject({
+        confidence: overrides.confidence ?? 0.9,
+        importance: overrides.importance === undefined ? 0.9 : null,
+        num_times: overrides.numTimes ?? 4
+      });
+    });
+
+    it('accepts an empty-origin legacy representative only with extracted_from provenance', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertGlobalRepresentative({ originSource: '{}' });
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_relation (
+          source_id, target_id, relation_type, confidence, metadata
+        ) VALUES ('global-representative', 'episode-1', 'extracted_from', 0.9, '{}')
+      `);
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+      expect(result.semanticMemoryIds).toEqual(['global-representative']);
+    });
+
+    it('uses the normalized snapshot without canonicalizing or linking again', async () => {
+      insertEpisodic('episode-1');
+      const scoring = (service as unknown as {
+        scoring: { prepareNormalizedTriple: (triple: unknown, index: number) => unknown };
+      }).scoring;
+      const prepareSpy = vi.spyOn(scoring, 'prepareNormalizedTriple');
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result.created).toBe(1);
+      expect(prepareSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -402,6 +512,41 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     `, [id, `${id} content`, importance, ownerId, projectId]);
   }
 
+  function insertGlobalRepresentative(overrides: {
+    subject?: string;
+    confidence?: number | null;
+    importance?: number | null;
+    numTimes?: number;
+    originSource?: string;
+  } = {}): void {
+    DatabaseUtils.run(db, `
+      INSERT INTO memory_item (
+        id, type, content, subject, predicate, object, confidence, importance,
+        num_times, owner_id, project_id, origin_source, privacy_scope
+      ) VALUES (?, 'semantic', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'private')
+    `, [
+      'global-representative',
+      'automatic semantic',
+      overrides.subject ?? '시스템',
+      '사용함',
+      'feature',
+      overrides.confidence === undefined ? 0.9 : overrides.confidence,
+      overrides.importance === undefined ? 0.9 : overrides.importance,
+      overrides.numTimes ?? 4,
+      'owner-1',
+      'project-1',
+      overrides.originSource ?? JSON.stringify({
+        tool: 'extract_triples',
+        caller: 'system',
+        context: { source_episodic_id: 'original-episode' }
+      })
+    ]);
+    DatabaseUtils.run(db, `
+      INSERT INTO kg_triple (id, subject, predicate, object, representative_memory_id)
+      VALUES ('global-kg', '시스템', '사용함', 'feature', 'global-representative')
+    `);
+  }
+
   function countRows(table: 'memory_item' | 'kg_triple' | 'memory_relation', where?: string): number {
     const query = where
       ? `SELECT COUNT(*) AS count FROM ${table} WHERE ${where}`
@@ -413,7 +558,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     subject: string;
     predicate: string;
     object: string;
-    importance: number;
+    importance: number | null;
   } | undefined {
     return DatabaseUtils.get(db, `
       SELECT subject, predicate, object, importance
@@ -423,7 +568,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       subject: string;
       predicate: string;
       object: string;
-      importance: number;
+      importance: number | null;
     } | undefined;
   }
 
@@ -432,7 +577,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     predicate: string;
     object: string;
     confidence: number | null;
-    importance: number;
+    importance: number | null;
     num_times: number;
     owner_id: string | null;
     project_id: string | null;
@@ -450,7 +595,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       predicate: string;
       object: string;
       confidence: number | null;
-      importance: number;
+      importance: number | null;
       num_times: number;
       owner_id: string | null;
       project_id: string | null;

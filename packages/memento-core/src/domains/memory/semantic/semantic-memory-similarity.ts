@@ -3,57 +3,119 @@
  */
 
 import Database from 'better-sqlite3';
-import type { Triple } from '../../../shared/types/triple-extraction.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
+import type {
+  EpisodicSourceSnapshot,
+  NormalizedTripleSnapshot
+} from './semantic-memory-update-types.js';
+
+interface SemanticCandidate {
+  id: string;
+  subject: string;
+  predicate: string;
+  object: string;
+}
+
+interface EligibilityRow extends SemanticCandidate {
+  type: string;
+  confidence: number | null;
+  importance: number | null;
+  numTimes: number;
+  ownerId: string | null;
+  projectId: string | null;
+  isDeleted: number;
+  originSource: string | null;
+  hasExtractedFrom: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isUnitNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+}
 
 export class SemanticMemorySimilarity {
   constructor(
     private db: Database.Database,
-    private embeddingService: UnifiedEmbeddingService,
-    private scoring: SemanticMemoryScoring
+    private embeddingService: UnifiedEmbeddingService
   ) {}
 
-  async findDuplicateSemanticMemory(
-    triple: Triple,
-    similarityThreshold: number
-  ): Promise<{ id: string; subject: string; predicate: string; object: string } | null> {
-    const { normalizedSubject, normalizedPredicate, normalizedObject } =
-      this.scoring.canonicalizeAndLink(triple);
+  findEligibleSemanticMemoryById(
+    id: string,
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot
+  ): SemanticCandidate | null {
+    const row = DatabaseUtils.get(this.db, `
+      SELECT
+        m.id, m.type, m.subject, m.predicate, m.object, m.confidence, m.importance,
+        m.num_times AS numTimes, m.owner_id AS ownerId, m.project_id AS projectId,
+        m.is_deleted AS isDeleted, m.origin_source AS originSource,
+        EXISTS (
+          SELECT 1
+          FROM memory_relation r
+          WHERE r.source_id = m.id AND r.relation_type = 'extracted_from'
+        ) AS hasExtractedFrom
+      FROM memory_item m
+      WHERE m.id = ?
+    `, [id]) as EligibilityRow | undefined;
 
-    const exactMatch = DatabaseUtils.get(this.db, `
+    return row && this.isEligible(row, snapshot, source)
+      ? this.toCandidate(row)
+      : null;
+  }
+
+  async findDuplicateSemanticMemory(
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot,
+    similarityThreshold: number
+  ): Promise<SemanticCandidate | null> {
+    const exactRows = DatabaseUtils.all(this.db, `
+      SELECT
+        m.id, m.type, m.subject, m.predicate, m.object, m.confidence, m.importance,
+        m.num_times AS numTimes, m.owner_id AS ownerId, m.project_id AS projectId,
+        m.is_deleted AS isDeleted, m.origin_source AS originSource,
+        EXISTS (
+          SELECT 1
+          FROM memory_relation r
+          WHERE r.source_id = m.id AND r.relation_type = 'extracted_from'
+        ) AS hasExtractedFrom
+      FROM memory_item m
+      WHERE m.type = 'semantic'
+        AND m.is_deleted = 0
+        AND m.owner_id IS ?
+        AND m.project_id IS ?
+        AND m.predicate = ?
+        AND m.subject = ?
+        AND m.object = ?
+      ORDER BY m.created_at, m.id
+    `, [
+      source.ownerId,
+      source.projectId,
+      snapshot.predicate,
+      snapshot.subject,
+      snapshot.object
+    ]) as EligibilityRow[];
+    const exactMatch = exactRows.find((row) => this.isEligible(row, snapshot, source));
+
+    if (exactMatch) {
+      return this.toCandidate(exactMatch);
+    }
+
+    const candidates = DatabaseUtils.all(this.db, `
       SELECT id, subject, predicate, object
       FROM memory_item
       WHERE type = 'semantic'
         AND predicate = ?
-        AND subject = ?
-        AND object = ?
-      LIMIT 1
-    `, [normalizedPredicate, normalizedSubject, normalizedObject]) as {
+    `, [snapshot.predicate]) as Array<{
       id: string;
       subject: string;
       predicate: string;
       object: string;
-    } | undefined;
-
-    if (exactMatch) {
-      return exactMatch;
-    }
-
-    const candidates = DatabaseUtils.all(this.db, `
-      SELECT id, subject, predicate, object, content
-      FROM memory_item
-      WHERE type = 'semantic'
-        AND predicate = ?
-    `, [normalizedPredicate]) as Array<{
-      id: string;
-      subject: string;
-      predicate: string;
-      object: string;
-      content: string;
     }>;
 
     if (candidates.length === 0) {
@@ -61,13 +123,16 @@ export class SemanticMemorySimilarity {
     }
 
     for (const candidate of candidates) {
+      if (candidate.subject === snapshot.subject && candidate.object === snapshot.object) {
+        continue;
+      }
       const subjectSimilar = await this.checkSimilarity(
-        normalizedSubject,
+        snapshot.subject,
         candidate.subject,
         similarityThreshold
       );
       const objectSimilar = await this.checkSimilarity(
-        normalizedObject,
+        snapshot.object,
         candidate.object,
         similarityThreshold
       );
@@ -83,6 +148,58 @@ export class SemanticMemorySimilarity {
     }
 
     return null;
+  }
+
+  private isEligible(
+    row: EligibilityRow,
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot
+  ): boolean {
+    return row.type === 'semantic' &&
+      row.isDeleted === 0 &&
+      row.ownerId === source.ownerId &&
+      row.projectId === source.projectId &&
+      row.subject === snapshot.subject &&
+      row.predicate === snapshot.predicate &&
+      row.object === snapshot.object &&
+      row.subject.trim() !== '' &&
+      row.predicate.trim() !== '' &&
+      row.object.trim() !== '' &&
+      (row.confidence === null || isUnitNumber(row.confidence)) &&
+      isUnitNumber(row.importance) &&
+      Number.isSafeInteger(row.numTimes) &&
+      row.numTimes > 0 &&
+      row.numTimes < Number.MAX_SAFE_INTEGER &&
+      this.hasAutomaticProvenance(row);
+  }
+
+  private hasAutomaticProvenance(row: EligibilityRow): boolean {
+    const rawOrigin = row.originSource?.trim() ?? '';
+    if (rawOrigin === '' || rawOrigin === '{}') {
+      return row.hasExtractedFrom === 1;
+    }
+
+    try {
+      const origin = JSON.parse(rawOrigin) as unknown;
+      if (!isRecord(origin) || origin.tool !== 'extract_triples' || origin.caller !== 'system') {
+        return false;
+      }
+      const context = origin.context;
+      return isRecord(context) &&
+        typeof context.source_episodic_id === 'string' &&
+        context.source_episodic_id.trim() !== '';
+    } catch {
+      return false;
+    }
+  }
+
+  private toCandidate(row: SemanticCandidate): SemanticCandidate {
+    return {
+      id: row.id,
+      subject: row.subject,
+      predicate: row.predicate,
+      object: row.object
+    };
   }
 
   async checkSimilarity(entity1: string, entity2: string, threshold: number): Promise<boolean> {

@@ -42,6 +42,7 @@ export interface SemanticMemoryUpdateOptions {
 export interface InvocationPolicySnapshot {
   episodicMemoryId: string;
   episodicImportance: number;
+  episodicImportanceProvided: boolean;
   confidenceThreshold: number;
   similarityThreshold: number;
 }

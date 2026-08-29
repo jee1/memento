@@ -50,7 +50,7 @@ export class SemanticMemoryUpdateService {
 
     this.scoring = new SemanticMemoryScoring();
     this.kgTripleRepo = kgTripleRepo ?? new KgTripleRepository(db);
-    this.similarity = new SemanticMemorySimilarity(db, resolvedEmbeddingService, this.scoring);
+    this.similarity = new SemanticMemorySimilarity(db, resolvedEmbeddingService);
     this.crud = new SemanticMemoryCrud(db, this.kgTripleRepo, this.scoring, memoryEmbeddingService);
     this.relations = new SemanticMemoryRelations(db, relationGraph);
     this.statistics = new SemanticMemoryStatisticsService();
@@ -93,10 +93,9 @@ export class SemanticMemoryUpdateService {
       return request.result;
     }
     const source = this.snapshotEpisodicSource(request.policy.episodicMemoryId);
-    const providedImportance = (options as { episodicImportance?: number }).episodicImportance;
-    const episodicImportance = providedImportance === undefined
-      ? source.importance ?? 0.5
-      : request.policy.episodicImportance;
+    const episodicImportance = request.policy.episodicImportanceProvided
+      ? request.policy.episodicImportance
+      : source.importance ?? 0.5;
     if (!Number.isFinite(episodicImportance) || episodicImportance < 0 || episodicImportance > 1) {
       throw new TypeError('Invalid semantic update source importance');
     }
