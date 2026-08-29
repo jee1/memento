@@ -218,8 +218,9 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       const crud = (service as unknown as {
         crud: { createSemanticEmbedding: (memoryId: string, content: string) => Promise<void> };
       }).crud;
+      const warn = vi.spyOn(logger, 'warn');
       const relationAttempt = vi.spyOn(relations, 'createEpisodicRelation')
-        .mockRejectedValueOnce(new Error('extracted unavailable'))
+        .mockRejectedValueOnce(new Error('RAW_RELATION_SECRET'))
         .mockResolvedValueOnce();
       const embeddingAttempt = vi.spyOn(crud, 'createSemanticEmbedding').mockResolvedValue();
 
@@ -233,6 +234,86 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       expect(relationAttempt.mock.calls.map(([kind]) => kind)).toEqual(['extracted_from', 'supported_by']);
       expect(embeddingAttempt).toHaveBeenCalledOnce();
       expect(readSemantic(result.semanticMemoryIds[0])).toBeDefined();
+      expect(warn).toHaveBeenCalledWith(
+        'SemanticMemoryUpdateService: post-commit 작업 실패 (무시)',
+        {
+          sourceId: 'episode-1',
+          index: 0,
+          kind: 'extracted_from',
+          reason: 'Error'
+        }
+      );
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('RAW_RELATION_SECRET');
+    });
+
+    it('preserves a committed result when debug logging throws', async () => {
+      insertEpisodic('episode-1');
+      vi.spyOn(logger, 'debug').mockImplementation(() => {
+        throw new Error('debug logger unavailable');
+      });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(readSemantic(result.semanticMemoryIds[0])).toBeDefined();
+    });
+
+    it('preserves a committed result when warn logging throws', async () => {
+      insertEpisodic('episode-1');
+      const relations = (service as unknown as {
+        relations: {
+          createEpisodicRelation: (kind: string, sourceId: string, targetId: string, confidence: number) => Promise<void>;
+        };
+      }).relations;
+      vi.spyOn(relations, 'createEpisodicRelation').mockRejectedValue(new Error('relation unavailable'));
+      vi.spyOn(logger, 'warn').mockImplementation(() => {
+        throw new Error('warn logger unavailable');
+      });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(readSemantic(result.semanticMemoryIds[0])).toBeDefined();
+    });
+
+    it('keeps a committed result and processing outcome when error logging throws', async () => {
+      insertEpisodic('episode-1');
+      const scoring = (service as unknown as {
+        scoring: {
+          prepareNormalizedTriple: (triple: unknown, index: number) => unknown;
+        };
+      }).scoring;
+      const originalPrepare = scoring.prepareNormalizedTriple.bind(scoring);
+      vi.spyOn(scoring, 'prepareNormalizedTriple')
+        .mockImplementationOnce(originalPrepare)
+        .mockImplementationOnce(() => {
+          throw new Error('processing sentinel');
+        });
+      const error = vi.spyOn(logger, 'error').mockImplementation(() => {
+        throw new Error('error logger unavailable');
+      });
+
+      const result = await service.updateSemanticMemory(
+        {
+          triples: [validTriple('committed'), validTriple('failed')],
+          extractionInfo: validExtractionInfo()
+        },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 1 });
+      expect(result.semanticMemoryIds).toHaveLength(1);
+      expect(readSemantic(result.semanticMemoryIds[0])).toBeDefined();
+      expect(error).toHaveBeenCalledWith(
+        'SemanticMemoryUpdateService: Triple 처리 실패',
+        { sourceId: 'episode-1', index: 1, reason: 'Error' }
+      );
     });
 
     it('preserves a committed post-commit result when relation, embedding, statistics, and logger fail', async () => {

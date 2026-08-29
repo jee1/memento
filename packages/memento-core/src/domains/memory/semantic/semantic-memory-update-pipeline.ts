@@ -170,6 +170,7 @@ export class SemanticMemoryUpdatePipeline {
       } catch (error) {
         hasError = true;
         safeLog('error', 'SemanticMemoryUpdateService: Triple 처리 실패', {
+          sourceId: source.id,
           reason: error instanceof Error ? error.name : typeof error,
           index: position.index
         });
@@ -222,7 +223,7 @@ export class SemanticMemoryUpdatePipeline {
           policy.episodicMemoryId,
           existingKg.representative_memory_id,
           confidence
-        ));
+        ), source.id, snapshot.index);
         return { confidence };
       }
     }
@@ -248,7 +249,7 @@ export class SemanticMemoryUpdatePipeline {
       await this.settlePostCommit([
         ...this.relationIntents(policy.episodicMemoryId, created.id, confidence),
         { kind: 'embedding', memoryId: created.id, content: created.content }
-      ]);
+      ], source.id, snapshot.index);
       return { confidence };
     }
 
@@ -256,7 +257,7 @@ export class SemanticMemoryUpdatePipeline {
       policy.episodicMemoryId,
       duplicate.id,
       confidence
-    ));
+    ), source.id, snapshot.index);
     return { confidence };
   }
 
@@ -307,7 +308,11 @@ export class SemanticMemoryUpdatePipeline {
     ];
   }
 
-  private async settlePostCommit(intents: readonly PostCommitIntent[]): Promise<void> {
+  private async settlePostCommit(
+    intents: readonly PostCommitIntent[],
+    sourceId: string,
+    inputIndex: number
+  ): Promise<void> {
     const settled = await Promise.allSettled(intents.map(async (intent) => {
       if (intent.kind === 'embedding') {
         await this.crud.createSemanticEmbedding(intent.memoryId, intent.content);
@@ -324,6 +329,8 @@ export class SemanticMemoryUpdatePipeline {
     settled.forEach((outcome, index) => {
       if (outcome.status === 'rejected') {
         safeLog('warn', 'SemanticMemoryUpdateService: post-commit 작업 실패 (무시)', {
+          sourceId,
+          index: inputIndex,
           kind: intents[index]?.kind ?? 'unknown',
           reason: outcome.reason instanceof Error ? outcome.reason.name : typeof outcome.reason
         });
