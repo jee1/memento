@@ -85,12 +85,12 @@ function safeLog(
 
 export class SemanticMemoryUpdatePipeline {
   constructor(
-    private db: Database.Database,
+    _db: Database.Database,
     private scoring: SemanticMemoryScoring,
     private similarity: SemanticMemorySimilarity,
     private crud: SemanticMemoryCrud,
     private relations: SemanticMemoryRelations,
-    private kgTripleRepo: KgTripleRepository,
+    _kgTripleRepo: KgTripleRepository,
     private statistics: SemanticMemoryStatisticsService
   ) {}
 
@@ -202,37 +202,17 @@ export class SemanticMemoryUpdatePipeline {
       return { confidence };
     }
 
-    const existingKg = this.kgTripleRepo.getBySubjectPredicateObject(
-      snapshot.subject,
-      snapshot.predicate,
-      snapshot.object
-    );
-    if (existingKg?.representative_memory_id) {
-      const target = this.similarity.findEligibleSemanticMemoryById(
-        existingKg.representative_memory_id,
-        snapshot,
-        source
-      );
-      if (target) {
-        this.db.prepare(
-          'UPDATE memory_item SET num_times = num_times + 1, last_mentioned_at = ?, recall_count = recall_count + 1 WHERE id = ?'
-        ).run(new Date().toISOString(), existingKg.representative_memory_id);
-        result.updated++;
-        result.semanticMemoryIds.push(existingKg.representative_memory_id);
-        await this.settlePostCommit(this.relationIntents(
-          policy.episodicMemoryId,
-          existingKg.representative_memory_id,
-          confidence
-        ), source.id, snapshot.index);
-        return { confidence };
-      }
-    }
-
-    const duplicate = await this.similarity.findDuplicateSemanticMemory(
+    const decision = await this.similarity.findDuplicateSemanticMemory(
       snapshot,
       source,
       similarityThreshold
     );
+    if (decision.kind === 'indeterminate') {
+      const error = new Error(decision.reason);
+      error.name = decision.reason;
+      throw error;
+    }
+    const duplicate = decision.kind === 'none' ? null : decision.candidate;
 
     if (duplicate) {
       await this.crud.updateExistingSemanticMemory(duplicate.id, policy, confidence);

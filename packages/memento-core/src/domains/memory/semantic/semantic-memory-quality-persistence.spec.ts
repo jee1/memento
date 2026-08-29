@@ -5,7 +5,9 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import { logger } from '../../../shared/utils/logger.js';
+import type { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
 import { SemanticMemoryUpdateService } from './semantic-memory-update-service.js';
 
 describe('SemanticMemoryUpdateService quality persistence boundary', () => {
@@ -768,6 +770,173 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     });
   });
 
+  describe('candidate selection', () => {
+    it('prefers the oldest exact candidate by created_at and ID without similarity access', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertCandidate({ id: 'exact-b', createdAt: '2024-01-01T00:00:00.000Z' });
+      insertCandidate({ id: 'exact-a', createdAt: '2024-01-01T00:00:00.000Z' });
+      insertCandidate({
+        id: 'older-similar',
+        subject: 'similar system',
+        createdAt: '2023-01-01T00:00:00.000Z'
+      });
+      const generateEmbedding = vi.fn().mockRejectedValue(new Error('must not run'));
+      const similarity = new SemanticMemorySimilarity(db, embeddingService(generateEmbedding));
+
+      const decision = await similarity.findDuplicateSemanticMemory(
+        normalizedSnapshot(),
+        { ownerId: 'owner-1', projectId: 'project-1' },
+        0.9
+      );
+
+      expect(decision).toMatchObject({
+        kind: 'exact',
+        candidate: {
+          id: 'exact-a',
+          confidence: 0.9,
+          numTimes: 2,
+          ownerId: 'owner-1',
+          projectId: 'project-1',
+          createdAt: '2024-01-01T00:00:00.000Z'
+        }
+      });
+      expect(generateEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('filters ineligible candidates before embeddings and reuses two input embeddings', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertCandidate({ id: 'other-scope', subject: 'other-scope', ownerId: 'owner-2' });
+      insertCandidate({
+        id: 'user-authored',
+        subject: 'user-authored',
+        originSource: JSON.stringify({ tool: 'remember', caller: 'user' })
+      });
+      insertCandidate({ id: 'deleted', subject: 'deleted', isDeleted: 1 });
+      insertCandidate({ id: 'blank-spo', subject: ' ' });
+      insertCandidate({ id: 'invalid-confidence', subject: 'invalid-confidence', confidence: 1.1 });
+      insertCandidate({ id: 'invalid-count', subject: 'invalid-count', numTimes: 0 });
+      insertCandidate({
+        id: 'stale-representative',
+        subject: 'stale-representative',
+        createdAt: '2020-01-01T00:00:00.000Z'
+      });
+      DatabaseUtils.run(db, `
+        INSERT INTO kg_triple (id, subject, predicate, object, representative_memory_id)
+        VALUES ('stale-kg', 'different', '사용함', 'different', 'stale-representative')
+      `);
+      insertCandidate({
+        id: 'eligible-miss',
+        subject: 'eligible-miss',
+        createdAt: '2021-01-01T00:00:00.000Z'
+      });
+      insertCandidate({
+        id: 'eligible-b',
+        subject: 'eligible-subject',
+        object: 'eligible-object',
+        createdAt: '2022-01-01T00:00:00.000Z'
+      });
+      insertCandidate({
+        id: 'eligible-a',
+        subject: 'eligible-subject',
+        object: 'eligible-object',
+        createdAt: '2022-01-01T00:00:00.000Z'
+      });
+      const vectors: Record<string, number[]> = {
+        '시스템': [1, 0],
+        feature: [0, 1],
+        'eligible-miss': [0, 1],
+        'eligible-subject': [1, 0],
+        'eligible-object': [0, 1]
+      };
+      const generateEmbedding = vi.fn(async (text: string) => embeddingResult(vectors[text] ?? [1, 1]));
+      const similarity = new SemanticMemorySimilarity(db, embeddingService(generateEmbedding));
+
+      const decision = await similarity.findDuplicateSemanticMemory(
+        normalizedSnapshot(),
+        { ownerId: 'owner-1', projectId: 'project-1' },
+        0.9
+      );
+
+      expect(decision).toMatchObject({ kind: 'similar', candidate: { id: 'eligible-a' } });
+      expect(generateEmbedding.mock.calls.filter(([text]) => text === '시스템')).toHaveLength(1);
+      expect(generateEmbedding.mock.calls.filter(([text]) => text === 'feature')).toHaveLength(1);
+      for (const ineligible of [
+        'other-scope',
+        'user-authored',
+        'deleted',
+        'invalid-confidence',
+        'invalid-count',
+        'stale-representative'
+      ]) {
+        expect(generateEmbedding).not.toHaveBeenCalledWith(ineligible);
+      }
+    });
+
+    it('accepts similarity threshold equality', async () => {
+      insertCandidate({ id: 'threshold-equal', subject: 'candidate-subject', object: 'candidate-object' });
+      const input = [1, 0];
+      const equal = [0.5, Math.sqrt(0.75)];
+      const vectors: Record<string, number[]> = {
+        '시스템': input,
+        feature: input,
+        'candidate-subject': equal,
+        'candidate-object': equal
+      };
+      const similarity = new SemanticMemorySimilarity(
+        db,
+        embeddingService(vi.fn(async (text: string) => embeddingResult(vectors[text])))
+      );
+
+      const decision = await similarity.findDuplicateSemanticMemory(
+        normalizedSnapshot(),
+        { ownerId: 'owner-1', projectId: 'project-1' },
+        0.5
+      );
+
+      expect(decision).toMatchObject({ kind: 'similar', candidate: { id: 'threshold-equal' } });
+    });
+
+    it.each([
+      ['invalid score', vi.fn(async (text: string) => embeddingResult(
+        text === '시스템' ? [1, 0] : [Number.NaN, 0]
+      ))],
+      ['provider failure', vi.fn().mockRejectedValue(new Error('provider unavailable'))]
+    ])('returns indeterminate for required %s', async (_name, generateEmbedding) => {
+      insertCandidate({ id: 'eligible-similar', subject: 'candidate-subject', object: 'candidate-object' });
+      const similarity = new SemanticMemorySimilarity(db, embeddingService(generateEmbedding));
+
+      const decision = await similarity.findDuplicateSemanticMemory(
+        normalizedSnapshot(),
+        { ownerId: 'owner-1', projectId: 'project-1' },
+        0.9
+      );
+
+      expect(decision).toMatchObject({ kind: 'indeterminate' });
+    });
+
+    it('skips an indeterminate candidate decision without primary writes', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertCandidate({ id: 'eligible-similar', subject: 'candidate-subject', object: 'candidate-object' });
+      service = new SemanticMemoryUpdateService(
+        db,
+        createRelationGraph(db),
+        embeddingService(vi.fn().mockRejectedValue(new Error('provider unavailable'))),
+        undefined,
+        { createAndStoreEmbedding: vi.fn().mockResolvedValue(undefined) } as unknown as MemoryEmbeddingService
+      );
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
+      expect(countRows('memory_item', "type = 'semantic'")).toBe(1);
+      expect(countRows('kg_triple')).toBe(0);
+      expect(countRows('memory_relation')).toBe(0);
+    });
+  });
+
   function validExtractionInfo() {
     return { steps: { canonicalization: true, entityLinking: true } };
   }
@@ -838,6 +1007,77 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       INSERT INTO kg_triple (id, subject, predicate, object, representative_memory_id)
       VALUES ('global-kg', '시스템', '사용함', 'feature', 'global-representative')
     `);
+  }
+
+  function insertCandidate(overrides: {
+    id: string;
+    subject?: string;
+    predicate?: string;
+    object?: string;
+    confidence?: number | null;
+    importance?: number | null;
+    numTimes?: number;
+    ownerId?: string | null;
+    projectId?: string | null;
+    originSource?: string | null;
+    isDeleted?: 0 | 1;
+    createdAt?: string;
+  }): void {
+    DatabaseUtils.run(db, `
+      INSERT INTO memory_item (
+        id, type, content, subject, predicate, object, confidence, importance,
+        num_times, owner_id, project_id, origin_source, is_deleted, created_at
+      ) VALUES (?, 'semantic', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      overrides.id,
+      `${overrides.id} content`,
+      overrides.subject ?? '시스템',
+      overrides.predicate ?? '사용함',
+      overrides.object ?? 'feature',
+      overrides.confidence === undefined ? 0.9 : overrides.confidence,
+      overrides.importance === undefined ? 0.9 : overrides.importance,
+      overrides.numTimes ?? 2,
+      overrides.ownerId === undefined ? 'owner-1' : overrides.ownerId,
+      overrides.projectId === undefined ? 'project-1' : overrides.projectId,
+      overrides.originSource === undefined
+        ? JSON.stringify({
+            tool: 'extract_triples',
+            caller: 'system',
+            context: { source_episodic_id: 'original-episode' }
+          })
+        : overrides.originSource,
+      overrides.isDeleted ?? 0,
+      overrides.createdAt ?? '2024-01-01T00:00:00.000Z'
+    ]);
+  }
+
+  function normalizedSnapshot() {
+    return {
+      index: 0,
+      subject: '시스템',
+      predicate: '사용함',
+      object: 'feature',
+      predicateCanonicalized: true,
+      subjectLinked: true,
+      objectLinked: false,
+      confidence: 1
+    };
+  }
+
+  function embeddingService(generateEmbedding: ReturnType<typeof vi.fn>): UnifiedEmbeddingService {
+    return {
+      isAvailable: vi.fn().mockReturnValue(true),
+      generateEmbedding
+    } as unknown as UnifiedEmbeddingService;
+  }
+
+  function embeddingResult(embedding: number[]) {
+    return {
+      embedding,
+      model: 'test',
+      provider: 'mock' as const,
+      usage: { prompt_tokens: 0, total_tokens: 0 }
+    };
   }
 
   function countRows(table: 'memory_item' | 'kg_triple' | 'memory_relation', where?: string): number {
