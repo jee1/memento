@@ -3,7 +3,6 @@
  */
 
 import Database from 'better-sqlite3';
-import type { Triple } from '../../../shared/types/triple-extraction.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
@@ -32,7 +31,7 @@ export class SemanticMemoryCrud {
     snapshot: NormalizedTripleSnapshot,
     source: EpisodicSourceSnapshot,
     episodicImportance: number
-  ): Promise<{ id: string; confidence: number; kind: 'created' }> {
+  ): Promise<{ id: string; confidence: number; content: string; kind: 'created' }> {
     if (
       !Number.isFinite(snapshot.confidence) ||
       snapshot.confidence < 0 ||
@@ -100,31 +99,25 @@ export class SemanticMemoryCrud {
       }
     })();
 
-    logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
-      id,
-      confidence: snapshot.confidence,
-      importance
-    });
-
-    // #710: 신규 semantic memory는 임베딩이 없으면 벡터/n-hop 확장에서 소외되므로 생성을 트리거한다.
-    // remember 증강 파이프라인(launchBackgroundAugmentation)과 동일하게 fire-and-forget으로
-    // 처리한다 — 느린 provider가 semantic memory 생성 응답을 지연시키면 안 된다. 실패해도
-    // memory 생성 자체는 이미 커밋되었으므로 로그만 남기고 무시한다.
-    this.memoryEmbeddingService
-      .createAndStoreEmbedding(this.db, id, content, 'semantic')
-      .catch((embeddingError) => {
-        logger.warn('SemanticMemoryUpdateService: Semantic Memory 임베딩 생성 실패 (무시)', {
-          id,
-          error: embeddingError instanceof Error ? embeddingError.message : String(embeddingError)
-        });
+    try {
+      logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
+        id,
+        confidence: snapshot.confidence,
+        importance
       });
+    } catch {
+      // A committed primary write must not depend on logging.
+    }
 
-    return { id, confidence: snapshot.confidence, kind: 'created' };
+    return { id, confidence: snapshot.confidence, content, kind: 'created' };
+  }
+
+  async createSemanticEmbedding(memoryId: string, content: string): Promise<void> {
+    await this.memoryEmbeddingService.createAndStoreEmbedding(this.db, memoryId, content, 'semantic');
   }
 
   async updateExistingSemanticMemory(
     semanticMemoryId: string,
-    triple: Triple,
     options: SemanticMemoryUpdateOptions,
     confidence: number
   ): Promise<void> {
@@ -155,13 +148,16 @@ export class SemanticMemoryCrud {
       WHERE id = ?
     `, [newImportance, nowIso, semanticMemoryId]);
 
-    logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
-      id: semanticMemoryId,
-      triple,
-      episodeWeight,
-      oldImportance: existing.importance,
-      newImportance,
-      confidence
-    });
+    try {
+      logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
+        id: semanticMemoryId,
+        episodeWeight,
+        oldImportance: existing.importance,
+        newImportance,
+        confidence
+      });
+    } catch {
+      // A committed primary write must not depend on logging.
+    }
   }
 }

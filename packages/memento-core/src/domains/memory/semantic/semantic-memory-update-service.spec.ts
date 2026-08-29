@@ -1634,13 +1634,10 @@ describe('SemanticMemoryUpdateService', () => {
           expect(relation.metadata).toBeDefined();
           const metadata = JSON.parse(relation.metadata || '{}');
           
-          // 각 triple별 독립적인 metadata 저장 확인
+          // post-commit 관계 metadata에는 원문 triple/LLM 필드를 남기지 않는다.
           expect(metadata.method).toBe('llm');
-          expect(metadata.triple).toBeDefined();
-          expect(metadata.triple.subject).toBeDefined();
-          expect(metadata.triple.predicate).toBeDefined();
-          expect(metadata.triple.object).toBeDefined();
-          expect(metadata.steps).toBeDefined();
+          expect(metadata).not.toHaveProperty('triple');
+          expect(metadata).not.toHaveProperty('steps');
         }
       }
     });

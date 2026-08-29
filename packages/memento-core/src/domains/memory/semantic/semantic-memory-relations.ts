@@ -3,11 +3,13 @@
  */
 
 import Database from 'better-sqlite3';
-import type { ExtractionInfo, Triple } from '../../../shared/types/triple-extraction.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { RelationGraphPort } from '../../relation/ports/relation-graph.port.js';
 import { DuplicateRelationError } from '../../relation/services/relation-errors.js';
+import type { EpisodicSourceSnapshot } from './semantic-memory-update-types.js';
+
+type EpisodicRelationKind = 'extracted_from' | 'supported_by';
 
 export class SemanticMemoryRelations {
   constructor(
@@ -64,7 +66,7 @@ export class SemanticMemoryRelations {
   async validateRelationDirection(
     sourceId: string,
     targetId: string,
-    relationType: 'extracted_from' | 'supported_by'
+    relationType: EpisodicRelationKind
   ): Promise<void> {
     const sourceMemory = DatabaseUtils.get(this.db, `
       SELECT id, type FROM memory_item WHERE id = ?
@@ -95,91 +97,59 @@ export class SemanticMemoryRelations {
     }
   }
 
-  async createEpisodicEdge(
-    episodicMemoryId: string,
-    semanticMemoryId: string,
-    triple: Triple,
-    extractionInfo: ExtractionInfo,
-    confidence: number
-  ): Promise<void> {
-    await this.validateRelationDirection(semanticMemoryId, episodicMemoryId, 'extracted_from');
-    await this.validateRelationDirection(episodicMemoryId, semanticMemoryId, 'supported_by');
+  validateRelationContract(source: EpisodicSourceSnapshot): void {
+    if (source.type !== 'episodic') {
+      throw new Error('관계 방향 오류: source는 episodic이어야 합니다.');
+    }
 
-    const relationOptions = {
-      confidence,
-      metadata: {
-        method: 'llm' as const,
-        triple: {
-          subject: triple.subject,
-          predicate: triple.predicate,
-          object: triple.object
-        },
-        failureReason: extractionInfo.failureReason,
-        steps: extractionInfo.steps
-      },
-      updateOnConflict: true,
-      allowCyclic: true
-    };
+    const rows = DatabaseUtils.all(this.db, `
+      SELECT type_name, applicable_types
+      FROM relation_type_registry
+      WHERE type_name IN ('extracted_from', 'supported_by')
+    `) as Array<{ type_name: string; applicable_types: string | null }>;
 
-    await this.tryCreateEpisodicRelation(
-      semanticMemoryId,
-      episodicMemoryId,
-      'extracted_from',
-      relationOptions,
-      episodicMemoryId,
-      semanticMemoryId,
-      confidence
-    );
-
-    await this.tryCreateEpisodicRelation(
-      episodicMemoryId,
-      semanticMemoryId,
-      'supported_by',
-      relationOptions,
-      episodicMemoryId,
-      semanticMemoryId,
-      confidence
-    );
+    for (const relationType of ['extracted_from', 'supported_by'] as const) {
+      const row = rows.find((candidate) => candidate.type_name === relationType);
+      let applicableTypes: unknown;
+      try {
+        applicableTypes = row?.applicable_types ? JSON.parse(row.applicable_types) : null;
+      } catch {
+        applicableTypes = null;
+      }
+      if (
+        !Array.isArray(applicableTypes) ||
+        !applicableTypes.includes('episodic') ||
+        !applicableTypes.includes('semantic')
+      ) {
+        throw new Error(`${relationType} 관계 타입 계약 오류`);
+      }
+    }
   }
 
-  private async tryCreateEpisodicRelation(
+  async createEpisodicRelation(
+    relationType: EpisodicRelationKind,
     sourceId: string,
     targetId: string,
-    relationType: 'extracted_from' | 'supported_by',
-    options: {
-      confidence: number;
-      metadata: {
-        method: 'llm';
-        triple: { subject: string; predicate: string; object: string };
-        failureReason?: string;
-        steps?: ExtractionInfo['steps'];
-      };
-      updateOnConflict: boolean;
-      allowCyclic: boolean;
-    },
-    episodicMemoryId: string,
-    semanticMemoryId: string,
     confidence: number
   ): Promise<void> {
+    await this.validateRelationDirection(sourceId, targetId, relationType);
     try {
-      await this.relationGraph.addRelation(sourceId, targetId, relationType, options);
+      await this.relationGraph.addRelation(sourceId, targetId, relationType, {
+        confidence,
+        metadata: { method: 'llm' },
+        updateOnConflict: false,
+        allowCyclic: true
+      });
     } catch (error) {
       if (error instanceof DuplicateRelationError || this.isUniqueConstraintError(error)) {
-        logger.debug('SemanticMemoryUpdateService: 관계 중복 (무시)', {
-          episodicMemoryId,
-          semanticMemoryId,
-          relationType
-        });
+        try {
+          logger.debug('SemanticMemoryUpdateService: 관계 중복 (무시)', { relationType });
+        } catch {
+          // Duplicate settlement must not depend on logging.
+        }
         return;
       }
-
-      logger.error('SemanticMemoryUpdateService: 관계 생성 실패', {
-        error: error instanceof Error ? error.message : String(error),
-        episodicMemoryId,
-        semanticMemoryId,
-        confidence,
-        relationType
-      });
+      throw error;
     }
   }
 

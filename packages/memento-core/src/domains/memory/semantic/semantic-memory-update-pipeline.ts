@@ -62,6 +62,27 @@ function emptyResult(): SemanticMemoryUpdateResult {
   };
 }
 
+type PostCommitIntent =
+  | {
+      kind: 'extracted_from' | 'supported_by';
+      sourceId: string;
+      targetId: string;
+      confidence: number;
+    }
+  | { kind: 'embedding'; memoryId: string; content: string };
+
+function safeLog(
+  level: 'debug' | 'warn' | 'error',
+  message: string,
+  details: Record<string, unknown>
+): void {
+  try {
+    logger[level](message, details);
+  } catch {
+    // Observability cannot replace the operation outcome.
+  }
+}
+
 export class SemanticMemoryUpdatePipeline {
   constructor(
     private db: Database.Database,
@@ -111,7 +132,7 @@ export class SemanticMemoryUpdatePipeline {
 
   async applyUpdates(
     positions: InvocationInputPosition[],
-    extractionInfo: ExtractionInfo,
+    _extractionInfo: ExtractionInfo,
     source: EpisodicSourceSnapshot,
     policy: InvocationPolicySnapshot,
     preparedData: PreparedUpdateData
@@ -122,6 +143,7 @@ export class SemanticMemoryUpdatePipeline {
   }> {
     const { confidenceThreshold, similarityThreshold, result, confidences } = preparedData;
     let hasError = false;
+    this.relations.validateRelationContract(source);
 
     for (const position of positions) {
       if (!position.triple) {
@@ -137,9 +159,7 @@ export class SemanticMemoryUpdatePipeline {
         }
 
         const processed = await this.processSingleTriple(
-          position.triple,
           snapshot,
-          extractionInfo,
           source,
           policy,
           confidenceThreshold,
@@ -149,13 +169,8 @@ export class SemanticMemoryUpdatePipeline {
         confidences.push(processed.confidence);
       } catch (error) {
         hasError = true;
-
-        if (error instanceof Error && error.message.includes('관계 방향 오류')) {
-          throw error;
-        }
-
-        logger.error('SemanticMemoryUpdateService: Triple 처리 실패', {
-          error: error instanceof Error ? error.message : String(error),
+        safeLog('error', 'SemanticMemoryUpdateService: Triple 처리 실패', {
+          reason: error instanceof Error ? error.name : typeof error,
           index: position.index
         });
         result.skipped++;
@@ -166,9 +181,7 @@ export class SemanticMemoryUpdatePipeline {
   }
 
   async processSingleTriple(
-    triple: Triple,
     snapshot: NormalizedTripleSnapshot,
-    extractionInfo: ExtractionInfo,
     source: EpisodicSourceSnapshot,
     policy: InvocationPolicySnapshot,
     confidenceThreshold: number,
@@ -179,7 +192,7 @@ export class SemanticMemoryUpdatePipeline {
 
     if (!this.scoring.passesConfidenceThreshold(confidence, confidenceThreshold)) {
       result.skipped++;
-      logger.debug('SemanticMemoryUpdateService: Confidence가 임계값 미만', {
+      safeLog('debug', 'SemanticMemoryUpdateService: Confidence가 임계값 미만', {
         index: snapshot.index,
         confidence,
         threshold: confidenceThreshold,
@@ -205,13 +218,11 @@ export class SemanticMemoryUpdatePipeline {
         ).run(new Date().toISOString(), existingKg.representative_memory_id);
         result.updated++;
         result.semanticMemoryIds.push(existingKg.representative_memory_id);
-        await this.relations.createEpisodicEdge(
+        await this.settlePostCommit(this.relationIntents(
           policy.episodicMemoryId,
           existingKg.representative_memory_id,
-          triple,
-          extractionInfo,
           confidence
-        );
+        ));
         return { confidence };
       }
     }
@@ -223,7 +234,7 @@ export class SemanticMemoryUpdatePipeline {
     );
 
     if (duplicate) {
-      await this.crud.updateExistingSemanticMemory(duplicate.id, triple, policy, confidence);
+      await this.crud.updateExistingSemanticMemory(duplicate.id, policy, confidence);
       result.updated++;
       result.semanticMemoryIds.push(duplicate.id);
     } else {
@@ -234,30 +245,18 @@ export class SemanticMemoryUpdatePipeline {
       );
       result.created++;
       result.semanticMemoryIds.push(created.id);
+      await this.settlePostCommit([
+        ...this.relationIntents(policy.episodicMemoryId, created.id, confidence),
+        { kind: 'embedding', memoryId: created.id, content: created.content }
+      ]);
+      return { confidence };
     }
 
-    try {
-      const semanticMemoryId = duplicate?.id || result.semanticMemoryIds[result.semanticMemoryIds.length - 1];
-      if (!semanticMemoryId) {
-        throw new Error('Semantic memory ID is required for creating episodic edge');
-      }
-      await this.relations.createEpisodicEdge(
-        policy.episodicMemoryId,
-        semanticMemoryId,
-        triple,
-        extractionInfo,
-        confidence
-      );
-    } catch (edgeError) {
-      if (edgeError instanceof Error && edgeError.message.includes('관계 방향 오류')) {
-        throw edgeError;
-      }
-      logger.warn('SemanticMemoryUpdateService: 관계 생성 실패 (무시)', {
-        error: edgeError instanceof Error ? edgeError.message : String(edgeError),
-        triple
-      });
-    }
-
+    await this.settlePostCommit(this.relationIntents(
+      policy.episodicMemoryId,
+      duplicate.id,
+      confidence
+    ));
     return { confidence };
   }
 
@@ -270,15 +269,66 @@ export class SemanticMemoryUpdatePipeline {
   ): void {
     const processingTime = Date.now() - processingStartTime;
     const duplicates = totalTriples - (result.created + result.updated + result.skipped);
-    this.statistics.recordUpdate(
-      result.created,
-      result.updated,
-      result.skipped,
-      duplicates,
-      confidences,
-      processingTime,
-      hasError
-    );
+    try {
+      this.statistics.recordUpdate(
+        result.created,
+        result.updated,
+        result.skipped,
+        duplicates,
+        confidences,
+        processingTime,
+        hasError
+      );
+    } catch (error) {
+      safeLog('warn', 'SemanticMemoryUpdateService: 통계 기록 실패 (무시)', {
+        reason: error instanceof Error ? error.name : typeof error
+      });
+    }
+  }
+
+  private relationIntents(
+    episodicMemoryId: string,
+    semanticMemoryId: string,
+    confidence: number
+  ): PostCommitIntent[] {
+    return [
+      {
+        kind: 'extracted_from',
+        sourceId: semanticMemoryId,
+        targetId: episodicMemoryId,
+        confidence
+      },
+      {
+        kind: 'supported_by',
+        sourceId: episodicMemoryId,
+        targetId: semanticMemoryId,
+        confidence
+      }
+    ];
+  }
+
+  private async settlePostCommit(intents: readonly PostCommitIntent[]): Promise<void> {
+    const settled = await Promise.allSettled(intents.map(async (intent) => {
+      if (intent.kind === 'embedding') {
+        await this.crud.createSemanticEmbedding(intent.memoryId, intent.content);
+        return;
+      }
+      await this.relations.createEpisodicRelation(
+        intent.kind,
+        intent.sourceId,
+        intent.targetId,
+        intent.confidence
+      );
+    }));
+
+    settled.forEach((outcome, index) => {
+      if (outcome.status === 'rejected') {
+        safeLog('warn', 'SemanticMemoryUpdateService: post-commit 작업 실패 (무시)', {
+          kind: intents[index]?.kind ?? 'unknown',
+          reason: outcome.reason instanceof Error ? outcome.reason.name : typeof outcome.reason
+        });
+      }
+    });
   }
 
   private snapshotExtractionInfo(value: unknown): ExtractionInfo {

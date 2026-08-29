@@ -4,6 +4,7 @@ import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
+import { logger } from '../../../shared/utils/logger.js';
 import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { SemanticMemoryUpdateService } from './semantic-memory-update-service.js';
 
@@ -140,8 +141,219 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     expect(relationMetadata).toHaveLength(1);
     expect(relationMetadata[0].metadata).not.toContain('raw secret');
     expect(JSON.parse(relationMetadata[0].metadata)).toMatchObject({
-      steps: { canonicalization: true, entityLinking: true },
-      triple: { subject: 'original', predicate: 'use', object: 'feature' }
+      method: 'llm'
+    });
+  });
+
+  describe('post-commit settlement', () => {
+    it('rejects an invalid relation type registry contract before primary writes', async () => {
+      insertEpisodic('episode-1');
+      DatabaseUtils.run(db, `
+        UPDATE relation_type_registry
+        SET applicable_types = '["episodic"]'
+        WHERE type_name = 'extracted_from'
+      `);
+
+      await expect(service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      )).rejects.toThrow(/관계.*오류/);
+
+      expect(countRows('memory_item', "type = 'semantic'")).toBe(0);
+      expect(countRows('kg_triple')).toBe(0);
+      expect(countRows('memory_relation')).toBe(0);
+    });
+
+    it('treats existing post-commit relations in both directions as unchanged duplicates', async () => {
+      insertEpisodic('episode-1');
+      const first = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+      const before = readRelations();
+
+      const second = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(second).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+      expect(second.semanticMemoryIds).toEqual(first.semanticMemoryIds);
+      expect(readRelations()).toEqual(before);
+    });
+
+    it('treats post-commit unique-constraint races in both directions as unchanged duplicates', async () => {
+      insertEpisodic('episode-1');
+      const first = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+      const before = readRelations();
+      const relations = (service as unknown as {
+        relations: {
+          relationGraph: { addRelation: (...args: unknown[]) => Promise<number> };
+        };
+      }).relations;
+      vi.spyOn(relations.relationGraph, 'addRelation').mockRejectedValue(
+        Object.assign(new Error('UNIQUE constraint failed'), { code: 'SQLITE_CONSTRAINT_UNIQUE' })
+      );
+
+      const second = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(second).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+      expect(second.semanticMemoryIds).toEqual(first.semanticMemoryIds);
+      expect(readRelations()).toEqual(before);
+    });
+
+    it('attempts both post-commit directions and create-time embedding independently', async () => {
+      insertEpisodic('episode-1');
+      const relations = (service as unknown as {
+        relations: {
+          createEpisodicRelation: (kind: string, sourceId: string, targetId: string, confidence: number) => Promise<void>;
+        };
+      }).relations;
+      const crud = (service as unknown as {
+        crud: { createSemanticEmbedding: (memoryId: string, content: string) => Promise<void> };
+      }).crud;
+      const relationAttempt = vi.spyOn(relations, 'createEpisodicRelation')
+        .mockRejectedValueOnce(new Error('extracted unavailable'))
+        .mockResolvedValueOnce();
+      const embeddingAttempt = vi.spyOn(crud, 'createSemanticEmbedding').mockResolvedValue();
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(relationAttempt).toHaveBeenCalledTimes(2);
+      expect(relationAttempt.mock.calls.map(([kind]) => kind)).toEqual(['extracted_from', 'supported_by']);
+      expect(embeddingAttempt).toHaveBeenCalledOnce();
+      expect(readSemantic(result.semanticMemoryIds[0])).toBeDefined();
+    });
+
+    it('preserves a committed post-commit result when relation, embedding, statistics, and logger fail', async () => {
+      insertEpisodic('episode-1');
+      const relations = (service as unknown as {
+        relations: {
+          createEpisodicRelation: (kind: string, sourceId: string, targetId: string, confidence: number) => Promise<void>;
+        };
+      }).relations;
+      const crud = (service as unknown as {
+        crud: { createSemanticEmbedding: (memoryId: string, content: string) => Promise<void> };
+      }).crud;
+      const statistics = (service as unknown as {
+        statistics: { recordUpdate: (...args: unknown[]) => void };
+      }).statistics;
+      vi.spyOn(relations, 'createEpisodicRelation').mockRejectedValue(new Error('relation unavailable'));
+      vi.spyOn(crud, 'createSemanticEmbedding').mockRejectedValue(new Error('embedding unavailable'));
+      vi.spyOn(statistics, 'recordUpdate').mockImplementation(() => {
+        throw new Error('statistics unavailable');
+      });
+      vi.spyOn(logger, 'warn').mockImplementation(() => {
+        throw new Error('logger unavailable');
+      });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(result.semanticMemoryIds).toHaveLength(1);
+      expect(readSemantic(result.semanticMemoryIds[0])).toBeDefined();
+    });
+
+    it('settles every delayed post-commit intent before returning', async () => {
+      insertEpisodic('episode-1');
+      const relations = (service as unknown as {
+        relations: {
+          createEpisodicRelation: (kind: string, sourceId: string, targetId: string, confidence: number) => Promise<void>;
+        };
+      }).relations;
+      const crud = (service as unknown as {
+        crud: { createSemanticEmbedding: (memoryId: string, content: string) => Promise<void> };
+      }).crud;
+      const extracted = deferred<void>();
+      const supported = deferred<void>();
+      const embedding = deferred<void>();
+      const attempts: string[] = [];
+      vi.spyOn(relations, 'createEpisodicRelation')
+        .mockImplementationOnce(() => {
+          attempts.push('extracted_from');
+          return extracted.promise;
+        })
+        .mockImplementationOnce(() => {
+          attempts.push('supported_by');
+          return supported.promise;
+        });
+      vi.spyOn(crud, 'createSemanticEmbedding').mockImplementation(() => {
+        attempts.push('embedding');
+        return embedding.promise;
+      });
+      let returned = false;
+      const pending = service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      ).finally(() => {
+        returned = true;
+      });
+      await vi.waitFor(() => {
+        expect(attempts).toEqual(['extracted_from', 'supported_by', 'embedding']);
+      });
+
+      extracted.resolve();
+      supported.reject(new Error('supported unavailable'));
+      await Promise.resolve();
+      expect(returned).toBe(false);
+      embedding.resolve();
+
+      await expect(pending).resolves.toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(returned).toBe(true);
+    });
+
+    it('keeps raw triple, content, embedding, and LLM fields out of post-commit metadata and logs', async () => {
+      insertEpisodic('episode-1');
+      const relations = (service as unknown as {
+        relations: {
+          relationGraph: { addRelation: (...args: unknown[]) => Promise<number> };
+        };
+      }).relations;
+      const addRelation = vi.spyOn(relations.relationGraph, 'addRelation');
+      const debug = vi.spyOn(logger, 'debug');
+      const warn = vi.spyOn(logger, 'warn');
+      const error = vi.spyOn(logger, 'error');
+      const rawMarkers = ['RAW_SUBJECT_SECRET', 'RAW_PREDICATE_SECRET', 'RAW_OBJECT_SECRET', 'RAW_LLM_SECRET'];
+
+      await service.updateSemanticMemory(
+        {
+          triples: [{
+            subject: rawMarkers[0],
+            predicate: rawMarkers[1],
+            object: rawMarkers[2]
+          }],
+          extractionInfo: {
+            ...validExtractionInfo(),
+            rawLLMOutput: rawMarkers[3]
+          }
+        },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.6 }
+      );
+
+      const relationPayloads = addRelation.mock.calls.map(([, , , options]) => options);
+      const logPayloads = [...debug.mock.calls, ...warn.mock.calls, ...error.mock.calls];
+      expect(relationPayloads).toHaveLength(2);
+      expect(relationPayloads).toEqual(expect.arrayContaining([
+        expect.objectContaining({ updateOnConflict: false, metadata: { method: 'llm' } })
+      ]));
+      for (const marker of rawMarkers) {
+        expect(JSON.stringify(relationPayloads)).not.toContain(marker);
+        expect(JSON.stringify(logPayloads)).not.toContain(marker);
+      }
+      expect(JSON.stringify(relationPayloads)).not.toMatch(/"(triple|content|embedding|rawLLMOutput)"/);
     });
   });
 
@@ -602,5 +814,39 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       origin_source: string;
       privacy_scope: string;
     } | undefined;
+  }
+
+  function readRelations(): Array<{
+    source_id: string;
+    target_id: string;
+    relation_type: string;
+    confidence: number;
+    metadata: string | null;
+    created_at: string;
+    updated_at: string;
+  }> {
+    return DatabaseUtils.all(db, `
+      SELECT source_id, target_id, relation_type, confidence, metadata, created_at, updated_at
+      FROM memory_relation
+      ORDER BY source_id, target_id, relation_type
+    `) as Array<{
+      source_id: string;
+      target_id: string;
+      relation_type: string;
+      confidence: number;
+      metadata: string | null;
+      created_at: string;
+      updated_at: string;
+    }>;
+  }
+
+  function deferred<T>() {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+      resolve = resolvePromise;
+      reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
   }
 });
