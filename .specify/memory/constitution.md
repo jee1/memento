@@ -1,36 +1,59 @@
 <!--
-Sync Impact Report — 2026-08-27 amendment
+Sync Impact Report — 2026-08-29 validation + template sync
 
-Version change: 1.2.0 → 1.3.0
-Bump rationale: MINOR. Governance gained explicit semantic-versioning
-policy and compliance-review expectations. No Core Principle was added,
-removed, or redefined. Empty `/speckit.constitution` input: principles
-and Additional Constraints were validated against the resolved scaffold
-and left unchanged.
+Version change: 1.3.0 → 1.3.0 (NO amendment)
+Bump rationale: none. `/speckit.constitution` was invoked with empty input.
+No principle, constraint, workflow rule, or governance clause was added,
+removed, or redefined, so no semantic-version bump applies. This run was a
+validation pass plus propagation of the EXISTING v1.3.0 rules into the
+downstream Spec Kit templates. `Ratified` and `Last Amended` are unchanged;
+`Last Amended` still reflects the 2026-08-27 governance amendment.
 
-Modified principles: none (titles and normative text unchanged)
-
-Added sections: none (Governance body expanded in place)
+Modified principles: none
+Added sections: none
 Removed sections: none
 
-Placeholder audit: no `[ALL_CAPS_IDENTIFIER]` tokens remain. All five
-principles (I–V), Additional Constraints, Development Workflow, and
-Governance carry concrete project text.
+Placeholder audit: PASS. No `[ALL_CAPS_IDENTIFIER]` tokens remain anywhere in
+this file. All five principles (I-V), Additional Constraints, Development
+Workflow, and Governance carry concrete project text. Dates are ISO 8601.
 
 Template resolution:
-- `resolve-template.sh` is absent in this checkout; used
-  `resolve_template constitution-template` from
-  `.specify/scripts/bash/common.sh`.
-- Resolved path: `.specify/templates/constitution-template.md` (core;
-  no overrides, presets, or extensions present).
-- `.specify/extensions.yml` absent → before/after constitution hooks
-  skipped.
+- `resolve-template.sh` is absent in this checkout; used `resolve_template
+  constitution-template` from `.specify/scripts/bash/common.sh`.
+- Resolved path: `.specify/templates/constitution-template.md` (core; no
+  overrides, presets, or extensions present).
+- `.specify/extensions.yml` absent -> before/after constitution hooks skipped.
 
-Sources for the amendment:
-- Spec Kit constitution command: Governance MUST list amendment
-  procedure, versioning policy, and compliance review expectations.
-- Prior constitution v1.2.0 (ratified 2026-03-27) for principles I–V
-  and Additional Constraints (incl. graphify gate, LoCoMo licensing).
+Consistency propagation:
+- `.specify/templates/tasks-template.md` — UPDATED. Two conflicts with the
+  constitution were removed. (a) The header note and the three per-story test
+  headers declared tests OPTIONAL "only if explicitly requested", which
+  contradicted Principle I (Test-First Delivery, MUST); they now state tests
+  are REQUIRED for feature and bug-fix work, omissible only under the
+  Principle I structural-refactoring exception, with doubt resolved
+  conservatively. (b) The Polish phase carried no Principle IV gate, which had
+  repeatedly produced task lists missing `npm test` and the graphify rebuild;
+  two explicit gate tasks were added (lint/type-check/test, and the
+  graphify rebuild with its documentation-only exemption and no-commit rule).
+- `.specify/templates/plan-template.md` — UPDATED. The Constitution Check
+  section held only the stub `[Gates determined based on constitution file]`.
+  Governance requires plans to include a Constitution Check that maps gates to
+  these principles, so the stub was replaced with a six-row gate table
+  covering Principles I-V and Additional Constraints, each requiring a
+  PASS/VIOLATION/N-A verdict, with violations routed to Complexity Tracking.
+- `.specify/templates/spec-template.md` — NO CHANGE NEEDED. Principle II's
+  migration-and-compatibility documentation duty is conditional ("when
+  behavior changes are unavoidable"); a mandatory section in every spec would
+  impose more than the constitution requires. The plan and tasks templates
+  now carry the Principle II gate, which is the correct enforcement point.
+- `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
+  checkout was initialized with `ai: cursor-agent`, so command files live
+  outside `.specify/`). No agent-specific references to correct.
+- Runtime guidance (`AGENTS.md` section 3, `CLAUDE.md`, `docs/agents/`) — NO
+  CHANGE NEEDED. AGENTS.md already states the lint/type-check/test gate and
+  the graphify rebuild-and-confirm rule, consistent with Principle IV.
+- `.specify/templates/checklist-template.md` and `agent-file-template.md` —
+  not in the propagation checklist and untouched.
 
 Follow-up TODOs: none.
 -->
