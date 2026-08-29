@@ -3,17 +3,28 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
+import type {
+  CandidateDecision,
+  SemanticCandidateSnapshot
+} from './semantic-memory-similarity.js';
 import {
   generateSemanticMemoryId,
   type EpisodicSourceSnapshot,
-  type NormalizedTripleSnapshot,
-  type SemanticMemoryUpdateOptions
+  type NormalizedTripleSnapshot
 } from './semantic-memory-update-types.js';
+
+export interface PreparedEvidenceOccurrence {
+  firstIndex: number;
+  representativeIndex: number;
+  confidence: number;
+  episodicImportance: number;
+  duplicateIndexes: number[];
+  decision: CandidateDecision;
+}
 
 export class SemanticMemoryCrud {
   private readonly memoryEmbeddingService: MemoryEmbeddingService;
@@ -117,47 +128,147 @@ export class SemanticMemoryCrud {
   }
 
   async updateExistingSemanticMemory(
-    semanticMemoryId: string,
-    options: SemanticMemoryUpdateOptions,
-    confidence: number
-  ): Promise<void> {
-    const existing = DatabaseUtils.get(this.db, `
-      SELECT id, importance, recall_count
-      FROM memory_item
-      WHERE id = ?
-    `, [semanticMemoryId]) as { id: string; importance: number; recall_count: number } | undefined;
-
-    if (!existing) {
-      throw new Error(`Semantic Memory를 찾을 수 없습니다: ${semanticMemoryId}`);
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence
+  ): Promise<{ id: string; confidence: number; kind: 'updated' } | null> {
+    if (
+      !Number.isFinite(evidence.confidence) ||
+      evidence.confidence < 0 ||
+      evidence.confidence > 1 ||
+      !Number.isFinite(evidence.episodicImportance) ||
+      evidence.episodicImportance < 0 ||
+      evidence.episodicImportance > 1
+    ) {
+      throw new TypeError('Invalid semantic memory quality');
     }
 
-    const episodeWeight = (existing.recall_count || 0) + 1;
+    if (
+      !Number.isSafeInteger(candidate.numTimes) ||
+      candidate.numTimes <= 0 ||
+      candidate.numTimes >= Number.MAX_SAFE_INTEGER ||
+      (candidate.confidence !== null && (
+        !Number.isFinite(candidate.confidence) ||
+        candidate.confidence < 0 ||
+        candidate.confidence > 1
+      ))
+    ) {
+      return null;
+    }
+
+    const finalNumTimes = candidate.numTimes + 1;
+    const aggregateConfidence = this.scoring.calculateAggregateConfidence(
+      candidate.confidence,
+      candidate.numTimes,
+      evidence.confidence
+    );
     const newImportance = this.scoring.calculateImportance(
-      options.episodicImportance || 0.5,
-      episodeWeight
+      evidence.episodicImportance,
+      aggregateConfidence,
+      finalNumTimes
+    );
+    const nowIso = new Date().toISOString();
+    const update = this.db.prepare(`
+      UPDATE memory_item AS m
+      SET confidence = ?,
+          importance = ?,
+          num_times = num_times + 1,
+          last_mentioned_at = ?
+      WHERE m.id = ?
+        AND m.type = 'semantic'
+        AND m.is_deleted = 0
+        AND m.owner_id IS ?
+        AND m.project_id IS ?
+        AND m.subject = ?
+        AND m.predicate = ?
+        AND m.object = ?
+        AND m.confidence IS ?
+        AND m.num_times = ?
+        AND trim(m.subject) != ''
+        AND trim(m.predicate) != ''
+        AND trim(m.object) != ''
+        AND (
+          m.confidence IS NULL OR (
+            typeof(m.confidence) IN ('integer', 'real')
+            AND m.confidence BETWEEN 0 AND 1
+          )
+        )
+        AND typeof(m.importance) IN ('integer', 'real')
+        AND m.importance BETWEEN 0 AND 1
+        AND typeof(m.num_times) = 'integer'
+        AND m.num_times > 0
+        AND m.num_times < ?
+        AND (
+          (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.tool')
+            END
+          ) = 'extract_triples'
+          AND (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.caller')
+            END
+          ) = 'system'
+          AND typeof(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) = 'text'
+          AND trim(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) != ''
+          OR (
+            (m.origin_source IS NULL OR trim(m.origin_source) IN ('', '{}'))
+            AND EXISTS (
+              SELECT 1
+              FROM memory_relation relation
+              WHERE relation.source_id = m.id
+                AND relation.relation_type = 'extracted_from'
+            )
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM kg_triple kg
+          WHERE kg.representative_memory_id = m.id
+            AND (
+              kg.subject IS NOT m.subject
+              OR kg.predicate IS NOT m.predicate
+              OR kg.object IS NOT m.object
+            )
+        )
+    `).run(
+      aggregateConfidence,
+      newImportance,
+      nowIso,
+      candidate.id,
+      candidate.ownerId,
+      candidate.projectId,
+      candidate.subject,
+      candidate.predicate,
+      candidate.object,
+      candidate.confidence,
+      candidate.numTimes,
+      Number.MAX_SAFE_INTEGER
     );
 
-    const nowIso = new Date().toISOString();
-    await DatabaseUtils.run(this.db, `
-      UPDATE memory_item
-      SET importance = ?,
-          recall_count = recall_count + 1,
-          last_accessed_at = CURRENT_TIMESTAMP,
-          num_times = COALESCE(num_times, 1) + 1,
-          last_mentioned_at = ?
-      WHERE id = ?
-    `, [newImportance, nowIso, semanticMemoryId]);
+    if (update.changes === 0) {
+      return null;
+    }
 
     try {
       logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
-        id: semanticMemoryId,
-        episodeWeight,
-        oldImportance: existing.importance,
+        id: candidate.id,
+        oldConfidence: candidate.confidence,
+        numTimes: finalNumTimes,
         newImportance,
-        confidence
+        confidence: aggregateConfidence
       });
     } catch {
       // A committed primary write must not depend on logging.
     }
+
+    return { id: candidate.id, confidence: aggregateConfidence, kind: 'updated' };
   }
 }

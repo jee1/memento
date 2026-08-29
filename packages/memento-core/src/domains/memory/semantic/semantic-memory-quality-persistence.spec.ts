@@ -945,6 +945,180 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     });
   });
 
+  describe('atomic aggregate updates', () => {
+    it.each(['exact', 'similar'] as const)(
+      'uses the same aggregate mutation for an %s candidate without search counter changes',
+      async (kind) => {
+        insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+        insertCandidate({
+          id: `${kind}-candidate`,
+          subject: kind === 'exact' ? '시스템' : 'candidate-system',
+          object: kind === 'exact' ? 'feature' : 'candidate-feature',
+          confidence: 0.8,
+          numTimes: 4
+        });
+        DatabaseUtils.run(db, `
+          UPDATE memory_item
+          SET recall_count = 7, last_accessed_at = '2024-01-02T00:00:00.000Z'
+          WHERE id = ?
+        `, [`${kind}-candidate`]);
+
+        if (kind === 'similar') {
+          const vectors: Record<string, number[]> = {
+            '시스템': [1, 0],
+            feature: [0, 1],
+            'candidate-system': [1, 0],
+            'candidate-feature': [0, 1]
+          };
+          service = new SemanticMemoryUpdateService(
+            db,
+            createRelationGraph(db),
+            embeddingService(vi.fn(async (text: string) => embeddingResult(vectors[text]))),
+            undefined,
+            { createAndStoreEmbedding: vi.fn().mockResolvedValue(undefined) } as unknown as MemoryEmbeddingService
+          );
+        }
+
+        const result = await service.updateSemanticMemory(
+          { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+          {
+            episodicMemoryId: 'episode-1',
+            episodicImportance: 0.8,
+            confidenceThreshold: 0.7,
+            similarityThreshold: 0.9
+          }
+        );
+
+        expect(result).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+        expect(readAggregate(`${kind}-candidate`)).toMatchObject({
+          num_times: 5,
+          recall_count: 7,
+          last_accessed_at: '2024-01-02T00:00:00.000Z'
+        });
+        expect(readAggregate(`${kind}-candidate`)?.confidence).toBeCloseTo(0.84, 12);
+        expect(readAggregate(`${kind}-candidate`)?.importance).toBeCloseTo(0.8 * 0.84, 12);
+      }
+    );
+
+    it('initializes a NULL legacy aggregate and preserves explicit zero importance', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertCandidate({ id: 'legacy-null', confidence: null, numTimes: 4 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET recall_count = 3 WHERE id = ?', ['legacy-null']);
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        {
+          episodicMemoryId: 'episode-1',
+          episodicImportance: 0,
+          confidenceThreshold: 0.7
+        }
+      );
+
+      expect(result).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+      expect(readAggregate('legacy-null')).toMatchObject({
+        confidence: 1,
+        importance: 0,
+        num_times: 5,
+        recall_count: 3
+      });
+    });
+
+    it('uses the latest committed episodic importance and boosts only an exact aggregate of one', async () => {
+      insertCandidate({ id: 'low-aggregate', confidence: 0.8, numTimes: 4 });
+      insertEpisodic('episode-1', 0.2, 'owner-1', 'project-1');
+      insertEpisodic('episode-2', 0.9, 'owner-1', 'project-1');
+
+      await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+      await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-2', confidenceThreshold: 0.7 }
+      );
+
+      const lowAggregate = readAggregate('low-aggregate')!;
+      expect(lowAggregate.confidence).toBeCloseTo((0.8 * 4 + 2) / 6, 12);
+      expect(lowAggregate.importance).toBeCloseTo(0.9 * lowAggregate.confidence!, 12);
+      expect(lowAggregate.importance).toBeLessThan(0.9);
+
+      insertCandidate({
+        id: 'perfect-aggregate',
+        confidence: 1,
+        numTimes: 1,
+        ownerId: 'owner-2',
+        projectId: 'project-2'
+      });
+      insertEpisodic('episode-3', 0.8, 'owner-2', 'project-2');
+      await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-3', confidenceThreshold: 0.7 }
+      );
+
+      const perfectAggregate = readAggregate('perfect-aggregate')!;
+      expect(perfectAggregate.confidence).toBe(1);
+      expect(perfectAggregate.importance).toBeGreaterThan(0.8);
+    });
+
+    it('does not update a stale or corrupt aggregate candidate snapshot', async () => {
+      insertCandidate({ id: 'stale-aggregate', confidence: 0.8, numTimes: 2 });
+      const candidate = readCandidateSnapshot('stale-aggregate')!;
+      DatabaseUtils.run(db, 'UPDATE memory_item SET confidence = 1.1 WHERE id = ?', ['stale-aggregate']);
+      const crud = (service as unknown as { crud: {
+        updateExistingSemanticMemory: (...args: unknown[]) => Promise<unknown>;
+      } }).crud;
+
+      const result = await crud.updateExistingSemanticMemory(candidate, {
+        firstIndex: 0,
+        representativeIndex: 0,
+        confidence: 1,
+        episodicImportance: 0.8,
+        duplicateIndexes: [],
+        decision: { kind: 'exact', candidate }
+      });
+
+      expect(result).toBeNull();
+      expect(readAggregate('stale-aggregate')).toMatchObject({
+        confidence: 1.1,
+        importance: 0.9,
+        num_times: 2,
+        recall_count: 0
+      });
+    });
+
+    it('preserves every concurrent update occurrence without lost aggregate changes', async () => {
+      insertCandidate({ id: 'concurrent-aggregate', confidence: 0.8, numTimes: 2 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET recall_count = 9 WHERE id = ?', ['concurrent-aggregate']);
+      const crud = (service as unknown as { crud: {
+        updateExistingSemanticMemory: (...args: unknown[]) => Promise<unknown>;
+      } }).crud;
+      const occurrences = [
+        { confidence: 0.7, episodicImportance: 0.2 },
+        { confidence: 0.9, episodicImportance: 0.4 },
+        { confidence: 1, episodicImportance: 0.6 }
+      ];
+
+      const results = await Promise.all(occurrences.map((occurrence, index) => {
+        const candidate = readCandidateSnapshot('concurrent-aggregate')!;
+        return crud.updateExistingSemanticMemory(candidate, {
+          firstIndex: index,
+          representativeIndex: index,
+          ...occurrence,
+          duplicateIndexes: [],
+          decision: { kind: 'exact', candidate }
+        });
+      }));
+
+      expect(results).toHaveLength(3);
+      expect(results.every(Boolean)).toBe(true);
+      const aggregate = readAggregate('concurrent-aggregate')!;
+      expect(aggregate.num_times).toBe(5);
+      expect(aggregate.recall_count).toBe(9);
+      expect(aggregate.confidence).toBeCloseTo((0.8 * 2 + 0.7 + 0.9 + 1) / 5, 12);
+      expect(aggregate.importance).toBeCloseTo(0.6 * aggregate.confidence!, 12);
+    });
+  });
+
   function validExtractionInfo() {
     return { steps: { canonicalization: true, entityLinking: true } };
   }
@@ -1143,6 +1317,46 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       origin_source: string;
       privacy_scope: string;
     } | undefined;
+  }
+
+  function readAggregate(id: string): {
+    confidence: number | null;
+    importance: number | null;
+    num_times: number;
+    recall_count: number;
+    last_accessed_at: string | null;
+  } | undefined {
+    return DatabaseUtils.get(db, `
+      SELECT confidence, importance, num_times, recall_count, last_accessed_at
+      FROM memory_item
+      WHERE id = ? AND type = 'semantic'
+    `, [id]) as {
+      confidence: number | null;
+      importance: number | null;
+      num_times: number;
+      recall_count: number;
+      last_accessed_at: string | null;
+    } | undefined;
+  }
+
+  function readCandidateSnapshot(id: string): {
+    id: string;
+    subject: string;
+    predicate: string;
+    object: string;
+    confidence: number | null;
+    numTimes: number;
+    ownerId: string | null;
+    projectId: string | null;
+    createdAt: string;
+  } | undefined {
+    return DatabaseUtils.get(db, `
+      SELECT
+        id, subject, predicate, object, confidence, num_times AS numTimes,
+        owner_id AS ownerId, project_id AS projectId, COALESCE(created_at, '') AS createdAt
+      FROM memory_item
+      WHERE id = ? AND type = 'semantic'
+    `, [id]) as ReturnType<typeof readCandidateSnapshot>;
   }
 
   function readRelations(): Array<{

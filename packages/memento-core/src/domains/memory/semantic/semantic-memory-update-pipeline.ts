@@ -7,7 +7,10 @@ import type { ExtractionInfo, Triple } from '../../../shared/types/triple-extrac
 import { logger } from '../../../shared/utils/logger.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js';
-import type { SemanticMemoryCrud } from './semantic-memory-crud.js';
+import type {
+  PreparedEvidenceOccurrence,
+  SemanticMemoryCrud
+} from './semantic-memory-crud.js';
 import type { SemanticMemoryRelations } from './semantic-memory-relations.js';
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
 import type { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
@@ -215,9 +218,22 @@ export class SemanticMemoryUpdatePipeline {
     const duplicate = decision.kind === 'none' ? null : decision.candidate;
 
     if (duplicate) {
-      await this.crud.updateExistingSemanticMemory(duplicate.id, policy, confidence);
+      const evidence: PreparedEvidenceOccurrence = {
+        firstIndex: snapshot.index,
+        representativeIndex: snapshot.index,
+        confidence,
+        episodicImportance: policy.episodicImportance,
+        duplicateIndexes: [],
+        decision
+      };
+      const updated = await this.crud.updateExistingSemanticMemory(duplicate, evidence);
+      if (!updated) {
+        const error = new Error('candidate_stale');
+        error.name = 'candidate_stale';
+        throw error;
+      }
       result.updated++;
-      result.semanticMemoryIds.push(duplicate.id);
+      result.semanticMemoryIds.push(updated.id);
     } else {
       const created = await this.crud.createSemanticMemory(
         snapshot,
