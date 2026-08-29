@@ -131,6 +131,35 @@ export class SemanticMemoryCrud {
     candidate: SemanticCandidateSnapshot,
     evidence: PreparedEvidenceOccurrence
   ): Promise<{ id: string; confidence: number; kind: 'updated' } | null> {
+    return this.applyConditionalAggregateUpdate(candidate, evidence);
+  }
+
+  async updateReevaluatedSemanticMemory(
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence
+  ): Promise<{ id: string; confidence: number; kind: 'updated' } | null> {
+    const retry = this.db.transaction(() => {
+      const latest = this.db.prepare(`
+        SELECT confidence, num_times AS numTimes
+        FROM memory_item
+        WHERE id = ?
+      `).get(candidate.id) as {
+        confidence: number | null;
+        numTimes: number;
+      } | undefined;
+      if (!latest) {
+        return null;
+      }
+
+      return this.applyConditionalAggregateUpdate({ ...candidate, ...latest }, evidence);
+    });
+    return retry.immediate();
+  }
+
+  private applyConditionalAggregateUpdate(
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence
+  ): { id: string; confidence: number; kind: 'updated' } | null {
     if (
       !Number.isFinite(evidence.confidence) ||
       evidence.confidence < 0 ||

@@ -320,7 +320,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       expect(semanticMemories.length).toBe(1);
       expect(semanticMemories[0].id).toBe(semanticMemoryId);
-      expect(semanticMemories[0].recall_count).toBeGreaterThan(0); // Episode Weight 누적 확인
+      expect(semanticMemories[0].recall_count).toBe(0); // evidence 병합은 검색 사용량을 변경하지 않음
     });
 
     it('Confidence 임계값 필터링 - 낮은 confidence는 건너뛰기', async () => {
@@ -1192,7 +1192,7 @@ describe('SemanticMemoryUpdateService', () => {
         last_mentioned_at: string | null;
       };
 
-      expect(updatedMemory.recall_count).toBe(1); // Episode Weight 증가 확인
+      expect(updatedMemory.recall_count).toBe(initialMemory.recall_count); // evidence 병합은 검색 사용량을 변경하지 않음
       // Issue #20: 병합 시 반복 메타 보존
       expect(updatedMemory.num_times).toBe(2); // 1(초기) + 1(병합)
       expect(updatedMemory.last_mentioned_at).toBeDefined();

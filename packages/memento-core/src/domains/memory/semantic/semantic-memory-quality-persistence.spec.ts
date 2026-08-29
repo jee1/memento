@@ -7,6 +7,8 @@ import { createRelationGraph } from '../../../infrastructure/relation-graph-fact
 import { logger } from '../../../shared/utils/logger.js';
 import type { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { SemanticMemoryCrud } from './semantic-memory-crud.js';
+import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
 import { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
 import { SemanticMemoryUpdateService } from './semantic-memory-update-service.js';
 
@@ -1086,36 +1088,137 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       });
     });
 
-    it('preserves every concurrent update occurrence without lost aggregate changes', async () => {
-      insertCandidate({ id: 'concurrent-aggregate', confidence: 0.8, numTimes: 2 });
-      DatabaseUtils.run(db, 'UPDATE memory_item SET recall_count = 9 WHERE id = ?', ['concurrent-aggregate']);
-      const crud = (service as unknown as { crud: {
-        updateExistingSemanticMemory: (...args: unknown[]) => Promise<unknown>;
-      } }).crud;
-      const occurrences = [
-        { confidence: 0.7, episodicImportance: 0.2 },
-        { confidence: 0.9, episodicImportance: 0.4 },
-        { confidence: 1, episodicImportance: 0.6 }
-      ];
-
-      const results = await Promise.all(occurrences.map((occurrence, index) => {
-        const candidate = readCandidateSnapshot('concurrent-aggregate')!;
-        return crud.updateExistingSemanticMemory(candidate, {
-          firstIndex: index,
-          representativeIndex: index,
-          ...occurrence,
-          duplicateIndexes: [],
-          decision: { kind: 'exact', candidate }
+    it.each(['exact', 'similar'] as const)(
+      'preserves every concurrent %s update after a genuinely shared stale snapshot',
+      async (kind) => {
+        const candidateId = `concurrent-${kind}`;
+        insertCandidate({
+          id: candidateId,
+          subject: kind === 'exact' ? '시스템' : 'candidate-system',
+          object: kind === 'exact' ? 'feature' : 'candidate-feature',
+          confidence: 0.8,
+          numTimes: 2
         });
-      }));
+        DatabaseUtils.run(db, 'UPDATE memory_item SET recall_count = 9 WHERE id = ?', [candidateId]);
+        const vectors: Record<string, number[]> = {
+          '시스템': [1, 0],
+          feature: [0, 1],
+          'candidate-system': [1, 0],
+          'candidate-feature': [0, 1]
+        };
+        service = new SemanticMemoryUpdateService(
+          db,
+          createRelationGraph(db),
+          embeddingService(vi.fn(async (text: string) => embeddingResult(vectors[text]))),
+          undefined,
+          { createAndStoreEmbedding: vi.fn().mockResolvedValue(undefined) } as unknown as MemoryEmbeddingService
+        );
+        const occurrences = [
+          { confidence: 0.7, episodicImportance: 0.2 },
+          { confidence: 0.9, episodicImportance: 0.4 },
+          { confidence: 1, episodicImportance: 0.6 },
+          { confidence: 1, episodicImportance: 0.9 }
+        ];
+        const internals = service as unknown as {
+          similarity: SemanticMemorySimilarity;
+          crud: SemanticMemoryCrud;
+          scoring: SemanticMemoryScoring;
+        };
+        const sharedCandidate = readCandidateSnapshot(candidateId)!;
+        const originalDecision = internals.similarity.findDuplicateSemanticMemory
+          .bind(internals.similarity);
+        const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory');
+        const update = vi.spyOn(internals.crud, 'updateExistingSemanticMemory');
+        const retryUpdate = vi.spyOn(internals.crud, 'updateReevaluatedSemanticMemory');
+        let occurrenceIndex = 0;
+        vi.spyOn(internals.scoring, 'prepareNormalizedTriple').mockImplementation((_triple, index) => ({
+          ...normalizedSnapshot(),
+          index,
+          confidence: occurrences[occurrenceIndex++]!.confidence
+        }));
+        occurrences.forEach((_occurrence, index) => {
+          insertEpisodic(`episode-${index}`, 0.5, 'owner-1', 'project-1');
+        });
+        let sharedDecisions = occurrences.length;
+        decision.mockImplementation(async (...args) => {
+          if (sharedDecisions-- > 0) {
+            return { kind, candidate: sharedCandidate };
+          }
+          expect(db.inTransaction).toBe(false);
+          return originalDecision(...args);
+        });
 
-      expect(results).toHaveLength(3);
-      expect(results.every(Boolean)).toBe(true);
-      const aggregate = readAggregate('concurrent-aggregate')!;
-      expect(aggregate.num_times).toBe(5);
-      expect(aggregate.recall_count).toBe(9);
-      expect(aggregate.confidence).toBeCloseTo((0.8 * 2 + 0.7 + 0.9 + 1) / 5, 12);
-      expect(aggregate.importance).toBeCloseTo(0.6 * aggregate.confidence!, 12);
+        const results = await Promise.all(occurrences.map((occurrence, index) =>
+          service.updateSemanticMemory(
+            { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+            {
+              episodicMemoryId: `episode-${index}`,
+              episodicImportance: occurrence.episodicImportance,
+              confidenceThreshold: 0.6,
+              similarityThreshold: 0.9
+            }
+          )
+        ));
+
+        expect(results).toHaveLength(occurrences.length);
+        expect(results.every((result) => result.updated === 1 && result.skipped === 0)).toBe(true);
+        expect(results.flatMap((result) => result.semanticMemoryIds)).toEqual(
+          Array.from({ length: occurrences.length }, () => candidateId)
+        );
+        expect(decision).toHaveBeenCalledTimes(occurrences.length * 2 - 1);
+        expect(update.mock.calls.slice(0, occurrences.length).map(([candidate]) => candidate.numTimes))
+          .toEqual(Array.from({ length: occurrences.length }, () => 2));
+        expect(retryUpdate).toHaveBeenCalledTimes(occurrences.length - 1);
+        const aggregate = readAggregate(candidateId)!;
+        expect(aggregate.num_times).toBe(2 + occurrences.length);
+        expect(aggregate.recall_count).toBe(9);
+        expect(aggregate.confidence).toBeCloseTo(
+          (0.8 * 2 + occurrences.reduce((sum, occurrence) => sum + occurrence.confidence, 0)) /
+            (2 + occurrences.length),
+          12
+        );
+        expect(aggregate.importance).toBeCloseTo(0.9 * aggregate.confidence!, 12);
+      }
+    );
+
+    it('turns a second stale aggregate update into one operational skip without relations', async () => {
+      insertCandidate({ id: 'twice-stale', confidence: 0.8, numTimes: 2 });
+      insertEpisodic('episode-stale', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as {
+        similarity: SemanticMemorySimilarity;
+        crud: SemanticMemoryCrud;
+      };
+      const staleCandidate = readCandidateSnapshot('twice-stale')!;
+      DatabaseUtils.run(db, `
+        UPDATE memory_item
+        SET confidence = 0.9, num_times = 3
+        WHERE id = 'twice-stale'
+      `);
+      const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockResolvedValueOnce({ kind: 'exact', candidate: staleCandidate })
+        .mockImplementationOnce(async () => {
+          const reevaluated = readCandidateSnapshot('twice-stale')!;
+          DatabaseUtils.run(db, `
+            UPDATE memory_item
+            SET is_deleted = 1
+            WHERE id = 'twice-stale'
+          `);
+          return { kind: 'exact', candidate: reevaluated };
+        });
+      const update = vi.spyOn(internals.crud, 'updateExistingSemanticMemory');
+      const retryUpdate = vi.spyOn(internals.crud, 'updateReevaluatedSemanticMemory');
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-stale', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
+      expect(decision).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledOnce();
+      expect(retryUpdate).toHaveBeenCalledOnce();
+      expect(readAggregate('twice-stale')).toMatchObject({ confidence: 0.9, num_times: 3 });
+      expect(countRows('memory_relation')).toBe(0);
     });
   });
 

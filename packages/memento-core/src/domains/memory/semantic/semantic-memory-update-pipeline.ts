@@ -215,10 +215,10 @@ export class SemanticMemoryUpdatePipeline {
       error.name = decision.reason;
       throw error;
     }
-    const duplicate = decision.kind === 'none' ? null : decision.candidate;
+    let duplicate = decision.kind === 'none' ? null : decision.candidate;
 
     if (duplicate) {
-      const evidence: PreparedEvidenceOccurrence = {
+      let evidence: PreparedEvidenceOccurrence = {
         firstIndex: snapshot.index,
         representativeIndex: snapshot.index,
         confidence,
@@ -226,11 +226,32 @@ export class SemanticMemoryUpdatePipeline {
         duplicateIndexes: [],
         decision
       };
-      const updated = await this.crud.updateExistingSemanticMemory(duplicate, evidence);
+      let updated = await this.crud.updateExistingSemanticMemory(duplicate, evidence);
       if (!updated) {
-        const error = new Error('candidate_stale');
-        error.name = 'candidate_stale';
-        throw error;
+        const reevaluated = await this.similarity.findDuplicateSemanticMemory(
+          snapshot,
+          source,
+          similarityThreshold
+        );
+        if (reevaluated.kind === 'indeterminate') {
+          const error = new Error(reevaluated.reason);
+          error.name = reevaluated.reason;
+          throw error;
+        }
+        if (reevaluated.kind === 'none') {
+          const error = new Error('candidate_stale');
+          error.name = 'candidate_stale';
+          throw error;
+        }
+
+        duplicate = reevaluated.candidate;
+        evidence = { ...evidence, decision: reevaluated };
+        updated = await this.crud.updateReevaluatedSemanticMemory(duplicate, evidence);
+        if (!updated) {
+          const error = new Error('candidate_stale');
+          error.name = 'candidate_stale';
+          throw error;
+        }
       }
       result.updated++;
       result.semanticMemoryIds.push(updated.id);
