@@ -19,7 +19,11 @@ x-default-environment: &default-environment
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   GEMINI_MODEL: ${GEMINI_MODEL:-text-embedding-004}
   GEMINI_LLM_MODEL: ${GEMINI_LLM_MODEL:-gemini-2.0-flash}
-  # 용도별 LLM 모델 override (설정 시 provider default보다 우선)
+  # 용도별 LLM provider override (미설정·빈 값 → 전역 LLM_PROVIDER; #820)
+  LLM_PROVIDER_TRIPLE_EXTRACTION: ${LLM_PROVIDER_TRIPLE_EXTRACTION:-}
+  LLM_PROVIDER_RELATION_EXTRACTION: ${LLM_PROVIDER_RELATION_EXTRACTION:-}
+  LLM_PROVIDER_PROCEDURAL: ${LLM_PROVIDER_PROCEDURAL:-}
+  # 용도별 LLM 모델 override (설정 시 provider default보다 우선; bound provider와 일치할 때만)
   LLM_MODEL_TRIPLE_EXTRACTION: ${LLM_MODEL_TRIPLE_EXTRACTION:-}
   LLM_MODEL_RELATION_EXTRACTION: ${LLM_MODEL_RELATION_EXTRACTION:-}
   LLM_MODEL_PROCEDURAL: ${LLM_MODEL_PROCEDURAL:-}
