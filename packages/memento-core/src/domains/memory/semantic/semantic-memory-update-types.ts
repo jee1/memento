@@ -29,6 +29,8 @@ export interface SemanticMemoryUpdateResult {
   semanticMemoryIds: string[];
 }
 
+export type ProcessingOutcomeKind = 'created' | 'updated' | 'skipped' | 'duplicate';
+
 /**
  * Semantic Memory 업데이트 옵션
  */

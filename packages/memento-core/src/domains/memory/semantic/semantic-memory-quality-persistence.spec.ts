@@ -947,6 +947,170 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     });
   });
 
+  describe('same-invocation coalescing and deterministic outcomes', () => {
+    it('coalesces normalized SPO duplicates using the highest-confidence earliest representative', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as {
+        scoring: SemanticMemoryScoring;
+        similarity: SemanticMemorySimilarity;
+        crud: SemanticMemoryCrud;
+      };
+      vi.spyOn(internals.scoring, 'prepareNormalizedTriple')
+        .mockImplementation((_triple, index) => ({
+          ...normalizedSnapshot(),
+          index,
+          confidence: [0.8, 1, 1][index]!
+        }));
+      const candidateLookup = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory');
+      const create = vi.spyOn(internals.crud, 'createSemanticMemory');
+
+      const result = await service.updateSemanticMemory(
+        {
+          triples: [validTriple('raw-1'), validTriple('raw-2'), validTriple('raw-3')],
+          extractionInfo: validExtractionInfo()
+        },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(result.semanticMemoryIds).toHaveLength(1);
+      expect(candidateLookup).toHaveBeenCalledOnce();
+      expect(create).toHaveBeenCalledOnce();
+      expect(create.mock.calls[0]![0]).toMatchObject({ index: 1, confidence: 1 });
+      expect(readSemantic(result.semanticMemoryIds[0])).toMatchObject({ confidence: 1, num_times: 1 });
+      expect(service.getStatistics()).toMatchObject({
+        totalProcessed: 3,
+        totalCreated: 1,
+        totalUpdated: 0,
+        totalSkipped: 0,
+        totalDuplicates: 2,
+        totalConfidence: 2.8
+      });
+    });
+
+    it('coalesces exact and similar decisions by target with deterministic primary and ID order', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      insertCandidate({ id: 'target-a', subject: 'target-a', object: 'feature-a' });
+      insertCandidate({ id: 'target-b', subject: 'target-b', object: 'feature-b' });
+      const candidateA = readCandidateSnapshot('target-a')!;
+      const candidateB = readCandidateSnapshot('target-b')!;
+      const internals = service as unknown as {
+        scoring: SemanticMemoryScoring;
+        similarity: SemanticMemorySimilarity;
+        crud: SemanticMemoryCrud;
+      };
+      const snapshots = [
+        { ...normalizedSnapshot(), index: 0, subject: 'first-b', object: 'first-b', confidence: 0.8 },
+        { ...normalizedSnapshot(), index: 1, subject: 'target-a', object: 'feature-a', confidence: 0.9 },
+        { ...normalizedSnapshot(), index: 2, subject: 'best-b', object: 'best-b', confidence: 1 }
+      ];
+      vi.spyOn(internals.scoring, 'prepareNormalizedTriple')
+        .mockImplementation((_triple, index) => snapshots[index]!);
+      vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockImplementation(async (snapshot) => snapshot.index === 1
+          ? { kind: 'exact', candidate: candidateA }
+          : { kind: snapshot.index === 0 ? 'exact' : 'similar', candidate: candidateB });
+      const update = vi.spyOn(internals.crud, 'updateExistingSemanticMemory');
+
+      const result = await service.updateSemanticMemory(
+        {
+          triples: [validTriple('first-b'), validTriple('only-a'), validTriple('best-b')],
+          extractionInfo: validExtractionInfo()
+        },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 0, updated: 2, skipped: 0 });
+      expect(result.semanticMemoryIds).toEqual(['target-b', 'target-a']);
+      expect(update.mock.calls.map(([candidate]) => candidate.id)).toEqual(['target-b', 'target-a']);
+      expect(update.mock.calls[0]![1]).toMatchObject({
+        firstIndex: 0,
+        representativeIndex: 2,
+        confidence: 1,
+        duplicateIndexes: [0]
+      });
+      expect(readAggregate('target-b')).toMatchObject({ num_times: 3 });
+      expect(readAggregate('target-a')).toMatchObject({ num_times: 3 });
+      expect(service.getStatistics()).toMatchObject({ totalProcessed: 3, totalDuplicates: 1 });
+    });
+
+    it('reconciles a rolled-back coalesced group as one skip and duplicates while keeping samples and mutations sequential', async () => {
+      insertEpisodic('episode-1', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as {
+        scoring: SemanticMemoryScoring;
+        crud: SemanticMemoryCrud;
+        kgTripleRepo: { upsertTriple: (...args: unknown[]) => string };
+      };
+      const snapshots = [
+        { ...normalizedSnapshot(), index: 0, subject: 'failed', confidence: 0.8 },
+        { ...normalizedSnapshot(), index: 1, subject: 'failed', confidence: 0.9 },
+        { ...normalizedSnapshot(), index: 2, subject: 'failed', confidence: 1 },
+        { ...normalizedSnapshot(), index: 3, subject: 'success', confidence: 0.9 },
+        { ...normalizedSnapshot(), index: 4, subject: 'filtered', confidence: 0.5 }
+      ];
+      vi.spyOn(internals.scoring, 'prepareNormalizedTriple')
+        .mockImplementation((_triple, index) => snapshots[index]!);
+      const upsertTriple = internals.kgTripleRepo.upsertTriple.bind(internals.kgTripleRepo);
+      vi.spyOn(internals.kgTripleRepo, 'upsertTriple')
+        .mockImplementationOnce(() => {
+          throw new Error('synthetic coalesced rollback');
+        })
+        .mockImplementation((...args) => upsertTriple(...args));
+      const originalCreate = internals.crud.createSemanticMemory.bind(internals.crud);
+      let activePrimaryMutations = 0;
+      let maxConcurrentPrimaryMutations = 0;
+      vi.spyOn(internals.crud, 'createSemanticMemory').mockImplementation(async (...args) => {
+        activePrimaryMutations++;
+        maxConcurrentPrimaryMutations = Math.max(
+          maxConcurrentPrimaryMutations,
+          activePrimaryMutations
+        );
+        await Promise.resolve();
+        try {
+          return await originalCreate(...args);
+        } finally {
+          activePrimaryMutations--;
+        }
+      });
+
+      const result = await service.updateSemanticMemory(
+        {
+          triples: [
+            validTriple('failed-1'),
+            validTriple('failed-2'),
+            validTriple('failed-3'),
+            validTriple('success'),
+            validTriple('filtered'),
+            null
+          ],
+          extractionInfo: validExtractionInfo()
+        },
+        { episodicMemoryId: 'episode-1', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toMatchObject({ created: 1, updated: 0, skipped: 3 });
+      expect(result.semanticMemoryIds).toHaveLength(1);
+      expect(readSemantic(result.semanticMemoryIds[0])).toMatchObject({ subject: 'success' });
+      expect(maxConcurrentPrimaryMutations).toBe(1);
+      const statistics = service.getStatistics();
+      expect(statistics).toMatchObject({
+        totalProcessed: 6,
+        totalCreated: 1,
+        totalUpdated: 0,
+        totalSkipped: 3,
+        totalDuplicates: 2,
+        totalConfidence: 4.1,
+        minConfidence: 0.5,
+        maxConfidence: 1
+      });
+      expect(statistics.averageConfidence).toBeCloseTo(4.1 / 5, 12);
+      expect(
+        statistics.totalCreated + statistics.totalUpdated +
+          statistics.totalSkipped + statistics.totalDuplicates
+      ).toBe(6);
+    });
+  });
+
   describe('atomic aggregate updates', () => {
     it.each(['exact', 'similar'] as const)(
       'uses the same aggregate mutation for an %s candidate without search counter changes',

@@ -92,7 +92,7 @@ export class SemanticMemoryStatisticsService {
     processingTime: number,
     error: boolean = false
   ): void {
-    this.statistics.totalProcessed += (created + updated + skipped);
+    this.statistics.totalProcessed += (created + updated + skipped + duplicates);
     this.statistics.totalCreated += created;
     this.statistics.totalUpdated += updated;
     this.statistics.totalSkipped += skipped;
@@ -164,4 +164,3 @@ export class SemanticMemoryStatisticsService {
     this.processingTimes = [];
   }
 }
-

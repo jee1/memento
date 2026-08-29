@@ -13,7 +13,10 @@ import type {
 } from './semantic-memory-crud.js';
 import type { SemanticMemoryRelations } from './semantic-memory-relations.js';
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
-import type { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
+import type {
+  CandidateDecision,
+  SemanticMemorySimilarity
+} from './semantic-memory-similarity.js';
 import {
   DEFAULT_CONFIDENCE_THRESHOLD,
   DEFAULT_SIMILARITY_THRESHOLD,
@@ -22,6 +25,7 @@ import {
   type InvocationPolicySnapshot,
   type NormalizedTripleSnapshot,
   type PreparedUpdateData,
+  type ProcessingOutcomeKind,
   type SemanticMemoryUpdateRequestSnapshot,
   type SemanticMemoryUpdateResult
 } from './semantic-memory-update-types.js';
@@ -86,6 +90,50 @@ function safeLog(
   }
 }
 
+export function coalescePreparedOccurrences(
+  occurrences: readonly PreparedEvidenceOccurrence[]
+): PreparedEvidenceOccurrence[] {
+  const matched = new Map<string, PreparedEvidenceOccurrence[]>();
+  const independent: PreparedEvidenceOccurrence[] = [];
+
+  for (const occurrence of occurrences) {
+    if (occurrence.decision.kind !== 'exact' && occurrence.decision.kind !== 'similar') {
+      independent.push(occurrence);
+      continue;
+    }
+    const targetId = occurrence.decision.candidate.id;
+    const group = matched.get(targetId);
+    if (group) {
+      group.push(occurrence);
+    } else {
+      matched.set(targetId, [occurrence]);
+    }
+  }
+
+  const coalesced = [...independent];
+  for (const group of matched.values()) {
+    const representative = group.reduce((best, occurrence) =>
+      occurrence.confidence > best.confidence ||
+      (occurrence.confidence === best.confidence &&
+        occurrence.representativeIndex < best.representativeIndex)
+        ? occurrence
+        : best
+    );
+    const indexes = new Set(group.flatMap((occurrence) => [
+      occurrence.representativeIndex,
+      ...occurrence.duplicateIndexes
+    ]));
+    indexes.delete(representative.representativeIndex);
+    coalesced.push({
+      ...representative,
+      firstIndex: Math.min(...group.map((occurrence) => occurrence.firstIndex)),
+      duplicateIndexes: [...indexes].sort((left, right) => left - right)
+    });
+  }
+
+  return coalesced.sort((left, right) => left.firstIndex - right.firstIndex);
+}
+
 export class SemanticMemoryUpdatePipeline {
   constructor(
     _db: Database.Database,
@@ -148,28 +196,43 @@ export class SemanticMemoryUpdatePipeline {
     let hasError = false;
     this.relations.validateRelationContract(source);
 
+    const outcomes: Array<ProcessingOutcomeKind | undefined> = Array(positions.length);
+    const snapshotsByIndex = new Map<number, NormalizedTripleSnapshot>();
+    const normalizedGroups = new Map<string, NormalizedTripleSnapshot[]>();
+
     for (const position of positions) {
       if (!position.triple) {
-        result.skipped++;
+        outcomes[position.index] = 'skipped';
         continue;
       }
 
       try {
         const snapshot = this.scoring.prepareNormalizedTriple(position.triple, position.index);
-        if (!this.isProcessableSnapshot(snapshot)) {
-          result.skipped++;
+        if (!this.isProcessableSnapshot(snapshot) || !isUnitNumber(snapshot.confidence)) {
+          outcomes[position.index] = 'skipped';
+          continue;
+        }
+        confidences.push(snapshot.confidence);
+
+        if (!this.scoring.passesConfidenceThreshold(snapshot.confidence, confidenceThreshold)) {
+          outcomes[position.index] = 'skipped';
+          safeLog('debug', 'SemanticMemoryUpdateService: Confidence가 임계값 미만', {
+            index: snapshot.index,
+            confidence: snapshot.confidence,
+            threshold: confidenceThreshold,
+            reason: 'confidence_below_threshold'
+          });
           continue;
         }
 
-        const processed = await this.processSingleTriple(
-          snapshot,
-          source,
-          policy,
-          confidenceThreshold,
-          similarityThreshold,
-          result
-        );
-        confidences.push(processed.confidence);
+        snapshotsByIndex.set(snapshot.index, snapshot);
+        const key = JSON.stringify([snapshot.subject, snapshot.predicate, snapshot.object]);
+        const group = normalizedGroups.get(key);
+        if (group) {
+          group.push(snapshot);
+        } else {
+          normalizedGroups.set(key, [snapshot]);
+        }
       } catch (error) {
         hasError = true;
         safeLog('error', 'SemanticMemoryUpdateService: Triple 처리 실패', {
@@ -177,39 +240,88 @@ export class SemanticMemoryUpdatePipeline {
           reason: error instanceof Error ? error.name : typeof error,
           index: position.index
         });
-        result.skipped++;
+        outcomes[position.index] = 'skipped';
       }
     }
 
+    const occurrences: PreparedEvidenceOccurrence[] = [];
+    for (const group of normalizedGroups.values()) {
+      const representative = group.reduce((best, snapshot) =>
+        snapshot.confidence > best.confidence ||
+        (snapshot.confidence === best.confidence && snapshot.index < best.index)
+          ? snapshot
+          : best
+      );
+      let decision: CandidateDecision;
+      try {
+        decision = await this.similarity.findDuplicateSemanticMemory(
+          representative,
+          source,
+          similarityThreshold
+        );
+      } catch (error) {
+        decision = {
+          kind: 'indeterminate',
+          reason: error instanceof Error ? error.name : 'candidate_lookup_failed'
+        };
+      }
+      occurrences.push({
+        firstIndex: Math.min(...group.map((snapshot) => snapshot.index)),
+        representativeIndex: representative.index,
+        confidence: representative.confidence,
+        episodicImportance: policy.episodicImportance,
+        duplicateIndexes: group
+          .map((snapshot) => snapshot.index)
+          .filter((index) => index !== representative.index)
+          .sort((left, right) => left - right),
+        decision
+      });
+    }
+
+    const semanticMemoryIds = new Set<string>();
+    for (const occurrence of coalescePreparedOccurrences(occurrences)) {
+      occurrence.duplicateIndexes.forEach((index) => {
+        outcomes[index] = 'duplicate';
+      });
+      const snapshot = snapshotsByIndex.get(occurrence.representativeIndex)!;
+      try {
+        const processed = await this.processPreparedOccurrence(
+          snapshot,
+          occurrence,
+          source,
+          policy,
+          similarityThreshold
+        );
+        outcomes[occurrence.representativeIndex] = processed.kind;
+        if (!semanticMemoryIds.has(processed.id)) {
+          semanticMemoryIds.add(processed.id);
+          result.semanticMemoryIds.push(processed.id);
+        }
+      } catch (error) {
+        hasError = true;
+        outcomes[occurrence.representativeIndex] = 'skipped';
+        safeLog('error', 'SemanticMemoryUpdateService: Triple 처리 실패', {
+          sourceId: source.id,
+          reason: error instanceof Error ? error.name : typeof error,
+          index: occurrence.representativeIndex
+        });
+      }
+    }
+
+    result.created = outcomes.filter((outcome) => outcome === 'created').length;
+    result.updated = outcomes.filter((outcome) => outcome === 'updated').length;
+    result.skipped = outcomes.filter((outcome) => outcome === 'skipped').length;
     return { result, confidences, hasError };
   }
 
-  async processSingleTriple(
+  private async processPreparedOccurrence(
     snapshot: NormalizedTripleSnapshot,
+    evidence: PreparedEvidenceOccurrence,
     source: EpisodicSourceSnapshot,
     policy: InvocationPolicySnapshot,
-    confidenceThreshold: number,
-    similarityThreshold: number,
-    result: SemanticMemoryUpdateResult
-  ): Promise<{ confidence: number }> {
-    const confidence = snapshot.confidence;
-
-    if (!this.scoring.passesConfidenceThreshold(confidence, confidenceThreshold)) {
-      result.skipped++;
-      safeLog('debug', 'SemanticMemoryUpdateService: Confidence가 임계값 미만', {
-        index: snapshot.index,
-        confidence,
-        threshold: confidenceThreshold,
-        reason: 'confidence_below_threshold'
-      });
-      return { confidence };
-    }
-
-    const decision = await this.similarity.findDuplicateSemanticMemory(
-      snapshot,
-      source,
-      similarityThreshold
-    );
+    similarityThreshold: number
+  ): Promise<{ id: string; kind: 'created' | 'updated' }> {
+    const { confidence, decision } = evidence;
     if (decision.kind === 'indeterminate') {
       const error = new Error(decision.reason);
       error.name = decision.reason;
@@ -218,14 +330,6 @@ export class SemanticMemoryUpdatePipeline {
     let duplicate = decision.kind === 'none' ? null : decision.candidate;
 
     if (duplicate) {
-      let evidence: PreparedEvidenceOccurrence = {
-        firstIndex: snapshot.index,
-        representativeIndex: snapshot.index,
-        confidence,
-        episodicImportance: policy.episodicImportance,
-        duplicateIndexes: [],
-        decision
-      };
       let updated = await this.crud.updateExistingSemanticMemory(duplicate, evidence);
       if (!updated) {
         const reevaluated = await this.similarity.findDuplicateSemanticMemory(
@@ -253,29 +357,24 @@ export class SemanticMemoryUpdatePipeline {
           throw error;
         }
       }
-      result.updated++;
-      result.semanticMemoryIds.push(updated.id);
+      await this.settlePostCommit(this.relationIntents(
+        policy.episodicMemoryId,
+        duplicate.id,
+        confidence
+      ), source.id, snapshot.index);
+      return { id: updated.id, kind: 'updated' };
     } else {
       const created = await this.crud.createSemanticMemory(
         snapshot,
         source,
         policy.episodicImportance
       );
-      result.created++;
-      result.semanticMemoryIds.push(created.id);
       await this.settlePostCommit([
         ...this.relationIntents(policy.episodicMemoryId, created.id, confidence),
         { kind: 'embedding', memoryId: created.id, content: created.content }
       ], source.id, snapshot.index);
-      return { confidence };
+      return { id: created.id, kind: 'created' };
     }
-
-    await this.settlePostCommit(this.relationIntents(
-      policy.episodicMemoryId,
-      duplicate.id,
-      confidence
-    ), source.id, snapshot.index);
-    return { confidence };
   }
 
   notifyListeners(
