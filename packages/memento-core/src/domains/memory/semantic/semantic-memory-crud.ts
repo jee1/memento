@@ -11,6 +11,8 @@ import { MemoryEmbeddingService } from '../services/memory-embedding-service.js'
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
 import {
   generateSemanticMemoryId,
+  type EpisodicSourceSnapshot,
+  type NormalizedTripleSnapshot,
   type SemanticMemoryUpdateOptions
 } from './semantic-memory-update-types.js';
 
@@ -26,77 +28,81 @@ export class SemanticMemoryCrud {
     this.memoryEmbeddingService = memoryEmbeddingService ?? new MemoryEmbeddingService();
   }
 
-  /** 폴백용 원문. 조회 실패는 폴백 품질 문제일 뿐 생성 자체를 막지 않는다. */
-  private getEpisodicContent(episodicMemoryId: string): string | undefined {
-    if (!episodicMemoryId) {
-      return undefined;
-    }
-    try {
-      const row = this.db
-        .prepare('SELECT content FROM memory_item WHERE id = ?')
-        .get(episodicMemoryId) as { content?: string } | undefined;
-      return row?.content;
-    } catch (error) {
-      logger.debug('SemanticMemoryUpdateService: 폴백 원문 조회 실패 (무시)', {
-        episodicMemoryId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return undefined;
-    }
-  }
-
   async createSemanticMemory(
-    triple: Triple,
-    options: SemanticMemoryUpdateOptions,
-    confidence: number
-  ): Promise<string> {
-    const { normalizedSubject, normalizedPredicate, normalizedObject } =
-      this.scoring.canonicalizeAndLink(triple);
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot,
+    episodicImportance: number
+  ): Promise<{ id: string; confidence: number; kind: 'created' }> {
+    if (
+      !Number.isFinite(snapshot.confidence) ||
+      snapshot.confidence < 0 ||
+      snapshot.confidence > 1 ||
+      !Number.isFinite(episodicImportance) ||
+      episodicImportance < 0 ||
+      episodicImportance > 1
+    ) {
+      throw new TypeError('Invalid semantic memory quality');
+    }
 
     // #768: 재조립이 불가능한 triple은 합성 문장 대신 원본 episodic 본문을 보존한다.
     const content = this.scoring.tripleToNaturalLanguage(
-      normalizedSubject,
-      normalizedPredicate,
-      normalizedObject,
-      this.getEpisodicContent(options.episodicMemoryId)
+      snapshot.subject,
+      snapshot.predicate,
+      snapshot.object,
+      source.content
     );
 
     const id = generateSemanticMemoryId();
-    const importance = this.scoring.calculateImportance(options.episodicImportance || 0.5, 1);
+    const importance = this.scoring.calculateImportance(
+      episodicImportance,
+      snapshot.confidence,
+      1
+    );
     const createdAt = new Date().toISOString();
-
-    await DatabaseUtils.run(this.db, `
-      INSERT INTO memory_item (
-        id, type, content, subject, predicate, object,
-        importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      'semantic',
-      content,
-      normalizedSubject,
-      normalizedPredicate,
-      normalizedObject,
-      importance,
-      'private',
-      createdAt
-    ]);
-
-    this.kgTripleRepo.upsertTriple({
-      subject: normalizedSubject,
-      predicate: normalizedPredicate,
-      object: normalizedObject,
-      representative_memory_id: id
+    const originSource = JSON.stringify({
+      tool: 'extract_triples',
+      caller: 'system',
+      timestamp: createdAt,
+      context: { source_episodic_id: source.id }
     });
+
+    this.db.transaction(() => {
+      this.db.prepare(`
+        INSERT INTO memory_item (
+          id, type, content, subject, predicate, object, confidence, importance,
+          num_times, owner_id, project_id, origin_source, privacy_scope, created_at
+        ) VALUES (?, 'semantic', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'private', ?)
+      `).run(
+        id,
+        content,
+        snapshot.subject,
+        snapshot.predicate,
+        snapshot.object,
+        snapshot.confidence,
+        importance,
+        source.ownerId,
+        source.projectId,
+        originSource,
+        createdAt
+      );
+
+      if (!this.kgTripleRepo.getBySubjectPredicateObject(
+        snapshot.subject,
+        snapshot.predicate,
+        snapshot.object
+      )) {
+        this.kgTripleRepo.upsertTriple({
+          subject: snapshot.subject,
+          predicate: snapshot.predicate,
+          object: snapshot.object,
+          representative_memory_id: id
+        });
+      }
+    })();
 
     logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
       id,
-      originalTriple: triple,
-      normalizedTriple: {
-        subject: normalizedSubject,
-        predicate: normalizedPredicate,
-        object: normalizedObject
-      },
-      confidence,
+      confidence: snapshot.confidence,
       importance
     });
 
@@ -113,7 +119,7 @@ export class SemanticMemoryCrud {
         });
       });
 
-    return id;
+    return { id, confidence: snapshot.confidence, kind: 'created' };
   }
 
   async updateExistingSemanticMemory(

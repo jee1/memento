@@ -14,6 +14,7 @@ import type { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
 import {
   DEFAULT_CONFIDENCE_THRESHOLD,
   DEFAULT_SIMILARITY_THRESHOLD,
+  type EpisodicSourceSnapshot,
   type InvocationInputPosition,
   type InvocationPolicySnapshot,
   type NormalizedTripleSnapshot,
@@ -111,6 +112,7 @@ export class SemanticMemoryUpdatePipeline {
   async applyUpdates(
     positions: InvocationInputPosition[],
     extractionInfo: ExtractionInfo,
+    source: EpisodicSourceSnapshot,
     policy: InvocationPolicySnapshot,
     preparedData: PreparedUpdateData
   ): Promise<{
@@ -138,6 +140,7 @@ export class SemanticMemoryUpdatePipeline {
           position.triple,
           snapshot,
           extractionInfo,
+          source,
           policy,
           confidenceThreshold,
           similarityThreshold,
@@ -166,6 +169,7 @@ export class SemanticMemoryUpdatePipeline {
     triple: Triple,
     snapshot: NormalizedTripleSnapshot,
     extractionInfo: ExtractionInfo,
+    source: EpisodicSourceSnapshot,
     policy: InvocationPolicySnapshot,
     confidenceThreshold: number,
     similarityThreshold: number,
@@ -189,10 +193,27 @@ export class SemanticMemoryUpdatePipeline {
       snapshot.predicate,
       snapshot.object
     );
+    let hasIneligibleGlobalRepresentative = false;
     if (existingKg?.representative_memory_id) {
-      const targetRow = this.db.prepare('SELECT type FROM memory_item WHERE id = ?')
-        .get(existingKg.representative_memory_id) as { type: string } | undefined;
-      if (targetRow?.type === 'semantic') {
+      const targetRow = this.db.prepare(`
+        SELECT
+          type,
+          owner_id AS ownerId,
+          project_id AS projectId,
+          is_deleted AS isDeleted
+        FROM memory_item
+        WHERE id = ?
+      `).get(existingKg.representative_memory_id) as {
+        type: string;
+        ownerId: string | null;
+        projectId: string | null;
+        isDeleted: number;
+      } | undefined;
+      const isEligibleRepresentative = targetRow?.type === 'semantic' &&
+        targetRow.isDeleted === 0 &&
+        targetRow.ownerId === source.ownerId &&
+        targetRow.projectId === source.projectId;
+      if (isEligibleRepresentative) {
         this.db.prepare(
           'UPDATE memory_item SET num_times = num_times + 1, last_mentioned_at = ?, recall_count = recall_count + 1 WHERE id = ?'
         ).run(new Date().toISOString(), existingKg.representative_memory_id);
@@ -207,18 +228,25 @@ export class SemanticMemoryUpdatePipeline {
         );
         return { confidence };
       }
+      hasIneligibleGlobalRepresentative = true;
     }
 
-    const duplicate = await this.similarity.findDuplicateSemanticMemory(triple, similarityThreshold);
+    const duplicate = hasIneligibleGlobalRepresentative
+      ? null
+      : await this.similarity.findDuplicateSemanticMemory(triple, similarityThreshold);
 
     if (duplicate) {
       await this.crud.updateExistingSemanticMemory(duplicate.id, triple, policy, confidence);
       result.updated++;
       result.semanticMemoryIds.push(duplicate.id);
     } else {
-      const semanticMemoryId = await this.crud.createSemanticMemory(triple, policy, confidence);
+      const created = await this.crud.createSemanticMemory(
+        snapshot,
+        source,
+        policy.episodicImportance
+      );
       result.created++;
-      result.semanticMemoryIds.push(semanticMemoryId);
+      result.semanticMemoryIds.push(created.id);
     }
 
     try {

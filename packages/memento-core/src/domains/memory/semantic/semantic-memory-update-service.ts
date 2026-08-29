@@ -92,13 +92,22 @@ export class SemanticMemoryUpdateService {
     if (request.kind === 'empty') {
       return request.result;
     }
-    this.snapshotEpisodicSource(request.policy.episodicMemoryId);
+    const source = this.snapshotEpisodicSource(request.policy.episodicMemoryId);
+    const providedImportance = (options as { episodicImportance?: number }).episodicImportance;
+    const episodicImportance = providedImportance === undefined
+      ? source.importance ?? 0.5
+      : request.policy.episodicImportance;
+    if (!Number.isFinite(episodicImportance) || episodicImportance < 0 || episodicImportance > 1) {
+      throw new TypeError('Invalid semantic update source importance');
+    }
+    const policy = { ...request.policy, episodicImportance };
 
-    const preparedData = this.pipeline.prepareUpdateData(request.policy);
+    const preparedData = this.pipeline.prepareUpdateData(policy);
     const { result, confidences, hasError } = await this.pipeline.applyUpdates(
       request.positions,
       request.extractionInfo,
-      request.policy,
+      source,
+      policy,
       preparedData
     );
 
