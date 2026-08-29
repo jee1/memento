@@ -191,12 +191,14 @@ export function getRankingVersionPayload(configPath?: string): {
   hybrid_vector_threshold: number;
   vector_prefetch_multiplier: number;
   vector_underfill_fill: boolean;
+  vector_score_scale: string;
 } {
   return {
     weights: getRankingWeights(configPath),
     hybrid_vector_threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
     vector_prefetch_multiplier: HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
     vector_underfill_fill: HYBRID_SEARCH.VECTOR_UNDERFILL_FILL,
+    vector_score_scale: HYBRID_SEARCH.VECTOR_SCORE_SCALE,
   };
 }
 

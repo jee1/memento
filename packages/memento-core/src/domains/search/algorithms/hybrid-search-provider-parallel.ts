@@ -115,7 +115,6 @@ export async function runSingleProviderVectorSearch(
         importance: result.importance,
         created_at: result.created_at,
         pinned: false,
-        score: result.similarity,
         similarity: result.similarity,
         provider,
         ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),

@@ -1,0 +1,88 @@
+feature: 659-806-vector-minmax-cosine
+branch: 659-806-vector-minmax-cosine
+updated: 2026-08-29
+executor: /speckit.superspec.execute
+
+baseline:
+  ranking_version: "ranking-sha256:facf592be6bb"
+  targeted_suite: "42 files / 620 passed / 1 skipped"
+
+phases:
+  - id: 1
+    name: Setup
+    status: done
+    tasks: [T001]
+  - id: 2
+    name: Foundational (변환 단일화)
+    status: done
+    tasks: [T002, T003]
+  - id: 3
+    name: US1 min-max 제거
+    status: done
+    tasks: [T004, T005, T006, T007]
+  - id: 4
+    name: US2 대체 경로 방향 통일
+    status: done
+    tasks: [T008, T009, T010, T011]
+  - id: 5
+    name: US3 제공자 간 규칙
+    status: done
+    tasks: [T012]
+  - id: 6
+    name: US4 표시 계약
+    status: done
+    tasks: [T013]
+  - id: 7
+    name: Polish
+    status: done
+    tasks: [T014, T015, T016, T017, T018, T019, T020]
+
+red_gates_observed:
+  - task: T004
+    evidence: "SC-001 expected 1 to be less than 0.4 (이슈 보고 증상 재현)"
+  - task: T010
+    evidence: "similarity undefined + score 속성 존재 (방향 결함 증거)"
+
+verification:
+  SC-016: "pass — 격리·프라이버시 필터 diff 0건"
+  SC-017: "pass — ranking-sha256:facf592be6bb → ranking-sha256:4c46798e80ab"
+
+gates:
+  lint: "pass (exit 0)"
+  type_check: "pass (exit 0, 전 워크스페이스)"
+  graphify: "pass — 재빌드 완료, graphify-out/GRAPH_REPORT.md 갱신(6435 nodes), 미추적 확인"
+  test: "pass — 479 files / 5145 passed / 1 skipped (클린 런). 1차 런의 error-logging-service 타임아웃은 동시 부하 탓이며 격리 실행 19.2s/30s로 통과, monitoring 도메인 미접촉으로 회귀 아님"
+
+quickstart_verification:
+  무관_쿼리_최상위_만점: "pass (SC-001)"
+  결과셋_독립성: "pass (SC-002)"
+  후보_1건_대_다건: "pass (SC-004)"
+  대체경로_임계값_통과분: "pass (SC-011)"
+  보충_후보_절대점수: "pass (FR-006)"
+  랭킹_버전_변경: "pass (SC-017)"
+
+sc_003_measurement:
+  classification: "평가 성격 기준 — 단위 검증 대상 아님"
+  rationale: >
+    관련 쿼리 집합과 무관 쿼리 집합의 최상위 점수 분포 구분은 코퍼스 품질에 좌우된다.
+    합성 픽스처로 단언하면 주입한 값을 되읽는 동어반복이 되므로 회귀 신호가 되지 못한다.
+  method: "재배포 불가 코퍼스(LoCoMo CC BY-NC, #767)를 쓰는 로컬 측정. 결과는 집계·식별자·해시만 기록하며 코퍼스와 파생물은 커밋하지 않는다(명세 Q15)"
+  status: "이번 작업 범위 밖 — 척도 복원 후 측정 가능"
+
+review_findings_resolved:
+  I-1: "fixed — hybrid-search-provider-parallel.ts 의 잔여 score 필드 제거. 검증 76 files / 1000 tests 통과"
+  I-2: "resolved — SC-003을 평가 성격 기준으로 명시하고 tasks.md 추적표·progress.yml에 측정 방식 기록"
+
+status: complete
+
+pending:
+  - "커밋 (사용자 승인 대기 — 이 세션은 커밋하지 않음)"
+
+residual_findings:
+  - id: R1
+    summary: "하이브리드 질의 SQL이 `COALESCE(1 - vs.vector_distance, 0)`로 변환 산술을 SQL 쪽에서 수행하고, 매퍼는 clamp만 적용한다(issue #713 주석)."
+    assessment: >
+      FR-020의 '단일 정의' 관점에서는 변환이 SQL과 매퍼로 쪼개져 있다.
+      다만 이 경로는 이번 결함과 무관하게 정상 동작하며 자체 검증도 있다.
+      plan.md가 정한 변경 파일 6곳에 포함되지 않으므로 이번 작업에서 건드리지 않았다.
+    action: "후속 추적. 이번 범위에서 변경하지 않음"
