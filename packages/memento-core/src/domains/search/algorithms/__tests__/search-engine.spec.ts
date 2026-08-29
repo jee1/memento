@@ -6,6 +6,7 @@ import type Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SearchEngine, type SearchQuery } from '../search-engine.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
 import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';
 
@@ -433,19 +434,41 @@ describe('SearchEngine', () => {
       expect(typeof result).toBe('string');
     });
 
-    it('긴 쿼리(토큰 6개 초과) 시 OR 조합으로 완화', () => {
-      const query = 'Memento recall 검색 데이터 조회 하이브리드 검색';
+    it('긴 쿼리(토큰 6개 초과) 시 OR + prefix 이며 최대 토큰 수 이내', () => {
+      const query = 'Memento recall 검색 데이터 조회 하이브리드 검색 엔진 테스트 추가';
       const result = (searchEngine as any).buildFTSQuery(query);
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
+      expect(result).toContain(' OR ');
+      const terms = result.split(' OR ');
+      expect(terms.length).toBeLessThanOrEqual(HYBRID_SEARCH.FTS_MAX_TOKENS_FOR_OR);
+      expect(terms.some((t: string) => t.includes('*'))).toBe(true);
+    });
+
+    it('짧은 다개념 쿼리는 OR + prefix* 로 결합한다', () => {
+      const result = (searchEngine as any).buildFTSQuery('검색 랭킹 가중치 튜닝');
+      expect(result).toContain(' OR ');
+      expect(result).toMatch(/검색\*/);
+      expect(result).toMatch(/랭킹\*/);
+      expect(result).toMatch(/가중치\*/);
+      expect(result).toMatch(/튜닝\*/);
+    });
+
+    it('1글자 어간에는 접두를 붙이지 않는다', () => {
+      const result = (searchEngine as any).buildFTSQuery('z test');
+      expect(result).toMatch(/\bz\b/);
+      expect(result).not.toMatch(/\bz\*/);
+      expect(result).toMatch(/test\*/);
+    });
+
+    it('연산자처럼 보이는 기호는 MATCH 연산자로 남지 않는다', () => {
+      const result = (searchEngine as any).buildFTSQuery('foo AND bar "baz"');
+      expect(result).not.toMatch(/\bAND\b/);
+      expect(result).not.toContain('"');
       expect(result).toContain(' OR ');
     });
 
-    it('짧은 쿼리(토큰 5개 이하)는 공백으로만 연결(AND 유지)', () => {
-      const query = 'recall 벡터 검색 테스트';
-      const result = (searchEngine as any).buildFTSQuery(query);
-      expect(result).toBeDefined();
-      expect(result).not.toContain(' OR ');
+    it('FTS_MIN_PREFIX_STEM_LENGTH 는 2', () => {
+      expect(HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH).toBe(2);
     });
   });
 
