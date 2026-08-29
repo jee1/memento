@@ -26,7 +26,7 @@ SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값�
 
 텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank))`로 (0, 1) relevance에 올린 뒤 기존 가중합에 넣습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다.
 
-FTS 쿼리 combinator(짧은 AND / 토큰 5개 초과 시 앞 8개 OR)는 `search-engine-fts-query.ts`의 현재 값을 유지합니다. LoCoMo ablation 전까지 `config/ranking-weights.toml`도 재튜닝하지 않습니다.
+FTS 쿼리 combinator는 `search-engine-fts-query.ts`에서 **짧은·긴 구간 모두** 내용어를 `OR`로 결합하고, 어간 길이가 `HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH`(기본 2) 이상이면 FTS5 접두(`term*`)를 붙입니다(Issue [#807](https://github.com/jee1/memento/issues/807)). 긴 구간은 계속 앞 `FTS_MAX_TOKENS_FOR_OR`(8)개만 사용합니다. `config/ranking-weights.toml`은 이 이슈에서 재튜닝하지 않습니다.
 
 ## Hybrid fusion relevance (Issue #788)
 

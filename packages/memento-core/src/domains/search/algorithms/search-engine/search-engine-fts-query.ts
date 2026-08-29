@@ -20,9 +20,14 @@ export function buildFTSQuery(query: string): string {
   const words = preprocessedQuery.split(' ').filter(w => w.length > 0);
   const orThreshold = HYBRID_SEARCH.FTS_OR_ABOVE_TOKEN_COUNT;
   const maxTokens = HYBRID_SEARCH.FTS_MAX_TOKENS_FOR_OR;
-  const ftsQueryString = words.length > orThreshold
-    ? words.slice(0, maxTokens).join(' OR ')
-    : preprocessedQuery;
+  const minStem = HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH;
+
+  const capped =
+    words.length > orThreshold ? words.slice(0, maxTokens) : words;
+  const terms = capped.map(word =>
+    word.length >= minStem ? `${word}*` : word
+  );
+  const ftsQueryString = terms.join(' OR ');
 
   const safeQuery = makeFTSSafe(ftsQueryString);
   mcpLogger.logServer('debug', 'FTS5 안전 쿼리', { safeQuery });

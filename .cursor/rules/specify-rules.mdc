@@ -8,7 +8,7 @@ alwaysApply: true
 
 상세: [AGENTS.md](../../AGENTS.md) · [docs/agents/](../../docs/agents/README.md)
 
-Last updated: 2026-08-27
+Last updated: 2026-08-29
 
 ## Active Technologies
 
@@ -50,6 +50,7 @@ TypeScript strict, 2-space indent, kebab-case 파일명 — [DEVELOPMENT_RULES.m
 
 ## Recent Changes
 
+- 660-807-fts-or-prefix (#807): FTS short queries use OR + prefix* (min stem 2); plan in `specs/660-807-fts-or-prefix/`
 - 658-llm-provider-use-case-override (#820): per-job `LLM_PROVIDER_*` for triple/relation/procedural; FR-004 cross-provider model guard; Ollama readiness when job override selects ollama — plan in `specs/658-llm-provider-use-case-override/`
 - `docs/agents/` 분리: AGENTS.md 마스터 + commands/architecture/agent-workflow 상세
 - Docker DB 운영 스크립트 (`db:backup`, `db:pre-docker-deploy`, `db:restore-from-corrupt`)

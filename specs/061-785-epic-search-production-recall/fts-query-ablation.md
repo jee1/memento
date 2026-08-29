@@ -23,3 +23,5 @@ Candidates to measure locally after BM25 lands:
 3. all-token OR (no 8-token cap)
 
 Pick the variant that improves zero-hit and `sql_candidate_recall` without blowing p95. Record numbers here before changing constants.
+
+**Follow-up**: Combinator ablation for short AND → OR + prefix* is tracked in [#807](https://github.com/jee1/memento/issues/807) / `specs/660-807-fts-or-prefix/fts-query-ablation.md`.
