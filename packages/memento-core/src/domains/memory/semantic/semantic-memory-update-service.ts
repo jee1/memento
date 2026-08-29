@@ -5,7 +5,6 @@
  */
 
 import Database from 'better-sqlite3';
-import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { RelationGraphPort } from '../../relation/ports/relation-graph.port.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
@@ -17,7 +16,7 @@ import { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
 import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js';
 import { SemanticMemoryUpdatePipeline } from './semantic-memory-update-pipeline.js';
 import type {
-  SemanticMemoryUpdateOptions,
+  EpisodicSourceSnapshot,
   SemanticMemoryUpdateResult
 } from './semantic-memory-update-types.js';
 
@@ -84,26 +83,28 @@ export class SemanticMemoryUpdateService {
   }
 
   async updateSemanticMemory(
-    extractionResult: TripleExtractionResult,
-    options: SemanticMemoryUpdateOptions
+    extractionResult: unknown,
+    options: unknown
   ): Promise<SemanticMemoryUpdateResult> {
     const processingStartTime = Date.now();
 
-    const validationResult = this.pipeline.validateInput(extractionResult);
-    if (validationResult) {
-      return validationResult;
+    const request = this.pipeline.validateAndSnapshotRequest(extractionResult, options);
+    if (request.kind === 'empty') {
+      return request.result;
     }
+    this.snapshotEpisodicSource(request.policy.episodicMemoryId);
 
-    const preparedData = this.pipeline.prepareUpdateData(options);
+    const preparedData = this.pipeline.prepareUpdateData(request.policy);
     const { result, confidences, hasError } = await this.pipeline.applyUpdates(
-      extractionResult,
-      options,
+      request.positions,
+      request.extractionInfo,
+      request.policy,
       preparedData
     );
 
     this.pipeline.notifyListeners(
       result,
-      extractionResult.triples.length,
+      request.positions.length,
       confidences,
       processingStartTime,
       hasError
@@ -114,5 +115,43 @@ export class SemanticMemoryUpdateService {
 
   getStatistics() {
     return this.statistics.getStatistics();
+  }
+
+  private snapshotEpisodicSource(episodicMemoryId: string): EpisodicSourceSnapshot {
+    const row = this.db.prepare(`
+      SELECT
+        id,
+        type,
+        content,
+        importance,
+        owner_id AS ownerId,
+        project_id AS projectId,
+        is_deleted AS isDeleted,
+        triple_extracted AS tripleExtracted,
+        triple_extracted_status AS tripleExtractedStatus,
+        triple_extraction_metadata AS tripleExtractionMetadata
+      FROM memory_item
+      WHERE id = ?
+    `).get(episodicMemoryId) as (Omit<EpisodicSourceSnapshot, 'type' | 'isDeleted'> & {
+      type: string;
+      isDeleted: number | null;
+    }) | undefined;
+
+    if (!row || row.type !== 'episodic' || row.isDeleted !== 0) {
+      throw new Error(`Invalid episodic source memory: ${episodicMemoryId}`);
+    }
+
+    return {
+      id: row.id,
+      type: 'episodic',
+      content: row.content,
+      importance: row.importance,
+      ownerId: row.ownerId,
+      projectId: row.projectId,
+      isDeleted: false,
+      tripleExtracted: row.tripleExtracted,
+      tripleExtractedStatus: row.tripleExtractedStatus,
+      tripleExtractionMetadata: row.tripleExtractionMetadata
+    };
   }
 }

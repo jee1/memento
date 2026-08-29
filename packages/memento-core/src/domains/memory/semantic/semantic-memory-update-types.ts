@@ -2,6 +2,8 @@
  * Semantic Memory 업데이트 공유 타입·상수
  */
 
+import type { ExtractionInfo, Triple } from '../../../shared/types/triple-extraction.js';
+
 /** Confidence 임계값 기본값 (PRD 2.4) */
 export const DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
 
@@ -37,6 +39,31 @@ export interface SemanticMemoryUpdateOptions {
   similarityThreshold?: number;
 }
 
+export interface InvocationPolicySnapshot {
+  episodicMemoryId: string;
+  episodicImportance: number;
+  confidenceThreshold: number;
+  similarityThreshold: number;
+}
+
+export interface InvocationInputPosition {
+  index: number;
+  triple: Triple | null;
+}
+
+export interface EpisodicSourceSnapshot {
+  id: string;
+  type: 'episodic';
+  content: string;
+  importance: number | null;
+  ownerId: string | null;
+  projectId: string | null;
+  isDeleted: false;
+  tripleExtracted: number | null;
+  tripleExtractedStatus: string | null;
+  tripleExtractionMetadata: string | null;
+}
+
 export interface NormalizedTripleSnapshot {
   index: number;
   subject: string;
@@ -47,6 +74,15 @@ export interface NormalizedTripleSnapshot {
   objectLinked: boolean;
   confidence: number;
 }
+
+export type SemanticMemoryUpdateRequestSnapshot =
+  | { kind: 'empty'; result: SemanticMemoryUpdateResult }
+  | {
+      kind: 'ready';
+      policy: InvocationPolicySnapshot;
+      positions: InvocationInputPosition[];
+      extractionInfo: ExtractionInfo;
+    };
 
 export interface PreparedUpdateData {
   confidenceThreshold: number;
