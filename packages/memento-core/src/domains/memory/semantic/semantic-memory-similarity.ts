@@ -197,7 +197,11 @@ export class SemanticMemorySimilarity {
     if (entity1.toLowerCase().trim() === entity2.toLowerCase().trim()) {
       return true;
     }
-    if (!this.embeddingService?.isAvailable()) {
+    if (
+      !this.embeddingService ||
+      typeof this.embeddingService.isAvailable !== 'function' ||
+      !this.embeddingService.isAvailable()
+    ) {
       return false;
     }
 

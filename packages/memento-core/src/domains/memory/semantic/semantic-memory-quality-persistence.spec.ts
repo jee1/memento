@@ -896,6 +896,14 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       expect(decision).toMatchObject({ kind: 'similar', candidate: { id: 'threshold-equal' } });
     });
 
+    it('keeps direct similarity checks non-throwing when provider availability is missing', async () => {
+      const similarity = new SemanticMemorySimilarity(db, {
+        generateEmbedding: vi.fn()
+      } as unknown as UnifiedEmbeddingService);
+
+      await expect(similarity.checkSimilarity('subject', 'candidate', 0.9)).resolves.toBe(false);
+    });
+
     it.each([
       ['invalid score', vi.fn(async (text: string) => embeddingResult(
         text === '시스템' ? [1, 0] : [Number.NaN, 0]
