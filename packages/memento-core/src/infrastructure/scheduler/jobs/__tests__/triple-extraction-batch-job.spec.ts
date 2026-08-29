@@ -49,6 +49,7 @@ describe('TripleExtractionBatchJob', () => {
         triple_extracted INTEGER,
         triple_extracted_status TEXT,
         triple_extraction_metadata TEXT,
+        owner_id TEXT,
         privacy_scope TEXT DEFAULT 'private',
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -944,4 +945,3 @@ describe('TripleExtractionBatchJob', () => {
     }, 180000); // 타임아웃 180초 (3가지 배치 크기로 각각 20개 메모리를 순차 처리하므로 충분한 시간 필요)
   });
 });
-

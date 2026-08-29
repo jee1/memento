@@ -50,6 +50,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
     ['unknown failureReason', { triples: [validTriple()], extractionInfo: { ...validExtractionInfo(), failureReason: 'new_reason' } }, { episodicMemoryId: 'episode-1' }],
     ['null options', { triples: [validTriple()], extractionInfo: validExtractionInfo() }, null],
     ['blank episodicMemoryId', { triples: [validTriple()], extractionInfo: validExtractionInfo() }, { episodicMemoryId: ' ' }],
+    ['negative episodicImportance', { triples: [validTriple()], extractionInfo: validExtractionInfo() }, { episodicMemoryId: 'episode-1', episodicImportance: -0.1 }],
     ['null confidenceThreshold', { triples: [validTriple()], extractionInfo: validExtractionInfo() }, { episodicMemoryId: 'episode-1', confidenceThreshold: null }],
     ['out-of-range similarityThreshold', { triples: [validTriple()], extractionInfo: validExtractionInfo() }, { episodicMemoryId: 'episode-1', similarityThreshold: 1.1 }],
   ])('rejects malformed non-empty input before source lookup: %s', async (_name, result, options) => {
