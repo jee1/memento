@@ -26,6 +26,9 @@ export interface PreparedEvidenceOccurrence {
   decision: CandidateDecision;
 }
 
+const SOURCE_STALE_ROLLBACK = new Error('source-stale');
+const CANDIDATE_STALE_ROLLBACK = new Error('candidate-stale');
+
 export class SemanticMemoryCrud {
   private readonly memoryEmbeddingService: MemoryEmbeddingService;
 
@@ -79,12 +82,12 @@ export class SemanticMemoryCrud {
       context: { source_episodic_id: source.id }
     });
 
-    const created = this.db.transaction(() => {
+    const create = this.db.transaction(() => {
       if (!this.sourceMatches(source)) {
-        return { kind: 'source-stale' as const };
+        throw SOURCE_STALE_ROLLBACK;
       }
       if (this.hasEligibleExactCandidate(snapshot, source)) {
-        return { kind: 'candidate-stale' as const };
+        throw CANDIDATE_STALE_ROLLBACK;
       }
 
       this.db.prepare(`
@@ -120,10 +123,19 @@ export class SemanticMemoryCrud {
       }
 
       return { id, confidence: snapshot.confidence, content, kind: 'created' as const };
-    }).immediate();
+    });
 
-    if (created.kind !== 'created') {
-      return created;
+    let created: ReturnType<typeof create.immediate>;
+    try {
+      created = create.immediate();
+    } catch (error) {
+      if (error === SOURCE_STALE_ROLLBACK) {
+        return { kind: 'source-stale' };
+      }
+      if (error === CANDIDATE_STALE_ROLLBACK) {
+        return { kind: 'candidate-stale' };
+      }
+      throw error;
     }
 
     try {
@@ -152,15 +164,29 @@ export class SemanticMemoryCrud {
     | { kind: 'source-stale' }
     | null
   > {
-    const updated = this.db.transaction(() => {
+    const update = this.db.transaction(() => {
       if (!this.sourceMatches(source)) {
-        return { kind: 'source-stale' as const };
+        throw SOURCE_STALE_ROLLBACK;
       }
-      return this.applyConditionalAggregateUpdate(candidate, evidence);
-    }).immediate();
-    if (updated?.kind === 'updated') {
-      this.logAggregateUpdate(candidate, evidence, updated.confidence);
+      const result = this.applyConditionalAggregateUpdate(candidate, evidence);
+      if (!result) {
+        throw CANDIDATE_STALE_ROLLBACK;
+      }
+      return result;
+    });
+    let updated: ReturnType<typeof update.immediate>;
+    try {
+      updated = update.immediate();
+    } catch (error) {
+      if (error === SOURCE_STALE_ROLLBACK) {
+        return { kind: 'source-stale' };
+      }
+      if (error === CANDIDATE_STALE_ROLLBACK) {
+        return null;
+      }
+      throw error;
     }
+    this.logAggregateUpdate(candidate, evidence, updated.confidence);
     return updated;
   }
 
@@ -176,7 +202,7 @@ export class SemanticMemoryCrud {
     let updatedCandidate = candidate;
     const retry = this.db.transaction(() => {
       if (!this.sourceMatches(source)) {
-        return { kind: 'source-stale' as const };
+        throw SOURCE_STALE_ROLLBACK;
       }
       const latest = this.db.prepare(`
         SELECT confidence, num_times AS numTimes
@@ -187,16 +213,29 @@ export class SemanticMemoryCrud {
         numTimes: number;
       } | undefined;
       if (!latest) {
-        return null;
+        throw CANDIDATE_STALE_ROLLBACK;
       }
 
       updatedCandidate = { ...candidate, ...latest };
-      return this.applyConditionalAggregateUpdate(updatedCandidate, evidence);
+      const result = this.applyConditionalAggregateUpdate(updatedCandidate, evidence);
+      if (!result) {
+        throw CANDIDATE_STALE_ROLLBACK;
+      }
+      return result;
     });
-    const updated = retry.immediate();
-    if (updated?.kind === 'updated') {
-      this.logAggregateUpdate(updatedCandidate, evidence, updated.confidence);
+    let updated: ReturnType<typeof retry.immediate>;
+    try {
+      updated = retry.immediate();
+    } catch (error) {
+      if (error === SOURCE_STALE_ROLLBACK) {
+        return { kind: 'source-stale' };
+      }
+      if (error === CANDIDATE_STALE_ROLLBACK) {
+        return null;
+      }
+      throw error;
     }
+    this.logAggregateUpdate(updatedCandidate, evidence, updated.confidence);
     return updated;
   }
 

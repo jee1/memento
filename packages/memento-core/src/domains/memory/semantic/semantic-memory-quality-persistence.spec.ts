@@ -3,6 +3,9 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
+import { applySchema } from '../../../infrastructure/database/sqlite/apply-schema.js';
+import { configureSqliteSession } from '../../../infrastructure/database/sqlite/init-sqlite-session.js';
+import { populateVecTables } from '../../../infrastructure/database/sqlite/init-legacy-schema.js';
 import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
@@ -1112,6 +1115,29 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
   });
 
   describe('atomic aggregate updates', () => {
+    let transactionTrace: string[];
+
+    beforeEach(async () => {
+      cleanupTestDatabase(db);
+      transactionTrace = [];
+      db = new Database(':memory:', {
+        verbose: (statement) => transactionTrace.push(statement)
+      });
+      await configureSqliteSession(db);
+      applySchema(db);
+      populateVecTables(db, []);
+      service = new SemanticMemoryUpdateService(
+        db,
+        createRelationGraph(db),
+        undefined,
+        undefined,
+        {
+          createAndStoreEmbedding: vi.fn().mockResolvedValue(undefined)
+        } as unknown as MemoryEmbeddingService
+      );
+      transactionTrace.length = 0;
+    });
+
     it('concurrent create calls converge on one scoped automatic semantic', async () => {
       insertGlobalRepresentative({
         originSource: JSON.stringify({ tool: 'remember', caller: 'user' })
@@ -1154,9 +1180,11 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
             return { kind: 'none' };
           }
           expect(db.inTransaction).toBe(false);
+          expect(transactionBoundaries(transactionTrace).at(-1)).toBe('ROLLBACK');
           return originalDecision(...args);
         });
 
+      transactionTrace.length = 0;
       const results = await Promise.all(occurrences.map((occurrence, index) =>
         service.updateSemanticMemory(
           {
@@ -1202,6 +1230,8 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       expect(results.reduce((sum, result) => sum + result.updated, 0)).toBe(occurrences.length - 1);
       expect(results.every((result) => result.semanticMemoryIds[0] === scopedRows[0].id)).toBe(true);
       expect(decision).toHaveBeenCalledTimes(occurrences.length * 2 - 1);
+      expect(transactionBoundaries(transactionTrace).filter((statement) => statement === 'ROLLBACK'))
+        .toHaveLength(occurrences.length - 1);
       expect(countRows('memory_item', "type = 'semantic'")).toBe(2);
       expect(DatabaseUtils.get(db, `
         SELECT representative_memory_id
@@ -1228,9 +1258,11 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
         })
         .mockImplementation(async (...args) => {
           expect(db.inTransaction).toBe(false);
+          expect(transactionBoundaries(transactionTrace).at(-1)).toBe('ROLLBACK');
           return originalDecision(...args);
         });
 
+      transactionTrace.length = 0;
       const result = await service.updateSemanticMemory(
         { triples: [validTriple()], extractionInfo: validExtractionInfo() },
         { episodicMemoryId: 'episode-stale', confidenceThreshold: 0.7 }
@@ -1238,6 +1270,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
 
       expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
       expect(decision).toHaveBeenCalledTimes(2);
+      expect(transactionBoundaries(transactionTrace)).toEqual(['BEGIN IMMEDIATE', 'ROLLBACK']);
       expect(readAggregate('selected-candidate')).toMatchObject({
         confidence: 0.8,
         importance: 0.9,
@@ -1257,6 +1290,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
           return { kind: 'none' };
         });
 
+      transactionTrace.length = 0;
       const result = await service.updateSemanticMemory(
         { triples: [validTriple()], extractionInfo: validExtractionInfo() },
         { episodicMemoryId: 'source-stale-create', confidenceThreshold: 0.7 }
@@ -1264,6 +1298,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
 
       expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
       expect(decision).toHaveBeenCalledOnce();
+      expect(transactionBoundaries(transactionTrace)).toEqual(['BEGIN IMMEDIATE', 'ROLLBACK']);
       expect(countRows('memory_item', "type = 'semantic'")).toBe(0);
       expect(countRows('kg_triple')).toBe(0);
       expect(countRows('memory_relation')).toBe(0);
@@ -1289,11 +1324,13 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
         })
         .mockImplementation(async (...args) => {
           expect(db.inTransaction).toBe(false);
+          expect(transactionBoundaries(transactionTrace).at(-1)).toBe('ROLLBACK');
           return originalDecision(...args);
         });
       const firstUpdate = vi.spyOn(internals.crud, 'updateExistingSemanticMemory');
       const retryUpdate = vi.spyOn(internals.crud, 'updateReevaluatedSemanticMemory');
 
+      transactionTrace.length = 0;
       const result = await service.updateSemanticMemory(
         { triples: [validTriple()], extractionInfo: validExtractionInfo() },
         { episodicMemoryId: 'episode-stale', confidenceThreshold: 0.7 }
@@ -1308,6 +1345,12 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       expect(decision).toHaveBeenCalledTimes(2);
       expect(firstUpdate).toHaveBeenCalledOnce();
       expect(retryUpdate).toHaveBeenCalledOnce();
+      expect(transactionBoundaries(transactionTrace)).toEqual([
+        'BEGIN IMMEDIATE',
+        'ROLLBACK',
+        'BEGIN IMMEDIATE',
+        'COMMIT'
+      ]);
       expect(readAggregate('selected-candidate')).toMatchObject({ confidence: 0.8, num_times: 2 });
       expect(readAggregate('new-target')).toMatchObject({ num_times: 3 });
       expect(readAggregate('new-target')?.confidence).toBeCloseTo((0.6 * 2 + 1) / 3, 12);
@@ -1337,6 +1380,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
           return originalDecision(...args);
         });
 
+      transactionTrace.length = 0;
       const result = await service.updateSemanticMemory(
         { triples: [validTriple()], extractionInfo: validExtractionInfo() },
         { episodicMemoryId: 'source-stale', confidenceThreshold: 0.7 }
@@ -1344,6 +1388,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
 
       expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
       expect(decision).toHaveBeenCalledOnce();
+      expect(transactionBoundaries(transactionTrace)).toEqual(['BEGIN IMMEDIATE', 'ROLLBACK']);
       expect(readAggregate('source-stale-candidate')).toMatchObject({
         confidence: 0.8,
         importance: 0.9,
@@ -1697,6 +1742,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       const update = vi.spyOn(internals.crud, 'updateExistingSemanticMemory');
       const retryUpdate = vi.spyOn(internals.crud, 'updateReevaluatedSemanticMemory');
 
+      transactionTrace.length = 0;
       const result = await service.updateSemanticMemory(
         { triples: [validTriple()], extractionInfo: validExtractionInfo() },
         { episodicMemoryId: 'episode-stale', confidenceThreshold: 0.7 }
@@ -1706,6 +1752,12 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       expect(decision).toHaveBeenCalledTimes(2);
       expect(update).toHaveBeenCalledOnce();
       expect(retryUpdate).toHaveBeenCalledOnce();
+      expect(transactionBoundaries(transactionTrace)).toEqual([
+        'BEGIN IMMEDIATE',
+        'ROLLBACK',
+        'BEGIN IMMEDIATE',
+        'ROLLBACK'
+      ]);
       expect(readAggregate('twice-stale')).toMatchObject({ confidence: 0.9, num_times: 3 });
       expect(countRows('memory_relation')).toBe(0);
     });
@@ -1852,6 +1904,21 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       provider: 'mock' as const,
       usage: { prompt_tokens: 0, total_tokens: 0 }
     };
+  }
+
+  function transactionBoundaries(trace: string[]): string[] {
+    const boundaries: string[] = [];
+    let writeTransactionOpen = false;
+    for (const statement of trace) {
+      if (statement === 'BEGIN IMMEDIATE') {
+        writeTransactionOpen = true;
+        boundaries.push(statement);
+      } else if (writeTransactionOpen && (statement === 'COMMIT' || statement === 'ROLLBACK')) {
+        writeTransactionOpen = false;
+        boundaries.push(statement);
+      }
+    }
+    return boundaries;
   }
 
   function countRows(table: 'memory_item' | 'kg_triple' | 'memory_relation', where?: string): number {
