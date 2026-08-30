@@ -1112,6 +1112,312 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
   });
 
   describe('atomic aggregate updates', () => {
+    it('concurrent create calls converge on one scoped automatic semantic', async () => {
+      insertGlobalRepresentative({
+        originSource: JSON.stringify({ tool: 'remember', caller: 'user' })
+      });
+      DatabaseUtils.run(db, `
+        UPDATE memory_item
+        SET owner_id = 'global-owner', project_id = 'global-project'
+        WHERE id = 'global-representative'
+      `);
+      const occurrences = [
+        { confidence: 0.7, episodicImportance: 0.2 },
+        { confidence: 0.8, episodicImportance: 0.4 },
+        { confidence: 0.9, episodicImportance: 0.6 },
+        { confidence: 1, episodicImportance: 0.9 }
+      ];
+      occurrences.forEach((_occurrence, index) => {
+        insertEpisodic(`race-episode-${index}`, 0.5, 'owner-1', 'project-1');
+      });
+      const internals = service as unknown as {
+        scoring: SemanticMemoryScoring;
+        similarity: SemanticMemorySimilarity;
+      };
+      vi.spyOn(internals.scoring, 'prepareNormalizedTriple').mockImplementation((triple, index) => ({
+        ...normalizedSnapshot(),
+        index,
+        confidence: occurrences[Number((triple as { subject: string }).subject.split('-').at(-1))]!.confidence
+      }));
+      const originalDecision = internals.similarity.findDuplicateSemanticMemory
+        .bind(internals.similarity);
+      const firstDecisions = deferred<void>();
+      let waiting = 0;
+      const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockImplementation(async (...args) => {
+          if (waiting < occurrences.length) {
+            waiting++;
+            if (waiting === occurrences.length) {
+              firstDecisions.resolve();
+            }
+            await firstDecisions.promise;
+            return { kind: 'none' };
+          }
+          expect(db.inTransaction).toBe(false);
+          return originalDecision(...args);
+        });
+
+      const results = await Promise.all(occurrences.map((occurrence, index) =>
+        service.updateSemanticMemory(
+          {
+            triples: [validTriple(`race-${index}`)],
+            extractionInfo: validExtractionInfo()
+          },
+          {
+            episodicMemoryId: `race-episode-${index}`,
+            episodicImportance: occurrence.episodicImportance,
+            confidenceThreshold: 0.6
+          }
+        )
+      ));
+
+      const scopedRows = DatabaseUtils.all(db, `
+        SELECT id, confidence, importance, num_times
+        FROM memory_item
+        WHERE type = 'semantic'
+          AND is_deleted = 0
+          AND owner_id = 'owner-1'
+          AND project_id = 'project-1'
+          AND subject = '시스템'
+          AND predicate = '사용함'
+          AND object = 'feature'
+      `) as Array<{
+        id: string;
+        confidence: number;
+        importance: number;
+        num_times: number;
+      }>;
+      expect(scopedRows).toHaveLength(1);
+      expect(scopedRows[0].num_times).toBe(occurrences.length);
+      expect(scopedRows[0].confidence).toBeCloseTo(
+        occurrences.reduce((sum, occurrence) => sum + occurrence.confidence, 0) /
+          occurrences.length,
+        6
+      );
+      expect(scopedRows[0].importance).toBeCloseTo(
+        occurrences.at(-1)!.episodicImportance * scopedRows[0].confidence,
+        6
+      );
+      expect(results.reduce((sum, result) => sum + result.created, 0)).toBe(1);
+      expect(results.reduce((sum, result) => sum + result.updated, 0)).toBe(occurrences.length - 1);
+      expect(results.every((result) => result.semanticMemoryIds[0] === scopedRows[0].id)).toBe(true);
+      expect(decision).toHaveBeenCalledTimes(occurrences.length * 2 - 1);
+      expect(countRows('memory_item', "type = 'semantic'")).toBe(2);
+      expect(DatabaseUtils.get(db, `
+        SELECT representative_memory_id
+        FROM kg_triple
+        WHERE id = 'global-kg'
+      `)).toEqual({ representative_memory_id: 'global-representative' });
+    });
+
+    it.each([
+      ['soft-delete', "is_deleted = 1"],
+      ['scope', "owner_id = 'other-owner'"],
+      ['automatic provenance', "origin_source = '{\"tool\":\"remember\",\"caller\":\"user\"}'"]
+    ])('leaves a stale candidate changed after selection untouched: %s', async (_name, mutation) => {
+      insertCandidate({ id: 'selected-candidate', confidence: 0.8, numTimes: 2 });
+      insertEpisodic('episode-stale', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as { similarity: SemanticMemorySimilarity };
+      const originalDecision = internals.similarity.findDuplicateSemanticMemory
+        .bind(internals.similarity);
+      const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockImplementationOnce(async (...args) => {
+          const selected = await originalDecision(...args);
+          DatabaseUtils.run(db, `UPDATE memory_item SET ${mutation} WHERE id = 'selected-candidate'`);
+          return selected;
+        })
+        .mockImplementation(async (...args) => {
+          expect(db.inTransaction).toBe(false);
+          return originalDecision(...args);
+        });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-stale', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
+      expect(decision).toHaveBeenCalledTimes(2);
+      expect(readAggregate('selected-candidate')).toMatchObject({
+        confidence: 0.8,
+        importance: 0.9,
+        num_times: 2
+      });
+      expect(countRows('memory_relation')).toBe(0);
+    });
+
+    it('does not confuse a stale source create with a candidate race', async () => {
+      insertEpisodic('source-stale-create', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as { similarity: SemanticMemorySimilarity };
+      const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockImplementationOnce(async () => {
+          DatabaseUtils.run(db, `
+            UPDATE memory_item SET content = 'changed content' WHERE id = 'source-stale-create'
+          `);
+          return { kind: 'none' };
+        });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'source-stale-create', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
+      expect(decision).toHaveBeenCalledOnce();
+      expect(countRows('memory_item', "type = 'semantic'")).toBe(0);
+      expect(countRows('kg_triple')).toBe(0);
+      expect(countRows('memory_relation')).toBe(0);
+    });
+
+    it('re-evaluates a stale candidate once and updates the newly eligible target once', async () => {
+      insertCandidate({ id: 'selected-candidate', confidence: 0.8, numTimes: 2 });
+      insertEpisodic('episode-stale', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as {
+        similarity: SemanticMemorySimilarity;
+        crud: SemanticMemoryCrud;
+      };
+      const originalDecision = internals.similarity.findDuplicateSemanticMemory
+        .bind(internals.similarity);
+      const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockImplementationOnce(async (...args) => {
+          const selected = await originalDecision(...args);
+          DatabaseUtils.run(db, `
+            UPDATE memory_item SET is_deleted = 1 WHERE id = 'selected-candidate'
+          `);
+          insertCandidate({ id: 'new-target', confidence: 0.6, numTimes: 2 });
+          return selected;
+        })
+        .mockImplementation(async (...args) => {
+          expect(db.inTransaction).toBe(false);
+          return originalDecision(...args);
+        });
+      const firstUpdate = vi.spyOn(internals.crud, 'updateExistingSemanticMemory');
+      const retryUpdate = vi.spyOn(internals.crud, 'updateReevaluatedSemanticMemory');
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'episode-stale', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toEqual({
+        created: 0,
+        updated: 1,
+        skipped: 0,
+        semanticMemoryIds: ['new-target']
+      });
+      expect(decision).toHaveBeenCalledTimes(2);
+      expect(firstUpdate).toHaveBeenCalledOnce();
+      expect(retryUpdate).toHaveBeenCalledOnce();
+      expect(readAggregate('selected-candidate')).toMatchObject({ confidence: 0.8, num_times: 2 });
+      expect(readAggregate('new-target')).toMatchObject({ num_times: 3 });
+      expect(readAggregate('new-target')?.confidence).toBeCloseTo((0.6 * 2 + 1) / 3, 12);
+    });
+
+    it.each([
+      ['content', "content = 'changed content'"],
+      ['importance', 'importance = 0.2'],
+      ['owner', "owner_id = 'other-owner'"],
+      ['project', "project_id = 'other-project'"],
+      ['type', "type = 'working'"],
+      ['active state', 'is_deleted = 1']
+    ])('skips a stale source snapshot before candidate commit: %s', async (_name, mutation) => {
+      insertCandidate({ id: 'source-stale-candidate', confidence: 0.8, numTimes: 2 });
+      insertEpisodic('source-stale', 0.8, 'owner-1', 'project-1');
+      const internals = service as unknown as { similarity: SemanticMemorySimilarity };
+      const originalDecision = internals.similarity.findDuplicateSemanticMemory
+        .bind(internals.similarity);
+      const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
+        .mockImplementationOnce(async (...args) => {
+          const selected = await originalDecision(...args);
+          DatabaseUtils.run(db, `UPDATE memory_item SET ${mutation} WHERE id = 'source-stale'`);
+          return selected;
+        })
+        .mockImplementation(async (...args) => {
+          expect(db.inTransaction).toBe(false);
+          return originalDecision(...args);
+        });
+
+      const result = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        { episodicMemoryId: 'source-stale', confidenceThreshold: 0.7 }
+      );
+
+      expect(result).toEqual({ created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] });
+      expect(decision).toHaveBeenCalledOnce();
+      expect(readAggregate('source-stale-candidate')).toMatchObject({
+        confidence: 0.8,
+        importance: 0.9,
+        num_times: 2
+      });
+      expect(countRows('memory_relation')).toBe(0);
+    });
+
+    it('keeps similarity and embedding calls outside write transactions', async () => {
+      insertCandidate({
+        id: 'similar-target',
+        subject: 'candidate-system',
+        object: 'candidate-feature'
+      });
+      insertEpisodic('episode-similar', 0.8, 'owner-1', 'project-1');
+      insertEpisodic('episode-create', 0.8, 'owner-1', 'project-1');
+      let fallibleCallsWhileWriteTransactionOpen = 0;
+      const vectors: Record<string, number[]> = {
+        '시스템': [1, 0],
+        feature: [0, 1],
+        'candidate-system': [1, 0],
+        'candidate-feature': [0, 1]
+      };
+      const generateEmbedding = vi.fn(async (text: string) => {
+        if (db.inTransaction) {
+          fallibleCallsWhileWriteTransactionOpen++;
+        }
+        return embeddingResult(vectors[text] ?? [1, 1]);
+      });
+      const createAndStoreEmbedding = vi.fn(async () => {
+        if (db.inTransaction) {
+          fallibleCallsWhileWriteTransactionOpen++;
+        }
+      });
+      service = new SemanticMemoryUpdateService(
+        db,
+        createRelationGraph(db),
+        embeddingService(generateEmbedding),
+        undefined,
+        { createAndStoreEmbedding } as unknown as MemoryEmbeddingService
+      );
+      const internals = service as unknown as { similarity: SemanticMemorySimilarity };
+      const originalDecision = internals.similarity.findDuplicateSemanticMemory
+        .bind(internals.similarity);
+      vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory').mockImplementation(async (...args) => {
+        if (db.inTransaction) {
+          fallibleCallsWhileWriteTransactionOpen++;
+        }
+        return originalDecision(...args);
+      });
+
+      const updated = await service.updateSemanticMemory(
+        { triples: [validTriple()], extractionInfo: validExtractionInfo() },
+        {
+          episodicMemoryId: 'episode-similar',
+          confidenceThreshold: 0.7,
+          similarityThreshold: 0.9
+        }
+      );
+      const created = await service.updateSemanticMemory(
+        {
+          triples: [{ subject: 'new', predicate: 'bespoke relation', object: 'feature' }],
+          extractionInfo: validExtractionInfo()
+        },
+        { episodicMemoryId: 'episode-create', confidenceThreshold: 0.6 }
+      );
+
+      expect(updated).toMatchObject({ created: 0, updated: 1, skipped: 0 });
+      expect(created).toMatchObject({ created: 1, updated: 0, skipped: 0 });
+      expect(generateEmbedding).toHaveBeenCalled();
+      expect(createAndStoreEmbedding).toHaveBeenCalledOnce();
+      expect(fallibleCallsWhileWriteTransactionOpen).toBe(0);
+    });
+
     it.each(['exact', 'similar'] as const)(
       'uses the same aggregate mutation for an %s candidate without search counter changes',
       async (kind) => {
@@ -1228,6 +1534,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
 
     it('does not update a stale or corrupt aggregate candidate snapshot', async () => {
       insertCandidate({ id: 'stale-aggregate', confidence: 0.8, numTimes: 2 });
+      insertEpisodic('stale-source', 0.8, 'owner-1', 'project-1');
       const candidate = readCandidateSnapshot('stale-aggregate')!;
       DatabaseUtils.run(db, 'UPDATE memory_item SET confidence = 1.1 WHERE id = ?', ['stale-aggregate']);
       const crud = (service as unknown as { crud: {
@@ -1241,6 +1548,17 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
         episodicImportance: 0.8,
         duplicateIndexes: [],
         decision: { kind: 'exact', candidate }
+      }, {
+        id: 'stale-source',
+        type: 'episodic',
+        content: 'stale-source content',
+        importance: 0.8,
+        ownerId: 'owner-1',
+        projectId: 'project-1',
+        isDeleted: false,
+        tripleExtracted: 0,
+        tripleExtractedStatus: null,
+        tripleExtractionMetadata: null
       });
 
       expect(result).toBeNull();
@@ -1345,7 +1663,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       }
     );
 
-    it('turns a second stale aggregate update into one operational skip without relations', async () => {
+    it('turns a second stale candidate validation into one operational skip without relations', async () => {
       insertCandidate({ id: 'twice-stale', confidence: 0.8, numTimes: 2 });
       insertEpisodic('episode-stale', 0.8, 'owner-1', 'project-1');
       const internals = service as unknown as {
@@ -1361,6 +1679,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       const decision = vi.spyOn(internals.similarity, 'findDuplicateSemanticMemory')
         .mockResolvedValueOnce({ kind: 'exact', candidate: staleCandidate })
         .mockImplementationOnce(async () => {
+          expect(db.inTransaction).toBe(false);
           const reevaluated = readCandidateSnapshot('twice-stale')!;
           DatabaseUtils.run(db, `
             UPDATE memory_item

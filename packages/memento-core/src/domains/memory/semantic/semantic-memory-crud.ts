@@ -42,7 +42,10 @@ export class SemanticMemoryCrud {
     snapshot: NormalizedTripleSnapshot,
     source: EpisodicSourceSnapshot,
     episodicImportance: number
-  ): Promise<{ id: string; confidence: number; content: string; kind: 'created' }> {
+  ): Promise<
+    | { id: string; confidence: number; content: string; kind: 'created' }
+    | { kind: 'candidate-stale' | 'source-stale' }
+  > {
     if (
       !Number.isFinite(snapshot.confidence) ||
       snapshot.confidence < 0 ||
@@ -76,7 +79,14 @@ export class SemanticMemoryCrud {
       context: { source_episodic_id: source.id }
     });
 
-    this.db.transaction(() => {
+    const created = this.db.transaction(() => {
+      if (!this.sourceMatches(source)) {
+        return { kind: 'source-stale' as const };
+      }
+      if (this.hasEligibleExactCandidate(snapshot, source)) {
+        return { kind: 'candidate-stale' as const };
+      }
+
       this.db.prepare(`
         INSERT INTO memory_item (
           id, type, content, subject, predicate, object, confidence, importance,
@@ -108,7 +118,13 @@ export class SemanticMemoryCrud {
           representative_memory_id: id
         });
       }
-    })();
+
+      return { id, confidence: snapshot.confidence, content, kind: 'created' as const };
+    }).immediate();
+
+    if (created.kind !== 'created') {
+      return created;
+    }
 
     try {
       logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
@@ -120,7 +136,7 @@ export class SemanticMemoryCrud {
       // A committed primary write must not depend on logging.
     }
 
-    return { id, confidence: snapshot.confidence, content, kind: 'created' };
+    return created;
   }
 
   async createSemanticEmbedding(memoryId: string, content: string): Promise<void> {
@@ -129,16 +145,34 @@ export class SemanticMemoryCrud {
 
   async updateExistingSemanticMemory(
     candidate: SemanticCandidateSnapshot,
-    evidence: PreparedEvidenceOccurrence
-  ): Promise<{ id: string; confidence: number; kind: 'updated' } | null> {
-    return this.applyConditionalAggregateUpdate(candidate, evidence);
+    evidence: PreparedEvidenceOccurrence,
+    source: EpisodicSourceSnapshot
+  ): Promise<
+    | { id: string; confidence: number; kind: 'updated' }
+    | { kind: 'source-stale' }
+    | null
+  > {
+    return this.db.transaction(() => {
+      if (!this.sourceMatches(source)) {
+        return { kind: 'source-stale' as const };
+      }
+      return this.applyConditionalAggregateUpdate(candidate, evidence);
+    }).immediate();
   }
 
   async updateReevaluatedSemanticMemory(
     candidate: SemanticCandidateSnapshot,
-    evidence: PreparedEvidenceOccurrence
-  ): Promise<{ id: string; confidence: number; kind: 'updated' } | null> {
+    evidence: PreparedEvidenceOccurrence,
+    source: EpisodicSourceSnapshot
+  ): Promise<
+    | { id: string; confidence: number; kind: 'updated' }
+    | { kind: 'source-stale' }
+    | null
+  > {
     const retry = this.db.transaction(() => {
+      if (!this.sourceMatches(source)) {
+        return { kind: 'source-stale' as const };
+      }
       const latest = this.db.prepare(`
         SELECT confidence, num_times AS numTimes
         FROM memory_item
@@ -299,5 +333,105 @@ export class SemanticMemoryCrud {
     }
 
     return { id: candidate.id, confidence: aggregateConfidence, kind: 'updated' };
+  }
+
+  private sourceMatches(source: EpisodicSourceSnapshot): boolean {
+    return this.db.prepare(`
+      SELECT 1
+      FROM memory_item
+      WHERE id = ?
+        AND type = 'episodic'
+        AND is_deleted = 0
+        AND content IS ?
+        AND importance IS ?
+        AND owner_id IS ?
+        AND project_id IS ?
+    `).get(
+      source.id,
+      source.content,
+      source.importance,
+      source.ownerId,
+      source.projectId
+    ) !== undefined;
+  }
+
+  private hasEligibleExactCandidate(
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot
+  ): boolean {
+    return this.db.prepare(`
+      SELECT 1
+      FROM memory_item m
+      WHERE m.type = 'semantic'
+        AND m.is_deleted = 0
+        AND m.owner_id IS ?
+        AND m.project_id IS ?
+        AND m.subject = ?
+        AND m.predicate = ?
+        AND m.object = ?
+        AND trim(m.subject) != ''
+        AND trim(m.predicate) != ''
+        AND trim(m.object) != ''
+        AND (
+          m.confidence IS NULL OR (
+            typeof(m.confidence) IN ('integer', 'real')
+            AND m.confidence BETWEEN 0 AND 1
+          )
+        )
+        AND typeof(m.importance) IN ('integer', 'real')
+        AND m.importance BETWEEN 0 AND 1
+        AND typeof(m.num_times) = 'integer'
+        AND m.num_times > 0
+        AND m.num_times < ?
+        AND (
+          (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.tool')
+            END
+          ) = 'extract_triples'
+          AND (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.caller')
+            END
+          ) = 'system'
+          AND typeof(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) = 'text'
+          AND trim(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) != ''
+          OR (
+            (m.origin_source IS NULL OR trim(m.origin_source) IN ('', '{}'))
+            AND EXISTS (
+              SELECT 1
+              FROM memory_relation relation
+              WHERE relation.source_id = m.id
+                AND relation.relation_type = 'extracted_from'
+            )
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM kg_triple kg
+          WHERE kg.representative_memory_id = m.id
+            AND (
+              kg.subject IS NOT m.subject
+              OR kg.predicate IS NOT m.predicate
+              OR kg.object IS NOT m.object
+            )
+        )
+      LIMIT 1
+    `).get(
+      source.ownerId,
+      source.projectId,
+      snapshot.subject,
+      snapshot.predicate,
+      snapshot.object,
+      Number.MAX_SAFE_INTEGER
+    ) !== undefined;
   }
 }

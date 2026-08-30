@@ -330,51 +330,79 @@ export class SemanticMemoryUpdatePipeline {
     let duplicate = decision.kind === 'none' ? null : decision.candidate;
 
     if (duplicate) {
-      let updated = await this.crud.updateExistingSemanticMemory(duplicate, evidence);
-      if (!updated) {
-        const reevaluated = await this.similarity.findDuplicateSemanticMemory(
-          snapshot,
-          source,
-          similarityThreshold
-        );
-        if (reevaluated.kind === 'indeterminate') {
-          const error = new Error(reevaluated.reason);
-          error.name = reevaluated.reason;
-          throw error;
-        }
-        if (reevaluated.kind === 'none') {
-          const error = new Error('candidate_stale');
-          error.name = 'candidate_stale';
-          throw error;
-        }
-
-        duplicate = reevaluated.candidate;
-        evidence = { ...evidence, decision: reevaluated };
-        updated = await this.crud.updateReevaluatedSemanticMemory(duplicate, evidence);
-        if (!updated) {
-          const error = new Error('candidate_stale');
-          error.name = 'candidate_stale';
-          throw error;
-        }
+      const updated = await this.crud.updateExistingSemanticMemory(duplicate, evidence, source);
+      if (updated?.kind === 'source-stale') {
+        const error = new Error('source_stale');
+        error.name = 'source_stale';
+        throw error;
       }
-      await this.settlePostCommit(this.relationIntents(
-        policy.episodicMemoryId,
-        duplicate.id,
-        confidence
-      ), source.id, snapshot.index);
-      return { id: updated.id, kind: 'updated' };
+      if (updated) {
+        await this.settlePostCommit(this.relationIntents(
+          policy.episodicMemoryId,
+          duplicate.id,
+          confidence
+        ), source.id, snapshot.index);
+        return { id: updated.id, kind: 'updated' };
+      }
     } else {
       const created = await this.crud.createSemanticMemory(
         snapshot,
         source,
         policy.episodicImportance
       );
-      await this.settlePostCommit([
-        ...this.relationIntents(policy.episodicMemoryId, created.id, confidence),
-        { kind: 'embedding', memoryId: created.id, content: created.content }
-      ], source.id, snapshot.index);
-      return { id: created.id, kind: 'created' };
+      if (created.kind === 'created') {
+        await this.settlePostCommit([
+          ...this.relationIntents(policy.episodicMemoryId, created.id, confidence),
+          { kind: 'embedding', memoryId: created.id, content: created.content }
+        ], source.id, snapshot.index);
+        return { id: created.id, kind: 'created' };
+      }
+      if (created.kind === 'source-stale') {
+        const error = new Error('source_stale');
+        error.name = 'source_stale';
+        throw error;
+      }
     }
+
+    const reevaluated = await this.similarity.findDuplicateSemanticMemory(
+      snapshot,
+      source,
+      similarityThreshold
+    );
+    if (reevaluated.kind === 'indeterminate') {
+      const error = new Error(reevaluated.reason);
+      error.name = reevaluated.reason;
+      throw error;
+    }
+    if (reevaluated.kind === 'none') {
+      const error = new Error('candidate_stale');
+      error.name = 'candidate_stale';
+      throw error;
+    }
+
+    duplicate = reevaluated.candidate;
+    evidence = { ...evidence, decision: reevaluated };
+    const updated = await this.crud.updateReevaluatedSemanticMemory(
+      duplicate,
+      evidence,
+      source
+    );
+    if (updated?.kind === 'source-stale') {
+      const error = new Error('source_stale');
+      error.name = 'source_stale';
+      throw error;
+    }
+    if (!updated) {
+      const error = new Error('candidate_stale');
+      error.name = 'candidate_stale';
+      throw error;
+    }
+    await this.settlePostCommit(this.relationIntents(
+      policy.episodicMemoryId,
+      duplicate.id,
+      confidence
+    ), source.id, snapshot.index);
+    return { id: updated.id, kind: 'updated' };
   }
 
   notifyListeners(
