@@ -14,12 +14,16 @@ import { TripleExtractionService } from '../../relation/services/triple-extracti
 import { SemanticMemoryUpdateService } from './semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { convertEpisodicSource } from './episodic-semantic-conversion.js';
 
 /**
  * Convert Episodic to Semantic 스키마
  */
 const RELATION_GRAPH_UNAVAILABLE_ERROR = 'relation_graph_unavailable';
-const SEMANTIC_UPDATE_FAILED_ERROR = 'semantic_update_failed';
+
+/** #805 T014: 배치 job과 동일한 재시도 기본값 (triple-extraction-batch-job.ts) */
+const MAX_RETRIES = 3;
+const RETRY_BACKOFF_DAYS = [1, 2, 4];
 
 type EpisodicMemoryRow = {
   id: string;
@@ -119,21 +123,19 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
       const alreadyConvertedIds = this.fetchAlreadyConverted(db, episodicMemories, skip_converted);
 
       const tripleExtractionService = new TripleExtractionService();
+      const semanticMemoryUpdateService = this.buildSemanticMemoryUpdateService(db, context);
       const toProcess = episodicMemories.filter((m) => !alreadyConvertedIds.has(m.id));
       results.skipped += episodicMemories.length - toProcess.length;
 
-      const BATCH_SIZE = 3;
-      for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
-        const batch = toProcess.slice(i, i + BATCH_SIZE);
-        const extractionResults = await Promise.all(
-          batch.map((ep) => tripleExtractionService.extractTriples(ep.content, {}, ep.id))
+      for (const episodicMemory of toProcess) {
+        await this.convertSingleMemory(
+          episodicMemory,
+          db,
+          results,
+          tripleExtractionService,
+          semanticMemoryUpdateService,
+          skip_converted
         );
-        for (let j = 0; j < batch.length; j++) {
-          const episodicMemory = batch[j];
-          const extractionResult = extractionResults[j];
-          if (!episodicMemory || !extractionResult) continue;
-          await this.convertSingleMemory(episodicMemory, extractionResult, db, context, results);
-        }
       }
 
       return this.createSuccessResult({
@@ -228,206 +230,80 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
     return [{ id: memory.id, content: memory.content, importance: memory.importance }];
   }
 
+  /**
+   * memory 선택과 공개 결과 집계만 담당한다. source snapshot/commit/failure 전이는 공유
+   * conversion coordinator(#805 T013, `convertEpisodicSource`)가 전담하고, 이 메서드는 coordinator의
+   * outcome kind만 기존 `{success,failed,skipped,semantic_memory_ids}` 카운터로 변환한다.
+   */
   private async convertSingleMemory(
     episodicMemory: EpisodicMemoryRow,
-    extractionResult: Awaited<ReturnType<TripleExtractionService['extractTriples']>>,
     db: Database.Database,
-    context: ToolContext,
     results: ConversionResults,
+    tripleExtractionService: Pick<TripleExtractionService, 'extractTriples'>,
+    semanticMemoryUpdateService: SemanticMemoryUpdateService,
+    skipConverted: boolean,
   ): Promise<void> {
-    let semanticUpdateStarted = false;
-    try {
-      // Triple이 추출된 경우 Semantic Memory 생성/업데이트
-      if (extractionResult.triples.length > 0) {
-        semanticUpdateStarted = true;
-        await this.handleConversionSuccess(episodicMemory, extractionResult, db, context, results);
-      } else {
-        await this.handleNoTriples(episodicMemory, extractionResult, db, results);
+    const outcome = await convertEpisodicSource(
+      { db, tripleExtractionService, semanticMemoryUpdateService },
+      {
+        sourceId: episodicMemory.id,
+        skipConverted,
+        maxRetries: MAX_RETRIES,
+        retryBackoffDays: RETRY_BACKOFF_DAYS,
+        now: () => new Date()
       }
-    } catch (error) {
-      await this.handleConversionError(episodicMemory, error, semanticUpdateStarted, db, results);
+    );
+
+    if (outcome.kind === 'success') {
+      results.success++;
+      results.semantic_memory_ids.push(...outcome.update.semanticMemoryIds);
+    } else if (outcome.kind === 'failed') {
+      results.failed++;
+    } else {
+      results.skipped++;
     }
   }
 
-  private async handleConversionError(
-    episodicMemory: EpisodicMemoryRow,
-    error: unknown,
-    semanticUpdateStarted: boolean,
-    db: Database.Database,
-    results: ConversionResults,
-  ): Promise<void> {
-    results.failed++;
-    const failureReason = error instanceof Error && error.message === RELATION_GRAPH_UNAVAILABLE_ERROR
-      ? 'relation_graph_unavailable'
-      : semanticUpdateStarted
-        ? SEMANTIC_UPDATE_FAILED_ERROR
-        : 'conversion_error';
-
-    // 에러 발생 시에도 상태 업데이트 (PRD 5.5, 5.5a, 5.6)
-    try {
-      await DatabaseUtils.run(db, `
-        UPDATE memory_item SET
-          triple_extracted = ?,
-          triple_extracted_status = ?,
-          triple_extraction_metadata = ?
-        WHERE id = ?
-      `, [
-        0, // SQLite에서는 boolean을 INTEGER로 변환
-        'failed',
-        JSON.stringify({
-          failureReason,
-          error: error instanceof Error ? error.message : String(error),
-          last_attempt: new Date().toISOString()
-        }),
-        episodicMemory.id
-      ]);
-    } catch (updateError) {
-      logger.warn('상태 업데이트 실패', {
-        episodic_memory_id: episodicMemory.id,
-        error: updateError instanceof Error ? updateError.message : String(updateError)
-      });
-    }
-
-    logger.error('Episodic Memory 변환 중 에러 발생', {
-      episodic_memory_id: episodicMemory.id,
-      failure_reason: failureReason,
-      error: error instanceof Error ? error.message : String(error)
-    });
-  }
-
-  private async handleConversionSuccess(
-    episodicMemory: EpisodicMemoryRow,
-    extractionResult: Awaited<ReturnType<TripleExtractionService['extractTriples']>>,
+  /**
+   * relationGraph가 없으면 coordinator가 실제 추출 이후 실패로 분류할 수 있도록 lazy하게
+   * `relation_graph_unavailable`을 던지는 stub을 반환한다 (기존 동작 보존).
+   * relationGraph가 있으면 실제 서비스 생성도 첫 호출까지 지연해 no-triple 케이스의 불필요한
+   * 초기화를 피한다.
+   */
+  private buildSemanticMemoryUpdateService(
     db: Database.Database,
     context: ToolContext,
-    results: ConversionResults,
-  ): Promise<void> {
-    const unifiedForSemantic: UnifiedEmbeddingService = context.services.embeddingService
-      ? context.services.embeddingService.getUnifiedEmbeddingService()
-      : new UnifiedEmbeddingService();
+  ): SemanticMemoryUpdateService {
     const relationGraph = context.services.relationGraph;
     if (!relationGraph) {
-      throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
-    }
-
-    const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
-      db,
-      relationGraph,
-      unifiedForSemantic,
-      undefined,
-      context.services.embeddingService
-    );
-
-    const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
-      extractionResult,
-      {
-        episodicMemoryId: episodicMemory.id,
-        episodicImportance: episodicMemory.importance ?? 0.5
-      }
-    );
-
-    // PRD 5.5, 5.5a, 5.6: Triple 추출 성공 시 상태 업데이트
-    const confidenceValues: number[] = [];
-    try {
-      const relations = DatabaseUtils.all(db, `
-        SELECT confidence FROM memory_relation
-        WHERE target_id = ? AND relation_type = 'extracted_from'
-      `, [episodicMemory.id]) as Array<{ confidence?: number | null }>;
-      for (const rel of relations) {
-        if (rel.confidence !== null && rel.confidence !== undefined) {
-          confidenceValues.push(rel.confidence);
+      return {
+        updateSemanticMemoryWithEvidence: async () => {
+          throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
         }
-      }
-    } catch (err) {
-      logger.warn('Confidence 수집 실패', {
-        memory_id: episodicMemory.id,
-        error: err instanceof Error ? err.message : String(err)
-      });
+      } as unknown as SemanticMemoryUpdateService;
     }
 
-    const confidenceAvg = confidenceValues.length > 0
-      ? confidenceValues.reduce((sum, c) => sum + c, 0) / confidenceValues.length
-      : null;
-
-    const metadata = {
-      triple_count: extractionResult.triples.length,
-      ...(confidenceAvg !== null && { confidence_avg: confidenceAvg }),
-      extracted_at: new Date().toISOString()
-    };
-
-    await DatabaseUtils.run(db, `
-      UPDATE memory_item SET
-        triple_extracted = ?,
-        triple_extracted_status = ?,
-        triple_extraction_metadata = ?
-      WHERE id = ?
-    `, [
-      1, // SQLite에서는 boolean을 INTEGER로 변환
-      'success',
-      JSON.stringify(metadata),
-      episodicMemory.id
-    ]);
-
-    results.success++;
-    results.semantic_memory_ids.push(...updateResult.semanticMemoryIds);
-
-    logger.info('Episodic Memory 변환 성공', {
-      episodic_memory_id: episodicMemory.id,
-      triple_count: extractionResult.triples.length,
-      semantic_memory_count: updateResult.semanticMemoryIds.length,
-      confidence_avg: confidenceAvg
-    });
-  }
-
-  private async handleNoTriples(
-    episodicMemory: EpisodicMemoryRow,
-    extractionResult: Awaited<ReturnType<TripleExtractionService['extractTriples']>>,
-    db: Database.Database,
-    results: ConversionResults,
-  ): Promise<void> {
-    const failureReason = extractionResult.extractionInfo.failureReason || 'no_triple';
-
-    let retryCount = 0;
-    try {
-      const existing = DatabaseUtils.get(db, `
-        SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-      `, [episodicMemory.id]) as { triple_extraction_metadata?: string } | undefined;
-      if (existing?.triple_extraction_metadata) {
-        const existingMeta = JSON.parse(existing.triple_extraction_metadata);
-        retryCount = (existingMeta.retry_count || 0) + 1;
-      } else {
-        retryCount = 1;
+    let real: SemanticMemoryUpdateService | undefined;
+    const getReal = (): SemanticMemoryUpdateService => {
+      if (!real) {
+        const unifiedForSemantic: UnifiedEmbeddingService = context.services.embeddingService
+          ? context.services.embeddingService.getUnifiedEmbeddingService()
+          : new UnifiedEmbeddingService();
+        real = new SemanticMemoryUpdateService(
+          db,
+          relationGraph,
+          unifiedForSemantic,
+          undefined,
+          context.services.embeddingService
+        );
       }
-    } catch {
-      retryCount = 1;
-    }
-
-    const metadata = {
-      failureReason,
-      retry_count: retryCount,
-      last_attempt: new Date().toISOString()
+      return real;
     };
 
-    await DatabaseUtils.run(db, `
-      UPDATE memory_item SET
-        triple_extracted = ?,
-        triple_extracted_status = ?,
-        triple_extraction_metadata = ?
-      WHERE id = ?
-    `, [
-      0, // SQLite에서는 boolean을 INTEGER로 변환
-      'failed',
-      JSON.stringify(metadata),
-      episodicMemory.id
-    ]);
-
-    results.failed++;
-
-    logger.warn('Episodic Memory 변환 실패', {
-      episodic_memory_id: episodicMemory.id,
-      failure_reason: failureReason,
-      retry_count: retryCount
-    });
+    return {
+      updateSemanticMemoryWithEvidence: (extractionResult: unknown, options: unknown) =>
+        getReal().updateSemanticMemoryWithEvidence(extractionResult, options)
+    } as unknown as SemanticMemoryUpdateService;
   }
 
   private fetchBatchMemories(

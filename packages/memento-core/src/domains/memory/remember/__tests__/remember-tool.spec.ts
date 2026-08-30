@@ -12,6 +12,19 @@ import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructu
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { TripleExtractionService } from '../../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../../semantic/semantic-memory-update-service.js';
+import { convertEpisodicSource } from '../../semantic/episodic-semantic-conversion.js';
+import { runTripleExtractionJob, type AugmentationParams } from '../remember-tool-augmentation.js';
+import type { RememberToolHost } from '../remember-tool-host.js';
+
+// #805 T015: convertEpisodicSource는 실제 구현으로 위임하는 spy로 감싼다 — remember 증강이 공유
+// conversion coordinator를 올바른 옵션으로 호출하는지 검증하면서, 나머지 통합 테스트의 실제 동작은 그대로 유지한다.
+vi.mock('../../semantic/episodic-semantic-conversion.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../semantic/episodic-semantic-conversion.js')>();
+  return {
+    ...actual,
+    convertEpisodicSource: vi.fn(actual.convertEpisodicSource)
+  };
+});
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -2010,7 +2023,12 @@ describe('RememberTool', () => {
       extractTriplesSpy.mockRestore();
     });
 
-    it('should record relation_graph_unavailable when semantic update needs relationGraph', async () => {
+    /**
+     * #805 T015: relationGraph 부재는 post-commit 관계 정산(extracted_from/supported_by)에만 영향을 주고,
+     * primary semantic 커밋/source success를 뒤집지 않는다 (contracts/conversion-state.md §Post-commit intents).
+     * 공유 coordinator로 위임한 뒤에는 이 실패가 더 이상 하드 실패(relation_graph_unavailable)가 아니다.
+     */
+    it('should still succeed and silently skip relation creation when relationGraph is unavailable', async () => {
       const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
         triples: [
           { subject: 'Alice', predicate: 'works_at', object: 'Acme' }
@@ -2053,20 +2071,20 @@ describe('RememberTool', () => {
 
         status = row?.triple_extracted_status;
         metadata = row?.triple_extraction_metadata ? JSON.parse(row.triple_extraction_metadata) : null;
-        if (status === 'failed' && metadata) {
+        if (status === 'success' || status === 'failed') {
           break;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       expect(extractTriplesSpy).toHaveBeenCalledOnce();
-      expect(status).toBe('failed');
-      expect(metadata).toMatchObject({
-        failureReason: 'relation_graph_unavailable'
-      });
-      expect(metadata).not.toMatchObject({
-        failureReason: 'llm_api_error'
-      });
+      expect(status).toBe('success');
+      expect(metadata).toMatchObject({ triple_count: 1 });
+
+      const extractedFromRelations = DatabaseUtils.all(db, `
+        SELECT * FROM memory_relation WHERE target_id = ? AND relation_type = 'extracted_from'
+      `, [memoryId]);
+      expect(extractedFromRelations.length).toBe(0);
     });
 
 
@@ -2080,7 +2098,7 @@ describe('RememberTool', () => {
         }
       });
       const updateSemanticMemorySpy = vi
-        .spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemory')
+        .spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence')
         .mockRejectedValue(new Error('semantic update exploded'));
 
       const contextWithScheduler: ToolContext = {
@@ -2214,6 +2232,217 @@ describe('RememberTool', () => {
       expect(episodicMemory).toBeDefined();
       expect(episodicMemory.id).toBe(resultData.memory_id);
       expect(episodicMemory.content).toBe('Bob works at Amazon. He is a product manager.');
+    });
+  });
+
+  /**
+   * #805 T015: remember 백그라운드 증강의 Triple 추출은 공유 conversion coordinator
+   * (`convertEpisodicSource`, #805 T013)로 위임된다. 이 블록은 어댑터가 (a) source id를 포함한
+   * 올바른 옵션으로 coordinator를 호출하는지, (b) episodic importance 0을 0.5로 대체하지 않는지,
+   * (c) no-triple/stale/concurrent 결과를 coordinator에 그대로 맡기고 로컬 write를 하지 않는지 검증한다.
+   */
+  describe('AriGraph Pipeline - 공유 conversion coordinator 위임 (#805 T015)', () => {
+    it('delegates to convertEpisodicSource with the saved memory id and preserves an explicit importance of 0', async () => {
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [{ subject: 'Zero', predicate: 'has_importance', object: 'zero' }],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+
+      const params = {
+        type: 'episodic',
+        content: 'Zero importance memory for coordinator delegation test.',
+        importance: 0,
+        enable_triple_extraction: true
+      };
+
+      const contextWithScheduler: ToolContext = {
+        ...context,
+        services: { ...context.services, batchScheduler: getBatchScheduler() }
+      };
+
+      const result = await tool.handle(params, contextWithScheduler);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      let status: string | null | undefined;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const row = DatabaseUtils.get(db, `
+          SELECT triple_extracted_status FROM memory_item WHERE id = ?
+        `, [memoryId]) as { triple_extracted_status: string | null } | undefined;
+        status = row?.triple_extracted_status;
+        if (status === 'success' || status === 'failed') break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      expect(status).toBe('success');
+      expect(convertEpisodicSource).toHaveBeenCalledWith(
+        expect.objectContaining({ db }),
+        expect.objectContaining({
+          sourceId: memoryId,
+          skipConverted: true,
+          maxRetries: 3,
+          retryBackoffDays: [1, 2, 4]
+        })
+      );
+
+      // Directive: 저장된 episodic importance 0은 Triple 변환 경로에서 `importance || 0.5`로
+      // 대체되지 않아야 한다 — memory_item.importance 자체 필드는 coordinator가 절대 다시 쓰지 않는다.
+      const savedRow = DatabaseUtils.get(db, `
+        SELECT importance FROM memory_item WHERE id = ?
+      `, [memoryId]) as { importance: number };
+      expect(savedRow.importance).toBe(0);
+
+      extractTriplesSpy.mockRestore();
+    });
+
+    it('classifies zero-triple extraction as a coordinator no_triple failure/retry, not a local write', async () => {
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: {
+          steps: { canonicalization: false, entityLinking: false },
+          failureReason: 'no_triple'
+        }
+      });
+
+      const params = {
+        type: 'episodic',
+        content: 'Nothing extractable here.',
+        importance: 0.4,
+        enable_triple_extraction: true
+      };
+
+      const contextWithScheduler: ToolContext = {
+        ...context,
+        services: { ...context.services, batchScheduler: getBatchScheduler() }
+      };
+
+      const result = await tool.handle(params, contextWithScheduler);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      let metadata: Record<string, unknown> | null = null;
+      let status: string | null | undefined;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const row = DatabaseUtils.get(db, `
+          SELECT triple_extracted_status, triple_extraction_metadata FROM memory_item WHERE id = ?
+        `, [memoryId]) as {
+          triple_extracted_status: string | null;
+          triple_extraction_metadata: string | null;
+        } | undefined;
+        status = row?.triple_extracted_status;
+        metadata = row?.triple_extraction_metadata ? JSON.parse(row.triple_extraction_metadata) : null;
+        if (status === 'failed' && metadata) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      expect(status).toBe('failed');
+      expect(metadata).toMatchObject({ failureReason: 'no_triple', retry_count: 1 });
+      expect(convertEpisodicSource).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ sourceId: memoryId })
+      );
+
+      extractTriplesSpy.mockRestore();
+    });
+
+    it('rolls back without a failure/retry transition when the source becomes stale before commit', async () => {
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples')
+        .mockImplementation(async (_content: string, _options: unknown, sourceId?: string) => {
+          // 커밋 직전 다른 프로세스가 source content를 바꾼 동시-편집 상황을 흉내낸다.
+          DatabaseUtils.run(db, `UPDATE memory_item SET content = 'concurrently edited content' WHERE id = ?`, [sourceId]);
+          return {
+            triples: [{ subject: 'Stale', predicate: 'race', object: 'condition' }],
+            extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+          };
+        });
+
+      const params = {
+        type: 'episodic',
+        content: 'Original content before the race.',
+        importance: 0.5,
+        enable_triple_extraction: true
+      };
+
+      const contextWithScheduler: ToolContext = {
+        ...context,
+        services: { ...context.services, batchScheduler: getBatchScheduler() }
+      };
+
+      const result = await tool.handle(params, contextWithScheduler);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      // stale 판정은 실패/재시도 상태를 쓰지 않으므로, status가 계속 NULL로 남는 것 자체가 결과다.
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const row = DatabaseUtils.get(db, `
+        SELECT content, triple_extracted, triple_extracted_status FROM memory_item WHERE id = ?
+      `, [memoryId]) as { content: string; triple_extracted: number | null; triple_extracted_status: string | null };
+
+      expect(row.content).toBe('concurrently edited content');
+      expect(row.triple_extracted).toBeNull();
+      expect(row.triple_extracted_status).toBeNull();
+
+      extractTriplesSpy.mockRestore();
+    });
+
+    it('treats a second background job for an already-converted memory as a no-op (single winner)', async () => {
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [{ subject: 'Winner', predicate: 'wins', object: 'race' }],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+
+      const params = {
+        type: 'episodic',
+        content: 'Only one background job should convert this memory.',
+        importance: 0.5,
+        enable_triple_extraction: false
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      const host: RememberToolHost = {
+        logInfo: vi.fn(),
+        logWarning: vi.fn(),
+        logError: vi.fn(),
+        createSuccessResult: vi.fn(),
+        createErrorResult: vi.fn()
+      };
+      const augmentationParams: AugmentationParams = {
+        dbRef: db,
+        savedMemoryId: memoryId,
+        savedMemoryType: 'episodic',
+        content: params.content,
+        importance: params.importance,
+        enable_triple_extraction: true
+      };
+
+      // 승자: 첫 번째 background job이 source tuple을 성공으로 커밋한다.
+      await runTripleExtractionJob(augmentationParams, context, host);
+      // 패자: 동시에 등록되었던 두 번째 job이 나중에 도착해도, 이미 성공한 source를 만나
+      // skipConverted에 의해 재작업 없이 종료되어야 한다 (single winner).
+      await runTripleExtractionJob(augmentationParams, context, host);
+
+      expect(extractTriplesSpy).toHaveBeenCalledTimes(1);
+
+      const row = DatabaseUtils.get(db, `
+        SELECT triple_extracted_status FROM memory_item WHERE id = ?
+      `, [memoryId]) as { triple_extracted_status: string | null };
+      expect(row.triple_extracted_status).toBe('success');
+
+      // 단일 occurrence는 confidence 임계값 미달로 semantic memory가 생성되지 않을 수 있다
+      // (SemanticMemoryUpdateService 품질 필터, 이 작업 범위 밖). 여기서 검증할 계약은
+      // "두 번째 job은 재작업하지 않는다"이므로 extractTriples 호출 횟수만으로 충분하다.
+      expect(convertEpisodicSource).toHaveBeenCalledTimes(2);
+
+      expect(convertEpisodicSource).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ sourceId: memoryId, skipConverted: true })
+      );
+
+      extractTriplesSpy.mockRestore();
     });
   });
 });

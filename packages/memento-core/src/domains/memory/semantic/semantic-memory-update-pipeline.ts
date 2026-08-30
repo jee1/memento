@@ -191,8 +191,10 @@ export class SemanticMemoryUpdatePipeline {
     result: SemanticMemoryUpdateResult;
     confidences: number[];
     hasError: boolean;
+    committedConfidences: number[];
   }> {
     const { confidenceThreshold, similarityThreshold, result, confidences } = preparedData;
+    const committedConfidences: number[] = [];
     let hasError = false;
     this.relations.validateRelationContract(source);
 
@@ -297,6 +299,7 @@ export class SemanticMemoryUpdatePipeline {
           semanticMemoryIds.add(processed.id);
           result.semanticMemoryIds.push(processed.id);
         }
+        committedConfidences.push(occurrence.confidence);
       } catch (error) {
         hasError = true;
         outcomes[occurrence.representativeIndex] = 'skipped';
@@ -311,7 +314,7 @@ export class SemanticMemoryUpdatePipeline {
     result.created = outcomes.filter((outcome) => outcome === 'created').length;
     result.updated = outcomes.filter((outcome) => outcome === 'updated').length;
     result.skipped = outcomes.filter((outcome) => outcome === 'skipped').length;
-    return { result, confidences, hasError };
+    return { result, confidences, hasError, committedConfidences };
   }
 
   private async processPreparedOccurrence(

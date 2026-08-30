@@ -17,6 +17,7 @@ import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js
 import { SemanticMemoryUpdatePipeline } from './semantic-memory-update-pipeline.js';
 import type {
   EpisodicSourceSnapshot,
+  SemanticMemoryUpdateEvidence,
   SemanticMemoryUpdateResult
 } from './semantic-memory-update-types.js';
 
@@ -86,11 +87,24 @@ export class SemanticMemoryUpdateService {
     extractionResult: unknown,
     options: unknown
   ): Promise<SemanticMemoryUpdateResult> {
+    const { result } = await this.updateSemanticMemoryWithEvidence(extractionResult, options);
+    return result;
+  }
+
+  /**
+   * updateSemanticMemory()와 동일한 처리를 수행하지만, 공유 conversion coordinator(#805 T013)가
+   * source 성공/실패 판정과 confidence_avg 계산에 쓰는 hasError·committedConfidences도 함께 반환한다.
+   * 공개 SemanticMemoryUpdateResult 계약은 바뀌지 않는다.
+   */
+  async updateSemanticMemoryWithEvidence(
+    extractionResult: unknown,
+    options: unknown
+  ): Promise<SemanticMemoryUpdateEvidence> {
     const processingStartTime = Date.now();
 
     const request = this.pipeline.validateAndSnapshotRequest(extractionResult, options);
     if (request.kind === 'empty') {
-      return request.result;
+      return { result: request.result, hasError: false, committedConfidences: [] };
     }
     const source = this.snapshotEpisodicSource(request.policy.episodicMemoryId);
     const episodicImportance = request.policy.episodicImportanceProvided
@@ -102,7 +116,7 @@ export class SemanticMemoryUpdateService {
     const policy = { ...request.policy, episodicImportance };
 
     const preparedData = this.pipeline.prepareUpdateData(policy);
-    const { result, confidences, hasError } = await this.pipeline.applyUpdates(
+    const { result, confidences, hasError, committedConfidences } = await this.pipeline.applyUpdates(
       request.positions,
       request.extractionInfo,
       source,
@@ -118,7 +132,7 @@ export class SemanticMemoryUpdateService {
       hasError
     );
 
-    return result;
+    return { result, hasError, committedConfidences };
   }
 
   getStatistics() {

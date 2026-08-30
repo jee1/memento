@@ -94,3 +94,14 @@ export interface PreparedUpdateData {
   confidences: number[];
   hasError: boolean;
 }
+
+/**
+ * updateSemanticMemory()의 committed evidence 상세치 — 공유 conversion coordinator(#805 T013) 전용.
+ * 공개 SemanticMemoryUpdateResult는 그대로 유지하고, confidence_avg 계산과 성공/실패 판정에만 사용한다.
+ */
+export interface SemanticMemoryUpdateEvidence {
+  result: SemanticMemoryUpdateResult;
+  hasError: boolean;
+  /** 이번 호출에서 committed(coalesced created/updated)된 occurrence의 confidence만, 순서 무관. */
+  committedConfidences: number[];
+}

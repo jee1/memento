@@ -56,6 +56,15 @@ export interface TripleExtractionBatchJobConfig {
 export type ResolvedTripleExtractionBatchJobConfig = Required<TripleExtractionBatchJobConfig>;
 
 /**
+ * 재시도 자격 판정 결과
+ * - 자격 있음: 현재까지의 (검증된) 재시도 횟수
+ * - 자격 없음: 제외 사유 (metadata는 손상 시에도 절대 보정하지 않는다)
+ */
+export type TripleExtractionRetryEligibility =
+  | { eligible: true; retryCount: number }
+  | { eligible: false; reason: string };
+
+/**
  * Triple 추출 배치 작업 결과
  */
 export interface TripleExtractionBatchResult extends BatchJobResult {
@@ -81,15 +90,4 @@ export interface TripleExtractionTargetMemory {
   triple_extracted: number | null;
   triple_extracted_status: string | null;
   triple_extraction_metadata: string | null;
-}
-
-export interface TripleExtractionChunkResult {
-  processed: number;
-  success: number;
-  failed: number;
-  skipped: number;
-  semanticMemoriesCreated: number;
-  semanticMemoriesUpdated: number;
-  retryCounts: Map<string, number>;
-  errors: string[];
 }
