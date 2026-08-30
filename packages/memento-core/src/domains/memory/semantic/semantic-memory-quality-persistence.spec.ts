@@ -1378,6 +1378,11 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
           fallibleCallsWhileWriteTransactionOpen++;
         }
       });
+      const debug = vi.spyOn(logger, 'debug').mockImplementation(() => {
+        if (db.inTransaction) {
+          fallibleCallsWhileWriteTransactionOpen++;
+        }
+      });
       service = new SemanticMemoryUpdateService(
         db,
         createRelationGraph(db),
@@ -1415,6 +1420,7 @@ describe('SemanticMemoryUpdateService quality persistence boundary', () => {
       expect(created).toMatchObject({ created: 1, updated: 0, skipped: 0 });
       expect(generateEmbedding).toHaveBeenCalled();
       expect(createAndStoreEmbedding).toHaveBeenCalledOnce();
+      expect(debug).toHaveBeenCalled();
       expect(fallibleCallsWhileWriteTransactionOpen).toBe(0);
     });
 

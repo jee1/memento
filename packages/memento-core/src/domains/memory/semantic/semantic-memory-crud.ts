@@ -152,12 +152,16 @@ export class SemanticMemoryCrud {
     | { kind: 'source-stale' }
     | null
   > {
-    return this.db.transaction(() => {
+    const updated = this.db.transaction(() => {
       if (!this.sourceMatches(source)) {
         return { kind: 'source-stale' as const };
       }
       return this.applyConditionalAggregateUpdate(candidate, evidence);
     }).immediate();
+    if (updated?.kind === 'updated') {
+      this.logAggregateUpdate(candidate, evidence, updated.confidence);
+    }
+    return updated;
   }
 
   async updateReevaluatedSemanticMemory(
@@ -169,6 +173,7 @@ export class SemanticMemoryCrud {
     | { kind: 'source-stale' }
     | null
   > {
+    let updatedCandidate = candidate;
     const retry = this.db.transaction(() => {
       if (!this.sourceMatches(source)) {
         return { kind: 'source-stale' as const };
@@ -185,9 +190,14 @@ export class SemanticMemoryCrud {
         return null;
       }
 
-      return this.applyConditionalAggregateUpdate({ ...candidate, ...latest }, evidence);
+      updatedCandidate = { ...candidate, ...latest };
+      return this.applyConditionalAggregateUpdate(updatedCandidate, evidence);
     });
-    return retry.immediate();
+    const updated = retry.immediate();
+    if (updated?.kind === 'updated') {
+      this.logAggregateUpdate(updatedCandidate, evidence, updated.confidence);
+    }
+    return updated;
   }
 
   private applyConditionalAggregateUpdate(
@@ -320,19 +330,30 @@ export class SemanticMemoryCrud {
       return null;
     }
 
+    return { id: candidate.id, confidence: aggregateConfidence, kind: 'updated' };
+  }
+
+  private logAggregateUpdate(
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence,
+    confidence: number
+  ): void {
     try {
+      const numTimes = candidate.numTimes + 1;
       logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
         id: candidate.id,
         oldConfidence: candidate.confidence,
-        numTimes: finalNumTimes,
-        newImportance,
-        confidence: aggregateConfidence
+        numTimes,
+        newImportance: this.scoring.calculateImportance(
+          evidence.episodicImportance,
+          confidence,
+          numTimes
+        ),
+        confidence
       });
     } catch {
       // A committed primary write must not depend on logging.
     }
-
-    return { id: candidate.id, confidence: aggregateConfidence, kind: 'updated' };
   }
 
   private sourceMatches(source: EpisodicSourceSnapshot): boolean {
