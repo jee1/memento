@@ -14,14 +14,15 @@ import { RelationExtractor } from '../../relation/services/relation-extractor.js
 import type { RelationCandidate } from '../../../shared/types/relation.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
-import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
+import type { RelationGraphPort } from '../../relation/ports/relation-graph.port.js';
 import { SemanticMemoryUpdateService } from '../semantic/semantic-memory-update-service.js';
+import { convertEpisodicSource } from '../semantic/episodic-semantic-conversion.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import { getExistingMemoriesForRelationExtraction, getMemoryById } from './remember-tool-db-helpers.js';
 
-const RELATION_GRAPH_UNAVAILABLE_ERROR = 'relation_graph_unavailable';
-const SEMANTIC_UPDATE_FAILED_ERROR = 'semantic_update_failed';
+const TRIPLE_CONVERSION_MAX_RETRIES = 3;
+const TRIPLE_CONVERSION_RETRY_BACKOFF_DAYS = [1, 2, 4];
 
 export interface AugmentationParams {
   dbRef: Database.Database;
@@ -182,182 +183,90 @@ export async function runRelationExtraction(
   }
 }
 
-async function updateTripleStatus(
-  dbRef: Database.Database,
-  savedMemoryId: string,
-  success: boolean,
-  metadata: Record<string, unknown>
-): Promise<void> {
-  await DatabaseUtils.run(dbRef, `
-    UPDATE memory_item SET
-      triple_extracted = ?,
-      triple_extracted_status = ?,
-      triple_extraction_metadata = ?
-    WHERE id = ?
-  `, [
-    success ? 1 : 0,
-    success ? 'success' : 'failed',
-    JSON.stringify(metadata),
-    savedMemoryId
-  ]);
+/**
+ * relationGraph를 사용할 수 없을 때 주입하는 no-op 대체물.
+ * `SemanticMemoryUpdateService`의 관계 생성은 primary commit 뒤 post-commit intent로 독립 정산되므로
+ * (episodic-semantic-conversion.ts 계약), 이 stub이 던지는 에러는 로그로만 남고 semantic 저장 성공을
+ * 되돌리지 않는다 (contracts/conversion-state.md §Post-commit intents).
+ */
+function createUnavailableRelationGraphStub(): RelationGraphPort {
+  return {
+    addRelation: () => Promise.reject(new Error('relation_graph_unavailable'))
+  } as unknown as RelationGraphPort;
 }
 
-async function getRetryCount(dbRef: Database.Database, savedMemoryId: string): Promise<number> {
-  try {
-    const existing = DatabaseUtils.get(dbRef, `
-      SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-    `, [savedMemoryId]) as { triple_extraction_metadata?: string } | undefined;
-
-    if (existing?.triple_extraction_metadata) {
-      const existingMeta = JSON.parse(existing.triple_extraction_metadata);
-      return (existingMeta.retry_count || 0) + 1;
-    }
-  } catch {
-    // ignore
-  }
-  return 1;
-}
-
-async function runTripleExtractionJob(
+/**
+ * remember 백그라운드 증강의 Triple 추출/변환은 공유 conversion coordinator(#805 T013)에 위임한다.
+ * source 상태 전이(진행중/성공/실패/재시도)는 coordinator의 조건부 CAS commit이 단일 지점에서 처리하며,
+ * 이 함수는 dependency 조립과 결과 로깅만 담당한다 — 기존 scheduler 등록/fallback과 remember 사용자 결과는
+ * 그대로 유지된다.
+ */
+export async function runTripleExtractionJob(
   params: AugmentationParams,
   context: ToolContext,
   host: RememberToolHost
 ): Promise<void> {
-  const { dbRef, savedMemoryId, content, importance } = params;
-  let semanticUpdateStarted = false;
+  const { dbRef, savedMemoryId } = params;
 
   try {
     const dbValid = await checkDbConnection(dbRef);
     if (!dbValid) {
       host.logWarning('데이터베이스 연결이 유효하지 않아 Triple 추출을 건너뜁니다', { memory_id: savedMemoryId });
-      try {
-        await updateTripleStatus(dbRef, savedMemoryId, false, {
-          failureReason: 'db_connection_error',
-          retry_count: 1,
-          last_attempt: new Date().toISOString()
-        });
-      } catch { /* ignore */ }
       return;
     }
 
-    const statusResult = DatabaseUtils.run(dbRef, `
-      UPDATE memory_item SET
-        triple_extracted_status = ?,
-        triple_extraction_metadata = ?
-      WHERE id = ? AND (triple_extracted_status IS NULL OR triple_extracted_status = '')
-    `, [
-      'in_progress',
-      JSON.stringify({ started_at: new Date().toISOString() }),
-      savedMemoryId
-    ]);
+    const embeddingServiceRef = context.services.embeddingService;
+    const unifiedEmbeddingService: UnifiedEmbeddingService = embeddingServiceRef
+      ? embeddingServiceRef.getUnifiedEmbeddingService()
+      : new UnifiedEmbeddingService();
 
-    if (statusResult.changes === 0) {
-      host.logInfo('Triple 추출 작업이 이미 진행 중이거나 완료되었습니다', { memory_id: savedMemoryId });
-      return;
+    const relationGraph = context.services.relationGraph;
+    if (!relationGraph) {
+      host.logWarning('관계 그래프를 사용할 수 없어 Triple 추출 관계 정산을 생략합니다', { memory_id: savedMemoryId });
     }
 
-    const tripleExtractionService = new TripleExtractionService();
-    let extractionResult: TripleExtractionResult;
-    try {
-      extractionResult = await tripleExtractionService.extractTriples(content, {}, savedMemoryId);
-    } catch (extractError) {
-      extractionResult = {
-        triples: [],
-        extractionInfo: { steps: { canonicalization: false, entityLinking: false }, failureReason: 'llm_api_error' as const }
-      } satisfies TripleExtractionResult;
-    }
+    const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
+      dbRef,
+      relationGraph ?? createUnavailableRelationGraphStub(),
+      unifiedEmbeddingService,
+      undefined,
+      embeddingServiceRef
+    );
 
-    if (extractionResult.triples.length > 0) {
-      semanticUpdateStarted = true;
-      const embeddingServiceRef = context.services.embeddingService;
-      const unifiedEmbeddingService: UnifiedEmbeddingService = embeddingServiceRef
-        ? embeddingServiceRef.getUnifiedEmbeddingService()
-        : new UnifiedEmbeddingService();
-      const relationGraph = context.services.relationGraph;
-      if (!relationGraph) {
-        throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
+    const outcome = await convertEpisodicSource(
+      {
+        db: dbRef,
+        tripleExtractionService: new TripleExtractionService(),
+        semanticMemoryUpdateService
+      },
+      {
+        sourceId: savedMemoryId,
+        skipConverted: true,
+        maxRetries: TRIPLE_CONVERSION_MAX_RETRIES,
+        retryBackoffDays: TRIPLE_CONVERSION_RETRY_BACKOFF_DAYS,
+        now: () => new Date()
       }
+    );
 
-      const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
-        dbRef,
-        relationGraph,
-        unifiedEmbeddingService,
-        undefined,
-        embeddingServiceRef
-      );
-      await semanticMemoryUpdateService.updateSemanticMemory(extractionResult, {
-        episodicMemoryId: savedMemoryId,
-        episodicImportance: importance || 0.5
-      });
-
-      let confidenceAvg: number | null = null;
-      try {
-        const relations = DatabaseUtils.all(dbRef, `
-          SELECT confidence FROM memory_relation
-          WHERE target_id = ? AND relation_type = 'extracted_from'
-        `, [savedMemoryId]) as Array<{ confidence?: number | null }>;
-        const values = relations.filter(r => r.confidence != null).map(r => r.confidence as number);
-        if (values.length > 0) {
-          confidenceAvg = values.reduce((sum, c) => sum + c, 0) / values.length;
-        }
-      } catch (err) {
-        host.logWarning('Confidence 수집 실패', {
-          memory_id: savedMemoryId,
-          error: err instanceof Error ? err.message : String(err)
-        });
-      }
-
-      await updateTripleStatus(dbRef, savedMemoryId, true, {
-        triple_count: extractionResult.triples.length,
-        ...(confidenceAvg !== null && { confidence_avg: confidenceAvg }),
-        extracted_at: new Date().toISOString()
-      });
-
+    if (outcome.kind === 'success') {
       host.logInfo('Triple 추출 및 Semantic Memory 생성 완료', {
         memory_id: savedMemoryId,
-        triple_count: extractionResult.triples.length,
-        confidence_avg: confidenceAvg
+        semantic_memory_count: outcome.update.semanticMemoryIds.length
+      });
+    } else if (outcome.kind === 'failed') {
+      host.logInfo('Triple 추출 완료 (Triple 없음 또는 실패)', {
+        memory_id: savedMemoryId,
+        retry_count: outcome.retryCount
       });
     } else {
-      const failureReason = extractionResult.extractionInfo.failureReason || 'no_triple';
-      const retryCount = await getRetryCount(dbRef, savedMemoryId);
-      await updateTripleStatus(dbRef, savedMemoryId, false, {
-        failureReason,
-        retry_count: retryCount,
-        last_attempt: new Date().toISOString()
+      host.logInfo('Triple 추출 작업을 건너뜁니다 (이미 처리되었거나 대상이 유효하지 않음)', {
+        memory_id: savedMemoryId
       });
-      host.logInfo('Triple 추출 완료 (Triple 없음)', { memory_id: savedMemoryId, failure_reason: failureReason, retry_count: retryCount });
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const failureReason = errorMessage === RELATION_GRAPH_UNAVAILABLE_ERROR
-      ? 'relation_graph_unavailable'
-      : errorMessage.includes('database connection')
-        ? 'db_connection_error'
-        : semanticUpdateStarted
-          ? SEMANTIC_UPDATE_FAILED_ERROR
-          : 'llm_api_error';
-
-    host.logWarning(`Triple 추출 실패 (${savedMemoryId})`, { failure_reason: failureReason, error: errorMessage });
-
-    try {
-      await new Promise<void>((resolve, reject) => {
-        try { DatabaseUtils.get(dbRef, 'SELECT 1'); resolve(); }
-        catch (e) { reject(e); }
-      });
-      const retryCount = await getRetryCount(dbRef, savedMemoryId);
-      await updateTripleStatus(dbRef, savedMemoryId, false, {
-        failureReason,
-        retry_count: retryCount,
-        last_attempt: new Date().toISOString(),
-        error_message: errorMessage
-      });
-    } catch (updateError) {
-      host.logWarning('Triple 추출 실패 상태 업데이트 실패', {
-        memory_id: savedMemoryId,
-        error: updateError instanceof Error ? updateError.message : String(updateError)
-      });
-    }
+    host.logWarning(`Triple 추출 실패 (${savedMemoryId})`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 }
 

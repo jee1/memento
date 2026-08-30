@@ -1,0 +1,42 @@
+# /speckit.superspec.execute execution state
+feature: 066-semantic-confidence-importance
+updated: 2026-08-30
+branch: jee1/fix-semantic-confidence-importance-triple
+status: executed
+current_phase: 6
+current_task: T020
+
+phases:
+  - id: 1
+    name: Setup
+    status: done
+    tasks: [T001]
+  - id: 2
+    name: Foundational
+    status: done
+    tasks: [T002, T003, T004]
+  - id: 3
+    name: "US1 — semantic creation"
+    status: done
+    tasks: [T005, T006, T007]
+  - id: 4
+    name: "US2 — semantic merge"
+    status: done
+    tasks: [T008, T009, T010, T011, T012]
+  - id: 5
+    name: "US3 — automatic conversion"
+    status: done
+    tasks: [T013, T014, T015, T016, T017, T018]
+  - id: 6
+    name: Polish
+    status: done
+    tasks: [T019, T020]
+
+quality_gates:
+  baseline: "pass"
+  lint: "pass"
+  type_check: "pass"
+  test: "pass (full 475 files / 5260 tests)"
+  graphify: "pass"
+
+next_action: Review CLEAN (R2). Ready for PR when user requests commit/push.

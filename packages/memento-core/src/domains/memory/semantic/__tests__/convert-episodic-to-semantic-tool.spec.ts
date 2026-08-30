@@ -48,6 +48,7 @@ function initializeTestDatabase(db: Database.Database): void {
       triple_extracted BOOLEAN DEFAULT NULL,
       triple_extracted_status TEXT DEFAULT NULL,
       triple_extraction_metadata TEXT DEFAULT NULL,
+          owner_id TEXT NULL,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT
@@ -301,7 +302,7 @@ describe('ConvertEpisodicToSemanticTool', () => {
         }
       });
       const updateSemanticMemorySpy = vi
-        .spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemory')
+        .spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence')
         .mockRejectedValue(new Error('semantic update exploded'));
 
       const contextWithRelationGraphOnly: ToolContext = {
@@ -485,10 +486,20 @@ describe('ConvertEpisodicToSemanticTool', () => {
       createTestEpisodicMemory(db, mem2, 'Bob is a manager.', 0.6);
 
       vi.spyOn(TripleExtractionService.prototype, 'extractTriples')
-        .mockResolvedValueOnce({ triples: [{ subject: 'Alice', predicate: 'is', object: 'developer' }], extractionInfo: {} })
-        .mockResolvedValueOnce({ triples: [], extractionInfo: { failureReason: 'no_triple' } });
-      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemory')
-        .mockResolvedValue({ semanticMemoryIds: ['sem_1'] });
+        .mockResolvedValueOnce({
+          triples: [{ subject: 'Alice', predicate: 'is', object: 'developer' }],
+          extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+        })
+        .mockResolvedValueOnce({
+          triples: [],
+          extractionInfo: { steps: { canonicalization: false, entityLinking: false }, failureReason: 'no_triple' }
+        });
+      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence')
+        .mockResolvedValue({
+          result: { created: 1, updated: 0, skipped: 0, semanticMemoryIds: ['sem_1'] },
+          hasError: false,
+          committedConfidences: []
+        });
 
       // embeddingService 없이 relationGraph만 제공: 툴이 new UnifiedEmbeddingService()를 직접 생성하므로
       // SemanticMemoryUpdateService prototype spy가 정상 동작함
@@ -576,6 +587,171 @@ describe('ConvertEpisodicToSemanticTool', () => {
       const metadata = JSON.parse(row?.triple_extraction_metadata ?? '{}');
 
       expect(metadata.retry_count).toBe(2);
+    });
+  });
+
+  describe('coordinator outcome 매핑 (#805 T014)', () => {
+    it('policy-only success(생성 0건, 에러 없음)는 success로 집계된다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Policy-only content.', 0.5);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [
+          { subject: 'a', predicate: 'b', object: 'c' },
+          { subject: 'd', predicate: 'e', object: 'f' }
+        ],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence').mockResolvedValue({
+        result: { created: 0, updated: 0, skipped: 2, semanticMemoryIds: [] },
+        hasError: false,
+        committedConfidences: []
+      });
+
+      const contextWithRelationGraphOnly: ToolContext = { db, services: { relationGraph: createRelationGraph(db) } };
+      const result = await tool.handle({ memory_id: memoryId }, contextWithRelationGraphOnly);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.success).toBe(1);
+      expect(data.failed).toBe(0);
+      expect(data.semantic_memory_ids).toEqual([]);
+    });
+
+    it('생성 0건 + hasError=true(pre-commit 실패)는 failed로 집계된다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Pre-commit failure content.', 0.5);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [{ subject: 'a', predicate: 'b', object: 'c' }],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence').mockResolvedValue({
+        result: { created: 0, updated: 0, skipped: 1, semanticMemoryIds: [] },
+        hasError: true,
+        committedConfidences: []
+      });
+
+      const contextWithRelationGraphOnly: ToolContext = { db, services: { relationGraph: createRelationGraph(db) } };
+      const result = await tool.handle({ memory_id: memoryId }, contextWithRelationGraphOnly);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.failed).toBe(1);
+      expect(data.success).toBe(0);
+    });
+
+    it('post-commit 관계 생성이 실패해도 success 판정을 유지한다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Post-commit failure content.', 0.5);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [{ subject: 'Alice', predicate: 'mentors', object: 'Bob' }],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+      const { SemanticMemoryRelations } = await import('../semantic-memory-relations.js');
+      vi.spyOn(SemanticMemoryRelations.prototype, 'createEpisodicRelation').mockRejectedValue(
+        new Error('relation unavailable')
+      );
+
+      const contextWithRelationGraphOnly: ToolContext = { db, services: { relationGraph: createRelationGraph(db) } };
+      const result = await tool.handle({ memory_id: memoryId }, contextWithRelationGraphOnly);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.success).toBe(1);
+      expect(data.failed).toBe(0);
+
+      const row = DatabaseUtils.get(db, `
+        SELECT triple_extracted_status FROM memory_item WHERE id = ?
+      `, [memoryId]) as { triple_extracted_status: string } | undefined;
+      expect(row?.triple_extracted_status).toBe('success');
+    });
+
+    it('commit 시점에 source가 stale해지면 skipped로 집계된다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Stale content test.', 0.5);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [{ subject: 'a', predicate: 'b', object: 'c' }],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence').mockImplementation(async () => {
+        DatabaseUtils.run(db, `UPDATE memory_item SET content = 'changed mid-flight' WHERE id = ?`, [memoryId]);
+        return {
+          result: { created: 1, updated: 0, skipped: 0, semanticMemoryIds: ['sem-stale'] },
+          hasError: false,
+          committedConfidences: [0.9]
+        };
+      });
+
+      const contextWithRelationGraphOnly: ToolContext = { db, services: { relationGraph: createRelationGraph(db) } };
+      const result = await tool.handle({ memory_id: memoryId }, contextWithRelationGraphOnly);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.skipped).toBe(1);
+      expect(data.success).toBe(0);
+      expect(data.failed).toBe(0);
+      expect(data.semantic_memory_ids).toEqual([]);
+    });
+
+    it('다른 프로세스가 먼저 source tuple을 커밋하면 single-winner race에서 져서 skipped로 집계된다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Single winner race test.', 0.5);
+      DatabaseUtils.run(db, `
+        UPDATE memory_item SET triple_extracted = 1, triple_extracted_status = 'success' WHERE id = ?
+      `, [memoryId]);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [{ subject: 'a', predicate: 'b', object: 'c' }],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      });
+      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemoryWithEvidence').mockImplementation(async () => {
+        DatabaseUtils.run(db, `
+          UPDATE memory_item SET triple_extraction_metadata = ? WHERE id = ?
+        `, [JSON.stringify({ triple_count: 1, extracted_at: '2000-01-01T00:00:00.000Z' }), memoryId]);
+        return {
+          result: { created: 1, updated: 0, skipped: 0, semanticMemoryIds: ['sem-race'] },
+          hasError: false,
+          committedConfidences: [0.9]
+        };
+      });
+
+      const contextWithRelationGraphOnly: ToolContext = { db, services: { relationGraph: createRelationGraph(db) } };
+      const result = await tool.handle({ memory_id: memoryId, skip_converted: false }, contextWithRelationGraphOnly);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.skipped).toBe(1);
+      expect(data.success).toBe(0);
+    });
+
+    it('skip_converted=false 강제 재처리가 실패하면 기존 success metadata를 byte-for-byte 보존한다', async () => {
+      const memoryId = generateId('mem');
+      const originalMetadata = { triple_count: 1, extracted_at: '2020-01-01T00:00:00.000Z' };
+      createTestEpisodicMemory(db, memoryId, 'Preserve metadata test.', 0.5);
+      DatabaseUtils.run(db, `
+        UPDATE memory_item SET
+          triple_extracted = 1,
+          triple_extracted_status = 'success',
+          triple_extraction_metadata = ?
+        WHERE id = ?
+      `, [JSON.stringify(originalMetadata), memoryId]);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: { steps: { canonicalization: false, entityLinking: false }, failureReason: 'no_triple' }
+      });
+
+      const result = await tool.handle({ memory_id: memoryId, skip_converted: false }, context);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.success).toBe(0);
+      expect(data.failed).toBe(1);
+
+      const row = DatabaseUtils.get(db, `
+        SELECT triple_extracted, triple_extracted_status, triple_extraction_metadata FROM memory_item WHERE id = ?
+      `, [memoryId]) as { triple_extracted: number; triple_extracted_status: string; triple_extraction_metadata: string };
+
+      expect(row.triple_extracted).toBe(1);
+      expect(row.triple_extracted_status).toBe('success');
+      expect(JSON.parse(row.triple_extraction_metadata)).toEqual(originalMetadata);
     });
   });
 

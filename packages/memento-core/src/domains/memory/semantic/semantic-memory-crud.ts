@@ -3,16 +3,31 @@
  */
 
 import Database from 'better-sqlite3';
-import type { Triple } from '../../../shared/types/triple-extraction.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
+import type {
+  CandidateDecision,
+  SemanticCandidateSnapshot
+} from './semantic-memory-similarity.js';
 import {
   generateSemanticMemoryId,
-  type SemanticMemoryUpdateOptions
+  type EpisodicSourceSnapshot,
+  type NormalizedTripleSnapshot
 } from './semantic-memory-update-types.js';
+
+export interface PreparedEvidenceOccurrence {
+  firstIndex: number;
+  representativeIndex: number;
+  confidence: number;
+  episodicImportance: number;
+  duplicateIndexes: number[];
+  decision: CandidateDecision;
+}
+
+const SOURCE_STALE_ROLLBACK = new Error('source-stale');
+const CANDIDATE_STALE_ROLLBACK = new Error('candidate-stale');
 
 export class SemanticMemoryCrud {
   private readonly memoryEmbeddingService: MemoryEmbeddingService;
@@ -26,136 +41,457 @@ export class SemanticMemoryCrud {
     this.memoryEmbeddingService = memoryEmbeddingService ?? new MemoryEmbeddingService();
   }
 
-  /** 폴백용 원문. 조회 실패는 폴백 품질 문제일 뿐 생성 자체를 막지 않는다. */
-  private getEpisodicContent(episodicMemoryId: string): string | undefined {
-    if (!episodicMemoryId) {
-      return undefined;
-    }
-    try {
-      const row = this.db
-        .prepare('SELECT content FROM memory_item WHERE id = ?')
-        .get(episodicMemoryId) as { content?: string } | undefined;
-      return row?.content;
-    } catch (error) {
-      logger.debug('SemanticMemoryUpdateService: 폴백 원문 조회 실패 (무시)', {
-        episodicMemoryId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return undefined;
-    }
-  }
-
   async createSemanticMemory(
-    triple: Triple,
-    options: SemanticMemoryUpdateOptions,
-    confidence: number
-  ): Promise<string> {
-    const { normalizedSubject, normalizedPredicate, normalizedObject } =
-      this.scoring.canonicalizeAndLink(triple);
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot,
+    episodicImportance: number
+  ): Promise<
+    | { id: string; confidence: number; content: string; kind: 'created' }
+    | { kind: 'candidate-stale' | 'source-stale' }
+  > {
+    if (
+      !Number.isFinite(snapshot.confidence) ||
+      snapshot.confidence < 0 ||
+      snapshot.confidence > 1 ||
+      !Number.isFinite(episodicImportance) ||
+      episodicImportance < 0 ||
+      episodicImportance > 1
+    ) {
+      throw new TypeError('Invalid semantic memory quality');
+    }
 
     // #768: 재조립이 불가능한 triple은 합성 문장 대신 원본 episodic 본문을 보존한다.
     const content = this.scoring.tripleToNaturalLanguage(
-      normalizedSubject,
-      normalizedPredicate,
-      normalizedObject,
-      this.getEpisodicContent(options.episodicMemoryId)
+      snapshot.subject,
+      snapshot.predicate,
+      snapshot.object,
+      source.content
     );
 
     const id = generateSemanticMemoryId();
-    const importance = this.scoring.calculateImportance(options.episodicImportance || 0.5, 1);
+    const importance = this.scoring.calculateImportance(
+      episodicImportance,
+      snapshot.confidence,
+      1
+    );
     const createdAt = new Date().toISOString();
-
-    await DatabaseUtils.run(this.db, `
-      INSERT INTO memory_item (
-        id, type, content, subject, predicate, object,
-        importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      'semantic',
-      content,
-      normalizedSubject,
-      normalizedPredicate,
-      normalizedObject,
-      importance,
-      'private',
-      createdAt
-    ]);
-
-    this.kgTripleRepo.upsertTriple({
-      subject: normalizedSubject,
-      predicate: normalizedPredicate,
-      object: normalizedObject,
-      representative_memory_id: id
+    const originSource = JSON.stringify({
+      tool: 'extract_triples',
+      caller: 'system',
+      timestamp: createdAt,
+      context: { source_episodic_id: source.id }
     });
 
-    logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
-      id,
-      originalTriple: triple,
-      normalizedTriple: {
-        subject: normalizedSubject,
-        predicate: normalizedPredicate,
-        object: normalizedObject
-      },
-      confidence,
-      importance
-    });
+    const create = this.db.transaction(() => {
+      if (!this.sourceMatches(source)) {
+        throw SOURCE_STALE_ROLLBACK;
+      }
+      if (this.hasEligibleExactCandidate(snapshot, source)) {
+        throw CANDIDATE_STALE_ROLLBACK;
+      }
 
-    // #710: 신규 semantic memory는 임베딩이 없으면 벡터/n-hop 확장에서 소외되므로 생성을 트리거한다.
-    // remember 증강 파이프라인(launchBackgroundAugmentation)과 동일하게 fire-and-forget으로
-    // 처리한다 — 느린 provider가 semantic memory 생성 응답을 지연시키면 안 된다. 실패해도
-    // memory 생성 자체는 이미 커밋되었으므로 로그만 남기고 무시한다.
-    this.memoryEmbeddingService
-      .createAndStoreEmbedding(this.db, id, content, 'semantic')
-      .catch((embeddingError) => {
-        logger.warn('SemanticMemoryUpdateService: Semantic Memory 임베딩 생성 실패 (무시)', {
-          id,
-          error: embeddingError instanceof Error ? embeddingError.message : String(embeddingError)
+      this.db.prepare(`
+        INSERT INTO memory_item (
+          id, type, content, subject, predicate, object, confidence, importance,
+          num_times, owner_id, project_id, origin_source, privacy_scope, created_at
+        ) VALUES (?, 'semantic', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'private', ?)
+      `).run(
+        id,
+        content,
+        snapshot.subject,
+        snapshot.predicate,
+        snapshot.object,
+        snapshot.confidence,
+        importance,
+        source.ownerId,
+        source.projectId,
+        originSource,
+        createdAt
+      );
+
+      if (!this.kgTripleRepo.getBySubjectPredicateObject(
+        snapshot.subject,
+        snapshot.predicate,
+        snapshot.object
+      )) {
+        this.kgTripleRepo.upsertTriple({
+          subject: snapshot.subject,
+          predicate: snapshot.predicate,
+          object: snapshot.object,
+          representative_memory_id: id
         });
-      });
+      }
 
-    return id;
+      return { id, confidence: snapshot.confidence, content, kind: 'created' as const };
+    });
+
+    let created: ReturnType<typeof create.immediate>;
+    try {
+      created = create.immediate();
+    } catch (error) {
+      if (error === SOURCE_STALE_ROLLBACK) {
+        return { kind: 'source-stale' };
+      }
+      if (error === CANDIDATE_STALE_ROLLBACK) {
+        return { kind: 'candidate-stale' };
+      }
+      throw error;
+    }
+
+    try {
+      logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
+        id,
+        confidence: snapshot.confidence,
+        importance
+      });
+    } catch {
+      // A committed primary write must not depend on logging.
+    }
+
+    return created;
+  }
+
+  async createSemanticEmbedding(memoryId: string, content: string): Promise<void> {
+    await this.memoryEmbeddingService.createAndStoreEmbedding(this.db, memoryId, content, 'semantic');
   }
 
   async updateExistingSemanticMemory(
-    semanticMemoryId: string,
-    triple: Triple,
-    options: SemanticMemoryUpdateOptions,
-    confidence: number
-  ): Promise<void> {
-    const existing = DatabaseUtils.get(this.db, `
-      SELECT id, importance, recall_count
-      FROM memory_item
-      WHERE id = ?
-    `, [semanticMemoryId]) as { id: string; importance: number; recall_count: number } | undefined;
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence,
+    source: EpisodicSourceSnapshot
+  ): Promise<
+    | { id: string; confidence: number; kind: 'updated' }
+    | { kind: 'source-stale' }
+    | null
+  > {
+    const update = this.db.transaction(() => {
+      if (!this.sourceMatches(source)) {
+        throw SOURCE_STALE_ROLLBACK;
+      }
+      const result = this.applyConditionalAggregateUpdate(candidate, evidence);
+      if (!result) {
+        throw CANDIDATE_STALE_ROLLBACK;
+      }
+      return result;
+    });
+    let updated: ReturnType<typeof update.immediate>;
+    try {
+      updated = update.immediate();
+    } catch (error) {
+      if (error === SOURCE_STALE_ROLLBACK) {
+        return { kind: 'source-stale' };
+      }
+      if (error === CANDIDATE_STALE_ROLLBACK) {
+        return null;
+      }
+      throw error;
+    }
+    this.logAggregateUpdate(candidate, evidence, updated.confidence);
+    return updated;
+  }
 
-    if (!existing) {
-      throw new Error(`Semantic Memory를 찾을 수 없습니다: ${semanticMemoryId}`);
+  async updateReevaluatedSemanticMemory(
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence,
+    source: EpisodicSourceSnapshot
+  ): Promise<
+    | { id: string; confidence: number; kind: 'updated' }
+    | { kind: 'source-stale' }
+    | null
+  > {
+    let updatedCandidate = candidate;
+    const retry = this.db.transaction(() => {
+      if (!this.sourceMatches(source)) {
+        throw SOURCE_STALE_ROLLBACK;
+      }
+      const latest = this.db.prepare(`
+        SELECT confidence, num_times AS numTimes
+        FROM memory_item
+        WHERE id = ?
+      `).get(candidate.id) as {
+        confidence: number | null;
+        numTimes: number;
+      } | undefined;
+      if (!latest) {
+        throw CANDIDATE_STALE_ROLLBACK;
+      }
+
+      updatedCandidate = { ...candidate, ...latest };
+      const result = this.applyConditionalAggregateUpdate(updatedCandidate, evidence);
+      if (!result) {
+        throw CANDIDATE_STALE_ROLLBACK;
+      }
+      return result;
+    });
+    let updated: ReturnType<typeof retry.immediate>;
+    try {
+      updated = retry.immediate();
+    } catch (error) {
+      if (error === SOURCE_STALE_ROLLBACK) {
+        return { kind: 'source-stale' };
+      }
+      if (error === CANDIDATE_STALE_ROLLBACK) {
+        return null;
+      }
+      throw error;
+    }
+    this.logAggregateUpdate(updatedCandidate, evidence, updated.confidence);
+    return updated;
+  }
+
+  private applyConditionalAggregateUpdate(
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence
+  ): { id: string; confidence: number; kind: 'updated' } | null {
+    if (
+      !Number.isFinite(evidence.confidence) ||
+      evidence.confidence < 0 ||
+      evidence.confidence > 1 ||
+      !Number.isFinite(evidence.episodicImportance) ||
+      evidence.episodicImportance < 0 ||
+      evidence.episodicImportance > 1
+    ) {
+      throw new TypeError('Invalid semantic memory quality');
     }
 
-    const episodeWeight = (existing.recall_count || 0) + 1;
+    if (
+      !Number.isSafeInteger(candidate.numTimes) ||
+      candidate.numTimes <= 0 ||
+      candidate.numTimes >= Number.MAX_SAFE_INTEGER ||
+      (candidate.confidence !== null && (
+        !Number.isFinite(candidate.confidence) ||
+        candidate.confidence < 0 ||
+        candidate.confidence > 1
+      ))
+    ) {
+      return null;
+    }
+
+    const finalNumTimes = candidate.numTimes + 1;
+    const aggregateConfidence = this.scoring.calculateAggregateConfidence(
+      candidate.confidence,
+      candidate.numTimes,
+      evidence.confidence
+    );
     const newImportance = this.scoring.calculateImportance(
-      options.episodicImportance || 0.5,
-      episodeWeight
+      evidence.episodicImportance,
+      aggregateConfidence,
+      finalNumTimes
+    );
+    const nowIso = new Date().toISOString();
+    const update = this.db.prepare(`
+      UPDATE memory_item AS m
+      SET confidence = ?,
+          importance = ?,
+          num_times = num_times + 1,
+          last_mentioned_at = ?
+      WHERE m.id = ?
+        AND m.type = 'semantic'
+        AND m.is_deleted = 0
+        AND m.owner_id IS ?
+        AND m.project_id IS ?
+        AND m.subject = ?
+        AND m.predicate = ?
+        AND m.object = ?
+        AND m.confidence IS ?
+        AND m.num_times = ?
+        AND trim(m.subject) != ''
+        AND trim(m.predicate) != ''
+        AND trim(m.object) != ''
+        AND (
+          m.confidence IS NULL OR (
+            typeof(m.confidence) IN ('integer', 'real')
+            AND m.confidence BETWEEN 0 AND 1
+          )
+        )
+        AND typeof(m.importance) IN ('integer', 'real')
+        AND m.importance BETWEEN 0 AND 1
+        AND typeof(m.num_times) = 'integer'
+        AND m.num_times > 0
+        AND m.num_times < ?
+        AND (
+          (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.tool')
+            END
+          ) = 'extract_triples'
+          AND (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.caller')
+            END
+          ) = 'system'
+          AND typeof(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) = 'text'
+          AND trim(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) != ''
+          OR (
+            (m.origin_source IS NULL OR trim(m.origin_source) IN ('', '{}'))
+            AND EXISTS (
+              SELECT 1
+              FROM memory_relation relation
+              WHERE relation.source_id = m.id
+                AND relation.relation_type = 'extracted_from'
+            )
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM kg_triple kg
+          WHERE kg.representative_memory_id = m.id
+            AND (
+              kg.subject IS NOT m.subject
+              OR kg.predicate IS NOT m.predicate
+              OR kg.object IS NOT m.object
+            )
+        )
+    `).run(
+      aggregateConfidence,
+      newImportance,
+      nowIso,
+      candidate.id,
+      candidate.ownerId,
+      candidate.projectId,
+      candidate.subject,
+      candidate.predicate,
+      candidate.object,
+      candidate.confidence,
+      candidate.numTimes,
+      Number.MAX_SAFE_INTEGER
     );
 
-    const nowIso = new Date().toISOString();
-    await DatabaseUtils.run(this.db, `
-      UPDATE memory_item
-      SET importance = ?,
-          recall_count = recall_count + 1,
-          last_accessed_at = CURRENT_TIMESTAMP,
-          num_times = COALESCE(num_times, 1) + 1,
-          last_mentioned_at = ?
-      WHERE id = ?
-    `, [newImportance, nowIso, semanticMemoryId]);
+    if (update.changes === 0) {
+      return null;
+    }
 
-    logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
-      id: semanticMemoryId,
-      triple,
-      episodeWeight,
-      oldImportance: existing.importance,
-      newImportance,
-      confidence
-    });
+    return { id: candidate.id, confidence: aggregateConfidence, kind: 'updated' };
+  }
+
+  private logAggregateUpdate(
+    candidate: SemanticCandidateSnapshot,
+    evidence: PreparedEvidenceOccurrence,
+    confidence: number
+  ): void {
+    try {
+      const numTimes = candidate.numTimes + 1;
+      logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
+        id: candidate.id,
+        oldConfidence: candidate.confidence,
+        numTimes,
+        newImportance: this.scoring.calculateImportance(
+          evidence.episodicImportance,
+          confidence,
+          numTimes
+        ),
+        confidence
+      });
+    } catch {
+      // A committed primary write must not depend on logging.
+    }
+  }
+
+  private sourceMatches(source: EpisodicSourceSnapshot): boolean {
+    return this.db.prepare(`
+      SELECT 1
+      FROM memory_item
+      WHERE id = ?
+        AND type = 'episodic'
+        AND is_deleted = 0
+        AND content IS ?
+        AND importance IS ?
+        AND owner_id IS ?
+        AND project_id IS ?
+    `).get(
+      source.id,
+      source.content,
+      source.importance,
+      source.ownerId,
+      source.projectId
+    ) !== undefined;
+  }
+
+  private hasEligibleExactCandidate(
+    snapshot: NormalizedTripleSnapshot,
+    source: EpisodicSourceSnapshot
+  ): boolean {
+    return this.db.prepare(`
+      SELECT 1
+      FROM memory_item m
+      WHERE m.type = 'semantic'
+        AND m.is_deleted = 0
+        AND m.owner_id IS ?
+        AND m.project_id IS ?
+        AND m.subject = ?
+        AND m.predicate = ?
+        AND m.object = ?
+        AND trim(m.subject) != ''
+        AND trim(m.predicate) != ''
+        AND trim(m.object) != ''
+        AND (
+          m.confidence IS NULL OR (
+            typeof(m.confidence) IN ('integer', 'real')
+            AND m.confidence BETWEEN 0 AND 1
+          )
+        )
+        AND typeof(m.importance) IN ('integer', 'real')
+        AND m.importance BETWEEN 0 AND 1
+        AND typeof(m.num_times) = 'integer'
+        AND m.num_times > 0
+        AND m.num_times < ?
+        AND (
+          (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.tool')
+            END
+          ) = 'extract_triples'
+          AND (
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.caller')
+            END
+          ) = 'system'
+          AND typeof(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) = 'text'
+          AND trim(
+            CASE WHEN json_valid(m.origin_source)
+              THEN json_extract(m.origin_source, '$.context.source_episodic_id')
+            END
+          ) != ''
+          OR (
+            (m.origin_source IS NULL OR trim(m.origin_source) IN ('', '{}'))
+            AND EXISTS (
+              SELECT 1
+              FROM memory_relation relation
+              WHERE relation.source_id = m.id
+                AND relation.relation_type = 'extracted_from'
+            )
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM kg_triple kg
+          WHERE kg.representative_memory_id = m.id
+            AND (
+              kg.subject IS NOT m.subject
+              OR kg.predicate IS NOT m.predicate
+              OR kg.object IS NOT m.object
+            )
+        )
+      LIMIT 1
+    `).get(
+      source.ownerId,
+      source.projectId,
+      snapshot.subject,
+      snapshot.predicate,
+      snapshot.object,
+      Number.MAX_SAFE_INTEGER
+    ) !== undefined;
   }
 }

@@ -44,6 +44,7 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **MCP 레지스트리 (#763)**: 루트 `server.json`의 `name`은 `package.json.mcpName`과, `version`·`packages[0].version`은 `package.json.version`과 일치해야 함 (`tests/mcp-registry-metadata.spec.ts`). 릴리스 시 `release.yml`이 태그 버전으로 재작성 후 `mcp-publisher`로 등재(정식 릴리스만)
 - **Claude Code 플러그인 (#764)**: 마켓플레이스는 루트 `.claude-plugin/marketplace.json`, 플러그인 본체는 `plugins/memento/`(`.mcp.json`·`skills/`). 수정 후 `claude plugin validate . --strict` 통과 필수이고, 사용자에게 업데이트가 나가려면 `plugins/memento/.claude-plugin/plugin.json`의 `version`을 올려야 함
 - **triple 문장 재조립 (#768)**: canonical predicate는 `사용함`·`정의됨` 같은 ㅁ 명사화형 — 문자열에 `합니다`를 덧붙이지 말고 `buildTripleSentence()`를 쓸 것(조사·활용 처리, 재조립 불가 시 `null`→원문 폴백). 기존 손상 행은 `npm run memory:repair-triple-sentences`(dry-run) → `-- --apply`
+- **episodic→semantic conversion (#805)**: remember 증강·`ConvertEpisodicToSemanticTool`·`TripleExtractionBatchJob`은 `convertEpisodicSource`만 사용(로컬 source status write 금지) — source tuple은 conditional CAS로 single-winner; `relationGraph` 부재·post-commit 관계 실패는 primary success를 뒤집지 않음; episodic importance `0`은 `|| 0.5` 금지; 강제 재처리 실패 시 기존 success metadata byte-for-byte 보존; evidence API는 `updateSemanticMemoryWithEvidence`
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
 - **graphify 생성물**: `graphify-out/` 전체는 로컬 생성물 — 재빌드해서 사용하고 커밋 금지
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
@@ -56,8 +57,12 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **도구 실행 경계 (#793)**: stdio·HTTP MCP·WebSocket·REST의 `tools/call`은 모두 `server/audit-tool-dispatch.ts`의 `dispatchTool()`을 경유 — transport에서 `executeTool()` 직접 호출 금지(동시성·audit·에러 매핑 분기 방지)
 - **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
 - **LLM provider use-case override (#820)**: triple/relation/procedural — `LLM_PROVIDER_*`(unset→global, invalid→`[CONFIG WARN]` 1회); call site `resolveLlmProvider`/`resolveBoundLlmProvider`; `resolveLlmModel(...,{boundProvider})` — runtime≠bound면 `LLM_MODEL_*` 폐기; job override `ollama`면 global cloud여도 Ollama readiness; Ollama 가용성은 `initializedProviders.includes('ollama')`(preferred만 X); consolidation provider override 없음 — `specs/658-llm-provider-use-case-override/`
+- **관계 추출 LLM 가용성 (#819)**: `RelationExtractor`는 sync `isAvailable()` 금지 — `isAvailableAsync()`(init await 후 판정); `isOllamaAvailable`에 `LLM_PROVIDER===ollama` 조건 금지(`auto`+로컬 채택 시 불일치); 폴백 로그 `reason`: `llm_unavailable`|`llm_call_failed`|`init_failed` — `specs/656-819-fix-llm-init-race/`
 - **vi.mock 상대 경로 (#821)**: 존재하지 않는 모듈을 가리키는 상대 `vi.mock`은 같은 경로 동적 import까지 가로채 스펙이 조용히 통과 — CI `npm run check:vi-mock-paths`(`--ci`); 기존 위반은 `scripts/vi-mock-path-baseline.json`(해소 시 목록에서 제거); `vi.doMock`·템플릿 리터럴은 #826. config mock은 소스와 같은 `shared/config` 깊이·`vi.hoisted`·`Object.assign` 제자리 갱신(재할당 금지); `LLM_PROVIDER` env가 mocked `mementoConfig.llmProvider`보다 우선 — 테스트는 두 채널 동기
 - **`NODE_ENV=test` dotenv**: core `config()`·CLI `loadEnv`는 test에서 repo `.env` 스킵(명시 `envFile`/`MEMENTO_CONFIG_DIR` 없으면); vitest.setup이 `ADMIN_API_KEY` 삭제; CLI·스크립트 subprocess 스펙은 `NODE_ENV: 'test'` 전달
+- **벡터 similarity (#806)**: 반환값은 `clamp(1 − cosine_distance, 0, 1)` — 결과셋 min-max·거리값 재사용 금지; 2026-08-29 이전 스냅샷은 구 척도(마이그레이션 없음); ranking hash에 `VECTOR_SCORE_SCALE` — [search-ranking.md](./docs/agents/search-ranking.md)
+- **FTS OR+prefix (#807)**: 짧·긴 구간 모두 내용어 OR + stem≥`FTS_MIN_PREFIX_STEM_LENGTH`(기본 2)면 `term*`; 긴 구간은 앞 `FTS_MAX_TOKENS_FOR_OR`(8)만 — `search-engine-fts-query.ts`
+- **db:backup:cleanup (#065)**: 기본 preview(삭제 없음); 삭제는 `npm run db:backup:cleanup -- --apply`; apply 전 MCP·restore·다른 backup/cleanup 중지; non-zero operator 백업 보존; 오류/cleanup report에 절대 경로 비노출
 - **Express `programmaticAuth`**: `declare global`은 `programmatic-auth.middleware.ts` 한 곳만 — audit 등 다른 미들웨어에서 중복 선언 시 TS2717
 - **CI npm ci flake**: `onnxruntime-node` NuGet `ETIMEDOUT`은 코드 버그 아님 — `gh run rerun --failed`
 - **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)

@@ -5,7 +5,6 @@
  */
 
 import Database from 'better-sqlite3';
-import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { RelationGraphPort } from '../../relation/ports/relation-graph.port.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
@@ -17,7 +16,8 @@ import { SemanticMemorySimilarity } from './semantic-memory-similarity.js';
 import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js';
 import { SemanticMemoryUpdatePipeline } from './semantic-memory-update-pipeline.js';
 import type {
-  SemanticMemoryUpdateOptions,
+  EpisodicSourceSnapshot,
+  SemanticMemoryUpdateEvidence,
   SemanticMemoryUpdateResult
 } from './semantic-memory-update-types.js';
 
@@ -51,7 +51,7 @@ export class SemanticMemoryUpdateService {
 
     this.scoring = new SemanticMemoryScoring();
     this.kgTripleRepo = kgTripleRepo ?? new KgTripleRepository(db);
-    this.similarity = new SemanticMemorySimilarity(db, resolvedEmbeddingService, this.scoring);
+    this.similarity = new SemanticMemorySimilarity(db, resolvedEmbeddingService);
     this.crud = new SemanticMemoryCrud(db, this.kgTripleRepo, this.scoring, memoryEmbeddingService);
     this.relations = new SemanticMemoryRelations(db, relationGraph);
     this.statistics = new SemanticMemoryStatisticsService();
@@ -84,35 +84,96 @@ export class SemanticMemoryUpdateService {
   }
 
   async updateSemanticMemory(
-    extractionResult: TripleExtractionResult,
-    options: SemanticMemoryUpdateOptions
+    extractionResult: unknown,
+    options: unknown
   ): Promise<SemanticMemoryUpdateResult> {
+    const { result } = await this.updateSemanticMemoryWithEvidence(extractionResult, options);
+    return result;
+  }
+
+  /**
+   * updateSemanticMemory()와 동일한 처리를 수행하지만, 공유 conversion coordinator(#805 T013)가
+   * source 성공/실패 판정과 confidence_avg 계산에 쓰는 hasError·committedConfidences도 함께 반환한다.
+   * 공개 SemanticMemoryUpdateResult 계약은 바뀌지 않는다.
+   */
+  async updateSemanticMemoryWithEvidence(
+    extractionResult: unknown,
+    options: unknown
+  ): Promise<SemanticMemoryUpdateEvidence> {
     const processingStartTime = Date.now();
 
-    const validationResult = this.pipeline.validateInput(extractionResult);
-    if (validationResult) {
-      return validationResult;
+    const request = this.pipeline.validateAndSnapshotRequest(extractionResult, options);
+    if (request.kind === 'empty') {
+      return { result: request.result, hasError: false, committedConfidences: [] };
     }
+    const source = this.snapshotEpisodicSource(request.policy.episodicMemoryId);
+    const episodicImportance = request.policy.episodicImportanceProvided
+      ? request.policy.episodicImportance
+      : source.importance ?? 0.5;
+    if (!Number.isFinite(episodicImportance) || episodicImportance < 0 || episodicImportance > 1) {
+      throw new TypeError('Invalid semantic update source importance');
+    }
+    const policy = { ...request.policy, episodicImportance };
 
-    const preparedData = this.pipeline.prepareUpdateData(options);
-    const { result, confidences, hasError } = await this.pipeline.applyUpdates(
-      extractionResult,
-      options,
+    const preparedData = this.pipeline.prepareUpdateData(policy);
+    const { result, confidences, hasError, committedConfidences } = await this.pipeline.applyUpdates(
+      request.positions,
+      request.extractionInfo,
+      source,
+      policy,
       preparedData
     );
 
     this.pipeline.notifyListeners(
       result,
-      extractionResult.triples.length,
+      request.positions.length,
       confidences,
       processingStartTime,
       hasError
     );
 
-    return result;
+    return { result, hasError, committedConfidences };
   }
 
   getStatistics() {
     return this.statistics.getStatistics();
+  }
+
+  private snapshotEpisodicSource(episodicMemoryId: string): EpisodicSourceSnapshot {
+    const row = this.db.prepare(`
+      SELECT
+        id,
+        type,
+        content,
+        importance,
+        owner_id AS ownerId,
+        project_id AS projectId,
+        is_deleted AS isDeleted,
+        triple_extracted AS tripleExtracted,
+        triple_extracted_status AS tripleExtractedStatus,
+        triple_extraction_metadata AS tripleExtractionMetadata
+      FROM memory_item
+      WHERE id = ?
+    `).get(episodicMemoryId) as (Omit<EpisodicSourceSnapshot, 'type' | 'isDeleted'> & {
+      type: string;
+      isDeleted: number | null;
+    }) | undefined;
+
+    if (!row || row.type !== 'episodic' || row.isDeleted !== 0) {
+      throw new Error(`Invalid episodic source memory: ${episodicMemoryId}`);
+    }
+
+    return {
+      id: row.id,
+      type: 'episodic',
+      content: row.content,
+      importance: row.importance,
+      ownerId: row.ownerId,
+      projectId: row.projectId,
+      isDeleted: false,
+      tripleExtracted: row.tripleExtracted,
+      tripleExtractedStatus: row.tripleExtractedStatus,
+      tripleExtractionMetadata: row.tripleExtractionMetadata
+    };
   }
 }

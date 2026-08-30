@@ -49,6 +49,7 @@ describe('TripleExtractionBatchJob', () => {
         triple_extracted INTEGER,
         triple_extracted_status TEXT,
         triple_extraction_metadata TEXT,
+        owner_id TEXT,
         privacy_scope TEXT DEFAULT 'private',
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -595,7 +596,8 @@ describe('TripleExtractionBatchJob', () => {
       const metadata1 = {
         failureReason: 'no_triple',
         retry_count: 0, // 첫 번째 재시도
-        last_attempt: oneDayAgo.toISOString()
+        last_attempt: oneDayAgo.toISOString(),
+        next_retry_after_days: 1
       };
       
       DatabaseUtils.run(db, `
@@ -611,7 +613,8 @@ describe('TripleExtractionBatchJob', () => {
       const metadata2 = {
         failureReason: 'no_triple',
         retry_count: 1, // 두 번째 재시도
-        last_attempt: twoDaysAgo.toISOString()
+        last_attempt: twoDaysAgo.toISOString(),
+        next_retry_after_days: 2
       };
       
       DatabaseUtils.run(db, `
@@ -627,7 +630,8 @@ describe('TripleExtractionBatchJob', () => {
       const metadata3 = {
         failureReason: 'no_triple',
         retry_count: 2, // 세 번째 재시도
-        last_attempt: fourDaysAgo.toISOString()
+        last_attempt: fourDaysAgo.toISOString(),
+        next_retry_after_days: 4
       };
       
       DatabaseUtils.run(db, `
@@ -944,4 +948,3 @@ describe('TripleExtractionBatchJob', () => {
     }, 180000); // 타임아웃 180초 (3가지 배치 크기로 각각 20개 메모리를 순차 처리하므로 충분한 시간 필요)
   });
 });
-
