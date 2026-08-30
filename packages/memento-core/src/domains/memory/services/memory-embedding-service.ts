@@ -13,6 +13,7 @@ import type {
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { cosineDistanceToSimilarity } from '../../../shared/utils/vector-similarity.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
@@ -36,7 +37,6 @@ export interface VectorSearchResult {
   pinned: boolean;
   tags?: string[];
   similarity: number;
-  score: number;
   project_id?: string | null;
   owner_id?: string | null;
   process_id?: string | null;
@@ -54,8 +54,7 @@ interface SimilaritySearchRow {
   last_accessed: string | null;
   pinned: number | boolean;
   tags: string | null;
-  similarity: number;
-  score: number;
+  distance: number;
   project_id?: string | null;
   owner_id?: string | null;
   process_id?: string | null;
@@ -270,8 +269,7 @@ export class MemoryEmbeddingService {
       '  m.owner_id, ' +
       '  m.process_id, ' +
       '  m.session_id, ' +
-      '  v.distance as similarity, ' +
-      '  (1 - v.distance) as score ' +
+      '  v.distance as distance ' +
       'FROM (' +
       '  SELECT rowid, distance ' +
       `  FROM ${tableName} ` +
@@ -319,8 +317,7 @@ export class MemoryEmbeddingService {
       last_accessed: row.last_accessed ?? undefined,
       pinned: Boolean(row.pinned),
       tags: this.safeParseTags(row.tags),
-      similarity: row.similarity,
-      score: row.score,
+      similarity: cosineDistanceToSimilarity(row.distance),
       ...(row.project_id !== undefined ? { project_id: row.project_id } : {}),
       ...(row.owner_id !== undefined ? { owner_id: row.owner_id } : {}),
       ...(row.process_id !== undefined ? { process_id: row.process_id } : {}),

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
+import { clamp01 } from '../../../shared/utils/clamp.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
@@ -236,76 +237,40 @@ export class HybridVectorSearchExecutor {
     };
   }
 
+  /**
+   * #806: 제공자별 결과셋 min-max 재조정을 제거했다.
+   * 반환 점수는 절대 cosine similarity이며 결과셋 구성에 의존하지 않는다.
+   * 같은 기억이 여러 제공자에서 나오면 절대 유사도의 최댓값을 남긴다(FR-007).
+   */
   private normalizeAndDeduplicateResults(
     allResults: Array<VectorSearchResult & { provider: string }>
   ): VectorSearchResult[] {
-    const resultsByProvider = this.groupResultsByProvider(allResults);
-    const normalizedResults = this.normalizeResultsByProvider(resultsByProvider);
-    const deduplicatedResults = this.deduplicateNormalizedResults(normalizedResults);
-    return this.rankResults(deduplicatedResults);
+    return this.rankResults(this.deduplicateByMaxSimilarity(allResults));
   }
 
-  private groupResultsByProvider(
+  private deduplicateByMaxSimilarity(
     allResults: Array<VectorSearchResult & { provider: string }>
-  ): Map<string, Array<VectorSearchResult & { provider: string }>> {
-    const resultsByProvider = new Map<string, Array<VectorSearchResult & { provider: string }>>();
+  ): Array<VectorSearchResult & { provider: string }> {
+    const resultMap = new Map<string, VectorSearchResult & { provider: string }>();
     allResults.forEach(result => {
-      const provider = result.provider;
-      if (!resultsByProvider.has(provider)) {
-        resultsByProvider.set(provider, []);
-      }
-      resultsByProvider.get(provider)?.push(result);
-    });
-    return resultsByProvider;
-  }
-
-  private normalizeResultsByProvider(
-    resultsByProvider: Map<string, Array<VectorSearchResult & { provider: string }>>
-  ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
-    const normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }> = [];
-
-    resultsByProvider.forEach(results => {
-      if (results.length === 0) {
-        return;
-      }
-
-      const scores = results.map(r => r.similarity);
-      const minScore = Math.min(...scores);
-      const maxScore = Math.max(...scores);
-
-      results.forEach(result => {
-        const normalizedScore =
-          maxScore === minScore ? result.similarity : (result.similarity - minScore) / (maxScore - minScore);
-        normalizedResults.push({
-          ...result,
-          normalizedScore,
-        });
-      });
-    });
-
-    return normalizedResults;
-  }
-
-  private deduplicateNormalizedResults(
-    normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
-  ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
-    const resultMap = new Map<string, VectorSearchResult & { provider: string; normalizedScore: number }>();
-    normalizedResults.forEach(result => {
       const existing = resultMap.get(result.id);
-      if (!existing || result.normalizedScore > existing.normalizedScore) {
+      if (!existing || result.similarity > existing.similarity) {
         resultMap.set(result.id, result);
       }
     });
     return Array.from(resultMap.values());
   }
 
+  /**
+   * #806 FR-017: min-max 재조정이 부수적으로 수행하던 0~1 보장을 명시적 수단으로 남긴다.
+   */
   private rankResults(
-    deduplicatedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
+    deduplicatedResults: Array<VectorSearchResult & { provider: string }>
   ): VectorSearchResult[] {
     return deduplicatedResults
-      .map(({ provider: _provider, normalizedScore, ...result }) => ({
+      .map(({ provider: _provider, ...result }) => ({
         ...result,
-        similarity: normalizedScore,
+        similarity: clamp01(result.similarity),
       }))
       .sort((a, b) => b.similarity - a.similarity);
   }

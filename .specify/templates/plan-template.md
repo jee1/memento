@@ -31,7 +31,17 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Map each gate to the plan. Mark PASS / VIOLATION / N/A with a one-line justification.
+Any VIOLATION MUST be recorded in Complexity Tracking below or the plan is blocked.
+
+| Gate | Principle | Status | Notes |
+|------|-----------|--------|-------|
+| Test-First Delivery: failing tests precede implementation (Red-Green-Refactor). N/A only under the structural-refactoring exception. | I (MUST) | [PASS/VIOLATION/N/A] | [justification] |
+| Backward compatibility of MCP tool contracts and stable API behavior; unavoidable breaks carry migration and compatibility notes in spec/plan/tasks. | II (MUST) | [PASS/VIOLATION/N/A] | [justification] |
+| Schema changes ship with migration files and synchronized schema artifacts and type definitions. | III (MUST) | [PASS/VIOLATION/N/A] | [justification] |
+| Quality gates before completion: `npm run lint`, `npm run type-check`, `npm test` pass; production-code changes also rebuild graphify and confirm `graphify-out/GRAPH_REPORT.md`. | IV (MUST) | [PASS/VIOLATION/N/A] | [justification] |
+| Operational failures are observable via structured logs and degrade gracefully without breaking primary response paths. | V (SHOULD) | [PASS/VIOLATION/N/A] | [justification] |
+| Additional Constraints: Node.js 24+ / TypeScript ESM, npm workspaces, security/auth scope changes specified explicitly, no non-redistributable corpora or derived data committed (LoCoMo CC BY-NC). | Additional Constraints | [PASS/VIOLATION/N/A] | [justification] |
 
 ## Project Structure
 

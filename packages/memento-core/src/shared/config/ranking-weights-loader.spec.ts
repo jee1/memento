@@ -16,6 +16,14 @@ import {
   type RankingWeightsConfig
 } from './ranking-weights-loader.js';
 
+describe('#806 벡터 점수 척도와 랭킹 버전', () => {
+  it('랭킹 버전 payload가 점수 척도 규정을 포함한다', () => {
+    const payload = getRankingVersionPayload();
+    expect(payload).toHaveProperty('vector_score_scale');
+    expect(payload.vector_score_scale).toBe('absolute-cosine-v2');
+  });
+});
+
 describe('ranking-weights-loader', () => {
   let tempDir: string;
   let tempConfigPath: string;

@@ -16,6 +16,8 @@ S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weig
 
 검색 결과 매핑은 `similarity = clamp(1 − cosine_distance, 0, 1)`입니다. cosine distance는 [0, 2] 범위이므로 양의 비례 벡터는 similarity 1.0, 직교는 0, 반대 방향(distance 2)은 하한 clamp로 0이 됩니다. 앵커 slot threshold 0.8/0.6/0.4도 이 cosine similarity 기준입니다.
 
+**척도 변경 이력 (issue #806, 2026-08-29)**: 이 날짜 이전의 하이브리드 벡터 채널은 제공자별 결과셋의 min-max로 점수를 다시 늘려 반환했고(최상위가 사실상 항상 1.0), 대체 경로는 거리값을 유사도 필드에 담아 방향이 반대였습니다. 두 결함을 교정해 반환값은 위 계약(`clamp(1 − cosine_distance, 0, 1)`)을 그대로 따릅니다. **해석 기준이 달라집니다**: 교정 후에는 관련 있는 결과도 실제 근접도를 반영해 낮은 값에 놓일 수 있으며, 낮아진 숫자는 검색 실패가 아니라 정직한 값입니다. 결과 수는 under-fill이 채우므로 거의 유지되고 달라지는 것은 점수 분포입니다. 교정 전후 기록은 `getRankingVersion()` 해시로 구분됩니다(`HYBRID_SEARCH.VECTOR_SCORE_SCALE`가 payload에 포함됨). 이전에 저장된 점수 스냅샷은 옛 척도이며 마이그레이션·백필은 수행하지 않았습니다.
+
 vec 인덱스 적재량을 점검할 때는 raw provider 행 수와 1:1로 비교하면 안 됩니다. 각 테이블의 트리거 조건(`embedding_provider` + `dimensions` + `projection_type = 'native'`, legacy 384 테이블은 `dimensions = 384`)을 그대로 쓰는 `checkVecCardinality()`를 사용하세요.
 
 ## FTS5 BM25 계약 (Issue #787)
@@ -24,7 +26,7 @@ SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값�
 
 텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank))`로 (0, 1) relevance에 올린 뒤 기존 가중합에 넣습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다.
 
-FTS 쿼리 combinator(짧은 AND / 토큰 5개 초과 시 앞 8개 OR)는 `search-engine-fts-query.ts`의 현재 값을 유지합니다. LoCoMo ablation 전까지 `config/ranking-weights.toml`도 재튜닝하지 않습니다.
+FTS 쿼리 combinator는 `search-engine-fts-query.ts`에서 **짧은·긴 구간 모두** 내용어를 `OR`로 결합하고, 어간 길이가 `HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH`(기본 2) 이상이면 FTS5 접두(`term*`)를 붙입니다(Issue [#807](https://github.com/jee1/memento/issues/807)). 긴 구간은 계속 앞 `FTS_MAX_TOKENS_FOR_OR`(8)개만 사용합니다. `config/ranking-weights.toml`은 이 이슈에서 재튜닝하지 않습니다.
 
 ## Hybrid fusion relevance (Issue #788)
 

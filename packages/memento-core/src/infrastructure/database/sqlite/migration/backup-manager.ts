@@ -4,9 +4,10 @@
  * 마이그레이션 전 자동 백업 생성 및 복원 기능을 제공합니다.
  */
 
-import type Database from 'better-sqlite3';
+import Database from 'better-sqlite3';
 import fs from 'fs';
-import { join, dirname } from 'path';
+import { randomUUID } from 'node:crypto';
+import { basename, dirname, join } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
@@ -38,6 +39,314 @@ export interface BackupResult {
    * 백업 파일 크기 (bytes)
    */
   size: number;
+
+  expectedSize: number;
+
+  totalPages: number;
+
+  integrityCheck: 'ok';
+}
+
+export type CleanupMode = 'preview' | 'apply';
+
+export type CleanupSelectionReason =
+  | 'expired-automatic'
+  | 'zero-byte-backup'
+  | 'orphaned-sidecar'
+  | 'interrupted-attempt';
+
+export type CleanupStatus = 'selected' | 'deleted' | 'skipped' | 'failed';
+
+export type CleanupDetail =
+  | 'inspect-failed'
+  | 'missing-before-delete'
+  | 'changed-before-delete'
+  | 'delete-failed'
+  | null;
+
+export interface CleanupArtifactOutcome {
+  id: string;
+  status: CleanupStatus;
+  reason: CleanupSelectionReason;
+  detail: CleanupDetail;
+}
+
+export interface CleanupReport {
+  ok: boolean;
+  error: 'scan-failed' | null;
+  mode: CleanupMode;
+  inspectedCount: number;
+  selectedCount: number;
+  selectedBytes: number;
+  deletedCount: number;
+  reclaimedBytes: number;
+  skippedCount: number;
+  failedCount: number;
+  ignoredCount: number;
+  artifacts: CleanupArtifactOutcome[];
+}
+
+export interface CleanupOptions {
+  mode?: CleanupMode;
+  now?: Date;
+  includeInterrupted?: boolean;
+}
+
+interface FileIdentity {
+  dev: bigint | number;
+  ino: bigint | number;
+  mode: number;
+  size: number;
+  mtimeMs: number;
+}
+
+interface CleanupCandidate {
+  path: string;
+  outcome: CleanupArtifactOutcome;
+  identity: FileIdentity | null;
+  selectedBytes: number;
+}
+
+const TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/;
+const AUTOMATIC_NAME = new RegExp(
+  `^memory-backup-(\\d+(?:\\.\\d+)+)-${TIMESTAMP_PATTERN.source}\\.db$`
+);
+const OPERATOR_NAME = new RegExp(`^memory-backup-${TIMESTAMP_PATTERN.source}\\.db$`);
+const IN_PROGRESS_NAME = /^\.memory-backup-partial-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.db$/;
+
+function parseBackupTimestamp(match: RegExpMatchArray, startIndex: number): number | null {
+  const timestamp = `${match[startIndex]}T${match[startIndex + 1]}:${match[startIndex + 2]}:${match[startIndex + 3]}.${match[startIndex + 4]}Z`;
+  const parsed = new Date(timestamp);
+
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== timestamp) {
+    return null;
+  }
+
+  return parsed.getTime();
+}
+
+function isOperatorBackupName(name: string): boolean {
+  const match = name.match(OPERATOR_NAME);
+  return match !== null && parseBackupTimestamp(match, 1) !== null;
+}
+
+function getAutomaticBackupCreatedAt(name: string): number | null {
+  const match = name.match(AUTOMATIC_NAME);
+
+  return match ? parseBackupTimestamp(match, 2) : null;
+}
+
+function isCompletedBackupName(name: string): boolean {
+  return getAutomaticBackupCreatedAt(name) !== null || isOperatorBackupName(name);
+}
+
+function getSidecarBaseName(name: string): string | null {
+  if (name.endsWith('-wal') || name.endsWith('-shm')) {
+    return name.slice(0, -4);
+  }
+
+  return null;
+}
+
+function classifyNameSelection(
+  name: string,
+  cutoff: number,
+  includeInterrupted: boolean
+): CleanupSelectionReason | null {
+  const sidecarBase = getSidecarBaseName(name);
+
+  if (
+    sidecarBase !== null &&
+    (isCompletedBackupName(sidecarBase) ||
+      (includeInterrupted && IN_PROGRESS_NAME.test(sidecarBase)))
+  ) {
+    return 'orphaned-sidecar';
+  }
+
+  const createdAt = getAutomaticBackupCreatedAt(name);
+
+  if (createdAt !== null && createdAt < cutoff) {
+    return 'expired-automatic';
+  }
+
+  if (createdAt !== null || isOperatorBackupName(name)) {
+    return null;
+  }
+
+  if (includeInterrupted && IN_PROGRESS_NAME.test(name)) {
+    return 'interrupted-attempt';
+  }
+
+  return null;
+}
+
+function classifyInspectedSelection(
+  name: string,
+  stats: fs.Stats,
+  cutoff: number,
+  includeInterrupted: boolean
+): CleanupSelectionReason | null {
+  if (!stats.isFile()) {
+    return null;
+  }
+
+  if (stats.size === 0 && isCompletedBackupName(name)) {
+    return 'zero-byte-backup';
+  }
+
+  return classifyNameSelection(name, cutoff, includeInterrupted);
+}
+
+function getIdentity(stats: fs.Stats): FileIdentity {
+  return {
+    dev: stats.dev,
+    ino: stats.ino,
+    mode: stats.mode,
+    size: stats.size,
+    mtimeMs: stats.mtimeMs,
+  };
+}
+
+function sameIdentity(before: FileIdentity, after: FileIdentity): boolean {
+  return before.dev === after.dev &&
+    before.ino === after.ino &&
+    before.mode === after.mode &&
+    before.size === after.size &&
+    before.mtimeMs === after.mtimeMs;
+}
+
+function isEnoent(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
+}
+
+function hasFsCode(error: unknown, code: string): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
+}
+
+function backupFailure(reason: string, residue: string[] = []): Error {
+  return new Error(residue.length === 0 ? reason : `${reason} residue=${residue.join(',')}`);
+}
+
+function normalizeBackupFailure(error: unknown, residue: string[]): Error {
+  if (!(error instanceof Error)) {
+    return backupFailure('backup-failed', residue);
+  }
+
+  if (error.message.includes('residue=')) {
+    return error;
+  }
+
+  if (
+    error.message.startsWith('backup-') ||
+    error.message.startsWith('메모리 데이터베이스') ||
+    error.message.startsWith('백업할 데이터베이스')
+  ) {
+    return backupFailure(error.message, residue);
+  }
+
+  return backupFailure('backup-failed', residue);
+}
+
+function removeArtifacts(paths: string[]): string[] {
+  const remaining: string[] = [];
+  const seen = new Set<string>();
+
+  for (const candidate of paths) {
+    if (seen.has(candidate)) {
+      continue;
+    }
+    seen.add(candidate);
+
+    try {
+      fs.unlinkSync(candidate);
+    } catch (error) {
+      if (!isEnoent(error)) {
+        remaining.push(basename(candidate));
+      }
+    }
+  }
+
+  return remaining;
+}
+
+function attemptArtifactPaths(inProgressPath: string): string[] {
+  return [inProgressPath, `${inProgressPath}-wal`, `${inProgressPath}-shm`];
+}
+
+function removeAttemptArtifacts(inProgressPath: string): string[] {
+  return removeArtifacts(attemptArtifactPaths(inProgressPath));
+}
+
+function removeAttemptSidecars(inProgressPath: string): boolean {
+  return removeArtifacts([`${inProgressPath}-wal`, `${inProgressPath}-shm`]).length === 0;
+}
+
+/** Best-effort: drop leftover strict in-progress names (+ -wal/-shm) before a new attempt (FR-018). */
+function removeStaleInProgressArtifacts(backupsDir: string): void {
+  let names: string[];
+  try {
+    names = fs.readdirSync(backupsDir);
+  } catch {
+    return;
+  }
+
+  const bases = new Set<string>();
+  for (const name of names) {
+    if (IN_PROGRESS_NAME.test(name)) {
+      bases.add(name);
+      continue;
+    }
+    const sidecarBase = getSidecarBaseName(name);
+    if (sidecarBase !== null && IN_PROGRESS_NAME.test(sidecarBase)) {
+      bases.add(sidecarBase);
+    }
+  }
+
+  for (const base of bases) {
+    removeAttemptArtifacts(join(backupsDir, base));
+  }
+}
+
+function emptyCleanupReport(mode: CleanupMode, error: CleanupReport['error']): CleanupReport {
+  return {
+    ok: error === null,
+    error,
+    mode,
+    inspectedCount: 0,
+    selectedCount: 0,
+    selectedBytes: 0,
+    deletedCount: 0,
+    reclaimedBytes: 0,
+    skippedCount: 0,
+    failedCount: 0,
+    ignoredCount: 0,
+    artifacts: [],
+  };
+}
+
+function buildCleanupReport(
+  mode: CleanupMode,
+  inspectedCount: number,
+  candidates: CleanupCandidate[],
+  reclaimedBytes: number
+): CleanupReport {
+  const artifacts = candidates.map(candidate => candidate.outcome);
+  const failedCount = artifacts.filter(artifact => artifact.status === 'failed').length;
+  const skippedCount = artifacts.filter(artifact => artifact.status === 'skipped').length;
+
+  return {
+    ...emptyCleanupReport(mode, null),
+    ok: failedCount === 0 && skippedCount === 0,
+    inspectedCount,
+    selectedCount: artifacts.length,
+    selectedBytes: candidates.reduce((total, candidate) => total + candidate.selectedBytes, 0),
+    deletedCount: artifacts.filter(artifact => artifact.status === 'deleted').length,
+    reclaimedBytes,
+    skippedCount,
+    failedCount,
+    ignoredCount: inspectedCount - artifacts.length,
+    artifacts,
+  };
 }
 
 /**
@@ -74,11 +383,14 @@ export class BackupManager {
   /**
    * 데이터베이스 백업 생성
    */
-  async createBackup(db: Database.Database, migrationVersion: string): Promise<BackupResult> {
+  async createBackup(db: Database.Database, migrationVersion?: string): Promise<BackupResult> {
     const timestamp = new Date();
     const timestampStr = timestamp.toISOString().replace(/[:.]/g, '-');
-    const backupFileName = `memory-backup-${migrationVersion}-${timestampStr}.db`;
+    const backupFileName = migrationVersion
+      ? `memory-backup-${migrationVersion}-${timestampStr}.db`
+      : `memory-backup-${timestampStr}.db`;
     const backupPath = join(this.backupsDir, backupFileName);
+    const inProgressPath = join(this.backupsDir, `.memory-backup-partial-${randomUUID()}.db`);
 
     try {
       // 데이터베이스 파일 경로 가져오기
@@ -87,22 +399,103 @@ export class BackupManager {
         throw new Error('메모리 데이터베이스는 파일 백업을 지원하지 않습니다');
       }
 
-      const dbPath = backupDb.name || mementoConfig.dbPath;
-      
-      // 파일 시스템을 통한 백업 (더 안정적)
-      if (fs.existsSync(dbPath)) {
-        fs.copyFileSync(dbPath, backupPath);
-      } else {
-        // 메모리 데이터베이스인 경우 backup API 사용 시도
+      if (!backupDb.name || !fs.existsSync(backupDb.name)) {
+        throw new Error('백업할 데이터베이스 파일을 찾을 수 없습니다');
+      }
+
+      removeStaleInProgressArtifacts(this.backupsDir);
+
+      const sourcePageSize = backupDb.pragma('page_size', { simple: true }) as number;
+      let metadata: Awaited<ReturnType<BackupCapableDatabase['backup']>>;
+      try {
+        metadata = await backupDb.backup(inProgressPath);
+      } catch {
+        throw backupFailure('backup-write-failed');
+      }
+      if (metadata.remainingPages !== 0) {
+        throw backupFailure('backup-incomplete');
+      }
+
+      const verify = new Database(inProgressPath);
+      let totalPages: number;
+      try {
+        const checkpointRows = verify.pragma('wal_checkpoint(TRUNCATE)') as Array<{
+          busy: number;
+          log: number;
+          checkpointed: number;
+        }>;
+        const checkpoint = checkpointRows[0];
+        if (!checkpoint) {
+          throw backupFailure('backup-checkpoint-incomplete');
+        }
+        if (checkpoint.busy !== 0 || checkpoint.log !== checkpoint.checkpointed) {
+          throw backupFailure('backup-checkpoint-incomplete');
+        }
+
         try {
-          await backupDb.backup(backupPath);
-        } catch (backupError) {
-          throw new Error(`백업 생성 실패: ${backupError}`);
+          verify.pragma('journal_mode = DELETE');
+          const journalMode = verify.pragma('journal_mode', { simple: true }) as string;
+          totalPages = verify.pragma('page_count', { simple: true }) as number;
+          const pageSize = verify.pragma('page_size', { simple: true }) as number;
+          const integrity = verify.pragma('integrity_check') as Array<{ integrity_check: string }>;
+
+          if (
+            journalMode !== 'delete' ||
+            totalPages !== metadata.totalPages ||
+            pageSize !== sourcePageSize ||
+            integrity.length !== 1 ||
+            integrity[0]?.integrity_check !== 'ok'
+          ) {
+            throw backupFailure('backup-validation-failed');
+          }
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith('backup-')) {
+            throw error;
+          }
+          throw backupFailure('backup-validation-failed');
+        }
+      } finally {
+        verify.close();
+      }
+
+      if (!removeAttemptSidecars(inProgressPath)) {
+        throw backupFailure('backup-sidecar-cleanup-failed');
+      }
+
+      const expectedSize = metadata.totalPages * sourcePageSize;
+      const stats = fs.statSync(inProgressPath);
+      const size = stats.size;
+      if (size === 0 || size !== expectedSize) {
+        throw backupFailure('backup-size-mismatch');
+      }
+
+      let fd: number | null = null;
+      try {
+        fd = fs.openSync(inProgressPath, 'r');
+        fs.fsyncSync(fd);
+      } catch {
+        throw backupFailure('backup-fsync-failed');
+      } finally {
+        if (fd !== null) {
+          fs.closeSync(fd);
         }
       }
 
-      const stats = fs.statSync(backupPath);
-      const size = stats.size;
+      try {
+        fs.linkSync(inProgressPath, backupPath);
+      } catch (error) {
+        throw backupFailure(hasFsCode(error, 'EEXIST') ? 'backup-collision' : 'backup-publication-failed');
+      }
+
+      try {
+        fs.unlinkSync(inProgressPath);
+      } catch {
+        const residue = removeArtifacts([
+          ...attemptArtifactPaths(inProgressPath),
+          ...attemptArtifactPaths(backupPath),
+        ]);
+        throw backupFailure('backup-post-link-cleanup-failed', residue);
+      }
 
       logger.info('✅ 백업 생성 완료', {
         backupPath,
@@ -112,15 +505,19 @@ export class BackupManager {
       return {
         backupPath,
         timestamp,
-        size
+        size,
+        expectedSize,
+        totalPages,
+        integrityCheck: 'ok',
       };
     } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      const safeError = normalizeBackupFailure(error, removeAttemptArtifacts(inProgressPath));
+      const maskedError = PIIMasker.maskError(safeError);
       logger.error('❌ 백업 생성 실패', {
         error: maskedError.message,
         errorName: maskedError.name
       });
-      throw error;
+      throw safeError;
     }
   }
 
@@ -157,49 +554,103 @@ export class BackupManager {
     }
   }
 
-  /**
-   * 오래된 백업 파일 정리 (기본 30일)
-   */
-  async cleanupOldBackups(retentionDays: number = 30): Promise<number> {
-    try {
-      const files = fs.readdirSync(this.backupsDir);
-      const now = Date.now();
-      const retentionMs = retentionDays * DAY_MS;
-      let deletedCount = 0;
+  async cleanupBackups(options: CleanupOptions = {}): Promise<CleanupReport> {
+    const mode: CleanupMode = options.mode === 'apply' ? 'apply' : 'preview';
+    const now = options.now ?? new Date();
+    const cutoff = now.getTime() - 30 * DAY_MS;
+    let names: string[];
 
-      for (const file of files) {
-        if (!file.endsWith('.db')) {
+    try {
+      names = fs.readdirSync(this.backupsDir);
+    } catch {
+      return emptyCleanupReport(mode, 'scan-failed');
+    }
+
+    const candidates = names.sort().flatMap<CleanupCandidate>(name => {
+      const includeInterrupted = options.includeInterrupted ?? false;
+      const nameReason = classifyNameSelection(name, cutoff, includeInterrupted);
+      const path = join(this.backupsDir, name);
+
+      try {
+        const stats = fs.lstatSync(path);
+        const reason = classifyInspectedSelection(name, stats, cutoff, includeInterrupted);
+
+        if (reason === null) {
+          return [];
+        }
+
+        return [{
+          path,
+          outcome: { id: name, status: 'selected' as const, reason, detail: null },
+          identity: getIdentity(stats),
+          selectedBytes: stats.size,
+        }];
+      } catch {
+        if (nameReason === null) {
+          return [];
+        }
+
+        return [{
+          path,
+          outcome: { id: name, status: 'failed' as const, reason: nameReason, detail: 'inspect-failed' as const },
+          identity: null,
+          selectedBytes: 0,
+        }];
+      }
+    });
+
+    if (mode === 'preview') {
+      return buildCleanupReport(mode, names.length, candidates, 0);
+    }
+
+    let reclaimedBytes = 0;
+
+    for (const candidate of candidates) {
+      if (candidate.identity === null) {
+        continue;
+      }
+
+      try {
+        const currentStats = fs.lstatSync(candidate.path);
+        const currentIdentity = getIdentity(currentStats);
+
+        if (!currentStats.isFile() || !sameIdentity(candidate.identity, currentIdentity)) {
+          candidate.outcome = {
+            ...candidate.outcome,
+            status: 'skipped',
+            detail: 'changed-before-delete',
+          };
           continue;
         }
-
-        const filePath = join(this.backupsDir, file);
-        const stats = fs.statSync(filePath);
-        const age = now - stats.mtimeMs;
-
-        if (age > retentionMs) {
-          fs.unlinkSync(filePath);
-          deletedCount++;
-          logger.info('🗑️  오래된 백업 삭제', {
-            file
-          });
-        }
+      } catch (error) {
+        const missing = isEnoent(error);
+        candidate.outcome = {
+          ...candidate.outcome,
+          status: missing ? 'skipped' : 'failed',
+          detail: missing ? 'missing-before-delete' : 'inspect-failed',
+        };
+        continue;
       }
 
-      if (deletedCount > 0) {
-        logger.info('✅ 백업 정리 완료', {
-          deletedCount
-        });
+      try {
+        fs.unlinkSync(candidate.path);
+        candidate.outcome = {
+          ...candidate.outcome,
+          status: 'deleted',
+          detail: null,
+        };
+        reclaimedBytes += candidate.selectedBytes;
+      } catch (error) {
+        const missing = isEnoent(error);
+        candidate.outcome = {
+          ...candidate.outcome,
+          status: missing ? 'skipped' : 'failed',
+          detail: missing ? 'missing-before-delete' : 'delete-failed',
+        };
       }
-
-      return deletedCount;
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.error('❌ 백업 정리 실패', {
-        error: maskedError.message,
-        errorName: maskedError.name
-      });
-      return 0;
     }
+
+    return buildCleanupReport(mode, names.length, candidates, reclaimedBytes);
   }
 
   /**

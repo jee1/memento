@@ -1,46 +1,61 @@
 <!--
-Sync Impact Report — 2026-08-22 amendment
+Sync Impact Report — 2026-08-29 validation + template sync
 
-Version change: 1.1.0 → 1.2.0
-Bump rationale: MINOR. Two existing enforcement practices were promoted into normative
-text — Principle IV gained a scoped graphify gate, and Additional Constraints gained a
-benchmark-corpus licensing rule. No principle was removed or redefined, and no prior
-rule became stricter for work already compliant with AGENTS.md, so this is not MAJOR.
+Version change: 1.3.0 → 1.3.0 (NO amendment)
+Bump rationale: none. `/speckit.constitution` was invoked with empty input.
+No principle, constraint, workflow rule, or governance clause was added,
+removed, or redefined, so no semantic-version bump applies. This run was a
+validation pass plus propagation of the EXISTING v1.3.0 rules into the
+downstream Spec Kit templates. `Ratified` and `Last Amended` are unchanged;
+`Last Amended` still reflects the 2026-08-27 governance amendment.
 
-Modified principles:
-- IV. Quality Gates Before Completion — added a graphify rebuild gate, scoped to
-  production code changes. Title unchanged.
-
-Added sections: none (a new bullet was added inside Additional Constraints)
+Modified principles: none
+Added sections: none
 Removed sections: none
 
-Placeholder audit: no `[ALL_CAPS_IDENTIFIER]` tokens remain in this file. All five
-principles (I–V), Additional Constraints, Development Workflow, and Governance carry
-concrete project text.
+Placeholder audit: PASS. No `[ALL_CAPS_IDENTIFIER]` tokens remain anywhere in
+this file. All five principles (I-V), Additional Constraints, Development
+Workflow, and Governance carry concrete project text. Dates are ISO 8601.
 
-Sources for the amendments:
-- Graphify gate: AGENTS.md §3 ("코드를 고치는 에이전트는 ... 수정 후에도 graphify를
-  재빌드합니다") and §3.1; Principle IV gate rows in specs/060, 061, and 064 already
-  list graphify alongside lint/type-check/test.
-- Corpus licensing: AGENTS.md §3.1 "LoCoMo 라이선스 (#767)" — CC BY-NC 4.0, no raw or
-  derived corpus commits, synthetic fixtures only, aggregates/IDs/hashes in public docs.
+Template resolution:
+- `resolve-template.sh` is absent in this checkout; used `resolve_template
+  constitution-template` from `.specify/scripts/bash/common.sh`.
+- Resolved path: `.specify/templates/constitution-template.md` (core; no
+  overrides, presets, or extensions present).
+- `.specify/extensions.yml` absent -> before/after constitution hooks skipped.
 
-Templates / artifacts checked:
-- .specify/templates/plan-template.md — ✅ aligned, no edit needed. Its `[Gates
-  determined based on constitution file]` line is an intentional slot filled per-feature
-  by /speckit.plan; specs/060, 061, and 064 each render it as an I–V gate table, so both
-  amendments flow into new plans without a template change.
-- .specify/templates/spec-template.md — ✅ aligned. Mandatory User Scenarios / FR-* /
-  SC-* sections impose no constraint these amendments contradict.
-- .specify/templates/tasks-template.md — ✅ aligned. The Polish phase already carries
-  documentation and cross-cutting tasks; graphify is a gate, not a new task category.
-- .specify/templates/checklist-template.md — ✅ no constitution references.
-- .specify/templates/commands/*.md — N/A, directory does not exist in this checkout.
-- README.md, docs/ — ✅ no constitution references to reconcile. AGENTS.md §3/§3.1
-  already states both rules and needs no change.
+Consistency propagation:
+- `.specify/templates/tasks-template.md` — UPDATED. Two conflicts with the
+  constitution were removed. (a) The header note and the three per-story test
+  headers declared tests OPTIONAL "only if explicitly requested", which
+  contradicted Principle I (Test-First Delivery, MUST); they now state tests
+  are REQUIRED for feature and bug-fix work, omissible only under the
+  Principle I structural-refactoring exception, with doubt resolved
+  conservatively. (b) The Polish phase carried no Principle IV gate, which had
+  repeatedly produced task lists missing `npm test` and the graphify rebuild;
+  two explicit gate tasks were added (lint/type-check/test, and the
+  graphify rebuild with its documentation-only exemption and no-commit rule).
+- `.specify/templates/plan-template.md` — UPDATED. The Constitution Check
+  section held only the stub `[Gates determined based on constitution file]`.
+  Governance requires plans to include a Constitution Check that maps gates to
+  these principles, so the stub was replaced with a six-row gate table
+  covering Principles I-V and Additional Constraints, each requiring a
+  PASS/VIOLATION/N-A verdict, with violations routed to Complexity Tracking.
+- `.specify/templates/spec-template.md` — NO CHANGE NEEDED. Principle II's
+  migration-and-compatibility documentation duty is conditional ("when
+  behavior changes are unavoidable"); a mandatory section in every spec would
+  impose more than the constitution requires. The plan and tasks templates
+  now carry the Principle II gate, which is the correct enforcement point.
+- `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
+  checkout was initialized with `ai: cursor-agent`, so command files live
+  outside `.specify/`). No agent-specific references to correct.
+- Runtime guidance (`AGENTS.md` section 3, `CLAUDE.md`, `docs/agents/`) — NO
+  CHANGE NEEDED. AGENTS.md already states the lint/type-check/test gate and
+  the graphify rebuild-and-confirm rule, consistent with Principle IV.
+- `.specify/templates/checklist-template.md` and `agent-file-template.md` —
+  not in the propagation checklist and untouched.
 
-Follow-up TODOs: none. Both previously deferred items (GRAPHIFY_GATE,
-DATASET_LICENSING) were adopted in this amendment.
+Follow-up TODOs: none.
 -->
 # Memento Constitution
 
@@ -87,6 +102,21 @@ Operational failures SHOULD be observable with structured logs and SHOULD NOT br
 ## Governance
 
 This constitution supersedes spec, plan, and tasks when conflicts occur.
-Amendments require explicit documentation updates in this file and downstream artifact reconciliation.
 
-**Version**: 1.2.0 | **Ratified**: 2026-03-27 | **Last Amended**: 2026-08-22
+**Amendment procedure**: Amendments MUST be written into this file with an
+updated Sync Impact Report comment, version bump, and `Last Amended`
+date. Downstream specs, plans, and tasks that conflict with the new text
+MUST be reconciled in the same change set or explicitly tracked as
+follow-up work before implementation proceeds under the new rules.
+
+**Versioning policy**: Constitution versions use semantic versioning.
+- MAJOR: backward-incompatible removal or redefinition of a principle.
+- MINOR: new principle/section or materially expanded normative guidance.
+- PATCH: clarifications, wording, typo fixes, non-semantic refinements.
+
+**Compliance review**: Before merge, reviewers MUST verify that the change
+set does not violate Principles I–V and Additional Constraints. Plans
+produced by Spec Kit MUST include a Constitution Check that maps gates
+to these principles. Non-compliance blocks completion and handoff.
+
+**Version**: 1.3.0 | **Ratified**: 2026-03-27 | **Last Amended**: 2026-08-27

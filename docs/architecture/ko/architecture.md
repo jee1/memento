@@ -6,6 +6,8 @@ AI 에이전트는 기본적으로 무상태(stateless)다. 대화가 끝나면 
 
 인터페이스는 MCP(Model Context Protocol)다. 에이전트는 `remember`, `recall`, `forget` 같은 도구를 호출하고, Memento는 나머지를 처리한다.
 
+시스템 전체·배포 단위·Core 내부를 C4 Model로 보려면 [C4 아키텍처 다이어그램](./c4/README.md)(System Context → Container → Component)을 참조하세요. 의사결정·품질·리스크를 ARC42 형식으로 보려면 [ARC42 아키텍처 문서](./arc42.md)를 참조하세요.
+
 ---
 
 ## 패키지 구조

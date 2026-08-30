@@ -10,7 +10,7 @@
  * - 배치 처리 테스트
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RelationExtractor } from '../relation-extractor.js';
 import { RuleBasedRelationExtractor } from '../rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from '../llm-based-relation-extractor.js';
@@ -18,19 +18,7 @@ import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { RelationCache } from '../relation-cache.js';
-
-// mementoConfig 모킹
-vi.mock('../config/index.js', () => {
-  const mockConfig = {
-    openaiApiKey: undefined as string | undefined,
-    geminiApiKey: undefined as string | undefined,
-    openaiModel: 'gpt-4o-mini',
-    geminiModel: 'gemini-1.5-flash'
-  };
-  return {
-    mementoConfig: mockConfig
-  };
-});
+import { logger } from '../../../../shared/utils/logger.js';
 
 // OpenAI 모킹
 vi.mock('openai', () => {
@@ -106,6 +94,11 @@ describe('RelationExtractor', () => {
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailable').mockImplementation(
       mockLLMExtractor.isAvailable
     );
+    // 비동기 판정은 동기 판정에 위임한다. 기존 케이스가 mockLLMExtractor.isAvailable 로
+    // 가용성을 제어하는 의미를 유지하면서, 실제 초기화를 기다리지 않게 한다.
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockImplementation(
+      async () => mockLLMExtractor.isAvailable()
+    );
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'extractRelations').mockImplementation(
       mockLLMExtractor.extractRelations
     );
@@ -140,6 +133,12 @@ describe('RelationExtractor', () => {
         extractWithOpenAISpy = vi.spyOn(llmExtractorAny, 'extractWithOpenAI');
       }
     }
+  });
+
+  afterEach(() => {
+    // logger spy 등 call-through spy 가 다음 테스트로 새지 않게 한다.
+    // 루트 vitest.config.ts 에 restoreMocks 설정이 없다.
+    vi.restoreAllMocks();
   });
 
   describe('하이브리드 추출 플로우', () => {
@@ -584,6 +583,150 @@ describe('RelationExtractor', () => {
       // Then: LLM만 사용되어야 함
       expect(candidates).toEqual(llmCandidates);
       expect(mockRuleExtractor.extractRelations).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('초기화 레이스 (이슈 #819)', () => {
+    it('하이브리드 폴백은 초기화 완료를 보장하는 비동기 판정을 사용한다', async () => {
+      // Given: 초기화 전 동기 판정은 false — 이것이 #819 의 재현 조건
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      const ruleCandidates = [
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련'
+        }
+      ];
+      const llmCandidates = [
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'DERIVED_FROM' as RelationType,
+          confidence: 0.9,
+          method: 'llm' as const,
+          evidence: 'LLM 판단'
+        }
+      ];
+
+      mockLLMExtractor.isAvailable.mockReturnValue(false);
+      const asyncSpy = vi
+        .spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync')
+        .mockResolvedValue(true);
+
+      mockRuleExtractor.extractRelations.mockResolvedValue(ruleCandidates);
+      mockLLMExtractor.extractRelations.mockResolvedValue(llmCandidates);
+
+      // When: 규칙 기반 신뢰도가 낮아 폴백 분기로 들어간다
+      const candidates = await extractor.extractRelations(newMemory, [existingMemory], {
+        method: 'hybrid',
+        minConfidence: 0.5
+      });
+
+      // Then: 비동기 판정을 거쳐 LLM 을 실제로 시도한다
+      expect(asyncSpy).toHaveBeenCalled();
+      expect(mockLLMExtractor.extractRelations).toHaveBeenCalled();
+      expect(candidates.some(c => c.method === 'llm')).toBe(true);
+    });
+
+    it('LLM 전용 요청은 초기화 미완을 이유로 실패하지 않는다', async () => {
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      const llmCandidates = [
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'DERIVED_FROM' as RelationType,
+          confidence: 0.9,
+          method: 'llm' as const,
+          evidence: 'LLM 판단'
+        }
+      ];
+
+      // 초기화 전 동기 판정은 false
+      mockLLMExtractor.isAvailable.mockReturnValue(false);
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(true);
+      mockLLMExtractor.extractRelations.mockResolvedValue(llmCandidates);
+
+      await expect(
+        extractor.extractRelations(newMemory, [existingMemory], { method: 'llm' })
+      ).resolves.toEqual(llmCandidates);
+    });
+
+    it('초기화 완료 후에도 프로바이더가 없으면 LLM 전용 요청은 명확한 오류를 낸다', async () => {
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
+
+      await expect(
+        extractor.extractRelations(newMemory, [existingMemory], { method: 'llm' })
+      ).rejects.toThrow('LLM 서비스가 사용 불가능합니다');
+    });
+
+    it('LLM 미가용 폴백 로그에 사유가 남는다', async () => {
+      const infoSpy = vi.spyOn(logger, 'info');
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      mockRuleExtractor.extractRelations.mockResolvedValue([
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련'
+        }
+      ]);
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
+
+      await extractor.extractRelations(newMemory, [existingMemory], {
+        method: 'hybrid',
+        minConfidence: 0.5
+      });
+
+      // 사유는 중립값이다. 이 지점은 초기화가 왜 프로바이더를 못 정했는지 모른다 —
+      // LLMClientInitializer 가 키 부재·연결 실패를 모두 warning 으로 흡수하기 때문이다.
+      // 구체적 원인은 인접한 'LLM 초기화 경고' 로그가 남긴다.
+      expect(infoSpy).toHaveBeenCalledWith(
+        'LLM 서비스가 사용 불가능하여 규칙 기반 결과 반환',
+        expect.objectContaining({ reason: 'llm_unavailable' })
+      );
+    });
+
+    it('LLM 호출 실패 폴백 로그에 사유가 남는다', async () => {
+      const errorSpy = vi.spyOn(logger, 'error');
+      const newMemory = createTestMemory('mem1', '새로운 기능을 구현했습니다.', 'episodic');
+      const existingMemory = createTestMemory('mem2', '기존 기능', 'episodic');
+
+      mockRuleExtractor.extractRelations.mockResolvedValue([
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련'
+        }
+      ]);
+      vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(true);
+      mockLLMExtractor.extractRelations.mockRejectedValue(new Error('boom'));
+
+      await extractor.extractRelations(newMemory, [existingMemory], {
+        method: 'hybrid',
+        minConfidence: 0.5
+      });
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'LLM fallback 실패, 규칙 기반 결과 반환',
+        expect.objectContaining({ reason: 'llm_call_failed' })
+      );
     });
   });
 });

@@ -74,13 +74,18 @@ export class LLMClientInitializer {
     result.openaiClient = initializeOpenAI(result, selectedProvider);
     result.geminiClient = initializeGemini(result, selectedProvider);
 
-    // Ollama 연결 테스트: ollama 모드는 항상; auto는 클라우드 클라이언트가 없을 때만 (이슈 #261)
-    if (selectedProvider === 'ollama') {
+    // Ollama 연결 테스트: ollama 모드; auto+클라우드 없음; 또는 job override가 ollama (FR-005)
+    const jobOverrideSelectsOllama = Object.values(mementoConfig.llmProviderOverrides ?? {}).some(
+      (provider) => provider === 'ollama'
+    );
+    const shouldTestOllama =
+      selectedProvider === 'ollama' ||
+      jobOverrideSelectsOllama ||
+      (selectedProvider === 'auto' &&
+        result.openaiClient === null &&
+        result.geminiClient === null);
+    if (shouldTestOllama) {
       await testOllamaConnection(result, selectedProvider, this.retryManager);
-    } else if (selectedProvider === 'auto') {
-      if (result.openaiClient === null && result.geminiClient === null) {
-        await testOllamaConnection(result, selectedProvider, this.retryManager);
-      }
     }
 
     // preferredProvider 설정

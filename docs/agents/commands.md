@@ -35,6 +35,14 @@ npm run test:ci:core # core 검색·메모리 테스트
 
 커밋 전 `lint`, `type-check`, `test` 통과는 필수입니다.
 
+테스트 모킹 경로도 CI `lint-typecheck` 잡에서 검사합니다. 존재하지 않는 모듈을 가리키는 상대 경로 `vi.mock` 은 같은 경로의 동적 import 까지 함께 가로채기 때문에 실행 중에는 드러나지 않고 스펙이 조용히 전량 통과합니다(#821). 정적 스캔이라야 잡힙니다.
+
+```bash
+npm run check:vi-mock-paths   # 상대 경로 vi.mock 의 대상 모듈 실재 여부 검사
+```
+
+`--ci` 를 붙이면 새 위반에서 종료 코드 1로 차단합니다. 이번 범위 밖의 기존 위반은 `scripts/vi-mock-path-baseline.json` 에 사유와 후속 추적 이슈를 붙여 등재해 두었고, 항목이 해소되면 검사가 `정리 대상` 으로 보고하니 목록에서 지우면 됩니다. 범위 한계(`vi.doMock`·템플릿 리터럴)는 #826 에서 다룹니다.
+
 ## 배포 tarball 점검
 
 루트 패키지 tarball은 워크스페이스 링크를 임시 번들로 바꿨다가 반드시 복구해야 합니다. `pack:tarball`은 성공·실패 모두 복구를 보장하며, 중단된 수동 작업 뒤에는 `restore-workspace`로 즉시 원복합니다.
@@ -62,11 +70,15 @@ DB 백업과 복구, Docker 배포는 자주 쓰는 운영 명령입니다. Dock
 
 ```bash
 npm run db:backup                 # 메모리 DB 백업
+npm run db:backup:cleanup         # 백업 backlog 정리 preview (기본, 삭제 없음)
+npm run db:backup:cleanup -- --apply # preview와 같은 선택자를 실제 삭제에 적용
 npm run db:restore-from-corrupt   # 손상 DB 복구
 npm run db:pre-docker-deploy      # Docker 배포 전 무결성 점검
 npm run docker:build              # 이미지 빌드
 npm run docker:up                 # 컨테이너 기동
 ```
+
+`db:backup`의 무인자 JSON 성공 출력은 기존 계약을 유지합니다. `db:backup:cleanup`은 기본이 preview라 파일을 지우지 않고, `-- --apply`를 명시해야 삭제합니다. Apply 전에는 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 모두 중지하세요. `DB_PATH`는 프로덕션에서 절대 경로를 쓰고, 환경 변수 안의 `~`는 확장되지 않습니다. Cleanup은 non-zero operator 백업을 보존하고, 실패 보고에는 절대 DB 경로나 백업 디렉터리를 싣지 않습니다.
 
 전체 배포 절차는 [docker-deploy-procedure.md](../operations/ko/docker-deploy-procedure.md)에 정리되어 있습니다.
 

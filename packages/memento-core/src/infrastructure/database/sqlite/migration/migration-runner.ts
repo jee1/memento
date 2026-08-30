@@ -6,12 +6,27 @@
 
 import type Database from 'better-sqlite3';
 import { createHash } from 'crypto';
+import { basename, dirname, join } from 'node:path';
 import { logger } from '../../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 import { BackupManager } from './backup-manager.js';
 import { MigrationLogger } from './migration-logger.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import type { Migration,MigrationOptions,MigrationResult } from './types.js';
+
+function normalizeCleanupError(error: unknown): { message: string; name: string } {
+  const masked = error instanceof Error
+    ? PIIMasker.maskError(error)
+    : { message: String(error), name: 'Error' };
+  const pathBasename = (path: string): string => basename(path.replace(/\\/g, '/'));
+
+  return {
+    message: masked.message
+      .replace(/(['"])([^'"]*[\\/][^'"]*)\1/g, (_match, quote: string, path: string) => `${quote}${pathBasename(path)}${quote}`)
+      .replace(/(?:[A-Za-z]:)?[\\/][^\s'"]*[\\/][^\s'"]+/g, path => pathBasename(path)),
+    name: masked.name,
+  };
+}
 
 /**
  * 마이그레이션 실행기
@@ -22,7 +37,11 @@ export class MigrationRunner {
   private logger: MigrationLogger;
 
   constructor(private db: Database.Database, logger?: MigrationLogger) {
-    this.backupManager = new BackupManager();
+    const dbName = (this.db as Database.Database & { name?: string }).name;
+    const backupsDir = dbName && dbName !== ':memory:'
+      ? join(dirname(dbName), 'backups')
+      : undefined;
+    this.backupManager = new BackupManager(backupsDir);
     this.versionManager = new SchemaVersionManager(db);
     this.logger = logger || new MigrationLogger();
   }
@@ -76,6 +95,29 @@ export class MigrationRunner {
         const maskedBackupData = PIIMasker.maskObject({ size: backup.size });
         this.logger.info(`백업 생성 완료: ${maskedBackupPath}`, maskedBackupData);
         logger.info(`✅ 백업 생성 완료: ${maskedBackupPath}`);
+        try {
+          const cleanup = await this.backupManager.cleanupBackups({
+            mode: 'apply',
+            includeInterrupted: false,
+          });
+          if (!cleanup.ok) {
+            logger.warn('백업 보존 정리 미완료', {
+              ...(cleanup.error ? { error: cleanup.error } : {}),
+              mode: cleanup.mode,
+              inspectedCount: cleanup.inspectedCount,
+              selectedCount: cleanup.selectedCount,
+              failedCount: cleanup.failedCount,
+              skippedCount: cleanup.skippedCount,
+              artifacts: cleanup.artifacts.filter(item => item.status !== 'deleted'),
+            });
+          }
+        } catch (cleanupError) {
+          const maskedCleanupError = normalizeCleanupError(cleanupError);
+          logger.warn('백업 보존 정리 실패', {
+            error: maskedCleanupError.message,
+            errorName: maskedCleanupError.name,
+          });
+        }
       }
 
       // 3. 트랜잭션 시작
@@ -239,4 +281,3 @@ export class MigrationRunner {
     return this.versionManager;
   }
 }
-

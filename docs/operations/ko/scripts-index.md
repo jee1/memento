@@ -19,7 +19,7 @@
 | tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality -- benchmark tune-weights` |
 | tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality -- benchmark tune-report` |
 | migrate-embedding-data.js | 임베딩 데이터 마이그레이션 | `npm run migrate:embedding`, `node scripts/migrate-embedding-data.js analyze`, `node scripts/migrate-embedding-data.js rollback` |
-| backup-memory-db.mjs | memory.db online backup (배포 전) | `npm run db:backup` |
+| backup-memory-db.mjs | memory.db online backup (무인자 계약 유지) 및 backup backlog cleanup preview/apply | `npm run db:backup`, `npm run db:backup:cleanup`, `npm run db:backup:cleanup -- --apply` |
 | pre-docker-deploy.mjs | 배포 전 백업 + quick_check | `npm run db:pre-docker-deploy` |
 | restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
 | backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
@@ -41,3 +41,5 @@
 | check-retry-usage.ts | 재시도 구현 정책 검증 | CI 또는 `npx tsx scripts/check-retry-usage.ts --ci` |
 
 전체 목록은 `scripts/` 디렉터리를 참고하고, `package.json`의 `scripts` 필드에 등록된 항목을 우선 사용하세요.
+
+`db:backup:cleanup`은 preview가 기본이며 삭제하지 않습니다. Apply는 `npm run db:backup:cleanup -- --apply`로만 실행하고, 그 전에 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 중지하세요. Cleanup은 non-zero operator 백업을 보존하고 실패 보고에 절대 DB 경로를 포함하지 않습니다. `DB_PATH`를 지정할 때 `~`는 확장되지 않으므로 운영 환경에서는 절대 경로를 사용하세요.

@@ -4,6 +4,7 @@
 
 import { mcpLogger } from '../../../../server/mcp-logger.js';
 import { clamp01 } from '../../../../shared/utils/clamp.js';
+import { cosineDistanceToSimilarity } from '../../../../shared/utils/vector-similarity.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import type { RawVectorSearchResult } from './vector-search.types.js';
 import type { VectorSearchExecutionOptions } from './vector-search.types.js';
@@ -23,19 +24,8 @@ export function safeParseTags(raw: string | null | undefined): string[] {
   }
 }
 
-/**
- * cosine distance → cosine similarity 변환 (issue #713).
- *
- * vec0 테이블은 `distance_metric=cosine`으로 생성되므로 distance는 [0, 2] 범위의 cosine distance다.
- * `1 - distance`는 [-1, 1]이지만 slot threshold(0.8/0.6/0.4)와 랭킹은 [0, 1] 유사도를 가정하므로,
- * 반대 방향(distance 2)은 하한 0으로, 부동소수 오차로 인한 음수 distance는 상한 1로 clamp한다.
- */
-export function cosineDistanceToSimilarity(distance: number): number {
-  if (typeof distance !== 'number' || !Number.isFinite(distance)) {
-    return 0;
-  }
-  return clamp01(1 - distance);
-}
+/** issue #713/#806: 변환 정의는 shared/utils/vector-similarity.ts 한 곳에만 둔다. */
+export { cosineDistanceToSimilarity };
 
 export function mapKnnResults(
   results: RawVectorSearchResult[],

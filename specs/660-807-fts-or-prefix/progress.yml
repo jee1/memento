@@ -1,0 +1,39 @@
+# Progress: 660-807-fts-or-prefix
+
+feature: 660-807-fts-or-prefix
+issue: 807
+started: 2026-08-29
+updated: 2026-08-29
+status: complete_pending_commit
+
+phases:
+  setup:
+    T001: done
+  foundational:
+    T002: done
+    T003: done
+  us1:
+    T004: done
+  us2:
+    T005: done
+  us3:
+    T006: done
+    T007: done  # reviewer: no blockers
+  us4:
+    T008: done
+  us5:
+    T009: done
+    T010: skipped  # gh issue comment — no side effect without ask
+  polish:
+    T011: done
+    T012: done
+    T013: done  # lint + type-check + graphify
+    T014: done  # reviewer approved; nits fixed
+
+rulings:
+  - "Per-task git commits deferred — user commit policy; ask before commit"
+  - "Superspec phase human pauses overridden by user '끝까지' + SDD continuous execution"
+  - "T010 gh issue comment skipped — side effect outside worktree"
+  - "Adopt C for text gates; SC-002 vector column deferred until #806"
+  - "English full LoCoMo nightly not run in-session; unit suite + nightly owner recorded"
+  - "Review nits fixed: FTS_OR_ABOVE JSDoc; fixture assert all 4 partial docs"

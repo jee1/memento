@@ -95,6 +95,13 @@ export const VECTOR_SEARCH = {
  */
 export const HYBRID_SEARCH = {
   /**
+   * 벡터 점수 척도 규정 (#806).
+   * 점수 산출 방식이 바뀌면 이 값을 올려 랭킹 버전 식별자가 달라지게 한다.
+   * 'minmax-v1' = 제공자별 결과셋 재조정(교정 전), 'absolute-cosine-v2' = 절대 cosine(교정 후).
+   */
+  VECTOR_SCORE_SCALE: 'absolute-cosine-v2',
+
+  /**
    * Provider별 검색 타임아웃 (밀리초)
    */
   PROVIDER_SEARCH_TIMEOUT_MS: 2000,
@@ -162,14 +169,19 @@ export const HYBRID_SEARCH = {
   },
 
   /**
-   * FTS 정책: 토큰 수가 이 값을 초과하면 OR 조합으로 완화하여 긴 쿼리에서도 후보 확보
+   * FTS 짧은/긴 분류 경계 — 이 값을 초과하면 앞 FTS_MAX_TOKENS_FOR_OR개만 OR에 포함 (#807: 짧은·긴 모두 OR)
    */
   FTS_OR_ABOVE_TOKEN_COUNT: 5,
 
   /**
    * FTS OR 쿼리 시 사용할 최대 토큰 수 (과도한 OR 방지)
    */
-  FTS_MAX_TOKENS_FOR_OR: 8
+  FTS_MAX_TOKENS_FOR_OR: 8,
+
+  /**
+   * FTS 접두(*) 최소 어간 길이 — 미만은 정확 매치만 (#807)
+   */
+  FTS_MIN_PREFIX_STEM_LENGTH: 2
 } as const;
 
 /**
