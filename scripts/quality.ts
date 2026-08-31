@@ -26,6 +26,10 @@ const COMMANDS: Record<string, QualityCommand> = {
     script: 'agent-memory-benchmark.ts',
     args: ['--locomo', '.local/locomo/locomo10.json'],
   },
+  'korean-gold:validate': {
+    script: 'korean-gold-validate.ts',
+    args: ['--fixture', 'tests/fixtures/agent-memory-benchmark-ko'],
+  },
 };
 
 export function resolveQualityCommand(argv: string[]): { script: string; args: string[] } {

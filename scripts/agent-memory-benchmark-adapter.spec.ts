@@ -10,6 +10,7 @@ import {
 } from './agent-memory-benchmark-adapter.js';
 
 const FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark');
+const KO_FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark-ko');
 
 describe('agent memory benchmark adapter', () => {
   it('loads the reviewed native coding-agent fixture', () => {
@@ -19,6 +20,21 @@ describe('agent memory benchmark adapter', () => {
     expect(dataset.manifest.secret_reviewed).toBe(true);
     expect(dataset.documents.length).toBeGreaterThanOrEqual(10);
     expect(dataset.queries.length).toBeGreaterThanOrEqual(4);
+    expect(() => assertDatasetSafe(dataset)).not.toThrow();
+  });
+
+  it('loads the synthetic Korean recall gold fixture (#808)', () => {
+    const dataset = loadAgentMemoryFixture(KO_FIXTURE_DIR);
+
+    expect(dataset.manifest.synthetic).toBe(true);
+    expect(dataset.manifest.license_reviewed).toBe(true);
+    expect(dataset.manifest.secret_reviewed).toBe(true);
+    expect(dataset.manifest.redistribution).toBe('allowed');
+    expect(dataset.documents.length).toBeGreaterThanOrEqual(15);
+    expect(dataset.queries.length).toBeGreaterThanOrEqual(15);
+    expect(dataset.documents.every((doc) => doc.id.startsWith('ko_mem_'))).toBe(true);
+    expect(dataset.queries.some((query) => query.tags?.includes('particle_agglutination'))).toBe(true);
+    expect(dataset.queries.some((query) => query.tags?.includes('short_multi_concept'))).toBe(true);
     expect(() => assertDatasetSafe(dataset)).not.toThrow();
   });
 

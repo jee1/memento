@@ -1,0 +1,21 @@
+{
+  "benchmark_version": "agent-memory-v1",
+  "name": "Memento synthetic Korean recall gold (#808)",
+  "license": "MIT",
+  "redistribution": "allowed",
+  "license_reviewed": true,
+  "secret_reviewed": true,
+  "synthetic": true,
+  "source_revision": "issue-808-korean-gold-v1",
+  "seed": 808,
+  "top_k": 10,
+  "token_budget": 240,
+  "gates": {
+    "min_recall_at_10_delta": 0.05,
+    "max_quality_regression": 0,
+    "max_p95_latency_ms": 1000,
+    "max_p95_latency_ratio": 5,
+    "max_duplicate_rate": 0.1,
+    "max_session_concentration": 0.8
+  }
+}

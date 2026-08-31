@@ -94,6 +94,34 @@ LoCoMo는 대화 세션 단위로 문서를 만듭니다. 표본(`sample_id`) �
 
 **재현성 주의**: 베이스라인 네 개는 완전 결정적입니다. 프로덕션 경로는 단독으로 연속 실행하면 품질 지표가 소수점까지 같지만(지연만 다름), 다른 벤치마크 프로세스와 **동시에** 돌리면 값이 흔들립니다(관측 범위 recall@10 0.367~0.387). 수치를 비교할 때는 다른 작업 없이 단독으로 실행하세요.
 
-## 6. 공개 여부
+## 6. 한국어 recall gold 검증 (#808)
+
+합성 한국어 gold 픽스처(`tests/fixtures/agent-memory-benchmark-ko`)는 채점 전에 스키마·태그·ID 계약을 통과해야 합니다. LoCoMo/라이브 원문은 커밋하지 않으며, validator는 fail-closed입니다.
+
+```bash
+npm run quality:korean-gold:validate
+# 또는
+npm run quality -- korean-gold:validate
+# 또는
+npx tsx scripts/korean-gold-validate.ts --fixture tests/fixtures/agent-memory-benchmark-ko
+```
+
+성공 시 exit 0, 위반 시 exit 1(점수 산출 없음). 계약: opaque query id, non-empty `relevantIds`, `ko_mem_*` only, ≥15 queries, 필수 태그 `particle_agglutination`·`short_multi_concept`, `manifest.synthetic === true`.
+
+### 한국어 arm 프로덕션 측정 (measure-only)
+
+픽스처 경로에 `agent-memory-benchmark-ko`가 있으면 **`--arm korean` 필수**(FR-019). 스코어카드·리포트에 `arm: "korean"`, `measure_only: true`가 붙으며, 한국어 R@10/MRR에 대한 숫자 합격 게이트는 두지 않습니다(FR-024).
+
+```bash
+npm run quality:agent-memory:production -- \
+  --fixture tests/fixtures/agent-memory-benchmark-ko \
+  --arm korean \
+  --output .local/korean-gold/results.json \
+  --scorecard-out .local/korean-gold/scorecard.json
+```
+
+쿼리 `tags`는 validate뿐 아니라 벤치 `by_category` 분할에도 쓰입니다(taskCases가 없을 때 태그 버킷).
+
+## 7. 공개 여부
 
 이슈 #767은 "수치가 낮으면 공개하지 말고 내부 개선 지표로만 사용"을 완료 조건에 두었습니다. 위 수치는 프로덕션 경로가 단순 FTS 베이스라인에 크게 못 미치므로 **대외 공개 대상이 아니며**, LoCoMo는 라이선스상 상업적 사용도 불가합니다. 현재는 내부 회귀 지표로만 유지하고, 프로덕션 검색이 베이스라인을 넘어선 뒤 재검토합니다.

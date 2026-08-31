@@ -46,6 +46,8 @@ export interface AgentMemoryRetrievalQuery {
   query: string;
   relevantIds: string[];
   targetSessionIds: string[];
+  /** Closed vocabulary tags (Korean gold); used for by_category when no taskCases. */
+  tags?: string[];
 }
 
 export interface AgentMemoryGraphEdge {
