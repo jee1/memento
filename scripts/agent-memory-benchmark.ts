@@ -18,6 +18,7 @@ import {
   type AgentMemoryTaskCase,
 } from './agent-memory-benchmark-adapter.js';
 import { meanFunnelGoldFraction, runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
+import { validateKoreanGoldFixture } from './korean-gold-validate.js';
 
 type BaselineName = 'grep' | 'fts_only' | 'vector' | 'rrf_sim' | 'memento_prod' | 'graph_rrf';
 
@@ -102,10 +103,17 @@ export interface ProductionScorecard {
   latency_ms: { p50: number; p95: number };
   p95_budget_ms: number;
   failed_queries: string[];
+  /** #808 Korean remasure arm label (measure-only; no numeric gate). */
+  arm?: string;
+  measure_only?: boolean;
 }
 
 export interface AgentMemoryBenchmarkReport {
   schema_version: 1;
+  /** #808 arm label when set (e.g. `korean`). */
+  arm?: string;
+  /** True for measure-only arms — no invented quality pass/fail (FR-024). */
+  measure_only?: boolean;
   reproduction: {
     benchmark_version: string;
     fixture_dir: string;
@@ -140,6 +148,8 @@ export interface RunOptions {
   graphRrf?: boolean;
   seed?: number;
   production?: boolean;
+  /** Explicit evaluation arm (e.g. `korean`). Required for agent-memory-benchmark-ko. */
+  arm?: string;
 }
 
 interface CliOptions extends RunOptions {
@@ -148,8 +158,45 @@ interface CliOptions extends RunOptions {
 }
 
 const DEFAULT_FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark');
+const KO_FIXTURE_MARKER = 'agent-memory-benchmark-ko';
 const TOKEN_PATTERN = /[\p{L}\p{N}_-]+/gu;
 const RRF_K = 60;
+
+/** True when fixture path points at the Korean recall gold tree (#808). */
+export function isKoreanGoldFixturePath(fixtureDir: string | undefined): boolean {
+  if (!fixtureDir) {
+    return false;
+  }
+  return fixtureDir.includes(KO_FIXTURE_MARKER);
+}
+
+/**
+ * FR-019: Korean gold fixture requires an explicit `--arm korean` so EN+KO are
+ * never mixed under one unlabeled aggregate.
+ */
+export function assertArmForFixture(options: RunOptions): void {
+  const fixturePath = options.fixtureDir ?? (
+    options.loCoMoPath || options.longMemEvalSPath ? undefined : DEFAULT_FIXTURE_DIR
+  );
+  if (isKoreanGoldFixturePath(fixturePath) && options.arm !== 'korean') {
+    throw new Error(
+      'Korean gold fixture (agent-memory-benchmark-ko) requires --arm korean '
+      + '(FR-019: explicit measure-only arm; do not mix unlabeled EN+KO)',
+    );
+  }
+}
+
+function applyArmLabels(
+  report: AgentMemoryBenchmarkReport,
+  options: RunOptions,
+): void {
+  if (options.arm === 'korean') {
+    report.arm = 'korean';
+    report.measure_only = true;
+  } else if (options.arm) {
+    report.arm = options.arm;
+  }
+}
 
 export function tokenize(text: string): string[] {
   return (text.toLocaleLowerCase('en-US').match(TOKEN_PATTERN) ?? [])
@@ -393,7 +440,17 @@ export function loadDataset(options: RunOptions = {}): AgentMemoryBenchmarkDatas
     const path = resolve(options.longMemEvalSPath);
     return adaptLongMemEvalS(path, { sourceRevision: readAcquisitionRevision(path) });
   }
-  return loadAgentMemoryFixture(resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR));
+  const fixtureDir = resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR);
+  // FR-013: Korean gold fail-closed before scoring (schema/tags/opaque ids).
+  if (isKoreanGoldFixturePath(fixtureDir)) {
+    const validation = validateKoreanGoldFixture(fixtureDir);
+    if (!validation.ok) {
+      throw new Error(
+        `Korean gold fixture validation failed (FR-013):\n${validation.errors.join('\n')}`,
+      );
+    }
+  }
+  return loadAgentMemoryFixture(fixtureDir);
 }
 
 /**
@@ -420,6 +477,7 @@ function datasetLabel(options: RunOptions, fixtureDir: string): string {
 }
 
 export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBenchmarkReport {
+  assertArmForFixture(options);
   const fixtureDir = resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR);
   const dataset = loadDataset(options);
   assertDatasetSafe(dataset);
@@ -442,9 +500,9 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
       dataset.queries,
       evaluations,
     );
-    const categories = categoryBreakdown(
+    const categories = resolveCategoryBreakdown(
       evaluations,
-      dataset.taskCases,
+      dataset,
       topK,
       dataset.manifest.token_budget,
     );
@@ -463,7 +521,7 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
         checks: [],
       };
 
-  return {
+  const report: AgentMemoryBenchmarkReport = {
     schema_version: 1,
     reproduction: {
       benchmark_version: dataset.manifest.benchmark_version,
@@ -488,6 +546,8 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
       },
     },
   };
+  applyArmLabels(report, options);
+  return report;
 }
 
 export async function runProductionAgentMemoryBenchmark(
@@ -521,9 +581,9 @@ export async function runProductionAgentMemoryBenchmark(
     dataset.queries,
     production.evaluations,
   );
-  const productionCategories = categoryBreakdown(
+  const productionCategories = resolveCategoryBreakdown(
     production.evaluations,
-    dataset.taskCases,
+    dataset,
     dataset.manifest.top_k,
     dataset.manifest.token_budget,
   );
@@ -555,6 +615,11 @@ export async function runProductionAgentMemoryBenchmark(
     latency_ms: metrics.latency_ms,
     p95_budget_ms: dataset.manifest.gates.max_p95_latency_ms,
     failed_queries: failedQueries,
+    ...(options.arm === 'korean'
+      ? { arm: 'korean' as const, measure_only: true as const }
+      : options.arm
+        ? { arm: options.arm }
+        : {}),
   };
   return report;
 }
@@ -586,16 +651,64 @@ export function categoryBreakdown(
   if (grouped.size === 0) {
     return undefined;
   }
+  return metricsByGroup(grouped, topK, tokenBudget);
+}
+
+/**
+ * Groups by closed-vocabulary query tags (Korean gold FR-008). A query with
+ * multiple tags contributes to each tag bucket. Undefined when no tags present.
+ */
+export function categoryBreakdownFromTags(
+  evaluations: QueryEvaluation[],
+  queries: AgentMemoryRetrievalQuery[],
+  topK: number,
+  tokenBudget: number,
+): Record<string, CategoryMetrics> | undefined {
+  const tagsByQueryId = new Map(
+    queries
+      .filter((query) => Array.isArray(query.tags) && query.tags.length > 0)
+      .map((query) => [query.id, query.tags as string[]]),
+  );
+  if (tagsByQueryId.size === 0) {
+    return undefined;
+  }
+  const grouped = new Map<string, QueryEvaluation[]>();
+  for (const evaluation of evaluations) {
+    for (const tag of tagsByQueryId.get(evaluation.queryId) ?? []) {
+      grouped.set(tag, [...(grouped.get(tag) ?? []), evaluation]);
+    }
+  }
+  if (grouped.size === 0) {
+    return undefined;
+  }
+  return metricsByGroup(grouped, topK, tokenBudget);
+}
+
+function resolveCategoryBreakdown(
+  evaluations: QueryEvaluation[],
+  dataset: AgentMemoryBenchmarkDataset,
+  topK: number,
+  tokenBudget: number,
+): Record<string, CategoryMetrics> | undefined {
+  return categoryBreakdown(evaluations, dataset.taskCases, topK, tokenBudget)
+    ?? categoryBreakdownFromTags(evaluations, dataset.queries, topK, tokenBudget);
+}
+
+function metricsByGroup(
+  grouped: Map<string, QueryEvaluation[]>,
+  topK: number,
+  tokenBudget: number,
+): Record<string, CategoryMetrics> {
   return Object.fromEntries(
     [...grouped.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([questionType, group]) => {
+      .map(([key, group]) => {
         const { latency_ms: _latency, ...metrics } = evaluateRankedResults(
           group,
           topK,
           tokenBudget,
         );
-        return [questionType, metrics];
+        return [key, metrics];
       }),
   );
 }
@@ -1081,7 +1194,7 @@ function readGitSha(): string {
   }
 }
 
-function parseArgs(argv: string[]): CliOptions {
+export function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {};
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
@@ -1105,6 +1218,12 @@ function parseArgs(argv: string[]): CliOptions {
       options.production = true;
     } else if (arg === '--scorecard-out' && argv[index + 1]) {
       options.scorecardOut = argv[++index];
+    } else if (arg === '--arm') {
+      const value = argv[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error('--arm requires a value (e.g. --arm korean)');
+      }
+      options.arm = argv[++index];
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -1114,6 +1233,7 @@ function parseArgs(argv: string[]): CliOptions {
   if (sources > 1) {
     throw new Error('--fixture, --longmemeval-s, and --locomo are mutually exclusive');
   }
+  assertArmForFixture(options);
   return options;
 }
 

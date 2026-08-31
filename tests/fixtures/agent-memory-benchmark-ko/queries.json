@@ -1,0 +1,128 @@
+[
+  {
+    "id": "kq_001",
+    "query": "가중치",
+    "relevantIds": ["ko_mem_001"],
+    "tags": ["particle_agglutination"],
+    "targetSessionIds": ["ko_sess_rank"]
+  },
+  {
+    "id": "kq_002",
+    "query": "FTS 임베딩 가중치",
+    "relevantIds": ["ko_mem_003", "ko_mem_004", "ko_mem_001"],
+    "tags": ["short_multi_concept"],
+    "targetSessionIds": ["ko_sess_fts", "ko_sess_embed", "ko_sess_rank"]
+  },
+  {
+    "id": "kq_003",
+    "query": "트리플 템플릿 격리",
+    "relevantIds": ["ko_mem_010"],
+    "tags": ["triple_isolation_probe"],
+    "targetSessionIds": ["ko_sess_triple"]
+  },
+  {
+    "id": "kq_004",
+    "query": "랭킹",
+    "relevantIds": ["ko_mem_002"],
+    "tags": ["particle_agglutination"],
+    "targetSessionIds": ["ko_sess_rank"]
+  },
+  {
+    "id": "kq_005",
+    "query": "하이브리드 검색 재정렬",
+    "relevantIds": ["ko_mem_006"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_hybrid"]
+  },
+  {
+    "id": "kq_006",
+    "query": "벡터 유사도",
+    "relevantIds": ["ko_mem_007"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_embed"]
+  },
+  {
+    "id": "kq_007",
+    "query": "recall memory_injection 차이",
+    "relevantIds": ["ko_mem_005"],
+    "tags": ["short_multi_concept"],
+    "targetSessionIds": ["ko_sess_recall"]
+  },
+  {
+    "id": "kq_008",
+    "query": "ranking_version",
+    "relevantIds": ["ko_mem_009", "ko_mem_002"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_rank"]
+  },
+  {
+    "id": "kq_009",
+    "query": "FTS prefix",
+    "relevantIds": ["ko_mem_003", "ko_mem_015"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_fts"]
+  },
+  {
+    "id": "kq_010",
+    "query": "임베딩",
+    "relevantIds": ["ko_mem_004"],
+    "tags": ["particle_agglutination"],
+    "targetSessionIds": ["ko_sess_embed"]
+  },
+  {
+    "id": "kq_011",
+    "query": "Recall MRR 스코어카드",
+    "relevantIds": ["ko_mem_011"],
+    "tags": ["short_multi_concept"],
+    "targetSessionIds": ["ko_sess_metrics"]
+  },
+  {
+    "id": "kq_012",
+    "query": "후보 funnel",
+    "relevantIds": ["ko_mem_012"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_metrics"]
+  },
+  {
+    "id": "kq_013",
+    "query": "sqlite-vec rebuild",
+    "relevantIds": ["ko_mem_013"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_embed"]
+  },
+  {
+    "id": "kq_014",
+    "query": "긴 질의 FTS 토큰",
+    "relevantIds": ["ko_mem_014"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_fts"]
+  },
+  {
+    "id": "kq_015",
+    "query": "조사 융합",
+    "relevantIds": ["ko_mem_016", "ko_mem_001"],
+    "tags": ["particle_agglutination"],
+    "targetSessionIds": ["ko_sess_rank"]
+  },
+  {
+    "id": "kq_016",
+    "query": "procedural 버전",
+    "relevantIds": ["ko_mem_017"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_recall"]
+  },
+  {
+    "id": "kq_017",
+    "query": "feedback_quality 텔레메트리",
+    "relevantIds": ["ko_mem_018"],
+    "tags": [],
+    "targetSessionIds": ["ko_sess_metrics"]
+  },
+  {
+    "id": "kq_018",
+    "query": "text_weight vector_weight",
+    "relevantIds": ["ko_mem_008", "ko_mem_001"],
+    "tags": ["short_multi_concept"],
+    "targetSessionIds": ["ko_sess_rank"]
+  }
+]

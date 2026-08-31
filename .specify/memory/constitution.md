@@ -1,12 +1,15 @@
 <!--
-Sync Impact Report — 2026-08-29 validation + template sync
+Sync Impact Report — 2026-08-30 validation (prelude to /speckit.specify #808)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
-Bump rationale: none. `/speckit.constitution` was invoked with empty input.
+Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
+`/speckit.specify` for issue #808 (Korean recall gold set + #785 remeasure).
 No principle, constraint, workflow rule, or governance clause was added,
-removed, or redefined, so no semantic-version bump applies. This run was a
-validation pass plus propagation of the EXISTING v1.3.0 rules into the
-downstream Spec Kit templates. `Ratified` and `Last Amended` are unchanged;
+removed, or redefined. Benchmark-corpus licensing and synthetic-fixture rules
+in Additional Constraints already cover LoCoMo non-commit and public-doc
+aggregate-only obligations that #808 repeats. PII filtering for any live-corpus
+sampling used while authoring a gold set is a feature-spec requirement for
+#808, not a constitution change. `Ratified` and `Last Amended` are unchanged;
 `Last Amended` still reflects the 2026-08-27 governance amendment.
 
 Modified principles: none
@@ -25,37 +28,22 @@ Template resolution:
 - `.specify/extensions.yml` absent -> before/after constitution hooks skipped.
 
 Consistency propagation:
-- `.specify/templates/tasks-template.md` — UPDATED. Two conflicts with the
-  constitution were removed. (a) The header note and the three per-story test
-  headers declared tests OPTIONAL "only if explicitly requested", which
-  contradicted Principle I (Test-First Delivery, MUST); they now state tests
-  are REQUIRED for feature and bug-fix work, omissible only under the
-  Principle I structural-refactoring exception, with doubt resolved
-  conservatively. (b) The Polish phase carried no Principle IV gate, which had
-  repeatedly produced task lists missing `npm test` and the graphify rebuild;
-  two explicit gate tasks were added (lint/type-check/test, and the
-  graphify rebuild with its documentation-only exemption and no-commit rule).
-- `.specify/templates/plan-template.md` — UPDATED. The Constitution Check
-  section held only the stub `[Gates determined based on constitution file]`.
-  Governance requires plans to include a Constitution Check that maps gates to
-  these principles, so the stub was replaced with a six-row gate table
-  covering Principles I-V and Additional Constraints, each requiring a
-  PASS/VIOLATION/N-A verdict, with violations routed to Complexity Tracking.
-- `.specify/templates/spec-template.md` — NO CHANGE NEEDED. Principle II's
-  migration-and-compatibility documentation duty is conditional ("when
-  behavior changes are unavoidable"); a mandatory section in every spec would
-  impose more than the constitution requires. The plan and tasks templates
-  now carry the Principle II gate, which is the correct enforcement point.
+- `.specify/templates/tasks-template.md` — NO CHANGE NEEDED. Still requires
+  tests per Principle I (structural-refactor exception only).
+- `.specify/templates/plan-template.md` — NO CHANGE NEEDED. Constitution Check
+  six-row gate table still maps Principles I–V and Additional Constraints.
+- `.specify/templates/spec-template.md` — NO CHANGE NEEDED. Principle II
+  migration duty remains conditional; plan/tasks templates enforce the gate.
 - `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
-  checkout was initialized with `ai: cursor-agent`, so command files live
-  outside `.specify/`). No agent-specific references to correct.
-- Runtime guidance (`AGENTS.md` section 3, `CLAUDE.md`, `docs/agents/`) — NO
-  CHANGE NEEDED. AGENTS.md already states the lint/type-check/test gate and
-  the graphify rebuild-and-confirm rule, consistent with Principle IV.
+  checkout was initialized with `ai: cursor-agent`).
+- Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`,
+  `docs/guides/ko/benchmark-datasets.md`) — NO CHANGE NEEDED. LoCoMo CC BY-NC
+  and synthetic-fixture rules already align with Additional Constraints.
 - `.specify/templates/checklist-template.md` and `agent-file-template.md` —
   not in the propagation checklist and untouched.
 
-Follow-up TODOs: none.
+Follow-up TODOs: none. Feature work continues in
+`specs/661-808-korean-recall-gold/` via `/speckit.specify`.
 -->
 # Memento Constitution
 

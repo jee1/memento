@@ -1,0 +1,48 @@
+# Progress: 661-808-korean-recall-gold
+
+feature: 661-808-korean-recall-gold
+issue: 808
+started: 2026-08-30
+updated: 2026-08-31
+status: review_pass
+current_phase: done
+
+phases:
+  constitution:
+    revalidated: done
+  specify:
+    spec: done
+    checklist: done
+  brainstorm:
+    pass1: done
+    pass2: done
+    pass3: done
+    status: saturated
+  plan:
+    status: done
+  tasks:
+    status: done
+    file: tasks.md
+    count: T001-T016
+  execute:
+    status: done
+    phase: 7
+    completed_tasks: [T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013, T014, T015, T016]
+  review:
+    status: done
+    rounds: 2
+    verdict: PASS
+    report: checklist-review.md
+    note: >
+      MVP PASS (US2+US3+validate). Round1 Important×2 fixed then Round2 clean.
+      US1 blocked / US4 incomplete documented (FR-016/FR-020).
+
+rulings:
+  - "setup-plan.sh bypassed: branch lacks NNN- prefix; used feature.json"
+  - "Korean arm = agent-memory-benchmark --fixture ko (not benchmark-v3)"
+  - "git_sha on report.reproduction; keep --output"
+  - "Measure-only; no #731 gate; no new nightly"
+  - "User requested auto-progress all phases (skip human checkpoints)"
+  - "LoCoMo .local/locomo absent — remasure status=blocked, no fake numbers"
+  - "Review Round1 Important: --arm in before-after doc; validateKoreanGoldFixture on loadDataset"
+  - "Review Round2 PASS — no Critical/Important remaining"

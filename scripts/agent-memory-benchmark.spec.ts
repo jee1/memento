@@ -7,6 +7,8 @@ import {
   evaluateProductionVsFtsGate,
   evaluateProposedQualityGate,
   evaluateRankedResults,
+  loadDataset,
+  parseArgs,
   reciprocalRankFusion,
   runProductionAgentMemoryBenchmark,
   runAgentMemoryBenchmark,
@@ -15,6 +17,7 @@ import {
 } from './agent-memory-benchmark.js';
 
 const FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark');
+const KO_FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark-ko');
 
 describe('agent memory benchmark metrics', () => {
   it('uses a deterministic Unicode-aware tokenizer', () => {
@@ -253,6 +256,90 @@ describe('agent memory benchmark runner', () => {
     expect(report.reproduction.excluded_query_ids_sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(report.gates.production_vs_fts.enabled).toBe(true);
     expect(report.scorecard?.production_path).toBe('hybridSearchEngine.search');
+  });
+});
+
+describe('Korean arm / measure-only (#808 T007)', () => {
+  it('accepts --arm korean with --fixture path to ko fixture', () => {
+    expect(parseArgs([
+      '--fixture', KO_FIXTURE_DIR,
+      '--arm', 'korean',
+    ])).toEqual(expect.objectContaining({
+      fixtureDir: KO_FIXTURE_DIR,
+      arm: 'korean',
+    }));
+  });
+
+  it('rejects --arm without a value', () => {
+    expect(() => parseArgs(['--arm'])).toThrow(/--arm requires a value/i);
+    expect(() => parseArgs(['--arm', '--production'])).toThrow(/--arm requires a value/i);
+  });
+
+  it('requires --arm korean when fixture is agent-memory-benchmark-ko (FR-019)', () => {
+    expect(() => parseArgs(['--fixture', KO_FIXTURE_DIR])).toThrow(/--arm korean/i);
+    expect(() => parseArgs([
+      '--fixture', 'tests/fixtures/agent-memory-benchmark-ko',
+    ])).toThrow(/--arm korean/i);
+  });
+
+  it('keeps default English fixture path working without --arm (FR-011)', () => {
+    expect(parseArgs([])).toEqual({});
+    expect(parseArgs(['--fixture', FIXTURE_DIR])).toEqual({
+      fixtureDir: FIXTURE_DIR,
+    });
+    const report = runAgentMemoryBenchmark({ fixtureDir: FIXTURE_DIR });
+    expect(report.arm).toBeUndefined();
+    expect(report.measure_only).toBeUndefined();
+    expect(report.scorecard).toBeUndefined();
+  });
+
+  it('labels report metadata measure_only and arm=korean for the Korean arm', () => {
+    const report = runAgentMemoryBenchmark({
+      fixtureDir: KO_FIXTURE_DIR,
+      arm: 'korean',
+    });
+
+    expect(report.arm).toBe('korean');
+    expect(report.measure_only).toBe(true);
+    expect(report.by_category?.fts_only).toEqual(expect.objectContaining({
+      particle_agglutination: expect.objectContaining({
+        recall_at_10: expect.any(Number),
+        mrr: expect.any(Number),
+      }),
+      short_multi_concept: expect.objectContaining({
+        recall_at_10: expect.any(Number),
+      }),
+    }));
+  });
+
+  it('labels production scorecard measure_only and arm=korean', async () => {
+    const report = await runProductionAgentMemoryBenchmark({
+      fixtureDir: KO_FIXTURE_DIR,
+      arm: 'korean',
+    });
+
+    expect(report.arm).toBe('korean');
+    expect(report.measure_only).toBe(true);
+    expect(report.scorecard).toEqual(expect.objectContaining({
+      arm: 'korean',
+      measure_only: true,
+      recall_at_10: expect.any(Number),
+      mrr: expect.any(Number),
+    }));
+    expect(report.by_category?.memento_prod).toEqual(expect.objectContaining({
+      particle_agglutination: expect.any(Object),
+      short_multi_concept: expect.any(Object),
+    }));
+  });
+
+  it('fail-closes programmatic Korean fixture runs without arm', () => {
+    expect(() => runAgentMemoryBenchmark({ fixtureDir: KO_FIXTURE_DIR }))
+      .toThrow(/--arm korean/i);
+  });
+
+  it('runs korean-gold-validate before scoring Korean fixture (FR-013)', () => {
+    expect(() => loadDataset({ fixtureDir: KO_FIXTURE_DIR, arm: 'korean' }))
+      .not.toThrow();
   });
 });
 

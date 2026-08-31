@@ -1,0 +1,8 @@
+[
+  {"sourceId":"ko_mem_001","targetId":"ko_mem_002","type":"supports"},
+  {"sourceId":"ko_mem_003","targetId":"ko_mem_015","type":"same_incident"},
+  {"sourceId":"ko_mem_004","targetId":"ko_mem_007","type":"supports"},
+  {"sourceId":"ko_mem_005","targetId":"ko_mem_010","type":"derived_from"},
+  {"sourceId":"ko_mem_009","targetId":"ko_mem_002","type":"supports"},
+  {"sourceId":"ko_mem_016","targetId":"ko_mem_001","type":"supersedes"}
+]

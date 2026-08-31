@@ -1,0 +1,20 @@
+[
+  {
+    "id": "e2e-ko-weight",
+    "queryId": "kq_001",
+    "requiredEvidenceIds": ["ko_mem_001"],
+    "tokenBudget": 180
+  },
+  {
+    "id": "e2e-ko-multi",
+    "queryId": "kq_002",
+    "requiredEvidenceIds": ["ko_mem_003", "ko_mem_004"],
+    "tokenBudget": 200
+  },
+  {
+    "id": "e2e-ko-triple",
+    "queryId": "kq_003",
+    "requiredEvidenceIds": ["ko_mem_010"],
+    "tokenBudget": 160
+  }
+]

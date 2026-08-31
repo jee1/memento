@@ -60,6 +60,7 @@
     "quality:report": "tsx scripts/quality-report.ts",
     "quality:ground-truth:generate": "tsx scripts/generate-ground-truth.ts",
     "quality": "tsx scripts/quality.ts",
+    "quality:korean-gold:validate": "tsx scripts/korean-gold-validate.ts --fixture tests/fixtures/agent-memory-benchmark-ko",
     "quality:agent-memory:production": "npm run build -w @memento/core && tsx scripts/agent-memory-benchmark.ts --production",
     "quality:agent-integration:release-gate": "tsx scripts/agent-integration-release-gate.ts",
     "quality:agent-smoke": "node --import tsx scripts/agent-smoke-matrix.ts",
