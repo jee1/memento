@@ -94,7 +94,7 @@ function buildInsertStatements(tables: readonly VecTableConfig[]): string {
       const triggerFilter = table.predicates.map(predicate => `NEW.${predicate}`).join(' AND ');
       return (
         `  INSERT INTO ${table.name}(rowid, embedding)\n` +
-        `  SELECT NEW.id, json_extract(NEW.embedding, '$')\n` +
+        `  SELECT NEW.id, NEW.embedding\n` +
         `  WHERE ${triggerFilter};`
       );
     })
@@ -155,7 +155,7 @@ export function repopulateVecTable(db: Database.Database, config: VecTableConfig
   assertAllowedVecTable(config.name);
   db.exec(
     `INSERT OR IGNORE INTO ${config.name}(rowid, embedding) ` +
-      `SELECT id, json_extract(embedding, '$') FROM memory_embedding WHERE ${config.filter}`
+      `SELECT id, embedding FROM memory_embedding WHERE ${config.filter}`
   );
 }
 

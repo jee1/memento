@@ -33,7 +33,7 @@ export function applyConsolidationTestSchema(db: Database.Database): void {
       memory_id TEXT NOT NULL,
       embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
       projection_type TEXT NOT NULL DEFAULT 'native',
-      embedding TEXT NOT NULL,
+      embedding BLOB,
       dim INTEGER NOT NULL,
       dimensions INTEGER DEFAULT 0,
       model TEXT,

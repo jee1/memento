@@ -12,7 +12,7 @@ import { isMain } from './lib/cli.ts';
  *   - 프로덕션: npm run build && node dist/scripts/regenerate-embeddings.js
  */
 
-import { initializeDatabase, closeDatabase } from '@memento/core';
+import { initializeDatabase, closeDatabase, encodeFloat32Embedding } from '@memento/core';
 import { UnifiedEmbeddingService } from '@memento/core/domains/embedding/services/unified-embedding-service.js';
 
 async function regenerateEmbeddings() {
@@ -77,7 +77,7 @@ async function regenerateEmbeddings() {
           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
         `).run(
           memory.id,
-          JSON.stringify(embeddingResult.embedding),
+          encodeFloat32Embedding(embeddingResult.embedding),
           embeddingResult.embedding.length,
           embeddingResult.model
         );

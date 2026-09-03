@@ -111,6 +111,51 @@ describe('ensureMemoryEmbeddingMetadataDefaults (#753)', () => {
     expect(() => ensureMemoryEmbeddingMetadataDefaults(db, 'tfidf')).not.toThrow();
   });
 
+  it('Given: BLOB null empty embedding with dim=0, When: ensure, Then: dim stays 0 without throw (#809)', () => {
+    db = new Database(':memory:');
+    db.exec(`
+      CREATE TABLE memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL
+      );
+      CREATE TABLE memory_embedding (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memory_id TEXT NOT NULL,
+        embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
+        projection_type TEXT NOT NULL DEFAULT 'native',
+        embedding BLOB,
+        dim INTEGER NOT NULL,
+        dimensions INTEGER DEFAULT 0,
+        model TEXT,
+        precision INTEGER DEFAULT 32,
+        normalized BOOLEAN DEFAULT FALSE,
+        version INTEGER DEFAULT 1,
+        created_by TEXT DEFAULT 'system',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content) VALUES (?, 'episodic', 'empty blob')`,
+    ).run(LEGACY_MEMORY_ID);
+    db.prepare(
+      `INSERT INTO memory_embedding (
+        memory_id, embedding_provider, projection_type, embedding, dim, dimensions, created_by
+      ) VALUES (?, 'tfidf', 'native', NULL, 0, 0, NULL)`,
+    ).run(LEGACY_MEMORY_ID);
+
+    expect(() => ensureMemoryEmbeddingMetadataDefaults(db!, 'tfidf')).not.toThrow();
+
+    const row = db
+      .prepare(
+        `SELECT dim, dimensions, created_by FROM memory_embedding WHERE memory_id = ?`,
+      )
+      .get(LEGACY_MEMORY_ID) as { dim: number; dimensions: number; created_by: string };
+    expect(row.dim).toBe(0);
+    expect(row.dimensions).toBe(0);
+    expect(row.created_by).toBe('legacy');
+  });
+
   it('Given: legacy null metadata DB, When: migrateDatabase runs, Then: repair fills created_by=legacy', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'memento-meta-defaults-'));
     const dbPath = join(dir, 'memory.db');

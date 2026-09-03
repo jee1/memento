@@ -91,7 +91,7 @@ export interface MigrationRollbackEntry {
   provider: EmbeddingProvider;
   projectionType: ProjectionType;
   operation: MigrationRollbackOperation;
-  embedding?: string;
+  embedding?: Buffer | string;
   dim?: number;
   dimensions?: number;
   model?: string | null;

@@ -9,6 +9,8 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import type { VectorSearchQuery } from '../../../shared/types/vector-search.types.js';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
 describe('VectorSearchRepositoryImpl', () => {
   let db: Database.Database;
@@ -173,8 +175,8 @@ describe('VectorSearchRepositoryImpl', () => {
       if (!repository.checkVecAvailability()) {
         return;
       }
-      const emb384 = JSON.stringify(new Array(384).fill(0.01));
-      const emb512 = JSON.stringify(new Array(512).fill(0.02));
+      const emb384 = encodeFloat32Embedding(new Array(384).fill(0.01));
+      const emb512 = encodeFloat32Embedding(new Array(512).fill(0.02));
       const insertItem = db.prepare(
         `INSERT INTO memory_item (id, type, content, triple_extracted) VALUES (?, 'episodic', ?, 0)`
       );
@@ -215,7 +217,7 @@ describe('VectorSearchRepositoryImpl', () => {
       if (!repository.checkVecAvailability()) {
         return;
       }
-      const emb384 = JSON.stringify(new Array(384).fill(0.01));
+      const emb384 = encodeFloat32Embedding(new Array(384).fill(0.01));
       const insertItem = db.prepare(
         `INSERT INTO memory_item (id, type, content, triple_extracted) VALUES (?, 'episodic', ?, 0)`
       );
@@ -505,8 +507,8 @@ describe('VectorSearchRepositoryImpl', () => {
         return;
       }
 
-      const outOfScopeVector = JSON.stringify(new Array(512).fill(0));
-      const inScopeVector = JSON.stringify(new Array(512).fill(0.01));
+      const outOfScopeVector = encodeFloat32Embedding(new Array(512).fill(0));
+      const inScopeVector = encodeFloat32Embedding(new Array(512).fill(0.01));
       const insertItem = db.prepare(
         `INSERT INTO memory_item (id, type, content, importance, created_at, project_id)
          VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?)`
@@ -676,15 +678,11 @@ describe('VectorSearchRepositoryImpl', () => {
         `);
         
         // 임베딩 데이터 추가
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_procedural_1', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_procedural_1', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
         
         // VEC 테이블에 데이터 추가
         const embeddingId = DatabaseUtils.get(db, `
@@ -746,15 +744,11 @@ describe('VectorSearchRepositoryImpl', () => {
         `);
         
         // 임베딩 데이터 추가
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_procedural_2', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_procedural_2', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
         
         // VEC 테이블에 데이터 추가
         const embeddingId = DatabaseUtils.get(db, `
@@ -811,15 +805,11 @@ describe('VectorSearchRepositoryImpl', () => {
         `);
         
         // 임베딩 데이터 추가
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_with_last_accessed', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_with_last_accessed', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
         
         // VEC 테이블에 데이터 추가
         const embeddingId = DatabaseUtils.get(db, `
@@ -886,15 +876,11 @@ describe('VectorSearchRepositoryImpl', () => {
         `);
         
         // 임베딩 데이터 추가
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_hybrid_last_accessed', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_hybrid_last_accessed', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
         
         // VEC 테이블에 데이터 추가
         const embeddingId = DatabaseUtils.get(db, `
@@ -945,15 +931,11 @@ describe('VectorSearchRepositoryImpl', () => {
           INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_no_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
         `);
 
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_no_text_query', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_no_text_query', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
 
         const embeddingId = DatabaseUtils.get(db, `
           SELECT id FROM memory_embedding WHERE memory_id = 'mem_no_text_query'
@@ -996,15 +978,11 @@ describe('VectorSearchRepositoryImpl', () => {
           INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_empty_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
         `);
 
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_empty_text_query', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_empty_text_query', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
 
         const embeddingId = DatabaseUtils.get(db, `
           SELECT id FROM memory_embedding WHERE memory_id = 'mem_empty_text_query'
@@ -1047,15 +1025,11 @@ describe('VectorSearchRepositoryImpl', () => {
           INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_whitespace_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
         `);
 
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_whitespace_text_query', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_whitespace_text_query', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
 
         const embeddingId = DatabaseUtils.get(db, `
           SELECT id FROM memory_embedding WHERE memory_id = 'mem_whitespace_text_query'
@@ -1098,15 +1072,11 @@ describe('VectorSearchRepositoryImpl', () => {
           INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_undefined_text_query', 'episodic', 'Test content for undefined query', 0.5, datetime('now'))
         `);
 
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_undefined_text_query', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_undefined_text_query', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
 
         const embeddingId = DatabaseUtils.get(db, `
           SELECT id FROM memory_embedding WHERE memory_id = 'mem_undefined_text_query'
@@ -1150,15 +1120,11 @@ describe('VectorSearchRepositoryImpl', () => {
           INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_null_text_query', 'episodic', 'Test content for null query', 0.5, datetime('now'))
         `);
 
-        DatabaseUtils.run(db, `
+                DatabaseUtils.run(db, `
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          )
-          VALUES (
-            'mem_null_text_query', 'tfidf', 'native', 
-            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
-          )
-        `);
+          ) VALUES (?, ?, 'native', ?, 384, 384)
+        `, ['mem_null_text_query', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
 
         const embeddingId = DatabaseUtils.get(db, `
           SELECT id FROM memory_embedding WHERE memory_id = 'mem_null_text_query'

@@ -127,6 +127,14 @@ export {
 } from './domains/memory/services/admin-memory-item-preview-service.js';
 export type { AdminMemoryItemPreview } from './domains/memory/services/admin-memory-item-preview-service.js';
 export { logger } from './shared/utils/logger.js';
+export {
+  computeL2Norm,
+  decodeFloat32Embedding,
+  embeddingColumnToNumbers,
+  encodeFloat32Embedding,
+  migrateJsonEmbeddingToBlob,
+  shouldNormalizeFlag,
+} from './shared/utils/embedding-serialization.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export { withErrorHandling } from './shared/utils/error-handling.js';
 export type { MemoryItem } from './shared/types/memory.types.js';
@@ -395,5 +403,7 @@ export {
   VEC_DISTANCE_METRIC,
   VEC_TABLES,
   checkVecCardinality,
+  listExistingVecTables,
+  recreateVecTriggers,
 } from './infrastructure/database/sqlite/vec-schema.js';
 export type { VecCardinalityRow } from './infrastructure/database/sqlite/vec-schema.js';

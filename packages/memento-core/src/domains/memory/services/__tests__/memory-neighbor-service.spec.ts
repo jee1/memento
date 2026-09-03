@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { MemoryNeighborService, MemoryNotFoundError } from '../memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../../../domains/search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../memory-embedding-service.js';
@@ -121,21 +122,21 @@ describe('MemoryNeighborService', () => {
 
       // 유사한 임베딩 생성 (동일한 벡터 사용)
       const testEmbedding = Array(512).fill(0.1);
-      const embeddingJson = JSON.stringify(testEmbedding);
+      const embeddingBlob = encodeFloat32Embedding(testEmbedding);
 
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [memoryId1, embeddingJson, 'tfidf', 512, 512]);
+      `, [memoryId1, embeddingBlob, 'tfidf', 512, 512]);
 
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [memoryId2, embeddingJson, 'tfidf', 512, 512]);
+      `, [memoryId2, embeddingBlob, 'tfidf', 512, 512]);
 
       // 벡터 테이블에 데이터 삽입은 트리거가 자동으로 처리하므로,
       // 임베딩이 생성되면 자동으로 memory_item_vec_tfidf에 추가됨
@@ -199,13 +200,13 @@ describe('MemoryNeighborService', () => {
         INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
-      // 잘못된 형식의 임베딩 저장
+      // 잘못된 형식의 임베딩 저장 (BLOB이 아닌 짧은 바이트)
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [memoryId, 'invalid_json', 'tfidf', 512, 512]);
+      `, [memoryId, Buffer.from([1, 2, 3]), 'tfidf', 512, 512]);
 
       const result = await neighborService.getNeighbors(memoryId, {});
 
@@ -241,21 +242,21 @@ describe('MemoryNeighborService', () => {
 
       // 유사한 임베딩 생성
       const testEmbedding = Array(512).fill(0.1);
-      const embeddingJson = JSON.stringify(testEmbedding);
+      const embeddingBlob = encodeFloat32Embedding(testEmbedding);
 
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [memoryId1, embeddingJson, 'tfidf', 512, 512]);
+      `, [memoryId1, embeddingBlob, 'tfidf', 512, 512]);
 
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [memoryId2, embeddingJson, 'tfidf', 512, 512]);
+      `, [memoryId2, embeddingBlob, 'tfidf', 512, 512]);
 
       // 벡터 테이블에 데이터 삽입은 트리거가 자동으로 처리하므로,
       // 임베딩이 생성되면 자동으로 memory_item_vec_tfidf에 추가됨

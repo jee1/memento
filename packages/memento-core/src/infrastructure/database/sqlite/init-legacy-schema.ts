@@ -49,12 +49,7 @@ function ensureLegacyMemoryEmbeddingColumns(db: Database.Database): void {
     db,
     'memory_embedding',
     'embedding',
-    "TEXT NOT NULL DEFAULT '[]'",
-    `
-          UPDATE memory_embedding
-          SET embedding = COALESCE(NULLIF(embedding, ''), '[]')
-          WHERE embedding IS NULL OR embedding = ''
-        `
+    'BLOB',
   );
   addMissingColumn(
     db,

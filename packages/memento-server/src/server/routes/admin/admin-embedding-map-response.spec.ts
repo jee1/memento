@@ -22,6 +22,7 @@ vi.mock('umap-js', () => ({
 
 import express from 'express';
 import Database from 'better-sqlite3';
+import { encodeFloat32Embedding } from '@memento/core';
 import { createAdminRouter } from '../admin.routes.js';
 import {
   buildEmbeddingMapResponse,
@@ -96,7 +97,7 @@ function createMinimalSchema(db: Database.Database): void {
       memory_id TEXT NOT NULL,
       embedding_provider TEXT NOT NULL,
       projection_type TEXT NOT NULL DEFAULT 'native',
-      embedding TEXT NOT NULL,
+      embedding BLOB NOT NULL,
       dim INTEGER NOT NULL,
       UNIQUE(memory_id, embedding_provider, projection_type),
       FOREIGN KEY (memory_id) REFERENCES memory_item(id)
@@ -104,12 +105,12 @@ function createMinimalSchema(db: Database.Database): void {
   `);
 }
 
-function vecJson(seed: number, dim = 8): string {
+function vecBlob(seed: number, dim = 8): Buffer {
   const a: number[] = [];
   for (let i = 0; i < dim; i++) {
     a.push(Math.sin(seed * 0.1 + i * 0.7));
   }
-  return JSON.stringify(a);
+  return encodeFloat32Embedding(a);
 }
 
 function seedEmbeddings(
@@ -129,7 +130,7 @@ function seedEmbeddings(
   for (let i = 0; i < count; i++) {
     const id = `mem_test_${i}`;
     insMi.run(id, `content ${i}`, delFlag);
-    insMe.run(id, provider, vecJson(i));
+    insMe.run(id, provider, vecBlob(i));
   }
 }
 
@@ -211,9 +212,9 @@ describe('buildEmbeddingMapResponse', () => {
     }
   });
 
-  it('CORRUPTED_EMBEDDINGS: 행은 있으나 JSON 파싱 후 유효 벡터 0개', async () => {
+  it('CORRUPTED_EMBEDDINGS: 행은 있으나 유효 벡터 0개', async () => {
     seedEmbeddings(db, 12, 'minilm');
-    db.exec(`UPDATE memory_embedding SET embedding = '[]'`);
+    db.prepare('UPDATE memory_embedding SET embedding = ?').run(Buffer.alloc(0));
     try {
       await buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
       expect.fail('expected EmbeddingMapBuildError');
@@ -346,7 +347,7 @@ describe('GET /admin/embedding-map (라우터)', () => {
 
   it('CORRUPTED_EMBEDDINGS → 500 및 code 필드', async () => {
     seedEmbeddings(db, 12, 'minilm');
-    db.exec(`UPDATE memory_embedding SET embedding = '[]'`);
+    db.prepare('UPDATE memory_embedding SET embedding = ?').run(Buffer.alloc(0));
     const router = createAdminRouter(db, null);
     const res = await getAdmin(router, '/admin/embedding-map?provider=minilm');
     expect(res.statusCode).toBe(500);

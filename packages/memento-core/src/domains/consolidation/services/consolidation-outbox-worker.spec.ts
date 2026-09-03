@@ -6,6 +6,7 @@ import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-sc
 import { EventOutboxMigration } from '../../../infrastructure/database/sqlite/migration/migrations/039-event-outbox.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
 
 function insertEpisodic(db: Database.Database, id: string, owner: string) {
   DatabaseUtils.run(
@@ -19,7 +20,7 @@ function insertEmbedding(db: Database.Database, memoryId: string, vec: number[])
   DatabaseUtils.run(
     db,
     `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider) VALUES (?, ?, ?, 'tfidf')`,
-    [memoryId, JSON.stringify(vec), vec.length]
+    [memoryId, encodeFloat32Embedding(vec), vec.length]
   );
 }
 

@@ -10,6 +10,7 @@ import type {
   PrivacyScope,
   SqlParam,
 } from '../types/memory.types.js';
+import { embeddingColumnToNumbers } from './embedding-serialization.js';
 
 /** memory_item 하이브리드 검색에 쓰이는 네 타입 */
 export const MEMORY_ITEM_TYPES: readonly MemoryType[] = [
@@ -34,7 +35,7 @@ export interface MemoryRow {
   pinned?: number | boolean;
   tags?: string | null;
   source?: string | null;
-  embedding?: string | null; // JSON 배열 문자열
+  embedding?: Buffer | null; // Float32 little-endian BLOB (#809)
 }
 
 /**
@@ -108,18 +109,8 @@ export function convertMemoryRowToItem(row: MemoryRow): MemoryItem | null {
     return null;
   }
 
-  // embedding 파싱 (JSON 배열 문자열인 경우)
-  let embedding: number[] | undefined;
-  if (row.embedding) {
-    try {
-      const parsed = JSON.parse(row.embedding);
-      if (Array.isArray(parsed) && parsed.every(v => typeof v === 'number')) {
-        embedding = parsed;
-      }
-    } catch {
-      // 파싱 실패 시 무시
-    }
-  }
+  // embedding: Float32 BLOB only (FR-021)
+  const embedding = embeddingColumnToNumbers(row.embedding);
 
   // tags 파싱 (JSON 배열 문자열인 경우)
   let tags: string[] | undefined;

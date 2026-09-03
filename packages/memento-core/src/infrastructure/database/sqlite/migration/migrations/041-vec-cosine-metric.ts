@@ -93,7 +93,7 @@ export class VecCosineMetricMigration implements Migration {
       );
       db.exec(
         `INSERT OR IGNORE INTO ${table.name}(rowid, embedding) ` +
-          `SELECT id, json_extract(embedding, '$') FROM memory_embedding WHERE ${table.filter}`
+          `SELECT id, embedding FROM memory_embedding WHERE ${table.filter}`
       );
     }
 

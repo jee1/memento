@@ -2,7 +2,7 @@ import type { EmbeddingProvider, ProjectionType } from '../../../../shared/types
 
 export interface RawEmbeddingRow {
   memory_id: string;
-  embedding: string;
+  embedding: Buffer;
   model: string | null;
   embedding_provider: EmbeddingProvider;
   projection_type: ProjectionType;
@@ -12,7 +12,7 @@ export interface RawEmbeddingRow {
 }
 
 export interface ExistingEmbeddingRow {
-  embedding: string;
+  embedding: Buffer;
   dim: number;
   model: string | null;
   dimensions: number;

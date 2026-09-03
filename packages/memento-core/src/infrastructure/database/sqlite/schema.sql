@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS memory_embedding (
   memory_id TEXT NOT NULL,
   embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
   projection_type TEXT NOT NULL DEFAULT 'native',
-  embedding TEXT NOT NULL, -- JSON 배열로 저장
+  embedding BLOB, -- float32 LE; NULL/empty allowed when dimensions=0
   dim INTEGER NOT NULL, -- 원본 벡터 차원
   dimensions INTEGER DEFAULT 0, -- 저장된 벡터 차원 (패딩/축소 적용 후)
   model TEXT, -- 사용된 모델명
@@ -344,27 +344,27 @@ CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_mock USING vec0(embedding flo
 -- 제공자별 테이블에 저장하도록 수정
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
   INSERT INTO memory_item_vec(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.dimensions = 384;
 
   INSERT INTO memory_item_vec_tfidf(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_minilm(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_openai(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_gemini(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_mock(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'mock' AND NEW.dimensions = 64 AND NEW.projection_type = 'native';
 END;
 
@@ -377,27 +377,27 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_
   DELETE FROM memory_item_vec_mock WHERE rowid = NEW.id;
 
   INSERT INTO memory_item_vec(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.dimensions = 384;
 
   INSERT INTO memory_item_vec_tfidf(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_minilm(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_openai(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_gemini(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
 
   INSERT INTO memory_item_vec_mock(rowid, embedding)
-  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  SELECT NEW.id, NEW.embedding
   WHERE NEW.embedding_provider = 'mock' AND NEW.dimensions = 64 AND NEW.projection_type = 'native';
 END;
 

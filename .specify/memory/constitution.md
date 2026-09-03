@@ -1,15 +1,14 @@
 <!--
-Sync Impact Report — 2026-08-30 validation (prelude to /speckit.specify #808)
+Sync Impact Report — 2026-09-01 validation (prelude to /speckit.specify #809)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #808 (Korean recall gold set + #785 remeasure).
+`/speckit.specify` for issue #809 (memory_embedding JSON → Float32 BLOB).
 No principle, constraint, workflow rule, or governance clause was added,
-removed, or redefined. Benchmark-corpus licensing and synthetic-fixture rules
-in Additional Constraints already cover LoCoMo non-commit and public-doc
-aggregate-only obligations that #808 repeats. PII filtering for any live-corpus
-sampling used while authoring a gold set is a feature-spec requirement for
-#808, not a constitution change. `Ratified` and `Last Amended` are unchanged;
+removed, or redefined. Schema migration atomicity (#755 pattern), quality
+gates, and MCP backward-compatibility duties already live in Principles I–III
+and AGENTS.md §3.1; embedding storage format change is a feature-spec scope
+item, not a governance amendment. `Ratified` and `Last Amended` are unchanged;
 `Last Amended` still reflects the 2026-08-27 governance amendment.
 
 Modified principles: none
@@ -36,14 +35,14 @@ Consistency propagation:
   migration duty remains conditional; plan/tasks templates enforce the gate.
 - `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
   checkout was initialized with `ai: cursor-agent`).
-- Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`,
-  `docs/guides/ko/benchmark-datasets.md`) — NO CHANGE NEEDED. LoCoMo CC BY-NC
-  and synthetic-fixture rules already align with Additional Constraints.
+- Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`) —
+  NO CHANGE NEEDED. #809 is an internal storage optimization; MCP tool
+  contracts and search response shapes remain unchanged per feature spec.
 - `.specify/templates/checklist-template.md` and `agent-file-template.md` —
   not in the propagation checklist and untouched.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/661-808-korean-recall-gold/` via `/speckit.specify`.
+`specs/662-809-embedding-json-float32/` via `/speckit.specify`.
 -->
 # Memento Constitution
 

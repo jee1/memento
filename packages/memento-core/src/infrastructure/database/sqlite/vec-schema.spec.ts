@@ -120,6 +120,14 @@ describe('buildVecTriggerSql', () => {
     expect(onlyMock.insert).toContain('memory_item_vec_mock');
     expect(onlyMock.insert).not.toContain('memory_item_vec_tfidf');
   });
+
+  // #809 FR-016: BLOB direct pass — no json_extract on embedding
+  it('insert/update SQL에 json_extract가 없고 NEW.embedding을 직접 전달한다', () => {
+    expect(triggers.insert).not.toMatch(/json_extract/i);
+    expect(triggers.update).not.toMatch(/json_extract/i);
+    expect(triggers.insert).toContain('NEW.embedding');
+    expect(triggers.update).toContain('NEW.embedding');
+  });
 });
 
 describe('schema.sql (fresh DB 경로)', () => {
@@ -137,5 +145,16 @@ describe('schema.sql (fresh DB 경로)', () => {
   it('metric 미명시(L2 기본값) vec0 선언이 남아 있지 않다', () => {
     const withoutMetric = schemaSql.match(/USING vec0\((?![^)]*distance_metric)[^)]*\)/g);
     expect(withoutMetric).toBeNull();
+  });
+
+  // #809 FR-016: schema.sql triggers pass BLOB directly
+  it('vec 트리거에 json_extract가 없고 NEW.embedding을 직접 전달한다', () => {
+    expect(schemaSql).not.toMatch(/json_extract\s*\(\s*NEW\.embedding/i);
+    expect(schemaSql).toContain('NEW.embedding');
+  });
+
+  it('memory_embedding.embedding 컬럼이 BLOB이다', () => {
+    expect(schemaSql).toMatch(/embedding\s+BLOB/i);
+    expect(schemaSql).not.toMatch(/embedding\s+TEXT\s+NOT\s+NULL/i);
   });
 });
