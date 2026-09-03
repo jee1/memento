@@ -3,6 +3,10 @@ import Database from 'better-sqlite3';
 import { embeddingMigrationService } from '../embedding-migration-service.js';
 import { migrationMonitorService } from '../../../../infrastructure/database/migration-monitor-service.js';
 import type { MigrationProgress, MigrationProgressEvent } from '../../../shared/types/migration.types.js';
+import {
+  embeddingColumnToNumbers,
+  encodeFloat32Embedding,
+} from '../../../../shared/utils/embedding-serialization.js';
 
 function createSchema(db: Database.Database): void {
   db.exec('PRAGMA foreign_keys = OFF;');
@@ -21,7 +25,7 @@ function createSchema(db: Database.Database): void {
       memory_id TEXT NOT NULL,
       embedding_provider TEXT NOT NULL,
       projection_type TEXT NOT NULL DEFAULT 'native',
-      embedding TEXT NOT NULL,
+      embedding BLOB,
       dim INTEGER NOT NULL,
       model TEXT,
       dimensions INTEGER NOT NULL,
@@ -131,7 +135,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(legacyVector),
+      encodeFloat32Embedding(legacyVector),
       384,
       'minilm-test',
       384,
@@ -156,7 +160,7 @@ describe('EmbeddingMigrationService', () => {
       .get(memoryId, 'openai');
 
     expect(migrated).toBeDefined();
-    const migratedVector: number[] = JSON.parse(migrated.embedding);
+    const migratedVector = embeddingColumnToNumbers(migrated.embedding)!;
     expect(migratedVector).toHaveLength(plan.targetDimensions);
     expect(migrated.projection_type).toBe('zero_pad');
     expect(migrated.dimensions).toBe(plan.targetDimensions);
@@ -202,7 +206,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(vector),
+      encodeFloat32Embedding(vector),
       384,
       'minilm-test',
       384,
@@ -254,7 +258,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(Array.from({ length: 384 }, () => 0.01)),
+      encodeFloat32Embedding(Array.from({ length: 384 }, () => 0.01)),
       384,
       'minilm-test',
       384,
@@ -302,7 +306,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(legacy),
+      encodeFloat32Embedding(legacy),
       384,
       'minilm-test',
       384,
@@ -332,7 +336,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'openai',
       'native',
-      JSON.stringify(existingTarget),
+      encodeFloat32Embedding(existingTarget),
       1536,
       'openai-original',
       1536,
@@ -359,7 +363,9 @@ describe('EmbeddingMigrationService', () => {
       .get(memoryId, 'openai', 'native');
     expect(restoredNative).toBeDefined();
     expect(restoredNative.model).toBe('openai-original');
-    expect(JSON.parse(restoredNative.embedding)).toEqual(existingTarget);
+    expect(embeddingColumnToNumbers(restoredNative.embedding)).toEqual(
+      embeddingColumnToNumbers(encodeFloat32Embedding(existingTarget))
+    );
 
     const rolledBackRow = db
       .prepare('SELECT 1 FROM memory_embedding WHERE memory_id = ? AND embedding_provider = ? AND projection_type = ?')
@@ -395,7 +401,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(vector),
+      encodeFloat32Embedding(vector),
       384,
       'minilm-test',
       384,
@@ -453,7 +459,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(vector),
+      encodeFloat32Embedding(vector),
       384,
       'minilm-test',
       384,
@@ -513,7 +519,7 @@ describe('EmbeddingMigrationService', () => {
       firstId,
       'minilm',
       'native',
-      JSON.stringify(goodVector),
+      encodeFloat32Embedding(goodVector),
       384,
       'minilm-test',
       384,
@@ -543,7 +549,7 @@ describe('EmbeddingMigrationService', () => {
       secondId,
       'minilm',
       'native',
-      'not-a-json-vector',
+      Buffer.from([1, 2, 3]),
       384,
       'minilm-test',
       384,
@@ -596,7 +602,7 @@ describe('EmbeddingMigrationService', () => {
       firstId,
       'minilm',
       'native',
-      JSON.stringify(vector),
+      encodeFloat32Embedding(vector),
       384,
       'minilm-test',
       384,
@@ -626,7 +632,7 @@ describe('EmbeddingMigrationService', () => {
       secondId,
       'minilm',
       'native',
-      'invalid-json',
+      Buffer.from([9, 9, 9]),
       384,
       'minilm-test',
       384,
@@ -677,7 +683,7 @@ describe('EmbeddingMigrationService', () => {
       memoryId,
       'minilm',
       'native',
-      JSON.stringify(vector),
+      encodeFloat32Embedding(vector),
       384,
       'minilm-test',
       384,

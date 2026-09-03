@@ -140,22 +140,24 @@ describe('memory_embedding rebuild atomicity (#755)', () => {
 
       const rows = verify
         .prepare(
-          `SELECT memory_id, dim, model, projection_type, embedding FROM memory_embedding`
+          `SELECT memory_id, dim, model, projection_type, embedding, dimensions FROM memory_embedding`
         )
         .all() as Array<{
           memory_id: string;
           dim: number;
           model: string;
           projection_type: string;
-          embedding: string;
+          embedding: Buffer | null;
+          dimensions: number;
         }>;
       expect(rows).toHaveLength(1);
       expect(rows[0]).toMatchObject({
         memory_id: LEGACY_ROW.memory_id,
-        dim: LEGACY_ROW.dim,
+        dim: 0,
+        dimensions: 0,
         model: LEGACY_ROW.model,
         projection_type: 'native',
-        embedding: '[]',
+        embedding: null,
       });
     } finally {
       verify.close();
@@ -179,12 +181,20 @@ describe('memory_embedding rebuild atomicity (#755)', () => {
       expect(count).toBe(1);
 
       const row = verify
-        .prepare(`SELECT memory_id, dim, model FROM memory_embedding WHERE memory_id = ?`)
-        .get(LEGACY_ROW.memory_id) as { memory_id: string; dim: number; model: string };
+        .prepare(
+          `SELECT memory_id, dim, dimensions, embedding FROM memory_embedding WHERE memory_id = ?`,
+        )
+        .get(LEGACY_ROW.memory_id) as {
+        memory_id: string;
+        dim: number;
+        dimensions: number;
+        embedding: Buffer | null;
+      };
       expect(row).toEqual({
         memory_id: LEGACY_ROW.memory_id,
-        dim: LEGACY_ROW.dim,
-        model: LEGACY_ROW.model,
+        dim: 0,
+        dimensions: 0,
+        embedding: null,
       });
     } finally {
       verify.close();

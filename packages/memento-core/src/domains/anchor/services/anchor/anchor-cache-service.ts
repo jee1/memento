@@ -6,6 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
+import { embeddingColumnToNumbers } from '../../../../shared/utils/embedding-serialization.js';
 import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import type { AnchorSlot,IAnchorCacheService } from './anchor-interfaces.js';
 
@@ -99,7 +100,7 @@ export class AnchorCacheService implements IAnchorCacheService {
         ORDER BY created_at DESC
         LIMIT 1
       `).get(memoryId) as {
-        embedding: string | number[];
+        embedding: Buffer | null;
         embedding_provider?: string;
         dimensions?: number;
         dim?: number;
@@ -110,21 +111,9 @@ export class AnchorCacheService implements IAnchorCacheService {
         return null;
       }
 
-      // JSON 문자열로 저장된 임베딩을 배열로 파싱
-      let embeddingVector: number[];
-      try {
-        embeddingVector = typeof embeddingRecord.embedding === 'string'
-          ? JSON.parse(embeddingRecord.embedding)
-          : embeddingRecord.embedding;
-
-        if (!Array.isArray(embeddingVector) || embeddingVector.length === 0) {
-          // Edge Case: 유효하지 않은 임베딩
-          logger.warn('Invalid embedding (empty or not an array)', { memoryId });
-          return null;
-        }
-      } catch (error) {
-        // Edge Case: 임베딩 파싱 실패
-        logger.error('Embedding parsing failed', { memoryId, error: error instanceof Error ? error.message : String(error) });
+      const embeddingVector = embeddingColumnToNumbers(embeddingRecord.embedding);
+      if (!embeddingVector) {
+        logger.warn('Invalid embedding (empty or not a Float32 BLOB)', { memoryId });
         return null;
       }
 

@@ -11,6 +11,12 @@ import type {
   MigrationRollbackEntry,
   MigrationStep,
 } from '../../../../shared/types/migration.types.js';
+import {
+  computeL2Norm,
+  embeddingColumnToNumbers,
+  encodeFloat32Embedding,
+  shouldNormalizeFlag,
+} from '../../../../shared/utils/embedding-serialization.js';
 import { vectorCompatibilityService } from '../vector-compatibility-service.js';
 import { completeStep, notifyProgress } from './migration-progress.js';
 import { rollback } from './migration-rollback.js';
@@ -21,18 +27,13 @@ import {
   type RawEmbeddingRow,
 } from './types.js';
 
-export function safeParseEmbedding(raw: string): number[] {
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      throw new Error('임베딩 데이터가 배열 형식이 아닙니다');
-    }
-    return parsed.map(value => (Number.isFinite(value) ? value : 0));
-  } catch (error) {
-    throw new Error(
-      error instanceof Error ? `임베딩 벡터 파싱 실패: ${error.message}` : '임베딩 벡터 파싱 실패'
-    );
+/** Post-cutover (#809): memory_embedding.embedding is Float32 BLOB only. */
+export function safeParseEmbedding(raw: unknown): number[] {
+  const parsed = embeddingColumnToNumbers(raw);
+  if (!parsed) {
+    throw new Error('임베딩 벡터 파싱 실패: invalid or empty Float32 BLOB');
   }
+  return parsed;
 }
 
 export function processMigrationRow(params: {
@@ -71,9 +72,9 @@ export function processMigrationRow(params: {
     });
 
     const storedVector = assessment.projection.vector;
-    const serialized = JSON.stringify(storedVector);
+    const serialized = encodeFloat32Embedding(storedVector);
     const projectionType = assessment.projection.projectionType;
-    const normalizedFlag = assessment.projection.normalized ? 1 : 0;
+    const normalizedFlag = shouldNormalizeFlag(computeL2Norm(storedVector));
     const targetModel = plan.targetModel ?? row.model ?? `compat-${plan.targetProvider}`;
     const createdBy = plan.createdBy ?? DEFAULT_CREATED_BY;
 

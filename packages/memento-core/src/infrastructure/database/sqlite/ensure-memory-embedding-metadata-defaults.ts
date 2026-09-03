@@ -24,11 +24,21 @@ export const MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL = `
   normalized = COALESCE(normalized, 0),
   version = COALESCE(version, 1),
   dim = CASE
-    WHEN dim IS NULL OR dim = 0 THEN json_array_length(embedding)
+    WHEN dim IS NULL OR dim = 0 THEN
+      CASE typeof(embedding)
+        WHEN 'blob' THEN length(embedding) / 4
+        WHEN 'text' THEN json_array_length(embedding)
+        ELSE 0
+      END
     ELSE dim
   END,
   dimensions = CASE
-    WHEN dimensions IS NULL OR dimensions = 0 THEN json_array_length(embedding)
+    WHEN dimensions IS NULL OR dimensions = 0 THEN
+      CASE typeof(embedding)
+        WHEN 'blob' THEN length(embedding) / 4
+        WHEN 'text' THEN json_array_length(embedding)
+        ELSE 0
+      END
     ELSE dimensions
   END,
   created_by = COALESCE(created_by, 'legacy')

@@ -10,6 +10,11 @@ import { UnifiedEmbeddingService } from '../domains/embedding/services/unified-e
 import type { EmbeddingProvider } from '../shared/types/embedding.types.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../domains/embedding/services/vector-compatibility-service.js';
+import {
+  computeL2Norm,
+  encodeFloat32Embedding,
+  shouldNormalizeFlag,
+} from '../shared/utils/embedding-serialization.js';
 import { logger } from '../shared/utils/logger.js';
 import type Database from 'better-sqlite3';
 
@@ -131,11 +136,11 @@ export class MigrateEmbeddingsTool extends BaseTool {
 
     const projection = compatibility.projection;
     const storedVector = projection.vector;
-    const serializedEmbedding = JSON.stringify(storedVector);
+    const serializedEmbedding = encodeFloat32Embedding(storedVector);
     const sourceDimensions = projection.sourceDimensions;
     const storedDimensions = projection.targetDimensions;
     const projectionType = projection.projectionType;
-    const normalized = projection.normalized ? 1 : 0;
+    const normalized = shouldNormalizeFlag(computeL2Norm(storedVector));
 
     // metadata 보정 (기존 레거시 행 대비)
     await DatabaseUtils.run(db, `

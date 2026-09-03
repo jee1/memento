@@ -9,6 +9,7 @@ import { ForgetTool } from '../forget-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 
 describe('ForgetTool', () => {
   let tool: ForgetTool;
@@ -372,7 +373,7 @@ describe('ForgetTool', () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
         VALUES (?, ?, ?, ?, ?)
-      `, [memoryId, JSON.stringify(embeddingVec), 384, 'tfidf', 384]);
+      `, [memoryId, encodeFloat32Embedding(embeddingVec), 384, 'tfidf', 384]);
 
       await tool.handle(
         { id: memoryId, hard: false },

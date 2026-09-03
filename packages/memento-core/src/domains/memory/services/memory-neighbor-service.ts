@@ -7,6 +7,7 @@ import type { VectorSearchEngine } from '../../search/algorithms/vector-search-e
 import type { MemoryEmbeddingService } from './memory-embedding-service.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 
@@ -43,7 +44,7 @@ export interface NeighborSearchOptions {
 
 /** memory_embedding 단일 행 (get 조회) */
 interface MemoryEmbeddingRow {
-  embedding?: string | number[] | unknown;
+  embedding?: Buffer | null;
   embedding_provider?: string;
 }
 
@@ -193,25 +194,9 @@ export class MemoryNeighborService {
         };
       }
       
-      // JSON 문자열로 저장된 임베딩을 배열로 파싱
-      let queryVector: number[];
-      try {
-        queryVector = typeof embeddingRecord.embedding === 'string'
-          ? JSON.parse(embeddingRecord.embedding)
-          : embeddingRecord.embedding;
-        
-        if (!Array.isArray(queryVector) || queryVector.length === 0) {
-          // 유효하지 않은 임베딩이면 빈 결과 반환
-          const queryTime = Date.now() - startTime;
-          return {
-            memory_id: memoryId,
-            neighbors: [],
-            total_count: 0,
-            query_time: queryTime
-          };
-        }
-      } catch (error) {
-        // 파싱 실패 시 빈 결과 반환 (경고 없이)
+      // Float32 BLOB → number[] (FR-021)
+      const queryVector = embeddingColumnToNumbers(embeddingRecord.embedding);
+      if (!queryVector) {
         const queryTime = Date.now() - startTime;
         return {
           memory_id: memoryId,
@@ -365,18 +350,9 @@ export class MemoryNeighborService {
         return [];
       }
 
-      // JSON 문자열로 저장된 임베딩을 배열로 파싱
-      let queryVector: number[];
-      try {
-        queryVector = typeof embeddingRecord.embedding === 'string'
-          ? JSON.parse(embeddingRecord.embedding)
-          : embeddingRecord.embedding;
-        
-        if (!Array.isArray(queryVector) || queryVector.length === 0) {
-          return [];
-        }
-      } catch (error) {
-        // 파싱 실패 시 빈 배열 반환
+      // Float32 BLOB → number[] (FR-021)
+      const queryVector = embeddingColumnToNumbers(embeddingRecord.embedding);
+      if (!queryVector) {
         return [];
       }
 

@@ -12,6 +12,11 @@ import type {
 } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import {
+  computeL2Norm,
+  encodeFloat32Embedding,
+  shouldNormalizeFlag,
+} from '../../../shared/utils/embedding-serialization.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { cosineDistanceToSimilarity } from '../../../shared/utils/vector-similarity.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
@@ -142,11 +147,11 @@ export class MemoryEmbeddingService {
   ): Promise<void> {
     const projection = compatibility.projection;
     const storedVector = projection.vector;
-    const serializedEmbedding = JSON.stringify(storedVector);
+    const serializedEmbedding = encodeFloat32Embedding(storedVector);
     const sourceDimensions = projection.sourceDimensions;
     const storedDimensions = projection.targetDimensions;
     const projectionType = projection.projectionType;
-    const normalized = projection.normalized ? 1 : 0;
+    const normalized = shouldNormalizeFlag(computeL2Norm(storedVector));
 
     await DatabaseUtils.run(
       db,

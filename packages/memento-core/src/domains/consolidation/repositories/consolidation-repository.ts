@@ -4,6 +4,7 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 
 export interface EpisodicCandidateRow {
   id: string;
@@ -130,19 +131,15 @@ export class ConsolidationRepository {
       ORDER BY memory_id, created_at DESC
     `,
       memoryIds
-    ) as Array<{ memory_id: string; embedding: string }>;
+    ) as Array<{ memory_id: string; embedding: Buffer | null }>;
 
     for (const row of rows) {
       if (out.has(row.memory_id)) {
         continue;
       }
-      try {
-        const vec = JSON.parse(row.embedding) as number[];
-        if (Array.isArray(vec) && vec.length > 0) {
-          out.set(row.memory_id, vec);
-        }
-      } catch {
-        /* skip */
+      const vec = embeddingColumnToNumbers(row.embedding);
+      if (vec) {
+        out.set(row.memory_id, vec);
       }
     }
     return out;

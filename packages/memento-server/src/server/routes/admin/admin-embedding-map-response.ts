@@ -4,7 +4,7 @@
 
 import type Database from 'better-sqlite3';
 import { UMAP } from 'umap-js';
-import { logger } from '@memento/core';
+import { embeddingColumnToNumbers, logger } from '@memento/core';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -225,7 +225,7 @@ interface MemoryEmbeddingRow {
   importance: number | null;
   created_at: string | null;
   tags: string | null;
-  embedding: string;
+  embedding: Buffer;
 }
 
 function parseTags(raw: string | null): string[] {
@@ -281,17 +281,8 @@ export async function buildEmbeddingMapResponse(
   const parsed: { row: MemoryEmbeddingRow; vector: number[] }[] = [];
   let dim: number | null = null;
   for (const row of rows) {
-    let vec: number[];
-    try {
-      const raw = JSON.parse(row.embedding) as unknown;
-      if (!Array.isArray(raw) || raw.length === 0) {
-        continue;
-      }
-      vec = raw.map(x => Number(x)).filter(x => !Number.isNaN(x));
-      if (vec.length === 0) {
-        continue;
-      }
-    } catch {
+    const vec = embeddingColumnToNumbers(row.embedding);
+    if (!vec) {
       continue;
     }
     if (dim === null) {

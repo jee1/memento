@@ -6,6 +6,7 @@ import type { ToolContext } from '../types.js';
 import { AnchorManager, AnchorError } from '../../services/anchor/anchor-manager.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { createAnchorToolTestContext } from './anchor-tool-test-context.js';
+import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {
@@ -114,13 +115,13 @@ describe('SearchLocalTool', () => {
 
       // 임베딩 직접 삽입 (테스트용 더미 벡터)
       const testEmbedding = Array(512).fill(0.1);
-      const embeddingJson = JSON.stringify(testEmbedding);
+      const embeddingBlob = encodeFloat32Embedding(testEmbedding);
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, projection_type, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, ['mem1', embeddingJson, 'tfidf', 'native', 512, 512]);
+      `, ['mem1', embeddingBlob, 'tfidf', 'native', 512, 512]);
     });
 
     it('should perform local search with query', async () => {
@@ -242,13 +243,13 @@ describe('SearchLocalTool', () => {
 
       // 임베딩 직접 삽입 (테스트용 더미 벡터)
       const testEmbedding = Array(512).fill(0.1);
-      const embeddingJson = JSON.stringify(testEmbedding);
+      const embeddingBlob = encodeFloat32Embedding(testEmbedding);
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, projection_type, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, ['mem1', embeddingJson, 'tfidf', 'native', 512, 512]);
+      `, ['mem1', embeddingBlob, 'tfidf', 'native', 512, 512]);
     });
 
     it('should fallback to global search when query provided and results insufficient', async () => {

@@ -6,6 +6,12 @@
 import Database from 'better-sqlite3';
 import { createRequire } from 'module';
 import { mementoConfig } from '../../../shared/config/index.js';
+import {
+  computeL2Norm,
+  decodeFloat32Embedding,
+  migrateJsonEmbeddingToBlob,
+  shouldNormalizeFlag,
+} from '../../../shared/utils/embedding-serialization.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
@@ -106,7 +112,7 @@ function migrateDatabase() {
             memory_id TEXT NOT NULL,
             embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
             projection_type TEXT NOT NULL DEFAULT 'native',
-            embedding TEXT NOT NULL,
+            embedding BLOB,
             dim INTEGER NOT NULL,
             dimensions INTEGER DEFAULT 0,
             model TEXT,
@@ -125,23 +131,27 @@ function migrateDatabase() {
           const hasEmbeddingColumn = columnInfo.some(column => column.name === 'embedding');
           const hasProvider = columnInfo.some(column => column.name === 'embedding_provider');
           const hasDimensions = columnInfo.some(column => column.name === 'dimensions');
+          const hasModel = columnInfo.some(column => column.name === 'model');
           const hasCreatedBy = columnInfo.some(column => column.name === 'created_by');
+          const hasCreatedAt = columnInfo.some(column => column.name === 'created_at');
+          const hasId = columnInfo.some(column => column.name === 'id');
 
-          // embedding 컬럼이 없으면 기본값 '[]' 사용 (레거시 스키마)
-          const embeddingSelect = hasEmbeddingColumn
-            ? "COALESCE(NULLIF(embedding, ''), '[]')"
-            : "'[]'";
-          const providerSelect = hasProvider
-            ? "COALESCE(NULLIF(embedding_provider, ''), 'tfidf')"
-            : "'tfidf'";
-          const dimensionsSelect = hasDimensions
-            ? 'COALESCE(NULLIF(dimensions, 0), dim)'
-            : 'dim';
-          const createdBySelect = hasCreatedBy
-            ? "COALESCE(NULLIF(created_by, ''), 'system')"
-            : "'system'";
+          // #809: JSON TEXT를 BLOB 컬럼에 그대로 SELECT 복사하지 않고 JS에서 변환
+          const selectSql = `
+            SELECT
+              ${hasId ? 'id' : 'NULL AS id'},
+              memory_id,
+              ${hasProvider ? 'embedding_provider' : "'tfidf' AS embedding_provider"},
+              ${hasEmbeddingColumn ? 'embedding' : 'NULL AS embedding'},
+              dim,
+              ${hasDimensions ? 'dimensions' : 'dim AS dimensions'},
+              ${hasModel ? 'model' : 'NULL AS model'},
+              ${hasCreatedBy ? 'created_by' : "'system' AS created_by"},
+              ${hasCreatedAt ? 'created_at' : 'CURRENT_TIMESTAMP AS created_at'}
+            FROM memory_embedding
+          `;
 
-          db.exec(`
+          const insert = db.prepare(`
             INSERT INTO memory_embedding__new (
               id,
               memory_id,
@@ -156,23 +166,90 @@ function migrateDatabase() {
               version,
               created_by,
               created_at
-            )
-            SELECT
-              id,
-              memory_id,
-              ${providerSelect},
+            ) VALUES (
+              @id,
+              @memory_id,
+              @embedding_provider,
               'native',
-              ${embeddingSelect},
-              dim,
-              ${dimensionsSelect},
-              model,
+              @embedding,
+              @dim,
+              @dimensions,
+              @model,
               32,
-              0,
+              @normalized,
               1,
-              ${createdBySelect},
-              created_at
-            FROM memory_embedding
+              @created_by,
+              @created_at
+            )
           `);
+
+          const rows = db.prepare(selectSql).all() as Array<{
+            id: number | null;
+            memory_id: string;
+            embedding_provider: string | null;
+            embedding: unknown;
+            dim: number;
+            dimensions: number;
+            model: string | null;
+            created_by: string | null;
+            created_at: string;
+          }>;
+
+          for (const row of rows) {
+            const base = {
+              id: row.id,
+              memory_id: row.memory_id,
+              embedding_provider:
+                row.embedding_provider && row.embedding_provider !== ''
+                  ? row.embedding_provider
+                  : 'tfidf',
+              model: row.model,
+              created_by:
+                row.created_by && row.created_by !== '' ? row.created_by : 'system',
+              created_at: row.created_at,
+            };
+
+            if (Buffer.isBuffer(row.embedding)) {
+              const floats = decodeFloat32Embedding(row.embedding);
+              insert.run({
+                ...base,
+                embedding: row.embedding,
+                dim: floats.length,
+                dimensions: floats.length,
+                normalized: shouldNormalizeFlag(computeL2Norm(floats)),
+              });
+              continue;
+            }
+
+            const raw =
+              !hasEmbeddingColumn || row.embedding == null || row.embedding === ''
+                ? '[]'
+                : typeof row.embedding === 'string'
+                  ? row.embedding
+                  : String(row.embedding);
+
+            const { blob, dimensions } = migrateJsonEmbeddingToBlob(raw);
+
+            if (dimensions === 0 || blob == null) {
+              insert.run({
+                ...base,
+                embedding: null,
+                dim: 0,
+                dimensions: 0,
+                normalized: 0,
+              });
+              continue;
+            }
+
+            const floats = decodeFloat32Embedding(blob);
+            insert.run({
+              ...base,
+              embedding: blob,
+              dim: dimensions,
+              dimensions,
+              normalized: shouldNormalizeFlag(computeL2Norm(floats)),
+            });
+          }
 
           db.exec('DROP TABLE memory_embedding;');
         }

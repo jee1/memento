@@ -6,6 +6,7 @@
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { DAY_MS } from '../../shared/utils/date.js';
+import { encodeFloat32Embedding } from '../../shared/utils/embedding-serialization.js';
 import type { MemoryType } from '../../index.js';
 
 export interface TestMemoryItem {
@@ -102,7 +103,7 @@ export function initializeTestDatabase(db: Database.Database): void {
       memory_id TEXT NOT NULL,
       embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
       projection_type TEXT NOT NULL DEFAULT 'native',
-      embedding TEXT NOT NULL,
+      embedding BLOB NOT NULL,
       dim INTEGER NOT NULL,
       dimensions INTEGER DEFAULT 0,
       model TEXT,
@@ -189,7 +190,7 @@ export function insertMemoryEmbedding(
   db: Database.Database,
   embedding: TestMemoryEmbedding
 ): void {
-  const embeddingJson = JSON.stringify(embedding.embedding);
+  const embeddingBlob = encodeFloat32Embedding(embedding.embedding);
   const dim = embedding.dim ?? embedding.embedding.length;
   const provider = embedding.embedding_provider || 'tfidf';
 
@@ -202,7 +203,7 @@ export function insertMemoryEmbedding(
   DatabaseUtils.run(db, sql, [
     embedding.memory_id,
     provider,
-    embeddingJson,
+    embeddingBlob,
     dim,
     dim
   ]);

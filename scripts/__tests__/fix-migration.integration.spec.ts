@@ -12,7 +12,7 @@ import { tmpdir } from 'os';
 import { initializeDatabase, closeDatabase } from '@memento/core/infrastructure/database/sqlite/init.js';
 import Database from 'better-sqlite3';
 
-/** sqlite-vec 트리거가 json_extract(embedding)로 벡터를 쓰므로 빈 배열 []는 사용할 수 없음 */
+/** sqlite-vec 트리거가 BLOB embedding을 직접 전달하므로 빈 배열 []는 사용할 수 없음 */
 function jsonEmbedding(dim: number): string {
   return JSON.stringify(Array.from({ length: dim }, () => 0.01));
 }

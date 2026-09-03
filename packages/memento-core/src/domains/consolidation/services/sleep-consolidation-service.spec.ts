@@ -6,6 +6,7 @@ import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
 import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-schema.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 
@@ -29,7 +30,7 @@ function insertEmbedding(db: Database.Database, memoryId: string, vec: number[])
     db,
     `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider)
      VALUES (?, ?, ?, 'tfidf')`,
-    [memoryId, JSON.stringify(vec), vec.length]
+    [memoryId, encodeFloat32Embedding(vec), vec.length]
   );
 }
 
