@@ -20,7 +20,8 @@ import {
 } from '../handlers/batch-scheduler-augmentation-handlers.js';
 import {
   runSleepConsolidationBatch,
-  runTelemetryCleanupBatch
+  runTelemetryCleanupBatch,
+  runForgettingEventCleanupBatch
 } from '../handlers/batch-scheduler-sleep-telemetry-handlers.js';
 import { runAnchorAutoRefresh } from '../handlers/batch-scheduler-anchor-handlers.js';
 import {
@@ -52,6 +53,7 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
     runLogRotation: () => runLogRotation(ctx()),
     runSleepConsolidationBatch: () => runSleepConsolidationBatch(ctx()),
     runTelemetryCleanupBatch: () => runTelemetryCleanupBatch(ctx()),
+    runForgettingEventCleanupBatch: () => runForgettingEventCleanupBatch(ctx()),
     runAnchorAutoRefresh: () => runAnchorAutoRefresh(ctx())
   };
 }

@@ -1,0 +1,12 @@
+feature: 663-810-forgetting-event-retention
+issue: 810
+created: 2026-09-03
+current_phase: execute
+phases:
+  constitution: { status: done, updated: 2026-09-03 }
+  specify: { status: done, updated: 2026-09-03 }
+  brainstorm: { status: done, updated: 2026-09-03, sessions: 1 }
+  plan: { status: done, updated: 2026-09-03 }
+  tasks: { status: done, updated: 2026-09-03 }
+  execute: { status: done, updated: 2026-09-03 }
+  review: { status: done, updated: 2026-09-03 }

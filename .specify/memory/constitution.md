@@ -1,9 +1,9 @@
 <!--
-Sync Impact Report — 2026-09-01 validation (prelude to /speckit.specify #809)
+Sync Impact Report — 2026-09-03 validation (prelude to /speckit.specify #810)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #809 (memory_embedding JSON → Float32 BLOB).
+`/speckit.specify` for issue #810 (memory_forgetting_event retention + DB residue).
 No principle, constraint, workflow rule, or governance clause was added,
 removed, or redefined. Schema migration atomicity (#755 pattern), quality
 gates, and MCP backward-compatibility duties already live in Principles I–III
@@ -42,7 +42,7 @@ Consistency propagation:
   not in the propagation checklist and untouched.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/662-809-embedding-json-float32/` via `/speckit.specify`.
+`specs/663-810-forgetting-event-retention/` via `/speckit.specify` #810.
 -->
 # Memento Constitution
 

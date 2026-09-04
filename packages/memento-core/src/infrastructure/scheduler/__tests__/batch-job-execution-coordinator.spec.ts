@@ -9,6 +9,10 @@ function createCoordinator(config: Partial<BatchJobConfig>, log = vi.fn()) {
   const retryManager = new RetryManager({ maxAttempts: 3, baseDelay: 10, maxErrorCount: 10 });
   const mergedConfig: BatchJobConfig = {
     cleanupInterval: 60_000,
+    walCheckpointInterval: 60_000,
+    lockMonitorInterval: 60_000,
+    reflexionCleanupInterval: 60_000,
+    reflexionHealthCheckInterval: 30_000,
     monitoringInterval: 10_000,
     healthCheckInterval: 10_000,
     consolidationScoreIncrementalInterval: 60_000,
@@ -25,8 +29,11 @@ function createCoordinator(config: Partial<BatchJobConfig>, log = vi.fn()) {
     metaMemoryIntrospectionInterval: 21_600_000,
     sleepConsolidationInterval: 3_600_000,
     telemetryCleanupInterval: 86_400_000,
+    forgettingEventCleanupInterval: 86_400_000,
     memoryReviewCandidatesInterval: 86_400_000,
     memoryReviewCandidatesSchedulerEnabled: true,
+    anchorAutoRefreshInterval: 21_600_000,
+    anchorAutoRefreshEnabled: true,
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,

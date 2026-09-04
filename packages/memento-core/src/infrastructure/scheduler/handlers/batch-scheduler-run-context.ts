@@ -16,6 +16,7 @@ import type { TripleExtractionBatchJob } from '../jobs/triple-extraction-batch-j
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import type { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
+import type { ForgettingEventCleanupBatchJob } from '../jobs/forgetting-event-cleanup-batch-job.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { PerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
@@ -50,6 +51,7 @@ export interface BatchSchedulerRunContext {
   readonly qualityMeasurementBatchJob: MutableJobRef<QualityMeasurementBatchJob>;
   readonly sleepConsolidationBatchJob: MutableJobRef<SleepConsolidationBatchJob>;
   readonly telemetryCleanupBatchJob: MutableJobRef<TelemetryCleanupBatchJob>;
+  readonly forgettingEventCleanupBatchJob: MutableJobRef<ForgettingEventCleanupBatchJob>;
   readonly lastExecution: Map<string, Date>;
   readonly totalExecutions: Map<string, number>;
   readonly anchorManager: AnchorManager | null;

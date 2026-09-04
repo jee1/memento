@@ -81,6 +81,7 @@ export interface BatchSchedulerServiceState {
   qualityMeasurementBatchJob: BatchSchedulerContextSource['qualityMeasurementBatchJob'];
   sleepConsolidationBatchJob: BatchSchedulerContextSource['sleepConsolidationBatchJob'];
   telemetryCleanupBatchJob: BatchSchedulerContextSource['telemetryCleanupBatchJob'];
+  forgettingEventCleanupBatchJob: BatchSchedulerContextSource['forgettingEventCleanupBatchJob'];
   lastExecution: Map<string, Date>;
   totalExecutions: Map<string, number>;
   anchorManager: AnchorManager | null;
@@ -108,6 +109,7 @@ export interface BatchSchedulerRecurringCallbacks {
   runLogRotation: () => Promise<BatchJobResult>;
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
   runTelemetryCleanupBatch: () => Promise<void>;
+  runForgettingEventCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
 }
 
@@ -191,6 +193,7 @@ export function getBatchSchedulerContextSource(
     qualityMeasurementBatchJob: state.qualityMeasurementBatchJob,
     sleepConsolidationBatchJob: state.sleepConsolidationBatchJob,
     telemetryCleanupBatchJob: state.telemetryCleanupBatchJob,
+    forgettingEventCleanupBatchJob: state.forgettingEventCleanupBatchJob,
     lastExecution: state.lastExecution,
     totalExecutions: state.totalExecutions,
     anchorManager: state.anchorManager,
