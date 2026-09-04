@@ -547,7 +547,8 @@ describe('VectorSearchEngine', () => {
           return { all: vi.fn().mockReturnValue([
             {
               memory_id: 'mem1',
-              vector_similarity: 0.7,
+              // cosine distance 0.3 → similarity 0.7 (mapper converts; #811 US5)
+              vector_distance: 0.3,
               text_similarity: 0.8,
               content: 'test content',
               type: 'episodic',

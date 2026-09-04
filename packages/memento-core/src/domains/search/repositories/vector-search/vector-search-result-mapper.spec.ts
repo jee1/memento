@@ -1,8 +1,9 @@
 /**
- * 벡터 검색 similarity 계약 회귀 (issue #713)
+ * 벡터 검색 similarity 계약 회귀 (issue #713 / #806 / #811 US5)
  *
  * 계약: vec0 테이블은 distance_metric=cosine 이므로 distance는 cosine distance([0, 2])이고,
  * similarity = clamp(1 - distance, 0, 1) 인 cosine similarity 이다.
+ * 하이브리드 SQL은 distance를 노출하고, 변환은 mapHybridResults → cosineDistanceToSimilarity 만 수행한다.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -97,30 +98,62 @@ describe('mapKnnResults', () => {
   });
 });
 
-describe('mapHybridResults', () => {
-  it('vector_similarity가 clamp 범위를 벗어나도 [0, 1]로 보정한다', () => {
+describe('mapHybridResults (#811 US5 / #806 FR-020)', () => {
+  it('vector_distance를 cosineDistanceToSimilarity로 변환한다', () => {
     const mapped = mapHybridResults(
       [
-        rawResult({ memory_id: 'opposite', similarity: 0, vector_similarity: -1 }),
-        rawResult({ memory_id: 'overflow', similarity: 0, vector_similarity: 1.0000001 })
+        rawResult({ memory_id: 'proportional', vector_distance: 0 }),
+        rawResult({ memory_id: 'near', vector_distance: 0.25 }),
+        rawResult({ memory_id: 'orthogonal', vector_distance: 1 }),
+        rawResult({ memory_id: 'opposite', vector_distance: 2 })
       ],
       options,
       false
     );
 
     expect(mapped.map(r => [r.memory_id, r.similarity])).toEqual([
-      ['opposite', 0],
-      ['overflow', 1]
+      ['proportional', 1],
+      ['near', 0.75],
+      ['orthogonal', 0],
+      ['opposite', 0]
     ]);
   });
 
-  it('텍스트 쿼리가 있으면 clamp된 벡터 유사도로 가중 합산한다', () => {
+  it('거리 범위 밖·부동소수 오차도 cosineDistanceToSimilarity와 동일하게 clamp한다', () => {
     const mapped = mapHybridResults(
-      [rawResult({ memory_id: 'mixed', similarity: 0, vector_similarity: -1, text_similarity: 1 })],
+      [
+        rawResult({ memory_id: 'over', vector_distance: 2.5 }),
+        rawResult({ memory_id: 'neg', vector_distance: -1e-7 })
+      ],
+      options,
+      false
+    );
+
+    expect(mapped.map(r => [r.memory_id, r.similarity])).toEqual([
+      ['over', cosineDistanceToSimilarity(2.5)],
+      ['neg', cosineDistanceToSimilarity(-1e-7)]
+    ]);
+  });
+
+  it('텍스트 쿼리가 있으면 변환된 벡터 유사도로 가중 합산한다', () => {
+    // distance 2 → similarity 0; text 1 → 0*0.6 + 1*0.4
+    const mapped = mapHybridResults(
+      [rawResult({ memory_id: 'mixed', vector_distance: 2, text_similarity: 1 })],
       options,
       true
     );
 
     expect(mapped[0]?.similarity).toBeCloseTo(0.4, 6);
+  });
+
+  it('반환 점수는 cosineDistanceToSimilarity와 byte-for-byte 동일 경로다', () => {
+    const distance = 0.15;
+    const mapped = mapHybridResults(
+      [rawResult({ memory_id: 'slot-a', vector_distance: distance })],
+      options,
+      false
+    );
+
+    expect(mapped[0]?.similarity).toBe(cosineDistanceToSimilarity(distance));
   });
 });

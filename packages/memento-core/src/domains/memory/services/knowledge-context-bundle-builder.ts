@@ -273,6 +273,30 @@ function filterByOwner(memories: HybridSearchResult[], ownerId?: string | string
   return memories.filter((m) => m.owner_id != null && ownerIds.includes(String(m.owner_id)));
 }
 
+/** Adaptive overfetch hard cap (#811 FR-003 / R2): min(maxMemories×16, 100). */
+const SEARCH_LIMIT_MULTIPLIER_CAP = 16;
+const SEARCH_LIMIT_ABSOLUTE_CAP = 100;
+
+function searchLimitHardCap(maxMemories: number): number {
+  return Math.min(maxMemories * SEARCH_LIMIT_MULTIPLIER_CAP, SEARCH_LIMIT_ABSOLUTE_CAP);
+}
+
+function filterBrokenTripleContent(memories: HybridSearchResult[]): {
+  clean: HybridSearchResult[];
+  excluded: number;
+} {
+  let excluded = 0;
+  const clean: HybridSearchResult[] = [];
+  for (const memory of memories) {
+    if (hasBrokenTripleConjugation(memory.content)) {
+      excluded += 1;
+    } else {
+      clean.push(memory);
+    }
+  }
+  return { clean, excluded };
+}
+
 /**
  * memory_injection과 동일한 검색·요약·포맷 경로로 컨텍스트 번들을 생성합니다.
  */
@@ -302,41 +326,74 @@ export async function buildKnowledgeContextBundle(
         ownerId !== null &&
         (Array.isArray(ownerId) ? ownerId.length > 0 : String(ownerId).length > 0)),
   );
-  const searchLimitMultiplier = hasScope ? 6 : 2;
+  const baseMultiplier = hasScope ? 6 : 2;
+  const hardCap = searchLimitHardCap(maxMemories);
+  let searchLimit = Math.min(maxMemories * baseMultiplier, hardCap);
 
-  const searchResult = await deps.hybridSearchEngine.search(deps.db, {
-    query,
-    filters: {
-      type: finalMemoryTypes,
-      ...(projectId && projectId.length > 0 ? { project_id: projectId } : {}),
-      ...(ownerId !== undefined && ownerId !== null
-        ? { owner_id: ownerId }
-        : {}),
-    },
-    limit: maxMemories * searchLimitMultiplier,
-    vectorWeight: 0.7,
-    textWeight: 0.3,
-  });
+  const searchFilters = {
+    type: finalMemoryTypes,
+    ...(projectId && projectId.length > 0 ? { project_id: projectId } : {}),
+    ...(ownerId !== undefined && ownerId !== null ? { owner_id: ownerId } : {}),
+  };
 
-  emitTfidfFallbackWarningIfNeeded(
-    searchResult.fallback_used,
-    searchResult.query_embedding_providers,
-    searchResult.tfidf_query_embedding_fallback,
-    searchResult.tfidf_query_embedding_fallback_providers,
-  );
+  let memories: HybridSearchResult[] = [];
+  let excludedEarly = 0;
+  let tfidfEmitted = false;
 
-  // project_id / owner_id는 하이브리드 검색 filters 및 SQL(텍스트·VEC·임베딩 fallback)에서 적용됨.
-  let memories: HybridSearchResult[] = searchResult.items;
-  if (projectId) {
-    memories = memories.filter((m) => m.project_id != null && m.project_id === projectId);
+  // #811: 조기 필터 + adaptive overfetch — 고정 *2/*6 shortlist+사후필터만으로는 고비율 손상 시 예산 고갈.
+  for (;;) {
+    const searchResult = await deps.hybridSearchEngine.search(deps.db, {
+      query,
+      filters: searchFilters,
+      limit: searchLimit,
+      vectorWeight: 0.7,
+      textWeight: 0.3,
+    });
+
+    if (!tfidfEmitted) {
+      emitTfidfFallbackWarningIfNeeded(
+        searchResult.fallback_used,
+        searchResult.query_embedding_providers,
+        searchResult.tfidf_query_embedding_fallback,
+        searchResult.tfidf_query_embedding_fallback_providers,
+      );
+      tfidfEmitted = true;
+    }
+
+    // project_id / owner_id는 하이브리드 검색 filters 및 SQL(텍스트·VEC·임베딩 fallback)에서 적용됨.
+    let candidates: HybridSearchResult[] = searchResult.items;
+    if (projectId) {
+      candidates = candidates.filter((m) => m.project_id != null && m.project_id === projectId);
+    }
+    candidates = filterByOwner(candidates, ownerId);
+
+    const { clean, excluded } = filterBrokenTripleContent(candidates);
+    memories = clean;
+    excludedEarly = excluded;
+
+    if (memories.length >= maxMemories) {
+      break;
+    }
+    if (searchLimit >= hardCap) {
+      break;
+    }
+    // 엔진이 limit보다 적게 반환하면 더 이상 후보가 없음
+    if (searchResult.items.length < searchLimit) {
+      break;
+    }
+
+    const nextLimit = Math.min(searchLimit * 2, hardCap);
+    if (nextLimit <= searchLimit) {
+      break;
+    }
+    searchLimit = nextLimit;
   }
-  memories = filterByOwner(memories, ownerId);
 
-  // #768: 옛 triple 템플릿이 남긴 이중 활용 문장(`정의됨합니다`)은 주입 예산만 축내므로 제외한다.
-  // 신규 생성은 SemanticMemoryScoring이 이미 막고, 남은 기존 행은 복구 스크립트가 다시 렌더한다.
-  const corruptedCount = memories.filter((memory) => hasBrokenTripleConjugation(memory.content)).length;
+  // DiD 사후 필터 (유일한 예산 보호가 아님 — 위 early filter + expand가 주경로)
+  const { clean: didClean, excluded: excludedDid } = filterBrokenTripleContent(memories);
+  memories = didClean;
+  const corruptedCount = excludedEarly + excludedDid;
   if (corruptedCount > 0) {
-    memories = memories.filter((memory) => !hasBrokenTripleConjugation(memory.content));
     logger.warn('[knowledge-context-bundle] 손상된 triple 문장 제외', {
       excluded: corruptedCount,
       hint: 'npm run memory:repair-triple-sentences -- --apply',

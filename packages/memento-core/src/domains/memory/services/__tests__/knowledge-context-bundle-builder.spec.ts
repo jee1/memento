@@ -1,16 +1,33 @@
 /**
- * buildKnowledgeContextBundle 단위·통합 검증 (#232)
+ * buildKnowledgeContextBundle 단위·통합 검증 (#232, #811 US2)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { createHybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
+import type { HybridSearchEngine, HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 import { ErrorLoggingService } from '../../../monitoring/services/error-logging-service.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { buildKnowledgeContextBundle } from '../knowledge-context-bundle-builder.js';
 import { ToolContextKnowledgeContextAdapter } from '../../../personal-agent/adapters/tool-context-knowledge-context-adapter.js';
+
+function stubSearchHit(
+  overrides: Pick<HybridSearchResult, 'id' | 'content'> & Partial<HybridSearchResult>,
+): HybridSearchResult {
+  return {
+    type: 'semantic',
+    importance: 0.9,
+    created_at: '2026-01-01T00:00:00.000Z',
+    pinned: false,
+    textScore: 1,
+    vectorScore: 0,
+    finalScore: 1,
+    recall_reason: 'stub',
+    ...overrides,
+  };
+}
 
 describe('buildKnowledgeContextBundle', () => {
   let db: Database.Database;
@@ -95,6 +112,143 @@ describe('buildKnowledgeContextBundle', () => {
 
     expect(bundle.promptText).toContain('정의합니다');
     expect(bundle.promptText).not.toContain('정의됨합니다');
+  });
+
+  it('손상 비율이 높아도 adaptive overfetch로 maxMemories를 정상 후보로 채운다 (#811 US2)', async () => {
+    const maxMemories = 5;
+    const broken = Array.from({ length: 40 }, (_, i) =>
+      stubSearchHit({
+        id: `broken_${i}`,
+        content: `adaptivefill 주제${i}는 객체를 정의됨합니다`,
+        finalScore: 1 - i * 0.001,
+      }),
+    );
+    const clean = [
+      stubSearchHit({
+        id: 'clean_포함',
+        content: 'adaptivefill 시스템은 기능을 포함합니다',
+        finalScore: 0.4,
+      }),
+      stubSearchHit({
+        id: 'clean_1',
+        content: 'adaptivefill 주제는 객체를 정의합니다',
+        finalScore: 0.39,
+      }),
+      stubSearchHit({
+        id: 'clean_2',
+        content: 'adaptivefill 모듈은 계약을 구현합니다',
+        finalScore: 0.38,
+      }),
+      stubSearchHit({
+        id: 'clean_3',
+        content: 'adaptivefill 서비스는 상태를 저장합니다',
+        finalScore: 0.37,
+      }),
+      stubSearchHit({
+        id: 'clean_4',
+        content: 'adaptivefill 파이프라인은 결과를 반환합니다',
+        finalScore: 0.36,
+      }),
+      // #781: 함합니다는 탐지 확장이 아니므로 통과해야 한다 (예산 밖이면 제외될 수 있음)
+      stubSearchHit({
+        id: 'hamham',
+        content: 'adaptivefill 시스템는 완료를 구현함합니다',
+        finalScore: 0.35,
+      }),
+    ];
+    const ranked = [...broken, ...clean];
+
+    const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => {
+      const limit = query.limit ?? 10;
+      return {
+        items: ranked.slice(0, limit),
+        total_count: ranked.length,
+        query_time: 1,
+        union_count: ranked.length,
+        reranked_count: Math.min(limit, ranked.length),
+      };
+    });
+
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: { search } as unknown as HybridSearchEngine,
+      },
+      { query: 'adaptivefill', maxMemories, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(maxMemories);
+    expect(bundle.promptText).not.toMatch(/정의됨합니다/);
+    expect(bundle.promptText).toContain('포함합니다');
+    // 고정 *2 shortlist(limit=10)만이면 전부 손상이라 0건 — adaptive면 limit이 커져야 함
+    const limits = search.mock.calls.map(([, q]) => (q as { limit?: number }).limit ?? 10);
+    expect(Math.max(...limits)).toBeGreaterThan(maxMemories * 2);
+  });
+
+  it('포함합니다·함합니다는 기존 정책대로 주입에서 제외하지 않는다 (#781 / #811 FR-004)', async () => {
+    const search = vi.fn(async () => ({
+      items: [
+        stubSearchHit({
+          id: 'ok_포함',
+          content: 'policycheck 시스템은 기능을 포함합니다',
+          finalScore: 0.9,
+        }),
+        stubSearchHit({
+          id: 'ok_함합니다',
+          content: 'policycheck 시스템는 완료를 구현함합니다',
+          finalScore: 0.8,
+        }),
+      ],
+      total_count: 2,
+      query_time: 1,
+      union_count: 2,
+      reranked_count: 2,
+    }));
+
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: { search } as unknown as HybridSearchEngine,
+      },
+      { query: 'policycheck', maxMemories: 5, tokenBudget: 2000 },
+    );
+
+    expect(bundle.itemCount).toBe(2);
+    expect(bundle.promptText).toContain('포함합니다');
+    expect(bundle.promptText).toContain('구현함합니다');
+  });
+
+  it('후보가 전부 손상이면 빈 번들을 반환하고 throw하지 않는다 (#811 US2)', async () => {
+    const brokenOnly = Array.from({ length: 12 }, (_, i) =>
+      stubSearchHit({
+        id: `all_broken_${i}`,
+        content: `allcorrupt 주제${i}는 규칙을 정의됨합니다`,
+        finalScore: 1 - i * 0.01,
+      }),
+    );
+    const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => {
+      const limit = query.limit ?? 10;
+      return {
+        items: brokenOnly.slice(0, limit),
+        total_count: brokenOnly.length,
+        query_time: 1,
+        union_count: brokenOnly.length,
+        reranked_count: Math.min(limit, brokenOnly.length),
+      };
+    });
+
+    await expect(
+      buildKnowledgeContextBundle(
+        {
+          db,
+          hybridSearchEngine: { search } as unknown as HybridSearchEngine,
+        },
+        { query: 'allcorrupt', maxMemories: 5, tokenBudget: 2000 },
+      ),
+    ).resolves.toMatchObject({
+      itemCount: 0,
+      promptText: '관련 기억을 찾을 수 없습니다.',
+    });
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mementoConfig } from "../../../../shared/config/index.js";
+import { ToolInputValidationError } from "../../../../shared/errors/tool-input-validation-error.js";
 import { DatabaseUtils } from "../../../../shared/utils/database.js";
 import { describeRecallTool, db, tool, context, hybridSearchEngine } from "./recall-tool.test-setup.js";
 
@@ -96,6 +97,7 @@ describeRecallTool("basics and search", () => {
       const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
       const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
 
+      await expect(tool.handle({ query: 'q', limit: 5 }, context)).rejects.toThrow(ToolInputValidationError);
       await expect(tool.handle({ query: 'q', limit: 5 }, context)).rejects.toThrow(
         "type' 파라미터는 필수입니다",
       );
@@ -111,6 +113,7 @@ describeRecallTool("basics and search", () => {
       const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
       const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
 
+      // RecallSchema Zod refine이 query 누락을 먼저 거절 (ZodError → MCP -32602)
       await expect(tool.handle({ type: 'episodic' }, context)).rejects.toThrow();
 
       expect(logWarningSpy).toHaveBeenCalledWith(

@@ -1,0 +1,16 @@
+feature: 665-811-misc-repair-export-recall
+issue: 811
+created: 2026-09-05
+current_phase: review
+phases:
+  constitution: { status: done, updated: 2026-09-05, note: "v1.3.0 NO amendment" }
+  specify: { status: done, updated: 2026-09-05 }
+  brainstorm: { status: done, updated: 2026-09-05, sessions: 3, note: "S1 resolve OQs; S2 FR-003 fill guarantee; S3 final check no material changes" }
+  plan: { status: done, updated: 2026-09-05 }
+  tasks: { status: done, updated: 2026-09-05 }
+  execute: { status: done, updated: 2026-09-05 }
+  review: { status: done, updated: 2026-09-05, verdict: PASS, note: "checklist-review.md — I-1 untracked files staging before commit" }
+execute:
+  auto_approve_phases: true
+  note: "User requested full auto pipeline: recommend-all brainstorm, parallel execute, review until PASS"
+  backtick_repro: unreproduced_non_blocking

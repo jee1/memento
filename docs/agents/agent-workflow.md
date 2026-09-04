@@ -12,6 +12,11 @@ Memento를 사용하는 에이전트는 아래 순서가 습관이 되어야 합
 
 **관측**: `feedback` 채택률(1단계 대비 2단계 실행 비율)은 `get_telemetry_summary`의 `feedback_quality.recall_without_feedback_rate`, HTTP `GET /admin/telemetry/feedback`, 또는 `npm run telemetry -- --type feedback-quality`로 확인합니다. 1에 가까울수록 recall만 하고 feedback을 남기지 않는 비율이 높다는 뜻입니다.
 
+### 진단 프로브 (#811)
+
+- 진단·탐색용 `recall`은 **`auto_set_anchor: false`** 로 호출한다. 기본값(`true`)은 앵커 슬롯과 `meta_stats`(recall_count 등)를 갱신해 통계를 오염시킨다.
+- **`feedback` 없이 `memory_injection`만 반복**하면 high_failure / 저신뢰 지표가 부풀 수 있다. 주입 결과를 실제로 썼다면 `feedback`을 남긴다. (훅·코드로 feedback을 강제하지 않음 — 운영 습관)
+
 recall·feedback만으로는 이미 쌓인 저품질 기억(저신뢰·고실패)까지 정리되지 않습니다 — 아래 heal 단계가 그 갭을 메웁니다.
 
 | 단계 | 도구 | 종류 |

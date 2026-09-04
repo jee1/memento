@@ -1,17 +1,17 @@
 <!--
-Sync Impact Report — 2026-09-04 validation (prelude to /speckit.specify #813)
+Sync Impact Report — 2026-09-05 validation (prelude to /speckit.specify #811)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #813 (triple reassembly fallback surge —
-non-Hangul-terminating / phrase predicates). No principle, constraint,
-workflow rule, or governance clause was added, removed, or redefined.
-Test-first delivery, schema discipline, quality gates, and MCP
-backward-compatibility duties already live in Principles I–V and
-AGENTS.md §3.1 (#768 buildTripleSentence / PredicateCanonicalizer).
-Predicate quality gates are feature-spec scope, not a governance
-amendment. `Ratified` and `Last Amended` are unchanged; `Last Amended`
-still reflects the 2026-08-27 governance amendment.
+`/speckit.specify` for issue #811 (misc: repair script export, corruption
+filter placement, recall/remember -32603, diagnostic probe docs, hybrid
+similarity conversion consolidation). No principle, constraint, workflow
+rule, or governance clause was added, removed, or redefined.
+Test-first delivery, quality gates, observability/failure isolation, and
+MCP backward-compatibility duties already live in Principles I–V.
+Item-level fixes belong in the feature spec, not a governance amendment.
+`Ratified` and `Last Amended` are unchanged; `Last Amended` still reflects
+the 2026-08-27 governance amendment.
 
 Modified principles: none
 Added sections: none
@@ -25,7 +25,7 @@ Template resolution:
 - `resolve-template.sh` is absent in this checkout; used `resolve_template
   constitution-template` from `.specify/scripts/bash/common.sh`.
 - Resolved path: `.specify/templates/constitution-template.md` (core; no
-  overrides, presets, or extensions present).
+  overrides, priors, or extensions present).
 - `.specify/extensions.yml` absent -> before/after constitution hooks skipped.
 
 Consistency propagation:
@@ -38,13 +38,13 @@ Consistency propagation:
 - `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
   checkout was initialized with `ai: cursor-agent`).
 - Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`) —
-  NO CHANGE NEEDED. #813 is an internal extraction-quality fix; MCP tool
-  contracts and search response shapes remain unchanged per feature spec.
+  NO CHANGE NEEDED for governance text. Feature-spec docs item (diagnostic
+  probe `auto_set_anchor: false`) may amend agent-workflow under #811 scope.
 - `.specify/templates/checklist-template.md` and `agent-file-template.md` —
   not in the propagation checklist and untouched.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/664-813-predicate-normalization/` via `/speckit.specify` #813.
+`specs/665-811-misc-repair-export-recall/` via `/speckit.specify` #811.
 -->
 # Memento Constitution
 

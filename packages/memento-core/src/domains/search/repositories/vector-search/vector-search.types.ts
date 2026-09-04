@@ -20,7 +20,11 @@ export interface RawVectorSearchResult {
   owner_id?: string | null;
   process_id?: string | null;
   session_id?: string | null;
-  vector_similarity?: number;
+  /**
+   * Hybrid SQL이 노출하는 cosine distance ([0, 2]).
+   * 반환 similarity 변환은 mapper의 `cosineDistanceToSimilarity`만 사용한다 (#811 US5 / #806 FR-020).
+   */
+  vector_distance?: number;
   text_similarity?: number;
   task_goal?: string | null;
   steps?: string | null;
