@@ -214,10 +214,13 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       textTypeClause +
       textScopeClause +
       ') ' +
+      // SELECT는 cosine distance만 노출. 반환 점수 변환은 mapHybridResults →
+      // cosineDistanceToSimilarity 전용 (#811 US5 / #806 FR-020).
+      // ORDER BY는 랭킹 효율을 위해 (1 - distance)를 쓸 수 있다(반환 계약과 무관).
       'SELECT * FROM (' +
       'SELECT ' +
       '  COALESCE(vs.memory_id, ts.memory_id) as memory_id, ' +
-      '  COALESCE(1 - vs.vector_distance, 0) as vector_similarity, ' +
+      '  vs.vector_distance as vector_distance, ' +
       '  COALESCE(ts.text_rank, 0) as text_similarity, ' +
       '  COALESCE(vs.content, ts.content) as content, ' +
       '  COALESCE(vs.type, ts.type) as type, ' +
@@ -242,7 +245,8 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       'UNION ' +
       'SELECT ' +
       '  ts.memory_id, ' +
-      '  0 as vector_similarity, ' +
+      // 벡터 미매칭: distance 1 → cosineDistanceToSimilarity → 0 (구 vector_similarity=0과 동일)
+      '  1 as vector_distance, ' +
       '  ts.text_rank as text_similarity, ' +
       '  ts.content, ' +
       '  ts.type, ' +
@@ -265,7 +269,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       'LEFT JOIN vector_search vs ON ts.memory_id = vs.memory_id ' +
       'WHERE vs.memory_id IS NULL ' +
       ') hybrid_ranked ' +
-      'ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC ' +
+      'ORDER BY ((1 - vector_distance) * 0.6 + text_similarity * 0.4) DESC ' +
       'LIMIT ?';
 
     sqlParams = [
@@ -283,7 +287,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
     hybridQuery =
       'SELECT ' +
       '  me.memory_id as memory_id, ' +
-      '  COALESCE(1 - t.distance, 0) as vector_similarity, ' +
+      '  t.distance as vector_distance, ' +
       '  0 as text_similarity, ' +
       '  mi.content, ' +
       '  mi.type, ' +

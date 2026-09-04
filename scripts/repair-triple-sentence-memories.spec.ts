@@ -2,6 +2,15 @@ import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildRepairPlan } from './repair-triple-sentence-memories.js';
 
+/** #811 US1: repair CLI named-export regression guard */
+describe('@memento/core triple-sentence public exports (#811)', () => {
+  it('exports buildTripleSentence and hasBrokenTripleConjugation', async () => {
+    const core = await import('@memento/core');
+    expect(typeof core.buildTripleSentence).toBe('function');
+    expect(typeof core.hasBrokenTripleConjugation).toBe('function');
+  });
+});
+
 let db: Database.Database;
 
 function insert(row: {

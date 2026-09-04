@@ -5,6 +5,7 @@
 
 import { createHash } from 'crypto';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { ToolInputValidationError } from '../../../shared/errors/tool-input-validation-error.js';
 import type { MemoryType, MemoryTypeRequest } from '../../../shared/types/memory.types.js';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
@@ -34,17 +35,12 @@ export type { RecallParams };
  * 호출자 입력값 문제(type/query 누락, memory_types 오용 등)로 인한 거절.
  * 서버측 결함이 아니므로 error 대신 warn으로 로깅해 log-issue-monitor의
  * 즉시 이슈 등록(IMMEDIATE_SEVERITIES) 대상에서 제외한다.
+ * MCP 경계에서는 ToolInputValidationError → JSON-RPC -32602.
  */
-class RecallInputValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'RecallInputValidationError';
-  }
-}
-
 function isRecallInputValidationError(error: unknown): error is Error {
   return (
-    error instanceof RecallInputValidationError ||
+    error instanceof ToolInputValidationError ||
+    (error instanceof Error && error.name === 'ToolInputValidationError') ||
     (error instanceof Error && error.name === 'ZodError')
   );
 }
@@ -128,7 +124,7 @@ export class RecallTool extends BaseTool {
           const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
 
           if (!typeValidation.isValid) {
-            throw new RecallInputValidationError(typeValidation.message || "type 파라미터는 필수입니다.");
+            throw new ToolInputValidationError(typeValidation.message || "type 파라미터는 필수입니다.");
           }
 
           if (typeValidation.message && (typeParamMode === 'warn' || typeParamMode === 'deprecate')) {
@@ -169,7 +165,7 @@ export class RecallTool extends BaseTool {
       }
       {
         if (!query) {
-          throw new RecallInputValidationError("query 파라미터는 필수입니다 (type='core' 또는 'vault'가 아닌 경우)");
+          throw new ToolInputValidationError("query 파라미터는 필수입니다 (type='core' 또는 'vault'가 아닌 경우)");
         }
 
         this.validateString(query, '검색 쿼리', 1000);
@@ -206,13 +202,13 @@ export class RecallTool extends BaseTool {
             });
             filteredMemoryTypes = filteredMemoryTypes.filter(t => t !== 'core' && t !== 'vault') as MemoryTypeRequest[];
             if (filteredMemoryTypes.length === 0) {
-              throw new RecallInputValidationError("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type 파라미터를 사용하여 Core/Vault를 조회하세요.");
+              throw new ToolInputValidationError("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type 파라미터를 사용하여 Core/Vault를 조회하세요.");
             }
           }
 
           const validMemoryTypes = filteredMemoryTypes.filter((t): t is MemoryType => isMemoryItemType(t));
           if (validMemoryTypes.length === 0) {
-            throw new RecallInputValidationError("memory_types 배열에 유효한 타입이 없습니다.");
+            throw new ToolInputValidationError("memory_types 배열에 유효한 타입이 없습니다.");
           }
           filteredMemoryTypes = validMemoryTypes;
         }

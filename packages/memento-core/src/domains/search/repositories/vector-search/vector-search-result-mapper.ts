@@ -3,7 +3,6 @@
  */
 
 import { mcpLogger } from '../../../../server/mcp-logger.js';
-import { clamp01 } from '../../../../shared/utils/clamp.js';
 import { cosineDistanceToSimilarity } from '../../../../shared/utils/vector-similarity.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import type { RawVectorSearchResult } from './vector-search.types.js';
@@ -66,12 +65,12 @@ export function mapHybridResults(
 
   return results
     .map(result => {
-      // 하이브리드 SQL은 `1 - distance`를 이미 계산해 넘기므로 clamp만 적용한다 (issue #713).
-      const vectorSimilarity = clamp01(
-        typeof result.vector_similarity === 'number'
-          ? result.vector_similarity
-          : (result.similarity as number)
-      );
+      // Hybrid SQL은 cosine distance를 넘긴다. 반환 점수 변환은 mapper-only (#811 US5 / #806 FR-020).
+      const vectorDistance =
+        typeof result.vector_distance === 'number'
+          ? result.vector_distance
+          : (result.similarity as number);
+      const vectorSimilarity = cosineDistanceToSimilarity(vectorDistance);
       const textSimilarity = typeof result.text_similarity === 'number' ? result.text_similarity : 0;
 
       const similarity = hasTextQuery

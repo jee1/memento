@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { ToolInputValidationError } from '../../../../shared/errors/tool-input-validation-error.js';
 import { RememberTool } from '../remember-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
@@ -792,13 +793,14 @@ describe('RememberTool', () => {
           content: 'Test content'
         };
 
-        await expect(tool.handle(params, context)).rejects.toThrow();
-        // 에러 메시지에 "type" 또는 "파라미터"가 포함되어야 함
+        await expect(tool.handle(params, context)).rejects.toThrow(ToolInputValidationError);
         try {
           await tool.handle(params, context);
           expect.fail('Should have thrown an error');
-        } catch (error: any) {
-          expect(error.message).toMatch(/type|파라미터|필수/i);
+        } catch (error: unknown) {
+          expect(error).toBeInstanceOf(ToolInputValidationError);
+          expect((error as Error).name).toBe('ToolInputValidationError');
+          expect((error as Error).message).toMatch(/type|파라미터|필수/i);
         }
       });
 
@@ -813,6 +815,18 @@ describe('RememberTool', () => {
 
         expect(resultData.memory_id).toBeDefined();
         expect(resultData.type).toBe('episodic');
+      });
+
+      // #811 FR-007 / T011: backtick·regex-like content hypothesized to cause -32603
+      it('accepts content with backticks and regex-like chars (backtick hypothesis smoke)', async () => {
+        const params = {
+          type: 'episodic',
+          content: 'Use `mapToolExecutionErrorToJsonRpc` with /pattern.*/ and `${template}`'
+        };
+
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+        expect(resultData.memory_id).toBeDefined();
       });
     });
 

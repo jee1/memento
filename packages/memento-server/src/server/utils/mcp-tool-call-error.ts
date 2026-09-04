@@ -1,3 +1,4 @@
+import { ToolInputValidationError } from '@memento/core';
 import { z } from 'zod';
 
 export type JsonRpcErrorPayload = {
@@ -5,6 +6,13 @@ export type JsonRpcErrorPayload = {
   message: string;
   data: unknown;
 };
+
+function isToolInputValidationError(error: unknown): error is Error {
+  return (
+    error instanceof ToolInputValidationError ||
+    (error instanceof Error && error.name === 'ToolInputValidationError')
+  );
+}
 
 /**
  * Maps tool execution errors to JSON-RPC client error payloads.
@@ -16,6 +24,14 @@ export function mapToolExecutionErrorToJsonRpc(error: unknown): JsonRpcErrorPayl
       code: -32602,
       message: 'Invalid params',
       data: error.flatten()
+    };
+  }
+
+  if (isToolInputValidationError(error)) {
+    return {
+      code: -32602,
+      message: 'Invalid params',
+      data: error.message
     };
   }
 

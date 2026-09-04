@@ -9,6 +9,7 @@
  */
 
 import { mementoConfig } from '../../../shared/config/index.js';
+import { ToolInputValidationError } from '../../../shared/errors/tool-input-validation-error.js';
 import { validateSource } from '../../../shared/validation/source-uri.js';
 import { validateProceduralMemoryFields, validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
@@ -151,7 +152,7 @@ export class RememberTool extends BaseTool {
       const typeParamMode = mementoConfig.typeParamMode;
       const typeValidation = validateTypeParam(rawType, typeParamMode, 'remember');
       if (!typeValidation.isValid) {
-        throw new Error(typeValidation.message || 'type 파라미터는 필수입니다.');
+        throw new ToolInputValidationError(typeValidation.message || 'type 파라미터는 필수입니다.');
       }
       if (typeValidation.message) {
         this.logWarning(typeValidation.message);
@@ -161,7 +162,7 @@ export class RememberTool extends BaseTool {
       if (!sourceValidation.isValid) {
         const msg = sourceValidation.message ?? 'source URI 형식이 유효하지 않습니다';
         if (mementoConfig.sourceStrict) {
-          throw new Error(`❌ remember: ${msg}`);
+          throw new ToolInputValidationError(`❌ remember: ${msg}`);
         }
         this.logWarning(`⚠️  remember: ${msg} (source='${source_param}')`);
       } else if (sourceValidation.normalizedSource) {
@@ -177,7 +178,7 @@ export class RememberTool extends BaseTool {
         try {
           validateProceduralMemoryFields({ workflow_name, skill_name, trigger_conditions });
         } catch (error) {
-          throw new Error(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error)}`);
+          throw new ToolInputValidationError(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -223,12 +224,12 @@ export class RememberTool extends BaseTool {
       });
 
       if (type === 'core') {
-        if (!key || !value) throw new Error("type='core'일 때는 key와 value가 필수입니다");
+        if (!key || !value) throw new ToolInputValidationError("type='core'일 때는 key와 value가 필수입니다");
         return await handleCoreMemory({ key, value, always_load, origin_source, ownerId, startTime }, context, host);
       }
 
       if (type === 'vault') {
-        if (!key || !value) throw new Error("type='vault'일 때는 key와 value가 필수입니다");
+        if (!key || !value) throw new ToolInputValidationError("type='vault'일 때는 key와 value가 필수입니다");
         return await handleVaultMemory({ key, value, immutable, origin_source, ownerId, startTime }, context, host);
       }
 

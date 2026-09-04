@@ -142,6 +142,7 @@ export type { ApiScope, ApiTokenEntry } from './shared/types/api-token.js';
 export type { IErrorLoggingService } from './shared/interfaces/error-logging.interface.js';
 export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';
 export type { AppErrorContract } from './shared/types/error-types.js';
+export { ToolInputValidationError } from './shared/errors/tool-input-validation-error.js';
 export { getBatchScheduler, resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 
 // --- 도메인·인프라 re-export (서버 thin화용) ---
