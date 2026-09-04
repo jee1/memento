@@ -1,15 +1,17 @@
 <!--
-Sync Impact Report — 2026-09-03 validation (prelude to /speckit.specify #810)
+Sync Impact Report — 2026-09-04 validation (prelude to /speckit.specify #813)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #810 (memory_forgetting_event retention + DB residue).
-No principle, constraint, workflow rule, or governance clause was added,
-removed, or redefined. Schema migration atomicity (#755 pattern), quality
-gates, and MCP backward-compatibility duties already live in Principles I–III
-and AGENTS.md §3.1; embedding storage format change is a feature-spec scope
-item, not a governance amendment. `Ratified` and `Last Amended` are unchanged;
-`Last Amended` still reflects the 2026-08-27 governance amendment.
+`/speckit.specify` for issue #813 (triple reassembly fallback surge —
+non-Hangul-terminating / phrase predicates). No principle, constraint,
+workflow rule, or governance clause was added, removed, or redefined.
+Test-first delivery, schema discipline, quality gates, and MCP
+backward-compatibility duties already live in Principles I–V and
+AGENTS.md §3.1 (#768 buildTripleSentence / PredicateCanonicalizer).
+Predicate quality gates are feature-spec scope, not a governance
+amendment. `Ratified` and `Last Amended` are unchanged; `Last Amended`
+still reflects the 2026-08-27 governance amendment.
 
 Modified principles: none
 Added sections: none
@@ -36,13 +38,13 @@ Consistency propagation:
 - `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
   checkout was initialized with `ai: cursor-agent`).
 - Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`) —
-  NO CHANGE NEEDED. #809 is an internal storage optimization; MCP tool
+  NO CHANGE NEEDED. #813 is an internal extraction-quality fix; MCP tool
   contracts and search response shapes remain unchanged per feature spec.
 - `.specify/templates/checklist-template.md` and `agent-file-template.md` —
   not in the propagation checklist and untouched.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/663-810-forgetting-event-retention/` via `/speckit.specify` #810.
+`specs/664-813-predicate-normalization/` via `/speckit.specify` #813.
 -->
 # Memento Constitution
 

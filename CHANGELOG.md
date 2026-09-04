@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- **Semantic triple predicate 정규화 게이트** (#813): `TripleNormalizer`가 구·영문·재조립불가 predicate를 pass-through하지 않고 drop합니다(형태 (2) 폴백 차단). 수용분만 semantic/`kg_triple`에 남고, skip reason·카운터는 metadata/로그에만 기록됩니다(MCP recall/remember 스키마 불변). 전부 게이트 실패해도 remember·변환 primary 경로는 soft-success입니다. 운영 관측: `npm run memory:kg-triple-predicate-quality`(read-only JSON, `--sample-limit`≤20).
 - **관계 추출기의 조용한 규칙 기반 폴백** (#819): `RelationExtractor`가 `LLMBasedRelationExtractor.isAvailable()`을 동기로 호출했는데, `preferredProvider`는 생성자의 비동기 초기화가 끝난 뒤에야 정해집니다. remember·`extract_relations` 모두 요청마다 추출기를 새로 만들기 때문에 이 판정은 항상 초기화 이전 상태를 봤고, LLM이 설정돼 있어도 관계 추출이 한 번도 시도되지 않았습니다. 초기화 완료를 기다린 뒤 판정하는 `isAvailableAsync()`를 추가하고 두 판정 지점을 그쪽으로 옮겼습니다. 규칙 기반 고신뢰 결과가 나오는 빠른 경로는 판정 자체를 하지 않으므로 대기가 붙지 않습니다.
 - **로컬 프로바이더 자동 선택 시 판정 불일치** (#819): `isOllamaAvailable()`이 `preferredProvider === 'ollama'` 외에 `LLM_PROVIDER` 설정값까지 `ollama`이길 요구했습니다. 설정을 `auto`로 두고 클라우드 자격 증명 없이 로컬 프로바이더만 띄운 환경에서는 초기화가 ollama를 채택해도 설정값은 `auto`라 가용성 판정과 실행 경로가 어긋났습니다. `preferredProvider`는 연결 점검에 성공했을 때만 `ollama`가 되므로 설정값 조건을 제거했습니다.
 - **Hybrid vector under-fill** (#789): hybrid vector fetch uses `threshold: 0` and keeps `HYBRID_VECTOR_THRESHOLD` 0.38 as the funnel diagnostic. When thresholded hits are fewer than `query.limit`, remaining raw prefetch (similarity desc, unique ids) fills the ranking pool before min-max. Prefetch multiplier stays 2. Ranking hash includes threshold, prefetch multiplier, and fill flag. Ranking weights.toml is unchanged.

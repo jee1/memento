@@ -93,18 +93,21 @@ describe('ITripleNormalizer 인터페이스', () => {
       // When: 인터페이스의 메서드 시그니처를 확인함
       type NormalizerType = ITripleNormalizer;
       const hasMethod: NormalizerType = {
-        normalize: (triples: Triple[]) => []
+        normalize: (triples: Triple[]) => [],
+        normalizeWithReport: (triples: Triple[]) => ({ triples: [], skips: [] }),
       };
       
       // Then: normalize 메서드가 정의되어 있음
       expect(typeof hasMethod.normalize).toBe('function');
+      expect(typeof hasMethod.normalizeWithReport).toBe('function');
     });
 
     it('Given: ITripleNormalizer 인터페이스가 정의됨, When: normalize 메서드를 호출함, Then: 정규화된 Triple 배열을 반환함', () => {
       // Given: ITripleNormalizer 인터페이스가 정의됨
       // When: normalize 메서드를 호출함
       const mockNormalizer: ITripleNormalizer = {
-        normalize: (triples: Triple[]) => triples
+        normalize: (triples: Triple[]) => triples,
+        normalizeWithReport: (triples: Triple[]) => ({ triples, skips: [] }),
       };
       
       const testTriples: Triple[] = [

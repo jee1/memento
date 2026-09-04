@@ -35,6 +35,32 @@ export interface ExtractionSteps {
 }
 
 /**
+ * Predicate 게이트 skip 사유 (#813).
+ * MCP 공개 스키마에는 노출하지 않는 내부 additive 코드.
+ */
+export type PredicateSkipReason =
+  | 'predicate_empty'
+  | 'predicate_canonicalize_failed'
+  | 'predicate_reassembly_failed';
+
+/**
+ * 정규화 게이트에서 drop된 triple 기록
+ */
+export interface PredicateSkip {
+  index: number;
+  predicate: string;
+  reason: PredicateSkipReason;
+}
+
+/**
+ * TripleNormalizer.normalizeWithReport 결과 (accepted + skips)
+ */
+export interface NormalizeWithReportResult {
+  triples: Triple[];
+  skips: PredicateSkip[];
+}
+
+/**
  * Triple 추출 정보
  * 각 triple별로 독립적으로 저장됨
  */
@@ -42,6 +68,10 @@ export interface ExtractionInfo {
   failureReason?: TripleExtractionFailureReason; // 실패 시에만 존재
   steps: ExtractionSteps;
   rawLLMOutput?: string; // 디버깅용 (로그 파일에만 저장, DB에는 저장하지 않음)
+  /** #813: 게이트에서 drop된 predicate 목록 (내부 additive; MCP 계약 불변) */
+  predicateSkips?: PredicateSkip[];
+  /** #813: reason별 skip 집계 */
+  predicateSkipCounts?: Partial<Record<PredicateSkipReason, number>>;
 }
 
 /**
