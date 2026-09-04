@@ -52,6 +52,8 @@
     "memory:export": "tsx scripts/memory-export.ts",
     "memory:import": "tsx scripts/memory-import.ts",
     "forgetting:events": "tsx scripts/forgetting-events-query.ts",
+    "db:residue": "tsx scripts/db-residue-cleanup.ts",
+    "db:vacuum": "tsx scripts/db-vacuum.ts",
     "memory:quarantine-065": "npm run build -w @memento/core && tsx scripts/quarantine-pipeline-semantic.ts",
     "generate-relation-report": "tsx scripts/generate-relation-report.ts",
     "weekly-relation-validation": "tsx scripts/weekly-relation-validation.ts",

@@ -26,6 +26,8 @@ export interface BatchJobConfig {
   metaMemoryIntrospectionInterval: number;
   sleepConsolidationInterval: number;
   telemetryCleanupInterval: number;
+  /** Issue #810: memory_forgetting_event audit log retention */
+  forgettingEventCleanupInterval: number;
   /** Issue #243: refresh memory_review_candidate pending rows from selection */
   memoryReviewCandidatesInterval: number;
   /**

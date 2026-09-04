@@ -1,5 +1,7 @@
 import { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
+import { ForgettingEventCleanupBatchJob } from '../jobs/forgetting-event-cleanup-batch-job.js';
+import { ForgettingEventRepository } from '../../../domains/forgetting/repositories/forgetting-event-repository.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
@@ -13,6 +15,19 @@ export async function runTelemetryCleanupBatch(ctx: BatchSchedulerRunContext): P
     });
   }
   await ctx.telemetryCleanupBatchJob.current.execute();
+}
+
+export async function runForgettingEventCleanupBatch(ctx: BatchSchedulerRunContext): Promise<void> {
+  if (!ctx.db) {
+    return;
+  }
+  if (!ctx.forgettingEventCleanupBatchJob.current) {
+    ctx.forgettingEventCleanupBatchJob.current = new ForgettingEventCleanupBatchJob({
+      db: ctx.db,
+      repository: new ForgettingEventRepository(),
+    });
+  }
+  await ctx.forgettingEventCleanupBatchJob.current.execute();
 }
 
 export async function runSleepConsolidationBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {

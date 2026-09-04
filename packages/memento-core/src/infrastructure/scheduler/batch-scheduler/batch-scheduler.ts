@@ -87,6 +87,7 @@ export class BatchScheduler implements IBatchScheduler {
   private sleepConsolidationBatchJob: BatchSchedulerServiceState['sleepConsolidationBatchJob'] = null;
   private telemetryCleanupRepository: TelemetryRepository | null = null;
   private telemetryCleanupBatchJob: BatchSchedulerServiceState['telemetryCleanupBatchJob'] = null;
+  private forgettingEventCleanupBatchJob: BatchSchedulerServiceState['forgettingEventCleanupBatchJob'] = null;
   private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
   private anchorManager: AnchorManager | null = null;
   private jobExecutionCoordinator!: ReturnType<typeof createBatchSchedulerWiring>['jobExecutionCoordinator'];
@@ -137,6 +138,7 @@ export class BatchScheduler implements IBatchScheduler {
       qualityMeasurementBatchJob: this.qualityMeasurementBatchJob,
       sleepConsolidationBatchJob: this.sleepConsolidationBatchJob,
       telemetryCleanupBatchJob: this.telemetryCleanupBatchJob,
+      forgettingEventCleanupBatchJob: this.forgettingEventCleanupBatchJob,
       lastExecution: this.lastExecution,
       totalExecutions: this.totalExecutions,
       anchorManager: this.anchorManager,
@@ -180,6 +182,7 @@ export class BatchScheduler implements IBatchScheduler {
       runLogRotation: () => this.runLogRotation(),
       runSleepConsolidationBatch: () => this.runSleepConsolidationBatch(),
       runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch(),
+      runForgettingEventCleanupBatch: () => this.runForgettingEventCleanupBatch(),
       runAnchorAutoRefresh: () => this.runAnchorAutoRefresh()
     };
   }
@@ -369,6 +372,10 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runTelemetryCleanupBatch(): Promise<void> {
     return this.getJobRunners().runTelemetryCleanupBatch();
+  }
+
+  private async runForgettingEventCleanupBatch(): Promise<void> {
+    return this.getJobRunners().runForgettingEventCleanupBatch();
   }
 
   private async runAnchorAutoRefresh(): Promise<BatchJobResult> {

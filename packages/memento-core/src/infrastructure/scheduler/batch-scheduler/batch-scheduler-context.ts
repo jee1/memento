@@ -17,6 +17,7 @@ import type { TripleExtractionBatchJob } from '../jobs/triple-extraction-batch-j
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import type { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
+import type { ForgettingEventCleanupBatchJob } from '../jobs/forgetting-event-cleanup-batch-job.js';
 import type {
   BatchSchedulerLogMethod,
   BatchSchedulerRunContext,
@@ -41,6 +42,7 @@ export interface BatchSchedulerContextSource {
   qualityMeasurementBatchJob: QualityMeasurementBatchJob | null;
   sleepConsolidationBatchJob: SleepConsolidationBatchJob | null;
   telemetryCleanupBatchJob: TelemetryCleanupBatchJob | null;
+  forgettingEventCleanupBatchJob: ForgettingEventCleanupBatchJob | null;
   lastExecution: Map<string, Date>;
   totalExecutions: Map<string, number>;
   anchorManager: AnchorManager | null;
@@ -66,6 +68,7 @@ export interface BatchSchedulerRecurringContextSource extends BatchSchedulerCont
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
   runTelemetryCleanupBatch: () => Promise<void>;
+  runForgettingEventCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
 }
 
@@ -113,6 +116,10 @@ export function buildBatchSchedulerRunContext(source: BatchSchedulerContextSourc
       () => source.telemetryCleanupBatchJob,
       v => { source.telemetryCleanupBatchJob = v; }
     ),
+    forgettingEventCleanupBatchJob: createMutableJobRef(
+      () => source.forgettingEventCleanupBatchJob,
+      v => { source.forgettingEventCleanupBatchJob = v; }
+    ),
     lastExecution: source.lastExecution,
     totalExecutions: source.totalExecutions,
     anchorManager: source.anchorManager,
@@ -130,6 +137,7 @@ export function buildBatchRecurringScheduleContext(
     hasConsolidationScoreWorker: source.consolidationScoreWorker !== null,
     hasSleepConsolidation: source.sleepConsolidationService != null,
     hasTelemetryCleanup: source.telemetryCleanupRepository != null,
+    hasForgettingEventCleanup: source.db != null,
     hasAnchorManager: source.anchorManager != null,
     scheduleJob: source.scheduleJob,
     lastExecution: source.lastExecution,
@@ -149,6 +157,7 @@ export function buildBatchRecurringScheduleContext(
     runMemoryReviewCandidatesJob: () => source.runMemoryReviewCandidatesJob(),
     runSleepConsolidationBatch: () => source.runSleepConsolidationBatch(),
     runTelemetryCleanupBatch: () => source.runTelemetryCleanupBatch(),
+    runForgettingEventCleanupBatch: () => source.runForgettingEventCleanupBatch(),
     runAnchorAutoRefresh: () => source.runAnchorAutoRefresh()
   };
 }
