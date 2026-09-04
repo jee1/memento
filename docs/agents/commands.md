@@ -74,6 +74,10 @@ npm run db:backup:cleanup         # 백업 backlog 정리 preview (기본, 삭�
 npm run db:backup:cleanup -- --apply # preview와 같은 선택자를 실제 삭제에 적용
 npm run db:restore-from-corrupt   # 손상 DB 복구
 npm run db:pre-docker-deploy      # Docker 배포 전 무결성 점검
+npm run db:residue -- report      # DB 잔재 진단 (임베딩 갭·중복·dimensions=0)
+npm run db:residue -- cleanup-embeddings              # dimensions=0 preview
+npm run db:residue -- cleanup-embeddings --apply      # dimensions=0 삭제
+npm run db:vacuum                 # DELETE 후 VACUUM (before/after/reclaimed JSON)
 npm run docker:build              # 이미지 빌드
 npm run docker:up                 # 컨테이너 기동
 ```

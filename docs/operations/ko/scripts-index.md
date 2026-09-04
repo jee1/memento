@@ -22,6 +22,8 @@
 | backup-memory-db.mjs | memory.db online backup (무인자 계약 유지) 및 backup backlog cleanup preview/apply | `npm run db:backup`, `npm run db:backup:cleanup`, `npm run db:backup:cleanup -- --apply` |
 | pre-docker-deploy.mjs | 배포 전 백업 + quick_check | `npm run db:pre-docker-deploy` |
 | restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
+| db-residue-cleanup.ts | DB 잔재 report·dimensions=0 embedding cleanup | `npm run db:residue -- report`, `npm run db:residue -- cleanup-embeddings`, `npm run db:residue -- cleanup-embeddings --apply` |
+| db-vacuum.ts | DELETE 후 공간 회수 측정 | `npm run db:vacuum` |
 | backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
 | regenerate-embeddings.js | 임베딩 재생성 | `npm run regenerate:embeddings` |
 | debug-embeddings.js | 임베딩 디버깅 | `npm run debug:embeddings` |
