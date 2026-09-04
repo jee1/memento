@@ -1,0 +1,15 @@
+feature: 664-813-predicate-normalization
+issue: 813
+created: 2026-09-04
+current_phase: review
+phases:
+  constitution: { status: done, updated: 2026-09-04 }
+  specify: { status: done, updated: 2026-09-04 }
+  brainstorm: { status: done, updated: 2026-09-04, sessions: 3 }
+  plan: { status: done, updated: 2026-09-04 }
+  tasks: { status: done, updated: 2026-09-04 }
+  execute: { status: done, updated: 2026-09-04 }
+  review: { status: done, updated: 2026-09-04, verdict: PASS }
+execute:
+  auto_approve_phases: true
+  note: "Review PASS (2026-09-04): no Critical/Important findings; see checklist-review.md. Pre-merge: stage untracked #813 files."

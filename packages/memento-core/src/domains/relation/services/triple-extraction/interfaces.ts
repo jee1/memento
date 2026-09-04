@@ -3,7 +3,17 @@
  * 단일 책임 원칙을 준수하여 TripleExtractionService를 분리하기 위한 인터페이스들
  */
 
-import type { Triple, TripleExtractionOptions } from '../../../../shared/types/triple-extraction.js';
+import type {
+  NormalizeWithReportResult,
+  Triple,
+  TripleExtractionOptions,
+} from '../../../../shared/types/triple-extraction.js';
+
+export type {
+  NormalizeWithReportResult,
+  PredicateSkip,
+  PredicateSkipReason,
+} from '../../../../shared/types/triple-extraction.js';
 
 /**
  * Triple 추출기 인터페이스
@@ -78,19 +88,27 @@ export interface ITripleParser {
 /**
  * Triple 정규화기 인터페이스
  * 추출된 Triple을 정규화하여 일관성을 확보합니다.
- * 
- * Given: Triple 배열이 제공됨
- * When: Triple의 엔티티와 predicate를 정규화함
- * Then: 정규화된 Triple 배열을 반환함
+ *
+ * #813: canonicalize 실패 원본 pass-through 금지. accepted만 반환하며
+ * skip reason은 normalizeWithReport로 관측한다.
+ *
+ * OOV 예외: 공백 없는 한글 종결 단일 토큰 + buildTripleSentence 성공 시에만 원본 수용.
  */
 export interface ITripleNormalizer {
   /**
    * Given: Triple 배열이 제공됨
-   * When: Triple의 엔티티와 predicate를 정규화함
-   * Then: 정규화된 Triple 배열을 반환함
-   * 
+   * When: Triple의 엔티티와 predicate를 정규화·게이트함
+   * Then: 게이트를 통과한(accepted) Triple 배열만 반환함
+   *
    * @param triples - 정규화할 Triple 배열
-   * @returns 정규화된 Triple 배열
+   * @returns accepted Triple 배열 (skips 제외)
    */
   normalize(triples: Triple[]): Triple[];
+
+  /**
+   * Given: Triple 배열이 제공됨
+   * When: predicate 게이트 + 엔티티 정규화를 수행함
+   * Then: accepted triples와 PredicateSkip[]를 함께 반환함
+   */
+  normalizeWithReport(triples: Triple[]): NormalizeWithReportResult;
 }

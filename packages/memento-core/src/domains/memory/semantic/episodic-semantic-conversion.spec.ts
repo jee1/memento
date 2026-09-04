@@ -276,6 +276,87 @@ describe('convertEpisodicSource', () => {
       expect(outcome.kind).toBe('success');
       expect(readSource('episode-1')?.triple_extracted_status).toBe('success');
     });
+
+    it('#813: all-gated skips without failureReason → soft success + skip metadata (not no_triple)', async () => {
+      insertEpisodic();
+      const updateSpy = vi.fn();
+      const extractTriples = vi.fn().mockResolvedValue({
+        triples: [],
+        extractionInfo: {
+          steps: { canonicalization: false, entityLinking: false },
+          predicateSkips: [
+            { index: 0, predicate: '관련 작업', reason: 'predicate_canonicalize_failed' },
+            { index: 1, predicate: 'xyzlatin', reason: 'predicate_empty' },
+          ],
+          predicateSkipCounts: {
+            predicate_canonicalize_failed: 1,
+            predicate_empty: 1,
+          },
+        },
+      });
+
+      const outcome = await convertEpisodicSource(
+        deps({
+          tripleExtractionService: { extractTriples },
+          semanticMemoryUpdateService: fakeEvidenceService(updateSpy),
+        }),
+        baseOptions()
+      );
+
+      expect(outcome.kind).toBe('success');
+      if (outcome.kind !== 'success') throw new Error('expected success');
+      expect(outcome.update).toEqual({ created: 0, updated: 0, skipped: 0, semanticMemoryIds: [] });
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(readSource('episode-1')).toMatchObject({
+        triple_extracted: 1,
+        triple_extracted_status: 'success',
+      });
+      const metadata = readMetadata('episode-1');
+      expect(metadata.triple_count).toBe(0);
+      expect(metadata.predicate_skip_count).toBe(2);
+      expect(metadata.predicate_skip_reasons).toEqual({
+        predicate_canonicalize_failed: 1,
+        predicate_empty: 1,
+      });
+      expect(metadata.failureReason).toBeUndefined();
+    });
+
+    it('#813: partial accept records skip aggregates and persists only accepted triples', async () => {
+      insertEpisodic({ importance: 0.8 });
+      const extractTriples = vi.fn().mockResolvedValue({
+        triples: [{ subject: '시스템', predicate: '사용함', object: '기능' }],
+        extractionInfo: {
+          steps: { canonicalization: true, entityLinking: true },
+          predicateSkips: [
+            { index: 0, predicate: '관련 작업', reason: 'predicate_canonicalize_failed' },
+          ],
+          predicateSkipCounts: { predicate_canonicalize_failed: 1 },
+        },
+      });
+
+      const outcome = await convertEpisodicSource(
+        deps({ tripleExtractionService: { extractTriples } }),
+        baseOptions()
+      );
+
+      expect(outcome.kind).toBe('success');
+      if (outcome.kind !== 'success') throw new Error('expected success');
+      expect(outcome.update.created).toBe(1);
+      const metadata = readMetadata('episode-1');
+      expect(metadata.triple_count).toBe(1);
+      expect(metadata.predicate_skip_count).toBe(1);
+      expect(metadata.predicate_skip_reasons).toEqual({
+        predicate_canonicalize_failed: 1,
+      });
+      const reasons = Object.keys(metadata.predicate_skip_reasons as Record<string, number>);
+      for (const reason of reasons) {
+        expect([
+          'predicate_empty',
+          'predicate_canonicalize_failed',
+          'predicate_reassembly_failed',
+        ]).toContain(reason);
+      }
+    });
   });
 
   describe('malformed / pre-primary failed retry', () => {

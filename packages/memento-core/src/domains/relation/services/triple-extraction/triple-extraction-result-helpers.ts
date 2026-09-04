@@ -5,12 +5,35 @@
 import type {
   ExtractionInfo,
   ExtractionSteps,
+  PredicateSkip,
+  PredicateSkipReason,
   Triple,
   TripleExtractionFailureReason,
   TripleExtractionResult,
 } from '../../../../shared/types/triple-extraction.js';
 import type { EntityLinker } from './entity-linker.js';
 import type { PredicateCanonicalizer } from './predicate-canonicalizer.js';
+
+export function countPredicateSkipReasons(
+  skips: PredicateSkip[]
+): Partial<Record<PredicateSkipReason, number>> {
+  const counts: Partial<Record<PredicateSkipReason, number>> = {};
+  for (const skip of skips) {
+    counts[skip.reason] = (counts[skip.reason] ?? 0) + 1;
+  }
+  return counts;
+}
+
+export function hasPredicateGateSkips(
+  info: Pick<ExtractionInfo, 'predicateSkips' | 'predicateSkipCounts'>
+): boolean {
+  if ((info.predicateSkips?.length ?? 0) > 0) {
+    return true;
+  }
+  return Object.values(info.predicateSkipCounts ?? {}).some(
+    (n) => typeof n === 'number' && n > 0
+  );
+}
 
 export function trackTripleExtractionSteps(
   triples: Triple[],
@@ -78,7 +101,8 @@ export function normalizeTripleExtractionResult(
 
   if (normalizedTriples.length > 0) {
     extractionInfo.failureReason = undefined;
-  } else if (!extractionInfo.failureReason) {
+  } else if (!extractionInfo.failureReason && !hasPredicateGateSkips(extractionInfo)) {
+    // #813: all-gated soft success keeps skips without stamping no_triple
     extractionInfo.failureReason = 'no_triple';
   }
 

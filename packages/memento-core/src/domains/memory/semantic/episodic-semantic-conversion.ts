@@ -18,6 +18,7 @@
 import type Database from 'better-sqlite3';
 import type { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import type {
+  ExtractionInfo,
   TripleExtractionFailureReason,
   TripleExtractionResult
 } from '../../../shared/types/triple-extraction.js';
@@ -26,8 +27,39 @@ import type { SemanticMemoryUpdateResult } from './semantic-memory-update-types.
 import {
   buildTripleExtractionAbandonedMetadata,
   buildTripleExtractionFailedMetadata,
-  buildTripleExtractionSuccessMetadata
+  buildTripleExtractionSuccessMetadata,
+  type TripleExtractionSkipAggregates
 } from './triple-extraction-metadata.js';
+
+function resolveSkipAggregates(info: ExtractionInfo): TripleExtractionSkipAggregates | undefined {
+  const skips = info.predicateSkips ?? [];
+  const fromList = skips.length;
+  const fromCounts = Object.values(info.predicateSkipCounts ?? {}).reduce(
+    (sum, n) => sum + (typeof n === 'number' ? n : 0),
+    0
+  );
+  const predicateSkipCount = fromList > 0 ? fromList : fromCounts;
+  if (predicateSkipCount <= 0) {
+    return undefined;
+  }
+
+  let predicateSkipReasons = info.predicateSkipCounts ?? {};
+  if (Object.keys(predicateSkipReasons).length === 0 && skips.length > 0) {
+    predicateSkipReasons = {};
+    for (const skip of skips) {
+      predicateSkipReasons[skip.reason] = (predicateSkipReasons[skip.reason] ?? 0) + 1;
+    }
+  }
+
+  return {
+    predicateSkipCount,
+    predicateSkipReasons
+  };
+}
+
+function hasPredicateGateSkips(info: ExtractionInfo): boolean {
+  return resolveSkipAggregates(info) !== undefined;
+}
 
 export interface EpisodicSemanticConversionOptions {
   sourceId: string;
@@ -258,6 +290,27 @@ export async function convertEpisodicSource(
   const extractionResult = await safeExtract(tripleExtractionService, snapshot.content, options.sourceId);
 
   if (extractionResult.triples.length === 0) {
+    // #813: LLM returned triples but all were gated — soft success + skip metadata (not no_triple)
+    if (
+      hasPredicateGateSkips(extractionResult.extractionInfo) &&
+      extractionResult.extractionInfo.failureReason === undefined
+    ) {
+      const metadata = buildTripleExtractionSuccessMetadata(
+        options.now(),
+        0,
+        undefined,
+        resolveSkipAggregates(extractionResult.extractionInfo)
+      );
+      const committed = commitTuple(db, snapshot, 1, 'success', metadata);
+      if (!committed) {
+        return { kind: 'skipped' };
+      }
+      return {
+        kind: 'success',
+        update: { created: 0, updated: 0, skipped: 0, semanticMemoryIds: [] }
+      };
+    }
+
     const failureReason = normalizeFailureReason(extractionResult.extractionInfo.failureReason);
     return buildFailureOutcome(db, snapshot, options, failureReason);
   }
@@ -291,7 +344,8 @@ export async function convertEpisodicSource(
   const metadata = buildTripleExtractionSuccessMetadata(
     options.now(),
     extractionResult.triples.length,
-    confidenceAvg
+    confidenceAvg,
+    resolveSkipAggregates(extractionResult.extractionInfo)
   );
 
   const committed = commitTuple(db, snapshot, 1, 'success', metadata);

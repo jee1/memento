@@ -3,14 +3,23 @@
  * Shared by episodic→semantic conversion coordinator and batch job tests/helpers.
  */
 
+import type { PredicateSkipReason } from '../../../shared/types/triple-extraction.js';
+
+export interface TripleExtractionSkipAggregates {
+  predicateSkipCount: number;
+  predicateSkipReasons: Partial<Record<PredicateSkipReason, number>>;
+}
+
 /**
  * success 상태 전이 canonical metadata.
  * `confidenceAvg`가 finite일 때만 `confidence_avg`를 포함한다.
+ * #813: skip aggregates는 count > 0일 때만 포함한다.
  */
 export function buildTripleExtractionSuccessMetadata(
   now: Date,
   tripleCount: number,
-  confidenceAvg?: number
+  confidenceAvg?: number,
+  skipAggregates?: TripleExtractionSkipAggregates
 ): Record<string, unknown> {
   const metadata: Record<string, unknown> = {
     triple_count: tripleCount,
@@ -18,6 +27,10 @@ export function buildTripleExtractionSuccessMetadata(
   };
   if (typeof confidenceAvg === 'number' && Number.isFinite(confidenceAvg)) {
     metadata.confidence_avg = confidenceAvg;
+  }
+  if (skipAggregates && skipAggregates.predicateSkipCount > 0) {
+    metadata.predicate_skip_count = skipAggregates.predicateSkipCount;
+    metadata.predicate_skip_reasons = skipAggregates.predicateSkipReasons;
   }
   return metadata;
 }

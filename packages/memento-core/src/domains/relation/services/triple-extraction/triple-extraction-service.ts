@@ -47,6 +47,7 @@ import {
   type TripleLlmActiveProvider,
 } from './triple-extraction-llm-pipeline.js';
 import {
+  countPredicateSkipReasons,
   createTripleExtractionFailureResult,
   normalizeTripleExtractionResult,
   trackTripleExtractionSteps,
@@ -359,10 +360,11 @@ export class TripleExtractionService {
     }
     const triples = parsed.triples;
 
-    const normalizedTriples = this.normalizer.normalize(triples);
+    const report = this.normalizer.normalizeWithReport(triples);
+    const skipCounts = countPredicateSkipReasons(report.skips);
 
     const steps = trackTripleExtractionSteps(
-      normalizedTriples,
+      report.triples,
       this.canonicalizer,
       this.entityLinker
     );
@@ -370,10 +372,18 @@ export class TripleExtractionService {
     const extractionInfo: ExtractionInfo = {
       steps,
     };
+    if (report.skips.length > 0) {
+      extractionInfo.predicateSkips = report.skips;
+      extractionInfo.predicateSkipCounts = skipCounts;
+      logger.info('TripleExtractionService: predicate gate skips', {
+        skipCount: report.skips.length,
+        reasons: skipCounts,
+      });
+    }
 
     return {
       result: {
-        triples: normalizedTriples,
+        triples: report.triples,
         extractionInfo,
       },
       rawLLMOutput,
