@@ -112,8 +112,10 @@ export class PIIMasker {
 
     // 전화번호 마스킹 (한국 형식 포함)
     if (types.includes('phone')) {
-      // 한국 전화번호: 010-1234-5678, 01012345678, +82-10-1234-5678 등
-      const koreanPhonePattern = /(\+82[-.\s]?)?0?1[0-9]{1}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{4}/g;
+      // 한국 휴대전화: 010/011/016–019 또는 +82 국제 표기만.
+      // 숫자 lookaround — epoch-ms·memory_id 내부 부분매치 금지 (#854).
+      const koreanPhonePattern =
+        /(?<![0-9])(?:\+82[-.\s]?1[0-9]|01[0-9])[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{4}(?![0-9])/g;
       const koreanMatches = masked.match(koreanPhonePattern);
       if (koreanMatches) {
         masked = masked.replace(koreanPhonePattern, usePlaceholder ? '[PHONE]' : '');
@@ -123,8 +125,9 @@ export class PIIMasker {
         totalMaskedCount += koreanMatches.length;
       }
 
-      // 국제 전화번호: +1-234-567-8900 등
-      const internationalPhonePattern = /\+\d{1,3}[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g;
+      // 국제 전화번호: +1-234-567-8900 등 (긴 숫자열 부분 절단 금지 — #854)
+      const internationalPhonePattern =
+        /(?<![0-9])\+\d{1,3}[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?![0-9])/g;
       const internationalMatches = masked.match(internationalPhonePattern);
       if (internationalMatches) {
         masked = masked.replace(internationalPhonePattern, usePlaceholder ? '[PHONE]' : '');
