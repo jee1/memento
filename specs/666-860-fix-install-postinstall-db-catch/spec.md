@@ -144,7 +144,7 @@ P1 직후 같은 작업 단위로 묶는다.
 | ID | Question | Status | Resolution |
 |----|----------|--------|------------|
 | Q1 | DB 초기화 실패 시 경고만 vs 비0 종료? | Resolved | **비0 종료**. 경고만 남기면 #860 재발과 동일한 위장이 된다. FR-003/SC-003. |
-| Q2 | 저장소 `packages/` 경로 fallback 유지 vs 단일 런타임 진입점? | Resolved | **단일 런타임 진입점**. 설치·개발 모두 패키지에 실리는 공개 초기화 API를 쓴다. `packages/.../init.ts` + `tsx` 경로는 제거. (소스 `.ts` CLI 가드가 `.js`와 어긋나는 함정도 함께 회피.) |
+| Q2 | 저장소 `packages/` 경로 fallback 유지 vs 단일 런타임 진입점? | Resolved | **환경 분기**. 모노레포(`packages/.../init.ts` 존재)는 `tsx` 소스 경로(CI `npm ci` 직후 dist 미빌드). 설치 패키지(tarball)는 `@memento/core` 만 쓰고 실패 시 비0. (단일 API만 쓰면 postinstall 이 build 전에 깨짐 — CI 회귀.) |
 | Q3 | 스모크 DB 경로를 홈 기본값 vs 임시 `DB_PATH`? | Resolved | **임시 `DB_PATH`**. 기본 경로가 홈 하위일 수 있어 CI/개발자 홈을 오염시키지 않는다. FR-005. |
 | Q4 | 실패 안내를 `db:init` 유지·문구 수정 vs 설치 환경용 다른 안내? | Resolved | **저장소 전용 `npm run db:init` 안내를 설치 실패 메시지에서 제거·대체**. 실패 시에는 오류 자체와, 설치 환경에서 의미 있는 복구 힌트(예: `DB_PATH` 확인, 패키지 재설치)만 남긴다. 저장소 개발자용 `db:init` 스크립트 자체는 Non-Goals 밖 유지. |
 
