@@ -31,6 +31,7 @@ describe('stdio HTTP sidecar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('DB_PATH', undefined);
     vi.stubEnv('MEMENTO_HTTP_SIDECAR', '1');
     mocks.createCore.mockResolvedValue({ db: database, services });
     mocks.readInfo.mockResolvedValue(null);
@@ -49,11 +50,16 @@ describe('stdio HTTP sidecar', () => {
     expect(mocks.startHttp).not.toHaveBeenCalled();
   });
 
-  it('shares the single initialized core with HTTP', async () => {
+  it.each([
+    [undefined, '/tmp/sidecar-test.db'],
+    ['/tmp/sidecar-override.db', '/tmp/sidecar-override.db'],
+  ])('shares the single initialized core with HTTP (DB_PATH=%s)', async (dbPath, expectedPath) => {
+    vi.stubEnv('DB_PATH', dbPath);
     await __test.runHeavyInit();
     expect(mocks.createCore).toHaveBeenCalledOnce();
+    expect(mocks.createCore).toHaveBeenCalledWith({ dbPath: expectedPath });
     expect(mocks.startHttp).toHaveBeenCalledWith({ database, serverServices: services });
-    expect(mocks.acquire).toHaveBeenCalledWith('/tmp/sidecar-test.db');
+    expect(mocks.acquire).toHaveBeenCalledWith(expectedPath);
   });
 
   it('leaves an existing live server and its discovery file alone', async () => {
