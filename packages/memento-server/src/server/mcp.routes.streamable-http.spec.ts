@@ -349,7 +349,8 @@ describe('mcp.routes streamable_http', () => {
         error: { code: number; message: string; data: unknown };
       };
       expect(body.error.code).toBe(-32602);
-      expect(body.error.message).toBe('Invalid params');
+      // #861: type 누락 이유가 message 로 나가야 한다 (클라이언트는 data 를 버린다).
+      expect(body.error.message).toMatch(/^Invalid params: .*type/);
       expect(errorSpy).not.toHaveBeenCalledWith(
         'MCP streamable_http processing failed',
         expect.anything()
