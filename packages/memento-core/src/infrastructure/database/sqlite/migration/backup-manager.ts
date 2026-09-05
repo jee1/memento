@@ -51,6 +51,7 @@ export type CleanupMode = 'preview' | 'apply';
 
 export type CleanupSelectionReason =
   | 'expired-automatic'
+  | 'surplus-automatic'
   | 'zero-byte-backup'
   | 'orphaned-sidecar'
   | 'interrupted-attempt';
@@ -90,6 +91,11 @@ export interface CleanupOptions {
   mode?: CleanupMode;
   now?: Date;
   includeInterrupted?: boolean;
+  /**
+   * 자동 백업 보존 개수. 미지정 시 AUTOMATIC_RETENTION_COUNT.
+   * 0 이하를 주면 개수 상한을 적용하지 않는다(기간 기준만 사용).
+   */
+  keepCount?: number;
 }
 
 interface FileIdentity {
@@ -106,6 +112,22 @@ interface CleanupCandidate {
   identity: FileIdentity | null;
   selectedBytes: number;
 }
+
+/** 자동 백업 보존 기간 (일) */
+const AUTOMATIC_RETENTION_DAYS = 30;
+
+/**
+ * 자동 백업 보존 개수 상한 (#849).
+ *
+ * 기간 단독 기준은 생성 속도가 높으면 무력해진다. 실측(2026-09-05)에서 자동 백업이
+ * 762개/일 생성돼 30일 보존만으로는 약 23,000개가 상시 잔류했고, 쌓인 18,292개
+ * 전부가 보존 기간 이내라 한 건도 선별되지 않았다. 기간 기준과 OR 로 개수 상한을
+ * 함께 적용해 디렉터리 크기를 생성 속도와 무관하게 묶는다.
+ *
+ * 마이그레이션 1회 실행은 버전 수만큼(현재 약 40개) 백업을 만들므로, 200개는
+ * 최근 5회분에 해당한다.
+ */
+const AUTOMATIC_RETENTION_COUNT = 200;
 
 const TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/;
 const AUTOMATIC_NAME = new RegExp(
@@ -148,10 +170,32 @@ function getSidecarBaseName(name: string): string | null {
   return null;
 }
 
+/**
+ * 개수 상한을 넘긴 자동 백업 이름 집합을 만든다 (#849).
+ * 최신순으로 keepCount개를 남기고 나머지를 반환한다.
+ * 운영자 백업(버전 없는 이름)은 대상이 아니다.
+ */
+function selectSurplusAutomaticNames(names: string[], keepCount: number): Set<string> {
+  if (keepCount <= 0) {
+    return new Set();
+  }
+
+  const automatic = names
+    .flatMap(name => {
+      const createdAt = getAutomaticBackupCreatedAt(name);
+      return createdAt === null ? [] : [{ name, createdAt }];
+    })
+    // 최신순. 타임스탬프가 같으면 이름으로 안정 정렬해 실행마다 결과가 흔들리지 않게 한다.
+    .sort((a, b) => (b.createdAt - a.createdAt) || a.name.localeCompare(b.name));
+
+  return new Set(automatic.slice(keepCount).map(entry => entry.name));
+}
+
 function classifyNameSelection(
   name: string,
   cutoff: number,
-  includeInterrupted: boolean
+  includeInterrupted: boolean,
+  surplusNames: Set<string>
 ): CleanupSelectionReason | null {
   const sidecarBase = getSidecarBaseName(name);
 
@@ -169,6 +213,10 @@ function classifyNameSelection(
     return 'expired-automatic';
   }
 
+  if (createdAt !== null && surplusNames.has(name)) {
+    return 'surplus-automatic';
+  }
+
   if (createdAt !== null || isOperatorBackupName(name)) {
     return null;
   }
@@ -184,7 +232,8 @@ function classifyInspectedSelection(
   name: string,
   stats: fs.Stats,
   cutoff: number,
-  includeInterrupted: boolean
+  includeInterrupted: boolean,
+  surplusNames: Set<string>
 ): CleanupSelectionReason | null {
   if (!stats.isFile()) {
     return null;
@@ -194,7 +243,7 @@ function classifyInspectedSelection(
     return 'zero-byte-backup';
   }
 
-  return classifyNameSelection(name, cutoff, includeInterrupted);
+  return classifyNameSelection(name, cutoff, includeInterrupted, surplusNames);
 }
 
 function getIdentity(stats: fs.Stats): FileIdentity {
@@ -557,7 +606,8 @@ export class BackupManager {
   async cleanupBackups(options: CleanupOptions = {}): Promise<CleanupReport> {
     const mode: CleanupMode = options.mode === 'apply' ? 'apply' : 'preview';
     const now = options.now ?? new Date();
-    const cutoff = now.getTime() - 30 * DAY_MS;
+    const cutoff = now.getTime() - AUTOMATIC_RETENTION_DAYS * DAY_MS;
+    const keepCount = options.keepCount ?? AUTOMATIC_RETENTION_COUNT;
     let names: string[];
 
     try {
@@ -566,14 +616,17 @@ export class BackupManager {
       return emptyCleanupReport(mode, 'scan-failed');
     }
 
+    // 개수 상한은 이름 하나만 봐서는 판정할 수 없어 전체 목록에서 먼저 계산한다.
+    const surplusNames = selectSurplusAutomaticNames(names, keepCount);
+
     const candidates = names.sort().flatMap<CleanupCandidate>(name => {
       const includeInterrupted = options.includeInterrupted ?? false;
-      const nameReason = classifyNameSelection(name, cutoff, includeInterrupted);
+      const nameReason = classifyNameSelection(name, cutoff, includeInterrupted, surplusNames);
       const path = join(this.backupsDir, name);
 
       try {
         const stats = fs.lstatSync(path);
-        const reason = classifyInspectedSelection(name, stats, cutoff, includeInterrupted);
+        const reason = classifyInspectedSelection(name, stats, cutoff, includeInterrupted, surplusNames);
 
         if (reason === null) {
           return [];

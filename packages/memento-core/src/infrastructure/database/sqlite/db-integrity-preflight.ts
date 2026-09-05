@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { createHash } from 'node:crypto';
 import fs from 'fs';
 import { basename, dirname, extname, join } from 'path';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
@@ -40,55 +41,118 @@ function buildQuarantinePath(dbPath: string, now: Date): string {
   return join(quarantineDir, `${baseName}-corrupt-${formatTimestamp(now)}${ext || '.db'}`);
 }
 
-const QUARANTINE_DEDUP_WINDOW_MS = 15 * 60 * 1000;
+/**
+ * 격리 스냅샷 보존 개수 (#849). 초과분은 오래된 것부터 지운다.
+ */
+const QUARANTINE_RETENTION_COUNT = 5;
 
-function findRecentQuarantineSnapshot(dbPath: string, now: Date): string | null {
-  const quarantineDir = join(dirname(dbPath), 'quarantine');
-  if (!fs.existsSync(quarantineDir)) {
+function hashFile(path: string): string | null {
+  try {
+    return createHash('sha256').update(fs.readFileSync(path)).digest('hex');
+  } catch {
     return null;
   }
+}
+
+function listQuarantineSnapshots(
+  dbPath: string
+): Array<{ path: string; size: number; mtimeMs: number }> {
+  const quarantineDir = join(dirname(dbPath), 'quarantine');
+  if (!fs.existsSync(quarantineDir)) {
+    return [];
+  }
+  const ext = extname(dbPath) || '.db';
+  const prefix = `${basename(dbPath, extname(dbPath) || undefined)}-corrupt-`;
+  const found: Array<{ path: string; size: number; mtimeMs: number }> = [];
+
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(quarantineDir);
+  } catch {
+    return [];
+  }
+
+  for (const entry of entries) {
+    if (!entry.startsWith(prefix) || !entry.endsWith(ext)) {
+      continue;
+    }
+    const fullPath = join(quarantineDir, entry);
+    try {
+      const stat = fs.statSync(fullPath);
+      if (stat.isFile()) {
+        found.push({ path: fullPath, size: stat.size, mtimeMs: stat.mtimeMs });
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return found.sort((a, b) => b.mtimeMs - a.mtimeMs);
+}
+
+/**
+ * 이미 같은 내용이 격리돼 있으면 그 경로를 돌려준다 (#849).
+ *
+ * 기존 구현은 15분 창 안에서만 중복을 걸렀는데, 손상 DB 재시도가 그 간격을 넘기면
+ * 같은 파일이 계속 새로 쌓였다. 실측(2026-09-05)에서 39개 중 고유 파일은 2종뿐이었고
+ * 68.7MB짜리가 29벌 남아 3.2GB를 차지했다. 시간 대신 내용 해시로 판정한다.
+ */
+function findDuplicateQuarantineSnapshot(dbPath: string): string | null {
   let sourceStat: fs.Stats;
   try {
     sourceStat = fs.statSync(dbPath);
   } catch {
     return null;
   }
-  const baseName = basename(dbPath, extname(dbPath) || undefined);
-  const prefix = `${baseName}-corrupt-`;
-  const entries = fs.readdirSync(quarantineDir);
-  let newest: { path: string; mtimeMs: number } | null = null;
-  for (const entry of entries) {
-    if (!entry.startsWith(prefix) || !entry.endsWith(extname(dbPath) || '.db')) {
-      continue;
-    }
-    const fullPath = join(quarantineDir, entry);
-    let stat: fs.Stats;
-    try {
-      stat = fs.statSync(fullPath);
-    } catch {
-      continue;
-    }
-    if (stat.size !== sourceStat.size) {
-      continue;
-    }
-    if (now.getTime() - stat.mtimeMs > QUARANTINE_DEDUP_WINDOW_MS) {
-      continue;
-    }
-    if (!newest || stat.mtimeMs > newest.mtimeMs) {
-      newest = { path: fullPath, mtimeMs: stat.mtimeMs };
+
+  // 해시는 크기가 같은 후보에만 계산한다.
+  const sameSize = listQuarantineSnapshots(dbPath).filter(
+    entry => entry.size === sourceStat.size
+  );
+  if (sameSize.length === 0) {
+    return null;
+  }
+
+  const sourceHash = hashFile(dbPath);
+  if (sourceHash === null) {
+    return null;
+  }
+
+  for (const candidate of sameSize) {
+    if (hashFile(candidate.path) === sourceHash) {
+      return candidate.path;
     }
   }
-  return newest?.path ?? null;
+
+  return null;
+}
+
+/** 보존 개수를 넘긴 오래된 격리 스냅샷을 지운다 (#849). */
+function pruneQuarantineSnapshots(dbPath: string, keepCount: number): void {
+  if (keepCount <= 0) {
+    return;
+  }
+  for (const stale of listQuarantineSnapshots(dbPath).slice(keepCount)) {
+    try {
+      fs.unlinkSync(stale.path);
+    } catch (error) {
+      logger.warn('격리 스냅샷 정리 실패', {
+        path: PIIMasker.mask(stale.path).masked,
+        error: maskError(error).message,
+      });
+    }
+  }
 }
 
 function quarantineDatabaseFile(dbPath: string, now: Date): string {
-  const existing = findRecentQuarantineSnapshot(dbPath, now);
+  const existing = findDuplicateQuarantineSnapshot(dbPath);
   if (existing) {
     return existing;
   }
   const quarantinePath = buildQuarantinePath(dbPath, now);
   fs.mkdirSync(dirname(quarantinePath), { recursive: true });
   fs.copyFileSync(dbPath, quarantinePath);
+  pruneQuarantineSnapshots(dbPath, QUARANTINE_RETENTION_COUNT);
   return quarantinePath;
 }
 
