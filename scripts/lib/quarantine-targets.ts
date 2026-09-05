@@ -89,16 +89,27 @@ export interface FalsePositiveCheck {
 export function crossVerifyTargets(db: CliDatabase): FalsePositiveCheck {
   const positional = countTargets(db);
 
-  // TS 소스의 '\\' 는 SQL 문자열 안에서 백슬래시 1개다. 백슬래시를 먼저 이스케이프해야 한다.
-  const escapedLikeRow = db.prepare(`
-    SELECT COUNT(*) AS n FROM memory_item
-    WHERE type = 'semantic'
-      AND subject IS NOT NULL AND subject <> ''
-      AND pinned = FALSE
-      AND content LIKE
-        replace(replace(replace(trim(subject), '\\', '\\\\'), '_', '\\_'), '%', '\\%') || '_ %'
-        ESCAPE '\\'
-  `).get() as { n: number };
+  // SQLite LIKE is ASCII-case-insensitive by default; FR-002i positional equality is
+  // case-sensitive. Without case_sensitive_like, form-(2) English titles like
+  // subject=`task 4 (#766)` / content=`Task 4 (#766): …` inflate escapedLike
+  // (live 2026-09-05: +6) and falsely block execute.
+  db.pragma('case_sensitive_like = ON');
+  let escapedLike: number;
+  try {
+    // TS 소스의 '\\' 는 SQL 문자열 안에서 백슬래시 1개다. 백슬래시를 먼저 이스케이프해야 한다.
+    const escapedLikeRow = db.prepare(`
+      SELECT COUNT(*) AS n FROM memory_item
+      WHERE type = 'semantic'
+        AND subject IS NOT NULL AND subject <> ''
+        AND pinned = FALSE
+        AND content LIKE
+          replace(replace(replace(trim(subject), '\\', '\\\\'), '_', '\\_'), '%', '\\%') || '_ %'
+          ESCAPE '\\'
+    `).get() as { n: number };
+    escapedLike = escapedLikeRow.n;
+  } finally {
+    db.pragma('case_sensitive_like = OFF');
+  }
 
   const emptySubjectRow = db.prepare(`
     SELECT COUNT(*) AS n FROM memory_item
@@ -107,9 +118,9 @@ export function crossVerifyTargets(db: CliDatabase): FalsePositiveCheck {
 
   return {
     positional,
-    escapedLike: escapedLikeRow.n,
+    escapedLike,
     emptySubject: emptySubjectRow.n,
-    agree: positional === escapedLikeRow.n && emptySubjectRow.n === 0,
+    agree: positional === escapedLike && emptySubjectRow.n === 0,
   };
 }
 
