@@ -4,6 +4,7 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { MemoryEmbeddingService } from '../memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../../domains/search/algorithms/vector-search-engine.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { decodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 
 vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   let currentProvider: EmbeddingProvider = 'minilm';
@@ -111,7 +112,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
           memoryId,
           provider,
           projectionType,
-          embeddingJson,
+          embeddingBlob,
           dim,
           _model,
           dimensions,
@@ -132,7 +133,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
           precision,
           normalized,
           version,
-          embedding: JSON.parse(embeddingJson)
+          embedding: Array.from(decodeFloat32Embedding(embeddingBlob))
         };
         if (existingIdx >= 0) {
           embeddingRows[existingIdx] = record;
@@ -280,7 +281,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
     expect(stored?.dimensions).toBe(targetDimensions);
     expect(stored?.projectionType).toBe('zero_pad');
     expect(stored?.embedding).toHaveLength(targetDimensions);
-    expect(stored?.embedding.slice(0, legacyDimensions)).toEqual(mockEmbedding);
+    expect(stored?.embedding.slice(0, legacyDimensions)).toEqual(Array.from(new Float32Array(mockEmbedding)));
     expect(stored?.embedding.slice(legacyDimensions).every(value => value === 0)).toBe(true);
   });
 });

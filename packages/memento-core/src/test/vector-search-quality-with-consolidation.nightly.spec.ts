@@ -1253,14 +1253,14 @@ describe('벡터 검색 품질 야간 검증', () => {
       // Then: 비교 결과 확인
       expect(comparison).toBeDefined();
       expect(comparison.baseline).toBeDefined();
-      expect(comparison.current).toBeDefined();
-      expect(comparison.changes).toBeDefined();
       expect(comparison.hasDegradation).toBeDefined();
       expect(comparison.degradationDetails).toBeDefined();
       
       // 변화량이 계산되어야 함
-      expect(comparison.changes.orderPreservation.kendallTauChange).toBeDefined();
-      expect(comparison.changes.quality.ndcgChange).toBeDefined();
+      expect(comparison.orderPreservation.kendallTauChange).toBe(
+        orderReport.metrics.kendallTau - baseline.metrics.orderPreservation!.kendallTau
+      );
+      expect(comparison.quality.ndcgChange[5]).toBeDefined();
     });
 
     it('품질 저하 감지 및 알림', async () => {
