@@ -117,6 +117,21 @@ describe('오탐 전수 검증 (FR-002j, SC-003)', () => {
     expect(result.positional).toBe(1);
     expect(result.escapedLike).toBe(1);
   });
+
+  it('ASCII 대소문자만 다른 form-(2) 는 LIKE 오탐으로 세지 않는다', () => {
+    insertMemory(db, {
+      id: 'mem_c4',
+      subject: 'task 4 (#766)',
+      predicate: 'added',
+      object: 'changelog',
+      content: 'Task 4 (#766): Added CHANGELOG section',
+    });
+
+    const result = crossVerifyTargets(db);
+    expect(result.positional).toBe(0);
+    expect(result.escapedLike).toBe(0);
+    expect(result.agree).toBe(true);
+  });
 });
 
 describe('표본과 분포 (FR-002d, FR-003, FR-001c, FR-001d)', () => {

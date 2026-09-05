@@ -18,44 +18,52 @@ export class SemanticMemoryRelations {
   ) {}
 
   ensureRelationTypes(): void {
+    const requiredApplicable = JSON.stringify(['episodic', 'semantic']);
+
+    const hasValidApplicableTypes = (raw: string | null | undefined): boolean => {
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        return Array.isArray(parsed)
+          && parsed.includes('episodic')
+          && parsed.includes('semantic');
+      } catch {
+        return false;
+      }
+    };
+
+    const ensureType = (
+      typeName: 'extracted_from' | 'supported_by',
+      description: string
+    ): void => {
+      const row = DatabaseUtils.get(this.db, `
+        SELECT type_name, applicable_types AS applicableTypes
+        FROM relation_type_registry WHERE type_name = ?
+      `, [typeName]) as { type_name: string; applicableTypes: string | null } | undefined;
+
+      if (!row) {
+        DatabaseUtils.run(this.db, `
+          INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [typeName, 'Structural', description, requiredApplicable, 0.7, 1.1]);
+        logger.debug(`SemanticMemoryUpdateService: ${typeName} 관계 타입 등록`);
+        return;
+      }
+
+      // Live DBs may keep the row with applicable_types=[] after older seeds; heal in place
+      // so validateRelationContract does not block all automatic semantic writes (#847).
+      if (!hasValidApplicableTypes(row.applicableTypes)) {
+        DatabaseUtils.run(this.db, `
+          UPDATE relation_type_registry
+          SET applicable_types = ?
+          WHERE type_name = ?
+        `, [requiredApplicable, typeName]);
+        logger.debug(`SemanticMemoryUpdateService: ${typeName} applicable_types 복구`);
+      }
+    };
+
     try {
-      const extractedFrom = DatabaseUtils.get(this.db, `
-        SELECT type_name FROM relation_type_registry WHERE type_name = ?
-      `, ['extracted_from']) as { type_name: string } | undefined;
-
-      if (!extractedFrom) {
-        DatabaseUtils.run(this.db, `
-          INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-          'extracted_from',
-          'Structural',
-          '추출 관계: Semantic Memory가 Episodic Memory에서 추출됨',
-          JSON.stringify(['episodic', 'semantic']),
-          0.7,
-          1.1
-        ]);
-        logger.debug('SemanticMemoryUpdateService: extracted_from 관계 타입 등록');
-      }
-
-      const supportedBy = DatabaseUtils.get(this.db, `
-        SELECT type_name FROM relation_type_registry WHERE type_name = ?
-      `, ['supported_by']) as { type_name: string } | undefined;
-
-      if (!supportedBy) {
-        DatabaseUtils.run(this.db, `
-          INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-          'supported_by',
-          'Structural',
-          '지지 관계: Episodic Memory가 Semantic Memory에 의해 지지됨',
-          JSON.stringify(['episodic', 'semantic']),
-          0.7,
-          1.1
-        ]);
-        logger.debug('SemanticMemoryUpdateService: supported_by 관계 타입 등록');
-      }
+      ensureType('extracted_from', '추출 관계: Semantic Memory가 Episodic Memory에서 추출됨');
+      ensureType('supported_by', '지지 관계: Episodic Memory가 Semantic Memory에 의해 지지됨');
     } catch (error) {
       logger.warn('SemanticMemoryUpdateService: relation_type_registry 등록 실패', {
         error: error instanceof Error ? error.message : String(error)
