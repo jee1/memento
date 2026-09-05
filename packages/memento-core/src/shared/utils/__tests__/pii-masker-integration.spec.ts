@@ -130,7 +130,8 @@ describe('PII 마스킹 통합 테스트', () => {
     it('로그 파일에 PII가 마스킹되어 저장되어야 함', async () => {
       const email = 'test@example.com';
       const phone = '010-1234-5678';
-      const apiKey = 'sk-1234567890abcdef';
+      // sk- + ≥20 alnum — short stubs used to “pass” only because phone regex ate digits (#854)
+      const apiKey = 'sk-' + 'a'.repeat(48);
       
       await fileLogger.log({
         timestamp: new Date(),
@@ -152,9 +153,8 @@ describe('PII 마스킹 통합 테스트', () => {
       // PII가 마스킹되었는지 확인 (원본이 없어야 함)
       expect(logContent).not.toContain(email);
       expect(logContent).not.toContain(phone);
-      // API 키는 전화번호 패턴과 겹칠 수 있으므로, 원본 전체가 없어야 함
-      const hasFullApiKey = logContent.includes(apiKey);
-      expect(hasFullApiKey).toBe(false);
+      expect(logContent).not.toContain(apiKey);
+      expect(logContent).toContain('[API_KEY]');
       
       // 마스킹 플레이스홀더가 있는지 확인
       expect(logContent).toContain('[EMAIL]');

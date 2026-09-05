@@ -1,0 +1,27 @@
+feature: 667-854-fix-logging-piimasker-epoch-memory_id-phone
+branch: feature/fix-logging-piimasker-epoch-memory_id-phone
+issue: 854
+created: 2026-09-06
+updated: 2026-09-06
+current_phase: review
+executor: /speckit.superspec.execute
+
+phases:
+  constitution: { status: done, updated: 2026-09-06, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1, note: "Q1-Q4 auto-select recommended" }
+  plan: { status: done, updated: 2026-09-06 }
+  tasks: { status: done, updated: 2026-09-06 }
+  execute: { status: done, updated: 2026-09-06, tasks: "T001-T007" }
+  review: { status: done, updated: 2026-09-06, result: PASS }
+
+gates:
+  unit: "pass — phone-boundary 10 + related pii-masker 42 total"
+  lint: "pass — 0 errors (warnings pre-existing)"
+  type_check: "pass"
+  graphify: "pass — rebuilt 6660 nodes"
+
+status: complete
+
+pending:
+  - "커밋/PR (사용자 승인 대기 — 이 세션은 커밋하지 않음)"

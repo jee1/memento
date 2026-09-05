@@ -1,17 +1,17 @@
 <!--
-Sync Impact Report — 2026-09-05 validation (prelude to /speckit.specify #811)
+Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #854)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #811 (misc: repair script export, corruption
-filter placement, recall/remember -32603, diagnostic probe docs, hybrid
-similarity conversion consolidation). No principle, constraint, workflow
-rule, or governance clause was added, removed, or redefined.
+`/speckit.specify` for issue #854 (PIIMasker Korean phone regex lacks
+boundaries; epoch-ms timestamps and memory_id/searchId/event_id become
+`[PHONE]` in all logger output). No principle, constraint, workflow rule,
+or governance clause was added, removed, or redefined.
 Test-first delivery, quality gates, observability/failure isolation, and
 MCP backward-compatibility duties already live in Principles I–V.
-Item-level fixes belong in the feature spec, not a governance amendment.
-`Ratified` and `Last Amended` are unchanged; `Last Amended` still reflects
-the 2026-08-27 governance amendment.
+Item-level phone-mask boundary fixes belong in the feature spec, not a
+governance amendment. `Ratified` and `Last Amended` are unchanged;
+`Last Amended` still reflects the 2026-08-27 governance amendment.
 
 Modified principles: none
 Added sections: none
@@ -29,22 +29,17 @@ Template resolution:
 - `.specify/extensions.yml` absent -> before/after constitution hooks skipped.
 
 Consistency propagation:
-- `.specify/templates/tasks-template.md` — NO CHANGE NEEDED. Still requires
-  tests per Principle I (structural-refactor exception only).
-- `.specify/templates/plan-template.md` — NO CHANGE NEEDED. Constitution Check
-  six-row gate table still maps Principles I–V and Additional Constraints.
-- `.specify/templates/spec-template.md` — NO CHANGE NEEDED. Principle II
-  migration duty remains conditional; plan/tasks templates enforce the gate.
+- `.specify/templates/tasks-template.md` — NO CHANGE NEEDED.
+- `.specify/templates/plan-template.md` — NO CHANGE NEEDED.
+- `.specify/templates/spec-template.md` — NO CHANGE NEEDED.
 - `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
   checkout was initialized with `ai: cursor-agent`).
 - Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`) —
-  NO CHANGE NEEDED for governance text. Feature-spec docs item (diagnostic
-  probe `auto_set_anchor: false`) may amend agent-workflow under #811 scope.
-- `.specify/templates/checklist-template.md` and `agent-file-template.md` —
-  not in the propagation checklist and untouched.
+  NO CHANGE NEEDED for governance text.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/665-811-misc-repair-export-recall/` via `/speckit.specify` #811.
+`specs/667-854-fix-logging-piimasker-epoch-memory_id-phone/` via
+`/speckit.specify` #854.
 -->
 # Memento Constitution
 
