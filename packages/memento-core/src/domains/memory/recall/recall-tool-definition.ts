@@ -3,6 +3,8 @@
  * Zod 검증은 recall-tool-schema.ts의 RecallSchema를 사용.
  */
 
+import { mementoConfig } from '../../../shared/config/index.js';
+
 /** MCP tool inputSchema — RecallTool constructor에 전달 */
 export const RECALL_TOOL_INPUT_SCHEMA = {
   type: 'object',
@@ -15,7 +17,7 @@ export const RECALL_TOOL_INPUT_SCHEMA = {
     type: {
       type: 'string',
       enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'],
-      description: '단일 메모리 타입 지정 (선택사항). 가능하면 항상 명시하는 것을 권장합니다.'
+      description: '단일 메모리 타입 지정. memory_types 를 지정하지 않았다면 필수입니다.'
     },
     key: {
       type: 'string',
@@ -204,5 +206,11 @@ export const RECALL_TOOL_INPUT_SCHEMA = {
       description: 'Project-scoped Memory: 프로젝트 ID로 결과 필터 (Issue #81). 미설정 시 전체 검색'
     }
   },
-  required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
-} as const;
+  // query 등 나머지 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리).
+  required: [],
+  // type 은 memory_types 로 대체 가능해서 required 하나로는 표현할 수 없다.
+  // 런타임이 실제로 강제하는 'type 또는 memory_types' 를 anyOf 로 광고한다 (#853).
+  ...(mementoConfig.typeParamMode === 'error'
+    ? { anyOf: [{ required: ['type'] }, { required: ['memory_types'] }] }
+    : {})
+};

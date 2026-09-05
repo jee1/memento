@@ -11,7 +11,7 @@
 import { mementoConfig } from '../../../shared/config/index.js';
 import { ToolInputValidationError } from '../../../shared/errors/tool-input-validation-error.js';
 import { validateSource } from '../../../shared/validation/source-uri.js';
-import { validateProceduralMemoryFields, validateTypeParam } from '../../../shared/utils/type-param-validator.js';
+import { typeParamRequiredFields, validateProceduralMemoryFields, validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { RememberSchema } from './remember-tool-schema.js';
@@ -46,9 +46,7 @@ export class RememberTool extends BaseTool {
 - 'semantic': 지식과 사실 (무기한 보존). 예: "React Hooks 사용법", "에러 해결 방법", "코드 패턴"
 - 'procedural': 방법과 절차 (무기한 보존). 예: "PRD 기반 작업 목록 생성 절차", "배포 절차"
 - 'core': 에이전트 정체성, 규칙, 지침 (무기한 보존, key-value 형식, always_load 옵션 지원). 예: "나는 도움이 되는 어시스턴트다", "코딩 스타일 규칙"
-- 'vault': 불변 지식, 사실 (무기한 보존, key-value 형식, immutable 옵션 지원). 예: "빛의 속도는 299,792,458 m/s", "수학 공식"
-기본값: 'episodic'`,
-            default: 'episodic'
+- 'vault': 불변 지식, 사실 (무기한 보존, key-value 형식, immutable 옵션 지원). 예: "빛의 속도는 299,792,458 m/s", "수학 공식"`
           },
           key: {
             type: 'string',
@@ -122,7 +120,8 @@ export class RememberTool extends BaseTool {
             default: 'private'
           }
         },
-        required: []
+        // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).
+        required: typeParamRequiredFields(mementoConfig.typeParamMode)
       }
     );
   }
