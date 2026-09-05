@@ -22,9 +22,6 @@ COPY scripts/ ./scripts/
 COPY packages/ ./packages/
 COPY apps/ ./apps/
 
-# Run postinstall scripts now that source code is available
-RUN npm run postinstall
-
 # Workspace 패키지 빌드 (@memento/core, memento-server, client, sync:root-server-dist)
 RUN npm run build:packages
 
