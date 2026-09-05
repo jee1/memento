@@ -95,6 +95,20 @@ export function validateTypeParam(
 }
 
 /**
+ * MCP inputSchema 가 광고하는 제약을 런타임 검증 모드와 일치시킨다 (#853).
+ *
+ * 'error' 모드에서만 type 이 실제로 강제되므로 그 때만 required 에 넣는다.
+ * warn/deprecate 모드에서는 서버가 기본값으로 받아주므로 required 로 광고하면
+ * 스키마가 반대 방향으로 거짓말하게 된다.
+ *
+ * @param mode - 롤아웃 모드
+ * @returns inputSchema.required 에 넣을 필드 목록
+ */
+export function typeParamRequiredFields(mode: TypeParamMode): string[] {
+  return mode === 'error' ? ['type'] : [];
+}
+
+/**
  * 환경 변수에서 롤아웃 모드 읽기
  * 
  * @param envValue - 환경 변수 값
