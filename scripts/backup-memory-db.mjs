@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { openDb } from './lib/cli.ts';
+import { openDb } from './lib/cli-runtime.js';
 import { BackupManager } from '@memento/core';
 /**
  * Create a consistent SQLite backup using the online backup API (not cp/copyFileSync).

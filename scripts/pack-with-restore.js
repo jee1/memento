@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parseArgs as parseCliArgs } from './lib/cli.ts';
+import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 /**
  * `npm pack`이 prepack 이후 실패하면 postpack이 실행되지 않아 node_modules/@memento/{core,agent-integration}이
  * 복사본으로 남을 수 있다. prepack → pack → 복구를 한 프로세스에서 묶어 항상 워크스페이스 링크를 되살린다.

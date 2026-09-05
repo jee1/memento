@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { isMain } from './lib/cli.ts';
+import { isMain } from './lib/cli-runtime.js';
 
 /**
  * 임베딩 백업 스크립트

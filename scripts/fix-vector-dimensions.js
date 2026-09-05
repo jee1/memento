@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { isMain, parseArgs as parseCliArgs } from './lib/cli.ts';
+import { isMain, parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 
 /**
  * 벡터 차원 통일 스크립트

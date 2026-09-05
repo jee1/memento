@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parseArgs as parseCliArgs, openDb } from './lib/cli.ts';
+import { parseArgs as parseCliArgs, openDb } from './lib/cli-runtime.js';
 /**
  * Copy readable rows from a corrupt-but-queryable memory.db into a clean schema shell.
  * Usage (host):
