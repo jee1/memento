@@ -1,31 +1,10 @@
-import Database from 'better-sqlite3';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { parseArgs as parseNodeArgs, type ParseArgsConfig } from 'node:util';
+import type Database from 'better-sqlite3';
+
+/**
+ * 런타임 구현은 cli-runtime.js 에 있다.
+ * `.js` 스크립트가 이 `.ts` 를 import 하면 node_modules 하위에서 타입 스트리핑이
+ * 거절되므로(ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING, #857), 코드는 그쪽에 둔다.
+ */
+export { isMain, openDb, parseArgs } from './cli-runtime.js';
 
 export type CliDatabase = Database.Database;
-
-export function parseArgs(config: ParseArgsConfig = {}) {
-  const args = [...(config.args ?? process.argv.slice(2))];
-  return {
-    ...parseNodeArgs({
-      ...config,
-      args,
-      allowPositionals: config.allowPositionals ?? true,
-      strict: config.strict ?? false,
-    }),
-    args,
-  };
-}
-
-export function openDb(
-  filename: string | Buffer = ':memory:',
-  options?: Database.Options,
-): Database.Database {
-  return new Database(filename, options);
-}
-
-export function isMain(moduleUrl: string): boolean {
-  const entrypoint = process.argv[1];
-  return entrypoint !== undefined && resolve(entrypoint) === fileURLToPath(moduleUrl);
-}

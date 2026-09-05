@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { isMain, parseArgs as parseCliArgs } from './lib/cli.ts';
+import { isMain, parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 
 /**
  * 임베딩 데이터 마이그레이션 스크립트

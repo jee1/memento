@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parseArgs as parseCliArgs } from './lib/cli.ts';
+import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 /**
  * Production dependency audit gate (#756).
  *

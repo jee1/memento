@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parseArgs as parseCliArgs } from './lib/cli.ts';
+import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 /**
  * Safe guard before `docker compose up` / image rebuild:
  * 1) online backup via sqlite backup API

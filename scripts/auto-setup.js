@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { isMain } from './lib/cli.ts';
+import { isMain } from './lib/cli-runtime.js';
 
 import fs from 'fs';
 import path from 'path';
