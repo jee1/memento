@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -7,6 +7,7 @@ import {
   readServerInfo,
   deleteServerInfo,
   resolveServerInfoConfigDir,
+  callToolViaHttp,
 } from './server-info.js';
 
 describe('server-info', () => {
@@ -70,5 +71,38 @@ describe('server-info', () => {
         homedirPath: '/Users/tester',
       })
     ).toBe('/Users/tester/.memento');
+  });
+});
+
+describe('callToolViaHttp', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('ADMIN_API_KEY를 trim한 Bearer 인증 헤더로 전송한다', async () => {
+    vi.stubEnv('ADMIN_API_KEY', '  test-admin-key  ');
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ result: { id: 'memory-1' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(callToolViaHttp(51764, 'remember', { content: 'test', type: 'episodic' }))
+      .resolves.toEqual({ id: 'memory-1' });
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:51764/tools/remember', expect.objectContaining({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test-admin-key' },
+      body: JSON.stringify({ content: 'test', type: 'episodic' }),
+    }));
+  });
+
+  it.each([undefined, '', '   '])('ADMIN_API_KEY가 %s이면 인증 헤더를 생략한다', async (apiKey) => {
+    vi.stubEnv('ADMIN_API_KEY', apiKey);
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ result: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await callToolViaHttp(51764, 'recall', { query: 'test', type: 'episodic' });
+
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:51764/tools/recall', expect.objectContaining({
+      headers: { 'Content-Type': 'application/json' },
+    }));
   });
 });

@@ -22,6 +22,54 @@ npm run start        # 컴파일된 MCP 서버
 npm run start:http   # 컴파일된 HTTP 서버
 ```
 
+### stdio와 HTTP 동시 기동 (#841)
+
+로컬에서 MCP와 CLI·훅·대시보드를 함께 쓰려면 MCP 설치 환경에
+`MEMENTO_HTTP_SIDECAR=1`을 추가합니다. 기본은 꺼짐이며, 같은 프로세스의 DB와 서비스를
+공유합니다. 별도 HTTP 프로세스나 두 번째 core를 만들지 않습니다.
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["memento-mcp-server@latest"],
+      "env": {
+        "MEMENTO_HTTP_SIDECAR": "1",
+        "MCP_SERVER_PORT": "9001",
+        "ADMIN_API_KEY": "<ASCII 키>",
+        "MEMENTO_HTTP_DEFAULT_AGENT_ID": "local-agent"
+      }
+    }
+  }
+}
+```
+
+CLI와 훅을 실행하는 셸에도 **같은 `ADMIN_API_KEY`**를 설정해야 합니다.
+MCP 클라이언트의 `env`는 별도 셸로 전파되지 않습니다. `MEMENTO_CONFIG_DIR`를 지정했다면
+CLI·훅에도 같은 디렉터리를 지정하세요. HTTP 도구 호출은 Bearer 인증을 사용하며,
+토큰이 없으면 `/tools`·`/mcp`는 loopback에서도 401을 반환하고 서버 로그에 안내됩니다.
+`MEMENTO_HTTP_DEFAULT_AGENT_ID`는 owner scope의 기본 에이전트 식별자이므로,
+여러 에이전트의 기억을 분리할 때는 각 클라이언트가 자신의 식별자를 보내야 합니다.
+
+고정 포트 충돌을 피하려면 `MCP_SERVER_PORT=0`을 사용하세요. 실제 할당 포트는
+`~/.memento/server.json`(또는 `MEMENTO_CONFIG_DIR/server.json`)에 기록되고 CLI·훅이 자동으로
+찾습니다. 고정 포트 예시의 대시보드는 `http://127.0.0.1:9001/dashboard`에서 로그인합니다.
+
+같은 설정의 서버가 이미 살아 있으면 그 서버를 사용하고, 같은 DB의 사이드카 기동은
+lock 획득자만 시도합니다. 포트가 이미 사용 중이면 HTTP를 건너뛰며 stdio MCP는 계속
+동작합니다. 다른 HTTP 기동 오류도 stdio를 종료시키지 않습니다.
+MCP 연결 종료·SIGINT·SIGTERM 시 소유한 HTTP 포트와 discovery 파일을 정리합니다.
+강제 종료(SIGKILL) 뒤의 stale 파일은 다음 기동 시 생존 검사로 걸러집니다.
+구버전의 PID lock 파일은 자동 삭제하지 않으므로 모든 관련 프로세스를 중지한 뒤
+DB 디렉터리의 `memento-mcp.lock` 파일을 제거해야 합니다. 새 lock은 디렉터리이며,
+stale 회수 때 남는 `.stale-*` 잔재도 모든 관련 프로세스가 중지된 상태에서만 정리하세요.
+
+로컬 1대에서 에이전트 1~2개를 쓰는 경우에는 사이드카가 간편합니다. 여러 에이전트나
+상시 대시보드가 필요하면 systemd·pm2·Docker로 HTTP 서버를 상시 기동하세요.
+사이드카는 소유한 MCP 프로세스와 함께 종료되며, 다른 stdio 프로세스가 자동으로
+인계받지는 않습니다. 상시 서버와 병용할 때는 같은 DB·설정 디렉터리를 사용합니다.
+
 ## 테스트 및 품질 검증
 
 코드를 커밋하기 전에는 `lint`, `type-check`, `test` 세 가지가 모두 통과해야 합니다. 검색 관련 변경이 있다면 `npm run test:ci:core`로 core 검색 테스트를 별도로 돌려 봅니다.

@@ -25,7 +25,7 @@ import cors from 'cors';
 import express from 'express';
 import { existsSync, readFileSync } from 'fs';
 import helmet from 'helmet';
-import { createServer } from 'http';
+import { createServer, type Server } from 'http';
 import { join } from 'path';
 import {
   injectReviewQueueBootIntoDashboardHtml,
@@ -70,6 +70,12 @@ import { setupWebSocketServer } from './http-server-websocket.js';
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
 let adminSessionStore: SessionStore | null = null;
+let ownsCore = true;
+
+export type HttpServerDependencies = {
+  database: Database.Database;
+  serverServices: ServerServices;
+};
 
 const transports: Record<string, SSETransport> = {};
 
@@ -414,6 +420,8 @@ async function initializeServer() {
 }
 
 export async function cleanup() {
+  await closeHttpServer();
+  if (!ownsCore) return;
   await performCleanup({
     getDb: () => db,
     setDb: (v) => { db = v; },
@@ -425,14 +433,37 @@ export async function cleanup() {
 
 // WebSocket 서버 설정
 const wss = new WebSocketServer({ server });
+function isSidecarPortConflict(error: unknown): boolean {
+  return !ownsCore && error instanceof Error && 'code' in error && error.code === 'EADDRINUSE';
+}
+wss.on('error', (error) => {
+  if (!isSidecarPortConflict(error)) logger.error('WebSocket 서버 오류', { error });
+});
 setupWebSocketServer(wss, anchorMapSubscribers, () => db, () => serverServices);
 
+/** Stop HTTP-owned resources without touching the shared core. */
+export async function closeHttpServer(): Promise<void> {
+  for (const [sessionId, transport] of Object.entries(transports)) {
+    clearInterval(transport.keepAliveInterval);
+    transport.res.end();
+    delete transports[sessionId];
+  }
+  for (const client of wss.clients) client.terminate();
+  anchorMapSubscribers.clear();
+  await new Promise<void>((resolve) => wss.close(() => resolve()));
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+    server.closeAllConnections();
+  });
+  adminSessionStore = null;
+}
+
 // 서버 시작
-export async function startServer() {
+export async function startServer(deps?: HttpServerDependencies): Promise<Server> {
   // DB·스케줄러 기동 전에 설정·보안 정책을 검사해 실패 시 리소스가 남지 않게 한다.
   validateConfig();
 
-  const PORT = mementoConfig.port || 9001;
+  const PORT = mementoConfig.port ?? 9001;
   const bindHostRaw = (mementoConfig.httpListenHost || '127.0.0.1').trim();
   const bindHostListen = canonicalizeHttpBindHostForListen(bindHostRaw);
   const bindHostForUrl = formatHttpBindHostForUrl(bindHostRaw);
@@ -470,49 +501,69 @@ export async function startServer() {
 
   logger.info(getHttpAuthTrustModelNotice());
 
+  ownsCore = deps === undefined;
+  if (deps) {
+    db = deps.database;
+    serverServices = deps.serverServices;
+  }
+
   try {
     await initializeServer();
-  } catch (error) {
-    logger.error('서버 초기화 실패 — 리소스 정리 시도', { error });
-    await cleanup();
-    throw error instanceof Error ? error : new Error(String(error));
-  }
 
-  // 정리 핸들러 등록 (초기화 성공 후)
-  registerCleanupHandlers(cleanup, writeRuntimeDiagnosticsEvent);
-
-  // 이미 리스닝 중이면 먼저 종료
-  if (server.listening) {
-    logger.warn('서버가 이미 리스닝 중입니다. 종료 후 재시작합니다');
-    await new Promise<void>((resolve) => {
-      server.close(() => {
-        resolve();
+    // 이미 리스닝 중이면 먼저 종료
+    if (server.listening) {
+      logger.warn('서버가 이미 리스닝 중입니다. 종료 후 재시작합니다');
+      await new Promise<void>((resolve) => {
+        server.close(() => {
+          resolve();
+        });
       });
-    });
-  }
+    }
 
-  server.listen(Number(PORT), bindHostListen, () => {
-    logger.info('서버 시작 완료', {
-      http: `http://${bindHostForUrl}:${PORT}`,
-      websocket: `ws://${bindHostForUrl}:${PORT}`,
-      api_docs: `http://${bindHostForUrl}:${PORT}/tools`,
-      health: `http://${bindHostForUrl}:${PORT}/health`
+    await new Promise<void>((resolve, reject) => {
+      const onError = (error: Error) => {
+        server.off('error', onError);
+        server.off('listening', onListening);
+        reject(error);
+      };
+      const onListening = () => {
+        server.off('error', onError);
+        resolve();
+      };
+      server.once('error', onError);
+      server.once('listening', onListening);
+      try {
+        server.listen(Number(PORT), bindHostListen);
+      } catch (error) {
+        onError(error instanceof Error ? error : new Error(String(error)));
+      }
     });
-  });
-
-  server.on('listening', () => {
     const address = server.address();
     if (address && typeof address === 'object') {
+      logger.info('서버 시작 완료', {
+        http: `http://${bindHostForUrl}:${address.port}`,
+        websocket: `ws://${bindHostForUrl}:${address.port}`,
+        api_docs: `http://${bindHostForUrl}:${address.port}/tools`,
+        health: `http://${bindHostForUrl}:${address.port}/health`
+      });
       logger.info('서버 바인딩 완료', { address: address.address, port: address.port });
       const configDir = resolveServerInfoConfigDir();
-      void writeServerInfo(configDir, address.port).catch((error) => {
+      await writeServerInfo(configDir, address.port).catch((error) => {
         logger.error('server.json 기록 실패', {
           error: error instanceof Error ? error.message : String(error),
           configDir,
         });
       });
     }
-  });
+    if (ownsCore) registerCleanupHandlers(cleanup, writeRuntimeDiagnosticsEvent);
+    return server;
+  } catch (error) {
+    if (!isSidecarPortConflict(error)) {
+      logger.error('서버 시작 실패 — 리소스 정리 시도', { error });
+    }
+    await cleanup();
+    throw error instanceof Error ? error : new Error(String(error));
+  }
 }
 
 export const __test: {

@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- **CLI HTTP 인증** (#841): `callToolViaHttp`가 `ADMIN_API_KEY`를 Bearer 헤더로 보내 CLI·훅의 인증 경로를 맞춥니다. `MCP_SERVER_PORT=0`을 보존해 실제 할당 포트로 서버를 검색할 수 있습니다.
 - **misc repair export · injection 손상 필터 · MCP -32602 · hybrid 유사도** (#811): `memory:repair-triple-sentences`용 `@memento/core` export 스모크를 추가하고, `memory_injection` 후보의 손상 triple 문장(`hasBrokenTripleConjugation`)을 adaptive overfetch+조기 필터로 예산 고갈을 막습니다(`함합니다` #781 정책 유지). recall/remember 입력 검증은 `ToolInputValidationError` → JSON-RPC `-32602`로 매핑합니다(스키마 불변). 하이브리드 검색은 SQL이 `vector_distance`를 반환하고 유사도 변환은 `cosineDistanceToSimilarity`만 사용합니다. 진단 프로브는 `auto_set_anchor: false`를 문서화했습니다.
 - **Semantic triple predicate 정규화 게이트** (#813): `TripleNormalizer`가 구·영문·재조립불가 predicate를 pass-through하지 않고 drop합니다(형태 (2) 폴백 차단). 수용분만 semantic/`kg_triple`에 남고, skip reason·카운터는 metadata/로그에만 기록됩니다(MCP recall/remember 스키마 불변). 전부 게이트 실패해도 remember·변환 primary 경로는 soft-success입니다. 운영 관측: `npm run memory:kg-triple-predicate-quality`(read-only JSON, `--sample-limit`≤20).
 - **관계 추출기의 조용한 규칙 기반 폴백** (#819): `RelationExtractor`가 `LLMBasedRelationExtractor.isAvailable()`을 동기로 호출했는데, `preferredProvider`는 생성자의 비동기 초기화가 끝난 뒤에야 정해집니다. remember·`extract_relations` 모두 요청마다 추출기를 새로 만들기 때문에 이 판정은 항상 초기화 이전 상태를 봤고, LLM이 설정돼 있어도 관계 추출이 한 번도 시도되지 않았습니다. 초기화 완료를 기다린 뒤 판정하는 `isAvailableAsync()`를 추가하고 두 판정 지점을 그쪽으로 옮겼습니다. 규칙 기반 고신뢰 결과가 나오는 빠른 경로는 판정 자체를 하지 않으므로 대기가 붙지 않습니다.
@@ -47,6 +48,7 @@
 
 ### Added
 
+- **Opt-in stdio HTTP 사이드카** (#841): `MEMENTO_HTTP_SIDECAR=1`로 stdio가 만든 core를 공유하는 HTTP 서버를 기동합니다. 기존 서버 검색·단일 기동 lock·포트 충돌 격리·소유한 HTTP 리소스 종료를 지원하며 기본값은 꺼짐입니다. 설정 및 운영 방식은 `docs/agents/commands.md`를 참고하세요.
 - **Backup backlog cleanup operator docs** (#065): `db:backup:cleanup` preview와 `db:backup:cleanup -- --apply` 사용법을 Docker/agent/script 문서에 추가했습니다. Apply 전 MCP 서버·restore·다른 cleanup/backup 작업 중지, 절대 `DB_PATH` 사용(`~` 미확장), preview 기본값, non-zero operator backup 보존, 오류/cleanup report의 경로 비노출 계약을 명시했습니다. 재현 원인은 migration main-file copy, operator validation 전 sidecar cleanup, production에서 호출되지 않던 넓은 `mtime` cleanup helper였습니다.
 - **Production recall funnel + ranking hash** (#786): production adapter records per-query stages `raw_text → text_topN → raw_vector → thresholded_vector → union → final_top10` with gold any/all/fraction. Scorecard `ranking_version` is `ranking-sha256:…`; reproduction includes clean git SHA, weights-path override, eligible/excluded query ID hashes. Ranking algorithm unchanged in this slice.
 - **remember write-path near-duplicate** (#730): `remember`가 INSERT 직전에 동일 `type`·`owner_id`·`project_id` 스코프에서 벡터 유사 후보를 검색합니다. 기본 `MEMENTO_REMEMBER_DEDUP_MODE=warn`은 저장 성공 + `similarity_warning`(candidates·`suggestion: incremental`). `strict`는 거절, `update_mode=incremental`은 working/episodic/semantic top 후보 UPDATE. env: `MEMENTO_REMEMBER_DEDUP_THRESHOLD`(기본 0.85).
