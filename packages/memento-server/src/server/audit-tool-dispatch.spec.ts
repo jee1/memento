@@ -119,7 +119,11 @@ describe('tool dispatch audit', () => {
     ).catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(McpError);
-    expect(error).toMatchObject({ code: -32602, protocolMessage: 'Invalid params' });
+    // #861: 이유가 protocolMessage 에 들어가야 클라이언트가 그대로 보여준다.
+    expect(error).toMatchObject({
+      code: -32602,
+      protocolMessage: expect.stringMatching(/^Invalid params: \S/),
+    });
     expect(new AuditHashChainService(db).list()).toMatchObject([
       { transport: 'mcp_ws', toolOrEndpoint: 'remember', resultStatus: 'failure' },
     ]);
