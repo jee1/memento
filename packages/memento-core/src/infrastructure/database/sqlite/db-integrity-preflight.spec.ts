@@ -95,6 +95,79 @@ describe('runDatabaseIntegrityPreflight', () => {
     expect(quarantineEntries.length).toBe(1);
   });
 
+  // #849: 기존 구현은 15분 창 안에서만 중복을 걸러, 재시도 간격이 그보다 길면
+  // 같은 파일이 계속 새로 쌓였다. 실측(2026-09-05)에서 39개 중 고유 파일은 2종뿐이었다.
+  it('reuses an identical quarantine snapshot even when the crash loop spans days', () => {
+    const { dir, dbPath } = createDbPath('memento-preflight-dedup-longloop-');
+    cleanupDirs.push(dir);
+
+    const db = new Database(dbPath);
+    db.exec('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)');
+    db.exec("INSERT INTO sample(value) VALUES ('broken')");
+    db.close();
+
+    const raw = new Database(dbPath);
+    raw.pragma('wal_checkpoint(TRUNCATE)');
+    raw.close();
+
+    const size = statSync(dbPath).size;
+    const fd = openSync(dbPath, 'r+');
+    ftruncateSync(fd, Math.max(100, Math.floor(size / 2)));
+    closeSync(fd);
+
+    // 15분 창을 한참 넘긴 간격으로 반복 구동한다.
+    const attempts = [
+      '2026-04-22T01:02:03.456Z',
+      '2026-04-22T13:02:03.456Z',
+      '2026-04-23T01:02:03.456Z',
+      '2026-06-15T12:07:06.369Z',
+    ];
+    for (const at of attempts) {
+      expect(() => runDatabaseIntegrityPreflight(dbPath, new Date(at)))
+        .toThrow(/데이터베이스 무결성 사전 검사 실패/);
+    }
+
+    // 내용이 같으므로 스냅샷은 최초 1개만 남아야 한다.
+    expect(readdirSync(join(dir, 'quarantine'))).toEqual([
+      'memory-corrupt-2026-04-22T01-02-03-456Z.db',
+    ]);
+  });
+
+  it('keeps quarantine snapshots bounded when the corruption content changes', () => {
+    const { dir, dbPath } = createDbPath('memento-preflight-retention-');
+    cleanupDirs.push(dir);
+
+    // 매번 내용이 달라지는 손상을 만들어 중복 제거로는 막을 수 없는 상황을 만든다.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      rmSync(dbPath, { force: true });
+      const db = new Database(dbPath);
+      db.exec('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)');
+      for (let row = 0; row <= attempt; row++) {
+        db.prepare('INSERT INTO sample(value) VALUES (?)').run(`broken-${attempt}-${row}`);
+      }
+      db.close();
+
+      const checkpoint = new Database(dbPath);
+      checkpoint.pragma('wal_checkpoint(TRUNCATE)');
+      checkpoint.close();
+
+      const size = statSync(dbPath).size;
+      const fd = openSync(dbPath, 'r+');
+      ftruncateSync(fd, Math.max(100, Math.floor(size / 2)) + attempt);
+      closeSync(fd);
+
+      const at = new Date(Date.parse('2026-04-22T00:00:00.000Z') + attempt * 24 * 60 * 60 * 1000);
+      expect(() => runDatabaseIntegrityPreflight(dbPath, at))
+        .toThrow(/데이터베이스 무결성 사전 검사 실패/);
+    }
+
+    // 보존 개수(5) 를 넘지 않고, 남은 것은 최신 5개여야 한다.
+    const entries = readdirSync(join(dir, 'quarantine')).sort();
+    expect(entries).toHaveLength(5);
+    expect(entries[0]).toBe('memory-corrupt-2026-04-25T00-00-00-000Z.db');
+    expect(entries[4]).toBe('memory-corrupt-2026-04-29T00-00-00-000Z.db');
+  });
+
   it('fails fast without quarantine for a non-database access error', () => {
     const dir = mkdtempSync(join(tmpdir(), 'memento-preflight-access-'));
     cleanupDirs.push(dir);

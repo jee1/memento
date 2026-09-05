@@ -618,6 +618,76 @@ describe('BackupManager', () => {
       expect(backupDirectoryNames()).toEqual([...currentAutomatic, ...operator].sort());
     });
 
+    // #849: 생성 속도가 보존 기간을 압도하는 회귀 시나리오.
+    //
+    // 실측(2026-09-05) 자동 백업이 762개/일 생성돼 24일간 18,292개가 쌓였는데,
+    // 전부 30일 보존 기간 이내라 기간 기준으로는 한 건도 선별되지 않았다.
+    // #814/PR #818이 기간 상한만 넣어 재발한 지점이므로 개수 상한으로 묶는지 검증한다.
+    it('bounds the directory by count when every automatic backup sits inside the retention window', async () => {
+      const versionsPerRun = 40;
+      const runs = 60;
+      const total = versionsPerRun * runs;
+      const keepCount = 200;
+
+      // 보존 기간 안(now 기준 1~10일 전)에서만 생성한다. 기간 기준으로는 전부 살아남는다.
+      const automatic: string[] = [];
+      for (let run = 0; run < runs; run++) {
+        const runStart = now.getTime() - (10 - (run % 10)) * 24 * 60 * 60 * 1000 + run * 1000;
+        for (let version = 0; version < versionsPerRun; version++) {
+          const stamp = new Date(runStart + version).toISOString().replace(/[:.]/g, '-');
+          automatic.push(`memory-backup-${version + 2}.0-${stamp}.db`);
+        }
+      }
+      expect(new Set(automatic).size).toBe(total);
+
+      const operator = Array.from({ length: 3 }, (_, index) => {
+        const stamp = new Date(now.getTime() - index * 1000).toISOString().replace(/[:.]/g, '-');
+        return `memory-backup-${stamp}.db`;
+      });
+
+      for (const name of [...automatic, ...operator]) {
+        writeBackup(name, 1);
+      }
+
+      // 개수 상한을 끄면 기간 기준만 남는데, 그것만으로는 아무것도 지우지 못한다 (재발 조건).
+      const ageOnly = await backupManager.cleanupBackups({ mode: 'preview', now, keepCount: 0 });
+      expect(ageOnly.selectedCount).toBe(0);
+      expect(ageOnly.ignoredCount).toBe(total + operator.length);
+
+      const preview = await backupManager.cleanupBackups({ mode: 'preview', now, keepCount });
+      expectInvariants(preview);
+      expect(preview.selectedCount).toBe(total - keepCount);
+      expect(preview.artifacts.every(artifact => artifact.reason === 'surplus-automatic')).toBe(true);
+      expect(backupDirectoryNames()).toHaveLength(total + operator.length);
+
+      const apply = await backupManager.cleanupBackups({ mode: 'apply', now, keepCount });
+      expect(apply.ok).toBe(true);
+      expect(apply.deletedCount).toBe(total - keepCount);
+
+      // 운영자 백업은 개수 상한 대상이 아니므로 그대로 남는다.
+      const remaining = backupDirectoryNames();
+      expect(remaining).toHaveLength(keepCount + operator.length);
+      for (const name of operator) {
+        expect(remaining).toContain(name);
+      }
+
+      // 남은 자동 백업은 최신 keepCount개여야 한다.
+      // 파일명은 `memory-backup-<version>-<stamp>.db` 라 버전이 앞에 와서
+      // 사전순과 시간순이 다르다. 타임스탬프를 뽑아 비교한다.
+      const stampOf = (name: string): string =>
+        name.replace(/^memory-backup-[^-]+-/, '').replace(/\.db$/, '');
+      const newestAutomatic = [...automatic]
+        .sort((a, b) => stampOf(b).localeCompare(stampOf(a)) || a.localeCompare(b))
+        .slice(0, keepCount)
+        .sort();
+      expect(remaining.filter(name => !operator.includes(name))).toEqual(newestAutomatic);
+
+      // 멱등: 상한 이내로 줄어든 뒤에는 더 선별하지 않는다.
+      const secondApply = await backupManager.cleanupBackups({ mode: 'apply', now, keepCount });
+      expect(secondApply.selectedCount).toBe(0);
+      expect(backupDirectoryNames()).toHaveLength(keepCount + operator.length);
+    });
+
     it('previews fixed filename retention without selecting operator backups or non-file children', async () => {
       const expiredAutomatic = 'memory-backup-2.0-2026-06-01T00-00-00-000Z.db';
       const inspectFailedAutomatic = 'memory-backup-2.0-2026-06-02T00-00-00-000Z.db';
