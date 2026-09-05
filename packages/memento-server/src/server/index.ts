@@ -25,17 +25,21 @@ import Database from 'better-sqlite3';
 import type { Server as HttpServer } from 'node:http';
 import packageJson from '../../package.json' with { type: 'json' };
 import { mcpLogger } from './mcp-logger.js';
-import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
+import { deleteServerInfo, isServerAlive, readServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import { ServerState } from './server-state.js';
-import { releaseLock } from './utils/instance-lock.js';
+import { releaseLock, tryAcquireLock } from './utils/instance-lock.js';
 import { dispatchTool } from './audit-tool-dispatch.js';
-import { startServer as startHttpServer } from './http-server.js';
+import { closeHttpServer, startServer as startHttpServer } from './http-server.js';
 
 // 전역 상태 및 인스턴스
 let server: Server;
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
 let mgmtHttpServer: HttpServer | null = null;
+let mgmtConfigDir: string | null = null;
+let heavyInitPromise: Promise<void> | null = null;
+let cleanupPromise: Promise<void> | null = null;
+let shuttingDown = false;
 
 const serverState = ServerState.getInstance();
 serverState.setMcpServerInitialized(false);
@@ -78,10 +82,29 @@ async function runHeavyInit() {
     serverServices = core.services;
     resolveInit();
     mcpLogger.logServer('info', '서버 초기화 완료 및 서비스 시작');
+    await startHttpSidecar();
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     try { if (db) { closeDatabase(db); db = null; } } catch { /* ignore */ }
     rejectInit(err);
+  }
+}
+
+async function startHttpSidecar(): Promise<void> {
+  if (process.env.MEMENTO_HTTP_SIDECAR !== '1' || shuttingDown || !db || !serverServices) return;
+  try {
+    const configDir = resolveServerInfoConfigDir();
+    const existing = await readServerInfo(configDir);
+    if (existing && await isServerAlive(existing)) return;
+    if (shuttingDown || !tryAcquireLock(process.env.DB_PATH ?? mementoConfig.dbPath).acquired) return;
+    mgmtHttpServer = await startHttpServer({ database: db, serverServices });
+    mgmtConfigDir = configDir;
+  } catch (error) {
+    releaseLock();
+    // Optional HTTP must never reject the stdio core initialization.
+    if ((error as NodeJS.ErrnoException)?.code !== 'EADDRINUSE') {
+      mcpLogger.logServer('warn', 'HTTP sidecar 기동 실패; stdio MCP는 계속 실행됩니다');
+    }
   }
 }
 
@@ -127,24 +150,30 @@ export async function startServer() {
       }
     );
 
+    let resolveShutdown!: () => void;
+    const shutdown = new Promise<void>((resolve) => { resolveShutdown = resolve; });
+    const handleShutdown = async (signal: string) => {
+      mcpLogger.logServer('info', `Server received ${signal}, cleaning up...`);
+      await cleanup();
+      resolveShutdown();
+      process.exit(0);
+    };
+    server.onclose = () => { void handleShutdown('stdio close'); };
+    // The SDK transport does not forward stdin EOF to Server.onclose.
+    process.stdin.once('end', () => { void handleShutdown('stdio close'); });
+    process.on('SIGINT', () => { void handleShutdown('SIGINT'); });
+    process.on('SIGTERM', () => { void handleShutdown('SIGTERM'); });
+
     registerHandlers();
     await server.connect(transport);
+    if (shuttingDown) return shutdown;
     
     serverState.setMcpTransportConnected(true);
     serverState.setMcpServerInitialized(true);
     
-    void runHeavyInit();
+    heavyInitPromise = runHeavyInit();
     
-    return new Promise<void>((resolve) => {
-      const handleShutdown = async (signal: string) => {
-        mcpLogger.logServer('info', `Server received ${signal}, cleaning up...`);
-        await cleanup();
-        resolve();
-        process.exit(0);
-      };
-      process.on('SIGINT', () => handleShutdown('SIGINT'));
-      process.on('SIGTERM', () => handleShutdown('SIGTERM'));
-    });
+    return shutdown;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     process.stderr.write(`\n[ERROR] MCP Server Start Failed: ${err.message}\n`);
@@ -155,11 +184,24 @@ export async function startServer() {
 /**
  * 리소스 정리
  */
-export async function cleanup() {
+export function cleanup(): Promise<void> {
+  shuttingDown = true;
+  cleanupPromise ??= performStdioCleanup();
+  return cleanupPromise;
+}
+
+async function performStdioCleanup(): Promise<void> {
+  // Do not close the shared DB while initialization/listen is still using it.
+  await heavyInitPromise;
   if (mgmtHttpServer) {
-    await deleteServerInfo(resolveServerInfoConfigDir());
-    await new Promise(r => mgmtHttpServer!.close(r));
+    const address = mgmtHttpServer.address();
+    await closeHttpServer();
+    const info = mgmtConfigDir ? await readServerInfo(mgmtConfigDir) : null;
+    if (mgmtConfigDir && info?.pid === process.pid && address && typeof address === 'object' && info.port === address.port) {
+      await deleteServerInfo(mgmtConfigDir);
+    }
     mgmtHttpServer = null;
+    mgmtConfigDir = null;
   }
   
   if (serverServices) {
@@ -207,12 +249,16 @@ export async function cleanup() {
 
 /** 테스트 전용 의존성 주입 도구 */
 export const __test = {
+  runHeavyInit: () => { heavyInitPromise = runHeavyInit(); return heavyInitPromise; },
   setTestDependencies: (deps: { 
     database: Database.Database | null, 
     serverServices: ServerServices | null 
   }) => {
     db = deps.database;
     serverServices = deps.serverServices;
+    heavyInitPromise = null;
+    cleanupPromise = null;
+    shuttingDown = false;
   }
 };
 
@@ -243,7 +289,7 @@ export function resolveServerStart(transportType = process.env.TRANSPORT_TYPE) {
 
 if (isMainModule) {
   Promise.resolve()
-    .then(() => resolveServerStart()())
+    .then(async () => { await resolveServerStart()(); })
     .catch((error: unknown) => {
       const err = error instanceof Error ? error : new Error(String(error));
       process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);

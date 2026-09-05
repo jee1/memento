@@ -93,9 +93,13 @@ export async function callToolViaHttp(
   toolName: string,
   params: Record<string, unknown>,
 ): Promise<unknown> {
+  const apiKey = process.env.ADMIN_API_KEY?.trim();
   const res = await fetch(`http://localhost:${port}/tools/${toolName}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    },
     body: JSON.stringify(params),
     signal: AbortSignal.timeout(30_000),
   });
