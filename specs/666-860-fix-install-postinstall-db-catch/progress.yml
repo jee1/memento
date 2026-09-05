@@ -1,0 +1,28 @@
+feature: 666-860-fix-install-postinstall-db-catch
+branch: feature/fix-install-postinstall-db-catch
+issue: 860
+created: 2026-09-05
+updated: 2026-09-05
+current_phase: review
+executor: /speckit.superspec.execute
+
+phases:
+  constitution: { status: done, updated: 2026-09-05, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-05 }
+  brainstorm: { status: done, updated: 2026-09-05, sessions: 1, note: "Q1-Q4 auto-select recommended" }
+  plan: { status: done, updated: 2026-09-05 }
+  tasks: { status: done, updated: 2026-09-05 }
+  execute: { status: done, updated: 2026-09-05, tasks: "T001-T011" }
+  review: { status: done, updated: 2026-09-05, result: PASS }
+
+gates:
+  unit: "pass — postinstall-db-init.spec.ts 3 + js-scripts-no-ts-import 2"
+  pack_smoke: "pass — postinstall DB file present (smoke DB_PATH)"
+  lint: "pass — 0 errors"
+  type_check: "pass"
+  graphify: "pass — rebuilt 6657 nodes"
+
+status: complete
+
+pending:
+  - "커밋/PR (사용자 승인 대기 — 이 세션은 커밋하지 않음)"

@@ -133,6 +133,9 @@ function runEmptyTempInstallSmoke(tgzPath, packEnv) {
 
   const smokeRoot = mkdtempSync(join(tmpdir(), 'memento-pack-smoke-'));
   const installDir = join(smokeRoot, 'app');
+  /** #860: 홈 기본 DB 경로 오염 방지 + postinstall 후 파일 존재 assert */
+  const smokeDbPath = join(smokeRoot, 'smoke-memory.db');
+  const smokeEnv = { ...packEnv, DB_PATH: smokeDbPath };
   try {
     execSync(`mkdir -p "${installDir}"`, { stdio: 'ignore' });
     // package name from tarball → npm install local tgz
@@ -142,7 +145,7 @@ function runEmptyTempInstallSmoke(tgzPath, packEnv) {
       {
         cwd: installDir,
         stdio: 'inherit',
-        env: { ...packEnv, npm_config_cache: join(smokeRoot, 'npm-cache') },
+        env: { ...smokeEnv, npm_config_cache: join(smokeRoot, 'npm-cache') },
       }
     );
     if (install.error) {
@@ -153,6 +156,15 @@ function runEmptyTempInstallSmoke(tgzPath, packEnv) {
       console.error('[verify-npm-pack-bundle] empty-temp npm install 실패 (closure/네이티브 빌드)');
       return install.status ?? 1;
     }
+
+    // #860: postinstall 이 DB 초기화에 성공했는지 (catch 삼킴 회귀 방지)
+    if (!existsSync(smokeDbPath)) {
+      console.error(
+        '[verify-npm-pack-bundle] empty-temp: postinstall 이후 DB 파일이 없습니다 (DB_PATH 스모크 경로). #860'
+      );
+      return 1;
+    }
+    console.log('[verify-npm-pack-bundle] OK — postinstall DB file present (smoke DB_PATH)');
 
     // installed package lives under node_modules/<name>
     const rootPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
@@ -204,7 +216,7 @@ writeFileSync(${JSON.stringify(marker)}, 'ok');
       const probeRun = spawnSync(process.execPath, [join(smokeRoot, 'probe.mjs')], {
         cwd: smokeRoot,
         stdio: 'inherit',
-        env: packEnv,
+        env: smokeEnv,
       });
       if (probeRun.status !== 0 || !existsSync(marker)) {
         console.error('[verify-npm-pack-bundle] empty-temp resolve probe 실패');
@@ -213,7 +225,7 @@ writeFileSync(${JSON.stringify(marker)}, 'ok');
     }
 
     console.log(
-      '[verify-npm-pack-bundle] OK — empty-temp install + resolve smoke (native full boot not required)'
+      '[verify-npm-pack-bundle] OK — empty-temp install + resolve smoke + DB init (native full boot not required)'
     );
     return 0;
   } catch (err) {

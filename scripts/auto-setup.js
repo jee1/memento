@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { isMain } from './lib/cli-runtime.js';
+import { runPostinstallDbInit } from './lib/postinstall-db-init.js';
 
 import fs from 'fs';
 import path from 'path';
@@ -98,20 +99,11 @@ async function createDataDirectory() {
 }
 
 async function initializeDatabase() {
-  try {
-    logStep('데이터베이스 초기화', 'SQLite 데이터베이스 설정 중...');
-
-    // 최신 @memento/core 초기화를 직접 실행
-    execSync('npx tsx packages/memento-core/src/infrastructure/database/sqlite/init.ts', {
-      cwd: projectRoot,
-      stdio: 'inherit'
-    });
-
-    logSuccess('데이터베이스 초기화 완료');
-  } catch (error) {
-    logError(`데이터베이스 초기화 실패: ${error.message}`);
-    logWarning('수동으로 실행하세요: npm run db:init');
-  }
+  logStep('데이터베이스 초기화', 'SQLite 데이터베이스 설정 중...');
+  // #860: tarball 에 packages/ 가 없으므로 @memento/core 공개 API 사용.
+  // 실패를 삼키면 "설치 성공·DB 없음" 위장이 된다 → 호출부로 전파해 비0 종료.
+  await runPostinstallDbInit();
+  logSuccess('데이터베이스 초기화 완료');
 }
 
 async function rebuildNativeModules() {
@@ -265,7 +257,7 @@ async function showUsageInstructions() {
   
   log('\n🔧 문제 해결:');
   log('   - 로그 확인: logs/memento-server.log');
-  log('   - 데이터베이스 재초기화: npm run db:init');
+  log('   - DB 경로 확인: DB_PATH (미설정 시 ~/.memento/memory.db)');
   log('   - 의존성 재설치: rm -rf node_modules && npm install');
   
   log('\n' + '='.repeat(60), 'cyan');
