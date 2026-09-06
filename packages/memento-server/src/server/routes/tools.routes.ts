@@ -7,9 +7,7 @@
 import { getExposedTools, logger } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { Router } from 'express';
-import type { WebSocket } from 'ws';
 import type { ServerServices } from '../bootstrap.js';
-import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
 import { extractToolResultPayload } from '../handlers/tool-result.utils.js';
 import { dispatchTool, mapToolDispatchError } from '../audit-tool-dispatch.js';
 
@@ -25,8 +23,7 @@ function httpStatusForToolError(code: number): number {
 
 export function createToolsRouter(
   db: Database.Database,
-  serverServices: ServerServices | null,
-  anchorMapSubscribers: Map<string, Set<WebSocket>>
+  serverServices: ServerServices | null
 ): Router {
   const router = Router();
 
@@ -73,18 +70,9 @@ export function createToolsRouter(
 
       const actualResult = extractToolResultPayload(toolResult);
 
-      // 앵커 관련 도구 실행 후 WebSocket 브로드캐스트
-      if (name === 'set_anchor' || name === 'clear_anchor') {
-        const agentId = params.agent_id || 'default';
-        // 비동기로 브로드캐스트 (응답 지연 방지)
-        setImmediate(() => {
-          broadcastAnchorMapUpdate(db, serverServices, anchorMapSubscribers, agentId).catch(error => {
-            logger.error('Anchor Map broadcast failed', {
-              error: error instanceof Error ? error.message : String(error)
-            });
-          });
-        });
-      }
+      // Anchor Map 브로드캐스트는 여기서 도구 이름으로 걸지 않는다.
+      // AnchorManager 의 변경 이벤트를 구독해 REST·MCP stdio·/mcp 를 한꺼번에 덮는다
+      // (subscribeAnchorMapBroadcast, #866).
 
       return res.json({
         result: actualResult,

@@ -5,7 +5,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from './anchor-interfaces.js';
+import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, AnchorChangeListener, SearchOptions, SearchResult } from './anchor-interfaces.js';
 import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
@@ -19,6 +19,7 @@ export class AnchorManager implements IAnchorManager {
   private cacheService: IAnchorCacheService;
   private searchService: IAnchorSearchService;
   private errorLoggingService: ErrorLoggingService | null = null;
+  private changeListeners = new Set<AnchorChangeListener>();
 
   /**
    * 슬롯별 설정
@@ -183,6 +184,8 @@ export class AnchorManager implements IAnchorManager {
 
     // 캐시 업데이트
     this.cacheService.updateCache(agentId, slot, memoryId);
+
+    this.emitAnchorChanged(agentId);
   }
 
   /**
@@ -316,6 +319,35 @@ export class AnchorManager implements IAnchorManager {
 
       // 캐시에서 제거
       this.cacheService.deleteCache(agentId);
+    }
+
+    this.emitAnchorChanged(agentId);
+  }
+
+  /**
+   * 앵커 변경 구독 (#866)
+   * @returns 구독 해제 함수
+   */
+  onAnchorChanged(listener: AnchorChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  }
+
+  /**
+   * 앵커 변경 알림. 구독자가 던져도 앵커 쓰기는 이미 끝났으므로 삼키고 로그만 남긴다.
+   */
+  private emitAnchorChanged(agentId: string): void {
+    for (const listener of this.changeListeners) {
+      try {
+        listener(agentId);
+      } catch (error) {
+        logger.error('Anchor change listener failed', {
+          agentId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
   }
 

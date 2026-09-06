@@ -424,3 +424,52 @@ export async function broadcastAnchorMapUpdate(
     });
   }
 }
+
+/** 앵커가 여러 번 연속으로 바뀌는 경로(recall 회전 등)에서 브로드캐스트를 한 번으로 합치는 창. */
+const ANCHOR_BROADCAST_COALESCE_MS = 50;
+
+/**
+ * 앵커 변경 이벤트를 Anchor Map WS 브로드캐스트에 연결한다 (#866).
+ *
+ * 예전에는 REST `/tools/:name` 에서 도구 이름이 set_anchor/clear_anchor 일 때만 브로드캐스트했다.
+ * 그런데 앵커를 실제로 움직이는 주 경로는 recall 이고(auto_set_anchor 기본값 true), MCP stdio·
+ * `/mcp` 경로에는 훅 자체가 없었다. 그래서 트리거를 "도구 이름"이 아니라 "앵커가 실제로 바뀌었는가"
+ * 로 옮긴다 — AnchorManager 는 세 transport 가 공유하므로 한 곳만 구독하면 전부 덮인다.
+ *
+ * @returns 구독 해제 함수
+ */
+export function subscribeAnchorMapBroadcast(
+  anchorManager: ServerServices['anchorManager'] | null,
+  getDb: () => Database.Database | null,
+  getServices: () => ServerServices | null,
+  anchorMapSubscribers: Map<string, Set<WebSocket>>
+): () => void {
+  if (!anchorManager || typeof anchorManager.onAnchorChanged !== 'function') {
+    logger.warn('AnchorManager가 없어 Anchor Map 브로드캐스트를 연결하지 못했습니다');
+    return () => {};
+  }
+
+  // recall 한 번이 clearAnchor + setAnchor 를 여러 번 부르므로 에이전트별로 묶는다.
+  const pending = new Map<string, NodeJS.Timeout>();
+
+  const unsubscribe = anchorManager.onAnchorChanged((agentId: string) => {
+    if (pending.has(agentId)) return;
+    const timer = setTimeout(() => {
+      pending.delete(agentId);
+      broadcastAnchorMapUpdate(getDb(), getServices(), anchorMapSubscribers, agentId).catch(error => {
+        logger.error('Anchor Map broadcast failed', {
+          agentId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      });
+    }, ANCHOR_BROADCAST_COALESCE_MS);
+    timer.unref?.();
+    pending.set(agentId, timer);
+  });
+
+  return () => {
+    unsubscribe();
+    for (const timer of pending.values()) clearTimeout(timer);
+    pending.clear();
+  };
+}

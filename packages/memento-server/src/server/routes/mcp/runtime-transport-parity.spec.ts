@@ -23,6 +23,7 @@ import type { WebSocket, WebSocketServer } from 'ws';
 import { dispatchTool } from '../../audit-tool-dispatch.js';
 import { setupWebSocketServer } from '../../http-server-websocket.js';
 import { createHttpAuditMiddleware } from '../../middleware/http-audit.middleware.js';
+import { subscribeAnchorMapBroadcast } from '../../handlers/anchor-map.handler.js';
 import { createToolsRouter } from '../tools.routes.js';
 import { processMcpMessage } from './message-processor.js';
 import {
@@ -168,6 +169,14 @@ async function waitForMessage(ws: FakeWebSocket): Promise<Record<string, unknown
   return JSON.parse(ws.sent[0]!) as Record<string, unknown>;
 }
 
+/** 브로드캐스트는 50ms 합치기 창을 거치므로 실시간으로 기다린다 (#866). */
+async function waitForBroadcast(ws: FakeWebSocket): Promise<void> {
+  for (let attempt = 0; attempt < 100 && ws.sent.length === 0; attempt += 1) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  expect(ws.sent.length).toBeGreaterThan(0);
+}
+
 async function postJson(
   port: number,
   path: string,
@@ -213,9 +222,17 @@ async function startRestServer(
   app.use(
     '/tools',
     createHttpAuditMiddleware({ database: ctx.db, logPath }),
-    createToolsRouter(ctx.db, ctx.services, anchorMapSubscribers),
+    createToolsRouter(ctx.db, ctx.services),
+  );
+  // 브로드캐스트는 라우터가 아니라 AnchorManager 변경 이벤트에 걸린다 (#866)
+  const unsubscribe = subscribeAnchorMapBroadcast(
+    ctx.services.anchorManager ?? null,
+    () => ctx.db,
+    () => ctx.services,
+    anchorMapSubscribers,
   );
   const server = http.createServer(app);
+  server.on('close', unsubscribe);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   return server;
 }
@@ -269,9 +286,7 @@ describe('runtime transport parity (all four tool wrappers)', () => {
         status: 200,
         body: { result: expect.any(Object), tool: 'set_anchor', timestamp: expect.any(String) },
       });
-      for (let attempt = 0; attempt < 20 && subscriber.sent.length === 0; attempt += 1) {
-        await new Promise<void>((resolve) => setImmediate(resolve));
-      }
+      await waitForBroadcast(subscriber);
       expect(JSON.parse(subscriber.sent[0]!) as Record<string, unknown>)
         .toMatchObject({ type: 'anchor_map_update' });
 
@@ -280,6 +295,40 @@ describe('runtime transport parity (all four tool wrappers)', () => {
         expect.objectContaining({ transport: 'rest', toolOrEndpoint: 'remember' }),
         expect.objectContaining({ transport: 'mcp_http', toolOrEndpoint: 'remember' }),
       ]));
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('#866: broadcasts when recall rotates the anchor, not only for set_anchor', async () => {
+    const subscriber = new FakeWebSocket();
+    // recall 의 앵커 회전은 'default' 에이전트에 붙는다 (응답 metadata.anchor_set.agent_id)
+    const subscribers = new Map<string, Set<WebSocket>>([
+      ['default', new Set([subscriber as unknown as WebSocket])],
+    ]);
+    const server = await startRestServer(ctx, join(tempDir, 'http-audit.jsonl'), subscribers);
+
+    try {
+      const remembered = await postJson(serverPort(server), '/tools/remember', {
+        content: 'anchor rotation broadcast probe',
+        type: 'semantic',
+      });
+      expect(remembered.status).toBe(200);
+      // remember 는 앵커를 건드리지 않으므로 아직 아무것도 오지 않아야 한다
+      expect(subscriber.sent).toHaveLength(0);
+
+      // recall 은 auto_set_anchor 기본값이 true 라 슬롯을 회전시킨다 — 예전 화이트리스트는 이걸 놓쳤다
+      const recalled = await postJson(serverPort(server), '/tools/recall', {
+        query: 'anchor rotation broadcast probe',
+        type: 'semantic',
+      });
+      expect(recalled.status).toBe(200);
+      expect((recalled.body.result as { metadata?: { anchor_set?: unknown } }).metadata?.anchor_set)
+        .toBeTruthy();
+
+      await waitForBroadcast(subscriber);
+      expect(JSON.parse(subscriber.sent[0]!) as Record<string, unknown>)
+        .toMatchObject({ type: 'anchor_map_update' });
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
