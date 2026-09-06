@@ -1,6 +1,6 @@
 /**
  * MiniLM 임베딩 서비스
- * all-MiniLM-L6-v2 모델을 사용한 경량 임베딩 서비스
+ * paraphrase-multilingual-MiniLM-L12-v2 모델을 사용한 경량 다국어 임베딩 서비스 (#889)
  * 
  * 클린코드 원칙:
  * - 단일 책임 원칙: 임베딩 생성만 담당
@@ -9,6 +9,7 @@
  */
 
 import { pipeline, env } from '@huggingface/transformers';
+import { MINILM_MODEL_ID, MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
@@ -56,7 +57,7 @@ if (typeof process !== 'undefined' && process.env) {
 
 export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   // 상수 정의
-  private static readonly MODEL_NAME = 'all-MiniLM-L6-v2';
+  private static readonly MODEL_NAME = MINILM_MODEL_NAME;
   private static readonly DIMENSIONS = 384;
   private static readonly MAX_TOKENS = 256;
   
@@ -218,7 +219,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       // 이는 ERR_WORKER_PATH 에러를 방지합니다
       const model = await pipeline(
         'feature-extraction',
-        'Xenova/all-MiniLM-L6-v2',
+        MINILM_MODEL_ID,
         {
           // q8 모델 사용 (메모리 사용량 감소)
           dtype: 'q8'

@@ -96,6 +96,23 @@ The JSON result reports missing embeddings, dimension mismatches, and provider d
 
 Do not simply update the environment variable and leave existing data as-is.
 
+### Model consistency (#889)
+
+Two embeddings of the same dimension are still incomparable when they come from **different models** — the vector spaces do not line up. `minilm` guards against this automatically.
+
+- Every stored embedding records its model name in `memory_embedding.model`.
+- Vector search only compares rows produced by the model this build uses (`MINILM_MODEL_ID` in `packages/memento-core/src/shared/config/embedding-models.ts`).
+- A half-finished reindex therefore never mixes models in one cosine comparison. The not-yet-reindexed memories simply drop out of vector search until they are rebuilt; FTS still finds them.
+
+Always reindex after changing the model. Watch `modelDriftCount` in the `--dry-run` output; it reaches 0 when the reindex is complete.
+
+```bash
+npm run reindex-embeddings -- --provider minilm --dry-run   # check modelDriftCount
+npm run reindex-embeddings -- --provider minilm --batch-size 100
+```
+
+The default model is `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (384 dimensions, 50 languages). The previous default, `all-MiniLM-L6-v2`, is English-only and ranked unrelated documents above relevant ones for Korean queries.
+
 ### HTTP maintenance API
 
 The HTTP server can run the same work asynchronously when a local CLI is not available. It requires a token with the `admin:destructive` scope; use the returned `statusUrl` to observe completion.

@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
+import { getEmbeddingModelFilter } from '../../../shared/config/embedding-models.js';
 import { vectorCompatibilityService } from './vector-compatibility-service.js';
 
 export interface EmbeddingReindexOptions {
@@ -18,6 +19,12 @@ export interface EmbeddingHealthDiagnostics {
   missingEmbeddingCount: number;
   dimensionMismatchCount: number;
   providerDriftCount: number;
+  /**
+   * #889: provider는 맞지만 현재 모델이 아닌 임베딩 수. 벡터 검색이 이 행들을
+   * 제외하므로(모델이 섞이면 코사인 유사도가 무의미) 재색인이 끝날 때까지 0이 아니다.
+   * 모델을 거르지 않는 provider(openai·gemini 등)는 항상 0이다.
+   */
+  modelDriftCount: number;
 }
 
 export interface EmbeddingReindexResult extends EmbeddingHealthDiagnostics {
@@ -106,6 +113,7 @@ export class EmbeddingReindexService {
 
   diagnose(options: Pick<EmbeddingReindexOptions, 'provider' | 'ownerId'>): EmbeddingHealthDiagnostics {
     const provider = normalizeProvider(options.provider);
+    const modelFilter = getEmbeddingModelFilter(provider);
     const ownerClause = options.ownerId ? ' AND mi.owner_id = ?' : '';
     const row = this.db.prepare(`
       SELECT
@@ -113,7 +121,9 @@ export class EmbeddingReindexService {
         COUNT(DISTINCT me.memory_id) AS provider_embedding_count,
         COUNT(DISTINCT CASE WHEN me.memory_id IS NULL THEN mi.id END) AS missing_embedding_count,
         COUNT(DISTINCT CASE WHEN me.memory_id IS NOT NULL AND me.dim != ? THEN mi.id END) AS dimension_mismatch_count,
-        COUNT(DISTINCT CASE WHEN other.memory_id IS NOT NULL THEN mi.id END) AS provider_drift_count
+        COUNT(DISTINCT CASE WHEN other.memory_id IS NOT NULL THEN mi.id END) AS provider_drift_count,
+        COUNT(DISTINCT CASE WHEN me.memory_id IS NOT NULL
+          AND ? IS NOT NULL AND COALESCE(me.model, '') != ? THEN mi.id END) AS model_drift_count
       FROM memory_item mi
       LEFT JOIN memory_embedding me
         ON me.memory_id = mi.id
@@ -124,9 +134,16 @@ export class EmbeddingReindexService {
         AND other.embedding_provider != ?
         AND other.projection_type = 'native'
       WHERE COALESCE(mi.is_deleted, 0) = 0${ownerClause}
-    `).get(expectedDimensions(provider), provider, provider, ...(options.ownerId ? [options.ownerId] : [])) as {
+    `).get(
+      expectedDimensions(provider),
+      modelFilter,
+      modelFilter ?? '',
+      provider,
+      provider,
+      ...(options.ownerId ? [options.ownerId] : []),
+    ) as {
       memory_count: number; provider_embedding_count: number; missing_embedding_count: number;
-      dimension_mismatch_count: number; provider_drift_count: number;
+      dimension_mismatch_count: number; provider_drift_count: number; model_drift_count: number;
     };
 
     return {
@@ -137,6 +154,7 @@ export class EmbeddingReindexService {
       missingEmbeddingCount: row.missing_embedding_count,
       dimensionMismatchCount: row.dimension_mismatch_count,
       providerDriftCount: row.provider_drift_count,
+      modelDriftCount: row.model_drift_count,
     };
   }
 
