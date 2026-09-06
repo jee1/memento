@@ -1,0 +1,28 @@
+feature: 671-834-admin-jobs-dashboard-phase-3
+branch: feature/feat-admin-jobs-dashboard-phase-3-run-pause-resu
+issue: 834
+created: 2026-09-06
+updated: 2026-09-06
+current_phase: review
+executor: /speckit.superspec.review
+
+phases:
+  constitution: { status: done, updated: 2026-09-06, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1, note: "Q1-Q6 recommended auto-select" }
+  plan: { status: done, updated: 2026-09-06, note: "plan+research+data-model+quickstart+contracts+tasks" }
+  tasks: { status: done, updated: 2026-09-06, note: "T001-T024 done; T025 skipped; T026-T030 review polish" }
+  execute: { status: done, updated: 2026-09-06, note: "US1-US4 complete; dual-run lock fixed in review" }
+  review: { status: pass, updated: 2026-09-06, note: "checklist-review.md PASS; Critical/Important=0" }
+
+gates:
+  unit: pass
+  lint: pass
+  type_check: pass
+  graphify: pass
+
+status: ready_for_commit
+
+pending:
+  - "커밋/PR (명시 요청 전 금지)"
+  - "T025 US5 oldest-age (optional defer)"

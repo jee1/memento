@@ -342,8 +342,9 @@
           <div class="jobs-header-text">
             <h2 class="jobs-title">Batch Jobs</h2>
             <p class="jobs-intro">
-              Schedule table, in-memory queue snapshot, and durable run history.
-              Job runs are persisted to the <strong>job_run</strong> table (schedule + manual triggers, 90-day retention) and survive restarts (#833).
+              Schedule table, in-memory queue snapshot, durable run history, and run logs.
+              Job runs persist in <strong>job_run</strong> / <strong>job_run_log</strong> (#833 / #834).
+              Pause / Resume / Run now / Retry use confirm dialogs; manual Refresh only (no SSE).
             </p>
           </div>
           <button type="button" id="jobs-refresh-btn" class="m-button m-button--secondary">Refresh</button>
@@ -353,7 +354,12 @@
         <p id="jobs-health-summary" class="jobs-health" aria-live="polite"></p>
         <section class="jobs-section" aria-labelledby="jobs-schedule-heading">
           <h3 id="jobs-schedule-heading">Schedule</h3>
-          <p class="jobs-disclaimer">Click a row to load its durable run timeline below.</p>
+          <p class="jobs-disclaimer">Click a row to load its durable run timeline below. Writes require confirmation.</p>
+          <div class="jobs-actions" id="jobs-actions">
+            <button type="button" id="jobs-pause-btn" class="m-button m-button--secondary" disabled>Pause</button>
+            <button type="button" id="jobs-resume-btn" class="m-button m-button--secondary" disabled>Resume</button>
+            <button type="button" id="jobs-run-now-btn" class="m-button m-button--secondary" disabled>Run now</button>
+          </div>
           <div class="jobs-table-wrap">
             <table id="jobs-schedule-table" class="jobs-table">
               <thead>
@@ -377,7 +383,7 @@
         </section>
         <section class="jobs-section" aria-labelledby="jobs-timeline-heading">
           <h3 id="jobs-timeline-heading">Job run timeline — <span id="jobs-timeline-selected">All jobs</span></h3>
-          <p class="jobs-disclaimer">From <code>GET /admin/batch/runs</code> (durable; select a schedule row above to filter).</p>
+          <p class="jobs-disclaimer">From <code>GET /admin/batch/runs</code> (durable; select a row for logs; Retry on failed only).</p>
           <div id="jobs-timeline" class="jobs-table-wrap">
             <table class="jobs-table">
               <thead>
@@ -388,9 +394,29 @@
                   <th scope="col">Ended</th>
                   <th scope="col">Duration ms</th>
                   <th scope="col">Success</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="jobs-timeline-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="jobs-section" aria-labelledby="jobs-logs-heading">
+          <div class="jobs-section-header">
+            <h3 id="jobs-logs-heading">Run logs — <span id="jobs-logs-selected">No run selected</span></h3>
+            <button type="button" id="jobs-logs-refresh-btn" class="m-button m-button--secondary" disabled>Refresh logs</button>
+          </div>
+          <p class="jobs-disclaimer">From <code>GET /admin/batch/runs/:runId/logs</code> (manual Refresh; no SSE) (#834).</p>
+          <div id="jobs-logs" class="jobs-table-wrap">
+            <table class="jobs-table">
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Level</th>
+                  <th scope="col">Message</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-logs-tbody"></tbody>
             </table>
           </div>
         </section>

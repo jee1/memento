@@ -6,7 +6,9 @@ import type { BatchJobConfig } from '../batch-scheduler/batch-scheduler-types.js
 import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { JobRunMigration } from '../../database/sqlite/migration/migrations/044-job-run.js';
+import { JobRunLogMigration } from '../../database/sqlite/migration/migrations/046-job-run-log.js';
 import { JobRunRepository } from '../repositories/job-run-repository.js';
+import { JobRunLogRepository } from '../repositories/job-run-log-repository.js';
 
 function createCoordinator(
   config: Partial<BatchJobConfig>,
@@ -148,6 +150,7 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
   it('appends a schedule-trigger job_run row on success', async () => {
     const db = new Database(':memory:');
     await new JobRunMigration().up(db);
+    await new JobRunLogMigration().up(db);
     const repo = new JobRunRepository();
     try {
       const { coordinator } = createCoordinator({}, vi.fn(), {
@@ -167,9 +170,63 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
     }
   });
 
+  it('flushes MVP boundary log lines after job_run append (#834)', async () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    await new JobRunMigration().up(db);
+    await new JobRunLogMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry('cleanup', async () => {}, 1, 0);
+
+      const rows = repo.list(db, { jobName: 'cleanup' });
+      expect(rows).toHaveLength(1);
+      const logs = new JobRunLogRepository().listByRunId(db, rows[0]!.id);
+      expect(logs.length).toBeGreaterThanOrEqual(2);
+      expect(logs.some(l => l.message.includes('started'))).toBe(true);
+      expect(logs.some(l => l.message.includes('finished'))).toBe(true);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('log flush failure does not flip job success (#834 FR-010)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    // intentionally skip JobRunLogMigration so flush soft-fails
+    const repo = new JobRunRepository();
+    const log = vi.fn();
+    try {
+      const { coordinator } = createCoordinator({}, log, {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await expect(
+        coordinator.executeJobWithRetry('cleanup', async () => {}, 1, 0)
+      ).resolves.toBeUndefined();
+
+      const rows = repo.list(db, { jobName: 'cleanup' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.success).toBe(1);
+      expect(log).toHaveBeenCalledWith(
+        'Job cleanup completed successfully',
+        expect.objectContaining({ retryCount: 0 })
+      );
+    } finally {
+      db.close();
+    }
+  });
+
   it('appends a schedule-trigger job_run row on failure without throwing', async () => {
     const db = new Database(':memory:');
     await new JobRunMigration().up(db);
+    await new JobRunLogMigration().up(db);
     const repo = new JobRunRepository();
     try {
       const { coordinator } = createCoordinator({}, vi.fn(), {

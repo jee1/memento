@@ -70,6 +70,15 @@ export interface BatchJobResult {
   retryCount?: number;
 }
 
+/** Issue #834: dual-run guard for manual Run now / POST /admin/batch/run. */
+export class BatchJobAlreadyRunningError extends Error {
+  override readonly name = 'BatchJobAlreadyRunningError';
+
+  constructor(readonly jobType: string) {
+    super('job already running');
+  }
+}
+
 export interface SchedulerStatus {
   isRunning: boolean;
   activeJobs: string[];

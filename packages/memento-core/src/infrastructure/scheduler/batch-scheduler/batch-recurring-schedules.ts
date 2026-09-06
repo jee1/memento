@@ -101,23 +101,43 @@ export function scheduleWeeklyRelationValidation(ctx: BatchRecurringScheduleCont
   checkAndRun();
 }
 
-export function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringScheduleContext): void {
-  if (ctx.consolidationScoreEnabled && ctx.hasConsolidationScoreWorker) {
-    ctx.scheduleJob(
-      'consolidation_score_incremental',
-      ctx.config.consolidationScoreIncrementalInterval,
-      async () => { await ctx.runConsolidationScoreIncremental(); },
-      4
-    );
-    scheduleConsolidationScoreFullSweep(ctx);
-  }
-  scheduleWeeklyRelationValidation(ctx);
+/** Issue #834: restart registry — schedule consolidation_score_incremental alone. */
+export function scheduleConsolidationScoreIncremental(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'consolidation_score_incremental',
+    ctx.config.consolidationScoreIncrementalInterval,
+    async () => { await ctx.runConsolidationScoreIncremental(); },
+    4
+  );
+}
+
+/** Issue #834: restart registry — schedule log_rotation alone. */
+export function scheduleLogRotation(ctx: BatchRecurringScheduleContext): void {
   ctx.scheduleJob(
     'log_rotation',
     ctx.config.logRotationInterval,
     async () => { await ctx.runLogRotation(); },
     5
   );
+}
+
+/** Issue #834: restart registry — schedule meta_memory_introspection alone. */
+export function scheduleMetaMemoryIntrospection(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'meta_memory_introspection',
+    ctx.config.metaMemoryIntrospectionInterval,
+    async () => { await ctx.runMetaMemoryIntrospection(); },
+    6
+  );
+}
+
+export function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringScheduleContext): void {
+  if (ctx.consolidationScoreEnabled && ctx.hasConsolidationScoreWorker) {
+    scheduleConsolidationScoreIncremental(ctx);
+    scheduleConsolidationScoreFullSweep(ctx);
+  }
+  scheduleWeeklyRelationValidation(ctx);
+  scheduleLogRotation(ctx);
 }
 
 export function scheduleTripleExtractionBatch(ctx: BatchRecurringScheduleContext): void {
@@ -216,12 +236,7 @@ export function scheduleMemoryReviewCandidatesInterval(ctx: BatchRecurringSchedu
 }
 
 export function scheduleMetaMemoryAndReviewJobs(ctx: BatchRecurringScheduleContext): void {
-  ctx.scheduleJob(
-    'meta_memory_introspection',
-    ctx.config.metaMemoryIntrospectionInterval,
-    async () => { await ctx.runMetaMemoryIntrospection(); },
-    6
-  );
+  scheduleMetaMemoryIntrospection(ctx);
   if (ctx.config.memoryReviewCandidatesSchedulerEnabled) {
     scheduleMemoryReviewCandidatesInterval(ctx);
   } else {

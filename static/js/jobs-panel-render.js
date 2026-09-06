@@ -1,5 +1,5 @@
 /**
- * Jobs panel — schedule table, queue summary, run-history DOM (#832).
+ * Jobs panel — schedule table, queue, timeline, logs DOM (#832 / #834).
  */
 (function (global) {
   'use strict';
@@ -14,6 +14,13 @@
     td.textContent = text == null ? '' : String(text);
     row.appendChild(td);
     return td;
+  }
+
+  function enabledLabel(job) {
+    if (job && job.paused) {
+      return 'paused';
+    }
+    return job && job.enabled ? 'yes' : 'no';
   }
 
   ns.renderHealth = function (health, schedulerRunning) {
@@ -51,6 +58,7 @@
       td.textContent = 'No scheduled jobs.';
       row.appendChild(td);
       tbody.appendChild(row);
+      ns.syncActionButtons();
       return;
     }
     list.forEach(function (job) {
@@ -63,16 +71,17 @@
         row,
         job.intervalMs == null ? '—' : ns.formatNumber(job.intervalMs),
       );
-      appendCell(row, job.enabled ? 'yes' : 'no');
+      appendCell(row, enabledLabel(job));
       appendCell(row, ns.formatIso(job.lastExecution));
       appendCell(row, ns.formatNumber(job.totalExecutions));
       appendCell(row, ns.formatNumber(job.errorCount));
       appendCell(row, job.isRunning ? 'yes' : 'no');
       tbody.appendChild(row);
     });
+    ns.syncActionButtons();
   };
 
-  /** Issue #833: durable job_run timeline for the selected job (or all jobs when none selected). */
+  /** Issue #833 / #834: durable job_run timeline; Retry on failed rows only. */
   ns.renderTimeline = function (runs, selectedJob) {
     const label = ns.$('jobs-timeline-selected');
     if (label) {
@@ -87,7 +96,7 @@
     if (list.length === 0) {
       const row = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 6;
+      td.colSpan = 7;
       td.textContent = 'No durable job runs yet.';
       row.appendChild(td);
       tbody.appendChild(row);
@@ -95,14 +104,71 @@
     }
     list.forEach(function (run) {
       const row = document.createElement('tr');
+      row.dataset.runId = run.id || '';
+      row.dataset.jobName = run.jobName || '';
+      row.classList.add('jobs-row-selectable');
+      row.classList.toggle('jobs-row-selected', run.id === ns.state.selectedRunId);
       appendCell(row, run.jobName || '');
       appendCell(row, run.trigger || '');
       appendCell(row, ns.formatIso(run.startedAt));
       appendCell(row, ns.formatIso(run.endedAt));
       appendCell(row, ns.formatNumber(run.durationMs));
       appendCell(row, run.success ? 'ok' : 'fail');
+      const actions = document.createElement('td');
+      if (run.success === false && run.jobName) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'm-button m-button--secondary jobs-retry-btn';
+        btn.textContent = 'Retry';
+        btn.dataset.action = 'retry';
+        btn.dataset.jobName = run.jobName;
+        actions.appendChild(btn);
+      }
+      row.appendChild(actions);
       tbody.appendChild(row);
     });
+  };
+
+  /** Issue #834: Logs panel for the selected run. */
+  ns.renderLogs = function (logs, runId) {
+    const label = ns.$('jobs-logs-selected');
+    if (label) {
+      label.textContent = runId ? runId : 'No run selected';
+    }
+    const tbody = ns.$('jobs-logs-tbody');
+    if (!tbody) {
+      return;
+    }
+    ns.clearNode(tbody);
+    if (!runId) {
+      const row = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 3;
+      td.textContent = 'Select a timeline run to view logs.';
+      row.appendChild(td);
+      tbody.appendChild(row);
+      ns.syncActionButtons();
+      return;
+    }
+    const list = Array.isArray(logs) ? logs : [];
+    if (list.length === 0) {
+      const row = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 3;
+      td.textContent = 'No log lines for this run.';
+      row.appendChild(td);
+      tbody.appendChild(row);
+      ns.syncActionButtons();
+      return;
+    }
+    list.forEach(function (entry) {
+      const row = document.createElement('tr');
+      appendCell(row, ns.formatIso(entry.createdAt || entry.timestamp));
+      appendCell(row, entry.level || 'info');
+      appendCell(row, entry.message || '');
+      tbody.appendChild(row);
+    });
+    ns.syncActionButtons();
   };
 
   ns.renderQueue = function (queue) {

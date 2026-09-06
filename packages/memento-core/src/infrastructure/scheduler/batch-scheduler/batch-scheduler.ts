@@ -16,7 +16,9 @@ import type { AnchorManager } from '../../../domains/anchor/services/anchor/anch
 import { CheckpointMode, type WalCheckpointScheduler } from '../../database/wal-checkpoint-scheduler.js';
 import type { DatabaseLockMonitor } from '../../database/database-lock-monitor.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
+import { BatchJobAlreadyRunningError } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
+export { BatchJobAlreadyRunningError } from './batch-scheduler-types.js';
 import { startBatchScheduler, stopBatchScheduler } from './batch-scheduler-lifecycle.js';
 import {
   createBatchSchedulerWiring,
@@ -42,7 +44,9 @@ import {
 import {
   isBatchSchedulerJobQueued,
   isBatchSchedulerJobRunning,
+  pauseBatchSchedulerJob,
   restartBatchSchedulerJob,
+  resumeBatchSchedulerJob,
   runBatchSchedulerJob,
   stopBatchSchedulerJob
 } from './batch-scheduler-job-control.js';
@@ -68,6 +72,8 @@ export class BatchScheduler implements IBatchScheduler {
   private databaseLockMonitor: Pick<DatabaseLockMonitor, 'probe'> | null = null;
   private db: Database.Database | null = null;
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
+  /** Issue #834: schedule jobs paused via admin (interval cleared; in-flight not killed). */
+  private pausedJobs: Set<string> = new Set();
   private isRunning = false;
   private startTime: Date | null = null;
   private lastExecution: Map<string, Date> = new Map();
@@ -164,7 +170,8 @@ export class BatchScheduler implements IBatchScheduler {
       lastExecution: this.lastExecution,
       totalExecutions: this.totalExecutions,
       startTime: this.startTime,
-      config: this.config
+      config: this.config,
+      pausedJobs: this.pausedJobs,
     };
   }
 
@@ -395,13 +402,22 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   async runJob(jobType: ManualBatchSchedulerJobType): Promise<BatchJobResult> {
-    return runBatchSchedulerJob(
-      jobType,
-      this.getContextSource(),
-      this.lastExecution,
-      this.totalExecutions,
-      this.lastJobRunMeta
-    );
+    // Issue #834 SC-003: sync check+mark before await — blocks overlapping manual runs.
+    if (this.jobQueue.isRunning(jobType)) {
+      throw new BatchJobAlreadyRunningError(jobType);
+    }
+    this.jobQueue.markRunning(jobType);
+    try {
+      return await runBatchSchedulerJob(
+        jobType,
+        this.getContextSource(),
+        this.lastExecution,
+        this.totalExecutions,
+        this.lastJobRunMeta
+      );
+    } finally {
+      this.jobQueue.markCompleted(jobType);
+    }
   }
 
   private getContextSource() {
@@ -422,6 +438,32 @@ export class BatchScheduler implements IBatchScheduler {
 
   stopJob(jobName: string): boolean {
     return stopBatchSchedulerJob(this.intervals, this.log.bind(this), jobName);
+  }
+
+  /** Issue #834: pause schedule (stop interval + paused set). In-flight not killed. */
+  pauseJob(jobName: string): { ok: boolean; reason?: string } {
+    return pauseBatchSchedulerJob(this.intervals, this.pausedJobs, this.log.bind(this), jobName);
+  }
+
+  /** Issue #834: resume schedule via expanded restart registry. */
+  resumeJob(jobName: string): { ok: boolean; reason?: string } {
+    return resumeBatchSchedulerJob(
+      this.getServiceState(),
+      this.getRecurringState(),
+      this.getJobRunnerCallbacks(),
+      this.log.bind(this),
+      this.emitMemoryReviewCandidatesRunRecord.bind(this),
+      this.pausedJobs,
+      jobName
+    );
+  }
+
+  isJobPaused(jobName: string): boolean {
+    return this.pausedJobs.has(jobName);
+  }
+
+  getPausedJobNames(): string[] {
+    return Array.from(this.pausedJobs);
   }
 
   restartJob(jobName: string): boolean {

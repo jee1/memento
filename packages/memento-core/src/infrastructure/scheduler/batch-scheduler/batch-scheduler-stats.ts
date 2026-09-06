@@ -10,6 +10,8 @@ export interface BatchSchedulerStatsDeps {
   retryManager: RetryManager;
   jobQueue: JobQueue;
   startTime: Date | null;
+  /** Issue #834: paused schedule jobs (interval cleared but still listed in stats). */
+  pausedJobs?: Set<string>;
 }
 
 /**
@@ -31,18 +33,23 @@ export function getBatchSchedulerDetailedStats(deps: BatchSchedulerStatsDeps): {
     errorCount: number;
     errorRate: number;
     isRunning: boolean;
+    paused: boolean;
   }>;
 } {
   const memUsage = process.memoryUsage();
   const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
 
   const totalExecutions = Array.from(deps.totalExecutions.values()).reduce((sum, count) => sum + count, 0);
-  const totalErrors = Array.from(deps.intervals.keys()).reduce((sum, name) => {
+  const jobNames = new Set<string>([
+    ...deps.intervals.keys(),
+    ...(deps.pausedJobs ?? []),
+  ]);
+  const totalErrors = Array.from(jobNames).reduce((sum, name) => {
     return sum + deps.retryManager.getErrorCount(name);
   }, 0);
   const errorRate = totalExecutions > 0 ? totalErrors / totalExecutions : 0;
 
-  const jobs = Array.from(deps.intervals.keys()).map(name => ({
+  const jobs = Array.from(jobNames).map(name => ({
     name,
     lastExecution: deps.lastExecution.get(name) || null,
     totalExecutions: deps.totalExecutions.get(name) || 0,
@@ -50,7 +57,8 @@ export function getBatchSchedulerDetailedStats(deps: BatchSchedulerStatsDeps): {
     errorRate: (deps.totalExecutions.get(name) || 0) > 0
       ? deps.retryManager.getErrorCount(name) / (deps.totalExecutions.get(name) || 1)
       : 0,
-    isRunning: deps.jobQueue.isRunning(name)
+    isRunning: deps.jobQueue.isRunning(name),
+    paused: deps.pausedJobs?.has(name) ?? false,
   }));
 
   return {
