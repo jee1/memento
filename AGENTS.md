@@ -64,6 +64,7 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **벡터 similarity (#806/#811)**: 반환값은 `cosineDistanceToSimilarity`=`clamp(1 − cosine_distance, 0, 1)` — 결과셋 min-max·거리값 재사용 금지; hybrid SQL SELECT는 `vector_distance`만(변환은 `mapHybridResults` 전용; ORDER BY의 `1-d`는 랭킹용); 2026-08-29 이전 스냅샷은 구 척도(마이그레이션 없음); ranking hash에 `VECTOR_SCORE_SCALE` — [search-ranking.md](./docs/agents/search-ranking.md)
 - **FTS OR+prefix (#807)**: 짧·긴 구간 모두 내용어 OR + stem≥`FTS_MIN_PREFIX_STEM_LENGTH`(기본 2)면 `term*`; 긴 구간은 앞 `FTS_MAX_TOKENS_FOR_OR`(8)만 — `search-engine-fts-query.ts`
 - **db:backup:cleanup (#065)**: 기본 preview(삭제 없음); 삭제는 `npm run db:backup:cleanup -- --apply`; apply 전 MCP·restore·다른 backup/cleanup 중지; non-zero operator 백업 보존; 오류/cleanup report에 절대 경로 비노출
+- **migration run backup (#851)**: `runMigrations`는 버전마다가 아니라 **런당 1개** 스냅샷(`createBackup` 기본 true); 직접 `runMigration`은 호출당 1개; 자동 롤백은 SQL/`down()` (파일 restore 비의존)
 - **log_rotation (#852)**: TE age만이 아니라 migration keepCount·docker-diagnostics byte budget·monitor jsonl trim(`state.json` 보존); `LOG_ROTATION_*` env; report/`errors[]`에 절대 경로 비노출(catch는 sanitized 문구만); `validateFilePath('logs')`로 `~/.memento` abs root 검증 금지; 스펙은 inject temp roots만
 - **Express `programmaticAuth`**: `declare global`은 `programmatic-auth.middleware.ts` 한 곳만 — audit 등 다른 미들웨어에서 중복 선언 시 TS2717
 - **CI npm ci flake**: `onnxruntime-node` NuGet `ETIMEDOUT`은 코드 버그 아님 — `gh run rerun --failed`

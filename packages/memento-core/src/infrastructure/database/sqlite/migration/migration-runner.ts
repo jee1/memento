@@ -87,37 +87,7 @@ export class MigrationRunner {
 
       // 2. 백업 생성
       if (createBackup) {
-        this.logger.info('백업 생성 시작');
-        logger.info('💾 백업 생성 중...');
-        const backup = await this.backupManager.createBackup(this.db, migration.version);
-        backupPath = backup.backupPath;
-        const maskedBackupPath = PIIMasker.mask(backupPath).masked;
-        const maskedBackupData = PIIMasker.maskObject({ size: backup.size });
-        this.logger.info(`백업 생성 완료: ${maskedBackupPath}`, maskedBackupData);
-        logger.info(`✅ 백업 생성 완료: ${maskedBackupPath}`);
-        try {
-          const cleanup = await this.backupManager.cleanupBackups({
-            mode: 'apply',
-            includeInterrupted: false,
-          });
-          if (!cleanup.ok) {
-            logger.warn('백업 보존 정리 미완료', {
-              ...(cleanup.error ? { error: cleanup.error } : {}),
-              mode: cleanup.mode,
-              inspectedCount: cleanup.inspectedCount,
-              selectedCount: cleanup.selectedCount,
-              failedCount: cleanup.failedCount,
-              skippedCount: cleanup.skippedCount,
-              artifacts: cleanup.artifacts.filter(item => item.status !== 'deleted'),
-            });
-          }
-        } catch (cleanupError) {
-          const maskedCleanupError = normalizeCleanupError(cleanupError);
-          logger.warn('백업 보존 정리 실패', {
-            error: maskedCleanupError.message,
-            errorName: maskedCleanupError.name,
-          });
-        }
+        backupPath = await this.createBackupWithCleanup(migration.version);
       }
 
       // 3. 트랜잭션 시작
@@ -181,12 +151,12 @@ export class MigrationRunner {
           ? migrationError.message 
           : String(migrationError);
 
-        // 자동 롤백 시도
-        if (autoRollback && backupPath) {
+        // 자동 롤백 시도 (파일 백업 유무와 무관 — down()/removeVersion; SQL ROLLBACK 이미 수행)
+        if (autoRollback) {
           try {
             this.logger.info('자동 롤백 시도 시작');
             logger.info('🔄 자동 롤백 시도 중...');
-            await this.rollbackMigration(migration, backupPath);
+            await this.rollbackMigration(migration, backupPath ?? '');
             result.rollbackSuccess = true;
             this.logger.info('자동 롤백 성공');
             logger.info('✅ 자동 롤백 성공');
@@ -195,7 +165,9 @@ export class MigrationRunner {
             const maskedRollbackError = rollbackError instanceof Error ? PIIMasker.maskError(rollbackError) : { message: String(rollbackError), name: 'Error' };
             this.logger.error('자동 롤백 실패', maskedRollbackError);
             logger.error('❌ 자동 롤백 실패', { error: maskedRollbackError.message, errorName: maskedRollbackError.name });
-            logger.error('⚠️  수동 복구가 필요합니다. 백업 파일', { backupPath });
+            if (backupPath) {
+              logger.error('⚠️  수동 복구가 필요합니다. 백업 파일', { backupPath });
+            }
           }
         }
 
@@ -237,15 +209,46 @@ export class MigrationRunner {
 
   /**
    * 여러 마이그레이션 순차 실행
+   *
+   * createBackup=true 이면 배치 시작 시점에 스냅샷 1개만 생성한다 (#851).
    */
   async runMigrations(
     migrations: Migration[],
     options: MigrationOptions = {}
   ): Promise<MigrationResult[]> {
     const results: MigrationResult[] = [];
+    const createBackup = options.createBackup ?? true;
+
+    if (migrations.length === 0) {
+      return results;
+    }
+
+    if (createBackup) {
+      const first = migrations[0]!;
+      const startTime = new Date();
+      try {
+        await this.createBackupWithCleanup(first.version);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        results.push({
+          version: first.version,
+          name: first.name,
+          success: false,
+          startTime,
+          endTime: new Date(),
+          error: message,
+        });
+        return results;
+      }
+    }
+
+    const perMigrationOptions: MigrationOptions = {
+      ...options,
+      createBackup: false,
+    };
 
     for (const migration of migrations) {
-      const result = await this.runMigration(migration, options);
+      const result = await this.runMigration(migration, perMigrationOptions);
       results.push(result);
 
       // 실패한 마이그레이션이 있고 autoRollback이 true인 경우 중단
@@ -256,6 +259,44 @@ export class MigrationRunner {
     }
 
     return results;
+  }
+
+  /**
+   * 백업 생성 + 보존 정리(soft-fail). 성공 시 backupPath 반환.
+   */
+  private async createBackupWithCleanup(migrationVersion: string): Promise<string> {
+    this.logger.info('백업 생성 시작');
+    logger.info('💾 백업 생성 중...');
+    const backup = await this.backupManager.createBackup(this.db, migrationVersion);
+    const backupPath = backup.backupPath;
+    const maskedBackupPath = PIIMasker.mask(backupPath).masked;
+    const maskedBackupData = PIIMasker.maskObject({ size: backup.size });
+    this.logger.info(`백업 생성 완료: ${maskedBackupPath}`, maskedBackupData);
+    logger.info(`✅ 백업 생성 완료: ${maskedBackupPath}`);
+    try {
+      const cleanup = await this.backupManager.cleanupBackups({
+        mode: 'apply',
+        includeInterrupted: false,
+      });
+      if (!cleanup.ok) {
+        logger.warn('백업 보존 정리 미완료', {
+          ...(cleanup.error ? { error: cleanup.error } : {}),
+          mode: cleanup.mode,
+          inspectedCount: cleanup.inspectedCount,
+          selectedCount: cleanup.selectedCount,
+          failedCount: cleanup.failedCount,
+          skippedCount: cleanup.skippedCount,
+          artifacts: cleanup.artifacts.filter(item => item.status !== 'deleted'),
+        });
+      }
+    } catch (cleanupError) {
+      const maskedCleanupError = normalizeCleanupError(cleanupError);
+      logger.warn('백업 보존 정리 실패', {
+        error: maskedCleanupError.message,
+        errorName: maskedCleanupError.name,
+      });
+    }
+    return backupPath;
   }
 
   /**
