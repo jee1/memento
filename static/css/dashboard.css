@@ -2137,3 +2137,16 @@ body {
   font-weight: 600;
   color: var(--color-text-muted);
 }
+
+/* Issue #833: click a schedule row to load its durable job_run timeline */
+.jobs-row-selectable {
+  cursor: pointer;
+}
+
+.jobs-row-selectable:hover {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
+}
+
+.jobs-row-selected {
+  background: var(--color-bg-selected, rgba(59, 130, 246, 0.08));
+}

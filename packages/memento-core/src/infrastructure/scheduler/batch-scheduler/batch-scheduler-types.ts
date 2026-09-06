@@ -28,6 +28,8 @@ export interface BatchJobConfig {
   telemetryCleanupInterval: number;
   /** Issue #810: memory_forgetting_event audit log retention */
   forgettingEventCleanupInterval: number;
+  /** Issue #833: durable job_run history retention */
+  jobRunCleanupInterval: number;
   /** Issue #243: refresh memory_review_candidate pending rows from selection */
   memoryReviewCandidatesInterval: number;
   /**

@@ -2,6 +2,8 @@ import { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-jo
 import { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
 import { ForgettingEventCleanupBatchJob } from '../jobs/forgetting-event-cleanup-batch-job.js';
 import { ForgettingEventRepository } from '../../../domains/forgetting/repositories/forgetting-event-repository.js';
+import { JobRunCleanupBatchJob } from '../jobs/job-run-cleanup-batch-job.js';
+import { JobRunRepository } from '../repositories/job-run-repository.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
@@ -28,6 +30,19 @@ export async function runForgettingEventCleanupBatch(ctx: BatchSchedulerRunConte
     });
   }
   await ctx.forgettingEventCleanupBatchJob.current.execute();
+}
+
+export async function runJobRunCleanupBatch(ctx: BatchSchedulerRunContext): Promise<void> {
+  if (!ctx.db) {
+    return;
+  }
+  if (!ctx.jobRunCleanupBatchJob.current) {
+    ctx.jobRunCleanupBatchJob.current = new JobRunCleanupBatchJob({
+      db: ctx.db,
+      repository: new JobRunRepository(),
+    });
+  }
+  await ctx.jobRunCleanupBatchJob.current.execute();
 }
 
 export async function runSleepConsolidationBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {

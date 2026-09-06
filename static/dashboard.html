@@ -342,8 +342,8 @@
           <div class="jobs-header-text">
             <h2 class="jobs-title">Batch Jobs</h2>
             <p class="jobs-intro">
-              Schedule table, in-memory queue snapshot, and manual run history.
-              Counters and history are <strong>process-local</strong> until durable job runs (#833).
+              Schedule table, in-memory queue snapshot, and durable run history.
+              Job runs are persisted to the <strong>job_run</strong> table (schedule + manual triggers, 90-day retention) and survive restarts (#833).
             </p>
           </div>
           <button type="button" id="jobs-refresh-btn" class="m-button m-button--secondary">Refresh</button>
@@ -353,6 +353,7 @@
         <p id="jobs-health-summary" class="jobs-health" aria-live="polite"></p>
         <section class="jobs-section" aria-labelledby="jobs-schedule-heading">
           <h3 id="jobs-schedule-heading">Schedule</h3>
+          <p class="jobs-disclaimer">Click a row to load its durable run timeline below.</p>
           <div class="jobs-table-wrap">
             <table id="jobs-schedule-table" class="jobs-table">
               <thead>
@@ -374,9 +375,28 @@
           <h3 id="jobs-queue-heading">Queue</h3>
           <p id="jobs-queue-summary" class="jobs-queue-summary">—</p>
         </section>
+        <section class="jobs-section" aria-labelledby="jobs-timeline-heading">
+          <h3 id="jobs-timeline-heading">Job run timeline — <span id="jobs-timeline-selected">All jobs</span></h3>
+          <p class="jobs-disclaimer">From <code>GET /admin/batch/runs</code> (durable; select a schedule row above to filter).</p>
+          <div id="jobs-timeline" class="jobs-table-wrap">
+            <table class="jobs-table">
+              <thead>
+                <tr>
+                  <th scope="col">Job</th>
+                  <th scope="col">Trigger</th>
+                  <th scope="col">Started</th>
+                  <th scope="col">Ended</th>
+                  <th scope="col">Duration ms</th>
+                  <th scope="col">Success</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-timeline-tbody"></tbody>
+            </table>
+          </div>
+        </section>
         <section class="jobs-section" aria-labelledby="jobs-history-heading">
           <h3 id="jobs-history-heading">Manual run history</h3>
-          <p class="jobs-disclaimer">From <code>GET /admin/batch/run-history</code> (POST /admin/batch/run only).</p>
+          <p class="jobs-disclaimer">From <code>GET /admin/batch/run-history</code> (process-local ring buffer, secondary; POST /admin/batch/run only).</p>
           <div id="jobs-run-history" class="jobs-table-wrap">
             <table class="jobs-table">
               <thead>

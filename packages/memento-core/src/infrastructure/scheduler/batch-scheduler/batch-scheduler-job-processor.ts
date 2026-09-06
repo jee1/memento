@@ -37,6 +37,7 @@ export function createBatchSchedulerJobRunnerCallbacks(source: BatchSchedulerCon
     runSleepConsolidationBatch: () => runners.runSleepConsolidationBatch(),
     runTelemetryCleanupBatch: () => runners.runTelemetryCleanupBatch(),
     runForgettingEventCleanupBatch: () => runners.runForgettingEventCleanupBatch(),
+    runJobRunCleanupBatch: () => runners.runJobRunCleanupBatch(),
     runAnchorAutoRefresh: () => runners.runAnchorAutoRefresh()
   };
 }

@@ -51,6 +51,12 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
       n => n >= 60_000,
       '최솟값 60000'
     ),
+    jobRunCleanupInterval: resolveValidatedNumber(
+      'JOB_RUN_CLEANUP_INTERVAL_MS',
+      DAY_MS,
+      n => n >= 60_000,
+      '최솟값 60000'
+    ),
     memoryReviewCandidatesInterval: resolveValidatedNumber(
       'MEMORY_REVIEW_CANDIDATES_INTERVAL_MS',
       DAY_MS,

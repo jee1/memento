@@ -12,6 +12,7 @@ import type { BatchJobConfig, BatchJobResult } from './batch-scheduler-types.js'
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
 import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
+import { JobRunRepository } from '../repositories/job-run-repository.js';
 import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { HealthChecker } from '../health-checker.js';
@@ -48,6 +49,8 @@ export interface BatchSchedulerCoordinatorCallbacks {
   writeDiagnosticsEvent: (event: Record<string, unknown>) => Promise<void>;
   log: BatchSchedulerLogMethod;
   checkSchedulerHealth: () => Promise<void>;
+  /** Issue #833: durable job_run append (schedule trigger). */
+  getDb: () => Database.Database | null;
 }
 
 export interface BatchSchedulerWiringResult {
@@ -82,6 +85,7 @@ export interface BatchSchedulerServiceState {
   sleepConsolidationBatchJob: BatchSchedulerContextSource['sleepConsolidationBatchJob'];
   telemetryCleanupBatchJob: BatchSchedulerContextSource['telemetryCleanupBatchJob'];
   forgettingEventCleanupBatchJob: BatchSchedulerContextSource['forgettingEventCleanupBatchJob'];
+  jobRunCleanupBatchJob: BatchSchedulerContextSource['jobRunCleanupBatchJob'];
   lastExecution: Map<string, Date>;
   totalExecutions: Map<string, number>;
   anchorManager: AnchorManager | null;
@@ -110,6 +114,7 @@ export interface BatchSchedulerRecurringCallbacks {
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
   runTelemetryCleanupBatch: () => Promise<void>;
   runForgettingEventCleanupBatch: () => Promise<void>;
+  runJobRunCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
 }
 
@@ -153,7 +158,9 @@ export function createBatchSchedulerWiring(
     lastJobRunMeta: coordinatorCallbacks.lastJobRunMeta,
     writeDiagnosticsEvent: coordinatorCallbacks.writeDiagnosticsEvent,
     log: coordinatorCallbacks.log,
-    checkSchedulerHealth: coordinatorCallbacks.checkSchedulerHealth
+    checkSchedulerHealth: coordinatorCallbacks.checkSchedulerHealth,
+    getDb: coordinatorCallbacks.getDb,
+    jobRunRepository: new JobRunRepository()
   });
 
   return {
@@ -194,6 +201,7 @@ export function getBatchSchedulerContextSource(
     sleepConsolidationBatchJob: state.sleepConsolidationBatchJob,
     telemetryCleanupBatchJob: state.telemetryCleanupBatchJob,
     forgettingEventCleanupBatchJob: state.forgettingEventCleanupBatchJob,
+    jobRunCleanupBatchJob: state.jobRunCleanupBatchJob,
     lastExecution: state.lastExecution,
     totalExecutions: state.totalExecutions,
     anchorManager: state.anchorManager,

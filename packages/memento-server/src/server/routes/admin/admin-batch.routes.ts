@@ -4,7 +4,8 @@
 
 import type { Router } from 'express';
 import type Database from 'better-sqlite3';
-import { getBatchScheduler, logger } from '@memento/core';
+import { appendJobRunSafe, getBatchScheduler, JobRunRepository, logger } from '@memento/core';
+import type { JobRunRow } from '@memento/core';
 import type { ServerServices } from '../../bootstrap.js';
 import {
   BATCH_RUN_HISTORY_DEFAULT_LIMIT,
@@ -14,6 +15,37 @@ import {
   recordManualBatchRunSuccess,
 } from '../../batch-run-history.js';
 import { broadcastReviewCandidatesChanged } from '../../review-candidates-changed-fanout.js';
+
+/** Issue #833: JobRunRow (snake_case, DB shape) → wire response shape (camelCase). */
+function toJobRunResponse(row: JobRunRow): Record<string, unknown> {
+  let details: unknown = null;
+  if (row.details_json) {
+    try {
+      details = JSON.parse(row.details_json);
+    } catch {
+      details = null;
+    }
+  }
+  return {
+    id: row.id,
+    jobName: row.job_name,
+    trigger: row.trigger,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    success: row.success === 1,
+    durationMs: row.duration_ms,
+    processed: row.processed,
+    errorCount: row.error_count,
+    details,
+  };
+}
+
+/** Issue #833: clamp query `limit` to 1..100, default 50 (matches JobRunRepository.list). */
+function resolveJobRunsLimit(raw: unknown): number {
+  const parsed = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : 50;
+  const floored = Number.isFinite(parsed) ? Math.floor(parsed) : 50;
+  return Math.min(Math.max(floored, 1), 100);
+}
 
 /** Best-effort job name → config interval field (#832). Unknown → null. */
 const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
@@ -147,6 +179,32 @@ export function registerAdminBatchRoutes(
     }
   });
 
+  router.get('/batch/runs', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const jobRaw = req.query['job'];
+      const jobName = typeof jobRaw === 'string' && jobRaw.trim() !== '' ? jobRaw : undefined;
+      const limit = resolveJobRunsLimit(req.query['limit']);
+
+      const rows = new JobRunRepository().list(db, { jobName, limit });
+
+      return res.json({
+        runs: rows.map(toJobRunResponse),
+        limit,
+      });
+    } catch (error) {
+      logger.error('Job run history retrieval failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '작업 실행 이력 조회 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   router.post('/batch/run', async (req, res) => {
     const requestedAt = new Date();
     try {
@@ -161,6 +219,21 @@ export function registerAdminBatchRoutes(
       const batchScheduler = getBatchScheduler();
       const result = await batchScheduler.runJob(jobType);
       recordManualBatchRunSuccess(jobType, requestedAt, result);
+      appendJobRunSafe(
+        db,
+        {
+          job_name: jobType,
+          trigger: 'manual',
+          started_at: result.startTime.toISOString(),
+          ended_at: result.endTime.toISOString(),
+          success: result.success,
+          duration_ms: result.duration,
+          processed: result.processed,
+          error_count: result.errors.length,
+          details_json: result.details != null ? JSON.stringify(result.details) : null,
+        },
+        (message, data) => logger.warn(message, data as Record<string, unknown> | undefined)
+      );
 
       if (jobType === 'memory_review_candidates') {
         broadcastReviewCandidatesChanged({ reason: 'batch_memory_review_candidates' });
@@ -175,7 +248,23 @@ export function registerAdminBatchRoutes(
       const body = req.body as { jobType?: string };
       const jt = body?.jobType;
       if (jt && ['cleanup', 'monitoring', 'memory_review_candidates'].includes(jt)) {
-        recordManualBatchRunFailure(jt, requestedAt, new Date(), error instanceof Error ? error.message : String(error));
+        const failedAt = new Date();
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        recordManualBatchRunFailure(jt, requestedAt, failedAt, errorMessage);
+        appendJobRunSafe(
+          db,
+          {
+            job_name: jt,
+            trigger: 'manual',
+            started_at: requestedAt.toISOString(),
+            ended_at: failedAt.toISOString(),
+            success: false,
+            duration_ms: failedAt.getTime() - requestedAt.getTime(),
+            error_count: 1,
+            details_json: JSON.stringify({ error: errorMessage }),
+          },
+          (message, data) => logger.warn(message, data as Record<string, unknown> | undefined)
+        );
       }
       logger.error('Batch job execution failed', {
         error: error instanceof Error ? error.message : String(error)

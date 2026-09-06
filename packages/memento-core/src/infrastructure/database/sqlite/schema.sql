@@ -801,6 +801,24 @@ BEGIN
   SELECT RAISE(ABORT, 'audit_log is append-only');
 END;
 
+-- Durable batch job execution history (migration 044, Issue #833)
+CREATE TABLE IF NOT EXISTS job_run (
+  id TEXT PRIMARY KEY,
+  job_name TEXT NOT NULL,
+  trigger TEXT NOT NULL CHECK (trigger IN ('schedule', 'manual')),
+  started_at TEXT NOT NULL,
+  ended_at TEXT NOT NULL,
+  success INTEGER NOT NULL CHECK (success IN (0, 1)),
+  duration_ms INTEGER NOT NULL,
+  processed INTEGER,
+  error_count INTEGER,
+  details_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_job_run_job_started
+  ON job_run(job_name, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_job_run_started
+  ON job_run(started_at);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

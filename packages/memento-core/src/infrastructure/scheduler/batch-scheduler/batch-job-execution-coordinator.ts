@@ -1,7 +1,9 @@
+import type Database from 'better-sqlite3';
 import type { BatchJobConfig } from './batch-scheduler-types.js';
 import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
+import type { JobRunRepository } from '../repositories/job-run-repository.js';
 import {
   isJobTimeoutError,
   isTripleExtractionQueueJob,
@@ -19,6 +21,9 @@ export interface BatchJobExecutionCoordinatorDeps {
   writeDiagnosticsEvent: (event: Record<string, unknown>) => Promise<void>;
   log: (message: string, data?: unknown, level?: 'info' | 'warn' | 'error') => void;
   checkSchedulerHealth: () => Promise<void>;
+  /** Issue #833: durable job_run append (schedule trigger). Optional — soft-fail if unavailable. */
+  getDb?: () => Database.Database | null;
+  jobRunRepository?: JobRunRepository;
 }
 
 /**
@@ -230,7 +235,33 @@ export class BatchJobExecutionCoordinator {
         success: jobOk,
         durationMs
       });
+      this.appendScheduleJobRun(name, startTime, durationMs, jobOk);
       this.deps.jobQueue.markCompleted(name);
+    }
+  }
+
+  /** Issue #833: durable job_run append for the schedule trigger. Never throws — soft-fail only. */
+  private appendScheduleJobRun(name: string, startTime: number, durationMs: number, success: boolean): void {
+    const db = this.deps.getDb?.();
+    const repository = this.deps.jobRunRepository;
+    if (!db || !repository) {
+      return;
+    }
+    try {
+      repository.append(db, {
+        job_name: name,
+        trigger: 'schedule',
+        started_at: new Date(startTime).toISOString(),
+        ended_at: new Date(startTime + durationMs).toISOString(),
+        success,
+        duration_ms: durationMs
+      });
+    } catch (error) {
+      this.deps.log(
+        'job_run append failed (soft-fail)',
+        { jobName: name, error: error instanceof Error ? error.message : String(error) },
+        'warn'
+      );
     }
   }
 
