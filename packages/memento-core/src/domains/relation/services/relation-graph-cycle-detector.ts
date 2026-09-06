@@ -26,16 +26,17 @@ export class RelationGraphCycleDetector {
 
     const visited = new Set<string>();
     const nodeRelations = new Map<string, string[]>();
+    /**
+     * 깊이 한계에 걸린 노드는 visited 에 넣을 수 없다. 같은 노드를 다른 경로에서 더 얕은 깊이로
+     * 다시 만날 수 있고, 그때는 탐색을 계속해야 하기 때문이다. 그래서 이 노드는 들어오는 간선
+     * 수만큼 재진입한다. 여기서 노드마다 로그를 찍으면 호출 한 번이 로그 수만 줄을 만든다 (#913).
+     * 횟수만 세고 탐색이 끝난 뒤 한 줄로 남긴다.
+     */
+    let depthLimitHits = 0;
 
     const dfs = async (currentId: string, target: string, depth: number): Promise<boolean> => {
       if (depth > maxDepth) {
-        logger.warn('순환 참조 감지: 최대 탐색 깊이 초과', {
-          sourceId,
-          targetId,
-          currentId,
-          depth,
-          maxDepth
-        });
+        depthLimitHits++;
         return false;
       }
 
@@ -80,7 +81,23 @@ export class RelationGraphCycleDetector {
       return false;
     };
 
-    return await dfs(targetId, sourceId, 0);
+    const found = await dfs(targetId, sourceId, 0);
+
+    // 깊이 한계에 걸렸다는 것은 탐색이 끝까지 가지 못했다는 뜻이다. found=false 여도 순환이
+    // 없다고 단정할 수 없으므로(false negative 가능) 호출당 한 번은 남긴다.
+    if (depthLimitHits > 0) {
+      logger.warn('순환 탐지가 최대 깊이에서 중단됨 (탐색 불완전)', {
+        sourceId,
+        targetId,
+        relationType,
+        maxDepth,
+        depthLimitHits,
+        visitedCount: visited.size,
+        cycleFound: found
+      });
+    }
+
+    return found;
   }
 
   /**
