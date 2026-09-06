@@ -31,13 +31,6 @@ vi.mock('@huggingface/transformers', () => {
   };
 });
 
-// EmbeddingService 모듈 Mock
-vi.mock('../services/embedding-service.js', () => ({
-  EmbeddingService: vi.fn().mockImplementation(() => ({
-    generateEmbedding: vi.fn()
-  }))
-}));
-
 // Mock 데이터베이스
 const mockDb = {} as Database.Database;
 

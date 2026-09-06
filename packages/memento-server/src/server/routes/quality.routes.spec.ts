@@ -10,16 +10,6 @@ import Database from 'better-sqlite3';
 import { createQualityRouter } from './quality.routes.js';
 import { QualityAssuranceService, QualityThresholdManager, DatabaseUtils } from '@memento/core';
 
-// Mock logger
-vi.mock('../../shared/utils/logger.js', () => ({
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn()
-  }
-}));
-
 describe('Quality Routes', () => {
   let db: Database.Database;
   let router: ReturnType<typeof createQualityRouter>;
