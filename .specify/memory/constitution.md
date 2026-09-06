@@ -1,17 +1,17 @@
 <!--
-Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #851)
+Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #856)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` invoked as prelude to
-`/speckit.specify` for issue #851 (migration run-scoped backup: one
-snapshot per `runMigrations` batch instead of per version). No
-principle, constraint, workflow rule, or governance clause added,
-removed, or redefined. Principle I (tests) and III (schema/migration
-discipline) already cover Red-Green-Refactor and safe migration
-behavior; backup churn reduction is feature-spec scope.
+`/speckit.specify` for issue #856 (reflexion: skip ToolInputValidationError;
+remove content→task_goal fallback). No principle, constraint, workflow
+rule, or governance clause added, removed, or redefined. Principle I
+(tests) and V (observability / failure isolation) already cover
+Red-Green-Refactor and not polluting primary paths with invalid-client
+side effects. Feature-spec scope only.
 `Ratified` and `Last Amended` unchanged (Last Amended still 2026-08-27).
 
-Prior report (#852, same day): also NO amendment — retained in git
+Prior report (#851, same day): also NO amendment — retained in git
 history only; this block replaces the header for the active feature.
 
 Modified principles: none
@@ -24,11 +24,11 @@ Template resolution: `common.sh` `resolve_template constitution-template`
 
 Consistency propagation:
 - plan/spec/tasks templates — NO CHANGE NEEDED.
-- Runtime guidance (`AGENTS.md` §3.1) — optional ops gotcha after
-  implement (backup creation rate).
+- Runtime guidance (`AGENTS.md` §3.1) — optional gotcha after implement
+  (validation errors must not enqueue Reflexion).
 
 Follow-up TODOs: none. Feature work continues in
-`specs/673-851-migration-run-scoped-backup/` via `/speckit.specify` #851.
+`specs/674-856-fix-reflexion-validation-skip-procedural/`.
 -->
 # Memento Constitution
 

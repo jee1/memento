@@ -64,5 +64,5 @@
 ## R8 — CLI preview
 
 - **Decision**: Out of MVP (spec Q6). Batch job is the growth control plane.
-- **Alternatives considered**: `npm run logs:cleanup` preview/apply like db:backup:cleanup —
-  useful later, not required to stop growth.
+- **Alternatives considered**: a dedicated log-cleanup CLI with preview/apply
+  (same shape as `npm run db:backup:cleanup`) — useful later, not required to stop growth.

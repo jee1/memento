@@ -1,0 +1,12 @@
+feature: fix-reflexion-validation-skip-procedural
+issue: 856
+created: 2026-09-06
+current_phase: review
+phases:
+  constitution: { status: done, updated: 2026-09-06 }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1 }
+  plan: { status: done, updated: 2026-09-06 }
+  tasks: { status: done, updated: 2026-09-06 }
+  execute: { status: done, updated: 2026-09-06 }
+  review: { status: done, updated: 2026-09-06, verdict: PASS }

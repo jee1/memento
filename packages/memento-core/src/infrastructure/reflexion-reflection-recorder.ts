@@ -307,12 +307,7 @@ export class ReflexionReflectionRecorder {
     const taskGoal = event.context?.params?.task_goal;
     if (typeof taskGoal === 'string') return taskGoal;
 
-    const content = event.context?.params?.content;
-    if (typeof content === 'string') {
-      if (content.length > 200) return content.substring(0, 200) + '...';
-      return content;
-    }
-
+    // params.content 는 저장 대상 데이터이지 작업 목표가 아님 (#856)
     return undefined;
   }
 
