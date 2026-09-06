@@ -17,6 +17,7 @@
 
 ### Changed
 
+- **log_rotation family expansion** (#852): batch job now cleans migration (`keepCount` default 500), docker-diagnostics (256 MiB budget), log-issue-monitor (trim jsonl / keep `state.json`), and triple-extraction (30d age). Env overrides: `LOG_ROTATION_*`. Job `details` additive; reports avoid absolute paths.
 - **Admin Jobs Dashboard Phase 3** (#834): `POST /admin/batch/run`의 `jobType` 허용 범위를 등록된 전 schedule job 이름으로 확대합니다(기존 3종 whitelist → runner registry 전체). 동일 job이 이미 실행 중이면 **409 Conflict**(`job already running`). `GET /admin/batch/runs/:runId/logs`, `POST /admin/batch/pause`, `POST /admin/batch/resume` 추가. `ADMIN_JOBS_READ_ONLY=true`면 쓰기 POST는 **403**, GET은 허용.
 - **memory_embedding Float32 BLOB storage** (#809): `embedding` 컬럼을 JSON TEXT에서 little-endian Float32 BLOB로 전환합니다. 마이그레이션 043이 원자적으로 변환하고, 쓰기/읽기 경로는 `encodeFloat32Embedding` / `embeddingColumnToNumbers`를 사용합니다. MCP recall 응답 스키마는 불변입니다.
 - **규칙 기반 폴백 로그 사유 구분** (#819): 폴백 로그에 `reason` 필드가 붙습니다. 하이브리드 폴백은 LLM 미가용(`llm_unavailable`)과 LLM 호출 실패(`llm_call_failed`)를 구분하고, 초기화가 예외로 끝난 경우는 생성자 로그가 `init_failed`로 남깁니다. 미가용의 구체적 원인(키 부재 / 연결 점검 실패)은 `LLMClientInitializer`가 모두 warning으로 흡수하므로 폴백 지점에서는 알 수 없고, 초기화 시점의 `LLM 초기화 경고` 로그에 남습니다. 값은 세 개로 고정이며 기존 로그 문구는 그대로입니다.

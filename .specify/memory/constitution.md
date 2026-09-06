@@ -1,42 +1,31 @@
 <!--
-Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #834)
+Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #852)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
-Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #834 (Admin Jobs Dashboard Phase 3 — run logs,
-pause/resume, Run now, admin auth). No principle, constraint, workflow rule,
-or governance clause was added, removed, or redefined. Additional Constraints
-already require explicit security/auth specification for write actions — that
-belongs in the feature spec, not a constitution amend. Schema/migration (III)
-and test-first (I) cover `job_run_log` + action routes. `Ratified` and
-`Last Amended` unchanged (Last Amended still 2026-08-27).
+Bump rationale: none. `/speckit.constitution` invoked as prelude to
+`/speckit.specify` for issue #852 (expand `log_rotation` beyond
+triple-extraction to migration logs, docker-diagnostics, and
+log-issue-monitor with count/byte caps). No principle, constraint,
+workflow rule, or governance clause added, removed, or redefined.
+Ops retention belongs in the feature spec; Principle I (tests) and V
+(observability/failure isolation) already cover soft-fail cleanup.
+`Ratified` and `Last Amended` unchanged (Last Amended still 2026-08-27).
 
 Modified principles: none
 Added sections: none
 Removed sections: none
 
-Placeholder audit: PASS. No `[ALL_CAPS_IDENTIFIER]` tokens remain anywhere in
-this file. All five principles (I-V), Additional Constraints, Development
-Workflow, and Governance carry concrete project text. Dates are ISO 8601.
-
-Template resolution:
-- `resolve-template.sh` is absent in this checkout; used `resolve_template
-  constitution-template` from `.specify/scripts/bash/common.sh`.
-- Resolved path: `.specify/templates/constitution-template.md` (core; no
-  overrides, priors, or extensions present).
-- `.specify/extensions.yml` absent -> before/after constitution hooks skipped.
+Placeholder audit: PASS. No `[ALL_CAPS_IDENTIFIER]` tokens remain.
+Template resolution: `common.sh` `resolve_template constitution-template`
+→ `.specify/templates/constitution-template.md`. No extensions.yml.
 
 Consistency propagation:
-- `.specify/templates/tasks-template.md` — NO CHANGE NEEDED.
-- `.specify/templates/plan-template.md` — NO CHANGE NEEDED.
-- `.specify/templates/spec-template.md` — NO CHANGE NEEDED.
-- `.specify/templates/commands/*.md` — SKIPPED (directory absent; this
-  checkout was initialized with `ai: cursor-agent`).
-- Runtime guidance (`AGENTS.md` §3 / §3.1, `CLAUDE.md`, `docs/agents/`) —
-  NO CHANGE NEEDED for governance text.
+- plan/spec/tasks templates — NO CHANGE NEEDED.
+- Runtime guidance (`AGENTS.md` §3.1) — NO CHANGE NEEDED for governance;
+  feature may add an ops gotcha after implement.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/671-834-admin-jobs-dashboard-phase-3/` via `/speckit.specify` #834.
+`specs/672-852-log-rotation-expansion/` via `/speckit.specify` #852.
 -->
 # Memento Constitution
 
