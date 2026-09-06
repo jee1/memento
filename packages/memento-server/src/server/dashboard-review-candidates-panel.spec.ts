@@ -37,6 +37,7 @@ const PANEL_COMPANION_SCRIPTS = [
   'review-candidates-panel-render-actions.js',
   'review-candidates-panel-render-list.js',
   'review-candidates-panel-render.js',
+  'review-candidates-panel-poll-boot.js',
   'review-candidates-panel-poll-config.js',
   'review-candidates-panel-poll-badge.js',
   'review-candidates-panel-poll-prompt.js',
@@ -62,6 +63,7 @@ function readReviewCandidatesPanelSources(): string {
 
 const panelJs = readReviewCandidatesPanelSources();
 const POLL_COMPANION_SCRIPTS = [
+  'review-candidates-panel-poll-boot.js',
   'review-candidates-panel-poll-config.js',
   'review-candidates-panel-poll-badge.js',
   'review-candidates-panel-poll-prompt.js',
