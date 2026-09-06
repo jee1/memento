@@ -30,6 +30,13 @@
       ns.onRowActivate(tr);
     });
     tbody.addEventListener('keydown', function (ev) {
+      if (
+        ev.target &&
+        ev.target.closest &&
+        (ev.target.closest('input[type="checkbox"]') || ev.target.closest('.rc-cell-select'))
+      ) {
+        return;
+      }
       if (ev.key !== 'Enter' && ev.key !== ' ') {
         return;
       }
@@ -49,8 +56,11 @@
     if (!wrap || !tbody) {
       return;
     }
-    ns.clearRowSelection();
-    ns.resetPreviewPanel();
+    const selectedCandidateId =
+      state.selectedRow && state.selectedRow.dataset.candidateId
+        ? String(state.selectedRow.dataset.candidateId)
+        : '';
+    const selectedMemoryId = state.previewMemoryId;
     tbody.textContent = '';
     const candidateIds = [];
     for (let i = 0; i < candidates.length; i += 1) {
@@ -92,14 +102,59 @@
         '</td>';
       tbody.appendChild(tr);
     }
-    if (ns.resetBulkSelection) {
-      ns.resetBulkSelection(candidateIds);
+    state.currentCandidateIds = candidateIds.filter(Boolean);
+    for (const id of Array.from(state.selectedCandidateIds)) {
+      if (!state.currentCandidateIds.includes(id)) {
+        state.selectedCandidateIds.delete(id);
+      }
+    }
+    const checkboxes = tbody.querySelectorAll('[data-candidate-select]');
+    for (let i = 0; i < checkboxes.length; i += 1) {
+      const checkbox = checkboxes[i];
+      checkbox.checked = state.selectedCandidateIds.has(
+        String(checkbox.getAttribute('data-candidate-select') || ''),
+      );
+    }
+    if (ns.syncBulkControls) {
+      ns.syncBulkControls();
     }
     wireTableBody();
     if (ns.wireBulkTableSelection) {
       ns.wireBulkTableSelection();
     }
     setHidden(wrap, false);
+
+    const rows = tbody.querySelectorAll('tr[data-candidate-id]');
+    let selectedRow = null;
+    for (let i = 0; i < rows.length; i += 1) {
+      if (rows[i].dataset.candidateId === selectedCandidateId) {
+        selectedRow = rows[i];
+        break;
+      }
+    }
+    if (!selectedRow) {
+      state.selectedRow = null;
+      state.previewMemoryId = '';
+      if (selectedCandidateId) {
+        ns.resetPreviewPanel();
+      }
+      return;
+    }
+    state.selectedRow = selectedRow;
+    selectedRow.classList.add('rc-row--selected');
+    selectedRow.setAttribute('aria-selected', 'true');
+    if (selectedMemoryId === selectedRow.dataset.memoryId) {
+      state.previewMemoryId = selectedMemoryId;
+      ns.setPreviewCandidateFields(
+        selectedRow.dataset.priority,
+        selectedRow.dataset.reason,
+        selectedRow.dataset.due,
+        selectedRow.dataset.memoryId,
+      );
+      ns.syncReviewDismissButtons();
+      return;
+    }
+    ns.onRowActivate(selectedRow);
   }
 
   function showLoading(on) {
@@ -130,6 +185,7 @@
       line.textContent = 'Last updated: ' + ts;
     }
     state.lastPendingCount = candidates.length;
+    state.lastListFingerprint = ns.buildReviewListFingerprint(candidates);
     if (!candidates.length) {
       if (ns.resetBulkSelection) {
         ns.resetBulkSelection([]);

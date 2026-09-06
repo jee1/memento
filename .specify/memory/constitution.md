@@ -1,16 +1,16 @@
 <!--
-Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #854)
+Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #883)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #854 (PIIMasker Korean phone regex lacks
-boundaries; epoch-ms timestamps and memory_id/searchId/event_id become
-`[PHONE]` in all logger output). No principle, constraint, workflow rule,
-or governance clause was added, removed, or redefined.
+`/speckit.specify` for issue #883 (dashboard Review Queue / Agent Sessions
+stale async responses, SSE/poll selection wipe, checkbox Space, mobile
+Anchor Map 0px height, auth `[hidden]` CSS clash). No principle, constraint,
+workflow rule, or governance clause was added, removed, or redefined.
 Test-first delivery, quality gates, observability/failure isolation, and
 MCP backward-compatibility duties already live in Principles I–V.
-Item-level phone-mask boundary fixes belong in the feature spec, not a
-governance amendment. `Ratified` and `Last Amended` are unchanged;
+Item-level dashboard race and layout fixes belong in the feature spec, not
+a governance amendment. `Ratified` and `Last Amended` are unchanged;
 `Last Amended` still reflects the 2026-08-27 governance amendment.
 
 Modified principles: none
@@ -38,8 +38,7 @@ Consistency propagation:
   NO CHANGE NEEDED for governance text.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/667-854-fix-logging-piimasker-epoch-memory_id-phone/` via
-`/speckit.specify` #854.
+`specs/668-883-fix-dashboard-async-anchor/` via `/speckit.specify` #883.
 -->
 # Memento Constitution
 

@@ -48,6 +48,18 @@ function readReviewCandidatesPanelSources(): string {
 }
 
 const panelJs = readReviewCandidatesPanelSources();
+const sharedJs = readFileSync(
+  resolve(root, 'static/js/review-candidates-panel-shared.js'),
+  'utf8',
+);
+const previewJs = readFileSync(
+  resolve(root, 'static/js/review-candidates-panel-render-preview.js'),
+  'utf8',
+);
+const listJs = readFileSync(
+  resolve(root, 'static/js/review-candidates-panel-render-list.js'),
+  'utf8',
+);
 const POLL_COMPANION_SCRIPTS = [
   'review-candidates-panel-poll-config.js',
   'review-candidates-panel-poll-badge.js',
@@ -69,6 +81,7 @@ function createPollHarness(options: { activeReviewTab?: boolean } = {}) {
   const timers: Array<{ delayMs: number; callback: () => void }> = [];
   const state = {
     lastPendingCount: 2,
+    lastListFingerprint: '',
     pollFailureStreak: 0,
     pollTimer: null,
     reviewSse: null,
@@ -117,6 +130,15 @@ function createPollHarness(options: { activeReviewTab?: boolean } = {}) {
       state,
       OS_NOTIFY_TAG: 'memento-review-queue',
       LS_NOTIFY_PROMPT_DISMISSED: 'memento-review-notify-dismissed',
+      buildReviewListFingerprint: (candidates: Array<Record<string, unknown>>) =>
+        candidates
+          .map((candidate) =>
+            [candidate.id, candidate.priority, candidate.status, candidate.due_at]
+              .map((value) => String(value ?? ''))
+              .join(':'),
+          )
+          .sort()
+          .join('\n'),
       fetchReviewCandidateListJson: vi.fn(),
       applyListSuccess: vi.fn()
     }
@@ -136,6 +158,146 @@ function createPollHarness(options: { activeReviewTab?: boolean } = {}) {
 }
 
 describe('dashboard review candidates panel (#252, #253)', () => {
+  it('lets checkbox Space toggle normally without activating the row (#883)', () => {
+    const handlers: Record<string, (event: any) => void> = {};
+    const tbody = {
+      dataset: {},
+      textContent: '',
+      addEventListener: (name: string, handler: (event: any) => void) => {
+        handlers[name] = handler;
+      },
+      querySelectorAll: () => [],
+    };
+    const sandbox: Record<string, any> = {
+      document: { createElement: vi.fn() },
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
+        state: { selectedCandidateIds: new Set(), currentCandidateIds: [] },
+        $: (id: string) => (id === 'rc-table' ? { querySelector: () => tbody } : {}),
+        setHidden: vi.fn(),
+        onRowActivate: vi.fn(),
+      },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    vm.runInContext(listJs, vm.createContext(sandbox), {
+      filename: 'review-candidates-panel-render-list.js',
+    });
+    sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__.renderTable([]);
+    const preventDefault = vi.fn();
+    handlers.keydown({
+      key: ' ',
+      preventDefault,
+      target: { closest: (selector: string) => selector === 'input[type="checkbox"]' },
+    });
+
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__.onRowActivate).not.toHaveBeenCalled();
+  });
+
+  it('does not apply a stale A preview after selecting B (#883)', async () => {
+    const deferred = new Map<string, { resolve: (value: unknown) => void }>();
+    const responseFor = (memoryId: string) =>
+      new Promise((resolve) => deferred.set(memoryId, { resolve }));
+    const classList = () => {
+      const names = new Set<string>();
+      return {
+        add: (name: string) => names.add(name),
+        remove: (name: string) => names.delete(name),
+        contains: (name: string) => names.has(name),
+        toggle: (name: string, on: boolean) => (on ? names.add(name) : names.delete(name)),
+      };
+    };
+    const element = () => ({ textContent: '', disabled: false, classList: classList() });
+    const elements = Object.fromEntries(
+      [
+        'rc-preview-memory-status',
+        'rc-preview-content',
+        'rc-preview-placeholder',
+        'rc-preview-detail',
+        'rc-preview-priority',
+        'rc-preview-reason',
+        'rc-preview-due',
+        'rc-preview-mid',
+        'rc-btn-review',
+        'rc-btn-dismiss',
+      ].map((id) => [id, element()]),
+    ) as Record<string, any>;
+    const state = { selectedRow: null as any, previewMemoryId: '', previewGeneration: 0, actionInFlight: false };
+    const sandbox: Record<string, any> = {
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
+        state,
+        $: (id: string) => elements[id],
+        setHidden: (el: any, hidden: boolean) => el.classList.toggle('hidden', hidden),
+        formatDue: (value: string) => value,
+        previewUrl: (memoryId: string) => '/memory/' + memoryId,
+        adminFetch: () => (url: string) => responseFor(url.slice('/memory/'.length)),
+      },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    vm.runInContext(previewJs, vm.createContext(sandbox), {
+      filename: 'review-candidates-panel-render-preview.js',
+    });
+    const row = (candidateId: string, memoryId: string) => ({
+      dataset: { candidateId, memoryId, priority: '1', reason: '', due: '' },
+      classList: classList(),
+      setAttribute: vi.fn(),
+    });
+    const a = row('a', 'memory-a');
+    const b = row('b', 'memory-b');
+    const ns = sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__;
+    ns.onRowActivate(a);
+    ns.onRowActivate(b);
+
+    deferred.get('memory-b')!.resolve({
+      ok: true,
+      json: async () => ({ memory: { content: 'B preview' } }),
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    deferred.get('memory-a')!.resolve({
+      ok: true,
+      json: async () => ({ memory: { content: 'A preview' } }),
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(state.selectedRow).toBe(b);
+    expect(elements['rc-preview-mid'].textContent).toBe('memory-b');
+    expect(elements['rc-preview-content'].textContent).toBe('B preview');
+    expect(elements['rc-btn-review'].disabled).toBe(false);
+    expect(elements['rc-btn-dismiss'].disabled).toBe(false);
+  });
+
+  it('treats a candidate order change as a distinct list fingerprint (#883)', () => {
+    const sandbox: Record<string, any> = {
+      document: { getElementById: () => null },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    vm.runInContext(sharedJs, vm.createContext(sandbox), {
+      filename: 'review-candidates-panel-shared.js',
+    });
+    const fingerprint = sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__.buildReviewListFingerprint;
+    const aThenB = fingerprint([
+      { id: 'a', priority: 1, status: 'pending', due_at: '' },
+      { id: 'b', priority: 2, status: 'pending', due_at: '' },
+    ]);
+    const bThenA = fingerprint([
+      { id: 'b', priority: 2, status: 'pending', due_at: '' },
+      { id: 'a', priority: 1, status: 'pending', due_at: '' },
+    ]);
+
+    expect(aThenB).not.toBe(bThenA);
+  });
+
+  it('guards preview application and fingerprints review lists (#883)', () => {
+    expect(panelJs).toContain('previewGeneration: 0');
+    expect(panelJs).toContain('lastListFingerprint:');
+    expect(panelJs).toContain('buildReviewListFingerprint');
+    expect(panelJs).toContain('generation !== state.previewGeneration');
+    expect(panelJs).toContain('state.selectedRow.dataset.candidateId !== candidateId');
+    expect(panelJs).toContain("ev.target.closest('.rc-cell-select')");
+  });
+
   it('dashboard.html includes review tab, panel, and script', () => {
     expect(dashboardHtml).toContain('id="dashboard-tab-review"');
     expect(dashboardHtml).toContain('data-tab="review"');
@@ -249,5 +411,25 @@ describe('dashboard review queue poll behavior', () => {
     expect(harness.ns.applyListSuccess).toHaveBeenCalledWith(body);
     expect(harness.elements['rc-tab-badge'].textContent).toBe('');
     expect(harness.timers.at(-1)?.delayMs).toBe(60_000);
+  });
+
+  it('applies same-count list changes when the active review tab fingerprint differs', async () => {
+    const harness = createPollHarness({ activeReviewTab: true });
+    harness.state.lastListFingerprint = 'a:1:pending:';
+    const body = {
+      candidates: [
+        { id: 'a', priority: 1, status: 'pending', due_at: '' },
+        { id: 'b', priority: 2, status: 'pending', due_at: '' },
+      ],
+    };
+    harness.ns.fetchReviewCandidateListJson.mockResolvedValue({
+      res: { ok: true },
+      body,
+    });
+
+    await harness.ns.runPollCycle();
+
+    expect(harness.ns.applyListSuccess).toHaveBeenCalledWith(body);
+    expect(harness.state.lastPendingCount).toBe(2);
   });
 });

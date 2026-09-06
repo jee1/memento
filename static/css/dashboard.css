@@ -11,6 +11,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   font-family: var(--font-family-base);
   background-color: var(--color-bg-main);
@@ -306,6 +310,7 @@ body {
 /* Map Container */
 .map-container {
   flex: 1;
+  min-height: 200px;
   position: relative;
   background-color: var(--color-bg-card);
   overflow: hidden;
@@ -513,6 +518,7 @@ body {
 /* Tabs + Embedding Map (014) - m-tab-bar 컴포넌트 활용 */
 .m-tab-bar {
   display: flex;
+  overflow-x: auto;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-tab-surface);

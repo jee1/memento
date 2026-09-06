@@ -21,6 +21,13 @@ on:
       - '.github/workflows/relation-engine.yml'
   workflow_dispatch: # 수동 실행 가능
 
+
+env:
+  # onnxruntime-node의 postinstall은 nuget.org에서 CUDA/TensorRT provider 바이너리를 받는다.
+  # 러너에 GPU가 없어 쓰이지 않는데, 이 다운로드가 ETIMEDOUT으로 npm ci를 자주 깨뜨린다 (#890).
+  # CPU 런타임(libonnxruntime.so.1, onnxruntime_binding.node)은 패키지에 번들되어 있어 영향 없다.
+  ONNXRUNTIME_NODE_INSTALL: skip
+
 jobs:
   relation-engine-test:
     name: Relation Engine Tests & Quality Validation

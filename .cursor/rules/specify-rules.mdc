@@ -8,9 +8,10 @@ alwaysApply: true
 
 상세: [AGENTS.md](../../AGENTS.md) · [docs/agents/](../../docs/agents/README.md)
 
-Last updated: 2026-08-29
+Last updated: 2026-09-06
 
 ## Active Technologies
+- TypeScript 5.x (tests), vanilla JS (static dashboard), Node.js ≥24 + none new; Vitest + `node:vm` harness (668-883-fix-dashboard-async-anchor)
 
 - TypeScript 5.x, Node.js ≥24, ES modules, npm workspaces
 - `packages/memento-core` (`@memento/core`), `memento-server`, `@jee1/memento-client`, `@jee1/memento-assistant`, `@memento/agent-integration`
@@ -49,13 +50,10 @@ Docker·DB 운영: `npm run db:backup`, `db:pre-docker-deploy` — [commands.md]
 TypeScript strict, 2-space indent, kebab-case 파일명 — [DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md)
 
 ## Recent Changes
+- 668-883-fix-dashboard-async-anchor: Added TypeScript 5.x (tests), vanilla JS (static dashboard), Node.js ≥24 + none new; Vitest + `node:vm` harness
 
 - 660-807-fts-or-prefix (#807): FTS short queries use OR + prefix* (min stem 2); plan in `specs/660-807-fts-or-prefix/`
 - 658-llm-provider-use-case-override (#820): per-job `LLM_PROVIDER_*` for triple/relation/procedural; FR-004 cross-provider model guard; Ollama readiness when job override selects ollama — plan in `specs/658-llm-provider-use-case-override/`
-- `docs/agents/` 분리: AGENTS.md 마스터 + commands/architecture/agent-workflow 상세
-- Docker DB 운영 스크립트 (`db:backup`, `db:pre-docker-deploy`, `db:restore-from-corrupt`)
-- 015-fix-anchor-map-search: `static/js/anchor-map.js` 검색 시 nodes 미초기화 수정
-- 013-refactor-approach: npm workspaces 모노레포 (`packages/*`)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

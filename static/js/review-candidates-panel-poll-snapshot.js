@@ -24,13 +24,18 @@
     const candidates = (body && body.candidates) || [];
     const n = candidates.length;
     const prev = ns.state.lastPendingCount;
-    if (prev >= 0 && n > prev) {
+    const grew = prev >= 0 && n > prev;
+    const fingerprint = ns.buildReviewListFingerprint(candidates);
+    const listChanged = fingerprint !== ns.state.lastListFingerprint;
+    if (grew) {
       ns.showNewCandidatesToast(n - prev, onReview);
       ns.tryOsNotifyReviewQueueGrowth(n - prev);
       if (!onReview) ns.setReviewTabBadge(n);
-      if (onReview) ns.applyListSuccess(body);
     }
-    if (!onReview || n <= prev) ns.state.lastPendingCount = n;
+    if (onReview && (grew || listChanged)) {
+      ns.applyListSuccess(body);
+    }
+    ns.state.lastPendingCount = n;
     if (fromPoll) ns.schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
   };
 })(typeof window !== 'undefined' ? window : globalThis);

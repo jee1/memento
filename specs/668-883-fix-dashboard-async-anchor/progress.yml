@@ -1,0 +1,27 @@
+feature: 668-883-fix-dashboard-async-anchor
+branch: feature/fix-dashboard-anchor-map
+issue: 883
+created: 2026-09-06
+updated: 2026-09-06
+current_phase: review
+executor: /speckit.superspec.review
+
+phases:
+  constitution: { status: done, updated: 2026-09-06, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1, note: "Q1-Q6 auto-select recommended" }
+  plan: { status: done, updated: 2026-09-06 }
+  tasks: { status: done, updated: 2026-09-06 }
+  execute: { status: done, updated: 2026-09-06, tasks: "T001-T018" }
+  review: { status: done, updated: 2026-09-06, result: PASS }
+
+gates:
+  unit: "pass — dashboard review+agent sessions 26/26"
+  lint: "pass (execute wave)"
+  type_check: "pass (via test:prepare tsc)"
+  graphify: "pass — rebuilt 6666 nodes"
+
+status: complete
+
+pending:
+  - "커밋/PR (명시 요청 전 금지)"
