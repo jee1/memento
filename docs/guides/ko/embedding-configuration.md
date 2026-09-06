@@ -101,6 +101,23 @@ JSON 결과에는 누락된 임베딩, 차원 불일치, provider drift 개수�
 
 환경 변수만 바꾸고 기존 데이터를 그대로 두지 마세요.
 
+### 모델 일관성 (#889)
+
+차원이 같아도 **모델이 다르면** 벡터 공간이 달라 코사인 유사도가 의미를 잃습니다. `minilm`은 이를 자동으로 막습니다.
+
+- 임베딩을 저장할 때 `memory_embedding.model`에 모델 이름을 기록합니다.
+- 벡터 검색은 현재 빌드의 모델(`MINILM_MODEL_ID`, `packages/memento-core/src/shared/config/embedding-models.ts`)로 만든 행만 비교합니다.
+- 따라서 재색인이 절반만 끝난 상태에서도 옛 모델 행이 결과에 섞이지 않습니다. 대신 재색인이 끝날 때까지 그 기억들은 벡터 검색에 잡히지 않고 FTS로만 찾힙니다.
+
+모델을 바꾼 뒤에는 반드시 재색인하세요. 진행 상황은 `--dry-run` 결과의 `modelDriftCount`로 확인합니다. 0이 되면 끝난 것입니다.
+
+```bash
+npm run reindex-embeddings -- --provider minilm --dry-run   # modelDriftCount 확인
+npm run reindex-embeddings -- --provider minilm --batch-size 100
+```
+
+기본 모델은 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`(384차원, 50개 언어)입니다. 이전 기본값이던 `all-MiniLM-L6-v2`는 영어 전용이라 한국어 쿼리가 관련 없는 문서를 상위에 올렸습니다.
+
 ### HTTP 관리 API
 
 로컬 CLI를 사용할 수 없는 환경에서는 HTTP 서버가 동일한 작업을 비동기로 실행할 수 있습니다. `admin:destructive` 스코프 토큰이 필요하며, 완료 여부는 응답의 `statusUrl`로 확인합니다.

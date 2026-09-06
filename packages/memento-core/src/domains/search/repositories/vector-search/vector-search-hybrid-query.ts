@@ -23,6 +23,15 @@ export interface HybridQueryParams {
   options: VectorSearchExecutionOptions;
 }
 
+/**
+ * #889: 모델이 다르면 벡터 공간이 달라 코사인 거리가 무의미하다. 재색인 도중처럼
+ * 한 provider 안에 옛 모델과 새 모델 행이 섞여 있어도 현재 모델 행만 비교하게 만든다.
+ * 파라미터는 각 절의 다른 값 뒤에 붙으므로, 이 절은 항상 whereParts 끝에 추가한다.
+ */
+function appendModelFilter(whereParts: string[], column: string, modelFilter: string | null): void {
+  if (modelFilter) whereParts.push(`${column} = ?`);
+}
+
 function buildScopeParams(scope: VectorSearchScope): SqlParam[] {
   const scopeParams: SqlParam[] = [];
   if (scope.hasProjectScope && scope.scopeProjectId) {
@@ -69,7 +78,7 @@ function buildItemScopeClause(scope: VectorSearchScope): string {
   return parts.length > 0 ? `${parts.map(part => `AND ${part}`).join(' ')} ` : '';
 }
 
-function buildItemWhereSql(scope: VectorSearchScope): string {
+function buildItemWhereSql(scope: VectorSearchScope, modelFilter: string | null): string {
   const whereParts: string[] = [];
   if (scope.typeFilters.length > 0) {
     whereParts.push(`mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`);
@@ -92,10 +101,11 @@ function buildItemWhereSql(scope: VectorSearchScope): string {
   } else if (scope.sessionArrayScope.length > 0) {
     whereParts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
   }
+  appendModelFilter(whereParts, 'me.model', modelFilter);
   return whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
 }
 
-function buildScopedCandidateSql(scope: VectorSearchScope): string {
+function buildScopedCandidateSql(scope: VectorSearchScope, modelFilter: string | null): string {
   const whereParts = ['scoped_me.embedding_provider = ?', '(COALESCE(scoped_mi.is_deleted, 0) = 0)'];
   if (scope.typeFilters.length > 0) {
     whereParts.push(`scoped_mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`);
@@ -118,6 +128,7 @@ function buildScopedCandidateSql(scope: VectorSearchScope): string {
   } else if (scope.sessionArrayScope.length > 0) {
     whereParts.push(`scoped_mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
   }
+  appendModelFilter(whereParts, 'scoped_me.model', modelFilter);
   return (
     '    AND rowid IN (' +
     'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
@@ -129,19 +140,20 @@ function buildScopedCandidateSql(scope: VectorSearchScope): string {
 
 export function executeHybridQuery(params: HybridQueryParams): VectorSearchResult[] {
   const { db, effectiveQueryVector, textQuery, runtimeContext, scope, options } = params;
-  const { tableName, provider } = runtimeContext;
+  const { tableName, provider, modelFilter } = runtimeContext;
   const { limit } = options;
 
   const hasTextQuery = Boolean(textQuery && textQuery.trim().length > 0);
   const scopeParams = buildScopeParams(scope);
   const hasScopedCandidates = scope.typeFilters.length > 0 || scope.hasScopeFilter;
-  const scopedCandidateSql = hasScopedCandidates ? buildScopedCandidateSql(scope) : '';
+  const modelParams: SqlParam[] = modelFilter ? [modelFilter] : [];
+  const scopedCandidateSql = hasScopedCandidates ? buildScopedCandidateSql(scope, modelFilter) : '';
   const knnFilterSql = hasScopedCandidates ? '    AND k = ? ' + scopedCandidateSql : '';
   const knnLimitSql = hasScopedCandidates ? '' : '    LIMIT ?';
   const vectorKnnParams: SqlParam[] = [
     JSON.stringify(effectiveQueryVector),
     limit,
-    ...(hasScopedCandidates ? [provider, ...scope.typeFilters, ...scopeParams] : []),
+    ...(hasScopedCandidates ? [provider, ...scope.typeFilters, ...scopeParams, ...modelParams] : []),
   ];
 
   let hybridQuery: string;
@@ -152,7 +164,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       ? `AND mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`
       : '';
     const textScopeClause = buildItemScopeClause(scope);
-    const vectorWhereSql = buildItemWhereSql(scope).replace(/^WHERE /, '  WHERE ');
+    const vectorWhereSql = buildItemWhereSql(scope, modelFilter).replace(/^WHERE /, '  WHERE ');
     hybridQuery =
       'WITH vector_search AS (' +
       '  SELECT ' +
@@ -276,13 +288,14 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       ...vectorKnnParams,
       ...scope.typeFilters,
       ...scopeParams,
+      ...modelParams,
       textQuery.trim(),
       ...scope.typeFilters,
       ...scopeParams,
       limit
     ];
   } else {
-    const outerWhereSql = buildItemWhereSql(scope);
+    const outerWhereSql = buildItemWhereSql(scope, modelFilter);
 
     hybridQuery =
       'SELECT ' +
@@ -326,6 +339,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       ...vectorKnnParams,
       ...scope.typeFilters,
       ...scopeParams,
+      ...modelParams,
       limit
     ];
   }

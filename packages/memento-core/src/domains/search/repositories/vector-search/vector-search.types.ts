@@ -41,6 +41,11 @@ export interface RuntimeVectorContext {
   actualStoredDimensions: number | null;
   targetDimensions: number;
   tableName: string;
+  /**
+   * #889: 이 모델로 만든 임베딩만 비교한다. null이면 모델로 거르지 않는다.
+   * 모델이 다르면 같은 차원이어도 벡터 공간이 달라 코사인 유사도가 무의미하다.
+   */
+  modelFilter: string | null;
 }
 
 export interface VectorSearchScope {

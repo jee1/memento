@@ -67,7 +67,7 @@ describe('MiniLMEmbeddingService', () => {
       // Then: MiniLM 차원(384)을 반환해야 함
       expect(modelInfo).toBeDefined();
       expect(modelInfo.dimensions).toBe(384);
-      expect(modelInfo.model).toBe('all-MiniLM-L6-v2');
+      expect(modelInfo.model).toBe('paraphrase-multilingual-MiniLM-L12-v2');
     });
   });
 });

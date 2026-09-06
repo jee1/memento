@@ -67,6 +67,8 @@ COPY --from=builder /app/package*.json ./
 
 # Install production dependencies and rebuild native modules for Debian/Linux
 # better-sqlite3, sharp: try prebuilt binaries first (much faster), fallback to source compile
+# MiniLM warmup pulls the multilingual model (#889): q8 onnx is ~118MB vs ~23MB for the old
+# English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
 # sqlite-vec: build from source (no reliable prebuilts), copy .so to /usr/lib/
 ARG SKIP_TRANSFORMERS_WARMUP=0
 RUN npm ci --omit=dev --ignore-scripts && \
@@ -84,7 +86,7 @@ RUN npm ci --omit=dev --ignore-scripts && \
       node --input-type=module -e "\
         try { \
           const { pipeline } = await import('@xenova/transformers'); \
-          const embed = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2'); \
+          const embed = await pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', { dtype: 'q8' }); \
           await embed('cache warmup'); \
           console.log('[docker] MiniLM cache warmup ok'); \
         } catch (e) { \
