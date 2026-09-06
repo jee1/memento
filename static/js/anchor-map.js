@@ -58,15 +58,8 @@
     if (!el || !el.dataset.memoryId || !state.searchResults || !state.searchResults.items) return;
     const item = state.searchResults.items.find(function (i) { return ns.getSearchItemId(i) === el.dataset.memoryId; });
     if (!item) return;
-    if (Array.isArray(state.nodes)) {
-      const node = state.nodes.find(function (n) { return n.id === el.dataset.memoryId; });
-      if (node) {
-        ns.selectNode(node);
-        ns.focusOnNode(node, 1.5);
-        return;
-      }
-    }
-    ns.displaySearchResultDetails(item);
+    // 맵에 있든 없든 상세는 검색 항목 기준으로 그린다 (issue 871). 맵에 있으면 포커스도 이동한다.
+    ns.focusSearchResult(item);
   }
 
   function setupEventListeners() {

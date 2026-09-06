@@ -310,6 +310,13 @@ body {
   height: 100%;
 }
 
+/* 앵커가 없는 agent 를 골랐을 때 지도 영역에 남기는 안내문 */
+.map-empty-message {
+  fill: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
 /* Map Legend */
 .map-legend {
   position: absolute;

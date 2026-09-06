@@ -83,7 +83,8 @@
       .style('font-size', function (d) { return state.highlightedNodeIds.has(d.id) ? '14px' : '12px'; });
   }
 
-  function highlightSearchResults() {
+  function highlightSearchResults(options) {
+    const autoFocus = !options || options.autoFocus !== false;
     if (!state.searchResults || !state.searchResults.items) {
       ns.updateSearchStatus('검색 결과가 없습니다.', false);
       renderSearchResultsList();
@@ -102,15 +103,28 @@
     ns.updateSearchStatus(ns.buildSearchStatusMessage(state.searchResults, mapMatchCount), true);
     renderSearchResultsList();
 
-    if (state.searchResults.items.length > 0 && Array.isArray(state.nodes)) {
-      const firstOnMap = state.searchResults.items
-        .map(function (item) { return state.nodes.find(function (n) { return n.id === ns.getSearchItemId(item); }); })
-        .find(Boolean);
-      if (firstOnMap) {
-        ns.selectNode(firstOnMap);
-        ns.focusOnNode(firstOnMap, 1.5);
-      }
+    if (autoFocus && state.searchResults.items.length > 0 && Array.isArray(state.nodes)) {
+      const firstOnMap = state.searchResults.items.find(function (item) {
+        return state.nodes.some(function (n) { return n.id === ns.getSearchItemId(item); });
+      });
+      if (firstOnMap) ns.focusSearchResult(firstOnMap);
     }
+  }
+
+  /**
+   * 검색 결과 하나를 맵에서 선택하고 상세를 연다.
+   * 상세는 반드시 검색 항목 기준으로 그린다 — 맵 노드의 similarity 는 앵커 기준이라
+   * 목록에 찍힌 쿼리 유사도와 다른 숫자가 나온다 (issue 871).
+   */
+  function focusSearchResult(item) {
+    ns.displaySearchResultDetails(item);
+    const id = ns.getSearchItemId(item);
+    const node = Array.isArray(state.nodes)
+      ? state.nodes.find(function (n) { return n.id === id; })
+      : undefined;
+    if (!node) return;
+    ns.markNodeSelected(id);
+    ns.focusOnNode(node, 1.5);
   }
 
   async function performSearch() {
@@ -180,6 +194,7 @@
   ns.performSearch = performSearch;
   ns.clearSearch = clearSearch;
   ns.highlightSearchResults = highlightSearchResults;
+  ns.focusSearchResult = focusSearchResult;
   ns.updateNodeHighlight = updateNodeHighlight;
   ns.renderSearchResultsList = renderSearchResultsList;
   ns.displaySearchResultDetails = displaySearchResultDetails;

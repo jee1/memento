@@ -192,11 +192,24 @@
     simulation.alpha(1).restart();
   }
 
+  // 빈 상태 안내는 zoom 대상인 <g> 밖에 둬야 확대/이동에 끌려다니지 않는다 (issue 872).
+  function showEmptyMapMessage(message) {
+    state.svg.selectAll('.map-empty-message').remove();
+    state.svg.append('text')
+      .attr('class', 'map-empty-message')
+      .attr('x', parseFloat(state.svg.attr('width')) / 2)
+      .attr('y', parseFloat(state.svg.attr('height')) / 2)
+      .attr('text-anchor', 'middle')
+      .text(message);
+  }
+
   function renderMap() {
     if (!state.svg || !state.simulation) return;
 
     state.mapData = ns.normalizeMapData(state.mapData);
     const mapData = state.mapData;
+
+    state.svg.selectAll('.map-empty-message').remove();
 
     if (!mapData || !mapData.nodes || mapData.nodes.length === 0) {
       state.nodes = [];
@@ -204,6 +217,8 @@
       const g = state.svg.select('g');
       if (g.node()) g.selectAll('*').remove();
       else state.svg.selectAll('*').remove();
+      const agentId = mapData && mapData.agent_id ? mapData.agent_id : ns.getSelectedAgentId();
+      showEmptyMapMessage('agent "' + agentId + '" 에는 앵커가 없습니다 — set_anchor 로 설정하세요');
       return;
     }
 
@@ -232,12 +247,27 @@
     runSimulation(link, node, state.svg.selectAll('.node-label'));
 
     if (state.searchResults && state.searchResults.items && state.searchResults.items.length) {
-      ns.highlightSearchResults();
+      // 재렌더 시에는 하이라이트만 복원한다 — 자동 포커스는 새 검색에서만 (issue 870).
+      ns.highlightSearchResults({ autoFocus: false });
+    }
+
+    // 재렌더는 g 를 통째로 지우므로 선택 표시도 함께 날아간다. 상세 패널은 그대로 남아 있어
+    // 복원하지 않으면 "패널엔 내용이 있는데 맵엔 선택이 없는" 어긋난 상태가 된다 (issue 870).
+    if (state.selectedNodeId && state.nodes.some(function (n) { return n.id === state.selectedNodeId; })) {
+      markNodeSelected(state.selectedNodeId);
     }
   }
 
+  // 선택 표시(맵)와 상세 렌더(패널)를 분리한다 — 검색 맥락에서는 상세를 검색 항목으로 그려야
+  // 목록과 같은 유사도가 나온다. 맵 노드의 similarity 는 앵커 기준이라 축이 다르다 (issue 871).
+  function markNodeSelected(memoryId) {
+    if (!state.svg) return;
+    state.selectedNodeId = memoryId;
+    state.svg.selectAll('.node').classed('selected', function (d) { return d.id === memoryId; });
+  }
+
   function selectNode(node) {
-    state.svg.selectAll('.node').classed('selected', function (d) { return d.id === node.id; });
+    markNodeSelected(node.id);
     displayMemoryDetails(node);
   }
 
@@ -285,6 +315,7 @@
   ns.layoutNodesByHop = layoutNodesByHop;
   ns.renderMap = renderMap;
   ns.selectNode = selectNode;
+  ns.markNodeSelected = markNodeSelected;
   ns.selectAnchorNode = selectAnchorNode;
   ns.changeAnchor = changeAnchor;
   ns.updateAnchorList = updateAnchorList;
