@@ -17,6 +17,17 @@
         void ns.refresh();
       });
     }
+    /** Issue #833: click a schedule row → durable timeline for that job. */
+    const scheduleTbody = ns.$('jobs-schedule-tbody');
+    if (scheduleTbody) {
+      scheduleTbody.addEventListener('click', function (event) {
+        const row = event.target && event.target.closest ? event.target.closest('tr') : null;
+        const jobName = row && row.dataset ? row.dataset.jobName : null;
+        if (jobName) {
+          void ns.selectJob(jobName);
+        }
+      });
+    }
   }
 
   function initJobsPanel() {

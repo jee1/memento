@@ -88,6 +88,7 @@ export class BatchScheduler implements IBatchScheduler {
   private telemetryCleanupRepository: TelemetryRepository | null = null;
   private telemetryCleanupBatchJob: BatchSchedulerServiceState['telemetryCleanupBatchJob'] = null;
   private forgettingEventCleanupBatchJob: BatchSchedulerServiceState['forgettingEventCleanupBatchJob'] = null;
+  private jobRunCleanupBatchJob: BatchSchedulerServiceState['jobRunCleanupBatchJob'] = null;
   private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
   private anchorManager: AnchorManager | null = null;
   private jobExecutionCoordinator!: ReturnType<typeof createBatchSchedulerWiring>['jobExecutionCoordinator'];
@@ -104,7 +105,8 @@ export class BatchScheduler implements IBatchScheduler {
       lastJobRunMeta: this.lastJobRunMeta,
       writeDiagnosticsEvent: e => this.writeDiagnosticsEvent(e),
       log: (m, d, l) => this.log(m, d, l),
-      checkSchedulerHealth: () => this.checkSchedulerHealth()
+      checkSchedulerHealth: () => this.checkSchedulerHealth(),
+      getDb: () => this.db
     });
 
     this.config = wiring.config;
@@ -139,6 +141,7 @@ export class BatchScheduler implements IBatchScheduler {
       sleepConsolidationBatchJob: this.sleepConsolidationBatchJob,
       telemetryCleanupBatchJob: this.telemetryCleanupBatchJob,
       forgettingEventCleanupBatchJob: this.forgettingEventCleanupBatchJob,
+      jobRunCleanupBatchJob: this.jobRunCleanupBatchJob,
       lastExecution: this.lastExecution,
       totalExecutions: this.totalExecutions,
       anchorManager: this.anchorManager,
@@ -183,6 +186,7 @@ export class BatchScheduler implements IBatchScheduler {
       runSleepConsolidationBatch: () => this.runSleepConsolidationBatch(),
       runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch(),
       runForgettingEventCleanupBatch: () => this.runForgettingEventCleanupBatch(),
+      runJobRunCleanupBatch: () => this.runJobRunCleanupBatch(),
       runAnchorAutoRefresh: () => this.runAnchorAutoRefresh()
     };
   }
@@ -376,6 +380,10 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runForgettingEventCleanupBatch(): Promise<void> {
     return this.getJobRunners().runForgettingEventCleanupBatch();
+  }
+
+  private async runJobRunCleanupBatch(): Promise<void> {
+    return this.getJobRunners().runJobRunCleanupBatch();
   }
 
   private async runAnchorAutoRefresh(): Promise<BatchJobResult> {

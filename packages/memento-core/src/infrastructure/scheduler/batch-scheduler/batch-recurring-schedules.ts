@@ -8,6 +8,7 @@ export interface BatchRecurringScheduleContext {
   readonly hasSleepConsolidation: boolean;
   readonly hasTelemetryCleanup: boolean;
   readonly hasForgettingEventCleanup: boolean;
+  readonly hasJobRunCleanup: boolean;
   readonly hasAnchorManager: boolean;
   scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) => void;
   readonly lastExecution: Map<string, Date>;
@@ -28,6 +29,7 @@ export interface BatchRecurringScheduleContext {
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
   runTelemetryCleanupBatch: () => Promise<void>;
   runForgettingEventCleanupBatch: () => Promise<void>;
+  runJobRunCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
 }
 
@@ -194,6 +196,9 @@ export function scheduleAugmentationAndTelemetryJobs(ctx: BatchRecurringSchedule
   if (ctx.hasForgettingEventCleanup) {
     scheduleForgettingEventCleanup(ctx);
   }
+  if (ctx.hasJobRunCleanup) {
+    scheduleJobRunCleanup(ctx);
+  }
 }
 
 export function scheduleMemoryReviewCandidatesInterval(ctx: BatchRecurringScheduleContext): void {
@@ -254,6 +259,17 @@ export function scheduleForgettingEventCleanup(ctx: BatchRecurringScheduleContex
     ctx.config.forgettingEventCleanupInterval,
     async () => {
       await ctx.runForgettingEventCleanupBatch();
+    },
+    9
+  );
+}
+
+export function scheduleJobRunCleanup(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'job_run_cleanup_batch',
+    ctx.config.jobRunCleanupInterval,
+    async () => {
+      await ctx.runJobRunCleanupBatch();
     },
     9
   );

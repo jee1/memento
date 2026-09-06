@@ -400,6 +400,17 @@ export { MemoryForgettingEventMigration } from './infrastructure/database/sqlite
 export { AuditHashChainMigration } from './infrastructure/database/sqlite/migration/migrations/040-audit-hash-chain.js';
 export { VecCosineMetricMigration } from './infrastructure/database/sqlite/migration/migrations/041-vec-cosine-metric.js';
 export { AuditTransportExpansionMigration } from './infrastructure/database/sqlite/migration/migrations/042-audit-transport-expansion.js';
+export { JobRunMigration } from './infrastructure/database/sqlite/migration/migrations/044-job-run.js';
+export {
+  JobRunRepository,
+  appendJobRunSafe,
+} from './infrastructure/scheduler/repositories/job-run-repository.js';
+export type {
+  JobRunTrigger,
+  JobRunInsert,
+  JobRunRow,
+  ListJobRunsOptions,
+} from './infrastructure/scheduler/repositories/job-run-repository.js';
 export {
   VEC_DISTANCE_METRIC,
   VEC_TABLES,

@@ -60,6 +60,9 @@ export function validateBatchJobConfig(config: BatchJobConfig): void {
   if (config.forgettingEventCleanupInterval < 60000) {
     throw new Error('forgettingEventCleanupInterval must be at least 1 minute');
   }
+  if (config.jobRunCleanupInterval < 60000) {
+    throw new Error('jobRunCleanupInterval must be at least 1 minute');
+  }
   if (config.memoryReviewCandidatesInterval < 60000) {
     throw new Error('memoryReviewCandidatesInterval must be at least 1 minute');
   }

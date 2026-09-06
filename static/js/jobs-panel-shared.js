@@ -8,12 +8,15 @@
 
   ns.STATS_URL = '/admin/batch/stats';
   ns.RUN_HISTORY_URL = '/admin/batch/run-history?limit=50';
+  ns.RUNS_URL = '/admin/batch/runs';
 
   ns.state = ns.state || {
     wired: false,
     loadedOnce: false,
     lastStats: null,
     lastHistory: null,
+    lastRuns: null,
+    selectedJob: null,
     refreshGeneration: 0,
   };
 
@@ -63,6 +66,15 @@
     if (line) {
       line.textContent = message || '';
     }
+  };
+
+  /** Issue #833: durable job_run timeline URL, optionally filtered by job name. */
+  ns.buildRunsUrl = function (jobName) {
+    const limit = 'limit=50';
+    if (jobName) {
+      return ns.RUNS_URL + '?job=' + encodeURIComponent(jobName) + '&' + limit;
+    }
+    return ns.RUNS_URL + '?' + limit;
   };
 
   ns.setError = function (message) {

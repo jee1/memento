@@ -23,7 +23,9 @@ import {
   upsertPendingMemoryReviewCandidates,
   listMemoryReviewCandidates,
   getBatchScheduler,
-  resetBatchScheduler
+  resetBatchScheduler,
+  JobRunMigration,
+  JobRunRepository
 } from '@memento/core';
 
 const DAY_MS = 86_400_000;
@@ -1170,6 +1172,7 @@ describe('admin.routes memory review candidates', () => {
     await new MetaMemoryStatsSchemaMigration().up(db);
     await new MemoryReviewCandidateSchemaMigration().up(db);
     await new ReviewQueueHealthSnapshotMigration().up(db);
+    await new JobRunMigration().up(db);
     db.exec(`
       INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned, is_deleted, deleted_at)
       VALUES (
@@ -1454,6 +1457,117 @@ describe('admin.routes memory review candidates', () => {
       await scheduler.stop();
       resetBatchScheduler();
       resetBatchRunHistoryForTests();
+    }
+  });
+
+  it('GET /admin/batch/runs is empty before any run (#833)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/batch/runs');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { runs?: unknown[]; limit?: number };
+      expect(body.runs).toEqual([]);
+      expect(body.limit).toBe(50);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/batch/runs lists a durable manual-trigger entry after POST /admin/batch/run (#833)', async () => {
+    resetBatchScheduler();
+    resetBatchRunHistoryForTests();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const postRes = await postAdminJson(port, '/admin/batch/run', { jobType: 'memory_review_candidates' });
+        expect(postRes.statusCode).toBe(200);
+
+        const runsRes = await getAdmin(port, '/admin/batch/runs');
+        expect(runsRes.statusCode).toBe(200);
+        const body = JSON.parse(runsRes.body) as {
+          runs: Array<{
+            id: string;
+            jobName: string;
+            trigger: string;
+            startedAt: string;
+            endedAt: string;
+            success: boolean;
+            durationMs: number;
+          }>;
+          limit: number;
+        };
+        expect(body.runs).toHaveLength(1);
+        expect(body.runs[0]).toMatchObject({
+          jobName: 'memory_review_candidates',
+          trigger: 'manual',
+          success: true,
+        });
+        expect(typeof body.runs[0]?.id).toBe('string');
+        expect(typeof body.runs[0]?.durationMs).toBe('number');
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+      resetBatchRunHistoryForTests();
+    }
+  });
+
+  it('GET /admin/batch/runs?job= filters by job name (#833)', async () => {
+    new JobRunRepository().append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-06T00:00:00.000Z',
+      ended_at: '2026-09-06T00:00:01.000Z',
+      success: true,
+      duration_ms: 1000,
+    });
+    new JobRunRepository().append(db, {
+      job_name: 'monitoring',
+      trigger: 'schedule',
+      started_at: '2026-09-06T00:00:02.000Z',
+      ended_at: '2026-09-06T00:00:03.000Z',
+      success: true,
+      duration_ms: 1000,
+    });
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/batch/runs?job=monitoring');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { runs: Array<{ jobName: string }> };
+      expect(body.runs).toHaveLength(1);
+      expect(body.runs[0]?.jobName).toBe('monitoring');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/batch/runs?limit= clamps to 1..100 (#833)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const tooLow = await getAdmin(port, '/admin/batch/runs?limit=0');
+      expect((JSON.parse(tooLow.body) as { limit: number }).limit).toBe(1);
+
+      const tooHigh = await getAdmin(port, '/admin/batch/runs?limit=1000');
+      expect((JSON.parse(tooHigh.body) as { limit: number }).limit).toBe(100);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/batch/runs returns 500 when db is unavailable (#833)', async () => {
+    const app = express();
+    app.use(express.json());
+    app.use('/admin', createAdminRouter(null, null));
+    const { server, port } = await listen(app);
+    try {
+      const res = await getAdmin(port, '/admin/batch/runs');
+      expect(res.statusCode).toBe(500);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
     }
   });
 

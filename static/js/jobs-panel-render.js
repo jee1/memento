@@ -55,6 +55,9 @@
     }
     list.forEach(function (job) {
       const row = document.createElement('tr');
+      row.dataset.jobName = job.name || '';
+      row.classList.add('jobs-row-selectable');
+      row.classList.toggle('jobs-row-selected', job.name === ns.state.selectedJob);
       appendCell(row, job.name || '');
       appendCell(
         row,
@@ -65,6 +68,39 @@
       appendCell(row, ns.formatNumber(job.totalExecutions));
       appendCell(row, ns.formatNumber(job.errorCount));
       appendCell(row, job.isRunning ? 'yes' : 'no');
+      tbody.appendChild(row);
+    });
+  };
+
+  /** Issue #833: durable job_run timeline for the selected job (or all jobs when none selected). */
+  ns.renderTimeline = function (runs, selectedJob) {
+    const label = ns.$('jobs-timeline-selected');
+    if (label) {
+      label.textContent = selectedJob ? selectedJob : 'All jobs';
+    }
+    const tbody = ns.$('jobs-timeline-tbody');
+    if (!tbody) {
+      return;
+    }
+    ns.clearNode(tbody);
+    const list = Array.isArray(runs) ? runs : [];
+    if (list.length === 0) {
+      const row = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.textContent = 'No durable job runs yet.';
+      row.appendChild(td);
+      tbody.appendChild(row);
+      return;
+    }
+    list.forEach(function (run) {
+      const row = document.createElement('tr');
+      appendCell(row, run.jobName || '');
+      appendCell(row, run.trigger || '');
+      appendCell(row, ns.formatIso(run.startedAt));
+      appendCell(row, ns.formatIso(run.endedAt));
+      appendCell(row, ns.formatNumber(run.durationMs));
+      appendCell(row, run.success ? 'ok' : 'fail');
       tbody.appendChild(row);
     });
   };
