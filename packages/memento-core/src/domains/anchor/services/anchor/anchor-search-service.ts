@@ -304,6 +304,19 @@ export class AnchorSearchService implements IAnchorSearchService {
     const localResults = formattedResults.slice(0, limit);
     const localCount = localResults.length;
 
+    // 국소 검색이 어느 단계에서 줄어드는지 재현 없이 확인하기 위한 단계별 계측 (#873).
+    // 맵 렌더링이 슬롯마다 호출하므로 debug 레벨로 둔다 (LOG_LEVEL=debug 로 켠다).
+    logger.debug('searchLocal stages', {
+      slot,
+      hopLimit: finalHopLimit,
+      vectorThreshold,
+      hasQuery: Boolean(query && query.trim().length > 0),
+      hopResults: allHopResults.length,
+      afterQueryFilter: filteredResults.length,
+      afterLimit: localCount,
+      minResults
+    });
+
     // 4. Fallback 처리
     const fallbackResult = await this.localSearchService.handleFallback(
       query,

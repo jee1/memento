@@ -50,6 +50,8 @@ describe('FallbackSearchService', () => {
             id: 'memory-1',
             content: 'Test content 1',
             type: 'episodic',
+            textScore: 0.7,
+            vectorScore: 0.6,
             finalScore: 0.8,
             importance: 0.7,
             created_at: '2024-01-01T00:00:00Z',
@@ -59,6 +61,8 @@ describe('FallbackSearchService', () => {
             id: 'memory-2',
             content: 'Test content 2',
             type: 'episodic',
+            textScore: 0,
+            vectorScore: 0.5,
             finalScore: 0.6,
             importance: 0.5,
             created_at: '2024-01-02T00:00:00Z'
@@ -182,6 +186,8 @@ describe('FallbackSearchService', () => {
             id: 'memory-1',
             content: 'Test content',
             type: 'episodic',
+            textScore: 0.7,
+            vectorScore: 0.6,
             finalScore: 0.8,
             importance: 0.7,
             created_at: '2024-01-01T00:00:00Z',
@@ -202,6 +208,66 @@ describe('FallbackSearchService', () => {
       expect(result.items[0].similarity).toBe(0.8);
       expect(result.items[0].hop_distance).toBeUndefined();
       expect(result.total_count).toBe(1);
+    });
+
+    it('#873: 쿼리 관련성이 없는 항목은 finalScore가 높아도 제외해야 함', async () => {
+      // Given: 벡터/텍스트 점수는 바닥이지만 recency·importance 때문에 finalScore가 높은 항목
+      const mockSearchResult = {
+        items: [
+          {
+            id: 'relevant',
+            content: 'relevant content',
+            type: 'episodic',
+            textScore: 0,
+            vectorScore: 0.45,
+            finalScore: 0.5,
+            importance: 0.5,
+            created_at: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: 'recent-but-irrelevant',
+            content: 'irrelevant content',
+            type: 'episodic',
+            textScore: 0,
+            vectorScore: 0.31,
+            finalScore: 0.62,
+            importance: 0.9,
+            created_at: '2024-01-02T00:00:00Z'
+          }
+        ],
+        total_count: 2
+      };
+      (mockHybridSearchEngine.search as any).mockResolvedValue(mockSearchResult);
+
+      // When: fallbackToGlobalSearch를 호출하면
+      const result = await service.fallbackToGlobalSearch('test query', { limit: 10 }, Date.now());
+
+      // Then: 관련성 하한을 넘긴 항목만 남아야 함 (finalScore가 더 높아도 제외)
+      expect(result.items.map(item => item.id)).toEqual(['relevant']);
+      expect(result.total_count).toBe(1);
+    });
+
+    it('#873: 텍스트 매칭이 있으면 벡터 점수가 하한 미만이어도 유지해야 함', async () => {
+      const mockSearchResult = {
+        items: [
+          {
+            id: 'text-match',
+            content: 'text matched content',
+            type: 'episodic',
+            textScore: 0.4,
+            vectorScore: 0.1,
+            finalScore: 0.4,
+            importance: 0.5,
+            created_at: '2024-01-01T00:00:00Z'
+          }
+        ],
+        total_count: 1
+      };
+      (mockHybridSearchEngine.search as any).mockResolvedValue(mockSearchResult);
+
+      const result = await service.fallbackToGlobalSearch('test query', { limit: 10 }, Date.now());
+
+      expect(result.items.map(item => item.id)).toEqual(['text-match']);
     });
   });
 });

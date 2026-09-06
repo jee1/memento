@@ -7,6 +7,7 @@ import type Database from 'better-sqlite3';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { SearchOptions, SearchResult } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
 
 /**
  * Fallback 검색 서비스 인터페이스
@@ -77,8 +78,28 @@ export class FallbackSearchService implements IFallbackSearchService {
         textWeight: options?.text_weight
       });
 
+      // 쿼리 관련성이 없는 항목은 fallback 으로 채우지 않는다 (#873).
+      // finalScore 에는 recency 0.20 + importance 0.20 + usage 0.10 이 쿼리와 무관하게 실려서,
+      // 벡터/텍스트 점수가 바닥이어도 0.46 같은 점수가 나온다(실측: 'zzzqqqxyz nonexistent' →
+      // text 0 / vector 0.31 / final 0.46). 게다가 하이브리드 경로는 임계값 통과 후보가 모자라면
+      // raw prefetch 로 채우므로(VECTOR_UNDERFILL_FILL, #789) 무관한 쿼리도 limit 을 다 채운다.
+      // 앵커 국소 검색의 fallback 에서는 그 채움을 받지 않고 관련성 하한을 다시 적용한다.
+      const relevantItems = globalSearchResult.items.filter(
+        item => item.textScore > 0 || item.vectorScore >= HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD
+      );
+
+      if (relevantItems.length < globalSearchResult.items.length) {
+        logger.info('Fallback relevance floor applied', {
+          before: globalSearchResult.items.length,
+          after: relevantItems.length,
+          byText: globalSearchResult.items.filter(item => item.textScore > 0).length,
+          byVector: globalSearchResult.items.filter(item => item.vectorScore >= HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD).length,
+          threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD
+        });
+      }
+
       // HybridSearchResult를 SearchResult 형식으로 변환
-      const convertedItems = globalSearchResult.items.map(item => ({
+      const convertedItems = relevantItems.map(item => ({
         id: item.id,
         content: item.content,
         type: item.type,
