@@ -21,6 +21,19 @@ export interface SemanticOwnerRow {
   content: string;
   originSource: string;
   ownerId: string | null;
+  /** 요청한 provider·model 로 만들어진 저장 벡터. 그런 행이 없으면 undefined. */
+  embedding?: number[];
+}
+
+/**
+ * 저장 벡터를 고르는 기준.
+ *
+ * 벡터 공간이 다르면 코사인 값이 무의미하므로, 비교 대상 벡터를 만든 provider·model 과
+ * 같은 행만 써야 한다 (#889). provider 를 알 수 없으면 model 만으로 거른다.
+ */
+export interface StoredEmbeddingFilter {
+  provider?: string;
+  model?: string;
 }
 
 export class ConsolidationRepository {
@@ -84,21 +97,70 @@ export class ConsolidationRepository {
 
   /**
    * owner별 시맨틱 후보 (재요약 병합용)
+   *
+   * 저장된 벡터를 함께 읽어 온다. 병합 후보 탐색에 필요한 것은 코사인 유사도뿐이고
+   * 모든 후보는 저장 시점에 이미 임베딩되어 있으므로, 호출부에서 후보마다 임베딩을
+   * 다시 만들 이유가 없다. 다시 만들면 클러스터 하나당 시맨틱 기억 수만큼 모델 추론이
+   * 돌아 CPU 를 태운다 (#917: 3,902건 × 13ms).
    */
-  findSemanticsByOwner(ownerId: string | null): SemanticOwnerRow[] {
+  findSemanticsByOwner(
+    ownerId: string | null,
+    embeddingFilter: StoredEmbeddingFilter
+  ): SemanticOwnerRow[] {
+    const joinConditions = ["me.memory_id = mi.id", "COALESCE(me.model, '') = COALESCE(?, '')"];
+    const joinParams: Array<string | null> = [embeddingFilter.model ?? null];
+    if (embeddingFilter.provider) {
+      joinConditions.push('me.embedding_provider = ?');
+      joinParams.push(embeddingFilter.provider);
+    }
+
     const rows = DatabaseUtils.all(
       this.db,
       `
-      SELECT id, content, COALESCE(origin_source, '{}') AS originSource, owner_id AS ownerId
-      FROM memory_item
-      WHERE type = 'semantic'
-        AND (is_deleted IS NULL OR is_deleted = 0)
-        AND COALESCE(owner_id, '') = COALESCE(?, '')
-      ORDER BY created_at ASC
+      SELECT
+        mi.id AS id,
+        mi.content AS content,
+        COALESCE(mi.origin_source, '{}') AS originSource,
+        mi.owner_id AS ownerId,
+        me.embedding AS embedding
+      FROM memory_item mi
+      LEFT JOIN memory_embedding me ON ${joinConditions.join(' AND ')}
+      WHERE mi.type = 'semantic'
+        AND (mi.is_deleted IS NULL OR mi.is_deleted = 0)
+        AND COALESCE(mi.owner_id, '') = COALESCE(?, '')
+      ORDER BY mi.created_at ASC
     `,
-      [ownerId ?? null]
-    ) as SemanticOwnerRow[];
-    return rows;
+      [...joinParams, ownerId ?? null]
+    ) as Array<{
+      id: string;
+      content: string;
+      originSource: string;
+      ownerId: string | null;
+      embedding: Buffer | null;
+    }>;
+
+    // UNIQUE 는 (memory_id, embedding_provider, projection_type) 이라 provider 를 고정해도
+    // projection_type 이 다른 행이 둘 이상 붙을 수 있다. 시맨틱 하나에 행 하나로 접되,
+    // 벡터가 있는 행을 우선한다.
+    const byId = new Map<string, SemanticOwnerRow>();
+    for (const row of rows) {
+      const vec = embeddingColumnToNumbers(row.embedding);
+      const existing = byId.get(row.id);
+      if (!existing) {
+        byId.set(row.id, {
+          id: row.id,
+          content: row.content,
+          originSource: row.originSource,
+          ownerId: row.ownerId,
+          embedding: vec
+        });
+        continue;
+      }
+      if (!existing.embedding && vec) {
+        existing.embedding = vec;
+      }
+    }
+    return Array.from(byId.values());
   }
 
   updateSemanticMemory(params: { id: string; content: string; originSourceJson: string }): void {

@@ -226,6 +226,9 @@ describe('SleepConsolidationService', () => {
     );
 
     const emb = [1, 0, 0, 0];
+    // 병합 후보는 저장된 벡터로 찾는다. 벡터가 없으면 후보에서 빠져 이 테스트가
+    // 검증하려는 "병합 요약이 빈 경우" 경로에 아예 들어가지 못한다 (#917).
+    insertEmbedding(db, 'sem_existing', emb);
     for (let i = 0; i < 10; i++) {
       const id = `e${i}`;
       insertEpisodic(db, id, { owner: 'agent-x' });
@@ -269,5 +272,47 @@ describe('SleepConsolidationService', () => {
       `SELECT content FROM memory_item WHERE id = 'sem_existing'`
     ) as { content: string };
     expect(unchanged.content).toBe('base');
+  });
+
+  it('#917: 병합 후보 수만큼 임베딩을 다시 만들지 않는다', async () => {
+    vi.stubEnv('CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD', '0.5');
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+
+    const emb = [1, 0, 0, 0];
+    const SEMANTIC_COUNT = 20;
+    for (let i = 0; i < SEMANTIC_COUNT; i++) {
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_item (id, type, content, owner_id, created_at) VALUES (?, 'semantic', ?, 'agent-x', datetime('now'))`,
+        [`sem_${i}`, `base-${i}`]
+      );
+      insertEmbedding(db, `sem_${i}`, emb);
+    }
+    for (let i = 0; i < 10; i++) {
+      const id = `e${i}`;
+      insertEpisodic(db, id, { owner: 'agent-x' });
+      insertEmbedding(db, id, emb);
+    }
+
+    const memEmb = new MemoryEmbeddingService();
+    const uni = memEmb.getUnifiedEmbeddingService();
+    const generateEmbedding = vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
+      embedding: emb,
+      provider: 'tfidf'
+    } as never);
+
+    const { createRelationGraph } = await import(
+      '../../../infrastructure/relation-graph-factory.js'
+    );
+    const svc = new SleepConsolidationService(db, {
+      memoryEmbeddingService: memEmb,
+      relationGraph: createRelationGraph(db)
+    });
+    await svc.run({ ownerIdFilter: 'agent-x' });
+
+    // 예전 구현은 클러스터마다 후보 수만큼 generateEmbedding 을 돌려 22회였다.
+    // 남는 호출은 요약 벡터 1회와 결과 시맨틱 저장 1회뿐이고, 후보 수와 무관하다.
+    expect(generateEmbedding.mock.calls.length).toBe(2);
   });
 });

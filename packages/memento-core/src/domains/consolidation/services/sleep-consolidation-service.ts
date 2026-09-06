@@ -10,6 +10,7 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri } from '../../../shared/utils/memento-resource-uri.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
+import { mcpLogger } from '../../../server/mcp-logger.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';
@@ -223,18 +224,37 @@ export class SleepConsolidationService {
           const sumEmbRes = await uni.generateEmbedding(summaryText);
           if (sumEmbRes?.embedding && Array.isArray(sumEmbRes.embedding)) {
             const sumVec = sumEmbRes.embedding as number[];
-            const semantics = this.repo.findSemanticsByOwner(cluster.ownerId);
+            // 후보 벡터는 저장된 것을 읽는다. 예전에는 후보마다 generateEmbedding 을 다시
+            // 호출했는데, 모든 후보는 저장 시점에 이미 임베딩된 상태라 결과가 같으면서
+            // 클러스터 하나에 시맨틱 수만큼 모델 추론이 돌았다 (#917).
+            const semantics = this.repo.findSemanticsByOwner(cluster.ownerId, {
+              provider: sumEmbRes.provider,
+              model: sumEmbRes.model
+            });
             let bestSim = -1;
+            let withoutEmbedding = 0;
             for (const sem of semantics) {
-              const semEmbRes = await uni.generateEmbedding(sem.content);
-              if (!semEmbRes?.embedding || !Array.isArray(semEmbRes.embedding)) {
+              if (!sem.embedding) {
+                withoutEmbedding++;
                 continue;
               }
-              const sim = cosineSimilarity(sumVec, semEmbRes.embedding as number[]);
+              const sim = cosineSimilarity(sumVec, sem.embedding);
               if (sim >= mergeTh && sim > bestSim) {
                 bestSim = sim;
                 mergeTarget = sem;
               }
+            }
+            if (withoutEmbedding > 0) {
+              // 현재 모델 벡터가 없는 후보는 비교할 수 없어 병합에서 빠진다. 모델을 바꾸고
+              // 재색인이 끝나지 않은 상태면 여기서 조용히 중복 시맨틱이 쌓이므로 남긴다.
+              mcpLogger.logServer('warn', '현재 모델 임베딩이 없는 시맨틱은 병합 후보에서 제외', {
+                clusterId,
+                ownerId: cluster.ownerId,
+                provider: sumEmbRes.provider ?? null,
+                model: sumEmbRes.model ?? null,
+                withoutEmbedding,
+                candidateCount: semantics.length
+              });
             }
           }
 
