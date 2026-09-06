@@ -819,6 +819,19 @@ CREATE INDEX IF NOT EXISTS idx_job_run_job_started
 CREATE INDEX IF NOT EXISTS idx_job_run_started
   ON job_run(started_at);
 
+-- Structured per-run logs (migration 045, Issue #834)
+CREATE TABLE IF NOT EXISTS job_run_log (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  level TEXT NOT NULL CHECK (level IN ('debug', 'info', 'warn', 'error')),
+  message TEXT NOT NULL,
+  context_json TEXT,
+  FOREIGN KEY (run_id) REFERENCES job_run(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_job_run_log_run_ts
+  ON job_run_log(run_id, ts ASC, id ASC);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

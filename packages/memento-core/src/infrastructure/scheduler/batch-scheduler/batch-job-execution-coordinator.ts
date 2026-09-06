@@ -4,6 +4,7 @@ import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import type { JobRunRepository } from '../repositories/job-run-repository.js';
+import { JobRunLogBuffer, flushJobRunLogBufferSafe } from '../job-run-log-buffer.js';
 import {
   isJobTimeoutError,
   isTripleExtractionQueueJob,
@@ -115,6 +116,14 @@ export class BatchJobExecutionCoordinator {
     const startTime = Date.now();
     let retryCount = initialRetryCount;
     let jobOk = false;
+    /** Issue #834: MVP boundary lines; flushed after job_run append. */
+    const logBuffer = new JobRunLogBuffer();
+    logBuffer.append({
+      level: 'info',
+      message: `${name} started`,
+      context: { phase: 'start', priority, retryCount },
+      ts: new Date(startTime).toISOString(),
+    });
     await this.deps.writeDiagnosticsEvent({
       type: 'batch_job_start',
       jobName: name,
@@ -157,6 +166,14 @@ export class BatchJobExecutionCoordinator {
 
       const isTripleExtractionTimeout =
         isTripleExtractionQueueJob(name) && isJobTimeoutError(error);
+
+      logBuffer.append({
+        level: isTripleExtractionTimeout ? 'warn' : 'error',
+        message: isTripleExtractionTimeout
+          ? `${name} timed out`
+          : `${name} failed: ${errorInfo.error}`,
+        context: { phase: 'error', retryCount, errorCount: totalErrorCount },
+      });
 
       this.deps.log(
         isTripleExtractionTimeout ? `Job ${name} timed out` : `Job ${name} failed`,
@@ -230,25 +247,37 @@ export class BatchJobExecutionCoordinator {
       }
     } finally {
       const durationMs = Date.now() - startTime;
+      logBuffer.append({
+        level: jobOk ? 'info' : 'error',
+        message: jobOk ? `${name} finished` : `${name} ended with failure`,
+        context: { phase: 'end', success: jobOk, durationMs },
+      });
       this.deps.lastJobRunMeta.set(name, {
         at: new Date(),
         success: jobOk,
         durationMs
       });
-      this.appendScheduleJobRun(name, startTime, durationMs, jobOk);
+      this.appendScheduleJobRun(name, startTime, durationMs, jobOk, logBuffer);
       this.deps.jobQueue.markCompleted(name);
     }
   }
 
-  /** Issue #833: durable job_run append for the schedule trigger. Never throws — soft-fail only. */
-  private appendScheduleJobRun(name: string, startTime: number, durationMs: number, success: boolean): void {
+  /** Issue #833/#834: durable job_run append + log buffer flush. Never throws — soft-fail only. */
+  private appendScheduleJobRun(
+    name: string,
+    startTime: number,
+    durationMs: number,
+    success: boolean,
+    logBuffer?: JobRunLogBuffer
+  ): void {
     const db = this.deps.getDb?.();
     const repository = this.deps.jobRunRepository;
     if (!db || !repository) {
+      logBuffer?.drain();
       return;
     }
     try {
-      repository.append(db, {
+      const row = repository.append(db, {
         job_name: name,
         trigger: 'schedule',
         started_at: new Date(startTime).toISOString(),
@@ -256,7 +285,13 @@ export class BatchJobExecutionCoordinator {
         success,
         duration_ms: durationMs
       });
+      if (logBuffer && logBuffer.size > 0) {
+        flushJobRunLogBufferSafe(db, row.id, logBuffer, (message, data) => {
+          this.deps.log(message, data, 'warn');
+        });
+      }
     } catch (error) {
+      logBuffer?.drain();
       this.deps.log(
         'job_run append failed (soft-fail)',
         { jobName: name, error: error instanceof Error ? error.message : String(error) },

@@ -144,6 +144,7 @@ export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';
 export type { AppErrorContract } from './shared/types/error-types.js';
 export { ToolInputValidationError } from './shared/errors/tool-input-validation-error.js';
 export { getBatchScheduler, resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
+export { BatchJobAlreadyRunningError } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-types.js';
 
 // --- 도메인·인프라 re-export (서버 thin화용) ---
 export { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
@@ -404,6 +405,7 @@ export { JobRunMigration } from './infrastructure/database/sqlite/migration/migr
 export { VecOrphanCleanupMigration, deleteOrphanVecRows } from './infrastructure/database/sqlite/migration/migrations/045-vec-orphan-cleanup.js';
 export { replaceMemoryEmbedding } from './shared/utils/memory-embedding-write.js';
 export type { MemoryEmbeddingWrite } from './shared/utils/memory-embedding-write.js';
+export { JobRunLogMigration } from './infrastructure/database/sqlite/migration/migrations/046-job-run-log.js';
 export {
   JobRunRepository,
   appendJobRunSafe,
@@ -414,6 +416,27 @@ export type {
   JobRunRow,
   ListJobRunsOptions,
 } from './infrastructure/scheduler/repositories/job-run-repository.js';
+export {
+  JobRunLogRepository,
+  appendJobRunLogSafe,
+  appendJobRunLogsManySafe,
+} from './infrastructure/scheduler/repositories/job-run-log-repository.js';
+export type {
+  JobRunLogLevel,
+  JobRunLogInsert,
+  JobRunLogRow,
+  ListJobRunLogsOptions,
+} from './infrastructure/scheduler/repositories/job-run-log-repository.js';
+export {
+  JobRunLogBuffer,
+  flushJobRunLogBufferSafe,
+} from './infrastructure/scheduler/job-run-log-buffer.js';
+export type { JobRunLogBufferLine } from './infrastructure/scheduler/job-run-log-buffer.js';
+export {
+  REGISTERED_MANUAL_BATCH_JOB_TYPES,
+  isRegisteredManualBatchJobType,
+} from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
+export type { ManualBatchSchedulerJobType } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 export {
   VEC_DISTANCE_METRIC,
   VEC_TABLES,

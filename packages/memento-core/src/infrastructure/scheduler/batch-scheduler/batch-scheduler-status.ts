@@ -15,6 +15,8 @@ export interface BatchSchedulerStatusState {
   totalExecutions: Map<string, number>;
   startTime: Date | null;
   config: BatchJobConfig;
+  /** Issue #834 */
+  pausedJobs?: Set<string>;
 }
 
 export function getBatchSchedulerStatus(
@@ -63,7 +65,8 @@ export function getBatchSchedulerDetailedStatsReport(
     totalExecutions: state.totalExecutions,
     retryManager,
     jobQueue,
-    startTime: state.startTime
+    startTime: state.startTime,
+    pausedJobs: state.pausedJobs,
   });
 }
 

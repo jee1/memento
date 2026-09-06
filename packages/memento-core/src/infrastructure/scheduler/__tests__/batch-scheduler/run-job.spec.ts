@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { BatchScheduler } from '../../batch-scheduler/batch-scheduler.js';
+import { BatchJobAlreadyRunningError } from '../../batch-scheduler/batch-scheduler-types.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 describe('BatchScheduler', () => {
@@ -135,6 +136,24 @@ describe('BatchScheduler', () => {
       const result = await s.runJob('memory_review_candidates');
       expect(result.jobType).toBe('memory_review_candidates');
       await s.stop();
+    });
+
+    it('rejects runJob when job name is already marked running (#834 SC-003)', async () => {
+      await scheduler.start(db);
+      const jobQueue = (scheduler as unknown as { jobQueue: { markRunning: (n: string) => void; markCompleted: (n: string) => void } })
+        .jobQueue;
+      jobQueue.markRunning('healthcheck');
+      try {
+        await expect(scheduler.runJob('healthcheck')).rejects.toBeInstanceOf(BatchJobAlreadyRunningError);
+      } finally {
+        jobQueue.markCompleted('healthcheck');
+      }
+    });
+
+    it('clears running mark after runJob completes (#834)', async () => {
+      await scheduler.start(db);
+      await scheduler.runJob('healthcheck');
+      expect(scheduler.isJobRunning('healthcheck')).toBe(false);
     });
   });
 });

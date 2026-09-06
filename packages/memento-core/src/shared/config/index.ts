@@ -162,6 +162,8 @@ export const mementoConfig: MementoConfig = {
 
   // Admin/API/Quality 인증 (ADMIN_API_KEY 설정 시 해당 라우트에 Bearer 또는 X-API-Key 필요)
   adminApiKey: resolveOptionalString('ADMIN_API_KEY'),
+  /** Issue #834: Jobs Dashboard write-guard (pause/resume/run → 403 when true) */
+  adminJobsReadOnly: resolveBoolean('ADMIN_JOBS_READ_ONLY', { defaultValue: false }),
   apiTokens: resolveApiTokens(resolveOptionalString('ADMIN_API_KEY')),
 
   // HTTP 바인드·보안 (원격 바인딩 시 ADMIN_API_KEY 또는 루프백/명시적 insecure 필요)

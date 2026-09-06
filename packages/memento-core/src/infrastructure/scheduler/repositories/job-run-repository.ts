@@ -109,22 +109,24 @@ export class JobRunRepository {
 /**
  * Soft-fail append helper for callers (schedule coordinator, manual admin route).
  * Never throws — append failures must not flip the primary job success/failure outcome (FR-004).
+ * @returns inserted id, or null on soft-fail / missing db (Issue #834: flush logs after append).
  */
 export function appendJobRunSafe(
   db: Database.Database | null | undefined,
   input: JobRunInsert,
   log: (message: string, data?: unknown) => void = () => {},
-): void {
+): string | null {
   if (!db) {
-    return;
+    return null;
   }
   try {
-    new JobRunRepository().append(db, input);
+    return new JobRunRepository().append(db, input).id;
   } catch (error) {
     log('job_run append failed (soft-fail)', {
       jobName: input.job_name,
       trigger: input.trigger,
       error: error instanceof Error ? error.message : String(error),
     });
+    return null;
   }
 }

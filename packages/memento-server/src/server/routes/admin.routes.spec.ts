@@ -25,7 +25,10 @@ import {
   getBatchScheduler,
   resetBatchScheduler,
   JobRunMigration,
-  JobRunRepository
+  JobRunLogMigration,
+  JobRunRepository,
+  JobRunLogRepository,
+  mementoConfig,
 } from '@memento/core';
 
 const DAY_MS = 86_400_000;
@@ -1173,6 +1176,8 @@ describe('admin.routes memory review candidates', () => {
     await new MemoryReviewCandidateSchemaMigration().up(db);
     await new ReviewQueueHealthSnapshotMigration().up(db);
     await new JobRunMigration().up(db);
+    await new JobRunLogMigration().up(db);
+    db.pragma('foreign_keys = ON');
     db.exec(`
       INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned, is_deleted, deleted_at)
       VALUES (
@@ -1601,6 +1606,7 @@ describe('admin.routes memory review candidates', () => {
           expect(typeof job.name).toBe('string');
           expect(job.intervalMs === null || typeof job.intervalMs === 'number').toBe(true);
           expect(job.enabled).toBe(true);
+          expect(job.paused).toBe(false);
           expect(job.lastExecution === null || typeof job.lastExecution === 'string').toBe(true);
           expect(typeof job.totalExecutions).toBe('number');
           expect(typeof job.errorCount).toBe('number');
@@ -1784,6 +1790,197 @@ describe('admin.routes memory review candidates', () => {
       });
     } finally {
       await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // --- Issue #834 Phase 3 ---
+
+  it('GET /admin/batch/runs/:runId/logs returns 404 for unknown runId (#834)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/batch/runs/jr_missing/logs');
+      expect(res.statusCode).toBe(404);
+      expect(JSON.parse(res.body)).toMatchObject({ error: 'run not found' });
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/batch/runs/:runId/logs returns empty logs for known run (#834)', async () => {
+    const run = new JobRunRepository().append(db, {
+      job_name: 'cleanup',
+      trigger: 'manual',
+      started_at: '2026-09-06T00:00:00.000Z',
+      ended_at: '2026-09-06T00:00:01.000Z',
+      success: true,
+      duration_ms: 1000,
+    });
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, `/admin/batch/runs/${run.id}/logs`);
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { runId: string; logs: unknown[]; limit: number };
+      expect(body.runId).toBe(run.id);
+      expect(body.logs).toEqual([]);
+      expect(body.limit).toBe(200);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/batch/runs/:runId/logs returns chronological logs (#834)', async () => {
+    const run = new JobRunRepository().append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-06T00:00:00.000Z',
+      ended_at: '2026-09-06T00:00:01.000Z',
+      success: true,
+      duration_ms: 1000,
+    });
+    const logRepo = new JobRunLogRepository();
+    logRepo.append(db, {
+      run_id: run.id,
+      ts: '2026-09-06T00:00:00.200Z',
+      level: 'info',
+      message: 'second',
+    });
+    logRepo.append(db, {
+      run_id: run.id,
+      ts: '2026-09-06T00:00:00.100Z',
+      level: 'info',
+      message: 'first',
+      context_json: JSON.stringify({ phase: 'start' }),
+    });
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, `/admin/batch/runs/${run.id}/logs?limit=10`);
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        logs: Array<{ message: string; context: unknown }>;
+        limit: number;
+      };
+      expect(body.limit).toBe(10);
+      expect(body.logs).toHaveLength(2);
+      expect(body.logs[0]?.message).toBe('first');
+      expect(body.logs[0]?.context).toEqual({ phase: 'start' });
+      expect(body.logs[1]?.message).toBe('second');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST /admin/batch/pause and resume are idempotent for cleanup (#834)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const pause1 = await postAdminJson(port, '/admin/batch/pause', { jobType: 'cleanup' });
+        expect(pause1.statusCode).toBe(200);
+        expect(JSON.parse(pause1.body)).toMatchObject({ paused: true, jobType: 'cleanup' });
+
+        const pause2 = await postAdminJson(port, '/admin/batch/pause', { jobType: 'cleanup' });
+        expect(pause2.statusCode).toBe(200);
+
+        expect(scheduler.isJobPaused('cleanup')).toBe(true);
+
+        const resume1 = await postAdminJson(port, '/admin/batch/resume', { jobType: 'cleanup' });
+        expect(resume1.statusCode).toBe(200);
+        expect(JSON.parse(resume1.body)).toMatchObject({ paused: false, jobType: 'cleanup' });
+        expect(scheduler.isJobPaused('cleanup')).toBe(false);
+
+        const resume2 = await postAdminJson(port, '/admin/batch/resume', { jobType: 'cleanup' });
+        expect(resume2.statusCode).toBe(200);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+    }
+  });
+
+  it('POST /admin/batch/pause returns 400 for unknown jobType (#834)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await postAdminJson(port, '/admin/batch/pause', { jobType: 'not_a_real_job' });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST /admin/batch/run accepts widened jobType healthcheck (#834)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'healthcheck' });
+        expect(res.statusCode).toBe(200);
+        const body = JSON.parse(res.body) as { result?: { jobType?: string } };
+        expect(body.result?.jobType).toBe('healthcheck');
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+      resetBatchRunHistoryForTests();
+    }
+  });
+
+  it('POST /admin/batch/run returns 409 when job already running (#834)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    const original = scheduler.isJobRunning.bind(scheduler);
+    scheduler.isJobRunning = (name: string) => (name === 'cleanup' ? true : original(name));
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'cleanup' });
+        expect(res.statusCode).toBe(409);
+        expect(JSON.parse(res.body)).toMatchObject({ error: 'job already running' });
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+    }
+  });
+
+  it('POST /admin/batch/run returns 400 for unknown jobType (#834)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'not_registered' });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST pause/resume/run return 403 when ADMIN_JOBS_READ_ONLY (#834)', async () => {
+    const prev = mementoConfig.adminJobsReadOnly;
+    mementoConfig.adminJobsReadOnly = true;
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        expect((await postAdminJson(port, '/admin/batch/pause', { jobType: 'cleanup' })).statusCode).toBe(403);
+        expect((await postAdminJson(port, '/admin/batch/resume', { jobType: 'cleanup' })).statusCode).toBe(403);
+        expect((await postAdminJson(port, '/admin/batch/run', { jobType: 'cleanup' })).statusCode).toBe(403);
+
+        const getOk = await getAdmin(port, '/admin/batch/stats');
+        expect(getOk.statusCode).toBe(200);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      mementoConfig.adminJobsReadOnly = prev;
     }
   });
 });

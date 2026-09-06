@@ -1,15 +1,15 @@
 <!--
-Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #833)
+Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #834)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` was invoked as a prelude to
-`/speckit.specify` for issue #833 (Admin Jobs Dashboard Phase 2 — durable
-`job_run` SQLite persistence, GET /admin/batch/runs, Jobs UI timeline,
-retention). No principle, constraint, workflow rule, or governance clause
-was added, removed, or redefined. Schema/migration discipline (III) and
-test-first (I) already cover new table + retention tests; item-level design
-belongs in the feature spec. `Ratified` and `Last Amended` unchanged
-(Last Amended still 2026-08-27).
+`/speckit.specify` for issue #834 (Admin Jobs Dashboard Phase 3 — run logs,
+pause/resume, Run now, admin auth). No principle, constraint, workflow rule,
+or governance clause was added, removed, or redefined. Additional Constraints
+already require explicit security/auth specification for write actions — that
+belongs in the feature spec, not a constitution amend. Schema/migration (III)
+and test-first (I) cover `job_run_log` + action routes. `Ratified` and
+`Last Amended` unchanged (Last Amended still 2026-08-27).
 
 Modified principles: none
 Added sections: none
@@ -36,7 +36,7 @@ Consistency propagation:
   NO CHANGE NEEDED for governance text.
 
 Follow-up TODOs: none. Feature work continues in
-`specs/670-833-admin-jobs-dashboard-phase-2/` via `/speckit.specify` #833.
+`specs/671-834-admin-jobs-dashboard-phase-3/` via `/speckit.specify` #834.
 -->
 # Memento Constitution
 
