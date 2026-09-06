@@ -5,6 +5,7 @@ import { runPostinstallDbInit } from './lib/postinstall-db-init.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -106,64 +107,89 @@ async function initializeDatabase() {
   logSuccess('데이터베이스 초기화 완료');
 }
 
+/**
+ * 네이티브 모듈이 실제로 로드되는지 확인한다 (#876).
+ *
+ * 디렉터리 존재만 보던 예전 검사는 아무것도 검사하지 않았다. `npm ci --ignore-scripts` 는
+ * 패키지 디렉터리를 정상적으로 깔고 컴파일만 건너뛰므로, 디렉터리는 있고
+ * `build/Release/better_sqlite3.node` 만 없는 상태를 "확인됨" 으로 통과시켰다.
+ * 재빌드는 실행되지 않고, 한참 뒤 DB 초기화 단계에서 "Could not locate the bindings file" 로 터졌다.
+ *
+ * 두 모듈 모두 바인딩을 **지연 로드**하므로 require 만으로는 부족하다:
+ * - better-sqlite3 는 Database 생성자 안에서 addon 을 연다 (lib/database.js:48)
+ * - sqlite-vec 는 getLoadablePath() 안에서 플랫폼 패키지를 resolve 한다 (index.cjs)
+ * 그래서 실제로 열어 본다. 바인딩 누락과 Node 메이저 변경에 따른 ABI 불일치를 모두 잡는다.
+ */
+const NATIVE_MODULE_PROBES = {
+  'better-sqlite3': (mod) => {
+    const db = new mod(':memory:');
+    db.close();
+  },
+  'sqlite-vec': (mod) => {
+    mod.getLoadablePath();
+  }
+};
+
+/** 로드에 성공하면 null, 실패하면 원인 Error 를 돌려준다. */
+export function probeNativeModule(name, requireFn) {
+  try {
+    const load = requireFn ?? createRequire(path.join(projectRoot, 'package.json'));
+    const mod = load(name);
+    const probe = NATIVE_MODULE_PROBES[name];
+    if (probe) probe(mod);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+/** 로드 확인 → 실패 시 재빌드 → 재확인. 재빌드 후에도 실패하면 성공 로그를 찍지 않는다. */
+function ensureNativeModule(name, failureHint, requireFn) {
+  if (probeNativeModule(name, requireFn) === null) {
+    logSuccess(`${name} 모듈 로드 확인됨`);
+    return true;
+  }
+
+  logWarning(`${name} 로드 실패 — 재빌드가 필요합니다.`);
+  logStep('재빌드', `${name} 재빌드 중...`);
+  try {
+    execSync(`npm rebuild ${name}`, { cwd: projectRoot, stdio: 'inherit' });
+  } catch (rebuildError) {
+    logWarning(`${name} 재빌드 실패: ${rebuildError.message}`);
+    logWarning(failureHint);
+    return false;
+  }
+
+  // 재빌드가 성공을 보고해도 다시 확인한다 — 거짓 성공이 바로 이 이슈의 증상이었다.
+  const stillFailing = probeNativeModule(name, requireFn);
+  if (stillFailing) {
+    logWarning(`${name} 재빌드 후에도 로드되지 않습니다: ${stillFailing.message}`);
+    logWarning(failureHint);
+    return false;
+  }
+
+  logSuccess(`${name} 재빌드 완료`);
+  return true;
+}
+
 async function rebuildNativeModules() {
   try {
     logStep('네이티브 모듈', 'better-sqlite3 및 sqlite-vec 재빌드 시도 중...');
-    
+
     const nodeModulesPath = path.join(projectRoot, 'node_modules');
     if (!fs.existsSync(nodeModulesPath)) {
       logWarning('node_modules가 없습니다. 먼저 npm install이 실행됩니다.');
       return;
     }
-    
-    // 네이티브 모듈이 제대로 작동하는지 확인 (동적 import 사용)
-    try {
-      const betterSqlite3Path = path.join(nodeModulesPath, 'better-sqlite3');
-      if (fs.existsSync(betterSqlite3Path)) {
-        // 모듈 존재 확인만 (실제 로드는 나중에)
-        logSuccess('better-sqlite3 모듈 확인됨');
-      } else {
-        throw new Error('better-sqlite3 not found');
-      }
-    } catch (error) {
-      logWarning('better-sqlite3 모듈을 찾을 수 없거나 빌드가 필요합니다.');
-      logStep('재빌드', 'better-sqlite3 재빌드 중...');
-      
-      try {
-        execSync('npm rebuild better-sqlite3', {
-          cwd: projectRoot,
-          stdio: 'inherit'
-        });
-        logSuccess('better-sqlite3 재빌드 완료');
-      } catch (rebuildError) {
-        logWarning(`better-sqlite3 재빌드 실패: ${rebuildError.message}`);
-        logWarning('수동으로 실행하세요: npm rebuild better-sqlite3');
-      }
-    }
-    
-    // sqlite-vec도 확인 (선택적)
-    try {
-      const sqliteVecPath = path.join(nodeModulesPath, 'sqlite-vec');
-      if (fs.existsSync(sqliteVecPath)) {
-        logSuccess('sqlite-vec 모듈 확인됨');
-      } else {
-        throw new Error('sqlite-vec not found');
-      }
-    } catch (error) {
-      logWarning('sqlite-vec 모듈을 찾을 수 없거나 빌드가 필요합니다.');
-      logStep('재빌드', 'sqlite-vec 재빌드 시도 중...');
-      
-      try {
-        execSync('npm rebuild sqlite-vec', {
-          cwd: projectRoot,
-          stdio: 'inherit'
-        });
-        logSuccess('sqlite-vec 재빌드 완료');
-      } catch (rebuildError) {
-        logWarning(`sqlite-vec 재빌드 실패: ${rebuildError.message}`);
-        logWarning('sqlite-vec는 선택적 의존성입니다. 벡터 검색 기능이 제한될 수 있습니다.');
-      }
-    }
+
+    ensureNativeModule(
+      'better-sqlite3',
+      '빌드 도구(python3, make, g++)를 설치한 뒤 수동으로 실행하세요: npm rebuild better-sqlite3'
+    );
+    ensureNativeModule(
+      'sqlite-vec',
+      'sqlite-vec는 선택적 의존성입니다. 벡터 검색 기능이 제한될 수 있습니다.'
+    );
   } catch (error) {
     logWarning(`네이티브 모듈 재빌드 중 오류: ${error.message}`);
     logWarning('수동으로 실행하세요: npm rebuild better-sqlite3 sqlite-vec');
