@@ -41,7 +41,7 @@ function trackTableWideMetadataRepairUpdates(): {
 }
 
 // UnifiedEmbeddingService 모킹
-vi.mock('./unified-embedding-service.js', () => {
+vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   return {
     UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => true),
@@ -461,7 +461,7 @@ describe('MemoryEmbeddingService', () => {
   describe('캐시 및 폴백 시나리오', () => {
     it('임베딩 생성 실패 시 null을 반환해야 함', async () => {
       // Given: UnifiedEmbeddingService 모킹하여 null 반환
-      const { UnifiedEmbeddingService } = await import('./unified-embedding-service.js');
+      const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockService = new UnifiedEmbeddingService();
       vi.spyOn(mockService, 'generateEmbedding').mockResolvedValue(null);
       
@@ -487,7 +487,7 @@ describe('MemoryEmbeddingService', () => {
 
     it('빈 임베딩 벡터에 대해 null을 반환해야 함', async () => {
       // Given: UnifiedEmbeddingService 모킹하여 빈 배열 반환
-      const { UnifiedEmbeddingService } = await import('./unified-embedding-service.js');
+      const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockService = new UnifiedEmbeddingService();
       vi.spyOn(mockService, 'generateEmbedding').mockResolvedValue({
         embedding: [],
