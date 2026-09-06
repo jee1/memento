@@ -16,6 +16,8 @@
     observationCursor: null,
     validatedTranscript: null,
     loadGeneration: 0,
+    detailGeneration: 0,
+    timelineGeneration: 0,
   };
 
   ns.$ = function (id) {

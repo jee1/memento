@@ -55,6 +55,7 @@
   }
 
   async function selectSession(sessionId) {
+    const generation = ++ns.state.detailGeneration;
     ns.state.selectedSessionId = sessionId;
     ns.state.observationCursor = null;
     ns.renderSessionSelection(sessionId);
@@ -65,6 +66,12 @@
       loadTimeline(false),
       ns.agentFetch('/api/v1/agent/sessions/' + encoded + '/injections'),
     ]);
+    if (
+      generation !== ns.state.detailGeneration ||
+      ns.state.selectedSessionId !== sessionId
+    ) {
+      return;
+    }
     ns.renderSessionDetail(results[0].session || results[0]);
     ns.renderInjections(results[2].injections || results[2].items || []);
     ns.setViewState(null);
@@ -72,9 +79,11 @@
 
   async function loadTimeline(append) {
     const sessionId = ns.state.selectedSessionId;
+    const generation = ns.state.detailGeneration;
     if (!sessionId) {
       return;
     }
+    const timelineGeneration = ++ns.state.timelineGeneration;
     if (!append) {
       ns.state.observationCursor = null;
     }
@@ -94,6 +103,13 @@
       : Array.isArray(body.items)
         ? body.items
         : [];
+    if (
+      generation !== ns.state.detailGeneration ||
+      timelineGeneration !== ns.state.timelineGeneration ||
+      ns.state.selectedSessionId !== sessionId
+    ) {
+      return;
+    }
     ns.state.observationCursor = body.next_cursor || null;
     ns.renderTimeline(observations, append);
     ns.setHidden(ns.$('as-load-more-observations'), !ns.state.observationCursor);

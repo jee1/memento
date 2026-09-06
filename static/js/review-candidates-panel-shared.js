@@ -20,9 +20,12 @@
     wired: false,
     loadedOnce: false,
     selectedRow: null,
+    previewMemoryId: '',
+    previewGeneration: 0,
     pollTimer: null,
     visListenerRegistered: false,
     lastPendingCount: -1,
+    lastListFingerprint: '',
     toastHideTimer: null,
     actionInFlight: false,
     pollFailureStreak: 0,
@@ -95,6 +98,19 @@
     return typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
   }
 
+  function buildReviewListFingerprint(candidates) {
+    return candidates
+      .map(function (candidate) {
+        return [
+          String(candidate.id ?? ''),
+          String(candidate.priority ?? ''),
+          String(candidate.status ?? ''),
+          String(candidate.due_at ?? ''),
+        ].join(':');
+      })
+      .join('\n');
+  }
+
   ns.$ = $;
   ns.setHidden = setHidden;
   ns.clearStatus = clearStatus;
@@ -105,4 +121,5 @@
   ns.previewUrl = previewUrl;
   ns.reviewCandidatePostUrl = reviewCandidatePostUrl;
   ns.adminFetch = adminFetch;
+  ns.buildReviewListFingerprint = buildReviewListFingerprint;
 })(typeof window !== 'undefined' ? window : globalThis);
