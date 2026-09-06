@@ -5,6 +5,7 @@ import {
   buildReviewQueueBootInjectionHtml,
   injectReviewQueueBootIntoDashboardHtml,
   resolveReviewQueueDashboardBootFromEnv,
+  REVIEW_QUEUE_DASHBOARD_BOOT_ELEMENT_ID,
   REVIEW_QUEUE_DASHBOARD_BOOT_MARKER
 } from './review-queue-dashboard-boot.js';
 
@@ -41,17 +42,23 @@ describe('review-queue-dashboard-boot (#274)', () => {
     const html = `<head>${REVIEW_QUEUE_DASHBOARD_BOOT_MARKER}</head>`;
     const boot = { pollIntervalMs: 45_000, pollErrorBackoffMs: [20_000] };
     const out = injectReviewQueueBootIntoDashboardHtml(html, boot);
-    expect(out).toContain('window.__MEMENTO_REVIEW_QUEUE__=');
+    expect(out).toContain(`id="${REVIEW_QUEUE_DASHBOARD_BOOT_ELEMENT_ID}"`);
     expect(out).not.toContain(REVIEW_QUEUE_DASHBOARD_BOOT_MARKER);
     expect(out).toContain('"pollIntervalMs":45000');
   });
 
-  it('buildReviewQueueBootInjectionHtml wraps JSON in one script tag', () => {
+  it('buildReviewQueueBootInjectionHtml emits a non-executable JSON data block (#875)', () => {
     const html = buildReviewQueueBootInjectionHtml({
       pollIntervalMs: 60_000,
       pollErrorBackoffMs: [30_000]
     });
-    expect(html.startsWith('<script>window.__MEMENTO_REVIEW_QUEUE__=')).toBe(true);
-    expect(html.endsWith(';</script>')).toBe(true);
+    // 실행되는 인라인 스크립트는 CSP script-src 'self' 에 막힌다 — 데이터 블록이어야 한다
+    expect(html.startsWith(`<script type="application/json" id="${REVIEW_QUEUE_DASHBOARD_BOOT_ELEMENT_ID}">`)).toBe(true);
+    expect(html.endsWith('</script>')).toBe(true);
+    expect(html).not.toContain('window.');
+
+    const json = html.replace(/^<script[^>]*>/, '').replace(/<\/script>$/, '');
+    expect(JSON.parse(json)).toEqual({ pollIntervalMs: 60_000, pollErrorBackoffMs: [30_000] });
   });
+
 });
