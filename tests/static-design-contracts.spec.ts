@@ -83,6 +83,36 @@ describe('static design contracts', () => {
     expect(cssSource).toContain('.map-empty-message');
   });
 
+  it('issue 874 anchor map drops the stub button, the duplicate load button, and the d3 CDN', () => {
+    const renderSource = readStaticFile('static/js/anchor-map-render.js');
+    const entrySource = readStaticFile('static/js/anchor-map.js');
+    const searchSource = readStaticFile('static/js/anchor-map-search.js');
+    const dashboardSource = readStaticFile('static/dashboard.html');
+    const graphSource = readStaticFile('static/graph.html');
+    const serverSource = readStaticFile('packages/memento-server/src/server/http-server.ts');
+
+    // 미구현 alert 스텁 버튼과 Refresh 와 중복이던 Load Map 버튼
+    expect(renderSource).not.toContain('changeAnchor');
+    expect(entrySource).not.toContain('load-map-btn');
+    expect(dashboardSource).not.toContain('load-map-btn');
+
+    // 확대를 되돌릴 Fit 버튼
+    expect(dashboardSource).toContain('id="fit-btn"');
+    expect(entrySource).toContain('ns.fitToNodes');
+
+    // 검색 결과 목록은 처음부터 전부 그리지 않는다
+    expect(searchSource).toContain('SEARCH_RESULT_PAGE_SIZE');
+    expect(searchSource).toContain('js-search-result-more');
+
+    // d3 는 npm 의존성에서 서빙한다 — CDN 없이도 렌더되고 CSP 에 외부 출처가 없다
+    expect(dashboardSource).not.toContain('d3js.org');
+    expect(graphSource).not.toContain('d3js.org');
+    expect(dashboardSource).toContain('/static/vendor/d3.v7.min.js');
+    expect(graphSource).toContain('/static/vendor/d3.v7.min.js');
+    expect(serverSource).toContain("app.get('/static/vendor/d3.v7.min.js'");
+    expect(serverSource).toMatch(/scriptSrc: \["'self'"\],/);
+  });
+
   it('token readers fail in a bounded way when a required token is missing', () => {
     // readAnchorMapToken lives in the shared module after the god-function split (#596)
     const anchorMapSource = readStaticFile('static/js/anchor-map-shared.js');

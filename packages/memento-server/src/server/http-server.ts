@@ -26,6 +26,7 @@ import express from 'express';
 import { existsSync, readFileSync } from 'fs';
 import helmet from 'helmet';
 import { createServer, type Server } from 'http';
+import { createRequire } from 'module';
 import { join } from 'path';
 import {
   injectReviewQueueBootIntoDashboardHtml,
@@ -134,7 +135,7 @@ const app = express();
 const server = createServer(app);
 
 // HTTP 보안 헤더 (FR-005/FR-006): 모든 응답에 OWASP 최소 보안 헤더 추가
-// D3.js CDN(d3js.org)은 dashboard.html 및 graph.html에서 사용하므로 CSP에서 허용
+// D3.js는 npm 의존성에서 직접 서빙하므로 scriptSrc는 'self'만 허용한다 (#874)
 // frameguard: 대시보드가 동일 출처에서 /graph 를 iframe으로 포함하므로 SAMEORIGIN (외부 도메인 임베드 방지)
 // frame-src: dashboard.html 의 Memory Graph 탭 iframe 허용
 app.use(helmet({
@@ -143,7 +144,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'https://d3js.org'],
+      scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:'],
@@ -168,6 +169,34 @@ app.use(cors({
 // DoS 완화: body 제한 1MB (리뷰 S4). 운영 시 rate limiting(예: express-rate-limit) 적용 권장.
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// D3는 CDN(d3js.org) 대신 설치된 npm 패키지에서 서빙한다. CDN 링크는 인터넷이 없으면
+// Anchor Map·Memory Graph가 아예 렌더되지 않게 했고, CSP에 외부 출처를 열어야 했다 (#874).
+// d3의 exports 맵은 "." 만 노출하므로 dist 하위를 직접 resolve 할 수 없다("umd" 조건은
+// require.resolve로 고를 수 없다). 진입점에서 패키지 루트로 거슬러 올라가 UMD 번들을 찾는다.
+function resolveD3Bundle(): string | null {
+  try {
+    const entry = createRequire(import.meta.url).resolve('d3');
+    const bundle = join(entry, '..', '..', 'dist', 'd3.min.js');
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- d3 패키지 내부 고정 경로
+    return existsSync(bundle) ? bundle : null;
+  } catch {
+    return null;
+  }
+}
+
+const d3BundlePath = resolveD3Bundle();
+if (!d3BundlePath) {
+  logger.warn('d3 번들을 찾지 못했습니다. Anchor Map/Memory Graph가 렌더되지 않습니다.');
+}
+app.get('/static/vendor/d3.v7.min.js', (_req, res) => {
+  if (!d3BundlePath) {
+    res.status(404).type('text/plain').send('d3 bundle not found');
+    return;
+  }
+  res.type('application/javascript');
+  res.sendFile(d3BundlePath);
+});
 
 // Static 파일 서빙 (대시보드 및 UI 리소스)
 app.use('/static', express.static(staticRoot));

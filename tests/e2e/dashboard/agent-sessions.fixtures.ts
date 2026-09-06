@@ -109,7 +109,7 @@ export async function installDashboardRoutes(
     observation('observation-prompt', 'USER_PROMPT'),
   ];
 
-  await page.route('https://d3js.org/**', (route) =>
+  await page.route('**/static/vendor/d3.v7.min.js', (route) =>
     route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }),
   );
   await page.route('**/api/anchors/map?agent_id=default', (route) =>

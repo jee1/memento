@@ -231,7 +231,7 @@ test.describe('Anchor Map dashboard', () => {
   test('renders slots, searches selected slot, and highlights results on the map', async ({ page }) => {
     const searchBodies: Array<Record<string, unknown>> = [];
 
-    await page.route('https://d3js.org/**', (route) =>
+    await page.route('**/static/vendor/d3.v7.min.js', (route) =>
       route.fulfill({ status: 200, contentType: 'text/javascript', body: d3Stub }),
     );
     await page.route('**/api/anchors/agents', (route) =>
