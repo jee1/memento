@@ -94,13 +94,10 @@ export class FailureDetector {
         priority: this.calculatePriority(errorType, error.message)
       };
 
-      // 원래 작업 목표 추출 시도
+      // 원래 작업 목표: 명시 task_goal 만 (params.content 폴백 금지 — #856)
       const paramsRecord = params as Record<string, unknown> | undefined;
       if (paramsRecord?.task_goal) {
         event.original_task = String(paramsRecord.task_goal);
-      } else if (paramsRecord?.content) {
-        // content에서 작업 목표 추출 시도
-        event.original_task = this.extractTaskGoal(String(paramsRecord.content));
       }
 
       logger.info('Tool 에러 감지', {

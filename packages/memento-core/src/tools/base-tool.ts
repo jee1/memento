@@ -6,9 +6,17 @@
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
+import { ToolInputValidationError } from '../shared/errors/tool-input-validation-error.js';
 import { logger } from '../shared/utils/logger.js';
 
 import type { z } from 'zod';
+
+function isToolInputValidationError(error: unknown): boolean {
+  return (
+    error instanceof ToolInputValidationError ||
+    (error instanceof Error && error.name === 'ToolInputValidationError')
+  );
+}
 
 export abstract class BaseTool {
   protected name: string;
@@ -216,6 +224,16 @@ export abstract class BaseTool {
     executionTimeMs?: number
   ): Promise<void> {
     try {
+      // Client input validation is not a Reflexion / procedural-learning signal (#856)
+      if (isToolInputValidationError(error)) {
+        this.logInfo('Reflexion 스킵 (입력 검증 실패)', {
+          tool: this.name,
+          reason: 'input_validation',
+          error_message: error.message.substring(0, 100)
+        });
+        return;
+      }
+
       const failureDetector: FailureDetector | undefined = context.services?.failureDetector;
       
       if (!failureDetector) {

@@ -83,6 +83,19 @@ describe('FailureDetector', () => {
       expect(result.event?.original_task).toBe('사용자 인증 구현');
     });
 
+    it('params.content 만으로는 original_task 를 설정하지 않아야 함 (#856)', () => {
+      const toolName = 'remember';
+      const error = new Error('Database connection failed');
+      const params = {
+        content: 'Docker "permission denied ... unix:///var/run/docker.sock" 인데 getent group docker 에는 ...'
+      };
+
+      const result = detector.detectToolError(toolName, error, params);
+
+      expect(result.detected).toBe(true);
+      expect(result.event?.original_task).toBeUndefined();
+    });
+
     it('실행 시간을 기록해야 함', () => {
       // Given: 실행 시간이 포함된 에러
       const toolName = 'test_tool';
