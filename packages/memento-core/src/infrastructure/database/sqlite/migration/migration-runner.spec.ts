@@ -498,6 +498,121 @@ describe('MigrationRunner', () => {
       expect(results[0].success).toBe(true);
       expect(results[1].success).toBe(false);
     });
+
+    function makeNopMigration(version: string): Migration {
+      return {
+        version,
+        name: `migration-${version}`,
+        description: `nop ${version}`,
+        async up() {},
+        async down() {},
+        async validateBefore() {},
+        async validateAfter() {},
+      };
+    }
+
+    it('creates exactly one backup for a multi-version run when createBackup is true (#851)', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-09-06T00-00-00-000Z.db',
+        timestamp: new Date('2026-09-06T00:00:00.000Z'),
+        size: 4096,
+      });
+      const cleanup = vi.spyOn(manager, 'cleanupBackups').mockResolvedValue(emptyApplyReport);
+      const migrations = Array.from({ length: 5 }, (_, i) => makeNopMigration(`${i + 1}.0`));
+
+      try {
+        const results = await runner.runMigrations(migrations, { createBackup: true, validate: false });
+
+        expect(results).toHaveLength(5);
+        expect(results.every((r) => r.success)).toBe(true);
+        expect(create).toHaveBeenCalledTimes(1);
+        expect(create).toHaveBeenCalledWith(db, '1.0');
+        expect(cleanup).toHaveBeenCalledTimes(1);
+        expect(cleanup).toHaveBeenCalledWith({ mode: 'apply', includeInterrupted: false });
+      } finally {
+        create.mockRestore();
+        cleanup.mockRestore();
+      }
+    });
+
+    it('creates zero backups for an empty run or when createBackup is false (#851)', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-09-06T00-00-00-000Z.db',
+        timestamp: new Date('2026-09-06T00:00:00.000Z'),
+        size: 4096,
+      });
+
+      try {
+        await runner.runMigrations([], { createBackup: true });
+        await runner.runMigrations([makeNopMigration('1.0')], { createBackup: false, validate: false });
+        expect(create).not.toHaveBeenCalled();
+      } finally {
+        create.mockRestore();
+      }
+    });
+
+    it('does not run any up when run-scoped backup creation fails (#851)', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockRejectedValue(new Error('backup-integrity-failed'));
+      const up1 = vi.fn(async () => {});
+      const up2 = vi.fn(async () => {});
+      const migrations: Migration[] = [
+        { ...makeNopMigration('1.0'), up: up1 },
+        { ...makeNopMigration('2.0'), up: up2 },
+      ];
+
+      try {
+        const results = await runner.runMigrations(migrations, { createBackup: true, validate: false });
+
+        expect(up1).not.toHaveBeenCalled();
+        expect(up2).not.toHaveBeenCalled();
+        expect(results).toHaveLength(1);
+        expect(results[0].success).toBe(false);
+        expect(results[0].error).toContain('backup-integrity-failed');
+      } finally {
+        create.mockRestore();
+      }
+    });
+
+    it('creates one run-scoped backup even when a later migration fails (#851)', async () => {
+      const manager = runner.getBackupManager();
+      const create = vi.spyOn(manager, 'createBackup').mockResolvedValue({
+        backupPath: 'memory-backup-1.0-2026-09-06T00-00-00-000Z.db',
+        timestamp: new Date('2026-09-06T00:00:00.000Z'),
+        size: 4096,
+      });
+      const cleanup = vi.spyOn(manager, 'cleanupBackups').mockResolvedValue(emptyApplyReport);
+      const migration1 = makeNopMigration('1.0');
+      const failing: Migration = {
+        ...makeNopMigration('2.0'),
+        async up() {
+          throw new Error('Migration failed');
+        },
+      };
+
+      try {
+        const results = await runner.runMigrations([migration1, failing], {
+          createBackup: true,
+          validate: false,
+          autoRollback: true,
+        });
+
+        expect(create).toHaveBeenCalledTimes(1);
+        expect(cleanup).toHaveBeenCalledTimes(1);
+        expect(results).toHaveLength(2);
+        expect(results[0].success).toBe(true);
+        expect(results[1].success).toBe(false);
+
+        const versionManager = new SchemaVersionManager(db);
+        const versions = await versionManager.getAllVersions();
+        expect(versions.map((v) => v.version)).toEqual(['1.0']);
+      } finally {
+        create.mockRestore();
+        cleanup.mockRestore();
+      }
+    });
   });
 
   describe('rollbackMigration', () => {

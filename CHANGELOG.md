@@ -17,6 +17,7 @@
 
 ### Changed
 
+- **Migration run-scoped backup** (#851): `runMigrations` creates at most one pre-run DB snapshot for the whole batch (not one per version). Direct `runMigration` still backs up once per call. Retention cleanup runs once after that create. Fail-closed if the run backup fails before any `up`.
 - **log_rotation family expansion** (#852): batch job now cleans migration (`keepCount` default 500), docker-diagnostics (256 MiB budget), log-issue-monitor (trim jsonl / keep `state.json`), and triple-extraction (30d age). Env overrides: `LOG_ROTATION_*`. Job `details` additive; reports avoid absolute paths.
 - **Admin Jobs Dashboard Phase 3** (#834): `POST /admin/batch/run`의 `jobType` 허용 범위를 등록된 전 schedule job 이름으로 확대합니다(기존 3종 whitelist → runner registry 전체). 동일 job이 이미 실행 중이면 **409 Conflict**(`job already running`). `GET /admin/batch/runs/:runId/logs`, `POST /admin/batch/pause`, `POST /admin/batch/resume` 추가. `ADMIN_JOBS_READ_ONLY=true`면 쓰기 POST는 **403**, GET은 허용.
 - **memory_embedding Float32 BLOB storage** (#809): `embedding` 컬럼을 JSON TEXT에서 little-endian Float32 BLOB로 전환합니다. 마이그레이션 043이 원자적으로 변환하고, 쓰기/읽기 경로는 `encodeFloat32Embedding` / `embeddingColumnToNumbers`를 사용합니다. MCP recall 응답 스키마는 불변입니다.

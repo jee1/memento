@@ -1,0 +1,28 @@
+feature: 673-851-migration-run-scoped-backup
+branch: feature/chore-db-1-40-1
+issue: 851
+created: 2026-09-06
+updated: 2026-09-06
+current_phase: review
+executor: coding-specialist
+
+phases:
+  constitution: { status: done, updated: 2026-09-06, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1, note: "Q1-Q6 recommended auto-select" }
+  plan: { status: done, updated: 2026-09-06 }
+  tasks: { status: done, updated: 2026-09-06 }
+  execute: { status: done, updated: 2026-09-06, note: "runMigrations 1-backup; 24 tests; I-1 autoRollback fix" }
+  review: { status: pass, updated: 2026-09-06, note: "checklist-review PASS; Critical/Important=0" }
+
+gates:
+  unit: pass
+  lint: pass
+  type_check: pass
+  graphify: pass
+
+status: ready_for_commit
+
+pending:
+  - "커밋/PR (명시 요청 전 금지)"
+  - "배포 후 라이브 백업 디렉터리는 기존 retention(#850)으로 드레인"

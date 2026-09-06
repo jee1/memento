@@ -1,15 +1,18 @@
 <!--
-Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #852)
+Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #851)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` invoked as prelude to
-`/speckit.specify` for issue #852 (expand `log_rotation` beyond
-triple-extraction to migration logs, docker-diagnostics, and
-log-issue-monitor with count/byte caps). No principle, constraint,
-workflow rule, or governance clause added, removed, or redefined.
-Ops retention belongs in the feature spec; Principle I (tests) and V
-(observability/failure isolation) already cover soft-fail cleanup.
+`/speckit.specify` for issue #851 (migration run-scoped backup: one
+snapshot per `runMigrations` batch instead of per version). No
+principle, constraint, workflow rule, or governance clause added,
+removed, or redefined. Principle I (tests) and III (schema/migration
+discipline) already cover Red-Green-Refactor and safe migration
+behavior; backup churn reduction is feature-spec scope.
 `Ratified` and `Last Amended` unchanged (Last Amended still 2026-08-27).
+
+Prior report (#852, same day): also NO amendment — retained in git
+history only; this block replaces the header for the active feature.
 
 Modified principles: none
 Added sections: none
@@ -21,11 +24,11 @@ Template resolution: `common.sh` `resolve_template constitution-template`
 
 Consistency propagation:
 - plan/spec/tasks templates — NO CHANGE NEEDED.
-- Runtime guidance (`AGENTS.md` §3.1) — NO CHANGE NEEDED for governance;
-  feature may add an ops gotcha after implement.
+- Runtime guidance (`AGENTS.md` §3.1) — optional ops gotcha after
+  implement (backup creation rate).
 
 Follow-up TODOs: none. Feature work continues in
-`specs/672-852-log-rotation-expansion/` via `/speckit.specify` #852.
+`specs/673-851-migration-run-scoped-backup/` via `/speckit.specify` #851.
 -->
 # Memento Constitution
 
