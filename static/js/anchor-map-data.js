@@ -63,7 +63,21 @@
     }
   }
 
-  async function loadMapData() {
+  /**
+   * 서버가 요청마다 새로 만드는 timestamp 를 비교에 넣으면 hasChanged 가 항상 true 가 되어
+   * map-unchanged 분기는 도달 불가능한 죽은 코드가 되고, 데이터가 그대로여도 매 주기 전체
+   * 재렌더가 돈다. 내용(anchors/nodes/links)만 비교한다 (issue 870).
+   */
+  function hasMapDataChanged(previous, next) {
+    if (!previous || !next) return true;
+    return JSON.stringify(previous.anchors) !== JSON.stringify(next.anchors) ||
+      JSON.stringify(previous.nodes) !== JSON.stringify(next.nodes) ||
+      JSON.stringify(previous.links) !== JSON.stringify(next.links);
+  }
+
+  async function loadMapData(options) {
+    // 클릭 핸들러로도 직접 쓰이므로(Event 객체가 넘어온다) 재시도 여부는 true 인지로만 판단한다.
+    const isSnapbackRetry = options === true;
     const agentId = getSelectedAgentId();
 
     try {
@@ -72,11 +86,7 @@
       if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
 
       const newMapData = ns.normalizeMapData(await response.json());
-      const hasChanged = !state.mapData ||
-        JSON.stringify(state.mapData.timestamp) !== JSON.stringify(newMapData.timestamp) ||
-        JSON.stringify(state.mapData.anchors) !== JSON.stringify(newMapData.anchors) ||
-        state.mapData.nodes.length !== newMapData.nodes.length ||
-        state.mapData.links.length !== newMapData.links.length;
+      const hasChanged = hasMapDataChanged(state.mapData, newMapData);
 
       if (hasChanged) {
         state.mapData = newMapData;
@@ -88,6 +98,12 @@
       }
 
       await loadAgentIdOptions();
+
+      // 셀렉터가 유효 목록에 없는 값을 default 등으로 스냅백하면 "화면은 A 를 가리키는데
+      // 그려진 건 B" 가 된다. 스냅백된 값으로 한 번만 다시 불러온다 (issue 872).
+      if (!isSnapbackRetry && getSelectedAgentId() !== agentId) {
+        await loadMapData(true);
+      }
     } catch (error) {
       ns.debugAnchorMap('load-error', { message: error.message });
       if (!state.autoRefreshInterval) {
@@ -96,6 +112,7 @@
     }
   }
 
+  ns.hasMapDataChanged = hasMapDataChanged;
   ns.getSelectedAgentId = getSelectedAgentId;
   ns.loadAgentIdOptions = loadAgentIdOptions;
   ns.loadMapData = loadMapData;

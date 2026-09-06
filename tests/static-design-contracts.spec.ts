@@ -63,6 +63,26 @@ describe('static design contracts', () => {
     expect(source).toMatch(/composed:\s*true/);
   });
 
+  it('issue 871 search context renders details from the search item, not the map node', () => {
+    const searchSource = readStaticFile('static/js/anchor-map-search.js');
+    const entrySource = readStaticFile('static/js/anchor-map.js');
+
+    // selectNode renders map-node similarity (anchor axis); search results must use their own value
+    expect(searchSource).toContain('ns.displaySearchResultDetails(item)');
+    expect(searchSource).not.toContain('ns.selectNode(');
+    expect(entrySource).not.toContain('ns.selectNode(');
+    expect(searchSource).toContain('ns.markNodeSelected(id)');
+  });
+
+  it('issue 872 empty anchor map renders a message instead of a blank canvas', () => {
+    const renderSource = readStaticFile('static/js/anchor-map-render.js');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+
+    expect(renderSource).toContain('showEmptyMapMessage(');
+    expect(renderSource).toMatch(/\.attr\('class', 'map-empty-message'\)/);
+    expect(cssSource).toContain('.map-empty-message');
+  });
+
   it('token readers fail in a bounded way when a required token is missing', () => {
     // readAnchorMapToken lives in the shared module after the god-function split (#596)
     const anchorMapSource = readStaticFile('static/js/anchor-map-shared.js');
