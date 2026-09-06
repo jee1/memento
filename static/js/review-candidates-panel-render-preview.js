@@ -48,6 +48,7 @@
       state.selectedRow.setAttribute('aria-selected', 'false');
       state.selectedRow = null;
     }
+    state.previewMemoryId = '';
   }
 
   function resetPreviewPanel() {
@@ -90,6 +91,11 @@
   }
 
   async function loadMemoryPreview(memoryId) {
+    const candidateId =
+      state.selectedRow && state.selectedRow.dataset.candidateId
+        ? String(state.selectedRow.dataset.candidateId)
+        : '';
+    const generation = ++state.previewGeneration;
     const status = $('rc-preview-memory-status');
     const content = $('rc-preview-content');
     if (status) {
@@ -105,6 +111,13 @@
       const body = await res.json().catch(function () {
         return {};
       });
+      if (
+        generation !== state.previewGeneration ||
+        !state.selectedRow ||
+        state.selectedRow.dataset.candidateId !== candidateId
+      ) {
+        return;
+      }
       if (!res.ok) {
         const msg = (body && (body.error || body.message)) || 'HTTP ' + res.status;
         if (status) {
@@ -121,6 +134,13 @@
         content.textContent = text;
       }
     } catch (e) {
+      if (
+        generation !== state.previewGeneration ||
+        !state.selectedRow ||
+        state.selectedRow.dataset.candidateId !== candidateId
+      ) {
+        return;
+      }
       if (status) {
         status.textContent = e instanceof Error ? e.message : 'Network error';
       }
@@ -133,6 +153,7 @@
     }
     clearRowSelection();
     state.selectedRow = tr;
+    state.previewMemoryId = tr.dataset.memoryId;
     tr.classList.add('rc-row--selected');
     tr.setAttribute('aria-selected', 'true');
 
