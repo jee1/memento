@@ -45,6 +45,7 @@ import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
 import { createMaintenanceRouter } from './routes/maintenance.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 import { createToolsRouter } from './routes/tools.routes.js';
+import { subscribeAnchorMapBroadcast } from './handlers/anchor-map.handler.js';
 import { createApiTokenRegistry } from './auth/api-token-registry.js';
 import {
   createAdminAuthMiddleware,
@@ -186,6 +187,9 @@ app.get('/health', (req, res) => {
 // WebSocket 클라이언트 관리 (Anchor Map 업데이트용)
 const anchorMapSubscribers = new Map<string, Set<WebSocket>>();
 
+// 앵커 변경 → Anchor Map 브로드캐스트 구독 해제 함수 (#866)
+let unsubscribeAnchorMapBroadcast: (() => void) | null = null;
+
 // 라우터 등록 (서비스 초기화 후 업데이트됨)
 let toolsRouter: express.Router | null = null;
 let adminRouter: express.Router | null = null;
@@ -286,7 +290,16 @@ function createAllRouters(database: Database.Database, services: ServerServices)
   const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
   const initialInjectionTokenBudget = Number(process.env.MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET);
 
-  toolsRouter = createToolsRouter(database, services, anchorMapSubscribers);
+  toolsRouter = createToolsRouter(database, services);
+
+  // 재초기화 시 리스너가 쌓이지 않도록 이전 구독을 먼저 끊는다 (#866)
+  unsubscribeAnchorMapBroadcast?.();
+  unsubscribeAnchorMapBroadcast = subscribeAnchorMapBroadcast(
+    services.anchorManager ?? null,
+    () => db,
+    () => serverServices,
+    anchorMapSubscribers
+  );
   adminRouter = createAdminRouter(database, services);
   apiRouter = createApiRouter(database, services);
   authRouter = createAuthRouter({
@@ -449,6 +462,8 @@ export async function closeHttpServer(): Promise<void> {
     delete transports[sessionId];
   }
   for (const client of wss.clients) client.terminate();
+  unsubscribeAnchorMapBroadcast?.();
+  unsubscribeAnchorMapBroadcast = null;
   anchorMapSubscribers.clear();
   await new Promise<void>((resolve) => wss.close(() => resolve()));
   await new Promise<void>((resolve) => {

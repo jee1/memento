@@ -147,7 +147,17 @@ export interface IAnchorManager {
    * 슬롯별 설정 조회
    */
   getSlotConfig(slot: AnchorSlot): { hop_limit: number; vector_threshold: number };
+
+  /**
+   * 앵커 변경 구독 (#866)
+   * setAnchor/clearAnchor가 실제로 앵커를 바꾼 뒤 호출된다. 반환값은 구독 해제 함수.
+   * 도구 이름으로 거르면 recall(auto_set_anchor)·재앵커링처럼 도구를 거치지 않는 경로가 빠진다.
+   */
+  onAnchorChanged(listener: AnchorChangeListener): () => void;
 }
+
+/** 앵커가 바뀐 에이전트 ID를 받는 리스너 (#866) */
+export type AnchorChangeListener = (agentId: string) => void;
 
 /**
  * 앵커 설정 에러

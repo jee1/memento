@@ -376,4 +376,37 @@ describe('AnchorManager', () => {
       );
     });
   });
+
+  describe('onAnchorChanged (#866)', () => {
+    it('setAnchor와 clearAnchor가 구독자에게 agentId를 알려야 함', async () => {
+      const memoryId = createTestMemory(db, { content: 'Anchor change event', type: 'episodic' });
+      const seen: string[] = [];
+      manager.onAnchorChanged((changedAgentId) => seen.push(changedAgentId));
+
+      await manager.setAnchor(agentId, memoryId, 'A');
+      await manager.clearAnchor(agentId, 'A');
+
+      expect(seen).toEqual([agentId, agentId]);
+    });
+
+    it('구독을 해제하면 더 이상 알리지 않아야 함', async () => {
+      const memoryId = createTestMemory(db, { content: 'Anchor unsubscribe', type: 'episodic' });
+      const seen: string[] = [];
+      const unsubscribe = manager.onAnchorChanged((changedAgentId) => seen.push(changedAgentId));
+
+      await manager.setAnchor(agentId, memoryId, 'A');
+      unsubscribe();
+      await manager.clearAnchor(agentId, 'A');
+
+      expect(seen).toEqual([agentId]);
+    });
+
+    it('구독자가 던져도 앵커 쓰기는 성공해야 함', async () => {
+      const memoryId = createTestMemory(db, { content: 'Listener throws', type: 'episodic' });
+      manager.onAnchorChanged(() => { throw new Error('listener boom'); });
+
+      await expect(manager.setAnchor(agentId, memoryId, 'A')).resolves.toBeUndefined();
+      expect((await manager.getAnchor(agentId, 'A') as any).memory_id).toBe(memoryId);
+    });
+  });
 });
