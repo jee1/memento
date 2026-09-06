@@ -87,20 +87,14 @@
         });
       });
 
+      // Seed x/y only: pinning memories with fx/fy makes charge and collision inert (issue 867).
       relatedMemories.forEach(function (memory, memIndex) {
         const hop = memory.hop_distance || 1;
         const layerRadius = 100 + (hop - 1) * 80;
         const memAngle = (memIndex / relatedMemories.length) * 2 * Math.PI + angle;
-        memory.fx = anchor.fx + Math.cos(memAngle) * layerRadius;
-        memory.fy = anchor.fy + Math.sin(memAngle) * layerRadius;
+        memory.x = anchor.fx + Math.cos(memAngle) * layerRadius;
+        memory.y = anchor.fy + Math.sin(memAngle) * layerRadius;
       });
-    });
-
-    nodes.forEach(function (node) {
-      if (!node.fx && !node.fy && node.type === 'memory') {
-        node.fx = null;
-        node.fy = null;
-      }
     });
   }
 
@@ -288,6 +282,7 @@
       .join('');
   }
 
+  ns.layoutNodesByHop = layoutNodesByHop;
   ns.renderMap = renderMap;
   ns.selectNode = selectNode;
   ns.selectAnchorNode = selectAnchorNode;
