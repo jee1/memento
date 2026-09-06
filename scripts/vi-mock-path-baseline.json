@@ -1,35 +1,5 @@
 [
   {
-    "file": "packages/memento-core/src/domains/embedding/providers/__tests__/embedding-provider-factory.spec.ts",
-    "specifier": "../config/index.js",
-    "reason": "embedding provider 스펙 전반이 같은 결함을 가짐. 5건을 한 묶음으로 처리한다.",
-    "followUp": "#824"
-  },
-  {
-    "file": "packages/memento-core/src/domains/embedding/providers/__tests__/embedding-provider-factory.spec.ts",
-    "specifier": "../services/lightweight-embedding-service.js",
-    "reason": "embedding provider 스펙 전반이 같은 결함을 가짐. 5건을 한 묶음으로 처리한다.",
-    "followUp": "#824"
-  },
-  {
-    "file": "packages/memento-core/src/domains/embedding/providers/__tests__/embedding-provider-factory.spec.ts",
-    "specifier": "../services/gemini-embedding-service.js",
-    "reason": "embedding provider 스펙 전반이 같은 결함을 가짐. 5건을 한 묶음으로 처리한다.",
-    "followUp": "#824"
-  },
-  {
-    "file": "packages/memento-core/src/domains/embedding/providers/__tests__/embedding-provider-factory.spec.ts",
-    "specifier": "../services/openai-embedding-service.js",
-    "reason": "embedding provider 스펙 전반이 같은 결함을 가짐. 5건을 한 묶음으로 처리한다.",
-    "followUp": "#824"
-  },
-  {
-    "file": "packages/memento-core/src/domains/embedding/providers/__tests__/embedding-provider-factory.spec.ts",
-    "specifier": "./model-availability-service.js",
-    "reason": "embedding provider 스펙 전반이 같은 결함을 가짐. 5건을 한 묶음으로 처리한다.",
-    "followUp": "#824"
-  },
-  {
     "file": "packages/memento-core/src/domains/memory/services/__tests__/memory-embedding-service.spec.ts",
     "specifier": "./unified-embedding-service.js",
     "reason": "memory 도메인 단독 건. #821 범위 밖이라 별도 처리한다.",

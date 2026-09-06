@@ -144,11 +144,11 @@ describe('CLI', () => {
     expect(code).toBe(1);
   }, 60_000);
 
-  it('baseline 이 비면 기존 위반 8건이 그대로 드러나 exit 1 이다', () => {
+  it('baseline 이 비면 남은 위반 3건(#825)이 드러나 exit 1 이다', () => {
     const empty = join(root, 'empty-baseline.json');
     writeFileSync(empty, '[]');
     const { code, stdout } = runGate(['--ci', `--baseline=${empty}`]);
-    expect(stdout).toContain('위반 (차단) 8건');
+    expect(stdout).toContain('위반 (차단) 3건');
     expect(code).toBe(1);
   }, 60_000);
 });
