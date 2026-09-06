@@ -56,6 +56,7 @@
       <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
       <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
       <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+      <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">Jobs</button>
       <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
       <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
     </div>
@@ -335,6 +336,63 @@
         </div>
       </div>
     </div>
+    <div id="tab-jobs" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-jobs" aria-hidden="true">
+      <div class="jobs-layout">
+        <header class="jobs-header">
+          <div class="jobs-header-text">
+            <h2 class="jobs-title">Batch Jobs</h2>
+            <p class="jobs-intro">
+              Schedule table, in-memory queue snapshot, and manual run history.
+              Counters and history are <strong>process-local</strong> until durable job runs (#833).
+            </p>
+          </div>
+          <button type="button" id="jobs-refresh-btn" class="m-button m-button--secondary">Refresh</button>
+        </header>
+        <p id="jobs-status-line" class="jobs-status" aria-live="polite"></p>
+        <div id="jobs-error" class="jobs-banner jobs-banner--error hidden" role="alert"></div>
+        <p id="jobs-health-summary" class="jobs-health" aria-live="polite"></p>
+        <section class="jobs-section" aria-labelledby="jobs-schedule-heading">
+          <h3 id="jobs-schedule-heading">Schedule</h3>
+          <div class="jobs-table-wrap">
+            <table id="jobs-schedule-table" class="jobs-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Interval ms</th>
+                  <th scope="col">Enabled</th>
+                  <th scope="col">Last execution</th>
+                  <th scope="col">Total</th>
+                  <th scope="col">Errors</th>
+                  <th scope="col">Running</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-schedule-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="jobs-section" aria-labelledby="jobs-queue-heading">
+          <h3 id="jobs-queue-heading">Queue</h3>
+          <p id="jobs-queue-summary" class="jobs-queue-summary">—</p>
+        </section>
+        <section class="jobs-section" aria-labelledby="jobs-history-heading">
+          <h3 id="jobs-history-heading">Manual run history</h3>
+          <p class="jobs-disclaimer">From <code>GET /admin/batch/run-history</code> (POST /admin/batch/run only).</p>
+          <div id="jobs-run-history" class="jobs-table-wrap">
+            <table class="jobs-table">
+              <thead>
+                <tr>
+                  <th scope="col">Job</th>
+                  <th scope="col">Result</th>
+                  <th scope="col">Requested</th>
+                  <th scope="col">Detail</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-run-history-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
     <div id="tab-agent-sessions" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-agent-sessions" aria-hidden="true">
       <div class="as-layout">
         <header class="as-header">
@@ -567,6 +625,10 @@
   <script src="/static/js/review-candidates-panel-health.js"></script>
   <script src="/static/js/review-candidates-panel-bulk.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
+  <script src="/static/js/jobs-panel-shared.js"></script>
+  <script src="/static/js/jobs-panel-render.js"></script>
+  <script src="/static/js/jobs-panel-fetch.js"></script>
+  <script src="/static/js/jobs-panel.js"></script>
   <script src="/static/js/agent-sessions-panel-shared.js"></script>
   <script src="/static/js/agent-sessions-panel-data.js"></script>
   <script src="/static/js/agent-sessions-panel-render-dom.js"></script>

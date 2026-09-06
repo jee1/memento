@@ -203,5 +203,35 @@ describe('JobQueue', () => {
       expect(queue.isQueued('not-queued')).toBe(false);
     });
   });
+
+  describe('getRunningNames and getQueuedNames (#832)', () => {
+    it('returns empty arrays when idle', () => {
+      expect(queue.getRunningNames()).toEqual([]);
+      expect(queue.getQueuedNames()).toEqual([]);
+    });
+
+    it('returns a copy of the single running name', () => {
+      queue.markRunning('monitoring');
+      const names = queue.getRunningNames();
+      expect(names).toEqual(['monitoring']);
+      names.push('mutated');
+      expect(queue.getRunningNames()).toEqual(['monitoring']);
+      expect(queue.getQueuedNames()).toEqual([]);
+    });
+
+    it('returns running and queued name snapshots for a mixed queue', () => {
+      const noop = async () => {};
+      queue.markRunning('monitoring');
+      queue.add('cleanup', noop, 1);
+      queue.add('log_rotation', noop, 2);
+
+      expect(queue.getRunningNames()).toEqual(['monitoring']);
+      expect(queue.getQueuedNames()).toEqual(['cleanup', 'log_rotation']);
+
+      const queued = queue.getQueuedNames();
+      queued.pop();
+      expect(queue.getQueuedNames()).toEqual(['cleanup', 'log_rotation']);
+    });
+  });
 });
 

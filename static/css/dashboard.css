@@ -2060,3 +2060,80 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Jobs panel (#832) */
+.jobs-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 1rem);
+  padding: var(--spacing-md, 1rem);
+}
+
+.jobs-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 0.75rem);
+}
+
+.jobs-title {
+  margin: 0 0 0.35rem;
+  font-size: var(--font-size-lg, 1.25rem);
+  color: var(--color-text-main);
+}
+
+.jobs-intro,
+.jobs-disclaimer,
+.jobs-status,
+.jobs-health,
+.jobs-queue-summary {
+  margin: 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.jobs-banner--error {
+  padding: var(--spacing-sm, 0.75rem);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md, 0.5rem);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  color: var(--color-text-main);
+}
+
+.jobs-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-main);
+}
+
+.jobs-table-wrap {
+  overflow: auto;
+  max-height: 28rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--color-bg-card);
+}
+
+.jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.jobs-table th,
+.jobs-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-main);
+}
+
+.jobs-table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-card);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}

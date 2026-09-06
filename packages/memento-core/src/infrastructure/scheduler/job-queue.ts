@@ -181,5 +181,19 @@ export class JobQueue {
   isQueued(name: string): boolean {
     return this.queue.some(j => j.name === name);
   }
+
+  /**
+   * Snapshot of running job names (array copy; no job fn leak).
+   */
+  getRunningNames(): string[] {
+    return Array.from(this.runningJobs);
+  }
+
+  /**
+   * Snapshot of queued job names (array copy; no job fn leak).
+   */
+  getQueuedNames(): string[] {
+    return this.queue.map(j => j.name);
+  }
 }
 
