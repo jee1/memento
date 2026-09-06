@@ -1,0 +1,27 @@
+feature: 669-832-admin-jobs-dashboard-phase-1
+branch: feature/feat-admin-jobs-dashboard-phase-1-detailedstats
+issue: 832
+created: 2026-09-06
+updated: 2026-09-06
+current_phase: review
+executor: /speckit.superspec.review
+
+phases:
+  constitution: { status: done, updated: 2026-09-06, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1, note: "Q1=A Q2=Jobs tab+embed auto-select" }
+  plan: { status: done, updated: 2026-09-06 }
+  tasks: { status: done, updated: 2026-09-06 }
+  execute: { status: done, updated: 2026-09-06, tasks: "T001-T015" }
+  review: { status: done, updated: 2026-09-06, result: PASS }
+
+gates:
+  unit: "pass — job-queue 17 + batch/stats 6 + jobs-panel 4"
+  lint: "pass (touched TS)"
+  type_check: "pass @memento/core; server workspace pre-existing agent-integration gap"
+  graphify: "pass — rebuilt after production edits"
+
+status: complete
+
+pending:
+  - "커밋/PR (명시 요청 전 금지)"

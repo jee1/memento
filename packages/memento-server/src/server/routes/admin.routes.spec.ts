@@ -1457,6 +1457,118 @@ describe('admin.routes memory review candidates', () => {
     }
   });
 
+  it('GET /admin/batch/stats returns JSON-safe detailed shape (#832)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await getAdmin(port, '/admin/batch/stats');
+        expect(res.statusCode).toBe(200);
+        const body = JSON.parse(res.body) as Record<string, unknown>;
+        expect(typeof body.message).toBe('string');
+        expect(typeof body.schedulerRunning).toBe('boolean');
+        expect(body.schedulerRunning).toBe(true);
+        expect(typeof body.timestamp).toBe('string');
+        expect(body).not.toHaveProperty('status');
+
+        const health = body.health as Record<string, unknown>;
+        expect(typeof health.memoryUsage).toBe('number');
+        expect(typeof health.runningJobs).toBe('number');
+        expect(typeof health.queueSize).toBe('number');
+        expect(typeof health.errorRate).toBe('number');
+        expect(typeof health.uptime).toBe('number');
+
+        const jobs = body.jobs as Array<Record<string, unknown>>;
+        expect(Array.isArray(jobs)).toBe(true);
+        expect(jobs.length).toBeGreaterThan(0);
+        for (const job of jobs) {
+          expect(typeof job.name).toBe('string');
+          expect(job.intervalMs === null || typeof job.intervalMs === 'number').toBe(true);
+          expect(job.enabled).toBe(true);
+          expect(job.lastExecution === null || typeof job.lastExecution === 'string').toBe(true);
+          expect(typeof job.totalExecutions).toBe('number');
+          expect(typeof job.errorCount).toBe('number');
+          expect(typeof job.errorRate).toBe('number');
+          expect(typeof job.isRunning).toBe('boolean');
+        }
+
+        const queue = body.queue as Record<string, unknown>;
+        expect(typeof queue.size).toBe('number');
+        expect(typeof queue.runningCount).toBe('number');
+        expect(Array.isArray(queue.runningNames)).toBe(true);
+        expect(Array.isArray(queue.queuedNames)).toBe(true);
+
+        // Round-trip: no Map/Date leakage (JSON stays plain).
+        const again = JSON.parse(JSON.stringify(body)) as typeof body;
+        expect(again).toEqual(body);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+    }
+  });
+
+  it('GET /admin/batch/stats is empty-safe when scheduler is not running (#832)', async () => {
+    resetBatchScheduler();
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/batch/stats');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        schedulerRunning: boolean;
+        jobs: unknown[];
+        queue: { size: number; runningCount: number; runningNames: string[]; queuedNames: string[] };
+        health: { runningJobs: number; queueSize: number; uptime: number };
+      };
+      expect(body.schedulerRunning).toBe(false);
+      expect(body.jobs).toEqual([]);
+      expect(body.queue.size).toBe(0);
+      expect(body.queue.runningCount).toBe(0);
+      expect(body.queue.runningNames).toEqual([]);
+      expect(body.queue.queuedNames).toEqual([]);
+      expect(body.health.runningJobs).toBe(0);
+      expect(body.health.queueSize).toBe(0);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+      resetBatchScheduler();
+    }
+  });
+
+  it('GET /admin/batch/status shape remains unchanged (#832 US4)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await getAdmin(port, '/admin/batch/status');
+        expect(res.statusCode).toBe(200);
+        const body = JSON.parse(res.body) as {
+          message?: string;
+          status?: { isRunning?: boolean; activeJobs?: string[]; config?: unknown };
+          timestamp?: string;
+        };
+        expect(body.message).toBe('배치 스케줄러 상태 조회 완료');
+        expect(typeof body.timestamp).toBe('string');
+        expect(body.status?.isRunning).toBe(true);
+        expect(Array.isArray(body.status?.activeJobs)).toBe(true);
+        expect(body.status?.config).toBeDefined();
+        expect(body).not.toHaveProperty('health');
+        expect(body).not.toHaveProperty('queue');
+        expect(body).not.toHaveProperty('jobs');
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+    }
+  });
+
   it('GET /admin/memory/review-candidates/metrics returns live + snapshots (#294)', async () => {
     const { server, port } = await listen(makeApp(db));
     try {

@@ -55,6 +55,13 @@
     dispatchDashboardResize();
   }
 
+  function initJobsTab() {
+    if (typeof global.initJobsPanel === 'function') {
+      global.initJobsPanel();
+    }
+    dispatchDashboardResize();
+  }
+
   function initGraphTab() {
     const iframe = document.getElementById('graph-view-iframe');
     if (!iframe) {
@@ -89,6 +96,10 @@
     }
     if (name === 'agent-sessions') {
       initAgentSessionsTab();
+      return;
+    }
+    if (name === 'jobs') {
+      initJobsTab();
       return;
     }
     if (name === 'graph') {

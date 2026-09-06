@@ -441,6 +441,16 @@ export class BatchScheduler implements IBatchScheduler {
     return getBatchSchedulerDetailedStatsReport(this.getStatusState(), this.retryManager, this.jobQueue);
   }
 
+  /** Queue snapshot: running job names (copy). */
+  getRunningNames(): string[] {
+    return this.jobQueue.getRunningNames();
+  }
+
+  /** Queue snapshot: queued job names (copy). */
+  getQueuedNames(): string[] {
+    return this.jobQueue.getQueuedNames();
+  }
+
   isJobQueued(name: string): boolean {
     return isBatchSchedulerJobQueued(this.jobQueue, name);
   }
