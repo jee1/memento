@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { EmbeddingServiceInterface, EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 // MUST be at the top before any imports
@@ -25,23 +26,20 @@ vi.mock('onnxruntime-node', () => ({
   Tensor: vi.fn()
 }));
 
-import { EmbeddingProviderFactory } from '../embedding-provider-factory.js';
-import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../../../shared/types/embedding.types.js';
-import { MiniLMEmbeddingService } from '../../../embedding/services/minilm-embedding-service.js';
-import { LightweightEmbeddingService } from '../../services/lightweight-embedding-service.js';
-import { GeminiEmbeddingService } from '../../services/gemini-embedding-service.js';
-import { OpenAIEmbeddingService } from '../../services/openai-embedding-service.js';
-import { mementoConfig } from '../../../../shared/config/index.js';
+// vi.hoisted 필수: 정적 import 가 factory 를 로드하는 순간 mock factory 가 호출된다.
+const { createMockConfig, mockConfig } = vi.hoisted(() => {
+  const createMockConfig = () => ({
+    embeddingProvider: 'minilm' as string
+  });
+  return { createMockConfig, mockConfig: createMockConfig() };
+});
 
-// mementoConfig 모킹
-vi.mock('../config/index.js', () => ({
-  mementoConfig: {
-    embeddingProvider: 'minilm'
-  }
+vi.mock('../../../../shared/config/index.js', () => ({
+  mementoConfig: mockConfig
 }));
 
-// 제공자 서비스 모킹
-vi.mock('../../../embedding/services/minilm-embedding-service.js', () => {
+// 제공자 서비스 모킹 — 경로는 factory 가 해석하는 모듈과 같아야 함 (__tests__ 기준)
+vi.mock('../../services/minilm-embedding-service.js', () => {
   const mockModel = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
   return {
     MiniLMEmbeddingService: vi.fn().mockImplementation(() => ({
@@ -59,7 +57,7 @@ vi.mock('../../../embedding/services/minilm-embedding-service.js', () => {
   };
 });
 
-vi.mock('../services/lightweight-embedding-service.js', () => {
+vi.mock('../../services/lightweight-embedding-service.js', () => {
   return {
     LightweightEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => true),
@@ -75,7 +73,7 @@ vi.mock('../services/lightweight-embedding-service.js', () => {
   };
 });
 
-vi.mock('../services/gemini-embedding-service.js', () => {
+vi.mock('../../services/gemini-embedding-service.js', () => {
   return {
     GeminiEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
@@ -85,7 +83,7 @@ vi.mock('../services/gemini-embedding-service.js', () => {
   };
 });
 
-vi.mock('../services/openai-embedding-service.js', () => {
+vi.mock('../../services/openai-embedding-service.js', () => {
   return {
     OpenAIEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
@@ -95,8 +93,8 @@ vi.mock('../services/openai-embedding-service.js', () => {
   };
 });
 
-// ModelAvailabilityService 모킹
-vi.mock('./model-availability-service.js', () => {
+// ModelAvailabilityService 모킹 (__tests__ → ../ = providers/)
+vi.mock('../model-availability-service.js', () => {
   return {
     ModelAvailabilityService: vi.fn().mockImplementation(() => ({
       getLastStatus: vi.fn(() => undefined),
@@ -109,10 +107,14 @@ vi.mock('./model-availability-service.js', () => {
   };
 });
 
+import { EmbeddingProviderFactory } from '../embedding-provider-factory.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
+
 describe('EmbeddingProviderFactory', () => {
   let factory: EmbeddingProviderFactory;
 
   beforeEach(() => {
+    Object.assign(mockConfig, createMockConfig());
     // 싱글톤 인스턴스 리셋을 위해 reset 호출
     factory = EmbeddingProviderFactory.getInstance();
     factory.reset();
@@ -286,10 +288,9 @@ describe('EmbeddingProviderFactory', () => {
     });
 
     it('사용 가능한 제공자가 없으면 null을 반환해야 함', () => {
-      // Given: 모든 제공자를 사용 불가능하게 설정
+      // Given: mock 포함 전 제공자 isAvailable=false (getAvailableProviders 가 mock 도 포함)
       factory.reset();
-      // 모든 제공자를 null로 설정
-      const providers = ['minilm', 'tfidf', 'gemini', 'openai'] as EmbeddingProvider[];
+      const providers = ['minilm', 'tfidf', 'gemini', 'openai', 'mock'] as EmbeddingProvider[];
       providers.forEach(p => {
         const service = factory.getProvider(p);
         if (service) {
@@ -300,9 +301,8 @@ describe('EmbeddingProviderFactory', () => {
       // When: 제공자 선택
       const provider = factory.selectProvider();
 
-      // Then: null 반환 (하지만 실제로는 tfidf가 항상 사용 가능하므로 이 테스트는 수정 필요)
-      // 실제로는 tfidf가 항상 사용 가능하므로 null이 반환되지 않을 수 있음
-      // 이 테스트는 실제 동작에 맞게 조정 필요
+      // Then: null 반환
+      expect(provider).toBeNull();
     });
   });
 
