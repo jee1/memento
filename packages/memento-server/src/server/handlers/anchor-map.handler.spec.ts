@@ -170,16 +170,23 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
   it('builds relation-based edges via RelationGraph.getRelationsBatch with confidence as weight (memory_link not queried)', async () => {
     insertMemory('anchor-a');
     insertMemory('mem-neighbor');
+    insertMemory('mem-other');
 
     const anchorManager = buildFakeAnchorManager(
       [{ agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
-      { A: [{ id: 'mem-neighbor', content: 'neighbor', type: 'episodic', hop_distance: 1, similarity: 0.7 }] }
+      {
+        A: [
+          { id: 'mem-neighbor', content: 'neighbor', type: 'episodic', hop_distance: 1, similarity: 0.7 },
+          { id: 'mem-other', content: 'other', type: 'episodic', hop_distance: 1, similarity: 0.6 },
+        ],
+      }
     );
 
+    // hop 엣지가 없는 쌍(mem-neighbor - mem-other)을 골라야 relation 엣지가 dedup(#869)에 걸리지 않는다
     const relationRow = {
       id: 1,
-      source_id: 'anchor-a',
-      target_id: 'mem-neighbor',
+      source_id: 'mem-neighbor',
+      target_id: 'mem-other',
       relation_type: 'REFERENCES',
       confidence: 0.42,
       created_at: new Date(),
@@ -187,8 +194,8 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
     };
     const getRelationsBatch = vi.fn().mockResolvedValue(
       new Map([
-        ['anchor-a', [relationRow]],
         ['mem-neighbor', [relationRow]],
+        ['mem-other', [relationRow]],
       ])
     );
     const relationGraph = { getRelationsBatch } as unknown as ServerServices['relationGraph'];
@@ -205,10 +212,91 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
     const relationLinks = result.links.filter(l => l.type === 'link');
     expect(relationLinks).toHaveLength(1);
     expect(relationLinks[0]).toMatchObject({
-      source: 'anchor-a',
-      target: 'mem-neighbor',
+      source: 'mem-neighbor',
+      target: 'mem-other',
       similarity: 0.42,
     });
+  });
+
+  it('#869: keeps one edge per undirected pair when memory_relation holds both directions', async () => {
+    insertMemory('anchor-a');
+    insertMemory('mem-neighbor');
+    insertMemory('mem-other');
+
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      {
+        A: [
+          { id: 'mem-neighbor', content: 'neighbor', type: 'episodic', hop_distance: 1, similarity: 0.7 },
+          { id: 'mem-other', content: 'other', type: 'episodic', hop_distance: 1, similarity: 0.6 },
+        ],
+      }
+    );
+
+    // 같은 쌍이 서로 다른 row(id 1, id 2)로 양방향 저장된 경우 — relation.id dedup으로는 걸러지지 않는다
+    const forward = {
+      id: 1,
+      source_id: 'mem-neighbor',
+      target_id: 'mem-other',
+      relation_type: 'REFERENCES',
+      confidence: 0.42,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    const backward = { ...forward, id: 2, source_id: 'mem-other', target_id: 'mem-neighbor' };
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockResolvedValue(
+        new Map([
+          ['mem-neighbor', [forward, backward]],
+          ['mem-other', [backward, forward]],
+        ])
+      ),
+    } as unknown as ServerServices['relationGraph'];
+
+    const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
+
+    const result = await buildAnchorMapData(db, serverServices, 'default');
+
+    expect(result.links.filter(l => l.type === 'link')).toHaveLength(1);
+  });
+
+  it('#869: does not draw a link edge for a pair that already has a hop edge', async () => {
+    insertMemory('anchor-a');
+    insertMemory('mem-neighbor');
+
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      { A: [{ id: 'mem-neighbor', content: 'neighbor', type: 'episodic', hop_distance: 1, similarity: 0.7 }] }
+    );
+
+    const relationRow = {
+      id: 1,
+      source_id: 'anchor-a',
+      target_id: 'mem-neighbor',
+      relation_type: 'REFERENCES',
+      confidence: 0.42,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockResolvedValue(
+        new Map([
+          ['anchor-a', [relationRow]],
+          ['mem-neighbor', [relationRow]],
+        ])
+      ),
+    } as unknown as ServerServices['relationGraph'];
+
+    const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
+
+    const result = await buildAnchorMapData(db, serverServices, 'default');
+
+    const pairLinks = result.links.filter(
+      l => (l.source === 'anchor-a' && l.target === 'mem-neighbor') ||
+           (l.source === 'mem-neighbor' && l.target === 'anchor-a')
+    );
+    expect(pairLinks).toHaveLength(1);
+    expect(pairLinks[0].type).toBe('hop');
   });
 
   it('ignores relations pointing to memories that are not part of the current node set (floating hop>=2 excluded)', async () => {
