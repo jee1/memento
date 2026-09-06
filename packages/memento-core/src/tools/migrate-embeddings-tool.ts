@@ -8,6 +8,7 @@ import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { UnifiedEmbeddingService } from '../domains/embedding/services/unified-embedding-service.js';
 import type { EmbeddingProvider } from '../shared/types/embedding.types.js';
+import { replaceMemoryEmbedding } from '../shared/utils/memory-embedding-write.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../domains/embedding/services/vector-compatibility-service.js';
 import {
@@ -153,37 +154,19 @@ export class MigrateEmbeddingsTool extends BaseTool {
          OR embedding_provider = ''
     `);
 
-    // memory_embedding 테이블에 저장 (기존 임베딩 유지, 새 provider 추가)
-    // UNIQUE 제약조건으로 인해 같은 provider가 있으면 업데이트, 없으면 삽입
-    await DatabaseUtils.run(db, `
-      INSERT OR REPLACE INTO memory_embedding (
-        memory_id,
-        embedding_provider,
-        projection_type,
-        embedding,
-        dim,
-        model,
-        dimensions,
-        precision,
-        normalized,
-        version,
-        created_by,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `, [
+    // 같은 (memory_id, provider, projection_type) 행을 교체한다. INSERT OR REPLACE를
+    // 쓰면 vec 인덱스에 고아 행이 남는다 — memory-embedding-write.ts 주석 참조.
+    await replaceMemoryEmbedding(db, {
       memoryId,
       provider,
       projectionType,
-      serializedEmbedding,
-      sourceDimensions,
-      embeddingResult.model,
-      storedDimensions,
-      32,
+      embedding: serializedEmbedding,
+      dim: sourceDimensions,
+      model: embeddingResult.model,
+      dimensions: storedDimensions,
       normalized,
-      1,
-      this.createdByTag
-    ]);
+      createdBy: this.createdByTag
+    });
   }
 
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {

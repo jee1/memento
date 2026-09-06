@@ -11,6 +11,7 @@ import type {
   VectorCompatibilityIssue
 } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
+import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import {
   computeL2Norm,
@@ -153,39 +154,17 @@ export class MemoryEmbeddingService {
     const projectionType = projection.projectionType;
     const normalized = shouldNormalizeFlag(computeL2Norm(storedVector));
 
-    await DatabaseUtils.run(
-      db,
-      `
-        INSERT OR REPLACE INTO memory_embedding (
-          memory_id,
-          embedding_provider,
-          projection_type,
-          embedding,
-          dim,
-          model,
-          dimensions,
-          precision,
-          normalized,
-          version,
-          created_by,
-          created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `,
-      [
-        memoryId,
-        provider,
-        projectionType,
-        serializedEmbedding,
-        sourceDimensions,
-        embeddingResult.model,
-        storedDimensions,
-        32,
-        normalized,
-        1,
-        this.createdByTag
-      ]
-    );
+    await replaceMemoryEmbedding(db, {
+      memoryId,
+      provider,
+      projectionType,
+      embedding: serializedEmbedding,
+      dim: sourceDimensions,
+      model: embeddingResult.model,
+      dimensions: storedDimensions,
+      normalized,
+      createdBy: this.createdByTag
+    });
   }
 
   private buildVecSimilarityQuery(
