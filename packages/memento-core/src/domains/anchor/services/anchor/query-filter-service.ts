@@ -119,10 +119,14 @@ export class QueryFilterService implements IQueryFilterService {
         })
       );
 
-      // 쿼리 유사도 임계값 적용
+      // 쿼리 유사도 임계값 적용.
+      // combined_similarity 는 60% 가 앵커 기준 랭킹 점수라, hop 1 결과는 쿼리와 아무 관련이
+      // 없어도 항상 0.5 를 넘긴다. 그래서 `|| combined >= 0.5` 는 필터를 사실상 무력화했다
+      // (실측: '김치찌개 레시피' slot A 98건 중 query_similarity>=0.3 은 0건, combined 로만
+      // 통과한 것이 98건). 통과 여부는 쿼리 유사도로만 판정하고 combined 는 정렬에만 쓴다 (#873).
       const queryThreshold = 0.3;
       const filtered = resultsWithQuerySimilarity.filter(
-        r => r.query_similarity >= queryThreshold || r.combined_similarity >= 0.5
+        r => r.query_similarity >= queryThreshold
       );
 
       // 결합 유사도 기준으로 재정렬

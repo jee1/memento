@@ -181,6 +181,42 @@ describe('QueryFilterService', () => {
       )).toBe(true);
     });
 
+    it('#873: 쿼리와 무관해도 combined_similarity가 높으면 통과하던 예외를 없애야 함', async () => {
+      // Given: hop 1 이라 앵커 기준 랭킹 점수는 최대인데 쿼리와는 직교하는 결과
+      const query = 'test query';
+      const results = [
+        {
+          memory_id: 'irrelevant-but-close-to-anchor',
+          content: 'anchor 주변이지만 쿼리와 무관한 내용',
+          type: 'episodic',
+          similarity: 1.0,
+          hop_distance: 1,
+          importance: 0.9,
+          created_at: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+        embedding: Array(384).fill(0.15),
+        provider: 'tfidf',
+        dimensions: 384,
+        model: 'tfidf'
+      });
+
+      // 쿼리 벡터와 직교하는 메모리 임베딩 → query_similarity ≈ 0
+      vi.spyOn(cacheService, 'getAnchorEmbedding').mockResolvedValue({
+        embedding: Array.from({ length: 384 }, (_, i) => (i % 2 === 0 ? 1 : -1)),
+        provider: 'tfidf'
+      });
+
+      // When: filterByQuery를 호출하면
+      const filtered = await service.filterByQuery(query, results, 'test-provider');
+
+      // Then: combined_similarity(= 0.6 * 1.0 + 0.4 * 0 = 0.6)가 0.5를 넘어도 제외되어야 함
+      expect(filtered).toEqual([]);
+    });
+
     it('결합 유사도 기준으로 정렬해야 함', async () => {
       // Given: 여러 결과가 있을 때
       const query = 'test query';
