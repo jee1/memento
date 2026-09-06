@@ -85,7 +85,7 @@ RUN npm ci --omit=dev --ignore-scripts && \
     else \
       node --input-type=module -e "\
         try { \
-          const { pipeline } = await import('@xenova/transformers'); \
+          const { pipeline } = await import('@huggingface/transformers'); \
           const embed = await pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', { dtype: 'q8' }); \
           await embed('cache warmup'); \
           console.log('[docker] MiniLM cache warmup ok'); \
