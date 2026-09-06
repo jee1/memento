@@ -319,7 +319,28 @@ async function buildNetworkNodesAndLinks(
   const relationLinks = await buildRelationLinks(relationGraph, nodeIds);
   links.push(...relationLinks);
 
-  return { nodes, links };
+  return { nodes, links: dedupeUndirectedLinks(links) };
+}
+
+/**
+ * 같은 무방향 쌍(A-B)에 링크를 하나만 남긴다 (#869).
+ *
+ * hop 엣지가 먼저 쌓이므로 first-wins는 곧 hop 우선이며, 이 한 번의 dedup이
+ * relation 역방향 row(A→B / B→A), hop∩link 중복, 완전 동일 triple을 모두 걷어낸다.
+ * d3 forceLink는 링크마다 스프링을 걸기 때문에 중복은 잡음일 뿐 아니라 레이아웃을 왜곡한다.
+ *
+ * 서로 다른 쌍은 그대로 보존되므로 슬롯별 엣지(#709)와 합류 경로 엣지(#715 MEDIUM#1)는 영향받지 않는다.
+ */
+function dedupeUndirectedLinks(links: AnchorMapLink[]): AnchorMapLink[] {
+  const seen = new Set<string>();
+  return links.filter((link) => {
+    const key = link.source < link.target
+      ? `${link.source}|${link.target}`
+      : `${link.target}|${link.source}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 /**
  * RelationGraph(memory_relation)를 활용한 네트워크 링크 생성.

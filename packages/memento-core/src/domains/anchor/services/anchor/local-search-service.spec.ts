@@ -273,5 +273,82 @@ describe('LocalSearchService', () => {
       expect(result.fallbackUsed).toBe(false);
       expect(result.items).toEqual(localResults);
     });
+
+    it('#868: 병합 결과를 similarity 내림차순으로 정렬해야 함', async () => {
+      // Given: local 결과(0.647)보다 fallback 결과(0.865)의 유사도가 높을 때
+      const localResults: any[] = [
+        {
+          id: 'local-worse',
+          content: 'Local content',
+          type: 'episodic',
+          similarity: 0.647,
+          hop_distance: 1,
+          importance: 0.5,
+          created_at: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      vi.spyOn(fallbackSearchService, 'fallbackToGlobalSearch').mockResolvedValue({
+        items: [
+          { id: 'fallback-1', content: 'F1', type: 'episodic', similarity: 0.865, importance: 0.5, created_at: '2024-01-01T00:00:00Z' },
+          { id: 'fallback-2', content: 'F2', type: 'episodic', similarity: 0.712, importance: 0.5, created_at: '2024-01-01T00:00:00Z' }
+        ],
+        total_count: 2,
+        local_results_count: 1,
+        fallback_used: true,
+        query_time: 100
+      });
+
+      // When: handleFallback을 호출하면
+      const result = await service.handleFallback(
+        'test query',
+        localResults,
+        3,
+        { limit: 10, min_results: 3 },
+        Date.now()
+      );
+
+      // Then: 더 나쁜 local 결과가 #1을 차지하지 않고, 유사도가 단조 감소해야 함
+      expect(result.items.map((item) => item.id)).toEqual(['fallback-1', 'fallback-2', 'local-worse']);
+      const similarities = result.items.map((item) => item.similarity);
+      expect(similarities).toEqual([...similarities].sort((a, b) => b - a));
+    });
+
+    it('#868: 동점이면 hop_distance가 작은 local 결과를 앞에 둬야 함', async () => {
+      // Given: local과 fallback의 similarity가 같을 때
+      const localResults: any[] = [
+        {
+          id: 'local-tie',
+          content: 'Local content',
+          type: 'episodic',
+          similarity: 0.8,
+          hop_distance: 2,
+          importance: 0.5,
+          created_at: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      vi.spyOn(fallbackSearchService, 'fallbackToGlobalSearch').mockResolvedValue({
+        items: [
+          { id: 'fallback-tie', content: 'F1', type: 'episodic', similarity: 0.8, importance: 0.5, created_at: '2024-01-01T00:00:00Z' }
+        ],
+        total_count: 1,
+        local_results_count: 1,
+        fallback_used: true,
+        query_time: 100
+      });
+
+      // When: handleFallback을 호출하면
+      const result = await service.handleFallback(
+        'test query',
+        localResults,
+        3,
+        { limit: 10, min_results: 3 },
+        Date.now()
+      );
+
+      // Then: local 결과가 먼저 나와야 함 (fallback의 hop_distance는 999)
+      expect(result.items.map((item) => item.id)).toEqual(['local-tie', 'fallback-tie']);
+    });
   });
 });

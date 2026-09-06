@@ -194,7 +194,12 @@ export class LocalSearchService {
           tags: item.tags ?? undefined
         }))
 
-      const finalResults = [...localResults, ...fallbackItems].slice(0, limit);
+      // 병합 후 similarity 내림차순으로 재정렬한다 (#868). 정렬 없이 local을 앞에 붙이면
+      // 더 나쁜 local 결과가 #1로 노출된다(대시보드는 payload 순서를 그대로 순위로 쓴다).
+      // 동점은 hop_distance 오름차순 — 같은 점수면 local(hop 1~3)이 fallback(hop 999)보다 앞.
+      const finalResults = [...localResults, ...fallbackItems]
+        .sort((a, b) => b.similarity - a.similarity || a.hop_distance - b.hop_distance)
+        .slice(0, limit);
 
       logger.info('Fallback completed', {
         localCount: localResults.length,
