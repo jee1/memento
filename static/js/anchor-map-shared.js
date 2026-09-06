@@ -15,6 +15,7 @@
     links: [],
     mapData: null,
     searchResults: null,
+    searchResultsExpanded: false,
     highlightedNodeIds: new Set(),
     autoRefreshInterval: null,
     websocket: null,

@@ -10,6 +10,10 @@
   const escapeHtml = ns.escapeHtml;
   const state = ns.state;
 
+  // 100건을 다 그리면 목록 높이가 13000px를 넘어 240px 상자 안에서 끝없이 스크롤된다.
+  // 처음에는 이만큼만 그리고 나머지는 "더 보기"로 펼친다 (issue 874).
+  const SEARCH_RESULT_PAGE_SIZE = 20;
+
   function renderSearchResultsList() {
     const container = document.getElementById('anchor-search-results');
     if (!container) return;
@@ -20,7 +24,12 @@
     }
 
     const mapIds = new Set(Array.isArray(state.nodes) ? state.nodes.map(function (n) { return n.id; }) : []);
-    container.innerHTML = state.searchResults.items
+    const allItems = state.searchResults.items;
+    const visibleCount = state.searchResultsExpanded
+      ? allItems.length
+      : Math.min(allItems.length, SEARCH_RESULT_PAGE_SIZE);
+    const itemsHtml = allItems
+      .slice(0, visibleCount)
       .map(function (item, index) {
         const id = ns.getSearchItemId(item);
         if (!id) return '';
@@ -39,6 +48,17 @@
           '</div>';
       })
       .join('');
+
+    const remaining = allItems.length - visibleCount;
+    container.innerHTML = itemsHtml + (remaining > 0
+      ? '<button type="button" class="search-result-more js-search-result-more m-button m-button--ghost">' +
+        remaining + '건 더 보기</button>'
+      : '');
+  }
+
+  function expandSearchResults() {
+    state.searchResultsExpanded = true;
+    renderSearchResultsList();
   }
 
   function updateNodeHighlight() {
@@ -154,6 +174,7 @@
       if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
 
       state.searchResults = ns.normalizeSearchResults(await response.json());
+      state.searchResultsExpanded = false;
       highlightSearchResults();
 
       const resultCount = state.searchResults.items ? state.searchResults.items.length : 0;
@@ -167,6 +188,7 @@
 
   function clearSearch() {
     state.searchResults = null;
+    state.searchResultsExpanded = false;
     state.highlightedNodeIds.clear();
     const queryEl = document.getElementById('search-query-input');
     const slotSelect = document.getElementById('search-slot-select');
@@ -197,6 +219,7 @@
   ns.focusSearchResult = focusSearchResult;
   ns.updateNodeHighlight = updateNodeHighlight;
   ns.renderSearchResultsList = renderSearchResultsList;
+  ns.expandSearchResults = expandSearchResults;
   ns.displaySearchResultDetails = displaySearchResultDetails;
 
 })(typeof window !== 'undefined' ? window : globalThis);

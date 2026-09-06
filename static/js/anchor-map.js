@@ -54,6 +54,10 @@
   }
 
   function onSearchResultClick(e) {
+    if (e.target.closest('.js-search-result-more')) {
+      ns.expandSearchResults();
+      return;
+    }
     const el = e.target.closest('.js-search-result-item');
     if (!el || !el.dataset.memoryId || !state.searchResults || !state.searchResults.items) return;
     const item = state.searchResults.items.find(function (i) { return ns.getSearchItemId(i) === el.dataset.memoryId; });
@@ -63,18 +67,11 @@
   }
 
   function setupEventListeners() {
-    document.getElementById('load-map-btn').addEventListener('click', ns.loadMapData);
+    // Load Map 은 Refresh 와 동일한 핸들러였다 — 버튼 하나로 합쳤다 (issue 874)
     document.getElementById('refresh-btn').addEventListener('click', ns.loadMapData);
+    document.getElementById('fit-btn').addEventListener('click', ns.fitToNodes);
     document.getElementById('search-btn').addEventListener('click', ns.performSearch);
     document.getElementById('clear-search-btn').addEventListener('click', ns.clearSearch);
-
-    const memDetails = document.getElementById('memory-details');
-    if (memDetails) {
-      memDetails.addEventListener('click', function (e) {
-        const btn = e.target.closest('.js-change-anchor');
-        if (btn && btn.dataset.slot) ns.changeAnchor(btn.dataset.slot);
-      });
-    }
 
     const anchorList = document.getElementById('anchor-list');
     if (anchorList) {
@@ -125,6 +122,6 @@
 
   // Public API
   window.selectAnchorNode = ns.selectAnchorNode;
-  window.changeAnchor = ns.changeAnchor;
+  window.fitAnchorMap = ns.fitToNodes;
 
 })(typeof window !== 'undefined' ? window : globalThis);

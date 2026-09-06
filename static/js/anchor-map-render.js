@@ -21,6 +21,37 @@
     state.svg.transition().duration(750).call(state.zoomBehavior.transform, transform);
   }
 
+  // 검색 자동 포커스(1.5배)와 앵커 클릭(2배)이 확대해 놓은 뷰를 되돌릴 수단이 없었다.
+  // 노드 bbox 를 캔버스에 맞춰 zoomIdentity 를 다시 계산한다 (issue 874).
+  function fitToNodes() {
+    if (!state.svg || !state.zoomBehavior || !Array.isArray(state.nodes)) return;
+    const placed = state.nodes.filter(function (n) { return n.x != null && n.y != null; });
+    if (placed.length === 0) return;
+
+    const width = parseFloat(state.svg.attr('width'));
+    const height = parseFloat(state.svg.attr('height'));
+    const xs = placed.map(function (n) { return n.x; });
+    const ys = placed.map(function (n) { return n.y; });
+    const minX = Math.min.apply(null, xs);
+    const maxX = Math.max.apply(null, xs);
+    const minY = Math.min.apply(null, ys);
+    const maxY = Math.max.apply(null, ys);
+
+    // 노드 반지름·라벨이 bbox 밖으로 나가므로 여백을 둔다
+    const padding = 60;
+    const spanX = Math.max(maxX - minX, 1) + padding * 2;
+    const spanY = Math.max(maxY - minY, 1) + padding * 2;
+    const scale = Math.min(width / spanX, height / spanY, 2);
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    const transform = d3.zoomIdentity
+      .translate(width / 2 - centerX * scale, height / 2 - centerY * scale)
+      .scale(scale);
+    state.svg.transition().duration(750).call(state.zoomBehavior.transform, transform);
+    ns.debugAnchorMap('map-fit', { nodes: placed.length, scale: scale });
+  }
+
   function buildAnchorDetailHtml(node) {
     const slot = escapeHtml(node.slot);
     const id = escapeHtml(node.id);
@@ -35,7 +66,6 @@
       '<div class="memory-detail-item"><label>Similarity:</label><div class="value">1.0 (100.0%)</div></div>',
       '<div class="memory-detail-item"><label>Importance:</label><div class="value">' + importance + '</div></div>',
       '<div class="memory-detail-item"><label>Created:</label><div class="value">' + created + '</div></div>',
-      '<button type="button" class="anchor-change-btn js-change-anchor m-button m-button--primary" data-slot="' + slot + '">Change Anchor</button>',
     ].join('');
   }
 
@@ -280,10 +310,6 @@
     }
   }
 
-  function changeAnchor(slot) {
-    alert('앙커 변경 기능은 향후 구현 예정입니다. Slot: ' + slot);
-  }
-
   function updateAnchorList() {
     const anchorListContainer = document.getElementById('anchor-list');
     if (!anchorListContainer) return;
@@ -317,9 +343,9 @@
   ns.selectNode = selectNode;
   ns.markNodeSelected = markNodeSelected;
   ns.selectAnchorNode = selectAnchorNode;
-  ns.changeAnchor = changeAnchor;
   ns.updateAnchorList = updateAnchorList;
   ns.displayMemoryDetails = displayMemoryDetails;
   ns.focusOnNode = focusOnNode;
+  ns.fitToNodes = fitToNodes;
 
 })(typeof window !== 'undefined' ? window : globalThis);

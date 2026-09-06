@@ -76,8 +76,8 @@
           <option value="C">Slot C</option>
         </select>
         <button id="search-btn" class="m-button m-button--secondary" title="앵커 주변 국소 검색을 실행합니다.">Search</button>
-        <button id="load-map-btn" class="m-button m-button--secondary" title="현재 Agent ID의 앵커 맵 데이터를 불러옵니다.">Load Map</button>
         <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
+        <button id="fit-btn" class="m-button m-button--secondary" title="모든 노드가 보이도록 확대/이동을 되돌립니다.">Fit</button>
         <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
         <label for="auto-refresh-toggle" class="anchor-map-toolbar__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
           <input type="checkbox" id="auto-refresh-toggle" class="anchor-map-toolbar__checkbox">
@@ -517,7 +517,7 @@
   </div>
 
   <!-- D3.js 라이브러리 (CDN) -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="/static/vendor/d3.v7.min.js"></script>
 
   <!-- Anchor Map 시각화 스크립트 -->
   <script src="/static/js/anchor-map-shared.js"></script>
