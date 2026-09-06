@@ -38,6 +38,10 @@
       .force('link', d3.forceLink().id(function (d) { return d.id; }).distance(100))
       .force('charge', d3.forceManyBody().strength(-300))
       .force('center', d3.forceCenter(width / 2, height / 2))
+      // ponytail: mild centering keeps freed nodes on canvas (off-canvas 71 -> 10 at 122 nodes);
+      // replace with zoom-to-fit (issue 874) when that lands.
+      .force('x', d3.forceX(width / 2).strength(0.15))
+      .force('y', d3.forceY(height / 2).strength(0.15))
       .force('collision', d3.forceCollide().radius(30));
 
     window.addEventListener('resize', function () {
