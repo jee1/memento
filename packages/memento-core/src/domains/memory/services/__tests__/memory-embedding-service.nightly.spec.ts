@@ -107,7 +107,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
     nextRowId = 1;
 
     runSpy = vi.spyOn(DatabaseUtils, 'run').mockImplementation((db: any, sql: string, params: any[] = []) => {
-      if (sql.includes('INSERT OR REPLACE INTO memory_embedding')) {
+      if (sql.includes('INSERT INTO memory_embedding')) {
         const [
           memoryId,
           provider,
@@ -204,7 +204,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
       await embeddingService.createAndStoreEmbedding(dbStub as any, memoryId, memoryRecord.content, type);
 
       const insertCall = runSpy.mock.calls.find(
-        ([targetDb, sql]) => targetDb === dbStub && typeof sql === 'string' && sql.includes('INSERT OR REPLACE INTO memory_embedding')
+        ([targetDb, sql]) => targetDb === dbStub && typeof sql === 'string' && sql.includes('INSERT INTO memory_embedding')
       );
       expect(insertCall).toBeDefined();
       const [, , insertParams] = insertCall!;
