@@ -154,6 +154,7 @@ describe('static design contracts', () => {
 
   it('issue #616 admin static modules keep individual functions bounded', () => {
     const files = [
+      'static/js/review-candidates-panel-poll-boot.js',
       'static/js/review-candidates-panel-poll-config.js',
       'static/js/review-candidates-panel-poll-badge.js',
       'static/js/review-candidates-panel-poll-prompt.js',

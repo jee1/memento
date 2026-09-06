@@ -4,7 +4,20 @@ import vm from 'node:vm';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { REVIEW_QUEUE_DASHBOARD_BOOT_MARKER } from './review-queue-dashboard-boot.js';
+import {
+  buildReviewQueueBootInjectionHtml,
+  REVIEW_QUEUE_DASHBOARD_BOOT_ELEMENT_ID,
+  REVIEW_QUEUE_DASHBOARD_BOOT_MARKER,
+  type ReviewQueueDashboardBoot,
+} from './review-queue-dashboard-boot.js';
+
+// 서버가 실제로 내보내는 데이터 블록에서 JSON 본문만 꺼낸다.
+// 주입 형식과 클라이언트 파서가 어긋나면 여기서 깨진다 (#875).
+function bootDataBlockText(boot: ReviewQueueDashboardBoot): string {
+  return buildReviewQueueBootInjectionHtml(boot)
+    .replace(/^<script[^>]*>/, '')
+    .replace(/<\/script>$/, '');
+}
 
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
@@ -24,6 +37,7 @@ const PANEL_COMPANION_SCRIPTS = [
   'review-candidates-panel-render-actions.js',
   'review-candidates-panel-render-list.js',
   'review-candidates-panel-render.js',
+  'review-candidates-panel-poll-boot.js',
   'review-candidates-panel-poll-config.js',
   'review-candidates-panel-poll-badge.js',
   'review-candidates-panel-poll-prompt.js',
@@ -61,6 +75,7 @@ const listJs = readFileSync(
   'utf8',
 );
 const POLL_COMPANION_SCRIPTS = [
+  'review-candidates-panel-poll-boot.js',
   'review-candidates-panel-poll-config.js',
   'review-candidates-panel-poll-badge.js',
   'review-candidates-panel-poll-prompt.js',
@@ -76,7 +91,9 @@ const pollJs = POLL_COMPANION_SCRIPTS.map((name) =>
   readFileSync(resolve(root, 'static/js', name), 'utf8'),
 ).join('\n');
 
-function createPollHarness(options: { activeReviewTab?: boolean } = {}) {
+function createPollHarness(
+  options: { activeReviewTab?: boolean; boot?: ReviewQueueDashboardBoot; omitBoot?: boolean } = {}
+) {
   const elements: Record<string, any> = {};
   const timers: Array<{ delayMs: number; callback: () => void }> = [];
   const state = {
@@ -108,22 +125,23 @@ function createPollHarness(options: { activeReviewTab?: boolean } = {}) {
   elements['tab-review-candidates'] = createElement(options.activeReviewTab);
   elements['rc-toast'] = createElement();
   elements['rc-tab-badge'] = createElement();
+  const boot = options.boot ?? { pollIntervalMs: 60_000, pollErrorBackoffMs: [1_000, 5_000] };
+  if (!options.omitBoot) {
+    elements[REVIEW_QUEUE_DASHBOARD_BOOT_ELEMENT_ID] = { textContent: bootDataBlockText(boot) };
+  }
 
   const sandbox: Record<string, any> = {
     console,
     document: {
       visibilityState: 'visible',
-      addEventListener: vi.fn()
+      addEventListener: vi.fn(),
+      getElementById: (id: string) => elements[id] ?? null
     },
     setTimeout: (callback: () => void, delayMs: number) => {
       timers.push({ callback, delayMs });
       return timers.length;
     },
     clearTimeout: vi.fn(),
-    __MEMENTO_REVIEW_QUEUE__: {
-      pollIntervalMs: 60_000,
-      pollErrorBackoffMs: [1_000, 5_000]
-    },
     __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
       $: (id: string) => elements[id] ?? null,
       setHidden: vi.fn(),
@@ -361,9 +379,26 @@ describe('dashboard review queue poll notify (#255)', () => {
 
   it('review-candidates-panel.js includes polling helpers (#255, #274)', () => {
     expect(panelJs).toContain('getReviewQueueBoot');
-    expect(panelJs).toContain('__MEMENTO_REVIEW_QUEUE__');
+    expect(panelJs).toContain(REVIEW_QUEUE_DASHBOARD_BOOT_ELEMENT_ID);
     expect(panelJs).toContain('runPollCycle');
     expect(panelJs).toContain('startPollingIfNeeded');
+  });
+
+  it('#875: 부트 값이 JSON 데이터 블록을 거쳐 폴링 설정까지 전달된다', () => {
+    const { ns } = createPollHarness({
+      boot: { pollIntervalMs: 45_000, pollErrorBackoffMs: [20_000, 90_000] }
+    });
+
+    expect(ns.getReviewQueueBoot()).toEqual({
+      pollIntervalMs: 45_000,
+      pollErrorBackoffMs: [20_000, 90_000]
+    });
+  });
+
+  it('#875: 데이터 블록이 없으면 기본값으로 떨어진다', () => {
+    const { ns } = createPollHarness({ omitBoot: true });
+
+    expect(ns.getReviewQueueBoot()).toEqual({ pollIntervalMs: 60_000, pollErrorBackoffMs: [] });
   });
 });
 
