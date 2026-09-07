@@ -13,6 +13,13 @@ import {
 } from '../../../../test/helpers/consolidation-test-data.js';
 import { cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 
+/**
+ * #921 길이 감쇠는 기본 on이라 벡터 유사도가 content 길이에 비례해 줄어든다.
+ * consolidation 가중치만 검증하려면 두 fixture의 길이 차이가 결과를 뒤집지 않아야 하므로
+ * 같은 길이의 본문을 덧붙여 감쇠를 사실상 동일하게 맞춘다.
+ */
+const LONG_BODY = 'x'.repeat(200);
+
 // Mock mementoConfig
 vi.mock('../../../../shared/config/index.js', () => ({
   mementoConfig: {
@@ -330,7 +337,7 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
         {
           memory_id: items[0].id,
           similarity: 0.95, // 높은 벡터 유사도
-          content: items[0].content,
+          content: `${items[0].content} ${LONG_BODY}`,
           type: items[0].type,
           importance: items[0].importance,
           created_at: items[0].created_at,
@@ -341,7 +348,7 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
         {
           memory_id: items[1].id,
           similarity: 0.5, // 낮은 벡터 유사도
-          content: items[1].content,
+          content: `${items[1].content} ${LONG_BODY}`,
           type: items[1].type,
           importance: items[1].importance,
           created_at: items[1].created_at,

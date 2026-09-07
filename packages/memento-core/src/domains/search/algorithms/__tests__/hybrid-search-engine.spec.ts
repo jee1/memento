@@ -17,6 +17,19 @@ import type { EmbeddingProvider } from '../../../../shared/types/embedding.types
 import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
+import { vectorLengthDecayFactor } from '../vector-length-decay.js';
+
+/**
+ * #921 길이 감쇠는 기본 on이다. 짧은 fixture content는 감쇠 후 HYBRID_VECTOR_THRESHOLD(0.38)
+ * 아래로 떨어져 임계값·퍼널 계약을 검증할 수 없으므로, 벡터 fixture content를 충분히 길게 둔다.
+ */
+const LONG_BODY = 'x'.repeat(200);
+
+/** 절대 점수 단언용 — 프로덕션과 같은 순서로 감쇠를 적용한다. */
+function decayedSimilarity(raw: number, content: string): number {
+  return raw * vectorLengthDecayFactor(content.length, getRankingWeights().vector_length_decay.characteristic_length);
+}
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {
@@ -524,7 +537,7 @@ describe('HybridSearchEngine', () => {
         { id: '1', content: 'test content 1', score: 0.8, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false }
       ];
       const mockVectorResults = [
-        { id: '2', content: 'test content 2', similarity: 0.9, type: 'semantic', importance: 0.8, created_at: '2024-01-01', pinned: false }
+        { id: '2', content: `test content 2 ${LONG_BODY}`, similarity: 0.9, type: 'semantic', importance: 0.8, created_at: '2024-01-01', pinned: false }
       ];
       const mockCombinedResults = [
         { id: '1', content: 'test content 1', textScore: 0.8, vectorScore: 0, finalScore: 0.32, recall_reason: '텍스트 검색 결과' },
@@ -564,7 +577,13 @@ describe('HybridSearchEngine', () => {
         omit_feedback_in_ranking: true,
       });
       expect(mockWeightCalculator.calculateWeights).toHaveBeenCalledWith('test query', 0.6, 0.4);
-      expect(mockResultCombiner.combine).toHaveBeenCalledWith(mockTextResults, mockVectorResults, 0.4, 0.6);
+      // 벡터 결과는 감쇠를 거쳐 combine에 전달된다 (#921).
+      expect(mockResultCombiner.combine).toHaveBeenCalledWith(
+        mockTextResults,
+        [{ ...mockVectorResults[0], similarity: decayedSimilarity(0.9, mockVectorResults[0].content) }],
+        0.4,
+        0.6
+      );
     });
 
     it('includeFunnel이면 candidate_funnel 단계 순서와 id를 반환한다', async () => {
@@ -573,8 +592,8 @@ describe('HybridSearchEngine', () => {
         { id: '3', content: 'test content 3', score: 0.5, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
       ];
       const mockVectorResults = [
-        { id: '2', content: 'below threshold', similarity: 0.1, type: 'semantic', importance: 0.8, created_at: '2024-01-01', pinned: false },
-        { id: '1', content: 'test content 1', similarity: 0.9, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false },
+        { id: '2', content: `below threshold ${LONG_BODY}`, similarity: 0.1, type: 'semantic', importance: 0.8, created_at: '2024-01-01', pinned: false },
+        { id: '1', content: `test content 1 ${LONG_BODY}`, similarity: 0.9, type: 'semantic', importance: 0.7, created_at: '2024-01-01', pinned: false },
       ];
       const mockCombinedResults = [
         { id: '1', content: 'test content 1', textScore: 0.8, vectorScore: 0.9, finalScore: 0.86, recall_reason: '하이브리드' },
@@ -612,9 +631,9 @@ describe('HybridSearchEngine', () => {
         { id: 'text', content: 'text only', score: 0.4, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
       ];
       const mockVectorResults = [
-        { id: 'high', content: 'above', similarity: 0.9, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
-        { id: 'mid', content: 'below', similarity: 0.2, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
-        { id: 'low', content: 'far', similarity: 0.05, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'high', content: `above ${LONG_BODY}`, similarity: 0.9, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'mid', content: `below ${LONG_BODY}`, similarity: 0.2, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
+        { id: 'low', content: `far ${LONG_BODY}`, similarity: 0.05, type: 'semantic', importance: 0.5, created_at: '2024-01-01', pinned: false },
       ];
       (mockTextEngine.search as Mock).mockResolvedValue({ items: mockTextResults, total_count: 1, query_time: 1 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
@@ -1820,9 +1839,10 @@ describe('HybridSearchEngine', () => {
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
       // 모든 결과가 동일한 점수 (0.5)
+      // 두 content 길이를 같게 두어 #921 감쇠가 두 결과에 동일하게 걸리도록 한다.
       (mockVectorEngine.search as Mock).mockResolvedValue([
-        { memory_id: 'mem-minilm-1', similarity: 0.5, content: 'MiniLM 1', type: 'episodic', importance: 0.7, created_at: new Date().toISOString() },
-        { memory_id: 'mem-minilm-2', similarity: 0.5, content: 'MiniLM 2', type: 'episodic', importance: 0.6, created_at: new Date().toISOString() }
+        { memory_id: 'mem-minilm-1', similarity: 0.5, content: `MiniLM 1 ${LONG_BODY}`, type: 'episodic', importance: 0.7, created_at: new Date().toISOString() },
+        { memory_id: 'mem-minilm-2', similarity: 0.5, content: `MiniLM 2 ${LONG_BODY}`, type: 'episodic', importance: 0.6, created_at: new Date().toISOString() }
       ]);
       
       // resultCombiner가 벡터 검색 결과를 처리하도록 Mock 설정
@@ -1853,11 +1873,11 @@ describe('HybridSearchEngine', () => {
       // Then: 0으로 나누기 오류 없이 원본 점수가 유지되어야 함 (정보 손실 방지)
       expect(result).toBeDefined();
       if (result.items && result.items.length > 0) {
-        // 모든 점수가 동일한 경우, 원본 점수(0.5)를 유지해야 함
-        // 정규화를 하지 않아도 다른 provider와의 비교 시 원본 점수가 유지됨
-        // finalScore는 vectorScore * 0.6이므로 vectorScore가 0.5면 finalScore는 0.3이 됨
+        // 모든 점수가 동일한 경우, 정규화로 점수를 재조정하지 않고 그대로 유지해야 함.
+        // #921 길이 감쇠만 반영되고 그 위에 추가 정규화가 얹히지 않는다는 뜻이다.
+        const expected = decayedSimilarity(0.5, `MiniLM 1 ${LONG_BODY}`);
         result.items.forEach(item => {
-          expect(item.vectorScore).toBe(0.5); // 원본 similarity 유지
+          expect(item.vectorScore).toBeCloseTo(expected, 10);
         });
       }
     });
