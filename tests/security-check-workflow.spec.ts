@@ -18,6 +18,15 @@ describe("security-check workflow", () => {
     expect(workflow).toContain("run: npm run lint");
     expect(workflow).not.toContain("npm run lint -- --max-warnings 500");
   });
+
+  it("runs production npm audit via check-production-audit-fixable (#925)", () => {
+    const workflow = readWorkflow();
+
+    expect(workflow).toContain("- name: Production npm audit");
+    expect(workflow).toContain(
+      "run: node scripts/check-production-audit-fixable.mjs",
+    );
+  });
 });
 
 describe("CI workflow", () => {
