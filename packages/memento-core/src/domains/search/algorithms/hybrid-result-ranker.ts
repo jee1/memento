@@ -174,7 +174,7 @@ export class HybridResultRanker {
     return {
       relevance: fusionRelevance,
       recency: this.calculateRecency(result.created_at),
-      importance: result.importance || 0.5,
+      importance: result.importance ?? 0.5,
       usage: this.calculateUsage(result.last_accessed),
       relation_weight: relationWeight,
       duplication_penalty: 0,
