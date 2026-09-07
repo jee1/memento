@@ -15,6 +15,9 @@ env:
   SKIP_INTEGRATION_TESTS: false
   VITEST_INCLUDE_NIGHTLY: '1'
   DB_PATH: /tmp/memento-nightly-test.db
+  # category-report는 DB_PATH가 아니라 tests/fixtures/search-quality/benchmark-v3 를
+  # 임시 SQLite에 시드해 측정한다(#905). DB_PATH는 다른 nightly 잡/유틸용.
+  EMBEDDING_PROVIDER: minilm
   # onnxruntime-node의 postinstall은 nuget.org에서 CUDA/TensorRT provider 바이너리를 받는다.
   # 러너에 GPU가 없어 쓰이지 않는데, 이 다운로드가 ETIMEDOUT으로 npm ci를 자주 깨뜨린다 (#890).
   # CPU 런타임(libonnxruntime.so.1, onnxruntime_binding.node)은 패키지에 번들되어 있어 영향 없다.
@@ -36,6 +39,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
+      # #812 이후 benchmark-search-database가 @memento/core(dist)를 import — build 없으면
+      # category-report가 ERR_MODULE_NOT_FOUND로 즉시 실패한다(#905).
+      - name: Build @memento/core
+        run: npm run build -w @memento/core
       - name: Run vector search quality benchmark
         run: npm run test:vector-search-quality:ci
       - name: Gate category search quality (MRR >= 0.5)

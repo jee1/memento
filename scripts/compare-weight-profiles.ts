@@ -33,7 +33,7 @@ import {
   type SearchResult,
 } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-metrics.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
-import { BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER } from '@memento/core/shared/types/benchmark.types.js';
+import { getBenchmarkVectorProviderFilter } from '@memento/core/shared/types/benchmark.types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -125,7 +125,7 @@ export async function evaluateProfile(
     const sr = await searchEngine.search(db, {
       query: queryText,
       limit: 20,
-      provider_filter: BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
+      provider_filter: getBenchmarkVectorProviderFilter(),
     });
     latencyMs.push(performance.now() - t0);
     const mapped: SearchResult[] = sr.items.map((item) => ({

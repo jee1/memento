@@ -52,11 +52,13 @@ describe('createSeededBenchmarkDatabase', () => {
     }
   });
 
-  it('creates one memory and both benchmark embeddings for each corpus row', async () => {
+  it('seeds only the resolved EMBEDDING_PROVIDER (no mandatory mock companion)', async () => {
     const previousProvider = process.env.EMBEDDING_PROVIDER;
     process.env.EMBEDDING_PROVIDER = 'tfidf';
-    const { db, close } = await createSeededBenchmarkDatabase(dir);
+    const { db, close, embeddingProvider, vectorDims } = await createSeededBenchmarkDatabase(dir);
     try {
+      expect(embeddingProvider).toBe('tfidf');
+      expect(vectorDims).toBeGreaterThan(0);
       const row = db.prepare('SELECT COUNT(*) AS c FROM memory_item').get() as { c: number };
       expect(row.c).toBe(2);
       const embeddings = db
@@ -64,10 +66,7 @@ describe('createSeededBenchmarkDatabase', () => {
           'SELECT embedding_provider AS provider, COUNT(*) AS c FROM memory_embedding GROUP BY embedding_provider'
         )
         .all() as Array<{ provider: string; c: number }>;
-      expect(embeddings).toEqual([
-        { provider: 'mock', c: 2 },
-        { provider: 'tfidf', c: 2 },
-      ]);
+      expect(embeddings).toEqual([{ provider: 'tfidf', c: 2 }]);
     } finally {
       close();
       if (previousProvider === undefined) {

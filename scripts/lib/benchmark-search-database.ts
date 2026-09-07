@@ -18,6 +18,10 @@ import {
   loadBenchmarkGroundTruth,
   type BenchmarkCorpusEntry,
 } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
+import {
+  resolveBenchmarkEmbeddingProvider,
+} from '@memento/core/shared/types/benchmark.types.js';
+import type { EmbeddingProvider } from '@memento/core/shared/types/embedding.types.js';
 
 const VALID_TYPES = new Set(['working', 'episodic', 'semantic', 'procedural']);
 
@@ -45,6 +49,8 @@ export interface SeededBenchmarkDb {
   db: Database.Database;
   dbPath: string;
   close: () => void;
+  embeddingProvider: EmbeddingProvider;
+  vectorDims: number;
 }
 
 /**
@@ -60,6 +66,7 @@ export async function createSeededBenchmarkDatabase(
     throw new Error(`Benchmark corpus is empty: ${benchmarkDir}`);
   }
 
+  const provider = resolveBenchmarkEmbeddingProvider();
   const benchmarkIdToSourceId = new Map<string, string>(
     corpus.map((e) => [e.benchmark_id, e.source_memory_id])
   );
@@ -91,13 +98,18 @@ export async function createSeededBenchmarkDatabase(
   const db = await initializeDatabase(dbPath);
   const embeddingService = new MemoryEmbeddingService();
 
+  let vectorDims = 0;
+
   try {
     for (let i = 0; i < corpus.length; i++) {
       const entry = corpus[i]!;
       const isRelevant = relevantSourceIds.has(entry.source_memory_id);
-      await seedOneCorpusRow(db, embeddingService, entry, isRelevant, rand);
+      const dims = await seedOneCorpusRow(db, embeddingService, entry, isRelevant, rand, provider);
+      if (vectorDims === 0) {
+        vectorDims = dims;
+      }
       if ((i + 1) % 500 === 0) {
-        process.stderr.write(`[benchmark-seed] ${i + 1}/${corpus.length}\n`);
+        process.stderr.write(`[benchmark-seed] ${i + 1}/${corpus.length} provider=${provider}\n`);
       }
     }
   } catch (e) {
@@ -118,6 +130,11 @@ export async function createSeededBenchmarkDatabase(
     throw e;
   }
 
+  if (vectorDims <= 0) {
+    closeDatabase(db);
+    throw new Error(`Benchmark seed produced no embeddings for provider="${provider}"`);
+  }
+
   const close = (): void => {
     try {
       closeDatabase(db);
@@ -132,7 +149,7 @@ export async function createSeededBenchmarkDatabase(
     }
   };
 
-  return { db, dbPath, close };
+  return { db, dbPath, close, embeddingProvider: provider, vectorDims };
 }
 
 async function seedOneCorpusRow(
@@ -140,8 +157,9 @@ async function seedOneCorpusRow(
   embeddingService: MemoryEmbeddingService,
   entry: BenchmarkCorpusEntry,
   isRelevant: boolean,
-  rand: () => number
-): Promise<void> {
+  rand: () => number,
+  provider: EmbeddingProvider
+): Promise<number> {
   const id = entry.source_memory_id;
   const type = normalizeMemoryType(entry.type);
   const tagsJson = JSON.stringify(entry.tags ?? []);
@@ -172,28 +190,22 @@ async function seedOneCorpusRow(
     [id, type, entry.content, tagsJson, createdAt, importance, lastAccessedAt, recallCount]
   );
 
-  /** mementoConfig.embeddingProvider는 모듈 로드 시 고정되므로, 시드 시 명시적으로 TF-IDF를 요청한다 */
-  const emb = await embeddingService.createAndStoreEmbedding(db, id, entry.content, type, 'tfidf');
+  const emb = await embeddingService.createAndStoreEmbedding(db, id, entry.content, type, provider);
   if (!emb) {
-    throw new Error(`Failed to embed benchmark memory ${id}`);
+    throw new Error(
+      `Failed to embed benchmark memory ${id} with provider="${provider}" (fail-closed; no silent fallback)`
+    );
   }
   const providerUsed = String(emb.provider ?? '').toLowerCase();
-  if (providerUsed !== 'tfidf') {
+  if (providerUsed !== provider) {
     throw new Error(
-      `Benchmark corpus seed must use tfidf embeddings (got "${emb.provider}"). ` +
-        'TF-IDF health check must pass; do not rely on process.env after startup.'
+      `Benchmark corpus seed must use ${provider} embeddings (got "${emb.provider}"). ` +
+        'Do not silently fall back to another provider.'
     );
   }
-
-  /** mock 임베딩도 저장: TF-IDF와 랭킹 상관관계가 낮아 alpha 가중치 효과를 측정 가능하게 함 */
-  const mockEmb = await embeddingService.createAndStoreEmbedding(db, id, entry.content, type, 'mock');
-  if (!mockEmb) {
-    throw new Error(`Failed to create mock embedding for benchmark memory ${id}`);
+  const dims = Array.isArray(emb.embedding) ? emb.embedding.length : 0;
+  if (dims <= 0) {
+    throw new Error(`Benchmark embedding for ${id} has empty vector (provider="${provider}")`);
   }
-  const mockProviderUsed = String(mockEmb.provider ?? '').toLowerCase();
-  if (mockProviderUsed !== 'mock') {
-    throw new Error(
-      `Benchmark corpus seed must store mock embeddings with provider='mock' (got "${mockEmb.provider}").`
-    );
-  }
+  return dims;
 }

@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   WALL_MS,
   formatCategoryReportLine,
+  formatEmbeddingRunHeader,
   anyCategoryFailsMrrGate,
 } from './quality-benchmark-category-report.js';
 import type { CategoryQualityReport } from '@memento/core/shared/types/benchmark.types.js';
+import { resolveBenchmarkEmbeddingProvider } from '@memento/core/shared/types/benchmark.types.js';
 
 function sampleReport(over: Partial<CategoryQualityReport> = {}): CategoryQualityReport {
   return {
@@ -49,5 +51,32 @@ describe('quality-benchmark-category-report (T015)', () => {
 
   it('평가 가능한 Ground Truth가 없는 필수 카테고리는 gate 실패', () => {
     expect(anyCategoryFailsMrrGate(passingReports().slice(0, 3))).toBe(true);
+  });
+
+  it('formatEmbeddingRunHeader는 provider와 vector dims를 출력한다 (#905)', () => {
+    expect(formatEmbeddingRunHeader('minilm', 384)).toBe(
+      'embedding_provider=minilm vector_dims=384'
+    );
+    expect(formatEmbeddingRunHeader('tfidf', 512)).toBe(
+      'embedding_provider=tfidf vector_dims=512'
+    );
+  });
+
+  it('resolveBenchmarkEmbeddingProvider는 EMBEDDING_PROVIDER를 존중하고 unset면 minilm', () => {
+    const previous = process.env.EMBEDDING_PROVIDER;
+    try {
+      delete process.env.EMBEDDING_PROVIDER;
+      expect(resolveBenchmarkEmbeddingProvider()).toBe('minilm');
+      process.env.EMBEDDING_PROVIDER = 'tfidf';
+      expect(resolveBenchmarkEmbeddingProvider()).toBe('tfidf');
+      process.env.EMBEDDING_PROVIDER = 'not-a-provider';
+      expect(resolveBenchmarkEmbeddingProvider()).toBe('minilm');
+    } finally {
+      if (previous === undefined) {
+        delete process.env.EMBEDDING_PROVIDER;
+      } else {
+        process.env.EMBEDDING_PROVIDER = previous;
+      }
+    }
   });
 });
