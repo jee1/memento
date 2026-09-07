@@ -1,0 +1,12 @@
+feature: 675-905-fix-ci-quality-tfidf
+created: 2026-09-06
+current_phase: done
+issue: 905
+phases:
+  constitution: { status: done, updated: 2026-09-06 }
+  specify: { status: done, updated: 2026-09-06 }
+  brainstorm: { status: done, updated: 2026-09-06, sessions: 1 }
+  plan: { status: done, updated: 2026-09-06 }
+  tasks: { status: done, updated: 2026-09-06 }
+  execute: { status: done, updated: 2026-09-06 }
+  review: { status: done, updated: 2026-09-06 }

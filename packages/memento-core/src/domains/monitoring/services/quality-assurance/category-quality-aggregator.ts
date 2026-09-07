@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { logger } from '../../../../shared/utils/logger.js';
 import {
   assertMacroCategory,
-  BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
+  getBenchmarkVectorProviderFilter,
   type CategoryQualityReport,
   type MacroCategory,
 } from '../../../../shared/types/benchmark.types.js';
@@ -96,7 +96,7 @@ export class CategoryQualityAggregator {
       const sr = await searchEngine.search(this.db, {
         query: queryText,
         limit: 20,
-        provider_filter: BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
+        provider_filter: getBenchmarkVectorProviderFilter(),
       });
       const mapped: SearchResult[] = sr.items.map((item) => ({
         id: memoryIdToBenchmarkId.get(item.id) ?? item.id,

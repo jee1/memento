@@ -7,7 +7,7 @@ import { isMain } from './lib/cli.js';
  * 이는 본 스크립트 집계 벽시계만 해당하며, 전체 CI 워크플로 총 벽시계는 측정하지 않는다(spec.md).
  *
  * DB는 DB_PATH가 아니라 benchmark-v3 corpus를 시드한 임시 SQLite만 사용한다(오프라인 품질 신호).
- * 시드 시 EMBEDDING_PROVIDER 미설정이면 tfidf(빠른 CI)를 쓴다.
+ * 시드·검색 provider는 EMBEDDING_PROVIDER(unset→minilm)를 따른다(#905).
  */
 
 import { join, dirname } from 'path';
@@ -37,6 +37,11 @@ export function formatCategoryReportLine(r: CategoryQualityReport): string {
   return `${r.macro_category} | ${r.query_count} | ${r.mrr.toFixed(4)} | ${r.ndcg_at_5.toFixed(4)} | ${r.ndcg_at_10.toFixed(4)} | ${gate}`;
 }
 
+/** #905 contract: embedding_provider=<name> vector_dims=<n> */
+export function formatEmbeddingRunHeader(provider: string, vectorDims: number): string {
+  return `embedding_provider=${provider} vector_dims=${vectorDims}`;
+}
+
 export function anyCategoryFailsMrrGate(reports: CategoryQualityReport[]): boolean {
   const reportedCategories = new Set(reports.map((report) => report.macro_category));
   return (
@@ -46,7 +51,7 @@ export function anyCategoryFailsMrrGate(reports: CategoryQualityReport[]): boole
 }
 
 async function main(): Promise<void> {
-  const { db, close } = await createSeededBenchmarkDatabase(BENCHMARK_DIR);
+  const { db, close, embeddingProvider, vectorDims } = await createSeededBenchmarkDatabase(BENCHMARK_DIR);
   /** SC-006: 코퍼스 시드 시간은 제외하고 집계·검색 구간만 측정 */
   const started = Date.now();
   let exitCode = 0;
@@ -54,6 +59,7 @@ async function main(): Promise<void> {
     const collector = new QualityMetricsCollector(db);
     const reports = await collector.collectCategoryMetrics(BENCHMARK_DIR, MAPPING_PATH);
 
+    console.log(formatEmbeddingRunHeader(embeddingProvider, vectorDims));
     console.log('macro_category | queries | MRR | NDCG@5 | NDCG@10 | MRR>=0.5');
     const fail = anyCategoryFailsMrrGate(reports);
     for (const r of reports) {
