@@ -31,9 +31,17 @@ export interface RelationWeights {
   max_relations: number; // 관계 가중치 계산 시 정규화를 위한 최대 관계 수
 }
 
+export interface VectorLengthDecayConfig {
+  /** When false, raw cosine similarity is used unchanged. */
+  enabled: boolean;
+  /** k in len/(len+k) (#921). */
+  characteristic_length: number;
+}
+
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
   relation_weights: RelationWeights;
+  vector_length_decay: VectorLengthDecayConfig;
 }
 
 const DEFAULT_CONFIG: RankingWeightsConfig = {
@@ -49,6 +57,10 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   },
   relation_weights: {
     max_relations: 5
+  },
+  vector_length_decay: {
+    enabled: true,
+    characteristic_length: 40
   }
 };
 
@@ -97,7 +109,8 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
-      'relation_weights.max_relations': { type: 'number' as const, min: 1 }
+      'relation_weights.max_relations': { type: 'number' as const, min: 1 },
+      'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 }
     };
 
     // 중첩 객체를 평탄화하여 검증
@@ -110,7 +123,23 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.epsilon': config.ranking_weights.epsilon,
       'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
       'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
-      'relation_weights.max_relations': config.relation_weights.max_relations
+      'relation_weights.max_relations': config.relation_weights.max_relations,
+      'vector_length_decay.characteristic_length':
+        config.vector_length_decay?.characteristic_length ??
+        DEFAULT_CONFIG.vector_length_decay.characteristic_length
+    };
+
+    // mergeWithDefaults may omit nested section when TOML lacks it
+    config.vector_length_decay = {
+      enabled:
+        typeof config.vector_length_decay?.enabled === 'boolean'
+          ? config.vector_length_decay.enabled
+          : DEFAULT_CONFIG.vector_length_decay.enabled,
+      characteristic_length:
+        typeof config.vector_length_decay?.characteristic_length === 'number' &&
+        Number.isFinite(config.vector_length_decay.characteristic_length)
+          ? config.vector_length_decay.characteristic_length
+          : DEFAULT_CONFIG.vector_length_decay.characteristic_length
     };
 
     const validationResult = validateConfig(flatConfig, validationSchema);
@@ -192,13 +221,18 @@ export function getRankingVersionPayload(configPath?: string): {
   vector_prefetch_multiplier: number;
   vector_underfill_fill: boolean;
   vector_score_scale: string;
+  vector_length_decay_enabled: boolean;
+  vector_length_decay_characteristic_length: number;
 } {
+  const weights = getRankingWeights(configPath);
   return {
-    weights: getRankingWeights(configPath),
+    weights,
     hybrid_vector_threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
     vector_prefetch_multiplier: HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
     vector_underfill_fill: HYBRID_SEARCH.VECTOR_UNDERFILL_FILL,
     vector_score_scale: HYBRID_SEARCH.VECTOR_SCORE_SCALE,
+    vector_length_decay_enabled: weights.vector_length_decay.enabled,
+    vector_length_decay_characteristic_length: weights.vector_length_decay.characteristic_length,
   };
 }
 

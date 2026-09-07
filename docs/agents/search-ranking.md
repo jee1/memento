@@ -36,6 +36,16 @@ combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeig
 
 하이브리드 벡터 fetch는 `threshold: 0`으로 prefetch(`limit * VECTOR_SEARCH_LIMIT_MULTIPLIER`, 상한 100)를 받습니다. funnel의 `thresholded_vector`는 `HYBRID_VECTOR_THRESHOLD`(0.38) 이상만 남깁니다. thresholded 개수가 `query.limit`보다 적으면 raw prefetch에서 유사도 내림차순으로 채워 fusion에 넣습니다(`VECTOR_UNDERFILL_FILL`). hashed TF-IDF가 0.38 아래에 있어도 gold가 fusion 전에 전부 사라지지 않게 하기 위함입니다. 0.38 숫자와 prefetch 배수는 LoCoMo ablation 전까지 유지하고, `config/ranking-weights.toml`은 재튜닝하지 않습니다. 이 상수는 `getRankingVersion()` 해시에 포함됩니다.
 
+## Vector length decay (Issue #921)
+
+짧은 기계 생성 문장(대략 20자대)의 mean-pooling 벡터가 관련 질의에서도 긴 정답보다 높은 원시 cosine을 받는 경우가 있습니다. 하이브리드 벡터 경로에서는 threshold / under-fill / fusion **직전**에 본문 길이 기반 소프트 감쇠를 곱합니다.
+
+```
+effective_similarity = cosine_similarity × (len / (len + k))
+```
+
+`k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다.
+
 ## 런타임 가중치 재로드 (Issue #667)
 
 `ζ`(relation_weight) 같은 랭킹 계수는 `config/ranking-weights.toml`에서 읽히므로, 코드 배포 없이 TOML 파일만 수정해 계수를 바꿀 수 있습니다. 방법은 간단합니다. `MEMENTO_RANKING_WEIGHTS_PATH` 환경변수로 TOML 파일의 절대 경로를 지정하거나, 미설정 시에는 기본값인 `config/ranking-weights.toml`이 사용됩니다. 파일을 수정한 뒤에는 **Memento 프로세스를 재시작**해야 합니다. 가중치는 프로세스 기동 시 캐시되며 현재 hot reload는 지원하지 않습니다.

@@ -1,22 +1,32 @@
 /**
  * 절대 cosine 척도 계약 회귀 검증 (#806).
- *
- * 이 실행 지점에는 전용 검증 파일이 없었다. 계약을 코드로 고정하기 위해 신설한다.
+ * #921 길이 감쇠는 기본 on — fixture content를 충분히 길게 두어 임계값 계약이 유지되게 하고,
+ * 절대 점수 단언은 decay factor를 반영한다.
  */
 import { describe, expect, it, vi } from 'vitest';
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { HybridVectorSearchExecutor } from './hybrid-vector-search-executor.js';
+import { vectorLengthDecayFactor } from './vector-length-decay.js';
 
 type Row = { memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number };
 
-function row(memory_id: string, similarity: number): Row {
+/** Long enough that hi=0.90 stays above HYBRID_VECTOR_THRESHOLD after decay (k=40). */
+const BODY = 'x'.repeat(200);
+
+function row(memory_id: string, similarity: number, content = `${BODY}-${memory_id}`): Row {
   return {
     memory_id,
-    content: `content-${memory_id}`,
+    content,
     type: 'episodic',
     importance: 0.5,
     created_at: '2026-08-29T00:00:00.000Z',
     similarity,
   };
+}
+
+function decayedSimilarity(raw: number, content: string): number {
+  const k = getRankingWeights().vector_length_decay.characteristic_length;
+  return raw * vectorLengthDecayFactor(content.length, k);
 }
 
 function availableEngine(providerRows: Record<string, Row[]>) {
@@ -113,7 +123,7 @@ describe('대체 경로 분기·임계값 계약 (#806)', () => {
     const out = await fallbackExecutor().execute({} as never, { query: 'q', limit: 2 } as never, 'sid');
     const filled = out.results.find((r) => r.id === 'far');
     expect(filled).toBeDefined();
-    expect(filled!.similarity).toBeCloseTo(0.02, 5);
+    expect(filled!.similarity).toBeCloseTo(decayedSimilarity(0.02, filled!.content), 5);
   });
 });
 
@@ -151,14 +161,14 @@ describe('HybridVectorSearchExecutor 절대 척도 계약 (#806)', () => {
     const out = await run({ tfidf: [row('hi', 0.90), row('lo', 0.10)] }, 2);
     const filled = out.results.find((r) => r.id === 'lo');
     expect(filled).toBeDefined();
-    expect(filled!.similarity).toBeCloseTo(0.10, 5);
+    expect(filled!.similarity).toBeCloseTo(decayedSimilarity(0.10, filled!.content), 5);
   });
 
   it('FR-007: 같은 기억이 여러 제공자에서 나오면 절대 유사도의 최댓값이 남는다', async () => {
     const out = await run({ tfidf: [row('shared', 0.41)], minilm: [row('shared', 0.73)] });
     const hit = out.results.filter((r) => r.id === 'shared');
     expect(hit).toHaveLength(1);
-    expect(hit[0]!.similarity).toBeCloseTo(0.73, 5);
+    expect(hit[0]!.similarity).toBeCloseTo(decayedSimilarity(0.73, hit[0]!.content), 5);
   });
 
   it('FR-008: 제공자별 결과셋의 최소·최대가 점수에 영향을 주지 않는다', async () => {
@@ -182,5 +192,25 @@ describe('HybridVectorSearchExecutor 절대 척도 계약 (#806)', () => {
       expect(r.similarity).toBeGreaterThanOrEqual(0);
       expect(r.similarity).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('HybridVectorSearchExecutor length decay (#921)', () => {
+  it('짧은 트리플 문장보다 긴 정답의 유효 유사도가 높다', async () => {
+    const shortContent = '#917 수정은 검증 방법을 필요합니다';
+    const longContent = 'x'.repeat(663);
+    expect(shortContent.length).toBe(21);
+    expect(longContent.length).toBe(663);
+
+    const out = await run({
+      tfidf: [
+        row('short', 0.749, shortContent),
+        row('long', 0.722, longContent),
+      ],
+    });
+    const shortHit = out.results.find((r) => r.id === 'short')!;
+    const longHit = out.results.find((r) => r.id === 'long')!;
+    expect(longHit.similarity).toBeGreaterThan(shortHit.similarity);
+    expect(out.results[0]!.id).toBe('long');
   });
 });
