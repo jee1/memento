@@ -180,4 +180,62 @@ describe('HybridResultRanker fusion relevance (#788)', () => {
     expect(a?.score_breakdown?.relevance.score).toBeCloseTo(b?.score_breakdown?.relevance.score ?? 0, 8);
     expect(a?.finalScore ?? 0).toBeGreaterThan(b?.finalScore ?? 0);
   });
+
+  it('keeps importance 0 (does not coerce to 0.5) and scores 0 < 0.1 < 0.5 (#924)', async () => {
+    const items = await ranker().combineAndSortResults(
+      [
+        { ...textHit('imp0', 0.5), importance: 0 },
+        { ...textHit('imp01', 0.5), importance: 0.1 },
+        { ...textHit('imp05', 0.5), importance: 0.5 },
+      ],
+      [
+        { ...vectorHit('imp0', 0.5), importance: 0 },
+        { ...vectorHit('imp01', 0.5), importance: 0.1 },
+        { ...vectorHit('imp05', 0.5), importance: 0.5 },
+      ],
+      TEXT_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+
+    const byId = Object.fromEntries(items.map((item) => [item.id, item]));
+    const score0 = byId.imp0?.finalScore ?? 0;
+    const score01 = byId.imp01?.finalScore ?? 0;
+    const score05 = byId.imp05?.finalScore ?? 0;
+    expect(score0).toBeLessThan(score01);
+    expect(score01).toBeLessThan(score05);
+    expect(byId.imp0?.score_breakdown?.importance.score).toBeLessThan(
+      byId.imp05?.score_breakdown?.importance.score ?? Number.POSITIVE_INFINITY,
+    );
+  });
+
+  it('defaults missing importance to 0.5 (#924)', async () => {
+    const missing = {
+      ...textHit('missing', 0.5),
+      importance: undefined as unknown as number,
+    };
+    const explicit = textHit('explicit', 0.5);
+    const items = await ranker().combineAndSortResults(
+      [missing, explicit],
+      [
+        { ...vectorHit('missing', 0.5), importance: undefined as unknown as number },
+        vectorHit('explicit', 0.5),
+      ],
+      TEXT_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+
+    const a = items.find((item) => item.id === 'missing');
+    const b = items.find((item) => item.id === 'explicit');
+    expect(a?.finalScore).toBeCloseTo(b?.finalScore ?? 0, 8);
+    expect(a?.score_breakdown?.importance.score).toBeCloseTo(
+      b?.score_breakdown?.importance.score ?? 0,
+      8,
+    );
+  });
 });

@@ -1,0 +1,28 @@
+feature: 677-924-fix-hybrid-importance-zero
+branch: feature/hybrid-importance-0-0.5
+issue: 924
+created: 2026-09-07
+updated: 2026-09-07
+current_phase: review
+executor: /speckit.superspec.execute
+
+phases:
+  constitution: { status: done, updated: 2026-09-07, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-07 }
+  brainstorm: { status: done, updated: 2026-09-07, sessions: 1, note: "Q1-Q4 auto-select recommended" }
+  plan: { status: done, updated: 2026-09-07 }
+  tasks: { status: done, updated: 2026-09-07 }
+  execute: { status: done, updated: 2026-09-07, tasks: "T001-T010" }
+  review: { status: done, updated: 2026-09-07, result: PASS }
+
+gates:
+  unit: "pass — hybrid-result-ranker.spec 8/8 (RED then GREEN)"
+  type_check: "pass"
+  graphify: "pass — rebuilt 6865 nodes"
+  lint: "skipped — surgical 1-line + tests; type-check+domain tests green"
+
+status: complete
+
+pending:
+  - "커밋/PR (사용자 승인 대기 — 이 세션은 커밋하지 않음)"
+  - "PR 시 tech-debt-approved 추가 · tech-debt-pending 제거"
