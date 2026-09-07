@@ -39,6 +39,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
+      # Xenova/HF 모델(~118MB q8) — category-report·한국어 품질 회귀가 공유 (#928).
+      - name: Cache Hugging Face models
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-hf-minilm-${{ hashFiles('packages/memento-core/src/shared/config/embedding-models.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-hf-minilm-
       # #812 이후 benchmark-search-database가 @memento/core(dist)를 import — build 없으면
       # category-report가 ERR_MODULE_NOT_FOUND로 즉시 실패한다(#905).
       - name: Build @memento/core
@@ -47,6 +55,13 @@ jobs:
         run: npm run test:vector-search-quality:ci
       - name: Gate category search quality (MRR >= 0.5)
         run: npm run quality -- benchmark category-report
+      # #889 한국어 품질 회귀 — opt-in 환경변수 없으면 4 tests skip·exit 0 (#928).
+      - name: MiniLM Korean embedding quality
+        env:
+          RUN_EMBEDDING_QUALITY: '1'
+        run: |
+          npx vitest --run \
+            packages/memento-core/src/domains/embedding/services/__tests__/minilm-korean-quality.spec.ts
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v6
