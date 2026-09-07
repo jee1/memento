@@ -74,3 +74,4 @@
 | 062 | Canonical Memento Resource URIs | shipped | [#656](https://github.com/jee1/memento/issues/656) |
 | 063 | remember source agent 식별자 허용 | shipped | [#696](https://github.com/jee1/memento/issues/696) |
 | 064 | Recall metadata wait removal & FTS·vector parallelism | shipped | [#735](https://github.com/jee1/memento/issues/735) |
+| 679 | MiniLM 한국어 품질 회귀 nightly 실행 | in-flight | [#928](https://github.com/jee1/memento/issues/928) |
