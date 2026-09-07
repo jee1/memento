@@ -182,12 +182,38 @@ alpha = 0.45
       expect(first).not.toBe(getRankingVersion());
     });
 
-    it('includes hybrid vector threshold, prefetch, and under-fill policy (#789)', () => {
+    it('includes hybrid vector threshold, prefetch, under-fill, and length decay (#789/#921)', () => {
       const payload = getRankingVersionPayload();
       expect(payload.hybrid_vector_threshold).toBe(0.38);
       expect(payload.vector_prefetch_multiplier).toBe(2);
       expect(payload.vector_underfill_fill).toBe(true);
+      expect(payload.vector_length_decay_enabled).toBe(true);
+      expect(payload.vector_length_decay_characteristic_length).toBe(40);
+      expect(payload.weights.vector_length_decay.enabled).toBe(true);
+      expect(payload.weights.vector_length_decay.characteristic_length).toBe(40);
       expect(getRankingVersion()).toMatch(/^ranking-sha256:[a-f0-9]{12}$/);
+    });
+
+    it('loads [vector_length_decay] from TOML (#921)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+
+[vector_length_decay]
+enabled = false
+characteristic_length = 55
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.vector_length_decay.enabled).toBe(false);
+      expect(config.vector_length_decay.characteristic_length).toBe(55);
     });
 
     it('should cache loaded config', () => {

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { clamp01 } from '../../../shared/utils/clamp.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
@@ -9,6 +10,7 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { normalizeSearchBySimilarityOutcome, collectResultIds, filterByVectorThreshold, fillUnderfilledVectorResults } from './hybrid-search-outcome-utils.js';
+import { applyVectorLengthDecay } from './vector-length-decay.js';
 import {
   createProviderVectorSearchTask,
   executeProviderSearchesWithOverallTimeout,
@@ -22,6 +24,11 @@ import type {
 } from './hybrid-search-types.js';
 import { SearchError, SearchErrorType } from './search-error.js';
 
+/** Apply #921 soft length decay using ranking-weights.toml [vector_length_decay]. */
+function withVectorLengthDecay<T extends { similarity?: number; content?: string }>(items: T[]): T[] {
+  const decay = getRankingWeights().vector_length_decay;
+  return applyVectorLengthDecay(items, decay);
+}
 export function resolveHybridVectorPrefetchLimit(requestedLimit?: number): number {
   const base = requestedLimit ?? 10;
   return Math.min(
@@ -163,9 +170,10 @@ export class HybridVectorSearchExecutor {
         (sid, step, data) => this.searchLogger.logSearchStep(sid, step, data)
       );
 
-      const thresholded = filterByVectorThreshold(allResults, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
+      const scored = withVectorLengthDecay(allResults);
+      const thresholded = filterByVectorThreshold(scored, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
       const rankingPool = HYBRID_SEARCH.VECTOR_UNDERFILL_FILL
-        ? fillUnderfilledVectorResults(thresholded, allResults, query.limit || 10)
+        ? fillUnderfilledVectorResults(thresholded, scored, query.limit || 10)
         : thresholded;
       const vectorResults = this.normalizeAndDeduplicateResults(rankingPool);
       const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
@@ -334,9 +342,10 @@ export class HybridVectorSearchExecutor {
       }
     }
 
-    const thresholded = filterByVectorThreshold(results, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
+    const scored = withVectorLengthDecay(results);
+    const thresholded = filterByVectorThreshold(scored, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
     const rankingPool = HYBRID_SEARCH.VECTOR_UNDERFILL_FILL
-      ? fillUnderfilledVectorResults(thresholded, results, query.limit || 10)
+      ? fillUnderfilledVectorResults(thresholded, scored, query.limit || 10)
       : thresholded;
 
     return {
@@ -344,7 +353,7 @@ export class HybridVectorSearchExecutor {
       query_embedding_providers,
       tfidf_query_embedding_fallback,
       tfidf_query_embedding_fallback_providers,
-      raw_ids: collectResultIds(results),
+      raw_ids: collectResultIds(scored),
       thresholded_ids: collectResultIds(thresholded),
     };
   }

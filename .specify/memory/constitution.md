@@ -1,18 +1,17 @@
 <!--
-Sync Impact Report — 2026-09-06 validation (prelude to /speckit.specify #856)
+Sync Impact Report — 2026-09-07 validation (prelude to /speckit.specify #921)
 
 Version change: 1.3.0 → 1.3.0 (NO amendment)
 Bump rationale: none. `/speckit.constitution` invoked as prelude to
-`/speckit.specify` for issue #856 (reflexion: skip ToolInputValidationError;
-remove content→task_goal fallback). No principle, constraint, workflow
-rule, or governance clause added, removed, or redefined. Principle I
-(tests) and V (observability / failure isolation) already cover
-Red-Green-Refactor and not polluting primary paths with invalid-client
-side effects. Feature-spec scope only.
+`/speckit.specify` for issue #921 (vector score soft length decay for
+short machine-generated sentences that outrank longer relevant answers).
+No principle, constraint, workflow rule, or governance clause added,
+removed, or redefined. Principle I (Test-First) and IV (quality gates /
+#920 nightly harness) already cover the work. Feature-spec scope only.
 `Ratified` and `Last Amended` unchanged (Last Amended still 2026-08-27).
 
-Prior report (#851, same day): also NO amendment — retained in git
-history only; this block replaces the header for the active feature.
+Prior report (#856): also NO amendment — retained in git history only;
+this block replaces the header for the active feature.
 
 Modified principles: none
 Added sections: none
@@ -24,11 +23,11 @@ Template resolution: `common.sh` `resolve_template constitution-template`
 
 Consistency propagation:
 - plan/spec/tasks templates — NO CHANGE NEEDED.
-- Runtime guidance (`AGENTS.md` §3.1) — optional gotcha after implement
-  (validation errors must not enqueue Reflexion).
+- Runtime guidance (`AGENTS.md` §3.1 / search-ranking.md) — optional
+  gotcha after implement (vector length decay coefficients).
 
 Follow-up TODOs: none. Feature work continues in
-`specs/674-856-fix-reflexion-validation-skip-procedural/`.
+`specs/680-921-fix-vector-length-decay/`.
 -->
 # Memento Constitution
 
