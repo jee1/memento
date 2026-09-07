@@ -32,6 +32,7 @@ import { gunzipSync } from 'zlib';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { findDisallowedScriptPaths } from './lib/npm-pack-scripts-allowlist.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -268,6 +269,23 @@ try {
     } else {
       packedTgzAbs = join(tmp, tgz);
       const { paths, files } = listUstarGzipEntries(packedTgzAbs);
+
+      // #859: package/scripts must be an allowlist (no .ts / pack tooling surface)
+      const disallowedScripts = findDisallowedScriptPaths(paths);
+      if (disallowedScripts.length > 0) {
+        console.error(
+          `[verify-npm-pack-bundle] tarball package/scripts allowlist 위반 (${disallowedScripts.length}):`
+        );
+        for (const p of disallowedScripts.slice(0, 40)) {
+          console.error(`  - ${p}`);
+        }
+        if (disallowedScripts.length > 40) {
+          console.error(`  ... and ${disallowedScripts.length - 40} more`);
+        }
+        exitCode = 1;
+      } else {
+        console.log('[verify-npm-pack-bundle] OK — package/scripts allowlist (#859)');
+      }
 
       const missingPaths = REQUIRED_BUNDLED_PATHS.filter((p) => !paths.has(p));
       if (missingPaths.length > 0) {

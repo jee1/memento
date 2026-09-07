@@ -1,0 +1,28 @@
+feature: 676-859-chore-npm-pack-scripts-allowlist
+branch: feature/chore-build-files-scripts-tarball-.ts-130
+issue: 859
+created: 2026-09-07
+updated: 2026-09-07
+current_phase: review
+executor: /speckit.superspec.execute
+
+phases:
+  constitution: { status: done, updated: 2026-09-07, note: "v1.3.0 no amendment" }
+  specify: { status: done, updated: 2026-09-07 }
+  brainstorm: { status: done, updated: 2026-09-07, sessions: 1, note: "Q1-Q4 auto-select recommended" }
+  plan: { status: done, updated: 2026-09-07 }
+  tasks: { status: done, updated: 2026-09-07 }
+  execute: { status: done, updated: 2026-09-07, tasks: "T001-T010" }
+  review: { status: done, updated: 2026-09-07, result: PASS }
+
+gates:
+  unit: "pass — npm-pack-scripts-allowlist 4 + js-scripts-no-ts-import 2"
+  pack_smoke: "pass — allowlist OK + postinstall DB file present"
+  lint: "pass — 0 errors"
+  type_check: "pass"
+  graphify: "pass — rebuilt 6865 nodes"
+
+status: complete
+
+pending:
+  - "커밋/PR (사용자 승인 대기 — 이 세션은 커밋하지 않음)"
