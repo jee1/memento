@@ -16,7 +16,7 @@
     "clean": "rimraf dist",
     "type-check": "tsc --declaration --emitDeclarationOnly",
     "test": "vitest run",
-    "test:ci": "vitest run --reporter=basic"
+    "test:ci": "vitest run"
   },
   "keywords": [
     "memento",

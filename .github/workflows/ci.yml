@@ -152,7 +152,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: test-results-client
-          path: test-results/
+          path: packages/memento-client/test-results/
           retention-days: 7
         continue-on-error: true
 

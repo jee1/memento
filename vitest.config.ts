@@ -64,7 +64,7 @@ export default defineConfig({
     server: {
       deps: {
         inline: [
-          /@xenova\/transformers/,
+          /@huggingface\/transformers/,
           /onnxruntime-node/,
         ]
       }
