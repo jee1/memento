@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * 모든 .md 파일의 인라인 상대 링크 `[text](path)` 존재 여부를 검사합니다.
- * 제외: node_modules, dist, .git, .worktrees, http(s), mailto, #fragment-only
+ * 저장소에 커밋되는 모든 .md 파일의 인라인 상대 링크 `[text](path)` 존재 여부를 검사합니다.
+ * 제외: gitignore 대상 경로, http(s), mailto, #fragment-only
  *
  * 사용: node scripts/audit-markdown-links.mjs
  * 종료 코드: 깨진 링크가 있으면 1
@@ -11,34 +11,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { listRepoFiles } from './lib/repo-files.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.worktrees']);
-
-function shouldSkipDir(parts) {
-  return parts.some((p) => SKIP_DIRS.has(p));
-}
-
-function* walkMarkdownFiles(dir, rel = '') {
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const e of entries) {
-    const name = e.name;
-    const relPath = rel ? `${rel}/${name}` : name;
-    const full = path.join(dir, name);
-    if (e.isDirectory()) {
-      if (SKIP_DIRS.has(name)) continue;
-      yield* walkMarkdownFiles(full, relPath);
-    } else if (name.endsWith('.md')) {
-      yield { full, relPath };
-    }
-  }
-}
 
 const LINK_RE = /\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
@@ -101,7 +77,7 @@ function checkFile(mdPath, relPath) {
 }
 
 function main() {
-  const files = [...walkMarkdownFiles(ROOT)];
+  const files = listRepoFiles(ROOT).filter((file) => file.relPath.endsWith('.md'));
   const allBroken = [];
 
   for (const { full, relPath } of files) {

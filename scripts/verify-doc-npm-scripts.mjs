@@ -11,9 +11,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMain } from './lib/cli-runtime.js';
+import { listRepoFiles } from './lib/repo-files.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.worktrees', 'graphify-out']);
 
 const KEEP_SCRIPT_NAMES = new Set([
   // npm lifecycle hooks
@@ -30,24 +30,6 @@ const KEEP_SCRIPT_NAMES = new Set([
   'pack:tarball',
   'restore-workspace',
 ]);
-
-function* walkFiles(dir, rel = '') {
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const relPath = rel ? `${rel}/${entry.name}` : entry.name;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (!SKIP_DIRS.has(entry.name)) yield* walkFiles(full, relPath);
-    } else {
-      yield { full, relPath };
-    }
-  }
-}
 
 function* workspaceDirs(rootPkg) {
   const workspaces = rootPkg.workspaces;
@@ -209,7 +191,7 @@ function collectReferences(packages, files) {
 
 export function verifyNpmScriptReferences() {
   const packages = loadPackages();
-  const files = [...walkFiles(ROOT)];
+  const files = listRepoFiles(ROOT);
   const markdownFiles = files.filter((file) => file.relPath.endsWith('.md'));
   const knownNames = new Set(
     packages.flatMap(({ pkg }) => Object.keys(pkg.scripts ?? {})),
