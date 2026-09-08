@@ -61,6 +61,9 @@ export interface ErrorAlert {
 }
 
 export class ErrorLoggingService {
+  /** 알림 임계값을 판단하는 시간 창 */
+  private static readonly ALERT_WINDOW_MS = 60 * 60 * 1000;
+
   private errors: Map<string, ErrorLog> = new Map();
   private alerts: Map<string, ErrorAlert> = new Map();
   private maxErrors: number = 10000;
@@ -71,6 +74,11 @@ export class ErrorLoggingService {
     [ErrorSeverity.HIGH, 10],
     [ErrorSeverity.CRITICAL, 1]
   ]);
+  /**
+   * #936 severity 별 최근 발생 시각(ms). 알림 임계값 판단에 에러 맵 전체 스캔 대신 이 창을 쓴다.
+   * 오래된 앞쪽만 잘라내므로 logError 호출당 상환 O(1)이다.
+   */
+  private recentErrorTimes: Map<ErrorSeverity, number[]> = new Map();
 
   /**
    * 에러 로깅
@@ -286,11 +294,15 @@ export class ErrorLoggingService {
       return;
     }
 
-    const sortedErrors = Array.from(this.errors.entries())
-      .sort((a, b) => a[1].timestamp.getTime() - b[1].timestamp.getTime());
-
-    const toDelete = sortedErrors.slice(0, this.errors.size - this.maxErrors);
-    toDelete.forEach(([id]) => this.errors.delete(id));
+    // #936 Map 은 삽입 순서를 보존하고 에러는 시간순으로 들어오므로 정렬 없이 앞에서부터 지운다.
+    let remaining = this.errors.size - this.maxErrors;
+    for (const id of this.errors.keys()) {
+      if (remaining <= 0) {
+        break;
+      }
+      this.errors.delete(id);
+      remaining--;
+    }
   }
 
   /**
@@ -302,13 +314,24 @@ export class ErrorLoggingService {
       return;
     }
 
-    const recentErrors = Array.from(this.errors.values())
-      .filter(e => 
-        e.severity === error.severity && 
-        e.timestamp >= new Date(Date.now() - 60 * 60 * 1000) // 최근 1시간
-      );
+    const recentTimes = this.recentErrorTimes.get(error.severity) ?? [];
+    recentTimes.push(error.timestamp.getTime());
 
-    if (recentErrors.length >= threshold) {
+    // 시간 창을 벗어난 앞쪽을 잘라낸다. 창은 시간순으로만 쌓이므로 첫 유효 항목까지만 보면 된다.
+    const cutoff = Date.now() - ErrorLoggingService.ALERT_WINDOW_MS;
+    let expired = 0;
+    while (expired < recentTimes.length && recentTimes[expired]! < cutoff) {
+      expired++;
+    }
+    // 창 안에서 폭주해도 에러 맵과 같은 상한을 넘지 않게 한다. 임계값은 상한보다 훨씬 작아 판정은 바뀌지 않는다.
+    const overCap = recentTimes.length - expired - this.maxErrors;
+    const drop = overCap > 0 ? expired + overCap : expired;
+    if (drop > 0) {
+      recentTimes.splice(0, drop);
+    }
+    this.recentErrorTimes.set(error.severity, recentTimes);
+
+    if (recentTimes.length >= threshold) {
       this.createAlert(error);
     }
   }
@@ -340,11 +363,15 @@ export class ErrorLoggingService {
       return;
     }
 
-    const sortedAlerts = Array.from(this.alerts.entries())
-      .sort((a, b) => a[1].timestamp.getTime() - b[1].timestamp.getTime());
-
-    const toDelete = sortedAlerts.slice(0, this.alerts.size - this.maxAlerts);
-    toDelete.forEach(([id]) => this.alerts.delete(id));
+    // #936 에러 정리와 같은 이유로 정렬이 필요 없다.
+    let remaining = this.alerts.size - this.maxAlerts;
+    for (const id of this.alerts.keys()) {
+      if (remaining <= 0) {
+        break;
+      }
+      this.alerts.delete(id);
+      remaining--;
+    }
   }
 
   /**
@@ -392,5 +419,6 @@ export class ErrorLoggingService {
   cleanup(): void {
     this.errors.clear();
     this.alerts.clear();
+    this.recentErrorTimes.clear();
   }
 }

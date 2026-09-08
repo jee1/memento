@@ -156,35 +156,34 @@ describe('ErrorLoggingService', () => {
       expect(mediumAlerts.length).toBe(0);
     });
 
-    it('최근 1시간 내 에러만 임계값 계산에 포함해야 함', async () => {
-      // Given: vi.useFakeTimers()를 사용하여 시간 제어
+    it('최근 1시간 내 에러만 임계값 계산에 포함해야 함', () => {
+      // MEDIUM 임계값은 50이므로 49건까지는 알림이 없다.
+      const belowThreshold = 49;
       vi.useFakeTimers();
-      
-      // 현재 시간에 에러 로깅
-      service.logError(
-        new Error('Recent error'),
-        ErrorSeverity.CRITICAL,
-        ErrorCategory.DATABASE
-      );
 
-      // 2시간 후로 시간 이동
-      vi.advanceTimersByTime(2 * 60 * 60 * 1000);
+      try {
+        // Given: 시간 창 안에 49건
+        for (let i = 0; i < belowThreshold; i++) {
+          service.logError(new Error(`Old ${i}`), ErrorSeverity.MEDIUM, ErrorCategory.DATABASE);
+        }
+        expect(service.getActiveAlerts()).toHaveLength(0);
 
-      // 새로운 에러 로깅 (이제 1시간 이내)
-      service.logError(
-        new Error('New error'),
-        ErrorSeverity.CRITICAL,
-        ErrorCategory.DATABASE
-      );
+        // When: 2시간 뒤로 이동해 앞의 49건을 창 밖으로 보내고 다시 49건을 기록
+        vi.advanceTimersByTime(2 * 60 * 60 * 1000);
+        for (let i = 0; i < belowThreshold; i++) {
+          service.logError(new Error(`New ${i}`), ErrorSeverity.MEDIUM, ErrorCategory.DATABASE);
+        }
 
-      // When: 알림 확인
-      const alerts = service.getActiveAlerts();
+        // Then: 창 안의 건수는 여전히 49건이므로 임계값에 못 미친다.
+        // 창 밖의 49건까지 셌다면 98건이 되어 알림이 생겼을 것이다.
+        expect(service.getActiveAlerts()).toHaveLength(0);
 
-      // Then: 최근 1시간 내 에러만 계산되어야 함
-      // (첫 번째 에러는 1시간 이전이므로 제외)
-      expect(alerts.length).toBeGreaterThanOrEqual(0);
-
-      vi.useRealTimers();
+        // 창 안에서 50번째가 들어오면 알림이 생성된다.
+        service.logError(new Error('Threshold'), ErrorSeverity.MEDIUM, ErrorCategory.DATABASE);
+        expect(service.getActiveAlerts().length).toBeGreaterThan(0);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
