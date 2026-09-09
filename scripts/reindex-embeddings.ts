@@ -11,10 +11,12 @@ async function main(): Promise<void> {
   const batchSize = Number(option('--batch-size') ?? '100');
   const ownerId = option('--owner-id');
   const dryRun = parseCliArgs().args.includes('--dry-run');
+  // #907 기본값 off. 켜면 재색인에 성공한 기억의 다른 provider native 임베딩을 지운다.
+  const pruneForeignProviders = parseCliArgs().args.includes('--prune-foreign-providers');
   const core = await createMementoCore({ dbPath: process.env.DB_PATH ?? mementoConfig.dbPath });
   try {
     const service = new EmbeddingReindexService(core.db, core.services.embeddingService);
-    const result = await service.reindex({ provider, batchSize, ownerId, dryRun });
+    const result = await service.reindex({ provider, batchSize, ownerId, dryRun, pruneForeignProviders });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.failedCount > 0) process.exitCode = 1;
   } finally {

@@ -35,7 +35,7 @@ function asNonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 }
 
-function parseRequest(body: unknown): { provider: EmbeddingProvider; ownerId?: string; batchSize?: number; dryRun: boolean } | string {
+function parseRequest(body: unknown): { provider: EmbeddingProvider; ownerId?: string; batchSize?: number; dryRun: boolean; pruneForeignProviders: boolean } | string {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return 'Request body must be a JSON object';
   }
@@ -51,7 +51,17 @@ function parseRequest(body: unknown): { provider: EmbeddingProvider; ownerId?: s
     return 'batchSize must be an integer between 1 and 1000';
   }
   if (input.dryRun !== undefined && typeof input.dryRun !== 'boolean') return 'dryRun must be a boolean';
-  return { provider: provider as EmbeddingProvider, ownerId, batchSize: batchSize as number | undefined, dryRun: input.dryRun === true };
+  if (input.pruneForeignProviders !== undefined && typeof input.pruneForeignProviders !== 'boolean') {
+    return 'pruneForeignProviders must be a boolean';
+  }
+  return {
+    provider: provider as EmbeddingProvider,
+    ownerId,
+    batchSize: batchSize as number | undefined,
+    dryRun: input.dryRun === true,
+    // #907 기본값 off. 다른 provider의 임베딩을 지우는 동작은 명시적으로 켜야 한다.
+    pruneForeignProviders: input.pruneForeignProviders === true,
+  };
 }
 
 function parseBackfillRequest(body: unknown): { provider: EmbeddingProvider; limit?: number; dryRun: boolean } | string {

@@ -84,6 +84,71 @@ describe('EmbeddingReindexService', () => {
     expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'minilm'").get()).toEqual({ dim: 384 });
   });
 
+  describe('#907: pruneForeignProviders', () => {
+    /** 요청한 provider로 저장에 성공하는 임베딩 서비스. memoryIds에 없는 기억은 실패시킨다. */
+    function embeddingServiceStoring(successIds: string[]) {
+      return {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async (_db: unknown, memoryId: string) => {
+          if (!successIds.includes(memoryId)) return null;
+          db.prepare("INSERT OR REPLACE INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'minilm', 'native', '[]', 384, 384)").run(memoryId);
+          return { provider: 'minilm', embedding: Array(384).fill(0) };
+        }),
+      };
+    }
+
+    beforeEach(() => {
+      db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('two', 'tfidf', 'native', '[]', 512, 512)").run();
+    });
+
+    it('기본값에서는 다른 provider 행을 지우지 않는다', async () => {
+      const service = new EmbeddingReindexService(db, embeddingServiceStoring(['two']) as never);
+
+      await expect(service.reindex({ provider: 'minilm', ownerId: 'b' })).resolves.toMatchObject({
+        storedCount: 1,
+        prunedForeignEmbeddingCount: 0,
+        // 재색인만으로는 drift가 줄지 않는다는 것이 이 이슈의 출발점이다.
+        providerDriftCount: 1,
+      });
+      expect(db.prepare("SELECT COUNT(*) AS n FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'tfidf'").get()).toEqual({ n: 1 });
+    });
+
+    it('켜면 재색인에 성공한 기억의 다른 provider 행을 지우고 drift가 0이 된다', async () => {
+      const service = new EmbeddingReindexService(db, embeddingServiceStoring(['two']) as never);
+
+      await expect(
+        service.reindex({ provider: 'minilm', ownerId: 'b', pruneForeignProviders: true }),
+      ).resolves.toMatchObject({
+        storedCount: 1,
+        prunedForeignEmbeddingCount: 1,
+        providerDriftCount: 0,
+      });
+      expect(db.prepare("SELECT COUNT(*) AS n FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'tfidf'").get()).toEqual({ n: 0 });
+    });
+
+    it('재색인에 실패한 기억의 다른 provider 행은 남긴다 (유일 임베딩 보호)', async () => {
+      db.prepare("INSERT INTO memory_item (id, content, owner_id) VALUES ('three', 'third', 'b')").run();
+      db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('three', 'tfidf', 'native', '[]', 512, 512)").run();
+      // 'three'만 실패시킨다. 실패한 기억은 minilm 행이 없으므로 tfidf가 유일한 임베딩이다.
+      const service = new EmbeddingReindexService(db, embeddingServiceStoring(['two']) as never);
+
+      await expect(
+        service.reindex({ provider: 'minilm', ownerId: 'b', pruneForeignProviders: true }),
+      ).resolves.toMatchObject({ storedCount: 1, failedCount: 1, prunedForeignEmbeddingCount: 1 });
+
+      expect(db.prepare("SELECT COUNT(*) AS n FROM memory_embedding WHERE memory_id = 'three'").get()).toEqual({ n: 1 });
+    });
+
+    it('dry-run은 지울 행 수만 세고 실제로 지우지 않는다', async () => {
+      const service = new EmbeddingReindexService(db, embeddingServiceStoring(['two']) as never);
+
+      await expect(
+        service.reindex({ provider: 'minilm', ownerId: 'b', dryRun: true, pruneForeignProviders: true }),
+      ).resolves.toMatchObject({ dryRun: true, storedCount: 0, prunedForeignEmbeddingCount: 1 });
+      expect(db.prepare("SELECT COUNT(*) AS n FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'tfidf'").get()).toEqual({ n: 1 });
+    });
+  });
+
   describe('#728: reindexByIds', () => {
     it('빈 ID 배열이면 아무것도 조회하지 않고 즉시 반환해야 함', async () => {
       const createAndStoreEmbedding = vi.fn();

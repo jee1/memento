@@ -118,6 +118,29 @@ npm run reindex-embeddings -- --provider minilm --batch-size 100
 
 기본 모델은 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`(384차원, 50개 언어)입니다. 이전 기본값이던 `all-MiniLM-L6-v2`는 영어 전용이라 한국어 쿼리가 관련 없는 문서를 상위에 올렸습니다.
 
+### provider drift 정리 (#907)
+
+재색인은 요청한 provider의 임베딩만 기록하고 **다른 provider의 행은 지우지 않습니다**. 따라서 과거에 provider를 바꾼 적이 있으면 `providerDriftCount`가 재색인을 반복해도 줄지 않습니다.
+
+정리하려면 `--prune-foreign-providers`를 명시적으로 켭니다. 기본값은 꺼짐입니다.
+
+```bash
+npm run reindex-embeddings -- --provider minilm --prune-foreign-providers --dry-run
+npm run reindex-embeddings -- --provider minilm --prune-foreign-providers
+```
+
+`prunedForeignEmbeddingCount`에 지운 행 수가 담깁니다. `--dry-run`에서는 전부 재색인에 성공한다고 가정한 상한입니다.
+
+삭제 대상은 **이번 실행에서 새 임베딩을 저장하는 데 성공한 기억**의 다른 provider native 행뿐입니다. 재색인에 실패한 기억은 건드리지 않으므로, 유일한 임베딩이 사라지는 경우는 없습니다.
+
+두 provider를 의도적으로 함께 유지하는 경우(예: `provider_filter: ['tfidf']`로 TF-IDF 검색을 병행) 이 옵션을 켜지 마세요. 지운 임베딩은 되돌릴 수 없고 재생성해야 합니다. 실행 전 DB를 백업하세요.
+
+```bash
+npm run db:backup
+```
+
+HTTP API에서는 요청 본문의 `pruneForeignProviders: true`가 같은 역할을 합니다.
+
 ### HTTP 관리 API
 
 로컬 CLI를 사용할 수 없는 환경에서는 HTTP 서버가 동일한 작업을 비동기로 실행할 수 있습니다. `admin:destructive` 스코프 토큰이 필요하며, 완료 여부는 응답의 `statusUrl`로 확인합니다.

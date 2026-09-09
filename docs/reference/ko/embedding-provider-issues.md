@@ -35,7 +35,20 @@ Memento는 MiniLM·OpenAI·Gemini·TF-IDF 등 여러 임베딩 백엔드를 선�
   3. `memory_item_vec` 관련 테이블, 트리거가 새 차원과 일치하는지 확인하고 필요 시 재생성.  
   4. 기존 임베딩 데이터의 재생성 여부와 비용을 판단(차원 변경 시 재생성 필요).
 
-### 5. 향후 정비가 필요한 영역
+### 5. TF-IDF 은퇴 여부 결정 (#907)
+
+**결론: TF-IDF는 은퇴시키지 않는다.** `EMBEDDING_PROVIDER=tfidf`와 `recall`의 `provider_filter: ['tfidf']`는 계속 지원되는 구성이다.
+
+판단 근거는 다음과 같다.
+
+- `provider_filter`는 공개된 recall 파라미터이고, 코드도 이를 "의도적 TF-IDF 모드"로 다룬다(`hybrid-vector-search-executor.ts`). 제거하려면 공개 API 변경과 폐기 절차가 필요하다.
+- 제거하지 않아도 실제로 보고된 문제(재색인마다 `providerDriftCount`가 줄지 않음)는 해결된다.
+
+대신 **재색인이 다른 provider의 임베딩을 정리할 수 있게** 했다. 재색인은 요청한 provider의 임베딩만 기록하고 다른 provider의 행은 그대로 두므로, 과거에 provider를 바꾼 설치본에서는 `providerDriftCount`가 몇 번을 재색인해도 0이 되지 않는다. 자기가 보고하는 수치를 자기 동작으로 내릴 수 없는 진단값이었다.
+
+정리는 **기본값이 꺼져 있는 옵트인**이다. 두 provider를 의도적으로 함께 유지하는 설치본의 데이터를 자동으로 지우면 안 되기 때문에, 마이그레이션이 아니라 운영자가 켜는 옵션으로 두었다. 사용법은 [임베딩 설정 가이드](../../guides/ko/embedding-configuration.md)를 참고한다.
+
+### 6. 향후 정비가 필요한 영역
 - 공용 VEC 테이블 구조 유지 여부 결정 및 자동화된 마이그레이션 스크립트 준비.  
 - Docker 빌드 과정에서 MiniLM 모델 프리페치를 안정적으로 처리하기 위한 네트워크 정책 검토.  
 - `UnifiedEmbeddingService`가 로컬/컨테이너 환경에서 어떤 제공자를 선택했는지 쉽게 확인할 수 있는 로깅/모니터링 체계 마련.
