@@ -113,6 +113,29 @@ npm run reindex-embeddings -- --provider minilm --batch-size 100
 
 The default model is `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (384 dimensions, 50 languages). The previous default, `all-MiniLM-L6-v2`, is English-only and ranked unrelated documents above relevant ones for Korean queries.
 
+### Cleaning up provider drift (#907)
+
+A reindex writes embeddings for the requested provider and **leaves rows from other providers untouched**. If this database has ever switched providers, `providerDriftCount` therefore never falls, no matter how many times you reindex.
+
+Turn the cleanup on explicitly with `--prune-foreign-providers`. It is off by default.
+
+```bash
+npm run reindex-embeddings -- --provider minilm --prune-foreign-providers --dry-run
+npm run reindex-embeddings -- --provider minilm --prune-foreign-providers
+```
+
+`prunedForeignEmbeddingCount` reports how many rows were removed. Under `--dry-run` it is an upper bound that assumes every memory reindexes successfully.
+
+Only memories that **stored a new embedding successfully in this run** are eligible. Memories whose reindex failed are left alone, so a memory can never lose its only embedding.
+
+Do not enable this if you deliberately maintain two providers at once — for example running TF-IDF searches through `provider_filter: ['tfidf']` alongside another provider. Deleted embeddings cannot be recovered and must be regenerated. Back up the database first.
+
+```bash
+npm run db:backup
+```
+
+Over HTTP, `"pruneForeignProviders": true` in the request body does the same thing.
+
 ### HTTP maintenance API
 
 The HTTP server can run the same work asynchronously when a local CLI is not available. It requires a token with the `admin:destructive` scope; use the returned `statusUrl` to observe completion.

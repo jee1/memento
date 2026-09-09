@@ -9,6 +9,15 @@ export interface EmbeddingReindexOptions {
   ownerId?: string;
   batchSize?: number;
   dryRun?: boolean;
+  /**
+   * #907 재색인에 성공한 기억에서 다른 provider의 native 임베딩 행을 지운다. 기본값 false.
+   *
+   * 켜지 않으면 재색인은 다른 provider의 행을 그대로 두므로 `providerDriftCount`가
+   * 재색인을 반복해도 줄지 않는다. 반대로 자동으로 켜면 `provider_filter`로 여러
+   * provider를 의도적으로 유지하는 설치본의 데이터를 지우게 되므로, 운영자가
+   * 명시적으로 켤 때만 동작한다.
+   */
+  pruneForeignProviders?: boolean;
 }
 
 export interface EmbeddingHealthDiagnostics {
@@ -32,6 +41,11 @@ export interface EmbeddingReindexResult extends EmbeddingHealthDiagnostics {
   processedCount: number;
   storedCount: number;
   failedCount: number;
+  /**
+   * #907 `pruneForeignProviders`로 지운 다른 provider의 native 임베딩 행 수.
+   * 옵션이 꺼져 있으면 0이고, dryRun에서는 전부 재색인에 성공한다고 가정한 상한이다.
+   */
+  prunedForeignEmbeddingCount: number;
 }
 
 export interface SemanticEndpointBackfillOptions {
@@ -177,11 +191,21 @@ export class EmbeddingReindexService {
     `).all(...(options.ownerId ? [options.ownerId] : [])) as MemoryRow[];
 
     if (options.dryRun) {
-      return { ...diagnostics, dryRun: true, processedCount: memories.length, storedCount: 0, failedCount: 0 };
+      return {
+        ...diagnostics,
+        dryRun: true,
+        processedCount: memories.length,
+        storedCount: 0,
+        failedCount: 0,
+        prunedForeignEmbeddingCount: options.pruneForeignProviders
+          ? this.countForeignProviderEmbeddings(memories.map(memory => memory.id), provider)
+          : 0,
+      };
     }
 
     let storedCount = 0;
     let failedCount = 0;
+    const storedIds: string[] = [];
 
     for (let start = 0; start < memories.length; start += batchSize) {
       for (const memory of memories.slice(start, start + batchSize)) {
@@ -198,13 +222,57 @@ export class EmbeddingReindexService {
             continue;
           }
           storedCount++;
+          if (options.pruneForeignProviders) storedIds.push(memory.id);
         } catch {
           failedCount++;
         }
       }
     }
 
-    return { ...this.diagnose({ ...options, provider }), dryRun: false, processedCount: memories.length, storedCount, failedCount };
+    const prunedForeignEmbeddingCount = options.pruneForeignProviders
+      ? this.pruneForeignProviderEmbeddings(storedIds, provider)
+      : 0;
+
+    return {
+      ...this.diagnose({ ...options, provider }),
+      dryRun: false,
+      processedCount: memories.length,
+      storedCount,
+      failedCount,
+      prunedForeignEmbeddingCount,
+    };
+  }
+
+  /**
+   * #907 다른 provider의 native 임베딩 행을 지운다.
+   *
+   * 대상은 **이번 실행에서 새 임베딩을 저장하는 데 성공한 기억**뿐이다. 그 기억은
+   * 방금 저장한 행을 갖고 있으므로 유일한 임베딩을 잃을 수 없다. `memory_embedding`
+   * DELETE 트리거가 vec 인덱스의 해당 rowid도 함께 지운다.
+   */
+  private pruneForeignProviderEmbeddings(memoryIds: string[], provider: EmbeddingProvider): number {
+    if (memoryIds.length === 0) return 0;
+    return chunkedIn(memoryIds, 500, (chunk, placeholders) => [
+      this.db.prepare(`
+        DELETE FROM memory_embedding
+        WHERE memory_id IN (${placeholders})
+          AND embedding_provider != ?
+          AND projection_type = 'native'
+      `).run(...chunk, provider).changes,
+    ]).reduce((sum, changes) => sum + changes, 0);
+  }
+
+  /** #907 dryRun용. 전부 재색인에 성공한다고 가정했을 때 지워질 행 수의 상한. */
+  private countForeignProviderEmbeddings(memoryIds: string[], provider: EmbeddingProvider): number {
+    if (memoryIds.length === 0) return 0;
+    return chunkedIn(memoryIds, 500, (chunk, placeholders) => [
+      (this.db.prepare(`
+        SELECT COUNT(*) AS n FROM memory_embedding
+        WHERE memory_id IN (${placeholders})
+          AND embedding_provider != ?
+          AND projection_type = 'native'
+      `).get(...chunk, provider) as { n: number }).n,
+    ]).reduce((sum, n) => sum + n, 0);
   }
 
   /**
