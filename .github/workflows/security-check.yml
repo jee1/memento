@@ -50,6 +50,24 @@ jobs:
       # do NOT add force overrides.
       - name: Production npm audit
         run: node scripts/check-production-audit-fixable.mjs
+
+      # Full-tree audit gate (#909): dev 의존성까지 포함해 `npm audit` 를 돌린다.
+      # wanted(minor/patch) 범위에서 고칠 수 있는 High/Critical 이 남으면 실패한다.
+      # dev moderate(vitest 4→5 major)는 wanted-only 정책상 게이트 대상이 아니다
+      # (AGENTS.md deps) — 별도 이슈로 다룬다.
+      - name: Full npm audit (dev included)
+        run: node scripts/check-production-audit-fixable.mjs --include-dev
+
+      # #909: 게이트가 실패해도 전체 목록이 job summary 에 남게 한다.
+      - name: npm audit summary
+        if: always()
+        run: |
+          {
+            echo '### npm audit (dev 포함)'
+            echo '```'
+            npm audit || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       
       - name: Type Check
         run: npm run type-check

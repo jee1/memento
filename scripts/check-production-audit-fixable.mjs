@@ -6,6 +6,11 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
  * Runs `npm audit --omit=dev --json` and fails when any High/Moderate/Critical
  * vulnerability still has a fix available (wanted-range / audit-fixable).
  *
+ * `--include-dev` (#909): audits the full tree (dev included). That lane gates
+ * High/Critical only and ignores fixes that need a semver-major bump, because
+ * AGENTS.md pins deps to wanted (minor/patch) ranges — vitest 4→5 is a separate
+ * issue, not a security gate failure. The production lane is unchanged.
+ *
  * Fail-closed (#925): audit service error JSON, missing report schema,
  * spawn/parse failures exit non-zero. Valid schema + npm exit≠0 (vulns present)
  * still uses classification below — do not fail on status alone.
@@ -16,6 +21,7 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
  *
  * Usage:
  *   node scripts/check-production-audit-fixable.mjs
+ *   node scripts/check-production-audit-fixable.mjs --include-dev
  *   node scripts/check-production-audit-fixable.mjs /path/to/audit.json
  */
 
@@ -23,7 +29,27 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { assertValidProductionAuditReport } from './lib/production-audit-report.js';
 
-const FAIL_SEVERITIES = new Set(['critical', 'high', 'moderate']);
+const PROD_FAIL_SEVERITIES = new Set(['critical', 'high', 'moderate']);
+// #909: dev 를 포함한 전체 트리는 high/critical 만 본다. dev moderate(vitest)는
+// major 업그레이드가 있어야 풀려서 wanted-only 정책과 충돌한다.
+const FULL_TREE_FAIL_SEVERITIES = new Set(['critical', 'high']);
+
+const cli = parseCliArgs({ options: { 'include-dev': { type: 'boolean' } } });
+const includeDev = cli.values['include-dev'] === true;
+const scope = includeDev ? 'full tree (dev included)' : 'production (--omit=dev)';
+const failSeverities = includeDev
+  ? FULL_TREE_FAIL_SEVERITIES
+  : PROD_FAIL_SEVERITIES;
+
+// prod 레인은 기존 동작(fixAvailable truthy)을 그대로 둔다. dev 포함 레인만
+// major-only 수정을 "고칠 수 없음"으로 분류한다.
+const isBlocking = includeDev
+  ? (v) =>
+      v.fixAvailable === true ||
+      (typeof v.fixAvailable === 'object' &&
+        v.fixAvailable !== null &&
+        v.fixAvailable.isSemVerMajor !== true)
+  : (v) => Boolean(v.fixAvailable);
 
 function failLoad(message, detail) {
   console.error(message);
@@ -34,7 +60,7 @@ function failLoad(message, detail) {
 }
 
 function loadReport() {
-  const argPath = parseCliArgs().args[0];
+  const argPath = cli.positionals[0];
   if (argPath) {
     let parsed;
     try {
@@ -53,14 +79,17 @@ function loadReport() {
     return parsed;
   }
 
-  const result = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
+  const auditArgs = includeDev
+    ? ['audit', '--json']
+    : ['audit', '--omit=dev', '--json'];
+  const result = spawnSync('npm', auditArgs, {
     encoding: 'utf8',
     maxBuffer: 32 * 1024 * 1024,
   });
 
   if (result.error) {
     failLoad(
-      'Failed to run `npm audit --omit=dev --json`.',
+      `Failed to run \`npm ${auditArgs.join(' ')}\`.`,
       result.error.message || String(result.error),
     );
   }
@@ -70,7 +99,7 @@ function loadReport() {
   try {
     parsed = JSON.parse(stdout);
   } catch {
-    console.error('Failed to parse `npm audit --omit=dev --json` output.');
+    console.error(`Failed to parse \`npm ${auditArgs.join(' ')}\` output.`);
     if (result.stderr) {
       console.error(result.stderr);
     }
@@ -93,15 +122,12 @@ function loadReport() {
 
 const report = loadReport();
 const vulns = Object.values(report.vulnerabilities);
-const fixable = vulns.filter(
-  (v) => v.fixAvailable && FAIL_SEVERITIES.has(v.severity),
-);
-const accepted = vulns.filter(
-  (v) => !v.fixAvailable && FAIL_SEVERITIES.has(v.severity),
-);
+const inScope = vulns.filter((v) => failSeverities.has(v.severity));
+const fixable = inScope.filter(isBlocking);
+const accepted = inScope.filter((v) => !isBlocking(v));
 
 console.log(
-  'Production audit (--omit=dev) counts:',
+  `Audit scope: ${scope}. Counts:`,
   report.metadata?.vulnerabilities ?? '(no metadata)',
 );
 
@@ -116,7 +142,7 @@ if (accepted.length > 0) {
 
 if (fixable.length > 0) {
   console.error(
-    'FAIL: fixable High/Moderate/Critical production vulnerabilities remain:',
+    `FAIL: fixable ${[...failSeverities].join('/')} vulnerabilities remain in ${scope}:`,
   );
   for (const v of fixable) {
     const via = Array.isArray(v.via)
@@ -130,5 +156,5 @@ if (fixable.length > 0) {
   process.exit(1);
 }
 
-console.log('OK: no fixable High/Moderate/Critical production vulnerabilities');
+console.log(`OK: no wanted-range fixable vulnerabilities in ${scope}`);
 process.exit(0);

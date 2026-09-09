@@ -27,6 +27,16 @@ describe("security-check workflow", () => {
       "run: node scripts/check-production-audit-fixable.mjs",
     );
   });
+
+  it("gates the full dependency tree including dev deps (#909)", () => {
+    const workflow = readWorkflow();
+
+    expect(workflow).toContain("- name: Full npm audit (dev included)");
+    expect(workflow).toContain(
+      "run: node scripts/check-production-audit-fixable.mjs --include-dev",
+    );
+    expect(workflow).toContain("$GITHUB_STEP_SUMMARY");
+  });
 });
 
 describe("CI workflow", () => {
