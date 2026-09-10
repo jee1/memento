@@ -92,6 +92,9 @@ describe('embeddingColumnToNumbers', () => {
     expect(embeddingColumnToNumbers('[0.25,-0.5,1]')).toBeUndefined();
     expect(embeddingColumnToNumbers(Buffer.alloc(0))).toBeUndefined();
     expect(embeddingColumnToNumbers(Buffer.from([1, 2, 3]))).toBeUndefined();
+    const nonFinite = Buffer.alloc(4);
+    nonFinite.writeFloatLE(Number.NaN, 0);
+    expect(embeddingColumnToNumbers(nonFinite)).toBeUndefined();
     expect(embeddingColumnToNumbers(null)).toBeUndefined();
   });
 });

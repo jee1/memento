@@ -19,6 +19,7 @@
   }
 
   function closeSidePanel() {
+    st.detailRequestGeneration++;
     const panel = document.getElementById('em-side-panel');
     if (panel) {
       panel.classList.remove('open');
@@ -26,7 +27,16 @@
     }
   }
 
-  function openSidePanel(point) {
+  function parseTags(raw) {
+    try {
+      const tags = typeof raw === 'string' ? JSON.parse(raw || '[]') : raw;
+      return Array.isArray(tags) ? tags : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function renderSidePanel(point) {
     const panel = document.getElementById('em-side-panel');
     if (!panel) {
       return;
@@ -51,6 +61,7 @@
 
     const body = document.createElement('div');
     body.className = 'em-panel-body';
+    appendLabeledLine(body, 'ID:', String(point.id));
     appendLabeledLine(body, 'Type:', String(point.type));
     appendLabeledLine(body, 'Importance:', imp);
     appendLabeledLine(body, 'Created:', String(point.created_at));
@@ -63,6 +74,17 @@
     body.appendChild(hr);
     body.appendChild(pre);
 
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'm-button m-button--secondary';
+    copyBtn.textContent = 'Copy ID';
+    copyBtn.addEventListener('click', function () {
+      if (navigator.clipboard) {
+        void navigator.clipboard.writeText(String(point.id));
+      }
+    });
+    body.appendChild(copyBtn);
+
     panel.appendChild(header);
     panel.appendChild(body);
 
@@ -74,6 +96,41 @@
     });
   }
 
+  function openSidePanel(point) {
+    st.detailRequestGeneration++;
+    renderSidePanel(point);
+  }
+
   st.closeSidePanel = closeSidePanel;
   st.openSidePanel = openSidePanel;
+  st.openMemoryById = function openMemoryById(id) {
+    if (!global.mementoAdminFetch) {
+      return;
+    }
+    const generation = ++st.detailRequestGeneration;
+    global
+      .mementoAdminFetch('/admin/memory/items/' + encodeURIComponent(id))
+      .then(function (res) {
+        if (!res.ok) throw new Error('memory detail request failed');
+        return res.json();
+      })
+      .then(function (body) {
+        if (generation !== st.detailRequestGeneration) return;
+        const memory = body && body.memory;
+        if (memory) {
+          renderSidePanel({
+            id: memory.id,
+            type: memory.type,
+            importance: memory.importance,
+            created_at: memory.created_at,
+            tags: parseTags(memory.tags),
+            content: memory.content,
+          });
+        }
+      })
+      .catch(function () {
+        if (generation !== st.detailRequestGeneration) return;
+        st.renderEmbeddingHealthError('기억 상세를 불러오지 못했습니다.');
+      });
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

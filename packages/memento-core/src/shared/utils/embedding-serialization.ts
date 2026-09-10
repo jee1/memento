@@ -107,6 +107,7 @@ export function embeddingColumnToNumbers(raw: unknown): number[] | undefined {
     if (floats.length === 0) {
       return undefined;
     }
+    assertFiniteNumbers(floats, 'embeddingColumnToNumbers');
     return Array.from(floats);
   } catch {
     return undefined;

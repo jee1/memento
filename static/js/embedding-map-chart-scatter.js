@@ -20,22 +20,6 @@
     };
   }
 
-  function renderAxes(innerW, innerH) {
-    st.plotG.selectAll('g.em-axis').remove();
-    const xAxis = d3.axisBottom(st.xScale).ticks(6);
-    const yAxis = d3.axisLeft(st.yScale).ticks(6);
-    st.plotG
-      .append('g')
-      .attr('class', 'em-axis')
-      .attr('transform', `translate(0,${innerH})`)
-      .call(xAxis);
-    st.plotG.append('g').attr('class', 'em-axis').call(yAxis);
-  }
-
-  function dotRadius(d) {
-    return 4 + (d.importance != null ? d.importance : 0.5) * 6;
-  }
-
   function dotPosition(d) {
     return { cx: st.xScale(d.x), cy: st.yScale(d.y) };
   }
@@ -43,7 +27,16 @@
   function attachDotHandlers(circle) {
     circle
       .style('cursor', 'pointer')
+      .attr('tabindex', 0)
+      .attr('role', 'button')
+      .attr('aria-label', (d) => `Open memory ${d.id}`)
       .on('click', function (event, d) {
+        event.stopPropagation();
+        st.openSidePanel(d);
+      })
+      .on('keydown', function (event, d) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
         event.stopPropagation();
         st.openSidePanel(d);
       })
@@ -63,7 +56,7 @@
 
   function updateDotAttributes(sel, k) {
     sel
-      .attr('r', dotRadius)
+      .attr('r', 5)
       .attr('cx', (d) => dotPosition(d).cx)
       .attr('cy', (d) => dotPosition(d).cy)
       .attr('fill', (d) => st.clusterColor(k, d.cluster));
@@ -84,8 +77,6 @@
     const innerW = st.width - st.margin.left - st.margin.right;
     const innerH = st.height - st.margin.top - st.margin.bottom;
     st.plotG.select('.em-plot-bg').attr('width', innerW).attr('height', innerH);
-    renderAxes(innerW, innerH);
-
     const sel = st.plotG.selectAll('circle.em-dot').data(data.points, (d) => d.id);
     const entered = sel
       .enter()

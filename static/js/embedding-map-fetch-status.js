@@ -69,7 +69,166 @@
     }
   }
 
+  function metricCard(label, value, problem, provider) {
+    const card = document.createElement(problem ? 'button' : 'div');
+    card.className = 'rc-health-metric-card' + (problem ? ' em-health-problem-card' : '');
+    if (problem) {
+      card.type = 'button';
+      card.addEventListener('click', function () {
+        st.loadEmbeddingProblems(problem, provider);
+      });
+    }
+    const labelEl = document.createElement('div');
+    labelEl.className = 'rc-health-metric-label';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('div');
+    valueEl.className = 'rc-health-metric-value';
+    valueEl.textContent = String(value);
+    card.appendChild(labelEl);
+    card.appendChild(valueEl);
+    return card;
+  }
+
+  function renderEmbeddingHealthError(message) {
+    const el = document.getElementById('em-health-error');
+    if (!el) return;
+    el.textContent = message || '';
+    el.classList.toggle('hidden', !message);
+  }
+
+  function renderEmbeddingHealth(health) {
+    const summary = document.getElementById('em-health-summary');
+    const problems = document.getElementById('em-health-problems');
+    if (!summary || !problems || !health) return;
+    renderEmbeddingHealthError('');
+    const coverage = health.coverage == null ? '—' : (Number(health.coverage) * 100).toFixed(1) + '%';
+    summary.replaceChildren(
+      metricCard('Active memories', health.memoryCount),
+      metricCard('Searchable embeddings', health.validEmbeddingCount),
+      metricCard('Coverage', coverage),
+      metricCard('Data time', health.diagnosedAt || '—')
+    );
+    problems.replaceChildren(
+      metricCard('Missing', health.missingEmbeddingCount, 'missing_embedding', health.provider),
+      metricCard('Unreadable / corrupt', health.unreadableEmbeddingCount, 'unreadable_embedding', health.provider),
+      metricCard('Dimension mismatch', health.dimensionMismatchCount, 'dimension_mismatch', health.provider),
+      metricCard('Provider drift', health.providerDriftCount, 'provider_drift', health.provider),
+      metricCard('Model drift', health.modelDriftCount, 'model_drift', health.provider)
+    );
+  }
+
+  function renderEmbeddingProblemList(page) {
+    const el = document.getElementById('em-problem-list');
+    if (!el || !page) return;
+    el.replaceChildren();
+    const heading = document.createElement('h3');
+    heading.className = 'rc-health-subtitle';
+    heading.textContent = page.problem + ' (' + page.total + ')';
+    el.appendChild(heading);
+    if (!page.memories || page.memories.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'rc-health-hint';
+      empty.textContent = '영향을 받는 활성 기억이 없습니다.';
+      el.appendChild(empty);
+    } else {
+      const list = document.createElement('ul');
+      list.className = 'em-problem-memory-list';
+      page.memories.forEach(function (memory) {
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'm-button m-button--ghost';
+        button.textContent = memory.id;
+        button.addEventListener('click', function () {
+          st.openMemoryById(memory.id);
+        });
+        const meta = document.createElement('span');
+        meta.textContent = [memory.type, memory.ownerId, memory.projectId].filter(Boolean).join(' · ');
+        item.appendChild(button);
+        item.appendChild(meta);
+        list.appendChild(item);
+      });
+      el.appendChild(list);
+    }
+    if (page.total > page.limit) {
+      const nav = document.createElement('div');
+      nav.className = 'em-problem-pagination';
+      const provider = st.lastHealth && st.lastHealth.provider;
+      const previous = document.createElement('button');
+      previous.type = 'button';
+      previous.className = 'm-button m-button--secondary';
+      previous.textContent = 'Previous';
+      previous.disabled = page.offset === 0;
+      previous.addEventListener('click', function () {
+        st.loadEmbeddingProblems(page.problem, provider, Math.max(0, page.offset - page.limit));
+      });
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'm-button m-button--secondary';
+      next.textContent = 'Next';
+      next.disabled = page.offset + page.limit >= page.total;
+      next.addEventListener('click', function () {
+        st.loadEmbeddingProblems(page.problem, provider, page.offset + page.limit);
+      });
+      nav.appendChild(previous);
+      nav.appendChild(document.createTextNode(
+        Math.min(page.offset + 1, page.total) + '–' + Math.min(page.offset + page.limit, page.total) + ' / ' + page.total
+      ));
+      nav.appendChild(next);
+      el.appendChild(nav);
+    }
+    el.classList.remove('hidden');
+  }
+
+  function renderEmbeddingMapMeta(data) {
+    const el = document.getElementById('em-sample-info');
+    const clustersEl = document.getElementById('em-cluster-summary');
+    const meta = data && data.meta;
+    if (!el || !meta || meta.selected_count == null) return;
+    const excluded =
+      Number(meta.excluded_unreadable_count || 0) +
+      Number(meta.excluded_dimension_mismatch_count || 0) +
+      Number(meta.excluded_model_drift_count || 0);
+    const population = st.lastHealth ? st.lastHealth.memoryCount : meta.population_count;
+    const cache = meta.cached ? 'cache hit' : 'fresh';
+    el.textContent =
+      '활성 기억 ' + population + '개 중 중요도·최신순 ' + meta.selected_count +
+      '개 · 표시 ' + meta.displayed_count + '개 · 제외 ' + excluded + '개 · ' +
+      meta.provider + ' / ' + (meta.model || 'provider default') + ' / ' + meta.dimensions +
+      '차원 · ' + meta.computed_at + ' · ' + cache;
+
+    if (!clustersEl) return;
+    clustersEl.replaceChildren();
+    const groups = new Map();
+    (data.points || []).forEach(function (point) {
+      const group = groups.get(point.cluster) || { count: 0, types: {}, tags: {} };
+      group.count++;
+      group.types[point.type] = (group.types[point.type] || 0) + 1;
+      (point.tags || []).forEach(function (tag) {
+        group.tags[tag] = (group.tags[tag] || 0) + 1;
+      });
+      groups.set(point.cluster, group);
+    });
+    groups.forEach(function (group, cluster) {
+      const item = document.createElement('span');
+      const types = Object.entries(group.types).map(function (entry) {
+        return entry[0] + ' ' + entry[1];
+      }).join(', ');
+      const tags = Object.entries(group.tags)
+        .sort(function (a, b) { return b[1] - a[1]; })
+        .slice(0, 3)
+        .map(function (entry) { return entry[0]; })
+        .join(', ');
+      item.textContent = 'Cluster ' + cluster + ': ' + group.count + ' · ' + types + (tags ? ' · ' + tags : '');
+      clustersEl.appendChild(item);
+    });
+  }
+
   st.setEmbeddingMapLoading = setLoading;
   st.setEmbeddingMapError = setError;
   st.updateEmbeddingMapCacheInfo = updateCacheInfo;
+  st.renderEmbeddingHealthError = renderEmbeddingHealthError;
+  st.renderEmbeddingHealth = renderEmbeddingHealth;
+  st.renderEmbeddingProblemList = renderEmbeddingProblemList;
+  st.renderEmbeddingMapMeta = renderEmbeddingMapMeta;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { getEmbeddingModelFilter } from '../../../shared/config/embedding-models.js';
+import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { vectorCompatibilityService } from './vector-compatibility-service.js';
 
 export interface EmbeddingReindexOptions {
@@ -20,12 +21,49 @@ export interface EmbeddingReindexOptions {
   pruneForeignProviders?: boolean;
 }
 
+export type EmbeddingHealthProblem =
+  | 'missing_embedding'
+  | 'unreadable_embedding'
+  | 'dimension_mismatch'
+  | 'provider_drift'
+  | 'model_drift';
+
+export interface EmbeddingHealthOptions {
+  provider: EmbeddingProvider;
+  ownerId?: string;
+  projectId?: string;
+  type?: MemoryType;
+}
+
+export interface EmbeddingHealthProblemMemory {
+  id: string;
+  type: MemoryType;
+  ownerId: string | null;
+  projectId: string | null;
+  provider: string | null;
+  model: string | null;
+  dimensions: number | null;
+  reasons: EmbeddingHealthProblem[];
+}
+
+export interface EmbeddingHealthProblemPage {
+  problem: EmbeddingHealthProblem;
+  total: number;
+  limit: number;
+  offset: number;
+  memories: EmbeddingHealthProblemMemory[];
+}
+
 export interface EmbeddingHealthDiagnostics {
   provider: EmbeddingProvider;
   expectedDimensions: number;
+  expectedModel: string | null;
   memoryCount: number;
   providerEmbeddingCount: number;
+  validEmbeddingCount: number;
+  coverage: number | null;
   missingEmbeddingCount: number;
+  unreadableEmbeddingCount: number;
   dimensionMismatchCount: number;
   providerDriftCount: number;
   /**
@@ -34,6 +72,7 @@ export interface EmbeddingHealthDiagnostics {
    * 모델을 거르지 않는 provider(openai·gemini 등)는 항상 0이다.
    */
   modelDriftCount: number;
+  diagnosedAt: string;
 }
 
 export interface EmbeddingReindexResult extends EmbeddingHealthDiagnostics {
@@ -73,6 +112,29 @@ export interface ReindexByIdsResult {
 }
 
 type MemoryRow = { id: string; content: string; type: MemoryType };
+
+type EmbeddingHealthRow = {
+  id: string;
+  type: MemoryType;
+  owner_id: string | null;
+  project_id: string | null;
+  embedding_provider: string | null;
+  model: string | null;
+  dimensions: number | null;
+  embedding: unknown;
+  has_other_provider: number;
+};
+
+type InspectedEmbeddingHealthRow = EmbeddingHealthProblemMemory & { valid: boolean };
+
+type EmbeddingHealthSnapshot = {
+  expiresAt: number;
+  diagnostics: EmbeddingHealthDiagnostics;
+  problems: Record<EmbeddingHealthProblem, EmbeddingHealthProblemMemory[]>;
+};
+
+const HEALTH_SNAPSHOT_TTL_MS = 5_000;
+const HEALTH_SNAPSHOT_CACHE_LIMIT = 8;
 
 type ReindexEmbeddingService = {
   isAvailable(): boolean;
@@ -120,56 +182,181 @@ export function chunkedIn<T>(
 }
 
 export class EmbeddingReindexService {
+  private readonly healthSnapshots = new Map<string, EmbeddingHealthSnapshot>();
+
   constructor(
     private readonly db: Database.Database,
-    private readonly embeddingService: ReindexEmbeddingService,
+    private readonly embeddingService?: ReindexEmbeddingService,
   ) {}
 
-  diagnose(options: Pick<EmbeddingReindexOptions, 'provider' | 'ownerId'>): EmbeddingHealthDiagnostics {
+  diagnose(options: EmbeddingHealthOptions): EmbeddingHealthDiagnostics {
+    return this.getHealthSnapshot(options).diagnostics;
+  }
+
+  private getHealthSnapshot(options: EmbeddingHealthOptions): EmbeddingHealthSnapshot {
     const provider = normalizeProvider(options.provider);
     const modelFilter = getEmbeddingModelFilter(provider);
-    const ownerClause = options.ownerId ? ' AND mi.owner_id = ?' : '';
-    const row = this.db.prepare(`
+    const key = JSON.stringify([provider, options.ownerId ?? null, options.projectId ?? null, options.type ?? null]);
+    const cached = this.healthSnapshots.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached;
+
+    const counts: Record<EmbeddingHealthProblem, number> = {
+      missing_embedding: 0,
+      unreadable_embedding: 0,
+      dimension_mismatch: 0,
+      provider_drift: 0,
+      model_drift: 0,
+    };
+    const problems: Record<EmbeddingHealthProblem, EmbeddingHealthProblemMemory[]> = {
+      missing_embedding: [],
+      unreadable_embedding: [],
+      dimension_mismatch: [],
+      provider_drift: [],
+      model_drift: [],
+    };
+    let memoryCount = 0;
+    let providerEmbeddingCount = 0;
+    let validEmbeddingCount = 0;
+    for (const row of this.inspectHealthRows(options)) {
+      memoryCount++;
+      if (row.provider !== null) providerEmbeddingCount++;
+      if (row.valid) validEmbeddingCount++;
+      const { valid: _valid, ...memory } = row;
+      for (const reason of row.reasons) {
+        counts[reason]++;
+        problems[reason].push(memory);
+      }
+    }
+
+    const snapshot: EmbeddingHealthSnapshot = {
+      expiresAt: Date.now() + HEALTH_SNAPSHOT_TTL_MS,
+      diagnostics: {
+        provider,
+        expectedDimensions: expectedDimensions(provider),
+        expectedModel: modelFilter,
+        memoryCount,
+        providerEmbeddingCount,
+        validEmbeddingCount,
+        coverage: memoryCount === 0 ? null : validEmbeddingCount / memoryCount,
+        missingEmbeddingCount: counts.missing_embedding,
+        unreadableEmbeddingCount: counts.unreadable_embedding,
+        dimensionMismatchCount: counts.dimension_mismatch,
+        providerDriftCount: counts.provider_drift,
+        modelDriftCount: counts.model_drift,
+        diagnosedAt: new Date().toISOString(),
+      },
+      problems,
+    };
+    if (this.healthSnapshots.size >= HEALTH_SNAPSHOT_CACHE_LIMIT) {
+      const oldestKey = this.healthSnapshots.keys().next().value as string | undefined;
+      if (oldestKey !== undefined) this.healthSnapshots.delete(oldestKey);
+    }
+    this.healthSnapshots.set(key, snapshot);
+    return snapshot;
+  }
+
+  listProblems(
+    options: EmbeddingHealthOptions & {
+      problem: EmbeddingHealthProblem;
+      limit: number;
+      offset: number;
+    },
+  ): EmbeddingHealthProblemPage {
+    if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100) {
+      throw new Error('limit must be an integer between 1 and 100');
+    }
+    if (!Number.isInteger(options.offset) || options.offset < 0) {
+      throw new Error('offset must be a non-negative integer');
+    }
+    const problemRows = this.getHealthSnapshot(options).problems[options.problem];
+    return {
+      problem: options.problem,
+      total: problemRows.length,
+      limit: options.limit,
+      offset: options.offset,
+      memories: problemRows.slice(options.offset, options.offset + options.limit),
+    };
+  }
+
+  private *inspectHealthRows(options: EmbeddingHealthOptions): Generator<InspectedEmbeddingHealthRow> {
+    const provider = normalizeProvider(options.provider);
+    const expected = expectedDimensions(provider);
+    const expectedModel = getEmbeddingModelFilter(provider);
+    const clauses = ['COALESCE(mi.is_deleted, 0) = 0'];
+    const values: Array<string | number> = [provider, provider];
+    if (options.ownerId) {
+      clauses.push('mi.owner_id = ?');
+      values.push(options.ownerId);
+    }
+    if (options.projectId) {
+      clauses.push('mi.project_id = ?');
+      values.push(options.projectId);
+    }
+    if (options.type) {
+      clauses.push('mi.type = ?');
+      values.push(options.type);
+    }
+
+    const rows = this.db.prepare(`
       SELECT
-        COUNT(DISTINCT mi.id) AS memory_count,
-        COUNT(DISTINCT me.memory_id) AS provider_embedding_count,
-        COUNT(DISTINCT CASE WHEN me.memory_id IS NULL THEN mi.id END) AS missing_embedding_count,
-        COUNT(DISTINCT CASE WHEN me.memory_id IS NOT NULL AND me.dim != ? THEN mi.id END) AS dimension_mismatch_count,
-        COUNT(DISTINCT CASE WHEN other.memory_id IS NOT NULL THEN mi.id END) AS provider_drift_count,
-        COUNT(DISTINCT CASE WHEN me.memory_id IS NOT NULL
-          AND ? IS NOT NULL AND COALESCE(me.model, '') != ? THEN mi.id END) AS model_drift_count
+        mi.id,
+        mi.type,
+        mi.owner_id,
+        mi.project_id,
+        me.embedding_provider,
+        me.model,
+        COALESCE(me.dimensions, me.dim) AS dimensions,
+        me.embedding,
+        EXISTS (
+          SELECT 1 FROM memory_embedding other
+          WHERE other.memory_id = mi.id
+            AND other.embedding_provider != ?
+            AND other.projection_type = 'native'
+        ) AS has_other_provider
       FROM memory_item mi
       LEFT JOIN memory_embedding me
         ON me.memory_id = mi.id
         AND me.embedding_provider = ?
         AND me.projection_type = 'native'
-      LEFT JOIN memory_embedding other
-        ON other.memory_id = mi.id
-        AND other.embedding_provider != ?
-        AND other.projection_type = 'native'
-      WHERE COALESCE(mi.is_deleted, 0) = 0${ownerClause}
-    `).get(
-      expectedDimensions(provider),
-      modelFilter,
-      modelFilter ?? '',
-      provider,
-      provider,
-      ...(options.ownerId ? [options.ownerId] : []),
-    ) as {
-      memory_count: number; provider_embedding_count: number; missing_embedding_count: number;
-      dimension_mismatch_count: number; provider_drift_count: number; model_drift_count: number;
-    };
+      WHERE ${clauses.join(' AND ')}
+      ORDER BY mi.id
+    `).iterate(...values) as IterableIterator<EmbeddingHealthRow>;
 
-    return {
-      provider,
-      expectedDimensions: expectedDimensions(provider),
-      memoryCount: row.memory_count,
-      providerEmbeddingCount: row.provider_embedding_count,
-      missingEmbeddingCount: row.missing_embedding_count,
-      dimensionMismatchCount: row.dimension_mismatch_count,
-      providerDriftCount: row.provider_drift_count,
-      modelDriftCount: row.model_drift_count,
-    };
+    for (const row of rows) {
+      const reasons: EmbeddingHealthProblem[] = [];
+      const hasEmbedding = row.embedding_provider !== null;
+      const vector = hasEmbedding ? embeddingColumnToNumbers(row.embedding) : undefined;
+      const readable = vector !== undefined;
+      const dimensionMismatch =
+        hasEmbedding &&
+        (row.dimensions !== expected || (readable && vector.length !== expected));
+      const modelDrift = hasEmbedding && expectedModel !== null && row.model !== expectedModel;
+
+      if (!hasEmbedding) reasons.push('missing_embedding');
+      if (hasEmbedding && !readable) reasons.push('unreadable_embedding');
+      if (dimensionMismatch) reasons.push('dimension_mismatch');
+      if (row.has_other_provider === 1) reasons.push('provider_drift');
+      if (modelDrift) reasons.push('model_drift');
+
+      yield {
+        id: row.id,
+        type: row.type,
+        ownerId: row.owner_id,
+        projectId: row.project_id,
+        provider: row.embedding_provider,
+        model: row.model,
+        dimensions: row.dimensions,
+        reasons,
+        valid: hasEmbedding && readable && !dimensionMismatch && !modelDrift,
+      };
+    }
+  }
+
+  private requireEmbeddingService(): ReindexEmbeddingService {
+    if (!this.embeddingService?.isAvailable()) {
+      throw new Error('embedding service is unavailable');
+    }
+    return this.embeddingService;
   }
 
   async reindex(options: EmbeddingReindexOptions): Promise<EmbeddingReindexResult> {
@@ -177,9 +364,7 @@ export class EmbeddingReindexService {
     if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 1_000) {
       throw new Error('batchSize must be an integer between 1 and 1000');
     }
-    if (!this.embeddingService.isAvailable()) {
-      throw new Error('embedding service is unavailable');
-    }
+    const embeddingService = this.requireEmbeddingService();
 
     const provider = normalizeProvider(options.provider);
     const diagnostics = this.diagnose({ ...options, provider });
@@ -210,7 +395,7 @@ export class EmbeddingReindexService {
     for (let start = 0; start < memories.length; start += batchSize) {
       for (const memory of memories.slice(start, start + batchSize)) {
         try {
-          const result = await this.embeddingService.createAndStoreEmbedding(
+          const result = await embeddingService.createAndStoreEmbedding(
             this.db,
             memory.id,
             memory.content,
@@ -233,6 +418,7 @@ export class EmbeddingReindexService {
       ? this.pruneForeignProviderEmbeddings(storedIds, provider)
       : 0;
 
+    this.healthSnapshots.clear();
     return {
       ...this.diagnose({ ...options, provider }),
       dryRun: false,
@@ -322,9 +508,7 @@ export class EmbeddingReindexService {
     if (!Number.isInteger(limit) || limit < 1 || limit > 1_000) {
       throw new Error('limit must be an integer between 1 and 1000');
     }
-    if (!this.embeddingService.isAvailable()) {
-      throw new Error('embedding service is unavailable');
-    }
+    this.requireEmbeddingService();
 
     const provider = normalizeProvider(options.provider);
     const candidates = this.findSemanticRelationEndpointsMissingEmbedding(provider, limit);
@@ -350,9 +534,7 @@ export class EmbeddingReindexService {
     if (ids.length === 0) {
       return { provider, dryRun: !!options.dryRun, processedCount: 0, storedCount: 0, failedCount: 0 };
     }
-    if (!this.embeddingService.isAvailable()) {
-      throw new Error('embedding service is unavailable');
-    }
+    this.requireEmbeddingService();
 
     const memories = chunkedIn(ids, ID_CHUNK_SIZE, (chunk, placeholders) => this.db.prepare(`
       SELECT id, content, type FROM memory_item
@@ -375,13 +557,14 @@ export class EmbeddingReindexService {
     memories: MemoryRow[],
     provider: EmbeddingProvider,
   ): Promise<{ storedCount: number; failedCount: number }> {
+    const embeddingService = this.requireEmbeddingService();
     const expected = expectedDimensions(provider);
     let storedCount = 0;
     let failedCount = 0;
 
     for (const memory of memories) {
       try {
-        const result = await this.embeddingService.createAndStoreEmbedding(
+        const result = await embeddingService.createAndStoreEmbedding(
           this.db,
           memory.id,
           memory.content,

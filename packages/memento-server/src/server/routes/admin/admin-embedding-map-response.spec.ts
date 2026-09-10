@@ -31,12 +31,12 @@ import {
   kMeans,
 } from './admin-embedding-map-response.js';
 
-function getEmbeddingMapHandler(router: ReturnType<typeof createAdminRouter>): (req: any, res: any, next: (error?: unknown) => void) => unknown {
+function getAdminHandler(router: ReturnType<typeof createAdminRouter>, path: string): (req: any, res: any, next: (error?: unknown) => void) => unknown {
   const layer = (router as any).stack.find(
-    (entry: any) => entry.route?.path === '/embedding-map' && entry.route.methods?.get
+    (entry: any) => entry.route?.path === path && entry.route.methods?.get
   );
   if (!layer?.route?.stack?.[0]?.handle) {
-    throw new Error('GET /embedding-map handler not found');
+    throw new Error(`GET ${path} handler not found`);
   }
   return layer.route.stack[0].handle;
 }
@@ -47,7 +47,7 @@ async function getAdmin(
 ): Promise<{ statusCode: number; body: string }> {
   const url = new URL(path, 'http://localhost');
   const query = Object.fromEntries(url.searchParams.entries());
-  const handler = getEmbeddingMapHandler(router);
+  const handler = getAdminHandler(router, url.pathname.replace('/admin', ''));
 
   let statusCode = 200;
   let body = '';
@@ -90,8 +90,9 @@ function createMinimalSchema(db: Database.Database): void {
       created_at TEXT,
       tags TEXT,
       is_deleted INTEGER NOT NULL DEFAULT 0,
-          project_id TEXT,
-          deleted_at TEXT
+      project_id TEXT,
+      owner_id TEXT,
+      deleted_at TEXT
     );
     CREATE TABLE memory_embedding (
       memory_id TEXT NOT NULL,
@@ -99,13 +100,15 @@ function createMinimalSchema(db: Database.Database): void {
       projection_type TEXT NOT NULL DEFAULT 'native',
       embedding BLOB NOT NULL,
       dim INTEGER NOT NULL,
+      dimensions INTEGER,
+      model TEXT,
       UNIQUE(memory_id, embedding_provider, projection_type),
       FOREIGN KEY (memory_id) REFERENCES memory_item(id)
     );
   `);
 }
 
-function vecBlob(seed: number, dim = 8): Buffer {
+function vecBlob(seed: number, dim = 384): Buffer {
   const a: number[] = [];
   for (let i = 0; i < dim; i++) {
     a.push(Math.sin(seed * 0.1 + i * 0.7));
@@ -123,14 +126,14 @@ function seedEmbeddings(
     `INSERT INTO memory_item (id, type, content, importance, created_at, tags, is_deleted) VALUES (?, 'semantic', ?, 0.5, datetime('now'), '[]', ?)`
   );
   const insMe = db.prepare(
-    `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim)
-     VALUES (?, ?, 'native', ?, 8)`
+    `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model)
+     VALUES (?, ?, 'native', ?, 384, 384, ?)`
   );
   const delFlag = isDeleted ? 1 : 0;
   for (let i = 0; i < count; i++) {
     const id = `mem_test_${i}`;
     insMi.run(id, `content ${i}`, delFlag);
-    insMe.run(id, provider, vecBlob(i));
+    insMe.run(id, provider, vecBlob(i), provider === 'minilm' ? 'paraphrase-multilingual-MiniLM-L12-v2' : provider);
   }
 }
 
@@ -238,14 +241,43 @@ describe('buildEmbeddingMapResponse', () => {
     expect(res.meta.requested_k).toBe(20);
     expect(res.meta.cached).toBe(false);
     expect(res.meta.waited_for_in_flight).toBe(false);
+    expect(res.meta).toMatchObject({
+      selected_count: 12,
+      displayed_count: 12,
+      excluded_unreadable_count: 0,
+      excluded_dimension_mismatch_count: 0,
+      excluded_model_drift_count: 0,
+      sample_order: 'importance_desc_created_at_desc',
+    });
     for (const p of res.points) {
       expect(p.cluster).toBeGreaterThanOrEqual(0);
       expect(p.cluster).toBeLessThan(12);
     }
   });
 
+  it('#896: excludes unreadable, wrong-dimension, and stale-model rows explicitly', async () => {
+    seedEmbeddings(db, 13, 'minilm');
+    db.prepare("UPDATE memory_embedding SET embedding = ? WHERE memory_id = 'mem_test_0'").run(Buffer.from([1, 2, 3]));
+    db.prepare("UPDATE memory_embedding SET embedding = ?, dim = 8, dimensions = 8 WHERE memory_id = 'mem_test_1'").run(vecBlob(1, 8));
+    db.prepare("UPDATE memory_embedding SET model = 'old-model' WHERE memory_id = 'mem_test_2'").run();
+
+    const res = await buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
+    expect(res.points).toHaveLength(10);
+    expect(res.meta).toMatchObject({
+      population_count: 13,
+      selected_count: 13,
+      displayed_count: 10,
+      excluded_unreadable_count: 1,
+      excluded_dimension_mismatch_count: 1,
+      excluded_model_drift_count: 1,
+      dimensions: 384,
+      model: 'paraphrase-multilingual-MiniLM-L12-v2',
+    });
+  });
+
   it('캐시 히트: 동일 파라미터 재요청 시 cached true, computed_at 동일', async () => {
     seedEmbeddings(db, 11, 'minilm');
+    const prepareSpy = vi.spyOn(db, 'prepare');
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-13T10:00:00.000Z'));
     const a = await buildEmbeddingMapResponse(db, {
@@ -254,6 +286,7 @@ describe('buildEmbeddingMapResponse', () => {
       k: 4,
     });
     const t0 = a.meta.computed_at;
+    const prepareCount = prepareSpy.mock.calls.length;
     const b = await buildEmbeddingMapResponse(db, {
       provider: 'minilm',
       limit: 50,
@@ -262,6 +295,7 @@ describe('buildEmbeddingMapResponse', () => {
     expect(b.meta.cached).toBe(true);
     expect(b.meta.waited_for_in_flight).toBe(false);
     expect(b.meta.computed_at).toBe(t0);
+    expect(prepareSpy).toHaveBeenCalledTimes(prepareCount);
   });
 
   it('동시 캐시 미스: in-flight 공유로 UMAP fitAsync 1회, 대기 측 waited_for_in_flight', async () => {
@@ -321,6 +355,38 @@ describe('GET /admin/embedding-map (라우터)', () => {
     expect(res.statusCode).toBe(400);
     const j = JSON.parse(res.body) as { message?: string };
     expect(j.message).toMatch(/provider/);
+  });
+
+  it('#896: health remains available when the map has no embeddings', async () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, importance, is_deleted) VALUES ('mem_missing', 'semantic', 'missing', 0.5, 0)`,
+    ).run();
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-health?provider=minilm');
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toMatchObject({
+      diagnostics: {
+        memoryCount: 1,
+        validEmbeddingCount: 0,
+        coverage: 0,
+        missingEmbeddingCount: 1,
+      },
+    });
+  });
+
+  it('#896: health problem drilldown returns affected memory metadata', async () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, importance, owner_id, project_id, is_deleted)
+       VALUES ('mem_missing', 'semantic', 'missing', 0.5, 'agent-a', 'project-a', 0)`,
+    ).run();
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-health?provider=minilm&problem=missing_embedding');
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toMatchObject({
+      problem: 'missing_embedding',
+      total: 1,
+      memories: [{ id: 'mem_missing', type: 'semantic', ownerId: 'agent-a', projectId: 'project-a' }],
+    });
   });
 
   it('limit=0 → 400', async () => {
