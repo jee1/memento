@@ -56,6 +56,7 @@
       }
     } catch (error) {
       ns.debugAnchorMap('websocket-parse-error', { message: error.message });
+      ns.setMapStatusMessage('error', '실시간 맵 갱신을 처리하지 못했습니다 — ' + error.message);
     }
   }
 
@@ -63,7 +64,11 @@
     const toggle = document.getElementById('auto-refresh-toggle');
     if (!state.autoRefreshInterval && toggle && toggle.checked) {
       startAutoRefresh();
+      return;
     }
+    if (state.autoRefreshInterval) return;   // 이미 폴링이 돌고 있으면 사용자 영향 없음
+    // 실시간도 폴링도 없다 — 이 화면은 이제 스스로 갱신되지 않는다 (issue 904)
+    ns.setMapStatusMessage('error', '실시간 갱신이 끊겼습니다 — Refresh 로 다시 불러오세요');
   }
 
   function tryConnectWebSocket() {
@@ -105,5 +110,8 @@
   ns.tryConnectWebSocket = tryConnectWebSocket;
   ns.resubscribeWebSocket = resubscribeWebSocket;
   ns.disconnectWebSocket = disconnectWebSocket;
+  // Exposed for unit tests that exercise failure branches directly (issue 904).
+  ns.handleWsMessage = handleWsMessage;
+  ns.fallbackToPolling = fallbackToPolling;
 
 })(typeof window !== 'undefined' ? window : globalThis);

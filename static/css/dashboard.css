@@ -328,6 +328,19 @@ body {
   font-style: italic;
 }
 
+/* 로드 실패 — 빈 상태와 다른 클래스·색으로 구분한다 (issue 904) */
+.map-error-message {
+  fill: var(--color-error);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.map-loading-message {
+  fill: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
 /* Map Legend */
 .map-legend {
   position: absolute;
