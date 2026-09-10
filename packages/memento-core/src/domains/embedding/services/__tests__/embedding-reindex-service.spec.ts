@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { EmbeddingReindexService } from '../embedding-reindex-service.js';
 
 describe('EmbeddingReindexService', () => {
@@ -8,7 +9,7 @@ describe('EmbeddingReindexService', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     db.exec(`
-      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'semantic', owner_id TEXT, is_deleted INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'semantic', owner_id TEXT, project_id TEXT, is_deleted INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE memory_embedding (
         memory_id TEXT NOT NULL, embedding_provider TEXT NOT NULL, projection_type TEXT NOT NULL,
         embedding TEXT NOT NULL, dim INTEGER NOT NULL, dimensions INTEGER, model TEXT, created_by TEXT, created_at TEXT,
@@ -48,6 +49,94 @@ describe('EmbeddingReindexService', () => {
     expect(service.diagnose({ provider: 'lightweight', ownerId: 'b' })).toMatchObject({
       provider: 'tfidf', expectedDimensions: 512, missingEmbeddingCount: 0, providerEmbeddingCount: 1,
     });
+  });
+
+  it('#896: reports searchable coverage and pages affected memories from the same rules', () => {
+    db.exec('DELETE FROM memory_embedding; DELETE FROM memory_item;');
+    const insertMemory = db.prepare(
+      'INSERT INTO memory_item (id, content, type, owner_id, project_id, is_deleted) VALUES (?, ?, ?, ?, ?, ?)',
+    );
+    const insertEmbedding = db.prepare(`
+      INSERT INTO memory_embedding
+        (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model)
+      VALUES (?, ?, 'native', ?, ?, ?, ?)
+    `);
+    const model = 'paraphrase-multilingual-MiniLM-L12-v2';
+
+    insertMemory.run('valid', 'valid', 'semantic', 'a', 'p1', 0);
+    insertMemory.run('missing', 'missing', 'episodic', 'b', 'p2', 0);
+    insertMemory.run('unreadable', 'unreadable', 'procedural', 'a', 'p1', 0);
+    insertMemory.run('non-finite', 'non finite', 'semantic', 'a', 'p1', 0);
+    insertMemory.run('wrong-dim', 'wrong dim', 'working', 'a', 'p2', 0);
+    insertMemory.run('old-model', 'old model', 'semantic', 'a', 'p1', 0);
+    insertMemory.run('deleted', 'deleted', 'semantic', 'a', 'p1', 1);
+
+    insertEmbedding.run('valid', 'minilm', encodeFloat32Embedding(Array(384).fill(0.1)), 384, 384, model);
+    insertEmbedding.run('valid', 'tfidf', encodeFloat32Embedding(Array(512).fill(0.1)), 512, 512, 'tfidf');
+    insertEmbedding.run('missing', 'tfidf', encodeFloat32Embedding(Array(512).fill(0.1)), 512, 512, 'tfidf');
+    insertEmbedding.run('unreadable', 'minilm', Buffer.from([1, 2, 3]), 384, 384, model);
+    const nonFinite = Buffer.alloc(384 * 4);
+    nonFinite.writeFloatLE(Number.NaN, 0);
+    insertEmbedding.run('non-finite', 'minilm', nonFinite, 384, 384, model);
+    insertEmbedding.run('wrong-dim', 'minilm', encodeFloat32Embedding(Array(8).fill(0.1)), 8, 8, model);
+    insertEmbedding.run('old-model', 'minilm', encodeFloat32Embedding(Array(384).fill(0.1)), 384, 384, 'old-model');
+
+    const service = new EmbeddingReindexService(db);
+    expect(service.diagnose({ provider: 'minilm' })).toMatchObject({
+      memoryCount: 6,
+      providerEmbeddingCount: 5,
+      validEmbeddingCount: 1,
+      coverage: 1 / 6,
+      missingEmbeddingCount: 1,
+      unreadableEmbeddingCount: 2,
+      dimensionMismatchCount: 1,
+      providerDriftCount: 2,
+      modelDriftCount: 1,
+      expectedModel: model,
+    });
+
+    expect(service.listProblems({ provider: 'minilm', problem: 'model_drift', limit: 10, offset: 0 })).toMatchObject({
+      problem: 'model_drift',
+      total: 1,
+      memories: [{ id: 'old-model', ownerId: 'a', projectId: 'p1', type: 'semantic' }],
+    });
+    expect(service.listProblems({ provider: 'minilm', problem: 'provider_drift', limit: 1, offset: 1 })).toMatchObject({
+      total: 2,
+      limit: 1,
+      offset: 1,
+      memories: [{ id: 'valid' }],
+    });
+  });
+
+  it('#896: scans a representative 12k population once for summary and drilldown', () => {
+    const rows = Array.from({ length: 12_000 }, (_, index) => ({
+      id: `missing-${index}`,
+      type: 'semantic',
+      owner_id: 'a',
+      project_id: null,
+      embedding_provider: null,
+      model: null,
+      dimensions: null,
+      embedding: null,
+      has_other_provider: 0,
+    }));
+    const streamingDb = {
+      prepare: vi.fn(() => ({ iterate: () => rows.values() })),
+    } as unknown as Database.Database;
+    const service = new EmbeddingReindexService(streamingDb);
+
+    expect(service.diagnose({ provider: 'minilm' })).toMatchObject({
+      memoryCount: 12_000,
+      missingEmbeddingCount: 12_000,
+    });
+    const page = service.listProblems({
+      provider: 'minilm', problem: 'missing_embedding', limit: 10, offset: 11_985,
+    });
+    expect(page.total).toBe(12_000);
+    expect(page.memories).toHaveLength(10);
+    expect(page.memories[0]?.id).toBe('missing-11985');
+    expect(page.memories[9]?.id).toBe('missing-11994');
+    expect(streamingDb.prepare).toHaveBeenCalledTimes(1);
   });
 
   it('#722: reindex(lightweight)는 tfidf로 저장된 결과를 성공으로 인식해야 함', async () => {

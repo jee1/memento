@@ -593,6 +593,99 @@ body {
   flex: 1;
   min-height: 0;
   background: var(--color-bg-main);
+  overflow-y: auto;
+}
+
+.em-health-panel,
+.em-explorer {
+  margin: var(--spacing-sm) var(--spacing-md) 0;
+}
+
+.em-health-problem-card {
+  appearance: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.em-health-problem-card:hover,
+.em-health-problem-card:focus-visible {
+  border-color: var(--color-brand-primary);
+}
+
+.em-problem-list {
+  margin-top: var(--spacing-sm);
+}
+
+.em-problem-memory-list {
+  max-height: 14rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.em-problem-memory-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-xs);
+}
+
+.em-problem-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.em-explorer-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.em-explorer-header h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.em-advanced[open] {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.em-advanced label {
+  font-size: var(--font-size-xs);
+}
+
+.em-cluster-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-md) var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.em-cluster-summary span {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+circle.em-dot:focus-visible {
+  stroke: var(--color-brand-primary);
+  stroke-width: 3;
 }
 
 .em-controls {
@@ -681,7 +774,7 @@ body {
 
 .embedding-plot-row {
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
   position: relative;
 }

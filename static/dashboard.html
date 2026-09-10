@@ -53,7 +53,7 @@
 
     <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
       <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
-      <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
+      <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Health</button>
       <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
       <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
       <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">Jobs</button>
@@ -153,20 +153,43 @@
               <option value="gemini">gemini</option>
             </select>
           </label>
-          <label>
-            Limit
-            <input id="em-limit" class="m-input" type="number" min="1" max="500" value="300">
-          </label>
-          <label>
-            k
-            <input id="em-k" class="m-input" type="number" min="2" max="20" value="6">
-          </label>
-          <button type="button" id="em-load-btn" class="m-button m-button--primary">Load</button>
+          <button type="button" id="em-load-btn" class="m-button m-button--primary">Refresh</button>
           <span id="em-cache-info" class="em-cache-info"></span>
         </div>
-        <p class="em-color-legend">
-          점 색상은 <strong>K-Means 클러스터</strong>입니다. 같은 색은 UMAP으로 내려온 2D 좌표에서 서로 가까운 임베딩 그룹을 뜻하며, 기억 유형·중요도와는 무관합니다.
-        </p>
+        <section class="em-health-panel rc-health-panel" aria-labelledby="em-health-title">
+          <h2 id="em-health-title" class="rc-health-title">Embedding Health</h2>
+          <p class="rc-health-hint">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
+          <div id="em-health-error" class="em-error hidden" role="alert"></div>
+          <div id="em-health-summary" class="rc-health-metric-grid" aria-live="polite"></div>
+          <h3 class="rc-health-subtitle">Problems</h3>
+          <div id="em-health-problems" class="rc-health-metric-grid"></div>
+          <div id="em-problem-list" class="em-problem-list hidden" aria-live="polite"></div>
+          <p class="rc-health-hint">재색인 전 확인: <code class="rc-health-code">npm run reindex-embeddings -- --provider &lt;provider&gt; --dry-run</code></p>
+        </section>
+
+        <section class="em-explorer" aria-labelledby="em-explorer-title">
+          <div class="em-explorer-header">
+            <div>
+              <h2 id="em-explorer-title">의미 공간 탐색</h2>
+              <p id="em-sample-info" class="rc-health-hint"></p>
+            </div>
+            <details class="em-advanced">
+              <summary>Advanced</summary>
+              <label>
+                Limit
+                <input id="em-limit" class="m-input" type="number" min="1" max="500" value="300">
+              </label>
+              <label>
+                k
+                <input id="em-k" class="m-input" type="number" min="2" max="20" value="6">
+              </label>
+            </details>
+          </div>
+          <p class="em-color-legend">
+            점 색상은 <strong>K-Means 클러스터</strong>입니다. 위치와 클러스터는 상대적 유사성 탐색용이며 품질 점수나 시간 비교 기준이 아닙니다.
+          </p>
+          <div id="em-cluster-summary" class="em-cluster-summary"></div>
+        </section>
         <div id="em-loading" class="em-loading hidden">UMAP 계산 중...</div>
         <div id="em-error" class="em-error hidden"></div>
         <div class="embedding-plot-row">

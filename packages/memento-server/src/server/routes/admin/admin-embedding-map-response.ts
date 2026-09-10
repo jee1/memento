@@ -4,7 +4,12 @@
 
 import type Database from 'better-sqlite3';
 import { UMAP } from 'umap-js';
-import { embeddingColumnToNumbers, logger } from '@memento/core';
+import {
+  embeddingColumnToNumbers,
+  expectedDimensions,
+  getEmbeddingModelFilter,
+  logger,
+} from '@memento/core';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -29,7 +34,16 @@ export interface EmbeddingMapResponse {
   points: EmbeddingPoint[];
   meta: {
     total: number;
+    population_count: number;
+    selected_count: number;
+    displayed_count: number;
+    excluded_unreadable_count: number;
+    excluded_dimension_mismatch_count: number;
+    excluded_model_drift_count: number;
     provider: string;
+    model: string | null;
+    dimensions: number;
+    sample_order: 'importance_desc_created_at_desc';
     k: number;
     requested_k: number;
     limit: number;
@@ -69,11 +83,10 @@ export function clearEmbeddingMapCacheForTests(): void {
 }
 
 /**
- * 캐시/in-flight 키: `effectiveK = min(params.k, n)`만 포함.
- * 예: n=12이면 k=15·k=20 요청 모두 effectiveK=12로 동일 키 → 같은 결과·캐시(의도됨).
+ * 요청 파라미터만으로 캐시를 먼저 확인해 캐시 히트에서 DB/BLOB 재스캔을 피한다.
  */
-function getCacheKey(provider: string, limit: number, effectiveK: number): string {
-  return `${provider}:${limit}:${effectiveK}`;
+function getCacheKey(provider: string, limit: number, requestedK: number): string {
+  return `${provider}:${limit}:${requestedK}`;
 }
 
 function distSq(a: number[], b: number[]): number {
@@ -226,6 +239,9 @@ interface MemoryEmbeddingRow {
   created_at: string | null;
   tags: string | null;
   embedding: Buffer;
+  dim: number;
+  dimensions: number | null;
+  model: string | null;
 }
 
 function parseTags(raw: string | null): string[] {
@@ -241,6 +257,39 @@ export async function buildEmbeddingMapResponse(
   db: Database.Database,
   params: EmbeddingMapParams
 ): Promise<EmbeddingMapResponse> {
+  const cacheKey = getCacheKey(params.provider, params.limit, params.k);
+  const now = Date.now();
+  const hit = cache.get(cacheKey);
+  if (hit && hit.expiresAt > now) {
+    return {
+      ...hit.data,
+      meta: {
+        ...hit.data.meta,
+        cached: true,
+        waited_for_in_flight: false,
+      },
+    };
+  }
+
+  const shared = inFlight.get(cacheKey);
+  if (shared) {
+    const data = await shared;
+    return {
+      ...data,
+      meta: {
+        ...data.meta,
+        waited_for_in_flight: true,
+      },
+    };
+  }
+
+  const dimensions = expectedDimensions(params.provider);
+  const model = getEmbeddingModelFilter(params.provider);
+  const populationCount = (db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM memory_item
+    WHERE COALESCE(is_deleted, 0) = 0
+  `).get() as { count: number }).count;
   const stmt = db.prepare(`
     SELECT
       mi.id,
@@ -249,7 +298,10 @@ export async function buildEmbeddingMapResponse(
       mi.importance,
       mi.created_at,
       mi.tags,
-      me.embedding
+      me.embedding,
+      me.dim,
+      me.dimensions,
+      me.model
     FROM memory_item mi
     INNER JOIN memory_embedding me
       ON me.memory_id = mi.id
@@ -279,16 +331,24 @@ export async function buildEmbeddingMapResponse(
   }
 
   const parsed: { row: MemoryEmbeddingRow; vector: number[] }[] = [];
-  let dim: number | null = null;
+  let excludedUnreadableCount = 0;
+  let excludedDimensionMismatchCount = 0;
+  let excludedModelDriftCount = 0;
   for (const row of rows) {
     const vec = embeddingColumnToNumbers(row.embedding);
     if (!vec) {
+      excludedUnreadableCount++;
       continue;
     }
-    if (dim === null) {
-      dim = vec.length;
+    if (
+      vec.length !== dimensions ||
+      (row.dimensions ?? row.dim) !== dimensions
+    ) {
+      excludedDimensionMismatchCount++;
+      continue;
     }
-    if (vec.length !== dim) {
+    if (model !== null && row.model !== model) {
+      excludedModelDriftCount++;
       continue;
     }
     parsed.push({ row, vector: vec });
@@ -312,31 +372,6 @@ export async function buildEmbeddingMapResponse(
 
   const n = parsed.length;
   const effectiveK = Math.min(params.k, n);
-  const cacheKey = getCacheKey(params.provider, params.limit, effectiveK);
-  const now = Date.now();
-  const hit = cache.get(cacheKey);
-  if (hit && hit.expiresAt > now) {
-    return {
-      ...hit.data,
-      meta: {
-        ...hit.data.meta,
-        cached: true,
-        waited_for_in_flight: false,
-      },
-    };
-  }
-
-  const shared = inFlight.get(cacheKey);
-  if (shared) {
-    const data = await shared;
-    return {
-      ...data,
-      meta: {
-        ...data.meta,
-        waited_for_in_flight: true,
-      },
-    };
-  }
 
   let resolve!: (value: EmbeddingMapResponse) => void;
   let reject!: (reason: unknown) => void;
@@ -397,7 +432,16 @@ export async function buildEmbeddingMapResponse(
         points,
         meta: {
           total: n,
+          population_count: populationCount,
+          selected_count: rows.length,
+          displayed_count: n,
+          excluded_unreadable_count: excludedUnreadableCount,
+          excluded_dimension_mismatch_count: excludedDimensionMismatchCount,
+          excluded_model_drift_count: excludedModelDriftCount,
           provider: params.provider,
+          model,
+          dimensions,
+          sample_order: 'importance_desc_created_at_desc',
           k: effectiveK,
           requested_k: params.k,
           limit: params.limit,

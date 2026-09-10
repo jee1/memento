@@ -29,7 +29,7 @@ describe('maintenance.routes', () => {
   beforeEach(async () => {
     db = new Database(':memory:');
     db.exec(`
-      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'semantic', owner_id TEXT, is_deleted INTEGER DEFAULT 0);
+      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'semantic', owner_id TEXT, project_id TEXT, is_deleted INTEGER DEFAULT 0);
       CREATE TABLE memory_embedding (
         memory_id TEXT, embedding_provider TEXT, projection_type TEXT, embedding TEXT, dim INTEGER,
         dimensions INTEGER, model TEXT, created_by TEXT, created_at TEXT,

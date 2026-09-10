@@ -179,8 +179,21 @@ export {
   type ExtractedRelation,
 } from './domains/relation/services/relation-quality-validator.js';
 export { RelationEngineSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
-export { EmbeddingReindexService } from './domains/embedding/services/embedding-reindex-service.js';
-export type { EmbeddingHealthDiagnostics, EmbeddingReindexOptions, EmbeddingReindexResult, ReindexByIdsResult } from './domains/embedding/services/embedding-reindex-service.js';
+export {
+  EmbeddingReindexService,
+  expectedDimensions,
+} from './domains/embedding/services/embedding-reindex-service.js';
+export { getEmbeddingModelFilter } from './shared/config/embedding-models.js';
+export type {
+  EmbeddingHealthDiagnostics,
+  EmbeddingHealthOptions,
+  EmbeddingHealthProblem,
+  EmbeddingHealthProblemMemory,
+  EmbeddingHealthProblemPage,
+  EmbeddingReindexOptions,
+  EmbeddingReindexResult,
+  ReindexByIdsResult,
+} from './domains/embedding/services/embedding-reindex-service.js';
 export type { EmbeddingProvider } from './shared/types/embedding.types.js';
 export {
   EventOutboxService,
