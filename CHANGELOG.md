@@ -27,6 +27,7 @@
 
 ### Fixed
 
+- **Anchor Map 로드 실패 표시** (#904): 맵 데이터 로드 실패를 `alert` 대신 맵 영역 안의 `.map-error-message` 로 표시합니다. `alert`는 auto-refresh 중 억제되어 주기 실패가 완전히 침묵했습니다. 빈 상태(`.map-empty-message`)·로딩(`.map-loading-message`)과 클래스가 분리되고 상호 배타이며, WebSocket 이 끊긴 뒤 폴링 폴백도 없는 경우를 같은 오류로 표시합니다. 같은 실패의 반복 폴링은 내용 기반 dedupe 로 1회만 렌더합니다.
 - **CLI HTTP 인증** (#841): `callToolViaHttp`가 `ADMIN_API_KEY`를 Bearer 헤더로 보내 CLI·훅의 인증 경로를 맞춥니다. `MCP_SERVER_PORT=0`을 보존해 실제 할당 포트로 서버를 검색할 수 있습니다.
 - **misc repair export · injection 손상 필터 · MCP -32602 · hybrid 유사도** (#811): `memory:repair-triple-sentences`용 `@memento/core` export 스모크를 추가하고, `memory_injection` 후보의 손상 triple 문장(`hasBrokenTripleConjugation`)을 adaptive overfetch+조기 필터로 예산 고갈을 막습니다(`함합니다` #781 정책 유지). recall/remember 입력 검증은 `ToolInputValidationError` → JSON-RPC `-32602`로 매핑합니다(스키마 불변). 하이브리드 검색은 SQL이 `vector_distance`를 반환하고 유사도 변환은 `cosineDistanceToSimilarity`만 사용합니다. 진단 프로브는 `auto_set_anchor: false`를 문서화했습니다.
 - **Semantic triple predicate 정규화 게이트** (#813): `TripleNormalizer`가 구·영문·재조립불가 predicate를 pass-through하지 않고 drop합니다(형태 (2) 폴백 차단). 수용분만 semantic/`kg_triple`에 남고, skip reason·카운터는 metadata/로그에만 기록됩니다(MCP recall/remember 스키마 불변). 전부 게이트 실패해도 remember·변환 primary 경로는 soft-success입니다. 운영 관측: `npm run memory:kg-triple-predicate-quality`(read-only JSON, `--sample-limit`≤20).

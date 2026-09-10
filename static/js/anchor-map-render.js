@@ -222,15 +222,34 @@
     simulation.alpha(1).restart();
   }
 
-  // 빈 상태 안내는 zoom 대상인 <g> 밖에 둬야 확대/이동에 끌려다니지 않는다 (issue 872).
-  function showEmptyMapMessage(message) {
-    state.svg.selectAll('.map-empty-message').remove();
+  // 상태 안내(빈/오류/로딩)는 서로 배타다 — 한 곳에서 셋을 모두 지우고 하나만 그린다.
+  // zoom 대상인 <g> 밖에 둬야 확대/이동에 끌려다니지 않는다 (issue 872, 904).
+  const MAP_STATUS_CLASSES = {
+    empty: 'map-empty-message',
+    error: 'map-error-message',
+    loading: 'map-loading-message',
+  };
+
+  function setMapStatusMessage(kind, message) {
+    if (!state.svg) return;
+    const key = kind ? kind + '\0' + message : null;
+    if (key === state.mapStatusKey) return;   // 같은 실패의 반복 폴링을 흡수 (issue 904)
+    state.mapStatusKey = key;
+
+    for (const className of Object.values(MAP_STATUS_CLASSES)) {
+      state.svg.selectAll('.' + className).remove();
+    }
+    if (!kind) return;
+
+    // 오류·로딩은 이미 그려진 그래프 위에 뜰 수 있어 상단에, 빈 상태는 중앙에 둔다.
+    const y = kind === 'empty' ? parseFloat(state.svg.attr('height')) / 2 : 24;
     state.svg.append('text')
-      .attr('class', 'map-empty-message')
+      .attr('class', MAP_STATUS_CLASSES[kind])
       .attr('x', parseFloat(state.svg.attr('width')) / 2)
-      .attr('y', parseFloat(state.svg.attr('height')) / 2)
+      .attr('y', y)
       .attr('text-anchor', 'middle')
       .text(message);
+    ns.debugAnchorMap('map-status', { kind: kind });
   }
 
   function renderMap() {
@@ -239,7 +258,7 @@
     state.mapData = ns.normalizeMapData(state.mapData);
     const mapData = state.mapData;
 
-    state.svg.selectAll('.map-empty-message').remove();
+    setMapStatusMessage(null);
 
     if (!mapData || !mapData.nodes || mapData.nodes.length === 0) {
       state.nodes = [];
@@ -248,7 +267,7 @@
       if (g.node()) g.selectAll('*').remove();
       else state.svg.selectAll('*').remove();
       const agentId = mapData && mapData.agent_id ? mapData.agent_id : ns.getSelectedAgentId();
-      showEmptyMapMessage('agent "' + agentId + '" 에는 앵커가 없습니다 — set_anchor 로 설정하세요');
+      setMapStatusMessage('empty', 'agent "' + agentId + '" 에는 앵커가 없습니다 — set_anchor 로 설정하세요');
       return;
     }
 
@@ -340,6 +359,7 @@
 
   ns.layoutNodesByHop = layoutNodesByHop;
   ns.renderMap = renderMap;
+  ns.setMapStatusMessage = setMapStatusMessage;
   ns.selectNode = selectNode;
   ns.markNodeSelected = markNodeSelected;
   ns.selectAnchorNode = selectAnchorNode;

@@ -194,6 +194,8 @@ const d3Stub = `
     forceLink: forceLink,
     forceManyBody: chainableForce,
     forceCenter: function () { return {}; },
+    forceX: chainableForce,
+    forceY: chainableForce,
     forceCollide: chainableForce,
     zoom: zoom,
     zoomIdentity: {
@@ -295,5 +297,56 @@ test.describe('Anchor Map dashboard', () => {
     await page.locator('#search-btn').click();
     await expect.poll(() => searchBodies.length).toBe(2);
     expect(searchBodies[1]).toMatchObject({ query: 'alpha', slot: 'C', agent_id: 'default', limit: 100 });
+  });
+
+  test('renders an in-map error state instead of an alert when the map request fails', async ({ page }) => {
+    const dialogs: string[] = [];
+    page.on('dialog', async (d) => { dialogs.push(d.message()); await d.dismiss(); });
+
+    // Static e2e server has no WS endpoint — disable WebSocket so fallbackToPolling
+    // does not overwrite the map-load error under test (issue 904).
+    await page.addInitScript(() => {
+      // @ts-expect-error intentional stub for e2e isolation
+      window.WebSocket = undefined;
+    });
+
+    await page.route('**/static/vendor/d3.v7.min.js', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/javascript', body: d3Stub }));
+    await page.route('**/api/anchors/agents', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ agents: [{ agent_id: 'default', anchor_count: 3 }], agent_ids: ['default'], timestamp: '2026-06-21T00:00:00.000Z' }) }));
+
+    // dashboard-auth checkSession probes /api/anchors/map — a blanket 500 leaves
+    // waitForSession pending and loadMapData never reaches its catch. Unlock the
+    // session with an empty success first, then fail on Refresh (issue 904).
+    let failMap = false;
+    await page.route('**/api/anchors/map?**', (route) => {
+      if (!failMap) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            agent_id: 'default',
+            anchors: [],
+            nodes: [],
+            links: [],
+            timestamp: '2026-06-21T00:00:00.000Z',
+          }),
+        });
+      }
+      return route.fulfill({ status: 500, body: 'boom' });
+    });
+
+    await page.goto('/dashboard');
+    await expect(page.locator('#anchor-map .map-empty-message')).toHaveCount(1);
+
+    failMap = true;
+    await page.locator('#refresh-btn').click();
+
+    await expect(page.locator('#anchor-map .map-error-message')).toHaveCount(1);
+    await expect(page.locator('#anchor-map .map-error-message')).toContainText('맵 데이터를 불러오지 못했습니다');
+    await expect(page.locator('#anchor-map .map-empty-message')).toHaveCount(0);
+    await expect(page.locator('#anchor-map .map-loading-message')).toHaveCount(0);
+    expect(dialogs).toEqual([]);   // alert 없음
   });
 });

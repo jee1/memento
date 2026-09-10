@@ -78,9 +78,33 @@ describe('static design contracts', () => {
     const renderSource = readStaticFile('static/js/anchor-map-render.js');
     const cssSource = readStaticFile('static/css/dashboard.css');
 
-    expect(renderSource).toContain('showEmptyMapMessage(');
-    expect(renderSource).toMatch(/\.attr\('class', 'map-empty-message'\)/);
+    expect(renderSource).toContain("setMapStatusMessage('empty'");
+    expect(renderSource).toContain("empty: 'map-empty-message'");
     expect(cssSource).toContain('.map-empty-message');
+  });
+
+  it('issue 904 map load failures render an in-map error state, not an alert', () => {
+    const renderSource = readStaticFile('static/js/anchor-map-render.js');
+    const dataSource = readStaticFile('static/js/anchor-map-data.js');
+    const wsSource = readStaticFile('static/js/anchor-map-ws.js');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+
+    // 빈 상태와 오류 상태는 서로 다른 클래스여야 한다 (AC 2)
+    expect(renderSource).toContain("error: 'map-error-message'");
+    expect(renderSource).toContain("empty: 'map-empty-message'");
+    expect(cssSource).toContain('.map-error-message');
+    expect(cssSource).toContain('.map-loading-message');
+
+    // 맵 로드 실패는 alert 가 아니라 in-map 상태로 나간다 (AC 1)
+    expect(dataSource).not.toContain('alert(');
+    expect(dataSource).toContain("ns.setMapStatusMessage('error'");
+    // auto-refresh 여부로 알림을 억제하던 분기가 사라졌다 (AC 3)
+    expect(dataSource).not.toContain('if (!state.autoRefreshInterval)');
+    // 성공 응답은 내용이 그대로여도 오류를 해제한다 (I3)
+    expect(dataSource).toContain('ns.setMapStatusMessage(null)');
+
+    // 실시간 경로 실패도 같은 in-map 오류를 쓴다
+    expect(wsSource).toContain("ns.setMapStatusMessage('error'");
   });
 
   it('issue 874 anchor map drops the stub button, the duplicate load button, and the d3 CDN', () => {

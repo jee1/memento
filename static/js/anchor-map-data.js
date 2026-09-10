@@ -80,12 +80,15 @@
     const isSnapbackRetry = options === true;
     const agentId = getSelectedAgentId();
 
+    if (!state.mapData) ns.setMapStatusMessage('loading', '맵 데이터를 불러오는 중…');
+
     try {
       const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
       const response = await fetchFn('/api/anchors/map?agent_id=' + encodeURIComponent(agentId));
       if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
 
       const newMapData = ns.normalizeMapData(await response.json());
+      ns.setMapStatusMessage(null);   // 성공하면 내용이 그대로여도 오류 표시를 걷는다 (I3)
       const hasChanged = hasMapDataChanged(state.mapData, newMapData);
 
       if (hasChanged) {
@@ -106,9 +109,9 @@
       }
     } catch (error) {
       ns.debugAnchorMap('load-error', { message: error.message });
-      if (!state.autoRefreshInterval) {
-        alert('맵 데이터를 불러올 수 없습니다: ' + error.message);
-      }
+      // alert 는 모달이라 auto-refresh 중 억제할 수밖에 없었고, 그래서 주기 실패가
+      // 완전히 침묵했다. in-map 오류는 갱신 방식과 무관하게 항상 보인다 (issue 904).
+      ns.setMapStatusMessage('error', '맵 데이터를 불러오지 못했습니다 — ' + error.message);
     }
   }
 
