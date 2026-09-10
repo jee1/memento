@@ -13,7 +13,8 @@
 
   ns.bindDomRefs();
 
-  const { impSlider, impVal, applyBtn, resetBtn, searchInput, searchBtn, detailPanel, svgEl } = ns.dom;
+  const { impSlider, impVal, applyBtn, resetBtn, searchInput, searchBtn, detailPanel, svgEl, orphanToggle } =
+    ns.dom;
 
   impSlider.addEventListener('input', () => {
     impVal.textContent = parseFloat(impSlider.value).toFixed(2);
@@ -22,6 +23,13 @@
   applyBtn.addEventListener('click', () => {
     state.activeSearchQuery = searchInput.value;
     ns.loadGraph(ns.buildUrl());
+  });
+
+  orphanToggle.addEventListener('change', () => {
+    if (!state.rawGraphNodes) {
+      return; // 아직 로드 전이거나 직전 요청이 실패했다 — 에러 표시를 덮지 않는다
+    }
+    ns.renderVisibleGraph();
   });
 
   searchBtn.addEventListener('click', ns.applySearchFromInput);
@@ -49,6 +57,7 @@
     searchInput.value = '';
     state.activeSearchQuery = '';
     ns.dom.fullGraphToggle.checked = false;
+    orphanToggle.checked = false;
     ns.loadGraph('/admin/graph');
   });
 

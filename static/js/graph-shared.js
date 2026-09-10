@@ -10,6 +10,8 @@
     simulation: null,
     lastGraphNodes: null,
     lastGraphEdges: null,
+    rawGraphNodes: null,
+    rawGraphEdges: null,
     resizeRedrawTimer: null,
     lastGraphMeta: null,
     activeSearchQuery: '',
@@ -66,6 +68,35 @@
       .replace(/"/g, '&quot;');
   };
 
+  ns.getEdgeNodeId = function getEdgeNodeId(endpoint) {
+    return typeof endpoint === 'object' && endpoint !== null ? endpoint.id : endpoint;
+  };
+
+  /**
+   * View orphan (issue 835) 필터 — 현재 응답 엣지에서 degree=0 인 노드를 제외한다.
+   * DB orphan(memory_relation 전무)과는 다르며, limit 밖 관계는 여기서 고아로 보인다.
+   */
+  ns.filterConnectedNodes = function filterConnectedNodes(nodes, edges) {
+    const nodeList = Array.isArray(nodes) ? nodes : [];
+    const edgeList = Array.isArray(edges) ? edges : [];
+    const nodeIds = new Set(nodeList.map((node) => node.id));
+    const keptEdges = edgeList.filter(
+      (edge) =>
+        nodeIds.has(ns.getEdgeNodeId(edge.source)) && nodeIds.has(ns.getEdgeNodeId(edge.target))
+    );
+    const connectedIds = new Set();
+    for (const edge of keptEdges) {
+      connectedIds.add(ns.getEdgeNodeId(edge.source));
+      connectedIds.add(ns.getEdgeNodeId(edge.target));
+    }
+    const visibleNodes = nodeList.filter((node) => connectedIds.has(node.id));
+    return {
+      nodes: visibleNodes,
+      edges: keptEdges,
+      hiddenCount: nodeList.length - visibleNodes.length,
+    };
+  };
+
   ns.bindDomRefs = function bindDomRefs() {
     ns.dom = {
       svgEl: document.getElementById('graph'),
@@ -84,6 +115,8 @@
       matchBadge: document.getElementById('graph-match-badge'),
       fullGraphToggle: document.getElementById('full-graph-toggle'),
       graphModeHint: document.getElementById('graph-mode-hint'),
+      orphanToggle: document.getElementById('hide-orphans-toggle'),
+      orphanBadge: document.getElementById('orphan-hidden-badge'),
     };
   };
 
