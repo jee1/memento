@@ -49,7 +49,8 @@
       const newHeight = container.node().getBoundingClientRect().height;
       state.svg.attr('width', newWidth).attr('height', newHeight);
       state.simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
-      state.simulation.alpha(1).restart();
+      if (state.layoutMode === 'auto') state.simulation.alpha(1).restart();
+      else if (state.redrawTick) state.redrawTick();
     });
   }
 
@@ -72,6 +73,20 @@
     document.getElementById('fit-btn').addEventListener('click', ns.fitToNodes);
     document.getElementById('search-btn').addEventListener('click', ns.performSearch);
     document.getElementById('clear-search-btn').addEventListener('click', ns.clearSearch);
+
+    document.getElementById('layout-mode-btn').addEventListener('click', function () {
+      ns.setLayoutMode(state.layoutMode === 'auto' ? 'paused' : 'auto');
+    });
+    document.getElementById('unpin-all-btn').addEventListener('click', ns.unpinAllNodes);
+    document.getElementById('layout-reset-btn').addEventListener('click', ns.resetLayout);
+
+    const details = document.getElementById('memory-details');
+    if (details) {
+      details.addEventListener('click', function (e) {
+        const el = e.target.closest('.js-unpin-node');
+        if (el && el.dataset.memoryId) ns.unpinNode(el.dataset.memoryId);
+      });
+    }
 
     const anchorList = document.getElementById('anchor-list');
     if (anchorList) {
@@ -97,6 +112,7 @@
     });
 
     document.getElementById('agent-id-select').addEventListener('change', function () {
+      state.nodes = [];
       ns.loadMapData();
       ns.resubscribeWebSocket();
     });
@@ -123,5 +139,6 @@
   // Public API
   window.selectAnchorNode = ns.selectAnchorNode;
   window.fitAnchorMap = ns.fitToNodes;
+  window.resetAnchorMapLayout = ns.resetLayout;
 
 })(typeof window !== 'undefined' ? window : globalThis);
