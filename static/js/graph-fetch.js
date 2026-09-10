@@ -97,13 +97,11 @@
       clearRenderedGraph();
       ns.applySearchHighlight();
       ns.showEmpty(true);
-      ns.scheduleGraphResize();
       return;
     }
 
     ns.showEmpty(false);
     ns.renderGraph(visible.nodes, visible.edges);
-    ns.scheduleGraphResize();
   };
 
   function handleGraphPayload(data) {
@@ -111,6 +109,8 @@
     state.rawGraphNodes = data.nodes ?? [];
     state.rawGraphEdges = data.edges ?? [];
     ns.renderVisibleGraph();
+    // Load-path only: toggle reuses renderVisibleGraph without a second d3 restart via resize.
+    ns.scheduleGraphResize();
   }
 
   ns.loadGraph = async function loadGraph(url) {
