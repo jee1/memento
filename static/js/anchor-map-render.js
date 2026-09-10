@@ -180,8 +180,8 @@
           d.fy = null;
         }
       }
-      // pin 확정·저장이 끝난 뒤에 밀린 갱신을 반영한다. 순서가 뒤바뀌면 renderMap 의
-      // pruneStoredNodes 가 아직 저장되지 않은 pin 을 보지 못한다 (issue 948).
+      // pin 확정·저장이 끝난 뒤에 밀린 갱신을 반영한다. 순서가 뒤바뀌면 mergeNodeLayout 의
+      // prevById 우선순위가 아직 pin 이 반영되지 않은 이전 상태를 고수해 방금 확정한 pin 을 덮어쓴다 (issue 948).
       if (state.activeDragCount > 0) state.activeDragCount -= 1;
       if (state.activeDragCount === 0) flushDeferredRender();
     }
