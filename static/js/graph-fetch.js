@@ -62,8 +62,7 @@
     state.rawGraphEdges = null;
     state.lastGraphMeta = null;
     ns.updateGraphModeHint(null);
-    ns.dom.orphanBadge.textContent = '';
-    ns.dom.orphanBadge.style.display = 'none';
+    ns.setBadgeText(ns.dom.orphanBadge, '');
     clearRenderedGraph();
   }
 
@@ -77,14 +76,8 @@
   }
 
   function updateOrphanBadge(hiddenCount) {
-    const { orphanBadge } = ns.dom;
-    if (!ns.dom.orphanToggle.checked) {
-      orphanBadge.textContent = '';
-      orphanBadge.style.display = 'none';
-      return;
-    }
-    orphanBadge.textContent = `${hiddenCount}개 숨김`;
-    orphanBadge.style.display = 'inline-block';
+    const visible = ns.dom.orphanToggle.checked;
+    ns.setBadgeText(ns.dom.orphanBadge, visible ? `${hiddenCount}개 숨김` : '');
   }
 
   ns.renderVisibleGraph = function renderVisibleGraph() {
