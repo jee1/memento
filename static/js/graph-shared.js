@@ -155,6 +155,11 @@
    * 숨김 상태에서 표시로 바뀔 때 display 전환과 textContent 주입을 분리해야
    * 스크린리더가 "갱신 시점에 숨어 있던 요소"로 보지 않고 announce 한다.
    * text 가 빈 문자열이면 숨긴다.
+   *
+   * "이미 보임"은 el.style.display 문자열로 판정하면 안 된다: 숨김→표시 전환 시
+   * display 는 nextFrame 호출 전에 동기로 'inline-block' 이 되므로, 같은 틱에서
+   * 재호출하면 빠른 경로가 textContent 를 즉시 써 버려 display 전환과 텍스트
+   * 주입이 다시 한 틱에 합쳐진다. 커밋된 페인트 상태만 __badgeCommitted 로 추적.
    */
   ns.setBadgeText = function setBadgeText(el, text) {
     if (!el) {
@@ -162,12 +167,14 @@
     }
     el.__badgePendingText = text;
     if (!text) {
+      el.__badgeCommitted = false;
       el.textContent = '';
       el.style.display = 'none';
       return;
     }
-    if (el.style.display && el.style.display !== 'none') {
-      el.textContent = text; // R2: 이미 보이는 배지는 즉시 갱신
+    // R2: 이전 프레임에서 이미 커밋된 경우에만 즉시 갱신 (style.display 금지)
+    if (el.__badgeCommitted) {
+      el.textContent = text;
       return;
     }
     el.style.display = 'inline-block';
@@ -176,6 +183,7 @@
         return; // R5: 그 사이 숨겨졌거나 다른 값으로 덮였다
       }
       el.textContent = text;
+      el.__badgeCommitted = true;
     });
   };
 

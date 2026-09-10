@@ -6,6 +6,7 @@ type BadgeEl = {
   textContent: string;
   style: { display: string };
   __badgePendingText?: string;
+  __badgeCommitted?: boolean;
 };
 
 type GraphNs = {
@@ -113,6 +114,7 @@ describe('issue #950 setBadgeText live-region timing', () => {
     const el = makeBadge();
     el.style.display = 'inline-block';
     el.textContent = '3개 노드 매칭';
+    el.__badgeCommitted = true;
     frames.length = 0;
 
     ns.setBadgeText(el, '7개 노드 매칭');
@@ -153,6 +155,44 @@ describe('issue #950 setBadgeText live-region timing', () => {
 
   it('T6: null element is a no-op', () => {
     expect(() => ns.setBadgeText(null, 'x')).not.toThrow();
+  });
+
+  it('T10: same-tick re-show does not sync-write textContent before flush', () => {
+    const el = makeBadge();
+    ns.setBadgeText(el, 'A');
+    ns.setBadgeText(el, 'B');
+
+    expect(el.textContent).toBe('');
+    flush();
+    expect(el.textContent).toBe('B');
+  });
+
+  it('T11: after commit, setBadgeText updates synchronously (R2)', () => {
+    const el = makeBadge();
+    ns.setBadgeText(el, 'A');
+    flush();
+    expect(el.__badgeCommitted).toBe(true);
+    frames.length = 0;
+
+    ns.setBadgeText(el, 'C');
+
+    expect(el.textContent).toBe('C');
+    expect(frames).toHaveLength(0);
+  });
+
+  it('T12: hide clears commit flag so next show defers again', () => {
+    const el = makeBadge();
+    ns.setBadgeText(el, 'A');
+    flush();
+    expect(el.__badgeCommitted).toBe(true);
+
+    ns.setBadgeText(el, '');
+    expect(el.__badgeCommitted).toBe(false);
+
+    ns.setBadgeText(el, 'D');
+    expect(el.textContent).toBe('');
+    flush();
+    expect(el.textContent).toBe('D');
   });
 });
 
