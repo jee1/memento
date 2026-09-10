@@ -6,6 +6,24 @@ function readStaticFile(relativePath: string): string {
   return readFileSync(join(process.cwd(), relativePath), 'utf-8');
 }
 
+function extractNamedFunction(source: string, name: string): string {
+  const needle = `function ${name}(`;
+  const start = source.indexOf(needle);
+  if (start < 0) return '';
+  let depth = 0;
+  let end = start;
+  for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+    const char = source[i];
+    if (char === '{') depth += 1;
+    if (char === '}') depth -= 1;
+    if (depth === 0) {
+      end = i;
+      break;
+    }
+  }
+  return source.slice(start, end + 1);
+}
+
 function getFunctionMetrics(source: string): Array<{ name: string; lines: number; complexity: number }> {
   const functionStarts = source.matchAll(/function\s+([A-Za-z_$][\w$]*)?\s*\([^)]*\)\s*\{/g);
   const metrics: Array<{ name: string; lines: number; complexity: number }> = [];
@@ -271,8 +289,17 @@ describe('static design contracts', () => {
     const dashboardSource = readStaticFile('static/dashboard.html');
     const cssSource = readStaticFile('static/css/dashboard.css');
 
-    // 드래그 종료가 fx/fy 를 다시 풀어 버리면 #894 가 그대로 재발한다
-    expect(renderSource).not.toMatch(/dragended[\s\S]{0,200}d\.fx\s*=\s*null/);
+    // 드래그로 의미 있게 움직인 경우 fx/fy 를 풀면 #894 가 재발한다.
+    // 클릭(미소이동) 경로의 d.fx=null 은 정상 — dragended 전체·거리 창으로 금지하면 안 됨.
+    const dragendedFn = extractNamedFunction(renderSource, 'dragended');
+    expect(dragendedFn).toContain('function dragended');
+    const pinBranchMatch = dragendedFn.match(
+      /if\s*\(\s*moved\s*>=\s*PIN_DRAG_THRESHOLD_PX\s*\)\s*\{([\s\S]*?)\}\s*else/,
+    );
+    expect(pinBranchMatch).not.toBeNull();
+    const pinBranch = pinBranchMatch![1];
+    expect(pinBranch).toContain('d.pinned = true');
+    expect(pinBranch).not.toMatch(/d\.fx\s*=\s*null/);
     expect(renderSource).toContain('d.pinned = true');
 
     expect(layoutSource).toContain("ns.LAYOUT_STORAGE_KEY = 'memento.anchorMap.layout.v1'");
