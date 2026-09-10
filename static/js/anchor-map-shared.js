@@ -103,6 +103,12 @@
     };
   };
 
+  // normalizeMapData 는 누락 필드를 [] 로 보정한다 — 그래서 형태가 깨진 데이터도 "빈 맵"처럼 보인다.
+  // ingestion 시점에는 보정 전에 이걸로 걸러 빈 상태와 오류 상태를 구분한다 (issue 949).
+  ns.isMapDataShapeValid = function isMapDataShapeValid(data) {
+    return Boolean(data) && typeof data === 'object' && Array.isArray(data.nodes);
+  };
+
   ns.normalizeSearchResults = function normalizeSearchResults(payload) {
     const candidate = (payload && payload.result) || payload || {};
     return {
