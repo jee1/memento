@@ -311,4 +311,22 @@ describe('static design contracts', () => {
     expect(dashboardSource).toContain('/static/js/anchor-map-layout.js');
     expect(cssSource).toContain('.node.pinned');
   });
+
+  it('issue 948 anchor map defers refresh renders while a drag is in flight', () => {
+    const renderSource = readStaticFile('static/js/anchor-map-render.js');
+    const sharedSource = readStaticFile('static/js/anchor-map-shared.js');
+    const entrySource = readStaticFile('static/js/anchor-map.js');
+
+    expect(sharedSource).toContain('activeDragCount');
+    expect(sharedSource).toContain('pendingRefreshRender');
+    // 가드는 호출부가 아니라 renderMap 안에 있어야 한다 (새 호출부가 생겨도 안전)
+    expect(extractNamedFunction(renderSource, 'renderMap')).toMatch(/state\.activeDragCount\s*>\s*0/);
+    // 갱신은 버리지 않고 지연한다 — 플래그를 세우고 dragended 가 흘려보낸다
+    expect(extractNamedFunction(renderSource, 'renderMap')).toContain('state.pendingRefreshRender = true');
+    expect(extractNamedFunction(renderSource, 'dragended')).toContain('flushDeferredRender');
+    expect(extractNamedFunction(renderSource, 'dragstarted')).toContain('state.activeDragCount += 1');
+    // mouseup 안전망 (touchend 는 멀티터치를 끊으므로 등록하지 않는다)
+    expect(entrySource).toContain("window.addEventListener('mouseup', ns.releaseDragDeferral)");
+    expect(entrySource).not.toContain("addEventListener('touchend'");
+  });
 });

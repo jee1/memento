@@ -23,6 +23,8 @@
     layoutMode: 'auto',            // 'auto' | 'paused'
     layoutPersistDisabled: false,  // localStorage write failure → session persist off
     redrawTick: null,              // runSimulation tick fn (manual redraw while paused)
+    activeDragCount: 0,            // 진행 중인 d3 drag gesture 수 (>0 이면 재렌더 지연) (issue 948)
+    pendingRefreshRender: false,   // 드래그 중 도착한 갱신 — dragended 에서 한 번만 반영 (issue 948)
   };
 
   // CSS token definitions for anchor slots

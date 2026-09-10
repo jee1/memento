@@ -52,6 +52,10 @@
       if (state.layoutMode === 'auto') state.simulation.alpha(1).restart();
       else if (state.redrawTick) state.redrawTick();
     });
+
+    // d3 의 mouseup.drag 는 capture 단계(window)라 여기 도달하기 전에 dragended 가 이미 돈다.
+    // 정상 경로에서는 no-op 이고, dragended 가 유실됐을 때만 지연 갱신을 풀어 준다 (issue 948).
+    window.addEventListener('mouseup', ns.releaseDragDeferral);
   }
 
   function onSearchResultClick(e) {

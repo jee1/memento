@@ -145,6 +145,7 @@
   function makeDragBehavior(simulation) {
     const PIN_DRAG_THRESHOLD_PX = 3;
     function dragstarted(event, d) {
+      state.activeDragCount += 1;   // 재렌더 지연 시작 (issue 948)
       d._dragStartX = d.x;
       d._dragStartY = d.y;
       // 정지 모드에서는 시뮬레이션을 깨우지 않는다
@@ -179,6 +180,10 @@
           d.fy = null;
         }
       }
+      // pin 확정·저장이 끝난 뒤에 밀린 갱신을 반영한다. 순서가 뒤바뀌면 renderMap 의
+      // pruneStoredNodes 가 아직 저장되지 않은 pin 을 보지 못한다 (issue 948).
+      if (state.activeDragCount > 0) state.activeDragCount -= 1;
+      if (state.activeDragCount === 0) flushDeferredRender();
     }
     return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
   }
@@ -250,6 +255,22 @@
     if (result && result.ok === false) {
       state.layoutPersistDisabled = true;
     }
+  }
+
+  // 드래그 중 밀어 둔 갱신을 한 번 흘려보낸다. state.mapData 는 항상 최신 1건이므로
+  // 큐 없이 boolean 만으로 coalesce 된다 (issue 948).
+  function flushDeferredRender() {
+    if (!state.pendingRefreshRender) return;
+    state.pendingRefreshRender = false;
+    ns.debugAnchorMap('render-deferred-flushed');
+    ns.renderMap();
+  }
+
+  // dragended 가 유실된 경우(창 밖 mouseup 등)에도 지연 갱신이 영구히 묶이지 않게 한다.
+  function releaseDragDeferral() {
+    if (state.activeDragCount === 0) return;
+    state.activeDragCount = 0;
+    flushDeferredRender();
   }
 
   function buildLabelSelection(g, nodes, palette) {
@@ -330,6 +351,15 @@
 
   function renderMap() {
     if (!state.svg || !state.simulation) return;
+
+    // 재렌더는 g.selectAll('*').remove() 로 노드 DOM 을 갈아치우므로 진행 중인 d3 drag 제스처가
+    // 끊긴다. 최신 페이로드는 호출부가 이미 state.mapData 에 넣어 두었으니 플래그만 세우고
+    // dragended 에서 한 번만 반영한다 — 버리지 않고 지연시킨다 (issue 948).
+    if (state.activeDragCount > 0) {
+      state.pendingRefreshRender = true;
+      ns.debugAnchorMap('render-deferred-during-drag', { drags: state.activeDragCount });
+      return;
+    }
 
     state.mapData = ns.normalizeMapData(state.mapData);
     const mapData = state.mapData;
@@ -537,5 +567,10 @@
   ns.resetLayout = resetLayout;
   ns.applyPinVisual = applyPinVisual;
   ns.persistPinnedLayout = persistPinnedLayout;
+  ns.flushDeferredRender = flushDeferredRender;
+  ns.releaseDragDeferral = releaseDragDeferral;
+  // 단위 테스트에서 drag 콜백을 직접 구동하기 위해 노출한다 (issue 948).
+  // 선례: anchor-map-ws.js:114 ns.handleWsMessage
+  ns.makeDragBehavior = makeDragBehavior;
 
 })(typeof window !== 'undefined' ? window : globalThis);
