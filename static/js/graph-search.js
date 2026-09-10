@@ -41,18 +41,8 @@
     return matchingIds;
   }
 
-  function setMatchBadge(count, total) {
-    const { matchBadge } = ns.dom;
-    if (!state.activeSearchQuery) {
-      matchBadge.style.display = 'none';
-      matchBadge.textContent = '';
-      return;
-    }
-    matchBadge.textContent = `${count}개 노드 매칭`;
-    matchBadge.style.display = 'inline-block';
-    if (total > 0 && count === 0) {
-      matchBadge.textContent = '0개 노드 매칭';
-    }
+  function setMatchBadge(count) {
+    ns.setBadgeText(ns.dom.matchBadge, state.activeSearchQuery ? `${count}개 노드 매칭` : '');
   }
 
   function applyNodeHighlight(matchingIds, hasQuery) {
@@ -87,7 +77,7 @@
     const hasQuery = query.length > 0;
     const matchingIds = hasQuery ? collectMatchingIds(nodes, query) : new Set();
 
-    setMatchBadge(matchingIds.size, nodes.length);
+    setMatchBadge(matchingIds.size);
     applyNodeHighlight(matchingIds, hasQuery);
     applyLinkHighlight(matchingIds, hasQuery);
   };

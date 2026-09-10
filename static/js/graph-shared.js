@@ -139,6 +139,46 @@
     ns.dom.errorEl.style.display = 'none';
   };
 
+  /**
+   * 다음 프레임에 콜백 실행. 브라우저 밖(테스트)에서는 동기 실행한다.
+   */
+  ns.nextFrame = function nextFrame(callback) {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(callback);
+      return;
+    }
+    callback();
+  };
+
+  /**
+   * 라이브 리전 배지 갱신 (issue 950).
+   * 숨김 상태에서 표시로 바뀔 때 display 전환과 textContent 주입을 분리해야
+   * 스크린리더가 "갱신 시점에 숨어 있던 요소"로 보지 않고 announce 한다.
+   * text 가 빈 문자열이면 숨긴다.
+   */
+  ns.setBadgeText = function setBadgeText(el, text) {
+    if (!el) {
+      return;
+    }
+    el.__badgePendingText = text;
+    if (!text) {
+      el.textContent = '';
+      el.style.display = 'none';
+      return;
+    }
+    if (el.style.display && el.style.display !== 'none') {
+      el.textContent = text; // R2: 이미 보이는 배지는 즉시 갱신
+      return;
+    }
+    el.style.display = 'inline-block';
+    ns.nextFrame(function () {
+      if (el.__badgePendingText !== text) {
+        return; // R5: 그 사이 숨겨졌거나 다른 값으로 덮였다
+      }
+      el.textContent = text;
+    });
+  };
+
   ns.scheduleGraphResize = function scheduleGraphResize() {
     requestAnimationFrame(function () {
       window.dispatchEvent(new Event('resize'));

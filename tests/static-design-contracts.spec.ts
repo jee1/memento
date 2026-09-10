@@ -247,6 +247,26 @@ describe('static design contracts', () => {
     expect(entrySource).toContain('orphanToggle.checked = false');
   });
 
+  it('issue #950 graph badges defer textContent until visible for aria-live', () => {
+    const graphSource = readStaticFile('static/graph.html');
+    const sharedSource = readStaticFile('static/js/graph-shared.js');
+    const fetchSource = readStaticFile('static/js/graph-fetch.js');
+    const searchSource = readStaticFile('static/js/graph-search.js');
+
+    expect(sharedSource).toContain('function setBadgeText(el, text)');
+    expect(fetchSource).not.toMatch(/orphanBadge\.style\.display/);
+    expect(fetchSource).not.toMatch(/orphanBadge\.textContent/);
+    expect(searchSource).not.toMatch(/matchBadge\.style\.display/);
+    expect(searchSource).not.toMatch(/matchBadge\.textContent/);
+    expect(fetchSource).toContain('ns.setBadgeText');
+    expect(searchSource).toContain('ns.setBadgeText');
+    expect(graphSource).toMatch(
+      /#graph-match-badge,\s*\n\s*#orphan-hidden-badge,[\s\S]{0,80}display: none;/
+    );
+    expect(graphSource).toContain('id="graph-match-badge" aria-live="polite"');
+    expect(graphSource).toContain('id="orphan-hidden-badge" aria-live="polite"');
+  });
+
   it('issue #616 admin static modules keep individual functions bounded', () => {
     const files = [
       'static/js/review-candidates-panel-poll-boot.js',
