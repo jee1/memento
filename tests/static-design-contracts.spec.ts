@@ -182,6 +182,28 @@ describe('static design contracts', () => {
     expect(source).not.toContain('border: 1px solid rgba(');
   });
 
+  it('issue #836 graph hides degree-0 nodes behind an off-by-default toggle in both embed and standalone', () => {
+    const graphSource = readStaticFile('static/graph.html');
+    const sharedSource = readStaticFile('static/js/graph-shared.js');
+    const fetchSource = readStaticFile('static/js/graph-fetch.js');
+    const entrySource = readStaticFile('static/js/graph.js');
+
+    // 기본 off — checked 속성이 붙으면 #126 고립 발견 use-case 가 깨진다
+    expect(graphSource).toMatch(/<input type="checkbox" id="hide-orphans-toggle">/);
+    expect(graphSource).toContain('id="orphan-hidden-badge"');
+    // embed 에서도 보이는 필터 그룹 안에 있어야 한다 (auth 패널처럼 숨겨지면 안 됨)
+    expect(graphSource).toMatch(
+      /filter-group graph-session-only[\s\S]{0,400}id="hide-orphans-toggle"/
+    );
+    // 판정은 순수 함수로 shared 에 — embed/standalone 분기 없음
+    expect(sharedSource).toContain('function filterConnectedNodes(nodes, edges)');
+    expect(graphSource).not.toContain("embed') === 'dashboard'"); // 로직 분기 금지
+    expect(fetchSource).toContain('개 숨김');
+    expect(fetchSource).toContain('ns.renderVisibleGraph');
+    // 초기화는 토글을 기본값으로 되돌린다
+    expect(entrySource).toContain('orphanToggle.checked = false');
+  });
+
   it('issue #616 admin static modules keep individual functions bounded', () => {
     const files = [
       'static/js/review-candidates-panel-poll-boot.js',

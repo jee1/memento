@@ -206,6 +206,7 @@
     }
 
     #graph-match-badge,
+    #orphan-hidden-badge,
     #graph-mode-hint {
       display: none;
       font-size: var(--font-size-xs);
@@ -213,7 +214,8 @@
       white-space: nowrap;
     }
 
-    #graph-match-badge {
+    #graph-match-badge,
+    #orphan-hidden-badge {
       border: 1px solid var(--color-border-graph);
       border-radius: var(--radius-sm);
       padding: 2px 7px;
@@ -522,6 +524,7 @@
     .graph-view--embedded .type-check,
     .graph-view--embedded #importance-val,
     .graph-view--embedded #graph-match-badge,
+    .graph-view--embedded #orphan-hidden-badge,
     .graph-view--embedded #graph-mode-hint {
       color: var(--color-text-muted);
     }
@@ -590,6 +593,15 @@
         <input type="checkbox" id="full-graph-toggle"> 전체 로드
       </label>
       <span id="graph-mode-hint"></span>
+    </div>
+    <div class="filter-group graph-session-only">
+      <label
+        class="type-check"
+        title="현재 화면의 엣지 기준으로 연결이 하나도 없는(degree=0) 노드를 숨깁니다. DB에 관계가 있어도 상대 노드가 limit 밖이면 여기서는 고아로 보일 수 있습니다."
+      >
+        <input type="checkbox" id="hide-orphans-toggle"> 연결 없는 노드 숨기기
+      </label>
+      <span id="orphan-hidden-badge" aria-live="polite"></span>
     </div>
     <button id="apply-btn" class="graph-session-only graph-action-button m-button m-button--primary">필터 적용</button>
     <button id="reset-btn" class="graph-session-only graph-action-button m-button m-button--secondary">초기화</button>

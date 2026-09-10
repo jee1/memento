@@ -51,6 +51,7 @@
 
 ### Added
 
+- **Memory Graph 「연결 없는 노드 숨기기」 토글** (#836, epic #835): `/graph`·대시보드 Graph 탭에서 현재 화면의 엣지 기준 degree=0 노드를 숨기고 `N개 숨김` 을 표시합니다. **기본값 off** — 고립 기억 발견(#126) 용도를 유지합니다. 클라이언트 전용이며 `GET /admin/graph` 요청·응답은 변경 없습니다. 판정 기준은 **View orphan**(현재 응답 엣지에서 degree=0)이라 DB 에 관계가 있어도 상대 노드가 limit 밖이면 숨겨집니다 — DB orphan 기준 필터는 Phase 2(#837).
 - **Opt-in stdio HTTP 사이드카** (#841): `MEMENTO_HTTP_SIDECAR=1`로 stdio가 만든 core를 공유하는 HTTP 서버를 기동합니다. 기존 서버 검색·단일 기동 lock·포트 충돌 격리·소유한 HTTP 리소스 종료를 지원하며 기본값은 꺼짐입니다. 설정 및 운영 방식은 `docs/agents/commands.md`를 참고하세요.
 - **Backup backlog cleanup operator docs** (#065): `db:backup:cleanup` preview와 `db:backup:cleanup -- --apply` 사용법을 Docker/agent/script 문서에 추가했습니다. Apply 전 MCP 서버·restore·다른 cleanup/backup 작업 중지, 절대 `DB_PATH` 사용(`~` 미확장), preview 기본값, non-zero operator backup 보존, 오류/cleanup report의 경로 비노출 계약을 명시했습니다. 재현 원인은 migration main-file copy, operator validation 전 sidecar cleanup, production에서 호출되지 않던 넓은 `mtime` cleanup helper였습니다.
 - **Production recall funnel + ranking hash** (#786): production adapter records per-query stages `raw_text → text_topN → raw_vector → thresholded_vector → union → final_top10` with gold any/all/fraction. Scorecard `ranking_version` is `ranking-sha256:…`; reproduction includes clean git SHA, weights-path override, eligible/excluded query ID hashes. Ranking algorithm unchanged in this slice.

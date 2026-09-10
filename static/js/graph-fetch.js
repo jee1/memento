@@ -45,32 +45,71 @@
     graphModeHint.style.display = 'inline';
   };
 
-  function resetGraphState() {
-    state.lastGraphNodes = null;
-    state.lastGraphEdges = null;
-    state.lastGraphMeta = null;
-    state.renderedNodeSelection = null;
-    state.renderedLinkSelection = null;
-    ns.updateGraphModeHint(null);
+  function clearRenderedGraph() {
     d3.select(ns.dom.svgEl).selectAll('*').remove();
     if (state.simulation) {
       state.simulation.stop();
       state.simulation = null;
     }
+    state.renderedNodeSelection = null;
+    state.renderedLinkSelection = null;
   }
+
+  function resetGraphState() {
+    state.lastGraphNodes = null;
+    state.lastGraphEdges = null;
+    state.rawGraphNodes = null;
+    state.rawGraphEdges = null;
+    state.lastGraphMeta = null;
+    ns.updateGraphModeHint(null);
+    ns.dom.orphanBadge.textContent = '';
+    ns.dom.orphanBadge.style.display = 'none';
+    clearRenderedGraph();
+  }
+
+  function getVisibleGraph() {
+    const nodes = state.rawGraphNodes ?? [];
+    const edges = state.rawGraphEdges ?? [];
+    if (!ns.dom.orphanToggle.checked) {
+      return { nodes, edges, hiddenCount: 0 };
+    }
+    return ns.filterConnectedNodes(nodes, edges);
+  }
+
+  function updateOrphanBadge(hiddenCount) {
+    const { orphanBadge } = ns.dom;
+    if (!ns.dom.orphanToggle.checked) {
+      orphanBadge.textContent = '';
+      orphanBadge.style.display = 'none';
+      return;
+    }
+    orphanBadge.textContent = `${hiddenCount}개 숨김`;
+    orphanBadge.style.display = 'inline-block';
+  }
+
+  ns.renderVisibleGraph = function renderVisibleGraph() {
+    const visible = getVisibleGraph();
+    updateOrphanBadge(visible.hiddenCount);
+    state.lastGraphNodes = visible.nodes;
+    state.lastGraphEdges = visible.edges;
+
+    if (visible.nodes.length === 0) {
+      clearRenderedGraph();
+      ns.applySearchHighlight();
+      ns.showEmpty(true);
+      return;
+    }
+
+    ns.showEmpty(false);
+    ns.renderGraph(visible.nodes, visible.edges);
+  };
 
   function handleGraphPayload(data) {
     ns.updateGraphModeHint(state.lastGraphMeta);
-    if (!data.nodes || data.nodes.length === 0) {
-      ns.applySearchHighlight();
-      ns.showEmpty(true);
-      ns.scheduleGraphResize();
-      return;
-    }
-    const edges = data.edges ?? [];
-    state.lastGraphNodes = data.nodes;
-    state.lastGraphEdges = edges;
-    ns.renderGraph(data.nodes, edges);
+    state.rawGraphNodes = data.nodes ?? [];
+    state.rawGraphEdges = data.edges ?? [];
+    ns.renderVisibleGraph();
+    // Load-path only: toggle reuses renderVisibleGraph without a second d3 restart via resize.
     ns.scheduleGraphResize();
   }
 
