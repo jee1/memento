@@ -14,6 +14,9 @@ function resolveAsset(url) {
   if (url === '/dashboard' || url === '/') {
     return join(staticRoot, 'dashboard.html');
   }
+  if (url === '/static/vendor/d3.v7.min.js') {
+    return join(root, 'node_modules/d3/dist/d3.min.js');
+  }
   if (!url.startsWith('/static/')) {
     return null;
   }

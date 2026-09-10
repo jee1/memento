@@ -34,6 +34,7 @@ describe('static design contracts', () => {
   it('anchor-map.js avoids console calls, hex colors, and inline html styles', () => {
     const anchorMapFiles = [
       'static/js/anchor-map-shared.js',
+      'static/js/anchor-map-layout.js',
       'static/js/anchor-map-render.js',
       'static/js/anchor-map-search.js',
       'static/js/anchor-map-data.js',
@@ -262,5 +263,25 @@ describe('static design contracts', () => {
     );
 
     expect(violations).toEqual([]);
+  });
+
+  it('issue 894 anchor map pins dragged nodes and exposes manual layout controls', () => {
+    const renderSource = readStaticFile('static/js/anchor-map-render.js');
+    const layoutSource = readStaticFile('static/js/anchor-map-layout.js');
+    const dashboardSource = readStaticFile('static/dashboard.html');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+
+    // 드래그 종료가 fx/fy 를 다시 풀어 버리면 #894 가 그대로 재발한다
+    expect(renderSource).not.toMatch(/dragended[\s\S]{0,200}d\.fx\s*=\s*null/);
+    expect(renderSource).toContain('d.pinned = true');
+
+    expect(layoutSource).toContain("ns.LAYOUT_STORAGE_KEY = 'memento.anchorMap.layout.v1'");
+    expect(layoutSource).toContain('mergeNodeLayout');
+
+    expect(dashboardSource).toContain('id="layout-mode-btn"');
+    expect(dashboardSource).toContain('id="unpin-all-btn"');
+    expect(dashboardSource).toContain('id="layout-reset-btn"');
+    expect(dashboardSource).toContain('/static/js/anchor-map-layout.js');
+    expect(cssSource).toContain('.node.pinned');
   });
 });

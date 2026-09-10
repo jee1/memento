@@ -123,6 +123,12 @@ body {
   margin-left: 0.5rem;
 }
 
+/* 정렬 일시정지 중임을 툴바에서 알린다 (issue 894) */
+.anchor-map-toolbar button[aria-pressed="true"] {
+  border-color: var(--color-info);
+  font-weight: 600;
+}
+
 .anchor-search-status {
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-sm);
@@ -433,6 +439,12 @@ body {
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 8px var(--color-anchor-highlight-glow));
   animation: pulse 2s ease-in-out infinite;
+}
+
+/* 사용자가 드래그로 고정한 노드 — 자동 정렬이 다시 옮기지 않는다 (issue 894) */
+.node.pinned {
+  stroke-width: 4px;
+  filter: drop-shadow(0 0 4px var(--color-info));
 }
 
 @keyframes pulse {

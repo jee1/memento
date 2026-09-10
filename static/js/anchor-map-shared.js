@@ -20,6 +20,9 @@
     autoRefreshInterval: null,
     websocket: null,
     mapStatusKey: null,   // 마지막으로 표시한 (kind, message) — 같은 실패의 반복 렌더를 막는다 (issue 904)
+    layoutMode: 'auto',            // 'auto' | 'paused'
+    layoutPersistDisabled: false,  // localStorage write failure → session persist off
+    redrawTick: null,              // runSimulation tick fn (manual redraw while paused)
   };
 
   // CSS token definitions for anchor slots

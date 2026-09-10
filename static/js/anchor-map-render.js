@@ -66,6 +66,10 @@
       '<div class="memory-detail-item"><label>Similarity:</label><div class="value">1.0 (100.0%)</div></div>',
       '<div class="memory-detail-item"><label>Importance:</label><div class="value">' + importance + '</div></div>',
       '<div class="memory-detail-item"><label>Created:</label><div class="value">' + created + '</div></div>',
+      node.pinned
+        ? '<div class="memory-detail-item"><label>배치:</label><div class="value">📌 고정됨 ' +
+          '<button type="button" class="m-button m-button--ghost js-unpin-node" data-memory-id="' + id + '">고정 해제</button></div></div>'
+        : '',
     ].join('');
   }
 
@@ -84,6 +88,10 @@
       '<div class="memory-detail-item"><label>Similarity:</label><div class="value">' + similarity + '</div></div>',
       '<div class="memory-detail-item"><label>Importance:</label><div class="value">' + importance + '</div></div>',
       '<div class="memory-detail-item"><label>Created:</label><div class="value">' + created + '</div></div>',
+      node.pinned
+        ? '<div class="memory-detail-item"><label>배치:</label><div class="value">📌 고정됨 ' +
+          '<button type="button" class="m-button m-button--ghost js-unpin-node" data-memory-id="' + id + '">고정 해제</button></div></div>'
+        : '',
     ].join('');
   }
 
@@ -96,6 +104,9 @@
   }
 
   function layoutNodesByHop() {
+    // hop 별 기본 거리는 자동 정렬 모드 전용이다 — 일시정지 중에는 좌표를 손대지 않는다 (issue 894).
+    if (state.layoutMode !== 'auto') return;
+
     const nodes = state.nodes;
     const links = state.links;
     const width = state.svg.attr('width');
@@ -107,8 +118,10 @@
     anchorNodes.forEach(function (anchor, anchorIndex) {
       const angle = (anchorIndex / anchorNodes.length) * 2 * Math.PI;
       const radius = 150;
-      anchor.fx = centerX + Math.cos(angle) * radius;
-      anchor.fy = centerY + Math.sin(angle) * radius;
+      if (!anchor.pinned) {
+        anchor.fx = centerX + Math.cos(angle) * radius;
+        anchor.fy = centerY + Math.sin(angle) * radius;
+      }
 
       const relatedMemories = nodes.filter(function (n) {
         return n.type === 'memory' && links.some(function (l) {
@@ -119,6 +132,7 @@
 
       // Seed x/y only: pinning memories with fx/fy makes charge and collision inert (issue 867).
       relatedMemories.forEach(function (memory, memIndex) {
+        if (memory.pinned || memory.x != null) return;
         const hop = memory.hop_distance || 1;
         const layerRadius = 100 + (hop - 1) * 80;
         const memAngle = (memIndex / relatedMemories.length) * 2 * Math.PI + angle;
@@ -129,16 +143,42 @@
   }
 
   function makeDragBehavior(simulation) {
+    const PIN_DRAG_THRESHOLD_PX = 3;
     function dragstarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d._dragStartX = d.x;
+      d._dragStartY = d.y;
+      // 정지 모드에서는 시뮬레이션을 깨우지 않는다
+      if (state.layoutMode === 'auto' && !event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
     }
-    function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+      // 정지 중에는 tick 이 돌지 않으므로 직접 다시 그린다
+      if (state.layoutMode !== 'auto' && state.redrawTick) state.redrawTick();
+    }
     function dragended(event, d) {
       if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
+      const startX = d._dragStartX;
+      const startY = d._dragStartY;
+      delete d._dragStartX;
+      delete d._dragStartY;
+      const moved = (startX != null && startY != null)
+        ? Math.hypot((d.fx != null ? d.fx : d.x) - startX, (d.fy != null ? d.fy : d.y) - startY)
+        : 0;
+      // 놓은 자리를 유지한다 — fx/fy 를 풀면 force 평형점으로 되돌아간다 (issue 894)
+      if (moved >= PIN_DRAG_THRESHOLD_PX) {
+        d.pinned = true;
+        applyPinVisual(d);
+        persistPinnedLayout();
+      } else if (!d.pinned) {
+        // 클릭만 한 경우 앵커 자동 고정은 layout 이 다시 박고, 메모리는 자유로 둔다
+        if (d.type !== 'anchor') {
+          d.fx = null;
+          d.fy = null;
+        }
+      }
     }
     return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
   }
@@ -178,6 +218,40 @@
       .on('click', function (event, d) { event.stopPropagation(); ns.selectNode(d); });
   }
 
+  function labelTextFor(d) {
+    let text;
+    if (d.type === 'anchor' && d.slot) text = 'Slot ' + d.slot;
+    else text = d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
+    if (d.pinned) text += ' 📌';
+    return text;
+  }
+
+  function tooltipTextFor(d) {
+    const pinHint = d.pinned ? '\n📌 고정됨 (드래그로 이동 · 상세 패널에서 해제)' : '';
+    if (d.type === 'anchor') {
+      const warning = d.embedding_missing ? '\n⚠ 임베딩 없음 — 연결 메모리 검색 불가' : '';
+      return 'Anchor ' + d.slot + '\n' + d.content + warning + pinHint;
+    }
+    return 'Memory\n' + d.content + '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
+  }
+
+  function applyPinVisual() {
+    if (!state.svg) return;
+    state.svg.selectAll('.node').classed('pinned', function (d) { return Boolean(d.pinned); });
+    state.svg.selectAll('.node-label').text(labelTextFor);
+    state.svg.selectAll('.node title').text(tooltipTextFor);
+  }
+
+  function persistPinnedLayout() {
+    if (state.layoutPersistDisabled) return;
+    const agentId = (state.mapData && state.mapData.agent_id) || ns.getSelectedAgentId();
+    const pinned = (state.nodes || []).filter(function (n) { return n.pinned; });
+    const result = ns.writeAgentLayout(global.localStorage, agentId, pinned);
+    if (result && result.ok === false) {
+      state.layoutPersistDisabled = true;
+    }
+  }
+
   function buildLabelSelection(g, nodes, palette) {
     return g.append('g')
       .selectAll('text')
@@ -187,39 +261,41 @@
       .attr('class', 'node-label')
       .attr('dx', function (d) { return d.radius + 5; })
       .attr('dy', 4)
-      .text(function (d) {
-        if (d.type === 'anchor' && d.slot) return 'Slot ' + d.slot;
-        return d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
-      })
+      .text(labelTextFor)
       .style('font-size', '12px')
       .style('fill', palette.labelFill)
       .style('pointer-events', 'none');
   }
 
   function addNodeTooltips(nodeSelection) {
-    nodeSelection.append('title').text(function (d) {
-      if (d.type === 'anchor') {
-        const warning = d.embedding_missing ? '\n⚠ 임베딩 없음 — 연결 메모리 검색 불가' : '';
-        return 'Anchor ' + d.slot + '\n' + d.content + warning;
-      }
-      return 'Memory\n' + d.content + '\nHop: ' + (d.hop_distance || 'N/A');
-    });
+    nodeSelection.append('title').text(tooltipTextFor);
   }
 
   function runSimulation(link, node, label) {
     const simulation = state.simulation;
-    const nodes = state.nodes;
-    const links = state.links;
-    simulation.nodes(nodes).on('tick', function () {
+    const tick = function () {
       link.attr('x1', function (d) { return d.source.x; })
           .attr('y1', function (d) { return d.source.y; })
           .attr('x2', function (d) { return d.target.x; })
           .attr('y2', function (d) { return d.target.y; });
       node.attr('cx', function (d) { return d.x; }).attr('cy', function (d) { return d.y; });
       label.attr('x', function (d) { return d.x; }).attr('y', function (d) { return d.y; });
-    });
-    simulation.force('link').links(links);
-    simulation.alpha(1).restart();
+    };
+    state.redrawTick = tick;
+    simulation.nodes(state.nodes).on('tick', tick);
+
+    const linkForce = simulation.force('link');
+    linkForce.links(state.links);
+    // 자동 정렬일 때만 hop 별 거리를 적용한다. 정지 중에는 평탄 거리로 두어
+    // 나중에 자동 정렬로 돌아왔을 때만 hop 계조가 살아난다 (issue 894).
+    linkForce.distance(state.layoutMode === 'auto' ? ns.hopLinkDistance : ns.LAYOUT_DEFAULT_DISTANCE);
+
+    if (state.layoutMode === 'auto') {
+      simulation.alpha(1).restart();
+    } else {
+      simulation.stop();
+      tick();
+    }
   }
 
   // 상태 안내(빈/오류/로딩)는 서로 배타다 — 한 곳에서 셋을 모두 지우고 하나만 그린다.
@@ -276,7 +352,16 @@
 
     const palette = ns.getAnchorMapPalette();
 
-    state.nodes = mapData.nodes.map(function (d) { return { ...d, radius: d.type === 'anchor' ? 12 : 8 }; });
+    const agentId = mapData.agent_id || ns.getSelectedAgentId();
+    const stored = ns.readAgentLayout(global.localStorage, agentId);
+    const merged = ns.mergeNodeLayout(mapData.nodes, state.nodes, stored);
+
+    // 삭제된 노드만 저장소에서 지운다 — 존속 노드의 좌표·pin 은 건드리지 않는다 (issue 894)
+    if (merged.removedIds.length) {
+      ns.pruneStoredNodes(global.localStorage, agentId, merged.nodes.map(function (n) { return n.id; }));
+    }
+
+    state.nodes = merged.nodes.map(function (d) { return { ...d, radius: d.type === 'anchor' ? 12 : 8 }; });
     state.links = mapData.links
       .map(function (d) {
         return {
@@ -294,6 +379,7 @@
     buildLabelSelection(g, state.nodes, palette);
     addNodeTooltips(node);
     runSimulation(link, node, state.svg.selectAll('.node-label'));
+    applyPinVisual();
 
     if (state.searchResults && state.searchResults.items && state.searchResults.items.length) {
       // 재렌더 시에는 하이라이트만 복원한다 — 자동 포커스는 새 검색에서만 (issue 870).
@@ -357,6 +443,84 @@
       .join('');
   }
 
+  function updateLayoutModeButton() {
+    const btn = document.getElementById('layout-mode-btn');
+    if (!btn) return;
+    const paused = state.layoutMode === 'paused';
+    btn.textContent = paused ? '자동 정렬' : '정렬 일시정지';
+    btn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+  }
+
+  function setLayoutMode(mode) {
+    state.layoutMode = mode === 'paused' ? 'paused' : 'auto';
+    updateLayoutModeButton();
+    if (!state.simulation) return;
+    if (state.layoutMode === 'auto') {
+      const linkForce = state.simulation.force('link');
+      if (linkForce && typeof linkForce.distance === 'function') {
+        linkForce.distance(ns.hopLinkDistance);
+      }
+      layoutNodesByHop();
+      state.simulation.alpha(0.5).restart();
+    } else {
+      const linkForce = state.simulation.force('link');
+      if (linkForce && typeof linkForce.distance === 'function') {
+        linkForce.distance(ns.LAYOUT_DEFAULT_DISTANCE);
+      }
+      state.simulation.stop();
+      if (state.redrawTick) state.redrawTick();
+    }
+  }
+
+  function unpinNode(memoryId) {
+    if (!Array.isArray(state.nodes)) return;
+    const node = state.nodes.find(function (n) { return n.id === memoryId; });
+    if (!node) return;
+    node.pinned = false;
+    node.fx = null;
+    node.fy = null;
+    if (node.type === 'anchor') {
+      layoutNodesByHop();
+    }
+    applyPinVisual();
+    persistPinnedLayout();
+    if (state.layoutMode === 'auto' && state.simulation) {
+      state.simulation.alpha(0.3).restart();
+    } else if (state.redrawTick) {
+      state.redrawTick();
+    }
+    if (state.selectedNodeId === memoryId) {
+      displayMemoryDetails(node);
+    }
+  }
+
+  function unpinAllNodes() {
+    if (!Array.isArray(state.nodes)) return;
+    state.nodes.forEach(function (node) {
+      if (!node.pinned) return;
+      node.pinned = false;
+      node.fx = null;
+      node.fy = null;
+    });
+    layoutNodesByHop();
+    applyPinVisual();
+    persistPinnedLayout();
+    if (state.layoutMode === 'auto' && state.simulation) {
+      state.simulation.alpha(0.3).restart();
+    } else if (state.redrawTick) {
+      state.redrawTick();
+    }
+  }
+
+  function resetLayout() {
+    const agentId = (state.mapData && state.mapData.agent_id) || ns.getSelectedAgentId();
+    ns.clearAgentLayout(global.localStorage, agentId);
+    state.nodes = [];
+    state.layoutMode = 'auto';
+    updateLayoutModeButton();
+    ns.renderMap();
+  }
+
   ns.layoutNodesByHop = layoutNodesByHop;
   ns.renderMap = renderMap;
   ns.setMapStatusMessage = setMapStatusMessage;
@@ -367,5 +531,11 @@
   ns.displayMemoryDetails = displayMemoryDetails;
   ns.focusOnNode = focusOnNode;
   ns.fitToNodes = fitToNodes;
+  ns.setLayoutMode = setLayoutMode;
+  ns.unpinNode = unpinNode;
+  ns.unpinAllNodes = unpinAllNodes;
+  ns.resetLayout = resetLayout;
+  ns.applyPinVisual = applyPinVisual;
+  ns.persistPinnedLayout = persistPinnedLayout;
 
 })(typeof window !== 'undefined' ? window : globalThis);

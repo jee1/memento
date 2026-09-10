@@ -80,6 +80,12 @@
         <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
         <button id="fit-btn" class="m-button m-button--secondary" title="모든 노드가 보이도록 확대/이동을 되돌립니다.">Fit</button>
         <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
+        <button id="layout-mode-btn" class="m-button m-button--secondary" aria-pressed="false"
+          title="자동 정렬을 일시정지하면 force 시뮬레이션이 수동 배치를 덮어쓰지 않습니다.">정렬 일시정지</button>
+        <button id="unpin-all-btn" class="m-button m-button--secondary"
+          title="드래그로 고정한 모든 노드를 풀어 자동 정렬에 되돌립니다.">전체 고정 해제</button>
+        <button id="layout-reset-btn" class="m-button m-button--ghost"
+          title="저장된 배치를 지우고 서버 기본 레이아웃으로 되돌립니다.">현재 배치 초기화</button>
         <label for="auto-refresh-toggle" class="anchor-map-toolbar__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
           <input type="checkbox" id="auto-refresh-toggle" class="anchor-map-toolbar__checkbox">
           Auto Refresh
@@ -648,6 +654,7 @@
 
   <!-- Anchor Map 시각화 스크립트 -->
   <script src="/static/js/anchor-map-shared.js"></script>
+  <script src="/static/js/anchor-map-layout.js"></script>
   <script src="/static/js/anchor-map-render.js"></script>
   <script src="/static/js/anchor-map-search.js"></script>
   <script src="/static/js/anchor-map-data.js"></script>
