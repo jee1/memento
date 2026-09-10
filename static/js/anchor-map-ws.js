@@ -46,11 +46,16 @@
       const message = JSON.parse(event.data);
       if (message.type === 'anchor_map_update') {
         ns.debugAnchorMap('websocket-update', { hasData: Boolean(message.data) });
-        if (message.data) {
-          state.mapData = message.data;
-          ns.renderMap();
-          ns.updateAnchorList();
+        // 형태가 깨진 push 를 그대로 넣으면 normalizeMapData 가 nodes 를 [] 로 보정해
+        // "앵커가 없습니다"(빈 상태)로 그려진다 — 데이터 이상은 오류로 보여야 한다 (issue 949).
+        if (!ns.isMapDataShapeValid(message.data)) {
+          ns.debugAnchorMap('websocket-invalid-payload', { hasData: Boolean(message.data) });
+          ns.setMapStatusMessage('error', '실시간 맵 갱신 데이터가 올바르지 않습니다 — Refresh 로 다시 불러오세요');
+          return;
         }
+        state.mapData = ns.normalizeMapData(message.data);
+        ns.renderMap();
+        ns.updateAnchorList();
       } else if (message.type === 'ping') {
         state.websocket.send(JSON.stringify({ type: 'pong' }));
       }

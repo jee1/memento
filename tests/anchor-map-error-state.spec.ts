@@ -248,6 +248,183 @@ describe('issue #904 websocket failure paths (executable)', () => {
   });
 });
 
+describe('issue #949 websocket push normalization (executable)', () => {
+  type StatusCall = { kind: string | null; message?: string };
+
+  const statusCalls: StatusCall[] = [];
+
+  const wsState = {
+    autoRefreshInterval: null as ReturnType<typeof setInterval> | null,
+    websocket: null as unknown,
+    mapData: null as unknown,
+  };
+
+  const wsNs = {
+    state: wsState,
+    debugAnchorMap: () => undefined,
+    loadMapData: () => undefined,
+    getSelectedAgentId: () => 'default',
+    renderMap: vi.fn(),
+    updateAnchorList: vi.fn(),
+    setMapStatusMessage: (kind: string | null, message?: string) => {
+      statusCalls.push({ kind, message });
+    },
+  } as {
+    state: typeof wsState;
+    debugAnchorMap: (...args: unknown[]) => void;
+    normalizeMapData: (data: unknown) => Record<string, unknown>;
+    isMapDataShapeValid: (data: unknown) => boolean;
+    setMapStatusMessage: (kind: string | null, message?: string) => void;
+    handleWsMessage: (event: { data: string }) => void;
+    renderMap: ReturnType<typeof vi.fn>;
+    updateAnchorList: ReturnType<typeof vi.fn>;
+  };
+
+  beforeAll(() => {
+    (globalThis as Record<string, unknown>).__MEMENTO_ANCHOR_MAP__ = wsNs;
+    (globalThis as Record<string, unknown>).document = {
+      getElementById: () => null,
+      dispatchEvent: () => true,
+    };
+    // Do not stubGlobal('window') — shared/ws IIFEs bind to window when defined, which
+    // would detach from this globalThis namespace (and break later describe blocks).
+    new Function(readFileSync(join(process.cwd(), 'static/js/anchor-map-shared.js'), 'utf-8'))();
+    // shared.js overwrites debugAnchorMap with a localStorage-backed impl — restore the no-op stub.
+    wsNs.debugAnchorMap = () => undefined;
+    new Function(readFileSync(join(process.cwd(), 'static/js/anchor-map-ws.js'), 'utf-8'))();
+  });
+
+  beforeEach(() => {
+    statusCalls.length = 0;
+    wsState.autoRefreshInterval = null;
+    wsState.websocket = null;
+    wsState.mapData = null;
+    wsNs.renderMap.mockClear();
+    wsNs.updateAnchorList.mockClear();
+  });
+
+  afterEach(() => {
+    if (wsState.autoRefreshInterval) {
+      clearInterval(wsState.autoRefreshInterval);
+      wsState.autoRefreshInterval = null;
+    }
+  });
+
+  it('normalizes a websocket push through normalizeMapData before rendering', () => {
+    wsNs.handleWsMessage({
+      data: JSON.stringify({
+        type: 'anchor_map_update',
+        data: { agent_id: 'default', nodes: [{ id: 'm1' }] },
+      }),
+    });
+
+    const mapData = wsState.mapData as Record<string, unknown>;
+    expect(mapData.anchors).toEqual([]);
+    expect(mapData.links).toEqual([]);
+    expect(typeof mapData.timestamp).toBe('string');
+    expect(mapData.nodes).toEqual([{ id: 'm1' }]);
+    expect(wsNs.renderMap).toHaveBeenCalledTimes(1);
+    expect(wsNs.updateAnchorList).toHaveBeenCalledTimes(1);
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(0);
+  });
+
+  it('shows an in-map error instead of the empty state when the push has no nodes array', () => {
+    wsNs.handleWsMessage({
+      data: JSON.stringify({
+        type: 'anchor_map_update',
+        data: { agent_id: 'default', anchors: [], links: [] },
+      }),
+    });
+
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(1);
+    expect(statusCalls[0].message).toContain('실시간 맵 갱신 데이터가 올바르지 않습니다');
+    expect(statusCalls.filter((call) => call.kind === 'empty')).toHaveLength(0);
+  });
+
+  it('keeps the last good map data and does not re-render on a malformed push', () => {
+    wsState.mapData = {
+      agent_id: 'default',
+      anchors: [],
+      nodes: [{ id: 'keep-node' }],
+      links: [],
+      timestamp: '2026-09-10T00:00:00.000Z',
+    };
+
+    wsNs.handleWsMessage({
+      data: JSON.stringify({
+        type: 'anchor_map_update',
+        data: { agent_id: 'default', anchors: [], links: [] },
+      }),
+    });
+
+    expect((wsState.mapData as { nodes: Array<{ id: string }> }).nodes).toEqual([{ id: 'keep-node' }]);
+    expect(wsNs.renderMap).not.toHaveBeenCalled();
+    expect(wsNs.updateAnchorList).not.toHaveBeenCalled();
+  });
+
+  it('treats an anchor_map_update without data as an error, not as silence', () => {
+    wsNs.handleWsMessage({
+      data: JSON.stringify({ type: 'anchor_map_update' }),
+    });
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(1);
+
+    statusCalls.length = 0;
+    wsNs.handleWsMessage({
+      data: JSON.stringify({ type: 'anchor_map_update', data: null }),
+    });
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(1);
+  });
+
+  it('renders a valid empty map as the empty state, not as an error', () => {
+    wsNs.handleWsMessage({
+      data: JSON.stringify({
+        type: 'anchor_map_update',
+        data: {
+          agent_id: 'default',
+          anchors: [],
+          nodes: [],
+          links: [],
+          timestamp: '2026-09-10T00:00:00.000Z',
+        },
+      }),
+    });
+
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(0);
+    expect(wsNs.renderMap).toHaveBeenCalledTimes(1);
+    expect((wsState.mapData as { nodes: unknown[] }).nodes).toEqual([]);
+  });
+
+  it('passes a fully-formed push through unchanged', () => {
+    const payload = {
+      agent_id: 'default',
+      anchors: [{ id: 'a1' }],
+      nodes: [{ id: 'n1' }],
+      links: [{ source: 'n1', target: 'a1' }],
+      timestamp: '2026-09-10T12:00:00.000Z',
+    };
+
+    wsNs.handleWsMessage({
+      data: JSON.stringify({ type: 'anchor_map_update', data: payload }),
+    });
+
+    expect(wsState.mapData).toEqual(payload);
+    expect(wsNs.renderMap).toHaveBeenCalledTimes(1);
+    expect(wsNs.updateAnchorList).toHaveBeenCalledTimes(1);
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(0);
+  });
+
+  it('isMapDataShapeValid rejects payloads without a nodes array', () => {
+    expect(wsNs.isMapDataShapeValid(null)).toBe(false);
+    expect(wsNs.isMapDataShapeValid(undefined)).toBe(false);
+    expect(wsNs.isMapDataShapeValid('string')).toBe(false);
+    expect(wsNs.isMapDataShapeValid({})).toBe(false);
+    expect(wsNs.isMapDataShapeValid({ nodes: null })).toBe(false);
+    expect(wsNs.isMapDataShapeValid({ nodes: 'x' })).toBe(false);
+    expect(wsNs.isMapDataShapeValid({ nodes: [] })).toBe(true);
+    expect(wsNs.isMapDataShapeValid({ nodes: [{ id: 'a' }] })).toBe(true);
+  });
+});
+
 describe('issue #904 loadMapData failure while auto-refresh is active (AC3)', () => {
   type StatusCall = { kind: string | null; message?: string };
 

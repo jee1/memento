@@ -126,6 +126,16 @@ describe('static design contracts', () => {
     expect(wsSource).toContain("ns.setMapStatusMessage('error'");
   });
 
+  it('issue 949 websocket pushes go through the same normalization as the HTTP path', () => {
+    const wsSource = readStaticFile('static/js/anchor-map-ws.js');
+    const sharedSource = readStaticFile('static/js/anchor-map-shared.js');
+
+    expect(sharedSource).toContain('ns.isMapDataShapeValid');
+    expect(wsSource).toContain('ns.normalizeMapData(message.data)');
+    expect(wsSource).toContain('ns.isMapDataShapeValid(message.data)');
+    expect(wsSource).not.toContain('state.mapData = message.data');
+  });
+
   it('issue 874 anchor map drops the stub button, the duplicate load button, and the d3 CDN', () => {
     const renderSource = readStaticFile('static/js/anchor-map-render.js');
     const entrySource = readStaticFile('static/js/anchor-map.js');
