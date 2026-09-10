@@ -110,5 +110,8 @@
   ns.tryConnectWebSocket = tryConnectWebSocket;
   ns.resubscribeWebSocket = resubscribeWebSocket;
   ns.disconnectWebSocket = disconnectWebSocket;
+  // Exposed for unit tests that exercise failure branches directly (issue 904).
+  ns.handleWsMessage = handleWsMessage;
+  ns.fallbackToPolling = fallbackToPolling;
 
 })(typeof window !== 'undefined' ? window : globalThis);
