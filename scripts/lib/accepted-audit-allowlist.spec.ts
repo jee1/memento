@@ -282,4 +282,70 @@ describe('check-production-audit-fixable end-to-end (#942)', () => {
       expect(combined).toContain('left-pad');
     }
   });
+
+  // #942 review Finding 1: dev-lane major-only (`isSemVerMajor: true`) must
+  // classify as accepted and hit the allowlist gate — boolean-only fixtures
+  // leave this path untested.
+  it('exits 0 on --include-dev when major-only High is already allowlisted', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'audit-e2e-'));
+    tempDirs.push(dir);
+    const file = join(dir, 'major-ok.json');
+    writeFileSync(
+      file,
+      JSON.stringify(
+        validAuditReport({
+          ...CURRENT_ACCEPTED,
+          sharp: {
+            name: 'sharp',
+            severity: 'high',
+            fixAvailable: {
+              name: 'sharp',
+              version: '0.35.0',
+              isSemVerMajor: true,
+            },
+            via: [],
+            effects: [],
+            range: '*',
+            nodes: [],
+            isDirect: true,
+          },
+        }),
+      ),
+    );
+    const result = runGate(['--include-dev', file]);
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+  });
+
+  it('exits 1 on --include-dev when major-only High is not in the allowlist', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'audit-e2e-'));
+    tempDirs.push(dir);
+    const file = join(dir, 'major-unlisted.json');
+    writeFileSync(
+      file,
+      JSON.stringify(
+        validAuditReport({
+          ...CURRENT_ACCEPTED,
+          'left-pad': {
+            name: 'left-pad',
+            severity: 'high',
+            fixAvailable: {
+              name: 'left-pad',
+              version: '2.0.0',
+              isSemVerMajor: true,
+            },
+            via: [],
+            effects: [],
+            range: '*',
+            nodes: [],
+            isDirect: false,
+          },
+        }),
+      ),
+    );
+    const result = runGate(['--include-dev', file]);
+    const combined = `${result.stdout}\n${result.stderr}`;
+    expect(result.status, combined).toBe(1);
+    expect(combined).toMatch(/not in security\/accepted-audit\.json/);
+    expect(combined).toContain('left-pad');
+  });
 });
