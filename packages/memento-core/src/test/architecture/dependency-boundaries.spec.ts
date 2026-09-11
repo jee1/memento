@@ -62,8 +62,11 @@ const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 4;
 type ModuleEdgeKind = 'import' | 'export-from' | 'dynamic' | 'import-type';
 type ModuleEdge = { readonly spec: string; readonly kind: ModuleEdgeKind; readonly typeOnly: boolean };
 
-function collectModuleEdges(source: string, filePath: string): ModuleEdge[] {
-  const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+/** Virtual fileName for ts.createSourceFile — ScriptKind.TS is fixed; path does not affect parsing (#926 review). */
+const AST_VIRTUAL_FILE = 'virtual.ts';
+
+function collectModuleEdges(source: string): ModuleEdge[] {
+  const sourceFile = ts.createSourceFile(AST_VIRTUAL_FILE, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const edges: ModuleEdge[] = [];
 
   const visit = (node: ts.Node): void => {
@@ -115,8 +118,8 @@ async function collectDomainProductionFiles(dir: string): Promise<string[]> {
 }
 
 /** Boundary check counts every edge, type-only included (allowlist rationale에 `import type` 항목이 있음). */
-function findForbiddenImportSpecs(source: string, filePath: string, isForbidden: (spec: string) => boolean): string[] {
-  return collectModuleEdges(source, filePath).filter((e) => isForbidden(e.spec)).map((e) => e.spec);
+function findForbiddenImportSpecs(source: string, isForbidden: (spec: string) => boolean): string[] {
+  return collectModuleEdges(source).filter((e) => isForbidden(e.spec)).map((e) => e.spec);
 }
 
 function isInfrastructureOrServerSpec(spec: string): boolean {
@@ -147,8 +150,8 @@ function resolveRelativeImport(fromFile: string, spec: string): string | null {
  * Load-time module edges only. Dynamic `import()` is deliberately excluded:
  * it is evaluated lazily and cannot form a load-time cycle (#926).
  */
-function extractRuntimeSpecs(source: string, filePath: string): string[] {
-  return collectModuleEdges(source, filePath)
+function extractRuntimeSpecs(source: string): string[] {
+  return collectModuleEdges(source)
     .filter((e) => !e.typeOnly && (e.kind === 'import' || e.kind === 'export-from'))
     .map((e) => e.spec);
 }
@@ -160,7 +163,7 @@ async function findCyclesAmong(files: readonly string[]): Promise<string[][]> {
   for (const file of files) {
     const source = await readSource(file);
     const deps: string[] = [];
-    for (const spec of extractRuntimeSpecs(source, file)) {
+    for (const spec of extractRuntimeSpecs(source)) {
       const resolved = resolveRelativeImport(file, spec);
       if (resolved && fileSet.has(resolved)) {
         deps.push(resolved);
@@ -281,7 +284,7 @@ describe('dependency boundaries', () => {
 
     for (const relativePath of domainFiles) {
       const source = await readSource(relativePath);
-      const forbidden = findForbiddenImportSpecs(source, relativePath, (spec) => {
+      const forbidden = findForbiddenImportSpecs(source, (spec) => {
         const normalized = spec.replace(/\\/g, '/');
         return normalized.includes('/infrastructure/') || normalized.includes('infrastructure/');
       });
@@ -311,7 +314,7 @@ describe('dependency boundaries', () => {
 
     for (const relativePath of sharedFiles) {
       const source = await readSource(relativePath);
-      const forbidden = findForbiddenImportSpecs(source, relativePath, isInfrastructureOrServerSpec);
+      const forbidden = findForbiddenImportSpecs(source, isInfrastructureOrServerSpec);
       if (forbidden.length > 0) {
         offenders.push(relativePath);
       }
@@ -361,9 +364,10 @@ describe('dependency boundaries', () => {
       "  const { g } = await import('../../infrastructure/g.js');",
       '  return g;',
       '}',
+      "type H = import('../../infrastructure/h.js').Foo;",
     ].join('\n');
 
-    const hits = findForbiddenImportSpecs(source, 'domains/fixture.ts', (spec) => spec.includes('infrastructure/'));
+    const hits = findForbiddenImportSpecs(source, (spec) => spec.includes('infrastructure/'));
 
     expect(hits.sort()).toEqual([
       '../../infrastructure/a.js',
@@ -373,6 +377,7 @@ describe('dependency boundaries', () => {
       '../../infrastructure/e.js',
       '../../infrastructure/f.js',
       '../../infrastructure/g.js',
+      '../../infrastructure/h.js',
     ]);
   });
 
@@ -384,7 +389,7 @@ describe('dependency boundaries', () => {
 
     for (const relativePath of targets) {
       const source = await readSource(relativePath);
-      const hits = findForbiddenImportSpecs(source, relativePath, (spec) => spec.includes('infrastructure/'));
+      const hits = findForbiddenImportSpecs(source, (spec) => spec.includes('infrastructure/'));
       expect(hits, relativePath).toContain(
         '../../../infrastructure/database/factories/core-memory-repository.factory.js',
       );
@@ -398,8 +403,9 @@ describe('dependency boundaries', () => {
       "import { C } from './c.js';",
       "export { D } from './d.js';",
       "const e = await import('./e.js');",
+      "type F = import('./f.js').Foo;",
     ].join('\n');
 
-    expect(extractRuntimeSpecs(source, 'shared/fixture.ts').sort()).toEqual(['./c.js', './d.js']);
+    expect(extractRuntimeSpecs(source).sort()).toEqual(['./c.js', './d.js']);
   });
 });
