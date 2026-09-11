@@ -15,9 +15,11 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
  * spawn/parse failures exit non-zero. Valid schema + npm exit≠0 (vulns present)
  * still uses classification below — do not fail on status alone.
  *
- * Upstream-blocked ML transitive deps (no fix without force-override) are
- * logged as accepted — see docs/reference/{ko,en}/security.md. Do not add
- * npm overrides for onnxruntime-node / sharp / adm-zip.
+ * Upstream-blocked findings are accepted only when listed in
+ * security/accepted-audit.json (#942). Unlisted accepted items fail both
+ * lanes. Keep the allowlist in sync with docs/reference/{ko,en}/security.md
+ * Upstream-blocked table. Do not add npm overrides for onnxruntime-node /
+ * sharp / adm-zip.
  *
  * Usage:
  *   node scripts/check-production-audit-fixable.mjs
@@ -27,6 +29,11 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import {
+  findStaleAllowlistEntries,
+  findUnlistedAccepted,
+  loadAcceptedAuditAllowlist,
+} from './lib/accepted-audit-allowlist.js';
 import { assertValidProductionAuditReport } from './lib/production-audit-report.js';
 
 const PROD_FAIL_SEVERITIES = new Set(['critical', 'high', 'moderate']);
@@ -140,7 +147,27 @@ if (accepted.length > 0) {
   }
 }
 
+/** @type {Set<string>} */
+let allowlist;
+try {
+  allowlist = loadAcceptedAuditAllowlist();
+} catch (err) {
+  failLoad(err instanceof Error ? err.message : String(err));
+}
+
+const unlisted = findUnlistedAccepted(accepted, allowlist);
+const stale = findStaleAllowlistEntries(accepted, allowlist);
+
+if (stale.length > 0) {
+  console.log(
+    `Note: allowlisted but no longer reported in ${scope}: ${stale.join(', ')}`,
+  );
+}
+
+let failed = false;
+
 if (fixable.length > 0) {
+  failed = true;
   console.error(
     `FAIL: fixable ${[...failSeverities].join('/')} vulnerabilities remain in ${scope}:`,
   );
@@ -153,6 +180,22 @@ if (fixable.length > 0) {
       : '';
     console.error(`  - ${v.name} (${v.severity})${via ? ` via ${via}` : ''}`);
   }
+}
+
+if (unlisted.length > 0) {
+  failed = true;
+  console.error(
+    'FAIL: new upstream-blocked vulnerabilities not in security/accepted-audit.json:',
+  );
+  for (const v of unlisted) {
+    console.error(`  - ${v.name} (${v.severity})`);
+  }
+  console.error(
+    'Document them in docs/reference/{ko,en}/security.md and add them to the allowlist.',
+  );
+}
+
+if (failed) {
   process.exit(1);
 }
 

@@ -17,6 +17,7 @@
 
 ### Changed
 
+- **수용 audit 목록 게이트화** (#942): upstream-blocked(고칠 수 없는) High/Critical 을 `security/accepted-audit.json` 에 고정하고, 목록에 없는 항목이 나타나면 production·`--include-dev` 두 레인 모두 실패합니다(이전에는 stdout 로그만 남기고 통과). 목록과 `docs/reference/{ko,en}/security.md` Upstream-blocked 표의 동기화는 `scripts/lib/accepted-audit-allowlist.spec.ts` 가 집합 동일성으로 검증합니다.
 - **Migration run-scoped backup** (#851): `runMigrations` creates at most one pre-run DB snapshot for the whole batch (not one per version). Direct `runMigration` still backs up once per call. Retention cleanup runs once after that create. Fail-closed if the run backup fails before any `up`.
 - **log_rotation family expansion** (#852): batch job now cleans migration (`keepCount` default 500), docker-diagnostics (256 MiB budget), log-issue-monitor (trim jsonl / keep `state.json`), and triple-extraction (30d age). Env overrides: `LOG_ROTATION_*`. Job `details` additive; reports avoid absolute paths.
 - **Admin Jobs Dashboard Phase 3** (#834): `POST /admin/batch/run`의 `jobType` 허용 범위를 등록된 전 schedule job 이름으로 확대합니다(기존 3종 whitelist → runner registry 전체). 동일 job이 이미 실행 중이면 **409 Conflict**(`job already running`). `GET /admin/batch/runs/:runId/logs`, `POST /admin/batch/pause`, `POST /admin/batch/resume` 추가. `ADMIN_JOBS_READ_ONLY=true`면 쓰기 POST는 **403**, GET은 허용.

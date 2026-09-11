@@ -2,10 +2,11 @@
 
 HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰**, **레거시 단일 키**가 서로 다른 경로를 보호합니다. 대시보드·그래프는 쿠키 세션으로, programmatic MCP·quality API는 Bearer 토큰으로 나뉘므로, 배포 전에 어떤 표면을 어디에 노출할지 먼저 정한 뒤 아래 설정을 맞추면 됩니다.
 
-## Production dependency audit (#756 / #909)
+## Production dependency audit (#756 / #909 / #942)
 
 - **CI gate**: `.github/workflows/security-check.yml`가 두 레인을 돌립니다. ① production 레인 — `node scripts/check-production-audit-fixable.mjs` (`npm audit --omit=dev`), **fixable High/Moderate/Critical이 1건이라도 있으면 실패**. ② full-tree 레인 (#909) — 같은 스크립트에 `--include-dev`, dev 포함 전체 트리에서 **wanted 범위로 고칠 수 있는 High/Critical**만 실패시킵니다(major 업그레이드로만 풀리는 건은 제외). 두 레인 뒤의 `npm audit summary` 스텝이 전체 결과를 job summary 에 남깁니다.
 - **정책**: wanted 범위(minor/patch) 안에서만 해소합니다. `npm audit fix --force`·`overrides`로 ML 스택을 끌어올리지 않습니다 (`AGENTS.md` deps wanted-only).
+- **수용 목록 (#942)**: 게이트의 진실 원본은 `security/accepted-audit.json` 입니다. upstream-blocked(고칠 수 없는) 항목이 목록에 없으면 Security Check 가 실패합니다. 목록과 아래 Upstream-blocked 표는 `scripts/lib/accepted-audit-allowlist.spec.ts` 가 집합 동일성으로 검증하므로, 새 수용 항목은 **표와 JSON 을 같은 PR 에서** 고쳐야 합니다. full-tree 레인에서 major-only 수정만 있는 High 도 자동 통과가 아니라 이 목록에 올려야 통과합니다.
 - **Upstream-blocked (accepted risk, no force-override)** — 2026-09-09 재측정:
 
 | Package path | Advisory / notes | Why blocked | Tracking |
