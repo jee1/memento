@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   bulkUpdatePendingMemoryReviewCandidates,
   countPendingMemoryReviewCandidatesBySelector,
+  expandHomeDirPath,
   type BulkMemoryReviewCandidateAction,
   type BulkMemoryReviewCandidateSelector,
 } from '@memento/core';
@@ -122,12 +123,7 @@ function resolveDatabasePath(explicitPath: string | undefined): string {
   const configuredPath = explicitPath?.trim()
     || process.env.DB_PATH?.trim()
     || path.join(os.homedir(), '.memento', 'memory.db');
-  const expandedPath = configuredPath === '~'
-    ? os.homedir()
-    : configuredPath.startsWith('~/')
-      ? path.join(os.homedir(), configuredPath.slice(2))
-      : configuredPath;
-  return path.resolve(expandedPath);
+  return path.resolve(expandHomeDirPath(configuredPath));
 }
 
 function assertReviewQueueSchema(db: Database.Database): void {

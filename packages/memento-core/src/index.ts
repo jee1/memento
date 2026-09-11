@@ -56,7 +56,7 @@ export type {
 } from './domains/telemetry/repositories/telemetry-repository.js';
 
 // --- shared (설정·유틸·타입) re-export (서버 thin화용) ---
-export { mementoConfig, validateConfig } from './shared/config/index.js';
+export { mementoConfig, validateConfig, expandHomeDirPath } from './shared/config/index.js';
 export {
   isHttpBindHostRemotelyReachable,
   canonicalizeHttpBindHostForListen,

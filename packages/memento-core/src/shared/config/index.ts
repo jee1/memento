@@ -26,6 +26,8 @@ import {
   expandHomeDirPath
 } from './environment.js';
 
+export { expandHomeDirPath } from './environment.js';
+
 // 환경 변수 로드 (테스트 subprocess는 repo .env 유입 방지)
 if (process.env.NODE_ENV !== 'test') {
   config();

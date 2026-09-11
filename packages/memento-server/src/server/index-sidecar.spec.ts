@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { join } from 'node:path';
+import os from 'node:os';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '@memento/core';
 
@@ -7,10 +9,17 @@ const mocks = vi.hoisted(() => ({
   readInfo: vi.fn(), isAlive: vi.fn(), deleteInfo: vi.fn(), acquire: vi.fn(), release: vi.fn(),
   log: vi.fn(),
 }));
-vi.mock('@memento/core', () => ({
-  createMementoCore: mocks.createCore, closeDatabase: mocks.closeDatabase,
-  mementoConfig: { dbPath: '/tmp/sidecar-test.db' }, validateConfig: vi.fn(), getExposedTools: vi.fn(),
-}));
+vi.mock('@memento/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@memento/core')>();
+  return {
+    ...actual,
+    createMementoCore: mocks.createCore,
+    closeDatabase: mocks.closeDatabase,
+    mementoConfig: { dbPath: '/tmp/sidecar-test.db' },
+    validateConfig: vi.fn(),
+    getExposedTools: vi.fn(),
+  };
+});
 vi.mock('./http-server.js', () => ({ startServer: mocks.startHttp, closeHttpServer: mocks.closeHttp }));
 vi.mock('./server-info.js', () => ({
   readServerInfo: mocks.readInfo, isServerAlive: mocks.isAlive, deleteServerInfo: mocks.deleteInfo,
@@ -53,6 +62,7 @@ describe('stdio HTTP sidecar', () => {
   it.each([
     [undefined, '/tmp/sidecar-test.db'],
     ['/tmp/sidecar-override.db', '/tmp/sidecar-override.db'],
+    ['~/sidecar.db', join(os.homedir(), 'sidecar.db')],
   ])('shares the single initialized core with HTTP (DB_PATH=%s)', async (dbPath, expectedPath) => {
     vi.stubEnv('DB_PATH', dbPath);
     await __test.runHeavyInit();

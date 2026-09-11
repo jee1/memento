@@ -9,6 +9,7 @@ import {
   AgentContextRecallService,
   canonicalizeHttpBindHostForListen,
   createMementoCore,
+  expandHomeDirPath,
   formatHttpBindHostForUrl,
   getMementoHttpSecurityStartupViolationMessage,
   getVectorSearchEngine,
@@ -280,7 +281,7 @@ async function initializeCoreServices(): Promise<{
     return { database: db, services: serverServices };
   }
   const core = await createMementoCore({
-    dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
+    dbPath: expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath)
   });
   db = core.db;
   serverServices = core.services;
