@@ -506,3 +506,174 @@ describe('issue #904 loadMapData failure while auto-refresh is active (AC3)', ()
     expect(dataNs.renderMap).not.toHaveBeenCalled();
   });
 });
+
+describe('issue #954 HTTP 응답 형태 검증 (executable)', () => {
+  type StatusCall = { kind: string | null; message?: string };
+
+  const statusCalls: StatusCall[] = [];
+  let mapPayload: unknown = {
+    agent_id: 'default',
+    anchors: [],
+    nodes: [],
+    links: [],
+    timestamp: '2026-09-10T00:00:00.000Z',
+  };
+
+  const lastGoodMap = {
+    agent_id: 'default',
+    anchors: [] as unknown[],
+    nodes: [{ id: 'keep-node' }],
+    links: [] as unknown[],
+    timestamp: '2026-09-10T00:00:00.000Z',
+  };
+
+  const httpState = {
+    mapData: { ...lastGoodMap, nodes: [{ id: 'keep-node' }] } as Record<string, unknown> | null,
+  };
+
+  const httpNs = {
+    state: httpState,
+    debugAnchorMap: () => undefined,
+    renderMap: vi.fn(),
+    updateAnchorList: vi.fn(),
+    setMapStatusMessage: (kind: string | null, message?: string) => {
+      statusCalls.push({ kind, message });
+    },
+  } as {
+    state: typeof httpState;
+    debugAnchorMap: (...args: unknown[]) => void;
+    normalizeMapData: (data: unknown) => Record<string, unknown>;
+    isMapDataShapeValid: (data: unknown) => boolean;
+    setMapStatusMessage: (kind: string | null, message?: string) => void;
+    loadMapData: (options?: unknown) => Promise<void>;
+    renderMap: ReturnType<typeof vi.fn>;
+    updateAnchorList: ReturnType<typeof vi.fn>;
+  };
+
+  beforeAll(() => {
+    (globalThis as Record<string, unknown>).__MEMENTO_ANCHOR_MAP__ = httpNs;
+    (globalThis as Record<string, unknown>).document = {
+      getElementById: () => ({ value: 'default', options: [], innerHTML: '', appendChild: () => undefined }),
+      createElement: () => ({}),
+    };
+    // Do not stubGlobal('window') — shared/data IIFEs bind to window when defined.
+    new Function(readFileSync(join(process.cwd(), 'static/js/anchor-map-shared.js'), 'utf-8'))();
+    // shared.js overwrites debugAnchorMap with a localStorage-backed impl — restore the no-op stub.
+    httpNs.debugAnchorMap = () => undefined;
+    new Function(readFileSync(join(process.cwd(), 'static/js/anchor-map-data.js'), 'utf-8'))();
+  });
+
+  beforeEach(() => {
+    statusCalls.length = 0;
+    httpState.mapData = {
+      agent_id: 'default',
+      anchors: [],
+      nodes: [{ id: 'keep-node' }],
+      links: [],
+      timestamp: '2026-09-10T00:00:00.000Z',
+    };
+    httpNs.renderMap.mockClear();
+    httpNs.updateAnchorList.mockClear();
+    mapPayload = {
+      agent_id: 'default',
+      anchors: [],
+      nodes: [],
+      links: [],
+      timestamp: '2026-09-10T00:00:00.000Z',
+    };
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/api/anchors/agents')) {
+        return { ok: true, json: async () => ({ agents: [] }) };
+      }
+      return { ok: true, json: async () => mapPayload };
+    }));
+    (globalThis as Record<string, unknown>).mementoAdminFetch = undefined;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('T1: 200 OK + nodes 누락 → error, empty 아님', async () => {
+    mapPayload = { agent_id: 'default', anchors: [], links: [] };
+
+    await httpNs.loadMapData();
+
+    const errors = statusCalls.filter((call) => call.kind === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('맵 데이터를 불러오지 못했습니다');
+    expect(errors[0].message).toContain('형태가 올바르지 않습니다');
+    expect(statusCalls.filter((call) => call.kind === 'empty')).toHaveLength(0);
+  });
+
+  it('T2: 깨진 형태 → 마지막 정상 데이터 보존, render 미호출', async () => {
+    mapPayload = { agent_id: 'default', anchors: [], links: [] };
+
+    await httpNs.loadMapData();
+
+    expect((httpState.mapData as { nodes: Array<{ id: string }> }).nodes).toEqual([{ id: 'keep-node' }]);
+    expect(httpNs.renderMap).not.toHaveBeenCalled();
+    expect(httpNs.updateAnchorList).not.toHaveBeenCalled();
+  });
+
+  it('T3: nodes 가 배열 아니면 error', async () => {
+    for (const payload of [{ nodes: 'x' }, { nodes: null }]) {
+      statusCalls.length = 0;
+      mapPayload = payload;
+      await httpNs.loadMapData();
+      expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(1);
+    }
+  });
+
+  it('T4: body 가 객체 아니면 error', async () => {
+    for (const payload of [null, 'plain text', 42]) {
+      statusCalls.length = 0;
+      mapPayload = payload;
+      await httpNs.loadMapData();
+      expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(1);
+    }
+  });
+
+  it('T5: 정상 빈 맵은 여전히 빈 상태 경로 (error 아님)', async () => {
+    mapPayload = {
+      agent_id: 'default',
+      anchors: [],
+      nodes: [],
+      links: [],
+      timestamp: '2026-09-10T12:00:00.000Z',
+    };
+
+    await httpNs.loadMapData();
+
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(0);
+    expect(statusCalls.some((call) => call.kind === null)).toBe(true);
+    expect((httpState.mapData as { nodes: unknown[] }).nodes).toEqual([]);
+    expect(httpNs.renderMap).toHaveBeenCalledTimes(1);
+  });
+
+  it('T6: 정상 응답 회귀', async () => {
+    const payload = {
+      agent_id: 'default',
+      anchors: [{ id: 'a1' }],
+      nodes: [{ id: 'n1' }],
+      links: [{ source: 'n1', target: 'a1' }],
+      timestamp: '2026-09-10T12:00:00.000Z',
+    };
+    mapPayload = payload;
+
+    await httpNs.loadMapData();
+
+    expect(httpState.mapData).toEqual(payload);
+    expect(httpNs.renderMap).toHaveBeenCalledTimes(1);
+    expect(httpNs.updateAnchorList).toHaveBeenCalledTimes(1);
+    expect(statusCalls.filter((call) => call.kind === 'error')).toHaveLength(0);
+  });
+
+  it('T7: 깨진 응답이 오류 표시를 해제하지 않음 (kind===null 없음)', async () => {
+    mapPayload = { agent_id: 'default', anchors: [], links: [] };
+
+    await httpNs.loadMapData();
+
+    expect(statusCalls.some((call) => call.kind === null)).toBe(false);
+  });
+});
