@@ -7,20 +7,11 @@
  *
  * Stdout: JSON `{ ok: true, report }` — never prints absolute DB_PATH (FR-006).
  */
-import os from 'node:os';
-import path from 'node:path';
-import { isMain, openDb, parseArgs } from './lib/cli.js';
+import { isMain, openDb, parseArgs, resolveDbPath } from './lib/cli.js';
 import {
   DEFAULT_SAMPLE_LIMIT,
   buildKgTriplePredicateQualityReport,
 } from './lib/kg-triple-predicate-quality.js';
-
-function resolveDbPath(): string {
-  if (process.env.DB_PATH) {
-    return path.resolve(process.env.DB_PATH);
-  }
-  return path.join(os.homedir(), '.memento', 'data', 'memory.db');
-}
 
 function printHelp(): void {
   process.stdout.write(`Usage:

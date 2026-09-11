@@ -1,19 +1,10 @@
 #!/usr/bin/env node
-import { parseArgs, openDb, isMain } from './lib/cli.js';
+import { parseArgs, openDb, isMain, resolveDbPath } from './lib/cli.js';
 import {
   applyDimensionsZeroCleanup,
   buildDbResidueReport,
   previewDimensionsZeroCleanup,
 } from './lib/db-residue.js';
-import os from 'node:os';
-import path from 'node:path';
-
-function resolveDbPath(): string {
-  if (process.env.DB_PATH) {
-    return path.resolve(process.env.DB_PATH);
-  }
-  return path.join(os.homedir(), '.memento', 'data', 'memory.db');
-}
 
 function printHelp(): void {
   process.stdout.write(`Usage:

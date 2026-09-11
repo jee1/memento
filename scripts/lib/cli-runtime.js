@@ -13,7 +13,8 @@
  */
 
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import os from 'node:os';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs as parseNodeArgs } from 'node:util';
 
@@ -62,4 +63,26 @@ export function isMain(moduleUrl) {
 export function openDb(filename = ':memory:', options) {
   const Database = require('better-sqlite3');
   return new Database(filename, options);
+}
+
+/**
+ * DB_PATH 해석의 단일 규칙 (#962).
+ * - 선행 `~` / `~/` / `~\` 는 홈으로 확장한다 (core 의 expandHomeDirPath 와 같은 의미론).
+ * - 그 뒤 path.resolve 로 절대경로화한다 (상대경로 사용례 유지).
+ * - 미설정·공백이면 ~/.memento/data/memory.db.
+ * @param {string | undefined} [raw=process.env.DB_PATH]
+ * @returns {string} 절대 경로
+ */
+export function resolveDbPath(raw = process.env.DB_PATH) {
+  const value = raw?.trim();
+  if (!value) {
+    return join(os.homedir(), '.memento', 'data', 'memory.db');
+  }
+  if (value === '~') {
+    return os.homedir();
+  }
+  const expanded = value.startsWith('~/') || value.startsWith('~\\')
+    ? join(os.homedir(), value.slice(2))
+    : value;
+  return resolve(expanded);
 }
