@@ -48,6 +48,7 @@ jobs:
       # deps (onnxruntime-node / sharp / adm-zip via @huggingface/transformers)
       # are accepted and documented in docs/reference/{ko,en}/security.md —
       # do NOT add force overrides.
+      # 목록에 없는 upstream-blocked 항목이면 실패 — `security/accepted-audit.json` (#942)
       - name: Production npm audit
         run: node scripts/check-production-audit-fixable.mjs
 
@@ -55,6 +56,7 @@ jobs:
       # wanted(minor/patch) 범위에서 고칠 수 있는 High/Critical 이 남으면 실패한다.
       # dev moderate(vitest 4→5 major)는 wanted-only 정책상 게이트 대상이 아니다
       # (AGENTS.md deps) — 별도 이슈로 다룬다.
+      # 목록에 없는 upstream-blocked 항목이면 실패 — `security/accepted-audit.json` (#942)
       - name: Full npm audit (dev included)
         run: node scripts/check-production-audit-fixable.mjs --include-dev
 

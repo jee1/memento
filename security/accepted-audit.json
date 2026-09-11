@@ -1,0 +1,9 @@
+{
+  "note": "수용(upstream-blocked) audit 항목의 진실 원본. docs/reference/{ko,en}/security.md 의 Upstream-blocked 표와 반드시 동기화할 것 — scripts/lib/accepted-audit-allowlist.spec.ts 가 집합 동일성을 강제한다.",
+  "packages": [
+    "@huggingface/transformers",
+    "adm-zip",
+    "onnxruntime-node",
+    "sharp"
+  ]
+}

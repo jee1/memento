@@ -2,10 +2,11 @@
 
 The HTTP admin server uses **several trust surfaces at once**: cookie sessions for browser dashboards, scoped API tokens for programmatic MCP and quality endpoints, and a legacy single-key fallback when `MEMENTO_API_TOKENS` is unset. Before exposing Memento beyond loopback, decide which routes must be reachable and configure tokens and bind addresses accordingly.
 
-## Production dependency audit (#756 / #909)
+## Production dependency audit (#756 / #909 / #942)
 
 - **CI gate**: `.github/workflows/security-check.yml` runs two lanes. (1) Production — `node scripts/check-production-audit-fixable.mjs` (`npm audit --omit=dev`), **fails if any fixable High/Moderate/Critical** remains. (2) Full tree (#909) — the same script with `--include-dev`, failing only on **High/Critical fixable within wanted ranges** (findings that need a semver-major bump are excluded). A following `npm audit summary` step records the complete result in the job summary.
 - **Policy**: resolve only within wanted (minor/patch) ranges. Do not use `npm audit fix --force` or `overrides` to yank the ML stack (`AGENTS.md` wanted-only deps).
+- **Accepted allowlist (#942)**: the gate’s source of truth is `security/accepted-audit.json`. Upstream-blocked (unfixable) findings missing from that list fail Security Check. `scripts/lib/accepted-audit-allowlist.spec.ts` enforces set equality between the allowlist and the Upstream-blocked table below, so new acceptances must update **the table and the JSON in the same PR**. A High that is major-only in the full-tree lane also requires an allowlist entry — it does not auto-pass.
 - **Upstream-blocked (accepted risk, no force-override)** — remeasured 2026-09-09:
 
 | Package path | Advisory / notes | Why blocked | Tracking |
