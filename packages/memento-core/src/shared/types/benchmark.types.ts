@@ -65,10 +65,15 @@ export interface QueryWithCategory {
 
 export interface CategoryQualityReport {
   macro_category: MacroCategory;
+  /** 실제 채점된 쿼리 수 (GT 보유) */
   query_count: number;
+  /** queries.json에 작성된 쿼리 수 — query_count와 다르면 조용히 빠진 쿼리가 있다 (#934) */
+  authored_query_count: number;
   mrr: number;
   ndcg_at_5: number;
   ndcg_at_10: number;
+  /** top-10 결과 content 길이 평균 — 길이 편향의 무-GT 지표 (#934, 게이트 아님) */
+  mean_top10_content_length: number;
   /** MRR ≥ 0.5 게이트 통과 여부 */
   threshold_passed: boolean;
 }

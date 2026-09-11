@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   WALL_MS,
+  MIN_QUERY_COVERAGE,
   formatCategoryReportLine,
+  formatCoverageLine,
+  coverageBelowThreshold,
   formatEmbeddingRunHeader,
   anyCategoryFailsMrrGate,
 } from './quality-benchmark-category-report.js';
@@ -12,9 +15,11 @@ function sampleReport(over: Partial<CategoryQualityReport> = {}): CategoryQualit
   return {
     macro_category: 'episodic_recent',
     query_count: 3,
+    authored_query_count: 3,
     mrr: 0.6,
     ndcg_at_5: 0.7,
     ndcg_at_10: 0.65,
+    mean_top10_content_length: 412,
     threshold_passed: true,
     ...over,
   };
@@ -34,9 +39,84 @@ describe('quality-benchmark-category-report (T015)', () => {
     expect(WALL_MS).toBe(30_000);
   });
 
+  it('MIN_QUERY_COVERAGE는 1.0이다', () => {
+    expect(MIN_QUERY_COVERAGE).toBe(1.0);
+  });
+
   it('formatCategoryReportLine은 헤더 형식과 동일한 한 줄을 만든다', () => {
     const line = formatCategoryReportLine(sampleReport());
-    expect(line).toBe('episodic_recent | 3 | 0.6000 | 0.7000 | 0.6500 | PASS');
+    expect(line).toBe('episodic_recent | 3/3 | 0.6000 | 0.7000 | 0.6500 | 412 | PASS');
+  });
+
+  it('formatCoverageLine은 작성·채점 쿼리 수와 비율을 출력한다', () => {
+    const reports = [
+      sampleReport({ query_count: 4, authored_query_count: 4 }),
+      sampleReport({ macro_category: 'procedural', query_count: 6, authored_query_count: 6 }),
+      sampleReport({ macro_category: 'conceptual', query_count: 10, authored_query_count: 10 }),
+      sampleReport({ macro_category: 'tag_filter', query_count: 6, authored_query_count: 6 }),
+    ];
+    expect(formatCoverageLine(reports)).toBe(
+      'queries_authored=26 queries_scored=26 coverage=1.000'
+    );
+  });
+
+  it('채점 수가 작성 수보다 적으면 coverageBelowThreshold가 true', () => {
+    expect(
+      coverageBelowThreshold([
+        sampleReport({ query_count: 2, authored_query_count: 4 }),
+        sampleReport({ macro_category: 'procedural', query_count: 6, authored_query_count: 6 }),
+        sampleReport({ macro_category: 'conceptual', query_count: 10, authored_query_count: 10 }),
+        sampleReport({ macro_category: 'tag_filter', query_count: 6, authored_query_count: 6 }),
+      ])
+    ).toBe(true);
+  });
+
+  it('모든 쿼리가 채점되면 coverageBelowThreshold는 false', () => {
+    expect(coverageBelowThreshold(passingReports())).toBe(false);
+  });
+
+  it('authored 합이 0이면 coverageBelowThreshold는 true (fail-closed)', () => {
+    expect(coverageBelowThreshold([])).toBe(true);
+    expect(
+      coverageBelowThreshold([
+        sampleReport({ query_count: 0, authored_query_count: 0 }),
+      ])
+    ).toBe(true);
+  });
+
+  it('커버리지 미달은 MRR이 전부 통과해도 게이트를 실패시킨다', () => {
+    const reports = [
+      sampleReport({ query_count: 1, authored_query_count: 4 }),
+      sampleReport({ macro_category: 'procedural' }),
+      sampleReport({ macro_category: 'conceptual' }),
+      sampleReport({ macro_category: 'tag_filter' }),
+    ];
+    expect(anyCategoryFailsMrrGate(reports)).toBe(false);
+    expect(coverageBelowThreshold(reports)).toBe(true);
+    expect(anyCategoryFailsMrrGate(reports) || coverageBelowThreshold(reports)).toBe(true);
+  });
+
+  it('macro 전체 scored=0이어도 authored는 coverage 분모에 남는다 (#934)', () => {
+    // tag_filter 6건이 전부 빈 GT여도 리포트 행이 남아 coverage < 1.0
+    const reports = [
+      sampleReport({ macro_category: 'episodic_recent', query_count: 4, authored_query_count: 4 }),
+      sampleReport({ macro_category: 'procedural', query_count: 6, authored_query_count: 6 }),
+      sampleReport({ macro_category: 'conceptual', query_count: 10, authored_query_count: 10 }),
+      sampleReport({
+        macro_category: 'tag_filter',
+        query_count: 0,
+        authored_query_count: 6,
+        mrr: 0,
+        ndcg_at_5: 0,
+        ndcg_at_10: 0,
+        mean_top10_content_length: 0,
+        threshold_passed: false,
+      }),
+    ];
+    expect(formatCoverageLine(reports)).toBe(
+      'queries_authored=26 queries_scored=20 coverage=0.769'
+    );
+    expect(coverageBelowThreshold(reports)).toBe(true);
   });
 
   it('anyCategoryFailsMrrGate는 MRR이 임계 미만인 카테고리가 있으면 true', () => {

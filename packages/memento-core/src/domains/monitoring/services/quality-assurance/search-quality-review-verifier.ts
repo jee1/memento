@@ -100,6 +100,13 @@ export function verifyReviewableBenchmark(
         errors.push(`ground_truth_reviewed=true requires a ground truth entry for query ${query.query_id}`);
       } else if (matchingGroundTruths.length > 1) {
         errors.push(`ground_truth_reviewed=true requires exactly one ground truth entry for query ${query.query_id}`);
+      } else {
+        const groundTruth = matchingGroundTruths[0];
+        if (groundTruth && groundTruth.relevantIds.length === 0) {
+          errors.push(
+            `ground_truth_reviewed=true requires non-empty relevantIds for query: ${groundTruth.queryId}`
+          );
+        }
       }
     }
   }

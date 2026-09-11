@@ -13,6 +13,8 @@ export interface BenchmarkManifest {
   strict_ci: boolean;
   ground_truth_reviewed?: boolean;
   notes?: string[];
+  /** #934: snapshot vs synthetic composition (optional; source stays full-memory-snapshot) */
+  corpus_composition?: { snapshot: number; synthetic: number };
 }
 
 export interface BenchmarkQuery {

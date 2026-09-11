@@ -1,11 +1,11 @@
 [
   {
     "queryId": "HTTP 서버 에러 처리",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0001"]
   },
   {
     "queryId": "검색 품질 측정 방법",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0002"]
   },
   {
     "queryId": "DB 마이그레이션 절차",
@@ -60,7 +60,7 @@
   },
   {
     "queryId": "로그 및 모니터링",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0003"]
   },
   {
     "queryId": "하이브리드 검색에서 점수는 어떻게 합쳐지나",
@@ -84,19 +84,19 @@
   },
   {
     "queryId": "FTS5 마이그레이션 fallback",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0004"]
   },
   {
     "queryId": "PII 마스킹 로깅",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0005"]
   },
   {
     "queryId": "재시도 전략 RetryManager",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0006"]
   },
   {
     "queryId": "이 프로젝트의 코드 스타일과 린트 규칙은 무엇인가",
-    "relevantIds": []
+    "relevantIds": ["bench_syn_ans_0007"]
   },
   {
     "queryId": "이 모노레포는 어떤 순서로 빌드되나",
@@ -130,5 +130,17 @@
       "bench_mem_003425",
       "bench_mem_003440"
     ]
+  },
+  {
+    "queryId": "docker 컨테이너가 readonly database 로 죽은 원인",
+    "relevantIds": ["bench_syn_long_0005"]
+  },
+  {
+    "queryId": "마이그레이션 실패 시 롤백은 어떤 순서로 하나",
+    "relevantIds": ["bench_syn_long_0006"]
+  },
+  {
+    "queryId": "임베딩 provider를 바꾸려면 어떤 설정을 건드리나",
+    "relevantIds": ["bench_syn_long_0007"]
   }
 ]

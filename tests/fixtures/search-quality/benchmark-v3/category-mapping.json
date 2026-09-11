@@ -29,6 +29,9 @@
     "q_027": "database",
     "q_028": "embedding",
     "q_029": "search",
-    "q_030": "anchor"
+    "q_030": "anchor",
+    "q_031": "incident",
+    "q_032": "procedure",
+    "q_033": "config"
   }
 }

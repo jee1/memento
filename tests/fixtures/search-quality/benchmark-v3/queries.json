@@ -21,5 +21,8 @@
   { "query_id": "q_027", "query": "데이터베이스 초기화와 마이그레이션은 어떻게 하나", "language": "ko", "category": "database", "notes": "db:init db:migrate" },
   { "query_id": "q_028", "query": "OpenAI와 Gemini 임베딩 provider는 어떻게 다루나", "language": "ko", "category": "embedding", "notes": "multi provider" },
   { "query_id": "q_029", "query": "memory injection은 어떤 컨텍스트를 주입하나", "language": "ko", "category": "search", "notes": "query context" },
-  { "query_id": "q_030", "query": "anchor, pin, unpin은 각각 무엇에 쓰이나", "language": "ko", "category": "anchor", "notes": "scope search" }
+  { "query_id": "q_030", "query": "anchor, pin, unpin은 각각 무엇에 쓰이나", "language": "ko", "category": "anchor", "notes": "scope search" },
+  { "query_id": "q_031", "query": "docker 컨테이너가 readonly database 로 죽은 원인", "language": "ko", "category": "incident", "notes": "#934 장문 정답 — 긴 인시던트 리포트가 정답" },
+  { "query_id": "q_032", "query": "마이그레이션 실패 시 롤백은 어떤 순서로 하나", "language": "ko", "category": "procedure", "notes": "#934 장문 정답 — 긴 런북이 정답" },
+  { "query_id": "q_033", "query": "임베딩 provider를 바꾸려면 어떤 설정을 건드리나", "language": "ko", "category": "config", "notes": "#934 장문 정답 — 긴 설정 레퍼런스가 정답" }
 ]
