@@ -25,6 +25,9 @@ const MAPPING_PATH = join(BENCHMARK_DIR, 'category-mapping.json');
 /** 벽시계 상한 (SC-006) — 테스트에서 동일 값으로 검증 */
 export const WALL_MS = 30_000;
 
+/** #934: 작성된 쿼리는 전부 채점돼야 한다. 빈 relevantIds 추가 시 즉시 CI 실패 (fail-closed) */
+export const MIN_QUERY_COVERAGE = 1.0;
+
 const REQUIRED_MACRO_CATEGORIES: CategoryQualityReport['macro_category'][] = [
   'episodic_recent',
   'procedural',
@@ -32,9 +35,22 @@ const REQUIRED_MACRO_CATEGORIES: CategoryQualityReport['macro_category'][] = [
   'tag_filter',
 ];
 
+export function formatCoverageLine(reports: CategoryQualityReport[]): string {
+  const scored = reports.reduce((s, r) => s + r.query_count, 0);
+  const authored = reports.reduce((s, r) => s + r.authored_query_count, 0);
+  const coverage = authored > 0 ? scored / authored : 0;
+  return `queries_authored=${authored} queries_scored=${scored} coverage=${coverage.toFixed(3)}`;
+}
+
+export function coverageBelowThreshold(reports: CategoryQualityReport[]): boolean {
+  const scored = reports.reduce((s, r) => s + r.query_count, 0);
+  const authored = reports.reduce((s, r) => s + r.authored_query_count, 0);
+  return authored === 0 || scored / authored < MIN_QUERY_COVERAGE;
+}
+
 export function formatCategoryReportLine(r: CategoryQualityReport): string {
   const gate = r.threshold_passed ? 'PASS' : 'FAIL';
-  return `${r.macro_category} | ${r.query_count} | ${r.mrr.toFixed(4)} | ${r.ndcg_at_5.toFixed(4)} | ${r.ndcg_at_10.toFixed(4)} | ${gate}`;
+  return `${r.macro_category} | ${r.query_count}/${r.authored_query_count} | ${r.mrr.toFixed(4)} | ${r.ndcg_at_5.toFixed(4)} | ${r.ndcg_at_10.toFixed(4)} | ${r.mean_top10_content_length.toFixed(0)} | ${gate}`;
 }
 
 /** #905 contract: embedding_provider=<name> vector_dims=<n> */
@@ -60,8 +76,15 @@ async function main(): Promise<void> {
     const reports = await collector.collectCategoryMetrics(BENCHMARK_DIR, MAPPING_PATH);
 
     console.log(formatEmbeddingRunHeader(embeddingProvider, vectorDims));
-    console.log('macro_category | queries | MRR | NDCG@5 | NDCG@10 | MRR>=0.5');
-    const fail = anyCategoryFailsMrrGate(reports);
+    console.log(formatCoverageLine(reports));
+    console.log('macro_category | scored/authored | MRR | NDCG@5 | NDCG@10 | top10_len | MRR>=0.5');
+    const coverageFail = coverageBelowThreshold(reports);
+    const fail = anyCategoryFailsMrrGate(reports) || coverageFail;
+    if (coverageFail) {
+      console.error(
+        `Coverage below ${MIN_QUERY_COVERAGE}: ${formatCoverageLine(reports)} (empty relevantIds or missing GT)`
+      );
+    }
     for (const r of reports) {
       console.log(formatCategoryReportLine(r));
     }

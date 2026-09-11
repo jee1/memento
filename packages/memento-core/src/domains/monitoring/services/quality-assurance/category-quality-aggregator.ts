@@ -21,6 +21,17 @@ import {
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import { calculateMRR } from './search-metrics-collector.js';
 
+function meanTop10ContentLength(
+  items: Array<{ content?: string | null }>
+): number {
+  const top = items.slice(0, 10);
+  if (top.length === 0) {
+    return 0;
+  }
+  const sum = top.reduce((acc, item) => acc + (item.content?.length ?? 0), 0);
+  return sum / top.length;
+}
+
 export class CategoryQualityAggregator {
   constructor(private db: Database.Database) {}
 
@@ -87,8 +98,17 @@ export class CategoryQualityAggregator {
       }
     }
 
+    const authoredByMacro = new Map<MacroCategory, number>();
+    for (const q of queries) {
+      const macro = queryIdToMacro.get(q.query_id);
+      if (macro) {
+        authoredByMacro.set(macro, (authoredByMacro.get(macro) ?? 0) + 1);
+      }
+    }
+
     const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
     const queryResultsByQueryId = new Map<string, SearchResult[]>();
+    const top10LenByQueryId = new Map<string, number>();
 
     for (const gt of groundTruths) {
       const qrow = queries.find(q => q.query_id === gt.queryId);
@@ -103,6 +123,7 @@ export class CategoryQualityAggregator {
         score: item.finalScore
       }));
       queryResultsByQueryId.set(gt.queryId, mapped);
+      top10LenByQueryId.set(gt.queryId, meanTop10ContentLength(sr.items));
     }
 
     const ALL_MACROS: MacroCategory[] = [
@@ -133,6 +154,7 @@ export class CategoryQualityAggregator {
       let ndcg5 = 0;
       let ndcg10 = 0;
       const ndcgDenom = subsetGts.length;
+      let top10LenSum = 0;
       for (const gt of subsetGts) {
         const results = queryResultsByQueryId.get(gt.queryId);
         if (!results || results.length === 0) {
@@ -140,15 +162,18 @@ export class CategoryQualityAggregator {
         }
         ndcg5 += calculateNDCGAtK(results, gt.relevantIds, 5);
         ndcg10 += calculateNDCGAtK(results, gt.relevantIds, 10);
+        top10LenSum += top10LenByQueryId.get(gt.queryId) ?? 0;
       }
 
       const mrrVal = mrr;
       reports.push({
         macro_category: macro,
         query_count: subsetGts.length,
+        authored_query_count: authoredByMacro.get(macro) ?? 0,
         mrr: mrrVal,
         ndcg_at_5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
         ndcg_at_10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,
+        mean_top10_content_length: ndcgDenom > 0 ? top10LenSum / ndcgDenom : 0,
         threshold_passed: mrrVal >= MRR_THRESHOLD
       });
     }
