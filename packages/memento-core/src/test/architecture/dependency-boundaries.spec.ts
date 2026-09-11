@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const srcRoot = path.resolve(currentDir, '..', '..');
@@ -32,7 +33,8 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'domains/memory/semantic/semantic-memory-update-pipeline.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
   { path: 'domains/memory/semantic/semantic-memory-update-service.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
   { path: 'domains/memory/tools/feedback-tool.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
-  { path: 'domains/memory/recall/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
+  { path: 'domains/memory/recall/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite + createCoreMemoryRepository factory (dynamic) concrete until port injection' },
+  { path: 'domains/memory/remember/remember-tool-core.ts', rationale: 'createCoreMemoryRepository factory via dynamic import — concrete until port injection (#926)' },
   { path: 'domains/memory/remember/remember-tool-vault.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
   { path: 'domains/relation/services/triple-extraction/triple-extraction-service.ts', rationale: 'tripleExtractionLogger infra logger' },
   { path: 'domains/relation/tools/extract-triples-tool.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
@@ -49,15 +51,44 @@ const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [
 ] as const;
 
 /** Allowlist growth guard — bump only with explicit review (#749 / FR-018). */
-const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 18;
+const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 19; // 18 → 19 (#926: dynamic import now detected)
 const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 4;
 
-const IMPORT_FROM_RE =
-  /^\s*import\s+(?:type\s+)?(?:[\w*{}\s,$]+)\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/;
+/**
+ * Module edges collected via the TypeScript AST (#926).
+ * Covers static / dynamic / side-effect imports, `export ... from`, and `import('...')` type nodes —
+ * all of which the previous line-based regex missed.
+ */
+type ModuleEdgeKind = 'import' | 'export-from' | 'dynamic' | 'import-type';
+type ModuleEdge = { readonly spec: string; readonly kind: ModuleEdgeKind; readonly typeOnly: boolean };
 
-/** Runtime module edges only (import / export-from). Skips `import type` and `export type`. */
-const RUNTIME_FROM_RE =
-  /^\s*(?:import(?!\s+type\b)|export(?!\s+type\b))\s+(?:[\w*{}\s,$]+)\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/;
+/** Virtual fileName for ts.createSourceFile — ScriptKind.TS is fixed; path does not affect parsing (#926 review). */
+const AST_VIRTUAL_FILE = 'virtual.ts';
+
+function collectModuleEdges(source: string): ModuleEdge[] {
+  const sourceFile = ts.createSourceFile(AST_VIRTUAL_FILE, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const edges: ModuleEdge[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      edges.push({ spec: node.moduleSpecifier.text, kind: 'import', typeOnly: node.importClause?.isTypeOnly === true });
+    } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      edges.push({ spec: node.moduleSpecifier.text, kind: 'export-from', typeOnly: node.isTypeOnly });
+    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      const arg = node.arguments[0];
+      // Non-literal specifiers (template/variable) are unresolvable statically — none exist today.
+      if (arg && ts.isStringLiteral(arg)) {
+        edges.push({ spec: arg.text, kind: 'dynamic', typeOnly: false });
+      }
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+      edges.push({ spec: node.argument.literal.text, kind: 'import-type', typeOnly: true });
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return edges;
+}
 
 async function readSource(relativePath: string): Promise<string> {
   return await readFile(path.join(srcRoot, relativePath), 'utf8');
@@ -86,19 +117,9 @@ async function collectDomainProductionFiles(dir: string): Promise<string[]> {
   return collectProductionTsFiles(dir);
 }
 
+/** Boundary check counts every edge, type-only included (allowlist rationale에 `import type` 항목이 있음). */
 function findForbiddenImportSpecs(source: string, isForbidden: (spec: string) => boolean): string[] {
-  const hits: string[] = [];
-  for (const line of source.split('\n')) {
-    const match = IMPORT_FROM_RE.exec(line);
-    if (!match) {
-      continue;
-    }
-    const spec = match[1];
-    if (isForbidden(spec)) {
-      hits.push(spec);
-    }
-  }
-  return hits;
+  return collectModuleEdges(source).filter((e) => isForbidden(e.spec)).map((e) => e.spec);
 }
 
 function isInfrastructureOrServerSpec(spec: string): boolean {
@@ -125,29 +146,14 @@ function resolveRelativeImport(fromFile: string, spec: string): string | null {
   return resolved;
 }
 
-function extractRuntimeFromSpecs(source: string): string[] {
-  const specs: string[] = [];
-  for (const line of source.split('\n')) {
-    const match = RUNTIME_FROM_RE.exec(line);
-    if (match) {
-      specs.push(match[1]);
-    }
-  }
-
-  // Multiline `import { ... } from` / `export { ... } from` (not type-only).
-  const multilineRe =
-    /(?:^|\n)\s*(?:import(?!\s+type\b)|export(?!\s+type\b))\s+(?:type\s+)?\{[\s\S]*?\}\s+from\s+['"]([^'"]+)['"]/g;
-  for (const match of source.matchAll(multilineRe)) {
-    const full = match[0];
-    if (/\bexport\s+type\b|\bimport\s+type\b/.test(full)) {
-      continue;
-    }
-    if (!specs.includes(match[1])) {
-      specs.push(match[1]);
-    }
-  }
-
-  return specs;
+/**
+ * Load-time module edges only. Dynamic `import()` is deliberately excluded:
+ * it is evaluated lazily and cannot form a load-time cycle (#926).
+ */
+function extractRuntimeSpecs(source: string): string[] {
+  return collectModuleEdges(source)
+    .filter((e) => !e.typeOnly && (e.kind === 'import' || e.kind === 'export-from'))
+    .map((e) => e.spec);
 }
 
 async function findCyclesAmong(files: readonly string[]): Promise<string[][]> {
@@ -157,7 +163,7 @@ async function findCyclesAmong(files: readonly string[]): Promise<string[][]> {
   for (const file of files) {
     const source = await readSource(file);
     const deps: string[] = [];
-    for (const spec of extractRuntimeFromSpecs(source)) {
+    for (const spec of extractRuntimeSpecs(source)) {
       const resolved = resolveRelativeImport(file, spec);
       if (resolved && fileSet.has(resolved)) {
         deps.push(resolved);
@@ -342,5 +348,64 @@ describe('dependency boundaries', () => {
 
     const cycles = await findCyclesAmong(cycleFiles);
     expect(cycles, `runtime cycles: ${JSON.stringify(cycles)}`).toEqual([]);
+  });
+
+  it('detects dynamic import, re-export, multiline and side-effect edges (#926)', () => {
+    const source = [
+      "import { A } from '../../infrastructure/a.js';",
+      'import {',
+      '  B,',
+      "} from '../../infrastructure/b.js';",
+      "export { C } from '../../infrastructure/c.js';",
+      "export * from '../../infrastructure/d.js';",
+      "import '../../infrastructure/e.js';",
+      "import type { F } from '../../infrastructure/f.js';",
+      'async function load() {',
+      "  const { g } = await import('../../infrastructure/g.js');",
+      '  return g;',
+      '}',
+      "type H = import('../../infrastructure/h.js').Foo;",
+    ].join('\n');
+
+    const hits = findForbiddenImportSpecs(source, (spec) => spec.includes('infrastructure/'));
+
+    expect(hits.sort()).toEqual([
+      '../../infrastructure/a.js',
+      '../../infrastructure/b.js',
+      '../../infrastructure/c.js',
+      '../../infrastructure/d.js',
+      '../../infrastructure/e.js',
+      '../../infrastructure/f.js',
+      '../../infrastructure/g.js',
+      '../../infrastructure/h.js',
+    ]);
+  });
+
+  it('detects the two known dynamic infrastructure imports in domain files (#926)', async () => {
+    const targets = [
+      'domains/memory/recall/recall-tool-direct.ts',
+      'domains/memory/remember/remember-tool-core.ts',
+    ] as const;
+
+    for (const relativePath of targets) {
+      const source = await readSource(relativePath);
+      const hits = findForbiddenImportSpecs(source, (spec) => spec.includes('infrastructure/'));
+      expect(hits, relativePath).toContain(
+        '../../../infrastructure/database/factories/core-memory-repository.factory.js',
+      );
+    }
+  });
+
+  it('keeps type-only and dynamic edges out of the runtime cycle graph (#926)', () => {
+    const source = [
+      "import type { A } from './a.js';",
+      "export type { B } from './b.js';",
+      "import { C } from './c.js';",
+      "export { D } from './d.js';",
+      "const e = await import('./e.js');",
+      "type F = import('./f.js').Foo;",
+    ].join('\n');
+
+    expect(extractRuntimeSpecs(source).sort()).toEqual(['./c.js', './d.js']);
   });
 });
