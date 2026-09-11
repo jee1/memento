@@ -1240,7 +1240,7 @@ describe('QualityMetricsCollector', () => {
   });
 
   describe('collectCategoryMetrics', () => {
-    it('relevantIds가 없는 쿼리는 데이터 부족으로 집계에서 제외한다', async () => {
+    it('모든 authored 쿼리가 채점되어 macro별 query_count가 채워진다', async () => {
       const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
       const reports = await collector.collectCategoryMetrics(
         benchmarkDir,
@@ -1248,11 +1248,15 @@ describe('QualityMetricsCollector', () => {
       );
 
       expect(reports.map(({ macro_category, query_count }) => [macro_category, query_count])).toEqual([
-        ['episodic_recent', 1],
-        ['procedural', 4],
-        ['conceptual', 9],
-        ['tag_filter', 2],
+        ['episodic_recent', 4],
+        ['procedural', 6],
+        ['conceptual', 10],
+        ['tag_filter', 6],
       ]);
+      expect(reports.every((r) => r.query_count === r.authored_query_count)).toBe(true);
+      // 빈 테스트 DB에서는 검색 히트가 없어 길이가 0일 수 있음 — 필드 존재·비음수만 고정
+      expect(reports.every((r) => typeof r.mean_top10_content_length === 'number')).toBe(true);
+      expect(reports.every((r) => r.mean_top10_content_length >= 0)).toBe(true);
     });
 
     it('category-mapping에 없는 category면 에러', async () => {
