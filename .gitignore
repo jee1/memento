@@ -174,4 +174,7 @@ artifacts/longmemeval-s/
 graphify-out/
 /docker-compose.override.yml
 
+# #962: DB_PATH 의 ~ 가 확장되지 않아 생겼던 저장소 내 잘못된 홈 트리 (재발 방지)
+/~/
+
 tmp/tune-weights/
