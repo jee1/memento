@@ -21,7 +21,8 @@ import {
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import { calculateMRR } from './search-metrics-collector.js';
 
-function meanTop10ContentLength(
+/** #934: top-10 content 길이 평균 — 길이 편향 무-GT 지표 (게이트 아님) */
+export function meanTop10ContentLength(
   items: Array<{ content?: string | null }>
 ): number {
   const top = items.slice(0, 10);
@@ -137,8 +138,23 @@ export class CategoryQualityAggregator {
 
     for (const macro of ALL_MACROS) {
       const subsetGts = groundTruths.filter(gt => queryIdToMacro.get(gt.queryId) === macro);
+      const authored = authoredByMacro.get(macro) ?? 0;
+      // #934: empty scored bucket still emits a row so coverage denominator keeps authored count
       if (subsetGts.length === 0) {
-        logger.warn('Ground Truth 없는 카테고리는 품질 측정에서 제외', { macro_category: macro });
+        logger.warn('Ground Truth 없는 카테고리 — scored=0으로 리포트에 유지', {
+          macro_category: macro,
+          authored_query_count: authored,
+        });
+        reports.push({
+          macro_category: macro,
+          query_count: 0,
+          authored_query_count: authored,
+          mrr: 0,
+          ndcg_at_5: 0,
+          ndcg_at_10: 0,
+          mean_top10_content_length: 0,
+          threshold_passed: false,
+        });
         continue;
       }
       const subMap = new Map<string, SearchResult[]>();
@@ -169,7 +185,7 @@ export class CategoryQualityAggregator {
       reports.push({
         macro_category: macro,
         query_count: subsetGts.length,
-        authored_query_count: authoredByMacro.get(macro) ?? 0,
+        authored_query_count: authored,
         mrr: mrrVal,
         ndcg_at_5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
         ndcg_at_10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,

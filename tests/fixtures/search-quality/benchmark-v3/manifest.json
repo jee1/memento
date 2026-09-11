@@ -1,18 +1,18 @@
 {
   "benchmark_version": "v3",
   "created_at": "2026-03-18T10:16:43.277Z",
-  "corpus_size": 3457,
+  "corpus_size": 3461,
   "query_count": 26,
   "ground_truth_count": 26,
   "source": "full-memory-snapshot",
   "labeling_policy": "binary-human-labeled",
   "strict_ci": true,
   "ground_truth_reviewed": true,
-  "corpus_composition": { "snapshot": 3440, "synthetic": 17 },
+  "corpus_composition": { "snapshot": 3440, "synthetic": 21 },
   "notes": [
     "Exported from current memory_item snapshot",
     "Human-labeled queries and ground truth must be added separately",
     "Set ground_truth_reviewed=true only after manual review is complete",
-    "#934: appended 17 synthetic documents (bench_syn_*) to cover the >5,000-character range absent from the 2026-03-18 snapshot"
+    "#934: appended 21 synthetic documents (bench_syn_*) including near-clone long distractors for length-bias sweep"
   ]
 }

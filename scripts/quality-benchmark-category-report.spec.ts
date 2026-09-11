@@ -96,6 +96,29 @@ describe('quality-benchmark-category-report (T015)', () => {
     expect(anyCategoryFailsMrrGate(reports) || coverageBelowThreshold(reports)).toBe(true);
   });
 
+  it('macro 전체 scored=0이어도 authored는 coverage 분모에 남는다 (#934)', () => {
+    // tag_filter 6건이 전부 빈 GT여도 리포트 행이 남아 coverage < 1.0
+    const reports = [
+      sampleReport({ macro_category: 'episodic_recent', query_count: 4, authored_query_count: 4 }),
+      sampleReport({ macro_category: 'procedural', query_count: 6, authored_query_count: 6 }),
+      sampleReport({ macro_category: 'conceptual', query_count: 10, authored_query_count: 10 }),
+      sampleReport({
+        macro_category: 'tag_filter',
+        query_count: 0,
+        authored_query_count: 6,
+        mrr: 0,
+        ndcg_at_5: 0,
+        ndcg_at_10: 0,
+        mean_top10_content_length: 0,
+        threshold_passed: false,
+      }),
+    ];
+    expect(formatCoverageLine(reports)).toBe(
+      'queries_authored=26 queries_scored=20 coverage=0.769'
+    );
+    expect(coverageBelowThreshold(reports)).toBe(true);
+  });
+
   it('anyCategoryFailsMrrGate는 MRR이 임계 미만인 카테고리가 있으면 true', () => {
     expect(anyCategoryFailsMrrGate(passingReports())).toBe(false);
     expect(
