@@ -87,7 +87,14 @@
       const response = await fetchFn('/api/anchors/map?agent_id=' + encodeURIComponent(agentId));
       if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
 
-      const newMapData = ns.normalizeMapData(await response.json());
+      const payload = await response.json();
+      // 200 OK 여도 형태가 깨져 있으면 normalizeMapData 가 nodes 를 [] 로 보정해
+      // "앵커가 없습니다"(빈 상태)로 그려진다 — 데이터 이상은 오류로 보여야 한다 (issue 954).
+      if (!ns.isMapDataShapeValid(payload)) {
+        throw new Error('맵 데이터 형태가 올바르지 않습니다 (nodes 배열 없음)');
+      }
+
+      const newMapData = ns.normalizeMapData(payload);
       ns.setMapStatusMessage(null);   // 성공하면 내용이 그대로여도 오류 표시를 걷는다 (I3)
       const hasChanged = hasMapDataChanged(state.mapData, newMapData);
 

@@ -136,6 +136,14 @@ describe('static design contracts', () => {
     expect(wsSource).not.toContain('state.mapData = message.data');
   });
 
+  it('issue 954 the HTTP load path validates shape before normalizing', () => {
+    const dataSource = readStaticFile('static/js/anchor-map-data.js');
+
+    expect(dataSource).toContain('ns.isMapDataShapeValid(');
+    // 검증 없이 바로 정규화하던 형태로 되돌아가지 않는다
+    expect(dataSource).not.toContain('ns.normalizeMapData(await response.json())');
+  });
+
   it('issue 874 anchor map drops the stub button, the duplicate load button, and the d3 CDN', () => {
     const renderSource = readStaticFile('static/js/anchor-map-render.js');
     const entrySource = readStaticFile('static/js/anchor-map.js');
