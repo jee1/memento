@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 const NIGHTLY_SUFFIX = '.nightly.spec.ts';
 const NIGHTLY_SPECS = [
   'packages/memento-core/src/domains/memory/services/__tests__/memory-embedding-service.nightly.spec.ts',
+  'packages/memento-core/src/domains/monitoring/services/quality-assurance/long-distractor-reach.nightly.spec.ts',
   'packages/memento-core/src/infrastructure/database/database-lock-scenarios.nightly.spec.ts',
   'packages/memento-core/src/infrastructure/database/database-performance.nightly.spec.ts',
   'packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.nightly.spec.ts',
