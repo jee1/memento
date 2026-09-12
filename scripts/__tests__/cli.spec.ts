@@ -70,11 +70,14 @@ describe('resolveDbPath (#962)', () => {
 
   it('defaults to ~/.memento/data/memory.db when unset', () => {
     vi.stubEnv('HOME', fakeHome);
-    expect(resolveDbPath(undefined)).toBe(join(fakeHome, '.memento', 'data', 'memory.db'));
+    // CI/vitest may set DB_PATH; explicit undefined still hits default param = env
+    vi.stubEnv('DB_PATH', '');
+    expect(resolveDbPath()).toBe(join(fakeHome, '.memento', 'data', 'memory.db'));
   });
 
   it('treats whitespace-only values as unset', () => {
     vi.stubEnv('HOME', fakeHome);
+    vi.stubEnv('DB_PATH', '');
     expect(resolveDbPath('   ')).toBe(join(fakeHome, '.memento', 'data', 'memory.db'));
   });
 
