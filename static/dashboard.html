@@ -27,7 +27,7 @@
     <header class="dashboard-header m-header">
       <div class="dashboard-header-top">
         <div class="dashboard-title-group">
-          <h1>🎯 Memento Dashboard</h1>
+          <h1>Memento Dashboard</h1>
           <p class="dashboard-subtitle">Sign in once to use the dashboard with the browser session cookie.</p>
         </div>
         <section class="dashboard-auth-panel" aria-label="Dashboard session">
@@ -379,17 +379,19 @@
           <button type="button" id="jobs-refresh-btn" class="m-button m-button--secondary">Refresh</button>
         </header>
         <p id="jobs-status-line" class="jobs-status" aria-live="polite"></p>
-        <div id="jobs-error" class="jobs-banner jobs-banner--error hidden" role="alert"></div>
+        <div id="jobs-loading" class="m-loading hidden" aria-live="polite">Loading jobs…</div>
+        <div id="jobs-error" class="m-error hidden" role="alert"></div>
         <p id="jobs-health-summary" class="jobs-health" aria-live="polite"></p>
         <section class="jobs-section" aria-labelledby="jobs-schedule-heading">
           <h3 id="jobs-schedule-heading">Schedule</h3>
           <p class="jobs-disclaimer">Click a row to load its durable run timeline below. Writes require confirmation.</p>
+          <div id="jobs-schedule-empty" class="m-empty hidden">No scheduled jobs.</div>
           <div class="jobs-actions" id="jobs-actions">
             <button type="button" id="jobs-pause-btn" class="m-button m-button--secondary" disabled>Pause</button>
             <button type="button" id="jobs-resume-btn" class="m-button m-button--secondary" disabled>Resume</button>
             <button type="button" id="jobs-run-now-btn" class="m-button m-button--secondary" disabled>Run now</button>
           </div>
-          <div class="jobs-table-wrap">
+          <div id="jobs-schedule-table-wrap" class="jobs-table-wrap">
             <table id="jobs-schedule-table" class="jobs-table">
               <thead>
                 <tr>

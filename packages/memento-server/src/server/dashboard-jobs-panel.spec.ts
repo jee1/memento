@@ -91,7 +91,10 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
 
   el('jobs-refresh-btn');
   el('jobs-status-line');
+  el('jobs-loading');
   el('jobs-error');
+  el('jobs-schedule-empty');
+  el('jobs-schedule-table-wrap');
   el('jobs-schedule-tbody', {
     addEventListener: vi.fn((event: string, handler: (event: unknown) => void) => {
       if (event === 'click') {
@@ -280,6 +283,16 @@ describe('dashboard jobs panel (#832)', () => {
     for (const name of JOBS_PANEL_SCRIPTS) {
       expect(dashboardHtml).toContain(`/static/js/${name}`);
     }
+  });
+
+  it('Jobs panel uses shared m-empty / m-loading / m-error primitives (#965)', () => {
+    expect(dashboardHtml).toContain('id="jobs-loading" class="m-loading hidden"');
+    expect(dashboardHtml).toContain('id="jobs-error" class="m-error hidden"');
+    expect(dashboardHtml).toContain('id="jobs-schedule-empty" class="m-empty hidden"');
+    expect(dashboardHtml).not.toContain('jobs-banner');
+    const panelJs = readJobsPanelSources();
+    expect(panelJs).toContain('setLoading');
+    expect(panelJs).toContain('jobs-schedule-empty');
   });
 
   it('dashboard.html registers durable job_run timeline markup and disclaimer (#833)', () => {

@@ -46,21 +46,21 @@
 
   ns.renderSchedule = function (jobs) {
     const tbody = ns.$('jobs-schedule-tbody');
+    const empty = ns.$('jobs-schedule-empty');
+    const tableWrap = ns.$('jobs-schedule-table-wrap');
     if (!tbody) {
       return;
     }
     ns.clearNode(tbody);
     const list = Array.isArray(jobs) ? jobs : [];
     if (list.length === 0) {
-      const row = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 7;
-      td.textContent = 'No scheduled jobs.';
-      row.appendChild(td);
-      tbody.appendChild(row);
+      ns.setHidden(empty, false);
+      ns.setHidden(tableWrap, true);
       ns.syncActionButtons();
       return;
     }
+    ns.setHidden(empty, true);
+    ns.setHidden(tableWrap, false);
     list.forEach(function (job) {
       const row = document.createElement('tr');
       row.dataset.jobName = job.name || '';

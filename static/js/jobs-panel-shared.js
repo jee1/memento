@@ -75,6 +75,11 @@
     }
   };
 
+  ns.setLoading = function (loading) {
+    const el = ns.$('jobs-loading');
+    ns.setHidden(el, !loading);
+  };
+
   /** Issue #833: durable job_run timeline URL, optionally filtered by job name. */
   ns.buildRunsUrl = function (jobName) {
     const limit = 'limit=50';
