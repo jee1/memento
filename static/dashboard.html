@@ -52,13 +52,22 @@
     </header>
 
     <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
-      <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
-      <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Health</button>
-      <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
-      <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
-      <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">Jobs</button>
-      <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
-      <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
+      <div class="m-nav-group session-only" role="presentation">
+        <span class="m-nav-group__label" aria-hidden="true">Spatial</span>
+        <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
+        <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Health</button>
+        <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
+      </div>
+      <div class="m-nav-group session-only" role="presentation">
+        <span class="m-nav-group__label" aria-hidden="true">Ops</span>
+        <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+        <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">Jobs</button>
+        <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
+      </div>
+      <div class="m-nav-group" role="presentation">
+        <span class="m-nav-group__label" aria-hidden="true">Learn</span>
+        <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
+      </div>
     </div>
 
     
