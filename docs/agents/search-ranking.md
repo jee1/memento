@@ -44,7 +44,7 @@ combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeig
 effective_similarity = cosine_similarity × (len / (len + k))
 ```
 
-`k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다. #934 이전 nightly 픽스처에는 5,000자 초과 문서가 없어 길이 편향을 관측할 수 없었고, minilm 벤치마크의 임베딩 지평선(약 1,024자)과 달리 감쇠는 전체 `content.length`를 씁니다 — 계측기는 합성 장문 코퍼스와 `top10_len` 리포트로 그 괴리를 보이게 합니다.
+`k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다. #934 이전 nightly 픽스처에는 5,000자 초과 문서가 없어 길이 편향을 관측할 수 없었고, minilm 벤치마크의 임베딩 지평선(약 1,024자)과 달리 감쇠는 전체 `content.length`를 씁니다 — 계측기는 합성 장문 코퍼스와 `top10_len` 리포트로 그 괴리를 보이게 합니다. #961: `npm run quality -- benchmark length-decay-sweep` 으로 k×arm×subset 스윕과 `long10pct`(>2,000자 top-10 점유율)를 재실행 가능하게 진단합니다(게이트 아님; arm=`vector_dom`은 실효 vector≈0.8/text≈0.2).
 
 ## 런타임 가중치 재로드 (Issue #667)
 

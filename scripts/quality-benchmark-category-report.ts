@@ -10,11 +10,14 @@ import { isMain } from './lib/cli.js';
  * 시드·검색 provider는 EMBEDDING_PROVIDER(unset→minilm)를 따른다(#905).
  */
 
+import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { closeDatabase, initializeDatabase } from '@memento/core';
 import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import { QualityMetricsCollector } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
 import type { CategoryQualityReport } from '../packages/memento-core/src/shared/types/benchmark.types.js';
+import { resolveBenchmarkEmbeddingProvider } from '../packages/memento-core/src/shared/types/benchmark.types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -66,8 +69,28 @@ export function anyCategoryFailsMrrGate(reports: CategoryQualityReport[]): boole
   );
 }
 
+async function openBenchmarkDb(): Promise<{
+  db: Awaited<ReturnType<typeof createSeededBenchmarkDatabase>>['db'];
+  close: () => void;
+  embeddingProvider: string;
+  vectorDims: number;
+}> {
+  // #961 M1: share one seeded DB across category-report / sweep / long-distractor nightly.
+  const reusePath = process.env.MEMENTO_BENCHMARK_DB_PATH?.trim();
+  if (reusePath && existsSync(reusePath)) {
+    const db = await initializeDatabase(reusePath);
+    return {
+      db,
+      close: () => closeDatabase(db),
+      embeddingProvider: resolveBenchmarkEmbeddingProvider(),
+      vectorDims: 384,
+    };
+  }
+  return createSeededBenchmarkDatabase(BENCHMARK_DIR);
+}
+
 async function main(): Promise<void> {
-  const { db, close, embeddingProvider, vectorDims } = await createSeededBenchmarkDatabase(BENCHMARK_DIR);
+  const { db, close, embeddingProvider, vectorDims } = await openBenchmarkDb();
   /** SC-006: 코퍼스 시드 시간은 제외하고 집계·검색 구간만 측정 */
   const started = Date.now();
   let exitCode = 0;

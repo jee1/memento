@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **search-quality length-decay sweep instrumentation** (#961): `CategoryMetricsOptions`로 short-only GT 서브셋·vector-dominant arm을 선택적으로 켜고, `mean_top10_long_doc_ratio`(>2,000자 top-10 점유율)를 리포트에 추가합니다. `npm run quality -- benchmark length-decay-sweep`가 k∈{40,80,160,320}×arm×subset 진단 TSV를 출력합니다(exit 0, 게이트 아님). 장문 near-clone 디스트랙터는 임베딩 지평(앞 1,024자) 안 주제 밀도를 높여 벡터 채널에 진입하도록 픽스처를 재작성했습니다.
+
 ### Breaking
 
 - **[BREAKING] MCP `tools/list` 기본 노출을 4개로 축소** (#769): 등록 도구는 22개 그대로지만 `tools/list`는 기본적으로 `recall`·`remember`·`memory_injection`·`feedback`만 반환합니다. 도구 정의는 세션 내내 클라이언트 컨텍스트를 점유하고, Memento는 늘 켜두는 서버라 상시 점유 비용이 큽니다 — 측정 결과 직렬화된 목록이 23,440 → 11,817 바이트(추정 5,860 → 2,954 토큰, **49.6% 감소**)입니다.

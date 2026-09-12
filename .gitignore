@@ -157,6 +157,9 @@ demo/node_modules/
 
 # Local / machine-specific
 compound-engineering.local.md
+# Scratch seeds / sweep TSV / probe dumps (can be tens of MB). Keep specific
+# allowlisted subtrees above this catch-all if they must be tracked later.
+.local/
 .local/longmemeval/
 .local/locomo/
 .local/korean-gold/

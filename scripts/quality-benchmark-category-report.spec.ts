@@ -20,6 +20,7 @@ function sampleReport(over: Partial<CategoryQualityReport> = {}): CategoryQualit
     ndcg_at_5: 0.7,
     ndcg_at_10: 0.65,
     mean_top10_content_length: 412,
+    mean_top10_long_doc_ratio: 0,
     threshold_passed: true,
     ...over,
   };
