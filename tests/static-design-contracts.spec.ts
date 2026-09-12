@@ -379,7 +379,8 @@ describe('static design contracts', () => {
 
     expect(dashboardSource).toContain('class="anchor-map-toolbar m-toolbar"');
     expect(dashboardSource).toContain('class="m-toolbar-primary"');
-    expect(dashboardSource).toMatch(/<details class="m-toolbar-more">[\s\S]*?<summary[\s\S]*?>More<\/summary>/);
+    // #969 KO-first: visible summary label is 더보기 (structure still .m-toolbar-more)
+    expect(dashboardSource).toMatch(/<details class="m-toolbar-more">[\s\S]*?<summary[\s\S]*?>더보기<\/summary>/);
 
     const primaryMatch = dashboardSource.match(
       /<div class="m-toolbar-primary">([\s\S]*?)<\/div>\s*<details class="m-toolbar-more">/,
