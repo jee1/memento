@@ -98,7 +98,7 @@ Memento가 **왜 이렇게 나뉘어 있는지**를 이해하려면 아키텍처
 | 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) | — |
 | 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/env-deployment-checklist.md) | — |
 | Docker 배포 절차 (DB 백업 포함) | [docker-deploy-procedure.md](operations/ko/docker-deploy-procedure.md) | — |
-| 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [operations/en/](operations/en/) |
+| 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [npx-troubleshooting.md](operations/en/npx-troubleshooting.md) |
 
 ### 참조 (reference)
 
