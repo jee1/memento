@@ -12,11 +12,13 @@
  * across arms or arm B silently inherits arm A weights.
  */
 
-import { copyFileSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { closeDatabase, initializeDatabase } from '@memento/core';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
+import { resolveBenchmarkEmbeddingProvider } from '../packages/memento-core/src/shared/types/benchmark.types.js';
 import { QualityMetricsCollector } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
 import type { CategoryMetricsOptions } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/category-quality-aggregator.js';
 import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
@@ -66,14 +68,32 @@ function optionsFor(arm: Arm, subset: Subset): CategoryMetricsOptions {
   return opts;
 }
 
+async function openBenchmarkDb(): Promise<{
+  db: Awaited<ReturnType<typeof createSeededBenchmarkDatabase>>['db'];
+  close: () => void;
+  embeddingProvider: string;
+  vectorDims: number;
+}> {
+  // #961 M1: reuse shared seed when MEMENTO_BENCHMARK_DB_PATH is set.
+  const reusePath = process.env.MEMENTO_BENCHMARK_DB_PATH?.trim();
+  if (reusePath && existsSync(reusePath)) {
+    const db = await initializeDatabase(reusePath);
+    return {
+      db,
+      close: () => closeDatabase(db),
+      embeddingProvider: resolveBenchmarkEmbeddingProvider(),
+      vectorDims: 384,
+    };
+  }
+  return createSeededBenchmarkDatabase(BENCHMARK_DIR);
+}
+
 async function main(): Promise<void> {
   const tmp = mkdtempSync(join(tmpdir(), 'memento-sweep-961-'));
   // Keep a pristine copy in case BASE_TOML is mutated elsewhere; we only write patched files.
   copyFileSync(BASE_TOML, join(tmp, 'ranking-weights.base.toml'));
 
-  const { db, close, embeddingProvider, vectorDims } = await createSeededBenchmarkDatabase(
-    BENCHMARK_DIR
-  );
+  const { db, close, embeddingProvider, vectorDims } = await openBenchmarkDb();
 
   try {
     console.log(`# embedding_provider=${embeddingProvider} vector_dims=${vectorDims}`);

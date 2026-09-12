@@ -27,7 +27,7 @@ jobs:
   test-search-quality:
     name: Vector search quality (full env)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -53,14 +53,23 @@ jobs:
         run: npm run build -w @memento/core
       - name: Run vector search quality benchmark
         run: npm run test:vector-search-quality:ci
+      # #961 M1: seed benchmark-v3 once; category-report / sweep / long-distractor share it.
+      - name: Seed search-quality benchmark DB (shared)
+        run: npx tsx scripts/seed-benchmark-db.ts /tmp/memento-bench-nightly.db
       - name: Gate category search quality (MRR >= 0.5)
+        env:
+          MEMENTO_BENCHMARK_DB_PATH: /tmp/memento-bench-nightly.db
         run: npm run quality -- benchmark category-report
       # #961: 길이 감쇠 계수 스윕 (arm × subset). 게이트가 아니라 진단 리포트.
       - name: Length-decay coefficient sweep (diagnostic)
+        env:
+          MEMENTO_BENCHMARK_DB_PATH: /tmp/memento-bench-nightly.db
         run: npm run quality -- benchmark length-decay-sweep
         continue-on-error: true
       # #961: 장문 near-clone 디스트랙터가 벡터 채널에 진입하는지 (minilm)
       - name: Long distractor vector reach
+        env:
+          MEMENTO_BENCHMARK_DB_PATH: /tmp/memento-bench-nightly.db
         run: |
           npx vitest --run \
             packages/memento-core/src/domains/monitoring/services/quality-assurance/long-distractor-reach.nightly.spec.ts
