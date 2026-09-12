@@ -73,38 +73,45 @@
     
 
     <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
-      <div class="anchor-map-toolbar" aria-label="Anchor Map controls">
-        <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">Agent ID:</label>
-        <select id="agent-id-select" class="m-input" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">
-          <option value="default">default (앵커 없음)</option>
-        </select>
-        <label for="search-query-input" title="선택한 앵커 슬롯 주변에서 검색합니다. 국소 결과가 부족하면 전역 검색으로 확장됩니다.">Search:</label>
-        <input type="text" id="search-query-input" class="m-input" placeholder="Search memories..." title="검색어를 입력하고 Search 또는 Enter를 누르세요.">
-        <select id="search-slot-select" class="m-input" title="검색 기준 앵커 슬롯입니다. A=1-hop, B=2-hop, C=3-hop 범위가 적용됩니다.">
-          <option value="A" selected>Slot A</option>
-          <option value="B">Slot B</option>
-          <option value="C">Slot C</option>
-        </select>
-        <button id="search-btn" class="m-button m-button--secondary" title="앵커 주변 국소 검색을 실행합니다.">Search</button>
-        <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
-        <button id="fit-btn" class="m-button m-button--secondary" title="모든 노드가 보이도록 확대/이동을 되돌립니다.">Fit</button>
-        <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
-        <button id="layout-mode-btn" class="m-button m-button--secondary" aria-pressed="false"
-          title="자동 정렬을 일시정지하면 force 시뮬레이션이 수동 배치를 덮어쓰지 않습니다.">정렬 일시정지</button>
-        <button id="unpin-all-btn" class="m-button m-button--secondary"
-          title="드래그로 고정한 모든 노드를 풀어 자동 정렬에 되돌립니다.">전체 고정 해제</button>
-        <button id="layout-reset-btn" class="m-button m-button--ghost"
-          title="저장된 배치를 지우고 서버 기본 레이아웃으로 되돌립니다.">현재 배치 초기화</button>
-        <label for="auto-refresh-toggle" class="anchor-map-toolbar__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
-          <input type="checkbox" id="auto-refresh-toggle" class="anchor-map-toolbar__checkbox">
-          Auto Refresh
-        </label>
-        <select id="refresh-interval-select" class="m-input anchor-map-toolbar__interval" title="자동 새로고침 간격을 설정합니다.">
-          <option value="5000">5초</option>
-          <option value="10000" selected>10초</option>
-          <option value="30000">30초</option>
-          <option value="60000">1분</option>
-        </select>
+      <div class="anchor-map-toolbar m-toolbar" aria-label="Anchor Map controls">
+        <div class="m-toolbar-primary">
+          <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">Agent ID:</label>
+          <select id="agent-id-select" class="m-input" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">
+            <option value="default">default (앵커 없음)</option>
+          </select>
+          <label for="search-query-input" title="선택한 앵커 슬롯 주변에서 검색합니다. 국소 결과가 부족하면 전역 검색으로 확장됩니다.">Search:</label>
+          <input type="text" id="search-query-input" class="m-input" placeholder="Search memories..." title="검색어를 입력하고 Search 또는 Enter를 누르세요.">
+          <select id="search-slot-select" class="m-input" title="검색 기준 앵커 슬롯입니다. A=1-hop, B=2-hop, C=3-hop 범위가 적용됩니다.">
+            <option value="A" selected>Slot A</option>
+            <option value="B">Slot B</option>
+            <option value="C">Slot C</option>
+          </select>
+          <button id="search-btn" class="m-button m-button--secondary" title="앵커 주변 국소 검색을 실행합니다.">Search</button>
+          <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
+        </div>
+        <details class="m-toolbar-more">
+          <summary class="m-button m-button--ghost">More</summary>
+          <div class="m-toolbar-more__body">
+            <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
+            <button id="fit-btn" class="m-button m-button--secondary" title="모든 노드가 보이도록 확대/이동을 되돌립니다.">Fit</button>
+            <button id="layout-mode-btn" class="m-button m-button--secondary" aria-pressed="false"
+              title="자동 정렬을 일시정지하면 force 시뮬레이션이 수동 배치를 덮어쓰지 않습니다.">정렬 일시정지</button>
+            <button id="unpin-all-btn" class="m-button m-button--secondary"
+              title="드래그로 고정한 모든 노드를 풀어 자동 정렬에 되돌립니다.">전체 고정 해제</button>
+            <button id="layout-reset-btn" class="m-button m-button--ghost"
+              title="저장된 배치를 지우고 서버 기본 레이아웃으로 되돌립니다.">현재 배치 초기화</button>
+            <label for="auto-refresh-toggle" class="anchor-map-toolbar__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
+              <input type="checkbox" id="auto-refresh-toggle" class="anchor-map-toolbar__checkbox">
+              Auto Refresh
+            </label>
+            <select id="refresh-interval-select" class="m-input anchor-map-toolbar__interval" title="자동 새로고침 간격을 설정합니다.">
+              <option value="5000">5초</option>
+              <option value="10000" selected>10초</option>
+              <option value="30000">30초</option>
+              <option value="60000">1분</option>
+            </select>
+          </div>
+        </details>
       </div>
       <main class="dashboard-main">
         <div class="sidebar">
