@@ -146,7 +146,7 @@ npm run docker:prod
 
 - **`npm exec` errors**: pass the binary explicitly (`npm exec -- memento-mcp-server@latest …`) or use `npx`.
 - **Node.js**: **≥ 24** per `package.json` engines.
-- **SQLite / native modules**: `npm rebuild better-sqlite3 sqlite-vec`, or see [npx troubleshooting](docs/operations/en/) (and the KO guide if needed).
+- **SQLite / native modules**: `npm rebuild better-sqlite3 sqlite-vec`, or see [npx troubleshooting](docs/operations/en/npx-troubleshooting.md).
 - **DB reset**: `npm run db:init` (delete the DB files first if required).
 
 More ops notes: [docs/operations/](docs/operations/).
