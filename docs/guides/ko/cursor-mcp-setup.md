@@ -141,12 +141,14 @@ curl http://localhost:9001/health
 ```
 
 ```bash
-docker compose up -d
-docker compose logs -f
-docker compose down
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
+# 같은 -f 파일로:
+# docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml logs -f
+# docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml down
 ```
 
-Cursor를 재연결하기 전에 컨테이너가 실행 중이어야 합니다.
+또는 `npm run docker:dev` / `npm run docker:prod`를 사용하세요. Cursor를 재연결하기 전에 컨테이너가 실행 중이어야 합니다.
 
 ## 문제 진단
 
