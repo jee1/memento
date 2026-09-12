@@ -3,6 +3,14 @@
  * #961 diagnostic: rank flips k40→k320 + long-distractor cross-contamination.
  * Usage: npx tsx scripts/rank-flips-961.ts [dbPath]
  * Requires a seeded benchmark DB (scripts/seed-benchmark-db.ts).
+ *
+ * Cross-contamination counting (below): any top-10 appearance of an off-target
+ * long distractor, regardless of channel (`vectorScore` may be 0). This is a
+ * surface-exposure metric for FTS/BM25 leakage too.
+ *
+ * Nightly gate (`long-distractor-reach.nightly.spec.ts`) only counts hits with
+ * `vectorScore > 0` (embedding-channel contamination). A non-zero count here
+ * does NOT mean the nightly gate failed — compare criteria before escalating.
  */
 import { mkdtempSync, writeFileSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
