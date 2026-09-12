@@ -11,6 +11,7 @@
     const tabs = global.__MEMENTO_DASHBOARD_TABS__;
     if (!tabs || typeof tabs.activateTab !== 'function') return;
     if (nextState === 'signed-in') {
+      // #965: cold load / post-sign-in default = Anchor Map (badge alone must not jump to Review)
       tabs.activateTab('anchor');
       return;
     }

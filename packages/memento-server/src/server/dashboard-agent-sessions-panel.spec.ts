@@ -228,4 +228,28 @@ describe('agent sessions dashboard panel (#460)', () => {
     expect(dashboardCss).toContain('min-height: 200px;');
     expect(dashboardCss).toMatch(/\.m-tab-bar\s*\{[^}]*overflow-x:\s*auto;/s);
   });
+
+  it('applies quiet header + P0 token/focus contracts (#965)', () => {
+    const componentsCss = readFileSync(resolve(root, 'static/css/components.css'), 'utf8');
+    const authTabsJs = readFileSync(resolve(root, 'static/js/dashboard-auth-render-tabs.js'), 'utf8');
+
+    expect(tokensCss).toContain('--color-status-warning');
+    expect(tokensCss).toContain('--color-status-success');
+    expect(tokensCss).toContain('--color-bg-hover');
+    expect(tokensCss).toContain('--color-bg-selected');
+    expect(tokensCss).toContain('--focus-ring-color');
+    expect(tokensCss).toContain('--color-header-bg');
+    expect(componentsCss).toContain('--color-header-bg');
+    expect(componentsCss).not.toMatch(/\.m-header\s*\{[^}]*brand-gradient/s);
+    expect(componentsCss).toContain('.m-empty');
+    expect(componentsCss).toContain('.m-loading');
+    expect(componentsCss).toContain('.m-error');
+    expect(componentsCss).toContain(':focus-visible');
+    expect(componentsCss).not.toContain('.m-header .m-button--secondary');
+    expect(dashboardHtml).toContain('<h1>Memento Dashboard</h1>');
+    expect(dashboardHtml).not.toMatch(/<h1>[^\n]*🎯/);
+    expect(dashboardCss).toContain("data-auth-state='signed-in'");
+    expect(authTabsJs).toContain("activateTab('anchor')");
+    expect(authTabsJs).not.toContain("activateTab('review')");
+  });
 });

@@ -54,7 +54,7 @@ body {
 
 .dashboard-subtitle {
   font-size: var(--font-size-sm);
-  color: var(--color-dashboard-text-on-brand);
+  color: var(--color-header-text-muted);
 }
 
 .dashboard-auth-panel {
@@ -64,7 +64,6 @@ body {
   border-radius: var(--radius-lg);
   background: var(--color-dashboard-auth-panel-bg);
   border: 1px solid var(--color-dashboard-auth-panel-border);
-  backdrop-filter: blur(6px);
 }
 
 .dashboard-auth-form,
@@ -90,11 +89,36 @@ body {
   min-height: 1.25rem;
   margin-top: var(--spacing-xs);
   font-size: var(--font-size-xs);
-  color: var(--color-dashboard-text-on-brand);
+  color: var(--color-header-text-muted);
 }
 
 .dashboard-auth-message[data-tone='error'] {
   color: var(--color-dashboard-auth-error);
+}
+
+/* Authenticated = data-auth-state signed-in (#965 quiet chrome) */
+.dashboard-container[data-auth-state='signed-in'] .dashboard-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.dashboard-container[data-auth-state='signed-in'] .dashboard-header h1 {
+  font-size: var(--font-size-lg);
+}
+
+.dashboard-container[data-auth-state='signed-in'] .dashboard-subtitle {
+  display: none;
+}
+
+.dashboard-container[data-auth-state='signed-in'] .dashboard-auth-panel {
+  min-width: 0;
+  max-width: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+  border: none;
+}
+
+.dashboard-container[data-auth-state='signed-in'] .dashboard-auth-message:empty {
+  display: none;
 }
 
 .anchor-map-toolbar {
@@ -565,6 +589,11 @@ body {
 
 .m-tab-btn:hover {
   background: var(--color-tab-hover);
+}
+
+.m-tab-btn:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .m-tab-btn.active {
@@ -1325,7 +1354,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-memory-group-card--forget {
-  box-shadow: inset 3px 0 0 0 var(--color-status-warning, #c9a227);
+  box-shadow: inset 3px 0 0 0 var(--color-status-warning);
 }
 
 .med-memory-group-card--preserve {
@@ -1333,7 +1362,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-memory-group-card--pin {
-  box-shadow: inset 3px 0 0 0 var(--color-status-success, #2d8a4e);
+  box-shadow: inset 3px 0 0 0 var(--color-status-success);
 }
 
 .med-memory-group-card__label {
@@ -1364,7 +1393,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-memory-group-card__outcome--forget {
-  color: var(--color-status-warning, #c9a227);
+  color: var(--color-status-warning);
 }
 
 .med-memory-group-card__outcome--preserve {
@@ -1372,7 +1401,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-memory-group-card__outcome--pin {
-  color: var(--color-status-success, #2d8a4e);
+  color: var(--color-status-success);
 }
 
 #tab-evolution-demo.tab-panel.active {
@@ -2212,13 +2241,6 @@ circle.em-dot:focus-visible {
   line-height: 1.5;
 }
 
-.jobs-banner--error {
-  padding: var(--spacing-sm, 0.75rem);
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-md, 0.5rem);
-  background: color-mix(in srgb, var(--color-error) 12%, transparent);
-  color: var(--color-text-main);
-}
 
 .jobs-section h3 {
   margin: 0 0 0.5rem;
@@ -2262,11 +2284,11 @@ circle.em-dot:focus-visible {
 }
 
 .jobs-row-selectable:hover {
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
+  background: var(--color-bg-hover);
 }
 
 .jobs-row-selected {
-  background: var(--color-bg-selected, rgba(59, 130, 246, 0.08));
+  background: var(--color-bg-selected);
 }
 
 /* Issue #834: Pause / Resume / Run now + logs header */

@@ -48,6 +48,7 @@
   ns.refresh = async function () {
     const generation = ++ns.state.refreshGeneration;
     ns.setStatus('Refreshing…');
+    ns.setLoading(true);
     try {
       const results = await Promise.all([
         fetchJson(ns.STATS_URL),
@@ -83,6 +84,10 @@
       const message = err && err.message ? String(err.message) : 'Jobs refresh failed';
       ns.setError(message);
       ns.setStatus('Refresh failed — previous snapshot kept');
+    } finally {
+      if (generation === ns.state.refreshGeneration) {
+        ns.setLoading(false);
+      }
     }
   };
 
