@@ -564,11 +564,12 @@ body {
   }
 }
 
-/* Tabs + Embedding Map (014) - m-tab-bar 컴포넌트 활용 */
+/* Tabs + Embedding Map (014) - m-tab-bar 컴포넌트 활용; #967 groups keep ≤390px reach via overflow-x */
 .m-tab-bar {
   display: flex;
+  align-items: flex-end;
   overflow-x: auto;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-tab-surface);
   border-bottom: 1px solid var(--color-tab-border);
