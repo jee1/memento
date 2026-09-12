@@ -10,134 +10,10 @@ Memento는 **Model Context Protocol(MCP)** 을 통해 AI 에이전트와 대화�
 
 OpenAI 등 클라우드 API를 쓰지 않거나 장애가 났을 때, Memento는 **TF-IDF 기반 경량 임베딩**으로 자동 전환할 수 있습니다. `EmbeddingService` 인터페이스는 그대로이므로 호출 코드를 바꿀 필요는 없습니다. 경량 모드는 512차원 벡터·한영 불용어 처리·코사인 유사도 검색을 제공하며, OpenAI 호출 실패 시 투명하게 폴백합니다. 처리 속도는 빠르고 메모리 footprint는 작지만, 의미 검색보다는 키워드에 가깝습니다.
 
-### 성능 모니터링 Tools
+### 성능·캐시·DB 최적화는 HTTP만
 
-#### get_performance_metrics
+`get_performance_metrics` · `get_cache_stats` · `clear_cache` · `optimize_database` 등은 MCP Tools가 아닙니다. [관리자 API](#관리자-api)의 [성능 모니터링 API](#성능-모니터링-api) · [데이터베이스 관리 API](#데이터베이스-관리-api)를 사용하세요.
 
-시스템의 성능 메트릭을 조회합니다.
-
-**파라미터:**
-```typescript
-{
-  timeRange?: '1h' | '24h' | '7d' | '30d';  // 시간 범위
-  includeDetails?: boolean;                  // 상세 정보 포함 여부
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    database: {
-      totalMemories: number;
-      memoryByType: Record<string, number>;
-      averageMemorySize: number;
-      databaseSize: number;
-      queryPerformance: {
-        averageQueryTime: number;
-        slowQueries: Array<{ query: string; time: number; count: number }>;
-      };
-    };
-    search: {
-      totalSearches: number;
-      averageSearchTime: number;
-      cacheHitRate: number;
-      embeddingSearchRate: number;
-    };
-    memory: {
-      usage: number;
-      heapUsed: number;
-      heapTotal: number;
-      rss: number;
-    };
-    system: {
-      uptime: number;
-      cpuUsage: number;
-      loadAverage: number[];
-    };
-  };
-}
-```
-
-#### get_cache_stats
-
-캐시 시스템의 통계를 조회합니다.
-
-**파라미터:**
-```typescript
-{
-  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    hits: number;
-    misses: number;
-    totalRequests: number;
-    hitRate: number;
-    size: number;
-    memoryUsage: number;
-  };
-}
-```
-
-#### clear_cache
-
-캐시를 초기화합니다.
-
-**파라미터:**
-```typescript
-{
-  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
-  pattern?: string;                             // 제거할 패턴 (정규식)
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    clearedCount: number;                       // 제거된 항목 수
-    remainingCount: number;                     // 남은 항목 수
-  };
-}
-```
-
-#### optimize_database
-
-데이터베이스 성능을 최적화합니다.
-
-**파라미터:**
-```typescript
-{
-  actions?: ('analyze' | 'index' | 'vacuum' | 'all')[];  // 수행할 작업
-  autoCreateIndexes?: boolean;                           // 자동 인덱스 생성
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    analyzedQueries: number;
-    createdIndexes: number;
-    optimizedTables: number;
-    recommendations: Array<{
-      type: 'index' | 'query' | 'table';
-      priority: 'high' | 'medium' | 'low';
-      description: string;
-      estimatedImprovement: string;
-    }>;
-  };
-}
-```
 
 ## MCP Tools (등록 22개 · 기본 노출 4개)
 
@@ -158,7 +34,7 @@ MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는**
 `extract_triples`, `add_relation`, `get_relations`, `remove_relation`
 
 ### 품질·보내기 (3)
-`get_introspection_summary`, `get_telemetry_summary`, `export_memories`
+`get_introspection_summary`, `get_telemetry_summary`, `export`
 
 ### remember
 
@@ -169,7 +45,7 @@ MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는**
 ```typescript
 interface RememberParams {
   content: string;                    // 기억할 내용 (필수)
-  type?: 'working' | 'episodic' | 'semantic' | 'procedural';  // 기억 타입 (기본값: 'episodic')
+  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // 기억 타입 (필수. 기본 MEMENTO_TYPE_PARAM_MODE=error 에서는 생략 시 거절)
   tags?: string[];                   // 태그 배열 (선택)
   importance?: number;               // 중요도 (0-1, 기본값: 0.5)
   source?: string;                   // 출처 (선택)
@@ -1138,7 +1014,6 @@ POST /admin/database/optimize
 - `hybrid_search` - 하이브리드 검색 (기본 `recall`로 대체)
 - `summarize_thread` - 세션 요약 (향후 구현 예정)
 - `link` - 기억 관계 생성 (부분 대체: `add_relation` / `get_relations` / `remove_relation`)
-- `export` - 기억보내기 (대체: `export_memories` MCP 도구)
 - `apply_forgetting_policy` - 망각 정책 적용 (HTTP API로 이동)
 - `schedule_review` - 리뷰 스케줄링 (HTTP API로 이동)
 - `get_performance_metrics` - 성능 메트릭 조회 (HTTP API로 이동)
