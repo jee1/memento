@@ -10,134 +10,10 @@ If you are integrating for the first time, start the server using the [User Manu
 
 When cloud APIs are unavailable or fail, Memento can fall back to **TF-IDF lightweight embeddings** without changing your call sites. The `EmbeddingService` interface stays the same. Lightweight mode uses 512-dimensional vectors, Korean/English stopword handling, and cosine similarity; OpenAI failures trigger a transparent fallback. It is fast and light on memory but closer to keyword search than deep semantic matching.
 
-### Performance Monitoring Tools
+### Performance, cache, and DB optimize are HTTP-only
 
-#### get_performance_metrics
+`get_performance_metrics`, `get_cache_stats`, `clear_cache`, and `optimize_database` are **not** MCP tools. Use the [Administrator API](#administrator-api) [Performance Monitoring API](#performance-monitoring-api) and database admin endpoints instead.
 
-Retrieves system performance metrics.
-
-**Parameters:**
-```typescript
-{
-  timeRange?: '1h' | '24h' | '7d' | '30d';  // Time range
-  includeDetails?: boolean;                  // Include detailed information
-}
-```
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  result: {
-    database: {
-      totalMemories: number;
-      memoryByType: Record<string, number>;
-      averageMemorySize: number;
-      databaseSize: number;
-      queryPerformance: {
-        averageQueryTime: number;
-        slowQueries: Array<{ query: string; time: number; count: number }>;
-      };
-    };
-    search: {
-      totalSearches: number;
-      averageSearchTime: number;
-      cacheHitRate: number;
-      embeddingSearchRate: number;
-    };
-    memory: {
-      usage: number;
-      heapUsed: number;
-      heapTotal: number;
-      rss: number;
-    };
-    system: {
-      uptime: number;
-      cpuUsage: number;
-      loadAverage: number[];
-    };
-  };
-}
-```
-
-#### get_cache_stats
-
-Retrieves cache system statistics.
-
-**Parameters:**
-```typescript
-{
-  cacheType?: 'search' | 'embedding' | 'all';  // Cache type
-}
-```
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  result: {
-    hits: number;
-    misses: number;
-    totalRequests: number;
-    hitRate: number;
-    size: number;
-    memoryUsage: number;
-  };
-}
-```
-
-#### clear_cache
-
-Initializes cache.
-
-**Parameters:**
-```typescript
-{
-  cacheType?: 'search' | 'embedding' | 'all';  // Cache type
-  pattern?: string;                             // Pattern to remove (regex)
-}
-```
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  result: {
-    clearedCount: number;                       // Number of removed items
-    remainingCount: number;                     // Number of remaining items
-  };
-}
-```
-
-#### optimize_database
-
-Optimizes database performance.
-
-**Parameters:**
-```typescript
-{
-  actions?: ('analyze' | 'index' | 'vacuum' | 'all')[];  // Actions to perform
-  autoCreateIndexes?: boolean;                           // Auto create indexes
-}
-```
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  result: {
-    analyzedQueries: number;
-    createdIndexes: number;
-    optimizedTables: number;
-    recommendations: Array<{
-      type: 'index' | 'query' | 'table';
-      priority: 'high' | 'medium' | 'low';
-      description: string;
-      estimatedImprovement: string;
-    }>;
-  };
-}
-```
 
 ## MCP Tools (Core 22)
 
@@ -156,7 +32,7 @@ Tools exposed over MCP are what **agents call during a session**: memory, relati
 `extract_triples`, `add_relation`, `get_relations`, `remove_relation`
 
 ### Quality & export (3)
-`get_introspection_summary`, `get_telemetry_summary`, `export_memories`
+`get_introspection_summary`, `get_telemetry_summary`, `export`
 
 **HTTP only (not MCP):** `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see [Administrator API](#administrator-api).
 
@@ -169,7 +45,7 @@ Stores a new memory. Use `type` to pick working/episodic/semantic/procedural; fr
 ```typescript
 interface RememberParams {
   content: string;                    // Content to remember (required)
-  type?: 'working' | 'episodic' | 'semantic' | 'procedural';  // Memory type (default: 'episodic')
+  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // Memory type (required; default MEMENTO_TYPE_PARAM_MODE=error rejects omission)
   tags?: string[];                   // Tag array (optional)
   importance?: number;               // Importance (0-1, default: 0.5)
   source?: string;                   // Source (optional)
@@ -1010,7 +886,6 @@ The following tools have been removed from MCP client:
 - `hybrid_search` - Hybrid search (replaced by basic `recall`)
 - `summarize_thread` - Session summary (planned for future implementation)
 - `link` - Memory relationship creation (partially replaced by `add_relation` / `get_relations` / `remove_relation`)
-- `export` - Memory export (replaced by `export_memories` MCP tool)
 - `apply_forgetting_policy` - Forgetting policy application (moved to HTTP API)
 - `schedule_review` - Review scheduling (moved to HTTP API)
 - `get_performance_metrics` - Performance metrics retrieval (moved to HTTP API)
