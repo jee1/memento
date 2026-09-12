@@ -8,11 +8,15 @@
   "labeling_policy": "binary-human-labeled",
   "strict_ci": true,
   "ground_truth_reviewed": true,
-  "corpus_composition": { "snapshot": 3440, "synthetic": 21 },
+  "corpus_composition": {
+    "snapshot": 3440,
+    "synthetic": 21
+  },
   "notes": [
     "Exported from current memory_item snapshot",
     "Human-labeled queries and ground truth must be added separately",
     "Set ground_truth_reviewed=true only after manual review is complete",
-    "#934: appended 21 synthetic documents (bench_syn_*) including near-clone long distractors for length-bias sweep"
+    "#934: appended 21 synthetic documents (bench_syn_*) including near-clone long distractors for length-bias sweep",
+    "#961: near-clone long distractors rewritten so embedding horizon is topic-dense (ZWSP/fill tips); long GT answers 0005-0007 keep decisive body after horizon; corpus_size unchanged"
   ]
 }
