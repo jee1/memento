@@ -1,448 +1,164 @@
-# 🚀 Memento MCP Server 설치 가이드
+# Memento 설치 가이드
 
 <div align="center">
   [🇰🇷 한국어](INSTALL.md) | [🇺🇸 English](INSTALL.en.md)
 </div>
 
-AI Agent 기억 보조 MCP 서버의 다양한 설치 방법을 제공합니다.
+역할에 맞는 **기본 경로 하나**만 고르세요. 제품 소개와 짧은 시작은 [README.md](README.md)를, 문서 전체는 [docs/README.md](docs/README.md)를 참고해 주세요.
 
-Memento를 설치하는 방법은 **얼마나 빨리 써 보고 싶은지**, **어디까지 직접 제어하고 싶은지**에 따라 달라집니다. 가장 빠른 길은 원클릭 스크립트이고, 패키지만 받아 바로 실행하려면 npx, 팀 배포와 격리가 필요하면 Docker, 코드까지 수정하려면 소스 클론이 맞습니다. 아래 순서대로 시도해 보시면 됩니다.
+패키지 매니저는 **npm**만 지원합니다.
 
-## 📋 설치 방법 선택
+## 역할별 기본 경로
 
-### 🧩 **Claude Code 사용자: 플러그인 설치**
+### Claude Code → 플러그인
+
 ```
 /plugin marketplace add jee1/memento
 /plugin install memento@memento
 ```
-MCP 서버 등록과 `recall`→`remember` 습관 skill이 함께 설치되고, 기억 DB는 `${CLAUDE_PLUGIN_DATA}/memory.db`에 보관되어 업데이트 후에도 유지됩니다.
 
-기본으로 노출되는 MCP 도구는 `recall`·`remember`·`memory_injection`·`feedback` 4개입니다. 앵커·절차 버전관리·introspection 같은 나머지 도구까지 쓰려면 사용자/프로젝트 MCP 설정의 `memento` 서버 `env`에 `MEMENTO_TOOLSET=full`을 추가하세요 (플러그인 내부 `.mcp.json` 수정은 업데이트 시 사라집니다).
+MCP 서버 등록과 `recall`→`remember` 습관 skill이 함께 설치됩니다. 기억 DB는 `${CLAUDE_PLUGIN_DATA}/memory.db`에 두어 업데이트 후에도 유지됩니다. `/plugin` 패널에서 `memento` MCP가 연결됐는지 확인해 주세요.
 
-### 🥇 **1순위: 원클릭 설치 (권장)**
+기본으로 노출되는 도구는 `recall` · `remember` · `memory_injection` · `feedback` 4개입니다. 나머지 도구까지 목록에 보이게 하려면 사용자/프로젝트 MCP 설정의 `memento` 서버 `env`에 `MEMENTO_TOOLSET=full`을 넣으세요. 플러그인 내부 `.mcp.json` 수정은 업데이트 시 사라집니다.
+
+### Cursor·기타 MCP → npx + mcp.json
+
 ```bash
-# 자동 설치 스크립트 실행
-curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
-```
-
-### 🥈 **2순위: npx 방식 (개발자용)**
-```bash
-# 즉시 실행 (설치 없이)
-npx memento-mcp-server@latest dev
-
-# 자동 설정 후 실행
-npx memento-mcp-server@latest setup
-npx memento-mcp-server@latest start
-```
-
-### 🥉 **3순위: Docker 방식 (프로덕션용)**
-```bash
-# 개발 환경
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
-
-# 프로덕션 환경
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
-```
-
-### 🛠️ **4순위: 소스코드 방식 (개발자용)**
-```bash
-# 저장소 클론
-git clone https://github.com/jee1/memento.git
-cd memento
-
-# 원클릭 설치 및 실행
-npm run quick-start
-```
-
-## 🎯 사용자별 권장 설치 방법
-
-**개발자·연구자**는 npx나 소스 방식이 디버깅에 유리합니다. **일반 사용자**는 원클릭 설치나 Docker로 충분한 경우가 많고, **팀·조직**은 Docker로 환경을 표준화하는 편이 안전합니다.
-
-## 📚 상세 설치 방법
-
-### 1. 원클릭 설치
-
-#### Linux/macOS
-```bash
-curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
-```
-
-#### Windows (PowerShell)
-```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/jee1/memento/main/install.sh" -OutFile "install.sh"
-bash install.sh
-```
-
-### 2. npx 방식 (권장)
-
-#### 기본 사용법
-```bash
-# 개발 모드 (핫 리로드)
-npx memento-mcp-server@latest dev
-
-# MCP 서버 실행
 npx memento-mcp-server@latest
-
-# 프로덕션 모드
-npx memento-mcp-server@latest start
-
-# HTTP/WebSocket 서버
-npx memento-mcp-server@latest dev-http
-
-# 자동 설정
-npx memento-mcp-server@latest setup
 ```
 
-#### npm exec 사용법
-```bash
-# 명령어를 명시적으로 지정해야 합니다
-npm exec -- memento-mcp-server@latest dev
-npm exec -- memento-mcp-server@latest setup
-
-# 또는 간단하게 npx 사용 (권장)
-npx memento-mcp-server@latest dev
-```
-
-#### 전역 설치
-```bash
-# 전역 설치
-npm install -g memento-mcp-server
-
-# 사용법
-memento-mcp-server dev
-memento-mcp-server start
-memento-mcp-server setup
-```
-
-### 3. Docker 방식
-
-#### 개발 환경
-```bash
-# 개발용 Docker Compose 실행
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
-
-# 로그 확인
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml logs -f
-
-# 중지
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml down
-```
-
-#### 프로덕션 환경
-```bash
-# 프로덕션용 Docker Compose 실행
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
-
-# 로그 확인
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml logs -f
-
-# 중지
-docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml down
-```
-
-#### 기본 Docker Compose
-```bash
-# 기본 실행 (프로덕션 모드)
-docker-compose up -d
-
-# 로그 확인
-docker-compose logs -f
-
-# 중지
-docker-compose down
-```
-
-### 4. 소스코드 방식
-
-#### 기본 설치
-```bash
-# 저장소 클론
-git clone https://github.com/jee1/memento.git
-cd memento
-
-# 의존성 설치
-npm install
-
-# 자동 설정
-npm run setup
-
-# 개발 서버 시작
-npm run dev
-```
-
-#### 원클릭 설치
-```bash
-# 모든 과정을 한 번에
-npm run quick-start
-```
-
-## ⚙️ 환경 설정
-
-### 환경 변수 설정
-```bash
-# .env 파일 생성
-cp env.example .env
-
-# API 키 설정 (선택사항)
-# OPENAI_API_KEY=your_openai_api_key_here
-# GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### 데이터베이스 초기화
-```bash
-# SQLite 데이터베이스 초기화
-npm run db:init
-
-# 마이그레이션 실행
-npm run db:migrate
-```
-
-## 🔧 사용 가능한 명령어
-
-### 개발 명령어
-```bash
-npm run dev              # MCP 서버 개발 모드
-npm run dev:http         # HTTP/WebSocket 서버 개발 모드
-```
-
-### 프로덕션 명령어
-```bash
-npm run build            # TypeScript 컴파일
-npm run start            # MCP 서버 프로덕션 실행
-npm run start:http       # HTTP/WebSocket 서버 프로덕션 실행
-```
-
-### 테스트 명령어
-```bash
-npm run test             # 모든 테스트 실행
-npm run test:ci:core     # core 검색·임베딩·메모리 테스트
-npm run test:ci:server   # server·모니터링 테스트
-npm test -w @jee1/memento-client # 클라이언트 테스트
-npm run benchmark:consolidation-quality # Consolidation Score 벤치마크
-```
-
-### Docker 명령어
-```bash
-npm run docker:dev       # 개발용 Docker 실행
-npm run docker:prod      # 프로덕션용 Docker 실행
-npm run docker:build     # Docker 이미지 빌드
-npm run docker:logs      # Docker 로그 확인
-```
-
-### 유틸리티 명령어
-```bash
-npm run setup            # 자동 설정 실행
-npm run quick-start      # 원클릭 설치 및 실행
-npm run backup:embeddings # 임베딩 백업
-npm run regenerate:embeddings # 임베딩 재생성
-```
-
-## 🌐 접속 정보
-
-설치 완료 후 다음 주소로 접속할 수 있습니다:
-
-- **MCP 서버**: `stdio` 또는 `http://localhost:9001/mcp`
-- **HTTP API**: `http://localhost:9001`
-- **WebSocket**: `ws://localhost:9001`
-- **관리 대시보드**: `http://localhost:9001/dashboard`
-
-## 🎯 Cursor MCP 설정
-
-Cursor에서 Memento MCP Server를 사용하려면:
-
-1. **프로젝트 빌드**
-   ```bash
-   npm install
-   npm run build
-   ```
-
-2. **Cursor 설정 추가**
-   - Cursor 설정 → MCP Servers에 추가
-   - 또는 `.cursor/mcp.json` 파일 생성
-   - 상세 가이드: [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md)
-
-**빠른 설정 예시 (Windows):**
 ```json
 {
   "mcpServers": {
     "memento": {
-      "command": "node",
-      "args": ["C:\\Users\\YOUR_USERNAME\\git\\memento\\packages\\memento-server\\dist\\server\\index.js"]
+      "command": "npx",
+      "args": ["memento-mcp-server@latest"],
+      "env": {
+        "DB_PATH": "/absolute/path/to/data/memory.db"
+      }
     }
   }
 }
 ```
 
-> **참고**: `npx -y memento-mcp-server@latest` 방식이 실패하는 경우, 로컬 경로를 사용하는 방법을 권장합니다.
+설정 파일 위치:
 
-## 🪟 플랫폼별 실행 방법
+- Cursor: `.cursor/mcp.json` 또는 `~/.cursor/mcp.json`
+- Claude Desktop / Claude Code: [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md)를 참고해 주세요 (호스트별 경로 안내 포함)
 
-### Windows
+자주 쓴다면 `npm i -g memento-mcp-server`를 권장합니다. `npm exec`를 쓸 때는 실행 파일을 명시하세요: `npm exec -- memento-mcp-server@latest`.
 
-#### PowerShell/CMD
-```powershell
-# npx 방식 (권장)
-npx memento-mcp-server@latest dev
-npx memento-mcp-server@latest setup
+공식 MCP 레지스트리 이름: `io.github.jee1/memento-mcp-server` (`server.json`).
 
-# npm exec 사용 시
-npm exec -- memento-mcp-server@latest dev
+### 운영·자체 호스팅 → Docker 또는 소스
 
-# 전역 설치 후
-npm install -g memento-mcp-server
-memento-mcp-server dev
-```
-
-#### WSL (Windows Subsystem for Linux)
-```bash
-# Linux와 동일하게 사용
-npx memento-mcp-server@latest dev
-```
-
-### Linux/macOS
+**Docker (팀·프로덕션)**
 
 ```bash
-# npx 방식 (권장)
-npx memento-mcp-server@latest dev
-npx memento-mcp-server@latest setup
-
-# npm exec 사용 시
-npm exec -- memento-mcp-server@latest dev
-
-# 전역 설치 후
-npm install -g memento-mcp-server
-memento-mcp-server dev
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.dev.yml up -d
+docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" -f docker/docker-compose.prod.yml up -d
 ```
 
-### 플랫폼별 차이점
+로그·중지는 같은 `-f` 파일에 `logs -f` / `down`을 붙이면 됩니다. Compose 프로젝트 이름은 기본 `memento`입니다. 바꾸려면 `COMPOSE_PROJECT_NAME`을 설정하세요.
 
-| 항목 | Windows | Linux/macOS |
-|------|---------|-------------|
-| 경로 구분자 | `\` | `/` |
-| 실행 권한 | 자동 처리 | `chmod +x` 필요 |
-| Shebang | 무시됨 (npm이 처리) | 사용됨 |
-| npm exec | 명령어 명시 필요 | 명령어 명시 필요 |
-| npx | 권장 | 권장 |
+**소스 (기여·디버깅)**
 
-## 🚨 문제 해결
-
-### 일반적인 문제들
-
-#### 1. npm exec 오류: "could not determine executable to run"
-
-**원인**: npm exec는 실행할 명령어를 명시적으로 지정해야 합니다.
-
-**해결 방법**:
 ```bash
-# ❌ 잘못된 사용법
-npm exec memento-mcp-server@latest
-
-# ✅ 올바른 사용법
-npm exec -- memento-mcp-server@latest dev
-npm exec -- memento-mcp-server@latest setup
-
-# 또는 npx 사용 (권장)
-npx memento-mcp-server@latest dev
-```
-
-#### 2. Node.js 버전 오류
-```bash
-# Node.js 24 이상 필요 (package.json engines: >=24)
-node --version
-
-# nvm으로 Node.js 설치 (Linux/macOS)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 24
-nvm use 24
-
-# Windows에서 nvm 사용
-# nvm-windows 설치: https://github.com/coreybutler/nvm-windows
-nvm install 24
-nvm use 24
-```
-
-#### 3. 포트 충돌
-```bash
-# 포트 9001이 사용 중인 경우
-# .env 파일에서 PORT / MCP_SERVER_PORT 변경
-PORT=9002
-```
-
-#### 4. 데이터베이스 오류
-```bash
-# Linux/macOS
-rm -rf data/memory.db*
+git clone https://github.com/jee1/memento.git
+cd memento
+npm install
+npm run build
 npm run db:init
-
-# Windows (PowerShell)
-Remove-Item data\memory.db* -Force
-npm run db:init
+npm run db:migrate
+npm run quick-start
 ```
 
-#### 5. Node.js 버전으로 인한 SQLite 모듈 오류
+또는 `npm run setup` 후 `npm run dev` / `npm run start`을 사용하세요.
 
-**증상**: "SQLite를 사용할 수 없습니다" 또는 "Module not found: better-sqlite3" 오류
-
-**원인**: Node.js 버전이 높거나 낮아서 네이티브 모듈이 빌드되지 않음
-
-**해결 방법**:
+**원클릭 스크립트** (로컬에 빠르게 깔고 싶을 때)
 
 ```bash
-# 방법 1: 네이티브 모듈 재빌드 (권장)
-npm rebuild better-sqlite3 sqlite-vec
-
-# 방법 2: 소스에서 빌드
-npm install better-sqlite3 sqlite-vec --build-from-source
-
-# 방법 3: Node.js 버전 확인 및 변경 (24.x 권장)
-node --version  # 24.x 이상이어야 함
-
-# 방법 4: 완전 재설치
-rm -rf node_modules package-lock.json
-npm cache clean --force
-npm install --build-from-source
+curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
 ```
 
-**상세 가이드**: 
-- [Node.js 버전 호환성 문제 해결 가이드](docs/operations/ko/troubleshooting-node-version.md)
-- [npx 사용자 문제 해결 가이드](docs/operations/ko/npx-troubleshooting.md)
+Windows PowerShell에서는 스크립트를 받은 뒤 `bash install.sh`로 실행하세요.
 
-#### 6. Docker 오류
+### 다중 에이전트 → HTTP MCP 하나
+
+SQLite는 writer가 하나여야 안정적입니다. 여러 에이전트가 동시에 쓰면 **MCP/HTTP 서버 프로세스 하나**만 띄우고 모두 그쪽으로 붙이세요.
+
 ```bash
-# Docker 컨테이너 완전 정리
-docker-compose down -v
-docker system prune -a
-docker-compose up -d
+npm run build && npm run start:http
 ```
 
-### 로그 확인
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "type": "http",
+      "url": "http://127.0.0.1:9001/mcp"
+    }
+  }
+}
+```
+
+포트는 아래 «포트» 절을 참고해 주세요.
+
+## 환경 설정
+
 ```bash
-# 애플리케이션 로그
-tail -f logs/memento-server.log
-
-# Docker 로그
-docker-compose logs -f
-
-# 시스템 로그 (Linux)
-journalctl -u memento-mcp-server -f
+cp env.example .env
 ```
 
-## 📞 지원
+OpenAI·Gemini 키는 선택입니다. 전체 변수는 [env.example](env.example)가 기준입니다.
 
-- **이슈 리포트**: [GitHub Issues](https://github.com/jee1/memento/issues)
-- **문서**: [Wiki](https://github.com/jee1/memento/wiki)
-- **개발자 가이드**: [docs/guides/ko/developer-guide.md](docs/guides/ko/developer-guide.md)
-- **API 참조**: [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)
+## 포트
 
-## 🎉 설치 완료!
+HTTP/MCP 포트는 두 값이 있습니다.
 
-설치가 완료되면 다음 단계를 진행하세요:
+- **코드 기본값**: `3000`
+- **로컬·Docker 권장 프로필** ([env.example](env.example)): `MCP_SERVER_PORT=9001` / `PORT=9001`
 
-1. **서버 상태 확인**: `http://localhost:9001/health`
-2. **MCP 클라이언트 연결**: [클라이언트 가이드](packages/memento-client/README.md)
-3. **API 테스트**: [API 문서](docs/api/ko/api-reference.md)
-4. **사용법 학습**: [사용자 매뉴얼](docs/guides/ko/user-manual.md)
+이 문서의 URL 예시는 **권장 프로필 `9001`** 기준입니다. 기본값으로 띄운다면 `3000`으로 바꿔 읽으세요. 충돌 시 `.env`에서 `PORT` / `MCP_SERVER_PORT`를 바꾸세요.
 
----
+권장 프로필 기준 접속 예:
 
-**💡 팁**: 처음 사용하시는 경우 `npm run quick-start` 명령어로 모든 설정을 자동으로 완료할 수 있습니다!
+- MCP (HTTP): `http://localhost:9001/mcp`
+- HTTP API: `http://localhost:9001`
+- 대시보드: `http://localhost:9001/dashboard`
+- Health: `http://localhost:9001/health`
+
+stdio MCP는 포트를 쓰지 않습니다.
+
+## 자주 쓰는 명령
+
+```bash
+npm run dev              # MCP 개발
+npm run start            # MCP 프로덕션
+npm run dev:http         # HTTP 개발
+npm run start:http       # HTTP 프로덕션
+npm run test
+npm run docker:dev
+npm run docker:prod
+```
+
+## 문제 해결 (요약)
+
+- **`npm exec` 오류**: `npm exec -- memento-mcp-server@latest …`처럼 명령을 명시하거나 `npx`를 쓰세요.
+- **Node.js**: `package.json` engines 기준 **≥ 24**가 필요합니다.
+- **SQLite/네이티브 모듈**: `npm rebuild better-sqlite3 sqlite-vec` 또는 [npx 트러블슈팅](docs/operations/ko/npx-troubleshooting.md)을 참고하세요.
+- **DB 초기화**: `npm run db:init` (필요 시 DB 파일 삭제 후).
+
+자세한 운영 이슈는 [docs/operations/ko/](docs/operations/ko/)를 참고해 주세요.
+
+## 다음 단계
+
+1. 서버·MCP 연결 확인
+2. [사용자 매뉴얼](docs/guides/ko/user-manual.md)
+3. [API 레퍼런스](docs/api/ko/api-reference.md)
+4. 외부 비서 연동: [docs/integrations/](docs/integrations/README.md)
+
+## 지원
+
+- 이슈: [GitHub Issues](https://github.com/jee1/memento/issues)
+- 문서: [docs/README.md](docs/README.md)
