@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
-import { isMain, openDb, parseArgs } from '../lib/cli.js';
+import { join, resolve } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { isMain, openDb, parseArgs, resolveDbPath } from '../lib/cli.js';
 
 describe('shared CLI helpers', () => {
   const originalEntry = process.argv[1];
@@ -37,5 +38,50 @@ describe('shared CLI helpers', () => {
 
     expect(isMain(import.meta.url)).toBe(true);
     expect(isMain(new URL('../lib/cli.ts', import.meta.url).href)).toBe(false);
+  });
+});
+
+describe('resolveDbPath (#962)', () => {
+  const fakeHome = '/tmp/fake-memento-home-962';
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('expands a leading ~/ against HOME', () => {
+    vi.stubEnv('HOME', fakeHome);
+    expect(resolveDbPath('~/.memento/data/memory.db')).toBe(
+      join(fakeHome, '.memento/data/memory.db'),
+    );
+  });
+
+  it('expands a lone tilde to HOME', () => {
+    vi.stubEnv('HOME', fakeHome);
+    expect(resolveDbPath('~')).toBe(fakeHome);
+  });
+
+  it('leaves absolute container paths unchanged', () => {
+    expect(resolveDbPath('/app/data/memory.db')).toBe('/app/data/memory.db');
+  });
+
+  it('resolves relative paths against cwd', () => {
+    expect(resolveDbPath('./data/memory.db')).toBe(resolve('./data/memory.db'));
+  });
+
+  it('defaults to ~/.memento/data/memory.db when unset', () => {
+    vi.stubEnv('HOME', fakeHome);
+    // CI/vitest may set DB_PATH; explicit undefined still hits default param = env
+    vi.stubEnv('DB_PATH', '');
+    expect(resolveDbPath()).toBe(join(fakeHome, '.memento', 'data', 'memory.db'));
+  });
+
+  it('treats whitespace-only values as unset', () => {
+    vi.stubEnv('HOME', fakeHome);
+    vi.stubEnv('DB_PATH', '');
+    expect(resolveDbPath('   ')).toBe(join(fakeHome, '.memento', 'data', 'memory.db'));
+  });
+
+  it('does not expand ~user forms', () => {
+    expect(resolveDbPath('~notauser/x.db')).toBe(resolve('~notauser/x.db'));
   });
 });

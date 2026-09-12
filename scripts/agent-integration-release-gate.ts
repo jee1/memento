@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import { isMain, parseArgs as parseCliArgs, openDb, type CliDatabase } from './lib/cli.js';
+import {
+  isMain,
+  parseArgs as parseCliArgs,
+  openDb,
+  resolveDbPath,
+  type CliDatabase,
+} from './lib/cli.js';
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -250,7 +256,7 @@ function argument(name: string): string | undefined {
 }
 
 function main(): void {
-  const databasePath = argument('--db') ?? process.env.DB_PATH;
+  const databasePath = argument('--db') ?? resolveDbPath();
   const evidencePath = argument('--evidence');
   const outputPath = argument('--output');
   if (!databasePath || !evidencePath) {

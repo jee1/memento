@@ -41,4 +41,17 @@ if (backup.status !== 0) {
   process.exit(backup.status ?? 1);
 }
 
+function summarize(stdout) {
+  try {
+    const { dbPath, memory_item: rows, quick_check: quick } = JSON.parse(stdout);
+    return `[pre-docker-deploy] target=${dbPath}  memory_item=${rows}  quick_check=${quick}`;
+  } catch {
+    return null;
+  }
+}
+
+const summary = summarize(backup.stdout);
+if (summary) {
+  console.log(summary);
+}
 console.log('[pre-docker-deploy] Backup OK; safe to restart Docker.');

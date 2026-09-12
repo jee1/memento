@@ -1,5 +1,5 @@
 import { parseArgs as parseCliArgs } from './lib/cli.js';
-import { createMementoCore, EmbeddingReindexService, mementoConfig, type EmbeddingProvider } from '@memento/core';
+import { createMementoCore, EmbeddingReindexService, expandHomeDirPath, mementoConfig, type EmbeddingProvider } from '@memento/core';
 
 function option(name: string): string | undefined {
   const index = parseCliArgs().args.indexOf(name);
@@ -13,7 +13,9 @@ async function main(): Promise<void> {
   const dryRun = parseCliArgs().args.includes('--dry-run');
   // #907 기본값 off. 켜면 재색인에 성공한 기억의 다른 provider native 임베딩을 지운다.
   const pruneForeignProviders = parseCliArgs().args.includes('--prune-foreign-providers');
-  const core = await createMementoCore({ dbPath: process.env.DB_PATH ?? mementoConfig.dbPath });
+  const core = await createMementoCore({
+    dbPath: expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath),
+  });
   try {
     const service = new EmbeddingReindexService(core.db, core.services.embeddingService);
     const result = await service.reindex({ provider, batchSize, ownerId, dryRun, pruneForeignProviders });

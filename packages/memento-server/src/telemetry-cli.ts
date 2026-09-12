@@ -327,9 +327,9 @@ async function main(): Promise<void> {
   }
 
   // 동적 import (env 로드 이후)
-  const { createMementoCore, closeDatabase, mementoConfig } = await import('@memento/core');
+  const { createMementoCore, closeDatabase, mementoConfig, expandHomeDirPath } = await import('@memento/core');
 
-  const dbPath = process.env.DB_PATH ?? mementoConfig.dbPath;
+  const dbPath = expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath);
 
   let db: import('better-sqlite3').Database | null = null;
   let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;

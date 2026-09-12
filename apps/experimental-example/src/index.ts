@@ -14,8 +14,14 @@ import {
   closeDatabase,
   createMementoCore,
   createToolContext,
+  expandHomeDirPath,
   getToolRegistry,
 } from '@memento/core';
+
+/** DB_PATH / `:memory:` 해석 (#962). `~` 만 확장, `:memory:` 는 그대로. */
+export function resolveExampleDbPath(raw = process.env.DB_PATH): string {
+  return expandHomeDirPath(raw ?? ':memory:');
+}
 
 export async function runExample(dbPath: string): Promise<number> {
   const { db, services } = await createMementoCore({ dbPath });
@@ -47,7 +53,7 @@ export async function runExample(dbPath: string): Promise<number> {
 }
 
 export async function main(): Promise<void> {
-  const code = await runExample(process.env.DB_PATH ?? ':memory:');
+  const code = await runExample(resolveExampleDbPath());
   process.exit(code);
 }
 

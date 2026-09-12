@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { openDb } from './lib/cli-runtime.js';
+import { openDb, resolveDbPath } from './lib/cli-runtime.js';
 import { BackupManager } from '@memento/core';
 /**
  * Create a consistent SQLite backup using the online backup API (not cp/copyFileSync).
@@ -8,17 +8,9 @@ import { BackupManager } from '@memento/core';
  *   DB_PATH=~/.memento/data/memory.db node scripts/backup-memory-db.mjs
  *   npm run db:backup
  */
-import os from 'os';
 import path from 'path';
 
 process.env.MEMENTO_CLI_QUIET ??= '1';
-
-function resolveDbPath() {
-  if (process.env.DB_PATH) {
-    return path.resolve(process.env.DB_PATH);
-  }
-  return path.join(os.homedir(), '.memento', 'data', 'memory.db');
-}
 
 function fail(stage, reason, hint, details = {}) {
   process.stderr.write(`${JSON.stringify({ ok: false, stage, reason, hint, ...details })}\n`);

@@ -133,12 +133,13 @@ curl -sf http://localhost:9001/health
 | `npm run db:pre-docker-deploy -- --force` | 검사 실패해도 계속 (**위험**, 손상 DB 확인 후에만) |
 | `npm run db:restore-from-corrupt` | 손상 DB에서 테이블별 복구 (아래 복구 절 참고) |
 
-환경 변수 `DB_PATH`로 대상 DB를 바꿀 수 있습니다 (기본: `~/.memento/data/memory.db`). 프로덕션에서는 절대 경로를 쓰세요. 환경 변수 안의 `~`는 Node가 자동 확장하지 않습니다.
+환경 변수 `DB_PATH`로 대상 DB를 바꿀 수 있습니다 (기본: `~/.memento/data/memory.db`). `~` 로 시작하는 경로는 홈 디렉터리로 확장됩니다(#962). 그래도 프로덕션에서는 절대 경로를 권장합니다 — 컨테이너·`sudo` 처럼 `HOME` 이 달라지는 환경에서는 `~` 가 다른 홈을 가리킵니다.
+
+`db:pre-docker-deploy` 는 검사 대상 경로와 `memory_item` 행 수를 `[pre-docker-deploy] target=... memory_item=...` 한 줄로 먼저 출력합니다. **행 수가 예상과 다르면 배포를 중단하십시오.**
 
 ```bash
 DB_PATH=/custom/path/memory.db npm run db:backup
 ```
-
 `db:backup` 무인자 실행의 성공 JSON 필드는 기존 계약을 유지합니다. Operator가 복구에 써야 하는 성공 출력에는 경로가 포함될 수 있지만, 오류와 cleanup report는 안전한 basename 중심으로 보고하고 DB 절대 경로나 backup directory 경로를 노출하지 않습니다.
 
 ---

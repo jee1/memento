@@ -36,18 +36,18 @@ function createDb(dbPath: string): void {
   db.close();
 }
 
-function runBackup(dbPath: string, extraNodeArgs: string[] = []) {
+function runBackup(dbPath: string, extraNodeArgs: string[] = [], envOverrides: Record<string, string> = {}) {
   return spawnSync(process.execPath, [...extraNodeArgs, scriptPath], {
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: 'test', DB_PATH: dbPath },
+    env: { ...process.env, NODE_ENV: 'test', DB_PATH: dbPath, ...envOverrides },
     encoding: 'utf8',
   });
 }
 
-function runBackupScript(dbPath: string, scriptArgs: string[], extraNodeArgs: string[] = []) {
+function runBackupScript(dbPath: string, scriptArgs: string[], extraNodeArgs: string[] = [], envOverrides: Record<string, string> = {}) {
   return spawnSync(process.execPath, [...extraNodeArgs, scriptPath, ...scriptArgs], {
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: 'test', DB_PATH: dbPath },
+    env: { ...process.env, NODE_ENV: 'test', DB_PATH: dbPath, ...envOverrides },
     encoding: 'utf8',
   });
 }
@@ -117,6 +117,18 @@ describe('backup-memory-db operator script', () => {
     expect(basename(output.backupPath as string)).toMatch(/^memory-backup-\d{4}-/);
     expect(readdirSync(backupsDir).filter(name => /-wal$|-shm$|partial/.test(name))).toEqual([]);
     expect(readdirSync(backupsDir).filter(name => name.endsWith('.db'))).toHaveLength(1);
+  });
+
+  it('expands a leading tilde in DB_PATH against HOME (#962)', () => {
+    const root = makeTempRoot();
+    createDb(join(root, 'memory.db'));
+
+    const result = runBackup('~/memory.db', [], { HOME: root });
+
+    expect(result.status).toBe(0);
+    const output = parseJson(result.stdout);
+    expect(output.dbPath).toBe(join(root, 'memory.db'));
+    expect(readdirSync(join(root, 'backups')).filter(name => name.endsWith('.db'))).toHaveLength(1);
   });
 
   it('returns safe JSON when the requested database is missing', () => {

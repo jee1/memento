@@ -1,4 +1,4 @@
-import { mementoConfig } from '@memento/core';
+import { expandHomeDirPath, mementoConfig } from '@memento/core';
 import { parseArgvToParams } from '../option-map.js';
 
 export type PreCliOptions = {
@@ -180,8 +180,8 @@ export function validateAgentAskRawTypes(raw: Record<string, unknown>): string |
 
 export function resolveDbPath(pre: PreCliOptions): string {
   const fromCli = pre.dbPath?.trim();
-  if (fromCli) return fromCli;
+  if (fromCli) return expandHomeDirPath(fromCli);
   const fromEnv = process.env.DB_PATH?.trim();
-  if (fromEnv) return fromEnv;
+  if (fromEnv) return expandHomeDirPath(fromEnv);
   return mementoConfig.dbPath;
 }

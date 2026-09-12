@@ -1,15 +1,6 @@
 #!/usr/bin/env node
-import { openDb, isMain } from './lib/cli.js';
+import { openDb, isMain, resolveDbPath } from './lib/cli.js';
 import { vacuumAndMeasure } from './lib/quarantine-run.js';
-import os from 'node:os';
-import path from 'node:path';
-
-function resolveDbPath(): string {
-  if (process.env.DB_PATH) {
-    return path.resolve(process.env.DB_PATH);
-  }
-  return path.join(os.homedir(), '.memento', 'data', 'memory.db');
-}
 
 export async function main(): Promise<number> {
   const dbPath = resolveDbPath();

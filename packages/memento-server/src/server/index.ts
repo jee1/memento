@@ -6,6 +6,7 @@
 import {
 closeDatabase,
 createMementoCore,
+expandHomeDirPath,
 getExposedTools,
 mementoConfig,
 validateConfig,
@@ -30,6 +31,8 @@ import { ServerState } from './server-state.js';
 import { releaseLock, tryAcquireLock } from './utils/instance-lock.js';
 import { dispatchTool } from './audit-tool-dispatch.js';
 import { closeHttpServer, startServer as startHttpServer } from './http-server.js';
+
+const currentDbPath = (): string => expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath);
 
 // 전역 상태 및 인스턴스
 let server: Server;
@@ -77,7 +80,7 @@ async function runHeavyInit() {
   try {
     mcpLogger.logServer('info', `Memento MCP Server v${packageJson.version} 초기화 중...`);
     validateConfig();
-    const core = await createMementoCore({ dbPath: process.env.DB_PATH ?? mementoConfig.dbPath });
+    const core = await createMementoCore({ dbPath: currentDbPath() });
     db = core.db;
     serverServices = core.services;
     resolveInit();
@@ -96,7 +99,7 @@ async function startHttpSidecar(): Promise<void> {
     const configDir = resolveServerInfoConfigDir();
     const existing = await readServerInfo(configDir);
     if (existing && await isServerAlive(existing)) return;
-    if (shuttingDown || !tryAcquireLock(process.env.DB_PATH ?? mementoConfig.dbPath).acquired) return;
+    if (shuttingDown || !tryAcquireLock(currentDbPath()).acquired) return;
     mgmtHttpServer = await startHttpServer({ database: db, serverServices });
     mgmtConfigDir = configDir;
   } catch (error) {
