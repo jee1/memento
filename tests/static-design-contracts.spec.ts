@@ -367,4 +367,52 @@ describe('static design contracts', () => {
     expect(entrySource).toContain("window.addEventListener('mouseup', ns.releaseDragDeferral)");
     expect(entrySource).not.toContain("addEventListener('touchend'");
   });
+
+  it('issue 968 anchor map toolbar uses progressive disclosure with keyboard-accessible More', () => {
+    const dashboardSource = readStaticFile('static/dashboard.html');
+    const componentsSource = readStaticFile('static/css/components.css');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+
+    expect(componentsSource).toContain('.m-toolbar');
+    expect(componentsSource).toContain('.m-toolbar-primary');
+    expect(componentsSource).toContain('.m-toolbar-more');
+
+    expect(dashboardSource).toContain('class="anchor-map-toolbar m-toolbar"');
+    expect(dashboardSource).toContain('class="m-toolbar-primary"');
+    expect(dashboardSource).toMatch(/<details class="m-toolbar-more">[\s\S]*?<summary[\s\S]*?>More<\/summary>/);
+
+    const primaryMatch = dashboardSource.match(
+      /<div class="m-toolbar-primary">([\s\S]*?)<\/div>\s*<details class="m-toolbar-more">/,
+    );
+    expect(primaryMatch).not.toBeNull();
+    const primary = primaryMatch![1];
+    expect(primary).toContain('id="agent-id-select"');
+    expect(primary).toContain('id="search-query-input"');
+    expect(primary).toContain('id="search-slot-select"');
+    expect(primary).toContain('id="search-btn"');
+    expect(primary).toContain('id="clear-search-btn"');
+    expect(primary).not.toContain('id="refresh-btn"');
+    expect(primary).not.toContain('id="fit-btn"');
+    expect(primary).not.toContain('id="layout-mode-btn"');
+    expect(primary).not.toContain('id="auto-refresh-toggle"');
+
+    const moreMatch = dashboardSource.match(
+      /<details class="m-toolbar-more">([\s\S]*?)<\/details>/,
+    );
+    expect(moreMatch).not.toBeNull();
+    const more = moreMatch![1];
+    expect(more).toContain('id="refresh-btn"');
+    expect(more).toContain('id="fit-btn"');
+    expect(more).toContain('id="layout-mode-btn"');
+    expect(more).toContain('id="unpin-all-btn"');
+    expect(more).toContain('id="layout-reset-btn"');
+    expect(more).toContain('id="auto-refresh-toggle"');
+    expect(more).toContain('id="refresh-interval-select"');
+
+    // hover-only disclosure 금지 — native details/summary
+    expect(dashboardSource).not.toMatch(/\.m-toolbar-more:hover/);
+    expect(componentsSource).not.toMatch(/\.m-toolbar-more:hover/);
+
+    expect(cssSource).toMatch(/#anchor-map\s*\{[^}]*min-height:\s*200px;/s);
+  });
 });
