@@ -64,7 +64,7 @@
       const trace = document.createElement('button');
       trace.type = 'button';
       trace.className = 'm-button m-button--ghost as-event__trace';
-      trace.textContent = 'Trace provenance';
+      trace.textContent = '출처 추적';
       trace.addEventListener('click', function () {
         void ns
           .loadProvenance('observation_id', observation.id || observation.observation_id)
@@ -74,7 +74,7 @@
       timeline.appendChild(item);
     });
     if (!timeline.childElementCount) {
-      ns.appendText(timeline, 'li', 'No observations match the current filters.', 'as-placeholder');
+      ns.appendText(timeline, 'li', '현재 필터와 일치하는 관찰이 없습니다.', 'as-placeholder');
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -18,7 +18,7 @@
     const generation = ++ns.state.loadGeneration;
     if (!append) {
       ns.state.sessionCursor = null;
-      ns.setViewState('loading', 'Loading agent sessions…');
+      ns.setViewState('loading', '에이전트 세션 불러오는 중…');
     }
     const body = await ns.agentFetch(
       '/api/v1/agent/sessions' +
@@ -59,7 +59,7 @@
     ns.state.selectedSessionId = sessionId;
     ns.state.observationCursor = null;
     ns.renderSessionSelection(sessionId);
-    ns.setViewState('loading', 'Loading session detail…');
+    ns.setViewState('loading', '세션 상세 불러오는 중…');
     const encoded = encodeURIComponent(sessionId);
     const results = await Promise.all([
       ns.agentFetch('/api/v1/agent/sessions/' + encoded),

@@ -19,7 +19,7 @@
     if (!container) return;
 
     if (!state.searchResults || !state.searchResults.items || !state.searchResults.items.length) {
-      container.innerHTML = '<p class="no-data">No search results</p>';
+      container.innerHTML = '<p class="no-data">검색 결과 없음</p>';
       return;
     }
 

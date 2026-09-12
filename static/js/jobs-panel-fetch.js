@@ -47,7 +47,7 @@
 
   ns.refresh = async function () {
     const generation = ++ns.state.refreshGeneration;
-    ns.setStatus('Refreshing…');
+    ns.setStatus('새로고침 중…');
     ns.setLoading(true);
     try {
       const results = await Promise.all([
@@ -75,15 +75,15 @@
       } else {
         ns.renderLogs([], null);
       }
-      ns.setStatus('Updated ' + (stats.timestamp || new Date().toISOString()));
+      ns.setStatus('갱신 ' + (stats.timestamp || new Date().toISOString()));
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
       }
       // Keep prior successful snapshot; surface error only.
-      const message = err && err.message ? String(err.message) : 'Jobs refresh failed';
+      const message = err && err.message ? String(err.message) : '배치 작업 새로고침 실패';
       ns.setError(message);
-      ns.setStatus('Refresh failed — previous snapshot kept');
+      ns.setStatus('새로고침 실패 — 이전 스냅샷 유지');
     } finally {
       if (generation === ns.state.refreshGeneration) {
         ns.setLoading(false);
@@ -99,7 +99,7 @@
     ns.state.selectedRunJobName = null;
     ns.renderSchedule((ns.state.lastStats || {}).jobs);
     ns.renderLogs([], null);
-    ns.setStatus('Loading timeline for ' + (jobName || 'all jobs') + '…');
+    ns.setStatus('타임라인 불러오는 중: ' + (jobName || '전체 작업') + '…');
     try {
       const runs = await fetchJson(ns.buildRunsUrl(ns.state.selectedJob));
       if (generation !== ns.state.refreshGeneration) {
@@ -108,14 +108,14 @@
       ns.state.lastRuns = runs;
       ns.setError('');
       ns.renderTimeline(runs.runs, ns.state.selectedJob);
-      ns.setStatus('Updated ' + new Date().toISOString());
+      ns.setStatus('갱신 ' + new Date().toISOString());
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
       }
-      const message = err && err.message ? String(err.message) : 'Timeline load failed';
+      const message = err && err.message ? String(err.message) : '타임라인 로드 실패';
       ns.setError(message);
-      ns.setStatus('Timeline load failed — previous snapshot kept');
+      ns.setStatus('타임라인 로드 실패 — 이전 스냅샷 유지');
     }
   };
 
@@ -127,7 +127,7 @@
       return;
     }
     const generation = ++ns.state.refreshGeneration;
-    ns.setStatus('Loading logs for ' + id + '…');
+    ns.setStatus('로그 불러오는 중: ' + id + '…');
     try {
       const payload = await fetchJson(ns.buildLogsUrl(id));
       if (generation !== ns.state.refreshGeneration) {
@@ -136,14 +136,14 @@
       ns.state.lastLogs = payload;
       ns.setError('');
       ns.renderLogs(payload.logs, id);
-      ns.setStatus('Logs updated ' + new Date().toISOString());
+      ns.setStatus('로그 갱신 ' + new Date().toISOString());
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
       }
-      const message = err && err.message ? String(err.message) : 'Logs load failed';
+      const message = err && err.message ? String(err.message) : '로그 로드 실패';
       ns.setError(message);
-      ns.setStatus('Logs load failed — previous snapshot kept');
+      ns.setStatus('로그 로드 실패 — 이전 스냅샷 유지');
     }
   };
 
@@ -168,16 +168,16 @@
       await postJson(url, { jobType: jobType });
       ns.setError('');
     } catch (err) {
-      const message = err && err.message ? String(err.message) : statusLabel + ' failed';
+      const message = err && err.message ? String(err.message) : statusLabel + ' 실패';
       ns.setError(message);
-      ns.setStatus(statusLabel + ' failed');
+      ns.setStatus(statusLabel + ' 실패');
       return;
     } finally {
       ns.state.writeInFlight = false;
       ns.syncActionButtons();
     }
     await ns.refresh();
-    ns.setStatus(statusLabel + ' done');
+    ns.setStatus(statusLabel + ' 완료');
   }
 
   ns.pauseSelectedJob = async function () {
@@ -185,10 +185,10 @@
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('Pause schedule for ' + jobType + '?')) {
+    if (!ns.confirmWrite('"' + jobType + '" 스케줄을 일시정지할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.PAUSE_URL, jobType, 'Pause ' + jobType);
+    await writeThenRefresh(ns.PAUSE_URL, jobType, '일시정지 ' + jobType);
   };
 
   ns.resumeSelectedJob = async function () {
@@ -196,10 +196,10 @@
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('Resume schedule for ' + jobType + '?')) {
+    if (!ns.confirmWrite('"' + jobType + '" 스케줄을 재개할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.RESUME_URL, jobType, 'Resume ' + jobType);
+    await writeThenRefresh(ns.RESUME_URL, jobType, '재개 ' + jobType);
   };
 
   ns.runSelectedJobNow = async function () {
@@ -207,10 +207,10 @@
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('Run ' + jobType + ' now?')) {
+    if (!ns.confirmWrite('"' + jobType + '"을(를) 지금 실행할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.RUN_URL, jobType, 'Run now ' + jobType);
+    await writeThenRefresh(ns.RUN_URL, jobType, '지금 실행 ' + jobType);
   };
 
   /** Issue #834 US4: Retry failed run = same POST /batch/run for row jobName. */
@@ -218,9 +218,9 @@
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('Retry ' + jobType + '?')) {
+    if (!ns.confirmWrite('"' + jobType + '"을(를) 재시도할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.RUN_URL, jobType, 'Retry ' + jobType);
+    await writeThenRefresh(ns.RUN_URL, jobType, '재시도 ' + jobType);
   };
 })(typeof window !== 'undefined' ? window : globalThis);

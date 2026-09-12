@@ -11,7 +11,7 @@
     checkSession: internal.checkSession,
     handleSignIn: internal.handleSignIn,
     handleSignOut: function () {
-      internal.ui.setAuthState('signing-out', 'Clearing dashboard session…');
+      internal.ui.setAuthState('signing-out', '대시보드 세션 지우는 중…');
       fetch('/auth/session', { method: 'DELETE', credentials: 'same-origin' }).finally(function () {
         internal.session.resetSessionGate();
         global.location.reload();

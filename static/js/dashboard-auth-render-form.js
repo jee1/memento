@@ -17,11 +17,11 @@
     if (elements.keyInputEl) elements.keyInputEl.disabled = busy;
     if (elements.signInButtonEl) {
       elements.signInButtonEl.disabled = busy;
-      elements.signInButtonEl.textContent = nextState === 'signing-in' ? 'Signing in…' : 'Sign in';
+      elements.signInButtonEl.textContent = nextState === 'signing-in' ? '로그인 중…' : '로그인';
     }
     if (elements.signOutButtonEl) {
       elements.signOutButtonEl.disabled = nextState === 'signing-out';
-      elements.signOutButtonEl.textContent = nextState === 'signing-out' ? 'Signing out…' : 'Sign out';
+      elements.signOutButtonEl.textContent = nextState === 'signing-out' ? '로그아웃 중…' : '로그아웃';
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

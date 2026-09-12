@@ -47,7 +47,7 @@
       const retry = document.createElement('button');
       retry.type = 'button';
       retry.className = 'em-retry-btn';
-      retry.textContent = 'Retry';
+      retry.textContent = '재시도';
       retry.addEventListener('click', function () {
         st.loadEmbeddingMap(st.readParams());
       });
@@ -103,17 +103,17 @@
     renderEmbeddingHealthError('');
     const coverage = health.coverage == null ? '—' : (Number(health.coverage) * 100).toFixed(1) + '%';
     summary.replaceChildren(
-      metricCard('Active memories', health.memoryCount),
-      metricCard('Searchable embeddings', health.validEmbeddingCount),
-      metricCard('Coverage', coverage),
-      metricCard('Data time', health.diagnosedAt || '—')
+      metricCard('활성 기억', health.memoryCount),
+      metricCard('검색 가능 임베딩', health.validEmbeddingCount),
+      metricCard('커버리지', coverage),
+      metricCard('진단 시각', health.diagnosedAt || '—')
     );
     problems.replaceChildren(
-      metricCard('Missing', health.missingEmbeddingCount, 'missing_embedding', health.provider),
-      metricCard('Unreadable / corrupt', health.unreadableEmbeddingCount, 'unreadable_embedding', health.provider),
-      metricCard('Dimension mismatch', health.dimensionMismatchCount, 'dimension_mismatch', health.provider),
-      metricCard('Provider drift', health.providerDriftCount, 'provider_drift', health.provider),
-      metricCard('Model drift', health.modelDriftCount, 'model_drift', health.provider)
+      metricCard('누락', health.missingEmbeddingCount, 'missing_embedding', health.provider),
+      metricCard('읽기 불가/손상', health.unreadableEmbeddingCount, 'unreadable_embedding', health.provider),
+      metricCard('차원 불일치', health.dimensionMismatchCount, 'dimension_mismatch', health.provider),
+      metricCard('제공자 드리프트', health.providerDriftCount, 'provider_drift', health.provider),
+      metricCard('모델 드리프트', health.modelDriftCount, 'model_drift', health.provider)
     );
   }
 
@@ -157,7 +157,7 @@
       const previous = document.createElement('button');
       previous.type = 'button';
       previous.className = 'm-button m-button--secondary';
-      previous.textContent = 'Previous';
+      previous.textContent = '이전';
       previous.disabled = page.offset === 0;
       previous.addEventListener('click', function () {
         st.loadEmbeddingProblems(page.problem, provider, Math.max(0, page.offset - page.limit));
@@ -165,7 +165,7 @@
       const next = document.createElement('button');
       next.type = 'button';
       next.className = 'm-button m-button--secondary';
-      next.textContent = 'Next';
+      next.textContent = '다음';
       next.disabled = page.offset + page.limit >= page.total;
       next.addEventListener('click', function () {
         st.loadEmbeddingProblems(page.problem, provider, page.offset + page.limit);
@@ -219,7 +219,7 @@
         .slice(0, 3)
         .map(function (entry) { return entry[0]; })
         .join(', ');
-      item.textContent = 'Cluster ' + cluster + ': ' + group.count + ' · ' + types + (tags ? ' · ' + tags : '');
+      item.textContent = '클러스터 ' + cluster + ': ' + group.count + ' · ' + types + (tags ? ' · ' + tags : '');
       clustersEl.appendChild(item);
     });
   }

@@ -18,9 +18,9 @@
 
   function enabledLabel(job) {
     if (job && job.paused) {
-      return 'paused';
+      return '일시정지';
     }
-    return job && job.enabled ? 'yes' : 'no';
+    return job && job.enabled ? '예' : '아니오';
   }
 
   ns.renderHealth = function (health, schedulerRunning) {
@@ -30,8 +30,8 @@
     }
     const h = health || {};
     el.textContent =
-      'Scheduler: ' +
-      (schedulerRunning ? 'running' : 'stopped') +
+      '스케줄러: ' +
+      (schedulerRunning ? '실행 중' : '중지') +
       ' · runningJobs=' +
       ns.formatNumber(h.runningJobs) +
       ' · queueSize=' +
@@ -75,7 +75,7 @@
       appendCell(row, ns.formatIso(job.lastExecution));
       appendCell(row, ns.formatNumber(job.totalExecutions));
       appendCell(row, ns.formatNumber(job.errorCount));
-      appendCell(row, job.isRunning ? 'yes' : 'no');
+      appendCell(row, job.isRunning ? '예' : '아니오');
       tbody.appendChild(row);
     });
     ns.syncActionButtons();
@@ -85,7 +85,7 @@
   ns.renderTimeline = function (runs, selectedJob) {
     const label = ns.$('jobs-timeline-selected');
     if (label) {
-      label.textContent = selectedJob ? selectedJob : 'All jobs';
+      label.textContent = selectedJob ? selectedJob : '전체 작업';
     }
     const tbody = ns.$('jobs-timeline-tbody');
     if (!tbody) {
@@ -97,7 +97,7 @@
       const row = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 7;
-      td.textContent = 'No durable job runs yet.';
+      td.textContent = '아직 durable 작업 실행이 없습니다.';
       row.appendChild(td);
       tbody.appendChild(row);
       return;
@@ -113,13 +113,13 @@
       appendCell(row, ns.formatIso(run.startedAt));
       appendCell(row, ns.formatIso(run.endedAt));
       appendCell(row, ns.formatNumber(run.durationMs));
-      appendCell(row, run.success ? 'ok' : 'fail');
+      appendCell(row, run.success ? '성공' : '실패');
       const actions = document.createElement('td');
       if (run.success === false && run.jobName) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'm-button m-button--secondary jobs-retry-btn';
-        btn.textContent = 'Retry';
+        btn.textContent = '재시도';
         btn.dataset.action = 'retry';
         btn.dataset.jobName = run.jobName;
         actions.appendChild(btn);
@@ -133,7 +133,7 @@
   ns.renderLogs = function (logs, runId) {
     const label = ns.$('jobs-logs-selected');
     if (label) {
-      label.textContent = runId ? runId : 'No run selected';
+      label.textContent = runId ? runId : '실행 미선택';
     }
     const tbody = ns.$('jobs-logs-tbody');
     if (!tbody) {
@@ -144,7 +144,7 @@
       const row = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 3;
-      td.textContent = 'Select a timeline run to view logs.';
+      td.textContent = '로그를 보려면 타임라인에서 실행을 선택하세요.';
       row.appendChild(td);
       tbody.appendChild(row);
       ns.syncActionButtons();
@@ -155,7 +155,7 @@
       const row = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 3;
-      td.textContent = 'No log lines for this run.';
+      td.textContent = '이 실행의 로그 줄이 없습니다.';
       row.appendChild(td);
       tbody.appendChild(row);
       ns.syncActionButtons();
@@ -202,7 +202,7 @@
       const row = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 4;
-      td.textContent = 'No manual run history yet.';
+      td.textContent = '아직 수동 실행 이력이 없습니다.';
       row.appendChild(td);
       tbody.appendChild(row);
       return;
@@ -210,7 +210,7 @@
     list.forEach(function (entry) {
       const row = document.createElement('tr');
       appendCell(row, entry.jobType || '');
-      appendCell(row, entry.success ? 'ok' : 'fail');
+      appendCell(row, entry.success ? '성공' : '실패');
       appendCell(row, ns.formatIso(entry.requestedAt || entry.startedAt || entry.timestamp));
       appendCell(row, entry.failureMessage || entry.errorsPreview || entry.error || entry.message || '—');
       tbody.appendChild(row);

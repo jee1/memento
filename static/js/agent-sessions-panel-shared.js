@@ -48,7 +48,7 @@
 
   ns.formatTime = function (value) {
     if (!value) {
-      return 'Unknown time';
+      return '알 수 없는 시각';
     }
     const date = new Date(String(value));
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
@@ -68,7 +68,7 @@
   ns.agentFetch = async function (path, options) {
     const state = ns.state;
     if (!state.programmaticApiKey) {
-      throw new Error('Enter a programmatic API key for Agent Sessions.');
+      throw new Error('에이전트 세션용 Programmatic API 키를 입력하세요.');
     }
     const request = Object.assign({}, options || {});
     request.headers = Object.assign({}, request.headers || {}, {
@@ -83,7 +83,7 @@
       const safeMessage =
         body && typeof body.message === 'string'
           ? body.message
-          : 'Agent API request failed (' + response.status + ').';
+          : 'Agent API 요청 실패 (' + response.status + ').';
       throw new Error(safeMessage);
     }
     return body;

@@ -11,10 +11,10 @@
     if (!ns.reviewOsNotifyAvailable() || Notification.permission !== 'granted') return;
     if (document.visibilityState !== 'hidden') return;
     const body = delta === 1
-      ? 'The pending review queue has 1 new item.'
-      : 'The pending review queue has ' + String(delta) + ' new items.';
+      ? '검토 대기열에 새 항목이 1건 있습니다.'
+      : '검토 대기열에 새 항목이 ' + String(delta) + '건 있습니다.';
     try {
-      const n = new Notification('Memento — Review queue', { body: body, tag: ns.OS_NOTIFY_TAG });
+      const n = new Notification('Memento — 검토 대기열', { body: body, tag: ns.OS_NOTIFY_TAG });
       n.onclick = function () {
         try { global.focus(); } catch { /* ignore */ }
         try { n.close(); } catch { /* ignore */ }

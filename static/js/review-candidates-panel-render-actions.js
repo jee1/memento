@@ -33,7 +33,7 @@
   function showError(msg) {
     const el = $('rc-error');
     if (el) {
-      el.textContent = msg || 'Request failed';
+      el.textContent = msg || '요청 실패';
     }
     setHidden($('rc-error'), !msg);
   }
@@ -67,17 +67,17 @@
         const msg =
           (body && (body.error || body.message)) ||
           (res.status === 409
-            ? 'This candidate can no longer be updated (conflict).'
+            ? '이 후보는 더 이상 갱신할 수 없습니다(충돌).'
             : res.status === 404
-              ? 'Review candidate not found.'
+              ? '검토 후보를 찾을 수 없습니다.'
               : 'HTTP ' + res.status);
         showError(String(msg));
         return;
       }
-      showActionToast(action === 'review' ? 'Marked as reviewed.' : 'Dismissed.');
+      showActionToast(action === 'review' ? '검토 완료로 표시했습니다.' : '무시했습니다.');
       await ns.loadList();
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Network error');
+      showError(e instanceof Error ? e.message : '네트워크 오류');
     } finally {
       state.actionInFlight = false;
       ns.setPreviewActionsBusy(false);

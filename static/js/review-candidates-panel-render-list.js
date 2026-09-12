@@ -83,7 +83,7 @@
       tr.innerHTML =
         '<td class="rc-cell-select"><input type="checkbox" data-candidate-select="' +
         ns.escapeAttr(candidateId) +
-        '" aria-label="Select candidate ' +
+        '" aria-label="후보 선택 ' +
         ns.escapeAttr(candidateId) +
         '"></td><td>' +
         ns.escapeHtml(String(c.priority ?? '')) +
@@ -182,7 +182,7 @@
     const ts = body && body.timestamp;
     const line = $('rc-status-line');
     if (line && ts) {
-      line.textContent = 'Last updated: ' + ts;
+      line.textContent = '마지막 갱신: ' + ts;
     }
     state.lastPendingCount = candidates.length;
     state.lastListFingerprint = ns.buildReviewListFingerprint(candidates);
@@ -221,7 +221,7 @@
       void ns.loadBatchRunHistory();
     } catch (e) {
       showLoading(false);
-      ns.showError(e instanceof Error ? e.message : 'Network error');
+      ns.showError(e instanceof Error ? e.message : '네트워크 오류');
     }
   }
 

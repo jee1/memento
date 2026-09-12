@@ -422,8 +422,8 @@ describe('dashboard review queue poll behavior', () => {
 
     await harness.ns.runPollCycle();
 
-    expect(harness.elements['rc-toast'].textContent).toContain('2 new review candidates');
-    expect(harness.elements['rc-toast'].textContent).toContain('Open Review Queue to refresh.');
+    expect(harness.elements['rc-toast'].textContent).toContain('2건의 검토 후보가 늘었습니다');
+    expect(harness.elements['rc-toast'].textContent).toContain('검토 대기열을 열어 새로고침하세요.');
     expect(harness.elements['rc-tab-badge'].textContent).toBe('4');
     expect(harness.elements['rc-tab-badge'].attributes['aria-hidden']).toBe('false');
     expect(harness.ns.applyListSuccess).not.toHaveBeenCalled();
@@ -441,8 +441,8 @@ describe('dashboard review queue poll behavior', () => {
 
     await harness.ns.runPollCycle();
 
-    expect(harness.elements['rc-toast'].textContent).toContain('1 new review candidate');
-    expect(harness.elements['rc-toast'].textContent).toContain('List updated.');
+    expect(harness.elements['rc-toast'].textContent).toContain('검토 후보가 1건 늘었습니다');
+    expect(harness.elements['rc-toast'].textContent).toContain('목록을 갱신했습니다.');
     expect(harness.ns.applyListSuccess).toHaveBeenCalledWith(body);
     expect(harness.elements['rc-tab-badge'].textContent).toBe('');
     expect(harness.timers.at(-1)?.delayMs).toBe(60_000);
