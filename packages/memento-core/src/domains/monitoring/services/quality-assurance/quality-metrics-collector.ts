@@ -6,6 +6,7 @@
 
 import Database from 'better-sqlite3';
 import type { CategoryQualityReport } from '../../../../shared/types/benchmark.types.js';
+import type { CategoryMetricsOptions } from './category-quality-aggregator.js';
 import type {
   CollectedMetrics,
   SearchMetricsOptions,
@@ -101,8 +102,9 @@ export class QualityMetricsCollector {
 
   async collectCategoryMetrics(
     benchmarkDir: string,
-    mappingPath: string
+    mappingPath: string,
+    options?: CategoryMetricsOptions
   ): Promise<CategoryQualityReport[]> {
-    return this.categoryAggregator.collect(benchmarkDir, mappingPath);
+    return this.categoryAggregator.collect(benchmarkDir, mappingPath, options);
   }
 }

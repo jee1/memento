@@ -21,6 +21,15 @@ import {
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import { calculateMRR } from './search-metrics-collector.js';
 
+/** #961: arm/subset 옵션 — 미지정 시 기존 category-report 기본 경로와 동일 */
+export interface CategoryMetricsOptions {
+  /** GT 문서 최대 길이가 이 값 이하인 쿼리만 채점 (#961 short-only 서브셋). 미지정 시 전체. */
+  maxGroundTruthLength?: number;
+  /** 하이브리드 융합 가중치 강제 (#961 vector-dominant arm). 미지정 시 엔진 기본값. */
+  vectorWeight?: number;
+  textWeight?: number;
+}
+
 /** #934: top-10 content 길이 평균 — 길이 편향 무-GT 지표 (게이트 아님) */
 export function meanTop10ContentLength(
   items: Array<{ content?: string | null }>
@@ -33,12 +42,25 @@ export function meanTop10ContentLength(
   return sum / top.length;
 }
 
+/** #961: top-10 중 2,000자 초과 문서 비율 — 프로덕션이 4.0%→34.0% 로 보고한 것과 같은 정의 */
+export function top10LongDocRatio(
+  items: Array<{ content?: string | null }>,
+  minLength = 2000
+): number {
+  const top = items.slice(0, 10);
+  if (top.length === 0) {
+    return 0;
+  }
+  return top.filter((i) => (i.content?.length ?? 0) > minLength).length / top.length;
+}
+
 export class CategoryQualityAggregator {
   constructor(private db: Database.Database) {}
 
   async collect(
     benchmarkDir: string,
-    mappingPath: string
+    mappingPath: string,
+    options?: CategoryMetricsOptions
   ): Promise<CategoryQualityReport[]> {
     const raw = JSON.parse(readFileSync(mappingPath, 'utf8')) as {
       macro_categories: Record<string, string[]>;
@@ -47,16 +69,28 @@ export class CategoryQualityAggregator {
       query_id_to_category: Record<string, string>;
     };
     const queries = loadBenchmarkQueries(benchmarkDir);
-    const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir).filter((groundTruth) => {
-      if (groundTruth.relevantIds.length > 0) {
-        return true;
-      }
-      logger.warn('카테고리 품질 측정에서 Ground Truth 없는 쿼리 제외', {
-        query: groundTruth.queryId,
-      });
-      return false;
-    });
     const corpus = loadBenchmarkCorpus(benchmarkDir);
+    const benchmarkIdToLength = new Map(
+      corpus.map((e) => [e.benchmark_id, (e.content ?? '').length])
+    );
+    const gtMaxLen = (ids: string[]): number =>
+      ids.reduce((m, id) => Math.max(m, benchmarkIdToLength.get(id) ?? 0), 0);
+
+    const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir)
+      .filter((groundTruth) => {
+        if (groundTruth.relevantIds.length > 0) {
+          return true;
+        }
+        logger.warn('카테고리 품질 측정에서 Ground Truth 없는 쿼리 제외', {
+          query: groundTruth.queryId,
+        });
+        return false;
+      })
+      .filter(
+        (gt) =>
+          options?.maxGroundTruthLength === undefined ||
+          gtMaxLen(gt.relevantIds) <= options.maxGroundTruthLength
+      );
     const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
 
     const categoryToMacro = new Map<string, MacroCategory>();
@@ -99,17 +133,29 @@ export class CategoryQualityAggregator {
       }
     }
 
+    // #961: short-only 서브셋에서는 authored도 같은 술어로 걸러 coverage 게이트가 죽지 않게 한다
+    const scoredQueryKeys = new Set(groundTruths.map((gt) => gt.queryId));
     const authoredByMacro = new Map<MacroCategory, number>();
     for (const q of queries) {
+      if (
+        options?.maxGroundTruthLength !== undefined &&
+        !scoredQueryKeys.has(q.query_id) &&
+        !scoredQueryKeys.has(q.query)
+      ) {
+        continue;
+      }
       const macro = queryIdToMacro.get(q.query_id);
       if (macro) {
         authoredByMacro.set(macro, (authoredByMacro.get(macro) ?? 0) + 1);
       }
     }
 
+    // #961 R4: AdaptiveWeightCalculator caches by query string — callers must use a fresh
+    // engine per arm. createDefaultEngine here is per collect() call (sweep creates new collector).
     const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
     const queryResultsByQueryId = new Map<string, SearchResult[]>();
     const top10LenByQueryId = new Map<string, number>();
+    const longDocRatioByQueryId = new Map<string, number>();
 
     for (const gt of groundTruths) {
       const qrow = queries.find(q => q.query_id === gt.queryId);
@@ -118,6 +164,8 @@ export class CategoryQualityAggregator {
         query: queryText,
         limit: 20,
         provider_filter: getBenchmarkVectorProviderFilter(),
+        ...(options?.vectorWeight !== undefined ? { vectorWeight: options.vectorWeight } : {}),
+        ...(options?.textWeight !== undefined ? { textWeight: options.textWeight } : {}),
       });
       const mapped: SearchResult[] = sr.items.map((item) => ({
         id: memoryIdToBenchmarkId.get(item.id) ?? item.id,
@@ -125,6 +173,7 @@ export class CategoryQualityAggregator {
       }));
       queryResultsByQueryId.set(gt.queryId, mapped);
       top10LenByQueryId.set(gt.queryId, meanTop10ContentLength(sr.items));
+      longDocRatioByQueryId.set(gt.queryId, top10LongDocRatio(sr.items));
     }
 
     const ALL_MACROS: MacroCategory[] = [
@@ -153,6 +202,7 @@ export class CategoryQualityAggregator {
           ndcg_at_5: 0,
           ndcg_at_10: 0,
           mean_top10_content_length: 0,
+          mean_top10_long_doc_ratio: 0,
           threshold_passed: false,
         });
         continue;
@@ -171,6 +221,7 @@ export class CategoryQualityAggregator {
       let ndcg10 = 0;
       const ndcgDenom = subsetGts.length;
       let top10LenSum = 0;
+      let longDocRatioSum = 0;
       for (const gt of subsetGts) {
         const results = queryResultsByQueryId.get(gt.queryId);
         if (!results || results.length === 0) {
@@ -179,6 +230,7 @@ export class CategoryQualityAggregator {
         ndcg5 += calculateNDCGAtK(results, gt.relevantIds, 5);
         ndcg10 += calculateNDCGAtK(results, gt.relevantIds, 10);
         top10LenSum += top10LenByQueryId.get(gt.queryId) ?? 0;
+        longDocRatioSum += longDocRatioByQueryId.get(gt.queryId) ?? 0;
       }
 
       const mrrVal = mrr;
@@ -190,6 +242,7 @@ export class CategoryQualityAggregator {
         ndcg_at_5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
         ndcg_at_10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,
         mean_top10_content_length: ndcgDenom > 0 ? top10LenSum / ndcgDenom : 0,
+        mean_top10_long_doc_ratio: ndcgDenom > 0 ? longDocRatioSum / ndcgDenom : 0,
         threshold_passed: mrrVal >= MRR_THRESHOLD
       });
     }

@@ -74,6 +74,8 @@ export interface CategoryQualityReport {
   ndcg_at_10: number;
   /** top-10 결과 content 길이 평균 — 길이 편향의 무-GT 지표 (#934, 게이트 아님) */
   mean_top10_content_length: number;
+  /** top-10 중 2,000자 초과 문서 비율 — 프로덕션 점유율과 같은 정의 (#961, 게이트 아님) */
+  mean_top10_long_doc_ratio: number;
   /** MRR ≥ 0.5 게이트 통과 여부 */
   threshold_passed: boolean;
 }
