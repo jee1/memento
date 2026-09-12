@@ -11,9 +11,9 @@
     const t = ns.$('rc-toast');
     if (!t) return;
     const msg = delta === 1
-      ? '1 new review candidate (pending queue grew).'
-      : String(delta) + ' new review candidates (pending queue grew).';
-    t.textContent = msg + (onReviewTab ? ' List updated.' : ' Open Review Queue to refresh.');
+      ? '검토 후보가 1건 늘었습니다(대기열 증가).'
+      : String(delta) + '건의 검토 후보가 늘었습니다(대기열 증가).';
+    t.textContent = msg + (onReviewTab ? ' 목록을 갱신했습니다.' : ' 검토 대기열을 열어 새로고침하세요.');
     t.classList.remove('hidden');
     if (ns.state.toastHideTimer) clearTimeout(ns.state.toastHideTimer);
     ns.state.toastHideTimer = setTimeout(function () {

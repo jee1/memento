@@ -16,7 +16,7 @@
     },
     handleUnauthorized: function () {
       internal.session.resetSessionGate();
-      internal.ui.setAuthState('signed-out', 'Dashboard session expired. Sign in again to continue.');
+      internal.ui.setAuthState('signed-out', '대시보드 세션이 만료되었습니다. 계속하려면 다시 로그인하세요.');
     },
     getState: function () {
       return internal.state.authState;

@@ -30,14 +30,14 @@
     const w1 = live && live.window1h ? live.window1h : {};
     const w24 = live && live.window24h ? live.window24h : {};
     const cards = [];
-    cards.push(formatHealthMetricCard('Pending now', live && live.pendingTotal != null ? live.pendingTotal : '—'));
-    cards.push(formatHealthMetricCard('Created (1h)', w1.candidatesCreated != null ? w1.candidatesCreated : '—'));
-    cards.push(formatHealthMetricCard('Processed (1h)', w1.processedTotal != null ? w1.processedTotal : '—'));
-    cards.push(formatHealthMetricCard('Net flow (1h)', w1.netFlow != null ? w1.netFlow : '—'));
-    cards.push(formatHealthMetricCard('Processed / created (1h)', ratioText(w1.processingRatio)));
-    cards.push(formatHealthMetricCard('Created (24h)', w24.candidatesCreated != null ? w24.candidatesCreated : '—'));
-    cards.push(formatHealthMetricCard('Processed (24h)', w24.processedTotal != null ? w24.processedTotal : '—'));
-    cards.push(formatHealthMetricCard('Processed / created (24h)', ratioText(w24.processingRatio)));
+    cards.push(formatHealthMetricCard('현재 대기', live && live.pendingTotal != null ? live.pendingTotal : '—'));
+    cards.push(formatHealthMetricCard('생성 (1h)', w1.candidatesCreated != null ? w1.candidatesCreated : '—'));
+    cards.push(formatHealthMetricCard('처리 (1h)', w1.processedTotal != null ? w1.processedTotal : '—'));
+    cards.push(formatHealthMetricCard('순유입 (1h)', w1.netFlow != null ? w1.netFlow : '—'));
+    cards.push(formatHealthMetricCard('처리/생성 (1h)', ratioText(w1.processingRatio)));
+    cards.push(formatHealthMetricCard('생성 (24h)', w24.candidatesCreated != null ? w24.candidatesCreated : '—'));
+    cards.push(formatHealthMetricCard('처리 (24h)', w24.processedTotal != null ? w24.processedTotal : '—'));
+    cards.push(formatHealthMetricCard('처리/생성 (24h)', ratioText(w24.processingRatio)));
     return '<div class="rc-health-metric-grid">' + cards.join('') + '</div>';
   }
 

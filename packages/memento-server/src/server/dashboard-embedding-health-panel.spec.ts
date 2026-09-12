@@ -12,10 +12,10 @@ const scatterJs = readFileSync(resolve(root, 'static/js/embedding-map-chart-scat
 
 describe('Dashboard embedding health panel (#896)', () => {
   it('puts diagnostics before the auxiliary map and demotes k/limit to Advanced', () => {
-    expect(dashboardHtml).toContain('Embedding Health');
+    expect(dashboardHtml).toContain('임베딩 상태');
     expect(dashboardHtml).toContain('id="em-health-summary"');
     expect(dashboardHtml).toContain('id="em-health-problems"');
-    expect(dashboardHtml).toContain('<summary>Advanced</summary>');
+    expect(dashboardHtml).toContain('<summary>고급</summary>');
     expect(dashboardHtml.indexOf('id="em-health-summary"')).toBeLessThan(
       dashboardHtml.indexOf('id="em-scatter"'),
     );

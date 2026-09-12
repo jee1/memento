@@ -17,17 +17,17 @@
     }
     ns.clearNode(container);
     if (!injections.length) {
-      ns.appendText(container, 'p', 'No injection decisions recorded.', 'as-placeholder');
+      ns.appendText(container, 'p', '기록된 주입 결정이 없습니다.', 'as-placeholder');
       return;
     }
     injections.forEach(function (injection) {
       const card = document.createElement('article');
       card.className = 'as-injection';
-      ns.appendText(card, 'strong', injection.injection_id || injection.request_id || 'Injection');
+      ns.appendText(card, 'strong', injection.injection_id || injection.request_id || '주입');
       ns.appendText(
         card,
         'span',
-        'Tokens ' +
+        '토큰 ' +
           dom.number(injection.token_used) +
           ' / ' +
           dom.number(injection.token_budget) +
@@ -39,7 +39,7 @@
       candidates.forEach(function (candidate) {
         const row = document.createElement('div');
         row.className = 'as-candidate';
-        ns.appendText(row, 'span', candidate.memory_id || 'Unknown memory', 'as-mono');
+        ns.appendText(row, 'span', candidate.memory_id || '알 수 없는 기억', 'as-mono');
         ns.appendText(
           row,
           'span',
@@ -59,7 +59,7 @@
         const trace = document.createElement('button');
         trace.type = 'button';
         trace.className = 'm-button m-button--ghost';
-        trace.textContent = 'Trace';
+        trace.textContent = '추적';
         trace.addEventListener('click', function () {
           void ns.loadProvenance('memory_id', candidate.memory_id).catch(ns.showError);
         });

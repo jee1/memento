@@ -33,7 +33,7 @@
       ns.state.validatedTranscript = null;
       ns.clearNode(ns.$('as-session-list'));
       ns.clearNode(ns.$('as-timeline'));
-      ns.setViewState('status', 'Programmatic API key cleared from page memory.');
+      ns.setViewState('status', '페이지 메모리에서 Programmatic API 키를 지웠습니다.');
     });
     on('as-refresh-sessions', 'click', function () {
       void ns.loadSessions(false).catch(ns.showError);
@@ -76,7 +76,7 @@
     if (!ns.state.programmaticApiKey) {
       ns.setViewState(
         'status',
-        'Enter a programmatic API key. It remains only in page memory and is cleared on reload.',
+        'Programmatic API 키를 입력하세요. 페이지 메모리에만 보관되며 새로고침 시 지워집니다.',
       );
       const input = ns.$('as-api-key');
       if (input) {

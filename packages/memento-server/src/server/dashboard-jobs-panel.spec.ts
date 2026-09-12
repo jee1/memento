@@ -312,9 +312,9 @@ describe('dashboard jobs panel (#832)', () => {
     expect(dashboardHtml).toContain('id="jobs-resume-btn"');
     expect(dashboardHtml).toContain('id="jobs-run-now-btn"');
     expect(dashboardHtml).toMatch(/\/admin\/batch\/runs\/:runId\/logs|runs\/:runId\/logs/i);
-    expect(dashboardHtml).toMatch(/Pause/i);
-    expect(dashboardHtml).toMatch(/Resume/i);
-    expect(dashboardHtml).toMatch(/Run now/i);
+    expect(dashboardHtml).toMatch(/일시정지/);
+    expect(dashboardHtml).toMatch(/재개/);
+    expect(dashboardHtml).toMatch(/지금 실행/);
     expect(dashboardHtml).toMatch(/#834/);
   });
 
@@ -420,7 +420,7 @@ describe('dashboard jobs panel (#832)', () => {
       true,
     );
     expect(h.elements['jobs-timeline-tbody'].children.length).toBeGreaterThan(0);
-    expect(h.elements['jobs-timeline-selected'].textContent).toBe('All jobs');
+    expect(h.elements['jobs-timeline-selected'].textContent).toBe('전체 작업');
 
     const tbody = h.elements['jobs-schedule-tbody'];
     const priorChildCount = tbody.children.length;

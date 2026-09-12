@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memento Dashboard</title>
+  <title>Memento 대시보드</title>
   <script src="/static/js/memento-admin-fetch.js"></script>
   <script src="/static/js/dashboard-auth-state.js"></script>
   <script src="/static/js/dashboard-auth-dom.js"></script>
@@ -27,24 +27,24 @@
     <header class="dashboard-header m-header">
       <div class="dashboard-header-top">
         <div class="dashboard-title-group">
-          <h1>Memento Dashboard</h1>
-          <p class="dashboard-subtitle">Sign in once to use the dashboard with the browser session cookie.</p>
+          <h1>Memento 대시보드</h1>
+          <p class="dashboard-subtitle">브라우저 세션 쿠키로 대시보드를 사용하려면 한 번 로그인하세요.</p>
         </div>
-        <section class="dashboard-auth-panel" aria-label="Dashboard session">
+        <section class="dashboard-auth-panel" aria-label="대시보드 세션">
           <form id="dashboard-auth-form" class="dashboard-auth-form">
-            <label for="dashboard-api-key" class="dashboard-auth-label">Admin API Key</label>
+            <label for="dashboard-api-key" class="dashboard-auth-label">관리자 API 키</label>
             <input
               type="password"
               id="dashboard-api-key"
               class="dashboard-auth-input m-input"
-              placeholder="Enter key for /auth/session"
+              placeholder="/auth/session용 키 입력"
               autocomplete="current-password"
             >
-            <button type="submit" id="dashboard-sign-in-btn" class="dashboard-auth-btn m-button m-button--primary">Sign in</button>
+            <button type="submit" id="dashboard-sign-in-btn" class="dashboard-auth-btn m-button m-button--primary">로그인</button>
           </form>
           <div id="dashboard-auth-session" class="dashboard-auth-session" hidden>
-            <span id="dashboard-auth-status" class="dashboard-auth-status">Session active</span>
-            <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn m-button m-button--secondary">Sign out</button>
+            <span id="dashboard-auth-status" class="dashboard-auth-status">세션 활성</span>
+            <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn m-button m-button--secondary">로그아웃</button>
           </div>
           <p id="dashboard-auth-message" class="dashboard-auth-message" aria-live="polite"></p>
         </section>
@@ -53,19 +53,19 @@
 
     <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
       <div class="m-nav-group session-only" role="presentation">
-        <span class="m-nav-group__label" aria-hidden="true">Spatial</span>
-        <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
-        <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Health</button>
-        <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
+        <span class="m-nav-group__label" aria-hidden="true">공간</span>
+        <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
+        <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">임베딩 상태</button>
+        <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">기억 그래프</button>
       </div>
       <div class="m-nav-group session-only" role="presentation">
-        <span class="m-nav-group__label" aria-hidden="true">Ops</span>
-        <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
-        <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">Jobs</button>
-        <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
+        <span class="m-nav-group__label" aria-hidden="true">운영</span>
+        <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+        <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
+        <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
       </div>
       <div class="m-nav-group" role="presentation">
-        <span class="m-nav-group__label" aria-hidden="true">Learn</span>
+        <span class="m-nav-group__label" aria-hidden="true">학습</span>
         <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
       </div>
     </div>
@@ -73,27 +73,27 @@
     
 
     <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
-      <div class="anchor-map-toolbar m-toolbar" aria-label="Anchor Map controls">
+      <div class="anchor-map-toolbar m-toolbar" aria-label="앵커 맵 컨트롤">
         <div class="m-toolbar-primary">
           <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">Agent ID:</label>
           <select id="agent-id-select" class="m-input" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">
             <option value="default">default (앵커 없음)</option>
           </select>
-          <label for="search-query-input" title="선택한 앵커 슬롯 주변에서 검색합니다. 국소 결과가 부족하면 전역 검색으로 확장됩니다.">Search:</label>
-          <input type="text" id="search-query-input" class="m-input" placeholder="Search memories..." title="검색어를 입력하고 Search 또는 Enter를 누르세요.">
+          <label for="search-query-input" title="선택한 앵커 슬롯 주변에서 검색합니다. 국소 결과가 부족하면 전역 검색으로 확장됩니다.">검색:</label>
+          <input type="text" id="search-query-input" class="m-input" placeholder="기억 검색..." title="검색어를 입력하고 검색 또는 Enter를 누르세요.">
           <select id="search-slot-select" class="m-input" title="검색 기준 앵커 슬롯입니다. A=1-hop, B=2-hop, C=3-hop 범위가 적용됩니다.">
-            <option value="A" selected>Slot A</option>
-            <option value="B">Slot B</option>
-            <option value="C">Slot C</option>
+            <option value="A" selected>슬롯 A</option>
+            <option value="B">슬롯 B</option>
+            <option value="C">슬롯 C</option>
           </select>
-          <button id="search-btn" class="m-button m-button--secondary" title="앵커 주변 국소 검색을 실행합니다.">Search</button>
-          <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
+          <button id="search-btn" class="m-button m-button--secondary" title="앵커 주변 국소 검색을 실행합니다.">검색</button>
+          <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">지우기</button>
         </div>
         <details class="m-toolbar-more">
-          <summary class="m-button m-button--ghost">More</summary>
+          <summary class="m-button m-button--ghost">더보기</summary>
           <div class="m-toolbar-more__body">
-            <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
-            <button id="fit-btn" class="m-button m-button--secondary" title="모든 노드가 보이도록 확대/이동을 되돌립니다.">Fit</button>
+            <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">새로고침</button>
+            <button id="fit-btn" class="m-button m-button--secondary" title="모든 노드가 보이도록 확대/이동을 되돌립니다.">맞춤</button>
             <button id="layout-mode-btn" class="m-button m-button--secondary" aria-pressed="false"
               title="자동 정렬을 일시정지하면 force 시뮬레이션이 수동 배치를 덮어쓰지 않습니다.">정렬 일시정지</button>
             <button id="unpin-all-btn" class="m-button m-button--secondary"
@@ -102,7 +102,7 @@
               title="저장된 배치를 지우고 서버 기본 레이아웃으로 되돌립니다.">현재 배치 초기화</button>
             <label for="auto-refresh-toggle" class="anchor-map-toolbar__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
               <input type="checkbox" id="auto-refresh-toggle" class="anchor-map-toolbar__checkbox">
-              Auto Refresh
+              자동 새로고침
             </label>
             <select id="refresh-interval-select" class="m-input anchor-map-toolbar__interval" title="자동 새로고침 간격을 설정합니다.">
               <option value="5000">5초</option>
@@ -116,24 +116,24 @@
       <main class="dashboard-main">
         <div class="sidebar">
           <section class="anchor-info">
-            <h2 title="현재 Agent ID에 설정된 앵커 슬롯 목록입니다. 항목을 클릭하면 맵에서 해당 노드로 이동합니다.">Anchors</h2>
+            <h2 title="현재 Agent ID에 설정된 앵커 슬롯 목록입니다. 항목을 클릭하면 맵에서 해당 노드로 이동합니다.">앵커</h2>
             <div id="anchor-list">
-              <p class="no-data">No anchors set</p>
+              <p class="no-data">설정된 앵커 없음</p>
             </div>
           </section>
 
           <section class="anchor-search-results">
-            <h2 title="검색 결과 목록입니다. 맵에 있는 항목은 강조 표시되며, 클릭하면 상세 정보를 볼 수 있습니다.">Search Results</h2>
+            <h2 title="검색 결과 목록입니다. 맵에 있는 항목은 강조 표시되며, 클릭하면 상세 정보를 볼 수 있습니다.">검색 결과</h2>
             <p id="anchor-search-status" class="anchor-search-status no-data" aria-live="polite">검색 후 결과가 여기에 표시됩니다.</p>
             <div id="anchor-search-results">
-              <p class="no-data">No search results</p>
+              <p class="no-data">검색 결과 없음</p>
             </div>
           </section>
 
           <section class="memory-details">
-            <h2 title="맵 노드 또는 검색 결과를 선택하면 메모리 상세 정보가 표시됩니다.">Memory Details</h2>
+            <h2 title="맵 노드 또는 검색 결과를 선택하면 메모리 상세 정보가 표시됩니다.">기억 상세</h2>
             <div id="memory-details">
-              <p class="no-data">Click on a node to view details</p>
+              <p class="no-data">노드를 클릭하면 상세가 표시됩니다</p>
             </div>
           </section>
         </div>
@@ -141,22 +141,22 @@
         <div class="map-container">
           <div id="anchor-map"></div>
           <div class="map-legend">
-            <h3 title="맵 노드 색상과 의미입니다.">Legend</h3>
-            <div class="legend-item" title="Slot A 앵커 — 1-hop 국소 검색 범위">
+            <h3 title="맵 노드 색상과 의미입니다.">범례</h3>
+            <div class="legend-item" title="슬롯 A 앵커 — 1-hop 국소 검색 범위">
               <span class="legend-color anchor-a"></span>
-              <span>Slot A (1-hop)</span>
+              <span>슬롯 A (1-hop)</span>
             </div>
-            <div class="legend-item" title="Slot B 앵커 — 2-hop 국소 검색 범위">
+            <div class="legend-item" title="슬롯 B 앵커 — 2-hop 국소 검색 범위">
               <span class="legend-color anchor-b"></span>
-              <span>Slot B (2-hop)</span>
+              <span>슬롯 B (2-hop)</span>
             </div>
-            <div class="legend-item" title="Slot C 앵커 — 3-hop 국소 검색 범위">
+            <div class="legend-item" title="슬롯 C 앵커 — 3-hop 국소 검색 범위">
               <span class="legend-color anchor-c"></span>
-              <span>Slot C (3-hop)</span>
+              <span>슬롯 C (3-hop)</span>
             </div>
             <div class="legend-item" title="앵커 주변 연결 메모리 노드">
               <span class="legend-color memory"></span>
-              <span>Memory</span>
+              <span>기억</span>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@
       <div class="embedding-map-layout">
         <div class="em-controls">
           <label>
-            Provider
+            제공자
             <select id="em-provider" class="m-input">
               <option value="minilm" selected>minilm</option>
               <option value="tfidf">tfidf</option>
@@ -175,15 +175,15 @@
               <option value="gemini">gemini</option>
             </select>
           </label>
-          <button type="button" id="em-load-btn" class="m-button m-button--primary">Refresh</button>
+          <button type="button" id="em-load-btn" class="m-button m-button--primary">새로고침</button>
           <span id="em-cache-info" class="em-cache-info"></span>
         </div>
         <section class="em-health-panel rc-health-panel" aria-labelledby="em-health-title">
-          <h2 id="em-health-title" class="rc-health-title">Embedding Health</h2>
+          <h2 id="em-health-title" class="rc-health-title">임베딩 상태</h2>
           <p class="rc-health-hint">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
           <div id="em-health-error" class="em-error hidden" role="alert"></div>
           <div id="em-health-summary" class="rc-health-metric-grid" aria-live="polite"></div>
-          <h3 class="rc-health-subtitle">Problems</h3>
+          <h3 class="rc-health-subtitle">문제</h3>
           <div id="em-health-problems" class="rc-health-metric-grid"></div>
           <div id="em-problem-list" class="em-problem-list hidden" aria-live="polite"></div>
           <p class="rc-health-hint">재색인 전 확인: <code class="rc-health-code">npm run reindex-embeddings -- --provider &lt;provider&gt; --dry-run</code></p>
@@ -196,9 +196,9 @@
               <p id="em-sample-info" class="rc-health-hint"></p>
             </div>
             <details class="em-advanced">
-              <summary>Advanced</summary>
+              <summary>고급</summary>
               <label>
-                Limit
+                한도
                 <input id="em-limit" class="m-input" type="number" min="1" max="500" value="300">
               </label>
               <label>
@@ -234,41 +234,41 @@
       <div class="review-candidates-layout">
         <header class="review-candidates-header">
           <div class="review-candidates-header-text">
-            <h2 class="review-candidates-title">Memory review candidates</h2>
+            <h2 class="review-candidates-title">기억 검토 후보</h2>
             <p class="rc-intro">
               중요도가 높지만 오랫동안 recall되지 않은 메모리를 사람이 검토하기 위한 운영 대기열입니다.
               <code class="rc-health-code">memory_review_candidates</code> 배치가 후보를 채우고, 여기서
-              <strong>Review</strong>·<strong>Dismiss</strong>로 처리합니다.
+              <strong>검토</strong>·<strong>무시</strong>로 처리합니다.
             </p>
             <p class="rc-howto">
               <span class="rc-howto-label">사용 방법:</span>
-              목록에서 행을 선택해 Preview에서 본문을 확인한 뒤,
-              <strong>Review</strong>는 검토 완료(메모리 <code class="rc-health-code">last_accessed</code> 갱신),
-              <strong>Dismiss</strong>는 더 이상 검토할 필요 없음으로 표시합니다.
-              여러 행은 체크박스로 선택해 일괄 Dismiss·Expire 할 수 있습니다.
-              <strong>Queue health</strong>는 pending 적체와 최근 1시간 유입·처리량을 보여 줍니다.
+              목록에서 행을 선택해 미리보기에서 본문을 확인한 뒤,
+              <strong>검토</strong>는 검토 완료(메모리 <code class="rc-health-code">last_accessed</code> 갱신),
+              <strong>무시</strong>는 더 이상 검토할 필요 없음으로 표시합니다.
+              여러 행은 체크박스로 선택해 일괄 무시·만료 할 수 있습니다.
+              <strong>대기열 상태</strong>는 pending 적체와 최근 1시간 유입·처리량을 보여 줍니다.
             </p>
           </div>
-          <button type="button" id="rc-refresh-btn" class="m-button m-button--secondary">Refresh</button>
+          <button type="button" id="rc-refresh-btn" class="m-button m-button--secondary">새로고침</button>
         </header>
-        <section id="rc-health-panel" class="rc-health-panel" aria-label="Pending queue health metrics">
-          <h3 class="rc-health-title">Queue health (#294)</h3>
+        <section id="rc-health-panel" class="rc-health-panel" aria-label="대기열 상태 지표">
+          <h3 class="rc-health-title">대기열 상태 (#294)</h3>
           <p id="rc-health-hint" class="rc-health-hint">
-            Rolling windows use row timestamps (<code class="rc-health-code">created_at</code>, <code class="rc-health-code">reviewed_at</code>, <code class="rc-health-code">dismissed_at</code>, <code class="rc-health-code">expired</code> via <code class="rc-health-code">updated_at</code>).
+            롤링 윈도우는 행 타임스탬프를 사용합니다(<code class="rc-health-code">created_at</code>, <code class="rc-health-code">reviewed_at</code>, <code class="rc-health-code">dismissed_at</code>, <code class="rc-health-code">expired</code>는 <code class="rc-health-code">updated_at</code> 기준).
           </p>
           <div id="rc-health-error" class="rc-banner rc-banner--error hidden"></div>
           <div id="rc-health-live" class="rc-health-live hidden" aria-live="polite"></div>
           <div id="rc-health-history-wrap" class="rc-health-history-wrap hidden">
-            <h4 class="rc-health-subtitle">Recent samples</h4>
+            <h4 class="rc-health-subtitle">최근 샘플</h4>
             <div class="rc-health-table-scroll">
               <table id="rc-health-history-table" class="rc-health-table">
                 <thead>
                   <tr>
-                    <th scope="col">Sampled (UTC)</th>
-                    <th scope="col">Pending</th>
-                    <th scope="col">Net flow 1h</th>
-                    <th scope="col">Created 1h</th>
-                    <th scope="col">Processed 1h</th>
+                    <th scope="col">샘플 시각 (UTC)</th>
+                    <th scope="col">대기</th>
+                    <th scope="col">순유입 1h</th>
+                    <th scope="col">생성 1h</th>
+                    <th scope="col">처리 1h</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -279,26 +279,26 @@
         <section
           id="rc-batch-history-panel"
           class="rc-health-panel"
-          aria-label="Manual admin batch run history"
+          aria-label="수동 관리자 배치 실행 이력"
         >
-          <h3 class="rc-health-title">Manual batch runs</h3>
+          <h3 class="rc-health-title">수동 배치 실행</h3>
           <p class="rc-health-hint">
-            Recent <code class="rc-health-code">POST /admin/batch/run</code> calls on this server process
-            (in-memory; cleared on restart). Issue <span class="rc-health-code">#295</span>.
+            이 서버 프로세스의 최근 <code class="rc-health-code">POST /admin/batch/run</code> 호출
+            (메모리 내; 재시작 시 초기화). 이슈 <span class="rc-health-code">#295</span>.
           </p>
           <div id="rc-batch-history-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
-          <div id="rc-batch-history-empty" class="rc-banner hidden">No manual batch runs recorded yet.</div>
+          <div id="rc-batch-history-empty" class="rc-banner hidden">아직 기록된 수동 배치 실행이 없습니다.</div>
           <div id="rc-batch-history-wrap" class="rc-health-history-wrap hidden">
             <div class="rc-health-table-scroll">
               <table id="rc-batch-history-table" class="rc-health-table">
                 <thead>
                   <tr>
-                    <th scope="col">Completed (local)</th>
-                    <th scope="col">Job type</th>
-                    <th scope="col">OK</th>
-                    <th scope="col">Duration</th>
-                    <th scope="col">Processed</th>
-                    <th scope="col">Errors / notes</th>
+                    <th scope="col">완료 (로컬)</th>
+                    <th scope="col">작업 유형</th>
+                    <th scope="col">성공</th>
+                    <th scope="col">소요 시간</th>
+                    <th scope="col">처리</th>
+                    <th scope="col">오류 / 메모</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -311,46 +311,46 @@
           id="rc-notify-prompt"
           class="rc-notify-prompt hidden"
           role="region"
-          aria-label="Desktop notifications for the review queue"
+          aria-label="검토 대기열 데스크톱 알림"
         >
           <p id="rc-notify-prompt-text" class="rc-notify-prompt__text">
-            Optional: get a system notification when the pending queue grows while this tab is in the
-            background. Alerts only include counts, not memory content.
+            선택: 이 탭이 백그라운드일 때 대기열이 늘면 시스템 알림을 받습니다.
+            알림에는 건수만 포함되며 기억 내용은 포함되지 않습니다.
           </p>
           <div class="rc-notify-prompt__actions">
             <button type="button" id="rc-notify-enable-btn" class="m-button m-button--secondary">
-              Enable system alerts
+              시스템 알림 사용
             </button>
-            <button type="button" id="rc-notify-dismiss-btn" class="m-button m-button--ghost">Not now</button>
+            <button type="button" id="rc-notify-dismiss-btn" class="m-button m-button--ghost">나중에</button>
           </div>
         </div>
-        <div id="rc-loading" class="rc-banner hidden">Loading…</div>
+        <div id="rc-loading" class="rc-banner hidden">불러오는 중…</div>
         <div id="rc-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
-        <div id="rc-empty" class="rc-banner hidden">No pending review candidates.</div>
+        <div id="rc-empty" class="rc-banner hidden">대기 중인 검토 후보가 없습니다.</div>
         <div id="rc-toast" class="rc-toast hidden" role="status" aria-live="polite"></div>
         <div class="review-candidates-body">
           <div class="rc-main-col">
             <div id="rc-bulk-actions" class="rc-bulk-actions" aria-busy="false">
               <label class="rc-bulk-select-all" for="rc-select-all">
                 <input type="checkbox" id="rc-select-all">
-                Select all visible
+                보이는 항목 모두 선택
               </label>
-              <span id="rc-selected-count" class="rc-selected-count" aria-live="polite">0 selected</span>
+              <span id="rc-selected-count" class="rc-selected-count" aria-live="polite">0개 선택</span>
               <div class="rc-bulk-buttons">
-                <button type="button" id="rc-bulk-dismiss-btn" class="m-button m-button--secondary" disabled>Dismiss selected</button>
-                <button type="button" id="rc-bulk-expire-btn" class="m-button m-button--ghost" disabled>Expire selected</button>
+                <button type="button" id="rc-bulk-dismiss-btn" class="m-button m-button--secondary" disabled>선택 무시</button>
+                <button type="button" id="rc-bulk-expire-btn" class="m-button m-button--ghost" disabled>선택 만료</button>
               </div>
             </div>
             <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
               <table id="rc-table" class="review-candidates-table">
                 <thead>
                   <tr>
-                    <th scope="col" aria-label="Select candidates"></th>
-                    <th scope="col">Priority</th>
+                    <th scope="col" aria-label="후보 선택"></th>
+                    <th scope="col">우선순위</th>
                     <th scope="col">Memory ID</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Reason</th>
-                    <th scope="col">Due</th>
+                    <th scope="col">상태</th>
+                    <th scope="col">사유</th>
+                    <th scope="col">기한</th>
                     <th scope="col">Candidate ID</th>
                   </tr>
                 </thead>
@@ -358,22 +358,22 @@
               </table>
             </div>
           </div>
-          <aside id="rc-preview-aside" class="rc-preview-aside" aria-label="Candidate and memory preview">
+          <aside id="rc-preview-aside" class="rc-preview-aside" aria-label="후보 및 기억 미리보기">
             <div class="rc-preview-panel">
-              <h3 class="rc-preview-title">Preview</h3>
-              <p id="rc-preview-placeholder" class="rc-preview-placeholder">Select a row to load candidate details and memory content.</p>
+              <h3 class="rc-preview-title">미리보기</h3>
+              <p id="rc-preview-placeholder" class="rc-preview-placeholder">행을 선택하면 후보 상세와 기억 내용을 불러옵니다.</p>
               <div id="rc-preview-detail" class="rc-preview-detail hidden">
                 <dl class="rc-preview-dl">
-                  <div><dt>Priority</dt><dd id="rc-preview-priority"></dd></div>
-                  <div><dt>Reason</dt><dd id="rc-preview-reason" class="rc-preview-reason-full"></dd></div>
-                  <div><dt>Due</dt><dd id="rc-preview-due" class="rc-cell-mono"></dd></div>
+                  <div><dt>우선순위</dt><dd id="rc-preview-priority"></dd></div>
+                  <div><dt>사유</dt><dd id="rc-preview-reason" class="rc-preview-reason-full"></dd></div>
+                  <div><dt>기한</dt><dd id="rc-preview-due" class="rc-cell-mono"></dd></div>
                   <div><dt>Memory ID</dt><dd id="rc-preview-mid" class="rc-cell-mono"></dd></div>
                 </dl>
                 <p id="rc-preview-memory-status" class="rc-preview-memory-status" aria-live="polite"></p>
                 <pre id="rc-preview-content" class="rc-preview-content"></pre>
                 <div id="rc-preview-actions" class="rc-preview-actions" aria-busy="false">
-                  <button type="button" id="rc-btn-review" class="m-button m-button--secondary" disabled>Review</button>
-                  <button type="button" id="rc-btn-dismiss" class="m-button m-button--secondary" disabled>Dismiss</button>
+                  <button type="button" id="rc-btn-review" class="m-button m-button--secondary" disabled>검토</button>
+                  <button type="button" id="rc-btn-dismiss" class="m-button m-button--secondary" disabled>무시</button>
                 </div>
               </div>
             </div>
@@ -385,39 +385,39 @@
       <div class="jobs-layout">
         <header class="jobs-header">
           <div class="jobs-header-text">
-            <h2 class="jobs-title">Batch Jobs</h2>
+            <h2 class="jobs-title">배치 작업</h2>
             <p class="jobs-intro">
-              Schedule table, in-memory queue snapshot, durable run history, and run logs.
-              Job runs persist in <strong>job_run</strong> / <strong>job_run_log</strong> (#833 / #834).
-              Pause / Resume / Run now / Retry use confirm dialogs; manual Refresh only (no SSE).
+              스케줄 표, 메모리 내 큐 스냅샷, durable 실행 이력, 실행 로그.
+              작업 실행은 <strong>job_run</strong> / <strong>job_run_log</strong>에 보존됩니다 (#833 / #834).
+              일시정지 / 재개 / 지금 실행 / 재시도는 확인 대화상자를 사용하며, 수동 새로고침만 지원합니다(SSE 없음).
             </p>
           </div>
-          <button type="button" id="jobs-refresh-btn" class="m-button m-button--secondary">Refresh</button>
+          <button type="button" id="jobs-refresh-btn" class="m-button m-button--secondary">새로고침</button>
         </header>
         <p id="jobs-status-line" class="jobs-status" aria-live="polite"></p>
-        <div id="jobs-loading" class="m-loading hidden" aria-live="polite">Loading jobs…</div>
+        <div id="jobs-loading" class="m-loading hidden" aria-live="polite">배치 작업 불러오는 중…</div>
         <div id="jobs-error" class="m-error hidden" role="alert"></div>
         <p id="jobs-health-summary" class="jobs-health" aria-live="polite"></p>
         <section class="jobs-section" aria-labelledby="jobs-schedule-heading">
-          <h3 id="jobs-schedule-heading">Schedule</h3>
-          <p class="jobs-disclaimer">Click a row to load its durable run timeline below. Writes require confirmation.</p>
-          <div id="jobs-schedule-empty" class="m-empty hidden">No scheduled jobs.</div>
+          <h3 id="jobs-schedule-heading">스케줄</h3>
+          <p class="jobs-disclaimer">행을 클릭하면 아래 durable 실행 타임라인을 불러옵니다. 쓰기는 확인이 필요합니다.</p>
+          <div id="jobs-schedule-empty" class="m-empty hidden">예약된 배치 작업이 없습니다.</div>
           <div class="jobs-actions" id="jobs-actions">
-            <button type="button" id="jobs-pause-btn" class="m-button m-button--secondary" disabled>Pause</button>
-            <button type="button" id="jobs-resume-btn" class="m-button m-button--secondary" disabled>Resume</button>
-            <button type="button" id="jobs-run-now-btn" class="m-button m-button--secondary" disabled>Run now</button>
+            <button type="button" id="jobs-pause-btn" class="m-button m-button--secondary" disabled>일시정지</button>
+            <button type="button" id="jobs-resume-btn" class="m-button m-button--secondary" disabled>재개</button>
+            <button type="button" id="jobs-run-now-btn" class="m-button m-button--secondary" disabled>지금 실행</button>
           </div>
           <div id="jobs-schedule-table-wrap" class="jobs-table-wrap">
             <table id="jobs-schedule-table" class="jobs-table">
               <thead>
                 <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Interval ms</th>
-                  <th scope="col">Enabled</th>
-                  <th scope="col">Last execution</th>
-                  <th scope="col">Total</th>
-                  <th scope="col">Errors</th>
-                  <th scope="col">Running</th>
+                  <th scope="col">이름</th>
+                  <th scope="col">간격 ms</th>
+                  <th scope="col">사용</th>
+                  <th scope="col">마지막 실행</th>
+                  <th scope="col">합계</th>
+                  <th scope="col">오류</th>
+                  <th scope="col">실행 중</th>
                 </tr>
               </thead>
               <tbody id="jobs-schedule-tbody"></tbody>
@@ -425,23 +425,23 @@
           </div>
         </section>
         <section class="jobs-section" aria-labelledby="jobs-queue-heading">
-          <h3 id="jobs-queue-heading">Queue</h3>
+          <h3 id="jobs-queue-heading">큐</h3>
           <p id="jobs-queue-summary" class="jobs-queue-summary">—</p>
         </section>
         <section class="jobs-section" aria-labelledby="jobs-timeline-heading">
-          <h3 id="jobs-timeline-heading">Job run timeline — <span id="jobs-timeline-selected">All jobs</span></h3>
-          <p class="jobs-disclaimer">From <code>GET /admin/batch/runs</code> (durable; select a row for logs; Retry on failed only).</p>
+          <h3 id="jobs-timeline-heading">작업 실행 타임라인 — <span id="jobs-timeline-selected">전체 작업</span></h3>
+          <p class="jobs-disclaimer">출처 <code>GET /admin/batch/runs</code> (durable; 행 선택 시 로그; 실패 건만 재시도).</p>
           <div id="jobs-timeline" class="jobs-table-wrap">
             <table class="jobs-table">
               <thead>
                 <tr>
-                  <th scope="col">Job</th>
-                  <th scope="col">Trigger</th>
-                  <th scope="col">Started</th>
-                  <th scope="col">Ended</th>
-                  <th scope="col">Duration ms</th>
-                  <th scope="col">Success</th>
-                  <th scope="col">Actions</th>
+                  <th scope="col">작업</th>
+                  <th scope="col">트리거</th>
+                  <th scope="col">시작</th>
+                  <th scope="col">종료</th>
+                  <th scope="col">소요 ms</th>
+                  <th scope="col">성공</th>
+                  <th scope="col">동작</th>
                 </tr>
               </thead>
               <tbody id="jobs-timeline-tbody"></tbody>
@@ -450,17 +450,17 @@
         </section>
         <section class="jobs-section" aria-labelledby="jobs-logs-heading">
           <div class="jobs-section-header">
-            <h3 id="jobs-logs-heading">Run logs — <span id="jobs-logs-selected">No run selected</span></h3>
-            <button type="button" id="jobs-logs-refresh-btn" class="m-button m-button--secondary" disabled>Refresh logs</button>
+            <h3 id="jobs-logs-heading">실행 로그 — <span id="jobs-logs-selected">실행 미선택</span></h3>
+            <button type="button" id="jobs-logs-refresh-btn" class="m-button m-button--secondary" disabled>로그 새로고침</button>
           </div>
-          <p class="jobs-disclaimer">From <code>GET /admin/batch/runs/:runId/logs</code> (manual Refresh; no SSE) (#834).</p>
+          <p class="jobs-disclaimer">출처 <code>GET /admin/batch/runs/:runId/logs</code> (수동 새로고침; SSE 없음) (#834).</p>
           <div id="jobs-logs" class="jobs-table-wrap">
             <table class="jobs-table">
               <thead>
                 <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">Level</th>
-                  <th scope="col">Message</th>
+                  <th scope="col">시각</th>
+                  <th scope="col">수준</th>
+                  <th scope="col">메시지</th>
                 </tr>
               </thead>
               <tbody id="jobs-logs-tbody"></tbody>
@@ -468,16 +468,16 @@
           </div>
         </section>
         <section class="jobs-section" aria-labelledby="jobs-history-heading">
-          <h3 id="jobs-history-heading">Manual run history</h3>
-          <p class="jobs-disclaimer">From <code>GET /admin/batch/run-history</code> (process-local ring buffer, secondary; POST /admin/batch/run only).</p>
+          <h3 id="jobs-history-heading">수동 실행 이력</h3>
+          <p class="jobs-disclaimer">출처 <code>GET /admin/batch/run-history</code> (process-local 링 버퍼, 보조; POST /admin/batch/run만).</p>
           <div id="jobs-run-history" class="jobs-table-wrap">
             <table class="jobs-table">
               <thead>
                 <tr>
-                  <th scope="col">Job</th>
-                  <th scope="col">Result</th>
-                  <th scope="col">Requested</th>
-                  <th scope="col">Detail</th>
+                  <th scope="col">작업</th>
+                  <th scope="col">결과</th>
+                  <th scope="col">요청 시각</th>
+                  <th scope="col">상세</th>
                 </tr>
               </thead>
               <tbody id="jobs-run-history-tbody"></tbody>
@@ -490,88 +490,88 @@
       <div class="as-layout">
         <header class="as-header">
           <div>
-            <h2 class="as-title">Agent Sessions</h2>
-            <p class="as-intro">Programmatic API 경계에서 session, observation, provenance, injection 결정을 탐색합니다. 원문 payload는 표시하지 않습니다.</p>
+            <h2 class="as-title">에이전트 세션</h2>
+            <p class="as-intro">Programmatic API 경계에서 session·observation·provenance·injection 결정을 탐색합니다. 원문 payload는 표시하지 않습니다.</p>
           </div>
           <form id="as-auth-form" class="as-auth" autocomplete="off">
             <label for="as-api-key">Programmatic API Key</label>
-            <input id="as-api-key" class="m-input" type="password" autocomplete="off" placeholder="Memory only">
-            <button type="submit" class="m-button m-button--primary">Connect</button>
-            <button type="button" id="as-disconnect" class="m-button m-button--ghost">Clear key</button>
+            <input id="as-api-key" class="m-input" type="password" autocomplete="off" placeholder="페이지 메모리에만 보관">
+            <button type="submit" class="m-button m-button--primary">연결</button>
+            <button type="button" id="as-disconnect" class="m-button m-button--ghost">키 지우기</button>
           </form>
         </header>
 
-        <div id="as-loading" class="as-banner as-banner--loading hidden" role="status" aria-live="polite">Loading agent sessions…</div>
-        <div id="as-empty" class="as-banner hidden">No sessions match the current filters.</div>
+        <div id="as-loading" class="as-banner as-banner--loading hidden" role="status" aria-live="polite">에이전트 세션 불러오는 중…</div>
+        <div id="as-empty" class="as-banner hidden">현재 필터와 일치하는 세션이 없습니다.</div>
         <div id="as-error" class="as-banner as-banner--error hidden" role="alert"></div>
         <div id="as-status" class="as-banner hidden" role="status" aria-live="polite"></div>
 
-        <section class="as-aggregate" aria-label="Agent session aggregate">
-          <article><span>Sessions</span><strong id="as-count-sessions">0</strong></article>
-          <article><span>Observations</span><strong id="as-count-observations">0</strong></article>
-          <article><span>Redacted</span><strong id="as-count-redacted">0</strong></article>
-          <article><span>Dropped</span><strong id="as-count-dropped">0</strong></article>
-          <article><span>Degraded</span><strong id="as-count-degraded">0</strong></article>
+        <section class="as-aggregate" aria-label="에이전트 세션 집계">
+          <article><span>세션</span><strong id="as-count-sessions">0</strong></article>
+          <article><span>관찰</span><strong id="as-count-observations">0</strong></article>
+          <article><span>가려짐</span><strong id="as-count-redacted">0</strong></article>
+          <article><span>드롭</span><strong id="as-count-dropped">0</strong></article>
+          <article><span>저하됨</span><strong id="as-count-degraded">0</strong></article>
         </section>
 
-        <section class="as-filter-card" aria-label="Session filters">
-          <label>Status <select id="as-session-status" class="m-input"><option value="">All</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="ABANDONED">Abandoned</option><option value="DEGRADED">Degraded</option></select></label>
-          <label>Adapter <input id="as-session-adapter" class="m-input" type="text"></label>
-          <label>Owner <input id="as-session-owner" class="m-input" type="text"></label>
-          <label>Project <input id="as-session-project" class="m-input" type="text"></label>
-          <button type="button" id="as-refresh-sessions" class="m-button m-button--secondary">Refresh</button>
+        <section class="as-filter-card" aria-label="세션 필터">
+          <label>상태 <select id="as-session-status" class="m-input"><option value="">전체</option><option value="ACTIVE">활성</option><option value="COMPLETED">완료</option><option value="ABANDONED">포기</option><option value="DEGRADED">저하됨</option></select></label>
+          <label>어댑터 <input id="as-session-adapter" class="m-input" type="text"></label>
+          <label>소유자 <input id="as-session-owner" class="m-input" type="text"></label>
+          <label>프로젝트 <input id="as-session-project" class="m-input" type="text"></label>
+          <button type="button" id="as-refresh-sessions" class="m-button m-button--secondary">새로고침</button>
         </section>
 
         <div class="as-browser">
-          <section class="as-session-column" aria-label="Session list">
+          <section class="as-session-column" aria-label="세션 목록">
             <div id="as-session-list" class="as-session-list"></div>
-            <button type="button" id="as-load-more-sessions" class="m-button m-button--secondary hidden">Load more sessions</button>
+            <button type="button" id="as-load-more-sessions" class="m-button m-button--secondary hidden">세션 더 보기</button>
           </section>
-          <section id="as-session-detail" class="as-detail" aria-label="Selected session detail">
-            <p class="as-placeholder">Select a session to inspect its safe metadata.</p>
+          <section id="as-session-detail" class="as-detail" aria-label="선택한 세션 상세">
+            <p class="as-placeholder">세션을 선택하면 안전한 메타데이터를 확인할 수 있습니다.</p>
           </section>
         </div>
 
         <section class="as-timeline-card" aria-labelledby="as-timeline-title">
           <header class="as-section-header">
-            <h3 id="as-timeline-title">Observation timeline</h3>
+            <h3 id="as-timeline-title">관찰 타임라인</h3>
             <div class="as-inline-filters">
-              <label>Event <select id="as-event-type" class="m-input"><option value="">All</option><option value="USER_PROMPT">Prompt</option><option value="TOOL_CALL">Tool</option><option value="TOOL_RESULT">Result</option><option value="ERROR">Error</option><option value="ASSISTANT_RESPONSE">Response</option><option value="SESSION_START">Lifecycle</option><option value="STOP">Stop</option></select></label>
-              <label>Status <select id="as-observation-status" class="m-input"><option value="">All</option><option value="ACCEPTED">Accepted</option><option value="REDACTED">Redacted</option><option value="DROPPED">Dropped</option><option value="DEGRADED">Degraded</option></select></label>
-              <button type="button" id="as-refresh-timeline" class="m-button m-button--secondary">Apply</button>
+              <label>이벤트 <select id="as-event-type" class="m-input"><option value="">전체</option><option value="USER_PROMPT">Prompt</option><option value="TOOL_CALL">Tool</option><option value="TOOL_RESULT">Result</option><option value="ERROR">Error</option><option value="ASSISTANT_RESPONSE">Response</option><option value="SESSION_START">Lifecycle</option><option value="STOP">Stop</option></select></label>
+              <label>상태 <select id="as-observation-status" class="m-input"><option value="">전체</option><option value="ACCEPTED">수락</option><option value="REDACTED">가려짐</option><option value="DROPPED">드롭</option><option value="DEGRADED">저하됨</option></select></label>
+              <button type="button" id="as-refresh-timeline" class="m-button m-button--secondary">적용</button>
             </div>
           </header>
           <ol id="as-timeline" class="as-timeline"></ol>
-          <button type="button" id="as-load-more-observations" class="m-button m-button--secondary hidden">Load more observations</button>
+          <button type="button" id="as-load-more-observations" class="m-button m-button--secondary hidden">관찰 더 보기</button>
         </section>
 
         <div class="as-inspection-grid">
           <section class="as-card" aria-labelledby="as-injections-title">
-            <h3 id="as-injections-title">Injection decisions</h3>
-            <div id="as-injections" class="as-stack"><p class="as-placeholder">Select a session.</p></div>
+            <h3 id="as-injections-title">주입 결정</h3>
+            <div id="as-injections" class="as-stack"><p class="as-placeholder">세션을 선택하세요.</p></div>
           </section>
           <section class="as-card" aria-labelledby="as-provenance-title">
-            <h3 id="as-provenance-title">Provenance navigation</h3>
+            <h3 id="as-provenance-title">출처 탐색</h3>
             <form id="as-provenance-form" class="as-provenance-form">
-              <label for="as-provenance-kind">Lookup</label>
+              <label for="as-provenance-kind">조회</label>
               <select id="as-provenance-kind" class="m-input"><option value="memory_id">Memory ID</option><option value="observation_id">Observation ID</option></select>
               <input id="as-provenance-id" class="m-input" type="text" required>
-              <button type="submit" class="m-button m-button--secondary">Trace</button>
+              <button type="submit" class="m-button m-button--secondary">추적</button>
             </form>
             <div id="as-provenance-results" class="as-stack"></div>
           </section>
         </div>
 
         <section class="as-card as-import" aria-labelledby="as-import-title">
-          <h3 id="as-import-title">JSONL transcript import</h3>
-          <p class="as-hint">Dry-run is mandatory. Import becomes available only when the unchanged transcript validates successfully.</p>
-          <label for="as-transcript-file">JSONL file</label>
+          <h3 id="as-import-title">JSONL 트랜스크립트 가져오기</h3>
+          <p class="as-hint">Dry-run이 필수입니다. 변경되지 않은 트랜스크립트가 성공적으로 검증된 뒤에만 가져오기를 사용할 수 있습니다.</p>
+          <label for="as-transcript-file">JSONL 파일</label>
           <input id="as-transcript-file" class="m-input" type="file" accept=".jsonl,application/json,text/plain">
-          <label for="as-transcript-jsonl">JSONL text</label>
+          <label for="as-transcript-jsonl">JSONL 텍스트</label>
           <textarea id="as-transcript-jsonl" class="m-input as-transcript-input" rows="8" spellcheck="false"></textarea>
           <div class="as-import-actions">
-            <button type="button" id="as-transcript-dry-run" class="m-button m-button--secondary">Validate dry-run</button>
-            <button type="button" id="as-transcript-import" class="m-button m-button--primary" disabled>Import validated transcript</button>
+            <button type="button" id="as-transcript-dry-run" class="m-button m-button--secondary">Dry-run 검증</button>
+            <button type="button" id="as-transcript-import" class="m-button m-button--primary" disabled>검증된 트랜스크립트 가져오기</button>
           </div>
           <div id="as-import-results" class="as-stack" aria-live="polite"></div>
         </section>

@@ -225,7 +225,7 @@
 
   function labelTextFor(d) {
     let text;
-    if (d.type === 'anchor' && d.slot) text = 'Slot ' + d.slot;
+    if (d.type === 'anchor' && d.slot) text = '슬롯 ' + d.slot;
     else text = d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
     if (d.pinned) text += ' 📌';
     return text;
@@ -235,9 +235,9 @@
     const pinHint = d.pinned ? '\n📌 고정됨 (드래그로 이동 · 상세 패널에서 해제)' : '';
     if (d.type === 'anchor') {
       const warning = d.embedding_missing ? '\n⚠ 임베딩 없음 — 연결 메모리 검색 불가' : '';
-      return 'Anchor ' + d.slot + '\n' + d.content + warning + pinHint;
+      return '앵커 ' + d.slot + '\n' + d.content + warning + pinHint;
     }
-    return 'Memory\n' + d.content + '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
+    return '기억\n' + d.content + '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
   }
 
   function applyPinVisual() {
@@ -452,7 +452,7 @@
     const mapData = state.mapData;
 
     if (!mapData || !mapData.anchors || mapData.anchors.length === 0) {
-      anchorListContainer.innerHTML = '<p class="no-data">No anchors set</p>';
+      anchorListContainer.innerHTML = '<p class="no-data">설정된 앵커 없음</p>';
       return;
     }
 

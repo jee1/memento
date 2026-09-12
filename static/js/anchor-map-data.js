@@ -38,7 +38,7 @@
         for (const entry of agents) {
           const option = document.createElement('option');
           option.value = entry.agent_id;
-          option.textContent = entry.agent_id + ' (' + entry.anchor_count + ' anchors)';
+          option.textContent = entry.agent_id + ' (' + entry.anchor_count + '개 앵커)';
           select.appendChild(option);
         }
       }

@@ -31,7 +31,7 @@
     const summary = document.createElement('p');
     summary.className = result.valid === false ? 'as-import-summary as-import-summary--error' : 'as-import-summary';
     summary.textContent =
-      (result.dry_run ? 'Dry-run' : 'Import') +
+      (result.dry_run ? 'Dry-run' : '가져오기') +
       ': ' +
       (result.valid === false ? 'invalid' : 'valid') +
       ' · accepted ' +
@@ -48,7 +48,7 @@
       ns.appendText(
         container,
         'p',
-        'Line ' + String(error.line || '?') + ': ' + String(error.code || error.message || 'invalid'),
+        '줄 ' + String(error.line || '?') + ': ' + String(error.code || error.message || 'invalid'),
         'as-import-error',
       );
     });
@@ -57,10 +57,10 @@
   async function submitTranscript(dryRun) {
     const jsonl = transcriptValue();
     if (!jsonl.trim()) {
-      throw new Error('Choose a JSONL file or enter transcript text.');
+      throw new Error('JSONL 파일을 선택하거나 트랜스크립트 텍스트를 입력하세요.');
     }
     if (!dryRun && ns.state.validatedTranscript !== jsonl) {
-      throw new Error('Run a successful dry-run after the last transcript change.');
+      throw new Error('마지막 트랜스크립트 변경 후 성공한 dry-run을 실행하세요.');
     }
     const requestBody = dryRun
       ? { jsonl: jsonl, dry_run: true }
@@ -99,7 +99,7 @@
       }
     });
     reader.addEventListener('error', function () {
-      ns.showError(new Error('Could not read the selected JSONL file.'));
+      ns.showError(new Error('선택한 JSONL 파일을 읽을 수 없습니다.'));
     });
     reader.readAsText(file);
   }

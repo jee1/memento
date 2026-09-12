@@ -198,8 +198,8 @@ describe('agent sessions dashboard panel (#460)', () => {
     expect(panelJs).toContain('textContent');
     expect(panelJs).not.toContain('payload_json');
     expect(panelJs).not.toContain('.innerHTML');
-    expect(dashboardHtml).toContain('<option value="DEGRADED">Degraded</option>');
-    expect(dashboardHtml).toContain('<option value="REDACTED">Redacted</option>');
+    expect(dashboardHtml).toContain('<option value="DEGRADED">저하됨</option>');
+    expect(dashboardHtml).toContain('<option value="REDACTED">가려짐</option>');
   });
 
   it('uses dedicated design tokens for event and operational state styling', () => {
@@ -246,7 +246,7 @@ describe('agent sessions dashboard panel (#460)', () => {
     expect(componentsCss).toContain('.m-error');
     expect(componentsCss).toContain(':focus-visible');
     expect(componentsCss).not.toContain('.m-header .m-button--secondary');
-    expect(dashboardHtml).toContain('<h1>Memento Dashboard</h1>');
+    expect(dashboardHtml).toContain('<h1>Memento 대시보드</h1>');
     expect(dashboardHtml).not.toMatch(/<h1>[^\n]*🎯/);
     expect(dashboardCss).toContain("data-auth-state='signed-in'");
     expect(authTabsJs).toContain("activateTab('anchor')");

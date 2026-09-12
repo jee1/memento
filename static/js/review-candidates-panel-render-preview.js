@@ -99,7 +99,7 @@
     const status = $('rc-preview-memory-status');
     const content = $('rc-preview-content');
     if (status) {
-      status.textContent = 'Loading memory…';
+      status.textContent = '기억 불러오는 중…';
     }
     if (content) {
       content.textContent = '';
@@ -142,7 +142,7 @@
         return;
       }
       if (status) {
-        status.textContent = e instanceof Error ? e.message : 'Network error';
+        status.textContent = e instanceof Error ? e.message : '네트워크 오류';
       }
     }
   }

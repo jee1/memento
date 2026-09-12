@@ -9,8 +9,8 @@
 
   internal.updateAuthStatusLabel = function (elements, nextState) {
     if (!elements.statusEl) return;
-    if (nextState === 'signed-in') elements.statusEl.textContent = 'Session active';
-    else if (nextState === 'checking') elements.statusEl.textContent = 'Checking session…';
-    else elements.statusEl.textContent = 'Session required';
+    if (nextState === 'signed-in') elements.statusEl.textContent = '세션 활성';
+    else if (nextState === 'checking') elements.statusEl.textContent = '세션 확인 중…';
+    else elements.statusEl.textContent = '세션 필요';
   };
 })(typeof window !== 'undefined' ? window : globalThis);

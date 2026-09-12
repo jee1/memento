@@ -50,7 +50,7 @@
       ns.renderBatchRunHistoryTable(entries);
     } catch (e) {
       if (errEl) {
-        errEl.textContent = e instanceof Error ? e.message : 'Network error';
+        errEl.textContent = e instanceof Error ? e.message : '네트워크 오류';
         setHidden(errEl, false);
       }
       setHidden(emptyEl, true);
@@ -95,7 +95,7 @@
       }
     } catch (e) {
       if (errEl) {
-        errEl.textContent = e instanceof Error ? e.message : 'Network error';
+        errEl.textContent = e instanceof Error ? e.message : '네트워크 오류';
         setHidden(errEl, false);
       }
       setHidden(liveEl, true);

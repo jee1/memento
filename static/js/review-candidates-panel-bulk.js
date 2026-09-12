@@ -30,7 +30,7 @@
       });
 
     if (count) {
-      count.textContent = selectedCount + ' selected';
+      count.textContent = selectedCount + '개 선택';
     }
     if (selectAll) {
       selectAll.checked = allSelected;
@@ -92,10 +92,10 @@
     if (!ids.length || state.actionInFlight) {
       return;
     }
-    const label = action === 'dismiss' ? 'dismiss' : 'expire';
+    const label = action === 'dismiss' ? '무시' : '만료';
     if (
       typeof global.confirm === 'function' &&
-      !global.confirm('Bulk ' + label + ' ' + ids.length + ' selected candidates?')
+      !global.confirm('선택한 후보 ' + ids.length + '건을 일괄 ' + label + '할까요?')
     ) {
       return;
     }
@@ -128,7 +128,7 @@
       resetBulkSelection([]);
       await ns.loadList();
     } catch (e) {
-      ns.showError(e instanceof Error ? e.message : 'Network error');
+      ns.showError(e instanceof Error ? e.message : '네트워크 오류');
     } finally {
       state.actionInFlight = false;
       if (wrap) {

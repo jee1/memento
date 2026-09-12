@@ -21,14 +21,14 @@
       group.className = 'as-provenance-group';
       ns.appendText(group, 'h4', key);
       if (!items.length) {
-        ns.appendText(group, 'p', 'Unavailable or source_deleted.', 'as-placeholder');
+        ns.appendText(group, 'p', '사용할 수 없거나 source_deleted.', 'as-placeholder');
       }
       items.forEach(function (item) {
         const row = document.createElement('button');
         row.type = 'button';
         row.className = 'as-provenance-item';
         const id = item.id || item.memory_id || item.observation_id || item.session_id;
-        ns.appendText(row, 'strong', id || 'Unavailable');
+        ns.appendText(row, 'strong', id || '사용 불가');
         ns.appendText(
           row,
           'span',
@@ -47,6 +47,6 @@
   };
 
   ns.showError = function (error) {
-    ns.setViewState('error', error instanceof Error ? error.message : 'Agent Sessions failed.');
+    ns.setViewState('error', error instanceof Error ? error.message : '에이전트 세션 실패.');
   };
 })(typeof window !== 'undefined' ? window : globalThis);
