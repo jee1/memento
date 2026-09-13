@@ -30,8 +30,8 @@ assignees: ''
 다음 정보를 작성해주세요:
 
 - **OS**: [예: Windows 10, macOS 12.0, Ubuntu 20.04]
-- **Node.js 버전**: [예: 20.0.0]
-- **Memento 버전**: [예: 0.1.0]
+- **Node.js 버전**: [예: 24.0.0] (Node.js ≥24, npm ≥10)
+- **Memento 버전**: [예: 1.30.0] (`npm view memento-mcp-server version`으로 확인)
 - **브라우저**: [예: Chrome 91, Firefox 89] (웹 관련 버그인 경우)
 
 ## 📋 추가 컨텍스트
