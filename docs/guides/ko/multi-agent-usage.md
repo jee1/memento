@@ -52,7 +52,7 @@ Memento는 이를 위해 `owner_id` 필드를 지원합니다. 기억을 저장�
 
 ## HTTP owner scope (strict / warn / off)
 
-HTTP 프로그램matic API(`/tools/*`)는 다중 에이전트 환경에서 타 에이전트 기억 유출을 막기 위해 owner scope를 적용할 수 있습니다.
+HTTP programmatic API(`/tools/*`)는 다중 에이전트 환경에서 타 에이전트 기억 유출을 막기 위해 owner scope를 적용할 수 있습니다.
 
 | 환경 변수 | 값 | 동작 |
 |-----------|-----|------|
@@ -100,3 +100,5 @@ strict owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세�
 ## 하위 호환성
 
 owner_id 기능은 기존 코드와 완전히 하위 호환됩니다. 기존 데이터는 모두 `owner_id = NULL`을 유지하며, `owner_id`를 지정하지 않은 기존 코드는 변경 없이 이전과 동일하게 동작합니다. 새로운 필드를 사용해야만 다중 에이전트 분리 기능이 활성화됩니다.
+
+> **HTTP 참고:** 위 하위 호환 설명은 MCP·구코드 경로 기준입니다. HTTP `/tools/recall`·`/tools/memory_injection`은 기본 `MEMENTO_OWNER_SCOPE_MODE=strict`라서, `owner_id`를 생략해도 에이전트 ID로 자동 필터되거나(없으면 400) NULL 기억이 스코프 결과에 안 잡힐 수 있습니다. 전체 조회가 필요하면 `warn`/`off` 또는 위 «레거시 NULL 데이터 opt-out»을 보세요.
