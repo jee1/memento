@@ -2,21 +2,21 @@
 
 ## Why Agent Ownership Matters
 
-When multiple AI agents share a single Memento instance, there is a risk that one agent's memories contaminate another's context, or that an agent retrieves memories that belong to a different workstream. For example, if a code review agent, a documentation agent, and a deployment agent all write to the same database, their working contexts should remain isolated.
+When several AI agents share one Memento instance, they can pollute each other's memories or treat another agent's context as their own. A code-review agent, a docs agent, and a deploy agent on the same DB need separated work contexts.
 
-Memento handles this through the `owner_id` field. When saving a memory, you can tag it with the owning agent's identifier. When retrieving memories, you can filter to return only those belonging to a specific agent.
+Memento supports this with the `owner_id` field. Tag a memory with its owning agent when you save it, and filter to that agent when you recall.
 
 ## The owner_id Field
 
-Every memory item has an `owner_id` field that identifies its owner. Two states are possible.
+`owner_id` is the owner identifier on each memory item. Two states are possible.
 
-`NULL` means no owner is assigned. This applies to single-agent environments and to all memories saved without an explicit owner. All legacy data uses this state.
+`NULL` means no owner. Single-agent setups and older code that saved without `owner_id` land here. Legacy data is all NULL.
 
-A string value identifies a specific agent. You can use any string that makes sense for your setup: `"agent-a"`, `"code-reviewer"`, `"user-1234"`, etc.
+A string value marks a specific agent — e.g. `"agent-a"`, `"code-reviewer"`, `"user-1234"`. Choose any stable identifier you like.
 
 ## Saving Memories with an Owner (remember / remember_procedure)
 
-Pass `owner_id` as a parameter to `remember` or `remember_procedure`, and that value will be stored with the memory:
+Pass `owner_id` to `remember` or `remember_procedure` and that value is stored with the memory:
 
 ```json
 {
@@ -26,34 +26,88 @@ Pass `owner_id` as a parameter to `remember` or `remember_procedure`, and that v
 }
 ```
 
-If `owner_id` is not passed as a parameter, Memento checks `ToolContext.agentId`. This value can be set at the MCP or HTTP layer from session context or request headers, allowing the server infrastructure to assign ownership automatically without requiring each tool call to carry the parameter explicitly. If neither is present, `owner_id` is stored as NULL.
+If you omit the parameter but the MCP/HTTP layer has set `ToolContext.agentId`, that value is used automatically. If both are missing, `owner_id` is stored as NULL.
 
 ## Filtering by Owner on Recall
 
-Pass `owner_id` to `recall` to retrieve only memories belonging to a specific agent. You can also pass an array to include memories from multiple agents:
+Pass `owner_id` to `recall` to return only that owner's memories. An array includes several owners at once:
 
 ```json
 {
-  "query": "TypeScript configuration",
+  "query": "TypeScript settings",
   "owner_id": "code-reviewer"
 }
 ```
 
 ```json
 {
-  "query": "deployment procedures",
+  "query": "deployment steps",
   "owner_id": ["deploy-agent", "devops-agent"]
 }
 ```
 
-Omitting `owner_id` returns all memories regardless of ownership — the same behavior as before this feature existed.
+If you omit `owner_id`, MCP and legacy paths search across all owners. **Only HTTP `/tools/recall` and `/tools/memory_injection`** run the owner-scope middleware. With the default `MEMENTO_OWNER_SCOPE_MODE=strict`, omitting `owner_id` auto-filters by the agent ID from the request header or environment. MCP isolates only through the `owner_id` parameter.
 
-When `include_metadata` is `true`, each result item includes its `owner_id` field so you can see which agent owns each memory.
+Each result item includes `owner_id` when `include_metadata` is `true`.
+
+## HTTP owner scope (strict / warn / off)
+
+HTTP programmatic APIs (`/tools/*`) can apply owner scope so one agent does not leak another's memories. This middleware applies to **HTTP `/tools` only** (design: GitHub [#664](https://github.com/jee1/memento/issues/664)).
+
+| Environment variable | Value | Behavior |
+|----------------------|-------|----------|
+| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (default) | If `recall` / `memory_injection` omit `owner_id` and an agent ID is present (`X-Memento-Agent-Id` or `MEMENTO_HTTP_DEFAULT_AGENT_ID`), inject that value as `owner_id`. **If no identifier → 400** |
+| | `warn` | If an agent ID is present, inject `owner_id` the same way as `strict`. **Only when no identifier is present**: log a warning and allow legacy (unscoped) recall |
+| | `off` | No enforcement (legacy behavior) |
+
+### Passing the agent ID
+
+Identifiers used on HTTP `/tools`:
+
+1. **Request header** (recommended): `X-Memento-Agent-Id: code-reviewer`
+2. **Server default**: `MEMENTO_HTTP_DEFAULT_AGENT_ID=code-reviewer` (used only when the header is absent)
+
+Values from the header or env land on `ToolContext.agentId` and, in `strict`/`warn`, are used automatically when recall omits `owner_id`.
+
+> `X-Agent-Id` is for MCP HTTP and audit paths. For `/tools` owner scope, use `X-Memento-Agent-Id` (plus `MEMENTO_HTTP_DEFAULT_AGENT_ID`).
+
+```bash
+# Prefer a MEMENTO_API_TOKENS entry with tools:invoke scope
+curl -sS -X POST http://127.0.0.1:9001/tools/recall \
+  -H "Authorization: Bearer $MEMENTO_API_TOKEN" \
+  -H "X-Memento-Agent-Id: code-reviewer" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"TypeScript settings","type":"semantic"}'
+```
+
+> Legacy: a Bearer `ADMIN_API_KEY` may still work, but it is deprecated. New integrations should use `MEMENTO_API_TOKENS`.
+
+### Legacy NULL-data opt-out
+
+If the DB still has many `owner_id = NULL` rows and HTTP recall must keep **unscoped global search**:
+
+- Short term: `MEMENTO_OWNER_SCOPE_MODE=warn` — when no agent ID is present, warn and keep unscoped recall (if an ID is present, injection still happens)
+- Full off: `MEMENTO_OWNER_SCOPE_MODE=off`
+
+In `strict`/`warn`, NULL-owned memories are **not** included in an agent-scoped recall. To keep sharing that data, migrate `owner_id` values or use the opt-out above.
 
 ## Setting context.agentId Automatically
 
-In HTTP server and MCP client environments, agent identity can be read from session context or request headers and written to `ToolContext.agentId`. This lets the infrastructure assign ownership automatically across all tool calls in a session, without requiring each call to pass `owner_id` explicitly. The specific implementation depends on your server layer and client library setup.
+HTTP `/tools` reads `X-Memento-Agent-Id` (case-insensitive) or `MEMENTO_HTTP_DEFAULT_AGENT_ID` into `ToolContext.agentId`. MCP stdio keeps whatever the client/adapter sets on `context.agentId` and does not run the owner-scope middleware (isolation is via the `owner_id` parameter only).
+
+For how this ties into HTTP owner scope, see **HTTP owner scope** above.
+
+## Orchestration template (#673)
+
+Reference layout for several reader agents plus a **single writer**:
+
+- [`apps/multi-agent-orchestration/README.md`](../../../apps/multi-agent-orchestration/README.md)
+- GitHub [#673](https://github.com/jee1/memento/issues/673) — orchestration template
+
+For owner scope and writer-isolation design, see [#664](https://github.com/jee1/memento/issues/664).
 
 ## Backward Compatibility
 
-The `owner_id` feature is fully backward compatible. All existing data retains `owner_id = NULL`. Existing code that does not pass `owner_id` continues to work exactly as before. The multi-agent isolation behavior only activates when `owner_id` values are explicitly used.
+The `owner_id` feature is fully backward compatible for MCP and older call paths. Existing data keeps `owner_id = NULL`, and code that never passes `owner_id` keeps working as before. Multi-agent isolation activates only when `owner_id` values are used.
+
+> **HTTP note:** The compatibility story above is for MCP / legacy paths. HTTP `/tools/recall` and `/tools/memory_injection` default to `MEMENTO_OWNER_SCOPE_MODE=strict`, so omitting `owner_id` auto-filters by agent ID (or returns 400) and NULL-owned rows may not appear in scoped results. For unscoped recall, use `warn`/`off` or the legacy NULL opt-out section above.
