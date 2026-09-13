@@ -239,7 +239,7 @@ memento forget --id mem_xxxxx --hard --confirm true
 여러 프로젝트의 기억을 분리하려면 프로젝트별 태그를 일관되게 붙이는 것이 가장 간단한 방법입니다.
 
 ```bash
-memento remember "프로젝트 A 아키텍처 결정" --tags "project-a,architecture,decision"
+memento remember "프로젝트 A 아키텍처 결정" --type episodic --tags "project-a,architecture,decision"
 memento recall --query "아키텍처" --tags "project-a"
 ```
 
