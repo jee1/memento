@@ -231,7 +231,7 @@ Suggested tag categories:
 For multi-project setups, the simplest isolation strategy is a consistent project tag.
 
 ```bash
-memento remember "Project A architecture decision" --tags "project-a,architecture,decision"
+memento remember "Project A architecture decision" --type episodic --tags "project-a,architecture,decision"
 memento recall --query "architecture" --tags "project-a"
 ```
 
