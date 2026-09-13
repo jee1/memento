@@ -6,6 +6,8 @@ Memento에 기여해 주셔서 감사합니다. 이 문서는 **처음 PR을 올
 
 GitHub에서 [memento 저장소](https://github.com/jee1/memento)를 포크한 뒤 로컬에 클론하고, 의존성을 설치한 다음 개발 서버와 테스트를 한 번 돌려 보면 준비가 끝납니다.
 
+요구 사항: **Node.js ≥24**, **npm ≥10**. 버전은 루트 [`.nvmrc`](.nvmrc)(현재 `24`)를 기준으로 맞추면 됩니다.
+
 ### 1. 저장소 포크
 
 1. GitHub에서 저장소를 포크합니다.
@@ -55,7 +57,7 @@ TypeScript(Node.js ≥24), 2칸 들여쓰기, 단일 따옴표, 세미콜론을 
 
 ### 커밋 메시지
 
-[Conventional Commits](https://www.conventionalcommits.org/) 형식을 사용합니다. 스코프는 패키지나 도메인 이름을 쓰면 검색하기 좋습니다.
+[Conventional Commits](https://www.conventionalcommits.org/) 형식을 사용합니다. 스코프는 패키지나 도메인 이름을 쓰면 검색하기 좋습니다. commitlint·husky 같은 로컬 훅은 없고, **문서·리뷰 정책으로 준수**합니다. 커밋 설명은 [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md)에 따라 **한국어를 권장**합니다.
 
 ```
 type(scope): description
@@ -112,7 +114,7 @@ tests/                # 루트 워크스페이스 통합·품질 게이트 스�
 
 ## 🔍 코드 리뷰 프로세스
 
-PR이 올라오면 CI가 lint·type-check·test를 돌리고, 최소 한 명의 리뷰어 승인 후 `main`에 병합합니다. 피드백은 같은 브랜치에 커밋으로 반영하면 됩니다.
+PR이 올라오면 CI가 `lint`·`type-check`·`test`를 돌리고, 워크플로에 따라 추가 게이트(보안·품질 등)도 함께 검사합니다. 최소 한 명의 리뷰어 승인 후 `main`에 병합합니다. 피드백은 같은 브랜치에 커밋으로 반영하면 됩니다.
 
 ## 🐛 버그 수정
 
