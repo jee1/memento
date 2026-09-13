@@ -46,56 +46,65 @@ Memento는 이를 위해 `owner_id` 필드를 지원합니다. 기억을 저장�
 }
 ```
 
-`owner_id`를 지정하지 않으면 모든 기억을 소유자 구분 없이 검색합니다. **HTTP `/tools/recall`·`/tools/memory_injection`은 기본적으로 `MEMENTO_OWNER_SCOPE_MODE=strict`이며**, 이 경우 `owner_id`가 없으면 요청 헤더·환경 변수에서 읽은 에이전트 ID로 자동 필터됩니다.
+`owner_id`를 지정하지 않으면 MCP·레거시 경로는 소유자 구분 없이 전체 검색합니다. **HTTP `/tools/recall`·`/tools/memory_injection`만** owner-scope 미들웨어가 적용되며, 기본값 `MEMENTO_OWNER_SCOPE_MODE=strict`에서는 `owner_id`가 없을 때 요청 헤더·환경 변수에서 읽은 에이전트 ID로 자동 필터됩니다. MCP는 파라미터 `owner_id`로만 격리합니다.
 
 조회 결과에는 각 기억 항목의 `owner_id`가 포함됩니다(`include_metadata: true` 설정 시).
 
 ## HTTP owner scope (strict / warn / off)
 
-HTTP programmatic API(`/tools/*`)는 다중 에이전트 환경에서 타 에이전트 기억 유출을 막기 위해 owner scope를 적용할 수 있습니다.
+HTTP programmatic API(`/tools/*`)는 다중 에이전트 환경에서 타 에이전트 기억 유출을 막기 위해 owner scope를 적용할 수 있습니다. 이 미들웨어는 **HTTP `/tools`에만** 적용됩니다(관련 설계: GitHub [#664](https://github.com/jee1/memento/issues/664)).
 
 | 환경 변수 | 값 | 동작 |
 |-----------|-----|------|
-| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (기본) | `recall` / `memory_injection`에 `owner_id`가 없으면 `X-Memento-Agent-Id` 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID`로 `owner_id`를 자동 주입. 둘 다 없으면 **400** |
-| | `warn` | 자동 주입 없이 경고 로그만 남기고 레거시(전체) 조회 허용 |
+| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (기본) | `recall` / `memory_injection`에 `owner_id`가 없고 에이전트 ID(`X-Memento-Agent-Id` 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID`)가 있으면 그 값으로 `owner_id`를 자동 주입. **식별자가 없으면 400** |
+| | `warn` | 에이전트 ID가 있으면 `strict`와 같이 `owner_id`를 주입. **식별자가 없을 때만** 경고 로그 후 레거시(전체) 조회 허용 |
 | | `off` | 강제 없음 (레거시와 동일) |
 
 ### 에이전트 ID 전달
 
+HTTP `/tools`에서 쓰는 식별자:
+
 1. **요청 헤더** (권장): `X-Memento-Agent-Id: code-reviewer`
 2. **서버 기본값**: `MEMENTO_HTTP_DEFAULT_AGENT_ID=code-reviewer` (헤더가 없을 때만)
 
-헤더·환경 변수로 읽은 값은 `ToolContext.agentId`에 설정되며, strict 모드에서는 `owner_id` 미지정 recall에 자동으로 사용됩니다.
+헤더·환경 변수로 읽은 값은 `ToolContext.agentId`에 설정되며, `strict`/`warn`에서 `owner_id` 미지정 recall에 자동으로 사용됩니다.
+
+> `X-Agent-Id`는 MCP HTTP·audit 경로용입니다. `/tools` owner scope에는 `X-Memento-Agent-Id`(+ `MEMENTO_HTTP_DEFAULT_AGENT_ID`)를 쓰세요.
 
 ```bash
+# MEMENTO_API_TOKENS 에 tools:invoke 스코프 토큰을 두고 사용 (권장)
 curl -sS -X POST http://127.0.0.1:9001/tools/recall \
-  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Authorization: Bearer $MEMENTO_API_TOKEN" \
   -H "X-Memento-Agent-Id: code-reviewer" \
   -H "Content-Type: application/json" \
   -d '{"query":"TypeScript 설정","type":"semantic"}'
 ```
 
+> 레거시: `ADMIN_API_KEY` Bearer도 동작할 수 있으나 deprecated입니다. 새 연동은 `MEMENTO_API_TOKENS`를 쓰세요.
+
 ### 레거시 NULL 데이터 opt-out
 
 기존 DB에 `owner_id = NULL`인 기억이 많고, HTTP recall에서 **소유자 미지정 전체 조회**를 유지해야 한다면:
 
-- 단기: `MEMENTO_OWNER_SCOPE_MODE=warn` — 경고만 남기고 이전 동작 유지
+- 단기: `MEMENTO_OWNER_SCOPE_MODE=warn` — 에이전트 ID가 없을 때 경고만 남기고 전체 조회 유지(ID가 있으면 여전히 주입)
 - 완전 해제: `MEMENTO_OWNER_SCOPE_MODE=off`
 
-strict 모드에서는 `owner_id`가 NULL인 기억은 특정 에이전트 스코프 recall 결과에 **포함되지 않습니다**. NULL 데이터를 계속 공유하려면 마이그레이션으로 `owner_id`를 채우거나, 위 opt-out을 사용하세요.
+`strict`/`warn`에서 에이전트 스코프로 필터된 recall에는 `owner_id`가 NULL인 기억이 **포함되지 않습니다**. NULL 데이터를 계속 공유하려면 마이그레이션으로 `owner_id`를 채우거나, 위 opt-out을 사용하세요.
 
 ## context.agentId 자동 설정
 
-HTTP 서버는 `X-Memento-Agent-Id` 요청 헤더(대소문자 무시) 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 환경 변수에서 에이전트 식별자를 읽어 `ToolContext.agentId`에 설정합니다. MCP stdio 경로는 클라이언트·어댑터가 `context.agentId`를 설정하는 방식을 그대로 사용합니다.
+HTTP `/tools`는 `X-Memento-Agent-Id` 요청 헤더(대소문자 무시) 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 환경 변수에서 에이전트 식별자를 읽어 `ToolContext.agentId`에 설정합니다. MCP stdio 경로는 클라이언트·어댑터가 `context.agentId`를 설정하는 방식을 그대로 사용하며, owner-scope 미들웨어는 타지 않습니다(파라미터 `owner_id`로만 격리).
 
-strict owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세요.
+HTTP owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세요.
 
 ## 오케스트레이션 템플릿 (#673)
 
 여러 reader 에이전트 + **단일 writer** 패턴의 참조 구현:
 
 - [`apps/multi-agent-orchestration/README.md`](../../../apps/multi-agent-orchestration/README.md)
-- GitHub [#664](https://github.com/jee1/memento/issues/664) — writer lock·orchestration 설계
+- GitHub [#673](https://github.com/jee1/memento/issues/673) — orchestration 템플릿
+
+owner scope·writer 격리 설계는 [#664](https://github.com/jee1/memento/issues/664)를 참고하세요.
 
 ## 하위 호환성
 
