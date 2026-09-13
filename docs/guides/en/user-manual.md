@@ -6,36 +6,37 @@ This manual covers everyone from first-time installers to developers integrating
 
 ## Getting Started
 
-To run from a local clone, install dependencies and build the repository.
+Pick a path by role. Full install detail: [INSTALL.en.md](../../../INSTALL.en.md).
+
+**Everyday use (recommended):** attach via `npx` in Cursor, Claude Desktop, and similar hosts. See **Connecting an MCP Client** below and the [Cursor MCP Setup Guide](./cursor-mcp-setup.md).
+
+**Contributing / debugging:** clone and build from source.
 
 ```bash
 git clone https://github.com/jee1/memento.git
 cd memento
-
 npm install
-
-# Create environment file (optional — defaults work out of the box)
-cp env.example .env
-
-# Initialize the database
+cp env.example .env   # optional — defaults work
 npm run db:init
-
-# Start the MCP stdio server (with hot reload)
-npm run dev
+npm run build
+npm run dev           # MCP stdio (hot reload)
 ```
 
-If you prefer Docker, start the container and verify the server is healthy.
+**Ops / Docker:**
 
 ```bash
-docker-compose up -d
-curl http://localhost:9001/health
+npm run docker:dev    # or npm run docker:prod
+# equivalent: docker compose -p memento -f docker/docker-compose.dev.yml up -d
+curl http://localhost:9001/health   # recommended-profile port; code default is 3000 — see INSTALL «Ports»
 ```
+
+By default MCP `tools/list` advertises only **`recall` · `remember` · `memory_injection` · `feedback`**. Set `MEMENTO_TOOLSET=full` to list all registered tools.
 
 ### Connecting an MCP Client
 
 #### Claude Desktop
 
-Open the Claude Desktop configuration file and add the Memento server entry.
+Open the Claude Desktop configuration file and add the Memento server entry. For everyday use prefer `npx memento-mcp-server@latest` (same as Cursor); the snippet below is the local-build path.
 
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -58,17 +59,31 @@ Restart Claude Desktop after saving the file to activate the Memento MCP tools.
 
 #### Cursor
 
-In Cursor, connect via the **stdio MCP** approach, pointing `command` and `args` at `packages/memento-server/dist/server/index.js`. Do not confuse this with the URL-based MCP configuration.
+**Everyday use (recommended):** connect with `npx`.
 
-Run `npm install && npm run build` from the repo root to generate the build output, then configure `.cursor/mcp.json` accordingly. For full examples and troubleshooting, see the [Cursor MCP Setup Guide](./cursor-mcp-setup.md).
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "memento-mcp-server@latest"],
+      "env": {
+        "DB_PATH": "/absolute/path/to/data/memory.db"
+      }
+    }
+  }
+}
+```
 
-If you run the HTTP server separately, clients that support it can also connect via `http://127.0.0.1:<port>/mcp`. The stdio flow is the default recommendation.
+**Contributing / debugging:** build locally, then point stdio at `packages/memento-server/dist/server/index.js` (`npm install && npm run build`). Do not confuse this with URL-based MCP config.
+
+Full examples and troubleshooting: [Cursor MCP Setup Guide](./cursor-mcp-setup.md). If the HTTP server is running, clients may also use `http://127.0.0.1:<port>/mcp` (recommended profile `9001`, code default `3000`).
 
 ## Storing Memories
 
 The simplest way to store information is through the `remember` MCP tool, which any connected MCP client (Claude Desktop, Cursor, etc.) can call directly. When the HTTP server is also running, you can store memories programmatically using the `@jee1/memento-client` package.
 
-The HTTP server defaults to `http://localhost:9001` (configurable via `MCP_SERVER_PORT` or `PORT`). Start it with `npm run dev:http` during development.
+HTTP URL examples use the recommended profile `http://localhost:9001` (code default port is `3000`). Override with `MCP_SERVER_PORT` / `PORT`. Start with `npm run dev:http` in development. See [INSTALL.en.md](../../../INSTALL.en.md) «Ports».
 
 ```typescript
 import { MementoClient } from '@jee1/memento-client';
@@ -79,19 +94,19 @@ const client = new MementoClient({
 
 await client.connect();
 
-// Basic storage
+// `type` is required (default MEMENTO_TYPE_PARAM_MODE=error rejects omission)
 await client.remember({
   content: 'User asked about React Hooks; explained the difference between useState and useEffect.',
+  type: 'episodic',
 });
 
-// With tags and importance
 await client.remember({
   content: 'Decided to introduce TypeScript across the project.',
+  type: 'episodic',
   tags: ['typescript', 'decision', 'project'],
   importance: 0.8,
 });
 
-// Specify a memory type
 await client.remember({
   content: 'Summary of React Hook usage patterns',
   type: 'semantic',
@@ -230,7 +245,7 @@ See the [Relation Labeling Guide](./relation-labeling-guide.md) for details on r
 
 ### Cannot Connect to the Server
 
-First confirm the server is running. For stdio, test it by running `node packages/memento-server/dist/server/index.js` directly. For HTTP, check `curl http://localhost:9001/health`. The default HTTP port is 9001, configurable via `MCP_SERVER_PORT`.
+First confirm the server is running. For stdio, test it by running `node packages/memento-server/dist/server/index.js` directly. For HTTP, check `curl http://localhost:9001/health`. HTTP port is recommended-profile `9001` (code default `3000`), configurable via `MCP_SERVER_PORT`.
 
 If the build output is missing, run `npm run build` first. The entry point is `packages/memento-server/dist/server/index.js`.
 
@@ -245,8 +260,8 @@ During local development, the `npm run dev` terminal shows server output. For da
 For Docker deployments:
 
 ```bash
-docker-compose logs memento-server
-docker-compose ps
+docker compose -f docker/docker-compose.dev.yml logs -f
+docker compose -f docker/docker-compose.dev.yml ps
 ```
 
 ## FAQ
