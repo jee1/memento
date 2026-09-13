@@ -6,36 +6,37 @@ Memento는 AI 에이전트가 대화와 작업 사이에서 정보를 기억하�
 
 ## 시작하기
 
-로컬에서 소스로 돌리려면 저장소를 클론한 뒤 의존성을 설치하고 빌드합니다.
+역할에 맞는 경로를 고르세요. 자세한 설치는 [INSTALL.md](../../../INSTALL.md)를 참고해 주세요.
+
+**일반 사용 (권장):** Cursor·Claude Desktop 등에서는 `npx`로 MCP에 붙입니다. 설정 예시는 아래 «MCP 클라이언트 연결»과 [Cursor MCP 설정 가이드](./cursor-mcp-setup.md)를 보세요.
+
+**기여·디버깅:** 소스를 클론해 빌드합니다.
 
 ```bash
 git clone https://github.com/jee1/memento.git
 cd memento
-
 npm install
-
-# 환경 변수 파일 생성 (선택사항 — 기본값으로도 동작합니다)
-cp env.example .env
-
-# 데이터베이스 초기화
+cp env.example .env   # 선택 — 기본값으로도 동작
 npm run db:init
-
-# MCP stdio 서버 시작 (핫 리로드)
-npm run dev
+npm run build
+npm run dev           # MCP stdio (핫 리로드)
 ```
 
-Docker를 선호하는 경우, 컨테이너를 먼저 시작한 뒤 서버 상태를 확인합니다.
+**운영·Docker:**
 
 ```bash
-docker-compose up -d
-curl http://localhost:9001/health
+npm run docker:dev    # 또는 npm run docker:prod
+# 동등: docker compose -p memento -f docker/docker-compose.dev.yml up -d
+curl http://localhost:9001/health   # 권장 프로필 포트. 코드 기본은 3000 — INSTALL «포트» 참고
 ```
+
+기본으로 MCP `tools/list`에 보이는 도구는 **`recall` · `remember` · `memory_injection` · `feedback` 4개**입니다. 전부 나열하려면 `MEMENTO_TOOLSET=full`을 설정하세요.
 
 ### MCP 클라이언트 연결
 
 #### Claude Desktop
 
-Claude Desktop 설정 파일을 열어 Memento 서버를 추가합니다.
+Claude Desktop 설정 파일을 열어 Memento 서버를 추가합니다. 일반 사용은 Cursor와 같이 `npx memento-mcp-server@latest`를 권장하고, 아래는 로컬 빌드 경로 예시입니다.
 
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -58,17 +59,31 @@ Claude Desktop 설정 파일을 열어 Memento 서버를 추가합니다.
 
 #### Cursor
 
-Cursor에서는 **stdio MCP** 방식으로 연결합니다. `packages/memento-server/dist/server/index.js`를 진입점으로 지정하는 방법이며, URL 방식과 혼동하지 않도록 주의하세요.
+**일반 사용 (권장):** `npx`로 붙입니다.
 
-먼저 프로젝트 루트에서 `npm install && npm run build`로 빌드 산출물을 생성한 뒤, `.cursor/mcp.json`에 `command`와 `args`를 지정합니다. 상세 설정 예시와 오류 대응은 [Cursor MCP 설정 가이드](./cursor-mcp-setup.md)를 참고하세요.
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "memento-mcp-server@latest"],
+      "env": {
+        "DB_PATH": "/absolute/path/to/data/memory.db"
+      }
+    }
+  }
+}
+```
 
-HTTP 서버를 별도로 실행한 경우에는 클라이언트가 지원하면 `http://127.0.0.1:<포트>/mcp` 방식으로도 연결할 수 있습니다. 기본 권장 방식은 stdio입니다.
+**기여·디버깅:** 로컬 빌드 후 `packages/memento-server/dist/server/index.js`를 stdio 진입점으로 지정합니다 (`npm install && npm run build`). URL 방식과 혼동하지 마세요.
+
+상세 예시·오류 대응은 [Cursor MCP 설정 가이드](./cursor-mcp-setup.md)를 참고해 주세요. HTTP 서버를 띄운 경우 `http://127.0.0.1:<포트>/mcp`로도 연결할 수 있습니다(권장 프로필 `9001`, 코드 기본 `3000`).
 
 ## 기억 저장하기
 
 AI 에이전트와의 대화에서 중요한 정보를 기억으로 저장하는 가장 간단한 방법은 MCP의 `remember` 도구를 호출하는 것입니다. HTTP 서버가 실행 중일 때는 `@jee1/memento-client` 패키지로도 동일하게 저장할 수 있습니다.
 
-HTTP 서버는 기본적으로 `http://localhost:9001`에서 실행됩니다(`MCP_SERVER_PORT` 또는 `PORT` 환경 변수로 변경 가능). 개발 중에는 `npm run dev:http`로 시작할 수 있습니다.
+HTTP 서버 URL 예시는 권장 프로필 `http://localhost:9001` 기준입니다(코드 기본 포트는 `3000`). `MCP_SERVER_PORT` / `PORT`로 바꿀 수 있습니다. 개발 중에는 `npm run dev:http`로 시작하세요. 자세한 구분은 [INSTALL.md](../../../INSTALL.md) «포트»를 참고해 주세요.
 
 ```typescript
 import { MementoClient } from '@jee1/memento-client';
@@ -79,19 +94,19 @@ const client = new MementoClient({
 
 await client.connect();
 
-// 기본 저장
+// type은 필수입니다 (기본 MEMENTO_TYPE_PARAM_MODE=error — 생략 시 거절)
 await client.remember({
   content: '사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다.',
+  type: 'episodic',
 });
 
-// 태그와 중요도를 함께 저장
 await client.remember({
   content: '프로젝트에서 TypeScript를 도입하기로 결정했다.',
+  type: 'episodic',
   tags: ['typescript', 'decision', 'project'],
   importance: 0.8,
 });
 
-// 기억 타입을 명시해 저장
 await client.remember({
   content: 'React Hook 사용법 요약',
   type: 'semantic',
@@ -238,7 +253,7 @@ memento recall --query "아키텍처" --tags "project-a"
 
 ### 서버에 연결할 수 없을 때
 
-MCP 클라이언트가 서버에 연결하지 못하는 경우, 먼저 서버가 실행 중인지 확인합니다. stdio 방식이라면 `node packages/memento-server/dist/server/index.js`를 직접 실행해보고, HTTP 방식이라면 `curl http://localhost:9001/health`로 응답을 확인합니다. 기본 HTTP 포트는 9001이며 `MCP_SERVER_PORT` 환경 변수로 변경할 수 있습니다.
+MCP 클라이언트가 서버에 연결하지 못하는 경우, 먼저 서버가 실행 중인지 확인합니다. stdio 방식이라면 `node packages/memento-server/dist/server/index.js`를 직접 실행해보고, HTTP 방식이라면 `curl http://localhost:9001/health`로 응답을 확인합니다. HTTP 포트는 권장 프로필 `9001`(코드 기본 `3000`)이며 `MCP_SERVER_PORT`로 변경할 수 있습니다.
 
 빌드 산출물이 없다면 `npm run build`를 먼저 실행하세요. 빌드 후 `packages/memento-server/dist/server/index.js`가 생성됩니다.
 
@@ -253,8 +268,8 @@ MCP 클라이언트가 서버에 연결하지 못하는 경우, 먼저 서버가
 Docker 환경에서는 다음 명령으로 로그를 확인합니다.
 
 ```bash
-docker-compose logs memento-server
-docker-compose ps
+docker compose -f docker/docker-compose.dev.yml logs -f
+docker compose -f docker/docker-compose.dev.yml ps
 ```
 
 ## FAQ
