@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { openDb, resolveDbPath } from './lib/cli-runtime.js';
+import { openDb, resolveBackupDir, resolveDbPath } from './lib/cli-runtime.js';
 import { BackupManager } from '@memento/core';
 /**
  * Create a consistent SQLite backup using the online backup API (not cp/copyFileSync).
@@ -59,8 +59,26 @@ if (!valid) {
   failUsage();
 }
 
+const HINTS = {
+  'backup-permission-denied':
+    'Backup directory is not writable by this user. It is owned by the container user (uid 1001); '
+    + 'set MEMENTO_BACKUP_DIR to a directory you own. Stopping the server will not help.',
+  'backup-collision':
+    'A backup with the same name already exists; retry in a second.',
+};
+const DEFAULT_HINT = 'Stop the MCP server (docker compose stop) and retry if the DB is locked.';
+
 const dbPath = resolveDbPath();
-const manager = new BackupManager(path.join(path.dirname(dbPath), 'backups'));
+let manager;
+try {
+  manager = new BackupManager(resolveBackupDir());
+} catch {
+  fail(
+    'resolve-backup-dir',
+    'backup-dir-unavailable',
+    'Cannot create the backup directory. Check MEMENTO_BACKUP_DIR and its parent permissions.'
+  );
+}
 
 if (cleanup) {
   const report = await manager.cleanupBackups({
@@ -91,7 +109,7 @@ try {
   fail(
     'create-backup',
     failure.reason,
-    'Stop the MCP server (docker compose stop) and retry if the DB is locked.',
+    HINTS[failure.reason] ?? DEFAULT_HINT,
     'residue' in failure ? { residue: failure.residue } : {}
   );
 } finally {

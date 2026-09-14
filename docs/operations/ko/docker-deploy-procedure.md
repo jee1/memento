@@ -31,7 +31,7 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 |------|------|
 | DB 경로 (호스트) | `~/.memento/data/memory.db` |
 | DB 경로 (컨테이너) | `/app/data/memory.db` (`DB_PATH`) |
-| 백업 출력 | `~/.memento/data/backups/memory-backup-<timestamp>.db` |
+| 백업 출력 | `~/.memento/backups/memory-backup-<timestamp>.db` (`MEMENTO_BACKUP_DIR` 로 변경 가능) |
 | 저장소 루트 | `git clone`된 memento 디렉터리에서 명령 실행 |
 
 ---
@@ -65,7 +65,7 @@ npm run db:pre-docker-deploy
 {
   "ok": true,
   "dbPath": "/home/<user>/.memento/data/memory.db",
-  "backupPath": "/home/<user>/.memento/data/backups/memory-backup-....db",
+  "backupPath": "/home/<user>/.memento/backups/memory-backup-....db",
   "quick_check": "ok",
   "memory_item": 26474
 }
@@ -133,6 +133,20 @@ curl -sf http://localhost:9001/health
 | `npm run db:pre-docker-deploy -- --force` | 검사 실패해도 계속 (**위험**, 손상 DB 확인 후에만) |
 | `npm run db:restore-from-corrupt` | 손상 DB에서 테이블별 복구 (아래 복구 절 참고) |
 
+### 백업 디렉터리
+
+백업은 `~/.memento/backups` 에 생성됩니다. `MEMENTO_BACKUP_DIR` 로 바꿀 수 있습니다
+(`~` 는 `DB_PATH` 와 같은 규칙으로 확장됩니다).
+
+DB 옆(`~/.memento/data/backups`)이 아닌 이유: `~/.memento/data` 는 컨테이너에
+바인드 마운트돼 컨테이너 사용자(uid 1001)가 소유하고, `start-container.sh` 가
+매 기동마다 `chmod -R 755` 로 그룹 쓰기를 제거합니다. 호스트 사용자(uid 1000)는
+그 안에 백업을 만들 수 없습니다 (#963).
+
+컨테이너가 마이그레이션 중 자동 생성하는 백업은 여전히
+`~/.memento/data/backups` 에 쌓이며 컨테이너 소유입니다. 호스트의
+`npm run db:backup:cleanup` 은 그쪽을 정리하지 않습니다.
+
 환경 변수 `DB_PATH`로 대상 DB를 바꿀 수 있습니다 (기본: `~/.memento/data/memory.db`). `~` 로 시작하는 경로는 홈 디렉터리로 확장됩니다(#962). 그래도 프로덕션에서는 절대 경로를 권장합니다 — 컨테이너·`sudo` 처럼 `HOME` 이 달라지는 환경에서는 `~` 가 다른 홈을 가리킵니다.
 
 `db:pre-docker-deploy` 는 검사 대상 경로와 `memory_item` 행 수를 `[pre-docker-deploy] target=... memory_item=...` 한 줄로 먼저 출력합니다. **행 수가 예상과 다르면 배포를 중단하십시오.**
@@ -151,14 +165,22 @@ DB_PATH=/custom/path/memory.db npm run db:backup
 ```bash
 docker compose stop memento-mcp-server
 
-BACKUP=~/.memento/data/backups/memory-backup-<timestamp>.db   # pre-docker-deploy 출력 경로
-cp ~/.memento/data/memory.db ~/.memento/data/memory.db.before-rollback-$(date -u +%Y%m%dT%H%M%SZ).db
-cp "$BACKUP" ~/.memento/data/memory.db
+BACKUP=~/.memento/backups/memory-backup-<timestamp>.db   # pre-docker-deploy 출력 경로
+
+# ~/.memento/data 는 컨테이너 사용자(uid 1001) 소유라 sudo 가 필요하고,
+# 복사본의 소유권을 1001 로 맞춰 줘야 컨테이너가 쓸 수 있다 (#963).
+sudo cp ~/.memento/data/memory.db \
+        ~/.memento/data/memory.db.before-rollback-$(date -u +%Y%m%dT%H%M%SZ).db
+sudo cp "$BACKUP" ~/.memento/data/memory.db
+sudo chown 1001:1001 ~/.memento/data/memory.db
+sudo rm -f ~/.memento/data/memory.db-wal ~/.memento/data/memory.db-shm
 
 sqlite3 ~/.memento/data/memory.db "PRAGMA quick_check;"
 
 docker compose up -d memento-mcp-server
 ```
+
+> `sudo chown 1001:1001` 을 빠뜨리면 컨테이너가 `attempt to write a readonly database` 로 크래시 루프에 빠집니다.
 
 이전 Docker 이미지로 되돌리려면 해당 태그/이미지 ID로 `docker compose up` 전에 이미지를 지정합니다.
 
@@ -220,7 +242,7 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 1. **배포 전** `npm run db:pre-docker-deploy` (이 문서의 표준 절차)
 2. **Docker와 로컬 dev 동시 접근 금지** — 같은 `memory.db`에 writer 2개 금지
 3. **정상 종료** — `docker compose stop` (kill -9 지양); `stop_grace_period: 30s` 활용
-4. **백업 보관** — `~/.memento/data/backups/`에 타임스탬프 백업 유지; 오래된 quarantine 중복본은 정리 검토
+4. **백업 보관** — `~/.memento/backups/`에 타임스탬프 백업 유지; 오래된 quarantine 중복본은 정리 검토
 5. **배포 전 환경변수** — [env-deployment-checklist.md](../env-deployment-checklist.md)
 
 이번 backup-retention 수정에서 재현된 원인은 세 가지입니다.
