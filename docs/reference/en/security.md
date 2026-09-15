@@ -47,7 +47,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 - **Legacy `ADMIN_API_KEY`**: Used only when `MEMENTO_API_TOKENS` is unset, as a synthetic `legacy-admin` token with both scopes. A one-time deprecation warning is logged at startup. New deployments should migrate to `MEMENTO_API_TOKENS`.
 - **Recommended use**: Unless you have a clear reason not to, keep the HTTP server on **loopback or an internal network**. Open the browser dashboard/graph same-origin with the server so the session cookie is not shared across origins.
 - **Production**: Use scoped tokens for programmatic access, and keep `MEMENTO_HTTP_BIND_HOST` on loopback unless you intentionally expose the server.
-- **Browser secret handling**: The server does **not** deliver API secrets to browser assets. Operators sign in through `/auth/session`, which exchanges the typed key for an HTTP-only session cookie. `/dashboard` is the recommended entry point, and opening `/graph` directly now offers the same session-backed sign-in/re-auth path. The graph surface requires a browser session before the graph surface unlocks. Neither page bootstraps the key into JavaScript.
+- **Browser secret handling**: The server does **not** deliver API secrets to browser assets. Operators sign in through `/auth/session`, which exchanges the typed key for an HTTP-only session cookie. `/dashboard` is the recommended entry point, and opening `/graph` directly now offers the same session-backed sign-in/re-auth path. The graph UI requires a browser session before the graph surface unlocks. Neither page bootstraps the key into JavaScript.
 - **CORS**: Restrict allowed origins with `CORS_ALLOWED_ORIGINS`. If empty, cross-origin requests are not allowed.
 
 ## Multi-agent owner scope (HTTP)
