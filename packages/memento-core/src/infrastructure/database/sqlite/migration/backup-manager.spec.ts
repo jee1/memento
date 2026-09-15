@@ -478,6 +478,24 @@ describe('BackupManager', () => {
       }
     });
 
+    it('keeps backup-write-failed when SQLITE_CANTOPEN and backup dir was removed (#963)', async () => {
+      const fileDb = openWalDatabase();
+      const cantOpenError = Object.assign(new Error('unable to open database file'), {
+        code: 'SQLITE_CANTOPEN',
+      });
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async () => {
+        rmSync(backupsDir, { recursive: true, force: true });
+        throw cantOpenError;
+      }) as unknown as Database.Database['backup']);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-write-failed');
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
     it('keeps backup-write-failed for SQLITE_BUSY (#963)', async () => {
       const fileDb = openWalDatabase();
       const busyError = Object.assign(new Error('database is locked'), { code: 'SQLITE_BUSY' });
