@@ -8,6 +8,7 @@ import { BackupManager } from './backup-manager.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import fs, {
+  chmodSync,
   existsSync,
   linkSync,
   mkdirSync,
@@ -445,6 +446,69 @@ describe('BackupManager', () => {
       }
     });
 
+    it('classifies SQLITE_CANTOPEN with unwritable backup dir as backup-permission-denied (#963)', async () => {
+      const fileDb = openWalDatabase();
+      chmodSync(backupsDir, 0o500);
+      const cantOpenError = Object.assign(new Error('unable to open database file'), {
+        code: 'SQLITE_CANTOPEN',
+      });
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockRejectedValue(cantOpenError);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-permission-denied');
+      } finally {
+        backupSpy.mockRestore();
+        chmodSync(backupsDir, 0o700);
+        fileDb.close();
+      }
+    });
+
+    it('keeps backup-write-failed when SQLITE_CANTOPEN but backup dir is writable (#963)', async () => {
+      const fileDb = openWalDatabase();
+      const cantOpenError = Object.assign(new Error('unable to open database file'), {
+        code: 'SQLITE_CANTOPEN',
+      });
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockRejectedValue(cantOpenError);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-write-failed');
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('keeps backup-write-failed when SQLITE_CANTOPEN and backup dir was removed (#963)', async () => {
+      const fileDb = openWalDatabase();
+      const cantOpenError = Object.assign(new Error('unable to open database file'), {
+        code: 'SQLITE_CANTOPEN',
+      });
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async () => {
+        rmSync(backupsDir, { recursive: true, force: true });
+        throw cantOpenError;
+      }) as unknown as Database.Database['backup']);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-write-failed');
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('keeps backup-write-failed for SQLITE_BUSY (#963)', async () => {
+      const fileDb = openWalDatabase();
+      const busyError = Object.assign(new Error('database is locked'), { code: 'SQLITE_BUSY' });
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockRejectedValue(busyError);
+
+      try {
+        await captureCreateFailure(fileDb, 'backup-write-failed');
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
     it('reports cleanup residue by basename when a failed attempt cannot be fully removed', async () => {
       const fileDb = openWalDatabase();
       const backupSpy = vi.spyOn(fileDb, 'backup').mockImplementation((async destination => {
@@ -487,6 +551,27 @@ describe('BackupManager', () => {
       } catch (error) {
         // 에러가 발생해야 함
         expect(error).toBeDefined();
+      }
+    });
+  });
+
+  describe('ensureBackupsDirectory', () => {
+    it('does not expose backup directory absolute path when directory creation fails (#963)', () => {
+      const blockedRoot = mkdtempSync(join(tmpdir(), 'memento-backup-blocked-'));
+      const parentFile = join(blockedRoot, 'blocked');
+      writeFileSync(parentFile, 'not a directory');
+      const blockedBackupsDir = join(parentFile, 'backups');
+
+      try {
+        expect(() => new BackupManager(blockedBackupsDir)).toThrow(/backup-dir-unavailable/);
+        try {
+          new BackupManager(blockedBackupsDir);
+        } catch (error) {
+          expect(error).toBeInstanceOf(Error);
+          expect((error as Error).message).not.toContain(blockedRoot);
+        }
+      } finally {
+        rmSync(blockedRoot, { recursive: true, force: true });
       }
     });
   });

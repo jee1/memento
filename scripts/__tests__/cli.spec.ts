@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isMain, openDb, parseArgs, resolveDbPath } from '../lib/cli.js';
+import { isMain, openDb, parseArgs, resolveBackupDir, resolveDbPath } from '../lib/cli.js';
 
 describe('shared CLI helpers', () => {
   const originalEntry = process.argv[1];
@@ -83,5 +83,47 @@ describe('resolveDbPath (#962)', () => {
 
   it('does not expand ~user forms', () => {
     expect(resolveDbPath('~notauser/x.db')).toBe(resolve('~notauser/x.db'));
+  });
+});
+
+describe('resolveBackupDir (#963)', () => {
+  const fakeHome = '/tmp/fake-memento-home-963';
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('defaults to ~/.memento/backups when unset', () => {
+    vi.stubEnv('HOME', fakeHome);
+    vi.stubEnv('MEMENTO_BACKUP_DIR', '');
+    expect(resolveBackupDir()).toBe(join(fakeHome, '.memento', 'backups'));
+  });
+
+  it('treats whitespace-only values as unset', () => {
+    vi.stubEnv('HOME', fakeHome);
+    expect(resolveBackupDir('   ')).toBe(join(fakeHome, '.memento', 'backups'));
+  });
+
+  it('expands ~/ and ~\\ against HOME', () => {
+    vi.stubEnv('HOME', fakeHome);
+    expect(resolveBackupDir('~/custom-backups')).toBe(join(fakeHome, 'custom-backups'));
+    expect(resolveBackupDir('~\\custom-backups')).toBe(join(fakeHome, 'custom-backups'));
+  });
+
+  it('expands a lone tilde to HOME', () => {
+    vi.stubEnv('HOME', fakeHome);
+    expect(resolveBackupDir('~')).toBe(fakeHome);
+  });
+
+  it('leaves absolute paths unchanged', () => {
+    expect(resolveBackupDir('/var/backups/memento')).toBe('/var/backups/memento');
+  });
+
+  it('resolves relative paths against cwd', () => {
+    expect(resolveBackupDir('rel/backups')).toBe(resolve('rel/backups'));
+  });
+
+  it('does not expand ~user forms', () => {
+    expect(resolveBackupDir('~notauser/backups')).toBe(resolve('~notauser/backups'));
   });
 });
