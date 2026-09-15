@@ -282,8 +282,8 @@ function isBackupDirUnwritable(error: unknown, dir: string): boolean {
   try {
     fs.accessSync(dir, fs.constants.W_OK);
     return false;
-  } catch {
-    return true;
+  } catch (accessError) {
+    return hasFsCode(accessError, 'EACCES') || hasFsCode(accessError, 'EPERM');
   }
 }
 
