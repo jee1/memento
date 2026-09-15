@@ -95,9 +95,19 @@ const results = await client.callTool({
 - **하이브리드 검색**: FTS5 + 벡터, 태그 필터
 - **살아있는 기억**: 강화·망각·이웃 탐색·앵커
 - **절차 버전**: `procedural_diff` / `procedural_rollback`
-- **그래프·대시보드**: HTTP 서버 기동 후 `/dashboard`, `/graph`
+- **그래프·대시보드**: HTTP 서버 기동 후 전체 관리 흐름은 `/dashboard`에서 여는 편이 가장 안전하며, `/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증 패널로 세션을 시작하거나 복구할 수 있습니다.
 
 망각 TTL·임베딩·보안 등 설정값은 README에 숫자를 두지 않습니다. [env.example](env.example)가 기준입니다.
+
+## HTTP 보안 (관리 서버)
+
+**HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다.** `/auth/session`은 쿠키 기반 브라우저 세션을 시작하고, `/admin`과 `/api`는 브라우저 세션이 필요하며, `/api/v1/quality`, `/api/v1/maintenance`, `/tools`, `/mcp`는 `Authorization: Bearer` 또는 `X-API-Key`가 필요합니다. 자세한 내용: [docs/reference/ko/security.md](docs/reference/ko/security.md).
+
+**HTTP 전용 (MCP에 없음)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — [HTTP 관리 API](docs/api/ko/api-reference.md) 참조.
+
+### 🧠 핵심 메모리 관리 (MCP 클라이언트)
+
+> **참고**: 도구 22개가 등록되어 있고, `tools/list`는 기본 4개만 노출합니다(`MEMENTO_TOOLSET=full`로 전체). 운영·관리 기능은 HTTP API로만 제공합니다.
 
 ## 문서
 
@@ -109,7 +119,7 @@ const results = await client.callTool({
 
 ## 로드맵 (요약)
 
-- **M1 개인용 (현재)**: 로컬 SQLite, MCP + HTTP 관리 API
+- **M1 개인용 (현재)**: 로컬 SQLite, MCP + HTTP 관리 API. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구).
 - **M2 팀 (계획)**: 공유 백엔드, API Key, Docker
 - **M3 조직 (계획)**: PostgreSQL + pgvector, JWT
 

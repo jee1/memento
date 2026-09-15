@@ -33,9 +33,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 
 ## HTTP API authentication and authorization
 
-- **Current state**: The HTTP server uses a **split trust model**:
-  - `/auth/session` — starts a cookie-backed browser session
-  - `/admin/*`, `/api/*` — **require a browser session**
+- **Current state**: The HTTP server uses a **split trust model**. `/auth/session` starts the cookie-backed browser-session flow. `/admin/*` and `/api/*` require that browser session. Programmatic routes use scoped tokens as follows:
   - `/tools/*`, `/mcp`, `/messages`, `/api/v1/agent` — **`tools:invoke` scope** token (`Authorization: Bearer` or `X-API-Key`)
   - `/api/v1/quality/*`, `/api/v1/maintenance/*`, `/api/v1/audit/*` — **`admin:destructive` scope** token (programmatic admin APIs)
 - **Scoped tokens (`MEMENTO_API_TOKENS`)**: Configure multiple keys as a JSON array. Example:
@@ -49,7 +47,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 - **Legacy `ADMIN_API_KEY`**: Used only when `MEMENTO_API_TOKENS` is unset, as a synthetic `legacy-admin` token with both scopes. A one-time deprecation warning is logged at startup. New deployments should migrate to `MEMENTO_API_TOKENS`.
 - **Recommended use**: Unless you have a clear reason not to, keep the HTTP server on **loopback or an internal network**. Open the browser dashboard/graph same-origin with the server so the session cookie is not shared across origins.
 - **Production**: Use scoped tokens for programmatic access, and keep `MEMENTO_HTTP_BIND_HOST` on loopback unless you intentionally expose the server.
-- **Browser secret handling**: The server does not deliver API secrets to browser assets. Operators sign in through `/auth/session` (legacy `ADMIN_API_KEY` or an admin-scoped secret), and the server exchanges that for an HTTP-only session cookie. **`/dashboard` is the recommended entry point**; opening **`/graph` directly uses the same session model** for sign-in/re-auth. **The graph UI unlocks only after a browser session exists.** Neither static page bootstraps a secret into JavaScript.
+- **Browser secret handling**: The server does **not** deliver API secrets to browser assets. Operators sign in through `/auth/session`, which exchanges the typed key for an HTTP-only session cookie. `/dashboard` is the recommended entry point, and opening `/graph` directly now offers the same session-backed sign-in/re-auth path. The graph UI requires a browser session before the graph surface unlocks. Neither page bootstraps the key into JavaScript.
 - **CORS**: Restrict allowed origins with `CORS_ALLOWED_ORIGINS`. If empty, cross-origin requests are not allowed.
 
 ## Multi-agent owner scope (HTTP)
