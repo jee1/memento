@@ -7,21 +7,20 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 - **CI gate**: `.github/workflows/security-check.yml`가 두 레인을 돌립니다. ① production 레인 — `node scripts/check-production-audit-fixable.mjs` (`npm audit --omit=dev`), **fixable High/Moderate/Critical이 1건이라도 있으면 실패**. ② full-tree 레인 (#909) — 같은 스크립트에 `--include-dev`, dev 포함 전체 트리에서 **wanted 범위로 고칠 수 있는 High/Critical**만 실패시킵니다(major 업그레이드로만 풀리는 건은 제외). 두 레인 뒤의 `npm audit summary` 스텝이 전체 결과를 job summary 에 남깁니다.
 - **정책**: wanted 범위(minor/patch) 안에서만 해소합니다. `npm audit fix --force`·`overrides`로 ML 스택을 끌어올리지 않습니다 (`AGENTS.md` deps wanted-only).
 - **수용 목록 (#942)**: 게이트의 진실 원본은 `security/accepted-audit.json` 입니다. upstream-blocked(고칠 수 없는) 항목이 목록에 없으면 Security Check 가 실패합니다. 목록과 아래 Upstream-blocked 표는 `scripts/lib/accepted-audit-allowlist.spec.ts` 가 집합 동일성으로 검증하므로, 새 수용 항목은 **표와 JSON 을 같은 PR 에서** 고쳐야 합니다. full-tree 레인에서 major-only 수정만 있는 High 도 자동 통과가 아니라 이 목록에 올려야 통과합니다.
-- **Upstream-blocked (accepted risk, no force-override)** — 2026-09-09 재측정:
+- **Upstream-blocked (accepted risk, no force-override)** — 2026-09-16 재측정:
 
 | Package path | Advisory / notes | Why blocked | Tracking |
 |--------------|------------------|-------------|----------|
-| `adm-zip` ← `onnxruntime-node` ← `@huggingface/transformers` | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) (High) — crafted ZIP → large allocation | Upstream `onnxruntime-node` pins vulnerable `adm-zip`; no non-force fix in our lockfile | Re-check on `@huggingface/transformers` / `onnxruntime-node` upgrades; issue #756 |
-| `sharp` ← `@huggingface/transformers` | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) (High) — libvips CVEs; requires `sharp>=0.35` | Parent still depends on `sharp<0.35`; force override risk for native/ABI | Same; prefer upstream bump over override |
+| (2026-09-16 기준 수용 중인 upstream-blocked 항목 없음 — #989) | — | — | — |
 
-- **High 8건 처리 대장 (#909)** — 2026-09-09 측정 (`npm audit`: high 8 / moderate 3, `--omit=dev`: high 4):
+- **High 8건 처리 대장 (#909)** — 2026-09-16 측정 (`npm audit`: high 0 / moderate 3, `--omit=dev`: high 0):
 
 | 패키지 (경로) | 취약점 ID | 조치 또는 수용 사유 | 재검토 조건 |
 |---------------|-----------|---------------------|-------------|
-| `@huggingface/transformers` (direct, prod) | 집계 노드 — `onnxruntime-node` · `sharp` 경유 | **수용**. 자체 advisory 없음. 아래 두 transitive 가 해소되면 같이 사라진다 | `@huggingface/transformers` 업그레이드 시 |
-| `adm-zip` ← `onnxruntime-node` ← `@huggingface/transformers` (prod) | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) (High), [GHSA-vwc7-r8mq-g2x9](https://github.com/advisories/GHSA-vwc7-r8mq-g2x9) (Moderate) | **수용**. upstream `onnxruntime-node` 가 취약 버전을 pin, `fixAvailable=false`. force override 금지 | `onnxruntime-node` / `@huggingface/transformers` 업그레이드 시 |
-| `onnxruntime-node` ← `@huggingface/transformers` (prod) | `adm-zip` 경유 (자체 advisory 없음) | **수용**. 위 행과 동일 원인 | 위와 동일 |
-| `sharp` (direct + ← `@huggingface/transformers`, prod) | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) (libvips, `sharp>=0.35` 필요), [GHSA-rgj7-g3m4-5g8c](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c) (libheif, `sharp>=0.35.4` 필요) | **수용**. 부모가 `sharp<0.35` 에 묶여 있고 force override 는 네이티브/ABI 파손 위험 | upstream bump 우선. override 로 올리지 않는다 |
+| `@huggingface/transformers` (direct, prod) | 집계 노드 — `onnxruntime-node` · `sharp` 경유 | **조치 완료 (검증됨)** — lockfile `4.3.0` (`^4.2.0` 범위 내 bump, #989) | 신규 advisory 발생 시 |
+| `adm-zip` ← `onnxruntime-node` ← `@huggingface/transformers` (prod) | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) (High), [GHSA-vwc7-r8mq-g2x9](https://github.com/advisories/GHSA-vwc7-r8mq-g2x9) (Moderate) | **조치 완료 (검증됨)** — 전이 `adm-zip@0.6.1` via `onnxruntime-node@1.30.0` (#989) | 신규 advisory 발생 시 |
+| `onnxruntime-node` ← `@huggingface/transformers` (prod) | `adm-zip` 경유 (자체 advisory 없음) | **조치 완료 (검증됨)** — lockfile `onnxruntime-node@1.30.0` via `@huggingface/transformers@4.3.0` (#989) | 신규 advisory 발생 시 |
+| `sharp` (direct + ← `@huggingface/transformers`, prod) | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) (libvips, `sharp>=0.35` 필요), [GHSA-rgj7-g3m4-5g8c](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c) (libheif, `sharp>=0.35.4` 필요) | **조치 완료 (검증됨)** — `package.json` `^0.34.4→^0.35.4`, lockfile `0.35.4` (#989) | sharp major 발생 시 |
 | `brace-expansion` (dev — eslint / minimatch / glob / rimraf / test-exclude, 6 노드) | [GHSA-3jxr-9vmj-r5cp](https://github.com/advisories/GHSA-3jxr-9vmj-r5cp), [GHSA-mh99-v99m-4gvg](https://github.com/advisories/GHSA-mh99-v99m-4gvg), [GHSA-rgw5-rvv9-x895](https://github.com/advisories/GHSA-rgw5-rvv9-x895) (모두 High, ReDoS/OOM DoS) | **조치 완료 (검증됨)** — lockfile-only bump: `1.1.15→1.1.18`, `2.1.1→2.1.4`, `5.0.6→5.0.9` | 신규 advisory 발생 시. dev 게이트가 자동 감시 |
 | `js-yaml@4.3.0` (dev — `eslint@8.57.1` → `@eslint/eslintrc@2.1.4`) | [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj) (High, `!!omap` quadratic CPU), [GHSA-2883-xcg3-v3hh](https://github.com/advisories/GHSA-2883-xcg3-v3hh) (High, `maxTotalMergeKeys` 우회) | **조치 완료 (검증됨)** — lockfile bump `4.3.0→4.3.2` | eslint 8 은 EOL. eslint 10 major 는 별도 이슈 |
 | `nanoid@3.3.15` (dev — `vitest` → `vite` → `postcss`) | [GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv), [GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8) (High, 무한 루프 DoS) | **조치 완료 (검증됨)** — lockfile bump `3.3.15→3.3.18` | `postcss` bump 와 함께 재검증 |

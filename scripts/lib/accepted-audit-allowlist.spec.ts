@@ -10,12 +10,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const REPO_ROOT = process.cwd();
-const EXPECTED_PACKAGES = [
-  '@huggingface/transformers',
-  'adm-zip',
-  'onnxruntime-node',
-  'sharp',
-];
 
 const tempDirs: string[] = [];
 
@@ -62,7 +56,7 @@ function validAuditReport(
   };
 }
 
-const CURRENT_ACCEPTED = {
+const LEGACY_ACCEPTED = {
   '@huggingface/transformers': {
     name: '@huggingface/transformers',
     severity: 'high',
@@ -106,10 +100,20 @@ const CURRENT_ACCEPTED = {
 };
 
 describe('loadAcceptedAuditAllowlist (#942)', () => {
-  it('loads the repository allowlist with the current four packages', async () => {
+  it('loads the repository allowlist (empty since #989)', async () => {
     const { loadAcceptedAuditAllowlist } = await import('./accepted-audit-allowlist.js');
     const set = loadAcceptedAuditAllowlist();
-    expect([...set].sort()).toEqual([...EXPECTED_PACKAGES].sort());
+    expect([...set]).toEqual([]);
+  });
+
+  it('loads packages from a JSON file via url', async () => {
+    const { loadAcceptedAuditAllowlist } = await import('./accepted-audit-allowlist.js');
+    const dir = mkdtempSync(join(tmpdir(), 'accepted-audit-'));
+    tempDirs.push(dir);
+    const file = join(dir, 'ok.json');
+    writeFileSync(file, JSON.stringify({ packages: ['sharp', 'adm-zip'] }));
+    const set = loadAcceptedAuditAllowlist(pathToFileURL(file));
+    expect(set).toEqual(new Set(['sharp', 'adm-zip']));
   });
 
   it('throws fail-closed on missing file / bad packages / non-string entries', async () => {
@@ -137,10 +141,10 @@ describe('loadAcceptedAuditAllowlist (#942)', () => {
 
 describe('findUnlistedAccepted (#942)', () => {
   it('returns only names missing from the allowlist, deduped and sorted', async () => {
-    const { findUnlistedAccepted, loadAcceptedAuditAllowlist } = await import(
-      './accepted-audit-allowlist.js'
-    );
-    const allowlist = loadAcceptedAuditAllowlist();
+    const { findUnlistedAccepted } = await import('./accepted-audit-allowlist.js');
+    // Literal Set — repo JSON must not leak into pure-function tests; allowlist changes
+    // should not force unrelated expectation updates here (#989 T3).
+    const allowlist = new Set(['sharp']);
     const unlisted = findUnlistedAccepted(
       [
         { name: 'left-pad', severity: 'high' },
@@ -156,14 +160,13 @@ describe('findUnlistedAccepted (#942)', () => {
 
 describe('findStaleAllowlistEntries (#942)', () => {
   it('returns all allowlisted names when audit reports none; empty when all present', async () => {
-    const { findStaleAllowlistEntries, loadAcceptedAuditAllowlist } = await import(
-      './accepted-audit-allowlist.js'
-    );
-    const allowlist = loadAcceptedAuditAllowlist();
-    expect(findStaleAllowlistEntries([], allowlist)).toEqual([...EXPECTED_PACKAGES].sort());
+    const { findStaleAllowlistEntries } = await import('./accepted-audit-allowlist.js');
+    // Literal Set — stale detection logic should be tested in isolation from repo state (#989 T3).
+    const allowlist = new Set(['alpha', 'beta']);
+    expect(findStaleAllowlistEntries([], allowlist)).toEqual(['alpha', 'beta']);
     expect(
       findStaleAllowlistEntries(
-        EXPECTED_PACKAGES.map((name) => ({ name })),
+        ['alpha', 'beta'].map((name) => ({ name })),
         allowlist,
       ),
     ).toEqual([]);
@@ -242,11 +245,11 @@ describe('check-production-audit-fixable end-to-end (#942)', () => {
     });
   }
 
-  it('exits 0 for the current four accepted findings', () => {
+  it('exits 0 when no vulnerabilities remain (#989)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'audit-e2e-'));
     tempDirs.push(dir);
     const file = join(dir, 'ok.json');
-    writeFileSync(file, JSON.stringify(validAuditReport(CURRENT_ACCEPTED)));
+    writeFileSync(file, JSON.stringify(validAuditReport({})));
     const result = runGate([file]);
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
   });
@@ -259,7 +262,7 @@ describe('check-production-audit-fixable end-to-end (#942)', () => {
       file,
       JSON.stringify(
         validAuditReport({
-          ...CURRENT_ACCEPTED,
+          ...LEGACY_ACCEPTED,
           'left-pad': {
             name: 'left-pad',
             severity: 'high',
@@ -286,15 +289,14 @@ describe('check-production-audit-fixable end-to-end (#942)', () => {
   // #942 review Finding 1: dev-lane major-only (`isSemVerMajor: true`) must
   // classify as accepted and hit the allowlist gate — boolean-only fixtures
   // leave this path untested.
-  it('exits 0 on --include-dev when major-only High is already allowlisted', () => {
+  it('exits 1 on --include-dev when major-only High is not allowlisted (#989)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'audit-e2e-'));
     tempDirs.push(dir);
-    const file = join(dir, 'major-ok.json');
+    const file = join(dir, 'major-unlisted.json');
     writeFileSync(
       file,
       JSON.stringify(
         validAuditReport({
-          ...CURRENT_ACCEPTED,
           sharp: {
             name: 'sharp',
             severity: 'high',
@@ -313,39 +315,9 @@ describe('check-production-audit-fixable end-to-end (#942)', () => {
       ),
     );
     const result = runGate(['--include-dev', file]);
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-  });
-
-  it('exits 1 on --include-dev when major-only High is not in the allowlist', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'audit-e2e-'));
-    tempDirs.push(dir);
-    const file = join(dir, 'major-unlisted.json');
-    writeFileSync(
-      file,
-      JSON.stringify(
-        validAuditReport({
-          ...CURRENT_ACCEPTED,
-          'left-pad': {
-            name: 'left-pad',
-            severity: 'high',
-            fixAvailable: {
-              name: 'left-pad',
-              version: '2.0.0',
-              isSemVerMajor: true,
-            },
-            via: [],
-            effects: [],
-            range: '*',
-            nodes: [],
-            isDirect: false,
-          },
-        }),
-      ),
-    );
-    const result = runGate(['--include-dev', file]);
     const combined = `${result.stdout}\n${result.stderr}`;
     expect(result.status, combined).toBe(1);
     expect(combined).toMatch(/not in security\/accepted-audit\.json/);
-    expect(combined).toContain('left-pad');
+    expect(combined).toContain('sharp');
   });
 });
