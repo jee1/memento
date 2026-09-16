@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { spawnSync } from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -96,13 +97,67 @@ afterEach(() => {
 });
 
 describe('backup-memory-db operator script', () => {
+  it('stores backups in MEMENTO_BACKUP_DIR instead of beside DB (#963)', () => {
+    const root = makeTempRoot();
+    const dbDir = join(root, 'data');
+    const backupDir = join(root, 'host-backups');
+    const dbPath = join(dbDir, 'memory.db');
+    mkdirSync(dbDir);
+    createDb(dbPath);
+
+    const result = runBackup(dbPath, [], { MEMENTO_BACKUP_DIR: backupDir });
+
+    expect(result.status).toBe(0);
+    const output = parseJson(result.stdout);
+    expect(String(output.backupPath).startsWith(`${backupDir}/`)).toBe(true);
+    expect(existsSync(backupDir)).toBe(true);
+    expect(existsSync(join(dbDir, 'backups'))).toBe(false);
+    expect(readdirSync(backupDir).filter(name => name.endsWith('.db'))).toHaveLength(1);
+  });
+
+  it('defaults backup dir to ~/.memento/backups when MEMENTO_BACKUP_DIR is unset (#963)', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    createDb(dbPath);
+
+    const result = runBackup(dbPath, [], { HOME: root, MEMENTO_BACKUP_DIR: '' });
+
+    expect(result.status).toBe(0);
+    const defaultBackupDir = join(root, '.memento', 'backups');
+    expect(existsSync(defaultBackupDir)).toBe(true);
+    expect(readdirSync(defaultBackupDir).filter(name => name.endsWith('.db'))).toHaveLength(1);
+  });
+
+  it('reports permission hint without absolute paths when backup dir is unwritable (#963)', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    createDb(dbPath);
+    mkdirSync(backupsDir);
+    chmodSync(backupsDir, 0o500);
+
+    const result = runBackup(dbPath, [], { MEMENTO_BACKUP_DIR: backupsDir });
+
+    expect(result.status).toBe(1);
+    const output = parseJson(result.stderr);
+    expect(output).toMatchObject({
+      ok: false,
+      stage: 'create-backup',
+      reason: 'backup-permission-denied',
+    });
+    expect(String(output.hint)).toContain('MEMENTO_BACKUP_DIR');
+    expect(String(output.hint)).toContain('uid 1001');
+    expect(JSON.stringify(output)).not.toContain(root);
+    expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
+
   it('creates one validated standalone operator backup with compatible success keys', () => {
     const root = makeTempRoot();
     const dbPath = join(root, 'memory.db');
     const backupsDir = join(root, 'backups');
     createDb(dbPath);
 
-    const result = runBackup(dbPath);
+    const result = runBackup(dbPath, [], { MEMENTO_BACKUP_DIR: backupsDir });
 
     expect(result.status).toBe(0);
     const output = parseJson(result.stdout);
@@ -123,7 +178,10 @@ describe('backup-memory-db operator script', () => {
     const root = makeTempRoot();
     createDb(join(root, 'memory.db'));
 
-    const result = runBackup('~/memory.db', [], { HOME: root });
+    const result = runBackup('~/memory.db', [], {
+      HOME: root,
+      MEMENTO_BACKUP_DIR: join(root, 'backups'),
+    });
 
     expect(result.status).toBe(0);
     const output = parseJson(result.stdout);
@@ -135,7 +193,7 @@ describe('backup-memory-db operator script', () => {
     const root = makeTempRoot();
     const dbPath = join(root, 'missing.db');
 
-    const result = runBackup(dbPath);
+    const result = runBackup(dbPath, [], { MEMENTO_BACKUP_DIR: join(root, 'backups') });
 
     expect(result.status).toBe(1);
     const output = parseJson(result.stderr);
@@ -171,7 +229,9 @@ FrozenDate.prototype = RealDate.prototype;
 globalThis.Date = FrozenDate;
 `);
 
-    const result = runBackup(dbPath, ['--import', pathToFileURL(freezeDatePath).href]);
+    const result = runBackup(dbPath, ['--import', pathToFileURL(freezeDatePath).href], {
+      MEMENTO_BACKUP_DIR: backupsDir,
+    });
 
     expect(result.status).toBe(1);
     const output = parseJson(result.stderr);
@@ -215,7 +275,9 @@ fs.unlinkSync = function(target) {
 };
 `);
 
-    const result = runBackup(dbPath, ['--import', pathToFileURL(injectResiduePath).href]);
+    const result = runBackup(dbPath, ['--import', pathToFileURL(injectResiduePath).href], {
+      MEMENTO_BACKUP_DIR: join(root, 'backups'),
+    });
 
     expect(result.status).toBe(1);
     const output = parseJson(result.stderr);
@@ -249,7 +311,7 @@ fs.unlinkSync = function(target) {
     writeBackupArtifact(backupsDir, partialWal, 'side');
     const before = inodeSnapshot(backupsDir);
 
-    const preview = runBackupScript(dbPath, ['--cleanup']);
+    const preview = runBackupScript(dbPath, ['--cleanup'], [], { MEMENTO_BACKUP_DIR: backupsDir });
 
     expect(preview.status).toBe(0);
     expect(preview.stderr).toBe('');
@@ -295,7 +357,7 @@ fs.unlinkSync = function(target) {
     writeBackupArtifact(backupsDir, partial, 'bad');
     writeBackupArtifact(backupsDir, partialWal, 'side');
 
-    const apply = runBackupScript(dbPath, ['--cleanup', '--apply']);
+    const apply = runBackupScript(dbPath, ['--cleanup', '--apply'], [], { MEMENTO_BACKUP_DIR: backupsDir });
 
     expect(apply.status).toBe(0);
     expect(apply.stderr).toBe('');
@@ -339,7 +401,7 @@ fs.unlinkSync = function(target) {
       ['--cleanup', '--unknown'],
       ['--cleanup', '--apply', '--extra'],
     ]) {
-      const usageError = runBackupScript(dbPath, args);
+      const usageError = runBackupScript(dbPath, args, [], { MEMENTO_BACKUP_DIR: backupsDir });
 
       expect(usageError.status).toBe(1);
       expect(usageError.stdout).toBe('');
@@ -359,7 +421,7 @@ fs.unlinkSync = function(target) {
     const backupsPath = join(root, 'backups');
     writeFileSync(backupsPath, 'not a directory');
 
-    const result = runBackupScript(dbPath, ['--cleanup']);
+    const result = runBackupScript(dbPath, ['--cleanup'], [], { MEMENTO_BACKUP_DIR: backupsPath });
 
     expect(result.status).toBe(1);
     expect(result.stderr).toBe('');
@@ -430,7 +492,8 @@ fs.unlinkSync = function(target) {
     const result = runBackupScript(
       dbPath,
       ['--cleanup', '--apply'],
-      ['--import', pathToFileURL(injectApplyFailurePath).href]
+      ['--import', pathToFileURL(injectApplyFailurePath).href],
+      { MEMENTO_BACKUP_DIR: backupsDir }
     );
 
     expect(result.status).toBe(1);

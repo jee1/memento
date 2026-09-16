@@ -66,17 +66,14 @@ export function openDb(filename = ':memory:', options) {
 }
 
 /**
- * DB_PATH 해석의 단일 규칙 (#962).
- * - 선행 `~` / `~/` / `~\` 는 홈으로 확장한다 (core 의 expandHomeDirPath 와 같은 의미론).
- * - 그 뒤 path.resolve 로 절대경로화한다 (상대경로 사용례 유지).
- * - 미설정·공백이면 ~/.memento/data/memory.db.
- * @param {string | undefined} [raw=process.env.DB_PATH]
- * @returns {string} 절대 경로
+ * @param {string | undefined} raw
+ * @param {string} defaultPath
+ * @returns {string}
  */
-export function resolveDbPath(raw = process.env.DB_PATH) {
+function resolveConfigPath(raw, defaultPath) {
   const value = raw?.trim();
   if (!value) {
-    return join(os.homedir(), '.memento', 'data', 'memory.db');
+    return defaultPath;
   }
   if (value === '~') {
     return os.homedir();
@@ -85,4 +82,27 @@ export function resolveDbPath(raw = process.env.DB_PATH) {
     ? join(os.homedir(), value.slice(2))
     : value;
   return resolve(expanded);
+}
+
+/**
+ * DB_PATH 해석의 단일 규칙 (#962).
+ * - 선행 `~` / `~/` / `~\` 는 홈으로 확장한다 (core 의 expandHomeDirPath 와 같은 의미론).
+ * - 그 뒤 path.resolve 로 절대경로화한다 (상대경로 사용례 유지).
+ * - 미설정·공백이면 ~/.memento/data/memory.db.
+ * @param {string | undefined} [raw=process.env.DB_PATH]
+ * @returns {string} 절대 경로
+ */
+export function resolveDbPath(raw = process.env.DB_PATH) {
+  return resolveConfigPath(raw, join(os.homedir(), '.memento', 'data', 'memory.db'));
+}
+
+/**
+ * 백업 디렉터리 해석의 단일 규칙 (#963).
+ * - MEMENTO_BACKUP_DIR 이 있으면 그것을 쓴다 (~ 확장 규칙은 DB_PATH 와 동일).
+ * - 없으면 ~/.memento/backups (바인드 마운트 밖, 호스트 사용자 소유).
+ * @param {string | undefined} [raw=process.env.MEMENTO_BACKUP_DIR]
+ * @returns {string} 절대 경로
+ */
+export function resolveBackupDir(raw = process.env.MEMENTO_BACKUP_DIR) {
+  return resolveConfigPath(raw, join(os.homedir(), '.memento', 'backups'));
 }

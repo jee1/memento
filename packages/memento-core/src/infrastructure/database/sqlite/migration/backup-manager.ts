@@ -272,6 +272,21 @@ function hasFsCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
+function isBackupDirUnwritable(error: unknown, dir: string): boolean {
+  if (hasFsCode(error, 'EACCES') || hasFsCode(error, 'EPERM')) {
+    return true;
+  }
+  if (!hasFsCode(error, 'SQLITE_CANTOPEN')) {
+    return false;
+  }
+  try {
+    fs.accessSync(dir, fs.constants.W_OK);
+    return false;
+  } catch (accessError) {
+    return hasFsCode(accessError, 'EACCES') || hasFsCode(accessError, 'EPERM');
+  }
+}
+
 function backupFailure(reason: string, residue: string[] = []): Error {
   return new Error(residue.length === 0 ? reason : `${reason} residue=${residue.join(',')}`);
 }
@@ -425,7 +440,7 @@ export class BackupManager {
         error: maskedError.message,
         errorName: maskedError.name
       });
-      throw error;
+      throw backupFailure('backup-dir-unavailable');
     }
   }
 
@@ -458,8 +473,12 @@ export class BackupManager {
       let metadata: Awaited<ReturnType<BackupCapableDatabase['backup']>>;
       try {
         metadata = await backupDb.backup(inProgressPath);
-      } catch {
-        throw backupFailure('backup-write-failed');
+      } catch (error) {
+        throw backupFailure(
+          isBackupDirUnwritable(error, this.backupsDir)
+            ? 'backup-permission-denied'
+            : 'backup-write-failed'
+        );
       }
       if (metadata.remainingPages !== 0) {
         throw backupFailure('backup-incomplete');
