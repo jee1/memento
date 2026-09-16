@@ -1,9 +1,10 @@
 /**
- * remember write-path near-duplicate detection (Issue #730)
+ * remember write-path near-duplicate detection (Issue #730, #997)
  */
 
 import type Database from 'better-sqlite3';
 import type { MemoryTypeRequest } from '../../../shared/types/memory.types.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import type { ToolContext } from '../../../tools/types.js';
@@ -11,9 +12,12 @@ import type { RememberToolHost } from './remember-tool-host.js';
 import type { ProceduralMemoryItem } from './remember-tool-types.js';
 import type { RememberParams } from './remember-tool-schema.js';
 
+const NEAR_DUP_VECTOR_LIMIT = 8;
+
 export interface NearDuplicateCandidate {
   id: string;
   similarity: number;
+  lexical_overlap: number;
 }
 
 export interface SimilarityWarning {
@@ -22,6 +26,12 @@ export interface SimilarityWarning {
   candidates: NearDuplicateCandidate[];
   suggestion?: 'incremental';
   action?: 'warned' | 'merged' | 'rejected';
+  truncated?: boolean;
+}
+
+export interface NearDuplicateSearchResult {
+  candidates: NearDuplicateCandidate[];
+  truncated: boolean;
 }
 
 const NEAR_DUP_MERGE_TYPES = new Set<MemoryTypeRequest>(['working', 'episodic', 'semantic']);
@@ -30,20 +40,68 @@ export function isNearDupMergeType(type: MemoryTypeRequest): boolean {
   return NEAR_DUP_MERGE_TYPES.has(type);
 }
 
+function normalizeForLexicalOverlap(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function char3grams(text: string): Set<string> {
+  const grams = new Set<string>();
+  for (let i = 0; i <= text.length - 3; i++) {
+    grams.add(text.slice(i, i + 3));
+  }
+  return grams;
+}
+
+/** char 3-gram Jaccard (공백 정규화 + lowercase) */
+export function lexicalOverlap(a: string, b: string): number {
+  const normalizedA = normalizeForLexicalOverlap(a);
+  const normalizedB = normalizeForLexicalOverlap(b);
+  if (normalizedA.length < 3 || normalizedB.length < 3) {
+    return 0;
+  }
+
+  const gramsA = char3grams(normalizedA);
+  const gramsB = char3grams(normalizedB);
+  let intersection = 0;
+  for (const gram of gramsA) {
+    if (gramsB.has(gram)) {
+      intersection++;
+    }
+  }
+
+  const union = gramsA.size + gramsB.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+export function isAutoMergeable(
+  candidate: NearDuplicateCandidate,
+  mergeLexicalFloor: number,
+): boolean {
+  return candidate.lexical_overlap >= mergeLexicalFloor;
+}
+
 export function buildSimilarityWarningFromCandidates(
   candidates: NearDuplicateCandidate[],
   action?: SimilarityWarning['action'],
+  options?: {
+    mergeLexicalFloor?: number;
+    truncated?: boolean;
+  },
 ): SimilarityWarning | undefined {
   if (candidates.length === 0) {
     return undefined;
   }
 
+  const mergeFloor = options?.mergeLexicalFloor ?? mementoConfig.rememberDedupMergeLexicalFloor;
+  const topMergeable = isAutoMergeable(candidates[0]!, mergeFloor);
+
   return {
     count: candidates.length,
     similar_ids: candidates.map((c) => c.id),
     candidates,
-    suggestion: 'incremental',
+    ...(topMergeable ? { suggestion: 'incremental' } : {}),
     ...(action ? { action } : {}),
+    ...(options?.truncated ? { truncated: true } : {}),
   };
 }
 
@@ -56,6 +114,33 @@ function scopeMatchesHit(
     && String(hit.project_id ?? '') === String(scope.projectId ?? '');
 }
 
+async function loadCandidateContents(
+  db: Database.Database,
+  ids: string[],
+  host?: RememberToolHost,
+): Promise<Map<string, string> | null> {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  try {
+    const placeholders = ids.map(() => '?').join(', ');
+    const rows = DatabaseUtils.all(
+      db,
+      `SELECT id, content FROM memory_item WHERE id IN (${placeholders}) AND COALESCE(is_deleted, 0) = 0`,
+      ids,
+    ) as Array<{ id: string; content: string }>;
+
+    return new Map(rows.map((row) => [row.id, row.content]));
+  } catch (error) {
+    host?.logWarning('near-dup candidate content lookup failed (fail-open)', {
+      error: error instanceof Error ? error.message : String(error),
+      candidate_count: ids.length,
+    });
+    return null;
+  }
+}
+
 export async function findNearDuplicateCandidates(
   db: Database.Database,
   content: string,
@@ -63,11 +148,11 @@ export async function findNearDuplicateCandidates(
   threshold: number,
   context: ToolContext,
   host?: RememberToolHost,
-): Promise<NearDuplicateCandidate[]> {
+): Promise<NearDuplicateSearchResult> {
   try {
     const embSvc = context.services?.embeddingService;
     if (!embSvc?.isAvailable()) {
-      return [];
+      return { candidates: [], truncated: false };
     }
 
     const vecEng = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
@@ -75,14 +160,14 @@ export async function findNearDuplicateCandidates(
     const unified = embSvc.getUnifiedEmbeddingService();
     const qEmb = await unified.generateEmbedding(content);
     if (!qEmb?.embedding || !Array.isArray(qEmb.embedding)) {
-      return [];
+      return { candidates: [], truncated: false };
     }
 
     const prov = unified.getCurrentProviderName() ?? 'tfidf';
     const hits = await vecEng.search(
       qEmb.embedding,
       {
-        limit: 8,
+        limit: NEAR_DUP_VECTOR_LIMIT,
         threshold,
         types: [scope.type],
         ...(scope.ownerId ? { owner_id: scope.ownerId } : {}),
@@ -91,15 +176,37 @@ export async function findNearDuplicateCandidates(
       prov,
     );
 
-    return hits
-      .filter((hit) => hit.similarity >= threshold && scopeMatchesHit(scope, hit))
-      .map((hit) => ({ id: hit.memory_id, similarity: hit.similarity }));
+    const truncated = hits.length >= NEAR_DUP_VECTOR_LIMIT;
+    const scopedHits = hits.filter((hit) => hit.similarity >= threshold && scopeMatchesHit(scope, hit));
+    if (scopedHits.length === 0) {
+      return { candidates: [], truncated };
+    }
+
+    const contentById = await loadCandidateContents(db, scopedHits.map((hit) => hit.memory_id), host);
+    if (!contentById) {
+      return { candidates: [], truncated };
+    }
+
+    const lexicalFloor = mementoConfig.rememberDedupLexicalFloor;
+    const candidates = scopedHits
+      .map((hit) => {
+        const candidateContent = contentById.get(hit.memory_id) ?? '';
+        const overlap = lexicalOverlap(content, candidateContent);
+        return {
+          id: hit.memory_id,
+          similarity: hit.similarity,
+          lexical_overlap: overlap,
+        };
+      })
+      .filter((candidate) => lexicalFloor === 0 || candidate.lexical_overlap >= lexicalFloor);
+
+    return { candidates, truncated };
   } catch (error) {
     host?.logWarning('near-dup candidate search failed (fail-open)', {
       error: error instanceof Error ? error.message : String(error),
       type: scope.type,
     });
-    return [];
+    return { candidates: [], truncated: false };
   }
 }
 

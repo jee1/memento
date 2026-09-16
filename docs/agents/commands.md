@@ -150,6 +150,8 @@ npm run docker:up                 # 컨테이너 기동
 |------|--------|------|
 | `MEMENTO_REMEMBER_DEDUP_THRESHOLD` | `0.85` | 유사도 임계값 `(0, 1]`; invalid → `0.85` + stderr |
 | `MEMENTO_REMEMBER_DEDUP_MODE` | `warn` | `warn`(저장+경고) \| `strict`(거절) \| `off`(검색 스킵) |
+| `MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR` | `0.3` | 어휘 겹침 후보 필터 `[0, 1]`; `0`이면 게이트 비활성 |
+| `MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR` | `0.7` | `incremental` 자동 병합 어휘 바닥 `[0, 1]` |
 
 에이전트 습관(warn → `update_mode=incremental` 재호출): [agent-workflow.md](./agent-workflow.md#remember-near-duplicate-write-path-730)
 

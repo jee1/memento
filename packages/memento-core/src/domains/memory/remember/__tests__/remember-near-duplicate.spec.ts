@@ -6,7 +6,18 @@ import type { RememberToolHost } from '../remember-tool-host.js';
 import type { ToolContext } from '../../../../tools/types.js';
 import * as configModule from '../../../../shared/config/index.js';
 import * as vectorSearchModule from '../../../search/algorithms/vector-search-engine.js';
+import {
+  findNearDuplicateCandidates,
+  lexicalOverlap,
+} from '../remember-near-duplicate.js';
 import type { RememberParams } from '../remember-tool-schema.js';
+
+const OVERLAPPING_BASE = '프로젝트 memento near-dup 어휘 겹침 테스트 공통 문장 본문';
+const OVERLAPPING_VARIANT = `${OVERLAPPING_BASE} 추가 업데이트 내용`;
+const TEMPLATE_A = '## 작업 보고\n저장소 memento 이슈 997 phase1 구현 완료 보고서\n결론: 어휘 가드 적용';
+const TEMPLATE_B = '## 작업 보고\n저장소 memento 이슈 998 phase2 구현 완료 보고서\n결론: 임베딩 청킹 적용';
+const UNRELATED_A = '양자역학 입자 가속기 실험 결과 요약 보고서';
+const UNRELATED_B = '고전 음악 바흐 곡별 해석과 연주 스타일 비교';
 
 function initializeTestDatabase(db: Database.Database): void {
   db.exec(`
@@ -124,7 +135,24 @@ function baseCtx(type: MemoryItemContext['type'], overrides: Partial<MemoryItemC
   };
 }
 
-describe('remember near-duplicate write path (#730)', () => {
+describe('lexicalOverlap (#997)', () => {
+  it('returns 1 for identical strings', () => {
+    expect(lexicalOverlap('alpha beta gamma', 'alpha beta gamma')).toBe(1);
+  });
+
+  it('returns near 0 for unrelated strings', () => {
+    const overlap = lexicalOverlap(UNRELATED_A, UNRELATED_B);
+    expect(overlap).toBeLessThan(0.15);
+  });
+
+  it('returns 0 when either input is shorter than 3 characters', () => {
+    expect(lexicalOverlap('ab', 'abcdef')).toBe(0);
+    expect(lexicalOverlap('abcdef', 'xy')).toBe(0);
+    expect(lexicalOverlap('a', 'b')).toBe(0);
+  });
+});
+
+describe('remember near-duplicate write path (#730, #997)', () => {
   let db: Database.Database;
   let context: ToolContext;
   let host: RememberToolHost;
@@ -145,6 +173,8 @@ describe('remember near-duplicate write path (#730)', () => {
       ...configModule.mementoConfig,
       rememberDedupMode: 'warn',
       rememberDedupThreshold: 0.85,
+      rememberDedupLexicalFloor: 0.3,
+      rememberDedupMergeLexicalFloor: 0.7,
       consolidationScoreEnabled: false,
     });
 
@@ -183,7 +213,7 @@ describe('remember near-duplicate write path (#730)', () => {
     insertMemory(db, {
       id: 'mem_existing',
       type: 'semantic',
-      content: 'alpha beta gamma',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-a',
     });
@@ -192,7 +222,7 @@ describe('remember near-duplicate write path (#730)', () => {
       {
         memory_id: 'mem_existing',
         similarity: 0.92,
-        content: 'alpha beta gamma',
+        content: OVERLAPPING_BASE,
         type: 'semantic',
         owner_id: 'owner-a',
         project_id: 'proj-a',
@@ -201,7 +231,7 @@ describe('remember near-duplicate write path (#730)', () => {
 
     const params: RememberParams = {
       type: 'semantic',
-      content: 'alpha beta gamma similar',
+      content: OVERLAPPING_VARIANT,
     };
 
     const result = await handleMemoryItem(params, context, baseCtx('semantic'), host);
@@ -225,7 +255,91 @@ describe('remember near-duplicate write path (#730)', () => {
       action: 'warned',
       suggestion: 'incremental',
     });
-    expect(data.similarity_warning.candidates[0]).toMatchObject({ id: 'mem_existing', similarity: 0.92 });
+    expect(data.similarity_warning.candidates[0]).toMatchObject({
+      id: 'mem_existing',
+      similarity: 0.92,
+    });
+    expect(data.similarity_warning.candidates[0].lexical_overlap).toBeGreaterThanOrEqual(0.7);
+
+    const count = DatabaseUtils.get(db, 'SELECT COUNT(*) AS c FROM memory_item', []) as { c: number };
+    expect(count.c).toBe(2);
+  });
+
+  it('removes high-vector low-lexical hits from candidates', async () => {
+    insertMemory(db, {
+      id: 'mem_unrelated',
+      type: 'semantic',
+      content: UNRELATED_A,
+      owner_id: 'owner-a',
+      project_id: 'proj-a',
+    });
+
+    searchMock.mockResolvedValue([
+      {
+        memory_id: 'mem_unrelated',
+        similarity: 0.92,
+        content: UNRELATED_A,
+        type: 'semantic',
+        owner_id: 'owner-a',
+        project_id: 'proj-a',
+      },
+    ]);
+
+    const result = await handleMemoryItem(
+      { type: 'semantic', content: UNRELATED_B },
+      context,
+      baseCtx('semantic'),
+      host,
+    );
+    const data = parsePayload(result);
+
+    expect(lexicalOverlap(UNRELATED_A, UNRELATED_B)).toBeLessThan(0.15);
+    expect(data.similarity_warning).toBeUndefined();
+  });
+
+  it('incremental with low lexical overlap inserts new row and omits suggestion', async () => {
+    insertMemory(db, {
+      id: 'mem_template',
+      type: 'semantic',
+      content: TEMPLATE_A,
+      owner_id: 'owner-a',
+      project_id: 'proj-a',
+    });
+
+    searchMock.mockResolvedValue([
+      {
+        memory_id: 'mem_template',
+        similarity: 0.92,
+        content: TEMPLATE_A,
+        type: 'semantic',
+        owner_id: 'owner-a',
+        project_id: 'proj-a',
+      },
+    ]);
+
+    const overlap = lexicalOverlap(TEMPLATE_A, TEMPLATE_B);
+    expect(overlap).toBeGreaterThan(0.3);
+    expect(overlap).toBeLessThan(0.7);
+
+    const result = await handleMemoryItem(
+      {
+        type: 'semantic',
+        content: TEMPLATE_B,
+        update_mode: 'incremental',
+      },
+      context,
+      baseCtx('semantic'),
+      host,
+    );
+    const data = parsePayload(result);
+
+    expect(data.memory_id).not.toBe('mem_template');
+    expect(data.similarity_warning).toMatchObject({
+      action: 'warned',
+      count: 1,
+    });
+    expect(data.similarity_warning.suggestion).toBeUndefined();
+    expect(data.similarity_warning.candidates[0].lexical_overlap).toBeLessThan(0.7);
 
     const count = DatabaseUtils.get(db, 'SELECT COUNT(*) AS c FROM memory_item', []) as { c: number };
     expect(count.c).toBe(2);
@@ -250,7 +364,7 @@ describe('remember near-duplicate write path (#730)', () => {
     insertMemory(db, {
       id: 'mem_other_project',
       type: 'semantic',
-      content: 'shared content',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-b',
     });
@@ -259,7 +373,7 @@ describe('remember near-duplicate write path (#730)', () => {
       {
         memory_id: 'mem_other_project',
         similarity: 0.95,
-        content: 'shared content',
+        content: OVERLAPPING_BASE,
         type: 'semantic',
         owner_id: 'owner-a',
         project_id: 'proj-b',
@@ -267,7 +381,7 @@ describe('remember near-duplicate write path (#730)', () => {
     ]);
 
     const result = await handleMemoryItem(
-      { type: 'semantic', content: 'shared content' },
+      { type: 'semantic', content: OVERLAPPING_VARIANT },
       context,
       baseCtx('semantic', { project_id_param: 'proj-a' }),
       host,
@@ -280,7 +394,7 @@ describe('remember near-duplicate write path (#730)', () => {
     insertMemory(db, {
       id: 'mem_other_owner',
       type: 'semantic',
-      content: 'shared content',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-b',
       project_id: 'proj-a',
     });
@@ -289,7 +403,7 @@ describe('remember near-duplicate write path (#730)', () => {
       {
         memory_id: 'mem_other_owner',
         similarity: 0.95,
-        content: 'shared content',
+        content: OVERLAPPING_BASE,
         type: 'semantic',
         owner_id: 'owner-b',
         project_id: 'proj-a',
@@ -297,7 +411,7 @@ describe('remember near-duplicate write path (#730)', () => {
     ]);
 
     const result = await handleMemoryItem(
-      { type: 'semantic', content: 'shared content' },
+      { type: 'semantic', content: OVERLAPPING_VARIANT },
       context,
       baseCtx('semantic', { ownerId: 'owner-a' }),
       host,
@@ -310,17 +424,17 @@ describe('remember near-duplicate write path (#730)', () => {
     insertMemory(db, {
       id: 'mem_working',
       type: 'working',
-      content: 'short task context',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-a',
     });
 
     searchMock.mockResolvedValue([
-      { memory_id: 'mem_working', similarity: 0.88, content: 'short task context', type: 'working', owner_id: 'owner-a', project_id: 'proj-a' },
+      { memory_id: 'mem_working', similarity: 0.88, content: OVERLAPPING_BASE, type: 'working', owner_id: 'owner-a', project_id: 'proj-a' },
     ]);
 
     const result = await handleMemoryItem(
-      { type: 'working', content: 'short task context v2' },
+      { type: 'working', content: OVERLAPPING_VARIANT },
       context,
       baseCtx('working'),
       host,
@@ -349,23 +463,25 @@ describe('remember near-duplicate write path (#730)', () => {
       ...configModule.mementoConfig,
       rememberDedupMode: 'warn',
       rememberDedupThreshold: 0.99,
+      rememberDedupLexicalFloor: 0.3,
+      rememberDedupMergeLexicalFloor: 0.7,
       consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {
       id: 'mem_low_sim',
       type: 'semantic',
-      content: 'similar-ish',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-a',
     });
 
     searchMock.mockResolvedValue([
-      { memory_id: 'mem_low_sim', similarity: 0.9, content: 'similar-ish', type: 'semantic', owner_id: 'owner-a', project_id: 'proj-a' },
+      { memory_id: 'mem_low_sim', similarity: 0.9, content: OVERLAPPING_BASE, type: 'semantic', owner_id: 'owner-a', project_id: 'proj-a' },
     ]);
 
     const result = await handleMemoryItem(
-      { type: 'semantic', content: 'similar-ish v2' },
+      { type: 'semantic', content: OVERLAPPING_VARIANT },
       context,
       baseCtx('semantic'),
       host,
@@ -379,25 +495,27 @@ describe('remember near-duplicate write path (#730)', () => {
       ...configModule.mementoConfig,
       rememberDedupMode: 'strict',
       rememberDedupThreshold: 0.85,
+      rememberDedupLexicalFloor: 0.3,
+      rememberDedupMergeLexicalFloor: 0.7,
       consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {
       id: 'mem_strict',
       type: 'semantic',
-      content: 'dup content',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-a',
     });
 
     searchMock.mockResolvedValue([
-      { memory_id: 'mem_strict', similarity: 0.91, content: 'dup content', type: 'semantic', owner_id: 'owner-a', project_id: 'proj-a' },
+      { memory_id: 'mem_strict', similarity: 0.91, content: OVERLAPPING_BASE, type: 'semantic', owner_id: 'owner-a', project_id: 'proj-a' },
     ]);
 
     const before = DatabaseUtils.get(db, 'SELECT COUNT(*) AS c FROM memory_item', []) as { c: number };
 
     const result = await handleMemoryItem(
-      { type: 'semantic', content: 'dup content again' },
+      { type: 'semantic', content: OVERLAPPING_VARIANT },
       context,
       baseCtx('semantic'),
       host,
@@ -418,19 +536,21 @@ describe('remember near-duplicate write path (#730)', () => {
       ...configModule.mementoConfig,
       rememberDedupMode: 'off',
       rememberDedupThreshold: 0.85,
+      rememberDedupLexicalFloor: 0.3,
+      rememberDedupMergeLexicalFloor: 0.7,
       consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {
       id: 'mem_off',
       type: 'semantic',
-      content: 'same',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-a',
     });
 
     const result = await handleMemoryItem(
-      { type: 'semantic', content: 'same' },
+      { type: 'semantic', content: OVERLAPPING_BASE },
       context,
       baseCtx('semantic'),
       host,
@@ -444,7 +564,7 @@ describe('remember near-duplicate write path (#730)', () => {
     insertMemory(db, {
       id: 'mem_merge',
       type: 'semantic',
-      content: 'old content',
+      content: OVERLAPPING_BASE,
       owner_id: 'owner-a',
       project_id: 'proj-a',
       importance: 0.4,
@@ -453,13 +573,13 @@ describe('remember near-duplicate write path (#730)', () => {
     });
 
     searchMock.mockResolvedValue([
-      { memory_id: 'mem_merge', similarity: 0.93, content: 'old content', type: 'semantic', owner_id: 'owner-a', project_id: 'proj-a' },
+      { memory_id: 'mem_merge', similarity: 0.93, content: OVERLAPPING_BASE, type: 'semantic', owner_id: 'owner-a', project_id: 'proj-a' },
     ]);
 
     const result = await handleMemoryItem(
       {
         type: 'semantic',
-        content: 'new merged content',
+        content: OVERLAPPING_VARIANT,
         importance: 0.7,
         tags: ['b'],
         update_mode: 'incremental',
@@ -472,9 +592,11 @@ describe('remember near-duplicate write path (#730)', () => {
 
     expect(data.memory_id).toBe('mem_merge');
     expect(data.similarity_warning?.action).toBe('merged');
+    expect(data.similarity_warning?.suggestion).toBe('incremental');
+    expect(data.similarity_warning?.candidates[0].lexical_overlap).toBeGreaterThanOrEqual(0.7);
 
     const row = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', ['mem_merge']) as Record<string, unknown>;
-    expect(row.content).toBe('new merged content');
+    expect(row.content).toBe(OVERLAPPING_VARIANT);
     expect(row.importance).toBe(0.7);
     expect(JSON.parse(row.tags as string)).toEqual(expect.arrayContaining(['a', 'b']));
     expect(row.num_times).toBe(3);
@@ -538,5 +660,130 @@ describe('remember near-duplicate write path (#730)', () => {
 
     const row = DatabaseUtils.get(db, 'SELECT steps FROM memory_item WHERE id = ?', ['mem_proc']) as { steps: string };
     expect(JSON.parse(row.steps)).toEqual(['step1', 'step2']);
+  });
+
+  it('sets truncated when vector search returns limit hits', async () => {
+    insertMemory(db, {
+      id: 'mem_trunc',
+      type: 'semantic',
+      content: OVERLAPPING_BASE,
+      owner_id: 'owner-a',
+      project_id: 'proj-a',
+    });
+
+    const hits = Array.from({ length: 8 }, (_, index) => ({
+      memory_id: index === 0 ? 'mem_trunc' : `mem_extra_${index}`,
+      similarity: 0.9 - index * 0.01,
+      content: index === 0 ? OVERLAPPING_BASE : UNRELATED_A,
+      type: 'semantic',
+      owner_id: 'owner-a',
+      project_id: 'proj-a',
+    }));
+
+    for (let index = 1; index < 8; index++) {
+      insertMemory(db, {
+        id: `mem_extra_${index}`,
+        type: 'semantic',
+        content: UNRELATED_A,
+        owner_id: 'owner-a',
+        project_id: 'proj-a',
+      });
+    }
+
+    searchMock.mockResolvedValue(hits);
+
+    const result = await handleMemoryItem(
+      { type: 'semantic', content: OVERLAPPING_VARIANT },
+      context,
+      baseCtx('semantic'),
+      host,
+    );
+    const data = parsePayload(result);
+
+    expect(data.similarity_warning?.truncated).toBe(true);
+  });
+
+  it('disables lexical gate when floor is 0', async () => {
+    configSpy.mockReturnValue({
+      ...configModule.mementoConfig,
+      rememberDedupMode: 'warn',
+      rememberDedupThreshold: 0.85,
+      rememberDedupLexicalFloor: 0,
+      rememberDedupMergeLexicalFloor: 0.7,
+      consolidationScoreEnabled: false,
+    });
+
+    insertMemory(db, {
+      id: 'mem_gate_off',
+      type: 'semantic',
+      content: UNRELATED_A,
+      owner_id: 'owner-a',
+      project_id: 'proj-a',
+    });
+
+    searchMock.mockResolvedValue([
+      {
+        memory_id: 'mem_gate_off',
+        similarity: 0.92,
+        content: UNRELATED_A,
+        type: 'semantic',
+        owner_id: 'owner-a',
+        project_id: 'proj-a',
+      },
+    ]);
+
+    const result = await handleMemoryItem(
+      { type: 'semantic', content: UNRELATED_B },
+      context,
+      baseCtx('semantic'),
+      host,
+    );
+    const data = parsePayload(result);
+
+    expect(data.similarity_warning?.count).toBe(1);
+    expect(data.similarity_warning?.candidates[0].lexical_overlap).toBeLessThan(0.15);
+    expect(data.similarity_warning?.suggestion).toBeUndefined();
+  });
+
+  it('drops candidates when content lookup fails', async () => {
+    const allSpy = vi.spyOn(DatabaseUtils, 'all').mockImplementation(() => {
+      throw new Error('db read failed');
+    });
+
+    insertMemory(db, {
+      id: 'mem_lookup_fail',
+      type: 'semantic',
+      content: OVERLAPPING_BASE,
+      owner_id: 'owner-a',
+      project_id: 'proj-a',
+    });
+
+    searchMock.mockResolvedValue([
+      {
+        memory_id: 'mem_lookup_fail',
+        similarity: 0.92,
+        content: OVERLAPPING_BASE,
+        type: 'semantic',
+        owner_id: 'owner-a',
+        project_id: 'proj-a',
+      },
+    ]);
+
+    const result = await findNearDuplicateCandidates(
+      db,
+      OVERLAPPING_VARIANT,
+      { type: 'semantic', ownerId: 'owner-a', projectId: 'proj-a' },
+      0.85,
+      context,
+      host,
+    );
+
+    expect(result.candidates).toEqual([]);
+    expect(host.logWarning).toHaveBeenCalledWith(
+      'near-dup candidate content lookup failed (fail-open)',
+      expect.objectContaining({ candidate_count: 1 }),
+    );
+
+    allSpy.mockRestore();
   });
 });

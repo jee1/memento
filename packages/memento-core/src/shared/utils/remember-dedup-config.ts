@@ -5,6 +5,8 @@
 export type RememberDedupMode = 'warn' | 'strict' | 'off';
 
 const DEFAULT_THRESHOLD = 0.85;
+const DEFAULT_LEXICAL_FLOOR = 0.3;
+const DEFAULT_MERGE_LEXICAL_FLOOR = 0.7;
 
 /**
  * @param envValue - MEMENTO_REMEMBER_DEDUP_THRESHOLD
@@ -44,4 +46,44 @@ export function parseRememberDedupMode(envValue: string | undefined): RememberDe
     `[CONFIG WARN] Invalid MEMENTO_REMEMBER_DEDUP_MODE value: ${envValue}. Using default 'warn'.\n`,
   );
   return 'warn';
+}
+
+/**
+ * @param envValue - MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR
+ * @returns valid floor in [0, 1] or default 0.3 (0 = gate disabled)
+ */
+export function parseRememberDedupLexicalFloor(envValue: string | undefined): number {
+  if (!envValue) {
+    return DEFAULT_LEXICAL_FLOOR;
+  }
+
+  const parsed = Number(envValue.trim());
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    process.stderr.write(
+      `[CONFIG WARN] Invalid MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR value: ${envValue}. Using default '${DEFAULT_LEXICAL_FLOOR}'.\n`,
+    );
+    return DEFAULT_LEXICAL_FLOOR;
+  }
+
+  return parsed;
+}
+
+/**
+ * @param envValue - MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR
+ * @returns valid floor in [0, 1] or default 0.7 (0 = merge gate disabled)
+ */
+export function parseRememberDedupMergeLexicalFloor(envValue: string | undefined): number {
+  if (!envValue) {
+    return DEFAULT_MERGE_LEXICAL_FLOOR;
+  }
+
+  const parsed = Number(envValue.trim());
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    process.stderr.write(
+      `[CONFIG WARN] Invalid MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR value: ${envValue}. Using default '${DEFAULT_MERGE_LEXICAL_FLOOR}'.\n`,
+    );
+    return DEFAULT_MERGE_LEXICAL_FLOOR;
+  }
+
+  return parsed;
 }

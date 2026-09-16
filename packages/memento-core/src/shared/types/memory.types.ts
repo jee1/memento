@@ -137,6 +137,8 @@ export interface MementoConfig {
   sourceStrict: boolean;
   rememberDedupThreshold: number;
   rememberDedupMode: 'warn' | 'strict' | 'off';
+  rememberDedupLexicalFloor: number;
+  rememberDedupMergeLexicalFloor: number;
 }
 
 export type UpdateMode = 'replace' | 'incremental' | 'versioned';
