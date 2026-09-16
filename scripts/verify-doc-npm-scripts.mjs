@@ -26,6 +26,7 @@ const KEEP_SCRIPT_NAMES = new Set([
   'test:watch',
   'test:log-issue-monitor',
   'docker:down',
+  'docker:logs',
   // packaging recovery entry points are intentionally invoked by humans
   'pack:tarball',
   'restore-workspace',

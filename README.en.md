@@ -95,9 +95,19 @@ More connection paths (MCP SDK, `@jee1/memento-client`, external-assistant SDK):
 - **Hybrid search**: FTS5 + vectors, tag filters
 - **Living memory**: reinforcement, forgetting, neighbors, anchors
 - **Procedural versions**: `procedural_diff` / `procedural_rollback`
-- **Graph and dashboard**: after the HTTP server starts, `/dashboard` and `/graph`
+- **Graph and dashboard**: after the HTTP server starts, `/dashboard` is the preferred entry point for the full admin flow; opening `/graph` directly now offers the same `/auth/session` re-auth path for session recovery.
 
 Forgetting TTLs, embeddings, and security settings are not restated as numbers here. [env.example](env.example) is the source of truth.
+
+## HTTP security (admin server)
+
+The **HTTP server splits browser-session and header-based trust**. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/api/v1/maintenance`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
+
+**HTTP-only (not MCP)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see [HTTP Management API](docs/api/en/api-reference.md).
+
+### MCP Tools (Core 22)
+
+> **Important**: MCP exposes 22 registered tools; `tools/list` lists four by default (`MEMENTO_TOOLSET=full` for all). Operational admin endpoints stay on the HTTP API.
 
 ## Docs
 
@@ -109,7 +119,7 @@ Forgetting TTLs, embeddings, and security settings are not restated as numbers h
 
 ## Roadmap (short)
 
-- **M1 personal (current)**: local SQLite, MCP + HTTP admin API
+- **M1 personal (current)**: local SQLite, MCP + HTTP admin API. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key).
 - **M2 team (planned)**: shared backend, API keys, Docker
 - **M3 org (planned)**: PostgreSQL + pgvector, JWT
 
