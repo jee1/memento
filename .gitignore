@@ -182,3 +182,4 @@ graphify-out/
 
 tmp/tune-weights/
 .gstack/
+.playwright-mcp/
