@@ -9,6 +9,8 @@
 
 ### Changed
 
+- **`sharp` root 직접 의존 제거** (#993): `package.json`에서 선언 삭제 — `@huggingface/transformers@4.3.0`이 hard dependency로 `sharp@0.35.4`를 유지하므로 배포 산출물 불변. Dockerfile의 no-op `npm rebuild sharp` 제거. `dependency-range.spec.ts`를 lockfile 단일 엔트리·보안 floor 검증으로 재작성.
+
 - **Production dependency audit High 4건 해소** (#989): `sharp` `^0.34.4→^0.35.4` (wanted-only 예외 — `AGENTS.md` deps), lockfile에서 `@huggingface/transformers@4.3.0`·`onnxruntime-node@1.30.0`·`adm-zip@0.6.1` 전이 bump. `security/accepted-audit.json` allowlist 비움. MiniLM 실증 테스트 V1~V6 추가.
 
 - **search-quality length-decay sweep instrumentation** (#961): `CategoryMetricsOptions`로 short-only GT 서브셋·vector-dominant arm을 선택적으로 켜고, `mean_top10_long_doc_ratio`(>2,000자 top-10 점유율)를 리포트에 추가합니다. `npm run quality -- benchmark length-decay-sweep`가 k∈{40,80,160,320}×arm×subset 진단 TSV를 출력합니다(exit 0, 게이트 아님). 장문 near-clone 디스트랙터는 임베딩 지평(앞 1,024자) 안 주제 밀도를 높여 벡터 채널에 진입하도록 픽스처를 재작성했습니다.

@@ -66,7 +66,7 @@ COPY --from=builder /app/packages/memento-agent-integration/package.json ./packa
 COPY --from=builder /app/package*.json ./
 
 # Install production dependencies and rebuild native modules for Debian/Linux
-# better-sqlite3, sharp: try prebuilt binaries first (much faster), fallback to source compile
+# better-sqlite3: try prebuilt binaries first (much faster), fallback to source compile
 # MiniLM warmup pulls the multilingual model (#889): q8 onnx is ~118MB vs ~23MB for the old
 # English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
 # sqlite-vec: build from source (no reliable prebuilts), copy .so to /usr/lib/
@@ -78,7 +78,6 @@ RUN npm ci --omit=dev --ignore-scripts && \
     cp /app/node_modules/sqlite-vec-linux-x64/vec0.so /usr/lib/vec0 && \
     chmod +x /usr/lib/vec0 && \
     ls -la /usr/lib/vec0 && \
-    (npm rebuild sharp 2>/dev/null || npm rebuild sharp --build-from-source) && \
     npm cache clean --force && \
     if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
       echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: MiniLM cache warmup skipped'; \
