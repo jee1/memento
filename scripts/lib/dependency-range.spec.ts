@@ -31,9 +31,12 @@ describe('sharp dependency shape (#989/#993)', () => {
   it('sits at or above the 0.35.4 security floor', () => {
     // Avoid importing semver: tree semver is sharp's transitive dep (phantom dependency).
     const lock = read('package-lock.json');
-    const version: string = lock.packages['node_modules/sharp'].version;
+    const sharpEntry = lock.packages['node_modules/sharp'];
+    expect(sharpEntry, 'node_modules/sharp must be present in the lockfile').toBeDefined();
+    const version: string = sharpEntry.version;
     const [major, minor, patch] = version.split('.').map(Number);
     // GHSA-f88m-g3jw-g9cj (libvips, >=0.35) / GHSA-rgj7-g3m4-5g8c (libheif, >=0.35.4)
+    // A major bump is an intentional gate: review this test and the floor, do not bump the assert.
     expect(major).toBe(0);
     expect(minor).toBeGreaterThanOrEqual(35);
     if (minor === 35) expect(patch).toBeGreaterThanOrEqual(4);
