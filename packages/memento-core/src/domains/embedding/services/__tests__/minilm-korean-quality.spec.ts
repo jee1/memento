@@ -12,6 +12,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as transformers from '@huggingface/transformers';
 import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
 import { MiniLMEmbeddingService } from '../minilm-embedding-service.js';
+import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 
 // vitest.setup.ts가 두 모듈을 전역 모킹한다. 여기서는 실제 모델을 돌려야 하므로 되돌린다.
 vi.unmock('@huggingface/transformers');
@@ -114,4 +115,22 @@ describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
     // 이 하한이 통과 필터로 동작하던 것이 #889의 증상이었다.
     expect(Math.max(...(await scores(IRRELEVANT_KO)))).toBeLessThan(0.38);
   });
+
+  it('UnifiedEmbeddingService는 minilm provider로 임베딩한다 — tfidf 폴백이 아님 (V8)', async () => {
+    const previous = process.env.EMBEDDING_PROVIDER;
+    process.env.EMBEDDING_PROVIDER = 'minilm';
+    try {
+      const unified = new UnifiedEmbeddingService();
+      const result = await unified.generateEmbedding(ANCHOR_DOC);
+      expect(result).not.toBeNull();
+      expect(result!.provider).toBe('minilm');
+      expect(result!.embedding).toHaveLength(384);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.EMBEDDING_PROVIDER;
+      } else {
+        process.env.EMBEDDING_PROVIDER = previous;
+      }
+    }
+  }, 300_000);
 });

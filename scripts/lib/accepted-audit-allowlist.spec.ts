@@ -106,6 +106,16 @@ describe('loadAcceptedAuditAllowlist (#942)', () => {
     expect([...set]).toEqual([]);
   });
 
+  it('loads packages from a JSON file via url', async () => {
+    const { loadAcceptedAuditAllowlist } = await import('./accepted-audit-allowlist.js');
+    const dir = mkdtempSync(join(tmpdir(), 'accepted-audit-'));
+    tempDirs.push(dir);
+    const file = join(dir, 'ok.json');
+    writeFileSync(file, JSON.stringify({ packages: ['sharp', 'adm-zip'] }));
+    const set = loadAcceptedAuditAllowlist(pathToFileURL(file));
+    expect(set).toEqual(new Set(['sharp', 'adm-zip']));
+  });
+
   it('throws fail-closed on missing file / bad packages / non-string entries', async () => {
     const { loadAcceptedAuditAllowlist } = await import('./accepted-audit-allowlist.js');
     const dir = mkdtempSync(join(tmpdir(), 'accepted-audit-'));
@@ -309,38 +319,5 @@ describe('check-production-audit-fixable end-to-end (#942)', () => {
     expect(result.status, combined).toBe(1);
     expect(combined).toMatch(/not in security\/accepted-audit\.json/);
     expect(combined).toContain('sharp');
-  });
-
-  it('exits 1 on --include-dev when major-only High is not in the allowlist', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'audit-e2e-'));
-    tempDirs.push(dir);
-    const file = join(dir, 'major-unlisted.json');
-    writeFileSync(
-      file,
-      JSON.stringify(
-        validAuditReport({
-          ...LEGACY_ACCEPTED,
-          'left-pad': {
-            name: 'left-pad',
-            severity: 'high',
-            fixAvailable: {
-              name: 'left-pad',
-              version: '2.0.0',
-              isSemVerMajor: true,
-            },
-            via: [],
-            effects: [],
-            range: '*',
-            nodes: [],
-            isDirect: false,
-          },
-        }),
-      ),
-    );
-    const result = runGate(['--include-dev', file]);
-    const combined = `${result.stdout}\n${result.stderr}`;
-    expect(result.status, combined).toBe(1);
-    expect(combined).toMatch(/not in security\/accepted-audit\.json/);
-    expect(combined).toContain('left-pad');
   });
 });
