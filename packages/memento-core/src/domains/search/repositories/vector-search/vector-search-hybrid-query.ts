@@ -6,6 +6,7 @@ import type Database from 'better-sqlite3';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
+import { buildMemoryFilterSql, hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
 import { mapHybridResults } from './vector-search-result-mapper.js';
 import type {
   RawVectorSearchResult,
@@ -23,119 +24,49 @@ export interface HybridQueryParams {
   options: VectorSearchExecutionOptions;
 }
 
-/**
- * #889: 모델이 다르면 벡터 공간이 달라 코사인 거리가 무의미하다. 재색인 도중처럼
- * 한 provider 안에 옛 모델과 새 모델 행이 섞여 있어도 현재 모델 행만 비교하게 만든다.
- * 파라미터는 각 절의 다른 값 뒤에 붙으므로, 이 절은 항상 whereParts 끝에 추가한다.
- */
-function appendModelFilter(whereParts: string[], column: string, modelFilter: string | null): void {
-  if (modelFilter) whereParts.push(`${column} = ?`);
+function buildOuterWhereSql(
+  filters: VectorSearchScope,
+  modelFilter: string | null
+): { sql: string; params: SqlParam[] } {
+  const { clauses, params } = buildMemoryFilterSql(filters, {
+    itemAlias: 'mi',
+    embeddingAlias: 'me',
+    modelFilter,
+  });
+  const sql = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')} ` : '';
+  return { sql, params };
 }
 
-function buildScopeParams(scope: VectorSearchScope): SqlParam[] {
-  const scopeParams: SqlParam[] = [];
-  if (scope.hasProjectScope && scope.scopeProjectId) {
-    scopeParams.push(scope.scopeProjectId);
-  }
-  if (scope.hasOwnerStringScope && typeof scope.scopeOwnerId === 'string') {
-    scopeParams.push(scope.scopeOwnerId);
-  } else if (scope.ownerArrayScope.length > 0) {
-    scopeParams.push(...(scope.ownerArrayScope as SqlParam[]));
-  }
-  if (scope.hasProcessStringScope && typeof scope.scopeProcessId === 'string') {
-    scopeParams.push(scope.scopeProcessId);
-  } else if (scope.processArrayScope.length > 0) {
-    scopeParams.push(...(scope.processArrayScope as SqlParam[]));
-  }
-  if (scope.hasSessionStringScope && typeof scope.scopeSessionId === 'string') {
-    scopeParams.push(scope.scopeSessionId);
-  } else if (scope.sessionArrayScope.length > 0) {
-    scopeParams.push(...(scope.sessionArrayScope as SqlParam[]));
-  }
-  return scopeParams;
+function buildTextFilterClause(filters: VectorSearchScope): { clause: string; params: SqlParam[] } {
+  const { clauses, params } = buildMemoryFilterSql(filters, { itemAlias: 'mi' });
+  const clause = clauses.length > 0
+    ? clauses.map(part => `AND ${part}`).join(' ')
+    : '';
+  return { clause, params };
 }
 
-function buildItemScopeClause(scope: VectorSearchScope): string {
-  const parts: string[] = [];
-  if (scope.hasProjectScope) {
-    parts.push('mi.project_id = ?');
-  }
-  if (scope.hasOwnerStringScope) {
-    parts.push('mi.owner_id = ?');
-  } else if (scope.ownerArrayScope.length > 0) {
-    parts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
-  }
-  if (scope.hasProcessStringScope) {
-    parts.push('mi.process_id = ?');
-  } else if (scope.processArrayScope.length > 0) {
-    parts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
-  }
-  if (scope.hasSessionStringScope) {
-    parts.push('mi.session_id = ?');
-  } else if (scope.sessionArrayScope.length > 0) {
-    parts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
-  }
-  return parts.length > 0 ? `${parts.map(part => `AND ${part}`).join(' ')} ` : '';
-}
-
-function buildItemWhereSql(scope: VectorSearchScope, modelFilter: string | null): string {
-  const whereParts: string[] = [];
-  if (scope.typeFilters.length > 0) {
-    whereParts.push(`mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`);
-  }
-  if (scope.hasProjectScope) {
-    whereParts.push('mi.project_id = ?');
-  }
-  if (scope.hasOwnerStringScope) {
-    whereParts.push('mi.owner_id = ?');
-  } else if (scope.ownerArrayScope.length > 0) {
-    whereParts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
-  }
-  if (scope.hasProcessStringScope) {
-    whereParts.push('mi.process_id = ?');
-  } else if (scope.processArrayScope.length > 0) {
-    whereParts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
-  }
-  if (scope.hasSessionStringScope) {
-    whereParts.push('mi.session_id = ?');
-  } else if (scope.sessionArrayScope.length > 0) {
-    whereParts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
-  }
-  appendModelFilter(whereParts, 'me.model', modelFilter);
-  return whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
-}
-
-function buildScopedCandidateSql(scope: VectorSearchScope, modelFilter: string | null): string {
-  const whereParts = ['scoped_me.embedding_provider = ?', '(COALESCE(scoped_mi.is_deleted, 0) = 0)'];
-  if (scope.typeFilters.length > 0) {
-    whereParts.push(`scoped_mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`);
-  }
-  if (scope.hasProjectScope) {
-    whereParts.push('scoped_mi.project_id = ?');
-  }
-  if (scope.hasOwnerStringScope) {
-    whereParts.push('scoped_mi.owner_id = ?');
-  } else if (scope.ownerArrayScope.length > 0) {
-    whereParts.push(`scoped_mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
-  }
-  if (scope.hasProcessStringScope) {
-    whereParts.push('scoped_mi.process_id = ?');
-  } else if (scope.processArrayScope.length > 0) {
-    whereParts.push(`scoped_mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
-  }
-  if (scope.hasSessionStringScope) {
-    whereParts.push('scoped_mi.session_id = ?');
-  } else if (scope.sessionArrayScope.length > 0) {
-    whereParts.push(`scoped_mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
-  }
-  appendModelFilter(whereParts, 'scoped_me.model', modelFilter);
-  return (
+function buildScopedCandidateSql(
+  filters: VectorSearchScope,
+  provider: string,
+  modelFilter: string | null
+): { sql: string; params: SqlParam[] } {
+  const { clauses, params } = buildMemoryFilterSql(filters, {
+    itemAlias: 'scoped_mi',
+    embeddingAlias: 'scoped_me',
+    modelFilter,
+  });
+  const whereParts = [
+    'scoped_me.embedding_provider = ?',
+    '(COALESCE(scoped_mi.is_deleted, 0) = 0)',
+    ...clauses,
+  ];
+  const sql =
     '    AND rowid IN (' +
     'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
     'JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id ' +
     `WHERE ${whereParts.join(' AND ')}` +
-    ') '
-  );
+    ') ';
+  return { sql, params: [provider, ...params] };
 }
 
 export function executeHybridQuery(params: HybridQueryParams): VectorSearchResult[] {
@@ -144,27 +75,25 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
   const { limit } = options;
 
   const hasTextQuery = Boolean(textQuery && textQuery.trim().length > 0);
-  const scopeParams = buildScopeParams(scope);
-  const hasScopedCandidates = scope.typeFilters.length > 0 || scope.hasScopeFilter;
-  const modelParams: SqlParam[] = modelFilter ? [modelFilter] : [];
-  const scopedCandidateSql = hasScopedCandidates ? buildScopedCandidateSql(scope, modelFilter) : '';
-  const knnFilterSql = hasScopedCandidates ? '    AND k = ? ' + scopedCandidateSql : '';
+  const hasScopedCandidates = hasMemoryFilter(scope);
+  const outerWhere = buildOuterWhereSql(scope, modelFilter);
+  const scopedCandidate = hasScopedCandidates
+    ? buildScopedCandidateSql(scope, provider, modelFilter)
+    : { sql: '', params: [] as SqlParam[] };
+  const knnFilterSql = hasScopedCandidates ? '    AND k = ? ' + scopedCandidate.sql : '';
   const knnLimitSql = hasScopedCandidates ? '' : '    LIMIT ?';
   const vectorKnnParams: SqlParam[] = [
     JSON.stringify(effectiveQueryVector),
     limit,
-    ...(hasScopedCandidates ? [provider, ...scope.typeFilters, ...scopeParams, ...modelParams] : []),
+    ...(hasScopedCandidates ? scopedCandidate.params : []),
   ];
 
   let hybridQuery: string;
   let sqlParams: SqlParam[];
 
   if (hasTextQuery && textQuery) {
-    const textTypeClause = scope.typeFilters.length > 0
-      ? `AND mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`
-      : '';
-    const textScopeClause = buildItemScopeClause(scope);
-    const vectorWhereSql = buildItemWhereSql(scope, modelFilter).replace(/^WHERE /, '  WHERE ');
+    const textFilter = buildTextFilterClause(scope);
+    const vectorWhereSql = outerWhere.sql.replace(/^WHERE /, '  WHERE ');
     hybridQuery =
       'WITH vector_search AS (' +
       '  SELECT ' +
@@ -223,8 +152,8 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  FROM memory_item_fts fts ' +
       '  JOIN memory_item mi ON fts.rowid = mi.rowid AND (COALESCE(mi.is_deleted, 0) = 0) ' +
       '  WHERE memory_item_fts MATCH ? ' +
-      textTypeClause +
-      textScopeClause +
+      textFilter.clause +
+      ' ' +
       ') ' +
       // SELECT는 cosine distance만 노출. 반환 점수 변환은 mapHybridResults →
       // cosineDistanceToSimilarity 전용 (#811 US5 / #806 FR-020).
@@ -286,17 +215,12 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
 
     sqlParams = [
       ...vectorKnnParams,
-      ...scope.typeFilters,
-      ...scopeParams,
-      ...modelParams,
+      ...outerWhere.params,
       textQuery.trim(),
-      ...scope.typeFilters,
-      ...scopeParams,
+      ...textFilter.params,
       limit
     ];
   } else {
-    const outerWhereSql = buildItemWhereSql(scope, modelFilter);
-
     hybridQuery =
       'SELECT ' +
       '  me.memory_id as memory_id, ' +
@@ -324,22 +248,20 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       `  FROM ${tableName} ` +
       '  WHERE embedding MATCH ? ' +
       (hasScopedCandidates
-        ? '  AND k = ? ' + scopedCandidateSql.replace(/^ {4}/, '  ')
+        ? '  AND k = ? ' + scopedCandidate.sql.replace(/^ {4}/, '  ')
         : '') +
       '  ORDER BY distance ASC ' +
       (hasScopedCandidates ? '' : '  LIMIT ?') +
       ') t ' +
       'JOIN memory_embedding me ON t.rowid = me.id ' +
       'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
-      outerWhereSql +
+      outerWhere.sql +
       'ORDER BY t.distance ASC ' +
       'LIMIT ?';
 
     sqlParams = [
       ...vectorKnnParams,
-      ...scope.typeFilters,
-      ...scopeParams,
-      ...modelParams,
+      ...outerWhere.params,
       limit
     ];
   }

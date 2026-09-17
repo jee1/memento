@@ -2,6 +2,7 @@
  * 검색 SQL 빌더 (search() closure에서 추출)
  */
 
+import { buildMemoryFilterSql } from '../../../../shared/utils/memory-filter-sql.js';
 import type { BuildSearchStatementParams, BuildSearchStatementResult } from './search-engine.types.js';
 
 export async function buildSearchStatement(
@@ -112,83 +113,9 @@ export async function buildSearchStatement(
   }
 
   const conditions: string[] = ['(COALESCE(m.is_deleted, 0) = 0)'];
-
-  if (filters?.id && filters.id.length > 0) {
-    conditions.push(`m.id IN (${filters.id.map(() => '?').join(',')})`);
-    sqlParams.push(...filters.id);
-  }
-
-  if (filters?.type && filters.type.length > 0) {
-    conditions.push(`m.type IN (${filters.type.map(() => '?').join(',')})`);
-    sqlParams.push(...filters.type);
-  }
-
-  // tags ⊇ filter set (AND). Channel isolation relies on this (#754).
-  if (filters?.tags && filters.tags.length > 0) {
-    for (const tag of filters.tags) {
-      conditions.push(
-        `EXISTS (SELECT 1 FROM json_each(COALESCE(m.tags, '[]')) WHERE value = ?)`,
-      );
-      sqlParams.push(tag);
-    }
-  }
-
-  if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
-    conditions.push(`m.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
-    sqlParams.push(...filters.privacy_scope);
-  }
-
-  if (filters?.pinned !== undefined) {
-    conditions.push(`m.pinned = ?`);
-    sqlParams.push(filters.pinned ? 1 : 0);
-  }
-
-  if (filters?.time_from) {
-    conditions.push(`m.created_at >= ?`);
-    sqlParams.push(filters.time_from);
-  }
-
-  if (filters?.time_to) {
-    conditions.push(`m.created_at <= ?`);
-    sqlParams.push(filters.time_to);
-  }
-
-  if (filters?.has_reflection_notes !== undefined) {
-    if (filters.has_reflection_notes) {
-      conditions.push(`m.reflection_notes IS NOT NULL`);
-    } else {
-      conditions.push(`m.reflection_notes IS NULL`);
-    }
-  }
-
-  if (filters?.workflow_name) {
-    conditions.push(`m.workflow_name = ?`);
-    sqlParams.push(filters.workflow_name);
-  }
-
-  if (filters?.skill_name) {
-    conditions.push(`m.skill_name = ?`);
-    sqlParams.push(filters.skill_name);
-  }
-
-  if (filters?.project_id !== undefined && filters.project_id !== null && filters.project_id !== '') {
-    conditions.push(`m.project_id = ?`);
-    sqlParams.push(filters.project_id);
-  }
-
-  for (const [column, value] of [
-    ['owner_id', filters?.owner_id],
-    ['process_id', filters?.process_id],
-    ['session_id', filters?.session_id],
-  ] as const) {
-    if (Array.isArray(value) && value.length > 0) {
-      conditions.push(`m.${column} IN (${value.map(() => '?').join(',')})`);
-      sqlParams.push(...value);
-    } else if (typeof value === 'string' && value.length > 0) {
-      conditions.push(`m.${column} = ?`);
-      sqlParams.push(value);
-    }
-  }
+  const { clauses: filterClauses, params: filterParams } = buildMemoryFilterSql(filters, { itemAlias: 'm' });
+  conditions.push(...filterClauses);
+  sqlParams.push(...filterParams);
 
   if (conditions.length > 0) {
     const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';

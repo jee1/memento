@@ -2,6 +2,7 @@
  * 벡터 검색 scope 파싱 (search/hybridSearch 중복 제거)
  */
 
+import type { MemorySearchFilters } from '../../../../shared/types/search.types.js';
 import type { VectorSearchQuery } from '../../../../shared/types/vector-search.types.js';
 import type { VectorSearchScope } from './vector-search.types.js';
 
@@ -14,40 +15,30 @@ export function parseVectorSearchScope(query: VectorSearchQuery): VectorSearchSc
     owner_id: scopeOwnerId,
     process_id: scopeProcessId,
     session_id: scopeSessionId,
+    filters: optionsFilters,
   } = normalizedOptions;
 
-  const typeFilters = Array.isArray(types) && types.length > 0
+  const merged: MemorySearchFilters = { ...(optionsFilters ?? {}) };
+
+  const typeFromOptions = Array.isArray(types) && types.length > 0
     ? types.filter(Boolean)
-    : (type ? [type] : []);
+    : (type ? [type] : undefined);
+  if (typeFromOptions && typeFromOptions.length > 0) {
+    merged.type = typeFromOptions as MemorySearchFilters['type'];
+  }
 
-  const hasProjectScope = typeof scopeProjectId === 'string' && scopeProjectId.length > 0;
-  const hasOwnerStringScope = typeof scopeOwnerId === 'string' && scopeOwnerId.length > 0;
-  const ownerArrayScope = Array.isArray(scopeOwnerId) ? scopeOwnerId.filter(Boolean) : [];
-  const hasOwnerScope = hasOwnerStringScope || ownerArrayScope.length > 0;
-  const hasProcessStringScope = typeof scopeProcessId === 'string' && scopeProcessId.length > 0;
-  const processArrayScope = Array.isArray(scopeProcessId) ? scopeProcessId.filter(Boolean) : [];
-  const hasProcessScope = hasProcessStringScope || processArrayScope.length > 0;
-  const hasSessionStringScope = typeof scopeSessionId === 'string' && scopeSessionId.length > 0;
-  const sessionArrayScope = Array.isArray(scopeSessionId) ? scopeSessionId.filter(Boolean) : [];
-  const hasSessionScope = hasSessionStringScope || sessionArrayScope.length > 0;
-  const hasScopeFilter = hasProjectScope || hasOwnerScope || hasProcessScope || hasSessionScope;
+  if (typeof scopeProjectId === 'string' && scopeProjectId.length > 0) {
+    merged.project_id = scopeProjectId;
+  }
+  if (scopeOwnerId !== undefined) {
+    merged.owner_id = scopeOwnerId;
+  }
+  if (scopeProcessId !== undefined) {
+    merged.process_id = scopeProcessId;
+  }
+  if (scopeSessionId !== undefined) {
+    merged.session_id = scopeSessionId;
+  }
 
-  return {
-    typeFilters,
-    hasProjectScope,
-    hasOwnerStringScope,
-    ownerArrayScope,
-    hasOwnerScope,
-    hasProcessStringScope,
-    processArrayScope,
-    hasProcessScope,
-    hasSessionStringScope,
-    sessionArrayScope,
-    hasSessionScope,
-    hasScopeFilter,
-    ...(hasProjectScope ? { scopeProjectId } : {}),
-    ...(scopeOwnerId !== undefined ? { scopeOwnerId } : {}),
-    ...(scopeProcessId !== undefined ? { scopeProcessId } : {}),
-    ...(scopeSessionId !== undefined ? { scopeSessionId } : {}),
-  };
+  return merged;
 }

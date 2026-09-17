@@ -9,6 +9,8 @@
 
 ### Fixed
 
+- **recall 필터 벡터 레인 누출** (#998): `time_from`/`time_to`·`pinned`·`tags`·`privacy_scope`·`has_reflection_notes`·`workflow_name`/`skill_name`·`id` 필터가 벡터 레인 SQL에 없어 recall 결과가 필터 창 밖으로 새 나오던 문제를 수정합니다. `importance_min`/`importance_max` 사문 배선, `created_at` ISO·공백 형식 혼재로 텍스트 레인 시간 필터가 ~24% 행을 놓치던 문제(`julianday` 비교)도 함께 고칩니다. 필터 절은 `buildMemoryFilterSql` 한 곳에서 정의하고 텍스트·벡터 레인이 공유합니다.
+
 - **Docker 배포 게이트 호스트 백업 실패** (#1001): 컨테이너 소유 `~/.memento/data` 에서 WAL `-shm` 사이드카를 호스트 사용자가 만들 수 없어 `SQLITE_READONLY_DIRECTORY` 로 실패하는 경우를 `source-dir-unwritable` 로 분류합니다. `npm run db:backup:docker` (컨테이너 uid 1001 + 호스트 gid) 와 `db:pre-docker-deploy` 자동 폴백을 추가했습니다.
 
 - **remember `update_mode` 명시 타깃** (#1000): `memory_id` 파라미터를 추가해 episodic/semantic 등에서 `replace`·`incremental`·`versioned` 갱신 대상을 지정할 수 있습니다. `RememberSchema`를 `.strict()`로 전환해 미지원 키(`id`, `memoryId` 등)는 조용히 strip되지 않고 `-32602`로 거절됩니다(**호환성 주의**: 오타 키를 쓰던 클라이언트는 실패가 표면화됩니다). 성공 응답에 `updated: true`를 추가해 UPDATE와 INSERT를 구분합니다. `memory_id` 지정 시 near-dup 탐색을 건너뜁니다.

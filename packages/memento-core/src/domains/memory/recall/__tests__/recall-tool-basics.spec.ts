@@ -9,7 +9,9 @@ describeRecallTool("basics and search", () => {
     it('should create tool with correct name and description', () => {
       const definition = tool.getDefinition();
       expect(definition.name).toBe('recall');
-      expect(definition.description).toBe('관련 기억을 검색합니다');
+      expect(definition.description).toBe(
+        '관련 기억을 검색합니다. 응답의 filters_applied 는 요청 에코가 아니라 텍스트·벡터 두 레인 모두에 실제로 적용된 필터입니다.'
+      );
     });
 
     it('should have correct input schema with new fields', () => {

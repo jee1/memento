@@ -1,4 +1,5 @@
 import type { EmbeddingProvider } from './embedding.types.js';
+import type { MemorySearchFilters } from './search.types.js';
 
 /**
  * 벡터 검색 관련 타입 정의
@@ -35,6 +36,8 @@ export interface VectorSearchOptions {
   owner_id?: string | string[];
   process_id?: string | string[];
   session_id?: string | string[];
+  /** #998: memory_item 컬럼 필터 전체. 레인 간 드리프트를 막기 위해 통째로 넘긴다. */
+  filters?: MemorySearchFilters;
 }
 
 export interface VectorSearchQuery {

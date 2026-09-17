@@ -39,6 +39,7 @@ export interface VectorSearchOptions {
   owner_id?: string | string[];
   process_id?: string | string[];
   session_id?: string | string[];
+  filters?: import('../../../shared/types/search.types.js').MemorySearchFilters;
 }
 
 export interface VectorIndexStatus {

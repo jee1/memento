@@ -28,12 +28,9 @@ export interface IEmbeddingService {
   searchBySimilarity(
     db: Database.Database,
     query: string,
-    options: {
-      type?: MemoryType[];
+    options: import('../../../shared/types/search.types.js').MemorySearchFilters & {
       limit?: number;
       threshold?: number;
-      project_id?: string;
-      owner_id?: string | string[];
     }
   ): Promise<VectorSearchResult[] | SearchBySimilarityOutcome>;
   getEmbeddingStats(db: Database.Database): Promise<unknown>;

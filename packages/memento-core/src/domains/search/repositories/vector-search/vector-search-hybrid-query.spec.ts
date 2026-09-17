@@ -22,20 +22,7 @@ const runtimeContext: RuntimeVectorContext = {
   tableName: 'memory_item_vec_tfidf'
 };
 
-const emptyScope: VectorSearchScope = {
-  typeFilters: [],
-  hasProjectScope: false,
-  hasOwnerStringScope: false,
-  ownerArrayScope: [],
-  hasOwnerScope: false,
-  hasProcessStringScope: false,
-  processArrayScope: [],
-  hasProcessScope: false,
-  hasSessionStringScope: false,
-  sessionArrayScope: [],
-  hasSessionScope: false,
-  hasScopeFilter: false
-};
+const emptyScope: VectorSearchScope = {};
 
 const options: VectorSearchExecutionOptions = {
   limit: 10,
