@@ -90,10 +90,17 @@ export class RememberTool extends BaseTool {
             type: 'string',
             description: '트리거 조건 (JSON 객체 문자열)'
           },
+          memory_id: {
+            type: 'string',
+            description: '갱신 대상 memory_id (Issue #1000). update_mode와 함께 사용한다. recall 결과의 memory_id 또는 이전 remember 응답의 memory_id를 그대로 넣는다. 생략하면 새 기억으로 저장된다'
+          },
           update_mode: {
             type: 'string',
             enum: ['replace', 'incremental', 'versioned'],
-            description: '업데이트 모드: replace (교체), incremental (증분), versioned (버전 관리)'
+            description: `기존 기억 갱신 모드. 갱신 대상은 memory_id로 지정하거나, procedural의 경우 workflow_name/skill_name으로 조회된다. 대상이 지정되지 않으면 새 기억이 저장된다.
+- 'replace': 대상 기억을 새 내용으로 덮어쓴다 (같은 memory_id 유지)
+- 'incremental': 대상 기억에 병합한다 (tags 합집합, importance는 큰 값, semantic은 num_times 증가, procedural은 steps 이어붙이기)
+- 'versioned': 새 행을 만들고 대상 기억과 VERSION_OF 관계로 연결한다 (새 memory_id 반환)`
           },
           enable_triple_extraction: {
             type: 'boolean',
@@ -121,7 +128,8 @@ export class RememberTool extends BaseTool {
           }
         },
         // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).
-        required: typeParamRequiredFields(mementoConfig.typeParamMode)
+        required: typeParamRequiredFields(mementoConfig.typeParamMode),
+        additionalProperties: false,
       }
     );
   }
@@ -221,6 +229,12 @@ export class RememberTool extends BaseTool {
           type_was_defaulted: !rawType
         }
       });
+
+      if (parsedParams.memory_id && (type === 'core' || type === 'vault')) {
+        throw new ToolInputValidationError(
+          'memory_id는 core/vault 타입에 사용할 수 없습니다. core/vault는 key로 대상을 지정합니다',
+        );
+      }
 
       if (type === 'core') {
         if (!key || !value) throw new ToolInputValidationError("type='core'일 때는 key와 value가 필수입니다");

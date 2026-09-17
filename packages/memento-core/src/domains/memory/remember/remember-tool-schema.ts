@@ -8,6 +8,9 @@ import { CommonSchemas } from '../../../tools/types.js';
 export const RememberSchema = z.object({
   content: CommonSchemas.Content,
   type: CommonSchemas.MemoryType.optional(),
+  // 갱신 대상 지정 (Issue #1000)
+  memory_id: z.string().max(200).optional()
+    .describe('갱신 대상 memory_id. update_mode와 함께 사용한다. 생략하면 새 기억으로 저장된다'),
   // Core Memory / Knowledge Vault용 필드
   key: CommonSchemas.Key.optional(),
   value: CommonSchemas.Value.optional(),
@@ -42,7 +45,7 @@ export const RememberSchema = z.object({
   last_mentioned_at: z.string().datetime().optional(),
   source_session_id: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
-}).refine((data) => {
+}).strict().refine((data) => {
   if (data.type === 'core' || data.type === 'vault') {
     return !!(data.key && data.value);
   }

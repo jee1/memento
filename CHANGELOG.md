@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **remember `update_mode` 명시 타깃** (#1000): `memory_id` 파라미터를 추가해 episodic/semantic 등에서 `replace`·`incremental`·`versioned` 갱신 대상을 지정할 수 있습니다. `RememberSchema`를 `.strict()`로 전환해 미지원 키(`id`, `memoryId` 등)는 조용히 strip되지 않고 `-32602`로 거절됩니다(**호환성 주의**: 오타 키를 쓰던 클라이언트는 실패가 표면화됩니다). 성공 응답에 `updated: true`를 추가해 UPDATE와 INSERT를 구분합니다. `memory_id` 지정 시 near-dup 탐색을 건너뜁니다.
+
 ### Changed
 
 - **remember near-duplicate 어휘 가드** (#997): write-path near-dup 후보에 char 3-gram Jaccard 어휘 겹침 게이트를 추가합니다. `MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR`(기본 0.3) 미만 후보는 제외하고, `update_mode=incremental` 자동 병합은 `MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR`(기본 0.7) 이상일 때만 수행합니다. `similarity_warning.suggestion`은 병합 바닥 통과 시에만 붙이며, 벡터 검색이 8건을 반환하면 `truncated: true`를 표시합니다.

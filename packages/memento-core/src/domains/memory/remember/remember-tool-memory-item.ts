@@ -13,6 +13,7 @@ import { toDbRelationType } from '../../../shared/utils/relation-type-converter.
 import { isMemoryItemType } from '../../../shared/utils/type-guards.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { getNextVersionNumber } from '../procedural/procedural-versioning.js';
+import { ToolInputValidationError } from '../../../shared/errors/tool-input-validation-error.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import type { ProceduralMemoryItem } from './remember-tool-types.js';
@@ -26,7 +27,7 @@ import {
   findNearDuplicateCandidates,
   isAutoMergeable,
   isNearDupMergeType,
-  loadMemoryItemForNearDupMerge,
+  loadMemoryItemById,
   type NearDuplicateCandidate,
   type SimilarityWarning,
 } from './remember-near-duplicate.js';
@@ -173,8 +174,10 @@ function shouldSkipNearDupSearch(
   type: MemoryTypeRequest,
   update_mode: RememberParams['update_mode'],
   existingProceduralHit: boolean,
+  explicitTarget: boolean,
 ): boolean {
   return mementoConfig.rememberDedupMode === 'off'
+    || explicitTarget
     || (type === 'procedural' && !!update_mode && existingProceduralHit);
 }
 
@@ -187,11 +190,13 @@ export async function handleMemoryItem(
   const { type, ownerId, startTime, project_id_param } = ctx;
   let { numTimes } = ctx;
   let workingParams = params;
-  const { content, update_mode, workflow_name, skill_name, task_goal, reflection_notes, enable_triple_extraction, importance } = workingParams;
+  const { content, update_mode, memory_id, workflow_name, skill_name, task_goal, reflection_notes, enable_triple_extraction, importance } = workingParams;
 
   if (!content) {
     throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
   }
+
+  const projectId = project_id_param ?? null;
 
   const contentHash = createHash('sha256').update(content).digest('hex').slice(0, 16);
   context.services?.telemetryService?.record({
@@ -208,10 +213,44 @@ export async function handleMemoryItem(
     ? await prepareReflectionNotes(context.db!, reflection_notes, task_goal, host)
     : null;
 
-  let existingMemory: ProceduralMemoryItem | null = null;
+  let existingMemory: (ProceduralMemoryItem & { owner_id?: string | null; project_id?: string | null }) | null = null;
   let existingMemoryId: string | null = null;
   let proceduralHit = false;
-  if (type === 'procedural' && update_mode) {
+  let explicitTarget = false;
+
+  if (memory_id) {
+    if (!update_mode) {
+      throw new ToolInputValidationError(
+        'memory_id는 update_mode(replace|incremental|versioned)와 함께 사용해야 합니다',
+      );
+    }
+
+    const loaded = await loadMemoryItemById(context.db!, memory_id, host);
+    if (!loaded) {
+      throw new ToolInputValidationError(`memory_id를 찾을 수 없습니다: ${memory_id}`);
+    }
+    if (loaded.type !== type) {
+      throw new ToolInputValidationError(
+        `memory_id의 type(${loaded.type})이 요청 type(${type})과 다릅니다`,
+      );
+    }
+    if (String(loaded.owner_id ?? '') !== String(ownerId ?? '')) {
+      throw new ToolInputValidationError(`memory_id에 접근할 수 없습니다: ${memory_id}`);
+    }
+    if (String(loaded.project_id ?? '') !== String(projectId ?? '')) {
+      throw new ToolInputValidationError(
+        `memory_id의 project_id가 요청과 다릅니다: ${memory_id}`,
+      );
+    }
+
+    existingMemory = loaded;
+    explicitTarget = true;
+    if (update_mode === 'replace' || update_mode === 'incremental') {
+      existingMemoryId = loaded.id;
+    }
+  }
+
+  if (!memory_id && type === 'procedural' && update_mode) {
     existingMemory = await findExistingProceduralMemory(context.db!, workflow_name, skill_name, host);
     if (existingMemory && (update_mode === 'replace' || update_mode === 'incremental')) {
       existingMemoryId = existingMemory.id;
@@ -219,12 +258,11 @@ export async function handleMemoryItem(
     }
   }
 
-  const projectId = project_id_param ?? null;
   let nearDupCandidates: NearDuplicateCandidate[] = [];
   let nearDupTruncated = false;
   let nearDupMerged = false;
 
-  if (!shouldSkipNearDupSearch(type, update_mode, proceduralHit)) {
+  if (!shouldSkipNearDupSearch(type, update_mode, proceduralHit, explicitTarget)) {
     const nearDupResult = await findNearDuplicateCandidates(
       context.db!,
       content,
@@ -245,7 +283,7 @@ export async function handleMemoryItem(
     && isAutoMergeable(nearDupCandidates[0]!, mementoConfig.rememberDedupMergeLexicalFloor)
   ) {
     const topCandidate = nearDupCandidates[0]!;
-    const loaded = await loadMemoryItemForNearDupMerge(context.db!, topCandidate.id, host);
+    const loaded = await loadMemoryItemById(context.db!, topCandidate.id, host);
     if (loaded) {
       const merged = applyNearDupMergeInputs(workingParams, numTimes, loaded, type);
       workingParams = { ...merged.params, update_mode: 'incremental' };
@@ -254,6 +292,13 @@ export async function handleMemoryItem(
       existingMemoryId = topCandidate.id;
       nearDupMerged = true;
     }
+  }
+
+  if (explicitTarget && update_mode === 'incremental' && existingMemory && isNearDupMergeType(type)) {
+    const merged = applyNearDupMergeInputs(workingParams, numTimes, existingMemory, type);
+    workingParams = merged.params;
+    numTimes = merged.numTimes;
+    existingMemory = merged.existing;
   }
 
   if (!existingMemoryId && mementoConfig.rememberDedupMode === 'strict' && nearDupCandidates.length > 0) {
@@ -327,7 +372,7 @@ export async function handleMemoryItem(
       targetUri,
       ownerId,
       payload: { memory_id: id, memory_type: type, content_hash: contentHash },
-      idempotencyKey: `${existingMemoryId ? 'procedure.updated' : 'memory.remembered'}:${targetUri}:${contentHash}`,
+      idempotencyKey: `${isProceduralUpdate ? 'procedure.updated' : 'memory.remembered'}:${targetUri}:${contentHash}`,
     });
   } catch (error) {
     host.logWarning('Outbox event enqueue failed after memory write', {
@@ -349,7 +394,10 @@ export async function handleMemoryItem(
   return host.createSuccessResult({
     memory_id: id,
     type: type,
-    message: `기억이 저장되었습니다: ${id}`,
+    ...(existingMemoryId ? { updated: true } : {}),
+    message: existingMemoryId
+      ? `기억이 갱신되었습니다: ${id}`
+      : `기억이 저장되었습니다: ${id}`,
     embedding_created: context.services.embeddingService?.isAvailable() || false,
     ...(similarity_warning ? { similarity_warning } : {})
   });
