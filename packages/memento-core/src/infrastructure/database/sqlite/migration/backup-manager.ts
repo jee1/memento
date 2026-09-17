@@ -272,6 +272,11 @@ function hasFsCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
+function isSourceDirUnwritable(error: unknown): boolean {
+  // backup() surfaces SQLITE_READONLY; first reads use SQLITE_READONLY_DIRECTORY (#1001).
+  return hasFsCode(error, 'SQLITE_READONLY_DIRECTORY') || hasFsCode(error, 'SQLITE_READONLY');
+}
+
 function isBackupDirUnwritable(error: unknown, dir: string): boolean {
   if (hasFsCode(error, 'EACCES') || hasFsCode(error, 'EPERM')) {
     return true;
@@ -285,6 +290,15 @@ function isBackupDirUnwritable(error: unknown, dir: string): boolean {
   } catch (accessError) {
     return hasFsCode(accessError, 'EACCES') || hasFsCode(accessError, 'EPERM');
   }
+}
+
+function classifyBackupWriteFailure(error: unknown, backupsDir: string): string {
+  if (isSourceDirUnwritable(error)) {
+    return 'source-dir-unwritable';
+  }
+  return isBackupDirUnwritable(error, backupsDir)
+    ? 'backup-permission-denied'
+    : 'backup-write-failed';
 }
 
 function backupFailure(reason: string, residue: string[] = []): Error {
@@ -302,6 +316,7 @@ function normalizeBackupFailure(error: unknown, residue: string[]): Error {
 
   if (
     error.message.startsWith('backup-') ||
+    error.message === 'source-dir-unwritable' ||
     error.message.startsWith('메모리 데이터베이스') ||
     error.message.startsWith('백업할 데이터베이스')
   ) {
@@ -474,11 +489,7 @@ export class BackupManager {
       try {
         metadata = await backupDb.backup(inProgressPath);
       } catch (error) {
-        throw backupFailure(
-          isBackupDirUnwritable(error, this.backupsDir)
-            ? 'backup-permission-denied'
-            : 'backup-write-failed'
-        );
+        throw backupFailure(classifyBackupWriteFailure(error, this.backupsDir));
       }
       if (metadata.remainingPages !== 0) {
         throw backupFailure('backup-incomplete');

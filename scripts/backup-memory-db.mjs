@@ -63,6 +63,10 @@ const HINTS = {
   'backup-permission-denied':
     'Backup directory is not writable by this user. It is owned by the container user (uid 1001); '
     + 'set MEMENTO_BACKUP_DIR to a directory you own. Stopping the server will not help.',
+  'source-dir-unwritable':
+    'The database directory is owned by the container user (uid 1001), so this user cannot create '
+    + 'the WAL sidecar files SQLite needs. Run the backup inside the container: '
+    + 'npm run db:backup:docker. Stopping the server will not help.',
   'backup-collision':
     'A backup with the same name already exists; retry in a second.',
 };

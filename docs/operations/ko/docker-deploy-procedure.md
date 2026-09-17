@@ -56,8 +56,9 @@ npm run db:pre-docker-deploy
 이 명령은 다음을 수행합니다.
 
 1. `npm run db:backup` — SQLite **online backup API**로 일관된 스냅샷 생성 (`copy` / `copyFileSync` 사용 안 함)
-2. 백업 파일에 대해 `PRAGMA quick_check` 실행
-3. 실패 시 **종료 코드 1** (배포 중단)
+2. `~/.memento/data` 가 컨테이너 소유(uid 1001)라 호스트 백업이 막히면(`source-dir-unwritable`) 컨테이너 안에서 자동 재시도 (#1001). 독립 실행 등가물: `npm run db:backup:docker`
+3. 백업 파일에 대해 `PRAGMA quick_check` 실행
+4. 실패 시 **종료 코드 1** (배포 중단)
 
 성공 시 JSON 예시:
 
@@ -127,6 +128,7 @@ curl -sf http://localhost:9001/health
 | 명령 | 용도 |
 |------|------|
 | `npm run db:backup` | online backup만 수행 (서버 중지 후 권장) |
+| `npm run db:backup:docker` | 컨테이너 안에서 online backup; 출력은 호스트 소유 `~/.memento/backups` (#1001) |
 | `npm run db:backup:cleanup` | 기존 backup directory 정리 preview; 삭제 없음 |
 | `npm run db:backup:cleanup -- --apply` | preview와 같은 선택자를 실제 삭제에 적용; MCP/restore/cleanup 중지 후 실행 |
 | `npm run db:pre-docker-deploy` | 백업 + `quick_check`; 실패 시 배포 중단 |
@@ -142,6 +144,11 @@ DB 옆(`~/.memento/data/backups`)이 아닌 이유: `~/.memento/data` 는 컨테
 바인드 마운트돼 컨테이너 사용자(uid 1001)가 소유하고, `start-container.sh` 가
 매 기동마다 `chmod -R 755` 로 그룹 쓰기를 제거합니다. 호스트 사용자(uid 1000)는
 그 안에 백업을 만들 수 없습니다 (#963).
+
+WAL 모드에서는 SQLite 가 원본 DB 디렉터리에 `-shm` 사이드카를 만들어야 합니다.
+출력 백업 디렉터리가 아니라 **원본 디렉터리** 쓰기가 막히면 `source-dir-unwritable` 로
+실패합니다. `npm run db:backup:docker` 는 컨테이너 uid 1001 로 원본에 쓰고, 호스트 사용자
+gid 로 `~/.memento/backups` 에 출력합니다. 서버를 중지해도 이 오류는 해결되지 않습니다.
 
 컨테이너가 마이그레이션 중 자동 생성하는 백업은 여전히
 `~/.memento/data/backups` 에 쌓이며 컨테이너 소유입니다. 호스트의
@@ -258,6 +265,7 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 | 현상 | 조치 |
 |------|------|
 | `db:backup`이 빈 파일(0바이트) | `docker compose stop memento-mcp-server` 후 재실행 |
+| `db:backup`이 `source-dir-unwritable` | `npm run db:backup:docker` (또는 `db:pre-docker-deploy`가 자동 폴백). 서버를 중지해도 해결되지 않음 |
 | `quick_check` 실패 | 위 [DB 손상 시 복구](#db-손상-시-복구-배포-실패crash-loop) 절차 |
 | health는 ok인데 검색 품질 저하 | `memory_embedding` 건수 확인; `--only-tables memory_embedding` 병합 검토 |
 | quarantine 디스크 과다 | pre-recover·최신 backup 확인 후 중복 quarantine 파일 정리 |

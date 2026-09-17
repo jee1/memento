@@ -16,21 +16,41 @@ import { fileURLToPath } from 'node:url';
 const force = parseCliArgs().args.includes('--force');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const backupScript = path.join(root, 'scripts', 'backup-memory-db.mjs');
+const dockerBackupScript = path.join(root, 'scripts', 'backup-in-docker.sh');
 
-const backup = spawnSync(process.execPath, [backupScript], {
-  cwd: root,
-  encoding: 'utf8',
-  env: process.env,
-});
-
-if (backup.stdout) {
-  process.stdout.write(backup.stdout);
+function parseBackupFailureReason(stderr) {
+  const lines = stderr.trim().split('\n').filter(line => line.trim());
+  if (lines.length === 0) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(lines[lines.length - 1]);
+    return typeof parsed.reason === 'string' ? parsed.reason : null;
+  } catch {
+    return null;
+  }
 }
-if (backup.stderr) {
-  process.stderr.write(backup.stderr);
+
+function summarize(stdout, containerPath = false) {
+  try {
+    const { dbPath, memory_item: rows, quick_check: quick } = JSON.parse(stdout);
+    const pathLabel = containerPath ? `${dbPath} (container path)` : dbPath;
+    return `[pre-docker-deploy] target=${pathLabel}  memory_item=${rows}  quick_check=${quick}`;
+  } catch {
+    return null;
+  }
 }
 
-if (backup.status !== 0) {
+function finishSuccess(stdout, containerPath = false) {
+  const summary = summarize(stdout, containerPath);
+  if (summary) {
+    console.log(summary);
+  }
+  console.log('[pre-docker-deploy] Backup OK; safe to restart Docker.');
+  process.exit(0);
+}
+
+function finishFailure(status) {
   if (force) {
     console.warn('[pre-docker-deploy] backup/quick_check failed; continuing because --force was set');
     process.exit(0);
@@ -38,20 +58,45 @@ if (backup.status !== 0) {
   console.error(
     '[pre-docker-deploy] Aborting: fix DB or pass --force only if you accept the risk.'
   );
-  process.exit(backup.status ?? 1);
+  process.exit(status ?? 1);
 }
 
-function summarize(stdout) {
-  try {
-    const { dbPath, memory_item: rows, quick_check: quick } = JSON.parse(stdout);
-    return `[pre-docker-deploy] target=${dbPath}  memory_item=${rows}  quick_check=${quick}`;
-  } catch {
-    return null;
+function writeChildOutput(child) {
+  if (child.stdout) {
+    process.stdout.write(child.stdout);
+  }
+  if (child.stderr) {
+    process.stderr.write(child.stderr);
   }
 }
 
-const summary = summarize(backup.stdout);
-if (summary) {
-  console.log(summary);
+const backup = spawnSync(process.execPath, [backupScript], {
+  cwd: root,
+  encoding: 'utf8',
+  env: process.env,
+});
+
+writeChildOutput(backup);
+
+if (backup.status === 0) {
+  finishSuccess(backup.stdout);
 }
-console.log('[pre-docker-deploy] Backup OK; safe to restart Docker.');
+
+const failureReason = parseBackupFailureReason(backup.stderr ?? '');
+if (failureReason === 'source-dir-unwritable') {
+  console.log(
+    '[pre-docker-deploy] host backup blocked (source-dir-unwritable); retrying inside the container'
+  );
+  const fallback = spawnSync('sh', [dockerBackupScript], {
+    cwd: root,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  writeChildOutput(fallback);
+  if (fallback.status === 0) {
+    finishSuccess(fallback.stdout, true);
+  }
+  finishFailure(fallback.status);
+}
+
+finishFailure(backup.status);

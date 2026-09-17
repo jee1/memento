@@ -128,6 +128,42 @@ describe('backup-memory-db operator script', () => {
     expect(readdirSync(defaultBackupDir).filter(name => name.endsWith('.db'))).toHaveLength(1);
   });
 
+  it('reports source-dir-unwritable when the database directory is not writable (#1001)', () => {
+    const root = makeTempRoot();
+    const dataDir = join(root, 'data');
+    const dbPath = join(dataDir, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    mkdirSync(dataDir);
+    mkdirSync(backupsDir);
+    const db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    db.exec(`
+      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL);
+      INSERT INTO memory_item (id, content) VALUES ('mem-1', 'remember this');
+    `);
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    db.close();
+    chmodSync(dataDir, 0o500);
+
+    try {
+      const result = runBackup(dbPath, [], { MEMENTO_BACKUP_DIR: backupsDir });
+
+      expect(result.status).toBe(1);
+      const output = parseJson(result.stderr);
+      expect(output).toMatchObject({
+        ok: false,
+        stage: 'create-backup',
+        reason: 'source-dir-unwritable',
+      });
+      expect(String(output.hint)).toContain('db:backup:docker');
+      expect(String(output.hint)).toContain('uid 1001');
+      expect(JSON.stringify(output)).not.toContain(root);
+      expect(JSON.stringify(output)).not.toContain(dbPath);
+    } finally {
+      chmodSync(dataDir, 0o700);
+    }
+  });
+
   it('reports permission hint without absolute paths when backup dir is unwritable (#963)', () => {
     const root = makeTempRoot();
     const dbPath = join(root, 'memory.db');

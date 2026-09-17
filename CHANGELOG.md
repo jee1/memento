@@ -9,6 +9,8 @@
 
 ### Fixed
 
+- **Docker 배포 게이트 호스트 백업 실패** (#1001): 컨테이너 소유 `~/.memento/data` 에서 WAL `-shm` 사이드카를 호스트 사용자가 만들 수 없어 `SQLITE_READONLY_DIRECTORY` 로 실패하는 경우를 `source-dir-unwritable` 로 분류합니다. `npm run db:backup:docker` (컨테이너 uid 1001 + 호스트 gid) 와 `db:pre-docker-deploy` 자동 폴백을 추가했습니다.
+
 - **remember `update_mode` 명시 타깃** (#1000): `memory_id` 파라미터를 추가해 episodic/semantic 등에서 `replace`·`incremental`·`versioned` 갱신 대상을 지정할 수 있습니다. `RememberSchema`를 `.strict()`로 전환해 미지원 키(`id`, `memoryId` 등)는 조용히 strip되지 않고 `-32602`로 거절됩니다(**호환성 주의**: 오타 키를 쓰던 클라이언트는 실패가 표면화됩니다). 성공 응답에 `updated: true`를 추가해 UPDATE와 INSERT를 구분합니다. `memory_id` 지정 시 near-dup 탐색을 건너뜁니다.
 
 ### Changed
