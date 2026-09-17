@@ -165,7 +165,6 @@ describe('VectorSearchService', () => {
         limit: 5,
         threshold: 0.7,
         includeContent: true,
-        includeMetadata: false
       });
     });
 
@@ -175,7 +174,6 @@ describe('VectorSearchService', () => {
         limit: 20, 
         threshold: 0.8, 
         includeContent: false, 
-        includeMetadata: true 
       };
 
       // When

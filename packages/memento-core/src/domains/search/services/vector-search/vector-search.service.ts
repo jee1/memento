@@ -177,7 +177,6 @@ export class VectorSearchService {
       limit: this.config.defaultLimit,
       threshold: this.config.defaultThreshold,
       includeContent: true,
-      includeMetadata: false,
       ...options
     };
   }

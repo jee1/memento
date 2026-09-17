@@ -195,6 +195,44 @@ describe('HybridVectorSearchExecutor 절대 척도 계약 (#806)', () => {
   });
 });
 
+describe('HybridVectorSearchExecutor metadata carry-through (#1006)', () => {
+  it('vec lane preserves pinned, tags, and last_accessed per row', async () => {
+    const out = await run({
+      tfidf: [
+        {
+          memory_id: 'pinned-meta',
+          content: `${BODY}-pinned-meta`,
+          type: 'episodic',
+          importance: 0.5,
+          created_at: '2026-01-01T00:00:00.000Z',
+          similarity: 0.9,
+          pinned: 1,
+          tags: ['alpha', 'beta'],
+          last_accessed: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          memory_id: 'unpinned-meta',
+          content: `${BODY}-unpinned-meta`,
+          type: 'episodic',
+          importance: 0.5,
+          created_at: '2026-01-02T00:00:00.000Z',
+          similarity: 0.85,
+          pinned: 0,
+          tags: [],
+        },
+      ],
+    });
+
+    const pinnedHit = out.results.find((r) => r.id === 'pinned-meta');
+    const unpinnedHit = out.results.find((r) => r.id === 'unpinned-meta');
+    expect(pinnedHit?.pinned).toBe(true);
+    expect(pinnedHit?.tags).toEqual(['alpha', 'beta']);
+    expect(pinnedHit?.last_accessed).toBe('2026-01-01T00:00:00.000Z');
+    expect(unpinnedHit?.pinned).toBe(false);
+    expect(unpinnedHit?.tags).toEqual([]);
+  });
+});
+
 describe('HybridVectorSearchExecutor length decay (#921)', () => {
   it('짧은 트리플 문장보다 긴 정답의 유효 유사도가 높다', async () => {
     const shortContent = '#917 수정은 검증 방법을 필요합니다';

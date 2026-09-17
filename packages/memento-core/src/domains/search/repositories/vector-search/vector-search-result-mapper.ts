@@ -30,7 +30,7 @@ export function mapKnnResults(
   results: RawVectorSearchResult[],
   options: VectorSearchExecutionOptions
 ): VectorSearchResult[] {
-  const { threshold, includeContent, includeMetadata } = options;
+  const { threshold, includeContent } = options;
 
   return results
     .map(result => {
@@ -42,11 +42,9 @@ export function mapKnnResults(
         type: result.type,
         importance: result.importance,
         created_at: result.created_at,
-        last_accessed: includeMetadata
-          ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
-          : undefined,
-        pinned: includeMetadata ? Boolean(result.pinned) : false,
-        tags: includeMetadata ? safeParseTags(result.tags) : undefined,
+        last_accessed: typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined,
+        pinned: Boolean(result.pinned),
+        tags: safeParseTags(result.tags),
         ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
         ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
         ...(result.process_id !== undefined ? { process_id: result.process_id } : {}),
@@ -61,7 +59,7 @@ export function mapHybridResults(
   options: VectorSearchExecutionOptions,
   hasTextQuery: boolean
 ): VectorSearchResult[] {
-  const { threshold, includeContent, includeMetadata } = options;
+  const { threshold, includeContent } = options;
 
   return results
     .map(result => {
@@ -84,11 +82,9 @@ export function mapHybridResults(
         type: result.type,
         importance: result.importance,
         created_at: result.created_at,
-        last_accessed: includeMetadata
-          ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
-          : undefined,
-        pinned: includeMetadata ? Boolean(result.pinned) : false,
-        tags: includeMetadata ? safeParseTags(result.tags) : undefined,
+        last_accessed: typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined,
+        pinned: Boolean(result.pinned),
+        tags: safeParseTags(result.tags),
         ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
         ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
         ...(result.process_id !== undefined ? { process_id: result.process_id } : {}),

@@ -28,7 +28,6 @@ const options: VectorSearchExecutionOptions = {
   limit: 10,
   threshold: 0,
   includeContent: true,
-  includeMetadata: true
 };
 
 /** SELECT 투영에서 distance→similarity 산술이 쓰였는지 (ORDER BY는 제외). */

@@ -227,7 +227,6 @@ export class NHopSearchService implements INHopSearchService {
           limit: limit + 1, // 자기 자신 제외를 위해 +1
           threshold: 0.0, // 임계값은 나중에 필터링에서 적용
           includeContent: true,
-          includeMetadata: true
         },
         provider
       );
@@ -309,7 +308,6 @@ export class NHopSearchService implements INHopSearchService {
                   limit: vectorSearchLimit,
                   threshold: 0.0,
                   includeContent: true,
-                  includeMetadata: true
                 },
                 m.provider ?? provider
               )

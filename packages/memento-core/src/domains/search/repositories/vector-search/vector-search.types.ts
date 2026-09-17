@@ -57,5 +57,4 @@ export interface VectorSearchExecutionOptions {
   limit: number;
   threshold: number;
   includeContent: boolean;
-  includeMetadata: boolean;
 }
