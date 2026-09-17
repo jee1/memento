@@ -9,6 +9,8 @@ import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
 import { parseOwnerScopeMode } from '../utils/owner-scope-mode.js';
 import {
+  parseRememberDedupLexicalFloor,
+  parseRememberDedupMergeLexicalFloor,
   parseRememberDedupMode,
   parseRememberDedupThreshold,
 } from '../utils/remember-dedup-config.js';
@@ -189,6 +191,8 @@ export const mementoConfig: MementoConfig = {
   sourceStrict: resolveBoolean('MEMENTO_SOURCE_STRICT', { defaultValue: false }),
   rememberDedupThreshold: parseRememberDedupThreshold(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_THRESHOLD')),
   rememberDedupMode: parseRememberDedupMode(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MODE')),
+  rememberDedupLexicalFloor: parseRememberDedupLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR')),
+  rememberDedupMergeLexicalFloor: parseRememberDedupMergeLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR')),
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

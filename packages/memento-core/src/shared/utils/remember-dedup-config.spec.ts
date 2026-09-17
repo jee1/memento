@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { parseRememberDedupMode, parseRememberDedupThreshold } from './remember-dedup-config.js';
+import {
+  parseRememberDedupLexicalFloor,
+  parseRememberDedupMergeLexicalFloor,
+  parseRememberDedupMode,
+  parseRememberDedupThreshold,
+} from './remember-dedup-config.js';
 
 describe('parseRememberDedupThreshold', () => {
   afterEach(() => {
@@ -45,6 +50,56 @@ describe('parseRememberDedupMode', () => {
   it('falls back to warn for invalid values', () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     expect(parseRememberDedupMode('legacy')).toBe('warn');
+    expect(stderrSpy).toHaveBeenCalled();
+  });
+});
+
+describe('parseRememberDedupLexicalFloor', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('defaults to 0.3 when unset', () => {
+    expect(parseRememberDedupLexicalFloor(undefined)).toBe(0.3);
+    expect(parseRememberDedupLexicalFloor('')).toBe(0.3);
+  });
+
+  it('accepts valid values in [0, 1] including 0', () => {
+    expect(parseRememberDedupLexicalFloor('0')).toBe(0);
+    expect(parseRememberDedupLexicalFloor('0.3')).toBe(0.3);
+    expect(parseRememberDedupLexicalFloor('1')).toBe(1);
+  });
+
+  it('falls back to 0.3 for invalid values', () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    expect(parseRememberDedupLexicalFloor('-0.1')).toBe(0.3);
+    expect(parseRememberDedupLexicalFloor('1.5')).toBe(0.3);
+    expect(parseRememberDedupLexicalFloor('abc')).toBe(0.3);
+    expect(stderrSpy).toHaveBeenCalled();
+  });
+});
+
+describe('parseRememberDedupMergeLexicalFloor', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('defaults to 0.7 when unset', () => {
+    expect(parseRememberDedupMergeLexicalFloor(undefined)).toBe(0.7);
+    expect(parseRememberDedupMergeLexicalFloor('')).toBe(0.7);
+  });
+
+  it('accepts valid values in [0, 1] including 0', () => {
+    expect(parseRememberDedupMergeLexicalFloor('0')).toBe(0);
+    expect(parseRememberDedupMergeLexicalFloor('0.7')).toBe(0.7);
+    expect(parseRememberDedupMergeLexicalFloor('1')).toBe(1);
+  });
+
+  it('falls back to 0.7 for invalid values', () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    expect(parseRememberDedupMergeLexicalFloor('-0.1')).toBe(0.7);
+    expect(parseRememberDedupMergeLexicalFloor('2')).toBe(0.7);
+    expect(parseRememberDedupMergeLexicalFloor('abc')).toBe(0.7);
     expect(stderrSpy).toHaveBeenCalled();
   });
 });

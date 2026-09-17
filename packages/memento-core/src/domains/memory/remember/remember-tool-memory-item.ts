@@ -24,6 +24,7 @@ import {
   applyNearDupMergeInputs,
   buildSimilarityWarningFromCandidates,
   findNearDuplicateCandidates,
+  isAutoMergeable,
   isNearDupMergeType,
   loadMemoryItemForNearDupMerge,
   type NearDuplicateCandidate,
@@ -220,10 +221,11 @@ export async function handleMemoryItem(
 
   const projectId = project_id_param ?? null;
   let nearDupCandidates: NearDuplicateCandidate[] = [];
+  let nearDupTruncated = false;
   let nearDupMerged = false;
 
   if (!shouldSkipNearDupSearch(type, update_mode, proceduralHit)) {
-    nearDupCandidates = await findNearDuplicateCandidates(
+    const nearDupResult = await findNearDuplicateCandidates(
       context.db!,
       content,
       { type, ownerId, projectId },
@@ -231,6 +233,8 @@ export async function handleMemoryItem(
       context,
       host,
     );
+    nearDupCandidates = nearDupResult.candidates;
+    nearDupTruncated = nearDupResult.truncated;
   }
 
   if (
@@ -238,6 +242,7 @@ export async function handleMemoryItem(
     && update_mode === 'incremental'
     && nearDupCandidates.length > 0
     && isNearDupMergeType(type)
+    && isAutoMergeable(nearDupCandidates[0]!, mementoConfig.rememberDedupMergeLexicalFloor)
   ) {
     const topCandidate = nearDupCandidates[0]!;
     const loaded = await loadMemoryItemForNearDupMerge(context.db!, topCandidate.id, host);
@@ -252,7 +257,10 @@ export async function handleMemoryItem(
   }
 
   if (!existingMemoryId && mementoConfig.rememberDedupMode === 'strict' && nearDupCandidates.length > 0) {
-    const similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'rejected');
+    const similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'rejected', {
+      mergeLexicalFloor: mementoConfig.rememberDedupMergeLexicalFloor,
+      truncated: nearDupTruncated,
+    });
     return host.createErrorResult(
       'NEAR_DUPLICATE',
       '유사한 기억이 이미 존재하여 저장이 거절되었습니다. update_mode=incremental로 병합하세요.',
@@ -328,10 +336,14 @@ export async function handleMemoryItem(
   }
 
   let similarity_warning: SimilarityWarning | undefined;
+  const similarityWarningOptions = {
+    mergeLexicalFloor: mementoConfig.rememberDedupMergeLexicalFloor,
+    truncated: nearDupTruncated,
+  };
   if (nearDupMerged) {
-    similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'merged');
+    similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'merged', similarityWarningOptions);
   } else if (mementoConfig.rememberDedupMode === 'warn' && nearDupCandidates.length > 0) {
-    similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'warned');
+    similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'warned', similarityWarningOptions);
   }
 
   return host.createSuccessResult({

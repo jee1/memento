@@ -9,6 +9,8 @@
 
 ### Changed
 
+- **remember near-duplicate 어휘 가드** (#997): write-path near-dup 후보에 char 3-gram Jaccard 어휘 겹침 게이트를 추가합니다. `MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR`(기본 0.3) 미만 후보는 제외하고, `update_mode=incremental` 자동 병합은 `MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR`(기본 0.7) 이상일 때만 수행합니다. `similarity_warning.suggestion`은 병합 바닥 통과 시에만 붙이며, 벡터 검색이 8건을 반환하면 `truncated: true`를 표시합니다.
+
 - **`sharp` root 직접 의존 제거** (#993): `package.json`에서 선언 삭제 — `@huggingface/transformers@4.3.0`이 hard dependency로 `sharp@0.35.4`를 유지하므로 배포 산출물 불변. Dockerfile의 no-op `npm rebuild sharp` 제거. `dependency-range.spec.ts`를 lockfile 단일 엔트리·보안 floor 검증으로 재작성.
 
 - **Production dependency audit High 4건 해소** (#989): `sharp` `^0.34.4→^0.35.4` (wanted-only 예외 — `AGENTS.md` deps), lockfile에서 `@huggingface/transformers@4.3.0`·`onnxruntime-node@1.30.0`·`adm-zip@0.6.1` 전이 bump. `security/accepted-audit.json` allowlist 비움. MiniLM 실증 테스트 V1~V6 추가.
