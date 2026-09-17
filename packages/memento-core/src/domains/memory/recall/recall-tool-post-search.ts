@@ -14,6 +14,7 @@ import { computeProceduralDiff } from '../procedural/procedural-memory-diff.js';
 import { getVersionChain } from '../procedural/procedural-versioning.js';
 import type { MetaMemoryService } from '../introspection/meta-memory-service.js';
 import { filterRecallItemsByTags, filterRecallItemsByTriggerConditions } from './recall-tool-filters.js';
+import { enrichRecallItemsWithMemoryMetadata } from './recall-tool-metadata-enrich.js';
 import type { RecallToolHost } from './recall-tool-host.js';
 import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
 import type { RecallHybridOrTextSearchResult, RecallParams } from './recall-tool-schema.js';
@@ -293,6 +294,11 @@ export async function runMemoryItemPostSearchPipeline(
   } = input;
 
   let searchItems: RecallSearchItem[] = (searchResult?.items ?? []) as RecallSearchItem[];
+
+  if (context.db && searchItems.length > 0) {
+    // applyVersionFilter·filterRecallItemsByTriggerConditions보다 앞 — version/trigger_conditions 필요 (#1009)
+    searchItems = enrichRecallItemsWithMemoryMetadata(context.db, searchItems);
+  }
 
   if (version_filter && searchItems.length > 0) {
     searchItems = applyVersionFilter(searchItems, version_filter, version_series_id, version_number);

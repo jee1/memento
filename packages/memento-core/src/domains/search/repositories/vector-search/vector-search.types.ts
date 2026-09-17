@@ -26,6 +26,7 @@ export interface RawVectorSearchResult {
    */
   vector_distance?: number;
   text_similarity?: number;
+  /** SQL 은 SELECT 하지만 매퍼가 매핑하지 않는다. recall 은 #1009 이후 memory_item 에서 직접 채운다. */
   task_goal?: string | null;
   steps?: string | null;
   reflection_notes?: string | null;
