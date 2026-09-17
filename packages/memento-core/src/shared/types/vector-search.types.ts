@@ -31,7 +31,6 @@ export interface VectorSearchOptions {
   type?: string;      // 단일 타입 필터 (리팩토링된 엔진용)
   types?: string[];   // 다중 타입 필터 (기존 엔진 호환성용)
   includeContent?: boolean;
-  includeMetadata?: boolean;
   project_id?: string;
   owner_id?: string | string[];
   process_id?: string | string[];

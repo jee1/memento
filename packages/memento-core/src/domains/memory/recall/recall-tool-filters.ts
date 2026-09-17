@@ -5,7 +5,8 @@
 import type { AppliedFilters, RecallFilters, RecallSearchItem } from './recall-tool-types.js';
 
 /**
- * tags ⊇ requiredTags (AND). #998 이후 두 레인 모두 SQL 에서 태그를 거른다. 이 후처리는 이중 안전망이다.
+ * tags ⊇ requiredTags (AND). #998 이후 두 레인 모두 SQL 에서 태그를 거른다.
+ * #1006 이후 벡터 레인 항목에도 tags 가 실리므로, 이 후처리는 벡터 항목을 통째로 떨어뜨리지 않는다. 이중 안전망이다.
  */
 export function filterRecallItemsByTags(
   items: RecallSearchItem[],

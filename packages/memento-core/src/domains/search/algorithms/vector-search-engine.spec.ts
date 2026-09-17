@@ -325,7 +325,6 @@ describe('VectorSearchEngine', () => {
         threshold: 0.5,
         types: ['episodic', 'semantic'],
         includeContent: true,
-        includeMetadata: true
       };
       // 쿼리에서 반환되는 형식에 맞게 mock 결과 생성 (distance 필드 포함)
       const mockResults = createMockVectorRows('tfidf', 2).map((row, idx) => ({
@@ -401,10 +400,9 @@ describe('VectorSearchEngine', () => {
         limit: 10,
         threshold: 0.5,
         includeContent: true,
-        includeMetadata: true
       };
 
-      // Mock database results - includeMetadata가 true일 때 last_accessed_at 필드 필요
+      // Mock database results - last_accessed_at 필드 필요
       const mockResults = [
         {
           memory_id: 'mem1',
@@ -432,13 +430,12 @@ describe('VectorSearchEngine', () => {
       expect(results[0].tags).toBeDefined();
     });
 
-    it('메타데이터 제외 옵션', async () => {
+    it('내용 제외 옵션', async () => {
       const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const options: VectorSearchOptions = {
         limit: 10,
         threshold: 0.5,
         includeContent: false,
-        includeMetadata: false
       };
 
       // Mock database results
@@ -450,7 +447,7 @@ describe('VectorSearchEngine', () => {
           type: 'semantic',
           importance: 0.8,
           created_at: '2023-01-01T00:00:00Z',
-          last_accessed: '2023-01-02T00:00:00Z',
+          last_accessed_at: '2023-01-02T00:00:00Z',
           pinned: false,
           tags: JSON.stringify(['test', 'example'])
         }
@@ -463,9 +460,9 @@ describe('VectorSearchEngine', () => {
 
       expect(results).toHaveLength(1);
       expect(results[0].content).toBe('');
-      expect(results[0].last_accessed).toBeUndefined();
+      expect(results[0].last_accessed).toBe('2023-01-02T00:00:00Z');
       expect(results[0].pinned).toBe(false);
-      expect(results[0].tags).toBeUndefined();
+      expect(results[0].tags).toEqual(['test', 'example']);
     });
 
     it.each([
@@ -523,7 +520,7 @@ describe('VectorSearchEngine', () => {
 
       vectorEngine.initialize(mockDb);
       const queryVector = new Array(dimensions).fill(0.05);
-      const results = await vectorEngine.search(queryVector, { limit: 1, includeMetadata: true }, provider);
+      const results = await vectorEngine.search(queryVector, { limit: 1 }, provider);
 
       expect(results).toHaveLength(1);
       expect(results[0].memory_id).toContain(provider);
@@ -573,7 +570,6 @@ describe('VectorSearchEngine', () => {
         limit: 10,
         threshold: 0.5,
         includeContent: true,
-        includeMetadata: true
       };
 
       const results = await vectorEngine.hybridSearch(queryVector, textQuery, options, 'tfidf');
@@ -905,7 +901,7 @@ describe('VectorSearchEngine', () => {
       const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       
       // 잘못된 JSON 태그는 빈 배열로 처리되어야 함
-      const results = await vectorEngine.search(queryVector, { includeMetadata: true }, 'tfidf');
+      const results = await vectorEngine.search(queryVector, {}, 'tfidf');
       expect(results).toHaveLength(1);
       expect(results[0].tags).toEqual([]);
     });

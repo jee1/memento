@@ -85,7 +85,6 @@ const executionOptions: VectorSearchExecutionOptions = {
   limit: 3,
   threshold: 0,
   includeContent: true,
-  includeMetadata: true,
 };
 
 function runBothLanes(
@@ -248,5 +247,66 @@ describe('#998 벡터 레인 필터 적용', () => {
 
     expect(knnIds.sort()).toEqual(['pinned-a', 'pinned-b']);
     expect(hybridIds.sort()).toEqual(['pinned-a', 'pinned-b']);
+  });
+});
+
+describe('#1006 벡터 레인 메타데이터', () => {
+  let db: Database.Database | undefined;
+  let tempDir: string | undefined;
+
+  afterEach(() => {
+    db?.close();
+    db = undefined;
+    if (tempDir) {
+      rmSync(tempDir, { recursive: true, force: true });
+      tempDir = undefined;
+    }
+  });
+
+  async function openDb(): Promise<Database.Database> {
+    tempDir = mkdtempSync(join(tmpdir(), 'memento-vector-metadata-'));
+    db = await initializeDatabase(join(tempDir, 'memory.db'));
+    return db;
+  }
+
+  it('KNN·하이브리드 레인이 DB pinned/tags 를 행별로 반환한다', async () => {
+    if (!vecAvailable) return;
+    const database = await openDb();
+    insertMemory(database, 'meta-pinned', '핀+태그', partiallyAlignedVector(0), {
+      pinned: 1,
+      tags: '["alpha","beta"]',
+    });
+    insertMemory(database, 'meta-unpinned', '핀없음', partiallyAlignedVector(1), {
+      pinned: 0,
+      tags: '[]',
+    });
+
+    const runtimeContext = resolveRuntimeVectorContext(database, 'minilm');
+    const options = { ...executionOptions, limit: 5 };
+
+    const knnResults = executeKnnQuery({
+      db: database,
+      effectiveQueryVector: queryVector,
+      runtimeContext,
+      scope: {},
+      options,
+    });
+    const hybridResults = executeHybridQuery({
+      db: database,
+      effectiveQueryVector: queryVector,
+      textQuery: undefined,
+      runtimeContext,
+      scope: {},
+      options,
+    });
+
+    for (const results of [knnResults, hybridResults]) {
+      const pinnedRow = results.find((r) => r.memory_id === 'meta-pinned');
+      const unpinnedRow = results.find((r) => r.memory_id === 'meta-unpinned');
+      expect(pinnedRow?.pinned).toBe(true);
+      expect(pinnedRow?.tags).toEqual(['alpha', 'beta']);
+      expect(unpinnedRow?.pinned).toBe(false);
+      expect(unpinnedRow?.tags).toEqual([]);
+    }
   });
 });

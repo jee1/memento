@@ -236,7 +236,6 @@ export class MemoryNeighborService {
             limit: searchLimit,
             threshold: 0.0, // 임계값은 나중에 필터링에서 적용
             includeContent: true,
-            includeMetadata: true
           },
           embeddingProvider
         );
@@ -375,7 +374,6 @@ export class MemoryNeighborService {
           limit: maxLimit, // 서비스 레이어 검증 제한 준수
           threshold: 0.0, // 임계값은 나중에 필터링에서 적용
           includeContent: false, // 성능 최적화: 내용 불필요
-          includeMetadata: false
         },
         embeddingProvider
       );

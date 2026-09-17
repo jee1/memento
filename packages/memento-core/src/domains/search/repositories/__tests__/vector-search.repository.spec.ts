@@ -343,7 +343,6 @@ describe('VectorSearchRepositoryImpl', () => {
           threshold: 0.5,
           type: 'episodic',
           includeContent: true,
-          includeMetadata: false
         }
       };
 
@@ -655,139 +654,7 @@ describe('VectorSearchRepositoryImpl', () => {
   });
 
   describe('Procedural Memory Enhancement (v7.0) 필드 반환', () => {
-    it('should return workflow_name, skill_name, and trigger_conditions when includeMetadata is true', async () => {
-      // Given: workflow_name, skill_name, trigger_conditions가 있는 procedural memory 생성
-      const { DatabaseUtils } = await import('../../../../shared/utils/database.js');
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (
-          id, type, content, workflow_name, skill_name, trigger_conditions) VALUES (
-          'mem_procedural_1', 'procedural', 'Test procedure',
-          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
-      `);
-
-      // Given: 임베딩 데이터 추가 (VEC 테이블이 있는 경우)
-      try {
-        const { getLoadablePath } = await import('sqlite-vec');
-        const extensionPath = getLoadablePath();
-        db.loadExtension(extensionPath);
-        
-        // VEC 테이블 생성
-        db.exec(`
-          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf 
-          USING vec0(embedding float[384])
-        `);
-        
-        // 임베딩 데이터 추가
-                DatabaseUtils.run(db, `
-          INSERT INTO memory_embedding (
-            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          ) VALUES (?, ?, 'native', ?, 384, 384)
-        `, ['mem_procedural_1', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
-        
-        // VEC 테이블에 데이터 추가
-        const embeddingId = DatabaseUtils.get(db, `
-          SELECT id FROM memory_embedding WHERE memory_id = 'mem_procedural_1'
-        `) as { id: number } | undefined;
-        
-        if (embeddingId) {
-          db.exec(`
-            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
-            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
-          `);
-        }
-      } catch (error) {
-        // VEC 확장이 없는 경우 테스트 스킵
-        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
-        return;
-      }
-
-      // When: includeMetadata=true로 검색
-      const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
-        provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
-      };
-
-      const results = await repository.search(query);
-
-      // Then: 새 필드가 반환되어야 함
-      if (results.length > 0) {
-        const result = results[0];
-        expect(result.workflow_name).toBeDefined();
-        expect(result.skill_name).toBeDefined();
-        expect(result.trigger_conditions).toBeDefined();
-      }
-    });
-
-    it('should not return workflow_name, skill_name, trigger_conditions when includeMetadata is false', async () => {
-      // Given: workflow_name, skill_name, trigger_conditions가 있는 procedural memory 생성
-      const { DatabaseUtils } = await import('../../../../shared/utils/database.js');
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (
-          id, type, content, workflow_name, skill_name, trigger_conditions) VALUES (
-          'mem_procedural_2', 'procedural', 'Test procedure',
-          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
-      `);
-
-      // Given: 임베딩 데이터 추가 (VEC 테이블이 있는 경우)
-      try {
-        const { getLoadablePath } = await import('sqlite-vec');
-        const extensionPath = getLoadablePath();
-        db.loadExtension(extensionPath);
-        
-        // VEC 테이블 생성
-        db.exec(`
-          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf 
-          USING vec0(embedding float[384])
-        `);
-        
-        // 임베딩 데이터 추가
-                DatabaseUtils.run(db, `
-          INSERT INTO memory_embedding (
-            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-          ) VALUES (?, ?, 'native', ?, 384, 384)
-        `, ['mem_procedural_2', 'tfidf', encodeFloat32Embedding(new Array(384).fill(0.1))]);
-        
-        // VEC 테이블에 데이터 추가
-        const embeddingId = DatabaseUtils.get(db, `
-          SELECT id FROM memory_embedding WHERE memory_id = 'mem_procedural_2'
-        `) as { id: number } | undefined;
-        
-        if (embeddingId) {
-          db.exec(`
-            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
-            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
-          `);
-        }
-      } catch (error) {
-        // VEC 확장이 없는 경우 테스트 스킵
-        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
-        return;
-      }
-
-      // When: includeMetadata=false로 검색
-      const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
-        provider: 'tfidf',
-        options: {
-          includeMetadata: false
-        }
-      };
-
-      const results = await repository.search(query);
-
-      // Then: 새 필드가 반환되지 않아야 함
-      if (results.length > 0) {
-        const result = results[0];
-        expect(result.workflow_name).toBeUndefined();
-        expect(result.skill_name).toBeUndefined();
-        expect(result.trigger_conditions).toBeUndefined();
-      }
-    });
-
-    it('should include last_accessed_at in search results when includeMetadata is true', async () => {
+    it('should include last_accessed_at in search results', async () => {
       // Given: last_accessed_at이 있는 메모리 생성
       try {
         // 메모리 아이템 생성
@@ -828,13 +695,11 @@ describe('VectorSearchRepositoryImpl', () => {
         return;
       }
 
-      // When: includeMetadata=true로 검색
+      // When: 검색
       const query: VectorSearchQuery = {
         queryVector: new Array(384).fill(0.1),
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {},
       };
 
       const results = await repository.search(query);
@@ -904,9 +769,7 @@ describe('VectorSearchRepositoryImpl', () => {
         queryVector: new Array(384).fill(0.1),
         textQuery: 'test',
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {}
       };
 
       const results = await repository.hybridSearch(query);
@@ -958,9 +821,7 @@ describe('VectorSearchRepositoryImpl', () => {
         queryVector: new Array(384).fill(0.1),
         // textQuery 없음
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {}
       };
 
       const results = await repository.hybridSearch(query);
@@ -1005,9 +866,7 @@ describe('VectorSearchRepositoryImpl', () => {
         queryVector: new Array(384).fill(0.1),
         textQuery: '', // 빈 문자열
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {}
       };
 
       const results = await repository.hybridSearch(query);
@@ -1052,9 +911,7 @@ describe('VectorSearchRepositoryImpl', () => {
         queryVector: new Array(384).fill(0.1),
         textQuery: '   ', // 공백만
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {}
       };
 
       const results = await repository.hybridSearch(query);
@@ -1099,9 +956,7 @@ describe('VectorSearchRepositoryImpl', () => {
         queryVector: new Array(384).fill(0.1),
         textQuery: undefined, // undefined
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {}
       };
 
       const results = await repository.hybridSearch(query);
@@ -1147,9 +1002,7 @@ describe('VectorSearchRepositoryImpl', () => {
         queryVector: new Array(384).fill(0.1),
         textQuery: null as any, // null
         provider: 'tfidf',
-        options: {
-          includeMetadata: true
-        }
+        options: {}
       };
 
       const results = await repository.hybridSearch(query);

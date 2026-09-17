@@ -217,7 +217,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
       const queryVector = new Array(dimensions).fill(0.01);
       const results = await vectorEngine.search(
         queryVector,
-        { limit: 5, includeContent: true, includeMetadata: true, types: [type] },
+        { limit: 5, includeContent: true, types: [type] },
         provider
       );
 

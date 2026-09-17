@@ -18,7 +18,6 @@ const options: VectorSearchExecutionOptions = {
   limit: 10,
   threshold: 0,
   includeContent: true,
-  includeMetadata: true
 };
 
 function rawResult(overrides: Partial<RawVectorSearchResult>): RawVectorSearchResult {

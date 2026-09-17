@@ -143,10 +143,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       limit = VECTOR_SEARCH_CONFIG.defaultLimit,
       threshold = VECTOR_SEARCH_CONFIG.defaultThreshold,
       includeContent = true,
-      includeMetadata = false,
     } = normalizedOptions;
 
-    return { limit, threshold, includeContent, includeMetadata };
+    return { limit, threshold, includeContent };
   }
 
   private logDimensionMismatch(

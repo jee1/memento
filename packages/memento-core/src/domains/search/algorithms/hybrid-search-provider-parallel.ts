@@ -54,6 +54,9 @@ type VectorSearchRow = {
   importance: number;
   created_at: string;
   similarity: number;
+  last_accessed?: string;
+  pinned?: boolean | number;
+  tags?: string[];
   project_id?: string | null;
   owner_id?: string | null;
   process_id?: string | null;
@@ -114,9 +117,11 @@ export async function runSingleProviderVectorSearch(
         type: result.type,
         importance: result.importance,
         created_at: result.created_at,
-        pinned: false,
+        pinned: Boolean(result.pinned),
         similarity: result.similarity,
         provider,
+        ...(result.last_accessed !== undefined ? { last_accessed: result.last_accessed } : {}),
+        ...(result.tags !== undefined ? { tags: result.tags } : {}),
         ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
         ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
         ...(result.process_id !== undefined ? { process_id: result.process_id } : {}),

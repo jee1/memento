@@ -34,7 +34,6 @@ export interface VectorSearchOptions {
   threshold?: number;  // 관련성이 낮은 결과를 필터링하여 검색 품질을 향상시키기 위한 최소 유사도 임계값
   types?: string[];    // 특정 메모리 타입만 검색하여 정확한 결과를 제공하기 위한 다중 메모리 타입 필터
   includeContent?: boolean;
-  includeMetadata?: boolean; // 상세한 분석을 위해 메타데이터 포함 여부를 제어합니다.
   project_id?: string;
   owner_id?: string | string[];
   process_id?: string | string[];
