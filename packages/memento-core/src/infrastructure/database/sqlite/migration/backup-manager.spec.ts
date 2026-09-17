@@ -496,6 +496,57 @@ describe('BackupManager', () => {
       }
     });
 
+    it('classifies SQLITE_READONLY_DIRECTORY as source-dir-unwritable (#1001)', async () => {
+      const fileDb = openWalDatabase();
+      const readOnlyDirError = Object.assign(
+        new Error('attempt to write a readonly database'),
+        { code: 'SQLITE_READONLY_DIRECTORY' }
+      );
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockRejectedValue(readOnlyDirError);
+
+      try {
+        await captureCreateFailure(fileDb, 'source-dir-unwritable');
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
+    it('prefers source-dir-unwritable over backup-permission-denied (#1001)', async () => {
+      const fileDb = openWalDatabase();
+      chmodSync(backupsDir, 0o500);
+      const readOnlyDirError = Object.assign(
+        new Error('attempt to write a readonly database'),
+        { code: 'SQLITE_READONLY_DIRECTORY' }
+      );
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockRejectedValue(readOnlyDirError);
+
+      try {
+        await captureCreateFailure(fileDb, 'source-dir-unwritable');
+      } finally {
+        backupSpy.mockRestore();
+        chmodSync(backupsDir, 0o700);
+        fileDb.close();
+      }
+    });
+
+    it('removes partial residue after SQLITE_READONLY_DIRECTORY (#1001)', async () => {
+      const fileDb = openWalDatabase();
+      const readOnlyDirError = Object.assign(
+        new Error('attempt to write a readonly database'),
+        { code: 'SQLITE_READONLY_DIRECTORY' }
+      );
+      const backupSpy = vi.spyOn(fileDb, 'backup').mockRejectedValue(readOnlyDirError);
+
+      try {
+        await captureCreateFailure(fileDb, 'source-dir-unwritable');
+        expectNoAttemptResidue();
+      } finally {
+        backupSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
     it('keeps backup-write-failed for SQLITE_BUSY (#963)', async () => {
       const fileDb = openWalDatabase();
       const busyError = Object.assign(new Error('database is locked'), { code: 'SQLITE_BUSY' });
