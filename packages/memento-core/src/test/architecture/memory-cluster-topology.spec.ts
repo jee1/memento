@@ -37,7 +37,7 @@ describe('memory domain cluster topology', () => {
     }
 
     expect(counts).toEqual({
-      recall: 15,
+      recall: 16,
       remember: 11,
       review: 8,
       semantic: 12,
