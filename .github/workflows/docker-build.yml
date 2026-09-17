@@ -1,0 +1,47 @@
+# Docker 이미지 빌드와 네이티브 의존 스모크 (#996).
+#
+# 테스트 5900여 건과 type-check 가 전부 초록이어도 이미지 안에서 네이티브 모듈이
+# 로드되는지는 아무것도 증명하지 못한다. #993 에서 sharp 0.34 → 0.35 검증이
+# 사람 손에 의존했던 공백을 메운다.
+#
+# paths 필터 때문에 네이티브 의존을 건드리는 PR 에서만 돈다. 나머지 PR 은 영향 없다.
+
+name: Docker Build
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'packages/*/package.json'
+      - 'apps/*/package.json'
+      - 'scripts/start-container.sh'
+      - 'scripts/docker-smoke.mjs'
+      - '.github/workflows/docker-build.yml'
+  workflow_dispatch:
+
+jobs:
+  docker-build-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      # MiniLM warmup 을 끄지 않는다. warmup 이 sharp/onnxruntime 경로를 실제로 타는
+      # 유일한 지점이라 끄면 검증 가치가 사라진다.
+      - name: Build image
+        run: docker build -t memento-ci:smoke .
+
+      # 빌드 로그의 warmup 문자열은 grep 하지 않는다 — BuildKit 이 RUN 명령문 텍스트를
+      # 그대로 출력해 같은 문자열이 접두어 없이 중복 출현하므로 위양성이 난다.
+      # 대신 런타임 오프라인 임베딩으로 확인한다.
+      - name: Native dependency smoke
+        run: docker run --rm --entrypoint node memento-ci:smoke /app/scripts/docker-smoke.mjs
+
+      - name: Image size
+        if: always()
+        run: |
+          docker image inspect memento-ci:smoke --format '{{.Size}}' | awk '{printf "image size: %.1f MB\n", $1/1024/1024}'
