@@ -33,7 +33,9 @@ recall·feedback만으로는 이미 쌓인 저품질 기억(저신뢰·고실패
 
 `remember`는 저장 **직전**에 동일 `type`·`owner_id`·`project_id` 스코프에서 유사 기억을 검색합니다. 기본(`MEMENTO_REMEMBER_DEDUP_MODE=warn`)은 저장은 성공하고 응답에 `similarity_warning`을 붙입니다.
 
-**권장 루프:** 유사 후보가 있고 `similarity_warning.suggestion`이 `'incremental'`일 때만 같은 content로 `update_mode=incremental`을 넣어 **재호출**해 top 후보를 UPDATE(새 row 없음, `action='merged'`)하세요. `suggestion`이 없으면 어휘 겹침이 병합 바닥 미달일 수 있으므로 무조건 `incremental`을 쓰지 마세요(데이터 유실). `strict` 모드는 INSERT를 거절하고 후보만 반환합니다(`action='rejected'`).
+**명시 갱신 (#1000):** `recall`로 대상을 찾아 응답의 `memory_id`를 얻은 뒤, `remember({ memory_id, update_mode, content, ... })`로 갱신하세요. `memory_id` 없이 `update_mode`만 주면 procedural(`workflow_name`/`skill_name` 조회)과 near-dup `incremental` 자동 병합을 **제외하고는 새 기억이 저장**됩니다 — `replace`·`versioned`는 조용히 INSERT되지 않도록 `memory_id`가 필요합니다. 성공 응답의 `updated: true`는 기존 행 UPDATE(replace/incremental)를, 새 `memory_id`(versioned)는 버전 행 INSERT를 의미합니다.
+
+**권장 루프:** 유사 후보가 있고 `similarity_warning.suggestion`이 `'incremental'`일 때만 같은 content로 `update_mode=incremental`을 넣어 **재호출**해 top 후보를 UPDATE(새 row 없음, `action='merged'`)하세요. `suggestion`이 없으면 어휘 겹침이 병합 바닥 미달일 수 있으므로 무조건 `incremental`을 쓰지 마세요(데이터 유실). `strict` 모드는 INSERT를 거절하고 후보만 반환합니다(`action='rejected'`). `memory_id`를 직접 지정한 호출은 near-dup 탐색을 건너뜁니다.
 
 응답 필드(하위 호환 additive):
 

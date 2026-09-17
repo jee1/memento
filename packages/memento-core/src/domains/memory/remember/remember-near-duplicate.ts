@@ -210,11 +210,11 @@ export async function findNearDuplicateCandidates(
   }
 }
 
-export async function loadMemoryItemForNearDupMerge(
+export async function loadMemoryItemById(
   db: Database.Database,
   memoryId: string,
   host: RememberToolHost,
-): Promise<ProceduralMemoryItem | null> {
+): Promise<(ProceduralMemoryItem & { owner_id: string | null; project_id: string | null }) | null> {
   try {
     const row = await DatabaseUtils.get(db, `
       SELECT
@@ -223,7 +223,8 @@ export async function loadMemoryItemForNearDupMerge(
         task_goal, steps, reflection_notes,
         workflow_name, skill_name, trigger_conditions,
         recall_count, last_accessed_at, g_value, consolidation_score,
-        version, version_series_id, num_times
+        version, version_series_id, num_times,
+        owner_id, project_id
       FROM memory_item
       WHERE id = ? AND (COALESCE(is_deleted, 0) = 0)
     `, [memoryId]);
@@ -259,9 +260,11 @@ export async function loadMemoryItemForNearDupMerge(
       version_series_id: r.version_series_id as string | undefined,
       consolidation_score: r.consolidation_score as number | undefined,
       num_times: r.num_times as number | undefined,
-    } as ProceduralMemoryItem;
+      owner_id: (r.owner_id as string | null) ?? null,
+      project_id: (r.project_id as string | null) ?? null,
+    } as ProceduralMemoryItem & { owner_id: string | null; project_id: string | null };
   } catch (error) {
-    host.logWarning('near-dup merge 대상 memory 조회 실패', {
+    host.logWarning('memory_item 조회 실패', {
       memory_id: memoryId,
       error: error instanceof Error ? error.message : String(error),
     });
