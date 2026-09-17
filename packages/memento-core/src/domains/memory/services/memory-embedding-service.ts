@@ -11,6 +11,8 @@ import type {
   VectorCompatibilityIssue
 } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
+import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
+import { buildMemoryFilterSql, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import {
@@ -171,71 +173,26 @@ export class MemoryEmbeddingService {
     provider: EmbeddingProvider,
     tableName: string,
     queryVector: number[],
-    filters?: {
-      type?: MemoryType[];
-      limit?: number;
-      threshold?: number;
-      project_id?: string;
-      owner_id?: string | string[];
-      process_id?: string | string[];
-      session_id?: string | string[];
-    }
+    filters?: MemorySearchFilters & { limit?: number; threshold?: number }
   ): { sql: string; params: unknown[] } {
-    const typeFilter = filters?.type?.length
-      ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')'
+    const memoryFilters: MemorySearchFilters | undefined = filters;
+    const { clauses: outerClauses, params: outerParams } = buildMemoryFilterSql(memoryFilters, {
+      itemAlias: 'm',
+    });
+    const outerFilterSql = outerClauses.length > 0
+      ? outerClauses.map(clause => `AND ${clause}`).join(' ')
       : '';
-    const projectClause =
-      typeof filters?.project_id === 'string' && filters.project_id.length > 0
-        ? 'AND m.project_id = ?'
-        : '';
-    let ownerClause = '';
-    const ownerParams: unknown[] = [];
-    const o = filters?.owner_id;
-    if (typeof o === 'string' && o.length > 0) {
-      ownerClause = 'AND m.owner_id = ?';
-      ownerParams.push(o);
-    } else if (Array.isArray(o) && o.length > 0) {
-      ownerClause = 'AND m.owner_id IN (' + o.map(() => '?').join(',') + ')';
-      ownerParams.push(...o);
-    }
-    const buildScopeClause = (
-      column: 'process_id' | 'session_id',
-      value: string | string[] | undefined,
-    ): { clause: string; params: unknown[] } => {
-      if (typeof value === 'string' && value.length > 0) {
-        return { clause: `AND m.${column} = ?`, params: [value] };
-      }
-      if (Array.isArray(value) && value.length > 0) {
-        return {
-          clause: `AND m.${column} IN (${value.map(() => '?').join(',')})`,
-          params: value,
-        };
-      }
-      return { clause: '', params: [] };
-    };
-    const processScope = buildScopeClause('process_id', filters?.process_id);
-    const sessionScope = buildScopeClause('session_id', filters?.session_id);
-    const projectParams: unknown[] =
-      typeof filters?.project_id === 'string' && filters.project_id.length > 0 ? [filters.project_id] : [];
-    const filterParams: unknown[] = [
-      ...(filters?.type || []),
-      ...projectParams,
-      ...ownerParams,
-      ...processScope.params,
-      ...sessionScope.params,
-    ];
-    const hasScopedCandidates = filterParams.length > 0;
-    const scopedFilters = [typeFilter, projectClause, ownerClause, processScope.clause, sessionScope.clause]
-      .filter(Boolean)
-      .join(' ')
-      .replaceAll('m.', 'scoped_m.');
+    const { clauses: scopedClauses, params: scopedParams } = buildMemoryFilterSql(memoryFilters, {
+      itemAlias: 'scoped_m',
+    });
+    const hasScopedCandidates = hasMemoryFilter(memoryFilters);
     const scopedCandidateSql = hasScopedCandidates
       ? ' AND rowid IN (' +
         'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
         'JOIN memory_item scoped_m ON scoped_m.id = scoped_me.memory_id ' +
         'WHERE scoped_me.embedding_provider = ? ' +
         'AND (COALESCE(scoped_m.is_deleted, 0) = 0) ' +
-        scopedFilters +
+        (scopedClauses.length > 0 ? scopedClauses.map(clause => `AND ${clause}`).join(' ') : '') +
         ') '
       : '';
     const limit = filters?.limit || 10;
@@ -266,14 +223,7 @@ export class MemoryEmbeddingService {
       'JOIN memory_item m ON m.id = me.memory_id ' +
       'WHERE me.embedding_provider = ? ' +
       'AND (COALESCE(m.is_deleted, 0) = 0) ' +
-      typeFilter +
-      projectClause +
-      ' ' +
-      ownerClause +
-      ' ' +
-      processScope.clause +
-      ' ' +
-      sessionScope.clause +
+      outerFilterSql +
       ' ' +
       'ORDER BY v.distance ASC ' +
       'LIMIT ?';
@@ -283,9 +233,9 @@ export class MemoryEmbeddingService {
       params: [
         JSON.stringify(queryVector),
         limit,
-        ...(hasScopedCandidates ? [provider, ...filterParams] : []),
+        ...(hasScopedCandidates ? [provider, ...scopedParams] : []),
         provider,
-        ...filterParams,
+        ...outerParams,
         limit,
       ],
     };
@@ -400,15 +350,7 @@ export class MemoryEmbeddingService {
   async searchBySimilarity(
     db: Database.Database,
     query: string,
-    filters?: {
-      type?: MemoryType[];
-      limit?: number;
-      threshold?: number;
-      project_id?: string;
-      owner_id?: string | string[];
-      process_id?: string | string[];
-      session_id?: string | string[];
-    }
+    filters?: MemorySearchFilters & { limit?: number; threshold?: number }
   ): Promise<SearchBySimilarityOutcome> {
     if (!this.embeddingService.isAvailable()) {
       this.writeEmbeddingStderr('warn', '임베딩 서비스가 사용 불가능합니다.');

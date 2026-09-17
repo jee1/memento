@@ -137,6 +137,7 @@ export class HybridVectorSearchExecutor {
         threshold: 0,
         types: query.filters?.type,
         includeContent: true,
+        ...(query.filters ? { filters: query.filters } : {}),
         ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
           ? { project_id: query.filters.project_id }
           : {}),
@@ -296,21 +297,9 @@ export class HybridVectorSearchExecutor {
 
     const fallbackStart = process.hrtime.bigint();
     const raw = await this.embeddingService.searchBySimilarity(db, query.query, {
-      type: query.filters?.type,
+      ...(query.filters ?? {}),
       limit: resolveHybridVectorPrefetchLimit(query.limit),
       threshold: 0,
-      ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
-        ? { project_id: query.filters.project_id }
-        : {}),
-      ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
-        ? { owner_id: query.filters.owner_id }
-        : {}),
-      ...(query.filters?.process_id !== undefined && query.filters.process_id !== null
-        ? { process_id: query.filters.process_id }
-        : {}),
-      ...(query.filters?.session_id !== undefined && query.filters.session_id !== null
-        ? { session_id: query.filters.session_id }
-        : {}),
     });
     const { results, query_embedding_providers } = normalizeSearchBySimilarityOutcome(raw);
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;

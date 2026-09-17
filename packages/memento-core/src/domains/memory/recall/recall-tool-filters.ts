@@ -5,7 +5,7 @@
 import type { AppliedFilters, RecallFilters, RecallSearchItem } from './recall-tool-types.js';
 
 /**
- * tags ⊇ requiredTags (AND). Vector/hybrid paths may omit SQL tag filters (#754).
+ * tags ⊇ requiredTags (AND). #998 이후 두 레인 모두 SQL 에서 태그를 거른다. 이 후처리는 이중 안전망이다.
  */
 export function filterRecallItemsByTags(
   items: RecallSearchItem[],

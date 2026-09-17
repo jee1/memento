@@ -48,24 +48,10 @@ export interface RuntimeVectorContext {
   modelFilter: string | null;
 }
 
-export interface VectorSearchScope {
-  typeFilters: string[];
-  hasProjectScope: boolean;
-  hasOwnerStringScope: boolean;
-  ownerArrayScope: string[];
-  hasOwnerScope: boolean;
-  hasProcessStringScope: boolean;
-  processArrayScope: string[];
-  hasProcessScope: boolean;
-  hasSessionStringScope: boolean;
-  sessionArrayScope: string[];
-  hasSessionScope: boolean;
-  hasScopeFilter: boolean;
-  scopeProjectId?: string;
-  scopeOwnerId?: string | string[];
-  scopeProcessId?: string | string[];
-  scopeSessionId?: string | string[];
-}
+import type { MemorySearchFilters } from '../../../../shared/types/search.types.js';
+
+/** 정규화된 memory_item 컬럼 필터 (#998) */
+export type VectorSearchScope = MemorySearchFilters;
 
 export interface VectorSearchExecutionOptions {
   limit: number;

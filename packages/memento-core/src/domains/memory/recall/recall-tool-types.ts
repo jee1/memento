@@ -276,8 +276,8 @@ export interface AppliedFilters extends Record<string, unknown> {
   project_id?: string;
 }
 
-/** Recall 내부 필터 (MemorySearchFilters + importance 범위) */
-export type RecallFilters = MemorySearchFilters & { importance_min?: number; importance_max?: number };
+/** Recall 내부 필터 */
+export type RecallFilters = MemorySearchFilters;
 
 /** meta_stats에 넣을 항목 (last_recalled_at은 ISO 문자열) */
 export interface MetaStatsItem {

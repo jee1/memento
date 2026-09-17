@@ -44,6 +44,8 @@ export interface MemorySearchFilters {
   privacy_scope?: PrivacyScope[] | undefined;
   time_from?: string | undefined;
   time_to?: string | undefined;
+  importance_min?: number | undefined;
+  importance_max?: number | undefined;
   pinned?: boolean | undefined;
   has_reflection_notes?: boolean | undefined;
   workflow_name?: string | undefined;
