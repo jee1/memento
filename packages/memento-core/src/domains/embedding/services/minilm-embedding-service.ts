@@ -21,14 +21,23 @@ import type {
 import {
   estimateEmbeddingTokens,
   generateEmbeddingCacheKey,
+  meanPoolNormalize,
   rankSimilarEmbeddings,
-  truncateEmbeddingText,
 } from './embedding-helpers.js';
 
-type FeatureExtractionModel = (
+interface FeatureExtractionTokenizer {
+  (text: string, options?: Record<string, unknown>): Promise<{
+    input_ids: { data?: Iterable<unknown> } | Iterable<unknown>;
+  }>;
+  decode(ids: number[], options?: { skip_special_tokens?: boolean }): string;
+}
+
+type FeatureExtractionModel = ((
   text: string,
   options: { pooling: 'mean'; normalize: boolean }
-) => Promise<{ data?: Iterable<number> } | Iterable<number>>;
+) => Promise<{ data?: Iterable<number> } | Iterable<number>>) & {
+  tokenizer?: FeatureExtractionTokenizer;
+};
 
 declare global {
   // eslint-disable-next-line no-var
@@ -59,11 +68,16 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   // 상수 정의
   private static readonly MODEL_NAME = MINILM_MODEL_NAME;
   private static readonly DIMENSIONS = 384;
-  private static readonly MAX_TOKENS = 256;
+  // 모델 창은 512 토큰이고 [CLS]/[SEP] 2개를 제외한 510 이 본문 한 윈도의 크기다 (#1013).
+  private static readonly WINDOW_TOKENS = 510;
+  private static readonly MODEL_MAX_TOKENS = 512;
+  // remember 의 content 에는 길이 상한이 없다. 예전에는 1024자 컷이 사실상의 상한이어서
+  // 모델 호출이 늘 1회였는데, 그게 사라진 자리에 명시적인 상한을 둔다 (#1013).
+  // 16 윈도 = 8,160 토큰 = 한국어 약 17,000자. 운영 DB 최장 기억이 11,688자(약 11 윈도)라 실데이터는 다 들어간다.
+  private static readonly MAX_WINDOWS = 16;
   
   private readonly modelName = MiniLMEmbeddingService.MODEL_NAME;
   private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
-  private readonly maxTokens = MiniLMEmbeddingService.MAX_TOKENS;
   private model: unknown = null;
   private loadingPromise: Promise<FeatureExtractionModel> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
@@ -88,20 +102,13 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     try {
       const model = await this.getModel();
       const processedText = this.preprocessText(text);
-      
-      const result = await model(processedText, {
-        pooling: 'mean',
-        normalize: true
-      });
-
-      // result가 이미 배열이거나 data 속성을 가진 객체일 수 있음
-      const embedding = Array.from(getEmbeddingIterable(result));
+      const { embedding, tokenCount } = await this.embedWithWindows(model, processedText);
       const embeddingResult: EmbeddingResult = {
         embedding,
         model: this.modelName,
         usage: {
-          prompt_tokens: estimateEmbeddingTokens(text),
-          total_tokens: estimateEmbeddingTokens(text)
+          prompt_tokens: tokenCount,
+          total_tokens: tokenCount
         }
       };
 
@@ -171,7 +178,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     return {
       model: this.modelName,
       dimensions: this.dimensions,
-      maxTokens: this.maxTokens
+      maxTokens: MiniLMEmbeddingService.MODEL_MAX_TOKENS
     };
   }
 
@@ -226,7 +233,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         }
       );
       if (!isCliQuiet()) process.stderr.write('✅ MiniLM 모델 로딩 완료\n');
-      return model as FeatureExtractionModel;
+      return model as unknown as FeatureExtractionModel;
     } catch (error) {
       // ERR_WORKER_PATH 에러는 Node.js 환경에서 onnxruntime-web의 Worker가 
       // blob URL을 지원하지 않아 발생하는 환경 문제입니다.
@@ -260,11 +267,75 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    * 클린코드: 단일 책임 원칙 - 전처리만 담당
    */
   private preprocessText(text: string): string {
-    const normalized = text
+    return text
       .trim()
       .toLowerCase()
       .replace(/\s+/g, ' ');
-    return truncateEmbeddingText(normalized, this.maxTokens);
+  }
+
+  /**
+   * 본문을 모델 창(510토큰) 단위로 나눠 각각 임베딩한 뒤 평균 내어 하나의 벡터로 만든다 (#1013).
+   *
+   * 왜 필요한가? 예전에는 앞 1024자만 넘겼는데 한국어는 2.124 chars/token 이라 그게 약 493토큰이었다.
+   * 긴 기억의 뒤쪽 절반은 벡터에 한 번도 들어가지 않았다. 토크나이저로 잘라야 언어에 상관없이 맞는다.
+   *
+   * 윈도가 하나면 예전과 같은 단일 호출이다. 토크나이저를 쓸 수 없는 환경(테스트 모킹 등)에서는
+   * 전체 텍스트를 그대로 넘긴다 — 모델이 512토큰에서 알아서 자르므로 예전 동작 이하로 떨어지지 않는다.
+   */
+  private async embedWithWindows(
+    model: FeatureExtractionModel,
+    text: string
+  ): Promise<{ embedding: number[]; tokenCount: number }> {
+    const windows = await this.splitIntoWindows(model, text);
+    if (windows === null) {
+      const result = await model(text, { pooling: 'mean', normalize: true });
+      return {
+        embedding: Array.from(getEmbeddingIterable(result)),
+        tokenCount: estimateEmbeddingTokens(text)
+      };
+    }
+
+    const vectors: number[][] = [];
+    for (const window of windows.texts) {
+      const result = await model(window, { pooling: 'mean', normalize: true });
+      vectors.push(Array.from(getEmbeddingIterable(result)));
+    }
+    return { embedding: meanPoolNormalize(vectors), tokenCount: windows.tokenCount };
+  }
+
+  /**
+   * 토크나이저로 본문을 510토큰 윈도로 나눈다. 토크나이저가 없으면 null 을 돌려준다.
+   */
+  private async splitIntoWindows(
+    model: FeatureExtractionModel,
+    text: string
+  ): Promise<{ texts: string[]; tokenCount: number } | null> {
+    const tokenizer = model.tokenizer;
+    if (typeof tokenizer !== 'function' || typeof tokenizer.decode !== 'function') {
+      return null;
+    }
+
+    try {
+      const encoded = await tokenizer(text, { add_special_tokens: false, truncation: false });
+      const raw = encoded.input_ids;
+      const iterable = (raw as { data?: Iterable<unknown> }).data ?? (raw as Iterable<unknown>);
+      const ids = Array.from(iterable, (value) => Number(value));
+      if (ids.length === 0) return null;
+
+      const size = MiniLMEmbeddingService.WINDOW_TOKENS;
+      if (ids.length <= size) return { texts: [text], tokenCount: ids.length };
+
+      // 상한을 넘는 뒷부분은 버린다. tokenCount 는 실제로 모델에 들어간 토큰 수를 보고한다.
+      const limit = Math.min(ids.length, size * MiniLMEmbeddingService.MAX_WINDOWS);
+      const texts: string[] = [];
+      for (let start = 0; start < limit; start += size) {
+        texts.push(tokenizer.decode(ids.slice(start, start + size), { skip_special_tokens: true }));
+      }
+      return { texts, tokenCount: limit };
+    } catch {
+      // 토크나이저 호출이 실패해도 임베딩 자체는 만들어야 한다. 예전 경로로 되돌린다.
+      return null;
+    }
   }
 
   /**
