@@ -25,6 +25,7 @@ import { SearchRanking } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import { collectResultIds } from './hybrid-search-outcome-utils.js';
+import { backfillTextOnlyVectorResults } from './hybrid-vector-backfill.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import type {
   HybridSearchQuery,
@@ -168,9 +169,21 @@ export class HybridSearchEngine {
           .map(result => (result as { id?: unknown }).id)
           .filter((id): id is string => typeof id === 'string')
       ).size;
-      const finalResults = await this.resultRanker.combineAndSortResults(
+      // #1021 텍스트 레인에만 잡힌 후보의 벡터 유사도를 저장된 임베딩으로 채운다.
+      // 후보 집합(임계값·prefetch)은 그대로 두고 융합 점수 입력만 바로잡는다.
+      // vectorOut.results 는 진단용 수치(vector_count, candidate_funnel)가 참조하므로 건드리지 않는다.
+      const backfilledVector = backfillTextOnlyVectorResults(
+        db,
         textResults,
         vectorOut.results,
+        vectorOut.query_embeddings ?? []
+      );
+      const vectorResultsForCombine = backfilledVector.length > 0
+        ? [...vectorOut.results, ...backfilledVector]
+        : vectorOut.results;
+      const finalResults = await this.resultRanker.combineAndSortResults(
+        textResults,
+        vectorResultsForCombine,
         weights,
         query.limit || 10,
         db,
