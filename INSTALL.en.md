@@ -118,6 +118,7 @@ HTTP/MCP ports come in two flavors:
 
 - **Code default**: `3000`
 - **Local/Docker recommended profile** ([env.example](env.example)): `MCP_SERVER_PORT=9001` / `PORT=9001`
+- **Docker image default**: `9001` — the `Dockerfile` bakes `PORT=9001` so it matches `EXPOSE`/`HEALTHCHECK`. Override with an environment variable.
 
 URLs in this guide use the **recommended `9001` profile**. If you run with code defaults, read them as `3000`. On conflict, change `PORT` / `MCP_SERVER_PORT` in `.env`.
 

@@ -118,6 +118,7 @@ HTTP/MCP 포트는 두 값이 있습니다.
 
 - **코드 기본값**: `3000`
 - **로컬·Docker 권장 프로필** ([env.example](env.example)): `MCP_SERVER_PORT=9001` / `PORT=9001`
+- **Docker 이미지 기본값**: `9001` — `Dockerfile` 이 `PORT=9001` 을 박아 `EXPOSE`·`HEALTHCHECK` 와 맞춘다. 환경변수로 덮어쓸 수 있다.
 
 이 문서의 URL 예시는 **권장 프로필 `9001`** 기준입니다. 기본값으로 띄운다면 `3000`으로 바꿔 읽으세요. 충돌 시 `.env`에서 `PORT` / `MCP_SERVER_PORT`를 바꾸세요.
 

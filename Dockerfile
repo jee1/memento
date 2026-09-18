@@ -28,11 +28,6 @@ RUN npm run build:packages
 # Production stage
 FROM node:24-slim AS production
 
-# Use the same cache directory as the builder stage
-ENV XDG_CACHE_HOME=/app/.cache
-ENV TRANSFORMERS_CACHE=/app/.cache/transformers
-RUN mkdir -p "$TRANSFORMERS_CACHE"
-
 # Install SQLite and development tools (FTS5 is included in SQLite)
 # Install dependencies for sqlite-vec compilation
 RUN apt-get update && apt-get install -y \
@@ -69,6 +64,13 @@ COPY --from=builder /app/package*.json ./
 # better-sqlite3: try prebuilt binaries first (much faster), fallback to source compile
 # MiniLM warmup pulls the multilingual model (#889): q8 onnx is ~118MB vs ~23MB for the old
 # English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
+# MiniLM 캐시는 transformers.js 의 기본 경로인 node_modules/@huggingface/transformers/.cache/ 에 쌓인다 (#1012).
+# v4.2.0 은 캐시 위치 환경변수를 읽지 않는다 — src/env.js:162 의
+# `DEFAULT_CACHE_DIR = path.join(dirname__, '/.cache/')`(dirname__ = 패키지 루트)가 전부이고,
+# 옮기려면 pipeline() 호출 전에 코드에서 env.cacheDir 을 지정해야 한다.
+# 빌드 warmup 과 런타임이 같은 기본값을 쓰기 때문에 캐시가 재사용된다. 캐시를 볼륨으로 빼려면
+# 그 node_modules 하위 경로를 마운트해야 한다. 런타임 재사용 여부는 scripts/docker-smoke.mjs 가
+# env.allowRemoteModels = false 로 검증한다.
 # sqlite-vec: prebuilt vec0.so ships in the sqlite-vec-linux-x64 optional package (no build step), copy .so to /usr/lib/
 ARG SKIP_TRANSFORMERS_WARMUP=0
 RUN npm ci --omit=dev --ignore-scripts && \
@@ -119,11 +121,26 @@ RUN useradd -r -u 1001 -g nodejs memento
 RUN chown -R memento:nodejs /app
 USER memento
 
+# 이미지를 compose 없이 그대로 띄웠을 때의 기본값 (#1012).
+# 아래 EXPOSE·HEALTHCHECK 와 CMD(start-container.sh)가 이미 HTTP·9001 을 약속하고 있는데,
+# 코드 기본값은 넷 다 다른 값이라 `docker run <image>` 가 성립하지 않았다:
+#   PORT                   코드 기본 3000 (environment.ts:17 MCP_SERVER_PORT) ≠ EXPOSE/HEALTHCHECK 9001
+#   DB_PATH                코드 기본 ~/.memento/memory.db — memento 사용자는 홈 디렉터리가 없어 기동 실패
+#   TRANSPORT_TYPE         코드 기본 stdio — start-container.sh 는 HTTP 서버를 띄운다
+#   MEMENTO_HTTP_BIND_HOST 코드 기본 127.0.0.1 — -p 로내도 컨테이너 밖에서 도달 불가
+# compose 는 이 값들을 그대로 override 한다. 0.0.0.0 바인딩은 API 토큰이 없으면 기동이 거부되므로
+# (shared/http/http-bind-policy.ts) 무인증 노출로 이어지지 않는다.
+ENV PORT=9001
+ENV DB_PATH=/app/data/memory.db
+ENV TRANSPORT_TYPE=sse
+ENV MEMENTO_HTTP_BIND_HOST=0.0.0.0
+
 # Expose port
 EXPOSE 9001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# start-period 는 docker-compose.yml 의 40s 와 맞춘다 — 5s 는 느린 호스트에서 첫 검사가 항상 실패했다.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "const http = require('http'); const req = http.get('http://localhost:9001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => { process.exit(1); });" || exit 1
 
 # Copy startup script
