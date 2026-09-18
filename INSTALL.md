@@ -114,7 +114,7 @@ OpenAI·Gemini 키는 선택입니다. 전체 변수는 [env.example](env.exampl
 
 ## 포트
 
-HTTP/MCP 포트는 두 값이 있습니다.
+HTTP/MCP 포트는 세 값이 있습니다.
 
 - **코드 기본값**: `3000`
 - **로컬·Docker 권장 프로필** ([env.example](env.example)): `MCP_SERVER_PORT=9001` / `PORT=9001`

@@ -114,7 +114,7 @@ OpenAI and Gemini keys are optional. [env.example](env.example) is the source of
 
 ## Ports
 
-HTTP/MCP ports come in two flavors:
+HTTP/MCP ports come in three flavors:
 
 - **Code default**: `3000`
 - **Local/Docker recommended profile** ([env.example](env.example)): `MCP_SERVER_PORT=9001` / `PORT=9001`
