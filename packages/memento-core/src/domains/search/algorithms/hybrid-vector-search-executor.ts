@@ -16,6 +16,7 @@ import {
   executeProviderSearchesWithOverallTimeout,
   type ProviderVectorSearchDeps,
 } from './hybrid-search-provider-parallel.js';
+import type { HybridQueryEmbedding } from './hybrid-vector-backfill.js';
 import type {
   HybridSearchQuery,
   IEmbeddingService,
@@ -57,6 +58,8 @@ export type HybridVectorSearchOutput = {
   tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
   raw_ids?: string[];
   thresholded_ids?: string[];
+  /** 벡터 레인이 실제로 만들어 쓴 질의 임베딩. #1021 백필이 이것을 쓴다. */
+  query_embeddings?: HybridQueryEmbedding[];
 };
 
 export class HybridVectorSearchExecutor {
@@ -152,7 +155,8 @@ export class HybridVectorSearchExecutor {
           : {}),
       };
 
-      const providerVectorDeps = this.getProviderVectorSearchDeps();
+      const queryEmbeddingSink = new Map<EmbeddingProvider, number[]>();
+      const providerVectorDeps = this.getProviderVectorSearchDeps(queryEmbeddingSink);
       const searchPromises = providersToSearch.map(provider =>
         createProviderVectorSearchTask(providerVectorDeps, provider, query.query, searchOptions, searchId)
       );
@@ -196,6 +200,7 @@ export class HybridVectorSearchExecutor {
         tfidf_query_embedding_fallback_providers: tfidfQueryEmbeddingFallbackProviders,
         raw_ids: collectResultIds(allResults),
         thresholded_ids: collectResultIds(thresholded),
+        query_embeddings: [...queryEmbeddingSink].map(([provider, embedding]) => ({ provider, embedding })),
       };
     } catch (error) {
       this.searchLogger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
@@ -233,12 +238,21 @@ export class HybridVectorSearchExecutor {
     return providersToSearch;
   }
 
-  private getProviderVectorSearchDeps(): ProviderVectorSearchDeps {
+  private getProviderVectorSearchDeps(
+    queryEmbeddingSink?: Map<EmbeddingProvider, number[]>
+  ): ProviderVectorSearchDeps {
     return {
-      generateQueryVector: (query, searchId, preferred) =>
-        this.queryVectorGenerator
-          ? this.queryVectorGenerator(query, searchId, preferred)
-          : this.generateQueryVector(query, searchId, preferred),
+      generateQueryVector: async (query, searchId, preferred) => {
+        const generated = this.queryVectorGenerator
+          ? await this.queryVectorGenerator(query, searchId, preferred)
+          : await this.generateQueryVector(query, searchId, preferred);
+        // 요청한 provider 와 실제 provider 가 다르면 벡터 레인 자체가 그 결과를 버린다.
+        // 버린 레인의 임베딩으로 백필하면 레인이 하지 않기로 한 일을 대신 하는 셈이라 제외한다.
+        if (queryEmbeddingSink && generated.actualProvider === preferred) {
+          queryEmbeddingSink.set(generated.actualProvider, generated.embedding);
+        }
+        return generated;
+      },
       vectorSearch: (vector, options, provider) =>
         this.vectorSearchEngine.search(vector, options, provider),
       logSearchStep: (searchId, step, data) =>
