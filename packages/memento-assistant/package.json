@@ -30,7 +30,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@jee1/memento-client": "^0.1.0",
+    "@jee1/memento-client": "^0.1.1",
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
