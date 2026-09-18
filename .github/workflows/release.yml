@@ -87,12 +87,14 @@ jobs:
           git remote -v
           git show-ref --tags | tail -n 20
 
+      # registry-url 을 주면 setup-node 가 ~/.npmrc 에 _authToken=${NODE_AUTH_TOKEN} 줄을 쓴다.
+      # 토큰 없이 발행하는 지금은 그 줄이 빈 자격증명으로 남아 OIDC 교환을 막을 수 있고,
+      # npmjs 는 npm 의 기본 레지스트리라 따로 지정할 이유도 없다 (#1027).
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: "npm"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
@@ -207,33 +209,10 @@ jobs:
       - name: Build package
         run: npm run build
 
-      - name: Configure npm registry
-        run: |
-          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
-            echo "E_NPM_AUTH: NPM_TOKEN secret is not set"
-            exit 1
-          fi
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-          echo "registry=https://registry.npmjs.org/" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-          cat .npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Verify npm token
-        run: |
-          echo "Verifying npm token..."
-          if ! npm whoami --registry=https://registry.npmjs.org/ 2>/dev/null; then
-            echo "E_NPM_AUTH: npm token is invalid or expired"
-            echo "Please update NPM_TOKEN in GitHub Secrets"
-            echo "Get a new token from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens"
-            exit 1
-          fi
-          echo "✅ npm token is valid"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+      # npm Trusted Publisher(OIDC)로 발행한다 (#1027).
+      # 자격증명을 주지 않아야 npm 이 id-token 을 레지스트리와 교환한다 — .npmrc 에 _authToken 이
+      # 있거나 NODE_AUTH_TOKEN 이 설정돼 있으면 그쪽이 우선이라 OIDC 는 시도조차 되지 않는다.
+      # provenance attestation 은 이 경로에서 자동으로 붙으므로 --provenance 도 주지 않는다.
       - name: Publish to npm
         run: |
           NPM_TAG="${{ steps.version.outputs.npm_tag }}"
@@ -242,13 +221,11 @@ jobs:
           fi
           echo "Publishing to npm with tag: $NPM_TAG"
           npm publish --access public --tag "$NPM_TAG"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # 스코프 SDK 패키지 발행 (#765)
       # 루트 패키지와 버전 정책이 다르므로, 이미 npm에 있는 버전이면 건너뛴다.
       # (변경을 배포하려면 해당 워크스페이스의 version을 올릴 것)
+      # Trusted Publisher 는 패키지별 설정이라 이 두 패키지도 npmjs 에서 각각 등록해야 한다 (#1027).
       - name: Publish workspace SDK packages to npm
         if: steps.version.outputs.npm_tag == 'latest'
         run: |
@@ -265,9 +242,6 @@ jobs:
             echo "📦 Publishing $PKG@$PKG_VERSION"
             npm publish --workspace "$PKG" --access public
           done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Check if Release exists
         id: check_release
