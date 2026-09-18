@@ -85,4 +85,18 @@ describe('ConsolidationRepository', () => {
     expect(Boolean(row.is_consolidated)).toBe(true);
     expect(row.importance).toBeLessThanOrEqual(0.1);
   });
+
+  it('insertSemanticMemory writes created_at in ISO format', () => {
+    repo.insertSemanticMemory({
+      id: 's-new',
+      content: 'consolidated semantic',
+      importance: 0.7,
+      originSourceJson: '{"tool":"sleep-consolidation"}',
+      ownerId: null,
+    });
+    const row = DatabaseUtils.get(db, 'SELECT created_at FROM memory_item WHERE id = ?', [
+      's-new',
+    ]) as { created_at: string };
+    expect(row.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
 });

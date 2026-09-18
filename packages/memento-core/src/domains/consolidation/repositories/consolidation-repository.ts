@@ -220,7 +220,7 @@ export class ConsolidationRepository {
       `
       INSERT INTO memory_item (
         id, type, content, importance, privacy_scope, origin_source,
-        owner_id, created_at, is_consolidated) VALUES (?, 'semantic', ?, ?, ?, ?, ?, datetime('now'), 0)
+        owner_id, created_at, is_consolidated) VALUES (?, 'semantic', ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), 0)
     `,
       [
         params.id,
