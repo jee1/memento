@@ -20,6 +20,9 @@ describe('IntrospectionScanCache', () => {
     const result = {
       lowConfidenceMemoryIds: ['mem_1'],
       highFailureMemoryIds: ['mem_2', 'mem_3'],
+      lowConfidenceTotal: 1,
+      highFailureTotal: 2,
+      truncated: false,
       summary: '저신뢰 메모리 1건, 고실패 메모리 2건.'
     };
     const scanned_at = '2026-03-15T00:00:00.000Z';
@@ -32,7 +35,14 @@ describe('IntrospectionScanCache', () => {
 
   it('clear() removes cached value', () => {
     cache.set(
-      { lowConfidenceMemoryIds: [], highFailureMemoryIds: [], summary: '없음.' },
+      {
+        lowConfidenceMemoryIds: [],
+        highFailureMemoryIds: [],
+        lowConfidenceTotal: 0,
+        highFailureTotal: 0,
+        truncated: false,
+        summary: '없음.'
+      },
       '2026-03-15T00:00:00.000Z'
     );
     expect(cache.get()).not.toBeNull();

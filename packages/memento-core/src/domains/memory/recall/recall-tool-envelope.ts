@@ -3,7 +3,7 @@
  */
 
 import { mementoConfig } from '../../../shared/config/index.js';
-import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
+import { buildIntrospectionHint } from '../../../shared/constants/introspection-constants.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
@@ -253,14 +253,9 @@ export async function finalizeMemoryItemRecallEnvelope(
   if (includeMetadata && metaStats !== undefined) {
     resultObj.meta_stats = metaStats;
   }
-  const cachedScan = context.services?.introspectionScanCache?.get();
-  if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
-    resultObj.introspection_hint = {
-      summary: `${cachedScan.result.summary}${INTROSPECTION_HINT_SUFFIX}`,
-      low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
-      high_failure_count: cachedScan.result.highFailureMemoryIds.length,
-      scanned_at: cachedScan.scanned_at
-    };
+  const introspectionHint = buildIntrospectionHint(context.services?.introspectionScanCache?.get());
+  if (introspectionHint) {
+    resultObj.introspection_hint = introspectionHint;
   }
   const recallTelemetryLatency = Date.now() - searchStartTime;
   if (processedResults.length === 0) {

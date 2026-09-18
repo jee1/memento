@@ -122,4 +122,103 @@ describe('MetaMemoryIntrospectionService', () => {
     expect(result.highFailureMemoryIds).toContain('mem_high_fail');
     expect(result.summary).toBeDefined();
   });
+
+  /** T1: ID 목록 limit 절삭 시 총계·truncated·summary 반영 */
+  it('reports lowConfidenceTotal and truncated when ID list is capped by limit', async () => {
+    const truncDb = new Database(':memory:');
+    createBaseSchema(truncDb);
+    const migration = new MetaMemoryStatsSchemaMigration();
+    await migration.up(truncDb);
+
+    for (let i = 0; i < 5; i++) {
+      const id = `mem_low_trunc_${i}`;
+      truncDb.exec(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
+        VALUES ('${id}', 'episodic', 'Low conf ${i}', 0.5, 'private', CURRENT_TIMESTAMP, 0)
+      `);
+      truncDb.exec(`
+        INSERT INTO meta_memory_stats (
+          memory_id, recall_count, success_count, failure_count,
+          avg_confidence, last_recalled_at, created_at, updated_at
+        ) VALUES (
+          '${id}', 1, 0, 0, 0.1, datetime('now'), datetime('now'), datetime('now')
+        )
+      `);
+    }
+
+    const result = await MetaMemoryIntrospectionService.runScan(truncDb, { limit: 2 });
+
+    expect(result.lowConfidenceMemoryIds.length).toBe(2);
+    expect(result.lowConfidenceTotal).toBe(5);
+    expect(result.truncated).toBe(true);
+    expect(result.summary).toContain('저신뢰 메모리 5건');
+    expect(result.summary).not.toContain('저신뢰 메모리 2건');
+    expect(result.summary).toContain('(ID 목록은 상위 2건만 포함)');
+    truncDb.close();
+  });
+
+  /** T2: limit 이 충분하면 truncated false, summary 에 절삭 꼬리 없음 */
+  it('does not mark truncated when limit covers all matching rows', async () => {
+    const truncDb = new Database(':memory:');
+    createBaseSchema(truncDb);
+    const migration = new MetaMemoryStatsSchemaMigration();
+    await migration.up(truncDb);
+
+    for (let i = 0; i < 5; i++) {
+      const id = `mem_low_full_${i}`;
+      truncDb.exec(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
+        VALUES ('${id}', 'episodic', 'Low conf ${i}', 0.5, 'private', CURRENT_TIMESTAMP, 0)
+      `);
+      truncDb.exec(`
+        INSERT INTO meta_memory_stats (
+          memory_id, recall_count, success_count, failure_count,
+          avg_confidence, last_recalled_at, created_at, updated_at
+        ) VALUES (
+          '${id}', 1, 0, 0, 0.1, datetime('now'), datetime('now'), datetime('now')
+        )
+      `);
+    }
+
+    const result = await MetaMemoryIntrospectionService.runScan(truncDb, { limit: 10 });
+
+    expect(result.truncated).toBe(false);
+    expect(result.lowConfidenceTotal).toBe(5);
+    expect(result.lowConfidenceMemoryIds.length).toBe(5);
+    expect(result.summary).not.toContain('(ID 목록은');
+    truncDb.close();
+  });
+
+  /** T3: 고실패 축만 절삭돼도 truncated true */
+  it('sets truncated when only highFailureMemoryIds are capped', async () => {
+    const truncDb = new Database(':memory:');
+    createBaseSchema(truncDb);
+    const migration = new MetaMemoryStatsSchemaMigration();
+    await migration.up(truncDb);
+
+    for (let i = 0; i < 4; i++) {
+      const id = `mem_high_fail_trunc_${i}`;
+      truncDb.exec(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
+        VALUES ('${id}', 'episodic', 'High fail ${i}', 0.5, 'private', CURRENT_TIMESTAMP, 0)
+      `);
+      truncDb.exec(`
+        INSERT INTO meta_memory_stats (
+          memory_id, recall_count, success_count, failure_count,
+          avg_confidence, last_recalled_at, created_at, updated_at
+        ) VALUES (
+          '${id}', 10, 1, 3, 0.9, datetime('now'), datetime('now'), datetime('now')
+        )
+      `);
+    }
+
+    const result = await MetaMemoryIntrospectionService.runScan(truncDb, { limit: 1 });
+
+    expect(result.lowConfidenceMemoryIds).toEqual([]);
+    expect(result.lowConfidenceTotal).toBe(0);
+    expect(result.highFailureTotal).toBe(4);
+    expect(result.highFailureMemoryIds.length).toBe(1);
+    expect(result.truncated).toBe(true);
+    truncDb.close();
+  });
 });

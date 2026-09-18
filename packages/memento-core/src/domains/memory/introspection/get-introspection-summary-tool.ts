@@ -26,6 +26,9 @@ export class GetIntrospectionSummaryTool extends BaseTool {
         summary: '스캔 결과가 없습니다. meta_memory_introspection job이 실행된 후 다시 시도하세요.',
         lowConfidenceMemoryIds: [],
         highFailureMemoryIds: [],
+        lowConfidenceTotal: 0,
+        highFailureTotal: 0,
+        truncated: false,
         scanned_at: null
       });
     }
@@ -33,6 +36,9 @@ export class GetIntrospectionSummaryTool extends BaseTool {
       summary: cached.result.summary,
       lowConfidenceMemoryIds: cached.result.lowConfidenceMemoryIds,
       highFailureMemoryIds: cached.result.highFailureMemoryIds,
+      lowConfidenceTotal: cached.result.lowConfidenceTotal,
+      highFailureTotal: cached.result.highFailureTotal,
+      truncated: cached.result.truncated,
       scanned_at: cached.scanned_at
     });
   }
