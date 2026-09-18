@@ -157,24 +157,32 @@ describe('#998 벡터 레인 필터 적용', () => {
     expect(hybridIds).toEqual(['in-window']);
   });
 
-  it('created_at 공백·ISO 혼재 형식 모두 시간 창에 포함된다', async () => {
+  it('time_from/time_to 가 오프셋·밀리초 없는 형식이어도 시간 창에 포함된다', async () => {
     if (!vecAvailable) return;
     const database = await openDb();
-    insertMemory(database, 'space-fmt', '공백 형식', partiallyAlignedVector(0), {
-      created_at: '2025-09-23 01:10:19',
-    });
-    insertMemory(database, 'iso-fmt', 'ISO 형식', partiallyAlignedVector(1), {
+    insertMemory(database, 'iso-item', 'ISO 형식', partiallyAlignedVector(0), {
       created_at: '2025-09-23T02:10:19.000Z',
     });
 
-    const filters: MemorySearchFilters = {
+    const filtersOffset: MemorySearchFilters = {
+      time_from: '2025-09-23T09:00:00+09:00',
+      time_to: '2025-09-24T08:59:59+09:00',
+    };
+    const { knnIds: knnOffset, hybridIds: hybridOffset } = runBothLanes(
+      database,
+      filtersOffset,
+      10,
+    );
+    expect(knnOffset).toEqual(['iso-item']);
+    expect(hybridOffset).toEqual(['iso-item']);
+
+    const filtersNoMs: MemorySearchFilters = {
       time_from: '2025-09-23T00:00:00Z',
       time_to: '2025-09-23T23:59:59Z',
     };
-    const { knnIds, hybridIds } = runBothLanes(database, filters, 10);
-
-    expect(knnIds.sort()).toEqual(['iso-fmt', 'space-fmt']);
-    expect(hybridIds.sort()).toEqual(['iso-fmt', 'space-fmt']);
+    const { knnIds: knnNoMs, hybridIds: hybridNoMs } = runBothLanes(database, filtersNoMs, 10);
+    expect(knnNoMs).toEqual(['iso-item']);
+    expect(hybridNoMs).toEqual(['iso-item']);
   });
 
   it('pinned: true 이면 pinned 행만 반환한다', async () => {

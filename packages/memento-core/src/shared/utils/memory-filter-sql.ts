@@ -1,6 +1,16 @@
 import type { SqlParam } from '../types/memory.types.js';
 import type { MemorySearchFilters } from '../types/search.types.js';
 
+/**
+ * 시간 필터 파라미터를 저장 형식(ISO-8601 UTC, 밀리초 3자리)에 맞춘다.
+ * created_at 은 마이그레이션 047 이후 전부 이 형식이므로 문자열 비교가 성립하고
+ * idx_memory_item_created_at 인덱스를 탄다 (#1007). 파싱 불가 입력은 그대로 넘겨 기존 동작을 유지한다.
+ */
+function toIsoTimestampParam(value: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+}
+
 export interface MemoryFilterSqlOptions {
   /** memory_item 별칭 (예: 'm', 'mi', 'scoped_mi', 'scoped_m') */
   itemAlias: string;
@@ -51,16 +61,13 @@ export function buildMemoryFilterSql(
   }
 
   if (filters?.time_from) {
-    // ponytail: created_at 이 ISO 와 'YYYY-MM-DD HH:MM:SS' 두 형식으로 섞여 저장돼 있어
-    // 문자열 비교로는 24% 를 놓친다(#998). 인덱스를 살리려면 created_at 을 ISO 로 정규화하는
-    // 마이그레이션이 선행돼야 한다.
-    clauses.push(`julianday(${a}.created_at) >= julianday(?)`);
-    params.push(filters.time_from);
+    clauses.push(`${a}.created_at >= ?`);
+    params.push(toIsoTimestampParam(filters.time_from));
   }
 
   if (filters?.time_to) {
-    clauses.push(`julianday(${a}.created_at) <= julianday(?)`);
-    params.push(filters.time_to);
+    clauses.push(`${a}.created_at <= ?`);
+    params.push(toIsoTimestampParam(filters.time_to));
   }
 
   if (filters?.importance_min !== undefined) {

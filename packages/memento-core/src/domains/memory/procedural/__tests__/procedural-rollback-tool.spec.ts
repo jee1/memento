@@ -24,6 +24,7 @@ function createSchema(db: Database.Database): void {
       trigger_conditions TEXT,
       version INTEGER NULL,
       version_series_id TEXT NULL,
+      created_at TEXT,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT

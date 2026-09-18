@@ -24,6 +24,7 @@ function createSchema(db: Database.Database): void {
       trigger_conditions TEXT,
       version INTEGER NULL,
       version_series_id TEXT NULL,
+      created_at TEXT,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT
@@ -63,10 +64,11 @@ describe('procedural-rollback-service', () => {
     expect(newId).toBeDefined();
     expect(newId).toMatch(/^mem_\d+_[a-z0-9]+$/);
 
-    const row = DatabaseUtils.get(db, 'SELECT id, version, version_series_id, content FROM memory_item WHERE id = ?', [newId]) as { id: string; version: number; version_series_id: string; content: string };
+    const row = DatabaseUtils.get(db, 'SELECT id, version, version_series_id, content, created_at FROM memory_item WHERE id = ?', [newId]) as { id: string; version: number; version_series_id: string; content: string; created_at: string };
     expect(row.version).toBe(4);
     expect(row.version_series_id).toBe('series-a');
     expect(row.content).toBe('V1 content');
+    expect(row.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
 
     const link = DatabaseUtils.get(db, 'SELECT source_id, target_id, relation_type FROM memory_link WHERE source_id = ?', [newId]) as { source_id: string; target_id: string; relation_type: string };
     expect(link.target_id).toBe('proc-v1');

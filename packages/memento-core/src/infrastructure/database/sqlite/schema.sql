@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS memory_item (
   content TEXT NOT NULL,
   importance REAL CHECK (importance >= 0 AND importance <= 1) DEFAULT 0.5,
   privacy_scope TEXT CHECK (privacy_scope IN ('private','team','public')) DEFAULT 'private',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- ponytail: DEFAULT 변경은 신규 DB에만 적용(SQLite는 기존 테이블 DEFAULT 소급 변경 불가). 기존 DB는 writer·마이그레이션 047로 정규화.
+  created_at TIMESTAMP DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   last_accessed TIMESTAMP,
   pinned BOOLEAN DEFAULT FALSE,
   tags TEXT, -- JSON 배열로 저장
