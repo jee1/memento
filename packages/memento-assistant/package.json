@@ -1,6 +1,6 @@
 {
   "name": "@jee1/memento-assistant",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Memento SDK for external personal AI assistants (auto-recall + auto-save backend)",
   "type": "module",
   "main": "dist/index.js",
