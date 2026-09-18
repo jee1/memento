@@ -150,11 +150,11 @@ export class GetMetaMemoryStatsTool extends BaseTool {
       };
       // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
       const cachedScan = context.services?.introspectionScanCache?.get();
-      if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
+      if (cachedScan && (cachedScan.result.lowConfidenceTotal > 0 || cachedScan.result.highFailureTotal > 0)) {
         resultObj.introspection_hint = {
           summary: `${cachedScan.result.summary}${INTROSPECTION_HINT_SUFFIX}`,
-          low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
-          high_failure_count: cachedScan.result.highFailureMemoryIds.length,
+          low_confidence_count: cachedScan.result.lowConfidenceTotal,
+          high_failure_count: cachedScan.result.highFailureTotal,
           scanned_at: cachedScan.scanned_at
         };
       }

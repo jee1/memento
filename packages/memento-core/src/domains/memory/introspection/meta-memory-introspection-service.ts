@@ -27,6 +27,12 @@ export interface MetaMemoryIntrospectionScanResult {
   lowConfidenceMemoryIds: string[];
   /** 고실패 메모리 ID 목록 (failure_count >= 임계값) */
   highFailureMemoryIds: string[];
+  /** 저신뢰 메모리 총 건수 (LIMIT 과 무관한 실제 개수) */
+  lowConfidenceTotal: number;
+  /** 고실패 메모리 총 건수 (LIMIT 과 무관한 실제 개수) */
+  highFailureTotal: number;
+  /** ID 목록이 limit 에 잘렸는지 여부 */
+  truncated: boolean;
   /** 요약 문자열 (에이전트/도구 표시용) */
   summary: string;
 }
@@ -95,23 +101,42 @@ export class MetaMemoryIntrospectionService {
         limit
       ) as { memory_id: string }[];
       highFailureMemoryIds.push(...highFailRows.map((r) => r.memory_id));
+
+      const lowTotal = (
+        db.prepare(
+          `SELECT count(*) AS c FROM meta_memory_stats WHERE avg_confidence < ?`
+        ).get(lowConfidenceThreshold) as { c: number }
+      ).c;
+      const highFailTotal = (
+        db.prepare(
+          `SELECT count(*) AS c FROM meta_memory_stats WHERE failure_count >= ?`
+        ).get(highFailureCountThreshold) as { c: number }
+      ).c;
+
+      const truncated =
+        lowConfidenceMemoryIds.length < lowTotal ||
+        highFailureMemoryIds.length < highFailTotal;
+
+      const summary =
+        `저신뢰 메모리 ${lowTotal}건, 고실패 메모리 ${highFailTotal}건. ` +
+        (lowTotal > 0 || highFailTotal > 0
+          ? '재검토 또는 최신 정보 반영을 권장합니다.'
+          : '현재 플래그할 메모리가 없습니다.') +
+        (truncated ? ` (ID 목록은 상위 ${limit}건만 포함)` : '');
+
+      return {
+        lowConfidenceMemoryIds,
+        highFailureMemoryIds,
+        lowConfidenceTotal: lowTotal,
+        highFailureTotal: highFailTotal,
+        truncated,
+        summary
+      };
     } catch (err) {
       logger.error('MetaMemoryIntrospectionService: runScan 실패', {
         error: err instanceof Error ? err.message : String(err)
       });
       throw err;
     }
-
-    const summary =
-      `저신뢰 메모리 ${lowConfidenceMemoryIds.length}건, 고실패 메모리 ${highFailureMemoryIds.length}건. ` +
-      (lowConfidenceMemoryIds.length > 0 || highFailureMemoryIds.length > 0
-        ? '재검토 또는 최신 정보 반영을 권장합니다.'
-        : '현재 플래그할 메모리가 없습니다.');
-
-    return {
-      lowConfidenceMemoryIds,
-      highFailureMemoryIds,
-      summary
-    };
   }
 }

@@ -39,6 +39,9 @@ describe('GetIntrospectionSummaryTool', () => {
     const scanResult = {
       lowConfidenceMemoryIds: ['mem_low1'],
       highFailureMemoryIds: ['mem_high1', 'mem_high2'],
+      lowConfidenceTotal: 1,
+      highFailureTotal: 2,
+      truncated: false,
       summary: '저신뢰 메모리 1건, 고실패 메모리 2건.'
     };
     cache.set(scanResult, '2026-03-15T12:00:00.000Z');
@@ -49,5 +52,25 @@ describe('GetIntrospectionSummaryTool', () => {
     expect(parsed.lowConfidenceMemoryIds).toEqual(scanResult.lowConfidenceMemoryIds);
     expect(parsed.highFailureMemoryIds).toEqual(scanResult.highFailureMemoryIds);
     expect(parsed.scanned_at).toBe('2026-03-15T12:00:00.000Z');
+  });
+
+  /** T4: 캐시의 총계·truncated 필드가 응답에 그대로 실림 */
+  it('returns lowConfidenceTotal, highFailureTotal, and truncated from cache', async () => {
+    const scanResult = {
+      lowConfidenceMemoryIds: ['a'],
+      highFailureMemoryIds: [],
+      lowConfidenceTotal: 2212,
+      highFailureTotal: 0,
+      truncated: true,
+      summary: '저신뢰 메모리 2212건, 고실패 메모리 0건. 재검토 또는 최신 정보 반영을 권장합니다. (ID 목록은 상위 1000건만 포함)'
+    };
+    cache.set(scanResult, '2026-09-18T10:53:27.032Z');
+    const context = { db: null as any, services: { introspectionScanCache: cache } } as ToolContext;
+    const result = await tool.handle({}, context);
+    const parsed = JSON.parse(result.content[0]!.text);
+    expect(parsed.lowConfidenceTotal).toBe(2212);
+    expect(parsed.highFailureTotal).toBe(0);
+    expect(parsed.truncated).toBe(true);
+    expect(parsed.lowConfidenceMemoryIds).toEqual(['a']);
   });
 });
