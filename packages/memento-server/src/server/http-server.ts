@@ -28,7 +28,8 @@ import { existsSync, readFileSync } from 'fs';
 import helmet from 'helmet';
 import { createServer, type Server } from 'http';
 import { createRequire } from 'module';
-import { join } from 'path';
+import { join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import {
   injectReviewQueueBootIntoDashboardHtml,
   resolveReviewQueueDashboardBootFromEnv
@@ -632,3 +633,17 @@ export const __test: {
   getEmbeddingService: () => serverServices!.embeddingService,
   isProtectedMcpProgrammaticPath
 };
+
+// 이 파일은 라이브러리 모듈이자 실행 진입점이다.
+// bin `memento-dev` 와 `start:http` · `dev:http` 가 이 파일을 직접 실행한다.
+// index.ts 와 같은 판별식을 쓴다 — 직접 실행일 때만 서버를 띄우고,
+// index.ts 가 TRANSPORT_TYPE=sse 로 import 할 때나 테스트가 import 할 때는 띄우지 않는다.
+const currentFile = fileURLToPath(import.meta.url);
+const entryScriptPath = process.argv[1] || '';
+if (entryScriptPath !== '' && currentFile === resolve(entryScriptPath)) {
+  startServer().catch((error: unknown) => {
+    const err = error instanceof Error ? error : new Error(String(error));
+    process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
+    process.exit(1);
+  });
+}
