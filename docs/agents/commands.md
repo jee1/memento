@@ -128,7 +128,11 @@ npm run db:residue -- cleanup-embeddings --apply      # dimensions=0 삭제
 npm run db:vacuum                 # DELETE 후 VACUUM (before/after/reclaimed JSON)
 npm run docker:build              # 이미지 빌드
 npm run docker:up                 # 컨테이너 기동
+npm run docker:logs               # 컨테이너 로그 추적
+npm run docker:down               # 컨테이너 삭제 — 아래 주의 참고
 ```
+
+> **`docker:down` 주의.** 네 `docker:*` 스크립트는 저장소 루트의 `docker-compose.yml` 에 작용합니다. 이 파일은 운영 배포 설정이고 Compose 프로젝트 이름은 디렉터리명인 `memento` 입니다. 즉 `npm run docker:down` 은 **운영 컨테이너를 정지가 아니라 삭제**합니다. 정식 배포 절차는 `down` 대신 `docker compose stop memento-mcp-server` 를 씁니다. DB 와 로그는 호스트 바인드 마운트(`$HOME/.memento/data`, `$HOME/.memento/logs`)라 삭제해도 남지만, 재기동 전까지 서비스는 내려갑니다.
 
 `db:backup`의 무인자 JSON 성공 출력은 기존 계약을 유지합니다. `db:backup:cleanup`은 기본이 preview라 파일을 지우지 않고, `-- --apply`를 명시해야 삭제합니다. Apply 전에는 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 모두 중지하세요. `DB_PATH`는 프로덕션에서 절대 경로를 쓰고, 환경 변수 안의 `~`는 확장되지 않습니다. Cleanup은 non-zero operator 백업을 보존하고, 실패 보고에는 절대 DB 경로나 백업 디렉터리를 싣지 않습니다.
 
