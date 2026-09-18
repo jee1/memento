@@ -41,6 +41,46 @@ jobs:
       - name: Native dependency smoke
         run: docker run --rm --entrypoint node memento-ci:smoke /app/scripts/docker-smoke.mjs
 
+      # 이미지를 compose 없이 그대로 띄워 EXPOSE·HEALTHCHECK·CMD 가 실제 동작과 맞는지 본다 (#1012).
+      # compose 가 PORT·DB_PATH·TRANSPORT_TYPE·MEMENTO_HTTP_BIND_HOST 를 전부 덮어써서
+      # 이미지 단독으로는 기동조차 못 하던 상태가 가려져 있었다.
+      - name: Standalone boot refuses a non-loopback bind without an API token
+        run: |
+          if out=$(docker run --rm memento-ci:smoke 2>&1); then
+            echo "::error::0.0.0.0 바인딩인데 토큰 없이 기동에 성공했다 (fail-closed 회귀)"
+            echo "$out"
+            exit 1
+          fi
+          if ! echo "$out" | grep -q "programmatic API 토큰이 없습니다"; then
+            echo "::error::기동은 거부됐지만 사유가 바인드 정책이 아니다"
+            echo "$out"
+            exit 1
+          fi
+          echo "토큰 없는 기동이 바인드 정책으로 거부됨 (예상 동작)"
+
+      - name: Standalone container boot
+        run: |
+          docker run -d --name memento-boot -e ADMIN_API_KEY=ci-smoke memento-ci:smoke
+          status=unknown
+          for i in $(seq 1 18); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' memento-boot)
+            if [ "$status" = "healthy" ]; then
+              echo "healthy after ~$((i * 10))s"
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              break
+            fi
+            sleep 10
+          done
+          echo "::error::컨테이너가 healthy 가 되지 않았다 (status=$status)"
+          docker logs memento-boot
+          exit 1
+
+      - name: Cleanup standalone container
+        if: always()
+        run: docker rm -f memento-boot 2>/dev/null || true
+
       - name: Image size
         if: always()
         run: |

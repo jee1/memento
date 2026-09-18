@@ -508,7 +508,7 @@ export async function startServer(deps?: HttpServerDependencies): Promise<Server
   // DB·스케줄러 기동 전에 설정·보안 정책을 검사해 실패 시 리소스가 남지 않게 한다.
   validateConfig();
 
-  const PORT = mementoConfig.port ?? 9001;
+  const PORT = mementoConfig.port;
   const bindHostRaw = (mementoConfig.httpListenHost || '127.0.0.1').trim();
   const bindHostListen = canonicalizeHttpBindHostForListen(bindHostRaw);
   const bindHostForUrl = formatHttpBindHostForUrl(bindHostRaw);
