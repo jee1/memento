@@ -78,6 +78,15 @@ RUN npm ci --omit=dev --ignore-scripts && \
     cp /app/node_modules/sqlite-vec-linux-x64/vec0.so /usr/lib/vec0 && \
     chmod +x /usr/lib/vec0 && \
     ls -la /usr/lib/vec0 && \
+    # 이 이미지(linux/glibc/x64)에서 절대 로드될 수 없는 플랫폼 바이너리를 제거한다 (#995, 약 240MB).
+    # npm 이 lockfile 에 libc 필드를 기록하지 않아 musl 변종이 걸러지지 않는다 — npm 쪽 문제라 여기서 지운다.
+    # sharp: dist/sharp.cjs 의 switch(runtimePlatform) 가 linux-x64 case 만 타므로 linuxmusl-* 는 도달 불가.
+    # onnxruntime-node: dist/binding.js 가 bin/napi-v6/${process.platform}/${process.arch} 를 require 하므로
+    # darwin/win32 디렉터리는 도달 불가.
+    rm -rf /app/node_modules/@img/sharp-linuxmusl-x64 \
+           /app/node_modules/@img/sharp-libvips-linuxmusl-x64 \
+           /app/node_modules/onnxruntime-node/bin/napi-v6/darwin \
+           /app/node_modules/onnxruntime-node/bin/napi-v6/win32 && \
     npm cache clean --force && \
     if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
       echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: MiniLM cache warmup skipped'; \
