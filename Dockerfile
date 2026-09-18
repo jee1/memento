@@ -127,7 +127,7 @@ USER memento
 #   PORT                   코드 기본 3000 (environment.ts:17 MCP_SERVER_PORT) ≠ EXPOSE/HEALTHCHECK 9001
 #   DB_PATH                코드 기본 ~/.memento/memory.db — memento 사용자는 홈 디렉터리가 없어 기동 실패
 #   TRANSPORT_TYPE         코드 기본 stdio — start-container.sh 는 HTTP 서버를 띄운다
-#   MEMENTO_HTTP_BIND_HOST 코드 기본 127.0.0.1 — -p 로내도 컨테이너 밖에서 도달 불가
+#   MEMENTO_HTTP_BIND_HOST 코드 기본 127.0.0.1 — -p 로 내보내도 컨테이너 밖에서 도달 불가
 # compose 는 이 값들을 그대로 override 한다. 0.0.0.0 바인딩은 API 토큰이 없으면 기동이 거부되므로
 # (shared/http/http-bind-policy.ts) 무인증 노출로 이어지지 않는다.
 ENV PORT=9001
