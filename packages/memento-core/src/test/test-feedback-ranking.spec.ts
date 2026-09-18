@@ -68,6 +68,20 @@ describe('test-feedback-ranking (T033)', () => {
         dim: 384,
       });
 
+      // created_at 이 이 테스트의 랭킹 순서를 결정한다.
+      // 본문이 같으면 fts_rank 가 동점이라 search-engine-sql-builder.ts:125 의
+      // `ORDER BY fts_rank ASC, m.created_at DESC` 가 순서를 정하고,
+      // 나중에 처리되는 행만 MMR 중복 페널티(search-engine-ranking.ts:115)를 받는다.
+      // createTestMemory 는 created_at 을 받지 않아 DEFAULT(#1007 이후 밀리초 정밀도)에 맡기므로,
+      // 고정하지 않으면 두 INSERT 가 밀리초 경계를 넘는지에 따라 순서가 뒤집힌다.
+      const baseTs = Date.now();
+      const setCreatedAt = (id: string, ms: number) =>
+        db
+          .prepare('UPDATE memory_item SET created_at = ? WHERE id = ?')
+          .run(new Date(ms).toISOString(), id);
+      setCreatedAt('mem_rank_a', baseTs);     // 더 최근 → 1등, 중복 페널티 없음
+      setCreatedAt('mem_rank_b', baseTs - 1); // 2등 → 중복 페널티를 받는 쪽
+
       const tool = new RecallTool();
       const context = {
         db,
@@ -105,10 +119,12 @@ describe('test-feedback-ranking (T033)', () => {
       const idxA2 = items2.findIndex((i) => (i.memory_id ?? i.id) === 'mem_rank_a');
       const idxB2 = items2.findIndex((i) => (i.memory_id ?? i.id) === 'mem_rank_b');
 
-      expect(idxB1).toBeGreaterThanOrEqual(0);
-      expect(idxB2).toBeGreaterThanOrEqual(0);
-      expect(idxB2).toBeLessThan(idxB1);
-      expect(idxB2).toBeLessThan(5);
+      // 픽스처가 순서를 고정하므로 결정적이다.
+      // idxB1 을 먼저 확인해야, 픽스처가 다시 깨졌을 때
+      // `expected 0 to be less than 0` 대신 원인이 드러나는 실패 메시지가 나온다.
+      expect(idxB1).toBe(1);
+      expect(idxB2).toBe(0);
+      expect(idxA2).toBe(1);
     },
     60_000
   );
