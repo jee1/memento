@@ -69,24 +69,28 @@ COPY --from=builder /app/package*.json ./
 # better-sqlite3: try prebuilt binaries first (much faster), fallback to source compile
 # MiniLM warmup pulls the multilingual model (#889): q8 onnx is ~118MB vs ~23MB for the old
 # English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
-# sqlite-vec: build from source (no reliable prebuilts), copy .so to /usr/lib/
+# sqlite-vec: prebuilt vec0.so ships in the sqlite-vec-linux-x64 optional package (no build step), copy .so to /usr/lib/
 ARG SKIP_TRANSFORMERS_WARMUP=0
 RUN npm ci --omit=dev --ignore-scripts && \
     (npm rebuild better-sqlite3 2>/dev/null || npm rebuild better-sqlite3 --build-from-source) && \
-    npm install sqlite-vec --build-from-source && \
     find /app/node_modules -name "*.so" -type f && \
     cp /app/node_modules/sqlite-vec-linux-x64/vec0.so /usr/lib/vec0 && \
     chmod +x /usr/lib/vec0 && \
     ls -la /usr/lib/vec0 && \
-    # 이 이미지(linux/glibc/x64)에서 절대 로드될 수 없는 플랫폼 바이너리를 제거한다 (#995, 약 240MB).
+    # 이 이미지(linux/glibc/x64)에서 절대 로드될 수 없는 플랫폼 바이너리를 제거한다 (#995 240MB, #1016 141MB).
     # npm 이 lockfile 에 libc 필드를 기록하지 않아 musl 변종이 걸러지지 않는다 — npm 쪽 문제라 여기서 지운다.
     # sharp: dist/sharp.cjs 의 switch(runtimePlatform) 가 linux-x64 case 만 타므로 linuxmusl-* 는 도달 불가.
     # onnxruntime-node: dist/binding.js 가 bin/napi-v6/${process.platform}/${process.arch} 를 require 하므로
     # darwin/win32 디렉터리는 도달 불가.
+    # onnxruntime-web: node 진입점은 exports.node 가 가리키는 dist/transformers.node.mjs 이고, 이 번들은
+    # requireFromHere("onnxruntime-node") 만 부른다. webgpu 런타임은 번들에 인라인돼 있어 'onnxruntime-web'
+    # 모듈 지정자는 src/ 와 dist/transformers.web.js 에만 남는데 둘 다 exports 맵에 서브패스가 없어 도달 불가.
+    # onnxruntime-common 은 실제로 import 되므로 남긴다.
     rm -rf /app/node_modules/@img/sharp-linuxmusl-x64 \
            /app/node_modules/@img/sharp-libvips-linuxmusl-x64 \
            /app/node_modules/onnxruntime-node/bin/napi-v6/darwin \
-           /app/node_modules/onnxruntime-node/bin/napi-v6/win32 && \
+           /app/node_modules/onnxruntime-node/bin/napi-v6/win32 \
+           /app/node_modules/onnxruntime-web && \
     npm cache clean --force && \
     if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
       echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: MiniLM cache warmup skipped'; \
