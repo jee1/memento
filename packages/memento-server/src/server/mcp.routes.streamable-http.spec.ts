@@ -4,6 +4,8 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
+import packageJson from '../../package.json' with { type: 'json' };
 
 async function listenWithMcpRouter(): Promise<{ port: number; close: () => Promise<void> }> {
   const { createMcpRouter } = await import('./routes/mcp.routes.js');
@@ -158,13 +160,15 @@ describe('mcp.routes streamable_http', () => {
         jsonrpc: '2.0',
         id: 1,
         result: {
-          protocolVersion: '2024-11-05',
+          protocolVersion: LATEST_PROTOCOL_VERSION,
           capabilities: {
-            tools: {}
+            tools: {},
+            resources: {},
+            prompts: {}
           },
           serverInfo: {
-            name: 'memento-memory',
-            version: '0.1.0'
+            name: 'memento-mcp-server',
+            version: packageJson.version
           }
         }
       });
@@ -365,4 +369,82 @@ describe('mcp.routes streamable_http', () => {
   });
 
 
+});
+
+/**
+ * #840 Phase 0: initialize 응답이 서버의 실제 상태를 말해야 한다.
+ * era 분기·_meta·server/discover 는 이 이슈의 다음 단계이고 여기 없다.
+ */
+describe('#840 Phase 0 initialize parity', () => {
+  it('클라이언트가 요청한 버전을 지원하면 그대로 돌려준다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 7,
+        method: 'initialize',
+        params: { protocolVersion: '2024-11-05' }
+      });
+      const body = JSON.parse(res.body) as { result: { protocolVersion: string } };
+      expect(body.result.protocolVersion).toBe('2024-11-05');
+    } finally {
+      await close();
+    }
+  });
+
+  it('지원하지 않는 버전을 요청하면 서버가 지원하는 최신 버전으로 답한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 8,
+        method: 'initialize',
+        params: { protocolVersion: '1999-01-01' }
+      });
+      const body = JSON.parse(res.body) as { result: { protocolVersion: string } };
+      expect(body.result.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+    } finally {
+      await close();
+    }
+  });
+
+  it('HTTP 가 실제로 서빙하는 prompts·resources 를 capability 로 광고한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 9,
+        method: 'initialize',
+        params: {}
+      });
+      const body = JSON.parse(res.body) as {
+        result: { capabilities: Record<string, unknown> };
+      };
+      expect(Object.keys(body.result.capabilities).sort()).toEqual([
+        'prompts',
+        'resources',
+        'tools'
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it('logging 은 HTTP 에 핸들러가 없으므로 광고하지 않는다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 10,
+        method: 'initialize',
+        params: {}
+      });
+      const body = JSON.parse(res.body) as {
+        result: { capabilities: Record<string, unknown> };
+      };
+      expect(body.result.capabilities).not.toHaveProperty('logging');
+    } finally {
+      await close();
+    }
+  });
 });
