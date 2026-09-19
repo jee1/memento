@@ -9,6 +9,7 @@
   const STATUS_URL = '/admin/status';
   const LS_COLLAPSED = 'memento_ops_strip_collapsed_v1';
   const EMPTY = '—';
+  const RECENT_FAILURE_MS = 24 * 60 * 60 * 1000;
 
   function $(id) {
     return global.document.getElementById(id);
@@ -62,13 +63,27 @@
     return hh + ':' + mm;
   }
 
+  // batchImpact.status only says whether the aggregate query succeeded (#1054).
+  // Severity comes from recency instead: the 30-day window would otherwise keep
+  // a single transient failure lit for a month.
+  function failedDotStatus(batchImpact) {
+    if (!batchImpact || batchImpact.status !== 'ok') {
+      return 'unavailable';
+    }
+    const last = batchImpact.lastFailedAt ? new Date(batchImpact.lastFailedAt) : null;
+    if (!last || isNaN(last.getTime())) {
+      return 'ok';
+    }
+    return Date.now() - last.getTime() <= RECENT_FAILURE_MS ? 'degraded' : 'ok';
+  }
+
   function render(data) {
     setValue('ops-strip-embedding', String(data.embedding.problemCount) + '건');
     setDot('ops-strip-embedding-dot', data.embedding.status);
     setValue('ops-strip-review', String(data.review.pendingTotal) + '건');
     setDot('ops-strip-review-dot', data.review.status);
     setValue('ops-strip-failed', String(data.batchImpact.failedRunCount) + '건');
-    setDot('ops-strip-failed-dot', data.batchImpact.status);
+    setDot('ops-strip-failed-dot', failedDotStatus(data.batchImpact));
     setValue('ops-strip-now', formatClock(data.timestamp));
     setDot('ops-strip-now-dot', data.process.status);
   }
