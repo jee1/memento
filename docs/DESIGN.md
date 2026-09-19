@@ -70,7 +70,8 @@
 - Color:
   - Legacy (to retire from chrome): `--color-brand-gradient` full-bleed header (`#667eea`→`#764ba2`).
   - Target (**quiet admin**, decided): `.m-header` / dashboard chrome = `--color-bg-card` (or near-neutral) + `--color-border-light`; text `--color-text-main`; primary actions may keep a restrained accent token (redefine primary away from “AI purple” when tokens change — prefer slate/ink + one functional accent, e.g. info/anchor-c family, not purple gradient).
-  - Keep: memory-type colors; anchor A/B/C; graph dark specialized palette.
+  - Keep: memory-type colors; anchor A/B/C; graph dark specialized palette (dual theme decided as option A, #1026).
+  - Dark surfaces are scoped, not global: `.graph-view--embedded` redefines `--color-*-graph` to the light neutral tokens for the dashboard iframe. Add new graph chrome as a token, never as a literal, so that override keeps working.
 - Typography: `--font-family-base` system stack (admin OK). Hierarchy via `--font-size-*` + weight, not decorative fonts.
 - Spacing/layout rhythm: `--spacing-xs`…`--xl`; prefer token gaps over raw rem in new CSS.
 - Shape/radius/elevation: `--radius-sm|md|lg`; `--shadow-sm|md` sparingly (cards only; header prefers border over heavy shadow).
@@ -143,4 +144,6 @@
 - [x] Locale → **KO-first** (2026-09-12)
 - [x] Default landing tab → **Anchor Map** (2026-09-12)
 - [x] Tab IA → **Spatial / Ops / Learn** grouped nav (#967); toolbar More (#968) (2026-09-12)
-- [ ] Dual theme: keep light dashboard / dark graph forever, or plan unified theme later? / owner: eng / impact: graph embed tokens
+- [x] Dual theme → **keep the split (option A)** (2026-09-19, #1026). `/graph` is a specialized dark canvas; `/dashboard` stays light. The `--color-graph-*` block is the sanctioned second palette, not drift.
+  - Mechanism: `.graph-view--embedded` (`static/graph.html`) already redefines the graph tokens to the light neutral tokens at a scope root, so the embedded canvas and the standalone page share one stylesheet with two palettes. A future unified theme would reuse this same scope-root technique, not replace it.
+  - Revisit when: someone asks for a dark dashboard, or a third surface needs the same palette. Until then the migration cost (semantic-token migration of `dashboard.css`, dark memory-type palette validation, theme toggle + persistence, `/graph` chrome spec updates) buys nothing.
