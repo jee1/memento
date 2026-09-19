@@ -27,6 +27,7 @@ import {
   recordManualBatchRunSuccess,
 } from '../../batch-run-history.js';
 import { broadcastReviewCandidatesChanged } from '../../review-candidates-changed-fanout.js';
+import { formatDurationHumanKo } from './admin-status-service.js';
 
 /** Issue #833: JobRunRow (snake_case, DB shape) → wire response shape (camelCase). */
 function toJobRunResponse(row: JobRunRow): Record<string, unknown> {
@@ -204,6 +205,7 @@ export function registerAdminBatchRoutes(
           queueSize: detailed.health.queueSize,
           errorRate: detailed.health.errorRate,
           uptime: detailed.health.uptime,
+          uptimeHuman: formatDurationHumanKo(detailed.health.uptime),
         },
         jobs,
         queue: {

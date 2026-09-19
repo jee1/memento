@@ -52,7 +52,7 @@
 - Primary navigation: Top tab bar (`.m-tab-bar`) after header.
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
-  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
+  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
   - `/graph` standalone dark graph (session-gated)
 - Content hierarchy (target):
   1. Session chrome (collapsed when signed in)

@@ -29,19 +29,20 @@
       return;
     }
     const h = health || {};
-    el.textContent =
-      '스케줄러: ' +
-      (schedulerRunning ? '실행 중' : '중지') +
-      ' · runningJobs=' +
-      ns.formatNumber(h.runningJobs) +
-      ' · queueSize=' +
-      ns.formatNumber(h.queueSize) +
-      ' · errorRate=' +
-      ns.formatRate(h.errorRate) +
-      ' · uptimeMs=' +
-      ns.formatNumber(h.uptime) +
-      ' · memory%=' +
-      (typeof h.memoryUsage === 'number' ? h.memoryUsage.toFixed(1) : '—');
+    const uptimeText =
+      typeof h.uptimeHuman === 'string' ? '가동 ' + h.uptimeHuman : '가동 —';
+    const memoryText =
+      typeof h.memoryUsage === 'number'
+        ? '메모리 ' + h.memoryUsage.toFixed(1) + '%'
+        : '메모리 —';
+    el.textContent = [
+      schedulerRunning ? '스케줄러 실행 중' : '스케줄러 중지',
+      uptimeText,
+      '실행 작업 ' + ns.formatNumber(h.runningJobs) + '건',
+      '대기 ' + ns.formatNumber(h.queueSize) + '건',
+      '오류율 ' + ns.formatRate(h.errorRate),
+      memoryText,
+    ].join(' · ');
   };
 
   ns.renderSchedule = function (jobs) {
