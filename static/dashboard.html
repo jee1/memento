@@ -60,6 +60,7 @@
       </div>
       <div class="m-nav-group session-only" role="presentation">
         <span class="m-nav-group__label" aria-hidden="true">운영</span>
+        <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
         <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
         <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
         <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
@@ -228,6 +229,57 @@
         class="dashboard-graph-iframe"
         title="기억 관계 그래프 (GET /graph)"
       ></iframe>
+    </div>
+
+    <div id="tab-ops-status" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-ops-status" aria-hidden="true">
+      <div class="ops-status-layout">
+        <header class="ops-status-header">
+          <div class="ops-status-header-text">
+            <h2 class="ops-status-title">운영 상태</h2>
+            <p class="ops-status-intro">서버·배치·검토·임베딩 상태를 한 화면에서 확인합니다. 수동 새로고침만 지원합니다.</p>
+          </div>
+          <button type="button" id="ops-status-refresh-btn" class="m-button m-button--secondary">새로고침</button>
+        </header>
+        <div id="ops-status-loading" class="m-loading hidden" aria-live="polite">운영 상태 불러오는 중…</div>
+        <div id="ops-status-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
+        <section id="ops-status-card-system" class="ops-status-card" aria-labelledby="ops-status-system-heading">
+          <h3 id="ops-status-system-heading">시스템</h3>
+          <dl class="ops-status-dl">
+            <dt>프로세스 가동</dt>
+            <dd><span id="ops-status-process-uptime">—</span></dd>
+            <dt>스케줄러</dt>
+            <dd><span id="ops-status-scheduler">—</span></dd>
+            <dt>데이터베이스</dt>
+            <dd><span id="ops-status-database">—</span></dd>
+            <dt>버전</dt>
+            <dd><span id="ops-status-version">—</span></dd>
+          </dl>
+        </section>
+        <section id="ops-status-card-batch" class="ops-status-card" aria-labelledby="ops-status-batch-heading">
+          <h3 id="ops-status-batch-heading">배치 영향 <span class="ops-status-window">최근 30일</span></h3>
+          <dl class="ops-status-dl">
+            <dt>실패 실행</dt>
+            <dd><span id="ops-status-batch-failed">—</span></dd>
+            <dt title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">실패 소요 시간 합</dt>
+            <dd><span id="ops-status-batch-impact" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">—</span></dd>
+            <dt>성공 실행</dt>
+            <dd><span id="ops-status-batch-success">—</span></dd>
+            <dt>마지막 실패</dt>
+            <dd><span id="ops-status-batch-now">—</span></dd>
+          </dl>
+        </section>
+        <section id="ops-status-card-flow" class="ops-status-card" aria-labelledby="ops-status-flow-heading">
+          <h3 id="ops-status-flow-heading">흐름</h3>
+          <dl class="ops-status-dl">
+            <dt>검토 대기</dt>
+            <dd><span id="ops-status-review-pending">—</span></dd>
+            <dt>검토 1시간 순변</dt>
+            <dd><span id="ops-status-review-netflow">—</span></dd>
+            <dt>임베딩 문제</dt>
+            <dd><span id="ops-status-embedding">—</span></dd>
+          </dl>
+        </section>
+      </div>
     </div>
 
     <div id="tab-review-candidates" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-review" aria-hidden="true">
@@ -719,6 +771,7 @@
   <script src="/static/js/review-candidates-panel-health.js"></script>
   <script src="/static/js/review-candidates-panel-bulk.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
+  <script src="/static/js/ops-status-panel.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>
   <script src="/static/js/jobs-panel-render.js"></script>
   <script src="/static/js/jobs-panel-fetch.js"></script>

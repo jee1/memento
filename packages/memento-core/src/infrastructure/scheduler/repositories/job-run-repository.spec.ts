@@ -197,3 +197,96 @@ describe('appendJobRunSafe', () => {
     }
   });
 });
+
+describe('JobRunRepository.aggregateFailedDurationSince', () => {
+  let db: Database.Database;
+  let repo: JobRunRepository;
+
+  beforeEach(async () => {
+    db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    repo = new JobRunRepository();
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('aggregates failed duration and success count within the window', () => {
+    const since = '2026-09-01T00:00:00.000Z';
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-10T00:00:00.000Z',
+      ended_at: '2026-09-10T00:05:00.000Z',
+      success: true,
+      duration_ms: 1000,
+    });
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-11T00:00:00.000Z',
+      ended_at: '2026-09-11T00:05:00.000Z',
+      success: true,
+      duration_ms: 2000,
+    });
+    repo.append(db, {
+      job_name: 'monitoring',
+      trigger: 'schedule',
+      started_at: '2026-09-12T00:00:00.000Z',
+      ended_at: '2026-09-12T00:05:00.000Z',
+      success: false,
+      duration_ms: 300_000,
+    });
+    repo.append(db, {
+      job_name: 'monitoring',
+      trigger: 'schedule',
+      started_at: '2026-09-13T00:00:00.000Z',
+      ended_at: '2026-09-13T00:07:00.000Z',
+      success: false,
+      duration_ms: 420_000,
+    });
+
+    const aggregate = repo.aggregateFailedDurationSince(db, since);
+    expect(aggregate.failedRunCount).toBe(2);
+    expect(aggregate.durationMsSum).toBe(720_000);
+    expect(aggregate.successRunCount).toBe(2);
+    expect(aggregate.lastFailedAt).toBe('2026-09-13T00:00:00.000Z');
+    expect(aggregate.dataSince).toBe('2026-09-10T00:00:00.000Z');
+  });
+
+  it('returns zeros and nulls on an empty table', () => {
+    const aggregate = repo.aggregateFailedDurationSince(db, '2026-09-01T00:00:00.000Z');
+    expect(aggregate.failedRunCount).toBe(0);
+    expect(aggregate.durationMsSum).toBe(0);
+    expect(aggregate.successRunCount).toBe(0);
+    expect(aggregate.lastFailedAt).toBeNull();
+    expect(aggregate.dataSince).toBeNull();
+  });
+
+  it('excludes failures older than since', () => {
+    const since = '2026-09-15T00:00:00.000Z';
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-10T00:00:00.000Z',
+      ended_at: '2026-09-10T00:05:00.000Z',
+      success: false,
+      duration_ms: 300_000,
+    });
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-16T00:00:00.000Z',
+      ended_at: '2026-09-16T00:05:00.000Z',
+      success: false,
+      duration_ms: 120_000,
+    });
+
+    const aggregate = repo.aggregateFailedDurationSince(db, since);
+    expect(aggregate.failedRunCount).toBe(1);
+    expect(aggregate.durationMsSum).toBe(120_000);
+    expect(aggregate.successRunCount).toBe(0);
+    expect(aggregate.lastFailedAt).toBe('2026-09-16T00:00:00.000Z');
+  });
+});

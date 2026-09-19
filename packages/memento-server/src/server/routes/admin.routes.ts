@@ -20,6 +20,7 @@ import { registerAdminProjectMemoryRoutes } from './admin/admin-project-memory.r
 import { registerAdminEvolutionDemoRoutes } from './admin/admin-evolution-demo.routes.js';
 import { registerAdminForgettingRoutes } from './admin/admin-forgetting.routes.js';
 import { registerAdminExportRoutes } from './admin/admin-export.routes.js';
+import { registerAdminStatusRoutes } from './admin/admin-status.routes.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -33,6 +34,7 @@ export function createAdminRouter(
   const router = Router();
 
   registerAdminStatsAndHealthRoutes(router, db, serverServices);
+  registerAdminStatusRoutes(router, db);
   registerAdminMemoryReviewRoutes(router, db);
   registerAdminBatchRoutes(router, db, serverServices);
   registerAdminRuntimePerformanceRoutes(router);
