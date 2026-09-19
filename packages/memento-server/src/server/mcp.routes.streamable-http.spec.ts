@@ -376,17 +376,17 @@ describe('mcp.routes streamable_http', () => {
  * era 분기·_meta·server/discover 는 이 이슈의 다음 단계이고 여기 없다.
  */
 describe('#840 Phase 0 initialize parity', () => {
-  it('클라이언트가 요청한 버전을 지원하면 그대로 돌려준다', async () => {
+  it('클라이언트가 요청한 버전을 지원하면 그대로 돌려준다 (옛 하드코딩 값도 최신 값도 아닌 버전으로 확인한다)', async () => {
     const { port, close } = await listenWithMcpRouter();
     try {
       const res = await postJsonRpc(port, '/mcp', {
         jsonrpc: '2.0',
         id: 7,
         method: 'initialize',
-        params: { protocolVersion: '2024-11-05' }
+        params: { protocolVersion: '2025-06-18' }
       });
       const body = JSON.parse(res.body) as { result: { protocolVersion: string } };
-      expect(body.result.protocolVersion).toBe('2024-11-05');
+      expect(body.result.protocolVersion).toBe('2025-06-18');
     } finally {
       await close();
     }
