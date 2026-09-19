@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveStaticRoot } from '../packages/memento-server/src/server/http-server.js';
+import { resolveStaticRoot } from '../packages/memento-server/src/server/static-root.js';
 
 type RootPackageJson = {
   files?: string[];
