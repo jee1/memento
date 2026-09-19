@@ -161,6 +161,7 @@
   "homepage": "https://github.com/jee1/memento#readme",
   "files": [
     "dist",
+    "static",
     "scripts/auto-setup.js",
     "scripts/lib/cli-runtime.js",
     "scripts/lib/postinstall-db-init.js",
