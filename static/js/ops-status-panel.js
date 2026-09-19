@@ -96,12 +96,17 @@
     if (status === 'degraded' || status === 'unavailable') {
       return '—';
     }
-    const running = data && data.running;
-    const uptimeHuman = data && data.uptimeHuman ? data.uptimeHuman : '—';
+    return data && data.running ? '실행 중' : '중지';
+  }
+
+  function renderQueueNow(data) {
+    const status = data && data.status;
+    if (status === 'degraded' || status === 'unavailable') {
+      return '—';
+    }
     const runningJobs = typeof data.runningJobs === 'number' ? data.runningJobs : 0;
     const queueSize = typeof data.queueSize === 'number' ? data.queueSize : 0;
-    const runLabel = running ? '실행 중' : '정지';
-    return runLabel + ' · ' + uptimeHuman + ' · 작업 ' + runningJobs + ' · 큐 ' + queueSize;
+    return '실행 중 ' + runningJobs + '건 · 대기 ' + queueSize + '건';
   }
 
   function renderEmbedding(data) {
@@ -122,6 +127,10 @@
     ns.setText('ops-status-process-uptime', formatText(data.process && data.process.uptimeHuman, 'ok'));
     ns.setText('ops-status-scheduler', renderScheduler(data.scheduler));
     ns.setText(
+      'ops-status-scheduler-uptime',
+      formatText(data.scheduler && data.scheduler.uptimeHuman, data.scheduler && data.scheduler.status),
+    );
+    ns.setText(
       'ops-status-database',
       data.process && data.process.database === 'connected' ? '연결됨' : '연결 안 됨',
     );
@@ -131,7 +140,8 @@
     ns.setText('ops-status-batch-failed', formatCount(batch.failedRunCount, batch.status));
     ns.setText('ops-status-batch-impact', formatText(batch.durationHuman, batch.status));
     ns.setText('ops-status-batch-success', formatCount(batch.successRunCount, batch.status));
-    ns.setText('ops-status-batch-now', formatIso(batch.lastFailedAt, batch.status));
+    ns.setText('ops-status-batch-last-failed', formatIso(batch.lastFailedAt, batch.status));
+    ns.setText('ops-status-batch-now', renderQueueNow(data.scheduler));
 
     const review = data.review || {};
     ns.setText('ops-status-review-pending', formatCount(review.pendingTotal, review.status));

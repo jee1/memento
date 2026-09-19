@@ -249,6 +249,8 @@
             <dd><span id="ops-status-process-uptime">—</span></dd>
             <dt>스케줄러</dt>
             <dd><span id="ops-status-scheduler">—</span></dd>
+            <dt>스케줄러 가동</dt>
+            <dd><span id="ops-status-scheduler-uptime">—</span></dd>
             <dt>데이터베이스</dt>
             <dd><span id="ops-status-database">—</span></dd>
             <dt>버전</dt>
@@ -260,20 +262,22 @@
           <dl class="ops-status-dl">
             <dt>실패 실행</dt>
             <dd><span id="ops-status-batch-failed">—</span></dd>
-            <dt title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">실패 소요 시간 합</dt>
+            <dt title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">배치 영향 시간</dt>
             <dd><span id="ops-status-batch-impact" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">—</span></dd>
             <dt>성공 실행</dt>
             <dd><span id="ops-status-batch-success">—</span></dd>
             <dt>마지막 실패</dt>
+            <dd><span id="ops-status-batch-last-failed">—</span></dd>
+            <dt>지금</dt>
             <dd><span id="ops-status-batch-now">—</span></dd>
           </dl>
         </section>
         <section id="ops-status-card-flow" class="ops-status-card" aria-labelledby="ops-status-flow-heading">
-          <h3 id="ops-status-flow-heading">흐름</h3>
+          <h3 id="ops-status-flow-heading">운영 흐름</h3>
           <dl class="ops-status-dl">
             <dt>검토 대기</dt>
             <dd><span id="ops-status-review-pending">—</span></dd>
-            <dt>검토 1시간 순변</dt>
+            <dt>순유입 (1h)</dt>
             <dd><span id="ops-status-review-netflow">—</span></dd>
             <dt>임베딩 문제</dt>
             <dd><span id="ops-status-embedding">—</span></dd>

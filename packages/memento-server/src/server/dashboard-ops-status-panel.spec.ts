@@ -67,11 +67,13 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
     'ops-status-card-flow',
     'ops-status-process-uptime',
     'ops-status-scheduler',
+    'ops-status-scheduler-uptime',
     'ops-status-database',
     'ops-status-version',
     'ops-status-batch-failed',
     'ops-status-batch-impact',
     'ops-status-batch-success',
+    'ops-status-batch-last-failed',
     'ops-status-batch-now',
     'ops-status-review-pending',
     'ops-status-review-netflow',
@@ -214,5 +216,68 @@ describe('dashboard ops status panel', () => {
       harness.elements['ops-status-embedding'].textContent,
     ].join(' ');
     expect(rendered).not.toContain('%');
+  });
+
+  it('labels process uptime and scheduler uptime separately with the agreed lexicon', async () => {
+    expect(dashboardHtml).toContain('프로세스 가동');
+    expect(dashboardHtml).toContain('스케줄러 가동');
+    expect(dashboardHtml).toContain('배치 영향 시간');
+    expect(dashboardHtml).toContain('운영 흐름');
+    expect(dashboardHtml).toContain('순유입 (1h)');
+    expect(dashboardHtml).toContain('지금');
+    expect(dashboardHtml).not.toContain('실패 소요 시간 합');
+    expect(dashboardHtml).not.toContain('검토 1시간 순변');
+
+    const mockResponse = {
+      timestamp: '2026-09-19T00:00:00.000Z',
+      windowDays: 30,
+      dataSince: '2026-09-01T00:00:00.000Z',
+      since: '2026-08-20T00:00:00.000Z',
+      process: {
+        status: 'ok',
+        uptimeMs: 302_400_000,
+        uptimeHuman: '3일 14시간',
+        version: '1.0.0',
+        database: 'connected',
+      },
+      scheduler: {
+        status: 'ok',
+        running: true,
+        uptimeMs: 302_400_000 - 7_200_000,
+        uptimeHuman: '3일 12시간',
+        runningJobs: 2,
+        queueSize: 1,
+      },
+      batchImpact: {
+        status: 'ok',
+        since: '2026-08-20T00:00:00.000Z',
+        failedRunCount: 0,
+        durationMsSum: 0,
+        durationHuman: '0초',
+        successRunCount: 0,
+        lastFailedAt: null,
+      },
+      review: {
+        status: 'ok',
+        pendingTotal: 0,
+        netFlow1h: 0,
+      },
+      embedding: {
+        status: 'ok',
+        provider: 'minilm',
+        problemCount: 0,
+      },
+    };
+
+    const harness = createOpsStatusHarness({
+      fetchImpl: async () => mockResponse,
+    });
+
+    await harness.ns.refresh();
+
+    expect(harness.elements['ops-status-process-uptime'].textContent).toBe('3일 14시간');
+    expect(harness.elements['ops-status-scheduler-uptime'].textContent).toBe('3일 12시간');
+    expect(harness.elements['ops-status-batch-now'].textContent).toContain('2');
+    expect(harness.elements['ops-status-batch-now'].textContent).toContain('1');
   });
 });
