@@ -15,7 +15,6 @@ import {
 } from '@memento/core';
 import {
   loadBenchmarkCorpus,
-  loadBenchmarkGroundTruth,
   type BenchmarkCorpusEntry,
 } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
 import {
@@ -24,6 +23,63 @@ import {
 import type { EmbeddingProvider } from '@memento/core/shared/types/embedding.types.js';
 
 const VALID_TYPES = new Set(['working', 'episodic', 'semantic', 'procedural']);
+
+/**
+ * 문서 id 로 시드를 나눈다 (#973).
+ *
+ * 예전에는 mulberry32(42) 한 줄기를 코퍼스 순회 순서대로 소비했다. 그러면
+ * 문서를 하나만 넣거나 빼도 그 뒤 모든 문서의 메타데이터가 바뀌어서, 지표가
+ * 움직인 이유가 그 문서 때문인지 재추첨 때문인지 구분할 수 없다.
+ */
+function fnv1a32(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * 프로덕션 importance 분포 (memory_item, is_deleted=0, 9,055행, 2026-09-19 측정).
+ * 값이 연속이 아니라 몇 개 지점에 뭉쳐 있어서 균등분포로 흉내 낼 수 없다.
+ * 표에 없는 나머지 6%는 0.1~0.95 균등 꼬리로 채운다.
+ */
+const IMPORTANCE_DISTRIBUTION: ReadonlyArray<readonly [number, number]> = [
+  [0.1, 0.321],
+  [0.4, 0.012],
+  [0.5, 0.117],
+  [0.55, 0.091],
+  [0.6, 0.027],
+  [0.7, 0.111],
+  [0.75, 0.015],
+  [0.8, 0.094],
+  [0.85, 0.059],
+  [0.9, 0.075],
+  [0.95, 0.018],
+];
+
+export function sampleImportance(r: number): number {
+  let cumulative = 0;
+  for (const [value, weight] of IMPORTANCE_DISTRIBUTION) {
+    cumulative += weight;
+    if (r < cumulative) {
+      return value;
+    }
+  }
+  return 0.1 + (r - cumulative) / Math.max(1 - cumulative, 1e-9) * 0.85;
+}
+
+/**
+ * 프로덕션 recall_count 분포: 0 이 28.7%, 1~4 가 68.6%, 5~19 가 2.2%,
+ * 20 이상이 0.44% (40/9,055). 예전 구현은 정답 전부에 20 이상을 줬다.
+ */
+export function sampleRecallCount(r: number, r2: number): number {
+  if (r < 0.287) return 0;
+  if (r < 0.973) return 1 + Math.floor(r2 * 4);
+  if (r < 0.995) return 5 + Math.floor(r2 * 15);
+  return 20 + Math.floor(r2 * 31);
+}
 
 function mulberry32(seed: number): () => number {
   let s = seed;
@@ -67,25 +123,6 @@ export async function createSeededBenchmarkDatabase(
   }
 
   const provider = resolveBenchmarkEmbeddingProvider();
-  const benchmarkIdToSourceId = new Map<string, string>(
-    corpus.map((e) => [e.benchmark_id, e.source_memory_id])
-  );
-
-  const groundTruthPath = join(benchmarkDir, 'ground-truth.json');
-  const relevantSourceIds = new Set<string>();
-  if (existsSync(groundTruthPath)) {
-    const groundTruth = loadBenchmarkGroundTruth(benchmarkDir);
-    for (const entry of groundTruth) {
-      for (const benchmarkId of entry.relevantIds) {
-        const sourceId = benchmarkIdToSourceId.get(benchmarkId);
-        if (sourceId) {
-          relevantSourceIds.add(sourceId);
-        }
-      }
-    }
-  }
-
-  const rand = mulberry32(42);
 
   const useTempDir = !options?.dbPath;
   const tmpRoot = useTempDir ? mkdtempSync(join(tmpdir(), 'memento-bench-')) : null;
@@ -103,8 +140,7 @@ export async function createSeededBenchmarkDatabase(
   try {
     for (let i = 0; i < corpus.length; i++) {
       const entry = corpus[i]!;
-      const isRelevant = relevantSourceIds.has(entry.source_memory_id);
-      const dims = await seedOneCorpusRow(db, embeddingService, entry, isRelevant, rand, provider);
+      const dims = await seedOneCorpusRow(db, embeddingService, entry, provider);
       if (vectorDims === 0) {
         vectorDims = dims;
       }
@@ -156,8 +192,6 @@ async function seedOneCorpusRow(
   db: Database.Database,
   embeddingService: MemoryEmbeddingService,
   entry: BenchmarkCorpusEntry,
-  isRelevant: boolean,
-  rand: () => number,
   provider: EmbeddingProvider
 ): Promise<number> {
   const id = entry.source_memory_id;
@@ -165,23 +199,24 @@ async function seedOneCorpusRow(
   const tagsJson = JSON.stringify(entry.tags ?? []);
   const createdAt = entry.created_at ?? new Date().toISOString();
 
+  // #973: 메타데이터는 문서 자신에서만 나온다. 정답 라벨은 여기 들어오지 않는다.
+  const rand = mulberry32(fnv1a32(entry.benchmark_id));
   const r1 = rand();
   const r2 = rand();
   const r3 = rand();
   const r4 = rand();
 
-  let importance: number;
-  let lastAccessedAt: string | null;
-  let recallCount: number;
-
-  if (isRelevant) {
-    importance = 0.7 + r1 * 0.3;
-    lastAccessedAt = new Date(Date.now() - (1 + r2 * 6) * 86400_000).toISOString();
-    recallCount = Math.floor(20 + r3 * 31);
-  } else {
-    importance = 0.1 + r1 * 0.5;
-    lastAccessedAt = r4 < 0.2 ? null : new Date(Date.now() - (30 + r2 * 150) * 86400_000).toISOString();
-    recallCount = Math.floor(r3 * 16);
+  const importance = sampleImportance(r1);
+  const recallCount = sampleRecallCount(r3, r2);
+  // 프로덕션은 last_accessed_at 이 60% null 이다 (5,432/9,055). 나머지는 0~361일.
+  let lastAccessedAt: string | null = null;
+  if (r4 >= 0.6) {
+    const accessed = Date.now() - r2 * 361 * 86400_000;
+    // 만들어지기 전에 접근된 기억은 없다.
+    const createdMs = Date.parse(createdAt);
+    lastAccessedAt = new Date(
+      Number.isFinite(createdMs) ? Math.max(accessed, createdMs) : accessed,
+    ).toISOString();
   }
 
   DatabaseUtils.run(
