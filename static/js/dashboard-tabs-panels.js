@@ -9,6 +9,7 @@
     { name: 'anchor', id: 'tab-anchor-map' },
     { name: 'embedding', id: 'tab-embedding-map' },
     { name: 'graph', id: 'tab-graph' },
+    { name: 'ops-status', id: 'tab-ops-status' },
     { name: 'review', id: 'tab-review-candidates' },
     { name: 'jobs', id: 'tab-jobs' },
     { name: 'agent-sessions', id: 'tab-agent-sessions' },

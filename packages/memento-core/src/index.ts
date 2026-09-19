@@ -428,6 +428,7 @@ export type {
   JobRunInsert,
   JobRunRow,
   ListJobRunsOptions,
+  JobRunImpactAggregate,
 } from './infrastructure/scheduler/repositories/job-run-repository.js';
 export {
   JobRunLogRepository,

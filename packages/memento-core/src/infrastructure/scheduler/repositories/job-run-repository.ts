@@ -39,6 +39,15 @@ export interface ListJobRunsOptions {
   limit?: number;
 }
 
+export interface JobRunImpactAggregate {
+  failedRunCount: number;
+  durationMsSum: number;
+  successRunCount: number;
+  lastFailedAt: string | null;
+  /** 저장된 job_run 중 가장 오래된 started_at (없으면 null). */
+  dataSince: string | null;
+}
+
 export class JobRunRepository {
   append(db: Database.Database, input: JobRunInsert): JobRunRow {
     const id = `jr_${Date.now()}_${randomUUID().slice(0, 8)}`;
@@ -103,6 +112,28 @@ export class JobRunRepository {
     const cutoff = new Date(Date.now() - retentionDays * 86_400_000).toISOString();
     const result = DatabaseUtils.run(db, `DELETE FROM job_run WHERE started_at < ?`, [cutoff]);
     return result.changes;
+  }
+
+  aggregateFailedDurationSince(db: Database.Database, sinceIso: string): JobRunImpactAggregate {
+    const failed = db
+      .prepare(
+        `SELECT COUNT(*) AS n, COALESCE(SUM(duration_ms), 0) AS ms, MAX(started_at) AS last
+         FROM job_run WHERE success = 0 AND started_at >= ?`,
+      )
+      .get(sinceIso) as { n: number; ms: number; last: string | null } | undefined;
+    const success = db
+      .prepare(`SELECT COUNT(*) AS n FROM job_run WHERE success = 1 AND started_at >= ?`)
+      .get(sinceIso) as { n: number } | undefined;
+    const oldest = db
+      .prepare(`SELECT MIN(started_at) AS oldest FROM job_run`)
+      .get() as { oldest: string | null } | undefined;
+    return {
+      failedRunCount: Number(failed?.n ?? 0),
+      durationMsSum: Number(failed?.ms ?? 0),
+      successRunCount: Number(success?.n ?? 0),
+      lastFailedAt: failed?.last ?? null,
+      dataSince: oldest?.oldest ?? null,
+    };
   }
 }
 

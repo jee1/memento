@@ -1984,3 +1984,280 @@ describe('admin.routes memory review candidates', () => {
     }
   });
 });
+
+describe('GET /admin/status', () => {
+  let db: Database.Database;
+
+  function createBaseSchema(database: Database.Database): void {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL,
+        importance REAL DEFAULT 0.5,
+        privacy_scope TEXT DEFAULT 'private',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_accessed TIMESTAMP,
+        last_accessed_at TEXT,
+        pinned BOOLEAN DEFAULT FALSE,
+        tags TEXT,
+        source TEXT,
+        project_id TEXT,
+        owner_id TEXT,
+        is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+        deleted_at TEXT
+      );
+    `);
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS memento_schema_version (
+        version TEXT PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        migration_name TEXT NOT NULL,
+        checksum TEXT,
+        applied_by TEXT DEFAULT 'system',
+        description TEXT
+      );
+    `);
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS memory_embedding (
+        memory_id TEXT NOT NULL,
+        embedding_provider TEXT NOT NULL,
+        projection_type TEXT NOT NULL,
+        embedding TEXT NOT NULL,
+        dim INTEGER NOT NULL,
+        dimensions INTEGER,
+        model TEXT,
+        created_by TEXT,
+        created_at TEXT,
+        UNIQUE(memory_id, embedding_provider, projection_type)
+      );
+    `);
+  }
+
+  function makeApp(database: Database.Database | null) {
+    const app = express();
+    app.use(express.json());
+    app.use('/admin', createAdminRouter(database, null));
+    return app;
+  }
+
+  beforeEach(async () => {
+    resetBatchScheduler();
+    db = new Database(':memory:');
+    createBaseSchema(db);
+    await new MetaMemoryStatsSchemaMigration().up(db);
+    await new MemoryReviewCandidateSchemaMigration().up(db);
+    await new ReviewQueueHealthSnapshotMigration().up(db);
+    await new JobRunMigration().up(db);
+    db.pragma('foreign_keys = ON');
+  });
+
+  afterEach(() => {
+    db.close();
+    resetBatchScheduler();
+  });
+
+  it('returns 200 with the frozen AdminStatusResponse shape', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/status');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as Record<string, unknown>;
+      expect(body).toMatchObject({
+        windowDays: 30,
+        process: {
+          status: 'ok',
+          database: 'connected',
+        },
+        scheduler: {
+          status: 'ok',
+          running: false,
+        },
+        batchImpact: {
+          status: 'ok',
+        },
+        review: {
+          status: 'ok',
+        },
+        embedding: {
+          status: 'ok',
+          provider: 'minilm',
+        },
+      });
+      expect(body.timestamp).toBeTruthy();
+      expect(body.since).toBeTruthy();
+      expect(body.dataSince).toBeNull();
+      expect(body.process).toMatchObject({
+        uptimeMs: expect.any(Number),
+        uptimeHuman: expect.any(String),
+        version: expect.any(String),
+      });
+      expect(body.scheduler).toMatchObject({
+        uptimeMs: expect.any(Number),
+        uptimeHuman: expect.any(String),
+        runningJobs: expect.any(Number),
+        queueSize: expect.any(Number),
+      });
+      expect(body.batchImpact).toMatchObject({
+        since: expect.any(String),
+        failedRunCount: expect.any(Number),
+        durationMsSum: expect.any(Number),
+        durationHuman: expect.any(String),
+        successRunCount: expect.any(Number),
+        lastFailedAt: null,
+      });
+      expect(body.review).toMatchObject({
+        pendingTotal: expect.any(Number),
+        netFlow1h: expect.any(Number),
+      });
+      expect(body.embedding).toMatchObject({
+        problemCount: expect.any(Number),
+      });
+      expect(body).not.toHaveProperty('errorRate');
+      expect(body).not.toHaveProperty('memoryUsage');
+      expect(body).not.toHaveProperty('coverage');
+      expect(body.process).not.toHaveProperty('errorRate');
+      expect(body.process).not.toHaveProperty('memoryUsage');
+      expect(body.process).not.toHaveProperty('coverage');
+      expect(body.scheduler).not.toHaveProperty('errorRate');
+      expect(body.embedding).not.toHaveProperty('coverage');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('keeps process.uptimeMs and scheduler.uptimeMs as separate fields', async () => {
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await getAdmin(port, '/admin/status');
+        const body = JSON.parse(res.body) as {
+          process: { uptimeMs: number };
+          scheduler: { uptimeMs: number };
+        };
+        expect(res.statusCode).toBe(200);
+        expect(typeof body.process.uptimeMs).toBe('number');
+        expect(typeof body.scheduler.uptimeMs).toBe('number');
+        expect(body.process.uptimeMs).toBeGreaterThanOrEqual(0);
+        expect(body.scheduler.uptimeMs).toBeGreaterThanOrEqual(0);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it('matches failed batch duration sum from job_run seed data', async () => {
+    const since = new Date(Date.now() - 30 * DAY_MS).toISOString();
+    const repo = new JobRunRepository();
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: new Date(Date.now() - 2 * DAY_MS).toISOString(),
+      ended_at: new Date(Date.now() - 2 * DAY_MS + 60_000).toISOString(),
+      success: false,
+      duration_ms: 300_000,
+    });
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: new Date(Date.now() - DAY_MS).toISOString(),
+      ended_at: new Date(Date.now() - DAY_MS + 120_000).toISOString(),
+      success: false,
+      duration_ms: 420_000,
+    });
+
+    const expected = db
+      .prepare(
+        `SELECT COALESCE(SUM(duration_ms), 0) AS ms
+         FROM job_run WHERE success = 0 AND started_at >= ?`,
+      )
+      .get(since) as { ms: number };
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/status');
+      const body = JSON.parse(res.body) as {
+        windowDays: number;
+        dataSince: string | null;
+        since: string;
+        batchImpact: { since: string; durationMsSum: number };
+      };
+      expect(res.statusCode).toBe(200);
+      expect(body.windowDays).toBe(30);
+      expect(body.dataSince).toBeTruthy();
+      expect(body.batchImpact.since).toBe(body.since);
+      expect(body.batchImpact.durationMsSum).toBe(Number(expected.ms));
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('degrades embedding while still returning HTTP 200 when diagnose throws', async () => {
+    const { EmbeddingReindexService } = await import('@memento/core');
+    const spy = vi.spyOn(EmbeddingReindexService.prototype, 'diagnose').mockImplementation(() => {
+      throw new Error('diagnose failed');
+    });
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/status');
+      const body = JSON.parse(res.body) as {
+        embedding: { status: string };
+        process: { status: string };
+        batchImpact: { status: string };
+        review: { status: string };
+      };
+      expect(res.statusCode).toBe(200);
+      expect(body.embedding.status).toBe('degraded');
+      expect(body.process.status).toBe('ok');
+      expect(body.batchImpact.status).toBe('ok');
+      expect(body.review.status).toBe('ok');
+    } finally {
+      spy.mockRestore();
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('review.netFlow1h counts the 1h window, not the 24h window', async () => {
+    const now = Date.now();
+    const tenMinAgo = new Date(now - 10 * 60_000).toISOString();
+    const fiveHoursAgo = new Date(now - 5 * 3_600_000).toISOString();
+
+    const insertMemory = db.prepare(
+      `INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)`,
+    );
+    const insertCandidate = db.prepare(`
+      INSERT INTO memory_review_candidate (
+        id, memory_id, status, priority, reason, due_at, created_at, updated_at,
+        reviewed_at, dismissed_at
+      ) VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, NULL, NULL)
+    `);
+
+    insertMemory.run('mem-c1', 'semantic', 'content c1');
+    insertMemory.run('mem-c2', 'semantic', 'content c2');
+    insertMemory.run('mem-c3', 'semantic', 'content c3');
+    insertMemory.run('mem-c4', 'semantic', 'content c4');
+
+    insertCandidate.run('c1', 'mem-c1', 0.5, 'reason', '2026-09-19T00:00:00.000Z', tenMinAgo, tenMinAgo);
+    insertCandidate.run('c2', 'mem-c2', 0.5, 'reason', '2026-09-19T00:00:00.000Z', fiveHoursAgo, fiveHoursAgo);
+    insertCandidate.run('c3', 'mem-c3', 0.5, 'reason', '2026-09-19T00:00:00.000Z', fiveHoursAgo, fiveHoursAgo);
+    insertCandidate.run('c4', 'mem-c4', 0.5, 'reason', '2026-09-19T00:00:00.000Z', fiveHoursAgo, fiveHoursAgo);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/status');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        review: { pendingTotal: number; netFlow1h: number };
+      };
+      expect(body.review.pendingTotal).toBe(4);
+      expect(body.review.netFlow1h).toBe(1);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+});
