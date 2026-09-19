@@ -83,6 +83,8 @@ npm run test:ci:core # core 검색·메모리 테스트
 
 커밋 전 `lint`, `type-check`, `test` 통과는 필수입니다.
 
+benchmark-v3 macro_category 정의는 [benchmark-macro-categories.md](../reference/ko/benchmark-macro-categories.md)에 정리되어 있습니다.
+
 테스트 모킹 경로도 CI `lint-typecheck` 잡에서 검사합니다. 존재하지 않는 모듈을 가리키는 상대 경로 `vi.mock` 은 같은 경로의 동적 import 까지 함께 가로채기 때문에 실행 중에는 드러나지 않고 스펙이 조용히 전량 통과합니다(#821). 정적 스캔이라야 잡힙니다.
 
 ```bash

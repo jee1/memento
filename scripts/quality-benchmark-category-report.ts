@@ -32,7 +32,7 @@ export const WALL_MS = 30_000;
 export const MIN_QUERY_COVERAGE = 1.0;
 
 const REQUIRED_MACRO_CATEGORIES: CategoryQualityReport['macro_category'][] = [
-  'episodic_recent',
+  'incident_ops',
   'procedural',
   'conceptual',
   'tag_filter',

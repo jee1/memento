@@ -1,6 +1,6 @@
 {
   "macro_categories": {
-    "episodic_recent": ["incident", "operations"],
+    "incident_ops": ["incident", "operations"],
     "procedural": ["procedure", "procedural", "database", "build"],
     "conceptual": ["search", "memory", "anchor", "embedding", "relation", "security", "forgetting"],
     "tag_filter": ["config", "dev", "resilience", "testing"]

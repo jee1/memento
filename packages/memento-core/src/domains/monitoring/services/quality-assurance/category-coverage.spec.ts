@@ -45,7 +45,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
     }
 
     const ALL: MacroCategory[] = [
-      'episodic_recent',
+      'incident_ops',
       'procedural',
       'conceptual',
       'tag_filter',
@@ -56,7 +56,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
     });
 
     expect(counts).toEqual([
-      ['episodic_recent', 4],
+      ['incident_ops', 4],
       ['procedural', 6],
       ['conceptual', 10],
       ['tag_filter', 6],

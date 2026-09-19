@@ -60,7 +60,7 @@ function writeEmptyMacroFixture(dir: string): string {
     mapPath,
     JSON.stringify({
       macro_categories: {
-        episodic_recent: ['incident'],
+        incident_ops: ['incident'],
         procedural: ['procedure'],
         conceptual: ['search'],
         tag_filter: ['testing'],
@@ -96,7 +96,7 @@ describe('CategoryQualityAggregator empty-macro coverage (#934)', () => {
     const reports = await new CategoryQualityAggregator(db).collect(dir, mapPath);
 
     expect(reports.map((r) => r.macro_category)).toEqual([
-      'episodic_recent',
+      'incident_ops',
       'procedural',
       'conceptual',
       'tag_filter',
