@@ -138,6 +138,8 @@ npm run docker:down               # 컨테이너 삭제 — 아래 주의 참고
 
 전체 배포 절차는 [docker-deploy-procedure.md](../operations/ko/docker-deploy-procedure.md)에 정리되어 있습니다.
 
+DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](../operations/ko/db-retention-policy.md)에 정리되어 있습니다.
+
 ## 핵심 환경 변수
 
 자주 사용하는 환경 변수 세 가지를 정리합니다. `DB_PATH`는 SQLite 파일 경로로, 프로덕션에서는 반드시 절대 경로를 써야 합니다(`~`는 확장되지 않음). `ADMIN_API_KEY`는 HTTP 관리 API의 인증 키로, 프로덕션에서는 필수입니다. `MEMENTO_HTTP_BIND_HOST`는 HTTP 서버의 바인드 주소로 기본값은 `127.0.0.1`입니다.

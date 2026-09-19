@@ -15,6 +15,7 @@
 import Database from 'better-sqlite3';
 import { QualityAssuranceService } from '../../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 
 /**
@@ -94,6 +95,11 @@ export interface QualityMeasurementBatchResult extends BatchJobResult {
     overallStatus: 'pass' | 'warning' | 'fail';
 
     /**
+     * 보존 기간이 지나 삭제한 quality_measurement_history 행 수 (#908)
+     */
+    historyRowsPruned: number;
+
+    /**
      * 리포트 파일 경로 (생성된 경우)
      */
     reportFilePath?: string;
@@ -159,7 +165,8 @@ export class QualityMeasurementBatchJob {
         passedMetrics: 0,
         failedMetrics: 0,
         warningMetrics: 0,
-        overallStatus: 'pass'
+        overallStatus: 'pass',
+        historyRowsPruned: 0
       }
     };
 
@@ -172,6 +179,16 @@ export class QualityMeasurementBatchJob {
       // 타임아웃 체크
       if (Date.now() > timeoutDeadline) {
         throw new Error('Quality measurement batch job timeout before execution');
+      }
+
+      // #908: 보존 정리를 측정보다 먼저 한다. 측정이 실패해도 정리는 끝나 있다.
+      let historyRowsPruned = 0;
+      try {
+        historyRowsPruned = this.pruneMeasurementHistory(db);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result.warnings.push(`quality_measurement_history 정리 실패: ${message}`);
+        logger.warn('quality_measurement_history 정리 실패', { error: message });
       }
 
       // PRD FR-5.6: 배치 작업 로깅 - 시작 로깅
@@ -242,7 +259,8 @@ export class QualityMeasurementBatchJob {
         failedMetrics,
         warningMetrics,
         overallStatus,
-        reportFilePath
+        reportFilePath,
+        historyRowsPruned
       };
 
       result.processed = totalMetrics;
@@ -290,6 +308,39 @@ export class QualityMeasurementBatchJob {
 
       return result;
     }
+  }
+
+  /**
+   * quality_measurement_history 보존 정리 (#908)
+   *
+   * 이 테이블만 보존 정책이 없어 처음 기록된 이후 한 번도 지워지지 않았다.
+   * 측정 배치가 이 테이블의 유일한 기록자라 정리도 여기서 한다 — 전용 cleanup
+   * 잡을 새로 만들면 스케줄러 등록 지점만 여섯 군데 늘어난다.
+   *
+   * 비교는 반드시 `datetime(measured_at)` 으로 한다. 저장된 값은
+   * `2026-09-19T12:25:52.925Z` 형태인데 `datetime('now', ...)` 은
+   * `2026-06-21 14:30:00` 을 돌려주므로, 문자열끼리 바로 비교하면 경계가
+   * 어긋난다 — 실측에서 240행 차이가 났다.
+   */
+  private pruneMeasurementHistory(db: Database.Database): number {
+    const retentionDays = resolveValidatedNumber(
+      'QUALITY_MEASUREMENT_HISTORY_RETENTION_DAYS',
+      90,
+      n => n >= 1,
+      '최솟값 1',
+    );
+    const info = db
+      .prepare(
+        `DELETE FROM quality_measurement_history WHERE datetime(measured_at) < datetime('now', ?)`,
+      )
+      .run(`-${retentionDays} days`);
+    if (info.changes > 0) {
+      logger.info('quality_measurement_history 보존 정리 완료', {
+        retentionDays,
+        deleted: info.changes,
+      });
+    }
+    return info.changes;
   }
 }
 
