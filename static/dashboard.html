@@ -71,7 +71,31 @@
       </div>
     </div>
 
-    
+    <div id="ops-strip" class="ops-strip session-only" aria-label="운영 상태 요약">
+      <div id="ops-strip-metrics" class="ops-strip__metrics" aria-live="polite">
+        <span class="ops-strip__metric">
+          <span id="ops-strip-embedding-dot" class="ops-strip__dot" aria-hidden="true"></span>
+          <span class="ops-strip__label">임베딩 문제</span>
+          <span id="ops-strip-embedding" class="ops-strip__value">—</span>
+        </span>
+        <span class="ops-strip__metric">
+          <span id="ops-strip-review-dot" class="ops-strip__dot" aria-hidden="true"></span>
+          <span class="ops-strip__label">검토 대기</span>
+          <span id="ops-strip-review" class="ops-strip__value">—</span>
+        </span>
+        <span class="ops-strip__metric">
+          <span id="ops-strip-failed-dot" class="ops-strip__dot" aria-hidden="true"></span>
+          <span class="ops-strip__label">실패 실행</span>
+          <span id="ops-strip-failed" class="ops-strip__value">—</span>
+        </span>
+        <span class="ops-strip__metric">
+          <span id="ops-strip-now-dot" class="ops-strip__dot" aria-hidden="true"></span>
+          <span class="ops-strip__label">지금</span>
+          <span id="ops-strip-now" class="ops-strip__value">—</span>
+        </span>
+      </div>
+      <button type="button" id="ops-strip-toggle" class="m-button m-button--ghost ops-strip__toggle" aria-expanded="true" aria-controls="ops-strip-metrics">접기</button>
+    </div>
 
     <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
       <div class="anchor-map-toolbar m-toolbar" aria-label="앵커 맵 컨트롤">
@@ -776,6 +800,7 @@
   <script src="/static/js/review-candidates-panel-bulk.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
+  <script src="/static/js/ops-strip.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>
   <script src="/static/js/jobs-panel-render.js"></script>
   <script src="/static/js/jobs-panel-fetch.js"></script>

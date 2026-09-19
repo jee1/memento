@@ -108,6 +108,9 @@
     }
     if (name === 'anchor') {
       dispatchDashboardResize();
+      if (global.__MEMENTO_OPS_STRIP__) {
+        global.__MEMENTO_OPS_STRIP__.load();
+      }
     }
   }
 

@@ -2182,3 +2182,71 @@ circle.em-dot:focus-visible {
   font-size: var(--font-size-sm, 0.875rem);
   padding: 0.25rem 0.5rem;
 }
+
+/* Ops status strip (#1025) — secondary chrome under the tab bar */
+.ops-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-card);
+  font-size: var(--font-size-xs);
+}
+
+.ops-strip__metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ops-strip__metric {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  white-space: nowrap;
+}
+
+.ops-strip__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-memory-neutral);
+  flex: 0 0 auto;
+}
+
+.ops-strip__dot--ok {
+  background: var(--color-status-success);
+}
+
+.ops-strip__dot--degraded {
+  background: var(--color-status-warning);
+}
+
+.ops-strip__dot--unavailable {
+  background: var(--color-memory-neutral);
+}
+
+.ops-strip__label {
+  color: var(--color-text-muted);
+}
+
+.ops-strip__value {
+  font-family: var(--font-family-mono);
+  color: var(--color-text-main);
+}
+
+.ops-strip__toggle {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .ops-strip__metrics {
+    gap: var(--spacing-sm);
+  }
+}
