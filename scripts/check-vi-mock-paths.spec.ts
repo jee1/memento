@@ -10,6 +10,10 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // 검사기는 줄 시작 앵커를 쓰므로 아래 픽스처 조립 줄은 스스로에게 걸리지 않는다.
 const mockLine = (specifier: string) => `vi.mock('${specifier}', () => ({}));`;
+const doMockLine = (specifier: string) => `vi.doMock('${specifier}', () => ({}));`;
+const templateMockLine = (specifier: string) => 'vi.mock(`' + specifier + '`, () => ({}));';
+// 보간이 든 템플릿 리터럴. 작은따옴표 문자열이라 이 파일 안에서는 전개되지 않는다.
+const INTERPOLATED_MOCK_LINE = 'vi.mock(`../${dir}/real.js`, () => ({}));';
 
 let root: string;
 
@@ -59,6 +63,21 @@ describe('collectMockRefs', () => {
     writeSpec([`const sample = "${mockLine('../../inside-a-string.js')}";`]);
     expect(collectMockRefs(root)).toHaveLength(0);
   });
+
+  it('#826: vi.doMock 도 수집한다', () => {
+    writeSpec([doMockLine('../real.js')]);
+    expect(collectMockRefs(root).map((r) => r.specifier)).toEqual(['../real.js']);
+  });
+
+  it('#826: 템플릿 리터럴 인자도 수집한다', () => {
+    writeSpec([templateMockLine('../real.js')]);
+    expect(collectMockRefs(root).map((r) => r.specifier)).toEqual(['../real.js']);
+  });
+
+  it('#826: 보간이 있는 템플릿 리터럴은 정적 경로가 없어 건너뛴다', () => {
+    writeSpec([INTERPOLATED_MOCK_LINE, mockLine('../real.js')]);
+    expect(collectMockRefs(root).map((r) => r.specifier)).toEqual(['../real.js']);
+  });
 });
 
 describe('scan', () => {
@@ -86,6 +105,11 @@ describe('scan', () => {
     ]);
     expect(result.violations).toHaveLength(0);
     expect(result.staleBaseline).toHaveLength(1);
+  });
+
+  it('#826: 해석되지 않는 vi.doMock 은 violation 이다', () => {
+    writeSpec([doMockLine('../../nope/index.js')]);
+    expect(scan(root, []).violations).toHaveLength(1);
   });
 
   it('정상 모킹은 위반으로 보고하지 않는다', () => {
@@ -149,6 +173,32 @@ describe('CLI', () => {
     writeFileSync(empty, '[]');
     const { code, stdout } = runGate(['--ci', `--baseline=${empty}`]);
     expect(stdout).toContain('위반 (차단) 0건');
+    expect(code).toBe(0);
+  }, 60_000);
+
+  it('#826: --strict 는 stale baseline 에서 exit 1 이다', () => {
+    const stale = join(root, 'stale-baseline.json');
+    writeFileSync(
+      stale,
+      JSON.stringify([
+        { file: 'scripts/nowhere.spec.ts', specifier: '../gone.js', reason: 'r', followUp: '#826' },
+      ]),
+    );
+    const { code, stdout } = runGate(['--strict', `--baseline=${stale}`]);
+    expect(stdout).toContain('정리 대상 (baseline 에 있으나 위반 아님) 1건');
+    expect(code).toBe(1);
+  }, 60_000);
+
+  it('#826: --strict 없이는 stale 이 있어도 exit 0 이다 (계약 C4)', () => {
+    const stale = join(root, 'stale-baseline-default.json');
+    writeFileSync(
+      stale,
+      JSON.stringify([
+        { file: 'scripts/nowhere.spec.ts', specifier: '../gone.js', reason: 'r', followUp: '#826' },
+      ]),
+    );
+    const { code, stdout } = runGate(['--ci', `--baseline=${stale}`]);
+    expect(stdout).toContain('정리 대상 (baseline 에 있으나 위반 아님) 1건');
     expect(code).toBe(0);
   }, 60_000);
 });

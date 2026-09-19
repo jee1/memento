@@ -88,6 +88,7 @@ export function collectMockRefs(root: string): MockRef[] {
     const src = readFileSync(full, 'utf-8');
     for (const match of src.matchAll(VI_MOCK)) {
       const specifier = match[2];
+      if (specifier === undefined) continue;
       // A template literal with interpolation has no single static path to check.
       if (specifier.includes(INTERPOLATED)) continue;
       // 패키지 이름 모킹은 이 게이트의 대상이 아니다 (FR-010)
