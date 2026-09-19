@@ -454,4 +454,41 @@ describe('static design contracts', () => {
     // and no panel borrows another panel's prefix in the markup
     expect(html).not.toContain('rc-health-metric');
   });
+
+  it('issue #1025 ops strip reuses /admin/status and degrades quietly', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+    const stripSource = readStaticFile('static/js/ops-strip.js');
+
+    // session-gated chrome, but never hidden by a class nothing removes
+    expect(html).toContain('id="ops-strip"');
+    expect(html).toMatch(/id="ops-strip"[^>]*class="ops-strip session-only"/);
+    expect(cssSource).toContain('.ops-strip {');
+
+    // the four labels stay the words the 상태 tab already uses (#1048 lexicon)
+    for (const label of ['임베딩 문제', '검토 대기', '실패 실행', '지금']) {
+      expect(html).toContain('<span class="ops-strip__label">' + label + '</span>');
+    }
+
+    // no new endpoint, no polling, no console, and failures fall back to dashes
+    expect(stripSource).toContain("'/admin/status'");
+    expect(stripSource).not.toContain('setInterval');
+    expect(stripSource).not.toContain('console.');
+  });
+
+  it('issue #1025 memory detail lives in its own inspector, not the left rail', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+
+    // the left rail no longer stacks a third scrollable section
+    expect(html).not.toContain('<section class="memory-details">');
+
+    // native details, so the narrow layout collapses without a JS toggle
+    expect(html).toMatch(/<details id="memory-inspector"[^>]*open>/);
+    expect(cssSource).toContain('.memory-inspector {');
+
+    // the render target id is unchanged, and the empty state is the shared primitive
+    expect(html).toContain('<div id="memory-details">');
+    expect(html).toContain('<p class="m-empty">노드를 클릭하면 상세가 표시됩니다</p>');
+  });
 });
