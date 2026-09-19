@@ -203,6 +203,11 @@ describe('backup-memory-db operator script', () => {
       integrity_check: 'ok',
       memory_item: 1,
     });
+    expect(output.cleanup).toMatchObject({
+      ok: true,
+      deletedCount: expect.any(Number),
+      reclaimedBytes: expect.any(Number),
+    });
     expect(typeof output.backupPath).toBe('string');
     expect(basename(output.backupPath as string)).toMatch(/^memory-backup-\d{4}-/);
     expect(readdirSync(backupsDir).filter(name => /-wal$|-shm$|partial/.test(name))).toEqual([]);
@@ -478,6 +483,74 @@ fs.unlinkSync = function(target) {
     });
     expect(JSON.stringify(output)).not.toContain(root);
     expect(JSON.stringify(output)).not.toContain(dbPath);
+  });
+
+  it('includes cleanup summary without paths after a successful backup (#1043)', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    createDb(dbPath);
+
+    const result = runBackup(dbPath, [], { MEMENTO_BACKUP_DIR: backupsDir });
+
+    expect(result.status).toBe(0);
+    const output = parseJson(result.stdout);
+    expect(output.cleanup).toMatchObject({
+      ok: true,
+      deletedCount: expect.any(Number),
+      reclaimedBytes: expect.any(Number),
+    });
+    expect(JSON.stringify(output.cleanup)).not.toContain(backupsDir);
+    expect(JSON.stringify(output.cleanup)).not.toContain(root);
+  });
+
+  it('sets cleanup to null when MEMENTO_BACKUP_PRUNE=0 (#1043)', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    createDb(dbPath);
+
+    const result = runBackup(dbPath, [], {
+      MEMENTO_BACKUP_DIR: backupsDir,
+      MEMENTO_BACKUP_PRUNE: '0',
+    });
+
+    expect(result.status).toBe(0);
+    const output = parseJson(result.stdout);
+    expect(output.ok).toBe(true);
+    expect(output.cleanup).toBeNull();
+  });
+
+  it('keeps backup success when cleanup throws (#1043)', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const injectCleanupFailurePath = join(root, 'inject-cleanup-failure.mjs');
+    createDb(dbPath);
+    writeFileSync(injectCleanupFailurePath, `
+import { createRequire } from 'node:module';
+
+const require = createRequire(process.cwd() + '/package.json');
+const core = require('@memento/core');
+
+const realCleanup = core.BackupManager.prototype.cleanupBackups;
+core.BackupManager.prototype.cleanupBackups = async function() {
+  throw new Error('injected cleanup failure');
+};
+`);
+
+    const result = runBackup(dbPath, ['--import', pathToFileURL(injectCleanupFailurePath).href], {
+      MEMENTO_BACKUP_DIR: join(root, 'backups'),
+    });
+
+    expect(result.status).toBe(0);
+    const output = parseJson(result.stdout);
+    expect(output.ok).toBe(true);
+    expect(output.cleanup).toMatchObject({
+      ok: false,
+      error: 'Error',
+    });
+    expect(JSON.stringify(output.cleanup)).not.toContain(root);
+    expect(JSON.stringify(output.cleanup)).not.toContain(dbPath);
   });
 
   it('exits 1 when apply skips or fails selected artifacts', () => {

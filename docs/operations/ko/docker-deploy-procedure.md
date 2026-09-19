@@ -262,6 +262,40 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 
 ---
 
+## 백업 보존 정책
+
+백업 디렉터리는 두 가지 이름 규칙으로 나뉘고, 각각 다른 상한이 걸린다.
+
+| 이름 | 만드는 주체 | 상한 |
+|---|---|---|
+| `memory-backup-<버전>-<타임스탬프>.db` | 마이그레이션 러너 | 30일 또는 최근 200개 |
+| `memory-backup-<타임스탬프>.db` | `npm run db:backup` · 배포 게이트 | 최근 10개 |
+
+두 경로 모두 백업이 성공한 직후에 정리를 돌린다. 정리에 실패해도 백업은 성공으로 처리된다.
+
+영구 보관이 필요한 백업은 이 디렉터리 밖으로 옮기십시오. 상한에 걸리면 지워집니다.
+정리를 건너뛰려면 `MEMENTO_BACKUP_PRUNE=0` 을 주면 됩니다.
+
+미리 무엇이 지워질지 보려면:
+
+```bash
+npm run db:backup:cleanup           # preview
+npm run db:backup:cleanup -- --apply
+```
+
+### 컨테이너 백업 디렉터리
+
+`~/.memento/data/backups` 는 바인드 마운트 안이라 컨테이너 사용자(uid 1001) 소유입니다.
+호스트에서 정리할 수 없으므로 컨테이너 안에서 실행하십시오.
+
+```bash
+docker compose exec -u 1001 -e MEMENTO_BACKUP_DIR=/app/data/backups \
+  memento-mcp-server node scripts/backup-memory-db.mjs --cleanup
+```
+
+`wave2-` 접두사나 `-pre-redeploy` 접미사가 붙은 옛 이름은 어느 규칙에도 맞지 않아
+정책이 건드리지 않습니다. 필요하면 같은 방식으로 직접 지우십시오.
+
 ## 문제 해결
 
 | 현상 | 조치 |
