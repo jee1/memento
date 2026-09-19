@@ -433,4 +433,25 @@ describe('static design contracts', () => {
     expect(cssSource).not.toContain('monospace');
     expect(cssSource).not.toContain('--font-mono,');
   });
+
+  it('issue #1024 tables and metrics read one primitive instead of three panel forks', () => {
+    const componentsSource = readStaticFile('static/css/components.css');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+    const html = readStaticFile('static/dashboard.html');
+
+    // the primitives exist, with the states the panels used to fork
+    expect(componentsSource).toContain('.m-table {');
+    expect(componentsSource).toContain('.m-metric-grid {');
+    expect(componentsSource).toContain('.m-table tbody tr.is-selected');
+
+    // no panel keeps its own table or metric chrome
+    expect(cssSource).not.toContain('.rc-health-table {');
+    expect(cssSource).not.toContain('.review-candidates-table {');
+    expect(cssSource).not.toContain('.jobs-table {');
+    expect(cssSource).not.toContain('rc-health-metric');
+    expect(cssSource).not.toContain('--font-size-md');
+
+    // and no panel borrows another panel's prefix in the markup
+    expect(html).not.toContain('rc-health-metric');
+  });
 });
