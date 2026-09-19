@@ -122,6 +122,21 @@ git push origin v1.7.3
 - npm publish 수행
 - Release가 없으면 생성, 있으면 스킵
 
+### 4. CHANGELOG 버전 절 만들기 (이슈 #1049)
+
+릴리스 직후 `CHANGELOG.md`의 `## [Unreleased]` 내용을 새 버전 절로 옮기고 `[Unreleased]`를 비웁니다.
+
+```markdown
+## [Unreleased]
+
+## [1.31.0] - 2026-09-19
+```
+
+이 단계를 건너뛰면 `[Unreleased]`가 이미 배포된 항목의 적치장이 됩니다 — `1.5.0` 이후
+25개 릴리스가 그렇게 쌓였고 이슈 #1049로 한 번 정리했습니다. 항목별 버전 귀속이
+불확실하면 쪼개 적지 말고 GitHub Releases를 정본으로 두십시오. 릴리스 노트 자체는
+`gh release create --notes-file`로 직접 작성하며, `release.yml`은 CHANGELOG를 읽지 않습니다.
+
 ## 🎯 최종 권장사항
 
 현재 구현된 방식이 가장 유연합니다:

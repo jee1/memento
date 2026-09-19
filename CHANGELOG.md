@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+<!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
+
+## [1.6.0] – [1.30.2] (일괄) - 2026-09-19
+
+아래 항목은 `1.6.0`부터 `1.30.2`까지 25개 릴리스에 걸쳐 실제로 배포된 것들입니다.
+`1.5.0` 이후 버전 절을 만드는 절차가 없어 `[Unreleased]`에 누적됐고, 이 절로 한 번에 옮겼습니다
+(이슈 #1049). **어느 항목이 어느 버전에 나갔는지는 이 파일이 아니라
+[GitHub Releases](https://github.com/jee1/memento/releases)가 정본입니다** — 릴리스 노트는
+`gh release create --notes-file`로 직접 작성되며, 배포 버전은 git 태그에서 옵니다
+(`.github/workflows/release.yml`). 여기서 버전별로 쪼개 적으면 없는 근거를 만들어 내는 셈이라 하지 않았습니다.
+
 ### Fixed
 
 - **recall 필터 벡터 레인 누출** (#998): `time_from`/`time_to`·`pinned`·`tags`·`privacy_scope`·`has_reflection_notes`·`workflow_name`/`skill_name`·`id` 필터가 벡터 레인 SQL에 없어 recall 결과가 필터 창 밖으로 새 나오던 문제를 수정합니다. `importance_min`/`importance_max` 사문 배선, `created_at` ISO·공백 형식 혼재로 텍스트 레인 시간 필터가 ~24% 행을 놓치던 문제(`julianday` 비교)도 함께 고칩니다. 필터 절은 `buildMemoryFilterSql` 한 곳에서 정의하고 텍스트·벡터 레인이 공유합니다.
