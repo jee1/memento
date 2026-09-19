@@ -45,4 +45,4 @@
 
 전체 목록은 `scripts/` 디렉터리를 참고하고, `package.json`의 `scripts` 필드에 등록된 항목을 우선 사용하세요.
 
-`db:backup:cleanup`은 preview가 기본이며 삭제하지 않습니다. Apply는 `npm run db:backup:cleanup -- --apply`로만 실행하고, 그 전에 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 중지하세요. Cleanup은 non-zero operator 백업을 보존하고 실패 보고에 절대 DB 경로를 포함하지 않습니다. `DB_PATH`와 `MEMENTO_BACKUP_DIR`의 `~`는 홈 디렉터리로 확장됩니다(#962/#963). 다만 `sudo`나 컨테이너처럼 `HOME`이 달라지는 환경에서는 절대 경로를 권장합니다.
+`db:backup:cleanup`은 preview가 기본이며 삭제하지 않습니다. Apply는 `npm run db:backup:cleanup -- --apply`로만 실행하고, 그 전에 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 중지하세요. Cleanup은 operator 백업도 최근 10개만 남기고 초과분을 지우며, 실패 보고에 절대 DB 경로를 포함하지 않습니다. `DB_PATH`와 `MEMENTO_BACKUP_DIR`의 `~`는 홈 디렉터리로 확장됩니다(#962/#963). 다만 `sudo`나 컨테이너처럼 `HOME`이 달라지는 환경에서는 절대 경로를 권장합니다.

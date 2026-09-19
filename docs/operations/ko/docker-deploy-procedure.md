@@ -83,7 +83,7 @@ npm run db:backup:cleanup
 npm run db:backup:cleanup -- --apply
 ```
 
-`-- --apply` 전에는 MCP 서버, restore 명령, 다른 backup/cleanup 프로세스를 모두 중지해야 합니다. Cleanup은 동일 선택자를 preview와 apply에 사용하고, expired automatic migration backup, zero-byte backup, orphaned backup sidecar, interrupted attempt만 대상으로 삼습니다. Non-zero operator-created backup은 오래되어도 보존됩니다.
+`-- --apply` 전에는 MCP 서버, restore 명령, 다른 backup/cleanup 프로세스를 모두 중지해야 합니다. Cleanup은 동일 선택자를 preview와 apply에 사용합니다. 무엇이 선택되는지는 아래 [백업 보존 정책](#백업-보존-정책) 절을 보십시오 — operator가 만든 백업도 상한을 넘으면 지워집니다.
 
 ### 3. (선택) 코드 품질 게이트
 
@@ -272,6 +272,8 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 | `memory-backup-<타임스탬프>.db` | `npm run db:backup` · 배포 게이트 | 최근 10개 |
 
 두 경로 모두 백업이 성공한 직후에 정리를 돌린다. 정리에 실패해도 백업은 성공으로 처리된다.
+
+상한 외에 zero-byte 백업, 고아 sidecar, 중단된 백업 시도도 정리 대상이다. 선택 이유는 cleanup report의 `reason` 필드에 `expired-automatic` · `surplus-automatic` · `surplus-operator` · `zero-byte-backup` · `orphaned-sidecar` · `interrupted-attempt` 중 하나로 실린다.
 
 영구 보관이 필요한 백업은 이 디렉터리 밖으로 옮기십시오. 상한에 걸리면 지워집니다.
 정리를 건너뛰려면 `MEMENTO_BACKUP_PRUNE=0` 을 주면 됩니다.
