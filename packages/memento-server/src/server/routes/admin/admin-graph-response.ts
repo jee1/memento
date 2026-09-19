@@ -32,6 +32,7 @@ export interface GraphFilter {
   limit?: number;
   view?: 'focused' | 'full';
   fields?: 'full' | 'minimal';
+  exclude_orphans?: boolean;
 }
 
 export interface GraphResponse {
@@ -97,6 +98,26 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
   countQuery += ` AND COALESCE(importance, 0.5) >= ?`;
   nodeParams.push(minImportance);
   countParams.push(minImportance);
+
+  // DB orphan 기준: memory_relation 에 source/target 으로 한 번도 나오지 않는 노드를 뺀다.
+  // 응답 엣지에서 degree=0 인 View orphan(Phase 1, static/js/graph-fetch.js)과는 다르다.
+  // relation_types 가 걸려 있으면 그 타입만 관계로 인정한다 - 아니면 "연결됨"으로
+  // 뽑혀 놓고 엣지가 0개인 노드가 생긴다.
+  const excludeOrphans = filters.exclude_orphans === true;
+  if (excludeOrphans) {
+    const orphanRelationTypes = filters.relation_types ?? [];
+    const typeClause =
+      orphanRelationTypes.length > 0
+        ? ` AND mr.relation_type IN (${orphanRelationTypes.map(() => '?').join(', ')})`
+        : '';
+    const existsClause =
+      ` AND EXISTS (SELECT 1 FROM memory_relation mr` +
+      ` WHERE (mr.source_id = memory_item.id OR mr.target_id = memory_item.id)${typeClause})`;
+    nodeQuery += existsClause;
+    countQuery += existsClause;
+    nodeParams.push(...orphanRelationTypes);
+    countParams.push(...orphanRelationTypes);
+  }
 
   nodeQuery += ` ORDER BY COALESCE(importance, 0.5) DESC LIMIT ?`;
   nodeParams.push(limit + 1);
@@ -168,6 +189,7 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
         limit,
         view: graphView,
         fields,
+        exclude_orphans: excludeOrphans,
       },
       truncated,
       graph_view: graphView,

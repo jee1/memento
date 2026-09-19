@@ -855,6 +855,111 @@ describe('admin.routes graph', () => {
     }
   });
 
+  // #837: DB orphan 제외 — memory_relation 에 한 번도 안 나오는 노드를 뺀다
+  it('GET /admin/graph?exclude_orphans=true — memory_relation 에 없는 노드를 제외한다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('c1', '연결된 기억1', 'semantic', 0.8);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('c2', '연결된 기억2', 'semantic', 0.7);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('lonely', '고아 기억', 'semantic', 0.99);
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('c1', 'c2', 'supports', 0.9);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?exclude_orphans=true');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        nodes: Array<{ id: string }>;
+        meta: { total_available_nodes: number; applied_filters: { exclude_orphans: boolean } };
+      };
+      expect(body.nodes.map(n => n.id).sort()).toEqual(['c1', 'c2']);
+      expect(body.meta.total_available_nodes).toBe(2);
+      expect(body.meta.applied_filters.exclude_orphans).toBe(true);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // #837: limit 칸이 관계 있는 노드에 쓰인다 (완료 기준 2)
+  it('GET /admin/graph?exclude_orphans=true — limit 칸을 관계 있는 노드에 쓴다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('c1', '연결된 기억1', 'semantic', 0.8);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('c2', '연결된 기억2', 'semantic', 0.7);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('lonely', '고아 기억', 'semantic', 0.99);
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('c1', 'c2', 'supports', 0.9);
+
+    const off = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(off.port, '/admin/graph?limit=2');
+      const body = JSON.parse(res.body) as { nodes: Array<{ id: string }>; edges: unknown[] };
+      expect(body.nodes.map(n => n.id).sort()).toEqual(['c1', 'lonely']);
+      expect(body.edges.length).toBe(0);
+    } finally {
+      await new Promise<void>(r => off.server.close(() => r()));
+    }
+
+    const on = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(on.port, '/admin/graph?limit=2&exclude_orphans=true');
+      const body = JSON.parse(res.body) as { nodes: Array<{ id: string }>; edges: unknown[] };
+      expect(body.nodes.map(n => n.id).sort()).toEqual(['c1', 'c2']);
+      expect(body.edges.length).toBe(1);
+    } finally {
+      await new Promise<void>(r => on.server.close(() => r()));
+    }
+  });
+
+  // #837: relation_types 가 걸리면 그 유형만 관계로 인정한다
+  it('GET /admin/graph?exclude_orphans=true&relation_types=supports — 다른 유형으로만 연결된 노드는 고아로 본다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('s1', 'supports 로 연결', 'semantic', 0.9);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('s2', 'supports 로 연결', 'semantic', 0.8);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('r1', 'related_to 로만 연결', 'semantic', 0.85);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('r2', 'related_to 로만 연결', 'semantic', 0.1);
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('s1', 's2', 'supports', 0.9);
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('r1', 'r2', 'related_to', 0.7);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?exclude_orphans=true&relation_types=supports');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { nodes: Array<{ id: string }> };
+      expect(body.nodes.map(n => n.id).sort()).toEqual(['s1', 's2']);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // #837: 기본값은 off — 고아를 그대로 남긴다 (#126 발견 용도)
+  it('GET /admin/graph — exclude_orphans 기본값은 false 이고 고아가 남는다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('c1', '연결된 기억1', 'semantic', 0.8);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('c2', '연결된 기억2', 'semantic', 0.7);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('lonely', '고아 기억', 'semantic', 0.99);
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('c1', 'c2', 'supports', 0.9);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph');
+      const body = JSON.parse(res.body) as {
+        nodes: Array<{ id: string }>;
+        meta: { applied_filters: { exclude_orphans: boolean } };
+      };
+      expect(body.nodes.length).toBe(3);
+      expect(body.meta.applied_filters.exclude_orphans).toBe(false);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // #837: 잘못된 값은 400
+  it('GET /admin/graph?exclude_orphans=yes — 400 반환', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?exclude_orphans=yes');
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: string };
+      expect(body.error).toBe('잘못된 파라미터');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
   // I-005: types 화이트리스트 검증
   it('GET /admin/graph?types=invalid — 400 반환', async () => {
     const { server, port } = await listen(makeApp(db));

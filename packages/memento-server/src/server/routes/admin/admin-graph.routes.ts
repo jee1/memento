@@ -23,6 +23,7 @@ export function registerAdminGraphRoute(router: Router, db: Database.Database | 
       const limitRaw = req.query['limit'] as string | undefined;
       const viewRaw = req.query['view'] as string | undefined;
       const fieldsRaw = req.query['fields'] as string | undefined;
+      const excludeOrphansRaw = req.query['exclude_orphans'] as string | undefined;
 
       const filters: GraphFilter = {};
 
@@ -59,6 +60,15 @@ export function registerAdminGraphRoute(router: Router, db: Database.Database | 
           return res.status(400).json({ error: '잘못된 파라미터', message: 'fields는 full 또는 minimal이어야 합니다' });
         }
         filters.fields = fieldsRaw;
+      }
+      if (excludeOrphansRaw !== undefined) {
+        if (excludeOrphansRaw !== 'true' && excludeOrphansRaw !== 'false') {
+          return res.status(400).json({
+            error: '잘못된 파라미터',
+            message: 'exclude_orphans는 true 또는 false여야 합니다',
+          });
+        }
+        filters.exclude_orphans = excludeOrphansRaw === 'true';
       }
       if (limitRaw !== undefined) {
         const val = parseInt(limitRaw, 10);
