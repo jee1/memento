@@ -59,4 +59,19 @@ describe("workspace publish contract (#765)", () => {
     // 같은 버전 재발행은 릴리스를 실패시키므로 건너뛴다.
     expect(step).toContain('if npm view "$PKG@$PKG_VERSION" version');
   });
+
+  it("release workflow can recover by rerun and waits for npm propagation", () => {
+    const workflow = readFileSync(join(root, ".github/workflows/release.yml"), "utf-8");
+    const publishStep = workflow.slice(
+      workflow.indexOf("- name: Publish to npm"),
+      workflow.indexOf("- name: Publish workspace SDK packages to npm"),
+    );
+    // 단일 job 이라 재실행이 이 스텝을 다시 돌린다. 같은 버전이면 건너뛰어야 복구가 된다 (#1040).
+    expect(publishStep).toContain('if npm view "$PKG@$PKG_VERSION" version');
+
+    // MCP Registry 검증은 npm 전파 이후여야 한다 (#1040).
+    const waitIdx = workflow.indexOf("- name: Wait for npm propagation");
+    expect(waitIdx).toBeGreaterThan(-1);
+    expect(waitIdx).toBeLessThan(workflow.indexOf("- name: Publish to MCP Registry"));
+  });
 });

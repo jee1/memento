@@ -215,12 +215,24 @@ jobs:
       # provenance attestation 은 이 경로에서 자동으로 붙으므로 --provenance 도 주지 않는다.
       - name: Publish to npm
         run: |
+          set -euo pipefail
           NPM_TAG="${{ steps.version.outputs.npm_tag }}"
           if [ -z "$NPM_TAG" ]; then
             NPM_TAG="latest"
           fi
-          echo "Publishing to npm with tag: $NPM_TAG"
-          npm publish --access public --tag "$NPM_TAG"
+          PKG="$(node -p "require('./package.json').name")"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          # 같은 버전 재발행은 E409 로 job 을 죽여 재실행 복구를 막는다. SDK 스텝과 같은 가드를 둔다 (#1040).
+          if npm view "$PKG@$PKG_VERSION" version >/dev/null 2>&1; then
+            echo "ℹ️ $PKG@$PKG_VERSION already on npm, skipping publish"
+          else
+            echo "Publishing to npm with tag: $NPM_TAG"
+            npm publish --access public --tag "$NPM_TAG"
+          fi
+          {
+            echo "## npm publish"
+            echo "- \`$PKG@$PKG_VERSION\` (tag \`$NPM_TAG\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # 스코프 SDK 패키지 발행 (#765)
       # 루트 패키지와 버전 정책이 다르므로, 이미 npm에 있는 버전이면 건너뛴다.
@@ -237,10 +249,12 @@ jobs:
             PKG_VERSION="$(node -p "require('./$PKG_PATH/package.json').version")"
             if npm view "$PKG@$PKG_VERSION" version >/dev/null 2>&1; then
               echo "ℹ️ $PKG@$PKG_VERSION already on npm, skipping"
+              echo "- \`$PKG@$PKG_VERSION\` (already on npm)" >> "$GITHUB_STEP_SUMMARY"
               continue
             fi
             echo "📦 Publishing $PKG@$PKG_VERSION"
             npm publish --workspace "$PKG" --access public
+            echo "- \`$PKG@$PKG_VERSION\`" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Check if Release exists
@@ -360,6 +374,33 @@ jobs:
       # 정식 릴리스만 등재한다 (pre-release는 npm dist-tag next로만 배포).
       # 레지스트리는 메타데이터만 보관하므로 npm publish 이후에 실행해야 하고,
       # GitHub Release 생성 이후에 두어 등재 실패가 Release 생성을 막지 않게 한다.
+      # MCP Registry 는 npm 에서 해당 버전을 조회해 검증하므로 전파 전에 호출하면 404 로 실패한다 (#1040).
+      # 실측 전파 시간은 약 4분인데 mcp-publisher 재시도 창은 60초뿐이라 사실상 매번 부족하다.
+      # 여기서 먼저 기다리면 "전파 미완"과 "레지스트리의 진짜 거절"이 로그에서 갈린다.
+      - name: Wait for npm propagation
+        if: steps.version.outputs.npm_tag == 'latest'
+        run: |
+          set -euo pipefail
+          PKG="$(node -p "require('./package.json').name")"
+          VERSION="${{ steps.version.outputs.version }}"
+          DEADLINE=$((SECONDS + 600))
+          while :; do
+            STATUS="$(curl -sS -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/${PKG}/${VERSION}" || true)"
+            if [ -z "$STATUS" ]; then
+              STATUS="000"
+            fi
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ ${PKG}@${VERSION} visible on npm registry after ${SECONDS}s"
+              break
+            fi
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              echo "E_NPM_PROPAGATION_TIMEOUT: ${PKG}@${VERSION} still HTTP ${STATUS} after 600s"
+              exit 1
+            fi
+            echo "⏳ ${PKG}@${VERSION} not on registry yet (HTTP ${STATUS}); retrying in 15s"
+            sleep 15
+          done
+
       - name: Sync server.json version (MCP Registry)
         if: steps.version.outputs.npm_tag == 'latest'
         run: |
