@@ -665,11 +665,11 @@ describe('BackupManager', () => {
       const counts = {
         expiredAutomatic: 6835,
         currentAutomatic: 20,
-        operator: 20,
+        operator: 6,
         zeroByte: 9,
         sidecar: 16,
       } as const;
-      expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(6900);
+      expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(6886);
 
       const automaticName = (version: string, base: string, index: number): string => {
         const stamp = new Date(Date.parse(base) + index).toISOString().replace(/[:.]/g, '-');
@@ -717,10 +717,10 @@ describe('BackupManager', () => {
 
       expect(sumLstatBytes(expiredAutomatic)).toBe(6835);
       expect(sumLstatBytes(currentAutomatic)).toBe(20);
-      expect(sumLstatBytes(operator)).toBe(20);
+      expect(sumLstatBytes(operator)).toBe(6);
       expect(sumLstatBytes(zeroByte)).toBe(0);
       expect(sumLstatBytes(sidecar)).toBe(16);
-      expect(sumLstatBytes(backupDirectoryNames())).toBe(6835 + 20 + 20 + 16);
+      expect(sumLstatBytes(backupDirectoryNames())).toBe(6835 + 20 + 6 + 16);
 
       const preview = await backupManager.cleanupBackups({ mode: 'preview', now });
       const apply = await backupManager.cleanupBackups({ mode: 'apply', now });
@@ -728,8 +728,8 @@ describe('BackupManager', () => {
 
       expect(preview.selectedCount).toBe(6835 + 9 + 16);
       expect(preview.selectedBytes).toBe(6835 + 16);
-      expect(preview.inspectedCount).toBe(6900);
-      expect(preview.ignoredCount).toBe(20 + 20);
+      expect(preview.inspectedCount).toBe(6886);
+      expect(preview.ignoredCount).toBe(20 + 6);
       expect(preview.artifacts).toHaveLength(preview.selectedCount);
       expect(reasonCounts(preview.artifacts)).toEqual({
         'expired-automatic': 6835,
@@ -748,11 +748,11 @@ describe('BackupManager', () => {
         'zero-byte-backup': 9,
       });
       expect(secondApply).toMatchObject({
-        inspectedCount: 40,
+        inspectedCount: 26,
         selectedCount: 0,
         deletedCount: 0,
         reclaimedBytes: 0,
-        ignoredCount: 40,
+        ignoredCount: 26,
       });
       expect(secondApply.artifacts).toEqual([]);
       expect(backupDirectoryNames()).toEqual([...currentAutomatic, ...operator].sort());
@@ -893,6 +893,94 @@ describe('BackupManager', () => {
         statSpy.mockRestore();
         realpathSpy.mockRestore();
       }
+    });
+
+    describe('surplus-operator (#1043)', () => {
+      function operatorName(index: number): string {
+        const stamp = `2026-06-01T${String(index).padStart(2, '0')}-00-00-000Z`;
+        return `memory-backup-${stamp}.db`;
+      }
+
+      it('selects the two oldest operator backups when twelve exist', async () => {
+        const names = Array.from({ length: 12 }, (_, index) => operatorName(index));
+        for (const name of names) {
+          writeBackup(name, 100);
+        }
+
+        const preview = await backupManager.cleanupBackups({ mode: 'preview', now });
+
+        expect(preview.selectedCount).toBe(2);
+        expect(preview.artifacts.every(artifact => artifact.reason === 'surplus-operator')).toBe(true);
+        expect(preview.artifacts.map(artifact => artifact.id).sort()).toEqual([
+          operatorName(0),
+          operatorName(1),
+        ].sort());
+      });
+
+      it('does not select operator backups when operatorKeepCount is 0', async () => {
+        const names = Array.from({ length: 12 }, (_, index) => operatorName(index));
+        for (const name of names) {
+          writeBackup(name, 100);
+        }
+
+        const preview = await backupManager.cleanupBackups({
+          mode: 'preview',
+          now,
+          operatorKeepCount: 0,
+        });
+
+        expect(preview.selectedCount).toBe(0);
+        expect(preview.artifacts.some(artifact => artifact.reason === 'surplus-operator')).toBe(false);
+      });
+
+      it('keeps automatic and operator retention independent', async () => {
+        const automatic = Array.from({ length: 5 }, (_, index) => {
+          const stamp = new Date(now.getTime() - index * 1000).toISOString().replace(/[:.]/g, '-');
+          return `memory-backup-2.0-${stamp}.db`;
+        });
+        const operators = Array.from({ length: 12 }, (_, index) => operatorName(index));
+        for (const name of [...automatic, ...operators]) {
+          writeBackup(name, 1);
+        }
+
+        const preview = await backupManager.cleanupBackups({
+          mode: 'preview',
+          now,
+          keepCount: 2,
+          operatorKeepCount: 3,
+        });
+
+        expect(preview.artifacts.filter(artifact => artifact.reason === 'surplus-automatic')).toHaveLength(3);
+        expect(preview.artifacts.filter(artifact => artifact.reason === 'surplus-operator')).toHaveLength(9);
+      });
+
+      it('is idempotent after apply', async () => {
+        const names = Array.from({ length: 12 }, (_, index) => operatorName(index));
+        for (const name of names) {
+          writeBackup(name, 100);
+        }
+
+        const firstApply = await backupManager.cleanupBackups({ mode: 'apply', now });
+        expect(firstApply.selectedCount).toBe(2);
+        expect(firstApply.deletedCount).toBe(2);
+
+        const secondApply = await backupManager.cleanupBackups({ mode: 'apply', now });
+        expect(secondApply.selectedCount).toBe(0);
+        expect(backupDirectoryNames()).toHaveLength(10);
+      });
+
+      it('prefers zero-byte-backup over surplus-operator for empty operator files', async () => {
+        const names = Array.from({ length: 12 }, (_, index) => operatorName(index));
+        for (const name of names) {
+          writeBackup(name, 0);
+        }
+
+        const preview = await backupManager.cleanupBackups({ mode: 'preview', now });
+
+        expect(preview.selectedCount).toBe(12);
+        expect(preview.artifacts.every(artifact => artifact.reason === 'zero-byte-backup')).toBe(true);
+        expect(preview.artifacts.some(artifact => artifact.reason === 'surplus-operator')).toBe(false);
+      });
     });
 
     it('treats invalid runtime cleanup modes as preview and does not delete', async () => {

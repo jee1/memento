@@ -52,6 +52,7 @@ export type CleanupMode = 'preview' | 'apply';
 export type CleanupSelectionReason =
   | 'expired-automatic'
   | 'surplus-automatic'
+  | 'surplus-operator'
   | 'zero-byte-backup'
   | 'orphaned-sidecar'
   | 'interrupted-attempt';
@@ -96,6 +97,8 @@ export interface CleanupOptions {
    * 0 이하를 주면 개수 상한을 적용하지 않는다(기간 기준만 사용).
    */
   keepCount?: number;
+  /** 운영자 백업 보존 개수. 미지정 시 OPERATOR_RETENTION_COUNT. */
+  operatorKeepCount?: number;
 }
 
 interface FileIdentity {
@@ -128,6 +131,20 @@ const AUTOMATIC_RETENTION_DAYS = 30;
  * 최근 5회분에 해당한다.
  */
 const AUTOMATIC_RETENTION_COUNT = 200;
+
+/**
+ * 운영자 백업 보존 개수 상한 (#1043).
+ *
+ * 버전 세그먼트가 없는 이름(`memory-backup-<TS>.db`)은 지금까지 보존 정책의 대상이
+ * 아니었다. 그런데 이 이름을 만드는 주체는 사람이 아니라 CLI 다 — 배포 게이트가 매
+ * 배포마다 `scripts/backup-memory-db.mjs` 를 부른다. 실측(2026-09-19)에서 호스트
+ * 백업 디렉터리 5.23 GiB 중 5.06 GiB(97%)가 이 21개 파일이었고, 평균 247 MiB 로
+ * DB 본체와 같은 크기다. 기간 기준은 쓰지 않는다 — 생성 주기가 배포 주기라 기간으로는
+ * 상한이 서지 않기 때문이다. 개수만 묶는다.
+ *
+ * 영구 보관이 필요한 백업은 이 디렉터리 밖으로 옮겨야 한다.
+ */
+const OPERATOR_RETENTION_COUNT = 10;
 
 const TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/;
 const AUTOMATIC_NAME = new RegExp(
@@ -191,11 +208,36 @@ function selectSurplusAutomaticNames(names: string[], keepCount: number): Set<st
   return new Set(automatic.slice(keepCount).map(entry => entry.name));
 }
 
+/**
+ * 개수 상한을 넘긴 운영자 백업 이름 집합을 만든다 (#1043).
+ * 최신순으로 keepCount개를 남기고 나머지를 반환한다.
+ * 자동 백업(버전 있는 이름)은 대상이 아니다.
+ */
+function selectSurplusOperatorNames(names: string[], keepCount: number): Set<string> {
+  if (keepCount <= 0) {
+    return new Set();
+  }
+
+  const operator = names
+    .flatMap(name => {
+      const match = name.match(OPERATOR_NAME);
+      if (match === null) {
+        return [];
+      }
+      const createdAt = parseBackupTimestamp(match, 1);
+      return createdAt === null ? [] : [{ name, createdAt }];
+    })
+    .sort((a, b) => (b.createdAt - a.createdAt) || a.name.localeCompare(b.name));
+
+  return new Set(operator.slice(keepCount).map(entry => entry.name));
+}
+
 function classifyNameSelection(
   name: string,
   cutoff: number,
   includeInterrupted: boolean,
-  surplusNames: Set<string>
+  surplusNames: Set<string>,
+  surplusOperatorNames: Set<string>
 ): CleanupSelectionReason | null {
   const sidecarBase = getSidecarBaseName(name);
 
@@ -217,6 +259,10 @@ function classifyNameSelection(
     return 'surplus-automatic';
   }
 
+  if (surplusOperatorNames.has(name) && isOperatorBackupName(name)) {
+    return 'surplus-operator';
+  }
+
   if (createdAt !== null || isOperatorBackupName(name)) {
     return null;
   }
@@ -233,7 +279,8 @@ function classifyInspectedSelection(
   stats: fs.Stats,
   cutoff: number,
   includeInterrupted: boolean,
-  surplusNames: Set<string>
+  surplusNames: Set<string>,
+  surplusOperatorNames: Set<string>
 ): CleanupSelectionReason | null {
   if (!stats.isFile()) {
     return null;
@@ -243,7 +290,7 @@ function classifyInspectedSelection(
     return 'zero-byte-backup';
   }
 
-  return classifyNameSelection(name, cutoff, includeInterrupted, surplusNames);
+  return classifyNameSelection(name, cutoff, includeInterrupted, surplusNames, surplusOperatorNames);
 }
 
 function getIdentity(stats: fs.Stats): FileIdentity {
@@ -672,6 +719,7 @@ export class BackupManager {
     const now = options.now ?? new Date();
     const cutoff = now.getTime() - AUTOMATIC_RETENTION_DAYS * DAY_MS;
     const keepCount = options.keepCount ?? AUTOMATIC_RETENTION_COUNT;
+    const operatorKeepCount = options.operatorKeepCount ?? OPERATOR_RETENTION_COUNT;
     let names: string[];
 
     try {
@@ -682,15 +730,29 @@ export class BackupManager {
 
     // 개수 상한은 이름 하나만 봐서는 판정할 수 없어 전체 목록에서 먼저 계산한다.
     const surplusNames = selectSurplusAutomaticNames(names, keepCount);
+    const surplusOperatorNames = selectSurplusOperatorNames(names, operatorKeepCount);
 
     const candidates = names.sort().flatMap<CleanupCandidate>(name => {
       const includeInterrupted = options.includeInterrupted ?? false;
-      const nameReason = classifyNameSelection(name, cutoff, includeInterrupted, surplusNames);
+      const nameReason = classifyNameSelection(
+        name,
+        cutoff,
+        includeInterrupted,
+        surplusNames,
+        surplusOperatorNames
+      );
       const path = join(this.backupsDir, name);
 
       try {
         const stats = fs.lstatSync(path);
-        const reason = classifyInspectedSelection(name, stats, cutoff, includeInterrupted, surplusNames);
+        const reason = classifyInspectedSelection(
+          name,
+          stats,
+          cutoff,
+          includeInterrupted,
+          surplusNames,
+          surplusOperatorNames
+        );
 
         if (reason === null) {
           return [];

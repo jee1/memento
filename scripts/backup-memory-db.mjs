@@ -123,12 +123,29 @@ try {
   source.close();
 }
 
+// 배포 게이트가 매 배포마다 이 스크립트를 부르므로, 정리하지 않으면 백업이 단조 증가한다 (#1043).
+// migration-runner 와 같은 soft-fail 규약: 정리 실패는 백업 실패가 아니다.
+let cleanupSummary = null;
+if (process.env.MEMENTO_BACKUP_PRUNE !== '0') {
+  try {
+    const report = await manager.cleanupBackups({ mode: 'apply', includeInterrupted: false });
+    cleanupSummary = {
+      ok: report.ok,
+      deletedCount: report.deletedCount,
+      reclaimedBytes: report.reclaimedBytes,
+    };
+  } catch (error) {
+    cleanupSummary = { ok: false, error: error instanceof Error ? error.name : 'Error' };
+  }
+}
+
 const result = {
   ok: true,
   dbPath,
   backupPath: backup.backupPath,
   integrity_check: backup.integrityCheck,
   memory_item: countMemoryItems(backup.backupPath),
+  cleanup: cleanupSummary,
 };
 
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
