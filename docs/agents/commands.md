@@ -93,11 +93,11 @@ npm run check:vi-mock-paths   # 상대 경로 vi.mock 의 대상 모듈 실재 �
 
 ## 배포 tarball 점검
 
-루트 패키지 tarball은 워크스페이스 링크를 임시 번들로 바꿨다가 반드시 복구해야 합니다. `pack:tarball`은 성공·실패 모두 복구를 보장하며, 중단된 수동 작업 뒤에는 `restore-workspace`로 즉시 원복합니다.
+루트 패키지 tarball 은 `@memento/core` · `@memento/agent-integration` 을 `dist/node_modules/` 아래로 복사해 담습니다. 루트 `node_modules` 의 워크스페이스 링크는 건드리지 않으므로 pack 이 중간에 실패해도 복구할 것이 없습니다.
 
 ```bash
-npm run pack:tarball -- --dry-run
-npm run restore-workspace
+npm pack --dry-run
+npm run verify-pack-bundle
 ```
 
 ## Git worktree — 이슈 격리 작업

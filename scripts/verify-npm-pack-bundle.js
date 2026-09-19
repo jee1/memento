@@ -10,10 +10,8 @@
  * 릴리스 게이트는 실제 .tgz 내용을 본다.
  *
  * 순서: prepack-bundle-core → npm pack --ignore-scripts → zlib+tar 헤더 파싱으로 경로·deps 검사
- * → (선택) empty-temp install + resolve smoke → 워크스페이스 링크 복구
+ * → (선택) empty-temp install + resolve + npm audit signatures smoke → dist 번들 사본 정리
  * (POSIX `tar` 바이너리/`/bin/sh` 의존 없음 — Windows·제한 CI 호환)
- *
- * 검증 실패 시에도 try/finally로 postpack 복구를 반드시 실행한다(process.exit는 마지막에 한 번만).
  *
  * Empty-temp smoke: `MEMENTO_PACK_SMOKE=0` 이면 스킵. 네이티브 모듈(better-sqlite3 등) 전체
  * 기동은 CI에서 무거울 수 있어, 기본 smoke는 설치 후 JS 패키지 resolve + bin 파일 존재만 본다.
@@ -39,8 +37,8 @@ const root = join(__dirname, '..');
 
 /** tarball에 물리적으로 있어야 하는 bundled 워크스페이스 패키지 경로 */
 const REQUIRED_BUNDLED_PATHS = [
-  'package/node_modules/@memento/core/dist/index.js',
-  'package/node_modules/@memento/agent-integration/dist/index.js',
+  'package/dist/node_modules/@memento/core/dist/index.js',
+  'package/dist/node_modules/@memento/agent-integration/dist/index.js',
 ];
 
 /**
@@ -176,7 +174,8 @@ function runEmptyTempInstallSmoke(tgzPath, packEnv) {
       return 1;
     }
 
-    const requireFromInstalled = createRequire(join(installedPkg, 'package.json'));
+    // @memento/* 는 dist/node_modules 에 번들되므로 dist 안의 파일을 기준으로 해석해야 한다 (#1038).
+    const requireFromInstalled = createRequire(join(installedPkg, 'dist/server/index.js'));
     for (const name of SMOKE_RESOLVE_PACKAGES) {
       try {
         requireFromInstalled.resolve(name);
@@ -200,6 +199,28 @@ function runEmptyTempInstallSmoke(tgzPath, packEnv) {
       }
     }
 
+    // #1038: 소비자가 provenance 를 검증하는 표준 명령. 비공개 워크스페이스 이름이
+    // 발행 매니페스트에 새어 나가면 여기서 registry 404 로 exit 1 이 된다.
+    if (process.env.MEMENTO_PACK_AUDIT_SIGNATURES !== '0') {
+      const audit = spawnSync(npmCli, ['audit', 'signatures'], {
+        cwd: installDir,
+        stdio: 'inherit',
+        env: { ...smokeEnv, npm_config_cache: join(smokeRoot, 'npm-cache') },
+      });
+      if (audit.error) {
+        console.error('[verify-npm-pack-bundle] npm audit signatures 실행 실패:', audit.error);
+        return 1;
+      }
+      if (audit.status !== 0) {
+        console.error(
+          '[verify-npm-pack-bundle] npm audit signatures 실패 (#1038). ' +
+            'registry 에 없는 의존성 이름이 발행 매니페스트에 남아 있는지 확인하라.'
+        );
+        return audit.status ?? 1;
+      }
+      console.log('[verify-npm-pack-bundle] OK — npm audit signatures');
+    }
+
     // Light bin smoke: node can parse/load the MCP entry without full native DB init
     // by only checking the file is valid JS module graph for first-party imports.
     // Full server start needs better-sqlite3 rebuild — not required for closure gate.
@@ -209,7 +230,7 @@ function runEmptyTempInstallSmoke(tgzPath, packEnv) {
       const probe = `
 import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
-const req = createRequire(${JSON.stringify(join(installedPkg, 'package.json'))});
+const req = createRequire(${JSON.stringify(join(installedPkg, 'dist/server/index.js'))});
 for (const n of ${JSON.stringify(SMOKE_RESOLVE_PACKAGES)}) req.resolve(n);
 writeFileSync(${JSON.stringify(marker)}, 'ok');
 `;
@@ -319,11 +340,20 @@ try {
             `[verify-npm-pack-bundle] OK — root deps 선언 (${REQUIRED_ROOT_DEPS.join(', ')})`
           );
         }
-        if (!('@memento/agent-integration' in deps)) {
-          console.error(
-            '[verify-npm-pack-bundle] tarball package.json dependencies에 @memento/agent-integration 이 없습니다 (bundledDependencies 대상).'
-          );
+        const FORBIDDEN_DEP_NAMES = ['@memento/core', '@memento/agent-integration'];
+        const leakedDeps = FORBIDDEN_DEP_NAMES.filter((name) => name in deps);
+        if (leakedDeps.length > 0) {
+          for (const name of leakedDeps) {
+            console.error(
+              `[verify-npm-pack-bundle] tarball package.json dependencies 에 ${name} 이(가) 남아 있습니다. ` +
+                'registry 에 없는 이름이라 소비자의 `npm audit signatures` 가 404 로 실패한다 (#1038).'
+            );
+          }
           exitCode = 1;
+        } else {
+          console.log(
+            '[verify-npm-pack-bundle] OK — 비공개 워크스페이스 패키지가 dependencies 에 없음 (#1038)'
+          );
         }
       }
 
@@ -348,9 +378,9 @@ try {
     // ignore
   }
   try {
-    execSync('node scripts/postpack-restore-workspace.js', { cwd: root, stdio: 'inherit' });
+    execSync('node scripts/postpack-clean-bundle.js', { cwd: root, stdio: 'inherit' });
   } catch (e) {
-    console.error('[verify-npm-pack-bundle] 워크스페이스 복구(postpack) 실패:', e);
+    console.error('[verify-npm-pack-bundle] dist 번들 사본 정리(postpack) 실패:', e);
     exitCode = 1;
   }
 }
