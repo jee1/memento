@@ -416,4 +416,21 @@ describe('static design contracts', () => {
 
     expect(cssSource).toMatch(/#anchor-map\s*\{[^}]*min-height:\s*200px;/s);
   });
+
+  it('issue #1023 chrome carries no brand gradient, indigo literal, or forked mono stack', () => {
+    const tokensSource = readStaticFile('static/css/tokens.css');
+    const cssSource = readStaticFile('static/css/dashboard.css');
+
+    // the gradient token is retired, not merely unused
+    expect(tokensSource).not.toContain('--color-brand-gradient');
+    expect(cssSource).not.toContain('--color-brand-gradient');
+
+    // indigo also hides in rgb() form, which a `667eea` grep misses
+    expect(cssSource).not.toContain('102, 126, 234');
+
+    // one mono source: no panel rule may declare its own stack
+    expect(tokensSource).toContain('--font-family-mono:');
+    expect(cssSource).not.toContain('monospace');
+    expect(cssSource).not.toContain('--font-mono,');
+  });
 });
