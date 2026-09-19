@@ -59,7 +59,7 @@ const IMPORTANCE_DISTRIBUTION: ReadonlyArray<readonly [number, number]> = [
   [0.95, 0.018],
 ];
 
-function sampleImportance(r: number): number {
+export function sampleImportance(r: number): number {
   let cumulative = 0;
   for (const [value, weight] of IMPORTANCE_DISTRIBUTION) {
     cumulative += weight;
@@ -74,7 +74,7 @@ function sampleImportance(r: number): number {
  * 프로덕션 recall_count 분포: 0 이 28.7%, 1~4 가 68.6%, 5~19 가 2.2%,
  * 20 이상이 0.44% (40/9,055). 예전 구현은 정답 전부에 20 이상을 줬다.
  */
-function sampleRecallCount(r: number, r2: number): number {
+export function sampleRecallCount(r: number, r2: number): number {
   if (r < 0.287) return 0;
   if (r < 0.973) return 1 + Math.floor(r2 * 4);
   if (r < 0.995) return 5 + Math.floor(r2 * 15);
