@@ -202,7 +202,8 @@ describe('dashboard ops status panel', () => {
 
     expect(harness.fetchCalls).toContain('/admin/status');
     expect(harness.elements['ops-status-process-uptime'].textContent).toBe('1시간');
-    expect(harness.elements['ops-status-scheduler'].textContent).toContain('2분');
+    expect(harness.elements['ops-status-scheduler'].textContent).toBe('실행 중');
+    expect(harness.elements['ops-status-scheduler-uptime'].textContent).toBe('2분');
     expect(harness.elements['ops-status-batch-impact'].textContent).toBe('약 12분');
     expect(harness.elements['ops-status-review-pending'].textContent).toBe('3');
     expect(harness.elements['ops-status-embedding'].textContent).toBe('minilm · 문제 4건');
@@ -210,6 +211,7 @@ describe('dashboard ops status panel', () => {
     const rendered = [
       harness.elements['ops-status-process-uptime'].textContent,
       harness.elements['ops-status-scheduler'].textContent,
+      harness.elements['ops-status-scheduler-uptime'].textContent,
       harness.elements['ops-status-batch-impact'].textContent,
       harness.elements['ops-status-review-pending'].textContent,
       harness.elements['ops-status-review-netflow'].textContent,
