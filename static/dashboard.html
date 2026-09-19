@@ -419,13 +419,17 @@
             <div id="rc-bulk-actions" class="rc-bulk-actions" aria-busy="false">
               <label class="rc-bulk-select-all" for="rc-select-all">
                 <input type="checkbox" id="rc-select-all">
-                보이는 항목 모두 선택
+                불러온 후보 <span id="rc-select-all-scope">0</span>건 모두 선택
               </label>
               <span id="rc-selected-count" class="rc-selected-count" aria-live="polite">0개 선택</span>
               <div class="rc-bulk-buttons">
-                <button type="button" id="rc-bulk-dismiss-btn" class="m-button m-button--secondary" disabled>선택 무시</button>
-                <button type="button" id="rc-bulk-expire-btn" class="m-button m-button--ghost" disabled>선택 만료</button>
+                <button type="button" id="rc-bulk-dismiss-btn" class="m-button m-button--secondary" disabled>선택 무시<span id="rc-bulk-dismiss-count" class="rc-bulk-count"></span></button>
+                <button type="button" id="rc-bulk-expire-btn" class="m-button m-button--ghost" disabled>선택 만료<span id="rc-bulk-expire-count" class="rc-bulk-count"></span></button>
               </div>
+              <p class="rc-bulk-effect-note">
+                무시와 만료는 이 대기열에서 후보만 내립니다. 원본 기억은 지워지지 않고 내용도 바뀌지 않습니다.
+                기억이 조건을 다시 만족하면 <code class="rc-health-code">memory_review_candidates</code> 배치가 새 후보로 다시 올리므로 되돌릴 수 있습니다.
+              </p>
             </div>
             <div id="rc-table-wrap" class="review-candidates-table-wrap m-table-wrap hidden">
               <table id="rc-table" class="m-table">
@@ -458,9 +462,12 @@
                 <p id="rc-preview-memory-status" class="rc-preview-memory-status" aria-live="polite"></p>
                 <pre id="rc-preview-content" class="rc-preview-content"></pre>
                 <div id="rc-preview-actions" class="rc-preview-actions" aria-busy="false">
-                  <button type="button" id="rc-btn-review" class="m-button m-button--secondary" disabled>검토</button>
+                  <button type="button" id="rc-btn-review" class="m-button m-button--secondary" disabled>보존</button>
                   <button type="button" id="rc-btn-dismiss" class="m-button m-button--secondary" disabled>무시</button>
                 </div>
+                <p class="rc-action-effect-note">
+                  보존은 이 기억의 마지막 접근 시각을 지금으로 갱신해 자동 망각에서 멀어지게 합니다. 무시는 후보만 내리고 기억은 그대로 둡니다.
+                </p>
               </div>
             </div>
           </aside>
