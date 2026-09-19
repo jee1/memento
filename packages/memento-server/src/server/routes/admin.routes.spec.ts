@@ -2221,4 +2221,43 @@ describe('GET /admin/status', () => {
       await new Promise<void>(r => server.close(() => r()));
     }
   });
+
+  it('review.netFlow1h counts the 1h window, not the 24h window', async () => {
+    const now = Date.now();
+    const tenMinAgo = new Date(now - 10 * 60_000).toISOString();
+    const fiveHoursAgo = new Date(now - 5 * 3_600_000).toISOString();
+
+    const insertMemory = db.prepare(
+      `INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)`,
+    );
+    const insertCandidate = db.prepare(`
+      INSERT INTO memory_review_candidate (
+        id, memory_id, status, priority, reason, due_at, created_at, updated_at,
+        reviewed_at, dismissed_at
+      ) VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, NULL, NULL)
+    `);
+
+    insertMemory.run('mem-c1', 'semantic', 'content c1');
+    insertMemory.run('mem-c2', 'semantic', 'content c2');
+    insertMemory.run('mem-c3', 'semantic', 'content c3');
+    insertMemory.run('mem-c4', 'semantic', 'content c4');
+
+    insertCandidate.run('c1', 'mem-c1', 0.5, 'reason', '2026-09-19T00:00:00.000Z', tenMinAgo, tenMinAgo);
+    insertCandidate.run('c2', 'mem-c2', 0.5, 'reason', '2026-09-19T00:00:00.000Z', fiveHoursAgo, fiveHoursAgo);
+    insertCandidate.run('c3', 'mem-c3', 0.5, 'reason', '2026-09-19T00:00:00.000Z', fiveHoursAgo, fiveHoursAgo);
+    insertCandidate.run('c4', 'mem-c4', 0.5, 'reason', '2026-09-19T00:00:00.000Z', fiveHoursAgo, fiveHoursAgo);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/status');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        review: { pendingTotal: number; netFlow1h: number };
+      };
+      expect(body.review.pendingTotal).toBe(4);
+      expect(body.review.netFlow1h).toBe(1);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
 });
