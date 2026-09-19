@@ -9,6 +9,7 @@ createMementoCore,
 expandHomeDirPath,
 getExposedTools,
 mementoConfig,
+shutdownServices,
 validateConfig,
 type ServerServices
 } from '@memento/core';
@@ -208,29 +209,16 @@ async function performStdioCleanup(): Promise<void> {
   }
   
   if (serverServices) {
-    try {
-      if (serverServices.runtimeDiagnosticsLogger) {
+    if (serverServices.runtimeDiagnosticsLogger) {
+      try {
         await serverServices.runtimeDiagnosticsLogger.writeEvent({
           type: 'server_cleanup_start',
           timestamp: new Date().toISOString(),
           transport: 'stdio'
         });
-      }
-      
-      if (serverServices.runtimeDiagnosticsSamplerCleanup) {
-        await serverServices.runtimeDiagnosticsSamplerCleanup();
-      }
-
-      await serverServices.batchScheduler?.stop();
-      
-      await serverServices.walCheckpointScheduler.stop();
-      serverServices.databaseLockMonitor.stop();
-      
-      if (serverServices.writeCoalescingManager) {
-        await serverServices.writeCoalescingManager.flush();
-        await serverServices.writeCoalescingManager.destroy();
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore */ }
+    }
+    await shutdownServices(serverServices);
   }
 
   if (db) {

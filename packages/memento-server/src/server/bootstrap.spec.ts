@@ -5,12 +5,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   initializeServices,
+  shutdownServices,
   type ServerServices,
   DatabaseUtils,
   mementoConfig,
   getPerformanceMonitor,
-  getBatchScheduler,
-  resetBatchScheduler
+  getBatchScheduler
 } from '@memento/core';
 import Database from 'better-sqlite3';
 
@@ -26,53 +26,9 @@ describe('initializeServices', () => {
   });
 
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await shutdownServices(services);
+    services = null;
 
-    try {
-      const scheduler = getBatchScheduler() as { getStatus(): { isRunning: boolean }; stop(): Promise<void> };
-      if (scheduler?.getStatus?.()?.isRunning && typeof scheduler.stop === 'function') {
-        await scheduler.stop();
-      }
-    } catch (error) {
-      console.warn('BatchScheduler stop 중 에러:', error);
-    }
-
-    if (services) {
-      if (services.batchScheduler) {
-        try {
-          await services.batchScheduler.stop?.();
-        } catch { /* ignore */ }
-      }
-      try {
-        await services.walCheckpointScheduler.stop();
-      } catch (error) {
-        console.warn('WalCheckpointScheduler stop 중 에러:', error);
-      }
-      try {
-        services.databaseLockMonitor.stop();
-      } catch (error) {
-        console.warn('DatabaseLockMonitor stop 중 에러:', error);
-      }
-    }
-
-    // Write Coalescing Manager 정리
-    if (services?.writeCoalescingManager) {
-      try {
-        await services.writeCoalescingManager.flush();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await services.writeCoalescingManager.destroy();
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.warn('WriteCoalescingManager destroy 중 에러:', error);
-      }
-    }
-
-    // 서비스 인스턴스 정리
-    if (services) {
-      services = null;
-    }
-
-    // 데이터베이스 닫기
     if (db) {
       try {
         db.close();
@@ -82,15 +38,8 @@ describe('initializeServices', () => {
       db = null as any;
     }
 
-    // BatchScheduler 싱글톤 리셋
-    resetBatchScheduler();
-
-    // Mock 정리
     vi.clearAllMocks();
     vi.restoreAllMocks();
-
-    // 추가 대기 (리소스 정리 완료 보장)
-    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   describe('기본 서비스 초기화', () => {
@@ -178,6 +127,7 @@ describe('initializeServices', () => {
         services2 = await initializeServices(db2);
 
         expect(services1.performanceMonitor).toBe(services2.performanceMonitor);
+        services = services2;
       } finally {
         // Write Coalescing Manager 정리
         if (services1?.writeCoalescingManager) {
@@ -458,6 +408,21 @@ describe('initializeServices', () => {
       // (실제 설정값은 환경 변수에 따라 다를 수 있으므로, 인스턴스가 생성되었는지만 확인)
       expect(services.walCheckpointScheduler).toBeDefined();
       expect(services.databaseLockMonitor).toBeDefined();
+    });
+  });
+
+  describe('반복 초기화 (#1032)', () => {
+    // shutdownServices 가 BatchScheduler 싱글턴까지 되돌리지 않으면
+    // 두 번째 호출이 '서비스 초기화 실패: BatchScheduler is already running' 으로 죽는다.
+    it('같은 프로세스에서 initializeServices 를 연달아 세 번 호출할 수 있어야 함', async () => {
+      for (let i = 0; i < 3; i += 1) {
+        const roundDb = new Database(':memory:');
+        DatabaseUtils.initializeDatabase(roundDb);
+        const roundServices = await initializeServices(roundDb);
+        expect(roundServices.walCheckpointScheduler).toBeDefined();
+        await shutdownServices(roundServices);
+        roundDb.close();
+      }
     });
   });
 });

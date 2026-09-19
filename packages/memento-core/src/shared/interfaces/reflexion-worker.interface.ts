@@ -15,6 +15,7 @@ export interface IWorkerStatus {
 
 export interface IReflexionWorker {
   getStatus(): IWorkerStatus;
+  stop(): Promise<boolean>;
   queueFailureEvent(event: unknown): Promise<boolean>;
   cleanupDuplicateWindow(): void;
   performHealthCheck(): void;

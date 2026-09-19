@@ -35,6 +35,8 @@ import type { MetaMemoryService } from './domains/memory/introspection/meta-memo
 import { IntrospectionScanCache } from './domains/memory/introspection/introspection-scan-cache.js';
 import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
+import { logger } from './shared/utils/logger.js';
+import { resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 
 export interface ServerServices {
   searchEngine: SearchEngine;
@@ -143,5 +145,69 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`서비스 초기화 실패: ${errorMessage}`);
+  }
+}
+
+/**
+ * initializeServices 가 띄운 백그라운드 자원을 역순으로 멈춘다 (#1032).
+ *
+ * 이 함수는 절대 throw 하지 않는다. 종료 경로에서 한 자원의 실패가 나머지 정리를
+ * 막으면 안 되기 때문이다. 각 단계를 개별 try/catch 로 감싸고 실패는 로그만 남긴다.
+ *
+ * DB 는 닫지 않는다. initializeServices 가 DB 를 열지 않으므로 대칭을 유지한다 —
+ * DB 수명은 호출부가 관리한다.
+ */
+export async function shutdownServices(services: ServerServices | null | undefined): Promise<void> {
+  if (!services) {
+    return;
+  }
+
+  try {
+    await services.runtimeDiagnosticsSamplerCleanup?.();
+  } catch (error) {
+    logger.warn('런타임 진단 샘플러 중지 실패', { error });
+  }
+
+  try {
+    await services.reflexionWorker?.stop();
+  } catch (error) {
+    logger.warn('ReflexionWorker 중지 실패', { error });
+  }
+
+  try {
+    await services.batchScheduler?.stop();
+  } catch (error) {
+    logger.warn('배치 스케줄러 중지 실패', { error });
+  }
+
+  try {
+    await services.walCheckpointScheduler?.stop();
+  } catch (error) {
+    logger.warn('WAL 체크포인트 스케줄러 중지 실패', { error });
+  }
+
+  try {
+    services.databaseLockMonitor?.stop();
+  } catch (error) {
+    logger.warn('데이터베이스 락 모니터 중지 실패', { error });
+  }
+
+  if (services.writeCoalescingManager) {
+    try {
+      await services.writeCoalescingManager.flush();
+    } catch (error) {
+      logger.warn('Write Coalescing Manager flush 실패', { error });
+    }
+    try {
+      await services.writeCoalescingManager.destroy();
+    } catch (error) {
+      logger.warn('Write Coalescing Manager destroy 실패', { error });
+    }
+  }
+
+  try {
+    resetBatchScheduler();
+  } catch (error) {
+    logger.warn('BatchScheduler 싱글톤 리셋 실패', { error });
   }
 }
