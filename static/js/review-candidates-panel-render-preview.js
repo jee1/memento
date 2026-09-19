@@ -44,7 +44,7 @@
 
   function clearRowSelection() {
     if (state.selectedRow) {
-      state.selectedRow.classList.remove('rc-row--selected');
+      state.selectedRow.classList.remove('is-selected');
       state.selectedRow.setAttribute('aria-selected', 'false');
       state.selectedRow = null;
     }
@@ -154,7 +154,7 @@
     clearRowSelection();
     state.selectedRow = tr;
     state.previewMemoryId = tr.dataset.memoryId;
-    tr.classList.add('rc-row--selected');
+    tr.classList.add('is-selected');
     tr.setAttribute('aria-selected', 'true');
 
     const ph = $('rc-preview-placeholder');

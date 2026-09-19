@@ -715,7 +715,7 @@ body {
 
 .em-explorer-header h2 {
   margin: 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
 }
 
 .em-advanced[open] {
@@ -955,7 +955,7 @@ circle.em-dot:focus-visible {
 
 .rc-health-title {
   margin: 0 0 var(--spacing-xs) 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   font-weight: 600;
 }
 
@@ -975,31 +975,6 @@ circle.em-dot:focus-visible {
   margin-bottom: var(--spacing-md);
 }
 
-.rc-health-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: var(--spacing-sm);
-}
-
-.rc-health-metric-card {
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-main);
-  border: 1px solid var(--color-border-light);
-}
-
-.rc-health-metric-label {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-.rc-health-metric-value {
-  margin: 0.125rem 0 0 0;
-  font-size: var(--font-size-md);
-  font-weight: 600;
-}
-
 .rc-health-subtitle {
   margin: var(--spacing-sm) 0;
   font-size: var(--font-size-sm);
@@ -1012,29 +987,6 @@ circle.em-dot:focus-visible {
 
 .rc-health-table-scroll {
   max-height: 14rem;
-  overflow: auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-light);
-}
-
-.rc-health-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-xs);
-}
-
-.rc-health-table th,
-.rc-health-table td {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.rc-health-table th {
-  position: sticky;
-  top: 0;
-  background: var(--color-bg-card);
-  z-index: 1;
 }
 
 /* Review queue optional OS notifications (#275) */
@@ -1133,33 +1085,8 @@ circle.em-dot:focus-visible {
 }
 
 .review-candidates-table-wrap {
-  overflow: auto;
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--color-tab-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-}
-
-.review-candidates-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm);
-}
-
-.review-candidates-table th,
-.review-candidates-table td {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--color-tab-border);
-}
-
-.review-candidates-table th {
-  position: sticky;
-  top: 0;
-  background: var(--color-bg-card);
-  z-index: 1;
 }
 
 .rc-cell-mono {
@@ -1316,20 +1243,6 @@ circle.em-dot:focus-visible {
 .rc-preview-actions[aria-busy='true'] {
   opacity: 0.65;
   pointer-events: none;
-}
-
-.review-candidates-table tbody tr.rc-row--selected {
-  box-shadow: inset 3px 0 0 0 var(--color-brand-primary);
-  background: var(--color-bg-card);
-}
-
-.review-candidates-table tbody tr.rc-row--clickable {
-  cursor: pointer;
-}
-
-.review-candidates-table tbody tr.rc-row--clickable:focus {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: -2px;
 }
 
 /* Memory evolution demo shell (#340) */
@@ -1668,7 +1581,7 @@ circle.em-dot:focus-visible {
 .med-explanation-heading {
   text-transform: none;
   letter-spacing: normal;
-  font-size: var(--font-size-md, 1rem);
+  font-size: var(--font-size-base);
   color: var(--color-brand-primary);
 }
 
@@ -2236,51 +2149,12 @@ circle.em-dot:focus-visible {
 
 .jobs-section h3 {
   margin: 0 0 0.5rem;
-  font-size: var(--font-size-md, 1rem);
+  font-size: var(--font-size-base);
   color: var(--color-text-main);
 }
 
 .jobs-table-wrap {
-  overflow: auto;
   max-height: 28rem;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md, 0.5rem);
-  background: var(--color-bg-card);
-}
-
-.jobs-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm, 0.875rem);
-}
-
-.jobs-table th,
-.jobs-table td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-light);
-  color: var(--color-text-main);
-}
-
-.jobs-table th {
-  position: sticky;
-  top: 0;
-  background: var(--color-bg-card);
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-/* Issue #833: click a schedule row to load its durable job_run timeline */
-.jobs-row-selectable {
-  cursor: pointer;
-}
-
-.jobs-row-selectable:hover {
-  background: var(--color-bg-hover);
-}
-
-.jobs-row-selected {
-  background: var(--color-bg-selected);
 }
 
 /* Issue #834: Pause / Resume / Run now + logs header */

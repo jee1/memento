@@ -65,8 +65,8 @@
     list.forEach(function (job) {
       const row = document.createElement('tr');
       row.dataset.jobName = job.name || '';
-      row.classList.add('jobs-row-selectable');
-      row.classList.toggle('jobs-row-selected', job.name === ns.state.selectedJob);
+      row.classList.add('is-clickable');
+      row.classList.toggle('is-selected', job.name === ns.state.selectedJob);
       appendCell(row, job.name || '');
       appendCell(
         row,
@@ -107,8 +107,8 @@
       const row = document.createElement('tr');
       row.dataset.runId = run.id || '';
       row.dataset.jobName = run.jobName || '';
-      row.classList.add('jobs-row-selectable');
-      row.classList.toggle('jobs-row-selected', run.id === ns.state.selectedRunId);
+      row.classList.add('is-clickable');
+      row.classList.toggle('is-selected', run.id === ns.state.selectedRunId);
       appendCell(row, run.jobName || '');
       appendCell(row, run.trigger || '');
       appendCell(row, ns.formatIso(run.startedAt));

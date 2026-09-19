@@ -71,7 +71,7 @@
 
   function metricCard(label, value, problem, provider) {
     const card = document.createElement(problem ? 'button' : 'div');
-    card.className = 'rc-health-metric-card' + (problem ? ' em-health-problem-card' : '');
+    card.className = 'm-metric' + (problem ? ' em-health-problem-card' : '');
     if (problem) {
       card.type = 'button';
       card.addEventListener('click', function () {
@@ -79,10 +79,10 @@
       });
     }
     const labelEl = document.createElement('div');
-    labelEl.className = 'rc-health-metric-label';
+    labelEl.className = 'm-metric__label';
     labelEl.textContent = label;
     const valueEl = document.createElement('div');
-    valueEl.className = 'rc-health-metric-value';
+    valueEl.className = 'm-metric__value';
     valueEl.textContent = String(value);
     card.appendChild(labelEl);
     card.appendChild(valueEl);
