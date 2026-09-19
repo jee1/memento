@@ -296,6 +296,7 @@ body {
 .anchor-item .memory-id {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
   word-break: break-all;
 }
 
@@ -786,16 +787,6 @@ circle.em-dot:focus-visible {
   color: var(--color-text-main);
 }
 
-#em-load-btn {
-  padding: 0.4rem 1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-brand-gradient);
-  color: var(--color-text-inverse);
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .em-cache-info {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
@@ -976,7 +967,7 @@ circle.em-dot:focus-visible {
 }
 
 .rc-health-code {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
 }
 
@@ -1172,7 +1163,7 @@ circle.em-dot:focus-visible {
 }
 
 .rc-cell-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-family-mono);
   word-break: break-all;
 }
 
@@ -1304,7 +1295,7 @@ circle.em-dot:focus-visible {
   border: 1px solid var(--color-tab-border);
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
   flex: 0 0 auto;
 }
@@ -1671,11 +1662,7 @@ circle.em-dot:focus-visible {
 
 .med-section--explanation-prominent {
   border-color: var(--color-brand-primary);
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.06) 0%,
-    var(--color-bg-card) 55%
-  );
+  background: var(--color-accent-weak);
 }
 
 .med-explanation-heading {
@@ -2030,7 +2017,7 @@ circle.em-dot:focus-visible {
 
 .as-mono {
   overflow-wrap: anywhere;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
 }
 
@@ -2184,7 +2171,7 @@ circle.em-dot:focus-visible {
 .as-transcript-input {
   min-height: 12rem;
   resize: vertical;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .as-import-summary {
