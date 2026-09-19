@@ -74,7 +74,7 @@
         showError(String(msg));
         return;
       }
-      showActionToast(action === 'review' ? '검토 완료로 표시했습니다.' : '무시했습니다.');
+      showActionToast(action === 'review' ? '보존했습니다. 마지막 접근 시각을 갱신했습니다.' : '무시했습니다. 원본 기억은 그대로입니다.');
       await ns.loadList();
     } catch (e) {
       showError(e instanceof Error ? e.message : '네트워크 오류');

@@ -1077,7 +1077,25 @@ circle.em-dot:focus-visible {
   color: var(--color-text-muted);
 }
 
-.rc-bulk-buttons {
+    .rc-bulk-count {
+      margin-left: 0.25em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rc-bulk-effect-note,
+    .rc-action-effect-note {
+      flex-basis: 100%;
+      margin: 0;
+      font-size: var(--font-size-sm);
+      line-height: 1.5;
+      color: var(--color-text-muted);
+    }
+
+    .rc-action-effect-note {
+      margin-top: var(--spacing-xs);
+    }
+
+    .rc-bulk-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);

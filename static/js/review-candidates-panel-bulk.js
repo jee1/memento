@@ -1,5 +1,5 @@
 /**
- * Review candidates panel - visible-row selection and bulk actions (#519).
+ * Review candidates panel - loaded-candidate selection and bulk actions (#519, #897).
  */
 (function (global) {
   'use strict';
@@ -16,6 +16,15 @@
     expire: '/admin/memory/review-candidates/bulk-expire',
   };
 
+  // 버튼 라벨에 대상 건수를 같이 싣는다. 0건이면 숫자를 지워 버튼이
+  // "선택 무시 (0건)" 처럼 읽히지 않게 한다 (#897).
+  function setButtonCount(el, selectedCount) {
+    if (!el) {
+      return;
+    }
+    el.textContent = selectedCount > 0 ? ' (' + selectedCount + '건)' : '';
+  }
+
   function syncBulkControls() {
     const selectedCount = state.selectedCandidateIds.size;
     const count = $('rc-selected-count');
@@ -29,9 +38,16 @@
         return state.selectedCandidateIds.has(id);
       });
 
+    const scope = $('rc-select-all-scope');
+    const loadedCount = state.currentCandidateIds.length;
     if (count) {
       count.textContent = selectedCount + '개 선택';
     }
+    if (scope) {
+      scope.textContent = String(loadedCount);
+    }
+    setButtonCount($('rc-bulk-dismiss-count'), selectedCount);
+    setButtonCount($('rc-bulk-expire-count'), selectedCount);
     if (selectAll) {
       selectAll.checked = allSelected;
       selectAll.indeterminate = selectedCount > 0 && !allSelected;
@@ -51,7 +67,8 @@
     syncBulkControls();
   }
 
-  function setAllVisibleSelected(selected) {
+  // 이름 그대로 "불러온 전부"다. 화면에 보이는 행이 아니다 (#897).
+  function setAllLoadedSelected(selected) {
     state.selectedCandidateIds.clear();
     if (selected) {
       for (let i = 0; i < state.currentCandidateIds.length; i += 1) {
@@ -93,10 +110,19 @@
       return;
     }
     const label = action === 'dismiss' ? '무시' : '만료';
-    if (
-      typeof global.confirm === 'function' &&
-      !global.confirm('선택한 후보 ' + ids.length + '건을 일괄 ' + label + '할까요?')
-    ) {
+    const message =
+      '후보 ' +
+      ids.length +
+      '건을 일괄 ' +
+      label +
+      '합니다.\n\n' +
+      '· 대상: 지금 선택한 ' +
+      ids.length +
+      '건 (화면에 보이는 행이 아니라 선택한 전부입니다)\n' +
+      '· 원본 기억: 지워지지 않고 내용도 바뀌지 않습니다\n' +
+      '· 되돌리기: 기억이 조건을 다시 만족하면 다음 배치에서 새 후보로 올라옵니다\n\n' +
+      '진행할까요?';
+    if (typeof global.confirm === 'function' && !global.confirm(message)) {
       return;
     }
 
@@ -123,7 +149,8 @@
       }
       ns.showActionToast(
         String(body.updated ?? ids.length) +
-          (action === 'dismiss' ? ' candidates dismissed.' : ' candidates expired.'),
+          (action === 'dismiss' ? '건을 무시했습니다.' : '건을 만료했습니다.') +
+          ' 원본 기억은 그대로입니다.',
       );
       resetBulkSelection([]);
       await ns.loadList();
@@ -145,7 +172,7 @@
     const expire = $('rc-bulk-expire-btn');
     if (selectAll) {
       selectAll.addEventListener('change', function () {
-        setAllVisibleSelected(selectAll.checked);
+        setAllLoadedSelected(selectAll.checked);
       });
     }
     if (dismiss) {
