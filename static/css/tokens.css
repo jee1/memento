@@ -31,7 +31,12 @@
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
 
-  /* Colors - Specialized (Graph/Dark areas) */
+  /* Colors - Specialized (Graph/Dark areas)
+     Sanctioned second palette, not drift: #1026 decided to keep /graph dark and
+     /dashboard light (option A). Consumers are static/graph.html and
+     static/js/graph-shared.js only; .graph-view--embedded re-points these to the
+     light neutral tokens for the dashboard iframe. Add new graph chrome here, never
+     as a literal. */
   --color-bg-graph: #0f1117;
   --color-text-graph: #e2e8f0;
   --color-border-graph: #2d3748;
