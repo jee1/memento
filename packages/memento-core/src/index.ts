@@ -46,7 +46,7 @@ export {
   flattenNestedToolFilters,
 } from './tools/index.js';
 export type { ToolsetMode } from './tools/index.js';
-export { initializeServices } from './bootstrap.js';
+export { initializeServices, shutdownServices } from './bootstrap.js';
 export type { ServerServices } from './bootstrap.js';
 export type { ServerContext } from './context.js';
 export type {

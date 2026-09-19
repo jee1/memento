@@ -1,4 +1,4 @@
-import { closeDatabase, logger, type ServerServices } from '@memento/core';
+import { closeDatabase, logger, shutdownServices, type ServerServices } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 
@@ -48,50 +48,7 @@ export async function performCleanup(refs: CleanupRefs): Promise<void> {
 
     await refs.writeDiagnostics('server_cleanup_start');
 
-    const serverServices = refs.getServerServices();
-    if (serverServices) {
-      if (serverServices.runtimeDiagnosticsSamplerCleanup) {
-        try {
-          await serverServices.runtimeDiagnosticsSamplerCleanup();
-          logger.info('런타임 진단 샘플러 중지됨');
-        } catch (error) {
-          logger.error('런타임 진단 샘플러 중지 실패', { error });
-        }
-      }
-
-      if (serverServices.batchScheduler) {
-        try {
-          await serverServices.batchScheduler.stop();
-          logger.info('배치 스케줄러 중지됨');
-        } catch (error) {
-          logger.error('배치 스케줄러 중지 실패', { error });
-        }
-      }
-
-      if (serverServices.walCheckpointScheduler) {
-        try {
-          await serverServices.walCheckpointScheduler.stop();
-          logger.info('WAL 체크포인트 스케줄러 중지됨');
-        } catch (error) {
-          logger.error('WAL 체크포인트 스케줄러 중지 실패', { error });
-        }
-      }
-
-      if (serverServices.databaseLockMonitor) {
-        try {
-          serverServices.databaseLockMonitor.stop();
-          logger.info('데이터베이스 락 모니터 중지됨');
-        } catch (error) {
-          logger.error('데이터베이스 락 모니터 중지 실패', { error });
-        }
-      }
-    }
-
-    if (serverServices?.writeCoalescingManager) {
-      await serverServices.writeCoalescingManager.flush();
-      await serverServices.writeCoalescingManager.destroy();
-      logger.info('Write Coalescing Manager 정리 완료');
-    }
+    await shutdownServices(refs.getServerServices());
 
     const db = refs.getDb();
     if (db) {

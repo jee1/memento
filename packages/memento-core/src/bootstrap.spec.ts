@@ -182,6 +182,7 @@ vi.mock('./infrastructure/consolidation-score-service.js', () => ({
 vi.mock('./infrastructure/reflexion-worker.js', () => ({
   ReflexionWorker: class {
     start = vi.fn().mockResolvedValue(undefined);
+    stop = vi.fn().mockResolvedValue(true);
     getStatus = vi.fn().mockReturnValue({ isRunning: true });
     queueFailureEvent = vi.fn().mockResolvedValue(true);
     cleanupDuplicateWindow = vi.fn();
@@ -465,5 +466,90 @@ describe('initializeServices bootstrap wiring', () => {
     expect(mockState.anchorSearchServiceInstance.setRelationGraph).toHaveBeenCalledWith(services.relationGraph);
     expect(mockState.hybridSearchEngineInstance.setRelationGraph).toHaveBeenCalledTimes(1);
     expect(mockState.hybridSearchEngineInstance.setRelationGraph).toHaveBeenCalledWith(services.relationGraph);
+  });
+});
+
+describe('shutdownServices (#1032)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function loadShutdownServices() {
+    const { shutdownServices } = await import('./bootstrap.js');
+    const { resetBatchScheduler } = await import('./infrastructure/scheduler/batch-scheduler.js');
+    return { shutdownServices, resetBatchScheduler };
+  }
+
+  function createMockServices(overrides: Record<string, unknown> = {}) {
+    return {
+      runtimeDiagnosticsSamplerCleanup: vi.fn().mockResolvedValue(undefined),
+      reflexionWorker: { stop: vi.fn().mockResolvedValue(undefined) },
+      batchScheduler: { stop: vi.fn().mockResolvedValue(undefined) },
+      walCheckpointScheduler: { stop: vi.fn().mockResolvedValue(undefined) },
+      databaseLockMonitor: { stop: vi.fn() },
+      writeCoalescingManager: {
+        flush: vi.fn().mockResolvedValue(undefined),
+        destroy: vi.fn().mockResolvedValue(undefined)
+      },
+      ...overrides
+    };
+  }
+
+  it('null을 넘겨도 throw하지 않는다', async () => {
+    const { shutdownServices, resetBatchScheduler } = await loadShutdownServices();
+
+    await expect(shutdownServices(null)).resolves.toBeUndefined();
+    await expect(shutdownServices(undefined)).resolves.toBeUndefined();
+    expect(resetBatchScheduler).not.toHaveBeenCalled();
+  });
+
+  it('모든 종료 단계가 각각 1회 호출된다', async () => {
+    const { shutdownServices, resetBatchScheduler } = await loadShutdownServices();
+    const services = createMockServices();
+
+    await shutdownServices(services as never);
+
+    expect(services.runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+    expect(services.reflexionWorker.stop).toHaveBeenCalledTimes(1);
+    expect(services.batchScheduler.stop).toHaveBeenCalledTimes(1);
+    expect(services.walCheckpointScheduler.stop).toHaveBeenCalledTimes(1);
+    expect(services.databaseLockMonitor.stop).toHaveBeenCalledTimes(1);
+    expect(services.writeCoalescingManager.flush).toHaveBeenCalledTimes(1);
+    expect(services.writeCoalescingManager.destroy).toHaveBeenCalledTimes(1);
+    expect(resetBatchScheduler).toHaveBeenCalledTimes(1);
+  });
+
+  it('선택 필드가 없어도 throw하지 않는다', async () => {
+    const { shutdownServices, resetBatchScheduler } = await loadShutdownServices();
+    const services = {
+      walCheckpointScheduler: { stop: vi.fn().mockResolvedValue(undefined) },
+      databaseLockMonitor: { stop: vi.fn() },
+      writeCoalescingManager: {
+        flush: vi.fn().mockResolvedValue(undefined),
+        destroy: vi.fn().mockResolvedValue(undefined)
+      }
+    };
+
+    await expect(shutdownServices(services as never)).resolves.toBeUndefined();
+    expect(resetBatchScheduler).toHaveBeenCalledTimes(1);
+  });
+
+  it('한 단계가 reject해도 나머지 단계가 전부 호출된다', async () => {
+    const { shutdownServices, resetBatchScheduler } = await loadShutdownServices();
+    const walStop = vi.fn().mockResolvedValue(undefined);
+    const flush = vi.fn().mockResolvedValue(undefined);
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    const services = createMockServices({
+      batchScheduler: { stop: vi.fn().mockRejectedValue(new Error('boom')) },
+      walCheckpointScheduler: { stop: walStop },
+      writeCoalescingManager: { flush, destroy }
+    });
+
+    await expect(shutdownServices(services as never)).resolves.toBeUndefined();
+
+    expect(walStop).toHaveBeenCalledTimes(1);
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(resetBatchScheduler).toHaveBeenCalledTimes(1);
+    expect(mockState.logger.warn).toHaveBeenCalled();
   });
 });
