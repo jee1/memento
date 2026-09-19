@@ -1598,6 +1598,7 @@ describe('admin.routes memory review candidates', () => {
         expect(typeof health.queueSize).toBe('number');
         expect(typeof health.errorRate).toBe('number');
         expect(typeof health.uptime).toBe('number');
+        expect(typeof health.uptimeHuman).toBe('string');
 
         const jobs = body.jobs as Array<Record<string, unknown>>;
         expect(Array.isArray(jobs)).toBe(true);

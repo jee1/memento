@@ -127,7 +127,14 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
         ok: true,
         json: async () => ({
           schedulerRunning: true,
-          health: { memoryUsage: 10, runningJobs: 0, queueSize: 0, errorRate: 0, uptime: 1000 },
+          health: {
+            memoryUsage: 10,
+            runningJobs: 0,
+            queueSize: 0,
+            errorRate: 0,
+            uptime: 1000,
+            uptimeHuman: '1초',
+          },
           jobs: [
             {
               name: 'cleanup',
@@ -347,6 +354,18 @@ describe('dashboard jobs panel (#832)', () => {
     expect(panelJs).toContain('jobs-retry-btn');
   });
 
+  it('renders the jobs health summary with server-formatted human duration (#1054)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+
+    expect(h.elements['jobs-health-summary'].textContent).toBe(
+      '스케줄러 실행 중 · 가동 1초 · 실행 작업 0건 · 대기 0건 · 오류율 0.00% · 메모리 10.0%',
+    );
+    expect(h.elements['jobs-health-summary'].textContent).not.toContain('uptimeMs=');
+    expect(h.elements['jobs-health-summary'].textContent).not.toContain('errorRate=');
+    expect(h.elements['jobs-health-summary'].textContent).not.toContain('memory%=');
+  });
+
   it('refresh fetches stats+history and error path does not wipe prior snapshot', async () => {
     const h = createJobsHarness({
       fetchImpl: async (url: string) => {
@@ -355,7 +374,14 @@ describe('dashboard jobs panel (#832)', () => {
             ok: true,
             json: async () => ({
               schedulerRunning: true,
-              health: { memoryUsage: 10, runningJobs: 0, queueSize: 0, errorRate: 0, uptime: 1000 },
+              health: {
+                memoryUsage: 10,
+                runningJobs: 0,
+                queueSize: 0,
+                errorRate: 0,
+                uptime: 1000,
+                uptimeHuman: '1초',
+              },
               jobs: [
                 {
                   name: 'cleanup',
