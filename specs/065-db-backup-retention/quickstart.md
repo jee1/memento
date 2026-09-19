@@ -1,5 +1,14 @@
 # Quickstart Validation: Database Backup Retention and Artifact Cleanup
 
+> **Superseded in part (2026-09-19, #1052).** The operator-backup clauses below were
+> reversed by #1043: `OPERATOR_RETENTION_COUNT = 10` caps operator backups, and over-cap
+> ones are deleted with reason `surplus-operator`
+> (`packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts`).
+> The selection-reason list here is also short by two — the enum is `CleanupSelectionReason`
+> in that file, which is the only current list. Read this document as the contract as it
+> stood when written; for current behaviour see
+> `docs/operations/ko/docker-deploy-procedure.md` 「백업 보존 정책」.
+
 ## Prerequisites
 
 - Node.js 24 and npm 10+
