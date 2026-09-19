@@ -412,8 +412,11 @@ describe('initializeServices', () => {
   });
 
   describe('반복 초기화 (#1032)', () => {
-    // shutdownServices 가 BatchScheduler 싱글턴까지 되돌리지 않으면
-    // 두 번째 호출이 '서비스 초기화 실패: BatchScheduler is already running' 으로 죽는다.
+    // BatchScheduler 는 프로세스 전역 싱글턴이라 이미 돌고 있으면 start 를 거부한다.
+    // shutdownServices 의 batchScheduler.stop() 과 resetBatchScheduler() 는 각각
+    // 단독으로도 재초기화를 가능케 하는 중복 기제다. 둘 다 빠뜨렸을 때만 두 번째
+    // 호출이 '서비스 초기화 실패: BatchScheduler is already running' 으로 죽는다
+    // (2026-09-19 두 기제를 하나씩·동시에 제거해 확인).
     it('같은 프로세스에서 initializeServices 를 연달아 세 번 호출할 수 있어야 함', async () => {
       for (let i = 0; i < 3; i += 1) {
         const roundDb = new Database(':memory:');
