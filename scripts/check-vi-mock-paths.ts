@@ -9,8 +9,8 @@
  * 이번 범위 밖의 기존 위반은 scripts/vi-mock-path-baseline.json 에 사유·후속
  * 추적과 함께 등재해 통과시킨다. 새 위반만 차단한다.
  *
- * 범위 한계: `vi.mock` + 따옴표 리터럴만 본다. `vi.doMock` 과 템플릿 리터럴
- * 인자는 같은 실패 양상을 갖지만 이번 범위 밖이다(#826).
+ * 범위: `vi.mock`·`vi.doMock` 의 따옴표·백틱 리터럴 인자를 본다 (#826).
+ * 보간이 든 템플릿 리터럴은 정적 경로가 하나로 정해지지 않으므로 건너뛴다.
  *
  * 사용법:
  *   npx tsx scripts/check-vi-mock-paths.ts [--ci] [--strict] [--format=text|json] [--baseline=<path>]
