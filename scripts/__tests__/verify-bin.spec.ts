@@ -145,6 +145,30 @@ describe('verify-bin runtime checks (#1034)', () => {
     expect(combined).toMatch(/포트 .* 를 잡지 못했습니다/);
   });
 
+  it('stdin EOF 로 종료하는 stdio 서버도 통과한다 (#1034 하네스 회귀)', () => {
+    // stdio MCP 서버는 stdin EOF 를 종료 신호로 읽는다 (server/index.ts 의
+    // process.stdin.once('end')). 자식 stdin 을 'ignore' 로 주면 /dev/null 이 붙어
+    // 즉시 EOF 가 나므로 멀쩡한 진입점이 거짓 실패한다. 2026-09-19 실제 dist 로
+    // 재현했다: 'Server received stdio close, cleaning up...' 후 exit 0.
+    const root = createFakeProject({
+      bin: {
+        'memento-mcp-server': './stdin-aware.js',
+        'memento-setup': './setup.js',
+      },
+      entries: {
+        'stdin-aware.js':
+          `${SHEBANG}setInterval(() => {}, 1000);\nprocess.stdin.once('end', () => process.exit(0));\nprocess.stdin.resume();\n`,
+        'setup.js': `${SHEBANG}// static-only\n`,
+      },
+    });
+
+    const result = runVerifyBin(root);
+    const combined = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+
+    expect(result.status, combined).toBe(0);
+    expect(combined).toMatch(/안정화 창/);
+  });
+
   it('표에 없는 bin 이름은 실패한다', () => {
     const root = createFakeProject({
       bin: {

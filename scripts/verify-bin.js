@@ -110,9 +110,12 @@ async function killChild(child) {
 function spawnBinChild(fullPath, env) {
   const stdoutParts = [];
   const stderrParts = [];
+  // stdin 을 'ignore' 로 주면 /dev/null 이 붙어 즉시 EOF 가 난다. stdio MCP 서버는 그 EOF 를
+  // 종료 신호로 읽으므로(`server/index.ts` 의 process.stdin.once('end')) 멀쩡한 진입점이
+  // 스스로 내려가 거짓 실패가 된다. 파이프를 열어 두어야 실제 실행 조건과 같아진다.
   const child = spawn(process.execPath, [fullPath], {
     env,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['pipe', 'pipe', 'pipe'],
     cwd: projectRoot,
   });
 
@@ -160,6 +163,7 @@ async function verifyStaysAlive(name, fullPath, runtimeEnv) {
     return false;
   }
 
+  console.log(`✅ ${name}: 안정화 창 ${SETTLE_MS}ms 동안 살아 있음`);
   await killChild(handle.child);
   return true;
 }
@@ -188,6 +192,8 @@ async function verifyListens(name, fullPath, runtimeEnv) {
     }
 
     if (await tryConnect(port)) {
+      const elapsed = LISTEN_DEADLINE_MS - (deadline - Date.now());
+      console.log(`✅ ${name}: 포트 ${port} 응답 (${elapsed}ms)`);
       await killChild(handle.child);
       return true;
     }
