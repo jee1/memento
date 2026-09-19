@@ -69,6 +69,9 @@ const HINTS = {
     + 'npm run db:backup:docker. Stopping the server will not help.',
   'backup-collision':
     'A backup with the same name already exists; retry in a second.',
+  'backup-source-busy':
+    'Another process is writing to the database, so the online backup restarts endlessly and '
+    + 'never completes. Stop the server first: docker compose stop memento-mcp-server.',
 };
 const DEFAULT_HINT = 'Stop the MCP server (docker compose stop) and retry if the DB is locked.';
 
@@ -124,7 +127,6 @@ const result = {
   ok: true,
   dbPath,
   backupPath: backup.backupPath,
-  quick_check: backup.integrityCheck,
   integrity_check: backup.integrityCheck,
   memory_item: countMemoryItems(backup.backupPath),
 };

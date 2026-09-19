@@ -3,7 +3,7 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
 /**
  * Safe guard before `docker compose up` / image rebuild:
  * 1) online backup via sqlite backup API
- * 2) quick_check on live DB (abort when corrupt unless --force)
+ * 2) integrity_check on the backup copy (abort when corrupt unless --force)
  *
  * Usage:
  *   node scripts/pre-docker-deploy.mjs
@@ -33,9 +33,9 @@ function parseBackupFailureReason(stderr) {
 
 function summarize(stdout, containerPath = false) {
   try {
-    const { dbPath, memory_item: rows, quick_check: quick } = JSON.parse(stdout);
+    const { dbPath, memory_item: rows, integrity_check: integrity } = JSON.parse(stdout);
     const pathLabel = containerPath ? `${dbPath} (container path)` : dbPath;
-    return `[pre-docker-deploy] target=${pathLabel}  memory_item=${rows}  quick_check=${quick}`;
+    return `[pre-docker-deploy] target=${pathLabel}  memory_item=${rows}  integrity_check=${integrity}`;
   } catch {
     return null;
   }
@@ -52,7 +52,7 @@ function finishSuccess(stdout, containerPath = false) {
 
 function finishFailure(status) {
   if (force) {
-    console.warn('[pre-docker-deploy] backup/quick_check failed; continuing because --force was set');
+    console.warn('[pre-docker-deploy] backup/integrity_check failed; continuing because --force was set');
     process.exit(0);
   }
   console.error(
