@@ -2250,3 +2250,61 @@ circle.em-dot:focus-visible {
     gap: var(--spacing-sm);
   }
 }
+
+/* Memory inspector (#1025) — native details so the narrow layout gets a
+   collapsible card for free; no JS toggle. */
+.memory-inspector {
+  width: 320px;
+  flex: 0 0 auto;
+  background: var(--color-bg-card);
+  border-left: 1px solid var(--color-border-light);
+  overflow-y: auto;
+}
+
+.memory-inspector__summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.memory-inspector__summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-offset) * -1);
+}
+
+.memory-inspector__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-brand-primary);
+}
+
+.memory-inspector__body {
+  padding: var(--spacing-lg);
+}
+
+.memory-inspector__footer {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.memory-inspector__footer .m-button {
+  min-height: 44px;
+}
+
+@media (max-width: 768px) {
+  .memory-inspector {
+    width: 100%;
+    flex: 0 0 auto;
+    max-height: 40vh;
+    border-left: none;
+    border-top: 1px solid var(--color-border-light);
+  }
+}

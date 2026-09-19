@@ -154,13 +154,6 @@
               <p class="no-data">검색 결과 없음</p>
             </div>
           </section>
-
-          <section class="memory-details">
-            <h2 title="맵 노드 또는 검색 결과를 선택하면 메모리 상세 정보가 표시됩니다.">기억 상세</h2>
-            <div id="memory-details">
-              <p class="no-data">노드를 클릭하면 상세가 표시됩니다</p>
-            </div>
-          </section>
         </div>
 
         <div class="map-container">
@@ -185,6 +178,19 @@
             </div>
           </div>
         </div>
+        <details id="memory-inspector" class="memory-inspector" open>
+          <summary class="memory-inspector__summary">
+            <span class="memory-inspector__title" title="맵 노드 또는 검색 결과를 선택하면 메모리 상세 정보가 표시됩니다.">기억 상세</span>
+          </summary>
+          <div class="memory-inspector__body">
+            <div id="memory-details">
+              <p class="m-empty">노드를 클릭하면 상세가 표시됩니다</p>
+            </div>
+            <div class="memory-inspector__footer">
+              <button type="button" id="memory-inspector-clear" class="m-button m-button--ghost" aria-label="기억 상세 비우기">닫기</button>
+            </div>
+          </div>
+        </details>
       </main>
     </div>
 
@@ -801,6 +807,7 @@
   <script src="/static/js/review-candidates-panel.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
   <script src="/static/js/ops-strip.js"></script>
+  <script src="/static/js/memory-inspector.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>
   <script src="/static/js/jobs-panel-render.js"></script>
   <script src="/static/js/jobs-panel-fetch.js"></script>
