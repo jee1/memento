@@ -3,6 +3,7 @@
  */
 
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import type { MemorySearchResult } from '../../../../shared/types/search.types.js';
 import type { ScoreBreakdown } from '../../../../shared/types/search.types.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
@@ -40,12 +41,14 @@ export function calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Da
  * SQLite FTS5 `rank` (bm25) is lower-is-better and typically negative.
  * `0` is the empty-query / LIKE-fallback sentinel — treat it as “no BM25”.
  * Sigmoid maps signed rank onto (0, 1) while preserving order.
+ * T defaults to fts_relevance.temperature; T=1 saturates the real rank range (#1079).
  */
-export function ftsRankToRelevance(ftsRank: number): number | null {
+export function ftsRankToRelevance(ftsRank: number, temperature?: number): number | null {
   if (!Number.isFinite(ftsRank) || ftsRank === 0) {
     return null;
   }
-  return 1 / (1 + Math.exp(ftsRank));
+  const t = temperature ?? getRankingWeights().fts_relevance.temperature;
+  return 1 / (1 + Math.exp(ftsRank / t));
 }
 
 export function generateRecallReason(
@@ -83,11 +86,12 @@ export function applyRanking(
   opts?: { includeBreakdown?: boolean; feedbackNetByMemory?: Map<string, number> }
 ): MemorySearchResult[] {
   const selectedContents: string[] = [];
+  const temperature = getRankingWeights().fts_relevance.temperature;
 
   return results
     .map((row) => {
       const ftsRank = typeof row.fts_rank === 'number' ? row.fts_rank : Number(row.fts_rank ?? 0);
-      const bm25Relevance = ftsRankToRelevance(ftsRank);
+      const bm25Relevance = ftsRankToRelevance(ftsRank, temperature);
       const usedBm25 = bm25Relevance !== null;
       const relevance = usedBm25
         ? bm25Relevance

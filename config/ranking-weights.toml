@@ -40,3 +40,8 @@ max_relations = 5
 [vector_length_decay]
 enabled = true
 characteristic_length = 40
+
+# #1079: BM25 rank → relevance 시그모이드의 온도. factor = 1/(1+exp(rank/T))
+# T=1 이면 실제 rank 구간(-20~-2)이 전부 포화 꼬리에 들어가 동적 범위가 0.083 으로 뭉갠다.
+[fts_relevance]
+temperature = 10
