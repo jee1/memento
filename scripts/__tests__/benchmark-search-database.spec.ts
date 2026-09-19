@@ -258,3 +258,96 @@ describe('#973 합성 코퍼스의 created_at 은 실제 범위 안에 흩어져
     }
   });
 });
+
+/**
+ * #973: 예전에는 mulberry32(42) 한 줄기를 코퍼스 순회 순서대로 소비했다.
+ * 그래서 문서를 하나만 앞에 끼워 넣어도 그 뒤 모든 문서의 importance ·
+ * recall_count · last_accessed_at 이 바뀌었고, 지표가 움직인 이유가 그 문서
+ * 때문인지 재추첨 때문인지 구분할 수 없었다.
+ */
+describe('#973 메타데이터는 코퍼스 안에서의 위치와 무관하다', () => {
+  type Row = { id: string; importance: number; recall_count: number; last_accessed_at: string | null };
+
+  const DOC_A = {
+    benchmark_id: 'bench_mem_000001',
+    source_memory_id: 'mem_seed_001',
+    type: 'semantic',
+    tags: ['t'],
+    created_at: '2025-11-01T00:00:00.000Z',
+    content: 'alpha beta gamma search content one',
+  };
+  const DOC_B = {
+    benchmark_id: 'bench_mem_000002',
+    source_memory_id: 'mem_seed_002',
+    type: 'episodic',
+    tags: ['x'],
+    created_at: '2025-12-01T00:00:00.000Z',
+    content: 'delta epsilon zeta search content two',
+  };
+  const DOC_INSERTED = {
+    benchmark_id: 'bench_mem_000999',
+    source_memory_id: 'mem_seed_999',
+    type: 'semantic',
+    tags: ['z'],
+    created_at: '2025-10-01T00:00:00.000Z',
+    content: 'iota kappa lambda search content inserted first',
+  };
+
+  function writeCorpus(dir: string, docs: ReadonlyArray<Record<string, unknown>>): void {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, 'manifest.json'),
+      JSON.stringify({
+        benchmark_version: 'test',
+        created_at: new Date().toISOString(),
+        corpus_size: docs.length,
+        query_count: 0,
+        ground_truth_count: 0,
+        source: 'full-memory-snapshot',
+        labeling_policy: 'binary-human-labeled',
+        strict_ci: false,
+      })
+    );
+    writeFileSync(join(dir, 'corpus.jsonl'), docs.map((d) => JSON.stringify(d)).join('\n') + '\n');
+  }
+
+  async function seedAndRead(dir: string): Promise<Map<string, Row>> {
+    const { db, close } = await createSeededBenchmarkDatabase(dir);
+    try {
+      const rows = db
+        .prepare(`SELECT id, importance, recall_count, last_accessed_at FROM memory_item`)
+        .all() as Row[];
+      return new Map(rows.map((r) => [r.id, r]));
+    } finally {
+      close();
+    }
+  }
+
+  it('앞에 문서를 하나 끼워 넣어도 기존 문서의 메타데이터가 그대로다', async () => {
+    const previousProvider = process.env.EMBEDDING_PROVIDER;
+    process.env.EMBEDDING_PROVIDER = 'tfidf';
+    const plain = join(tmpdir(), `bench-973-order-a-${Date.now()}`);
+    const shifted = join(tmpdir(), `bench-973-order-b-${Date.now()}`);
+    try {
+      writeCorpus(plain, [DOC_A, DOC_B]);
+      writeCorpus(shifted, [DOC_INSERTED, DOC_A, DOC_B]);
+
+      const before = await seedAndRead(plain);
+      const after = await seedAndRead(shifted);
+
+      expect(after.size).toBe(3);
+      for (const id of ['mem_seed_001', 'mem_seed_002']) {
+        expect(after.get(id), `missing ${id}`).toBeDefined();
+        expect(after.get(id)).toEqual(before.get(id));
+      }
+    } finally {
+      if (previousProvider === undefined) {
+        delete process.env.EMBEDDING_PROVIDER;
+      } else {
+        process.env.EMBEDDING_PROVIDER = previousProvider;
+      }
+      rmSync(plain, { recursive: true, force: true });
+      rmSync(shifted, { recursive: true, force: true });
+    }
+  }, 120_000);
+});
