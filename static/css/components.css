@@ -220,3 +220,96 @@
   gap: var(--spacing-sm) var(--spacing-md);
   margin-top: var(--spacing-sm);
 }
+
+/* --- Tables (#1024) — chrome lives here; column widths stay panel-scoped --- */
+.m-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.m-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.m-table th,
+.m-table td {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-main);
+}
+
+.m-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-bg-card);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* dense variant for the small history tables */
+.m-table--dense {
+  font-size: var(--font-size-xs);
+}
+
+/* numeric cells align on the decimal, not the left edge */
+.m-table .m-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-table tbody tr.is-clickable {
+  cursor: pointer;
+}
+
+.m-table tbody tr.is-clickable:hover {
+  background: var(--color-bg-hover);
+}
+
+.m-table tbody tr.is-clickable:focus {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.m-table tbody tr.is-selected {
+  background: var(--color-accent-weak);
+  box-shadow: inset 3px 0 0 0 var(--color-brand-primary);
+}
+
+/* --- Metrics (#1024) --- */
+.m-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.m-metric {
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-light);
+}
+
+.m-metric__label {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.m-metric__value {
+  margin: 0.125rem 0 0 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.m-metric__note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

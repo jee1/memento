@@ -183,9 +183,9 @@
           <h2 id="em-health-title" class="rc-health-title">임베딩 상태</h2>
           <p class="rc-health-hint">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
           <div id="em-health-error" class="em-error hidden" role="alert"></div>
-          <div id="em-health-summary" class="rc-health-metric-grid" aria-live="polite"></div>
+          <div id="em-health-summary" class="m-metric-grid" aria-live="polite"></div>
           <h3 class="rc-health-subtitle">문제</h3>
-          <div id="em-health-problems" class="rc-health-metric-grid"></div>
+          <div id="em-health-problems" class="m-metric-grid"></div>
           <div id="em-problem-list" class="em-problem-list hidden" aria-live="polite"></div>
           <p class="rc-health-hint">재색인 전 확인: <code class="rc-health-code">npm run reindex-embeddings -- --provider &lt;provider&gt; --dry-run</code></p>
         </section>
@@ -316,8 +316,8 @@
           <div id="rc-health-live" class="rc-health-live hidden" aria-live="polite"></div>
           <div id="rc-health-history-wrap" class="rc-health-history-wrap hidden">
             <h4 class="rc-health-subtitle">최근 샘플</h4>
-            <div class="rc-health-table-scroll">
-              <table id="rc-health-history-table" class="rc-health-table">
+            <div class="rc-health-table-scroll m-table-wrap">
+              <table id="rc-health-history-table" class="m-table m-table--dense">
                 <thead>
                   <tr>
                     <th scope="col">샘플 시각 (UTC)</th>
@@ -345,8 +345,8 @@
           <div id="rc-batch-history-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
           <div id="rc-batch-history-empty" class="rc-banner hidden">아직 기록된 수동 배치 실행이 없습니다.</div>
           <div id="rc-batch-history-wrap" class="rc-health-history-wrap hidden">
-            <div class="rc-health-table-scroll">
-              <table id="rc-batch-history-table" class="rc-health-table">
+            <div class="rc-health-table-scroll m-table-wrap">
+              <table id="rc-batch-history-table" class="m-table m-table--dense">
                 <thead>
                   <tr>
                     <th scope="col">완료 (로컬)</th>
@@ -397,8 +397,8 @@
                 <button type="button" id="rc-bulk-expire-btn" class="m-button m-button--ghost" disabled>선택 만료</button>
               </div>
             </div>
-            <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
-              <table id="rc-table" class="review-candidates-table">
+            <div id="rc-table-wrap" class="review-candidates-table-wrap m-table-wrap hidden">
+              <table id="rc-table" class="m-table">
                 <thead>
                   <tr>
                     <th scope="col" aria-label="후보 선택"></th>
@@ -463,8 +463,8 @@
             <button type="button" id="jobs-resume-btn" class="m-button m-button--secondary" disabled>재개</button>
             <button type="button" id="jobs-run-now-btn" class="m-button m-button--secondary" disabled>지금 실행</button>
           </div>
-          <div id="jobs-schedule-table-wrap" class="jobs-table-wrap">
-            <table id="jobs-schedule-table" class="jobs-table">
+          <div id="jobs-schedule-table-wrap" class="jobs-table-wrap m-table-wrap">
+            <table id="jobs-schedule-table" class="m-table">
               <thead>
                 <tr>
                   <th scope="col">이름</th>
@@ -487,8 +487,8 @@
         <section class="jobs-section" aria-labelledby="jobs-timeline-heading">
           <h3 id="jobs-timeline-heading">작업 실행 타임라인 — <span id="jobs-timeline-selected">전체 작업</span></h3>
           <p class="jobs-disclaimer">출처 <code>GET /admin/batch/runs</code> (durable; 행 선택 시 로그; 실패 건만 재시도).</p>
-          <div id="jobs-timeline" class="jobs-table-wrap">
-            <table class="jobs-table">
+          <div id="jobs-timeline" class="jobs-table-wrap m-table-wrap">
+            <table class="m-table">
               <thead>
                 <tr>
                   <th scope="col">작업</th>
@@ -510,8 +510,8 @@
             <button type="button" id="jobs-logs-refresh-btn" class="m-button m-button--secondary" disabled>로그 새로고침</button>
           </div>
           <p class="jobs-disclaimer">출처 <code>GET /admin/batch/runs/:runId/logs</code> (수동 새로고침; SSE 없음) (#834).</p>
-          <div id="jobs-logs" class="jobs-table-wrap">
-            <table class="jobs-table">
+          <div id="jobs-logs" class="jobs-table-wrap m-table-wrap">
+            <table class="m-table">
               <thead>
                 <tr>
                   <th scope="col">시각</th>
@@ -526,8 +526,8 @@
         <section class="jobs-section" aria-labelledby="jobs-history-heading">
           <h3 id="jobs-history-heading">수동 실행 이력</h3>
           <p class="jobs-disclaimer">출처 <code>GET /admin/batch/run-history</code> (process-local 링 버퍼, 보조; POST /admin/batch/run만).</p>
-          <div id="jobs-run-history" class="jobs-table-wrap">
-            <table class="jobs-table">
+          <div id="jobs-run-history" class="jobs-table-wrap m-table-wrap">
+            <table class="m-table">
               <thead>
                 <tr>
                   <th scope="col">작업</th>

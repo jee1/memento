@@ -18,9 +18,9 @@
 
   function formatHealthMetricCard(label, value) {
     return (
-      '<div class="rc-health-metric-card"><div class="rc-health-metric-label">' +
+      '<div class="m-metric"><div class="m-metric__label">' +
       ns.escapeHtml(label) +
-      '</div><div class="rc-health-metric-value">' +
+      '</div><div class="m-metric__value">' +
       ns.escapeHtml(String(value)) +
       '</div></div>'
     );
@@ -38,7 +38,7 @@
     cards.push(formatHealthMetricCard('생성 (24h)', w24.candidatesCreated != null ? w24.candidatesCreated : '—'));
     cards.push(formatHealthMetricCard('처리 (24h)', w24.processedTotal != null ? w24.processedTotal : '—'));
     cards.push(formatHealthMetricCard('처리/생성 (24h)', ratioText(w24.processingRatio)));
-    return '<div class="rc-health-metric-grid">' + cards.join('') + '</div>';
+    return '<div class="m-metric-grid">' + cards.join('') + '</div>';
   }
 
   /** @param {unknown[]} snaps */

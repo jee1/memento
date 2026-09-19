@@ -72,7 +72,7 @@
       const candidateId = String(c.id ?? '');
       candidateIds.push(candidateId);
       tr.dataset.candidateId = candidateId;
-      tr.className = 'rc-row--clickable';
+      tr.className = 'is-clickable';
       tr.setAttribute('role', 'button');
       tr.setAttribute('tabindex', '0');
       tr.setAttribute('aria-selected', 'false');
@@ -141,7 +141,7 @@
       return;
     }
     state.selectedRow = selectedRow;
-    selectedRow.classList.add('rc-row--selected');
+    selectedRow.classList.add('is-selected');
     selectedRow.setAttribute('aria-selected', 'true');
     if (selectedMemoryId === selectedRow.dataset.memoryId) {
       state.previewMemoryId = selectedMemoryId;
