@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -47,5 +48,24 @@ describe('이슈 #1057 npm 타르볼 static 포함', () => {
     const root = resolveStaticRoot();
 
     expect(existsSync(join(root, 'graph.html'))).toBe(true);
+  });
+
+  // npm 설치 사용자는 패키지 루트가 아닌 자기 디렉터리에서 실행한다.
+  // cwd 후보가 전부 빗나가는 상황을 재현해, 모듈 기준 상위 탐색이 없으면 실패하게 만든다.
+  it('cwd 에 static 이 없어도 모듈 기준으로 static 을 찾는다', () => {
+    delete process.env.MEMENTO_STATIC_ROOT;
+    const originalCwd = process.cwd();
+    const sandbox = mkdtempSync(join(tmpdir(), 'memento-static-cwd-'));
+
+    try {
+      process.chdir(sandbox);
+
+      const root = resolveStaticRoot();
+
+      expect(existsSync(join(root, 'graph.html'))).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(sandbox, { recursive: true, force: true });
+    }
   });
 });
