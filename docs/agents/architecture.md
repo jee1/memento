@@ -12,9 +12,9 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 ## Workspace 의존성 pin 정책
 
-루트 `package.json`은 `@memento/core`를 exact 버전(`"1.17.0"`)과 `bundledDependencies`로 선언합니다. 이는 `npm pack`과 배포 시 workspace 패키지를 단일 tarball에 고정 번들하기 위해서입니다. `packages/memento-server`와 `apps/experimental-example`은 `"*"`로 선언해 모노레포 내부 개발 시 항상 로컬 workspace 빌드를 참조합니다.
+루트 `package.json`은 `@memento/core`·`@memento/agent-integration`을 의존성으로 **선언하지 않습니다**. 두 패키지는 registry 에 없는 비공개 워크스페이스라 이름이 발행 매니페스트에 남으면 소비자의 `npm audit signatures`가 404 로 실패합니다(#1038). 대신 `prepack`이 `dist/node_modules/@memento/*`로 복사해 tarball 에 싣고, 설치 후 `dist/server/*.js` 기준 상위 탐색으로 해석됩니다. `packages/memento-server`와 `apps/experimental-example`은 `"*"`로 선언해 모노레포 내부 개발 시 항상 로컬 workspace 빌드를 참조합니다.
 
-루트의 exact pin은 `^`나 `~`로 바꾸지 마세요. 버전 bump는 `@memento/core` 릴리스와 루트 `bundledDependencies`를 함께 갱신하는 별도 chore 커밋으로 처리합니다.
+`dependencies`에 `@memento/*`를 다시 넣지 마세요. `verify-pack-bundle`이 발행 매니페스트에서 그 이름을 발견하면 실패합니다.
 
 ## 개발 원칙
 

@@ -74,9 +74,7 @@
     "postinstall": "node scripts/auto-setup.js",
     "rebuild-native": "npm rebuild better-sqlite3 sqlite-vec",
     "prepack": "node scripts/prepack-bundle-core.js",
-    "postpack": "node scripts/postpack-restore-workspace.js",
-    "pack:tarball": "node scripts/pack-with-restore.js",
-    "restore-workspace": "node scripts/postpack-restore-workspace.js",
+    "postpack": "node scripts/postpack-clean-bundle.js",
     "verify-pack-bundle": "node scripts/verify-npm-pack-bundle.js",
     "prepublishOnly": "npm run build && npm run verify-bin && npm run verify-pack-bundle",
     "verify-bin": "node scripts/verify-bin.js",
@@ -117,8 +115,6 @@
     "@google/genai": "^2.10.0",
     "@huggingface/transformers": "^4.2.0",
     "@iarna/toml": "^2.2.5",
-    "@memento/agent-integration": "0.1.0",
-    "@memento/core": "1.17.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^12.11.1",
     "cors": "^2.8.6",
@@ -151,10 +147,6 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.6"
   },
-  "bundledDependencies": [
-    "@memento/core",
-    "@memento/agent-integration"
-  ],
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=10.0.0"

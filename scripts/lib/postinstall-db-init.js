@@ -7,7 +7,7 @@
  */
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execSync } from 'node:child_process';
 
 const REPO_INIT_TS =
@@ -57,7 +57,10 @@ export async function runPostinstallDbInit(options = {}) {
     return;
   }
 
-  const loadCore = () => import('@memento/core');
+  // #1038: 발행 tarball 에서 @memento/core 는 dist/node_modules 아래에 번들된다.
+  // 이 파일은 scripts/lib 에 있어 상위 탐색으로는 거기에 닿지 못하므로 경로로 직접 로드한다.
+  const coreEntry = join(projectRoot, 'dist/node_modules/@memento/core/dist/index.js');
+  const loadCore = () => import(pathToFileURL(coreEntry).href);
   const { initializeDatabase, closeDatabase } = await loadCore();
   const db = await initializeDatabase(options.dbPath);
   closeDatabase(db);
