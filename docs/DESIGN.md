@@ -2,7 +2,6 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-09-12
 - Locked product decisions (2026-09-12):
   - Brand: **quiet admin** (neutral chrome; no purple-indigo gradient identity)
   - Locale: **KO-first** (chrome/microcopy Korean; domain terms A/B/C·type names may stay Latin)
@@ -49,6 +48,7 @@
 - Key contexts of use: Local/loopback or internal network desktop browser; occasional narrow laptop; not primary mobile app.
 
 ## Information architecture
+> **Current state.** This section describes what is deployed today. Adding or removing a tab or route means updating it in the same PR.
 - Primary navigation: Top tab bar (`.m-tab-bar`) after header.
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
@@ -56,7 +56,7 @@
   - `/graph` standalone dark graph (session-gated)
 - Content hierarchy (target):
   1. Session chrome (collapsed when signed in)
-  2. Task groups (Spatial · Ops · Learn) rather than flat 7 peers
+  2. Task groups (Spatial · Ops · Learn) rather than a flat peer list
   3. Per-tab primary canvas + secondary inspector
   4. Advanced/layout controls behind disclosure
 
@@ -122,24 +122,26 @@
 - Test/screenshot expectations: Server string/contract specs (`dashboard-*.spec.ts`); layout-auth contract min map height ≥200px; visual changes may need string updates for labels/IA.
 
 ## Improvement roadmap (proposals)
+> **Proposal record, not a status board.** Each item is what was proposed on the date it was written. Do not edit an item to match today's code — that rewrites the record. Whether an item shipped is answered by its linked issue, not by this file.
 ### P0 — Consistency (low risk)
 1. Close token gaps referenced with fallbacks in `dashboard.css` (status warning/success aliases, hover/selected surfaces).
-2. Add shared `.m-empty` / `.m-loading` / `.m-error` and migrate one panel as template (Embedding Health or Jobs).
+2. Add shared `.m-empty` / `.m-loading` / `.m-error` and migrate one panel as template (Embedding Health or Jobs). (#965)
 3. Global `:focus-visible` ring token on interactive controls.
 4. Remove emoji from dashboard title; collapse auth chrome when `data-auth-state="authenticated"`.
 5. Ensure default active tab remains / restores **Anchor Map** (already default in HTML — guard any auth-restore path that changes tab).
 
 ### P1 — IA & density (medium risk)
-1. Group tabs: **Spatial** (Anchor, Embedding, Graph) · **Ops** (Review, Jobs, Sessions) · **Learn** (Evolution demo) via grouped nav or overflow.
-2. Anchor Map toolbar: primary row = Agent + Search + Slot + Search/Clear; secondary = Refresh/Fit/layout/auto-refresh under “More” / details.
-3. KO-first chrome pass (tabs, auth, toolbars, empty/error); update string specs.
+1. Group tabs: **Spatial** (Anchor, Embedding, Graph) · **Ops** (Review, Jobs, Sessions) · **Learn** (Evolution demo) via grouped nav or overflow. (#967)
+2. Anchor Map toolbar: primary row = Agent + Search + Slot + Search/Clear; secondary = Refresh/Fit/layout/auto-refresh under “More” / details. (#968)
+3. KO-first chrome pass (tabs, auth, toolbars, empty/error); update string specs. (#969)
 
 ### P2 — Visual identity (decided: quiet admin)
-1. Replace indigo→purple gradient header with quiet neutral chrome + restrained accent; retune `--color-brand-*` / `.m-header` and secondary-on-brand tokens.
-2. Align embedded Memory Graph light canvas vs standalone dark graph (document intentional dual mode or converge).
+1. Replace indigo→purple gradient header with quiet neutral chrome + restrained accent; retune `--color-brand-*` / `.m-header` and secondary-on-brand tokens. (#965, #1023)
+2. Align embedded Memory Graph light canvas vs standalone dark graph (document intentional dual mode or converge). (#1026)
 3. Motion policy + reduced-motion for simulation/auto-refresh cues.
 
 ## Open questions
+> **Decision record.** A checked item records the decision and its date, not that the implementation shipped.
 - [x] Brand → **quiet admin** (2026-09-12)
 - [x] Locale → **KO-first** (2026-09-12)
 - [x] Default landing tab → **Anchor Map** (2026-09-12)
