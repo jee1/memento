@@ -468,3 +468,154 @@ describe('dashboard review queue poll behavior', () => {
     expect(harness.state.lastPendingCount).toBe(2);
   });
 });
+
+/**
+ * #897: 일괄 작업의 대상 범위와 효과를 화면이 정직하게 말하는지.
+ * 소스 문자열 매칭이 아니라 실제로 스크립트를 돌려 DOM 결과를 본다.
+ */
+describe('#897 review queue bulk scope and confirmation', () => {
+  const bulkJs = readFileSync(
+    resolve(root, 'static/js/review-candidates-panel-bulk.js'),
+    'utf8',
+  );
+
+  type FakeEl = {
+    textContent: string;
+    checked?: boolean;
+    indeterminate?: boolean;
+    disabled?: boolean;
+    setAttribute: (name: string, value: string) => void;
+  };
+
+  function makeEl(): FakeEl {
+    return {
+      textContent: '',
+      checked: false,
+      indeterminate: false,
+      disabled: false,
+      setAttribute: vi.fn(),
+    };
+  }
+
+  function buildBulkSandbox(options: {
+    loadedIds: string[];
+    selectedIds: string[];
+    confirmResult?: boolean;
+  }) {
+    const elements: Record<string, FakeEl> = {};
+    for (const id of [
+      'rc-selected-count',
+      'rc-select-all',
+      'rc-select-all-scope',
+      'rc-bulk-dismiss-btn',
+      'rc-bulk-expire-btn',
+      'rc-bulk-dismiss-count',
+      'rc-bulk-expire-count',
+      'rc-bulk-actions',
+      'rc-table',
+    ]) {
+      elements[id] = makeEl();
+    }
+    const state = {
+      selectedCandidateIds: new Set(options.selectedIds),
+      currentCandidateIds: options.loadedIds.slice(),
+      actionInFlight: false,
+    };
+    const confirmSpy = vi.fn(() => options.confirmResult ?? false);
+    const adminFetchSpy = vi.fn();
+    const sandbox: Record<string, any> = {
+      console,
+      document: {
+        getElementById: (id: string) => elements[id] ?? null,
+        querySelectorAll: () => [],
+      },
+      confirm: confirmSpy,
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
+        $: (id: string) => elements[id] ?? null,
+        state,
+        syncReviewDismissButtons: vi.fn(),
+        showError: vi.fn(),
+        showActionToast: vi.fn(),
+        adminFetch: () => adminFetchSpy,
+        loadList: vi.fn(),
+      },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    const context = vm.createContext(sandbox);
+    vm.runInContext(bulkJs, context, { filename: 'review-candidates-panel-bulk.js' });
+    return {
+      elements,
+      state,
+      confirmSpy,
+      adminFetchSpy,
+      ns: sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__,
+    };
+  }
+
+  it('select-all 라벨이 화면에 보이는 행이 아니라 불러온 건수를 말한다', () => {
+    const loaded = Array.from({ length: 500 }, (_, i) => 'c' + i);
+    const h = buildBulkSandbox({ loadedIds: loaded, selectedIds: [] });
+    h.ns.syncBulkControls();
+    expect(h.elements['rc-select-all-scope']!.textContent).toBe('500');
+  });
+
+  it('선택 건수가 두 일괄 버튼 라벨에 실린다', () => {
+    const h = buildBulkSandbox({
+      loadedIds: ['a', 'b', 'c'],
+      selectedIds: ['a', 'b'],
+    });
+    h.ns.syncBulkControls();
+    expect(h.elements['rc-bulk-dismiss-count']!.textContent).toBe(' (2건)');
+    expect(h.elements['rc-bulk-expire-count']!.textContent).toBe(' (2건)');
+  });
+
+  it('선택이 0건이면 버튼 라벨에 숫자를 붙이지 않는다', () => {
+    const h = buildBulkSandbox({ loadedIds: ['a'], selectedIds: [] });
+    h.ns.syncBulkControls();
+    expect(h.elements['rc-bulk-dismiss-count']!.textContent).toBe('');
+    expect(h.elements['rc-bulk-expire-count']!.textContent).toBe('');
+  });
+
+  it('일괄 확인 대화상자가 대상 범위·원본 기억·되돌리기를 말한다', async () => {
+    const h = buildBulkSandbox({
+      loadedIds: ['a', 'b', 'c'],
+      selectedIds: ['a', 'b'],
+      confirmResult: false,
+    });
+    await h.ns.postBulkAction('expire');
+    expect(h.confirmSpy).toHaveBeenCalledTimes(1);
+    const message = String(h.confirmSpy.mock.calls[0]![0]);
+    expect(message).toContain('2건');
+    expect(message).toContain('화면에 보이는 행이 아니라');
+    expect(message).toContain('지워지지 않고');
+    expect(message).toContain('되돌리기');
+  });
+
+  it('확인을 거절하면 요청을 보내지 않는다', async () => {
+    const h = buildBulkSandbox({
+      loadedIds: ['a'],
+      selectedIds: ['a'],
+      confirmResult: false,
+    });
+    await h.ns.postBulkAction('dismiss');
+    expect(h.adminFetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * #897: 각 액션이 원본 기억에 무엇을 하는지 화면에서 읽을 수 있어야 한다.
+ */
+describe('#897 review queue action effects are written down', () => {
+  it('일괄 작업 옆에 원본 기억 영향과 되돌리기가 적혀 있다', () => {
+    expect(dashboardHtml).toContain('rc-bulk-effect-note');
+    expect(dashboardHtml).toContain('원본 기억은 지워지지 않고 내용도 바뀌지 않습니다');
+    expect(dashboardHtml).toContain('되돌릴 수 있습니다');
+  });
+
+  it('검토 버튼이 보존으로 바뀌고 무엇을 갱신하는지 적혀 있다', () => {
+    expect(dashboardHtml).toContain('>보존<');
+    expect(dashboardHtml).not.toContain('disabled>검토</button>');
+    expect(dashboardHtml).toContain('마지막 접근 시각을 지금으로 갱신');
+  });
+});

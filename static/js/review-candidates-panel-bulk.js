@@ -1,5 +1,5 @@
 /**
- * Review candidates panel - visible-row selection and bulk actions (#519).
+ * Review candidates panel - loaded-candidate selection and bulk actions (#519, #897).
  */
 (function (global) {
   'use strict';
@@ -67,7 +67,8 @@
     syncBulkControls();
   }
 
-  function setAllVisibleSelected(selected) {
+  // 이름 그대로 "불러온 전부"다. 화면에 보이는 행이 아니다 (#897).
+  function setAllLoadedSelected(selected) {
     state.selectedCandidateIds.clear();
     if (selected) {
       for (let i = 0; i < state.currentCandidateIds.length; i += 1) {
@@ -148,7 +149,8 @@
       }
       ns.showActionToast(
         String(body.updated ?? ids.length) +
-          (action === 'dismiss' ? ' candidates dismissed.' : ' candidates expired.'),
+          (action === 'dismiss' ? '건을 무시했습니다.' : '건을 만료했습니다.') +
+          ' 원본 기억은 그대로입니다.',
       );
       resetBulkSelection([]);
       await ns.loadList();
@@ -170,7 +172,7 @@
     const expire = $('rc-bulk-expire-btn');
     if (selectAll) {
       selectAll.addEventListener('change', function () {
-        setAllVisibleSelected(selectAll.checked);
+        setAllLoadedSelected(selectAll.checked);
       });
     }
     if (dismiss) {
