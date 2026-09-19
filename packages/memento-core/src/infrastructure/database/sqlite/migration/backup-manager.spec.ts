@@ -1272,6 +1272,7 @@ describe('createBackupRestartGuard (#1041)', () => {
       guard({ totalPages: 100, remainingPages: 40 });
       guard({ totalPages: 100, remainingPages: 0 });
     }).not.toThrow();
+    expect(createBackupRestartGuard(2)({ totalPages: 100, remainingPages: 90 })).toBe(100);
   });
 
   it('재시작이 임계치 이하이면 통과시킨다', () => {

@@ -315,7 +315,7 @@ export const BACKUP_MAX_RESTARTS = 50;
  */
 export function createBackupRestartGuard(
   maxRestarts: number = BACKUP_MAX_RESTARTS
-): (progress: { totalPages: number; remainingPages: number }) => undefined {
+): (progress: { totalPages: number; remainingPages: number }) => number {
   let previousRemaining = Number.POSITIVE_INFINITY;
   let restarts = 0;
 
@@ -327,7 +327,9 @@ export function createBackupRestartGuard(
       }
     }
     previousRemaining = progress.remainingPages;
-    return undefined;
+    // better-sqlite3 는 콜백 반환값을 스텝당 복사 페이지 수로 쓴다.
+    // 100 은 이 라이브러리가 콜백 없이 쓰는 기본값과 같은 값이라 속도가 달라지지 않는다.
+    return 100;
   };
 }
 
@@ -514,10 +516,7 @@ export class BackupManager {
       let metadata: Awaited<ReturnType<BackupCapableDatabase['backup']>>;
       try {
         metadata = await backupDb.backup(inProgressPath, {
-          progress: createBackupRestartGuard() as unknown as (info: {
-            totalPages: number;
-            remainingPages: number;
-          }) => number,
+          progress: createBackupRestartGuard(),
         });
       } catch (error) {
         // 가드가 던진 실패는 쓰기 실패가 아니므로 재분류하면 안 된다 (#1041).
