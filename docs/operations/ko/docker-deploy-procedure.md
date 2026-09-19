@@ -40,7 +40,9 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 
 ### 1. 서버 중지
 
-DB에 대한 **유일한 writer**를 제거합니다. 백업 API가 빈 파일을 만들지 않도록 먼저 중지합니다.
+DB에 대한 **유일한 writer**를 제거합니다. 이 단계를 건너뛰면 백업이 실패합니다 — SQLite online backup 은 복사 도중 원본이 수정되면 처음부터 다시 복사하므로, writer 가 살아 있으면 재시작이 끝나지 않습니다 (#1041).
+
+재시작이 임계치를 넘으면 백업은 `backup-source-busy` 로 즉시 중단됩니다. 실측: writer 가 있으면 30초에 14,768회 재시작하고 전체의 3%도 복사하지 못합니다. writer 가 없으면 276MB 기준 **0.3초**에 끝납니다.
 
 ```bash
 cd /path/to/memento
@@ -57,7 +59,7 @@ npm run db:pre-docker-deploy
 
 1. `npm run db:backup` — SQLite **online backup API**로 일관된 스냅샷 생성 (`copy` / `copyFileSync` 사용 안 함)
 2. `~/.memento/data` 가 컨테이너 소유(uid 1001)라 호스트 백업이 막히면(`source-dir-unwritable`) 컨테이너 안에서 자동 재시도 (#1001). 독립 실행 등가물: `npm run db:backup:docker`
-3. 백업 파일에 대해 `PRAGMA quick_check` 실행
+3. 백업 파일에 대해 `PRAGMA integrity_check` 실행 (276MB 기준 약 0.9초)
 4. 실패 시 **종료 코드 1** (배포 중단)
 
 성공 시 JSON 예시:
@@ -67,7 +69,7 @@ npm run db:pre-docker-deploy
   "ok": true,
   "dbPath": "/home/<user>/.memento/data/memory.db",
   "backupPath": "/home/<user>/.memento/backups/memory-backup-....db",
-  "quick_check": "ok",
+  "integrity_check": "ok",
   "memory_item": 26474
 }
 ```
@@ -131,7 +133,7 @@ curl -sf http://localhost:9001/health
 | `npm run db:backup:docker` | 컨테이너 안에서 online backup; 출력은 호스트 소유 `~/.memento/backups` (#1001) |
 | `npm run db:backup:cleanup` | 기존 backup directory 정리 preview; 삭제 없음 |
 | `npm run db:backup:cleanup -- --apply` | preview와 같은 선택자를 실제 삭제에 적용; MCP/restore/cleanup 중지 후 실행 |
-| `npm run db:pre-docker-deploy` | 백업 + `quick_check`; 실패 시 배포 중단 |
+| `npm run db:pre-docker-deploy` | 백업 + `integrity_check`; 실패 시 배포 중단 |
 | `npm run db:pre-docker-deploy -- --force` | 검사 실패해도 계속 (**위험**, 손상 DB 확인 후에만) |
 | `npm run db:restore-from-corrupt` | 손상 DB에서 테이블별 복구 (아래 복구 절 참고) |
 
@@ -264,7 +266,8 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 
 | 현상 | 조치 |
 |------|------|
-| `db:backup`이 빈 파일(0바이트) | `docker compose stop memento-mcp-server` 후 재실행 |
+| `db:backup`이 `backup-source-busy` | DB에 writer 가 살아 있습니다. `docker compose stop memento-mcp-server` 후 재실행 (#1041) |
+| `db:backup`이 빈 파일(0바이트) | 위와 같은 원인입니다. 서버 중지 후 재실행 |
 | `db:backup`이 `source-dir-unwritable` | `npm run db:backup:docker` (또는 `db:pre-docker-deploy`가 자동 폴백). 서버를 중지해도 해결되지 않음 |
 | `quick_check` 실패 | 위 [DB 손상 시 복구](#db-손상-시-복구-배포-실패crash-loop) 절차 |
 | health는 ok인데 검색 품질 저하 | `memory_embedding` 건수 확인; `--only-tables memory_embedding` 병합 검토 |

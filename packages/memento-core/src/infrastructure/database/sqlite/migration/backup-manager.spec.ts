@@ -4,7 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { BackupManager } from './backup-manager.js';
+import {
+  BACKUP_MAX_RESTARTS,
+  BackupManager,
+  createBackupRestartGuard,
+} from './backup-manager.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import fs, {
@@ -1257,5 +1261,46 @@ describe('BackupManager', () => {
         unlinkSpy.mockRestore();
       }
     });
+  });
+});
+
+describe('createBackupRestartGuard (#1041)', () => {
+  it('진행이 단조 감소하면 통과시킨다', () => {
+    const guard = createBackupRestartGuard(2);
+    expect(() => {
+      guard({ totalPages: 100, remainingPages: 80 });
+      guard({ totalPages: 100, remainingPages: 40 });
+      guard({ totalPages: 100, remainingPages: 0 });
+    }).not.toThrow();
+    expect(createBackupRestartGuard(2)({ totalPages: 100, remainingPages: 90 })).toBe(100);
+  });
+
+  it('재시작이 임계치 이하이면 통과시킨다', () => {
+    const guard = createBackupRestartGuard(2);
+    expect(() => {
+      guard({ totalPages: 100, remainingPages: 50 });
+      guard({ totalPages: 100, remainingPages: 100 }); // 재시작 1
+      guard({ totalPages: 100, remainingPages: 60 });
+      guard({ totalPages: 100, remainingPages: 100 }); // 재시작 2
+      guard({ totalPages: 100, remainingPages: 10 });
+    }).not.toThrow();
+  });
+
+  it('재시작이 임계치를 넘으면 backup-source-busy 로 실패한다', () => {
+    const guard = createBackupRestartGuard(1);
+    guard({ totalPages: 100, remainingPages: 50 });
+    guard({ totalPages: 100, remainingPages: 100 }); // 재시작 1
+    guard({ totalPages: 100, remainingPages: 60 });
+    expect(() => guard({ totalPages: 100, remainingPages: 100 })).toThrow('backup-source-busy');
+  });
+
+  it('기본 임계치는 BACKUP_MAX_RESTARTS 다', () => {
+    const guard = createBackupRestartGuard();
+    expect(() => {
+      for (let i = 0; i <= BACKUP_MAX_RESTARTS; i += 1) {
+        guard({ totalPages: 100, remainingPages: 50 });
+        guard({ totalPages: 100, remainingPages: 100 });
+      }
+    }).toThrow('backup-source-busy');
   });
 });

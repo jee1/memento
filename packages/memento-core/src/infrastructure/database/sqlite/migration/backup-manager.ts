@@ -305,6 +305,34 @@ function backupFailure(reason: string, residue: string[] = []): Error {
   return new Error(residue.length === 0 ? reason : `${reason} residue=${residue.join(',')}`);
 }
 
+export const BACKUP_MAX_RESTARTS = 50;
+
+/**
+ * SQLite online backup 은 복사 도중 원본이 수정되면 처음부터 다시 복사한다.
+ * writer 가 살아 있으면 이 재시작이 끝나지 않아 대상 파일이 0바이트로 남고 CPU 만 돈다 (#1041).
+ * 실측: writer 가 2ms 간격이면 30초에 14,768회 재시작하고 전체의 3%도 넘기지 못한다.
+ * 재시작이 임계치를 넘으면 "원본에 writer 가 있다"로 보고 즉시 실패시킨다.
+ */
+export function createBackupRestartGuard(
+  maxRestarts: number = BACKUP_MAX_RESTARTS
+): (progress: { totalPages: number; remainingPages: number }) => number {
+  let previousRemaining = Number.POSITIVE_INFINITY;
+  let restarts = 0;
+
+  return (progress) => {
+    if (progress.remainingPages > previousRemaining) {
+      restarts += 1;
+      if (restarts > maxRestarts) {
+        throw backupFailure('backup-source-busy');
+      }
+    }
+    previousRemaining = progress.remainingPages;
+    // better-sqlite3 는 콜백 반환값을 스텝당 복사 페이지 수로 쓴다.
+    // 100 은 이 라이브러리가 콜백 없이 쓰는 기본값과 같은 값이라 속도가 달라지지 않는다.
+    return 100;
+  };
+}
+
 function normalizeBackupFailure(error: unknown, residue: string[]): Error {
   if (!(error instanceof Error)) {
     return backupFailure('backup-failed', residue);
@@ -487,8 +515,14 @@ export class BackupManager {
       const sourcePageSize = backupDb.pragma('page_size', { simple: true }) as number;
       let metadata: Awaited<ReturnType<BackupCapableDatabase['backup']>>;
       try {
-        metadata = await backupDb.backup(inProgressPath);
+        metadata = await backupDb.backup(inProgressPath, {
+          progress: createBackupRestartGuard(),
+        });
       } catch (error) {
+        // 가드가 던진 실패는 쓰기 실패가 아니므로 재분류하면 안 된다 (#1041).
+        if (error instanceof Error && error.message === 'backup-source-busy') {
+          throw error;
+        }
         throw backupFailure(classifyBackupWriteFailure(error, this.backupsDir));
       }
       if (metadata.remainingPages !== 0) {

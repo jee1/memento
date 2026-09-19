@@ -200,7 +200,6 @@ describe('backup-memory-db operator script', () => {
     expect(output).toMatchObject({
       ok: true,
       dbPath,
-      quick_check: 'ok',
       integrity_check: 'ok',
       memory_item: 1,
     });

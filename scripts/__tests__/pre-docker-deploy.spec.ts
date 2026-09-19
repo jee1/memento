@@ -54,7 +54,7 @@ function setupFakeDocker(
     ? `echo called > "${options.markerPath}"`
     : '';
   const successLine = options.mode === 'success'
-    ? `printf '%s\\n' '{"ok":true,"dbPath":"/fake/memory.db","backupPath":"/fake/backup.db","quick_check":"ok","memory_item":1}'`
+    ? `printf '%s\\n' '{"ok":true,"dbPath":"/fake/memory.db","backupPath":"/fake/backup.db","integrity_check":"ok","memory_item":1}'`
     : '';
   const exitCode = options.mode === 'success' ? 0 : 1;
   writeFileSync(
@@ -207,7 +207,7 @@ describe('pre-docker-deploy operator script', () => {
 
       expect(result.status).toBe(0);
       expect(result.stderr).toContain(
-        '[pre-docker-deploy] backup/quick_check failed; continuing because --force was set'
+        '[pre-docker-deploy] backup/integrity_check failed; continuing because --force was set'
       );
     } finally {
       chmodSync(dataDir, 0o700);
