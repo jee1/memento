@@ -13,7 +13,7 @@
  * 인자는 같은 실패 양상을 갖지만 이번 범위 밖이다(#826).
  *
  * 사용법:
- *   npx tsx scripts/check-vi-mock-paths.ts [--ci] [--format=text|json] [--baseline=<path>]
+ *   npx tsx scripts/check-vi-mock-paths.ts [--ci] [--strict] [--format=text|json] [--baseline=<path>]
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -44,7 +44,8 @@ const SPEC_FILE = /\.(spec|test)\.tsx?$/;
 const SKIP_DIR = new Set(['node_modules', 'dist', '.git', 'coverage', 'graphify-out', 'test-results']);
 // 줄 시작 앵커가 필수다. 앵커가 없으면 주석(`// vi.mock('...')`)과 문자열
 // 리터럴("vi.mock('...')")까지 위반으로 집어낸다 - 차단 게이트에서 오탐 비용이 크다.
-const VI_MOCK = /^[ \t]*vi\.mock\(\s*['"]([^'"]+)['"]/gm;
+const VI_MOCK = /^[ \t]*vi\.(?:do)?[Mm]ock\(\s*(['"`])([^'"`]+)\1/gm;
+const INTERPOLATED = '${';
 
 // 저장소 루트는 스크립트 위치에서 유도한다. cwd 에 의존하지 않아야
 // CI 든 로컬이든 baseline 경로와 보고 경로가 같은 기준을 쓴다.
@@ -86,7 +87,9 @@ export function collectMockRefs(root: string): MockRef[] {
   for (const full of files.sort()) {
     const src = readFileSync(full, 'utf-8');
     for (const match of src.matchAll(VI_MOCK)) {
-      const specifier = match[1];
+      const specifier = match[2];
+      // A template literal with interpolation has no single static path to check.
+      if (specifier.includes(INTERPOLATED)) continue;
       // 패키지 이름 모킹은 이 게이트의 대상이 아니다 (FR-010)
       if (!specifier.startsWith('.')) continue;
       refs.push({
@@ -150,6 +153,7 @@ function main(): void {
   const { values } = parseCliArgs({
     options: {
       ci: { type: 'boolean', default: false },
+      strict: { type: 'boolean', default: false },
       format: { type: 'string', default: 'text' },
       baseline: { type: 'string', default: DEFAULT_BASELINE },
     },
@@ -192,6 +196,8 @@ function main(): void {
   }
 
   if (ci && (result.violations.length > 0 || baselineError)) process.exit(1);
+  // Opt-in only. The contract keeps exit 0 on stale entries by default (C4).
+  if (values.strict && result.staleBaseline.length > 0) process.exit(1);
   process.exit(0);
 }
 
