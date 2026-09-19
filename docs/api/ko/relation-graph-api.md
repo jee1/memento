@@ -16,6 +16,35 @@
 
 HTTP Admin API는 `/admin/relations/*` 라우트를 사용합니다.
 
+    ## 그래프 뷰 API — GET /admin/graph
+
+    관리 대시보드의 Memory Graph(`/graph`)가 쓰는 읽기 전용 라우트입니다. 노드는 `memory_item`, 엣지는 `memory_relation` 에서 옵니다.
+
+    | 파라미터 | 값 | 기본값 |
+    |---|---|---|
+    | `types` | `episodic,semantic,procedural,working` 중 콤마 구분 | 전체 |
+    | `relation_types` | 콤마 구분 관계 유형 | 전체 |
+    | `min_importance` | `0.0`~`1.0` | `0.0` |
+    | `limit` | `1`~`1000` (`view=full` 이면 `1`~`5000`) | `200` (`view=full` 이면 `5000`) |
+    | `view` | `focused` 또는 `full` | `focused` |
+    | `fields` | `full` 또는 `minimal` | `focused` 면 `full`, `full` 이면 `minimal` |
+    | `exclude_orphans` | `true` 또는 `false` | `false` |
+
+    허용되지 않는 값은 400 을 돌려줍니다.
+
+    ### 고아(orphan) 두 정의 (이슈 #835)
+
+    | 용어 | 뜻 | 어디서 거르나 |
+    |---|---|---|
+    | **View orphan** | 지금 응답에 실린 엣지 기준 degree=0 | 클라이언트 토글 (#836, `static/js/graph-fetch.js`) |
+    | **DB orphan** | `memory_relation` 에 source·target 으로 한 번도 안 나옴 | `exclude_orphans=true` (#837, 서버) |
+
+    `exclude_orphans=true` 는 DB orphan 을 노드 선발 단계에서 빼므로, importance 상위 `limit` 칸이 관계 있는 노드로 채워집니다. `total_available_nodes` 도 같은 기준으로 셉니다.
+
+    `relation_types` 를 함께 주면 그 유형만 관계로 인정합니다. 그러지 않으면 「연결됨」으로 뽑혀 놓고 응답 엣지가 0개인 노드가 생깁니다.
+
+    두 필터는 서로를 대체하지 않습니다. `exclude_orphans=true` 로 뽑아도 짝이 `limit` 밖이면 그 노드는 여전히 화면에서 degree=0 으로 보이므로, Phase 1 토글은 그대로 쓸모가 있습니다.
+
 ## 랭킹 가중치 ζ (relation_weight) 런타임 설정
 
 하이브리드 검색 랭킹의 관계 부스트 계수 `ζ`는 `config/ranking-weights.toml`의 `[ranking_weights].zeta`에서 읽습니다.
