@@ -14,6 +14,11 @@ import {
   mapToolDispatchError,
   type ToolAuditContext,
 } from '../../audit-tool-dispatch.js';
+import {
+  LATEST_PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from '@modelcontextprotocol/sdk/types.js';
+import packageJson from '../../../../package.json' with { type: 'json' };
 import { createJsonRpcError } from './json-rpc.js';
 import type { JsonRpcResponse, McpRequestMessage } from './types.js';
 
@@ -57,18 +62,30 @@ export async function processMcpMessage(
   auditContext: ToolAuditContext = { transport: 'mcp_http' },
 ): Promise<JsonRpcResponse> {
   if (message.method === 'initialize') {
-    logger.info('MCP initialize request processing');
+    // 클라이언트가 요청한 버전을 지원하면 그대로 돌려준다. 예전에는 무엇을 받든
+    // '2024-11-05' 를 돌려줘서, 최신 버전을 요청한 클라이언트를 조용히 끌어내렸다.
+    const requestedVersion = message.params?.['protocolVersion'];
+    const protocolVersion =
+      typeof requestedVersion === 'string' &&
+      (SUPPORTED_PROTOCOL_VERSIONS as readonly string[]).includes(requestedVersion)
+        ? requestedVersion
+        : LATEST_PROTOCOL_VERSION;
+    logger.info('MCP initialize request processing', { protocolVersion });
     return {
       jsonrpc: '2.0',
       id: message.id,
       result: {
-        protocolVersion: '2024-11-05',
+        protocolVersion,
+        // 이 파일이 실제로 처리하는 것만 광고한다. logging 은 HTTP 에 핸들러가
+        // 없으므로 넣지 않는다 (stdio 에만 있다).
         capabilities: {
-          tools: {}
+          tools: {},
+          resources: {},
+          prompts: {}
         },
         serverInfo: {
-          name: 'memento-memory',
-          version: '0.1.0'
+          name: 'memento-mcp-server',
+          version: packageJson.version
         }
       }
     };
