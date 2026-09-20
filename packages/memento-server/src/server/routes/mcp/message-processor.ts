@@ -22,6 +22,19 @@ import packageJson from '../../../../package.json' with { type: 'json' };
 import { createJsonRpcError } from './json-rpc.js';
 import type { JsonRpcResponse, McpRequestMessage } from './types.js';
 
+/** initialize 와 server/discover 가 같은 것을 광고해야 한다. 이 파일이 실제로 처리하는 것만 넣는다 (#840). */
+const MCP_CAPABILITIES = {
+  tools: {},
+  resources: {},
+  prompts: {}
+};
+
+/** server/discover 의 instructions. 클라이언트가 이 서버의 용도를 알게 한다 (#840). */
+const SERVER_DISCOVER_INSTRUCTIONS =
+  'Memento는 AI 에이전트의 기억을 저장·검색·망각하는 MCP 서버입니다. ' +
+  'remember 로 기억을 저장하고 recall 로 검색하며, 오래되고 참조되지 않은 기억은 자동으로 망각됩니다. ' +
+  '사용 가능한 도구 목록은 tools/list 로 확인하십시오.';
+
 type MemoryResourceListRow = {
   id: string;
 };
@@ -78,14 +91,35 @@ export async function processMcpMessage(
         protocolVersion,
         // 이 파일이 실제로 처리하는 것만 광고한다. logging 은 HTTP 에 핸들러가
         // 없으므로 넣지 않는다 (stdio 에만 있다).
-        capabilities: {
-          tools: {},
-          resources: {},
-          prompts: {}
-        },
+        capabilities: MCP_CAPABILITIES,
         serverInfo: {
           name: 'memento-mcp-server',
           version: packageJson.version
+        }
+      }
+    };
+  }
+
+  if (message.method === 'server/discover') {
+    // 2026-07-28 이 MUST 로 요구하는 메서드. modern 클라이언트가 핸드셰이크 없이
+    // 지원 버전을 확인하고, 없으면 legacy initialize 로 폴백할 수 있게 한다.
+    //
+    // supportedVersions 는 SDK 가 실제로 아는 목록을 그대로 광고한다. '2026-07-28' 을
+    // 끼워 넣지 않는다 — 이 서버에는 요청별 _meta 를 처리하는 modern 경로가 아직 없고,
+    // 지원하지 않는 버전을 광고하는 것이 Phase 0 에서 고친 바로 그 버그다 (#840).
+    logger.info('MCP server/discover request processing');
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: {
+        supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+        capabilities: MCP_CAPABILITIES,
+        instructions: SERVER_DISCOVER_INSTRUCTIONS,
+        _meta: {
+          'io.modelcontextprotocol/serverInfo': {
+            name: 'memento-mcp-server',
+            version: packageJson.version
+          }
         }
       }
     };
