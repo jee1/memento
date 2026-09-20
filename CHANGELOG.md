@@ -9,6 +9,40 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [1.32.0] - 2026-09-20
+
+### Added
+
+- **검토 큐 화면을 결정 중심으로 재작업** (#897): 버튼 옆에 각 동작이 실제로 무엇을 바꾸는지 적었습니다 — dismiss·expire 는 `memory_item` 을 건드리지 않고 후보 행만 옮기며, 다음 배치에서 다시 생성되므로 되돌릴 수 있습니다. "검토"는 메모리의 `last_accessed` 를 갱신해 보존 기간에 영향을 주므로 **보존**으로 개명했습니다. 전체 선택 체크박스는 "보이는 항목"이 아니라 적재된 후보 최대 500행을 선택하므로 문구를 사실에 맞췄습니다. 큐 지표 위에는 `window1h` 로 판정한 상태 배너(`확인 필요`/`처리 없음`/`backlog 증가`/`정상`)를 붙였고, 320px 폭까지 쓸 수 있게 했습니다.
+
+- **`server/discover` 응답** (#840, Phase 1a): 이 서버가 실제로 말하는 프로토콜 버전 목록과 capabilities 를 `initialize` 와 **같은 값**으로 광고합니다. 두 응답이 어긋나면 클라이언트가 무엇을 믿어야 할지 알 수 없습니다.
+
+- **`GET /admin/graph` 의 `exclude_orphans`** (#837): `memory_relation` 에 나타나는 노드만 고릅니다. limit 창을 고립 노드로 낭비하지 않습니다. `relation_types` 가 주어지면 그 타입만 관계로 셉니다 — 아니면 연결된 것으로 뽑혀 놓고 간선이 하나도 안 보이는 노드가 생깁니다. Phase 1 클라이언트 토글(#836)의 View orphan 정의(응답 안에서 degree 0)와는 다른 정의입니다.
+
+- **`quality_measurement_history` 보존 정책** (#908): 다른 보조 테이블에는 전부 있는 정리 작업이 이 테이블에만 없어 측정값이 무한히 쌓였습니다. 측정 배치 안에서 측정 직전에 실행하며, 실패해도 작업을 깨지 않고 경고만 남깁니다. 비교는 `datetime(measured_at)` 으로 정규화합니다 — 저장값은 `T`/`Z` 가 붙은 ISO-8601 이고 `datetime('now', ...)` 는 공백 구분 문자열이라 문자열 비교로는 컷오프가 엉뚱한 곳에 놓입니다. 보조 테이블 전체의 보존 창을 문서에 적었습니다.
+
+- **벤치마크 시더의 relation 적재** (#959): `relations.jsonl` 이 있으면 `benchmark_id → source_memory_id` 로 매핑해 넣고, 모르는 id 는 던집니다. 랭킹 공식의 `ζ·relation_weight` 항은 지금까지 벤치마크에서 항상 0이었습니다.
+
+### Fixed
+
+- **BM25 랭크 → relevance 시그모이드가 텍스트 랭킹 신호를 버리던 문제** (#1079): `1/(1+exp(rank))` 의 온도가 사실상 1로 고정돼 있었습니다. 실측 rank 구간 `-19.756 ~ -2.401` 이 전부 포화 꼬리에 들어가 동적 범위가 **0.083** 으로 뭉개졌고, 최종 점수 기여도가 `α·relevance` 0.022 대 `γ·importance` 0.17 로 **7.7배** 차이가 나 검색 결과가 질의와 무관해졌습니다. `config/ranking-weights.toml` 에 `[fts_relevance].temperature = 10` 을 두고 로더가 읽습니다. T 를 5/8/10/12/15 로 훑어 8~12 구간의 평탄부에서 10을 골랐습니다 — argmax 가 아니라, 질의 26개에 과적합하지 않는 값입니다. `procedural` MRR 0.2154 → 0.6500, `conceptual` 0.4071 → 0.6000.
+
+- **MCP `initialize` 가 실제 버전과 capabilities 를 알리지 않던 문제** (#840, Phase 0): HTTP 레그가 클라이언트 요청과 무관하게 `protocolVersion` 을 항상 `2024-11-05` 로 답해, `2025-11-25` 를 협상하던 클라이언트가 조용히 네 리비전 아래로 끌려 내려갔습니다. 이제 SDK 가 지원하면 요청받은 버전을 되돌려 주고, 아니면 지원 최신 버전으로 떨어집니다. capabilities 도 `tools` 만 알렸는데 같은 파일이 `prompts/*`·`resources/*` 를 처리하고 있어, capabilities 를 존중하는 클라이언트는 그것들을 영영 호출하지 않았습니다. `serverInfo` 는 `memento-memory 0.1.0` 이었습니다.
+
+- **서버 이름·버전이 네 곳에 하드코딩돼 있던 문제** (#1077): `/health` 와 `initialize` 가 실제 발행 버전이 아닌 값을 보고했습니다. 사본은 코드 기본값(`environment.ts`)·`env.example`·운영 `.env`·`docker-compose.base.yml` 의 **네 개**였고, 앞의 셋만 고치면 compose 의 `${MCP_SERVER_NAME:-memento-memory}` 폴백으로 떨어져 오히려 나빠집니다. 이제 `package.json` 이 단일 출처이고, `scripts/check-version-sync.ts` 가 매니페스트 3건의 일치를 CI 에서 강제하며, 릴리스 워크플로는 버전을 **덮어쓰지 않고 태그와 일치하는지 검증**합니다. env 템플릿과 루트 `docker-compose*.yml` 에 버전 핀이 다시 생기면 테스트가 잡습니다.
+
+- **Docker 이미지가 저장소가 아니라 호스트의 빌드 산출물을 실어 나르던 문제** (#1090): 컨테이너 안의 `ranking-weights.toml` md5 가 저장소와 달랐습니다(`a942d244` ≠ `f11d27cc`). `.dockerignore` 의 `dist` 는 컨텍스트 루트만 제외해 `packages/*/dist` 가 그대로 COPY 됐고, Dockerfile 은 루트 `config/` 를 한 번도 복사하지 않았으며, `copy-assets.js` 는 `if (existsSync)` 로 조용히 건너뛰었습니다. `**/dist` 제외 + `COPY config/` 로 고쳤고, config 원본이 없으면 빌드가 죽습니다.
+
+- **벤치마크 메타데이터를 정답지에서 시딩하던 문제** (#973): `seedOneCorpusRow` 가 `ground-truth.json` 에서 만든 `isRelevant` 플래그로 `importance`·`last_accessed_at`·`recall_count` 를 골랐습니다. 두 importance 대역이 겹치지 않아, 검색이 돌기도 전에 정답 31건이 distractor 3,430건을 랭킹 피처 세 개에서 전부 앞섰습니다. 이제 문서 id 만으로 운영 `memory_item` 분포에 맞춰 뽑습니다. 문서마다 PRNG 를 시딩해 순서 의존성도 없앴습니다 — 전에는 문서 하나를 추가하면 그 뒤 문서가 전부 뒤섞였습니다.
+
+- **`vi.mock` 경로 게이트가 `vi.doMock` 과 템플릿 리터럴을 놓치던 문제** (#826): 게이트 정규식이 따옴표 리터럴이 붙은 `vi.mock` 만 잡았습니다. `vi.doMock` 은 경로가 틀리면 똑같이 조용히 아무것도 안 하고, 뒤이은 같은 경로의 동적 import 가 가로채여 결함이 런타임에 드러나지 않습니다. 오래된 baseline 항목에서 종료 코드 1을 내는 `--strict` 를 옵트인으로 추가했습니다(기본은 계약대로 0 유지).
+
+### Changed
+
+- **벤치마크 macro category `episodic_recent` → `incident_ops` 개명** (#1074): 이름이 recency 를 측정한다고 말하지만 그 버킷의 질의는 장애·운영 문서를 찾는 것이고, 코퍼스가 한 시점에 몰려 있어 `β·recency` 항의 실측 범위가 episodic 안에서 **0.0026** 에 불과합니다. 측정할 수 없는 것을 이름이 약속하고 있었습니다. 네 macro category 가 각각 무엇을 재는지 `docs/reference/ko/benchmark-macro-categories.md` 에 적었습니다.
+
+- **`report-comparison.ts` 3,094줄 분할** (#910): 순수 이동, 동작 변경 없음. `measureConsolidationQuality`·`calculateQualityDegradation` 은 모듈 경계를 넘느라 export 로 바뀌었지만 `report-comparison.ts` 에서 재수출하지 않으므로 공개 표면은 그대로입니다.
+
 ## [1.31.0] - 2026-09-19
 
 ### Added

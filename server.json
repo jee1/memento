@@ -3,7 +3,7 @@
   "name": "io.github.jee1/memento-mcp-server",
   "title": "Memento",
   "description": "Agent memory MCP server with 4-type cognitive memory, hybrid search, and TTL-based forgetting.",
-  "version": "1.31.0",
+  "version": "1.32.0",
   "websiteUrl": "https://github.com/jee1/memento#readme",
   "repository": {
     "url": "https://github.com/jee1/memento",
@@ -15,7 +15,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "memento-mcp-server",
-      "version": "1.31.0",
+      "version": "1.32.0",
       "transport": {
         "type": "stdio"
       }
