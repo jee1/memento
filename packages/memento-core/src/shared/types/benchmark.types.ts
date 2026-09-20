@@ -31,13 +31,14 @@ export function getBenchmarkVectorProviderFilter(): EmbeddingProvider[] {
   return [resolveBenchmarkEmbeddingProvider()];
 }
 export type MacroCategory =
-  | 'episodic_recent'
+  /** incident·operations 내용 검색. recency 는 이 범주가 재는 것이 아니다 (#1074). */
+  | 'incident_ops'
   | 'procedural'
   | 'conceptual'
   | 'tag_filter';
 
 const MACRO_CATEGORY_SET = new Set<string>([
-  'episodic_recent',
+  'incident_ops',
   'procedural',
   'conceptual',
   'tag_filter',

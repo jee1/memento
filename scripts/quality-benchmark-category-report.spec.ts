@@ -13,7 +13,7 @@ import { resolveBenchmarkEmbeddingProvider } from '@memento/core/shared/types/be
 
 function sampleReport(over: Partial<CategoryQualityReport> = {}): CategoryQualityReport {
   return {
-    macro_category: 'episodic_recent',
+    macro_category: 'incident_ops',
     query_count: 3,
     authored_query_count: 3,
     mrr: 0.6,
@@ -46,7 +46,7 @@ describe('quality-benchmark-category-report (T015)', () => {
 
   it('formatCategoryReportLine은 헤더 형식과 동일한 한 줄을 만든다', () => {
     const line = formatCategoryReportLine(sampleReport());
-    expect(line).toBe('episodic_recent | 3/3 | 0.6000 | 0.7000 | 0.6500 | 412 | PASS');
+    expect(line).toBe('incident_ops | 3/3 | 0.6000 | 0.7000 | 0.6500 | 412 | PASS');
   });
 
   it('formatCoverageLine은 작성·채점 쿼리 수와 비율을 출력한다', () => {
@@ -100,7 +100,7 @@ describe('quality-benchmark-category-report (T015)', () => {
   it('macro 전체 scored=0이어도 authored는 coverage 분모에 남는다 (#934)', () => {
     // tag_filter 6건이 전부 빈 GT여도 리포트 행이 남아 coverage < 1.0
     const reports = [
-      sampleReport({ macro_category: 'episodic_recent', query_count: 4, authored_query_count: 4 }),
+      sampleReport({ macro_category: 'incident_ops', query_count: 4, authored_query_count: 4 }),
       sampleReport({ macro_category: 'procedural', query_count: 6, authored_query_count: 6 }),
       sampleReport({ macro_category: 'conceptual', query_count: 10, authored_query_count: 10 }),
       sampleReport({

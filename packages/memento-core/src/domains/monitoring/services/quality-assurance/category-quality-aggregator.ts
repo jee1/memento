@@ -177,7 +177,7 @@ export class CategoryQualityAggregator {
     }
 
     const ALL_MACROS: MacroCategory[] = [
-      'episodic_recent',
+      'incident_ops',
       'procedural',
       'conceptual',
       'tag_filter'
