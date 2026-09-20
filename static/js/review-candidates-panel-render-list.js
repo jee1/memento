@@ -169,12 +169,23 @@
     setHidden($('rc-table-wrap'), true);
   }
 
-  async function fetchReviewCandidateListJson() {
-    const res = await ns.adminFetch()(ns.LIST_URL, { headers: { Accept: 'application/json' } });
+  async function fetchReviewCandidateListJson(options) {
+    const url =
+      typeof ns.buildListUrl === 'function'
+        ? ns.buildListUrl(options || {})
+        : ns.LIST_URL;
+    const res = await ns.adminFetch()(url, { headers: { Accept: 'application/json' } });
     const body = await res.json().catch(function () {
       return {};
     });
     return { res, body };
+  }
+
+  function resolvePendingTotal(body, candidates) {
+    if (body && body.pagination && typeof body.pagination.total_count === 'number') {
+      return body.pagination.total_count;
+    }
+    return candidates.length;
   }
 
   function applyListSuccess(body) {
@@ -184,7 +195,13 @@
     if (line && ts) {
       line.textContent = '마지막 갱신: ' + ts;
     }
-    state.lastPendingCount = candidates.length;
+    if (body && body.pagination && typeof body.pagination.page === 'number') {
+      state.listPage = body.pagination.page;
+    }
+    if (ns.syncPaginationControls) {
+      ns.syncPaginationControls(body && body.pagination);
+    }
+    state.lastPendingCount = resolvePendingTotal(body, candidates);
     state.lastListFingerprint = ns.buildReviewListFingerprint(candidates);
     if (!candidates.length) {
       if (ns.resetBulkSelection) {
@@ -205,6 +222,19 @@
     hideTable();
     showEmpty(false);
     ns.clearStatus();
+
+    if (typeof ns.buildListQueryKey === 'function' && typeof ns.readCommittedFilterValues === 'function') {
+      const values = ns.readCommittedFilterValues();
+      const nextKey = ns.buildListQueryKey(values);
+      if (nextKey && state.lastListQueryKey && state.lastListQueryKey !== nextKey) {
+        if (ns.resetListSelectionForQueryChange) {
+          ns.resetListSelectionForQueryChange();
+        }
+      }
+      if (nextKey) {
+        state.lastListQueryKey = nextKey;
+      }
+    }
 
     try {
       const { res, body } = await fetchReviewCandidateListJson();

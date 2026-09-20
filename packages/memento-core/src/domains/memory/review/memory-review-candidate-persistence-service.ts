@@ -6,11 +6,21 @@ import type {
   BulkMemoryReviewCandidateSelector,
   BulkMemoryReviewCandidatesResult,
   ListMemoryReviewCandidatesQuery,
+  MemoryReviewCandidatePagination,
   MemoryReviewCandidateRow,
+  MemoryReviewCandidatesQueryResult,
+  QueryMemoryReviewCandidatesInput,
   UpsertPendingMemoryReviewCandidateInput,
   UpsertPendingMemoryReviewCandidatesResult,
 } from './memory-review-candidate-persistence.types.js';
 import { MemoryReviewCandidateError } from './memory-review-candidate-persistence-error.js';
+import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
+import {
+  buildMemoryReviewCandidateCountSql,
+  buildMemoryReviewCandidateListSql,
+  buildMemoryReviewCandidateSelectSql,
+  mapMemoryReviewCandidateListRow,
+} from './memory-review-candidate-list-query.js';
 
 export function upsertPendingMemoryReviewCandidates(
   db: Database.Database,
@@ -120,6 +130,59 @@ export function listMemoryReviewCandidates(
     )
     .all()
     .map((row) => mapRow(row));
+}
+
+function buildPaginationMetadata(
+  page: number,
+  pageSize: 25 | 50,
+  totalCount: number,
+): MemoryReviewCandidatePagination {
+  const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
+  return {
+    page,
+    page_size: pageSize,
+    total_count: totalCount,
+    total_pages: totalPages,
+    has_prev: totalCount > 0 && page > 1,
+    has_next: totalPages > 0 && page < totalPages,
+  };
+}
+
+export function queryMemoryReviewCandidates(
+  db: Database.Database,
+  input: QueryMemoryReviewCandidatesInput,
+  options?: { now?: string },
+): MemoryReviewCandidatesQueryResult {
+  ensureMemoryReviewCandidateSchema(db);
+  ensureMetaMemoryStatsSchema(db);
+
+  const nowIso = options?.now ?? new Date().toISOString();
+  const built = buildMemoryReviewCandidateListSql(input, nowIso);
+  const countStmt = db.prepare(buildMemoryReviewCandidateCountSql(built).sql);
+  const countRow = countStmt.get(built.params) as { count?: number } | undefined;
+  const totalCount = Number(countRow?.count ?? 0);
+
+  const pagination =
+    input.page_size !== undefined
+      ? buildPaginationMetadata(input.page ?? 1, input.page_size, totalCount)
+      : undefined;
+
+  if (pagination && pagination.total_pages > 0 && pagination.page > pagination.total_pages) {
+    return {
+      candidates: [],
+      pagination,
+      filters_applied: built.filtersApplied,
+    };
+  }
+
+  const selectBuilt = buildMemoryReviewCandidateSelectSql(built, pagination);
+  const rows = db.prepare(selectBuilt.sql).all(selectBuilt.params) as Record<string, unknown>[];
+
+  return {
+    candidates: rows.map((row) => mapMemoryReviewCandidateListRow(row)),
+    pagination,
+    filters_applied: built.filtersApplied,
+  };
 }
 
 export function countPendingMemoryReviewCandidates(db: Database.Database): number {

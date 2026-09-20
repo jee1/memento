@@ -7,7 +7,7 @@
   const ns = (global.__MEMENTO_REVIEW_CANDIDATES_PANEL__ =
     global.__MEMENTO_REVIEW_CANDIDATES_PANEL__ || {});
 
-  ns.LIST_URL = '/admin/memory/review-candidates?status=pending';
+  ns.LIST_URL = '/admin/memory/review-candidates?status=pending&page_size=25&page=1';
   ns.STREAM_URL = '/admin/memory/review-candidates/stream';
   ns.METRICS_URL = '/admin/memory/review-candidates/metrics?history_limit=24';
   ns.BATCH_RUN_HISTORY_URL = '/admin/batch/run-history?limit=50';

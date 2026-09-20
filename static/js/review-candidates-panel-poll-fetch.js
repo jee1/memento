@@ -7,6 +7,13 @@
   const ns = global.__MEMENTO_REVIEW_CANDIDATES_PANEL__;
   if (!ns) return;
 
+  ns.resolveQueueTotal = function (body, candidates) {
+    if (body && body.pagination && typeof body.pagination.total_count === 'number') {
+      return body.pagination.total_count;
+    }
+    return candidates.length;
+  };
+
   ns.fetchQueueSnapshotForPoll = async function (onFailure) {
     try {
       const r = await ns.fetchReviewCandidateListJson();

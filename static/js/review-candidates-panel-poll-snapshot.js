@@ -22,7 +22,7 @@
 
   ns.applyQueueSnapshot = function (body, onReview, fromPoll, boot) {
     const candidates = (body && body.candidates) || [];
-    const n = candidates.length;
+    const n = ns.resolveQueueTotal(body, candidates);
     const prev = ns.state.lastPendingCount;
     const grew = prev >= 0 && n > prev;
     const fingerprint = ns.buildReviewListFingerprint(candidates);

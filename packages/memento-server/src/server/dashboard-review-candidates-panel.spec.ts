@@ -33,6 +33,7 @@ const tabsJs = DASHBOARD_TABS_SCRIPTS.map((name) =>
 
 const PANEL_COMPANION_SCRIPTS = [
   'review-candidates-panel-shared.js',
+  'review-candidates-panel-filters.js',
   'review-candidates-panel-render-preview.js',
   'review-candidates-panel-render-actions.js',
   'review-candidates-panel-render-list.js',
@@ -342,7 +343,8 @@ describe('dashboard review candidates panel (#252, #253)', () => {
   });
 
   it('review-candidates-panel.js targets pending list and admin memory preview', () => {
-    expect(panelJs).toContain('/admin/memory/review-candidates?status=pending');
+    expect(panelJs).toContain('buildListUrl');
+    expect(panelJs).toContain('page_size');
     expect(panelJs).toContain('/admin/memory/review-candidates/metrics');
     expect(panelJs).toContain('/admin/memory/items/');
     expect(panelJs).toContain('initReviewCandidatesPanel');
@@ -560,9 +562,15 @@ describe('#897 review queue structure and refresh selection', () => {
       'rc-preview-mid',
       'rc-btn-review',
       'rc-btn-dismiss',
+      'rc-filter-importance',
+      'rc-filter-unused-days',
+      'rc-filter-memory-type',
+      'rc-filter-reason',
+      'rc-filter-page-size',
     ]) {
       elements[id] = element();
     }
+    elements['rc-filter-page-size'].value = '25';
     elements['rc-table'] = { querySelector: () => tbody };
 
     const state = {
@@ -575,6 +583,15 @@ describe('#897 review queue structure and refresh selection', () => {
       lastPendingCount: -1,
       lastListFingerprint: '',
       pollFailureStreak: 0,
+      listFilters: {
+        importance_min: '',
+        unused_days_min: '',
+        memory_type: '',
+        reason_contains: '',
+      },
+      listPage: 1,
+      listPageSize: 25,
+      lastListQueryKey: '',
     };
 
     const adminFetchSpy = vi.fn();
@@ -612,6 +629,13 @@ describe('#897 review queue structure and refresh selection', () => {
     sandbox.globalThis = sandbox;
 
     const context = vm.createContext(sandbox);
+    const filtersJs = readFileSync(
+      resolve(root, 'static/js/review-candidates-panel-filters.js'),
+      'utf8',
+    );
+    vm.runInContext(filtersJs, context, {
+      filename: 'review-candidates-panel-filters.js',
+    });
     vm.runInContext(previewJs, context, {
       filename: 'review-candidates-panel-render-preview.js',
     });
@@ -670,6 +694,80 @@ describe('#897 review queue structure and refresh selection', () => {
 
     expect(h.state.selectedRow?.dataset.candidateId).toBe('cand-a');
     expect(h.state.previewMemoryId).toBe('mem-a');
+  });
+
+  it('#897 AC8: 같은 필터·페이지 refresh는 선택을 지우지 않는다', async () => {
+    const h = buildListPreviewHarness();
+    h.ns.buildListUrl = () => '/admin/memory/review-candidates?status=pending&page_size=25&page=1';
+    h.ns.buildListQueryKey = () => 'same-key';
+    h.ns.commitFilterControls = () => ({
+      importance_min: '',
+      unused_days_min: '',
+      memory_type: '',
+      reason_contains: '',
+      page_size: '25',
+    });
+    h.state.lastListQueryKey = 'same-key';
+
+    h.ns.renderTable(candidates);
+    h.ns.onRowActivate(h.rows.find((r) => r.dataset.candidateId === 'cand-a'));
+
+    h.adminFetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates,
+        pagination: {
+          page: 1,
+          page_size: 25,
+          total_count: 2,
+          total_pages: 1,
+          has_prev: false,
+          has_next: false,
+        },
+        timestamp: '2026-01-01T00:00:00Z',
+      }),
+    });
+
+    await h.ns.loadList();
+    expect(h.state.selectedRow?.dataset.candidateId).toBe('cand-a');
+    expect(h.ns.resetBulkSelection).not.toHaveBeenCalled();
+  });
+
+  it('#897 AC8: loadList refresh uses committed filters without applying DOM drafts', async () => {
+    const h = buildListPreviewHarness();
+    const ns = h.ns;
+    ns.state.listFilters = {
+      importance_min: '0.5',
+      unused_days_min: '',
+      memory_type: '',
+      reason_contains: '',
+    };
+    ns.state.listPage = 2;
+    ns.state.lastListQueryKey = ns.buildListQueryKey(ns.readCommittedFilterValues());
+    h.elements['rc-filter-importance'].value = '0.9';
+
+    h.adminFetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates,
+        pagination: {
+          page: 2,
+          page_size: 25,
+          total_count: 2,
+          total_pages: 1,
+          has_prev: true,
+          has_next: false,
+        },
+        timestamp: '2026-01-01T00:00:00Z',
+      }),
+    });
+
+    await ns.loadList();
+
+    const requestedUrl = String(h.adminFetchSpy.mock.calls[0]?.[0] ?? '');
+    expect(requestedUrl).toContain('importance_min=0.5');
+    expect(requestedUrl).not.toContain('importance_min=0.9');
+    expect(requestedUrl).toContain('page=2');
   });
 
   it('#897: 새 후보를 열면 미리보기 스크롤이 맨 위로 돌아간다', () => {
@@ -924,4 +1022,168 @@ describe('#897 review queue health verdict', () => {
 
     expect(html.indexOf('rc-queue-verdict')).toBeLessThan(html.indexOf('m-metric-grid'));
   });
+});
+
+describe('#897 review queue filters and pagination (AC8)', () => {
+  const filtersJs = readFileSync(
+    resolve(root, 'static/js/review-candidates-panel-filters.js'),
+    'utf8',
+  );
+
+  function buildFilterHarness() {
+    const elements: Record<string, any> = {};
+    for (const id of [
+      'rc-filter-form',
+      'rc-filter-importance',
+      'rc-filter-unused-days',
+      'rc-filter-memory-type',
+      'rc-filter-reason',
+      'rc-filter-page-size',
+      'rc-filter-apply',
+      'rc-filter-reset',
+      'rc-pagination-prev',
+      'rc-pagination-next',
+      'rc-pagination-info',
+    ]) {
+      elements[id] = {
+        value: id === 'rc-filter-page-size' ? '25' : '',
+        textContent: '',
+        disabled: false,
+        dataset: {},
+        addEventListener: vi.fn(),
+      };
+    }
+
+    const state = {
+      listFilters: {
+        importance_min: '',
+        unused_days_min: '',
+        memory_type: '',
+        reason_contains: '',
+      },
+      listPage: 1,
+      listPageSize: 25,
+      lastListQueryKey: '{"importance_min":"","unused_days_min":"","memory_type":"","reason_contains":"","page":1,"page_size":"25"}',
+      selectedCandidateIds: new Set(['cand-a']),
+      selectedRow: { dataset: { candidateId: 'cand-a' } },
+      previewMemoryId: 'mem-a',
+      actionInFlight: false,
+      currentCandidateIds: ['cand-a'],
+    };
+
+    const resetBulkSelection = vi.fn();
+    const clearRowSelection = vi.fn();
+    const resetPreviewPanel = vi.fn();
+    const loadList = vi.fn();
+
+    const sandbox: Record<string, any> = {
+      document: { getElementById: (id: string) => elements[id] ?? null },
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
+        $: (id: string) => elements[id] ?? null,
+        state,
+        resetBulkSelection,
+        clearRowSelection,
+        resetPreviewPanel,
+        loadList,
+      },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    const context = vm.createContext(sandbox);
+    vm.runInContext(filtersJs, context, { filename: 'review-candidates-panel-filters.js' });
+    return {
+      ns: sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__,
+      state,
+      elements,
+      resetBulkSelection,
+      clearRowSelection,
+      resetPreviewPanel,
+      loadList,
+    };
+  }
+
+  it('dashboard.html includes filter and pagination controls', () => {
+    expect(dashboardHtml).toContain('id="rc-filter-form"');
+    expect(dashboardHtml).toContain('id="rc-filter-importance"');
+    expect(dashboardHtml).toContain('id="rc-filter-unused-days"');
+    expect(dashboardHtml).toContain('id="rc-filter-memory-type"');
+    expect(dashboardHtml).toContain('id="rc-filter-reason"');
+    expect(dashboardHtml).toContain('id="rc-filter-page-size"');
+    expect(dashboardHtml).toContain('id="rc-pagination-prev"');
+    expect(dashboardHtml).toContain('/static/js/review-candidates-panel-filters.js');
+    expect(dashboardHtml).toMatch(/<nav class="rc-pagination" aria-label="후보 목록 페이지">/);
+  });
+
+  it('buildListUrl encodes committed filters and pagination contract', () => {
+    const h = buildFilterHarness();
+    h.state.listFilters = {
+      importance_min: '0.8',
+      unused_days_min: '90',
+      memory_type: 'semantic',
+      reason_contains: 'anchor=',
+    };
+    h.state.listPage = 2;
+    h.state.listPageSize = 50;
+
+    const url = h.ns.buildListUrl();
+    expect(url).toContain('status=pending');
+    expect(url).toContain('importance_min=0.8');
+    expect(url).toContain('unused_days_min=90');
+    expect(url).toContain('memory_type=semantic');
+    expect(url).toContain('reason_contains=anchor%3D');
+    expect(url).toContain('page_size=50');
+    expect(url).toContain('page=2');
+  });
+
+  it('filter apply clears bulk selection and preview', () => {
+    const h = buildFilterHarness();
+    h.ns.wireReviewListFilters();
+    h.elements['rc-filter-importance'].value = '0.9';
+    const applyClick = h.elements['rc-filter-apply'].addEventListener.mock.calls.find(
+      (call) => call[0] === 'click',
+    )?.[1];
+    expect(applyClick).toBeTypeOf('function');
+    applyClick();
+
+    expect(h.resetBulkSelection).toHaveBeenCalledWith([]);
+    expect(h.clearRowSelection).toHaveBeenCalled();
+    expect(h.resetPreviewPanel).toHaveBeenCalled();
+    expect(h.loadList).toHaveBeenCalled();
+  });
+
+  it('readCommittedFilterValues ignores unapplied DOM drafts', () => {
+    const h = buildFilterHarness();
+    h.state.listFilters.importance_min = '0.5';
+    h.elements['rc-filter-importance'].value = '0.9';
+    h.state.listPage = 2;
+
+    expect(h.ns.readCommittedFilterValues()).toMatchObject({
+      importance_min: '0.5',
+      page_size: '25',
+    });
+    expect(h.ns.buildListUrl()).toContain('importance_min=0.5');
+    expect(h.ns.buildListUrl()).not.toContain('importance_min=0.9');
+    expect(h.ns.buildListUrl()).toContain('page=2');
+  });
+
+  it('buildListUrl preserves active page for background poll refresh', () => {
+    const h = buildFilterHarness();
+    h.state.listPage = 3;
+    expect(h.ns.buildListUrl()).toContain('page=3');
+    expect(h.ns.buildListUrl()).not.toContain('page=1');
+  });
+
+  it('filter form submit prevents default and applies filters', () => {
+    const h = buildFilterHarness();
+    h.ns.wireReviewListFilters();
+    const preventDefault = vi.fn();
+    const submitHandler = h.elements['rc-filter-form'].addEventListener.mock.calls.find(
+      (call) => call[0] === 'submit',
+    )?.[1];
+    expect(submitHandler).toBeTypeOf('function');
+    submitHandler({ preventDefault });
+    expect(preventDefault).toHaveBeenCalled();
+    expect(h.loadList).toHaveBeenCalled();
+  });
+
 });

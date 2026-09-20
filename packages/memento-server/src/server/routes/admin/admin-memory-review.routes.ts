@@ -7,16 +7,19 @@ import type Database from 'better-sqlite3';
 import { validate as uuidValidate } from 'uuid';
 import {
   listMemoryReviewCandidates,
+  queryMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
   bulkUpdatePendingMemoryReviewCandidates,
   type BulkMemoryReviewCandidateSelector,
+  type QueryMemoryReviewCandidatesInput,
   computeMemoryReviewQueueHealthLive,
   maybeRecordMemoryReviewQueueHealthSnapshot,
   listMemoryReviewQueueHealthSnapshots,
   parseAdminMemoryItemIdParam,
   getAdminMemoryItemPreviewById,
   MemoryReviewCandidateError,
+  MEMORY_REVIEW_MEMORY_TYPES,
   type MemoryReviewCandidateStatus,
   logger,
 } from '@memento/core';
@@ -36,10 +39,204 @@ function parseReviewCandidateStatusQuery(
   if (raw === undefined || raw === '') {
     return {};
   }
-  if (typeof raw !== 'string' || !MEMORY_REVIEW_STATUSES.includes(raw as MemoryReviewCandidateStatus)) {
+  if (
+    Array.isArray(raw) ||
+    typeof raw !== 'string' ||
+    !MEMORY_REVIEW_STATUSES.includes(raw as MemoryReviewCandidateStatus)
+  ) {
     return { error: 'Invalid status query', status: 400 };
   }
   return { status: raw as MemoryReviewCandidateStatus };
+}
+
+function parseQueryString(
+  raw: unknown,
+  field: string,
+): string | undefined | { error: string; status: number } {
+  if (raw === undefined || raw === '') {
+    return undefined;
+  }
+  if (Array.isArray(raw) || typeof raw !== 'string') {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  return raw;
+}
+
+function parseBoundedUnitInterval(raw: unknown, field: string): number | { error: string; status: number } {
+  const str = parseQueryString(raw, field);
+  if (str === undefined) {
+    return Number.NaN;
+  }
+  if (typeof str === 'object') {
+    return str;
+  }
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(str)) {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  const parsed = Number(str);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  return parsed;
+}
+
+function parseNonNegativeInt(raw: unknown, field: string): number | { error: string; status: number } {
+  const str = parseQueryString(raw, field);
+  if (str === undefined) {
+    return Number.NaN;
+  }
+  if (typeof str === 'object') {
+    return str;
+  }
+  if (!/^\d+$/.test(str)) {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  const parsed = Number.parseInt(str, 10);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 36500) {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  return parsed;
+}
+
+function parsePositiveInt(
+  raw: unknown,
+  field: string,
+  max = 100_000,
+): number | { error: string; status: number } {
+  const str = parseQueryString(raw, field);
+  if (str === undefined) {
+    return Number.NaN;
+  }
+  if (typeof str === 'object') {
+    return str;
+  }
+  if (!/^\d+$/.test(str)) {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  const parsed = Number.parseInt(str, 10);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) {
+    return { error: `Invalid ${field} query`, status: 400 };
+  }
+  return parsed;
+}
+
+function parseReviewCandidateListQuery(
+  query: Record<string, unknown>,
+): QueryMemoryReviewCandidatesInput | { error: string; status: number } {
+  const statusParsed = parseReviewCandidateStatusQuery(query['status']);
+  if ('error' in statusParsed) {
+    return statusParsed;
+  }
+
+  const input: QueryMemoryReviewCandidatesInput = {};
+  if (statusParsed.status) {
+    input.status = statusParsed.status;
+  }
+
+  const importanceMin = parseBoundedUnitInterval(query['importance_min'], 'importance_min');
+  if (typeof importanceMin === 'object') return importanceMin;
+  if (Number.isFinite(importanceMin)) input.importance_min = importanceMin;
+
+  const importanceMax = parseBoundedUnitInterval(query['importance_max'], 'importance_max');
+  if (typeof importanceMax === 'object') return importanceMax;
+  if (Number.isFinite(importanceMax)) input.importance_max = importanceMax;
+
+  if (
+    input.importance_min !== undefined &&
+    input.importance_max !== undefined &&
+    input.importance_min > input.importance_max
+  ) {
+    return { error: 'importance_min must be <= importance_max', status: 400 };
+  }
+
+  const unusedDaysMin = parseNonNegativeInt(query['unused_days_min'], 'unused_days_min');
+  if (typeof unusedDaysMin === 'object') return unusedDaysMin;
+  if (Number.isFinite(unusedDaysMin)) input.unused_days_min = unusedDaysMin;
+
+  const unusedDaysMax = parseNonNegativeInt(query['unused_days_max'], 'unused_days_max');
+  if (typeof unusedDaysMax === 'object') return unusedDaysMax;
+  if (Number.isFinite(unusedDaysMax)) input.unused_days_max = unusedDaysMax;
+
+  if (
+    input.unused_days_min !== undefined &&
+    input.unused_days_max !== undefined &&
+    input.unused_days_min > input.unused_days_max
+  ) {
+    return { error: 'unused_days_min must be <= unused_days_max', status: 400 };
+  }
+
+  const memoryType = parseQueryString(query['memory_type'], 'memory_type');
+  if (typeof memoryType === 'object') {
+    return memoryType;
+  }
+  if (memoryType !== undefined) {
+    if (!MEMORY_REVIEW_MEMORY_TYPES.includes(memoryType as never)) {
+      return { error: 'Invalid memory_type query', status: 400 };
+    }
+    input.memory_type = memoryType;
+  }
+
+  const reasonContains = parseQueryString(query['reason_contains'], 'reason_contains');
+  if (typeof reasonContains === 'object') {
+    return reasonContains;
+  }
+  if (reasonContains !== undefined) {
+    if (reasonContains.length > 200) {
+      return { error: 'Invalid reason_contains query', status: 400 };
+    }
+    input.reason_contains = reasonContains;
+  }
+
+  const hasPageSize = query['page_size'] !== undefined && query['page_size'] !== '';
+  const hasPage = query['page'] !== undefined && query['page'] !== '';
+  if (hasPage && !hasPageSize) {
+    return { error: 'page requires page_size', status: 400 };
+  }
+
+  if (hasPageSize) {
+    const pageSizeRaw = parseQueryString(query['page_size'], 'page_size');
+    if (typeof pageSizeRaw === 'object') {
+      return pageSizeRaw;
+    }
+    if (pageSizeRaw !== '25' && pageSizeRaw !== '50') {
+      return { error: 'Invalid page_size query', status: 400 };
+    }
+    input.page_size = pageSizeRaw === '50' ? 50 : 25;
+
+    const pageParsed = hasPage ? parsePositiveInt(query['page'], 'page') : 1;
+    if (typeof pageParsed === 'object') {
+      return pageParsed;
+    }
+    input.page = Number.isFinite(pageParsed) ? pageParsed : 1;
+  }
+
+  const hasFilters =
+    input.importance_min !== undefined ||
+    input.importance_max !== undefined ||
+    input.unused_days_min !== undefined ||
+    input.unused_days_max !== undefined ||
+    input.memory_type !== undefined ||
+    input.reason_contains !== undefined ||
+    input.page_size !== undefined;
+
+  if (hasFilters || input.status) {
+    return input;
+  }
+
+  return input;
+}
+
+function usesReviewCandidateListExtensions(query: Record<string, unknown>): boolean {
+  return [
+    'importance_min',
+    'importance_max',
+    'unused_days_min',
+    'unused_days_max',
+    'memory_type',
+    'reason_contains',
+    'page',
+    'page_size',
+  ].some((key) => query[key] !== undefined && query[key] !== '');
 }
 
 function parseBulkSelector(body: unknown): BulkMemoryReviewCandidateSelector | { error: string } {
@@ -115,6 +312,21 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const queryRecord = req.query as Record<string, unknown>;
+      if (usesReviewCandidateListExtensions(queryRecord)) {
+        const parsed = parseReviewCandidateListQuery(queryRecord);
+        if ('error' in parsed) {
+          return res.status(parsed.status).json({ error: parsed.error });
+        }
+        const result = queryMemoryReviewCandidates(db, parsed);
+        return res.json({
+          message: 'Memory review candidates',
+          candidates: result.candidates,
+          filters_applied: result.filters_applied,
+          pagination: result.pagination,
+          timestamp: new Date().toISOString(),
+        });
       }
       const parsed = parseReviewCandidateStatusQuery(req.query['status']);
       if ('error' in parsed) {
