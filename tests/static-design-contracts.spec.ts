@@ -6,6 +6,24 @@ function readStaticFile(relativePath: string): string {
   return readFileSync(join(process.cwd(), relativePath), 'utf-8');
 }
 
+function extractAtMediaBlock(source: string, query: string): string {
+  const needle = `@media ${query}`;
+  const start = source.indexOf(needle);
+  if (start < 0) return '';
+  let depth = 0;
+  let end = start;
+  for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+    const char = source[i];
+    if (char === '{') depth += 1;
+    if (char === '}') depth -= 1;
+    if (depth === 0) {
+      end = i;
+      break;
+    }
+  }
+  return source.slice(start, end + 1);
+}
+
 function extractNamedFunction(source: string, name: string): string {
   const needle = `function ${name}(`;
   const start = source.indexOf(needle);
@@ -490,5 +508,14 @@ describe('static design contracts', () => {
     // the render target id is unchanged, and the empty state is the shared primitive
     expect(html).toContain('<div id="memory-details">');
     expect(html).toContain('<p class="m-empty">노드를 클릭하면 상세가 표시됩니다</p>');
+  });
+
+  it('#897: 좁은 화면에서 후보 표만 가로 스크롤하고 미리보기는 눌리지 않는다', () => {
+    const cssSource = readStaticFile('static/css/dashboard.css');
+    const narrowBlock = extractAtMediaBlock(cssSource, '(max-width: 30rem)');
+
+    expect(narrowBlock).toContain('@media (max-width: 30rem)');
+    expect(narrowBlock).toMatch(/\.review-candidates-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
+    expect(narrowBlock).toMatch(/\.rc-preview-aside\s*\{[^}]*max-height:\s*none/s);
   });
 });
