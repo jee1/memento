@@ -26,6 +26,8 @@ SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값�
 
 텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank))`로 (0, 1) relevance에 올린 뒤 기존 가중합에 넣습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다.
 
+시그모이드에는 온도 `T`가 들어갑니다(`1 / (1 + exp(rank / T))`, Issue [#1079](https://github.com/jee1/memento/issues/1079)). `T`는 `config/ranking-weights.toml`의 `[fts_relevance].temperature`(기본 10)이며 `getRankingVersion()` 해시에 포함됩니다. `T = 1`이면 시그모이드의 변곡점이 `rank = 0`에 놓이는데 그 값은 "BM25 없음" 센티넬이라 실제로는 나오지 않습니다. 실측 rank 구간(-19.8 ~ -2.4)이 전부 포화 꼬리에 들어가 동적 범위가 0.083으로 뭉개지고, BM25 순위 전체가 importance 항보다 7.7배 약해져 결과 순서가 사실상 질의 독립이 됩니다. `T = 8~12`가 평탄역이라 10을 씁니다.
+
 FTS 쿼리 combinator는 `search-engine-fts-query.ts`에서 **짧은·긴 구간 모두** 내용어를 `OR`로 결합하고, 어간 길이가 `HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH`(기본 2) 이상이면 FTS5 접두(`term*`)를 붙입니다(Issue [#807](https://github.com/jee1/memento/issues/807)). 긴 구간은 계속 앞 `FTS_MAX_TOKENS_FOR_OR`(8)개만 사용합니다. `config/ranking-weights.toml`은 이 이슈에서 재튜닝하지 않습니다.
 
 ## Hybrid fusion relevance (Issue #788)

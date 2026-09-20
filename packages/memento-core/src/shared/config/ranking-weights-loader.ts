@@ -38,10 +38,16 @@ export interface VectorLengthDecayConfig {
   characteristic_length: number;
 }
 
+export interface FtsRelevanceConfig {
+  /** T in 1/(1+exp(bm25_rank/T)) (#1079). */
+  temperature: number;
+}
+
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
   relation_weights: RelationWeights;
   vector_length_decay: VectorLengthDecayConfig;
+  fts_relevance: FtsRelevanceConfig;
 }
 
 const DEFAULT_CONFIG: RankingWeightsConfig = {
@@ -61,6 +67,9 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   vector_length_decay: {
     enabled: true,
     characteristic_length: 40
+  },
+  fts_relevance: {
+    temperature: 10
   }
 };
 
@@ -110,7 +119,8 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
       'relation_weights.max_relations': { type: 'number' as const, min: 1 },
-      'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 }
+      'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
+      'fts_relevance.temperature': { type: 'number' as const, min: 0.1 }
     };
 
     // 중첩 객체를 평탄화하여 검증
@@ -126,7 +136,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'relation_weights.max_relations': config.relation_weights.max_relations,
       'vector_length_decay.characteristic_length':
         config.vector_length_decay?.characteristic_length ??
-        DEFAULT_CONFIG.vector_length_decay.characteristic_length
+        DEFAULT_CONFIG.vector_length_decay.characteristic_length,
+      'fts_relevance.temperature':
+        config.fts_relevance?.temperature ??
+        DEFAULT_CONFIG.fts_relevance.temperature
     };
 
     // mergeWithDefaults may omit nested section when TOML lacks it
@@ -140,6 +153,14 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         Number.isFinite(config.vector_length_decay.characteristic_length)
           ? config.vector_length_decay.characteristic_length
           : DEFAULT_CONFIG.vector_length_decay.characteristic_length
+    };
+
+    config.fts_relevance = {
+      temperature:
+        typeof config.fts_relevance?.temperature === 'number' &&
+        Number.isFinite(config.fts_relevance.temperature)
+          ? config.fts_relevance.temperature
+          : DEFAULT_CONFIG.fts_relevance.temperature
     };
 
     const validationResult = validateConfig(flatConfig, validationSchema);

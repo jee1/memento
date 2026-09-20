@@ -6,6 +6,7 @@ import {
   createTestMemory,
   setupTestDatabase,
 } from '../../../../test/helpers/test-database.js';
+import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import { applyRanking, ftsRankToRelevance } from './search-engine-ranking.js';
 import type { SearchEngineRow } from './search-engine.types.js';
 
@@ -33,6 +34,24 @@ describe('applyRanking FTS5 BM25 contract (#787)', () => {
     expect(mid).toBeGreaterThan(weak ?? 0);
     expect(best).toBeLessThan(1);
     expect(weak).toBeGreaterThan(0);
+  });
+
+  it('온도가 실제 bm25 rank 구간의 동적 범위를 넓혀야 함 (#1079)', () => {
+    const rankBest = -19.756;
+    const rankWeak = -2.401;
+    const relBestT1 = ftsRankToRelevance(rankBest, 1)!;
+    const relWeakT1 = ftsRankToRelevance(rankWeak, 1)!;
+    const rangeT1 = relBestT1 - relWeakT1;
+    const relBestT10 = ftsRankToRelevance(rankBest, 10)!;
+    const relWeakT10 = ftsRankToRelevance(rankWeak, 10)!;
+    const rangeT10 = relBestT10 - relWeakT10;
+    expect(rangeT10).toBeGreaterThanOrEqual(rangeT1 * 3);
+    expect(relBestT10).toBeGreaterThan(relWeakT10);
+  });
+
+  it('인자를 생략하면 설정의 fts_relevance.temperature 를 쓴다 (#1079)', () => {
+    const temperature = getRankingWeights().fts_relevance.temperature;
+    expect(ftsRankToRelevance(-10)).toBe(ftsRankToRelevance(-10, temperature));
   });
 
   it('treats fts_rank 0 as missing BM25 (empty-query sentinel)', () => {
