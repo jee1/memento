@@ -58,6 +58,12 @@ export type {
 // --- shared (설정·유틸·타입) re-export (서버 thin화용) ---
 export { mementoConfig, validateConfig, expandHomeDirPath } from './shared/config/index.js';
 export {
+  isLegacyMcpServiceEnabled,
+  isModernMcpServiceEnabled,
+  parseMcpEraMode,
+} from './shared/utils/mcp-era-mode.js';
+export type { McpEraMode } from './shared/utils/mcp-era-mode.js';
+export {
   isHttpBindHostRemotelyReachable,
   canonicalizeHttpBindHostForListen,
   formatHttpBindHostForUrl,

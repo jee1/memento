@@ -92,5 +92,9 @@ describe('mcp.routes CORS', () => {
     expect(response.ended).toBe(true);
     expect(response.headers['access-control-allow-origin']).toBe('https://trusted.app');
     expect(response.headers.vary).toBe('Origin');
+    expect(response.headers['access-control-allow-methods']).toBe('DELETE, GET, POST, OPTIONS');
+    expect(response.headers['access-control-allow-headers']).toContain('MCP-Protocol-Version');
+    expect(response.headers['access-control-allow-headers']).toContain('Mcp-Method');
+    expect(response.headers['access-control-allow-headers']).toContain('Mcp-Name');
   });
 });

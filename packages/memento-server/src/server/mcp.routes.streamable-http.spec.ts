@@ -33,7 +33,8 @@ async function listenWithMcpRouter(): Promise<{ port: number; close: () => Promi
 function postJsonRpc(
   port: number,
   path: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  extraHeaders: Record<string, string> = {}
 ): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: string }> {
   const payload = JSON.stringify(body);
 
@@ -47,7 +48,8 @@ function postJsonRpc(
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
-          Connection: 'close'
+          Connection: 'close',
+          ...extraHeaders
         }
       },
       res => {
@@ -443,6 +445,573 @@ describe('#840 Phase 0 initialize parity', () => {
         result: { capabilities: Record<string, unknown> };
       };
       expect(body.result.capabilities).not.toHaveProperty('logging');
+    } finally {
+      await close();
+    }
+  });
+});
+
+const MODERN_PROTOCOL_VERSION = '2026-07-28';
+
+function modernMeta(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    'io.modelcontextprotocol/protocolVersion': MODERN_PROTOCOL_VERSION,
+    'io.modelcontextprotocol/clientInfo': { name: 'phase-1b-test', version: '1.0.0' },
+    'io.modelcontextprotocol/clientCapabilities': {},
+    ...overrides,
+  };
+}
+
+function modernHeaders(method: string, mcpName?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'MCP-Protocol-Version': MODERN_PROTOCOL_VERSION,
+    'Mcp-Method': method,
+  };
+  if (mcpName !== undefined) {
+    headers['Mcp-Name'] = mcpName;
+  }
+  return headers;
+}
+
+function requestHttp(
+  port: number,
+  options: {
+    path: string;
+    method: 'GET' | 'DELETE' | 'POST';
+    headers?: Record<string, string>;
+    body?: Record<string, unknown>;
+  }
+): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: string }> {
+  const payload = options.body ? JSON.stringify(options.body) : undefined;
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: options.path,
+        method: options.method,
+        headers: {
+          ...(options.method === 'GET' ? { Accept: 'text/event-stream' } : {}),
+          ...(payload
+            ? {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+              }
+            : {}),
+          Connection: 'close',
+          ...options.headers,
+        },
+      },
+      res => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      }
+    );
+    req.on('error', reject);
+    if (payload) {
+      req.write(payload);
+    }
+    req.end();
+  });
+}
+
+async function listenWithMcpRouterPermissiveJson(): Promise<{ port: number; close: () => Promise<void> }> {
+  const { createMcpRouter } = await import('./routes/mcp.routes.js');
+  const app = express();
+  const transports: Record<string, unknown> = {};
+
+  app.use(express.json({ strict: false }));
+  app.use(createMcpRouter(null, null, transports as any));
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve, reject) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+    server.once('error', reject);
+  });
+
+  return {
+    port: (server.address() as AddressInfo).port,
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        server.close(error => (error ? reject(error) : resolve()));
+      }),
+  };
+}
+
+function postRawJson(
+  port: number,
+  path: string,
+  rawBody: string,
+  extraHeaders: Record<string, string> = {},
+): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(rawBody),
+          Connection: 'close',
+          ...extraHeaders,
+        },
+      },
+      res => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      },
+    );
+
+    req.on('error', reject);
+    req.write(rawBody);
+    req.end();
+  });
+}
+
+describe('#840 Phase 1b HTTP dual-era', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('legacy initialize 은 HTTP 200·세션ID·바이트 호환 응답을 유지한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {},
+      });
+      expect(res.statusCode).toBe(200);
+      expect(typeof res.headers['mcp-session-id']).toBe('string');
+      expect(JSON.parse(res.body)).toEqual({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          capabilities: {
+            tools: {},
+            resources: {},
+            prompts: {},
+          },
+          serverInfo: {
+            name: 'memento-mcp-server',
+            version: packageJson.version,
+          },
+        },
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it('legacy tools/call 에러는 HTTP 200 을 유지한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/call',
+        params: {
+          name: 'remember',
+          arguments: { content: 'legacy parity' },
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body)).toEqual({
+        jsonrpc: '2.0',
+        id: 3,
+        error: {
+          code: -32603,
+          message: 'Internal error',
+          data: '서비스가 초기화되지 않았습니다',
+        },
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern tools/list 는 resultType complete 와 serverInfo 를 반환한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 11,
+          method: 'tools/list',
+          params: { _meta: modernMeta() },
+        },
+        modernHeaders('tools/list')
+      );
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        result: {
+          resultType: string;
+          tools: Array<{ name: string }>;
+          _meta: Record<string, { name: string; version: string }>;
+        };
+      };
+      expect(body.result.resultType).toBe('complete');
+      expect(body.result.tools.some(tool => tool.name === 'remember')).toBe(true);
+      expect(body.result._meta['io.modelcontextprotocol/serverInfo'].name).toBe('memento-mcp-server');
+      expect(res.headers['mcp-session-id']).toBeUndefined();
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern _meta 누락 필드는 -32602/400 을 반환한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 12,
+          method: 'tools/list',
+          params: {
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': MODERN_PROTOCOL_VERSION,
+            },
+          },
+        },
+        modernHeaders('tools/list')
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32602);
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern 헤더 불일치는 -32020/400 을 반환한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 13,
+          method: 'tools/list',
+          params: { _meta: modernMeta() },
+        },
+        {
+          'MCP-Protocol-Version': MODERN_PROTOCOL_VERSION,
+          'Mcp-Method': 'tools/call',
+        }
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32020);
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern 미지원 버전은 -32022/400 을 반환한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 14,
+          method: 'tools/list',
+          params: {
+            _meta: modernMeta({
+              'io.modelcontextprotocol/protocolVersion': '2099-01-01',
+            }),
+          },
+        },
+        {
+          'MCP-Protocol-Version': '2099-01-01',
+          'Mcp-Method': 'tools/list',
+        }
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number; data: { supported: string[] } } };
+      expect(body.error.code).toBe(-32022);
+      expect(body.error.data.supported).toContain(MODERN_PROTOCOL_VERSION);
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern initialize 는 -32601/404 를 반환한다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 15,
+          method: 'initialize',
+          params: { _meta: modernMeta() },
+        },
+        modernHeaders('initialize')
+      );
+      expect(res.statusCode).toBe(404);
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32601);
+      expect(res.headers['mcp-session-id']).toBeUndefined();
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern tools/call missing Mcp-Name returns -32020/400', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 16,
+          method: 'tools/call',
+          params: {
+            name: 'remember',
+            arguments: {},
+            _meta: modernMeta(),
+          },
+        },
+        modernHeaders('tools/call')
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number; message: string } };
+      expect(body.error.code).toBe(-32020);
+      expect(body.error.message).toContain('missing Mcp-Name header');
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern tools/call Mcp-Name mismatch returns -32020/400', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 161,
+          method: 'tools/call',
+          params: {
+            name: 'remember',
+            arguments: {},
+            _meta: modernMeta(),
+          },
+        },
+        modernHeaders('tools/call', 'recall')
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number; message: string } };
+      expect(body.error.code).toBe(-32020);
+      expect(body.error.message).toContain('does not match body value');
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern tools/call accepts RFC2047 Base64 Mcp-Name at validation boundary', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 162,
+          method: 'tools/call',
+          params: {
+            name: '한글도구',
+            arguments: {},
+            _meta: modernMeta(),
+          },
+        },
+        modernHeaders('tools/call', '=?base64?7ZWc6riA64+E6rWs?=')
+      );
+      expect(res.statusCode).toBe(500);
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32603);
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern tools/call Zod 검증 실패는 -32602/400 을 반환한다', async () => {
+    const { z } = await import('zod');
+    const core = await import('@memento/core');
+    vi.spyOn(core, 'executeTool').mockRejectedValue(
+      new z.ZodError([
+        {
+          code: 'custom',
+          path: ['content'],
+          message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content가 필수입니다",
+        },
+      ])
+    );
+    const { port, close } = await listenWithMcpRouterAndMocks();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 17,
+          method: 'tools/call',
+          params: {
+            name: 'remember',
+            arguments: {},
+            _meta: modernMeta(),
+          },
+        },
+        modernHeaders('tools/call', 'remember')
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32602);
+    } finally {
+      await close();
+    }
+  });
+
+  it('GET/DELETE with MCP-Protocol-Version return 405 with Allow: POST', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const getRes = await requestHttp(port, {
+        path: '/mcp',
+        method: 'GET',
+        headers: { 'MCP-Protocol-Version': MODERN_PROTOCOL_VERSION },
+      });
+      const deleteRes = await requestHttp(port, {
+        path: '/mcp',
+        method: 'DELETE',
+        headers: { 'MCP-Protocol-Version': MODERN_PROTOCOL_VERSION },
+      });
+      expect(getRes.statusCode).toBe(405);
+      expect(getRes.headers.allow).toBe('POST');
+      expect(deleteRes.statusCode).toBe(405);
+      expect(deleteRes.headers.allow).toBe('POST');
+    } finally {
+      await close();
+    }
+  });
+
+  it('legacy null JSON body returns -32600/200 without HTML 500', async () => {
+    const { port, close } = await listenWithMcpRouterPermissiveJson();
+    try {
+      const res = await postRawJson(port, '/mcp', 'null');
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('application/json');
+      const body = JSON.parse(res.body) as { error: { code: number; message: string } };
+      expect(body.error.code).toBe(-32600);
+      expect(body.error.message).toBe('Invalid Request');
+    } finally {
+      await close();
+    }
+  });
+
+  it('modern null JSON body with MCP-Protocol-Version returns -32602/400', async () => {
+    const { port, close } = await listenWithMcpRouterPermissiveJson();
+    try {
+      const res = await postRawJson(port, '/mcp', 'null', {
+        'MCP-Protocol-Version': MODERN_PROTOCOL_VERSION,
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.headers['content-type']).toContain('application/json');
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32602);
+    } finally {
+      await close();
+    }
+  });
+
+  it('legacy scalar JSON body returns -32600/200', async () => {
+    const { port, close } = await listenWithMcpRouterPermissiveJson();
+    try {
+      const res = await postRawJson(port, '/mcp', '42');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { error: { code: number } };
+      expect(body.error.code).toBe(-32600);
+    } finally {
+      await close();
+    }
+  });
+
+  it('legacy GET without MCP-Protocol-Version still opens SSE', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await openSse(port, '/mcp');
+      expect(res.statusCode).toBe(200);
+      expect(res.firstChunk).toContain('event: endpoint');
+    } finally {
+      await close();
+    }
+  });
+
+  it('MEMENTO_MCP_ERA=legacy gate rejects modern claims with -32022/400', async () => {
+    vi.stubEnv('MEMENTO_MCP_ERA', 'legacy');
+    vi.resetModules();
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 18,
+          method: 'tools/list',
+          params: { _meta: modernMeta() },
+        },
+        modernHeaders('tools/list')
+      );
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: { code: number; data: { supported: string[] } } };
+      expect(body.error.code).toBe(-32022);
+      expect(body.error.data.supported).not.toContain(MODERN_PROTOCOL_VERSION);
+    } finally {
+      await close();
+    }
+  });
+
+  it('server/discover advertises 2026-07-28 when modern service is enabled', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 19,
+        method: 'server/discover',
+        params: {},
+      });
+      const body = JSON.parse(res.body) as { result: { supportedVersions: string[] } };
+      expect(body.result.supportedVersions).toContain(MODERN_PROTOCOL_VERSION);
     } finally {
       await close();
     }

@@ -27,7 +27,10 @@ describe('cors-policy', () => {
   it('buildMcpManualCorsHeaders omits ACAO when not allowed', () => {
     const h = buildMcpManualCorsHeaders('https://evil.com', ['https://trusted.test']);
     expect(h['Access-Control-Allow-Origin']).toBeUndefined();
-    expect(h['Access-Control-Allow-Methods']).toBe('GET, POST, OPTIONS');
+    expect(h['Access-Control-Allow-Methods']).toBe('DELETE, GET, POST, OPTIONS');
+    expect(h['Access-Control-Allow-Headers']).toContain('MCP-Protocol-Version');
+    expect(h['Access-Control-Allow-Headers']).toContain('Mcp-Method');
+    expect(h['Access-Control-Allow-Headers']).toContain('Mcp-Name');
     expect(h.Vary).toBe('Origin');
   });
 
