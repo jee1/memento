@@ -2336,3 +2336,20 @@ circle.em-dot:focus-visible {
   font-weight: 600;
   padding: 8px 0;
 }
+
+/* #897: 숫자만 있으면 운영자가 좋은지 나쁜지 모른다. 판정과 다음 행동을 같이 낸다. */
+.rc-queue-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 10px 12px;
+  margin-block-end: 12px;
+  border-radius: 6px;
+  border-inline-start: 4px solid currentColor;
+}
+.rc-queue-verdict--healthy { color: #1a7f4b; }
+.rc-queue-verdict--growing { color: #9a6700; }
+.rc-queue-verdict--stalled { color: #b42318; }
+.rc-queue-verdict--unknown { color: #57606a; }
+.rc-queue-verdict__action { color: inherit; opacity: 0.85; }
