@@ -6,14 +6,17 @@
 
 import os from 'os';
 import path from 'path';
+import packageJson from '../../../package.json' with { type: 'json' };
 
 /** PERF_ALERT_REARM_MS 단일 소스 (#697). ENV_DEFAULTS·resolveValidatedNumber fallback이 여기만 참조. */
 export const PERF_ALERT_REARM_MS_DEFAULT = 1_800_000;
 
 const ENV_DEFAULTS: Record<string, string> = {
   NODE_ENV: 'development',
-  MCP_SERVER_NAME: 'memento-memory',
-  MCP_SERVER_VERSION: '0.1.0',
+  // 서버 이름·버전은 패키지 매니페스트가 단일 출처다. 하드코딩하면 배포본이 실제 발행
+  // 버전과 어긋난 값을 클라이언트에 보고한다 (#1077).
+  MCP_SERVER_NAME: 'memento-mcp-server',
+  MCP_SERVER_VERSION: packageJson.version,
   MCP_SERVER_PORT: '3000',
   DB_PATH: `${os.homedir()}/.memento/memory.db`,
   LOG_LEVEL: 'info',

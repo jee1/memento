@@ -13,6 +13,7 @@ import {
   type TestDatabaseContext
 } from './test/helpers/test-database.js';
 import type { ServerServices } from '@memento/core';
+import packageJson from '../../package.json' with { type: 'json' };
 import { __test, cleanup } from './http-server.js';
 
 describe('HTTP Server', () => {
@@ -167,6 +168,24 @@ describe('HTTP Server', () => {
 
         expect(response.status).toBe(200);
         expect(body.status).toBe('healthy');
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => error ? reject(error) : resolve());
+        });
+      }
+    });
+
+    it('/health의 server·version이 패키지 매니페스트와 일치해야 함', async () => {
+      const server = createServer(__test.getApp());
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const port = (server.address() as AddressInfo).port;
+        const response = await fetch(`http://127.0.0.1:${port}/health`);
+        const body = await response.json() as { server?: string; version?: string };
+
+        expect(response.status).toBe(200);
+        expect(body.server).toBe('memento-mcp-server');
+        expect(body.version).toBe(packageJson.version);
       } finally {
         await new Promise<void>((resolve, reject) => {
           server.close((error) => error ? reject(error) : resolve());

@@ -190,21 +190,27 @@ jobs:
           echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
           echo "Preflight OK: tag_name=${TAG_NAME}"
 
-      - name: Update package.json version
+      # 예전에는 이 스텝이 `npm version` 으로 루트 package.json 을 태그 버전으로 덮어썼다.
+      # 그 변경은 저장소로 되돌아오지 않아 저장소가 영원히 낡은 값에 머물렀고, 그 값을 읽는
+      # 배포본이 클라이언트에게 틀린 버전을 보고했다 (#1077).
+      # 이제 저장소가 단일 출처다. 태그와 어긋나면 조용히 발행하는 대신 여기서 죽는다.
+      - name: Verify package.json version matches the tag
         run: |
-          VERSION=${{ steps.version.outputs.version }}
-          if [ -n "$VERSION" ]; then
-            # 현재 package.json의 버전 확인
-            CURRENT_VERSION=$(node -p "require('./package.json').version")
-            if [ "$CURRENT_VERSION" = "$VERSION" ]; then
-              echo "✅ package.json version is already $VERSION, skipping update"
-            else
-              npm version $VERSION --no-git-tag-version
-              echo "Updated package.json from $CURRENT_VERSION to $VERSION"
-            fi
-          else
-            echo "⚠️ Version not found, skipping package.json update"
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          if [ -z "$VERSION" ]; then
+            echo "E_VERSION_RESOLUTION: could not resolve a version from the tag"
+            exit 1
           fi
+          for MANIFEST in package.json packages/memento-core/package.json packages/memento-server/package.json; do
+            CURRENT="$(node -p "require('./$MANIFEST').version")"
+            if [ "$CURRENT" != "$VERSION" ]; then
+              echo "E_VERSION_MISMATCH: $MANIFEST is $CURRENT but the tag says $VERSION"
+              echo "Bump the three manifests to $VERSION in a PR, merge it, then re-run this release."
+              exit 1
+            fi
+          done
+          echo "version_verified=$VERSION (3 manifests)"
 
       - name: Build package
         run: npm run build

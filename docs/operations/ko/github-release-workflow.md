@@ -144,3 +144,22 @@ git push origin v1.7.3
 - 태그만 푸시해도 워크플로우 실행 가능 (workflow_dispatch)
 - Release 중복 생성 오류 방지
 
+## 버전은 저장소가 단일 출처다 (#1077)
+
+릴리스를 만들기 **전에** 세 매니페스트의 `version` 을 올려 PR 로 머지해야 합니다.
+
+- `package.json`
+- `packages/memento-core/package.json`
+- `packages/memento-server/package.json`
+
+셋이 서로 다르거나 태그와 다르면 릴리스 워크플로가 `E_VERSION_MISMATCH` 로 실패합니다.
+
+예전에는 워크플로가 발행 시점에 루트 `package.json` 을 태그 버전으로 덮어썼습니다. 그
+변경은 저장소로 되돌아오지 않았기 때문에, tarball 은 올바른 버전으로 나가도 저장소는 낡은
+값에 머물렀고 그 값을 읽는 Docker 배포본이 MCP 클라이언트에게 틀린 버전을 보고했습니다.
+
+세 매니페스트를 함께 올려야 하는 이유는 서버가 버전을 읽는 상대경로가 실행 레이아웃에 따라
+다른 파일로 풀리기 때문입니다. npm 발행본에서는 루트 매니페스트로, Docker 배포본에서는
+워크스페이스 매니페스트로 풀립니다. `npm run check:version-sync` 가 이 일치를 검사하며 CI 에서도
+실행됩니다.
+
