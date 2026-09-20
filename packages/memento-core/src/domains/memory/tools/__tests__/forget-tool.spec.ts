@@ -512,5 +512,157 @@ describe('ForgetTool', () => {
       ).rejects.toThrow();
     });
   });
+
+  describe('owner scope (#1094)', () => {
+    function setMemoryOwner(memoryId: string, ownerId: string | null): void {
+      DatabaseUtils.run(
+        db,
+        'UPDATE memory_item SET owner_id = ? WHERE id = ?',
+        [ownerId, memoryId],
+      );
+    }
+
+    it('allows scoped forget when memory owner matches ToolContext.agentId', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'scoped delete target',
+        type: 'semantic',
+      });
+      setMemoryOwner(memoryId, 'owner-a');
+
+      const result = await tool.handle(
+        { id: memoryId, hard: false },
+        { ...context, agentId: 'owner-a' },
+      );
+
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.deleted_type).toBe('soft');
+      expect(resultData.memory_id).toBe(memoryId);
+
+      const memory = DatabaseUtils.get(db, 'SELECT pinned FROM memory_item WHERE id = ?', [memoryId]);
+      expect(memory?.pinned).toBe(0);
+    });
+
+    it('uses ToolContext.agentId over matching client owner_id param', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'agent-owned memory',
+        type: 'semantic',
+      });
+      setMemoryOwner(memoryId, 'owner-a');
+
+      const result = await tool.handle(
+        { id: memoryId, hard: false, owner_id: 'owner-a' },
+        { ...context, agentId: 'owner-a' },
+      );
+
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.memory_id).toBe(memoryId);
+    });
+
+    it('uses ToolContext.agentId over mismatching client owner_id param (spoof blocked)', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'victim memory',
+        type: 'semantic',
+      });
+      setMemoryOwner(memoryId, 'owner-b');
+
+      await expect(
+        tool.handle(
+          { id: memoryId, hard: false, owner_id: 'owner-b' },
+          { ...context, agentId: 'owner-a' },
+        ),
+      ).rejects.toThrow(/not found/);
+
+      const memory = DatabaseUtils.get(db, 'SELECT content FROM memory_item WHERE id = ?', [memoryId]);
+      expect(memory?.content).toBe('victim memory');
+    });
+
+    it('rejects cross-owner soft forget without mutating the memory', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'other owner secret',
+        type: 'semantic',
+      });
+      setMemoryOwner(memoryId, 'owner-b');
+
+      await expect(
+        tool.handle(
+          { id: memoryId, hard: false },
+          { ...context, agentId: 'owner-a' },
+        ),
+      ).rejects.toThrow(/not found/);
+
+      const memory = DatabaseUtils.get(db, 'SELECT content FROM memory_item WHERE id = ?', [memoryId]);
+      expect(memory?.content).toBe('other owner secret');
+    });
+
+    it('rejects cross-owner hard forget without mutating the memory', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'other owner hard-delete target',
+        type: 'semantic',
+      });
+      setMemoryOwner(memoryId, 'owner-b');
+
+      await expect(
+        tool.handle(
+          { id: memoryId, hard: true, confirm: true },
+          { ...context, agentId: 'owner-a' },
+        ),
+      ).rejects.toThrow(/not found/);
+
+      const memory = DatabaseUtils.get(db, 'SELECT content FROM memory_item WHERE id = ?', [memoryId]);
+      expect(memory?.content).toBe('other owner hard-delete target');
+    });
+
+    it('batch forget skips cross-owner ids without mutating them', async () => {
+      const ownedId = createTestMemory(db, { content: 'owned', type: 'semantic' });
+      const foreignId = createTestMemory(db, { content: 'foreign', type: 'semantic' });
+      setMemoryOwner(ownedId, 'owner-a');
+      setMemoryOwner(foreignId, 'owner-b');
+
+      const result = await tool.handle(
+        { batch: [ownedId, foreignId], hard: false },
+        { ...context, agentId: 'owner-a' },
+      );
+
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.batch_result.successful).toEqual([ownedId]);
+      expect(resultData.batch_result.failed).toHaveLength(1);
+      expect(resultData.batch_result.failed[0].id).toBe(foreignId);
+
+      const owned = DatabaseUtils.get(db, 'SELECT pinned FROM memory_item WHERE id = ?', [ownedId]);
+      expect(owned?.pinned).toBe(0);
+
+      const foreign = DatabaseUtils.get(db, 'SELECT content FROM memory_item WHERE id = ?', [foreignId]);
+      expect(foreign?.content).toBe('foreign');
+    });
+
+    it('ignores client project_id for authorization (no trusted project field)', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'cross-project same owner',
+        type: 'semantic',
+        project_id: 'proj-b',
+      });
+      setMemoryOwner(memoryId, 'owner-a');
+
+      const result = await tool.handle(
+        { id: memoryId, hard: false, project_id: 'proj-a' },
+        { ...context, agentId: 'owner-a' },
+      );
+
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.memory_id).toBe(memoryId);
+    });
+
+    it('keeps legacy unscoped forget when ToolContext.agentId is absent', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'legacy cross-owner target',
+        type: 'semantic',
+      });
+      setMemoryOwner(memoryId, 'owner-b');
+
+      const result = await tool.handle({ id: memoryId, hard: false }, context);
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.memory_id).toBe(memoryId);
+    });
+  });
 });
 
