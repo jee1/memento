@@ -2326,3 +2326,13 @@ circle.em-dot:focus-visible {
     border-top: 1px solid var(--color-border-light);
   }
 }
+
+/* #897: 진단 지표는 기본 접힘. 첫 화면은 후보 목록과 미리보기가 차지한다. */
+.rc-diagnostics {
+  margin-block: 12px;
+}
+.rc-diagnostics__summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 8px 0;
+}
