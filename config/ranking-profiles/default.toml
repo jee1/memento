@@ -11,3 +11,13 @@ zeta_fb = 0.05
 
 [relation_weights]
 max_relations = 5
+
+[vector_length_decay]
+enabled = true
+characteristic_length = 40
+
+[fts_relevance]
+temperature = 10
+
+[importance_signal]
+scale = 0.35

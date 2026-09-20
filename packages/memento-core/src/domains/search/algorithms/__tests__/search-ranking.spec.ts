@@ -372,8 +372,8 @@ describe('SearchRanking', () => {
   describe('calculateImportance', () => {
     it('높은 중요도와 고정된 메모리', () => {
       const importance = ranking.calculateImportance(0.9, true, 'semantic');
-      
-      expect(importance).toBeGreaterThan(0.9);
+      // raw=1.0, default importance_signal.scale=0.35 → 0.675
+      expect(importance).toBeCloseTo(0.675, 8);
       expect(importance).toBeLessThanOrEqual(1.0);
     });
 

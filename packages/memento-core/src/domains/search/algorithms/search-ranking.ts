@@ -35,7 +35,9 @@ import {
   calculateRelevance as computeRelevance,
   calculateRelevanceSimple as computeRelevanceSimple,
 } from './search-ranking/search-ranking-relevance.js';
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import {
+  applyImportanceSignalScale,
   calculateBatchUsage as computeBatchUsage,
   calculateDuplicationPenalty as computeDuplicationPenalty,
   calculateImportance as computeImportance,
@@ -43,14 +45,17 @@ import {
   calculateRelationWeight as computeRelationWeight,
   calculateUsage as computeUsage,
   calculateUsageSimple as computeUsageSimple,
+  resolveUserImportanceForRanking,
 } from './search-ranking/search-ranking-signals.js';
 import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
 
 export class SearchRanking {
   private readonly weights: SearchRankingWeights;
+  private readonly rankingWeightsPath?: string;
 
-  constructor(weights?: Partial<SearchRankingWeights>) {
+  constructor(weights?: Partial<SearchRankingWeights>, rankingWeightsPath?: string) {
     this.weights = resolveSearchRankingWeights(weights);
+    this.rankingWeightsPath = rankingWeightsPath;
   }
 
   calculateProceduralMemoryBoost(features: SearchFeatures): number {
@@ -88,8 +93,11 @@ export class SearchRanking {
     return computeRecency(createdAt, type);
   }
 
-  calculateImportance(userImportance: number, isPinned: boolean, type: string): number {
-    return computeImportance(userImportance, isPinned, type);
+  calculateImportance(userImportance: unknown, isPinned: boolean, type: string): number {
+    const resolved = resolveUserImportanceForRanking(userImportance);
+    const raw = computeImportance(resolved, isPinned, type);
+    const scale = getRankingWeights(this.rankingWeightsPath).importance_signal.scale;
+    return applyImportanceSignalScale(raw, scale);
   }
 
   calculateUsage(metrics: UsageMetrics, batchMin?: number, batchMax?: number): number {

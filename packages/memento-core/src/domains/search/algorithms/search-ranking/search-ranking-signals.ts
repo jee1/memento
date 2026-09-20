@@ -17,6 +17,17 @@ export function calculateRecency(createdAt: Date, type: string): number {
 }
 
 /**
+ * Ranking input boundary: absent, null, and non-finite values share one default (#1082).
+ * Explicit `0` is preserved.
+ */
+export function resolveUserImportanceForRanking(value: unknown, fallback = 0.5): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  return fallback;
+}
+
+/**
  * 사용자가 명시적으로 설정한 중요도와 고정 여부를 반영하여 우선순위를 결정합니다.
  * 메모리 타입에 따른 기본 중요도를 적용하여 일관된 점수 체계를 유지합니다.
  */
@@ -25,6 +36,16 @@ export function calculateImportance(userImportance: number, isPinned: boolean, t
   const typeBoost = getTypeBoost(type);
 
   return Math.max(0, Math.min(1, userImportance + pinnedBoost + typeBoost));
+}
+
+/**
+ * Compresses the importance signal toward 0.5 so γ·importance does not dominate relevance (#1082).
+ * `scale=1` preserves raw; `scale=0` flattens to neutral 0.5 (diagnostic upper bound only).
+ */
+export function applyImportanceSignalScale(rawImportance: number, scale: number): number {
+  const clamped = Math.max(0, Math.min(1, rawImportance));
+  const s = Math.max(0, Math.min(1, scale));
+  return Math.max(0, Math.min(1, 0.5 + (clamped - 0.5) * s));
 }
 
 /**
