@@ -320,23 +320,24 @@
       <div class="review-candidates-layout">
         <header class="review-candidates-header">
           <div class="review-candidates-header-text">
-            <h2 class="review-candidates-title">기억 검토 후보</h2>
+            <h2 class="review-candidates-title">기억 보존 결정 대기열</h2>
             <p class="rc-intro">
-              중요도가 높지만 오랫동안 recall되지 않은 메모리를 사람이 검토하기 위한 운영 대기열입니다.
-              <code class="rc-health-code">memory_review_candidates</code> 배치가 후보를 채우고, 여기서
-              <strong>검토</strong>·<strong>무시</strong>로 처리합니다.
+              중요도가 높은데 오랫동안 recall 되지 않아 자동 망각으로 향하는 기억들입니다. 각 기억을
+              <strong>보존</strong>할지 <strong>무시</strong>할지 결정하는 자리입니다. 결정하지 않으면 기억은 그대로 망각 경로에 남습니다.
+              <code class="rc-health-code">memory_review_candidates</code> 배치가 후보를 채웁니다.
             </p>
             <p class="rc-howto">
-              <span class="rc-howto-label">사용 방법:</span>
-              목록에서 행을 선택해 미리보기에서 본문을 확인한 뒤,
-              <strong>검토</strong>는 검토 완료(메모리 <code class="rc-health-code">last_accessed</code> 갱신),
-              <strong>무시</strong>는 더 이상 검토할 필요 없음으로 표시합니다.
-              여러 행은 체크박스로 선택해 일괄 무시·만료 할 수 있습니다.
-              <strong>대기열 상태</strong>는 pending 적체와 최근 1시간 유입·처리량을 보여 줍니다.
+              <span class="rc-howto-label">결정하는 법:</span>
+              목록에서 행을 선택해 미리보기로 내용을 확인한 뒤 결정합니다.
+              <strong>보존</strong>은 이 기억의 마지막 접근 시각을 지금으로 갱신해 자동 망각에서 멀어지게 합니다.
+              <strong>무시</strong>는 후보만 대기열에서 내리고 기억은 그대로 둡니다 — 망각 경로도 그대로입니다.
+              여러 건은 체크박스로 골라 일괄 무시·만료 할 수 있습니다.
             </p>
           </div>
           <button type="button" id="rc-refresh-btn" class="m-button m-button--secondary">새로고침</button>
         </header>
+        <details id="rc-diagnostics" class="rc-diagnostics">
+          <summary class="rc-diagnostics__summary">대기열 진단 (지표·최근 샘플·수동 배치 실행)</summary>
         <section id="rc-health-panel" class="rc-health-panel" aria-label="대기열 상태 지표">
           <h3 class="rc-health-title">대기열 상태 (#294)</h3>
           <p id="rc-health-hint" class="rc-health-hint">
@@ -392,6 +393,7 @@
             </div>
           </div>
         </section>
+        </details>
         <p id="rc-status-line" class="review-candidates-status" aria-live="polite"></p>
         <div
           id="rc-notify-prompt"

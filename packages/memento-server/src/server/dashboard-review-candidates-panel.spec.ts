@@ -470,6 +470,244 @@ describe('dashboard review queue poll behavior', () => {
 });
 
 /**
+ * #897 PR2: 검토 대기열 정보 구조·미리보기 스크롤·Refresh 선택 유지.
+ */
+describe('#897 review queue structure and refresh selection', () => {
+  function classList() {
+    const names = new Set<string>();
+    return {
+      add: (name: string) => names.add(name),
+      remove: (name: string) => names.delete(name),
+      contains: (name: string) => names.has(name),
+      toggle: (name: string, on: boolean) => (on ? names.add(name) : names.delete(name)),
+    };
+  }
+
+  function makeCheckbox(candidateId: string) {
+    return {
+      checked: false,
+      getAttribute: (name: string) => (name === 'data-candidate-select' ? candidateId : null),
+    };
+  }
+
+  function makeTr() {
+    const el: any = {
+      dataset: {} as Record<string, string>,
+      className: '',
+      classList: classList(),
+      setAttribute: vi.fn(),
+      _checkbox: null as ReturnType<typeof makeCheckbox> | null,
+    };
+    Object.defineProperty(el, 'innerHTML', {
+      set(html: string) {
+        const match = html.match(/data-candidate-select="([^"]+)"/);
+        if (match) {
+          el._checkbox = makeCheckbox(match[1]!);
+        }
+      },
+      get: () => '',
+    });
+    el.querySelectorAll = (sel: string) => {
+      if (sel === '[data-candidate-select]' && el._checkbox) {
+        return [el._checkbox];
+      }
+      return [];
+    };
+    return el;
+  }
+
+  function buildListPreviewHarness() {
+    const rows: any[] = [];
+    const tbody = {
+      dataset: {} as Record<string, string>,
+      textContent: '',
+      appendChild(tr: any) {
+        rows.push(tr);
+      },
+      querySelectorAll(sel: string) {
+        if (sel === '[data-candidate-select]') {
+          return rows.map((r) => r._checkbox).filter(Boolean);
+        }
+        if (sel === 'tr[data-candidate-id]') {
+          return rows;
+        }
+        return [];
+      },
+      addEventListener: vi.fn(),
+    };
+
+    const element = () => ({
+      textContent: '',
+      classList: classList(),
+      scrollTop: 0,
+      disabled: false,
+    });
+
+    const elements: Record<string, any> = {};
+    for (const id of [
+      'rc-table-wrap',
+      'rc-loading',
+      'rc-empty',
+      'rc-status-line',
+      'rc-preview-placeholder',
+      'rc-preview-detail',
+      'rc-preview-memory-status',
+      'rc-preview-content',
+      'rc-preview-aside',
+      'rc-preview-priority',
+      'rc-preview-reason',
+      'rc-preview-due',
+      'rc-preview-mid',
+      'rc-btn-review',
+      'rc-btn-dismiss',
+    ]) {
+      elements[id] = element();
+    }
+    elements['rc-table'] = { querySelector: () => tbody };
+
+    const state = {
+      selectedRow: null as any,
+      previewMemoryId: '',
+      previewGeneration: 0,
+      actionInFlight: false,
+      selectedCandidateIds: new Set<string>(),
+      currentCandidateIds: [] as string[],
+      lastPendingCount: -1,
+      lastListFingerprint: '',
+      pollFailureStreak: 0,
+    };
+
+    const adminFetchSpy = vi.fn();
+
+    const sandbox: Record<string, any> = {
+      console,
+      document: {
+        createElement: (tag: string) => (tag === 'tr' ? makeTr() : {}),
+        getElementById: (id: string) => elements[id] ?? null,
+      },
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
+        state,
+        $: (id: string) => elements[id] ?? null,
+        setHidden: (el: any, hidden: boolean) => el?.classList?.toggle('hidden', hidden),
+        escapeHtml: (s: string) => s,
+        escapeAttr: (s: string) => s,
+        truncateReason: (s: string) => s,
+        formatDue: (v: string) => v,
+        LIST_URL: '/admin/memory/review-candidates?status=pending',
+        adminFetch: () => adminFetchSpy,
+        showError: vi.fn(),
+        clearStatus: vi.fn(),
+        buildReviewListFingerprint: (list: Array<Record<string, unknown>>) =>
+          list.map((c) => String(c.id)).join(','),
+        previewUrl: (memoryId: string) => '/memory/' + memoryId,
+        maybeStartReviewCandidatesEventSource: vi.fn(),
+        loadHealthMetrics: vi.fn(),
+        loadBatchRunHistory: vi.fn(),
+        syncBulkControls: vi.fn(),
+        wireBulkTableSelection: vi.fn(),
+        resetBulkSelection: vi.fn(),
+      },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+
+    const context = vm.createContext(sandbox);
+    vm.runInContext(previewJs, context, {
+      filename: 'review-candidates-panel-render-preview.js',
+    });
+    vm.runInContext(listJs, context, {
+      filename: 'review-candidates-panel-render-list.js',
+    });
+
+    return {
+      state,
+      elements,
+      rows,
+      adminFetchSpy,
+      ns: sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__,
+    };
+  }
+
+  const candidates = [
+    {
+      id: 'cand-a',
+      memory_id: 'mem-a',
+      priority: 1,
+      status: 'pending',
+      reason: 'reason-a',
+      due_at: '2026-01-01',
+    },
+    {
+      id: 'cand-b',
+      memory_id: 'mem-b',
+      priority: 2,
+      status: 'pending',
+      reason: 'reason-b',
+      due_at: '2026-01-02',
+    },
+  ];
+
+  it('#897: Refresh 후에도 목록에 남아 있는 선택이 유지된다', async () => {
+    const h = buildListPreviewHarness();
+
+    h.ns.renderTable(candidates);
+    const firstRow = h.rows.find((r) => r.dataset.candidateId === 'cand-a');
+    h.ns.onRowActivate(firstRow);
+
+    expect(h.state.selectedRow?.dataset.candidateId).toBe('cand-a');
+
+    h.ns.renderTable(candidates);
+
+    expect(h.state.selectedRow?.dataset.candidateId).toBe('cand-a');
+    expect(h.state.previewMemoryId).toBe('mem-a');
+
+    h.adminFetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({ candidates, timestamp: '2026-01-01T00:00:00Z' }),
+    });
+
+    await h.ns.loadList();
+
+    expect(h.state.selectedRow?.dataset.candidateId).toBe('cand-a');
+    expect(h.state.previewMemoryId).toBe('mem-a');
+  });
+
+  it('#897: 새 후보를 열면 미리보기 스크롤이 맨 위로 돌아간다', () => {
+    const h = buildListPreviewHarness();
+    h.elements['rc-preview-content'].scrollTop = 200;
+    h.elements['rc-preview-aside'].scrollTop = 150;
+
+    const row = (candidateId: string, memoryId: string) => ({
+      dataset: { candidateId, memoryId, priority: '1', reason: '', due: '' },
+      classList: classList(),
+      setAttribute: vi.fn(),
+    });
+
+    const a = row('a', 'memory-a');
+    const b = row('b', 'memory-b');
+
+    h.ns.onRowActivate(a);
+    h.elements['rc-preview-content'].scrollTop = 200;
+    h.elements['rc-preview-aside'].scrollTop = 150;
+
+    h.ns.onRowActivate(b);
+
+    expect(h.elements['rc-preview-content'].scrollTop).toBe(0);
+    expect(h.elements['rc-preview-aside'].scrollTop).toBe(0);
+  });
+
+  it('#897: 진단 패널이 기본 접힘이고 후보 목록보다 먼저 닫힌다', () => {
+    const diagnosticsIdx = dashboardHtml.indexOf('<details id="rc-diagnostics"');
+    const tableWrapIdx = dashboardHtml.indexOf('id="rc-table-wrap"');
+    expect(diagnosticsIdx).toBeGreaterThan(-1);
+    expect(tableWrapIdx).toBeGreaterThan(-1);
+    expect(diagnosticsIdx).toBeLessThan(tableWrapIdx);
+    const openTag = dashboardHtml.match(/<details id="rc-diagnostics"[^>]*>/)?.[0] ?? '';
+    expect(openTag).not.toMatch(/\bopen\b/);
+  });
+});
+
+/**
  * #897: 일괄 작업의 대상 범위와 효과를 화면이 정직하게 말하는지.
  * 소스 문자열 매칭이 아니라 실제로 스크립트를 돌려 DOM 결과를 본다.
  */

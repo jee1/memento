@@ -165,6 +165,15 @@
     if (det) {
       setHidden(det, false);
     }
+    // 새 후보를 열 때 이전 후보의 스크롤 위치가 남아 있으면 안 된다 (#897).
+    const previewContent = $('rc-preview-content');
+    if (previewContent) {
+      previewContent.scrollTop = 0;
+    }
+    const previewAside = $('rc-preview-aside');
+    if (previewAside) {
+      previewAside.scrollTop = 0;
+    }
     setPreviewCandidateFields(tr.dataset.priority, tr.dataset.reason, tr.dataset.due, tr.dataset.memoryId);
     loadMemoryPreview(tr.dataset.memoryId);
     syncReviewDismissButtons();
@@ -175,5 +184,6 @@
   ns.syncReviewDismissButtons = syncReviewDismissButtons;
   ns.clearRowSelection = clearRowSelection;
   ns.resetPreviewPanel = resetPreviewPanel;
+  ns.setPreviewCandidateFields = setPreviewCandidateFields;
   ns.onRowActivate = onRowActivate;
 })(typeof window !== 'undefined' ? window : globalThis);

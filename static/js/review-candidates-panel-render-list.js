@@ -190,6 +190,8 @@
       if (ns.resetBulkSelection) {
         ns.resetBulkSelection([]);
       }
+      ns.clearRowSelection();
+      ns.resetPreviewPanel();
       showEmpty(true);
       hideTable();
       return;
@@ -203,8 +205,6 @@
     hideTable();
     showEmpty(false);
     ns.clearStatus();
-    ns.clearRowSelection();
-    ns.resetPreviewPanel();
 
     try {
       const { res, body } = await fetchReviewCandidateListJson();
