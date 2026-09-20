@@ -76,10 +76,15 @@ try {
   }
 
   // 4. Config (from repo root if exists)
-  if (existsSync(sourceConfigDir)) {
-    copyDir(sourceConfigDir, distConfigDir);
-    console.log('✅ Copied config/ to dist/config/');
+  if (!existsSync(sourceConfigDir)) {
+    // 조용히 건너뛰면 이전 빌드의 낡은 dist/config 가 그대로 배포된다.
+    throw new Error(
+      `[copy-assets] config source not found: ${sourceConfigDir}. ` +
+        'Docker builds must COPY the repository root config/ into the builder stage.'
+    );
   }
+  copyDir(sourceConfigDir, distConfigDir);
+  console.log('✅ Copied config/ to dist/config/');
 
 } catch (err) {
   console.error('❌ Error copying assets:', err.message);

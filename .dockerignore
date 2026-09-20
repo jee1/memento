@@ -10,6 +10,8 @@ coverage
 .idea
 *.log
 dist
+# 호스트 빌드 산출물이 이미지에 섞이면 안 된다. builder 가 안에서 다시 빌드한다.
+**/dist
 src/**/*.test.ts
 src/**/*.spec.ts
 test-*.ts
