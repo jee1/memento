@@ -1,4 +1,4 @@
-import { ToolInputValidationError } from '@memento/core';
+import { MemoryVersionConflictError, ToolInputValidationError } from '@memento/core';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { mapToolExecutionErrorToJsonRpc } from './mcp-tool-call-error.js';
@@ -10,6 +10,23 @@ const TYPE_LESS_REMEMBER_MSG =
   "❌ remember: 'type' 파라미터는 필수입니다. 지원되는 타입: working | episodic | semantic | procedural | core | vault";
 
 describe('mapToolExecutionErrorToJsonRpc', () => {
+  it('maps MemoryVersionConflictError to -32009 with stable conflict payload (#1093)', () => {
+    const mapped = mapToolExecutionErrorToJsonRpc(
+      MemoryVersionConflictError.forMemory('mem-cas-2', 1, 2),
+    );
+
+    expect(mapped).toEqual({
+      code: -32009,
+      message: 'memory version conflict for mem-cas-2: expected 1, actual 2',
+      data: {
+        code: 'memory_version_conflict',
+        memory_id: 'mem-cas-2',
+        expected_version: 1,
+        actual_version: 2,
+      },
+    });
+  });
+
   it('maps ToolInputValidationError to -32602 Invalid params with message data', () => {
     const mapped = mapToolExecutionErrorToJsonRpc(
       new ToolInputValidationError('type parameter is required')

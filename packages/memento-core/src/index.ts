@@ -160,6 +160,12 @@ export type { IErrorLoggingService } from './shared/interfaces/error-logging.int
 export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';
 export type { AppErrorContract } from './shared/types/error-types.js';
 export { ToolInputValidationError } from './shared/errors/tool-input-validation-error.js';
+export {
+  MemoryVersionConflictError,
+  MEMORY_VERSION_CONFLICT,
+  MEMORY_VERSION_CONFLICT_JSON_RPC_CODE,
+  memoryItemEffectiveVersion,
+} from './shared/errors/memory-version-conflict-error.js';
 export { getBatchScheduler, resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 export { BatchJobAlreadyRunningError } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-types.js';
 

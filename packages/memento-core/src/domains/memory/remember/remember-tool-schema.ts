@@ -25,6 +25,8 @@ export const RememberSchema = z.object({
   skill_name: CommonSchemas.SkillName,
   trigger_conditions: CommonSchemas.TriggerConditions,
   update_mode: CommonSchemas.UpdateMode,
+  expected_version: z.number().int().min(1).optional()
+    .describe('Compare-and-swap: 현재 memory_item.version(미설정 시 1)과 일치할 때만 replace/incremental 갱신'),
   // AriGraph Pipeline 필드
   enable_triple_extraction: CommonSchemas.EnableTripleExtraction,
   // 기존 필드 유지
@@ -52,6 +54,16 @@ export const RememberSchema = z.object({
   return !!data.content;
 }, {
   message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content가 필수입니다"
+}).refine((data) => {
+  if (data.expected_version === undefined) {
+    return true;
+  }
+  if (!data.memory_id) {
+    return false;
+  }
+  return data.update_mode === 'replace' || data.update_mode === 'incremental';
+}, {
+  message: 'expected_version은 memory_id와 update_mode(replace|incremental)와 함께 사용해야 합니다',
 });
 
 /** Remember 도구 파라미터 타입 */

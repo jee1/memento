@@ -106,6 +106,27 @@ HTTP owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세요
 
 owner scope·writer 격리 설계는 [#664](https://github.com/jee1/memento/issues/664)를 참고하세요.
 
+## Compare-and-swap 갱신 (Issue #1093 Phase 1)
+
+다중 에이전트가 같은 `memory_id`를 갱신할 때 race를 막으려면 `remember`에 `expected_version`을 함께 보냅니다.
+
+```json
+{
+  "type": "semantic",
+  "memory_id": "mem_abc123",
+  "update_mode": "replace",
+  "expected_version": 1,
+  "content": "갱신된 내용",
+  "owner_id": "code-reviewer",
+  "project_id": "my-project"
+}
+```
+
+- `memory_item.version`이 NULL이면 **1**로 간주합니다. 성공 시 `version`이 1 증가하고 응답에 새 `version`이 포함됩니다.
+- `expected_version`을 생략하면 기존과 동일하게 무조건 갱신합니다(version 컬럼은 건드리지 않음).
+- `owner_id`·`project_id` 스코프가 다르면 갱신되지 않습니다(타 소유자 데이터 노출 없음).
+- 버전 불일치는 HTTP `/tools/remember` **409** (`memory_version_conflict`)입니다.
+
 ## 하위 호환성
 
 owner_id 기능은 기존 코드와 완전히 하위 호환됩니다. 기존 데이터는 모두 `owner_id = NULL`을 유지하며, `owner_id`를 지정하지 않은 기존 코드는 변경 없이 이전과 동일하게 동작합니다. 새로운 필드를 사용해야만 다중 에이전트 분리 기능이 활성화됩니다.

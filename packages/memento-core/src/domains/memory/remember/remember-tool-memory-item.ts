@@ -14,6 +14,10 @@ import { isMemoryItemType } from '../../../shared/utils/type-guards.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { getNextVersionNumber } from '../procedural/procedural-versioning.js';
 import { ToolInputValidationError } from '../../../shared/errors/tool-input-validation-error.js';
+import {
+  MemoryVersionConflictError,
+  memoryItemEffectiveVersion,
+} from '../../../shared/errors/memory-version-conflict-error.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import type { ProceduralMemoryItem } from './remember-tool-types.js';
@@ -46,6 +50,33 @@ export interface MemoryItemContext {
   last_mentioned_at_param: string | undefined | null;
 }
 
+async function assertMemoryVersionConflict(
+  db: Database.Database,
+  id: string,
+  ownerId: string | null,
+  projectId: string | null,
+  expectedVersion: number,
+): Promise<never> {
+  const scoped = await DatabaseUtils.get(db, `
+    SELECT version
+    FROM memory_item
+    WHERE id = ?
+      AND owner_id IS ?
+      AND project_id IS ?
+      AND COALESCE(is_deleted, 0) = 0
+  `, [id, ownerId, projectId]) as { version: number | null } | undefined;
+
+  if (!scoped) {
+    throw new ToolInputValidationError(`memory_id를 찾을 수 없습니다: ${id}`);
+  }
+
+  throw MemoryVersionConflictError.forMemory(
+    id,
+    expectedVersion,
+    memoryItemEffectiveVersion(scoped.version),
+  );
+}
+
 async function persistMemoryItem(
   db: Database.Database,
   id: string,
@@ -55,9 +86,10 @@ async function persistMemoryItem(
   finalReflectionNotes: string | null,
   context: ToolContext,
   host: RememberToolHost
-): Promise<void> {
+): Promise<{ casVersion?: number }> {
   const { type, ownerId, processId, sessionId, numTimes, sourceSessionId, confidenceVal, origin_source, project_id_param, last_mentioned_at_param } = ctx;
-  const { content, importance, privacy_scope, tags, source, task_goal, steps, workflow_name, skill_name, trigger_conditions, update_mode } = params;
+  const { content, importance, privacy_scope, tags, source, task_goal, steps, workflow_name, skill_name, trigger_conditions, update_mode, expected_version } = params;
+  const projectId = project_id_param ?? null;
 
   await DatabaseUtils.runTransaction(db, async () => {
     const isUpdate = !!(existingMemory && update_mode && (update_mode === 'replace' || update_mode === 'incremental'));
@@ -104,7 +136,25 @@ async function persistMemoryItem(
     const tagsJson = tags ? JSON.stringify(tags) : null;
 
     if (isUpdate) {
-      await DatabaseUtils.run(db, `
+      const useCas = expected_version !== undefined;
+      const nextVersion = useCas ? expected_version! + 1 : undefined;
+      const updateSql = useCas
+        ? `
+        UPDATE memory_item SET
+          content = ?, importance = ?, privacy_scope = ?, tags = ?, source = ?,
+          origin_source = ?, task_goal = ?, steps = ?, reflection_notes = ?,
+          workflow_name = ?, skill_name = ?, trigger_conditions = ?,
+          recall_count = ?, last_accessed_at = ?, g_value = ?, consolidation_score = ?,
+          owner_id = ?, process_id = ?, session_id = ?,
+          num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?,
+          version = ?
+        WHERE id = ?
+          AND owner_id IS ?
+          AND project_id IS ?
+          AND COALESCE(is_deleted, 0) = 0
+          AND COALESCE(version, 1) = ?
+      `
+        : `
         UPDATE memory_item SET
           content = ?, importance = ?, privacy_scope = ?, tags = ?, source = ?,
           origin_source = ?, task_goal = ?, steps = ?, reflection_notes = ?,
@@ -113,15 +163,31 @@ async function persistMemoryItem(
           owner_id = ?, process_id = ?, session_id = ?,
           num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?
         WHERE id = ?
-      `, [
-        content, importance, privacy_scope, tagsJson, source || null,
-        origin_source, task_goal || null, finalSteps, finalReflectionNotes,
-        workflow_name || null, skill_name || null, trigger_conditions || null,
-        recallCount, lastAccessedAt, gValue, consolidationScore,
-        ownerId, processId, sessionId,
-        numTimes, lastMentionedAt, sourceSessionId, confidenceVal,
-        id
-      ]);
+      `;
+      const updateParams = useCas
+        ? [
+          content, importance, privacy_scope, tagsJson, source || null,
+          origin_source, task_goal || null, finalSteps, finalReflectionNotes,
+          workflow_name || null, skill_name || null, trigger_conditions || null,
+          recallCount, lastAccessedAt, gValue, consolidationScore,
+          ownerId, processId, sessionId,
+          numTimes, lastMentionedAt, sourceSessionId, confidenceVal,
+          nextVersion,
+          id, ownerId, projectId, expected_version,
+        ]
+        : [
+          content, importance, privacy_scope, tagsJson, source || null,
+          origin_source, task_goal || null, finalSteps, finalReflectionNotes,
+          workflow_name || null, skill_name || null, trigger_conditions || null,
+          recallCount, lastAccessedAt, gValue, consolidationScore,
+          ownerId, processId, sessionId,
+          numTimes, lastMentionedAt, sourceSessionId, confidenceVal,
+          id,
+        ];
+      const result = await DatabaseUtils.run(db, updateSql, updateParams);
+      if (useCas && result.changes === 0) {
+        await assertMemoryVersionConflict(db, id, ownerId, projectId, expected_version!);
+      }
     } else {
       const proceduralVersion = type === 'procedural' && existingMemory && update_mode === 'versioned'
         ? getNextVersionNumber(db, existingMemory.version_series_id ?? existingMemory.id)
@@ -168,6 +234,11 @@ async function persistMemoryItem(
       }
     }
   });
+
+  if (expected_version !== undefined && existingMemory && update_mode && (update_mode === 'replace' || update_mode === 'incremental')) {
+    return { casVersion: expected_version + 1 };
+  }
+  return {};
 }
 
 function shouldSkipNearDupSearch(
@@ -190,7 +261,17 @@ export async function handleMemoryItem(
   const { type, ownerId, startTime, project_id_param } = ctx;
   let { numTimes } = ctx;
   let workingParams = params;
-  const { content, update_mode, memory_id, workflow_name, skill_name, task_goal, reflection_notes, enable_triple_extraction, importance } = workingParams;
+  const {
+    content,
+    update_mode,
+    memory_id,
+    workflow_name,
+    skill_name,
+    task_goal,
+    reflection_notes,
+    enable_triple_extraction,
+    importance,
+  } = workingParams;
 
   if (!content) {
     throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
@@ -315,8 +396,9 @@ export async function handleMemoryItem(
 
   const id = existingMemoryId || `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+  let casVersion: number | undefined;
   try {
-    await persistMemoryItem(
+    const persistResult = await persistMemoryItem(
       context.db!,
       id,
       workingParams,
@@ -326,6 +408,7 @@ export async function handleMemoryItem(
       context,
       host,
     );
+    casVersion = persistResult.casVersion;
   } catch (error) {
     const errorWithCode = error as { code?: string };
     if (errorWithCode.code === 'SQLITE_BUSY') {
@@ -395,6 +478,7 @@ export async function handleMemoryItem(
     memory_id: id,
     type: type,
     ...(existingMemoryId ? { updated: true } : {}),
+    ...(casVersion !== undefined ? { version: casVersion } : {}),
     message: existingMemoryId
       ? `기억이 갱신되었습니다: ${id}`
       : `기억이 저장되었습니다: ${id}`,

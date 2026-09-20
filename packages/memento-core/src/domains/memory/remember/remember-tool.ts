@@ -102,6 +102,11 @@ export class RememberTool extends BaseTool {
 - 'incremental': 대상 기억에 병합한다 (tags 합집합, importance는 큰 값, semantic은 num_times 증가, procedural은 steps 이어붙이기)
 - 'versioned': 새 행을 만들고 대상 기억과 VERSION_OF 관계로 연결한다 (새 memory_id 반환)`
           },
+          expected_version: {
+            type: 'integer',
+            minimum: 1,
+            description: 'Compare-and-swap 갱신용 현재 버전. memory_id·update_mode(replace|incremental)와 함께 지정한다. 미설정 version은 1로 간주한다. 불일치 시 409 memory_version_conflict.'
+          },
           enable_triple_extraction: {
             type: 'boolean',
             description: 'Triple 추출 활성화 여부 (기본값: true). type="episodic"일 때만 적용됩니다.',
