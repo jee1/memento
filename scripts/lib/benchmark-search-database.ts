@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { existsSync, mkdtempSync, rmSync, unlinkSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import {
@@ -107,6 +107,7 @@ export interface SeededBenchmarkDb {
   close: () => void;
   embeddingProvider: EmbeddingProvider;
   vectorDims: number;
+  relationCount: number;
 }
 
 /**
@@ -136,6 +137,7 @@ export async function createSeededBenchmarkDatabase(
   const embeddingService = new MemoryEmbeddingService();
 
   let vectorDims = 0;
+  let relationCount = 0;
 
   try {
     for (let i = 0; i < corpus.length; i++) {
@@ -148,6 +150,7 @@ export async function createSeededBenchmarkDatabase(
         process.stderr.write(`[benchmark-seed] ${i + 1}/${corpus.length} provider=${provider}\n`);
       }
     }
+    relationCount = seedBenchmarkRelations(db, corpus, benchmarkDir);
   } catch (e) {
     closeDatabase(db);
     if (useTempDir && tmpRoot) {
@@ -185,7 +188,59 @@ export async function createSeededBenchmarkDatabase(
     }
   };
 
-  return { db, dbPath, close, embeddingProvider: provider, vectorDims };
+  return { db, dbPath, close, embeddingProvider: provider, vectorDims, relationCount };
+}
+
+/**
+ * relations.jsonl 이 있으면 memory_relation 에 적재한다 (#959).
+ * 파일이 없는 벤치마크(benchmark-v3)는 동작이 바뀌지 않는다.
+ * source/target 은 benchmark_id 이므로 source_memory_id 로 바꿔 넣는다.
+ */
+function seedBenchmarkRelations(
+  db: Database.Database,
+  corpus: BenchmarkCorpusEntry[],
+  benchmarkDir: string
+): number {
+  const relationsPath = join(benchmarkDir, 'relations.jsonl');
+  if (!existsSync(relationsPath)) {
+    return 0;
+  }
+
+  const benchmarkIdToMemoryId = new Map<string, string>();
+  for (const entry of corpus) {
+    benchmarkIdToMemoryId.set(entry.benchmark_id, entry.source_memory_id);
+  }
+
+  const lines = readFileSync(relationsPath, 'utf8')
+    .split('\n')
+    .filter((line) => line.trim().length > 0);
+
+  let count = 0;
+  for (const line of lines) {
+    const row = JSON.parse(line) as {
+      source: string;
+      target: string;
+      relation_type: string;
+      confidence: number;
+    };
+    const sourceId = benchmarkIdToMemoryId.get(row.source);
+    if (!sourceId) {
+      throw new Error(`Benchmark relation references unknown benchmark_id: ${row.source}`);
+    }
+    const targetId = benchmarkIdToMemoryId.get(row.target);
+    if (!targetId) {
+      throw new Error(`Benchmark relation references unknown benchmark_id: ${row.target}`);
+    }
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`,
+      [sourceId, targetId, row.relation_type, row.confidence]
+    );
+    count++;
+  }
+
+  process.stderr.write(`[benchmark-seed] relations=${count}\n`);
+  return count;
 }
 
 async function seedOneCorpusRow(

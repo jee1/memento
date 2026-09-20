@@ -1,0 +1,5 @@
+[
+  { "query_id": "rq_001", "query": "pagination 중복 항목 문제", "language": "ko", "category": "relation_chain", "notes": "질의 어휘는 문제 기록(rel_prob_0001)과 겹친다. 정답은 2-hop 떨어진 최종 결정이다." },
+  { "query_id": "rq_002", "query": "임베딩 타임아웃이 잦다", "language": "ko", "category": "relation_chain", "notes": "질의 어휘는 문제 기록(rel_prob_0002)과 겹친다. 정답까지 2-hop 과 1-hop 두 경로가 있다." },
+  { "query_id": "rq_003", "query": "WAL 체크포인트 경고", "language": "ko", "category": "relation_none", "notes": "대조군. 정답에 관계가 하나도 없다 — 확장이 이걸 망가뜨리면 안 된다." }
+]

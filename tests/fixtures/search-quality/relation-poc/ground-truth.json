@@ -1,0 +1,5 @@
+[
+  { "queryId": "pagination 중복 항목 문제", "relevantIds": ["rel_dec_0001"] },
+  { "queryId": "임베딩 타임아웃이 잦다", "relevantIds": ["rel_dec_0002"] },
+  { "queryId": "WAL 체크포인트 경고", "relevantIds": ["rel_iso_0001"] }
+]
