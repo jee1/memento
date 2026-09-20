@@ -26,6 +26,63 @@
     );
   }
 
+  function isWindow1hMetricNumber(value) {
+    return typeof value === 'number' && !Number.isNaN(value);
+  }
+
+  function computeQueueVerdict(live) {
+    const w1 = live && live.window1h ? live.window1h : {};
+    const candidatesCreated = w1.candidatesCreated;
+    const processedTotal = w1.processedTotal;
+    const netFlow = w1.netFlow;
+
+    if (
+      !isWindow1hMetricNumber(candidatesCreated) ||
+      !isWindow1hMetricNumber(processedTotal) ||
+      !isWindow1hMetricNumber(netFlow)
+    ) {
+      return {
+        state: 'unknown',
+        label: '확인 필요',
+        action: '지표를 불러오지 못했습니다. 새로고침하거나 서버 로그를 확인하십시오.',
+      };
+    }
+    if (processedTotal === 0 && candidatesCreated > 0) {
+      return {
+        state: 'stalled',
+        label: '처리 없음',
+        action: '1시간 동안 생성만 되고 처리가 없습니다. 검토자를 배정하거나 일괄 무시로 줄이십시오.',
+      };
+    }
+    if (netFlow > 0) {
+      return {
+        state: 'growing',
+        label: 'backlog 증가',
+        action: '생성이 처리를 앞지릅니다. 이 속도가 이어지면 대기열이 계속 늘어납니다.',
+      };
+    }
+    return {
+      state: 'healthy',
+      label: '정상',
+      action: '처리가 생성을 따라잡고 있습니다. 조치가 필요 없습니다.',
+    };
+  }
+
+  function renderQueueVerdictBanner(verdict) {
+    return (
+      '<div class="rc-queue-verdict rc-queue-verdict--' +
+      verdict.state +
+      '" role="status">' +
+      '<strong class="rc-queue-verdict__label">' +
+      ns.escapeHtml(verdict.label) +
+      '</strong>' +
+      '<span class="rc-queue-verdict__action">' +
+      ns.escapeHtml(verdict.action) +
+      '</span>' +
+      '</div>'
+    );
+  }
+
   function renderLiveHealthHtml(live) {
     const w1 = live && live.window1h ? live.window1h : {};
     const w24 = live && live.window24h ? live.window24h : {};
@@ -38,7 +95,8 @@
     cards.push(formatHealthMetricCard('생성 (24h)', w24.candidatesCreated != null ? w24.candidatesCreated : '—'));
     cards.push(formatHealthMetricCard('처리 (24h)', w24.processedTotal != null ? w24.processedTotal : '—'));
     cards.push(formatHealthMetricCard('처리/생성 (24h)', ratioText(w24.processingRatio)));
-    return '<div class="m-metric-grid">' + cards.join('') + '</div>';
+    const verdict = computeQueueVerdict(live);
+    return renderQueueVerdictBanner(verdict) + '<div class="m-metric-grid">' + cards.join('') + '</div>';
   }
 
   /** @param {unknown[]} snaps */
@@ -122,6 +180,7 @@
     }
   }
 
+  ns.computeQueueVerdict = computeQueueVerdict;
   ns.renderLiveHealthHtml = renderLiveHealthHtml;
   ns.renderHealthSnapshotsTable = renderHealthSnapshotsTable;
   ns.renderBatchRunHistoryTable = renderBatchRunHistoryTable;

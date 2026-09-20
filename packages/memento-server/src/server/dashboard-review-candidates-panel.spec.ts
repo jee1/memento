@@ -857,3 +857,71 @@ describe('#897 review queue action effects are written down', () => {
     expect(dashboardHtml).toContain('마지막 접근 시각을 지금으로 갱신');
   });
 });
+
+/**
+ * #897: 대기열 1시간 지표를 판정하고 배너를 지표 카드 앞에 둔다.
+ */
+describe('#897 review queue health verdict', () => {
+  const healthRenderJs = readFileSync(
+    resolve(root, 'static/js/review-candidates-panel-health-render.js'),
+    'utf8',
+  );
+
+  function buildHealthRenderSandbox() {
+    const sandbox: Record<string, any> = {
+      console,
+      document: { querySelector: vi.fn() },
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {
+        escapeHtml: (s: string) =>
+          String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;'),
+      },
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    const context = vm.createContext(sandbox);
+    vm.runInContext(healthRenderJs, context, {
+      filename: 'review-candidates-panel-health-render.js',
+    });
+    return { ns: sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__ };
+  }
+
+  it('#897: 대기열 지표가 네 가지 상태로 해석된다', () => {
+    const { ns } = buildHealthRenderSandbox();
+
+    expect(
+      ns.computeQueueVerdict({
+        window1h: { candidatesCreated: 10, processedTotal: 12, netFlow: -2 },
+      }).state,
+    ).toBe('healthy');
+    expect(
+      ns.computeQueueVerdict({
+        window1h: { candidatesCreated: 20, processedTotal: 10, netFlow: 10 },
+      }).state,
+    ).toBe('growing');
+    expect(
+      ns.computeQueueVerdict({
+        window1h: { candidatesCreated: 5, processedTotal: 0, netFlow: 5 },
+      }).state,
+    ).toBe('stalled');
+    expect(
+      ns.computeQueueVerdict({
+        window1h: { candidatesCreated: null, processedTotal: 0, netFlow: 0 },
+      }).state,
+    ).toBe('unknown');
+  });
+
+  it('#897: 판정 배너가 지표 카드보다 먼저 렌더된다', () => {
+    const { ns } = buildHealthRenderSandbox();
+    const html = ns.renderLiveHealthHtml({
+      pendingTotal: 3,
+      window1h: { candidatesCreated: 1, processedTotal: 2, netFlow: -1 },
+      window24h: {},
+    });
+
+    expect(html.indexOf('rc-queue-verdict')).toBeLessThan(html.indexOf('m-metric-grid'));
+  });
+});
