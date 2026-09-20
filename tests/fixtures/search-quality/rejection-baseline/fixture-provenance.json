@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "query_source": {
+    "repository": "github.com/jee1/memento",
+    "issues": ["922", "903"],
+    "note": "Query strings are copied verbatim from public issue bodies. rb_rel_002 is truncated after 루 as recorded in #922."
+  },
+  "corpus_source": {
+    "type": "synthetic",
+    "note": "Overlay document text, benchmark_id, and source_memory_id values are invented for retrieval measurement. No production memory export or ID mapping is retained."
+  },
+  "parent_corpus": {
+    "fixture": "tests/fixtures/search-quality/benchmark-v3",
+    "note": "CLI measurement seeds benchmark-v3 with neutral metadata (#973) plus this overlay. Unit tests use a small synthetic corpus only."
+  }
+}
