@@ -88,6 +88,48 @@ export class HybridResultRanker {
     }
   }
 
+  /** #959: re-rank an expanded candidate pool without re-running text/vector lanes. */
+  async rerankExpandedResults(
+    results: HybridSearchResult[],
+    weights: HybridWeights,
+    limit: number,
+    db: Database.Database,
+    includeRelations: boolean,
+    query: HybridSearchQuery,
+    propagatedRelationWeights?: Map<string, number>
+  ): Promise<HybridSearchResult[]> {
+    const deduped = this.deduplicateResults(results);
+    const memoryIds = deduped.map((result) => result.id);
+    if (memoryIds.length === 0) {
+      return [];
+    }
+
+    const processId =
+      query.filters?.process_id != null
+        ? Array.isArray(query.filters.process_id)
+          ? query.filters.process_id[0]
+          : query.filters.process_id
+        : undefined;
+    const ctx = await this.buildRankingContext(db, memoryIds, processId, query);
+
+    if (propagatedRelationWeights) {
+      for (const [memoryId, propagated] of propagatedRelationWeights) {
+        const existing = ctx.relationWeights.get(memoryId) ?? 0;
+        ctx.relationWeights.set(memoryId, Math.min(1, existing + propagated));
+      }
+    }
+
+    this.normalizeScores(
+      deduped,
+      ctx,
+      includeRelations,
+      query.include_score_breakdown === true,
+      weights
+    );
+
+    return this.sortByFinalScore(deduped).slice(0, limit);
+  }
+
   private mergeResults(
     textResults: unknown[],
     vectorResults: VectorSearchResult[],

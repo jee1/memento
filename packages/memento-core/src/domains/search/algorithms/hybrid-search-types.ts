@@ -11,6 +11,9 @@ import type {
   VectorSearchResult,
 } from '../../memory/services/memory-embedding-service.js';
 
+export type { RelationRecallExpansionMode } from './relation-recall-candidate-expansion.js';
+import type { RelationRecallExpansionMode } from './relation-recall-candidate-expansion.js';
+
 export interface ITextSearchEngine {
   search(
     db: Database.Database,
@@ -142,6 +145,11 @@ export interface HybridSearchQuery {
   include_score_breakdown?: boolean;
   /** When true, return per-stage candidate IDs without changing default ranking. */
   includeFunnel?: boolean;
+  /**
+   * #959 PoC: relation recall candidate expansion (benchmark/internal only; default off).
+   * Production recall does not expose this — unset keeps byte-for-byte default behavior.
+   */
+  relationRecallExpansion?: RelationRecallExpansionMode;
 }
 
 export interface HybridSearchResult {
