@@ -21,6 +21,8 @@ RUN npm ci --ignore-scripts
 COPY scripts/ ./scripts/
 COPY packages/ ./packages/
 COPY apps/ ./apps/
+# copy-assets.js 가 저장소 루트의 config/ 를 dist/config/ 로 옮긴다. 안 넣으면 조용히 건너뛴다.
+COPY config/ ./config/
 
 # Workspace 패키지 빌드 (@memento/core, memento-server, client, sync:root-server-dist)
 RUN npm run build:packages
