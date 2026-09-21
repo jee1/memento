@@ -4,7 +4,7 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { getExposedTools, logger } from '@memento/core';
+import { getExposedTools, logger, MEMORY_VERSION_CONFLICT_JSON_RPC_CODE } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { Router } from 'express';
 import type { ServerServices } from '../bootstrap.js';
@@ -14,6 +14,7 @@ import { dispatchTool, mapToolDispatchError } from '../audit-tool-dispatch.js';
 function httpStatusForToolError(code: number): number {
   if (code === -32602) return 400;
   if (code === -32601) return 404;
+  if (code === MEMORY_VERSION_CONFLICT_JSON_RPC_CODE) return 409;
   return 500;
 }
 

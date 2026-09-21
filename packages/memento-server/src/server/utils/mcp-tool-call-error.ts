@@ -1,4 +1,9 @@
-import { ToolInputValidationError } from '@memento/core';
+import {
+  MemoryVersionConflictError,
+  MEMORY_VERSION_CONFLICT,
+  MEMORY_VERSION_CONFLICT_JSON_RPC_CODE,
+  ToolInputValidationError,
+} from '@memento/core';
 import { z } from 'zod';
 
 export type JsonRpcErrorPayload = {
@@ -49,6 +54,19 @@ export function mapToolExecutionErrorToJsonRpc(error: unknown): JsonRpcErrorPayl
 
   if (isToolInputValidationError(error)) {
     return invalidParams(error.message, error.message);
+  }
+
+  if (error instanceof MemoryVersionConflictError) {
+    return {
+      code: MEMORY_VERSION_CONFLICT_JSON_RPC_CODE,
+      message: error.message,
+      data: {
+        code: MEMORY_VERSION_CONFLICT,
+        memory_id: error.memoryId,
+        expected_version: error.expectedVersion,
+        actual_version: error.actualVersion,
+      },
+    };
   }
 
   if (error instanceof Error && error.message.startsWith('Unknown tool:')) {

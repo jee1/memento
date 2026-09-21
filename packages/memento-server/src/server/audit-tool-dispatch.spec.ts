@@ -7,6 +7,8 @@ import {
   AuditHashChainService,
   AuditTransportExpansionMigration,
   AUDIT_MODE_ENV,
+  MemoryVersionConflictError,
+  MEMORY_VERSION_CONFLICT_JSON_RPC_CODE,
   type ServerServices,
 } from '@memento/core';
 import * as auditDispatch from './audit-tool-dispatch.js';
@@ -101,6 +103,21 @@ describe('tool dispatch audit', () => {
     await Promise.all([first, second]);
     expect(maximumActive).toBe(1);
     expect(new AuditHashChainService(db).list()).toHaveLength(2);
+  });
+
+  it('maps memory version conflict to JSON-RPC -32009 for HTTP 409 (#1093)', () => {
+    const mapped = auditDispatch.mapToolDispatchError(
+      MemoryVersionConflictError.forMemory('mem-cas-1', 1, 2),
+    );
+
+    expect(mapped.code).toBe(MEMORY_VERSION_CONFLICT_JSON_RPC_CODE);
+    expect(mapped.protocolMessage).toMatch(/memory version conflict/);
+    expect(mapped.data).toMatchObject({
+      code: 'memory_version_conflict',
+      memory_id: 'mem-cas-1',
+      expected_version: 1,
+      actual_version: 2,
+    });
   });
 
   it('maps validation failures once and records the failed dispatch', async () => {
