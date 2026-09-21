@@ -1,0 +1,87 @@
+[
+  {
+    "query_id": "rb_rel_001",
+    "query": "sleep consolidation 이 임베딩을 다시 계산해서",
+    "language": "ko",
+    "group": "relevant",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_rel_002",
+    "query": "도커 컨테이너가 readonly database 로 재시작 루",
+    "language": "ko",
+    "group": "relevant",
+    "source": "github.com/jee1/memento/issues/922#issue-body",
+    "note": "issue table truncates after 루; full query not recorded in issues"
+  },
+  {
+    "query_id": "rb_rel_003",
+    "query": "앵커 맵 노드가 화면 밖으로 나가는 문제",
+    "language": "ko",
+    "group": "relevant",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_rel_004",
+    "query": "자동차 정비 녹음에서 위키 노트를 만든 기록",
+    "language": "ko",
+    "group": "relevant",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_rel_005",
+    "query": "고성 왕곡마을 클리핑",
+    "language": "ko",
+    "group": "relevant",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_rel_006",
+    "query": "우리말 질의가 엉뚱한 결과를 내던 원인을 찾아 고친 기록",
+    "language": "ko",
+    "group": "relevant",
+    "source": "github.com/jee1/memento/issues/903#issue-body"
+  },
+  {
+    "query_id": "rb_unr_001",
+    "query": "김치찌개 끓이는 법",
+    "language": "ko",
+    "group": "unrelated",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_unr_002",
+    "query": "오늘 저녁 뭐 먹지",
+    "language": "ko",
+    "group": "unrelated",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_unr_003",
+    "query": "내일 비 오나",
+    "language": "ko",
+    "group": "unrelated",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_unr_004",
+    "query": "고양이 사료 추천",
+    "language": "ko",
+    "group": "unrelated",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_unr_005",
+    "query": "주말에 등산 갈까",
+    "language": "ko",
+    "group": "unrelated",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  },
+  {
+    "query_id": "rb_unr_006",
+    "query": "어제 축구 경기 결과",
+    "language": "ko",
+    "group": "unrelated",
+    "source": "github.com/jee1/memento/issues/922#issue-body"
+  }
+]

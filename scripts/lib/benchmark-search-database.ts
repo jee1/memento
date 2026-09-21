@@ -243,7 +243,7 @@ function seedBenchmarkRelations(
   return count;
 }
 
-async function seedOneCorpusRow(
+export async function seedOneCorpusRow(
   db: Database.Database,
   embeddingService: MemoryEmbeddingService,
   entry: BenchmarkCorpusEntry,

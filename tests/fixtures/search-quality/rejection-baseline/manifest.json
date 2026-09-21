@@ -1,0 +1,19 @@
+{
+  "benchmark_version": "rejection-baseline-v1",
+  "created_at": "2026-09-20T00:00:00.000Z",
+  "parent_corpus": "benchmark-v3",
+  "overlay_count": 6,
+  "query_count": 12,
+  "relevant_query_count": 6,
+  "unrelated_query_count": 6,
+  "ground_truth_count": 6,
+  "source": "synthetic-overlay-on-benchmark-v3",
+  "labeling_policy": "issue-defined-queries-synthetic-corpus",
+  "strict_ci": false,
+  "notes": [
+    "Query strings copied verbatim from public GitHub issues #922 and #903.",
+    "Corpus overlay rows and memory IDs are fully synthetic; see fixture-provenance.json.",
+    "rb_rel_002 query is verbatim from #922 table (truncated after 루).",
+    "Parent corpus for CLI runs: tests/fixtures/search-quality/benchmark-v3 (#973 neutral seeding)."
+  ]
+}
