@@ -70,7 +70,8 @@ describe('executeHybridQuery SQL contract (#811 US5)', () => {
   it('벡터 전용 SELECT도 distance를 노출하고 SELECT 투영에서 1-distance 변환을 쓰지 않는다', () => {
     const sql = captureHybridSql(undefined);
 
-    expect(sql).toMatch(/t\.distance\s+as\s+vector_distance/i);
+    expect(sql).toMatch(/MIN\(t\.distance\)\s+as\s+vector_distance/i);
+    expect(sql).toMatch(/GROUP BY me\.memory_id/i);
     expect(selectProjectionUsesPrecomputedSimilarity(sql)).toBe(false);
   });
 

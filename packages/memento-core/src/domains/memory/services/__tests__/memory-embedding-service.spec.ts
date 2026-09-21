@@ -9,6 +9,7 @@ import { MemoryEmbeddingService } from '../memory-embedding-service.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { EmbeddingResult } from '../../../shared/types/embedding.types.js';
+import { resolveVectorPrefetchLimit } from '../../../../shared/config/vector-search.config.js';
 
 /** #753 — table-wide metadata repair UPDATE issued via DatabaseUtils.run */
 function trackTableWideMetadataRepairUpdates(): {
@@ -259,7 +260,7 @@ describe('MemoryEmbeddingService', () => {
       expect(sql).toContain('rowid IN (SELECT scoped_me.id');
       expect(params).toEqual([
         JSON.stringify(new Array(512).fill(0.1)),
-        3,
+        resolveVectorPrefetchLimit(3), // #1112 프리페치 깊이는 최종 limit 과 분리됨
         'tfidf',
         'process-a',
         'session-a',

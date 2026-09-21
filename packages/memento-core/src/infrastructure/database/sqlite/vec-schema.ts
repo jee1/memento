@@ -11,6 +11,7 @@
 
 import type Database from 'better-sqlite3';
 import { VECTOR_SEARCH_DISTANCE_METRIC } from '../../../shared/config/vector-search.config.js';
+import { WINDOW_PROJECTION_TYPES } from '../../../shared/utils/window-embedding-write.js';
 
 export const VEC_DISTANCE_METRIC = VECTOR_SEARCH_DISTANCE_METRIC;
 
@@ -39,15 +40,39 @@ function nativeProviderPredicates(provider: string, dimension: number): string[]
 }
 
 /**
+ * MiniLM 윈도 벡터(#1112)를 받는 projection_type 목록.
+ *
+ * 트리거 조건은 `NEW.` 접두가 붙은 단일 컬럼 술어여야 하므로 LIKE 대신 고정 IN 목록을 쓴다.
+ * 목록은 window-embedding-write.ts 의 WINDOW_PROJECTION_TYPES 가 단일 원본이다.
+ */
+const NATIVE_AND_WINDOW_PROJECTIONS = [
+  'native',
+  ...WINDOW_PROJECTION_TYPES,
+].map(value => `'${value}'`).join(', ');
+
+/**
+ * MiniLM 은 native 평균 벡터에 더해 윈도 벡터도 같은 인덱스에 올린다 (#1112).
+ * 검색은 memory_id 별 MIN(distance) 로 집계하므로 한 테이블에 함께 있어야 한다.
+ */
+function minilmProviderPredicates(dimension: number): string[] {
+  return [
+    `embedding_provider = 'minilm'`,
+    `dimensions = ${dimension}`,
+    `projection_type IN (${NATIVE_AND_WINDOW_PROJECTIONS})`
+  ];
+}
+
+/**
  * 대상 vec 테이블 전체.
  *
  * `memory_item_vec`는 legacy 384 공용 테이블이라 provider 전용이 아니며,
- * dimensions=384인 모든 행을 받는다(제공자별 1:1 비교 대상이 아님).
+ * dimensions=384인 native·기타 행만 받는다(윈도 행 제외, 제공자별 1:1 비교 대상이 아님).
  */
 export const VEC_TABLES: readonly VecTableConfig[] = [
-  vecTable('memory_item_vec', 384, ['dimensions = 384']),
+  // legacy 공용 테이블은 윈도 행을 받지 않는다. 윈도 행은 minilm 전용 테이블에서만 KNN 예산을 쓴다 (#1112).
+  vecTable('memory_item_vec', 384, ['dimensions = 384', "projection_type NOT LIKE 'window:%'"]),
   vecTable('memory_item_vec_tfidf', 512, nativeProviderPredicates('tfidf', 512)),
-  vecTable('memory_item_vec_minilm', 384, nativeProviderPredicates('minilm', 384)),
+  vecTable('memory_item_vec_minilm', 384, minilmProviderPredicates(384)),
   vecTable('memory_item_vec_openai', 1536, nativeProviderPredicates('openai', 1536)),
   vecTable('memory_item_vec_gemini', 768, nativeProviderPredicates('gemini', 768)),
   vecTable('memory_item_vec_mock', 64, nativeProviderPredicates('mock', 64))
