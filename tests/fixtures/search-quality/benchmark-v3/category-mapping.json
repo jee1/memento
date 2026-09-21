@@ -32,6 +32,9 @@
     "q_030": "anchor",
     "q_031": "incident",
     "q_032": "procedure",
-    "q_033": "config"
+    "q_033": "config",
+    "q_034": "incident",
+    "q_035": "incident",
+    "q_036": "operations"
   }
 }

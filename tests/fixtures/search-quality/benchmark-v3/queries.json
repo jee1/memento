@@ -24,5 +24,8 @@
   { "query_id": "q_030", "query": "anchor, pin, unpin은 각각 무엇에 쓰이나", "language": "ko", "category": "anchor", "notes": "scope search" },
   { "query_id": "q_031", "query": "docker 컨테이너가 readonly database 로 죽은 원인", "language": "ko", "category": "incident", "notes": "#934 장문 정답 — 긴 인시던트 리포트가 정답" },
   { "query_id": "q_032", "query": "마이그레이션 실패 시 롤백은 어떤 순서로 하나", "language": "ko", "category": "procedure", "notes": "#934 장문 정답 — 긴 런북이 정답" },
-  { "query_id": "q_033", "query": "임베딩 provider를 바꾸려면 어떤 설정을 건드리나", "language": "ko", "category": "config", "notes": "#934 장문 정답 — 긴 설정 레퍼런스가 정답" }
+  { "query_id": "q_033", "query": "임베딩 provider를 바꾸려면 어떤 설정을 건드리나", "language": "ko", "category": "config", "notes": "#934 장문 정답 — 긴 설정 레퍼런스가 정답" },
+  { "query_id": "q_034", "query": "도커 컨테이너가 모듈을 찾지 못해 서버가 뜨지 않는다", "language": "ko", "category": "incident", "notes": "#1104 해상도 확보 — 도커 모듈 해석 실패로 컨테이너가 기동하지 않은 사고 기록" },
+  { "query_id": "q_035", "query": "Cursor 터미널 샌드박스가 시작되지 않을 때 어떻게 하나", "language": "ko", "category": "incident", "notes": "#1104 해상도 확보 — AppArmor 프로필·설정 우회 대응" },
+  { "query_id": "q_036", "query": "MCP 로그가 두 번 출력되는 원인은 무엇인가", "language": "ko", "category": "operations", "notes": "#1104 해상도 확보 — 단일 인스턴스 lock·클라이언트 중복 판별" }
 ]

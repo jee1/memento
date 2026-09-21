@@ -1248,7 +1248,7 @@ describe('QualityMetricsCollector', () => {
       );
 
       expect(reports.map(({ macro_category, query_count }) => [macro_category, query_count])).toEqual([
-        ['incident_ops', 4],
+        ['incident_ops', 7],
         ['procedural', 6],
         ['conceptual', 10],
         ['tag_filter', 6],

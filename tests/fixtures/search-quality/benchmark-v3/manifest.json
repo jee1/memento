@@ -2,8 +2,8 @@
   "benchmark_version": "v3",
   "created_at": "2026-03-18T10:16:43.277Z",
   "corpus_size": 3461,
-  "query_count": 26,
-  "ground_truth_count": 26,
+  "query_count": 29,
+  "ground_truth_count": 29,
   "source": "full-memory-snapshot",
   "labeling_policy": "binary-human-labeled",
   "strict_ci": true,
@@ -17,6 +17,7 @@
     "Human-labeled queries and ground truth must be added separately",
     "Set ground_truth_reviewed=true only after manual review is complete",
     "#934: appended 21 synthetic documents (bench_syn_*) including near-clone long distractors for length-bias sweep",
-    "#961: near-clone long distractors rewritten so embedding horizon is topic-dense (ZWSP/fill tips); long GT answers 0005-0007 keep decisive body after horizon; corpus_size unchanged"
+    "#961: near-clone long distractors rewritten so embedding horizon is topic-dense (ZWSP/fill tips); long GT answers 0005-0007 keep decisive body after horizon; corpus_size unchanged",
+    "#1104: incident_ops 버킷을 4 → 7질의로 확장 (q_034·q_035·q_036); corpus 는 변경 없음"
   ]
 }
