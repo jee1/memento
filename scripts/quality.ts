@@ -17,6 +17,7 @@ const COMMANDS: Record<string, QualityCommand> = {
   'benchmark:category-report': { script: 'quality-benchmark-category-report.ts' },
   'benchmark:length-decay-sweep': { script: 'quality-benchmark-length-decay-sweep.ts' },
   'benchmark:verify-categories': { script: 'quality-benchmark-verify-categories.ts' },
+  'benchmark:relation-recall-poc': { script: 'relation-recall-poc-comparison.ts' },
   'benchmark:compare-profiles': { script: 'compare-weight-profiles.ts' },
   'benchmark:tune-weights': { script: 'tune-weights.ts' },
   'benchmark:tune-report': { script: 'tune-report.ts' },

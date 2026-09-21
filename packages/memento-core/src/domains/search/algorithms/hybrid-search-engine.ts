@@ -26,6 +26,7 @@ import { SearchResultCombiner } from './search-result-combiner.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import { collectResultIds } from './hybrid-search-outcome-utils.js';
 import { backfillTextOnlyVectorResults } from './hybrid-vector-backfill.js';
+import { applyRelationRecallCandidateExpansion } from './relation-recall-candidate-expansion.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import type {
   HybridSearchQuery,
@@ -181,15 +182,46 @@ export class HybridSearchEngine {
       const vectorResultsForCombine = backfilledVector.length > 0
         ? [...vectorOut.results, ...backfilledVector]
         : vectorOut.results;
-      const finalResults = await this.resultRanker.combineAndSortResults(
-        textResults,
-        vectorResultsForCombine,
-        weights,
-        query.limit || 10,
-        db,
-        query.includeRelations || false,
-        query
-      );
+      const outputLimit = query.limit || 10;
+      const expansionMode = query.relationRecallExpansion ?? 'off';
+      let finalResults: HybridSearchResult[];
+      if (expansionMode === 'off') {
+        finalResults = await this.resultRanker.combineAndSortResults(
+          textResults,
+          vectorResultsForCombine,
+          weights,
+          outputLimit,
+          db,
+          query.includeRelations || false,
+          query
+        );
+      } else {
+        const rankLimit = Math.max(
+          outputLimit,
+          outputLimit * 2,
+          textResults.length + vectorResultsForCombine.length
+        );
+        const primaryRanked = await this.resultRanker.combineAndSortResults(
+          textResults,
+          vectorResultsForCombine,
+          weights,
+          rankLimit,
+          db,
+          query.includeRelations || false,
+          query
+        );
+        finalResults = await applyRelationRecallCandidateExpansion({
+          db,
+          query,
+          mode: expansionMode,
+          primaryRanked,
+          resultRanker: this.resultRanker,
+          relationGraph: this.relationGraph,
+          weights,
+          outputLimit,
+          includeRelations: query.includeRelations || false,
+        });
+      }
 
       this.updateSearchStats(query.query, textResults.length, vectorOut.results.length);
       const queryTime = this.calculateQueryTime(startTime);
