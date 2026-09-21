@@ -43,6 +43,16 @@ const previousRaf = (globalThis as Record<string, unknown>).requestAnimationFram
 const previousD3 = (globalThis as Record<string, unknown>).d3;
 
 function flush(): void {
+  // 이중 rAF (issue 955): 한 번 비우면 안쪽 콜백이 다시 큐에 들어간다. 빌 때까지 돌린다.
+  for (let pass = 0; pass < 8 && frames.length > 0; pass += 1) {
+    const pending = frames.splice(0, frames.length);
+    for (const cb of pending) {
+      cb();
+    }
+  }
+}
+
+function flushOnePass(): void {
   const pending = frames.splice(0, frames.length);
   for (const cb of pending) {
     cb();
@@ -193,6 +203,23 @@ describe('issue #950 setBadgeText live-region timing', () => {
     expect(el.textContent).toBe('');
     flush();
     expect(el.textContent).toBe('D');
+  });
+
+  it('T13: one frame is not enough — text lands only after the second (issue 955)', () => {
+    const el = makeBadge();
+    ns.setBadgeText(el, '3개 노드 매칭');
+
+    expect(el.style.display).toBe('inline-block');
+    expect(el.textContent).toBe('');
+
+    flushOnePass();
+    // 첫 프레임은 display 전환을 페인트할 뿐, 텍스트는 아직 들어가지 않는다.
+    expect(el.textContent).toBe('');
+    expect(frames).toHaveLength(1);
+
+    flushOnePass();
+    expect(el.textContent).toBe('3개 노드 매칭');
+    expect(el.__badgeCommitted).toBe(true);
   });
 });
 
