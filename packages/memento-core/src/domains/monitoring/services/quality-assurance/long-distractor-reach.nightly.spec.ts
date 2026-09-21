@@ -2,10 +2,20 @@
  * #961 nightly: long near-clone distractors must enter the vector channel.
  * Gated by VITEST_INCLUDE_NIGHTLY (excluded from PR CI via vitest.base.ts).
  *
- * Acceptance (k=40, vector_dom) per distractor:
- * 1) aimed query: vectorScore > 0, top-10, answer ranks above distractor
- * 2) other short GT queries: distractor must NOT appear in top-10
- *    (cross-contamination guard — catches ZWSP-style universal mid-similarity)
+ * Two kinds of assertion live here and they fail for different reasons (#1103):
+ *
+ *  (A) instrument liveness — does the distractor reach the vector channel at all?
+ *      Blocked on #1107: under MiniLM 16-window mean pooling a ~12,000 character
+ *      document cannot compete with short ones no matter what it says. Measured:
+ *      filling a distractor with nothing but its own query text tops out at
+ *      cosine 0.4773 against a rank-40 floor of 0.4416, and a 12,000 character
+ *      document built from the 60 most similar real corpus documents scores
+ *      0.3094. Five of the eight distractors miss the top 40 at their ceiling.
+ *      Do not retune the fixtures to make these green — the ceiling is the
+ *      embedder, not the text.
+ *
+ *  (B) product ranking — answer above distractor, and no cross-contamination.
+ *      Real ranking defects. Tracked in #922 / #1095. Do not relax these.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { existsSync, mkdtempSync, writeFileSync, readFileSync } from 'fs';
@@ -139,70 +149,111 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
       resetRankingWeightsCache();
     });
 
-    for (const pair of PAIRS) {
-      it(`${pair.distractorId} reaches vector channel under ${pair.query}`, async () => {
-        applyK40();
-        // Fresh engine per case — AdaptiveWeightCalculator caches by query (R4).
-        const engine = HybridSearchFactory.createDefaultEngine(db);
-        const result = await engine.search(db, {
-          query: pair.query,
-          limit: 20,
-          provider_filter: getBenchmarkVectorProviderFilter(),
-          vectorWeight: 1,
-          textWeight: 0,
-          include_score_breakdown: true,
-        });
-
-        const distractorSource = sourceByBenchmark.get(pair.distractorId);
-        const answerSource = sourceByBenchmark.get(pair.answerId);
-        expect(distractorSource).toBeTruthy();
-        expect(answerSource).toBeTruthy();
-
-        const distractorIdx = result.items.findIndex((i) => i.id === distractorSource);
-        const answerIdx = result.items.findIndex((i) => i.id === answerSource);
-        expect(distractorIdx).toBeGreaterThanOrEqual(0);
-        expect(answerIdx).toBeGreaterThanOrEqual(0);
-
-        const distractor = result.items[distractorIdx]!;
-        const answer = result.items[answerIdx]!;
-
-        // Always: no GT pollution at k=40 (answer above distractor).
-        expect(answerIdx).toBeLessThan(distractorIdx);
-        expect(answer.finalScore).toBeGreaterThanOrEqual(distractor.finalScore);
-
-        if (KNOWN_VECTOR_MISS.has(pair.distractorId)) {
-          // Honest miss: fill() tip cannot clear top-40 without ZWSP (#961 C1).
-          expect(distractor.vectorScore ?? 0).toBe(0);
-          return;
-        }
-
-        expect(distractor.vectorScore).toBeGreaterThan(0);
-        expect(distractorIdx).toBeLessThan(10);
-      });
-
-      it(`${pair.distractorId} does not top-10 other short queries (cross-contam)`, async () => {
-        applyK40();
-        const distractorSource = sourceByBenchmark.get(pair.distractorId);
-        expect(distractorSource).toBeTruthy();
-
-        const hits: string[] = [];
-        for (const query of shortOtherQueries) {
+    describe('(A) instrument liveness — blocked on #1107', () => {
+      for (const pair of PAIRS) {
+        it(`${pair.distractorId} reaches vector channel under ${pair.query}`, async () => {
+          applyK40();
+          // Fresh engine per case — AdaptiveWeightCalculator caches by query (R4).
           const engine = HybridSearchFactory.createDefaultEngine(db);
           const result = await engine.search(db, {
-            query,
+            query: pair.query,
             limit: 20,
             provider_filter: getBenchmarkVectorProviderFilter(),
             vectorWeight: 1,
             textWeight: 0,
             include_score_breakdown: true,
           });
-          const idx = result.items.findIndex((i) => i.id === distractorSource);
-          if (idx >= 0 && idx < 10 && (result.items[idx]!.vectorScore ?? 0) > 0) {
-            hits.push(`${query.slice(0, 40)}@r${idx}`);
+
+          const distractorSource = sourceByBenchmark.get(pair.distractorId);
+          const answerSource = sourceByBenchmark.get(pair.answerId);
+          expect(distractorSource).toBeTruthy();
+          expect(answerSource).toBeTruthy();
+
+          const distractorIdx = result.items.findIndex((i) => i.id === distractorSource);
+          const answerIdx = result.items.findIndex((i) => i.id === answerSource);
+          expect(distractorIdx).toBeGreaterThanOrEqual(0);
+          expect(answerIdx).toBeGreaterThanOrEqual(0);
+
+          const distractor = result.items[distractorIdx]!;
+
+          if (KNOWN_VECTOR_MISS.has(pair.distractorId)) {
+            // Honest miss: fill() tip cannot clear top-40 without ZWSP (#961 C1).
+            expect(distractor.vectorScore ?? 0).toBe(0);
+            return;
           }
-        }
-        expect(hits, `cross-contam top-10 hits: ${hits.join('; ')}`).toEqual([]);
-      });
-    }
+
+          expect(distractor.vectorScore).toBeGreaterThan(0);
+          expect(distractorIdx).toBeLessThan(10);
+        });
+      }
+    });
+
+    describe('(B) product ranking — answer above distractor', () => {
+      for (const pair of PAIRS) {
+        it(`${pair.answerId} outranks ${pair.distractorId} under ${pair.query}`, async () => {
+          applyK40();
+          // Fresh engine per case — AdaptiveWeightCalculator caches by query (R4).
+          const engine = HybridSearchFactory.createDefaultEngine(db);
+          const result = await engine.search(db, {
+            query: pair.query,
+            limit: 20,
+            provider_filter: getBenchmarkVectorProviderFilter(),
+            vectorWeight: 1,
+            textWeight: 0,
+            include_score_breakdown: true,
+          });
+
+          const distractorSource = sourceByBenchmark.get(pair.distractorId);
+          const answerSource = sourceByBenchmark.get(pair.answerId);
+          expect(distractorSource).toBeTruthy();
+          expect(answerSource).toBeTruthy();
+
+          const distractorIdx = result.items.findIndex((i) => i.id === distractorSource);
+          const answerIdx = result.items.findIndex((i) => i.id === answerSource);
+          // The answer must be retrievable at all — that is a product requirement.
+          expect(answerIdx).toBeGreaterThanOrEqual(0);
+          // A distractor that never reached the candidate set is not competing for
+          // rank. That is (A)'s problem (#1107), not a ranking defect — skip here.
+          if (distractorIdx < 0) {
+            return;
+          }
+
+          const distractor = result.items[distractorIdx]!;
+          const answer = result.items[answerIdx]!;
+
+          // Always: no GT pollution at k=40 (answer above distractor).
+          expect(answerIdx).toBeLessThan(distractorIdx);
+          expect(answer.finalScore).toBeGreaterThanOrEqual(distractor.finalScore);
+        });
+      }
+    });
+
+    describe('(B) product ranking — tracked in #922 / #1095', () => {
+      for (const pair of PAIRS) {
+        it(`${pair.distractorId} does not top-10 other short queries (cross-contam)`, async () => {
+          applyK40();
+          const distractorSource = sourceByBenchmark.get(pair.distractorId);
+          expect(distractorSource).toBeTruthy();
+
+          const hits: string[] = [];
+          for (const query of shortOtherQueries) {
+            const engine = HybridSearchFactory.createDefaultEngine(db);
+            const result = await engine.search(db, {
+              query,
+              limit: 20,
+              provider_filter: getBenchmarkVectorProviderFilter(),
+              vectorWeight: 1,
+              textWeight: 0,
+              include_score_breakdown: true,
+            });
+            const idx = result.items.findIndex((i) => i.id === distractorSource);
+            if (idx >= 0 && idx < 10 && (result.items[idx]!.vectorScore ?? 0) > 0) {
+              hits.push(`${query.slice(0, 40)}@r${idx}`);
+            }
+          }
+          expect(hits, `cross-contam top-10 hits: ${hits.join('; ')}`).toEqual([]);
+        });
+      }
+    });
   }
 );
