@@ -43,11 +43,17 @@ export interface FtsRelevanceConfig {
   temperature: number;
 }
 
+export interface ImportanceSignalConfig {
+  /** Multiplier on (raw - 0.5) after calculateImportance (#1082). */
+  scale: number;
+}
+
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
   relation_weights: RelationWeights;
   vector_length_decay: VectorLengthDecayConfig;
   fts_relevance: FtsRelevanceConfig;
+  importance_signal: ImportanceSignalConfig;
 }
 
 const DEFAULT_CONFIG: RankingWeightsConfig = {
@@ -70,6 +76,9 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   },
   fts_relevance: {
     temperature: 10
+  },
+  importance_signal: {
+    scale: 0.35
   }
 };
 
@@ -120,7 +129,8 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
       'relation_weights.max_relations': { type: 'number' as const, min: 1 },
       'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
-      'fts_relevance.temperature': { type: 'number' as const, min: 0.1 }
+      'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
+      'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 }
     };
 
     // 중첩 객체를 평탄화하여 검증
@@ -139,7 +149,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         DEFAULT_CONFIG.vector_length_decay.characteristic_length,
       'fts_relevance.temperature':
         config.fts_relevance?.temperature ??
-        DEFAULT_CONFIG.fts_relevance.temperature
+        DEFAULT_CONFIG.fts_relevance.temperature,
+      'importance_signal.scale':
+        config.importance_signal?.scale ??
+        DEFAULT_CONFIG.importance_signal.scale
     };
 
     // mergeWithDefaults may omit nested section when TOML lacks it
@@ -161,6 +174,14 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         Number.isFinite(config.fts_relevance.temperature)
           ? config.fts_relevance.temperature
           : DEFAULT_CONFIG.fts_relevance.temperature
+    };
+
+    config.importance_signal = {
+      scale:
+        typeof config.importance_signal?.scale === 'number' &&
+        Number.isFinite(config.importance_signal.scale)
+          ? config.importance_signal.scale
+          : DEFAULT_CONFIG.importance_signal.scale
     };
 
     const validationResult = validateConfig(flatConfig, validationSchema);

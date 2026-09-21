@@ -30,6 +30,16 @@ SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값�
 
 FTS 쿼리 combinator는 `search-engine-fts-query.ts`에서 **짧은·긴 구간 모두** 내용어를 `OR`로 결합하고, 어간 길이가 `HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH`(기본 2) 이상이면 FTS5 접두(`term*`)를 붙입니다(Issue [#807](https://github.com/jee1/memento/issues/807)). 긴 구간은 계속 앞 `FTS_MAX_TOKENS_FOR_OR`(8)개만 사용합니다. `config/ranking-weights.toml`은 이 이슈에서 재튜닝하지 않습니다.
 
+## Importance signal scale (Issue #1082)
+
+`calculateImportance`는 pinned·type 부스트를 반영한 **raw** 중요도를 만든 뒤, `config/ranking-weights.toml`의 `[importance_signal].scale`로 0.5 중심 압축을 적용합니다.
+
+```
+scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
+```
+
+`scale = 1`이면 raw를 그대로 쓰고, `scale = 0`이면 전 후보가 0.5로 평탄화됩니다(진단용 상한이지 운영 제안이 아님). benchmark-v3에서 γ·importance 실현 폭이 relevance보다 넓어 macro MRR 게이트가 깨지는 문제를 막기 위해 기본 `scale`은 벤치마크로 고정합니다. 하이브리드·FTS 경로 모두 `SearchRanking.calculateImportance`를 거치며 raw `importance` 컬럼을 랭킹에 직접 넣지 않습니다. `scale`은 `getRankingVersion()` 해시에 포함됩니다. semantic-memory `calculateImportance`(confidence 감쇠)는 이 경로와 별개입니다.
+
 ## Hybrid fusion relevance (Issue #788)
 
 combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/usage/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.

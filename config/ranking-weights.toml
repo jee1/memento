@@ -45,3 +45,8 @@ characteristic_length = 40
 # T=1 이면 실제 rank 구간(-20~-2)이 전부 포화 꼬리에 들어가 동적 범위가 0.083 으로 뭉갠다.
 [fts_relevance]
 temperature = 10
+
+# #1082: importance 랭킹 신호를 0.5 중심으로 압축. scaled = 0.5 + (raw - 0.5) * scale
+# scale=1 이면 γ·importance 실현 폭이 relevance 를 압도해 benchmark-v3 macro 게이트가 깨진다.
+[importance_signal]
+scale = 0.35

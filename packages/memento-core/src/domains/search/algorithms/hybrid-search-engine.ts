@@ -97,7 +97,7 @@ export class HybridSearchEngine {
       relation_weight: config.ranking_weights.zeta,
       duplication_penalty: config.ranking_weights.epsilon,
       zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
-    });
+    }, rankingWeightsPath);
     this.relationGraph = relationGraph || null;
     this.vectorExecutor = new HybridVectorSearchExecutor(
       this.embeddingService,
