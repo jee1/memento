@@ -6,6 +6,7 @@ import type Database from 'better-sqlite3';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
+import { resolveVectorPrefetchLimit } from '../../../../shared/config/vector-search.config.js';
 import { buildMemoryFilterSql, hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
 import { mapHybridResults } from './vector-search-result-mapper.js';
 import type {
@@ -73,6 +74,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
   const { db, effectiveQueryVector, textQuery, runtimeContext, scope, options } = params;
   const { tableName, provider, modelFilter } = runtimeContext;
   const { limit } = options;
+  const prefetchLimit = resolveVectorPrefetchLimit(limit);
 
   const hasTextQuery = Boolean(textQuery && textQuery.trim().length > 0);
   const hasScopedCandidates = hasMemoryFilter(scope);
@@ -84,7 +86,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
   const knnLimitSql = hasScopedCandidates ? '' : '    LIMIT ?';
   const vectorKnnParams: SqlParam[] = [
     JSON.stringify(effectiveQueryVector),
-    limit,
+    prefetchLimit,
     ...(hasScopedCandidates ? scopedCandidate.params : []),
   ];
 
@@ -98,7 +100,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       'WITH vector_search AS (' +
       '  SELECT ' +
       '    me.memory_id as memory_id, ' +
-      '    t.distance as vector_distance, ' +
+      '    MIN(t.distance) as vector_distance, ' +
       '    mi.content, ' +
       '    mi.type, ' +
       '    mi.importance, ' +
@@ -127,6 +129,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  JOIN memory_embedding me ON t.rowid = me.id ' +
       '  JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
       vectorWhereSql +
+      '  GROUP BY me.memory_id ' +
       '), ' +
       'text_search AS (' +
       '  SELECT ' +
@@ -221,10 +224,13 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       limit
     ];
   } else {
+    // #1112: 한 memory 가 native + window:N 행을 여러 개 가진다. memory_id 별 MIN(distance) 가
+    // max-sim(가장 가까운 윈도)이다. SQLite 는 집계가 min() 하나뿐일 때 bare 컬럼을
+    // 그 최소 행에서 가져오므로 mi.* 는 정답 윈도가 속한 행의 값이 된다.
     hybridQuery =
       'SELECT ' +
       '  me.memory_id as memory_id, ' +
-      '  t.distance as vector_distance, ' +
+      '  MIN(t.distance) as vector_distance, ' +
       '  0 as text_similarity, ' +
       '  mi.content, ' +
       '  mi.type, ' +
@@ -256,7 +262,8 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       'JOIN memory_embedding me ON t.rowid = me.id ' +
       'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
       outerWhere.sql +
-      'ORDER BY t.distance ASC ' +
+      'GROUP BY me.memory_id ' +
+      'ORDER BY vector_distance ASC ' +
       'LIMIT ?';
 
     sqlParams = [

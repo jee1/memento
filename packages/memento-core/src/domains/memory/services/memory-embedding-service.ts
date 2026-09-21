@@ -12,8 +12,13 @@ import type {
 } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
+import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
 import { buildMemoryFilterSql, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
+import {
+  deleteWindowEmbeddings,
+  replaceWindowEmbeddings,
+} from '../../../shared/utils/window-embedding-write.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import {
   computeL2Norm,
@@ -84,6 +89,17 @@ export interface SearchBySimilarityOutcome {
 type GlobalWithVecWarning = typeof globalThis & { __vecExtensionLoadWarningShown?: boolean };
 
 export class MemoryEmbeddingService {
+  /**
+   * 윈도가 2개 이상일 수 있는 최소 문자 길이 (#1112).
+   *
+   * 윈도 수의 진짜 판정은 generateWindowEmbeddings 가 한다. 이 값은 짧은 문서에서
+   * 두 번째 임베딩 호출 자체를 건너뛰기 위한 하한선일 뿐이다.
+   * benchmark-v3 실측에서 2윈도 이상 문서의 최소 길이는 1,191자였다(모델
+   * Xenova/paraphrase-multilingual-MiniLM-L12-v2 기준). 800 은 그보다 충분히 낮다.
+   * ponytail: 보수적 하한선. 모델이나 WINDOW_TOKENS 가 바뀌면 다시 재야 한다.
+   */
+  private static readonly WINDOW_CANDIDATE_MIN_CHARS = 800;
+
   private embeddingService: UnifiedEmbeddingService;
   private readonly defaultProvider: EmbeddingProvider = 'tfidf';
   private readonly createdByTag = 'memory_embedding_service';
@@ -169,6 +185,51 @@ export class MemoryEmbeddingService {
     });
   }
 
+  private async storeWindowEmbeddings(
+    db: Database.Database,
+    memoryId: string,
+    provider: EmbeddingProvider,
+    content: string,
+    model: string | undefined
+  ): Promise<void> {
+    try {
+      if (provider !== 'minilm') {
+        await deleteWindowEmbeddings(db, memoryId, provider);
+        return;
+      }
+
+      if (content.length < MemoryEmbeddingService.WINDOW_CANDIDATE_MIN_CHARS) {
+        await deleteWindowEmbeddings(db, memoryId, provider);
+        return;
+      }
+
+      const providerService: unknown = this.embeddingService.getCurrentProviderService();
+      type WindowCapableService = {
+        generateWindowEmbeddings(text: string): Promise<{ vectors: number[][]; model: string }>;
+      };
+      const isWindowCapableService = (value: unknown): value is WindowCapableService =>
+        typeof value === 'object' &&
+        value !== null &&
+        typeof (value as WindowCapableService).generateWindowEmbeddings === 'function';
+
+      if (!isWindowCapableService(providerService)) {
+        await deleteWindowEmbeddings(db, memoryId, provider);
+        return;
+      }
+
+      const { vectors } = await providerService.generateWindowEmbeddings(content);
+      await replaceWindowEmbeddings(db, {
+        memoryId,
+        provider,
+        model,
+        vectors,
+      });
+    } catch (error) {
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      this.writeEmbeddingStderr('warn', `윈도 임베딩 저장 실패 (${memoryId}): ${maskedError.message}`);
+    }
+  }
+
   private buildVecSimilarityQuery(
     provider: EmbeddingProvider,
     tableName: string,
@@ -196,6 +257,9 @@ export class MemoryEmbeddingService {
         ') '
       : '';
     const limit = filters?.limit || 10;
+    // #1112: 한 memory 가 native + window:N 행을 여러 개 가진다. memory_id 별 MIN(distance) 가
+    // max-sim(가장 가까운 윈도)이다. SQLite 는 집계가 min() 하나뿐일 때 bare 컬럼을
+    // 그 최소 행에서 가져오므로 m.* 는 정답 윈도가 속한 행의 값이 된다.
     const sql =
       'SELECT ' +
       '  m.id, ' +
@@ -210,7 +274,7 @@ export class MemoryEmbeddingService {
       '  m.owner_id, ' +
       '  m.process_id, ' +
       '  m.session_id, ' +
-      '  v.distance as distance ' +
+      '  MIN(v.distance) as distance ' +
       'FROM (' +
       '  SELECT rowid, distance ' +
       `  FROM ${tableName} ` +
@@ -225,14 +289,15 @@ export class MemoryEmbeddingService {
       'AND (COALESCE(m.is_deleted, 0) = 0) ' +
       outerFilterSql +
       ' ' +
-      'ORDER BY v.distance ASC ' +
+      'GROUP BY m.id ' +
+      'ORDER BY distance ASC ' +
       'LIMIT ?';
 
     return {
       sql,
       params: [
         JSON.stringify(queryVector),
-        limit,
+        resolveVectorPrefetchLimit(limit),
         ...(hasScopedCandidates ? [provider, ...scopedParams] : []),
         provider,
         ...outerParams,
@@ -331,6 +396,9 @@ export class MemoryEmbeddingService {
 
       // #753: metadata table-wide repair는 migrate/bootstrap 1회 — hot path에서 호출하지 않음
       await this.insertMemoryEmbeddingForCreate(db, memoryId, provider, embeddingResult, compatibility);
+
+      // #1112: 윈도 벡터는 native 행과 별개로 저장한다. 실패해도 native 저장은 유지된다.
+      await this.storeWindowEmbeddings(db, memoryId, provider, content, embeddingResult.model);
 
       return {
         ...embeddingResult,

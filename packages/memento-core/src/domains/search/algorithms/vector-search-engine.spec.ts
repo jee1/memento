@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchEngine, type VectorSearchResult, type VectorSearchOptions, type VectorIndexStatus } from './vector-search-engine.js';
 import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
 import Database from 'better-sqlite3';
+import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
 
 // Mock Database - removed global mock to avoid conflicts with individual mocks
 
@@ -343,7 +344,7 @@ describe('VectorSearchEngine', () => {
         expect(params[0]).toBe(JSON.stringify(queryVector));
         expect(params).toEqual([
           JSON.stringify(queryVector),
-          options.limit,
+          resolveVectorPrefetchLimit(options.limit), // #1112 프리페치 깊이는 최종 limit 과 분리됨
           'tfidf',
           'episodic',
           'semantic',

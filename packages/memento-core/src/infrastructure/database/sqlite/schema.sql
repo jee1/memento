@@ -329,6 +329,7 @@ CREATE TABLE IF NOT EXISTS embedding_model_registry (
 -- 검색 mapper는 `1 - distance`를 cosine similarity로 해석하고 threshold(0.8/0.6/0.4)도 같은 가정을 쓴다.
 -- 정의는 src/infrastructure/database/sqlite/vec-schema.ts(VEC_TABLES)와 동기화되어야 하며,
 -- vec-schema.spec.ts가 이 파일과의 정합을 검증한다.
+-- legacy 384 공용 테이블은 윈도 행을 받지 않는다. 윈도 행은 minilm 전용 테이블에서만 KNN 예산을 쓴다 (#1112).
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384] distance_metric=cosine);
 
 -- 제공자별 VEC 테이블들
@@ -346,7 +347,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_mock USING vec0(embedding flo
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
   INSERT INTO memory_item_vec(rowid, embedding)
   SELECT NEW.id, NEW.embedding
-  WHERE NEW.dimensions = 384;
+  WHERE NEW.dimensions = 384 AND NEW.projection_type NOT LIKE 'window:%';
 
   INSERT INTO memory_item_vec_tfidf(rowid, embedding)
   SELECT NEW.id, NEW.embedding
@@ -354,7 +355,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_
 
   INSERT INTO memory_item_vec_minilm(rowid, embedding)
   SELECT NEW.id, NEW.embedding
-  WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+  WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type IN ('native', 'window:0', 'window:1', 'window:2', 'window:3', 'window:4', 'window:5', 'window:6', 'window:7', 'window:8', 'window:9', 'window:10', 'window:11', 'window:12', 'window:13', 'window:14', 'window:15');
 
   INSERT INTO memory_item_vec_openai(rowid, embedding)
   SELECT NEW.id, NEW.embedding
@@ -379,7 +380,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_
 
   INSERT INTO memory_item_vec(rowid, embedding)
   SELECT NEW.id, NEW.embedding
-  WHERE NEW.dimensions = 384;
+  WHERE NEW.dimensions = 384 AND NEW.projection_type NOT LIKE 'window:%';
 
   INSERT INTO memory_item_vec_tfidf(rowid, embedding)
   SELECT NEW.id, NEW.embedding
@@ -387,7 +388,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_
 
   INSERT INTO memory_item_vec_minilm(rowid, embedding)
   SELECT NEW.id, NEW.embedding
-  WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+  WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type IN ('native', 'window:0', 'window:1', 'window:2', 'window:3', 'window:4', 'window:5', 'window:6', 'window:7', 'window:8', 'window:9', 'window:10', 'window:11', 'window:12', 'window:13', 'window:14', 'window:15');
 
   INSERT INTO memory_item_vec_openai(rowid, embedding)
   SELECT NEW.id, NEW.embedding

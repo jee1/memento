@@ -441,6 +441,14 @@ export { JobRunMigration } from './infrastructure/database/sqlite/migration/migr
 export { VecOrphanCleanupMigration, deleteOrphanVecRows } from './infrastructure/database/sqlite/migration/migrations/045-vec-orphan-cleanup.js';
 export { replaceMemoryEmbedding } from './shared/utils/memory-embedding-write.js';
 export type { MemoryEmbeddingWrite } from './shared/utils/memory-embedding-write.js';
+export {
+  WINDOW_PROJECTION_TYPES,
+  WINDOW_PROJECTION_PREFIX,
+  buildWindowProjectionType,
+  isWindowProjectionType,
+  replaceWindowEmbeddings,
+  deleteWindowEmbeddings,
+} from './shared/utils/window-embedding-write.js';
 export { JobRunLogMigration } from './infrastructure/database/sqlite/migration/migrations/046-job-run-log.js';
 export {
   JobRunRepository,

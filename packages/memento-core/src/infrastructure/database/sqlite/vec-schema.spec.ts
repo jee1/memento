@@ -32,13 +32,22 @@ describe('VEC_TABLES', () => {
     ]);
   });
 
-  it('legacy 384 테이블은 provider 전용이 아니므로 dimensions 조건만 사용한다', () => {
+  it('legacy 384 테이블은 dimensions 조건을 쓰되 윈도 행은 제외한다 (#1112)', () => {
     const legacy = VEC_TABLES.find(table => table.name === 'memory_item_vec');
-    expect(legacy?.filter).toBe('dimensions = 384');
+    expect(legacy?.filter).toBe("dimensions = 384 AND projection_type NOT LIKE 'window:%'");
   });
 
   it('제공자별 테이블은 provider + dimensions + native projection으로 필터한다', () => {
-    for (const table of VEC_TABLES.filter(t => t.name !== 'memory_item_vec')) {
+    const minilm = VEC_TABLES.find(table => table.name === 'memory_item_vec_minilm');
+    expect(minilm?.filter).toContain('embedding_provider =');
+    expect(minilm?.filter).toContain('dimensions = 384');
+    expect(minilm?.filter).toContain('projection_type IN (');
+    expect(minilm?.filter).toContain("'native'");
+    expect(minilm?.filter).toContain("'window:0'");
+
+    for (const table of VEC_TABLES.filter(
+      t => t.name !== 'memory_item_vec' && t.name !== 'memory_item_vec_minilm'
+    )) {
       expect(table.filter).toContain('embedding_provider =');
       expect(table.filter).toContain(`dimensions = ${table.dimension}`);
       expect(table.filter).toContain("projection_type = 'native'");
@@ -127,6 +136,14 @@ describe('buildVecTriggerSql', () => {
     expect(triggers.update).not.toMatch(/json_extract/i);
     expect(triggers.insert).toContain('NEW.embedding');
     expect(triggers.update).toContain('NEW.embedding');
+  });
+
+  it('insert 트리거가 legacy 384 테이블에서 윈도 행을 제외한다 (#1112)', () => {
+    expect(triggers.insert).toContain('NEW.projection_type NOT LIKE \'window:%\'');
+  });
+
+  it('insert 트리거가 minilm 테이블에 윈도 projection을 포함한다 (#1112)', () => {
+    expect(triggers.insert).toContain("'window:15'");
   });
 });
 
