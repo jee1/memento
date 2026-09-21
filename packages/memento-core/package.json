@@ -27,6 +27,11 @@
       "import": "./dist/domains/monitoring/services/quality-assurance/search-quality-metrics.js",
       "default": "./dist/domains/monitoring/services/quality-assurance/search-quality-metrics.js"
     },
+    "./domains/monitoring/services/quality-assurance/search-metrics-collector.js": {
+      "types": "./dist/domains/monitoring/services/quality-assurance/search-metrics-collector.d.ts",
+      "import": "./dist/domains/monitoring/services/quality-assurance/search-metrics-collector.js",
+      "default": "./dist/domains/monitoring/services/quality-assurance/search-metrics-collector.js"
+    },
     "./domains/search/factories/hybrid-search.factory.js": {
       "types": "./dist/domains/search/factories/hybrid-search.factory.d.ts",
       "import": "./dist/domains/search/factories/hybrid-search.factory.js",
@@ -71,6 +76,16 @@
       "types": "./dist/domains/embedding/services/unified-embedding-service.d.ts",
       "import": "./dist/domains/embedding/services/unified-embedding-service.js",
       "default": "./dist/domains/embedding/services/unified-embedding-service.js"
+    },
+    "./domains/embedding/services/minilm-embedding-service.js": {
+      "types": "./dist/domains/embedding/services/minilm-embedding-service.d.ts",
+      "import": "./dist/domains/embedding/services/minilm-embedding-service.js",
+      "default": "./dist/domains/embedding/services/minilm-embedding-service.js"
+    },
+    "./domains/embedding/services/embedding-helpers.js": {
+      "types": "./dist/domains/embedding/services/embedding-helpers.d.ts",
+      "import": "./dist/domains/embedding/services/embedding-helpers.js",
+      "default": "./dist/domains/embedding/services/embedding-helpers.js"
     },
     "./domains/embedding/services/vector-compatibility-service.js": {
       "types": "./dist/domains/embedding/services/vector-compatibility-service.d.ts",
