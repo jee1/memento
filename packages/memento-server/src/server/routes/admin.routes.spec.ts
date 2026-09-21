@@ -1444,6 +1444,87 @@ describe('admin.routes memory review candidates', () => {
     }
   });
 
+  it('#897: paginated review-candidates returns metadata and enriched fields without content', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(
+        port,
+        '/admin/memory/review-candidates?status=pending&page_size=25&page=1&importance_min=0.8',
+      );
+      expect(res.statusCode).toBe(200);
+      const json = JSON.parse(res.body) as {
+        candidates: Array<Record<string, unknown>>;
+        pagination?: { page_size?: number; total_count?: number };
+        filters_applied?: { importance_min?: number };
+      };
+      expect(json.pagination).toMatchObject({ page_size: 25, total_count: 1 });
+      expect(json.filters_applied?.importance_min).toBe(0.8);
+      expect(json.candidates[0]).toMatchObject({
+        memory_id: 'mem_stale',
+        memory_type: 'semantic',
+      });
+      expect(json.candidates[0]).not.toHaveProperty('content');
+      expect(json.candidates[0]).toHaveProperty('unused_days');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('#897: rejects invalid page_size and page without page_size', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const badSize = await getAdmin(port, '/admin/memory/review-candidates?page_size=100');
+      expect(badSize.statusCode).toBe(400);
+      const pageOnly = await getAdmin(port, '/admin/memory/review-candidates?page=2');
+      expect(pageOnly.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('#897: rejects malformed numeric query params without parseInt truncation', async () => {
+    const { server, port } = await listen(makeApp(db));
+    const malformed = [
+      '/admin/memory/review-candidates?status=pending&page_size=25abc&page=1',
+      '/admin/memory/review-candidates?status=pending&page_size=25&page=1.9',
+      '/admin/memory/review-candidates?status=pending&page_size=25&page=10days',
+      '/admin/memory/review-candidates?status=pending&page_size=25&page=1&unused_days_min=10days',
+      '/admin/memory/review-candidates?status=pending&page_size=25&page=1&importance_min=0.8abc',
+      '/admin/memory/review-candidates?status=pending&page_size=25&page=1&importance_min=1.9',
+    ];
+    try {
+      for (const path of malformed) {
+        const res = await getAdmin(port, path);
+        expect(res.statusCode).toBe(400);
+      }
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('#897: has_prev is false when filtered total_count is zero on page > 1', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(
+        port,
+        '/admin/memory/review-candidates?status=pending&page_size=25&page=3&importance_min=0.99',
+      );
+      expect(res.statusCode).toBe(200);
+      const json = JSON.parse(res.body) as {
+        candidates: unknown[];
+        pagination?: { total_count?: number; has_prev?: boolean; page?: number };
+      };
+      expect(json.candidates).toHaveLength(0);
+      expect(json.pagination).toMatchObject({
+        total_count: 0,
+        page: 3,
+        has_prev: false,
+      });
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
   it('POST review twice returns 409 on second call', async () => {
     const { server, port } = await listen(makeApp(db));
     try {

@@ -23,7 +23,7 @@
     if (!body) return;
     const onReview = ns.isReviewTabActive();
     if (onReview) {
-      ns.applyListSuccess(body);
+      void ns.loadList();
       return;
     }
     ns.applyQueueSnapshot(body, false, false, null);

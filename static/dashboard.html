@@ -418,6 +418,58 @@
         <div id="rc-toast" class="rc-toast hidden" role="status" aria-live="polite"></div>
         <div class="review-candidates-body">
           <div class="rc-main-col">
+            <form id="rc-filter-form" class="rc-filter-bar" aria-label="후보 목록 필터">
+              <label class="rc-filter-field">
+                <span class="rc-filter-label">중요도 ≥</span>
+                <select id="rc-filter-importance" class="m-select">
+                  <option value="">전체</option>
+                  <option value="0.5">0.5</option>
+                  <option value="0.7">0.7</option>
+                  <option value="0.8">0.8</option>
+                  <option value="0.9">0.9</option>
+                </select>
+              </label>
+              <label class="rc-filter-field">
+                <span class="rc-filter-label">미사용 ≥ (일)</span>
+                <select id="rc-filter-unused-days" class="m-select">
+                  <option value="">전체</option>
+                  <option value="30">30</option>
+                  <option value="60">60</option>
+                  <option value="90">90</option>
+                  <option value="180">180</option>
+                </select>
+              </label>
+              <label class="rc-filter-field">
+                <span class="rc-filter-label">기억 유형</span>
+                <select id="rc-filter-memory-type" class="m-select">
+                  <option value="">전체</option>
+                  <option value="working">working</option>
+                  <option value="episodic">episodic</option>
+                  <option value="semantic">semantic</option>
+                  <option value="procedural">procedural</option>
+                </select>
+              </label>
+              <label class="rc-filter-field rc-filter-field--grow">
+                <span class="rc-filter-label">후보 사유</span>
+                <input id="rc-filter-reason" class="m-input" type="search" maxlength="200" placeholder="사유에 포함된 문자열" autocomplete="off">
+              </label>
+              <label class="rc-filter-field">
+                <span class="rc-filter-label">페이지 크기</span>
+                <select id="rc-filter-page-size" class="m-select">
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </label>
+              <div class="rc-filter-actions">
+                <button type="button" id="rc-filter-apply" class="m-button m-button--secondary">필터 적용</button>
+                <button type="button" id="rc-filter-reset" class="m-button m-button--ghost">초기화</button>
+              </div>
+            </form>
+            <nav class="rc-pagination" aria-label="후보 목록 페이지">
+              <button type="button" id="rc-pagination-prev" class="m-button m-button--ghost" disabled>이전</button>
+              <span id="rc-pagination-info" class="rc-pagination-info" aria-live="polite"></span>
+              <button type="button" id="rc-pagination-next" class="m-button m-button--ghost" disabled>다음</button>
+            </nav>
             <div id="rc-bulk-actions" class="rc-bulk-actions" aria-busy="false">
               <label class="rc-bulk-select-all" for="rc-select-all">
                 <input type="checkbox" id="rc-select-all">
@@ -794,6 +846,7 @@
   <script src="/static/js/embedding-map.js"></script>
   <!--MEMENTO_REVIEW_QUEUE_BOOT-->
   <script src="/static/js/review-candidates-panel-shared.js"></script>
+  <script src="/static/js/review-candidates-panel-filters.js"></script>
   <script src="/static/js/review-candidates-panel-render-preview.js"></script>
   <script src="/static/js/review-candidates-panel-render-actions.js"></script>
   <script src="/static/js/review-candidates-panel-render-list.js"></script>

@@ -41,6 +41,9 @@
       }
       ns.wireBulkReviewActions();
       ns.wireReviewNotifyPrompt();
+      if (typeof ns.wireReviewListFilters === 'function') {
+        ns.wireReviewListFilters();
+      }
     }
     if (!state.loadedOnce) {
       state.loadedOnce = true;

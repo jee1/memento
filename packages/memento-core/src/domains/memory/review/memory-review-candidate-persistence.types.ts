@@ -41,6 +41,46 @@ export interface BulkMemoryReviewCandidatesResult {
   updated: number;
 }
 
+export type MemoryReviewCandidateUnusedAnchor = 'last_recalled_at' | 'created_at_fallback';
+
+export interface MemoryReviewCandidateListItem extends MemoryReviewCandidateRow {
+  memory_type: string;
+  importance: number;
+  unused_days: number;
+  unused_anchor: MemoryReviewCandidateUnusedAnchor;
+}
+
+export interface MemoryReviewCandidatePagination {
+  page: number;
+  page_size: 25 | 50;
+  total_count: number;
+  total_pages: number;
+  has_prev: boolean;
+  has_next: boolean;
+}
+
+export interface MemoryReviewCandidateFiltersApplied {
+  status?: MemoryReviewCandidateStatus;
+  importance_min?: number;
+  importance_max?: number;
+  unused_days_min?: number;
+  unused_days_max?: number;
+  memory_type?: string;
+  reason_contains?: string;
+}
+
+export interface QueryMemoryReviewCandidatesInput extends MemoryReviewCandidateFiltersApplied {
+  status?: MemoryReviewCandidateStatus;
+  page?: number;
+  page_size?: 25 | 50;
+}
+
+export interface MemoryReviewCandidatesQueryResult {
+  candidates: MemoryReviewCandidateListItem[];
+  pagination?: MemoryReviewCandidatePagination;
+  filters_applied: MemoryReviewCandidateFiltersApplied;
+}
+
 export interface ListMemoryReviewCandidatesQuery {
   status?: MemoryReviewCandidateStatus;
 }

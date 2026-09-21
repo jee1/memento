@@ -1047,6 +1047,54 @@ circle.em-dot:focus-visible {
   font-size: var(--font-size-sm);
 }
 
+.rc-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.rc-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  min-width: 7rem;
+  font-size: var(--font-size-sm);
+}
+
+.rc-filter-field--grow {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.rc-filter-label {
+  color: var(--color-text-muted);
+}
+
+.rc-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.rc-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.rc-pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
 .rc-bulk-actions {
   display: flex;
   flex-wrap: wrap;
