@@ -1,8 +1,8 @@
 import type Database from 'better-sqlite3';
+import { decodeFloat32Embedding } from '@memento/core';
 import { meanPoolNormalize } from '@memento/core/domains/embedding/services/embedding-helpers.js';
 import { MiniLMEmbeddingService } from '@memento/core/domains/embedding/services/minilm-embedding-service.js';
 import { loadBenchmarkCorpus } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
-import { decodeFloat32Embedding } from '@memento/core/shared/utils/embedding-serialization.js';
 
 const VECTOR_DIMS = 384;
 const VECTOR_BLOB_BYTES = VECTOR_DIMS * 4;
