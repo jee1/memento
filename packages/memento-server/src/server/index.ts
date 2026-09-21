@@ -9,10 +9,12 @@ createMementoCore,
 expandHomeDirPath,
 getExposedTools,
 mementoConfig,
+parseMcpEraMode,
 shutdownServices,
 validateConfig,
 type ServerServices
 } from '@memento/core';
+import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -32,11 +34,13 @@ import { ServerState } from './server-state.js';
 import { releaseLock, tryAcquireLock } from './utils/instance-lock.js';
 import { dispatchTool } from './audit-tool-dispatch.js';
 import { closeHttpServer, startServer as startHttpServer } from './http-server.js';
+import { createMementoMcpServer, MEMENTO_SERVER_INSTRUCTIONS } from './mcp-server-factory.js';
 
 const currentDbPath = (): string => expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath);
 
 // 전역 상태 및 인스턴스
 let server: Server;
+let stdioHandle: StdioServerHandle | null = null;
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
 let mgmtHttpServer: HttpServer | null = null;
@@ -70,9 +74,6 @@ const guardedStderrWrite = ((chunk: unknown, encoding?: BufferEncoding | ((err?:
   return originalStderrWrite(chunk as string | Uint8Array, encoding, cb);
 }) as typeof process.stderr.write;
 process.stderr.write = guardedStderrWrite;
-
-// 서버 지침
-const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors, extract_triples).`;
 
 /**
  * 무거운 초기화(DB·서비스)를 백그라운드에서 수행
@@ -145,14 +146,7 @@ function registerHandlers() {
  */
 export async function startServer() {
   try {
-    const transport = new StdioServerTransport();
-    server = new Server(
-      { name: 'memento-mcp-server', version: packageJson.version },
-      { 
-        capabilities: { tools: {}, resources: {}, prompts: {}, logging: {} },
-        instructions: MEMENTO_SERVER_INSTRUCTIONS
-      }
-    );
+    const mcpEra = parseMcpEraMode(process.env.MEMENTO_MCP_ERA);
 
     let resolveShutdown!: () => void;
     const shutdown = new Promise<void>((resolve) => { resolveShutdown = resolve; });
@@ -162,14 +156,35 @@ export async function startServer() {
       resolveShutdown();
       process.exit(0);
     };
-    server.onclose = () => { void handleShutdown('stdio close'); };
     // The SDK transport does not forward stdin EOF to Server.onclose.
     process.stdin.once('end', () => { void handleShutdown('stdio close'); });
     process.on('SIGINT', () => { void handleShutdown('SIGINT'); });
     process.on('SIGTERM', () => { void handleShutdown('SIGTERM'); });
 
-    registerHandlers();
-    await server.connect(transport);
+    if (mcpEra === 'legacy') {
+      const transport = new StdioServerTransport();
+      server = new Server(
+        { name: 'memento-mcp-server', version: packageJson.version },
+        {
+          capabilities: { tools: {}, resources: {}, prompts: {}, logging: {} },
+          instructions: MEMENTO_SERVER_INSTRUCTIONS,
+        },
+      );
+      server.onclose = () => { void handleShutdown('stdio close'); };
+      registerHandlers();
+      await server.connect(transport);
+    } else {
+      const factory = () => createMementoMcpServer({
+        readyPromise: initPromise,
+        getDb: () => db,
+        getServices: () => serverServices,
+      });
+      stdioHandle = serveStdio(factory, {
+        legacy: mcpEra === 'dual' ? 'serve' : 'reject',
+        onerror: (error) => mcpLogger.logServer('warn', `stdio transport error: ${error.message}`),
+      });
+    }
+
     if (shuttingDown) return shutdown;
     
     serverState.setMcpTransportConnected(true);
@@ -197,6 +212,10 @@ export function cleanup(): Promise<void> {
 async function performStdioCleanup(): Promise<void> {
   // Do not close the shared DB while initialization/listen is still using it.
   await heavyInitPromise;
+  if (stdioHandle) {
+    await stdioHandle.close();
+    stdioHandle = null;
+  }
   if (mgmtHttpServer) {
     const address = mgmtHttpServer.address();
     await closeHttpServer();
