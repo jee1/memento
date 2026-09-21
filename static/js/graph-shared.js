@@ -140,11 +140,19 @@
   };
 
   /**
-   * 다음 프레임에 콜백 실행. 브라우저 밖(테스트)에서는 동기 실행한다.
+   * 다음 페인트 이후에 콜백 실행. 브라우저 밖(테스트)에서는 동기 실행한다.
+   *
+   * rAF 콜백은 그 프레임의 페인트 '이전'에 돈다. 한 번만 감싸면 display 전환과
+   * textContent 주입이 브라우저 입장에서 같은 페인트에 합쳐질 수 있어, 스크린리더가
+   * "갱신 시점에 숨어 있던 요소"로 보고 announce 를 건너뛸 수 있다 (issue 955).
+   * 두 번 감싸면 첫 프레임이 display 전환을 페인트한 뒤 다음 프레임에서 텍스트가
+   * 들어간다 — 라이브 리전에 널리 쓰이는 이중 rAF 패턴이다.
    */
   ns.nextFrame = function nextFrame(callback) {
     if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(callback);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(callback);
+      });
       return;
     }
     callback();
