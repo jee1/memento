@@ -56,7 +56,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
     });
 
     expect(counts).toEqual([
-      ['incident_ops', 4],
+      ['incident_ops', 7],
       ['procedural', 6],
       ['conceptual', 10],
       ['tag_filter', 6],
@@ -87,7 +87,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
       expect(categoryToMacro.has(label)).toBe(true);
       expect(scored.has(q.query) || scored.has(q.query_id)).toBe(true);
     }
-    expect(queries).toHaveLength(26);
-    expect(loadBenchmarkGroundTruth(BENCHMARK_DIR)).toHaveLength(26);
+    expect(queries).toHaveLength(29);
+    expect(loadBenchmarkGroundTruth(BENCHMARK_DIR)).toHaveLength(29);
   });
 });

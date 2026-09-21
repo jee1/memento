@@ -34,14 +34,14 @@ describe('CategoryMetricsOptions (#961)', () => {
     aggregator = new CategoryQualityAggregator(db);
   });
 
-  it('maxGroundTruthLength: 1024 → query_count 합 21, coverage scored/authored = 1.0', async () => {
+  it('maxGroundTruthLength: 1024 → query_count 합 24, coverage scored/authored = 1.0', async () => {
     const reports = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
       maxGroundTruthLength: 1024,
     });
     const scored = reports.reduce((s, r) => s + r.query_count, 0);
     const authored = reports.reduce((s, r) => s + r.authored_query_count, 0);
-    expect(scored).toBe(21);
-    expect(authored).toBe(21);
+    expect(scored).toBe(24);
+    expect(authored).toBe(24);
     expect(scored / authored).toBe(1);
   });
 
@@ -49,7 +49,7 @@ describe('CategoryMetricsOptions (#961)', () => {
     const a = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH);
     const b = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {});
     expect(a).toEqual(b);
-    expect(a.reduce((s, r) => s + r.query_count, 0)).toBe(26);
+    expect(a.reduce((s, r) => s + r.query_count, 0)).toBe(29);
   });
 
   it('maxGroundTruthLength: 1 이면 4개 macro 행이 query_count: 0', async () => {
