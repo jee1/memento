@@ -35,6 +35,9 @@ import { BENCHMARK_V3_DIR } from './lib/rejection-baseline-database.js';
 
 const TOP_N = 20;
 const MRR_THRESHOLD = 0.5;
+const RECALL_DEPTHS = [10, 20, 50, 100] as const;
+type RecallDepth = (typeof RECALL_DEPTHS)[number];
+type RecallAtRecord = Record<'10' | '20' | '50' | '100', number>;
 
 const ALL_MACROS: MacroCategory[] = [
   'incident_ops',
@@ -58,6 +61,9 @@ export interface MaxsimQueryRow {
   mean_rank: number | null;
   maxsim_rank: number | null;
   rank_delta: number | null;
+  mean_rank_full: number | null;
+  maxsim_rank_full: number | null;
+  rank_full_delta: number | null;
 }
 
 /** issue 1107: macro_category 집계 행 */
@@ -79,7 +85,16 @@ export interface MaxsimReport {
   corpus: MaxsimCorpusStats;
   queries: MaxsimQueryRow[];
   macro: MaxsimMacroRow[];
-  overall: { mean_mrr: number; maxsim_mrr: number };
+  overall: {
+    mean_mrr: number;
+    maxsim_mrr: number;
+    mean_recall_at: RecallAtRecord;
+    maxsim_recall_at: RecallAtRecord;
+    /** how many ground-truth queries max-sim moved up / down / left unchanged, by full-corpus rank */
+    improved_count: number;
+    regressed_count: number;
+    unchanged_count: number;
+  };
 }
 
 interface CategoryMappingJson {
@@ -93,6 +108,8 @@ interface MaxsimPerQueryInput {
   queryText: string;
   meanRanking: Array<{ id: string; score: number }>;
   maxsimRanking: Array<{ id: string; score: number }>;
+  meanRankingFull: Array<{ id: string; score: number }>;
+  maxsimRankingFull: Array<{ id: string; score: number }>;
 }
 
 function loadCategoryMapping(benchmarkDir: string): CategoryMappingJson {
@@ -170,6 +187,20 @@ function findBestRank(
   return null;
 }
 
+function computeRecallAt(fullRanks: Array<number | null>): RecallAtRecord {
+  const denom = fullRanks.length;
+  const recall: RecallAtRecord = { '10': 0, '20': 0, '50': 0, '100': 0 };
+  if (denom === 0) {
+    return recall;
+  }
+  for (const depth of RECALL_DEPTHS) {
+    const key = String(depth) as `${RecallDepth}`;
+    recall[key] =
+      fullRanks.filter((rank) => rank !== null && rank <= depth).length / denom;
+  }
+  return recall;
+}
+
 function toSearchResults(
   ranking: Array<{ id: string; score: number }>
 ): SearchResult[] {
@@ -231,7 +262,12 @@ export function buildMaxsimReport(input: {
   const meanResultsMap = new Map<string, SearchResult[]>();
   const maxsimResultsMap = new Map<string, SearchResult[]>();
   const queryRows: MaxsimQueryRow[] = [];
+  const meanFullRanks: Array<number | null> = [];
+  const maxsimFullRanks: Array<number | null> = [];
   let unmappedCount = 0;
+  let improvedCount = 0;
+  let regressedCount = 0;
+  let unchangedCount = 0;
 
   for (const groundTruth of groundTruths) {
     const queryRow = queryByText.get(groundTruth.queryId);
@@ -252,15 +288,44 @@ export function buildMaxsimReport(input: {
 
     let meanRank: number | null = null;
     let maxsimRank: number | null = null;
+    let meanRankFull: number | null = null;
+    let maxsimRankFull: number | null = null;
     if (perQueryRow) {
       meanRank = findBestRank(perQueryRow.meanRanking, groundTruth.relevantIds, TOP_N);
       maxsimRank = findBestRank(perQueryRow.maxsimRanking, groundTruth.relevantIds, TOP_N);
+      meanRankFull = findBestRank(
+        perQueryRow.meanRankingFull,
+        groundTruth.relevantIds,
+        perQueryRow.meanRankingFull.length
+      );
+      maxsimRankFull = findBestRank(
+        perQueryRow.maxsimRankingFull,
+        groundTruth.relevantIds,
+        perQueryRow.maxsimRankingFull.length
+      );
       meanResultsMap.set(groundTruth.queryId, toSearchResults(perQueryRow.meanRanking));
       maxsimResultsMap.set(groundTruth.queryId, toSearchResults(perQueryRow.maxsimRanking));
     }
 
+    meanFullRanks.push(meanRankFull);
+    maxsimFullRanks.push(maxsimRankFull);
+
     const rankDelta =
       meanRank !== null && maxsimRank !== null ? meanRank - maxsimRank : null;
+    const rankFullDelta =
+      meanRankFull !== null && maxsimRankFull !== null
+        ? meanRankFull - maxsimRankFull
+        : null;
+
+    if (rankFullDelta !== null) {
+      if (rankFullDelta > 0) {
+        improvedCount++;
+      } else if (rankFullDelta < 0) {
+        regressedCount++;
+      } else {
+        unchangedCount++;
+      }
+    }
 
     queryRows.push({
       query_id: resolvedQueryId,
@@ -269,6 +334,9 @@ export function buildMaxsimReport(input: {
       mean_rank: meanRank,
       maxsim_rank: maxsimRank,
       rank_delta: rankDelta,
+      mean_rank_full: meanRankFull,
+      maxsim_rank_full: maxsimRankFull,
+      rank_full_delta: rankFullDelta,
     });
   }
 
@@ -333,6 +401,11 @@ export function buildMaxsimReport(input: {
     overall: {
       mean_mrr: calculateMRR(meanResultsMap, groundTruths),
       maxsim_mrr: calculateMRR(maxsimResultsMap, groundTruths),
+      mean_recall_at: computeRecallAt(meanFullRanks),
+      maxsim_recall_at: computeRecallAt(maxsimFullRanks),
+      improved_count: improvedCount,
+      regressed_count: regressedCount,
+      unchanged_count: unchangedCount,
     },
   };
 }
@@ -414,6 +487,8 @@ export async function runMaxsimMeasurement(options?: {
         queryText: groundTruth.queryId,
         meanRanking: rankByScore(scored, 'meanScore', TOP_N),
         maxsimRanking: rankByScore(scored, 'maxsimScore', TOP_N),
+        meanRankingFull: rankByScore(scored, 'meanScore', scored.length),
+        maxsimRankingFull: rankByScore(scored, 'maxsimScore', scored.length),
       });
     }
 

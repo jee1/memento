@@ -20,6 +20,27 @@ function makeRanking(ids: string[]): Array<{ id: string; score: number }> {
   return ids.map((id, index) => ({ id, score: 1 - index * 0.01 }));
 }
 
+function makeFullRankingWithAnswerAt(
+  corpusSize: number,
+  answerId: string,
+  answerRank: number
+): Array<{ id: string; score: number }> {
+  const ranking: Array<{ id: string; score: number }> = [];
+  let noise = 0;
+  for (let rank = 1; rank <= corpusSize; rank++) {
+    if (rank === answerRank) {
+      ranking.push({ id: answerId, score: 1 });
+    } else {
+      ranking.push({
+        id: `bench_noise_full_${String(noise).padStart(4, '0')}`,
+        score: 1 - rank * 0.0001,
+      });
+      noise++;
+    }
+  }
+  return ranking;
+}
+
 describe('quality-benchmark-maxsim (issue 1107)', () => {
   it('registers benchmark:maxsim in quality CLI', () => {
     const command = resolveQualityCommand(['benchmark:maxsim']);
@@ -47,24 +68,39 @@ describe('quality-benchmark-maxsim (issue 1107)', () => {
 
     const filler = Array.from({ length: 20 }, (_, index) => `bench_noise_${String(index).padStart(4, '0')}`);
 
+    const q001MeanRanking = makeRanking([
+      ...filler.slice(0, 1),
+      gt001!.relevantIds[0]!,
+      ...filler.slice(1, 20),
+    ]);
+    const q001MaxsimRanking = makeRanking([gt001!.relevantIds[0]!, ...filler]);
+    const q002Ranking = makeRanking([gt002!.relevantIds[0]!, ...filler.slice(0, 19)]);
+    const q003Ranking = makeRanking(filler);
+
     const perQuery = [
       {
         queryId: q001!.query_id,
         queryText: q001!.query,
-        meanRanking: makeRanking([...filler.slice(0, 1), gt001!.relevantIds[0]!, ...filler.slice(1, 20)]),
-        maxsimRanking: makeRanking([gt001!.relevantIds[0]!, ...filler]),
+        meanRanking: q001MeanRanking,
+        maxsimRanking: q001MaxsimRanking,
+        meanRankingFull: q001MeanRanking,
+        maxsimRankingFull: q001MaxsimRanking,
       },
       {
         queryId: q002!.query_id,
         queryText: q002!.query,
-        meanRanking: makeRanking([gt002!.relevantIds[0]!, ...filler.slice(0, 19)]),
-        maxsimRanking: makeRanking([gt002!.relevantIds[0]!, ...filler.slice(0, 19)]),
+        meanRanking: q002Ranking,
+        maxsimRanking: q002Ranking,
+        meanRankingFull: q002Ranking,
+        maxsimRankingFull: q002Ranking,
       },
       {
         queryId: q003!.query_id,
         queryText: q003!.query,
-        meanRanking: makeRanking(filler),
-        maxsimRanking: makeRanking(filler),
+        meanRanking: q003Ranking,
+        maxsimRanking: q003Ranking,
+        meanRankingFull: q003Ranking,
+        maxsimRankingFull: q003Ranking,
       },
     ];
 
@@ -133,6 +169,83 @@ describe('quality-benchmark-maxsim (issue 1107)', () => {
     expect(report.overall.maxsim_mrr).toBe(expectedMaxsimMrr);
     expect(expectedMeanMrr).toBeCloseTo(1.5 / groundTruths.length, 10);
     expect(expectedMaxsimMrr).toBeCloseTo(2 / groundTruths.length, 10);
+  });
+
+  it('buildMaxsimReport exposes full-corpus ranks and recall@k when answer is outside top 20', () => {
+    const queries = loadBenchmarkQueries(BENCHMARK_V3_DIR);
+    const groundTruths = loadBenchmarkGroundTruth(BENCHMARK_V3_DIR).filter(
+      (groundTruth) => groundTruth.relevantIds.length > 0
+    );
+    const q001 = queries.find((query) => query.query_id === 'q_001');
+    expect(q001).toBeDefined();
+
+    const gt001 = groundTruths.find((groundTruth) => groundTruth.queryId === q001!.query);
+    expect(gt001?.relevantIds[0]).toBe('bench_syn_ans_0001');
+
+    const answerId = gt001!.relevantIds[0]!;
+    const corpusSize = 350;
+    const filler = Array.from({ length: 19 }, (_, index) =>
+      `bench_noise_${String(index).padStart(4, '0')}`
+    );
+    const meanRankingFull = makeFullRankingWithAnswerAt(corpusSize, answerId, 300);
+    const maxsimRankingFull = makeFullRankingWithAnswerAt(corpusSize, answerId, 12);
+    const meanRanking = makeRanking(filler);
+    const maxsimRanking = makeRanking([...filler.slice(0, 11), answerId, ...filler.slice(11)]);
+
+    const perQuery = groundTruths.map((groundTruth) => {
+      if (groundTruth.queryId === q001!.query) {
+        return {
+          queryId: q001!.query_id,
+          queryText: q001!.query,
+          meanRanking,
+          maxsimRanking,
+          meanRankingFull,
+          maxsimRankingFull,
+        };
+      }
+      const noiseId = `bench_placeholder_${groundTruth.queryId}`;
+      const placeholderRanking = makeRanking([noiseId, ...filler.slice(0, 19)]);
+      return {
+        queryId: groundTruth.queryId,
+        queryText: groundTruth.queryId,
+        meanRanking: placeholderRanking,
+        maxsimRanking: placeholderRanking,
+        meanRankingFull: placeholderRanking,
+        maxsimRankingFull: placeholderRanking,
+      };
+    });
+
+    const report = buildMaxsimReport({
+      benchmarkDir: BENCHMARK_V3_DIR,
+      model: 'minilm',
+      corpusStats: {
+        documentCount: corpusSize,
+        multiWindowDocumentCount: 0,
+        totalWindowVectors: corpusSize,
+        maxWindowCount: 1,
+        indexGrowthPercent: 0,
+        reproductionMismatchCount: 0,
+        elapsedMs: 1,
+      },
+      perQuery,
+    });
+
+    const row001 = report.queries.find((row) => row.query_id === 'q_001');
+    expect(row001?.mean_rank).toBeNull();
+    expect(row001?.maxsim_rank).toBe(12);
+    expect(row001?.mean_rank_full).toBe(300);
+    expect(row001?.maxsim_rank_full).toBe(12);
+    expect(row001?.rank_full_delta).toBe(288);
+
+    expect(report.overall.improved_count).toBeGreaterThanOrEqual(1);
+    expect(
+      report.queries.filter((row) => row.rank_full_delta !== null && row.rank_full_delta > 0).length
+    ).toBe(report.overall.improved_count);
+
+    expect(report.overall.maxsim_recall_at['100']).toBeGreaterThan(
+      report.overall.mean_recall_at['100']
+    );
+    expect(report.overall.maxsim_recall_at['10']).toBe(report.overall.mean_recall_at['10']);
   });
 
   it('scoreCorpus prefers matching window over mean pooling and rankByScore breaks ties by benchmarkId', () => {
