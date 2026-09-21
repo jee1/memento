@@ -3,12 +3,27 @@ import type { Request, Response } from 'express';
 import type Database from 'better-sqlite3';
 import { startInterval } from '../../../infrastructure/scheduler/interval.js';
 import type { ServerServices } from '../../bootstrap.js';
-import { logger, mementoConfig } from '@memento/core';
+import {
+  isLegacyMcpServiceEnabled,
+  isModernMcpServiceEnabled,
+  logger,
+  mementoConfig,
+} from '@memento/core';
 import { buildMcpManualCorsHeaders } from '../../utils/cors-policy.js';
 import { createJsonRpcError, isInitializeRequest, isJsonRpcNotification } from './json-rpc.js';
-import { processMcpMessage } from './message-processor.js';
+import {
+  getDiscoverSupportedVersions,
+  processMcpMessage,
+} from './message-processor.js';
+import {
+  hasModernProtocolClaim,
+  isJsonRpcRequestObject,
+  mapModernJsonRpcErrorHttpStatus,
+  validateModernRequest,
+} from './modern-request-validation.js';
+import { applyModernSuccessEnvelope } from './modern-response.js';
 import type { ToolAuditContext } from '../../audit-tool-dispatch.js';
-import type { McpRequestMessage, SSETransport } from './types.js';
+import type { JsonRpcResponse, SSETransport } from './types.js';
 
 export type ApplyMcpCorsHeaders = (req: Request, res: Response) => void;
 
@@ -36,7 +51,7 @@ export async function handleMcpSseConnection(
       protocolVersion: protocolVersionHeader
     });
     applyMcpCorsHeaders(req, res);
-    res.status(405).end();
+    sendModernHttpMethodNotAllowed(res);
     return;
   }
 
@@ -111,18 +126,117 @@ function registerSseCleanup(
   });
 }
 
+function sendLegacyJsonRpc(res: Response, payload: JsonRpcResponse): void {
+  res.type('application/json').status(200).json(payload);
+}
+
+function sendModernJsonRpc(res: Response, payload: JsonRpcResponse): void {
+  const httpStatus = payload.error
+    ? mapModernJsonRpcErrorHttpStatus(payload.error.code)
+    : 200;
+  res.type('application/json').status(httpStatus).json(payload);
+}
+
+function resolveJsonRpcRequestId(body: unknown): unknown {
+  if (isJsonRpcRequestObject(body) && Object.prototype.hasOwnProperty.call(body, 'id')) {
+    return body.id ?? null;
+  }
+  return null;
+}
+
+function sendInvalidJsonRpcBody(req: Request, res: Response, body: unknown): void {
+  const modernPath = isModernProtocolHttpRequest(req) || hasModernProtocolClaim(body);
+  const id = resolveJsonRpcRequestId(body);
+
+  if (modernPath) {
+    sendModernJsonRpc(
+      res,
+      createJsonRpcError(id, -32602, 'Invalid params: request body must be a JSON-RPC object'),
+    );
+    return;
+  }
+
+  sendLegacyJsonRpc(res, createJsonRpcError(id, -32600, 'Invalid Request'));
+}
+
+function sendModernHttpMethodNotAllowed(res: Response): void {
+  res.setHeader('Allow', 'POST');
+  res.status(405).end();
+}
+
+export function isModernProtocolHttpRequest(req: Request): boolean {
+  return Boolean(req.get('mcp-protocol-version'));
+}
+
+export async function handleMcpModernMethodNotAllowed(
+  req: Request,
+  res: Response
+): Promise<void> {
+  applyMcpCorsHeaders(req, res);
+  if (!isModernProtocolHttpRequest(req)) {
+    res.status(404).end();
+    return;
+  }
+  sendModernHttpMethodNotAllowed(res);
+}
+
 export async function handleStreamableMcpPost(
   req: Request,
   res: Response,
   db: Database.Database | null,
   serverServices: ServerServices | null
 ): Promise<void> {
-  logger.info('MCP streamable_http request received', { method: req.body?.method });
   applyMcpCorsHeaders(req, res);
 
-  const message = req.body as McpRequestMessage;
+  const body = req.body;
+  if (!isJsonRpcRequestObject(body)) {
+    sendInvalidJsonRpcBody(req, res, body);
+    return;
+  }
+
+  const message = body;
+  logger.info('MCP streamable_http request received', { method: message.method });
   const notificationOnly = isJsonRpcNotification(message);
-  if (isInitializeRequest(message) && !req.get('mcp-session-id')) {
+  const modernClaim = hasModernProtocolClaim(message);
+  const eraMode = mementoConfig.mcpEra;
+
+  if (modernClaim) {
+    if (!isModernMcpServiceEnabled(eraMode)) {
+      const unsupported = createJsonRpcError(message.id ?? null, -32022, 'Unsupported protocol version', {
+        supported: getDiscoverSupportedVersions(),
+      });
+      if (notificationOnly) {
+        res.status(400).end();
+        return;
+      }
+      sendModernJsonRpc(res, unsupported);
+      return;
+    }
+
+    const validationFailure = validateModernRequest(req, message, getDiscoverSupportedVersions());
+    if (validationFailure) {
+      if (notificationOnly) {
+        res.status(validationFailure.httpStatus).end();
+        return;
+      }
+      sendModernJsonRpc(res, validationFailure.response);
+      return;
+    }
+  } else if (!isLegacyMcpServiceEnabled(eraMode)) {
+    const errorResponse = createJsonRpcError(message.id ?? null, -32601, 'Method not found');
+    if (notificationOnly) {
+      res.status(404).end();
+      return;
+    }
+    sendModernJsonRpc(res, errorResponse);
+    return;
+  }
+
+  if (
+    !modernClaim &&
+    isInitializeRequest(message) &&
+    !req.get('mcp-session-id')
+  ) {
     res.setHeader('mcp-session-id', randomUUID());
   }
 
@@ -132,12 +246,20 @@ export async function handleStreamableMcpPost(
       actorId: req.programmaticAuth?.keyId,
       agentId: req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
     };
-    const result = await processMcpMessage(message, db, serverServices, auditContext);
+    const result = await processMcpMessage(message, db, serverServices, auditContext, {
+      modernEra: modernClaim,
+    });
     if (notificationOnly) {
       res.status(202).end();
       return;
     }
-    res.type('application/json').status(200).json(result);
+
+    if (modernClaim) {
+      sendModernJsonRpc(res, applyModernSuccessEnvelope(result));
+      return;
+    }
+
+    sendLegacyJsonRpc(res, result);
   } catch (error) {
     logger.error('MCP streamable_http processing failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -152,7 +274,11 @@ export async function handleStreamableMcpPost(
       'Internal error',
       error instanceof Error ? error.message : 'Unknown error'
     );
-    res.type('application/json').status(200).json(errorResponse);
+    if (modernClaim) {
+      sendModernJsonRpc(res, errorResponse);
+      return;
+    }
+    sendLegacyJsonRpc(res, errorResponse);
   }
 }
 

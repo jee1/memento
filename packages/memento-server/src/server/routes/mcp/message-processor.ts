@@ -15,10 +15,15 @@ import {
   type ToolAuditContext,
 } from '../../audit-tool-dispatch.js';
 import {
+  isModernMcpServiceEnabled,
+  mementoConfig,
+} from '@memento/core';
+import {
   LATEST_PROTOCOL_VERSION,
   SUPPORTED_PROTOCOL_VERSIONS,
 } from '@modelcontextprotocol/sdk/types.js';
 import packageJson from '../../../../package.json' with { type: 'json' };
+import { MODERN_PROTOCOL_VERSION } from './modern-request-validation.js';
 import { createJsonRpcError } from './json-rpc.js';
 import type { JsonRpcResponse, McpRequestMessage } from './types.js';
 
@@ -34,6 +39,13 @@ const SERVER_DISCOVER_INSTRUCTIONS =
   'Memento는 AI 에이전트의 기억을 저장·검색·망각하는 MCP 서버입니다. ' +
   'remember 로 기억을 저장하고 recall 로 검색하며, 오래되고 참조되지 않은 기억은 자동으로 망각됩니다. ' +
   '사용 가능한 도구 목록은 tools/list 로 확인하십시오.';
+
+export function getDiscoverSupportedVersions(): string[] {
+  if (isModernMcpServiceEnabled(mementoConfig.mcpEra)) {
+    return [MODERN_PROTOCOL_VERSION, ...SUPPORTED_PROTOCOL_VERSIONS];
+  }
+  return [...SUPPORTED_PROTOCOL_VERSIONS];
+}
 
 type MemoryResourceListRow = {
   id: string;
@@ -73,7 +85,12 @@ export async function processMcpMessage(
   db: Database.Database | null,
   serverServices: ServerServices | null,
   auditContext: ToolAuditContext = { transport: 'mcp_http' },
+  options: { modernEra?: boolean } = {},
 ): Promise<JsonRpcResponse> {
+  if (options.modernEra && message.method === 'initialize') {
+    return createJsonRpcError(message.id, -32601, 'Method not found');
+  }
+
   if (message.method === 'initialize') {
     // 클라이언트가 요청한 버전을 지원하면 그대로 돌려준다. 예전에는 무엇을 받든
     // '2024-11-05' 를 돌려줘서, 최신 버전을 요청한 클라이언트를 조용히 끌어내렸다.
@@ -104,15 +121,13 @@ export async function processMcpMessage(
     // 2026-07-28 이 MUST 로 요구하는 메서드. modern 클라이언트가 핸드셰이크 없이
     // 지원 버전을 확인하고, 없으면 legacy initialize 로 폴백할 수 있게 한다.
     //
-    // supportedVersions 는 SDK 가 실제로 아는 목록을 그대로 광고한다. '2026-07-28' 을
-    // 끼워 넣지 않는다 — 이 서버에는 요청별 _meta 를 처리하는 modern 경로가 아직 없고,
-    // 지원하지 않는 버전을 광고하는 것이 Phase 0 에서 고친 바로 그 버그다 (#840).
+    // modern 경로가 활성일 때만 2026-07-28 을 광고한다 (#840 Phase 1b).
     logger.info('MCP server/discover request processing');
     return {
       jsonrpc: '2.0',
       id: message.id,
       result: {
-        supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+        supportedVersions: getDiscoverSupportedVersions(),
         capabilities: MCP_CAPABILITIES,
         instructions: SERVER_DISCOVER_INSTRUCTIONS,
         _meta: {

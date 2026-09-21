@@ -14,6 +14,7 @@ import {
   parseRememberDedupMode,
   parseRememberDedupThreshold,
 } from '../utils/remember-dedup-config.js';
+import { parseMcpEraMode } from '../utils/mcp-era-mode.js';
 import { parseTypeParamMode } from '../utils/type-param-validator.js';
 import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
 import { resolveApiTokens } from './api-tokens.js';
@@ -193,6 +194,7 @@ export const mementoConfig: MementoConfig = {
   rememberDedupMode: parseRememberDedupMode(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MODE')),
   rememberDedupLexicalFloor: parseRememberDedupLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR')),
   rememberDedupMergeLexicalFloor: parseRememberDedupMergeLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR')),
+  mcpEra: parseMcpEraMode(getRawEnvValue('MEMENTO_MCP_ERA')),
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

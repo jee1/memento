@@ -139,6 +139,8 @@ export interface MementoConfig {
   rememberDedupMode: 'warn' | 'strict' | 'off';
   rememberDedupLexicalFloor: number;
   rememberDedupMergeLexicalFloor: number;
+  /** HTTP MCP dual-era rollback gate (#840). Env: MEMENTO_MCP_ERA */
+  mcpEra: 'dual' | 'legacy' | 'modern';
 }
 
 export type UpdateMode = 'replace' | 'incremental' | 'versioned';

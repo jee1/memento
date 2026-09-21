@@ -25,8 +25,9 @@ export function buildMcpManualCorsHeaders(
 ): Record<string, string> {
   const allow = resolveCorsAllowOrigin(requestOrigin, allowedOrigins);
   const headers: Record<string, string> = {
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Headers':
+      'Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Method, Mcp-Name',
+    'Access-Control-Allow-Methods': 'DELETE, GET, POST, OPTIONS',
   };
   if (allowedOrigins.length > 0) {
     headers.Vary = 'Origin';
