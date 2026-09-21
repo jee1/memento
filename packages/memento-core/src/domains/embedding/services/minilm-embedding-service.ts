@@ -274,6 +274,32 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   }
 
   /**
+   * 윈도별 임베딩 벡터를 생성한다.
+   *
+   * 토크나이저로 윈도를 나눌 수 없으면 전체 텍스트를 한 번 임베딩해 벡터 배열 길이 1을 반환한다.
+   */
+  private async embedWindows(
+    model: FeatureExtractionModel,
+    processedText: string
+  ): Promise<{ vectors: number[][]; tokenCount: number }> {
+    const windows = await this.splitIntoWindows(model, processedText);
+    if (windows === null) {
+      const result = await model(processedText, { pooling: 'mean', normalize: true });
+      return {
+        vectors: [Array.from(getEmbeddingIterable(result))],
+        tokenCount: estimateEmbeddingTokens(processedText)
+      };
+    }
+
+    const vectors: number[][] = [];
+    for (const window of windows.texts) {
+      const result = await model(window, { pooling: 'mean', normalize: true });
+      vectors.push(Array.from(getEmbeddingIterable(result)));
+    }
+    return { vectors, tokenCount: windows.tokenCount };
+  }
+
+  /**
    * 본문을 모델 창(510토큰) 단위로 나눠 각각 임베딩한 뒤 평균 내어 하나의 벡터로 만든다 (#1013).
    *
    * 왜 필요한가? 예전에는 앞 1024자만 넘겼는데 한국어는 2.124 chars/token 이라 그게 약 493토큰이었다.
@@ -286,21 +312,22 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     model: FeatureExtractionModel,
     text: string
   ): Promise<{ embedding: number[]; tokenCount: number }> {
-    const windows = await this.splitIntoWindows(model, text);
-    if (windows === null) {
-      const result = await model(text, { pooling: 'mean', normalize: true });
-      return {
-        embedding: Array.from(getEmbeddingIterable(result)),
-        tokenCount: estimateEmbeddingTokens(text)
-      };
-    }
+    const result = await this.embedWindows(model, text);
+    return { embedding: meanPoolNormalize(result.vectors), tokenCount: result.tokenCount };
+  }
 
-    const vectors: number[][] = [];
-    for (const window of windows.texts) {
-      const result = await model(window, { pooling: 'mean', normalize: true });
-      vectors.push(Array.from(getEmbeddingIterable(result)));
-    }
-    return { embedding: meanPoolNormalize(vectors), tokenCount: windows.tokenCount };
+  /**
+   * 윈도별 임베딩 벡터를 반환한다 (issue 1107).
+   *
+   * generateEmbedding 과 달리 윈도마다의 벡터를 그대로 노출한다. MaxSim 등 윈도 단위 유사도 계산용 public seam.
+   * EmbeddingServiceInterface 에는 포함하지 않는 MiniLM 전용 API다.
+   */
+  async generateWindowEmbeddings(text: string): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
+    this.validateInput(text);
+    const model = await this.getModel();
+    const processedText = this.preprocessText(text);
+    const { vectors, tokenCount } = await this.embedWindows(model, processedText);
+    return { vectors, tokenCount, model: this.modelName };
   }
 
   /**

@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MiniLMEmbeddingService } from '../minilm-embedding-service.js';
+import { meanPoolNormalize } from '../embedding-helpers.js';
 
 describe('MiniLMEmbeddingService', () => {
   let service: MiniLMEmbeddingService;
@@ -68,6 +69,93 @@ describe('MiniLMEmbeddingService', () => {
       expect(modelInfo).toBeDefined();
       expect(modelInfo.dimensions).toBe(384);
       expect(modelInfo.model).toBe('paraphrase-multilingual-MiniLM-L12-v2');
+    });
+  });
+
+  describe('generateWindowEmbeddings', () => {
+    const WINDOW_TOKENS = 510;
+
+    function createMockVector(seed: number): number[] {
+      const vector = new Array(384).fill(0);
+      vector[0] = seed;
+      vector[1] = seed / 10;
+      return vector;
+    }
+
+    function installMockModel(options: { tokenCount: number; withTokenizer: boolean; stableVector?: boolean }) {
+      let callIndex = 0;
+      const modelFn = vi.fn().mockImplementation(async () => {
+        const seed = options.stableVector ? 1 : callIndex + 1;
+        if (!options.stableVector) {
+          callIndex += 1;
+        }
+        return { data: createMockVector(seed) };
+      });
+
+      const model = modelFn as ReturnType<typeof vi.fn> & {
+        tokenizer?: {
+          (text: string, options?: Record<string, unknown>): Promise<{ input_ids: { data: number[] } }>;
+          decode: (ids: number[], options?: { skip_special_tokens?: boolean }) => string;
+        };
+      };
+
+      if (options.withTokenizer) {
+        const ids = Array.from({ length: options.tokenCount }, (_, index) => index + 1);
+        const tokenizer = Object.assign(
+          vi.fn().mockImplementation(async () => ({ input_ids: { data: ids } })),
+          {
+            decode: vi.fn().mockImplementation((slice: number[]) => `window-${slice.length}-${slice[0] ?? 0}`)
+          }
+        );
+        model.tokenizer = tokenizer;
+      }
+
+      (service as unknown as { model: unknown }).model = model;
+      return modelFn;
+    }
+
+    it('Given: 짧은 텍스트(단일 윈도), When: generateWindowEmbeddings 호출, Then: vectors 길이 1이고 meanPoolNormalize가 generateEmbedding과 같아야 함', async () => {
+      installMockModel({ tokenCount: 100, withTokenizer: true, stableVector: true });
+
+      const text = 'hello world';
+      const windowResult = await service.generateWindowEmbeddings(text);
+      service.clearCache();
+      const embeddingResult = await service.generateEmbedding(text);
+
+      expect(windowResult.vectors).toHaveLength(1);
+      expect(windowResult.vectors[0]).toHaveLength(384);
+      expect(windowResult.model).toBe('paraphrase-multilingual-MiniLM-L12-v2');
+      expect(meanPoolNormalize(windowResult.vectors)).toEqual(embeddingResult?.embedding);
+    });
+
+    it('Given: 여러 윈도로 나뉘는 긴 텍스트, When: generateWindowEmbeddings 호출, Then: vectors 길이가 윈도 수와 같고 각 벡터는 384차원이어야 함', async () => {
+      const tokenCount = WINDOW_TOKENS * 3;
+      installMockModel({ tokenCount, withTokenizer: true });
+      const expectedWindows = Math.ceil(tokenCount / WINDOW_TOKENS);
+
+      const windowResult = await service.generateWindowEmbeddings('long document text');
+
+      expect(windowResult.vectors).toHaveLength(expectedWindows);
+      for (const vector of windowResult.vectors) {
+        expect(vector).toHaveLength(384);
+      }
+      expect(windowResult.tokenCount).toBe(tokenCount);
+    });
+
+    it('Given: 토크나이저를 사용할 수 없을 때, When: generateWindowEmbeddings 호출, Then: vectors 길이 1이어야 함', async () => {
+      installMockModel({ tokenCount: WINDOW_TOKENS * 3, withTokenizer: false });
+
+      const windowResult = await service.generateWindowEmbeddings('tokenizer unavailable path');
+
+      expect(windowResult.vectors).toHaveLength(1);
+      expect(windowResult.vectors[0]).toHaveLength(384);
+    });
+
+    it('Given: 빈 문자열 또는 공백만 있는 텍스트, When: generateWindowEmbeddings 호출, Then: generateEmbedding과 같이 거절해야 함', async () => {
+      await expect(service.generateWindowEmbeddings('')).rejects.toThrow('텍스트가 비어있습니다');
+      await expect(service.generateWindowEmbeddings('   ')).rejects.toThrow('텍스트가 비어있습니다');
+      await expect(service.generateEmbedding('')).rejects.toThrow('텍스트가 비어있습니다');
+      await expect(service.generateEmbedding('   ')).rejects.toThrow('텍스트가 비어있습니다');
     });
   });
 });
