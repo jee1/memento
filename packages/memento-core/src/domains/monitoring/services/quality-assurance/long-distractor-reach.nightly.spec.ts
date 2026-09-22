@@ -5,17 +5,32 @@
  * Two kinds of assertion live here and they fail for different reasons (#1103):
  *
  *  (A) instrument liveness — does the distractor reach the vector channel at all?
- *      Blocked on #1107: under MiniLM 16-window mean pooling a ~12,000 character
- *      document cannot compete with short ones no matter what it says. Measured:
- *      filling a distractor with nothing but its own query text tops out at
- *      cosine 0.4773 against a rank-40 floor of 0.4416, and a 12,000 character
- *      document built from the 60 most similar real corpus documents scores
- *      0.3094. Five of the eight distractors miss the top 40 at their ceiling.
- *      Do not retune the fixtures to make these green — the ceiling is the
- *      embedder, not the text.
+ *      #1112 closed #1107 and removed the mean-pooling ceiling: every long
+ *      distractor now gets its own window rows (0001→8, 0002→7, 0003→8, 0004→7,
+ *      0008→7, 0009→9, 0010→9, 0011→8 on benchmark-v3). Measured 2026-09-22 at
+ *      b31843d9: 0008, 0010 and 0011 reach the result list; 0001, 0002, 0003,
+ *      0004 and 0009 do not appear in the top 20 at all. What is left is the
+ *      distractor text, not the index — after #973 removed the answer-key leak
+ *      these bodies are no longer near-clones of their queries.
+ *      Do not retune thresholds or re-add exemptions to make these green.
+ *
+ *      0011 is not stable. Four runs against one seeded DB gave vectorScore
+ *      0.2029604979788522, then 0, then two passes. Treat a single green run
+ *      here as noise. The likely cause is that this file never measures the
+ *      vector channel alone: every search logs AdaptiveWeightCalculator
+ *      rewriting the requested vectorWeight 1 / textWeight 0 to 0.8 / 0.2, so a
+ *      document can enter result.items through FTS with vectorScore 0. Fixing
+ *      that override is a prerequisite for rebaselining (A), and is tracked in
+ *      #1103.
  *
  *  (B) product ranking — answer above distractor, and no cross-contamination.
  *      Real ranking defects. Tracked in #922 / #1095. Do not relax these.
+ *
+ * Seeding: scripts/seed-benchmark-db.ts imports @memento/core from dist, and only
+ * vitest maps that specifier to src. Seeding without `npm run build -w @memento/core`
+ * first produces no window rows at all, and this file then measures pre-#1112
+ * behaviour — 10 failures instead of 8, with no error to say so.
+ * benchmark-search-database.ts fails closed on that since #1103.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { existsSync, mkdtempSync, writeFileSync, readFileSync } from 'fs';
@@ -90,12 +105,6 @@ const PAIRS: Array<{
   },
 ];
 
-/**
- * fill()-only tip cannot clear these queries' corpus top-40 floor without ZWSP/nbsp
- * (린트 rank40≈0.54; 임베딩 answer also cannot clear ≈0.45). Documented C1 misses.
- */
-const KNOWN_VECTOR_MISS = new Set(['bench_syn_long_0004', 'bench_syn_long_0011']);
-
 describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
   'long distractor vector reach (#961)',
   () => {
@@ -149,7 +158,7 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
       resetRankingWeightsCache();
     });
 
-    describe('(A) instrument liveness — blocked on #1107', () => {
+    describe('(A) instrument liveness', () => {
       for (const pair of PAIRS) {
         it(`${pair.distractorId} reaches vector channel under ${pair.query}`, async () => {
           applyK40();
@@ -175,12 +184,6 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
           expect(answerIdx).toBeGreaterThanOrEqual(0);
 
           const distractor = result.items[distractorIdx]!;
-
-          if (KNOWN_VECTOR_MISS.has(pair.distractorId)) {
-            // Honest miss: fill() tip cannot clear top-40 without ZWSP (#961 C1).
-            expect(distractor.vectorScore ?? 0).toBe(0);
-            return;
-          }
 
           expect(distractor.vectorScore).toBeGreaterThan(0);
           expect(distractorIdx).toBeLessThan(10);
@@ -213,7 +216,7 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
           // The answer must be retrievable at all — that is a product requirement.
           expect(answerIdx).toBeGreaterThanOrEqual(0);
           // A distractor that never reached the candidate set is not competing for
-          // rank. That is (A)'s problem (#1107), not a ranking defect — skip here.
+          // rank. That is (A)'s problem (#1103), not a ranking defect — skip here.
           if (distractorIdx < 0) {
             return;
           }
