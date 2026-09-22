@@ -53,6 +53,12 @@ class DefaultSearchLogger implements ISearchLogger {
 export interface CreateDefaultHybridEngineOptions {
   /** 지정 시 해당 TOML에서 랭킹 가중치 로드 (미지정 시 기본 config/ranking-weights.toml 등) */
   rankingWeightsPath?: string;
+  /**
+   * 지정 시 AdaptiveWeightCalculator 대신 사용한다 (#1103).
+   * 호출자가 준 vectorWeight/textWeight 를 그대로 쓰고 싶은 측정 경로를 위한 주입구다.
+   * 미지정이면 기존과 동일하게 AdaptiveWeightCalculator 를 쓴다 — 제품 동작 불변.
+   */
+  weightCalculator?: IAdaptiveWeightCalculator;
 }
 
 export class HybridSearchFactory {
@@ -68,7 +74,7 @@ export class HybridSearchFactory {
     const emb = embeddingService ?? new MemoryEmbeddingService();
     const vectorSearchEngine = new VectorSearchEngine();
     const resultCombiner = new SearchResultCombiner();
-    const weightCalculator = new AdaptiveWeightCalculator();
+    const weightCalculator = options?.weightCalculator ?? new AdaptiveWeightCalculator();
     const searchLogger = new DefaultSearchLogger();
 
     return new HybridSearchEngine(

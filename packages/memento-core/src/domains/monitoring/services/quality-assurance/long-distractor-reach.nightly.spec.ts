@@ -43,6 +43,7 @@ import {
 } from '../../../../infrastructure/database/sqlite/init.js';
 import { createSeededBenchmarkDatabase } from '../../../../../../../scripts/lib/benchmark-search-database.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
+import type { IAdaptiveWeightCalculator, HybridWeights } from '../../../search/algorithms/hybrid-search-types.js';
 import { resetRankingWeightsCache } from '../../../../shared/config/ranking-weights-loader.js';
 import { getBenchmarkVectorProviderFilter } from '../../../../shared/types/benchmark.types.js';
 import {
@@ -105,6 +106,21 @@ const PAIRS: Array<{
   },
 ];
 
+/**
+ * 호출자가 준 가중치를 그대로 쓴다 (#1103).
+ *
+ * AdaptiveWeightCalculator 는 `isPhrase`(3단어 이상) 분기에서 vectorWeight 1 / textWeight 0 을
+ * 0.8 / 0.2 로 다시 쓴다. 그러면 이 파일이 재는 것은 벡터 채널이 아니라 하이브리드 결과가 되고,
+ * 문서가 FTS 로 들어와 vectorScore 0 을 갖는 일이 생긴다.
+ */
+class PassThroughWeightCalculator implements IAdaptiveWeightCalculator {
+  calculateWeights(_query: string, vectorWeight: number, textWeight: number): HybridWeights {
+    const total = vectorWeight + textWeight;
+    if (total === 0) return { vectorWeight: 1, textWeight: 0 };
+    return { vectorWeight: vectorWeight / total, textWeight: textWeight / total };
+  }
+}
+
 describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
   'long distractor vector reach (#961)',
   () => {
@@ -162,8 +178,10 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
       for (const pair of PAIRS) {
         it(`${pair.distractorId} reaches vector channel under ${pair.query}`, async () => {
           applyK40();
-          // Fresh engine per case — AdaptiveWeightCalculator caches by query (R4).
-          const engine = HybridSearchFactory.createDefaultEngine(db);
+          // Fresh engine per case — weights must not be cached or rewritten (R4, #1103).
+          const engine = HybridSearchFactory.createDefaultEngine(db, undefined, {
+            weightCalculator: new PassThroughWeightCalculator(),
+          });
           const result = await engine.search(db, {
             query: pair.query,
             limit: 20,
@@ -195,8 +213,10 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
       for (const pair of PAIRS) {
         it(`${pair.answerId} outranks ${pair.distractorId} under ${pair.query}`, async () => {
           applyK40();
-          // Fresh engine per case — AdaptiveWeightCalculator caches by query (R4).
-          const engine = HybridSearchFactory.createDefaultEngine(db);
+          // Fresh engine per case — weights must not be cached or rewritten (R4, #1103).
+          const engine = HybridSearchFactory.createDefaultEngine(db, undefined, {
+            weightCalculator: new PassThroughWeightCalculator(),
+          });
           const result = await engine.search(db, {
             query: pair.query,
             limit: 20,
@@ -240,7 +260,9 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
 
           const hits: string[] = [];
           for (const query of shortOtherQueries) {
-            const engine = HybridSearchFactory.createDefaultEngine(db);
+            const engine = HybridSearchFactory.createDefaultEngine(db, undefined, {
+              weightCalculator: new PassThroughWeightCalculator(),
+            });
             const result = await engine.search(db, {
               query,
               limit: 20,
