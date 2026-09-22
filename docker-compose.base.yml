@@ -30,7 +30,10 @@ x-default-environment: &default-environment
   LLM_MODEL_CONSOLIDATION: ${LLM_MODEL_CONSOLIDATION:-}
   SEARCH_DEFAULT_LIMIT: ${SEARCH_DEFAULT_LIMIT:-10}
   SEARCH_MAX_LIMIT: ${SEARCH_MAX_LIMIT:-50}
-  # .env의 ADMIN_API_KEY를 컨테이너에 주입 (미설정 시 빈 값 — admin 라우트는 401)
+  # .env 의 programmatic 인증 값을 컨테이너에 주입한다 (#1115).
+  # MEMENTO_API_TOKENS 가 우선이고, 비어 있을 때만 ADMIN_API_KEY 가 legacy-admin 으로 합성된다.
+  # 둘 다 비면 /tools·/mcp·/messages·/api/v1/* 가 401 로 fail-closed 된다.
+  MEMENTO_API_TOKENS: ${MEMENTO_API_TOKENS:-}
   ADMIN_API_KEY: ${ADMIN_API_KEY:-}
   FORGET_WORKING_TTL: ${FORGET_WORKING_TTL:-48}
   FORGET_EPISODIC_TTL: ${FORGET_EPISODIC_TTL:-2160}

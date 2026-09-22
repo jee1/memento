@@ -39,4 +39,38 @@ describe('resolveApiTokens', () => {
     expect(resolveApiTokens(undefined)).toEqual([]);
     expect(resolveApiTokens('   ')).toEqual([]);
   });
+
+  it('logs an error when a configured MEMENTO_API_TOKENS falls back to the legacy key', async () => {
+    const { logger } = await import('../utils/logger.js');
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    vi.stubEnv('MEMENTO_API_TOKENS', 'not-json');
+
+    const tokens = resolveApiTokens('legacy-key');
+
+    expect(tokens).toEqual([
+      { id: 'legacy-admin', secret: 'legacy-key', scopes: ['tools:invoke', 'admin:destructive'] },
+    ]);
+    expect(
+      errorSpy.mock.calls.some(([message]) =>
+        String(message).includes('Scoped-token migration has NOT taken effect'),
+      ),
+    ).toBe(true);
+
+    errorSpy.mockRestore();
+  });
+
+  it('does not log the migration error when MEMENTO_API_TOKENS is unset', async () => {
+    const { logger } = await import('../utils/logger.js');
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+
+    resolveApiTokens('legacy-key');
+
+    expect(
+      errorSpy.mock.calls.some(([message]) =>
+        String(message).includes('Scoped-token migration has NOT taken effect'),
+      ),
+    ).toBe(false);
+
+    errorSpy.mockRestore();
+  });
 });
