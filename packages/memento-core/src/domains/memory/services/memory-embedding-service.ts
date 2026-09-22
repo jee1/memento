@@ -16,6 +16,7 @@ import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search
 import { buildMemoryFilterSql, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import {
+  WINDOW_CANDIDATE_MIN_CHARS,
   deleteWindowEmbeddings,
   replaceWindowEmbeddings,
 } from '../../../shared/utils/window-embedding-write.js';
@@ -89,17 +90,6 @@ export interface SearchBySimilarityOutcome {
 type GlobalWithVecWarning = typeof globalThis & { __vecExtensionLoadWarningShown?: boolean };
 
 export class MemoryEmbeddingService {
-  /**
-   * 윈도가 2개 이상일 수 있는 최소 문자 길이 (#1112).
-   *
-   * 윈도 수의 진짜 판정은 generateWindowEmbeddings 가 한다. 이 값은 짧은 문서에서
-   * 두 번째 임베딩 호출 자체를 건너뛰기 위한 하한선일 뿐이다.
-   * benchmark-v3 실측에서 2윈도 이상 문서의 최소 길이는 1,191자였다(모델
-   * Xenova/paraphrase-multilingual-MiniLM-L12-v2 기준). 800 은 그보다 충분히 낮다.
-   * ponytail: 보수적 하한선. 모델이나 WINDOW_TOKENS 가 바뀌면 다시 재야 한다.
-   */
-  private static readonly WINDOW_CANDIDATE_MIN_CHARS = 800;
-
   private embeddingService: UnifiedEmbeddingService;
   private readonly defaultProvider: EmbeddingProvider = 'tfidf';
   private readonly createdByTag = 'memory_embedding_service';
@@ -198,7 +188,7 @@ export class MemoryEmbeddingService {
         return;
       }
 
-      if (content.length < MemoryEmbeddingService.WINDOW_CANDIDATE_MIN_CHARS) {
+      if (content.length < WINDOW_CANDIDATE_MIN_CHARS) {
         await deleteWindowEmbeddings(db, memoryId, provider);
         return;
       }

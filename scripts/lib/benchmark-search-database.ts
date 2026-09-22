@@ -12,6 +12,8 @@ import {
   DatabaseUtils,
   initializeDatabase,
   MemoryEmbeddingService,
+  WINDOW_CANDIDATE_MIN_CHARS,
+  WINDOW_PROJECTION_PREFIX,
 } from '@memento/core';
 import {
   loadBenchmarkCorpus,
@@ -150,6 +152,7 @@ export async function createSeededBenchmarkDatabase(
         process.stderr.write(`[benchmark-seed] ${i + 1}/${corpus.length} provider=${provider}\n`);
       }
     }
+    assertWindowEmbeddingsSeeded(db, provider, corpus);
     relationCount = seedBenchmarkRelations(db, corpus, benchmarkDir);
   } catch (e) {
     closeDatabase(db);
@@ -241,6 +244,47 @@ function seedBenchmarkRelations(
 
   process.stderr.write(`[benchmark-seed] relations=${count}\n`);
   return count;
+}
+
+/**
+ * #1103: 윈도 행 없이 시드되면 #1112 이전 동작을 재게 된다. 조용히 넘어가지 않는다.
+ *
+ * 이 스크립트는 `@memento/core` 를 dist 에서 읽는다 — vitest 만 alias 로 src 를 쓴다.
+ * dist 가 낡으면 storeWindowEmbeddings 가 아예 없어 native 행만 생기고, 에러도 경고도
+ * 없이 측정값만 달라진다. provider 불일치는 이미 fail-closed 인데 여기만 비어 있었다.
+ */
+export function assertWindowEmbeddingsSeeded(
+  db: Database.Database,
+  provider: EmbeddingProvider,
+  corpus: BenchmarkCorpusEntry[]
+): void {
+  if (provider !== 'minilm') {
+    return;
+  }
+
+  const candidates = corpus.filter(
+    (entry) => (entry.content ?? '').length >= WINDOW_CANDIDATE_MIN_CHARS
+  ).length;
+  if (candidates === 0) {
+    return;
+  }
+
+  const row = DatabaseUtils.get(
+    db,
+    `SELECT COUNT(*) AS n FROM memory_embedding WHERE embedding_provider = ? AND projection_type LIKE ?`,
+    [provider, `${WINDOW_PROJECTION_PREFIX}%`]
+  ) as { n?: number } | undefined;
+
+  if ((row?.n ?? 0) > 0) {
+    return;
+  }
+
+  throw new Error(
+    `Benchmark seed produced 0 window embedding rows for ${candidates} documents of at least ` +
+      `${WINDOW_CANDIDATE_MIN_CHARS} characters. The max-sim window index (#1112) is missing, so any ` +
+      'measurement taken against this DB would reflect pre-#1112 behaviour. This script imports ' +
+      '@memento/core from dist — run `npm run build -w @memento/core` and seed again.'
+  );
 }
 
 export async function seedOneCorpusRow(

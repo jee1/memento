@@ -444,6 +444,7 @@ export type { MemoryEmbeddingWrite } from './shared/utils/memory-embedding-write
 export {
   WINDOW_PROJECTION_TYPES,
   WINDOW_PROJECTION_PREFIX,
+  WINDOW_CANDIDATE_MIN_CHARS,
   buildWindowProjectionType,
   isWindowProjectionType,
   replaceWindowEmbeddings,
