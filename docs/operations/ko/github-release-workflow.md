@@ -137,6 +137,10 @@ git push origin v1.7.3
 불확실하면 쪼개 적지 말고 GitHub Releases를 정본으로 두십시오. 릴리스 노트 자체는
 `gh release create --notes-file`로 직접 작성하며, `release.yml`은 CHANGELOG를 읽지 않습니다.
 
+`npm run check:version-sync` 가 이 절을 게이트로 강제합니다 (#1116). 직전 태그 이후 커밋이
+있는데 `[Unreleased]` 가 비어 있으면 CI 가 실패합니다. 매니페스트 버전이 직전 태그보다 앞서
+있을 때(= 릴리스 준비 PR)는 생략하므로, 위 4단계를 밟는 릴리스 PR 자체는 막히지 않습니다.
+
 ## 🎯 최종 권장사항
 
 현재 구현된 방식이 가장 유연합니다:

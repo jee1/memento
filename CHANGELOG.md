@@ -9,6 +9,46 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- **MCP HTTP modern era(`2026-07-28`) POST 디스패치** (#840, Phase 1b): `params._meta.protocolVersion` 으로 era 를 라우팅하고, modern 응답에만 전용 검증 경계와 HTTP status 매핑을 적용합니다. legacy 경로는 바이트·상태 parity 를 그대로 유지합니다. `MEMENTO_MCP_ERA` 로 롤백할 수 있고, 활성화되면 `server/discover` 가 `2026-07-28` 을 광고합니다. modern CORS preflight 는 `MCP-Protocol-Version`·`Mcp-Method`·`Mcp-Name` 을 허용하고, modern GET/DELETE 의 405 에 `Allow: POST` 를 붙입니다.
+
+- **stdio dual-era** (#840 Phase 2, #1110): stdio 는 저장소에 남은 마지막 legacy 전용 표면이었습니다 — `@modelcontextprotocol/sdk@1.29` 의 `LATEST_PROTOCOL_VERSION` 이 `2025-11-25` 라 stdio 클라이언트는 `2026-07-28` 에 도달할 방법이 없었습니다. `@modelcontextprotocol/server@2.0.0` 을 v1 **옆에** 추가해(교체가 아닙니다) `serveStdio` 로 서빙합니다. `MEMENTO_MCP_ERA=legacy` 는 기존 v1 `Server` + `StdioServerTransport` 경로를 그대로 탑니다 — 새 코드로 되돌아가는 것은 롤백이 아니기 때문입니다.
+
+- **`remember` 의 `expected_version` compare-and-swap** (#1093, Phase 1): 여러 에이전트가 같은 기억을 동시에 고칠 때 마지막 쓰기가 조용히 이기지 않도록, `persistMemoryItem` 단일 변이 경계에서 CAS 를 수행하고 `owner_id`·`project_id` 가드를 함께 검사합니다. `expected_version` 을 주지 않는 기존 호출자는 동작이 바뀌지 않고 스키마 마이그레이션도 없습니다. `version` 이 NULL 이면 CAS 계산에서만 1 로 읽습니다.
+
+- **검토 큐의 서버 필터·페이지네이션** (#897): `GET /admin/memory/review-candidates` 가 importance·미사용 기간·memory type·후보 사유 필터와 25/50 서버 페이지를 받습니다. 전에는 대기 후보 500행을 한 덩어리로 스크롤할 수밖에 없어 "중요도 높은 오래된 semantic 기억부터" 보는 것이 불가능했습니다. 확장 쿼리가 하나라도 있을 때만 적용되므로 status 만 주는 기존 호출은 계약이 그대로입니다. 잘못된 숫자 파라미터는 `parseInt` 절단 없이 거부합니다 — `25abc`·`10days` 는 통과하지 못합니다.
+
+- **무관 질의 거부 기준선 하네스** (#922): 재랭킹 방식을 고르기 전에, 지금 검색기가 무관 질의에 어떻게 반응하는지 재현 가능하게 재는 오프라인 측정기입니다 (`scripts/quality-benchmark-rejection-baseline.ts`). 게이트는 넣지 않습니다. 기준선이 기록한 것은 **무관 질의 6/6 에 여전히 결과를 돌려준다**는 현재 동작이고, 앞으로 리랭커를 비교할 때 이 JSON 과 대조합니다.
+
+- **max-sim 대 mean-pooling 오프라인 측정 하네스** (#1107, Phase 1): 윈도별 벡터를 꺼내는 public seam `generateWindowEmbeddings` 와 `npm run quality benchmark:maxsim` 리포트를 추가합니다. 측정은 하이브리드 엔진을 거치지 않습니다 — FTS 채널과 `characteristic_length` 감쇠가 섞이면 임베딩 레이어의 효과가 보이지 않기 때문입니다. benchmark-v3 3,461건에서 recall@50 0.5172 → 0.5862, recall@100 0.5862 → 0.6552 로 효과가 크지만 **상위 20위에서는 보이지 않습니다** (MRR@20 0.2619 → 0.2616).
+
+- **관계 기반 recall 후보 확장 PoC** (#959, opt-in): 호출자가 `relationRecallExpansion` 을 `plain` 또는 `weighted` 로 줄 때만, 최종 절단 직전에 `memory_relation` 간선을 따라 후보를 넓힙니다 (seed ≤ 5, hop ≤ 2, 추가 ≤ 30). 탐색은 tenant 경계와 live 행만 보고, 추가분에도 recall 필터 전체가 적용되며, 그래프 실패 시 primary ranking 으로 폴백합니다. 측정은 **채택을 지지하지 않아 기본 활성화를 보류**했습니다 — mean MRR 이 off 0.5476, weighted 0.5417, plain 0.5370 입니다.
+
+- **`*_FILE` Docker secrets 규약 구현** (#1115): `docker/docker-compose.prod.secrets.example.yml` 과 `docs/reference/ko/security.md` 가 `OPENAI_API_KEY_FILE`·`GEMINI_API_KEY_FILE`·`MEMENTO_API_TOKENS_FILE` 을 설명하고 있었지만 **그 코드가 저장소에 없었습니다.** 토큰만의 문제가 아니라, 문서대로 Docker secrets 를 구성하면 OpenAI·Gemini 키까지 전부 로드되지 않았습니다. `scripts/inject-file-secrets.sh` 가 규약을 구현하고 `start-container.sh` 가 이를 source 합니다. **경로가 지정됐는데 읽을 수 없으면 조용히 넘어가지 않고 기동을 중단합니다** — 시크릿 없이 뜬 컨테이너는 모든 programmatic 경로가 401 인 상태라, 조용한 성공보다 즉시 실패가 낫습니다. 값은 로그에 찍지 않습니다.
+
+### Changed
+
+- **`forget` 파괴적 삭제에 신뢰 가능한 `agentId` owner scope 강제** (#1094): `ToolContext.agentId` 가 설정된 호출은 읽기·soft UPDATE·hard DELETE(배치 포함)가 전부 `owner_id IS ?` 로 좁혀집니다. 다른 owner 의 행을 지우려는 시도는 존재 여부를 흘리지 않는 not-found 로 끝나고 행을 건드리지 않습니다. 클라이언트가 보낸 `owner_id`·`project_id`·중첩 context 는 scope 를 켜지 못합니다 — 그것을 신뢰하면 owner spoofing 이 성립하기 때문입니다. **`agentId` 를 보내던 기존 클라이언트는 이제 다른 owner 의 기억을 지울 수 없습니다.** `agentId` 가 없는 레거시 호출자는 동작이 바뀌지 않습니다.
+
+- **max-sim 윈도 벡터 색인과 프리페치 깊이 분리** (#1112, #1107 Phase 2): 윈도가 2개 이상인 MiniLM 문서만 `projection_type = 'window:N'` 행을 추가로 저장하고, 검색이 `MIN(distance) GROUP BY memory_id` 로 집계합니다 — 이것이 정확히 max-sim 입니다. 단일 윈도 문서는 `meanPoolNormalize([v]) === v` 라서 추가 행이 없습니다. 함께 `resolveVectorPrefetchLimit(limit)` = `clamp(limit × 8, 100, 512)` 로 프리페치 깊이를 최종 limit 에서 분리했습니다 — 둘 중 하나만 가면 나머지가 통째로 버려집니다. 벡터 채널 단독(limit=20) 실측은 MRR@20 0.5324 → 0.5830, recall@20 0.8500 → 0.8750 입니다. **검색 결과의 순서가 바뀝니다.** 새 마이그레이션 파일은 없습니다 — `migrate.ts` 가 매 마이그레이션마다 vec 트리거를 재생성하므로 기존 DB 는 자동으로 갱신됩니다. 깊이는 `MEMENTO_VECTOR_PREFETCH_MULTIPLIER` 로 덮어쓸 수 있습니다.
+
+- **importance 랭킹 시그널 압축** (#1082): `γ·importance` 가 `[0,1]` 전 구간을 쓰는 동안 relevance 는 #1079 이후에도 좁은 폭에 머물러, `benchmark-v3` macro 버킷이 `scale=1` 에서 게이트를 통과하지 못했습니다. `config/ranking-weights.toml` 에 `[importance_signal].scale` 을 두고 `calculateImportance` 이후 `0.5 + (raw − 0.5) × scale` 을 적용합니다. 기본값 `0.35` 는 macro MRR ≥ 0.5 게이트 4개를 모두 통과하는 최대값입니다 (0.15–0.35 평탄부에서 고른 값이지 argmax 가 아닙니다). recall p95 는 `scale=1` 530.2ms 에서 342.0ms 로 내려갔습니다. scale 이 `getRankingVersion()` 해시 입력에 들어가므로 이전 점수 스냅샷과 구분됩니다. **검색 순위가 바뀝니다.**
+
+- **벤치마크 `incident_ops` 버킷을 4 → 7질의로 확대** (#1104): 질의가 4건뿐이라 `MRR >= 0.5` 게이트가 이산적으로 튀었습니다 — 정확히 `0.5000` 이던 버킷은 정답 하나가 1위에서 2위로 밀리면 `0.3750` 으로 한 번에 게이트 아래로 떨어집니다. 중간값이 없었습니다. 임계값은 건드리지 않았습니다. 문제는 임계값이 아니라 해상도입니다. 코퍼스도 그대로이고 (`corpus_size` 3,461) 정답은 전부 기존 스냅샷 문서에서 골랐습니다.
+
+- **nightly 의 long distractor 스텝을 진단으로 내림** (#1103): 이 스텝이 실패하며 잡 전체를 죽이는 바람에 뒤따르는 `MiniLM Korean embedding quality`(#889·#928)가 2026-09-20·09-21 두 run 모두 **실행되지 않았습니다** — 한국어 임베딩 품질 회귀가 보이지 않는 상태였습니다. 바로 위의 `Length-decay coefficient sweep` 은 같은 #961 산출물이고 같은 시드를 쓰는데 이미 `continue-on-error: true` 입니다. 진짜 게이트인 `Gate category search quality (MRR >= 0.5)` 는 4/4 통과 중입니다.
+
+- **long distractor 단언을 실패 종류별로 분리** (#1103): (A) 벡터 도달률과 (B) 랭킹 품질을 한 spec 에서 뭉쳐 재고 있어 무엇이 깨졌는지 구분되지 않았습니다. 분리 과정에서 원인이 이슈 본문이 지목한 #973 이 아니라 **#1020** (`d74e736f`, 긴 한국어 기억을 토크나이저 윈도로 임베딩) 이라는 것이 드러났습니다 — 그때부터 본문 전체가 평균 풀링에 들어가므로, `bench_syn_long_0001` 에서 `cos(질의, 앞 1024자)` 0.5087 이 `cos(질의, 전체 12,000자)` 0.0422 로 희석됩니다. 기대값 재기준선은 #1103 에 남아 있습니다.
+
+### Fixed
+
+- **`MEMENTO_API_TOKENS` 가 컨테이너에 도달하지 못하던 문제** (#1115): `docker-compose.base.yml` 이 legacy `ADMIN_API_KEY` 만 전달해서, `.env` 에 스코프 토큰을 넣어도 값이 서버 프로세스에 닿지 않고 **조용히 legacy 키로 폴백**했습니다. `env.example` 이 JSON 배열 형식까지 정확히 안내하고 있어 더 나빴습니다 — 문서를 정확히 따른 운영자가 아무 효과도 경고도 얻지 못합니다. 그 상태에서 "이전했으니 legacy 키 삭제" 순서를 밟으면 토큰이 0개가 되어 `/tools`·`/mcp`·`/messages`·`/api/v1/*` 가 전부 401 로 fail-closed 됩니다. 이제 compose 가 호스트 값을 그대로 넘기고, `MEMENTO_API_TOKENS` 가 설정됐는데 유효 토큰이 0개라 legacy 로 내려가는 상태를 `error` 로 남깁니다 (미설정 시에는 찍히지 않습니다). 운영 반영에는 `docker compose up -d --force-recreate` 가 필요합니다 — `up -d` 만으로는 `.env` 변경이 반영되지 않습니다.
+
+- **그래프 배지의 라이브 리전 announce 가 건너뛰어지던 문제** (#955): `requestAnimationFrame` 콜백은 그 프레임의 **페인트 이전**에 실행되므로, 한 번만 감싸면 `display` 전환과 텍스트 주입이 브라우저 입장에서 같은 페인트로 합쳐질 수 있습니다. 그러면 라이브 리전 변경이 "갱신 시점에 숨어 있던 요소"로 보여 announce 가 건너뛰어집니다 — #950 이 애초에 막으려던 상황 그대로입니다. `ns.nextFrame` 을 이중 rAF 로 바꿨습니다. 실제 스크린리더 확인은 #955 에 남아 있습니다.
+
+- **벤치마크 시드가 윈도 행 없이 조용히 만들어지던 문제** (#1103): `scripts/lib/benchmark-search-database.ts` 는 `MemoryEmbeddingService` 를 `@memento/core` 에서 import 하는데 그 specifier 가 **dist 로 해석됩니다** — `vitest.config.ts` 의 src alias 는 vitest 에만 적용되고 `npx tsx scripts/seed-benchmark-db.ts` 에는 적용되지 않습니다. dist 가 #1112 이전이면 `storeWindowEmbeddings` 가 아예 없어 `window:N` 행이 0개로 시드되고, **에러도 경고도 없이 측정값만 달라집니다.** 같은 커밋에서 문서화된 재현 절차가 8 failed 대신 10 failed 를 냈던 원인입니다. 이제 윈도 행 없이 시드되면 `npm run build -w @memento/core` 를 안내하며 실패합니다. `WINDOW_CANDIDATE_MIN_CHARS` 는 다른 윈도 상수들이 있는 `window-embedding-write.ts` 로 옮겨 단일 출처가 됐습니다. CI 는 영향이 없었습니다 — `nightly-tests.yml` 이 시드 직전에 core 를 빌드합니다.
+
 ## [1.32.0] - 2026-09-20
 
 ### Added

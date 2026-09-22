@@ -26,6 +26,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+        with:
+          # check-version-sync 의 CHANGELOG 게이트가 직전 태그를 읽는다 (#1116).
+          # 기본 얕은 체크아웃에는 태그가 없어 게이트가 조용히 생략된다.
+          fetch-depth: 0
       - name: Reject tracked files covered by .gitignore
         run: test -z "$(git ls-files -i -c --exclude-standard)"
       - uses: actions/setup-node@v6
