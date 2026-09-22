@@ -19,6 +19,12 @@ export const WINDOW_PROJECTION_PREFIX = 'window:';
 /** MiniLMEmbeddingService.MAX_WINDOWS 와 동기화된 값 */
 export const MAX_WINDOW_ROWS = 16;
 
+/**
+ * 윈도 행을 만들 후보로 볼 최소 본문 길이 (#1112).
+ * 이보다 짧은 문서는 단일 윈도라 native 행이 곧 윈도 벡터다.
+ */
+export const WINDOW_CANDIDATE_MIN_CHARS = 800;
+
 export function buildWindowProjectionType(index: number): string {
   return `${WINDOW_PROJECTION_PREFIX}${index}`;
 }
