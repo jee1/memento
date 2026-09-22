@@ -147,6 +147,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 # Copy startup script
 COPY --chmod=755 scripts/start-container.sh /app/start-container.sh
+COPY --chmod=755 scripts/inject-file-secrets.sh /app/inject-file-secrets.sh
 
 # Copy static files (dashboard, graph UI)
 COPY static/ /app/static/

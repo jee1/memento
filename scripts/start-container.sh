@@ -15,6 +15,9 @@ if [ -f /app/data/memory.db ]; then
   fi
 fi
 
+# Docker secrets 주입 (#1115) — <VAR>_FILE 이 설정된 경우에만 동작한다.
+. /app/inject-file-secrets.sh
+
 # HTTP 서버 시작
 echo "🚀 Memento HTTP 서버 시작 중..."
 exec node packages/memento-server/dist/server/index.js
