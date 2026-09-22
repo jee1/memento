@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
+
 ### Added
 
 - **MCP HTTP modern era(`2026-07-28`) POST 디스패치** (#840, Phase 1b): `params._meta.protocolVersion` 으로 era 를 라우팅하고, modern 응답에만 전용 검증 경계와 HTTP status 매핑을 적용합니다. legacy 경로는 바이트·상태 parity 를 그대로 유지합니다. `MEMENTO_MCP_ERA` 로 롤백할 수 있고, 활성화되면 `server/discover` 가 `2026-07-28` 을 광고합니다. modern CORS preflight 는 `MCP-Protocol-Version`·`Mcp-Method`·`Mcp-Name` 을 허용하고, modern GET/DELETE 의 405 에 `Allow: POST` 를 붙입니다.
@@ -47,7 +48,6 @@
 - **그래프 배지의 라이브 리전 announce 가 건너뛰어지던 문제** (#955): `requestAnimationFrame` 콜백은 그 프레임의 **페인트 이전**에 실행되므로, 한 번만 감싸면 `display` 전환과 텍스트 주입이 브라우저 입장에서 같은 페인트로 합쳐질 수 있습니다. 그러면 라이브 리전 변경이 "갱신 시점에 숨어 있던 요소"로 보여 announce 가 건너뛰어집니다 — #950 이 애초에 막으려던 상황 그대로입니다. `ns.nextFrame` 을 이중 rAF 로 바꿨습니다. 실제 스크린리더 확인은 #955 에 남아 있습니다.
 
 - **벤치마크 시드가 윈도 행 없이 조용히 만들어지던 문제** (#1103): `scripts/lib/benchmark-search-database.ts` 는 `MemoryEmbeddingService` 를 `@memento/core` 에서 import 하는데 그 specifier 가 **dist 로 해석됩니다** — `vitest.config.ts` 의 src alias 는 vitest 에만 적용되고 `npx tsx scripts/seed-benchmark-db.ts` 에는 적용되지 않습니다. dist 가 #1112 이전이면 `storeWindowEmbeddings` 가 아예 없어 `window:N` 행이 0개로 시드되고, **에러도 경고도 없이 측정값만 달라집니다.** 같은 커밋에서 문서화된 재현 절차가 8 failed 대신 10 failed 를 냈던 원인입니다. 이제 윈도 행 없이 시드되면 `npm run build -w @memento/core` 를 안내하며 실패합니다. `WINDOW_CANDIDATE_MIN_CHARS` 는 다른 윈도 상수들이 있는 `window-embedding-write.ts` 로 옮겨 단일 출처가 됐습니다. CI 는 영향이 없었습니다 — `nightly-tests.yml` 이 시드 직전에 core 를 빌드합니다.
-
 
 ## [1.32.0] - 2026-09-20
 
