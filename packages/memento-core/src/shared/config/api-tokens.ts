@@ -91,10 +91,14 @@ function synthesizeLegacyAdminToken(adminApiKey: string): ApiTokenEntry {
  * Resolve programmatic API tokens from env.
  * - MEMENTO_API_TOKENS JSON array when set and non-empty
  * - else ADMIN_API_KEY synthesized as legacy-admin with both scopes (deprecation warn once)
+ * - a configured-but-unusable MEMENTO_API_TOKENS logs an error before falling back,
+ *   so a failed migration is not mistaken for one that was never started (#1115)
  */
 export function resolveApiTokens(adminApiKey: string | undefined): ApiTokenEntry[] {
   const rawTokensEnv = getRawEnvValue('MEMENTO_API_TOKENS');
-  if (rawTokensEnv !== undefined && rawTokensEnv.trim() !== '') {
+  const tokensEnvConfigured = rawTokensEnv !== undefined && rawTokensEnv.trim() !== '';
+
+  if (tokensEnvConfigured) {
     const envTokens = parseEnvTokens(rawTokensEnv.trim());
     if (envTokens.length > 0) {
       return envTokens;
@@ -102,6 +106,12 @@ export function resolveApiTokens(adminApiKey: string | undefined): ApiTokenEntry
   }
 
   if (adminApiKey && adminApiKey.trim() !== '') {
+    if (tokensEnvConfigured) {
+      logger.error(
+        'MEMENTO_API_TOKENS is set but produced no usable tokens; falling back to legacy ADMIN_API_KEY. ' +
+          'Scoped-token migration has NOT taken effect: synthetic "legacy-admin" still holds both scopes.',
+      );
+    }
     return [synthesizeLegacyAdminToken(adminApiKey)];
   }
 
