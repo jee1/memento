@@ -60,7 +60,7 @@ Expected: 전부 PASS. 하나라도 실패하면 이 계획을 시작하기 전�
 **Files:**
 - Modify: `packages/memento-core/src/domains/memory/semantic/semantic-memory-scoring.ts:11-42`
 - Modify: `packages/memento-core/src/domains/memory/semantic/semantic-memory-crud.ts:63-69`
-- Test: `packages/memento-core/src/domains/memory/semantic/semantic-memory-scoring.spec.ts:100-125` (교체)
+- Test: `packages/memento-core/src/domains/memory/semantic/semantic-memory-scoring.spec.ts:101-126` (교체)
 - Test(Create): `packages/memento-core/src/domains/memory/semantic/semantic-memory-fallback-content.spec.ts`
 
 **Interfaces:**
@@ -158,7 +158,7 @@ describe('재조립 불가 triple의 content (#1137)', () => {
 
 - [ ] **Step 1b: 단위 테스트도 새 계약으로 교체**
 
-`semantic-memory-scoring.spec.ts`의 `describe('SemanticMemoryScoring.tripleToNaturalLanguage (#768)', ...)` 블록 전체(파일 100~125행)를 아래로 바꾼다.
+`semantic-memory-scoring.spec.ts`의 `describe('SemanticMemoryScoring.tripleToNaturalLanguage (#768)', ...)` 블록 전체(파일 101~126행)를 아래로 바꾼다.
 
 ```ts
 describe('SemanticMemoryScoring.tripleToNaturalLanguage (#768 → #1137)', () => {
@@ -287,7 +287,7 @@ EOF
 ### Task 2: B2 — canonicalizer 영문 어간 재시도 + canonical 5종 추가
 
 **Files:**
-- Modify: `packages/memento-core/src/domains/relation/services/triple-extraction/predicate-canonicalizer.ts:26-88`(사전), `:124-126`(normalizeKey 인접), `:131-171`(canonicalize)
+- Modify: `packages/memento-core/src/domains/relation/services/triple-extraction/predicate-canonicalizer.ts:27-89`(사전), `:124-126`(normalizeKey 인접), `:131-171`(canonicalize)
 - Test: `packages/memento-core/src/domains/relation/services/triple-extraction/predicate-canonicalizer.spec.ts` (파일 끝에 describe 추가)
 
 **Interfaces:**
@@ -454,7 +454,7 @@ function englishStemCandidates(key: string): string[] {
 }
 ```
 
-클래스 안 `canonicalize`의 조회부(현재 `:154-156`)를 바꾼다.
+클래스 안 `canonicalize`의 조회부(현재 `:154-155`)를 바꾼다.
 
 ```ts
     // 정규화된 키로 검색 (실패 시 영문 어간으로 한 번 더, #1137)

@@ -22,7 +22,7 @@ triple 재조립에 실패한 semantic 기억이 원본 episodic 본문을 conte
    재조립 실패 시 `fallbackText`(= 원본 episodic 본문)를 그대로 content로 쓴다.
 2. 중복 차단 가드 `hasEligibleExactCandidate`(`semantic-memory-crud.ts:89`, 정의 `:418`)는
    subject/predicate/object만 비교한다. triple이 서로 다르면 content가 같아도 통과한다.
-3. 재조립 실패 조건은 `triple-sentence.ts:41-43` `conjugatePredicate`가 **한글로 끝나지 않는 predicate에
+3. 재조립 실패 조건은 `triple-sentence.ts:41-42` `conjugatePredicate`가 **한글로 끝나지 않는 predicate에
    `null`을 반환**하는 것. 이 저장소의 기억은 한국어 본문에 영문 predicate가 붙는 게 일반적이라
    폴백이 예외가 아니라 기본 경로였다.
 4. 읽기 측: `knowledge-context-bundle-builder.ts`에 content 기준 중복 제거가 없다.
@@ -76,7 +76,7 @@ triple 재조립에 실패한 semantic 기억이 원본 episodic 본문을 conte
 ## 3. 핵심 발견 — 상류는 프롬프트다
 
 `PredicateCanonicalizer`의 사전은 **이미 영문→한글 canonical 매핑을 한다**
-(`predicate-canonicalizer.ts:30-88`: `use`→`사용함`, `create`→`생성함`, `include`→`포함함` …).
+(`predicate-canonicalizer.ts:27-89`: `use`→`사용함`, `create`→`생성함`, `include`→`포함함` …).
 실패의 원인은 활용 규칙 부재가 아니라 **사전에 없는 변형**이다 — `use`는 있고 `uses`는 없다.
 
 그리고 게이트의 실질 통과 조건은 사전 등재가 아니다. `triple-normalizer.ts:88-95`:
@@ -146,7 +146,7 @@ triple 0건 → semantic 기억 0건. 규칙 기반 추출 폴백은 없다.
 - `fallbackText` 파라미터를 없애고 `semantic-memory-crud.ts:64`의 `source.content` 인자를 뺀다
 
 프로덕션 호출부는 `semantic-memory-crud.ts:64` **한 곳**뿐이라 파급이 좁다.
-원문은 episodic 행에 그대로 있고 `origin_source.context.source_episodic_id`(crud:83)로 추적된다 —
+원문은 episodic 행에 그대로 있고 `origin_source.context.source_episodic_id`(crud:82)로 추적된다 —
 semantic 행이 원문 사본을 들고 있을 이유가 없다.
 
 #768이 이 분기를 넣은 의도는 "망가진 합성 문장을 만들지 말자"였고,
@@ -166,9 +166,9 @@ semantic 행이 원문 사본을 들고 있을 이유가 없다.
 - **키**: content를 trim·공백 정규화·말미 `…` 제거 후 **앞 200자**.
   500자로 잘린 사본과 원문 episodic 행이 같은 그룹으로 묶인다
   (증상 보고의 "정작 찾던 원본이 반환되지 않는다"가 이 경우다)
-- **그룹 대표**: `finalScore + importance` 최대값 — `summarizeMemories`(:113)와 같은 정렬 키, 동점은 id로 결정
+- **그룹 대표**: `finalScore + importance` 최대값 — `summarizeMemories`(:110)와 같은 정렬 키, 동점은 id로 결정
 - 제외 건수는 기존 손상 triple 필터와 같은 형식으로 `logger.warn`
-- **부수 효과(의도)**: 탈락한 사본은 `updateConsolidationScoreMetadata`(:340)에 도달하지 않아 `recall_count`가 부풀지 않는다
+- **부수 효과(의도)**: 탈락한 사본은 `updateConsolidationScoreMetadata` 호출(:406)에 도달하지 않아 `recall_count`가 부풀지 않는다
 
 **한계**: 앞 200자 프리픽스는 휴리스틱이다. 앞 200자가 같고 뒤가 다른 별개 기억은 한 건으로 합쳐진다.
 실측 사본은 전부 바이트 동일이라 현재 데이터에서 위험이 없고, 정확 비교로 좁히는 것은 언제든 가능하다.
