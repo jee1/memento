@@ -39,6 +39,19 @@ describe('resolveLlmProvider', () => {
     };
     expect(resolveLlmProvider('procedural', config)).toBe('openai');
   });
+
+  it('consolidation provider override beats global llmProvider', () => {
+    const config = {
+      llmProvider: 'openai' as const,
+      llmProviderOverrides: { consolidation: 'ollama' as const },
+    };
+    expect(resolveLlmProvider('consolidation', config)).toBe('ollama');
+  });
+
+  it('consolidation falls back to global llmProvider when override unset', () => {
+    const config = { llmProvider: 'gemini' as const, llmProviderOverrides: {} };
+    expect(resolveLlmProvider('consolidation', config)).toBe('gemini');
+  });
 });
 
 describe('resolveBoundLlmProvider', () => {

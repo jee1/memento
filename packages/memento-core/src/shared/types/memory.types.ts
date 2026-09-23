@@ -79,6 +79,7 @@ export interface MementoConfig {
     triple_extraction?: LLMProvider;
     relation_extraction?: LLMProvider;
     procedural?: LLMProvider;
+    consolidation?: LLMProvider;
   };
   searchDefaultLimit: number;
   searchMaxLimit: number;

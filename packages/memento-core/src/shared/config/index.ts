@@ -65,6 +65,14 @@ const proceduralProviderOverride = loadLlmProviderOverrideFromEnv(
 if (proceduralProviderOverride !== undefined) {
   llmProviderOverrides.procedural = proceduralProviderOverride;
 }
+const consolidationProviderOverride = loadLlmProviderOverrideFromEnv(
+  'LLM_PROVIDER_CONSOLIDATION',
+  getRawEnvValue('LLM_PROVIDER_CONSOLIDATION'),
+  llmProviderOverrideWarnedKeys
+);
+if (consolidationProviderOverride !== undefined) {
+  llmProviderOverrides.consolidation = consolidationProviderOverride;
+}
 
 const embeddingDimensions: number =
   (resolveOptionalNumber('EMBEDDING_DIMENSIONS') ??
