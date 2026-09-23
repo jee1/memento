@@ -50,6 +50,9 @@ x-default-environment: &default-environment
   MEMENTO_HTTP_BIND_HOST: "0.0.0.0"
   # MEMENTO_ALLOW_INSECURE_HTTP_ADMIN 은 기본값 false 로 설정됨.
   # 보안 체크 우회가 필요한 경우 uncommitted docker-compose.override.yml 에서만 설정할 것.
+  # HTTP MCP dual-era 롤백 게이트 (#840). dual(기본) | legacy | modern.
+  # 이 줄이 없으면 .env 에 적어도 컨테이너에 도달하지 않아 롤백 수단이 없다 (#1129).
+  MEMENTO_MCP_ERA: ${MEMENTO_MCP_ERA:-dual}
   # SSE 전송 방식 사용 (HTTP/SSE 서버 모드)
   TRANSPORT_TYPE: ${TRANSPORT_TYPE:-sse}
 
