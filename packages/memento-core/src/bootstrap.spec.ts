@@ -76,7 +76,9 @@ const mockState = vi.hoisted(() => {
   };
 
   const hybridSearchEngineInstance = {
-    setRelationGraph: vi.fn()
+    setRelationGraph: vi.fn(),
+    // #1095 기각 게이트 주입 — bootstrap 이 호출하므로 더블에도 있어야 한다
+    setRejectionGate: vi.fn()
   };
 
   return {

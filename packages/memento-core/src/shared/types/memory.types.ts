@@ -82,6 +82,22 @@ export interface MementoConfig {
   };
   searchDefaultLimit: number;
   searchMaxLimit: number;
+  /**
+   * #1095 검색 기각 게이트 provider.
+   * 'off' = 게이트 없음(기본, 현행 동작). 'typesafe' = TypeSafe Jev.
+   * 'ollama' = 향후 내부 모듈 교체 자리 — 아직 구현 없음.
+   */
+  searchRejectionGate: 'off' | 'typesafe' | 'ollama';
+  /** 기각 임계값. 이 값 미만이면 질의를 기각한다 (실수) */
+  searchRejectionGateThreshold: number;
+  /** 게이트 호출 타임아웃 (ms) */
+  searchRejectionGateTimeoutMs: number;
+  /** 게이트에 넘길 후보 본문 최대 길이 (문자) */
+  searchRejectionGateDocChars: number;
+  /** TypeSafe Jev API 키 (searchRejectionGate='typesafe' 일 때 필요) */
+  typesafeApiKey: string | undefined;
+  /** TypeSafe Jev 모델명 */
+  typesafeModel: string;
   forgetTTL: {
     working: number;
     episodic: number;
