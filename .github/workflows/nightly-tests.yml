@@ -67,8 +67,9 @@ jobs:
         run: npm run quality -- benchmark length-decay-sweep
         continue-on-error: true
       # #961: 장문 near-clone 디스트랙터가 벡터 채널에 진입하는지 (minilm).
-      # #1122 재기준선 이후 (A) 는 8건 중 7건이 통과한다. non-blocking 을 유지하는 이유는
-      # 남은 실패 1건이 디스트랙터가 아니라 0011 의 정답(bench_syn_long_0007)이 검색되지 않는 #1095 결함이기 때문이다.
+      # #1122 재기준선 이후 24건 중 22건 통과 — 디스트랙터 8건 중 7건이 벡터 채널에 도달한다.
+      # non-blocking 을 유지하는 이유는 남은 실패 2건이 디스트랙터가 아니라
+      # 0011 의 정답(bench_syn_long_0007)이 아예 검색되지 않는 #1095 결함이기 때문이다.
       - name: Long distractor vector reach
         env:
           MEMENTO_BENCHMARK_DB_PATH: /tmp/memento-bench-nightly.db

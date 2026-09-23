@@ -35,11 +35,13 @@
  *
  *  (B) product ranking — answer above distractor, and no cross-contamination.
  *      Real ranking defects. Tracked in #922 / #1095. Do not relax these.
- *      One case fails and it is not about the distractor: under the 0011 query the
+ *      Two assertions fail and neither is about a distractor: under the 0011 query the
  *      *answer* (bench_syn_long_0007) is not retrievable at all — max-sim rank 880,
- *      score 0.2667 — so the assertion reads `expected -1 to be greater than or equal
- *      to 0`. That failure predates #1122 and is why the nightly step stays
- *      non-blocking.
+ *      score 0.2667 — so both read `expected -1 to be greater than or equal to 0`. One
+ *      is here in (B); the other is in (A), because once 0011 entered REACHES_TOP_20
+ *      that branch also reaches its answerIdx assertion. The distractor itself arrives
+ *      at engine index 0. The pair failed the same way before #1122, and it is why the
+ *      nightly step stays non-blocking. Tracked in #1095.
  *
  * Seeding: scripts/seed-benchmark-db.ts imports @memento/core from dist, and only
  * vitest maps that specifier to src. Seeding without `npm run build -w @memento/core`
