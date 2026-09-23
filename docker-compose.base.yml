@@ -30,6 +30,13 @@ x-default-environment: &default-environment
   LLM_MODEL_CONSOLIDATION: ${LLM_MODEL_CONSOLIDATION:-}
   SEARCH_DEFAULT_LIMIT: ${SEARCH_DEFAULT_LIMIT:-10}
   SEARCH_MAX_LIMIT: ${SEARCH_MAX_LIMIT:-50}
+  # 검색 기각 게이트 (#1095). 기본 off — .env 에서 켜지 않으면 동작이 바뀌지 않는다.
+  SEARCH_REJECTION_GATE: ${SEARCH_REJECTION_GATE:-off}
+  SEARCH_REJECTION_GATE_THRESHOLD: ${SEARCH_REJECTION_GATE_THRESHOLD:-0.5}
+  SEARCH_REJECTION_GATE_TIMEOUT_MS: ${SEARCH_REJECTION_GATE_TIMEOUT_MS:-1500}
+  SEARCH_REJECTION_GATE_DOC_CHARS: ${SEARCH_REJECTION_GATE_DOC_CHARS:-300}
+  TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+  TYPESAFE_MODEL: ${TYPESAFE_MODEL:-jev-latest}
   # .env 의 programmatic 인증 값을 컨테이너에 주입한다 (#1115).
   # MEMENTO_API_TOKENS 가 우선이고, 비어 있을 때만 ADMIN_API_KEY 가 legacy-admin 으로 합성된다.
   # 둘 다 비면 /tools·/mcp·/messages·/api/v1/* 가 401 로 fail-closed 된다.
