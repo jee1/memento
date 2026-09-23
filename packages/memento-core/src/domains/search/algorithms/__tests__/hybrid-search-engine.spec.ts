@@ -19,6 +19,7 @@ import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infr
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import { vectorLengthDecayFactor } from '../vector-length-decay.js';
+import type { IRelevanceGatePort } from '../../ports/relevance-gate-port.js';
 
 /**
  * #921 길이 감쇠는 기본 on이다. 짧은 fixture content는 감쇠 후 HYBRID_VECTOR_THRESHOLD(0.38)
@@ -2814,6 +2815,116 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       if (mem1Result && mem1Result.relation_weight && mem1Result.relation_weight > 0) {
         expect(mem1Result.relations).toBeDefined();
       }
+    });
+  });
+
+  describe('#1095 기각 게이트', () => {
+    function stubRanked(engine: HybridSearchEngine, items: unknown[]): void {
+      const ranker = (engine as unknown as {
+        resultRanker: { combineAndSortResults: (...args: unknown[]) => Promise<unknown[]> };
+      }).resultRanker;
+      vi.spyOn(ranker, 'combineAndSortResults').mockResolvedValue(items);
+    }
+
+    function fakeItem(id: string, content: string) {
+      return {
+        id,
+        content,
+        type: 'episodic',
+        importance: 0.5,
+        created_at: '2026-09-23T00:00:00.000Z',
+        pinned: false,
+        textScore: 0.5,
+        vectorScore: 0.5,
+        finalScore: 0.5,
+        recall_reason: 'test',
+      };
+    }
+
+    function setupCommonMocks(): void {
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(false);
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+    }
+
+    it('게이트가 기각하면 결과가 0건이 된다', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.01, 0.05]) };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      expect(out.items).toHaveLength(0);
+      expect(out.total_count).toBe(0);
+    });
+
+    it('게이트가 통과시키면 결과가 그대로 유지된다', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.9, 0.2]) };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      expect(out.items).toHaveLength(2);
+      expect(out.items[0]?.id).toBe('m1');
+      expect(out.total_count).toBe(2);
+    });
+
+    it('게이트를 붙이지 않으면 결과가 그대로다 — 현행 동작 불변', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      hybridSearchEngine.setRejectionGate(null);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // 기본 설정이 SEARCH_REJECTION_GATE=off 라 운영에서는 이 경로를 탄다.
+      expect(out.items).toHaveLength(2);
+    });
+
+    it('게이트에 넘기는 후보는 상위 10건으로 제한된다', async () => {
+      setupCommonMocks();
+      const candidates = Array.from({ length: 15 }, (_, i) => fakeItem(`m${i + 1}`, `content-${i + 1}`));
+      stubRanked(hybridSearchEngine, candidates);
+      const gate: IRelevanceGatePort = {
+        score: vi.fn().mockResolvedValue([0.9, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+      };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // 임계값 0.5 는 top-10 최고 점수로 교정한 값이다. 후보를 더 넣으면 최고 점수가 올라가 기각이 느슨해진다.
+      expect(gate.score).toHaveBeenCalledTimes(1);
+      expect((gate.score as Mock).mock.calls[0]?.[1]).toHaveLength(10);
+    });
+
+    it('게이트가 전부 NaN 을 주면 기각하지 않는다 (fail-open)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = {
+        score: vi.fn().mockResolvedValue([Number.NaN, Number.NaN]),
+      };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // WAF 차단·타임아웃으로 점수를 못 얻었을 때 검색이 빈 결과를 내면 안 된다.
+      expect(out.items).toHaveLength(2);
+    });
+
+    it('게이트에 질의 원문이 그대로 전달된다', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.9]) };
+      hybridSearchEngine.setRejectionGate(gate);
+      const query = '김치찌개 끓이는 법';
+
+      await hybridSearchEngine.search(mockDb, { query, limit: 10 });
+
+      expect((gate.score as Mock).mock.calls[0]?.[0]).toBe(query);
     });
   });
 });

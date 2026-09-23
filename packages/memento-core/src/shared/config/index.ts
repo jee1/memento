@@ -71,6 +71,34 @@ const embeddingDimensions: number =
   providerDimensionDefaults[embeddingProvider] ??
   providerDimensionDefaults.minilm) as number;
 
+/**
+ * #1095 기각 게이트 provider 파싱. 모르는 값은 경고 후 'off' 로 떨어뜨린다.
+ * 게이트 오설정이 검색을 죽이면 안 되므로 예외를 던지지 않는다.
+ */
+function resolveRejectionGateProvider(): MementoConfig['searchRejectionGate'] {
+  const raw = (resolveString('SEARCH_REJECTION_GATE') || 'off').trim().toLowerCase();
+  if (raw === 'off' || raw === 'typesafe' || raw === 'ollama') {
+    return raw;
+  }
+  console.warn(
+    `[config] SEARCH_REJECTION_GATE="${raw}" 는 알 수 없는 값이다. off 로 처리한다. (off|typesafe|ollama)`
+  );
+  return 'off';
+}
+
+/**
+ * #1095 기각 임계값 파싱.
+ * resolveNumber 는 Number.parseInt 를 쓰므로 0.5 가 0 으로 잘린다 — 반드시 parseFloat 를 써야 한다.
+ */
+function resolveRejectionGateThreshold(): number {
+  const raw = resolveString('SEARCH_REJECTION_GATE_THRESHOLD');
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    return 0.5;
+  }
+  return parsed;
+}
+
 export const mementoConfig: MementoConfig = {
   // 데이터베이스 설정
   dbPath: expandHomeDirPath(resolveString('DB_PATH')),
@@ -104,6 +132,13 @@ export const mementoConfig: MementoConfig = {
   // 검색 설정
   searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),
   searchMaxLimit: resolveNumber('SEARCH_MAX_LIMIT'),
+  // #1095 검색 기각 게이트
+  searchRejectionGate: resolveRejectionGateProvider(),
+  searchRejectionGateThreshold: resolveRejectionGateThreshold(),
+  searchRejectionGateTimeoutMs: resolveNumber('SEARCH_REJECTION_GATE_TIMEOUT_MS'),
+  searchRejectionGateDocChars: resolveNumber('SEARCH_REJECTION_GATE_DOC_CHARS'),
+  typesafeApiKey: resolveOptionalString('TYPESAFE_API_KEY'),
+  typesafeModel: resolveString('TYPESAFE_MODEL'),
 
   // 망각 정책 설정 (시간 단위: 시간)
   forgetTTL: {

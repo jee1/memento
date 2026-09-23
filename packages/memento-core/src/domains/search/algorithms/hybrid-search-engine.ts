@@ -40,6 +40,9 @@ import type {
   ITextSearchEngine,
   IVectorSearchEngine,
 } from './hybrid-search-types.js';
+import type { IRelevanceGatePort } from '../ports/relevance-gate-port.js';
+import { judgeRelevanceGate } from '../ports/relevance-gate-port.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 
 export {
   resolveHybridVectorPrefetchLimit,
@@ -119,6 +122,13 @@ export class HybridSearchEngine {
 
   setRelationGraph(relationGraph: RelationGraph | null): void {
     this.relationGraph = relationGraph;
+  }
+
+  /** #1095 기각 게이트. null 이면 게이트 없음 — 현행 동작 그대로다. */
+  private rejectionGate: IRelevanceGatePort | null = null;
+
+  setRejectionGate(gate: IRelevanceGatePort | null): void {
+    this.rejectionGate = gate;
   }
 
   getRankingVersion(): string {
@@ -221,6 +231,25 @@ export class HybridSearchEngine {
           outputLimit,
           includeRelations: query.includeRelations || false,
         });
+      }
+
+      // #1095 기각 게이트: 후보 최고 점수가 임계값 미만이면 질의 전체를 기각한다.
+      // finalResults 를 재할당하므로 아래 logData·finalIds·return 이 모두 자동으로 따라간다.
+      if (this.rejectionGate && finalResults.length > 0) {
+        // 임계값 0.5 는 top-10 의 최고 점수로 교정한 값이다. 후보를 더 넣으면 최고 점수가
+        // 올라가기만 해서 기각이 느슨해진다. 측정한 조건 그대로 상위 10건만 본다.
+        const gateDocs = finalResults.slice(0, 10).map((item) => item.content ?? '');
+        const gateScores = await this.rejectionGate.score(query.query, gateDocs);
+        const verdict = judgeRelevanceGate(gateScores, mementoConfig.searchRejectionGateThreshold);
+        if (verdict.rejected) {
+          this.logger.logSearchStep(searchId, '기각 게이트: 질의 기각', {
+            topScore: verdict.topScore,
+            threshold: verdict.threshold,
+            unscored: verdict.unscored,
+            candidates: gateDocs.length,
+          });
+          finalResults = [];
+        }
       }
 
       this.updateSearchStats(query.query, textResults.length, vectorOut.results.length);
