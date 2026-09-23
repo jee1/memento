@@ -13,6 +13,19 @@ import { describe, expect, it } from 'vitest';
  */
 const AUTH_ENV_VARS = ['MEMENTO_API_TOKENS', 'ADMIN_API_KEY'] as const;
 
+/**
+ * #1095: 기각 게이트 설정도 컨테이너에 도달해야 한다.
+ * 도달하지 않으면 .env 에서 켜도 컨테이너 안에서는 계속 off 로 돌고 증상이 없다.
+ */
+const REJECTION_GATE_ENV_VARS = [
+  'SEARCH_REJECTION_GATE',
+  'SEARCH_REJECTION_GATE_THRESHOLD',
+  'SEARCH_REJECTION_GATE_TIMEOUT_MS',
+  'SEARCH_REJECTION_GATE_DOC_CHARS',
+  'TYPESAFE_API_KEY',
+  'TYPESAFE_MODEL',
+] as const;
+
 const COMPOSE_PATH = 'docker-compose.base.yml';
 
 function readCompose(): string {
@@ -36,6 +49,18 @@ describe(`#1115: ${COMPOSE_PATH} 가 programmatic 인증 변수를 컨테이너�
   });
 
   it.each(AUTH_ENV_VARS)('%s 는 같은 이름의 호스트 값을 그대로 넘긴다', (varName) => {
+    const line = findInjectionLine(readCompose(), varName);
+    expect(line).toBeDefined();
+    expect(line).toMatch(new RegExp(`\\$\\{${varName}(:-[^}]*)?\\}`));
+  });
+});
+
+describe(`#1095: ${COMPOSE_PATH} 가 기각 게이트 설정을 컨테이너에 주입한다`, () => {
+  it.each(REJECTION_GATE_ENV_VARS)('%s 주입 키가 있다', (varName) => {
+    expect(findInjectionLine(readCompose(), varName)).toBeDefined();
+  });
+
+  it.each(REJECTION_GATE_ENV_VARS)('%s 는 같은 이름의 호스트 값을 그대로 넘긴다', (varName) => {
     const line = findInjectionLine(readCompose(), varName);
     expect(line).toBeDefined();
     expect(line).toMatch(new RegExp(`\\$\\{${varName}(:-[^}]*)?\\}`));
