@@ -66,3 +66,28 @@ describe(`#1095: ${COMPOSE_PATH} 가 기각 게이트 설정을 컨테이너에 
     expect(line).toMatch(new RegExp(`\\$\\{${varName}(:-[^}]*)?\\}`));
   });
 });
+
+/**
+ * #1129: MCP era 롤백 게이트도 컨테이너에 도달해야 한다.
+ * 도달하지 않으면 .env 로 legacy 로 내려도 컨테이너 안에서는 계속 dual 이라
+ * 롤백 수단 자체가 없다. 2026-09-23 에 실제로 이 상태였다.
+ */
+const MCP_ERA_ENV_VARS = ['MEMENTO_MCP_ERA'] as const;
+
+describe(`#1129: ${COMPOSE_PATH} 가 MCP era 롤백 게이트를 컨테이너에 주입한다`, () => {
+  it.each(MCP_ERA_ENV_VARS)('%s 주입 키가 있다', (varName) => {
+    expect(findInjectionLine(readCompose(), varName)).toBeDefined();
+  });
+
+  it.each(MCP_ERA_ENV_VARS)('%s 는 같은 이름의 호스트 값을 그대로 넘긴다', (varName) => {
+    const line = findInjectionLine(readCompose(), varName);
+    expect(line).toBeDefined();
+    expect(line).toMatch(new RegExp(`\\$\\{${varName}(:-[^}]*)?\\}`));
+  });
+
+  it('MEMENTO_MCP_ERA 의 기본값은 코드 기본값과 같은 dual 이다', () => {
+    // parseMcpEraMode (packages/memento-core/src/shared/utils/mcp-era-mode.ts:8) 가
+    // 빈 값을 dual 로 읽는다. compose 기본값이 다르면 컨테이너와 로컬이 갈라진다.
+    expect(findInjectionLine(readCompose(), 'MEMENTO_MCP_ERA')).toContain(':-dual}');
+  });
+});
