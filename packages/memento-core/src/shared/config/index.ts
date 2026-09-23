@@ -99,6 +99,22 @@ function resolveRejectionGateThreshold(): number {
   return parsed;
 }
 
+/**
+ * #1125 게이트 장애 시 정책 파싱. 모르는 값은 경고 후 'open' 으로 떨어뜨린다.
+ * 기본이 'open' 인 이유: 'closed' 가 기본이면 WAF 가 막는 본문(코드펜스 + curl -s)을 가진
+ * 기억이 자기 자신을 찾는 질의에서 영구히 0건이 된다.
+ */
+function resolveRejectionGateOnError(): MementoConfig['searchRejectionGateOnError'] {
+  const raw = (resolveString('SEARCH_REJECTION_GATE_ON_ERROR') || 'open').trim().toLowerCase();
+  if (raw === 'open' || raw === 'closed') {
+    return raw;
+  }
+  console.warn(
+    `[config] SEARCH_REJECTION_GATE_ON_ERROR="${raw}" 는 알 수 없는 값이다. open 으로 처리한다. (open|closed)`
+  );
+  return 'open';
+}
+
 export const mementoConfig: MementoConfig = {
   // 데이터베이스 설정
   dbPath: expandHomeDirPath(resolveString('DB_PATH')),
@@ -137,6 +153,7 @@ export const mementoConfig: MementoConfig = {
   searchRejectionGateThreshold: resolveRejectionGateThreshold(),
   searchRejectionGateTimeoutMs: resolveNumber('SEARCH_REJECTION_GATE_TIMEOUT_MS'),
   searchRejectionGateDocChars: resolveNumber('SEARCH_REJECTION_GATE_DOC_CHARS'),
+  searchRejectionGateOnError: resolveRejectionGateOnError(),
   typesafeApiKey: resolveOptionalString('TYPESAFE_API_KEY'),
   typesafeModel: resolveString('TYPESAFE_MODEL'),
 

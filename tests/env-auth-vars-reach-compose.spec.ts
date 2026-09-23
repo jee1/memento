@@ -22,6 +22,7 @@ const REJECTION_GATE_ENV_VARS = [
   'SEARCH_REJECTION_GATE_THRESHOLD',
   'SEARCH_REJECTION_GATE_TIMEOUT_MS',
   'SEARCH_REJECTION_GATE_DOC_CHARS',
+  'SEARCH_REJECTION_GATE_ON_ERROR',
   'TYPESAFE_API_KEY',
   'TYPESAFE_MODEL',
 ] as const;
@@ -64,6 +65,16 @@ describe(`#1095: ${COMPOSE_PATH} 가 기각 게이트 설정을 컨테이너에 
     const line = findInjectionLine(readCompose(), varName);
     expect(line).toBeDefined();
     expect(line).toMatch(new RegExp(`\\$\\{${varName}(:-[^}]*)?\\}`));
+  });
+});
+
+/**
+ * #1125: 게이트 장애 시 정책의 compose 기본값이 코드 기본값과 같아야 한다.
+ * 다르면 컨테이너와 로컬이 갈라지고, 갈라진 쪽이 조용히 이긴다.
+ */
+describe(`#1125: ${COMPOSE_PATH} 의 게이트 장애 정책 기본값이 코드와 같다`, () => {
+  it('SEARCH_REJECTION_GATE_ON_ERROR 의 기본값은 open 이다', () => {
+    expect(findInjectionLine(readCompose(), 'SEARCH_REJECTION_GATE_ON_ERROR')).toContain(':-open}');
   });
 });
 

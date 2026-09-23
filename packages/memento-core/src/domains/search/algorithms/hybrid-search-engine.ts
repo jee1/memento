@@ -240,7 +240,11 @@ export class HybridSearchEngine {
         // 올라가기만 해서 기각이 느슨해진다. 측정한 조건 그대로 상위 10건만 본다.
         const gateDocs = finalResults.slice(0, 10).map((item) => item.content ?? '');
         const gateScores = await this.rejectionGate.score(query.query, gateDocs);
-        const verdict = judgeRelevanceGate(gateScores, mementoConfig.searchRejectionGateThreshold);
+        const verdict = judgeRelevanceGate(
+          gateScores,
+          mementoConfig.searchRejectionGateThreshold,
+          mementoConfig.searchRejectionGateOnError,
+        );
         if (verdict.rejected) {
           this.logger.logSearchStep(searchId, '기각 게이트: 질의 기각', {
             topScore: verdict.topScore,

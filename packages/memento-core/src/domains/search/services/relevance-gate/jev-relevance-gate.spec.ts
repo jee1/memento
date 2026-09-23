@@ -110,16 +110,107 @@ describe('JevRelevanceGate', () => {
     expect(body.state.c0).toHaveLength(10);
   });
 
-  it('WAF 차단(detail 없는 403)이면 전부 NaN 이고 재시도하지 않는다', async () => {
-    // 지수 백오프 5회(1·2·4·8·16초)가 전부 실패했다 — 페이로드에 결정적이라 재시도가 무의미하다.
+  it('WAF 차단이면 펜스를 걷고 1회 재시도해서 점수를 얻는다', async () => {
+    // #1125 실측: 「코드펜스 + curl -s」는 403, 「curl -s (펜스 없이)」는 200.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(403, {}))
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          model: 'jev-latest',
+          answers: { c0: { type: 'noul', noul: 0.02 } },
+        }),
+      );
+    globalThis.fetch = fetchMock;
+
+    const gate = makeGate();
+    const scores = await gate.score('김치찌개 끓이는 법', ['```bash\ncurl -s https://example.com\n```']);
+
+    expect(scores).toEqual([0.02]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('1차 호출 본문은 원문 그대로다 — 임계값 교정을 건드리지 않는다', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(403, {}))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { model: 'jev-latest', answers: { c0: { type: 'noul', noul: 0.1 } } }),
+      );
+    globalThis.fetch = fetchMock;
+
+    const gate = makeGate();
+    await gate.score('질의', ['```\ncurl -s x\n```']);
+
+    const [, firstInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [, secondInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+
+    expect(JSON.parse(firstInit.body as string).state.c0).toContain('```');
+    expect(JSON.parse(secondInit.body as string).state.c0).not.toContain('```');
+    expect(JSON.parse(secondInit.body as string).state.c0).toContain('curl -s x');
+  });
+
+  it('재시도도 WAF 에 막히면 전부 NaN 이고 3번째 호출은 없다', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(403, {}));
 
     const gate = makeGate();
-    const scores = await gate.score('질의', ['a', 'b', 'c']);
+    const scores = await gate.score('질의', ['```\ncurl -s a\n```', 'b', 'c']);
 
     expect(scores).toHaveLength(3);
     expect(scores.every((s) => Number.isNaN(s))).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('후보에 펜스가 없으면 WAF 차단이어도 재시도하지 않는다', async () => {
+    // 정규화가 아무것도 바꾸지 못해 같은 403 을 한 번 더 받을 뿐이다.
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(403, {}));
+
+    const gate = makeGate();
+    const scores = await gate.score('질의', ['cat /etc/passwd']);
+
+    expect(scores).toHaveLength(1);
+    expect(Number.isNaN(scores[0])).toBe(true);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('인증 실패(detail 있는 403)는 재시도하지 않는다', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      jsonResponse(403, {
+        detail: { error_type: 'authentication_error', message: 'Must supply an API key!' },
+      }),
+    );
+
+    const gate = makeGate();
+    await gate.score('질의', ['a']);
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('500 응답은 재시도하지 않는다', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(500, {}));
+
+    const gate = makeGate();
+    await gate.score('질의', ['a']);
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('재시도 본문은 펜스를 걷은 뒤 docChars 로 자른다', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(403, {}))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { model: 'jev-latest', answers: { c0: { type: 'noul', noul: 0.3 } } }),
+      );
+    globalThis.fetch = fetchMock;
+
+    const gate = makeGate({ docChars: 10 });
+    await gate.score('질의', ['```' + 'x'.repeat(50)]);
+
+    const [, secondInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const state = JSON.parse(secondInit.body as string).state;
+
+    expect(state.c0).toBe('x'.repeat(10));
   });
 
   it('인증 실패(detail 있는 403)도 예외 없이 NaN 배열이다', async () => {

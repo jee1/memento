@@ -9,9 +9,13 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- **기각 게이트가 WAF 차단 배치를 재시도합니다** (#1125): Cloudflare WAF 가 코드펜스 뒤의 `curl -s`·`curl -sL`·`wget -q` 가 든 요청 본문을 403 으로 막는데, 후보 1건만 걸려도 배치 10건 전체가 점수를 얻지 못해 그 질의가 fail-open 으로 통과했습니다. 이제 WAF 차단(본문 없는 403)일 때만 코드펜스 마커를 걷어 **1회** 재시도합니다. 1차 호출은 원문 그대로 보내므로 임계값 0.5 교정은 그대로입니다. 인증 403·500·타임아웃·네트워크 실패는 재시도하지 않습니다. 함께 `SEARCH_REJECTION_GATE_ON_ERROR=open|closed` 를 추가해 게이트가 점수를 하나도 얻지 못했을 때의 동작을 설정으로 고정할 수 있습니다 — **기본값은 `open`**(기각하지 않음)이며, `closed` 를 기본으로 두면 WAF 가 막는 본문을 가진 기억이 자기 자신을 찾는 질의에서 영구히 0건이 되기 때문입니다.
+
 ### Added
 
-- **검색 기각 게이트** (#1095, #922): 무관한 질의에 검색 결과를 0건으로 기각합니다. `SEARCH_REJECTION_GATE=off|typesafe|ollama` 로 켜고 끄며 **기본값은 `off`** 이라 켜기 전까지 검색 동작은 그대로입니다. `typesafe` 는 TypeSafe Jev(System One) 의 보정 확률을 임계값 `SEARCH_REJECTION_GATE_THRESHOLD`(기본 0.5)와 비교합니다. 운영 DB 9,470건 실측에서 무관 질의 12건을 전부 차단하면서 재랭킹 p50 260ms 였습니다 — 같은 조건의 로컬 cross-encoder(`bge-reranker-base` q8)는 무관 4/12 를 통과시켰고 1257ms·메모리 +465MB 였습니다. 임계값이 코퍼스에 독립인 것이 결정적 차이입니다(raw logit 이 아니라 보정 확률이라서). 게이트가 점수를 얻지 못하면(WAF 차단·타임아웃·네트워크 실패) **기각하지 않습니다** — 게이트 장애가 검색 실패로 번지면 안 되기 때문입니다. `ollama` 는 향후 내부 모듈 교체 자리이며 아직 구현이 없습니다. 알려진 한계: Cloudflare WAF 가 코드펜스 뒤의 `curl -s`·`curl -sL`·`wget -q` 가 든 후보 본문을 차단하고, 후보 1건만 막혀도 배치 전체가 실패해 그 질의는 기각되지 않습니다.
+- **검색 기각 게이트** (#1095, #922): 무관한 질의에 검색 결과를 0건으로 기각합니다. `SEARCH_REJECTION_GATE=off|typesafe|ollama` 로 켜고 끄며 **기본값은 `off`** 이라 켜기 전까지 검색 동작은 그대로입니다. `typesafe` 는 TypeSafe Jev(System One) 의 보정 확률을 임계값 `SEARCH_REJECTION_GATE_THRESHOLD`(기본 0.5)와 비교합니다. 운영 DB 9,470건 실측에서 무관 질의 12건을 전부 차단하면서 재랭킹 p50 260ms 였습니다 — 같은 조건의 로컬 cross-encoder(`bge-reranker-base` q8)는 무관 4/12 를 통과시켰고 1257ms·메모리 +465MB 였습니다. 임계값이 코퍼스에 독립인 것이 결정적 차이입니다(raw logit 이 아니라 보정 확률이라서). 게이트가 점수를 얻지 못하면(WAF 차단·타임아웃·네트워크 실패) **기각하지 않습니다** — 게이트 장애가 검색 실패로 번지면 안 되기 때문입니다. #1125 부터 `SEARCH_REJECTION_GATE_ON_ERROR=closed` 로 뒤집을 수 있습니다. `ollama` 는 향후 내부 모듈 교체 자리이며 아직 구현이 없습니다. 알려진 한계였던 Cloudflare WAF 차단(코드펜스 뒤의 `curl -s`·`curl -sL`·`wget -q`)은 #1125 에서 펜스 정규화 1회 재시도로 완화했습니다.
 
 - **MCP HTTP modern era(`2026-07-28`) POST 디스패치** (#840, Phase 1b): `params._meta.protocolVersion` 으로 era 를 라우팅하고, modern 응답에만 전용 검증 경계와 HTTP status 매핑을 적용합니다. legacy 경로는 바이트·상태 parity 를 그대로 유지합니다. `MEMENTO_MCP_ERA` 로 롤백할 수 있고, 활성화되면 `server/discover` 가 `2026-07-28` 을 광고합니다. modern CORS preflight 는 `MCP-Protocol-Version`·`Mcp-Method`·`Mcp-Name` 을 허용하고, modern GET/DELETE 의 405 에 `Allow: POST` 를 붙입니다.
 

@@ -32,19 +32,28 @@ export interface RelevanceGateVerdict {
 export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.5;
 
 /**
+ * #1125 게이트가 점수를 하나도 얻지 못했을 때의 정책.
+ * 'open'  = 기각하지 않는다 (기본). 게이트 장애가 검색 실패로 번지지 않는다.
+ * 'closed'= 기각한다. 무관 질의는 확실히 막히지만 게이트 장애 때 관련 질의도 0건이 된다.
+ */
+export type RelevanceGateOnError = 'open' | 'closed';
+
+/**
  * 게이트는 질의 단위로만 판정한다. 후보별 필터링은 하지 않는다.
  * 2026-09-23 실측은 top1 기준 질의 단위 기각만 검증했고 후보별 드롭은 미검증이다.
  */
 export function judgeRelevanceGate(
   scores: number[],
   threshold: number,
+  onError: RelevanceGateOnError = 'open',
 ): RelevanceGateVerdict {
   const validScores = scores.filter((s) => Number.isFinite(s));
   const unscored = scores.length - validScores.length;
 
   if (validScores.length === 0) {
     return {
-      rejected: false,
+      // #1125 점수를 하나도 못 얻었다. 정책에 따라 통과시키거나 기각한다.
+      rejected: onError === 'closed',
       topScore: null,
       threshold,
       unscored,

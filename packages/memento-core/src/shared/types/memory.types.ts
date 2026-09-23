@@ -94,6 +94,11 @@ export interface MementoConfig {
   searchRejectionGateTimeoutMs: number;
   /** 게이트에 넘길 후보 본문 최대 길이 (문자) */
   searchRejectionGateDocChars: number;
+  /**
+   * #1125 게이트가 점수를 하나도 얻지 못했을 때의 정책.
+   * 'open'(기본) = 통과. 'closed' = 기각.
+   */
+  searchRejectionGateOnError: 'open' | 'closed';
   /** TypeSafe Jev API 키 (searchRejectionGate='typesafe' 일 때 필요) */
   typesafeApiKey: string | undefined;
   /** TypeSafe Jev 모델명 */
