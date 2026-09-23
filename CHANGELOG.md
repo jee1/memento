@@ -45,6 +45,12 @@
 
 - **long distractor 단언을 실패 종류별로 분리** (#1103): (A) 벡터 도달률과 (B) 랭킹 품질을 한 spec 에서 뭉쳐 재고 있어 무엇이 깨졌는지 구분되지 않았습니다. 분리 과정에서 원인이 이슈 본문이 지목한 #973 이 아니라 **#1020** (`d74e736f`, 긴 한국어 기억을 토크나이저 윈도로 임베딩) 이라는 것이 드러났습니다 — 그때부터 본문 전체가 평균 풀링에 들어가므로, `bench_syn_long_0001` 에서 `cos(질의, 앞 1024자)` 0.5087 이 `cos(질의, 전체 12,000자)` 0.0422 로 희석됩니다. 기대값 재기준선은 #1103 에 남아 있습니다.
 
+### Security
+
+- **컨테이너 포트를 기본으로 루프백에만 게시** (#1126): `docker-compose.yml` 이 `"9001:9001"` 로 게시해 `0.0.0.0` 에 바인딩됐습니다. 컨테이너 안 `MEMENTO_HTTP_BIND_HOST` 는 도커 게시가 프로세스에 닿으려면 `0.0.0.0` 이어야 하므로, 외부 노출 여부를 정하는 것은 compose `ports:` 앞자리 하나뿐인데 그게 비어 있었습니다. 결과적으로 LAN 의 누구나 `/tools`·`/mcp`·`/api/v1/*` 에 도달할 수 있었습니다. 이제 기본값이 `127.0.0.1` 이고, LAN·원격 노출이 필요하면 `.env` 에 `MCP_PUBLISH_HOST=0.0.0.0` 을 명시합니다 (그때는 `MEMENTO_API_TOKENS` 를 반드시 함께 설정하십시오). `apps/multi-agent-orchestration/docker-compose.yml` 템플릿도 같이 고쳤습니다 — 복사해 쓰는 배포에 같은 기본값이 퍼지기 때문입니다. 운영 반영에는 `docker compose up -d --force-recreate` 가 필요합니다.
+
+- **환경변수 이름이 값 자리에 들어간 자격증명을 폐기** (#1126): `MEMENTO_API_TOKENS` 와 `ADMIN_API_KEY` 의 값이 "이 프로세스에 실제로 설정된 다른 환경변수의 이름"이면 비밀이 아니라 `.env` 편집 사고이므로 값을 버리고 `error` 를 남깁니다. 2026-09-23 운영에서 두 키가 **동시에** 문자열 `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` 이었고, 그 문자열이 그대로 인증을 통과해 `admin:destructive` 까지 열려 있었습니다. 둘이 같이 오염돼 사람 눈으로는 대조가 되지 않았습니다. 경고로는 부족합니다 — 당시에도 `MEMENTO_API_TOKENS is not valid JSON` 에러가 로그에 있었지만 아무도 보지 않았습니다. 폐기하면 programmatic 경로가 401 로 fail-closed 되고, 루프백이 아닌 바인딩이면 기동 자체가 막혀 무증상으로 지나가지 않습니다. 판정 기준은 SCREAMING_SNAKE_CASE(밑줄 1개 이상) **이면서** 그 이름의 환경변수가 실제로 설정돼 있을 때뿐이라, 밑줄 없는 대문자 16진수 비밀은 걸리지 않습니다. 폐기 로그에 값 자체는 남기지 않습니다 — 판정이 틀렸다면 그것이 진짜 비밀이기 때문입니다.
+
 ### Fixed
 
 - **`MEMENTO_API_TOKENS` 가 컨테이너에 도달하지 못하던 문제** (#1115): `docker-compose.base.yml` 이 legacy `ADMIN_API_KEY` 만 전달해서, `.env` 에 스코프 토큰을 넣어도 값이 서버 프로세스에 닿지 않고 **조용히 legacy 키로 폴백**했습니다. `env.example` 이 JSON 배열 형식까지 정확히 안내하고 있어 더 나빴습니다 — 문서를 정확히 따른 운영자가 아무 효과도 경고도 얻지 못합니다. 그 상태에서 "이전했으니 legacy 키 삭제" 순서를 밟으면 토큰이 0개가 되어 `/tools`·`/mcp`·`/messages`·`/api/v1/*` 가 전부 401 로 fail-closed 됩니다. 이제 compose 가 호스트 값을 그대로 넘기고, `MEMENTO_API_TOKENS` 가 설정됐는데 유효 토큰이 0개라 legacy 로 내려가는 상태를 `error` 로 남깁니다 (미설정 시에는 찍히지 않습니다). 운영 반영에는 `docker compose up -d --force-recreate` 가 필요합니다 — `up -d` 만으로는 `.env` 변경이 반영되지 않습니다.

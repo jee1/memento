@@ -18,8 +18,10 @@ services:
       MEMENTO_HTTP_DEFAULT_AGENT_ID: orchestrator
       # API 토큰은 secrets 또는 호스트 env에서 주입 (평문 compose 금지)
       MEMENTO_API_TOKENS: ${MEMENTO_API_TOKENS:-}
+    # 루프백 게시 기본값 — 이 템플릿을 복사해 쓰는 배포가 LAN 에 열리지 않게 한다.
+    # 원격 노출이 필요하면 MCP_PUBLISH_HOST=0.0.0.0 + MEMENTO_API_TOKENS 를 함께 설정한다.
     ports:
-      - "9001:9001"
+      - "${MCP_PUBLISH_HOST:-127.0.0.1}:9001:9001"
     volumes:
       - ${HOME}/.memento/data:/app/data
       - ${HOME}/.memento/logs:/app/logs
