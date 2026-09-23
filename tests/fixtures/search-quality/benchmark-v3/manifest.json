@@ -18,6 +18,7 @@
     "Set ground_truth_reviewed=true only after manual review is complete",
     "#934: appended 21 synthetic documents (bench_syn_*) including near-clone long distractors for length-bias sweep",
     "#961: near-clone long distractors rewritten so embedding horizon is topic-dense (ZWSP/fill tips); long GT answers 0005-0007 keep decisive body after horizon; corpus_size unchanged",
-    "#1104: incident_ops 버킷을 4 → 7질의로 확장 (q_034·q_035·q_036); corpus 는 변경 없음"
+    "#1104: incident_ops 버킷을 4 → 7질의로 확장 (q_034·q_035·q_036); corpus 는 변경 없음",
+    "#1122: 장문 near-clone 디스트랙터 7건(bench_syn_long_0001~0004·0008·0009·0011)을 윈도 단위로 재생성 — 문서 끝에 MiniLM 윈도 경계(510토큰)에 맞춘 질의 밀집 문단 1개를 두고 그 앞은 무관한 장문 패딩; 0010 은 교차오염을 일으켜 원본 유지. importance·created_at·tags·corpus_size 불변, 비가시 문자·공백 패딩 미사용"
   ]
 }
