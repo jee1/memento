@@ -255,7 +255,7 @@ export async function handleStreamableMcpPost(
     }
 
     if (modernClaim) {
-      sendModernJsonRpc(res, applyModernSuccessEnvelope(result));
+      sendModernJsonRpc(res, applyModernSuccessEnvelope(result, message.method));
       return;
     }
 
