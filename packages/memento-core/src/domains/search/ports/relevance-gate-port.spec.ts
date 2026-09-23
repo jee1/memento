@@ -63,4 +63,31 @@ describe('judgeRelevanceGate', () => {
   it('기본 임계값은 2026-09-23 운영 DB 실측 기준 0.5 다', () => {
     expect(DEFAULT_RELEVANCE_GATE_THRESHOLD).toBe(0.5);
   });
+
+  it('점수를 하나도 못 얻으면 기본값(open)은 기각하지 않는다', () => {
+    const verdict = judgeRelevanceGate([NaN, NaN, NaN], 0.5);
+
+    expect(verdict.rejected).toBe(false);
+    expect(verdict.topScore).toBeNull();
+    expect(verdict.unscored).toBe(3);
+  });
+
+  it("onError='closed' 면 점수를 하나도 못 얻었을 때 기각한다", () => {
+    const verdict = judgeRelevanceGate([NaN, NaN, NaN], 0.5, 'closed');
+
+    expect(verdict.rejected).toBe(true);
+    expect(verdict.topScore).toBeNull();
+    expect(verdict.unscored).toBe(3);
+  });
+
+  it("onError='closed' 여도 유효 점수가 있으면 임계값으로만 판정한다", () => {
+    expect(judgeRelevanceGate([NaN, 0.8, NaN], 0.5, 'closed').rejected).toBe(false);
+    expect(judgeRelevanceGate([NaN, 0.2, NaN], 0.5, 'closed').rejected).toBe(true);
+  });
+
+  it("후보 0건도 onError='closed' 에서는 기각으로 판정된다", () => {
+    // 호출부(hybrid-search-engine)가 finalResults.length > 0 일 때만 게이트를 부르므로
+    // 실제 경로에서는 도달하지 않는다. 순수 함수의 계약만 고정한다.
+    expect(judgeRelevanceGate([], 0.5, 'closed').rejected).toBe(true);
+  });
 });
