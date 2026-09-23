@@ -8,32 +8,22 @@ import { PredicateCanonicalizer } from '../../relation/services/triple-extractio
 import { buildTripleSentence } from './triple-sentence.js';
 import type { NormalizedTripleSnapshot } from './semantic-memory-update-types.js';
 
-/** 폴백으로 원문을 보존할 때의 최대 길이 (episodic 원문은 길 수 있다) */
-const FALLBACK_TEXT_MAX_LENGTH = 500;
-
 export class SemanticMemoryScoring {
   private readonly canonicalizer = new PredicateCanonicalizer();
   private readonly entityLinker = new EntityLinker();
 
   /**
-   * triple을 문장으로 만든다. 재조립할 수 없으면 합성 문장 대신 원문(`fallbackText`)을 보존한다 (#768).
+   * triple을 문장으로 만든다. 재조립할 수 없으면 triple 구성 요소를 그대로 남긴다.
+   *
+   * #768은 재조립 실패 시 원본 episodic 본문을 보존했다. 그 폴백은 triple에 의존하지 않아,
+   * 한 episodic에서 뽑은 triple k개가 모두 실패하면 같은 본문의 semantic 행 k개가 생겼다 (#1137).
+   * 원문은 episodic 행과 `origin_source.context.source_episodic_id`로 추적되므로
+   * content는 triple에만 종속시킨다.
    */
-  tripleToNaturalLanguage(
-    subject: string,
-    predicate: string,
-    object: string,
-    fallbackText?: string
-  ): string {
+  tripleToNaturalLanguage(subject: string, predicate: string, object: string): string {
     const sentence = buildTripleSentence(subject, predicate, object);
     if (sentence) {
       return sentence;
-    }
-
-    const fallback = (fallbackText ?? '').trim();
-    if (fallback) {
-      return fallback.length > FALLBACK_TEXT_MAX_LENGTH
-        ? `${fallback.slice(0, FALLBACK_TEXT_MAX_LENGTH)}…`
-        : fallback;
     }
 
     return [subject, predicate, object]
