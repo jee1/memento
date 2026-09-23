@@ -240,7 +240,9 @@ export function resolveValidatedNumber(
   validate: (n: number) => boolean,
   hint: string
 ): number {
-  const raw = process.env[key] ?? ENV_DEFAULTS[key];
+  // 빈 문자열은 «미설정» 이다. `??` 로 받으면 parseInt('') 가 NaN 이 되어
+  // compose 가 `${KEY:-}` 로 넘긴 키마다 기동 시 경고가 뜬다 (#1133).
+  const raw = process.env[key]?.trim() || ENV_DEFAULTS[key];
   if (raw === undefined) return defaultValue;
   const parsed = Number.parseInt(raw, 10);
   if (Number.isNaN(parsed) || !validate(parsed)) {

@@ -51,8 +51,10 @@ export interface PIIMaskingOptions {
  * - 로컬/개발: 기본값 true (보안 우선, ENABLE_PII_MASKING=false로 선택적 비활성화 가능)
  */
 function isPIIMaskingEnabled(): boolean {
-  const envValue = process.env.ENABLE_PII_MASKING;
-  if (envValue === undefined) {
+  // 빈 문자열은 «미설정» 으로 읽는다. compose 가 `${ENABLE_PII_MASKING:-}` 로 넘기므로
+  // undefined 만 검사하면 .env 에 키가 없는 배포에서 마스킹이 꺼진다 (#1133).
+  const envValue = process.env.ENABLE_PII_MASKING?.trim();
+  if (!envValue) {
     // 환경 변수 미지정 시 기본값: true (보안 우선)
     return true;
   }
