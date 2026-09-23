@@ -681,6 +681,57 @@ describe('#840 Phase 1b HTTP dual-era', () => {
     }
   });
 
+  it('#1129 modern cacheable result 는 ttlMs·cacheScope 를 싣는다 (배선 확인)', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      // 순수 함수 유닛 테스트로는 handlers.ts 가 method 를 넘기는지 증명되지 않는다.
+      // 실제 HTTP 응답에서 확인해야 배선이 깨졌을 때 빨간불이 켜진다.
+      // resources/list 는 DB 가 있어야 해서 이 하네스에서는 500 이 된다. 캐시 필드 배선은
+      // 메서드마다 다르지 않으므로 DB 없이 200 이 나오는 둘로 확인한다.
+      for (const method of ['tools/list', 'prompts/list'] as const) {
+        const res = await postJsonRpc(
+          port,
+          '/mcp',
+          { jsonrpc: '2.0', id: 11, method, params: { _meta: modernMeta() } },
+          modernHeaders(method)
+        );
+        expect(res.statusCode).toBe(200);
+        const body = JSON.parse(res.body) as {
+          result: { ttlMs: number; cacheScope: string };
+        };
+        expect(body.result.ttlMs, `${method} ttlMs`).toBe(0);
+        expect(body.result.cacheScope, `${method} cacheScope`).toBe('private');
+      }
+    } finally {
+      await close();
+    }
+  });
+
+  it('#1129 cacheable 이 아닌 메서드에는 캐시 필드를 붙이지 않는다', async () => {
+    const { port, close } = await listenWithMcpRouter();
+    try {
+      // SEP-2549 의 목록은 닫혀 있다. 규정에 없는 필드를 얹는 것도 위반이다.
+      const res = await postJsonRpc(
+        port,
+        '/mcp',
+        {
+          jsonrpc: '2.0',
+          id: 12,
+          method: 'tools/call',
+          params: { name: 'remember', arguments: {}, _meta: modernMeta() },
+        },
+        modernHeaders('tools/call', 'remember')
+      );
+      const body = JSON.parse(res.body) as { result?: Record<string, unknown> };
+      if (body.result) {
+        expect(body.result).not.toHaveProperty('ttlMs');
+        expect(body.result).not.toHaveProperty('cacheScope');
+      }
+    } finally {
+      await close();
+    }
+  });
+
   it('modern _meta 누락 필드는 -32602/400 을 반환한다', async () => {
     const { port, close } = await listenWithMcpRouter();
     try {
