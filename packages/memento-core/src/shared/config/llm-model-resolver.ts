@@ -13,10 +13,7 @@ export type LlmUseCase =
   | 'procedural'
   | 'consolidation';
 
-export type InScopeLlmProviderUseCase =
-  | 'triple_extraction'
-  | 'relation_extraction'
-  | 'procedural';
+export type InScopeLlmProviderUseCase = LlmUseCase;
 
 export type LlmModelProvider = 'openai' | 'gemini' | 'ollama';
 
