@@ -5,19 +5,43 @@
  * 여기서는 LLM 호출 실패 시 extractive로 전환해 빈 요약만 피한다(스킵·에러 집계는 상위 담당).
  */
 
-import { resolveLlmModel } from '../../../shared/config/llm-model-resolver.js';
+import { resolveLlmModel, resolveLlmProvider } from '../../../shared/config/llm-model-resolver.js';
+import type {
+  LlmModelConfigSlice,
+  LlmProviderConfigSlice,
+} from '../../../shared/config/llm-model-resolver.js';
+import type { MementoConfig } from '../../../shared/types/memory.types.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import { OllamaChatLlmAdapter } from '../../personal-agent/adapters/ollama-chat-llm-adapter.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
 export type SummarizationMethod = 'llm' | 'extractive';
+
+/** 테스트 주입용 설정 슬라이스. 생략 시 mementoConfig 를 쓴다. */
+export type SummarizationLlmConfig = LlmModelConfigSlice &
+  LlmProviderConfigSlice &
+  Pick<MementoConfig, 'ollamaBaseUrl'>;
 
 export interface SummarizeClusterInput {
   clusterEpisodes: EpisodicCandidateRow[];
 }
 
 export class SummarizationService {
+  constructor(private readonly llmConfig: SummarizationLlmConfig = mementoConfig) {}
+
   hasLlmConfigured(): boolean {
+    const provider = resolveLlmProvider('consolidation', this.llmConfig);
+    if (provider === 'ollama') {
+      return true;
+    }
     const openai = process.env.OPENAI_API_KEY?.trim();
     const gemini = process.env.GEMINI_API_KEY?.trim();
+    if (provider === 'openai') {
+      return Boolean(openai);
+    }
+    if (provider === 'gemini') {
+      return Boolean(gemini);
+    }
     return Boolean(openai || gemini);
   }
 
@@ -54,8 +78,9 @@ export class SummarizationService {
       body;
 
     try {
+      const provider = resolveLlmProvider('consolidation', this.llmConfig);
       const apiKey = process.env.OPENAI_API_KEY?.trim();
-      if (apiKey) {
+      if (apiKey && (provider === 'openai' || provider === 'auto')) {
         const model = resolveLlmModel('openai', 'consolidation', undefined, {
           boundProvider: 'openai',
         });
@@ -87,7 +112,7 @@ export class SummarizationService {
       }
 
       const geminiKey = process.env.GEMINI_API_KEY?.trim();
-      if (geminiKey) {
+      if (geminiKey && (provider === 'gemini' || provider === 'auto')) {
         const model = resolveLlmModel('gemini', 'consolidation', undefined, {
           boundProvider: 'gemini',
         });
@@ -106,6 +131,23 @@ export class SummarizationService {
           candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
         };
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) {
+          return { content: text, method: 'llm' };
+        }
+      }
+      if (provider === 'ollama') {
+        const model = resolveLlmModel('ollama', 'consolidation', this.llmConfig, {
+          boundProvider: 'ollama',
+        });
+        const adapter = new OllamaChatLlmAdapter({
+          baseUrl: this.llmConfig.ollamaBaseUrl,
+          model,
+        });
+        const result = await adapter.complete([
+          { role: 'system', content: 'You compress episodic traces into durable semantic knowledge.' },
+          { role: 'user', content: prompt },
+        ]);
+        const text = result.content.trim();
         if (text) {
           return { content: text, method: 'llm' };
         }
