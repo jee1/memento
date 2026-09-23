@@ -154,11 +154,23 @@ describe('JevRelevanceGate', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(403, {}));
 
     const gate = makeGate();
-    const scores = await gate.score('질의', ['a', 'b', 'c']);
+    const scores = await gate.score('질의', ['```\ncurl -s a\n```', 'b', 'c']);
 
     expect(scores).toHaveLength(3);
     expect(scores.every((s) => Number.isNaN(s))).toBe(true);
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('후보에 펜스가 없으면 WAF 차단이어도 재시도하지 않는다', async () => {
+    // 정규화가 아무것도 바꾸지 못해 같은 403 을 한 번 더 받을 뿐이다.
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(403, {}));
+
+    const gate = makeGate();
+    const scores = await gate.score('질의', ['cat /etc/passwd']);
+
+    expect(scores).toHaveLength(1);
+    expect(Number.isNaN(scores[0])).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('인증 실패(detail 있는 403)는 재시도하지 않는다', async () => {

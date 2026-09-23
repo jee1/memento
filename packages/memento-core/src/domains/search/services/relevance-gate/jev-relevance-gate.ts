@@ -96,6 +96,12 @@ export class JevRelevanceGate implements IRelevanceGatePort {
       return nanScores(docs.length);
     }
 
+    // 펜스가 없으면 정규화가 아무것도 바꾸지 못해 재시도 페이로드가 1차와 같다.
+    // WAF 에는 펜스와 무관한 룰도 있다 (#1125: `cat /etc/passwd` 단독 403).
+    if (!docs.some((doc) => doc.includes('```'))) {
+      return nanScores(docs.length);
+    }
+
     const retried = await this.attempt(query, docs, true);
     return retried.kind === 'scores' ? retried.scores : nanScores(docs.length);
   }
