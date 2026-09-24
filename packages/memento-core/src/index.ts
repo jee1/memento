@@ -183,6 +183,9 @@ export {
 // #1137: 중복 본문 정리 스크립트가 쓰기 경로와 같은 렌더러·사전을 쓰도록 공개
 export { SemanticMemoryScoring } from './domains/memory/semantic/semantic-memory-scoring.js';
 export { PredicateCanonicalizer } from './domains/relation/services/triple-extraction/predicate-canonicalizer.js';
+// #1139: 마이그레이션 048 과 정리 스크립트가 같은 판정 로직을 쓰도록 공개
+export { buildDuplicatePlan } from './domains/memory/semantic/duplicate-content-plan.js';
+export type { DuplicatePlan, RerenderEntry, DeletionEntry } from './domains/memory/semantic/duplicate-content-plan.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';

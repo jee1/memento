@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildDuplicatePlan } from './repair-duplicate-semantic-content.js';
+import { buildDuplicatePlan } from '@memento/core';
 
 /** #1137: 정리 스크립트가 쓰기 경로와 같은 렌더러·사전을 쓰는지 고정한다 */
 describe('@memento/core 공개 심볼 (#1137)', () => {
@@ -8,6 +8,8 @@ describe('@memento/core 공개 심볼 (#1137)', () => {
     const core = await import('@memento/core');
     expect(typeof core.SemanticMemoryScoring).toBe('function');
     expect(typeof core.PredicateCanonicalizer).toBe('function');
+    // #1139: 판정 로직이 core 로 옮겨졌다 — 마이그레이션 048 과 공유하는 단일 출처
+    expect(typeof core.buildDuplicatePlan).toBe('function');
   });
 });
 
