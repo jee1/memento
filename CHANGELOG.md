@@ -11,6 +11,14 @@
 
 ### Fixed
 
+- **triple 재조립 실패가 같은 본문의 semantic 사본을 만들지 않습니다** (#1137): 재조립할 수 없는 triple 의 content 를 원본 episodic 본문으로 폴백하던 #768 경로는 **폴백 값이 triple 에 의존하지 않아서**, 한 episodic 에서 뽑은 triple k개가 모두 실패하면 글자까지 동일한 semantic 행 k개를 만들었습니다. 중복 차단 가드는 subject/predicate/object 만 비교하므로 triple 이 다르면 그대로 통과했습니다. 이제 content 를 triple 에만 종속시켜(`s · p · o`) 사본이 구조적으로 불가능해집니다 — 원문은 episodic 행과 `origin_source.context.source_episodic_id` 로 추적됩니다. 형태(2) 가 쓰기 경로에서 0이 되어 #813 SC-006(라이브 신규 형태(2) < 1%)을 구조적으로 만족합니다. 쓰기 측 유입 자체는 #813 게이트(2026-09-05) 로 이미 멈춰 있었습니다 — 게이트 이후 생성된 semantic 832행 중 중복 본문은 0건이고, 영문 predicate semantic 의 마지막 생성은 2026-09-04 입니다.
+
+- **`memory_injection` 이 사본으로 토큰 예산을 채우지 않습니다** (#1137): 같은 본문 사본 5건이 예산 713을 전부 먹고 정작 찾던 기억이 반환되지 않는 일이 있었습니다. 이제 overfetch 루프 **안에서** content 프리픽스(앞 200자, 말미 `…` 제거) 기준으로 중복을 제거하므로, 사본이 걷힌 만큼 `searchLimit` 이 확장돼 예산이 굶지 않습니다. 500자로 잘린 사본과 원문 행도 같은 그룹으로 묶입니다. 그룹 대표는 `summarizeMemories` 와 같은 `finalScore + importance` 정렬 키로 고르고, 탈락한 사본은 `recall_count` 도 올리지 않습니다.
+
+- **영문 predicate 변형이 canonical 로 연결됩니다** (#1137): 사전에는 `use`·`include` 원형만 있어 LLM 이 뱉는 `uses`·`includes` 가 canonicalize 에 실패했고, 실패한 predicate 는 #813 게이트에서 전량 drop 됐습니다. `-s`/`-es`/`-ies`/`-ed`/`-ing` 어간 재시도를 붙이고 실측 상위 동사를 **능동 ㅁ형** canonical 5종(`해결함`·`실행함`·`종료함`·`통과함`·`추가함`)으로 등재했습니다. 피동 `됨` 형은 문장 템플릿의 목적격 조사와 맞지 않아(`A은 B를 해결됩니다`) 제외했습니다.
+
+- **추출 프롬프트가 predicate 형태를 강제합니다** (#1137): 프롬프트가 predicate 어휘를 전혀 제약하지 않아 gpt-4o-mini 가 `stores`·`status` 같은 영문·속성 라벨을 뱉었습니다. 게이트의 실질 통과 조건인 「공백 없는 한글 종결 단일 토큰」을 명시하고 canonical 26종 목록과 대조 예시를 넣었습니다. 계약 테스트가 사전과 프롬프트 목록의 동기화를 강제하므로 canonical 을 추가하고 프롬프트를 잊으면 실패합니다.
+
 - **compose env 화이트리스트 누락을 테스트가 잡습니다** (#1133): compose 는 컨테이너에 넘길 환경변수를 명시 화이트리스트로 관리하는데, 목록에 없는 키는 `.env` 에 적어도 컨테이너에 도달하지 않고 서버가 코드 기본값으로 조용히 폴백합니다 — 기동도 헬스체크도 성공해 증상이 없습니다. 같은 누락이 #1115 → #1095 → #1129 → #1125 로 네 번 반복됐고, 가드 자신이 검사 목록을 손으로 들고 있어 **목록 갱신을 잊으면 테스트가 통과**했습니다. 이제 `env.example` 에서 키를 파싱해 두 compose 파일과 대조하며, 문서화됐는데 주입도 제외도 안 된 키가 있으면 **실패**합니다. 제외는 이유 문자열이 붙은 명시 목록으로만 허용하고, 그 목록이 썩는 것(문서화가 사라졌거나 이미 주입된 키가 남아 있는 것)도 함께 검사합니다. 실제로 **문서화됐고 코어가 읽는데 도달하지 않던 키가 30개** 있었습니다 — `OLLAMA_BASE_URL`·`ENABLE_PII_MASKING`·`MEMENTO_OWNER_SCOPE_MODE`·`CORS_ALLOWED_ORIGINS`·`MEMENTO_TOOLSET`·rate limit·`PERF_*`·`BATCH_*` 등입니다. 이들을 포함해 50개를 `${KEY:-}` 로 주입합니다. `NODE_ENV`(컨테이너는 `production` 고정)와 `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN`(기본 `false`)은 기본값이 안전한 쪽이라는 것을 테스트로 고정했고, `DB_PATH`·`MEMENTO_HTTP_BIND_HOST` 는 호스트 값을 받지 않는 리터럴이어야 한다는 것도 함께 고정했습니다. `env_file: .env` 로 통째 넘기는 방법은 `.env` 의 `GITHUB_TOKEN` 같은 무관한 자격증명이 컨테이너에 들어가므로 쓰지 않습니다.
 
 - **빈 환경변수를 «미설정» 으로 읽습니다** (#1133): compose 가 `KEY: ${KEY:-}` 로 넘기면 `.env` 에 없는 키가 **빈 문자열**로 컨테이너에 들어옵니다. `resolveEnv` 는 빈 값을 건너뛰지만 두 곳이 그렇지 않았습니다. `resolveValidatedNumber` 는 `??` 로 받아 `parseInt('')` = NaN → 호출처 22곳에서 기동마다 경고가 났고, `pii-masker` 는 `=== undefined` 만 검사해 **빈 값이면 PII 마스킹이 꺼졌습니다** — 기본값이 안전한 쪽에서 위험한 쪽으로 조용히 뒤집힙니다.

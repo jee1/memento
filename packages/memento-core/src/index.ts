@@ -180,6 +180,9 @@ export {
   hasBrokenTripleConjugation,
   legacyTripleSentence
 } from './domains/memory/semantic/triple-sentence.js';
+// #1137: 중복 본문 정리 스크립트가 쓰기 경로와 같은 렌더러·사전을 쓰도록 공개
+export { SemanticMemoryScoring } from './domains/memory/semantic/semantic-memory-scoring.js';
+export { PredicateCanonicalizer } from './domains/relation/services/triple-extraction/predicate-canonicalizer.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';

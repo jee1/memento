@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PredicateCanonicalizer } from './predicate-canonicalizer.js';
 import type { PredicateCanonicalizationResult } from '../../../../shared/types/triple-extraction.js';
+import { buildTripleSentence } from '../../../memory/semantic/triple-sentence.js';
 
 describe('PredicateCanonicalizer', () => {
   let canonicalizer: PredicateCanonicalizer;
@@ -318,6 +319,68 @@ describe('PredicateCanonicalizer', () => {
       expect(results[3].success).toBe(false); // 빈 문자열
       expect(results[4].success).toBe(true); // 업데이트함
     });
+  });
+});
+
+describe('PredicateCanonicalizer 영문 변형·신규 canonical (#1137)', () => {
+  let canonicalizer: PredicateCanonicalizer;
+
+  beforeEach(() => {
+    canonicalizer = new PredicateCanonicalizer();
+  });
+
+  it('영문 3인칭·복수 변형을 어간으로 되돌려 기존 사전으로 해결한다', () => {
+    const cases: Array<[string, string]> = [
+      ['uses', '사용함'],
+      ['includes', '포함함'],
+      ['contains', '포함함'],
+      ['updated', '업데이트함'],
+    ];
+
+    for (const [input, expected] of cases) {
+      const result = canonicalizer.canonicalize(input);
+      expect(result.success, `${input} → ${expected}`).toBe(true);
+      expect(result.canonical).toBe(expected);
+    }
+  });
+
+  it('신규 등재 동사를 canonical로 변환한다', () => {
+    const cases: Array<[string, string]> = [
+      ['resolve', '해결함'],
+      ['resolved', '해결함'],
+      ['execute', '실행함'],
+      ['closes', '종료함'],
+      ['closed', '종료함'],
+      ['pass', '통과함'],
+      ['requires', '필요함'],
+      ['fix', '업데이트함'],
+      ['added', '추가함'],
+    ];
+
+    for (const [input, expected] of cases) {
+      const result = canonicalizer.canonicalize(input);
+      expect(result.success, `${input} → ${expected}`).toBe(true);
+      expect(result.canonical).toBe(expected);
+    }
+  });
+
+  it('계사·속성 라벨은 여전히 canonicalize 실패다 (#1137 범위 밖)', () => {
+    for (const input of ['is', 'are', 'status', 'date', 'description', 'in', 'on']) {
+      expect(canonicalizer.canonicalize(input).success, input).toBe(false);
+    }
+  });
+
+  it('어간화가 짧은 단어·이중자음을 잘라내지 않는다', () => {
+    // pass → pas 로 잘리면 사전 미스가 되므로 직접 매칭이 우선해야 한다
+    expect(canonicalizer.canonicalize('pass').canonical).toBe('통과함');
+    // 2글자 이하는 어간화 대상이 아니다
+    expect(canonicalizer.canonicalize('as').success).toBe(false);
+  });
+
+  it('모든 canonical predicate는 buildTripleSentence로 재조립된다 (#813 게이트 통과 조건)', () => {
+    for (const canonical of canonicalizer.getCanonicalPredicates()) {
+      expect(buildTripleSentence('시스템', canonical, '기능'), canonical).not.toBeNull();
+    }
   });
 });
 

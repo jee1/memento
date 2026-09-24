@@ -60,12 +60,11 @@ export class SemanticMemoryCrud {
       throw new TypeError('Invalid semantic memory quality');
     }
 
-    // #768: 재조립이 불가능한 triple은 합성 문장 대신 원본 episodic 본문을 보존한다.
+    // #1137: content는 triple에만 종속된다. 원문 폴백(#768)은 같은 본문 사본을 양산했다.
     const content = this.scoring.tripleToNaturalLanguage(
       snapshot.subject,
       snapshot.predicate,
-      snapshot.object,
-      source.content
+      snapshot.object
     );
 
     const id = generateSemanticMemoryId();

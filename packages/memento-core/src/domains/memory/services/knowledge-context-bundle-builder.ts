@@ -297,6 +297,53 @@ function filterBrokenTripleContent(memories: HybridSearchResult[]): {
   return { clean, excluded };
 }
 
+/** 중복 판정 키 길이. 500자로 잘린 사본과 원문 행이 같은 그룹이 되도록 프리픽스를 쓴다. */
+const DEDUPE_KEY_LENGTH = 200;
+
+function dedupeKey(content: string): string {
+  return content
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/…$/, '')
+    .slice(0, DEDUPE_KEY_LENGTH);
+}
+
+/** summarizeMemories와 같은 정렬 키 — 대표 선택이 요약 단계와 어긋나지 않게 한다. */
+function dedupeRankScore(memory: HybridSearchResult): number {
+  return memory.finalScore + memory.importance;
+}
+
+/**
+ * 같은 본문의 사본이 토큰 예산을 먹는 것을 막는다 (#1137).
+ *
+ * 폴백 content가 원본 episodic 본문을 그대로 쓰던 시기(#768 경로)에 만들어진 사본이 대상이다.
+ * 한계: 앞 200자가 같고 뒤가 다른 별개 기억은 한 건으로 합쳐진다. 실측 사본은 전부 바이트
+ * 동일이라 현재 데이터에서는 위험이 없고, 정확 비교로 좁히려면 DEDUPE_KEY_LENGTH 절단을 없애면 된다.
+ */
+function dedupeByContent(memories: HybridSearchResult[]): {
+  unique: HybridSearchResult[];
+  excluded: number;
+} {
+  const representatives = new Map<string, HybridSearchResult>();
+
+  for (const memory of memories) {
+    const key = dedupeKey(memory.content);
+    const kept = representatives.get(key);
+    if (!kept) {
+      representatives.set(key, memory);
+      continue;
+    }
+    const score = dedupeRankScore(memory);
+    const keptScore = dedupeRankScore(kept);
+    if (score > keptScore || (score === keptScore && memory.id < kept.id)) {
+      representatives.set(key, memory);
+    }
+  }
+
+  const unique = memories.filter((memory) => representatives.get(dedupeKey(memory.content)) === memory);
+  return { unique, excluded: memories.length - unique.length };
+}
+
 /**
  * memory_injection과 동일한 검색·요약·포맷 경로로 컨텍스트 번들을 생성합니다.
  */
@@ -338,6 +385,7 @@ export async function buildKnowledgeContextBundle(
 
   let memories: HybridSearchResult[] = [];
   let excludedEarly = 0;
+  let excludedDuplicateEarly = 0;
   let tfidfEmitted = false;
 
   // #811: 조기 필터 + adaptive overfetch — 고정 *2/*6 shortlist+사후필터만으로는 고비율 손상 시 예산 고갈.
@@ -368,8 +416,11 @@ export async function buildKnowledgeContextBundle(
     candidates = filterByOwner(candidates, ownerId);
 
     const { clean, excluded } = filterBrokenTripleContent(candidates);
-    memories = clean;
+    // #1137: 중복 제거를 루프 안에서 해야 사본이 걷힌 만큼 searchLimit이 확장돼 예산이 굶지 않는다.
+    const { unique, excluded: excludedDuplicates } = dedupeByContent(clean);
+    memories = unique;
     excludedEarly = excluded;
+    excludedDuplicateEarly = excludedDuplicates;
 
     if (memories.length >= maxMemories) {
       break;
@@ -391,12 +442,20 @@ export async function buildKnowledgeContextBundle(
 
   // DiD 사후 필터 (유일한 예산 보호가 아님 — 위 early filter + expand가 주경로)
   const { clean: didClean, excluded: excludedDid } = filterBrokenTripleContent(memories);
-  memories = didClean;
+  const { unique: dedupedClean, excluded: excludedDuplicatePost } = dedupeByContent(didClean);
+  memories = dedupedClean;
   const corruptedCount = excludedEarly + excludedDid;
   if (corruptedCount > 0) {
     logger.warn('[knowledge-context-bundle] 손상된 triple 문장 제외', {
       excluded: corruptedCount,
       hint: 'npm run memory:repair-triple-sentences -- --apply',
+    });
+  }
+  const duplicateCount = excludedDuplicateEarly + excludedDuplicatePost;
+  if (duplicateCount > 0) {
+    logger.warn('[knowledge-context-bundle] 중복 본문 기억 제외', {
+      excluded: duplicateCount,
+      hint: 'npm run memory:repair-duplicate-semantic -- --apply',
     });
   }
 

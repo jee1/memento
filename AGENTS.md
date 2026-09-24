@@ -48,6 +48,7 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **episodic→semantic conversion (#805)**: remember 증강·`ConvertEpisodicToSemanticTool`·`TripleExtractionBatchJob`은 `convertEpisodicSource`만 사용(로컬 source status write 금지) — source tuple은 conditional CAS로 single-winner; `relationGraph` 부재·post-commit 관계 실패는 primary success를 뒤집지 않음; episodic importance `0`은 `|| 0.5` 금지; 강제 재처리 실패 시 기존 success metadata byte-for-byte 보존; evidence API는 `updateSemanticMemoryWithEvidence`
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
 - **graphify 생성물**: `graphify-out/` 전체는 로컬 생성물 — 재빌드해서 사용하고 커밋 금지
+- **docs npm script 참조 (`docs:verify-npm-scripts`)**: 새 root npm script 는 `docs/`·`scripts/`·`.github/workflows/`·루트 `.md` 중 한 곳에서 **줄 시작 `npm run <name>`** 또는 **인라인 백틱 `` `npm run <name>` ``** 으로 언급돼야 CI 통과. 코드펜스 안에서 `DB_PATH=... npm run <name>` 처럼 앞에 env 를 붙이면 **안 잡힌다**; `packages/**` 의 문자열(logger hint 등)도 참조로 세지 않는다 — `scripts/verify-doc-npm-scripts.mjs:73-79`·`:160-167`
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)

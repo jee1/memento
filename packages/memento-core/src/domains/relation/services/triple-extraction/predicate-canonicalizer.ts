@@ -19,6 +19,42 @@ interface PredicateDictionary {
   [canonical: string]: string[];
 }
 
+/** 공백 제거 후의 영문 키만 어간화 대상이다 (normalizeKey가 공백을 지운 뒤 호출된다). */
+const ASCII_PREDICATE_KEY = /^[a-z0-9'-]+$/;
+
+/**
+ * 영문 변형 → 어간 후보 (#1137).
+ *
+ * 사전에는 `use`·`include`처럼 원형만 있어서 `uses`·`includes`가 canonicalize 실패했고,
+ * 실패한 predicate는 원문 폴백 경로로 흘러 같은 본문의 semantic 사본을 만들었다.
+ * 후보를 순서대로 조회하므로 잘못 자른 어간(`us`)은 사전 미스가 되어 자연히 버려진다.
+ */
+function englishStemCandidates(key: string): string[] {
+  if (!ASCII_PREDICATE_KEY.test(key)) {
+    return [];
+  }
+
+  const candidates: string[] = [];
+  if (key.endsWith('ies') && key.length > 4) {
+    candidates.push(`${key.slice(0, -3)}y`);
+  }
+  if (key.endsWith('es') && key.length > 3) {
+    candidates.push(key.slice(0, -2));
+  }
+  if (key.endsWith('s') && !key.endsWith('ss') && key.length > 3) {
+    candidates.push(key.slice(0, -1));
+  }
+  if (key.endsWith('ed') && key.length > 3) {
+    candidates.push(key.slice(0, -2));
+    candidates.push(key.slice(0, -1));
+  }
+  if (key.endsWith('ing') && key.length > 4) {
+    candidates.push(key.slice(0, -3));
+    candidates.push(`${key.slice(0, -3)}e`);
+  }
+  return candidates;
+}
+
 /**
  * 기본 Predicate 사전
  * 
@@ -38,7 +74,7 @@ const DEFAULT_PREDICATE_DICTIONARY: PredicateDictionary = {
   '삭제함': ['삭제한다', '삭제함', '제거한다', '제거함', '지운다', 'delete', 'remove'],
   
   // 업데이트/수정 관련
-  '업데이트함': ['업데이트한다', '업데이트함', '수정한다', '수정함', '변경한다', '변경함', 'update', 'modify', 'change'],
+  '업데이트함': ['업데이트한다', '업데이트함', '수정한다', '수정함', '변경한다', '변경함', 'update', 'modify', 'change', 'fix'],
   
   // 포함/포함함 관련
   '포함함': ['포함한다', '포함함', '들어있다', 'include', 'contain'],
@@ -71,7 +107,7 @@ const DEFAULT_PREDICATE_DICTIONARY: PredicateDictionary = {
   '관련함': ['관련한다', '관련함', '연관된다', '연관됨', 'related', 'relate', 'associated'],
   
   // 필요/필요함 관련
-  '필요함': ['필요하다', '필요함', '필수이다', 'required', 'need', 'necessary'],
+  '필요함': ['필요하다', '필요함', '필수이다', 'required', 'need', 'necessary', 'require'],
   
   // 지원/지원함 관련
   '지원함': ['지원한다', '지원함', '지지한다', 'support', 'back'],
@@ -86,7 +122,22 @@ const DEFAULT_PREDICATE_DICTIONARY: PredicateDictionary = {
   '선행함': ['선행한다', '선행함', 'precede', 'precedes', 'before'],
   
   // 후행함/후행함 관련
-  '후행함': ['후행한다', '후행함', 'succeed', 'succeeds', 'after']
+  '후행함': ['후행한다', '후행함', 'succeed', 'succeeds', 'after'],
+
+  // 해결 관련 (#1137: resolved 29건)
+  '해결함': ['해결한다', '해결함', 'resolve', 'solve'],
+
+  // 실행 관련 (#1137: execute 18건)
+  '실행함': ['실행한다', '실행함', 'execute', 'run'],
+
+  // 종료 관련 (#1137: closes 17건 + closed 8건)
+  '종료함': ['종료한다', '종료함', 'close', 'finish'],
+
+  // 통과 관련 (#1137: pass 14건)
+  '통과함': ['통과한다', '통과함', 'pass'],
+
+  // 추가 관련 (#1137: added 8건)
+  '추가함': ['추가한다', '추가함', 'add', 'append']
 };
 
 /**
@@ -150,9 +201,10 @@ export class PredicateCanonicalizer {
       };
     }
 
-    // 정규화된 키로 검색
+    // 정규화된 키로 검색 (실패 시 영문 어간으로 한 번 더, #1137)
     const normalizedKey = this.normalizeKey(trimmed);
-    const canonical = this.reverseIndex.get(normalizedKey);
+    const canonical = this.reverseIndex.get(normalizedKey)
+      ?? this.resolveEnglishVariant(normalizedKey);
 
     if (canonical) {
       return {
@@ -169,6 +221,17 @@ export class PredicateCanonicalizer {
       original: trimmed,
       success: false
     };
+  }
+
+  /** 영문 변형(-s/-es/-ies/-ed/-ing)을 어간으로 되돌려 사전을 한 번 더 조회한다 (#1137). */
+  private resolveEnglishVariant(normalizedKey: string): string | undefined {
+    for (const candidate of englishStemCandidates(normalizedKey)) {
+      const hit = this.reverseIndex.get(candidate);
+      if (hit) {
+        return hit;
+      }
+    }
+    return undefined;
   }
 
   /**

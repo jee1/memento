@@ -99,6 +99,7 @@
     "build:root": "npm run build -w memento-server && npm run sync:root-server-dist",
     "quality:slop:gate": "bash scripts/slop-gate-scan.sh",
     "memory:repair-triple-sentences": "tsx scripts/repair-triple-sentence-memories.ts",
+    "memory:repair-duplicate-semantic": "tsx scripts/repair-duplicate-semantic-content.ts",
     "memory:kg-triple-predicate-quality": "tsx scripts/kg-triple-predicate-quality.ts"
   },
   "keywords": [
