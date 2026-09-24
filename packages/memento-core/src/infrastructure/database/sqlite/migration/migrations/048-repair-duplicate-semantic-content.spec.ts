@@ -158,6 +158,24 @@ describe('Migration 048 - repair duplicate semantic content', () => {
     await expect(migration.validateAfter(db)).resolves.toBeUndefined();
   });
 
+  it('leaves the source episodic row that shares content with the duplicated semantic pair', async () => {
+    // #1137 부채는 재조립 실패한 triple 이 원본 episodic 본문을 복사해 생긴다.
+    // 그래서 실제 DB 에는 같은 본문의 episodic 원본이 함께 있다. 후보 선별이 type 을
+    // 놓치면 그 원본이 재렌더되거나 soft-delete 된다.
+    seed(db, [
+      { id: 'src-epi', type: 'episodic', content: '원본 episodic 본문 E', subject: '도커', predicate: '사용한다', object: '컨테이너' },
+      { id: 'cp-1', content: '원본 episodic 본문 E', subject: '도커', predicate: '사용한다', object: '컨테이너', confidence: 0.9 },
+      { id: 'cp-2', content: '원본 episodic 본문 E', subject: 'memento', predicate: 'uses', object: 'sqlite', confidence: 0.5 },
+    ]);
+
+    await migration.up(db);
+
+    expect(contentOf(db, 'src-epi')).toBe('원본 episodic 본문 E');
+    expect(isDeleted(db, 'src-epi')).toBe(0);
+    expect(contentOf(db, 'cp-1')).toBe(RENDER_DOCKER);
+    expect(contentOf(db, 'cp-2')).toBe(RENDER_MEMENTO);
+  });
+
   it('does not create embeddings', async () => {
     seed(db, [
       { id: 'emb-a', content: '원본 episodic 본문 D', subject: '도커', predicate: '사용한다', object: '컨테이너' },
