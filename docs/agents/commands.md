@@ -196,6 +196,24 @@ DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic -- --apply # �
 triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서 빠집니다 — 주입 시점에는
 `memory_injection` 이 content 기준으로 중복을 제거하므로 프롬프트 예산은 사본에 소모되지 않습니다.
 
+### 배포판 사용자 — 마이그레이션 048 (#1139)
+
+위 스크립트는 저장소 체크아웃에서만 돕습니다. npm 발행 tarball 의 `files` 에 `scripts/` 가 없고
+`tsx` 도 devDependency 라 설치해서 쓰는 사용자는 실행할 수 없습니다. 그래서 같은 정리를
+마이그레이션 `048-repair-duplicate-semantic-content` 가 수행합니다. 마이그레이션은 postinstall 과
+서버 시작 양쪽에서 자동으로 돌고, 판정 로직(`buildDuplicatePlan`)은 스크립트와 공유합니다.
+
+**048 은 임베딩을 다시 만들지 않습니다.** 임베딩 모델을 마이그레이션 트랜잭션 안에서 로드하면
+서버 시작이 블록되고 쓰기 락이 길게 잡힙니다. 그래서 content 가 바뀐 행의 임베딩은 **stale 한
+상태로 남습니다** — 벡터 검색은 바뀌기 전 본문 기준으로 그 행을 찾습니다. 갱신 수단:
+
+```bash
+DB_PATH=./data/memory.db npm run reindex-embeddings
+```
+
+저장소에서 `npm run memory:repair-duplicate-semantic -- --apply` 를 돌린 경우에는 스크립트가
+바뀐 행을 즉시 재임베딩하므로 별도 조치가 필요 없습니다.
+
 ## 파이프라인 템플릿 semantic 격리 (#804)
 
 triple 추출 파이프라인이 만든 템플릿 문장 semantic 기억을 `npm run memory:quarantine-065`로
