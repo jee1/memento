@@ -284,3 +284,102 @@ describe('ToolContextKnowledgeContextAdapter', () => {
     expect(bundle.contextSummary).toBeDefined();
   });
 });
+
+describe('buildKnowledgeContextBundle content 중복 제거 (#1137)', () => {
+  let db: Database.Database;
+
+  beforeEach(async () => {
+    db = await setupTestDatabase();
+  });
+
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
+  });
+
+  function stubEngine(ranked: HybridSearchResult[]): HybridSearchEngine {
+    const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => ({
+      items: ranked.slice(0, query.limit ?? 10),
+      total_count: ranked.length,
+      query_time: 1,
+      union_count: ranked.length,
+      reranked_count: ranked.length,
+    }));
+    return { search } as unknown as HybridSearchEngine;
+  }
+
+  it('같은 본문 사본이 예산을 먹지 않는다 (SC-003)', async () => {
+    const duplicateBody = 'dedupe 대상 원문: LLM provider 라우팅을 정리하고 4잡 override 대칭을 맞췄다';
+    const copies = Array.from({ length: 5 }, (_, i) =>
+      stubSearchHit({
+        id: `dup_${i}`,
+        content: duplicateBody,
+        finalScore: 1 - i * 0.01,
+      }),
+    );
+    const distinct = stubSearchHit({
+      id: 'distinct_1',
+      content: 'dedupe 별개 기억: 검색 랭킹 가중치를 조정했다',
+      finalScore: 0.5,
+    });
+
+    const bundle = await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: stubEngine([...copies, distinct]) },
+      { query: 'dedupe', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(2);
+    expect(bundle.promptText).toContain('dedupe 별개 기억');
+    expect(bundle.promptText.split(duplicateBody).length - 1).toBe(1);
+  });
+
+  it('500자로 잘린 사본과 원문 행을 같은 중복으로 본다', async () => {
+    const full = `잘림 판정 원문 ${'가'.repeat(700)}`;
+    const truncated = `${full.slice(0, 500)}…`;
+
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: stubEngine([
+          stubSearchHit({ id: 'trunc_copy', content: truncated, type: 'semantic', finalScore: 0.9 }),
+          stubSearchHit({ id: 'full_origin', content: full, type: 'episodic', finalScore: 0.8 }),
+        ]),
+      },
+      { query: '잘림 판정', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(1);
+  });
+
+  it('앞부분이 달라지면 별개 기억으로 남긴다', async () => {
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: stubEngine([
+          stubSearchHit({ id: 'sep_1', content: '별개 판정 첫 번째 기억 본문', finalScore: 0.9 }),
+          stubSearchHit({ id: 'sep_2', content: '별개 판정 두 번째 기억 본문', finalScore: 0.8 }),
+        ]),
+      },
+      { query: '별개 판정', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(2);
+  });
+
+  it('중복 그룹에서 finalScore+importance가 가장 높은 행을 남긴다', async () => {
+    const body = '대표 선택 판정용 동일 본문';
+
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: stubEngine([
+          stubSearchHit({ id: 'low', content: body, finalScore: 0.2, importance: 0.2 }),
+          stubSearchHit({ id: 'high', content: body, finalScore: 0.9, importance: 0.9 }),
+        ]),
+      },
+      { query: '대표 선택', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(1);
+    expect(bundle.topMemoryId).toBe('high');
+  });
+});
