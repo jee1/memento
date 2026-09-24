@@ -198,7 +198,7 @@ triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서
 
 ### 배포판 사용자 — 마이그레이션 048 (#1139)
 
-위 스크립트는 저장소 체크아웃에서만 돕습니다. npm 발행 tarball 의 `files` 에 `scripts/` 가 없고
+위 스크립트는 저장소 체크아웃에서만 돕니다. npm 발행 tarball 의 `files` 에 `scripts/` 가 없고
 `tsx` 도 devDependency 라 설치해서 쓰는 사용자는 실행할 수 없습니다. 그래서 같은 정리를
 마이그레이션 `048-repair-duplicate-semantic-content` 가 수행합니다. 마이그레이션은 postinstall 과
 서버 시작 양쪽에서 자동으로 돌고, 판정 로직(`buildDuplicatePlan`)은 스크립트와 공유합니다.
