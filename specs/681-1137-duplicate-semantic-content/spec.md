@@ -71,6 +71,22 @@ triple 재조립에 실패한 semantic 기억이 원본 episodic 본문을 conte
 | 동사 (한글 canonical 매핑 가능) | includes 71, resolved 29, execute 18, closes 17, contains 16, pass 14, updated 13, requires 13, uses 9, fix 9, added 8, closed 8 | **225 (15%)** |
 | 계사·속성 (매핑 불가, §7 참조) | is 140, status 98, are 20, result 10, date 9, description 7, action 7, artifacts 7, on 7, in 6 | **311 (21%)** |
 
+### 2.3 프롬프트 제약 효과 (SC-004, 2026-09-24 실측)
+
+최근 episodic 본문 20건(200~4,000자)을 기존/신규 프롬프트로 `gpt-4o-mini`에 각각 넣어 비교했다.
+게이트 통과 판정은 `TripleNormalizer.normalize`를 그대로 썼다.
+
+| 프롬프트 | 추출 triple | predicate가 한글 ㅁ형 | 게이트 통과 |
+|---|---:|---:|---:|
+| before (제약 없음) | 246 | 186 (75.6%) | 187 (76.0%) |
+| after (FR-001) | 212 | 192 (90.6%) | **191 (90.1%)** |
+
+통과율이 76.0% → 90.1%로 올랐고 **통과 절대 건수도 187 → 191로 늘었다.**
+추출 총수가 246 → 212로 줄어든 것은 의도한 결과다 — 속성 라벨 관계(`status`·`date`)를
+추출하지 말라는 지시가 작동해 버려질 triple이 애초에 덜 생성된다.
+
+잔여 10%는 프롬프트를 어긴 출력이며, FR-002(어간 재시도·canonical 5종)가 그 일부를 흡수한다.
+
 ---
 
 ## 3. 핵심 발견 — 상류는 프롬프트다
@@ -202,14 +218,15 @@ semantic 행이 원문 사본을 들고 있을 이유가 없다.
 | SC-002 | 같은 원본에서 나온 서로 다른 triple k개가 서로 다른 content를 갖는다 | 단위 테스트 (k=3, 전부 재조립 실패) |
 | SC-003 | `memory_injection`이 사본으로 예산을 채우지 않는다 | 통합 테스트: 사본 5 + 별개 1 투입 → 반환 content 전부 상이 |
 | SC-004 | 프롬프트 제약이 predicate 형태 준수율을 끌어올린다 | 실 LLM 프로브 before/after (§6) |
-| SC-005 | 정리 스크립트 적용 후 중복 본문 그룹 0 | 이슈 본문의 중복 쿼리 재측정 (506 → 0) |
+| SC-005 | 정리 후 **triple 컬럼 보유** 중복 본문 그룹 0 | 스냅샷 시뮬레이션: 중복 그룹 228 → 16, 잔여 16은 전부 triple 컬럼 없는 행 |
 | SC-006 | 기존 게이트·변환 계약 회귀 없음 | `npm run lint` · `type-check` · `test` 전량 통과 |
 
 ## 6. 검증
 
-- **실 LLM 프로브 (SC-004)**: 중복을 만든 episodic 본문 20건을 샘플링해 기존/신규 프롬프트로
-  gpt-4o-mini를 각각 호출하고, predicate 형태 준수율과 게이트 통과율을 before/after로 비교한다.
-  일회성이라 스크래치패드에 두고 커밋하지 않으며, 수치만 이 문서에 기록한다
+- **실 LLM 프로브 (SC-004)**: 최근 episodic 본문 20건(200~4,000자)을 기존/신규 프롬프트로
+  gpt-4o-mini에 각각 넣고 predicate 형태 준수율과 게이트 통과율을 before/after로 비교한다.
+  프로브는 저장소 안(`scripts/probe-1137.ts`)에 두고 측정 직후 삭제한다 — 스크래치패드에 두면
+  `@memento/core` 워크스페이스 해석이 풀리지 않는다. 수치는 §2.3에 기록한다
 - **단위**: 어간화, 사전 신규 12종, `tripleToNaturalLanguage` 새 계약,
   `dedupeByContent`(정확 동일·절단 사본·별개 기억 비병합·대표 선택)
 - **통합**: `knowledge-context-bundle-builder.spec.ts`에 사본 5건 + 원본 1건
@@ -228,6 +245,11 @@ semantic 행이 원문 사본을 들고 있을 이유가 없다.
 - **피동 `됨`형 predicate 지원**: 계사와 같은 조사 불일치 문제다 (`A은 B를 해결됩니다`).
   `resolved`처럼 원문이 피동인 predicate는 능동 canonical(`해결함`)로 매핑해 우회하고,
   템플릿 분기는 계사 지원과 함께 후속으로 다룬다
+- **비한글 subject의 조사**: `attachParticle`(`triple-sentence.ts:26-29`)은 한글 음절로 끝나지 않는
+  subject를 받침 없음으로 처리해 `system는`을 만든다. 계사·피동과 같은 조사 계열 문제이고
+  렌더러 재설계가 필요하다. 정리 스크립트 테스트가 현재 동작을 그대로 고정한다
+- **triple 컬럼이 없는 중복 행**: 스냅샷 실측 117행·37그룹(2025-09 시드 96행 + 2026-08 21행).
+  재렌더할 triple이 없어 정리 대상에서 빠진다. 읽기 측 FR-004가 주입 시점에 흡수한다
 - **게이트 완화 / long tail 수용**: #813 동결을 유지한다. 489 singleton predicate는 계속 drop
 - **importance 0.1 → 0.95 점프**: `calculateImportance`(`semantic-memory-crud.ts:72`) —
   사본이 원본보다 검색 상위를 먹는 축. 원인이 다르다

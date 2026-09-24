@@ -179,6 +179,22 @@ DB_PATH=./data/memory.db npm run memory:repair-triple-sentences -- --apply # 적
 triple 컬럼이 없는 손상 행은 복구 불가로 ID만 보고합니다. 주입 단계에서는
 `memory_injection`이 이중 활용 문장을 자동으로 제외하므로, 복구 전에도 프롬프트는 오염되지 않습니다.
 
+## 중복 본문 semantic 기억 정리 (#1137)
+
+재조립에 실패한 triple 이 원본 episodic 본문을 content 로 공유해 **같은 본문의 semantic 행이 여러 개**
+생긴 부채를 정리합니다. content 가 다른 semantic 행과 중복인 행만 골라 triple 컬럼으로 다시 렌더하고,
+재렌더 후에도 `(subject, predicate, object, owner, project)` 가 같은 행만 confidence 최대 1건을 남겨
+soft-delete 합니다. **기본값은 dry-run**이고, 적용 시 content 가 바뀐 행의 임베딩을 다시 만듭니다.
+
+```bash
+DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic            # dry-run
+DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic -- --apply # 적용
+```
+
+`--apply` 전에 MCP 서버를 멈추고 `npm run db:pre-docker-deploy` 로 무결성을 확인하세요.
+triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서 빠집니다 — 주입 시점에는
+`memory_injection` 이 content 기준으로 중복을 제거하므로 프롬프트 예산은 사본에 소모되지 않습니다.
+
 ## 파이프라인 템플릿 semantic 격리 (#804)
 
 triple 추출 파이프라인이 만든 템플릿 문장 semantic 기억을 `npm run memory:quarantine-065`로
