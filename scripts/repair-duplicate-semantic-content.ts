@@ -3,7 +3,7 @@ import { isMain, parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.j
 /**
  * #1137: 원문 폴백(#768 경로)이 만든 중복 본문 semantic 기억을 정리한다.
  *
- * 1) content가 원본 episodic 본문(또는 500자 절단형)과 정확히 일치하는 semantic 행만 고른다
+ * 1) content 가 다른 semantic 행과 중복인 행만 고른다 (부채 행은 origin_source 가 비어 있어 조인 불가)
  * 2) triple 컬럼으로 다시 렌더한다 — canonicalize 성공분은 한국어 문장, 나머지는 `s · p · o`
  * 3) 재렌더 후에도 (subject, predicate, object, owner, project)가 같은 행은 진짜 중복이므로
  *    confidence 최대 1건만 남기고 soft-delete 한다
@@ -49,26 +49,33 @@ export interface DuplicatePlan {
 }
 
 /**
- * 원문 폴백 형태만 정확히 고른다. 정규식이 아니라 원본 본문과의 문자열 동일성으로 판정하므로
- * 정상 문장 행을 건드릴 수 없다 (repair-triple-sentence-memories.ts와 같은 원리).
+ * content 가 다른 semantic 행과 중복인 행만 고른다.
+ *
+ * 부채 행은 `origin_source` 가 `{}` 라 원본 episodic 을 조인으로 찾을 수 없다(실측: 4,523행 중
+ * `context.source_episodic_id` 보유가 343행, 그 중 content 가 원본과 일치하는 행은 0). 반면 증상인
+ * «같은 본문 사본» 은 content 중복으로 정확히 집힌다(실측 1,566행·228그룹).
+ *
+ * 이미 triple 에서 올바르게 렌더된 행은 재렌더 판정(`after !== content`)에서 자연히 걸러지므로
+ * 이 기준으로 정상 행이 바뀌지 않는다.
  */
 const CANDIDATE_SQL = `
+  WITH duplicated AS (
+    SELECT content
+    FROM memory_item
+    WHERE type = 'semantic'
+      AND is_deleted = 0
+    GROUP BY content
+    HAVING COUNT(*) > 1
+  )
   SELECT s.id, s.subject, s.predicate, s.object, s.content,
          s.confidence, s.owner_id, s.project_id
   FROM memory_item s
-  JOIN memory_item e
-    ON e.id = json_extract(s.origin_source, '$.context.source_episodic_id')
+  JOIN duplicated d ON s.content = d.content
   WHERE s.type = 'semantic'
     AND s.is_deleted = 0
     AND s.subject IS NOT NULL
     AND s.predicate IS NOT NULL
     AND s.object IS NOT NULL
-    AND json_valid(s.origin_source)
-    AND e.type = 'episodic'
-    AND (
-      s.content = e.content
-      OR s.content = substr(e.content, 1, 500) || '…'
-    )
   ORDER BY s.id
 `;
 
