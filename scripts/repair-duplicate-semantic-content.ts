@@ -76,20 +76,19 @@ function groupKey(row: CandidateRow, predicate: string): string {
   return [row.subject, predicate, row.object, row.owner_id ?? '', row.project_id ?? ''].join('\x1f');
 }
 
+/**
+ * content는 저장된 subject/object와 canonical predicate에서만 만든다.
+ *
+ * prepareNormalizedTriple 은 EntityLinker 까지 적용해 `system`→`시스템` 으로 바꾸는데,
+ * 이 스크립트는 subject/object 컬럼을 갱신하지 않으므로 그 값을 쓰면 content 와 컬럼이 갈라지고
+ * (raw 기준인) 그룹 키와 content 가 어긋나 중복이 살아남는다. predicate 만 정규화한다.
+ */
 function renderContent(
   row: CandidateRow,
   scoring: SemanticMemoryScoring,
-  canonicalizer: PredicateCanonicalizer,
+  predicate: string,
 ): string {
-  const snapshot = scoring.prepareNormalizedTriple(
-    { subject: row.subject, predicate: row.predicate, object: row.object },
-    0,
-  );
-  return scoring.tripleToNaturalLanguage(
-    snapshot.subject,
-    snapshot.predicate,
-    snapshot.object,
-  );
+  return scoring.tripleToNaturalLanguage(row.subject, predicate, row.object);
 }
 
 export function buildDuplicatePlan(db: CliDatabase): DuplicatePlan {
@@ -98,12 +97,11 @@ export function buildDuplicatePlan(db: CliDatabase): DuplicatePlan {
   const candidates = db.prepare(CANDIDATE_SQL).all() as CandidateRow[];
 
   const processed = candidates.map((row) => {
-    const snapshot = scoring.prepareNormalizedTriple(
-      { subject: row.subject, predicate: row.predicate, object: row.object },
-      0,
-    );
-    const after = renderContent(row, scoring, canonicalizer);
-    return { row, snapshot, after };
+    // 쓰기 경로와 같은 사전을 쓰되 predicate 만 정규화한다 (subject/object 컬럼은 건드리지 않는다)
+    const canonical = canonicalizer.canonicalize(row.predicate);
+    const predicate = canonical.success ? canonical.canonical : row.predicate;
+    const after = renderContent(row, scoring, predicate);
+    return { row, predicate, after };
   });
 
   const rerender: RerenderEntry[] = [];
@@ -114,8 +112,8 @@ export function buildDuplicatePlan(db: CliDatabase): DuplicatePlan {
   }
 
   const groups = new Map<string, Array<{ row: CandidateRow; confidence: number }>>();
-  for (const { row, snapshot } of processed) {
-    const key = groupKey(row, snapshot.predicate);
+  for (const { row, predicate } of processed) {
+    const key = groupKey(row, predicate);
     const list = groups.get(key) ?? [];
     list.push({ row, confidence: row.confidence ?? 0 });
     groups.set(key, list);
