@@ -191,6 +191,7 @@ DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic            # d
 DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic -- --apply # 적용
 ```
 
+기본 실행 `npm run memory:repair-duplicate-semantic` 은 dry-run 이고, 적용은 `-- --apply` 를 붙입니다.
 `--apply` 전에 MCP 서버를 멈추고 `npm run db:pre-docker-deploy` 로 무결성을 확인하세요.
 triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서 빠집니다 — 주입 시점에는
 `memory_injection` 이 content 기준으로 중복을 제거하므로 프롬프트 예산은 사본에 소모되지 않습니다.
