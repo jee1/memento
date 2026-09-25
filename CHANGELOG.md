@@ -9,6 +9,14 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- **대시보드 정상 사용이 `/admin` rate limit 을 소진해 429 로 막히지 않습니다** (#1158): `/admin/*` 전체가 15분당 30회 한 bucket 을 공유해, 대시보드 한 번 열기(패널마다 `/admin/status`·`/admin/batch/*`·`/admin/memory/review-candidates*`·`/admin/graph`·`/admin/embedding-map` 조회)와 배치 탭 조작 몇 번이면 예산이 바닥났습니다. 배치 새로고침 1회가 GET 3건, `지금 실행` 1회가 POST + 새로고침으로 4~5건을 씁니다. 조회가 예산을 먹으면 **쓰기까지 같이 막혀** 운영자가 잡을 실행할 수 없었습니다(`지금 실행 consolidation_score_full_sweep 실패` / `Too Many Requests`). 이제 `/admin/*` 는 조회(`GET`·`HEAD`·`OPTIONS`, 기본 300회/15분, `MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ`)와 쓰기(그 외 메서드, 기본 30회/15분, `MEMENTO_HTTP_RATE_LIMIT_ADMIN`)가 독립 bucket 을 씁니다 — 조회가 한도에 걸려도 쓰기 예산은 남습니다.
+
+- **배치 작업 탭이 429 를 재시도 안내로 보여줍니다** (#1158): 조회 실패는 `HTTP 429 for /admin/batch/runs?job=…&limit=50` 원문을, 쓰기 실패는 `Too Many Requests` 만 노출해 언제 다시 시도할지 알 수 없었습니다. 서버가 이미 주던 `Retry-After` 헤더와 본문 `retry_after_seconds` 를 읽어 `요청이 너무 많습니다 — N초 후 다시 시도하세요.` 로 표시합니다.
+
+- **쓰기 후 갱신이 실패하면 상태줄이 «완료» 라고 하지 않습니다** (#1158): `writeThenRefresh` 가 `refresh()` 결과와 무관하게 `… 완료` 로 덮어써, 오류 배너에 429 가 떠 있는데 상태줄은 `지금 실행 weekly_relation_validation 완료` 인 모순이 생겼습니다. 이제 `refresh()` 가 `ok`·`failed`·`superseded` 를 돌려주고, 갱신 실패 시 `… 완료 — 화면 갱신 실패, 새로고침하세요` 로 실행과 갱신을 구분해 알립니다. 같은 변경으로 선택된 실행이 있을 때 `loadLogs` 가 generation 을 올려 로딩 표시가 꺼지지 않던 문제도 함께 해소됩니다.
+
 ## [1.33.0] - 2026-09-24
 
 ### Fixed

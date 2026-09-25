@@ -68,9 +68,9 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 
 ## HTTP rate limit
 
-- **버킷**: `/tools/*`와 `/admin/*`는 **별도** 한도입니다 (`express-rate-limit`, 15분 고정 창).
-- **기본값**: tools 100회/15분, admin 30회/15분.
-- **환경 변수**: `MEMENTO_HTTP_RATE_LIMIT_TOOLS`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN` (정수, 창당 최대 요청 수). `MEMENTO_HTTP_RATE_LIMIT_DISABLED=1` 또는 `NODE_ENV=test`면 비활성화.
+- **버킷**: `/tools/*`, `/admin/*` 조회, `/admin/*` 쓰기가 각각 **별도** 한도입니다 (`express-rate-limit`, 15분 고정 창). `/admin/*`의 조회는 `GET`·`HEAD`·`OPTIONS`, 쓰기는 그 외 메서드입니다 (#1158).
+- **기본값**: tools 100회/15분, admin 조회 300회/15분, admin 쓰기 30회/15분. 대시보드는 한 번 열 때 패널마다 `/admin/*`를 조회하므로 조회 예산이 쓰기와 분리돼 있어야 조회가 예산을 소진해도 운영자가 잡을 실행할 수 있습니다.
+- **환경 변수**: `MEMENTO_HTTP_RATE_LIMIT_TOOLS`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN` (정수, 창당 최대 요청 수). `MEMENTO_HTTP_RATE_LIMIT_DISABLED=1` 또는 `NODE_ENV=test`면 비활성화.
 - **429 응답**: 초과 시 `429 Too Many Requests`와 `Retry-After`(초) 헤더를 반환합니다.
 
 ## 파일 기반 시크릿 (File-based secrets)

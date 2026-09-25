@@ -643,4 +643,100 @@ describe('dashboard jobs panel (#832)', () => {
       );
     });
   });
+  it('surfaces 429 as a retry hint instead of the raw HTTP line (#1158)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      headers: { get: (name: string) => (name.toLowerCase() === 'retry-after' ? '900' : null) },
+      json: async () => ({
+        error: 'Too Many Requests',
+        message: 'Rate limit exceeded for admin_read routes. Retry after 900 seconds.',
+        retry_after_seconds: 900,
+      }),
+    };
+    h.fetchMock.mockImplementation(async () => rateLimited);
+
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.refresh();
+
+    expect(h.elements['jobs-error'].textContent).toBe(
+      '요청이 너무 많습니다 — 900초 후 다시 시도하세요.',
+    );
+    expect(h.elements['jobs-error'].textContent).not.toMatch(/HTTP 429/);
+    expect(h.elements['jobs-error'].textContent).not.toMatch(/\/admin\/batch\/runs/);
+  });
+
+  it('reports a rate-limited write as 실패, not Too Many Requests (#1158)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+
+    h.getScheduleClickHandler()!({
+      target: {
+        dataset: { jobName: 'cleanup' },
+        closest: () => ({ dataset: { jobName: 'cleanup' } }),
+      },
+    });
+    await vi.waitFor(() => {
+      expect(h.elements['jobs-run-now-btn'].disabled).toBe(false);
+    });
+
+    h.fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init && String(init.method).toUpperCase() === 'POST') {
+        return {
+          ok: false,
+          status: 429,
+          headers: { get: () => '900' },
+          json: async () => ({ error: 'Too Many Requests', retry_after_seconds: 900 }),
+        };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.runSelectedJobNow();
+
+    expect(h.elements['jobs-error'].textContent).toBe(
+      '요청이 너무 많습니다 — 900초 후 다시 시도하세요.',
+    );
+    expect(h.elements['jobs-status-line'].textContent).toBe('지금 실행 cleanup 실패');
+  });
+
+  it('does not claim 완료 when the post-write refresh fails (#1158)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+
+    h.getScheduleClickHandler()!({
+      target: {
+        dataset: { jobName: 'cleanup' },
+        closest: () => ({ dataset: { jobName: 'cleanup' } }),
+      },
+    });
+    await vi.waitFor(() => {
+      expect(h.elements['jobs-run-now-btn'].disabled).toBe(false);
+    });
+
+    // Write succeeds, the refresh right after it is rate limited.
+    h.fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init && String(init.method).toUpperCase() === 'POST') {
+        return { ok: true, json: async () => ({ message: 'ok', jobType: 'cleanup' }) };
+      }
+      return {
+        ok: false,
+        status: 429,
+        headers: { get: () => '900' },
+        json: async () => ({ error: 'Too Many Requests', retry_after_seconds: 900 }),
+      };
+    });
+
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.runSelectedJobNow();
+
+    expect(h.elements['jobs-status-line'].textContent).toBe(
+      '지금 실행 cleanup 완료 — 화면 갱신 실패, 새로고침하세요',
+    );
+    expect(h.elements['jobs-error'].textContent).toBe(
+      '요청이 너무 많습니다 — 900초 후 다시 시도하세요.',
+    );
+    expect(h.elements['jobs-loading'].classList.contains('hidden')).toBe(true);
+  });
 });
