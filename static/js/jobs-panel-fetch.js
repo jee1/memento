@@ -10,6 +10,37 @@
     return;
   }
 
+  /**
+   * Issue #1158: 429 는 원문(`HTTP 429 for /admin/...`)을 그대로 보여주면
+   * 운영자가 언제 다시 시도할지 알 수 없다. 서버가 주는 재시도 대기시간을 쓴다.
+   */
+  function retryAfterSeconds(response, data) {
+    const fromBody = data ? Number(data.retry_after_seconds) : NaN;
+    if (Number.isFinite(fromBody) && fromBody > 0) {
+      return Math.ceil(fromBody);
+    }
+    const headers = response && response.headers;
+    const header = headers && typeof headers.get === 'function' ? headers.get('Retry-After') : null;
+    const parsed = header ? Number.parseInt(header, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  function rateLimitMessage(response, data) {
+    const seconds = retryAfterSeconds(response, data);
+    if (seconds === null) {
+      return '요청이 너무 많습니다 — 잠시 후 다시 시도하세요.';
+    }
+    return '요청이 너무 많습니다 — ' + seconds + '초 후 다시 시도하세요.';
+  }
+
+  async function readJsonBody(response) {
+    try {
+      return await response.json();
+    } catch (_err) {
+      return {};
+    }
+  }
+
   async function fetchJson(url) {
     const response = await global.fetch(url, {
       method: 'GET',
@@ -17,6 +48,9 @@
       credentials: 'same-origin',
     });
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error(rateLimitMessage(response, await readJsonBody(response)));
+      }
       throw new Error('HTTP ' + response.status + ' for ' + url);
     }
     return response.json();
@@ -32,21 +66,24 @@
       credentials: 'same-origin',
       body: JSON.stringify(body),
     });
-    let data = {};
-    try {
-      data = await response.json();
-    } catch (_err) {
-      data = {};
-    }
+    const data = await readJsonBody(response);
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error(rateLimitMessage(response, data));
+      }
       const message = data.error || data.message || 'HTTP ' + response.status;
       throw new Error(String(message));
     }
     return data;
   }
 
+  /**
+   * @returns {Promise<'ok'|'failed'|'superseded'>} 호출자가 상태줄을 덮어써도 되는지 판단한다 (#1158).
+   */
   ns.refresh = async function () {
     const generation = ++ns.state.refreshGeneration;
+    // loadLogs 가 자기 generation 을 올리므로 finally 의 generation 비교로는 로딩을 끌 수 없다.
+    let outcome = 'superseded';
     ns.setStatus('새로고침 중…');
     ns.setLoading(true);
     try {
@@ -56,7 +93,7 @@
         fetchJson(ns.buildRunsUrl(ns.state.selectedJob)),
       ]);
       if (generation !== ns.state.refreshGeneration) {
-        return;
+        return outcome;
       }
       const stats = results[0] || {};
       const history = results[1] || {};
@@ -76,19 +113,22 @@
         ns.renderLogs([], null);
       }
       ns.setStatus('갱신 ' + (stats.timestamp || new Date().toISOString()));
+      outcome = 'ok';
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
-        return;
+        return outcome;
       }
       // Keep prior successful snapshot; surface error only.
       const message = err && err.message ? String(err.message) : '배치 작업 새로고침 실패';
       ns.setError(message);
       ns.setStatus('새로고침 실패 — 이전 스냅샷 유지');
+      outcome = 'failed';
     } finally {
-      if (generation === ns.state.refreshGeneration) {
+      if (outcome !== 'superseded') {
         ns.setLoading(false);
       }
     }
+    return outcome;
   };
 
   /** Issue #833: click/select a schedule job row → fetch durable timeline for that job only. */
@@ -176,8 +216,13 @@
       ns.state.writeInFlight = false;
       ns.syncActionButtons();
     }
-    await ns.refresh();
-    ns.setStatus(statusLabel + ' 완료');
+    // #1158: 갱신이 실패했는데도 '완료'로 덮으면 오류 배너와 상태줄이 서로 다른 말을 한다.
+    const outcome = await ns.refresh();
+    if (outcome === 'ok') {
+      ns.setStatus(statusLabel + ' 완료');
+    } else if (outcome === 'failed') {
+      ns.setStatus(statusLabel + ' 완료 — 화면 갱신 실패, 새로고침하세요');
+    }
   }
 
   ns.pauseSelectedJob = async function () {

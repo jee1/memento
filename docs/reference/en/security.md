@@ -66,9 +66,9 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 
 ## HTTP rate limit
 
-- **Buckets**: `/tools/*` and `/admin/*` have **separate** limits (`express-rate-limit`, fixed 15-minute window).
-- **Defaults**: tools 100 / 15 min, admin 30 / 15 min.
-- **Environment**: `MEMENTO_HTTP_RATE_LIMIT_TOOLS`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN` (integer max requests per window). Disabled when `MEMENTO_HTTP_RATE_LIMIT_DISABLED=1` or `NODE_ENV=test`.
+- **Buckets**: `/tools/*`, `/admin/*` reads, and `/admin/*` writes each have **separate** limits (`express-rate-limit`, fixed 15-minute window). Admin reads are `GET`/`HEAD`/`OPTIONS`; every other method counts as a write (#1158).
+- **Defaults**: tools 100 / 15 min, admin reads 300 / 15 min, admin writes 30 / 15 min. One dashboard page view fans out over many `/admin/*` reads, so reads must not share the write budget — otherwise browsing exhausts it and the operator can no longer trigger a job.
+- **Environment**: `MEMENTO_HTTP_RATE_LIMIT_TOOLS`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN` (integer max requests per window). Disabled when `MEMENTO_HTTP_RATE_LIMIT_DISABLED=1` or `NODE_ENV=test`.
 - **429**: On exceed, returns `429 Too Many Requests` with a `Retry-After` header (seconds).
 
 ## File-based secrets
