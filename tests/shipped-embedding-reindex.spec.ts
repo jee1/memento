@@ -51,6 +51,15 @@ describe('#1155 배포판 사용자가 재색인을 실행할 수 있다', () =>
     expect(source).not.toContain('./lib/cli');
     expect(source).not.toContain('scripts/lib');
   });
+
+  it('배포 진입점은 끝날 때 서비스를 내려 프로세스가 종료되게 한다', () => {
+    // createMementoCore 가 배치 스케줄러를 띄운다. shutdownServices 없이는 재색인이 끝나도
+    // 프로세스가 살아남아 닫힌 DB 에 매분 붙는다. 정적 단언이라 실제 종료까지는 보증하지 않는다.
+    const source = readRepoFile(SHIPPED_REINDEX_SOURCE);
+
+    expect(source).toContain('shutdownServices');
+    expect(source).toMatch(/await\s+shutdownServices\(core\.services\)/);
+  });
 });
 
 describe('#1155 · #1156 마이그레이션은 임베딩을 만들지 않는다 (서버 시작 비블록)', () => {

@@ -21,6 +21,7 @@ import {
   EmbeddingReindexService,
   expandHomeDirPath,
   mementoConfig,
+  shutdownServices,
   type EmbeddingProvider,
 } from '@memento/core';
 
@@ -72,6 +73,9 @@ async function main(): Promise<void> {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.failedCount > 0) process.exitCode = 1;
   } finally {
+    // createMementoCore 가 띄운 배치 스케줄러·워커를 멈추지 않으면 프로세스가 끝나지 않고
+    // 닫힌 DB 에 계속 붙는다.
+    await shutdownServices(core.services);
     core.db.close();
   }
 }

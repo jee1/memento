@@ -1,5 +1,5 @@
 import { parseArgs as parseCliArgs } from './lib/cli.js';
-import { createMementoCore, EmbeddingReindexService, expandHomeDirPath, mementoConfig, type EmbeddingProvider } from '@memento/core';
+import { createMementoCore, EmbeddingReindexService, expandHomeDirPath, mementoConfig, shutdownServices, type EmbeddingProvider } from '@memento/core';
 
 function option(name: string): string | undefined {
   const index = parseCliArgs().args.indexOf(name);
@@ -43,6 +43,8 @@ async function main(): Promise<void> {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.failedCount > 0) process.exitCode = 1;
   } finally {
+    // createMementoCore 가 띄운 배치 스케줄러·워커를 멈추지 않으면 프로세스가 끝나지 않는다.
+    await shutdownServices(core.services);
     core.db.close();
   }
 }
