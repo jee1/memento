@@ -7,6 +7,10 @@
  * 진입점이 명시적으로 종료하지 않으면 이 테스트는 타임아웃으로 빨개진다.
  *
  * 정적 단언(tests/shipped-embedding-reindex.spec.ts)은 이 결함을 못 잡았다.
+ *
+ * 이 파일이 `src/scripts/` 가 아니라 `src/` 바로 아래 있는 이유: `npm run test:ci:scripts` 는
+ * `vitest --run scripts` 라서 `scripts` 를 경로 부분문자열로 잡는다. `src/scripts/` 에 두면
+ * memento-server 를 빌드하지 않는 test-scripts 잡이 이 테스트를 집어가 dist 가 없다고 실패한다.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -16,7 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const SCRIPT_PATH = fileURLToPath(
-  new URL('../../../dist/scripts/reindex-embeddings.js', import.meta.url),
+  new URL('../../dist/scripts/reindex-embeddings.js', import.meta.url),
 );
 
 let workDir: string;
