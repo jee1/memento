@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildRepairPlan } from './repair-triple-sentence-memories.js';
+import { buildRepairPlan } from '@memento/core';
 
 /** #811 US1: repair CLI named-export regression guard */
 describe('@memento/core triple-sentence public exports (#811)', () => {
