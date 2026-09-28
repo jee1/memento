@@ -40,7 +40,7 @@ describe('memory domain cluster topology', () => {
       recall: 16,
       remember: 11,
       review: 9,
-      semantic: 13,
+      semantic: 14,
       procedural: 12,
       introspection: 6,
     });

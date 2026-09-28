@@ -186,6 +186,9 @@ export { PredicateCanonicalizer } from './domains/relation/services/triple-extra
 // #1139: 마이그레이션 048 과 정리 스크립트가 같은 판정 로직을 쓰도록 공개
 export { buildDuplicatePlan } from './domains/memory/semantic/duplicate-content-plan.js';
 export type { DuplicatePlan, RerenderEntry, DeletionEntry } from './domains/memory/semantic/duplicate-content-plan.js';
+// #1156: 마이그레이션 049 와 정리 스크립트가 같은 판정 로직을 쓰도록 공개
+export { buildRepairPlan } from './domains/memory/semantic/triple-repair-plan.js';
+export type { RepairPlan, RepairPlanEntry } from './domains/memory/semantic/triple-repair-plan.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';

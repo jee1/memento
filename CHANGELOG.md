@@ -9,6 +9,14 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- **`049` 마이그레이션이 손상된 triple 문장을 배포판 사용자의 DB 에서도 복구합니다** (#1156): 옛 템플릿 `${subject}는 ${object}를 ${predicate}합니다` 가 만든 `정의됨합니다` 류 문장을 고칠 수단이 `scripts/repair-triple-sentence-memories.ts` 하나뿐이었는데, `package.json` 의 `files` 가 싣는 scripts 는 `auto-setup.js`·`lib/cli-runtime.js`·`lib/postinstall-db-init.js` **3개뿐**이고 `tsx` 도 devDependency 라 설치해서 쓰는 사용자에게 닿지 않았습니다 — 업그레이드해도 **새 손상은 안 생기지만 이미 손상된 문장은 영구히 남았습니다**. #1139 가 048 로 세운 선례대로, 판정 로직 `buildRepairPlan` 을 `@memento/core` 로 옮겨 마이그레이션과 스크립트가 **한 출처**를 공유하게 하고 마이그레이션은 그 결과를 적용만 합니다. postinstall 과 서버 시작 양쪽에서 자동으로 돕니다. 개발 DB 사본 실측: 손상 문장 **37건 복구**, `unrenderable 0`·`missingComponents 0`. 후보 SQL 이 옛 템플릿과의 정확한 문자열 일치로만 고르므로 048 과 달리 반복 패스 없이 1회에 수렴합니다.
+
+- **배포판 사용자가 `048`·`049` 가 남긴 stale 임베딩을 갱신할 수 있습니다** (#1155): 두 마이그레이션은 `memory_item.content` 를 고치지만 임베딩은 다시 만들지 않습니다 — 임베딩 모델을 마이그레이션 트랜잭션 안에서 로드하면 서버 시작이 블록되고 쓰기 락이 길게 잡히기 때문입니다. 그런데 갱신 수단인 `npm run reindex-embeddings`(tsx)·`regenerate:embeddings`(`scripts/regenerate-embeddings.js`)가 **둘 다 발행 tarball 밖**이라, 그 행들은 옛 본문 기준으로 벡터 검색에 걸린 채 남았습니다(FTS 는 트리거로 갱신돼 정확합니다). 이제 진입점이 `packages/memento-server/src/scripts/reindex-embeddings.ts` 로 들어가 `dist/scripts/reindex-embeddings.js` 로 배포됩니다 — `dist` 는 이미 `files` 에 있으므로 `node dist/scripts/reindex-embeddings.js` 로 실행할 수 있습니다(`check-migration-status` 와 같은 방식). 컨테이너에서는 `packages/memento-server/dist/scripts/reindex-embeddings.js` 입니다. `tests/shipped-embedding-reindex.spec.ts` 가 배포 도달과 두 마이그레이션의 임베딩 비의존을 고정합니다.
+
+- **재색인 스크립트가 끝나면 프로세스가 종료됩니다** (#1155): `createMementoCore` 가 띄운 배치 스케줄러·reflexion 워커를 아무도 멈추지 않아, 재색인이 정상 완료한 뒤에도 프로세스가 살아남아 이미 닫힌 DB 에 매분 붙었습니다(`job_run append failed (soft-fail) … "error": "The database connection is not open"`). 실측에서 재색인 자체는 끝났는데 540초 timeout 으로 강제 종료됐습니다. 이미 export 돼 있던 `shutdownServices` 를 `finally` 에서 호출합니다. 수정 후 실측: `exit=0`, 308초, 닫힌 DB 접근 로그 **0건**, `processedCount 77 / storedCount 77 / failedCount 0`. 저장소용 `scripts/reindex-embeddings.ts` 에도 같은 결함이 있어 함께 고쳤습니다.
+
 ## [1.34.0] - 2026-09-28
 
 ### Fixed

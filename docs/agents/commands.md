@@ -179,6 +179,16 @@ DB_PATH=./data/memory.db npm run memory:repair-triple-sentences -- --apply # 적
 triple 컬럼이 없는 손상 행은 복구 불가로 ID만 보고합니다. 주입 단계에서는
 `memory_injection`이 이중 활용 문장을 자동으로 제외하므로, 복구 전에도 프롬프트는 오염되지 않습니다.
 
+### 배포판 사용자 — 마이그레이션 049 (#1156)
+
+위 스크립트는 저장소 체크아웃에서만 돕니다. 발행 tarball 의 `files` 에 `scripts/` 가 없고 `tsx` 도
+devDependency 라 설치해서 쓰는 사용자는 실행할 수 없습니다. 그래서 같은 복구를 마이그레이션
+`049-repair-triple-sentence-memories` 가 수행합니다. 마이그레이션은 postinstall 과 서버 시작 양쪽에서
+자동으로 돌고, 판정 로직(`buildRepairPlan`)은 스크립트와 공유합니다.
+
+**049 도 임베딩을 다시 만들지 않습니다.** 048 과 같은 이유입니다 — 아래 「배포판 사용자 —
+마이그레이션 048·049」 절의 재색인 절차를 따르세요.
+
 ## 중복 본문 semantic 기억 정리 (#1137)
 
 재조립에 실패한 triple 이 원본 episodic 본문을 content 로 공유해 **같은 본문의 semantic 행이 여러 개**
@@ -196,7 +206,7 @@ DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic -- --apply # �
 triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서 빠집니다 — 주입 시점에는
 `memory_injection` 이 content 기준으로 중복을 제거하므로 프롬프트 예산은 사본에 소모되지 않습니다.
 
-### 배포판 사용자 — 마이그레이션 048 (#1139)
+### 배포판 사용자 — 마이그레이션 048·049 (#1139, #1156)
 
 위 스크립트는 저장소 체크아웃에서만 돕니다. npm 발행 tarball 의 `files` 에 `scripts/` 가 없고
 `tsx` 도 devDependency 라 설치해서 쓰는 사용자는 실행할 수 없습니다. 그래서 같은 정리를
@@ -214,11 +224,30 @@ triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서
 DB_PATH=./data/memory.db npm run reindex-embeddings
 ```
 
-**배포판 사용자에게는 아직 갱신 수단이 없습니다.** `reindex-embeddings` 는 `tsx` 를,
-`regenerate:embeddings` 는 `scripts/regenerate-embeddings.js` 를 쓰는데 둘 다 발행 tarball 의
-`files` 에 들어가지 않습니다. 048 이 본문 자체는 올바르게 고쳐 두므로 다음 재임베딩 시점에
-수렴하며, 그때까지는 벡터 검색 리콜만 옛 본문 기준으로 남습니다. 배포판용 지연 재계산 수단은
-#1139 범위 밖입니다.
+배포판 사용자는 설치 디렉터리에서 이렇게 갱신합니다 (#1155):
+
+```bash
+cd node_modules/memento-mcp-server
+DB_PATH=/절대/경로/memory.db node dist/scripts/reindex-embeddings.js --dry-run
+DB_PATH=/절대/경로/memory.db node dist/scripts/reindex-embeddings.js
+```
+
+이 진입점은 `packages/memento-server/src/scripts/reindex-embeddings.ts` 가 빌드된 것이고, `dist` 는
+`files` 에 들어가므로 설치본에 그대로 실립니다. 저장소용 `npm run reindex-embeddings` 는 `tsx` 를,
+`regenerate:embeddings` 는 `scripts/regenerate-embeddings.js` 를 쓰는데 둘 다 `files` 에 없어
+설치본에서는 돌지 않습니다.
+
+컨테이너는 경로가 다릅니다. `Dockerfile` 이 루트 `dist/` 가 아니라 `packages/memento-server/dist` 를
+복사하므로 이렇게 부릅니다:
+
+```bash
+docker compose exec memento-mcp-server \
+  node packages/memento-server/dist/scripts/reindex-embeddings.js --dry-run
+```
+
+**서버를 멈추고 돌리세요.** 재색인은 임베딩 모델을 로드하고 `memory_embedding` 을 다시 씁니다.
+마이그레이션이 이 일을 하지 않는 이유도 같습니다 — 시작 경로에서 돌면 서버 기동이 블록되고
+쓰기 락이 길게 잡힙니다(`tests/shipped-embedding-reindex.spec.ts` 가 고정).
 
 저장소에서 `npm run memory:repair-duplicate-semantic -- --apply` 를 돌린 경우에는 스크립트가
 바뀐 행을 즉시 재임베딩하므로 별도 조치가 필요 없습니다.

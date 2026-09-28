@@ -13,73 +13,13 @@ import { isMain, parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.j
  */
 
 import {
-  buildTripleSentence,
+  buildRepairPlan,
   closeDatabase,
-  hasBrokenTripleConjugation,
   initializeDatabase,
   MemoryEmbeddingService,
+  type RepairPlan,
+  type RepairPlanEntry,
 } from '@memento/core';
-
-interface CandidateRow {
-  id: string;
-  subject: string;
-  predicate: string;
-  object: string;
-  content: string;
-}
-
-export interface RepairPlanEntry {
-  id: string;
-  before: string;
-  after: string;
-}
-
-export interface RepairPlan {
-  repairable: RepairPlanEntry[];
-  /** 옛 템플릿과 일치하지만 새 렌더러도 문장을 만들 수 없는 행 */
-  unrenderable: string[];
-  /** 손상 신호는 있으나 triple 컬럼이 없어 복구 불가능한 행 */
-  missingComponents: string[];
-}
-
-/** 옛 템플릿과 정확히 일치하는 행만 고른다 (SQL 문자열 결합으로 오탐 0). */
-const CANDIDATE_SQL = `
-  SELECT id, subject, predicate, object, content
-  FROM memory_item
-  WHERE type = 'semantic'
-    AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL
-    AND content = subject || '는 ' || object || '를 ' || predicate || '합니다'
-`;
-
-const MISSING_COMPONENT_SQL = `
-  SELECT id, content
-  FROM memory_item
-  WHERE type = 'semantic'
-    AND (subject IS NULL OR predicate IS NULL OR object IS NULL)
-`;
-
-export function buildRepairPlan(db: CliDatabase): RepairPlan {
-  const candidates = db.prepare(CANDIDATE_SQL).all() as CandidateRow[];
-  const repairable: RepairPlanEntry[] = [];
-  const unrenderable: string[] = [];
-
-  for (const row of candidates) {
-    const rendered = buildTripleSentence(row.subject, row.predicate, row.object);
-    if (!rendered) {
-      unrenderable.push(row.id);
-      continue;
-    }
-    if (rendered !== row.content) {
-      repairable.push({ id: row.id, before: row.content, after: rendered });
-    }
-  }
-
-  const missingComponents = (db.prepare(MISSING_COMPONENT_SQL).all() as Array<{ id: string; content: string }>)
-    .filter((row) => hasBrokenTripleConjugation(row.content))
-    .map((row) => row.id);
-
-  return { repairable, unrenderable, missingComponents };
-}
 
 async function applyRepair(db: CliDatabase, plan: RepairPlan): Promise<void> {
   const update = db.prepare('UPDATE memory_item SET content = ? WHERE id = ?');

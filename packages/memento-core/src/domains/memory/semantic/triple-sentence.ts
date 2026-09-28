@@ -95,7 +95,7 @@ export function buildTripleSentence(
  *
  * `함합니다`는 제외한다 — `포함합니다`(포함 + 합니다)처럼 정상 문장과 문자열이 구분되지 않는다.
  * 조사만 틀린 문장도 여기서 걸러내지 않는다. 두 경우 모두 subject/predicate/object 컬럼을 가진
- * 복구 스크립트(`scripts/repair-triple-sentence-memories.ts`)가 옛 템플릿과 정확히 대조해 다시 렌더한다.
+ * 복구 판정(`buildRepairPlan`, `./triple-repair-plan.ts`)이 옛 템플릿과 정확히 대조해 다시 렌더한다.
  */
 export function hasBrokenTripleConjugation(content: string): boolean {
   return /(됨|음|름)합니다/.test(content);
