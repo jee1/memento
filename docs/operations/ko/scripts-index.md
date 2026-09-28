@@ -27,6 +27,7 @@
 | db-vacuum.ts | DELETE 후 공간 회수 측정 | `npm run db:vacuum` |
 | backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
 | regenerate-embeddings.js | 임베딩 재생성 | `npm run regenerate:embeddings` |
+| reindex-embeddings | 임베딩 재색인 (마이그레이션 048·049 이후 stale 벡터 갱신) | 저장소: `npm run reindex-embeddings` / 배포판·컨테이너: `node dist/scripts/reindex-embeddings.js` (구현: `packages/memento-server/src/scripts`) |
 | debug-embeddings.js | 임베딩 디버깅 | `npm run debug:embeddings` |
 | fix-vector-dimensions.js | 벡터 차원 수정 | `npm run fix:vector-dimensions` |
 | fix-tfidf-dimensions.ts | TF-IDF 차원 수정 | `npm run fix:tfidf-dimensions` |

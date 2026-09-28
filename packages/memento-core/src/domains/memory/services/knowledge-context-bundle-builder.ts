@@ -448,7 +448,7 @@ export async function buildKnowledgeContextBundle(
   if (corruptedCount > 0) {
     logger.warn('[knowledge-context-bundle] 손상된 triple 문장 제외', {
       excluded: corruptedCount,
-      hint: 'npm run memory:repair-triple-sentences -- --apply',
+      hint: '마이그레이션 049 가 업그레이드 시 자동 복구합니다 (저장소: npm run memory:repair-triple-sentences -- --apply)',
     });
   }
   const duplicateCount = excludedDuplicateEarly + excludedDuplicatePost;
