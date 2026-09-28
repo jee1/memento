@@ -32,6 +32,23 @@ function option(name: string): string | undefined {
   return index >= 0 ? args[index + 1] : undefined;
 }
 
+/**
+ * #1165 임베딩 런타임(onnxruntime-node)이 JS 에서 보이지 않는 libuv 핸들을 남겨,
+ * shutdownServices 로 서비스를 다 내려도 프로세스가 끝나지 않는다. 측정에서
+ * `process._getActiveHandles()` 는 stdio 소켓 3개뿐이고 `beforeExit` 은 한 번도 발생하지 않는다.
+ * `@huggingface/transformers` 4.2 는 세션 해제 API 를 노출하지 않으므로 JS 에서 이 핸들을
+ * 내릴 방법이 없다. 그래서 결과를 다 흘려보낸 뒤 명시적으로 종료한다.
+ *
+ * write 콜백을 기다리는 것이 핵심이다. stdout 이 파이프면 쓰기가 비동기라
+ * 곧바로 process.exit 을 부르면 결과 JSON 한 줄이 잘려 나갈 수 있다.
+ */
+async function writeResultAndExit(output: string): Promise<never> {
+  await new Promise<void>((resolve, reject) => {
+    process.stdout.write(output, (error) => (error ? reject(error) : resolve()));
+  });
+  process.exit(process.exitCode ?? 0);
+}
+
 async function main(): Promise<void> {
   const onlyTruncated = args.includes('--only-truncated');
   const provider = (option('--provider') ?? mementoConfig.embeddingProvider) as EmbeddingProvider;
@@ -44,6 +61,7 @@ async function main(): Promise<void> {
   const core = await createMementoCore({
     dbPath: expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath),
   });
+  let output = '';
 
   try {
     const service = new EmbeddingReindexService(core.db, core.services.embeddingService);
@@ -58,26 +76,27 @@ async function main(): Promise<void> {
         .filter((row) => row.content.trim().replace(/\s+/g, ' ').length > 800)
         .map((row) => row.id);
       const result = await service.reindexByIds(ids, { provider, dryRun });
-      process.stdout.write(`${JSON.stringify({ ...result, candidateCount: ids.length })}\n`);
+      output = `${JSON.stringify({ ...result, candidateCount: ids.length })}\n`;
       if (result.failedCount > 0) process.exitCode = 1;
-      return;
+    } else {
+      const result = await service.reindex({
+        provider,
+        batchSize,
+        ownerId,
+        dryRun,
+        pruneForeignProviders,
+      });
+      output = `${JSON.stringify(result)}\n`;
+      if (result.failedCount > 0) process.exitCode = 1;
     }
-
-    const result = await service.reindex({
-      provider,
-      batchSize,
-      ownerId,
-      dryRun,
-      pruneForeignProviders,
-    });
-    process.stdout.write(`${JSON.stringify(result)}\n`);
-    if (result.failedCount > 0) process.exitCode = 1;
   } finally {
     // createMementoCore 가 띄운 배치 스케줄러·워커를 멈추지 않으면 프로세스가 끝나지 않고
     // 닫힌 DB 에 계속 붙는다.
     await shutdownServices(core.services);
     core.db.close();
   }
+
+  await writeResultAndExit(output);
 }
 
 void main();
