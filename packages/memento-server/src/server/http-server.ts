@@ -62,6 +62,8 @@ import {
   createSessionAuthMiddleware,
   createToolContextMiddleware,
   createToolsRateLimitMiddleware,
+  resolveTrustProxySetting,
+  DASHBOARD_SESSION_COOKIE_NAME,
   errorHandler
 } from './middleware/index.js';
 import {
@@ -115,6 +117,17 @@ const staticRoot = resolveStaticRoot();
 
 // Express 앱 생성
 const app = express();
+
+// 프록시 신뢰 설정 (#1161): 미설정이면 Express 기본값 false 를 유지해 X-Forwarded-For 를
+// 무시한다. 헤더를 신뢰하는 순간 rate limit 키를 위조할 수 있으므로 기본으로 켜지 않는다.
+const trustProxy = resolveTrustProxySetting();
+if (trustProxy.warning) {
+  logger.warn(trustProxy.warning);
+}
+if (trustProxy.setting !== undefined) {
+  app.set('trust proxy', trustProxy.setting);
+  logger.info('trust proxy 설정 적용', { trustProxy: trustProxy.setting });
+}
 const server = createServer(app);
 
 // HTTP 보안 헤더 (FR-005/FR-006): 모든 응답에 OWASP 최소 보안 헤더 추가
@@ -208,7 +221,6 @@ let apiRouter: express.Router | null = null;
 let mcpRouter: express.Router | null = null;
 let authRouter: express.Router | null = null;
 
-const DASHBOARD_SESSION_COOKIE_NAME = 'memento_admin_session';
 const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 

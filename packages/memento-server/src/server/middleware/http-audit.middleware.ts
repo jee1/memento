@@ -50,7 +50,7 @@ function resolveAuditLogPath(override?: string): string {
   return join(dirname(mementoConfig.dbPath), 'http-audit.jsonl');
 }
 
-function readAuthCredential(req: Request): string | null {
+export function readAuthCredential(req: Request): string | null {
   const authHeader = req.headers.authorization;
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7).trim();

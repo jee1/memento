@@ -1,12 +1,18 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { SessionStore } from '../auth/session-store.js';
 
+/**
+ * 대시보드 세션 쿠키 이름. rate limit 키 생성(#1161)·감사 로그도 같은 쿠키를 읽으므로
+ * 리터럴을 흩뿌리지 않고 여기서 내보낸다.
+ */
+export const DASHBOARD_SESSION_COOKIE_NAME = 'memento_admin_session';
+
 export type SessionAuthMiddlewareConfig = {
   store: SessionStore;
   cookieName: string;
 };
 
-function readCookie(cookieHeader: string | undefined, cookieName: string): string | null {
+export function readCookie(cookieHeader: string | undefined, cookieName: string): string | null {
   if (!cookieHeader) {
     return null;
   }

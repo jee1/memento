@@ -11,6 +11,10 @@
 
 ### Fixed
 
+- **`/admin` rate limit 예산이 클라이언트별로 갈립니다** (#1161): `express-rate-limit` 기본 키가 `req.ip` 하나라, Docker 포트 퍼블리싱(`127.0.0.1:9001->9001`) 뒤에서는 브라우저·탭·기기·호스트 `curl` 이 모두 같은 출발지로 보여 **서버 전체가 버킷 1개**였습니다. 실측에서 호스트 `curl` 의 첫 요청이 `RateLimit-Remaining: 4` 였습니다 — 대시보드가 같은 창에서 쓴 26건을 같은 카운터에서 보고 있었습니다. #1158 이 조회·쓰기를 나눴지만 그 예산을 **누가** 쓰는지 구분하는 키가 없었습니다. 이제 키는 API 키(`Authorization: Bearer`·`X-API-Key` 해시) → 대시보드 세션 id 해시 → IP 순으로 정해집니다. 서로 다른 세션은 독립 예산을 갖고, 같은 세션의 여러 탭은 한 예산을 공유하며, 자격증명·세션 id 는 해시만 씁니다.
+
+- **`MEMENTO_TRUST_PROXY` 로 프록시 뒤 클라이언트 IP 를 명시적으로 신뢰합니다** (#1161): `app.set('trust proxy', …)` 가 어디에도 없어 Express 기본값 `false` 였고, `nginx.conf` 가 채워 보내는 `X-Forwarded-For` 를 켜는 순간 모든 클라이언트의 `req.ip` 가 nginx 컨테이너 IP 하나로 합쳐질 상태였습니다 — 한 사람이 한도를 채우면 전원 429. 반대로 무조건 `true` 로 켜면 헤더 위조로 한도를 우회할 수 있어 **기본으로 켜지 않습니다**. 미설정이면 `X-Forwarded-For` 를 무시하고(스펙으로 고정), 설정 시 홉 수·`loopback`/`linklocal`/`uniquelocal`·IP·CIDR 목록을 받습니다. `true` 는 경고를 남기고, 해석 불가한 값은 경고 후 무시해 헤더 미신뢰를 유지합니다.
+
 - **대시보드 정상 사용이 `/admin` rate limit 을 소진해 429 로 막히지 않습니다** (#1158): `/admin/*` 전체가 15분당 30회 한 bucket 을 공유해, 대시보드 한 번 열기(패널마다 `/admin/status`·`/admin/batch/*`·`/admin/memory/review-candidates*`·`/admin/graph`·`/admin/embedding-map` 조회)와 배치 탭 조작 몇 번이면 예산이 바닥났습니다. 배치 새로고침 1회가 GET 3건, `지금 실행` 1회가 POST + 새로고침으로 4~5건을 씁니다. 조회가 예산을 먹으면 **쓰기까지 같이 막혀** 운영자가 잡을 실행할 수 없었습니다(`지금 실행 consolidation_score_full_sweep 실패` / `Too Many Requests`). 이제 `/admin/*` 는 조회(`GET`·`HEAD`·`OPTIONS`, 기본 300회/15분, `MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ`)와 쓰기(그 외 메서드, 기본 30회/15분, `MEMENTO_HTTP_RATE_LIMIT_ADMIN`)가 독립 bucket 을 씁니다 — 조회가 한도에 걸려도 쓰기 예산은 남습니다.
 
 - **배치 작업 탭이 429 를 재시도 안내로 보여줍니다** (#1158): 조회 실패는 `HTTP 429 for /admin/batch/runs?job=…&limit=50` 원문을, 쓰기 실패는 `Too Many Requests` 만 노출해 언제 다시 시도할지 알 수 없었습니다. 서버가 이미 주던 `Retry-After` 헤더와 본문 `retry_after_seconds` 를 읽어 `요청이 너무 많습니다 — N초 후 다시 시도하세요.` 로 표시합니다.
