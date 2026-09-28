@@ -253,6 +253,15 @@ export class HybridSearchEngine {
             candidates: gateDocs.length,
           });
           finalResults = [];
+        } else if (verdict.topScore === null) {
+          // #1125 게이트가 유효 점수를 하나도 얻지 못해 질의를 그대로 통과시켰다 (fail-open).
+          // 기각 경로에만 로그가 있으면 이 경로가 조용해서, 무관 질의가 통과한 사실을
+          // 사후에 알아낼 방법이 없다. searchId 로 질의 원문 로그와 이어 볼 수 있다.
+          this.logger.logSearchStep(searchId, '기각 게이트: 점수 없음 통과 (fail-open)', {
+            threshold: verdict.threshold,
+            unscored: verdict.unscored,
+            candidates: gateDocs.length,
+          });
         }
       }
 
