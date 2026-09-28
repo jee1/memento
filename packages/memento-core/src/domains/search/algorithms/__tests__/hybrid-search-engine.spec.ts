@@ -2926,6 +2926,38 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
 
       expect((gate.score as Mock).mock.calls[0]?.[0]).toBe(query);
     });
+
+    it('게이트가 점수를 하나도 못 얻으면 fail-open 통과를 로그로 남긴다 (#1125)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = {
+        score: vi.fn().mockResolvedValue([Number.NaN, Number.NaN]),
+      };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // 통과 자체는 기존 동작이고, 이 테스트가 고정하는 것은 그 통과가 관측된다는 점이다.
+      expect(out.items).toHaveLength(2);
+      const steps = (mockLogger.logSearchStep as Mock).mock.calls.map((call) => call[1]);
+      expect(steps).toContain('기각 게이트: 점수 없음 통과 (fail-open)');
+      const failOpenCall = (mockLogger.logSearchStep as Mock).mock.calls.find(
+        (call) => call[1] === '기각 게이트: 점수 없음 통과 (fail-open)',
+      );
+      expect(failOpenCall?.[2]).toMatchObject({ unscored: 2, candidates: 2 });
+    });
+
+    it('게이트가 점수를 얻어 통과시키면 fail-open 로그는 남지 않는다 (#1125)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.9, 0.2]) };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      const steps = (mockLogger.logSearchStep as Mock).mock.calls.map((call) => call[1]);
+      expect(steps).not.toContain('기각 게이트: 점수 없음 통과 (fail-open)');
+    });
   });
 });
 

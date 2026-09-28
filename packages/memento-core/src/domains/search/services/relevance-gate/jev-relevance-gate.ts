@@ -38,7 +38,9 @@ type AttemptOutcome =
 
 /**
  * WAF 재시도 전용 정규화. 코드펜스 마커만 걷어내고 본문은 남긴다.
- * #1125 실측: 「코드펜스 + curl -s」는 403, 「curl -s (펜스 없이)」는 200.
+ * #1125 2026-09-23 실측: 「코드펜스 + curl -s」는 403, 「curl -s (펜스 없이)」는 200.
+ * 2026-09-28 재실측에서는 같은 페이로드 20종이 전부 200 이다 — 벤더가 룰을 완화했다.
+ * 이 경로를 남겨 두는 것은 룰이 다시 조여질 때를 위한 것이고, 평시에는 타지 않는다.
  * 1차 호출에는 절대 쓰지 않는다 — 판정 입력이 바뀌면 임계값 0.5 교정이 깨진다.
  */
 function neutralizeCodeFences(text: string): string {
@@ -97,7 +99,7 @@ export class JevRelevanceGate implements IRelevanceGatePort {
     }
 
     // 펜스가 없으면 정규화가 아무것도 바꾸지 못해 재시도 페이로드가 1차와 같다.
-    // WAF 에는 펜스와 무관한 룰도 있다 (#1125: `cat /etc/passwd` 단독 403).
+    // WAF 에는 펜스와 무관한 룰도 있었다 (#1125, 2026-09-23: `cat /etc/passwd` 단독 403).
     if (!docs.some((doc) => doc.includes('```'))) {
       return nanScores(docs.length);
     }
@@ -158,7 +160,8 @@ export class JevRelevanceGate implements IRelevanceGatePort {
             'Jev relevance gate: Cloudflare WAF가 후보 본문을 차단했다 '
             + `(후보 ${docs.length}건, status 403, ${elapsedMs}ms, `
             + `펜스정규화=${neutralizeFences ? '적용' : '미적용'}). `
-            + '코드펜스 뒤에 오는 curl -s·curl -sL·wget -q 가 트리거다. '
+            + '2026-09-23 에 관측한 트리거는 코드펜스 뒤의 curl -s·curl -sL·wget -q 였다. '
+            + '2026-09-28 재실측에서는 같은 페이로드가 통과했으므로 룰이 또 바뀌었을 수 있다. '
             + '후보 1건만 막혀도 배치 전체가 실패한다.',
           );
           return { kind: 'waf_blocked' };
