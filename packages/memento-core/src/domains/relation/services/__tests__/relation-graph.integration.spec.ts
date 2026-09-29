@@ -291,30 +291,34 @@ describe('RelationGraph 통합 테스트', () => {
       expect(mem3Relations.length).toBeGreaterThan(0);
     });
 
-    it('should handle cache performance under load', async () => {
+    it('should serve the second round entirely from cache under load', async () => {
       // Given: 50개의 메모리 관계
       const memoryIds = Array.from({ length: 50 }, (_, i) => `mem_${i}`);
-      
-      // When: 모든 메모리의 관계를 순차적으로 조회 (캐시 워밍업)
-      const warmupStart = Date.now();
-      for (const id of memoryIds) {
-        await relationGraph.getRelations(id);
-      }
-      const warmupEnd = Date.now();
 
-      // When: 두 번째 라운드 (캐시 히트)
-      const cacheHitStart = Date.now();
-      for (const id of memoryIds) {
-        await relationGraph.getRelations(id);
-      }
-      const cacheHitEnd = Date.now();
+      // 벽시계 대신 DB 조회 횟수를 센다. 캐시 조회 50회는 1ms 도 안 걸려서
+      // 시간을 기준선으로 삼으면 0 이 나오고, 빠른 러너일수록 깨진다 (#1168).
+      const dbQuerySpy = vi.spyOn(DatabaseUtils, 'all');
 
-      // Then: 캐시 히트 시 성능이 더 좋아야 함
-      const warmupDuration = warmupEnd - warmupStart;
-      const cacheHitDuration = cacheHitEnd - cacheHitStart;
-      
-      // 캐시 히트가 더 빠르거나 비슷해야 함 (네트워크 지연 등으로 인해 완전히 빠르지 않을 수 있음)
-      expect(cacheHitDuration).toBeLessThanOrEqual(warmupDuration * 1.5);
+      try {
+        // When: 모든 메모리의 관계를 순차적으로 조회 (캐시 워밍업)
+        for (const id of memoryIds) {
+          await relationGraph.getRelations(id);
+        }
+
+        // Then: 워밍업은 메모리마다 DB 를 한 번씩 친다
+        expect(dbQuerySpy).toHaveBeenCalledTimes(memoryIds.length);
+
+        // When: 두 번째 라운드 (캐시 히트)
+        dbQuerySpy.mockClear();
+        for (const id of memoryIds) {
+          await relationGraph.getRelations(id);
+        }
+
+        // Then: 전부 캐시에서 와야 하므로 DB 조회가 한 번도 없어야 한다
+        expect(dbQuerySpy).not.toHaveBeenCalled();
+      } finally {
+        dbQuerySpy.mockRestore();
+      }
     });
 
     it('should handle L2 cache fallback correctly', async () => {
