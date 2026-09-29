@@ -49,6 +49,16 @@ export function applyImportanceSignalScale(rawImportance: number, scale: number)
 }
 
 /**
+ * Compresses the recency signal toward 0.5 so beta*recency does not outrank alpha*relevance (#1175).
+ * `scale=1` preserves raw; `scale=0` flattens to neutral 0.5 (diagnostic upper bound only).
+ */
+export function applyRecencySignalScale(rawRecency: number, scale: number): number {
+  const clamped = Math.max(0, Math.min(1, rawRecency));
+  const s = Math.max(0, Math.min(1, scale));
+  return Math.max(0, Math.min(1, 0.5 + (clamped - 0.5) * s));
+}
+
+/**
  * 실제 사용 빈도를 반영하여 자주 참조되는 기억을 우선 제공합니다.
  * 로그 스케일을 사용하여 과도한 사용 빈도가 점수를 지배하지 않도록 균형을 맞춥니다.
  * 인용과 편집에 다른 가중치를 부여하여 사용 패턴의 차이를 반영합니다.

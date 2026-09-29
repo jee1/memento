@@ -50,12 +50,18 @@ export interface ImportanceSignalConfig {
   scale: number;
 }
 
+export interface RecencySignalConfig {
+  /** Multiplier on (raw - 0.5) after calculateRecency (#1175). */
+  scale: number;
+}
+
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
   relation_weights: RelationWeights;
   vector_length_decay: VectorLengthDecayConfig;
   fts_relevance: FtsRelevanceConfig;
   importance_signal: ImportanceSignalConfig;
+  recency_signal: RecencySignalConfig;
 }
 
 const DEFAULT_CONFIG: RankingWeightsConfig = {
@@ -82,6 +88,9 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   },
   importance_signal: {
     scale: 0.35
+  },
+  recency_signal: {
+    scale: 0.30
   }
 };
 
@@ -134,7 +143,8 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
       'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
       'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
-      'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 }
+      'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 },
+      'recency_signal.scale': { type: 'number' as const, min: 0, max: 1 }
     };
 
     // 중첩 객체를 평탄화하여 검증
@@ -159,7 +169,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         DEFAULT_CONFIG.fts_relevance.temperature,
       'importance_signal.scale':
         config.importance_signal?.scale ??
-        DEFAULT_CONFIG.importance_signal.scale
+        DEFAULT_CONFIG.importance_signal.scale,
+      'recency_signal.scale':
+        config.recency_signal?.scale ??
+        DEFAULT_CONFIG.recency_signal.scale
     };
 
     // mergeWithDefaults may omit nested section when TOML lacks it
@@ -194,6 +207,14 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         Number.isFinite(config.importance_signal.scale)
           ? config.importance_signal.scale
           : DEFAULT_CONFIG.importance_signal.scale
+    };
+
+    config.recency_signal = {
+      scale:
+        typeof config.recency_signal?.scale === 'number' &&
+        Number.isFinite(config.recency_signal.scale)
+          ? config.recency_signal.scale
+          : DEFAULT_CONFIG.recency_signal.scale
     };
 
     const validationResult = validateConfig(flatConfig, validationSchema);

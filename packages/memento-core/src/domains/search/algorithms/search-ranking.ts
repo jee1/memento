@@ -38,6 +38,7 @@ import {
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import {
   applyImportanceSignalScale,
+  applyRecencySignalScale,
   calculateBatchUsage as computeBatchUsage,
   calculateDuplicationPenalty as computeDuplicationPenalty,
   calculateImportance as computeImportance,
@@ -90,7 +91,9 @@ export class SearchRanking {
   }
 
   calculateRecency(createdAt: Date, type: string): number {
-    return computeRecency(createdAt, type);
+    const raw = computeRecency(createdAt, type);
+    const scale = getRankingWeights(this.rankingWeightsPath).recency_signal.scale;
+    return applyRecencySignalScale(raw, scale);
   }
 
   calculateImportance(userImportance: unknown, isPinned: boolean, type: string): number {
