@@ -265,11 +265,13 @@ max_relations = 5
 [vector_length_decay]
 enabled = false
 characteristic_length = 55
+saturation_length = 123
 `;
       writeFileSync(tempConfigPath, toml, 'utf-8');
       const config = loadRankingWeights(tempConfigPath);
       expect(config.vector_length_decay.enabled).toBe(false);
       expect(config.vector_length_decay.characteristic_length).toBe(55);
+      expect(config.vector_length_decay.saturation_length).toBe(123);
     });
 
     it('should cache loaded config', () => {
