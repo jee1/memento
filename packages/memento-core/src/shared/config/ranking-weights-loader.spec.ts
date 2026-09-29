@@ -250,6 +250,62 @@ scale = 0.42
       expect(config.importance_signal.scale).toBe(0.42);
     });
 
+    it('defaults recency_signal.scale when section is absent (#1175)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.recency_signal.scale).toBe(0.30);
+    });
+
+    it('rejects recency_signal.scale outside [0, 1] (#1175)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+
+[recency_signal]
+scale = 1.5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/recency_signal\.scale/);
+    });
+
+    it('loads [recency_signal] from TOML (#1175)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+
+[recency_signal]
+scale = 0.77
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.recency_signal.scale).toBe(0.77);
+    });
+
     it('loads [vector_length_decay] from TOML (#921)', () => {
       const toml = `[ranking_weights]
 alpha = 0.45

@@ -10,6 +10,7 @@ import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repos
 import { ProcessAttributeRepositorySqlite } from '../../../infrastructure/database/repositories/process-attribute-repository-sqlite.impl.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
+import { applyRecencySignalScale } from './search-ranking/search-ranking-signals.js';
 import { SearchRanking, type SearchFeatures } from './search-ranking.js';
 import { SearchError, SearchErrorType } from './search-error.js';
 import type {
@@ -447,8 +448,9 @@ export class HybridResultRanker {
 
     const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
     const ageDays = daysBetween(new Date(), created);
+    const raw = Math.exp(-Math.log(2) * ageDays / 30);
 
-    return Math.exp(-Math.log(2) * ageDays / 30);
+    return applyRecencySignalScale(raw, getRankingWeights().recency_signal.scale);
   }
 
   private calculateUsage(lastAccessed: string | Date | undefined): number {

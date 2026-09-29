@@ -40,6 +40,20 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale = 1`이면 raw를 그대로 쓰고, `scale = 0`이면 전 후보가 0.5로 평탄화됩니다(진단용 상한이지 운영 제안이 아님). benchmark-v3에서 γ·importance 실현 폭이 relevance보다 넓어 macro MRR 게이트가 깨지는 문제를 막기 위해 기본 `scale`은 벤치마크로 고정합니다. 하이브리드·FTS 경로 모두 `SearchRanking.calculateImportance`를 거치며 raw `importance` 컬럼을 랭킹에 직접 넣지 않습니다. `scale`은 `getRankingVersion()` 해시에 포함됩니다. semantic-memory `calculateImportance`(confidence 감쇠)는 이 경로와 별개입니다.
 
+## Recency signal scale (Issue #1175)
+
+`calculateRecency`가 만드는 **raw** 최근성에 `config/ranking-weights.toml`의 `[recency_signal].scale`로 0.5 중심 압축을 적용합니다.
+
+```
+scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
+```
+
+`scale = 1`이면 raw를 그대로 쓰고, `scale = 0`이면 전 후보가 0.5로 평탄화됩니다(진단용 상한이지 운영 제안이 아님). `scale = 1`에서는 β·recency 실현 폭이 융합 relevance 폭을 덮어, 텍스트 레인이 1~5위로 올린 정답이 융합 top-10에서 전멸합니다.
+
+압축은 **텍스트 레인(`SearchRanking.calculateRecency`)과 융합 레인(`HybridResultRanker`의 private `calculateRecency`) 양쪽**에 걸어야 합니다. 융합 레인은 `SearchRanking`을 거치지 않고 자체 구현을 쓰므로 한쪽만 고치면 순위가 바뀌지 않습니다. 두 레인은 **반감기도 서로 다릅니다** — 텍스트 레인은 타입별(`semantic` 180일), 융합 레인은 30일 고정입니다. 융합 레인만 타입별로 바꾸면 `benchmark-v3` `incident_ops` MRR이 0.7143 → 0.3741로 게이트를 깨므로, 이 이슈에서는 바꾸지 않았습니다.
+
+`scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
+
 ## Hybrid fusion relevance (Issue #788)
 
 combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/usage/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.

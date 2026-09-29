@@ -346,14 +346,16 @@ describe('SearchRanking', () => {
       const recentDate = new Date(Date.now() - DAY_MS); // 1일 전
       const recency = ranking.calculateRecency(recentDate, 'episodic');
       
-      expect(recency).toBeGreaterThan(0.8);
+      // raw=0.97716, default recency_signal.scale=0.30 → 0.64315 (#1175)
+      expect(recency).toBeCloseTo(0.64315, 4);
     });
 
     it('오래된 메모리의 낮은 최근성', () => {
       const oldDate = new Date(Date.now() - 365 * DAY_MS); // 1년 전
       const recency = ranking.calculateRecency(oldDate, 'episodic');
       
-      expect(recency).toBeLessThan(0.1);
+      // raw≈0.00022, default recency_signal.scale=0.30 → 0.35007 (#1175)
+      expect(recency).toBeCloseTo(0.35007, 4);
     });
 
     it('메모리 타입별 반감기 테스트', () => {
