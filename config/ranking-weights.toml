@@ -40,6 +40,9 @@ max_relations = 5
 [vector_length_decay]
 enabled = true
 characteristic_length = 40
+# saturation_length: 이 길이 이상이면 감쇠 계수가 1 로 고정된다. factor = min(1, base/norm)
+# 없으면 곡선이 1 에 도달하지 못해 아티팩트가 없는 40~200자 구간까지 계속 벌점을 받는다.
+saturation_length = 80
 
 # #1079: BM25 rank → relevance 시그모이드의 온도. factor = 1/(1+exp(rank/T))
 # T=1 이면 실제 rank 구간(-20~-2)이 전부 포화 꼬리에 들어가 동적 범위가 0.083 으로 뭉갠다.
