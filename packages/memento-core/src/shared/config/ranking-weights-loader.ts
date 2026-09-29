@@ -209,14 +209,6 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
           : DEFAULT_CONFIG.importance_signal.scale
     };
 
-    config.recency_signal = {
-      scale:
-        typeof config.recency_signal?.scale === 'number' &&
-        Number.isFinite(config.recency_signal.scale)
-          ? config.recency_signal.scale
-          : DEFAULT_CONFIG.recency_signal.scale
-    };
-
     const validationResult = validateConfig(flatConfig, validationSchema);
     if (!validationResult.valid) {
       throw new Error(`검색 랭킹 가중치 설정 검증 실패: ${validationResult.errors.join(', ')}`);
