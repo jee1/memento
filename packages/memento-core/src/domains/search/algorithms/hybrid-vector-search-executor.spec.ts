@@ -25,8 +25,12 @@ function row(memory_id: string, similarity: number, content = `${BODY}-${memory_
 }
 
 function decayedSimilarity(raw: number, content: string): number {
-  const k = getRankingWeights().vector_length_decay.characteristic_length;
-  return raw * vectorLengthDecayFactor(content.length, k);
+  const decay = getRankingWeights().vector_length_decay;
+  return raw * vectorLengthDecayFactor(
+    content.length,
+    decay.characteristic_length,
+    decay.saturation_length
+  );
 }
 
 function availableEngine(providerRows: Record<string, Row[]>) {

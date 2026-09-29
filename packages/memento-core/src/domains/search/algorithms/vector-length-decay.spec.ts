@@ -72,3 +72,58 @@ describe('applyVectorLengthDecay (#921)', () => {
     expect(out!.similarity).toBeCloseTo(0.8 * vectorLengthDecayFactor(content.length, k), 6);
   });
 });
+
+describe('vectorLengthDecayFactor saturation (#921 재개)', () => {
+  const k = 40;
+  const sat = 80;
+
+  it('returns exactly 1 at and above the saturation length', () => {
+    expect(vectorLengthDecayFactor(sat, k, sat)).toBe(1);
+    expect(vectorLengthDecayFactor(200, k, sat)).toBe(1);
+    expect(vectorLengthDecayFactor(3117, k, sat)).toBe(1);
+  });
+
+  it('lifts the clean 40-200 char band without lifting it to 1 below saturation', () => {
+    // 운영 실측: 정답 5건이 49~70자였고 현행 계수 0.551~0.636 으로 bm25 1위가 밀려났다.
+    expect(vectorLengthDecayFactor(49, k, sat)).toBeCloseTo(0.8258, 4);
+    expect(vectorLengthDecayFactor(70, k, sat)).toBeCloseTo(0.9545, 4);
+    expect(vectorLengthDecayFactor(49, k, sat)).toBeGreaterThan(vectorLengthDecayFactor(49, k));
+    expect(vectorLengthDecayFactor(70, k, sat)).toBeLessThan(1);
+  });
+
+  it('still suppresses the short artifact band relative to long documents', () => {
+    // 이슈 본문 표: 0-20자 구간만 무관 질의에서 >0.38 비율 67.6% 다. 그 억제는 유지돼야 한다.
+    expect(vectorLengthDecayFactor(13, k, sat)).toBeCloseTo(0.3679, 4);
+    expect(vectorLengthDecayFactor(21, k, sat)).toBeCloseTo(0.5164, 4);
+    expect(vectorLengthDecayFactor(21, k, sat)).toBeLessThan(0.6);
+  });
+
+  it('treats non-positive or non-finite saturation length as no saturation', () => {
+    expect(vectorLengthDecayFactor(21, k, 0)).toBe(vectorLengthDecayFactor(21, k));
+    expect(vectorLengthDecayFactor(21, k, -5)).toBe(vectorLengthDecayFactor(21, k));
+    expect(vectorLengthDecayFactor(21, k, Number.NaN)).toBe(vectorLengthDecayFactor(21, k));
+  });
+
+  it('keeps the #921 원본 재현 순서: 663자 정답이 21·22자 트리플 위에 온다', () => {
+    const raw = [
+      { id: 'short-a', content: '#917 수정은 검증 방법을 필요합니다', similarity: 0.749 },
+      { id: 'short-b', content: '인제스트는 12:52 kst를 일치합니다', similarity: 0.734 },
+      { id: 'long', content: 'x'.repeat(663), similarity: 0.722 },
+    ];
+    const decayed = applyVectorLengthDecay(raw, {
+      enabled: true,
+      characteristic_length: k,
+      saturation_length: sat,
+    });
+    const ordered = [...decayed].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
+    expect(ordered[0]!.id).toBe('long');
+  });
+
+  it('applyVectorLengthDecay passes saturation_length through', () => {
+    const [out] = applyVectorLengthDecay(
+      [{ content: 'y'.repeat(120), similarity: 0.5 }],
+      { enabled: true, characteristic_length: k, saturation_length: sat }
+    );
+    expect(out!.similarity).toBeCloseTo(0.5, 6);
+  });
+});

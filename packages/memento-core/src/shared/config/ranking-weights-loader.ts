@@ -36,6 +36,8 @@ export interface VectorLengthDecayConfig {
   enabled: boolean;
   /** k in len/(len+k) (#921). */
   characteristic_length: number;
+  /** #921: length at which the decay factor saturates to 1. */
+  saturation_length: number;
 }
 
 export interface FtsRelevanceConfig {
@@ -72,7 +74,8 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   },
   vector_length_decay: {
     enabled: true,
-    characteristic_length: 40
+    characteristic_length: 40,
+    saturation_length: 80
   },
   fts_relevance: {
     temperature: 10
@@ -129,6 +132,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
       'relation_weights.max_relations': { type: 'number' as const, min: 1 },
       'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
+      'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
       'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
       'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 }
     };
@@ -147,6 +151,9 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'vector_length_decay.characteristic_length':
         config.vector_length_decay?.characteristic_length ??
         DEFAULT_CONFIG.vector_length_decay.characteristic_length,
+      'vector_length_decay.saturation_length':
+        config.vector_length_decay?.saturation_length ??
+        DEFAULT_CONFIG.vector_length_decay.saturation_length,
       'fts_relevance.temperature':
         config.fts_relevance?.temperature ??
         DEFAULT_CONFIG.fts_relevance.temperature,
@@ -165,7 +172,12 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         typeof config.vector_length_decay?.characteristic_length === 'number' &&
         Number.isFinite(config.vector_length_decay.characteristic_length)
           ? config.vector_length_decay.characteristic_length
-          : DEFAULT_CONFIG.vector_length_decay.characteristic_length
+          : DEFAULT_CONFIG.vector_length_decay.characteristic_length,
+      saturation_length:
+        typeof config.vector_length_decay?.saturation_length === 'number' &&
+        Number.isFinite(config.vector_length_decay.saturation_length)
+          ? config.vector_length_decay.saturation_length
+          : DEFAULT_CONFIG.vector_length_decay.saturation_length
     };
 
     config.fts_relevance = {
