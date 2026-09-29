@@ -2958,6 +2958,62 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       const steps = (mockLogger.logSearchStep as Mock).mock.calls.map((call) => call[1]);
       expect(steps).not.toContain('기각 게이트: 점수 없음 통과 (fail-open)');
     });
+
+    it('게이트가 점수를 얻어 통과시키면 통과를 topScore 와 함께 로그로 남긴다 (#922)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.9, 0.2]) };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // 통과 경로에 로그가 없으면 「무엇이 임계값을 넘겼나」를 사후에 알 수 없다.
+      const passCall = (mockLogger.logSearchStep as Mock).mock.calls.find(
+        (call) => call[1] === '기각 게이트: 통과',
+      );
+      expect(passCall).toBeDefined();
+      expect(passCall?.[2]).toMatchObject({ topScore: 0.9, unscored: 0, candidates: 2 });
+    });
+
+    it('통과 로그에 후보별 id 와 점수가 함께 남는다 (#922)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.9, 0.2]) };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // 최고점만으로는 어떤 기억이 통과시켰는지 되짚을 수 없다. 본문은 남기지 않는다.
+      const passCall = (mockLogger.logSearchStep as Mock).mock.calls.find(
+        (call) => call[1] === '기각 게이트: 통과',
+      );
+      expect(passCall?.[2]).toMatchObject({
+        scores: [
+          { id: 'm1', score: 0.9 },
+          { id: 'm2', score: 0.2 },
+        ],
+      });
+    });
+
+    it('기각 로그에도 후보별 id 와 점수가 남는다 (#922)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([0.01, 0.05]) };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      // 관련 질의가 잘못 기각됐을 때 어떤 후보가 채점됐는지 봐야 게이트 실패와 검색 실패를 가른다.
+      const rejectCall = (mockLogger.logSearchStep as Mock).mock.calls.find(
+        (call) => call[1] === '기각 게이트: 질의 기각',
+      );
+      expect(rejectCall?.[2]).toMatchObject({
+        scores: [
+          { id: 'm1', score: 0.01 },
+          { id: 'm2', score: 0.05 },
+        ],
+      });
+    });
   });
 });
 
