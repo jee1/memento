@@ -29,7 +29,8 @@ const LONG_BODY = 'x'.repeat(200);
 
 /** 절대 점수 단언용 — 프로덕션과 같은 순서로 감쇠를 적용한다. */
 function decayedSimilarity(raw: number, content: string): number {
-  return raw * vectorLengthDecayFactor(content.length, getRankingWeights().vector_length_decay.characteristic_length);
+  const decay = getRankingWeights().vector_length_decay;
+  return raw * vectorLengthDecayFactor(content.length, decay.characteristic_length, decay.saturation_length);
 }
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
