@@ -238,19 +238,28 @@ export class HybridSearchEngine {
       if (this.rejectionGate && finalResults.length > 0) {
         // 임계값 0.5 는 top-10 의 최고 점수로 교정한 값이다. 후보를 더 넣으면 최고 점수가
         // 올라가기만 해서 기각이 느슨해진다. 측정한 조건 그대로 상위 10건만 본다.
-        const gateDocs = finalResults.slice(0, 10).map((item) => item.content ?? '');
+        const gateCandidates = finalResults.slice(0, 10);
+        const gateDocs = gateCandidates.map((item) => item.content ?? '');
         const gateScores = await this.rejectionGate.score(query.query, gateDocs);
         const verdict = judgeRelevanceGate(
           gateScores,
           mementoConfig.searchRejectionGateThreshold,
           mementoConfig.searchRejectionGateOnError,
         );
+        // #922 어떤 후보가 몇 점을 받았는지 세 경로 모두에 남긴다. 본문은 넣지 않는다 —
+        // id 로 되짚을 수 있고 검색 로그에 기억 본문이 새어 나가면 안 된다.
+        // 점수화하지 못한 후보는 NaN 이고 JSON 직렬화에서 null 로 나간다.
+        const gateScorePairs = gateCandidates.map((item, index) => ({
+          id: item.id,
+          score: gateScores[index] ?? Number.NaN,
+        }));
         if (verdict.rejected) {
           this.logger.logSearchStep(searchId, '기각 게이트: 질의 기각', {
             topScore: verdict.topScore,
             threshold: verdict.threshold,
             unscored: verdict.unscored,
             candidates: gateDocs.length,
+            scores: gateScorePairs,
           });
           finalResults = [];
         } else if (verdict.topScore === null) {
@@ -261,6 +270,17 @@ export class HybridSearchEngine {
             threshold: verdict.threshold,
             unscored: verdict.unscored,
             candidates: gateDocs.length,
+            scores: gateScorePairs,
+          });
+        } else {
+          // #922 통과도 계측한다. 지금까지 기각만 로그가 있어서 「무엇이 임계값을 넘겼나」를
+          // 사후에 알 방법이 없었다. 임계값 조정이든 재랭커 도입이든 통과 쪽 점수 분포가 근거다.
+          this.logger.logSearchStep(searchId, '기각 게이트: 통과', {
+            topScore: verdict.topScore,
+            threshold: verdict.threshold,
+            unscored: verdict.unscored,
+            candidates: gateDocs.length,
+            scores: gateScorePairs,
           });
         }
       }
