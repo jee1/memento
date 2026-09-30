@@ -6,6 +6,7 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
+import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
 
 /**
  * 앵커 설정 메타데이터 타입
@@ -78,8 +79,10 @@ export interface RecallResponseMetadata {
   embedding_provider?: string;
   /** 이번 검색에서 쿼리 임베딩에 실제 사용된 provider (VEC 다중·fallback 시 복수, 정렬·중복 제거) */
   query_embedding_providers?: EmbeddingProvider[];
+  /** #1191 기각 게이트 판정. 'fail_open' 이면 결과가 게이트 채점 없이 통과한 것이다 */
+  rejection_gate?: RelevanceGateOutcome;
   /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: AnchorSetMetadata | null | boolean | string | number | EmbeddingProvider[] | undefined;
+  [key: string]: AnchorSetMetadata | null | boolean | string | number | EmbeddingProvider[] | RelevanceGateOutcome | undefined;
 }
 
 /**

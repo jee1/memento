@@ -41,7 +41,7 @@ import type {
   IVectorSearchEngine,
 } from './hybrid-search-types.js';
 import type { IRelevanceGatePort } from '../ports/relevance-gate-port.js';
-import { judgeRelevanceGate } from '../ports/relevance-gate-port.js';
+import { judgeRelevanceGate, type RelevanceGateOutcome } from '../ports/relevance-gate-port.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 
 export {
@@ -146,6 +146,7 @@ export class HybridSearchEngine {
     text_count?: number;
     vector_count?: number;
     fallback_used?: boolean;
+    rejection_gate?: RelevanceGateOutcome;
     query_embedding_providers?: EmbeddingProvider[];
     union_count: number;
     reranked_count: number;
@@ -234,6 +235,8 @@ export class HybridSearchEngine {
         });
       }
 
+      // #1191 게이트 판정을 응답에도 싣는다. 미부착이면 'off', 후보 0건이라 안 탔으면 없음.
+      let rejectionGateOutcome: RelevanceGateOutcome | undefined = this.rejectionGate ? undefined : { verdict: 'off', top_score: null, unscored: 0 };
       // #1095 기각 게이트: 후보 최고 점수가 임계값 미만이면 질의 전체를 기각한다.
       // finalResults 를 재할당하므로 아래 logData·finalIds·return 이 모두 자동으로 따라간다.
       if (this.rejectionGate && finalResults.length > 0) {
@@ -254,6 +257,11 @@ export class HybridSearchEngine {
           id: item.id,
           score: gateScores[index] ?? Number.NaN,
         }));
+        rejectionGateOutcome = {
+          verdict: verdict.rejected ? 'rejected' : verdict.topScore === null ? 'fail_open' : 'passed',
+          top_score: verdict.topScore,
+          unscored: verdict.unscored,
+        };
         if (verdict.rejected) {
           this.logger.logSearchStep(searchId, '기각 게이트: 질의 기각', {
             topScore: verdict.topScore,
@@ -312,6 +320,7 @@ export class HybridSearchEngine {
         union_count: unionCount,
         reranked_count: finalResults.length,
         fallback_used: vectorOut.fallback_used,
+        ...(rejectionGateOutcome ? { rejection_gate: rejectionGateOutcome } : {}),
         query_embedding_providers: vectorOut.query_embedding_providers,
         tfidf_query_embedding_fallback: vectorOut.tfidf_query_embedding_fallback,
         tfidf_query_embedding_fallback_providers: vectorOut.tfidf_query_embedding_fallback_providers,
