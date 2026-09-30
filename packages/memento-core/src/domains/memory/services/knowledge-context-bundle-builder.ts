@@ -107,9 +107,10 @@ function summarizeMemories(
   let usedTokens = 0;
   const maxTokensPerMemory = Math.floor(tokenBudget / maxMemories);
 
-  const sortedMemories = [...memories].sort((a, b) => b.finalScore + b.importance - (a.finalScore + a.importance)).slice(0, maxMemories);
+  // #1177: 순위 출처는 엔진의 finalScore 하나다. raw importance 를 더하면 폭이 8배라 엔진 순위가 뒤집힌다.
+  const selectedMemories = memories.slice(0, maxMemories);
 
-  for (const memory of sortedMemories) {
+  for (const memory of selectedMemories) {
     if (usedTokens >= tokenBudget) break;
 
     const summary = summarizeMemoryContent(memory.content, maxTokensPerMemory);
@@ -308,11 +309,6 @@ function dedupeKey(content: string): string {
     .slice(0, DEDUPE_KEY_LENGTH);
 }
 
-/** summarizeMemories와 같은 정렬 키 — 대표 선택이 요약 단계와 어긋나지 않게 한다. */
-function dedupeRankScore(memory: HybridSearchResult): number {
-  return memory.finalScore + memory.importance;
-}
-
 /**
  * 같은 본문의 사본이 토큰 예산을 먹는 것을 막는다 (#1137).
  *
@@ -333,9 +329,8 @@ function dedupeByContent(memories: HybridSearchResult[]): {
       representatives.set(key, memory);
       continue;
     }
-    const score = dedupeRankScore(memory);
-    const keptScore = dedupeRankScore(kept);
-    if (score > keptScore || (score === keptScore && memory.id < kept.id)) {
+    // #1177: 대표도 엔진 순위(finalScore)만으로 고른다. 요약 단계와 같은 기준이다.
+    if (memory.finalScore > kept.finalScore || (memory.finalScore === kept.finalScore && memory.id < kept.id)) {
       representatives.set(key, memory);
     }
   }

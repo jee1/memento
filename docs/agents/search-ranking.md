@@ -54,6 +54,14 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
 
+## 주입 경로의 순위 출처 (Issue #1177)
+
+`memory_injection`과 개인 지식 Agent가 공유하는 `buildKnowledgeContextBundle`은 하이브리드 엔진이 매긴 `finalScore` 순서를 **그대로** 씁니다. 요약 단계에서 raw `importance` 컬럼을 더해 재정렬하지 않고, 중복 그룹의 대표도 `finalScore`로만 고릅니다.
+
+`finalScore`는 이미 `γ·importance`를 포함하고 그 importance는 `[importance_signal].scale`로 압축됩니다(#1082). 공식 바깥에서 raw importance를 계수 1.0으로 한 번 더 더하면 그 압축이 무효가 됩니다 — 운영 코퍼스 10,535건 실측에서 `finalScore` 실현 폭은 0.068인데 raw `importance` 폭은 0.55로 **8배**라, 순서를 importance가 정하고 `finalScore`는 타이브레이커로 전락합니다.
+
+importance를 순위에 더 반영하려면 `γ`나 `[importance_signal].scale`을 조정하는 것이 옳은 자리입니다. 주입 경로에 별도 정렬 키를 두지 마십시오.
+
 ## Hybrid fusion relevance (Issue #788)
 
 combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/usage/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.

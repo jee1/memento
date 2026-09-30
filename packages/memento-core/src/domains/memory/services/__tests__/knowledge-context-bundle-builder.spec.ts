@@ -29,6 +29,17 @@ function stubSearchHit(
   };
 }
 
+function stubEngine(ranked: HybridSearchResult[]): HybridSearchEngine {
+  const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => ({
+    items: ranked.slice(0, query.limit ?? 10),
+    total_count: ranked.length,
+    query_time: 1,
+    union_count: ranked.length,
+    reranked_count: ranked.length,
+  }));
+  return { search } as unknown as HybridSearchEngine;
+}
+
 describe('buildKnowledgeContextBundle', () => {
   let db: Database.Database;
   let context: ToolContext;
@@ -296,17 +307,6 @@ describe('buildKnowledgeContextBundle content 중복 제거 (#1137)', () => {
     await cleanupTestDatabase(db);
   });
 
-  function stubEngine(ranked: HybridSearchResult[]): HybridSearchEngine {
-    const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => ({
-      items: ranked.slice(0, query.limit ?? 10),
-      total_count: ranked.length,
-      query_time: 1,
-      union_count: ranked.length,
-      reranked_count: ranked.length,
-    }));
-    return { search } as unknown as HybridSearchEngine;
-  }
-
   it('같은 본문 사본이 예산을 먹지 않는다 (SC-003)', async () => {
     const duplicateBody = 'dedupe 대상 원문: LLM provider 라우팅을 정리하고 4잡 override 대칭을 맞췄다';
     const copies = Array.from({ length: 5 }, (_, i) =>
@@ -365,7 +365,7 @@ describe('buildKnowledgeContextBundle content 중복 제거 (#1137)', () => {
     expect(bundle.itemCount).toBe(2);
   });
 
-  it('중복 그룹에서 finalScore+importance가 가장 높은 행을 남긴다', async () => {
+  it('중복 그룹에서 finalScore가 가장 높은 행을 남긴다', async () => {
     const body = '대표 선택 판정용 동일 본문';
 
     const bundle = await buildKnowledgeContextBundle(
@@ -381,5 +381,75 @@ describe('buildKnowledgeContextBundle content 중복 제거 (#1137)', () => {
 
     expect(bundle.itemCount).toBe(1);
     expect(bundle.topMemoryId).toBe('high');
+  });
+});
+
+describe('buildKnowledgeContextBundle 순위 출처 (#1177)', () => {
+  let db: Database.Database;
+
+  beforeEach(async () => {
+    db = await setupTestDatabase();
+  });
+
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
+  });
+
+  /** finalScore 와 importance 가 서로 반대인 후보 — raw importance 를 더하면 순서가 뒤집힌다. */
+  const engineTop = () =>
+    stubSearchHit({
+      id: 'score_high',
+      content: '순위 출처 판정: 엔진 점수가 높은 기억',
+      finalScore: 0.9,
+      importance: 0.1,
+    });
+  const importanceTop = () =>
+    stubSearchHit({
+      id: 'importance_high',
+      content: '순위 출처 판정: 중요도만 높은 기억',
+      finalScore: 0.5,
+      importance: 0.9,
+    });
+
+  it('엔진 순위를 그대로 쓴다 — raw importance 로 재정렬하지 않는다', async () => {
+    const bundle = await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: stubEngine([engineTop(), importanceTop()]) },
+      { query: '순위 출처', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(2);
+    expect(bundle.topMemoryId).toBe('score_high');
+    expect(bundle.promptText.indexOf('엔진 점수가 높은 기억')).toBeLessThan(
+      bundle.promptText.indexOf('중요도만 높은 기억'),
+    );
+  });
+
+  it('maxMemories 로 잘릴 때 엔진 상위가 남는다', async () => {
+    const bundle = await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: stubEngine([engineTop(), importanceTop()]) },
+      { query: '순위 출처', maxMemories: 1, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(1);
+    expect(bundle.topMemoryId).toBe('score_high');
+    expect(bundle.promptText).not.toContain('중요도만 높은 기억');
+  });
+
+  it('중복 대표도 finalScore 로 고른다 — importance 가 높은 사본을 남기지 않는다', async () => {
+    const body = '중복 대표 판정용 동일 본문';
+
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: stubEngine([
+          stubSearchHit({ id: 'importance_high', content: body, finalScore: 0.5, importance: 0.9 }),
+          stubSearchHit({ id: 'score_high', content: body, finalScore: 0.9, importance: 0.1 }),
+        ]),
+      },
+      { query: '중복 대표', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    expect(bundle.itemCount).toBe(1);
+    expect(bundle.topMemoryId).toBe('score_high');
   });
 });
