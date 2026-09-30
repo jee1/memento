@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type Database from 'better-sqlite3';
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
@@ -237,5 +238,85 @@ describe('HybridResultRanker fusion relevance (#788)', () => {
       b?.score_breakdown?.importance.score ?? 0,
       8,
     );
+  });
+});
+
+describe('HybridResultRanker usage signal (#1181)', () => {
+  it('does not read last_accessed for usage (#1181)', async () => {
+    const fresh = { ...vectorHit('fresh', 0.8), last_accessed: new Date().toISOString() };
+    const stale = { ...vectorHit('stale', 0.8), last_accessed: STAMP };
+
+    const items = await ranker().combineAndSortResults(
+      [],
+      [fresh, stale],
+      VECTOR_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+
+    expect(items[0]?.finalScore).toBe(items[1]?.finalScore);
+  });
+
+  it('a returned candidate does not gain rank on the next call (#1181)', async () => {
+    const a = vectorHit('a', 0.80);
+    const b = vectorHit('b', 0.79);
+
+    const baseline = await ranker().combineAndSortResults(
+      [],
+      [a, b],
+      VECTOR_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+    const baselineOrder = baseline.map((item) => item.id);
+
+    const round1 = await ranker().combineAndSortResults(
+      [],
+      [b],
+      VECTOR_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+    for (const item of round1) {
+      item.last_accessed = new Date().toISOString();
+    }
+
+    const round2 = await ranker().combineAndSortResults(
+      [],
+      [a, b],
+      VECTOR_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+    const round2Order = round2.map((item) => item.id);
+
+    expect(round2Order).toEqual(baselineOrder);
+    expect(round2Order).toEqual(['a', 'b']);
+  });
+
+  it('uses the same usage value as the text lane (#1181)', async () => {
+    const items = await ranker().combineAndSortResults(
+      [],
+      [vectorHit('only', 0.8)],
+      VECTOR_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+
+    const expectedUsage =
+      getRankingWeights().ranking_weights.delta *
+      new SearchRanking().calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 });
+
+    expect(items[0]?.score_breakdown?.usage?.score).toBeCloseTo(expectedUsage, 12);
   });
 });
