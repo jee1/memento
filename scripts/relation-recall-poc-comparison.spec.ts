@@ -90,7 +90,9 @@ describe('relation-recall-poc-comparison (#959)', () => {
       expect(new Set(plain.items.map((item) => item.id)).size).toBe(plain.items.length);
     });
 
-    it('weighted mode ranks decision higher than plain for rq_002', async () => {
+    it('weighted mode matches plain for rq_002 under the default zeta = 0 (#1185)', async () => {
+      // #1185: 전파 가중치는 ζ·relation_weight 로만 점수에 실린다. 기본 ζ = 0 이면 weighted 는 plain 과 순위·점수가 같다.
+      // ζ = 0.15 로 되돌려도 #1185 식에서는 관계 많은 cyc/try 노드가 더 올라 decision 이 plain 8위 → weighted 10위로 내려간다. POC 재조정은 후속 이슈.
       const query = '임베딩 타임아웃이 잦다';
       const plain = await searchWithMode('plain', query);
       const weighted = await searchWithMode('weighted', query);
@@ -98,11 +100,9 @@ describe('relation-recall-poc-comparison (#959)', () => {
       const plainRank = plain.items.findIndex((item) => item.id === decisionId);
       const weightedRank = weighted.items.findIndex((item) => item.id === decisionId);
       expect(plainRank).toBeGreaterThanOrEqual(0);
-      expect(weightedRank).toBeGreaterThanOrEqual(0);
-      expect(weightedRank).toBeLessThanOrEqual(plainRank);
-      if (plainRank >= 0 && weightedRank >= 0) {
-        expect(weighted.items[weightedRank].finalScore).toBeGreaterThan(plain.items[plainRank].finalScore);
-      }
+      expect(weightedRank).toBe(plainRank);
+      expect(weighted.items[weightedRank].finalScore).toBeCloseTo(plain.items[plainRank].finalScore, 6);
+      expect(weighted.items[weightedRank].relation_weight ?? 0).toBeGreaterThan(plain.items[plainRank].relation_weight ?? 0);
     });
 
     it('does not regress unrelated control query rq_003', async () => {

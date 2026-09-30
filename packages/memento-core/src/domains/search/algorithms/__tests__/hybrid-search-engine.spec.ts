@@ -984,10 +984,8 @@ describe('HybridSearchEngine', () => {
       expect(mem1Result).toBeDefined();
       expect(mem2Result).toBeDefined();
       expect(mem1Result!.relation_weight).toBeGreaterThan(mem2Result!.relation_weight || 0);
-      expect(mem1Result!.finalScore).toBeGreaterThan(mem2Result!.finalScore);
-      
-      // mem1이 첫 번째 결과여야 함 (정렬 후)
-      expect(result.items[0].id).toBe('mem1');
+      // zeta=0 (#1185): relation_weight는 계산되지만 ζ·relation 항은 finalScore에 기여하지 않는다
+      expect(mem1Result!.finalScore).toBeCloseTo(mem2Result!.finalScore!, 6);
     });
 
     it('should handle search when RelationGraph is not set', async () => {

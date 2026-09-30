@@ -176,10 +176,10 @@ export function calculateRelationWeight(
   // 모든 관계의 가중치를 평균내어 종합적인 관계 점수를 산출합니다.
   const averageScore = weightedScores.reduce((sum, score) => sum + score, 0) / weightedScores.length;
 
-  // 관계 수에 따라 정규화하여 관계가 많은 경우 불공정한 우위를 방지합니다.
-  // 실제 관계 수가 최대값보다 적으면 그대로 사용하여 정규화 과소평가를 방지합니다.
-  const normalizationFactor = Math.min(relations.length, maxRelations);
-  const normalizedScore = averageScore / normalizationFactor;
+  // 관계 수를 maxRelations 까지 커버리지 비율로 반영한다. 관계가 많을수록 단조 증가하고 maxRelations 이상은 평균에 포화한다 (#1185).
+  // 이전 식(평균 ÷ min(n, maxRelations))은 평균을 관계 수로 한 번 더 나눠 관계가 적을수록 커졌다.
+  const coverage = Math.min(relations.length, maxRelations) / maxRelations;
+  const normalizedScore = averageScore * coverage;
 
   // 점수 범위를 0-1로 제한하여 다른 지표와 일관된 비교가 가능하도록 합니다.
   return Math.max(0, Math.min(1, normalizedScore));

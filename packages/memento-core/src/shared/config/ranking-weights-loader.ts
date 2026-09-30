@@ -77,7 +77,7 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     beta: 0.20,
     gamma: 0.20,
     delta: 0.10,
-    zeta: 0.15,
+    zeta: 0,
     epsilon: 0.10,
     theta: 0.1,
     zeta_fb: 0.05,

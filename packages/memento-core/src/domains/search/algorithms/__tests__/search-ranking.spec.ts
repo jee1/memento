@@ -31,8 +31,8 @@ describe('SearchRanking', () => {
 
       const score = ranking.calculateFinalScore(features);
       
-      // 기본 가중치: relevance(0.45) + recency(0.2) + importance(0.2) + usage(0.1) + relation_weight(0.15*0) - duplication(0.1)
-      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0.15 * 0 - 0.1 * 0.2;
+      // 기본 가중치: relevance(0.45) + recency(0.2) + importance(0.2) + usage(0.1) + relation_weight(0*0) - duplication(0.1)
+      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0 * 0 - 0.1 * 0.2;
       expect(score).toBeCloseTo(expected, 3);
     });
 
@@ -47,8 +47,8 @@ describe('SearchRanking', () => {
       };
 
       const score = ranking.calculateFinalScore(features);
-      // 기본 가중치 합: 0.45 + 0.2 + 0.2 + 0.1 + 0.15 = 1.1 (최대값)
-      const expected = 0.45 * 1.0 + 0.2 * 1.0 + 0.2 * 1.0 + 0.1 * 1.0 + 0.15 * 1.0;
+      // 기본 가중치 합: 0.45 + 0.2 + 0.2 + 0.1 + 0 = 0.95 (최대값)
+      const expected = 0.45 * 1.0 + 0.2 * 1.0 + 0.2 * 1.0 + 0.1 * 1.0 + 0 * 1.0;
       expect(score).toBeCloseTo(expected, 3);
     });
 
@@ -103,8 +103,8 @@ describe('SearchRanking', () => {
 
       const score = ranking.calculateFinalScore(features);
       
-      // 기본 가중치: relevance(0.45) + recency(0.2) + importance(0.2) + usage(0.1) + relation_weight(0.15) - duplication(0.1)
-      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0.15 * 0.4 - 0.1 * 0.2;
+      // 기본 가중치: relevance(0.45) + recency(0.2) + importance(0.2) + usage(0.1) + relation_weight(0) - duplication(0.1)
+      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0 * 0.4 - 0.1 * 0.2;
       expect(score).toBeCloseTo(expected, 3);
     });
 
@@ -120,124 +120,75 @@ describe('SearchRanking', () => {
       const score = ranking.calculateFinalScore(features);
       
       // relation_weight가 없으면 0으로 처리
-      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0.15 * 0 - 0.1 * 0.2;
+      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0 * 0 - 0.1 * 0.2;
       expect(score).toBeCloseTo(expected, 3);
     });
   });
 
   describe('calculateRelationWeight', () => {
-    it('should calculate relation weight from empty relations', () => {
-      // Given: 빈 관계 목록
-      const relations: Array<{ confidence: number; relation_type: string }> = [];
-
-      // When: 관계 가중치 계산
-      const weight = ranking.calculateRelationWeight(relations);
-
-      // Then: 0이 반환되어야 함
-      expect(weight).toBe(0);
+    // #1185: weight = 평균(confidence × type_boost) × min(n, maxRelations) / maxRelations
+    it('returns 0 for empty relations', () => {
+      expect(ranking.calculateRelationWeight([])).toBe(0);
     });
 
-    it('should calculate relation weight from single relation', () => {
-      // Given: 단일 관계 (confidence=0.8, CAUSES type_boost=1.2)
+    it('scales a single relation by coverage 1/maxRelations', () => {
+      const weight = ranking.calculateRelationWeight([{ confidence: 0.8, relation_type: 'CAUSES' }], 5);
+      expect(weight).toBeCloseTo((0.8 * 1.2) / 5, 6);
+    });
+
+    it('averages multiple relations and scales by coverage', () => {
       const relations = [
-        { confidence: 0.8, relation_type: 'CAUSES' }
+        { confidence: 0.8, relation_type: 'CAUSES' },
+        { confidence: 0.7, relation_type: 'FOLLOWS' },
+        { confidence: 0.9, relation_type: 'DEPENDS_ON' }
       ];
-
-      // When: 관계 가중치 계산
       const weight = ranking.calculateRelationWeight(relations, 5);
-
-      // Then: (0.8 * 1.2) / 1 = 0.96 (정규화)
-      // 하지만 maxRelations=5로 나누므로 0.96 / 5 = 0.192
-      // 실제로는 min(relations.length, maxRelations) = 1로 나누므로 0.96 / 1 = 0.96
-      // 하지만 0-1 범위로 클리핑되므로 0.96이 반환되어야 함
-      expect(weight).toBeCloseTo(0.96, 2);
+      expect(weight).toBeCloseTo(((0.96 + 0.7 + 0.99) / 3) * (3 / 5), 6);
     });
 
-    it('should calculate relation weight from multiple relations', () => {
-      // Given: 여러 관계
+    it('saturates at the average once relations reach maxRelations', () => {
+      const relations = Array.from({ length: 10 }, () => ({ confidence: 0.8, relation_type: 'CAUSES' }));
+      expect(ranking.calculateRelationWeight(relations, 5)).toBeCloseTo(0.96, 6);
+    });
+
+    it('applies relation type boosts before averaging', () => {
       const relations = [
-        { confidence: 0.8, relation_type: 'CAUSES' }, // 0.8 * 1.2 = 0.96
-        { confidence: 0.7, relation_type: 'FOLLOWS' }, // 0.7 * 1.0 = 0.7
-        { confidence: 0.9, relation_type: 'DEPENDS_ON' } // 0.9 * 1.1 = 0.99
+        { confidence: 0.8, relation_type: 'CAUSES' },
+        { confidence: 0.8, relation_type: 'REFERENCES' },
+        { confidence: 0.8, relation_type: 'CONTRASTS_WITH' }
       ];
-
-      // When: 관계 가중치 계산
-      const weight = ranking.calculateRelationWeight(relations, 5);
-
-      // Then: 평균 = (0.96 + 0.7 + 0.99) / 3 = 0.883
-      // 정규화: 0.883 / min(3, 5) = 0.883 / 3 = 0.294
-      const expected = (0.96 + 0.7 + 0.99) / 3 / 3;
-      expect(weight).toBeCloseTo(expected, 2);
+      const average = (0.8 * 1.2 + 0.8 * 0.8 + 0.8 * 0.9) / 3;
+      expect(ranking.calculateRelationWeight(relations, 5)).toBeCloseTo(average * (3 / 5), 6);
     });
 
-    it('should normalize with maxRelations when relations exceed limit', () => {
-      // Given: maxRelations보다 많은 관계
-      const relations = Array.from({ length: 10 }, (_, i) => ({
-        confidence: 0.8,
-        relation_type: 'CAUSES'
-      }));
-
-      // When: 관계 가중치 계산 (maxRelations=5)
-      const weight = ranking.calculateRelationWeight(relations, 5);
-
-      // Then: 정규화는 maxRelations(5)로 수행되어야 함
-      // 각 관계: 0.8 * 1.2 = 0.96
-      // 평균: 0.96
-      // 정규화: 0.96 / 5 = 0.192
-      const expected = (0.8 * 1.2) / 5;
-      expect(weight).toBeCloseTo(expected, 2);
+    it('clips to 1', () => {
+      const relations = Array.from({ length: 2 }, () => ({ confidence: 1.0, relation_type: 'CAUSES' }));
+      expect(ranking.calculateRelationWeight(relations, 1)).toBe(1);
     });
 
-    it('should handle different relation types with correct boost', () => {
-      // Given: 다양한 관계 유형
-      const relations = [
-        { confidence: 0.8, relation_type: 'CAUSES' }, // boost 1.2
-        { confidence: 0.8, relation_type: 'REFERENCES' }, // boost 0.8
-        { confidence: 0.8, relation_type: 'CONTRASTS_WITH' } // boost 0.9
-      ];
-
-      // When: 관계 가중치 계산
-      const weight = ranking.calculateRelationWeight(relations, 5);
-
-      // Then: 각 관계의 가중치가 올바르게 적용되어야 함
-      const weightedScores = [
-        0.8 * 1.2, // 0.96
-        0.8 * 0.8, // 0.64
-        0.8 * 0.9  // 0.72
-      ];
-      const average = weightedScores.reduce((a, b) => a + b, 0) / weightedScores.length;
-      const expected = average / 3; // min(3, 5) = 3
-      expect(weight).toBeCloseTo(expected, 2);
+    it('uses boost 1.0 for unknown relation types', () => {
+      const weight = ranking.calculateRelationWeight([{ confidence: 0.8, relation_type: 'UNKNOWN_TYPE' }], 5);
+      expect(weight).toBeCloseTo(0.8 / 5, 6);
     });
 
-    it('should clip result to 0-1 range', () => {
-      // Given: 매우 높은 confidence 관계들
-      const relations = Array.from({ length: 2 }, () => ({
-        confidence: 1.0,
-        relation_type: 'CAUSES' // boost 1.2
-      }));
-
-      // When: 관계 가중치 계산
-      const weight = ranking.calculateRelationWeight(relations, 1);
-
-      // Then: 0-1 범위로 클리핑되어야 함
-      // (1.0 * 1.2) / 1 = 1.2이지만 클리핑되어 1.0
-      expect(weight).toBeLessThanOrEqual(1.0);
-      expect(weight).toBeGreaterThanOrEqual(0.0);
-    });
-
-    it('should handle unknown relation types with default boost', () => {
-      // Given: 알 수 없는 관계 유형
-      const relations = [
-        { confidence: 0.8, relation_type: 'UNKNOWN_TYPE' }
-      ];
-
-      // When: 관계 가중치 계산
-      const weight = ranking.calculateRelationWeight(relations, 5);
-
-      // Then: 기본 boost(1.0)가 적용되어야 함
-      // (0.8 * 1.0) / 1 = 0.8
-      expect(weight).toBeCloseTo(0.8, 2);
+    it('is non-decreasing in relation count (#1185)', () => {
+      const counts = [0, 1, 2, 5, 50, 118];
+      const weights = counts.map((n) =>
+        ranking.calculateRelationWeight(
+          Array.from({ length: n }, () => ({ confidence: 0.74, relation_type: 'FOLLOWS' })),
+          5
+        )
+      );
+      for (let i = 1; i < weights.length; i++) {
+        if (counts[i] >= 5 && counts[i - 1] >= 5) {
+          expect(weights[i]).toBeCloseTo(weights[i - 1], 6);
+        } else {
+          expect(weights[i]).toBeGreaterThanOrEqual(weights[i - 1]);
+        }
+      }
+      expect(weights[1]).toBeLessThan(weights[2]);
+      expect(weights[2]).toBeLessThan(weights[3]);
+      expect(weights[5]).toBeGreaterThan(weights[1]);
     });
   });
 
@@ -717,7 +668,7 @@ describe('SearchRanking', () => {
         const score = ranking.calculateFinalScore(features);
         
         // 기존 공식 사용 (새로운 가중치 기준)
-        const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0.15 * 0 - 0.1 * 0.2;
+        const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 + 0 * 0 - 0.1 * 0.2;
         expect(score).toBeCloseTo(expected, 3);
       });
 
