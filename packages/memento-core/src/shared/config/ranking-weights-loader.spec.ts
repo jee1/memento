@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import { fileURLToPath } from 'url';
 import {
   loadRankingWeights,
   getRankingWeights,
@@ -82,7 +83,7 @@ max_relations = 5
       expect(config.ranking_weights.beta).toBe(0.20);
       expect(config.ranking_weights.gamma).toBe(0.20);
       expect(config.ranking_weights.delta).toBe(0.10);
-      expect(config.ranking_weights.zeta).toBe(0.15);
+      expect(config.ranking_weights.zeta).toBe(0);
       expect(config.ranking_weights.epsilon).toBe(0.10);
       expect(config.relation_weights.max_relations).toBe(5);
     });
@@ -431,6 +432,14 @@ max_relations = 5
       writeFileSync(tempConfigPath, toml, 'utf-8');
       const config = loadRankingWeights(tempConfigPath);
       expect(config.ranking_weights.consolidation).toBe(0.35);
+    });
+
+    it('ships zeta = 0 in config/ranking-weights.toml (#1185)', () => {
+      const shipped = fileURLToPath(new URL('../../../../../config/ranking-weights.toml', import.meta.url));
+      expect(existsSync(shipped)).toBe(true);
+      const config = loadRankingWeights(shipped);
+      expect(config.ranking_weights.zeta).toBe(0);
+      expect(config.relation_weights.max_relations).toBe(5);
     });
 
     it('loads [vector_length_decay] from TOML (#921)', () => {

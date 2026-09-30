@@ -74,6 +74,20 @@ relevance_score = (1 − w)·relevance + w·consolidation_score
 
 이제 `[ranking_weights].consolidation` 으로 노출되며 기본값은 0 입니다(상한 0.4). 0 이면 호출 이력이 α 슬롯을 움직이지 않습니다. `δ·usage` 쪽 자기강화(`last_accessed_at`)는 #1181 이 다룹니다.
 
+## Relation 가중치 (Issue #1185)
+
+`ζ·relation_weight` 의 입력은 후보 기억의 `memory_relation` 관계(confidence ≥ 0.5)입니다.
+
+```
+relation_weight = 평균(confidence × type_boost) × min(n, max_relations) / max_relations
+```
+
+#1185 이전 식은 `평균 ÷ min(n, max_relations)` 이라 관계가 **적을수록** 커졌습니다. 운영 코퍼스(10,535건, `memory_relation` 107,988행)에서 관계 1개짜리 기억이 `ζ·relation ≈ 0.111`, 5개 이상(38.7%)은 전부 `≈ 0.022` 로 같았습니다. 새 식은 관계 수에 단조 증가하고 `max_relations` 이상에서 평균(≈0.74)에 포화합니다.
+
+관계 수는 질의와 무관한 문서 출처 prior 입니다. Obsidian 클리핑처럼 링크가 붙지 않는 정답은 관계가 0개입니다. 그래서 기본값은 `[ranking_weights].zeta = 0` 입니다. 운영 `recall`(고성 왕곡마을 클리핑, semantic, top-20)을 항별로 분해해 통제 계산한 결과는 다음과 같습니다. 옛 식·ζ 0.15 에서는 관계 12개인 비정답이 4위였습니다. 새 식·ζ 0.15 에서는 그 비정답이 1위로 올라가고 관계 많은 비정답들이 정답 2건을 앞질렀습니다. ζ 0 에서는 정답 4건이 1~4위였습니다.
+
+`benchmark-v3` 게이트 엔진에는 relationGraph 가 붙지 않아 이 항을 재지 못합니다. 효과는 운영 `recall` 의 `include_score_breakdown` 으로 확인하십시오. `relevance` 슬롯에 `ζ·relation` 이 합산됩니다.
+
 ## Relevance signal scale (Issue #1180)
 
 `hybridFusionRelevance`가 만드는 **raw** 융합 관련성에 `config/ranking-weights.toml`의 `[relevance_signal].scale`로 0.5 중심 스케일을 적용합니다. `[importance_signal]`·`[recency_signal]`은 압축용이라 `scale ≤ 1`이지만, 이 값은 **1을 넘을 수 있습니다**.
