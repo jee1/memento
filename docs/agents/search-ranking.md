@@ -54,6 +54,14 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
 
+## Usage 신호 (Issue #1181)
+
+`usage` 는 **실제 사용 빈도를 재지 않습니다. 두 레인 모두 같은 상수입니다.** 텍스트 레인(`search-engine-ranking.ts`)과 융합 레인(`hybrid-result-ranker.ts`)이 똑같이 `calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 })`(≈ 0.069)를 씁니다. 사용 빈도 컬럼 `view_count`·`cite_count`·`edit_count` 는 쓰는 코드가 없어 운영 전 행이 0 입니다.
+
+#1181 이전 융합 레인은 마지막 접근 시각을 `exp(−days/30)` 로 읽었고, 그 값은 사용 빈도가 아니었습니다. 텍스트 레인에서 온 후보는 옛 `last_accessed` 컬럼(망각 리뷰 배치가 한 번에 수천 건씩 갱신)을, 벡터 전용 후보는 `last_accessed_at`(`recall`·`memory_injection` 이 반환 후보마다 now 로 갱신)을 읽었습니다. 앞은 질의와 무관한 배치 시각이고, 뒤는 한 번 반환된 기억이 다음 질의에서 최대 `δ × 0.9 = 0.09` 를 더 받는 자기강화 루프입니다.
+
+실제 사용 신호가 생기면 두 레인을 함께 그 신호로 바꾸십시오. 한 레인만 바꾸면 정의가 다시 갈라집니다.
+
 ## Consolidation 블렌드 (Issue #1184)
 
 `α` 항의 relevance 는 순수 관련성이 아닙니다. `consolidation` 가중치 `w` 로 `consolidation_score` 와 섞입니다.

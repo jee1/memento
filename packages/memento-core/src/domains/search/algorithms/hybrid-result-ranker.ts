@@ -223,7 +223,8 @@ export class HybridResultRanker {
       relevance: fusionRelevance,
       recency: this.calculateRecency(result.created_at),
       importance: this.ranking.calculateImportance(result.importance, Boolean(result.pinned), result.type),
-      usage: this.calculateUsage(result.last_accessed),
+      // #1181: 두 레인이 같은 정의를 쓴다. 접근 시각은 사용 빈도가 아니고 검색이 스스로 갱신한다.
+      usage: this.ranking.calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 }),
       relation_weight: relationWeight,
       duplication_penalty: 0,
       workflow_name_match: proceduralMatch?.workflow_name_match || false,
@@ -456,14 +457,5 @@ export class HybridResultRanker {
     const raw = Math.exp(-Math.log(2) * ageDays / 30);
 
     return applyRecencySignalScale(raw, getRankingWeights().recency_signal.scale);
-  }
-
-  private calculateUsage(lastAccessed: string | Date | undefined): number {
-    if (!lastAccessed) return 0.1;
-
-    const accessed = typeof lastAccessed === 'string' ? new Date(lastAccessed) : lastAccessed;
-    const daysSinceAccess = daysBetween(new Date(), accessed);
-
-    return Math.exp(-daysSinceAccess / 30);
   }
 }
