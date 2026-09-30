@@ -306,6 +306,81 @@ scale = 0.77
       expect(config.recency_signal.scale).toBe(0.77);
     });
 
+    it('defaults relevance_signal.scale when section is absent (#1180)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.relevance_signal.scale).toBe(2.0);
+    });
+
+    it('rejects relevance_signal.scale outside [0, 5] (#1180)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+
+[relevance_signal]
+scale = 9
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/relevance_signal\.scale/);
+    });
+
+    it('rejects non-numeric relevance_signal.scale (#1180)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+
+[relevance_signal]
+scale = "abc"
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/relevance_signal\.scale/);
+    });
+
+    it('loads [relevance_signal] from TOML (#1180)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 5
+
+[relevance_signal]
+scale = 3.5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.relevance_signal.scale).toBe(3.5);
+    });
+
     it('loads [vector_length_decay] from TOML (#921)', () => {
       const toml = `[ranking_weights]
 alpha = 0.45

@@ -3,6 +3,7 @@
  */
 
 import type { UsageMetrics } from './search-ranking.types.js';
+import { SEARCH_RANKING } from '../../../../shared/config/constants.js';
 import { daysBetween } from '../../../../shared/utils/date.js';
 
 /**
@@ -55,6 +56,19 @@ export function applyImportanceSignalScale(rawImportance: number, scale: number)
 export function applyRecencySignalScale(rawRecency: number, scale: number): number {
   const clamped = Math.max(0, Math.min(1, rawRecency));
   const s = Math.max(0, Math.min(1, scale));
+  return Math.max(0, Math.min(1, 0.5 + (clamped - 0.5) * s));
+}
+
+/**
+ * Rescales the fusion relevance signal around 0.5 so alpha*relevance is not outweighed by the
+ * query-independent priors (#1180). Unlike the importance and recency scales this one allows
+ * `scale > 1`: fusion relevance never reaches 0 for irrelevant documents (measured floor ~0.43 on
+ * the production corpus), so its realized spread is narrower than beta*recency + gamma*importance.
+ * `scale=1` preserves raw; `scale=0` flattens to neutral 0.5 (diagnostic lower bound only).
+ */
+export function applyRelevanceSignalScale(rawRelevance: number, scale: number): number {
+  const clamped = Math.max(0, Math.min(1, rawRelevance));
+  const s = Math.max(0, Math.min(SEARCH_RANKING.RELEVANCE_SIGNAL_SCALE_MAX, scale));
   return Math.max(0, Math.min(1, 0.5 + (clamped - 0.5) * s));
 }
 

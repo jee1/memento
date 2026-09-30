@@ -14,7 +14,7 @@ import {
   clearConfigCacheByPrefix,
   findProjectRoot
 } from './config-loader-utils.js';
-import { HYBRID_SEARCH } from './constants.js';
+import { HYBRID_SEARCH, SEARCH_RANKING } from './constants.js';
 
 export interface RankingWeights {
   alpha: number; // relevance 가중치
@@ -55,6 +55,11 @@ export interface RecencySignalConfig {
   scale: number;
 }
 
+export interface RelevanceSignalConfig {
+  /** Multiplier on (raw - 0.5) after hybridFusionRelevance; may exceed 1 (#1180). */
+  scale: number;
+}
+
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
   relation_weights: RelationWeights;
@@ -62,6 +67,7 @@ export interface RankingWeightsConfig {
   fts_relevance: FtsRelevanceConfig;
   importance_signal: ImportanceSignalConfig;
   recency_signal: RecencySignalConfig;
+  relevance_signal: RelevanceSignalConfig;
 }
 
 const DEFAULT_CONFIG: RankingWeightsConfig = {
@@ -91,6 +97,9 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   },
   recency_signal: {
     scale: 0.30
+  },
+  relevance_signal: {
+    scale: 2.0
   }
 };
 
@@ -144,7 +153,8 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
       'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
       'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 },
-      'recency_signal.scale': { type: 'number' as const, min: 0, max: 1 }
+      'recency_signal.scale': { type: 'number' as const, min: 0, max: 1 },
+      'relevance_signal.scale': { type: 'number' as const, min: 0, max: SEARCH_RANKING.RELEVANCE_SIGNAL_SCALE_MAX }
     };
 
     // 중첩 객체를 평탄화하여 검증
@@ -172,7 +182,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
         DEFAULT_CONFIG.importance_signal.scale,
       'recency_signal.scale':
         config.recency_signal?.scale ??
-        DEFAULT_CONFIG.recency_signal.scale
+        DEFAULT_CONFIG.recency_signal.scale,
+      'relevance_signal.scale':
+        config.relevance_signal?.scale ??
+        DEFAULT_CONFIG.relevance_signal.scale
     };
 
     // mergeWithDefaults may omit nested section when TOML lacks it

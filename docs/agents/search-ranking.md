@@ -54,6 +54,22 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
 
+## Relevance signal scale (Issue #1180)
+
+`hybridFusionRelevance`가 만드는 **raw** 융합 관련성에 `config/ranking-weights.toml`의 `[relevance_signal].scale`로 0.5 중심 스케일을 적용합니다. `[importance_signal]`·`[recency_signal]`은 압축용이라 `scale ≤ 1`이지만, 이 값은 **1을 넘을 수 있습니다**.
+
+```
+scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
+```
+
+`scale = 1`이면 raw를 그대로 쓰고(#1180 이전 동작), `scale = 0`이면 전 후보가 0.5로 평탄화됩니다(진단용 하한이지 운영 제안이 아님). 확장이 필요한 이유는 융합 관련성의 **하한**입니다 — 기각 게이트가 0.02~0.06을 준 무관 문서도 융합 관련성은 0.43 수준에 머물러, α의 명목 가중치 0.45 중 순위를 가르는 몫이 이미 압축된 β·recency와 γ·importance의 합과 비슷해집니다. 운영 코퍼스 10,535건 실측에서 정답의 relevance 우위는 0.0612인데 recency·importance 열위 합이 0.0766이라 순위가 뒤집혔습니다.
+
+적용 지점은 **융합 레인(`HybridResultRanker.normalizeScores`) 한 곳**입니다. 텍스트 레인의 관련성은 BM25 rank 시그모이드(`[fts_relevance].temperature`, #1079)로 별도 동적 범위를 가지므로 이 scale을 걸지 않습니다. 진단 리포트(`report-search-results.ts`)는 raw 융합값을 그대로 보여 줍니다.
+
+`scale`을 무한정 올릴 수는 없습니다. `benchmark-v3` macro 스윕에서 `2.0`이 평탄부의 마지막 안전점이고 `2.5`부터 `incident_ops` MRR이 0.7143 → 0.5918로 내려가 `3.0`에서는 0.3954로 게이트가 깨집니다. 원인은 clamp입니다 — scale이 커지면 관련 후보가 전부 상한 1.0에 붙어 **정답끼리 동점**이 되고, relevance가 순서를 정하는 힘을 오히려 잃습니다. 확장은 압축과 달리 상한이 있습니다.
+
+`scale`은 `getRankingVersion()` 해시에 포함됩니다.
+
 ## 주입 경로의 순위 출처 (Issue #1177)
 
 `memory_injection`과 개인 지식 Agent가 공유하는 `buildKnowledgeContextBundle`은 하이브리드 엔진이 매긴 `finalScore` 순서를 **그대로** 씁니다. 요약 단계에서 raw `importance` 컬럼을 더해 재정렬하지 않고, 중복 그룹의 대표도 `finalScore`로만 고릅니다.
