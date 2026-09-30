@@ -30,6 +30,14 @@ theta = 0.10
 # zeta_fb: 피드백 신호(helpful/not_helpful 집계, 시그모이드 정규화 후) 가중치
 zeta_fb = 0.05
 
+# consolidation: α 슬롯 안에서 relevance 와 섞는 consolidation_score 가중치 (#1184).
+# relevance_score = (1 - consolidation) * relevance + consolidation * consolidation_score
+# consolidation_score 는 recall·memory_injection 이 반환한 후보마다 다시 쓰므로,
+# 0 이 아니면 한 번 반환된 기억이 다음 질의에서 관련성 가산을 받는다(자기강화).
+# 운영 실측: 1회 호출 뒤 top-10 전원 0.28 → 0.6225, relevance 슬롯 +0.025~0.049.
+# 상한 0.4 (SEARCH_RANKING.CONSOLIDATION_SCORE_MAX). #1184 이전 코드 상수는 0.2 였다.
+consolidation = 0.0
+
 [relation_weights]
 # 관계 가중치 계산 시 정규화를 위한 최대 관계 수
 # 이 값보다 많은 관계가 있어도 이 값으로 나누어 정규화

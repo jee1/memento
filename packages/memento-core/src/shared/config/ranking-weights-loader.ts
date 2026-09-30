@@ -25,6 +25,7 @@ export interface RankingWeights {
   epsilon: number; // duplication_penalty 가중치
   theta?: number; // process_attribute_fit 가중치 (Issue #91, 기본 0.1)
   zeta_fb?: number; // 피드백 신호 가중치 (Recall Quality Feedback Loop, 기본 0.05)
+  consolidation?: number; // consolidation_score 블렌드 가중치 (#1184, 기본 0, 상한 SEARCH_RANKING.CONSOLIDATION_SCORE_MAX)
 }
 
 export interface RelationWeights {
@@ -79,7 +80,8 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     zeta: 0.15,
     epsilon: 0.10,
     theta: 0.1,
-    zeta_fb: 0.05
+    zeta_fb: 0.05,
+    consolidation: 0
   },
   relation_weights: {
     max_relations: 5
@@ -148,6 +150,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.consolidation': { type: 'number' as const, min: 0, max: SEARCH_RANKING.CONSOLIDATION_SCORE_MAX },
       'relation_weights.max_relations': { type: 'number' as const, min: 1 },
       'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
       'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
@@ -167,6 +170,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.epsilon': config.ranking_weights.epsilon,
       'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
       'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
+      'ranking_weights.consolidation': config.ranking_weights.consolidation ?? DEFAULT_CONFIG.ranking_weights.consolidation,
       'relation_weights.max_relations': config.relation_weights.max_relations,
       'vector_length_decay.characteristic_length':
         config.vector_length_decay?.characteristic_length ??
