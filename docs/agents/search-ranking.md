@@ -66,6 +66,8 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 적용 지점은 **융합 레인(`HybridResultRanker.normalizeScores`) 한 곳**입니다. 텍스트 레인의 관련성은 BM25 rank 시그모이드(`[fts_relevance].temperature`, #1079)로 별도 동적 범위를 가지므로 이 scale을 걸지 않습니다. 진단 리포트(`report-search-results.ts`)는 raw 융합값을 그대로 보여 줍니다.
 
+`scale`을 무한정 올릴 수는 없습니다. `benchmark-v3` macro 스윕에서 `2.0`이 평탄부의 마지막 안전점이고 `2.5`부터 `incident_ops` MRR이 0.7143 → 0.5918로 내려가 `3.0`에서는 0.3954로 게이트가 깨집니다. 원인은 clamp입니다 — scale이 커지면 관련 후보가 전부 상한 1.0에 붙어 **정답끼리 동점**이 되고, relevance가 순서를 정하는 힘을 오히려 잃습니다. 확장은 압축과 달리 상한이 있습니다.
+
 `scale`은 `getRankingVersion()` 해시에 포함됩니다.
 
 ## 주입 경로의 순위 출처 (Issue #1177)
