@@ -365,7 +365,7 @@ describe('buildKnowledgeContextBundle content 중복 제거 (#1137)', () => {
     expect(bundle.itemCount).toBe(2);
   });
 
-  it('중복 그룹에서 finalScore+importance가 가장 높은 행을 남긴다', async () => {
+  it('중복 그룹에서 finalScore가 가장 높은 행을 남긴다', async () => {
     const body = '대표 선택 판정용 동일 본문';
 
     const bundle = await buildKnowledgeContextBundle(

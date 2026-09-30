@@ -183,6 +183,7 @@ semantic 행이 원문 사본을 들고 있을 이유가 없다.
   500자로 잘린 사본과 원문 episodic 행이 같은 그룹으로 묶인다
   (증상 보고의 "정작 찾던 원본이 반환되지 않는다"가 이 경우다)
 - **그룹 대표**: `finalScore + importance` 최대값 — `summarizeMemories`(:110)와 같은 정렬 키, 동점은 id로 결정
+  - **#1177 이후**: 이 키는 `finalScore` 단독으로 바뀌었다. raw `importance` 를 더하면 폭이 8배라 엔진 순위가 뒤집히고, `finalScore` 안에 이미 `γ·importance` 가 있다. `docs/agents/search-ranking.md` 「주입 경로의 순위 출처」 참조.
 - 제외 건수는 기존 손상 triple 필터와 같은 형식으로 `logger.warn`
 - **부수 효과(의도)**: 탈락한 사본은 `updateConsolidationScoreMetadata` 호출(:406)에 도달하지 않아 `recall_count`가 부풀지 않는다
 
