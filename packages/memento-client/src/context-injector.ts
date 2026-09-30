@@ -161,20 +161,13 @@ export class ContextInjector {
   ): Promise<MemoryItem[]> {
     if (memories.length === 0) return [];
 
-    // 중요도와 점수 기준으로 정렬
-    const sortedMemories = memories.sort((a, b) => {
-      // MemoryItem에 score 필드가 없을 수 있으므로 타입 확장 사용
-      const itemA = a as MemoryItem & { score?: number };
-      const itemB = b as MemoryItem & { score?: number };
-      const scoreA = itemA.score || 0;
-      const scoreB = itemB.score || 0;
-      return (scoreB + a.importance) - (scoreA + b.importance);
-    });
+    // 서버가 finalScore 순으로 보낸 순서를 그대로 쓰고 토큰 예산만 자른다 (#1182).
+    // raw importance 를 더해 재정렬하면 서버 점수 안에 압축된 importance 를 다시 덮는다 (#1177 과 같은 결함). 입력 배열도 건드리지 않는다.
 
     const compressed: MemoryItem[] = [];
     let currentTokens = 0;
 
-    for (const memory of sortedMemories) {
+    for (const memory of memories) {
       const memoryTokens = this.estimateTokenCount(memory.content);
       
       if (currentTokens + memoryTokens <= tokenBudget) {
