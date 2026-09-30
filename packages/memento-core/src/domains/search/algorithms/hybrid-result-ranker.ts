@@ -10,7 +10,7 @@ import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repos
 import { ProcessAttributeRepositorySqlite } from '../../../infrastructure/database/repositories/process-attribute-repository-sqlite.impl.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
-import { applyRecencySignalScale } from './search-ranking/search-ranking-signals.js';
+import { applyRecencySignalScale, applyRelevanceSignalScale } from './search-ranking/search-ranking-signals.js';
 import { SearchRanking, type SearchFeatures } from './search-ranking.js';
 import { SearchError, SearchErrorType } from './search-error.js';
 import type {
@@ -177,11 +177,16 @@ export class HybridResultRanker {
           ? computeProcessAttributeFit(ctx.processAttributes, memoryDetails)
           : undefined;
       const feedback_score = sigmoidNormalizedNet(ctx.feedbackScores.get(result.id) ?? 0);
-      const fusionRelevance = hybridFusionRelevance(
-        result.textScore,
-        result.vectorScore,
-        weights.textWeight,
-        weights.vectorWeight
+      // #1180: 융합 relevance 는 무관 문서에서도 0 으로 내려가지 않아 실현 폭이 좁다.
+      // 그 폭을 넓히지 않으면 β·recency 와 γ·importance 의 합이 순위를 정한다.
+      const fusionRelevance = applyRelevanceSignalScale(
+        hybridFusionRelevance(
+          result.textScore,
+          result.vectorScore,
+          weights.textWeight,
+          weights.vectorWeight
+        ),
+        getRankingWeights().relevance_signal.scale
       );
 
       const baseFeatures = this.buildBaseFeatures(

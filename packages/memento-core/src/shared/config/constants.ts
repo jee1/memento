@@ -38,6 +38,8 @@ export const SEARCH_RANKING = {
    * Consolidation Score 최대값
    */
   CONSOLIDATION_SCORE_MAX: 0.4,
+  /** Upper bound for `[relevance_signal].scale` (#1180). Expansion beyond this only clamps harder. */
+  RELEVANCE_SIGNAL_SCALE_MAX: 5,
 
   /**
    * Consolidation Score 가중치 (프로파일별)
