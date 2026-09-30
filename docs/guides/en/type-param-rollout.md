@@ -14,7 +14,7 @@ In production, teams often move `warn` → `deprecate` → `error` as clients ar
 
 ## Recommended migration
 
-Add an explicit search type to every `recall` call. Use a single `type` when you need one layer, or `memory_types` when you need several. Supplying `memory_types` alone can suppress some warnings, but **`type` plus `memory_types`** makes intent clearest.
+Add an explicit search type to every `recall` call. Use a single `type` when you need one layer, or `memory_types` **alone** when you need several. If you pass both, `type` wins and `memory_types` is ignored.
 
 ## Related docs
 

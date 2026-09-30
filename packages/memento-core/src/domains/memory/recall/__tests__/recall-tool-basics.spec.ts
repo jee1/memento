@@ -1064,55 +1064,43 @@ describeRecallTool("basics and search", () => {
       );
     });
 
-    it('type 미지정 + memory_types 제공 시 기본 타입이 우선 적용되어야 함', async () => {
-      // Given: 여러 타입의 메모리 생성
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
-      `);
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
-      `);
-
+    it('type 미지정 + memory_types 제공 시 memory_types 로 검색해야 함 (#1188)', async () => {
       const params = {
         query: 'memory',
         memory_types: ['semantic', 'working']
-        // type 미지정, memory_types는 제공
       };
 
-      // Mock 검색 결과 (episodic만 반환 - 기본 타입 우선)
       vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
-        items: [
-          {
-            id: 'mem1',
-            content: 'Episodic memory content',
-            type: 'episodic',
-            importance: 0.5,
-            created_at: new Date(),
-            finalScore: 0.8
-          }
-        ],
-        total_count: 1,
+        items: [],
+        total_count: 0,
         query_time: 10
       });
       vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
 
-      // When: recall Tool 실행 (type 미지정, memory_types 제공)
-      const result = await tool.handle(params, context);
-      const resultData = JSON.parse(result.content[0].text);
+      await tool.handle(params, context);
 
-      // Then: 기본 타입(episodic)이 우선 적용되어야 함
-      expect(resultData.items).toHaveLength(1);
-      expect(resultData.items[0].type).toBe('episodic');
-
-      // search 호출 시 type 필터가 episodic로 전달되었는지 확인 (memory_types 무시)
       expect(hybridSearchEngine.search).toHaveBeenCalledWith(
         db,
         expect.objectContaining({
           filters: expect.objectContaining({
-            type: ['episodic']
+            type: ['semantic', 'working']
           })
         })
       );
+    });
+
+    it('memory_types 단독 호출의 filters_applied 가 요청한 타입을 그대로 보여야 함 (#1188)', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 10
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle({ query: 'memory', memory_types: ['episodic', 'semantic'] }, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(resultData.filters_applied.type).toEqual(['episodic', 'semantic']);
     });
 
     it('should filter memory_types array and remove core/vault', async () => {
