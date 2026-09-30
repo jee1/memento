@@ -44,7 +44,7 @@ const INLINE_MEMORY_EMBEDDING_DDL_ALLOWLIST = [
 const RECALL_SHARDS = {
   'src/domains/memory/recall/__tests__/recall-tool-auto-anchor.spec.ts': 16,
   'src/domains/memory/recall/__tests__/recall-tool-basics.spec.ts': 54,
-  'src/domains/memory/recall/__tests__/recall-tool-metadata.spec.ts': 12,
+  'src/domains/memory/recall/__tests__/recall-tool-metadata.spec.ts': 14,
   'src/domains/memory/recall/__tests__/recall-tool-neighbors.spec.ts': 10,
   'src/domains/memory/recall/__tests__/recall-tool-reflection-notes.spec.ts': 17
 };
@@ -88,7 +88,7 @@ describe('database test topology', () => {
 
     expect(metrics.map(({ path, cases, expectedCases }) => ({ path, cases, expectedCases })))
       .toEqual(metrics.map(({ path, expectedCases }) => ({ path, cases: expectedCases, expectedCases })));
-    expect(metrics.reduce((sum, metric) => sum + metric.cases, 0)).toBe(109);
+    expect(metrics.reduce((sum, metric) => sum + metric.cases, 0)).toBe(111);
     expect(Math.max(...metrics.map(metric => metric.lines))).toBeLessThanOrEqual(1500);
     expect(specs.map(packagePath)).not.toContain(
       'src/domains/memory/tools/__tests__/recall-tool.spec.ts'

@@ -21,6 +21,7 @@ import {
   recallQueryCorrelationExtra
 } from './recall-tool-telemetry.js';
 import type { RecallHybridOrTextSearchResult, RecallTelemetryRetrievalStrategy } from './recall-tool-schema.js';
+import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
 import type {
   AnchorSetMetadata,
   MetaStatsItem,
@@ -167,6 +168,7 @@ export async function finalizeMemoryItemRecallEnvelope(
     text_count?: number;
     vector_count?: number;
     fallback_used?: boolean;
+    rejection_gate?: RelevanceGateOutcome;
     query_embedding_providers?: string[];
     tfidf_query_embedding_fallback?: boolean;
     tfidf_query_embedding_fallback_providers?: string[];
@@ -193,6 +195,10 @@ export async function finalizeMemoryItemRecallEnvelope(
       metadata.text_result_count = sr.text_count;
       metadata.vector_result_count = sr.vector_count;
       if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
+    }
+
+    if (sr?.rejection_gate) {
+      metadata.rejection_gate = sr.rejection_gate;
     }
 
     const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();

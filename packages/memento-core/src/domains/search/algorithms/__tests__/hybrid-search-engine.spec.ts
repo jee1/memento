@@ -3015,6 +3015,60 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
         ],
       });
     });
+    describe('#1191 게이트 판정을 반환한다', () => {
+      it('기각하면 rejection_gate.verdict 가 rejected 다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+        hybridSearchEngine.setRejectionGate({ score: vi.fn().mockResolvedValue([0.01, 0.05]) });
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(out.rejection_gate).toEqual({ verdict: 'rejected', top_score: 0.05, unscored: 0 });
+      });
+
+      it('점수로 통과하면 passed 다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+        hybridSearchEngine.setRejectionGate({ score: vi.fn().mockResolvedValue([0.9, Number.NaN]) });
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(out.rejection_gate).toEqual({ verdict: 'passed', top_score: 0.9, unscored: 1 });
+      });
+
+      it('점수를 하나도 못 얻고 통과하면 fail_open 이다 — 정상 통과와 구분된다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+        hybridSearchEngine.setRejectionGate({ score: vi.fn().mockResolvedValue([Number.NaN, Number.NaN]) });
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(out.items).toHaveLength(2);
+        expect(out.rejection_gate).toEqual({ verdict: 'fail_open', top_score: null, unscored: 2 });
+      });
+
+      it('게이트를 붙이지 않으면 off 다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, [fakeItem('m1', 'a')]);
+        hybridSearchEngine.setRejectionGate(null);
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(out.rejection_gate).toEqual({ verdict: 'off', top_score: null, unscored: 0 });
+      });
+
+      it('후보가 0건이라 게이트를 타지 않으면 rejection_gate 가 없다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, []);
+        const gate: IRelevanceGatePort = { score: vi.fn().mockResolvedValue([]) };
+        hybridSearchEngine.setRejectionGate(gate);
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(gate.score).not.toHaveBeenCalled();
+        expect(out.rejection_gate).toBeUndefined();
+      });
+    });
   });
 });
 

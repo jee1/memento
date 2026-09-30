@@ -782,4 +782,35 @@ describeRecallTool("metadata and telemetry", () => {
       expect(resultData.items[0].source).toBe(sourceUri);
     });
   });
+
+  describe('#1191 기각 게이트 판정 메타데이터', () => {
+    it('검색이 fail_open 을 돌려주면 metadata.rejection_gate 로 그대로 싣는다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 10,
+        union_count: 0,
+        reranked_count: 0,
+        rejection_gate: { verdict: 'fail_open', top_score: null, unscored: 2 },
+      });
+
+      const result = await tool.handle({ query: 'test', type: 'episodic' }, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(resultData.metadata.rejection_gate).toEqual({ verdict: 'fail_open', top_score: null, unscored: 2 });
+    });
+
+    it('검색이 판정을 돌려주지 않으면 metadata.rejection_gate 가 없다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 10,
+      });
+
+      const result = await tool.handle({ query: 'test', type: 'episodic' }, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(resultData.metadata.rejection_gate).toBeUndefined();
+    });
+  });
 });
