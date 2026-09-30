@@ -54,6 +54,18 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
 
+## Consolidation 블렌드 (Issue #1184)
+
+`α` 항의 relevance 는 순수 관련성이 아닙니다. `consolidation` 가중치 `w` 로 `consolidation_score` 와 섞입니다.
+
+```
+relevance_score = (1 − w)·relevance + w·consolidation_score
+```
+
+`consolidation_score` 는 `recall`·`memory_injection` 이 반환한 후보마다 다시 계산해 기록하므로, `w > 0` 이면 한 번 반환된 기억이 다음 질의에서 관련성 가산을 받습니다. #1184 이전에는 이 가중치가 TOML 에 없는 코드 상수 0.2 였고, 실효식은 `0.36·relevance + 0.09·consolidation_score` 였습니다. 운영 실측에서 1회 호출 뒤 top-10 전원이 0.28 → 0.6225 로 올라 relevance 슬롯이 0.025~0.049 상승했습니다.
+
+이제 `[ranking_weights].consolidation` 으로 노출되며 기본값은 0 입니다(상한 0.4). 0 이면 호출 이력이 α 슬롯을 움직이지 않습니다. `δ·usage` 쪽 자기강화(`last_accessed_at`)는 #1181 이 다룹니다.
+
 ## Relevance signal scale (Issue #1180)
 
 `hybridFusionRelevance`가 만드는 **raw** 융합 관련성에 `config/ranking-weights.toml`의 `[relevance_signal].scale`로 0.5 중심 스케일을 적용합니다. `[importance_signal]`·`[recency_signal]`은 압축용이라 `scale ≤ 1`이지만, 이 값은 **1을 넘을 수 있습니다**.

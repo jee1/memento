@@ -26,7 +26,7 @@ export function resolveSearchRankingWeights(weights?: Partial<SearchRankingWeigh
     usage: configWeights.ranking_weights.delta ?? defaultWeights.usage,
     relation_weight: configWeights.ranking_weights.zeta ?? defaultWeights.relation_weight,
     duplication_penalty: configWeights.ranking_weights.epsilon ?? defaultWeights.duplication_penalty,
-    consolidation_score: defaultWeights.consolidation_score,
+    consolidation_score: configWeights.ranking_weights.consolidation ?? defaultWeights.consolidation_score,
     process_attribute_fit: configWeights.ranking_weights.theta ?? defaultWeights.process_attribute_fit,
     zeta_fb: configWeights.ranking_weights.zeta_fb ?? defaultWeights.zeta_fb,
     ...weights

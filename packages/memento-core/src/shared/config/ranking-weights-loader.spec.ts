@@ -381,6 +381,58 @@ scale = 3.5
       expect(config.relevance_signal.scale).toBe(3.5);
     });
 
+    it('rejects consolidation outside [0, 0.4] (#1184)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+consolidation = 0.5
+
+[relation_weights]
+max_relations = 5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/consolidation/);
+    });
+
+    it('rejects non-numeric consolidation (#1184)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+consolidation = "abc"
+
+[relation_weights]
+max_relations = 5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/consolidation/);
+    });
+
+    it('loads consolidation from TOML (#1184)', () => {
+      const toml = `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+consolidation = 0.35
+
+[relation_weights]
+max_relations = 5
+`;
+      writeFileSync(tempConfigPath, toml, 'utf-8');
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.ranking_weights.consolidation).toBe(0.35);
+    });
+
     it('loads [vector_length_decay] from TOML (#921)', () => {
       const toml = `[ranking_weights]
 alpha = 0.45
