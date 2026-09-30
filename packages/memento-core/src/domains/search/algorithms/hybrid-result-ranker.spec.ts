@@ -283,8 +283,10 @@ describe('HybridResultRanker usage signal (#1181)', () => {
       false,
       query,
     );
+    const inputs = new Map([[a.id, a], [b.id, b]]);
     for (const item of round1) {
-      item.last_accessed = new Date().toISOString();
+      const input = inputs.get(item.id);
+      if (input) input.last_accessed = new Date().toISOString();
     }
 
     const round2 = await ranker().combineAndSortResults(
