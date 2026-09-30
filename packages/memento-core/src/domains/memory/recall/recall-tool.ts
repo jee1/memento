@@ -121,23 +121,20 @@ export class RecallTool extends BaseTool {
       let validatedType = type;
       const hasMemoryTypesFilter = Array.isArray(memory_types) && memory_types.length > 0;
 
-      if (!type) {
-        if (hasMemoryTypesFilter) {
-          validatedType = 'episodic' as MemoryTypeRequest;
-        } else {
-          const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
+      // #1188: memory_types 만 준 호출은 memory_types 로 검색한다. 기본 타입은 둘 다 없을 때만.
+      if (!type && !hasMemoryTypesFilter) {
+        const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
 
-          if (!typeValidation.isValid) {
-            throw new ToolInputValidationError(typeValidation.message || "type 파라미터는 필수입니다.");
-          }
+        if (!typeValidation.isValid) {
+          throw new ToolInputValidationError(typeValidation.message || "type 파라미터는 필수입니다.");
+        }
 
-          if (typeValidation.message && (typeParamMode === 'warn' || typeParamMode === 'deprecate')) {
-            this.logWarning(typeValidation.message);
-          }
+        if (typeValidation.message && (typeParamMode === 'warn' || typeParamMode === 'deprecate')) {
+          this.logWarning(typeValidation.message);
+        }
 
-          if (typeValidation.defaultType) {
-            validatedType = typeValidation.defaultType as MemoryTypeRequest;
-          }
+        if (typeValidation.defaultType) {
+          validatedType = typeValidation.defaultType as MemoryTypeRequest;
         }
       }
 
@@ -187,12 +184,6 @@ export class RecallTool extends BaseTool {
         let filteredMemoryTypes: MemoryTypeRequest[] | undefined;
         if (validatedType) {
           filteredMemoryTypes = [validatedType];
-          if (!originalTypeProvided && memory_types && memory_types.length > 0) {
-            this.logWarning('type 파라미터가 미지정되어 기본값이 적용되었지만, memory_types도 제공되었습니다. 기본 타입을 우선 적용하고 memory_types는 무시합니다.', {
-              default_type: validatedType,
-              memory_types
-            });
-          }
         } else {
           filteredMemoryTypes = memory_types;
         }
