@@ -90,10 +90,19 @@
   --color-tab-border: #dfe3e8;
   --color-border-subtle: #eeeeee;
   --color-text-inverse: #ffffff;
+  /* #1142: state pairs (bg/text, every pair >= 7:1). Badges add a shape so state is not color-only. */
+  --color-state-ok-bg: #d1fae5;
+  --color-state-ok-text: #064e3b;
+  --color-state-warn-bg: #fef3c7;
+  --color-state-warn-text: #78350f;
+  --color-state-crit-bg: #fee2e2;
+  --color-state-crit-text: #7f1d1d;
+  --color-state-idle-bg: #e5e7eb;
+  --color-state-idle-text: #374151;
   --color-status-loading-bg: #fff8e1;
   --color-status-loading-text: #795548;
-  --color-status-error-bg: #ffebee;
-  --color-status-error-text: #c62828;
+  --color-status-error-bg: var(--color-state-crit-bg);
+  --color-status-error-text: var(--color-state-crit-text);
   --color-status-error-border: #c62828;
   --color-anchor-highlight-glow: rgba(16, 185, 129, 0.6);
   /* Quiet admin header surface (#965) — no brand-gradient identity */
@@ -159,7 +168,12 @@
   --font-size-base: 1rem;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.5rem;
-  
+  --font-size-2xl: 1.75rem;
+  --font-size-3xl: 2.125rem;
+  --font-numeric: var(--font-family-mono);
+  --line-height-tight: 1.1;
+  --line-height-base: 1.6;
+
   /* Z-index */
   --z-index-dropdown: 100;
   --z-index-sticky: 200;

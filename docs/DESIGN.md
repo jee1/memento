@@ -79,7 +79,7 @@
 - Imagery/iconography: Prefer text + color legend over emoji; SVG/status dots for slots and memory types.
 
 ## Components
-- Existing components to reuse: `.m-button` (+ `--primary|--secondary|--ghost`), `.m-input`, `.m-card`, `.m-header`, `.m-badge`, `.m-tab-bar` / `.m-tab-btn` / `.m-tab-badge`.
+- Existing components to reuse: `.m-button` (+ `--primary|--secondary|--ghost`), `.m-input`, `.m-card`, `.m-header`, `.m-badge`, `.m-tab-bar` / `.m-tab-btn` / `.m-tab-badge`. State badges: `.m-badge--ok|--warn|--crit|--idle` read `--color-state-*` pairs and add a shape (circle / square / triangle / hollow circle) so state is never color-only (#1142).
 - New/changed components (proposed):
   - `.m-toolbar` / `.m-toolbar-primary` / `.m-toolbar-more` (progressive disclosure)
   - `.m-empty`, `.m-loading`, `.m-error` (shared interaction states)
