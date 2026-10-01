@@ -11,6 +11,8 @@
 
 ### Added
 
+- **대시보드 KPI 타일 `.m-stat` 과 스파크라인 `.m-sparkline`** (#1143): 기존 `.m-metric` 은 값이 16px 이라 라벨·본문과 크기가 같아 KPI 로 쓸 수 없었습니다. `.m-stat` 은 값을 `--font-size-3xl` 과 `--font-numeric` 으로 크게 보여 주고, `.m-stat__delta--good|--bad` 로 증감이 좋은지 나쁜지를 호출부에서 정합니다. `.m-sparkline` 은 D3 없이 인라인 SVG 로 추세를 그립니다. 임베딩 상태 패널의 요약·문제 카드를 `.m-stat` 으로 옮겼고, 진단 시각은 큰 숫자가 아니라 작은 주석으로 보여 줍니다. `.m-metric` 은 조밀한 표 안에서 계속 씁니다.
+
 - **대시보드 디자인 토큰: 타입 스케일 상단·숫자 스택·상태 쌍** (#1141, #1142): `--font-size-2xl`(1.75rem)·`--font-size-3xl`(2.125rem), 숫자 전용 `--font-numeric`, `--line-height-tight`·`--line-height-base` 를 추가했습니다. 표 숫자 칸·리뷰 일괄 선택 개수·기억 통계 칩 값은 이제 `--font-numeric` 과 `tabular-nums` 를 함께 씁니다. 상태 배경·전경 쌍 `--color-state-{ok,warn,crit,idle}-{bg,text}` 는 모든 쌍이 7:1 이상입니다. `.m-badge--ok|--warn|--crit|--idle` 은 색에 더해 원·사각·삼각·빈 원 모양으로 상태를 구분합니다. 기존 `--color-status-error-bg/text` 는 `crit` 쌍의 별칭이 되어 `.m-error` 의 글자색이 조금 진해집니다(대비 4.92 → 8.20).
 
 ### Fixed
