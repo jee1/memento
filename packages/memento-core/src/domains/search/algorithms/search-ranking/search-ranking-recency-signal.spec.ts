@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -65,8 +65,8 @@ describe('recency signal scale (#1175)', () => {
 
   it('keeps newer above older at the shipped scale', () => {
     const ranking = new SearchRanking(undefined, tomlWithScale(0.3));
-    const newer = ranking.calculateRecency(new Date(Date.now() - 86_400_000), 'episodic');
-    const older = ranking.calculateRecency(new Date(Date.now() - 200 * 86_400_000), 'episodic');
+    const newer = ranking.calculateRecency(new Date(Date.now() - 86_400_000));
+    const older = ranking.calculateRecency(new Date(Date.now() - 200 * 86_400_000));
     expect(newer).toBeGreaterThan(older);
   });
 
@@ -74,10 +74,10 @@ describe('recency signal scale (#1175)', () => {
     const flat = new SearchRanking(undefined, tomlWithScale(0));
     const raw = new SearchRanking(undefined, tomlWithScale(1));
     // scale=0 flattens every age to exactly 0.5; scale=1 keeps the bare half-life curve.
-    expect(flat.calculateRecency(new Date(OLD_STAMP), 'episodic')).toBeCloseTo(0.5, 8);
-    expect(flat.calculateRecency(new Date(), 'episodic')).toBeCloseTo(0.5, 8);
-    expect(raw.calculateRecency(new Date(OLD_STAMP), 'episodic')).toBeLessThan(0.001);
-    expect(raw.calculateRecency(new Date(), 'episodic')).toBeCloseTo(1, 6);
+    expect(flat.calculateRecency(new Date(OLD_STAMP))).toBeCloseTo(0.5, 8);
+    expect(flat.calculateRecency(new Date())).toBeCloseTo(0.5, 8);
+    expect(raw.calculateRecency(new Date(OLD_STAMP))).toBeLessThan(0.001);
+    expect(raw.calculateRecency(new Date())).toBeCloseTo(1, 6);
   });
 
   async function recencyTerm(createdAt: string): Promise<number> {
@@ -125,6 +125,31 @@ describe('recency signal scale (#1175)', () => {
     // scale=1 → bare exp curve: a brand-new item keeps ~1, a 2024 item is ~0.
     expect(await recencyTerm(new Date().toISOString())).toBeCloseTo(BETA, 4);
     expect(await recencyTerm(OLD_STAMP)).toBeLessThan(BETA * 0.001);
+  });
+
+  it('fusion lane delegates recency to SearchRanking (#1178)', async () => {
+    const ranking = new SearchRanking();
+    const spy = vi.spyOn(ranking, 'calculateRecency');
+    const matcher: IProceduralMemoryMatcher = {
+      fetchProceduralMemoryMatches: () => new Map(),
+    };
+    const stubDb = {
+      prepare: () => ({ all: () => [], get: () => undefined }),
+    } as unknown as Database.Database;
+    const ranker = new HybridResultRanker(new SearchResultCombiner(), ranking, matcher, () => null);
+    await ranker.combineAndSortResults(
+      [{
+        id: 'mem_a', content: 'content', type: 'semantic', importance: 0.5,
+        created_at: OLD_STAMP, last_accessed: OLD_STAMP, pinned: false, tags: [], score: 0.5,
+      }],
+      [],
+      { textWeight: 0.7, vectorWeight: 0.3 },
+      10,
+      stubDb,
+      false,
+      { query: 'q', include_score_breakdown: true },
+    );
+    expect(spy).toHaveBeenCalledWith(new Date(OLD_STAMP));
   });
 
   it('changes ranking version when recency_signal.scale changes', () => {

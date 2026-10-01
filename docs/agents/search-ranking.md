@@ -50,7 +50,7 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale = 1`이면 raw를 그대로 쓰고, `scale = 0`이면 전 후보가 0.5로 평탄화됩니다(진단용 상한이지 운영 제안이 아님). `scale = 1`에서는 β·recency 실현 폭이 융합 relevance 폭을 덮어, 텍스트 레인이 1~5위로 올린 정답이 융합 top-10에서 전멸합니다.
 
-압축은 **텍스트 레인(`SearchRanking.calculateRecency`)과 융합 레인(`HybridResultRanker`의 private `calculateRecency`) 양쪽**에 걸어야 합니다. 융합 레인은 `SearchRanking`을 거치지 않고 자체 구현을 쓰므로 한쪽만 고치면 순위가 바뀌지 않습니다. 두 레인은 **반감기도 서로 다릅니다** — 텍스트 레인은 타입별(`semantic` 180일), 융합 레인은 30일 고정입니다. 융합 레인만 타입별로 바꾸면 `benchmark-v3` `incident_ops` MRR이 0.7143 → 0.3741로 게이트를 깨므로, 이 이슈에서는 바꾸지 않았습니다.
+압축과 반감기는 `SearchRanking.calculateRecency` **한 곳**에서 정해집니다. 융합 레인(`HybridResultRanker`)도 이 메서드로 위임합니다 (#1178 이전에는 융합 레인이 자체 구현이라 양쪽을 따로 고쳐야 했고, 반감기도 텍스트 레인만 타입별이었습니다). 반감기는 `search-ranking-signals.ts`의 `RECENCY_HALF_LIFE_DAYS = 30` 하나이고 타입과 무관합니다. 타입별 반감기(`semantic` 180일 등)를 융합에 넣으면 recency가 타입 사전확률이 되어 `benchmark-v3` `incident_ops` MRR이 0.7143 → 0.3741로 게이트를 깹니다. 타입 가산은 `getTypeBoost`가 importance에서 맡습니다.
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
 

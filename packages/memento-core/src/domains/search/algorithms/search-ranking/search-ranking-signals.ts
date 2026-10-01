@@ -7,14 +7,19 @@ import { SEARCH_RANKING } from '../../../../shared/config/constants.js';
 import { daysBetween } from '../../../../shared/utils/date.js';
 
 /**
+ * recency 반감기(일). 텍스트 레인과 융합 레인이 이 값 하나만 쓴다 (#1178).
+ * 타입별 반감기는 타입 사전확률을 한 번 더 얹어 incident/ops 정답(episodic)을 밀어낸다. 타입 가산은 getTypeBoost 가 importance 에서 맡는다.
+ */
+export const RECENCY_HALF_LIFE_DAYS = 30;
+
+/**
  * 시간에 따른 기억의 자연스러운 감쇠를 반영하여 최신 정보를 우선 제공합니다.
  * 반감기 기반 지수 감쇠를 사용하여 시간이 지날수록 점수가 감소하도록 설계했습니다.
  */
-export function calculateRecency(createdAt: Date, type: string): number {
+export function calculateRecency(createdAt: Date): number {
   const ageDays = daysBetween(new Date(), createdAt);
-  const halfLife = getHalfLife(type);
 
-  return Math.exp(-Math.log(2) * ageDays / halfLife);
+  return Math.exp(-Math.log(2) * ageDays / RECENCY_HALF_LIFE_DAYS);
 }
 
 /**
@@ -217,20 +222,6 @@ function calculateTextSimilarity(text1: string, text2: string): number {
   const union = new Set([...words1, ...words2]);
 
   return union.size > 0 ? intersection.size / union.size : 0;
-}
-
-/**
- * 메모리 타입에 따라 다른 반감기를 설정하여 타입별 특성에 맞는 감쇠 속도를 적용합니다.
- * working 메모리는 빠르게, semantic 메모리는 천천히 감쇠하도록 설계했습니다.
- */
-function getHalfLife(type: string): number {
-  switch (type) {
-    case 'working': return 2;
-    case 'episodic': return 30;
-    case 'semantic': return 180;
-    case 'procedural': return 90;
-    default: return 30;
-  }
 }
 
 /**

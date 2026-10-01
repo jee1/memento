@@ -90,8 +90,8 @@ export class SearchRanking {
     return computeRelevance(input);
   }
 
-  calculateRecency(createdAt: Date, type: string): number {
-    const raw = computeRecency(createdAt, type);
+  calculateRecency(createdAt: Date): number {
+    const raw = computeRecency(createdAt);
     const scale = getRankingWeights(this.rankingWeightsPath).recency_signal.scale;
     return applyRecencySignalScale(raw, scale);
   }
