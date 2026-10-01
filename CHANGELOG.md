@@ -9,7 +9,33 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [1.35.0] - 2026-10-01
+
+### Added
+
+- **`recall` 응답이 기각 게이트 판정을 `metadata.rejection_gate` 로 싣습니다** (#1191): `{ verdict, top_score, unscored }` 이고 `verdict` 는 `rejected`·`passed`·`fail_open`·`off` 입니다. 정상 통과, 게이트가 채점하지 못하고 통과시킨 fail-open, 기각에 따른 0건을 이제 응답만 보고 구분할 수 있습니다. 검색 동작은 바뀌지 않습니다. 후보가 0건이면 게이트를 타지 않으므로 필드가 없습니다.
+
+- **기각 게이트가 통과시킨 질의의 점수도 로그로 남깁니다** (#922): 지금까지는 기각할 때만 `topScore` 를 남겨서, 무관 질의가 통과해도 무엇이 임계값을 넘겼는지 알 수 없었습니다. 통과 경로에도 후보별 점수를 남겨 임계값을 교정할 수 있는 분포를 얻습니다.
+
 ### Fixed
+
+- **relation 가중치가 관계 수에 단조로 커지고, 기본 ζ 는 0 입니다** (#1185): `calculateRelationWeight` 가 confidence 평균을 `min(n, max_relations)` 로 **나눠서**, 관계가 적을수록 가중치가 컸습니다. 이제 평균에 `min(n, max_relations) / max_relations` 를 곱하는 커버리지 비율 식이라 관계 수에 단조 증가하고 `max_relations` 이상에서 포화합니다. `[ranking_weights].zeta` 기본값은 0.15 → 0 입니다. 운영 질의 `고성 왕곡마을 클리핑` 에서 관계 12개짜리 비정답이 4위였는데, 배포 후 정답이 1~4위입니다. **검색 순위가 바뀝니다.**
+
+- **융합 relevance 신호의 폭을 넓혀 관련성이 composite 을 정합니다** (#1180): 융합 레인 relevance 가 좁은 폭에 몰려 `β·recency + γ·importance` 합이 관련성 순서를 뒤집었습니다. `config/ranking-weights.toml` 에 `[relevance_signal].scale`(기본 `2.0`)을 두고 `0.5 + (raw − 0.5) × scale` 로 넓힙니다. 2.5 부터는 관련 후보가 상한 1.0 에 붙어 동점이 되며 `benchmark-v3 incident_ops` 가 무너집니다(2.5 → 0.5918, 3.0 → 0.3954). 운영 재현 질의는 0/5 → 4/5 입니다. **검색 순위가 바뀝니다.**
+
+- **융합 레인 usage 가 접근 시각을 읽지 않습니다** (#1181): 융합 레인 `usage` 는 사용 빈도가 아니라 `last_accessed` 를 읽고 있었습니다. 그 값은 망각 리뷰 배치가 한 번에 수천 건씩 찍은 시각이거나, `recall`·`memory_injection` 이 반환한 후보마다 now 로 갱신한 시각이었습니다. 그래서 검색할 때마다 같은 결과가 더 올라가는 자기강화가 생겼습니다. 텍스트 레인과 같은 상수로 맞춥니다. **검색 순위가 바뀝니다.**
+
+- **`consolidation_score` 블렌드를 기본으로 끕니다** (#1184): relevance 에 `0.2 × consolidation_score` 를 섞는 코드 상수가 있었는데, 그 점수를 `recall`·주입 경로가 검색할 때마다 갱신해 자기강화 루프가 됐습니다. 가중치를 `[ranking_weights].consolidation`(기본 0, 상한 0.4)으로 TOML 에 올리고 기본값을 0 으로 했습니다. 텍스트·융합 두 레인 공통입니다.
+
+- **recency 반감기가 두 레인에서 30일 하나입니다** (#1178): 텍스트 레인은 타입별 반감기(working 2 / episodic 30 / semantic 180 / procedural 90일)였고 융합 레인은 30일 고정이었습니다. `RECENCY_HALF_LIFE_DAYS = 30` 한 곳으로 통일하고 융합 레인은 `SearchRanking.calculateRecency` 에 위임합니다. 타입별 반감기를 융합에 넣으면 `benchmark-v3 incident_ops` MRR 이 0.7143 → 0.3741 로 게이트를 깹니다. 망각 정책의 반감기는 별개입니다.
+
+- **길이 감쇠가 포화 길이 이상에서 1 이 됩니다** (#921): `len/(len+k)` 곡선이 어디서도 1 에 닿지 않아, 임베딩 아티팩트가 없는 40~200자 문서까지 계속 벌점을 받았습니다. 운영에서 FTS 상위 1~5위가 전부 정답(49~70자)인 질의가 최종 0건이 된 원인입니다. `[vector_length_decay].saturation_length`(기본 80)를 두고 `min(1, base/norm)` 으로 이 길이 이상을 감쇠 없이 둡니다. **검색 순위가 바뀝니다.**
+
+- **`recall` 에 `type` 없이 `memory_types` 만 주면 그 타입들로 검색합니다** (#1188): 지금까지는 `episodic` 으로 강제되고 `memory_types` 는 버려졌습니다. `type` 과 `memory_types` 를 함께 주면 지금처럼 `type` 이 우선합니다.
+
+- **`job_run` 성공 실행을 잡별 최신 3000건만 남깁니다** (#1199): 30·60초 주기 하트비트 잡 3종이 운영 `job_run` 161,336행의 87% 를 차지했고, 90일 보존 규칙은 테이블이 25일 차라 한 번도 지운 적이 없었습니다. `job_run_cleanup_batch` 가 90일 보존 뒤에 잡별 성공 실행 상한을 한 번 더 적용합니다. 실패 실행은 90일 규칙만 따르고, `job_run_log` 는 FK cascade 로 같이 지워집니다.
+
+- **`@jee1/memento-client` 0.1.2 — `ContextInjector` 가 서버 순서를 뒤집지 않습니다** (#1182): `compressMemories` 가 `(scoreB + a.importance) − (scoreA + b.importance)` 라는 비추이적 비교자로 재정렬해, 서버가 `finalScore` 순으로 보낸 결과를 raw importance 로 다시 덮었습니다. 호출자 배열도 제자리에서 바꿨습니다. 정렬을 없애고 서버 순서 그대로 토큰 예산만 자릅니다. #1177 과 같은 선택입니다. `@jee1/memento-assistant` 도 0.1.2 로 올려 이 client(`^0.1.2`)를 하한으로 씁니다.
 
 - **`memory_injection` 이 엔진 순위를 raw importance 로 뒤집지 않습니다** (#1177): `knowledge-context-bundle-builder` 가 하이브리드 엔진의 `finalScore` 위에 raw `importance` 컬럼을 계수 1.0 으로 더해 **재정렬**하고 있었습니다. 운영 코퍼스 10,535건·질의 `고성 왕곡마을 클리핑` 실측에서 `finalScore` 실현 폭은 0.068 인데 raw `importance` 폭은 0.55 로 **8배**여서, 순서를 importance 가 정하고 `finalScore` 는 타이브레이커로 전락합니다. `finalScore` 는 이미 `γ·importance` 를 포함하고 #1082 가 `[importance_signal].scale = 0.35` 로 그 기여를 최대 `0.20 × 0.35 = 0.07` 로 눌러 놨으므로, 공식 바깥의 이 덧셈은 **이중 계산이면서 압축을 무효화**합니다. 요약 단계의 재정렬을 없애고 엔진 순위를 그대로 쓰며, 중복 그룹의 대표 선택(`#1137`)도 같은 기준으로 `finalScore` 비교로 맞췄습니다. 동일 후보 풀에서 정렬 키만 바꿔 잰 결과 정답은 **2/5(4·5위, topMemoryId 비정답) → 5/5(1~5위, topMemoryId 정답)** 입니다. `tests/fixtures/agent-memory-benchmark` 의 injection 벤치는 이 결함에 무감합니다(`fixed_item`/`fixed_token` gold fraction 0.75/0.75 로 before·after 동일) — 회귀 감시용으로만 씁니다. **주입 응답의 순서와 선택이 바뀝니다.**
 
@@ -24,6 +50,12 @@
 - **배포판 사용자가 `048`·`049` 가 남긴 stale 임베딩을 갱신할 수 있습니다** (#1155): 두 마이그레이션은 `memory_item.content` 를 고치지만 임베딩은 다시 만들지 않습니다 — 임베딩 모델을 마이그레이션 트랜잭션 안에서 로드하면 서버 시작이 블록되고 쓰기 락이 길게 잡히기 때문입니다. 그런데 갱신 수단인 `npm run reindex-embeddings`(tsx)·`regenerate:embeddings`(`scripts/regenerate-embeddings.js`)가 **둘 다 발행 tarball 밖**이라, 그 행들은 옛 본문 기준으로 벡터 검색에 걸린 채 남았습니다(FTS 는 트리거로 갱신돼 정확합니다). 이제 진입점이 `packages/memento-server/src/scripts/reindex-embeddings.ts` 로 들어가 `dist/scripts/reindex-embeddings.js` 로 배포됩니다 — `dist` 는 이미 `files` 에 있으므로 `node dist/scripts/reindex-embeddings.js` 로 실행할 수 있습니다(`check-migration-status` 와 같은 방식). 컨테이너에서는 `packages/memento-server/dist/scripts/reindex-embeddings.js` 입니다. `tests/shipped-embedding-reindex.spec.ts` 가 배포 도달과 두 마이그레이션의 임베딩 비의존을 고정합니다.
 
 - **재색인 스크립트가 끝나면 서비스를 내립니다** (#1155): `createMementoCore` 가 띄운 배치 스케줄러·reflexion 워커를 아무도 멈추지 않아, 재색인이 정상 완료한 뒤에도 프로세스가 살아남아 이미 닫힌 DB 에 매분 붙었습니다(`job_run append failed (soft-fail) … "error": "The database connection is not open"`). 실측에서 재색인 자체는 끝났는데 540초 timeout 으로 강제 종료됐습니다. 이미 export 돼 있던 `shutdownServices` 를 `finally` 에서 호출합니다. 개발 DB 사본(77건) 실측: `exit=0`, 308초, 닫힌 DB 접근 로그 **0건**. 저장소용 `scripts/reindex-embeddings.ts` 에도 같은 결함이 있어 함께 고쳤습니다. **서비스가 내려간 뒤에도 프로세스가 남는 별도 원인이 있습니다 — #1165 에서 다룹니다.** 이 항목이 그 원인을 「운영 규모에서만 난다」고 적었던 것은 #1165 재측정에서 틀린 것으로 드러났습니다 — 50건에서도 납니다.
+
+### Security
+
+- **`@jee1/memento-client` 의 `axios` 하한을 `^1.20.0` 으로 올립니다** (#1197): 1.0.0–1.19.0 범위의 권고 12건(GHSA-vh66-26gq-q6x8 외)입니다. SDK 의 HTTP 전송(`http-transport.ts`)이 axios 를 써서 실제 도달 경로이므로, lockfile 만이 아니라 하한을 올려 설치하는 사용자도 패치본을 받게 했습니다.
+
+- **`ip-address` 를 권고 패치본으로 올립니다** (#1171): 권고가 지목한 `Address6.isLinkLocal()`·NAT64 분류기는 이 저장소의 코드 경로에 없어 노출은 없습니다. `Security Check` 게이트를 정책대로 되돌리는 범프입니다.
 
 ## [1.34.0] - 2026-09-28
 
