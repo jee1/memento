@@ -8,6 +8,11 @@ import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/utils/logger.js';
 
+/**
+ * Issue #1199: successful runs kept per job. 3000 covers more than 24 h of a 30 s heartbeat.
+ */
+export const JOB_RUN_SUCCESS_KEEP_PER_JOB = 3000;
+
 export interface JobRunCleanupBatchJobDeps {
   db: Database.Database;
   repository: JobRunRepository;
@@ -37,11 +42,23 @@ export class JobRunCleanupBatchJob {
         n => n >= 1,
         '최솟값 1',
       );
-      const deleted = this.deps.repository.deleteExpired(this.deps.db, retentionDays);
+      const expired = this.deps.repository.deleteExpired(this.deps.db, retentionDays);
+      const excessSuccess = this.deps.repository.deleteExcessSuccessRuns(
+        this.deps.db,
+        JOB_RUN_SUCCESS_KEEP_PER_JOB,
+      );
+      const deleted = expired + excessSuccess;
+      const details = {
+        retentionDays,
+        successKeepPerJob: JOB_RUN_SUCCESS_KEEP_PER_JOB,
+        expired,
+        excessSuccess,
+        deleted,
+      };
       result.success = true;
       result.processed = deleted;
-      result.details = { retentionDays, deleted };
-      logger.info('job_run_cleanup_batch completed', { retentionDays, deleted });
+      result.details = details;
+      logger.info('job_run_cleanup_batch completed', details);
     } catch (e) {
       result.errors.push(e instanceof Error ? e.message : String(e));
       logger.warn('job_run_cleanup_batch failed', {
