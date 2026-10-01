@@ -268,8 +268,8 @@ describe('relation-recall-candidate-expansion (#959)', () => {
       insertMemory(db, { id: 'strong-mid', content: 'strong mid' });
       insertMemory(db, { id: 'target', content: 'target' });
 
-      void relationGraph.addRelation('seed', 'weak-mid', 'FOLLOWS', { confidence: 0.1 });
-      void relationGraph.addRelation('weak-mid', 'target', 'FOLLOWS', { confidence: 0.9 });
+      void relationGraph.addRelation('seed', 'weak-mid', 'FOLLOWS', { confidence: 0.95 });
+      void relationGraph.addRelation('weak-mid', 'target', 'FOLLOWS', { confidence: 0.1 });
       void relationGraph.addRelation('seed', 'strong-mid', 'FOLLOWS', { confidence: 0.9 });
       void relationGraph.addRelation('strong-mid', 'target', 'FOLLOWS', { confidence: 0.9 });
     });
