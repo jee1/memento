@@ -44,11 +44,11 @@ curl http://localhost:9001/health
 
 ## 컨테이너 메모리 상한 (선택)
 
-Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다. `docker/docker-compose.mem-limits.yml`로 서비스별 cgroup 상한을 둡니다.
+`memento-mcp-server`의 상한은 `docker-compose.yml`에 들어 있어 `npm run docker:up`만으로 적용됩니다(기본 `1g`, `.env`의 `MEMENTO_MCP_MEM_LIMIT`로 조절). #1199 이전에는 overlay에만 있어 운영에 한 번도 적용되지 않았습니다. monitor·diagnostics 상한은 `docker/docker-compose.mem-limits.yml` overlay로 둡니다(Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다).
 
 | 기본값 | 서비스 |
 | --- | --- |
-| `768m` | `memento-mcp-server` |
+| `1g` | `memento-mcp-server` (`docker-compose.yml`) |
 | `256m` | `log-issue-monitor` |
 | `128m` | `docker-diagnostics` |
 
@@ -60,7 +60,9 @@ docker compose -p "${COMPOSE_PROJECT_NAME:-memento}" \
   -f docker/docker-compose.mem-limits.yml up -d
 ```
 
-`.env` 예: `MEMENTO_MCP_MEM_LIMIT=512m`, `LOG_ISSUE_MONITOR_MEM_LIMIT=192m`. OOM이면 올리고, 여유가 크면 monitor/diagnostics부터 내립니다. 진단·monitor 전체 스택은 [Log Issue Monitor 운영 가이드](ko/log-issue-monitor.md)를 참고하세요.
+MCP를 `1g`로 정한 근거(#1199, 운영 DB 사본 측정): MiniLM tokenizer·ONNX 등 native 고정분이 약 330MB이고, Node 24는 cgroup 상한에 맞춰 V8 heap 상한을 정합니다(768m → 432MB, 1g → 560MB). 768m은 측정한 모든 부하(recall·remember·triple 추출·배치 동시)에서 OOM 없이 버텼지만(anon 최대 673MB), heap이 상한까지 차면 native와 합친 값이 cgroup 상한에 닿습니다. 1g는 이론상 최대치(≈890MB)에도 여유가 남습니다. 메모리 압력 알림(`PERF_MEMORY_WARN_PERCENT`)의 분자는 RSS가 아니라 `RssAnon`입니다 — RSS에는 SQLite mmap(최대 256MB) 같은 회수 가능한 파일 페이지가 들어 있어 상한 아래에서 상시 90%를 넘깁니다.
+
+`.env` 예: `MEMENTO_MCP_MEM_LIMIT=1280m`, `LOG_ISSUE_MONITOR_MEM_LIMIT=192m`. OOM이면 올리고, 여유가 크면 monitor/diagnostics부터 내립니다. 진단·monitor 전체 스택은 [Log Issue Monitor 운영 가이드](ko/log-issue-monitor.md)를 참고하세요.
 
 ```bash
 docker stats --no-stream
