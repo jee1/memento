@@ -79,7 +79,7 @@
 - Imagery/iconography: Prefer text + color legend over emoji; SVG/status dots for slots and memory types.
 
 ## Components
-- Existing components to reuse: `.m-button` (+ `--primary|--secondary|--ghost`), `.m-input`, `.m-card`, `.m-header`, `.m-badge`, `.m-tab-bar` / `.m-tab-btn` / `.m-tab-badge`. State badges: `.m-badge--ok|--warn|--crit|--idle` read `--color-state-*` pairs and add a shape (circle / square / triangle / hollow circle) so state is never color-only (#1142).
+- Existing components to reuse: `.m-button` (+ `--primary|--secondary|--ghost`), `.m-input`, `.m-card`, `.m-header`, `.m-badge`, `.m-tab-bar` / `.m-tab-btn` / `.m-tab-badge`. State badges: `.m-badge--ok|--warn|--crit|--idle` read `--color-state-*` pairs and add a shape (circle / square / triangle / hollow circle) so state is never color-only (#1142). KPI tiles: `.m-stat` (`__label` / `__value` / `__note` / `__delta--good|--bad`) in `.m-stat-grid`, with `.m-sparkline` for inline-SVG trends (`role="img"` + `aria-label`); `.m-metric` stays for dense in-table use (#1143).
 - New/changed components (proposed):
   - `.m-toolbar` / `.m-toolbar-primary` / `.m-toolbar-more` (progressive disclosure)
   - `.m-empty`, `.m-loading`, `.m-error` (shared interaction states)
