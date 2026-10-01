@@ -102,7 +102,7 @@ export function applyRanking(
         });
 
       const createdAt = row.created_at instanceof Date ? row.created_at : new Date(row.created_at);
-      const recency = ranking.calculateRecency(createdAt, row.type);
+      const recency = ranking.calculateRecency(createdAt);
 
       const importance = ranking.calculateImportance(
         row.importance,

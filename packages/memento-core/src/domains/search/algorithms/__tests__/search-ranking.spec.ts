@@ -295,7 +295,7 @@ describe('SearchRanking', () => {
   describe('calculateRecency', () => {
     it('최근 생성된 메모리의 높은 최근성', () => {
       const recentDate = new Date(Date.now() - DAY_MS); // 1일 전
-      const recency = ranking.calculateRecency(recentDate, 'episodic');
+      const recency = ranking.calculateRecency(recentDate);
       
       // raw=0.97716, default recency_signal.scale=0.30 → 0.64315 (#1175)
       expect(recency).toBeCloseTo(0.64315, 4);
@@ -303,22 +303,16 @@ describe('SearchRanking', () => {
 
     it('오래된 메모리의 낮은 최근성', () => {
       const oldDate = new Date(Date.now() - 365 * DAY_MS); // 1년 전
-      const recency = ranking.calculateRecency(oldDate, 'episodic');
+      const recency = ranking.calculateRecency(oldDate);
       
       // raw≈0.00022, default recency_signal.scale=0.30 → 0.35007 (#1175)
       expect(recency).toBeCloseTo(0.35007, 4);
     });
 
-    it('메모리 타입별 반감기 테스트', () => {
-      const baseDate = new Date(Date.now() - 10 * DAY_MS); // 10일 전
-      
-      const workingRecency = ranking.calculateRecency(baseDate, 'working');
-      const episodicRecency = ranking.calculateRecency(baseDate, 'episodic');
-      const semanticRecency = ranking.calculateRecency(baseDate, 'semantic');
-      
-      // working < episodic < semantic (반감기가 길수록 최근성이 높음)
-      expect(workingRecency).toBeLessThan(episodicRecency);
-      expect(episodicRecency).toBeLessThan(semanticRecency);
+    it('반감기는 타입과 무관하게 30일이다 (#1178)', () => {
+      // raw=0.5 at exactly one half-life; scale compresses around 0.5 so 0.5 stays 0.5.
+      const recency = ranking.calculateRecency(new Date(Date.now() - 30 * DAY_MS));
+      expect(recency).toBeCloseTo(0.5, 3);
     });
   });
 
