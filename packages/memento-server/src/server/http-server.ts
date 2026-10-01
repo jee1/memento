@@ -28,6 +28,7 @@ import { existsSync, readFileSync } from 'fs';
 import helmet from 'helmet';
 import { createServer, type Server } from 'http';
 import { createRequire } from 'module';
+import { optionalEnvNumber } from './optional-env-number.js';
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import {
@@ -294,7 +295,6 @@ function createContextInjectionService(
   database: Database.Database,
   services: ServerServices,
 ): AgentContextInjectionService {
-  const injectionTimeoutMs = Number(process.env.MEMENTO_AGENT_INJECTION_TIMEOUT_MS);
   return new AgentContextInjectionService({
     recallService: new AgentContextRecallService({
       sources: [
@@ -304,15 +304,11 @@ function createContextInjectionService(
         }),
       ],
     }),
-    timeoutMs: Number.isFinite(injectionTimeoutMs) ? injectionTimeoutMs : undefined,
+    timeoutMs: optionalEnvNumber('MEMENTO_AGENT_INJECTION_TIMEOUT_MS'),
   });
 }
 
 function createAllRouters(database: Database.Database, services: ServerServices): void {
-  const retentionDays = Number(process.env.MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS);
-  const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
-  const initialInjectionTokenBudget = Number(process.env.MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET);
-
   toolsRouter = createToolsRouter(database, services);
 
   // 재초기화 시 리스너가 쌓이지 않도록 이전 구독을 먼저 끊는다 (#866)
@@ -336,10 +332,10 @@ function createAllRouters(database: Database.Database, services: ServerServices)
   const qualityRouter = createQualityRouter(database);
   const maintenanceRouter = createMaintenanceRouter(database, services);
   const agentRouter = createAgentRouter(database, {
-    retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
-    abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
+    retentionDays: optionalEnvNumber('MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS'),
+    abandonedTtlMs: optionalEnvNumber('MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS'),
     contextInjectionService: createContextInjectionService(database, services),
-    initialInjectionTokenBudget: Number.isFinite(initialInjectionTokenBudget) ? initialInjectionTokenBudget : undefined,
+    initialInjectionTokenBudget: optionalEnvNumber('MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET'),
     serverServices: services,
   });
 
