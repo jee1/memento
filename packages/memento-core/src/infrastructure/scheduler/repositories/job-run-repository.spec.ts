@@ -132,6 +132,33 @@ describe('JobRunRepository', () => {
     expect(deleted).toBe(1);
     expect(repo.list(db, {})).toHaveLength(1);
   });
+
+  it('deleteExcessSuccessRuns() keeps the newest N successes per job and never deletes failures (#1199)', () => {
+    const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+    const add = (job_name: string, minutesAgo: number, success: boolean) =>
+      repo.append(db, {
+        job_name,
+        trigger: 'schedule',
+        started_at: at(minutesAgo),
+        ended_at: at(minutesAgo),
+        success,
+        duration_ms: 1,
+      });
+    for (let m = 1; m <= 5; m++) add('heartbeat', m, true);
+    add('heartbeat', 10, false);
+    add('daily', 1, true);
+    add('daily', 2, true);
+
+    const deleted = repo.deleteExcessSuccessRuns(db, 3);
+
+    expect(deleted).toBe(2);
+    const heartbeat = repo.list(db, {}).filter(r => r.job_name === 'heartbeat');
+    expect(heartbeat.filter(r => r.success)).toHaveLength(3);
+    expect(heartbeat.filter(r => !r.success)).toHaveLength(1);
+    const oldestKept = heartbeat.filter(r => r.success).map(r => r.started_at).sort()[0];
+    expect(oldestKept > at(3.5)).toBe(true);
+    expect(repo.list(db, {}).filter(r => r.job_name === 'daily')).toHaveLength(2);
+  });
 });
 
 describe('appendJobRunSafe', () => {

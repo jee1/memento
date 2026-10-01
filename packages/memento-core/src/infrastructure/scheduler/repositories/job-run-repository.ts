@@ -114,6 +114,25 @@ export class JobRunRepository {
     return result.changes;
   }
 
+  /**
+   * Issue #1199: keep only the newest `keepPerJob` successful runs of each job.
+   * Heartbeat jobs (30–60 s) otherwise dominate the table long before the age cutoff.
+   * Failed runs are never removed here — only by `deleteExpired`.
+   */
+  deleteExcessSuccessRuns(db: Database.Database, keepPerJob: number): number {
+    const result = DatabaseUtils.run(
+      db,
+      `DELETE FROM job_run WHERE id IN (
+         SELECT id FROM (
+           SELECT id, ROW_NUMBER() OVER (PARTITION BY job_name ORDER BY started_at DESC, id DESC) AS rn
+             FROM job_run WHERE success = 1
+         ) WHERE rn > ?
+       )`,
+      [keepPerJob],
+    );
+    return result.changes;
+  }
+
   aggregateFailedDurationSince(db: Database.Database, sinceIso: string): JobRunImpactAggregate {
     const failed = db
       .prepare(

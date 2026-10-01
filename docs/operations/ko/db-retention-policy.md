@@ -8,13 +8,21 @@
 |---|---|---|---|
 | `memory_forgetting_event` | 90일 | `FORGETTING_EVENT_RETENTION_DAYS` | `forgetting_event_cleanup_batch` |
 | `telemetry_events` | 90일 | `TELEMETRY_RETENTION_DAYS` | `telemetry_cleanup_batch` |
-| `job_run` | 90일 | `JOB_RUN_RETENTION_DAYS` | `job_run_cleanup_batch` |
+| `job_run` | 90일 + 잡별 성공 실행 최신 3000건 | `JOB_RUN_RETENTION_DAYS` | `job_run_cleanup_batch` |
 | `quality_measurement_history` | 90일 | `QUALITY_MEASUREMENT_HISTORY_RETENTION_DAYS` | `quality_measurement_batch` 안에서 정리 |
 | `audit_log` | **지우지 않습니다** | — | 없음 — [아래 이유](#audit_log-을-지우지-않는-이유) |
 
 네 잡 모두 배치 스케줄러에 등록되어 있고, 실행 기록은 `job_run` 테이블에 남습니다.
 
 `quality_measurement_history` 만 전용 cleanup 잡이 아니라 측정 배치 안에서 정리합니다. 이 테이블의 유일한 기록자가 그 배치이고, DELETE 한 줄 때문에 스케줄러 등록 지점을 여섯 군데 더 만들 이유가 없기 때문입니다.
+
+## job_run 성공 실행 상한
+
+`job_run` 은 나이만으로는 줄지 않습니다. 30초·60초 주기 하트비트 잡(`reflexion_healthcheck`·`lock_monitor`·`reflexion_cleanup`)이 하루 수천 행씩 쌓기 때문입니다. 2026-10-01 운영 DB 에서 `job_run` 161,336행 중 87% 가 이 3종의 성공·무처리 실행이었고, 테이블이 생긴 지 25일이라 90일 규칙은 한 번도 지운 적이 없었습니다(#1199).
+
+그래서 `job_run_cleanup_batch` 는 90일 정리 뒤에 **잡마다 성공 실행을 최신 3000건만 남깁니다**(`JOB_RUN_SUCCESS_KEEP_PER_JOB`). 3000건은 30초 하트비트의 25시간 분량이고, 일 단위 잡에는 사실상 90일 규칙만 적용됩니다. 실패 실행은 이 상한으로 지우지 않습니다. `job_run_log` 는 FK `ON DELETE CASCADE` 로 함께 지워집니다.
+
+운영 DB 사본에서 첫 정리는 1.2초에 `job_run` 161,336 → 22,349행, `job_run_log` 321,586 → 44,582행이었고, 이어서 `VACUUM` 하면 파일이 420 MB → 282 MB 로 줄었습니다. Admin status 의 `batchImpact.successRunCount`(30일 창)는 하트비트 성공 횟수가 상한만큼만 집계됩니다.
 
 ## 실행 확인
 
