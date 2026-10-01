@@ -9,7 +9,6 @@ import {
   memoryPassesRecallScopeFilters,
   memoryPassesTraversalBoundary,
   RELATION_RECALL_EXPANSION_LIMITS,
-  relationRecallHopDecay,
 } from './relation-recall-candidate-expansion.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
@@ -71,14 +70,6 @@ function insertMemory(
 }
 
 describe('relation-recall-candidate-expansion (#959)', () => {
-  describe('relationRecallHopDecay', () => {
-    it('applies explicit 0.5^hop decay', () => {
-      expect(relationRecallHopDecay(0)).toBe(1);
-      expect(relationRecallHopDecay(1)).toBe(0.5);
-      expect(relationRecallHopDecay(2)).toBe(0.25);
-    });
-  });
-
   describe('discoverRelationRecallCandidates', () => {
     let db: Database.Database;
     let relationGraph: ReturnType<typeof createRelationGraph>;
@@ -108,13 +99,12 @@ describe('relation-recall-candidate-expansion (#959)', () => {
     it('respects max seeds, hops, and additions', async () => {
       const seeds = ['seed1', 'seed2', 'seed3', 'seed4', 'seed5', 'seed6'];
       const existing = new Set(seeds);
-      const { additions: discovered } = await discoverRelationRecallCandidates(
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         seeds,
         existing,
-        undefined,
-        'plain'
+        undefined
       );
 
       expect(discovered.length).toBeLessThanOrEqual(RELATION_RECALL_EXPANSION_LIMITS.maxAdditions);
@@ -124,68 +114,28 @@ describe('relation-recall-candidate-expansion (#959)', () => {
     });
 
     it('does not loop on cycles', async () => {
-      const { additions: discovered } = await discoverRelationRecallCandidates(
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         ['cycleB'],
         new Set(['cycleB']),
-        undefined,
-        'plain'
+        undefined
       );
       expect(discovered.length).toBeLessThanOrEqual(RELATION_RECALL_EXPANSION_LIMITS.maxAdditions);
       expect(discovered.map((item) => item.memory_id)).toEqual(['cycleC']);
     });
 
     it('caps hub fan-out via max additions', async () => {
-      const { additions: discovered } = await discoverRelationRecallCandidates(
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         ['seed2', 'seed3', 'seed4', 'seed5', 'seed6'],
         new Set(['seed2', 'seed3', 'seed4', 'seed5', 'seed6']),
-        undefined,
-        'plain'
+        undefined
       );
       expect(discovered.length).toBeLessThanOrEqual(RELATION_RECALL_EXPANSION_LIMITS.maxAdditions);
     });
 
-    it('weighted mode assigns hop-decayed propagated weights', async () => {
-      const { additions: discovered } = await discoverRelationRecallCandidates(
-        db,
-        relationGraph,
-        ['seed1'],
-        new Set(['seed1']),
-        undefined,
-        'weighted'
-      );
-      const target = discovered.find((item) => item.memory_id === 'target');
-      expect(target).toBeDefined();
-      expect(target!.hop_distance).toBe(2);
-      expect(target!.propagated_weight).toBeCloseTo(0.9 * 0.9 * relationRecallHopDecay(2), 5);
-    });
-
-    it('plain vs weighted produce different propagated weights for the same target', async () => {
-      const plain = await discoverRelationRecallCandidates(
-        db,
-        relationGraph,
-        ['seed1'],
-        new Set(['seed1']),
-        undefined,
-        'plain'
-      );
-      const weighted = await discoverRelationRecallCandidates(
-        db,
-        relationGraph,
-        ['seed1'],
-        new Set(['seed1']),
-        undefined,
-        'weighted'
-      );
-      const plainTarget = plain.additions.find((item) => item.memory_id === 'target');
-      const weightedTarget = weighted.additions.find((item) => item.memory_id === 'target');
-      expect(plainTarget?.propagated_weight).toBe(0);
-      expect(weightedTarget?.propagated_weight ?? 0).toBeGreaterThan(0);
-      expect(weighted.propagatedWeights.get('target') ?? 0).toBeGreaterThan(0);
-    });
   });
 
   describe('owner/project scope isolation', () => {
@@ -214,13 +164,12 @@ describe('relation-recall-candidate-expansion (#959)', () => {
       expect(memoryPassesTraversalBoundary(db, 'bridge', filters)).toBe(false);
       expect(memoryPassesRecallScopeFilters(db, 'bridge', filters)).toBe(false);
 
-      const { additions: discovered } = await discoverRelationRecallCandidates(
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         ['seed'],
         new Set(['seed']),
-        filters,
-        'plain'
+        filters
       );
       expect(discovered.some((item) => item.memory_id === 'bridge')).toBe(false);
       expect(discovered.some((item) => item.memory_id === 'target')).toBe(false);
@@ -253,13 +202,12 @@ describe('relation-recall-candidate-expansion (#959)', () => {
       expect(memoryPassesTraversalBoundary(db, 'bridge', filters)).toBe(true);
       expect(memoryPassesRecallScopeFilters(db, 'bridge', filters)).toBe(false);
 
-      const { additions: discovered } = await discoverRelationRecallCandidates(
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         ['seed'],
         new Set(['seed']),
-        filters,
-        'plain'
+        filters
       );
       expect(discovered.some((item) => item.memory_id === 'bridge')).toBe(false);
       expect(discovered.some((item) => item.memory_id === 'target')).toBe(true);
@@ -293,13 +241,12 @@ describe('relation-recall-candidate-expansion (#959)', () => {
       expect(memoryPassesTraversalBoundary(db, 'deleted-bridge', undefined)).toBe(false);
       expect(memoryPassesRecallScopeFilters(db, 'deleted-target', undefined)).toBe(false);
 
-      const { additions: discovered } = await discoverRelationRecallCandidates(
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         ['seed'],
         new Set(['seed']),
-        undefined,
-        'plain'
+        undefined
       );
       expect(discovered.some((item) => item.memory_id === 'deleted-bridge')).toBe(false);
       expect(discovered.some((item) => item.memory_id === 'deleted-target')).toBe(false);
@@ -331,20 +278,17 @@ describe('relation-recall-candidate-expansion (#959)', () => {
       db.close();
     });
 
-    it('keeps the better propagated confidence when a weaker route is discovered first', async () => {
-      const { additions: discovered, propagatedWeights } = await discoverRelationRecallCandidates(
+    it('keeps the higher path confidence when a weaker route is discovered first', async () => {
+      const discovered = await discoverRelationRecallCandidates(
         db,
         relationGraph,
         ['seed'],
         new Set(['seed']),
-        undefined,
-        'weighted'
+        undefined
       );
       const target = discovered.find((item) => item.memory_id === 'target');
       expect(target).toBeDefined();
       expect(target!.path_confidence).toBeCloseTo(0.9 * 0.9, 5);
-      expect(target!.propagated_weight).toBeCloseTo(0.9 * 0.9 * relationRecallHopDecay(2), 5);
-      expect(propagatedWeights.get('target')).toBeCloseTo(0.9 * 0.9 * relationRecallHopDecay(2), 5);
     });
   });
 

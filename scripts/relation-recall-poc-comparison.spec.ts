@@ -21,10 +21,9 @@ describe('relation-recall-poc-comparison (#959)', () => {
     const rows: RelationPocComparisonRow[] = [
       { mode: 'off', query: 'q1', mrr: 0.5, recall_at_10: 1, first_relevant_rank: 2, latency_ms: 10 },
       { mode: 'plain', query: 'q1', mrr: 1, recall_at_10: 1, first_relevant_rank: 1, latency_ms: 12 },
-      { mode: 'weighted', query: 'q1', mrr: 1, recall_at_10: 1, first_relevant_rank: 1, latency_ms: 13 },
     ];
     const summaries = summarizeRows(rows);
-    expect(summaries).toHaveLength(3);
+    expect(summaries).toHaveLength(2);
     expect(formatComparisonTable(rows)).toContain('mode | query | MRR');
     expect(formatSummaryTable(summaries)).toContain('mean_MRR');
   });
@@ -49,7 +48,7 @@ describe('relation-recall-poc-comparison (#959)', () => {
     });
 
     async function searchWithMode(
-      mode: 'off' | 'plain' | 'weighted' | undefined,
+      mode: 'off' | 'plain' | undefined,
       query: string,
       limit = 10
     ) {
@@ -70,18 +69,6 @@ describe('relation-recall-poc-comparison (#959)', () => {
       expect(off.items.map((item) => item.id)).toEqual(unset.items.map((item) => item.id));
     });
 
-    it('weighted mode does not regress rq_001 shallow-gap decision rank', async () => {
-      const query = 'pagination 중복 항목 문제';
-      const baseline = await searchWithMode('off', query);
-      const weighted = await searchWithMode('weighted', query);
-      const decisionId = 'relpoc_dec_000001';
-      const baselineRank = baseline.items.findIndex((item) => item.id === decisionId);
-      const weightedRank = weighted.items.findIndex((item) => item.id === decisionId);
-      expect(baselineRank).toBeGreaterThan(0);
-      expect(weightedRank).toBeGreaterThanOrEqual(0);
-      expect(weightedRank).toBeLessThanOrEqual(baselineRank);
-    });
-
     it('plain expansion adds absent relation candidates for rq_001', async () => {
       const query = 'pagination 중복 항목 문제';
       const baseline = await searchWithMode('off', query);
@@ -90,33 +77,18 @@ describe('relation-recall-poc-comparison (#959)', () => {
       expect(new Set(plain.items.map((item) => item.id)).size).toBe(plain.items.length);
     });
 
-    it('weighted mode matches plain for rq_002 under the default zeta = 0 (#1185)', async () => {
-      // #1185: 전파 가중치는 ζ·relation_weight 로만 점수에 실린다. 기본 ζ = 0 이면 weighted 는 plain 과 순위·점수가 같다.
-      // ζ = 0.15 로 되돌려도 #1185 식에서는 관계 많은 cyc/try 노드가 더 올라 decision 이 plain 8위 → weighted 10위로 내려간다. POC 재조정은 후속 이슈.
-      const query = '임베딩 타임아웃이 잦다';
-      const plain = await searchWithMode('plain', query);
-      const weighted = await searchWithMode('weighted', query);
-      const decisionId = 'relpoc_dec_000002';
-      const plainRank = plain.items.findIndex((item) => item.id === decisionId);
-      const weightedRank = weighted.items.findIndex((item) => item.id === decisionId);
-      expect(plainRank).toBeGreaterThanOrEqual(0);
-      expect(weightedRank).toBe(plainRank);
-      expect(weighted.items[weightedRank].finalScore).toBeCloseTo(plain.items[plainRank].finalScore, 6);
-      expect(weighted.items[weightedRank].relation_weight ?? 0).toBeGreaterThan(plain.items[plainRank].relation_weight ?? 0);
-    });
-
     it('does not regress unrelated control query rq_003', async () => {
       const query = 'WAL 체크포인트 경고';
       const baseline = await searchWithMode('off', query);
-      const expanded = await searchWithMode('weighted', query);
+      const expanded = await searchWithMode('plain', query);
       expect(baseline.items[0]?.id).toBe('relpoc_iso_000001');
       expect(expanded.items[0]?.id).toBe('relpoc_iso_000001');
     });
 
-    it('runs three-condition comparison harness', async () => {
+    it('runs two-condition comparison harness', async () => {
       const { rows, summaries } = await runRelationPocComparison();
-      expect(rows.length).toBe(9);
-      expect(summaries.length).toBe(3);
+      expect(rows.length).toBe(6);
+      expect(summaries.length).toBe(2);
     }, 180_000);
   });
 });

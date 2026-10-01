@@ -15,7 +15,7 @@ import type {
 } from './hybrid-search-types.js';
 import type { HybridResultRanker } from './hybrid-result-ranker.js';
 
-export type RelationRecallExpansionMode = 'off' | 'plain' | 'weighted';
+export type RelationRecallExpansionMode = 'off' | 'plain';
 
 export const RELATION_RECALL_EXPANSION_LIMITS = {
   maxSeeds: 5,
@@ -23,19 +23,10 @@ export const RELATION_RECALL_EXPANSION_LIMITS = {
   maxAdditions: 30,
 } as const;
 
-/** Explicit hop decay for weighted propagation (0.5^hop). */
-export function relationRecallHopDecay(hopDistance: number, decayBase = 0.5): number {
-  if (hopDistance <= 0) {
-    return 1;
-  }
-  return Math.pow(decayBase, hopDistance);
-}
-
 export type DiscoveredRelationCandidate = {
   memory_id: string;
   hop_distance: number;
   path_confidence: number;
-  propagated_weight: number;
 };
 
 type FrontierNode = {
@@ -44,8 +35,8 @@ type FrontierNode = {
   path_confidence: number;
 };
 
-function isExpansionEnabled(mode: RelationRecallExpansionMode | undefined): mode is 'plain' | 'weighted' {
-  return mode === 'plain' || mode === 'weighted';
+function isExpansionEnabled(mode: RelationRecallExpansionMode | undefined): mode is 'plain' {
+  return mode === 'plain';
 }
 
 /** Tenant access boundaries only — not type/tags/time search filters. */
@@ -121,13 +112,9 @@ export function memoryPassesRecallScopeFilters(
 }
 
 function isBetterDiscoveredPath(
-  mode: 'plain' | 'weighted',
   candidate: DiscoveredRelationCandidate,
   prev: DiscoveredRelationCandidate
 ): boolean {
-  if (mode === 'weighted') {
-    return candidate.propagated_weight > prev.propagated_weight;
-  }
   return (
     candidate.hop_distance < prev.hop_distance ||
     (candidate.hop_distance === prev.hop_distance &&
@@ -142,26 +129,17 @@ function resolveNeighborId(
   return relation.source_id === memoryId ? relation.target_id : relation.source_id;
 }
 
-export type RelationRecallDiscoveryResult = {
-  /** Previously absent candidates (max 30). */
-  additions: DiscoveredRelationCandidate[];
-  /** Weighted mode: best hop-decayed score per reachable memory (includes in-pool targets). */
-  propagatedWeights: Map<string, number>;
-};
-
 export async function discoverRelationRecallCandidates(
   db: Database.Database,
   relationGraph: HybridRelationGraphReader,
   seedMemoryIds: string[],
   existingIds: ReadonlySet<string>,
-  filters: MemorySearchFilters | undefined,
-  mode: 'plain' | 'weighted'
-): Promise<RelationRecallDiscoveryResult> {
+  filters: MemorySearchFilters | undefined
+): Promise<DiscoveredRelationCandidate[]> {
   const seeds = seedMemoryIds.slice(0, RELATION_RECALL_EXPANSION_LIMITS.maxSeeds);
   const traversalScopeCheck = createScopeCheckStatement(db, pickTraversalBoundaryFilters(filters));
   const candidateScopeCheck = createScopeCheckStatement(db, filters);
   const bestById = new Map<string, DiscoveredRelationCandidate>();
-  const propagatedWeights = new Map<string, number>();
   let frontier: FrontierNode[] = seeds
     .filter((id) => memoryPassesTraversalBoundary(db, id, filters, traversalScopeCheck))
     .map((memory_id) => ({ memory_id, hop_distance: 0, path_confidence: 1 }));
@@ -189,27 +167,16 @@ export async function discoverRelationRecallCandidates(
 
         const hop_distance = node.hop_distance + 1;
         const path_confidence = node.path_confidence * relation.confidence;
-        const propagated_weight =
-          mode === 'weighted'
-            ? path_confidence * relationRecallHopDecay(hop_distance)
-            : 0;
 
         const candidate: DiscoveredRelationCandidate = {
           memory_id: neighborId,
           hop_distance,
           path_confidence,
-          propagated_weight,
         };
         const prev = bestById.get(neighborId);
-        const pathImproves = !prev || isBetterDiscoveredPath(mode, candidate, prev);
+        const pathImproves = !prev || isBetterDiscoveredPath(candidate, prev);
         if (hop_distance > 0 && pathImproves) {
           bestById.set(neighborId, candidate);
-        }
-        if (mode === 'weighted' && propagated_weight > 0) {
-          const prevWeight = propagatedWeights.get(neighborId) ?? 0;
-          if (propagated_weight > prevWeight) {
-            propagatedWeights.set(neighborId, propagated_weight);
-          }
         }
 
         const shouldExpand =
@@ -225,20 +192,14 @@ export async function discoverRelationRecallCandidates(
     }
   }
 
-  const additions = [...bestById.values()]
+  return [...bestById.values()]
     .filter(
       (candidate) =>
         !existingIds.has(candidate.memory_id) &&
         memoryPassesRecallScopeFilters(db, candidate.memory_id, filters, candidateScopeCheck)
     )
-    .sort((a, b) =>
-      mode === 'weighted'
-        ? b.propagated_weight - a.propagated_weight || a.hop_distance - b.hop_distance
-        : a.hop_distance - b.hop_distance || b.path_confidence - a.path_confidence
-    )
+    .sort((a, b) => a.hop_distance - b.hop_distance || b.path_confidence - a.path_confidence)
     .slice(0, RELATION_RECALL_EXPANSION_LIMITS.maxAdditions);
-
-  return { additions, propagatedWeights };
 }
 
 type MemoryRow = {
@@ -345,21 +306,15 @@ export async function applyRelationRecallCandidateExpansion(args: {
   try {
     const seeds = primaryRanked.slice(0, RELATION_RECALL_EXPANSION_LIMITS.maxSeeds).map((item) => item.id);
     const existingIds = new Set(primaryRanked.map((item) => item.id));
-    const { additions: discovered, propagatedWeights } = await discoverRelationRecallCandidates(
+    const discovered = await discoverRelationRecallCandidates(
       db,
       relationGraph,
       seeds,
       existingIds,
-      query.filters,
-      mode
+      query.filters
     );
 
-    const shouldRerank =
-      mode === 'weighted'
-        ? propagatedWeights.size > 0 || discovered.length > 0
-        : discovered.length > 0;
-
-    if (!shouldRerank) {
+    if (discovered.length === 0) {
       return primaryRanked.slice(0, outputLimit);
     }
 
@@ -370,8 +325,6 @@ export async function applyRelationRecallCandidateExpansion(args: {
       existingById
     );
     const merged = [...primaryRanked, ...additionStubs];
-    const propagatedRelationWeights =
-      mode === 'weighted' ? propagatedWeights : undefined;
 
     return resultRanker.rerankExpandedResults(
       merged,
@@ -379,8 +332,7 @@ export async function applyRelationRecallCandidateExpansion(args: {
       outputLimit,
       db,
       includeRelations,
-      query,
-      propagatedRelationWeights
+      query
     );
   } catch (error) {
     const maskedError = error instanceof Error

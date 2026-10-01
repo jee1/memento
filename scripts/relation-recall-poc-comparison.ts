@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { isMain } from './lib/cli.js';
 /**
- * #959 relation-poc: compare disabled / plain / weighted expansion on identical inputs.
+ * #959 relation-poc: compare disabled / plain expansion on identical inputs.
  * Reports recall-quality + latency only — no adoption claim.
  */
 
@@ -26,7 +26,7 @@ import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.j
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const RELATION_POC_DIR = join(ROOT, 'tests/fixtures/search-quality/relation-poc');
-const MODES: RelationRecallExpansionMode[] = ['off', 'plain', 'weighted'];
+const MODES: RelationRecallExpansionMode[] = ['off', 'plain'];
 const TOP_K = 10;
 
 export type RelationPocComparisonRow = {

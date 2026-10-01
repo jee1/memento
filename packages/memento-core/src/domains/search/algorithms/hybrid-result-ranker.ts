@@ -95,8 +95,7 @@ export class HybridResultRanker {
     limit: number,
     db: Database.Database,
     includeRelations: boolean,
-    query: HybridSearchQuery,
-    propagatedRelationWeights?: Map<string, number>
+    query: HybridSearchQuery
   ): Promise<HybridSearchResult[]> {
     const deduped = this.deduplicateResults(results);
     const memoryIds = deduped.map((result) => result.id);
@@ -111,13 +110,6 @@ export class HybridResultRanker {
           : query.filters.process_id
         : undefined;
     const ctx = await this.buildRankingContext(db, memoryIds, processId, query);
-
-    if (propagatedRelationWeights) {
-      for (const [memoryId, propagated] of propagatedRelationWeights) {
-        const existing = ctx.relationWeights.get(memoryId) ?? 0;
-        ctx.relationWeights.set(memoryId, Math.min(1, existing + propagated));
-      }
-    }
 
     this.normalizeScores(
       deduped,
