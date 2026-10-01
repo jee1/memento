@@ -11,6 +11,7 @@ import { DatabaseMetricsReader } from './database-metrics-reader.js';
 import {
   formatBytes,
   getMemoryPressureDenominatorBytes,
+  getMemoryPressureNumeratorBytes,
   memoryRatioToPercent
 } from './memory-pressure-utils.js';
 import { PerformanceAlertManager } from './performance-alert-manager.js';
@@ -107,7 +108,7 @@ export class PerformanceMonitor implements CpuUsageHost {
     };
 
     const searchMetrics = this.getSearchMetrics();
-    const memoryUsagePercent = memoryRatioToPercent(memUsage.rss, getMemoryPressureDenominatorBytes());
+    const memoryUsagePercent = memoryRatioToPercent(getMemoryPressureNumeratorBytes(memUsage.rss), getMemoryPressureDenominatorBytes());
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
     const metrics: PerformanceMetricsSnapshot = {
@@ -245,7 +246,8 @@ export class PerformanceMonitor implements CpuUsageHost {
    * 메모리 메트릭 조회
    *
    * 비율 분모는 `getMemoryPressureDenominatorBytes()`와 동일(cgroup 한도 우선).
-   * - `usagePercent` / `rssUsagePercent`: RSS가 프로세스에 부여된 메모리 예산에서 차지하는 비율(100% 초과 가능).
+   * - `usagePercent`: 익명 메모리(`RssAnon`, 읽지 못하면 RSS)가 예산에서 차지하는 비율. 알림과 같은 분자다(#1199).
+   * - `rssUsagePercent`: RSS가 예산에서 차지하는 비율. 회수 가능한 파일 페이지를 포함하므로 100% 초과 가능.
    * - `heapShareOfBudgetPercent`: V8 heapUsed가 동일 예산 대비 차지하는 비율이며, **heapUsed/heapTotal(V8 충전률)과는 다름**.
    */
   getMemoryMetrics(): {
@@ -267,7 +269,7 @@ export class PerformanceMonitor implements CpuUsageHost {
       heapTotal: memUsage.heapTotal,
       rss: memUsage.rss,
       external: memUsage.external,
-      usagePercent: rssPct,
+      usagePercent: memoryRatioToPercent(getMemoryPressureNumeratorBytes(memUsage.rss), denom),
       rssUsagePercent: rssPct,
       heapShareOfBudgetPercent: heapSharePct,
     };

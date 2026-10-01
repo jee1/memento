@@ -13,7 +13,7 @@ docker compose \
   up -d
 ```
 
-Per-container memory caps live in `docker/docker-compose.mem-limits.yml` (defaults: MCP 768MB, monitor 256MB, docker-diagnostics 128MB). Override with `MEMENTO_MCP_MEM_LIMIT` and related env vars.
+Per-container memory caps live in `docker/docker-compose.mem-limits.yml` (the MCP cap lives in `docker-compose.yml`, default 1g since #1199; overlay defaults: monitor 256MB, docker-diagnostics 128MB). Override with `MEMENTO_MCP_MEM_LIMIT` and related env vars.
 
 ## Local-Only Mode
 
@@ -63,7 +63,7 @@ Docker Desktop may not expose sub-1GB per-container limits in the UI. Use the `d
 
 | Environment variable | Default | Service |
 | --- | --- | --- |
-| `MEMENTO_MCP_MEM_LIMIT` | `768m` | `memento-mcp-server` |
+| `MEMENTO_MCP_MEM_LIMIT` | `1g` | `memento-mcp-server` |
 | `LOG_ISSUE_MONITOR_MEM_LIMIT` | `256m` | `log-issue-monitor` |
 | `DOCKER_DIAGNOSTICS_MEM_LIMIT` | `128m` | `docker-diagnostics` |
 

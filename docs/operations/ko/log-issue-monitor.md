@@ -13,7 +13,7 @@ docker compose \
   up -d
 ```
 
-컨테이너별 메모리 상한은 `docker/docker-compose.mem-limits.yml`에서 설정합니다 (Desktop UI 1GB 제한과 무관). 기본값은 MCP 768MB, monitor 256MB, docker-diagnostics 128MB이며 `.env` 또는 셸에서 `MEMENTO_MCP_MEM_LIMIT` 등으로 조절할 수 있습니다.
+컨테이너별 메모리 상한은 `docker/docker-compose.mem-limits.yml`에서 설정합니다 (Desktop UI 1GB 제한과 무관). MCP 상한은 `docker-compose.yml`에 있으며 기본 1g입니다(#1199). monitor 256MB, docker-diagnostics 128MB이며 `.env` 또는 셸에서 `MEMENTO_MCP_MEM_LIMIT` 등으로 조절할 수 있습니다.
 
 ## Local-only 모드
 
@@ -63,13 +63,13 @@ Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습�
 
 | 환경변수 | 기본값 | 서비스 |
 | --- | --- | --- |
-| `MEMENTO_MCP_MEM_LIMIT` | `768m` | `memento-mcp-server` (Node + SQLite + 임베딩) |
+| `MEMENTO_MCP_MEM_LIMIT` | `1g` | `memento-mcp-server` (Node + SQLite + 임베딩) |
 | `LOG_ISSUE_MONITOR_MEM_LIMIT` | `256m` | `log-issue-monitor` |
 | `DOCKER_DIAGNOSTICS_MEM_LIMIT` | `128m` | `docker-diagnostics` |
 
 `memswap_limit`은 각각 `*_MEM_SWAP_LIMIT`으로 덮어쓸 수 있으며, 기본은 limit과 동일(swap 비활성)입니다.
 
-- **OOM / `Killed`**: 해당 service limit을 올립니다 (MCP는 `512m`→`768m`→`1g` 순).
+- **OOM / `Killed`**: 해당 service limit을 올립니다 (MCP는 `1g`→`1280m` 순).
 - **여유가 크면**: monitor·diagnostics부터 낮춥니다.
 - **확인**: `docker stats --no-stream` 또는 `docker inspect <name> --format '{{.HostConfig.Memory}}'`
 
