@@ -69,9 +69,9 @@
     }
   }
 
-  function metricCard(label, value, problem, provider) {
+  function metricCard(label, value, problem, provider, asNote) {
     const card = document.createElement(problem ? 'button' : 'div');
-    card.className = 'm-metric' + (problem ? ' em-health-problem-card' : '');
+    card.className = 'm-stat' + (problem ? ' em-health-problem-card' : '');
     if (problem) {
       card.type = 'button';
       card.addEventListener('click', function () {
@@ -79,10 +79,10 @@
       });
     }
     const labelEl = document.createElement('div');
-    labelEl.className = 'm-metric__label';
+    labelEl.className = 'm-stat__label';
     labelEl.textContent = label;
     const valueEl = document.createElement('div');
-    valueEl.className = 'm-metric__value';
+    valueEl.className = asNote ? 'm-stat__note' : 'm-stat__value';
     valueEl.textContent = String(value);
     card.appendChild(labelEl);
     card.appendChild(valueEl);
@@ -106,7 +106,7 @@
       metricCard('활성 기억', health.memoryCount),
       metricCard('검색 가능 임베딩', health.validEmbeddingCount),
       metricCard('커버리지', coverage),
-      metricCard('진단 시각', health.diagnosedAt || '—')
+      metricCard('진단 시각', health.diagnosedAt || '—', null, null, true)
     );
     problems.replaceChildren(
       metricCard('누락', health.missingEmbeddingCount, 'missing_embedding', health.provider),

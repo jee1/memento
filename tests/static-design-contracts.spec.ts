@@ -616,4 +616,82 @@ describe('static design contracts', () => {
     expect(warnBefore).not.toEqual(idleBefore);
     expect(critBefore).not.toEqual(idleBefore);
   });
+
+  it('issue #1143 m-stat is a KPI tile with numeric value, caller-chosen delta and an inline-svg sparkline', () => {
+    const componentsSource = readStaticFile('static/css/components.css');
+    const dashboardSource = readStaticFile('static/dashboard.html');
+    const embeddingHealthSource = readStaticFile('static/js/embedding-map-fetch-status.js');
+    const hexLiteral = /#[0-9a-fA-F]{3,8}\b/;
+
+    function ruleBody(src: string, selector: string): string {
+      const needle = `${selector} {`;
+      const start = src.indexOf(needle);
+      expect(start, `${selector} rule must exist`).toBeGreaterThanOrEqual(0);
+      const open = start + needle.length - 1;
+      let depth = 0;
+      let end = open;
+      for (let i = open; i < src.length; i += 1) {
+        const char = src[i];
+        if (char === '{') depth += 1;
+        if (char === '}') depth -= 1;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+      return src.slice(open + 1, end);
+    }
+
+    const statBody = ruleBody(componentsSource, '.m-stat');
+    expect(statBody).toContain('var(--radius-lg)');
+    expect(statBody).toContain('var(--color-bg-card)');
+    expect(statBody).toContain('var(--color-border-light)');
+
+    const labelBody = ruleBody(componentsSource, '.m-stat__label');
+    expect(labelBody).toContain('var(--font-size-xs)');
+    expect(labelBody).toContain('var(--color-text-muted)');
+
+    const valueBody = ruleBody(componentsSource, '.m-stat__value');
+    expect(valueBody).toContain('var(--font-size-3xl)');
+    expect(valueBody).toContain('font-family: var(--font-numeric)');
+    expect(valueBody).toContain('tabular-nums');
+    expect(valueBody).toContain('var(--line-height-tight)');
+
+    const deltaGoodBody = ruleBody(componentsSource, '.m-stat__delta--good');
+    expect(deltaGoodBody).toContain('--color-state-ok-bg');
+    expect(deltaGoodBody).toContain('--color-state-ok-text');
+
+    const deltaBadBody = ruleBody(componentsSource, '.m-stat__delta--bad');
+    expect(deltaBadBody).toContain('--color-state-crit-bg');
+    expect(deltaBadBody).toContain('--color-state-crit-text');
+
+    const sparklineBody = ruleBody(componentsSource, '.m-sparkline');
+    expect(sparklineBody).toContain('height: 28px');
+    expect(componentsSource).toContain('.m-sparkline polyline {');
+    expect(componentsSource).toContain('.m-sparkline rect {');
+
+    const statSelectors = [
+      '.m-stat-grid',
+      '.m-stat',
+      '.m-stat__label',
+      '.m-stat__value',
+      '.m-stat__note',
+      '.m-stat__delta',
+      '.m-stat__delta--good',
+      '.m-stat__delta--bad',
+      '.m-sparkline',
+    ];
+    for (const selector of statSelectors) {
+      const body = ruleBody(componentsSource, selector);
+      expect(body, `${selector} must not use hex literals`).not.toMatch(hexLiteral);
+    }
+
+    expect(componentsSource).toContain('.m-metric__value {');
+
+    expect(dashboardSource).toContain('id="em-health-summary" class="m-stat-grid"');
+    expect(dashboardSource).toContain('id="em-health-problems" class="m-stat-grid"');
+    expect(embeddingHealthSource).toContain("'m-stat__value'");
+    expect(embeddingHealthSource).toContain("'m-stat__note'");
+    expect(embeddingHealthSource).not.toContain("'m-metric'");
+  });
 });
