@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
  * 그래서 목록을 들지 않는다. env.example 에서 키를 **파싱해** compose 와 대조한다.
  * 문서화됐는데 주입도 제외도 안 된 키가 있으면 **실패**한다 — 실패 방향이 뒤집혔다.
  *
- * 한계: env.example 이 문서화하지 않은 키는 여기서 보이지 않는다. 그쪽은 #1126 소관이다.
+ * 반대 방향(코드가 읽는 키가 env.example 에 있는가)은 tests/code-env-keys-documented.spec.ts (#1136) 가 본다.
  */
 
 const ENV_EXAMPLE = 'env.example';

@@ -9,6 +9,12 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- **코드가 읽는 환경변수가 `env.example` 에서 빠지면 테스트가 실패합니다** (#1136): #1133 이 `env.example` → compose 방향만 막아서, 코드가 읽는데 문서화되지 않은 키 88개는 컨테이너에 도달하는지조차 검사되지 않았습니다. 새 가드 `tests/code-env-keys-documented.spec.ts` 가 서버 소스에서 키를 파싱해 대조합니다. 운영 튜닝 키 64개를 `env.example` «운영 튜닝 키» 절에 코드 기본값으로 문서화하고 `docker-compose.base.yml` 에도 주입했습니다. 이제 이 키들을 `.env` 에 적으면 컨테이너까지 도달합니다. 나머지 23개는 이유와 함께 `NOT_DOCUMENTED` 에 둡니다. 기본값은 바뀌지 않습니다.
+
+- **에이전트 통합 숫자 설정이 빈 문자열에서 0 이 되지 않습니다** (#1136): `MEMENTO_AGENT_INJECTION_TIMEOUT_MS`·`MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS`·`MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS`·`MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET` 을 `Number()` 로 읽어서, compose 가 미설정 키를 `''` 로 넘기면 0 이 됐습니다. 빈 값은 이제 미설정으로 읽습니다.
+
 ## [1.35.0] - 2026-10-01
 
 ### Added
