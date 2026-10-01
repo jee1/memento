@@ -11,6 +11,7 @@ import { DatabaseMetricsReader } from './database-metrics-reader.js';
 import {
   formatBytes,
   getMemoryPressureDenominatorBytes,
+  getMemoryPressureNumeratorBytes,
   memoryRatioToPercent
 } from './memory-pressure-utils.js';
 import { PerformanceAlertManager } from './performance-alert-manager.js';
@@ -107,7 +108,7 @@ export class PerformanceMonitor implements CpuUsageHost {
     };
 
     const searchMetrics = this.getSearchMetrics();
-    const memoryUsagePercent = memoryRatioToPercent(memUsage.rss, getMemoryPressureDenominatorBytes());
+    const memoryUsagePercent = memoryRatioToPercent(getMemoryPressureNumeratorBytes(memUsage.rss), getMemoryPressureDenominatorBytes());
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
     const metrics: PerformanceMetricsSnapshot = {
@@ -267,7 +268,7 @@ export class PerformanceMonitor implements CpuUsageHost {
       heapTotal: memUsage.heapTotal,
       rss: memUsage.rss,
       external: memUsage.external,
-      usagePercent: rssPct,
+      usagePercent: memoryRatioToPercent(getMemoryPressureNumeratorBytes(memUsage.rss), denom),
       rssUsagePercent: rssPct,
       heapShareOfBudgetPercent: heapSharePct,
     };

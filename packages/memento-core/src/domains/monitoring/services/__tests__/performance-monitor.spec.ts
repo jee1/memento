@@ -1,10 +1,16 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PERF_ALERT_REARM_MS_DEFAULT } from '../../../../shared/config/environment.js';
 import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
 import os from 'os';
 import { logger } from '../../../../shared/utils/logger.js';
 import { alertNotificationService } from '../alert-notification-service.js';
+import { getMemoryPressureNumeratorBytes } from '../memory-pressure-utils.js';
+
+vi.mock('../memory-pressure-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../memory-pressure-utils.js')>()),
+  getMemoryPressureNumeratorBytes: vi.fn((rss: number) => rss),
+}));
 
 const toBytes = (mb: number): number => mb * 1024 * 1024;
 
@@ -254,6 +260,10 @@ describe('PerformanceMonitor analytics', () => {
 });
 
 describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
+  beforeEach(() => {
+    vi.mocked(getMemoryPressureNumeratorBytes).mockImplementation((rss: number) => rss);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -517,6 +527,23 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     expect(m.usagePercent).toBeCloseTo(50, 5);
     expect(m.rssUsagePercent).toBeCloseTo(50, 5);
     expect(m.heapShareOfBudgetPercent).toBeCloseTo(12.5, 5);
+  });
+
+  it('usagePercent 는 RssAnon 분자를 쓰고 rssUsagePercent 는 RSS 를 유지한다 (#1199)', () => {
+    const limit = 1024 * 1024 * 1024;
+    vi.spyOn(process as NodeJS.Process & { constrainedMemory: () => number }, 'constrainedMemory').mockReturnValue(limit);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: limit * 0.95,
+      heapTotal: limit / 4,
+      heapUsed: limit / 8,
+      external: 0,
+      arrayBuffers: 0
+    });
+    vi.mocked(getMemoryPressureNumeratorBytes).mockReturnValue(limit * 0.6);
+
+    const m = new PerformanceMonitor().getMemoryMetrics();
+    expect(m.usagePercent).toBeCloseTo(60, 5);
+    expect(m.rssUsagePercent).toBeCloseTo(95, 5);
   });
 
   it('constrainedMemory가 0이면 os.totalmem() 분모로 폴백한다', () => {

@@ -17,8 +17,8 @@
 
 services:
   memento-mcp-server:
-    mem_limit: ${MEMENTO_MCP_MEM_LIMIT:-768m}
-    memswap_limit: ${MEMENTO_MCP_MEM_SWAP_LIMIT:-768m}
+    mem_limit: ${MEMENTO_MCP_MEM_LIMIT:-1g}
+    memswap_limit: ${MEMENTO_MCP_MEM_SWAP_LIMIT:-1g}
 
   log-issue-monitor:
     mem_limit: ${LOG_ISSUE_MONITOR_MEM_LIMIT:-256m}

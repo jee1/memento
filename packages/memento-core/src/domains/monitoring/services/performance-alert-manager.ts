@@ -76,7 +76,7 @@ export class PerformanceAlertManager {
           id: alertId,
           type: 'memory',
           severity,
-          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% RSS (${formatBytes(metrics.memory.rss)} / ${formatBytes(memoryDenominator)})`,
+          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% anon RSS (${formatBytes((memoryUsagePercent / 100) * memoryDenominator)} / ${formatBytes(memoryDenominator)})`,
           value: memoryUsagePercent,
           threshold: this.thresholds.memoryUsagePercent,
           metric: 'memory_usage_percent',

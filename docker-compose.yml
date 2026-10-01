@@ -32,6 +32,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    # #1199: cgroup 메모리 상한. npm run docker:up 은 이 파일만 읽으므로 상한은 여기에 둔다.
+    # 1g 면 Node 24 가 V8 heap 상한을 560MB 로 잡고 MiniLM 등 native 고정분(≈330MB)과 합쳐도 여유가 남는다.
+    # 768m 은 heap 상한(432MB)까지 차면 상한에 닿는다. 조정은 .env 의 MEMENTO_MCP_MEM_LIMIT.
+    mem_limit: ${MEMENTO_MCP_MEM_LIMIT:-1g}
+    memswap_limit: ${MEMENTO_MCP_MEM_SWAP_LIMIT:-1g}
 
   # Redis for caching (optional)
   # redis:
