@@ -123,11 +123,71 @@
 /* --- Badges --- */
 .m-badge {
   display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.m-badge--ok {
+  background: var(--color-state-ok-bg);
+  color: var(--color-state-ok-text);
+}
+
+.m-badge--ok::before {
+  content: '';
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.m-badge--warn {
+  background: var(--color-state-warn-bg);
+  color: var(--color-state-warn-text);
+}
+
+.m-badge--warn::before {
+  content: '';
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  background: currentColor;
+  border-radius: 0;
+}
+
+.m-badge--crit {
+  background: var(--color-state-crit-bg);
+  color: var(--color-state-crit-text);
+}
+
+.m-badge--crit::before {
+  content: '';
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.m-badge--idle {
+  background: var(--color-state-idle-bg);
+  color: var(--color-state-idle-text);
+}
+
+.m-badge--idle::before {
+  content: '';
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  background: transparent;
+  border: 0.12em solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
 }
 
 /* --- Tabs --- */
@@ -261,6 +321,7 @@
 /* numeric cells align on the decimal, not the left edge */
 .m-table .m-table__num {
   text-align: right;
+  font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
 

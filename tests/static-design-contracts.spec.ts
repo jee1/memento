@@ -518,4 +518,102 @@ describe('static design contracts', () => {
     expect(narrowBlock).toMatch(/\.review-candidates-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
     expect(narrowBlock).toMatch(/\.rc-preview-aside\s*\{[^}]*max-height:\s*none/s);
   });
+
+  it('issues #1141/#1142 type scale is monotonic, numerics share one stack, state pairs meet 7:1 and badges carry a shape', () => {
+    const tokensSource = readStaticFile('static/css/tokens.css');
+    const componentsSource = readStaticFile('static/css/components.css');
+    const dashboardSource = readStaticFile('static/css/dashboard.css');
+
+    const scaleKeys = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl'] as const;
+    const scaleValues = scaleKeys.map((key) => {
+      const match = tokensSource.match(new RegExp(`--font-size-${key}:\\s*([\\d.]+)rem`));
+      expect(match, `--font-size-${key} must exist`).not.toBeNull();
+      return Number(match![1]);
+    });
+    for (let i = 1; i < scaleValues.length; i += 1) {
+      expect(scaleValues[i]).toBeGreaterThan(scaleValues[i - 1]);
+    }
+
+    expect(tokensSource).toContain('--font-numeric: var(--font-family-mono)');
+
+    function hexToLinearChannel(hex: string): number {
+      const normalized = hex.replace('#', '');
+      const expanded =
+        normalized.length === 3
+          ? normalized
+              .split('')
+              .map((c) => c + c)
+              .join('')
+          : normalized;
+      const value = Number.parseInt(expanded, 16) / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    }
+
+    function relativeLuminance(hex: string): number {
+      const normalized = hex.replace('#', '');
+      const expanded =
+        normalized.length === 3
+          ? normalized
+              .split('')
+              .map((c) => c + c)
+              .join('')
+          : normalized;
+      const r = hexToLinearChannel(expanded.slice(0, 2));
+      const g = hexToLinearChannel(expanded.slice(2, 4));
+      const b = hexToLinearChannel(expanded.slice(4, 6));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    function contrastRatio(fgHex: string, bgHex: string): number {
+      const l1 = relativeLuminance(fgHex);
+      const l2 = relativeLuminance(bgHex);
+      const lighter = Math.max(l1, l2);
+      const darker = Math.min(l1, l2);
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    for (const state of ['ok', 'warn', 'crit', 'idle'] as const) {
+      const bgMatch = tokensSource.match(
+        new RegExp(`--color-state-${state}-bg:\\s*(#[0-9a-fA-F]{3,8})`),
+      );
+      const textMatch = tokensSource.match(
+        new RegExp(`--color-state-${state}-text:\\s*(#[0-9a-fA-F]{3,8})`),
+      );
+      expect(bgMatch, `--color-state-${state}-bg must exist`).not.toBeNull();
+      expect(textMatch, `--color-state-${state}-text must exist`).not.toBeNull();
+      expect(contrastRatio(textMatch![1], bgMatch![1])).toBeGreaterThanOrEqual(7);
+    }
+
+    expect(tokensSource).toContain('--color-status-error-bg: var(--color-state-crit-bg)');
+    expect(tokensSource).toContain('--color-status-error-text: var(--color-state-crit-text)');
+
+    for (const source of [componentsSource, dashboardSource]) {
+      for (const block of source.split('}')) {
+        if (!block.includes('font-variant-numeric: tabular-nums')) continue;
+        expect(block).toContain('font-family: var(--font-numeric)');
+      }
+    }
+
+    expect(componentsSource).toContain('.m-badge--ok::before');
+    expect(componentsSource).toContain('.m-badge--warn::before');
+    expect(componentsSource).toContain('.m-badge--crit::before');
+    expect(componentsSource).toContain('.m-badge--idle::before');
+
+    const okBefore = componentsSource.match(/\.m-badge--ok::before\s*\{([^}]*)\}/)?.[1] ?? '';
+    const warnBefore = componentsSource.match(/\.m-badge--warn::before\s*\{([^}]*)\}/)?.[1] ?? '';
+    const critBefore = componentsSource.match(/\.m-badge--crit::before\s*\{([^}]*)\}/)?.[1] ?? '';
+    const idleBefore = componentsSource.match(/\.m-badge--idle::before\s*\{([^}]*)\}/)?.[1] ?? '';
+
+    expect(okBefore).toContain('border-radius: 50%');
+    expect(warnBefore).toContain('border-radius: 0');
+    expect(critBefore).toContain('clip-path: polygon(');
+    expect(idleBefore).toContain('border:');
+    expect(idleBefore).toContain('transparent');
+    expect(okBefore).not.toEqual(warnBefore);
+    expect(okBefore).not.toEqual(critBefore);
+    expect(okBefore).not.toEqual(idleBefore);
+    expect(warnBefore).not.toEqual(critBefore);
+    expect(warnBefore).not.toEqual(idleBefore);
+    expect(critBefore).not.toEqual(idleBefore);
+  });
 });

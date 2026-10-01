@@ -1127,6 +1127,7 @@ circle.em-dot:focus-visible {
 
     .rc-bulk-count {
       margin-left: 0.25em;
+      font-family: var(--font-numeric);
       font-variant-numeric: tabular-nums;
     }
 
@@ -1616,6 +1617,7 @@ circle.em-dot:focus-visible {
 
 .med-stat-chip__value {
   font-weight: 700;
+  font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
 

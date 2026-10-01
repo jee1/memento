@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- **대시보드 디자인 토큰: 타입 스케일 상단·숫자 스택·상태 쌍** (#1141, #1142): `--font-size-2xl`(1.75rem)·`--font-size-3xl`(2.125rem), 숫자 전용 `--font-numeric`, `--line-height-tight`·`--line-height-base` 를 추가했습니다. 표 숫자 칸·리뷰 일괄 선택 개수·기억 통계 칩 값은 이제 `--font-numeric` 과 `tabular-nums` 를 함께 씁니다. 상태 배경·전경 쌍 `--color-state-{ok,warn,crit,idle}-{bg,text}` 는 모든 쌍이 7:1 이상입니다. `.m-badge--ok|--warn|--crit|--idle` 은 색에 더해 원·사각·삼각·빈 원 모양으로 상태를 구분합니다. 기존 `--color-status-error-bg/text` 는 `crit` 쌍의 별칭이 되어 `.m-error` 의 글자색이 조금 진해집니다(대비 4.92 → 8.20).
+
 ### Fixed
 
 - **코드가 읽는 환경변수가 `env.example` 에서 빠지면 테스트가 실패합니다** (#1136): #1133 이 `env.example` → compose 방향만 막아서, 코드가 읽는데 문서화되지 않은 키 88개는 컨테이너에 도달하는지조차 검사되지 않았습니다. 새 가드 `tests/code-env-keys-documented.spec.ts` 가 서버 소스에서 키를 파싱해 대조합니다. 운영 튜닝 키 64개를 `env.example` «운영 튜닝 키» 절에 코드 기본값으로 문서화하고 `docker-compose.base.yml` 에도 주입했습니다. 이제 이 키들을 `.env` 에 적으면 컨테이너까지 도달합니다. 나머지 23개는 이유와 함께 `NOT_DOCUMENTED` 에 둡니다. 기본값은 바뀌지 않습니다.
