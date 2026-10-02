@@ -784,9 +784,24 @@ describe('static design contracts', () => {
   it('issue #1145 ops overview styles use tokens only', () => {
     const dashboardCss = readStaticFile('static/css/dashboard.css');
     const marker = '/* Ops overview tab (#1145) */';
+    const nextMarker = '/* Ops status rows (#1146) */';
+    const start = dashboardCss.indexOf(marker);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = dashboardCss.indexOf(nextMarker, start);
+    const section =
+      end >= 0 ? dashboardCss.slice(start + marker.length, end) : dashboardCss.slice(start + marker.length);
+    expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+
+  it('issue #1146 ops status row styles use tokens only', () => {
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const marker = '/* Ops status rows (#1146) */';
     const start = dashboardCss.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
     const section = dashboardCss.slice(start + marker.length);
     expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(section).toContain('.ops-row__trend .m-sparkline');
+    expect(section).toContain('width: 90px');
+    expect(section).toContain('height: 20px');
   });
 });

@@ -6,6 +6,24 @@
 
   const ns = (global.__MEMENTO_OPS_STATUS_PANEL__ = global.__MEMENTO_OPS_STATUS_PANEL__ || {});
 
+  // Korean UI strings (#1146). Code references S.* only; edit text here, not in the logic below.
+  const S = {
+    severity: {
+      ok: '정상',
+      warn: '주의',
+      crit: '위험',
+      info: '참고',
+      unknown: '확인 불가',
+    },
+    trendImpact: function (days, failedDays) {
+      return '최근 ' + days + '일 일별 배치 영향 시간 추이 — 실패가 있던 날 ' + failedDays + '일';
+    },
+    trendNetflow: function (samples, min, max) {
+      return '최근 표본 ' + samples + '개의 순유입 추이 — 최소 ' + min + ', 최대 ' + max;
+    },
+  };
+
+
   ns.STATUS_URL = '/admin/status';
 
   ns.state = ns.state || {
@@ -49,6 +67,119 @@
       ns.setHidden(el, true);
     }
   };
+
+  const DAY_MS = 86400000;
+  const SPARK_W = 90;
+  const SPARK_H = 20;
+  const ROW_KEYS = [
+    'process-uptime', 'scheduler', 'scheduler-uptime', 'database', 'version',
+    'batch-failed', 'batch-impact', 'batch-success', 'batch-last-failed', 'batch-now',
+    'review-pending', 'review-netflow', 'embedding',
+  ];
+  // severity kind -> badge modifier. info/unknown share the hollow idle shape; the text tells them apart.
+  const SEVERITY_BADGE = { ok: 'ok', warn: 'warn', crit: 'crit', info: 'idle', unknown: 'idle' };
+
+  function isOk(section) {
+    return Boolean(section) && section.status === 'ok';
+  }
+
+  /** #1146: one severity kind per row key: ok | warn | crit | info | unknown. */
+  ns.rowSeverities = function (data, nowMs) {
+    const d = data || {};
+    const proc = d.process || {};
+    const sched = d.scheduler || {};
+    const batch = d.batchImpact || {};
+    const review = d.review || {};
+    const emb = d.embedding || {};
+    const schedulerSev = !isOk(sched) ? 'unknown' : sched.running ? 'ok' : 'crit';
+    let lastFailed = 'unknown';
+    if (isOk(batch)) {
+      if (!batch.lastFailedAt) {
+        lastFailed = 'ok';
+      } else {
+        const t = Date.parse(String(batch.lastFailedAt));
+        lastFailed = Number.isFinite(t) && nowMs - t <= DAY_MS ? 'crit' : 'warn';
+      }
+    }
+    return {
+      'process-uptime': isOk(proc) ? 'ok' : 'unknown',
+      scheduler: schedulerSev,
+      'scheduler-uptime': schedulerSev,
+      database: proc.database === 'connected' ? 'ok' : 'crit',
+      version: 'info',
+      'batch-failed': !isOk(batch) ? 'unknown' : batch.failedRunCount > 0 ? 'warn' : 'ok',
+      'batch-impact': !isOk(batch) ? 'unknown' : batch.durationMsSum > 0 ? 'warn' : 'ok',
+      'batch-success': isOk(batch) ? 'info' : 'unknown',
+      'batch-last-failed': lastFailed,
+      'batch-now': isOk(sched) ? 'info' : 'unknown',
+      'review-pending': isOk(review) ? 'info' : 'unknown',
+      'review-netflow': !isOk(review) ? 'unknown' : review.netFlow1h > 0 ? 'warn' : 'ok',
+      embedding: !isOk(emb) ? 'unknown' : emb.problemCount > 0 ? 'warn' : 'ok',
+    };
+  };
+
+  /**
+   * #1146: polyline points for a width x height box, or '' when there is no trend to draw
+   * (fewer than 2 points or any non-finite value). The baseline always includes 0.
+   */
+  ns.sparklinePoints = function (values, width, height) {
+    if (!Array.isArray(values) || values.length < 2) {
+      return '';
+    }
+    for (let i = 0; i < values.length; i++) {
+      if (typeof values[i] !== 'number' || !Number.isFinite(values[i])) {
+        return '';
+      }
+    }
+    const lo = Math.min(0, Math.min.apply(null, values));
+    const hi = Math.max(0, Math.max.apply(null, values));
+    const step = width / (values.length - 1);
+    return values
+      .map(function (v, i) {
+        const y = hi === lo ? height / 2 : height - ((v - lo) / (hi - lo)) * height;
+        return (Math.round(i * step * 100) / 100) + ',' + (Math.round(y * 100) / 100);
+      })
+      .join(' ');
+  };
+
+  function setSeverity(key, kind) {
+    const badge = ns.$('ops-status-sev-' + key);
+    if (badge) {
+      badge.className = 'ops-row__sev m-badge m-badge--' + SEVERITY_BADGE[kind];
+      badge.textContent = S.severity[kind];
+    }
+    const row = ns.$('ops-status-row-' + key);
+    if (row) {
+      row.setAttribute('data-severity', kind);
+    }
+    const link = ns.$('ops-status-link-' + key);
+    if (link) {
+      ns.setHidden(link, kind !== 'warn' && kind !== 'crit');
+    }
+  }
+
+  function renderSparkline(key, values, label) {
+    const host = ns.$('ops-status-trend-' + key);
+    if (!host) {
+      return;
+    }
+    host.textContent = '';
+    const points = ns.sparklinePoints(values, SPARK_W, SPARK_H);
+    if (!points) {
+      return;
+    }
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('class', 'm-sparkline');
+    svg.setAttribute('viewBox', '0 0 ' + SPARK_W + ' ' + SPARK_H);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', label);
+    const line = document.createElementNS(svgNs, 'polyline');
+    line.setAttribute('points', points);
+    svg.appendChild(line);
+    host.appendChild(svg);
+  }
 
   function statusLabel(status) {
     if (status === 'ok') {
@@ -169,6 +300,24 @@
             : '정상';
       flowCard.setAttribute('data-status', flowStatus);
     }
+
+    const severities = ns.rowSeverities(data, Date.now());
+    ROW_KEYS.forEach(function (key) {
+      setSeverity(key, severities[key]);
+    });
+
+    const daily = Array.isArray(batch.dailyDurationMs) ? batch.dailyDurationMs : [];
+    renderSparkline(
+      'batch-impact',
+      daily,
+      S.trendImpact(daily.length, daily.filter(function (ms) { return ms > 0; }).length),
+    );
+    const flowHistory = Array.isArray(review.netFlow1hHistory) ? review.netFlow1hHistory : [];
+    renderSparkline(
+      'review-netflow',
+      flowHistory,
+      flowHistory.length ? S.trendNetflow(flowHistory.length, Math.min.apply(null, flowHistory), Math.max.apply(null, flowHistory)) : '',
+    );
   };
 
   ns.refresh = async function () {
@@ -210,6 +359,19 @@
         void ns.refresh();
       });
     }
+    ROW_KEYS.forEach(function (key) {
+      const link = ns.$('ops-status-link-' + key);
+      if (!link) {
+        return;
+      }
+      link.addEventListener('click', function () {
+        const tab = link.getAttribute('data-ops-goto');
+        const tabs = global.__MEMENTO_DASHBOARD_TABS__;
+        if (tab && tabs && typeof tabs.activateTab === 'function') {
+          tabs.activateTab(tab);
+        }
+      });
+    });
   }
 
   function initOpsStatusPanel() {

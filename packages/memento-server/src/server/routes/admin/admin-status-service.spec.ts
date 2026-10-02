@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatDurationHumanKo } from './admin-status-service.js';
+import { formatDurationHumanKo, toDailySeries } from './admin-status-service.js';
 
 describe('formatDurationHumanKo (#1054)', () => {
   const cases: Array<{ ms: number; expected: string }> = [
@@ -31,5 +31,41 @@ describe('formatDurationHumanKo (#1054)', () => {
     for (const { ms } of cases) {
       expect(formatDurationHumanKo(ms)).not.toMatch(/^\d+$/);
     }
+  });
+});
+
+describe('toDailySeries (#1146)', () => {
+  const now = Date.parse('2026-10-02T13:00:00.000Z');
+
+  it('returns an array of zeros for empty input', () => {
+    expect(toDailySeries([], now, 30)).toEqual(new Array(30).fill(0));
+  });
+
+  it('places today at the last index', () => {
+    const series = toDailySeries([{ day: '2026-10-02', ms: 7 }], now, 30);
+    expect(series[29]).toBe(7);
+    expect(series.filter((v) => v !== 0)).toEqual([7]);
+  });
+
+  it('places 29 days before today at index 0', () => {
+    const series = toDailySeries([{ day: '2026-09-03', ms: 5 }], now, 30);
+    expect(series[0]).toBe(5);
+  });
+
+  it('drops rows outside the window', () => {
+    expect(
+      toDailySeries([{ day: '2026-09-02', ms: 5 }, { day: '2026-10-03', ms: 9 }], now, 30),
+    ).toEqual(new Array(30).fill(0));
+  });
+
+  it('maps multiple in-window days to correct indices', () => {
+    const series = toDailySeries(
+      [{ day: '2026-10-01', ms: 4 }, { day: '2026-09-30', ms: 6 }],
+      now,
+      30,
+    );
+    expect(series[28]).toBe(4);
+    expect(series[27]).toBe(6);
+    expect(series).toHaveLength(30);
   });
 });
