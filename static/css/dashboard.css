@@ -639,6 +639,23 @@ body {
   .m-session-chip {
     flex-shrink: 0;
     border-top: none;
+    white-space: nowrap;
+  }
+}
+
+/* #1144: on phones the session chip drops to its own row so tabs keep the full width. */
+@media (max-width: 480px) {
+  .m-nav-rail {
+    flex-wrap: wrap;
+  }
+
+  .m-nav-rail .m-tab-bar {
+    flex: 1 1 100%;
+  }
+
+  .m-session-chip {
+    flex: 1 1 100%;
+    border-top: 1px solid var(--color-border-light);
   }
 }
 

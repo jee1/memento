@@ -766,6 +766,11 @@ describe('static design contracts', () => {
     expect(mobileTabBarAt).toBeGreaterThan(mobileRailAt);
     expect(ruleBody(dashboardCss.slice(mobileRailAt), '.m-nav-rail .m-tab-bar')).toContain('overflow-x: auto');
 
+    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 480px) {\n  .m-nav-rail {');
+    expect(phoneRailAt).toBeGreaterThan(mobileRailAt);
+    expect(ruleBody(dashboardCss.slice(phoneRailAt), '.m-nav-rail')).toContain('flex-wrap: wrap');
+    expect(ruleBody(dashboardCss.slice(phoneRailAt), '.m-session-chip')).toContain('flex: 1 1 100%');
+
     expect(dashboardCss).toContain('.dashboard-auth-panel:has(.dashboard-auth-message:empty)');
     expect(dashboardCss).not.toContain('.dashboard-auth-session');
 
