@@ -342,6 +342,10 @@
     value.className = 'm-stat__value';
     value.textContent = String(total);
     stat.appendChild(value);
+    if (shares.length === 0) {
+      container.appendChild(stat);
+      return;
+    }
     const parts = shares.map(function (row) {
       return row.type + ' ' + row.pct + '%';
     }).join(' · ');

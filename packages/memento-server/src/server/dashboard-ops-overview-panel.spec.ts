@@ -168,6 +168,7 @@ describe('Dashboard Ops overview panel (#1145)', () => {
     expect(panelJs).toContain('m-stat');
     expect(panelJs).toContain('m-badge--');
     expect(panelJs).toContain('m-sparkline');
+    expect(panelJs).toContain('shares.length === 0');
     expect(panelJs).not.toContain('innerHTML');
 
     const sBlockEnd = panelJs.indexOf('\n  };\n');
