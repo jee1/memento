@@ -24,6 +24,20 @@ function extractAtMediaBlock(source: string, query: string): string {
   return source.slice(start, end + 1);
 }
 
+function extractAllAtMediaBlocks(source: string, query: string): string {
+  const needle = `@media ${query}`;
+  const blocks: string[] = [];
+  let from = 0;
+  for (;;) {
+    const start = source.indexOf(needle, from);
+    if (start < 0) break;
+    const block = extractAtMediaBlock(source.slice(start), query);
+    blocks.push(block);
+    from = start + Math.max(block.length, needle.length);
+  }
+  return blocks.join('\n');
+}
+
 function extractNamedFunction(source: string, name: string): string {
   const needle = `function ${name}(`;
   const start = source.indexOf(needle);
@@ -512,7 +526,7 @@ describe('static design contracts', () => {
 
   it('#897: 좁은 화면에서 후보 표만 가로 스크롤하고 미리보기는 눌리지 않는다', () => {
     const cssSource = readStaticFile('static/css/dashboard.css');
-    const narrowBlock = extractAtMediaBlock(cssSource, '(max-width: 30rem)');
+    const narrowBlock = extractAllAtMediaBlocks(cssSource, '(max-width: 30rem)');
 
     expect(narrowBlock).toContain('@media (max-width: 30rem)');
     expect(narrowBlock).toMatch(/\.review-candidates-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
@@ -758,15 +772,15 @@ describe('static design contracts', () => {
 
     expect(componentsCss).toContain('.m-session-chip {');
 
-    expect(dashboardCss).toContain('@media (min-width: 1280px)');
+    expect(dashboardCss).toContain('@media (min-width: 80rem)');
     expect(dashboardCss).toContain('grid-template-columns: 232px minmax(0, 1fr)');
-    const mobileRailAt = dashboardCss.indexOf('@media (max-width: 1279px) {\n  .m-nav-rail {');
+    const mobileRailAt = dashboardCss.indexOf('@media (max-width: 79.99rem) {\n  .m-nav-rail {');
     const mobileTabBarAt = dashboardCss.indexOf('.m-nav-rail .m-tab-bar {');
     expect(mobileRailAt).toBeGreaterThanOrEqual(0);
     expect(mobileTabBarAt).toBeGreaterThan(mobileRailAt);
     expect(ruleBody(dashboardCss.slice(mobileRailAt), '.m-nav-rail .m-tab-bar')).toContain('overflow-x: auto');
 
-    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 480px) {\n  .m-nav-rail {');
+    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 30rem) {\n  .m-nav-rail {');
     expect(phoneRailAt).toBeGreaterThan(mobileRailAt);
     expect(ruleBody(dashboardCss.slice(phoneRailAt), '.m-nav-rail')).toContain('flex-wrap: wrap');
     expect(ruleBody(dashboardCss.slice(phoneRailAt), '.m-session-chip')).toContain('flex: 1 1 100%');
@@ -803,5 +817,33 @@ describe('static design contracts', () => {
     expect(section).toContain('.ops-row__trend .m-sparkline');
     expect(section).toContain('width: 90px');
     expect(section).toContain('height: 20px');
+  });
+
+  it('issue #1147 every @media uses one of the three --bp-* token values', () => {
+    const tokensSource = readStaticFile('static/css/tokens.css');
+    const bpMatches = [...tokensSource.matchAll(/--bp-([a-z]+):\s*([\d.]+)rem;/g)];
+    expect(bpMatches.map((m) => m[1])).toEqual(['lg', 'md', 'sm']);
+    const bps = bpMatches.map((m) => Number(m[2]));
+    expect(bps).toEqual([80, 48, 30]);
+
+    const cssFiles = ['static/css/tokens.css', 'static/css/components.css', 'static/css/dashboard.css'];
+    const used = new Set<number>();
+    let mediaCount = 0;
+    for (const file of cssFiles) {
+      const source = readStaticFile(file);
+      for (const match of source.matchAll(/@media\s*([^{]+)\{/g)) {
+        mediaCount += 1;
+        const condition = match[1].trim();
+        const parsed = condition.match(/^\((min|max)-width: ([\d.]+)rem\)$/);
+        expect(parsed, `${file}: unexpected @media ${condition}`).not.toBeNull();
+        const value = Number(parsed![2]);
+        const base = bps.includes(value) ? value : bps.find((bp) => Math.abs(bp - 0.01 - value) < 1e-9);
+        expect(base, `${file}: @media ${condition} is not a --bp-* value`).toBeDefined();
+        if (parsed![1] === 'min') expect(bps).toContain(value);
+        used.add(base!);
+      }
+    }
+    expect(mediaCount).toBeGreaterThanOrEqual(12);
+    expect([...used].sort((a, b) => b - a)).toEqual([80, 48, 30]);
   });
 });

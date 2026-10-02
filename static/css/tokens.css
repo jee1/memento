@@ -179,4 +179,14 @@
   --z-index-sticky: 200;
   --z-index-modal: 300;
   --z-index-tooltip: 400;
+
+  /* Breakpoints (#1147). var() does not work inside @media, so this is the
+     single reference list: every @media in static/css uses one of these values
+     (max-width just below lg is written as 79.99rem). Enforced by
+     tests/static-design-contracts.spec.ts.
+     lg: nav rail <-> horizontal tab bar. md: multi-column panels stack.
+     sm: phone layout (390px canvas). */
+  --bp-lg: 80rem;
+  --bp-md: 48rem;
+  --bp-sm: 30rem;
 }

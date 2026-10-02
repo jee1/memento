@@ -49,7 +49,8 @@
 
 ## Information architecture
 > **Current state.** This section describes what is deployed today. Adding or removing a tab or route means updating it in the same PR.
-- Primary navigation: Left nav rail (`.m-nav-rail`, 232px) from 1280px; below that it falls back to a horizontal, scrollable tab bar. The rail wraps the `.m-tab-bar` `role="tablist"` with `aria-orientation="vertical"`: buttons keep `role="tab"` / `aria-selected` / `aria-controls` and their ids (panels' `aria-labelledby` unchanged); `aria-current` is not used because tabs switch in-page panels. Arrow Up/Down and Left/Right move focus, Enter/Space activates (#1144).
+- Primary navigation: Left nav rail (`.m-nav-rail`, 232px) from 80rem (1280px); below that it falls back to a horizontal, scrollable tab bar.
+- Breakpoints: exactly three, declared as reference tokens in `static/css/tokens.css` — `--bp-lg: 80rem` (rail ↔ tab bar), `--bp-md: 48rem` (columns stack), `--bp-sm: 30rem` (phone). Every `@media` uses one of them (`max-width: 79.99rem` for just below lg); a contract test rejects any other value (#1147). The rail wraps the `.m-tab-bar` `role="tablist"` with `aria-orientation="vertical"`: buttons keep `role="tab"` / `aria-selected` / `aria-controls` and their ids (panels' `aria-labelledby` unchanged); `aria-current` is not used because tabs switch in-page panels. Arrow Up/Down and Left/Right move focus, Enter/Space activates (#1144).
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
   - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모

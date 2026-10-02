@@ -499,7 +499,7 @@ body {
 }
 
 /* 반응형 디자인 */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .dashboard-header {
     padding: var(--spacing-md);
   }
@@ -541,7 +541,7 @@ body {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .dashboard-header h1 {
     font-size: var(--font-size-lg);
   }
@@ -572,8 +572,8 @@ body {
   }
 }
 
-/* Shell layout (#1144): nav rail on the left from 1280px; horizontal tab bar below that (keeps <=390px reach). */
-@media (min-width: 1280px) {
+/* Shell layout (#1144): nav rail on the left from 80rem (1280px); horizontal tab bar below that (keeps <=390px reach). */
+@media (min-width: 80rem) {
   .dashboard-container {
     display: grid;
     grid-template-columns: 232px minmax(0, 1fr);
@@ -602,7 +602,7 @@ body {
   }
 }
 
-@media (max-width: 1279px) {
+@media (max-width: 79.99rem) {
   .m-nav-rail {
     flex-direction: row;
     align-items: center;
@@ -644,7 +644,7 @@ body {
 }
 
 /* #1144: on phones the session chip drops to its own row so tabs keep the full width. */
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .m-nav-rail {
     flex-wrap: wrap;
   }
@@ -1241,7 +1241,7 @@ circle.em-dot:focus-visible {
   min-height: 0;
 }
 
-@media (max-width: 56rem) {
+@media (max-width: 48rem) {
   .review-candidates-body {
     grid-template-columns: 1fr;
   }
@@ -1854,7 +1854,7 @@ circle.em-dot:focus-visible {
   gap: var(--spacing-sm);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 48rem) {
   .med-search-comparison {
     grid-template-columns: 1fr;
   }
@@ -2215,7 +2215,7 @@ circle.em-dot:focus-visible {
   color: var(--color-error);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 48rem) {
   .as-aggregate {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2362,7 +2362,7 @@ circle.em-dot:focus-visible {
   flex: 0 0 auto;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .ops-strip__metrics {
     gap: var(--spacing-sm);
   }
@@ -2416,7 +2416,7 @@ circle.em-dot:focus-visible {
   min-height: 44px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .memory-inspector {
     width: 100%;
     flex: 0 0 auto;
@@ -2630,7 +2630,7 @@ circle.em-dot:focus-visible {
   color: var(--color-text-main);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .ops-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
