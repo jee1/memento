@@ -2239,6 +2239,15 @@ circle.em-dot:focus-visible {
   align-items: start;
 }
 
+.jobs-schedule th,
+.jobs-schedule .m-badge {
+  white-space: nowrap;
+}
+
+.jobs-schedule td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+
 .jobs-subheading {
   margin: var(--spacing-md) 0 var(--spacing-xs);
   font-size: var(--font-size-sm);
