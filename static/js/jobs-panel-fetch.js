@@ -91,6 +91,9 @@
         fetchJson(ns.STATS_URL),
         fetchJson(ns.RUN_HISTORY_URL),
         fetchJson(ns.buildRunsUrl(ns.state.selectedJob)),
+        fetchJson(ns.STATUS_URL).catch(function () {
+          return null;
+        }),
       ]);
       if (generation !== ns.state.refreshGeneration) {
         return outcome;
@@ -98,12 +101,14 @@
       const stats = results[0] || {};
       const history = results[1] || {};
       const runs = results[2] || {};
+      const status = results[3];
       ns.state.lastStats = stats;
       ns.state.lastHistory = history;
       ns.state.lastRuns = runs;
       ns.state.readOnly = Boolean(stats.readOnly);
       ns.setError('');
       ns.renderHealth(stats.health, stats.schedulerRunning);
+      ns.renderKpis(stats, status);
       ns.renderSchedule(stats.jobs);
       ns.renderQueue(stats.queue);
       ns.renderRunHistory(history.entries);

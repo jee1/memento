@@ -7,6 +7,7 @@
   const ns = (global.__MEMENTO_JOBS_PANEL__ = global.__MEMENTO_JOBS_PANEL__ || {});
 
   ns.STATS_URL = '/admin/batch/stats';
+  ns.STATUS_URL = '/admin/status';
   ns.RUN_HISTORY_URL = '/admin/batch/run-history?limit=50';
   ns.RUNS_URL = '/admin/batch/runs';
   ns.PAUSE_URL = '/admin/batch/pause';

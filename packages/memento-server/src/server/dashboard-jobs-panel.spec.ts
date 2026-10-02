@@ -52,6 +52,15 @@ type JobsHarnessOptions = {
   fetchImpl?: (url: string, init?: RequestInit) => Promise<unknown>;
 };
 
+function statValue(tile: Record<string, unknown>): string {
+  for (const child of (tile.children || []) as Array<Record<string, unknown>>) {
+    if (child.className === 'm-stat__value') {
+      return String(child.textContent);
+    }
+  }
+  return '';
+}
+
 function createJobsHarness(options: JobsHarnessOptions = {}) {
   const elements: Record<string, any> = {};
   let scheduleClickHandler: ((event: unknown) => void) | null = null;
@@ -162,6 +171,22 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
   el('tab-jobs');
 
   const defaultFetch = async (url: string, _init?: RequestInit) => {
+    if (String(url).includes('/admin/status')) {
+      return {
+        ok: true,
+        json: async () => ({
+          batchImpact: {
+            status: 'ok',
+            failedRunCount: 3,
+            durationHuman: 'about 2m',
+            durationMsSum: 120000,
+            successRunCount: 10,
+            lastFailedAt: null,
+            dailyDurationMs: [],
+          },
+        }),
+      };
+    }
     if (String(url).includes('/admin/batch/stats')) {
       return {
         ok: true,
@@ -407,6 +432,133 @@ describe('dashboard jobs panel (#832)', () => {
     expect(panelJs).toContain('jobs-retry-btn');
     expect(panelJs).toContain('pauseJob');
     expect(panelJs).toContain('runJobNow');
+  });
+
+  it('renders three KPI tiles from stats and /admin/status batchImpact (#1152)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+
+    const kpis = h.elements['jobs-kpis'].children as Array<Record<string, unknown>>;
+    expect(kpis.length).toBe(3);
+    expect(statValue(kpis[0])).toBe('0');
+    expect(statValue(kpis[1])).toBe('3');
+    expect(statValue(kpis[2])).toBe('about 2m');
+  });
+
+  it('refresh succeeds when /admin/status fails; KPI tiles 2-3 show dashes (#1152)', async () => {
+    const h = createJobsHarness({
+      fetchImpl: async (url: string, init?: RequestInit) => {
+        if (String(url).includes('/admin/status')) {
+          return { ok: false, json: async () => ({}) };
+        }
+        if (String(url).includes('/admin/batch/stats')) {
+          return {
+            ok: true,
+            json: async () => ({
+              schedulerRunning: true,
+              readOnly: false,
+              health: {
+                memoryUsage: 10,
+                runningJobs: 0,
+                queueSize: 0,
+                errorRate: 0,
+                uptime: 1000,
+                uptimeHuman: '1초',
+              },
+              jobs: [
+                {
+                  name: 'cleanup',
+                  intervalMs: 3600000,
+                  enabled: true,
+                  paused: false,
+                  lastExecution: null,
+                  totalExecutions: 1,
+                  errorCount: 0,
+                  errorRate: 0,
+                  isRunning: false,
+                },
+              ],
+              queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
+              timestamp: '2026-09-06T08:00:00.000Z',
+            }),
+          };
+        }
+        if (String(url).includes('/admin/batch/run-history')) {
+          return { ok: true, json: async () => ({ entries: [], limit: 50 }) };
+        }
+        if (String(url).includes('/admin/batch/runs')) {
+          return { ok: true, json: async () => ({ runs: [], limit: 50 }) };
+        }
+        if (init && String(init.method).toUpperCase() === 'POST') {
+          return { ok: true, json: async () => ({ message: 'ok', jobType: 'cleanup' }) };
+        }
+        return { ok: false, json: async () => ({}) };
+      },
+    });
+    await h.init();
+
+    expect(h.elements['jobs-schedule-tbody'].children.length).toBeGreaterThan(0);
+    expect(h.elements['jobs-error'].textContent).toBe('');
+    const kpis = h.elements['jobs-kpis'].children as Array<Record<string, unknown>>;
+    expect(kpis.length).toBe(3);
+    expect(statValue(kpis[0])).toBe('0');
+    expect(statValue(kpis[1])).toBe('—');
+    expect(statValue(kpis[2])).toBe('—');
+
+    h.fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes('/admin/status')) {
+        throw new Error('status down');
+      }
+      if (String(url).includes('/admin/batch/stats')) {
+        return {
+          ok: true,
+          json: async () => ({
+            schedulerRunning: true,
+            readOnly: false,
+            health: {
+              memoryUsage: 10,
+              runningJobs: 0,
+              queueSize: 0,
+              errorRate: 0,
+              uptime: 1000,
+              uptimeHuman: '1초',
+            },
+            jobs: [
+              {
+                name: 'cleanup',
+                intervalMs: 3600000,
+                enabled: true,
+                paused: false,
+                lastExecution: null,
+                totalExecutions: 1,
+                errorCount: 0,
+                errorRate: 0,
+                isRunning: false,
+              },
+            ],
+            queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
+            timestamp: '2026-09-06T08:00:00.000Z',
+          }),
+        };
+      }
+      if (String(url).includes('/admin/batch/run-history')) {
+        return { ok: true, json: async () => ({ entries: [], limit: 50 }) };
+      }
+      if (String(url).includes('/admin/batch/runs')) {
+        return { ok: true, json: async () => ({ runs: [], limit: 50 }) };
+      }
+      if (init && String(init.method).toUpperCase() === 'POST') {
+        return { ok: true, json: async () => ({ message: 'ok', jobType: 'cleanup' }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.refresh();
+    expect(h.elements['jobs-schedule-tbody'].children.length).toBeGreaterThan(0);
+    expect(h.elements['jobs-error'].textContent).toBe('');
+    const kpisAfter = h.elements['jobs-kpis'].children as Array<Record<string, unknown>>;
+    expect(statValue(kpisAfter[1])).toBe('—');
+    expect(statValue(kpisAfter[2])).toBe('—');
   });
 
   it('renders the jobs health summary with server-formatted human duration (#1054)', async () => {

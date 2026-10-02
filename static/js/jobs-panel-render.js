@@ -18,6 +18,47 @@
     return td;
   }
 
+  function appendStat(container, label, value, note) {
+    const stat = document.createElement('div');
+    stat.className = 'm-stat';
+    const labelEl = document.createElement('div');
+    labelEl.className = 'm-stat__label';
+    labelEl.textContent = label;
+    stat.appendChild(labelEl);
+    const valueEl = document.createElement('div');
+    valueEl.className = 'm-stat__value';
+    valueEl.textContent = value == null ? '—' : String(value);
+    stat.appendChild(valueEl);
+    const noteEl = document.createElement('div');
+    noteEl.className = 'm-stat__note';
+    noteEl.textContent = note;
+    stat.appendChild(noteEl);
+    container.appendChild(stat);
+  }
+
+  ns.renderKpis = function (stats, status) {
+    const container = ns.$('jobs-kpis');
+    if (!container) {
+      return;
+    }
+    ns.clearNode(container);
+    const b = status && status.batchImpact;
+    const batchOk = b && b.status === 'ok';
+    appendStat(
+      container,
+      S.kpiRunning,
+      ns.formatNumber((stats.health || {}).runningJobs),
+      S.kpiRunningNote,
+    );
+    if (batchOk) {
+      appendStat(container, S.kpiFailed, ns.formatNumber(b.failedRunCount), S.kpiFailedNote);
+      appendStat(container, S.kpiImpact, b.durationHuman || '—', S.kpiImpactNote);
+    } else {
+      appendStat(container, S.kpiFailed, '—', S.kpiUnavailable);
+      appendStat(container, S.kpiImpact, '—', S.kpiUnavailable);
+    }
+  };
+
   ns.renderHealth = function (health, schedulerRunning) {
     const el = ns.$('jobs-health-summary');
     if (!el) {
