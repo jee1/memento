@@ -450,6 +450,10 @@ describe('dashboard ops status panel', () => {
     expect(harness.ns.sparklinePoints([0, 0, 0], 90, 20)).toBe('0,10 45,10 90,10');
     expect(harness.ns.sparklinePoints([-5, 5], 90, 20)).toBe('0,20 90,0');
     expect(harness.ns.sparklinePoints([0, 5, 10], 90, 20)).toBe('0,20 45,10 90,0');
+    // baseline always includes 0: an all-positive series does not stretch to the bottom
+    expect(harness.ns.sparklinePoints([5, 10], 90, 20)).toBe('0,10 90,0');
+    // and an all-negative series does not stretch to the top
+    expect(harness.ns.sparklinePoints([-10, -5], 90, 20)).toBe('0,20 90,10');
   });
 
   it('render draws sparklines and severity badges (#1146)', () => {
