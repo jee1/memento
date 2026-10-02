@@ -120,6 +120,7 @@
       '/api/v1/agent/provenance/detail' + ns.queryString({ [kind]: id }),
     );
     ns.renderProvenance(body);
+    ns.showDetailTab('provenance');
   }
 
   ns.loadSessions = loadSessions;

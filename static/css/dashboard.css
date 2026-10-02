@@ -1911,18 +1911,11 @@ circle.em-dot:focus-visible {
   font-weight: 600;
 }
 
-.as-aggregate {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--spacing-sm);
-}
-
-.as-aggregate article,
 .as-card,
 .as-filter-card,
 .as-timeline-card,
 .as-session-column,
-.as-detail {
+.as-detail-card {
   padding: var(--spacing-md);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
@@ -1930,31 +1923,9 @@ circle.em-dot:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
-.as-aggregate article {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.as-aggregate span {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.as-aggregate strong {
-  font-size: var(--font-size-xl);
-}
-
-.as-browser {
-  display: grid;
-  grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr);
-  gap: var(--spacing-md);
-  align-items: start;
-}
-
 .as-session-column,
-.as-detail {
-  max-height: 32rem;
+.as-detail-card {
+  max-height: 40rem;
   overflow: auto;
 }
 
@@ -2110,18 +2081,58 @@ circle.em-dot:focus-visible {
   color: var(--color-agent-state-used-text);
 }
 
-.as-inspection-grid {
-  display: grid;
-  /* #1147: stack by available width instead of a breakpoint; a card needs ~28rem for #as-provenance-form. */
-  grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
-  gap: var(--spacing-md);
-}
-
 .as-provenance-form {
-  display: grid;
-  grid-template-columns: auto minmax(8rem, 0.6fr) minmax(12rem, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: end;
   gap: var(--spacing-sm);
+}
+
+.as-provenance-form #as-provenance-id {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+/* #1153: session list / timeline / detail */
+.as-workspace {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 1.4fr) minmax(18rem, 1fr);
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.as-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.as-detail-notice {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.as-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+@media (max-width: 79.99rem) {
+  .as-workspace {
+    grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr);
+  }
+
+  .as-detail-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 48rem) {
+  .as-workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 .as-provenance-group,
@@ -2166,20 +2177,6 @@ circle.em-dot:focus-visible {
 .as-import-summary--error,
 .as-import-error {
   color: var(--color-error);
-}
-
-@media (max-width: 48rem) {
-  .as-aggregate {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .as-browser {
-    grid-template-columns: 1fr;
-  }
-
-  .as-provenance-form {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Jobs panel (#832) */
@@ -2285,36 +2282,6 @@ circle.em-dot:focus-visible {
   font-size: var(--font-size-sm);
   font-weight: 400;
   color: var(--color-text-muted);
-}
-
-.jobs-drawer__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.jobs-drawer__tab {
-  appearance: none;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-.jobs-drawer__tab[aria-selected='true'] {
-  border-bottom-color: var(--color-brand-primary);
-  color: var(--color-text-main);
-  font-weight: 600;
-}
-
-.jobs-drawer__tab:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
 }
 
 .jobs-drawer__panel {

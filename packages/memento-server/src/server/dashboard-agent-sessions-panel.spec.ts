@@ -40,6 +40,86 @@ const panelDataJs = readFileSync(
   'utf8',
 );
 
+function createClassList() {
+  const classes = new Set<string>();
+  return {
+    add: (n: string) => classes.add(n),
+    remove: (n: string) => classes.delete(n),
+    toggle: (n: string, force?: boolean) => {
+      if (force === true) classes.add(n);
+      else if (force === false) classes.delete(n);
+      else if (classes.has(n)) classes.delete(n);
+      else classes.add(n);
+    },
+    contains: (n: string) => classes.has(n),
+  };
+}
+
+function createAgentSessionsRenderHarness() {
+  const elements: Record<string, any> = {};
+
+  function el(id: string) {
+    elements[id] = {
+      id,
+      textContent: '',
+      className: '',
+      attributes: {} as Record<string, string>,
+      classList: createClassList(),
+      setAttribute(name: string, value: string) {
+        this.attributes[name] = value;
+      },
+    };
+    return elements[id];
+  }
+
+  for (const id of [
+    'as-count-sessions',
+    'as-count-observations',
+    'as-count-redacted',
+    'as-count-dropped',
+    'as-count-degraded',
+    'as-sev-redacted',
+    'as-sev-dropped',
+    'as-sev-degraded',
+    'as-dtab-overview',
+    'as-dtab-injections',
+    'as-dtab-provenance',
+    'as-dpanel-overview',
+    'as-dpanel-injections',
+    'as-dpanel-provenance',
+  ]) {
+    el(id);
+  }
+
+  const sandbox: Record<string, any> = {
+    document: {
+      getElementById: (id: string) => elements[id] ?? null,
+      createElement: (tag: string) => ({
+        tagName: tag.toUpperCase(),
+        textContent: '',
+        className: '',
+        appendChild: vi.fn(),
+      }),
+    },
+    __MEMENTO_AGENT_SESSIONS_PANEL__: {
+      state: {},
+    },
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+
+  const sources = [
+    'agent-sessions-panel-shared.js',
+    'agent-sessions-panel-render-dom.js',
+    'agent-sessions-panel-render-sessions.js',
+  ]
+    .map((name) => readFileSync(resolve(root, 'static/js', name), 'utf8'))
+    .join('\n');
+  vm.runInContext(sources, vm.createContext(sandbox), { filename: 'agent-sessions-render.js' });
+
+  return { elements, ns: sandbox.__MEMENTO_AGENT_SESSIONS_PANEL__ };
+}
+
 describe('agent sessions dashboard panel (#460)', () => {
   it('does not render stale A detail, injections, or timeline after selecting B (#883)', async () => {
     const deferred = new Map<string, { resolve: (value: unknown) => void }>();
@@ -251,5 +331,25 @@ describe('agent sessions dashboard panel (#460)', () => {
     expect(dashboardCss).toContain("data-auth-state='signed-in'");
     expect(authTabsJs).toContain("activateTab('anchor')");
     expect(authTabsJs).not.toContain("activateTab('review')");
+  });
+
+  it('renderAggregate sets severity badges from aggregate counts (#1153)', () => {
+    const { elements, ns } = createAgentSessionsRenderHarness();
+    ns.renderAggregate({ total: 4, observations_total: 9, redacted: 2, dropped: 0, degraded: 1 });
+    expect(elements['as-sev-redacted'].className).toContain('m-badge--idle');
+    expect(elements['as-sev-dropped'].className).toContain('m-badge--ok');
+    expect(elements['as-sev-degraded'].className).toContain('m-badge--crit');
+    expect(elements['as-count-redacted'].textContent).toBe('2');
+  });
+
+  it('showDetailTab selects one tab and hides the other panels (#1153)', () => {
+    const { elements, ns } = createAgentSessionsRenderHarness();
+    ns.showDetailTab('injections');
+    expect(elements['as-dtab-injections'].attributes['aria-selected']).toBe('true');
+    expect(elements['as-dtab-overview'].attributes['aria-selected']).toBe('false');
+    expect(elements['as-dtab-provenance'].attributes['aria-selected']).toBe('false');
+    expect(elements['as-dpanel-injections'].classList.contains('hidden')).toBe(false);
+    expect(elements['as-dpanel-overview'].classList.contains('hidden')).toBe(true);
+    expect(elements['as-dpanel-provenance'].classList.contains('hidden')).toBe(true);
   });
 });

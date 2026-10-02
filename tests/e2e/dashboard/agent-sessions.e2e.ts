@@ -172,6 +172,7 @@ test.describe('Agent Sessions dashboard', () => {
     });
     await openAgentSessions(page);
     await page.getByRole('button', { name: /session-1/ }).click();
+    await page.locator('#as-dtab-injections').click();
     await expect(page.locator('#as-injections')).toContainText(`${KO_TOKENS} 80 / 100`);
     await expect(page.getByText(/memory-selected/).locator('..')).toContainText('highest relevance');
     await expect(page.getByText(/memory-excluded/).locator('..')).toContainText('budget threshold');

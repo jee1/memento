@@ -686,10 +686,10 @@
               <h3 id="jobs-drawer-title" class="jobs-drawer__title"><span id="jobs-drawer-job">전체 작업</span><span id="jobs-drawer-run" class="jobs-drawer__run hidden"></span></h3>
               <span id="jobs-drawer-badge" class="m-badge hidden"></span>
             </header>
-            <div class="jobs-drawer__tabs" role="tablist" aria-label="선택한 작업 상세">
-              <button type="button" id="jobs-dtab-runs" class="jobs-drawer__tab" role="tab" aria-selected="true" aria-controls="jobs-dpanel-runs" data-drawer-tab="runs">실행 이력</button>
-              <button type="button" id="jobs-dtab-logs" class="jobs-drawer__tab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-logs" data-drawer-tab="logs" tabindex="-1">로그</button>
-              <button type="button" id="jobs-dtab-history" class="jobs-drawer__tab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-history" data-drawer-tab="history" tabindex="-1">수동 실행 이력</button>
+            <div class="m-subtabs" role="tablist" aria-label="선택한 작업 상세">
+              <button type="button" id="jobs-dtab-runs" class="m-subtab" role="tab" aria-selected="true" aria-controls="jobs-dpanel-runs" data-drawer-tab="runs">실행 이력</button>
+              <button type="button" id="jobs-dtab-logs" class="m-subtab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-logs" data-drawer-tab="logs" tabindex="-1">로그</button>
+              <button type="button" id="jobs-dtab-history" class="m-subtab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-history" data-drawer-tab="history" tabindex="-1">수동 실행 이력</button>
             </div>
             <div id="jobs-dpanel-runs" class="jobs-drawer__panel" role="tabpanel" aria-labelledby="jobs-dtab-runs">
               <p class="jobs-disclaimer">실패한 실행만 재시도할 수 있습니다.</p>
@@ -752,7 +752,7 @@
             <details class="m-about">
               <summary class="m-about__summary">이건 뭔가요</summary>
               <div class="m-about__body">
-                <p class="as-intro">Programmatic API 경계에서 session·observation·provenance·injection 결정을 탐색합니다. 원문 payload는 표시하지 않습니다.</p>
+                <p class="as-intro">Programmatic API 경계에서 session·observation·provenance·injection 결정을 탐색합니다.</p>
               </div>
             </details>
           </div>
@@ -769,60 +769,66 @@
         <div id="as-error" class="m-error hidden" role="alert"></div>
         <div id="as-status" class="m-empty hidden" role="status" aria-live="polite"></div>
 
-        <section class="as-aggregate" aria-label="에이전트 세션 집계">
-          <article><span>세션</span><strong id="as-count-sessions">0</strong></article>
-          <article><span>관찰</span><strong id="as-count-observations">0</strong></article>
-          <article><span>가려짐</span><strong id="as-count-redacted">0</strong></article>
-          <article><span>드롭</span><strong id="as-count-dropped">0</strong></article>
-          <article><span>저하됨</span><strong id="as-count-degraded">0</strong></article>
-        </section>
+        <div id="as-aggregate" class="m-stat-grid" aria-label="에이전트 세션 집계">
+          <div class="m-stat"><div class="m-stat__label">세션</div><div id="as-count-sessions" class="m-stat__value">0</div></div>
+          <div class="m-stat"><div class="m-stat__label">관찰</div><div id="as-count-observations" class="m-stat__value">0</div></div>
+          <div class="m-stat"><div class="m-stat__label"><span id="as-sev-redacted" class="m-badge m-badge--idle">가려짐</span></div><div id="as-count-redacted" class="m-stat__value">0</div></div>
+          <div class="m-stat"><div class="m-stat__label"><span id="as-sev-dropped" class="m-badge m-badge--idle">드롭</span></div><div id="as-count-dropped" class="m-stat__value">0</div></div>
+          <div class="m-stat"><div class="m-stat__label"><span id="as-sev-degraded" class="m-badge m-badge--idle">저하됨</span></div><div id="as-count-degraded" class="m-stat__value">0</div></div>
+        </div>
 
         <section class="as-filter-card" aria-label="세션 필터">
-          <label>상태 <select id="as-session-status" class="m-input"><option value="">전체</option><option value="ACTIVE">활성</option><option value="COMPLETED">완료</option><option value="ABANDONED">포기</option><option value="DEGRADED">저하됨</option></select></label>
+          <label>세션 상태 <select id="as-session-status" class="m-input"><option value="">전체</option><option value="ACTIVE">활성</option><option value="COMPLETED">완료</option><option value="ABANDONED">포기</option><option value="DEGRADED">저하됨</option></select></label>
           <label>어댑터 <input id="as-session-adapter" class="m-input" type="text"></label>
           <label>소유자 <input id="as-session-owner" class="m-input" type="text"></label>
           <label>프로젝트 <input id="as-session-project" class="m-input" type="text"></label>
           <button type="button" id="as-refresh-sessions" class="m-button m-button--secondary">새로고침</button>
         </section>
 
-        <div class="as-browser">
+        <div class="as-workspace">
           <section class="as-session-column" aria-label="세션 목록">
             <div id="as-session-list" class="as-session-list"></div>
             <button type="button" id="as-load-more-sessions" class="m-button m-button--secondary hidden">세션 더 보기</button>
           </section>
-          <section id="as-session-detail" class="as-detail" aria-label="선택한 세션 상세">
-            <p class="as-placeholder">세션을 선택하면 안전한 메타데이터를 확인할 수 있습니다.</p>
-          </section>
-        </div>
 
-        <section class="as-timeline-card" aria-labelledby="as-timeline-title">
-          <header class="as-section-header">
-            <h3 id="as-timeline-title">관찰 타임라인</h3>
-            <div class="as-inline-filters">
-              <label>이벤트 <select id="as-event-type" class="m-input"><option value="">전체</option><option value="USER_PROMPT">Prompt</option><option value="TOOL_CALL">Tool</option><option value="TOOL_RESULT">Result</option><option value="ERROR">Error</option><option value="ASSISTANT_RESPONSE">Response</option><option value="SESSION_START">Lifecycle</option><option value="STOP">Stop</option></select></label>
-              <label>상태 <select id="as-observation-status" class="m-input"><option value="">전체</option><option value="ACCEPTED">수락</option><option value="REDACTED">가려짐</option><option value="DROPPED">드롭</option><option value="DEGRADED">저하됨</option></select></label>
-              <button type="button" id="as-refresh-timeline" class="m-button m-button--secondary">적용</button>
+          <section class="as-timeline-card" aria-labelledby="as-timeline-title">
+            <header class="as-section-header">
+              <h3 id="as-timeline-title">관찰 타임라인</h3>
+              <div class="as-inline-filters">
+                <label>이벤트 <select id="as-event-type" class="m-input"><option value="">전체</option><option value="USER_PROMPT">Prompt</option><option value="TOOL_CALL">Tool</option><option value="TOOL_RESULT">Result</option><option value="ERROR">Error</option><option value="ASSISTANT_RESPONSE">Response</option><option value="SESSION_START">Lifecycle</option><option value="STOP">Stop</option></select></label>
+                <label>관찰 상태 <select id="as-observation-status" class="m-input"><option value="">전체</option><option value="ACCEPTED">수락</option><option value="REDACTED">가려짐</option><option value="DROPPED">드롭</option><option value="DEGRADED">저하됨</option></select></label>
+                <button type="button" id="as-refresh-timeline" class="m-button m-button--secondary">적용</button>
+              </div>
+            </header>
+            <ol id="as-timeline" class="as-timeline"></ol>
+            <button type="button" id="as-load-more-observations" class="m-button m-button--secondary hidden">관찰 더 보기</button>
+          </section>
+
+          <aside class="as-detail-card" aria-label="선택한 세션 상세">
+            <p class="as-detail-notice">원문 payload는 표시하지 않습니다.</p>
+            <div class="m-subtabs" role="tablist" aria-label="세션 상세">
+              <button type="button" id="as-dtab-overview" class="m-subtab" role="tab" aria-selected="true" aria-controls="as-dpanel-overview" data-detail-tab="overview">개요</button>
+              <button type="button" id="as-dtab-injections" class="m-subtab" role="tab" aria-selected="false" aria-controls="as-dpanel-injections" data-detail-tab="injections" tabindex="-1">주입 결정</button>
+              <button type="button" id="as-dtab-provenance" class="m-subtab" role="tab" aria-selected="false" aria-controls="as-dpanel-provenance" data-detail-tab="provenance" tabindex="-1">출처 탐색</button>
             </div>
-          </header>
-          <ol id="as-timeline" class="as-timeline"></ol>
-          <button type="button" id="as-load-more-observations" class="m-button m-button--secondary hidden">관찰 더 보기</button>
-        </section>
-
-        <div class="as-inspection-grid">
-          <section class="as-card" aria-labelledby="as-injections-title">
-            <h3 id="as-injections-title">주입 결정</h3>
-            <div id="as-injections" class="as-stack"><p class="as-placeholder">세션을 선택하세요.</p></div>
-          </section>
-          <section class="as-card" aria-labelledby="as-provenance-title">
-            <h3 id="as-provenance-title">출처 탐색</h3>
-            <form id="as-provenance-form" class="as-provenance-form">
-              <label for="as-provenance-kind">조회</label>
-              <select id="as-provenance-kind" class="m-input"><option value="memory_id">Memory ID</option><option value="observation_id">Observation ID</option></select>
-              <input id="as-provenance-id" class="m-input" type="text" required>
-              <button type="submit" class="m-button m-button--secondary">추적</button>
-            </form>
-            <div id="as-provenance-results" class="as-stack"></div>
-          </section>
+            <div id="as-dpanel-overview" class="as-detail-panel" role="tabpanel" aria-labelledby="as-dtab-overview">
+              <section id="as-session-detail" class="as-detail">
+                <p class="as-placeholder">세션을 선택하면 안전한 메타데이터를 확인할 수 있습니다.</p>
+              </section>
+            </div>
+            <div id="as-dpanel-injections" class="as-detail-panel hidden" role="tabpanel" aria-labelledby="as-dtab-injections">
+              <div id="as-injections" class="as-stack"><p class="as-placeholder">세션을 선택하세요.</p></div>
+            </div>
+            <div id="as-dpanel-provenance" class="as-detail-panel hidden" role="tabpanel" aria-labelledby="as-dtab-provenance">
+              <form id="as-provenance-form" class="as-provenance-form">
+                <label for="as-provenance-kind">조회</label>
+                <select id="as-provenance-kind" class="m-input"><option value="memory_id">Memory ID</option><option value="observation_id">Observation ID</option></select>
+                <input id="as-provenance-id" class="m-input" type="text" required aria-label="조회할 ID">
+                <button type="submit" class="m-button m-button--secondary">추적</button>
+              </form>
+              <div id="as-provenance-results" class="as-stack"></div>
+            </div>
+          </aside>
         </div>
 
         <section class="as-card as-import" aria-labelledby="as-import-title">

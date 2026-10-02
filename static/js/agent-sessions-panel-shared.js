@@ -100,4 +100,17 @@
     const value = query.toString();
     return value ? '?' + value : '';
   };
+
+  ns.DETAIL_TABS = ['overview', 'injections', 'provenance'];
+
+  ns.showDetailTab = function (name) {
+    ns.DETAIL_TABS.forEach(function (t) {
+      const tab = ns.$('as-dtab-' + t);
+      if (tab) {
+        tab.setAttribute('aria-selected', String(t === name));
+        tab.setAttribute('tabindex', t === name ? '0' : '-1');
+      }
+      ns.setHidden(ns.$('as-dpanel-' + t), t !== name);
+    });
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

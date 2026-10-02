@@ -10,12 +10,25 @@
     return;
   }
 
+  function setSeverity(id, variant) {
+    const el = ns.$('as-sev-' + id);
+    if (el) {
+      el.className = 'm-badge m-badge--' + variant;
+    }
+  }
+
   ns.renderAggregate = function (aggregate) {
+    const redacted = aggregate.redacted_total ?? aggregate.redacted;
+    const dropped = aggregate.dropped_total ?? aggregate.dropped;
+    const degraded = aggregate.degraded_total ?? aggregate.degraded;
     dom.setCount('as-count-sessions', aggregate.sessions_total ?? aggregate.total);
     dom.setCount('as-count-observations', aggregate.observations_total);
-    dom.setCount('as-count-redacted', aggregate.redacted_total ?? aggregate.redacted);
-    dom.setCount('as-count-dropped', aggregate.dropped_total ?? aggregate.dropped);
-    dom.setCount('as-count-degraded', aggregate.degraded_total ?? aggregate.degraded);
+    dom.setCount('as-count-redacted', redacted);
+    dom.setCount('as-count-dropped', dropped);
+    dom.setCount('as-count-degraded', degraded);
+    setSeverity('redacted', Number(redacted) > 0 ? 'idle' : 'ok');
+    setSeverity('dropped', Number(dropped) > 0 ? 'warn' : 'ok');
+    setSeverity('degraded', Number(degraded) > 0 ? 'crit' : 'ok');
   };
 
   ns.renderSessions = function (sessions, append) {
@@ -78,7 +91,7 @@
     const list = document.createElement('dl');
     list.className = 'as-detail-list';
     dom.addDefinition(list, '세션', session.id || session.session_id);
-    dom.addDefinition(list, '상태', session.status);
+    dom.addDefinition(list, '세션 상태', session.status);
     dom.addDefinition(list, '어댑터', session.adapter_name || session.adapter);
     dom.addDefinition(list, '소유자', session.owner_id);
     dom.addDefinition(list, '프로젝트', session.project_id);

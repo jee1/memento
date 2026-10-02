@@ -851,9 +851,9 @@ describe('static design contracts', () => {
     expect(mediaCount).toBeGreaterThanOrEqual(12);
     expect([...used].sort((a, b) => b - a)).toEqual([80, 48, 30]);
 
-    // agent-sessions inspection grid stacks by width (auto-fit), so it needs no extra breakpoint
+    // agent-sessions provenance form wraps on narrow detail column (#1153)
     expect(readStaticFile('static/css/dashboard.css')).toMatch(
-      /\.as-inspection-grid \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(min\(28rem, 100%\), 1fr\)\);/s,
+      /\.as-provenance-form \{[^}]*flex-wrap: wrap;/s,
     );
   });
 
@@ -994,5 +994,32 @@ describe('static design contracts', () => {
     }
     expect(jobs.match(/<table /g)).toHaveLength(4);
     expect(jobs.slice(0, jobs.indexOf('<aside id="jobs-drawer"')).match(/<table /g)).toHaveLength(1);
+  });
+
+  it('issue #1153 agent sessions: .m-stat aggregate, one meaning per status label, 3-tab detail with the payload notice', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const tab = html.slice(html.indexOf('id="tab-agent-sessions"'), html.indexOf('id="tab-evolution-demo"'));
+    expect(tab).not.toContain('class="as-aggregate"');
+    expect(tab).not.toContain('<article>');
+    expect(tab).toMatch(/id="as-aggregate" class="m-stat-grid"/);
+    expect(tab.match(/class="m-stat"/g)).toHaveLength(5);
+    for (const k of ['redacted', 'dropped', 'degraded']) expect(tab).toContain(`id="as-sev-${k}" class="m-badge`);
+    const label = (id: string) => (tab.match(new RegExp(`<label>([^<]*)<select id="${id}"`)) ?? [])[1]?.trim();
+    expect(label('as-session-status')).toBeTruthy();
+    expect(label('as-observation-status')).toBeTruthy();
+    expect(label('as-session-status')).not.toBe(label('as-observation-status'));
+    const aside = tab.slice(tab.indexOf('<aside class="as-detail-card"'), tab.indexOf('</aside>'));
+    for (const t of ['overview', 'injections', 'provenance']) {
+      expect(aside, t).toContain(`id="as-dtab-${t}"`);
+      expect(aside, t).toContain(`id="as-dpanel-${t}"`);
+    }
+    for (const id of ['as-session-detail', 'as-injections', 'as-provenance-form', 'as-provenance-results']) expect(aside, id).toContain(`id="${id}"`);
+    expect(aside).toContain('class="as-detail-notice"');
+    expect(aside.indexOf('class="as-detail-notice"')).toBeLessThan(aside.indexOf('role="tablist"'));
+    expect(tab).not.toContain('as-inspection-grid');
+    const components = readStaticFile('static/css/components.css');
+    expect(components).toMatch(/\.m-subtab:focus-visible/);
+    expect(readStaticFile('static/css/dashboard.css')).not.toMatch(/\.jobs-drawer__tab/);
+    expect(html.match(/class="m-subtabs"/g)).toHaveLength(2);
   });
 });
