@@ -91,6 +91,9 @@
         fetchJson(ns.STATS_URL),
         fetchJson(ns.RUN_HISTORY_URL),
         fetchJson(ns.buildRunsUrl(ns.state.selectedJob)),
+        fetchJson(ns.STATUS_URL).catch(function () {
+          return null;
+        }),
       ]);
       if (generation !== ns.state.refreshGeneration) {
         return outcome;
@@ -98,20 +101,24 @@
       const stats = results[0] || {};
       const history = results[1] || {};
       const runs = results[2] || {};
+      const status = results[3];
       ns.state.lastStats = stats;
       ns.state.lastHistory = history;
       ns.state.lastRuns = runs;
+      ns.state.readOnly = Boolean(stats.readOnly);
       ns.setError('');
       ns.renderHealth(stats.health, stats.schedulerRunning);
+      ns.renderKpis(stats, status);
       ns.renderSchedule(stats.jobs);
       ns.renderQueue(stats.queue);
       ns.renderRunHistory(history.entries);
-      ns.renderTimeline(runs.runs, ns.state.selectedJob);
+      ns.renderTimeline(runs.runs);
       if (ns.state.selectedRunId) {
         await ns.loadLogs(ns.state.selectedRunId);
       } else {
         ns.renderLogs([], null);
       }
+      ns.renderDrawerHeader();
       ns.setStatus('갱신 ' + (stats.timestamp || new Date().toISOString()));
       outcome = 'ok';
     } catch (err) {
@@ -137,6 +144,8 @@
     ns.state.selectedJob = jobName || null;
     ns.state.selectedRunId = null;
     ns.state.selectedRunJobName = null;
+    ns.showDrawerTab('runs');
+    ns.renderDrawerHeader();
     ns.renderSchedule((ns.state.lastStats || {}).jobs);
     ns.renderLogs([], null);
     ns.setStatus('타임라인 불러오는 중: ' + (jobName || '전체 작업') + '…');
@@ -147,7 +156,7 @@
       }
       ns.state.lastRuns = runs;
       ns.setError('');
-      ns.renderTimeline(runs.runs, ns.state.selectedJob);
+      ns.renderTimeline(runs.runs);
       ns.setStatus('갱신 ' + new Date().toISOString());
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
@@ -193,7 +202,9 @@
     }
     ns.state.selectedRunId = runId;
     ns.state.selectedRunJobName = jobName || null;
-    ns.renderTimeline((ns.state.lastRuns || {}).runs, ns.state.selectedJob);
+    ns.showDrawerTab('logs');
+    ns.renderDrawerHeader();
+    ns.renderTimeline((ns.state.lastRuns || {}).runs);
     await ns.loadLogs(runId);
   };
 
@@ -225,8 +236,7 @@
     }
   }
 
-  ns.pauseSelectedJob = async function () {
-    const jobType = ns.state.selectedJob;
+  ns.pauseJob = async function (jobType) {
     if (!jobType) {
       return;
     }
@@ -236,8 +246,7 @@
     await writeThenRefresh(ns.PAUSE_URL, jobType, '일시정지 ' + jobType);
   };
 
-  ns.resumeSelectedJob = async function () {
-    const jobType = ns.state.selectedJob;
+  ns.resumeJob = async function (jobType) {
     if (!jobType) {
       return;
     }
@@ -247,8 +256,7 @@
     await writeThenRefresh(ns.RESUME_URL, jobType, '재개 ' + jobType);
   };
 
-  ns.runSelectedJobNow = async function () {
-    const jobType = ns.state.selectedJob;
+  ns.runJobNow = async function (jobType) {
     if (!jobType) {
       return;
     }

@@ -2226,30 +2226,130 @@ circle.em-dot:focus-visible {
   max-height: 28rem;
 }
 
-/* Issue #834: Pause / Resume / Run now + logs header */
-.jobs-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm, 0.75rem);
-  margin: 0 0 0.75rem;
+.jobs-retry-btn {
+  font-size: var(--font-size-sm, 0.875rem);
+  padding: 0.25rem 0.5rem;
 }
 
-.jobs-section-header {
+/* #1152: schedule table + detail drawer */
+.jobs-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.jobs-schedule th,
+.jobs-schedule .m-badge {
+  white-space: nowrap;
+}
+
+.jobs-schedule td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+
+.jobs-subheading {
+  margin: var(--spacing-md) 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-main);
+}
+
+.jobs-drawer {
+  position: sticky;
+  top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.jobs-drawer__header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-sm, 0.75rem);
-  margin: 0 0 0.5rem;
+  gap: var(--spacing-xs) var(--spacing-sm);
 }
 
-.jobs-section-header h3 {
+.jobs-drawer__title {
   margin: 0;
+  font-size: var(--font-size-base);
+  overflow-wrap: anywhere;
 }
 
-.jobs-retry-btn {
-  font-size: var(--font-size-sm, 0.875rem);
-  padding: 0.25rem 0.5rem;
+.jobs-drawer__run {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.jobs-drawer__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.jobs-drawer__tab {
+  appearance: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.jobs-drawer__tab[aria-selected='true'] {
+  border-bottom-color: var(--color-brand-primary);
+  color: var(--color-text-main);
+  font-weight: 600;
+}
+
+.jobs-drawer__tab:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.jobs-drawer__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.jobs-drawer__panel > .m-button {
+  align-self: flex-start;
+}
+
+.jobs-row-menu > summary {
+  list-style: none;
+}
+
+.jobs-row-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.jobs-row-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+@media (max-width: 48rem) {
+  .jobs-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .jobs-drawer {
+    position: static;
+  }
 }
 
 /* Ops status strip (#1025) — secondary chrome under the tab bar */

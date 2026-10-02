@@ -199,6 +199,7 @@ export function registerAdminBatchRoutes(
       res.json({
         message: '배치 스케줄러 상세 통계 조회 완료',
         schedulerRunning: detailed.status.isRunning,
+        readOnly: isJobsReadOnly(),
         health: {
           memoryUsage: detailed.health.memoryUsage,
           runningJobs: detailed.health.runningJobs,
