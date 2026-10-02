@@ -226,7 +226,7 @@ describe('agent sessions dashboard panel (#460)', () => {
     expect(dashboardCss).toContain('[hidden] {');
     expect(dashboardCss).toContain('display: none !important;');
     expect(dashboardCss).toContain('min-height: 200px;');
-    expect(dashboardCss).toMatch(/\.m-tab-bar\s*\{[^}]*overflow-x:\s*auto;/s);
+    expect(dashboardCss).toMatch(/\.m-nav-rail \.m-tab-bar\s*\{[^}]*overflow-x:\s*auto;/s);
   });
 
   it('applies quiet header + P0 token/focus contracts (#965)', () => {

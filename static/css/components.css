@@ -190,31 +190,40 @@
   box-sizing: border-box;
 }
 
-/* --- Tabs --- */
+/* --- Nav rail (#1144). Tabs keep WAI-ARIA tablist semantics, laid out vertically. --- */
+.m-nav-rail {
+  display: flex;
+  flex-direction: column;
+  width: 232px;
+  min-height: 0;
+  background: var(--color-bg-card);
+  border-right: 1px solid var(--color-border-light);
+}
+
 .m-tab-bar {
   display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-tab-surface);
-  border-bottom: 1px solid var(--color-tab-border);
+  padding: var(--spacing-sm);
 }
 
 /* #967: visible Spatial / Ops / Learn group chrome (presentational; tabs stay tablist owned) */
 .m-nav-group {
-  display: inline-flex;
-  align-items: flex-end;
-  flex-shrink: 0;
-  gap: var(--spacing-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .m-nav-group + .m-nav-group {
-  padding-left: var(--spacing-sm);
-  border-left: 1px solid var(--color-tab-border);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .m-nav-group__label {
-  align-self: center;
-  padding-right: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -224,23 +233,55 @@
 }
 
 .m-tab-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 0;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-main);
   cursor: pointer;
   font-weight: 500;
   font-size: var(--font-size-sm);
-  transition: all 0.2s;
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s;
 }
 
+.m-tab-btn:hover {
+  background: var(--color-bg-hover);
+}
+
+/* Filled pill, no edge accent bar (#1144). */
 .m-tab-btn.active {
-  background: var(--color-bg-card);
-  border-color: var(--color-tab-border);
-  border-bottom-color: var(--color-bg-card);
-  color: var(--color-text-main);
-  margin-bottom: -1px;
+  background: var(--color-accent-weak);
+  color: var(--color-brand-primary);
+  font-weight: 600;
+}
+
+/* Session chip at the rail bottom (#1144). Shown only when signed in (JS toggles [hidden]). */
+.m-session-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--font-size-xs);
+}
+
+.m-session-chip__dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.m-session-chip .m-button {
+  margin-left: auto;
 }
 
 /* --- Toolbar (#968 progressive disclosure) --- */

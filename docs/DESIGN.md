@@ -49,13 +49,13 @@
 
 ## Information architecture
 > **Current state.** This section describes what is deployed today. Adding or removing a tab or route means updating it in the same PR.
-- Primary navigation: Top tab bar (`.m-tab-bar`) after header.
+- Primary navigation: Left nav rail (`.m-nav-rail`, 232px) from 769px; below that it falls back to a horizontal, scrollable tab bar. The rail wraps the `.m-tab-bar` `role="tablist"` with `aria-orientation="vertical"`: buttons keep `role="tab"` / `aria-selected` / `aria-controls` and their ids (panels' `aria-labelledby` unchanged); `aria-current` is not used because tabs switch in-page panels. Arrow Up/Down and Left/Right move focus, Enter/Space activates (#1144).
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
   - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
   - `/graph` standalone dark graph (session-gated)
 - Content hierarchy (target):
-  1. Session chrome (collapsed when signed in)
+  1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
   2. Task groups (Spatial · Ops · Learn) rather than a flat peer list
   3. Per-tab primary canvas + secondary inspector
   4. Advanced/layout controls behind disclosure
@@ -79,12 +79,11 @@
 - Imagery/iconography: Prefer text + color legend over emoji; SVG/status dots for slots and memory types.
 
 ## Components
-- Existing components to reuse: `.m-button` (+ `--primary|--secondary|--ghost`), `.m-input`, `.m-card`, `.m-header`, `.m-badge`, `.m-tab-bar` / `.m-tab-btn` / `.m-tab-badge`. State badges: `.m-badge--ok|--warn|--crit|--idle` read `--color-state-*` pairs and add a shape (circle / square / triangle / hollow circle) so state is never color-only (#1142). KPI tiles: `.m-stat` (`__label` / `__value` / `__note` / `__delta--good|--bad`) in `.m-stat-grid`, with `.m-sparkline` for inline-SVG trends (`role="img"` + `aria-label`); `.m-metric` stays for dense in-table use (#1143).
+- Existing components to reuse: `.m-button` (+ `--primary|--secondary|--ghost`), `.m-input`, `.m-card`, `.m-header`, `.m-badge`, `.m-tab-bar` / `.m-tab-btn` / `.m-tab-badge`. Nav rail: `.m-nav-rail` (filled-pill active item, no edge accent bar) + `.m-session-chip` (#1144). State badges: `.m-badge--ok|--warn|--crit|--idle` read `--color-state-*` pairs and add a shape (circle / square / triangle / hollow circle) so state is never color-only (#1142). KPI tiles: `.m-stat` (`__label` / `__value` / `__note` / `__delta--good|--bad`) in `.m-stat-grid`, with `.m-sparkline` for inline-SVG trends (`role="img"` + `aria-label`); `.m-metric` stays for dense in-table use (#1143).
 - New/changed components (proposed):
   - `.m-toolbar` / `.m-toolbar-primary` / `.m-toolbar-more` (progressive disclosure)
   - `.m-empty`, `.m-loading`, `.m-error` (shared interaction states)
   - `.m-nav-group` or overflow “More” for tab IA
-  - Compact `.m-session-chip` for signed-in header
 - Variants and states: Document disabled/hover/focus on components; panels must not fork button styles.
 - Token/component ownership: Tokens in `tokens.css`; primitives in `components.css`; page/panel layout only in `dashboard.css` (or panel-scoped files if split later).
 

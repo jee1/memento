@@ -694,4 +694,84 @@ describe('static design contracts', () => {
     expect(embeddingHealthSource).toContain("'m-stat__note'");
     expect(embeddingHealthSource).not.toContain("'m-metric'");
   });
+
+  it('issue #1144 nav rail keeps tab semantics, holds the session chip and falls back to a horizontal bar on mobile', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const componentsCss = readStaticFile('static/css/components.css');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+
+    function ruleBody(src: string, selector: string): string {
+      const needle = `${selector} {`;
+      const start = src.indexOf(needle);
+      expect(start, `${selector} rule must exist`).toBeGreaterThanOrEqual(0);
+      const open = start + needle.length - 1;
+      let depth = 0;
+      let end = open;
+      for (let i = open; i < src.length; i += 1) {
+        const char = src[i];
+        if (char === '{') depth += 1;
+        if (char === '}') depth -= 1;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+      return src.slice(open + 1, end);
+    }
+
+    expect(html).toContain('<nav class="m-nav-rail"');
+    expect(html).toContain('role="tablist" aria-orientation="vertical"');
+
+    const navIdx = html.indexOf('<nav class="m-nav-rail"');
+    const tablistIdx = html.indexOf('role="tablist"');
+    const sessionIdx = html.indexOf('id="dashboard-auth-session" class="m-session-chip"');
+    const navCloseIdx = html.indexOf('</nav>', navIdx);
+    expect(navIdx).toBeLessThan(tablistIdx);
+    expect(tablistIdx).toBeLessThan(sessionIdx);
+    expect(sessionIdx).toBeLessThan(navCloseIdx);
+
+    const headerCloseIdx = html.indexOf('</header>');
+    expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
+
+    const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
+    expect(tabpanelMatches).toHaveLength(8);
+    for (const match of tabpanelMatches) {
+      const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
+      expect(idMatch).not.toBeNull();
+      const tabId = idMatch![1];
+      expect(html).toMatch(new RegExp(`id="${tabId}"[^>]*role="tab"`));
+    }
+
+    expect(html).not.toContain('aria-current');
+
+    const navRailBody = ruleBody(componentsCss, '.m-nav-rail');
+    expect(navRailBody).toContain('width: 232px');
+
+    const activeBody = ruleBody(componentsCss, '.m-tab-btn.active');
+    expect(activeBody).toContain('var(--color-accent-weak)');
+    expect(activeBody).toContain('var(--color-brand-primary)');
+    expect(activeBody).not.toContain('border-left');
+
+    const hoverBody = ruleBody(componentsCss, '.m-tab-btn:hover');
+    expect(hoverBody).toContain('var(--color-bg-hover)');
+
+    expect(componentsCss).toContain('.m-session-chip {');
+
+    expect(dashboardCss).toContain('@media (min-width: 769px)');
+    expect(dashboardCss).toContain('grid-template-columns: 232px minmax(0, 1fr)');
+    expect(
+      dashboardCss.indexOf('.m-nav-rail .m-tab-bar {') >
+        dashboardCss.indexOf('@media (max-width: 768px) {\n  .m-nav-rail {'),
+    ).toBe(true);
+
+    expect(dashboardCss).toContain('.dashboard-auth-panel:has(.dashboard-auth-message:empty)');
+    expect(dashboardCss).not.toContain('.dashboard-auth-session');
+
+    expect(tabsJs).toContain("'ArrowDown'");
+    expect(tabsJs).toContain("'ArrowUp'");
+
+    expect(componentsCss).toContain('.m-tab-btn.active {');
+    expect(dashboardCss).not.toContain('.m-tab-btn.active {');
+  });
 });

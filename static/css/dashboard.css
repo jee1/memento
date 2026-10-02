@@ -66,8 +66,7 @@ body {
   border: 1px solid var(--color-dashboard-auth-panel-border);
 }
 
-.dashboard-auth-form,
-.dashboard-auth-session {
+.dashboard-auth-form {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -118,6 +117,11 @@ body {
 }
 
 .dashboard-container[data-auth-state='signed-in'] .dashboard-auth-message:empty {
+  display: none;
+}
+
+/* #1144: the session chip lives in the nav rail; the header auth panel only reappears to show a message. */
+.dashboard-container[data-auth-state='signed-in'] .dashboard-auth-panel:has(.dashboard-auth-message:empty) {
   display: none;
 }
 
@@ -542,8 +546,7 @@ body {
     font-size: var(--font-size-lg);
   }
 
-  .dashboard-auth-form,
-  .dashboard-auth-session {
+  .dashboard-auth-form {
     flex-direction: column;
     align-items: stretch;
   }
@@ -569,45 +572,74 @@ body {
   }
 }
 
-/* Tabs + Embedding Map (014) - m-tab-bar 컴포넌트 활용; #967 groups keep ≤390px reach via overflow-x */
-.m-tab-bar {
-  display: flex;
-  align-items: flex-end;
-  overflow-x: auto;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-tab-surface);
-  border-bottom: 1px solid var(--color-tab-border);
-  flex-shrink: 0;
+/* Shell layout (#1144): nav rail on the left from 769px; horizontal tab bar below that (keeps <=390px reach). */
+@media (min-width: 769px) {
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .dashboard-container > * {
+    grid-column: 2;
+  }
+
+  .dashboard-container > .m-nav-rail {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  .dashboard-container > .dashboard-header {
+    grid-row: 1;
+  }
+
+  .dashboard-container > .ops-strip {
+    grid-row: 2;
+  }
+
+  .dashboard-container > .tab-panel {
+    grid-row: 3;
+  }
 }
 
-.m-tab-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-weight: 500;
-  font-size: var(--font-size-sm);
-  transition: all 0.2s;
-}
+@media (max-width: 768px) {
+  .m-nav-rail {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    flex-shrink: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--color-tab-border);
+  }
 
-.m-tab-btn:hover {
-  background: var(--color-tab-hover);
-}
+  .m-nav-rail .m-tab-bar {
+    flex-direction: row;
+    align-items: flex-end;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
 
-.m-tab-btn:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
-}
+  .m-nav-rail .m-nav-group {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+  }
 
-.m-tab-btn.active {
-  background: var(--color-bg-card);
-  border-color: var(--color-tab-border);
-  border-bottom-color: var(--color-bg-card);
-  margin-bottom: -1px;
-  color: var(--color-text-main);
+  .m-nav-rail .m-nav-group + .m-nav-group {
+    padding-top: 0;
+    padding-left: var(--spacing-sm);
+    border-top: none;
+    border-left: 1px solid var(--color-tab-border);
+  }
+
+  .m-nav-rail .m-tab-btn {
+    width: auto;
+  }
+
+  .m-session-chip {
+    flex-shrink: 0;
+    border-top: none;
+  }
 }
 
 .m-tab-badge {
