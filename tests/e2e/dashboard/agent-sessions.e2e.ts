@@ -189,6 +189,8 @@ test.describe('Agent Sessions dashboard', () => {
       .locator('button')
       .click();
     await expect(page.locator('#as-provenance-results')).toContainText('observation-1');
+    await expect(page.locator('#as-provenance-results')).toBeVisible();
+    await expect(page.locator('#as-dtab-provenance')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#as-provenance-results')).toContainText('session-1');
     expect(detailRequests).toHaveLength(1);
 
