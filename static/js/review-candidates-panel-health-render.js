@@ -160,7 +160,7 @@
       const errCell =
         (Number(r.errorCount) > 0 || errPreview ? ns.escapeHtml(errPreview || '(see logs)') : '—') +
         (Number(r.warningCount) > 0
-          ? ' <span class="rc-health-hint">(' + ns.escapeHtml(String(r.warningCount)) + ' warnings)</span>'
+          ? ' <span class="m-panel__note">(' + ns.escapeHtml(String(r.warningCount)) + ' warnings)</span>'
           : '');
       tr.innerHTML =
         '<td class="rc-cell-mono">' +

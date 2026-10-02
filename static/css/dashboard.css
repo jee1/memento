@@ -1009,39 +1009,8 @@ circle.em-dot:focus-visible {
 }
 
 /* Review queue health (#294) */
-.rc-health-panel {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-light);
-  background: var(--color-bg-card);
-}
-
-.rc-health-title {
-  margin: 0 0 var(--spacing-xs) 0;
-  font-size: var(--font-size-base);
-  font-weight: 600;
-}
-
-.rc-health-hint {
-  margin: 0 0 var(--spacing-sm) 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  line-height: var(--line-height-relaxed, 1.45);
-}
-
-.rc-health-code {
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
-}
-
 .rc-health-live {
   margin-bottom: var(--spacing-md);
-}
-
-.rc-health-subtitle {
-  margin: var(--spacing-sm) 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
 }
 
 .rc-health-history-wrap {
