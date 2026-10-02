@@ -52,7 +52,7 @@
 - Primary navigation: Left nav rail (`.m-nav-rail`, 232px) from 1280px; below that it falls back to a horizontal, scrollable tab bar. The rail wraps the `.m-tab-bar` `role="tablist"` with `aria-orientation="vertical"`: buttons keep `role="tab"` / `aria-selected` / `aria-controls` and their ids (panels' `aria-labelledby` unchanged); `aria-current` is not used because tabs switch in-page panels. Arrow Up/Down and Left/Right move focus, Enter/Space activates (#1144).
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
-  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
+  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
   - `/graph` standalone dark graph (session-gated)
 - Content hierarchy (target):
   1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
