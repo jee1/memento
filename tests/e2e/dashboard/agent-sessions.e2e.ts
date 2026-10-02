@@ -172,6 +172,7 @@ test.describe('Agent Sessions dashboard', () => {
     });
     await openAgentSessions(page);
     await page.getByRole('button', { name: /session-1/ }).click();
+    await page.locator('#as-dtab-injections').click();
     await expect(page.locator('#as-injections')).toContainText(`${KO_TOKENS} 80 / 100`);
     await expect(page.getByText(/memory-selected/).locator('..')).toContainText('highest relevance');
     await expect(page.getByText(/memory-excluded/).locator('..')).toContainText('budget threshold');
@@ -188,6 +189,8 @@ test.describe('Agent Sessions dashboard', () => {
       .locator('button')
       .click();
     await expect(page.locator('#as-provenance-results')).toContainText('observation-1');
+    await expect(page.locator('#as-provenance-results')).toBeVisible();
+    await expect(page.locator('#as-dtab-provenance')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#as-provenance-results')).toContainText('session-1');
     expect(detailRequests).toHaveLength(1);
 

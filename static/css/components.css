@@ -24,7 +24,8 @@
 .m-button:focus-visible,
 .m-input:focus-visible,
 .m-tab-btn:focus-visible,
-.m-about__summary:focus-visible {
+.m-about__summary:focus-visible,
+.m-subtab:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
@@ -436,6 +437,32 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-relaxed, 1.45);
+}
+
+/* --- Sub-tabs (#1153): tabs inside a panel (jobs drawer, agent session detail) --- */
+.m-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.m-subtab {
+  appearance: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.m-subtab[aria-selected='true'] {
+  border-bottom-color: var(--color-brand-primary);
+  color: var(--color-text-main);
+  font-weight: 600;
 }
 
 /* --- Tables (#1024) — chrome lives here; column widths stay panel-scoped --- */

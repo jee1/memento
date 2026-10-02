@@ -66,6 +66,28 @@
     on('as-transcript-import', 'click', function () {
       void ns.submitTranscript(false).catch(ns.showError);
     });
+    ns.DETAIL_TABS.forEach(function (t) {
+      on('as-dtab-' + t, 'click', function () {
+        ns.showDetailTab(t);
+      });
+      on('as-dtab-' + t, 'keydown', function (event) {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+          return;
+        }
+        event.preventDefault();
+        const idx = ns.DETAIL_TABS.indexOf(t);
+        const next =
+          event.key === 'ArrowRight'
+            ? ns.DETAIL_TABS[(idx + 1) % ns.DETAIL_TABS.length]
+            : ns.DETAIL_TABS[(idx - 1 + ns.DETAIL_TABS.length) % ns.DETAIL_TABS.length];
+        ns.showDetailTab(next);
+        const tab = ns.$('as-dtab-' + next);
+        if (tab) {
+          tab.focus();
+        }
+      });
+    });
+    ns.showDetailTab('overview');
   }
 
   function initAgentSessionsPanel() {
