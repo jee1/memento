@@ -46,6 +46,8 @@ export interface JobRunImpactAggregate {
   lastFailedAt: string | null;
   /** 저장된 job_run 중 가장 오래된 started_at (없으면 null). */
   dataSince: string | null;
+  /** #1146: failed duration_ms summed per UTC day (YYYY-MM-DD), ascending; only days with failures. */
+  failedDurationByDay: Array<{ day: string; ms: number }>;
 }
 
 export class JobRunRepository {
@@ -146,12 +148,20 @@ export class JobRunRepository {
     const oldest = db
       .prepare(`SELECT MIN(started_at) AS oldest FROM job_run`)
       .get() as { oldest: string | null } | undefined;
+    const byDay = db
+      .prepare(
+        `SELECT substr(started_at, 1, 10) AS day, COALESCE(SUM(duration_ms), 0) AS ms
+         FROM job_run WHERE success = 0 AND started_at >= ?
+         GROUP BY day ORDER BY day`,
+      )
+      .all(sinceIso) as Array<{ day: string; ms: number }>;
     return {
       failedRunCount: Number(failed?.n ?? 0),
       durationMsSum: Number(failed?.ms ?? 0),
       successRunCount: Number(success?.n ?? 0),
       lastFailedAt: failed?.last ?? null,
       dataSince: oldest?.oldest ?? null,
+      failedDurationByDay: byDay.map((row) => ({ day: row.day, ms: Number(row.ms) })),
     };
   }
 }

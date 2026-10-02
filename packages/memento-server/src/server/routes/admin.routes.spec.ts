@@ -2372,13 +2372,43 @@ describe('GET /admin/status', () => {
         windowDays: number;
         dataSince: string | null;
         since: string;
-        batchImpact: { since: string; durationMsSum: number };
+        batchImpact: { since: string; durationMsSum: number; dailyDurationMs: number[] };
       };
       expect(res.statusCode).toBe(200);
       expect(body.windowDays).toBe(30);
       expect(body.dataSince).toBeTruthy();
       expect(body.batchImpact.since).toBe(body.since);
       expect(body.batchImpact.durationMsSum).toBe(Number(expected.ms));
+      expect(body.batchImpact.dailyDurationMs).toHaveLength(30);
+      expect(body.batchImpact.dailyDurationMs[29]).toBe(0);
+      expect(body.batchImpact.dailyDurationMs[28]).toBe(420_000);
+      expect(body.batchImpact.dailyDurationMs[27]).toBe(300_000);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('returns review net flow history oldest first (#1146)', async () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+    const insertSnapshot = db.prepare(`
+      INSERT INTO memory_review_queue_health_snapshot (
+        sampled_at, pending_total, created_last_1h, reviewed_last_1h, dismissed_last_1h,
+        expired_last_1h, created_last_24h, reviewed_last_24h, dismissed_last_24h,
+        expired_last_24h, net_flow_1h, processing_ratio_1h
+      ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, ?, NULL)
+    `);
+    insertSnapshot.run(twoHoursAgo, 5);
+    insertSnapshot.run(oneHourAgo, -2);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/status');
+      const body = JSON.parse(res.body) as {
+        review: { netFlow1hHistory: number[] };
+      };
+      expect(res.statusCode).toBe(200);
+      expect(body.review.netFlow1hHistory).toEqual([5, -2]);
     } finally {
       await new Promise<void>(r => server.close(() => r()));
     }

@@ -280,6 +280,10 @@ describe('JobRunRepository.aggregateFailedDurationSince', () => {
     expect(aggregate.successRunCount).toBe(2);
     expect(aggregate.lastFailedAt).toBe('2026-09-13T00:00:00.000Z');
     expect(aggregate.dataSince).toBe('2026-09-10T00:00:00.000Z');
+    expect(aggregate.failedDurationByDay).toEqual([
+      { day: '2026-09-12', ms: 300_000 },
+      { day: '2026-09-13', ms: 420_000 },
+    ]);
   });
 
   it('returns zeros and nulls on an empty table', () => {
@@ -289,6 +293,38 @@ describe('JobRunRepository.aggregateFailedDurationSince', () => {
     expect(aggregate.successRunCount).toBe(0);
     expect(aggregate.lastFailedAt).toBeNull();
     expect(aggregate.dataSince).toBeNull();
+    expect(aggregate.failedDurationByDay).toEqual([]);
+  });
+
+  it('sums failures on the same UTC day (#1146)', () => {
+    const since = '2026-09-01T00:00:00.000Z';
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-20T01:00:00.000Z',
+      ended_at: '2026-09-20T01:00:01.000Z',
+      success: false,
+      duration_ms: 1000,
+    });
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-20T23:00:00.000Z',
+      ended_at: '2026-09-20T23:00:01.000Z',
+      success: false,
+      duration_ms: 2000,
+    });
+    repo.append(db, {
+      job_name: 'cleanup',
+      trigger: 'schedule',
+      started_at: '2026-09-20T12:00:00.000Z',
+      ended_at: '2026-09-20T12:00:05.000Z',
+      success: true,
+      duration_ms: 5000,
+    });
+
+    const aggregate = repo.aggregateFailedDurationSince(db, since);
+    expect(aggregate.failedDurationByDay).toEqual([{ day: '2026-09-20', ms: 3000 }]);
   });
 
   it('excludes failures older than since', () => {
