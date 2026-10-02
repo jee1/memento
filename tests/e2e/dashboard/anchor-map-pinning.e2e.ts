@@ -159,8 +159,8 @@ test.describe('Anchor Map pinning (real d3)', () => {
       links: mapPayload.links.filter((l) => l.target !== 'mem-b'),
     });
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(1);
-    const afterWs = await circleXY(page, 'mem-a');
-    expect(Math.abs(afterWs!.cx - pinnedAfter!.cx)).toBeLessThan(1);
+    // cx is written on the next simulation tick after renderMap() rebuilds the nodes, so poll for it.
+    await expect.poll(async () => Math.abs((await circleXY(page, 'mem-a'))!.cx - pinnedAfter!.cx)).toBeLessThan(1);
 
     // E6 — reload restores pin
     mapRoute.serveWithoutMemB = false;
@@ -171,8 +171,9 @@ test.describe('Anchor Map pinning (real d3)', () => {
     const storedAfterReload = await page.evaluate((key) => localStorage.getItem(key), LAYOUT_KEY);
     expect(storedAfterReload).toBe(storedBeforeReload);
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(1);
-    const afterReload = await circleXY(page, 'mem-a');
-    expect(Math.abs(afterReload!.cx - stored.agents.default.nodes['mem-a'].x)).toBeLessThan(3);
+    await expect
+      .poll(async () => Math.abs((await circleXY(page, 'mem-a'))!.cx - stored.agents.default.nodes['mem-a'].x))
+      .toBeLessThan(3);
 
     // E7 — unpin via detail panel
     await page.evaluate(() => {
