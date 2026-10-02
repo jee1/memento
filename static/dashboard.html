@@ -221,22 +221,22 @@
           <button type="button" id="em-load-btn" class="m-button m-button--primary">새로고침</button>
           <span id="em-cache-info" class="em-cache-info"></span>
         </div>
-        <section class="em-health-panel rc-health-panel" aria-labelledby="em-health-title">
-          <h2 id="em-health-title" class="rc-health-title">임베딩 상태</h2>
-          <p class="rc-health-hint">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
+        <section class="em-health-panel m-panel" aria-labelledby="em-health-title">
+          <h2 id="em-health-title" class="m-panel__title">임베딩 상태</h2>
+          <p class="m-panel__note">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
           <div id="em-health-error" class="m-error hidden" role="alert"></div>
           <div id="em-health-summary" class="m-stat-grid" aria-live="polite"></div>
-          <h3 class="rc-health-subtitle">문제</h3>
+          <h3 class="m-panel__subtitle">문제</h3>
           <div id="em-health-problems" class="m-stat-grid"></div>
           <div id="em-problem-list" class="em-problem-list hidden" aria-live="polite"></div>
-          <p class="rc-health-hint">재색인 전 확인: <code class="rc-health-code">npm run reindex-embeddings -- --provider &lt;provider&gt; --dry-run</code></p>
+          <p class="m-panel__note">재색인 전 확인: <code class="m-code-inline">npm run reindex-embeddings -- --provider &lt;provider&gt; --dry-run</code></p>
         </section>
 
         <section class="em-explorer" aria-labelledby="em-explorer-title">
           <div class="em-explorer-header">
             <div>
               <h2 id="em-explorer-title">의미 공간 탐색</h2>
-              <p id="em-sample-info" class="rc-health-hint"></p>
+              <p id="em-sample-info" class="m-panel__note"></p>
             </div>
             <details class="em-advanced">
               <summary>고급</summary>
@@ -415,7 +415,7 @@
             <p class="rc-intro">
               중요도가 높은데 오랫동안 recall 되지 않아 자동 망각으로 향하는 기억들입니다. 각 기억을
               <strong>보존</strong>할지 <strong>무시</strong>할지 결정하는 자리입니다. 결정하지 않으면 기억은 그대로 망각 경로에 남습니다.
-              <code class="rc-health-code">memory_review_candidates</code> 배치가 후보를 채웁니다.
+              <code class="m-code-inline">memory_review_candidates</code> 배치가 후보를 채웁니다.
             </p>
             <p class="rc-howto">
               <span class="rc-howto-label">결정하는 법:</span>
@@ -429,15 +429,15 @@
         </header>
         <details id="rc-diagnostics" class="rc-diagnostics">
           <summary class="rc-diagnostics__summary">대기열 진단 (지표·최근 샘플·수동 배치 실행)</summary>
-        <section id="rc-health-panel" class="rc-health-panel" aria-label="대기열 상태 지표">
-          <h3 class="rc-health-title">대기열 상태 (#294)</h3>
-          <p id="rc-health-hint" class="rc-health-hint">
-            롤링 윈도우는 행 타임스탬프를 사용합니다(<code class="rc-health-code">created_at</code>, <code class="rc-health-code">reviewed_at</code>, <code class="rc-health-code">dismissed_at</code>, <code class="rc-health-code">expired</code>는 <code class="rc-health-code">updated_at</code> 기준).
+        <section id="rc-health-panel" class="m-panel" aria-label="대기열 상태 지표">
+          <h3 class="m-panel__title">대기열 상태 (#294)</h3>
+          <p id="rc-health-hint" class="m-panel__note">
+            롤링 윈도우는 행 타임스탬프를 사용합니다(<code class="m-code-inline">created_at</code>, <code class="m-code-inline">reviewed_at</code>, <code class="m-code-inline">dismissed_at</code>, <code class="m-code-inline">expired</code>는 <code class="m-code-inline">updated_at</code> 기준).
           </p>
           <div id="rc-health-error" class="m-error hidden"></div>
           <div id="rc-health-live" class="rc-health-live hidden" aria-live="polite"></div>
           <div id="rc-health-history-wrap" class="rc-health-history-wrap hidden">
-            <h4 class="rc-health-subtitle">최근 샘플</h4>
+            <h4 class="m-panel__subtitle">최근 샘플</h4>
             <div class="rc-health-table-scroll m-table-wrap">
               <table id="rc-health-history-table" class="m-table m-table--dense">
                 <thead>
@@ -456,13 +456,13 @@
         </section>
         <section
           id="rc-batch-history-panel"
-          class="rc-health-panel"
+          class="m-panel"
           aria-label="수동 관리자 배치 실행 이력"
         >
-          <h3 class="rc-health-title">수동 배치 실행</h3>
-          <p class="rc-health-hint">
-            이 서버 프로세스의 최근 <code class="rc-health-code">POST /admin/batch/run</code> 호출
-            (메모리 내; 재시작 시 초기화). 이슈 <span class="rc-health-code">#295</span>.
+          <h3 class="m-panel__title">수동 배치 실행</h3>
+          <p class="m-panel__note">
+            이 서버 프로세스의 최근 <code class="m-code-inline">POST /admin/batch/run</code> 호출
+            (메모리 내; 재시작 시 초기화). 이슈 <span class="m-code-inline">#295</span>.
           </p>
           <div id="rc-batch-history-error" class="m-error hidden" role="alert"></div>
           <div id="rc-batch-history-empty" class="m-empty hidden">아직 기록된 수동 배치 실행이 없습니다.</div>
@@ -573,7 +573,7 @@
               </div>
               <p class="rc-bulk-effect-note">
                 무시와 만료는 이 대기열에서 후보만 내립니다. 원본 기억은 지워지지 않고 내용도 바뀌지 않습니다.
-                기억이 조건을 다시 만족하면 <code class="rc-health-code">memory_review_candidates</code> 배치가 새 후보로 다시 올리므로 되돌릴 수 있습니다.
+                기억이 조건을 다시 만족하면 <code class="m-code-inline">memory_review_candidates</code> 배치가 새 후보로 다시 올리므로 되돌릴 수 있습니다.
               </p>
             </div>
             <div id="rc-table-wrap" class="review-candidates-table-wrap m-table-wrap hidden">

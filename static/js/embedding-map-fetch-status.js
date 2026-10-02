@@ -122,12 +122,12 @@
     if (!el || !page) return;
     el.replaceChildren();
     const heading = document.createElement('h3');
-    heading.className = 'rc-health-subtitle';
+    heading.className = 'm-panel__subtitle';
     heading.textContent = page.problem + ' (' + page.total + ')';
     el.appendChild(heading);
     if (!page.memories || page.memories.length === 0) {
       const empty = document.createElement('p');
-      empty.className = 'rc-health-hint';
+      empty.className = 'm-panel__note';
       empty.textContent = '영향을 받는 활성 기억이 없습니다.';
       el.appendChild(empty);
     } else {

@@ -936,4 +936,23 @@ describe('static design contracts', () => {
     }
     expect(readStaticFile('static/js/anchor-map-shared.js')).toContain("classList.toggle('m-empty', !isActive)");
   });
+
+  it('issue #1150 generic panel chrome lives in components.css and no tab borrows rc-health-* chrome', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const components = readStaticFile('static/css/components.css');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    for (const cls of ['m-panel', 'm-panel__title', 'm-panel__subtitle', 'm-panel__note', 'm-code-inline']) {
+      expect(components, cls).toMatch(new RegExp(`\\.${cls}\\s*\\{`));
+      expect(dashboardCss, cls).not.toMatch(new RegExp(`\\.${cls}\\s*\\{`));
+    }
+    const moved = /rc-health-(panel|title|subtitle|hint|code)(?![\w-])/;
+    const classAttrs = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1]);
+    expect(classAttrs.filter((c) => moved.test(c))).toEqual([]);
+    expect(dashboardCss).not.toMatch(/\.rc-health-(panel|title|subtitle|hint|code)(?![\w-])/);
+    for (const f of ['embedding-map-fetch-status.js', 'review-candidates-panel-health-render.js']) {
+      expect(readStaticFile(`static/js/${f}`), f).not.toMatch(moved);
+    }
+    const embeddingTab = html.slice(html.indexOf('id="tab-embedding-map"'), html.indexOf('id="tab-graph"'));
+    expect(embeddingTab).not.toMatch(/class="[^"]*\brc-/);
+  });
 });
