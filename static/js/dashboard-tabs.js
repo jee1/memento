@@ -35,10 +35,45 @@
     activeBtn.focus();
   }
 
+  // Compact nav (#1147): on phones the tab list sits behind a menu button and group chips jump to a group.
+  const navRail = document.querySelector('.m-nav-rail');
+  const navToggle = document.getElementById('dashboard-nav-toggle');
+
+  function isCompactNav() {
+    return Boolean(navToggle) && getComputedStyle(navToggle).display !== 'none' && navToggle.offsetParent !== null;
+  }
+
+  function setNavExpanded(expanded) {
+    if (!navRail || !navToggle) {
+      return;
+    }
+    navRail.classList.toggle('is-expanded', expanded);
+    navToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function syncNavChips(name) {
+    const btn = document.querySelector('.m-tab-btn[data-tab="' + name + '"]');
+    const group = btn ? btn.closest('.m-nav-group[data-nav-group]') : null;
+    const key = group ? group.getAttribute('data-nav-group') : '';
+    document.querySelectorAll('.m-nav-chip[data-nav-group]').forEach(function (chip) {
+      chip.setAttribute('aria-pressed', chip.getAttribute('data-nav-group') === key ? 'true' : 'false');
+    });
+  }
+
   function activateTab(name) {
     panels.setTabButtonsActive(name);
     panels.setPanelVisibility(name);
     tabInit.runTabInit(name);
+    syncNavChips(name);
+    if (isCompactNav()) {
+      setNavExpanded(false);
+      const activeBtn = document.querySelector('.m-tab-btn[data-tab="' + name + '"]');
+      if (activeBtn) {
+        setRovingTabindex(activeBtn);
+      }
+      navToggle.focus();
+      return;
+    }
     focusActiveTabButton(name);
   }
 
@@ -95,10 +130,39 @@
     });
   });
 
+  if (navToggle) {
+    navToggle.addEventListener('click', function () {
+      setNavExpanded(navToggle.getAttribute('aria-expanded') !== 'true');
+    });
+  }
+
+  if (navRail) {
+    navRail.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && navRail.classList.contains('is-expanded')) {
+        setNavExpanded(false);
+        if (navToggle) {
+          navToggle.focus();
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.m-nav-chip[data-nav-group]').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      const group = document.querySelector('.m-nav-group[data-nav-group="' + chip.getAttribute('data-nav-group') + '"]');
+      const first = group ? group.querySelector('.m-tab-btn[data-tab]') : null;
+      if (first) {
+        activateTab(first.getAttribute('data-tab'));
+      }
+    });
+  });
+
   const initial = document.querySelector('.m-tab-btn[data-tab="anchor"]');
   if (initial) {
     setRovingTabindex(initial);
   }
+
+  syncNavChips('anchor');
 
   global.__MEMENTO_DASHBOARD_TABS__ = {
     activateTab: activateTab,

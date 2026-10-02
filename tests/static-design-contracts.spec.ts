@@ -830,7 +830,7 @@ describe('static design contracts', () => {
     const used = new Set<number>();
     let mediaCount = 0;
     for (const file of cssFiles) {
-      const source = readStaticFile(file);
+      const source = readStaticFile(file).replace(/\/\*[\s\S]*?\*\//g, '');
       for (const match of source.matchAll(/@media\s*([^{]+)\{/g)) {
         mediaCount += 1;
         const condition = match[1].trim();
@@ -845,5 +845,40 @@ describe('static design contracts', () => {
     }
     expect(mediaCount).toBeGreaterThanOrEqual(12);
     expect([...used].sort((a, b) => b - a)).toEqual([80, 48, 30]);
+  });
+
+  it('issue #1147 phone nav: menu button controls the tablist and chips map to nav groups', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const componentsCss = readStaticFile('static/css/components.css');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+
+    expect(html).toMatch(/<button type="button" id="dashboard-nav-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="dashboard-tablist"/);
+    expect(html).toContain('<div id="dashboard-tablist" class="m-tab-bar" role="tablist"');
+
+    const navIdx = html.indexOf('<nav class="m-nav-rail"');
+    const compactIdx = html.indexOf('<div class="m-nav-compact">');
+    const tablistIdx = html.indexOf('role="tablist"');
+    expect(navIdx).toBeLessThan(compactIdx);
+    expect(compactIdx).toBeLessThan(tablistIdx);
+
+    const chipKeys = [...html.matchAll(/class="m-nav-chip[^"]*" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
+    const groupKeys = [...html.matchAll(/class="m-nav-group[^"]*" role="presentation" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
+    expect(chipKeys).toEqual(['spatial', 'ops', 'learn']);
+    expect(groupKeys).toEqual(chipKeys);
+
+    expect(componentsCss).toMatch(/\.m-nav-compact \{\s*display: none;\s*\}/);
+    expect(componentsCss).toMatch(/\.m-nav-compact__menu \{[^}]*width: 44px;[^}]*height: 44px;/s);
+    expect(componentsCss).toMatch(/\.m-nav-chip \{[^}]*min-height: 44px;/s);
+
+    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 30rem) {\n  .m-nav-rail {');
+    const phoneBlock = extractAtMediaBlock(dashboardCss.slice(phoneRailAt), '(max-width: 30rem)');
+    expect(phoneBlock).toMatch(/\.m-nav-compact \{[^}]*display: flex;/s);
+    expect(phoneBlock).toMatch(/\.m-nav-rail:not\(\.is-expanded\) \.m-tab-bar \{\s*display: none;/);
+    expect(phoneBlock).toMatch(/\.m-nav-rail \.m-tab-btn \{[^}]*min-height: 44px;/s);
+
+    expect(tabsJs).toContain("navToggle.setAttribute('aria-expanded'");
+    expect(tabsJs).toContain("chip.setAttribute('aria-pressed'");
+    expect(tabsJs).toContain("e.key === 'Escape'");
   });
 });

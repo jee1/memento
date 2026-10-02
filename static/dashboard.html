@@ -48,14 +48,22 @@
     </header>
 
     <nav class="m-nav-rail" aria-label="대시보드 탐색">
-      <div class="m-tab-bar" role="tablist" aria-orientation="vertical" aria-label="대시보드 보기 전환">
-        <div class="m-nav-group session-only" role="presentation">
+      <div class="m-nav-compact">
+        <button type="button" id="dashboard-nav-toggle" class="m-nav-compact__menu" aria-expanded="false" aria-controls="dashboard-tablist" aria-label="전체 탐색 메뉴">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12"></path></svg>
+        </button>
+        <button type="button" class="m-nav-chip session-only" data-nav-group="spatial" aria-pressed="false">공간</button>
+        <button type="button" class="m-nav-chip session-only" data-nav-group="ops" aria-pressed="false">운영</button>
+        <button type="button" class="m-nav-chip" data-nav-group="learn" aria-pressed="false">학습</button>
+      </div>
+      <div id="dashboard-tablist" class="m-tab-bar" role="tablist" aria-orientation="vertical" aria-label="대시보드 보기 전환">
+        <div class="m-nav-group session-only" role="presentation" data-nav-group="spatial">
           <span class="m-nav-group__label" aria-hidden="true">공간</span>
           <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
           <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">임베딩 상태</button>
           <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">기억 그래프</button>
         </div>
-        <div class="m-nav-group session-only" role="presentation">
+        <div class="m-nav-group session-only" role="presentation" data-nav-group="ops">
           <span class="m-nav-group__label" aria-hidden="true">운영</span>
           <button type="button" id="dashboard-tab-ops-overview" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-overview" data-tab="ops-overview">운영 개요</button>
           <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
@@ -63,7 +71,7 @@
           <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
           <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
         </div>
-        <div class="m-nav-group" role="presentation">
+        <div class="m-nav-group" role="presentation" data-nav-group="learn">
           <span class="m-nav-group__label" aria-hidden="true">학습</span>
           <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
         </div>
