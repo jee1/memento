@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { openToolbarMore } from './toolbar-more.js';
+
 const mapPayload = {
   agent_id: 'default',
   anchors: [
@@ -89,6 +91,7 @@ test.describe('Anchor Map drag refresh deferral (issue 948)', () => {
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
     await page.waitForTimeout(800);
 
+    await openToolbarMore(page);
     await page.locator('#refresh-interval-select').selectOption('5000');
     await page.locator('#auto-refresh-toggle').check();
 

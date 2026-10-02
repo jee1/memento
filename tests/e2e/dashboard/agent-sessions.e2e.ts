@@ -2,6 +2,10 @@ import { expect, test } from '@playwright/test';
 
 import {
   API_KEY,
+  KO_IMPORT,
+  KO_KEY_CLEARED_ON_RELOAD,
+  KO_KEY_REQUIRED,
+  KO_TOKENS,
   SECRET,
   createAudit,
   installDashboardRoutes,
@@ -14,11 +18,11 @@ test.describe('Agent Sessions dashboard', () => {
   test('renders loading, empty, error, and degraded states', async ({ page }) => {
     await installDashboardRoutes(page, { sessions: [], sessionsDelayMs: 150 });
     await page.goto('/dashboard');
-    await page.getByRole('tab', { name: 'Agent Sessions' }).click();
-    await page.getByLabel('Programmatic API Key').fill(API_KEY);
-    await page.getByRole('button', { name: 'Connect' }).click();
-    await expect(page.getByText('Loading agent sessions…')).toBeVisible();
-    await expect(page.getByText('No sessions match the current filters.')).toBeVisible();
+    await page.locator('#dashboard-tab-agent-sessions').click();
+    await page.locator('#as-api-key').fill(API_KEY);
+    await page.locator('#as-auth-form button[type="submit"]').click();
+    await expect(page.locator('#as-loading')).toBeVisible();
+    await expect(page.locator('#as-empty')).toBeVisible();
 
     await page.unroute('**/api/v1/agent/**');
     await installDashboardRoutes(page, {
@@ -51,10 +55,10 @@ test.describe('Agent Sessions dashboard', () => {
       ],
     });
     await openAgentSessions(page);
-    await page.getByLabel('Status').first().selectOption('COMPLETED');
-    await page.getByLabel('Adapter').fill('claude-code');
-    await page.getByLabel('Owner').fill('owner-filter');
-    await page.getByLabel('Project').fill('project-filter');
+    await page.locator('#as-session-status').selectOption('COMPLETED');
+    await page.locator('#as-session-adapter').fill('claude-code');
+    await page.locator('#as-session-owner').fill('owner-filter');
+    await page.locator('#as-session-project').fill('project-filter');
 
     const filteredRequest = page.waitForRequest((request) => {
       const url = new URL(request.url());
@@ -70,7 +74,7 @@ test.describe('Agent Sessions dashboard', () => {
     const cursorRequest = page.waitForRequest((request) =>
       request.url().includes('cursor=session-cursor-2'),
     );
-    await page.getByRole('button', { name: 'Load more sessions' }).click();
+    await page.locator('#as-load-more-sessions').click();
     await cursorRequest;
     await expect(page.getByText('session-page-2')).toBeVisible();
   });
@@ -109,19 +113,19 @@ test.describe('Agent Sessions dashboard', () => {
       .context()
       .pages()[0]
       .waitForRequest((request) => request.url().includes('cursor=100'));
-    await page.getByRole('button', { name: 'Load more observations' }).click();
+    await page.locator('#as-load-more-observations').click();
     await observationRequest;
     await expect(page.locator('#as-timeline .as-event')).toHaveCount(200);
 
-    await page.getByLabel('Event').selectOption('ERROR');
-    await page.getByLabel('Status').last().selectOption('DEGRADED');
+    await page.locator('#as-event-type').selectOption('ERROR');
+    await page.locator('#as-observation-status').selectOption('DEGRADED');
     const filterRequest = page.waitForRequest((request) => {
       const url = new URL(request.url());
       return url.pathname.endsWith('/observations') &&
         url.searchParams.get('event_type') === 'ERROR' &&
         url.searchParams.get('status') === 'DEGRADED';
     });
-    await page.getByRole('button', { name: 'Apply' }).click();
+    await page.locator('#as-refresh-timeline').click();
     await filterRequest;
     await expect(page.locator('#as-timeline .as-event')).toHaveCount(1);
     await expect(page.locator('.as-event--error')).toContainText('observation-error');
@@ -168,7 +172,7 @@ test.describe('Agent Sessions dashboard', () => {
     });
     await openAgentSessions(page);
     await page.getByRole('button', { name: /session-1/ }).click();
-    await expect(page.getByText(/Tokens 80 \/ 100/)).toBeVisible();
+    await expect(page.locator('#as-injections')).toContainText(`${KO_TOKENS} 80 / 100`);
     await expect(page.getByText(/memory-selected/).locator('..')).toContainText('highest relevance');
     await expect(page.getByText(/memory-excluded/).locator('..')).toContainText('budget threshold');
 
@@ -181,13 +185,13 @@ test.describe('Agent Sessions dashboard', () => {
     await page
       .getByText('memory-selected', { exact: true })
       .locator('..')
-      .getByRole('button', { name: 'Trace' })
+      .locator('button')
       .click();
     await expect(page.locator('#as-provenance-results')).toContainText('observation-1');
     await expect(page.locator('#as-provenance-results')).toContainText('session-1');
     expect(detailRequests).toHaveLength(1);
 
-    await page.getByRole('button', { name: 'Trace provenance' }).click();
+    await page.locator('#as-timeline .as-event__trace').click();
     await expect(page.locator('#as-provenance-results')).toContainText('memory-1');
     expect(detailRequests).toHaveLength(2);
   });
@@ -197,26 +201,26 @@ test.describe('Agent Sessions dashboard', () => {
   }) => {
     const backend = await installDashboardRoutes(page);
     await openAgentSessions(page);
-    const transcript = page.getByLabel('JSONL text');
-    const importButton = page.getByRole('button', { name: 'Import validated transcript' });
+    const transcript = page.locator('#as-transcript-jsonl');
+    const importButton = page.locator('#as-transcript-import');
 
     await transcript.fill('{"event_id":"valid-event"}');
     await expect(importButton).toBeDisabled();
-    await page.getByRole('button', { name: 'Validate dry-run' }).click();
+    await page.locator('#as-transcript-dry-run').click();
     await expect(page.getByText(/Dry-run: valid · accepted 1/)).toBeVisible();
     await expect(importButton).toBeEnabled();
     await importButton.click();
-    await expect(page.getByText(/Import: valid · accepted 1/)).toBeVisible();
+    await expect(page.locator('#as-import-results')).toContainText(`${KO_IMPORT}: valid · accepted 1`);
     expect(backend.importedRows()).toBe(1);
 
     await transcript.fill('invalid-json');
-    await page.getByRole('button', { name: 'Validate dry-run' }).click();
+    await page.locator('#as-transcript-dry-run').click();
     await expect(page.getByRole('alert')).toContainText('Transcript validation failed.');
     await expect(importButton).toBeDisabled();
     expect(backend.importedRows()).toBe(1);
 
     await transcript.fill('{"event_id":"duplicate-event"}');
-    await page.getByRole('button', { name: 'Validate dry-run' }).click();
+    await page.locator('#as-transcript-dry-run').click();
     await importButton.click();
     await expect(page.getByText(/duplicate 1/)).toBeVisible();
     expect(backend.importedRows()).toBe(1);
@@ -236,12 +240,12 @@ test.describe('Agent Sessions dashboard', () => {
     expect(audit.responseBodies.join('\n')).not.toContain(SECRET);
 
     await page.reload();
-    await page.getByRole('tab', { name: 'Agent Sessions' }).click();
-    await expect(page.getByLabel('Programmatic API Key')).toHaveValue('');
-    await expect(page.getByText(/cleared on reload/)).toBeVisible();
+    await page.locator('#dashboard-tab-agent-sessions').click();
+    await expect(page.locator('#as-api-key')).toHaveValue('');
+    await expect(page.locator('#as-status')).toContainText(KO_KEY_CLEARED_ON_RELOAD);
     await page.locator('#as-refresh-sessions').click();
     await expect(page.getByRole('alert')).toContainText(
-      'Enter a programmatic API key for Agent Sessions.',
+      KO_KEY_REQUIRED,
     );
     await audit.settleResponses();
     expect(await page.locator('html').textContent()).not.toContain(SECRET);

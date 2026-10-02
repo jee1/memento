@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { openToolbarMore } from './toolbar-more.js';
+
 const mapPayload = {
   agent_id: 'default',
   anchors: [
@@ -132,6 +134,7 @@ test.describe('Anchor Map pinning (real d3)', () => {
 
     // E4 — auto-refresh drops mem-b, keeps mem-a pin
     mapRoute.serveWithoutMemB = true;
+    await openToolbarMore(page);
     await page.locator('#refresh-interval-select').selectOption('5000');
     await page.locator('#auto-refresh-toggle').check();
     await page.waitForTimeout(5200);
@@ -156,8 +159,8 @@ test.describe('Anchor Map pinning (real d3)', () => {
       links: mapPayload.links.filter((l) => l.target !== 'mem-b'),
     });
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(1);
-    const afterWs = await circleXY(page, 'mem-a');
-    expect(Math.abs(afterWs!.cx - pinnedAfter!.cx)).toBeLessThan(1);
+    // cx is written on the next simulation tick after renderMap() rebuilds the nodes, so poll for it.
+    await expect.poll(async () => Math.abs((await circleXY(page, 'mem-a'))!.cx - pinnedAfter!.cx)).toBeLessThan(1);
 
     // E6 — reload restores pin
     mapRoute.serveWithoutMemB = false;
@@ -168,8 +171,9 @@ test.describe('Anchor Map pinning (real d3)', () => {
     const storedAfterReload = await page.evaluate((key) => localStorage.getItem(key), LAYOUT_KEY);
     expect(storedAfterReload).toBe(storedBeforeReload);
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(1);
-    const afterReload = await circleXY(page, 'mem-a');
-    expect(Math.abs(afterReload!.cx - stored.agents.default.nodes['mem-a'].x)).toBeLessThan(3);
+    await expect
+      .poll(async () => Math.abs((await circleXY(page, 'mem-a'))!.cx - stored.agents.default.nodes['mem-a'].x))
+      .toBeLessThan(3);
 
     // E7 — unpin via detail panel
     await page.evaluate(() => {
@@ -196,6 +200,7 @@ test.describe('Anchor Map pinning (real d3)', () => {
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(2);
     const pinA = await circleXY(page, 'mem-a');
     const pinB = await circleXY(page, 'anchor-b');
+    await openToolbarMore(page);
     await page.locator('#unpin-all-btn').click();
     await page.waitForTimeout(3200);
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(0);
@@ -205,6 +210,7 @@ test.describe('Anchor Map pinning (real d3)', () => {
     expect(Math.hypot(bNow!.cx - pinB!.cx, bNow!.cy - pinB!.cy)).toBeGreaterThanOrEqual(1);
 
     // E9 — pause layout: no movement
+    await openToolbarMore(page);
     await page.locator('#layout-mode-btn').click();
     await expect(page.locator('#layout-mode-btn')).toHaveText('자동 정렬');
     await expect(page.locator('#layout-mode-btn')).toHaveAttribute('aria-pressed', 'true');
@@ -238,6 +244,7 @@ test.describe('Anchor Map pinning (real d3)', () => {
     expect(Math.abs(pausedPinAfter!.cx - pausedPin!.cx)).toBeLessThan(1);
 
     // E11 — reset layout
+    await openToolbarMore(page);
     await page.locator('#layout-reset-btn').click();
     const afterResetStore = await page.evaluate((key) => {
       const raw = localStorage.getItem(key);
