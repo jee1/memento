@@ -87,6 +87,7 @@
   - `.m-toolbar` / `.m-toolbar-primary` / `.m-toolbar-more` (progressive disclosure)
   - `.m-empty`, `.m-loading`, `.m-error` (shared interaction states)
   - `.m-panel` (`__title` / `__subtitle` / `__note`), `.m-code-inline` (shared panel chrome; panels must not borrow another panel's classes #1150)
+  - `.m-about` (`__summary` / `__body` / `__heading` / `__list`) — tab intro and data-source notes behind a disclosure so data comes first; irreversible-action explanations stay next to their buttons (#1151)
   - `.m-nav-group` or overflow “More” for tab IA
 - Variants and states: Document disabled/hover/focus on components; panels must not fork button styles.
 - Token/component ownership: Tokens in `tokens.css`; primitives in `components.css`; page/panel layout only in `dashboard.css` (or panel-scoped files if split later).
