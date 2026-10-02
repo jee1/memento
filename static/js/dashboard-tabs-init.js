@@ -62,6 +62,13 @@
     dispatchDashboardResize();
   }
 
+  function initOpsOverviewTab() {
+    if (typeof global.initOpsOverviewPanel === 'function') {
+      global.initOpsOverviewPanel();
+    }
+    dispatchDashboardResize();
+  }
+
   function initGraphTab() {
     const iframe = document.getElementById('graph-view-iframe');
     if (!iframe) {
@@ -100,6 +107,10 @@
     }
     if (name === 'jobs') {
       initJobsTab();
+      return;
+    }
+    if (name === 'ops-overview') {
+      initOpsOverviewTab();
       return;
     }
     if (name === 'graph') {

@@ -57,6 +57,7 @@
         </div>
         <div class="m-nav-group session-only" role="presentation">
           <span class="m-nav-group__label" aria-hidden="true">운영</span>
+          <button type="button" id="dashboard-tab-ops-overview" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-overview" data-tab="ops-overview">운영 개요</button>
           <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
           <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
           <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
@@ -262,6 +263,39 @@
         class="dashboard-graph-iframe"
         title="기억 관계 그래프 (GET /graph)"
       ></iframe>
+    </div>
+
+    <div id="tab-ops-overview" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-ops-overview" aria-hidden="true">
+      <div class="oo-layout">
+        <div class="oo-header">
+          <h2 class="oo-title">운영 개요</h2>
+          <button type="button" id="oo-refresh-btn" class="m-button m-button--secondary">새로고침</button>
+        </div>
+        <div id="oo-kpis" class="m-stat-grid" aria-live="polite"></div>
+        <div class="oo-cards">
+          <section class="m-card oo-card" aria-labelledby="oo-anchor-title">
+            <div class="oo-card__head">
+              <h3 id="oo-anchor-title" class="oo-card__title">앵커 맵</h3>
+              <button type="button" class="m-button m-button--ghost" data-oo-goto="anchor">전체 보기</button>
+            </div>
+            <div id="oo-anchor" class="oo-card__body" aria-live="polite"></div>
+          </section>
+          <section class="m-card oo-card" aria-labelledby="oo-review-title">
+            <div class="oo-card__head">
+              <h3 id="oo-review-title" class="oo-card__title">검토 대기열 상위 5건</h3>
+              <button type="button" class="m-button m-button--ghost" data-oo-goto="review">전체 보기</button>
+            </div>
+            <div id="oo-review" class="oo-card__body" aria-live="polite"></div>
+          </section>
+          <section class="m-card oo-card" aria-labelledby="oo-jobs-title">
+            <div class="oo-card__head">
+              <h3 id="oo-jobs-title" class="oo-card__title">배치 작업</h3>
+              <button type="button" class="m-button m-button--ghost" data-oo-goto="jobs">전체 보기</button>
+            </div>
+            <div id="oo-jobs" class="oo-card__body" aria-live="polite"></div>
+          </section>
+        </div>
+      </div>
     </div>
 
     <div id="tab-ops-status" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-ops-status" aria-hidden="true">
@@ -872,6 +906,7 @@
   <script src="/static/js/review-candidates-panel.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
   <script src="/static/js/ops-strip.js"></script>
+  <script src="/static/js/ops-overview-panel.js"></script>
   <script src="/static/js/memory-inspector.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>
   <script src="/static/js/jobs-panel-render.js"></script>

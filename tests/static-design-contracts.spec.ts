@@ -735,7 +735,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(8);
+    expect(tabpanelMatches).toHaveLength(9);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();
@@ -779,5 +779,14 @@ describe('static design contracts', () => {
 
     expect(componentsCss).toContain('.m-tab-btn.active {');
     expect(dashboardCss).not.toContain('.m-tab-btn.active {');
+  });
+
+  it('issue #1145 ops overview styles use tokens only', () => {
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const marker = '/* Ops overview tab (#1145) */';
+    const start = dashboardCss.indexOf(marker);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const section = dashboardCss.slice(start + marker.length);
+    expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });
