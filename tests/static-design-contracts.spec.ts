@@ -912,4 +912,28 @@ describe('static design contracts', () => {
     expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: 44px;\s*min-height: 44px;/);
     expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b(?![-\w])/);
   });
+
+  it('issue #1149 panel states use only the shared .m-empty/.m-loading/.m-error components', () => {
+    const LOCAL = ['rc-banner', 'as-banner', 'no-data', 'em-error', 'em-loading', 'med-empty', 'med-loading', 'med-error'];
+    const html = readStaticFile('static/dashboard.html');
+    const classAttrs = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(/\s+/)).flat();
+    const css = readStaticFile('static/css/dashboard.css') + readStaticFile('static/css/components.css');
+    const jsFiles = ['anchor-map-shared.js', 'anchor-map-search.js', 'anchor-map-render.js', 'anchor-map.js'];
+    const js = jsFiles.map((f) => readStaticFile(`static/js/${f}`)).join('\n');
+    for (const name of LOCAL) {
+      expect(classAttrs.filter((c) => c === name || c.startsWith(`${name}--`)), name).toEqual([]);
+      expect(css, name).not.toMatch(new RegExp(`\\.${name}(?![\\w-])`));
+      expect(js, name).not.toMatch(new RegExp(`['"\\s]${name}['"\\s]`));
+    }
+    const expected: Record<string, string> = {
+      'rc-loading': 'm-loading', 'as-loading': 'm-loading', 'em-loading': 'm-loading', 'med-loading': 'm-loading',
+      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty', 'as-empty': 'm-empty', 'as-status': 'm-empty', 'med-empty': 'm-empty',
+      'rc-error': 'm-error', 'rc-health-error': 'm-error', 'rc-batch-history-error': 'm-error', 'ops-status-error': 'm-error',
+      'as-error': 'm-error', 'em-error': 'm-error', 'em-health-error': 'm-error', 'med-error': 'm-error',
+    };
+    for (const [id, cls] of Object.entries(expected)) {
+      expect(html, id).toMatch(new RegExp(`id="${id}" class="[^"]*\\b${cls}\\b`));
+    }
+    expect(readStaticFile('static/js/anchor-map-shared.js')).toContain("classList.toggle('m-empty', !isActive)");
+  });
 });

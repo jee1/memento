@@ -155,15 +155,15 @@
           <section class="anchor-info">
             <h2 title="현재 Agent ID에 설정된 앵커 슬롯 목록입니다. 항목을 클릭하면 맵에서 해당 노드로 이동합니다.">앵커</h2>
             <div id="anchor-list">
-              <p class="no-data">설정된 앵커 없음</p>
+              <p class="m-empty">설정된 앵커 없음</p>
             </div>
           </section>
 
           <section class="anchor-search-results">
             <h2 title="검색 결과 목록입니다. 맵에 있는 항목은 강조 표시되며, 클릭하면 상세 정보를 볼 수 있습니다.">검색 결과</h2>
-            <p id="anchor-search-status" class="anchor-search-status no-data" aria-live="polite">검색 후 결과가 여기에 표시됩니다.</p>
+            <p id="anchor-search-status" class="anchor-search-status m-empty" aria-live="polite">검색 후 결과가 여기에 표시됩니다.</p>
             <div id="anchor-search-results">
-              <p class="no-data">검색 결과 없음</p>
+              <p class="m-empty">검색 결과 없음</p>
             </div>
           </section>
         </div>
@@ -224,7 +224,7 @@
         <section class="em-health-panel rc-health-panel" aria-labelledby="em-health-title">
           <h2 id="em-health-title" class="rc-health-title">임베딩 상태</h2>
           <p class="rc-health-hint">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
-          <div id="em-health-error" class="em-error hidden" role="alert"></div>
+          <div id="em-health-error" class="m-error hidden" role="alert"></div>
           <div id="em-health-summary" class="m-stat-grid" aria-live="polite"></div>
           <h3 class="rc-health-subtitle">문제</h3>
           <div id="em-health-problems" class="m-stat-grid"></div>
@@ -255,8 +255,8 @@
           </p>
           <div id="em-cluster-summary" class="em-cluster-summary"></div>
         </section>
-        <div id="em-loading" class="em-loading hidden">UMAP 계산 중...</div>
-        <div id="em-error" class="em-error hidden"></div>
+        <div id="em-loading" class="m-loading hidden">UMAP 계산 중…</div>
+        <div id="em-error" class="m-error hidden"></div>
         <div class="embedding-plot-row">
           <div id="em-scatter" class="embedding-scatter-wrap"></div>
           <aside id="em-side-panel" class="em-side-panel" aria-hidden="true"></aside>
@@ -316,7 +316,7 @@
           <button type="button" id="ops-status-refresh-btn" class="m-button m-button--secondary">새로고침</button>
         </header>
         <div id="ops-status-loading" class="m-loading hidden" aria-live="polite">운영 상태 불러오는 중…</div>
-        <div id="ops-status-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
+        <div id="ops-status-error" class="m-error hidden" role="alert"></div>
         <section id="ops-status-card-system" class="ops-status-card" aria-labelledby="ops-status-system-heading">
           <h3 id="ops-status-system-heading">시스템</h3>
           <ul class="ops-status-rows">
@@ -434,7 +434,7 @@
           <p id="rc-health-hint" class="rc-health-hint">
             롤링 윈도우는 행 타임스탬프를 사용합니다(<code class="rc-health-code">created_at</code>, <code class="rc-health-code">reviewed_at</code>, <code class="rc-health-code">dismissed_at</code>, <code class="rc-health-code">expired</code>는 <code class="rc-health-code">updated_at</code> 기준).
           </p>
-          <div id="rc-health-error" class="rc-banner rc-banner--error hidden"></div>
+          <div id="rc-health-error" class="m-error hidden"></div>
           <div id="rc-health-live" class="rc-health-live hidden" aria-live="polite"></div>
           <div id="rc-health-history-wrap" class="rc-health-history-wrap hidden">
             <h4 class="rc-health-subtitle">최근 샘플</h4>
@@ -464,8 +464,8 @@
             이 서버 프로세스의 최근 <code class="rc-health-code">POST /admin/batch/run</code> 호출
             (메모리 내; 재시작 시 초기화). 이슈 <span class="rc-health-code">#295</span>.
           </p>
-          <div id="rc-batch-history-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
-          <div id="rc-batch-history-empty" class="rc-banner hidden">아직 기록된 수동 배치 실행이 없습니다.</div>
+          <div id="rc-batch-history-error" class="m-error hidden" role="alert"></div>
+          <div id="rc-batch-history-empty" class="m-empty hidden">아직 기록된 수동 배치 실행이 없습니다.</div>
           <div id="rc-batch-history-wrap" class="rc-health-history-wrap hidden">
             <div class="rc-health-table-scroll m-table-wrap">
               <table id="rc-batch-history-table" class="m-table m-table--dense">
@@ -503,9 +503,9 @@
             <button type="button" id="rc-notify-dismiss-btn" class="m-button m-button--ghost">나중에</button>
           </div>
         </div>
-        <div id="rc-loading" class="rc-banner hidden">불러오는 중…</div>
-        <div id="rc-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
-        <div id="rc-empty" class="rc-banner hidden">대기 중인 검토 후보가 없습니다.</div>
+        <div id="rc-loading" class="m-loading hidden">불러오는 중…</div>
+        <div id="rc-error" class="m-error hidden" role="alert"></div>
+        <div id="rc-empty" class="m-empty hidden">대기 중인 검토 후보가 없습니다.</div>
         <div id="rc-toast" class="rc-toast hidden" role="status" aria-live="polite"></div>
         <div class="review-candidates-body">
           <div class="rc-main-col">
@@ -739,10 +739,10 @@
           </form>
         </header>
 
-        <div id="as-loading" class="as-banner as-banner--loading hidden" role="status" aria-live="polite">에이전트 세션 불러오는 중…</div>
-        <div id="as-empty" class="as-banner hidden">현재 필터와 일치하는 세션이 없습니다.</div>
-        <div id="as-error" class="as-banner as-banner--error hidden" role="alert"></div>
-        <div id="as-status" class="as-banner hidden" role="status" aria-live="polite"></div>
+        <div id="as-loading" class="m-loading hidden" role="status" aria-live="polite">에이전트 세션 불러오는 중…</div>
+        <div id="as-empty" class="m-empty hidden">현재 필터와 일치하는 세션이 없습니다.</div>
+        <div id="as-error" class="m-error hidden" role="alert"></div>
+        <div id="as-status" class="m-empty hidden" role="status" aria-live="polite"></div>
 
         <section class="as-aggregate" aria-label="에이전트 세션 집계">
           <article><span>세션</span><strong id="as-count-sessions">0</strong></article>
@@ -843,9 +843,9 @@
           </div>
         </div>
         <p id="med-comparison-hint" class="med-comparison-hint hidden" aria-live="polite"></p>
-        <div id="med-loading" class="med-loading rc-banner hidden" role="status" aria-live="polite">시뮬레이션 데이터를 불러오는 중…</div>
-        <div id="med-empty" class="med-empty rc-banner">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
-        <div id="med-error" class="med-error rc-banner rc-banner--error hidden" role="alert"></div>
+        <div id="med-loading" class="m-loading hidden" role="status" aria-live="polite">시뮬레이션 데이터를 불러오는 중…</div>
+        <div id="med-empty" class="m-empty">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
+        <div id="med-error" class="m-error hidden" role="alert"></div>
         <div id="med-content" class="med-content hidden">
 <div id="med-consolidation-panel" class="med-consolidation-panel hidden" aria-label="에피소딕→시맨틱 통합">
             <div class="med-consolidation-flow" aria-hidden="true">
