@@ -18,24 +18,6 @@
       });
     }
 
-    const pauseBtn = ns.$('jobs-pause-btn');
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', function () {
-        void ns.pauseSelectedJob();
-      });
-    }
-    const resumeBtn = ns.$('jobs-resume-btn');
-    if (resumeBtn) {
-      resumeBtn.addEventListener('click', function () {
-        void ns.resumeSelectedJob();
-      });
-    }
-    const runNowBtn = ns.$('jobs-run-now-btn');
-    if (runNowBtn) {
-      runNowBtn.addEventListener('click', function () {
-        void ns.runSelectedJobNow();
-      });
-    }
     const logsRefreshBtn = ns.$('jobs-logs-refresh-btn');
     if (logsRefreshBtn) {
       logsRefreshBtn.addEventListener('click', function () {
@@ -47,7 +29,22 @@
     const scheduleTbody = ns.$('jobs-schedule-tbody');
     if (scheduleTbody) {
       scheduleTbody.addEventListener('click', function (event) {
-        const row = event.target && event.target.closest ? event.target.closest('tr') : null;
+        const target = event.target;
+        if (target && target.dataset && target.dataset.action) {
+          const jobName = target.dataset.jobName;
+          if (target.dataset.action === 'pause') {
+            void ns.pauseJob(jobName);
+          } else if (target.dataset.action === 'resume') {
+            void ns.resumeJob(jobName);
+          } else if (target.dataset.action === 'run-now') {
+            void ns.runJobNow(jobName);
+          }
+          return;
+        }
+        if (target && target.closest && target.closest('.jobs-row-menu')) {
+          return;
+        }
+        const row = target && target.closest ? target.closest('tr') : null;
         const jobName = row && row.dataset ? row.dataset.jobName : null;
         if (jobName) {
           void ns.selectJob(jobName);
@@ -75,8 +72,38 @@
       });
     }
 
+    ns.DRAWER_TABS.forEach(function (t) {
+      const tabBtn = ns.$('jobs-dtab-' + t);
+      if (!tabBtn) {
+        return;
+      }
+      tabBtn.addEventListener('click', function () {
+        ns.showDrawerTab(t);
+      });
+      tabBtn.addEventListener('keydown', function (event) {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+          return;
+        }
+        event.preventDefault();
+        const tabs = ns.DRAWER_TABS;
+        const idx = tabs.indexOf(t);
+        const nextIdx =
+          event.key === 'ArrowRight'
+            ? (idx + 1) % tabs.length
+            : (idx - 1 + tabs.length) % tabs.length;
+        const nextTab = tabs[nextIdx];
+        ns.showDrawerTab(nextTab);
+        const nextBtn = ns.$('jobs-dtab-' + nextTab);
+        if (nextBtn && typeof nextBtn.focus === 'function') {
+          nextBtn.focus();
+        }
+      });
+    });
+
     ns.syncActionButtons();
     ns.renderLogs([], null);
+    ns.showDrawerTab('runs');
+    ns.renderDrawerHeader();
   }
 
   function initJobsPanel() {

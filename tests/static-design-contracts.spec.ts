@@ -978,4 +978,21 @@ describe('static design contracts', () => {
     expect(html.match(/<p class="jobs-disclaimer">/g)).toHaveLength(2);
     expect(readStaticFile('static/css/components.css')).toMatch(/\.m-about__summary:focus-visible/);
   });
+
+  it('issue #1152 jobs tab is one schedule table plus a three-tab drawer; selection is shown once', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-agent-sessions"'));
+    expect(jobs).not.toContain('id="jobs-actions"');
+    expect(jobs).not.toMatch(/id="jobs-(timeline|logs)-selected"/);
+    const drawer = jobs.slice(jobs.indexOf('<aside id="jobs-drawer"'), jobs.indexOf('</aside>'));
+    for (const t of ['runs', 'logs', 'history']) {
+      expect(drawer, t).toContain(`id="jobs-dtab-${t}"`);
+      expect(drawer, t).toContain(`id="jobs-dpanel-${t}"`);
+    }
+    for (const id of ['jobs-timeline-tbody', 'jobs-logs-tbody', 'jobs-run-history-tbody', 'jobs-drawer-job']) {
+      expect(drawer, id).toContain(`id="${id}"`);
+    }
+    expect(jobs.match(/<table /g)).toHaveLength(4);
+    expect(jobs.slice(0, jobs.indexOf('<aside id="jobs-drawer"')).match(/<table /g)).toHaveLength(1);
+  });
 });

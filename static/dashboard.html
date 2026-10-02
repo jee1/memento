@@ -657,90 +657,91 @@
         <div id="jobs-loading" class="m-loading hidden" aria-live="polite">배치 작업 불러오는 중…</div>
         <div id="jobs-error" class="m-error hidden" role="alert"></div>
         <p id="jobs-health-summary" class="jobs-health" aria-live="polite"></p>
-        <section class="jobs-section" aria-labelledby="jobs-schedule-heading">
-          <h3 id="jobs-schedule-heading">스케줄</h3>
-          <p class="jobs-disclaimer">행을 클릭하면 아래 durable 실행 타임라인을 불러옵니다. 쓰기는 확인이 필요합니다.</p>
-          <div id="jobs-schedule-empty" class="m-empty hidden">예약된 배치 작업이 없습니다.</div>
-          <div class="jobs-actions" id="jobs-actions">
-            <button type="button" id="jobs-pause-btn" class="m-button m-button--secondary" disabled>일시정지</button>
-            <button type="button" id="jobs-resume-btn" class="m-button m-button--secondary" disabled>재개</button>
-            <button type="button" id="jobs-run-now-btn" class="m-button m-button--secondary" disabled>지금 실행</button>
-          </div>
-          <div id="jobs-schedule-table-wrap" class="jobs-table-wrap m-table-wrap">
-            <table id="jobs-schedule-table" class="m-table">
-              <thead>
-                <tr>
-                  <th scope="col">이름</th>
-                  <th scope="col">간격 ms</th>
-                  <th scope="col">사용</th>
-                  <th scope="col">마지막 실행</th>
-                  <th scope="col">합계</th>
-                  <th scope="col">오류</th>
-                  <th scope="col">실행 중</th>
-                </tr>
-              </thead>
-              <tbody id="jobs-schedule-tbody"></tbody>
-            </table>
-          </div>
-        </section>
-        <section class="jobs-section" aria-labelledby="jobs-queue-heading">
-          <h3 id="jobs-queue-heading">큐</h3>
-          <p id="jobs-queue-summary" class="jobs-queue-summary">—</p>
-        </section>
-        <section class="jobs-section" aria-labelledby="jobs-timeline-heading">
-          <h3 id="jobs-timeline-heading">작업 실행 타임라인 — <span id="jobs-timeline-selected">전체 작업</span></h3>
-          <p class="jobs-disclaimer">실패한 실행만 재시도할 수 있습니다.</p>
-          <div id="jobs-timeline" class="jobs-table-wrap m-table-wrap">
-            <table class="m-table">
-              <thead>
-                <tr>
-                  <th scope="col">작업</th>
-                  <th scope="col">트리거</th>
-                  <th scope="col">시작</th>
-                  <th scope="col">종료</th>
-                  <th scope="col">소요 ms</th>
-                  <th scope="col">성공</th>
-                  <th scope="col">동작</th>
-                </tr>
-              </thead>
-              <tbody id="jobs-timeline-tbody"></tbody>
-            </table>
-          </div>
-        </section>
-        <section class="jobs-section" aria-labelledby="jobs-logs-heading">
-          <div class="jobs-section-header">
-            <h3 id="jobs-logs-heading">실행 로그 — <span id="jobs-logs-selected">실행 미선택</span></h3>
-            <button type="button" id="jobs-logs-refresh-btn" class="m-button m-button--secondary" disabled>로그 새로고침</button>
-          </div>
-          <div id="jobs-logs" class="jobs-table-wrap m-table-wrap">
-            <table class="m-table">
-              <thead>
-                <tr>
-                  <th scope="col">시각</th>
-                  <th scope="col">수준</th>
-                  <th scope="col">메시지</th>
-                </tr>
-              </thead>
-              <tbody id="jobs-logs-tbody"></tbody>
-            </table>
-          </div>
-        </section>
-        <section class="jobs-section" aria-labelledby="jobs-history-heading">
-          <h3 id="jobs-history-heading">수동 실행 이력</h3>
-          <div id="jobs-run-history" class="jobs-table-wrap m-table-wrap">
-            <table class="m-table">
-              <thead>
-                <tr>
-                  <th scope="col">작업</th>
-                  <th scope="col">결과</th>
-                  <th scope="col">요청 시각</th>
-                  <th scope="col">상세</th>
-                </tr>
-              </thead>
-              <tbody id="jobs-run-history-tbody"></tbody>
-            </table>
-          </div>
-        </section>
+        <div id="jobs-kpis" class="m-stat-grid" aria-live="polite"></div>
+        <div class="jobs-workspace">
+          <section class="jobs-section jobs-schedule" aria-labelledby="jobs-schedule-heading">
+            <h3 id="jobs-schedule-heading">스케줄</h3>
+            <p class="jobs-disclaimer">행을 선택하면 오른쪽에서 실행 이력과 로그를 봅니다. 일시정지·재개·지금 실행은 행의 ⋯ 메뉴에 있고 확인을 거칩니다.</p>
+            <div id="jobs-schedule-empty" class="m-empty hidden">예약된 배치 작업이 없습니다.</div>
+            <div id="jobs-schedule-table-wrap" class="jobs-table-wrap m-table-wrap">
+              <table id="jobs-schedule-table" class="m-table">
+                <thead>
+                  <tr>
+                    <th scope="col">상태</th>
+                    <th scope="col">이름</th>
+                    <th scope="col">간격 ms</th>
+                    <th scope="col">마지막 실행</th>
+                    <th scope="col">오류</th>
+                    <th scope="col">동작</th>
+                  </tr>
+                </thead>
+                <tbody id="jobs-schedule-tbody"></tbody>
+              </table>
+            </div>
+            <h4 id="jobs-queue-heading" class="jobs-subheading">큐</h4>
+            <p id="jobs-queue-summary" class="jobs-queue-summary">—</p>
+          </section>
+          <aside id="jobs-drawer" class="jobs-drawer" aria-labelledby="jobs-drawer-title">
+            <header class="jobs-drawer__header">
+              <h3 id="jobs-drawer-title" class="jobs-drawer__title"><span id="jobs-drawer-job">전체 작업</span><span id="jobs-drawer-run" class="jobs-drawer__run hidden"></span></h3>
+              <span id="jobs-drawer-badge" class="m-badge hidden"></span>
+            </header>
+            <div class="jobs-drawer__tabs" role="tablist" aria-label="선택한 작업 상세">
+              <button type="button" id="jobs-dtab-runs" class="jobs-drawer__tab" role="tab" aria-selected="true" aria-controls="jobs-dpanel-runs" data-drawer-tab="runs">실행 이력</button>
+              <button type="button" id="jobs-dtab-logs" class="jobs-drawer__tab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-logs" data-drawer-tab="logs" tabindex="-1">로그</button>
+              <button type="button" id="jobs-dtab-history" class="jobs-drawer__tab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-history" data-drawer-tab="history" tabindex="-1">수동 실행 이력</button>
+            </div>
+            <div id="jobs-dpanel-runs" class="jobs-drawer__panel" role="tabpanel" aria-labelledby="jobs-dtab-runs">
+              <p class="jobs-disclaimer">실패한 실행만 재시도할 수 있습니다.</p>
+              <div id="jobs-timeline" class="jobs-table-wrap m-table-wrap">
+                <table class="m-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">작업</th>
+                      <th scope="col">트리거</th>
+                      <th scope="col">시작</th>
+                      <th scope="col">종료</th>
+                      <th scope="col">소요 ms</th>
+                      <th scope="col">성공</th>
+                      <th scope="col">동작</th>
+                    </tr>
+                  </thead>
+                  <tbody id="jobs-timeline-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="jobs-dpanel-logs" class="jobs-drawer__panel hidden" role="tabpanel" aria-labelledby="jobs-dtab-logs">
+              <button type="button" id="jobs-logs-refresh-btn" class="m-button m-button--secondary" disabled>로그 새로고침</button>
+              <div id="jobs-logs" class="jobs-table-wrap m-table-wrap">
+                <table class="m-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">시각</th>
+                      <th scope="col">수준</th>
+                      <th scope="col">메시지</th>
+                    </tr>
+                  </thead>
+                  <tbody id="jobs-logs-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="jobs-dpanel-history" class="jobs-drawer__panel hidden" role="tabpanel" aria-labelledby="jobs-dtab-history">
+              <div id="jobs-run-history" class="jobs-table-wrap m-table-wrap">
+                <table class="m-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">작업</th>
+                      <th scope="col">결과</th>
+                      <th scope="col">요청 시각</th>
+                      <th scope="col">상세</th>
+                    </tr>
+                  </thead>
+                  <tbody id="jobs-run-history-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
     <div id="tab-agent-sessions" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-agent-sessions" aria-hidden="true">

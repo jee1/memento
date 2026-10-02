@@ -1775,6 +1775,7 @@ describe('admin.routes memory review candidates', () => {
         expect(typeof body.message).toBe('string');
         expect(typeof body.schedulerRunning).toBe('boolean');
         expect(body.schedulerRunning).toBe(true);
+        expect(body.readOnly).toBe(false);
         expect(typeof body.timestamp).toBe('string');
         expect(body).not.toHaveProperty('status');
 
@@ -2164,6 +2165,7 @@ describe('admin.routes memory review candidates', () => {
 
         const getOk = await getAdmin(port, '/admin/batch/stats');
         expect(getOk.statusCode).toBe(200);
+        expect(JSON.parse(getOk.body).readOnly).toBe(true);
       } finally {
         await new Promise<void>(r => server.close(() => r()));
       }

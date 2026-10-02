@@ -66,7 +66,13 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
       dataset: {},
       disabled: false,
       children: [] as unknown[],
+      className: '',
+      attributes: {} as Record<string, string>,
       classList: createClassList(),
+      setAttribute(name: string, value: string) {
+        this.attributes[name] = value;
+      },
+      focus: vi.fn(),
       addEventListener: vi.fn((event: string, handler: () => void) => {
         if (!buttonHandlers[id]) {
           buttonHandlers[id] = [];
@@ -111,14 +117,48 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
       }
     }),
   });
-  el('jobs-timeline-selected');
   el('jobs-health-summary');
-  el('jobs-pause-btn', { disabled: true });
-  el('jobs-resume-btn', { disabled: true });
-  el('jobs-run-now-btn', { disabled: true });
-  el('jobs-logs-selected');
   el('jobs-logs-tbody');
   el('jobs-logs-refresh-btn');
+  el('jobs-kpis');
+  el('jobs-drawer-job');
+  el('jobs-drawer-run');
+  el('jobs-drawer-badge');
+  el('jobs-dtab-runs', {
+    addEventListener: vi.fn((event: string, handler: () => void) => {
+      if (event === 'click' || event === 'keydown') {
+        if (!buttonHandlers['jobs-dtab-runs']) {
+          buttonHandlers['jobs-dtab-runs'] = [];
+        }
+        buttonHandlers['jobs-dtab-runs'].push(handler);
+      }
+    }),
+  });
+  el('jobs-dtab-logs', {
+    addEventListener: vi.fn((event: string, handler: () => void) => {
+      if (event === 'click' || event === 'keydown') {
+        if (!buttonHandlers['jobs-dtab-logs']) {
+          buttonHandlers['jobs-dtab-logs'] = [];
+        }
+        buttonHandlers['jobs-dtab-logs'].push(handler);
+      }
+    }),
+  });
+  el('jobs-dtab-history', {
+    addEventListener: vi.fn((event: string, handler: () => void) => {
+      if (event === 'click' || event === 'keydown') {
+        if (!buttonHandlers['jobs-dtab-history']) {
+          buttonHandlers['jobs-dtab-history'] = [];
+        }
+        buttonHandlers['jobs-dtab-history'].push(handler);
+      }
+    }),
+  });
+  el('jobs-dpanel-runs');
+  el('jobs-dpanel-logs', { classList: createClassList() });
+  elements['jobs-dpanel-logs'].classList.add('hidden');
+  el('jobs-dpanel-history', { classList: createClassList() });
+  elements['jobs-dpanel-history'].classList.add('hidden');
   el('tab-jobs');
 
   const defaultFetch = async (url: string, _init?: RequestInit) => {
@@ -127,6 +167,7 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
         ok: true,
         json: async () => ({
           schedulerRunning: true,
+          readOnly: false,
           health: {
             memoryUsage: 10,
             runningJobs: 0,
@@ -230,14 +271,20 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
           disabled: false,
           classList: createClassList(),
           children: [] as unknown[],
+          attributes: {} as Record<string, string>,
           appendChild(child: unknown) {
             (this.children as unknown[]).push(child);
             return child;
           },
-          setAttribute: vi.fn(),
+          setAttribute(name: string, value: string) {
+            this.attributes[name] = value;
+          },
           closest(selector: string) {
             if (selector === 'tr') {
               return this._row || null;
+            }
+            if (selector === '.jobs-row-menu') {
+              return this._jobsRowMenu || null;
             }
             return null;
           },
@@ -304,20 +351,26 @@ describe('dashboard jobs panel (#832)', () => {
 
   it('dashboard.html registers durable job_run timeline markup and disclaimer (#833)', () => {
     expect(dashboardHtml).toContain('id="jobs-timeline-tbody"');
-    expect(dashboardHtml).toContain('id="jobs-timeline-selected"');
+    expect(dashboardHtml).toContain('id="jobs-drawer"');
     expect(dashboardHtml).toContain('/admin/batch/runs');
     expect(dashboardHtml).toMatch(/job_run/i);
     expect(dashboardHtml).toMatch(/durable/i);
     expect(dashboardHtml).not.toMatch(/재시작 후 소멸/);
   });
 
-  it('dashboard.html registers Phase 3 logs + pause/resume/Run now markup (#834)', () => {
+  it('dashboard.html registers Phase 3 logs + drawer tabs (#834 / #1152)', () => {
     expect(dashboardHtml).toContain('id="jobs-logs-tbody"');
-    expect(dashboardHtml).toContain('id="jobs-logs-selected"');
     expect(dashboardHtml).toContain('id="jobs-logs-refresh-btn"');
-    expect(dashboardHtml).toContain('id="jobs-pause-btn"');
-    expect(dashboardHtml).toContain('id="jobs-resume-btn"');
-    expect(dashboardHtml).toContain('id="jobs-run-now-btn"');
+    expect(dashboardHtml).not.toContain('id="jobs-actions"');
+    expect(dashboardHtml).not.toContain('id="jobs-pause-btn"');
+    expect(dashboardHtml).not.toContain('id="jobs-resume-btn"');
+    expect(dashboardHtml).not.toContain('id="jobs-run-now-btn"');
+    expect(dashboardHtml).not.toContain('id="jobs-timeline-selected"');
+    expect(dashboardHtml).not.toContain('id="jobs-logs-selected"');
+    for (const t of ['runs', 'logs', 'history']) {
+      expect(dashboardHtml).toContain(`id="jobs-dtab-${t}"`);
+      expect(dashboardHtml).toContain(`id="jobs-dpanel-${t}"`);
+    }
     expect(dashboardHtml).toMatch(/\/admin\/batch\/runs\/:runId\/logs|runs\/:runId\/logs/i);
     expect(dashboardHtml).toMatch(/일시정지/);
     expect(dashboardHtml).toMatch(/재개/);
@@ -352,6 +405,8 @@ describe('dashboard jobs panel (#832)', () => {
     expect(panelJs).toMatch(/\bconfirm\b/);
     expect(panelJs).toContain('selectRun');
     expect(panelJs).toContain('jobs-retry-btn');
+    expect(panelJs).toContain('pauseJob');
+    expect(panelJs).toContain('runJobNow');
   });
 
   it('renders the jobs health summary with server-formatted human duration (#1054)', async () => {
@@ -374,6 +429,7 @@ describe('dashboard jobs panel (#832)', () => {
             ok: true,
             json: async () => ({
               schedulerRunning: true,
+              readOnly: false,
               health: {
                 memoryUsage: 10,
                 runningJobs: 0,
@@ -446,7 +502,7 @@ describe('dashboard jobs panel (#832)', () => {
       true,
     );
     expect(h.elements['jobs-timeline-tbody'].children.length).toBeGreaterThan(0);
-    expect(h.elements['jobs-timeline-selected'].textContent).toBe('전체 작업');
+    expect(h.elements['jobs-drawer-job'].textContent).toBe('전체 작업');
 
     const tbody = h.elements['jobs-schedule-tbody'];
     const priorChildCount = tbody.children.length;
@@ -467,7 +523,8 @@ describe('dashboard jobs panel (#832)', () => {
 
     const clickedRow = {
       dataset: { jobName: 'cleanup' },
-      closest: () => ({ dataset: { jobName: 'cleanup' } }),
+      closest: (selector: string) =>
+        selector === 'tr' ? { dataset: { jobName: 'cleanup' } } : null,
     };
     h.getScheduleClickHandler()!({ target: clickedRow });
 
@@ -479,8 +536,10 @@ describe('dashboard jobs panel (#832)', () => {
       ).toBe(true);
     });
     await vi.waitFor(() => {
-      expect(h.elements['jobs-timeline-selected'].textContent).toBe('cleanup');
+      expect(h.elements['jobs-drawer-job'].textContent).toBe('cleanup');
     });
+    expect(h.elements['jobs-drawer-badge'].className).toContain('m-badge--ok');
+    expect(h.elements['jobs-dtab-runs'].attributes['aria-selected']).toBe('true');
     expect(h.elements['jobs-timeline-tbody'].children.length).toBeGreaterThan(0);
   });
 
@@ -493,7 +552,8 @@ describe('dashboard jobs panel (#832)', () => {
     scheduleHandler!({
       target: {
         dataset: { jobName: 'cleanup' },
-        closest: () => ({ dataset: { jobName: 'cleanup' } }),
+        closest: (selector: string) =>
+          selector === 'tr' ? { dataset: { jobName: 'cleanup' } } : null,
       },
     });
     await vi.waitFor(() => {
@@ -519,7 +579,10 @@ describe('dashboard jobs panel (#832)', () => {
       ).toBe(true);
     });
     await vi.waitFor(() => {
-      expect(h.elements['jobs-logs-selected'].textContent).toMatch(/jr_fail/);
+      expect(h.elements['jobs-dtab-logs'].attributes['aria-selected']).toBe('true');
+      expect(h.elements['jobs-dpanel-logs'].classList.contains('hidden')).toBe(false);
+      expect(h.elements['jobs-dpanel-runs'].classList.contains('hidden')).toBe(true);
+      expect(h.elements['jobs-drawer-run'].textContent).toContain('jr_fail');
     });
     expect(h.elements['jobs-logs-tbody'].children.length).toBeGreaterThan(0);
   });
@@ -528,25 +591,32 @@ describe('dashboard jobs panel (#832)', () => {
     const h = createJobsHarness({ confirmImpl: () => false });
     await h.init();
 
-    h.getScheduleClickHandler()!({
-      target: {
-        dataset: { jobName: 'cleanup' },
-        closest: () => ({ dataset: { jobName: 'cleanup' } }),
-      },
-    });
-    await vi.waitFor(() => {
-      expect(h.elements['jobs-pause-btn'].disabled).toBe(false);
-    });
+    const scheduleHandler = h.getScheduleClickHandler();
+    expect(scheduleHandler).toBeTypeOf('function');
 
-    const ns = h.sandbox.__MEMENTO_JOBS_PANEL__;
     const postCallsBefore = h.fetchMock.mock.calls.filter((c) => {
       const init = c[1] as { method?: string } | undefined;
       return init && String(init.method).toUpperCase() === 'POST';
     }).length;
 
-    await ns.pauseSelectedJob();
-    await ns.resumeSelectedJob();
-    await ns.runSelectedJobNow();
+    const ns = h.sandbox.__MEMENTO_JOBS_PANEL__;
+
+    scheduleHandler!({
+      target: {
+        dataset: { action: 'pause', jobName: 'cleanup' },
+      },
+    });
+    scheduleHandler!({
+      target: {
+        dataset: { action: 'resume', jobName: 'cleanup' },
+      },
+    });
+    scheduleHandler!({
+      target: {
+        dataset: { action: 'run-now', jobName: 'cleanup' },
+      },
+    });
+    await Promise.resolve();
 
     expect(h.confirmMock).toHaveBeenCalled();
     const postCallsAfter = h.fetchMock.mock.calls.filter((c) => {
@@ -556,7 +626,8 @@ describe('dashboard jobs panel (#832)', () => {
     expect(postCallsAfter).toBe(postCallsBefore);
 
     h.confirmMock.mockImplementation(() => true);
-    await ns.pauseSelectedJob();
+
+    await ns.pauseJob('cleanup');
     expect(
       h.fetchMock.mock.calls.some(
         (c) =>
@@ -565,7 +636,7 @@ describe('dashboard jobs panel (#832)', () => {
       ),
     ).toBe(true);
 
-    await ns.resumeSelectedJob();
+    await ns.resumeJob('cleanup');
     expect(
       h.fetchMock.mock.calls.some(
         (c) =>
@@ -574,7 +645,7 @@ describe('dashboard jobs panel (#832)', () => {
       ),
     ).toBe(true);
 
-    await ns.runSelectedJobNow();
+    await ns.runJobNow('cleanup');
     expect(
       h.fetchMock.mock.calls.some(
         (c) =>
@@ -643,6 +714,106 @@ describe('dashboard jobs panel (#832)', () => {
       );
     });
   });
+
+  it('readOnly stats hide schedule row menus and timeline retry buttons (#1152)', async () => {
+    const h = createJobsHarness({
+      fetchImpl: async (url: string) => {
+        if (String(url).includes('/admin/batch/stats')) {
+          return {
+            ok: true,
+            json: async () => ({
+              schedulerRunning: true,
+              readOnly: true,
+              health: {
+                memoryUsage: 10,
+                runningJobs: 0,
+                queueSize: 0,
+                errorRate: 0,
+                uptime: 1000,
+                uptimeHuman: '1초',
+              },
+              jobs: [
+                {
+                  name: 'cleanup',
+                  intervalMs: 3600000,
+                  enabled: true,
+                  paused: false,
+                  lastExecution: null,
+                  totalExecutions: 1,
+                  errorCount: 0,
+                  errorRate: 0,
+                  isRunning: false,
+                },
+              ],
+              queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
+              timestamp: '2026-09-06T08:00:00.000Z',
+            }),
+          };
+        }
+        if (String(url).includes('/admin/batch/run-history')) {
+          return { ok: true, json: async () => ({ entries: [], limit: 50 }) };
+        }
+        if (String(url).includes('/admin/batch/runs')) {
+          return {
+            ok: true,
+            json: async () => ({
+              runs: [
+                {
+                  id: 'jr_fail',
+                  jobName: 'cleanup',
+                  trigger: 'manual',
+                  startedAt: '2026-09-06T01:00:00.000Z',
+                  endedAt: '2026-09-06T01:00:02.000Z',
+                  success: false,
+                  durationMs: 2000,
+                },
+              ],
+              limit: 50,
+            }),
+          };
+        }
+        return { ok: false, json: async () => ({}) };
+      },
+    });
+    await h.init();
+
+    const scheduleRows = h.elements['jobs-schedule-tbody'].children as Array<Record<string, any>>;
+    expect(scheduleRows.length).toBeGreaterThan(0);
+    const actionsCell = scheduleRows[0].children[scheduleRows[0].children.length - 1] as Record<
+      string,
+      any
+    >;
+    expect(actionsCell.children.length).toBe(0);
+
+    const timelineRows = h.elements['jobs-timeline-tbody'].children as Array<Record<string, any>>;
+    const failRow = timelineRows.find((r) => r.dataset && r.dataset.runId === 'jr_fail');
+    expect(failRow).toBeTruthy();
+    const actionsTd = failRow!.children[failRow!.children.length - 1] as Record<string, any>;
+    expect((actionsTd.children || []).length).toBe(0);
+  });
+
+  it('click inside a schedule row menu does not select the job (#1152)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+
+    const callsBefore = h.fetchMock.mock.calls.filter((c) =>
+      String(c[0]).includes('/admin/batch/runs?job='),
+    ).length;
+
+    h.getScheduleClickHandler()!({
+      target: {
+        dataset: {},
+        closest: (selector: string) => (selector === '.jobs-row-menu' ? { open: true } : null),
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    const callsAfter = h.fetchMock.mock.calls.filter((c) =>
+      String(c[0]).includes('/admin/batch/runs?job='),
+    ).length;
+    expect(callsAfter).toBe(callsBefore);
+  });
+
   it('surfaces 429 as a retry hint instead of the raw HTTP line (#1158)', async () => {
     const h = createJobsHarness();
     await h.init();
@@ -672,16 +843,6 @@ describe('dashboard jobs panel (#832)', () => {
     const h = createJobsHarness();
     await h.init();
 
-    h.getScheduleClickHandler()!({
-      target: {
-        dataset: { jobName: 'cleanup' },
-        closest: () => ({ dataset: { jobName: 'cleanup' } }),
-      },
-    });
-    await vi.waitFor(() => {
-      expect(h.elements['jobs-run-now-btn'].disabled).toBe(false);
-    });
-
     h.fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init && String(init.method).toUpperCase() === 'POST') {
         return {
@@ -694,7 +855,7 @@ describe('dashboard jobs panel (#832)', () => {
       return { ok: true, json: async () => ({}) };
     });
 
-    await h.sandbox.__MEMENTO_JOBS_PANEL__.runSelectedJobNow();
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.runJobNow('cleanup');
 
     expect(h.elements['jobs-error'].textContent).toBe(
       '요청이 너무 많습니다 — 900초 후 다시 시도하세요.',
@@ -706,17 +867,6 @@ describe('dashboard jobs panel (#832)', () => {
     const h = createJobsHarness();
     await h.init();
 
-    h.getScheduleClickHandler()!({
-      target: {
-        dataset: { jobName: 'cleanup' },
-        closest: () => ({ dataset: { jobName: 'cleanup' } }),
-      },
-    });
-    await vi.waitFor(() => {
-      expect(h.elements['jobs-run-now-btn'].disabled).toBe(false);
-    });
-
-    // Write succeeds, the refresh right after it is rate limited.
     h.fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init && String(init.method).toUpperCase() === 'POST') {
         return { ok: true, json: async () => ({ message: 'ok', jobType: 'cleanup' }) };
@@ -729,7 +879,7 @@ describe('dashboard jobs panel (#832)', () => {
       };
     });
 
-    await h.sandbox.__MEMENTO_JOBS_PANEL__.runSelectedJobNow();
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.runJobNow('cleanup');
 
     expect(h.elements['jobs-status-line'].textContent).toBe(
       '지금 실행 cleanup 완료 — 화면 갱신 실패, 새로고침하세요',

@@ -9,18 +9,13 @@
     return;
   }
 
+  const S = ns.S;
+
   function appendCell(row, text) {
     const td = document.createElement('td');
     td.textContent = text == null ? '' : String(text);
     row.appendChild(td);
     return td;
-  }
-
-  function enabledLabel(job) {
-    if (job && job.paused) {
-      return '일시정지';
-    }
-    return job && job.enabled ? '예' : '아니오';
   }
 
   ns.renderHealth = function (health, schedulerRunning) {
@@ -63,31 +58,68 @@
     ns.setHidden(empty, true);
     ns.setHidden(tableWrap, false);
     list.forEach(function (job) {
+      const name = job.name || '';
       const row = document.createElement('tr');
-      row.dataset.jobName = job.name || '';
+      row.dataset.jobName = name;
       row.classList.add('is-clickable');
-      row.classList.toggle('is-selected', job.name === ns.state.selectedJob);
-      appendCell(row, job.name || '');
+      row.classList.toggle('is-selected', name === ns.state.selectedJob);
+      const state = ns.jobState(job);
+      const stateTd = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = 'm-badge m-badge--' + state.variant;
+      badge.textContent = state.label;
+      stateTd.appendChild(badge);
+      row.appendChild(stateTd);
+      appendCell(row, name);
       appendCell(
         row,
         job.intervalMs == null ? '—' : ns.formatNumber(job.intervalMs),
       );
-      appendCell(row, enabledLabel(job));
       appendCell(row, ns.formatIso(job.lastExecution));
-      appendCell(row, ns.formatNumber(job.totalExecutions));
       appendCell(row, ns.formatNumber(job.errorCount));
-      appendCell(row, job.isRunning ? '예' : '아니오');
+      const actionsTd = document.createElement('td');
+      if (!ns.state.readOnly) {
+        const menu = document.createElement('details');
+        menu.className = 'jobs-row-menu';
+        const summary = document.createElement('summary');
+        summary.className = 'm-button m-button--ghost jobs-row-menu__toggle';
+        summary.textContent = '⋯';
+        summary.setAttribute('aria-label', S.rowMenuLabel(name));
+        menu.appendChild(summary);
+        const listEl = document.createElement('div');
+        listEl.className = 'jobs-row-menu__list';
+        const pauseResume = document.createElement('button');
+        pauseResume.type = 'button';
+        pauseResume.className = 'm-button m-button--secondary';
+        pauseResume.disabled = Boolean(ns.state.writeInFlight);
+        pauseResume.dataset.jobName = name;
+        if (job.paused) {
+          pauseResume.dataset.action = 'resume';
+          pauseResume.textContent = S.resume;
+        } else {
+          pauseResume.dataset.action = 'pause';
+          pauseResume.textContent = S.pause;
+        }
+        listEl.appendChild(pauseResume);
+        const runNow = document.createElement('button');
+        runNow.type = 'button';
+        runNow.className = 'm-button m-button--secondary';
+        runNow.dataset.action = 'run-now';
+        runNow.dataset.jobName = name;
+        runNow.disabled = Boolean(ns.state.writeInFlight);
+        runNow.textContent = S.runNow;
+        listEl.appendChild(runNow);
+        menu.appendChild(listEl);
+        actionsTd.appendChild(menu);
+      }
+      row.appendChild(actionsTd);
       tbody.appendChild(row);
     });
     ns.syncActionButtons();
   };
 
   /** Issue #833 / #834: durable job_run timeline; Retry on failed rows only. */
-  ns.renderTimeline = function (runs, selectedJob) {
-    const label = ns.$('jobs-timeline-selected');
-    if (label) {
-      label.textContent = selectedJob ? selectedJob : '전체 작업';
-    }
+  ns.renderTimeline = function (runs) {
     const tbody = ns.$('jobs-timeline-tbody');
     if (!tbody) {
       return;
@@ -116,7 +148,7 @@
       appendCell(row, ns.formatNumber(run.durationMs));
       appendCell(row, run.success ? '성공' : '실패');
       const actions = document.createElement('td');
-      if (run.success === false && run.jobName) {
+      if (!ns.state.readOnly && run.success === false && run.jobName) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'm-button m-button--secondary jobs-retry-btn';
@@ -132,10 +164,6 @@
 
   /** Issue #834: Logs panel for the selected run. */
   ns.renderLogs = function (logs, runId) {
-    const label = ns.$('jobs-logs-selected');
-    if (label) {
-      label.textContent = runId ? runId : '실행 미선택';
-    }
     const tbody = ns.$('jobs-logs-tbody');
     if (!tbody) {
       return;
