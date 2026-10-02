@@ -241,7 +241,15 @@ export async function installDashboardRoutes(
 
 export async function openAgentSessions(page: Page, apiKey = API_KEY): Promise<void> {
   await page.goto('/dashboard');
-  await page.getByRole('tab', { name: 'Agent Sessions' }).click();
-  await page.getByLabel('Programmatic API Key').fill(apiKey);
-  await page.getByRole('button', { name: 'Connect' }).click();
+  await page.locator('#dashboard-tab-agent-sessions').click();
+  await page.locator('#as-api-key').fill(apiKey);
+  await page.locator('#as-auth-form button[type="submit"]').click();
 }
+
+// Korean UI copy asserted by agent-sessions.e2e.ts (#1211). Copy changes are a one-line edit here.
+// Sources: static/js/agent-sessions-panel.js, agent-sessions-panel-shared.js,
+// agent-sessions-panel-render-injections.js, agent-sessions-panel-import.js.
+export const KO_KEY_CLEARED_ON_RELOAD = '새로고침 시 지워집니다';
+export const KO_KEY_REQUIRED = '에이전트 세션용 Programmatic API 키를 입력하세요.';
+export const KO_TOKENS = '토큰';
+export const KO_IMPORT = '가져오기';

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openToolbarMore } from './toolbar-more.js';
+
 const d3Stub = `
 (function () {
   var svgNs = 'http://www.w3.org/2000/svg';
@@ -341,6 +343,7 @@ test.describe('Anchor Map dashboard', () => {
     await expect(page.locator('#anchor-map .map-empty-message')).toHaveCount(1);
 
     failMap = true;
+    await openToolbarMore(page);
     await page.locator('#refresh-btn').click();
 
     await expect(page.locator('#anchor-map .map-error-message')).toHaveCount(1);
