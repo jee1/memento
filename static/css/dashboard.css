@@ -572,8 +572,8 @@ body {
   }
 }
 
-/* Shell layout (#1144): nav rail on the left from 769px; horizontal tab bar below that (keeps <=390px reach). */
-@media (min-width: 769px) {
+/* Shell layout (#1144): nav rail on the left from 1280px; horizontal tab bar below that (keeps <=390px reach). */
+@media (min-width: 1280px) {
   .dashboard-container {
     display: grid;
     grid-template-columns: 232px minmax(0, 1fr);
@@ -602,7 +602,7 @@ body {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1279px) {
   .m-nav-rail {
     flex-direction: row;
     align-items: center;

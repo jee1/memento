@@ -758,12 +758,13 @@ describe('static design contracts', () => {
 
     expect(componentsCss).toContain('.m-session-chip {');
 
-    expect(dashboardCss).toContain('@media (min-width: 769px)');
+    expect(dashboardCss).toContain('@media (min-width: 1280px)');
     expect(dashboardCss).toContain('grid-template-columns: 232px minmax(0, 1fr)');
-    expect(
-      dashboardCss.indexOf('.m-nav-rail .m-tab-bar {') >
-        dashboardCss.indexOf('@media (max-width: 768px) {\n  .m-nav-rail {'),
-    ).toBe(true);
+    const mobileRailAt = dashboardCss.indexOf('@media (max-width: 1279px) {\n  .m-nav-rail {');
+    const mobileTabBarAt = dashboardCss.indexOf('.m-nav-rail .m-tab-bar {');
+    expect(mobileRailAt).toBeGreaterThanOrEqual(0);
+    expect(mobileTabBarAt).toBeGreaterThan(mobileRailAt);
+    expect(ruleBody(dashboardCss.slice(mobileRailAt), '.m-nav-rail .m-tab-bar')).toContain('overflow-x: auto');
 
     expect(dashboardCss).toContain('.dashboard-auth-panel:has(.dashboard-auth-message:empty)');
     expect(dashboardCss).not.toContain('.dashboard-auth-session');
