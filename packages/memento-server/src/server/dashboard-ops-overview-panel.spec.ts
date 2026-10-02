@@ -31,7 +31,10 @@ describe('Dashboard Ops overview panel (#1145)', () => {
   it('reviewSeverity classifies due times', () => {
     const now = Date.parse('2026-10-02T12:00:00Z');
     expect(api.reviewSeverity('2026-10-02T11:00:00Z', now)).toBe('crit');
+    expect(api.reviewSeverity('2026-10-02T12:00:00Z', now)).toBe('crit');
     expect(api.reviewSeverity('2026-10-02T14:00:00Z', now)).toBe('warn');
+    expect(api.reviewSeverity('2026-10-03T12:00:00Z', now)).toBe('warn');
+    expect(api.reviewSeverity('2026-10-03T12:00:01Z', now)).toBe('idle');
     expect(api.reviewSeverity('2026-10-04T12:00:00Z', now)).toBe('idle');
     expect(api.reviewSeverity('', now)).toBe('idle');
   });
@@ -103,6 +106,7 @@ describe('Dashboard Ops overview panel (#1145)', () => {
         { source: 'a', target: 'm1' },
         { source: 'm1', target: 'm2' },
         { source: 'b', target: 'm3' },
+        { source: 'b', target: 'm1' },
       ],
       anchors: [],
     };
@@ -112,6 +116,11 @@ describe('Dashboard Ops overview panel (#1145)', () => {
     };
     expect(neighborhood.anchor.id).toBe('a');
     expect(neighborhood.hops).toEqual({ 1: 1, 2: 1, 3: 0 });
+    expect((api.slotNeighborhood(map, 'B') as { hops: Record<number, number> }).hops).toEqual({
+      1: 2,
+      2: 1,
+      3: 0,
+    });
 
     const objectLinks = {
       nodes: map.nodes,
