@@ -955,4 +955,27 @@ describe('static design contracts', () => {
     const embeddingTab = html.slice(html.indexOf('id="tab-embedding-map"'), html.indexOf('id="tab-graph"'));
     expect(embeddingTab).not.toMatch(/class="[^"]*\brc-/);
   });
+
+  it('issue #1151 operator UI shows no issue numbers and keeps tab intros behind the about disclosure', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const visible = html.replace(/<!--[\s\S]*?-->/g, '');
+    expect(visible.match(/#\d{3,4}\b/g) ?? []).toEqual([]);
+    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro', 'as-intro', 'med-intro']) {
+      expect(html, cls).toMatch(new RegExp(`<div class="m-about__body">\\s*<p class="${cls}"`));
+    }
+    expect(html.match(/<details class="m-about">/g)).toHaveLength(5);
+    // irreversible-action explanations stay next to their buttons, outside any disclosure
+    for (const cls of ['rc-action-effect-note', 'rc-bulk-effect-note']) {
+      const at = html.indexOf(`class="${cls}"`);
+      expect(at, cls).toBeGreaterThan(0);
+      expect(html.lastIndexOf('<details class="m-about">', at), cls).toBeLessThan(html.lastIndexOf('</details>', at));
+    }
+    // jobs: one data-source list; the per-section source lines are gone; the retry rule stays by the timeline
+    const list = html.slice(html.indexOf('<ul class="m-about__list">'), html.indexOf('</ul>', html.indexOf('<ul class="m-about__list">')));
+    for (const src of ['/admin/batch/runs</code>', '/admin/batch/runs/:runId/logs', '/admin/batch/run-history', 'job_run_log']) {
+      expect(list, src).toContain(src);
+    }
+    expect(html.match(/<p class="jobs-disclaimer">/g)).toHaveLength(2);
+    expect(readStaticFile('static/css/components.css')).toMatch(/\.m-about__summary:focus-visible/);
+  });
 });

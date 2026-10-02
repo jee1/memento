@@ -322,7 +322,7 @@ describe('dashboard jobs panel (#832)', () => {
     expect(dashboardHtml).toMatch(/일시정지/);
     expect(dashboardHtml).toMatch(/재개/);
     expect(dashboardHtml).toMatch(/지금 실행/);
-    expect(dashboardHtml).toMatch(/#834/);
+    expect(dashboardHtml).not.toMatch(/#83[34]/);
   });
 
   it('dashboard tabs register jobs panel and init on tab open', () => {
