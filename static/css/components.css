@@ -284,6 +284,58 @@
   margin-left: auto;
 }
 
+/* Compact nav (#1147): menu button + group chips, shown only in the phone layout (dashboard.css, max-width: 30rem). */
+.m-nav-compact {
+  display: none;
+}
+
+.m-nav-compact__menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-main);
+  cursor: pointer;
+}
+
+.m-nav-compact__menu:hover,
+.m-nav-compact__menu[aria-expanded='true'] {
+  background: var(--color-bg-hover);
+}
+
+.m-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.m-nav-chip[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--color-accent-weak);
+  color: var(--color-brand-primary);
+  font-weight: 600;
+}
+
+.m-nav-compact__menu:focus-visible,
+.m-nav-chip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
 /* --- Toolbar (#968 progressive disclosure) --- */
 .m-toolbar {
   display: flex;

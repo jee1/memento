@@ -24,6 +24,20 @@ function extractAtMediaBlock(source: string, query: string): string {
   return source.slice(start, end + 1);
 }
 
+function extractAllAtMediaBlocks(source: string, query: string): string {
+  const needle = `@media ${query}`;
+  const blocks: string[] = [];
+  let from = 0;
+  for (;;) {
+    const start = source.indexOf(needle, from);
+    if (start < 0) break;
+    const block = extractAtMediaBlock(source.slice(start), query);
+    blocks.push(block);
+    from = start + Math.max(block.length, needle.length);
+  }
+  return blocks.join('\n');
+}
+
 function extractNamedFunction(source: string, name: string): string {
   const needle = `function ${name}(`;
   const start = source.indexOf(needle);
@@ -512,7 +526,7 @@ describe('static design contracts', () => {
 
   it('#897: 좁은 화면에서 후보 표만 가로 스크롤하고 미리보기는 눌리지 않는다', () => {
     const cssSource = readStaticFile('static/css/dashboard.css');
-    const narrowBlock = extractAtMediaBlock(cssSource, '(max-width: 30rem)');
+    const narrowBlock = extractAllAtMediaBlocks(cssSource, '(max-width: 30rem)');
 
     expect(narrowBlock).toContain('@media (max-width: 30rem)');
     expect(narrowBlock).toMatch(/\.review-candidates-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
@@ -758,15 +772,15 @@ describe('static design contracts', () => {
 
     expect(componentsCss).toContain('.m-session-chip {');
 
-    expect(dashboardCss).toContain('@media (min-width: 1280px)');
+    expect(dashboardCss).toContain('@media (min-width: 80rem)');
     expect(dashboardCss).toContain('grid-template-columns: 232px minmax(0, 1fr)');
-    const mobileRailAt = dashboardCss.indexOf('@media (max-width: 1279px) {\n  .m-nav-rail {');
+    const mobileRailAt = dashboardCss.indexOf('@media (max-width: 79.99rem) {\n  .m-nav-rail {');
     const mobileTabBarAt = dashboardCss.indexOf('.m-nav-rail .m-tab-bar {');
     expect(mobileRailAt).toBeGreaterThanOrEqual(0);
     expect(mobileTabBarAt).toBeGreaterThan(mobileRailAt);
     expect(ruleBody(dashboardCss.slice(mobileRailAt), '.m-nav-rail .m-tab-bar')).toContain('overflow-x: auto');
 
-    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 480px) {\n  .m-nav-rail {');
+    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 30rem) {\n  .m-nav-rail {');
     expect(phoneRailAt).toBeGreaterThan(mobileRailAt);
     expect(ruleBody(dashboardCss.slice(phoneRailAt), '.m-nav-rail')).toContain('flex-wrap: wrap');
     expect(ruleBody(dashboardCss.slice(phoneRailAt), '.m-session-chip')).toContain('flex: 1 1 100%');
@@ -798,10 +812,104 @@ describe('static design contracts', () => {
     const marker = '/* Ops status rows (#1146) */';
     const start = dashboardCss.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
-    const section = dashboardCss.slice(start + marker.length);
+    const phoneLayoutMarker = '/* Phone layout (#1147)';
+    const phoneLayoutAt = dashboardCss.indexOf(phoneLayoutMarker, start);
+    const section = dashboardCss.slice(
+      start + marker.length,
+      phoneLayoutAt < 0 ? undefined : phoneLayoutAt,
+    );
     expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(section).toContain('.ops-row__trend .m-sparkline');
     expect(section).toContain('width: 90px');
     expect(section).toContain('height: 20px');
+  });
+
+  it('issue #1147 every @media uses one of the three --bp-* token values', () => {
+    const tokensSource = readStaticFile('static/css/tokens.css');
+    const bpMatches = [...tokensSource.matchAll(/--bp-([a-z]+):\s*([\d.]+)rem;/g)];
+    expect(bpMatches.map((m) => m[1])).toEqual(['lg', 'md', 'sm']);
+    const bps = bpMatches.map((m) => Number(m[2]));
+    expect(bps).toEqual([80, 48, 30]);
+
+    const cssFiles = ['static/css/tokens.css', 'static/css/components.css', 'static/css/dashboard.css'];
+    const used = new Set<number>();
+    let mediaCount = 0;
+    for (const file of cssFiles) {
+      const source = readStaticFile(file).replace(/\/\*[\s\S]*?\*\//g, '');
+      for (const match of source.matchAll(/@media\s*([^{]+)\{/g)) {
+        mediaCount += 1;
+        const condition = match[1].trim();
+        const parsed = condition.match(/^\((min|max)-width: ([\d.]+)rem\)$/);
+        expect(parsed, `${file}: unexpected @media ${condition}`).not.toBeNull();
+        const value = Number(parsed![2]);
+        const base = bps.includes(value) ? value : bps.find((bp) => Math.abs(bp - 0.01 - value) < 1e-9);
+        expect(base, `${file}: @media ${condition} is not a --bp-* value`).toBeDefined();
+        if (parsed![1] === 'min') expect(bps).toContain(value);
+        used.add(base!);
+      }
+    }
+    expect(mediaCount).toBeGreaterThanOrEqual(12);
+    expect([...used].sort((a, b) => b - a)).toEqual([80, 48, 30]);
+
+    // agent-sessions inspection grid stacks by width (auto-fit), so it needs no extra breakpoint
+    expect(readStaticFile('static/css/dashboard.css')).toMatch(
+      /\.as-inspection-grid \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(min\(28rem, 100%\), 1fr\)\);/s,
+    );
+  });
+
+  it('issue #1147 phone nav: menu button controls the tablist and chips map to nav groups', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const componentsCss = readStaticFile('static/css/components.css');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+
+    expect(html).toMatch(/<button type="button" id="dashboard-nav-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="dashboard-tablist"/);
+    expect(html).toContain('<div id="dashboard-tablist" class="m-tab-bar" role="tablist"');
+
+    const navIdx = html.indexOf('<nav class="m-nav-rail"');
+    const compactIdx = html.indexOf('<div class="m-nav-compact">');
+    const tablistIdx = html.indexOf('role="tablist"');
+    expect(navIdx).toBeLessThan(compactIdx);
+    expect(compactIdx).toBeLessThan(tablistIdx);
+
+    const chipKeys = [...html.matchAll(/class="m-nav-chip[^"]*" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
+    const groupKeys = [...html.matchAll(/class="m-nav-group[^"]*" role="presentation" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
+    expect(chipKeys).toEqual(['spatial', 'ops', 'learn']);
+    expect(groupKeys).toEqual(chipKeys);
+
+    expect(componentsCss).toMatch(/\.m-nav-compact \{\s*display: none;\s*\}/);
+    expect(componentsCss).toMatch(/\.m-nav-compact__menu \{[^}]*width: 44px;[^}]*height: 44px;/s);
+    expect(componentsCss).toMatch(/\.m-nav-chip \{[^}]*min-height: 44px;/s);
+
+    const phoneRailAt = dashboardCss.indexOf('@media (max-width: 30rem) {\n  .m-nav-rail {');
+    const phoneBlock = extractAtMediaBlock(dashboardCss.slice(phoneRailAt), '(max-width: 30rem)');
+    expect(phoneBlock).toMatch(/\.m-nav-compact \{[^}]*display: flex;/s);
+    expect(phoneBlock).toMatch(/\.m-nav-rail:not\(\.is-expanded\) \.m-tab-bar \{\s*display: none;/);
+    expect(phoneBlock).toMatch(/\.m-nav-rail \.m-tab-btn \{[^}]*min-height: 44px;/s);
+
+    expect(tabsJs).toContain("navToggle.setAttribute('aria-expanded'");
+    expect(tabsJs).toContain("chip.setAttribute('aria-pressed'");
+    expect(tabsJs).toContain("e.key === 'Escape'");
+  });
+
+  it('issue #1147 phone layout: table cards, 2-up KPIs, 2-line list rows and 44px targets', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const labelsJs = readStaticFile('static/js/table-card-labels.js');
+
+    expect(html.match(/<script src="\/static\/js\/table-card-labels\.js"><\/script>/g)).toHaveLength(1);
+    expect(html.indexOf('table-card-labels.js')).toBeGreaterThan(html.indexOf('dashboard-tabs.js"></script>'));
+    expect(labelsJs).toContain("querySelectorAll('table.m-table:not(#rc-table)')");
+    expect(labelsJs).toContain("setAttribute('data-label'");
+
+    const marker = '/* Phone layout (#1147)';
+    const at = dashboardCss.indexOf(marker);
+    expect(at).toBeGreaterThanOrEqual(0);
+    const block = extractAtMediaBlock(dashboardCss.slice(at), '(max-width: 30rem)');
+    expect(block).toMatch(/\.m-table:not\(#rc-table\) td\[data-label\]::before \{[^}]*content: attr\(data-label\);/s);
+    expect(block).toMatch(/\.m-stat-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(block).toMatch(/\.oo-list__item \{[^}]*min-height: 44px;/s);
+    expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: 44px;\s*min-height: 44px;/);
+    expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b(?![-\w])/);
   });
 });

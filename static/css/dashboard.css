@@ -499,7 +499,7 @@ body {
 }
 
 /* 반응형 디자인 */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .dashboard-header {
     padding: var(--spacing-md);
   }
@@ -541,7 +541,7 @@ body {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .dashboard-header h1 {
     font-size: var(--font-size-lg);
   }
@@ -572,8 +572,8 @@ body {
   }
 }
 
-/* Shell layout (#1144): nav rail on the left from 1280px; horizontal tab bar below that (keeps <=390px reach). */
-@media (min-width: 1280px) {
+/* Shell layout (#1144): nav rail on the left from 80rem (1280px); horizontal tab bar below that (keeps <=390px reach). */
+@media (min-width: 80rem) {
   .dashboard-container {
     display: grid;
     grid-template-columns: 232px minmax(0, 1fr);
@@ -602,7 +602,7 @@ body {
   }
 }
 
-@media (max-width: 1279px) {
+@media (max-width: 79.99rem) {
   .m-nav-rail {
     flex-direction: row;
     align-items: center;
@@ -644,7 +644,7 @@ body {
 }
 
 /* #1144: on phones the session chip drops to its own row so tabs keep the full width. */
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .m-nav-rail {
     flex-wrap: wrap;
   }
@@ -656,6 +656,42 @@ body {
   .m-session-chip {
     flex: 1 1 100%;
     border-top: 1px solid var(--color-border-light);
+  }
+
+  /* #1147: phone layout collapses the tab list behind the menu button; group chips jump to a group's first tab. */
+  .m-nav-compact {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .m-nav-rail:not(.is-expanded) .m-tab-bar {
+    display: none;
+  }
+
+  .m-nav-rail.is-expanded .m-tab-bar {
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+  }
+
+  .m-nav-rail.is-expanded .m-nav-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .m-nav-rail.is-expanded .m-nav-group + .m-nav-group {
+    padding-left: 0;
+    padding-top: var(--spacing-xs);
+    border-left: none;
+    border-top: 1px solid var(--color-tab-border);
+  }
+
+  .m-nav-rail .m-tab-btn {
+    width: 100%;
+    min-height: 44px;
   }
 }
 
@@ -1241,7 +1277,7 @@ circle.em-dot:focus-visible {
   min-height: 0;
 }
 
-@media (max-width: 56rem) {
+@media (max-width: 48rem) {
   .review-candidates-body {
     grid-template-columns: 1fr;
   }
@@ -1854,7 +1890,7 @@ circle.em-dot:focus-visible {
   gap: var(--spacing-sm);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 48rem) {
   .med-search-comparison {
     grid-template-columns: 1fr;
   }
@@ -2160,7 +2196,8 @@ circle.em-dot:focus-visible {
 
 .as-inspection-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* #1147: stack by available width instead of a breakpoint; a card needs ~28rem for #as-provenance-form. */
+  grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
   gap: var(--spacing-md);
 }
 
@@ -2215,13 +2252,12 @@ circle.em-dot:focus-visible {
   color: var(--color-error);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 48rem) {
   .as-aggregate {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .as-browser,
-  .as-inspection-grid {
+  .as-browser {
     grid-template-columns: 1fr;
   }
 
@@ -2362,7 +2398,7 @@ circle.em-dot:focus-visible {
   flex: 0 0 auto;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .ops-strip__metrics {
     gap: var(--spacing-sm);
   }
@@ -2416,7 +2452,7 @@ circle.em-dot:focus-visible {
   min-height: 44px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .memory-inspector {
     width: 100%;
     flex: 0 0 auto;
@@ -2630,7 +2666,7 @@ circle.em-dot:focus-visible {
   color: var(--color-text-main);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .ops-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
@@ -2639,5 +2675,91 @@ circle.em-dot:focus-visible {
   .ops-row__link {
     grid-column: 1 / -1;
     justify-self: start;
+  }
+}
+
+/* Phone layout (#1147): 390px canvas. Tables become cards, KPI tiles go 2-up, list rows get two lines,
+   and every interactive control is at least 44px. */
+@media (max-width: 30rem) {
+  .m-table:not(#rc-table) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .m-table:not(#rc-table),
+  .m-table:not(#rc-table) tbody,
+  .m-table:not(#rc-table) tr,
+  .m-table:not(#rc-table) td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .m-table:not(#rc-table) tr {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .m-table:not(#rc-table) td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    padding: 2px 0;
+    border-bottom: none;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .m-table:not(#rc-table) td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    max-width: 45%;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    text-align: left;
+  }
+
+  .m-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oo-list__item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--spacing-sm);
+    row-gap: 2px;
+    min-height: 44px;
+  }
+
+  .oo-list__item > .m-badge {
+    grid-row: span 2;
+  }
+
+  .oo-list__meta {
+    grid-column: 2;
+  }
+
+  .dashboard-container :is(button, select, summary, textarea, input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='range'])) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .dashboard-container label:has(> input[type='checkbox']),
+  .dashboard-container label:has(> input[type='radio']) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-height: 44px;
+  }
+
+  #rc-table .rc-cell-select {
+    min-width: 44px;
+    height: 44px;
   }
 }
