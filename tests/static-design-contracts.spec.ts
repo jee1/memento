@@ -812,7 +812,12 @@ describe('static design contracts', () => {
     const marker = '/* Ops status rows (#1146) */';
     const start = dashboardCss.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
-    const section = dashboardCss.slice(start + marker.length);
+    const phoneLayoutMarker = '/* Phone layout (#1147)';
+    const phoneLayoutAt = dashboardCss.indexOf(phoneLayoutMarker, start);
+    const section = dashboardCss.slice(
+      start + marker.length,
+      phoneLayoutAt < 0 ? undefined : phoneLayoutAt,
+    );
     expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(section).toContain('.ops-row__trend .m-sparkline');
     expect(section).toContain('width: 90px');
@@ -880,5 +885,26 @@ describe('static design contracts', () => {
     expect(tabsJs).toContain("navToggle.setAttribute('aria-expanded'");
     expect(tabsJs).toContain("chip.setAttribute('aria-pressed'");
     expect(tabsJs).toContain("e.key === 'Escape'");
+  });
+
+  it('issue #1147 phone layout: table cards, 2-up KPIs, 2-line list rows and 44px targets', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const labelsJs = readStaticFile('static/js/table-card-labels.js');
+
+    expect(html.match(/<script src="\/static\/js\/table-card-labels\.js"><\/script>/g)).toHaveLength(1);
+    expect(html.indexOf('table-card-labels.js')).toBeGreaterThan(html.indexOf('dashboard-tabs.js"></script>'));
+    expect(labelsJs).toContain("querySelectorAll('table.m-table:not(#rc-table)')");
+    expect(labelsJs).toContain("setAttribute('data-label'");
+
+    const marker = '/* Phone layout (#1147)';
+    const at = dashboardCss.indexOf(marker);
+    expect(at).toBeGreaterThanOrEqual(0);
+    const block = extractAtMediaBlock(dashboardCss.slice(at), '(max-width: 30rem)');
+    expect(block).toMatch(/\.m-table:not\(#rc-table\) td\[data-label\]::before \{[^}]*content: attr\(data-label\);/s);
+    expect(block).toMatch(/\.m-stat-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(block).toMatch(/\.oo-list__item \{[^}]*min-height: 44px;/s);
+    expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: 44px;\s*min-height: 44px;/);
+    expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b(?![-\w])/);
   });
 });
