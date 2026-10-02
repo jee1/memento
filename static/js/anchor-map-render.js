@@ -452,7 +452,7 @@
     const mapData = state.mapData;
 
     if (!mapData || !mapData.anchors || mapData.anchors.length === 0) {
-      anchorListContainer.innerHTML = '<p class="no-data">설정된 앵커 없음</p>';
+      anchorListContainer.innerHTML = '<p class="m-empty">설정된 앵커 없음</p>';
       return;
     }
 

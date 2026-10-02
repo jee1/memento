@@ -15,7 +15,7 @@
     if (typeof d3 === 'undefined') {
       const fallbackContainer = document.getElementById('anchor-map');
       if (fallbackContainer) {
-        fallbackContainer.innerHTML = '<p class="no-data">앵커 맵 렌더러를 사용할 수 없습니다.</p>';
+        fallbackContainer.innerHTML = '<p class="m-empty">앵커 맵 렌더러를 사용할 수 없습니다.</p>';
       }
       ns.debugAnchorMap('d3-unavailable');
       return;

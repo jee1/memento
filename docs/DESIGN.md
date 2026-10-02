@@ -103,9 +103,9 @@
 - Touch/hover differences: Larger hit targets on toolbar when wrapped; avoid hover-only actions for review row open.
 
 ## Interaction states
-- Loading: Prefer shared `.m-loading` using `--color-status-loading-*` (today: `.em-loading`, `.med-loading`, `.as-banner--loading` diverge).
-- Empty: Prefer shared `.m-empty` (today: `.no-data`, `.med-empty`, per-panel copy).
-- Error: Prefer shared `.m-error` / `role="alert"` (today: `.em-error`, auth message tones, status-error tokens).
+- Loading: Shared `.m-loading` only (`--color-status-loading-*`). Panel-local loading classes were removed in #1149.
+- Empty: Shared `.m-empty` only. A neutral "nothing to show yet" notice (e.g. agent sessions before a key is entered) is an empty state too.
+- Error: Shared `.m-error`; keep `role="alert"` where the region already has it. Do not add panel-local state classes; add a modifier to the shared component instead.
 - Success: Inline confirmation; avoid toast spam except Review Queue OS notify opt-in.
 - Disabled: `.m-button:disabled` opacity 0.6; session-only tabs gated by auth state.
 - Offline/slow network: Fetch failures surface in panel error regions; no global offline banner yet (open).

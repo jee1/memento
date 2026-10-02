@@ -137,7 +137,7 @@
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.classList.toggle('is-active', Boolean(isActive));
-    statusEl.classList.toggle('no-data', !isActive);
+    statusEl.classList.toggle('m-empty', !isActive);
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);

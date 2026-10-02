@@ -159,12 +159,13 @@ body {
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
   background-color: var(--color-bg-main);
+}
+
+/* Inactive state uses the shared .m-empty look (#1149); only the active state restyles it. */
+.anchor-search-status.is-active {
   color: var(--color-text-main);
   font-style: normal;
   text-align: left;
-}
-
-.anchor-search-status.is-active {
   border-left: 3px solid var(--color-success);
 }
 
@@ -248,13 +249,6 @@ body {
   color: var(--color-brand-primary);
   border-bottom: 2px solid var(--color-brand-primary);
   padding-bottom: var(--spacing-xs);
-}
-
-.no-data {
-  color: var(--color-text-muted);
-  font-style: italic;
-  text-align: center;
-  padding: var(--spacing-md);
 }
 
 /* Anchor List */
@@ -878,23 +872,7 @@ circle.em-dot:focus-visible {
   margin-left: auto;
 }
 
-.em-loading,
-.em-error {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-sm);
-}
-
-.em-loading {
-  background: var(--color-status-loading-bg);
-  color: var(--color-status-loading-text);
-}
-
-.em-error {
-  background: var(--color-status-error-bg);
-  color: var(--color-status-error-text);
-}
-
-.em-error .em-retry-btn {
+#em-error .em-retry-btn {
   margin-top: var(--spacing-sm);
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-sm);
@@ -1102,19 +1080,6 @@ circle.em-dot:focus-visible {
   align-items: center;
   gap: var(--spacing-xs);
   flex-shrink: 0;
-}
-
-.rc-banner {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  color: var(--color-text-main);
-}
-
-.rc-banner--error {
-  background: var(--color-status-error-bg);
-  color: var(--color-status-error-text);
-  border: 1px solid var(--color-status-error-border);
 }
 
 .rc-toast {
@@ -1527,9 +1492,9 @@ circle.em-dot:focus-visible {
   line-height: var(--line-height-relaxed, 1.45);
 }
 
-.med-loading,
-.med-empty,
-.med-error {
+#med-loading,
+#med-empty,
+#med-error {
   flex-shrink: 0;
 }
 
@@ -1975,24 +1940,6 @@ circle.em-dot:focus-visible {
   gap: var(--spacing-xs);
   font-size: var(--font-size-sm);
   font-weight: 600;
-}
-
-.as-banner {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-}
-
-.as-banner--loading {
-  background: var(--color-status-loading-bg);
-  color: var(--color-status-loading-text);
-}
-
-.as-banner--error {
-  border-color: var(--color-status-error-border);
-  background: var(--color-status-error-bg);
-  color: var(--color-status-error-text);
 }
 
 .as-aggregate {
