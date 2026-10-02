@@ -850,6 +850,11 @@ describe('static design contracts', () => {
     }
     expect(mediaCount).toBeGreaterThanOrEqual(12);
     expect([...used].sort((a, b) => b - a)).toEqual([80, 48, 30]);
+
+    // agent-sessions inspection grid stacks by width (auto-fit), so it needs no extra breakpoint
+    expect(readStaticFile('static/css/dashboard.css')).toMatch(
+      /\.as-inspection-grid \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(min\(28rem, 100%\), 1fr\)\);/s,
+    );
   });
 
   it('issue #1147 phone nav: menu button controls the tablist and chips map to nav groups', () => {

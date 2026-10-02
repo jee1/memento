@@ -2196,7 +2196,8 @@ circle.em-dot:focus-visible {
 
 .as-inspection-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* #1147: stack by available width instead of a breakpoint; a card needs ~28rem for #as-provenance-form. */
+  grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
   gap: var(--spacing-md);
 }
 
@@ -2256,8 +2257,7 @@ circle.em-dot:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .as-browser,
-  .as-inspection-grid {
+  .as-browser {
     grid-template-columns: 1fr;
   }
 
