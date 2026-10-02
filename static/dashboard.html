@@ -311,44 +311,90 @@
         <div id="ops-status-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
         <section id="ops-status-card-system" class="ops-status-card" aria-labelledby="ops-status-system-heading">
           <h3 id="ops-status-system-heading">시스템</h3>
-          <dl class="ops-status-dl">
-            <dt>프로세스 가동</dt>
-            <dd><span id="ops-status-process-uptime">—</span></dd>
-            <dt>스케줄러</dt>
-            <dd><span id="ops-status-scheduler">—</span></dd>
-            <dt>스케줄러 가동</dt>
-            <dd><span id="ops-status-scheduler-uptime">—</span></dd>
-            <dt>데이터베이스</dt>
-            <dd><span id="ops-status-database">—</span></dd>
-            <dt>버전</dt>
-            <dd><span id="ops-status-version">—</span></dd>
-          </dl>
+          <ul class="ops-status-rows">
+            <li class="ops-row" id="ops-status-row-process-uptime">
+              <span id="ops-status-sev-process-uptime" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">프로세스 가동</span>
+              <span class="ops-row__value"><span id="ops-status-process-uptime">—</span></span>
+            </li>
+            <li class="ops-row" id="ops-status-row-scheduler">
+              <span id="ops-status-sev-scheduler" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">스케줄러</span>
+              <span class="ops-row__value"><span id="ops-status-scheduler">—</span></span>
+              <button type="button" id="ops-status-link-scheduler" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="jobs">배치 작업 보기</button>
+            </li>
+            <li class="ops-row" id="ops-status-row-scheduler-uptime">
+              <span id="ops-status-sev-scheduler-uptime" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">스케줄러 가동</span>
+              <span class="ops-row__value"><span id="ops-status-scheduler-uptime">—</span></span>
+            </li>
+            <li class="ops-row" id="ops-status-row-database">
+              <span id="ops-status-sev-database" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">데이터베이스</span>
+              <span class="ops-row__value"><span id="ops-status-database">—</span></span>
+            </li>
+            <li class="ops-row" id="ops-status-row-version">
+              <span id="ops-status-sev-version" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">버전</span>
+              <span class="ops-row__value"><span id="ops-status-version">—</span></span>
+            </li>
+          </ul>
         </section>
         <section id="ops-status-card-batch" class="ops-status-card" aria-labelledby="ops-status-batch-heading">
           <h3 id="ops-status-batch-heading">배치 영향 <span class="ops-status-window">최근 30일</span></h3>
-          <dl class="ops-status-dl">
-            <dt>실패 실행</dt>
-            <dd><span id="ops-status-batch-failed">—</span></dd>
-            <dt title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">배치 영향 시간</dt>
-            <dd><span id="ops-status-batch-impact" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">—</span></dd>
-            <dt>성공 실행</dt>
-            <dd><span id="ops-status-batch-success">—</span></dd>
-            <dt>마지막 실패</dt>
-            <dd><span id="ops-status-batch-last-failed">—</span></dd>
-            <dt>지금</dt>
-            <dd><span id="ops-status-batch-now">—</span></dd>
-          </dl>
+          <ul class="ops-status-rows">
+            <li class="ops-row" id="ops-status-row-batch-failed">
+              <span id="ops-status-sev-batch-failed" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">실패 실행</span>
+              <span class="ops-row__value"><span id="ops-status-batch-failed">—</span></span>
+              <button type="button" id="ops-status-link-batch-failed" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="jobs">배치 작업 보기</button>
+            </li>
+            <li class="ops-row" id="ops-status-row-batch-impact">
+              <span id="ops-status-sev-batch-impact" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">배치 영향 시간</span>
+              <span class="ops-row__value"><span id="ops-status-batch-impact" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">—</span></span>
+              <span id="ops-status-trend-batch-impact" class="ops-row__trend"></span>
+            </li>
+            <li class="ops-row" id="ops-status-row-batch-success">
+              <span id="ops-status-sev-batch-success" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">성공 실행</span>
+              <span class="ops-row__value"><span id="ops-status-batch-success">—</span></span>
+            </li>
+            <li class="ops-row" id="ops-status-row-batch-last-failed">
+              <span id="ops-status-sev-batch-last-failed" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">마지막 실패</span>
+              <span class="ops-row__value"><span id="ops-status-batch-last-failed">—</span></span>
+              <button type="button" id="ops-status-link-batch-last-failed" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="jobs">배치 작업 보기</button>
+            </li>
+            <li class="ops-row" id="ops-status-row-batch-now">
+              <span id="ops-status-sev-batch-now" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">지금</span>
+              <span class="ops-row__value"><span id="ops-status-batch-now">—</span></span>
+            </li>
+          </ul>
         </section>
         <section id="ops-status-card-flow" class="ops-status-card" aria-labelledby="ops-status-flow-heading">
           <h3 id="ops-status-flow-heading">운영 흐름</h3>
-          <dl class="ops-status-dl">
-            <dt>검토 대기</dt>
-            <dd><span id="ops-status-review-pending">—</span></dd>
-            <dt>순유입 (1h)</dt>
-            <dd><span id="ops-status-review-netflow">—</span></dd>
-            <dt>임베딩 문제</dt>
-            <dd><span id="ops-status-embedding">—</span></dd>
-          </dl>
+          <ul class="ops-status-rows">
+            <li class="ops-row" id="ops-status-row-review-pending">
+              <span id="ops-status-sev-review-pending" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">검토 대기</span>
+              <span class="ops-row__value"><span id="ops-status-review-pending">—</span></span>
+            </li>
+            <li class="ops-row" id="ops-status-row-review-netflow">
+              <span id="ops-status-sev-review-netflow" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">순유입 (1h)</span>
+              <span class="ops-row__value"><span id="ops-status-review-netflow">—</span></span>
+              <span id="ops-status-trend-review-netflow" class="ops-row__trend"></span>
+              <button type="button" id="ops-status-link-review-netflow" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="review">검토 대기열 보기</button>
+            </li>
+            <li class="ops-row" id="ops-status-row-embedding">
+              <span id="ops-status-sev-embedding" class="ops-row__sev m-badge m-badge--idle">—</span>
+              <span class="ops-row__label">임베딩 문제</span>
+              <span class="ops-row__value"><span id="ops-status-embedding">—</span></span>
+              <button type="button" id="ops-status-link-embedding" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="embedding">임베딩 상태 보기</button>
+            </li>
+          </ul>
         </section>
       </div>
     </div>
