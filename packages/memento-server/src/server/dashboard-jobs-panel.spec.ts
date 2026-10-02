@@ -955,7 +955,8 @@ describe('dashboard jobs panel (#832)', () => {
     h.getScheduleClickHandler()!({
       target: {
         dataset: {},
-        closest: (selector: string) => (selector === '.jobs-row-menu' ? { open: true } : null),
+        closest: (selector: string) =>
+          selector === '.jobs-row-menu' ? { open: true } : selector === 'tr' ? { dataset: { jobName: 'cleanup' } } : null,
       },
     });
 
