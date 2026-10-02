@@ -42,34 +42,37 @@
             >
             <button type="submit" id="dashboard-sign-in-btn" class="dashboard-auth-btn m-button m-button--primary">로그인</button>
           </form>
-          <div id="dashboard-auth-session" class="dashboard-auth-session" hidden>
-            <span id="dashboard-auth-status" class="dashboard-auth-status">세션 활성</span>
-            <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn m-button m-button--secondary">로그아웃</button>
-          </div>
           <p id="dashboard-auth-message" class="dashboard-auth-message" aria-live="polite"></p>
         </section>
       </div>
     </header>
 
-    <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
-      <div class="m-nav-group session-only" role="presentation">
-        <span class="m-nav-group__label" aria-hidden="true">공간</span>
-        <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
-        <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">임베딩 상태</button>
-        <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">기억 그래프</button>
+    <nav class="m-nav-rail" aria-label="대시보드 탐색">
+      <div class="m-tab-bar" role="tablist" aria-orientation="vertical" aria-label="대시보드 보기 전환">
+        <div class="m-nav-group session-only" role="presentation">
+          <span class="m-nav-group__label" aria-hidden="true">공간</span>
+          <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
+          <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">임베딩 상태</button>
+          <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">기억 그래프</button>
+        </div>
+        <div class="m-nav-group session-only" role="presentation">
+          <span class="m-nav-group__label" aria-hidden="true">운영</span>
+          <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
+          <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+          <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
+          <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
+        </div>
+        <div class="m-nav-group" role="presentation">
+          <span class="m-nav-group__label" aria-hidden="true">학습</span>
+          <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
+        </div>
       </div>
-      <div class="m-nav-group session-only" role="presentation">
-        <span class="m-nav-group__label" aria-hidden="true">운영</span>
-        <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
-        <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
-        <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
-        <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
+      <div id="dashboard-auth-session" class="m-session-chip" hidden>
+        <span class="m-session-chip__dot" aria-hidden="true"></span>
+        <span id="dashboard-auth-status" class="dashboard-auth-status">세션 활성</span>
+        <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn m-button m-button--secondary">로그아웃</button>
       </div>
-      <div class="m-nav-group" role="presentation">
-        <span class="m-nav-group__label" aria-hidden="true">학습</span>
-        <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
-      </div>
-    </div>
+    </nav>
 
     <div id="ops-strip" class="ops-strip session-only" aria-label="운영 상태 요약">
       <div id="ops-strip-metrics" class="ops-strip__metrics" aria-live="polite">

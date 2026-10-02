@@ -4,6 +4,7 @@
  *
  * WAI-ARIA Tabs - Manual activation:
  * - 좌/우/Home/End: 같은 tablist 안에서 포커스만 이동(roving tabindex); 패널은 바꾸지 않음(그래프 iframe 지연 로드 유지)
+ * - Up/Down: same as Left/Right (vertical nav rail, #1144)
  * - Enter/Space 또는 클릭: 해당 탭 활성화
  */
 (function (global) {
@@ -53,9 +54,9 @@
       if (idx < 0) {
         return;
       }
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
-        let next = e.key === 'ArrowRight' ? idx + 1 : idx - 1;
+        let next = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? idx + 1 : idx - 1;
         if (next < 0) {
           next = buttons.length - 1;
         }
