@@ -42,6 +42,9 @@
   let refreshGeneration = 0;
   let wired = false;
 
+  // The route only accepts page_size 25 or 50; the card shows the first 5.
+  const REVIEW_URL = '/admin/memory/review-candidates?status=pending&page_size=25&page=1';
+
   function reviewSeverity(dueAt, nowMs) {
     if (!dueAt) return 'idle';
     const due = Date.parse(dueAt);
@@ -407,7 +410,7 @@
       setState(container, 'error', S.loadError(err.message));
       return;
     }
-    const candidates = data && Array.isArray(data.candidates) ? data.candidates : [];
+    const candidates = data && Array.isArray(data.candidates) ? data.candidates.slice(0, 5) : [];
     if (candidates.length === 0) {
       setState(container, 'empty', S.reviewEmpty);
       return;
@@ -539,7 +542,7 @@
       getJson('/admin/status'),
       getJson('/admin/embedding-health?provider=minilm'),
       getJson('/admin/stats/forgetting'),
-      getJson('/admin/memory/review-candidates?status=pending&page_size=5&page=1'),
+      getJson(REVIEW_URL),
       getJson('/admin/batch/stats'),
       getJson('/api/anchors/agents'),
     ]);
@@ -574,6 +577,7 @@
   }
 
   global.__MEMENTO_OPS_OVERVIEW__ = {
+    REVIEW_URL: REVIEW_URL,
     reviewSeverity: reviewSeverity,
     severityLabel: severityLabel,
     deltaVariant: deltaVariant,
