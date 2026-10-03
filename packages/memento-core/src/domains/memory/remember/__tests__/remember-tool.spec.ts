@@ -208,6 +208,7 @@ describe('RememberTool', () => {
     }
     vi.clearAllMocks();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe('초기화', () => {
@@ -1901,6 +1902,7 @@ describe('RememberTool', () => {
       `);
       expect(semanticMemories.length).toBe(0);
     });
+
   });
 
   describe('AriGraph Pipeline - 비동기 처리', () => {

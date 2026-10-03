@@ -125,9 +125,45 @@ describe('TripleExtractionBatchJob', () => {
       db.close();
     }
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe('execute', () => {
+    it('skips extraction when TRIPLE_EXTRACTION_ENABLED=false (#1230)', async () => {
+      vi.stubEnv('TRIPLE_EXTRACTION_ENABLED', 'false');
+
+      const extractTriplesSpy = vi.spyOn(tripleExtractionService, 'extractTriples');
+
+      const episodicMemoryId = generateId();
+      const content = 'Alice works at Microsoft. She is a data scientist.';
+
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
+      `, [episodicMemoryId, 'episodic', content, 0.7, null, null]);
+
+      const result = await batchJob.execute(db);
+
+      expect(extractTriplesSpy).not.toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.processed).toBe(0);
+      expect(result.warnings).toContain('TRIPLE_EXTRACTION_ENABLED=false: automatic triple extraction is off (#1230)');
+
+      const unchangedMemory = DatabaseUtils.get(db, `
+        SELECT triple_extracted, triple_extracted_status
+        FROM memory_item WHERE id = ?
+      `, [episodicMemoryId]) as {
+        triple_extracted: number | null;
+        triple_extracted_status: string | null;
+      } | undefined;
+
+      expect(unchangedMemory?.triple_extracted).toBeNull();
+      expect(unchangedMemory?.triple_extracted_status).toBeNull();
+
+      extractTriplesSpy.mockRestore();
+    });
+
+    // When env is unset, see '미처리 Episodic Memory에 대해 Triple 추출 및 Semantic Memory 생성' below.
+
     it('미처리 Episodic Memory에 대해 Triple 추출 및 Semantic Memory 생성', async () => {
       // Given: 미처리 Episodic Memory 생성
       const episodicMemoryId = generateId();

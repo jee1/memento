@@ -32,6 +32,7 @@ import {
   selectTripleExtractionCandidates
 } from './triple-extraction-batch-job/triple-extraction-batch-job-retry.js';
 import { splitTripleExtractionIntoChunks } from './triple-extraction-batch-job/triple-extraction-batch-job-chunk.js';
+import { isAutoTripleExtractionEnabled } from '../../../shared/config/triple-extraction-enabled.js';
 
 function createEmptyResult(startTime: Date): TripleExtractionBatchResult {
   return {
@@ -88,6 +89,13 @@ export class TripleExtractionBatchJob {
   async execute(db: Database.Database): Promise<TripleExtractionBatchResult> {
     const startTime = new Date();
     const result = createEmptyResult(startTime);
+
+    if (!isAutoTripleExtractionEnabled()) {
+      result.success = true;
+      result.warnings.push('TRIPLE_EXTRACTION_ENABLED=false: automatic triple extraction is off (#1230)');
+      reconcileResult(result, false);
+      return result;
+    }
 
     let policy: ResolvedTripleExtractionBatchJobConfig;
     try {

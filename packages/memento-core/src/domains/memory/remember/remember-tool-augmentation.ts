@@ -20,6 +20,7 @@ import { convertEpisodicSource } from '../semantic/episodic-semantic-conversion.
 import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import { getExistingMemoriesForRelationExtraction, getMemoryById } from './remember-tool-db-helpers.js';
+import { isAutoTripleExtractionEnabled } from '../../../shared/config/triple-extraction-enabled.js';
 
 const TRIPLE_CONVERSION_MAX_RETRIES = 3;
 const TRIPLE_CONVERSION_RETRY_BACKOFF_DAYS = [1, 2, 4];
@@ -270,14 +271,14 @@ export async function runTripleExtractionJob(
   }
 }
 
-async function runTripleExtraction(
+export async function runTripleExtraction(
   params: AugmentationParams,
   context: ToolContext,
   host: RememberToolHost
 ): Promise<void> {
   const { savedMemoryId, savedMemoryType, enable_triple_extraction } = params;
 
-  if (savedMemoryType !== 'episodic' || enable_triple_extraction === false) return;
+  if (savedMemoryType !== 'episodic' || enable_triple_extraction === false || !isAutoTripleExtractionEnabled()) return;
 
   try {
     const batchScheduler = context.services?.batchScheduler;
