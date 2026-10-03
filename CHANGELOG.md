@@ -11,6 +11,7 @@
 
 ### Added
 
+- **triple**: `TRIPLE_EXTRACTION_ENABLED=false` turns off automatic triple extraction (after remember and the hourly batch); 78% of the generated semantics were meaningless fragments that crowded search (#1230)
 - **consolidation**: optional judge (`CONSOLIDATION_JUDGE=typesafe`, Jev) verifies each cluster member against the seed and each merge into an existing semantic; members it rejects or cannot judge stay unconsolidated (#1225)
 - **dashboard**: `GET /admin/memory/search` — admin hybrid memory search (preview list, no recall side effects) for the 기억 찾기 tab (#1118)
 
