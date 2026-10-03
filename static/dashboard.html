@@ -635,12 +635,33 @@
         <header class="memory-finder-header">
           <h2 class="memory-finder-title">기억 찾기</h2>
         </header>
+        <div class="memory-finder-mode" role="radiogroup" aria-label="찾기 방식">
+          <label class="memory-finder-mode__option"><input type="radio" name="mf-mode" id="mf-mode-id" value="id" checked> Memory ID</label>
+          <label class="memory-finder-mode__option"><input type="radio" name="mf-mode" id="mf-mode-search" value="search"> 검색어</label>
+        </div>
         <form id="mf-id-form" class="memory-finder-form" autocomplete="off">
           <label for="mf-id-input">Memory ID</label>
           <input type="text" id="mf-id-input" class="m-input" placeholder="mem_…" spellcheck="false">
           <button type="submit" id="mf-id-open" class="m-button m-button--secondary">열기</button>
         </form>
+        <form id="mf-search-form" class="memory-finder-form hidden" autocomplete="off">
+          <label for="mf-search-input">검색어</label>
+          <input type="search" id="mf-search-input" class="m-input" placeholder="기억 내용이나 문장">
+          <select id="mf-search-type" class="m-select" aria-label="type 필터">
+            <option value="">전체 type</option>
+            <option value="episodic">episodic</option>
+            <option value="semantic">semantic</option>
+            <option value="procedural">procedural</option>
+            <option value="working">working</option>
+          </select>
+          <select id="mf-search-limit" class="m-select" aria-label="결과 수">
+            <option value="25">25건</option>
+            <option value="50">50건</option>
+          </select>
+          <button type="submit" id="mf-search-submit" class="m-button m-button--secondary">검색</button>
+        </form>
         <p id="mf-status" class="rc-preview-memory-status" aria-live="polite"></p>
+        <ul id="mf-results" class="memory-finder-results hidden" aria-label="검색 결과"></ul>
         <p id="mf-empty" class="m-empty">Memory ID 를 입력하고 열기를 누르면 상세가 표시됩니다</p>
         <section id="mf-detail" class="m-panel hidden" aria-label="기억 상세">
           <dl class="rc-preview-dl">
@@ -1027,6 +1048,7 @@
   <script src="/static/js/review-candidates-panel-bulk.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
   <script src="/static/js/memory-finder-panel.js"></script>
+  <script src="/static/js/memory-finder-search.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
   <script src="/static/js/ops-strip.js"></script>
   <script src="/static/js/ops-overview-panel.js"></script>

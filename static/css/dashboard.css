@@ -2770,3 +2770,58 @@ circle.em-dot:focus-visible {
   flex: 1 1 18rem;
   min-width: 0;
 }
+
+/* #1118 memory finder — search mode */
+.memory-finder-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.memory-finder-mode__option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.memory-finder-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-finder-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-tab-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-main);
+  color: var(--color-text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.memory-finder-result:hover,
+.memory-finder-result:focus-visible {
+  border-color: var(--color-text-muted);
+}
+
+.memory-finder-result__head {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.memory-finder-result__preview {
+  overflow-wrap: anywhere;
+}

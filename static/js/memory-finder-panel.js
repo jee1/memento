@@ -126,6 +126,10 @@
   }
 
   function initMemoryFinderPanel() {
+    const finder = global.__MEMENTO_MEMORY_FINDER__;
+    if (finder && typeof finder.initSearch === 'function') {
+      finder.initSearch();
+    }
     if (!state.bound) {
       bind();
     }

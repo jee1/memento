@@ -55,6 +55,25 @@ async function installMemoryFinderRoutes(page: Page): Promise<void> {
       body: JSON.stringify(MEM_E2E_PAYLOAD),
     }),
   );
+  await page.route('**/admin/memory/search**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'mem_e2e',
+            type: 'semantic',
+            content_preview: 'e2e preview',
+            similarity: 0.42,
+            created_at: '2026-10-01T00:00:00Z',
+          },
+        ],
+        total_count: 1,
+        filters_applied: { q: 'x', limit: 25 },
+      }),
+    }),
+  );
 }
 
 test.describe('Memory finder dashboard (#1118)', () => {
@@ -97,5 +116,45 @@ test.describe('Memory finder dashboard (#1118)', () => {
 
     await expect(page.locator('#mf-status')).toHaveText('해당 Memory ID 의 기억이 없습니다');
     await expect(page.locator('#mf-detail')).toBeHidden();
+  });
+
+  test('search mode submits query and opens result detail', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page.locator('#dashboard-tab-memory-finder').click();
+
+    await expect(page.locator('#mf-search-form')).toBeHidden();
+    await expect(page.locator('#mf-id-form')).toBeVisible();
+
+    await page.locator('label:has(#mf-mode-search)').click();
+    await expect(page.locator('#mf-mode-search')).toBeChecked();
+    await expect(page.locator('#mf-search-form')).toBeVisible();
+    await expect(page.locator('#mf-id-form')).toBeHidden();
+
+    await page.locator('#mf-search-input').fill('기억 찾기');
+    await page.locator('#mf-search-type').selectOption('semantic');
+    const searchRequest = page.waitForRequest(
+      (r) => new URL(r.url()).pathname === '/admin/memory/search',
+    );
+    await page.locator('#mf-search-submit').click();
+    const request = await searchRequest;
+    const params = new URL(request.url()).searchParams;
+    expect(params.get('q')).toBe('기억 찾기');
+    expect(params.get('type')).toBe('semantic');
+    expect(params.get('limit')).toBe('25');
+
+    await expect(page.locator('#mf-status')).toHaveText('결과 1건');
+    await expect(page.locator('#mf-results')).toBeVisible();
+    const resultButton = page.locator('#mf-results button[data-memory-id="mem_e2e"]');
+    await expect(resultButton).toBeVisible();
+    await expect(resultButton).toContainText('e2e preview');
+
+    await resultButton.click();
+    await expect(page.locator('#mf-detail')).toBeVisible();
+    await expect(page.locator('#mf-d-content')).toHaveText('e2e body');
+
+    await page.locator('label:has(#mf-mode-id)').click();
+    await expect(page.locator('#mf-id-form')).toBeVisible();
+    await expect(page.locator('#mf-search-form')).toBeHidden();
+    await expect(page.locator('#mf-results')).toBeHidden();
   });
 });

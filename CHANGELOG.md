@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- **dashboard**: `GET /admin/memory/search` — admin hybrid memory search (preview list, no recall side effects) for the 기억 찾기 tab (#1118)
+
 ### Fixed
 
 - **embedding**: `lightweight` provider dimension metadata now reports 512 (it is a runtime alias of `tfidf`), so an empty `EMBEDDING_DIMENSIONS` no longer resolves to 384 and a correct 512 no longer triggers `EMBEDDING_DIMENSIONS_MISMATCH` (#1221)
