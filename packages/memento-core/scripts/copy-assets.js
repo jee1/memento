@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Core 패키지 에셋 복사: schema.sql, migrations, prompts, config
+ * Core 패키지 에셋 복사: schema.sql, migrations, config
  * projectRoot = 패키지 루트(packages/memento-core)
  */
 import { existsSync, mkdirSync, copyFileSync, readdirSync } from 'fs';
@@ -20,9 +20,7 @@ const targetSchemaFile = join(distDatabaseDir, 'schema.sql');
 const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'sqlite', 'migration', 'migrations');
 
 // 추가 자산
-const distPromptsDir = join(projectRoot, 'dist', 'prompts');
 const distConfigDir = join(projectRoot, 'dist', 'config');
-const sourcePromptsDir = join(projectRoot, 'prompts');
 const sourceConfigDir = join(repoRoot, 'config'); // config는 레포 루트에 있을 수 있음
 
 /**
@@ -69,13 +67,7 @@ try {
     console.log(`✅ Copied ${sqlFiles.length} migration SQL file(s) to dist/.../migrations/`);
   }
 
-  // 3. Prompts
-  if (existsSync(sourcePromptsDir)) {
-    copyDir(sourcePromptsDir, distPromptsDir);
-    console.log('✅ Copied prompts/ to dist/prompts/');
-  }
-
-  // 4. Config (from repo root if exists)
+  // 3. Config (from repo root if exists)
   if (!existsSync(sourceConfigDir)) {
     // 조용히 건너뛰면 이전 빌드의 낡은 dist/config 가 그대로 배포된다.
     throw new Error(

@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import fs from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { DropTripleSchemaMigration } from './050-drop-triple-schema.js';
@@ -8,6 +8,7 @@ import { TripleExtractionFieldsMigration } from './030-triple-extraction-fields.
 import { KgTripleTableMigration } from './018-kg-triple-table.js';
 import { MigrationRunner } from '../migration-runner.js';
 import { initializeDatabase } from '../../init.js';
+import { mementoConfig } from '../../../../../shared/config/index.js';
 
 function columnExists(db: Database.Database, table: string, column: string): boolean {
   const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
@@ -114,21 +115,23 @@ function injectExecFailureAfter(
 
 describe('050-drop-triple-schema', () => {
   let db: Database.Database;
+  let tempRoot: string;
   let dbPath: string;
+  let previousDbPath: string;
 
   beforeEach(() => {
-    dbPath = path.join(os.tmpdir(), `memento-050-${Date.now()}-${Math.random()}.db`);
+    tempRoot = mkdtempSync(path.join(os.tmpdir(), 'memento-050-'));
+    dbPath = path.join(tempRoot, 'memory.db');
+    previousDbPath = mementoConfig.dbPath;
+    mementoConfig.dbPath = dbPath;
     db = new Database(dbPath);
     createPre050FixtureSchema(db);
   });
 
   afterEach(() => {
+    mementoConfig.dbPath = previousDbPath;
     db.close();
-    try {
-      fs.unlinkSync(dbPath);
-    } catch {
-      // ignore
-    }
+    rmSync(tempRoot, { recursive: true, force: true });
   });
 
   it('drops kg_triple, triple extraction columns, and SPO columns on upgrade from 018+030 fixture', async () => {
@@ -236,24 +239,27 @@ describe('050-drop-triple-schema', () => {
 });
 
 describe('050-drop-triple-schema fresh initializeDatabase', () => {
+  let tempRoot: string;
   let dbPath: string;
   let db: Database.Database;
+  let previousDbPath: string;
 
   afterEach(() => {
+    mementoConfig.dbPath = previousDbPath;
     if (db) {
       db.close();
     }
-    try {
-      if (dbPath) {
-        fs.unlinkSync(dbPath);
-      }
-    } catch {
-      // ignore
+    if (tempRoot) {
+      rmSync(tempRoot, { recursive: true, force: true });
     }
   });
 
   it('initializeDatabase() fresh install omits triple/SPO schema', async () => {
-    dbPath = path.join(os.tmpdir(), `memento-fresh-050-${Date.now()}.db`);
+    tempRoot = mkdtempSync(path.join(os.tmpdir(), 'memento-fresh-050-'));
+    dbPath = path.join(tempRoot, 'memory.db');
+    previousDbPath = mementoConfig.dbPath;
+    mementoConfig.dbPath = dbPath;
+
     db = await initializeDatabase(dbPath);
 
     expect(tableExists(db, 'kg_triple')).toBe(false);

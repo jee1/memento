@@ -27,7 +27,7 @@
 
 ### Removed
 
-- **triple** (#1237, breaking, no version bump yet): removed `extract_triples`, `enable_triple_extraction`, `triple_extraction_batch`, `TripleExtractionService`, `KgTripleRepository`, episodic→semantic convert tool/admin route, triple env keys, and migration `050-drop-triple-schema` drops `kg_triple` plus `memory_item.triple_extracted*` columns; no replacement extraction path (#1230, #1235)
+- **triple** (#1237, breaking, no version bump yet): removed `extract_triples`, `triple_extraction_batch`, `TripleExtractionService`, `KgTripleRepository`, episodic→semantic convert tool/admin route, triple env keys, and migration `050-drop-triple-schema` drops `kg_triple` plus `memory_item.triple_extracted*` columns; no replacement extraction path (#1230, #1235). `remember` still accepts optional boolean `enable_triple_extraction` for backward compatibility but ignores it and returns response warning `deprecated, ignored (#1237)` until the next major removes the parameter entirely
 
 ## [1.36.0] - 2026-10-03
 
