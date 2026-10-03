@@ -68,6 +68,7 @@
           <button type="button" id="dashboard-tab-ops-overview" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-overview" data-tab="ops-overview">운영 개요</button>
           <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
           <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+          <button type="button" id="dashboard-tab-memory-finder" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-memory-finder" data-tab="memory-finder">기억 찾기</button>
           <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
           <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
         </div>
@@ -629,6 +630,36 @@
         </div>
       </div>
     </div>
+    <div id="tab-memory-finder" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-memory-finder" aria-hidden="true">
+      <div class="memory-finder-layout">
+        <header class="memory-finder-header">
+          <h2 class="memory-finder-title">기억 찾기</h2>
+        </header>
+        <form id="mf-id-form" class="memory-finder-form" autocomplete="off">
+          <label for="mf-id-input">Memory ID</label>
+          <input type="text" id="mf-id-input" class="m-input" placeholder="mem_…" spellcheck="false">
+          <button type="submit" id="mf-id-open" class="m-button m-button--secondary">열기</button>
+        </form>
+        <p id="mf-status" class="rc-preview-memory-status" aria-live="polite"></p>
+        <p id="mf-empty" class="m-empty">Memory ID 를 입력하고 열기를 누르면 상세가 표시됩니다</p>
+        <section id="mf-detail" class="m-panel hidden" aria-label="기억 상세">
+          <dl class="rc-preview-dl">
+            <div><dt>Memory ID</dt><dd id="mf-d-id" class="rc-cell-mono"></dd></div>
+            <div><dt>type</dt><dd id="mf-d-type"></dd></div>
+            <div><dt>중요도</dt><dd id="mf-d-importance"></dd></div>
+            <div><dt>공개 범위</dt><dd id="mf-d-privacy"></dd></div>
+            <div><dt>고정</dt><dd id="mf-d-pinned"></dd></div>
+            <div><dt>생성</dt><dd id="mf-d-created" class="rc-cell-mono"></dd></div>
+            <div><dt>마지막 접근</dt><dd id="mf-d-accessed" class="rc-cell-mono"></dd></div>
+            <div><dt>태그</dt><dd id="mf-d-tags"></dd></div>
+            <div><dt>출처</dt><dd id="mf-d-source"></dd></div>
+            <div><dt>Project ID</dt><dd id="mf-d-project"></dd></div>
+            <div><dt>Agent ID</dt><dd id="mf-d-owner" class="rc-cell-mono"></dd></div>
+          </dl>
+          <pre id="mf-d-content" class="rc-preview-content"></pre>
+        </section>
+      </div>
+    </div>
     <div id="tab-jobs" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-jobs" aria-hidden="true">
       <div class="jobs-layout">
         <header class="jobs-header">
@@ -995,6 +1026,7 @@
   <script src="/static/js/review-candidates-panel-health.js"></script>
   <script src="/static/js/review-candidates-panel-bulk.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
+  <script src="/static/js/memory-finder-panel.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
   <script src="/static/js/ops-strip.js"></script>
   <script src="/static/js/ops-overview-panel.js"></script>

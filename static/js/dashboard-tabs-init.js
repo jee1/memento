@@ -62,6 +62,13 @@
     dispatchDashboardResize();
   }
 
+  function initMemoryFinderTab() {
+    if (typeof global.initMemoryFinderPanel === 'function') {
+      global.initMemoryFinderPanel();
+    }
+    dispatchDashboardResize();
+  }
+
   function initOpsOverviewTab() {
     if (typeof global.initOpsOverviewPanel === 'function') {
       global.initOpsOverviewPanel();
@@ -103,6 +110,10 @@
     }
     if (name === 'agent-sessions') {
       initAgentSessionsTab();
+      return;
+    }
+    if (name === 'memory-finder') {
+      initMemoryFinderTab();
       return;
     }
     if (name === 'jobs') {
