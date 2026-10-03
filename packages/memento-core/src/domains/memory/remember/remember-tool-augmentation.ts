@@ -271,7 +271,7 @@ export async function runTripleExtractionJob(
   }
 }
 
-async function runTripleExtraction(
+export async function runTripleExtraction(
   params: AugmentationParams,
   context: ToolContext,
   host: RememberToolHost

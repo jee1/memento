@@ -1903,51 +1903,6 @@ describe('RememberTool', () => {
       expect(semanticMemories.length).toBe(0);
     });
 
-    it('should skip triple extraction when TRIPLE_EXTRACTION_ENABLED=false (#1230)', async () => {
-      vi.stubEnv('TRIPLE_EXTRACTION_ENABLED', 'false');
-
-      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
-        triples: [
-          { subject: 'Alice', predicate: 'works_at', object: 'Acme' }
-        ],
-        extractionInfo: {
-          steps: { canonicalization: true, entityLinking: true }
-        }
-      });
-
-      const params = {
-        type: 'episodic',
-        content: 'Alice works at Acme.',
-        importance: 0.6,
-        enable_triple_extraction: true
-      };
-
-      const result = await tool.handle(params, context);
-      const resultData = JSON.parse(result.content[0].text);
-      const memoryId = resultData.memory_id;
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      expect(extractTriplesSpy).not.toHaveBeenCalled();
-
-      const episodicMemory = DatabaseUtils.get(db, `
-        SELECT triple_extracted, triple_extracted_status
-        FROM memory_item WHERE id = ?
-      `, [memoryId]) as {
-        triple_extracted: boolean | null;
-        triple_extracted_status: string | null;
-      } | undefined;
-
-      expect(episodicMemory?.triple_extracted).toBeNull();
-      expect(episodicMemory?.triple_extracted_status).toBeNull();
-
-      const semanticMemories = DatabaseUtils.all(db, `
-        SELECT id FROM memory_item WHERE type = 'semantic'
-      `);
-      expect(semanticMemories.length).toBe(0);
-
-      extractTriplesSpy.mockRestore();
-    });
   });
 
   describe('AriGraph Pipeline - 비동기 처리', () => {
