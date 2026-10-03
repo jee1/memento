@@ -30,7 +30,7 @@ export class VectorCompatibilityService {
   private readonly defaultDimensions = 384;
   private providerDimensionMap: Record<EmbeddingProvider, number> = {
     tfidf: 512, // LightweightEmbeddingService는 512차원을 생성
-    lightweight: 384,
+    lightweight: 512,
     minilm: 384,
     openai: 1536,
     gemini: 768,

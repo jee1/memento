@@ -256,7 +256,7 @@ export function resolveValidatedNumber(
 
 export const providerDimensionDefaults: Record<string, number> = {
   tfidf: 512,
-  lightweight: 384,
+  lightweight: 512,
   minilm: 384,
   openai: 1536,
   gemini: 768
