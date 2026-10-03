@@ -12,6 +12,7 @@
     { name: 'ops-overview', id: 'tab-ops-overview' },
     { name: 'ops-status', id: 'tab-ops-status' },
     { name: 'review', id: 'tab-review-candidates' },
+    { name: 'memory-finder', id: 'tab-memory-finder' },
     { name: 'jobs', id: 'tab-jobs' },
     { name: 'agent-sessions', id: 'tab-agent-sessions' },
   ];
