@@ -44,7 +44,7 @@ npm run test
 
 ### 코드 기여
 
-코드 PR은 보통 **이슈로 범위를 맞춘 뒤** `feature/` 또는 `fix/` 브랜치에서 구현하고, 테스트와 Conventional Commits를 거쳐 PR을 올립니다. GitHub PR 템플릿(`.github/PULL_REQUEST_TEMPLATE.md`)과 [PR 설명 예시](docs/operations/ko/pr-description-example-npm-workflow.md)를 참고하면 리뷰가 빨라집니다. 지식 복리(Compound Engineering `/ce-compound`)는 템플릿의 **「지식 복리」** 섹션을 따릅니다.
+코드 PR은 보통 **이슈로 범위를 맞춘 뒤** `feature/` 또는 `fix/` 브랜치에서 구현하고, 테스트와 Conventional Commits를 거쳐 PR을 올립니다. GitHub PR 템플릿(`.github/PULL_REQUEST_TEMPLATE.md`)을 채우면 리뷰가 빨라집니다. 지식 복리(Compound Engineering `/ce-compound`)는 템플릿의 **「지식 복리」** 섹션을 따릅니다.
 
 1. **이슈 생성** — 작업 범위·수용 기준을 먼저 적습니다.
 2. **브랜치 생성** — `feature/<slug>` 또는 `fix/<slug>`.

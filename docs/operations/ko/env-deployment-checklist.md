@@ -1,6 +1,6 @@
 # 배포 전 환경변수 점검 체크리스트
 
-프로덕션·스테이징에 올리기 직전, 환경 변수가 **의도한 보안 경계와 경로**를 가리키는지 한 번 더 확인합니다. 아래 항목은 빠르게 훑는 용도이며, Docker 재배포 시에는 [Docker 배포 절차](ko/docker-deploy-procedure.md)의 DB 백업 단계와 함께 진행하세요.
+프로덕션·스테이징에 올리기 직전, 환경 변수가 **의도한 보안 경계와 경로**를 가리키는지 한 번 더 확인합니다. 아래 항목은 빠르게 훑는 용도이며, Docker 재배포 시에는 [Docker 배포 절차](docker-deploy-procedure.md)의 DB 백업 단계와 함께 진행하세요.
 
 ## 보안
 
@@ -22,4 +22,4 @@
 ## 검증
 
 - [ ] `npm run lint`, `npm run type-check`, `npm test`가 통과했는가?
-- [ ] Docker 재배포 전 [Docker 배포 절차](ko/docker-deploy-procedure.md)에 따라 `npm run db:pre-docker-deploy`를 실행했는가?
+- [ ] Docker 재배포 전 [Docker 배포 절차](docker-deploy-procedure.md)에 따라 `npm run db:pre-docker-deploy`를 실행했는가?

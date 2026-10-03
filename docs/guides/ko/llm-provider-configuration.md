@@ -90,13 +90,14 @@ LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
 
 ## 용도별 제공자 오버라이드
 
-트리플 추출·관계 추출·절차 기억(procedural)에 대해 전역 `LLM_PROVIDER`와 다른 제공자를 선호할 수 있습니다. (공고화 consolidation·personal-agent·임베딩은 이 축과 무관합니다.)
+트리플 추출·관계 추출·절차 기억(procedural)·공고화(consolidation) 네 배치 잡에 대해 전역 `LLM_PROVIDER`와 다른 제공자를 선호할 수 있습니다. (personal-agent·임베딩은 이 축과 무관합니다.)
 
 ```bash
 # 용도별 제공자 오버라이드 (선택사항; 미설정·빈 값 → 전역 LLM_PROVIDER)
 LLM_PROVIDER_TRIPLE_EXTRACTION=     # openai | gemini | ollama | auto
 LLM_PROVIDER_RELATION_EXTRACTION=
 LLM_PROVIDER_PROCEDURAL=
+LLM_PROVIDER_CONSOLIDATION=
 ```
 
 동작 요약:
@@ -105,7 +106,7 @@ LLM_PROVIDER_PROCEDURAL=
 - **잘못된 값**: 해당 용도 오버라이드를 무시하고 전역 경로를 쓰며, 설정 로드/초기화 시 `[CONFIG WARN]`을 **설정당 한 번** 남깁니다. 프로세스를 중단하지 않습니다.
 - **prefer-then-fallback**: 유효한 오버라이드는 그 용도의 **선호** 제공자입니다. 사용 불가면 기존 폴백 정책을 따르며, “절대 폴백 금지” 모드는 없습니다.
 - **전역과 동일 값**: 유효한 no-op입니다 (바인딩·Ollama readiness에 그대로 쓰입니다).
-- **Ollama readiness**: 전역이 클라우드여도, 위 세 오버라이드 중 하나라도 `ollama`이면 초기화 시 Ollama 연결 검사를 수행합니다.
+- **Ollama readiness**: 전역이 클라우드여도, 위 네 오버라이드 중 하나라도 `ollama`이면 초기화 시 Ollama 연결 검사를 수행합니다.
 
 ### 모델 오버라이드 바인딩 (폴백 시 모델명 누수 방지)
 

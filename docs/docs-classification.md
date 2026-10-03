@@ -10,7 +10,8 @@
 - **지속적으로 유지할 문서만 저장**: 사용자·운영자·신규 기여자가 제품을 이해하고 쓰기 위해 필요한 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/`, `blog/` 등에 둔다. 일회성 계획·검증 로그·생성 결과는 커밋하지 않는다.
 - **명세와 결정 분리**: 기능 설계·구현 상태는 루트 [`specs/`](../specs/README.md), 장기 설계 결정은 `adr/`에서 관리한다.
 - **대상·용도**: 누가/무엇을 위해 보는 문서인지로 상위 구분한다.
-- **언어**: 공식 문서는 해당 카테고리의 **`en/`** 또는 **`ko/`** 하위에 둔다.
+- **언어**: 공식 문서는 해당 카테고리의 **`en/`** 또는 **`ko/`** 하위에 둔다. 카테고리 루트(`operations/` 등)에 언어 폴더 없이 두지 않는다.
+- **KO 단일언어**: `ko/`에만 있는 문서는 한국어판이 공식본이다. 포털 표의 EN 칸이 `—`이면 영문판이 없다는 뜻이며, 영문판은 수요가 생길 때 같은 파일명으로 `en/`에 추가한다.
 - **Diataxis 참고**: Tutorial · How-to · Reference · **Explanation**(개념·이유 설명)을 의도에 맞게 배치한다.
 - **네러티브 문체**: 공식 문서는 **읽히는 글**을 기본으로 한다. 표·불릿·코드 블록은 레퍼런스·체크리스트·복사용 예시에 두고, 절의 서두·개요·전환은 완결된 문장으로 **맥락 → 선택 → 다음 행동**이 이어지게 쓴다. (예: "포트가 충돌하면 `.env`에서 `MCP_SERVER_PORT`를 바꾼 뒤 서버를 재시작합니다.") API 필드 목록·환경 변수 표·MCP 도구 표처럼 **조회용** 구간은 표를 유지해도 된다.
 
@@ -64,4 +65,4 @@
 - **DB·마이그레이션**: [architecture/ko/database-design.md](architecture/ko/database-design.md) / [en](architecture/en/database-design.md), [guides/ko/migration-system-guide.md](guides/ko/migration-system-guide.md) / [en](guides/en/migration-system-guide.md)
 - **이슈별 계획·SDD**: [`specs/README.md`](../specs/README.md)
 
-추가 문서는 해당 공식 카테고리에 두고 README 포털에 링크를 더합니다. 기능 명세와 계획은 `specs/`, 재사용 가능한 테스트 절차는 `guides/`, 장기 설계 결정은 `adr/`에 둡니다. 일회성 증거와 프로세스 산출물은 저장소에 누적하지 않습니다.
+추가 문서는 해당 공식 카테고리에 두고 README 포털에 링크를 더합니다. 기능 명세와 계획은 `specs/`, 재사용 가능한 테스트 절차는 `guides/`, 장기 설계 결정은 `adr/`에 둡니다. 일회성 증거와 프로세스 산출물은 저장소에 누적하지 않습니다. 이슈 단위 설계·태스크(`docs/design/`, `docs/tasks/`), 시점 스냅샷 보고서, 레거시 `tasks/` PRD는 #1159에서 제거했으며 불변 기준선 [`9f6e013`](https://github.com/jee1/memento/tree/9f6e013c1c4b0e7430ebf8b620f33c05718d2ab8)에 남아 있습니다.

@@ -88,13 +88,14 @@ Empty or whitespace-only `LLM_MODEL_*` values are treated as unset.
 
 ## Per-Job Provider Overrides
 
-For triple extraction, relation extraction, and procedural extraction you can prefer a different provider than the global `LLM_PROVIDER`. (Consolidation, personal-agent, and embedding stay on their existing axes.)
+For the four batch jobs — triple extraction, relation extraction, procedural extraction, and consolidation — you can prefer a different provider than the global `LLM_PROVIDER`. (Personal-agent and embedding stay on their existing axes.)
 
 ```bash
 # Per-job provider overrides (optional; unset/empty → global LLM_PROVIDER)
 LLM_PROVIDER_TRIPLE_EXTRACTION=     # openai | gemini | ollama | auto
 LLM_PROVIDER_RELATION_EXTRACTION=
 LLM_PROVIDER_PROCEDURAL=
+LLM_PROVIDER_CONSOLIDATION=
 ```
 
 Behavior:
@@ -103,7 +104,7 @@ Behavior:
 - **Invalid values**: treated as unset for that job, with a one-time `[CONFIG WARN]` at config load/init — process does not abort.
 - **Prefer-then-fallback**: a valid override is the job's **preferred** provider; unavailability uses the existing fallback policy (not a hard pin).
 - **Override equals global**: valid no-op (still used for model binding and Ollama readiness).
-- **Ollama readiness**: if any of the three overrides is `ollama`, initialization runs the Ollama connection check even when the global default is cloud.
+- **Ollama readiness**: if any of the four overrides is `ollama`, initialization runs the Ollama connection check even when the global default is cloud.
 
 ### Model-override binding (no cross-provider model leak)
 

@@ -7,8 +7,8 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 
 관련 문서:
 
-- [배포 전 환경변수 점검](../env-deployment-checklist.md)
-- [Docker 설정 가이드](../DOCKER_SETUP_GUIDE.md)
+- [배포 전 환경변수 점검](env-deployment-checklist.md)
+- [Docker 설정 가이드](docker-setup-guide.md)
 - [scripts/ 스크립트 인덱스](scripts-index.md)
 
 ---
@@ -252,7 +252,7 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 2. **Docker와 로컬 dev 동시 접근 금지** — 같은 `memory.db`에 writer 2개 금지
 3. **정상 종료** — `docker compose stop` (kill -9 지양); `stop_grace_period: 30s` 활용
 4. **백업 보관** — `~/.memento/backups/`에 타임스탬프 백업 유지; 오래된 quarantine 중복본은 정리 검토
-5. **배포 전 환경변수** — [env-deployment-checklist.md](../env-deployment-checklist.md)
+5. **배포 전 환경변수** — [env-deployment-checklist.md](env-deployment-checklist.md)
 
 이번 backup-retention 수정에서 재현된 원인은 세 가지입니다.
 
@@ -309,4 +309,4 @@ docker compose exec -u 1001 -e MEMENTO_BACKUP_DIR=/app/data/backups \
 | health는 ok인데 검색 품질 저하 | `memory_embedding` 건수 확인; `--only-tables memory_embedding` 병합 검토 |
 | quarantine 디스크 과다 | pre-recover·최신 backup 확인 후 중복 quarantine 파일 정리 |
 
-추가 Docker 설정은 [DOCKER_SETUP_GUIDE.md](../DOCKER_SETUP_GUIDE.md)를 참고하세요.
+추가 Docker 설정은 [docker-setup-guide.md](docker-setup-guide.md)를 참고하세요.

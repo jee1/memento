@@ -163,7 +163,7 @@ DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](.
 
 에이전트 습관(warn → `update_mode=incremental` 재호출): [agent-workflow.md](./agent-workflow.md#remember-near-duplicate-write-path-730)
 
-전체 환경 변수 목록과 거버넌스 정책은 [environment-variable-governance.md](../guides/ko/environment-variable-governance.md)에서, 배포 체크리스트는 [env-deployment-checklist.md](../operations/env-deployment-checklist.md)에서 확인하세요.
+전체 환경 변수 목록과 거버넌스 정책은 [environment-variable-governance.md](../guides/ko/environment-variable-governance.md)에서, 배포 체크리스트는 [env-deployment-checklist.md](../operations/ko/env-deployment-checklist.md)에서 확인하세요.
 
 ## 손상된 triple 문장 복구 (#768)
 

@@ -8,11 +8,11 @@
 
 - [ ] 루트 `README.md`, `README.en.md`
 - [x] `docs/README.md`
-- [ ] `AGENTS.md`, `DEVELOPMENT_RULES.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `GEMINI.md`
+- [ ] `AGENTS.md`, `DEVELOPMENT_RULES.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `GEMINI.md` — `CONTRIBUTING`만 #1159에서 반영
 - [ ] `CHANGELOG.md` (릴리스 절차와 모순 없는지)
-- [ ] `docs/guides/` (ko/en)
-- [ ] `docs/api/` (ko/en)
-- [ ] `docs/architecture/`, `docs/operations/`, `docs/reference/`, `docs/integrations/`
+- [x] `docs/guides/` (ko/en) — #1159
+- [x] `docs/api/` (ko/en) — #1159, MCP 등록 도구 22/22 대조
+- [x] `docs/architecture/`, `docs/operations/`, `docs/reference/`, `docs/integrations/` — #1159
 - [ ] `packages/*/README.md`, `apps/*/README.md`
 - [ ] `specs/` (제품 문서와 충돌 시 제품 문서 우선)
 
@@ -23,6 +23,6 @@
 
 ## 마무리
 
-- [ ] `npm run docs:audit-links` 통과
-- [ ] `npm run docs:verify-npm-scripts` 통과 (오탐이면 스크립트 상단 ALLOWLIST에 스크립트명 근거와 함께 추가)
+- [x] `npm run docs:audit-links` 통과
+- [x] `npm run docs:verify-npm-scripts` 통과 (오탐이면 스크립트 상단 ALLOWLIST에 스크립트명 근거와 함께 추가)
 - [ ] PR 본문에 워크플로 문서의 요약 항목 포함

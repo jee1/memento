@@ -194,5 +194,5 @@ npm run db:migrate
 ## 🔗 관련 문서
 
 - [마이그레이션 시스템 README](../../../packages/memento-core/src/infrastructure/database/sqlite/migration/README.md)
-- [MIRIX 스키마 확장 PRD](../../../tasks/0003-prd-mirix-cognitive-schema-expansion.md)
+- [MIRIX 스키마 확장 PRD](https://github.com/jee1/memento/blob/9f6e013c1c4b0e7430ebf8b620f33c05718d2ab8/tasks/0003-prd-mirix-cognitive-schema-expansion.md)
 

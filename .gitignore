@@ -141,6 +141,7 @@ memory.db*
 
 # MCP
 .serena/
+.dual-brain/
 
 # Backup files
 *-backup.ts
