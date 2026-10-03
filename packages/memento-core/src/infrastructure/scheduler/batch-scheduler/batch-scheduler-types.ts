@@ -17,10 +17,6 @@ export interface BatchJobConfig {
   relationValidationDayOfWeek: number;
   relationValidationHour: number;
   logRotationInterval: number;
-  tripleExtractionInterval: number;
-  tripleExtractionHour?: number;
-  tripleExtractionBatchSize: number;
-  tripleExtractionTimeout: number;
   qualityMeasurementInterval: number;
   qualityMeasurementHour?: number;
   metaMemoryIntrospectionInterval: number;
@@ -52,8 +48,6 @@ export interface BatchJobConfig {
   retryAttempts: number;
   retryDelay: number;
   weeklyRelationValidationTimeout?: number;
-  /** Per-memory remember() triple extraction queue jobs (Issue #475) */
-  tripleExtractionJobTimeout?: number;
 }
 
 export interface BatchJobResult {

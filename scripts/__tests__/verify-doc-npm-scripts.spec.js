@@ -6,6 +6,9 @@ import {
   isReferenceSource,
   collectReferenceScriptNames,
   collectPackageScriptReferences,
+  HISTORICAL_NPM_SCRIPT_CITATIONS,
+  isHistoricalNpmScriptCitation,
+  verifyNpmScriptReferences,
 } from '../verify-doc-npm-scripts.mjs';
 
 describe('npm script reference verification', () => {
@@ -82,5 +85,37 @@ describe('npm script reference verification', () => {
     expect(isReferenceSource('scripts/quality.ts')).toBe(true);
     expect(isReferenceSource('packages/memento-core/src/example.ts')).toBe(false);
     expect(isReferenceSource('specs/legacy-plan.md')).toBe(false);
+  });
+
+  it('allows only pinned #1237 historical citations (file + script)', () => {
+    for (const entry of HISTORICAL_NPM_SCRIPT_CITATIONS) {
+      expect(isHistoricalNpmScriptCitation(entry.file, entry.script)).toBe(true);
+    }
+    expect(
+      isHistoricalNpmScriptCitation('docs/agents/commands.md', 'memory:repair-triple-sentences'),
+    ).toBe(false);
+    expect(
+      isHistoricalNpmScriptCitation('AGENTS.md', 'memory:repair-duplicate-semantic'),
+    ).toBe(false);
+    expect(isHistoricalNpmScriptCitation('AGENTS.md', 'npm-run:totally-fake')).toBe(false);
+  });
+
+  it('verifyNpmScriptReferences has no forward problems for pinned historical citations', () => {
+    const result = verifyNpmScriptReferences();
+    const historicalPairs = new Set(
+      HISTORICAL_NPM_SCRIPT_CITATIONS.map((entry) => `${entry.file}\0${entry.script}`),
+    );
+    const leakedHistorical = result.forwardProblems.filter((problem) =>
+      historicalPairs.has(`${problem.file}\0${problem.script}`),
+    );
+    expect(leakedHistorical).toEqual([]);
+  });
+
+  it('still reports arbitrary unknown npm scripts in markdown', () => {
+    const names = collectMarkdownScriptNames('npm run totally-unknown-script-for-ci');
+    expect([...names]).toEqual(['totally-unknown-script-for-ci']);
+    expect(isHistoricalNpmScriptCitation('docs/agents/commands.md', 'totally-unknown-script-for-ci')).toBe(
+      false,
+    );
   });
 });

@@ -129,7 +129,6 @@ const NOT_DOCUMENTED: Record<string, string> = {
   // 테스트·측정 전용
   DISABLE_CONFIG_VALIDATION: '테스트·빌드 단계용. 설정 검증을 끈다.',
   SKIP_CONFIG_VALIDATION: '테스트·빌드 단계용. DISABLE_CONFIG_VALIDATION 과 같은 스위치다.',
-  MEMENTO_ALLOW_LLM_IN_TESTS: "테스트 전용. NODE_ENV=test 에서도 triple 추출이 LLM 을 부르게 한다.",
   MEMENTO_SEARCH_BENCHMARK_DIR: '품질 벤치마크 픽스처 디렉터리. 측정 스크립트가 쓴다.',
 };
 

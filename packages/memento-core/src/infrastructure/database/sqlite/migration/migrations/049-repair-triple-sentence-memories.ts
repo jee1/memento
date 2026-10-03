@@ -3,26 +3,17 @@
  * Version: 49.0
  * Issue #1156 (부채 출처 #768)
  *
- * 옛 템플릿 `${subject}는 ${object}를 ${predicate}합니다` 가 만든 semantic 기억은 `정의됨합니다`
- * 처럼 활용이 깨져 있다. 정리 수단이 `scripts/repair-triple-sentence-memories.ts` 하나뿐인데
- * 그 파일은 npm 발행 tarball 의 `files` 에 없어 배포판 사용자에게 도달하지 않는다.
- * 마이그레이션은 postinstall 과 서버 시작 양쪽에서 자동으로 도는 경로이므로 여기로 옮긴다.
- *
- * 판정은 `buildRepairPlan` 이 단일 출처다. 이 마이그레이션은 그 결과를 적용만 한다.
- *
- * 임베딩은 만들지 않는다. 임베딩 모델 로드가 서버 시작을 블록하고, 마이그레이션 러너의
- * 트랜잭션 안에서 장시간 쓰기 락을 잡는다. content 가 바뀐 행의 임베딩은 stale 해지며
- * 배포판 사용자는 `node dist/scripts/reindex-embeddings.js` 로 갱신한다(#1155).
- *
- * 048 과 달리 반복 패스가 필요 없다. 후보 SQL 이 옛 템플릿과의 **정확한 문자열 일치**로만 고르고,
- * 재렌더된 content 는 그 템플릿과 더 이상 일치하지 않으므로 1회 적용에서 수렴한다.
+ * #1237: buildRepairPlan/triple-sentence 로직을 마이그레이션 파일에 인라인한다.
  */
 
 import type Database from 'better-sqlite3';
-import { buildRepairPlan } from '../../../../../domains/memory/semantic/triple-repair-plan.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 import { normalizeReflectionNotes } from '../../../../../shared/utils/reflection-notes-normalize.js';
 import type { Migration } from '../types.js';
+import {
+  buildTripleSentence,
+  hasBrokenTripleConjugation,
+} from '../migration-repair-helpers.js';
 
 function tableExists(db: Database.Database, name: string): boolean {
   return Boolean(
@@ -30,10 +21,66 @@ function tableExists(db: Database.Database, name: string): boolean {
   );
 }
 
-/**
- * `UPDATE memory_item` 이 태우는 FTS 트리거가 이 SQL 함수를 요구한다.
- * 라이브 경로는 `configureSqliteSession` 이 등록하지만 단독 실행 경로를 위해 방어적으로 등록한다.
- */
+interface CandidateRow {
+  id: string;
+  subject: string;
+  predicate: string;
+  object: string;
+  content: string;
+}
+
+interface RepairPlanEntry {
+  id: string;
+  before: string;
+  after: string;
+}
+
+interface RepairPlan {
+  repairable: RepairPlanEntry[];
+  unrenderable: string[];
+  missingComponents: string[];
+}
+
+const CANDIDATE_SQL = `
+  SELECT id, subject, predicate, object, content
+  FROM memory_item
+  WHERE type = 'semantic'
+    AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL
+    AND content = subject || '는 ' || object || '를 ' || predicate || '합니다'
+`;
+
+const MISSING_COMPONENT_SQL = `
+  SELECT id, content
+  FROM memory_item
+  WHERE type = 'semantic'
+    AND (subject IS NULL OR predicate IS NULL OR object IS NULL)
+`;
+
+function buildRepairPlan(db: Database.Database): RepairPlan {
+  const candidates = db.prepare(CANDIDATE_SQL).all() as CandidateRow[];
+  const repairable: RepairPlanEntry[] = [];
+  const unrenderable: string[] = [];
+
+  for (const row of candidates) {
+    const rendered = buildTripleSentence(row.subject, row.predicate, row.object);
+    if (!rendered) {
+      unrenderable.push(row.id);
+      continue;
+    }
+    if (rendered !== row.content) {
+      repairable.push({ id: row.id, before: row.content, after: rendered });
+    }
+  }
+
+  const missingComponents = (
+    db.prepare(MISSING_COMPONENT_SQL).all() as Array<{ id: string; content: string }>
+  )
+    .filter((row) => hasBrokenTripleConjugation(row.content))
+    .map((row) => row.id);
+
+  return { repairable, unrenderable, missingComponents };
+}
+
 function registerNormalizeFunction(db: Database.Database): void {
   try {
     db.function(
@@ -84,7 +131,6 @@ export class RepairTripleSentenceMemoriesMigration implements Migration {
     });
   }
 
-  /** 재렌더는 되돌릴 수 없다. 버전 기록만 지운다. */
   async down(db: Database.Database): Promise<void> {
     if (tableExists(db, 'memento_schema_version')) {
       db.prepare('DELETE FROM memento_schema_version WHERE version = ?').run(this.version);

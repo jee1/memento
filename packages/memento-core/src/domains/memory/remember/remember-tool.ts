@@ -2,7 +2,7 @@
  * Remember Tool - 기억 저장 도구
  *
  * 즉시 저장 (Issue #89): 메모리 항목은 DB에 append-only로 저장된 직후 응답을 반환한다.
- * Triple 추출·콘솔리데이션 등 augmentation은 BatchScheduler 워커에서 비동기 수행되며,
+ * consolidation 등 augmentation은 BatchScheduler 워커에서 비동기 수행되며,
  * 호출자는 augmentation 완료를 기다리지 않는다.
  *
  * 분해 (#582): 각 메모리 타입 로직은 remember-tool-*.ts 모듈로 분리됨.
@@ -106,11 +106,6 @@ export class RememberTool extends BaseTool {
             type: 'integer',
             minimum: 1,
             description: 'Compare-and-swap 갱신용 현재 버전. memory_id·update_mode(replace|incremental)와 함께 지정한다. 미설정 version은 1로 간주한다. 불일치 시 409 memory_version_conflict.'
-          },
-          enable_triple_extraction: {
-            type: 'boolean',
-            description: 'Triple 추출 활성화 여부 (기본값: true). type="episodic"일 때만 적용됩니다.',
-            default: true
           },
           tags: {
             type: 'array',

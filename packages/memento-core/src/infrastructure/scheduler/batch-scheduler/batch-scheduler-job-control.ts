@@ -16,7 +16,6 @@ import {
   scheduleQualityMeasurement,
   scheduleSleepConsolidation,
   scheduleTelemetryCleanup,
-  scheduleTripleExtractionBatch,
   scheduleWeeklyRelationValidation,
   type BatchRecurringScheduleContext
 } from './batch-recurring-schedules.js';
@@ -89,7 +88,6 @@ function buildRestartHandlers(): Record<string, RestartHandler> {
     consolidation_score_full_sweep: scheduleConsolidationScoreFullSweep,
     weekly_relation_validation: scheduleWeeklyRelationValidation,
     log_rotation: scheduleLogRotation,
-    triple_extraction_batch: scheduleTripleExtractionBatch,
     quality_measurement_batch: scheduleQualityMeasurement,
     meta_memory_introspection: scheduleMetaMemoryIntrospection,
     memory_review_candidates: scheduleMemoryReviewCandidatesInterval,

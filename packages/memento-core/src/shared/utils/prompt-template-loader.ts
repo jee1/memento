@@ -33,7 +33,7 @@ export class PromptTemplateLoader {
    * PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
    * templateName 파라미터를 정제하여 Path Traversal 공격을 방지합니다.
    * 
-   * @param templateName 템플릿 파일명 (예: 'triple-extraction')
+   * @param templateName 템플릿 파일명 (예: 'relation-extraction')
    * @returns 템플릿 내용
    * @throws 파일이 없거나 읽을 수 없는 경우 에러 발생
    */

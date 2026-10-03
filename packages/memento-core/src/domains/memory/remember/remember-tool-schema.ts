@@ -27,8 +27,6 @@ export const RememberSchema = z.object({
   update_mode: CommonSchemas.UpdateMode,
   expected_version: z.number().int().min(1).optional()
     .describe('Compare-and-swap: 현재 memory_item.version(미설정 시 1)과 일치할 때만 replace/incremental 갱신'),
-  // AriGraph Pipeline 필드
-  enable_triple_extraction: CommonSchemas.EnableTripleExtraction,
   // 기존 필드 유지
   tags: CommonSchemas.Tags,
   importance: CommonSchemas.Importance.default(0.5),

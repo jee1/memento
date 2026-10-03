@@ -68,11 +68,10 @@ GEMINI_LLM_MODEL=gemini-2.0-flash   # 기본값
 
 ## 용도별 모델 오버라이드
 
-Memento는 네 가지 LLM 사용 용도가 있으며, 각 용도에 다른 모델을 지정할 수 있습니다. 이는 비용과 품질을 용도에 맞게 조정할 때 유용합니다. 예를 들어 트리플 추출에는 저렴한 소형 모델을, 공고화에는 더 정교한 모델을 쓸 수 있습니다.
+Memento는 세 가지 LLM 사용 용도가 있으며, 각 용도에 다른 모델을 지정할 수 있습니다. 이는 비용과 품질을 용도에 맞게 조정할 때 유용합니다. 예를 들어 관계 추출에는 저렴한 소형 모델을, 공고화에는 더 정교한 모델을 쓸 수 있습니다.
 
 ```bash
 # 용도별 모델 오버라이드 (선택사항)
-LLM_MODEL_TRIPLE_EXTRACTION=     # 트리플 추출
 LLM_MODEL_RELATION_EXTRACTION=   # 관계 추출
 LLM_MODEL_PROCEDURAL=            # 절차 기억 처리
 LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
@@ -90,12 +89,11 @@ LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
 
 ## 용도별 제공자 오버라이드
 
-트리플 추출·관계 추출·절차 기억(procedural)·공고화(consolidation) 네 배치 잡에 대해 전역 `LLM_PROVIDER`와 다른 제공자를 선호할 수 있습니다. (personal-agent·임베딩은 이 축과 무관합니다.)
+관계 추출·절차 기억(procedural)·공고화(consolidation) 세 배치 잡에 대해 전역 `LLM_PROVIDER`와 다른 제공자를 선호할 수 있습니다. (personal-agent·임베딩은 이 축과 무관합니다.)
 
 ```bash
 # 용도별 제공자 오버라이드 (선택사항; 미설정·빈 값 → 전역 LLM_PROVIDER)
-LLM_PROVIDER_TRIPLE_EXTRACTION=     # openai | gemini | ollama | auto
-LLM_PROVIDER_RELATION_EXTRACTION=
+LLM_PROVIDER_RELATION_EXTRACTION=     # openai | gemini | ollama | auto
 LLM_PROVIDER_PROCEDURAL=
 LLM_PROVIDER_CONSOLIDATION=
 ```

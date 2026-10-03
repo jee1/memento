@@ -30,7 +30,6 @@ export function createBatchSchedulerJobRunnerCallbacks(source: BatchSchedulerCon
     runConsolidationScoreIncremental: () => runners.runConsolidationScoreIncremental(),
     runWeeklyRelationValidation: () => runners.runWeeklyRelationValidation(),
     runConsolidationScoreFullSweep: () => runners.runConsolidationScoreFullSweep(),
-    runTripleExtractionBatch: () => runners.runTripleExtractionBatch(),
     runMetaMemoryIntrospection: () => runners.runMetaMemoryIntrospection(),
     runQualityMeasurementBatch: () => runners.runQualityMeasurementBatch(),
     runLogRotation: () => runners.runLogRotation(),

@@ -12,7 +12,7 @@ describe('ManualBatchSchedulerJobType registry (#834)', () => {
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('monitoring');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('memory_review_candidates');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('healthcheck');
-    expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('triple_extraction_batch');
+    expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).not.toContain('triple_extraction_batch');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('log_rotation');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('telemetry_cleanup_batch');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('anchor_auto_refresh');

@@ -178,7 +178,7 @@ describe('VectorSearchRepositoryImpl', () => {
       const emb384 = encodeFloat32Embedding(new Array(384).fill(0.01));
       const emb512 = encodeFloat32Embedding(new Array(512).fill(0.02));
       const insertItem = db.prepare(
-        `INSERT INTO memory_item (id, type, content, triple_extracted) VALUES (?, 'episodic', ?, 0)`
+        `INSERT INTO memory_item (id, type, content) VALUES (?, 'episodic', ?)`
       );
       const insertEmb = db.prepare(
         `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
@@ -219,7 +219,7 @@ describe('VectorSearchRepositoryImpl', () => {
       }
       const emb384 = encodeFloat32Embedding(new Array(384).fill(0.01));
       const insertItem = db.prepare(
-        `INSERT INTO memory_item (id, type, content, triple_extracted) VALUES (?, 'episodic', ?, 0)`
+        `INSERT INTO memory_item (id, type, content) VALUES (?, 'episodic', ?)`
       );
       const insertEmb = db.prepare(
         `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)

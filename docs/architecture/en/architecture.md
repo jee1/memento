@@ -110,13 +110,9 @@ Anchors persist in the database and are automatically restored after server rest
 
 ### relation
 
-> **Disabled (#1230 · #1235, 2026-10-03)** — Automatic triple extraction is turned off in production with `TRIPLE_EXTRACTION_ENABLED=false`, and the existing triple data (`kg_triple`, 1,665 triple semantics and their relations) was discarded. 78% of the generated sentences were context-free fragments, and search, recall and memory_injection never read the triple structure. A graph redesign was measured and not built because existing search already covered it. The explicit `extract_triples` tool remains but is not recommended.
+> **Removed (#1237, 2026-10-03)** — `extract_triples`, automatic triple extraction, and the `kg_triple` schema were removed (#1230, #1235).
 
-Manages relationships between memories at two levels:
-- **`memory_link` table**: explicit typed relationships (`cause_of`, `derived_from`, `duplicates`, `contradicts`, `version_of`).
-- **Triple extraction**: `ExtractTriplesTool` extracts Subject–Predicate–Object triples from episodic memories and stores them as semantic `memory_item` records. Triggered asynchronously on save; `TripleExtractionBatchJob` handles batch processing.
-
-`triple_extracted_status` tracks processing state and enables retry on failure.
+Manages relationships between memories via the **`memory_link` table** (explicit typed relationships: `cause_of`, `derived_from`, `duplicates`, `contradicts`, `version_of`). After `remember`, asynchronous **relation extraction** (`RelationExtractor`) may propose links via LLM.
 
 ### procedural
 
@@ -142,7 +138,7 @@ Tracks tool calls and memory access patterns. `TelemetryService` isolates contex
 
 ## MCP Tools
 
-The 18 tools exposed to agents:
+The 17 tools exposed to agents:
 
 | Tool | Category | Description |
 |------|----------|-------------|
@@ -157,7 +153,6 @@ The 18 tools exposed to agents:
 | `search_local` | anchor | Search around a context anchor |
 | `remember_procedure` | procedural | Save a versioned procedural memory |
 | `procedural_diff` / `procedural_rollback` | procedural | Compare versions / roll back |
-| `extract_triples` | relation | Manually extract triples from an episodic memory |
 | `get_introspection_summary` | meta | Summarize memory quality introspection |
 | `get_telemetry_summary` | telemetry | Retrieve agent usage statistics |
 
@@ -169,7 +164,6 @@ The 18 tools exposed to agents:
 
 | Job | Default Interval | Role |
 |-----|-----------------|------|
-| `triple_extraction` | 1 hour | Extract triples from unprocessed episodic memories |
 | `sleep_consolidation` | 1 hour | Distill episodic → semantic memories |
 | `consolidation_score_incremental` | 1 hour | Incremental consolidation score update |
 | `consolidation_score_full_sweep` | 24 hours (3 AM) | Full consolidation score recalculation |
@@ -180,8 +174,6 @@ The 18 tools exposed to agents:
 | `relation_validation` | 7 days (Sun 2 AM) | Validate relation graph integrity |
 | `log_rotation` | 24 hours | Rotate log files |
 | `telemetry_cleanup` | 24 hours | Purge old telemetry data |
-
-Triple extraction works in two phases: `remember` registers a per-item job immediately; the hourly batch sweep catches any stragglers in batches of 10. Failed items are marked `triple_extracted_status = 'failed'` and retried in the next batch.
 
 ---
 

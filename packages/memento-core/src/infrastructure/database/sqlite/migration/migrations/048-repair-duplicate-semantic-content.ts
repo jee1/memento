@@ -4,11 +4,10 @@
  * Issue #1139 (부채 출처 #1137)
  *
  * #1137 은 쓰기·읽기 경로를 고쳤지만 이미 만들어진 중복 본문 행은 그대로 남는다.
- * 정리 수단이 `scripts/repair-duplicate-semantic-content.ts` 하나뿐인데 그 파일은
- * npm 발행 tarball 의 `files` 에 없어 배포판 사용자에게 도달하지 않는다. 마이그레이션은
- * postinstall 과 서버 시작 양쪽에서 자동으로 도는 경로이므로 여기로 옮긴다.
+ * 배포판 사용자에게도 도달하도록 postinstall·서버 시작 경로의 마이그레이션으로 정리한다.
  *
- * 판정은 `buildDuplicatePlan` 이 단일 출처다. 이 마이그레이션은 그 결과를 적용만 한다.
+ * 판정은 `migration-repair-helpers.buildDuplicatePlan` 이 단일 출처다.
+ * 이 마이그레이션은 그 결과를 적용만 한다 (#1237: standalone repair script 제거).
  *
  * 임베딩은 만들지 않는다. MiniLM 모델 로드가 서버 시작을 블록하고, 마이그레이션 러너의
  * 트랜잭션 안에서 장시간 쓰기 락을 잡는다. content 가 바뀐 행의 임베딩은 stale 해지며
@@ -16,7 +15,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { buildDuplicatePlan } from '../../../../../domains/memory/semantic/duplicate-content-plan.js';
+import { buildDuplicatePlan } from '../migration-repair-helpers.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 import { normalizeReflectionNotes } from '../../../../../shared/utils/reflection-notes-normalize.js';
 import type { Migration } from '../types.js';

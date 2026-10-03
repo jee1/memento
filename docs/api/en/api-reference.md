@@ -15,7 +15,7 @@ When cloud APIs are unavailable or fail, Memento can fall back to **TF-IDF light
 `get_performance_metrics`, `get_cache_stats`, `clear_cache`, and `optimize_database` are **not** MCP tools. Use the [Administrator API](#administrator-api) [Performance Monitoring API](#performance-monitoring-api) and database admin endpoints instead.
 
 
-## MCP Tools (Core 22)
+## MCP Tools (Core 21)
 
 Tools exposed over MCP are what **agents call during a session**: memory, relations, and quality helpers. Operational work—anchor restore, embedding migration, episodic→semantic batch conversion, meta stats—lives on the HTTP [Administrator API](#administrator-api) only. The list below is a category index; parameters and examples follow in each subsection.
 
@@ -28,16 +28,16 @@ Tools exposed over MCP are what **agents call during a session**: memory, relati
 ### Procedural (3)
 `remember_procedure`, `procedural_diff`, `procedural_rollback`
 
-### Relations (4)
+### Relations (3)
 
-> **Disabled (#1230 · #1235, 2026-10-03)** — Automatic triple extraction is turned off in production with `TRIPLE_EXTRACTION_ENABLED=false`, and the existing triple data (`kg_triple`, 1,665 triple semantics and their relations) was discarded. 78% of the generated sentences were context-free fragments, and search, recall and memory_injection never read the triple structure. A graph redesign was measured and not built because existing search already covered it. The explicit `extract_triples` tool remains but is not recommended.
+> **Removed (#1237, 2026-10-03)** — `extract_triples`, automatic triple extraction, and the `kg_triple` schema were removed. 78% of generated semantics were context-free fragments and search, recall, and memory_injection never read triple structure (#1230, #1235).
 
-`extract_triples`, `add_relation`, `get_relations`, `remove_relation`
+`add_relation`, `get_relations`, `remove_relation`
 
 ### Quality & export (3)
 `get_introspection_summary`, `get_telemetry_summary`, `export`
 
-**HTTP only (not MCP):** `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see [Administrator API](#administrator-api).
+**HTTP only (not MCP):** `restore_anchors`, `migrate_embeddings`, `get_meta_memory_stats` — see [Administrator API](#administrator-api).
 
 ### remember
 

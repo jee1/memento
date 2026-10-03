@@ -68,7 +68,6 @@ export interface FeedbackQualityResult {
 /** 공고화 파이프라인 품질 (FR-009, SC-007) */
 export interface ConsolidationQualityResult {
   episodic_consolidation_rate: number | null;
-  triple_extraction_success_rate: number | null;
   cluster_processing_efficiency: number | null;
   recent_semantic_count_7d: number | null;
   pipeline_error_count: number | null;

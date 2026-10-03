@@ -174,21 +174,6 @@ export { getVectorSearchEngine } from './domains/search/algorithms/vector-search
 export { SearchEngine } from './domains/search/algorithms/search-engine.js';
 export { HybridSearchEngine, createHybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
 export { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
-// #768: triple → 문장 재조립 (복구 스크립트가 동일 렌더러를 쓰도록 공개)
-export {
-  buildTripleSentence,
-  hasBrokenTripleConjugation,
-  legacyTripleSentence
-} from './domains/memory/semantic/triple-sentence.js';
-// #1137: 중복 본문 정리 스크립트가 쓰기 경로와 같은 렌더러·사전을 쓰도록 공개
-export { SemanticMemoryScoring } from './domains/memory/semantic/semantic-memory-scoring.js';
-export { PredicateCanonicalizer } from './domains/relation/services/triple-extraction/predicate-canonicalizer.js';
-// #1139: 마이그레이션 048 과 정리 스크립트가 같은 판정 로직을 쓰도록 공개
-export { buildDuplicatePlan } from './domains/memory/semantic/duplicate-content-plan.js';
-export type { DuplicatePlan, RerenderEntry, DeletionEntry } from './domains/memory/semantic/duplicate-content-plan.js';
-// #1156: 마이그레이션 049 와 정리 스크립트가 같은 판정 로직을 쓰도록 공개
-export { buildRepairPlan } from './domains/memory/semantic/triple-repair-plan.js';
-export type { RepairPlan, RepairPlanEntry } from './domains/memory/semantic/triple-repair-plan.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
@@ -261,9 +246,7 @@ export { GetRelationsTool } from './domains/relation/tools/get-relations-tool.js
 export { AddRelationTool } from './domains/relation/tools/add-relation-tool.js';
 export { RemoveRelationTool } from './domains/relation/tools/remove-relation-tool.js';
 export { VisualizeRelationsTool } from './domains/relation/tools/visualize-relations-tool.js';
-export { ExtractTriplesTool } from './domains/relation/tools/extract-triples-tool.js';
 export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.js';
-export { ConvertEpisodicToSemanticTool } from './domains/memory/semantic/convert-episodic-to-semantic-tool.js';
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
 export { GetIntrospectionSummaryTool } from './domains/memory/introspection/get-introspection-summary-tool.js';
 export { FeedbackTool } from './domains/memory/tools/feedback-tool.js';

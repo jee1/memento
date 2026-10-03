@@ -13,7 +13,6 @@ import type { JobQueue } from '../job-queue.js';
 import type { HealthChecker } from '../health-checker.js';
 import type { FileLogger } from '../file-logger.js';
 import type { RelationValidatorExecutor } from '../relation-validator-executor.js';
-import type { TripleExtractionBatchJob } from '../jobs/triple-extraction-batch-job.js';
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import type { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
@@ -39,7 +38,6 @@ export interface BatchSchedulerContextSource {
   introspectionScanCache: IntrospectionScanCache | null;
   sleepConsolidationService: SleepConsolidationService | null;
   telemetryCleanupRepository: TelemetryRepository | null;
-  tripleExtractionBatchJob: TripleExtractionBatchJob | null;
   qualityMeasurementBatchJob: QualityMeasurementBatchJob | null;
   sleepConsolidationBatchJob: SleepConsolidationBatchJob | null;
   telemetryCleanupBatchJob: TelemetryCleanupBatchJob | null;
@@ -64,7 +62,6 @@ export interface BatchSchedulerRecurringContextSource extends BatchSchedulerCont
   runConsolidationScoreFullSweep: () => Promise<BatchJobResult>;
   runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
-  runTripleExtractionBatch: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
@@ -103,10 +100,6 @@ export function buildBatchSchedulerRunContext(source: BatchSchedulerContextSourc
     introspectionScanCache: source.introspectionScanCache,
     sleepConsolidationService: source.sleepConsolidationService,
     telemetryCleanupRepository: source.telemetryCleanupRepository,
-    tripleExtractionBatchJob: createMutableJobRef(
-      () => source.tripleExtractionBatchJob,
-      v => { source.tripleExtractionBatchJob = v; }
-    ),
     qualityMeasurementBatchJob: createMutableJobRef(
       () => source.qualityMeasurementBatchJob,
       v => { source.qualityMeasurementBatchJob = v; }
@@ -159,7 +152,6 @@ export function buildBatchRecurringScheduleContext(
     runConsolidationScoreFullSweep: () => source.runConsolidationScoreFullSweep(),
     runWeeklyRelationValidation: () => source.runWeeklyRelationValidation(),
     runLogRotation: () => source.runLogRotation(),
-    runTripleExtractionBatch: () => source.runTripleExtractionBatch(),
     runQualityMeasurementBatch: () => source.runQualityMeasurementBatch(),
     runMetaMemoryIntrospection: () => source.runMetaMemoryIntrospection(),
     runMemoryReviewCandidatesJob: () => source.runMemoryReviewCandidatesJob(),

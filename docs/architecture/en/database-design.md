@@ -78,7 +78,7 @@ Per-memory recall statistics: `recall_count`, `success_count`, `failure_count`, 
 
 ### `kg_triple`
 
-> **Disabled (#1230 · #1235, 2026-10-03)** — Automatic triple extraction is turned off in production with `TRIPLE_EXTRACTION_ENABLED=false`, and the existing triple data (`kg_triple`, 1,665 triple semantics and their relations) was discarded. 78% of the generated sentences were context-free fragments, and search, recall and memory_injection never read the triple structure. A graph redesign was measured and not built because existing search already covered it. The explicit `extract_triples` tool remains but is not recommended.
+> **Removed (#1237, 2026-10-03)** — Migration `050-drop-triple-schema` drops the `kg_triple` table and `memory_item.triple_extracted*` columns. Fresh installs use `schema.sql` without triple schema (#1230, #1235).
 
 Deduplicated knowledge-graph triples extracted from episodic memories. Separate from the inline `subject`/`predicate`/`object` columns on `memory_item` to support cross-memory deduplication (migration 018–019).
 

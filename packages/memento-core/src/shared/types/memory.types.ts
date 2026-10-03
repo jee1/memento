@@ -69,14 +69,12 @@ export interface MementoConfig {
   ollamaModel: string;
   /** 용도별 LLM 모델 override (설정 시 provider default보다 우선) */
   llmModelOverrides: {
-    triple_extraction?: string;
     relation_extraction?: string;
     procedural?: string;
     consolidation?: string;
   };
   /** 용도별 LLM provider override (unset 시 llmProvider 사용) */
   llmProviderOverrides: {
-    triple_extraction?: LLMProvider;
     relation_extraction?: LLMProvider;
     procedural?: LLMProvider;
     consolidation?: LLMProvider;

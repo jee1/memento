@@ -87,7 +87,6 @@ export class BatchScheduler implements IBatchScheduler {
   private healthChecker: HealthChecker;
   private fileLogger: FileLogger;
   private relationValidatorExecutor: RelationValidatorExecutor;
-  private tripleExtractionBatchJob: BatchSchedulerServiceState['tripleExtractionBatchJob'] = null;
   private qualityMeasurementBatchJob: BatchSchedulerServiceState['qualityMeasurementBatchJob'] = null;
   private sleepConsolidationService: SleepConsolidationService | null = null;
   private sleepConsolidationBatchJob: BatchSchedulerServiceState['sleepConsolidationBatchJob'] = null;
@@ -142,7 +141,6 @@ export class BatchScheduler implements IBatchScheduler {
       introspectionScanCache: this.introspectionScanCache,
       sleepConsolidationService: this.sleepConsolidationService,
       telemetryCleanupRepository: this.telemetryCleanupRepository,
-      tripleExtractionBatchJob: this.tripleExtractionBatchJob,
       qualityMeasurementBatchJob: this.qualityMeasurementBatchJob,
       sleepConsolidationBatchJob: this.sleepConsolidationBatchJob,
       telemetryCleanupBatchJob: this.telemetryCleanupBatchJob,
@@ -186,7 +184,6 @@ export class BatchScheduler implements IBatchScheduler {
       runConsolidationScoreIncremental: () => this.runConsolidationScoreIncremental(),
       runWeeklyRelationValidation: () => this.runWeeklyRelationValidation(),
       runConsolidationScoreFullSweep: () => this.runConsolidationScoreFullSweep(),
-      runTripleExtractionBatch: () => this.runTripleExtractionBatch(),
       runMetaMemoryIntrospection: () => this.runMetaMemoryIntrospection(),
       runQualityMeasurementBatch: () => this.runQualityMeasurementBatch(),
       runLogRotation: () => this.runLogRotation(),
@@ -359,10 +356,6 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runConsolidationScoreFullSweep(): Promise<BatchJobResult> {
     return this.getJobRunners().runConsolidationScoreFullSweep();
-  }
-
-  private async runTripleExtractionBatch(): Promise<BatchJobResult> {
-    return this.getJobRunners().runTripleExtractionBatch();
   }
 
   private async runMetaMemoryIntrospection(): Promise<BatchJobResult> {

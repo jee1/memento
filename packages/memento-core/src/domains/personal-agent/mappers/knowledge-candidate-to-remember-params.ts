@@ -64,7 +64,7 @@ export function mapKnowledgeCandidateToRememberParams(
     case 'semantic':
     case 'episodic': {
       const episodicOnly =
-        t === 'episodic' ? ({ enable_triple_extraction: true } satisfies Pick<RememberParams, 'enable_triple_extraction'>) : {};
+        {};
       return {
         ok: true,
         params: {

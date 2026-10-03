@@ -104,7 +104,7 @@ describe('TelemetryRepository', () => {
     expect(rest.c).toBe(1);
   });
 
-  it('queryConsolidationQuality: pipeline_error_count는 텔레메트리 실패와 에피소딕 triple_extracted_status=failed를 합산한다', () => {
+  it('queryConsolidationQuality: pipeline_error_count는 텔레메트리 실패만 집계한다 (#1237)', () => {
     db.exec(`
       CREATE TABLE memory_item (
         id TEXT PRIMARY KEY,
@@ -135,10 +135,10 @@ describe('TelemetryRepository', () => {
     });
 
     const q = repo.queryConsolidationQuality('7d', 'o1');
-    expect(q.pipeline_error_count).toBe(2);
+    expect(q.pipeline_error_count).toBe(1);
   });
 
-  it('queryConsolidationQuality는 요청 기간의 success + failed attempts로 triple 추출 성공률을 계산한다', () => {
+  it('queryConsolidationQuality는 triple_extraction_success_rate 필드를 반환하지 않는다 (#1237)', () => {
     db.exec(`
       CREATE TABLE memory_item (
         id TEXT PRIMARY KEY,
@@ -146,32 +146,15 @@ describe('TelemetryRepository', () => {
         content TEXT NOT NULL DEFAULT '',
         owner_id TEXT,
         is_consolidated INTEGER DEFAULT 0,
-        triple_extracted INTEGER DEFAULT 0,
-        triple_extracted_status TEXT,
-        triple_extraction_metadata TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
       CREATE TABLE memory_relation (source_id TEXT, target_id TEXT);
     `);
-    const recent = new Date().toISOString();
-    const old = new Date(Date.now() - 3 * 86_400_000).toISOString();
-    const insert = db.prepare(`
-      INSERT INTO memory_item (
-        id, type, owner_id, triple_extracted, triple_extracted_status,
-        triple_extraction_metadata, created_at
-      ) VALUES (?, 'episodic', 'o1', ?, ?, ?, ?)
-    `);
-    for (let i = 0; i < 8; i++) {
-      insert.run(`recent-success-${i}`, 1, 'success', JSON.stringify({ extracted_at: recent }), recent);
-    }
-    for (let i = 0; i < 2; i++) {
-      insert.run(`recent-failed-${i}`, 0, 'failed', JSON.stringify({ last_attempt: recent }), recent);
-      insert.run(`old-failed-${i}`, 0, 'failed', JSON.stringify({ last_attempt: old }), old);
-    }
 
-    expect(repo.queryConsolidationQuality('24h', 'o1').triple_extraction_success_rate).toBe(0.8);
-    expect(repo.queryConsolidationQuality('7d', 'o1').triple_extraction_success_rate).toBe(8 / 12);
+    const result = repo.queryConsolidationQuality('24h', 'o1');
+    expect(result).not.toHaveProperty('triple_extraction_success_rate');
+    expect(repo.queryConsolidationQuality('7d', 'o1')).not.toHaveProperty('triple_extraction_success_rate');
   });
 
   it('querySearchQuality는 owner별 ranking funnel item 수를 합산한다', () => {

@@ -8,7 +8,6 @@ import type { LLMProvider, MementoConfig } from '../types/memory.types.js';
 import { logger } from '../utils/logger.js';
 
 export type LlmUseCase =
-  | 'triple_extraction'
   | 'relation_extraction'
   | 'procedural'
   | 'consolidation';
@@ -106,7 +105,7 @@ export function resolveBoundLlmProvider(
 
 /**
  * @param runtimeProvider - 활성 LLM provider
- * @param useCase - triple/relation/procedural/consolidation (선택)
+ * @param useCase - relation/procedural/consolidation (선택)
  * @param config - 테스트 주입용; 기본 mementoConfig
  */
 export function resolveLlmModel(

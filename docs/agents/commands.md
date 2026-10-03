@@ -165,55 +165,30 @@ DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](.
 
 전체 환경 변수 목록과 거버넌스 정책은 [environment-variable-governance.md](../guides/ko/environment-variable-governance.md)에서, 배포 체크리스트는 [env-deployment-checklist.md](../operations/ko/env-deployment-checklist.md)에서 확인하세요.
 
-## 손상된 triple 문장 복구 (#768)
+## 손상된 triple 문장 복구 (#768) — 제거됨 (#1237)
 
-> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
-
-옛 템플릿(`${subject}는 ${object}를 ${predicate}합니다`)이 만든 semantic 기억은 `정의됨합니다`처럼
-활용이 깨져 있습니다. subject/predicate/object 컬럼이 남아 있는 행만 새 렌더러로 다시 만들며,
-**기본값은 dry-run**입니다. 적용 시 임베딩도 다시 생성합니다.
-
-```bash
-DB_PATH=./data/memory.db npm run memory:repair-triple-sentences            # dry-run
-DB_PATH=./data/memory.db npm run memory:repair-triple-sentences -- --apply # 적용
-```
-
-triple 컬럼이 없는 손상 행은 복구 불가로 ID만 보고합니다. 주입 단계에서는
-`memory_injection`이 이중 활용 문장을 자동으로 제외하므로, 복구 전에도 프롬프트는 오염되지 않습니다.
-
-### 배포판 사용자 — 마이그레이션 049 (#1156)
-
-위 스크립트는 저장소 체크아웃에서만 돕니다. 발행 tarball 의 `files` 에 `scripts/` 가 없고 `tsx` 도
-devDependency 라 설치해서 쓰는 사용자는 실행할 수 없습니다. 그래서 같은 복구를 마이그레이션
-`049-repair-triple-sentence-memories` 가 수행합니다. 마이그레이션은 postinstall 과 서버 시작 양쪽에서
-자동으로 돌고, 판정 로직(`buildRepairPlan`)은 스크립트와 공유합니다.
+> **제거됨 (#1237, 2026-10-03)** — `memory:repair-triple-sentences`·`memory:kg-triple-predicate-quality` 스크립트와 triple 추출 런타임을 제거했습니다. **업그레이드 DB**는 마이그레이션 `049-repair-triple-sentence-memories`(문장 복구)와 `050-drop-triple-schema`(`kg_triple`·`triple_extracted*` DROP)가 순서대로 적용됩니다. 신규 설치(`schema.sql`)에는 triple 스키마가 없습니다.
 
 **049 도 임베딩을 다시 만들지 않습니다.** 048 과 같은 이유입니다 — 아래 「배포판 사용자 —
-마이그레이션 048·049」 절의 재색인 절차를 따르세요.
+마이그레이션 048·049」 절의 재색인 절차를 따르세요(050 적용 후 triple 컬럼은 없음).
 
 ## 중복 본문 semantic 기억 정리 (#1137)
 
 재조립에 실패한 triple 이 원본 episodic 본문을 content 로 공유해 **같은 본문의 semantic 행이 여러 개**
 생긴 부채를 정리합니다. content 가 다른 semantic 행과 중복인 행만 골라 triple 컬럼으로 다시 렌더하고,
 재렌더 후에도 `(subject, predicate, object, owner, project)` 가 같은 행만 confidence 최대 1건을 남겨
-soft-delete 합니다. **기본값은 dry-run**이고, 적용 시 content 가 바뀐 행의 임베딩을 다시 만듭니다.
+soft-delete 합니다.
 
-```bash
-DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic            # dry-run
-DB_PATH=./data/memory.db npm run memory:repair-duplicate-semantic -- --apply # 적용
-```
+> **제거됨 (#1237, 2026-10-03)** — `memory:repair-duplicate-semantic` standalone 스크립트를
+> 제거했습니다. 정리는 마이그레이션 `048-repair-duplicate-semantic-content` 만 수행합니다.
 
-기본 실행 `npm run memory:repair-duplicate-semantic` 은 dry-run 이고, 적용은 `-- --apply` 를 붙입니다.
-`--apply` 전에 MCP 서버를 멈추고 `npm run db:pre-docker-deploy` 로 무결성을 확인하세요.
 triple 컬럼이 없는 중복 행은 재렌더할 근거가 없어 대상에서 빠집니다 — 주입 시점에는
 `memory_injection` 이 content 기준으로 중복을 제거하므로 프롬프트 예산은 사본에 소모되지 않습니다.
 
-### 배포판 사용자 — 마이그레이션 048·049 (#1139, #1156)
+### 배포판·저장소 공통 — 마이그레이션 048·049 (#1139, #1156)
 
-위 스크립트는 저장소 체크아웃에서만 돕니다. npm 발행 tarball 의 `files` 에 `scripts/` 가 없고
-`tsx` 도 devDependency 라 설치해서 쓰는 사용자는 실행할 수 없습니다. 그래서 같은 정리를
-마이그레이션 `048-repair-duplicate-semantic-content` 가 수행합니다. 마이그레이션은 postinstall 과
-서버 시작 양쪽에서 자동으로 돌고, 판정 로직(`buildDuplicatePlan`)은 스크립트와 공유합니다.
+마이그레이션 `048-repair-duplicate-semantic-content` 가 postinstall 과 서버 시작 양쪽에서 자동으로
+돌고, 판정 로직은 `migration-repair-helpers.buildDuplicatePlan` 이 단일 출처입니다.
 
 **048 은 임베딩을 다시 만들지 않습니다.** 임베딩 모델을 마이그레이션 트랜잭션 안에서 로드하면
 서버 시작이 블록되고 쓰기 락이 길게 잡힙니다. FTS 인덱스는 `memory_item_fts_update` 트리거가
@@ -255,8 +230,7 @@ docker compose exec memento-mcp-server \
 libuv 핸들을 남겨 서비스를 다 내리고도 프로세스가 끝나지 않던 문제를, 결과를 다 흘려보낸 뒤
 명시적으로 종료하는 것으로 막았습니다. 파이프로 받아도 결과 JSON 은 잘리지 않습니다.
 
-저장소에서 `npm run memory:repair-duplicate-semantic -- --apply` 를 돌린 경우에는 스크립트가
-바뀐 행을 즉시 재임베딩하므로 별도 조치가 필요 없습니다.
+048 적용 후 content 가 바뀐 행은 아래 재색인 절차로 임베딩을 갱신합니다.
 
 ## 파이프라인 템플릿 semantic 격리 (#804)
 

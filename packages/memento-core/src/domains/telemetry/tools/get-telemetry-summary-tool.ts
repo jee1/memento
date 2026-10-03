@@ -94,7 +94,6 @@ export class GetTelemetrySummaryTool extends BaseTool {
         },
         consolidation_quality: {
           episodic_consolidation_rate: consolidationQuality.episodic_consolidation_rate,
-          triple_extraction_success_rate: consolidationQuality.triple_extraction_success_rate,
           cluster_processing_efficiency: consolidationQuality.cluster_processing_efficiency,
           recent_semantic_count_7d: consolidationQuality.recent_semantic_count_7d,
           pipeline_error_count: consolidationQuality.pipeline_error_count,

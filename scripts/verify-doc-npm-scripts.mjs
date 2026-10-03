@@ -15,6 +15,69 @@ import { listRepoFiles } from './lib/repo-files.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+/**
+ * #1237 removed npm scripts — pin file+script only (no blanket specs/ or AGENTS.md).
+ * New active docs citing these scripts must still fail.
+ */
+export const HISTORICAL_NPM_SCRIPT_CITATIONS = [
+  {
+    file: 'AGENTS.md',
+    script: 'memory:repair-triple-sentences',
+    reason: '#1237 removed; user-owned gotcha text preserved',
+  },
+  {
+    file: 'AGENTS.md',
+    script: 'memory:kg-triple-predicate-quality',
+    reason: '#1237 removed; user-owned gotcha text preserved',
+  },
+  {
+    file: 'CHANGELOG.md',
+    script: 'memory:kg-triple-predicate-quality',
+    reason: '#1237 historical release note (#813)',
+  },
+  {
+    file: 'specs/664-813-predicate-normalization/plan.md',
+    script: 'memory:kg-triple-predicate-quality',
+    reason: '#1237 frozen spec (#813)',
+  },
+  {
+    file: 'specs/664-813-predicate-normalization/tasks.md',
+    script: 'memory:kg-triple-predicate-quality',
+    reason: '#1237 frozen spec (#813)',
+  },
+  {
+    file: 'specs/665-811-misc-repair-export-recall/checklist-review.md',
+    script: 'memory:repair-triple-sentences',
+    reason: '#1237 frozen spec (#811)',
+  },
+  {
+    file: 'specs/665-811-misc-repair-export-recall/quickstart.md',
+    script: 'memory:repair-triple-sentences',
+    reason: '#1237 frozen spec (#811)',
+  },
+  {
+    file: 'specs/665-811-misc-repair-export-recall/spec.md',
+    script: 'memory:repair-triple-sentences',
+    reason: '#1237 frozen spec (#811)',
+  },
+  {
+    file: 'specs/681-1137-duplicate-semantic-content/plan.md',
+    script: 'memory:repair-duplicate-semantic',
+    reason: '#1237 frozen spec (#1137)',
+  },
+  {
+    file: 'specs/681-1137-duplicate-semantic-content/spec.md',
+    script: 'memory:repair-duplicate-semantic',
+    reason: '#1237 frozen spec (#1137)',
+  },
+];
+
+export function isHistoricalNpmScriptCitation(file, script) {
+  return HISTORICAL_NPM_SCRIPT_CITATIONS.some(
+    (entry) => entry.file === file && entry.script === script,
+  );
+}
+
 const KEEP_SCRIPT_NAMES = new Set([
   // npm lifecycle hooks
   'prepare',
@@ -202,7 +265,9 @@ export function verifyNpmScriptReferences() {
   for (const file of markdownFiles) {
     const text = fs.readFileSync(file.full, 'utf8');
     for (const name of collectMarkdownScriptNames(text)) {
-      if (!knownNames.has(name)) forwardProblems.push({ file: file.relPath, script: name });
+      if (knownNames.has(name)) continue;
+      if (isHistoricalNpmScriptCitation(file.relPath, name)) continue;
+      forwardProblems.push({ file: file.relPath, script: name });
     }
   }
 

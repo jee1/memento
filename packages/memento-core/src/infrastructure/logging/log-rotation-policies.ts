@@ -5,13 +5,11 @@
 export const DEFAULT_MIGRATION_KEEP_COUNT = 500;
 export const DEFAULT_DOCKER_DIAGNOSTICS_MAX_BYTES = 268_435_456; // 256 MiB
 export const DEFAULT_MONITOR_JSONL_MAX_BYTES = 33_554_432; // 32 MiB
-export const DEFAULT_TRIPLE_EXTRACTION_DAYS = 30;
 
 export interface LogRotationPolicies {
   migrationKeepCount: number;
   dockerDiagnosticsMaxBytes: number;
   monitorJsonlMaxBytes: number;
-  tripleExtractionDays: number;
 }
 
 function parseEnvInt(name: string, fallback: number): number {
@@ -39,8 +37,5 @@ export function resolveLogRotationPolicies(
     monitorJsonlMaxBytes:
       overrides?.monitorJsonlMaxBytes ??
       parseEnvInt('LOG_ROTATION_MONITOR_JSONL_MAX_BYTES', DEFAULT_MONITOR_JSONL_MAX_BYTES),
-    tripleExtractionDays:
-      overrides?.tripleExtractionDays ??
-      parseEnvInt('LOG_ROTATION_TRIPLE_EXTRACTION_DAYS', DEFAULT_TRIPLE_EXTRACTION_DAYS),
   };
 }

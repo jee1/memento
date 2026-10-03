@@ -34,15 +34,15 @@ describe('loadLlmProviderOverrideFromEnv', () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     expect(
-      loadLlmProviderOverrideFromEnv('LLM_PROVIDER_TRIPLE_EXTRACTION', 'anthropic', warnedKeys)
+      loadLlmProviderOverrideFromEnv('LLM_PROVIDER_RELATION_EXTRACTION', 'anthropic', warnedKeys)
     ).toBeUndefined();
     expect(
-      loadLlmProviderOverrideFromEnv('LLM_PROVIDER_TRIPLE_EXTRACTION', 'anthropic', warnedKeys)
+      loadLlmProviderOverrideFromEnv('LLM_PROVIDER_RELATION_EXTRACTION', 'anthropic', warnedKeys)
     ).toBeUndefined();
 
     expect(stderrSpy).toHaveBeenCalledTimes(1);
     expect(String(stderrSpy.mock.calls[0]?.[0])).toContain('[CONFIG WARN]');
-    expect(String(stderrSpy.mock.calls[0]?.[0])).toContain('LLM_PROVIDER_TRIPLE_EXTRACTION');
+    expect(String(stderrSpy.mock.calls[0]?.[0])).toContain('LLM_PROVIDER_RELATION_EXTRACTION');
 
     stderrSpy.mockRestore();
   });

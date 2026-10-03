@@ -14,10 +14,7 @@ import {
   runLogRotation,
   runWeeklyRelationValidation
 } from '../handlers/batch-scheduler-consolidation-relation-handlers.js';
-import {
-  runQualityMeasurementBatch,
-  runTripleExtractionBatch
-} from '../handlers/batch-scheduler-augmentation-handlers.js';
+import { runQualityMeasurementBatch } from '../handlers/batch-scheduler-augmentation-handlers.js';
 import {
   runSleepConsolidationBatch,
   runTelemetryCleanupBatch,
@@ -42,7 +39,6 @@ export const REGISTERED_MANUAL_BATCH_JOB_TYPES = [
   'consolidation_score_full_sweep',
   'weekly_relation_validation',
   'log_rotation',
-  'triple_extraction_batch',
   'quality_measurement_batch',
   'meta_memory_introspection',
   'memory_review_candidates',
@@ -71,7 +67,6 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
     runConsolidationScoreIncremental: () => runConsolidationScoreIncremental(ctx()),
     runWeeklyRelationValidation: () => runWeeklyRelationValidation(ctx()),
     runConsolidationScoreFullSweep: () => runConsolidationScoreFullSweep(ctx()),
-    runTripleExtractionBatch: () => runTripleExtractionBatch(ctx()),
     runMetaMemoryIntrospection: () => runMetaMemoryIntrospection(ctx()),
     runQualityMeasurementBatch: () => runQualityMeasurementBatch(ctx()),
     runLogRotation: () => runLogRotation(ctx()),
@@ -142,8 +137,6 @@ function dispatchManualJob(
       return runners.runWeeklyRelationValidation();
     case 'log_rotation':
       return runners.runLogRotation();
-    case 'triple_extraction_batch':
-      return runners.runTripleExtractionBatch();
     case 'quality_measurement_batch':
       return runners.runQualityMeasurementBatch();
     case 'meta_memory_introspection':

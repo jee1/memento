@@ -13,7 +13,6 @@ import { logger } from '../../../shared/utils/logger.js';
 import { isFullMemoryItemTypeSet } from '../../../shared/utils/type-guards.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
-import { hasBrokenTripleConjugation } from '../semantic/triple-sentence.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
@@ -282,22 +281,6 @@ function searchLimitHardCap(maxMemories: number): number {
   return Math.min(maxMemories * SEARCH_LIMIT_MULTIPLIER_CAP, SEARCH_LIMIT_ABSOLUTE_CAP);
 }
 
-function filterBrokenTripleContent(memories: HybridSearchResult[]): {
-  clean: HybridSearchResult[];
-  excluded: number;
-} {
-  let excluded = 0;
-  const clean: HybridSearchResult[] = [];
-  for (const memory of memories) {
-    if (hasBrokenTripleConjugation(memory.content)) {
-      excluded += 1;
-    } else {
-      clean.push(memory);
-    }
-  }
-  return { clean, excluded };
-}
-
 /** 중복 판정 키 길이. 500자로 잘린 사본과 원문 행이 같은 그룹이 되도록 프리픽스를 쓴다. */
 const DEDUPE_KEY_LENGTH = 200;
 
@@ -379,7 +362,6 @@ export async function buildKnowledgeContextBundle(
   };
 
   let memories: HybridSearchResult[] = [];
-  let excludedEarly = 0;
   let excludedDuplicateEarly = 0;
   let tfidfEmitted = false;
 
@@ -410,11 +392,9 @@ export async function buildKnowledgeContextBundle(
     }
     candidates = filterByOwner(candidates, ownerId);
 
-    const { clean, excluded } = filterBrokenTripleContent(candidates);
     // #1137: 중복 제거를 루프 안에서 해야 사본이 걷힌 만큼 searchLimit이 확장돼 예산이 굶지 않는다.
-    const { unique, excluded: excludedDuplicates } = dedupeByContent(clean);
+    const { unique, excluded: excludedDuplicates } = dedupeByContent(candidates);
     memories = unique;
-    excludedEarly = excluded;
     excludedDuplicateEarly = excludedDuplicates;
 
     if (memories.length >= maxMemories) {
@@ -435,22 +415,13 @@ export async function buildKnowledgeContextBundle(
     searchLimit = nextLimit;
   }
 
-  // DiD 사후 필터 (유일한 예산 보호가 아님 — 위 early filter + expand가 주경로)
-  const { clean: didClean, excluded: excludedDid } = filterBrokenTripleContent(memories);
-  const { unique: dedupedClean, excluded: excludedDuplicatePost } = dedupeByContent(didClean);
+  const { unique: dedupedClean, excluded: excludedDuplicatePost } = dedupeByContent(memories);
   memories = dedupedClean;
-  const corruptedCount = excludedEarly + excludedDid;
-  if (corruptedCount > 0) {
-    logger.warn('[knowledge-context-bundle] 손상된 triple 문장 제외', {
-      excluded: corruptedCount,
-      hint: '마이그레이션 049 가 업그레이드 시 자동 복구합니다 (저장소: npm run memory:repair-triple-sentences -- --apply)',
-    });
-  }
   const duplicateCount = excludedDuplicateEarly + excludedDuplicatePost;
   if (duplicateCount > 0) {
     logger.warn('[knowledge-context-bundle] 중복 본문 기억 제외', {
       excluded: duplicateCount,
-      hint: 'npm run memory:repair-duplicate-semantic -- --apply',
+      hint: 'migration 048-repair-duplicate-semantic-content applies on server start',
     });
   }
 
