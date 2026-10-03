@@ -102,6 +102,8 @@ export class ConsolidationRepository {
    * 모든 후보는 저장 시점에 이미 임베딩되어 있으므로, 호출부에서 후보마다 임베딩을
    * 다시 만들 이유가 없다. 다시 만들면 클러스터 하나당 시맨틱 기억 수만큼 모델 추론이
    * 돌아 CPU 를 태운다 (#917: 3,902건 × 13ms).
+   *
+   * Only semantics produced by sleep consolidation are merge targets; triple-extraction semantics must not be overwritten (#1231).
    */
   findSemanticsByOwner(
     ownerId: string | null,
@@ -128,6 +130,7 @@ export class ConsolidationRepository {
       WHERE mi.type = 'semantic'
         AND (mi.is_deleted IS NULL OR mi.is_deleted = 0)
         AND COALESCE(mi.owner_id, '') = COALESCE(?, '')
+        AND mi.origin_source LIKE '%"tool":"sleep-consolidation"%'
       ORDER BY mi.created_at ASC
     `,
       [...joinParams, ownerId ?? null]

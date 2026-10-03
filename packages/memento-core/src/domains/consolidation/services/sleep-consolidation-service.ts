@@ -3,7 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
+import type { AddRelationOptions, IRelationGraph } from '../../../shared/types/relation-graph.js';
 import type {
   ConsolidationCluster,
   SleepConsolidationRunResult
@@ -300,13 +300,13 @@ export class SleepConsolidationService {
                   originSourceJson: newOrigin
                 });
                 for (const eid of cluster.episodicIds) {
-                  await this.relationGraph.addRelation(
+                  await this.addRelationIfAbsent(
                     mergeTarget!.id,
                     eid,
                     REL_EXTRACTED_FROM,
                     { confidence: 0.75, allowCyclic: true }
                   );
-                  await this.relationGraph.addRelation(
+                  await this.addRelationIfAbsent(
                     eid,
                     mergeTarget!.id,
                     REL_SUPPORTED_BY,
@@ -367,13 +367,13 @@ export class SleepConsolidationService {
 
             for (const eid of cluster.episodicIds) {
               // data-model: semantic ─[extracted_from]→ episodic, episodic ─[supported_by]→ semantic
-              await this.relationGraph.addRelation(
+              await this.addRelationIfAbsent(
                 semanticId,
                 eid,
                 REL_EXTRACTED_FROM,
                 { confidence: 0.75, allowCyclic: true }
               );
-              await this.relationGraph.addRelation(
+              await this.addRelationIfAbsent(
                 eid,
                 semanticId,
                 REL_SUPPORTED_BY,
@@ -541,5 +541,25 @@ export class SleepConsolidationService {
       );
     }
     return verified;
+  }
+
+  /**
+   * #1231: an existing relation (e.g. left by an earlier merge) is not a failure; any other
+   * error still aborts the cluster's transaction.
+   */
+  private async addRelationIfAbsent(
+    sourceId: string,
+    targetId: string,
+    relationType: RelationType,
+    options: AddRelationOptions
+  ): Promise<void> {
+    try {
+      await this.relationGraph.addRelation(sourceId, targetId, relationType, options);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'DuplicateRelationError') {
+        return;
+      }
+      throw error;
+    }
   }
 }

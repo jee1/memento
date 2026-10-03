@@ -236,7 +236,7 @@ describe('SleepConsolidationService', () => {
 
     DatabaseUtils.run(
       db,
-      `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', 0, 0.5, datetime('now'))`
+      `INSERT INTO memory_item (id, type, content, owner_id, origin_source, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', '{"tool":"sleep-consolidation","context":{}}', 0, 0.5, datetime('now'))`
     );
 
     const emb = [1, 0, 0, 0];
@@ -298,7 +298,7 @@ describe('SleepConsolidationService', () => {
     for (let i = 0; i < SEMANTIC_COUNT; i++) {
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, owner_id, created_at) VALUES (?, 'semantic', ?, 'agent-x', datetime('now'))`,
+        `INSERT INTO memory_item (id, type, content, owner_id, origin_source, created_at) VALUES (?, 'semantic', ?, 'agent-x', '{"tool":"sleep-consolidation","context":{}}', datetime('now'))`,
         [`sem_${i}`, `base-${i}`]
       );
       insertEmbedding(db, `sem_${i}`, emb);
@@ -537,7 +537,7 @@ describe('SleepConsolidationService', () => {
 
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', 0, 0.5, datetime('now'))`
+        `INSERT INTO memory_item (id, type, content, owner_id, origin_source, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', '{"tool":"sleep-consolidation","context":{}}', 0, 0.5, datetime('now'))`
       );
       insertEmbedding(db, 'sem_existing', emb, provider);
 
@@ -607,6 +607,140 @@ describe('SleepConsolidationService', () => {
 
       const result = await svc.run({ ownerIdFilter: 'agent-x' });
       expect(result.semanticsMerged).toBe(1);
+    });
+  });
+
+  describe('#1231: merge target and relations', () => {
+    const emb = [1, 0, 0, 0];
+    const provider = 'tfidf';
+    const sleepOrigin = '{"tool":"sleep-consolidation","context":{}}';
+
+    async function setupMergeRun() {
+      vi.stubEnv('CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD', '0.5');
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+
+      for (let i = 0; i < 10; i++) {
+        const id = `e${i}`;
+        insertEpisodic(db, id, { owner: 'agent-x' });
+        insertEmbedding(db, id, emb, provider);
+      }
+
+      const memEmb = new MemoryEmbeddingService();
+      const uni = memEmb.getUnifiedEmbeddingService();
+      vi.spyOn(uni, 'getCurrentProviderName').mockReturnValue(provider);
+      vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
+        embedding: emb,
+        provider
+      });
+
+      const summarization = new SummarizationService();
+      vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue({
+        content: 'merged summary',
+        method: 'extractive'
+      });
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const relationGraph = createRelationGraph(db);
+
+      const svc = new SleepConsolidationService(db, {
+        memoryEmbeddingService: memEmb,
+        summarizationService: summarization,
+        relationGraph
+      });
+      return { svc, relationGraph };
+    }
+
+    it('M1 triple semantic is not a merge target', async () => {
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_item (id, type, content, owner_id, origin_source, pinned, importance, created_at) VALUES ('sem_triple', 'semantic', 'triple sentence', 'agent-x', '{"tool":"extract_triples"}', 0, 0.5, datetime('now'))`
+      );
+      insertEmbedding(db, 'sem_triple', emb, provider);
+
+      const { svc } = await setupMergeRun();
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+
+      expect(result.semanticsMerged).toBe(0);
+      expect(result.semanticsCreated).toBe(1);
+      const unchanged = DatabaseUtils.get(
+        db,
+        `SELECT content FROM memory_item WHERE id = 'sem_triple'`
+      ) as { content: string };
+      expect(unchanged.content).toBe('triple sentence');
+    });
+
+    it('M2 existing relation does not fail the merge', async () => {
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_item (id, type, content, owner_id, origin_source, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', ?, 0, 0.5, datetime('now'))`,
+        [sleepOrigin]
+      );
+      insertEmbedding(db, 'sem_existing', emb, provider);
+
+      const { svc, relationGraph } = await setupMergeRun();
+      await relationGraph.addRelation('sem_existing', 'e0', 'extracted_from', {
+        confidence: 0.75,
+        allowCyclic: true
+      });
+
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+
+      expect(result.errors).toEqual([]);
+      expect(result.semanticsMerged).toBe(1);
+      const pending = DatabaseUtils.get(
+        db,
+        `SELECT COUNT(*) AS c FROM memory_item WHERE type = 'episodic' AND COALESCE(is_consolidated,0) = 0`
+      ) as { c: number };
+      expect(Number(pending.c)).toBe(0);
+    });
+
+    it('M3 other relation errors still abort', async () => {
+      vi.stubEnv('CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD', '0.5');
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+
+      for (let i = 0; i < 10; i++) {
+        const id = `e${i}`;
+        insertEpisodic(db, id, { owner: 'agent-x' });
+        insertEmbedding(db, id, emb, provider);
+      }
+
+      const memEmb = new MemoryEmbeddingService();
+      const uni = memEmb.getUnifiedEmbeddingService();
+      vi.spyOn(uni, 'getCurrentProviderName').mockReturnValue(provider);
+      vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
+        embedding: emb,
+        provider
+      });
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const realGraph = createRelationGraph(db);
+      const failingGraph: IRelationGraph = {
+        ...realGraph,
+        addRelation: vi.fn(async () => {
+          throw new Error('boom');
+        })
+      };
+
+      const svc = new SleepConsolidationService(db, {
+        memoryEmbeddingService: memEmb,
+        relationGraph: failingGraph
+      });
+
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+
+      expect(result.errors.some(e => e.error.includes('boom'))).toBe(true);
+      expect(result.semanticsCreated).toBe(0);
+      const unmarked = DatabaseUtils.get(
+        db,
+        `SELECT COUNT(*) AS c FROM memory_item WHERE type = 'episodic' AND COALESCE(is_consolidated,0) = 0`
+      ) as { c: number };
+      expect(Number(unmarked.c)).toBe(10);
     });
   });
 });
