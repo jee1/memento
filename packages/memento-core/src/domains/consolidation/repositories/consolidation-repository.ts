@@ -107,7 +107,7 @@ export class ConsolidationRepository {
     ownerId: string | null,
     embeddingFilter: StoredEmbeddingFilter
   ): SemanticOwnerRow[] {
-    const joinConditions = ["me.memory_id = mi.id", "COALESCE(me.model, '') = COALESCE(?, '')"];
+    const joinConditions = ["me.memory_id = mi.id", "me.projection_type = 'native'", "COALESCE(me.model, '') = COALESCE(?, '')"];
     const joinParams: Array<string | null> = [embeddingFilter.model ?? null];
     if (embeddingFilter.provider) {
       joinConditions.push('me.embedding_provider = ?');
@@ -176,23 +176,29 @@ export class ConsolidationRepository {
   }
 
   /**
-   * memory_id → 파싱된 임베딩 벡터 (첫 행만, 임의 provider 우선 최신)
+   * memory_id → parsed whole-document (projection_type='native') vector; optionally restricted to one provider (#1226).
    */
-  loadEmbeddingsMap(memoryIds: string[]): Map<string, number[]> {
+  loadEmbeddingsMap(memoryIds: string[], filter: StoredEmbeddingFilter = {}): Map<string, number[]> {
     const out = new Map<string, number[]>();
     if (memoryIds.length === 0) {
       return out;
     }
     const placeholders = memoryIds.map(() => '?').join(',');
+    const whereParts = [`memory_id IN (${placeholders})`, "projection_type = 'native'"];
+    const params: Array<string> = [...memoryIds];
+    if (filter.provider) {
+      whereParts.push('embedding_provider = ?');
+      params.push(filter.provider);
+    }
     const rows = DatabaseUtils.all(
       this.db,
       `
       SELECT memory_id, embedding
       FROM memory_embedding
-      WHERE memory_id IN (${placeholders})
+      WHERE ${whereParts.join(' AND ')}
       ORDER BY memory_id, created_at DESC
     `,
-      memoryIds
+      params
     ) as Array<{ memory_id: string; embedding: Buffer | null }>;
 
     for (const row of rows) {

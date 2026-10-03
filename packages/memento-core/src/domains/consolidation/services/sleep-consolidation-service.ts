@@ -184,7 +184,8 @@ export class SleepConsolidationService {
       const lookback = options.lookbackDays ?? this.repo.getLookbackDays();
       const ownerFilter = options.ownerIdFilter ?? null;
       const candidates = this.repo.findEpisodicCandidates(ownerFilter, lookback);
-      const embMap = this.repo.loadEmbeddingsMap(candidates.map(c => c.id));
+      const provider = this.memoryEmbedding.getUnifiedEmbeddingService?.()?.getCurrentProviderName?.() ?? undefined;
+      const embMap = this.repo.loadEmbeddingsMap(candidates.map(c => c.id), provider ? { provider } : {});
       const clusters = this.clustering.buildClusters(candidates, embMap);
       result.clustersFound = clusters.length;
 
