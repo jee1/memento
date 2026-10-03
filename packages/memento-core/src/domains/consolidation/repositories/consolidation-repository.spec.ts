@@ -20,6 +20,27 @@ function insertEmbedding(
   );
 }
 
+function insertEmbeddingWithProjection(
+  db: Database.Database,
+  memoryId: string,
+  vec: number[],
+  provider: string,
+  model: string,
+  projectionType: string,
+  createdAt?: string
+): void {
+  const createdAtClause = createdAt ? ', created_at' : '';
+  const createdAtValue = createdAt ? ', ?' : '';
+  DatabaseUtils.run(
+    db,
+    `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model${createdAtClause})
+     VALUES (?, ?, ?, ?, ?, ?, ?${createdAtValue})`,
+    createdAt
+      ? [memoryId, provider, projectionType, encodeFloat32Embedding(vec), vec.length, vec.length, model, createdAt]
+      : [memoryId, provider, projectionType, encodeFloat32Embedding(vec), vec.length, vec.length, model]
+  );
+}
+
 describe('ConsolidationRepository', () => {
   let db: Database.Database;
   let repo: ConsolidationRepository;
@@ -98,5 +119,49 @@ describe('ConsolidationRepository', () => {
       's-new',
     ]) as { created_at: string };
     expect(row.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
+
+  it('loadEmbeddingsMap prefers native over window rows with same created_at', () => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e1', 'episodic', 'x', datetime('now'))`);
+    const sameTs = '2026-01-01T00:00:00.000Z';
+    insertEmbeddingWithProjection(db, 'e1', [0, 1, 0], 'minilm', 'model-new', 'window:0', sameTs);
+    insertEmbeddingWithProjection(db, 'e1', [1, 0, 0], 'minilm', 'model-new', 'native', sameTs);
+
+    expect(repo.loadEmbeddingsMap(['e1']).get('e1')).toEqual([1, 0, 0]);
+  });
+
+  it('loadEmbeddingsMap prefers native even when window row is newer', () => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e1', 'episodic', 'x', datetime('now'))`);
+    insertEmbeddingWithProjection(db, 'e1', [0, 1, 0], 'minilm', 'model-new', 'window:0', '2026-01-01T00:00:00.000Z');
+    insertEmbeddingWithProjection(db, 'e1', [1, 0, 0], 'minilm', 'model-new', 'native', '2026-01-01T00:00:00.000Z');
+
+    expect(repo.loadEmbeddingsMap(['e1']).get('e1')).toEqual([1, 0, 0]);
+  });
+
+  it('loadEmbeddingsMap omits memories with only window projection rows', () => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e2', 'episodic', 'x', datetime('now'))`);
+    insertEmbeddingWithProjection(db, 'e2', [0, 1, 0], 'minilm', 'model-new', 'window:0');
+
+    expect(repo.loadEmbeddingsMap(['e2']).has('e2')).toBe(false);
+  });
+
+  it('loadEmbeddingsMap filters by provider when requested', () => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e3', 'episodic', 'x', datetime('now'))`);
+    insertEmbeddingWithProjection(db, 'e3', [1, 0, 0], 'minilm', 'model-new', 'native', '2026-01-01T00:00:00.000Z');
+    insertEmbeddingWithProjection(db, 'e3', [0, 0, 1], 'tfidf', 'lightweight-hybrid', 'native', '2026-01-02T00:00:00.000Z');
+
+    expect(repo.loadEmbeddingsMap(['e3'], { provider: 'minilm' }).get('e3')).toEqual([1, 0, 0]);
+    expect(repo.loadEmbeddingsMap(['e3']).get('e3')).toBeDefined();
+  });
+
+  it('findSemanticsByOwner attaches native embedding when window row exists', () => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('s1', 'semantic', 'a', datetime('now'))`);
+    insertEmbeddingWithProjection(db, 's1', [0, 1, 0], 'minilm', 'model-new', 'window:0');
+    insertEmbeddingWithProjection(db, 's1', [1, 0, 0], 'minilm', 'model-new', 'native');
+
+    const rows = repo.findSemanticsByOwner(null, { provider: 'minilm', model: 'model-new' });
+
+    expect(rows.map(r => r.id)).toEqual(['s1']);
+    expect(rows[0]!.embedding).toEqual([1, 0, 0]);
   });
 });
