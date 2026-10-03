@@ -25,12 +25,17 @@ function insertEpisodic(
   );
 }
 
-function insertEmbedding(db: Database.Database, memoryId: string, vec: number[]) {
+function insertEmbedding(
+  db: Database.Database,
+  memoryId: string,
+  vec: number[],
+  provider = 'tfidf'
+) {
   DatabaseUtils.run(
     db,
     `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider)
-     VALUES (?, ?, ?, 'tfidf')`,
-    [memoryId, encodeFloat32Embedding(vec), vec.length]
+     VALUES (?, ?, ?, ?)`,
+    [memoryId, encodeFloat32Embedding(vec), vec.length, provider]
   );
 }
 
@@ -314,5 +319,29 @@ describe('SleepConsolidationService', () => {
     // 예전 구현은 클러스터마다 후보 수만큼 generateEmbedding 을 돌려 22회였다.
     // 남는 호출은 요약 벡터 1회와 결과 시맨틱 저장 1회뿐이고, 후보 수와 무관하다.
     expect(generateEmbedding.mock.calls.length).toBe(2);
+  });
+
+  it('passes the current embedding provider when loading native vectors for clustering (#1226)', async () => {
+    const emb = [1, 0, 0, 0];
+    insertEpisodic(db, 'e1', { owner: 'agent-x' });
+    insertEpisodic(db, 'e2', { owner: 'agent-x' });
+    insertEmbedding(db, 'e1', emb, 'tfidf');
+    insertEmbedding(db, 'e2', emb, 'tfidf');
+
+    const memEmb = new MemoryEmbeddingService();
+    const uni = memEmb.getUnifiedEmbeddingService();
+    const getCurrentProviderName = vi.spyOn(uni, 'getCurrentProviderName');
+
+    const svc = new SleepConsolidationService(db, {
+      memoryEmbeddingService: memEmb
+    });
+
+    getCurrentProviderName.mockReturnValue('minilm');
+    const mismatched = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+    expect(mismatched.clustersFound).toBe(0);
+
+    getCurrentProviderName.mockReturnValue('tfidf');
+    const matched = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+    expect(matched.clustersFound).toBe(1);
   });
 });
