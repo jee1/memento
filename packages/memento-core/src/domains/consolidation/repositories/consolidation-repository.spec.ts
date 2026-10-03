@@ -73,8 +73,8 @@ describe('ConsolidationRepository', () => {
   it('findSemanticsByOwner는 요청한 model로 만든 벡터만 붙인다', () => {
     // 같은 기억에 provider가 다른 벡터가 공존할 수 있다. 차원이 다른 벡터를 집으면
     // cosineSimilarity가 0을 돌려주어 병합 후보가 조용히 사라진다 (#889, #917).
-    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('s1', 'semantic', 'a', datetime('now', '-2 day'))`);
-    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('s2', 'semantic', 'b', datetime('now', '-1 day'))`);
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, origin_source, created_at) VALUES ('s1', 'semantic', 'a', '{"tool":"sleep-consolidation","context":{}}', datetime('now', '-2 day'))`);
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, origin_source, created_at) VALUES ('s2', 'semantic', 'b', '{"tool":"sleep-consolidation","context":{}}', datetime('now', '-1 day'))`);
     insertEmbedding(db, 's1', [1, 0, 0, 0], 'minilm', 'model-new');
     insertEmbedding(db, 's1', [9, 9, 9, 9, 9], 'tfidf', 'lightweight-hybrid');
     insertEmbedding(db, 's2', [9, 9, 9, 9, 9], 'tfidf', 'lightweight-hybrid');
@@ -88,7 +88,7 @@ describe('ConsolidationRepository', () => {
   });
 
   it('findSemanticsByOwner는 owner로 거르고 삭제된 기억을 뺀다', () => {
-    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, owner_id, created_at) VALUES ('s1', 'semantic', 'a', 'o1', datetime('now'))`);
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, owner_id, origin_source, created_at) VALUES ('s1', 'semantic', 'a', 'o1', '{"tool":"sleep-consolidation","context":{}}', datetime('now'))`);
     DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, owner_id, created_at) VALUES ('s2', 'semantic', 'b', 'o2', datetime('now'))`);
     DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, owner_id, is_deleted, created_at) VALUES ('s3', 'semantic', 'c', 'o1', 1, datetime('now'))`);
 
@@ -155,7 +155,7 @@ describe('ConsolidationRepository', () => {
   });
 
   it('findSemanticsByOwner attaches native embedding when window row exists', () => {
-    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('s1', 'semantic', 'a', datetime('now'))`);
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, origin_source, created_at) VALUES ('s1', 'semantic', 'a', '{"tool":"sleep-consolidation","context":{}}', datetime('now'))`);
     insertEmbeddingWithProjection(db, 's1', [0, 1, 0], 'minilm', 'model-new', 'window:0');
     insertEmbeddingWithProjection(db, 's1', [1, 0, 0], 'minilm', 'model-new', 'native');
 
@@ -163,5 +163,30 @@ describe('ConsolidationRepository', () => {
 
     expect(rows.map(r => r.id)).toEqual(['s1']);
     expect(rows[0]!.embedding).toEqual([1, 0, 0]);
+  });
+
+  it('findSemanticsByOwner returns only sleep-consolidation semantics', () => {
+    const origin = '{"tool":"sleep-consolidation","context":{}}';
+    const emb = [1, 0, 0, 0];
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO memory_item (id, type, content, owner_id, origin_source, created_at) VALUES ('s_ok', 'semantic', 'ok', 'o1', ?, datetime('now'))`,
+      [origin]
+    );
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO memory_item (id, type, content, owner_id, origin_source, created_at) VALUES ('s_triple', 'semantic', 'triple', 'o1', '{"tool":"extract_triples"}', datetime('now'))`
+    );
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO memory_item (id, type, content, owner_id, created_at) VALUES ('s_null', 'semantic', 'null', 'o1', datetime('now'))`
+    );
+    insertEmbedding(db, 's_ok', emb, 'minilm', 'model-new');
+    insertEmbedding(db, 's_triple', emb, 'minilm', 'model-new');
+    insertEmbedding(db, 's_null', emb, 'minilm', 'model-new');
+
+    const rows = repo.findSemanticsByOwner('o1', { provider: 'minilm', model: 'model-new' });
+
+    expect(rows.map(r => r.id)).toEqual(['s_ok']);
   });
 });
