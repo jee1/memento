@@ -167,6 +167,8 @@ DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](.
 
 ## 손상된 triple 문장 복구 (#768)
 
+> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+
 옛 템플릿(`${subject}는 ${object}를 ${predicate}합니다`)이 만든 semantic 기억은 `정의됨합니다`처럼
 활용이 깨져 있습니다. subject/predicate/object 컬럼이 남아 있는 행만 새 렌더러로 다시 만들며,
 **기본값은 dry-run**입니다. 적용 시 임베딩도 다시 생성합니다.

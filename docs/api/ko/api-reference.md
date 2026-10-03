@@ -31,6 +31,9 @@ MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는**
 `remember_procedure`, `procedural_diff`, `procedural_rollback`
 
 ### 관계 (4)
+
+> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+
 `extract_triples`, `add_relation`, `get_relations`, `remove_relation`
 
 ### 품질·보내기 (3)
