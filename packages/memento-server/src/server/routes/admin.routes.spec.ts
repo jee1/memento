@@ -6,6 +6,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { randomUUID } from 'crypto';
 import express from 'express';
 import http from 'http';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { createAdminRouter } from './admin.routes.js';
 import { resetBatchRunHistoryForTests } from '../batch-run-history.js';
@@ -1439,6 +1441,19 @@ describe('admin.routes memory review candidates', () => {
     try {
       const res = await getAdmin(port, '/admin/memory/review-candidates?status=bad');
       expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('accepts the review query the ops overview card sends', async () => {
+    const panelJs = readFileSync(resolve(process.cwd(), 'static/js/ops-overview-panel.js'), 'utf8');
+    const url = /const REVIEW_URL = '([^']+)'/.exec(panelJs)?.[1];
+    expect(url).toBeDefined();
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, url as string);
+      expect(res.statusCode).toBe(200);
     } finally {
       await new Promise<void>(r => server.close(() => r()));
     }
