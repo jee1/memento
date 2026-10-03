@@ -410,9 +410,26 @@ describe('SleepConsolidationService', () => {
       insertEmbedding(db, 'e2', emb, provider);
 
       const { uni, svc } = setupService();
-      vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
-        embedding: [0, 1, 0, 0],
-        provider: 'other-provider'
+      const otherProvider = 'other-provider';
+      vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
+        const vec = text.includes('alpha') ? [1, 0, 0, 0] : [0, 1, 0, 0];
+        return { embedding: vec, provider: otherProvider };
+      });
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+    });
+
+    it('T5: dimension mismatch keeps stored vector and clusters', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc } = setupService();
+      vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
+        const vec = text.includes('alpha') ? [1, 0, 0] : [0, 1, 0];
+        return { embedding: vec, provider };
       });
 
       const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
