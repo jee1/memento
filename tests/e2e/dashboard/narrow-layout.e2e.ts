@@ -9,6 +9,7 @@ const TABS = [
   'ops-overview',
   'ops-status',
   'review',
+  'memory-finder',
   'jobs',
   'agent-sessions',
   'evolution-demo',
