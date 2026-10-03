@@ -550,7 +550,19 @@ export function registerAdminBatchRoutes(
       const ownerIdFilter =
         typeof req.body?.ownerIdFilter === 'string' ? req.body.ownerIdFilter : null;
 
-      const result = await svc.run({ dryRun, ownerIdFilter });
+      const rawLookback = req.body?.lookbackDays;
+      let lookbackDays: number | undefined;
+      if (rawLookback !== undefined) {
+        if (typeof rawLookback !== 'number' || !Number.isInteger(rawLookback) || rawLookback < 1 || rawLookback > 3650) {
+          return res.status(400).json({
+            success: false,
+            error: 'lookbackDays must be an integer between 1 and 3650'
+          });
+        }
+        lookbackDays = rawLookback;
+      }
+
+      const result = await svc.run({ dryRun, ownerIdFilter, ...(lookbackDays !== undefined ? { lookbackDays } : {}) });
       return res.json({ success: true, result });
     } catch (error) {
       logger.error('Sleep consolidation run failed', {

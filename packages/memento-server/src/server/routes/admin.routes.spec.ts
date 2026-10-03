@@ -276,6 +276,77 @@ describe('admin.routes consolidation', () => {
       await new Promise<void>(r => server.close(() => r()));
     }
   });
+
+  const noopConsolidationResult = {
+    runAt: '2026-03-28T03:00:00.000Z',
+    durationMs: 0,
+    clustersFound: 0,
+    clustersProcessed: 0,
+    clustersSkipped: 0,
+    semanticsCreated: 0,
+    semanticsMerged: 0,
+    episodicsConsolidated: 0,
+    errors: []
+  } satisfies SleepConsolidationRunResult;
+
+  function makeConsolidationApp(run: ReturnType<typeof vi.fn>) {
+    const app = express();
+    app.use(express.json());
+    app.use(
+      '/admin',
+      createAdminRouter(db, {
+        sleepConsolidationService: { run }
+      } as unknown as ServerServices)
+    );
+    return app;
+  }
+
+  it('POST /admin/consolidation/run passes lookbackDays through to service', async () => {
+    const run = vi.fn().mockResolvedValue(noopConsolidationResult);
+    const { server, port } = await listen(makeConsolidationApp(run));
+    try {
+      const res = await postAdminJson(port, '/admin/consolidation/run', { lookbackDays: 400 });
+      expect(res.statusCode).toBe(200);
+      expect(run).toHaveBeenCalledWith(
+        expect.objectContaining({ lookbackDays: 400 })
+      );
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST /admin/consolidation/run omits lookbackDays key when not provided', async () => {
+    const run = vi.fn().mockResolvedValue(noopConsolidationResult);
+    const { server, port } = await listen(makeConsolidationApp(run));
+    try {
+      const res = await postAdminJson(port, '/admin/consolidation/run', { dryRun: true });
+      expect(res.statusCode).toBe(200);
+      const arg = run.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect('lookbackDays' in arg).toBe(false);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it.each([0, 3651, 1.5, '30', null])(
+    'POST /admin/consolidation/run returns 400 for invalid lookbackDays %s',
+    async invalidLookbackDays => {
+      const run = vi.fn().mockResolvedValue(noopConsolidationResult);
+      const { server, port } = await listen(makeConsolidationApp(run));
+      try {
+        const res = await postAdminJson(port, '/admin/consolidation/run', {
+          lookbackDays: invalidLookbackDays
+        });
+        expect(res.statusCode).toBe(400);
+        const body = JSON.parse(res.body) as { success: boolean; error: string };
+        expect(body.success).toBe(false);
+        expect(body.error).toBe('lookbackDays must be an integer between 1 and 3650');
+        expect(run).not.toHaveBeenCalled();
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    }
+  );
 });
 
 describe('admin.routes telemetry', () => {
