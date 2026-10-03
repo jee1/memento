@@ -29,6 +29,9 @@ Tools exposed over MCP are what **agents call during a session**: memory, relati
 `remember_procedure`, `procedural_diff`, `procedural_rollback`
 
 ### Relations (4)
+
+> **Disabled (#1230 · #1235, 2026-10-03)** — Automatic triple extraction is turned off in production with `TRIPLE_EXTRACTION_ENABLED=false`, and the existing triple data (`kg_triple`, 1,665 triple semantics and their relations) was discarded. 78% of the generated sentences were context-free fragments, and search, recall and memory_injection never read the triple structure. A graph redesign was measured and not built because existing search already covered it. The explicit `extract_triples` tool remains but is not recommended.
+
 `extract_triples`, `add_relation`, `get_relations`, `remove_relation`
 
 ### Quality & export (3)

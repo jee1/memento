@@ -112,6 +112,8 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 ### relation
 
+> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+
 메모리 간 관계를 추출하고 관리한다. 두 레이어가 있다:
 - **`memory_link` 테이블**: 기억 간 명시적 관계(`cause_of`, `derived_from`, `duplicates`, `contradicts`, `version_of`)를 저장한다.
 - **Triple 추출**: `ExtractTriplesTool`이 에피소드 기억에서 Subject–Predicate–Object Triple을 추출해 `memory_item`의 semantic 레코드로 저장한다. 에피소드 저장 시 비동기로 큐에 등록되고, `TripleExtractionBatchJob`이 배치로 처리한다.

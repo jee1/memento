@@ -26,6 +26,10 @@
 
 - **문서를 전수 재조사해 정리했습니다** (#1159): 레거시 `tasks/` PRD, 이슈 단위 설계·태스크, 시점 스냅샷 보고서 등 72개를 지워 tracked 마크다운이 672개에서 600개로 줄었습니다. 지운 문서는 불변 기준선 `9f6e013` 에 남아 있습니다. LLM 가이드에 `LLM_PROVIDER_CONSOLIDATION` 을 추가했고, `operations/` 루트에 있던 Docker 설정 가이드와 환경변수 체크리스트를 `operations/ko/` 로 옮겼으며, 포털 운영 표에 빠져 있던 문서 9개를 넣었습니다.
 
+### Deprecated
+
+- **triple**: automatic triple extraction is disabled in production and the existing triple data (`kg_triple`, 1,665 triple semantics) was discarded; a graph redesign was measured and not built — existing search answered multi-hop queries 6/6 (#1230, #1235)
+
 ## [1.36.0] - 2026-10-03
 
 ### Added
