@@ -4,7 +4,10 @@
 
 import type Database from 'better-sqlite3';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
-import type { SleepConsolidationRunResult } from '../../../shared/types/consolidation.types.js';
+import type {
+  ConsolidationCluster,
+  SleepConsolidationRunResult
+} from '../../../shared/types/consolidation.types.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -16,6 +19,7 @@ import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositor
 import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
 import { stripMemoryTemplateLabels } from './template-label-normalizer.js';
+import { getClusterJudgeThreshold, type ClusterJudgePair, type IClusterJudge } from './cluster-judge.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
 import type { Outcome } from '../../telemetry/types/telemetry.types.js';
@@ -43,6 +47,8 @@ export interface SleepConsolidationServiceDeps {
   summarizationService?: SummarizationService;
   /** 006: consolidation.performed 텔레메트리 */
   telemetryService?: TelemetryService;
+  /** #1225: verifies cluster members and merge targets. null/undefined = cosine only. */
+  clusterJudge?: IClusterJudge | null;
 }
 
 function newSemanticId(): string {
@@ -95,6 +101,7 @@ export class SleepConsolidationService {
   private readonly relationGraph: IRelationGraph;
   private readonly memoryEmbedding: MemoryEmbeddingService;
   private readonly telemetryService?: TelemetryService;
+  private readonly clusterJudge: IClusterJudge | null;
 
   constructor(
     private readonly db: Database.Database,
@@ -106,6 +113,7 @@ export class SleepConsolidationService {
     this.relationGraph = deps.relationGraph;
     this.memoryEmbedding = deps.memoryEmbeddingService ?? new MemoryEmbeddingService();
     this.telemetryService = deps.telemetryService;
+    this.clusterJudge = deps.clusterJudge ?? null;
   }
 
   /**
@@ -188,7 +196,10 @@ export class SleepConsolidationService {
       const provider = this.memoryEmbedding.getUnifiedEmbeddingService?.()?.getCurrentProviderName?.() ?? undefined;
       const embMap = this.repo.loadEmbeddingsMap(candidates.map(c => c.id), provider ? { provider } : {});
       await this.useLabelFreeEmbeddings(candidates, embMap, provider);
-      const clusters = this.clustering.buildClusters(candidates, embMap);
+      const clusters = await this.verifyClustersWithJudge(
+        this.clustering.buildClusters(candidates, embMap),
+        candidates
+      );
       result.clustersFound = clusters.length;
 
       if (options.dryRun) {
@@ -258,6 +269,20 @@ export class SleepConsolidationService {
                 withoutEmbedding,
                 candidateCount: semantics.length
               });
+            }
+          }
+
+          if (mergeTarget && this.clusterJudge) {
+            const [score] = await this.clusterJudge.scorePairs([{ a: summaryText, b: mergeTarget.content }]);
+            const accepted = typeof score === 'number' && score >= getClusterJudgeThreshold();
+            mcpLogger.logServer('info', 'Consolidation judge: merge target', {
+              clusterId,
+              mergeTargetId: mergeTarget.id,
+              score: Number.isFinite(score) ? score : null,
+              accepted
+            });
+            if (!accepted) {
+              mergeTarget = null;
             }
           }
 
@@ -459,5 +484,62 @@ export class SleepConsolidationService {
         // keep the stored vector
       }
     }
+  }
+
+  /**
+   * #1225: when a judge is configured, each member must be judged on-topic with its cluster
+   * seed (episodicIds[0]). Rejected or unjudged members stay unconsolidated for a later run
+   * (fail-closed); a cluster that falls below the minimum size is dropped.
+   */
+  private async verifyClustersWithJudge(
+    clusters: ConsolidationCluster[],
+    candidates: EpisodicCandidateRow[]
+  ): Promise<ConsolidationCluster[]> {
+    const judge = this.clusterJudge;
+    if (!judge || clusters.length === 0) {
+      return clusters;
+    }
+    const contentById = new Map(candidates.map(c => [c.id, c.content]));
+    const pairs: ClusterJudgePair[] = [];
+    for (const cluster of clusters) {
+      const [seedId, ...memberIds] = cluster.episodicIds;
+      for (const memberId of memberIds) {
+        pairs.push({ a: contentById.get(seedId!) ?? '', b: contentById.get(memberId) ?? '' });
+      }
+    }
+    const scores = await judge.scorePairs(pairs);
+    const threshold = getClusterJudgeThreshold();
+    const verified: ConsolidationCluster[] = [];
+    let k = 0;
+    for (const cluster of clusters) {
+      const [seedId, ...memberIds] = cluster.episodicIds;
+      const kept = [seedId!];
+      for (const memberId of memberIds) {
+        const score = scores[k++];
+        const accepted = typeof score === 'number' && score >= threshold;
+        if (accepted) {
+          kept.push(memberId);
+        }
+        mcpLogger.logServer('info', 'Consolidation judge: cluster member', {
+          seedId,
+          memberId,
+          score: Number.isFinite(score) ? score : null,
+          accepted
+        });
+      }
+      if (kept.length < this.clustering.getMinClusterSize()) {
+        continue;
+      }
+      verified.push(
+        kept.length === cluster.episodicIds.length
+          ? cluster
+          : {
+              ...cluster,
+              episodicIds: kept,
+              representativeId: kept.includes(cluster.representativeId) ? cluster.representativeId : seedId!
+            }
+      );
+    }
+    return verified;
   }
 }
