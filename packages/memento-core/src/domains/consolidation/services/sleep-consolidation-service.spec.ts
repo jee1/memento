@@ -13,16 +13,25 @@ import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-s
 function insertEpisodic(
   db: Database.Database,
   id: string,
-  opts?: { owner?: string | null; pinned?: boolean; importance?: number }
+  opts?: { owner?: string | null; pinned?: boolean; importance?: number; content?: string }
 ) {
   const owner = opts?.owner ?? null;
   const pinned = opts?.pinned ? 1 : 0;
   const imp = opts?.importance ?? 0.5;
+  const content = opts?.content ?? `body-${id}`;
   DatabaseUtils.run(
     db,
     `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at) VALUES (?, 'episodic', ?, ?, ?, ?, datetime('now', '-1 day'))`,
-    [id, `body-${id}`, owner, pinned, imp]
+    [id, content, owner, pinned, imp]
   );
+}
+
+function templateContent(marker: string): string {
+  return `결정: ${marker} decision
+근거: ${marker} reason
+버린 대안: ${marker} alt
+안 통한 것: ${marker} fail
+다음 걸림돌: ${marker} next`;
 }
 
 function insertEmbedding(
@@ -343,5 +352,84 @@ describe('SleepConsolidationService', () => {
     getCurrentProviderName.mockReturnValue('tfidf');
     const matched = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
     expect(matched.clustersFound).toBe(1);
+  });
+
+  describe('#1225: label-free clustering embeddings', () => {
+    const emb = [1, 0, 0, 0];
+    const provider = 'tfidf';
+
+    function setupService() {
+      const memEmb = new MemoryEmbeddingService();
+      const uni = memEmb.getUnifiedEmbeddingService();
+      const getCurrentProviderName = vi.spyOn(uni, 'getCurrentProviderName');
+      getCurrentProviderName.mockReturnValue(provider);
+      const svc = new SleepConsolidationService(db, {
+        memoryEmbeddingService: memEmb
+      });
+      return { memEmb, uni, svc, getCurrentProviderName };
+    }
+
+    it('T1: template pair splits when re-embedding yields orthogonal vectors', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc } = setupService();
+      const generateEmbedding = vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
+        const vec = text.includes('alpha') ? [1, 0, 0, 0] : [0, 1, 0, 0];
+        return { embedding: vec, provider };
+      });
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(0);
+      expect(generateEmbedding).toHaveBeenCalled();
+      for (const [text] of generateEmbedding.mock.calls) {
+        expect(text).not.toContain('결정:');
+      }
+    });
+
+    it('T2: non-template pair keeps stored vectors and does not re-embed for clustering', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: 'alpha plain body' });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: 'beta plain body' });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc } = setupService();
+      const generateEmbedding = vi.spyOn(uni, 'generateEmbedding');
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+      expect(generateEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('T3: provider mismatch keeps stored vector and clusters', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc } = setupService();
+      vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
+        embedding: [0, 1, 0, 0],
+        provider: 'other-provider'
+      });
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+    });
+
+    it('T4: re-embed failure keeps stored vector and clusters', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc } = setupService();
+      vi.spyOn(uni, 'generateEmbedding').mockRejectedValue(new Error('embed failed'));
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+    });
   });
 });

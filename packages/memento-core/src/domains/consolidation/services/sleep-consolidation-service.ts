@@ -15,6 +15,7 @@ import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-s
 import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
+import { stripMemoryTemplateLabels } from './template-label-normalizer.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
 import type { Outcome } from '../../telemetry/types/telemetry.types.js';
@@ -186,6 +187,7 @@ export class SleepConsolidationService {
       const candidates = this.repo.findEpisodicCandidates(ownerFilter, lookback);
       const provider = this.memoryEmbedding.getUnifiedEmbeddingService?.()?.getCurrentProviderName?.() ?? undefined;
       const embMap = this.repo.loadEmbeddingsMap(candidates.map(c => c.id), provider ? { provider } : {});
+      await this.useLabelFreeEmbeddings(candidates, embMap, provider);
       const clusters = this.clustering.buildClusters(candidates, embMap);
       result.clustersFound = clusters.length;
 
@@ -416,6 +418,46 @@ export class SleepConsolidationService {
       });
       this.activeRun = null;
       release();
+    }
+  }
+
+  /**
+   * #1225: replace the stored vector of template-format candidates with a vector of the
+   * label-stripped text, for clustering only. Stored embeddings are not modified.
+   * A candidate keeps its stored vector when re-embedding fails or yields another provider
+   * or dimension, so clustering never compares vectors from different spaces.
+   */
+  private async useLabelFreeEmbeddings(
+    candidates: Array<{ id: string; content: string }>,
+    embMap: Map<string, number[]>,
+    provider: string | undefined
+  ): Promise<void> {
+    const uni = this.memoryEmbedding.getUnifiedEmbeddingService?.();
+    if (!uni) {
+      return;
+    }
+    for (const candidate of candidates) {
+      const stored = embMap.get(candidate.id);
+      if (!stored) {
+        continue;
+      }
+      const stripped = stripMemoryTemplateLabels(candidate.content);
+      if (stripped === candidate.content || stripped.trim() === '') {
+        continue;
+      }
+      try {
+        const res = await uni.generateEmbedding(stripped);
+        const vec = res?.embedding;
+        if (
+          Array.isArray(vec) &&
+          vec.length === stored.length &&
+          (!provider || res?.provider === provider)
+        ) {
+          embMap.set(candidate.id, vec as number[]);
+        }
+      } catch {
+        // keep the stored vector
+      }
     }
   }
 }

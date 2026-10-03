@@ -15,6 +15,7 @@
 
 ### Fixed
 
+- **consolidation**: clustering compares template-format episodics without the 5-line record labels (결정/근거/버린 대안/안 통한 것/다음 걸림돌), which alone pushed unrelated records over the 0.65 threshold (#1225)
 - **consolidation**: sleep consolidation compares whole-document (`native`) vectors of the current provider; it no longer clusters ~25% of long episodics by an arbitrary `window:N` chunk vector (#1226)
 - **embedding**: `lightweight` provider dimension metadata now reports 512 (it is a runtime alias of `tfidf`), so an empty `EMBEDDING_DIMENSIONS` no longer resolves to 384 and a correct 512 no longer triggers `EMBEDDING_DIMENSIONS_MISMATCH` (#1221)
 
