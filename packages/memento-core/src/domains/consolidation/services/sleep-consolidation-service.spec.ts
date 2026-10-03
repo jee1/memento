@@ -449,4 +449,164 @@ describe('SleepConsolidationService', () => {
       expect(result.clustersFound).toBe(1);
     });
   });
+
+  describe('#1225: cluster judge', () => {
+    const emb = [1, 0, 0, 0];
+    const provider = 'tfidf';
+
+    async function setupTripleCluster() {
+      insertEpisodic(db, 'e0', { owner: 'agent-x', content: 'topic seed body' });
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: 'topic member one' });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: 'topic member two' });
+      for (const id of ['e0', 'e1', 'e2']) {
+        insertEmbedding(db, id, emb, provider);
+      }
+
+      const memEmb = new MemoryEmbeddingService();
+      const uni = memEmb.getUnifiedEmbeddingService();
+      vi.spyOn(uni, 'getCurrentProviderName').mockReturnValue(provider);
+
+      const clusterJudge = { scorePairs: vi.fn() };
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const svc = new SleepConsolidationService(db, {
+        memoryEmbeddingService: memEmb,
+        relationGraph: createRelationGraph(db),
+        clusterJudge
+      });
+      return { svc, clusterJudge, memEmb };
+    }
+
+    it('J1: rejects a cluster member below threshold', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      clusterJudge.scorePairs.mockResolvedValue([0.9, 0.1]);
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+      expect(clusterJudge.scorePairs).toHaveBeenCalledTimes(1);
+      const pairs = clusterJudge.scorePairs.mock.calls[0]![0] as Array<{ a: string; b: string }>;
+      expect(pairs).toHaveLength(2);
+      expect(pairs.every(p => p.a === 'topic seed body')).toBe(true);
+    });
+
+    it('J2: fail-closed when judge returns NaN', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      clusterJudge.scorePairs.mockResolvedValue([Number.NaN, Number.NaN]);
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(0);
+    });
+
+    it('J3: non-dry run consolidates accepted members only', async () => {
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      const { svc, clusterJudge } = await setupTripleCluster();
+      clusterJudge.scorePairs.mockResolvedValue([0.9, 0.1]);
+
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(result.episodicsConsolidated).toBe(2);
+      const e2 = DatabaseUtils.get(
+        db,
+        `SELECT COALESCE(is_consolidated, 0) AS c FROM memory_item WHERE id = 'e2'`
+      ) as { c: number };
+      expect(Number(e2.c)).toBe(0);
+    });
+
+    it('J4: without judge all three members cluster', async () => {
+      insertEpisodic(db, 'e0', { owner: 'agent-x', content: 'topic seed body' });
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: 'topic member one' });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: 'topic member two' });
+      for (const id of ['e0', 'e1', 'e2']) {
+        insertEmbedding(db, id, emb, provider);
+      }
+
+      const memEmb = new MemoryEmbeddingService();
+      const uni = memEmb.getUnifiedEmbeddingService();
+      vi.spyOn(uni, 'getCurrentProviderName').mockReturnValue(provider);
+
+      const svc = new SleepConsolidationService(db, { memoryEmbeddingService: memEmb });
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+    });
+
+    async function setupMergeScenario(clusterJudge: { scorePairs: ReturnType<typeof vi.fn> }) {
+      vi.stubEnv('CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD', '0.5');
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', 0, 0.5, datetime('now'))`
+      );
+      insertEmbedding(db, 'sem_existing', emb, provider);
+
+      for (let i = 0; i < 10; i++) {
+        const id = `e${i}`;
+        insertEpisodic(db, id, { owner: 'agent-x' });
+        insertEmbedding(db, id, emb, provider);
+      }
+
+      const memEmb = new MemoryEmbeddingService();
+      const uni = memEmb.getUnifiedEmbeddingService();
+      vi.spyOn(uni, 'getCurrentProviderName').mockReturnValue(provider);
+      vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
+        embedding: emb,
+        provider
+      });
+
+      const summarization = new SummarizationService();
+      vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue({
+        content: 'merged summary',
+        method: 'extractive'
+      });
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const svc = new SleepConsolidationService(db, {
+        memoryEmbeddingService: memEmb,
+        summarizationService: summarization,
+        relationGraph: createRelationGraph(db),
+        clusterJudge
+      });
+      return { svc };
+    }
+
+    it('J5: rejects merge target below threshold and creates new semantic', async () => {
+      const clusterJudge = {
+        scorePairs: vi.fn().mockImplementation(async (pairs: Array<{ a: string; b: string }>) => {
+          if (pairs.length === 1 && pairs[0]!.b === 'base') {
+            return [0.2];
+          }
+          return pairs.map(() => 0.9);
+        })
+      };
+      const { svc } = await setupMergeScenario(clusterJudge);
+
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(result.semanticsMerged).toBe(0);
+      expect(result.semanticsCreated).toBe(1);
+      const unchanged = DatabaseUtils.get(
+        db,
+        `SELECT content FROM memory_item WHERE id = 'sem_existing'`
+      ) as { content: string };
+      expect(unchanged.content).toBe('base');
+    });
+
+    it('J6: accepts merge target above threshold', async () => {
+      const clusterJudge = {
+        scorePairs: vi.fn().mockImplementation(async (pairs: Array<{ a: string; b: string }>) => {
+          if (pairs.length === 1 && pairs[0]!.b === 'base') {
+            return [0.9];
+          }
+          return pairs.map(() => 0.9);
+        })
+      };
+      const { svc } = await setupMergeScenario(clusterJudge);
+
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(result.semanticsMerged).toBe(1);
+    });
+  });
 });

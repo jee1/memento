@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { mementoConfig } from '../shared/config/index.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { SleepConsolidationService } from '../domains/consolidation/services/sleep-consolidation-service.js';
+import { createClusterJudge } from '../domains/consolidation/services/cluster-judge.js';
 import { createRelationGraph } from '../infrastructure/relation-graph-factory.js';
 import { IntrospectionScanCache } from '../domains/memory/introspection/introspection-scan-cache.js';
 import { TelemetryRepository } from '../domains/telemetry/repositories/telemetry-repository.js';
@@ -47,7 +48,8 @@ export async function createBatchTelemetryRelationAndSleep(
   const sleepConsolidationService = new SleepConsolidationService(db, {
     relationGraph: relationGraph,
     memoryEmbeddingService: embeddingService,
-    telemetryService
+    telemetryService,
+    clusterJudge: createClusterJudge(mementoConfig.typesafeApiKey, mementoConfig.typesafeModel)
   });
   batchScheduler.setSleepConsolidationService(sleepConsolidationService);
   await batchScheduler.start(db, reflexionWorker, mementoConfig.batchSchedulerEnabled);
