@@ -50,7 +50,7 @@ export const RememberSchema = z.object({
   source_session_id: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
   enable_triple_extraction: z.boolean().optional()
-    .describe('Deprecated (#1237). Ignored when present; triple extraction was removed.'),
+    .describe('Deprecated, ignored (#1237).'),
 }).strict().refine((data) => {
   if (data.type === 'core' || data.type === 'vault') {
     return !!(data.key && data.value);

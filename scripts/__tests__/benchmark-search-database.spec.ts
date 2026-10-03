@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -7,6 +7,19 @@ import {
   sampleImportance,
   sampleRecallCount,
 } from '../lib/benchmark-search-database.js';
+
+/** scripts/lib/benchmark-search-database.ts:313 uses Date.now() for last_accessed_at. */
+// Match CI runner wall clock (~2026-10-03T18:23Z) so #973:313 offset path is exercised.
+const FIXED_NOW_MS = Date.parse('2026-10-03T18:23:50.000Z');
+
+async function withFixedNow<T>(fn: () => Promise<T>): Promise<T> {
+  const spy = vi.spyOn(Date, 'now').mockReturnValue(FIXED_NOW_MS);
+  try {
+    return await fn();
+  } finally {
+    spy.mockRestore();
+  }
+}
 
 describe('createSeededBenchmarkDatabase', () => {
   let dir: string;
@@ -156,8 +169,8 @@ describe('#973 시더 메타데이터는 정답 라벨과 무관하다', () => {
     try {
       writeFixture(dirA, 'bench_mem_000001');
       writeFixture(dirB, 'bench_mem_000002');
-      const rowsA = await seedAndRead(dirA);
-      const rowsB = await seedAndRead(dirB);
+      const rowsA = await withFixedNow(() => seedAndRead(dirA));
+      const rowsB = await withFixedNow(() => seedAndRead(dirB));
       expect(rowsA).toHaveLength(2);
       expect(rowsB).toEqual(rowsA);
     } finally {
@@ -179,7 +192,9 @@ describe('#973 시더 메타데이터는 정답 라벨과 무관하다', () => {
     try {
       writeFixture(withGt, 'bench_mem_000001');
       writeFixture(without, null);
-      expect(await seedAndRead(without)).toEqual(await seedAndRead(withGt));
+      expect(await withFixedNow(() => seedAndRead(without))).toEqual(
+        await withFixedNow(() => seedAndRead(withGt)),
+      );
     } finally {
       if (previousProvider === undefined) {
         delete process.env.EMBEDDING_PROVIDER;
@@ -332,8 +347,8 @@ describe('#973 메타데이터는 코퍼스 안에서의 위치와 무관하다'
       writeCorpus(plain, [DOC_A, DOC_B]);
       writeCorpus(shifted, [DOC_INSERTED, DOC_A, DOC_B]);
 
-      const before = await seedAndRead(plain);
-      const after = await seedAndRead(shifted);
+      const before = await withFixedNow(() => seedAndRead(plain));
+      const after = await withFixedNow(() => seedAndRead(shifted));
 
       expect(after.size).toBe(3);
       for (const id of ['mem_seed_001', 'mem_seed_002']) {

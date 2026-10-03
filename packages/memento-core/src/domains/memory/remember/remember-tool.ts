@@ -152,7 +152,7 @@ export class RememberTool extends BaseTool {
           },
           enable_triple_extraction: {
             type: 'boolean',
-            description: 'Deprecated (#1237). Ignored when present; triple extraction was removed.',
+            description: 'Deprecated, ignored (#1237).',
           },
         },
         // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).

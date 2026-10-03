@@ -89,7 +89,7 @@ describe('triple removal regression (#1237)', () => {
     expect(schema.additionalProperties).toBe(false);
     expect(schema.properties?.enable_triple_extraction).toMatchObject({
       type: 'boolean',
-      description: expect.stringContaining('Deprecated (#1237)'),
+      description: expect.stringContaining('Deprecated, ignored (#1237)'),
     });
     expect(schema.properties?.enable_triple_extraction?.default).toBeUndefined();
     expect(schema.required ?? []).not.toContain('enable_triple_extraction');
