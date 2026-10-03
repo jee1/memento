@@ -2746,3 +2746,27 @@ circle.em-dot:focus-visible {
     height: 44px;
   }
 }
+
+/* #1118 memory finder */
+.memory-finder-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.memory-finder-title {
+  margin: 0;
+}
+
+.memory-finder-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.memory-finder-form .m-input {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
