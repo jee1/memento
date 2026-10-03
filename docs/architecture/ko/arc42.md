@@ -345,7 +345,7 @@ rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → 
 | `MEMENTO_TOOLSET` | `core` | tools/list 노출 범위 |
 | `MEMENTO_TYPE_PARAM_MODE` | `error` | type 파라미터 정책 |
 
-전체: [env-deployment-checklist.md](../../operations/env-deployment-checklist.md)
+전체: [env-deployment-checklist.md](../../operations/ko/env-deployment-checklist.md)
 
 ### 7.4 인프라 로드맵 (미구현)
 

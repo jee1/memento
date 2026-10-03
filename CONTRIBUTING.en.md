@@ -44,7 +44,7 @@ For new features, focus on **which problem you are solving** and **who it is for
 
 ### Code contributions
 
-Code PRs usually **align scope in an issue first**, implement on a `feature/` or `fix/` branch, then open a PR with tests and Conventional Commits. The GitHub PR template (`.github/PULL_REQUEST_TEMPLATE.md`) and [PR description example](docs/operations/ko/pr-description-example-npm-workflow.md) (Korean; no EN file yet) speed up review. Compound Engineering (`/ce-compound`) follows the template's **Knowledge compounding** section.
+Code PRs usually **align scope in an issue first**, implement on a `feature/` or `fix/` branch, then open a PR with tests and Conventional Commits. Filling in the GitHub PR template (`.github/PULL_REQUEST_TEMPLATE.md`) speeds up review. Compound Engineering (`/ce-compound`) follows the template's **Knowledge compounding** section.
 
 1. **Open an issue** — write scope and acceptance criteria first.
 2. **Create a branch** — `feature/<slug>` or `fix/<slug>`.

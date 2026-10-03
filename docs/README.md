@@ -95,18 +95,24 @@ Memento가 **왜 이렇게 나뉘어 있는지**를 이해하려면 아키텍처
 | GitHub 릴리스 | [github-release-workflow.md](operations/ko/github-release-workflow.md) | [github-release-workflow.md](operations/en/github-release-workflow.md) |
 | 마이그레이션 상태 점검 | [check-migration-status.md](operations/ko/check-migration-status.md) | [check-migration-status.md](operations/en/check-migration-status.md) |
 | 검토 큐 안전 정리 | [review-queue-cleanup.md](operations/ko/review-queue-cleanup.md) | [review-queue-cleanup.md](operations/en/review-queue-cleanup.md) |
-| 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) | — |
-| 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/env-deployment-checklist.md) | — |
+| 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) · [체크리스트](operations/ko/doc-audit-checklist.md) | — |
+| 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/ko/env-deployment-checklist.md) | — |
+| Docker 설정 | [docker-setup-guide.md](operations/ko/docker-setup-guide.md) | — |
 | Docker 배포 절차 (DB 백업 포함) | [docker-deploy-procedure.md](operations/ko/docker-deploy-procedure.md) | — |
-| 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [npx-troubleshooting.md](operations/en/npx-troubleshooting.md) |
+| DB 보존 정책 | [db-retention-policy.md](operations/ko/db-retention-policy.md) | — |
+| 메모리 Export / Import (DR) | [memory-export-import.md](operations/ko/memory-export-import.md) | — |
+| 로그 이슈 모니터 | [log-issue-monitor.md](operations/ko/log-issue-monitor.md) | [log-issue-monitor.md](operations/en/log-issue-monitor.md) |
+| 에이전트 통합 릴리스 게이트 | [agent-integration-release-gate.md](operations/ko/agent-integration-release-gate.md) · [스모크 매트릭스](operations/ko/agent-smoke-matrix.md) | — |
+| npm 패키지 제거 | [npm-unpublish-guide.md](operations/ko/npm-unpublish-guide.md) | [npm-unpublish-guide.md](operations/en/npm-unpublish-guide.md) |
+| 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) · [Node 버전](operations/ko/troubleshooting-node-version.md) | [npx-troubleshooting.md](operations/en/npx-troubleshooting.md) · [Node version](operations/en/troubleshooting-node-version.md) |
 
 ### 참조 (reference)
 
 로깅 형식, 보안 수칙, 마일스톤, 검색 수식처럼 **한 번 찾아두고 다시 보는** 자료는 [reference/ko/](reference/ko/) · [reference/en/](reference/en/)에 있습니다.
 
-### 명세·태스크 (저장소 루트)
+### 명세 (저장소 루트)
 
-기능 단위 설계와 작업 목록은 루트 [specs/](../specs/README.md)와 [tasks/](../tasks/)에 있습니다. Spec Kit으로 진행하는 이슈는 `specs/NNN-<slug>/` 패턴을 따르며, 번호와 상태는 `specs/README.md`에서 관리합니다.
+기능 단위 설계와 작업 목록은 루트 [specs/](../specs/README.md)에 있습니다. 예전 `tasks/` PRD는 #1159에서 제거했고 불변 기준선 [`9f6e013`](https://github.com/jee1/memento/tree/9f6e013c1c4b0e7430ebf8b620f33c05718d2ab8/tasks)에서 볼 수 있습니다. Spec Kit으로 진행하는 이슈는 `specs/NNN-<slug>/` 패턴을 따르며, 번호와 상태는 `specs/README.md`에서 관리합니다.
 
 ### 블로그
 

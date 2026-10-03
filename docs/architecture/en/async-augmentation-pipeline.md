@@ -33,7 +33,7 @@ The following jobs run via `BatchScheduler` on schedule or from the job queue:
 
 Reference files:
 - `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`
-- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler-default-config.ts`
+- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler/batch-scheduler-default-config.ts`
 - `packages/memento-core/src/workers/consolidation-score-worker.ts`
 
 ## Failure Retry and Monitoring
