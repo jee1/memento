@@ -3,14 +3,6 @@ import type { ApiScope, ApiTokenEntry } from '../types/api-token.js';
 import { API_SCOPES } from '../types/api-token.js';
 import { getRawEnvValue } from './environment.js';
 
-const LEGACY_ADMIN_TOKEN_ID = 'legacy-admin';
-const LEGACY_DEPRECATION_MESSAGE =
-  'ADMIN_API_KEY is deprecated for programmatic HTTP access. ' +
-  'Migrate to MEMENTO_API_TOKENS with scoped tokens (tools:invoke, admin:destructive). ' +
-  'Legacy key currently grants both scopes via synthetic token id "legacy-admin".';
-
-let legacyDeprecationLogged = false;
-
 function isApiScope(value: unknown): value is ApiScope {
   return typeof value === 'string' && (API_SCOPES as readonly string[]).includes(value);
 }
@@ -112,51 +104,22 @@ function discardEnvVarNameValue(key: string, value: string | undefined): string 
   return undefined;
 }
 
-function synthesizeLegacyAdminToken(adminApiKey: string): ApiTokenEntry {
-  if (!legacyDeprecationLogged) {
-    logger.warn(LEGACY_DEPRECATION_MESSAGE);
-    legacyDeprecationLogged = true;
-  }
-  return {
-    id: LEGACY_ADMIN_TOKEN_ID,
-    secret: adminApiKey.trim(),
-    scopes: ['tools:invoke', 'admin:destructive'],
-  };
-}
-
 /**
- * Resolve programmatic API tokens from env.
- * - MEMENTO_API_TOKENS JSON array when set and non-empty
- * - else ADMIN_API_KEY synthesized as legacy-admin with both scopes (deprecation warn once)
- * - a configured-but-unusable MEMENTO_API_TOKENS logs an error before falling back,
- *   so a failed migration is not mistaken for one that was never started (#1115)
+ * Resolve programmatic API tokens from MEMENTO_API_TOKENS only (#1241: no ADMIN_API_KEY fallback).
+ * ADMIN_API_KEY is accepted only to log that it no longer grants programmatic access.
  */
 export function resolveApiTokens(adminApiKey: string | undefined): ApiTokenEntry[] {
   const rawTokensEnv = discardEnvVarNameValue('MEMENTO_API_TOKENS', getRawEnvValue('MEMENTO_API_TOKENS'));
-  const legacyKey = discardEnvVarNameValue('ADMIN_API_KEY', adminApiKey);
   const tokensEnvConfigured = rawTokensEnv !== undefined && rawTokensEnv.trim() !== '';
+  const envTokens = tokensEnvConfigured ? parseEnvTokens(rawTokensEnv.trim()) : [];
 
-  if (tokensEnvConfigured) {
-    const envTokens = parseEnvTokens(rawTokensEnv.trim());
-    if (envTokens.length > 0) {
-      return envTokens;
-    }
+  if (envTokens.length === 0 && adminApiKey && adminApiKey.trim() !== '') {
+    // #1241: ADMIN_API_KEY no longer grants programmatic access; it only unlocks the dashboard login.
+    logger.error(
+      'ADMIN_API_KEY no longer grants programmatic HTTP access (#1241). ' +
+        'Configure MEMENTO_API_TOKENS with scoped tokens (tools:invoke, admin:destructive); ' +
+        'programmatic API requests are rejected until then.',
+    );
   }
-
-  if (legacyKey && legacyKey.trim() !== '') {
-    if (tokensEnvConfigured) {
-      logger.error(
-        'MEMENTO_API_TOKENS is set but produced no usable tokens; falling back to legacy ADMIN_API_KEY. ' +
-          'Scoped-token migration has NOT taken effect: synthetic "legacy-admin" still holds both scopes.',
-      );
-    }
-    return [synthesizeLegacyAdminToken(legacyKey)];
-  }
-
-  return [];
-}
-
-/** Test-only reset for deprecation log guard. */
-export function resetLegacyApiTokenDeprecationLogForTests(): void {
-  legacyDeprecationLogged = false;
+  return envTokens;
 }
