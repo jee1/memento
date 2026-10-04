@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type Database from 'better-sqlite3';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { SearchRanking } from './search-ranking.js';
@@ -320,5 +320,64 @@ describe('HybridResultRanker usage signal (#1181)', () => {
       new SearchRanking().calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 });
 
     expect(items[0]?.score_breakdown?.usage?.score).toBeCloseTo(expectedUsage, 12);
+  });
+});
+
+describe('HybridResultRanker includeRelations (#1245)', () => {
+  const relationRows = [
+    {
+      source_id: 'mem1',
+      target_id: 'mem2',
+      relation_type: 'CAUSES',
+      confidence: 0.8,
+    },
+  ];
+
+  it('does not call getRelationsBatch when includeRelations is false', async () => {
+    const getRelationsBatch = vi.fn().mockResolvedValue(new Map([['mem1', relationRows]]));
+    const r = new HybridResultRanker(
+      new SearchResultCombiner(),
+      new SearchRanking(),
+      matcher,
+      () => ({ getRelationsBatch }),
+    );
+
+    const items = await r.combineAndSortResults(
+      [textHit('mem1', 0.8)],
+      [],
+      TEXT_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      { query: 'test', includeRelations: false },
+    );
+
+    expect(getRelationsBatch).not.toHaveBeenCalled();
+    expect(items[0]?.relations).toBeUndefined();
+  });
+
+  it('calls getRelationsBatch once and attaches relations when includeRelations is true', async () => {
+    const getRelationsBatch = vi.fn().mockResolvedValue(new Map([['mem1', relationRows]]));
+    const r = new HybridResultRanker(
+      new SearchResultCombiner(),
+      new SearchRanking(),
+      matcher,
+      () => ({ getRelationsBatch }),
+    );
+
+    const items = await r.combineAndSortResults(
+      [textHit('mem1', 0.8)],
+      [],
+      TEXT_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      true,
+      { query: 'test', includeRelations: true },
+    );
+
+    expect(getRelationsBatch).toHaveBeenCalledTimes(1);
+    expect(items[0]?.relations).toEqual([
+      { target_id: 'mem2', relation_type: 'CAUSES', confidence: 0.8 },
+    ]);
   });
 });

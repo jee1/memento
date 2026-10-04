@@ -143,12 +143,6 @@ export class HybridResultRanker {
     weights: HybridWeights
   ): void {
     results.forEach(result => {
-      const relationWeight = ctx.relationWeights.get(result.id);
-
-      if (relationWeight !== undefined && relationWeight > 0) {
-        result.relation_weight = relationWeight;
-      }
-
       if (includeRelations) {
         const relations = ctx.relationInfo.get(result.id);
         if (relations && relations.length > 0) {
@@ -183,7 +177,6 @@ export class HybridResultRanker {
       const baseFeatures = this.buildBaseFeatures(
         result,
         fusionRelevance,
-        relationWeight || 0,
         proceduralMatch,
         feedback_score,
         processAttributeFit
@@ -205,7 +198,6 @@ export class HybridResultRanker {
   private buildBaseFeatures(
     result: HybridSearchResult,
     fusionRelevance: number,
-    relationWeight: number,
     proceduralMatch: ProceduralMemoryMatch | undefined,
     feedbackScore: number,
     processAttributeFit: number | undefined
@@ -216,7 +208,6 @@ export class HybridResultRanker {
       importance: this.ranking.calculateImportance(result.importance, Boolean(result.pinned), result.type),
       // #1181: 두 레인이 같은 정의를 쓴다. 접근 시각은 사용 빈도가 아니고 검색이 스스로 갱신한다.
       usage: this.ranking.calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 }),
-      relation_weight: relationWeight,
       duplication_penalty: 0,
       workflow_name_match: proceduralMatch?.workflow_name_match || false,
       skill_name_match: proceduralMatch?.skill_name_match || false,
@@ -268,7 +259,9 @@ export class HybridResultRanker {
     processId: string | undefined,
     query: HybridSearchQuery
   ): Promise<RankingContext> {
-    const relationData = await this.fetchRelationWeights(memoryIds);
+    const relationInfo = query.includeRelations
+      ? await this.fetchRelationInfo(memoryIds)
+      : new Map<string, RelationInfoRow[]>();
     const consolidationScores = mementoConfig.consolidationScoreEnabled
       ? this.fetchConsolidationScores(db, memoryIds)
       : new Map<string, number>();
@@ -284,8 +277,7 @@ export class HybridResultRanker {
     );
 
     return {
-      relationWeights: relationData.weights,
-      relationInfo: relationData.relations,
+      relationInfo,
       consolidationScores,
       proceduralMatches,
       processAttributes,
@@ -391,23 +383,17 @@ export class HybridResultRanker {
     return { processAttributes, memoryDetailsMap };
   }
 
-  private async fetchRelationWeights(
+  private async fetchRelationInfo(
     memoryIds: string[]
-  ): Promise<{
-    weights: Map<string, number>;
-    relations: Map<string, RelationInfoRow[]>;
-  }> {
-    const weights = new Map<string, number>();
+  ): Promise<Map<string, RelationInfoRow[]>> {
     const relations = new Map<string, RelationInfoRow[]>();
     const relationGraph = this.getRelationGraph();
 
     if (memoryIds.length === 0 || !relationGraph) {
-      return { weights, relations };
+      return relations;
     }
 
     try {
-      const config = getRankingWeights();
-      const maxRelations = config.relation_weights.max_relations;
       const relationsByMemory = await relationGraph.getRelationsBatch(memoryIds, {
         direction: 'both',
         minConfidence: 0.5,
@@ -416,11 +402,6 @@ export class HybridResultRanker {
       for (const memoryId of memoryIds) {
         const memoryRelations = relationsByMemory.get(memoryId) ?? [];
         if (memoryRelations.length > 0) {
-          const relationData = memoryRelations.map(r => ({
-            confidence: r.confidence,
-            relation_type: r.relation_type,
-          }));
-          weights.set(memoryId, this.ranking.calculateRelationWeight(relationData, maxRelations));
           relations.set(memoryId, memoryRelations.map(r => ({
             target_id: r.source_id === memoryId ? r.target_id : r.source_id,
             relation_type: r.relation_type,
@@ -432,12 +413,12 @@ export class HybridResultRanker {
       const maskedError = error instanceof Error
         ? PIIMasker.maskError(error)
         : { message: String(error), name: 'Error' };
-      logger.warn('관계 가중치 계산 실패', {
+      logger.warn('관계 정보 조회 실패', {
         error: maskedError.message,
       });
     }
 
-    return { weights, relations };
+    return relations;
   }
 
   private calculateRecency(createdAt: string | Date | undefined): number {
