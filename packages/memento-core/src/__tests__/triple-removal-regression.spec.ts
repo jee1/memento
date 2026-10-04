@@ -5,7 +5,7 @@ import { getExposedTools, getToolRegistry } from '../tools/index.js';
 import { launchBackgroundAugmentation } from '../domains/memory/remember/remember-tool-augmentation.js';
 import { REGISTERED_MANUAL_BATCH_JOB_TYPES } from '../infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 import { RememberTool } from '../domains/memory/remember/remember-tool.js';
-import { ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING } from '../domains/memory/remember/remember-tool-schema.js';
+import { ZodError } from 'zod';
 import { getBatchScheduler, resetBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../infrastructure/relation-graph-factory.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
@@ -78,21 +78,15 @@ function initializeRegressionDatabase(db: Database.Database): void {
 }
 
 describe('triple removal regression (#1237)', () => {
-  it('remember inputSchema advertises optional deprecated enable_triple_extraction without default', () => {
+  it('remember inputSchema does not advertise enable_triple_extraction (#1240)', () => {
     const tool = new RememberTool();
     const schema = tool.getDefinition().inputSchema as {
       properties?: Record<string, Record<string, unknown>>;
-      required?: string[];
       additionalProperties?: boolean;
     };
 
     expect(schema.additionalProperties).toBe(false);
-    expect(schema.properties?.enable_triple_extraction).toMatchObject({
-      type: 'boolean',
-      description: expect.stringContaining('Deprecated, ignored (#1237)'),
-    });
-    expect(schema.properties?.enable_triple_extraction?.default).toBeUndefined();
-    expect(schema.required ?? []).not.toContain('enable_triple_extraction');
+    expect(schema.properties?.enable_triple_extraction).toBeUndefined();
   });
 
   it('tools/list exposure has no extract_triples', () => {
@@ -230,56 +224,21 @@ describe('triple removal regression (#1237)', () => {
       expect(tripleJobs).toHaveLength(0);
     });
 
-    it('accepts enable_triple_extraction=true legacy input, saves with warning, and skips triple jobs', async () => {
-      const result = await tool.handle(
+    it('rejects enable_triple_extraction input without saving (#1240)', async () => {
+      await expect(tool.handle(
         {
           type: 'episodic',
-          content: 'legacy enable_triple_extraction true',
+          content: 'legacy enable_triple_extraction input',
           enable_triple_extraction: true,
-        },
+        } as Record<string, unknown>,
         context,
-      );
-      const resultData = JSON.parse(result.content[0]!.text);
+      )).rejects.toThrow(ZodError);
 
-      expect(resultData.warnings).toContain(ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING);
-
-      const row = DatabaseUtils.get(db, 'SELECT id, content FROM memory_item WHERE id = ?', [
-        resultData.memory_id,
-      ]);
-      expect(row).toBeDefined();
-      expect(row.content).toBe('legacy enable_triple_extraction true');
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      const tripleJobs = addJobSpy.mock.calls.filter(([name]) =>
-        String(name).startsWith('triple_extraction_'),
-      );
-      expect(tripleJobs).toHaveLength(0);
+      const countRow = DatabaseUtils.get(db, 'SELECT COUNT(*) AS count FROM memory_item');
+      expect(countRow.count).toBe(0);
     });
 
-    it('accepts enable_triple_extraction=false legacy input, saves with warning, and skips triple jobs', async () => {
-      const result = await tool.handle(
-        {
-          type: 'episodic',
-          content: 'legacy enable_triple_extraction false',
-          enable_triple_extraction: false,
-        },
-        context,
-      );
-      const resultData = JSON.parse(result.content[0]!.text);
-
-      expect(resultData.warnings).toContain(ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING);
-
-      const row = DatabaseUtils.get(db, 'SELECT id FROM memory_item WHERE id = ?', [resultData.memory_id]);
-      expect(row).toBeDefined();
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      const tripleJobs = addJobSpy.mock.calls.filter(([name]) =>
-        String(name).startsWith('triple_extraction_'),
-      );
-      expect(tripleJobs).toHaveLength(0);
-    });
-
-    it('preserves missing enable_triple_extraction behavior without deprecation warning', async () => {
+    it('saves without enable_triple_extraction and without warnings', async () => {
       const result = await tool.handle(
         {
           type: 'episodic',
