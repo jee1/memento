@@ -50,11 +50,7 @@ alpha = 0.45
 beta = 0.20
 gamma = 0.20
 delta = 0.10
-zeta = 0.15
 epsilon = 0.10
-
-[relation_weights]
-max_relations = 5
 `;
       writeFileSync(tempConfigPath, validConfig, 'utf-8');
 
@@ -66,9 +62,7 @@ max_relations = 5
       expect(config.ranking_weights.beta).toBe(0.20);
       expect(config.ranking_weights.gamma).toBe(0.20);
       expect(config.ranking_weights.delta).toBe(0.10);
-      expect(config.ranking_weights.zeta).toBe(0.15);
       expect(config.ranking_weights.epsilon).toBe(0.10);
-      expect(config.relation_weights.max_relations).toBe(5);
     });
 
     it('should use default values when config file does not exist', () => {
@@ -83,16 +77,13 @@ max_relations = 5
       expect(config.ranking_weights.beta).toBe(0.20);
       expect(config.ranking_weights.gamma).toBe(0.20);
       expect(config.ranking_weights.delta).toBe(0.10);
-      expect(config.ranking_weights.zeta).toBe(0);
       expect(config.ranking_weights.epsilon).toBe(0.10);
-      expect(config.relation_weights.max_relations).toBe(5);
     });
 
     it('should merge partial config with defaults', () => {
       // Given: 일부 값만 포함된 TOML 설정 파일
       const partialConfig = `[ranking_weights]
 alpha = 0.50
-zeta = 0.20
 `;
       writeFileSync(tempConfigPath, partialConfig, 'utf-8');
 
@@ -101,12 +92,10 @@ zeta = 0.20
 
       // Then: 지정된 값은 사용하고 나머지는 기본값 사용
       expect(config.ranking_weights.alpha).toBe(0.50);
-      expect(config.ranking_weights.zeta).toBe(0.20);
       expect(config.ranking_weights.beta).toBe(0.20); // 기본값
       expect(config.ranking_weights.gamma).toBe(0.20); // 기본값
       expect(config.ranking_weights.delta).toBe(0.10); // 기본값
       expect(config.ranking_weights.epsilon).toBe(0.10); // 기본값
-      expect(config.relation_weights.max_relations).toBe(5); // 기본값
     });
 
     it('should throw error when weight value is out of range', () => {
@@ -141,9 +130,8 @@ epsilon = 0.10
       expect(() => loadRankingWeights(tempConfigPath)).toThrow(/alpha.*최소값.*0/);
     });
 
-    it('should throw error when max_relations is not positive', () => {
-      // Given: max_relations가 0 이하인 TOML 파일
-      const invalidConfig = `[ranking_weights]
+    it('ignores legacy zeta and [relation_weights] keys in TOML (#1245)', () => {
+      const legacyConfig = `[ranking_weights]
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
@@ -152,12 +140,13 @@ zeta = 0.15
 epsilon = 0.10
 
 [relation_weights]
-max_relations = 0
+max_relations = 5
 `;
-      writeFileSync(tempConfigPath, invalidConfig, 'utf-8');
+      writeFileSync(tempConfigPath, legacyConfig, 'utf-8');
 
-      // When/Then: 에러가 발생해야 함
-      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/max_relations.*최소값.*1/);
+      const config = loadRankingWeights(tempConfigPath);
+      expect(config.ranking_weights.alpha).toBe(0.45);
+      expect(config.ranking_weights.epsilon).toBe(0.10);
     });
 
     it('should throw error when config file is invalid TOML', () => {
@@ -434,12 +423,12 @@ max_relations = 5
       expect(config.ranking_weights.consolidation).toBe(0.35);
     });
 
-    it('ships zeta = 0 in config/ranking-weights.toml (#1185)', () => {
+    it('loads shipped config/ranking-weights.toml', () => {
       const shipped = fileURLToPath(new URL('../../../../../config/ranking-weights.toml', import.meta.url));
       expect(existsSync(shipped)).toBe(true);
       const config = loadRankingWeights(shipped);
-      expect(config.ranking_weights.zeta).toBe(0);
-      expect(config.relation_weights.max_relations).toBe(5);
+      expect(config.ranking_weights.alpha).toBe(0.45);
+      expect(config.ranking_weights.zeta_fb).toBe(0.05);
     });
 
     it('loads [vector_length_decay] from TOML (#921)', () => {
@@ -486,7 +475,6 @@ max_relations = 10
 
       // Then: 올바른 값이 반환되어야 함
       expect(config1.ranking_weights.alpha).toBe(0.50);
-      expect(config1.relation_weights.max_relations).toBe(10);
 
       // When: 파일을 변경하고 두 번째 호출
       const modifiedConfig = `[ranking_weights]
@@ -505,7 +493,6 @@ max_relations = 15
 
       // Then: 캐시된 값이 반환되어야 함 (변경되지 않음)
       expect(config2.ranking_weights.alpha).toBe(0.50);
-      expect(config2.relation_weights.max_relations).toBe(10);
     });
 
     it('should reload config after cache reset', () => {
@@ -545,7 +532,6 @@ max_relations = 15
 
       // Then: 새로운 값이 로드되어야 함
       expect(config2.ranking_weights.alpha).toBe(0.60);
-      expect(config2.relation_weights.max_relations).toBe(15);
     });
 
     it('should cache per config path (multi-profile)', () => {

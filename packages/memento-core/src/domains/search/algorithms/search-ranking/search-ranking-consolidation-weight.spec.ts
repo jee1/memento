@@ -59,11 +59,7 @@ alpha = 0.45
 beta = 0.20
 gamma = 0.20
 delta = 0.10
-zeta = 0.15
 epsilon = 0.10
-
-[relation_weights]
-max_relations = 5
 `;
     useToml(toml);
     expect(getRankingWeights().ranking_weights.consolidation).toBe(0);

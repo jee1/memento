@@ -745,63 +745,6 @@ describe('HybridSearchEngine', () => {
       `, [id, type, content]);
     }
 
-    it('should calculate relation weight and apply to search ranking', async () => {
-      // Given: 테스트 메모리 및 관계 생성
-      createTestMemory('mem1', '프로젝트 계획 수립');
-      createTestMemory('mem2', '프로젝트 실행');
-      createTestMemory('mem3', '프로젝트 완료');
-      
-      // 관계 생성: mem1 -> mem2 -> mem3
-      await relationGraph.addRelation('mem1', 'mem2', 'CAUSES', { confidence: 0.8 });
-      await relationGraph.addRelation('mem2', 'mem3', 'FOLLOWS', { confidence: 0.9 });
-
-      // Mock 검색 결과 설정
-      (mockTextEngine.search as Mock).mockResolvedValue({
-        items: [
-          { id: 'mem1', content: '프로젝트 계획 수립', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), pinned: false }
-        ],
-        total_count: 1,
-        query_time: 10
-      });
-
-      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
-      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
-      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue([
-        { id: 'mem1', content: '프로젝트 계획 수립', type: 'episodic', importance: 0.5, similarity: 0.8 }
-      ]);
-
-      (mockResultCombiner.combine as Mock).mockReturnValue([
-        {
-          id: 'mem1',
-          content: '프로젝트 계획 수립',
-          type: 'episodic',
-          importance: 0.5,
-          created_at: new Date().toISOString(),
-          pinned: false,
-          textScore: 0.7,
-          vectorScore: 0.8,
-          finalScore: 0.75,
-          recall_reason: '하이브리드 검색'
-        }
-      ]);
-
-      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
-
-      // When: 검색 실행
-      const result = await hybridSearchEngine.search(db, {
-        query: '프로젝트',
-        limit: 10
-      });
-
-      // Then: 관계 가중치가 계산되어 finalScore에 반영되어야 함
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].relation_weight).toBeDefined();
-      expect(result.items[0].relation_weight).toBeGreaterThan(0);
-      
-      // 관계 가중치가 포함된 finalScore가 더 높아야 함
-      expect(result.items[0].finalScore).toBeGreaterThan(0);
-    });
-
     it('should include relations in search results when includeRelations is true', async () => {
       // Given: 테스트 메모리 및 관계 생성
       createTestMemory('mem1', '프로젝트 계획');
@@ -909,85 +852,6 @@ describe('HybridSearchEngine', () => {
       expect(result.items[0].relations).toBeUndefined();
     });
 
-    it('should rank memories with higher relation weight higher', async () => {
-      // Given: 두 개의 메모리 생성 (하나는 관계가 많고, 하나는 관계가 적음)
-      createTestMemory('mem1', '인기 있는 프로젝트');
-      createTestMemory('mem2', '일반 프로젝트');
-      createTestMemory('mem3', '관련 프로젝트 1');
-      createTestMemory('mem4', '관련 프로젝트 2');
-      createTestMemory('mem5', '관련 프로젝트 3');
-      
-      // mem1에 많은 관계 생성
-      await relationGraph.addRelation('mem1', 'mem3', 'CAUSES', { confidence: 0.9 });
-      await relationGraph.addRelation('mem1', 'mem4', 'FOLLOWS', { confidence: 0.8 });
-      await relationGraph.addRelation('mem1', 'mem5', 'DEPENDS_ON', { confidence: 0.85 });
-      
-      // mem2에는 관계 없음
-
-      // Mock 검색 결과 설정 (두 메모리 모두 동일한 점수)
-      (mockTextEngine.search as Mock).mockResolvedValue({
-        items: [
-          { id: 'mem1', content: '인기 있는 프로젝트', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), pinned: false },
-          { id: 'mem2', content: '일반 프로젝트', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), pinned: false }
-        ],
-        total_count: 2,
-        query_time: 10
-      });
-
-      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
-      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
-      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue([
-        { id: 'mem1', content: '인기 있는 프로젝트', type: 'episodic', importance: 0.5, similarity: 0.7 },
-        { id: 'mem2', content: '일반 프로젝트', type: 'episodic', importance: 0.5, similarity: 0.7 }
-      ]);
-
-      (mockResultCombiner.combine as Mock).mockReturnValue([
-        {
-          id: 'mem1',
-          content: '인기 있는 프로젝트',
-          type: 'episodic',
-          importance: 0.5,
-          created_at: new Date().toISOString(),
-          pinned: false,
-          textScore: 0.7,
-          vectorScore: 0.7,
-          finalScore: 0.7,
-          recall_reason: '하이브리드 검색'
-        },
-        {
-          id: 'mem2',
-          content: '일반 프로젝트',
-          type: 'episodic',
-          importance: 0.5,
-          created_at: new Date().toISOString(),
-          pinned: false,
-          textScore: 0.7,
-          vectorScore: 0.7,
-          finalScore: 0.7,
-          recall_reason: '하이브리드 검색'
-        }
-      ]);
-
-      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
-
-      // When: 검색 실행
-      const result = await hybridSearchEngine.search(db, {
-        query: '프로젝트',
-        limit: 10
-      });
-
-      // Then: 관계가 많은 mem1이 더 높은 finalScore를 가져야 함
-      expect(result.items).toHaveLength(2);
-      const mem1Result = result.items.find(r => r.id === 'mem1');
-      const mem2Result = result.items.find(r => r.id === 'mem2');
-      
-      expect(mem1Result).toBeDefined();
-      expect(mem2Result).toBeDefined();
-      expect(mem1Result!.relation_weight).toBeGreaterThan(mem2Result!.relation_weight || 0);
-      // zeta=0 (#1185): relation_weight는 계산되지만 ζ·relation 항은 finalScore에 기여하지 않는다
-      expect(mem1Result!.finalScore).toBeCloseTo(mem2Result!.finalScore!, 6);
-    });
-
     it('should handle search when RelationGraph is not set', async () => {
       // Given: RelationGraph가 설정되지 않은 상태
       hybridSearchEngine.setRelationGraph(null);
@@ -1030,9 +894,9 @@ describe('HybridSearchEngine', () => {
         limit: 10
       });
 
-      // Then: 검색이 정상적으로 완료되어야 함 (관계 가중치 없이)
+      // Then: 검색이 정상적으로 완료되어야 함
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].relation_weight).toBeUndefined();
+      expect(result.items[0].finalScore).toBeGreaterThan(0);
     });
   });
 
@@ -2783,16 +2647,12 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       expect(combineCall[0]).toHaveLength(2); // textResults
       expect(combineCall[1]).toHaveLength(2); // vectorResults
       
-      // 2. normalizeScores()가 호출되어 점수가 정규화됨 (관계 가중치가 반영됨)
+      // 2. normalizeScores()가 호출되어 점수가 정규화됨
       expect(result.items.length).toBeGreaterThan(0);
       result.items.forEach(item => {
         expect(item.finalScore).toBeDefined();
         expect(typeof item.finalScore).toBe('number');
         expect(item.finalScore).toBeGreaterThanOrEqual(0);
-        // 관계 가중치가 있는 경우 finalScore가 더 높을 수 있음
-        if (item.relation_weight && item.relation_weight > 0) {
-          expect(item.finalScore).toBeGreaterThan(0);
-        }
       });
       
       // 3. deduplicateResults()가 호출되어 중복이 제거됨
@@ -2811,8 +2671,8 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       
       // 6. 관계 정보가 포함됨 (includeRelations가 true인 경우)
       const mem1Result = result.items.find(r => r.id === 'mem1');
-      if (mem1Result && mem1Result.relation_weight && mem1Result.relation_weight > 0) {
-        expect(mem1Result.relations).toBeDefined();
+      if (mem1Result?.relations && mem1Result.relations.length > 0) {
+        expect(mem1Result.relations[0]?.relation_type).toBeDefined();
       }
     });
   });

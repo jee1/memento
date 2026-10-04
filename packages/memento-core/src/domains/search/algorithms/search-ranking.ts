@@ -43,7 +43,6 @@ import {
   calculateDuplicationPenalty as computeDuplicationPenalty,
   calculateImportance as computeImportance,
   calculateRecency as computeRecency,
-  calculateRelationWeight as computeRelationWeight,
   calculateUsage as computeUsage,
   calculateUsageSimple as computeUsageSimple,
   resolveUserImportanceForRanking,
@@ -116,13 +115,6 @@ export class SearchRanking {
     selectedContents: string[]
   ): number {
     return computeDuplicationPenalty(candidateContent, selectedContents);
-  }
-
-  calculateRelationWeight(
-    relations: Array<{ confidence: number; relation_type: string }>,
-    maxRelations: number = 5
-  ): number {
-    return computeRelationWeight(relations, maxRelations);
   }
 
   calculateRelevanceSimple(query: string, content: string, tags: string[] = []): number {
