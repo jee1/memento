@@ -5,10 +5,6 @@
 import { z } from 'zod';
 import { CommonSchemas } from '../../../tools/types.js';
 
-/** #1237: legacy clients still send this; accepted and ignored until next major. */
-export const ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING =
-  'enable_triple_extraction is deprecated, ignored (#1237)';
-
 export const RememberSchema = z.object({
   content: CommonSchemas.Content,
   type: CommonSchemas.MemoryType.optional(),
@@ -49,8 +45,6 @@ export const RememberSchema = z.object({
   last_mentioned_at: z.string().datetime().optional(),
   source_session_id: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
-  enable_triple_extraction: z.boolean().optional()
-    .describe('Deprecated, ignored (#1237).'),
 }).strict().refine((data) => {
   if (data.type === 'core' || data.type === 'vault') {
     return !!(data.key && data.value);
