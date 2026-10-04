@@ -86,6 +86,16 @@ describe('HTTP owner scope integration', () => {
 
   beforeEach(async () => {
     vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        {
+          id: 'integration',
+          secret: 'integration-admin-key',
+          scopes: ['admin:destructive', 'tools:invoke'],
+        },
+      ]),
+    );
     vi.stubEnv('MEMENTO_OWNER_SCOPE_MODE', 'strict');
     vi.resetModules();
     ctx = await setupTestDatabase();
