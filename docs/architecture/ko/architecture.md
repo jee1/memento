@@ -112,13 +112,9 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 ### relation
 
-> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+> **제거됨 (#1237, 2026-10-03)** — `extract_triples`·자동 triple 추출·`kg_triple` 스키마를 제거했습니다 (#1230, #1235).
 
-메모리 간 관계를 추출하고 관리한다. 두 레이어가 있다:
-- **`memory_link` 테이블**: 기억 간 명시적 관계(`cause_of`, `derived_from`, `duplicates`, `contradicts`, `version_of`)를 저장한다.
-- **Triple 추출**: `ExtractTriplesTool`이 에피소드 기억에서 Subject–Predicate–Object Triple을 추출해 `memory_item`의 semantic 레코드로 저장한다. 에피소드 저장 시 비동기로 큐에 등록되고, `TripleExtractionBatchJob`이 배치로 처리한다.
-
-`triple_extracted_status` 컬럼이 처리 상태를 추적하여 실패 시 재시도한다.
+메모리 간 관계를 추출하고 관리한다. **`memory_link` 테이블**에 기억 간 명시적 관계(`cause_of`, `derived_from`, `duplicates`, `contradicts`, `version_of`)를 저장한다. `remember` 직후 비동기 **관계 추출**(`RelationExtractor`)이 LLM으로 링크를 제안할 수 있다.
 
 ### procedural
 
@@ -143,7 +139,7 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 ## MCP 도구 목록
 
-서버가 에이전트에게 노출하는 18개 도구:
+서버가 에이전트에게 노출하는 17개 도구:
 
 | 도구 | 카테고리 | 설명 |
 |------|----------|------|
@@ -158,7 +154,6 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 | `search_local` | anchor | 앵커 주변 로컬 검색 |
 | `remember_procedure` | procedural | 버전 관리 절차 기억 저장 |
 | `procedural_diff` / `procedural_rollback` | procedural | 버전 비교·롤백 |
-| `extract_triples` | relation | 에피소드에서 Triple 수동 추출 |
 | `get_introspection_summary` | meta | 메모리 품질 인트로스펙션 요약 |
 | `get_telemetry_summary` | telemetry | 에이전트 사용 통계 조회 |
 
@@ -170,7 +165,6 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 | 작업 | 기본 주기 | 역할 |
 |------|-----------|------|
-| `triple_extraction` | 1시간 | 미처리 에피소드에서 Triple 추출 |
 | `sleep_consolidation` | 1시간 | 에피소드 → 시맨틱 증류 |
 | `consolidation_score_incremental` | 1시간 | 통합 점수 증분 업데이트 |
 | `consolidation_score_full_sweep` | 24시간 (새벽 3시) | 전체 통합 점수 재계산 |
@@ -181,8 +175,6 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 | `relation_validation` | 7일 (일요일 새벽 2시) | 관계 유효성 검증 |
 | `log_rotation` | 24시간 | 로그 파일 순환 |
 | `telemetry_cleanup` | 24시간 | 텔레메트리 데이터 정리 |
-
-Triple 추출은 두 단계로 이루어진다. `remember`가 에피소드를 저장할 때 잡큐에 per-item 작업을 등록한다. 1시간마다 실행되는 배치는 누락된 에피소드를 배치 크기 10개 단위로 처리한다. 실패한 항목은 `triple_extracted_status = 'failed'`로 기록되어 다음 배치에서 재처리된다.
 
 ---
 

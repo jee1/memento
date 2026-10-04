@@ -19,18 +19,3 @@ export type {
   RelationMetadata,
   RelationTypeRegistry,
 } from './relation-graph.js';
-
-export type {
-  EntityLinkingResult,
-  ExtractionInfo,
-  ExtractionSteps,
-  PredicateCanonicalizationResult,
-  Triple,
-  TripleExtractionFailureReason,
-  TripleExtractionOptions,
-  TripleExtractionResult,
-  TripleExtractionStats,
-  TriplePipelineChunkError,
-  TriplePipelineResult,
-  TripleValidationResult,
-} from './triple-extraction.js';

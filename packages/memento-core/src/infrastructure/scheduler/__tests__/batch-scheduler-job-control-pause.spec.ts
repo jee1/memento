@@ -46,7 +46,7 @@ describe('restart registry coverage (#834)', () => {
     expect(names).toContain('monitoring');
     expect(names).toContain('healthcheck');
     expect(names).toContain('memory_review_candidates');
-    expect(names).toContain('triple_extraction_batch');
+    expect(names).not.toContain('triple_extraction_batch');
     expect(names).toContain('log_rotation');
     expect(names).toContain('anchor_auto_refresh');
     expect(names).toContain('job_run_cleanup_batch');

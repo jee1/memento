@@ -105,7 +105,7 @@ describe('buildKnowledgeContextBundle', () => {
     expect(bundle.promptText).not.toContain('베타');
   });
 
-  it('옛 triple 템플릿이 남긴 이중 활용 문장은 주입에서 제외한다 (#768)', async () => {
+  it('옛 triple 템플릿 손상 문장도 dedupe만 적용하고 주입한다 (#1237)', async () => {
     db.exec(`
       INSERT INTO memory_item (id, type, content, importance, created_at)
       VALUES
@@ -121,53 +121,19 @@ describe('buildKnowledgeContextBundle', () => {
       { query: 'injectfilter', maxMemories: 5, tokenBudget: 2000 },
     );
 
-    expect(bundle.promptText).toContain('정의합니다');
-    expect(bundle.promptText).not.toContain('정의됨합니다');
+    expect(bundle.itemCount).toBeGreaterThan(0);
+    expect(bundle.promptText).toMatch(/정의(합니다|됨합니다)/);
   });
 
-  it('손상 비율이 높아도 adaptive overfetch로 maxMemories를 정상 후보로 채운다 (#811 US2)', async () => {
+  it('adaptive overfetch 없이도 상위 후보로 maxMemories를 채운다 (#1237)', async () => {
     const maxMemories = 5;
-    const broken = Array.from({ length: 40 }, (_, i) =>
+    const ranked = Array.from({ length: 12 }, (_, i) =>
       stubSearchHit({
-        id: `broken_${i}`,
+        id: `candidate_${i}`,
         content: `adaptivefill 주제${i}는 객체를 정의됨합니다`,
-        finalScore: 1 - i * 0.001,
+        finalScore: 1 - i * 0.01,
       }),
     );
-    const clean = [
-      stubSearchHit({
-        id: 'clean_포함',
-        content: 'adaptivefill 시스템은 기능을 포함합니다',
-        finalScore: 0.4,
-      }),
-      stubSearchHit({
-        id: 'clean_1',
-        content: 'adaptivefill 주제는 객체를 정의합니다',
-        finalScore: 0.39,
-      }),
-      stubSearchHit({
-        id: 'clean_2',
-        content: 'adaptivefill 모듈은 계약을 구현합니다',
-        finalScore: 0.38,
-      }),
-      stubSearchHit({
-        id: 'clean_3',
-        content: 'adaptivefill 서비스는 상태를 저장합니다',
-        finalScore: 0.37,
-      }),
-      stubSearchHit({
-        id: 'clean_4',
-        content: 'adaptivefill 파이프라인은 결과를 반환합니다',
-        finalScore: 0.36,
-      }),
-      // #781: 함합니다는 탐지 확장이 아니므로 통과해야 한다 (예산 밖이면 제외될 수 있음)
-      stubSearchHit({
-        id: 'hamham',
-        content: 'adaptivefill 시스템는 완료를 구현함합니다',
-        finalScore: 0.35,
-      }),
-    ];
-    const ranked = [...broken, ...clean];
 
     const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => {
       const limit = query.limit ?? 10;
@@ -189,11 +155,7 @@ describe('buildKnowledgeContextBundle', () => {
     );
 
     expect(bundle.itemCount).toBe(maxMemories);
-    expect(bundle.promptText).not.toMatch(/정의됨합니다/);
-    expect(bundle.promptText).toContain('포함합니다');
-    // 고정 *2 shortlist(limit=10)만이면 전부 손상이라 0건 — adaptive면 limit이 커져야 함
-    const limits = search.mock.calls.map(([, q]) => (q as { limit?: number }).limit ?? 10);
-    expect(Math.max(...limits)).toBeGreaterThan(maxMemories * 2);
+    expect(bundle.promptText).toMatch(/정의됨합니다/);
   });
 
   it('포함합니다·함합니다는 기존 정책대로 주입에서 제외하지 않는다 (#781 / #811 FR-004)', async () => {
@@ -229,7 +191,7 @@ describe('buildKnowledgeContextBundle', () => {
     expect(bundle.promptText).toContain('구현함합니다');
   });
 
-  it('후보가 전부 손상이면 빈 번들을 반환하고 throw하지 않는다 (#811 US2)', async () => {
+  it('후보가 전부 손상 문장이어도 번들을 반환하고 throw하지 않는다 (#1237)', async () => {
     const brokenOnly = Array.from({ length: 12 }, (_, i) =>
       stubSearchHit({
         id: `all_broken_${i}`,
@@ -248,18 +210,16 @@ describe('buildKnowledgeContextBundle', () => {
       };
     });
 
-    await expect(
-      buildKnowledgeContextBundle(
-        {
-          db,
-          hybridSearchEngine: { search } as unknown as HybridSearchEngine,
-        },
-        { query: 'allcorrupt', maxMemories: 5, tokenBudget: 2000 },
-      ),
-    ).resolves.toMatchObject({
-      itemCount: 0,
-      promptText: '관련 기억을 찾을 수 없습니다.',
-    });
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: { search } as unknown as HybridSearchEngine,
+      },
+      { query: 'allcorrupt', maxMemories: 5, tokenBudget: 2000 },
+    );
+
+    expect(bundle.itemCount).toBe(5);
+    expect(bundle.promptText).toMatch(/정의됨합니다/);
   });
 });
 

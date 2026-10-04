@@ -80,7 +80,7 @@ export interface ToolContext {
     reflexionWorker?: IReflexionWorker;
     /** 메타 메모리 통계 서비스 */
     metaMemoryService?: MetaMemoryService;
-    /** 배치 스케줄러 (Triple 추출 등 비동기 작업 등록, context 미제공 시 사용 불가) */
+    /** 배치 스케줄러 (consolidation 등 비동기 작업 등록, context 미제공 시 사용 불가) */
     batchScheduler?: IBatchScheduler;
     /** Issue #21 Phase B: 인트로스펙션 스캔 결과 캐시 */
     introspectionScanCache?: IntrospectionScanCache;
@@ -137,5 +137,4 @@ export const CommonSchemas = {
   TriggerConditions: z.string().optional(), // JSON 객체 문자열
   UpdateMode: z.enum(['replace', 'incremental', 'versioned']).optional(),
   // AriGraph Pipeline 필드
-  EnableTripleExtraction: z.boolean().default(true).optional(), // Triple 추출 활성화 여부 (기본값: true)
 };

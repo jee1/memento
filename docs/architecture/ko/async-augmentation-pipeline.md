@@ -1,10 +1,10 @@
 # 비동기 Augmentation 파이프라인 (Issue #89)
 
-에이전트가 `remember`를 호출할 때마다 트리플 추출·콘솔리데이션까지 기다리면 응답 지연이 커집니다. 이 파이프라인은 **기억을 먼저 저장**하고, Fact/Triple/요약/중복 제거/콘솔리데이션 점수 계산은 **`BatchScheduler` 백그라운드 워커**에 맡깁니다. MCP 응답은 DB에 행이 안전하게 쓰인 직후 반환되며, 그보다 느린 작업은 큐·크론으로 이어집니다.
+에이전트가 `remember`를 호출할 때마다 관계 추출·콘솔리데이션까지 기다리면 응답 지연이 커집니다. 이 파이프라인은 **기억을 먼저 저장**하고, 관계 추출·요약·중복 제거·콘솔리데이션 점수 계산은 **`BatchScheduler` 백그라운드 워커**에 맡깁니다. MCP 응답은 DB에 행이 안전하게 쓰인 직후 반환되며, 그보다 느린 작업은 큐·크론으로 이어집니다.
 
 ## 개요
 
-> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+> **제거됨 (#1237, 2026-10-03)** — triple 추출·`extract_triples`·`kg_triple` 스키마를 제거했습니다 (#1230, #1235).
 
 아래 절에서는 즉시 저장 경로, 이후에 돌아가는 작업 목록, 재시도·모니터링 방식을 순서대로 정리합니다.
 
@@ -12,8 +12,8 @@
 
 - **remember / remember_procedure** 호출 시:
   - 메모리 항목을 DB에 **append-only**로 저장한다.
-  - 응답은 **저장 직후** 반환한다. Augmentation(Triple 추출, 콘솔리데이션 등) 완료를 기다리지 않는다.
-- 구현: `packages/memento-core/src/domains/memory/remember/remember-tool.ts`, `remember-procedure-tool.ts`에서 DB write 성공 후 즉시 반환. Triple 추출 등은 `BatchScheduler.addJob()`으로 JobQueue에만 등록.
+  - 응답은 **저장 직후** 반환한다. Augmentation(관계 추출, 콘솔리데이션 등) 완료를 기다리지 않는다.
+- 구현: `packages/memento-core/src/domains/memory/remember/remember-tool.ts`, `remember-procedure-tool.ts`에서 DB write 성공 후 즉시 반환. 관계 추출 등은 `launchBackgroundAugmentation`이 `BatchScheduler.addJob()`으로 JobQueue에만 등록.
 
 ## 워커 정제
 
@@ -21,8 +21,7 @@
 
 | 작업 | 트리거 | 역할 |
 |------|--------|------|
-| Per-item Triple 추출 | JobQueue (`addJob` from remember-tool) | episodic 저장 직후 작업 등록 |
-| `triple_extraction` 배치 | 1시간 주기 | 미처리 episodic 배치 처리 (배치 크기 10) |
+| Per-item 관계 추출 | JobQueue (`addJob` from remember-tool) | episodic 저장 직후 작업 등록 |
 | `sleep_consolidation` | 1시간 주기 | 에피소드 → 시맨틱 증류 (`SleepConsolidationService`) |
 | `consolidation_score_incremental` | 1시간 주기 | 통합 점수 증분 업데이트 |
 | `consolidation_score_full_sweep` | 24시간 (새벽 3시) | 전체 통합 점수 재계산 |
@@ -33,14 +32,12 @@
 
 참고 파일:
 - `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`
-- `packages/memento-core/src/infrastructure/scheduler/jobs/triple-extraction-batch-job.ts`
 - `packages/memento-core/src/workers/consolidation-score-worker.ts`
 
 ## 실패 재시도·모니터링
 
 - **재시도**
-  - JobQueue에 등록된 작업(Per-item Triple 추출 등): `RetryManager`가 실패 시 재시도. 설정은 `BatchJobConfig.retryAttempts`, `retryDelay` 등.
-  - Triple 추출 배치: `TripleExtractionBatchJob` 내부에서 실패 시 `memory_item.triple_extracted_status`를 `failed`로 업데이트하고, 메타데이터에 `retry_count`·`last_attempt` 기록. 주기 배치 또는 다음 배치에서 미처리 항목 재처리 가능.
+  - JobQueue에 등록된 작업(Per-item 관계 추출 등): `RetryManager`가 실패 시 재시도. 설정은 `BatchJobConfig.retryAttempts`, `retryDelay` 등.
 - **모니터링**
   - BatchScheduler 로그(파일·콘솔), `getStatus()`로 큐 크기·실행 중 작업·마지막 실행 시각 확인.
   - HTTP 서버 사용 시 admin 라우트에서 스케줄러 상태·큐 조회 가능.
@@ -49,4 +46,4 @@
 
 - **Fact 추출**: Issue #88에서 Fact 메타데이터 정규화. 대화에서 Fact를 “추출”하는 전용 단계는 별도 이슈에서 도입 가능.
 - **요약**: 에피소드 요약이 별도 서비스로 있으면 동일하게 JobQueue/배치에 등록.
-- **중복제거(dedupe)**: Issue #90 (Triple/KG dedupe) 및 기존 consolidation과 연동.
+- **중복제거(dedupe)**: Issue #90 및 기존 consolidation과 연동.

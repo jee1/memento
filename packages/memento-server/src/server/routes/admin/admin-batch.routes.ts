@@ -123,7 +123,6 @@ const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
   consolidation_score_full_sweep: 'consolidationScoreFullSweepInterval',
   weekly_relation_validation: 'relationValidationInterval',
   log_rotation: 'logRotationInterval',
-  triple_extraction_batch: 'tripleExtractionInterval',
   quality_measurement_batch: 'qualityMeasurementInterval',
   meta_memory_introspection: 'metaMemoryIntrospectionInterval',
   memory_review_candidates: 'memoryReviewCandidatesInterval',

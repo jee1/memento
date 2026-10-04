@@ -15,6 +15,28 @@ describe('RememberSchema (#1000)', () => {
     expect(parsed.update_mode).toBe('replace');
   });
 
+  it('enable_triple_extraction legacy flag는 파싱된다 (#1237)', () => {
+    expect(RememberSchema.parse({
+      type: 'episodic',
+      content: 'legacy true',
+      enable_triple_extraction: true,
+    }).enable_triple_extraction).toBe(true);
+
+    expect(RememberSchema.parse({
+      type: 'episodic',
+      content: 'legacy false',
+      enable_triple_extraction: false,
+    }).enable_triple_extraction).toBe(false);
+  });
+
+  it('enable_triple_extraction non-boolean은 거절된다', () => {
+    expect(() => RememberSchema.parse({
+      type: 'episodic',
+      content: 'x',
+      enable_triple_extraction: 'true',
+    })).toThrow(ZodError);
+  });
+
   it('미지원 키는 ZodError로 거절된다', () => {
     const unsupportedKeys = [
       { type: 'episodic', content: 'x', id: 'mem_bad' },

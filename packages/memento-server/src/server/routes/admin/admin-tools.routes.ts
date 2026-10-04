@@ -7,7 +7,6 @@ import type Database from 'better-sqlite3';
 import {
   RestoreAnchorsTool,
   MigrateEmbeddingsTool,
-  ConvertEpisodicToSemanticTool,
   GetMetaMemoryStatsTool,
   IntrospectionHealTool,
   logger,
@@ -96,46 +95,6 @@ export function registerAdminToolRoutes(
       });
       return res.status(500).json({
         error: '임베딩 마이그레이션 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
-  router.post('/memory/convert-episodic-to-semantic', async (req, res) => {
-    try {
-      if (!db || !serverServices) {
-        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
-      }
-
-      const { memory_id, skip_converted, retry_failed, limit } = req.body;
-
-      const toolContext = createToolContext({ db, services: serverServices });
-      const convertTool = new ConvertEpisodicToSemanticTool();
-      const result = await convertTool.handle({
-        memory_id,
-        skip_converted: skip_converted !== undefined ? skip_converted : true,
-        retry_failed: retry_failed || false,
-        limit: limit || 10
-      }, toolContext);
-
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: 'Episodic → Semantic 변환 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      logger.error('Episodic to Semantic conversion failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return res.status(500).json({
-        error: 'Episodic → Semantic 변환 실패',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

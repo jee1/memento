@@ -26,10 +26,6 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     relationValidationDayOfWeek: 0,     // 일요일
     relationValidationHour: 2,          // 새벽 2시
     logRotationInterval: DAY_MS, // 24시간 (매일)
-    tripleExtractionInterval: 60 * 60 * 1000, // 1시간
-    tripleExtractionHour: undefined,   // 시간 지정 안 함 (간격 기반 실행)
-    tripleExtractionBatchSize: 10,     // 배치 크기 10개
-    tripleExtractionTimeout: 30 * 1000, // 30초
     qualityMeasurementInterval: DAY_MS, // 24시간 (일일)
     qualityMeasurementHour: undefined, // 시간 지정 안 함 (간격 기반 실행)
     metaMemoryIntrospectionInterval: 6 * 60 * 60 * 1000, // 6시간, Issue 21
@@ -85,12 +81,6 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     retryDelay: 1000,                   // 1초
     weeklyRelationValidationTimeout: resolveValidatedNumber(
       'WEEKLY_RELATION_VALIDATION_TIMEOUT_MS',
-      30 * 60 * 1000,
-      n => n >= 60_000,
-      '최솟값 60000'
-    ),
-    tripleExtractionJobTimeout: resolveValidatedNumber(
-      'TRIPLE_EXTRACTION_JOB_TIMEOUT_MS',
       30 * 60 * 1000,
       n => n >= 60_000,
       '최솟값 60000'

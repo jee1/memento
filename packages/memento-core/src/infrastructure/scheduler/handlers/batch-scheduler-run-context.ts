@@ -12,7 +12,6 @@ import type { FileLogger } from '../file-logger.js';
 import type { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import type { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
 import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
-import type { TripleExtractionBatchJob } from '../jobs/triple-extraction-batch-job.js';
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import type { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
@@ -48,7 +47,6 @@ export interface BatchSchedulerRunContext {
   readonly introspectionScanCache: IntrospectionScanCache | null;
   readonly sleepConsolidationService: SleepConsolidationService | null;
   readonly telemetryCleanupRepository: TelemetryRepository | null;
-  readonly tripleExtractionBatchJob: MutableJobRef<TripleExtractionBatchJob>;
   readonly qualityMeasurementBatchJob: MutableJobRef<QualityMeasurementBatchJob>;
   readonly sleepConsolidationBatchJob: MutableJobRef<SleepConsolidationBatchJob>;
   readonly telemetryCleanupBatchJob: MutableJobRef<TelemetryCleanupBatchJob>;

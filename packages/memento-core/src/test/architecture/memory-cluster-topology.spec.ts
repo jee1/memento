@@ -10,7 +10,6 @@ const REQUIRED_CLUSTER_ENTRYPOINTS = {
   recall: 'recall-tool.ts',
   remember: 'remember-tool.ts',
   review: 'memory-review-candidate-selection-service.ts',
-  semantic: 'semantic-memory-update-service.ts',
   procedural: 'procedural-memory-extractor.ts',
   introspection: 'meta-memory-introspection-service.ts',
 } as const;
@@ -40,7 +39,6 @@ describe('memory domain cluster topology', () => {
       recall: 16,
       remember: 11,
       review: 9,
-      semantic: 14,
       procedural: 12,
       introspection: 6,
     });

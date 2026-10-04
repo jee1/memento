@@ -5,6 +5,10 @@
 import { z } from 'zod';
 import { CommonSchemas } from '../../../tools/types.js';
 
+/** #1237: legacy clients still send this; accepted and ignored until next major. */
+export const ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING =
+  'enable_triple_extraction is deprecated, ignored (#1237)';
+
 export const RememberSchema = z.object({
   content: CommonSchemas.Content,
   type: CommonSchemas.MemoryType.optional(),
@@ -27,8 +31,6 @@ export const RememberSchema = z.object({
   update_mode: CommonSchemas.UpdateMode,
   expected_version: z.number().int().min(1).optional()
     .describe('Compare-and-swap: 현재 memory_item.version(미설정 시 1)과 일치할 때만 replace/incremental 갱신'),
-  // AriGraph Pipeline 필드
-  enable_triple_extraction: CommonSchemas.EnableTripleExtraction,
   // 기존 필드 유지
   tags: CommonSchemas.Tags,
   importance: CommonSchemas.Importance.default(0.5),
@@ -47,6 +49,8 @@ export const RememberSchema = z.object({
   last_mentioned_at: z.string().datetime().optional(),
   source_session_id: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
+  enable_triple_extraction: z.boolean().optional()
+    .describe('Deprecated, ignored (#1237).'),
 }).strict().refine((data) => {
   if (data.type === 'core' || data.type === 'vault') {
     return !!(data.key && data.value);

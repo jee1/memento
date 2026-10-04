@@ -41,14 +41,6 @@ const llmProvider = (resolveString('LLM_PROVIDER') as LLMProvider) || 'auto';
 
 const llmProviderOverrideWarnedKeys = new Set<string>();
 const llmProviderOverrides: MementoConfig['llmProviderOverrides'] = {};
-const tripleProviderOverride = loadLlmProviderOverrideFromEnv(
-  'LLM_PROVIDER_TRIPLE_EXTRACTION',
-  getRawEnvValue('LLM_PROVIDER_TRIPLE_EXTRACTION'),
-  llmProviderOverrideWarnedKeys
-);
-if (tripleProviderOverride !== undefined) {
-  llmProviderOverrides.triple_extraction = tripleProviderOverride;
-}
 const relationProviderOverride = loadLlmProviderOverrideFromEnv(
   'LLM_PROVIDER_RELATION_EXTRACTION',
   getRawEnvValue('LLM_PROVIDER_RELATION_EXTRACTION'),
@@ -146,7 +138,6 @@ export const mementoConfig: MementoConfig = {
   ollamaBaseUrl: resolveString('OLLAMA_BASE_URL'),
   ollamaModel: resolveString('OLLAMA_MODEL'),
   llmModelOverrides: {
-    triple_extraction: resolveOptionalString('LLM_MODEL_TRIPLE_EXTRACTION'),
     relation_extraction: resolveOptionalString('LLM_MODEL_RELATION_EXTRACTION'),
     procedural: resolveOptionalString('LLM_MODEL_PROCEDURAL'),
     consolidation: resolveOptionalString('LLM_MODEL_CONSOLIDATION'),

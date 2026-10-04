@@ -15,7 +15,7 @@ OpenAI 등 클라우드 API를 쓰지 않거나 장애가 났을 때, Memento는
 `get_performance_metrics` · `get_cache_stats` · `clear_cache` · `optimize_database` 등은 MCP Tools가 아닙니다. [관리자 API](#관리자-api)의 [성능 모니터링 API](#성능-모니터링-api) · [데이터베이스 관리 API](#데이터베이스-관리-api)를 사용하세요.
 
 
-## MCP Tools (등록 22개 · 기본 노출 4개)
+## MCP Tools (등록 21개 · 기본 노출 4개)
 
 > 기본 `tools/list`는 `recall`·`remember`·`memory_injection`·`feedback` 4개만 반환합니다. 나머지는 등록된 채 호출만 가능하며, 전부 나열하려면 `MEMENTO_TOOLSET=full`을 설정합니다 (#769).
 
@@ -30,11 +30,11 @@ MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는**
 ### 절차 (3)
 `remember_procedure`, `procedural_diff`, `procedural_rollback`
 
-### 관계 (4)
+### 관계 (3)
 
-> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+> **제거됨 (#1237, 2026-10-03)** — `extract_triples`·자동 triple 추출·`kg_triple` 스키마를 제거했습니다. 생성 semantic 의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다 (#1230, #1235).
 
-`extract_triples`, `add_relation`, `get_relations`, `remove_relation`
+`add_relation`, `get_relations`, `remove_relation`
 
 ### 품질·보내기 (3)
 `get_introspection_summary`, `get_telemetry_summary`, `export`

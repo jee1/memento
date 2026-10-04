@@ -32,9 +32,6 @@ function createCoordinator(
     relationValidationDayOfWeek: 0,
     relationValidationHour: 2,
     logRotationInterval: 86_400_000,
-    tripleExtractionInterval: 3_600_000,
-    tripleExtractionBatchSize: 10,
-    tripleExtractionTimeout: 30_000,
     qualityMeasurementInterval: 86_400_000,
     metaMemoryIntrospectionInterval: 21_600_000,
     sleepConsolidationInterval: 3_600_000,
@@ -52,7 +49,6 @@ function createCoordinator(
     jobTimeout: 100,
     retryAttempts: 3,
     retryDelay: 10,
-    tripleExtractionJobTimeout: 500,
     ...config,
   };
 
@@ -74,49 +70,6 @@ function createCoordinator(
 }
 
 describe('BatchJobExecutionCoordinator timeout policy', () => {
-  it('allows triple_extraction_* jobs to use the longer dedicated timeout', async () => {
-    const { coordinator, log } = createCoordinator({});
-
-    await coordinator.executeJobWithRetry(
-      'triple_extraction_mem_test',
-      async () => {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      },
-      5,
-      0
-    );
-
-    expect(log).toHaveBeenCalledWith(
-      'Job triple_extraction_mem_test completed successfully',
-      expect.objectContaining({ retryCount: 0 })
-    );
-  });
-
-  it('logs warn and skips retry when triple_extraction_* job times out', async () => {
-    const { coordinator, log, jobQueue } = createCoordinator({});
-
-    await coordinator.executeJobWithRetry(
-      'triple_extraction_mem_slow',
-      async () => {
-        await new Promise(resolve => setTimeout(resolve, 700));
-      },
-      5,
-      0
-    );
-
-    expect(log).toHaveBeenCalledWith(
-      'Job triple_extraction_mem_slow timed out',
-      expect.objectContaining({ error: 'Job timeout after 500ms' }),
-      'warn'
-    );
-    expect(log).toHaveBeenCalledWith(
-      'Skipping immediate retry for triple_extraction_mem_slow; batch triple extraction will handle backlog',
-      expect.objectContaining({ jobName: 'triple_extraction_mem_slow' }),
-      'warn'
-    );
-    expect(jobQueue.isEmpty).toBe(true);
-  });
-
   it('still errors and schedules retry for generic jobs on timeout', async () => {
     vi.useFakeTimers();
     const { coordinator, log } = createCoordinator({});

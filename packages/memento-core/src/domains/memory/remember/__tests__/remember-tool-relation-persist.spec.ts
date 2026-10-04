@@ -101,7 +101,6 @@ describe('runRelationExtraction (Issue #711)', () => {
         savedMemoryType: 'episodic',
         content: '서버 과부하 때문에 장애가 발생했다',
         importance: 0.6,
-        enable_triple_extraction: false
       },
       context,
       host
@@ -132,7 +131,6 @@ describe('runRelationExtraction (Issue #711)', () => {
       savedMemoryType: 'episodic',
       content: '서버 과부하 때문에 장애가 발생했다',
       importance: 0.6,
-      enable_triple_extraction: false
     };
 
     await runRelationExtraction(params, context, host);
@@ -155,7 +153,6 @@ describe('runRelationExtraction (Issue #711)', () => {
         savedMemoryType: 'episodic',
         content: '서버 과부하 때문에 장애가 발생했다',
         importance: 0.6,
-        enable_triple_extraction: false
       },
       contextWithoutGraph,
       host
@@ -183,7 +180,6 @@ describe('runRelationExtraction (Issue #711)', () => {
         savedMemoryType: 'episodic',
         content: '서버 과부하 때문에 장애가 발생했다',
         importance: 0.6,
-        enable_triple_extraction: false
       },
       context,
       host
@@ -203,7 +199,6 @@ describe('runRelationExtraction (Issue #711)', () => {
         savedMemoryType: 'episodic',
         content: '서버 과부하 때문에 장애가 발생했다',
         importance: 0.6,
-        enable_triple_extraction: false
       },
       context,
       host

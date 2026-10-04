@@ -5,11 +5,7 @@ import { RetryManager } from '../retry-manager.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import type { JobRunRepository } from '../repositories/job-run-repository.js';
 import { JobRunLogBuffer, flushJobRunLogBufferSafe } from '../job-run-log-buffer.js';
-import {
-  isJobTimeoutError,
-  isTripleExtractionQueueJob,
-  resolveBatchJobTimeout
-} from './batch-job-timeout-resolver.js';
+import { resolveBatchJobTimeout } from './batch-job-timeout-resolver.js';
 
 export interface BatchJobExecutionCoordinatorDeps {
   jobQueue: JobQueue;
@@ -164,37 +160,19 @@ export class BatchJobExecutionCoordinator {
         duration: Date.now() - startTime
       };
 
-      const isTripleExtractionTimeout =
-        isTripleExtractionQueueJob(name) && isJobTimeoutError(error);
-
       logBuffer.append({
-        level: isTripleExtractionTimeout ? 'warn' : 'error',
-        message: isTripleExtractionTimeout
-          ? `${name} timed out`
-          : `${name} failed: ${errorInfo.error}`,
+        level: 'error',
+        message: `${name} failed: ${errorInfo.error}`,
         context: { phase: 'error', retryCount, errorCount: totalErrorCount },
       });
 
-      this.deps.log(
-        isTripleExtractionTimeout ? `Job ${name} timed out` : `Job ${name} failed`,
-        errorInfo,
-        isTripleExtractionTimeout ? 'warn' : 'error'
-      );
+      this.deps.log(`Job ${name} failed`, errorInfo, 'error');
       await this.deps.writeDiagnosticsEvent({
         type: 'batch_job_failure',
         jobName: name,
         ...errorInfo,
-        severity: isTripleExtractionTimeout ? 'warn' : 'error'
+        severity: 'error'
       });
-
-      if (isTripleExtractionTimeout) {
-        this.deps.log(
-          `Skipping immediate retry for ${name}; batch triple extraction will handle backlog`,
-          { jobName: name, duration: errorInfo.duration },
-          'warn'
-        );
-        return;
-      }
 
       const retryResult = this.deps.retryManager.shouldRetry(name, retryCount, totalErrorCount);
 

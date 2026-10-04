@@ -359,6 +359,19 @@ describe('runtime transport parity (all four tool wrappers)', () => {
     ]));
   });
 
+  it('maps removed extract_triples to unknown-tool failure via dispatchTool (#1237)', async () => {
+    const stdioError = await dispatchTool(
+      'extract_triples',
+      { memory_id: 'mem_removed_tool' },
+      ctx.db,
+      ctx.services,
+      { transport: 'mcp_stdio' },
+    ).catch((error: unknown) => error) as { code: number; protocolMessage: string };
+
+    expect(stdioError).toMatchObject({ code: -32601, protocolMessage: 'Method not found' });
+    expect(getToolRegistry().get('extract_triples')).toBeUndefined();
+  });
+
   it('maps the same unknown-tool failure contract in all four wrappers', async () => {
     const stdioError = await dispatchTool(
       'not_a_real_tool', {}, ctx.db, ctx.services, { transport: 'mcp_stdio' },

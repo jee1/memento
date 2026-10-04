@@ -269,7 +269,6 @@ export async function handleMemoryItem(
     skill_name,
     task_goal,
     reflection_notes,
-    enable_triple_extraction,
     importance,
   } = workingParams;
 
@@ -424,7 +423,6 @@ export async function handleMemoryItem(
       savedMemoryType: type,
       content,
       importance: importance ?? 0.5,
-      enable_triple_extraction
     },
     context,
     host

@@ -72,7 +72,6 @@ function makeConsolidationQuality(
 ): ConsolidationQualityResult {
   return {
     episodic_consolidation_rate: null,
-    triple_extraction_success_rate: null,
     cluster_processing_efficiency: null,
     recent_semantic_count_7d: 0,
     pipeline_error_count: 0,

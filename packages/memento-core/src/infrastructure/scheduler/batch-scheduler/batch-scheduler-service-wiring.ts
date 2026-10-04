@@ -80,7 +80,6 @@ export interface BatchSchedulerServiceState {
   introspectionScanCache: IntrospectionScanCache | null;
   sleepConsolidationService: SleepConsolidationService | null;
   telemetryCleanupRepository: TelemetryRepository | null;
-  tripleExtractionBatchJob: BatchSchedulerContextSource['tripleExtractionBatchJob'];
   qualityMeasurementBatchJob: BatchSchedulerContextSource['qualityMeasurementBatchJob'];
   sleepConsolidationBatchJob: BatchSchedulerContextSource['sleepConsolidationBatchJob'];
   telemetryCleanupBatchJob: BatchSchedulerContextSource['telemetryCleanupBatchJob'];
@@ -107,7 +106,6 @@ export interface BatchSchedulerRecurringCallbacks {
   runConsolidationScoreIncremental: () => Promise<BatchJobResult>;
   runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runConsolidationScoreFullSweep: () => Promise<BatchJobResult>;
-  runTripleExtractionBatch: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
@@ -196,7 +194,6 @@ export function getBatchSchedulerContextSource(
     introspectionScanCache: state.introspectionScanCache,
     sleepConsolidationService: state.sleepConsolidationService,
     telemetryCleanupRepository: state.telemetryCleanupRepository,
-    tripleExtractionBatchJob: state.tripleExtractionBatchJob,
     qualityMeasurementBatchJob: state.qualityMeasurementBatchJob,
     sleepConsolidationBatchJob: state.sleepConsolidationBatchJob,
     telemetryCleanupBatchJob: state.telemetryCleanupBatchJob,

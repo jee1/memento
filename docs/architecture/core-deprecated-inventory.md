@@ -4,13 +4,16 @@
 
 현재 **활성 deprecated 항목은 없습니다.** 아래는 이미 제거된 항목의 기록입니다.
 
-## Disabled in #1230 / #1235
+## Removed in #1237
 
 | Item | Reason |
 |------|--------|
-| 자동 triple 추출 (`remember` 직후 `runTripleExtraction`, 매시간 `triple_extraction_batch`) | 운영 `TRIPLE_EXTRACTION_ENABLED=false`. 생성 semantic 의 78% 가 맥락 없는 조각, triple 구조를 읽는 곳 없음 (#1230) |
-| `kg_triple` 데이터 · triple semantic (`origin_source.tool = extract_triples`) | 운영 DB 에서 2026-10-03 폐기. 그래프 재설계는 측정 결과 불필요로 만들지 않음 (#1235) |
-| `extract_triples` MCP 도구 | 코드는 남아 있으나 권장하지 않음. 제거 시점 미정 |
+| 자동 triple 추출 (`runTripleExtraction`, `triple_extraction_batch`) | 생성 semantic 의 78% 가 맥락 없는 조각, triple 구조를 읽는 곳 없음 (#1230). Phase 1 opt-in 후 Phase 2/3 에서 코드·스키마 전부 제거 |
+| `remember` `enable_triple_extraction` (compat shim, PR #1238) | 입력은 optional boolean 으로 계속 받되 무시; 응답 `warnings` 에 `deprecated, ignored (#1237)`. 다음 major 에 파라미터 자체 제거 예정 |
+| `extract_triples` MCP 도구 · `ConvertEpisodicToSemanticTool` | 명시 triple 추출·episodic→semantic 변환 경로 제거. 대체 추출 경로 없음 |
+| `kg_triple` 테이블 · `memory_item.triple_extracted*` 컬럼 | migration `050-drop-triple-schema` 로 DROP. 운영 데이터는 2026-10-03 폐기 (#1235) |
+| `TripleExtractionService` · `KgTripleRepository` · triple 관련 npm script (`memory:repair-triple-sentences`, `memory:kg-triple-predicate-quality`) | 런타임·운영 도구 일괄 제거 |
+| `LLM_PROVIDER_TRIPLE_EXTRACTION` / `LLM_MODEL_TRIPLE_EXTRACTION` / `TRIPLE_EXTRACTION_*` env | 설정·compose·env.example 에서 제거 |
 
 ## Removed in #636
 

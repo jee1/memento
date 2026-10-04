@@ -22,7 +22,6 @@ import { RememberProcedureTool } from '../domains/memory/procedural/remember-pro
 import { GetIntrospectionSummaryTool } from '../domains/memory/introspection/get-introspection-summary-tool.js';
 import { FeedbackTool } from '../domains/memory/tools/feedback-tool.js';
 import { GetTelemetrySummaryTool } from '../domains/telemetry/tools/get-telemetry-summary-tool.js';
-import { ExtractTriplesTool } from '../domains/relation/tools/extract-triples-tool.js';
 import { AddRelationTool } from '../domains/relation/tools/add-relation-tool.js';
 import { GetRelationsTool } from '../domains/relation/tools/get-relations-tool.js';
 import { RemoveRelationTool } from '../domains/relation/tools/remove-relation-tool.js';
@@ -49,7 +48,6 @@ const coreTools = [
   new RememberProcedureTool(),
   new GetIntrospectionSummaryTool(),
   new GetTelemetrySummaryTool(),
-  new ExtractTriplesTool(),
   new AddRelationTool(),
   new GetRelationsTool(),
   new RemoveRelationTool(),

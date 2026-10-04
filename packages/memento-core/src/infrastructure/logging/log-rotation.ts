@@ -4,7 +4,6 @@
 
 import fs from 'fs/promises';
 import { basename, resolve, sep } from 'path';
-import { DAY_MS } from '../../shared/utils/date.js';
 import {
   resolveLogRotationPolicies,
   type LogRotationPolicies,
@@ -15,7 +14,6 @@ import {
 } from './log-rotation-paths.js';
 
 export type LogFamilyId =
-  | 'triple_extraction'
   | 'migration'
   | 'docker_diagnostics'
   | 'log_issue_monitor';
@@ -261,61 +259,9 @@ async function rotateLogIssueMonitor(
   return { family, deletedCount, reclaimedBytes, warnings };
 }
 
-async function rotateTripleExtraction(
-  root: string,
-  retentionDays: number,
-  nowMs: number
-): Promise<FamilyRotationResult> {
-  const family: LogFamilyId = 'triple_extraction';
-  const warnings: string[] = [];
-  if (!(await pathExists(root))) {
-    return { family, deletedCount: 0, reclaimedBytes: 0, skippedMissingRoot: true, warnings };
-  }
-
-  let names: string[];
-  try {
-    names = await fs.readdir(root);
-  } catch {
-    warnings.push(warn(family, basename(root), 'readdir-failed'));
-    return { family, deletedCount: 0, reclaimedBytes: 0, warnings };
-  }
-
-  const retentionMs = retentionDays * DAY_MS;
-  let deletedCount = 0;
-  let reclaimedBytes = 0;
-
-  for (const name of names) {
-    if (!name.endsWith('.log')) {
-      continue;
-    }
-    const filePath = safePathUnderRoot(root, name);
-    if (filePath === null) {
-      warnings.push(warn(family, name, 'path-unsafe'));
-      continue;
-    }
-    try {
-      const st = await fs.stat(filePath);
-      if (!st.isFile()) {
-        continue;
-      }
-      if (nowMs - st.mtimeMs <= retentionMs) {
-        continue;
-      }
-      await fs.unlink(filePath);
-      deletedCount += 1;
-      reclaimedBytes += st.size;
-    } catch {
-      warnings.push(warn(family, name, 'unlink-failed'));
-    }
-  }
-
-  return { family, deletedCount, reclaimedBytes, warnings };
-}
-
 export async function rotateLogs(options: RotateLogsOptions = {}): Promise<LogRotationReport> {
   const policies = resolveLogRotationPolicies(options.policies);
   const roots = resolveLogRotationRoots(options.roots);
-  const nowMs = (options.now ?? new Date()).getTime();
 
   const families: FamilyRotationResult[] = [
     await rotateMigration(roots.migrationLogDir, policies.migrationKeepCount),
@@ -324,11 +270,6 @@ export async function rotateLogs(options: RotateLogsOptions = {}): Promise<LogRo
       policies.dockerDiagnosticsMaxBytes
     ),
     await rotateLogIssueMonitor(roots.logIssueMonitorDir, policies.monitorJsonlMaxBytes),
-    await rotateTripleExtraction(
-      roots.tripleExtractionLogDir,
-      policies.tripleExtractionDays,
-      nowMs
-    ),
   ];
 
   const deletedCount = families.reduce((sum, f) => sum + f.deletedCount, 0);

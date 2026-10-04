@@ -22,7 +22,6 @@ export interface BatchRecurringScheduleContext {
   runConsolidationScoreFullSweep: () => Promise<BatchJobResult>;
   runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
-  runTripleExtractionBatch: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
@@ -140,38 +139,6 @@ export function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringSched
   scheduleLogRotation(ctx);
 }
 
-export function scheduleTripleExtractionBatch(ctx: BatchRecurringScheduleContext): void {
-  if (ctx.config.tripleExtractionHour !== undefined) {
-    const checkAndRun = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      if (currentHour === ctx.config.tripleExtractionHour) {
-        const lastExecution = ctx.lastExecution.get('triple_extraction_batch');
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        if (!lastExecution || lastExecution < today) {
-          ctx.jobExecutionCoordinator.addJobToQueue(
-            'triple_extraction_batch',
-            async () => { await ctx.runTripleExtractionBatch(); },
-            6,
-            0
-          );
-        }
-      }
-    };
-    const checkInterval = 60 * 60 * 1000;
-    const intervalId = setInterval(checkAndRun, checkInterval);
-    ctx.intervals.set('triple_extraction_batch', intervalId);
-    checkAndRun();
-  } else {
-    ctx.scheduleJob(
-      'triple_extraction_batch',
-      ctx.config.tripleExtractionInterval,
-      async () => { await ctx.runTripleExtractionBatch(); },
-      6
-    );
-  }
-}
-
 export function scheduleQualityMeasurement(ctx: BatchRecurringScheduleContext): void {
   if (ctx.config.qualityMeasurementHour !== undefined) {
     const checkAndRun = () => {
@@ -205,7 +172,6 @@ export function scheduleQualityMeasurement(ctx: BatchRecurringScheduleContext): 
 }
 
 export function scheduleAugmentationAndTelemetryJobs(ctx: BatchRecurringScheduleContext): void {
-  scheduleTripleExtractionBatch(ctx);
   scheduleQualityMeasurement(ctx);
   if (ctx.hasSleepConsolidation) {
     scheduleSleepConsolidation(ctx);

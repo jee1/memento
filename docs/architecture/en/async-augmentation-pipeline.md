@@ -1,55 +1,49 @@
-# Async Augmentation Pipeline (Issue #89)
+# Asynchronous Augmentation Pipeline (Issue #89)
 
-Agents should not block on triple extraction or consolidation every time they call `remember`. This pipeline **writes memories immediately** and defers enrichment—fact/triple extraction, consolidation scoring, deduplication, and quality measurement—to **background workers** scheduled by `BatchScheduler`. The contract is simple: the MCP response returns as soon as the row is durable; anything slower runs in the queue or on cron.
+Waiting for relation extraction and consolidation on every `remember` call would inflate latency. This pipeline **persists the memory first**, then hands relation extraction, summarization, deduplication, and consolidation scoring to **`BatchScheduler` background workers**. The MCP response returns as soon as the row is safely written; slower work continues via the job queue and cron schedules.
 
 ## Overview
 
-> **Disabled (#1230 · #1235, 2026-10-03)** — Automatic triple extraction is turned off in production with `TRIPLE_EXTRACTION_ENABLED=false`, and the existing triple data (`kg_triple`, 1,665 triple semantics and their relations) was discarded. 78% of the generated sentences were context-free fragments, and search, recall and memory_injection never read the triple structure. A graph redesign was measured and not built because existing search already covered it. The explicit `extract_triples` tool remains but is not recommended.
+> **Removed (#1237, 2026-10-03)** — Triple extraction, `extract_triples`, and the `kg_triple` schema were removed (#1230, #1235).
 
-The following sections describe the immediate-write path, which jobs run later, and how retries and admin monitoring expose worker health.
+The sections below describe the immediate save path, follow-up jobs, and retry/monitoring behavior.
 
-## Immediate Write
+## Immediate save
 
-When `remember` or `remember_procedure` is called:
+- On **remember / remember_procedure**:
+  - Append the memory row to the database.
+  - Return the response **immediately** without waiting for augmentation (relation extraction, consolidation, etc.).
+- Implementation: `remember-tool.ts` and `remember-procedure-tool.ts` return after a successful DB write. `launchBackgroundAugmentation` registers relation extraction jobs via `BatchScheduler.addJob()`.
 
-- The memory is written to the DB **append-only**.
-- The response is returned **immediately after the write**. No augmentation step (triple extraction, consolidation, etc.) is awaited.
-- If the memory is episodic, `BatchScheduler.addJob()` registers a per-item triple extraction job in the queue before returning.
+## Background refinement
 
-Implementation: `packages/memento-core/src/domains/memory/remember/remember-tool.ts` and `remember-procedure-tool.ts`.
-
-## Background Refinement
-
-The following jobs run via `BatchScheduler` on schedule or from the job queue:
+These jobs run through **BatchScheduler** (queue and/or cron):
 
 | Job | Trigger | Role |
 |-----|---------|------|
-| Per-item triple extraction | Job queue (`addJob` from `remember`) | Extract triples from a single episodic memory immediately after save |
-| `triple_extraction` batch | Every 1 hour | Catch any episodic memories not yet processed |
-| `sleep_consolidation` | Every 1 hour | Distill episodic → semantic via `SleepConsolidationService` |
-| `consolidation_score_incremental` | Every 1 hour | Incrementally update consolidation scores |
-| `consolidation_score_full_sweep` | Daily (3 AM) | Full recalculation of all consolidation scores |
-| `relation_validation` | Weekly (Sun 2 AM) | Validate relation graph integrity |
-| `quality_measurement` | Daily | Measure memory quality metrics |
-| `forgetting_cleanup` | Daily | Delete TTL-expired memories |
+| Per-item relation extraction | JobQueue (`addJob` from remember-tool) | Enqueued right after episodic save |
+| `sleep_consolidation` | Every hour | Episodic → semantic distillation (`SleepConsolidationService`) |
+| `consolidation_score_incremental` | Every hour | Incremental consolidation score update |
+| `consolidation_score_full_sweep` | Every 24h (3 AM) | Full consolidation score recalculation |
+| `relation_validation` | Every 7 days (Sun 2 AM) | Relation graph validation |
+| `quality_measurement` | Every 24h | Memory quality measurement |
+| `forgetting_cleanup` | Every 24h | TTL-expired memory cleanup |
+| `memory_review_candidates` | Every 24h | Spaced-repetition review queue refresh |
 
 Reference files:
 - `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`
-- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler/batch-scheduler-default-config.ts`
 - `packages/memento-core/src/workers/consolidation-score-worker.ts`
 
-## Failure Retry and Monitoring
+## Retry and monitoring
 
-**Retry**
-- Per-item queue jobs (triple extraction, etc.): `RetryManager` retries on failure. Configured via `BatchJobConfig.retryAttempts` and `retryDelay`.
-- Triple extraction batch: on failure, `triple_extracted_status` is set to `'failed'` and `triple_extraction_metadata` records `retry_count` and `last_attempt`. The next batch sweep picks up failed items for retry.
+- **Retry**
+  - Queued jobs (per-item relation extraction, etc.): `RetryManager` retries on failure using `BatchJobConfig.retryAttempts`, `retryDelay`, and related settings.
+- **Monitoring**
+  - BatchScheduler logs (file/console), `getStatus()` for queue size, running jobs, and last run timestamps.
+  - With the HTTP server, admin routes expose scheduler status and queue depth.
 
-**Monitoring**
-- `BatchScheduler` logs to file and console. `getStatus()` returns queue size, running jobs, and last execution timestamps.
-- When the HTTP server is running, admin routes expose scheduler state and queue for inspection.
+## Scope notes
 
-## Scope Notes
-
-- **Fact extraction**: Issue #88 normalized fact metadata. A dedicated "extract facts from conversation" step can be introduced as a separate job.
-- **Summarization**: If an episode summarization service is added, it slots in the same JobQueue/batch pattern.
-- **Deduplication**: Issue #90 (Triple/KG dedupe) coordinates with existing consolidation.
+- **Fact extraction**: Issue #88 normalized Fact metadata; a dedicated Fact extraction stage may arrive in a future issue.
+- **Summarization**: If episodic summarization becomes a separate service, it should register on the same JobQueue/batch path.
+- **Dedupe**: Issue #90 and existing consolidation integration.

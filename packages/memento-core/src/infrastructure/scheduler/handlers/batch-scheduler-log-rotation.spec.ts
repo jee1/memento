@@ -29,7 +29,6 @@ describe('runLogRotation', () => {
         migrationKeepCount: 500,
         dockerDiagnosticsMaxBytes: 268_435_456,
         monitorJsonlMaxBytes: 33_554_432,
-        tripleExtractionDays: 30,
       },
       families: [
         {
@@ -51,12 +50,6 @@ describe('runLogRotation', () => {
           skippedMissingRoot: true,
           warnings: [],
         },
-        {
-          family: 'triple_extraction',
-          deletedCount: 0,
-          reclaimedBytes: 0,
-          warnings: [],
-        },
       ],
     });
 
@@ -66,7 +59,6 @@ describe('runLogRotation', () => {
     expect(result.processed).toBe(3);
     expect(result.warnings).toEqual(['migration:stale.log:unlink-failed']);
     expect(result.details).toEqual({
-      retentionDaysTripleExtraction: 30,
       migrationKeepCount: 500,
       dockerDiagnosticsMaxBytes: 268_435_456,
       families: [
@@ -78,7 +70,6 @@ describe('runLogRotation', () => {
           reclaimedBytes: 0,
           skippedMissingRoot: true,
         },
-        { family: 'triple_extraction', deletedCount: 0, reclaimedBytes: 0 },
       ],
       reclaimedBytes: 9000,
     });

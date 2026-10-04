@@ -29,15 +29,10 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'domains/embedding/services/openai-embedding-service.ts', rationale: 'RetryManager for external embedding API' },
   { path: 'domains/memory/services/memory-jsonl-portability.ts', rationale: 'SchemaVersionManager for JSONL portability' },
   { path: 'domains/memory/procedural/procedural-llm-extractor.ts', rationale: 'RetryManager for LLM extraction' },
-  { path: 'domains/memory/semantic/semantic-memory-crud.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
-  { path: 'domains/memory/semantic/semantic-memory-update-pipeline.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
-  { path: 'domains/memory/semantic/semantic-memory-update-service.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
   { path: 'domains/memory/tools/feedback-tool.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
   { path: 'domains/memory/recall/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite + createCoreMemoryRepository factory (dynamic) concrete until port injection' },
   { path: 'domains/memory/remember/remember-tool-core.ts', rationale: 'createCoreMemoryRepository factory via dynamic import — concrete until port injection (#926)' },
   { path: 'domains/memory/remember/remember-tool-vault.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
-  { path: 'domains/relation/services/triple-extraction/triple-extraction-service.ts', rationale: 'tripleExtractionLogger infra logger' },
-  { path: 'domains/relation/tools/extract-triples-tool.ts', rationale: 'KgTripleRepositorySqlite concrete until port injection' },
   { path: 'domains/search/algorithms/hybrid-result-ranker.ts', rationale: 'Feedback/ProcessAttribute SQLite repos until port injection' },
   { path: 'domains/search/algorithms/search-engine.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
   { path: 'domains/telemetry/services/telemetry-service.ts', rationale: 'import type BatchScheduler for optional scheduler hook' },
@@ -47,12 +42,11 @@ const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'shared/config/retry-options-loader.ts', rationale: 'import type RetryConfig from retry-manager' },
   { path: 'shared/services/llm-client-initializer.ts', rationale: 'RetryManager construction for LLM clients' },
   { path: 'shared/services/llm-client-initializer/ollama.ts', rationale: 'import type RetryManager for Ollama client' },
-  { path: 'shared/utils/triple-cache.ts', rationale: 'CacheService concrete cache backend' },
 ] as const;
 
 /** Allowlist growth guard — bump only with explicit review (#749 / FR-018). */
-const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 19; // 18 → 19 (#926: dynamic import now detected)
-const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 4;
+const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 14; // #1237: triple extraction removal
+const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 3; // #1237: triple-cache removed
 
 /**
  * Module edges collected via the TypeScript AST (#926).

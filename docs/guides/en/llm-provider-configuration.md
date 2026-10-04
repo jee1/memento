@@ -68,11 +68,10 @@ When the same variable is set in multiple places, the following priority applies
 
 ## Per-Use-Case Model Overrides
 
-Memento uses LLMs in four distinct contexts: triple extraction, relation extraction, procedural memory processing, and episodic-to-semantic consolidation. You can assign a different model to each context, which allows you to balance cost and quality — for example, using an inexpensive small model for extraction while reserving a more capable model for consolidation.
+Memento uses LLMs in three distinct contexts: relation extraction, procedural memory processing, and episodic-to-semantic consolidation. You can assign a different model to each context, which allows you to balance cost and quality — for example, using an inexpensive small model for relation extraction while reserving a more capable model for consolidation.
 
 ```bash
 # Per-use-case model overrides (all optional)
-LLM_MODEL_TRIPLE_EXTRACTION=     # triples extraction
 LLM_MODEL_RELATION_EXTRACTION=   # relation extraction between memories
 LLM_MODEL_PROCEDURAL=            # procedural memory processing
 LLM_MODEL_CONSOLIDATION=         # episodic → semantic consolidation
@@ -88,12 +87,11 @@ Empty or whitespace-only `LLM_MODEL_*` values are treated as unset.
 
 ## Per-Job Provider Overrides
 
-For the four batch jobs — triple extraction, relation extraction, procedural extraction, and consolidation — you can prefer a different provider than the global `LLM_PROVIDER`. (Personal-agent and embedding stay on their existing axes.)
+For the three batch jobs — relation extraction, procedural extraction, and consolidation — you can prefer a different provider than the global `LLM_PROVIDER`. (Personal-agent and embedding stay on their existing axes.)
 
 ```bash
 # Per-job provider overrides (optional; unset/empty → global LLM_PROVIDER)
-LLM_PROVIDER_TRIPLE_EXTRACTION=     # openai | gemini | ollama | auto
-LLM_PROVIDER_RELATION_EXTRACTION=
+LLM_PROVIDER_RELATION_EXTRACTION=     # openai | gemini | ollama | auto
 LLM_PROVIDER_PROCEDURAL=
 LLM_PROVIDER_CONSOLIDATION=
 ```
@@ -104,7 +102,7 @@ Behavior:
 - **Invalid values**: treated as unset for that job, with a one-time `[CONFIG WARN]` at config load/init — process does not abort.
 - **Prefer-then-fallback**: a valid override is the job's **preferred** provider; unavailability uses the existing fallback policy (not a hard pin).
 - **Override equals global**: valid no-op (still used for model binding and Ollama readiness).
-- **Ollama readiness**: if any of the four overrides is `ollama`, initialization runs the Ollama connection check even when the global default is cloud.
+- **Ollama readiness**: if any of the three overrides is `ollama`, initialization runs the Ollama connection check even when the global default is cloud.
 
 ### Model-override binding (no cross-provider model leak)
 

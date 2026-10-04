@@ -16,7 +16,6 @@ import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
-import { ensureMemoryItemTripleExtractionColumns } from './ensure-memory-item-triple-extraction-columns.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
 import { bootstrapNewDatabaseSchema } from './init-bootstrap-new-db.js';
 import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
@@ -62,7 +61,6 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       await bootstrapNewDatabaseSchema(db);
     }
 
-    ensureMemoryItemTripleExtractionColumns(db);
     ensureMetaMemoryStatsSchema(db);
     ensureQualityAssuranceSchema(db);
     ensureMemoryReviewCandidateSchema(db);

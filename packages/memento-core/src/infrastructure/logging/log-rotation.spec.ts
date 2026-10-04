@@ -12,7 +12,6 @@ import {
   DEFAULT_DOCKER_DIAGNOSTICS_MAX_BYTES,
   DEFAULT_MIGRATION_KEEP_COUNT,
   DEFAULT_MONITOR_JSONL_MAX_BYTES,
-  DEFAULT_TRIPLE_EXTRACTION_DAYS,
   resolveLogRotationPolicies,
 } from './log-rotation-policies.js';
 import { resolveLogRotationRoots } from './log-rotation-paths.js';
@@ -53,7 +52,6 @@ describe('log-rotation-policies', () => {
       'LOG_ROTATION_MIGRATION_KEEP_COUNT',
       'LOG_ROTATION_DOCKER_DIAGNOSTICS_MAX_BYTES',
       'LOG_ROTATION_MONITOR_JSONL_MAX_BYTES',
-      'LOG_ROTATION_TRIPLE_EXTRACTION_DAYS',
     ]) {
       saved[key] = process.env[key];
       delete process.env[key];
@@ -78,20 +76,16 @@ describe('log-rotation-policies', () => {
     expect(p.dockerDiagnosticsMaxBytes).toBe(268_435_456);
     expect(p.monitorJsonlMaxBytes).toBe(DEFAULT_MONITOR_JSONL_MAX_BYTES);
     expect(p.monitorJsonlMaxBytes).toBe(33_554_432);
-    expect(p.tripleExtractionDays).toBe(DEFAULT_TRIPLE_EXTRACTION_DAYS);
-    expect(p.tripleExtractionDays).toBe(30);
   });
 
   it('parses env overrides including keepCount <= 0', () => {
     process.env.LOG_ROTATION_MIGRATION_KEEP_COUNT = '0';
     process.env.LOG_ROTATION_DOCKER_DIAGNOSTICS_MAX_BYTES = '1024';
     process.env.LOG_ROTATION_MONITOR_JSONL_MAX_BYTES = '2048';
-    process.env.LOG_ROTATION_TRIPLE_EXTRACTION_DAYS = '7';
     const p = resolveLogRotationPolicies();
     expect(p.migrationKeepCount).toBe(0);
     expect(p.dockerDiagnosticsMaxBytes).toBe(1024);
     expect(p.monitorJsonlMaxBytes).toBe(2048);
-    expect(p.tripleExtractionDays).toBe(7);
   });
 
   it('prefers explicit overrides over env', () => {
@@ -105,12 +99,10 @@ describe('log-rotation-paths', () => {
   it('allows full injectable roots for tests', () => {
     const roots = resolveLogRotationRoots({
       migrationLogDir: '/tmp/a',
-      tripleExtractionLogDir: '/tmp/b',
       dockerDiagnosticsDir: '/tmp/c',
       logIssueMonitorDir: '/tmp/d',
     });
     expect(roots.migrationLogDir).toBe('/tmp/a');
-    expect(roots.tripleExtractionLogDir).toBe('/tmp/b');
     expect(roots.dockerDiagnosticsDir).toBe('/tmp/c');
     expect(roots.logIssueMonitorDir).toBe('/tmp/d');
   });
@@ -119,18 +111,15 @@ describe('log-rotation-paths', () => {
 describe('rotateLogs', () => {
   let base: string;
   let migrationDir: string;
-  let teDir: string;
   let dockerDir: string;
   let monitorDir: string;
 
   beforeEach(async () => {
     base = await mkTempRoot('memento-log-rot-');
     migrationDir = path.join(base, 'migration');
-    teDir = path.join(base, 'te');
     dockerDir = path.join(base, 'docker');
     monitorDir = path.join(base, 'monitor');
     await fs.mkdir(migrationDir, { recursive: true });
-    await fs.mkdir(teDir, { recursive: true });
     await fs.mkdir(dockerDir, { recursive: true });
     await fs.mkdir(monitorDir, { recursive: true });
   });
@@ -142,7 +131,6 @@ describe('rotateLogs', () => {
   function roots() {
     return {
       migrationLogDir: migrationDir,
-      tripleExtractionLogDir: teDir,
       dockerDiagnosticsDir: dockerDir,
       logIssueMonitorDir: monitorDir,
     };
@@ -253,23 +241,6 @@ describe('rotateLogs', () => {
     const monitor = report.families.find(f => f.family === 'log_issue_monitor');
     expect(monitor?.skippedMissingRoot).toBe(true);
     expect(await fs.readdir(migrationDir)).toContain('migration_only.log');
-  });
-
-  it('deletes aged triple-extraction *.log via orchestrator (US3)', async () => {
-    const now = Date.now();
-    await writeFileAt(teDir, 'old.log', 'old', now - 40 * DAY_MS);
-    await writeFileAt(teDir, 'fresh.log', 'fresh', now - 1 * DAY_MS);
-
-    const report = await rotateLogs({
-      roots: roots(),
-      policies: { tripleExtractionDays: 30, migrationKeepCount: 0 },
-      now: new Date(now),
-    });
-
-    const left = await fs.readdir(teDir);
-    expect(left).toEqual(['fresh.log']);
-    expect(report.families.find(f => f.family === 'triple_extraction')?.deletedCount).toBe(1);
-    assertNoAbsTempLeak(report, base);
   });
 
   it('does not leak absolute temp paths in string report fields', async () => {

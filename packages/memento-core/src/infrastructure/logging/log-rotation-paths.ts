@@ -9,7 +9,6 @@ import { mementoConfig } from '../../shared/config/index.js';
 
 export interface LogRotationRoots {
   migrationLogDir: string;
-  tripleExtractionLogDir: string;
   dockerDiagnosticsDir: string;
   logIssueMonitorDir: string;
 }
@@ -29,9 +28,6 @@ export function resolveLogRotationRoots(
   return {
     migrationLogDir:
       overrides?.migrationLogDir ?? join(dirname(mementoConfig.dbPath), 'logs'),
-    tripleExtractionLogDir:
-      overrides?.tripleExtractionLogDir ??
-      join(process.cwd(), 'logs', 'triple-extraction'),
     dockerDiagnosticsDir:
       overrides?.dockerDiagnosticsDir ?? join(logsHome, 'docker-diagnostics'),
     logIssueMonitorDir:

@@ -2,7 +2,7 @@
  * Remember Tool - 기억 저장 도구
  *
  * 즉시 저장 (Issue #89): 메모리 항목은 DB에 append-only로 저장된 직후 응답을 반환한다.
- * Triple 추출·콘솔리데이션 등 augmentation은 BatchScheduler 워커에서 비동기 수행되며,
+ * consolidation 등 augmentation은 BatchScheduler 워커에서 비동기 수행되며,
  * 호출자는 augmentation 완료를 기다리지 않는다.
  *
  * 분해 (#582): 각 메모리 타입 로직은 remember-tool-*.ts 모듈로 분리됨.
@@ -14,7 +14,7 @@ import { validateSource } from '../../../shared/validation/source-uri.js';
 import { typeParamRequiredFields, validateProceduralMemoryFields, validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { RememberSchema } from './remember-tool-schema.js';
+import { RememberSchema, ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING } from './remember-tool-schema.js';
 import type { RememberParams } from './remember-tool-schema.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import { handleCoreMemory } from './remember-tool-core.js';
@@ -24,6 +24,30 @@ import { validateReflectionNotesJson } from './remember-tool-reflection.js';
 import type { MemoryTypeRequest } from '../../../shared/types/memory.types.js';
 
 export type { RememberParams } from './remember-tool-schema.js';
+
+function appendResponseWarnings(result: ToolResult, warnings: string[]): ToolResult {
+  if (warnings.length === 0) {
+    return result;
+  }
+  return {
+    ...result,
+    content: result.content.map((block) => {
+      if (block.type !== 'text' || !block.text) {
+        return block;
+      }
+      try {
+        const data = JSON.parse(block.text) as Record<string, unknown>;
+        const existing = Array.isArray(data.warnings) ? data.warnings as string[] : [];
+        return {
+          ...block,
+          text: JSON.stringify({ ...data, warnings: [...existing, ...warnings] }, null, 2),
+        };
+      } catch {
+        return block;
+      }
+    }),
+  };
+}
 
 export class RememberTool extends BaseTool {
   constructor() {
@@ -107,11 +131,6 @@ export class RememberTool extends BaseTool {
             minimum: 1,
             description: 'Compare-and-swap 갱신용 현재 버전. memory_id·update_mode(replace|incremental)와 함께 지정한다. 미설정 version은 1로 간주한다. 불일치 시 409 memory_version_conflict.'
           },
-          enable_triple_extraction: {
-            type: 'boolean',
-            description: 'Triple 추출 활성화 여부 (기본값: true). type="episodic"일 때만 적용됩니다.',
-            default: true
-          },
           tags: {
             type: 'array',
             items: { type: 'string' },
@@ -130,7 +149,11 @@ export class RememberTool extends BaseTool {
             enum: ['private', 'team', 'public'],
             description: '프라이버시 범위',
             default: 'private'
-          }
+          },
+          enable_triple_extraction: {
+            type: 'boolean',
+            description: 'Deprecated, ignored (#1237).',
+          },
         },
         // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).
         required: typeParamRequiredFields(mementoConfig.typeParamMode),
@@ -143,6 +166,11 @@ export class RememberTool extends BaseTool {
     const startTime = Date.now();
     try {
       const parsedParams = RememberSchema.parse(params);
+      const legacyWarnings: string[] = [];
+      if (parsedParams.enable_triple_extraction !== undefined) {
+        legacyWarnings.push(ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING);
+        this.logWarning(ENABLE_TRIPLE_EXTRACTION_DEPRECATED_WARNING);
+      }
       const {
         type: rawType,
         key, value, always_load, immutable,
@@ -243,25 +271,34 @@ export class RememberTool extends BaseTool {
 
       if (type === 'core') {
         if (!key || !value) throw new ToolInputValidationError("type='core'일 때는 key와 value가 필수입니다");
-        return await handleCoreMemory({ key, value, always_load, origin_source, ownerId, startTime }, context, host);
+        return appendResponseWarnings(
+          await handleCoreMemory({ key, value, always_load, origin_source, ownerId, startTime }, context, host),
+          legacyWarnings,
+        );
       }
 
       if (type === 'vault') {
         if (!key || !value) throw new ToolInputValidationError("type='vault'일 때는 key와 value가 필수입니다");
-        return await handleVaultMemory({ key, value, immutable, origin_source, ownerId, startTime }, context, host);
+        return appendResponseWarnings(
+          await handleVaultMemory({ key, value, immutable, origin_source, ownerId, startTime }, context, host),
+          legacyWarnings,
+        );
       }
 
-      return await handleMemoryItem(
-        parsedParams,
-        context,
-        {
-          type, ownerId, processId, sessionId,
-          numTimes, sourceSessionId, confidenceVal,
-          origin_source, startTime,
-          project_id_param: project_id_param ?? null,
-          last_mentioned_at_param: last_mentioned_at_param ?? null
-        },
-        host
+      return appendResponseWarnings(
+        await handleMemoryItem(
+          parsedParams,
+          context,
+          {
+            type, ownerId, processId, sessionId,
+            numTimes, sourceSessionId, confidenceVal,
+            origin_source, startTime,
+            project_id_param: project_id_param ?? null,
+            last_mentioned_at_param: last_mentioned_at_param ?? null
+          },
+          host
+        ),
+        legacyWarnings,
       );
     } catch (error) {
       const executionTime = Date.now() - startTime;

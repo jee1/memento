@@ -109,28 +109,6 @@ export function queryConsolidationQuality(
   const episodic_consolidation_rate =
     totalEp > 0 && ep?.cons != null ? ep.cons / totalEp : null;
 
-  const tr = db
-    .prepare(
-      `SELECT
-         SUM(CASE WHEN triple_extracted_status = 'success' THEN 1 ELSE 0 END) AS ok,
-         SUM(CASE WHEN triple_extracted_status IN ('success', 'failed') THEN 1 ELSE 0 END) AS te
-       FROM memory_item
-       WHERE type = 'episodic'
-         AND triple_extracted_status IN ('success', 'failed')
-         AND datetime(
-           CASE
-             WHEN triple_extracted_status = 'success'
-               THEN COALESCE(json_extract(triple_extraction_metadata, '$.extracted_at'), created_at)
-             ELSE COALESCE(json_extract(triple_extraction_metadata, '$.last_attempt'), created_at)
-           END
-         ) >= datetime(@cutoff)
-         ${memOwner}`
-    )
-    .get(params) as { ok: number | null; te: number | null } | undefined;
-  const teCount = tr?.te ?? 0;
-  const triple_extraction_success_rate =
-    teCount > 0 && tr?.ok != null ? tr.ok / teCount : null;
-
   const perfRows = db
     .prepare(
       `SELECT extra_data FROM telemetry_events
@@ -178,34 +156,10 @@ export function queryConsolidationQuality(
          AND event_type IN ('consolidation.performed', 'telemetry.cleanup.performed') ${telOwner}`
     )
     .get(params) as { c: number };
-  const tripleFailRow = db
-    .prepare(
-      `SELECT COUNT(*) AS c FROM memory_item
-       WHERE type = 'episodic'
-         AND triple_extracted_status = 'failed'
-         AND COALESCE(is_deleted, 0) = 0
-         AND (
-           (
-             triple_extraction_metadata IS NOT NULL
-             AND json_extract(triple_extraction_metadata, '$.last_attempt') IS NOT NULL
-             AND datetime(json_extract(triple_extraction_metadata, '$.last_attempt')) >= datetime(@cutoff)
-           )
-           OR (
-             (
-               triple_extraction_metadata IS NULL
-               OR json_extract(triple_extraction_metadata, '$.last_attempt') IS NULL
-             )
-             AND datetime(created_at) >= datetime(@cutoff)
-           )
-         )
-         ${memOwner}`
-    )
-    .get(params) as { c: number };
-  const pipeline_error_count = (errRow?.c ?? 0) + (tripleFailRow?.c ?? 0);
+  const pipeline_error_count = errRow?.c ?? 0;
 
   return {
     episodic_consolidation_rate,
-    triple_extraction_success_rate,
     cluster_processing_efficiency,
     recent_semantic_count_7d,
     pipeline_error_count,

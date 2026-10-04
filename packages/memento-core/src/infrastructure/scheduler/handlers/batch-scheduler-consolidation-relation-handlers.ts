@@ -190,7 +190,6 @@ export async function runLogRotation(ctx: BatchSchedulerRunContext): Promise<Bat
     warnings.push(...report.warnings);
 
     const details = {
-      retentionDaysTripleExtraction: report.policies.tripleExtractionDays,
       migrationKeepCount: report.policies.migrationKeepCount,
       dockerDiagnosticsMaxBytes: report.policies.dockerDiagnosticsMaxBytes,
       families: report.families.map(f => ({
@@ -211,7 +210,6 @@ export async function runLogRotation(ctx: BatchSchedulerRunContext): Promise<Bat
     if (deletedCount > 0) {
       ctx.log(`Deleted ${deletedCount} old log file(s)`, {
         jobType: 'log_rotation',
-        retentionDays: report.policies.tripleExtractionDays,
         migrationKeepCount: report.policies.migrationKeepCount,
       });
     }

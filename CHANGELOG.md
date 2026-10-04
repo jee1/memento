@@ -11,7 +11,6 @@
 
 ### Added
 
-- **triple**: `TRIPLE_EXTRACTION_ENABLED=false` turns off automatic triple extraction (after remember and the hourly batch); 78% of the generated semantics were meaningless fragments that crowded search (#1230)
 - **consolidation**: optional judge (`CONSOLIDATION_JUDGE=typesafe`, Jev) verifies each cluster member against the seed and each merge into an existing semantic; members it rejects or cannot judge stay unconsolidated (#1225)
 - **dashboard**: `GET /admin/memory/search` — admin hybrid memory search (preview list, no recall side effects) for the 기억 찾기 tab (#1118)
 
@@ -26,9 +25,9 @@
 
 - **문서를 전수 재조사해 정리했습니다** (#1159): 레거시 `tasks/` PRD, 이슈 단위 설계·태스크, 시점 스냅샷 보고서 등 72개를 지워 tracked 마크다운이 672개에서 600개로 줄었습니다. 지운 문서는 불변 기준선 `9f6e013` 에 남아 있습니다. LLM 가이드에 `LLM_PROVIDER_CONSOLIDATION` 을 추가했고, `operations/` 루트에 있던 Docker 설정 가이드와 환경변수 체크리스트를 `operations/ko/` 로 옮겼으며, 포털 운영 표에 빠져 있던 문서 9개를 넣었습니다.
 
-### Deprecated
+### Removed
 
-- **triple**: automatic triple extraction is disabled in production and the existing triple data (`kg_triple`, 1,665 triple semantics) was discarded; a graph redesign was measured and not built — existing search answered multi-hop queries 6/6 (#1230, #1235)
+- **triple** (#1237, breaking, no version bump yet): removed `extract_triples`, `triple_extraction_batch`, `TripleExtractionService`, `KgTripleRepository`, episodic→semantic convert tool/admin route, triple env keys, and migration `050-drop-triple-schema` drops `kg_triple` plus `memory_item.triple_extracted*` columns; no replacement extraction path (#1230, #1235). `remember` still accepts optional boolean `enable_triple_extraction` for backward compatibility but ignores it and returns response warning `deprecated, ignored (#1237)` until the next major removes the parameter entirely
 
 ## [1.36.0] - 2026-10-03
 

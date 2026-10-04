@@ -55,11 +55,11 @@ describe('mapKnowledgeCandidateToRememberParams', () => {
     expect(r.params.enable_triple_extraction).toBeUndefined();
   });
 
-  it('episodic이면 enable_triple_extraction true', () => {
+  it('episodic이어도 enable_triple_extraction 필드를 넣지 않는다 (#1237)', () => {
     const r = mapKnowledgeCandidateToRememberParams(baseCandidate({ suggestedMemoryType: 'episodic' }), ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.params.enable_triple_extraction).toBe(true);
+    expect(r.params.enable_triple_extraction).toBeUndefined();
   });
 
   it('procedural이면 task_goal·steps·content를 채운다', () => {

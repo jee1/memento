@@ -21,7 +21,7 @@
 
 ## 2. 개념 수준
 
-> **비활성화됨 (#1230 · #1235, 2026-10-03)** — 자동 triple 추출은 운영에서 `TRIPLE_EXTRACTION_ENABLED=false` 로 꺼져 있고, 기존 triple 데이터(`kg_triple`, triple semantic 1,665건과 관계)는 폐기했습니다. 생성 문장의 78% 가 맥락 없는 조각이었고 검색·recall·memory_injection 어디서도 triple 구조를 읽지 않았습니다. 그래프 재설계도 측정 결과 기존 검색으로 충분해 만들지 않았습니다. 명시 호출 `extract_triples` 도구는 남아 있지만 권장하지 않습니다.
+> **제거됨 (#1237, 2026-10-03)** — `kg_triple` 테이블과 `memory_item.triple_extracted*` 컬럼을 migration `050-drop-triple-schema` 로 DROP 했습니다. 신규 설치 `schema.sql` 에는 해당 스키마가 없습니다 (#1230, #1235).
 
 - **메모리 타입**: `working`, `episodic`, `semantic`, `procedural` (메인 저장소는 `memory_item.type`).
 - **Core / Vault**: 에이전트 정체성·지침은 `core_memory`, 불변 지식은 `knowledge_vault` (MIRIX 확장).

@@ -44,33 +44,18 @@ CREATE TABLE IF NOT EXISTS memory_item (
   last_accessed_at TIMESTAMP,
   consolidation_score REAL,
   g_value REAL,
-  -- Arigraph/Semantic triple (migration 008): semantic memory structural storage
-  subject TEXT,
-  predicate TEXT,
-  object TEXT,
   is_consolidated BOOLEAN DEFAULT FALSE,
-  triple_extracted BOOLEAN DEFAULT FALSE NOT NULL,
-  triple_extracted_status TEXT,
-  triple_extraction_metadata TEXT,
   is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
   deleted_at TEXT,
   -- Project-scoped memory (Issue #81, migration 032)
   project_id TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_episodic
-  ON memory_item(triple_extracted)
-  WHERE type = 'episodic';
-CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_status_episodic
-  ON memory_item(triple_extracted_status)
-  WHERE type = 'episodic';
 CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
   ON memory_item(is_deleted)
   WHERE COALESCE(is_deleted, 0) = 0;
 CREATE INDEX IF NOT EXISTS idx_memory_item_project_id_type
   ON memory_item(project_id, type)
   WHERE project_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_memory_item_triple ON memory_item(subject, predicate, object)
-WHERE type='semantic' AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL;
 
 -- 태그 테이블
 CREATE TABLE IF NOT EXISTS memory_tag (
@@ -155,25 +140,6 @@ VALUES ('CAUSES', 'Causal', '인과 관계', '["episodic", "semantic"]', 0.7, 1.
        ('REFERENCES', 'Semantic', '참조 관계', '["working", "episodic", "semantic", "procedural"]', 0.7, 0.8),
        ('extracted_from', 'Structural', 'Semantic→Episodic 출처(에피소딕에서 시맨틱 추출)', '["semantic", "episodic"]', 0.7, 1.0),
        ('supported_by', 'Structural', 'Episodic→Semantic 지지(시맨틱이 에피소딕을 지지)', '["episodic", "semantic"]', 0.7, 1.0);
-
--- kg_triple (migration 018 호환, Issue #90)
-CREATE TABLE IF NOT EXISTS kg_triple (
-  id TEXT PRIMARY KEY,
-  subject TEXT NOT NULL,
-  predicate TEXT NOT NULL,
-  object TEXT NOT NULL,
-  owner_id TEXT NULL,
-  process_id TEXT NULL,
-  session_id TEXT NULL,
-  representative_memory_id TEXT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (representative_memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
-  UNIQUE(subject, predicate, object)
-);
-CREATE INDEX IF NOT EXISTS idx_kg_triple_spo ON kg_triple(subject, predicate, object);
-CREATE INDEX IF NOT EXISTS idx_kg_triple_representative ON kg_triple(representative_memory_id);
-CREATE INDEX IF NOT EXISTS idx_kg_triple_owner ON kg_triple(owner_id);
-CREATE INDEX IF NOT EXISTS idx_kg_triple_process ON kg_triple(process_id);
 
 -- 피드백 이벤트 테이블
 CREATE TABLE IF NOT EXISTS feedback_event (
