@@ -32,12 +32,8 @@ describeRecallTool("basics and search", () => {
     });
   });
 
-  describe('type 파라미터 롤아웃 (issue 290)', () => {
-    let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
-
+  describe('type 파라미터 (issue 290)', () => {
     beforeEach(() => {
-      savedTypeParamMode = mementoConfig.typeParamMode;
-      mementoConfig.typeParamMode = 'warn';
       vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
         items: [],
         total_count: 0,
@@ -47,55 +43,34 @@ describeRecallTool("basics and search", () => {
       });
     });
 
-    afterEach(() => {
-      mementoConfig.typeParamMode = savedTypeParamMode;
-    });
-
-    it("type 없고 memory_types만 있으면 missing-type 경고(validateTypeParam 문구)를 내지 않는다", async () => {
+    it("type 없고 memory_types만 있으면 missing-type 검증을 건너뛴다", async () => {
       const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
       await tool.handle(
         { query: 'q', memory_types: ['semantic'] as const, limit: 5 },
         context,
       );
       const missingTypeCalls = logWarningSpy.mock.calls.filter(
-        (c) => typeof c[0] === 'string' && c[0].includes("type' 파라미터가 지정되지 않았습니다"),
+        (c) => typeof c[0] === 'string' && c[0].includes("type' 파라미터"),
       );
       expect(missingTypeCalls).toHaveLength(0);
-    });
-
-    it('type·memory_types 모두 없으면 warn 모드에서 missing-type 경고를 낸다', async () => {
-      const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
-      await tool.handle({ query: 'q', limit: 5 }, context);
-      expect(logWarningSpy).toHaveBeenCalledWith(
-        expect.stringContaining("type' 파라미터가 지정되지 않았습니다"),
-      );
     });
   });
 
   describe('type 파라미터 거절 시 로그 레벨 (issue 653)', () => {
-    // MEMENTO_TYPE_PARAM_MODE=error(기본값)에서 type/query 누락은 호출자 입력 오류이지
-    // 서버 결함이 아니므로 logError가 아닌 logWarning으로 기록되어야 한다.
+    // type/query 누락은 호출자 입력 오류이지 서버 결함이 아니므로 logError가 아닌 logWarning으로 기록되어야 한다.
     // logError로 기록되면 log-issue-monitor가 첫 발생 즉시 "bug" 이슈를 자동 등록한다(#653).
     //
     // 프로덕션에서는 bootstrap.ts가 항상 failureDetector를 초기화해서 넘기므로
     // BaseTool.handleFailure의 "FailureDetector 미초기화" logError 폴백은 실제로 타지 않는다.
     // 이 테스트도 동일하게 failureDetector를 채워 그 폴백 경로를 배제하고,
     // recall-tool.ts 자체의 로그 레벨 분기만 검증한다.
-    let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
-
     beforeEach(() => {
-      savedTypeParamMode = mementoConfig.typeParamMode;
-      mementoConfig.typeParamMode = 'error';
       context.services.failureDetector = {
         detectToolError: vi.fn().mockReturnValue({ detected: false }),
       } as unknown as ToolContext['services']['failureDetector'];
     });
 
-    afterEach(() => {
-      mementoConfig.typeParamMode = savedTypeParamMode;
-    });
-
-    it('type·memory_types 모두 없으면 error 모드에서 거절 시 logWarning만 호출되고 logError는 호출되지 않는다', async () => {
+    it('type·memory_types 모두 없으면 거절 시 logWarning만 호출되고 logError는 호출되지 않는다', async () => {
       const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
       const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
 
@@ -111,7 +86,7 @@ describeRecallTool("basics and search", () => {
       expect(logErrorSpy).not.toHaveBeenCalled();
     });
 
-    it("type='core'가 아닌데 query가 없으면 error 모드 여부와 무관하게 logWarning만 호출되고 logError는 호출되지 않는다", async () => {
+    it("type='core'가 아닌데 query가 없으면 logWarning만 호출되고 logError는 호출되지 않는다", async () => {
       const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
       const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
 
@@ -961,7 +936,7 @@ describeRecallTool("basics and search", () => {
       expect(resultData.items[0].type).toBe('episodic');
     });
 
-    it('type 미지정 시 기본 episodic 필터가 적용되어야 함', async () => {
+    it('type=episodic 지정 시 episodic 필터가 적용되어야 함', async () => {
       // Given: 여러 타입의 메모리 생성
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
@@ -974,9 +949,9 @@ describeRecallTool("basics and search", () => {
       `);
 
       const params = {
-        query: 'memory'
+        query: 'memory',
+        type: 'episodic',
       };
-      // type 파라미터 미지정
 
       // Mock 검색 결과 (episodic만 반환)
       vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
@@ -995,11 +970,10 @@ describeRecallTool("basics and search", () => {
       });
       vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
 
-      // When: recall Tool 실행 (type 미지정)
       const result = await tool.handle(params, context);
       const resultData = JSON.parse(result.content[0].text);
 
-      // Then: 기본 타입(episodic)으로 필터링되어야 함
+      // Then: episodic으로 필터링되어야 함
       expect(resultData.items).toHaveLength(1);
       expect(resultData.items[0].type).toBe('episodic');
 
@@ -1014,7 +988,7 @@ describeRecallTool("basics and search", () => {
       );
     });
 
-    it('memory_types 미지정 시에도 type 기본값이 적용되어야 함', async () => {
+    it('memory_types 미지정 시 type 파라미터가 적용되어야 함', async () => {
       // Given: 여러 타입의 메모리 생성
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
@@ -1024,8 +998,8 @@ describeRecallTool("basics and search", () => {
       `);
 
       const params = {
-        query: 'memory'
-        // type과 memory_types 모두 미지정
+        query: 'memory',
+        type: 'episodic',
       };
 
       // Mock 검색 결과 (episodic만 반환)
@@ -1045,11 +1019,10 @@ describeRecallTool("basics and search", () => {
       });
       vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
 
-      // When: recall Tool 실행 (type과 memory_types 모두 미지정)
       const result = await tool.handle(params, context);
       const resultData = JSON.parse(result.content[0].text);
 
-      // Then: 기본 타입(episodic)으로 필터링되어야 함
+      // Then: episodic으로 필터링되어야 함
       expect(resultData.items).toHaveLength(1);
       expect(resultData.items[0].type).toBe('episodic');
 

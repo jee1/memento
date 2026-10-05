@@ -8,6 +8,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: 새 파라미터들 없이 recall 호출
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10
         };
 
@@ -31,6 +32,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: auto_set_anchor=true로 설정
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true
         };
@@ -54,6 +56,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: include_neighbors=true로 설정
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true
         };
@@ -77,6 +80,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: neighbors_limit=0 (최소값 1 미만)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 0
@@ -90,6 +94,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: neighbors_limit=11 (최대값 10 초과)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 11
@@ -103,6 +108,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: neighbors_per_item=0 (최소값 1 미만)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_per_item: 0
@@ -116,6 +122,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: neighbors_per_item=51 (최대값 50 초과)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_per_item: 51
@@ -129,6 +136,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: neighbors_similarity_threshold=-0.1 (최소값 0 미만)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_similarity_threshold: -0.1
@@ -142,6 +150,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: neighbors_similarity_threshold=1.1 (최대값 1 초과)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_similarity_threshold: 1.1
@@ -155,6 +164,7 @@ describeRecallTool("automatic anchors", () => {
         // Given: 모든 새 파라미터를 유효한 범위 내 값으로 설정
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           include_neighbors: true,
@@ -210,6 +220,7 @@ describeRecallTool("automatic anchors", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -279,6 +290,7 @@ describeRecallTool("automatic anchors", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -355,6 +367,7 @@ describeRecallTool("automatic anchors", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -419,6 +432,7 @@ describeRecallTool("automatic anchors", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -498,6 +512,7 @@ describeRecallTool("automatic anchors", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -578,6 +593,7 @@ describeRecallTool("automatic anchors", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId

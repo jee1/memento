@@ -24,8 +24,6 @@ export async function startTestHttpServer(): Promise<TestServer> {
       ADMIN_API_KEY: apiKey,
       MEMENTO_API_TOKENS: JSON.stringify([{ id: 'test', secret: apiKey, scopes: ['tools:invoke', 'admin:destructive'] }]),
       MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: 'true',
-      // Assistant e2e omits type / X-Memento-Agent-Id; exercise filters.tags (#636 / #664 / #754).
-      MEMENTO_TYPE_PARAM_MODE: 'warn',
       MEMENTO_OWNER_SCOPE_MODE: 'off',
     },
     stdio: ['ignore', 'pipe', 'pipe'],

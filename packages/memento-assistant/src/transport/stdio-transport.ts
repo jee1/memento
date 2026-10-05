@@ -2,6 +2,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { Transport, RecallParams, RecallResult, RememberParams, RememberResult } from './transport.js';
+import { DEFAULT_RECALL_MEMORY_TYPES } from './transport.js';
 
 export interface StdioTransportOptions {
   command: string;
@@ -44,9 +45,11 @@ export class StdioTransport implements Transport {
 
   async recall(query: string, filters?: RecallParams['filters'], limit?: number): Promise<RecallResult> {
     if (!this.connected) await this.connect();
+    const { type, ...restFilters } = filters ?? {};
+    const memory_types = type?.length ? type : [...DEFAULT_RECALL_MEMORY_TYPES];
     const r = await this.client!.callTool({
       name: 'recall',
-      arguments: { query, ...(filters ?? {}), limit },
+      arguments: { query, ...restFilters, memory_types, limit },
     });
     return parseToolJson<RecallResult>(r) ?? { items: [] };
   }

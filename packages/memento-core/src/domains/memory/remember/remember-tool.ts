@@ -128,7 +128,7 @@ export class RememberTool extends BaseTool {
           },
         },
         // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).
-        required: typeParamRequiredFields(mementoConfig.typeParamMode),
+        required: typeParamRequiredFields(),
         additionalProperties: false,
       }
     );
@@ -156,13 +156,9 @@ export class RememberTool extends BaseTool {
       const sourceSessionId = source_session_id_param ?? sessionId;
       const confidenceVal = confidence_param ?? null;
 
-      const typeParamMode = mementoConfig.typeParamMode;
-      const typeValidation = validateTypeParam(rawType, typeParamMode, 'remember');
+      const typeValidation = validateTypeParam(rawType, 'remember');
       if (!typeValidation.isValid) {
         throw new ToolInputValidationError(typeValidation.message || 'type 파라미터는 필수입니다.');
-      }
-      if (typeValidation.message) {
-        this.logWarning(typeValidation.message);
       }
 
       const sourceValidation = validateSource(source_param);
@@ -224,9 +220,7 @@ export class RememberTool extends BaseTool {
           type,
           has_content: !!parsedParams.content,
           has_key: !!key,
-          has_value: !!value,
-          type_param_mode: typeParamMode,
-          type_was_defaulted: !rawType
+          has_value: !!value
         }
       });
 

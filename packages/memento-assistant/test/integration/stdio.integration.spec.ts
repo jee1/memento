@@ -13,7 +13,7 @@ describe('stdio integration', { timeout: 30_000 }, () => {
     t = new StdioTransport({
       command: 'node',
       args: [bin],
-      env: { DB_PATH: ':memory:', MEMENTO_TYPE_PARAM_MODE: 'warn' },
+      env: { DB_PATH: ':memory:' },
     });
     await t.connect();
   });

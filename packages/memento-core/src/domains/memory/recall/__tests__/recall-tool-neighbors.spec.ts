@@ -50,6 +50,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 2,
@@ -151,6 +152,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 3,
@@ -282,6 +284,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 3,
@@ -430,6 +433,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 4,
@@ -563,6 +567,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 3,
@@ -713,6 +718,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 3, // 상위 3개만
@@ -801,6 +807,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 3, // 상위 3개만
@@ -914,6 +921,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 3,
@@ -1007,6 +1015,7 @@ describeRecallTool("neighbor memories", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           include_neighbors: true,
           neighbors_limit: 1,
@@ -1073,6 +1082,7 @@ describeRecallTool("neighbor memories", () => {
         // 새 파라미터 없이 recall 호출 (기존 파라미터만 사용)
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10
           // auto_set_anchor, include_neighbors 등 새 파라미터 없음
         };

@@ -21,12 +21,9 @@ export let vectorSearchEngine: VectorSearchEngine;
 
 export function describeRecallTool(topic: string, registerTests: () => void): void {
   describe(`RecallTool - ${topic}`, () => {
-    let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
     let savedAutoSetAnchorDefault: boolean;
 
     beforeEach(async () => {
-      savedTypeParamMode = mementoConfig.typeParamMode;
-      mementoConfig.typeParamMode = 'warn';
       savedAutoSetAnchorDefault = mementoConfig.autoSetAnchorDefault;
       mementoConfig.autoSetAnchorDefault = false;
 
@@ -63,7 +60,6 @@ export function describeRecallTool(topic: string, registerTests: () => void): vo
     });
 
     afterEach(() => {
-      mementoConfig.typeParamMode = savedTypeParamMode;
       mementoConfig.autoSetAnchorDefault = savedAutoSetAnchorDefault;
       db.close();
       vi.clearAllMocks();
