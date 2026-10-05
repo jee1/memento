@@ -138,7 +138,7 @@ describe('createProgrammaticAuthMiddleware', () => {
     expect(res.body).toEqual(
       expect.objectContaining({
         error: 'Unauthorized',
-        message: 'Programmatic API is disabled: configure MEMENTO_API_TOKENS or ADMIN_API_KEY.',
+        message: 'Programmatic API is disabled: configure MEMENTO_API_TOKENS.',
       }),
     );
     expect(next).not.toHaveBeenCalled();

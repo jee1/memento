@@ -121,7 +121,7 @@ export async function runClaudeCodeHookCommand(
   const transport: Transport = serverInfo
     ? createClaudeCodeHttpTransport({
         port: serverInfo.port,
-        apiKey: process.env.ADMIN_API_KEY?.trim(),
+        apiKey: process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim(),
       })
     : async () => ({ ok: false, reason: 'SERVER_UNAVAILABLE' });
   const result = await runClaudeCodeHook({

@@ -145,11 +145,11 @@ describe('scoped API tokens integration', () => {
     const tools = await getRequest(port, '/tools', {
       Authorization: 'Bearer legacy-integration-key',
     });
-    expect(tools.statusCode).toBe(200);
+    expect(tools.statusCode).toBe(401);
 
     const quality = await getRequest(port, '/api/v1/quality/metrics', {
       Authorization: 'Bearer legacy-integration-key',
     });
-    expect(quality.statusCode).toBe(200);
+    expect(quality.statusCode).toBe(401);
   });
 });

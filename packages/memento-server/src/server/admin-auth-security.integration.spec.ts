@@ -65,6 +65,12 @@ describe('admin auth security (integration)', () => {
 
   it('returns 200 when Authorization Bearer matches ADMIN_API_KEY', async () => {
     vi.stubEnv('ADMIN_API_KEY', 'valid-bearer-key-abc');
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'admin', secret: 'valid-bearer-key-abc', scopes: ['admin:destructive'] },
+      ]),
+    );
     vi.resetModules();
 
     const { response, next } = await runAdminAuthProbe({
@@ -78,6 +84,12 @@ describe('admin auth security (integration)', () => {
 
   it('returns 200 when X-API-Key matches ADMIN_API_KEY', async () => {
     vi.stubEnv('ADMIN_API_KEY', 'x-api-key-value');
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'admin', secret: 'x-api-key-value', scopes: ['admin:destructive'] },
+      ]),
+    );
     vi.resetModules();
 
     const { response, next } = await runAdminAuthProbe({

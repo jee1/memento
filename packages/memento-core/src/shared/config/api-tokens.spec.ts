@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { resetLegacyApiTokenDeprecationLogForTests, resolveApiTokens } from './api-tokens.js';
+import { resolveApiTokens } from './api-tokens.js';
 
 describe('resolveApiTokens', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    resetLegacyApiTokenDeprecationLogForTests();
   });
 
   it('parses MEMENTO_API_TOKENS JSON array', () => {
@@ -24,15 +23,17 @@ describe('resolveApiTokens', () => {
     ]);
   });
 
-  it('synthesizes legacy-admin token when only ADMIN_API_KEY is set', () => {
+  it('does not synthesize a token from ADMIN_API_KEY (#1241)', async () => {
+    const { logger } = await import('../utils/logger.js');
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+
     const tokens = resolveApiTokens('legacy-key');
-    expect(tokens).toEqual([
-      {
-        id: 'legacy-admin',
-        secret: 'legacy-key',
-        scopes: ['tools:invoke', 'admin:destructive'],
-      },
-    ]);
+
+    expect(tokens).toEqual([]);
+    expect(errorSpy).toHaveBeenCalledOnce();
+    expect(String(errorSpy.mock.calls[0]?.[0])).toContain('#1241');
+
+    errorSpy.mockRestore();
   });
 
   it('returns empty array when no env tokens and no admin key', () => {
@@ -40,19 +41,17 @@ describe('resolveApiTokens', () => {
     expect(resolveApiTokens('   ')).toEqual([]);
   });
 
-  it('logs an error when a configured MEMENTO_API_TOKENS falls back to the legacy key', async () => {
+  it('returns [] for an unusable MEMENTO_API_TOKENS even with ADMIN_API_KEY set (#1241)', async () => {
     const { logger } = await import('../utils/logger.js');
     const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     vi.stubEnv('MEMENTO_API_TOKENS', 'not-json');
 
     const tokens = resolveApiTokens('legacy-key');
 
-    expect(tokens).toEqual([
-      { id: 'legacy-admin', secret: 'legacy-key', scopes: ['tools:invoke', 'admin:destructive'] },
-    ]);
+    expect(tokens).toEqual([]);
     expect(
       errorSpy.mock.calls.some(([message]) =>
-        String(message).includes('Scoped-token migration has NOT taken effect'),
+        String(message).includes('MEMENTO_API_TOKENS is not valid JSON'),
       ),
     ).toBe(true);
 
@@ -63,11 +62,10 @@ describe('resolveApiTokens', () => {
     const { logger } = await import('../utils/logger.js');
     const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
 
-    resolveApiTokens('legacy-key');
-
+    expect(resolveApiTokens(undefined)).toEqual([]);
     expect(
       errorSpy.mock.calls.some(([message]) =>
-        String(message).includes('Scoped-token migration has NOT taken effect'),
+        String(message).includes('#1241'),
       ),
     ).toBe(false);
 
@@ -78,22 +76,12 @@ describe('resolveApiTokens', () => {
 describe('#1126: 환경변수 이름이 값 자리에 들어간 자격증명은 폐기한다', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    resetLegacyApiTokenDeprecationLogForTests();
   });
 
-  it('ADMIN_API_KEY 가 실제로 설정된 다른 환경변수의 이름이면 토큰을 만들지 않는다', async () => {
-    const { logger } = await import('../utils/logger.js');
-    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+  it('ADMIN_API_KEY 가 실제로 설정된 다른 환경변수의 이름이면 토큰을 만들지 않는다', () => {
     vi.stubEnv('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN', 'true');
 
     expect(resolveApiTokens('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN')).toEqual([]);
-    expect(
-      errorSpy.mock.calls.some(([message]) =>
-        String(message).startsWith('ADMIN_API_KEY discarded:'),
-      ),
-    ).toBe(true);
-
-    errorSpy.mockRestore();
   });
 
   it('폐기 로그에 값 자체를 남기지 않는다', async () => {
@@ -101,7 +89,7 @@ describe('#1126: 환경변수 이름이 값 자리에 들어간 자격증명은 
     const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     vi.stubEnv('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN', 'true');
 
-    resolveApiTokens('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN');
+    expect(resolveApiTokens('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN')).toEqual([]);
 
     // 판정이 틀렸다면 그 값은 진짜 비밀이다. 키 이름만 남기고 값은 절대 남기지 않는다.
     expect(
@@ -119,9 +107,7 @@ describe('#1126: 환경변수 이름이 값 자리에 들어간 자격증명은 
     vi.stubEnv('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN', 'true');
     vi.stubEnv('MEMENTO_API_TOKENS', 'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN');
 
-    expect(resolveApiTokens('real-legacy-secret')).toEqual([
-      { id: 'legacy-admin', secret: 'real-legacy-secret', scopes: ['tools:invoke', 'admin:destructive'] },
-    ]);
+    expect(resolveApiTokens('real-legacy-secret')).toEqual([]);
     expect(
       errorSpy.mock.calls.some(([message]) =>
         String(message).startsWith('MEMENTO_API_TOKENS discarded:'),
@@ -145,16 +131,12 @@ describe('#1126: 환경변수 이름이 값 자리에 들어간 자격증명은 
   });
 
   it('SCREAMING_SNAKE 이라도 설정된 환경변수가 아니면 비밀로 그대로 쓴다', () => {
-    expect(resolveApiTokens('MY_SECRET_PASSPHRASE_2026')).toEqual([
-      { id: 'legacy-admin', secret: 'MY_SECRET_PASSPHRASE_2026', scopes: ['tools:invoke', 'admin:destructive'] },
-    ]);
+    expect(resolveApiTokens('MY_SECRET_PASSPHRASE_2026')).toEqual([]);
   });
 
   it('밑줄 없는 대문자 16진수 비밀은 걸리지 않는다', () => {
     vi.stubEnv('DEADBEEF', 'set-but-irrelevant');
 
-    expect(resolveApiTokens('DEADBEEF')).toEqual([
-      { id: 'legacy-admin', secret: 'DEADBEEF', scopes: ['tools:invoke', 'admin:destructive'] },
-    ]);
+    expect(resolveApiTokens('DEADBEEF')).toEqual([]);
   });
 });
