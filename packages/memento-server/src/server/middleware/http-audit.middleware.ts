@@ -128,6 +128,8 @@ function extractOwnerId(req: Request): string | null {
 }
 
 function extractAgentId(req: Request): string | null {
+  if (req.programmaticAuth?.agentId) return req.programmaticAuth.agentId;
+
   const mementoAgentHeader = req.headers['x-memento-agent-id'];
   if (typeof mementoAgentHeader === 'string' && mementoAgentHeader.trim() !== '') {
     return mementoAgentHeader.trim();

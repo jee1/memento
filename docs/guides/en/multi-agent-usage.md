@@ -82,6 +82,21 @@ curl -sS -X POST http://127.0.0.1:9001/tools/recall \
 
 > A Bearer `ADMIN_API_KEY` is rejected since v2.0.0 (#1241). Use a token secret from `MEMENTO_API_TOKENS`.
 
+### Binding an agent to a token (#1258)
+
+The header is whatever the client sends, so one `tools:invoke` token can impersonate any agent by changing it. Set `agent_id` on the token entry to prevent that.
+
+```bash
+MEMENTO_API_TOKENS='[{"id":"codex","secret":"<hex>","scopes":["tools:invoke"],"agent_id":"codex"}]'
+```
+
+- Requests with this token always get `ToolContext.agentId = "codex"`; no header needed
+- A different `X-Memento-Agent-Id` / `X-Agent-Id` is rejected with **403** (`AGENT_ID_MISMATCH`)
+- An empty or non-string `agent_id` makes the whole token entry ignored
+- Tokens without `agent_id` keep the header rules above
+
+forget owner scope (#1094), the strict recall filter and the audit log all use this value. The `owner_id` tool argument is not affected.
+
 ### Legacy NULL-data opt-out
 
 If the DB still has many `owner_id = NULL` rows and HTTP recall must keep **unscoped global search**:

@@ -12,6 +12,7 @@ declare global {
       programmaticAuth?: {
         keyId: string;
         scopes: ApiScope[];
+        agentId?: string;
       };
     }
   }
@@ -85,6 +86,36 @@ function writeForbidden(
   });
 }
 
+function writeAgentMismatch(
+  res: Response,
+  format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
+): void {
+  const message = 'X-Memento-Agent-Id does not match the agent bound to this API token.';
+  if (format === 'agent') {
+    res.status(403).json({
+      status: 403,
+      reason_code: 'AGENT_ID_MISMATCH',
+      message,
+      retryable: false,
+    });
+    return;
+  }
+  res.status(403).json({
+    error: 'Forbidden',
+    message,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/** Client-claimed agent id: X-Memento-Agent-Id, then X-Agent-Id (#1258). */
+export function readAgentIdHeader(req: Request): string | null {
+  for (const name of ['x-memento-agent-id', 'x-agent-id']) {
+    const value = req.headers[name];
+    if (typeof value === 'string' && value.trim() !== '') return value.trim();
+  }
+  return null;
+}
+
 function readBearerToken(req: Request): string | null {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -149,9 +180,16 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
+    const claimedAgentId = readAgentIdHeader(req);
+    if (resolved.agentId && claimedAgentId !== null && claimedAgentId !== resolved.agentId) {
+      writeAgentMismatch(res, config.errorFormat);
+      return;
+    }
+
     req.programmaticAuth = {
       keyId: resolved.id,
       scopes: [...resolved.scopes],
+      ...(resolved.agentId ? { agentId: resolved.agentId } : {}),
     };
     next();
   };

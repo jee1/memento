@@ -244,7 +244,7 @@ export async function handleStreamableMcpPost(
     const auditContext: ToolAuditContext = {
       transport: 'mcp_http',
       actorId: req.programmaticAuth?.keyId,
-      agentId: req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+      agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
     };
     const result = await processMcpMessage(message, db, serverServices, auditContext, {
       modernEra: modernClaim,
@@ -314,7 +314,7 @@ export async function handleSseMessagePost(
     const auditContext: ToolAuditContext = {
       transport: 'mcp_http',
       actorId: req.programmaticAuth?.keyId,
-      agentId: req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+      agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
     };
     const result = await processMcpMessage(message, db, serverServices, auditContext);
     if (!writeSseJson(transport, result)) {

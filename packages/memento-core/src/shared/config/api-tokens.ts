@@ -38,7 +38,18 @@ function parseTokenEntry(raw: unknown, index: number): ApiTokenEntry | null {
     }
   }
 
-  return { id, secret, scopes };
+  const agentIdRaw = record.agent_id;
+  let agentId: string | undefined;
+  if (agentIdRaw === undefined) {
+    agentId = undefined;
+  } else if (typeof agentIdRaw === 'string' && agentIdRaw.trim() !== '') {
+    agentId = agentIdRaw.trim();
+  } else {
+    logger.warn('MEMENTO_API_TOKENS entry ignored: agent_id must be a non-empty string', { index, id });
+    return null;
+  }
+
+  return { id, secret, scopes, ...(agentId ? { agentId } : {}) };
 }
 
 function parseEnvTokens(raw: string): ApiTokenEntry[] {

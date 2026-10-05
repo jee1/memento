@@ -43,6 +43,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
   ]
   ```
   A token with only `tools:invoke` gets **403 Forbidden** on quality APIs.
+- **Per-token agent identity (`agent_id`, #1258)**: With `"agent_id": "codex"` on a token entry, every request using that token acts as agent `codex`, and a different `X-Memento-Agent-Id` / `X-Agent-Id` gets 403. Without it the header is trusted as-is (spoofable). Set it when you issue one token per agent. See the [multi-agent guide](../../guides/en/multi-agent-usage.md).
 - **`ADMIN_API_KEY`**: The browser dashboard `/auth/session` sign-in key. Since v2.0.0 (#1241) it no longer authenticates programmatic surfaces. With only this key and no `MEMENTO_API_TOKENS`, programmatic surfaces return 401 and startup logs an error.
 - **Recommended use**: Unless you have a clear reason not to, keep the HTTP server on **loopback or an internal network**. Open the browser dashboard/graph same-origin with the server so the session cookie is not shared across origins.
 - **Production**: Use scoped tokens for programmatic access, and keep `MEMENTO_HTTP_BIND_HOST` on loopback unless you intentionally expose the server.
