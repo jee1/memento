@@ -1105,14 +1105,6 @@ describe('RememberTool', () => {
     });
 
     describe('Procedural Memory Enhancement (v7.0)', () => {
-      beforeEach(() => {
-        // Consolidation Score System 활성화 (g_value, recall_count 테스트를 위해 필요)
-        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
-          ...configModule.mementoConfig,
-          consolidationScoreEnabled: true
-        } as any);
-      });
-
       describe('새 필드 저장', () => {
         it('should save workflow_name, skill_name, and trigger_conditions', async () => {
           // Given: workflow_name, skill_name, trigger_conditions가 포함된 파라미터
@@ -1376,7 +1368,7 @@ describe('RememberTool', () => {
           // Then: recall_count가 3이 되어야 함
           record = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [originalId]);
           expect(record.recall_count).toBe(3); // 2 + 1
-          expect(record.g_value).toBeDefined(); // g_value는 보존되어야 함
+          expect(record.g_value).toBeNull();
         });
       });
 
@@ -1427,7 +1419,7 @@ describe('RememberTool', () => {
           // 새 메모리는 기본값을 가져야 함
           const newRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [newId]);
           expect(newRecord.recall_count).toBe(1); // 새 메모리는 1
-          expect(newRecord.g_value).toBe(1.0); // 새 메모리는 1.0
+          expect(newRecord.g_value).toBeNull();
         });
 
         it('should preserve existing memory when update_mode is not specified (policy: no overwrite without explicit mode)', async () => {
@@ -1490,7 +1482,7 @@ describe('RememberTool', () => {
           expect(newRecord.id).toBe(newId);
           expect(newRecord.content).toBe('Different procedure'); // 새 내용
           expect(newRecord.recall_count).toBe(1); // 새 메모리는 기본값
-          expect(newRecord.g_value).toBe(1.0); // 새 메모리는 기본값
+          expect(newRecord.g_value).toBeNull();
 
           // 두 메모리가 모두 존재해야 함
           const allMemories = DatabaseUtils.all(db, `

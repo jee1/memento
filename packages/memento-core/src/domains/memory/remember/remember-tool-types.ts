@@ -22,10 +22,8 @@ export interface MemoryItemRow {
 /** Procedural 기존 레코드 조회용 */
 export type ProceduralMemoryItem = MemoryItem & {
   recall_count?: number;
-  g_value?: number;
   last_accessed_at?: Date;
   version_series_id?: string;
   version?: number;
-  consolidation_score?: number;
   num_times?: number;
 };

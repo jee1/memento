@@ -17,7 +17,6 @@ const mockState = vi.hoisted(() => {
     diagnosticsLogDir: '/tmp/memento-diagnostics',
     diagnosticsJsonlMaxBytes: 67108864,
     diagnosticsJsonlRetainFiles: 3,
-    consolidationScoreEnabled: false,
     batchSchedulerEnabled: true,
     walCheckpointEnabled: true,
     dbLockMonitorEnabled: true
@@ -136,10 +135,6 @@ vi.mock('./domains/monitoring/services/error-logging-service.js', () => ({
   ErrorLoggingService: vi.fn().mockImplementation(() => ({}))
 }));
 
-vi.mock('./shared/utils/write-coalescing.js', () => ({
-  WriteCoalescingManager: vi.fn().mockImplementation(() => ({}))
-}));
-
 vi.mock('./shared/utils/database.js', () => ({
   DatabaseUtils: {
     runTransaction: vi.fn(),
@@ -175,10 +170,6 @@ vi.mock('./infrastructure/async-optimizer.js', () => ({
 
 vi.mock('./infrastructure/database/on-demand-database-optimizer.js', () => ({
   OnDemandDatabaseOptimizer: vi.fn().mockImplementation(() => ({}))
-}));
-
-vi.mock('./infrastructure/consolidation-score-service.js', () => ({
-  ConsolidationScoreService: vi.fn().mockImplementation(() => ({}))
 }));
 
 vi.mock('./infrastructure/reflexion-worker.js', () => ({
@@ -489,10 +480,6 @@ describe('shutdownServices (#1032)', () => {
       batchScheduler: { stop: vi.fn().mockResolvedValue(undefined) },
       walCheckpointScheduler: { stop: vi.fn().mockResolvedValue(undefined) },
       databaseLockMonitor: { stop: vi.fn() },
-      writeCoalescingManager: {
-        flush: vi.fn().mockResolvedValue(undefined),
-        destroy: vi.fn().mockResolvedValue(undefined)
-      },
       ...overrides
     };
   }
@@ -516,8 +503,6 @@ describe('shutdownServices (#1032)', () => {
     expect(services.batchScheduler.stop).toHaveBeenCalledTimes(1);
     expect(services.walCheckpointScheduler.stop).toHaveBeenCalledTimes(1);
     expect(services.databaseLockMonitor.stop).toHaveBeenCalledTimes(1);
-    expect(services.writeCoalescingManager.flush).toHaveBeenCalledTimes(1);
-    expect(services.writeCoalescingManager.destroy).toHaveBeenCalledTimes(1);
     expect(resetBatchScheduler).toHaveBeenCalledTimes(1);
   });
 
@@ -525,11 +510,7 @@ describe('shutdownServices (#1032)', () => {
     const { shutdownServices, resetBatchScheduler } = await loadShutdownServices();
     const services = {
       walCheckpointScheduler: { stop: vi.fn().mockResolvedValue(undefined) },
-      databaseLockMonitor: { stop: vi.fn() },
-      writeCoalescingManager: {
-        flush: vi.fn().mockResolvedValue(undefined),
-        destroy: vi.fn().mockResolvedValue(undefined)
-      }
+      databaseLockMonitor: { stop: vi.fn() }
     };
 
     await expect(shutdownServices(services as never)).resolves.toBeUndefined();
@@ -539,18 +520,14 @@ describe('shutdownServices (#1032)', () => {
   it('한 단계가 reject해도 나머지 단계가 전부 호출된다', async () => {
     const { shutdownServices, resetBatchScheduler } = await loadShutdownServices();
     const walStop = vi.fn().mockResolvedValue(undefined);
-    const flush = vi.fn().mockResolvedValue(undefined);
-    const destroy = vi.fn().mockResolvedValue(undefined);
     const services = createMockServices({
       batchScheduler: { stop: vi.fn().mockRejectedValue(new Error('boom')) },
       walCheckpointScheduler: { stop: walStop },
-      writeCoalescingManager: { flush, destroy }
     });
 
     await expect(shutdownServices(services as never)).resolves.toBeUndefined();
 
     expect(walStop).toHaveBeenCalledTimes(1);
-    expect(destroy).toHaveBeenCalledTimes(1);
     expect(resetBatchScheduler).toHaveBeenCalledTimes(1);
     expect(mockState.logger.warn).toHaveBeenCalled();
   });

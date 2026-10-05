@@ -1,12 +1,10 @@
 import type Database from 'better-sqlite3';
-import { mementoConfig } from '../../../shared/config/index.js';
 import type { ForgettingPolicyService } from '../../../domains/forgetting/services/forgetting-policy-service.js';
 import type { PerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
 import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { AnchorManager } from '../../../domains/anchor/services/anchor/anchor-manager.js';
-import type { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
 import type { BatchJobConfig, BatchJobResult } from './batch-scheduler-types.js';
 import type { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
 import type { JobQueue } from '../job-queue.js';
@@ -34,7 +32,6 @@ export interface BatchSchedulerContextSource {
   jobQueue: JobQueue;
   fileLogger: FileLogger;
   relationValidatorExecutor: RelationValidatorExecutor;
-  consolidationScoreWorker: ConsolidationScoreWorker | null;
   introspectionScanCache: IntrospectionScanCache | null;
   sleepConsolidationService: SleepConsolidationService | null;
   telemetryCleanupRepository: TelemetryRepository | null;
@@ -51,15 +48,12 @@ export interface BatchSchedulerContextSource {
 }
 
 export interface BatchSchedulerRecurringContextSource extends BatchSchedulerContextSource {
-  consolidationScoreEnabled: boolean;
   intervals: Map<string, ReturnType<typeof setInterval>>;
   jobExecutionCoordinator: BatchJobExecutionCoordinator;
   scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) => void;
   runMemoryCleanup: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;
-  runConsolidationScoreIncremental: () => Promise<BatchJobResult>;
-  runConsolidationScoreFullSweep: () => Promise<BatchJobResult>;
   runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
@@ -96,7 +90,6 @@ export function buildBatchSchedulerRunContext(source: BatchSchedulerContextSourc
     jobQueue: source.jobQueue,
     fileLogger: source.fileLogger,
     relationValidatorExecutor: source.relationValidatorExecutor,
-    consolidationScoreWorker: source.consolidationScoreWorker,
     introspectionScanCache: source.introspectionScanCache,
     sleepConsolidationService: source.sleepConsolidationService,
     telemetryCleanupRepository: source.telemetryCleanupRepository,
@@ -133,8 +126,6 @@ export function buildBatchRecurringScheduleContext(
 ): BatchRecurringScheduleContext {
   return {
     config: source.config,
-    consolidationScoreEnabled: mementoConfig.consolidationScoreEnabled,
-    hasConsolidationScoreWorker: source.consolidationScoreWorker !== null,
     hasSleepConsolidation: source.sleepConsolidationService != null,
     hasTelemetryCleanup: source.telemetryCleanupRepository != null,
     hasForgettingEventCleanup: source.db != null,
@@ -148,8 +139,6 @@ export function buildBatchRecurringScheduleContext(
     runMemoryCleanup: () => source.runMemoryCleanup(),
     runMonitoring: () => source.runMonitoring(),
     runHealthCheck: () => source.runHealthCheck(),
-    runConsolidationScoreIncremental: () => source.runConsolidationScoreIncremental(),
-    runConsolidationScoreFullSweep: () => source.runConsolidationScoreFullSweep(),
     runWeeklyRelationValidation: () => source.runWeeklyRelationValidation(),
     runLogRotation: () => source.runLogRotation(),
     runQualityMeasurementBatch: () => source.runQualityMeasurementBatch(),

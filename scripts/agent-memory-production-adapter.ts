@@ -289,8 +289,6 @@ export async function runProductionInjectionBenchmark(
           {
             db,
             hybridSearchEngine: services.hybridSearchEngine,
-            consolidationScoreService: services.consolidationScoreService,
-            writeCoalescingManager: services.writeCoalescingManager,
           },
           {
             query: query.query,

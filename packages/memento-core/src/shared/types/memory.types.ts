@@ -112,7 +112,6 @@ export interface MementoConfig {
   logFile: string | undefined;
   mcpLogProtocol: boolean;
   nodeEnv: string;
-  consolidationScoreEnabled: boolean;
   fts5MigrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
   walCheckpointIntervalMs: number;
   walSizeWarningThreshold: number;

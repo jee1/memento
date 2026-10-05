@@ -175,7 +175,6 @@ describe('remember near-duplicate write path (#730, #997)', () => {
       rememberDedupThreshold: 0.85,
       rememberDedupLexicalFloor: 0.3,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     const unifiedEmbedding = {
@@ -465,7 +464,6 @@ describe('remember near-duplicate write path (#730, #997)', () => {
       rememberDedupThreshold: 0.99,
       rememberDedupLexicalFloor: 0.3,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {
@@ -497,7 +495,6 @@ describe('remember near-duplicate write path (#730, #997)', () => {
       rememberDedupThreshold: 0.85,
       rememberDedupLexicalFloor: 0.3,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {
@@ -538,7 +535,6 @@ describe('remember near-duplicate write path (#730, #997)', () => {
       rememberDedupThreshold: 0.85,
       rememberDedupLexicalFloor: 0.3,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {
@@ -710,7 +706,6 @@ describe('remember near-duplicate write path (#730, #997)', () => {
       rememberDedupThreshold: 0.85,
       rememberDedupLexicalFloor: 0,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     insertMemory(db, {

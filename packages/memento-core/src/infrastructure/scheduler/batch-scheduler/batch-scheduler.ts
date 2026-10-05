@@ -66,7 +66,6 @@ export class BatchScheduler implements IBatchScheduler {
   private config: BatchJobConfig;
   private forgettingService: BatchSchedulerServiceState['forgettingService'];
   private performanceMonitor: BatchSchedulerServiceState['performanceMonitor'];
-  private consolidationScoreWorker: BatchSchedulerServiceState['consolidationScoreWorker'];
   private reflexionWorker: IReflexionWorker | null = null;
   private walCheckpointScheduler: Pick<WalCheckpointScheduler, 'checkpointNow'> | null = null;
   private databaseLockMonitor: Pick<DatabaseLockMonitor, 'probe'> | null = null;
@@ -117,7 +116,6 @@ export class BatchScheduler implements IBatchScheduler {
     this.config = wiring.config;
     this.forgettingService = wiring.forgettingService;
     this.performanceMonitor = wiring.performanceMonitor;
-    this.consolidationScoreWorker = wiring.consolidationScoreWorker;
     this.jobQueue = wiring.jobQueue;
     this.retryManager = wiring.retryManager;
     this.healthChecker = wiring.healthChecker;
@@ -137,7 +135,6 @@ export class BatchScheduler implements IBatchScheduler {
       jobQueue: this.jobQueue,
       fileLogger: this.fileLogger,
       relationValidatorExecutor: this.relationValidatorExecutor,
-      consolidationScoreWorker: this.consolidationScoreWorker,
       introspectionScanCache: this.introspectionScanCache,
       sleepConsolidationService: this.sleepConsolidationService,
       telemetryCleanupRepository: this.telemetryCleanupRepository,
@@ -181,9 +178,7 @@ export class BatchScheduler implements IBatchScheduler {
       runMemoryReviewCandidatesJob: () => this.runMemoryReviewCandidatesJob(),
       runMonitoring: () => this.runMonitoring(),
       runHealthCheck: () => this.runHealthCheck(),
-      runConsolidationScoreIncremental: () => this.runConsolidationScoreIncremental(),
       runWeeklyRelationValidation: () => this.runWeeklyRelationValidation(),
-      runConsolidationScoreFullSweep: () => this.runConsolidationScoreFullSweep(),
       runMetaMemoryIntrospection: () => this.runMetaMemoryIntrospection(),
       runQualityMeasurementBatch: () => this.runQualityMeasurementBatch(),
       runLogRotation: () => this.runLogRotation(),
@@ -346,16 +341,8 @@ export class BatchScheduler implements IBatchScheduler {
     return this.getJobRunners().runHealthCheck();
   }
 
-  private async runConsolidationScoreIncremental(): Promise<BatchJobResult> {
-    return this.getJobRunners().runConsolidationScoreIncremental();
-  }
-
   private async runWeeklyRelationValidation(): Promise<BatchJobResult> {
     return this.getJobRunners().runWeeklyRelationValidation();
-  }
-
-  private async runConsolidationScoreFullSweep(): Promise<BatchJobResult> {
-    return this.getJobRunners().runConsolidationScoreFullSweep();
   }
 
   private async runMetaMemoryIntrospection(): Promise<BatchJobResult> {

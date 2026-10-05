@@ -13,9 +13,8 @@ import { MemoryEmbeddingService } from './domains/memory/services/memory-embeddi
 import { ForgettingPolicyService } from './domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 import { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
-import type { WriteCoalescingManager } from './shared/utils/write-coalescing.js';
 import { createAnchorStack } from './bootstrap/anchor-stack.js';
-import { createWriteCoalescingMetaAndScore } from './bootstrap/write-and-meta.js';
+import { createMetaMemoryService } from './bootstrap/write-and-meta.js';
 import { createMonitoringAndSchedulers } from './bootstrap/monitoring-schedulers.js';
 import { createBatchTelemetryRelationAndSleep } from './bootstrap/batch-telemetry-relation.js';
 import { createRuntimeDiagnosticsSampler } from './bootstrap/runtime-diagnostics-sampler.js';
@@ -23,7 +22,6 @@ import { startFailureAndReflexion } from './bootstrap/failure-reflexion.js';
 import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
 import type { FailureDetector } from './domains/monitoring/services/failure-detector.js';
 import type { IBatchScheduler } from './shared/interfaces/batch-scheduler.interface.js';
-import type { IConsolidationScoreService } from './shared/interfaces/consolidation-score.interface.js';
 import type { IDatabaseOptimizer } from './shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.interface.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
@@ -46,8 +44,6 @@ export interface ServerServices {
   performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
   databaseOptimizer: IDatabaseOptimizer;
   errorLoggingService: ErrorLoggingService;
-  consolidationScoreService?: IConsolidationScoreService;
-  writeCoalescingManager: WriteCoalescingManager;
   metaMemoryService: MetaMemoryService;
   anchorManager: AnchorManager;
   relationGraph: RelationGraphPort;
@@ -92,8 +88,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       walCheckpointScheduler,
       databaseLockMonitor
     } = await createMonitoringAndSchedulers(db);
-    const { writeCoalescingManager, consolidationScoreService, metaMemoryService } =
-      createWriteCoalescingMetaAndScore(db);
+    const { metaMemoryService } = createMetaMemoryService(db);
     const {
       introspectionScanCache,
       batchScheduler,
@@ -126,8 +121,6 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       performanceMonitor,
       databaseOptimizer,
       errorLoggingService,
-      consolidationScoreService,
-      writeCoalescingManager,
       metaMemoryService,
       anchorManager,
       relationGraph,
@@ -190,19 +183,6 @@ export async function shutdownServices(services: ServerServices | null | undefin
     services.databaseLockMonitor?.stop();
   } catch (error) {
     logger.warn('데이터베이스 락 모니터 중지 실패', { error });
-  }
-
-  if (services.writeCoalescingManager) {
-    try {
-      await services.writeCoalescingManager.flush();
-    } catch (error) {
-      logger.warn('Write Coalescing Manager flush 실패', { error });
-    }
-    try {
-      await services.writeCoalescingManager.destroy();
-    } catch (error) {
-      logger.warn('Write Coalescing Manager destroy 실패', { error });
-    }
   }
 
   try {

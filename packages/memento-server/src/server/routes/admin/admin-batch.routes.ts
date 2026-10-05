@@ -119,8 +119,6 @@ const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
   lock_monitor: 'lockMonitorInterval',
   reflexion_cleanup: 'reflexionCleanupInterval',
   reflexion_healthcheck: 'reflexionHealthCheckInterval',
-  consolidation_score_incremental: 'consolidationScoreIncrementalInterval',
-  consolidation_score_full_sweep: 'consolidationScoreFullSweepInterval',
   weekly_relation_validation: 'relationValidationInterval',
   log_rotation: 'logRotationInterval',
   quality_measurement_batch: 'qualityMeasurementInterval',
