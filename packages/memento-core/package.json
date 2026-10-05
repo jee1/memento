@@ -1,6 +1,6 @@
 {
   "name": "@memento/core",
-  "version": "1.36.0",
+  "version": "2.0.0",
   "description": "Memento core - memory, search, anchor, forgetting, embedding (library API only)",
   "type": "module",
   "private": true,
