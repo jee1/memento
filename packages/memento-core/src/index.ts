@@ -213,14 +213,6 @@ export type {
 } from './domains/embedding/services/embedding-reindex-service.js';
 export type { EmbeddingProvider } from './shared/types/embedding.types.js';
 export {
-  EventOutboxService,
-  EVENT_OUTBOX_ENABLED_ENV,
-  isEventOutboxEnabled,
-  type EventOutboxEvent,
-  type EventOutboxEventType,
-  type EventOutboxPublisher,
-} from './domains/telemetry/services/event-outbox-service.js';
-export {
   AuditHashChainService,
   AuditCoverageError,
   AUDIT_MODE_ENV,

@@ -8,10 +8,8 @@ import type Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { MemoryTypeRequest } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
 import { isMemoryItemType } from '../../../shared/utils/type-guards.js';
-import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { getNextVersionNumber } from '../procedural/procedural-versioning.js';
 import { ToolInputValidationError } from '../../../shared/errors/tool-input-validation-error.js';
 import {
@@ -428,22 +426,6 @@ export async function handleMemoryItem(
       dedup_action: nearDupMerged ? 'merged' : (nearDupCandidates.length > 0 ? 'warned' : undefined),
     }
   });
-
-  try {
-    const targetUri = formatMementoResourceUri({ ownerId, kind: memoryItemResourceKind(type), id });
-    const isProceduralUpdate = type === 'procedural' && !!existingMemoryId;
-    new EventOutboxService(context.db!).enqueue({
-      eventType: isProceduralUpdate ? 'procedure.updated' : 'memory.remembered',
-      targetUri,
-      ownerId,
-      payload: { memory_id: id, memory_type: type, content_hash: contentHash },
-      idempotencyKey: `${isProceduralUpdate ? 'procedure.updated' : 'memory.remembered'}:${targetUri}:${contentHash}`,
-    });
-  } catch (error) {
-    host.logWarning('Outbox event enqueue failed after memory write', {
-      error: error instanceof Error ? error.message : String(error), memory_id: id,
-    });
-  }
 
   let similarity_warning: SimilarityWarning | undefined;
   const similarityWarningOptions = {
