@@ -80,7 +80,7 @@ curl -sS -X POST http://127.0.0.1:9001/tools/recall \
   -d '{"query":"TypeScript 설정","type":"semantic"}'
 ```
 
-> 레거시: `ADMIN_API_KEY` Bearer도 동작할 수 있으나 deprecated입니다. 새 연동은 `MEMENTO_API_TOKENS`를 쓰세요.
+> `ADMIN_API_KEY` Bearer 는 v2.0.0(#1241)부터 거절됩니다. `MEMENTO_API_TOKENS` 의 토큰 secret 을 쓰세요.
 
 ### 레거시 NULL 데이터 opt-out
 

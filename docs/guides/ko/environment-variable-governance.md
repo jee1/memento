@@ -37,11 +37,11 @@ Memento의 환경 변수는 두 개의 템플릿 파일을 기준으로 관리�
 | `MCP_SERVER_PORT` / `PORT` | `9001` | HTTP 관리 서버 포트 |
 | `EMBEDDING_PROVIDER` | `minilm` | 임베딩 프로바이더 (tfidf, minilm, openai, gemini) |
 | `LLM_PROVIDER` | `ollama` | 관계 추출 등에 사용하는 LLM 프로바이더 |
-| `ADMIN_API_KEY` | — | 관리 API 인증 키 (프로덕션 필수) |
+| `ADMIN_API_KEY` | — | 브라우저 대시보드 로그인 키 (프로덕션 필수) |
+| `MEMENTO_API_TOKENS` | — | programmatic HTTP 인증 토큰 JSON 배열 (v2.0.0 부터 유일한 경로, #1241) |
 | `MEMENTO_HTTP_BIND_HOST` | `127.0.0.1` | HTTP 서버 바인드 주소 |
 | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | — | 무키 기동 허용 (로컬 개발 전용) |
 | `MEMENTO_RECALL_PROFILE` | — | `1`로 설정 시 recall 프로파일링 활성화 |
-| `CONSOLIDATION_SCORE_ENABLED` | — | sleep consolidation 점수 활성화 |
 | `FORGET_WORKING_TTL` | `48` | working 메모리 TTL (시간) |
 | `FORGET_EPISODIC_TTL` | `2160` | episodic 메모리 TTL (시간) |
 

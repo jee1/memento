@@ -9,6 +9,28 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.0.0] - 2026-10-05
+
+꺼져 있거나 기본값 0 으로 쓰이지 않던 기능과 호환 경로를 한꺼번에 걷어 낸 메이저 릴리스입니다 (#1246). 운영 검색 결과는 바뀌지 않습니다 — 제거한 랭킹 항은 모두 이미 가중치 0 이었고, 제거한 쓰기 경로는 플래그로 꺼져 있었습니다.
+
+### BREAKING
+
+- **auth**: programmatic HTTP(`/tools`, `/mcp`, `/messages`, `/api/v1/*`)는 `MEMENTO_API_TOKENS` 로만 인증합니다. `MEMENTO_API_TOKENS` 없이 `ADMIN_API_KEY` 만 두면 이 표면은 401 이고 기동 로그에 `#1241` 오류가 남습니다. `ADMIN_API_KEY` 는 대시보드 `/auth/session` 로그인 키로만 남습니다 (#1241, #1249). CLI·Claude Code·Codex 훅은 `MEMENTO_API_KEY` 를 먼저 읽습니다 (#1253)
+- **memory**: `MEMENTO_TYPE_PARAM_MODE` 와 `warn`/`deprecate` 모드를 제거했습니다. `remember`/`recall` 은 `type` 이 항상 필수이고, recall 결과 `origin_source` 에서 `type_param_mode`·`type_was_defaulted` 가 빠졌습니다. `@jee1/memento-assistant` 0.1.3 은 type 없이 recall 하던 호출을 `memory_types` 로 보내고, `@jee1/memento-client` 0.1.3 의 `RecallCallOptions` 에 `memory_types` 가 추가됐습니다 (#1242, #1252)
+- **memory**: `remember` 의 `enable_triple_extraction` 을 받지 않습니다. strict schema 가 거절합니다 (#1240, #1247)
+- **ranking**: ζ `relation_weight` 항과 `[ranking_weights].zeta`·`[relation_weights]` 를 제거했습니다 (#1185 이후 기본 0). 남은 TOML 키는 무시합니다 (#1245, #1250)
+- **ranking**: consolidation 랭킹 블렌드와 `[ranking_weights].consolidation` 을 제거했습니다 (#1184 이후 기본 0). 검색·recall 결과의 `consolidation_score` 필드가 빠졌습니다 (#1244, #1251)
+- **memory**: `ConsolidationScoreService`·워커·`WriteCoalescingManager`, 배치 잡 `consolidation_score_incremental`·`consolidation_score_full_sweep`, `CONSOLIDATION_SCORE_ENABLED` 를 제거했습니다 (#1189 이후 꺼져 있던 경로) (#1244, #1254)
+- **db**: migration `051-drop-consolidation-score-columns` 가 `memory_item.consolidation_score`·`g_value` 와 두 인덱스를 DROP 합니다. `recall_count`·`last_accessed_at` 은 그대로입니다. down 은 지원하지 않습니다 (#1244, #1255)
+- **quality**: 품질 지표 `consolidation` namespace, `test:vector-search-quality(:ci)`·`benchmark:consolidation-quality` 스크립트, `CONSOLIDATION_TEST_*` env 를 제거했습니다 (#1244, #1256)
+- **search**: 운영 경로가 없던 relation recall candidate expansion 과 `quality` relation-recall PoC 명령을 제거했습니다 (#1243, #1248)
+
+### 업그레이드
+
+1. `MEMENTO_API_TOKENS` 에 토큰을 만드세요. 기존 `ADMIN_API_KEY` 값으로 programmatic 호출을 하던 클라이언트가 있다면 같은 secret 으로 `{"id":"…","secret":"<그 값>","scopes":["tools:invoke","admin:destructive"]}` 를 넣으면 그대로 동작합니다. CLI·훅 셸에는 `MEMENTO_API_KEY` 를 설정하세요.
+2. `.env` 에서 `CONSOLIDATION_SCORE_ENABLED`, `MEMENTO_TYPE_PARAM_MODE`, `CONSOLIDATION_TEST_*` 를 지우세요 (남아 있어도 무시됩니다).
+3. 배포 전 `npm run db:pre-docker-deploy` 로 백업하세요. 051 은 컬럼을 지우며 되돌릴 수 없습니다.
+
 ### Added
 
 - **consolidation**: optional judge (`CONSOLIDATION_JUDGE=typesafe`, Jev) verifies each cluster member against the seed and each merge into an existing semantic; members it rejects or cannot judge stay unconsolidated (#1225)
@@ -27,7 +49,7 @@
 
 ### Removed
 
-- **triple** (#1237, breaking, no version bump yet): removed `extract_triples`, `triple_extraction_batch`, `TripleExtractionService`, `KgTripleRepository`, episodic→semantic convert tool/admin route, triple env keys, and migration `050-drop-triple-schema` drops `kg_triple` plus `memory_item.triple_extracted*` columns; no replacement extraction path (#1230, #1235). `remember` still accepts optional boolean `enable_triple_extraction` for backward compatibility but ignores it and returns response warning `deprecated, ignored (#1237)` until the next major removes the parameter entirely
+- **triple** (#1237): removed `extract_triples`, `triple_extraction_batch`, `TripleExtractionService`, `KgTripleRepository`, episodic→semantic convert tool/admin route and triple env keys; migration `050-drop-triple-schema` drops `kg_triple` plus `memory_item.triple_extracted*` columns; no replacement extraction path (#1230, #1235). The interim `enable_triple_extraction` compatibility (#1238) is removed in this release (see BREAKING)
 
 ## [1.36.0] - 2026-10-03
 

@@ -48,7 +48,7 @@ MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는**
 ```typescript
 interface RememberParams {
   content: string;                    // 기억할 내용 (필수)
-  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // 기억 타입 (필수. 기본 MEMENTO_TYPE_PARAM_MODE=error 에서는 생략 시 거절)
+  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // 기억 타입 (필수. 생략하면 거절)
   tags?: string[];                   // 태그 배열 (선택)
   importance?: number;               // 중요도 (0-1, 기본값: 0.5)
   source?: string;                   // 출처 (선택)

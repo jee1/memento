@@ -1,16 +1,11 @@
-# MCP `type` parameter rollout guide
+# MCP `type` parameter guide
 
-From v1.18 onward, Memento **rejects** `remember` and `recall` calls that omit **`type`**. Callers must state which memory layer they target so search and forgetting policies stay predictable. While migrating legacy clients, you can relax enforcement with an environment variable.
+`remember` and `recall` require **`type`**. Calls that omit it are rejected. Callers must state which memory layer they target so search and forgetting policies stay predictable.
 
-## Environment variable `MEMENTO_TYPE_PARAM_MODE`
+## History
 
-`MEMENTO_TYPE_PARAM_MODE` controls how the server handles a missing `type`.
-
-- **`error`** (default, v1.18+): calls without `type` are rejected. Use this for new deployments.
-- **`warn`**: falls back to `episodic` and may log a warning—useful while auditing old clients.
-- **`deprecate`**: same as `warn`, with migration guidance in the warning text.
-
-In production, teams often move `warn` → `deprecate` → `error` as clients are updated.
+- v1.18: `MEMENTO_TYPE_PARAM_MODE` defaulted to `error`; `warn` / `deprecate` let legacy clients fall back to `episodic` while migrating (#636).
+- v2.0.0: `MEMENTO_TYPE_PARAM_MODE` and the `warn` / `deprecate` modes are removed (#1242). The variable is ignored if still set.
 
 ## Recommended migration
 

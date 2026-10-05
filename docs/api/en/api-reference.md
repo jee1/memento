@@ -48,7 +48,7 @@ Stores a new memory. Use `type` to pick working/episodic/semantic/procedural; fr
 ```typescript
 interface RememberParams {
   content: string;                    // Content to remember (required)
-  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // Memory type (required; default MEMENTO_TYPE_PARAM_MODE=error rejects omission)
+  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // Memory type (required; omission is rejected)
   tags?: string[];                   // Tag array (optional)
   importance?: number;               // Importance (0-1, default: 0.5)
   source?: string;                   // Source (optional)

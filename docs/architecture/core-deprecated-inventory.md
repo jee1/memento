@@ -4,6 +4,20 @@
 
 현재 **활성 deprecated 항목은 없습니다.** 아래는 이미 제거된 항목의 기록입니다.
 
+## Removed in v2.0.0 (#1246)
+
+| Item | Reason |
+|------|--------|
+| ζ `relation_weight` 랭킹 항 · `[ranking_weights].zeta` · `[relation_weights]` | 관계 수가 질의와 무관한 prior 라 정답 순위를 뒤집음 (#1185 에서 기본 0). 남은 TOML 키는 무시 (#1245) |
+| consolidation 랭킹 블렌드 · `[ranking_weights].consolidation` | 반환 후보마다 점수를 다시 써 자기강화 (#1184 에서 기본 0). 남은 키는 무시 (#1244) |
+| `ConsolidationScoreService` · 워커 · `consolidation_score_incremental` / `_full_sweep` 배치 잡 · `CONSOLIDATION_SCORE_ENABLED` | #1189 이후 운영에서 꺼져 있던 쓰기 경로 (#1244) |
+| `memory_item.consolidation_score` · `g_value` 컬럼 | migration `051-drop-consolidation-score-columns` 로 DROP. `recall_count`·`last_accessed_at` 은 유지 (#1244) |
+| quality `consolidation` namespace · `test:vector-search-quality(:ci)` · `benchmark:consolidation-quality` · `CONSOLIDATION_TEST_*` env | 측정 대상 점수 제거 (#1244) |
+| `MEMENTO_TYPE_PARAM_MODE` `warn` / `deprecate` | `type` 은 항상 필수. 변수 자체를 제거 (#1242) |
+| `ADMIN_API_KEY` → synthetic `legacy-admin` programmatic 토큰 | programmatic HTTP 는 `MEMENTO_API_TOKENS` 만 인증. `ADMIN_API_KEY` 는 대시보드 로그인 키로만 남음 (#1241) |
+| `remember` `enable_triple_extraction` 호환 처리 | strict schema 가 거절 (#1240) |
+| relation recall candidate expansion · `quality` relation-recall PoC 명령 | 운영 경로 없음 (#1243) |
+
 ## Removed in #1237
 
 | Item | Reason |

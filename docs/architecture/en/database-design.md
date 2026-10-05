@@ -39,8 +39,6 @@ Notable columns:
 | `project_id` | Project-scoped memory |
 | `version` / `version_series_id` | Procedural memory versioning |
 | `subject` / `predicate` / `object` | Semantic triple fields |
-| `triple_extracted` / `triple_extracted_status` | Triple extraction state for async pipeline |
-| `consolidation_score` / `g_value` | Consolidation scoring |
 | `recall_count` / `last_accessed_at` | Usage statistics |
 | `is_deleted` / `deleted_at` | Soft delete |
 | `process_id` / `session_id` | Memori attribution (Issue #87) |

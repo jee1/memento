@@ -15,7 +15,7 @@ Call `recall` with a natural-language sentence — not keywords. The ranking is 
 recall(query: "How did we handle JWT expiry in this repo last time?", type: "episodic")
 ```
 
-- Always pass `type` (`working` | `episodic` | `semantic` | `procedural`). It is required by default (`MEMENTO_TYPE_PARAM_MODE=error`).
+- Always pass `type` (`working` | `episodic` | `semantic` | `procedural`). It is required; calls without it are rejected.
 - Prefer `memory_injection` when you want a token-budgeted summary rather than raw hits.
 - Scope with `project_id` or `owner_id` when several projects or agents share one database.
 

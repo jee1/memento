@@ -23,8 +23,6 @@
 |------|--------|------|
 | Per-item 관계 추출 | JobQueue (`addJob` from remember-tool) | episodic 저장 직후 작업 등록 |
 | `sleep_consolidation` | 1시간 주기 | 에피소드 → 시맨틱 증류 (`SleepConsolidationService`) |
-| `consolidation_score_incremental` | 1시간 주기 | 통합 점수 증분 업데이트 |
-| `consolidation_score_full_sweep` | 24시간 (새벽 3시) | 전체 통합 점수 재계산 |
 | `relation_validation` | 7일 (일요일 새벽 2시) | 관계 그래프 유효성 검증 |
 | `quality_measurement` | 24시간 | 메모리 품질 측정 |
 | `forgetting_cleanup` | 24시간 | TTL 만료 기억 정리 |
