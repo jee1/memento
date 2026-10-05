@@ -11,6 +11,12 @@ import {
 } from './report-quality-comparison.js';
 import type { QualityMetrics, QualityDegradation } from './report-quality-comparison.js';
 
+/** #1244: ranker no longer sets consolidation_score; nightly fixtures may still supply it. */
+function consolidationScoreOf(result: HybridSearchResult): number | undefined {
+  const raw = (result as HybridSearchResult & { consolidation_score?: number }).consolidation_score;
+  return raw === undefined ? undefined : Number(raw);
+}
+
 /**
  * 극단적 시나리오 검증 결과
  */
@@ -96,7 +102,7 @@ export function validateLowVectorHighConsolidation(
   // 저벡터 유사도 + 고 consolidation 점수 조합 필터링
   const extremeResults = results.filter(result => {
     const vectorScore = result.vectorScore || 0;
-    const consolidationScore = result.consolidation_score || 0;
+    const consolidationScore = consolidationScoreOf(result) ?? 0;
     return vectorScore < lowVectorThreshold && consolidationScore >= highConsolidationThreshold;
   });
 
@@ -112,7 +118,7 @@ export function validateLowVectorHighConsolidation(
   // 통계 계산
   const finalScores = extremeResults.map(r => r.finalScore || 0);
   const vectorScores = extremeResults.map(r => r.vectorScore || 0);
-  const consolidationScores = extremeResults.map(r => r.consolidation_score || 0);
+  const consolidationScores = extremeResults.map(r => consolidationScoreOf(r) ?? 0);
 
   const finalScoreRange = {
     min: Math.min(...finalScores),
@@ -196,7 +202,7 @@ export function validateHighVectorLowConsolidation(
   // 고벡터 유사도 + 저 consolidation 점수 조합 필터링
   const extremeResults = results.filter(result => {
     const vectorScore = result.vectorScore || 0;
-    const consolidationScore = result.consolidation_score || 0;
+    const consolidationScore = consolidationScoreOf(result) ?? 0;
     return vectorScore >= highVectorThreshold && consolidationScore < lowConsolidationThreshold;
   });
 
@@ -212,7 +218,7 @@ export function validateHighVectorLowConsolidation(
   // 통계 계산
   const finalScores = extremeResults.map(r => r.finalScore || 0);
   const vectorScores = extremeResults.map(r => r.vectorScore || 0);
-  const consolidationScores = extremeResults.map(r => r.consolidation_score || 0);
+  const consolidationScores = extremeResults.map(r => consolidationScoreOf(r) ?? 0);
 
   const finalScoreRange = {
     min: Math.min(...finalScores),
@@ -336,11 +342,11 @@ export function validateW2UpperBound(
   // finalScore = w1 * vectorScore + w2 * consolidationScore
   // w2=0.4일 때: w1=0.6, w2=0.4
   const w2_04_results: SearchResult[] = originalResults
-    .filter(r => r.vectorScore !== undefined && r.consolidation_score !== undefined)
+    .filter(r => r.vectorScore !== undefined && consolidationScoreOf(r) !== undefined)
     .map(r => {
       const w1 = 0.6;
       const w2 = 0.4;
-      const finalScore = w1 * (r.vectorScore || 0) + w2 * (r.consolidation_score || 0);
+      const finalScore = w1 * (r.vectorScore || 0) + w2 * (consolidationScoreOf(r) ?? 0);
       return {
         id: r.id,
         score: finalScore,
@@ -353,11 +359,11 @@ export function validateW2UpperBound(
   // w2=0.6일 때 최종 점수 재계산
   // w2=0.6일 때: w1=0.4, w2=0.6
   const w2_06_results: SearchResult[] = originalResults
-    .filter(r => r.vectorScore !== undefined && r.consolidation_score !== undefined)
+    .filter(r => r.vectorScore !== undefined && consolidationScoreOf(r) !== undefined)
     .map(r => {
       const w1 = 0.4;
       const w2 = 0.6;
-      const finalScore = w1 * (r.vectorScore || 0) + w2 * (r.consolidation_score || 0);
+      const finalScore = w1 * (r.vectorScore || 0) + w2 * (consolidationScoreOf(r) ?? 0);
       return {
         id: r.id,
         score: finalScore,

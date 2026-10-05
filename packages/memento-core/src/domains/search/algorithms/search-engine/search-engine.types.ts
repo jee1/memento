@@ -27,7 +27,6 @@ export type SearchEngineRow = {
   pinned: boolean | number;
   tags?: string | null;
   fts_rank?: number | null;
-  consolidation_score?: number | string | null;
   task_goal?: string | null;
   steps?: string | null;
   reflection_notes?: string | null;

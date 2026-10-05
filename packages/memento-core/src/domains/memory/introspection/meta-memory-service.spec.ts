@@ -219,34 +219,45 @@ describe('MetaMemoryService', () => {
       await service.destroy(); // flush 확인
 
       const stats = await service.getStatsById('mem_confidence');
-      // 예상 confidence: 0.6 * 0.8 + 0.3 * 0.7 + 0.1 * 0.9 = 0.48 + 0.21 + 0.09 = 0.78
-      const expectedConfidence = 0.6 * 0.8 + 0.3 * 0.7 + 0.1 * 0.9;
+      const expectedConfidence = 0.6 * 0.8 + 0.1 * 0.9;
       expect(stats.avg_confidence).toBeCloseTo(expectedConfidence, 5);
     });
   });
 
   describe('calculateConfidence', () => {
-    it('given: final_score, consolidation_score, vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: 가중 평균이 올바르게 계산되어야 함', () => {
-      // Given: 모든 점수가 있는 검색 결과 항목
+    it('given: final_score, consolidation_score, vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: consolidation_score는 무시하고 가중 평균이 계산되어야 함', () => {
       const item: RecallResultItem = {
         memory_id: 'mem_test',
         content: 'Test content',
         type: 'episodic',
         importance: 0.8,
         created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.8, // 0.6 * 0.8 = 0.48
-        consolidation_score: 0.7, // 0.3 * 0.7 = 0.21
-        vectorScore: 0.9 // 0.1 * 0.9 = 0.09
+        final_score: 0.5,
+        consolidation_score: 1,
+        vectorScore: 0.2
       } as any;
 
-      // When: calculateConfidence 호출
       const confidence = service.calculateConfidence(item);
 
-      // Then: 가중 평균이 올바르게 계산되어야 함
-      // 예상값: 0.48 + 0.21 + 0.09 = 0.78
-      const expected = 0.6 * 0.8 + 0.3 * 0.7 + 0.1 * 0.9;
+      expect(confidence).toBeCloseTo(0.32, 5);
+    });
+
+    it('given: final_score와 vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: 가중 평균이 올바르게 계산되어야 함', () => {
+      const item: RecallResultItem = {
+        memory_id: 'mem_test',
+        content: 'Test content',
+        type: 'episodic',
+        importance: 0.8,
+        created_at: '2024-01-01T00:00:00.000Z',
+        final_score: 0.8,
+        vectorScore: 0.9
+      } as any;
+
+      const confidence = service.calculateConfidence(item);
+
+      const expected = 0.6 * 0.8 + 0.1 * 0.9;
       expect(confidence).toBeCloseTo(expected, 5);
-      expect(confidence).toBeCloseTo(0.78, 5);
+      expect(confidence).toBeCloseTo(0.57, 5);
     });
 
     it('given: final_score만 있을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {
@@ -321,8 +332,7 @@ describe('MetaMemoryService', () => {
       // When: calculateConfidence 호출
       const confidence = service.calculateConfidence(item);
 
-      // Then: 1.0을 반환해야 함 (0.6 + 0.3 + 0.1 = 1.0)
-      expect(confidence).toBeCloseTo(1.0, 5);
+      expect(confidence).toBeCloseTo(0.7, 5);
     });
 
     it('given: consolidation_score와 vectorScore가 없을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {
