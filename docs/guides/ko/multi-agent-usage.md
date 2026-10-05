@@ -82,6 +82,21 @@ curl -sS -X POST http://127.0.0.1:9001/tools/recall \
 
 > `ADMIN_API_KEY` Bearer 는 v2.0.0(#1241)부터 거절됩니다. `MEMENTO_API_TOKENS` 의 토큰 secret 을 쓰세요.
 
+### 토큰에 agent 묶기 (#1258)
+
+헤더 값은 클라이언트가 마음대로 정한다. 같은 `tools:invoke` 토큰으로 헤더만 바꾸면 다른 agent 행세가 된다. 막으려면 토큰 항목에 `agent_id` 를 둔다.
+
+```bash
+MEMENTO_API_TOKENS='[{"id":"codex","secret":"<hex>","scopes":["tools:invoke"],"agent_id":"codex"}]'
+```
+
+- 이 토큰으로 온 요청의 `ToolContext.agentId` 는 항상 `codex` 다. 헤더가 없어도 된다
+- `X-Memento-Agent-Id`·`X-Agent-Id` 가 다른 값이면 **403** (`AGENT_ID_MISMATCH`)
+- `agent_id` 가 빈 문자열이거나 문자열이 아니면 그 토큰 항목 전체가 무시된다
+- `agent_id` 없는 토큰은 위 헤더 규칙 그대로
+
+forget owner scope(#1094)·strict recall 필터·감사 로그가 모두 이 값을 쓰므로, 에이전트마다 토큰을 따로 발급할 때 함께 설정한다. 도구 인자 `owner_id` 로 다른 owner 를 지정하는 경로는 이 설정의 영향을 받지 않는다.
+
 ### 레거시 NULL 데이터 opt-out
 
 기존 DB에 `owner_id = NULL`인 기억이 많고, HTTP recall에서 **소유자 미지정 전체 조회**를 유지해야 한다면:

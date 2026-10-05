@@ -45,6 +45,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
   ]
   ```
   `tools:invoke`만 있는 토큰은 quality API에 **403 Forbidden** 됩니다.
+- **토큰별 agent 신원 (`agent_id`, #1258)**: 토큰 항목에 `"agent_id": "codex"` 를 두면 그 토큰의 요청은 항상 agent `codex` 로 처리되고, 다른 `X-Memento-Agent-Id`·`X-Agent-Id` 는 403 입니다. 없으면 헤더 값을 그대로 믿습니다(사칭 가능). 에이전트마다 토큰을 나눌 때 함께 설정하세요. 자세한 내용은 [다중 에이전트 가이드](../../guides/ko/multi-agent-usage.md)를 참고하세요.
 - **`ADMIN_API_KEY`**: 브라우저 대시보드 `/auth/session` 로그인 키입니다. v2.0.0(#1241)부터 programmatic 표면에는 쓰이지 않습니다. `MEMENTO_API_TOKENS` 없이 이 키만 두면 programmatic 표면은 401 이고 기동 로그에 오류가 남습니다.
 - **권장 사용**: 특별한 이유가 없다면 HTTP 서버는 **루프백 또는 내부망**에만 두세요. 브라우저 대시보드/그래프는 서버와 동일 출처에서 열어 세션 쿠키가 다른 오리진으로 퍼지지 않게 유지하세요.
 - **운영 환경**: programmatic 접근에는 스코프드 토큰을 사용하고, 의도적으로 노출하는 경우가 아니면 `MEMENTO_HTTP_BIND_HOST`를 루프백으로 유지하세요.

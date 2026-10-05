@@ -36,6 +36,8 @@ export MEMENTO_API_TOKENS='[
 ]'
 ```
 
+에이전트마다 토큰을 나눈다면 항목에 `"agent_id":"<이름>"` 을 더해 신원을 묶으세요. 그 토큰은 다른 `X-Memento-Agent-Id` 를 보내면 403 입니다 (#1258).
+
 Docker `.env` 또는 compose `environment:`에 JSON 한 줄로 넣고 컨테이너를 재시작합니다.
 
 ### `ADMIN_API_KEY` (대시보드 로그인)

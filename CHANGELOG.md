@@ -13,6 +13,10 @@
 
 - **core**: 소비자가 없던 `event_outbox` 를 제거했습니다. migration 052 가 테이블을 DROP 하고(되돌릴 수 없음), `EventOutboxService`·`ConsolidationOutboxWorker`·`MEMENTO_EVENT_OUTBOX_ENABLED` 가 사라졌습니다. 운영에서 `publishPending()` 을 부르는 곳이 없어 켜도 쌓이기만 했습니다 (#1259)
 
+### Added
+
+- **auth**: `MEMENTO_API_TOKENS` 항목에 선택 필드 `agent_id` 를 둘 수 있습니다. 묶인 토큰의 요청은 그 값을 agent 신원으로 쓰고(`/tools`·`/mcp`·감사 로그), `X-Memento-Agent-Id`·`X-Agent-Id` 가 다르면 403 `AGENT_ID_MISMATCH` 입니다. 지금까지는 헤더만 바꾸면 다른 agent 의 forget owner scope·strict recall 필터를 통과했습니다. `agent_id` 가 없는 토큰은 동작이 같습니다 (#1258)
+
 ## [2.0.0] - 2026-10-05
 
 꺼져 있거나 기본값 0 으로 쓰이지 않던 기능과 호환 경로를 한꺼번에 걷어 낸 메이저 릴리스입니다 (#1246). 운영 검색 결과는 바뀌지 않습니다 — 제거한 랭킹 항은 모두 이미 가중치 0 이었고, 제거한 쓰기 경로는 플래그로 꺼져 있었습니다.
