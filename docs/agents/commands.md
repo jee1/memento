@@ -37,7 +37,7 @@ npm run start:http   # 컴파일된 HTTP 서버
       "env": {
         "MEMENTO_HTTP_SIDECAR": "1",
         "MCP_SERVER_PORT": "9001",
-        "ADMIN_API_KEY": "<ASCII 키>",
+        "MEMENTO_API_TOKENS": "[{\"id\":\"local\",\"secret\":\"<ASCII 키>\",\"scopes\":[\"tools:invoke\"]}]",
         "MEMENTO_HTTP_DEFAULT_AGENT_ID": "local-agent"
       }
     }
@@ -45,7 +45,7 @@ npm run start:http   # 컴파일된 HTTP 서버
 }
 ```
 
-CLI와 훅을 실행하는 셸에도 **같은 `ADMIN_API_KEY`**를 설정해야 합니다.
+CLI와 훅을 실행하는 셸에는 그 secret 을 **`MEMENTO_API_KEY`** 로 설정해야 합니다(v2.0.0 부터 `ADMIN_API_KEY` 는 programmatic 인증에 쓰이지 않음, #1241).
 MCP 클라이언트의 `env`는 별도 셸로 전파되지 않습니다. `MEMENTO_CONFIG_DIR`를 지정했다면
 CLI·훅에도 같은 디렉터리를 지정하세요. HTTP 도구 호출은 Bearer 인증을 사용하며,
 토큰이 없으면 `/tools`·`/mcp`는 loopback에서도 401을 반환하고 서버 로그에 안내됩니다.
@@ -144,12 +144,13 @@ DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](.
 
 ## 핵심 환경 변수
 
-자주 사용하는 환경 변수 세 가지를 정리합니다. `DB_PATH`는 SQLite 파일 경로로, 프로덕션에서는 반드시 절대 경로를 써야 합니다(`~`는 확장되지 않음). `ADMIN_API_KEY`는 HTTP 관리 API의 인증 키로, 프로덕션에서는 필수입니다. `MEMENTO_HTTP_BIND_HOST`는 HTTP 서버의 바인드 주소로 기본값은 `127.0.0.1`입니다.
+자주 사용하는 환경 변수 세 가지를 정리합니다. `DB_PATH`는 SQLite 파일 경로로, 프로덕션에서는 반드시 절대 경로를 써야 합니다(`~`는 확장되지 않음). `ADMIN_API_KEY`는 브라우저 대시보드 로그인 키로 프로덕션에서는 필수이고, programmatic HTTP 는 `MEMENTO_API_TOKENS` 로 인증합니다. `MEMENTO_HTTP_BIND_HOST`는 HTTP 서버의 바인드 주소로 기본값은 `127.0.0.1`입니다.
 
 | 변수 | 용도 |
 |------|------|
 | `DB_PATH` | SQLite 경로 (프로덕션은 절대 경로; `~` 미확장) |
-| `ADMIN_API_KEY` | HTTP 관리 API 키 (프로덕션 필수) |
+| `ADMIN_API_KEY` | 대시보드 로그인 키 (프로덕션 필수) |
+| `MEMENTO_API_TOKENS` | programmatic HTTP 토큰 (#1241) |
 | `MEMENTO_HTTP_BIND_HOST` | HTTP 바인드 (기본 `127.0.0.1`) |
 
 ### remember near-duplicate (#730)

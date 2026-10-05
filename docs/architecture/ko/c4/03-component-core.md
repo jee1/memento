@@ -58,7 +58,6 @@ C4Component
     Rel(searchEngine, ftsEngine, "텍스트 후보")
     Rel(searchEngine, vectorEngine, "벡터 후보")
     Rel(searchEngine, embedding, "쿼리 임베딩")
-    Rel(searchEngine, relation, "relation_weight 신호")
     Rel(searchEngine, forgetting, "TTL 필터")
 
     Rel(vectorEngine, embedding, "벡터 생성·조회")
@@ -140,7 +139,7 @@ executeTool(name, params, context)
 
 ```text
 S = α·relevance + β·recency + γ·importance + δ·usage
-  + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5)
+  + ζ_fb·(feedback_norm − 0.5)
   + θ·process_attribute_fit − ε·duplication_penalty
 ```
 
@@ -191,11 +190,7 @@ S = α·relevance + β·recency + γ·importance + δ·usage
 
 | Job | 기본 주기 | 담당 컴포넌트 |
 |-----|-----------|---------------|
-| `triple_extraction` | 1h | Relation Graph |
-| Per-item triple (JobQueue) | remember 직후 | Relation Graph |
 | `sleep_consolidation` | 1h | Sleep Consolidation |
-| `consolidation_score_incremental` | 1h | Consolidation |
-| `consolidation_score_full_sweep` | 24h (03:00) | Consolidation |
 | `forgetting_cleanup` | 24h | Forgetting Policy |
 | `meta_memory_introspection` | 6h | Meta Memory |
 | `memory_review_candidates` | 24h | Memory |
@@ -243,8 +238,7 @@ MCP Server (dispatchTool)
        └─ RecallTool
             └─ Hybrid Search Engine
                  ├─ FTS5 Search Engine ──► Repository ──► SQLite
-                 ├─ Vector Search Engine ──► Embedding Service
-                 └─ Relation Graph (relation_weight)
+                 └─ Vector Search Engine ──► Embedding Service
             └─ Telemetry Service (search_quality 기록)
 ```
 

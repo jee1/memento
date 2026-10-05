@@ -45,16 +45,9 @@ HTTP Admin API는 `/admin/relations/*` 라우트를 사용합니다.
 
     두 필터는 서로를 대체하지 않습니다. `exclude_orphans=true` 로 뽑아도 짝이 `limit` 밖이면 그 노드는 여전히 화면에서 degree=0 으로 보이므로, Phase 1 토글은 그대로 쓸모가 있습니다.
 
-## 랭킹 가중치 ζ (relation_weight) 런타임 설정
+## 랭킹 가중치 ζ (제거됨)
 
-하이브리드 검색 랭킹의 관계 부스트 계수 `ζ`는 `config/ranking-weights.toml`의 `[ranking_weights].zeta`에서 읽습니다.
-
-**코드 배포 없이 가중치 변경:**
-
-1. TOML 파일을 수정하거나, `MEMENTO_RANKING_WEIGHTS_PATH` 환경 변수로 대체 TOML 경로를 지정합니다.
-2. **프로세스 재시작**이 필요합니다. 가중치는 기동 시 `getRankingWeights()`로 캐시되며, 파일 변경만으로는 실행 중인 MCP/HTTP 서버에 반영되지 않습니다.
-
-자세한 공식: [search-ranking.md](../../agents/search-ranking.md)
+v2.0.0(#1245)에서 관계 부스트 항 `ζ·relation_weight` 와 `[ranking_weights].zeta`·`[relation_weights]` 설정을 제거했습니다. 관계는 더 이상 검색 순위에 영향을 주지 않습니다. 남은 TOML 키는 무시됩니다. 경위: [search-ranking.md](../../agents/search-ranking.md)
 
 ## 인터페이스 정의
 

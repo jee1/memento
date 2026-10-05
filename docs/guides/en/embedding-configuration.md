@@ -142,11 +142,11 @@ The HTTP server can run the same work asynchronously when a local CLI is not ava
 
 ```bash
 curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/reindex \
-  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"provider":"minilm","batchSize":100}'
 
-curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+curl -sS -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   http://127.0.0.1:9001/api/v1/maintenance/reindex/<job-id>
 ```
 
@@ -156,11 +156,11 @@ Instead of a full reindex, use `/backfill-relation-endpoints` to fill only exist
 
 ```bash
 curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints \
-  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"provider":"minilm","limit":200}'
 
-curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+curl -sS -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints/<job-id>
 ```
 

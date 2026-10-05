@@ -78,10 +78,10 @@ Hybrid search engine. FTS5 text search and vector search run in parallel; their 
 **Ranking formula** (`config/ranking-weights.toml`):
 ```
 S = α·relevance + β·recency + γ·importance + δ·usage
-  + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5)
+  + ζ_fb·(feedback_norm − 0.5)
   + θ·process_attribute_fit − ε·duplication_penalty
 ```
-Weights: α=0.45, β=0.20, γ=0.20, δ=0.10, ζ=0.15, ζ_fb=0.05, θ=0.10, ε=0.10.
+Weights: α=0.45, β=0.20, γ=0.20, δ=0.10, ζ_fb=0.05, θ=0.10, ε=0.10.
 
 The `relevance` slot combines vector similarity (0.4), BM25 score (0.3), tag matching (0.2), and title hit (0.1). MMR (Maximal Marginal Relevance) then ensures result diversity.
 
@@ -165,8 +165,6 @@ The 17 tools exposed to agents:
 | Job | Default Interval | Role |
 |-----|-----------------|------|
 | `sleep_consolidation` | 1 hour | Distill episodic → semantic memories |
-| `consolidation_score_incremental` | 1 hour | Incremental consolidation score update |
-| `consolidation_score_full_sweep` | 24 hours (3 AM) | Full consolidation score recalculation |
 | `quality_measurement` | 24 hours | Measure memory quality metrics |
 | `forgetting_cleanup` | 24 hours | Delete TTL-expired memories |
 | `memory_review_candidates` | 24 hours | Refresh spaced-repetition review queue |

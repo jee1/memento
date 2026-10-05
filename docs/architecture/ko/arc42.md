@@ -97,7 +97,7 @@ AI 에이전트(LLM 기반)는 기본적으로 **무상태(stateless)** 입니�
 
 - 의존 방향: `shared` ← `domains` ← `infrastructure` (domain→infra 역방향 금지, CI freeze)
 - 모든 transport의 `tools/call`은 `dispatchTool()` 단일 경로 (`audit-tool-dispatch.ts`)
-- `remember`/`recall`의 `type` 파라미터: 기본 `MEMENTO_TYPE_PARAM_MODE=error` (v1.18+)
+- `remember`/`recall`의 `type` 파라미터: 필수. 생략하면 거절한다 (v2.0.0 에서 `MEMENTO_TYPE_PARAM_MODE` 제거, #1242)
 - MCP `tools/list`: 기본 `MEMENTO_TOOLSET=core` (4개 노출, 18개는 call만 가능)
 
 ---
@@ -258,7 +258,6 @@ MCP Server → dispatchTool('recall')
           ├─ FTS5 SearchEngine → BM25 후보
           ├─ VectorSearchEngine → ANN 후보 (sqlite-vec)
           ├─ 가중치 합산 (ranking-weights.toml)
-          ├─ RelationGraph (relation_weight)
           └─ MMR 다양성 조절
       → TelemetryService (search_quality)
   ← ranked memories
@@ -343,7 +342,6 @@ rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → 
 | `TRANSPORT_TYPE` | `stdio` | `stdio` / `sse` |
 | `EMBEDDING_PROVIDER` | `tfidf` | tfidf / minilm / openai / gemini |
 | `MEMENTO_TOOLSET` | `core` | tools/list 노출 범위 |
-| `MEMENTO_TYPE_PARAM_MODE` | `error` | type 파라미터 정책 |
 
 전체: [env-deployment-checklist.md](../../operations/ko/env-deployment-checklist.md)
 

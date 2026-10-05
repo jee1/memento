@@ -147,11 +147,11 @@ HTTP API에서는 요청 본문의 `pruneForeignProviders: true`가 같은 역�
 
 ```bash
 curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/reindex \
-  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"provider":"minilm","batchSize":100}'
 
-curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+curl -sS -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   http://127.0.0.1:9001/api/v1/maintenance/reindex/<job-id>
 ```
 
@@ -161,11 +161,11 @@ curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
 
 ```bash
 curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints \
-  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"provider":"minilm","limit":200}'
 
-curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+curl -sS -H "Authorization: Bearer $MEMENTO_OPS_TOKEN" \
   http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints/<job-id>
 ```
 

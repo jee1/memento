@@ -75,7 +75,7 @@ The final score for recall and hybrid search is computed with the following form
 
 ```
 S = α·relevance + β·recency + γ·importance + δ·usage
-    + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+    + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
 ```
 
 Default weights (α=0.45, β=0.20, γ=0.20, δ=0.10, and so on) are stored in `config/ranking-weights.toml` and can be adjusted through the benchmark-based tuning process described in the search quality tuning guide.
@@ -156,7 +156,8 @@ When deploying the HTTP server where it is reachable from outside localhost, ver
 
 | Item | Environment Variable | Description |
 |------|---------------------|-------------|
-| API authentication | `ADMIN_API_KEY` | Required in production. Used to authenticate `/admin` and `/api` endpoints. |
+| Browser session | `ADMIN_API_KEY` | Required in production. `/auth/session` exchanges it for an HTTP-only session cookie used by `/admin` and `/api`. |
+| Header-based API | `MEMENTO_API_TOKENS` | Programmatic calls send a token secret via Bearer or X-API-Key. `ADMIN_API_KEY` is not accepted there (v2.0.0, #1241). |
 | Bind address | `MEMENTO_HTTP_BIND_HOST` | Defaults to `127.0.0.1`. If set to a non-loopback address without a key, the server refuses to start. |
 | CORS | `CORS_ALLOWED_ORIGINS` | Comma-separated. Empty means cross-origin requests are blocked. |
 | Keyless start (not recommended) | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | For local development only. Never use in production. |

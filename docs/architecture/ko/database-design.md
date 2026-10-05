@@ -190,7 +190,7 @@ erDiagram
 | 버전 | 이름 | 변경 요약 |
 |------|------|-----------|
 | 2.0 | mirix-schema-expansion | MIRIX 5-memory 확장(Core, Episodic, Semantic, Procedural, Vault) |
-| 3.0 | consolidation-score-fields | memory_item에 recall_count, last_accessed_at, consolidation_score, g_value 등 |
+| 3.0 | consolidation-score-fields | memory_item에 recall_count, last_accessed_at, consolidation_score, g_value 등 (consolidation_score·g_value 는 51.0 에서 DROP) |
 | 4.0 | anchor-table | anchor 테이블(슬롯 A/B/C) |
 | 5.0 | relation-engine-schema | memory_relation, relation_type_registry, memory_link → memory_relation 마이그레이션 |
 | 6.0 | fts5-reflection-notes | FTS5에 reflection_notes 반영(Zero-Downtime) |

@@ -75,7 +75,7 @@ recall과 하이브리드 검색의 최종 점수는 다음 공식으로 계산�
 
 ```
 S = α·relevance + β·recency + γ·importance + δ·usage
-    + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+    + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
 ```
 
 가중치 기본값(α=0.45, β=0.20, γ=0.20, δ=0.10 등)은 `config/ranking-weights.toml`에 있으며, 벤치마크 기반으로 조정할 수 있습니다(검색 품질 튜닝 가이드 참고).
@@ -159,7 +159,7 @@ HTTP 라우트는 신뢰 경계를 분리합니다. `/admin`, `/api`는 `/auth/s
 | 항목 | 환경 변수 | 설명 |
 |------|-----------|------|
 | 브라우저 세션 | `ADMIN_API_KEY` | 프로덕션 필수. `/auth/session`에서 키를 HTTP-only 세션 쿠키로 교환합니다. |
-| 헤더 기반 API | `ADMIN_API_KEY` | 프로그램 호출은 Bearer 또는 API-Key 헤더로 인증합니다. |
+| 헤더 기반 API | `MEMENTO_API_TOKENS` | 프로그램 호출은 Bearer 또는 API-Key 헤더로 토큰 secret 을 보냅니다. `ADMIN_API_KEY` 는 쓰이지 않습니다(v2.0.0, #1241). |
 | 바인딩 | `MEMENTO_HTTP_BIND_HOST` | 기본 `127.0.0.1`. 비루프백 주소로 설정 시 키가 없으면 기동을 거부합니다. |
 | CORS | `CORS_ALLOWED_ORIGINS` | 쉼표 구분. 비우면 크로스 오리진 요청을 차단합니다. |
 | 무키 기동 (비권장) | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | 로컬 개발 전용. 프로덕션에서 절대 사용하지 마십시오. |

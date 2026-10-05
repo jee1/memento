@@ -3,10 +3,10 @@
 Memento의 검색 결과 정렬은 아래 가중합 공식으로 점수를 계산합니다. 가중치는 `config/ranking-weights.toml`에서 읽어 옵니다.
 
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+S = α·relevance + β·recency + γ·importance + δ·usage + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
 ```
 
-각 계수의 기본값과 역할은 다음과 같습니다. `α`(0.45)는 검색어와의 관련성으로 가장 큰 비중을 차지합니다. `β`(0.20)는 최신성, `γ`(0.20)는 중요도, `δ`(0.10)는 사용 빈도입니다. `ζ`(0.15)는 관계 그래프에서 연결된 기억의 가중치이고, `ζ_fb`(0.05)는 사용자 피드백을 반영합니다. `ε`(0.10)은 중복 기억에 패널티를 주어 결과의 다양성을 높입니다.
+각 계수의 기본값과 역할은 다음과 같습니다. `α`(0.45)는 검색어와의 관련성으로 가장 큰 비중을 차지합니다. `β`(0.20)는 최신성, `γ`(0.20)는 중요도, `δ`(0.10)는 사용 빈도입니다. `ζ_fb`(0.05)는 사용자 피드백을 반영합니다. `ε`(0.10)은 중복 기억에 패널티를 주어 결과의 다양성을 높입니다.
 
 검색 품질 튜닝 방법은 [recall-performance-tuning.md](../guides/ko/recall-performance-tuning.md)에서 다룹니다.
 
@@ -62,31 +62,13 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 실제 사용 신호가 생기면 두 레인을 함께 그 신호로 바꾸십시오. 한 레인만 바꾸면 정의가 다시 갈라집니다.
 
-## Consolidation 블렌드 (Issue #1184)
+## Consolidation 블렌드 (제거, Issue #1184·#1244)
 
-`α` 항의 relevance 는 순수 관련성이 아닙니다. `consolidation` 가중치 `w` 로 `consolidation_score` 와 섞입니다.
+`α` 항의 relevance 는 순수 관련성입니다. 예전에는 `(1 − w)·relevance + w·consolidation_score` 로 섞였고, `consolidation_score` 를 `recall`·`memory_injection` 이 반환한 후보마다 다시 기록해 한 번 반환된 기억이 다음 질의에서 가산을 받는 자기강화 루프가 생겼습니다(운영 실측: 1회 호출 뒤 top-10 전원 0.28 → 0.6225). #1184 에서 `w` 기본값을 0 으로 내렸고, v2.0.0(#1244)에서 블렌드·점수 계산·배치 잡·`CONSOLIDATION_SCORE_ENABLED`·`consolidation_score`/`g_value` 컬럼을 모두 제거했습니다. TOML 에 남은 `[ranking_weights].consolidation` 키는 무시됩니다.
 
-```
-relevance_score = (1 − w)·relevance + w·consolidation_score
-```
+## Relation 가중치 (제거, Issue #1185·#1245)
 
-`consolidation_score` 는 `recall`·`memory_injection` 이 반환한 후보마다 다시 계산해 기록하므로, `w > 0` 이면 한 번 반환된 기억이 다음 질의에서 관련성 가산을 받습니다. #1184 이전에는 이 가중치가 TOML 에 없는 코드 상수 0.2 였고, 실효식은 `0.36·relevance + 0.09·consolidation_score` 였습니다. 운영 실측에서 1회 호출 뒤 top-10 전원이 0.28 → 0.6225 로 올라 relevance 슬롯이 0.025~0.049 상승했습니다.
-
-이제 `[ranking_weights].consolidation` 으로 노출되며 기본값은 0 입니다(상한 0.4). 0 이면 호출 이력이 α 슬롯을 움직이지 않습니다. `δ·usage` 쪽 자기강화(`last_accessed_at`)는 #1181 이 다룹니다.
-
-## Relation 가중치 (Issue #1185)
-
-`ζ·relation_weight` 의 입력은 후보 기억의 `memory_relation` 관계(confidence ≥ 0.5)입니다.
-
-```
-relation_weight = 평균(confidence × type_boost) × min(n, max_relations) / max_relations
-```
-
-#1185 이전 식은 `평균 ÷ min(n, max_relations)` 이라 관계가 **적을수록** 커졌습니다. 운영 코퍼스(10,535건, `memory_relation` 107,988행)에서 관계 1개짜리 기억이 `ζ·relation ≈ 0.111`, 5개 이상(38.7%)은 전부 `≈ 0.022` 로 같았습니다. 새 식은 관계 수에 단조 증가하고 `max_relations` 이상에서 평균(≈0.74)에 포화합니다.
-
-관계 수는 질의와 무관한 문서 출처 prior 입니다. Obsidian 클리핑처럼 링크가 붙지 않는 정답은 관계가 0개입니다. 그래서 기본값은 `[ranking_weights].zeta = 0` 입니다. 운영 `recall`(고성 왕곡마을 클리핑, semantic, top-20)을 항별로 분해해 통제 계산한 결과는 다음과 같습니다. 옛 식·ζ 0.15 에서는 관계 12개인 비정답이 4위였습니다. 새 식·ζ 0.15 에서는 그 비정답이 1위로 올라가고 관계 많은 비정답들이 정답 2건을 앞질렀습니다. ζ 0 에서는 정답 4건이 1~4위였습니다.
-
-`benchmark-v3` 게이트 엔진에는 relationGraph 가 붙지 않아 이 항을 재지 못합니다. 효과는 운영 `recall` 의 `include_score_breakdown` 으로 확인하십시오. `relevance` 슬롯에 `ζ·relation` 이 합산됩니다.
+예전 `ζ·relation_weight` 항은 후보의 `memory_relation` 관계 수·confidence 로 가산했습니다. 관계 수는 질의와 무관한 문서 출처 prior 라서 정답 순위를 뒤집었습니다. 운영 `recall`(고성 왕곡마을 클리핑, top-20)에서 ζ 0.15 일 때 관계 많은 비정답이 정답 2건을 앞질렀고, ζ 0 에서는 정답 4건이 1~4위였습니다. #1185 에서 기본값을 0 으로 내렸고, v2.0.0(#1245)에서 항과 `[ranking_weights].zeta`·`[relation_weights]` 설정을 제거했습니다. 남은 키는 무시됩니다. 관계 정보는 검색 엔진이 `includeRelations` 로 요청받을 때만 결과에 붙습니다.
 
 ## Relevance signal scale (Issue #1180)
 
@@ -132,6 +114,6 @@ effective_similarity = cosine_similarity × (len / (len + k))
 
 ## 런타임 가중치 재로드 (Issue #667)
 
-`ζ`(relation_weight) 같은 랭킹 계수는 `config/ranking-weights.toml`에서 읽히므로, 코드 배포 없이 TOML 파일만 수정해 계수를 바꿀 수 있습니다. 방법은 간단합니다. `MEMENTO_RANKING_WEIGHTS_PATH` 환경변수로 TOML 파일의 절대 경로를 지정하거나, 미설정 시에는 기본값인 `config/ranking-weights.toml`이 사용됩니다. 파일을 수정한 뒤에는 **Memento 프로세스를 재시작**해야 합니다. 가중치는 프로세스 기동 시 캐시되며 현재 hot reload는 지원하지 않습니다.
+`β`·`γ` 같은 랭킹 계수는 `config/ranking-weights.toml`에서 읽히므로, 코드 배포 없이 TOML 파일만 수정해 계수를 바꿀 수 있습니다. 방법은 간단합니다. `MEMENTO_RANKING_WEIGHTS_PATH` 환경변수로 TOML 파일의 절대 경로를 지정하거나, 미설정 시에는 기본값인 `config/ranking-weights.toml`이 사용됩니다. 파일을 수정한 뒤에는 **Memento 프로세스를 재시작**해야 합니다. 가중치는 프로세스 기동 시 캐시되며 현재 hot reload는 지원하지 않습니다.
 
 관계 MCP 도구·타입 표준은 [relation-graph-api.md](../api/ko/relation-graph-api.md)에, 관련 이슈는 GitHub [#657](https://github.com/jee1/memento/issues/657)에서 확인할 수 있습니다.

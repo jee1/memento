@@ -94,7 +94,7 @@ const client = new MementoClient({
 
 await client.connect();
 
-// `type` is required (default MEMENTO_TYPE_PARAM_MODE=error rejects omission)
+// `type` is required (omission is rejected)
 await client.remember({
   content: 'User asked about React Hooks; explained the difference between useState and useEffect.',
   type: 'episodic',

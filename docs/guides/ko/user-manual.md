@@ -94,7 +94,7 @@ const client = new MementoClient({
 
 await client.connect();
 
-// type은 필수입니다 (기본 MEMENTO_TYPE_PARAM_MODE=error — 생략 시 거절)
+// type은 필수입니다 (생략하면 거절)
 await client.remember({
   content: '사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다.',
   type: 'episodic',

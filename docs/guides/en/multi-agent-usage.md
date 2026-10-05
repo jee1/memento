@@ -80,7 +80,7 @@ curl -sS -X POST http://127.0.0.1:9001/tools/recall \
   -d '{"query":"TypeScript settings","type":"semantic"}'
 ```
 
-> Legacy: a Bearer `ADMIN_API_KEY` may still work, but it is deprecated. New integrations should use `MEMENTO_API_TOKENS`.
+> A Bearer `ADMIN_API_KEY` is rejected since v2.0.0 (#1241). Use a token secret from `MEMENTO_API_TOKENS`.
 
 ### Legacy NULL-data opt-out
 

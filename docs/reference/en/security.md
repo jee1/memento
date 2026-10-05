@@ -43,7 +43,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
   ]
   ```
   A token with only `tools:invoke` gets **403 Forbidden** on quality APIs.
-- **Legacy `ADMIN_API_KEY`**: Used only when `MEMENTO_API_TOKENS` is unset, as a synthetic `legacy-admin` token with both scopes. A one-time deprecation warning is logged at startup. New deployments should migrate to `MEMENTO_API_TOKENS`.
+- **`ADMIN_API_KEY`**: The browser dashboard `/auth/session` sign-in key. Since v2.0.0 (#1241) it no longer authenticates programmatic surfaces. With only this key and no `MEMENTO_API_TOKENS`, programmatic surfaces return 401 and startup logs an error.
 - **Recommended use**: Unless you have a clear reason not to, keep the HTTP server on **loopback or an internal network**. Open the browser dashboard/graph same-origin with the server so the session cookie is not shared across origins.
 - **Production**: Use scoped tokens for programmatic access, and keep `MEMENTO_HTTP_BIND_HOST` on loopback unless you intentionally expose the server.
 - **Browser secret handling**: The server does **not** deliver API secrets to browser assets. Operators sign in through `/auth/session`, which exchanges the typed key for an HTTP-only session cookie. `/dashboard` is the recommended entry point, and opening `/graph` directly now offers the same session-backed sign-in/re-auth path. The graph UI requires a browser session before the graph surface unlocks. Neither page bootstraps the key into JavaScript.

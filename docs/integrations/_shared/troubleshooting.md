@@ -93,7 +93,7 @@ npx memento-mcp-server@latest recall --query "테스트 키워드"
 
 - HTTP 트랙에서 `/mcp`·`/messages`·`/api/v1/quality/*` 호출이 `401 Unauthorized`로 실패.
 - 비서 측 에러 메시지에 `Authorization`·`Bearer`·`API key` 같은 단어가 등장.
-- 서버 로그에 `ADMIN_API_KEY is not configured` 또는 토큰 불일치 경고.
+- 서버 로그에 `No programmatic API tokens configured`·`Programmatic API is disabled: configure MEMENTO_API_TOKENS.` 또는 토큰 불일치 경고.
 
 ### 1차 진단
 
@@ -112,7 +112,7 @@ curl -i -H "Authorization: Bearer $MEMENTO_TOKEN" http://localhost:9001/api/v1/q
 | 원인 | 처방 |
 |---|---|
 | 비서 config에 토큰 자체가 누락 | [`./auth.md`](./auth.md#비서별-secret-저장-위치)의 저장 위치 표대로 비밀 저장소·환경변수에 넣고 config는 `${MEMENTO_TOKEN}`로 참조 |
-| 서버 측 `ADMIN_API_KEY`가 비어있거나 다른 값 | 서버 환경변수 확인 후 [`./auth.md`](./auth.md#서버에-적용)의 적용 절차로 갱신·재시작 |
+| 서버 측 `MEMENTO_API_TOKENS`가 비어있거나 그 secret 이 다름 (v2.0.0 부터 `ADMIN_API_KEY` 는 programmatic 인증에 쓰이지 않음) | 서버 환경변수 확인 후 [`./auth.md`](./auth.md#서버에-적용)의 적용 절차로 갱신·재시작 |
 | 회전 직후 비서들이 옛 토큰을 그대로 보냄 | [`./auth.md`](./auth.md#회전) 절차대로 모든 비서를 새 키로 동시 갱신 |
 | `Authorization` 헤더가 reverse proxy에서 잘림 | nginx의 `proxy_set_header Authorization $http_authorization;` 명시, Cloudflare는 "Authenticated Origin Pulls" 같은 변환 비활성화 |
 | `Bearer ` 접두어 누락 또는 공백 한 칸 빠짐 | 헤더 값이 정확히 `Bearer <key>` 형태인지 확인. 공백 한 칸이 필수 |

@@ -88,13 +88,12 @@ npm run quality -- benchmark verify-review -- --benchmark-dir tests/fixtures/sea
 - `--allow-unreviewed` 없이 실행하면 `ground_truth_reviewed !== true`인 fixture는 실패합니다.
 - 최종 검토가 끝난 뒤에만 `manifest.json`의 `ground_truth_reviewed`를 `true`로 올리십시오.
 
-### 5. CI 품질 테스트 실행
+### 5. 품질 게이트 실행
 
-벤치마크 fixture를 사용해 검색 품질 지표를 측정합니다.
+벤치마크 fixture를 사용해 카테고리별 검색 품질을 측정합니다. (v2.0.0 에서 `test:vector-search-quality(:ci)` 는 consolidation 품질 지표와 함께 제거됐습니다, #1244.)
 
 ```bash
-npm run test:vector-search-quality
-npm run test:vector-search-quality:ci
+npm run quality -- benchmark category-report
 ```
 
 - 기본 CI는 별도 환경변수가 없으면 `tests/fixtures/search-quality/benchmark-v3`를 사용합니다.
@@ -112,8 +111,7 @@ npm run test:vector-search-quality:ci
 | `npm run quality -- benchmark candidates` | queries.json 기준 후보 생성 → label-candidates.json |
 | `npm run quality -- benchmark checklist` | review-checklist.md 생성 |
 | `npm run quality -- benchmark verify-review` | ground truth / manifest 검증 및 reviewed 상태 확인 |
-| `npm run test:vector-search-quality` | 벡터 검색 품질 통합 테스트 (fixture 사용) |
-| `npm run test:vector-search-quality:ci` | CI용 품질 테스트 (JUnit/JSON 리포트) |
+| `npm run quality -- benchmark category-report` | 카테고리별 MRR 게이트 (nightly) |
 
 ## 참고
 
