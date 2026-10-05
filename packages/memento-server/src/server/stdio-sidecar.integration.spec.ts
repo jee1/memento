@@ -42,6 +42,7 @@ describe('stdio HTTP sidecar subprocess integration', () => {
         MCP_SERVER_PORT: String(port),
         MEMENTO_HTTP_BIND_HOST: '127.0.0.1',
         ADMIN_API_KEY: apiKey,
+        MEMENTO_API_TOKENS: JSON.stringify([{ id: 'test', secret: apiKey, scopes: ['tools:invoke', 'admin:destructive'] }]),
         EMBEDDING_PROVIDER: 'tfidf',
         BATCH_SCHEDULER_ENABLED: 'false',
         WAL_CHECKPOINT_ENABLED: 'false',
@@ -101,6 +102,7 @@ describe('stdio HTTP sidecar subprocess integration', () => {
       body: JSON.stringify({ query: 'integration', type: 'working' }),
     })).status).toBe(401);
     vi.stubEnv('ADMIN_API_KEY', apiKey);
+    vi.stubEnv('MEMENTO_API_TOKENS', JSON.stringify([{ id: 'test', secret: apiKey, scopes: ['tools:invoke', 'admin:destructive'] }]));
     expect(await callToolViaHttp(info.port, 'recall', {
       query: 'integration', type: 'working', owner_id: 'sidecar-integration', auto_set_anchor: false,
     })).toBeDefined();
