@@ -222,7 +222,7 @@ export async function loadMemoryItemById(
         created_at, last_accessed, pinned, tags, source,
         task_goal, steps, reflection_notes,
         workflow_name, skill_name, trigger_conditions,
-        recall_count, last_accessed_at, g_value, consolidation_score,
+        recall_count, last_accessed_at,
         version, version_series_id, num_times,
         owner_id, project_id
       FROM memory_item
@@ -252,13 +252,11 @@ export async function loadMemoryItemById(
       skill_name: r.skill_name as string | undefined,
       trigger_conditions: r.trigger_conditions as string | undefined,
       recall_count: r.recall_count as number | undefined,
-      g_value: r.g_value as number | undefined,
       last_accessed_at: r.last_accessed_at != null
         ? new Date(r.last_accessed_at as string)
         : undefined,
       version: r.version as number | undefined,
       version_series_id: r.version_series_id as string | undefined,
-      consolidation_score: r.consolidation_score as number | undefined,
       num_times: r.num_times as number | undefined,
       owner_id: (r.owner_id as string | null) ?? null,
       project_id: (r.project_id as string | null) ?? null,

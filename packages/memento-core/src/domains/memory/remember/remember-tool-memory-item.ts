@@ -6,7 +6,7 @@
 import { createHash } from 'crypto';
 import type Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
-import type { MemoryType, MemoryTypeRequest } from '../../../shared/types/memory.types.js';
+import type { MemoryTypeRequest } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
@@ -97,12 +97,9 @@ async function persistMemoryItem(
     const createdAt = new Date().toISOString();
     const recallCount = isUpdate && existingMemory && existingMemory.recall_count !== undefined
       ? existingMemory.recall_count + 1 : 1;
-    const gValue = isUpdate && existingMemory && existingMemory.g_value !== undefined
-      ? existingMemory.g_value
-      : (mementoConfig.consolidationScoreEnabled ? 1.0 : null);
     const lastAccessedAt = isUpdate && existingMemory && existingMemory.last_accessed_at
       ? new Date(existingMemory.last_accessed_at).toISOString()
-      : (mementoConfig.consolidationScoreEnabled ? createdAt : null);
+      : null;
     const lastMentionedAt = last_mentioned_at_param ?? (isUpdate ? new Date().toISOString() : createdAt);
 
     let finalSteps = steps || null;
@@ -120,19 +117,6 @@ async function persistMemoryItem(
       }
     }
 
-    let consolidationScore: number | null = null;
-    if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService) {
-      const scoreResult = context.services.consolidationScoreService.calculateScore({
-        recallCount,
-        lastAccessedAt: lastAccessedAt ? new Date(lastAccessedAt) : new Date(createdAt),
-        createdAt: isUpdate && existingMemory?.created_at ? new Date(existingMemory.created_at) : new Date(createdAt),
-        gValue: gValue ?? 1.0,
-        type: type as MemoryType,
-        pinned: isUpdate && existingMemory?.pinned ? Boolean(existingMemory.pinned) : false
-      });
-      consolidationScore = scoreResult.score;
-    }
-
     const tagsJson = tags ? JSON.stringify(tags) : null;
 
     if (isUpdate) {
@@ -144,7 +128,7 @@ async function persistMemoryItem(
           content = ?, importance = ?, privacy_scope = ?, tags = ?, source = ?,
           origin_source = ?, task_goal = ?, steps = ?, reflection_notes = ?,
           workflow_name = ?, skill_name = ?, trigger_conditions = ?,
-          recall_count = ?, last_accessed_at = ?, g_value = ?, consolidation_score = ?,
+          recall_count = ?, last_accessed_at = ?,
           owner_id = ?, process_id = ?, session_id = ?,
           num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?,
           version = ?
@@ -159,7 +143,7 @@ async function persistMemoryItem(
           content = ?, importance = ?, privacy_scope = ?, tags = ?, source = ?,
           origin_source = ?, task_goal = ?, steps = ?, reflection_notes = ?,
           workflow_name = ?, skill_name = ?, trigger_conditions = ?,
-          recall_count = ?, last_accessed_at = ?, g_value = ?, consolidation_score = ?,
+          recall_count = ?, last_accessed_at = ?,
           owner_id = ?, process_id = ?, session_id = ?,
           num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?
         WHERE id = ?
@@ -169,7 +153,7 @@ async function persistMemoryItem(
           content, importance, privacy_scope, tagsJson, source || null,
           origin_source, task_goal || null, finalSteps, finalReflectionNotes,
           workflow_name || null, skill_name || null, trigger_conditions || null,
-          recallCount, lastAccessedAt, gValue, consolidationScore,
+          recallCount, lastAccessedAt,
           ownerId, processId, sessionId,
           numTimes, lastMentionedAt, sourceSessionId, confidenceVal,
           nextVersion,
@@ -179,7 +163,7 @@ async function persistMemoryItem(
           content, importance, privacy_scope, tagsJson, source || null,
           origin_source, task_goal || null, finalSteps, finalReflectionNotes,
           workflow_name || null, skill_name || null, trigger_conditions || null,
-          recallCount, lastAccessedAt, gValue, consolidationScore,
+          recallCount, lastAccessedAt,
           ownerId, processId, sessionId,
           numTimes, lastMentionedAt, sourceSessionId, confidenceVal,
           id,
@@ -202,17 +186,17 @@ async function persistMemoryItem(
           task_goal, steps, reflection_notes,
           workflow_name, skill_name, trigger_conditions,
           created_at,
-          recall_count, last_accessed_at, g_value, consolidation_score,
+          recall_count, last_accessed_at,
           version, version_series_id, owner_id, process_id, session_id, project_id,
           num_times, last_mentioned_at, source_session_id, confidence
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         id, type, content, importance, privacy_scope, tagsJson, source || null, origin_source,
         task_goal || null, finalSteps, finalReflectionNotes,
         workflow_name || null, skill_name || null, trigger_conditions || null,
         createdAt,
-        recallCount, lastAccessedAt, gValue, consolidationScore,
+        recallCount, lastAccessedAt,
         proceduralVersion, proceduralVersionSeriesId, ownerId, processId, sessionId, project_id_param ?? null,
         numTimes, lastMentionedAt, sourceSessionId, confidenceVal
       ]);

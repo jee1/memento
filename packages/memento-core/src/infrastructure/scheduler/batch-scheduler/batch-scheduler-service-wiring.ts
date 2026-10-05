@@ -2,12 +2,10 @@ import type Database from 'better-sqlite3';
 import { ForgettingPolicyService } from '../../../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
 import type { RuntimeDiagnosticsLogger } from '../../../domains/monitoring/services/runtime-diagnostics-logger.js';
-import { ConsolidationScoreWorker } from '../../../workers/consolidation-score-worker.js';
 import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { AnchorManager } from '../../../domains/anchor/services/anchor/anchor-manager.js';
-import { mementoConfig } from '../../../shared/config/index.js';
 import type { BatchJobConfig, BatchJobResult } from './batch-scheduler-types.js';
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
 import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
@@ -57,7 +55,6 @@ export interface BatchSchedulerWiringResult {
   config: BatchJobConfig;
   forgettingService: ForgettingPolicyService;
   performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
-  consolidationScoreWorker: ConsolidationScoreWorker | null;
   jobQueue: JobQueue;
   retryManager: RetryManager;
   healthChecker: HealthChecker;
@@ -76,7 +73,6 @@ export interface BatchSchedulerServiceState {
   jobQueue: JobQueue;
   fileLogger: FileLogger;
   relationValidatorExecutor: RelationValidatorExecutor;
-  consolidationScoreWorker: ConsolidationScoreWorker | null;
   introspectionScanCache: IntrospectionScanCache | null;
   sleepConsolidationService: SleepConsolidationService | null;
   telemetryCleanupRepository: TelemetryRepository | null;
@@ -103,9 +99,7 @@ export interface BatchSchedulerRecurringCallbacks {
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;
-  runConsolidationScoreIncremental: () => Promise<BatchJobResult>;
   runWeeklyRelationValidation: () => Promise<BatchJobResult>;
-  runConsolidationScoreFullSweep: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
@@ -126,10 +120,6 @@ export function createBatchSchedulerWiring(
 
   const forgettingService = new ForgettingPolicyService();
   const performanceMonitor = getPerformanceMonitor();
-
-  const consolidationScoreWorker = mementoConfig.consolidationScoreEnabled
-    ? new ConsolidationScoreWorker()
-    : null;
 
   const jobQueue = dependencies?.jobQueue ?? new JobQueue();
   const retryManager = dependencies?.retryManager ?? new RetryManager({
@@ -165,7 +155,6 @@ export function createBatchSchedulerWiring(
     config: mergedConfig,
     forgettingService,
     performanceMonitor,
-    consolidationScoreWorker,
     jobQueue,
     retryManager,
     healthChecker,
@@ -190,7 +179,6 @@ export function getBatchSchedulerContextSource(
     jobQueue: state.jobQueue,
     fileLogger: state.fileLogger,
     relationValidatorExecutor: state.relationValidatorExecutor,
-    consolidationScoreWorker: state.consolidationScoreWorker,
     introspectionScanCache: state.introspectionScanCache,
     sleepConsolidationService: state.sleepConsolidationService,
     telemetryCleanupRepository: state.telemetryCleanupRepository,
@@ -216,7 +204,6 @@ export function getBatchSchedulerRecurringContextSource(
 ): BatchSchedulerRecurringContextSource {
   return {
     ...getBatchSchedulerContextSource(state, log, emitMemoryReviewCandidatesRunRecordFn),
-    consolidationScoreEnabled: mementoConfig.consolidationScoreEnabled,
     intervals: recurringState.intervals,
     jobExecutionCoordinator: recurringState.jobExecutionCoordinator,
     ...callbacks

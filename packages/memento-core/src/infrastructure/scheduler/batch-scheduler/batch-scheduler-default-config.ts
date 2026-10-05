@@ -19,9 +19,6 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     lockMonitorInterval: mementoConfig.lockMonitorIntervalMs,
     reflexionCleanupInterval: 60 * 1000,
     reflexionHealthCheckInterval: 30 * 1000,
-    consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
-    consolidationScoreFullSweepInterval: DAY_MS, // 24시간
-    consolidationScoreFullSweepHour: 3,  // 새벽 3시
     relationValidationInterval: 7 * DAY_MS, // 7일
     relationValidationDayOfWeek: 0,     // 일요일
     relationValidationHour: 2,          // 새벽 2시

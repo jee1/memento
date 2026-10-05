@@ -78,8 +78,6 @@ describe('context 모듈', () => {
       expect(toolContext.services.performanceMonitor).toBe(services.performanceMonitor);
       expect(toolContext.services.databaseOptimizer).toBe(services.databaseOptimizer);
       expect(toolContext.services.errorLoggingService).toBe(services.errorLoggingService);
-      expect(toolContext.services.consolidationScoreService).toBe(services.consolidationScoreService);
-      expect(toolContext.services.writeCoalescingManager).toBe(services.writeCoalescingManager);
       expect(toolContext.services.anchorManager).toBe(services.anchorManager);
     });
 
@@ -137,8 +135,6 @@ describe('context 모듈', () => {
       expect(toolContext.services.performanceMonitor).toBe(services.performanceMonitor);
       expect(toolContext.services.databaseOptimizer).toBe(services.databaseOptimizer);
       expect(toolContext.services.errorLoggingService).toBe(services.errorLoggingService);
-      expect(toolContext.services.consolidationScoreService).toBe(services.consolidationScoreService);
-      expect(toolContext.services.writeCoalescingManager).toBe(services.writeCoalescingManager);
       expect(toolContext.services.anchorManager).toBe(services.anchorManager);
       expect(toolContext.services.failureDetector).toBe(services.failureDetector);
       expect(toolContext.services.reflexionWorker).toBe(services.reflexionWorker);

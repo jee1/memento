@@ -124,8 +124,6 @@ export class MemoryInjectionPrompt extends BaseTool {
         {
           db: context.db,
           hybridSearchEngine: context.services.hybridSearchEngine,
-          consolidationScoreService: context.services.consolidationScoreService,
-          writeCoalescingManager: context.services.writeCoalescingManager,
         },
         {
           query,

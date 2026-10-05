@@ -26,8 +26,6 @@ export class ToolContextKnowledgeContextAdapter implements IContextPort {
       {
         db: this.toolContext.db as Database.Database,
         hybridSearchEngine: this.toolContext.services.hybridSearchEngine,
-        consolidationScoreService: this.toolContext.services.consolidationScoreService,
-        writeCoalescingManager: this.toolContext.services.writeCoalescingManager,
       },
       {
         query: request.userMessage,

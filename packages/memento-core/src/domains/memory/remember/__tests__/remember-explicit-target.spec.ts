@@ -161,7 +161,6 @@ describe('remember explicit memory_id target (#1000)', () => {
       rememberDedupThreshold: 0.85,
       rememberDedupLexicalFloor: 0.3,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     context = {

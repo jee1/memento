@@ -8,7 +8,6 @@ import {
   shutdownServices,
   type ServerServices,
   DatabaseUtils,
-  mementoConfig,
   getPerformanceMonitor,
   getBatchScheduler
 } from '@memento/core';
@@ -129,23 +128,6 @@ describe('initializeServices', () => {
         expect(services1.performanceMonitor).toBe(services2.performanceMonitor);
         services = services2;
       } finally {
-        // Write Coalescing Manager 정리
-        if (services1?.writeCoalescingManager) {
-          try {
-            await services1.writeCoalescingManager.flush();
-            await services1.writeCoalescingManager.destroy();
-          } catch (error) {
-            console.warn('services1 WriteCoalescingManager destroy 중 에러:', error);
-          }
-        }
-        if (services2?.writeCoalescingManager) {
-          try {
-            await services2.writeCoalescingManager.flush();
-            await services2.writeCoalescingManager.destroy();
-          } catch (error) {
-            console.warn('services2 WriteCoalescingManager destroy 중 에러:', error);
-          }
-        }
         // 정리
         db1.close();
         db2.close();
@@ -164,109 +146,14 @@ describe('initializeServices', () => {
     });
   });
 
-  describe('선택적 서비스 초기화', () => {
-    it('consolidationScoreEnabled가 false일 때 consolidationScoreService만 undefined여야 함', async () => {
-      // given: consolidationScoreEnabled가 false인 경우
-      const originalValue = mementoConfig.consolidationScoreEnabled;
-      
-      // when: 서비스를 초기화하면
+  describe('MetaMemoryService 초기화', () => {
+    it('metaMemoryService가 초기화되어야 함', async () => {
       services = await initializeServices(db);
 
-      // then: consolidationScoreService는 undefined이지만, writeCoalescingManager는 항상 정의되어야 함
-      // (writeCoalescingManager는 MetaMemoryService를 위해 항상 생성됨)
-      if (!originalValue) {
-        expect(services.consolidationScoreService).toBeUndefined();
-        // writeCoalescingManager는 MetaMemoryService를 위해 항상 생성되므로 정의되어야 함
-        expect(services.writeCoalescingManager).toBeDefined();
-      }
-    });
-
-    it('consolidationScoreEnabled가 true일 때 consolidationScoreService가 초기화되어야 함', async () => {
-      // given: consolidationScoreEnabled가 true인 경우
-      // when: 서비스를 초기화하면
-      services = await initializeServices(db);
-
-      // then: consolidationScoreService가 정의되어야 함
-      // (writeCoalescingManager는 항상 정의되어야 함)
-      if (mementoConfig.consolidationScoreEnabled) {
-        expect(services.consolidationScoreService).toBeDefined();
-        expect(services.writeCoalescingManager).toBeDefined();
-      }
-    });
-
-    it('consolidationScoreService가 ConsolidationScoreService 인스턴스여야 함', async () => {
-      // given: 서비스 초기화 시
-      // when: consolidationScoreService가 존재하면
-      services = await initializeServices(db);
-
-      // then: ConsolidationScoreService의 필수 메서드들이 있어야 함
-      if (services.consolidationScoreService) {
-        expect(services.consolidationScoreService).toBeDefined();
-        expect(services.consolidationScoreService).toHaveProperty('calculateScore');
-        expect(services.consolidationScoreService).toHaveProperty('updateGValue');
-        expect(services.consolidationScoreService).toHaveProperty('calculateS');
-      }
-    });
-
-    it('writeCoalescingManager가 WriteCoalescingManager 인스턴스여야 함', async () => {
-      // given: 서비스 초기화 시
-      // when: writeCoalescingManager를 확인하면
-      services = await initializeServices(db);
-
-      // then: writeCoalescingManager는 항상 정의되어야 함 (MetaMemoryService를 위해)
-      expect(services.writeCoalescingManager).toBeDefined();
-      expect(services.writeCoalescingManager).toHaveProperty('addWrite');
-      expect(services.writeCoalescingManager).toHaveProperty('flush');
-      expect(services.writeCoalescingManager).toHaveProperty('destroy');
-    });
-
-    it('consolidationScoreEnabled가 true일 때 두 서비스가 함께 초기화되어야 함', async () => {
-      // given: consolidationScoreEnabled 설정값에 따라
-      // when: 서비스를 초기화하면
-      services = await initializeServices(db);
-
-      if (mementoConfig.consolidationScoreEnabled) {
-        // then: true일 때는 둘 다 정의되어 있어야 함
-        expect(services.consolidationScoreService).toBeDefined();
-        expect(services.writeCoalescingManager).toBeDefined();
-        
-        expect(services.consolidationScoreService).not.toBeUndefined();
-        expect(services.writeCoalescingManager).not.toBeUndefined();
-      } else {
-        // then: false일 때는 consolidationScoreService만 undefined이고,
-        // writeCoalescingManager는 MetaMemoryService를 위해 항상 정의되어야 함
-        expect(services.consolidationScoreService).toBeUndefined();
-        expect(services.writeCoalescingManager).toBeDefined();
-      }
-    });
-
-    it('writeCoalescingManager는 항상 존재해야 하고, consolidationScoreService는 consolidationScoreEnabled에 따라 결정됨', async () => {
-      // given: 서비스 초기화 시
-      // when: 서비스 존재 여부를 확인하면
-      services = await initializeServices(db);
-
-      // then: writeCoalescingManager는 항상 정의되어야 함 (MetaMemoryService를 위해)
-      expect(services.writeCoalescingManager).toBeDefined();
-      
-      // then: consolidationScoreService는 consolidationScoreEnabled 설정에 따라 결정됨
-      if (mementoConfig.consolidationScoreEnabled) {
-        expect(services.consolidationScoreService).toBeDefined();
-      } else {
-        expect(services.consolidationScoreService).toBeUndefined();
-      }
-    });
-
-    it('writeCoalescingManager가 올바른 flushInterval과 callback으로 초기화되어야 함', async () => {
-      // given: 서비스 초기화 시
-      // when: writeCoalescingManager를 확인하면
-      services = await initializeServices(db);
-
-      // then: writeCoalescingManager는 항상 정의되어야 함 (flushInterval 1000ms로 초기화)
-      // (bootstrap.ts에서 1000ms로 설정)
-      expect(services.writeCoalescingManager).toBeDefined();
-      
-      // then: flush 메서드가 정상적으로 동작해야 함
-      await expect(services.writeCoalescingManager.flush()).resolves.not.toThrow();
+      expect(services.metaMemoryService).toBeDefined();
+      expect(services.metaMemoryService).toHaveProperty('recordRecall');
+      expect(services.metaMemoryService).toHaveProperty('getStats');
+      expect(services.metaMemoryService).toHaveProperty('destroy');
     });
   });
 
