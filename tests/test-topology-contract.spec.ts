@@ -11,7 +11,6 @@ const NIGHTLY_SPECS = [
   'packages/memento-core/src/infrastructure/database/database-lock-scenarios.nightly.spec.ts',
   'packages/memento-core/src/infrastructure/database/database-performance.nightly.spec.ts',
   'packages/memento-core/src/infrastructure/database/sqlite/migration/migration-runner.nightly.spec.ts',
-  'packages/memento-core/src/test/vector-search-quality-with-consolidation.nightly.spec.ts',
 ] as const;
 const CI_OWNED_ROOTS = [
   'apps/',
@@ -120,13 +119,8 @@ describe('test topology contracts', () => {
   it('assigns every reviewed heavy suite to nightly exactly once', () => {
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     const nightly = readFileSync(join(ROOT, '.github/workflows/nightly-tests.yml'), 'utf8');
-    const rootPackage = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
-      scripts: Record<string, string>;
-    };
-    const nightlyOwners = `${nightly}\n${rootPackage.scripts['test:vector-search-quality:ci']}`;
+    const nightlyOwners = nightly;
 
-    expect(ci).not.toContain('test:vector-search-quality:ci');
-    expect(countOccurrences(nightly, 'test:vector-search-quality:ci')).toBe(1);
     expect(nightly).toContain("VITEST_INCLUDE_NIGHTLY: '1'");
 
     for (const spec of NIGHTLY_SPECS) {

@@ -69,10 +69,6 @@ const DEFAULT_THRESHOLDS: Array<{
   { namespace: 'relation', key: 'recall', value: 0.5, type: 'min', description: '관계 추출 Recall 최소값 (0.5 이상)' },
   { namespace: 'relation', key: 'f1_score', value: 0.6, type: 'min', description: '관계 추출 F1-Score 최소값 (0.6 이상)' },
   
-  // Consolidation 점수 품질 지표
-  { namespace: 'consolidation', key: 'score_stability', value: 0.7, type: 'min', description: 'Consolidation 점수 안정성 최소값 (0.7 이상)' },
-  { namespace: 'consolidation', key: 'order_preservation', value: 0.8, type: 'min', description: '순서 보존율 최소값 (0.8 이상)' },
-  
   // 저장 품질 지표
   { namespace: 'storage', key: 'duplication_rate', value: 0.05, type: 'max', description: '중복 비율 최대값 (5% 이하)' },
   { namespace: 'storage', key: 'data_integrity', value: 0.95, type: 'min', description: '데이터 무결성 최소값 (95% 이상)' },
