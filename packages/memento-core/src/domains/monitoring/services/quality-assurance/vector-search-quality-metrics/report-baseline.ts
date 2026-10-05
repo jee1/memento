@@ -8,7 +8,6 @@ import { dirname, join } from 'path';
 import type { OrderPreservationReport } from './types.js';
 import { reportOutputRoot } from './report-paths.js';
 import type { QualityMetrics } from './report-quality-comparison.js';
-import type { ExtremeScenarioReport } from './report-extreme-scenarios.js';
 
 const __dirname = reportOutputRoot;
 
@@ -263,21 +262,6 @@ export interface BaselineComparisonResult {
   };
   
   /**
-   * 극단적 시나리오 검증 비교 결과
-   */
-  extremeScenarios: {
-    /**
-     * 저벡터 유사도 + 고 consolidation 점수 검증 변화 (현재 - baseline)
-     */
-    lowVectorHighConsolidationChange: number;
-    
-    /**
-     * 고벡터 유사도 + 저 consolidation 점수 검증 변화 (현재 - baseline)
-     */
-    highVectorLowConsolidationChange: number;
-  };
-  
-  /**
    * 전체 품질 저하 여부
    */
   hasDegradation: boolean;
@@ -295,7 +279,6 @@ export interface BaselineComparisonResult {
  * @param baseline Baseline 스냅샷
  * @param currentOrderPreservation 현재 순서 보존 검증 결과
  * @param currentQuality 현재 품질 지표 (QualityMetrics)
- * @param currentExtremeScenarios 현재 극단적 시나리오 검증 결과
  * @param kValues 비교할 K 값 배열 (기본값: [1, 5, 10])
  * @returns Baseline 비교 결과
  * 
@@ -306,8 +289,7 @@ export interface BaselineComparisonResult {
  *   const comparison = compareWithBaseline(
  *     baseline,
  *     orderPreservationReport,
- *     qualityMetrics,
- *     extremeScenarioReport
+ *     qualityMetrics
  *   );
  *   if (comparison.hasDegradation) {
  *     console.warn('품질 저하 감지:', comparison.degradationDetails);
@@ -319,7 +301,6 @@ export function compareWithBaseline(
   baseline: BaselineSnapshot,
   currentOrderPreservation: OrderPreservationReport,
   currentQuality: QualityMetrics,
-  currentExtremeScenarios: ExtremeScenarioReport,
   kValues: number[] = [1, 5, 10]
 ): BaselineComparisonResult {
   const degradationDetails: string[] = [];
@@ -383,22 +364,6 @@ export function compareWithBaseline(
     }
   });
   
-  // 극단적 시나리오 검증 비교
-  const lowVectorHighConsolidationChange = 
-    (currentExtremeScenarios.lowVectorHighConsolidation.passed ? 1 : 0) - 
-    baseline.metrics.extremeScenarios.lowVectorHighConsolidation;
-  const highVectorLowConsolidationChange = 
-    (currentExtremeScenarios.highVectorLowConsolidation.passed ? 1 : 0) - 
-    baseline.metrics.extremeScenarios.highVectorLowConsolidation;
-  
-  // 극단적 시나리오 검증 저하 감지
-  if (lowVectorHighConsolidationChange < 0) {
-    degradationDetails.push('저벡터 유사도 + 고 consolidation 점수 검증 실패');
-  }
-  if (highVectorLowConsolidationChange < 0) {
-    degradationDetails.push('고벡터 유사도 + 저 consolidation 점수 검증 실패');
-  }
-  
   // 전체 품질 저하 여부 판단
   const hasDegradation = degradationDetails.length > 0;
   
@@ -416,10 +381,6 @@ export function compareWithBaseline(
       precisionChange,
       recallChange,
       ndcgChange
-    },
-    extremeScenarios: {
-      lowVectorHighConsolidationChange,
-      highVectorLowConsolidationChange
     },
     hasDegradation,
     degradationDetails: hasDegradation ? degradationDetails : []

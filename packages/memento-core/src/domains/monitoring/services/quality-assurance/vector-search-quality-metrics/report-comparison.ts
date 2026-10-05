@@ -29,18 +29,6 @@ export type {
 } from './report-quality-comparison.js';
 
 export {
-  validateLowVectorHighConsolidation,
-  validateHighVectorLowConsolidation,
-  validateW2UpperBound,
-  generateExtremeScenarioReport,
-} from './report-extreme-scenarios.js';
-export type {
-  ExtremeScenarioValidation,
-  W2UpperBoundValidation,
-  ExtremeScenarioReport,
-} from './report-extreme-scenarios.js';
-
-export {
   saveBaselineSnapshot,
   loadBaselineSnapshot,
   compareWithBaseline,
@@ -71,10 +59,7 @@ export type { GroundTruthGenerationOptions } from './report-ground-truth.js';
 export {
   saveOrderPreservationReport,
   saveQualityComparisonReport,
-  saveExtremeScenarioReport,
-  saveIntegratedReport,
 } from './report-files.js';
 export type {
   ReportSaveOptions,
-  IntegratedReports,
 } from './report-files.js';

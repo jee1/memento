@@ -17,7 +17,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
   - **test-root**, **test-core**, **test-server**, **test-client**, **test-agent-integration**, **test-assistant**, **test-scripts**: 위 job 통과 후 **동시에** 7개 테스트 job 실행.
   - 각 PR 테스트 job은 **해당 영역만** 실행 (`test:ci:root`, `test:ci:core`, `test:ci:server`, client/agent-integration/assistant workspace의 `test:ci`, `test:ci:scripts`).
   - **중복 제거**: 루트 test:ci로 “전체”를 한 번에 돌리지 않고, 영역별로 나눠 한 번씩만 실행.
-  - **weekly test-search-quality** (#665, #731): `nightly-tests.yml`에서 매주 `npm run test:vector-search-quality:ci`와 `npm run quality -- benchmark category-report`를 실행한다. 필수 카테고리의 평가 가능한 Ground Truth가 없거나 MRR이 하나라도 0.5 미만이면 nightly job이 실패하며, 현재 PR merge gate는 아님.
+  - **weekly test-search-quality** (#665, #731): `nightly-tests.yml`에서 매주 `npm run quality -- benchmark category-report`를 실행한다. 필수 카테고리의 평가 가능한 Ground Truth가 없거나 MRR이 하나라도 0.5 미만이면 nightly job이 실패하며, 현재 PR merge gate는 아님.
 
 - **효과**:  
   - 총 소요 시간 ≈ **lint-typecheck 시간 + max(7개 병렬 테스트 job의 실행 시간)**.
@@ -40,7 +40,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 - test-root / test-core: 각 45분  
 - test-server / test-agent-integration / test-scripts: 각 20분
 - test-client / test-assistant: 각 25분 (필요한 build 포함)
-- weekly test-search-quality: 45분 (`npm run test:vector-search-quality:ci` + `npm run quality -- benchmark category-report`, JUnit/JSON 리포트; `nightly-tests.yml`)
+- weekly test-search-quality: 45분 (`npm run quality -- benchmark category-report`; `nightly-tests.yml`)
 
 필요 시 각 job의 `timeout-minutes`만 조정하면 됨.
 
@@ -50,7 +50,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 
 `ci.yml`은 현재 `SKIP_DB_TESTS=true`, `SKIP_INTEGRATION_TESTS=true`를 환경 변수로 제공하지만, 이는 Vitest 수집 제외 패턴이 아닙니다. 개별 spec이 그 변수를 명시적으로 읽어 skip하도록 작성된 경우에만 해당 spec 내부 동작에 영향을 줍니다.
 
-**검색 품질 benchmark와 카테고리 리포트**는 weekly **`nightly-tests.yml`**의 `test-search-quality` job에서 각각 `npm run test:vector-search-quality:ci`와 `npm run quality -- benchmark category-report`로 실행합니다 (#665, #731). 현재 PR merge gate는 아니며, PR로 승격할지나 nightly 범위를 조정할지는 exclude inventory와 함께 **2026-09-01**까지 재검토합니다.
+**검색 품질 카테고리 리포트**는 weekly **`nightly-tests.yml`**의 `test-search-quality` job에서 `npm run quality -- benchmark category-report`로 실행합니다 (#665, #731). 현재 PR merge gate는 아니며, PR로 승격할지나 nightly 범위를 조정할지는 exclude inventory와 함께 **2026-09-01**까지 재검토합니다.
 
 ---
 

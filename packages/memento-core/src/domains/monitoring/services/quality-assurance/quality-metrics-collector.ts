@@ -11,28 +11,23 @@ import type {
   CollectedMetrics,
   SearchMetricsOptions,
   RelationMetricsOptions,
-  ConsolidationMetricsOptions,
 } from './quality-metrics-types.js';
 export type {
   CollectedMetrics,
   SearchQualityMetrics,
   RelationQualityMetrics,
-  ConsolidationQualityMetrics,
   StorageQualityMetrics,
   SearchMetricsOptions,
   RelationMetricsOptions,
-  ConsolidationMetricsOptions,
 } from './quality-metrics-types.js';
 import { SearchMetricsCollector } from './search-metrics-collector.js';
 import { RelationMetricsCollector } from './relation-metrics-collector.js';
-import { ConsolidationMetricsCollector } from './consolidation-metrics-collector.js';
 import { StorageMetricsCollector } from './storage-metrics-collector.js';
 import { CategoryQualityAggregator } from './category-quality-aggregator.js';
 
 export class QualityMetricsCollector {
   private readonly searchCollector: SearchMetricsCollector;
   private readonly relationCollector: RelationMetricsCollector;
-  private readonly consolidationCollector: ConsolidationMetricsCollector;
   private readonly storageCollector: StorageMetricsCollector;
   private readonly categoryAggregator: CategoryQualityAggregator;
 
@@ -43,7 +38,6 @@ export class QualityMetricsCollector {
 
     this.searchCollector = new SearchMetricsCollector(db);
     this.relationCollector = new RelationMetricsCollector(db);
-    this.consolidationCollector = new ConsolidationMetricsCollector(db);
     this.storageCollector = new StorageMetricsCollector(db);
     this.categoryAggregator = new CategoryQualityAggregator(db);
   }
@@ -62,13 +56,6 @@ export class QualityMetricsCollector {
     return this.relationCollector.collect(context, options);
   }
 
-  async collectConsolidationMetrics(
-    context: string = 'default',
-    options?: ConsolidationMetricsOptions
-  ): Promise<CollectedMetrics> {
-    return this.consolidationCollector.collect(context, options);
-  }
-
   async collectStorageMetrics(context: string = 'default'): Promise<CollectedMetrics> {
     return this.storageCollector.collect(context);
   }
@@ -77,7 +64,6 @@ export class QualityMetricsCollector {
     return Promise.all([
       this.collectSearchMetrics(context),
       this.collectRelationMetrics(context),
-      this.collectConsolidationMetrics(context),
       this.collectStorageMetrics(context),
     ]);
   }
@@ -91,8 +77,6 @@ export class QualityMetricsCollector {
         return this.collectSearchMetrics(context);
       case 'relation':
         return this.collectRelationMetrics(context);
-      case 'consolidation':
-        return this.collectConsolidationMetrics(context);
       case 'storage':
         return this.collectStorageMetrics(context);
       default:

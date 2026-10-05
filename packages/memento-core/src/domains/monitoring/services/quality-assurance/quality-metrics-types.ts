@@ -4,7 +4,7 @@ import type { ExpectedRelation, ExtractedRelation } from '../../../relation/serv
 
 export interface CollectedMetrics {
   /**
-   * 네임스페이스 (예: 'search', 'relation', 'consolidation', 'storage')
+   * 네임스페이스 (예: 'search', 'relation', 'storage')
    */
   namespace: string;
 
@@ -56,10 +56,6 @@ export interface SearchQualityMetrics {
   // 벡터 유사도 분포 (평균, 표준편차)
   vector_similarity_mean?: number;
   vector_similarity_std?: number;
-
-  // Consolidation 점수 분포 (평균, 표준편차)
-  consolidation_score_mean?: number;
-  consolidation_score_std?: number;
 }
 
 export interface RelationQualityMetrics {
@@ -80,21 +76,6 @@ export interface RelationQualityMetrics {
   type_precision?: Record<string, number>;
   type_recall?: Record<string, number>;
   type_f1_score?: Record<string, number>;
-}
-
-export interface ConsolidationQualityMetrics {
-  // 점수 안정성 (분산의 역수 또는 일관성 지표)
-  score_stability?: number;
-
-  // 순서 보존율
-  order_preservation?: number;
-
-  // 점수 분포 (평균, 표준편차)
-  score_mean?: number;
-  score_std?: number;
-
-  // Kendall's Tau (Consolidation 반영 전/후 순서 일치도)
-  kendalls_tau?: number;
 }
 
 export interface StorageQualityMetrics {
@@ -122,9 +103,4 @@ export interface SearchMetricsOptions {
 export interface RelationMetricsOptions {
   expectedRelations?: ExpectedRelation[];
   extractedRelations?: ExtractedRelation[];
-}
-
-export interface ConsolidationMetricsOptions {
-  searchResultPairs?: SearchResultPair[];
-  consolidationScores?: number[];
 }

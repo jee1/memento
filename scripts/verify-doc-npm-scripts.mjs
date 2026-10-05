@@ -16,7 +16,7 @@ import { listRepoFiles } from './lib/repo-files.js';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
- * #1237 removed npm scripts — pin file+script only (no blanket specs/ or AGENTS.md).
+ * #1237 / #1244 removed npm scripts — pin file+script only (no blanket specs/ or AGENTS.md).
  * New active docs citing these scripts must still fail.
  */
 export const HISTORICAL_NPM_SCRIPT_CITATIONS = [
@@ -69,6 +69,26 @@ export const HISTORICAL_NPM_SCRIPT_CITATIONS = [
     file: 'specs/681-1137-duplicate-semantic-content/spec.md',
     script: 'memory:repair-duplicate-semantic',
     reason: '#1237 frozen spec (#1137)',
+  },
+  {
+    file: 'CHANGELOG.md',
+    script: 'test:vector-search-quality:ci',
+    reason: '#1244 historical release note (#665)',
+  },
+  {
+    file: 'specs/047-ci-search-quality-gate/plan.md',
+    script: 'test:vector-search-quality:ci',
+    reason: '#1244 frozen spec (#665)',
+  },
+  {
+    file: 'specs/047-ci-search-quality-gate/spec.md',
+    script: 'test:vector-search-quality:ci',
+    reason: '#1244 frozen spec (#665)',
+  },
+  {
+    file: 'tests/fixtures/search-quality/benchmark-v3/review-checklist.md',
+    script: 'test:vector-search-quality',
+    reason: '#1244 frozen benchmark fixture text',
   },
 ];
 

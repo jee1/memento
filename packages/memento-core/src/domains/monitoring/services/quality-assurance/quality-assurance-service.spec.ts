@@ -633,18 +633,17 @@ describe('QualityAssuranceService', () => {
   });
 
   describe('통합 테스트: 모든 수집기 통합', () => {
-    it('should collect metrics from all collectors (search, relation, consolidation, storage)', async () => {
+    it('should collect metrics from all collectors (search, relation, storage)', async () => {
       // Given: 모든 네임스페이스 측정
       // When: 품질 측정 실행
       const result = await service.measureQuality();
 
       // Then: 모든 네임스페이스의 지표가 수집되어야 함
-      expect(result.collected_metrics.length).toBe(4);
+      expect(result.collected_metrics.length).toBe(3);
       
       const namespaces = result.collected_metrics.map(m => m.namespace);
       expect(namespaces).toContain('search');
       expect(namespaces).toContain('relation');
-      expect(namespaces).toContain('consolidation');
       expect(namespaces).toContain('storage');
     });
 
@@ -654,12 +653,11 @@ describe('QualityAssuranceService', () => {
       const result = await service.measureQuality();
 
       // Then: 모든 네임스페이스의 평가 결과가 생성되어야 함
-      expect(result.evaluation_results.length).toBe(4);
+      expect(result.evaluation_results.length).toBe(3);
       
       const evaluatedNamespaces = result.evaluation_results.map(r => r.namespace);
       expect(evaluatedNamespaces).toContain('search');
       expect(evaluatedNamespaces).toContain('relation');
-      expect(evaluatedNamespaces).toContain('consolidation');
       expect(evaluatedNamespaces).toContain('storage');
     });
 
@@ -689,20 +687,6 @@ describe('QualityAssuranceService', () => {
       expect(relationMetrics?.context).toBe('default');
       expect(relationMetrics?.measured_at).toBeDefined();
       expect(relationMetrics?.metrics).toBeDefined();
-    });
-
-    it('should collect consolidation metrics with correct structure', async () => {
-      // Given: 모든 네임스페이스 측정
-      // When: 품질 측정 실행
-      const result = await service.measureQuality();
-
-      // Then: Consolidation 지표가 올바른 구조로 수집되어야 함
-      const consolidationMetrics = result.collected_metrics.find(m => m.namespace === 'consolidation');
-      expect(consolidationMetrics).toBeDefined();
-      expect(consolidationMetrics?.namespace).toBe('consolidation');
-      expect(consolidationMetrics?.context).toBe('default');
-      expect(consolidationMetrics?.measured_at).toBeDefined();
-      expect(consolidationMetrics?.metrics).toBeDefined();
     });
 
     it('should collect storage metrics with correct structure', async () => {
@@ -748,8 +732,8 @@ describe('QualityAssuranceService', () => {
       const result = await service.runBatchMeasurement();
 
       // Then: 모든 수집기의 지표가 수집되어야 함
-      expect(result.collected_metrics.length).toBe(4);
-      expect(result.evaluation_results.length).toBe(4);
+      expect(result.collected_metrics.length).toBe(3);
+      expect(result.evaluation_results.length).toBe(3);
       expect(result.overall_status).toBeDefined();
     });
 
@@ -759,8 +743,8 @@ describe('QualityAssuranceService', () => {
       const result = await service.runTestMeasurement();
 
       // Then: 모든 수집기의 지표가 수집되어야 함
-      expect(result.collected_metrics.length).toBe(4);
-      expect(result.evaluation_results.length).toBe(4);
+      expect(result.collected_metrics.length).toBe(3);
+      expect(result.evaluation_results.length).toBe(3);
       expect(result.overall_status).toBeDefined();
     });
 

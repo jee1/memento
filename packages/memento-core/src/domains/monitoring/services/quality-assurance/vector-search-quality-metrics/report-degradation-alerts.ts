@@ -168,23 +168,6 @@ export function detectQualityDegradation(
     }
   }
 
-  // 극단적 시나리오 검증 저하 감지
-  if (comparison.extremeScenarios.lowVectorHighConsolidationChange < 0) {
-    messages.push(
-      `저벡터 유사도 + 고 consolidation 점수 검증 실패 (Baseline: ${comparison.baseline.version} 기준)`
-    );
-    hasWarning = true;
-    recommendations.push('극단적 시나리오 검증이 실패했습니다. w2 상한 설정을 확인하세요.');
-  }
-
-  if (comparison.extremeScenarios.highVectorLowConsolidationChange < 0) {
-    messages.push(
-      `고벡터 유사도 + 저 consolidation 점수 검증 실패 (Baseline: ${comparison.baseline.version} 기준)`
-    );
-    hasWarning = true;
-    recommendations.push('극단적 시나리오 검증이 실패했습니다. 벡터 유사도 가중치를 확인하세요.');
-  }
-
   // 심각도 결정
   if (hasCritical) {
     severity = 'critical';
