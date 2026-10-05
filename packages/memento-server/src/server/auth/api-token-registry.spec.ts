@@ -20,4 +20,22 @@ describe('api-token-registry', () => {
     expect(hasScope(admin!.scopes, ['tools:invoke', 'admin:destructive'])).toBe(true);
     expect(registry.resolveToken('missing')).toBeNull();
   });
+
+  it('resolveToken returns agentId for a bound token and none for unbound', () => {
+    const registry = createApiTokenRegistry([
+      { id: 'bound', secret: 'bound-secret', scopes: ['tools:invoke'], agentId: 'agent-a' },
+      { id: 'unbound', secret: 'unbound-secret', scopes: ['tools:invoke'] },
+    ]);
+
+    expect(registry.resolveToken('bound-secret')).toEqual({
+      id: 'bound',
+      scopes: ['tools:invoke'],
+      agentId: 'agent-a',
+    });
+    expect(registry.resolveToken('unbound-secret')).toEqual({
+      id: 'unbound',
+      scopes: ['tools:invoke'],
+    });
+    expect(registry.resolveToken('unbound-secret')).not.toHaveProperty('agentId');
+  });
 });

@@ -3,6 +3,7 @@ import type { ApiScope, ApiTokenEntry } from '@memento/core';
 export type ResolvedApiToken = {
   id: string;
   scopes: ApiScope[];
+  agentId?: string;
 };
 
 export type ApiTokenRegistry = {
@@ -18,7 +19,11 @@ export function createApiTokenRegistry(tokens: readonly ApiTokenEntry[]): ApiTok
     if (!secret) {
       continue;
     }
-    bySecret.set(secret, { id: token.id, scopes: [...token.scopes] });
+    bySecret.set(secret, {
+      id: token.id,
+      scopes: [...token.scopes],
+      ...(token.agentId ? { agentId: token.agentId } : {}),
+    });
   }
 
   return {

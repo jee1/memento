@@ -9,4 +9,5 @@ export type ApiTokenEntry = {
   id: string;
   secret: string;
   scopes: ApiScope[];
+  agentId?: string;
 };

@@ -58,6 +58,63 @@ describe('resolveApiTokens', () => {
     errorSpy.mockRestore();
   });
 
+  it('parses agent_id and trims whitespace', () => {
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'bound', secret: 'bound-secret', scopes: ['tools:invoke'], agent_id: '  codex-agent  ' },
+      ]),
+    );
+
+    const tokens = resolveApiTokens(undefined);
+    expect(tokens).toEqual([
+      { id: 'bound', secret: 'bound-secret', scopes: ['tools:invoke'], agentId: 'codex-agent' },
+    ]);
+  });
+
+  it('omits agentId when agent_id is absent', () => {
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'unbound', secret: 'unbound-secret', scopes: ['tools:invoke'] },
+      ]),
+    );
+
+    const tokens = resolveApiTokens(undefined);
+    expect(tokens).toEqual([
+      { id: 'unbound', secret: 'unbound-secret', scopes: ['tools:invoke'] },
+    ]);
+    expect(tokens[0]).not.toHaveProperty('agentId');
+  });
+
+  it('ignores entries with invalid agent_id while parsing valid siblings', async () => {
+    const { logger } = await import('../utils/logger.js');
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'bad-empty', secret: 's1', scopes: ['tools:invoke'], agent_id: '' },
+        { id: 'bad-space', secret: 's2', scopes: ['tools:invoke'], agent_id: '  ' },
+        { id: 'bad-number', secret: 's3', scopes: ['tools:invoke'], agent_id: 42 },
+        { id: 'bad-null', secret: 's4', scopes: ['tools:invoke'], agent_id: null },
+        { id: 'good', secret: 'good-secret', scopes: ['tools:invoke'], agent_id: 'agent-a' },
+      ]),
+    );
+
+    const tokens = resolveApiTokens(undefined);
+    expect(tokens).toEqual([
+      { id: 'good', secret: 'good-secret', scopes: ['tools:invoke'], agentId: 'agent-a' },
+    ]);
+    expect(warnSpy).toHaveBeenCalledTimes(4);
+    expect(
+      warnSpy.mock.calls.every(([message]) =>
+        String(message).includes('agent_id must be a non-empty string'),
+      ),
+    ).toBe(true);
+
+    warnSpy.mockRestore();
+  });
+
   it('does not log the migration error when MEMENTO_API_TOKENS is unset', async () => {
     const { logger } = await import('../utils/logger.js');
     const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);

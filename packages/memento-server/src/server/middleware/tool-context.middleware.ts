@@ -47,7 +47,7 @@ export function createToolContextMiddleware(
   // ServerContext 생성 (HTTP agentId: 헤더 → env 기본값)
   const headerAgentId = req.get('x-memento-agent-id')?.trim();
   const defaultAgentId = mementoConfig.httpDefaultAgentId?.trim();
-  const agentId = headerAgentId || defaultAgentId || undefined;
+  const agentId = req.programmaticAuth?.agentId || headerAgentId || defaultAgentId || undefined;
 
   const serverContext: ServerContext = {
     db: req.db,

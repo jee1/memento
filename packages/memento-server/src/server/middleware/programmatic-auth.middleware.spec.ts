@@ -171,6 +171,155 @@ describe('createProgrammaticAuthMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('bound token: no agent header sets programmaticAuth.agentId', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'codex', secret: 's1', scopes: ['tools:invoke'], agentId: 'codex-agent' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.programmaticAuth).toEqual({
+      keyId: 'codex',
+      scopes: ['tools:invoke'],
+      agentId: 'codex-agent',
+    });
+  });
+
+  it('bound token: matching X-Memento-Agent-Id is allowed', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'codex', secret: 's1', scopes: ['tools:invoke'], agentId: 'codex-agent' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-agent-id': 'codex-agent',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('bound token: mismatched X-Memento-Agent-Id returns 403 without echoing agent ids', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'codex', secret: 's1', scopes: ['tools:invoke'], agentId: 'codex-agent' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-agent-id': 'claude-agent',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+    expect(JSON.stringify(res.body)).not.toContain('codex-agent');
+    expect(JSON.stringify(res.body)).not.toContain('claude-agent');
+  });
+
+  it('bound token: mismatched X-Agent-Id returns 403 without echoing agent ids', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'codex', secret: 's1', scopes: ['tools:invoke'], agentId: 'codex-agent' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-agent-id': 'claude-agent',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+    expect(JSON.stringify(res.body)).not.toContain('codex-agent');
+    expect(JSON.stringify(res.body)).not.toContain('claude-agent');
+  });
+
+  it('bound token: agent format returns AGENT_ID_MISMATCH on header mismatch', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'codex', secret: 's1', scopes: ['tools:invoke'], agentId: 'codex-agent' },
+      ]),
+      requiredScope: 'tools:invoke',
+      errorFormat: 'agent',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-agent-id': 'claude-agent',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(res.body).toEqual({
+      status: 403,
+      reason_code: 'AGENT_ID_MISMATCH',
+      message: 'X-Memento-Agent-Id does not match the agent bound to this API token.',
+      retryable: false,
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('unbound token: any agent header is allowed and programmaticAuth.agentId is undefined', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'unbound', secret: 's1', scopes: ['tools:invoke'] },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-agent-id': 'any-agent',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.programmaticAuth).toEqual({
+      keyId: 'unbound',
+      scopes: ['tools:invoke'],
+    });
+    expect(req.programmaticAuth?.agentId).toBeUndefined();
+  });
+
   it('returns the stable agent API error envelope when requested', () => {
     const middleware = createProgrammaticAuthMiddleware({
       registry: createRegistry(),
