@@ -51,8 +51,6 @@ jobs:
       # category-report가 ERR_MODULE_NOT_FOUND로 즉시 실패한다(#905).
       - name: Build @memento/core
         run: npm run build -w @memento/core
-      - name: Run vector search quality benchmark
-        run: npm run test:vector-search-quality:ci
       # #961 M1: seed benchmark-v3 once; category-report / sweep / long-distractor share it.
       - name: Seed search-quality benchmark DB (shared)
         run: npx tsx scripts/seed-benchmark-db.ts /tmp/memento-bench-nightly.db

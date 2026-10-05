@@ -93,7 +93,7 @@ export async function callToolViaHttp(
   toolName: string,
   params: Record<string, unknown>,
 ): Promise<unknown> {
-  const apiKey = process.env.ADMIN_API_KEY?.trim();
+  const apiKey = process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim();
   const res = await fetch(`http://localhost:${port}/tools/${toolName}`, {
     method: 'POST',
     headers: {

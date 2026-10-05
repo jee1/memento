@@ -18,10 +18,6 @@ export {
   generateOrderPreservationReport,
   compareQualityWithGroundTruth,
   generateQualityComparisonReport,
-  validateLowVectorHighConsolidation,
-  validateHighVectorLowConsolidation,
-  validateW2UpperBound,
-  generateExtremeScenarioReport,
   saveBaselineSnapshot,
   loadBaselineSnapshot,
   compareWithBaseline,
@@ -34,8 +30,6 @@ export {
   generateOrLoadGroundTruth,
   saveOrderPreservationReport,
   saveQualityComparisonReport,
-  saveExtremeScenarioReport,
-  saveIntegratedReport,
 } from './vector-search-quality-metrics/report-comparison.js';
 export type {
   QualityMetrics,
@@ -43,15 +37,11 @@ export type {
   QualityThresholdValidation,
   QualityComparison,
   QualityComparisonReport,
-  ExtremeScenarioValidation,
-  W2UpperBoundValidation,
-  ExtremeScenarioReport,
   BaselineSnapshot,
   BaselineComparisonResult,
   QualityDegradationDetection,
   QualityAlertOptions,
   GroundTruthGenerationOptions,
   ReportSaveOptions,
-  IntegratedReports,
 } from './vector-search-quality-metrics/report-comparison.js';
 export type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';

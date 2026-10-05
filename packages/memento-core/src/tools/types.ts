@@ -9,13 +9,11 @@ import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-sea
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import type { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
-import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import type { RelationGraphPort } from '../domains/relation/ports/relation-graph.port.js';
 import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.interface.js';
-import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
 import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import type { MetaMemoryService } from '../domains/memory/introspection/meta-memory-service.js';
@@ -66,10 +64,6 @@ export interface ToolContext {
     errorLoggingService?: ErrorLoggingService;
     /** 성능 모니터링 통합 서비스 (주석 처리됨, 향후 사용 예정) */
     performanceMonitoringIntegration?: unknown; // 향후 타입 정의 예정
-    /** 통합 점수 서비스 (기능 플래그에 따라 초기화) */
-    consolidationScoreService?: IConsolidationScoreService;
-    /** 쓰기 결합 관리자 (기능 플래그에 따라 초기화) */
-    writeCoalescingManager?: WriteCoalescingManager;
     /** 앵커 관리자 서비스 */
     anchorManager?: AnchorManager;
     /** 관계 그래프 서비스 */

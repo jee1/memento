@@ -116,7 +116,6 @@ function createContext(db: Database.Database, searchMock: ReturnType<typeof vi.f
         record: vi.fn(),
         hasPriorWriteWithContentHash: vi.fn().mockReturnValue(false),
       } as unknown as ToolContext['services']['telemetryService'],
-      consolidationScoreService: null,
     },
   };
 }
@@ -214,7 +213,6 @@ describe('remember CAS update (Issue #1093 Phase 1)', () => {
       rememberDedupThreshold: 0.85,
       rememberDedupLexicalFloor: 0.3,
       rememberDedupMergeLexicalFloor: 0.7,
-      consolidationScoreEnabled: false,
     });
 
     context = createContext(db, searchMock);

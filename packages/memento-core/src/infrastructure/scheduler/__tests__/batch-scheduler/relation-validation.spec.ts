@@ -73,43 +73,6 @@ describe('BatchScheduler', () => {
       await cleanupTestDatabase(db);
     });
 
-    it('전체 스윕이 큐를 통해 실행되어야 함', async () => {
-      // Given: Consolidation Score가 활성화된 스케줄러 및 log 스파이
-      // Consolidation Score 기능 활성화 모킹
-      vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
-        ...configModule.mementoConfig,
-        consolidationScoreEnabled: true
-      } as any);
-
-      const mcpLoggerModule = await import('../../../../server/mcp-logger.js');
-      const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
-
-      const consolidationScheduler = new BatchScheduler({
-        cleanupInterval: 60000,
-        monitoringInterval: 10000,
-        consolidationScoreIncrementalInterval: 60 * 60 * 1000,
-        consolidationScoreFullSweepInterval: DAY_MS,
-        consolidationScoreFullSweepHour: new Date().getHours(), // 현재 시간으로 설정하여 즉시 실행
-        enableLogging: true
-      });
-
-      await consolidationScheduler.start(db);
-
-      // When: 전체 스윕이 스케줄링되면
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Then: 큐를 통해 실행되어야 함
-      const status = consolidationScheduler.getStatus();
-      expect(status.activeJobs).toContain('consolidation_score_full_sweep');
-
-      // 큐를 통해 실행되었는지 확인
-      expect(logBatchSpy).toHaveBeenCalled();
-
-      logBatchSpy.mockRestore();
-      await consolidationScheduler.stop();
-      await cleanupTestDatabase(db);
-    });
-
     it('주간 관계 검증이 설정된 타임아웃을 사용해야 함', async () => {
       // Given: 짧은 타임아웃을 가진 스케줄러
       const shortTimeoutScheduler = new BatchScheduler({

@@ -60,7 +60,7 @@ const REASON_GUIDES: Record<string, Omit<ReasonGuide, 'reason_code'>> = {
   },
   AUTH_FAILED: {
     category: 'auth',
-    action: 'CLI의 API key가 서버 ADMIN_API_KEY와 일치하는지 확인하세요.',
+    action: 'CLI의 API key(MEMENTO_API_KEY)가 서버 MEMENTO_API_TOKENS 의 토큰 secret 과 일치하는지 확인하세요.',
   },
   SCHEMA_NOT_READY: {
     category: 'schema',

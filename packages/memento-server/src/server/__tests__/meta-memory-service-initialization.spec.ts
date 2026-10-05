@@ -51,17 +51,6 @@ describe('MetaMemoryService 초기화', () => {
         }
       }
 
-      // Write Coalescing Manager 정리
-      if (services.writeCoalescingManager) {
-        try {
-          await services.writeCoalescingManager.flush();
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await services.writeCoalescingManager.destroy();
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-          console.warn('WriteCoalescingManager destroy 중 에러:', error);
-        }
-      }
     }
 
     // 서비스 인스턴스 정리
@@ -100,14 +89,4 @@ describe('MetaMemoryService 초기화', () => {
     expect(services.metaMemoryService).toHaveProperty('destroy');
   });
 
-  it('given: MetaMemoryService가 초기화되었을 때, when: WriteCoalescingManager를 확인하면, then: WriteCoalescingManager가 설정되어야 함', async () => {
-    // Given: 서비스 초기화
-    services = await initializeServices(db);
-
-    // When: WriteCoalescingManager 확인
-    // Then: WriteCoalescingManager가 설정되어야 함
-    // MetaMemoryService는 내부적으로 WriteCoalescingManager를 사용하므로,
-    // writeCoalescingManager가 초기화되어 있어야 함
-    expect(services.writeCoalescingManager).toBeDefined();
-  });
 });

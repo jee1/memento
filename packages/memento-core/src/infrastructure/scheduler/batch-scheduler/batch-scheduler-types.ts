@@ -10,9 +10,6 @@ export interface BatchJobConfig {
   lockMonitorInterval: number;
   reflexionCleanupInterval: number;
   reflexionHealthCheckInterval: number;
-  consolidationScoreIncrementalInterval: number;
-  consolidationScoreFullSweepInterval: number;
-  consolidationScoreFullSweepHour: number;
   relationValidationInterval: number;
   relationValidationDayOfWeek: number;
   relationValidationHour: number;

@@ -4,21 +4,15 @@
  */
 
 import type Database from 'better-sqlite3';
-import { mementoConfig } from '../../../shared/config/index.js';
-import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { isFullMemoryItemTypeSet } from '../../../shared/utils/type-guards.js';
-import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
   hybridSearchEngine: HybridSearchEngine;
-  consolidationScoreService?: IConsolidationScoreService;
-  writeCoalescingManager?: WriteCoalescingManager;
 }
 
 export interface KnowledgeContextBundleParams {
@@ -154,115 +148,6 @@ function formatMemoryPrompt(
   prompt += '*이 기억들은 현재 대화와 관련된 맥락 정보입니다. 참고하여 더 정확하고 관련성 높은 답변을 제공하세요.*';
 
   return prompt;
-}
-
-async function updateConsolidationScoreMetadata(
-  db: Database.Database,
-  consolidationScoreService: IConsolidationScoreService,
-  writeCoalescingManager: WriteCoalescingManager | undefined,
-  searchItems: HybridSearchResult[],
-): Promise<void> {
-  if (!searchItems || searchItems.length === 0) {
-    return;
-  }
-
-  try {
-    const now = new Date();
-    const nowISO = now.toISOString();
-
-    for (const item of searchItems) {
-      const memoryId = item.id;
-      if (!memoryId) {
-        continue;
-      }
-
-      try {
-        const memory = DatabaseUtils.get(
-          db,
-          `SELECT 
-              recall_count, 
-              last_accessed_at, 
-              g_value, 
-              created_at, 
-              type, 
-              pinned 
-            FROM memory_item 
-            WHERE id = ?`,
-          [memoryId],
-        ) as
-          | {
-              recall_count: number;
-              last_accessed_at: string | null;
-              g_value: number | null;
-              created_at: string;
-              type: MemoryType;
-              pinned: boolean | number;
-            }
-          | undefined;
-
-        if (!memory) {
-          logger.warn(`[knowledge-context-bundle] 메모리를 찾을 수 없습니다: ${memoryId}`);
-          continue;
-        }
-
-        const newRecallCount = (memory.recall_count || 0) + 1;
-
-        const lastAccessedAt = memory.last_accessed_at ? new Date(memory.last_accessed_at) : new Date(memory.created_at);
-        const timeElapsed = consolidationScoreService.calculateTimeElapsed(
-          lastAccessedAt,
-          new Date(memory.created_at),
-          now,
-        );
-
-        const newGValue = consolidationScoreService.updateGValueForRecall({
-          previousGValue: memory.g_value,
-          timeElapsed,
-        });
-
-        const scoreResult = consolidationScoreService.calculateScore({
-          recallCount: newRecallCount,
-          lastAccessedAt: now,
-          createdAt: new Date(memory.created_at),
-          gValue: newGValue,
-          type: memory.type,
-          pinned: memory.pinned === 1 || memory.pinned === true,
-        });
-
-        if (writeCoalescingManager) {
-          writeCoalescingManager.addWrite({
-            memoryId,
-            fields: {
-              recall_count: newRecallCount,
-              last_accessed_at: nowISO,
-              g_value: newGValue,
-              consolidation_score: scoreResult.score,
-            },
-          });
-        } else {
-          DatabaseUtils.run(
-            db,
-            `UPDATE memory_item 
-               SET 
-                 recall_count = ?,
-                 last_accessed_at = ?,
-                 g_value = ?,
-                 consolidation_score = ?
-               WHERE id = ?`,
-            [newRecallCount, nowISO, newGValue, scoreResult.score, memoryId],
-          );
-        }
-      } catch (error) {
-        logger.warn(`[knowledge-context-bundle] 메모리 업데이트 실패 (${memoryId})`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  } catch (error) {
-    logger.error('[knowledge-context-bundle] Consolidation Score 메타데이터 업데이트 실패', {
-      itemCount: searchItems.length,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
 }
 
 function filterByOwner(memories: HybridSearchResult[], ownerId?: string | string[]): HybridSearchResult[] {
@@ -426,15 +311,6 @@ export async function buildKnowledgeContextBundle(
   }
 
   logger.debug('[knowledge-context-bundle] 검색된 기억', { count: memories.length });
-
-  if (mementoConfig.consolidationScoreEnabled && deps.consolidationScoreService && memories.length > 0) {
-    await updateConsolidationScoreMetadata(
-      deps.db,
-      deps.consolidationScoreService,
-      deps.writeCoalescingManager,
-      memories,
-    );
-  }
 
   if (memories.length === 0) {
     const emptyText = '관련 기억을 찾을 수 없습니다.';

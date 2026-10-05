@@ -42,8 +42,6 @@ CREATE TABLE IF NOT EXISTS memory_item (
   -- Consolidation score (migration 003)
   recall_count INTEGER NOT NULL DEFAULT 0,
   last_accessed_at TIMESTAMP,
-  consolidation_score REAL,
-  g_value REAL,
   is_consolidated BOOLEAN DEFAULT FALSE,
   is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
   deleted_at TEXT,

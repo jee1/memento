@@ -4,8 +4,6 @@ import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-co
 import {
   scheduleAnchorAutoRefresh,
   scheduleCleanupJob,
-  scheduleConsolidationScoreFullSweep,
-  scheduleConsolidationScoreIncremental,
   scheduleForgettingEventCleanup,
   scheduleHealthcheckJob,
   scheduleJobRunCleanup,
@@ -84,8 +82,6 @@ function buildRestartHandlers(): Record<string, RestartHandler> {
     cleanup: scheduleCleanupJob,
     monitoring: scheduleMonitoringJob,
     healthcheck: scheduleHealthcheckJob,
-    consolidation_score_incremental: scheduleConsolidationScoreIncremental,
-    consolidation_score_full_sweep: scheduleConsolidationScoreFullSweep,
     weekly_relation_validation: scheduleWeeklyRelationValidation,
     log_rotation: scheduleLogRotation,
     quality_measurement_batch: scheduleQualityMeasurement,
@@ -119,13 +115,6 @@ function canRestartJob(
   }
   if (jobName === 'anchor_auto_refresh' && (!state.config.anchorAutoRefreshEnabled || !ctx.hasAnchorManager)) {
     log('restartJob(anchor_auto_refresh): disabled or AnchorManager not available', { level: 'warn' });
-    return false;
-  }
-  if (
-    (jobName === 'consolidation_score_incremental' || jobName === 'consolidation_score_full_sweep') &&
-    (!ctx.consolidationScoreEnabled || !ctx.hasConsolidationScoreWorker)
-  ) {
-    log(`restartJob(${jobName}): consolidation score disabled or worker missing`, { level: 'warn' });
     return false;
   }
   if (jobName === 'sleep_consolidation_batch' && !ctx.hasSleepConsolidation) {

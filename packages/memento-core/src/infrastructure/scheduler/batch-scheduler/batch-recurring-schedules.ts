@@ -3,8 +3,6 @@ import type { BatchJobExecutionCoordinator } from './batch-job-execution-coordin
 
 export interface BatchRecurringScheduleContext {
   readonly config: BatchJobConfig;
-  readonly consolidationScoreEnabled: boolean;
-  readonly hasConsolidationScoreWorker: boolean;
   readonly hasSleepConsolidation: boolean;
   readonly hasTelemetryCleanup: boolean;
   readonly hasForgettingEventCleanup: boolean;
@@ -18,8 +16,6 @@ export interface BatchRecurringScheduleContext {
   runMemoryCleanup: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;
-  runConsolidationScoreIncremental: () => Promise<BatchJobResult>;
-  runConsolidationScoreFullSweep: () => Promise<BatchJobResult>;
   runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
@@ -50,29 +46,6 @@ export function scheduleCoreMaintenanceJobs(ctx: BatchRecurringScheduleContext):
   scheduleHealthcheckJob(ctx);
 }
 
-export function scheduleConsolidationScoreFullSweep(ctx: BatchRecurringScheduleContext): void {
-  const checkAndRun = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    if (currentHour === ctx.config.consolidationScoreFullSweepHour) {
-      const lastExecution = ctx.lastExecution.get('consolidation_score_full_sweep');
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (!lastExecution || lastExecution < today) {
-        ctx.jobExecutionCoordinator.addJobToQueue(
-          'consolidation_score_full_sweep',
-          async () => { await ctx.runConsolidationScoreFullSweep(); },
-          4,
-          0
-        );
-      }
-    }
-  };
-  const checkInterval = 60 * 60 * 1000;
-  const intervalId = setInterval(checkAndRun, checkInterval);
-  ctx.intervals.set('consolidation_score_full_sweep', intervalId);
-  checkAndRun();
-}
-
 export function scheduleWeeklyRelationValidation(ctx: BatchRecurringScheduleContext): void {
   const checkAndRun = () => {
     const now = new Date();
@@ -100,16 +73,6 @@ export function scheduleWeeklyRelationValidation(ctx: BatchRecurringScheduleCont
   checkAndRun();
 }
 
-/** Issue #834: restart registry — schedule consolidation_score_incremental alone. */
-export function scheduleConsolidationScoreIncremental(ctx: BatchRecurringScheduleContext): void {
-  ctx.scheduleJob(
-    'consolidation_score_incremental',
-    ctx.config.consolidationScoreIncrementalInterval,
-    async () => { await ctx.runConsolidationScoreIncremental(); },
-    4
-  );
-}
-
 /** Issue #834: restart registry — schedule log_rotation alone. */
 export function scheduleLogRotation(ctx: BatchRecurringScheduleContext): void {
   ctx.scheduleJob(
@@ -131,10 +94,6 @@ export function scheduleMetaMemoryIntrospection(ctx: BatchRecurringScheduleConte
 }
 
 export function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringScheduleContext): void {
-  if (ctx.consolidationScoreEnabled && ctx.hasConsolidationScoreWorker) {
-    scheduleConsolidationScoreIncremental(ctx);
-    scheduleConsolidationScoreFullSweep(ctx);
-  }
   scheduleWeeklyRelationValidation(ctx);
   scheduleLogRotation(ctx);
 }

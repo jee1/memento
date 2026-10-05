@@ -493,10 +493,6 @@ describe('MCP 서버 진입점', () => {
           batchScheduler: { stop: batchSchedulerStop } as any,
           walCheckpointScheduler: { stop: walCheckpointStop } as any,
           databaseLockMonitor: { stop: databaseLockStop } as any,
-          writeCoalescingManager: {
-            flush: vi.fn().mockResolvedValue(undefined),
-            destroy: vi.fn().mockResolvedValue(undefined)
-          } as any,
           runtimeDiagnosticsSamplerCleanup,
           runtimeDiagnosticsLogger
         } as any

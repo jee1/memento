@@ -25,7 +25,7 @@ export async function findExistingProceduralMemory(
         created_at, last_accessed, pinned, tags, source,
         task_goal, steps, reflection_notes,
         workflow_name, skill_name, trigger_conditions,
-        recall_count, last_accessed_at, g_value, consolidation_score,
+        recall_count, last_accessed_at,
         version, version_series_id
       FROM memory_item
       WHERE type = 'procedural'
@@ -57,13 +57,11 @@ export async function findExistingProceduralMemory(
       skill_name: (r as Record<string, unknown>).skill_name as string | undefined,
       trigger_conditions: (r as Record<string, unknown>).trigger_conditions as string | undefined,
       recall_count: (r as Record<string, unknown>).recall_count as number | undefined,
-      g_value: (r as Record<string, unknown>).g_value as number | undefined,
       last_accessed_at: (r as Record<string, unknown>).last_accessed_at != null
         ? new Date((r as Record<string, unknown>).last_accessed_at as string)
         : undefined,
       version: (r as Record<string, unknown>).version as number | undefined,
       version_series_id: (r as Record<string, unknown>).version_series_id as string | undefined,
-      consolidation_score: (r as Record<string, unknown>).consolidation_score as number | undefined
     } as ProceduralMemoryItem;
   } catch (error) {
     host.logWarning('기존 procedural memory 조회 실패', {

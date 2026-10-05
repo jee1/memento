@@ -2,60 +2,6 @@ import { rotateLogs } from '../../logging/log-rotation.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
-export async function runConsolidationScoreIncremental(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
-  const startTime = new Date();
-  const result: BatchJobResult = {
-    jobType: 'consolidation_score_incremental',
-    startTime,
-    endTime: new Date(),
-    duration: 0,
-    success: false,
-    processed: 0,
-    errors: [],
-    warnings: []
-  };
-
-  try {
-    if (!ctx.db) {
-      throw new Error('Database not initialized');
-    }
-
-    if (!ctx.consolidationScoreWorker) {
-      throw new Error('ConsolidationScoreWorker not initialized');
-    }
-
-    ctx.log('Starting consolidation score incremental recalculation');
-
-    const recalculationResult = await ctx.consolidationScoreWorker.runIncrementalRecalculation(ctx.db);
-
-    result.success = recalculationResult.success;
-    result.processed = recalculationResult.processed;
-    result.details = recalculationResult;
-
-    if (recalculationResult.errors.length > 0) {
-      result.errors.push(...recalculationResult.errors);
-    }
-    if (recalculationResult.warnings.length > 0) {
-      result.warnings.push(...recalculationResult.warnings);
-    }
-
-    ctx.log('Consolidation score incremental recalculation completed', {
-      processed: recalculationResult.processed,
-      updated: recalculationResult.updated,
-      skipped: recalculationResult.skipped,
-      errors: recalculationResult.errors.length
-    });
-  } catch (error) {
-    result.errors.push(error instanceof Error ? error.message : String(error));
-    ctx.log('Consolidation score incremental recalculation failed:', error, 'error');
-  } finally {
-    result.endTime = new Date();
-    result.duration = result.endTime.getTime() - result.startTime.getTime();
-  }
-
-  return result;
-}
-
 export async function runWeeklyRelationValidation(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   const startTime = new Date();
   const result: BatchJobResult = {
@@ -116,61 +62,6 @@ export async function runWeeklyRelationValidation(ctx: BatchSchedulerRunContext)
       error: error instanceof Error ? error.message : String(error),
       duration: result.duration
     }, 'error');
-  }
-
-  return result;
-}
-
-export async function runConsolidationScoreFullSweep(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
-  const startTime = new Date();
-  const result: BatchJobResult = {
-    jobType: 'consolidation_score_full_sweep',
-    startTime,
-    endTime: new Date(),
-    duration: 0,
-    success: false,
-    processed: 0,
-    errors: [],
-    warnings: []
-  };
-
-  try {
-    if (!ctx.db) {
-      throw new Error('Database not initialized');
-    }
-
-    if (!ctx.consolidationScoreWorker) {
-      throw new Error('ConsolidationScoreWorker not initialized');
-    }
-
-    ctx.log('Starting consolidation score full sweep recalculation');
-
-    const recalculationResult = await ctx.consolidationScoreWorker.runFullSweep(ctx.db);
-
-    result.success = recalculationResult.success;
-    result.processed = recalculationResult.processed;
-    result.details = recalculationResult;
-
-    if (recalculationResult.errors.length > 0) {
-      result.errors.push(...recalculationResult.errors);
-    }
-    if (recalculationResult.warnings.length > 0) {
-      result.warnings.push(...recalculationResult.warnings);
-    }
-
-    ctx.log('Consolidation score full sweep recalculation completed', {
-      processed: recalculationResult.processed,
-      updated: recalculationResult.updated,
-      skipped: recalculationResult.skipped,
-      errors: recalculationResult.errors.length,
-      duration: recalculationResult.duration
-    });
-  } catch (error) {
-    result.errors.push(error instanceof Error ? error.message : String(error));
-    ctx.log('Consolidation score full sweep recalculation failed:', error, 'error');
-  } finally {
-    result.endTime = new Date();
-    result.duration = result.endTime.getTime() - result.startTime.getTime();
   }
 
   return result;

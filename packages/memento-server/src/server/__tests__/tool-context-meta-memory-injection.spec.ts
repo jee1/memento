@@ -52,17 +52,6 @@ describe('ToolContext에 metaMemoryService 주입', () => {
         }
       }
 
-      // Write Coalescing Manager 정리
-      if (services.writeCoalescingManager) {
-        try {
-          await services.writeCoalescingManager.flush();
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await services.writeCoalescingManager.destroy();
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-          console.warn('WriteCoalescingManager destroy 중 에러:', error);
-        }
-      }
     }
 
     // 서비스 인스턴스 정리

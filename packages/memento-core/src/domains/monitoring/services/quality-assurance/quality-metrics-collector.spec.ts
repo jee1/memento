@@ -825,210 +825,6 @@ describe('QualityMetricsCollector', () => {
     });
   });
 
-  describe('collectConsolidationMetrics', () => {
-    it('should return consolidation metrics structure', async () => {
-      // Given: 기본 컨텍스트
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics();
-
-      // Then: Consolidation 점수 품질 지표 구조가 반환되어야 함
-      expect(result).toBeDefined();
-      expect(result.namespace).toBe('consolidation');
-      expect(result.context).toBe('default');
-      expect(result.measured_at).toBeDefined();
-      expect(result.metrics).toBeDefined();
-    });
-
-    it('should return consolidation metrics with custom context', async () => {
-      // Given: 커스텀 컨텍스트
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics('ci');
-
-      // Then: 지정된 컨텍스트가 반환되어야 함
-      expect(result.context).toBe('ci');
-      expect(result.namespace).toBe('consolidation');
-    });
-
-    it('should return default values when no data provided', async () => {
-      // Given: 데이터가 없는 경우
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics();
-
-      // Then: 기본값이 반환되어야 함
-      expect(result.metrics.kendalls_tau).toBeDefined();
-      expect(result.metrics.order_preservation).toBeDefined();
-      expect(result.metrics.score_stability).toBeDefined();
-    });
-
-    it('should calculate order preservation metrics when search result pairs provided', async () => {
-      // Given: 검색 결과 쌍
-      const searchResultPairs: SearchResultPair[] = [
-        {
-          vectorOnly: [
-            { id: 'id1', score: 0.9 },
-            { id: 'id2', score: 0.8 },
-            { id: 'id3', score: 0.7 },
-            { id: 'id4', score: 0.6 },
-            { id: 'id5', score: 0.5 }
-          ],
-          withConsolidation: [
-            { id: 'id1', score: 0.9 },
-            { id: 'id3', score: 0.8 },
-            { id: 'id2', score: 0.7 },
-            { id: 'id4', score: 0.6 },
-            { id: 'id5', score: 0.5 }
-          ]
-        }
-      ];
-
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics('default', {
-        searchResultPairs
-      });
-
-      // Then: 순서 보존 지표가 계산되어야 함
-      expect(result.metrics.kendalls_tau).toBeDefined();
-      expect(result.metrics.kendalls_tau).toBeGreaterThanOrEqual(-1);
-      expect(result.metrics.kendalls_tau).toBeLessThanOrEqual(1);
-      expect(result.metrics.order_preservation).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.order_preservation).toBeLessThanOrEqual(1);
-      expect(result.metrics.top_5_retention).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.top_5_retention).toBeLessThanOrEqual(1);
-      expect(result.metrics.top_10_retention).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.top_10_retention).toBeLessThanOrEqual(1);
-    });
-
-    it('should calculate score distribution when consolidation scores provided', async () => {
-      // Given: Consolidation 점수 샘플
-      const consolidationScores = [0.8, 0.75, 0.7, 0.85, 0.9, 0.65, 0.8, 0.75];
-
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics('default', {
-        consolidationScores
-      });
-
-      // Then: 점수 분포 지표가 계산되어야 함
-      expect(result.metrics.score_mean).toBeGreaterThan(0);
-      expect(result.metrics.score_mean).toBeLessThanOrEqual(1);
-      expect(result.metrics.score_std).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.score_stability).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.score_stability).toBeLessThanOrEqual(1);
-    });
-
-    it('should calculate score stability correctly', async () => {
-      // Given: 일관된 점수 샘플 (낮은 분산)
-      const consistentScores = [0.8, 0.81, 0.79, 0.8, 0.81];
-      // Given: 불일치한 점수 샘플 (높은 분산)
-      const inconsistentScores = [0.2, 0.9, 0.3, 0.85, 0.1];
-
-      // When: Consolidation 점수 품질 지표 수집
-      const consistentResult = await collector.collectConsolidationMetrics('default', {
-        consolidationScores: consistentScores
-      });
-      const inconsistentResult = await collector.collectConsolidationMetrics('default', {
-        consolidationScores: inconsistentScores
-      });
-
-      // Then: 일관된 점수가 더 높은 안정성을 가져야 함
-      expect(consistentResult.metrics.score_stability).toBeGreaterThan(
-        inconsistentResult.metrics.score_stability
-      );
-    });
-
-    it('should calculate all metrics when all options provided', async () => {
-      // Given: 검색 결과 쌍과 점수 샘플 모두 제공
-      const searchResultPairs: SearchResultPair[] = [
-        {
-          vectorOnly: [
-            { id: 'id1', score: 0.9 },
-            { id: 'id2', score: 0.8 }
-          ],
-          withConsolidation: [
-            { id: 'id1', score: 0.9 },
-            { id: 'id2', score: 0.8 }
-          ]
-        }
-      ];
-      const consolidationScores = [0.8, 0.75, 0.7];
-
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics('default', {
-        searchResultPairs,
-        consolidationScores
-      });
-
-      // Then: 모든 지표가 계산되어야 함
-      expect(result.metrics.kendalls_tau).toBeDefined();
-      expect(result.metrics.order_preservation).toBeDefined();
-      expect(result.metrics.score_mean).toBeDefined();
-      expect(result.metrics.score_std).toBeDefined();
-      expect(result.metrics.score_stability).toBeDefined();
-    });
-
-    it('should handle empty search result pairs gracefully', async () => {
-      // Given: 빈 검색 결과 쌍
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics('default', {
-        searchResultPairs: []
-      });
-
-      // Then: 기본값이 반환되어야 함
-      expect(result.metrics.kendalls_tau).toBe(0);
-      expect(result.metrics.order_preservation).toBe(0);
-    });
-
-    it('should handle empty consolidation scores gracefully', async () => {
-      // Given: 빈 점수 샘플
-      // When: Consolidation 점수 품질 지표 수집
-      const result = await collector.collectConsolidationMetrics('default', {
-        consolidationScores: []
-      });
-
-      // Then: 기본값이 반환되어야 함
-      expect(result.metrics.score_mean).toBe(0);
-      expect(result.metrics.score_std).toBe(0);
-      expect(result.metrics.score_stability).toBe(0);
-    });
-
-    it('should include metadata about data availability', async () => {
-      // Given: 검색 결과 쌍과 점수 샘플이 있는 경우와 없는 경우
-      const searchResultPairs: SearchResultPair[] = [
-        {
-          vectorOnly: [{ id: 'id1', score: 0.9 }],
-          withConsolidation: [{ id: 'id1', score: 0.9 }]
-        }
-      ];
-      const consolidationScores = [0.8, 0.75];
-
-      // When: Consolidation 점수 품질 지표 수집
-      const resultWithData = await collector.collectConsolidationMetrics('default', {
-        searchResultPairs,
-        consolidationScores
-      });
-      const resultWithoutData = await collector.collectConsolidationMetrics();
-
-      // Then: 메타데이터에 데이터 정보가 포함되어야 함
-      expect(resultWithData.metadata?.has_search_result_pairs).toBe(true);
-      expect(resultWithData.metadata?.has_score_samples).toBe(true);
-      expect(resultWithData.metadata?.search_result_pairs_count).toBe(1);
-      expect(resultWithData.metadata?.score_samples_count).toBe(2);
-      expect(resultWithoutData.metadata?.has_search_result_pairs).toBe(false);
-      expect(resultWithoutData.metadata?.has_score_samples).toBe(false);
-    });
-
-    it('should query database for consolidation scores when not provided', async () => {
-      // Given: 데이터베이스에 consolidation_score가 있는 경우
-      // 테스트 데이터베이스에 consolidation_score가 있을 수 있음
-      // When: Consolidation 점수 품질 지표 수집 (점수 샘플 없이)
-      const result = await collector.collectConsolidationMetrics('default');
-
-      // Then: 점수 분포 지표가 계산되거나 기본값이 반환되어야 함
-      expect(result.metrics.score_mean).toBeDefined();
-      expect(result.metrics.score_std).toBeDefined();
-      expect(result.metrics.score_stability).toBeDefined();
-    });
-  });
-
   describe('collectStorageMetrics', () => {
     it('should return storage metrics structure', async () => {
       // Given: 기본 컨텍스트
@@ -1093,12 +889,11 @@ describe('QualityMetricsCollector', () => {
       // Then: 모든 네임스페이스의 지표가 반환되어야 함
       expect(results).toBeDefined();
       expect(Array.isArray(results)).toBe(true);
-      expect(results.length).toBe(4);
+      expect(results.length).toBe(3);
 
       const namespaces = results.map(r => r.namespace);
       expect(namespaces).toContain('search');
       expect(namespaces).toContain('relation');
-      expect(namespaces).toContain('consolidation');
       expect(namespaces).toContain('storage');
     });
 
@@ -1108,7 +903,7 @@ describe('QualityMetricsCollector', () => {
       const results = await collector.collectAllMetrics('ci');
 
       // Then: 모든 결과가 지정된 컨텍스트를 가져야 함
-      expect(results.length).toBe(4);
+      expect(results.length).toBe(3);
       results.forEach(result => {
         expect(result.context).toBe('ci');
       });
@@ -1143,16 +938,6 @@ describe('QualityMetricsCollector', () => {
 
       // Then: 관계 추출 품질 지표가 반환되어야 함
       expect(result.namespace).toBe('relation');
-      expect(result.context).toBe('default');
-    });
-
-    it('should return consolidation metrics when namespace is "consolidation"', async () => {
-      // Given: 'consolidation' 네임스페이스
-      // When: 해당 네임스페이스의 품질 지표 수집
-      const result = await collector.collectMetricsByNamespace('consolidation');
-
-      // Then: Consolidation 점수 품질 지표가 반환되어야 함
-      expect(result.namespace).toBe('consolidation');
       expect(result.context).toBe('default');
     });
 
@@ -1210,17 +995,15 @@ describe('QualityMetricsCollector', () => {
     it('should handle multiple concurrent metric collections', async () => {
       // Given: 여러 네임스페이스
       // When: 동시에 여러 네임스페이스의 품질 지표 수집
-      const [search, relation, consolidation, storage] = await Promise.all([
+      const [search, relation, storage] = await Promise.all([
         collector.collectMetricsByNamespace('search'),
         collector.collectMetricsByNamespace('relation'),
-        collector.collectMetricsByNamespace('consolidation'),
         collector.collectMetricsByNamespace('storage')
       ]);
 
       // Then: 모든 결과가 올바르게 반환되어야 함
       expect(search.namespace).toBe('search');
       expect(relation.namespace).toBe('relation');
-      expect(consolidation.namespace).toBe('consolidation');
       expect(storage.namespace).toBe('storage');
     });
 
