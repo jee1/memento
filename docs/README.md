@@ -47,7 +47,6 @@ Memento를 다른 앱이나 에이전트에 붙일 때는, **무엇을 호출할
 | Recall 성능 튜닝 | [recall-performance-tuning.md](guides/ko/recall-performance-tuning.md) | [recall-performance-tuning.md](guides/en/recall-performance-tuning.md) |
 | 검색 품질 튜닝 | [search-quality-tuning.md](guides/ko/search-quality-tuning.md) | [search-quality-tuning.md](guides/en/search-quality-tuning.md) |
 | 공개 벤치마크 데이터셋 | [benchmark-datasets.md](guides/ko/benchmark-datasets.md) | — |
-| Consolidation 품질 검증 | [consolidation-quality-testing.md](guides/ko/consolidation-quality-testing.md) | — |
 | LongMemEval-S 검증 | [longmemeval-s-validation.md](guides/ko/longmemeval-s-validation.md) | — |
 | 검색 품질 벤치마크 제작 | [search-quality-benchmarking.md](guides/ko/search-quality-benchmarking.md) | — |
 | 마이그레이션 시스템 | [migration-system-guide.md](guides/ko/migration-system-guide.md) | [migration-system-guide.md](guides/en/migration-system-guide.md) |
