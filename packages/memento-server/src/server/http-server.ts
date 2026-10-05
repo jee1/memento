@@ -228,7 +228,7 @@ const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 const HTTP_AUTH_TRUST_MODEL_NOTICE =
   'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality and /api/v1/maintenance require admin:destructive scope; /api/v1/agent, /tools, /mcp, and /messages require tools:invoke scope (Authorization Bearer or X-API-Key).';
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
-  'No programmatic API tokens configured: /api/v1/quality, /api/v1/maintenance, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until MEMENTO_API_TOKENS or ADMIN_API_KEY is set.';
+  'No programmatic API tokens configured: /api/v1/quality, /api/v1/maintenance, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until MEMENTO_API_TOKENS is set (ADMIN_API_KEY only signs in the dashboard, #1241).';
 
 function isProtectedMcpProgrammaticPath(pathname: string): boolean {
   return /^\/(?:mcp|messages)\/?$/.test(pathname);
