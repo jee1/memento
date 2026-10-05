@@ -210,7 +210,7 @@ async function main(): Promise<void> {
     try {
       const result = cleanupResidue(db, { deletedIds: readDeletedIds(executeProgressFile) });
       console.log(
-        `[quarantine-065] outbox ${result.outbox}행 · forgetting_event ${result.forgettingEvents}행 정리`,
+        `[quarantine-065] forgetting_event ${result.forgettingEvents}행 정리`,
       );
     } finally {
       db.close();

@@ -51,14 +51,6 @@ export function createFixtureDb(): Database.Database {
       id INTEGER PRIMARY KEY, memory_id TEXT, action TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-    CREATE TABLE event_outbox (
-      id TEXT PRIMARY KEY, event_type TEXT NOT NULL, target_uri TEXT NOT NULL,
-      owner_id TEXT, payload_json TEXT NOT NULL, idempotency_key TEXT NOT NULL UNIQUE,
-      attempts INTEGER NOT NULL DEFAULT 0,
-      available_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      processed_at TEXT, last_error TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
     CREATE TABLE kg_triple (
       id INTEGER PRIMARY KEY,
       subject TEXT, predicate TEXT, object TEXT,

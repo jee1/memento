@@ -9,7 +9,6 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
-import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 
 type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
 
@@ -149,19 +148,6 @@ export class AddRelationTool extends BaseTool {
         );
 
         const relationUri = formatMementoResourceUri({ ownerId: sourceMemory.owner_id ?? null, kind: 'relation', id: relationId });
-        try {
-          new EventOutboxService(db).enqueue({
-            eventType: 'relation.added',
-            targetUri: relationUri,
-            ownerId: sourceMemory.owner_id ?? null,
-            payload: { source_id, target_id, relation_type, confidence: confidence || 0.7 },
-            idempotencyKey: `relation.added:${relationUri}`,
-          });
-        } catch (error) {
-          this.logWarning('Outbox event enqueue failed after relation add', {
-            error: error instanceof Error ? error.message : String(error), relation_id: relationId,
-          });
-        }
 
         // Then: 결과 반환
         return this.createSuccessResult({

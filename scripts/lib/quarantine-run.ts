@@ -116,45 +116,29 @@ export async function runQuarantine(args: {
 }
 
 /**
- * FR-009a: forget 은 삭제 건당 event_outbox 에 memory.forgotten 을 적재하고 정리 로직이 없다.
  * FR-006d: memory_forgetting_event 는 FK 가 없어 자동 정리되지 않는다.
  * FR-006f: 살아 있는 기억의 로그는 건드리지 않는다 — 그것은 #810 범위다.
  *   그래서 NOT IN (SELECT id FROM memory_item) 이 아니라 격리된 ID 목록으로만 지운다.
- *
- * 시간 범위(created_at >= startedAt)를 쓰지 않는 이유: event_outbox.created_at 은 INSERT 컬럼
- * 목록에 없어 CURRENT_TIMESTAMP 기본값 'YYYY-MM-DD HH:MM:SS' 로 들어간다. 운영자가 넘기는
- * `date -Iseconds` 는 'YYYY-MM-DDTHH:MM:SS+09:00' 이라 공백(0x20) < T(0x54) 로 비교가 항상
- * 거짓이 되어 0행을 지우고도 성공한 척한다. target_uri 의 ID 를 정확히 맞춘다.
- *
- * target_uri 형태: memento://<owner>/memory/<id> — ID 가 항상 맨 뒤다.
- * LIKE 가 아니라 접미사 등호 비교를 쓴다. ID 에 `_` 가 들어 있어 와일드카드로 해석되기 때문이다.
  */
 export function cleanupResidue(
   db: CliDatabase,
   args: { deletedIds: string[] },
-): { outbox: number; forgettingEvents: number } {
+): { forgettingEvents: number } {
   if (args.deletedIds.length === 0) {
     throw new Error('정리할 격리 ID 가 없습니다 — 진행 기록(progress.jsonl)을 확인하세요');
   }
 
-  const deleteOutbox = db.prepare(`
-    DELETE FROM event_outbox
-    WHERE event_type = 'memory.forgotten'
-      AND substr(target_uri, length(target_uri) - length(?) + 1) = ?
-  `);
   const deleteEvent = db.prepare('DELETE FROM memory_forgetting_event WHERE memory_id = ?');
 
-  let outbox = 0;
   let forgettingEvents = 0;
   const deleteAll = db.transaction((ids: string[]) => {
     for (const id of ids) {
-      outbox += deleteOutbox.run(id, id).changes;
       forgettingEvents += deleteEvent.run(id).changes;
     }
   });
   deleteAll(args.deletedIds);
 
-  return { outbox, forgettingEvents };
+  return { forgettingEvents };
 }
 
 export function readDeletedIds(progressFile: string): string[] {
