@@ -11,9 +11,6 @@ import type {
   VectorSearchResult,
 } from '../../memory/services/memory-embedding-service.js';
 
-export type { RelationRecallExpansionMode } from './relation-recall-candidate-expansion.js';
-import type { RelationRecallExpansionMode } from './relation-recall-candidate-expansion.js';
-
 export interface ITextSearchEngine {
   search(
     db: Database.Database,
@@ -145,11 +142,6 @@ export interface HybridSearchQuery {
   include_score_breakdown?: boolean;
   /** When true, return per-stage candidate IDs without changing default ranking. */
   includeFunnel?: boolean;
-  /**
-   * #959 PoC: relation recall candidate expansion (benchmark/internal only; default off).
-   * Production recall does not expose this — unset keeps byte-for-byte default behavior.
-   */
-  relationRecallExpansion?: RelationRecallExpansionMode;
 }
 
 export interface HybridSearchResult {
@@ -166,7 +158,6 @@ export interface HybridSearchResult {
   finalScore: number;
   recall_reason: string;
   consolidation_score?: number;
-  relation_weight?: number;
   relations?: RelationInfoRow[];
   score_breakdown?: ScoreBreakdown;
   project_id?: string | null;
@@ -182,7 +173,6 @@ export type MemoryRankingDetails = {
 };
 
 export type RankingContext = {
-  relationWeights: Map<string, number>;
   relationInfo: Map<string, RelationInfoRow[]>;
   consolidationScores: Map<string, number>;
   proceduralMatches: Map<string, ProceduralMemoryMatch>;

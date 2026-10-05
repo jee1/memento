@@ -26,7 +26,6 @@ import { SearchResultCombiner } from './search-result-combiner.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import { collectResultIds } from './hybrid-search-outcome-utils.js';
 import { backfillTextOnlyVectorResults } from './hybrid-vector-backfill.js';
-import { applyRelationRecallCandidateExpansion } from './relation-recall-candidate-expansion.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import type {
   HybridSearchQuery,
@@ -98,7 +97,6 @@ export class HybridSearchEngine {
       recency: config.ranking_weights.beta,
       importance: config.ranking_weights.gamma,
       usage: config.ranking_weights.delta,
-      relation_weight: config.ranking_weights.zeta,
       duplication_penalty: config.ranking_weights.epsilon,
       zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
       consolidation_score: config.ranking_weights.consolidation ?? 0,
@@ -195,45 +193,15 @@ export class HybridSearchEngine {
         ? [...vectorOut.results, ...backfilledVector]
         : vectorOut.results;
       const outputLimit = query.limit || 10;
-      const expansionMode = query.relationRecallExpansion ?? 'off';
-      let finalResults: HybridSearchResult[];
-      if (expansionMode === 'off') {
-        finalResults = await this.resultRanker.combineAndSortResults(
-          textResults,
-          vectorResultsForCombine,
-          weights,
-          outputLimit,
-          db,
-          query.includeRelations || false,
-          query
-        );
-      } else {
-        const rankLimit = Math.max(
-          outputLimit,
-          outputLimit * 2,
-          textResults.length + vectorResultsForCombine.length
-        );
-        const primaryRanked = await this.resultRanker.combineAndSortResults(
-          textResults,
-          vectorResultsForCombine,
-          weights,
-          rankLimit,
-          db,
-          query.includeRelations || false,
-          query
-        );
-        finalResults = await applyRelationRecallCandidateExpansion({
-          db,
-          query,
-          mode: expansionMode,
-          primaryRanked,
-          resultRanker: this.resultRanker,
-          relationGraph: this.relationGraph,
-          weights,
-          outputLimit,
-          includeRelations: query.includeRelations || false,
-        });
-      }
+      let finalResults: HybridSearchResult[] = await this.resultRanker.combineAndSortResults(
+        textResults,
+        vectorResultsForCombine,
+        weights,
+        outputLimit,
+        db,
+        query.includeRelations || false,
+        query
+      );
 
       // #1191 게이트 판정을 응답에도 싣는다. 미부착이면 'off', 후보 0건이라 안 탔으면 없음.
       let rejectionGateOutcome: RelevanceGateOutcome | undefined = this.rejectionGate ? undefined : { verdict: 'off', top_score: null, unscored: 0 };
@@ -428,15 +396,11 @@ export class HybridSearchEngine {
         beta: config.ranking_weights.beta,
         gamma: config.ranking_weights.gamma,
         delta: config.ranking_weights.delta,
-        zeta: config.ranking_weights.zeta,
         epsilon: config.ranking_weights.epsilon,
       },
       adaptive_weights: {
         vectorWeight: weights.vectorWeight,
         textWeight: weights.textWeight,
-      },
-      relation_weights: {
-        max_relations: config.relation_weights.max_relations,
       },
     };
 

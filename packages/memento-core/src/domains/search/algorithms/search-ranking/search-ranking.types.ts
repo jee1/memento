@@ -9,7 +9,6 @@ export interface SearchFeatures {
   usage: number;
   duplication_penalty: number;
   consolidation_score?: number; // Consolidation Score (선택적)
-  relation_weight?: number; // 관계 가중치 (관계 그래프 기반)
   // Procedural Memory Enhancement (v7.0) 필드
   workflow_name_match?: boolean; // workflow_name 매칭 여부
   skill_name_match?: boolean; // skill_name 매칭 여부
@@ -51,7 +50,6 @@ export interface SearchRankingWeights {
   recency: number;      // β = 0.20
   importance: number;   // γ = 0.20
   usage: number;        // δ = 0.10
-  relation_weight: number; // ζ = 0.15
   duplication_penalty: number; // ε = 0.10
   consolidation_score?: number; // w2 = 0.2 (기본값, 최대 0.4)
   process_attribute_fit?: number; // θ = 0.1 (Issue #91, process 적합도 가중치)

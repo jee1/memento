@@ -1,7 +1,7 @@
 # 검색 랭킹 가중치 설정
 # 관계 추론 엔진의 검색 랭킹 공식에 사용되는 가중치 값들
 #
-# 랭킹 공식(요약): S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weight
+# 랭킹 공식(요약): S = α·relevance + β·recency + γ·importance + δ·usage
 #   + ζ_fb·(feedback_norm − 0.5) + θ·process_attribute_fit − ε·duplication_penalty
 # (relevance 슬롯에 절차 부스트 등이 합산되는 경우는 구현·스펙 FR-008 참고)
 
@@ -17,11 +17,6 @@ gamma = 0.20
 
 # usage: 사용 빈도 점수 (access_count 기반)
 delta = 0.10
-
-# relation_weight: 관계 가중치 (관계 그래프 기반)
-# 기본 0 (#1185). 관계 수는 질의와 무관한 문서 출처 prior 라, 링크가 없는 클리핑 정답을 관계 많은 비정답 아래로 눌렀다.
-# 운영 실측(고성 왕곡마을 클리핑/semantic top-20): 0.15 에서 비정답(관계 12개)이 4위, 0 에서 정답 4건이 1~4위.
-zeta = 0.0
 
 # duplication_penalty: 중복 패널티 (중복 기억에 대한 감점)
 epsilon = 0.10
@@ -39,11 +34,6 @@ zeta_fb = 0.05
 # 운영 실측: 1회 호출 뒤 top-10 전원 0.28 → 0.6225, relevance 슬롯 +0.025~0.049.
 # 상한 0.4 (SEARCH_RANKING.CONSOLIDATION_SCORE_MAX). #1184 이전 코드 상수는 0.2 였다.
 consolidation = 0.0
-
-[relation_weights]
-# 관계 가중치 = 평균(confidence × type_boost) × min(n, max_relations) / max_relations (#1185)
-# 관계 수에 단조 증가하고 max_relations 이상에서 평균에 포화합니다.
-max_relations = 5
 
 # #921: soft length decay on hybrid vector similarity — factor = len/(len+k)
 # Applied before HYBRID_VECTOR_THRESHOLD / under-fill / fusion. No create-time gate.
