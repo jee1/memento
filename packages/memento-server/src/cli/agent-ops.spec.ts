@@ -278,4 +278,38 @@ describe('agent operations CLI', () => {
       category: 'internal',
     });
   });
+
+  it('prefers MEMENTO_API_KEY over ADMIN_API_KEY when both are set (#1241)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      text: async () => JSON.stringify({
+        status: 'healthy',
+        version: '1.17.0',
+        database: 'connected',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const dependencies = {
+      resolveEndpoint: vi.fn().mockResolvedValue('http://127.0.0.1:8080'),
+      now: () => new Date('2026-06-07T00:00:00.000Z'),
+      randomId: () => 'fixed-id',
+      writeStdout: vi.fn(),
+      writeStderr: vi.fn(),
+      env: {
+        MEMENTO_API_KEY: 'memento-key',
+        ADMIN_API_KEY: 'admin-key',
+      },
+    };
+
+    await runAgentOpsCommand('doctor', ['--json'], dependencies);
+
+    const authHeaders = fetchMock.mock.calls.map(
+      ([, init]) => (init as RequestInit).headers as Record<string, string>,
+    );
+    expect(authHeaders.some((headers) => headers.Authorization === 'Bearer memento-key')).toBe(true);
+    expect(authHeaders.every((headers) => headers.Authorization !== 'Bearer admin-key')).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
 });

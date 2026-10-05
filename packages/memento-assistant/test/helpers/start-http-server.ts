@@ -22,6 +22,7 @@ export async function startTestHttpServer(): Promise<TestServer> {
       MCP_SERVER_PORT: String(port),
       DB_PATH: ':memory:',
       ADMIN_API_KEY: apiKey,
+      MEMENTO_API_TOKENS: JSON.stringify([{ id: 'test', secret: apiKey, scopes: ['tools:invoke', 'admin:destructive'] }]),
       MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: 'true',
       MEMENTO_OWNER_SCOPE_MODE: 'off',
     },

@@ -143,6 +143,16 @@ describe('auth session integration', () => {
 
   beforeEach(async () => {
     vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        {
+          id: 'integration',
+          secret: 'integration-admin-key',
+          scopes: ['admin:destructive', 'tools:invoke'],
+        },
+      ]),
+    );
     vi.resetModules();
     ctx = await setupTestDatabase();
   });

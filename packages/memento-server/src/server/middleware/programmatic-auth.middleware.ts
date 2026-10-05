@@ -38,7 +38,7 @@ function writeDisabledResponse(
   }
   res.status(401).json({
     error: 'Unauthorized',
-    message: 'Programmatic API is disabled: configure MEMENTO_API_TOKENS or ADMIN_API_KEY.',
+    message: 'Programmatic API is disabled: configure MEMENTO_API_TOKENS.',
     timestamp: new Date().toISOString(),
   });
 }

@@ -219,6 +219,16 @@ describe('programmatic auth integration', () => {
 
   beforeEach(async () => {
     vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        {
+          id: 'integration',
+          secret: 'integration-admin-key',
+          scopes: ['admin:destructive', 'tools:invoke'],
+        },
+      ]),
+    );
     vi.stubEnv('CORS_ALLOWED_ORIGINS', 'https://trusted.app');
     vi.resetModules();
     ctx = await setupTestDatabase();

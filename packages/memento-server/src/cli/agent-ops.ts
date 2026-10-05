@@ -135,8 +135,8 @@ export async function runAgentOpsCommand(
       env,
     );
     const apiKey = options.apiKey
-      ?? env.ADMIN_API_KEY?.trim()
-      ?? env.MEMENTO_API_KEY?.trim();
+      ?? env.MEMENTO_API_KEY?.trim()
+      ?? env.ADMIN_API_KEY?.trim();
     const request = dependencies.request
       ?? createRequest(endpoint, apiKey, options.timeoutMs);
     const now = dependencies.now ?? (() => new Date());
