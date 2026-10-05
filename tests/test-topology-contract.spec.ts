@@ -117,7 +117,6 @@ describe('test topology contracts', () => {
   });
 
   it('assigns every reviewed heavy suite to nightly exactly once', () => {
-    const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     const nightly = readFileSync(join(ROOT, '.github/workflows/nightly-tests.yml'), 'utf8');
     const nightlyOwners = nightly;
 
