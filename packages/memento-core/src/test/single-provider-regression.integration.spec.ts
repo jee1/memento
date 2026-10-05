@@ -6,7 +6,20 @@ import {
   executeTool,
   type MementoCoreInstance,
 } from '../index.js';
-import { insertMemoryEmbedding, insertMemoryItem } from './helpers/consolidation-test-data.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
+
+function insertRegressionMemoryItem(
+  db: MementoCoreInstance['db'],
+  item: { id: string; type: 'episodic'; content: string },
+): void {
+  DatabaseUtils.run(
+    db,
+    `INSERT INTO memory_item (id, type, content, importance, recall_count)
+     VALUES (?, ?, ?, ?, ?)`,
+    [item.id, item.type, item.content, 0.5, 0],
+  );
+}
 
 describe('single embedding provider regression', () => {
   let core: MementoCoreInstance;
@@ -15,7 +28,7 @@ describe('single embedding provider regression', () => {
     core = await createMementoCore({ dbPath: ':memory:' });
     for (let index = 0; index < 20; index += 1) {
       const id = `single-provider-${index}`;
-      insertMemoryItem(core.db, {
+      insertRegressionMemoryItem(core.db, {
         id,
         type: 'episodic',
         content: `single provider regression memory ${index}`,
