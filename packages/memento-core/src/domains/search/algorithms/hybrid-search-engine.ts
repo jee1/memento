@@ -97,7 +97,6 @@ export class HybridSearchEngine {
       recency: config.ranking_weights.beta,
       importance: config.ranking_weights.gamma,
       usage: config.ranking_weights.delta,
-      relation_weight: config.ranking_weights.zeta,
       duplication_penalty: config.ranking_weights.epsilon,
       zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
       consolidation_score: config.ranking_weights.consolidation ?? 0,
@@ -397,15 +396,11 @@ export class HybridSearchEngine {
         beta: config.ranking_weights.beta,
         gamma: config.ranking_weights.gamma,
         delta: config.ranking_weights.delta,
-        zeta: config.ranking_weights.zeta,
         epsilon: config.ranking_weights.epsilon,
       },
       adaptive_weights: {
         vectorWeight: weights.vectorWeight,
         textWeight: weights.textWeight,
-      },
-      relation_weights: {
-        max_relations: config.relation_weights.max_relations,
       },
     };
 

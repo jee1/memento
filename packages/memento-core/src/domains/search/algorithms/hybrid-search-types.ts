@@ -158,7 +158,6 @@ export interface HybridSearchResult {
   finalScore: number;
   recall_reason: string;
   consolidation_score?: number;
-  relation_weight?: number;
   relations?: RelationInfoRow[];
   score_breakdown?: ScoreBreakdown;
   project_id?: string | null;
@@ -174,7 +173,6 @@ export type MemoryRankingDetails = {
 };
 
 export type RankingContext = {
-  relationWeights: Map<string, number>;
   relationInfo: Map<string, RelationInfoRow[]>;
   consolidationScores: Map<string, number>;
   proceduralMatches: Map<string, ProceduralMemoryMatch>;

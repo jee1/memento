@@ -21,15 +21,10 @@ export interface RankingWeights {
   beta: number; // recency 가중치
   gamma: number; // importance 가중치
   delta: number; // usage 가중치
-  zeta: number; // relation_weight 가중치
   epsilon: number; // duplication_penalty 가중치
   theta?: number; // process_attribute_fit 가중치 (Issue #91, 기본 0.1)
   zeta_fb?: number; // 피드백 신호 가중치 (Recall Quality Feedback Loop, 기본 0.05)
   consolidation?: number; // consolidation_score 블렌드 가중치 (#1184, 기본 0, 상한 SEARCH_RANKING.CONSOLIDATION_SCORE_MAX)
-}
-
-export interface RelationWeights {
-  max_relations: number; // 관계 가중치 계산 시 정규화를 위한 최대 관계 수
 }
 
 export interface VectorLengthDecayConfig {
@@ -63,7 +58,6 @@ export interface RelevanceSignalConfig {
 
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
-  relation_weights: RelationWeights;
   vector_length_decay: VectorLengthDecayConfig;
   fts_relevance: FtsRelevanceConfig;
   importance_signal: ImportanceSignalConfig;
@@ -77,14 +71,10 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     beta: 0.20,
     gamma: 0.20,
     delta: 0.10,
-    zeta: 0,
     epsilon: 0.10,
     theta: 0.1,
     zeta_fb: 0.05,
     consolidation: 0
-  },
-  relation_weights: {
-    max_relations: 5
   },
   vector_length_decay: {
     enabled: true,
@@ -146,12 +136,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.beta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.gamma': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.delta': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.zeta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.consolidation': { type: 'number' as const, min: 0, max: SEARCH_RANKING.CONSOLIDATION_SCORE_MAX },
-      'relation_weights.max_relations': { type: 'number' as const, min: 1 },
       'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
       'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
       'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
@@ -166,12 +154,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.beta': config.ranking_weights.beta,
       'ranking_weights.gamma': config.ranking_weights.gamma,
       'ranking_weights.delta': config.ranking_weights.delta,
-      'ranking_weights.zeta': config.ranking_weights.zeta,
       'ranking_weights.epsilon': config.ranking_weights.epsilon,
       'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
       'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
       'ranking_weights.consolidation': config.ranking_weights.consolidation ?? DEFAULT_CONFIG.ranking_weights.consolidation,
-      'relation_weights.max_relations': config.relation_weights.max_relations,
       'vector_length_decay.characteristic_length':
         config.vector_length_decay?.characteristic_length ??
         DEFAULT_CONFIG.vector_length_decay.characteristic_length,
@@ -251,7 +237,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
  * @throws 설정 값이 유효하지 않은 경우
  */
 function validateRankingWeights(config: RankingWeightsConfig): void {
-  const { ranking_weights, relation_weights } = config;
+  const { ranking_weights } = config;
 
   // 가중치 값 검증 (0 이상 1 이하)
   const theta = ranking_weights.theta ?? 0.1;
@@ -261,7 +247,6 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
     { name: 'beta', value: ranking_weights.beta },
     { name: 'gamma', value: ranking_weights.gamma },
     { name: 'delta', value: ranking_weights.delta },
-    { name: 'zeta', value: ranking_weights.zeta },
     { name: 'epsilon', value: ranking_weights.epsilon },
     { name: 'theta', value: theta },
     { name: 'zeta_fb', value: zetaFb }
@@ -271,13 +256,6 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
     if (!Number.isFinite(value) || value < 0 || value > 1) {
       throw new Error(`가중치 ${name}는 0 이상 1 이하의 숫자여야 합니다. 현재 값: ${value}`);
     }
-  }
-
-  // max_relations 검증 (양수)
-  if (!Number.isFinite(relation_weights.max_relations) || relation_weights.max_relations <= 0) {
-    throw new Error(
-      `max_relations는 양수여야 합니다. 현재 값: ${relation_weights.max_relations}`
-    );
   }
 
   // 가중치 합계 검증 (선택적: 합계가 1.0에 가까운지 확인)

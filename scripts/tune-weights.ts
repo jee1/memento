@@ -78,7 +78,6 @@ export function generateCandidate(
     beta: perturb(baseline.beta),
     gamma: perturb(baseline.gamma),
     delta: perturb(baseline.delta),
-    zeta: perturb(baseline.zeta),
     epsilon: perturb(baseline.epsilon),
     theta: perturb(baseline.theta ?? 0.1),
     zeta_fb: perturb(baseline.zeta_fb ?? 0.05),
@@ -158,7 +157,6 @@ async function main(): Promise<void> {
 
       const candidateConfig: RankingWeightsConfig = {
         ranking_weights: candidateWeights,
-        relation_weights: baselineConfig.relation_weights,
       };
       const tmpTomlPath = join(candidatesDir, `candidate-${i}.toml`);
       writeFileSync(tmpTomlPath, stringify(JSON.parse(JSON.stringify(candidateConfig))));

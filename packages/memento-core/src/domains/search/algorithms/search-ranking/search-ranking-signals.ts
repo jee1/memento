@@ -150,47 +150,6 @@ export function calculateDuplicationPenalty(
 }
 
 /**
- * 관계 그래프의 신뢰도와 관계 유형을 종합하여 관련성 점수에 반영합니다.
- * 여러 관계의 confidence와 type_boost를 정규화하여 일관된 가중치를 계산합니다.
- * 관계의 개수와 유형에 따라 다른 가중치를 적용하여 정확한 관련성 평가를 수행합니다.
- */
-export function calculateRelationWeight(
-  relations: Array<{ confidence: number; relation_type: string }>,
-  maxRelations: number = 5
-): number {
-  if (relations.length === 0) {
-    return 0;
-  }
-
-  // 관계 유형에 따라 다른 중요도를 부여하여 인과관계나 의존성 같은 중요한 관계를 우선 평가합니다.
-  const typeBoostMap: Record<string, number> = {
-    'CAUSES': 1.2,
-    'DEPENDS_ON': 1.1,
-    'FOLLOWS': 1.0,
-    'CONTRASTS_WITH': 0.9,
-    'REFERENCES': 0.8,
-    'BELONGS_TO': 1.0
-  };
-
-  // 신뢰도와 관계 유형 부스트를 곱하여 종합적인 관계 가중치를 계산합니다.
-  const weightedScores = relations.map(relation => {
-    const typeBoost = typeBoostMap[relation.relation_type] || 1.0;
-    return relation.confidence * typeBoost;
-  });
-
-  // 모든 관계의 가중치를 평균내어 종합적인 관계 점수를 산출합니다.
-  const averageScore = weightedScores.reduce((sum, score) => sum + score, 0) / weightedScores.length;
-
-  // 관계 수를 maxRelations 까지 커버리지 비율로 반영한다. 관계가 많을수록 단조 증가하고 maxRelations 이상은 평균에 포화한다 (#1185).
-  // 이전 식(평균 ÷ min(n, maxRelations))은 평균을 관계 수로 한 번 더 나눠 관계가 적을수록 커졌다.
-  const coverage = Math.min(relations.length, maxRelations) / maxRelations;
-  const normalizedScore = averageScore * coverage;
-
-  // 점수 범위를 0-1로 제한하여 다른 지표와 일관된 비교가 가능하도록 합니다.
-  return Math.max(0, Math.min(1, normalizedScore));
-}
-
-/**
  * 기존 API와의 호환성을 유지하면서 간단한 사용성 계산을 제공합니다.
  * 마지막 접근 시간만을 사용하여 사용 빈도 데이터가 없는 경우에도 평가가 가능하도록 합니다.
  */
