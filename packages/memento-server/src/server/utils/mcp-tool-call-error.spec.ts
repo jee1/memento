@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { mapToolExecutionErrorToJsonRpc } from './mcp-tool-call-error.js';
 
-/** Messages thrown by recall/remember when MEMENTO_TYPE_PARAM_MODE=error and type is omitted */
+/** Messages thrown by recall/remember when type is omitted */
 const TYPE_LESS_RECALL_MSG =
   "❌ recall: 'type' 파라미터는 필수입니다. 지원되는 타입: working | episodic | semantic | procedural | core | vault";
 const TYPE_LESS_REMEMBER_MSG =

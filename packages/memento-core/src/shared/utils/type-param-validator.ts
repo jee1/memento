@@ -1,12 +1,4 @@
-/**
- * type 파라미터 롤아웃 모드 검증 유틸리티
- * 
- * Phase 1 (warn): type 파라미터 없을 시 경고 로그 출력 및 기본값 적용
- * Phase 2 (deprecate): type 파라미터 없을 시 Deprecation 경고 및 기본값 적용
- * Phase 3 (error): type 파라미터 없을 시 에러 발생
- */
-
-export type TypeParamMode = 'warn' | 'deprecate' | 'error';
+/** type parameter validation: type is required (#636, modes removed in #1242). */
 
 /**
  * 지원되는 메모리 타입 whitelist
@@ -21,112 +13,49 @@ function isValidMemoryType(type: string): type is ValidMemoryType {
 
 export interface TypeParamValidationResult {
   isValid: boolean;
-  mode: TypeParamMode;
   message?: string;
   defaultType?: string;
 }
 
 /**
- * type 파라미터 검증 및 롤아웃 모드에 따른 처리
- * 
+ * type 파라미터 검증
+ *
  * @param type - 사용자가 제공한 type 파라미터 (없을 수 있음)
- * @param mode - 롤아웃 모드 ('warn' | 'deprecate' | 'error')
  * @param toolName - 도구 이름 (에러 메시지에 사용)
- * @returns 검증 결과 및 기본값
+ * @returns 검증 결과 및 정규화된 타입
  */
 export function validateTypeParam(
   type: string | undefined,
-  mode: TypeParamMode,
   toolName: string = 'tool'
 ): TypeParamValidationResult {
-  // type 파라미터가 제공된 경우
   if (type !== undefined && type !== null && type !== '') {
-    // whitelist 검증: 지원되는 타입인지 확인
     const normalizedType = type.toLowerCase().trim();
     if (!isValidMemoryType(normalizedType)) {
       return {
         isValid: false,
-        mode: 'error',
         message: `❌ ${toolName}: 'type' 파라미터 값 '${type}'이(가) 유효하지 않습니다. 지원되는 타입: ${VALID_MEMORY_TYPES.join(' | ')}`
       };
     }
-    
+
     return {
       isValid: true,
-      mode,
       defaultType: normalizedType
     };
   }
 
-  // type 파라미터가 없는 경우 - 모드에 따라 처리
-  const defaultType = 'episodic'; // 기본값
-
-  switch (mode) {
-    case 'warn':
-      return {
-        isValid: true,
-        mode: 'warn',
-        message: `⚠️  ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다. 향후 버전에서는 필수 파라미터가 됩니다.`,
-        defaultType
-      };
-
-    case 'deprecate':
-      return {
-        isValid: true,
-        mode: 'deprecate',
-        message: `⚠️  ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다. 'type' 파라미터는 필수로 지정해주세요. 마이그레이션 가이드: https://github.com/jee1/memento/blob/main/docs/guides/ko/type-param-rollout.md`,
-        defaultType
-      };
-
-    case 'error':
-      return {
-        isValid: false,
-        mode: 'error',
-        message: `❌ ${toolName}: 'type' 파라미터는 필수입니다. 지원되는 타입: ${VALID_MEMORY_TYPES.join(' | ')}`
-      };
-
-    default:
-      return {
-        isValid: false,
-        mode: 'error',
-        message: `❌ ${toolName}: 'type' 파라미터는 필수입니다. 지원되는 타입: ${VALID_MEMORY_TYPES.join(' | ')}`
-      };
-  }
+  return {
+    isValid: false,
+    message: `❌ ${toolName}: 'type' 파라미터는 필수입니다. 지원되는 타입: ${VALID_MEMORY_TYPES.join(' | ')}`
+  };
 }
 
 /**
- * MCP inputSchema 가 광고하는 제약을 런타임 검증 모드와 일치시킨다 (#853).
+ * MCP inputSchema 가 광고하는 type 필수 제약 (#853).
  *
- * 'error' 모드에서만 type 이 실제로 강제되므로 그 때만 required 에 넣는다.
- * warn/deprecate 모드에서는 서버가 기본값으로 받아주므로 required 로 광고하면
- * 스키마가 반대 방향으로 거짓말하게 된다.
- *
- * @param mode - 롤아웃 모드
  * @returns inputSchema.required 에 넣을 필드 목록
  */
-export function typeParamRequiredFields(mode: TypeParamMode): string[] {
-  return mode === 'error' ? ['type'] : [];
-}
-
-/**
- * 환경 변수에서 롤아웃 모드 읽기
- * 
- * @param envValue - 환경 변수 값
- * @returns 유효한 모드 또는 기본값 'error'
- */
-export function parseTypeParamMode(envValue: string | undefined): TypeParamMode {
-  if (!envValue) {
-    return 'error';
-  }
-
-  const normalized = envValue.toLowerCase().trim();
-  if (normalized === 'warn' || normalized === 'deprecate' || normalized === 'error') {
-    return normalized as TypeParamMode;
-  }
-
-  // 유효하지 않은 값인 경우 기본값 반환
-  console.warn(`⚠️  Invalid MEMENTO_TYPE_PARAM_MODE value: ${envValue}. Using default 'error'.`);
-  return 'error';
+export function typeParamRequiredFields(): string[] {
+  return ['type'];
 }
 
 /**

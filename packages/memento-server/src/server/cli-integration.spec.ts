@@ -17,7 +17,7 @@ import {
   cleanupTestDatabase,
   type TestDatabaseContext,
 } from './test/helpers/test-database.js';
-import { createToolContext, executeTool, mementoConfig } from '@memento/core';
+import { createToolContext, executeTool } from '@memento/core';
 import { createMementoClient } from '@jee1/memento-client';
 
 describe('CLI 통합 (server-info + callToolViaHttp)', () => {
@@ -131,8 +131,6 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
       logLevel: 'silent',
     });
 
-    const savedTypeParamMode = mementoConfig.typeParamMode;
-    mementoConfig.typeParamMode = 'warn';
     await client.connect();
     try {
       const remembered = await client.remember({
@@ -142,7 +140,9 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
       });
       expect(remembered.memory_id).toEqual(expect.any(String));
 
-      const recalled = await client.recall('클라이언트 생명주기', undefined, 5);
+      const recalled = await client.recall('클라이언트 생명주기', undefined, 5, {
+        type: 'episodic',
+      } as Parameters<ReturnType<typeof createMementoClient>['recall']>[3]);
       expect(recalled.items.some((item) => item.id === remembered.memory_id)).toBe(true);
 
       await expect(client.pin(remembered.memory_id)).resolves.toMatchObject({
@@ -163,7 +163,6 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
       });
     } finally {
       await client.disconnect();
-      mementoConfig.typeParamMode = savedTypeParamMode;
     }
   });
 

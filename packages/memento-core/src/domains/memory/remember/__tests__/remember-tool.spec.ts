@@ -687,169 +687,46 @@ describe('RememberTool', () => {
     });
   });
 
-  describe('type 파라미터 롤아웃', () => {
-    describe('warn 모드', () => {
-      beforeEach(() => {
-        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
-          ...configModule.mementoConfig,
-          typeParamMode: 'warn'
-        } as any);
-      });
+  describe('type 파라미터 필수', () => {
+    it('should throw error when type is missing', async () => {
+      const params = {
+        content: 'Test content'
+      };
 
-      it('should use default type and log warning when type is missing', async () => {
-        const params = {
-          content: 'Test content'
-        };
-
-        const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
-
-        const result = await tool.handle(params, context);
-        const resultData = JSON.parse(result.content[0].text);
-
-        expect(resultData.memory_id).toBeDefined();
-        expect(logWarningSpy).toHaveBeenCalledWith(
-          expect.stringContaining('type')
-        );
-        expect(logWarningSpy).toHaveBeenCalledWith(
-          expect.stringContaining('episodic')
-        );
-
-        // 데이터베이스에서 확인 (기본값 episodic로 저장되었는지)
-        const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
-        expect(record.type).toBe('episodic');
-      });
-
-      it('should not log warning when type is provided', async () => {
-        const params = {
-          type: 'semantic',
-          content: 'Test content'
-        };
-
-        const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
-
+      await expect(tool.handle(params, context)).rejects.toThrow(ToolInputValidationError);
+      try {
         await tool.handle(params, context);
-
-        // type이 제공된 경우 경고가 출력되지 않아야 함
-        const warningCalls = logWarningSpy.mock.calls.filter(call => 
-          call[0]?.includes('type') && call[0]?.includes('파라미터')
-        );
-        expect(warningCalls.length).toBe(0);
-      });
+        expect.fail('Should have thrown an error');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(ToolInputValidationError);
+        expect((error as Error).name).toBe('ToolInputValidationError');
+        expect((error as Error).message).toMatch(/type|파라미터|필수/i);
+      }
     });
 
-    describe('deprecate 모드', () => {
-      beforeEach(() => {
-        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
-          ...configModule.mementoConfig,
-          typeParamMode: 'deprecate'
-        } as any);
-      });
+    it('should work normally when type is provided', async () => {
+      const params = {
+        type: 'episodic',
+        content: 'Test content'
+      };
 
-      it('should use default type and log deprecation warning when type is missing', async () => {
-        const params = {
-          content: 'Test content'
-        };
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
 
-        const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
-
-        const result = await tool.handle(params, context);
-        const resultData = JSON.parse(result.content[0].text);
-
-        expect(resultData.memory_id).toBeDefined();
-        expect(logWarningSpy).toHaveBeenCalledWith(
-          expect.stringContaining('마이그레이션')
-        );
-      });
+      expect(resultData.memory_id).toBeDefined();
+      expect(resultData.type).toBe('episodic');
     });
 
-    describe('error 모드', () => {
-      beforeEach(() => {
-        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
-          ...configModule.mementoConfig,
-          typeParamMode: 'error'
-        } as any);
-      });
+    // #811 FR-007 / T011: backtick·regex-like content hypothesized to cause -32603
+    it('accepts content with backticks and regex-like chars (backtick hypothesis smoke)', async () => {
+      const params = {
+        type: 'episodic',
+        content: 'Use `mapToolExecutionErrorToJsonRpc` with /pattern.*/ and `${template}`'
+      };
 
-      it('should throw error when type is missing', async () => {
-        const params = {
-          content: 'Test content'
-        };
-
-        await expect(tool.handle(params, context)).rejects.toThrow(ToolInputValidationError);
-        try {
-          await tool.handle(params, context);
-          expect.fail('Should have thrown an error');
-        } catch (error: unknown) {
-          expect(error).toBeInstanceOf(ToolInputValidationError);
-          expect((error as Error).name).toBe('ToolInputValidationError');
-          expect((error as Error).message).toMatch(/type|파라미터|필수/i);
-        }
-      });
-
-      it('should work normally when type is provided', async () => {
-        const params = {
-          type: 'episodic',
-          content: 'Test content'
-        };
-
-        const result = await tool.handle(params, context);
-        const resultData = JSON.parse(result.content[0].text);
-
-        expect(resultData.memory_id).toBeDefined();
-        expect(resultData.type).toBe('episodic');
-      });
-
-      // #811 FR-007 / T011: backtick·regex-like content hypothesized to cause -32603
-      it('accepts content with backticks and regex-like chars (backtick hypothesis smoke)', async () => {
-        const params = {
-          type: 'episodic',
-          content: 'Use `mapToolExecutionErrorToJsonRpc` with /pattern.*/ and `${template}`'
-        };
-
-        const result = await tool.handle(params, context);
-        const resultData = JSON.parse(result.content[0].text);
-        expect(resultData.memory_id).toBeDefined();
-      });
-    });
-
-    describe('origin_source에 롤아웃 정보 포함', () => {
-      beforeEach(() => {
-        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
-          ...configModule.mementoConfig,
-          typeParamMode: 'warn'
-        } as any);
-      });
-
-      it('should include type_param_mode and type_was_defaulted in origin_source', async () => {
-        const params = {
-          content: 'Test content'
-        };
-
-        const result = await tool.handle(params, context);
-        const resultData = JSON.parse(result.content[0].text);
-
-        const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
-        const originSource = JSON.parse(record.origin_source);
-
-        expect(originSource.context.type_param_mode).toBe('warn');
-        expect(originSource.context.type_was_defaulted).toBe(true);
-      });
-
-      it('should set type_was_defaulted to false when type is provided', async () => {
-        const params = {
-          type: 'semantic',
-          content: 'Test content'
-        };
-
-        const result = await tool.handle(params, context);
-        const resultData = JSON.parse(result.content[0].text);
-
-        const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
-        const originSource = JSON.parse(record.origin_source);
-
-        expect(originSource.context.type_param_mode).toBe('warn');
-        expect(originSource.context.type_was_defaulted).toBe(false);
-      });
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.memory_id).toBeDefined();
     });
   });
 

@@ -89,4 +89,36 @@ describe('StdioTransport', () => {
     const innerInstance = MockStdio.mock.results[0]?.value;
     expect(innerInstance?.close).toHaveBeenCalledTimes(1);
   });
+
+  it('recall without filters sends default memory_types and no type key', async () => {
+    const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+    const MockClient = Client as any;
+    MockClient.mockClear();
+    const t = new StdioTransport({ command: 'npx', args: [] });
+    await t.connect();
+    const instance = MockClient.mock.results[0].value;
+    await t.recall('q', undefined, 5);
+    expect(instance.callTool).toHaveBeenCalledWith({
+      name: 'recall',
+      arguments: { query: 'q', memory_types: ['working', 'episodic', 'semantic'], limit: 5 },
+    });
+    const args = instance.callTool.mock.calls[0][0].arguments;
+    expect(args).not.toHaveProperty('type');
+  });
+
+  it('recall with type filter sends memory_types and no type key', async () => {
+    const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+    const MockClient = Client as any;
+    MockClient.mockClear();
+    const t = new StdioTransport({ command: 'npx', args: [] });
+    await t.connect();
+    const instance = MockClient.mock.results[0].value;
+    await t.recall('q', { type: ['semantic'] }, 5);
+    expect(instance.callTool).toHaveBeenCalledWith({
+      name: 'recall',
+      arguments: { query: 'q', memory_types: ['semantic'], limit: 5 },
+    });
+    const args = instance.callTool.mock.calls[0][0].arguments;
+    expect(args).not.toHaveProperty('type');
+  });
 });

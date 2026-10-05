@@ -6,11 +6,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   validateTypeParam,
-  parseTypeParamMode,
   validateTriggerConditions,
   validateWorkflowOrSkillName,
   validateProceduralMemoryFields,
-  type TypeParamMode
 } from '../type-param-validator.js';
 
 describe('Type Param Validator', () => {
@@ -23,7 +21,7 @@ describe('Type Param Validator', () => {
         // When: 각 타입 검증
         // Then: 모두 isValid=true 반환
         validTypes.forEach(type => {
-          const result = validateTypeParam(type, 'warn', 'test-tool');
+          const result = validateTypeParam(type, 'test-tool');
           expect(result.isValid).toBe(true);
           expect(result.defaultType).toBe(type.toLowerCase());
         });
@@ -36,7 +34,7 @@ describe('Type Param Validator', () => {
         // When: 각 타입 검증
         // Then: 소문자로 정규화되어 반환
         mixedCaseTypes.forEach(type => {
-          const result = validateTypeParam(type, 'warn', 'test-tool');
+          const result = validateTypeParam(type, 'test-tool');
           expect(result.isValid).toBe(true);
           expect(result.defaultType).toBe(type.toLowerCase());
         });
@@ -49,7 +47,7 @@ describe('Type Param Validator', () => {
         // When: 각 타입 검증
         // Then: 공백 제거 후 검증
         typesWithWhitespace.forEach(type => {
-          const result = validateTypeParam(type, 'warn', 'test-tool');
+          const result = validateTypeParam(type, 'test-tool');
           expect(result.isValid).toBe(true);
           expect(result.defaultType).toBe(type.trim().toLowerCase());
         });
@@ -64,7 +62,7 @@ describe('Type Param Validator', () => {
         // When: 각 타입 검증
         // Then: 모두 isValid=false 반환
         invalidTypes.forEach(type => {
-          const result = validateTypeParam(type, 'error', 'test-tool');
+          const result = validateTypeParam(type, 'test-tool');
           expect(result.isValid).toBe(false);
           expect(result.message).toContain('유효하지 않습니다');
           expect(result.message).toContain('working');
@@ -76,7 +74,7 @@ describe('Type Param Validator', () => {
         const invalidType = 'invalid_type';
 
         // When: 검증
-        const result = validateTypeParam(invalidType, 'error', 'test-tool');
+        const result = validateTypeParam(invalidType, 'test-tool');
 
         // Then: 에러 메시지에 지원되는 타입 목록 포함
         expect(result.isValid).toBe(false);
@@ -86,129 +84,29 @@ describe('Type Param Validator', () => {
         expect(result.message).toContain('procedural');
       });
 
-      it('should handle empty string as invalid when provided', () => {
-        // Given: 빈 문자열
-        const emptyString = '';
+      it('should reject empty string as missing type', () => {
+        const result = validateTypeParam('', 'test-tool');
 
-        // When: 검증 (빈 문자열은 undefined로 처리되어 기본값 사용)
-        const result = validateTypeParam(emptyString, 'warn', 'test-tool');
-
-        // Then: 빈 문자열은 undefined로 처리되어 기본값 반환
-        expect(result.isValid).toBe(true);
-        expect(result.defaultType).toBe('episodic');
+        expect(result.isValid).toBe(false);
+        expect(result.message).toContain('필수');
       });
     });
 
-    describe('타입 파라미터 없을 시 모드별 동작', () => {
-      it('should return default episodic for warn mode', () => {
-        // Given: type 파라미터 없음, warn 모드
-        // When: 검증
-        const result = validateTypeParam(undefined, 'warn', 'test-tool');
+    describe('타입 파라미터 없을 시', () => {
+      it('should return isValid=false when type is missing', () => {
+        const result = validateTypeParam(undefined, 'test-tool');
 
-        // Then: 기본값 episodic 반환, 경고 메시지 포함
-        expect(result.isValid).toBe(true);
-        expect(result.mode).toBe('warn');
-        expect(result.defaultType).toBe('episodic');
-        expect(result.message).toContain('기본값');
-        expect(result.message).toContain('episodic');
-      });
-
-      it('should return default episodic for deprecate mode', () => {
-        // Given: type 파라미터 없음, deprecate 모드
-        // When: 검증
-        const result = validateTypeParam(undefined, 'deprecate', 'test-tool');
-
-        // Then: 기본값 episodic 반환, Deprecation 경고 메시지 포함
-        expect(result.isValid).toBe(true);
-        expect(result.mode).toBe('deprecate');
-        expect(result.defaultType).toBe('episodic');
-        expect(result.message).toContain('필수');
-        expect(result.message).toContain('마이그레이션');
-      });
-
-      it('should return isValid=false for error mode', () => {
-        // Given: type 파라미터 없음, error 모드
-        // When: 검증
-        const result = validateTypeParam(undefined, 'error', 'test-tool');
-
-        // Then: isValid=false, 에러 메시지 포함
         expect(result.isValid).toBe(false);
-        expect(result.mode).toBe('error');
         expect(result.message).toContain('필수');
         expect(result.message).toContain('working');
       });
 
-      it('should include tool name in messages', () => {
-        // Given: tool name이 지정된 경우
+      it('should include tool name in error message', () => {
         const toolName = 'remember-tool';
+        const result = validateTypeParam(undefined, toolName);
 
-        // When: 검증
-        const result = validateTypeParam(undefined, 'warn', toolName);
-
-        // Then: 메시지에 tool name 포함
         expect(result.message).toContain(toolName);
       });
-
-      it('should reject missing type for unknown mode', () => {
-        // Given: 알 수 없는 모드 (타입 체크 우회를 위해 any 사용)
-        const unknownMode = 'unknown' as any;
-
-        // When: 검증
-        const result = validateTypeParam(undefined, unknownMode, 'test-tool');
-
-        // Then: error 모드로 처리
-        expect(result.isValid).toBe(false);
-        expect(result.mode).toBe('error');
-        expect(result.message).toContain('필수');
-      });
-    });
-  });
-
-  describe('parseTypeParamMode', () => {
-    it('should parse valid mode values', () => {
-      // Given: 유효한 모드 값들
-      const validModes: TypeParamMode[] = ['warn', 'deprecate', 'error'];
-
-      // When: 각 모드 파싱
-      // Then: 올바른 모드 반환
-      validModes.forEach(mode => {
-        expect(parseTypeParamMode(mode)).toBe(mode);
-        expect(parseTypeParamMode(mode.toUpperCase())).toBe(mode);
-        expect(parseTypeParamMode(`  ${mode}  `)).toBe(mode);
-      });
-    });
-
-    it('should return error for undefined', () => {
-      // Given: undefined
-      // When: 파싱
-      const result = parseTypeParamMode(undefined);
-
-      // Then: 기본값 error 반환
-      expect(result).toBe('error');
-    });
-
-    it('should return error for invalid values', () => {
-      // Given: 유효하지 않은 값들
-      const invalidValues = ['invalid', 'test', 'unknown', ''];
-
-      // When: 각 값 파싱
-      // Then: 모두 기본값 error 반환
-      invalidValues.forEach(value => {
-        const result = parseTypeParamMode(value);
-        expect(result).toBe('error');
-      });
-    });
-
-    it('should normalize case and whitespace', () => {
-      // Given: 대소문자 혼합 및 공백 포함
-      const mixedCases = ['WARN', 'Deprecate', '  ERROR  ', '\tWARN\n'];
-
-      // When: 각 값 파싱
-      // Then: 올바르게 정규화되어 반환
-      expect(parseTypeParamMode(mixedCases[0])).toBe('warn');
-      expect(parseTypeParamMode(mixedCases[1])).toBe('deprecate');
-      expect(parseTypeParamMode(mixedCases[2])).toBe('error');
-      expect(parseTypeParamMode(mixedCases[3])).toBe('warn');
     });
   });
 

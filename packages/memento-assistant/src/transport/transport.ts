@@ -1,5 +1,8 @@
 // packages/memento-assistant/src/transport/transport.ts
 
+/** Types the assistant writes (auto-remember-policy); recall searches them when the caller gives no type filter (#1242). */
+export const DEFAULT_RECALL_MEMORY_TYPES = ['working', 'episodic', 'semantic'] as const;
+
 export interface RecallParams {
   query: string;
   filters?: { tags?: string[]; ownerId?: string; type?: string[] };

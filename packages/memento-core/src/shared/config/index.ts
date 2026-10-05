@@ -15,7 +15,6 @@ import {
   parseRememberDedupThreshold,
 } from '../utils/remember-dedup-config.js';
 import { parseMcpEraMode } from '../utils/mcp-era-mode.js';
-import { parseTypeParamMode } from '../utils/type-param-validator.js';
 import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
 import { resolveApiTokens } from './api-tokens.js';
 import {
@@ -171,9 +170,6 @@ export const mementoConfig: MementoConfig = {
 
   // 개발 설정
   nodeEnv: resolveString('NODE_ENV'),
-
-  // type 파라미터 롤아웃 모드 설정 (안전한 파싱)
-  typeParamMode: parseTypeParamMode(getRawEnvValue('MEMENTO_TYPE_PARAM_MODE')),
 
   // Consolidation Score System 설정 (기본값: false - 비활성화)
   consolidationScoreEnabled: resolveBoolean('CONSOLIDATION_SCORE_ENABLED', { defaultValue: false }),

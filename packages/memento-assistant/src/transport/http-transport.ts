@@ -2,6 +2,7 @@
 import { MementoClient } from '@jee1/memento-client';
 import type { CreateMemoryParams, RememberResult as ClientRememberResult, SearchFilters } from '@jee1/memento-client';
 import type { Transport, RecallParams, RecallResult, RememberParams, RememberResult } from './transport.js';
+import { DEFAULT_RECALL_MEMORY_TYPES } from './transport.js';
 
 export interface HttpTransportOptions {
   baseUrl: string;
@@ -38,7 +39,8 @@ export class HttpTransport implements Transport {
 
   async recall(query: string, filters?: RecallParams['filters'], limit?: number): Promise<RecallResult> {
     if (!this.connected) await this.connect();
-    const r = await this.client.recall(query, toClientSearchFilters(filters), limit);
+    const memory_types = resolveRecallMemoryTypes(filters);
+    const r = await this.client.recall(query, toClientSearchFilters(filters), limit, { memory_types });
     return { items: r.items };
   }
 
@@ -74,6 +76,15 @@ function toClientSearchFilters(filters: RecallParams['filters']): SearchFilters 
   return out;
 }
 
-function isClientMemoryType(type: string): type is NonNullable<SearchFilters['type']>[number] {
+function isClientMemoryType(type: string): type is 'working' | 'episodic' | 'semantic' | 'procedural' {
   return type === 'working' || type === 'episodic' || type === 'semantic' || type === 'procedural';
+}
+
+function resolveRecallMemoryTypes(
+  filters: RecallParams['filters'],
+): Array<'working' | 'episodic' | 'semantic' | 'procedural'> {
+  if (filters?.type?.length) {
+    return filters.type.filter(isClientMemoryType);
+  }
+  return [...DEFAULT_RECALL_MEMORY_TYPES];
 }

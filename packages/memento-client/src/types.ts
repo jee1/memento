@@ -113,6 +113,8 @@ export interface SearchFilters {
 export interface RecallCallOptions {
   include_metadata?: boolean;
   include_score_breakdown?: boolean;
+  /** Server recall memory_types filter; type or memory_types is required by the server (#1242). */
+  memory_types?: Array<'working' | 'episodic' | 'semantic' | 'procedural'>;
   /** 하이브리드 검색 가중치 (0–1). 서버 `recall` 도구 `vector_weight`와 동일 */
   vector_weight?: number;
   /** 하이브리드 검색 가중치 (0–1). 서버 `recall` 도구 `text_weight`와 동일 */

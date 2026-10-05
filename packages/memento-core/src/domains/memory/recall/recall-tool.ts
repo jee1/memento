@@ -116,25 +116,16 @@ export class RecallTool extends BaseTool {
 
       const actualTriggerContext = triggerContext || trigger_context;
 
-      const typeParamMode = mementoConfig.typeParamMode;
       const originalTypeProvided = !!type;
-      let validatedType = type;
+      const validatedType = type;
       const hasMemoryTypesFilter = Array.isArray(memory_types) && memory_types.length > 0;
 
       // #1188: memory_types 만 준 호출은 memory_types 로 검색한다. 기본 타입은 둘 다 없을 때만.
       if (!type && !hasMemoryTypesFilter) {
-        const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
+        const typeValidation = validateTypeParam(undefined, 'recall');
 
         if (!typeValidation.isValid) {
           throw new ToolInputValidationError(typeValidation.message || "type 파라미터는 필수입니다.");
-        }
-
-        if (typeValidation.message && (typeParamMode === 'warn' || typeParamMode === 'deprecate')) {
-          this.logWarning(typeValidation.message);
-        }
-
-        if (typeValidation.defaultType) {
-          validatedType = typeValidation.defaultType as MemoryTypeRequest;
         }
       }
 

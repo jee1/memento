@@ -32,6 +32,7 @@ describeRecallTool("metadata and telemetry", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -90,6 +91,7 @@ describeRecallTool("metadata and telemetry", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -146,6 +148,7 @@ describeRecallTool("metadata and telemetry", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -198,6 +201,7 @@ describeRecallTool("metadata and telemetry", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: false // 비활성화
         };
@@ -231,6 +235,7 @@ describeRecallTool("metadata and telemetry", () => {
 
         const params = {
           query: 'test',
+          type: 'episodic',
           limit: 10,
           auto_set_anchor: true,
           agent_id: agentId
@@ -324,6 +329,7 @@ describeRecallTool("metadata and telemetry", () => {
       // When: recall 호출
       const params = {
         query: 'test',
+        type: 'episodic',
         limit: 10
       };
 
@@ -400,6 +406,7 @@ describeRecallTool("metadata and telemetry", () => {
       // When: recall 호출
       const params = {
         query: 'nonexistent',
+        type: 'episodic',
         limit: 10
       };
 
@@ -493,6 +500,7 @@ describeRecallTool("metadata and telemetry", () => {
       // When: include_metadata=true로 recall 호출
       const params = {
         query: 'test',
+        type: 'episodic',
         limit: 10,
         include_metadata: true
       };
@@ -643,6 +651,7 @@ describeRecallTool("metadata and telemetry", () => {
       // When: recall 호출
       const params = {
         query: 'test',
+        type: 'episodic',
         limit: 10
       };
 
@@ -728,6 +737,7 @@ describeRecallTool("metadata and telemetry", () => {
       // When: recall 호출
       const params = {
         query: 'test',
+        type: 'episodic',
         limit: 10
       };
 
