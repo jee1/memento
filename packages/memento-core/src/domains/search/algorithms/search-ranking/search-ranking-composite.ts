@@ -75,7 +75,9 @@ export function calculateFinalScore(features: SearchFeatures, weights: SearchRan
                     weights.duplication_penalty * features.duplication_penalty +
                     feedbackTerm;
 
+  // Procedural Memory 특화 가중치 부스트 적용
   const proceduralBoost = calculateProceduralMemoryBoost(features);
+  // Process Attribute 적합도 가중치 (Issue #91): process_id로 검색할 때만 반영, 미제공 시 보정 없음
   const processFitWeight = weights.process_attribute_fit ?? 0;
   const processFit =
     features.process_attribute_fit !== undefined
