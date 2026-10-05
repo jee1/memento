@@ -99,7 +99,6 @@ export class HybridSearchEngine {
       usage: config.ranking_weights.delta,
       duplication_penalty: config.ranking_weights.epsilon,
       zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
-      consolidation_score: config.ranking_weights.consolidation ?? 0,
     }, rankingWeightsPath);
     this.relationGraph = relationGraph || null;
     this.vectorExecutor = new HybridVectorSearchExecutor(

@@ -2,7 +2,6 @@
  * Recall 검색 결과 → 응답 항목 매핑 (recall-tool.ts에서 분리, #350).
  */
 
-import { mementoConfig } from '../../../shared/config/index.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import type { RecallResultItem, RecallSearchItem } from './recall-tool-types.js';
 
@@ -109,11 +108,6 @@ export function mapRecallSearchItemsToResultItems(
       }
       if (item.recall_reason) {
         processed.recall_reason = item.recall_reason;
-      }
-
-      // Consolidation Score 포함 (기능 플래그 활성화 시)
-      if (mementoConfig.consolidationScoreEnabled && item.consolidation_score !== undefined) {
-        processed.consolidation_score = item.consolidation_score;
       }
 
       if (item.score_breakdown !== undefined) {

@@ -2,7 +2,6 @@
  * 검색 결과 랭킹·점수 breakdown
  */
 
-import { mementoConfig } from '../../../../shared/config/index.js';
 import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import type { MemorySearchResult } from '../../../../shared/types/search.types.js';
 import type { ScoreBreakdown } from '../../../../shared/types/search.types.js';
@@ -124,13 +123,6 @@ export function applyRanking(
       const net = opts?.feedbackNetByMemory?.get(row.id);
       const feedback_score = sigmoidNormalizedNet(net ?? 0);
 
-      const consolidationScore = row.consolidation_score !== null && row.consolidation_score !== undefined
-        ? Number(row.consolidation_score)
-        : undefined;
-
-      const useConsolidationPath =
-        mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined;
-
       const baseFeatures: SearchFeatures = {
         relevance,
         recency,
@@ -138,9 +130,6 @@ export function applyRanking(
         usage,
         duplication_penalty: duplicationPenalty,
         feedback_score,
-        ...(useConsolidationPath && consolidationScore !== undefined
-          ? { consolidation_score: consolidationScore }
-          : {})
       };
 
       const baseScore = ranking.calculateFinalScore(baseFeatures);
@@ -191,10 +180,6 @@ export function applyRanking(
           row.last_mentioned_at instanceof Date
             ? row.last_mentioned_at
             : new Date(row.last_mentioned_at);
-      }
-
-      if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
-        result.consolidation_score = consolidationScore;
       }
 
       if (opts?.includeBreakdown) {

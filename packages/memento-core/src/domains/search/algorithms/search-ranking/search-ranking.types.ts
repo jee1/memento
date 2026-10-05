@@ -8,7 +8,6 @@ export interface SearchFeatures {
   importance: number;
   usage: number;
   duplication_penalty: number;
-  consolidation_score?: number; // Consolidation Score (선택적)
   // Procedural Memory Enhancement (v7.0) 필드
   workflow_name_match?: boolean; // workflow_name 매칭 여부
   skill_name_match?: boolean; // skill_name 매칭 여부
@@ -51,20 +50,6 @@ export interface SearchRankingWeights {
   importance: number;   // γ = 0.20
   usage: number;        // δ = 0.10
   duplication_penalty: number; // ε = 0.10
-  consolidation_score?: number; // w2 = 0.2 (기본값, 최대 0.4)
   process_attribute_fit?: number; // θ = 0.1 (Issue #91, process 적합도 가중치)
   zeta_fb?: number; // 피드백 신호 가중치
-}
-
-/**
- * 사용자의 검색 목적에 따라 다른 가중치를 적용하여 맞춤형 검색 결과를 제공합니다.
- */
-export type SearchProfile = 'recent' | 'balanced' | 'memory';
-
-/**
- * 벡터 유사도와 통합 점수의 균형을 조절하여 검색 정확도를 최적화합니다.
- */
-export interface ConsolidationScoreWeights {
-  vectorSimilarity: number; // w1
-  consolidationScore: number; // w2 (최대 0.4)
 }

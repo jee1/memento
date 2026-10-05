@@ -253,7 +253,6 @@ export interface RecallSearchItem {
   textScore?: number;
   vectorScore?: number;
   recall_reason?: string;
-  consolidation_score?: number;
   [key: string]: unknown;
 }
 

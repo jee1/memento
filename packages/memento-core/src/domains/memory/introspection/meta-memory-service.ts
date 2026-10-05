@@ -208,17 +208,10 @@ export class MetaMemoryService {
     const rawFinal = item.final_score ?? (item as Record<string, unknown>).finalScore;
     const finalScore = typeof rawFinal === 'number' ? rawFinal : Number(rawFinal ?? 0);
 
-    const rawConsolidation = (item as Record<string, unknown>).consolidation_score;
-    const consolidationScore = typeof rawConsolidation === 'number' ? rawConsolidation : Number(rawConsolidation ?? 0);
-
     const rawVector = (item as Record<string, unknown>).vectorScore;
     const vectorScore = typeof rawVector === 'number' ? rawVector : Number(rawVector ?? 0);
 
-    return (
-      0.6 * finalScore +
-      0.3 * consolidationScore +
-      0.1 * vectorScore
-    );
+    return 0.6 * finalScore + 0.1 * vectorScore;
   }
 
   /**

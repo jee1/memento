@@ -18,7 +18,6 @@ export const SEARCH_RANKING = {
     importance: 0.20,
     usage: 0.10,
     duplication_penalty: 0.10,
-    consolidation_score: 0,
     process_attribute_fit: 0.1, // θ (Issue #91)
     zeta_fb: 0.05
   },
@@ -33,21 +32,8 @@ export const SEARCH_RANKING = {
     max_boost: 0.35
   },
 
-  /**
-   * Consolidation Score 최대값
-   */
-  CONSOLIDATION_SCORE_MAX: 0.4,
   /** Upper bound for `[relevance_signal].scale` (#1180). Expansion beyond this only clamps harder. */
   RELEVANCE_SIGNAL_SCALE_MAX: 5,
-
-  /**
-   * Consolidation Score 가중치 (프로파일별)
-   */
-  CONSOLIDATION_WEIGHTS: {
-    recent: { vectorSimilarity: 0.9, consolidationScore: 0.1 },
-    balanced: { vectorSimilarity: 0.8, consolidationScore: 0.2 },
-    memory: { vectorSimilarity: 0.7, consolidationScore: 0.3 }
-  },
 
   /**
    * 관련성 점수 계산 가중치
@@ -189,7 +175,6 @@ export const HYBRID_SEARCH = {
  * 검색 관련 상수 타입 정의
  */
 export type SearchRankingWeights = typeof SEARCH_RANKING.DEFAULT_WEIGHTS;
-export type ConsolidationScoreWeights = typeof SEARCH_RANKING.CONSOLIDATION_WEIGHTS.balanced;
 export type VectorSearchConstants = typeof VECTOR_SEARCH;
 export type HybridSearchConstants = typeof HYBRID_SEARCH;
 

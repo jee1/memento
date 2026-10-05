@@ -84,7 +84,6 @@ export interface MemorySearchResult {
   version_chain?: VersionChainItem[];
   diff_with_previous?: ProceduralDiffResult | null;
   diff_with?: ProceduralDiffResult | null;
-  consolidation_score?: number;
   owner_id?: string | null;
   process_id?: string | null;
   session_id?: string | null;

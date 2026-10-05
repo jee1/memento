@@ -7,11 +7,9 @@
 
 export type {
   BM25Result,
-  ConsolidationScoreWeights,
   EmbeddingSimilarity,
   RelevanceInput,
   SearchFeatures,
-  SearchProfile,
   SearchRankingWeights,
   UsageMetrics,
 } from './search-ranking/search-ranking.types.js';
@@ -19,16 +17,13 @@ export type {
 import type {
   RelevanceInput,
   SearchFeatures,
-  SearchProfile,
   SearchRankingWeights,
   UsageMetrics,
 } from './search-ranking/search-ranking.types.js';
 import {
   calculateFinalScore as computeFinalScore,
   calculateFinalScoreAndBreakdown as computeFinalScoreAndBreakdown,
-  calculateFinalScoreWithConsolidation as computeFinalScoreWithConsolidation,
   calculateProceduralMemoryBoost as computeProceduralMemoryBoost,
-  getConsolidationScoreWeights as resolveConsolidationScoreWeights,
   resolveSearchRankingWeights,
 } from './search-ranking/search-ranking-composite.js';
 import {
@@ -71,18 +66,6 @@ export class SearchRanking {
     options?: { includeBreakdown?: boolean }
   ): { score: number; breakdown?: ScoreBreakdown } {
     return computeFinalScoreAndBreakdown(features, this.weights, options);
-  }
-
-  getConsolidationScoreWeights(profile: SearchProfile = 'balanced') {
-    return resolveConsolidationScoreWeights(profile);
-  }
-
-  calculateFinalScoreWithConsolidation(
-    vectorSimilarity: number,
-    consolidationScore: number,
-    profile: SearchProfile = 'balanced'
-  ): number {
-    return computeFinalScoreWithConsolidation(vectorSimilarity, consolidationScore, profile);
   }
 
   calculateRelevance(input: RelevanceInput): number {

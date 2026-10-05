@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../../../shared/config/index.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -155,7 +154,6 @@ export class HybridResultRanker {
       }
 
       const proceduralMatch = ctx.proceduralMatches.get(result.id);
-      const consolidationScore = ctx.consolidationScores.get(result.id);
       const memoryDetails = ctx.memoryDetailsMap.get(result.id);
       const processAttributeFit =
         ctx.processAttributes != null && memoryDetails != null
@@ -182,16 +180,7 @@ export class HybridResultRanker {
         processAttributeFit
       );
 
-      if (consolidationScore !== undefined) {
-        result.consolidation_score = consolidationScore;
-        this.applyScore(result, {
-          ...baseFeatures,
-          relevance: fusionRelevance,
-          consolidation_score: consolidationScore,
-        }, includeScoreBreakdown);
-      } else {
-        this.applyScore(result, baseFeatures, includeScoreBreakdown);
-      }
+      this.applyScore(result, baseFeatures, includeScoreBreakdown);
     });
   }
 
@@ -262,9 +251,6 @@ export class HybridResultRanker {
     const relationInfo = query.includeRelations
       ? await this.fetchRelationInfo(memoryIds)
       : new Map<string, RelationInfoRow[]>();
-    const consolidationScores = mementoConfig.consolidationScoreEnabled
-      ? this.fetchConsolidationScores(db, memoryIds)
-      : new Map<string, number>();
     const proceduralMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(
       db,
       memoryIds,
@@ -278,44 +264,11 @@ export class HybridResultRanker {
 
     return {
       relationInfo,
-      consolidationScores,
       proceduralMatches,
       processAttributes,
       memoryDetailsMap,
       feedbackScores: this.fetchFeedbackScores(db, memoryIds),
     };
-  }
-
-  private fetchConsolidationScores(db: Database.Database, memoryIds: string[]): Map<string, number> {
-    const scores = new Map<string, number>();
-
-    if (memoryIds.length === 0) {
-      return scores;
-    }
-
-    try {
-      const placeholders = memoryIds.map(() => '?').join(',');
-      const sql = `SELECT id, consolidation_score FROM memory_item WHERE id IN (${placeholders})`;
-      const results = db.prepare(sql).all(...memoryIds) as Array<{
-        id: string;
-        consolidation_score: number | null;
-      }>;
-
-      results.forEach(row => {
-        if (row.consolidation_score !== null && row.consolidation_score !== undefined) {
-          scores.set(row.id, Number(row.consolidation_score));
-        }
-      });
-    } catch (error) {
-      const maskedError = error instanceof Error
-        ? PIIMasker.maskError(error)
-        : { message: String(error), name: 'Error' };
-      logger.warn('Consolidation Score 조회 실패', {
-        error: maskedError.message,
-      });
-    }
-
-    return scores;
   }
 
   private fetchFeedbackScores(
