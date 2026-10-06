@@ -2234,8 +2234,72 @@ describe('admin.routes memory review candidates', () => {
     try {
       const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'not_registered' });
       expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body)).toMatchObject({ error: 'Invalid or unregistered jobType' });
     } finally {
       await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST /admin/batch/run accepts wal_checkpoint and appends manual job_run (#1266)', async () => {
+    resetBatchScheduler();
+    resetBatchRunHistoryForTests();
+    const scheduler = getBatchScheduler();
+    const checkpointNow = vi.fn().mockResolvedValue({ success: true });
+    scheduler.setDatabaseMaintenance({ checkpointNow }, null);
+    await scheduler.start(db, undefined, false);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'wal_checkpoint' });
+        expect(res.statusCode).toBe(200);
+        const body = JSON.parse(res.body) as { result?: { jobType?: string; success?: boolean } };
+        expect(body.result).toMatchObject({ jobType: 'wal_checkpoint', success: true });
+        expect(checkpointNow).toHaveBeenCalledTimes(1);
+
+        const runsRes = await getAdmin(port, '/admin/batch/runs?job=wal_checkpoint');
+        expect(runsRes.statusCode).toBe(200);
+        const runsBody = JSON.parse(runsRes.body) as {
+          runs: Array<{ jobName: string; trigger: string; success: boolean }>;
+        };
+        expect(runsBody.runs).toHaveLength(1);
+        expect(runsBody.runs[0]).toMatchObject({
+          jobName: 'wal_checkpoint',
+          trigger: 'manual',
+          success: true,
+        });
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+      resetBatchRunHistoryForTests();
+    }
+  });
+
+  it('POST /admin/batch/pause and resume accept lock_monitor (#1266)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    scheduler.setDatabaseMaintenance(null, { probe: vi.fn().mockResolvedValue(undefined) });
+    await scheduler.start(db, undefined, false);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const pauseRes = await postAdminJson(port, '/admin/batch/pause', { jobType: 'lock_monitor' });
+        expect(pauseRes.statusCode).toBe(200);
+        expect(JSON.parse(pauseRes.body)).toMatchObject({ paused: true, jobType: 'lock_monitor' });
+        expect(scheduler.isJobPaused('lock_monitor')).toBe(true);
+
+        const resumeRes = await postAdminJson(port, '/admin/batch/resume', { jobType: 'lock_monitor' });
+        expect(resumeRes.statusCode).toBe(200);
+        expect(JSON.parse(resumeRes.body)).toMatchObject({ paused: false, jobType: 'lock_monitor' });
+        expect(scheduler.isJobPaused('lock_monitor')).toBe(false);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
     }
   });
 
