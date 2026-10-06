@@ -4,12 +4,14 @@ import { HttpTransport } from './http-transport.js';
 
 vi.mock('@jee1/memento-client', () => {
   return {
-    MementoClient: vi.fn().mockImplementation(() => ({
-      connect: vi.fn().mockResolvedValue(undefined),
-      disconnect: vi.fn().mockResolvedValue(undefined),
-      recall: vi.fn().mockResolvedValue({ items: [{ id: 'h:1', content: 'a', type: 'semantic' }] }),
-      remember: vi.fn().mockResolvedValue({ memory_id: 'h:2', created_at: '2026-05-01T00:00:00Z' }),
-    })),
+    MementoClient: vi.fn().mockImplementation(function () {
+      return {
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn().mockResolvedValue(undefined),
+        recall: vi.fn().mockResolvedValue({ items: [{ id: 'h:1', content: 'a', type: 'semantic' }] }),
+        remember: vi.fn().mockResolvedValue({ memory_id: 'h:2', created_at: '2026-05-01T00:00:00Z' }),
+      };
+    }),
   };
 });
 

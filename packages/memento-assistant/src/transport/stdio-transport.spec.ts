@@ -6,25 +6,29 @@ import { StdioTransport } from './stdio-transport.js';
 // (verified in packages/memento-core/src/tools/base-tool.ts). parseToolJson supports
 // both 'json' and 'text' shapes — the mock uses both to prevent drift.
 vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
-  Client: vi.fn().mockImplementation(() => ({
-    connect: vi.fn().mockResolvedValue(undefined),
-    callTool: vi.fn().mockImplementation(async ({ name, arguments: args }: any) => {
-      if (name === 'recall') {
-        // Real server shape: type:'text' + JSON.stringify
-        return { content: [{ type: 'text', text: JSON.stringify({ items: [{ id: 'm:1', content: 'hi', type: 'semantic' }] }) }] };
-      }
-      if (name === 'remember') {
-        // Alternative allowed shape: type:'json' + json directly
-        return { content: [{ type: 'json', json: { id: 'm:2' } }] };
-      }
-      throw new Error(`unknown tool ${name}`);
-    }),
-    close: vi.fn().mockResolvedValue(undefined),
-  })),
+  Client: vi.fn().mockImplementation(function () {
+    return {
+      connect: vi.fn().mockResolvedValue(undefined),
+      callTool: vi.fn().mockImplementation(async ({ name, arguments: args }: any) => {
+        if (name === 'recall') {
+          // Real server shape: type:'text' + JSON.stringify
+          return { content: [{ type: 'text', text: JSON.stringify({ items: [{ id: 'm:1', content: 'hi', type: 'semantic' }] }) }] };
+        }
+        if (name === 'remember') {
+          // Alternative allowed shape: type:'json' + json directly
+          return { content: [{ type: 'json', json: { id: 'm:2' } }] };
+        }
+        throw new Error(`unknown tool ${name}`);
+      }),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+  }),
 }));
 
 vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
-  StdioClientTransport: vi.fn().mockImplementation(() => ({ close: vi.fn().mockResolvedValue(undefined) })),
+  StdioClientTransport: vi.fn().mockImplementation(function () {
+    return { close: vi.fn().mockResolvedValue(undefined) };
+  }),
 }));
 
 describe('StdioTransport', () => {
@@ -76,11 +80,13 @@ describe('StdioTransport', () => {
     MockClient.mockClear();
     MockStdio.mockClear();
     // First connect: fail
-    MockClient.mockImplementationOnce(() => ({
-      connect: vi.fn().mockRejectedValue(new Error('spawn failed')),
-      close: vi.fn(),
-      callTool: vi.fn(),
-    }));
+    MockClient.mockImplementationOnce(function () {
+      return {
+        connect: vi.fn().mockRejectedValue(new Error('spawn failed')),
+        close: vi.fn(),
+        callTool: vi.fn(),
+      };
+    });
     const t = new StdioTransport({ command: 'npx', args: [] });
     await expect(t.connect()).rejects.toThrow('spawn failed');
     // connected stays false — recall() will retry connect()

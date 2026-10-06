@@ -30,16 +30,18 @@ vi.mock('onnxruntime-node', () => ({
 // UnifiedEmbeddingService 모킹 (VectorSearchService 기본 tfidf 512차원과 맞춤)
 vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   return {
-    UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
-      generateEmbedding: vi.fn(async () => ({
-        embedding: new Array(512).fill(0.1),
-        model: 'tfidf',
-        provider: 'tfidf',
-        usage: { prompt_tokens: 10, total_tokens: 10 }
-      })),
-      searchSimilar: vi.fn(async () => []),
-      isAvailable: vi.fn(() => true)
-    }))
+    UnifiedEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        generateEmbedding: vi.fn(async () => ({
+          embedding: new Array(512).fill(0.1),
+          model: 'tfidf',
+          provider: 'tfidf',
+          usage: { prompt_tokens: 10, total_tokens: 10 }
+        })),
+        searchSimilar: vi.fn(async () => []),
+        isAvailable: vi.fn(() => true)
+      };
+    })
   };
 });
 

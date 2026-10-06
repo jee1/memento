@@ -27,7 +27,7 @@ vi.mock('../../../../../shared/config/index.js', () => ({
 }));
 
 vi.mock('openai', () => {
-  const MockOpenAI = vi.fn().mockImplementation(() => ({}));
+  const MockOpenAI = vi.fn().mockImplementation(function () { return {}; });
   return {
     default: MockOpenAI,
     __MockOpenAI: MockOpenAI
@@ -35,7 +35,7 @@ vi.mock('openai', () => {
 });
 
 vi.mock('@google/genai', () => ({
-  GoogleGenAI: vi.fn().mockImplementation(() => ({ models: {} }))
+  GoogleGenAI: vi.fn().mockImplementation(function () { return { models: {} }; })
 }));
 
 vi.mock('../../../../../shared/utils/logger.js', () => ({

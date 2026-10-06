@@ -26,12 +26,7 @@ export default defineConfig({
     ...baseTestConfig,
     globals: true,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        minForks: 1,
-        maxForks: 2,
-      },
-    },
+    maxWorkers: 2,
     include: [
       '{tests,scripts,apps}/**/*.{test,spec}.{js,ts}',
       'packages/{memento-core,memento-client,memento-server}/src/**/*.{test,spec}.{js,ts}',
@@ -41,7 +36,7 @@ export default defineConfig({
     setupFiles: ['./packages/memento-core/src/test/vitest.setup.ts'],
     ...(process.env.CI && {
       reporters: [
-        'basic',
+        ['default', { summary: false }],
         'junit',
         'json'
       ],

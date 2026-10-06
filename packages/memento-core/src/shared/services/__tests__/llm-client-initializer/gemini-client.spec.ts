@@ -85,7 +85,7 @@ describe('LLMClientInitializer', () => {
       // GoogleGenAI 모킹 - 에러 발생하도록 설정
       const geminiModule = await import('@google/genai');
       const MockGoogleGenAI = geminiModule.GoogleGenAI;
-      vi.mocked(MockGoogleGenAI).mockImplementation(() => {
+      vi.mocked(MockGoogleGenAI).mockImplementation(function () {
         throw new Error('Gemini initialization failed');
       });
       

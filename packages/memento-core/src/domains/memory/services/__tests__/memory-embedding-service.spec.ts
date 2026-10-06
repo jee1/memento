@@ -44,20 +44,22 @@ function trackTableWideMetadataRepairUpdates(): {
 // UnifiedEmbeddingService 모킹
 vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   return {
-    UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
-      isAvailable: vi.fn(() => true),
-      generateEmbedding: vi.fn(async (content: string): Promise<EmbeddingResult | null> => {
-        // 모킹된 임베딩 생성
-        const mockEmbedding = new Array(384).fill(0).map(() => Math.random());
-        return {
-          embedding: mockEmbedding,
-          provider: 'tfidf',
-          dimensions: 384,
-          model: 'tfidf'
-        };
-      }),
-      getCurrentProviderName: vi.fn(() => 'tfidf')
-    }))
+    UnifiedEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        isAvailable: vi.fn(() => true),
+        generateEmbedding: vi.fn(async (content: string): Promise<EmbeddingResult | null> => {
+          // 모킹된 임베딩 생성
+          const mockEmbedding = new Array(384).fill(0).map(() => Math.random());
+          return {
+            embedding: mockEmbedding,
+            provider: 'tfidf',
+            dimensions: 384,
+            model: 'tfidf'
+          };
+        }),
+        getCurrentProviderName: vi.fn(() => 'tfidf')
+      };
+    })
   };
 });
 

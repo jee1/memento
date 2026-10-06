@@ -145,10 +145,12 @@ describeRecallTool("neighbor memories", () => {
           };
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -277,10 +279,12 @@ describeRecallTool("neighbor memories", () => {
           }
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -426,10 +430,12 @@ describeRecallTool("neighbor memories", () => {
           }
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -560,10 +566,12 @@ describeRecallTool("neighbor memories", () => {
           }
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -711,10 +719,12 @@ describeRecallTool("neighbor memories", () => {
           };
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -800,10 +810,12 @@ describeRecallTool("neighbor memories", () => {
           };
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -914,10 +926,12 @@ describeRecallTool("neighbor memories", () => {
           };
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',
@@ -1008,10 +1022,12 @@ describeRecallTool("neighbor memories", () => {
           };
         });
 
-        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
-          setDatabase: vi.fn(),
-          getNeighbors: mockGetNeighbors
-        } as any));
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(function () {
+          return {
+            setDatabase: vi.fn(),
+            getNeighbors: mockGetNeighbors
+          } as any;
+        });
 
         const params = {
           query: 'test',

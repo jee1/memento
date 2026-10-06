@@ -45,7 +45,7 @@ describe('LLM Provider 통합 테스트', () => {
       // OpenAI 모킹 - 초기화 실패
       const openaiModule = await import('openai');
       const MockOpenAI = (openaiModule as any).__MockOpenAI;
-      MockOpenAI.mockImplementation(() => {
+      MockOpenAI.mockImplementation(function () {
         throw new Error('OpenAI initialization failed');
       });
       
@@ -104,7 +104,7 @@ describe('LLM Provider 통합 테스트', () => {
       // Gemini 모킹 - 초기화 실패
       const geminiModule = await import('@google/genai');
       const MockGoogleGenAI = geminiModule.GoogleGenAI;
-      vi.mocked(MockGoogleGenAI).mockImplementation(() => {
+      vi.mocked(MockGoogleGenAI).mockImplementation(function () {
         throw new Error('Gemini initialization failed');
       });
       

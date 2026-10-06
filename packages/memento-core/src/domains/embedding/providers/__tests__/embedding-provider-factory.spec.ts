@@ -42,68 +42,78 @@ vi.mock('../../../../shared/config/index.js', () => ({
 vi.mock('../../services/minilm-embedding-service.js', () => {
   const mockModel = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
   return {
-    MiniLMEmbeddingService: vi.fn().mockImplementation(() => ({
-      isAvailable: vi.fn(() => true),
-      generateEmbedding: vi.fn(async () => ({
-        embedding: new Array(384).fill(0.1),
-        model: 'minilm',
-        provider: 'minilm',
-        dimensions: 384,
-        usage: { prompt_tokens: 10, total_tokens: 10 }
-      })),
-      getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 })),
-      getModel: vi.fn().mockResolvedValue(mockModel)
-    }))
+    MiniLMEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        isAvailable: vi.fn(() => true),
+        generateEmbedding: vi.fn(async () => ({
+          embedding: new Array(384).fill(0.1),
+          model: 'minilm',
+          provider: 'minilm',
+          dimensions: 384,
+          usage: { prompt_tokens: 10, total_tokens: 10 }
+        })),
+        getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 })),
+        getModel: vi.fn().mockResolvedValue(mockModel)
+      };
+    })
   };
 });
 
 vi.mock('../../services/lightweight-embedding-service.js', () => {
   return {
-    LightweightEmbeddingService: vi.fn().mockImplementation(() => ({
-      isAvailable: vi.fn(() => true),
-      generateEmbedding: vi.fn(async () => ({
-        embedding: new Array(512).fill(0.1),
-        model: 'lightweight-hybrid',
-        provider: 'tfidf',
-        dimensions: 512,
-        usage: { prompt_tokens: 10, total_tokens: 10 }
-      })),
-      getModelInfo: vi.fn(() => ({ model: 'lightweight-hybrid', dimensions: 512, maxTokens: 8191 }))
-    }))
+    LightweightEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        isAvailable: vi.fn(() => true),
+        generateEmbedding: vi.fn(async () => ({
+          embedding: new Array(512).fill(0.1),
+          model: 'lightweight-hybrid',
+          provider: 'tfidf',
+          dimensions: 512,
+          usage: { prompt_tokens: 10, total_tokens: 10 }
+        })),
+        getModelInfo: vi.fn(() => ({ model: 'lightweight-hybrid', dimensions: 512, maxTokens: 8191 }))
+      };
+    })
   };
 });
 
 vi.mock('../../services/gemini-embedding-service.js', () => {
   return {
-    GeminiEmbeddingService: vi.fn().mockImplementation(() => ({
-      isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
-      generateEmbedding: vi.fn(async () => null),
-      getModelInfo: vi.fn(() => ({ model: 'gemini-model', dimensions: 768, maxTokens: 2048 }))
-    }))
+    GeminiEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
+        generateEmbedding: vi.fn(async () => null),
+        getModelInfo: vi.fn(() => ({ model: 'gemini-model', dimensions: 768, maxTokens: 2048 }))
+      };
+    })
   };
 });
 
 vi.mock('../../services/openai-embedding-service.js', () => {
   return {
-    OpenAIEmbeddingService: vi.fn().mockImplementation(() => ({
-      isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
-      generateEmbedding: vi.fn(async () => null),
-      getModelInfo: vi.fn(() => ({ model: 'text-embedding-3-small', dimensions: 1536, maxTokens: 8191 }))
-    }))
+    OpenAIEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
+        generateEmbedding: vi.fn(async () => null),
+        getModelInfo: vi.fn(() => ({ model: 'text-embedding-3-small', dimensions: 1536, maxTokens: 8191 }))
+      };
+    })
   };
 });
 
 // ModelAvailabilityService 모킹 (__tests__ → ../ = providers/)
 vi.mock('../model-availability-service.js', () => {
   return {
-    ModelAvailabilityService: vi.fn().mockImplementation(() => ({
-      getLastStatus: vi.fn(() => undefined),
-      selectBestProvider: vi.fn(async (preferredProvider?: EmbeddingProvider) => ({
-        selectedProvider: preferredProvider || 'minilm',
-        reason: 'available',
-        attemptedProviders: []
-      }))
-    }))
+    ModelAvailabilityService: vi.fn().mockImplementation(function () {
+      return {
+        getLastStatus: vi.fn(() => undefined),
+        selectBestProvider: vi.fn(async (preferredProvider?: EmbeddingProvider) => ({
+          selectedProvider: preferredProvider || 'minilm',
+          reason: 'available',
+          attemptedProviders: []
+        }))
+      };
+    })
   };
 });
 
