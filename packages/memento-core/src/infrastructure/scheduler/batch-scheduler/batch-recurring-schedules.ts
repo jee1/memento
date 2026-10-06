@@ -8,7 +8,7 @@ export interface BatchRecurringScheduleContext {
   readonly hasForgettingEventCleanup: boolean;
   readonly hasJobRunCleanup: boolean;
   readonly hasAnchorManager: boolean;
-  scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) => void;
+  scheduleJob: (name: string, interval: number, job: () => Promise<unknown>, priority: number) => void;
   readonly lastExecution: Map<string, Date>;
   readonly intervals: Map<string, ReturnType<typeof setInterval>>;
   readonly jobExecutionCoordinator: BatchJobExecutionCoordinator;
@@ -29,15 +29,15 @@ export interface BatchRecurringScheduleContext {
 }
 
 export function scheduleCleanupJob(ctx: BatchRecurringScheduleContext): void {
-  ctx.scheduleJob('cleanup', ctx.config.cleanupInterval, async () => { await ctx.runMemoryCleanup(); }, 1);
+  ctx.scheduleJob('cleanup', ctx.config.cleanupInterval, () => ctx.runMemoryCleanup(), 1);
 }
 
 export function scheduleMonitoringJob(ctx: BatchRecurringScheduleContext): void {
-  ctx.scheduleJob('monitoring', ctx.config.monitoringInterval, async () => { await ctx.runMonitoring(); }, 2);
+  ctx.scheduleJob('monitoring', ctx.config.monitoringInterval, () => ctx.runMonitoring(), 2);
 }
 
 export function scheduleHealthcheckJob(ctx: BatchRecurringScheduleContext): void {
-  ctx.scheduleJob('healthcheck', ctx.config.healthCheckInterval, async () => { await ctx.runHealthCheck(); }, 3);
+  ctx.scheduleJob('healthcheck', ctx.config.healthCheckInterval, () => ctx.runHealthCheck(), 3);
 }
 
 export function scheduleCoreMaintenanceJobs(ctx: BatchRecurringScheduleContext): void {
@@ -60,7 +60,7 @@ export function scheduleWeeklyRelationValidation(ctx: BatchRecurringScheduleCont
       if (!lastExecution || lastExecution < today) {
         ctx.jobExecutionCoordinator.addJobToQueue(
           'weekly_relation_validation',
-          async () => { await ctx.runWeeklyRelationValidation(); },
+          () => ctx.runWeeklyRelationValidation(),
           5,
           0
         );
@@ -78,7 +78,7 @@ export function scheduleLogRotation(ctx: BatchRecurringScheduleContext): void {
   ctx.scheduleJob(
     'log_rotation',
     ctx.config.logRotationInterval,
-    async () => { await ctx.runLogRotation(); },
+    () => ctx.runLogRotation(),
     5
   );
 }
@@ -88,7 +88,7 @@ export function scheduleMetaMemoryIntrospection(ctx: BatchRecurringScheduleConte
   ctx.scheduleJob(
     'meta_memory_introspection',
     ctx.config.metaMemoryIntrospectionInterval,
-    async () => { await ctx.runMetaMemoryIntrospection(); },
+    () => ctx.runMetaMemoryIntrospection(),
     6
   );
 }
@@ -109,7 +109,7 @@ export function scheduleQualityMeasurement(ctx: BatchRecurringScheduleContext): 
         if (!lastExecution || lastExecution < today) {
           ctx.jobExecutionCoordinator.addJobToQueue(
             'quality_measurement_batch',
-            async () => { await ctx.runQualityMeasurementBatch(); },
+            () => ctx.runQualityMeasurementBatch(),
             7,
             0
           );
@@ -124,7 +124,7 @@ export function scheduleQualityMeasurement(ctx: BatchRecurringScheduleContext): 
     ctx.scheduleJob(
       'quality_measurement_batch',
       ctx.config.qualityMeasurementInterval,
-      async () => { await ctx.runQualityMeasurementBatch(); },
+      () => ctx.runQualityMeasurementBatch(),
       7
     );
   }
@@ -219,7 +219,7 @@ export function scheduleAnchorAutoRefresh(ctx: BatchRecurringScheduleContext): v
   ctx.scheduleJob(
     'anchor_auto_refresh',
     ctx.config.anchorAutoRefreshInterval,
-    async () => { await ctx.runAnchorAutoRefresh(); },
+    () => ctx.runAnchorAutoRefresh(),
     9
   );
 }

@@ -17,7 +17,7 @@ export function scheduleBatchJob(
   deps: BatchSchedulerIntervalDeps,
   name: string,
   interval: number,
-  job: () => Promise<void>,
+  job: () => Promise<unknown>,
   priority: number
 ): void {
   const wrappedJob = async () => {

@@ -94,7 +94,7 @@ export interface BatchSchedulerRecurringState {
 }
 
 export interface BatchSchedulerRecurringCallbacks {
-  scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) => void;
+  scheduleJob: (name: string, interval: number, job: () => Promise<unknown>, priority: number) => void;
   runMemoryCleanup: () => Promise<BatchJobResult>;
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;

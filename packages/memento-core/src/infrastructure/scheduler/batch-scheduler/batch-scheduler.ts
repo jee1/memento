@@ -172,7 +172,7 @@ export class BatchScheduler implements IBatchScheduler {
 
   private getJobRunnerCallbacks() {
     return {
-      scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) =>
+      scheduleJob: (name: string, interval: number, job: () => Promise<unknown>, priority: number) =>
         this.scheduleJob(name, interval, job, priority),
       runMemoryCleanup: () => this.runMemoryCleanup(),
       runMemoryReviewCandidatesJob: () => this.runMemoryReviewCandidatesJob(),
@@ -275,7 +275,7 @@ export class BatchScheduler implements IBatchScheduler {
     });
   }
 
-  public addJob(name: string, job: () => Promise<void>, priority: number = 10, retryCount: number = 0): boolean {
+  public addJob(name: string, job: () => Promise<unknown>, priority: number = 10, retryCount: number = 0): boolean {
     return addBatchSchedulerJob(
       this.jobExecutionCoordinator,
       this.jobProcessorState,
@@ -286,7 +286,7 @@ export class BatchScheduler implements IBatchScheduler {
     );
   }
 
-  private scheduleJob(name: string, interval: number, job: () => Promise<void>, priority: number): void {
+  private scheduleJob(name: string, interval: number, job: () => Promise<unknown>, priority: number): void {
     scheduleBatchSchedulerJob(
       this.getRecurringState(),
       this.jobQueue,
