@@ -14,7 +14,6 @@ import {
   scheduleQualityMeasurement,
   scheduleSleepConsolidation,
   scheduleTelemetryCleanup,
-  scheduleWeeklyRelationValidation,
   type BatchRecurringScheduleContext
 } from './batch-recurring-schedules.js';
 import {
@@ -82,7 +81,6 @@ function buildRestartHandlers(): Record<string, RestartHandler> {
     cleanup: scheduleCleanupJob,
     monitoring: scheduleMonitoringJob,
     healthcheck: scheduleHealthcheckJob,
-    weekly_relation_validation: scheduleWeeklyRelationValidation,
     log_rotation: scheduleLogRotation,
     quality_measurement_batch: scheduleQualityMeasurement,
     meta_memory_introspection: scheduleMetaMemoryIntrospection,

@@ -51,16 +51,4 @@ export function validateBatchJobConfig(config: BatchJobConfig): void {
   if (config.memoryReviewCandidatesInterval < 60000) {
     throw new Error('memoryReviewCandidatesInterval must be at least 1 minute');
   }
-  if (config.weeklyRelationValidationTimeout !== undefined) {
-    if (
-      typeof config.weeklyRelationValidationTimeout !== 'number' ||
-      Number.isNaN(config.weeklyRelationValidationTimeout) ||
-      config.weeklyRelationValidationTimeout <= 0
-    ) {
-      throw new Error('weeklyRelationValidationTimeout must be a positive number (at least 1 second)');
-    }
-    if (config.weeklyRelationValidationTimeout < 1000) {
-      throw new Error('weeklyRelationValidationTimeout must be at least 1 second');
-    }
-  }
 }

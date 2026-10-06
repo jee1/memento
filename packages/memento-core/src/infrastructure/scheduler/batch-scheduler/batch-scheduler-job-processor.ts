@@ -27,7 +27,6 @@ export function createBatchSchedulerJobRunnerCallbacks(source: BatchSchedulerCon
     runMemoryReviewCandidatesJob: () => runners.runMemoryReviewCandidatesJob(),
     runMonitoring: () => runners.runMonitoring(),
     runHealthCheck: () => runners.runHealthCheck(),
-    runWeeklyRelationValidation: () => runners.runWeeklyRelationValidation(),
     runMetaMemoryIntrospection: () => runners.runMetaMemoryIntrospection(),
     runQualityMeasurementBatch: () => runners.runQualityMeasurementBatch(),
     runLogRotation: () => runners.runLogRotation(),

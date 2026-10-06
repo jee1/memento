@@ -23,7 +23,6 @@ These jobs run through **BatchScheduler** (queue and/or cron):
 |-----|---------|------|
 | Per-item relation extraction | JobQueue (`addJob` from remember-tool) | Enqueued right after episodic save |
 | `sleep_consolidation` | Every hour | Episodic → semantic distillation (`SleepConsolidationService`) |
-| `relation_validation` | Every 7 days (Sun 2 AM) | Relation graph validation |
 | `quality_measurement` | Every 24h | Memory quality measurement |
 | `forgetting_cleanup` | Every 24h | TTL-expired memory cleanup |
 | `memory_review_candidates` | Every 24h | Spaced-repetition review queue refresh |

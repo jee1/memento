@@ -195,7 +195,6 @@ S = α·relevance + β·recency + γ·importance + δ·usage
 | `meta_memory_introspection` | 6h | Meta Memory |
 | `memory_review_candidates` | 24h | Memory |
 | `quality_measurement` | 24h | Search 품질 |
-| `relation_validation` | 7d (일 02:00) | Relation Graph |
 | `telemetry_cleanup` | 24h | Telemetry |
 | `log_rotation` | 24h | Monitoring |
 
