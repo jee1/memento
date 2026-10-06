@@ -9,14 +9,6 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
-### BREAKING
-
-- **core**: 소비자가 없던 `event_outbox` 를 제거했습니다. migration 052 가 테이블을 DROP 하고(되돌릴 수 없음), `EventOutboxService`·`ConsolidationOutboxWorker`·`MEMENTO_EVENT_OUTBOX_ENABLED` 가 사라졌습니다. 운영에서 `publishPending()` 을 부르는 곳이 없어 켜도 쌓이기만 했습니다 (#1259)
-
-### Added
-
-- **auth**: `MEMENTO_API_TOKENS` 항목에 선택 필드 `agent_id` 를 둘 수 있습니다. 묶인 토큰의 요청은 그 값을 agent 신원으로 쓰고(`/tools`·`/mcp`·감사 로그), `X-Memento-Agent-Id`·`X-Agent-Id` 가 다르면 403 `AGENT_ID_MISMATCH` 입니다. 지금까지는 헤더만 바꾸면 다른 agent 의 forget owner scope·strict recall 필터를 통과했습니다. `agent_id` 가 없는 토큰은 동작이 같습니다 (#1258)
-
 ## [2.0.0] - 2026-10-05
 
 꺼져 있거나 기본값 0 으로 쓰이지 않던 기능과 호환 경로를 한꺼번에 걷어 낸 메이저 릴리스입니다 (#1246). 운영 검색 결과는 바뀌지 않습니다 — 제거한 랭킹 항은 모두 이미 가중치 0 이었고, 제거한 쓰기 경로는 플래그로 꺼져 있었습니다.
@@ -32,15 +24,18 @@
 - **db**: migration `051-drop-consolidation-score-columns` 가 `memory_item.consolidation_score`·`g_value` 와 두 인덱스를 DROP 합니다. `recall_count`·`last_accessed_at` 은 그대로입니다. down 은 지원하지 않습니다 (#1244, #1255)
 - **quality**: 품질 지표 `consolidation` namespace, `test:vector-search-quality(:ci)`·`benchmark:consolidation-quality` 스크립트, `CONSOLIDATION_TEST_*` env 를 제거했습니다 (#1244, #1256)
 - **search**: 운영 경로가 없던 relation recall candidate expansion 과 `quality` relation-recall PoC 명령을 제거했습니다 (#1243, #1248)
+- **core**: 소비자가 없던 `event_outbox` 를 제거했습니다. migration 052 가 테이블을 DROP 하고(되돌릴 수 없음), `EventOutboxService`·`ConsolidationOutboxWorker`·`MEMENTO_EVENT_OUTBOX_ENABLED` 가 사라졌습니다. 운영에서 `publishPending()` 을 부르는 곳이 없어 켜도 쌓이기만 했습니다 (#1259)
 
 ### 업그레이드
 
 1. `MEMENTO_API_TOKENS` 에 토큰을 만드세요. 기존 `ADMIN_API_KEY` 값으로 programmatic 호출을 하던 클라이언트가 있다면 같은 secret 으로 `{"id":"…","secret":"<그 값>","scopes":["tools:invoke","admin:destructive"]}` 를 넣으면 그대로 동작합니다. CLI·훅 셸에는 `MEMENTO_API_KEY` 를 설정하세요.
 2. `.env` 에서 `CONSOLIDATION_SCORE_ENABLED`, `MEMENTO_TYPE_PARAM_MODE`, `CONSOLIDATION_TEST_*` 를 지우세요 (남아 있어도 무시됩니다).
-3. 배포 전 `npm run db:pre-docker-deploy` 로 백업하세요. 051 은 컬럼을 지우며 되돌릴 수 없습니다.
+3. 배포 전 `npm run db:pre-docker-deploy` 로 백업하세요. 051·052 는 컬럼·테이블을 지우며 되돌릴 수 없습니다.
+4. `.env` 에서 `MEMENTO_EVENT_OUTBOX_ENABLED` 를 지우세요. 에이전트마다 토큰을 나눴다면 각 항목에 `agent_id` 를 더해 헤더 사칭을 막을 수 있습니다 (선택).
 
 ### Added
 
+- **auth**: `MEMENTO_API_TOKENS` 항목에 선택 필드 `agent_id` 를 둘 수 있습니다. 묶인 토큰의 요청은 그 값을 agent 신원으로 쓰고(`/tools`·`/mcp`·감사 로그), `X-Memento-Agent-Id`·`X-Agent-Id` 가 다르면 403 `AGENT_ID_MISMATCH` 입니다. 지금까지는 헤더만 바꾸면 다른 agent 의 forget owner scope·strict recall 필터를 통과했습니다. `agent_id` 가 없는 토큰은 동작이 같습니다 (#1258)
 - **consolidation**: optional judge (`CONSOLIDATION_JUDGE=typesafe`, Jev) verifies each cluster member against the seed and each merge into an existing semantic; members it rejects or cannot judge stay unconsolidated (#1225)
 - **dashboard**: `GET /admin/memory/search` — admin hybrid memory search (preview list, no recall side effects) for the 기억 찾기 tab (#1118)
 
