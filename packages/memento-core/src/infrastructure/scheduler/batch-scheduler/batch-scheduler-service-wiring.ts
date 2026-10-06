@@ -15,7 +15,6 @@ import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { HealthChecker } from '../health-checker.js';
 import { FileLogger } from '../file-logger.js';
-import { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 import {
   buildBatchRecurringScheduleContext,
@@ -34,7 +33,6 @@ export interface BatchSchedulerDependencyOverrides {
   retryManager?: RetryManager;
   healthChecker?: HealthChecker;
   fileLogger?: FileLogger;
-  relationValidatorExecutor?: RelationValidatorExecutor;
   diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
 }
 
@@ -59,7 +57,6 @@ export interface BatchSchedulerWiringResult {
   retryManager: RetryManager;
   healthChecker: HealthChecker;
   fileLogger: FileLogger;
-  relationValidatorExecutor: RelationValidatorExecutor;
   diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
   jobExecutionCoordinator: Coordinator;
 }
@@ -72,7 +69,6 @@ export interface BatchSchedulerServiceState {
   healthChecker: HealthChecker;
   jobQueue: JobQueue;
   fileLogger: FileLogger;
-  relationValidatorExecutor: RelationValidatorExecutor;
   introspectionScanCache: IntrospectionScanCache | null;
   sleepConsolidationService: SleepConsolidationService | null;
   telemetryCleanupRepository: TelemetryRepository | null;
@@ -99,7 +95,6 @@ export interface BatchSchedulerRecurringCallbacks {
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;
-  runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
@@ -131,9 +126,6 @@ export function createBatchSchedulerWiring(
   const fileLogger = dependencies?.fileLogger ?? new FileLogger({
     enabled: mergedConfig.enableLogging
   });
-  const relationValidatorExecutor = dependencies?.relationValidatorExecutor ?? new RelationValidatorExecutor({
-    timeout: mergedConfig.weeklyRelationValidationTimeout ?? mergedConfig.jobTimeout
-  });
   const diagnosticsLogger = dependencies?.diagnosticsLogger;
 
   const jobExecutionCoordinator = new BatchJobExecutionCoordinator({
@@ -159,7 +151,6 @@ export function createBatchSchedulerWiring(
     retryManager,
     healthChecker,
     fileLogger,
-    relationValidatorExecutor,
     diagnosticsLogger,
     jobExecutionCoordinator
   };
@@ -178,7 +169,6 @@ export function getBatchSchedulerContextSource(
     healthChecker: state.healthChecker,
     jobQueue: state.jobQueue,
     fileLogger: state.fileLogger,
-    relationValidatorExecutor: state.relationValidatorExecutor,
     introspectionScanCache: state.introspectionScanCache,
     sleepConsolidationService: state.sleepConsolidationService,
     telemetryCleanupRepository: state.telemetryCleanupRepository,

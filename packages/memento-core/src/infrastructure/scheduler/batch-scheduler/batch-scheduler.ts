@@ -8,7 +8,6 @@ import { JobQueue } from '../job-queue.js';
 import { RetryManager } from '../retry-manager.js';
 import { HealthChecker } from '../health-checker.js';
 import { FileLogger } from '../file-logger.js';
-import { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
@@ -85,7 +84,6 @@ export class BatchScheduler implements IBatchScheduler {
   private retryManager: RetryManager;
   private healthChecker: HealthChecker;
   private fileLogger: FileLogger;
-  private relationValidatorExecutor: RelationValidatorExecutor;
   private qualityMeasurementBatchJob: BatchSchedulerServiceState['qualityMeasurementBatchJob'] = null;
   private sleepConsolidationService: SleepConsolidationService | null = null;
   private sleepConsolidationBatchJob: BatchSchedulerServiceState['sleepConsolidationBatchJob'] = null;
@@ -120,7 +118,6 @@ export class BatchScheduler implements IBatchScheduler {
     this.retryManager = wiring.retryManager;
     this.healthChecker = wiring.healthChecker;
     this.fileLogger = wiring.fileLogger;
-    this.relationValidatorExecutor = wiring.relationValidatorExecutor;
     this.diagnosticsLogger = wiring.diagnosticsLogger;
     this.jobExecutionCoordinator = wiring.jobExecutionCoordinator;
   }
@@ -134,7 +131,6 @@ export class BatchScheduler implements IBatchScheduler {
       healthChecker: this.healthChecker,
       jobQueue: this.jobQueue,
       fileLogger: this.fileLogger,
-      relationValidatorExecutor: this.relationValidatorExecutor,
       introspectionScanCache: this.introspectionScanCache,
       sleepConsolidationService: this.sleepConsolidationService,
       telemetryCleanupRepository: this.telemetryCleanupRepository,
@@ -178,7 +174,6 @@ export class BatchScheduler implements IBatchScheduler {
       runMemoryReviewCandidatesJob: () => this.runMemoryReviewCandidatesJob(),
       runMonitoring: () => this.runMonitoring(),
       runHealthCheck: () => this.runHealthCheck(),
-      runWeeklyRelationValidation: () => this.runWeeklyRelationValidation(),
       runMetaMemoryIntrospection: () => this.runMetaMemoryIntrospection(),
       runQualityMeasurementBatch: () => this.runQualityMeasurementBatch(),
       runLogRotation: () => this.runLogRotation(),
@@ -339,10 +334,6 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runHealthCheck(): Promise<BatchJobResult> {
     return this.getJobRunners().runHealthCheck();
-  }
-
-  private async runWeeklyRelationValidation(): Promise<BatchJobResult> {
-    return this.getJobRunners().runWeeklyRelationValidation();
   }
 
   private async runMetaMemoryIntrospection(): Promise<BatchJobResult> {

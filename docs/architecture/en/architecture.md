@@ -169,7 +169,6 @@ The 17 tools exposed to agents:
 | `forgetting_cleanup` | 24 hours | Delete TTL-expired memories |
 | `memory_review_candidates` | 24 hours | Refresh spaced-repetition review queue |
 | `meta_memory_introspection` | 6 hours | Identify low-confidence memories |
-| `relation_validation` | 7 days (Sun 2 AM) | Validate relation graph integrity |
 | `log_rotation` | 24 hours | Rotate log files |
 | `telemetry_cleanup` | 24 hours | Purge old telemetry data |
 

@@ -8,10 +8,7 @@ import {
   runMemoryReviewCandidatesJob,
   runMetaMemoryIntrospection
 } from '../handlers/batch-scheduler-review-meta-handlers.js';
-import {
-  runLogRotation,
-  runWeeklyRelationValidation
-} from '../handlers/batch-scheduler-consolidation-relation-handlers.js';
+import { runLogRotation } from '../handlers/batch-scheduler-consolidation-relation-handlers.js';
 import { runQualityMeasurementBatch } from '../handlers/batch-scheduler-augmentation-handlers.js';
 import {
   runSleepConsolidationBatch,
@@ -33,7 +30,6 @@ export const REGISTERED_MANUAL_BATCH_JOB_TYPES = [
   'cleanup',
   'monitoring',
   'healthcheck',
-  'weekly_relation_validation',
   'log_rotation',
   'quality_measurement_batch',
   'meta_memory_introspection',
@@ -60,7 +56,6 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
     runMemoryReviewCandidatesJob: () => runMemoryReviewCandidatesJob(ctx()),
     runMonitoring: () => runMonitoring(ctx()),
     runHealthCheck: () => runHealthCheck(ctx()),
-    runWeeklyRelationValidation: () => runWeeklyRelationValidation(ctx()),
     runMetaMemoryIntrospection: () => runMetaMemoryIntrospection(ctx()),
     runQualityMeasurementBatch: () => runQualityMeasurementBatch(ctx()),
     runLogRotation: () => runLogRotation(ctx()),
@@ -123,8 +118,6 @@ function dispatchManualJob(
       return runners.runMonitoring();
     case 'healthcheck':
       return runners.runHealthCheck();
-    case 'weekly_relation_validation':
-      return runners.runWeeklyRelationValidation();
     case 'log_rotation':
       return runners.runLogRotation();
     case 'quality_measurement_batch':

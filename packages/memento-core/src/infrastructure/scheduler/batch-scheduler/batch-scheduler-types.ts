@@ -10,9 +10,6 @@ export interface BatchJobConfig {
   lockMonitorInterval: number;
   reflexionCleanupInterval: number;
   reflexionHealthCheckInterval: number;
-  relationValidationInterval: number;
-  relationValidationDayOfWeek: number;
-  relationValidationHour: number;
   logRotationInterval: number;
   qualityMeasurementInterval: number;
   qualityMeasurementHour?: number;
@@ -44,7 +41,6 @@ export interface BatchJobConfig {
   jobTimeout: number;
   retryAttempts: number;
   retryDelay: number;
-  weeklyRelationValidationTimeout?: number;
 }
 
 export interface BatchJobResult {

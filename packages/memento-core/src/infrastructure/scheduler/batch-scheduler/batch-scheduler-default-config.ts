@@ -19,9 +19,6 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     lockMonitorInterval: mementoConfig.lockMonitorIntervalMs,
     reflexionCleanupInterval: 60 * 1000,
     reflexionHealthCheckInterval: 30 * 1000,
-    relationValidationInterval: 7 * DAY_MS, // 7일
-    relationValidationDayOfWeek: 0,     // 일요일
-    relationValidationHour: 2,          // 새벽 2시
     logRotationInterval: DAY_MS, // 24시간 (매일)
     qualityMeasurementInterval: DAY_MS, // 24시간 (일일)
     qualityMeasurementHour: undefined, // 시간 지정 안 함 (간격 기반 실행)
@@ -76,12 +73,6 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     jobTimeout: 5 * 60 * 1000,          // 5분
     retryAttempts: 3,
     retryDelay: 1000,                   // 1초
-    weeklyRelationValidationTimeout: resolveValidatedNumber(
-      'WEEKLY_RELATION_VALIDATION_TIMEOUT_MS',
-      30 * 60 * 1000,
-      n => n >= 60_000,
-      '최솟값 60000'
-    ),
     ...overrides
   };
 }

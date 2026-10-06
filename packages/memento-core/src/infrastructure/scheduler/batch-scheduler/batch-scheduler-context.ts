@@ -10,7 +10,6 @@ import type { BatchJobExecutionCoordinator } from './batch-job-execution-coordin
 import type { JobQueue } from '../job-queue.js';
 import type { HealthChecker } from '../health-checker.js';
 import type { FileLogger } from '../file-logger.js';
-import type { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
 import type { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
@@ -31,7 +30,6 @@ export interface BatchSchedulerContextSource {
   healthChecker: HealthChecker;
   jobQueue: JobQueue;
   fileLogger: FileLogger;
-  relationValidatorExecutor: RelationValidatorExecutor;
   introspectionScanCache: IntrospectionScanCache | null;
   sleepConsolidationService: SleepConsolidationService | null;
   telemetryCleanupRepository: TelemetryRepository | null;
@@ -54,7 +52,6 @@ export interface BatchSchedulerRecurringContextSource extends BatchSchedulerCont
   runMemoryCleanup: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;
-  runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
@@ -89,7 +86,6 @@ export function buildBatchSchedulerRunContext(source: BatchSchedulerContextSourc
     healthChecker: source.healthChecker,
     jobQueue: source.jobQueue,
     fileLogger: source.fileLogger,
-    relationValidatorExecutor: source.relationValidatorExecutor,
     introspectionScanCache: source.introspectionScanCache,
     sleepConsolidationService: source.sleepConsolidationService,
     telemetryCleanupRepository: source.telemetryCleanupRepository,
@@ -139,7 +135,6 @@ export function buildBatchRecurringScheduleContext(
     runMemoryCleanup: () => source.runMemoryCleanup(),
     runMonitoring: () => source.runMonitoring(),
     runHealthCheck: () => source.runHealthCheck(),
-    runWeeklyRelationValidation: () => source.runWeeklyRelationValidation(),
     runLogRotation: () => source.runLogRotation(),
     runQualityMeasurementBatch: () => source.runQualityMeasurementBatch(),
     runMetaMemoryIntrospection: () => source.runMetaMemoryIntrospection(),

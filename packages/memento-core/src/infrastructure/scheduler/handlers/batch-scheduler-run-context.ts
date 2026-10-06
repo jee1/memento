@@ -9,7 +9,6 @@ import type { ForgettingPolicyService } from '../../../domains/forgetting/servic
 import type { JobQueue } from '../job-queue.js';
 import type { HealthChecker } from '../health-checker.js';
 import type { FileLogger } from '../file-logger.js';
-import type { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import type { IntrospectionScanCache } from '../../../domains/memory/introspection/introspection-scan-cache.js';
 import type { QualityMeasurementBatchJob } from '../jobs/quality-measurement-batch-job.js';
 import type { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
@@ -41,7 +40,6 @@ export interface BatchSchedulerRunContext {
   readonly healthChecker: HealthChecker;
   readonly jobQueue: JobQueue;
   readonly fileLogger: FileLogger;
-  readonly relationValidatorExecutor: RelationValidatorExecutor;
   readonly introspectionScanCache: IntrospectionScanCache | null;
   readonly sleepConsolidationService: SleepConsolidationService | null;
   readonly telemetryCleanupRepository: TelemetryRepository | null;

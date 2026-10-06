@@ -25,9 +25,6 @@ function createCoordinator(
     reflexionHealthCheckInterval: 30_000,
     monitoringInterval: 10_000,
     healthCheckInterval: 10_000,
-    relationValidationInterval: 604_800_000,
-    relationValidationDayOfWeek: 0,
-    relationValidationHour: 2,
     logRotationInterval: 86_400_000,
     qualityMeasurementInterval: 86_400_000,
     metaMemoryIntrospectionInterval: 21_600_000,
@@ -235,29 +232,29 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
       const resetSpy = vi.spyOn(retryManager, 'resetErrorCount');
 
       await coordinator.executeJobWithRetry(
-        'weekly_relation_validation',
+        'log_rotation',
         async () => ({ success: false, errors: ['boom'] }),
         5,
         0
       );
 
-      const rows = repo.list(db, { jobName: 'weekly_relation_validation' });
+      const rows = repo.list(db, { jobName: 'log_rotation' });
       expect(rows).toHaveLength(1);
       expect(rows[0]!.success).toBe(0);
       expect(log).toHaveBeenCalledWith(
-        'Job weekly_relation_validation returned a failed result',
+        'Job log_rotation returned a failed result',
         expect.objectContaining({ errors: ['boom'] }),
         'error'
       );
       expect(writeDiagnosticsEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'batch_job_failure',
-          jobName: 'weekly_relation_validation',
+          jobName: 'log_rotation',
           error: 'boom',
           reportedBy: 'result',
         })
       );
-      expect(lastExecution.has('weekly_relation_validation')).toBe(true);
+      expect(lastExecution.has('log_rotation')).toBe(true);
       expect(resetSpy).not.toHaveBeenCalled();
       expect(addSpy).not.toHaveBeenCalled();
     } finally {

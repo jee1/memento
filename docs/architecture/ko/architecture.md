@@ -170,7 +170,6 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 | `forgetting_cleanup` | 24시간 | TTL 만료 기억 정리 |
 | `memory_review_candidates` | 24시간 | 복습 후보 갱신 |
 | `meta_memory_introspection` | 6시간 | 신뢰도 낮은 기억 식별 |
-| `relation_validation` | 7일 (일요일 새벽 2시) | 관계 유효성 검증 |
 | `log_rotation` | 24시간 | 로그 파일 순환 |
 | `telemetry_cleanup` | 24시간 | 텔레메트리 데이터 정리 |
 

@@ -16,7 +16,6 @@ export interface BatchRecurringScheduleContext {
   runMemoryCleanup: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;
-  runWeeklyRelationValidation: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
@@ -46,33 +45,6 @@ export function scheduleCoreMaintenanceJobs(ctx: BatchRecurringScheduleContext):
   scheduleHealthcheckJob(ctx);
 }
 
-export function scheduleWeeklyRelationValidation(ctx: BatchRecurringScheduleContext): void {
-  const checkAndRun = () => {
-    const now = new Date();
-    const currentDayOfWeek = now.getDay();
-    const currentHour = now.getHours();
-    if (
-      currentDayOfWeek === ctx.config.relationValidationDayOfWeek &&
-      currentHour === ctx.config.relationValidationHour
-    ) {
-      const lastExecution = ctx.lastExecution.get('weekly_relation_validation');
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (!lastExecution || lastExecution < today) {
-        ctx.jobExecutionCoordinator.addJobToQueue(
-          'weekly_relation_validation',
-          () => ctx.runWeeklyRelationValidation(),
-          5,
-          0
-        );
-      }
-    }
-  };
-  const checkInterval = 60 * 60 * 1000;
-  const intervalId = setInterval(checkAndRun, checkInterval);
-  ctx.intervals.set('weekly_relation_validation', intervalId);
-  checkAndRun();
-}
-
 /** Issue #834: restart registry — schedule log_rotation alone. */
 export function scheduleLogRotation(ctx: BatchRecurringScheduleContext): void {
   ctx.scheduleJob(
@@ -94,7 +66,6 @@ export function scheduleMetaMemoryIntrospection(ctx: BatchRecurringScheduleConte
 }
 
 export function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringScheduleContext): void {
-  scheduleWeeklyRelationValidation(ctx);
   scheduleLogRotation(ctx);
 }
 

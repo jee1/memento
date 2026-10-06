@@ -50,7 +50,6 @@ WORKDIR /app
 # Copy package files and scripts
 COPY package*.json ./
 COPY scripts/ ./scripts/
-COPY tests/fixtures/relation_testset.json ./tests/fixtures/relation_testset.json
 
 # 빌드 산출물: 워크스페이스 패키지 (런타임은 memento-server 진입점 사용)
 COPY --from=builder /app/packages/memento-core/dist ./packages/memento-core/dist
