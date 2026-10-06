@@ -106,11 +106,11 @@ vi.mock('./shared/utils/logger.js', () => ({
 }));
 
 vi.mock('./domains/search/algorithms/search-engine.js', () => ({
-  SearchEngine: vi.fn().mockImplementation(() => ({}))
+  SearchEngine: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/search/algorithms/hybrid-search-engine.js', () => ({
-  HybridSearchEngine: vi.fn().mockImplementation(() => ({}))
+  HybridSearchEngine: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/search/factories/hybrid-search.factory.js', () => ({
@@ -120,11 +120,11 @@ vi.mock('./domains/search/factories/hybrid-search.factory.js', () => ({
 }));
 
 vi.mock('./domains/memory/services/memory-embedding-service.js', () => ({
-  MemoryEmbeddingService: vi.fn().mockImplementation(() => ({}))
+  MemoryEmbeddingService: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/forgetting/services/forgetting-policy-service.js', () => ({
-  ForgettingPolicyService: vi.fn().mockImplementation(() => ({}))
+  ForgettingPolicyService: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/monitoring/services/performance-monitor.js', () => ({
@@ -132,7 +132,7 @@ vi.mock('./domains/monitoring/services/performance-monitor.js', () => ({
 }));
 
 vi.mock('./domains/monitoring/services/error-logging-service.js', () => ({
-  ErrorLoggingService: vi.fn().mockImplementation(() => ({}))
+  ErrorLoggingService: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./shared/utils/database.js', () => ({
@@ -143,7 +143,7 @@ vi.mock('./shared/utils/database.js', () => ({
 }));
 
 vi.mock('./domains/anchor/services/anchor/anchor-manager.js', () => ({
-  AnchorManager: vi.fn().mockImplementation(() => ({}))
+  AnchorManager: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/anchor/services/anchor/anchor-cache-service.js', () => ({
@@ -165,11 +165,11 @@ vi.mock('./domains/monitoring/services/failure-detector.js', () => ({
 }));
 
 vi.mock('./infrastructure/async-optimizer.js', () => ({
-  AsyncTaskQueue: vi.fn().mockImplementation(() => ({}))
+  AsyncTaskQueue: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./infrastructure/database/on-demand-database-optimizer.js', () => ({
-  OnDemandDatabaseOptimizer: vi.fn().mockImplementation(() => ({}))
+  OnDemandDatabaseOptimizer: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./infrastructure/reflexion-worker.js', () => ({
@@ -193,7 +193,7 @@ vi.mock('./infrastructure/scheduler/batch-scheduler.js', () => ({
 }));
 
 vi.mock('./domains/consolidation/services/sleep-consolidation-service.js', () => ({
-  SleepConsolidationService: vi.fn().mockImplementation(() => ({}))
+  SleepConsolidationService: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./infrastructure/relation-graph-factory.js', () => ({
@@ -213,19 +213,19 @@ vi.mock('./infrastructure/database/database-lock-monitor.js', () => ({
 }));
 
 vi.mock('./domains/memory/introspection/meta-memory-service.js', () => ({
-  MetaMemoryService: vi.fn().mockImplementation(() => ({}))
+  MetaMemoryService: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/memory/introspection/introspection-scan-cache.js', () => ({
-  IntrospectionScanCache: vi.fn().mockImplementation(() => ({}))
+  IntrospectionScanCache: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/telemetry/repositories/telemetry-repository.js', () => ({
-  TelemetryRepository: vi.fn().mockImplementation(() => ({}))
+  TelemetryRepository: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/telemetry/services/telemetry-service.js', () => ({
-  TelemetryService: vi.fn().mockImplementation(() => ({}))
+  TelemetryService: vi.fn().mockImplementation(function () { return {}; })
 }));
 
 vi.mock('./domains/monitoring/services/runtime-diagnostics-logger.js', () => ({

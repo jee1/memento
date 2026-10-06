@@ -73,12 +73,14 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   const searchSimilar = vi.fn(async () => []);
   
   return {
-    UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
-      isAvailable: vi.fn(() => true),
-      generateEmbedding: generateEmbedding,
-      searchSimilar: searchSimilar,
-      getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 }))
-    })),
+    UnifiedEmbeddingService: vi.fn().mockImplementation(function () {
+      return {
+        isAvailable: vi.fn(() => true),
+        generateEmbedding: generateEmbedding,
+        searchSimilar: searchSimilar,
+        getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 }))
+      };
+    }),
     // 외부에서 접근할 수 있도록 export
     __mockGenerateEmbedding: generateEmbedding,
     __mockSearchSimilar: searchSimilar
@@ -136,13 +138,15 @@ vi.mock('../../../../shared/config/index.js', () => {
 // OpenAI 모킹
 vi.mock('openai', () => {
   const mockCreate = vi.fn();
-  const MockOpenAI = vi.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: mockCreate
+  const MockOpenAI = vi.fn().mockImplementation(function () {
+    return {
+      chat: {
+        completions: {
+          create: mockCreate
+        }
       }
-    }
-  }));
+    };
+  });
   return {
     default: MockOpenAI,
     __mockCreate: mockCreate,
@@ -154,11 +158,13 @@ vi.mock('openai', () => {
 vi.mock('@google/genai', () => {
   const mockGenerateContent = vi.fn();
   return {
-    GoogleGenAI: vi.fn().mockImplementation(() => ({
-      models: {
-        generateContent: mockGenerateContent
-      }
-    })),
+    GoogleGenAI: vi.fn().mockImplementation(function () {
+      return {
+        models: {
+          generateContent: mockGenerateContent
+        }
+      };
+    }),
     __mockGenerateContent: mockGenerateContent
   };
 });

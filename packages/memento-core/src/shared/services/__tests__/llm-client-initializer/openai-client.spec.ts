@@ -85,7 +85,7 @@ describe('LLMClientInitializer', () => {
       // OpenAI 모킹 - 에러 발생하도록 설정
       const openaiModule = await import('openai');
       const MockOpenAI = (openaiModule as any).__MockOpenAI;
-      MockOpenAI.mockImplementation(() => {
+      MockOpenAI.mockImplementation(function () {
         throw new Error('OpenAI initialization failed');
       });
       

@@ -11,16 +11,22 @@ const mocks = vi.hoisted(() => {
     detectPendingMigrations,
     log: vi.fn(),
     runMigrations,
-    BackupManager: vi.fn(() => ({
-      cleanupBackups: vi.fn(),
-      createBackup,
-    })),
-    MigrationDetector: vi.fn(() => ({
-      detectPendingMigrations,
-    })),
-    MigrationRunner: vi.fn(() => ({
-      runMigrations,
-    })),
+    BackupManager: vi.fn(function () {
+      return {
+        cleanupBackups: vi.fn(),
+        createBackup,
+      };
+    }),
+    MigrationDetector: vi.fn(function () {
+      return {
+        detectPendingMigrations,
+      };
+    }),
+    MigrationRunner: vi.fn(function () {
+      return {
+        runMigrations,
+      };
+    }),
   };
 });
 
