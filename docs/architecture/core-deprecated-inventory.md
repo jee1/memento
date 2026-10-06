@@ -17,6 +17,7 @@
 | `ADMIN_API_KEY` → synthetic `legacy-admin` programmatic 토큰 | programmatic HTTP 는 `MEMENTO_API_TOKENS` 만 인증. `ADMIN_API_KEY` 는 대시보드 로그인 키로만 남음 (#1241) |
 | `remember` `enable_triple_extraction` 호환 처리 | strict schema 가 거절 (#1240) |
 | relation recall candidate expansion · `quality` relation-recall PoC 명령 | 운영 경로 없음 (#1243) |
+| `event_outbox` 테이블 · `EventOutboxService` · `ConsolidationOutboxWorker` · `MEMENTO_EVENT_OUTBOX_ENABLED` | 쓰기만 있고 `publishPending()` 운영 호출자 없음. migration `052-drop-event-outbox` 로 DROP (#1259) |
 
 ## Removed in #1237
 
