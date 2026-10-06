@@ -49,6 +49,7 @@ import {
   runBatchSchedulerJob,
   stopBatchSchedulerJob
 } from './batch-scheduler-job-control.js';
+import { isRegisteredManualBatchJobType } from './batch-scheduler-job-runners.js';
 import {
   checkBatchSchedulerSchedulerHealth,
   getBatchSchedulerDetailedStatsReport,
@@ -70,6 +71,10 @@ export class BatchScheduler implements IBatchScheduler {
   private databaseLockMonitor: Pick<DatabaseLockMonitor, 'probe'> | null = null;
   private db: Database.Database | null = null;
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
+  private readonly infrastructureJobs = new Map<
+    string,
+    { interval: number; job: () => Promise<unknown>; priority: number }
+  >();
   /** Issue #834: schedule jobs paused via admin (interval cleared; in-flight not killed). */
   private pausedJobs: Set<string> = new Set();
   private isRunning = false;
@@ -224,10 +229,22 @@ export class BatchScheduler implements IBatchScheduler {
     this.scheduleInfrastructureMaintenanceJobs();
   }
 
+  private scheduleInfrastructureJob(
+    name: string,
+    interval: number,
+    job: () => Promise<unknown>,
+    priority: number
+  ): void {
+    this.infrastructureJobs.set(name, { interval, job, priority });
+    this.scheduleJob(name, interval, job, priority);
+  }
+
   private scheduleInfrastructureMaintenanceJobs(): void {
+    this.infrastructureJobs.clear();
+
     const walCheckpointScheduler = this.walCheckpointScheduler;
     if (walCheckpointScheduler) {
-      this.scheduleJob('wal_checkpoint', this.config.walCheckpointInterval, async () => {
+      this.scheduleInfrastructureJob('wal_checkpoint', this.config.walCheckpointInterval, async () => {
         const result = await walCheckpointScheduler.checkpointNow(CheckpointMode.PASSIVE);
         if (!result.success) {
           throw result.error ?? new Error(`WAL checkpoint failed: busy=${result.busy}`);
@@ -237,17 +254,17 @@ export class BatchScheduler implements IBatchScheduler {
 
     const databaseLockMonitor = this.databaseLockMonitor;
     if (databaseLockMonitor) {
-      this.scheduleJob('lock_monitor', this.config.lockMonitorInterval, async () => {
+      this.scheduleInfrastructureJob('lock_monitor', this.config.lockMonitorInterval, async () => {
         await databaseLockMonitor.probe();
       }, 2);
     }
 
     const reflexionWorker = this.reflexionWorker;
     if (reflexionWorker) {
-      this.scheduleJob('reflexion_cleanup', this.config.reflexionCleanupInterval, async () => {
+      this.scheduleInfrastructureJob('reflexion_cleanup', this.config.reflexionCleanupInterval, async () => {
         reflexionWorker.cleanupDuplicateWindow();
       }, 3);
-      this.scheduleJob('reflexion_healthcheck', this.config.reflexionHealthCheckInterval, async () => {
+      this.scheduleInfrastructureJob('reflexion_healthcheck', this.config.reflexionHealthCheckInterval, async () => {
         reflexionWorker.performHealthCheck();
       }, 3);
     }
@@ -372,13 +389,83 @@ export class BatchScheduler implements IBatchScheduler {
     logBatchScheduler(this.getServiceState(), message, data, level);
   }
 
-  async runJob(jobType: ManualBatchSchedulerJobType): Promise<BatchJobResult> {
+  isManualRunnable(name: string): boolean {
+    return isRegisteredManualBatchJobType(name) || this.infrastructureJobs.has(name);
+  }
+
+  async runJob(jobType: string): Promise<BatchJobResult> {
     // Issue #834 SC-003: sync check+mark before await — blocks overlapping manual runs.
     if (this.jobQueue.isRunning(jobType)) {
       throw new BatchJobAlreadyRunningError(jobType);
     }
     this.jobQueue.markRunning(jobType);
     try {
+      const infraEntry = this.infrastructureJobs.get(jobType);
+      if (infraEntry) {
+        const startTime = new Date();
+        try {
+          const resolved = await infraEntry.job();
+          const endTime = new Date();
+          const duration = endTime.getTime() - startTime.getTime();
+
+          let success = true;
+          let processed = 1;
+          let errors: string[] = [];
+          if (
+            resolved !== null &&
+            typeof resolved === 'object' &&
+            'success' in resolved &&
+            (resolved as { success: unknown }).success === false
+          ) {
+            success = false;
+            processed = 0;
+            const maybeErrors = (resolved as { errors?: unknown }).errors;
+            if (Array.isArray(maybeErrors)) {
+              errors = maybeErrors.filter((entry): entry is string => typeof entry === 'string');
+            }
+          }
+
+          const result: BatchJobResult = {
+            jobType,
+            startTime,
+            endTime,
+            duration,
+            success,
+            processed,
+            errors,
+            warnings: [],
+          };
+
+          this.lastExecution.set(jobType, new Date());
+          this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
+
+          return result;
+        } catch (error) {
+          const endTime = new Date();
+          const duration = endTime.getTime() - startTime.getTime();
+          const message = error instanceof Error ? error.message : String(error);
+          const result: BatchJobResult = {
+            jobType,
+            startTime,
+            endTime,
+            duration,
+            success: false,
+            processed: 0,
+            errors: [message],
+            warnings: [],
+          };
+
+          this.lastExecution.set(jobType, new Date());
+          this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
+
+          return result;
+        }
+      }
+
+      if (!isRegisteredManualBatchJobType(jobType)) {
+        throw new Error('unknown_job');
+      }
+
       return await runBatchSchedulerJob(
         jobType,
         this.getContextSource(),
@@ -413,11 +500,25 @@ export class BatchScheduler implements IBatchScheduler {
 
   /** Issue #834: pause schedule (stop interval + paused set). In-flight not killed. */
   pauseJob(jobName: string): { ok: boolean; reason?: string } {
+    if (this.infrastructureJobs.has(jobName)) {
+      stopBatchSchedulerJob(this.intervals, this.log.bind(this), jobName);
+      this.pausedJobs.add(jobName);
+      this.log(`Paused job: ${jobName}`);
+      return { ok: true };
+    }
     return pauseBatchSchedulerJob(this.intervals, this.pausedJobs, this.log.bind(this), jobName);
   }
 
   /** Issue #834: resume schedule via expanded restart registry. */
   resumeJob(jobName: string): { ok: boolean; reason?: string } {
+    const infraEntry = this.infrastructureJobs.get(jobName);
+    if (infraEntry) {
+      stopBatchSchedulerJob(this.intervals, () => {}, jobName);
+      this.scheduleJob(jobName, infraEntry.interval, infraEntry.job, infraEntry.priority);
+      this.pausedJobs.delete(jobName);
+      this.log(`Resumed job: ${jobName}`);
+      return { ok: true };
+    }
     return resumeBatchSchedulerJob(
       this.getServiceState(),
       this.getRecurringState(),

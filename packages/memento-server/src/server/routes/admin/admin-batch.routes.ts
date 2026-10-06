@@ -319,13 +319,13 @@ export function registerAdminBatchRoutes(
         return;
       }
       const jobType = resolveJobTypeFromBody(req.body);
-      if (!jobType || !isRegisteredManualBatchJobType(jobType)) {
+      const batchScheduler = getBatchScheduler();
+      if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
         return res.status(400).json({
           error: 'Invalid or unknown jobType',
         });
       }
 
-      const batchScheduler = getBatchScheduler();
       const result = batchScheduler.pauseJob(jobType);
       if (!result.ok) {
         return res.status(400).json({
@@ -358,13 +358,13 @@ export function registerAdminBatchRoutes(
         return;
       }
       const jobType = resolveJobTypeFromBody(req.body);
-      if (!jobType || !isRegisteredManualBatchJobType(jobType)) {
+      const batchScheduler = getBatchScheduler();
+      if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
         return res.status(400).json({
           error: 'Invalid or unknown jobType',
         });
       }
 
-      const batchScheduler = getBatchScheduler();
       const result = batchScheduler.resumeJob(jobType);
       if (!result.ok) {
         const status = result.reason === 'config_disabled' ? 400 : 400;
@@ -403,14 +403,14 @@ export function registerAdminBatchRoutes(
 
       const jobType = resolveJobTypeFromBody(req.body);
 
+      const batchScheduler = getBatchScheduler();
+
       // Issue #834: intentional allowlist widen — all registered schedule job names.
-      if (!jobType || !isRegisteredManualBatchJobType(jobType)) {
+      if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
         return res.status(400).json({
           error: 'Invalid or unregistered jobType'
         });
       }
-
-      const batchScheduler = getBatchScheduler();
 
       // Issue #834 SC-003: dual-run guard → 409 before invoke.
       if (batchScheduler.isJobRunning(jobType)) {
