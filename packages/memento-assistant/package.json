@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.build.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --run --passWithNoTests",
-    "test:ci": "vitest --run src test --reporter=basic"
+    "test:ci": "vitest --run src test --reporter=default"
   },
   "keywords": [
     "memento",
@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "typescript": "^5.3.0",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.11"
   },
   "publishConfig": {
     "access": "public"
