@@ -63,7 +63,7 @@ function createCoordinator(
     ...overrides,
   });
 
-  return { coordinator, jobQueue, log };
+  return { coordinator, jobQueue, retryManager, log };
 }
 
 describe('BatchJobExecutionCoordinator timeout policy', () => {
@@ -214,6 +214,125 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
       'Job cleanup completed successfully',
       expect.objectContaining({ retryCount: 0 })
     );
+  });
+
+  it('records success:false BatchJobResult as job_run failure without retry (#1264)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    await new JobRunLogMigration().up(db);
+    const repo = new JobRunRepository();
+    const writeDiagnosticsEvent = vi.fn().mockResolvedValue(undefined);
+    const log = vi.fn();
+    const lastExecution = new Map<string, Date>();
+    try {
+      const { coordinator, retryManager } = createCoordinator({}, log, {
+        getDb: () => db,
+        jobRunRepository: repo,
+        writeDiagnosticsEvent,
+        lastExecution,
+      });
+      const addSpy = vi.spyOn(coordinator, 'addJobToQueue');
+      const resetSpy = vi.spyOn(retryManager, 'resetErrorCount');
+
+      await coordinator.executeJobWithRetry(
+        'weekly_relation_validation',
+        async () => ({ success: false, errors: ['boom'] }),
+        5,
+        0
+      );
+
+      const rows = repo.list(db, { jobName: 'weekly_relation_validation' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.success).toBe(0);
+      expect(log).toHaveBeenCalledWith(
+        'Job weekly_relation_validation returned a failed result',
+        expect.objectContaining({ errors: ['boom'] }),
+        'error'
+      );
+      expect(writeDiagnosticsEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'batch_job_failure',
+          jobName: 'weekly_relation_validation',
+          error: 'boom',
+          reportedBy: 'result',
+        })
+      );
+      expect(lastExecution.has('weekly_relation_validation')).toBe(true);
+      expect(resetSpy).not.toHaveBeenCalled();
+      expect(addSpy).not.toHaveBeenCalled();
+    } finally {
+      db.close();
+    }
+  });
+
+  it('records success:false without errors array as job_run failure (#1264)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry(
+        'cleanup',
+        async () => ({ success: false }),
+        1,
+        0
+      );
+
+      const rows = repo.list(db, { jobName: 'cleanup' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.success).toBe(0);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('records success:true BatchJobResult as job_run success (#1264)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry(
+        'cleanup',
+        async () => ({ success: true }),
+        1,
+        0
+      );
+
+      const rows = repo.list(db, { jobName: 'cleanup' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.success).toBe(1);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('records void job (undefined) as job_run success (#1264)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry('cleanup', async () => undefined, 1, 0);
+
+      const rows = repo.list(db, { jobName: 'cleanup' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.success).toBe(1);
+    } finally {
+      db.close();
+    }
   });
 
   it('soft-fails (does not throw) when append itself errors', async () => {

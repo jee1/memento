@@ -5,7 +5,7 @@
 
 export interface QueuedJob {
   name: string;
-  job: () => Promise<void>;
+  job: () => Promise<unknown>;
   priority: number;
   retryCount?: number;
 }
@@ -45,7 +45,7 @@ export class JobQueue {
    * @param retryCount 재시도 횟수
    * @returns 추가 성공 여부
    */
-  add(name: string, job: () => Promise<void>, priority: number, retryCount: number = 0): boolean {
+  add(name: string, job: () => Promise<unknown>, priority: number, retryCount: number = 0): boolean {
     // 최대 크기 체크
     if (this.config.maxSize && this.queue.length >= this.config.maxSize) {
       return false;

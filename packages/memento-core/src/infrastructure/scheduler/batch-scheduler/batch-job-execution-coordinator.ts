@@ -7,6 +7,14 @@ import type { JobRunRepository } from '../repositories/job-run-repository.js';
 import { JobRunLogBuffer, flushJobRunLogBufferSafe } from '../job-run-log-buffer.js';
 import { resolveBatchJobTimeout } from './batch-job-timeout-resolver.js';
 
+/** #1264: a job that resolves a BatchJobResult-like object with success === false failed, even without throwing. */
+function failedJobResultErrors(outcome: unknown): string[] | null {
+  if (!outcome || typeof outcome !== 'object') return null;
+  const record = outcome as { success?: unknown; errors?: unknown };
+  if (record.success !== false) return null;
+  return Array.isArray(record.errors) ? record.errors.map((e) => String(e)) : [];
+}
+
 export interface BatchJobExecutionCoordinatorDeps {
   jobQueue: JobQueue;
   retryManager: RetryManager;
@@ -29,7 +37,7 @@ export interface BatchJobExecutionCoordinatorDeps {
 export class BatchJobExecutionCoordinator {
   constructor(private readonly deps: BatchJobExecutionCoordinatorDeps) {}
 
-  addJobToQueue(name: string, job: () => Promise<void>, priority: number, retryCount = 0): boolean {
+  addJobToQueue(name: string, job: () => Promise<unknown>, priority: number, retryCount = 0): boolean {
     return this.deps.jobQueue.add(name, job, priority, retryCount);
   }
 
@@ -95,7 +103,7 @@ export class BatchJobExecutionCoordinator {
 
   async executeJobWithRetry(
     name: string,
-    job: () => Promise<void>,
+    job: () => Promise<unknown>,
     priority: number,
     initialRetryCount = 0
   ): Promise<void> {
@@ -129,25 +137,43 @@ export class BatchJobExecutionCoordinator {
 
     try {
       const jobTimeoutMs = resolveBatchJobTimeout(name, this.deps.getConfig());
-      await this.executeWithTimeout(job, jobTimeoutMs);
-      jobOk = true;
+      const outcome = await this.executeWithTimeout(job, jobTimeoutMs);
       this.deps.lastExecution.set(name, new Date());
       this.deps.totalExecutions.set(name, (this.deps.totalExecutions.get(name) || 0) + 1);
+      const resultErrors = failedJobResultErrors(outcome);
+      if (resultErrors) {
+        const message = resultErrors.join('; ') || 'job returned success=false';
+        logBuffer.append({
+          level: 'error',
+          message: `${name} failed: ${message}`,
+          context: { phase: 'error', reportedBy: 'result' },
+        });
+        this.deps.log(`Job ${name} returned a failed result`, { errors: resultErrors, duration: Date.now() - startTime }, 'error');
+        await this.deps.writeDiagnosticsEvent({
+          type: 'batch_job_failure',
+          jobName: name,
+          error: message,
+          duration: Date.now() - startTime,
+          severity: 'error',
+          reportedBy: 'result',
+        });
+      } else {
+        jobOk = true;
+        this.deps.retryManager.resetErrorCount(name);
 
-      this.deps.retryManager.resetErrorCount(name);
-
-      this.deps.log(`Job ${name} completed successfully`, {
-        duration: Date.now() - startTime,
-        totalExecutions: this.deps.totalExecutions.get(name),
-        retryCount
-      });
-      await this.deps.writeDiagnosticsEvent({
-        type: 'batch_job_finish',
-        jobName: name,
-        durationMs: Date.now() - startTime,
-        totalExecutions: this.deps.totalExecutions.get(name) ?? 0,
-        retryCount
-      });
+        this.deps.log(`Job ${name} completed successfully`, {
+          duration: Date.now() - startTime,
+          totalExecutions: this.deps.totalExecutions.get(name),
+          retryCount
+        });
+        await this.deps.writeDiagnosticsEvent({
+          type: 'batch_job_finish',
+          jobName: name,
+          durationMs: Date.now() - startTime,
+          totalExecutions: this.deps.totalExecutions.get(name) ?? 0,
+          retryCount
+        });
+      }
     } catch (error) {
       retryCount++;
       const totalErrorCount = this.deps.retryManager.incrementErrorCount(name);

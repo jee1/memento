@@ -50,7 +50,7 @@ export interface BatchSchedulerContextSource {
 export interface BatchSchedulerRecurringContextSource extends BatchSchedulerContextSource {
   intervals: Map<string, ReturnType<typeof setInterval>>;
   jobExecutionCoordinator: BatchJobExecutionCoordinator;
-  scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) => void;
+  scheduleJob: (name: string, interval: number, job: () => Promise<unknown>, priority: number) => void;
   runMemoryCleanup: () => Promise<BatchJobResult>;
   runMonitoring: () => Promise<BatchJobResult>;
   runHealthCheck: () => Promise<BatchJobResult>;

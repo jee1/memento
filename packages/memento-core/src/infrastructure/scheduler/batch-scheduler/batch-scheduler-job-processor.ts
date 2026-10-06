@@ -43,7 +43,7 @@ export function addBatchSchedulerJob(
   jobExecutionCoordinator: BatchJobExecutionCoordinator,
   processorState: BatchSchedulerJobProcessorState,
   name: string,
-  job: () => Promise<void>,
+  job: () => Promise<unknown>,
   priority: number = 10,
   retryCount: number = 0
 ): boolean {
@@ -58,7 +58,7 @@ export function scheduleBatchSchedulerJob(
   log: BatchSchedulerLogMethod,
   name: string,
   interval: number,
-  job: () => Promise<void>,
+  job: () => Promise<unknown>,
   priority: number
 ): void {
   scheduleBatchJob(
