@@ -184,3 +184,7 @@ graphify-out/
 tmp/tune-weights/
 .gstack/
 .playwright-mcp/
+
+# 에이전트별 로컬 MCP 설정 (API key·X-Memento-Project-Id, #1270) — 커밋하지 않는다
+.codex/
+.gemini/settings.json
