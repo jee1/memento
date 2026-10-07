@@ -112,6 +112,17 @@ HTTP `/tools`는 `X-Memento-Agent-Id` 요청 헤더(대소문자 무시) 또는 
 
 HTTP owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세요.
 
+## 프로젝트 기본값 (X-Memento-Project-Id, #1270)
+
+HTTP `/mcp`·`/tools`는 `X-Memento-Project-Id` 요청 헤더(최대 200자, 공백만 있으면 무시)를 읽어 `ToolContext.projectId`에 설정합니다. `remember`는 **신규 저장**에서 `project_id` 인자를 생략했을 때만 이 값을 기본 `project_id`로 씁니다. 명시 `project_id` 인자가 항상 우선합니다. `memory_id`·`update_mode`로 기존 기억을 갱신할 때는 헤더를 적용하지 않습니다(기존 `project_id` NULL 행 갱신이 깨지지 않도록). `recall`·`memory_injection` 필터는 변경되지 않으며, `project_id`를 주지 않으면 여전히 전체 프로젝트를 검색합니다. 헤더가 없으면 동작은 이전과 같습니다.
+
+Claude Code 예시(저장소별 로컬 scope, 커밋하지 않음):
+
+```bash
+claude mcp add --scope local --transport http memento http://localhost:9001/mcp \
+  --header "X-API-Key: <key>" --header "X-Memento-Project-Id: memento"
+```
+
 ## 오케스트레이션 템플릿 (#673)
 
 여러 reader 에이전트 + **단일 writer** 패턴의 참조 구현:

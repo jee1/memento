@@ -112,6 +112,17 @@ HTTP `/tools` reads `X-Memento-Agent-Id` (case-insensitive) or `MEMENTO_HTTP_DEF
 
 For how this ties into HTTP owner scope, see **HTTP owner scope** above.
 
+## Default project (X-Memento-Project-Id, #1270)
+
+HTTP `/mcp` and `/tools` read the `X-Memento-Project-Id` request header (max 200 characters; blank-only values are ignored) into `ToolContext.projectId`. `remember` uses it as the default `project_id` only on **new saves** when the `project_id` argument is omitted. An explicit `project_id` argument always wins. Updates via `memory_id` or `update_mode` do not apply the header (so existing rows with `project_id` NULL can still be updated). `recall` and `memory_injection` filters are unchanged — without `project_id` they still search all projects. With no header, behavior is unchanged.
+
+Claude Code example (per-repo local scope, not committed):
+
+```bash
+claude mcp add --scope local --transport http memento http://localhost:9001/mcp \
+  --header "X-API-Key: <key>" --header "X-Memento-Project-Id: memento"
+```
+
 ## Orchestration template (#673)
 
 Reference layout for several reader agents plus a **single writer**:

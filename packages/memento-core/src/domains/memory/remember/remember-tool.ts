@@ -240,6 +240,9 @@ export class RememberTool extends BaseTool {
         return await handleVaultMemory({ key, value, immutable, origin_source, ownerId, startTime }, context, host);
       }
 
+      const isPlainSave = !parsedParams.memory_id && !parsedParams.update_mode;
+      const projectIdParam = project_id_param ?? (isPlainSave ? context.projectId : undefined);
+
       return await handleMemoryItem(
         parsedParams,
         context,
@@ -247,7 +250,7 @@ export class RememberTool extends BaseTool {
           type, ownerId, processId, sessionId,
           numTimes, sourceSessionId, confidenceVal,
           origin_source, startTime,
-          project_id_param: project_id_param ?? null,
+          project_id_param: projectIdParam ?? null,
           last_mentioned_at_param: last_mentioned_at_param ?? null
         },
         host

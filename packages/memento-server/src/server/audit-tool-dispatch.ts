@@ -20,6 +20,7 @@ export type ToolAuditContext = {
   transport: AuditTransport;
   actorId?: string | null;
   agentId?: string | null;
+  projectId?: string | null;
 };
 
 type ToolExecutor = (name: string, args: unknown, context: ToolContext) => Promise<ToolResult>;
@@ -175,6 +176,7 @@ export function createToolDispatcher(options: {
         db,
         services,
         ...(auditContext.agentId ? { agentId: auditContext.agentId } : {}),
+        ...(auditContext.projectId ? { projectId: auditContext.projectId } : {}),
       });
       const result = await (options.execute ?? executeTool)(name, args, context);
       recordToolAudit(db, name, args, auditContext, 'success');
