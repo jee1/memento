@@ -457,6 +457,57 @@ describe('MemoryInjectionPrompt', () => {
     });
   });
 
+  describe('include_project_brief (#1271)', () => {
+    const BRIEF = '브리프 본문: 목표는 X, 다음 할 일은 Y';
+
+    beforeEach(() => {
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, project_id, tags, version, owner_id, created_at)
+        VALUES
+          ('brief_old', 'semantic', '낡은 브리프', 0.9, 'proj-b', '["project-brief"]', NULL, 'agent-a', datetime('now', '-1 day')),
+          ('brief_new', 'semantic', '${BRIEF}', 0.9, 'proj-b', '["project-brief"]', 3, 'agent-a', datetime('now')),
+          ('brief_other', 'semantic', '다른 프로젝트 브리프', 0.9, 'proj-c', '["project-brief"]', NULL, NULL, datetime('now')),
+          ('plain_b', 'semantic', '관련 없는 조각 기억', 0.9, 'proj-b', '["misc"]', NULL, NULL, datetime('now'))
+      `);
+    });
+
+    function parse(result: Awaited<ReturnType<MemoryInjectionPrompt['handle']>>) {
+      return JSON.parse(result.content?.[0]?.text ?? '{}');
+    }
+
+    it('true 면 질의와 무관하게 최신 브리프 전문을 맨 앞에 싣는다', async () => {
+      const out = parse(await tool.handle({ query: '전혀 무관한 질의', project_id: 'proj-b', include_project_brief: true }, context));
+      expect(out.message.startsWith('# 프로젝트 브리프 — project-brief v3')).toBe(true);
+      expect(out.message).toContain(BRIEF);
+      expect(out.message).not.toContain('낡은 브리프');
+      expect(out.project_brief).toEqual({ memory_id: 'brief_new', project_id: 'proj-b', version: 3, included: true });
+    });
+
+    it('미지정이면 전문 없이 포인터 한 줄만 붙인다', async () => {
+      const out = parse(await tool.handle({ query: '전혀 무관한 질의', project_id: 'proj-b' }, context));
+      expect(out.message).not.toContain(BRIEF);
+      expect(out.message).toContain('project-brief v3 (proj-b, memory_id brief_new) 있음');
+      expect(out.project_brief.included).toBe(false);
+    });
+
+    it('project_id 인자가 없으면 context.projectId 로 브리프를 찾는다', async () => {
+      const out = parse(await tool.handle({ query: '무관', include_project_brief: true }, { ...context, projectId: 'proj-c' }));
+      expect(out.message).toContain('다른 프로젝트 브리프');
+      expect(out.project_brief.memory_id).toBe('brief_other');
+    });
+
+    it('owner_id 가 지정되면 브리프도 그 소유자 것만 본다', async () => {
+      const out = parse(await tool.handle({ query: '무관', project_id: 'proj-c', owner_id: 'agent-a', include_project_brief: true }, context));
+      expect(out.project_brief).toBeUndefined();
+    });
+
+    it('프로젝트를 알 수 없으면 결과에 브리프 흔적이 없다', async () => {
+      const out = parse(await tool.handle({ query: '무관', include_project_brief: true }, context));
+      expect(out.project_brief).toBeUndefined();
+      expect(out.message).not.toContain('project-brief');
+    });
+  });
+
   describe('owner_id 필터', () => {
     it('owner_id가 지정되면 해당 소유자 기억만 주입한다', async () => {
       db.exec(`
