@@ -13,6 +13,40 @@ import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundl
 import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
 import { handleAutoSetAnchor } from '../recall/recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from '../recall/recall-tool-host.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import type Database from 'better-sqlite3';
+
+/** 프로젝트 인계 브리프 태그 (#1271) */
+export const PROJECT_BRIEF_TAG = 'project-brief';
+
+// core 목록 페이로드 상한(toolset.spec.ts) 때문에 짧게 둔다
+const INCLUDE_PROJECT_BRIEF_DESCRIPTION =
+  'true at session start: prepend project brief';
+
+interface ProjectBriefRow {
+  id: string;
+  content: string;
+  version: number | null;
+}
+
+/** 프로젝트의 최신 브리프 1건. versioned 갱신은 새 행을 만들므로 created_at 최신이 현재 판이다. */
+function findProjectBrief(
+  db: Database.Database,
+  projectId: string,
+  ownerId: string | string[] | undefined,
+): ProjectBriefRow | undefined {
+  const owners = ownerId === undefined ? [] : Array.isArray(ownerId) ? ownerId : [ownerId];
+  const ownerSql = owners.length > 0 ? `AND owner_id IN (${owners.map(() => '?').join(',')})` : '';
+  return DatabaseUtils.get(db, `
+    SELECT id, content, version FROM memory_item
+    WHERE project_id = ?
+      AND COALESCE(is_deleted, 0) = 0
+      AND EXISTS (SELECT 1 FROM json_each(COALESCE(tags, '[]')) WHERE value = ?)
+      ${ownerSql}
+    ORDER BY created_at DESC, rowid DESC
+    LIMIT 1
+  `, [projectId, PROJECT_BRIEF_TAG, ...owners]) as ProjectBriefRow | undefined;
+}
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
@@ -24,7 +58,8 @@ const MemoryInjectionSchema = z.object({
   project_id: z.string().max(200).optional()
     .describe('지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색'),
   owner_id: z.union([z.string(), z.array(z.string())]).optional()
-    .describe('소유자(owner) 범위로 결과를 제한합니다. 미지정 시 owner 필터를 적용하지 않습니다.')
+    .describe('소유자(owner) 범위로 결과를 제한합니다. 미지정 시 owner 필터를 적용하지 않습니다.'),
+  include_project_brief: z.boolean().optional().describe(INCLUDE_PROJECT_BRIEF_DESCRIPTION)
 });
 
 export class MemoryInjectionPrompt extends BaseTool {
@@ -74,6 +109,10 @@ export class MemoryInjectionPrompt extends BaseTool {
               { type: 'array', items: { type: 'string' } }
             ],
             description: '소유자(owner) 범위로 결과를 제한합니다.'
+          },
+          include_project_brief: {
+            type: 'boolean',
+            description: INCLUDE_PROJECT_BRIEF_DESCRIPTION
           }
         },
         required: ['query']
@@ -89,7 +128,8 @@ export class MemoryInjectionPrompt extends BaseTool {
       memory_types = ['working', 'episodic', 'semantic', 'procedural'],
       importance_threshold: _importance_threshold = 0.5,
       project_id,
-      owner_id
+      owner_id,
+      include_project_brief = false
     } = MemoryInjectionSchema.parse(params);
 
     try {
@@ -170,11 +210,30 @@ export class MemoryInjectionPrompt extends BaseTool {
         );
       }
 
+      // 브리프 프로젝트는 인자 → X-Memento-Project-Id 순. 검색 필터에는 쓰지 않는다 (기존 결과 불변).
+      const briefProjectId = project_id || context.projectId;
+      const brief = briefProjectId ? findProjectBrief(context.db, briefProjectId, owner_id) : undefined;
+      let message = bundle.promptText;
+      if (brief) {
+        const label = `project-brief v${brief.version ?? 1} (${briefProjectId}, memory_id ${brief.id})`;
+        message = include_project_brief
+          ? `# 프로젝트 브리프 — ${label}\n\n${brief.content}\n\n---\n\n${message}`
+          : `${message}\n\n> ${label} 있음 — 필요 시 memory_injection(include_project_brief: true) 또는 recall`;
+      }
+
       return this.createSuccessResult({
-        message: bundle.promptText,
+        message,
         memories_used: bundle.itemCount,
         token_estimate: bundle.tokenEstimate,
         query: bundle.query,
+        ...(brief ? {
+          project_brief: {
+            memory_id: brief.id,
+            project_id: briefProjectId,
+            version: brief.version ?? 1,
+            included: include_project_brief,
+          },
+        } : {}),
       });
 
     } catch (error) {
