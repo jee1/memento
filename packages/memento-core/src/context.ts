@@ -12,6 +12,8 @@ export interface ServerContext {
   services: ServerServices;
   /** HTTP/MCP 요청별 에이전트 식별자 (미설정 시 ToolContext.agentId 생략) */
   agentId?: string;
+  /** HTTP/MCP 요청별 프로젝트 식별자 (미설정 시 ToolContext.projectId 생략) */
+  projectId?: string;
 }
 
 export function createServerContext(
@@ -40,6 +42,7 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
   return {
     db: serverContext.db,
     ...(serverContext.agentId ? { agentId: serverContext.agentId } : {}),
+    ...(serverContext.projectId ? { projectId: serverContext.projectId } : {}),
     services: {
       searchEngine: serverContext.services.searchEngine,
       hybridSearchEngine: serverContext.services.hybridSearchEngine,

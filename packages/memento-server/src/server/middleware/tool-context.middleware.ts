@@ -9,6 +9,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { ToolContext } from '@memento/core';
 import { mementoConfig } from '@memento/core';
 import { createToolContext, type ServerContext } from '../context.js';
+import { readProjectIdHeader } from '../utils/project-id-header.js';
 
 /**
  * Express Request에 ToolContext 타입 확장
@@ -49,10 +50,13 @@ export function createToolContextMiddleware(
   const defaultAgentId = mementoConfig.httpDefaultAgentId?.trim();
   const agentId = req.programmaticAuth?.agentId || headerAgentId || defaultAgentId || undefined;
 
+  const projectId = readProjectIdHeader(req);
+
   const serverContext: ServerContext = {
     db: req.db,
     services: req.services,
-    ...(agentId ? { agentId } : {})
+    ...(agentId ? { agentId } : {}),
+    ...(projectId ? { projectId } : {}),
   };
 
   // ToolContext 생성 및 주입

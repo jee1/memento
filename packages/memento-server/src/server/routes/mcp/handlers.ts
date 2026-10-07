@@ -23,6 +23,7 @@ import {
 } from './modern-request-validation.js';
 import { applyModernSuccessEnvelope } from './modern-response.js';
 import type { ToolAuditContext } from '../../audit-tool-dispatch.js';
+import { readProjectIdHeader } from '../../utils/project-id-header.js';
 import type { JsonRpcResponse, SSETransport } from './types.js';
 
 export type ApplyMcpCorsHeaders = (req: Request, res: Response) => void;
@@ -245,6 +246,7 @@ export async function handleStreamableMcpPost(
       transport: 'mcp_http',
       actorId: req.programmaticAuth?.keyId,
       agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+      projectId: readProjectIdHeader(req),
     };
     const result = await processMcpMessage(message, db, serverServices, auditContext, {
       modernEra: modernClaim,
@@ -315,6 +317,7 @@ export async function handleSseMessagePost(
       transport: 'mcp_http',
       actorId: req.programmaticAuth?.keyId,
       agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+      projectId: readProjectIdHeader(req),
     };
     const result = await processMcpMessage(message, db, serverServices, auditContext);
     if (!writeSseJson(transport, result)) {
