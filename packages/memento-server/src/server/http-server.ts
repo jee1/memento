@@ -231,9 +231,33 @@ const HTTP_AUTH_TRUST_MODEL_NOTICE =
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
   'No programmatic API tokens configured: /api/v1/quality, /api/v1/maintenance, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until MEMENTO_API_TOKENS is set (ADMIN_API_KEY only signs in the dashboard, #1241).';
 
-function isProtectedMcpProgrammaticPath(pathname: string): boolean {
-  return /^\/(?:mcp|messages)\/?$/.test(pathname);
+/** MCP 라우터와 같은 Express 매칭(대소문자 무시)으로 인증을 거는 경로. 정규식으로 따로 고르면 /MCP 가 빠진다. */
+const MCP_PROGRAMMATIC_PATHS = ['/mcp', '/messages'];
+const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * 브라우저가 보낸 Origin 은 루프백이거나 CORS 허용 목록에 있어야 한다 (MCP 스펙의 DNS rebinding 방어).
+ * rebinding 은 Origin 과 Host 를 같이 공격자 도메인으로 만들므로 Host 와 비교하지 않는다.
+ * Origin 이 없는 요청(CLI·에이전트 클라이언트)은 통과한다.
+ */
+function isAllowedMcpOrigin(origin: string | undefined): boolean {
+  if (origin === undefined) return true;
+  if (mementoConfig.corsAllowedOrigins.includes(origin)) return true;
+  try {
+    return LOOPBACK_HOSTNAMES.has(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
 }
+
+const mcpOriginGuard: express.RequestHandler = (req, res, next) => {
+  if (isAllowedMcpOrigin(req.get('origin'))) return void next();
+  res.status(403).json({
+    error: 'Forbidden',
+    message: 'Origin is not allowed for MCP endpoints. Add it to CORS_ALLOWED_ORIGINS.',
+    timestamp: new Date().toISOString(),
+  });
+};
 
 export function getHttpAuthTrustModelNotice(): string {
   return HTTP_AUTH_TRUST_MODEL_NOTICE;
@@ -369,17 +393,12 @@ function registerRoutes(
   });
   const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
     if (req.method === 'OPTIONS') return void next();
-    if (isProtectedMcpProgrammaticPath(req.path)) return void programmaticAuth(req, res, next);
-    next();
+    programmaticAuth(req, res, next);
   };
 
   const toolsRateLimit = createToolsRateLimitMiddleware();
   const adminRateLimit = createAdminRateLimitMiddleware();
   const httpAudit = createHttpAuditMiddleware({ database });
-  const mcpHttpAudit = createHttpAuditMiddleware({
-    database,
-    shouldAudit: (req) => isProtectedMcpProgrammaticPath(req.path),
-  });
   const adminHttpAudit = createHttpAuditMiddleware({ database, transport: 'http_admin' });
   const strictToolsAudit = createStrictAuditCoverageMiddleware({ database });
   const strictAdminAudit = createStrictAuditCoverageMiddleware({ database, transport: 'http_admin' });
@@ -407,7 +426,8 @@ function registerRoutes(
   });
   app.use('/api/v1/agent', httpAudit, agentProgrammaticAuth, agentRouter);
   app.use('/api', browserSessionAuth, apiRouter!);
-  app.use('/', mcpHttpAudit, mcpProgrammaticAuth, strictToolsAudit, mcpRouter!);
+  app.use(MCP_PROGRAMMATIC_PATHS, mcpOriginGuard, httpAudit, mcpProgrammaticAuth, strictToolsAudit);
+  app.use('/', mcpRouter!);
   app.use(errorHandler);
 }
 
@@ -624,7 +644,6 @@ export const __test: {
   getSearchEngine: () => ServerServices['searchEngine'];
   getHybridSearchEngine: () => ServerServices['hybridSearchEngine'];
   getEmbeddingService: () => ServerServices['embeddingService'];
-  isProtectedMcpProgrammaticPath: (pathname: string) => boolean;
 } = {
   setTestDependencies,
   initializeServer,
@@ -633,8 +652,7 @@ export const __test: {
   getDatabase: () => db,
   getSearchEngine: () => serverServices!.searchEngine,
   getHybridSearchEngine: () => serverServices!.hybridSearchEngine,
-  getEmbeddingService: () => serverServices!.embeddingService,
-  isProtectedMcpProgrammaticPath
+  getEmbeddingService: () => serverServices!.embeddingService
 };
 
 // 이 파일은 라이브러리 모듈이자 실행 진입점이다.

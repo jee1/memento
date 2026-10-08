@@ -384,4 +384,40 @@ describe('programmatic auth integration', () => {
     await mcpStreamWithHeader.close();
     await mcpStreamWithCookieOnly.close();
   });
+
+  it('requires a token on MCP paths regardless of letter case', async () => {
+    const port = await startRealHttpServer();
+    const toolsList = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
+
+    for (const path of ['/MCP', '/Mcp/', '/MESSAGES?sessionId=x', '/Messages/?sessionId=x']) {
+      const res = await postJson(port, path, toolsList, { Accept: 'application/json, text/event-stream' });
+      expect(res.statusCode, path).toBe(401);
+    }
+
+    const streamUpperCase = await getRequest(port, '/MCP', { Accept: 'text/event-stream' });
+    expect(streamUpperCase.statusCode).toBe(401);
+  });
+
+  it('rejects MCP requests from untrusted browser origins (DNS rebinding)', async () => {
+    const port = await startRealHttpServer();
+    const initialize = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} };
+    const auth = { Authorization: 'Bearer integration-admin-key' };
+
+    const rebound = await postJson(port, '/mcp', initialize, {
+      ...auth,
+      Host: 'attacker.example:9001',
+      Origin: 'http://attacker.example:9001',
+    });
+    expect(rebound.statusCode).toBe(403);
+
+    const reboundUnauthenticated = await postJson(port, '/MCP', initialize, {
+      Origin: 'http://attacker.example:9001',
+    });
+    expect(reboundUnauthenticated.statusCode).toBe(403);
+
+    for (const origin of ['http://localhost:6274', 'http://127.0.0.1:6274', 'https://trusted.app']) {
+      const res = await postJson(port, '/mcp', initialize, { ...auth, Origin: origin });
+      expect(res.statusCode, origin).toBe(200);
+    }
+  });
 });
