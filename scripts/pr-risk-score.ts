@@ -38,9 +38,9 @@ const SOURCE_RE = /^(packages|apps|scripts|static)\/.*\.[cm]?[jt]s$/;
 const SECURITY_RE =
   /(auth|token|secur|crypto|session|permission|cors|secret|pii|sanitiz|path-traversal)/i;
 const MIGRATION_RE = /(\/migrations\/|schema\.sql$)/;
-// 외부에 보이는 계약: MCP 도구 스키마, 클라이언트 SDK, 배포 설정, 패키지 매니페스트
+// 외부에 보이는 계약: MCP 도구 스키마, 클라이언트 SDK, 배포 설정
 const PUBLIC_SURFACE_RE =
-  /(^packages\/memento-core\/src\/(tools|domains\/[^/]+\/tools)\/|^packages\/memento-client\/src\/|^docker-compose[^/]*\.yml$|^\.env\.example$|^config\/|(^|\/)package\.json$)/;
+  /(^packages\/memento-core\/src\/(tools|domains\/[^/]+\/tools)\/|^packages\/memento-client\/src\/|^docker-compose[^/]*\.yml$|^\.env\.example$|^config\/)/;
 const BREAKING_TITLE_RE = /(^\w+(\([^)]*\))?!:|BREAKING)/;
 
 export function scoreRisk(files: ChangedFile[], title = ""): RiskResult {
