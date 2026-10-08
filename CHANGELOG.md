@@ -9,14 +9,18 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
-### Fixed
+## [2.0.1] - 2026-10-09
 
-- **memory**: `remember` 의 `memory_id` 갱신이 `project_id` 를 명시하지 않으면 대상 기억의 `project_id` 를 그대로 잇습니다. 이전에는 `X-Memento-Project-Id` 헤더로 저장한 기억을 갱신하면 `memory_id의 project_id가 요청과 다릅니다` 로 거부됐고, MCP 스키마에 `project_id` 가 없는 클라이언트는 갱신할 방법이 없었습니다. `project_id` 를 명시하면 지금처럼 일치를 검증합니다 (#1281)
+MCP HTTP 인증 우회를 막는 보안 릴리스입니다. HTTP 모드(`/mcp`)를 쓰는 모든 운영자는 업그레이드하십시오.
 
 ### Security
 
-- **server**: `/mcp`·`/messages` 의 토큰 인증이 경로 대소문자에 관계없이 적용됩니다. 이전에는 인증 대상을 대소문자를 구분하는 정규식으로 골라, Express 라우터가 그대로 받아 주는 `/MCP` 같은 경로가 토큰 없이 MCP 도구를 호출할 수 있었고 감사 로그에도 남지 않았습니다. 2.0.0 이하 HTTP 모드 운영자는 업그레이드 후 API 토큰과 기억 변경 이력을 점검하십시오
-- **server**: `/mcp`·`/messages` 는 브라우저 `Origin` 이 루프백(`localhost`·`127.0.0.1`·`[::1]`)이거나 `CORS_ALLOWED_ORIGINS` 에 있을 때만 받습니다 (DNS rebinding 방어). `Origin` 을 보내지 않는 CLI·에이전트 클라이언트는 영향이 없습니다. 루프백이 아닌 주소의 브라우저 클라이언트는 그 Origin 을 `CORS_ALLOWED_ORIGINS` 에 추가해야 합니다
+- **server**: `/mcp`·`/messages` 의 토큰 인증이 경로 대소문자에 관계없이 적용됩니다. 이전에는 인증 대상을 대소문자를 구분하는 정규식으로 골라, Express 라우터가 그대로 받아 주는 `/MCP` 같은 경로가 토큰 없이 MCP 도구를 호출할 수 있었고 감사 로그에도 남지 않았습니다 (#1280). 토큰이 새는 문제는 아니므로 교체는 필요 없습니다. 2.0.0 이하를 HTTP 모드로 노출해 운영했다면 `audit_log` 에서 `actor_id` 가 없는 `mcp_http` 의 read·write·delete 기록이 있는지 확인하십시오
+- **server**: `/mcp`·`/messages` 는 브라우저 `Origin` 이 루프백(`localhost`·`127.0.0.1`·`[::1]`)이거나 `CORS_ALLOWED_ORIGINS` 에 있을 때만 받습니다 (DNS rebinding 방어). `Origin` 을 보내지 않는 CLI·에이전트 클라이언트는 영향이 없습니다. 루프백이 아닌 주소의 브라우저 클라이언트는 그 Origin 을 `CORS_ALLOWED_ORIGINS` 에 추가해야 합니다 (#1280)
+
+### Fixed
+
+- **memory**: `remember` 의 `memory_id` 갱신이 `project_id` 를 명시하지 않으면 대상 기억의 `project_id` 를 그대로 잇습니다. 이전에는 `X-Memento-Project-Id` 헤더로 저장한 기억을 갱신하면 `memory_id의 project_id가 요청과 다릅니다` 로 거부됐고, MCP 스키마에 `project_id` 가 없는 클라이언트는 갱신할 방법이 없었습니다. `project_id` 를 명시하면 지금처럼 일치를 검증합니다 (#1281)
 
 ## [2.0.0] - 2026-10-08
 
