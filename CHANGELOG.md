@@ -9,17 +9,7 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
-### Added
-
-- **cli**: `memento connect project` — 현재 저장소의 Claude Code(local scope)·Codex·Cursor MCP 설정에 `X-Memento-Project-Id` 헤더를 씁니다. 프로젝트 이름은 `--project-id` → `MEMENTO_PROJECT_ID` → 저장소 폴더명. API key 가 든 저장소 파일은 `.git/info/exclude` 에 올립니다 (#1270)
-
-### Security
-
-- **server**: WebSocket 연결도 HTTP 와 같은 인증을 거칩니다 — `tools:invoke` API 토큰(`Authorization` 또는 `X-API-Key`), 또는 대시보드 세션 쿠키와 이 서버·`CORS_ALLOWED_ORIGINS` 의 Origin. 토큰 없이 WebSocket 으로 붙던 클라이언트는 헤더를 보내야 합니다
-- **server**: agent 에 묶인 API 토큰은 `owner_id`·`agent_id` 인자로 다른 agent 를 지정할 수 없고(400), `owner_id` 를 비운 `recall`·`memory_injection`·`export_memories` 는 자기 기억만 읽습니다. REST·`/mcp`·WebSocket 공통
-- **server**: 대시보드 로그인(`POST /auth/session`)에 admin rate limit 을 걸고 키를 상수 시간으로 비교합니다
-
-## [2.0.0] - 2026-10-05
+## [2.0.0] - 2026-10-08
 
 꺼져 있거나 기본값 0 으로 쓰이지 않던 기능과 호환 경로를 한꺼번에 걷어 낸 메이저 릴리스입니다 (#1246). 운영 검색 결과는 바뀌지 않습니다 — 제거한 랭킹 항은 모두 이미 가중치 0 이었고, 제거한 쓰기 경로는 플래그로 꺼져 있었습니다.
 
@@ -42,9 +32,17 @@
 2. `.env` 에서 `CONSOLIDATION_SCORE_ENABLED`, `MEMENTO_TYPE_PARAM_MODE`, `CONSOLIDATION_TEST_*` 를 지우세요 (남아 있어도 무시됩니다).
 3. 배포 전 `npm run db:pre-docker-deploy` 로 백업하세요. 051·052 는 컬럼·테이블을 지우며 되돌릴 수 없습니다.
 4. `.env` 에서 `MEMENTO_EVENT_OUTBOX_ENABLED` 를 지우세요. 에이전트마다 토큰을 나눴다면 각 항목에 `agent_id` 를 더해 헤더 사칭을 막을 수 있습니다 (선택).
+5. WebSocket 으로 붙는 클라이언트는 `Authorization: Bearer <tools:invoke 토큰>` 또는 `X-API-Key` 를 보내야 합니다. 대시보드는 그대로 동작합니다.
+
+### Security
+
+- **server**: WebSocket 연결도 HTTP 와 같은 인증을 거칩니다 — `tools:invoke` API 토큰(`Authorization` 또는 `X-API-Key`), 또는 대시보드 세션 쿠키와 이 서버·`CORS_ALLOWED_ORIGINS` 의 Origin. 토큰 없이 WebSocket 으로 붙던 클라이언트는 헤더를 보내야 합니다
+- **server**: agent 에 묶인 API 토큰은 `owner_id`·`agent_id` 인자로 다른 agent 를 지정할 수 없고(400), `owner_id` 를 비운 `recall`·`memory_injection`·`export_memories` 는 자기 기억만 읽습니다. REST·`/mcp`·WebSocket 공통
+- **server**: 대시보드 로그인(`POST /auth/session`)에 admin rate limit 을 걸고 키를 상수 시간으로 비교합니다
 
 ### Added
 
+- **cli**: `memento connect project` — 현재 저장소의 Claude Code(local scope)·Codex·Cursor MCP 설정에 `X-Memento-Project-Id` 헤더를 씁니다. 프로젝트 이름은 `--project-id` → `MEMENTO_PROJECT_ID` → 저장소 폴더명. API key 가 든 저장소 파일은 `.git/info/exclude` 에 올립니다 (#1270)
 - **auth**: `MEMENTO_API_TOKENS` 항목에 선택 필드 `agent_id` 를 둘 수 있습니다. 묶인 토큰의 요청은 그 값을 agent 신원으로 쓰고(`/tools`·`/mcp`·감사 로그), `X-Memento-Agent-Id`·`X-Agent-Id` 가 다르면 403 `AGENT_ID_MISMATCH` 입니다. 지금까지는 헤더만 바꾸면 다른 agent 의 forget owner scope·strict recall 필터를 통과했습니다. `agent_id` 가 없는 토큰은 동작이 같습니다 (#1258)
 - **mcp**: `X-Memento-Project-Id` 요청 헤더가 `remember` 신규 저장의 기본 `project_id` 가 됩니다. 명시 인자가 우선하고, `memory_id`·`update_mode` 갱신과 recall 필터에는 쓰지 않습니다. 헤더가 없으면 동작이 같습니다 (#1270)
 - **mcp**: `memory_injection` 에 `include_project_brief`(기본 `false`)를 추가했습니다. `true` 면 프로젝트(`project_id` 인자 → `X-Memento-Project-Id`)의 최신 브리프(semantic, tag `project-brief`) 전문을 질의와 무관하게 결과 맨 앞에 싣고 `token_budget` 과 별도로 셉니다. `false` 면 브리프가 있을 때 포인터 한 줄만 붙습니다. 검색 결과와 프로젝트를 알 수 없는 호출은 동작이 같습니다 (#1271)
