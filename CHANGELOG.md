@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- **ci**: 2단계 리뷰 파이프라인 (#1284). `npm run hooks:install` 로 까는 `pre-push` 훅이 push 전에 `lint`·`type-check` 를 돌립니다(Claude Code 외 Codex·Cursor·수동 push 도 포함). PR 에는 `PR Risk` 워크플로가 0–100 위험 점수(보안·범위·파괴적 변경·테스트 누락·DB 마이그레이션)로 `risk:low|medium|high` 라벨과 코멘트를 답니다. 머지를 막지 않는 참고 신호입니다
+
 ## [2.0.1] - 2026-10-09
 
 MCP HTTP 인증 우회를 막는 보안 릴리스입니다. HTTP 모드(`/mcp`)를 쓰는 모든 운영자는 업그레이드하십시오.
