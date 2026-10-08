@@ -93,6 +93,20 @@ npm run check:vi-mock-paths   # 상대 경로 vi.mock 의 대상 모듈 실재 �
 
 `--ci` 를 붙이면 새 위반에서 종료 코드 1로 차단합니다. 이번 범위 밖의 기존 위반은 `scripts/vi-mock-path-baseline.json` 에 사유와 후속 추적 이슈를 붙여 등재해 두었고, 항목이 해소되면 검사가 `정리 대상` 으로 보고하니 목록에서 지우면 됩니다. 범위 한계(`vi.doMock`·템플릿 리터럴)는 #826 에서 다룹니다.
 
+### 리뷰 파이프라인 — 차단은 결정론 도구만
+
+AI 가 짠 코드를 사람이 다 읽지 못하는 만큼, 리뷰를 두 단계로 나누고 머지 차단권은 결정론적 검사에만 둡니다.
+
+1. **Pre-PR (로컬)** — git `pre-push` 훅이 `lint`·`type-check` 를 돌립니다. Claude Code 훅과 달리 Codex·Cursor·수동 push 에도 걸립니다. 저장소마다 한 번 설치하면 모든 worktree 가 공유합니다. 우회는 `git push --no-verify`.
+2. **Post-PR (CI)** — main 보호 규칙의 required check(`lint-typecheck`·`test-*`·`Security Check`)가 통과해야 머지됩니다. `PR Risk` 워크플로는 0–100 리스크 점수(보안 30·범위 20·파괴적 변경 20·테스트 누락 15·DB 마이그레이션 15)로 `risk:low|medium|high` 라벨과 코멘트를 답니다. 점수는 리뷰 깊이를 정하는 advisory 지표이고 머지를 막지 않습니다 — low 는 그대로 머지, medium 은 작성자가 diff 를 읽고 동작을 PR 본문에 설명, high 는 심층·교차 모델 리뷰 후 사람 승인.
+
+같은 리뷰 지적이 반복되면 코멘트로 남기지 말고 `scripts/check-*.ts --ci` 같은 정적 검사로 승격해 CI 에 붙입니다.
+
+```bash
+npm run hooks:install                      # core.hooksPath → scripts/git-hooks
+npm run pr:risk -- --title "<PR 제목>"     # 현재 브랜치의 리스크 점수 미리 보기 (origin/main 기준)
+```
+
 ## 배포 tarball 점검
 
 루트 패키지 tarball 은 `@memento/core` · `@memento/agent-integration` 을 `dist/node_modules/` 아래로 복사해 담습니다. 루트 `node_modules` 의 워크스페이스 링크는 건드리지 않으므로 pack 이 중간에 실패해도 복구할 것이 없습니다.

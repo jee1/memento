@@ -1,0 +1,43 @@
+name: PR Risk
+
+# advisory: 라벨과 코멘트만 단다. required check 로 지정하지 않는다.
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened, edited ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  score:
+    # 포크 PR 토큰은 읽기 전용이라 라벨·코멘트를 못 단다
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Score and label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node scripts/pr-risk-score.ts --base "$BASE_SHA" --head HEAD --title "$TITLE" --json > risk.json
+          level=$(jq -r .level risk.json)
+          jq -r .markdown risk.json > risk.md
+          for l in low medium high; do
+            if [ "$l" = "$level" ]; then
+              gh pr edit "$PR" --add-label "risk:$l"
+            else
+              gh pr edit "$PR" --remove-label "risk:$l" 2>/dev/null || true
+            fi
+          done
+          gh pr comment "$PR" --body-file risk.md --edit-last --create-if-none
