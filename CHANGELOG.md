@@ -37,7 +37,7 @@
 
 - **auth**: `MEMENTO_API_TOKENS` 항목에 선택 필드 `agent_id` 를 둘 수 있습니다. 묶인 토큰의 요청은 그 값을 agent 신원으로 쓰고(`/tools`·`/mcp`·감사 로그), `X-Memento-Agent-Id`·`X-Agent-Id` 가 다르면 403 `AGENT_ID_MISMATCH` 입니다. 지금까지는 헤더만 바꾸면 다른 agent 의 forget owner scope·strict recall 필터를 통과했습니다. `agent_id` 가 없는 토큰은 동작이 같습니다 (#1258)
 - **mcp**: `X-Memento-Project-Id` 요청 헤더가 `remember` 신규 저장의 기본 `project_id` 가 됩니다. 명시 인자가 우선하고, `memory_id`·`update_mode` 갱신과 recall 필터에는 쓰지 않습니다. 헤더가 없으면 동작이 같습니다 (#1270)
-- **mcp**: `memory_injection` 에 `include_project_brief`(기본 `false`)를 추가했습니다. `true` 면 프로젝트(`project_id` 인자 → `X-Memento-Project-Id`)의 최신 브리프(tag `project-brief`) 전문을 질의와 무관하게 결과 맨 앞에 싣고 `token_budget` 과 별도로 셉니다. `false` 면 브리프가 있을 때 포인터 한 줄만 붙습니다. 검색 결과와 프로젝트를 알 수 없는 호출은 동작이 같습니다 (#1271)
+- **mcp**: `memory_injection` 에 `include_project_brief`(기본 `false`)를 추가했습니다. `true` 면 프로젝트(`project_id` 인자 → `X-Memento-Project-Id`)의 최신 브리프(semantic, tag `project-brief`) 전문을 질의와 무관하게 결과 맨 앞에 싣고 `token_budget` 과 별도로 셉니다. `false` 면 브리프가 있을 때 포인터 한 줄만 붙습니다. 검색 결과와 프로젝트를 알 수 없는 호출은 동작이 같습니다 (#1271)
 - **consolidation**: optional judge (`CONSOLIDATION_JUDGE=typesafe`, Jev) verifies each cluster member against the seed and each merge into an existing semantic; members it rejects or cannot judge stay unconsolidated (#1225)
 - **dashboard**: `GET /admin/memory/search` — admin hybrid memory search (preview list, no recall side effects) for the 기억 찾기 tab (#1118)
 

@@ -29,7 +29,10 @@ interface ProjectBriefRow {
   version: number | null;
 }
 
-/** 프로젝트의 최신 브리프 1건. versioned 갱신은 새 행을 만들므로 created_at 최신이 현재 판이다. */
+/**
+ * 프로젝트의 최신 브리프 1건. versioned 갱신은 새 행을 만들므로 created_at 최신이 현재 판이다.
+ * semantic 만 본다 — 작업 기록(episodic)에 태그가 붙어도 브리프로 잡히지 않게.
+ */
 function findProjectBrief(
   db: Database.Database,
   projectId: string,
@@ -40,6 +43,7 @@ function findProjectBrief(
   return DatabaseUtils.get(db, `
     SELECT id, content, version FROM memory_item
     WHERE project_id = ?
+      AND type = 'semantic'
       AND COALESCE(is_deleted, 0) = 0
       AND EXISTS (SELECT 1 FROM json_each(COALESCE(tags, '[]')) WHERE value = ?)
       ${ownerSql}

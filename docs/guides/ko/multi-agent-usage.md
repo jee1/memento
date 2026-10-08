@@ -125,7 +125,7 @@ claude mcp add --scope local --transport http memento http://localhost:9001/mcp 
 
 ## 프로젝트 브리프 (include_project_brief, #1271)
 
-여러 AI 가 한 프로젝트를 이어받을 때 읽을 기준 문서입니다. 브리프는 별도 테이블이 아니라 `project_id` 와 태그 `project-brief` 를 가진 기억이며, 같은 프로젝트에 여러 행이 있으면 `created_at` 이 가장 최근인 행이 현재 판입니다.
+여러 AI 가 한 프로젝트를 이어받을 때 읽을 기준 문서입니다. 브리프는 별도 테이블이 아니라 `project_id` 와 태그 `project-brief` 를 가진 **semantic** 기억이며(다른 타입은 태그가 있어도 무시), 같은 프로젝트에 여러 행이 있으면 `created_at` 이 가장 최근인 행이 현재 판입니다.
 
 - **작성**: `remember(type: "semantic", tags: ["project-brief"], project_id: "<프로젝트>", content: "<기획·결정·다음 할 일>")` — 헤더가 있으면 `project_id` 생략 가능
 - **갱신**: `remember(memory_id, update_mode: "replace", expected_version, project_id, ...)` — 다른 AI 가 먼저 고쳤으면 `memory_version_conflict`(409). 갱신은 헤더를 쓰지 않으므로 `project_id` 를 명시합니다
