@@ -59,6 +59,7 @@ import {
   createStrictAuditCoverageMiddleware,
   createOwnerScopeMiddleware,
   createProgrammaticAuthMiddleware,
+  resolveAuthenticatedToken,
   createServiceInjector,
   createSessionAuthMiddleware,
   createToolContextMiddleware,
@@ -72,7 +73,7 @@ import {
   performCleanup,
   registerCleanupHandlers,
 } from './http-server-lifecycle.js';
-import { setupWebSocketServer } from './http-server-websocket.js';
+import { createWebSocketVerifyClient, setupWebSocketServer } from './http-server-websocket.js';
 
 // 전역 변수 (서비스는 serverServices로만 접근)
 let db: Database.Database | null = null;
@@ -393,7 +394,7 @@ function registerRoutes(
     ownerScopeMiddleware,
     toolsRouter!,
   );
-  app.use('/auth', authRouter!);
+  app.use('/auth', adminRateLimit, authRouter!);
   app.use('/admin', adminRateLimit, browserSessionAuth, adminRouter!);
   app.use('/api/v1/quality', adminHttpAudit, adminAuth, strictAdminAudit, qualityRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Quality API route not found.' });
@@ -464,14 +465,28 @@ export async function cleanup() {
 }
 
 // WebSocket 서버 설정
-const wss = new WebSocketServer({ server });
+const wsTokenRegistry = () => createApiTokenRegistry(mementoConfig.apiTokens);
+const wss = new WebSocketServer({
+  server,
+  verifyClient: createWebSocketVerifyClient({
+    getSessionStore: () => adminSessionStore,
+    getTokenRegistry: wsTokenRegistry,
+    allowedOrigins: mementoConfig.corsAllowedOrigins,
+  }),
+});
 function isSidecarPortConflict(error: unknown): boolean {
   return !ownsCore && error instanceof Error && 'code' in error && error.code === 'EADDRINUSE';
 }
 wss.on('error', (error) => {
   if (!isSidecarPortConflict(error)) logger.error('WebSocket 서버 오류', { error });
 });
-setupWebSocketServer(wss, anchorMapSubscribers, () => db, () => serverServices);
+setupWebSocketServer(
+  wss,
+  anchorMapSubscribers,
+  () => db,
+  () => serverServices,
+  (req) => resolveAuthenticatedToken(req, wsTokenRegistry())?.agentId,
+);
 
 /** Stop HTTP-owned resources without touching the shared core. */
 export async function closeHttpServer(): Promise<void> {

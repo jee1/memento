@@ -116,7 +116,7 @@ export function readAgentIdHeader(req: Request): string | null {
   return null;
 }
 
-function readBearerToken(req: Request): string | null {
+function readBearerToken(req: Pick<Request, 'headers'>): string | null {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return null;
@@ -126,7 +126,7 @@ function readBearerToken(req: Request): string | null {
   return token === '' ? null : token;
 }
 
-function readApiKeyHeader(req: Request): string | null {
+function readApiKeyHeader(req: Pick<Request, 'headers'>): string | null {
   const apiKeyHeader = req.headers['x-api-key'];
   if (typeof apiKeyHeader !== 'string') {
     return null;
@@ -136,8 +136,9 @@ function readApiKeyHeader(req: Request): string | null {
   return value === '' ? null : value;
 }
 
-function resolveAuthenticatedToken(
-  req: Request,
+/** Bearer 를 먼저, 실패하면 X-API-Key 로 토큰을 푼다. WebSocket 업그레이드 요청도 같은 규칙을 쓴다. */
+export function resolveAuthenticatedToken(
+  req: Pick<Request, 'headers'>,
   registry: ApiTokenRegistry,
 ): ReturnType<ApiTokenRegistry['resolveToken']> {
   const bearerToken = readBearerToken(req);
