@@ -39,6 +39,8 @@
     "test:ci:scripts": "vitest --run scripts",
     "lint": "npm run lint:ts && npm run lint:js",
     "type-check": "npm run type-check -w @memento/agent-integration && npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @jee1/memento-client && npm run type-check -w @jee1/memento-assistant && npm run type-check -w experimental-example",
+    "hooks:install": "git config core.hooksPath scripts/git-hooks",
+    "pr:risk": "node scripts/pr-risk-score.ts",
     "db:init": "npm run db:init -w @memento/core",
     "db:backup": "node scripts/backup-memory-db.mjs",
     "db:backup:docker": "sh scripts/backup-in-docker.sh",
