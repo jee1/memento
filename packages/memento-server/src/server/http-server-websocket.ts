@@ -4,10 +4,59 @@ import {
   type ServerServices,
 } from '@memento/core';
 import type Database from 'better-sqlite3';
-import type { WebSocket } from 'ws';
+import type { IncomingMessage } from 'http';
+import type { VerifyClientCallbackAsync, WebSocket } from 'ws';
 import type { WebSocketServer } from 'ws';
 import { dispatchTool, mapToolDispatchError } from './audit-tool-dispatch.js';
+import { hasScope, type ApiTokenRegistry } from './auth/api-token-registry.js';
+import type { SessionStore } from './auth/session-store.js';
 import { recordWebSocketRequestAudit } from './middleware/http-audit.middleware.js';
+import { resolveAuthenticatedToken } from './middleware/programmatic-auth.middleware.js';
+import { DASHBOARD_SESSION_COOKIE_NAME, readCookie } from './middleware/session-auth.middleware.js';
+
+export type WebSocketAuthConfig = {
+  getSessionStore: () => SessionStore | null;
+  getTokenRegistry: () => ApiTokenRegistry;
+  allowedOrigins: readonly string[];
+};
+
+/** 브라우저 Origin 이 이 서버(Host) 자신이거나 CORS 허용 목록에 있는가. */
+function isTrustedOrigin(origin: string | undefined, req: IncomingMessage, allowed: readonly string[]): boolean {
+  if (!origin) return false;
+  if (allowed.includes(origin)) return true;
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * WebSocket 업그레이드 인증. WebSocket 핸드셰이크는 CORS 를 받지 않으므로 여기서 막지 않으면
+ * 사용자가 연 아무 웹페이지가 tools/call 을 실행할 수 있다.
+ * - 프로그램 클라이언트: HTTP 와 같은 API 토큰(tools:invoke, Authorization 또는 X-API-Key)
+ * - 대시보드: 세션 쿠키 + 이 서버 또는 허용 목록의 Origin
+ */
+export function createWebSocketVerifyClient(config: WebSocketAuthConfig): VerifyClientCallbackAsync {
+  return ({ origin, req }, done) => {
+    const registry = config.getTokenRegistry();
+    if (registry.hasConfiguredTokens()) {
+      const token = resolveAuthenticatedToken(req, registry);
+      if (token) {
+        done(hasScope(token.scopes, 'tools:invoke'), 403);
+        return;
+      }
+    }
+
+    const sessionId = readCookie(req.headers.cookie, DASHBOARD_SESSION_COOKIE_NAME);
+    const session = sessionId ? config.getSessionStore()?.touch(sessionId) : null;
+    if (!session) {
+      done(false, 401);
+      return;
+    }
+    done(isTrustedOrigin(origin, req, config.allowedOrigins), 403);
+  };
+}
 
 interface WebSocketMessage {
   method?: string;
@@ -22,8 +71,10 @@ export function setupWebSocketServer(
   anchorMapSubscribers: Map<string, Set<WebSocket>>,
   getDb: () => Database.Database | null,
   getServerServices: () => ServerServices | null,
+  getBoundAgentId: (req: IncomingMessage) => string | undefined = () => undefined,
 ): void {
-  wss.on('connection', (ws: WebSocket) => {
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    const boundAgentId = getBoundAgentId(req);
     logger.info('WebSocket 클라이언트 연결됨');
     const connectionDb = getDb();
     if (connectionDb) recordWebSocketRequestAudit(connectionDb);
@@ -91,7 +142,7 @@ export function setupWebSocketServer(
             return;
           }
 
-          const result = await dispatchTool(name, args, db, serverServices, { transport: 'mcp_ws' });
+          const result = await dispatchTool(name, args, db, serverServices, { transport: 'mcp_ws', agentId: boundAgentId, boundAgentId });
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             id: message.id,

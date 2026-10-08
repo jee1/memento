@@ -13,6 +13,12 @@
 
 - **cli**: `memento connect project` — 현재 저장소의 Claude Code(local scope)·Codex·Cursor MCP 설정에 `X-Memento-Project-Id` 헤더를 씁니다. 프로젝트 이름은 `--project-id` → `MEMENTO_PROJECT_ID` → 저장소 폴더명. API key 가 든 저장소 파일은 `.git/info/exclude` 에 올립니다 (#1270)
 
+### Security
+
+- **server**: WebSocket 연결도 HTTP 와 같은 인증을 거칩니다 — `tools:invoke` API 토큰(`Authorization` 또는 `X-API-Key`), 또는 대시보드 세션 쿠키와 이 서버·`CORS_ALLOWED_ORIGINS` 의 Origin. 토큰 없이 WebSocket 으로 붙던 클라이언트는 헤더를 보내야 합니다
+- **server**: agent 에 묶인 API 토큰은 `owner_id`·`agent_id` 인자로 다른 agent 를 지정할 수 없고(400), `owner_id` 를 비운 `recall`·`memory_injection`·`export_memories` 는 자기 기억만 읽습니다. REST·`/mcp`·WebSocket 공통
+- **server**: 대시보드 로그인(`POST /auth/session`)에 admin rate limit 을 걸고 키를 상수 시간으로 비교합니다
+
 ## [2.0.0] - 2026-10-05
 
 꺼져 있거나 기본값 0 으로 쓰이지 않던 기능과 호환 경로를 한꺼번에 걷어 낸 메이저 릴리스입니다 (#1246). 운영 검색 결과는 바뀌지 않습니다 — 제거한 랭킹 항은 모두 이미 가중치 0 이었고, 제거한 쓰기 경로는 플래그로 꺼져 있었습니다.

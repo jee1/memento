@@ -11,7 +11,7 @@ export {
   DASHBOARD_SESSION_COOKIE_NAME,
 } from './session-auth.middleware.js';
 export { createOwnerScopeMiddleware } from './owner-scope.middleware.js';
-export { createProgrammaticAuthMiddleware } from './programmatic-auth.middleware.js';
+export { createProgrammaticAuthMiddleware, resolveAuthenticatedToken } from './programmatic-auth.middleware.js';
 export { createHttpAuditMiddleware, createStrictAuditCoverageMiddleware } from './http-audit.middleware.js';
 export {
   createAdminRateLimitMiddleware,

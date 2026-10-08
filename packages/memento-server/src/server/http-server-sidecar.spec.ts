@@ -112,7 +112,9 @@ describe('HTTP sidecar lifecycle', () => {
   it('closes active WebSocket and SSE connections while preserving the core', async () => {
     const server = await http.startServer({ database: ctx.db, serverServices: ctx.services });
     const port = (server.address() as AddressInfo).port;
-    const socket = new WebSocket(`ws://127.0.0.1:${port}`);
+    const socket = new WebSocket(`ws://127.0.0.1:${port}`, {
+      headers: { Authorization: 'Bearer sidecar-test-token' },
+    });
     await once(socket, 'open');
     const socketClosed = once(socket, 'close');
     const response = await fetch(`http://127.0.0.1:${port}/mcp`, {

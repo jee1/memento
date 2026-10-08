@@ -11,6 +11,7 @@ import {
   type ServerServices,
   type ToolContext,
   type ToolResult,
+  ToolInputValidationError,
 } from '@memento/core';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import type Database from 'better-sqlite3';
@@ -20,6 +21,8 @@ export type ToolAuditContext = {
   transport: AuditTransport;
   actorId?: string | null;
   agentId?: string | null;
+  /** API 토큰에 묶인 agent. 헤더로 주장한 agentId 와 달리 인자로 바꿀 수 없다. */
+  boundAgentId?: string | null;
   projectId?: string | null;
 };
 
@@ -112,6 +115,27 @@ function coverageInput(name: string, args: unknown, context: ToolAuditContext) {
   };
 }
 
+/** owner_id 가 누구의 기억을 읽을지 정하는 도구들. */
+const OWNER_FILTER_TOOLS = new Set(['recall', 'memory_injection', 'export_memories']);
+
+/**
+ * 토큰에 묶인 agent 는 owner_id·agent_id 인자로 다른 agent 를 지정할 수 없고,
+ * owner_id 를 비우면 자기 기억만 읽는다. 모든 transport 가 이 경계를 지난다.
+ */
+export function scopeArgsToBoundAgent(name: string, args: unknown, boundAgentId: string | null | undefined): unknown {
+  if (!boundAgentId) return args;
+  const record = args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {};
+  for (const key of ['owner_id', 'agent_id']) {
+    const value = record[key];
+    if (value === undefined || value === null) continue;
+    const values: unknown[] = Array.isArray(value) ? value : [value];
+    if (values.some((v) => v !== boundAgentId)) {
+      throw new ToolInputValidationError(`${key} must match the agent bound to this API token.`);
+    }
+  }
+  return OWNER_FILTER_TOOLS.has(name) && record.owner_id == null ? { ...record, owner_id: boundAgentId } : args;
+}
+
 /** Validates strict-mode audit prerequisites before a tool can mutate state. */
 export function assertToolAuditCoverage(
   db: Database.Database,
@@ -166,10 +190,12 @@ export function createToolDispatcher(options: {
 } = {}): ToolDispatcher {
   const limiter = new Semaphore(options.maxConcurrency ?? 20);
 
-  return async (name, args, db, services, auditContext) => {
+  return async (name, rawArgs, db, services, auditContext) => {
     await limiter.acquire();
     let executionStarted = false;
+    let args = rawArgs;
     try {
+      args = scopeArgsToBoundAgent(name, rawArgs, auditContext.boundAgentId);
       assertToolAuditCoverage(db, name, args, auditContext);
       executionStarted = true;
       const context = createToolContext({

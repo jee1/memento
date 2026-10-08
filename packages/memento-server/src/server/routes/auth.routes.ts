@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
+
 import { Router } from 'express';
 
 import type { SessionStore } from '../auth/session-store.js';
@@ -42,6 +44,13 @@ function readCookie(cookieHeader: string | undefined, cookieName: string): strin
   return null;
 }
 
+/** 길이와 내용이 응답 시간으로 새지 않게 해시 뒤 상수 시간으로 비교한다. */
+function secretsMatch(provided: string | undefined, expected: string): boolean {
+  if (provided === undefined) return false;
+  const digest = (value: string) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(provided), digest(expected));
+}
+
 export function createAuthRouter(config: AuthRouterConfig): Router {
   const router = Router();
 
@@ -51,7 +60,7 @@ export function createAuthRouter(config: AuthRouterConfig): Router {
     const apiKeyHeader = readApiKeyHeader(req.headers['x-api-key']);
     const providedKey = bearerToken ?? apiKeyHeader;
 
-    if (!expectedKey || providedKey !== expectedKey) {
+    if (!expectedKey || !secretsMatch(providedKey, expectedKey)) {
       res.status(401).json({
         error: 'Unauthorized',
         message: 'Valid admin credentials are required to create a dashboard session.'

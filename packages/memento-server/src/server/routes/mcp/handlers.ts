@@ -246,6 +246,7 @@ export async function handleStreamableMcpPost(
       transport: 'mcp_http',
       actorId: req.programmaticAuth?.keyId,
       agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+      boundAgentId: req.programmaticAuth?.agentId,
       projectId: readProjectIdHeader(req),
     };
     const result = await processMcpMessage(message, db, serverServices, auditContext, {
@@ -317,6 +318,7 @@ export async function handleSseMessagePost(
       transport: 'mcp_http',
       actorId: req.programmaticAuth?.keyId,
       agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+      boundAgentId: req.programmaticAuth?.agentId,
       projectId: readProjectIdHeader(req),
     };
     const result = await processMcpMessage(message, db, serverServices, auditContext);

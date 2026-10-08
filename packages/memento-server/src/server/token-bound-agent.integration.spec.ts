@@ -138,6 +138,26 @@ describe('token-bound agent identity integration', () => {
     expect(response.body).not.toContain('owner scope beta secret token');
   });
 
+  it('bound token: recall naming another owner_id is refused without leaking memory', async () => {
+    const port = await startRealHttpServer();
+
+    const response = await postJson(
+      port,
+      '/tools/recall',
+      {
+        query: 'owner scope secret token',
+        type: 'semantic',
+        owner_id: 'agent-b',
+        limit: 10,
+        enable_hybrid: false,
+      },
+      { Authorization: 'Bearer secret-a' },
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).not.toContain('owner scope beta secret token');
+  });
+
   it('bound token: recall without agent header uses bound id and returns only owned memories', async () => {
     const port = await startRealHttpServer();
 
