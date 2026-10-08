@@ -467,7 +467,8 @@ describe('MemoryInjectionPrompt', () => {
           ('brief_old', 'semantic', '낡은 브리프', 0.9, 'proj-b', '["project-brief"]', NULL, 'agent-a', datetime('now', '-1 day')),
           ('brief_new', 'semantic', '${BRIEF}', 0.9, 'proj-b', '["project-brief"]', 3, 'agent-a', datetime('now')),
           ('brief_other', 'semantic', '다른 프로젝트 브리프', 0.9, 'proj-c', '["project-brief"]', NULL, NULL, datetime('now')),
-          ('plain_b', 'semantic', '관련 없는 조각 기억', 0.9, 'proj-b', '["misc"]', NULL, NULL, datetime('now'))
+          ('plain_b', 'semantic', '관련 없는 조각 기억', 0.9, 'proj-b', '["misc"]', NULL, NULL, datetime('now')),
+          ('log_b', 'episodic', '브리프 태그가 붙은 작업 기록', 0.9, 'proj-b', '["completed","project-brief"]', NULL, 'agent-a', datetime('now', '+1 minute'))
       `);
     });
 
@@ -481,6 +482,12 @@ describe('MemoryInjectionPrompt', () => {
       expect(out.message).toContain(BRIEF);
       expect(out.message).not.toContain('낡은 브리프');
       expect(out.project_brief).toEqual({ memory_id: 'brief_new', project_id: 'proj-b', version: 3, included: true });
+    });
+
+    it('semantic 이 아닌 기억은 태그가 있어도 브리프로 고르지 않는다', async () => {
+      const out = parse(await tool.handle({ query: '전혀 무관한 질의', project_id: 'proj-b', include_project_brief: true }, context));
+      expect(out.project_brief.memory_id).toBe('brief_new');
+      expect(out.message.startsWith('# 프로젝트 브리프 — project-brief v3')).toBe(true);
     });
 
     it('미지정이면 전문 없이 포인터 한 줄만 붙인다', async () => {
