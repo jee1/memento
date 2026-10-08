@@ -103,6 +103,7 @@ const NOT_DOCUMENTED: Record<string, string> = {
   // 플랫폼·런타임이 주는 값
   HOME: '운영체제가 주는 홈 디렉터리. CLI 가 ~/.claude·~/.codex 설정 경로를 찾을 때 읽는다.',
   HOSTNAME: '운영체제·컨테이너가 주는 호스트 이름. 리뷰 후보 relay 의 instance_id 로 쓴다.',
+  MEMENTO_PROJECT_ID: '호스트 CLI `memento connect project` 의 프로젝트 이름 덮어쓰기 (#1270). 서버는 읽지 않는다.',
   VITEST: 'vitest 가 테스트 실행 중에 스스로 설정한다.',
   // 컨테이너 고정값 — compose 가 리터럴로 박는다
   DOCKER: "docker-compose.base.yml 이 'true' 로 고정한다. 컨테이너 여부 신호다.",

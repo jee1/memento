@@ -123,6 +123,13 @@ claude mcp add --scope local --transport http memento http://localhost:9001/mcp 
   --header "X-API-Key: <key>" --header "X-Memento-Project-Id: memento"
 ```
 
+Run `memento connect project` inside a repository to write this header to the Claude Code (local scope), Codex (`.codex/config.toml`) and Cursor (`.cursor/mcp.json`) configs at once. The project name comes from `--project-id`, then `MEMENTO_PROJECT_ID`, then the repository folder name. URL and API key are copied from each client's global memento config; a client with no global config is reported as `skipped`. Repo files hold the API key, so they are added to `.git/info/exclude` unless git already ignores them. `--dry-run` writes nothing.
+
+```bash
+cd ~/git/my-repo && memento connect project            # project_id = my-repo
+memento connect project --project-id memento --dry-run
+```
+
 ## Project brief (include_project_brief, #1271)
 
 The brief is the reference document an AI reads when it picks up a project from another AI. It is not a separate table: it is a **semantic** memory with a `project_id` and the tag `project-brief` (other types are ignored even with the tag). If a project has several such rows, the one with the latest `created_at` is current.

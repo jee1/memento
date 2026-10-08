@@ -177,6 +177,10 @@ export async function main(): Promise<number> {
     const { runClaudeCodeConnect } = await import('./cli/claude-code-connect.js');
     return runClaudeCodeConnect(agentTokens.slice(2));
   }
+  if (agentTokens[0] === 'connect' && agentTokens[1] === 'project') {
+    const { runProjectConnect } = await import('./cli/project-connect.js');
+    return runProjectConnect(agentTokens.slice(2));
+  }
   if (agentTokens[0] === 'hook' && agentTokens[1] === 'claude-code') {
     const { runClaudeCodeHookCommand } = await import('./cli/claude-code-hook.js');
     return runClaudeCodeHookCommand();
@@ -211,6 +215,7 @@ export async function main(): Promise<number> {
     await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
     await writeStderr('  connect claude-code Claude Code lifecycle hook 연결\n');
     await writeStderr('  hook claude-code    Claude Code hook stdin 처리 (internal)\n');
+    await writeStderr('  connect project     현재 저장소 MCP 설정에 X-Memento-Project-Id 헤더 기록 (#1270)\n');
     await writeStderr('\n');
     await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
     await writeStderr('  --db-path <path>    review-queue cleanup DB 경로 (기타 명령은 deprecated)\n');
