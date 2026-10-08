@@ -250,7 +250,7 @@ export class RememberTool extends BaseTool {
           type, ownerId, processId, sessionId,
           numTimes, sourceSessionId, confidenceVal,
           origin_source, startTime,
-          project_id_param: projectIdParam ?? null,
+          project_id_param: projectIdParam,
           last_mentioned_at_param: last_mentioned_at_param ?? null
         },
         host

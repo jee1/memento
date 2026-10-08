@@ -156,4 +156,60 @@ describe('RememberTool context.projectId (#1270)', () => {
     expect(row.project_id).toBeNull();
     expect(row.content).toBe('updated content');
   });
+
+  function insertProjectMemory(id: string, projectId: string): void {
+    db.prepare(`
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, project_id, is_deleted)
+      VALUES (?, ?, ?, ?, ?, ?, 0)
+    `).run(id, 'episodic', 'original content', 0.5, 'private', projectId);
+  }
+
+  // #1281: 헤더로 저장한 기억은 project_id 를 넘길 수 없는 MCP 클라이언트도 갱신할 수 있어야 한다
+  it.each([
+    ['with the same context.projectId', { projectId: 'proj-a' }],
+    ['without context.projectId', {}],
+  ])('replace keeps the target project_id when project_id is omitted (%s)', async (_label, extra) => {
+    insertProjectMemory('mem-proj-a', 'proj-a');
+
+    const result = await tool.handle({
+      type: 'episodic',
+      content: 'updated content',
+      memory_id: 'mem-proj-a',
+      update_mode: 'replace',
+    }, { ...baseContext, ...extra });
+
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.content[0].text).updated).toBe(true);
+    const row = db.prepare('SELECT project_id, content FROM memory_item WHERE id = ?')
+      .get('mem-proj-a') as { project_id: string | null; content: string };
+    expect(row).toEqual({ project_id: 'proj-a', content: 'updated content' });
+  });
+
+  it('versioned update copies the target project_id to the new row when project_id is omitted', async () => {
+    insertProjectMemory('mem-proj-a', 'proj-a');
+
+    const result = await tool.handle({
+      type: 'episodic',
+      content: 'next version',
+      memory_id: 'mem-proj-a',
+      update_mode: 'versioned',
+    }, baseContext);
+
+    expect(result.isError).toBeFalsy();
+    const row = db.prepare('SELECT project_id FROM memory_item WHERE content = ?')
+      .get('next version') as { project_id: string | null } | undefined;
+    expect(row?.project_id).toBe('proj-a');
+  });
+
+  it('still rejects an explicit project_id that differs from the target', async () => {
+    insertProjectMemory('mem-proj-a', 'proj-a');
+
+    await expect(tool.handle({
+      type: 'episodic',
+      content: 'updated content',
+      memory_id: 'mem-proj-a',
+      update_mode: 'replace',
+      project_id: 'proj-b',
+    }, baseContext)).rejects.toThrow('memory_id의 project_id가 요청과 다릅니다: mem-proj-a');
+  });
 });

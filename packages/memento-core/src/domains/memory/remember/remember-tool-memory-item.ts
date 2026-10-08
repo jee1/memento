@@ -258,7 +258,7 @@ export async function handleMemoryItem(
     throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
   }
 
-  const projectId = project_id_param ?? null;
+  let projectId = project_id_param ?? null;
 
   const contentHash = createHash('sha256').update(content).digest('hex').slice(0, 16);
   context.services?.telemetryService?.record({
@@ -299,7 +299,10 @@ export async function handleMemoryItem(
     if (String(loaded.owner_id ?? '') !== String(ownerId ?? '')) {
       throw new ToolInputValidationError(`memory_id에 접근할 수 없습니다: ${memory_id}`);
     }
-    if (String(loaded.project_id ?? '') !== String(projectId ?? '')) {
+    // project_id 를 명시하지 않은 갱신은 대상의 project_id 를 잇는다 (#1281). 접근 경계는 위 owner 검증이다.
+    if (project_id_param === undefined) {
+      projectId = loaded.project_id ?? null;
+    } else if (String(loaded.project_id ?? '') !== String(projectId ?? '')) {
       throw new ToolInputValidationError(
         `memory_id의 project_id가 요청과 다릅니다: ${memory_id}`,
       );
@@ -383,7 +386,7 @@ export async function handleMemoryItem(
       context.db!,
       id,
       workingParams,
-      { ...ctx, numTimes },
+      { ...ctx, project_id_param: projectId, numTimes },
       existingMemory,
       finalReflectionNotes,
       context,
