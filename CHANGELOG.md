@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- **cli**: `memento connect project` — 현재 저장소의 Claude Code(local scope)·Codex·Cursor MCP 설정에 `X-Memento-Project-Id` 헤더를 씁니다. 프로젝트 이름은 `--project-id` → `MEMENTO_PROJECT_ID` → 저장소 폴더명. API key 가 든 저장소 파일은 `.git/info/exclude` 에 올립니다 (#1270)
+
 ## [2.0.0] - 2026-10-05
 
 꺼져 있거나 기본값 0 으로 쓰이지 않던 기능과 호환 경로를 한꺼번에 걷어 낸 메이저 릴리스입니다 (#1246). 운영 검색 결과는 바뀌지 않습니다 — 제거한 랭킹 항은 모두 이미 가중치 0 이었고, 제거한 쓰기 경로는 플래그로 꺼져 있었습니다.

@@ -123,6 +123,13 @@ claude mcp add --scope local --transport http memento http://localhost:9001/mcp 
   --header "X-API-Key: <key>" --header "X-Memento-Project-Id: memento"
 ```
 
+`memento connect project` 를 저장소 안에서 실행하면 이 헤더를 Claude Code(local scope)·Codex(`.codex/config.toml`)·Cursor(`.cursor/mcp.json`) 설정에 한 번에 씁니다. 프로젝트 이름은 `--project-id` → `MEMENTO_PROJECT_ID` → 저장소 폴더명 순입니다. URL·API key 는 각 클라이언트의 전역 memento 설정에서 복사하고, 전역 설정이 없는 클라이언트는 `skipped` 로 건너뜁니다. 저장소 파일에는 API key 가 들어가므로 git 이 무시하지 않으면 `.git/info/exclude` 에 추가합니다. `--dry-run` 은 아무것도 쓰지 않습니다.
+
+```bash
+cd ~/git/my-repo && memento connect project            # project_id = my-repo
+memento connect project --project-id memento --dry-run
+```
+
 ## 프로젝트 브리프 (include_project_brief, #1271)
 
 여러 AI 가 한 프로젝트를 이어받을 때 읽을 기준 문서입니다. 브리프는 별도 테이블이 아니라 `project_id` 와 태그 `project-brief` 를 가진 **semantic** 기억이며(다른 타입은 태그가 있어도 무시), 같은 프로젝트에 여러 행이 있으면 `created_at` 이 가장 최근인 행이 현재 판입니다.
