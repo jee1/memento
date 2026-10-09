@@ -42,7 +42,7 @@
     "hooks:install": "git config core.hooksPath scripts/git-hooks",
     "pr:risk": "node scripts/pr-risk-score.ts",
     "pr:gate": "node scripts/pr-merge-gate.ts",
-    "knip": "knip --workspace packages/memento-core --workspace packages/memento-server",
+    "knip": "npx -y knip@5.88.1 --workspace packages/memento-core --workspace packages/memento-server",
     "db:init": "npm run db:init -w @memento/core",
     "db:backup": "node scripts/backup-memory-db.mjs",
     "db:backup:docker": "sh scripts/backup-in-docker.sh",
@@ -144,7 +144,6 @@
     "eslint": "^8.54.0",
     "eslint-plugin-security": "^3.0.1",
     "eventsource": "^4.0.0",
-    "knip": "^5.88.1",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
