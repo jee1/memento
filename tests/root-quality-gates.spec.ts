@@ -47,6 +47,8 @@ function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
 
   for (const entry of entries) {
+    // 설치 산출물은 소스가 아니다. 끊어진 .bin 심볼릭 링크가 statSync 를 ENOENT 로 깨뜨린다.
+    if (entry === 'node_modules' || entry === 'dist') continue;
     const path = join(dir, entry);
     const stat = statSync(path);
 

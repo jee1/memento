@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Changed
+
+- 개발: 에이전트의 PR 머지를 `scripts/pr-merge-gate.ts` 로 일원화했습니다. `PR Risk` 라벨이 low 면 바로, medium 이면 PR 본문의 `## 동작 설명` 이 있을 때, high 면 Codex 리뷰와 사용자의 `approved:human` 라벨이 있을 때만 머지합니다. Claude Code 훅(`scripts/claude-hooks/merge-guard.sh`)이 게이트를 거치지 않은 머지를 막습니다. 런타임 동작은 바뀌지 않습니다.
+
 ## [2.0.3] - 2026-10-09
 
 MCP HTTP·agent API 의 요청 한도와 대시보드 세션 쿠키 `Secure` 처리를 보강하는 보안 패치입니다. 기본 한도는 일반 사용량보다 넉넉해 대부분의 설치는 설정을 바꿀 필요가 없습니다. 여러 클라이언트가 토큰 하나를 공유하며 429 를 받으면 `MEMENTO_HTTP_RATE_LIMIT_MCP` 를 올리십시오.
