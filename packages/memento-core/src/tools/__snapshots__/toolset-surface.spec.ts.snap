@@ -1,0 +1,1116 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MCP tool surface contract > keeps every registered tool name, description and input schema unchanged 1`] = `
+{
+  "core": [
+    "feedback",
+    "memory_injection",
+    "recall",
+    "remember",
+  ],
+  "tools": [
+    {
+      "description": "수동으로 메모리 간의 관계를 추가합니다",
+      "inputSchema": {
+        "properties": {
+          "confidence": {
+            "default": 0.7,
+            "description": "신뢰도 (0.0~1.0, 기본값: 0.7)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "relation_type": {
+            "description": "관계 유형",
+            "enum": [
+              "CAUSES",
+              "DEPENDS_ON",
+              "FOLLOWS",
+              "CONTRASTS_WITH",
+              "REFERENCES",
+              "BELONGS_TO",
+              "VERSION_OF",
+            ],
+            "type": "string",
+          },
+          "source_id": {
+            "description": "소스 메모리 ID",
+            "type": "string",
+          },
+          "target_id": {
+            "description": "타겟 메모리 ID",
+            "type": "string",
+          },
+        },
+        "required": [
+          "source_id",
+          "target_id",
+          "relation_type",
+        ],
+        "type": "object",
+      },
+      "name": "add_relation",
+    },
+    {
+      "description": "설정된 앵커를 제거합니다",
+      "inputSchema": {
+        "properties": {
+          "agent_id": {
+            "default": "default",
+            "description": "에이전트 ID (기본값: "default")",
+            "type": "string",
+          },
+          "slot": {
+            "description": "제거할 슬롯 (지정하지 않으면 모든 슬롯 제거)",
+            "enum": [
+              "A",
+              "B",
+              "C",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [],
+        "type": "object",
+      },
+      "name": "clear_anchor",
+    },
+    {
+      "description": "기억을 markdown 또는 jsonl 형식으로보냅니다",
+      "inputSchema": {
+        "properties": {
+          "format": {
+            "default": "markdown",
+            "description": "보내기 형식 (기본값: markdown)",
+            "enum": [
+              "markdown",
+              "jsonl",
+            ],
+            "type": "string",
+          },
+          "limit": {
+            "description": "최대 항목 수",
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "number",
+          },
+          "owner_id": {
+            "description": "특정 owner_id 기억만보내기",
+            "type": "string",
+          },
+          "types": {
+            "description": "보낼 memory_item 타입 필터 (미지정 시 전체)",
+            "items": {
+              "enum": [
+                "working",
+                "episodic",
+                "semantic",
+                "procedural",
+              ],
+              "type": "string",
+            },
+            "type": "array",
+          },
+        },
+        "type": "object",
+      },
+      "name": "export",
+    },
+    {
+      "description": "recall 결과에 대해 helpful/not_helpful 피드백을 기록합니다",
+      "inputSchema": {
+        "properties": {
+          "agent_id": {
+            "description": "에이전트 식별자 (선택)",
+            "maxLength": 512,
+            "type": "string",
+          },
+          "comment": {
+            "description": "선택 코멘트 (@jee1/memento-client feedback과 동일), 최대 4096자",
+            "maxLength": 4096,
+            "type": "string",
+          },
+          "helpful": {
+            "description": "true=helpful, false=not_helpful",
+            "type": "boolean",
+          },
+          "memory_id": {
+            "description": "피드백 대상 기억 ID",
+            "pattern": "^mem_[a-zA-Z0-9_]+$",
+            "type": "string",
+          },
+          "score": {
+            "description": "선택 점수",
+            "type": "number",
+          },
+          "score_breakdown": {
+            "additionalProperties": true,
+            "description": "선택 recall score_breakdown 스냅샷(US3). JSON으로 직렬화 시 최대 32768자",
+            "type": "object",
+          },
+          "session_id": {
+            "description": "MCP 세션 ID (선택)",
+            "maxLength": 512,
+            "type": "string",
+          },
+        },
+        "required": [
+          "memory_id",
+          "helpful",
+        ],
+        "type": "object",
+      },
+      "name": "feedback",
+    },
+    {
+      "description": "기억을 삭제합니다",
+      "inputSchema": {
+        "properties": {
+          "batch": {
+            "description": "배치 삭제할 ID 목록",
+            "items": {
+              "pattern": "^mem_[a-zA-Z0-9_]+$",
+              "type": "string",
+            },
+            "maxItems": 100,
+            "type": "array",
+          },
+          "confirm": {
+            "default": false,
+            "description": "삭제 확인 (하드 삭제시 필수)",
+            "type": "boolean",
+          },
+          "hard": {
+            "default": false,
+            "description": "완전 삭제 여부 (복구 불가능)",
+            "type": "boolean",
+          },
+          "id": {
+            "description": "삭제할 기억의 ID (배치 삭제시 무시됨)",
+            "pattern": "^mem_[a-zA-Z0-9_]+$",
+            "type": "string",
+          },
+          "reason": {
+            "description": "삭제 사유",
+            "maxLength": 500,
+            "type": "string",
+          },
+        },
+        "required": [
+          "id",
+        ],
+        "type": "object",
+      },
+      "name": "forget",
+    },
+    {
+      "description": "현재 설정된 앵커를 조회합니다",
+      "inputSchema": {
+        "properties": {
+          "agent_id": {
+            "default": "default",
+            "description": "에이전트 ID (기본값: "default")",
+            "type": "string",
+          },
+          "slot": {
+            "description": "조회할 슬롯 (지정하지 않으면 모든 슬롯 반환)",
+            "enum": [
+              "A",
+              "B",
+              "C",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [],
+        "type": "object",
+      },
+      "name": "get_anchor",
+    },
+    {
+      "description": "기억 품질 인트로스펙션 요약을 반환합니다. 저신뢰·고실패 메모리 건수와 ID 목록, 스캔 시각을 제공합니다. recall 또는 get_meta_memory_stats 응답에 introspection_hint가 있을 때 상세 조회용으로 호출하세요.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object",
+      },
+      "name": "get_introspection_summary",
+    },
+    {
+      "description": "특정 기억과 유사한 이웃 기억을 조회합니다",
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "반환할 이웃 기억의 최대 개수",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "number",
+          },
+          "memory_id": {
+            "description": "조회할 기억의 ID",
+            "type": "string",
+          },
+          "similarity_threshold": {
+            "default": 0.8,
+            "description": "유사도 임계값 (0.0 ~ 1.0)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+        },
+        "required": [
+          "memory_id",
+        ],
+        "type": "object",
+      },
+      "name": "get_memory_neighbors",
+    },
+    {
+      "description": "특정 메모리의 관계를 조회합니다",
+      "inputSchema": {
+        "properties": {
+          "category": {
+            "description": "관계 카테고리 필터 (선택)",
+            "enum": [
+              "Causal",
+              "Temporal",
+              "Structural",
+              "Semantic",
+            ],
+            "type": "string",
+          },
+          "direction": {
+            "default": "both",
+            "description": "관계 방향 (기본값: both)",
+            "enum": [
+              "incoming",
+              "outgoing",
+              "both",
+            ],
+            "type": "string",
+          },
+          "memory_id": {
+            "description": "관계를 조회할 메모리 ID",
+            "type": "string",
+          },
+          "relation_type": {
+            "description": "관계 유형 필터 (선택)",
+            "enum": [
+              "CAUSES",
+              "DEPENDS_ON",
+              "FOLLOWS",
+              "CONTRASTS_WITH",
+              "REFERENCES",
+              "BELONGS_TO",
+              "VERSION_OF",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "memory_id",
+        ],
+        "type": "object",
+      },
+      "name": "get_relations",
+    },
+    {
+      "description": "현재 에이전트(또는 글로벌)의 검색 품질·메모리 품질 텔레메트리 지표를 반환합니다. period로 조회 기간(24h/7d/30d)을 선택할 수 있습니다.",
+      "inputSchema": {
+        "properties": {
+          "period": {
+            "description": "조회 기간 (기본값: 24h)",
+            "enum": [
+              "24h",
+              "7d",
+              "30d",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [],
+        "type": "object",
+      },
+      "name": "get_telemetry_summary",
+    },
+    {
+      "description": "관련 기억을 요약하여 프롬프트에 주입",
+      "inputSchema": {
+        "properties": {
+          "importance_threshold": {
+            "default": 0.5,
+            "description": "중요도 임계값 (기본값: 0.5)",
+            "type": "number",
+          },
+          "include_project_brief": {
+            "description": "true at session start: prepend project brief",
+            "type": "boolean",
+          },
+          "max_memories": {
+            "default": 5,
+            "description": "최대 기억 개수 (기본값: 5)",
+            "type": "number",
+          },
+          "memory_types": {
+            "default": [
+              "working",
+              "episodic",
+              "semantic",
+              "procedural",
+            ],
+            "description": "포함할 기억 타입들 (core/vault는 자동으로 제거됩니다)",
+            "items": {
+              "enum": [
+                "working",
+                "episodic",
+                "semantic",
+                "procedural",
+                "core",
+                "vault",
+              ],
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "owner_id": {
+            "description": "소유자(owner) 범위로 결과를 제한합니다.",
+            "oneOf": [
+              {
+                "type": "string",
+              },
+              {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            ],
+          },
+          "project_id": {
+            "description": "지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색",
+            "maxLength": 200,
+            "type": "string",
+          },
+          "query": {
+            "description": "검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.",
+            "type": "string",
+          },
+          "token_budget": {
+            "default": 1000,
+            "description": "토큰 예산 (기본값: 1000)",
+            "type": "number",
+          },
+        },
+        "required": [
+          "query",
+        ],
+        "type": "object",
+      },
+      "name": "memory_injection",
+    },
+    {
+      "description": "기억을 고정합니다",
+      "inputSchema": {
+        "properties": {
+          "batch": {
+            "description": "배치 고정할 ID 목록",
+            "items": {
+              "pattern": "^mem_[a-zA-Z0-9_]+$",
+              "type": "string",
+            },
+            "maxItems": 100,
+            "type": "array",
+          },
+          "id": {
+            "description": "고정할 기억의 ID (배치 고정시 무시됨)",
+            "pattern": "^mem_[a-zA-Z0-9_]+$",
+            "type": "string",
+          },
+          "priority": {
+            "default": 3,
+            "description": "우선순위 (1-5)",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "number",
+          },
+          "reason": {
+            "description": "고정 사유",
+            "maxLength": 500,
+            "type": "string",
+          },
+        },
+        "required": [
+          "id",
+        ],
+        "type": "object",
+      },
+      "name": "pin",
+    },
+    {
+      "description": "두 procedural 메모리(버전) 간 필드별 차이를 구조화된 형태로 반환합니다.",
+      "inputSchema": {
+        "properties": {
+          "left_id": {
+            "description": "비교할 첫 번째 메모리 ID (procedural)",
+            "type": "string",
+          },
+          "right_id": {
+            "description": "비교할 두 번째 메모리 ID (procedural)",
+            "type": "string",
+          },
+        },
+        "required": [
+          "left_id",
+          "right_id",
+        ],
+        "type": "object",
+      },
+      "name": "procedural_diff",
+    },
+    {
+      "description": "지정한 이전 버전의 내용으로 새 procedural 메모리 버전을 생성합니다. 기존 버전은 수정하지 않습니다.",
+      "inputSchema": {
+        "properties": {
+          "current_id": {
+            "description": "현재 기준 메모리 ID (같은 시리즈 내)",
+            "type": "string",
+          },
+          "target_version_id": {
+            "description": "되돌릴 버전의 메모리 ID",
+            "type": "string",
+          },
+        },
+        "required": [
+          "current_id",
+          "target_version_id",
+        ],
+        "type": "object",
+      },
+      "name": "procedural_rollback",
+    },
+    {
+      "description": "관련 기억을 검색합니다. 응답의 filters_applied 는 요청 에코가 아니라 텍스트·벡터 두 레인 모두에 실제로 적용된 필터입니다.",
+      "inputSchema": {
+        "anyOf": [
+          {
+            "required": [
+              "type",
+            ],
+          },
+          {
+            "required": [
+              "memory_types",
+            ],
+          },
+        ],
+        "properties": {
+          "agent_id": {
+            "description": "에이전트 ID (Core/Vault 조회 시 사용, 기본값: "default")",
+            "type": "string",
+          },
+          "auto_set_anchor": {
+            "default": true,
+            "description": "가장 관련성 높은 기억(첫 번째 결과)을 슬롯 A에 자동으로 앵커로 설정 (기본값: true, MEMENTO_AUTO_SET_ANCHOR_DEFAULT=false로 비활성화 가능)",
+            "type": "boolean",
+          },
+          "enable_hybrid": {
+            "default": true,
+            "description": "하이브리드 검색 사용 여부 (선택사항)",
+            "type": "boolean",
+          },
+          "has_reflection_notes": {
+            "description": "reflection_notes가 있는 메모리만 조회 (true: IS NOT NULL, false: IS NULL, 선택사항)",
+            "type": "boolean",
+          },
+          "importance_max": {
+            "description": "최대 중요도 (0-1, 선택사항)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "importance_min": {
+            "description": "최소 중요도 (선택사항)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "include_diff_with": {
+            "description": "'previous'면 직전 버전과의 diff, 메모리 id면 해당 id와의 diff를 diff_with_previous 또는 diff_with 필드로 반환",
+            "type": "string",
+          },
+          "include_metadata": {
+            "default": true,
+            "description": "메타데이터 포함 여부 (선택사항). false면 응답에서 메타데이터 블록을 생략하며, score_breakdown도 포함하지 않음(include_score_breakdown=true여도).",
+            "type": "boolean",
+          },
+          "include_neighbors": {
+            "default": false,
+            "description": "검색 결과의 상위 항목에 대해 이웃 기억을 자동으로 포함 (기본값: false)",
+            "type": "boolean",
+          },
+          "include_score_breakdown": {
+            "default": false,
+            "description": "true일 때 각 결과에 score_breakdown 포함. include_metadata=false이면 적용되지 않음(메타·세부 점수 모두 생략). relevance.score/pct는 α·relevance(블렌딩)뿐 아니라 관계·절차·process_fit 기여를 동일 슬롯에 합산(FR-008·contracts §1).",
+            "type": "boolean",
+          },
+          "include_version_chain": {
+            "description": "true이면 procedural 결과에 version_chain(버전 이력 배열) 포함",
+            "type": "boolean",
+          },
+          "key": {
+            "description": "Core/Vault 조회 시 특정 키 지정 (선택사항)",
+            "type": "string",
+          },
+          "limit": {
+            "default": 10,
+            "description": "최대 결과 수",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number",
+          },
+          "match_trigger_conditions": {
+            "default": false,
+            "description": "trigger_conditions 매칭 여부 (기본값: false)",
+            "type": "boolean",
+          },
+          "memory_types": {
+            "description": "복수 타입 필터 (선택사항, type 파라미터와 동시 사용 시 type 우선). core/vault는 자동으로 제거됩니다. type을 생략해도 이 배열이 비어 있지 않으면 missing-type 경고가 생략될 수 있습니다.",
+            "items": {
+              "enum": [
+                "working",
+                "episodic",
+                "semantic",
+                "procedural",
+                "core",
+                "vault",
+              ],
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "neighbors_limit": {
+            "default": 3,
+            "description": "이웃 기억을 포함할 상위 결과의 개수 (각 결과당 이웃 개수는 neighbors_per_item으로 제어, 기본값: 3)",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number",
+          },
+          "neighbors_per_item": {
+            "default": 5,
+            "description": "각 검색 결과 항목당 조회할 이웃 기억의 최대 개수 (기본값: 5)",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "number",
+          },
+          "neighbors_similarity_threshold": {
+            "default": 0.8,
+            "description": "이웃 기억 조회 시 유사도 임계값 (이 값 이상인 기억만 반환, 기본값: 0.8)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "owner_id": {
+            "description": "다중 에이전트: 소유자 ID로 결과 필터 (단일 문자열 또는 문자열 배열). 미설정 시 전체 조회",
+            "type": "string",
+          },
+          "pinned": {
+            "description": "핀된 기억만 검색 (선택사항)",
+            "type": "boolean",
+          },
+          "privacy_scope": {
+            "description": "프라이버시 범위 필터 (선택사항)",
+            "items": {
+              "enum": [
+                "private",
+                "team",
+                "public",
+              ],
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "process_id": {
+            "description": "Memori Attribution: 프로세스 ID로 결과 필터 (Issue #87)",
+            "type": "string",
+          },
+          "project_id": {
+            "description": "Project-scoped Memory: 프로젝트 ID로 결과 필터 (Issue #81). 미설정 시 전체 검색",
+            "type": "string",
+          },
+          "provider_filter": {
+            "description": "검색할 임베딩 provider 필터 (선택사항, 미지정 시 모든 provider 검색)",
+            "items": {
+              "enum": [
+                "tfidf",
+                "lightweight",
+                "minilm",
+                "openai",
+                "gemini",
+              ],
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "query": {
+            "description": "검색할 내용을 자연어 문장으로 입력하세요 (예: '지난번에 JWT 토큰 만료 처리한 방법이 뭐였지?', e.g. "How did we handle JWT expiry last time?"). 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다. type이 core 또는 vault가 아닌 경우 필수이며, memory_types만 제공된 경우에도 query는 필수입니다.",
+            "type": "string",
+          },
+          "return_format": {
+            "default": "full",
+            "description": "반환 형식 선택: full (모든 필드), steps_only (steps만 반환)",
+            "enum": [
+              "full",
+              "steps_only",
+            ],
+            "type": "string",
+          },
+          "session_id": {
+            "description": "Memori Attribution: 세션 ID로 결과 필터 (Issue #87)",
+            "type": "string",
+          },
+          "skill_name": {
+            "description": "기술/능력 이름으로 필터링 (선택사항)",
+            "type": "string",
+          },
+          "tags": {
+            "description": "태그 필터 (선택사항)",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "text_weight": {
+            "default": 0.4,
+            "description": "텍스트 검색 가중치 (선택사항)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "time_from": {
+            "description": "시작 시간 (ISO 8601 형식, 선택사항)",
+            "type": "string",
+          },
+          "time_to": {
+            "description": "종료 시간 (ISO 8601 형식, 선택사항)",
+            "type": "string",
+          },
+          "type": {
+            "description": "단일 메모리 타입 지정. memory_types 를 지정하지 않았다면 필수입니다.",
+            "enum": [
+              "working",
+              "episodic",
+              "semantic",
+              "procedural",
+              "core",
+              "vault",
+            ],
+            "type": "string",
+          },
+          "vector_weight": {
+            "default": 0.6,
+            "description": "벡터 검색 가중치 (선택사항)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "version_filter": {
+            "description": "procedural 기억 버전 필터: latest_only(시리즈당 최신만), all_versions(전체), specific_version(version_series_id+version_number로 지정)",
+            "enum": [
+              "latest_only",
+              "all_versions",
+              "specific_version",
+            ],
+            "type": "string",
+          },
+          "version_number": {
+            "description": "특정 버전 번호 (specific_version일 때 version_series_id와 함께 사용)",
+            "minimum": 1,
+            "type": "number",
+          },
+          "version_series_id": {
+            "description": "버전 시리즈 ID (specific_version일 때 또는 특정 시리즈만 볼 때 사용)",
+            "type": "string",
+          },
+          "workflow_name": {
+            "description": "프로세스 이름으로 필터링 (선택사항)",
+            "type": "string",
+          },
+        },
+        "required": [],
+        "type": "object",
+      },
+      "name": "recall",
+    },
+    {
+      "description": "새로운 기억을 저장합니다",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "always_load": {
+            "default": false,
+            "description": "서버 시작 시 자동 로드 여부 (Core Memory용, 기본값: false)",
+            "type": "boolean",
+          },
+          "content": {
+            "description": "저장할 내용 (type이 core/vault가 아닐 때 필수)",
+            "type": "string",
+          },
+          "expected_version": {
+            "description": "Compare-and-swap 갱신용 현재 버전. memory_id·update_mode(replace|incremental)와 함께 지정한다. 미설정 version은 1로 간주한다. 불일치 시 409 memory_version_conflict.",
+            "minimum": 1,
+            "type": "integer",
+          },
+          "immutable": {
+            "default": true,
+            "description": "불변 데이터 여부 (Knowledge Vault용, 기본값: true)",
+            "type": "boolean",
+          },
+          "importance": {
+            "default": 0.5,
+            "description": "중요도 (0-1)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "key": {
+            "description": "Core Memory 또는 Knowledge Vault의 키 (type이 core/vault일 때 필수)",
+            "type": "string",
+          },
+          "memory_id": {
+            "description": "갱신 대상 memory_id (Issue #1000). update_mode와 함께 사용한다. recall 결과의 memory_id 또는 이전 remember 응답의 memory_id를 그대로 넣는다. 생략하면 새 기억으로 저장된다",
+            "type": "string",
+          },
+          "privacy_scope": {
+            "default": "private",
+            "description": "프라이버시 범위",
+            "enum": [
+              "private",
+              "team",
+              "public",
+            ],
+            "type": "string",
+          },
+          "reflection_notes": {
+            "description": "Reflexion 기록 (JSON 객체 문자열, Procedural Memory용)",
+            "type": "string",
+          },
+          "skill_name": {
+            "description": "기술/능력 이름 (예: "스키마 백업", "데이터 검증")",
+            "type": "string",
+          },
+          "source": {
+            "description": "출처",
+            "type": "string",
+          },
+          "steps": {
+            "description": "단계별 절차 (JSON 배열 문자열, Procedural Memory용)",
+            "type": "string",
+          },
+          "tags": {
+            "description": "태그 목록",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "task_goal": {
+            "description": "작업 목표 (Procedural Memory용)",
+            "type": "string",
+          },
+          "trigger_conditions": {
+            "description": "트리거 조건 (JSON 객체 문자열)",
+            "type": "string",
+          },
+          "type": {
+            "description": "기억 타입. 각 타입의 의미와 사용 시점:
+- 'working': 현재 처리 중인 정보 (48시간 TTL, 세션 종료 시 episodic으로 전환). 예: "현재 버그 수정 작업 진행 중"
+- 'episodic': 사건과 경험 기록 (90일 TTL, 핀 고정 시 무기한). 예: "오늘 회의에서 결정한 사항", "작업 완료 기록"
+- 'semantic': 지식과 사실 (무기한 보존). 예: "React Hooks 사용법", "에러 해결 방법", "코드 패턴"
+- 'procedural': 방법과 절차 (무기한 보존). 예: "PRD 기반 작업 목록 생성 절차", "배포 절차"
+- 'core': 에이전트 정체성, 규칙, 지침 (무기한 보존, key-value 형식, always_load 옵션 지원). 예: "나는 도움이 되는 어시스턴트다", "코딩 스타일 규칙"
+- 'vault': 불변 지식, 사실 (무기한 보존, key-value 형식, immutable 옵션 지원). 예: "빛의 속도는 299,792,458 m/s", "수학 공식"",
+            "enum": [
+              "working",
+              "episodic",
+              "semantic",
+              "procedural",
+              "core",
+              "vault",
+            ],
+            "type": "string",
+          },
+          "update_mode": {
+            "description": "기존 기억 갱신 모드. 갱신 대상은 memory_id로 지정하거나, procedural의 경우 workflow_name/skill_name으로 조회된다. 대상이 지정되지 않으면 새 기억이 저장된다.
+- 'replace': 대상 기억을 새 내용으로 덮어쓴다 (같은 memory_id 유지)
+- 'incremental': 대상 기억에 병합한다 (tags 합집합, importance는 큰 값, semantic은 num_times 증가, procedural은 steps 이어붙이기)
+- 'versioned': 새 행을 만들고 대상 기억과 VERSION_OF 관계로 연결한다 (새 memory_id 반환)",
+            "enum": [
+              "replace",
+              "incremental",
+              "versioned",
+            ],
+            "type": "string",
+          },
+          "value": {
+            "description": "Core Memory 또는 Knowledge Vault의 값 (type이 core/vault일 때 필수)",
+            "type": "string",
+          },
+          "workflow_name": {
+            "description": "프로세스 이름 (예: "데이터 마이그레이션", "API 배포")",
+            "type": "string",
+          },
+        },
+        "required": [
+          "type",
+        ],
+        "type": "object",
+      },
+      "name": "remember",
+    },
+    {
+      "description": "Procedural Memory만 저장하는 전용 엔드포인트입니다. workflow_name, skill_name, steps 등 절차 필드를 검증한 뒤 저장합니다.",
+      "inputSchema": {
+        "properties": {
+          "content": {
+            "description": "저장할 절차 설명 (필수)",
+            "type": "string",
+          },
+          "importance": {
+            "default": 0.5,
+            "description": "중요도 (0-1)",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number",
+          },
+          "owner_id": {
+            "description": "다중 에이전트 시 소유자 식별자 (미설정 시 context.agentId 사용)",
+            "type": "string",
+          },
+          "privacy_scope": {
+            "default": "private",
+            "description": "프라이버시 범위",
+            "enum": [
+              "private",
+              "team",
+              "public",
+            ],
+            "type": "string",
+          },
+          "process_id": {
+            "description": "Memori Attribution: 프로세스(에이전트/프로그램) 식별자 (Issue #87, 미설정 시 context.processId 사용)",
+            "type": "string",
+          },
+          "reflection_notes": {
+            "description": "Reflexion 기록 (JSON 객체 문자열)",
+            "type": "string",
+          },
+          "session_id": {
+            "description": "Memori Attribution: 세션(작업 흐름) 식별자 (Issue #87, 미설정 시 context.sessionId 사용)",
+            "type": "string",
+          },
+          "skill_name": {
+            "description": "기술/능력 이름 (예: 스키마 백업, 데이터 검증)",
+            "type": "string",
+          },
+          "source": {
+            "description": "출처",
+            "type": "string",
+          },
+          "steps": {
+            "description": "단계별 절차 (JSON 배열 문자열)",
+            "type": "string",
+          },
+          "tags": {
+            "description": "태그 목록",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "task_goal": {
+            "description": "작업 목표 (Procedural Memory용)",
+            "type": "string",
+          },
+          "trigger_conditions": {
+            "description": "트리거 조건 (JSON 객체 문자열)",
+            "type": "string",
+          },
+          "update_mode": {
+            "description": "업데이트 모드: replace(교체), incremental(증분), versioned(버전 관리)",
+            "enum": [
+              "replace",
+              "incremental",
+              "versioned",
+            ],
+            "type": "string",
+          },
+          "workflow_name": {
+            "description": "프로세스 이름 (예: 데이터 마이그레이션, API 배포)",
+            "type": "string",
+          },
+        },
+        "required": [
+          "content",
+        ],
+        "type": "object",
+      },
+      "name": "remember_procedure",
+    },
+    {
+      "description": "메모리 간의 관계를 삭제합니다. relation_id 또는 source_id/target_id/relation_type 조합으로 삭제 가능합니다.",
+      "inputSchema": {
+        "properties": {
+          "relation_id": {
+            "description": "관계 ID (relation_id 또는 source_id/target_id/relation_type 조합 중 하나는 필수)",
+            "type": "number",
+          },
+          "relation_type": {
+            "description": "관계 유형",
+            "enum": [
+              "CAUSES",
+              "DEPENDS_ON",
+              "FOLLOWS",
+              "CONTRASTS_WITH",
+              "REFERENCES",
+              "BELONGS_TO",
+            ],
+            "type": "string",
+          },
+          "source_id": {
+            "description": "소스 메모리 ID",
+            "type": "string",
+          },
+          "target_id": {
+            "description": "타겟 메모리 ID",
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "name": "remove_relation",
+    },
+    {
+      "description": "앵커 주변에서 국소 검색을 수행합니다",
+      "inputSchema": {
+        "properties": {
+          "agent_id": {
+            "default": "default",
+            "description": "에이전트 ID (기본값: "default")",
+            "type": "string",
+          },
+          "hop_limit": {
+            "description": "최대 hop 거리 (기본값: 슬롯별 설정)",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "number",
+          },
+          "limit": {
+            "default": 10,
+            "description": "최대 결과 수",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number",
+          },
+          "min_results": {
+            "default": 3,
+            "description": "최소 결과 수 (이보다 적으면 fallback)",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+          },
+          "query": {
+            "description": "검색 쿼리 (선택적, 제공하지 않으면 앵커 주변 모든 메모리 반환)",
+            "type": "string",
+          },
+          "slot": {
+            "description": "검색할 앵커 슬롯",
+            "enum": [
+              "A",
+              "B",
+              "C",
+            ],
+            "type": "string",
+          },
+          "use_relations": {
+            "default": true,
+            "description": "관계 그래프 사용 여부 (기본값: true)",
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "slot",
+        ],
+        "type": "object",
+      },
+      "name": "search_local",
+    },
+    {
+      "description": "특정 메모리를 앵커로 설정합니다",
+      "inputSchema": {
+        "properties": {
+          "agent_id": {
+            "default": "default",
+            "description": "에이전트 ID (기본값: "default")",
+            "type": "string",
+          },
+          "memory_id": {
+            "description": "앵커로 설정할 메모리 ID",
+            "type": "string",
+          },
+          "slot": {
+            "description": "앵커 슬롯 (A: 즉시 컨텍스트, B: 보조 컨텍스트, C: 확장 컨텍스트)",
+            "enum": [
+              "A",
+              "B",
+              "C",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "memory_id",
+          "slot",
+        ],
+        "type": "object",
+      },
+      "name": "set_anchor",
+    },
+    {
+      "description": "기억 고정을 해제합니다",
+      "inputSchema": {
+        "properties": {
+          "batch": {
+            "description": "배치 고정 해제할 ID 목록",
+            "items": {
+              "pattern": "^mem_[a-zA-Z0-9_]+$",
+              "type": "string",
+            },
+            "maxItems": 100,
+            "type": "array",
+          },
+          "confirm": {
+            "default": false,
+            "description": "고정 해제 확인",
+            "type": "boolean",
+          },
+          "id": {
+            "description": "고정 해제할 기억의 ID (배치 고정 해제시 무시됨)",
+            "pattern": "^mem_[a-zA-Z0-9_]+$",
+            "type": "string",
+          },
+          "reason": {
+            "description": "고정 해제 사유",
+            "maxLength": 500,
+            "type": "string",
+          },
+        },
+        "required": [
+          "id",
+        ],
+        "type": "object",
+      },
+      "name": "unpin",
+    },
+  ],
+}
+`;

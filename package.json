@@ -42,6 +42,7 @@
     "hooks:install": "git config core.hooksPath scripts/git-hooks",
     "pr:risk": "node scripts/pr-risk-score.ts",
     "pr:gate": "node scripts/pr-merge-gate.ts",
+    "knip": "npx -y knip@5.88.1 --workspace packages/memento-core --workspace packages/memento-server",
     "db:init": "npm run db:init -w @memento/core",
     "db:backup": "node scripts/backup-memory-db.mjs",
     "db:backup:docker": "sh scripts/backup-in-docker.sh",
