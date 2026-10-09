@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 설정 파일 경로는 env 설정과 패키지 루트 기준 고정 경로에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 /**
  * 설정 로더 공통 유틸리티
  * 

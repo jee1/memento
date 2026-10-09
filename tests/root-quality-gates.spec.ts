@@ -100,8 +100,8 @@ describe('root quality gate contracts', () => {
     const pkg = readJson<RootPackageJson>('package.json');
 
     expectExactScript(pkg, 'lint', 'npm run lint:ts && npm run lint:js');
-    expectExactScript(pkg, 'lint:ts', 'eslint "{packages,apps,tests,scripts}/**/*.ts"');
-    expectExactScript(pkg, 'lint:js', 'eslint "static/js/**/*.js"');
+    expectExactScript(pkg, 'lint:ts', 'eslint --max-warnings 0 "{packages,apps,tests,scripts}/**/*.ts"');
+    expectExactScript(pkg, 'lint:js', 'eslint --max-warnings 0 "static/js/**/*.js"');
     expectExactScript(
       pkg,
       'test:prepare',
@@ -139,6 +139,15 @@ describe('root quality gate contracts', () => {
     const tsConfig = await eslint.calculateConfigForFile('packages/memento-server/src/cli.ts');
 
     expect(ruleSeverity(tsConfig.rules?.['@typescript-eslint/no-unused-vars'])).toBe(2);
+  });
+
+  it('resolved ts lint config keeps non-literal fs paths an error in core production code', async () => {
+    const eslint = new ESLint({ cwd: process.cwd() });
+    const coreConfig = await eslint.calculateConfigForFile(
+      'packages/memento-core/src/infrastructure/database/sqlite/migration/backup-manager.ts'
+    );
+
+    expect(ruleSeverity(coreConfig.rules?.['security/detect-non-literal-fs-filename'])).toBe(2);
   });
 
   it('uses @google/genai as the only Gemini SDK dependency in runtime code', () => {

@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- DB·백업 경로는 env 설정과 운영자 스크립트 인자에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 /**
  * 마이그레이션 자동 감지 시스템
  * 

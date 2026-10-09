@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- SQL 파일 경로는 __dirname 기준 고정 경로다. 외부 입력이 닿지 않는다. */
 /**
  * Migration: 006 - FTS5 Reflection Notes Column
  * Description: Create new FTS5 table (memory_item_fts_new) with reflection_notes column for Zero-Downtime migration

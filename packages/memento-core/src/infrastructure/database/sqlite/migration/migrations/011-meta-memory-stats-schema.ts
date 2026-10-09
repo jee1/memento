@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- SQL 파일 경로는 __dirname 기준 고정 경로다. 외부 입력이 닿지 않는다. */
 /**
  * Migration: 011 - Meta Memory Statistics Schema
  * Description: Create meta_memory_stats table for collecting recall statistics

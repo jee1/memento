@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- DB·백업 경로는 env 설정과 운영자 스크립트 인자에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 /**
  * 백업 관리자
  * 
@@ -147,9 +148,11 @@ const AUTOMATIC_RETENTION_COUNT = 200;
 const OPERATOR_RETENTION_COUNT = 10;
 
 const TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/;
+// eslint-disable-next-line security/detect-non-literal-regexp -- 고정 상수 TIMESTAMP_PATTERN 으로만 만든다.
 const AUTOMATIC_NAME = new RegExp(
   `^memory-backup-(\\d+(?:\\.\\d+)+)-${TIMESTAMP_PATTERN.source}\\.db$`
 );
+// eslint-disable-next-line security/detect-non-literal-regexp -- 고정 상수 TIMESTAMP_PATTERN 으로만 만든다.
 const OPERATOR_NAME = new RegExp(`^memory-backup-${TIMESTAMP_PATTERN.source}\\.db$`);
 const IN_PROGRESS_NAME = /^\.memory-backup-partial-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.db$/;
 
