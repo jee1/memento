@@ -12,6 +12,7 @@
 ### Security
 
 - **server**: agent 가 묶인 API 토큰으로 호출하면 기억 id 를 받는 도구가 그 agent 의 기억만 다룹니다. 이전에는 `pin`·`unpin`·`feedback`·`get_memory_neighbors`·`procedural_rollback`·`set_anchor`·`get_relations`·`visualize_relations`·`extract_relations`·`get_meta_memory_stats` 가 다른 owner 의 기억 id 를 그대로 받았습니다. 남의 기억은 없는 기억과 같은 응답을 돌려줘 id 존재 여부도 드러나지 않습니다. 이웃·관계·국소 검색(`search_local`) 결과에서도 남의 기억을 뺍니다. 앵커 도구와 `recall` 의 앵커, `remember` 의 `owner_id` 는 묶인 agent 로 고정됩니다. `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 는 바인딩이 아니므로 동작이 바뀌지 않습니다. agent 바인딩 토큰을 쓰지 않는 설치는 영향이 없습니다
+- **server**: 같은 경계를 `procedural_diff`·`add_relation`·`remove_relation` 과 `/api/v1/agent` 에도 겁니다. agent 가 묶인 토큰은 다른 owner 의 세션을 없는 세션처럼 보고(조회·export·삭제·이벤트 추가), 요청의 `owner_id`·이벤트 `scope.owner_id` 는 묶인 agent 로 고정되며 다른 값이면 403 입니다. 모든 agent 에 걸친 운영 경로(`/sessions/aggregate`·`/operations/status`·`/injections/metrics`·`/transcripts/import`·`/provenance`·`/memory/promotion-candidates`·`/retention:enforce`)는 바인딩 토큰에 403 을 돌려주고, `GET /sessions` 는 전체 합계 `aggregate` 를 빼고 자기 세션만 돌려줍니다. 바인딩 없는 토큰은 영향이 없습니다
 
 ### Changed
 

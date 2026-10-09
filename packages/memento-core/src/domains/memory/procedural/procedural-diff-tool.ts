@@ -4,6 +4,7 @@
 
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import { computeProceduralDiff } from './procedural-memory-diff.js';
 
 export class ProceduralDiffTool extends BaseTool {
@@ -42,7 +43,10 @@ export class ProceduralDiffTool extends BaseTool {
       return this.createErrorResult('database_unavailable', '데이터베이스를 사용할 수 없습니다.');
     }
 
-    const diff = computeProceduralDiff(context.db, left_id, right_id);
+    const owned = filterCallerOwnedIds(context, [left_id, right_id]);
+    const diff = owned.has(left_id) && owned.has(right_id)
+      ? computeProceduralDiff(context.db, left_id, right_id)
+      : null;
     if (diff === null) {
       return this.createErrorResult(
         'not_found_or_not_procedural',
