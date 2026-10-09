@@ -16,10 +16,12 @@ const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
  */
 const ADMIN_READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-type RateLimitBucket = 'tools' | 'admin' | 'admin_read';
+type RateLimitBucket = 'tools' | 'mcp' | 'agent' | 'admin' | 'admin_read';
 
 type RateLimitEnvKey =
   | 'MEMENTO_HTTP_RATE_LIMIT_TOOLS'
+  | 'MEMENTO_HTTP_RATE_LIMIT_MCP'
+  | 'MEMENTO_HTTP_RATE_LIMIT_AGENT'
   | 'MEMENTO_HTTP_RATE_LIMIT_ADMIN'
   | 'MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ';
 
@@ -111,6 +113,20 @@ function createBucketRateLimitMiddleware(
 
 export function createToolsRateLimitMiddleware(): RequestHandler {
   return createBucketRateLimitMiddleware('tools', 100, 'MEMENTO_HTTP_RATE_LIMIT_TOOLS');
+}
+
+/**
+ * `/mcp`·`/messages` 는 MCP 세션 하나가 initialize·tools/list·도구 호출을 모두 보내고
+ * 훅이 매 턴 memory_injection 을 부르므로 `/tools` 보다 예산이 크다. 운영 audit_log 에서
+ * 키당 15분 최대가 약 480건이었다(2026-09~10) — 기본값은 그 3배.
+ */
+export function createMcpRateLimitMiddleware(): RequestHandler {
+  return createBucketRateLimitMiddleware('mcp', 1500, 'MEMENTO_HTTP_RATE_LIMIT_MCP');
+}
+
+/** `/api/v1/agent` — 세션·관찰 이벤트 수집 훅용. `/mcp` 와 예산을 나눠 훅 폭주가 MCP 를 막지 않게 한다. */
+export function createAgentRateLimitMiddleware(): RequestHandler {
+  return createBucketRateLimitMiddleware('agent', 600, 'MEMENTO_HTTP_RATE_LIMIT_AGENT');
 }
 
 /**

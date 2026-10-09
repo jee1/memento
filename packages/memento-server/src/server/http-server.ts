@@ -55,6 +55,8 @@ import { createApiTokenRegistry } from './auth/api-token-registry.js';
 import {
   createAdminAuthMiddleware,
   createAdminRateLimitMiddleware,
+  createAgentRateLimitMiddleware,
+  createMcpRateLimitMiddleware,
   createHttpAuditMiddleware,
   createStrictAuditCoverageMiddleware,
   createOwnerScopeMiddleware,
@@ -398,6 +400,8 @@ function registerRoutes(
 
   const toolsRateLimit = createToolsRateLimitMiddleware();
   const adminRateLimit = createAdminRateLimitMiddleware();
+  const mcpRateLimit = createMcpRateLimitMiddleware();
+  const agentRateLimit = createAgentRateLimitMiddleware();
   const httpAudit = createHttpAuditMiddleware({ database });
   const adminHttpAudit = createHttpAuditMiddleware({ database, transport: 'http_admin' });
   const strictToolsAudit = createStrictAuditCoverageMiddleware({ database });
@@ -424,9 +428,9 @@ function registerRoutes(
   app.use('/api/v1/audit', adminHttpAudit, adminAuth, strictAdminAudit, auditRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Audit API route not found.' });
   });
-  app.use('/api/v1/agent', httpAudit, agentProgrammaticAuth, agentRouter);
+  app.use('/api/v1/agent', agentRateLimit, httpAudit, agentProgrammaticAuth, agentRouter);
   app.use('/api', browserSessionAuth, apiRouter!);
-  app.use(MCP_PROGRAMMATIC_PATHS, mcpOriginGuard, httpAudit, mcpProgrammaticAuth, strictToolsAudit);
+  app.use(MCP_PROGRAMMATIC_PATHS, mcpRateLimit, mcpOriginGuard, httpAudit, mcpProgrammaticAuth, strictToolsAudit);
   app.use('/', mcpRouter!);
   app.use(errorHandler);
 }

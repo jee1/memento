@@ -15,6 +15,8 @@ export { createProgrammaticAuthMiddleware, resolveAuthenticatedToken } from './p
 export { createHttpAuditMiddleware, createStrictAuditCoverageMiddleware } from './http-audit.middleware.js';
 export {
   createAdminRateLimitMiddleware,
+  createAgentRateLimitMiddleware,
+  createMcpRateLimitMiddleware,
   createToolsRateLimitMiddleware,
   isHttpRateLimitDisabled,
 } from './http-rate-limit.middleware.js';

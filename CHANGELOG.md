@@ -9,6 +9,11 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Security
+
+- MCP HTTP(`/mcp`·`/messages`)와 `/api/v1/agent` 에 rate limit 을 겁니다. 지금까지는 `/tools`·`/admin`·`/auth` 만 한도가 있어, 토큰 하나로 MCP 경로를 무제한 호출할 수 있었습니다. 기본값은 키당 15분에 mcp 1500회, agent 600회입니다(운영 최대치의 약 3배). `MEMENTO_HTTP_RATE_LIMIT_MCP`·`MEMENTO_HTTP_RATE_LIMIT_AGENT` 로 조정합니다.
+- 대시보드 세션 쿠키가 HTTPS 요청(`req.secure`, `MEMENTO_TRUST_PROXY` 반영)이면 `NODE_ENV` 와 상관없이 `Secure` 를 붙입니다. 전에는 `NODE_ENV=production` 일 때만 붙어, 개발 모드로 HTTPS 프록시 뒤에 둔 서버의 쿠키가 평문 HTTP 로도 전송될 수 있었습니다.
+
 ## [2.0.2] - 2026-10-09
 
 agent 가 묶인 API 토큰(`MEMENTO_API_TOKENS` 의 `agent_id`)의 owner 경계를 모든 경로로 넓히는 보안 릴리스입니다. 토큰에 `agent_id` 를 두고 HTTP 모드로 여러 agent 를 나눠 쓰는 운영자는 업그레이드하십시오. 바인딩 없는 토큰만 쓰는 설치는 동작이 바뀌지 않습니다.
