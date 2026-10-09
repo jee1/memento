@@ -1,0 +1,43 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/**/*.{ts,js,mjs,cjs}",
+        "tests/**/*.ts"
+      ],
+      "project": [
+        "scripts/**/*.{ts,js,mjs,cjs}",
+        "tests/**/*.ts"
+      ],
+      "ignore": [
+        "static/**"
+      ]
+    },
+    "packages/memento-core": {
+      "entry": [
+        "src/index.ts",
+        "src/infrastructure/database/sqlite/migration/migrations/*.ts"
+      ],
+      "project": [
+        "src/**/*.ts"
+      ]
+    },
+    "packages/memento-server": {
+      "entry": [
+        "src/server/index.ts",
+        "src/cli.ts",
+        "src/server/http-server.ts",
+        "src/telemetry-cli.ts"
+      ],
+      "project": [
+        "src/**/*.ts"
+      ]
+    }
+  },
+  "ignoreIssues": {
+    "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/*.ts": [
+      "duplicates"
+    ]
+  }
+}

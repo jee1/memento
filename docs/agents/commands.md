@@ -111,6 +111,7 @@ AI 가 짠 코드를 사람이 다 읽지 못하는 만큼, 리뷰를 두 단계
 npm run hooks:install                      # core.hooksPath → scripts/git-hooks
 npm run pr:risk -- --title "<PR 제목>"     # 현재 브랜치의 리스크 점수 미리 보기 (origin/main 기준)
 npm run pr:gate -- <PR> [--merge]          # risk 라벨별 머지 판정·머지
+npm run knip                               # core·server 미사용 파일·export·의존성 (knip.json — 마이그레이션은 동적 import 라 entry 로 둔다)
 ```
 
 ## 배포 tarball 점검
