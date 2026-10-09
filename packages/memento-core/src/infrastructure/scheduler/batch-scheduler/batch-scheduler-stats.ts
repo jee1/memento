@@ -2,7 +2,7 @@ import type { SchedulerStatus } from './batch-scheduler-types.js';
 import type { JobQueue } from '../job-queue.js';
 import type { RetryManager } from '../retry-manager.js';
 
-export interface BatchSchedulerStatsDeps {
+interface BatchSchedulerStatsDeps {
   getStatus: () => SchedulerStatus;
   intervals: Map<string, ReturnType<typeof setInterval>>;
   lastExecution: Map<string, Date>;

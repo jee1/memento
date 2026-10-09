@@ -44,8 +44,6 @@ import {
 } from './agent.routes.bound-agent.js';
 import type { AgentRouterOptions } from './agent.routes.types.js';
 
-export type { AgentRouterOptions } from './agent.routes.types.js';
-
 export function createAgentRouter(
   db: Database.Database | null,
   options: AgentRouterOptions = {},

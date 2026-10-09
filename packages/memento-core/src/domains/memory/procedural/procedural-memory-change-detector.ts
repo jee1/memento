@@ -59,7 +59,7 @@ export interface ProceduralMemorySnapshot {
  * - deleted: 메모리 삭제
  * - none: 변경 없음
  */
-export type ChangeType =
+type ChangeType =
   | 'version_created'
   | 'steps_modified'
   | 'metadata_modified'
@@ -73,7 +73,7 @@ export type ChangeType =
  * 
  * 변경 여부와 변경 타입, 상세 변경 내역을 포함합니다.
  */
-export interface ChangeDetectionResult {
+interface ChangeDetectionResult {
   /** 변경 여부 */
   hasChanged: boolean;
   /** 변경 타입 */

@@ -97,12 +97,6 @@ export interface ToolResult {
   [key: string]: unknown; // 추가 필드들을 허용 (Record<string, unknown>과 동일)
 }
 
-export interface ToolError {
-  error: string;
-  message?: string;
-  details?: string;
-}
-
 /**
  * 공통 스키마 정의
  */

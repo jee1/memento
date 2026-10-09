@@ -11,13 +11,6 @@ export {
   validateAgentAskFlagArgv,
   validateAgentAskRawTypes,
 } from './agent-ask/parse.js';
-export type { ParsedAgentAsk, PreCliOptions } from './agent-ask/parse.js';
-
-export type {
-  AgentAskApproveAnswer,
-  AgentAskPromptApprove,
-  AgentAskRuntimeHooks,
-} from './agent-ask/approval.js';
 
 export { agentAskHelpText } from './agent-ask/help.js';
 export { runAgentAskMain } from './agent-ask/runtime.js';

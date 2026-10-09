@@ -12,7 +12,7 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 
-export interface RepetitionMetaUpdateResult {
+interface RepetitionMetaUpdateResult {
   representativeId: string;
   previousNumTimes: number;
   previousLastMentionedAt: string | null;

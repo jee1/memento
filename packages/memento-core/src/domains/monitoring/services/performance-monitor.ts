@@ -28,12 +28,11 @@ import type {
 import { SearchMetricsStore } from './search-metrics-store.js';
 
 export type {
-  AlertThresholds,
   PerformanceAlert,
   PerformanceMetrics
 } from './performance-monitor-types.js';
 
-export type PerformanceMetricsSnapshot = PerformanceMetrics & {
+type PerformanceMetricsSnapshot = PerformanceMetrics & {
   system: {
     cpuUsage: number;
     memoryUsage: number;

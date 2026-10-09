@@ -97,7 +97,7 @@ export interface ConfigValidationSchema {
 /**
  * 설정 값 검증 결과
  */
-export interface ValidationResult {
+interface ValidationResult {
   valid: boolean;
   errors: string[];
 }

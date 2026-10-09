@@ -19,7 +19,7 @@
 /**
  * PII 마스킹 결과
  */
-export interface PIIMaskingResult {
+interface PIIMaskingResult {
   masked: string;           // 마스킹된 텍스트
   maskedCount: number;      // 마스킹된 항목 수
   maskedTypes: string[];    // 마스킹된 타입 목록
@@ -28,7 +28,7 @@ export interface PIIMaskingResult {
 /**
  * PII 마스킹 옵션
  */
-export interface PIIMaskingOptions {
+interface PIIMaskingOptions {
   /**
    * 마스킹할 타입 목록 (지정하지 않으면 모든 타입 마스킹)
    */

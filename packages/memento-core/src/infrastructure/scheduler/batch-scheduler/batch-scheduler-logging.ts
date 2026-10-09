@@ -4,7 +4,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import type { FileLogger } from '../file-logger.js';
 import type { JobQueue } from '../job-queue.js';
 
-export interface BatchSchedulerLoggingDeps {
+interface BatchSchedulerLoggingDeps {
   enableLogging: boolean;
   startTime: Date | null;
   jobQueue: JobQueue;

@@ -63,7 +63,6 @@ export type {
   ISearchResultCombiner,
   ITextSearchEngine,
   IVectorSearchEngine,
-  TriggerContext,
 } from './hybrid-search-types.js';
 
 export class HybridSearchEngine {

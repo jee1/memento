@@ -4,7 +4,7 @@
 
 import type Database from 'better-sqlite3';
 
-export interface GraphNode {
+interface GraphNode {
   id: string;
   label: string;
   content: string;
@@ -16,7 +16,7 @@ export interface GraphNode {
   pinned: boolean;
 }
 
-export interface GraphEdge {
+interface GraphEdge {
   id: string;
   source: string;
   target: string;
@@ -35,7 +35,7 @@ export interface GraphFilter {
   exclude_orphans?: boolean;
 }
 
-export interface GraphResponse {
+interface GraphResponse {
   nodes: GraphNode[];
   edges: GraphEdge[];
   meta: {

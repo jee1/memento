@@ -9,7 +9,7 @@ const MAX_MCP_HEADER_VALUE_BYTES = 8_192;
 
 const MCP_NAME_BASE64_SENTINEL = /^=\?base64\?([A-Za-z0-9+/=]+)\?=$/;
 
-export type ModernValidationFailure = {
+type ModernValidationFailure = {
   response: JsonRpcResponse;
   httpStatus: number;
 };

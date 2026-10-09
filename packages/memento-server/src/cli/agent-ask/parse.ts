@@ -7,7 +7,7 @@ export type PreCliOptions = {
   configDir?: string;
 };
 
-export type ParsedAgentAsk =
+type ParsedAgentAsk =
   | { kind: 'help' }
   | { kind: 'usage'; message: string }
   | {

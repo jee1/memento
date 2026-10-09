@@ -55,7 +55,7 @@ export interface RetryConfig {
   maxErrorCount?: number; // 최대 에러 카운트 (무한 재시도 방지)
 }
 
-export interface RetryResult {
+interface RetryResult {
   shouldRetry: boolean;
   retryCount: number;
   nextRetryDelay: number;
@@ -65,7 +65,7 @@ export interface RetryResult {
 /**
  * 외부 API 호출용 재시도 옵션
  */
-export interface RetryOptions {
+interface RetryOptions {
   /**
    * 최대 재시도 횟수 (기본값: RetryConfig의 maxAttempts)
    */

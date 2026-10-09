@@ -10,7 +10,7 @@ export interface QueuedJob {
   retryCount?: number;
 }
 
-export interface JobQueueConfig {
+interface JobQueueConfig {
   maxSize?: number; // 최대 큐 크기 (선택적)
 }
 

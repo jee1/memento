@@ -48,7 +48,7 @@ interface VersionedCoreMemoryCache extends CoreMemoryCache {
   invalidate?(key: string, reason: string): void;
 }
 
-export interface CreateCoreMemoryServiceInput {
+interface CreateCoreMemoryServiceInput {
   agent_id?: string;
   key: string;
   value: string;
@@ -56,7 +56,7 @@ export interface CreateCoreMemoryServiceInput {
   origin_source?: string | null;
 }
 
-export interface UpdateCoreMemoryServiceInput {
+interface UpdateCoreMemoryServiceInput {
   value?: string;
   always_load?: boolean;
   origin_source?: string | null;

@@ -12,6 +12,7 @@
 ### Changed
 
 - 개발: 에이전트의 PR 머지를 `scripts/pr-merge-gate.ts` 로 일원화했습니다. `PR Risk` 라벨이 low 면 바로, medium 이면 PR 본문의 `## 동작 설명` 이 있을 때, high 면 Codex 리뷰와 사용자의 `approved:human` 라벨이 있을 때만 머지합니다. Claude Code 훅(`scripts/claude-hooks/merge-guard.sh`)이 게이트를 거치지 않은 머지를 막습니다. 런타임 동작은 바뀌지 않습니다.
+- 개발: core·server 의 미사용 파일·export·타입을 정리하고(#1293), CI `lint-typecheck` 가 `npm run knip` 으로 새 미사용 코드를 막습니다. 런타임 동작은 바뀌지 않습니다.
 
 ## [2.0.3] - 2026-10-09
 

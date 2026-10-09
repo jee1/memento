@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 
 /** `memory_item` GROUP BY type 행 (SQLite 동적 스키마 대응) */
-export interface MemoryItemTypeStatRow {
+interface MemoryItemTypeStatRow {
   type: string;
   count: number;
   pinned_count: number;
@@ -9,7 +9,7 @@ export interface MemoryItemTypeStatRow {
   avg_importance: number | null;
 }
 
-export interface BatchSchedulerDatabaseStats {
+interface BatchSchedulerDatabaseStats {
   memoryStats: MemoryItemTypeStatRow[];
   totalMemories: number;
   estimatedSize: number;

@@ -228,4 +228,3 @@ export function isBatchSchedulerJobRunning(jobQueue: JobQueue, name: string): bo
   return jobQueue.isRunning(name);
 }
 
-export type { ManualBatchSchedulerJobType };

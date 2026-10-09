@@ -15,14 +15,14 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { OllamaChatLlmAdapter } from '../../personal-agent/adapters/ollama-chat-llm-adapter.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
-export type SummarizationMethod = 'llm' | 'extractive';
+type SummarizationMethod = 'llm' | 'extractive';
 
 /** 테스트 주입용 설정 슬라이스. 생략 시 mementoConfig 를 쓴다. */
 export type SummarizationLlmConfig = LlmModelConfigSlice &
   LlmProviderConfigSlice &
   Pick<MementoConfig, 'ollamaBaseUrl'>;
 
-export interface SummarizeClusterInput {
+interface SummarizeClusterInput {
   clusterEpisodes: EpisodicCandidateRow[];
 }
 

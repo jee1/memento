@@ -23,7 +23,7 @@ const MEMORY_ITEM_TYPES: readonly MemoryType[] = [
 /**
  * 데이터베이스에서 조회한 메모리 행 타입
  */
-export interface MemoryRow {
+interface MemoryRow {
   id: string;
   type: string;
   content: string;
@@ -207,7 +207,7 @@ export function isExistingRelationRow(value: unknown): value is ExistingRelation
 /**
  * 메타데이터 행 타입
  */
-export interface MetadataRow {
+interface MetadataRow {
   metadata: string | null;
 }
 

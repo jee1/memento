@@ -2,7 +2,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin as stdinStream, stderr as stderrStream } from 'node:process';
 import type { KnowledgeCandidate } from '@memento/core';
 
-export type AgentAskApproveAnswer = 'y' | 'n' | 's' | 'q' | 'interrupt';
+type AgentAskApproveAnswer = 'y' | 'n' | 's' | 'q' | 'interrupt';
 
 export async function promptApproveInteractive(
   candidate: KnowledgeCandidate,

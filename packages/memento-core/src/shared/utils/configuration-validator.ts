@@ -2,16 +2,16 @@ import type { EmbeddingProvider } from '../types/embedding.types.js';
 import type { MementoConfig } from '../types/memory.types.js';
 import { getRawEnvValue, providerDimensionDefaults } from '../config/environment.js';
 
-export type ValidationLevel = 'error' | 'warning';
+type ValidationLevel = 'error' | 'warning';
 
-export interface ConfigValidationIssue {
+interface ConfigValidationIssue {
   level: ValidationLevel;
   code: string;
   message: string;
   suggestion?: string;
 }
 
-export interface ConfigValidationResult {
+interface ConfigValidationResult {
   valid: boolean;
   errors: ConfigValidationIssue[];
   warnings: ConfigValidationIssue[];

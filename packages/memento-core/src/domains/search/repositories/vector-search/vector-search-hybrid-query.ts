@@ -16,7 +16,7 @@ import type {
   VectorSearchScope,
 } from './vector-search.types.js';
 
-export interface HybridQueryParams {
+interface HybridQueryParams {
   db: Database.Database;
   effectiveQueryVector: number[];
   textQuery: string | undefined;

@@ -21,18 +21,18 @@ interface TranscriptLifecycleService {
   capture(event: PersistedAgentEventInput): CaptureResult;
 }
 
-export interface AgentTranscriptImporterDependencies {
+interface AgentTranscriptImporterDependencies {
   prepareEvent(input: unknown): PersistedAgentEventInput;
   lifecycleService: TranscriptLifecycleService;
   repository: TranscriptRepository;
 }
 
-export interface AgentTranscriptImportInput {
+interface AgentTranscriptImportInput {
   transcript: unknown;
   dryRun?: boolean;
 }
 
-export interface AgentTranscriptImportLineResult {
+interface AgentTranscriptImportLineResult {
   line: number;
   eventId: string;
   status: AgentCaptureStatus;
@@ -41,7 +41,7 @@ export interface AgentTranscriptImportLineResult {
   lateArrival: boolean;
 }
 
-export interface AgentTranscriptImportResult {
+interface AgentTranscriptImportResult {
   dryRun: boolean;
   sessionId: string;
   total: number;

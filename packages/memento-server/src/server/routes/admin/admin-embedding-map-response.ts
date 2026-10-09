@@ -18,7 +18,7 @@ const cache = new Map<string, { data: EmbeddingMapResponse; expiresAt: number }>
 /** 동시 요청이 같은 cacheKey로 캐시 미스일 때 UMAP을 N번 돌리지 않도록 in-flight 공유 */
 const inFlight = new Map<string, Promise<EmbeddingMapResponse>>();
 
-export interface EmbeddingPoint {
+interface EmbeddingPoint {
   id: string;
   x: number;
   y: number;
@@ -30,7 +30,7 @@ export interface EmbeddingPoint {
   created_at: string;
 }
 
-export interface EmbeddingMapResponse {
+interface EmbeddingMapResponse {
   points: EmbeddingPoint[];
   meta: {
     total: number;

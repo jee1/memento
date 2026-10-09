@@ -10,7 +10,7 @@ import type { RetryConfig } from '../../infrastructure/scheduler/retry-manager.j
 import { logger } from '../utils/logger.js';
 import { findProjectRoot } from './config-loader-utils.js';
 
-export interface RetryOptionsConfig {
+interface RetryOptionsConfig {
   default: RetryConfig;
   external_api: Omit<RetryConfig, 'maxErrorCount'>;
   embedding_api: Omit<RetryConfig, 'maxErrorCount'>;

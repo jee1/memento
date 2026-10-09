@@ -70,20 +70,6 @@ export interface VectorSearchConfig {
   providerDimensions: Record<string, number>;
 }
 
-export interface HybridSearchResult {
-  memory_id: string;
-  similarity: number; // final_similarity를 similarity로 통일
-  vector_similarity: number;
-  text_similarity: number;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string;
-  last_accessed?: string;
-  pinned: boolean;
-  tags?: string[];
-}
-
 export interface ProviderHybridQuery {
   query: VectorSearchQuery;
   text?: string;

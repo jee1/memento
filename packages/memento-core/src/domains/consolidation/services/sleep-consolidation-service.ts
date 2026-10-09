@@ -22,7 +22,7 @@ import { getClusterJudgeThreshold, type ClusterJudgePair, type IClusterJudge } f
 import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
 import type { Outcome } from '../../telemetry/types/telemetry.types.js';
 
-export interface SleepConsolidationRunOptions {
+interface SleepConsolidationRunOptions {
   dryRun?: boolean;
   ownerIdFilter?: string | null;
   lookbackDays?: number;

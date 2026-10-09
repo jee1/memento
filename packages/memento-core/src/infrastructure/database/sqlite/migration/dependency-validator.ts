@@ -5,7 +5,7 @@
 
 import type Database from 'better-sqlite3';
 
-export interface DependencyValidationResult {
+interface DependencyValidationResult {
   /**
    * 검증 항목 이름
    */
@@ -30,7 +30,7 @@ export interface DependencyValidationResult {
 /**
  * 의존성 검증 결과
  */
-export interface DependencyValidationReport {
+interface DependencyValidationReport {
   /**
    * 전체 검증 성공 여부
    */

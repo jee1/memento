@@ -2,7 +2,7 @@ import type { BatchJobExecutionCoordinator } from './batch-job-execution-coordin
 import type { JobQueue } from '../job-queue.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 
-export interface BatchSchedulerIntervalDeps {
+interface BatchSchedulerIntervalDeps {
   jobExecutionCoordinator: BatchJobExecutionCoordinator;
   intervals: Map<string, ReturnType<typeof setInterval>>;
   jobQueue: JobQueue;

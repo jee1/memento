@@ -13,7 +13,6 @@ import type {
   ExpectedRelation,
   ExtractedRelation,
   QualityMetrics,
-  RelationMatch,
   TypeMetricSummary,
 } from './types.js';
 
@@ -135,4 +134,3 @@ export function calculateQualityMetricsWithAnalysis(
   };
 }
 
-export type { RelationMatch };

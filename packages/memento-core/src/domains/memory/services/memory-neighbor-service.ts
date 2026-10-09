@@ -27,7 +27,7 @@ export interface NeighborMemory {
 /**
  * 이웃 기억 조회 응답
  */
-export interface NeighborSearchResult {
+interface NeighborSearchResult {
   memory_id: string;
   neighbors: NeighborMemory[];
   total_count: number;
@@ -37,7 +37,7 @@ export interface NeighborSearchResult {
 /**
  * 이웃 기억 조회 옵션
  */
-export interface NeighborSearchOptions {
+interface NeighborSearchOptions {
   limit?: number;
   similarity_threshold?: number;
 }

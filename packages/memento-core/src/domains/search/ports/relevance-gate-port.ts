@@ -13,7 +13,7 @@ export interface IRelevanceGatePort {
   score(query: string, docs: string[]): Promise<number[]>;
 }
 
-export interface RelevanceGateVerdict {
+interface RelevanceGateVerdict {
   /** 질의를 기각해야 하면 true — 호출자는 결과 0건을 반환한다 */
   rejected: boolean;
   /** 후보 점수 중 최댓값. 점수가 하나도 없으면 null */
@@ -46,7 +46,7 @@ export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.5;
  * 'open'  = 기각하지 않는다 (기본). 게이트 장애가 검색 실패로 번지지 않는다.
  * 'closed'= 기각한다. 무관 질의는 확실히 막히지만 게이트 장애 때 관련 질의도 0건이 된다.
  */
-export type RelevanceGateOnError = 'open' | 'closed';
+type RelevanceGateOnError = 'open' | 'closed';
 
 /**
  * 게이트는 질의 단위로만 판정한다. 후보별 필터링은 하지 않는다.

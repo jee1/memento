@@ -67,7 +67,7 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
   };
 }
 
-export type BatchSchedulerJobRunners = ReturnType<typeof createBatchSchedulerJobRunners>;
+type BatchSchedulerJobRunners = ReturnType<typeof createBatchSchedulerJobRunners>;
 
 function wrapVoidRunner(
   jobType: ManualBatchSchedulerJobType,

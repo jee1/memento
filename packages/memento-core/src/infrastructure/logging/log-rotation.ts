@@ -13,7 +13,7 @@ import {
   type LogRotationRoots,
 } from './log-rotation-paths.js';
 
-export type LogFamilyId =
+type LogFamilyId =
   | 'migration'
   | 'docker_diagnostics'
   | 'log_issue_monitor';
@@ -34,7 +34,7 @@ export interface LogRotationReport {
   policies: LogRotationPolicies;
 }
 
-export interface RotateLogsOptions {
+interface RotateLogsOptions {
   roots?: Partial<LogRotationRoots>;
   policies?: Partial<LogRotationPolicies>;
   now?: Date;

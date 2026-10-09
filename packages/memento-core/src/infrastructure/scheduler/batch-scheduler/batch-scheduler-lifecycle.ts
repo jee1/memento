@@ -10,7 +10,7 @@ import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-co
 import type { BatchSchedulerRecurringContextSource } from './batch-scheduler-context.js';
 import { buildBatchRecurringScheduleContext } from './batch-scheduler-context.js';
 
-export interface BatchSchedulerStartDeps {
+interface BatchSchedulerStartDeps {
   config: BatchJobConfig;
   jobQueue: JobQueue;
   healthChecker: HealthChecker;
@@ -69,7 +69,7 @@ export async function startBatchScheduler(
   });
 }
 
-export interface BatchSchedulerStopDeps {
+interface BatchSchedulerStopDeps {
   intervals: Map<string, ReturnType<typeof setInterval>>;
   jobQueue: JobQueue;
   startTime: Date | null;

@@ -10,7 +10,7 @@ import { getQuery, runQuery } from './database/query-helpers.js';
 import { mementoConfig } from '../config/index.js';
 import { PIIMasker } from './pii-masker.js';
 
-export type FTS5MigrationStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+type FTS5MigrationStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
 const MIGRATION_KEY = 'fts5-reflection-notes';
 

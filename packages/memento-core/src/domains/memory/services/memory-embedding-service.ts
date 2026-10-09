@@ -32,15 +32,6 @@ import { getVectorTableName as getValidatedVectorTableName } from '../../../shar
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
 
-export interface MemoryEmbedding {
-  memory_id: string;
-  embedding: number[];
-  embedding_provider?: string;
-  dimensions?: number;
-  created_by?: string;
-  created_at: string;
-}
-
 export interface VectorSearchResult {
   id: string;
   content: string;
@@ -450,7 +441,6 @@ export class MemoryEmbeddingService {
       };
     }
   }
-
 
   /**
    * 임베딩 삭제

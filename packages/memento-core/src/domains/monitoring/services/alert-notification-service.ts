@@ -3,7 +3,7 @@ import type { AlertEvent } from '../../../shared/types/alerts.types.js';
 
 const ALERT_EMITTER_EVENT = 'alert';
 
-export interface AlertDelivery {
+interface AlertDelivery {
   id: string;
   createdAt: Date;
   acknowledged: boolean;

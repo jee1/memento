@@ -1,13 +1,13 @@
-export type LlmProvider = 'openai' | 'gemini' | 'ollama';
-export type RequestedLlmProvider = LlmProvider | 'auto';
+type LlmProvider = 'openai' | 'gemini' | 'ollama';
+type RequestedLlmProvider = LlmProvider | 'auto';
 
-export interface LlmProviderAvailability {
+interface LlmProviderAvailability {
   openai: boolean;
   gemini: boolean;
   ollama: boolean;
 }
 
-export interface LlmProviderSelectionOptions {
+interface LlmProviderSelectionOptions {
   includeOllamaInAuto?: boolean;
   includeOllamaInFallback?: boolean;
 }

@@ -16,7 +16,7 @@ export interface EpisodicCandidateRow {
   isConsolidated: boolean;
 }
 
-export interface SemanticOwnerRow {
+interface SemanticOwnerRow {
   id: string;
   content: string;
   originSource: string;
@@ -31,7 +31,7 @@ export interface SemanticOwnerRow {
  * 벡터 공간이 다르면 코사인 값이 무의미하므로, 비교 대상 벡터를 만든 provider·model 과
  * 같은 행만 써야 한다 (#889). provider 를 알 수 없으면 model 만으로 거른다.
  */
-export interface StoredEmbeddingFilter {
+interface StoredEmbeddingFilter {
   provider?: string;
   model?: string;
 }

@@ -8,7 +8,7 @@
 
 import type { MetaMemoryIntrospectionScanResult } from './meta-memory-introspection-service.js';
 
-export interface CachedIntrospectionScan {
+interface CachedIntrospectionScan {
   result: MetaMemoryIntrospectionScanResult;
   scanned_at: string; // ISO 8601
 }

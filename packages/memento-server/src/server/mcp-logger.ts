@@ -23,7 +23,7 @@ import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { mementoConfig, loggingRateLimiter } from '@memento/core';
 import { ServerState } from './server-state.js';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 /**
  * 로그 레벨 우선순위 (숫자가 클수록 높은 우선순위)

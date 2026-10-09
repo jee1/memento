@@ -5,9 +5,9 @@
 import type { PerformanceAlert, PerformanceMetrics } from './performance-monitor-types.js';
 import type { SearchMetricsSnapshot } from './search-metrics-store.js';
 
-export type TrendDirection = 'increasing' | 'decreasing' | 'stable';
+type TrendDirection = 'increasing' | 'decreasing' | 'stable';
 
-export interface PerformanceSummary {
+interface PerformanceSummary {
   current: PerformanceMetrics | null;
   alerts: { active: number; total: number };
   trends: {
@@ -16,7 +16,7 @@ export interface PerformanceSummary {
   };
 }
 
-export interface MetricsAnalytics {
+interface MetricsAnalytics {
   memory: {
     averageHeapUsedMB: number;
     peakHeapUsedMB: number;
@@ -43,7 +43,7 @@ export interface MetricsAnalytics {
   };
 }
 
-export interface AlertGetters {
+interface AlertGetters {
   getAlerts: () => PerformanceAlert[];
   getAllAlerts: () => PerformanceAlert[];
 }

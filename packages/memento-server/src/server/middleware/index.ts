@@ -20,5 +20,5 @@ export {
   createToolsRateLimitMiddleware,
   
 } from './http-rate-limit.middleware.js';
-export { resolveTrustProxySetting, type TrustProxyResolution } from './trust-proxy.js';
-export { errorHandler,  } from './error-handler.middleware.js';
+export { resolveTrustProxySetting } from './trust-proxy.js';
+export { errorHandler } from './error-handler.middleware.js';

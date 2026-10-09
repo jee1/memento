@@ -6,7 +6,7 @@
 export const BATCH_RUN_HISTORY_DEFAULT_LIMIT = 50;
 export const BATCH_RUN_HISTORY_MAX_STORED = 100;
 
-export interface BatchRunHistoryRecord {
+interface BatchRunHistoryRecord {
   jobType: string;
   requestedAt: string;
   completedAt: string;

@@ -7,7 +7,7 @@ import { CoreMemoryService } from '../services/core-memory-service.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 
-export interface CoreMemoryParams {
+interface CoreMemoryParams {
   key: string;
   value: string;
   always_load: boolean | undefined;

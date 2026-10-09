@@ -12,7 +12,7 @@ import type { ExtractedProceduralMemory } from './procedural-memory-extractor.ty
 /**
  * 유사도 기반 병합 결과
  */
-export interface SimilarityMergeResult {
+interface SimilarityMergeResult {
   shouldMerge: boolean;
   similarity: number;
   existingMemoryId?: string;

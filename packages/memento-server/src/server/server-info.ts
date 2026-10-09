@@ -2,7 +2,7 @@ import { homedir } from 'os';
 import { readFile, writeFile, unlink, mkdir } from 'fs/promises';
 import { join } from 'path';
 
-export interface ServerInfo {
+interface ServerInfo {
   port: number;
   pid: number;
   startedAt: string;

@@ -15,7 +15,7 @@ import {
 import { ForgettingAlgorithm } from '../algorithms/forgetting-algorithm.js';
 import { SpacedRepetitionAlgorithm,type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 
-export interface ForgettingPolicyConfig {
+interface ForgettingPolicyConfig {
   // 망각 정책 설정
   forgetThreshold: number;        // 망각 임계값 (기본: 0.6)
   softDeleteThreshold: number;    // 소프트 삭제 임계값 (기본: 0.6)

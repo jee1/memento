@@ -1,4 +1,3 @@
-import type { Task } from './async-optimizer.types.js';
 
 /** Snapshot stored in failed TaskResult.data for retryTask */
 export function failedTaskDataToTaskFields(data: unknown): {
@@ -81,4 +80,3 @@ export function parseFailureEventTaskData(data: unknown): FailureEventTaskData {
   };
 }
 
-export type { Task };

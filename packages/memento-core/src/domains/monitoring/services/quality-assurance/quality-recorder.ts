@@ -25,17 +25,17 @@ export type MeasurementType = 'batch' | 'test' | 'manual';
 /**
  * 측정 이력 상태
  */
-export type MeasurementHistoryStatus = 'success' | 'warning' | 'error';
+type MeasurementHistoryStatus = 'success' | 'warning' | 'error';
 
 /**
  * 품질 지표 상태
  */
-export type QualityMetricStatus = 'pass' | 'warning' | 'fail';
+type QualityMetricStatus = 'pass' | 'warning' | 'fail';
 
 /**
  * 측정 결과 기록 옵션
  */
-export interface RecordOptions {
+interface RecordOptions {
   /**
    * 측정 타입 (기본값: 'batch')
    */

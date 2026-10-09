@@ -8,10 +8,10 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 
-export type VectorResultWithProvider = VectorSearchResult & { provider: string };
+type VectorResultWithProvider = VectorSearchResult & { provider: string };
 
 /** Single provider race outcome (matches Promise shape from createProviderSearchTask). */
-export type ProviderVectorRaceResult = {
+type ProviderVectorRaceResult = {
   provider: string;
   results: VectorResultWithProvider[];
   success: boolean;
@@ -21,7 +21,7 @@ export type ProviderVectorRaceResult = {
   tfidfQueryEmbeddingFallback?: boolean;
 };
 
-export type ProviderSearchExecutionSummary = {
+type ProviderSearchExecutionSummary = {
   allResults: VectorResultWithProvider[];
   providerStats: Array<{
     provider: string;

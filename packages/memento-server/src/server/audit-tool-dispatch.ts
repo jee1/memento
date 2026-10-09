@@ -28,7 +28,7 @@ export type ToolAuditContext = {
 
 type ToolExecutor = (name: string, args: unknown, context: ToolContext) => Promise<ToolResult>;
 
-export type ToolDispatcher = (
+type ToolDispatcher = (
   name: string,
   args: unknown,
   db: Database.Database,

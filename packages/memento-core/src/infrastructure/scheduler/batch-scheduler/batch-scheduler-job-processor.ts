@@ -5,10 +5,7 @@ import {
   scheduleBatchJob,
   waitForRunningBatchJobs
 } from './batch-scheduler-interval.js';
-import {
-  createBatchSchedulerJobRunners,
-  type ManualBatchSchedulerJobType
-} from './batch-scheduler-job-runners.js';
+import { createBatchSchedulerJobRunners } from './batch-scheduler-job-runners.js';
 import type { BatchSchedulerContextSource } from './batch-scheduler-context.js';
 import type { BatchSchedulerRecurringState } from './batch-scheduler-service-wiring.js';
 
@@ -103,4 +100,3 @@ export function clearBatchSchedulerJobProcessorInterval(
   }
 }
 
-export type { ManualBatchSchedulerJobType };

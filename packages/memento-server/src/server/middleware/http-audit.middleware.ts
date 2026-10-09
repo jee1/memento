@@ -25,14 +25,14 @@ export type HttpAuditEntry = {
   status: number;
 };
 
-export type HttpAuditMiddlewareConfig = {
+type HttpAuditMiddlewareConfig = {
   logPath?: string;
   shouldAudit?: (req: Request) => boolean;
   database?: Database.Database;
   transport?: AuditTransport;
 };
 
-export type StrictAuditCoverageMiddlewareConfig = {
+type StrictAuditCoverageMiddlewareConfig = {
   database: Database.Database;
   transport?: AuditTransport;
 };

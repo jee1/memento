@@ -22,7 +22,7 @@ export enum ErrorType {
 /**
  * 실패 감지 결과
  */
-export interface FailureDetectionResult {
+interface FailureDetectionResult {
   detected: boolean; // 실패 감지 여부
   event?: FailureEvent; // 감지된 실패 이벤트
   reason?: string; // 감지 이유 또는 미감지 이유

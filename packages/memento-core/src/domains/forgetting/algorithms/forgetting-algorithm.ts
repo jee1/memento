@@ -13,7 +13,7 @@ export interface ForgettingFeatures {
   pinned: boolean;        // 고정 여부
 }
 
-export interface ForgettingWeights {
+interface ForgettingWeights {
   recency: number;        // U1 = 0.35
   usage: number;          // U2 = 0.25
   duplication: number;    // U3 = 0.20

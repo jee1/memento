@@ -5,7 +5,7 @@
 
 import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 
-export interface ProcessAttributeFitItem {
+interface ProcessAttributeFitItem {
   tags?: string[];
   workflow_name?: string | null;
   skill_name?: string | null;

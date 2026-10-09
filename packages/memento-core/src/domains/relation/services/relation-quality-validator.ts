@@ -4,12 +4,8 @@
  */
 
 export type {
-  ConfusionMatrix,
   ExpectedRelation,
   ExtractedRelation,
-  QualityMetrics,
-  RelationMatch,
-  TypeAnalysis,
 } from './relation-quality-validator/types.js';
 
 import type { RelationType } from '../../../shared/types/relation.js';

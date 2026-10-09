@@ -24,13 +24,9 @@ import { RecallSchema, type RecallParams } from './recall-tool-schema.js';
 import { executeHybridOrTextSearchForMemoryItem } from './recall-tool-search-execution.js';
 
 export type {
-  AnchorSetMetadata,
-  NeighborMemoryItem,
   RecallResultItem,
-  RecallResponseMetadata,
   RecallResponse
 } from './recall-tool-types.js';
-export type { RecallParams };
 
 /**
  * 호출자 입력값 문제(type/query 누락, memory_types 오용 등)로 인한 거절.

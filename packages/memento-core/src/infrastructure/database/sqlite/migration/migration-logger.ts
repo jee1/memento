@@ -24,7 +24,7 @@ export enum LogLevel {
 /**
  * 로그 엔트리
  */
-export interface LogEntry {
+interface LogEntry {
   timestamp: Date;
   level: LogLevel;
   message: string;

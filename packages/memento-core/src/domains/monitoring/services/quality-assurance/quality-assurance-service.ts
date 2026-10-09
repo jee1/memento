@@ -24,7 +24,7 @@ import { QualityThresholdManager } from './quality-threshold-manager.js';
 /**
  * 품질 측정 옵션
  */
-export interface MeasurementOptions {
+interface MeasurementOptions {
   /**
    * 측정 타입 (기본값: 'batch')
    */
@@ -49,7 +49,7 @@ export interface MeasurementOptions {
 /**
  * 품질 측정 결과
  */
-export interface MeasurementResult {
+interface MeasurementResult {
   /**
    * 측정 시간
    */

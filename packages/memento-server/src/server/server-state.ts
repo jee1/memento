@@ -176,7 +176,7 @@ export class ServerState {
  * ServerState 상태 스냅샷 타입
  * 테스트에서 상태를 저장하고 복원할 때 사용
  */
-export interface ServerStateSnapshot {
+interface ServerStateSnapshot {
   mcpServerInitialized: boolean;
   consoleErrorOverridden: boolean;
   consoleOverridden: boolean;

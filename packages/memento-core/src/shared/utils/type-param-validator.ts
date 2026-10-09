@@ -11,7 +11,7 @@ function isValidMemoryType(type: string): type is ValidMemoryType {
   return (VALID_MEMORY_TYPES as readonly string[]).includes(type);
 }
 
-export interface TypeParamValidationResult {
+interface TypeParamValidationResult {
   isValid: boolean;
   message?: string;
   defaultType?: string;

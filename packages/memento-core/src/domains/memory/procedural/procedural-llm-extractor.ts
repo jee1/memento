@@ -41,7 +41,7 @@ const SYSTEM_PROMPT = `Reflexion 결과에서 절차적 기억(workflow, skill, 
 
 예시: {"workflow_name":"...","skill_name":"...","steps":"[...]","trigger_conditions":"{...}","task_goal":"..."}`;
 
-export interface LlmProceduralExtractorOptions {
+interface LlmProceduralExtractorOptions {
   /** 테스트용: 주입 시 실제 LLM 호출 없이 이 함수로 응답 대체 */
   completion?: (messages: Array<{ role: string; content: string }>) => Promise<string>;
 }

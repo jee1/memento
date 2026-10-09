@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
 import { logger } from '../shared/utils/logger.js';
 
-export interface ToolRegistryConfig {
+interface ToolRegistryConfig {
   enableLogging: boolean;
   enableMetrics: boolean;
   maxExecutionTime: number;
@@ -14,7 +14,7 @@ export interface ToolRegistryConfig {
   cacheSize: number;
 }
 
-export interface ToolExecutionMetrics {
+interface ToolExecutionMetrics {
   name: string;
   totalExecutions: number;
   successfulExecutions: number;

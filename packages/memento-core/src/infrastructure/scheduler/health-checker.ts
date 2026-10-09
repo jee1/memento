@@ -5,7 +5,7 @@
 
 import Database from 'better-sqlite3';
 
-export interface HealthCheckResult {
+interface HealthCheckResult {
   isHealthy: boolean;
   memoryUsage: number; // 메모리 사용률 (%)
   runningJobs: number;
@@ -15,7 +15,7 @@ export interface HealthCheckResult {
   errors: string[];
 }
 
-export interface HealthCheckConfig {
+interface HealthCheckConfig {
   maxMemoryUsagePercent?: number; // 경고 임계값 (기본: 90)
   maxConcurrentJobsPercent?: number; // 경고 임계값 (기본: 80% of maxConcurrentJobs)
   maxQueueSize?: number; // 경고 임계값 (기본: 100)

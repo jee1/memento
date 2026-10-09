@@ -16,7 +16,7 @@ import type {
   VectorSearchScope,
 } from './vector-search.types.js';
 
-export interface KnnQueryParams {
+interface KnnQueryParams {
   db: Database.Database;
   effectiveQueryVector: number[];
   runtimeContext: RuntimeVectorContext;

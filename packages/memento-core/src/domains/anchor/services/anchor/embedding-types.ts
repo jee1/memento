@@ -12,11 +12,6 @@ export interface EmbeddingResult {
 }
 
 /**
- * 임베딩 프로바이더 타입
- */
-export type EmbeddingProvider = 'tfidf' | 'minilm' | 'openai' | 'gemini';
-
-/**
  * 임베딩 결과 (null 가능)
  */
 export type EmbeddingResultOrNull = EmbeddingResult | null;
