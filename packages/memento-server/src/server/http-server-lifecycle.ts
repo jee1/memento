@@ -2,7 +2,7 @@ import { closeDatabase, logger, shutdownServices, type ServerServices } from '@m
 import type Database from 'better-sqlite3';
 import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 
-export type WriteDiagnostics = (type: string, payload?: Record<string, unknown>) => Promise<void>;
+type WriteDiagnostics = (type: string, payload?: Record<string, unknown>) => Promise<void>;
 
 interface CleanupRefs {
   getDb: () => Database.Database | null;

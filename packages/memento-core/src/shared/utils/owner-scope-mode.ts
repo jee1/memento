@@ -2,7 +2,7 @@
  * HTTP owner scope enforcement mode (Issue #664)
  */
 
-export type OwnerScopeMode = 'strict' | 'warn' | 'off';
+type OwnerScopeMode = 'strict' | 'warn' | 'off';
 
 /**
  * @param envValue - MEMENTO_OWNER_SCOPE_MODE

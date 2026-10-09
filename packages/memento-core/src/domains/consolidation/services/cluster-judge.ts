@@ -27,7 +27,7 @@ const QUESTION = '기억 A 와 기억 B 는 같은 작업이나 같은 주제를
 const BATCH_SIZE = 10;
 const TEXT_CHARS = 400;
 
-export interface JevClusterJudgeOptions {
+interface JevClusterJudgeOptions {
   apiKey: string;
   model?: string;
   baseUrl?: string;

@@ -69,9 +69,9 @@ export function toDailySeries(
   return series;
 }
 
-export type SectionStatus = 'ok' | 'degraded' | 'unavailable';
+type SectionStatus = 'ok' | 'degraded' | 'unavailable';
 
-export interface AdminStatusResponse {
+interface AdminStatusResponse {
   timestamp: string;
   windowDays: number;
   dataSince: string | null;

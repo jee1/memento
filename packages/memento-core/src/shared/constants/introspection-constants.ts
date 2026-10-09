@@ -7,7 +7,7 @@
 export const INTROSPECTION_HINT_SUFFIX =
   ' 자세한 내용은 get_introspection_summary 호출 권장.';
 
-export interface IntrospectionHint {
+interface IntrospectionHint {
   summary: string;
   low_confidence_count: number;
   high_failure_count: number;

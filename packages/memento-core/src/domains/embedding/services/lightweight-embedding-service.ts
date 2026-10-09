@@ -10,7 +10,7 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { estimateEmbeddingTokens, rankSimilarEmbeddings } from './embedding-helpers.js';
 
-export interface LightweightEmbeddingResult {
+interface LightweightEmbeddingResult {
   embedding: number[];
   model: string;
   provider?: EmbeddingProvider;
@@ -20,7 +20,7 @@ export interface LightweightEmbeddingResult {
   };
 }
 
-export interface LightweightSimilarityResult {
+interface LightweightSimilarityResult {
   id: string;
   content: string;
   similarity: number;

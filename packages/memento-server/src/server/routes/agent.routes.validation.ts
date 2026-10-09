@@ -1,6 +1,6 @@
 import { AgentIntegrationError, type KnowledgeCandidate } from '@memento/core';
 
-export type PersonalAgentMemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
+type PersonalAgentMemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
 
 export function optionalString(value: unknown, name: string): string | undefined {
   if (value === undefined || value === null) return undefined;

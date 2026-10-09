@@ -10,7 +10,7 @@ import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-m
 import { logger } from '../../../shared/utils/logger.js';
 
 /** M2 스캔 옵션 */
-export interface MetaMemoryIntrospectionScanOptions {
+interface MetaMemoryIntrospectionScanOptions {
   /** 에이전트 ID (향후 다중 에이전트 시 필터용, 현재는 memory_item에 owner_id 없어도 meta_memory_stats만 사용) */
   agentId?: string;
   /** 저신뢰 임계값: avg_confidence < 이 값이면 lowConfidenceMemoryIds에 포함 (기본: 0.5) */

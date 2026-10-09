@@ -47,6 +47,8 @@ jobs:
       - run: npx tsx scripts/check-version-sync.ts --ci
         continue-on-error: false
       - run: npm run type-check
+      - name: Unused files, exports and types (knip)
+        run: npm run knip
       - name: Audit markdown relative links
         run: npm run docs:audit-links
       - name: Verify npm scripts cited in docs

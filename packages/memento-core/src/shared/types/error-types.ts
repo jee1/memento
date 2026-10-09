@@ -33,11 +33,3 @@ export interface AppErrorContract {
   message: string;
   statusCode?: number;
 }
-
-/** 도구 실패 시 ToolResult에 넣을 표준 에러 형태 (일관된 에러 구조) */
-export interface ToolErrorShape {
-  code: string;
-  category?: string;
-  message: string;
-  details?: unknown;
-}

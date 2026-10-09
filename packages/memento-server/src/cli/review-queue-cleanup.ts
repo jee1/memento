@@ -22,7 +22,7 @@ interface ParsedReviewQueueCleanupArgs {
   execute: boolean;
 }
 
-export type ReviewQueueCleanupParseResult =
+type ReviewQueueCleanupParseResult =
   | { ok: true; help: true }
   | ({ ok: true; help: false } & ParsedReviewQueueCleanupArgs)
   | { ok: false; error: string };

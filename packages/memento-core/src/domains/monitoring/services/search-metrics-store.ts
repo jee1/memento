@@ -2,7 +2,7 @@
  * In-memory search performance statistics
  */
 
-export interface SearchStats {
+interface SearchStats {
   totalSearches: number;
   totalDuration: number;
   totalSearchTime: number;

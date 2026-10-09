@@ -51,17 +51,6 @@ export interface TelemetryEventRow {
   created_at: string;
 }
 
-export interface DailyMetricRow {
-  id: string;
-  date: string;
-  event_type: EventType;
-  owner_id: string;  // NOT NULL DEFAULT '' — empty string = global bucket
-  event_count: number;
-  avg_latency_ms: number | null;
-  error_count: number;
-  updated_at: string;
-}
-
 export interface TelemetryEventQueryFilters {
   event_type?: EventType;
   request_id?: string;

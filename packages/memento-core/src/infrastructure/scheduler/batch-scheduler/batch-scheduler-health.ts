@@ -3,7 +3,7 @@ import type { HealthChecker } from '../health-checker.js';
 import type { JobQueue } from '../job-queue.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 
-export interface BatchSchedulerHealthDeps {
+interface BatchSchedulerHealthDeps {
   db: Database.Database | null;
   healthChecker: HealthChecker;
   jobQueue: JobQueue;

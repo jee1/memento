@@ -21,7 +21,7 @@ import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js
 /**
  * 품질 측정 배치 작업 설정
  */
-export interface QualityMeasurementBatchJobConfig {
+interface QualityMeasurementBatchJobConfig {
   /**
    * 측정 타입 (기본값: 'batch')
    */
@@ -61,7 +61,7 @@ export interface QualityMeasurementBatchJobConfig {
 /**
  * 품질 측정 배치 작업 결과
  */
-export interface QualityMeasurementBatchResult extends BatchJobResult {
+interface QualityMeasurementBatchResult extends BatchJobResult {
   jobType: 'quality_measurement_batch';
   details: {
     /**

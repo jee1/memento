@@ -2,7 +2,7 @@
  * remember write-path near-duplicate policy (Issue #730)
  */
 
-export type RememberDedupMode = 'warn' | 'strict' | 'off';
+type RememberDedupMode = 'warn' | 'strict' | 'off';
 
 const DEFAULT_THRESHOLD = 0.85;
 const DEFAULT_LEXICAL_FLOOR = 0.3;

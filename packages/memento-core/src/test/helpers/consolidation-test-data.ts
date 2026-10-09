@@ -9,7 +9,7 @@ import { DAY_MS } from '../../shared/utils/date.js';
 import { encodeFloat32Embedding } from '../../shared/utils/embedding-serialization.js';
 import type { MemoryType } from '../../index.js';
 
-export interface TestMemoryItem {
+interface TestMemoryItem {
   id: string;
   type: MemoryType;
   content: string;
@@ -34,7 +34,7 @@ export interface TestMemoryItem {
   deleted_at?: string | null;
 }
 
-export interface TestMemoryEmbedding {
+interface TestMemoryEmbedding {
   memory_id: string;
   embedding: number[];
   embedding_provider?: string;

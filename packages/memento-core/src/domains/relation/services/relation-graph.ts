@@ -29,7 +29,6 @@ import { RelationGraphQuery } from './relation-graph-query.js';
 import type { RelatedMemoryResult } from './relation-graph-traversal.js';
 import { RelationGraphTraversal } from './relation-graph-traversal.js';
 
-export type { RelatedMemoryResult };
 
 /**
  * 관계 그래프 서비스 (composition 오케스트레이터)

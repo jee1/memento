@@ -50,7 +50,7 @@ export function resolveQueryUnifiedEmbeddingForHybridSearch(
   return new UnifiedEmbeddingService();
 }
 
-export type HybridVectorSearchOutput = {
+type HybridVectorSearchOutput = {
   results: VectorSearchResult[];
   fallback_used: boolean;
   query_embedding_providers?: EmbeddingProvider[];

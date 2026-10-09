@@ -12,7 +12,7 @@ import { logger } from '@memento/core';
 /**
  * Anchor Map 노드 타입
  */
-export interface AnchorMapNode {
+interface AnchorMapNode {
   id: string;
   type: 'anchor' | 'memory';
   slot?: string;
@@ -27,7 +27,7 @@ export interface AnchorMapNode {
 /**
  * Anchor Map 링크 타입
  */
-export interface AnchorMapLink {
+interface AnchorMapLink {
   source: string;
   target: string;
   type: 'anchor' | 'hop' | 'link';
@@ -38,7 +38,7 @@ export interface AnchorMapLink {
 /**
  * Agent ID별 앵커 개수 항목
  */
-export interface AnchorAgentIdEntry {
+interface AnchorAgentIdEntry {
   agent_id: string;
   anchor_count: number;
 }
@@ -64,7 +64,7 @@ export function listAnchorAgentIds(db: Database.Database): AnchorAgentIdEntry[] 
 /**
  * Anchor Map 데이터 타입
  */
-export interface AnchorMapData {
+interface AnchorMapData {
   agent_id: string;
   anchors: Array<{
     agent_id: string;

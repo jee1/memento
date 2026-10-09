@@ -4,7 +4,6 @@
 
 import type { ApiTokenEntry } from './api-token.js';
 import type { EmbeddingProvider } from './embedding.types.js';
-import type { MemorySearchFilters } from './search.types.js';
 
 // 도메인 모델용 타입 (memory_item 테이블용, 변경 없음)
 export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
@@ -159,72 +158,6 @@ export interface MementoConfig {
   rememberDedupMergeLexicalFloor: number;
   /** HTTP MCP dual-era rollback gate (#840). Env: MEMENTO_MCP_ERA */
   mcpEra: 'dual' | 'legacy' | 'modern';
-}
-
-export type UpdateMode = 'replace' | 'incremental' | 'versioned';
-
-export interface RememberParams {
-  content?: string;
-  type?: MemoryTypeRequest;
-  key?: string;
-  value?: string;
-  always_load?: boolean;
-  immutable?: boolean;
-  task_goal?: string;
-  steps?: string;
-  reflection_notes?: string;
-  workflow_name?: string;
-  skill_name?: string;
-  trigger_conditions?: string;
-  update_mode?: UpdateMode;
-  tags?: string[];
-  importance?: number;
-  source?: string;
-  privacy_scope?: PrivacyScope;
-}
-
-export type ReturnFormat = 'full' | 'steps_only';
-
-export interface RecallParams {
-  query?: string;
-  type?: MemoryTypeRequest;
-  key?: string;
-  agent_id?: string;
-  filters?: MemorySearchFilters;
-  limit?: number;
-  workflow_name?: string;
-  skill_name?: string;
-  match_trigger_conditions?: boolean;
-  return_format?: ReturnFormat;
-  version_filter?: import('./procedural-versioning.js').VersionFilterType;
-  version_series_id?: string;
-  version_number?: number;
-  include_version_chain?: boolean;
-  include_diff_with?: 'previous' | string;
-}
-
-export interface ForgetParams {
-  id: string;
-  hard?: boolean;
-}
-
-export interface PinParams {
-  id: string;
-}
-
-export interface UnpinParams {
-  id: string;
-}
-
-export interface FeedbackParams {
-  memory_id: string;
-  helpful: boolean;
-  score?: number;
-}
-
-export interface MemoryInjectionParams {
-  query: string;
-  token_budget?: number;
 }
 
 /** meta_memory_stats 테이블과 일대일 대응되는 통계 */

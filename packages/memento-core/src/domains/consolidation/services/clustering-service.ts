@@ -9,7 +9,7 @@ import type { ConsolidationCluster } from '../../../shared/types/consolidation.t
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
-export interface EpisodicWithEmbedding {
+interface EpisodicWithEmbedding {
   row: EpisodicCandidateRow;
   embedding: number[];
 }

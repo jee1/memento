@@ -11,11 +11,11 @@ import {
   runStatus,
   type AgentOpsOptions,
   type AgentOpsRequest,
-  type ReasonGuide,
+  
 } from './agent-ops-core.js';
 import { runDemo } from './agent-ops-demo.js';
 
-export type { AgentOpsRequest, ReasonGuide };
+export type { AgentOpsRequest };
 export { reasonGuide };
 
 type AgentOpsCommand = 'doctor' | 'status' | 'demo';

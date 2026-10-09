@@ -13,7 +13,7 @@ import type { IProceduralMemoryExtractor } from './procedural-memory-extractor.t
 import { extractProceduralMemory } from './procedural-memory-field-extractors.js';
 
 // 하위 호환: 타입 re-export
-export type { ReflectionNotes, ExtractedProceduralMemory } from './procedural-memory-extractor.types.js';
+export type {  ExtractedProceduralMemory } from './procedural-memory-extractor.types.js';
 
 // 필드 추출 함수 re-export
 export {
@@ -26,7 +26,7 @@ export {
 
 // 유사도·병합 로직 re-export
 export {
-  type SimilarityMergeResult,
+  
   calculateSimilarity,
   determineMergeStrategy,
 } from './procedural-memory-similarity.js';

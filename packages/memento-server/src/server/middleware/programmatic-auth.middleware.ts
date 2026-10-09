@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export type ProgrammaticAuthMiddlewareConfig = {
+type ProgrammaticAuthMiddlewareConfig = {
   registry: ApiTokenRegistry;
   requiredScope: ApiScope | ApiScope[];
   errorFormat?: 'legacy' | 'agent';

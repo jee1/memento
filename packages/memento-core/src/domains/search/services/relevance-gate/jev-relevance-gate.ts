@@ -7,7 +7,7 @@
 import type { IRelevanceGatePort } from '../../ports/relevance-gate-port.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
-export interface JevRelevanceGateOptions {
+interface JevRelevanceGateOptions {
   apiKey: string;
   model?: string;
   baseUrl?: string;

@@ -15,7 +15,7 @@ const RELAY_ENV = 'MEMENTO_REVIEW_CANDIDATES_CHANGED_RELAY_URLS';
 const RELAY_SECRET_ENV = 'MEMENTO_REVIEW_CANDIDATES_CHANGED_RELAY_SECRET';
 const RELAY_TIMEOUT_MS = 3000;
 
-export type ReviewCandidatesChangedReason =
+type ReviewCandidatesChangedReason =
   | 'review'
   | 'dismiss'
   | 'bulk_dismiss'
@@ -23,7 +23,7 @@ export type ReviewCandidatesChangedReason =
   | 'batch_memory_review_candidates';
 
 /** Wire contract: `kind: review_candidates_changed` (schema v1). */
-export type ReviewCandidatesChangedEnvelope = {
+type ReviewCandidatesChangedEnvelope = {
   schema_version: 1;
   kind: 'review_candidates_changed';
   idempotency_key: string;

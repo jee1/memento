@@ -5,7 +5,7 @@ import type {
   LLMMessage,
 } from '../ports/llm-port.js';
 
-export interface DeterministicMockLlmAdapterOptions {
+interface DeterministicMockLlmAdapterOptions {
   model?: string;
   fixtures?: Record<string, string>;
 }

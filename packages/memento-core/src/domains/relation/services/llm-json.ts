@@ -1,4 +1,4 @@
-export interface ExtractJsonObjectOptions {
+interface ExtractJsonObjectOptions {
   end?: 'balanced' | 'last-brace';
 }
 

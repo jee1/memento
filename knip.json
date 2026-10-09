@@ -1,5 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  },
   "workspaces": {
     ".": {
       "entry": [
@@ -28,7 +32,8 @@
         "src/server/index.ts",
         "src/cli.ts",
         "src/server/http-server.ts",
-        "src/telemetry-cli.ts"
+        "src/telemetry-cli.ts",
+        "src/scripts/*.ts"
       ],
       "project": [
         "src/**/*.ts"

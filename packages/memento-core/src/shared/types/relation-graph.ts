@@ -3,8 +3,7 @@
  * 기억 간의 관계를 저장하고 관리하기 위한 타입들
  */
 
-import type { RelationType, RelationCategory } from './relation.js';
-import type { MemoryType } from './memory.types.js';
+import type { RelationType } from './relation.js';
 
 /**
  * 메모리 관계 (데이터베이스 저장용)
@@ -293,17 +292,4 @@ export interface IRelationGraph {
     success: number;
     failedCount: number;
   }>;
-}
-
-/**
- * 관계 타입 레지스트리 항목
- */
-export interface RelationTypeRegistry {
-  type_name: RelationType;
-  category: RelationCategory;
-  description: string;
-  applicable_types: MemoryType[];
-  default_confidence: number;
-  search_boost: number;
-  created_at: Date;
 }

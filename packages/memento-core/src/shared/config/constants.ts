@@ -171,10 +171,3 @@ export const HYBRID_SEARCH = {
   FTS_MIN_PREFIX_STEM_LENGTH: 2
 } as const;
 
-/**
- * 검색 관련 상수 타입 정의
- */
-export type SearchRankingWeights = typeof SEARCH_RANKING.DEFAULT_WEIGHTS;
-export type VectorSearchConstants = typeof VECTOR_SEARCH;
-export type HybridSearchConstants = typeof HYBRID_SEARCH;
-

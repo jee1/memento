@@ -20,7 +20,7 @@ import {
   truncateEmbeddingText,
 } from './embedding-helpers.js';
 
-export interface GeminiEmbeddingResult {
+interface GeminiEmbeddingResult {
   embedding: number[];
   model: string;
   usage: {
@@ -29,7 +29,7 @@ export interface GeminiEmbeddingResult {
   };
 }
 
-export interface GeminiSimilarityResult {
+interface GeminiSimilarityResult {
   id: string;
   content: string;
   similarity: number;

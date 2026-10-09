@@ -21,7 +21,7 @@ export type LinkedMemorySummary = {
   tags?: string[];
 };
 
-export type HopCandidate = LinkedMemorySummary & { isLinked: boolean };
+type HopCandidate = LinkedMemorySummary & { isLinked: boolean };
 
 type HopSeed = { memory_id: string; embedding?: number[]; provider?: string };
 

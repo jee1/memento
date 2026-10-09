@@ -12,7 +12,7 @@ import { isIP } from 'node:net';
  * 명시할 때만 켠다. 허용 형식은 Express `trust proxy` 와 같다 — 홉 수(`1`),
  * 프리셋(`loopback`·`linklocal`·`uniquelocal`), IP/CIDR 목록(쉼표 구분), `true`/`false`.
  */
-export type TrustProxyResolution = {
+type TrustProxyResolution = {
   /** `undefined` 면 호출부가 `app.set` 을 하지 않는다 — Express 기본값 `false` 유지. */
   setting?: boolean | number | string;
   /** 운영자에게 알릴 경고. 값이 위험하거나 해석 불가일 때만 채워진다. */

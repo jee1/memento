@@ -9,7 +9,7 @@ import os from 'os';
 import fs from 'fs';
 import { config } from 'dotenv';
 
-export interface EnvLoaderOptions {
+interface EnvLoaderOptions {
   /** 사용자 지정 .env 파일 경로 (있으면 이 파일만 사용, 없으면 에러) */
   envFile?: string;
   /** 사용자 지정 설정 디렉터리 (이 디렉터리 내 .env 사용) */

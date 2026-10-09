@@ -8,10 +8,8 @@ import type {
 } from './memory-review-candidate-persistence.types.js';
 
 export const MEMORY_REVIEW_CANDIDATE_PAGE_SIZES = [25, 50] as const;
-export type MemoryReviewCandidatePageSize = (typeof MEMORY_REVIEW_CANDIDATE_PAGE_SIZES)[number];
 
 export const MEMORY_REVIEW_MEMORY_TYPES = ['working', 'episodic', 'semantic', 'procedural'] as const;
-export type MemoryReviewMemoryType = (typeof MEMORY_REVIEW_MEMORY_TYPES)[number];
 
 /** Default importance when memory_item.importance is NULL (matches column DEFAULT 0.5). */
 export const MEMORY_REVIEW_IMPORTANCE_FALLBACK = 0.5;
@@ -48,7 +46,7 @@ const FROM_JOIN = `
   LEFT JOIN meta_memory_stats s ON s.memory_id = m.id
 `;
 
-export interface BuiltMemoryReviewCandidateListSql {
+interface BuiltMemoryReviewCandidateListSql {
   whereSql: string;
   params: Record<string, unknown>;
   filtersApplied: MemoryReviewCandidateFiltersApplied;

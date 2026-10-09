@@ -7,14 +7,14 @@ import { mementoConfig } from './index.js';
 import type { LLMProvider, MementoConfig } from '../types/memory.types.js';
 import { logger } from '../utils/logger.js';
 
-export type LlmUseCase =
+type LlmUseCase =
   | 'relation_extraction'
   | 'procedural'
   | 'consolidation';
 
-export type InScopeLlmProviderUseCase = LlmUseCase;
+type InScopeLlmProviderUseCase = LlmUseCase;
 
-export type LlmModelProvider = 'openai' | 'gemini' | 'ollama';
+type LlmModelProvider = 'openai' | 'gemini' | 'ollama';
 
 const PROVIDER_CODE_DEFAULTS: Record<LlmModelProvider, string> = {
   openai: 'gpt-4o-mini',
@@ -34,7 +34,7 @@ export type LlmProviderConfigSlice = Pick<
   'llmProvider' | 'llmProviderOverrides'
 >;
 
-export type ResolveLlmModelOptions = {
+type ResolveLlmModelOptions = {
   boundProvider?: LlmModelProvider | null;
   onModelOverrideDiscarded?: (info: {
     useCase: LlmUseCase;

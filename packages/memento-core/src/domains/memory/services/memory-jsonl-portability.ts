@@ -2,7 +2,7 @@
  * JSONL memory export/import (Issue #668).
  */
 
-import { createHash,  } from 'crypto';
+import { createHash } from 'crypto';
 import type Database from 'better-sqlite3';
 import { MEMENTO_LATEST_SCHEMA_VERSION } from '../../../shared/constants/schema-version.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -10,7 +10,7 @@ import { SchemaVersionManager } from '../../../infrastructure/database/sqlite/mi
 
 export const MEMORY_JSONL_FORMAT_VERSION = 1;
 
-export type MemoryJsonlRecordType = 'memory_item' | 'memory_relation';
+type MemoryJsonlRecordType = 'memory_item' | 'memory_relation';
 
 export interface MemoryJsonlManifest {
   type: 'manifest';

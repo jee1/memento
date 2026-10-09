@@ -1,6 +1,6 @@
 import type { MemoryProvenance, ProvenanceTrace } from '../types.js';
 
-export type ProvenanceGraphQuery = {
+type ProvenanceGraphQuery = {
   memoryId?: string;
   observationId?: string;
   direction?: 'sources' | 'derived' | 'both';

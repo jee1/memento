@@ -4,12 +4,12 @@
  */
 
 /** One row in the search-result cache (opaque object shape per caller). */
-export type CachedSearchHit = Record<string, unknown>;
+type CachedSearchHit = Record<string, unknown>;
 
 /** Filters object serialized into search cache keys. */
-export type SearchCacheFilters = Record<string, unknown>;
+type SearchCacheFilters = Record<string, unknown>;
 
-export interface CacheEntry<T> {
+interface CacheEntry<T> {
   data: T;
   timestamp: number;
   ttl: number;

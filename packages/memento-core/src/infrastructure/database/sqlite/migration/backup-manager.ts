@@ -49,7 +49,7 @@ export interface BackupResult {
 
 export type CleanupMode = 'preview' | 'apply';
 
-export type CleanupSelectionReason =
+type CleanupSelectionReason =
   | 'expired-automatic'
   | 'surplus-automatic'
   | 'surplus-operator'
@@ -57,9 +57,9 @@ export type CleanupSelectionReason =
   | 'orphaned-sidecar'
   | 'interrupted-attempt';
 
-export type CleanupStatus = 'selected' | 'deleted' | 'skipped' | 'failed';
+type CleanupStatus = 'selected' | 'deleted' | 'skipped' | 'failed';
 
-export type CleanupDetail =
+type CleanupDetail =
   | 'inspect-failed'
   | 'missing-before-delete'
   | 'changed-before-delete'

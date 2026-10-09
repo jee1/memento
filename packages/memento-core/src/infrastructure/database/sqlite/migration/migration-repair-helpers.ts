@@ -6,7 +6,7 @@
 
 import type Database from 'better-sqlite3';
 
-export interface PredicateCanonicalizationResult {
+interface PredicateCanonicalizationResult {
   canonical: string;
   original: string;
   success: boolean;
@@ -242,18 +242,18 @@ interface CandidateRow {
   project_id: string | null;
 }
 
-export interface RerenderEntry {
+interface RerenderEntry {
   id: string;
   before: string;
   after: string;
 }
 
-export interface DeletionEntry {
+interface DeletionEntry {
   id: string;
   keptId: string;
 }
 
-export interface DuplicatePlan {
+interface DuplicatePlan {
   rerender: RerenderEntry[];
   deletions: DeletionEntry[];
 }

@@ -13,9 +13,9 @@ import { parseMementoResourceUri } from '../utils/memento-resource-uri.js';
  * - memento://memory/<memory_id> (legacy alias)
  */
 
-export type SourceUriType = 'file' | 'https' | 'commit' | 'doc' | 'memento' | 'agent';
+type SourceUriType = 'file' | 'https' | 'commit' | 'doc' | 'memento' | 'agent';
 
-export interface SourceValidationResult {
+interface SourceValidationResult {
   isValid: boolean;
   type?: SourceUriType;
   message?: string;

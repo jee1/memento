@@ -12,7 +12,7 @@ export interface SpacedRepetitionFeatures {
   bad_feedback: number;     // 나쁨 피드백 (0-1)
 }
 
-export interface SpacedRepetitionWeights {
+interface SpacedRepetitionWeights {
   importance: number;        // A1 = 0.6
   usage: number;            // A2 = 0.4
   helpful_feedback: number; // A3 = 0.5

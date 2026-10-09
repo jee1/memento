@@ -6,11 +6,11 @@
  */
 
 export type {
-  BM25Result,
-  EmbeddingSimilarity,
+  
+  
   RelevanceInput,
   SearchFeatures,
-  SearchRankingWeights,
+  
   UsageMetrics,
 } from './search-ranking/search-ranking.types.js';
 

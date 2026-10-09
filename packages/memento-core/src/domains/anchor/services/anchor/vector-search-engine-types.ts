@@ -10,7 +10,7 @@ import type { VectorSearchEngine } from '../../../search/algorithms/vector-searc
  * 초기화 가능한 VectorSearchEngine 타입
  * initialize 메서드가 있는 경우를 위한 타입 가드
  */
-export interface InitializableVectorSearchEngine extends VectorSearchEngine {
+interface InitializableVectorSearchEngine extends VectorSearchEngine {
   initialize(db: Database.Database): void | Promise<void>;
 }
 

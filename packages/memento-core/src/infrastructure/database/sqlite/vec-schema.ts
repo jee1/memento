@@ -107,7 +107,7 @@ export function hasCosineDistanceMetric(sql: string | undefined | null): boolean
   return COSINE_METRIC_PATTERN.test(sql);
 }
 
-export interface VecTriggerSql {
+interface VecTriggerSql {
   insert: string;
   update: string;
   delete: string;

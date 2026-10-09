@@ -17,7 +17,7 @@ const MAX_QUERY_LENGTH = 500;
 const MAX_OWNER_ID_LENGTH = 200;
 const PREVIEW_LENGTH = 200;
 
-export type AdminMemorySearchQuery = {
+type AdminMemorySearchQuery = {
   q: string;
   type?: SearchType;
   owner_id?: string;

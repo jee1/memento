@@ -36,7 +36,7 @@ export interface BatchSchedulerDependencyOverrides {
   diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
 }
 
-export interface BatchSchedulerCoordinatorCallbacks {
+interface BatchSchedulerCoordinatorCallbacks {
   getConfig: () => BatchJobConfig;
   getIsRunning: () => boolean;
   lastExecution: Map<string, Date>;
@@ -49,7 +49,7 @@ export interface BatchSchedulerCoordinatorCallbacks {
   getDb: () => Database.Database | null;
 }
 
-export interface BatchSchedulerWiringResult {
+interface BatchSchedulerWiringResult {
   config: BatchJobConfig;
   forgettingService: ForgettingPolicyService;
   performanceMonitor: ReturnType<typeof getPerformanceMonitor>;

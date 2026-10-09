@@ -87,14 +87,14 @@ export interface EmbeddingReindexResult extends EmbeddingHealthDiagnostics {
   prunedForeignEmbeddingCount: number;
 }
 
-export interface SemanticEndpointBackfillOptions {
+interface SemanticEndpointBackfillOptions {
   provider: EmbeddingProvider;
   /** 제한적 backfill: 한 번에 처리할 최대 후보 수 (기본 200, 최대 1000) */
   limit?: number;
   dryRun?: boolean;
 }
 
-export interface SemanticEndpointBackfillResult {
+interface SemanticEndpointBackfillResult {
   provider: EmbeddingProvider;
   candidateCount: number;
   dryRun: boolean;

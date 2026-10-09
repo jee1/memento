@@ -2,7 +2,7 @@ import type { LLMProvider } from '../types/memory.types.js';
 
 const ALLOWED_LLM_PROVIDERS = new Set<LLMProvider>(['openai', 'gemini', 'ollama', 'auto']);
 
-export type ParseLlmProviderOverrideResult = {
+type ParseLlmProviderOverrideResult = {
   value?: LLMProvider;
   invalidRaw?: string;
 };

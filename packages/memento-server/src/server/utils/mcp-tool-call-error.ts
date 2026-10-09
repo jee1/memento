@@ -6,7 +6,7 @@ import {
 } from '@memento/core';
 import { z } from 'zod';
 
-export type JsonRpcErrorPayload = {
+type JsonRpcErrorPayload = {
   code: number;
   message: string;
   data: unknown;

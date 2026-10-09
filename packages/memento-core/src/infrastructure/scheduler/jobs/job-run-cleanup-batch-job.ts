@@ -13,7 +13,7 @@ import { logger } from '../../../shared/utils/logger.js';
  */
 export const JOB_RUN_SUCCESS_KEEP_PER_JOB = 3000;
 
-export interface JobRunCleanupBatchJobDeps {
+interface JobRunCleanupBatchJobDeps {
   db: Database.Database;
   repository: JobRunRepository;
 }

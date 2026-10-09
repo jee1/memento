@@ -6,7 +6,7 @@
 /**
  * 관계 그래프 캐시 키 생성 옵션
  */
-export interface RelationGraphCacheOptions {
+interface RelationGraphCacheOptions {
   direction?: 'incoming' | 'outgoing' | 'both';
   relationTypes?: string[];
   minConfidence?: number;
@@ -17,7 +17,7 @@ export interface RelationGraphCacheOptions {
 /**
  * 관계 추출 캐시 키 생성 옵션
  */
-export interface RelationExtractionCacheOptions {
+interface RelationExtractionCacheOptions {
   method?: string;
   minConfidence?: number;
   candidateLimit?: number;

@@ -121,7 +121,7 @@ export interface SchedulerJobSnapshot {
 }
 
 /** UTC 롤링 24h 윈도우의 background 잡 텔레메트리 집계. */
-export interface BackgroundJobRolling24hStats {
+interface BackgroundJobRolling24hStats {
   successRuns24h: number;
   failureRuns24h: number;
   avgDurationMs24h: number | null;

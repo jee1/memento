@@ -29,7 +29,7 @@ export interface SimilarityWarning {
   truncated?: boolean;
 }
 
-export interface NearDuplicateSearchResult {
+interface NearDuplicateSearchResult {
   candidates: NearDuplicateCandidate[];
   truncated: boolean;
 }

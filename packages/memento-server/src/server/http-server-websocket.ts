@@ -14,7 +14,7 @@ import { recordWebSocketRequestAudit } from './middleware/http-audit.middleware.
 import { resolveAuthenticatedToken } from './middleware/programmatic-auth.middleware.js';
 import { DASHBOARD_SESSION_COOKIE_NAME, readCookie } from './middleware/session-auth.middleware.js';
 
-export type WebSocketAuthConfig = {
+type WebSocketAuthConfig = {
   getSessionStore: () => SessionStore | null;
   getTokenRegistry: () => ApiTokenRegistry;
   allowedOrigins: readonly string[];

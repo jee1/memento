@@ -1,7 +1,7 @@
 export const JSON_INTERACTION_INFO =
   '[info] --json은 인터랙션을 비활성화합니다(저장 생략).\n';
 
-export type ErrorCode =
+type ErrorCode =
   | 'MISSING_QUERY'
   | 'INVALID_OPTION'
   | 'BOOTSTRAP_FAILED'

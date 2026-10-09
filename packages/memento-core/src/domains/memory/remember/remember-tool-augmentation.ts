@@ -15,7 +15,7 @@ import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import { getExistingMemoriesForRelationExtraction, getMemoryById } from './remember-tool-db-helpers.js';
 
-export interface AugmentationParams {
+interface AugmentationParams {
   dbRef: Database.Database;
   savedMemoryId: string;
   savedMemoryType: string;

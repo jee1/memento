@@ -14,7 +14,7 @@ import type { IQueryFilterService } from './query-filter-service.js';
 /**
  * 앵커 정보 및 임베딩
  */
-export interface AnchorWithEmbedding {
+interface AnchorWithEmbedding {
   memory_id: string;
   embedding: { embedding: number[]; provider: string };
 }

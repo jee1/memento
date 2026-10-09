@@ -4,20 +4,6 @@
 
 export type FeedbackEventType = 'used' | 'edited' | 'neglected' | 'helpful' | 'not_helpful';
 
-export interface FeedbackEvent {
-  id: number;
-  memory_id: string;
-  event: FeedbackEventType;
-  score?: number;
-  /** Optional comment (HTTP client / tools) */
-  comment?: string;
-  session_id?: string;
-  agent_id?: string;
-  /** recall score_breakdown JSON 스냅샷(US3) */
-  score_breakdown_json?: string | null;
-  created_at: string;
-}
-
 export interface CreateFeedbackEventInput {
   memory_id: string;
   event: FeedbackEventType;

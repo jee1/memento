@@ -7,7 +7,7 @@ import type { SessionStore } from '../auth/session-store.js';
  */
 export const DASHBOARD_SESSION_COOKIE_NAME = 'memento_admin_session';
 
-export type SessionAuthMiddlewareConfig = {
+type SessionAuthMiddlewareConfig = {
   store: SessionStore;
   cookieName: string;
 };

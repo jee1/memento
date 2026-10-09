@@ -16,7 +16,6 @@ import { CheckpointMode, type WalCheckpointScheduler } from '../../database/wal-
 import type { DatabaseLockMonitor } from '../../database/database-lock-monitor.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { BatchJobAlreadyRunningError } from './batch-scheduler-types.js';
-export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { startBatchScheduler, stopBatchScheduler } from './batch-scheduler-lifecycle.js';
 import {
   createBatchSchedulerWiring,
@@ -37,7 +36,7 @@ import {
   startBatchSchedulerJobProcessor,
   waitForBatchSchedulerJobs,
   type BatchSchedulerJobProcessorState,
-  type ManualBatchSchedulerJobType
+  
 } from './batch-scheduler-job-processor.js';
 import {
   isBatchSchedulerJobQueued,
@@ -57,8 +56,6 @@ import {
   updateBatchSchedulerConfig,
   type BatchSchedulerStatusState
 } from './batch-scheduler-status.js';
-
-export type { ManualBatchSchedulerJobType };
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {

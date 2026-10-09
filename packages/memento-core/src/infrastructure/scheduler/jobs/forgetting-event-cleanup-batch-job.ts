@@ -8,7 +8,7 @@ import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/utils/logger.js';
 
-export interface ForgettingEventCleanupBatchJobDeps {
+interface ForgettingEventCleanupBatchJobDeps {
   db: Database.Database;
   repository: ForgettingEventRepository;
 }

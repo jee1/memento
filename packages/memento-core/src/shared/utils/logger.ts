@@ -39,7 +39,7 @@ export interface LogMetadataSchema {
 /**
  * 로깅 메타데이터 검증 결과
  */
-export interface LogMetadataValidationResult {
+interface LogMetadataValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -107,7 +107,7 @@ export function validateLogMetadata(meta?: Record<string, unknown>): LogMetadata
  * logger.error('Database connection failed', { error: 'timeout' });
  * ```
  */
-export interface Logger {
+interface Logger {
   /**
    * 디버그 레벨 로그 출력
    * 개발 및 디버깅 목적으로 사용됩니다.

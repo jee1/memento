@@ -52,7 +52,6 @@ import {
   type OllamaRelationExtractDeps
 } from './llm-relation-extractor/extract-relations-ollama.js';
 import type { ParseResult } from './llm-relation-extractor/types.js';
-export type { ParseResult } from './llm-relation-extractor/types.js';
 
 /**
  * LLM 비용 모니터링

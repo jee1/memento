@@ -14,7 +14,7 @@ export type SessionStore = {
   delete(sessionId: string): void;
 };
 
-export type SessionStoreConfig = {
+type SessionStoreConfig = {
   idleTtlMs: number;
   absoluteTtlMs: number;
 };

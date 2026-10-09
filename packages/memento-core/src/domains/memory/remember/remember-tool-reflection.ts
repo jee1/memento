@@ -9,7 +9,7 @@ import { formatValidationErrors, validateReflectionNotes, type ReflectionNote } 
 import type { RememberToolHost } from './remember-tool-host.js';
 
 /** 기존 reflection_notes 조회 결과 타입 */
-export interface ExistingReflectionNotesResult {
+interface ExistingReflectionNotesResult {
   exists: boolean;
   type: 'null' | 'object' | 'array';
   value: null | ReflectionNote | ReflectionNote[];

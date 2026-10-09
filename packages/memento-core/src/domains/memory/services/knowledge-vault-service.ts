@@ -14,7 +14,7 @@ import {
   type KnowledgeVaultRecord
 } from '../repositories/knowledge-vault-repository.interface.js';
 
-export interface CreateKnowledgeVaultServiceInput {
+interface CreateKnowledgeVaultServiceInput {
   agent_id?: string;
   key: string;
   value: string;
@@ -23,7 +23,7 @@ export interface CreateKnowledgeVaultServiceInput {
   origin_source?: string | null;
 }
 
-export interface UpdateKnowledgeVaultServiceInput {
+interface UpdateKnowledgeVaultServiceInput {
   value?: string;
   immutable?: boolean;
   admin_override?: boolean;

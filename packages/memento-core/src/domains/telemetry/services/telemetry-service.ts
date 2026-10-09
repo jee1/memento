@@ -24,7 +24,7 @@ import type {
 } from '../types/telemetry.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 
-export interface TelemetryContext {
+interface TelemetryContext {
   requestId: string;
   ownerId: string | null;
 }

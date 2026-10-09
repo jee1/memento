@@ -12,12 +12,12 @@ function now(): Date {
   return new Date();
 }
 
-export type ProviderResolver = (provider: EmbeddingProvider) => {
+type ProviderResolver = (provider: EmbeddingProvider) => {
   generateEmbedding(text: string): Promise<unknown>;
   isAvailable(): boolean;
 } | null;
 
-export type ProviderPriorityResolver = () => EmbeddingProvider[];
+type ProviderPriorityResolver = () => EmbeddingProvider[];
 
 export class ModelAvailabilityService {
   private readonly resolveProvider: ProviderResolver;

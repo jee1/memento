@@ -83,7 +83,7 @@ export class AnchorCacheService implements IAnchorCacheService {
       const hasEmbeddingColumn = columns.some(c => c.name === 'embedding');
 
       // embedding 컬럼이 없으면 null 반환 (레거시 스키마)
-      // ensureLegacySchema가 컬럼을 추가하지만, 초기화 전 접근 시 대비
+      // 컬럼이 없는 오래된 DB 에 초기화 전 접근할 때 대비
       if (!hasEmbeddingColumn) {
         logger.warn('Embedding column not found in memory_embedding table (legacy schema)', { memoryId });
         return null;

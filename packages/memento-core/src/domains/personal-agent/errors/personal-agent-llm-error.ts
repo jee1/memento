@@ -3,7 +3,7 @@ export type PersonalAgentLlmErrorCode =
   | 'provider_misconfigured'
   | 'provider_runtime_failed';
 
-export type PersonalAgentLlmErrorOptions = {
+type PersonalAgentLlmErrorOptions = {
   code: PersonalAgentLlmErrorCode;
   message: string;
   cause?: unknown;

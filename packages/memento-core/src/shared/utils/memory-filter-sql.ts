@@ -11,7 +11,7 @@ function toIsoTimestampParam(value: string): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
 }
 
-export interface MemoryFilterSqlOptions {
+interface MemoryFilterSqlOptions {
   /** memory_item 별칭 (예: 'm', 'mi', 'scoped_mi', 'scoped_m') */
   itemAlias: string;
   /**

@@ -1,14 +1,14 @@
 import type { RememberParams } from '../../memory/remember/remember-tool.js';
 import type { KnowledgeCandidate } from '../types/agent-types.js';
 
-export interface RememberParamsMappingContext {
+interface RememberParamsMappingContext {
   projectId?: string;
   ownerId?: string | string[];
   sessionId?: string;
   processId?: string;
 }
 
-export type MapKnowledgeCandidateToRememberParamsResult =
+type MapKnowledgeCandidateToRememberParamsResult =
   | { ok: true; params: RememberParams }
   | { ok: false; errorMessage: string };
 

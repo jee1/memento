@@ -10,7 +10,7 @@
 /**
  * Rate Limiter 설정
  */
-export interface RateLimiterConfig {
+interface RateLimiterConfig {
   /**
    * 최대 로그 전송 빈도 (초당 로그 수)
    * 기본값: 10 (초당 10개 로그)

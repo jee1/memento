@@ -8,7 +8,7 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 
-export interface VaultMemoryParams {
+interface VaultMemoryParams {
   key: string;
   value: string;
   immutable: boolean | undefined;

@@ -3,7 +3,7 @@
  * MCP 서버 없이 라이브러리 모드에서 사용. stderr로만 출력.
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   debug: 0,

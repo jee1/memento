@@ -26,8 +26,6 @@ import type { ToolAuditContext } from '../../audit-tool-dispatch.js';
 import { readProjectIdHeader } from '../../utils/project-id-header.js';
 import type { JsonRpcResponse, SSETransport } from './types.js';
 
-export type ApplyMcpCorsHeaders = (req: Request, res: Response) => void;
-
 function applyMcpCorsHeaders(req: Request, res: Response): void {
   const origin = req.get('origin') ?? undefined;
   const headers = buildMcpManualCorsHeaders(origin, mementoConfig.corsAllowedOrigins);

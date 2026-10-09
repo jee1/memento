@@ -90,7 +90,7 @@ export type ReflectionNote = z.infer<typeof ReflectionNoteSchema>;
 /**
  * 검증 결과 타입
  */
-export interface ValidationResult {
+interface ValidationResult {
   isValid: boolean;
   errors?: Array<{
     field: string;

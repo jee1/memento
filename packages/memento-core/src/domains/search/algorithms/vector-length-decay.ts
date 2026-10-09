@@ -3,7 +3,7 @@
  * factor = len / (len + k) — continuous, monotone in length; no hard cutoff.
  */
 
-export interface VectorLengthDecayOptions {
+interface VectorLengthDecayOptions {
   enabled: boolean;
   characteristic_length: number;
   /** #921: length at which decay saturates to 1. Omitted / <=0 disables saturation. */

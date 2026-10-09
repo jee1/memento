@@ -92,14 +92,6 @@ export interface MemorySearchResult {
   project_id?: string | null;
 }
 
-export interface SearchRankingWeights {
-  relevance: number;
-  recency: number;
-  importance: number;
-  usage: number;
-  duplication_penalty: number;
-}
-
 export interface StoredEmbeddingProviderStats {
   provider: EmbeddingProvider;
   count: number;

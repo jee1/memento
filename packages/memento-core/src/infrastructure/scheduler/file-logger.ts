@@ -10,7 +10,7 @@ import { logger } from '../../shared/utils/logger.js';
 import { sanitizeFileName,validateFilePath } from '../../shared/utils/path-validator.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 
-export interface FileLoggerConfig {
+interface FileLoggerConfig {
   logDir?: string; // 로그 디렉토리 (기본: process.cwd()/logs)
   logFileName?: string; // 로그 파일명 (기본: batch-scheduler.log)
   enabled?: boolean; // 로깅 활성화 여부 (기본: true)

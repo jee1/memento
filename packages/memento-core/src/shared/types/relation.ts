@@ -41,7 +41,7 @@ export type RelationType =
  * 관계 카테고리
  * 관계 유형을 그룹화하는 카테고리
  */
-export type RelationCategory = 'Causal' | 'Temporal' | 'Structural' | 'Semantic';
+type RelationCategory = 'Causal' | 'Temporal' | 'Structural' | 'Semantic';
 
 /**
  * 관계 추출 옵션
@@ -75,17 +75,6 @@ export interface ExtractOptions {
    * 기본값: false
    */
   immediate?: boolean;
-}
-
-/**
- * 관계 추출 결과
- */
-export interface ExtractResult {
-  candidates: RelationCandidate[];
-  method: 'rule' | 'llm' | 'hybrid';
-  processingTime: number; // 처리 시간 (ms)
-  candidateCount: number; // 후보 기억 수
-  extractedCount: number; // 추출된 관계 수
 }
 
 /**

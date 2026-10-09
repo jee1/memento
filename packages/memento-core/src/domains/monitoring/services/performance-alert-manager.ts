@@ -9,7 +9,7 @@ import { alertNotificationService } from './alert-notification-service.js';
 import { getMemoryPressureDenominatorBytes, memoryRatioToPercent } from './memory-pressure-utils.js';
 import type { AlertThresholds, PerformanceAlert, PerformanceMetrics } from './performance-monitor-types.js';
 
-export interface CheckAlertsDeps {
+interface CheckAlertsDeps {
   memoryDenominator: number;
   formatBytes: (bytes: number) => string;
   onCritical: (alert: PerformanceAlert, metrics: PerformanceMetrics) => Promise<void>;

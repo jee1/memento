@@ -6,7 +6,7 @@ import { dispatchTool } from './audit-tool-dispatch.js';
 
 export const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors).`;
 
-export interface McpServerFactoryDeps {
+interface McpServerFactoryDeps {
   /** resolved once heavy init finishes; handlers await it before touching db/services */
   readyPromise: Promise<unknown>;
   getDb: () => Database.Database | null;

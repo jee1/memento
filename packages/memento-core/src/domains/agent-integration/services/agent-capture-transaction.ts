@@ -14,7 +14,7 @@ const TERMINAL_STATUSES = new Set<AgentSession['status']>([
   'ABANDONED',
 ]);
 
-export type AgentCaptureTransactionOptions = {
+type AgentCaptureTransactionOptions = {
   retentionDays: number;
   terminalGraceMs: number;
 };
