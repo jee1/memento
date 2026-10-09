@@ -16,6 +16,7 @@
 
 ### Changed
 
+- **ci**: `Security Check` 의 SQL injection·PII 마스킹·경로 탐색 검사가 `src/` 만 보고 검사 파일 0개로 통과하던 것을 `packages/` 전체로 바꿨습니다. 검사 파일이 0개면 이제 실패합니다. SQL 검사는 검토를 마친 기존 탐지를 `scripts/sql-injection-baseline.json` 에 두고 새 탐지만 실패시킵니다(`--update-baseline` 으로 갱신). PII 검사는 core 마스킹 logger 를 쓰지 않는 독립 배포 패키지 `memento-client`·`memento-assistant` 를 제외합니다
 - **memory**: `forget` 의 owner 경계도 같은 기준(agent 가 묶인 토큰)을 씁니다. 이전에는 `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 에도 경계가 걸려, 그 클라이언트는 owner 가 비어 있는 기억이나 다른 owner 의 기억을 지울 수 없었습니다. 이제 헤더만 보내는 클라이언트는 다른 도구와 마찬가지로 경계 없이 동작하고, 토큰에 `agent_id` 를 둔 클라이언트만 자기 기억으로 한정됩니다. agent 별 삭제 경계가 필요하면 토큰에 `agent_id` 를 설정하십시오 (#1094)
 
 ### Added

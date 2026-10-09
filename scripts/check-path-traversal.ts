@@ -97,7 +97,7 @@ Path Traversal 취약점 검사 스크립트
 
 옵션:
   --ci                    CI 모드 (취약점 발견 시 exit code 1 반환)
-  --directory <path>      검사할 디렉토리 (기본값: src/)
+  --directory <path>      검사할 디렉토리 (기본값: packages)
   --exclude <pattern>     제외할 파일 패턴 (여러 번 사용 가능)
   --help, -h              도움말 출력
 
@@ -284,10 +284,14 @@ function checkFile(filePath: string): PathTraversalLocation[] {
  * 모든 파일 검사
  */
 async function checkAllFiles(options: CliOptions): Promise<CheckResult> {
-  const directory = options.directory || 'src';
+  const directory = options.directory || 'packages';
   const excludePatterns = options.exclude || [];
   
   const files = await findFiles(directory, excludePatterns);
+  // 빈 검사가 통과로 보이지 않게 한다 (코드가 옮겨지면 여기서 드러난다).
+  if (files.length === 0) {
+    throw new Error(`검사할 파일이 없습니다: ${directory}`);
+  }
   const locations: PathTraversalLocation[] = [];
   const byFile = new Map<string, PathTraversalLocation[]>();
   const byPattern = new Map<string, number>();
