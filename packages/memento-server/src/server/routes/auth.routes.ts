@@ -8,6 +8,7 @@ type AuthRouterConfig = {
   expectedKey: string | null | undefined;
   store: SessionStore;
   cookieName: string;
+  /** true 면 항상 Secure. false 여도 HTTPS 요청(`req.secure`, trust proxy 반영)이면 Secure 를 붙인다. */
   secureCookie: boolean;
 };
 
@@ -72,7 +73,7 @@ export function createAuthRouter(config: AuthRouterConfig): Router {
     res.cookie(config.cookieName, session.sessionId, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: config.secureCookie,
+      secure: config.secureCookie || req.secure,
       path: '/'
     });
     res.status(204).end();
@@ -87,7 +88,7 @@ export function createAuthRouter(config: AuthRouterConfig): Router {
     res.clearCookie(config.cookieName, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: config.secureCookie,
+      secure: config.secureCookie || req.secure,
       path: '/'
     });
     res.status(204).end();

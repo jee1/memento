@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createAdminRateLimitMiddleware,
+  createAgentRateLimitMiddleware,
+  createMcpRateLimitMiddleware,
   createToolsRateLimitMiddleware,
   isHttpRateLimitDisabled,
 } from './http-rate-limit.middleware.js';
@@ -69,6 +71,38 @@ describe('http-rate-limit.middleware', () => {
       const limited = await getRequest(port, '/tools/ping');
       expect(limited.statusCode).toBe(429);
       expect(limited.headers['retry-after']).toBeTruthy();
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
+  it('limits /mcp and /api/v1/agent in their own buckets', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_DISABLED', '');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_MCP', '1');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_AGENT', '1');
+
+    const app = express();
+    app.use(['/mcp', '/messages'], createMcpRateLimitMiddleware());
+    app.use('/api/v1/agent', createAgentRateLimitMiddleware());
+    app.use((_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    const server = http.createServer(app);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    const key = { 'X-API-Key': 'token-a' };
+
+    try {
+      expect((await getRequest(port, '/mcp', 'POST', key)).statusCode).toBe(200);
+      // /messages shares the MCP budget.
+      expect((await getRequest(port, '/messages', 'POST', key)).statusCode).toBe(429);
+      // An exhausted MCP budget does not block agent hooks, and vice versa.
+      expect((await getRequest(port, '/api/v1/agent/sessions', 'POST', key)).statusCode).toBe(200);
+      expect((await getRequest(port, '/api/v1/agent/sessions', 'POST', key)).statusCode).toBe(429);
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
