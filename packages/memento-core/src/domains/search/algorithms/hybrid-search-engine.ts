@@ -49,7 +49,7 @@ export {
   SearchError,
   SearchErrorType,
   AdaptiveWeightCalculator,
-  SearchLogger,
+  
   SearchResultCombiner,
 };
 
@@ -473,13 +473,4 @@ export function createHybridSearchEngine(
     logger ?? new SearchLogger(),
     queryUnified
   );
-}
-
-let hybridSearchEngineInstance: HybridSearchEngine | null = null;
-
-export function getHybridSearchEngine(): HybridSearchEngine {
-  if (!hybridSearchEngineInstance) {
-    hybridSearchEngineInstance = createHybridSearchEngine();
-  }
-  return hybridSearchEngineInstance;
 }

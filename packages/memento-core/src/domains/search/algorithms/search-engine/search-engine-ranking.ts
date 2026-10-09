@@ -10,7 +10,7 @@ import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repo
 import { SearchRanking, type SearchFeatures } from '../search-ranking.js';
 import type { SearchEngineRow } from './search-engine.types.js';
 
-export function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: number): ScoreBreakdown {
+function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: number): ScoreBreakdown {
   const denom = Math.abs(displayTotal) < 1e-12 ? 1e-12 : Math.abs(displayTotal);
   const map = (c: { score: number; pct: number }) => ({
     score: c.score,
@@ -27,7 +27,7 @@ export function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: 
   };
 }
 
-export function calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Date | null): number {
+function calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Date | null): number {
   const logFactor = Math.log(1 + Math.max(0, numTimes));
   const recencyFactor = lastMentionedAt
     ? 1 / (1 + (Date.now() - lastMentionedAt.getTime()) / (30 * DAY_MS))

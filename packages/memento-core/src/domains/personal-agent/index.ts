@@ -25,10 +25,6 @@ export type {
 } from './ports/context-port.js';
 export type { IPersistencePort } from './ports/persistence-port.js';
 
-export {
-  mapKnowledgeCandidateToRememberParams,
-  buildProceduralStepsJson,
-} from './mappers/knowledge-candidate-to-remember-params.js';
 export type { RememberParamsMappingContext, MapKnowledgeCandidateToRememberParamsResult } from './mappers/knowledge-candidate-to-remember-params.js';
 
 export { ToolContextRememberPersistenceAdapter } from './adapters/tool-context-remember-persistence-adapter.js';
@@ -53,7 +49,6 @@ export {
   ToolContextKnowledgeContextAdapter,
 } from './adapters/tool-context-knowledge-context-adapter.js';
 
-export { extractKnowledgeCandidates } from './extractors/knowledge-candidate-extractor.js';
 
 export {
   PersonalKnowledgeAgentService,

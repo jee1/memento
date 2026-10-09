@@ -13,7 +13,7 @@ export interface LogRotationRoots {
   logIssueMonitorDir: string;
 }
 
-export function resolveMementoLogsHome(): string {
+function resolveMementoLogsHome(): string {
   const home = process.env.MEMENTO_HOME;
   if (home && home.length > 0) {
     return join(home, 'logs');

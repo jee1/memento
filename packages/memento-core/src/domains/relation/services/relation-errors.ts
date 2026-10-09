@@ -1,6 +1,6 @@
 import type { RelationType } from '../../../shared/types/relation.js';
 
-export class RelationGraphError extends Error {
+class RelationGraphError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'RelationGraphError';

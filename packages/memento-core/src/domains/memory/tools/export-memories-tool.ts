@@ -218,4 +218,3 @@ export class ExportMemoriesTool extends BaseTool {
   }
 }
 
-export { ExportMemoriesSchema, formatMemoryMarkdown, fetchMemories };

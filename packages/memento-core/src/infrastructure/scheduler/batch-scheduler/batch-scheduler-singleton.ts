@@ -5,6 +5,6 @@
  */
 export {
   getBatchScheduler,
-  createBatchScheduler,
+  
   resetBatchScheduler,
 } from './batch-scheduler.js';

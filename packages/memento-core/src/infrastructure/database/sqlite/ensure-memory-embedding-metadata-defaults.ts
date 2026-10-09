@@ -6,7 +6,7 @@
 
 import type Database from 'better-sqlite3';
 
-export const MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL = `
+const MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL = `
   UPDATE memory_embedding
   SET embedding_provider = COALESCE(
     NULLIF(embedding_provider, ''),

@@ -2,7 +2,7 @@
  * JSONL memory export/import (Issue #668).
  */
 
-import { createHash, randomUUID } from 'crypto';
+import { createHash,  } from 'crypto';
 import type Database from 'better-sqlite3';
 import { MEMENTO_LATEST_SCHEMA_VERSION } from '../../../shared/constants/schema-version.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -75,7 +75,7 @@ export async function resolveExportSchemaVersion(db: Database.Database): Promise
   return current ?? MEMENTO_LATEST_SCHEMA_VERSION;
 }
 
-export function buildMemoryJsonlContent(
+function buildMemoryJsonlContent(
   db: Database.Database,
   options: MemoryExportOptions = {},
   schemaVersion: string = MEMENTO_LATEST_SCHEMA_VERSION,
@@ -249,9 +249,4 @@ export function importMemoryJsonl(
     memoryRelations: relationRecords.length,
     schemaVersion: manifest.schema_version,
   };
-}
-
-/** Generate a stable export filename suffix. */
-export function memoryExportFilenameSuffix(): string {
-  return randomUUID().slice(0, 8);
 }

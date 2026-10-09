@@ -12,7 +12,7 @@ export function getTransactionState(db: Database.Database): { inTransaction: boo
   return transactionStates.get(db)!;
 }
 
-export function setTransactionState(
+function setTransactionState(
   db: Database.Database,
   inTransaction: boolean,
   transactionId?: string

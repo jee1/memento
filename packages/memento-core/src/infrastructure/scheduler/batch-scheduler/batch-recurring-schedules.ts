@@ -39,7 +39,7 @@ export function scheduleHealthcheckJob(ctx: BatchRecurringScheduleContext): void
   ctx.scheduleJob('healthcheck', ctx.config.healthCheckInterval, () => ctx.runHealthCheck(), 3);
 }
 
-export function scheduleCoreMaintenanceJobs(ctx: BatchRecurringScheduleContext): void {
+function scheduleCoreMaintenanceJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleCleanupJob(ctx);
   scheduleMonitoringJob(ctx);
   scheduleHealthcheckJob(ctx);
@@ -65,7 +65,7 @@ export function scheduleMetaMemoryIntrospection(ctx: BatchRecurringScheduleConte
   );
 }
 
-export function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringScheduleContext): void {
+function scheduleConsolidationRelationAndLogJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleLogRotation(ctx);
 }
 
@@ -101,7 +101,7 @@ export function scheduleQualityMeasurement(ctx: BatchRecurringScheduleContext): 
   }
 }
 
-export function scheduleAugmentationAndTelemetryJobs(ctx: BatchRecurringScheduleContext): void {
+function scheduleAugmentationAndTelemetryJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleQualityMeasurement(ctx);
   if (ctx.hasSleepConsolidation) {
     scheduleSleepConsolidation(ctx);
@@ -131,7 +131,7 @@ export function scheduleMemoryReviewCandidatesInterval(ctx: BatchRecurringSchedu
   );
 }
 
-export function scheduleMetaMemoryAndReviewJobs(ctx: BatchRecurringScheduleContext): void {
+function scheduleMetaMemoryAndReviewJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleMetaMemoryIntrospection(ctx);
   if (ctx.config.memoryReviewCandidatesSchedulerEnabled) {
     scheduleMemoryReviewCandidatesInterval(ctx);

@@ -248,7 +248,7 @@ class SeededRandom {
 /**
  * 샘플 메모리 아이템 생성 (다양한 consolidation_score 값)
  */
-export function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] {
+function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] {
   const items: TestMemoryItem[] = [];
   const types: MemoryType[] = ['episodic', 'semantic', 'procedural', 'working'];
   const contents = [
@@ -311,7 +311,7 @@ export function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] 
  * @param seed 시드 값 (재현성을 위해 사용, 기본값: 12345)
  * @returns 테스트 메모리 아이템 배열
  */
-export function generateScenarioBasedTestData(
+function generateScenarioBasedTestData(
   count: number = 50,
   seed: number = 12345
 ): TestMemoryItem[] {
@@ -441,7 +441,7 @@ export function generateScenarioBasedTestData(
  * @param vectorSimilarityRange 벡터 유사도 범위 (시나리오별로 다름)
  * @returns 테스트 임베딩 배열
  */
-export function generateSeededEmbeddings(
+function generateSeededEmbeddings(
   memoryIds: string[],
   dimension: number = 1536,
   seed: number = 12345,
@@ -482,7 +482,7 @@ export function generateSeededEmbeddings(
 /**
  * 샘플 임베딩 생성 (간단한 벡터)
  */
-export function generateSampleEmbeddings(
+function generateSampleEmbeddings(
   memoryIds: string[],
   dimension: number = 1536
 ): TestMemoryEmbedding[] {
@@ -505,7 +505,7 @@ export function generateSampleEmbeddings(
 /**
  * 데이터베이스에 샘플 데이터 주입
  */
-export function seedTestDatabase(
+function seedTestDatabase(
   db: Database.Database,
   itemCount: number = 10,
   includeEmbeddings: boolean = true,
@@ -540,7 +540,7 @@ export function seedTestDatabase(
 /**
  * 데이터베이스 정리
  */
-export function cleanupTestDatabase(db: Database.Database): void {
+function cleanupTestDatabase(db: Database.Database): void {
   try {
     // 트랜잭션으로 안전하게 정리
     db.exec('BEGIN TRANSACTION');

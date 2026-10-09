@@ -3,7 +3,7 @@ import { logger } from '../../../../shared/utils/logger.js';
 import type { ParseResult } from './types.js';
 import { extractJsonObjectFromLlmText as extractBalancedJsonObject } from '../llm-json.js';
 
-export function extractJsonObjectFromLlmText(text: string): string | null {
+function extractJsonObjectFromLlmText(text: string): string | null {
     const extracted = extractBalancedJsonObject(text);
     if (extracted === null) {
       logger.warn('JSON 객체 시작 문자({)를 찾을 수 없습니다', {
@@ -33,7 +33,7 @@ export function extractJsonObjectFromLlmText(text: string): string | null {
     return extracted;
   }
 
-export function trimToValidJsonObject(content: string): string {
+function trimToValidJsonObject(content: string): string {
     let finalJson = content;
     const firstBraceFinal = finalJson.indexOf('{');
     const lastBraceFinal = finalJson.lastIndexOf('}');

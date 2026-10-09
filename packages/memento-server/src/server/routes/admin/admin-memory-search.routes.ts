@@ -28,7 +28,7 @@ function singleString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-export function parseAdminMemorySearchQuery(
+function parseAdminMemorySearchQuery(
   query: Record<string, unknown>
 ): AdminMemorySearchQuery | { error: string } {
   const q = (singleString(query.q) ?? '').trim();

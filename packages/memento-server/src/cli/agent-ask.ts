@@ -6,16 +6,13 @@
 
 export {
   parseAgentAskInvocation,
-  resolveDbPath,
+  
   stripGlobalCliArgs,
   validateAgentAskFlagArgv,
   validateAgentAskRawTypes,
 } from './agent-ask/parse.js';
 export type { ParsedAgentAsk, PreCliOptions } from './agent-ask/parse.js';
 
-export {
-  promptApproveInteractive,
-} from './agent-ask/approval.js';
 export type {
   AgentAskApproveAnswer,
   AgentAskPromptApprove,

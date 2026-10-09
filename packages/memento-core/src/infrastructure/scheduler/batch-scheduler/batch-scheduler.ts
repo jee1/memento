@@ -17,7 +17,6 @@ import type { DatabaseLockMonitor } from '../../database/database-lock-monitor.j
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { BatchJobAlreadyRunningError } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
-export { BatchJobAlreadyRunningError } from './batch-scheduler-types.js';
 import { startBatchScheduler, stopBatchScheduler } from './batch-scheduler-lifecycle.js';
 import {
   createBatchSchedulerWiring,
@@ -627,10 +626,6 @@ export function getBatchScheduler(): BatchScheduler {
     schedulerInstance = new BatchScheduler();
   }
   return schedulerInstance;
-}
-
-export function createBatchScheduler(config?: Partial<BatchJobConfig>): BatchScheduler {
-  return new BatchScheduler(config);
 }
 
 export function resetBatchScheduler(): void {

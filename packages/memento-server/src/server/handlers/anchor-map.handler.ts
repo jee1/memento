@@ -389,7 +389,7 @@ async function buildRelationLinks(
 /**
  * WebSocket 구독자에게 브로드캐스트
  */
-export function broadcastToSubscribers(
+function broadcastToSubscribers(
   subscribers: Set<WebSocket>,
   updateData: AnchorMapData
 ): void {
@@ -412,7 +412,7 @@ export function broadcastToSubscribers(
 /**
  * Anchor Map 업데이트 브로드캐스트
  */
-export async function broadcastAnchorMapUpdate(
+async function broadcastAnchorMapUpdate(
   db: Database.Database | null,
   serverServices: ServerServices | null,
   anchorMapSubscribers: Map<string, Set<WebSocket>>,

@@ -28,7 +28,7 @@ import {
 } from './types.js';
 
 /** Post-cutover (#809): memory_embedding.embedding is Float32 BLOB only. */
-export function safeParseEmbedding(raw: unknown): number[] {
+function safeParseEmbedding(raw: unknown): number[] {
   const parsed = embeddingColumnToNumbers(raw);
   if (!parsed) {
     throw new Error('임베딩 벡터 파싱 실패: invalid or empty Float32 BLOB');

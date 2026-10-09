@@ -4,7 +4,7 @@ import { DatabaseUtils } from '../../shared/utils/database.js';
 import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/procedural-memory-extractor.js';
 import { logger } from '../../shared/utils/logger.js';
 
-export function mergeProceduralSteps(
+function mergeProceduralSteps(
   existingStepsJson: string | null | undefined,
   newStepsJson: string
 ): string {

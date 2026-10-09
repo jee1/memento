@@ -23,7 +23,7 @@ export interface EnvLoaderOptions {
  * @returns 선택된 .env 경로. 파일이 없을 때도 기본 경로(~/.memento/.env)를 반환할 수 있음.
  *   실제 로드 여부는 loadEnv() 호출 결과 또는 existsSync(반환경로)로 확인해야 함. (REQ-CFG-4)
  */
-export function resolveEnvPath(options: EnvLoaderOptions = {}): string {
+function resolveEnvPath(options: EnvLoaderOptions = {}): string {
   const { envFile, configDir } = options;
 
   if (envFile !== undefined && envFile !== '') {

@@ -11,16 +11,16 @@ export type {
 } from './types.js';
 
 export {
-  EVOLUTION_DEMO_SCENARIO_IDS,
-  EvolutionDemoMemorySummarySchema,
-  EvolutionDemoMemoryGroupSchema,
-  EvolutionDemoEpisodicSourceSchema,
-  EvolutionDemoSemanticResultSchema,
-  EvolutionDemoSearchComparisonSchema,
+  
+  
+  
+  
+  
+  
   EvolutionDemoSnapshotSchema,
-  EvolutionDemoPointSchema,
-  EvolutionDemoScenarioSchema,
-  EvolutionDemoScenarioCatalogSchema,
+  
+  
+  
 } from './spec.js';
 
 export {

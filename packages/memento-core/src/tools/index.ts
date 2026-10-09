@@ -54,7 +54,7 @@ const coreTools = [
   new ExportMemoriesTool(),
 ];
 
-export const toolRegistry = new ToolRegistry({
+const toolRegistry = new ToolRegistry({
   enableLogging: false,
   enableMetrics: true,
   maxExecutionTime: 30000,
@@ -109,10 +109,6 @@ export function getExposedTools(mode: ToolsetMode = resolveToolsetMode()) {
   }
   const core = new Set<string>(CORE_TOOLSET);
   return all.filter((tool) => core.has(tool.name));
-}
-
-export function getTool(name: string) {
-  return toolRegistry.get(name);
 }
 
 export function getAllTools() {

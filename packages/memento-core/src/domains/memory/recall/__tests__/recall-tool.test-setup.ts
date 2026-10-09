@@ -15,9 +15,9 @@ export let db: Database.Database;
 export let tool: RecallTool;
 export let context: ToolContext;
 export let hybridSearchEngine: HybridSearchEngine;
-export let embeddingService: MemoryEmbeddingService;
+let embeddingService: MemoryEmbeddingService;
 export let anchorManager: AnchorManager;
-export let vectorSearchEngine: VectorSearchEngine;
+let vectorSearchEngine: VectorSearchEngine;
 
 export function describeRecallTool(topic: string, registerTests: () => void): void {
   describe(`RecallTool - ${topic}`, () => {

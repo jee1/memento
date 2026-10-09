@@ -5,4 +5,3 @@
 
 export type { QueueStats, Task, TaskResult } from './async-optimizer/async-optimizer.types.js';
 export { AsyncTaskQueue } from './async-optimizer/async-task-queue.js';
-export { BatchProcessor } from './async-optimizer/batch-processor.js';

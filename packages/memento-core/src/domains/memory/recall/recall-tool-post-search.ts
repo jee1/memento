@@ -44,7 +44,7 @@ function filterSpecificVersion(
  * latest_only: version_series_id별 최신(version 최대) 1건만 유지.
  * specific_version: version_series_id + version_number 일치 항목만 유지.
  */
-export function applyVersionFilter(
+function applyVersionFilter(
   items: RecallSearchItem[],
   versionFilter: VersionFilterType,
   versionSeriesId?: string,
@@ -61,7 +61,7 @@ export function applyVersionFilter(
 /**
  * procedural 항목에 version_chain 및 diff_with_previous/diff_with를 채웁니다.
  */
-export async function enrichProceduralVersionInfo(
+async function enrichProceduralVersionInfo(
   db: Database.Database,
   items: RecallSearchItem[],
   includeVersionChain: boolean,
@@ -103,7 +103,7 @@ export async function enrichProceduralVersionInfo(
 /**
  * Meta Memory Statistics 수집
  */
-export async function collectMetaMemoryStats(
+async function collectMetaMemoryStats(
   host: RecallToolHost,
   searchItems: RecallSearchItem[],
   metaMemoryService: MetaMemoryService

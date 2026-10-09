@@ -403,7 +403,3 @@ export function getPerformanceMonitor(): PerformanceMonitor {
   }
   return monitorInstance;
 }
-
-export function createPerformanceMonitor(thresholds?: Partial<AlertThresholds>): PerformanceMonitor {
-  return new PerformanceMonitor(thresholds);
-}

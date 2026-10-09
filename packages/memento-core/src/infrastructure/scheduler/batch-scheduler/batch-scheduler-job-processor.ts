@@ -16,7 +16,7 @@ export interface BatchSchedulerJobProcessorState {
   jobProcessorInterval: ReturnType<typeof setInterval> | null;
 }
 
-export function getBatchSchedulerJobRunners(source: BatchSchedulerContextSource) {
+function getBatchSchedulerJobRunners(source: BatchSchedulerContextSource) {
   return createBatchSchedulerJobRunners(source);
 }
 

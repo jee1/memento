@@ -206,25 +206,12 @@ export function buildBatchSchedulerRecurringScheduleContextFromSource(
   return buildBatchRecurringScheduleContext(source);
 }
 
-export function getBatchSchedulerLoggingDeps(state: BatchSchedulerServiceState) {
+function getBatchSchedulerLoggingDeps(state: BatchSchedulerServiceState) {
   return {
     enableLogging: state.config.enableLogging,
     startTime: state.startTime,
     jobQueue: state.jobQueue,
     fileLogger: state.fileLogger
-  };
-}
-
-export function getBatchSchedulerIntervalDeps(
-  recurringState: BatchSchedulerRecurringState,
-  jobQueue: JobQueue,
-  log: BatchSchedulerLogMethod
-) {
-  return {
-    jobExecutionCoordinator: recurringState.jobExecutionCoordinator,
-    intervals: recurringState.intervals,
-    jobQueue,
-    log
   };
 }
 
@@ -253,41 +240,4 @@ export function logBatchScheduler(
   level: 'info' | 'warn' | 'error' = 'info'
 ): void {
   logBatchSchedulerMessage(getBatchSchedulerLoggingDeps(state), message, data, level);
-}
-
-export function setBatchSchedulerIntrospectionScanCache(
-  state: BatchSchedulerServiceState,
-  cache: IntrospectionScanCache | null
-): void {
-  state.introspectionScanCache = cache;
-}
-
-export function setBatchSchedulerSleepConsolidationService(
-  state: BatchSchedulerServiceState,
-  service: SleepConsolidationService | null
-): void {
-  state.sleepConsolidationService = service;
-  state.sleepConsolidationBatchJob = null;
-}
-
-export function setBatchSchedulerTelemetryCleanupRepository(
-  state: BatchSchedulerServiceState,
-  repository: TelemetryRepository | null
-): void {
-  state.telemetryCleanupRepository = repository;
-  state.telemetryCleanupBatchJob = null;
-}
-
-export function setBatchSchedulerDiagnosticsLogger(
-  state: BatchSchedulerServiceState,
-  logger: Pick<RuntimeDiagnosticsLogger, 'writeEvent'> | undefined
-): void {
-  state.diagnosticsLogger = logger;
-}
-
-export function setBatchSchedulerAnchorManager(
-  state: BatchSchedulerServiceState,
-  anchorManager: AnchorManager | null
-): void {
-  state.anchorManager = anchorManager;
 }

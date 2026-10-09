@@ -32,7 +32,7 @@ import type {
 /**
  * Meta Memory Statistics 조회
  */
-export async function getMetaStatsForResults(
+async function getMetaStatsForResults(
   host: RecallToolHost,
   processedResults: RecallResultItem[],
   metaMemoryService: MetaMemoryService

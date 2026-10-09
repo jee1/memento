@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3';
 import { MigrationDetector } from './migration/migration-detector.js';
 import { SchemaVersionManager } from './migration/schema-version-manager.js';
 
-export const BASELINE_FROM_SCHEMA_SQL_CHECKSUM = 'bundled-schema-sql';
+const BASELINE_FROM_SCHEMA_SQL_CHECKSUM = 'bundled-schema-sql';
 
 /**
  * 신규 DB에 schema.sql만 적용한 경우, 증분 마이그레이션 목록과 memento_schema_version을 맞춘다.

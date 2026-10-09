@@ -84,7 +84,7 @@ interface ResolveEnvOptions {
 const toArray = (value: string | undefined | string[]): string[] =>
   Array.isArray(value) ? value : value ? [value] : [];
 
-export function resolveEnv(
+function resolveEnv(
   key: string,
   options: ResolveEnvOptions = {}
 ): string | undefined {

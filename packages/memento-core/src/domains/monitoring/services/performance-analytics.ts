@@ -51,7 +51,7 @@ export interface AlertGetters {
 /**
  * 트렌드 분석
  */
-export function analyzeTrend(values: number[]): TrendDirection {
+function analyzeTrend(values: number[]): TrendDirection {
   if (values.length < 2) return 'stable';
 
   const first = values[0];

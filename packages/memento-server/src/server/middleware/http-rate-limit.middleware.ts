@@ -45,7 +45,7 @@ function hashIdentity(value: string): string {
  * rate limit 은 인증 **앞**에 있으므로(무인증 폭주 차단) `req.programmaticAuth` 가 아직
  * 없는 경우가 많다. 자격증명 원문에서 직접 키를 만들되 해시만 저장한다.
  */
-export function resolveRateLimitKey(req: Request): string {
+function resolveRateLimitKey(req: Request): string {
   const programmaticKeyId = req.programmaticAuth?.keyId?.trim();
   if (programmaticKeyId) {
     return `key:${programmaticKeyId}`;

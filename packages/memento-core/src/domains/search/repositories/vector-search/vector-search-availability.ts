@@ -8,7 +8,7 @@ import { VECTOR_SEARCH_CONFIG } from '../../../../shared/config/vector-search.co
 import type { VectorIndexStatus } from '../../../../shared/types/vector-search.types.js';
 import { getTableName, resolveRuntimeVectorContext } from './vector-search-runtime-context.js';
 
-export function isVecTableRegistered(db: Database.Database, tableName: string): boolean {
+function isVecTableRegistered(db: Database.Database, tableName: string): boolean {
   try {
     const statement = db.prepare(
       `SELECT 1 as ok FROM sqlite_master WHERE type IN ('table', 'virtual') AND name = ? LIMIT 1`
