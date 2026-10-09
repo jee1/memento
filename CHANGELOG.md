@@ -9,15 +9,19 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.0.2] - 2026-10-09
+
+agent 가 묶인 API 토큰(`MEMENTO_API_TOKENS` 의 `agent_id`)의 owner 경계를 모든 경로로 넓히는 보안 릴리스입니다. 토큰에 `agent_id` 를 두고 HTTP 모드로 여러 agent 를 나눠 쓰는 운영자는 업그레이드하십시오. 바인딩 없는 토큰만 쓰는 설치는 동작이 바뀌지 않습니다.
+
 ### Security
 
-- **server**: agent 가 묶인 API 토큰으로 호출하면 기억 id 를 받는 도구가 그 agent 의 기억만 다룹니다. 이전에는 `pin`·`unpin`·`feedback`·`get_memory_neighbors`·`procedural_rollback`·`set_anchor`·`get_relations`·`visualize_relations`·`extract_relations`·`get_meta_memory_stats` 가 다른 owner 의 기억 id 를 그대로 받았습니다. 남의 기억은 없는 기억과 같은 응답을 돌려줘 id 존재 여부도 드러나지 않습니다. 이웃·관계·국소 검색(`search_local`) 결과에서도 남의 기억을 뺍니다. 앵커 도구와 `recall` 의 앵커, `remember` 의 `owner_id` 는 묶인 agent 로 고정됩니다. `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 는 바인딩이 아니므로 동작이 바뀌지 않습니다. agent 바인딩 토큰을 쓰지 않는 설치는 영향이 없습니다
-- **server**: 같은 경계를 `procedural_diff`·`add_relation`·`remove_relation` 과 `/api/v1/agent` 에도 겁니다. agent 가 묶인 토큰은 다른 owner 의 세션을 없는 세션처럼 보고(조회·export·삭제·이벤트 추가), 요청의 `owner_id`·이벤트 `scope.owner_id` 는 묶인 agent 로 고정되며 다른 값이면 403 입니다. 모든 agent 에 걸친 운영 경로(`/sessions/aggregate`·`/operations/status`·`/injections/metrics`·`/transcripts/import`·`/provenance`·`/memory/promotion-candidates`·`/retention:enforce`)는 바인딩 토큰에 403 을 돌려주고, `GET /sessions` 는 전체 합계 `aggregate` 를 빼고 자기 세션만 돌려줍니다. 바인딩 없는 토큰은 영향이 없습니다
+- **server**: agent 가 묶인 API 토큰으로 호출하면 기억 id 를 받는 도구가 그 agent 의 기억만 다룹니다. 이전에는 `pin`·`unpin`·`feedback`·`get_memory_neighbors`·`procedural_rollback`·`set_anchor`·`get_relations`·`visualize_relations`·`extract_relations`·`get_meta_memory_stats` 가 다른 owner 의 기억 id 를 그대로 받았습니다. 남의 기억은 없는 기억과 같은 응답을 돌려줘 id 존재 여부도 드러나지 않습니다. 이웃·관계·국소 검색(`search_local`) 결과에서도 남의 기억을 뺍니다. 앵커 도구와 `recall` 의 앵커, `remember` 의 `owner_id` 는 묶인 agent 로 고정됩니다. `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 는 바인딩이 아니므로 동작이 바뀌지 않습니다. agent 바인딩 토큰을 쓰지 않는 설치는 영향이 없습니다 (#1285)
+- **server**: 같은 경계를 `procedural_diff`·`add_relation`·`remove_relation` 과 `/api/v1/agent` 에도 겁니다. agent 가 묶인 토큰은 다른 owner 의 세션을 없는 세션처럼 보고(조회·export·삭제·이벤트 추가), 요청의 `owner_id`·이벤트 `scope.owner_id` 는 묶인 agent 로 고정되며 다른 값이면 403 입니다. 모든 agent 에 걸친 운영 경로(`/sessions/aggregate`·`/operations/status`·`/injections/metrics`·`/transcripts/import`·`/provenance`·`/memory/promotion-candidates`·`/retention:enforce`)는 바인딩 토큰에 403 을 돌려주고, `GET /sessions` 는 전체 합계 `aggregate` 를 빼고 자기 세션만 돌려줍니다. 바인딩 없는 토큰은 영향이 없습니다 (#1287)
 
 ### Changed
 
-- **ci**: `Security Check` 의 SQL injection·PII 마스킹·경로 탐색 검사가 `src/` 만 보고 검사 파일 0개로 통과하던 것을 `packages/` 전체로 바꿨습니다. 검사 파일이 0개면 이제 실패합니다. SQL 검사는 검토를 마친 기존 탐지를 `scripts/sql-injection-baseline.json` 에 두고 새 탐지만 실패시킵니다(`--update-baseline` 으로 갱신). PII 검사는 core 마스킹 logger 를 쓰지 않는 독립 배포 패키지 `memento-client`·`memento-assistant` 를 제외합니다
-- **memory**: `forget` 의 owner 경계도 같은 기준(agent 가 묶인 토큰)을 씁니다. 이전에는 `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 에도 경계가 걸려, 그 클라이언트는 owner 가 비어 있는 기억이나 다른 owner 의 기억을 지울 수 없었습니다. 이제 헤더만 보내는 클라이언트는 다른 도구와 마찬가지로 경계 없이 동작하고, 토큰에 `agent_id` 를 둔 클라이언트만 자기 기억으로 한정됩니다. agent 별 삭제 경계가 필요하면 토큰에 `agent_id` 를 설정하십시오 (#1094)
+- **ci**: `Security Check` 의 SQL injection·PII 마스킹·경로 탐색 검사가 `src/` 만 보고 검사 파일 0개로 통과하던 것을 `packages/` 전체로 바꿨습니다. 검사 파일이 0개면 이제 실패합니다. SQL 검사는 검토를 마친 기존 탐지를 `scripts/sql-injection-baseline.json` 에 두고 새 탐지만 실패시킵니다(`--update-baseline` 으로 갱신). PII 검사는 core 마스킹 logger 를 쓰지 않는 독립 배포 패키지 `memento-client`·`memento-assistant` 를 제외합니다 (#1288)
+- **memory**: `forget` 의 owner 경계도 같은 기준(agent 가 묶인 토큰)을 씁니다. 이전에는 `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 에도 경계가 걸려, 그 클라이언트는 owner 가 비어 있는 기억이나 다른 owner 의 기억을 지울 수 없었습니다. 이제 헤더만 보내는 클라이언트는 다른 도구와 마찬가지로 경계 없이 동작하고, 토큰에 `agent_id` 를 둔 클라이언트만 자기 기억으로 한정됩니다. agent 별 삭제 경계가 필요하면 토큰에 `agent_id` 를 설정하십시오 (#1286)
 
 ### Added
 
