@@ -513,7 +513,7 @@ describe('ForgetTool', () => {
     });
   });
 
-  describe('owner scope (#1094)', () => {
+  describe('owner scope (#1094, token-bound agent)', () => {
     function setMemoryOwner(memoryId: string, ownerId: string | null): void {
       DatabaseUtils.run(
         db,
@@ -522,7 +522,7 @@ describe('ForgetTool', () => {
       );
     }
 
-    it('allows scoped forget when memory owner matches ToolContext.agentId', async () => {
+    it('allows scoped forget when memory owner matches ToolContext.boundAgentId', async () => {
       const memoryId = createTestMemory(db, {
         content: 'scoped delete target',
         type: 'semantic',
@@ -531,7 +531,7 @@ describe('ForgetTool', () => {
 
       const result = await tool.handle(
         { id: memoryId, hard: false },
-        { ...context, agentId: 'owner-a' },
+        { ...context, boundAgentId: 'owner-a' },
       );
 
       const resultData = JSON.parse(result.content[0].text);
@@ -542,7 +542,7 @@ describe('ForgetTool', () => {
       expect(memory?.pinned).toBe(0);
     });
 
-    it('uses ToolContext.agentId over matching client owner_id param', async () => {
+    it('uses ToolContext.boundAgentId over matching client owner_id param', async () => {
       const memoryId = createTestMemory(db, {
         content: 'agent-owned memory',
         type: 'semantic',
@@ -551,14 +551,14 @@ describe('ForgetTool', () => {
 
       const result = await tool.handle(
         { id: memoryId, hard: false, owner_id: 'owner-a' },
-        { ...context, agentId: 'owner-a' },
+        { ...context, boundAgentId: 'owner-a' },
       );
 
       const resultData = JSON.parse(result.content[0].text);
       expect(resultData.memory_id).toBe(memoryId);
     });
 
-    it('uses ToolContext.agentId over mismatching client owner_id param (spoof blocked)', async () => {
+    it('uses ToolContext.boundAgentId over mismatching client owner_id param (spoof blocked)', async () => {
       const memoryId = createTestMemory(db, {
         content: 'victim memory',
         type: 'semantic',
@@ -568,7 +568,7 @@ describe('ForgetTool', () => {
       await expect(
         tool.handle(
           { id: memoryId, hard: false, owner_id: 'owner-b' },
-          { ...context, agentId: 'owner-a' },
+          { ...context, boundAgentId: 'owner-a' },
         ),
       ).rejects.toThrow(/not found/);
 
@@ -586,7 +586,7 @@ describe('ForgetTool', () => {
       await expect(
         tool.handle(
           { id: memoryId, hard: false },
-          { ...context, agentId: 'owner-a' },
+          { ...context, boundAgentId: 'owner-a' },
         ),
       ).rejects.toThrow(/not found/);
 
@@ -604,7 +604,7 @@ describe('ForgetTool', () => {
       await expect(
         tool.handle(
           { id: memoryId, hard: true, confirm: true },
-          { ...context, agentId: 'owner-a' },
+          { ...context, boundAgentId: 'owner-a' },
         ),
       ).rejects.toThrow(/not found/);
 
@@ -620,7 +620,7 @@ describe('ForgetTool', () => {
 
       const result = await tool.handle(
         { batch: [ownedId, foreignId], hard: false },
-        { ...context, agentId: 'owner-a' },
+        { ...context, boundAgentId: 'owner-a' },
       );
 
       const resultData = JSON.parse(result.content[0].text);
@@ -645,14 +645,23 @@ describe('ForgetTool', () => {
 
       const result = await tool.handle(
         { id: memoryId, hard: false, project_id: 'proj-a' },
-        { ...context, agentId: 'owner-a' },
+        { ...context, boundAgentId: 'owner-a' },
       );
 
       const resultData = JSON.parse(result.content[0].text);
       expect(resultData.memory_id).toBe(memoryId);
     });
 
-    it('keeps legacy unscoped forget when ToolContext.agentId is absent', async () => {
+    it('does not scope by the self-declared agentId (X-Memento-Agent-Id / env default)', async () => {
+      const memoryId = createTestMemory(db, { content: 'shared memory', type: 'semantic' });
+      setMemoryOwner(memoryId, null);
+
+      const result = await tool.handle({ id: memoryId, hard: false }, { ...context, agentId: 'owner-a' });
+
+      expect(JSON.parse(result.content[0].text).memory_id).toBe(memoryId);
+    });
+
+    it('keeps legacy unscoped forget when ToolContext.boundAgentId is absent', async () => {
       const memoryId = createTestMemory(db, {
         content: 'legacy cross-owner target',
         type: 'semantic',

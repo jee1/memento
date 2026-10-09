@@ -95,7 +95,7 @@ MEMENTO_API_TOKENS='[{"id":"codex","secret":"<hex>","scopes":["tools:invoke"],"a
 - `agent_id` 가 빈 문자열이거나 문자열이 아니면 그 토큰 항목 전체가 무시된다
 - `agent_id` 없는 토큰은 위 헤더 규칙 그대로
 
-forget owner scope(#1094)·strict recall 필터·감사 로그가 모두 이 값을 쓰므로, 에이전트마다 토큰을 따로 발급할 때 함께 설정한다. 도구 인자 `owner_id` 로 다른 owner 를 지정하는 경로는 이 설정의 영향을 받지 않는다.
+strict recall 필터·감사 로그가 이 값을 쓴다. owner 경계는 이 토큰 바인딩이 있을 때만 걸린다(#1285): 기억 id 를 받는 도구(`forget`·`pin`·`feedback`·`get_relations` 등)는 그 agent 의 기억만 다루고 남의 기억은 없는 기억처럼 응답하며, 이웃·관계 결과에서도 빠진다. 도구 인자 `owner_id`·`agent_id` 로 다른 agent 를 지정하면 거부된다. 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로만 정한 agent 에는 이 경계가 걸리지 않으므로, 에이전트마다 토큰을 따로 발급할 때 함께 설정한다.
 
 ### 레거시 NULL 데이터 opt-out
 

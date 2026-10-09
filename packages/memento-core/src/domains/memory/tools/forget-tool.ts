@@ -11,6 +11,7 @@ import { getVectorTableName as getValidatedVectorTableName } from '../../../shar
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
+import { callerOwnerClause } from '../../../tools/caller-scope.js';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -35,27 +36,6 @@ type MemoryDeleteRow = {
 
 function memoryNotFoundError(id: string): Error {
   return new Error(`Memory with ID ${id} not found`);
-}
-
-type ForgetOwnerScope = {
-  ownerScoped: boolean;
-  ownerId: string | null;
-};
-
-/** Owner guard derives only from trusted ToolContext.agentId (#1094). */
-function resolveForgetOwnerScope(context: ToolContext): ForgetOwnerScope {
-  const agentId = context.agentId;
-  if (agentId) {
-    return { ownerScoped: true, ownerId: agentId };
-  }
-  return { ownerScoped: false, ownerId: null };
-}
-
-function buildOwnerScopedMemoryWhere(
-  id: string,
-  ownerId: string,
-): { sql: string; params: unknown[] } {
-  return { sql: 'id = ? AND owner_id IS ?', params: [id, ownerId] };
 }
 
 type DeleteOperationResult = {
@@ -116,7 +96,6 @@ export class ForgetTool extends BaseTool {
     try {
       // 파라미터 검증 및 파싱
       const { id, hard, reason, confirm, batch } = ForgetSchema.parse(params);
-      const ownerScope = resolveForgetOwnerScope(context);
       this.logInfo('파라미터 파싱 완료', { id, hard, reason, confirm, batch });
       
       // 입력 검증
@@ -144,7 +123,7 @@ export class ForgetTool extends BaseTool {
       // 배치 삭제 처리
       if (batch && batch.length > 0) {
         this.logInfo('배치 삭제 시작', { count: batch.length, hard });
-        return await this.handleBatchDelete(batch, hard, reason, context, ownerScope);
+        return await this.handleBatchDelete(batch, hard, reason, context);
       }
       
       // 단일 삭제 처리
@@ -152,7 +131,7 @@ export class ForgetTool extends BaseTool {
       if (!id) {
         throw new Error('기억 ID가 필요합니다');
       }
-      return await this.handleSingleDelete(id, hard, reason, context, ownerScope);
+      return await this.handleSingleDelete(id, hard, reason, context);
       
     } catch (error) {
       this.logError(error as Error, 'Forget 도구 실행 실패', { params });
@@ -180,11 +159,10 @@ export class ForgetTool extends BaseTool {
     hard: boolean, 
     reason: string | undefined, 
     context: ToolContext,
-    ownerScope: ForgetOwnerScope,
   ): Promise<ToolResult> {
     try {
       // 기억 존재 확인
-      const memory = await this.getMemoryById(id, context, ownerScope);
+      const memory = await this.getMemoryById(id, context);
       if (!memory) {
         throw memoryNotFoundError(id);
       }
@@ -199,10 +177,10 @@ export class ForgetTool extends BaseTool {
       const _result = await DatabaseUtils.runTransaction(context.db!, async () => {
         if (hard) {
           // 하드 삭제: 완전 제거
-          return await this.performHardDelete(id, context, ownerScope);
+          return await this.performHardDelete(id, context);
         } else {
           // 소프트 삭제: TTL에 의해 나중에 삭제
-          return await this.performSoftDelete(id, context, ownerScope);
+          return await this.performSoftDelete(id, context);
         }
       });
       
@@ -242,7 +220,6 @@ export class ForgetTool extends BaseTool {
     hard: boolean, 
     reason: string | undefined, 
     context: ToolContext,
-    ownerScope: ForgetOwnerScope,
   ): Promise<ToolResult> {
     const results = {
       successful: [] as string[],
@@ -252,7 +229,7 @@ export class ForgetTool extends BaseTool {
     
     for (const id of ids) {
       try {
-        await this.handleSingleDelete(id, hard, reason, context, ownerScope);
+        await this.handleSingleDelete(id, hard, reason, context);
         results.successful.push(id);
       } catch (error) {
         results.failed.push({
@@ -276,17 +253,15 @@ export class ForgetTool extends BaseTool {
   private async performHardDelete(
     id: string,
     context: ToolContext,
-    ownerScope: ForgetOwnerScope,
   ): Promise<DeleteOperationResult> {
-    const scopedWhere = ownerScope.ownerScoped && ownerScope.ownerId
-      ? buildOwnerScopedMemoryWhere(id, ownerScope.ownerId)
-      : { sql: 'id = ?', params: [id] as unknown[] };
+    // Bound callers (tools/caller-scope.ts) only touch their own memories.
+    const ownerScope = callerOwnerClause(context);
 
     // 메인 테이블에서 삭제
     const deleteResult = await DatabaseUtils.run(
       context.db!,
-      `DELETE FROM memory_item WHERE ${scopedWhere.sql}`,
-      scopedWhere.params,
+      `DELETE FROM memory_item WHERE id = ?${ownerScope.sql}`,
+      [id, ...ownerScope.params],
     );
     
     if (deleteResult.changes === 0) {
@@ -321,17 +296,15 @@ export class ForgetTool extends BaseTool {
   private async performSoftDelete(
     id: string,
     context: ToolContext,
-    ownerScope: ForgetOwnerScope,
   ): Promise<DeleteOperationResult> {
-    const scopedWhere = ownerScope.ownerScoped && ownerScope.ownerId
-      ? buildOwnerScopedMemoryWhere(id, ownerScope.ownerId)
-      : { sql: 'id = ?', params: [id] as unknown[] };
+    // Bound callers (tools/caller-scope.ts) only touch their own memories.
+    const ownerScope = callerOwnerClause(context);
 
     // pinned 해제하고 삭제 플래그 설정
     const updateResult = await DatabaseUtils.run(
       context.db!,
-      `UPDATE memory_item SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP WHERE ${scopedWhere.sql}`,
-      scopedWhere.params,
+      `UPDATE memory_item SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?${ownerScope.sql}`,
+      [id, ...ownerScope.params],
     );
     
     if (updateResult.changes === 0) {
@@ -347,21 +320,12 @@ export class ForgetTool extends BaseTool {
   private async getMemoryById(
     id: string,
     context: ToolContext,
-    ownerScope: ForgetOwnerScope,
   ): Promise<MemoryDeleteRow | undefined> {
-    if (!ownerScope.ownerScoped || !ownerScope.ownerId) {
-      return await DatabaseUtils.get(
-        context.db!,
-        'SELECT * FROM memory_item WHERE id = ?',
-        [id],
-      ) as MemoryDeleteRow | undefined;
-    }
-
-    const scopedWhere = buildOwnerScopedMemoryWhere(id, ownerScope.ownerId);
+    const ownerScope = callerOwnerClause(context);
     return await DatabaseUtils.get(
       context.db!,
-      `SELECT * FROM memory_item WHERE ${scopedWhere.sql}`,
-      scopedWhere.params,
+      `SELECT * FROM memory_item WHERE id = ?${ownerScope.sql}`,
+      [id, ...ownerScope.params],
     ) as MemoryDeleteRow | undefined;
   }
 
