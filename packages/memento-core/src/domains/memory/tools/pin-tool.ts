@@ -233,7 +233,7 @@ export class PinTool extends BaseTool {
    */
   private async logPinAction(
     id: string, 
-    reason: string | undefined, 
+    _reason: string | undefined, 
     priority: number, 
     context: ToolContext
   ): Promise<void> {

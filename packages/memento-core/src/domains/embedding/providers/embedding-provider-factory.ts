@@ -201,7 +201,7 @@ export class EmbeddingProviderFactory {
   }
 
   private resolveAvailability(
-    provider: EmbeddingProvider,
+    _provider: EmbeddingProvider,
     service: EmbeddingServiceInterface | undefined | null,
     status?: ProviderHealthStatus
   ): boolean {

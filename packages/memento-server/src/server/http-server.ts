@@ -202,7 +202,7 @@ app.get('/static/vendor/d3.v7.min.js', (_req, res) => {
 app.use('/static', express.static(staticRoot));
 
 // 기본 API 엔드포인트
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     server: mementoConfig.serverName,
@@ -270,7 +270,7 @@ export function getHttpAuthMissingAdminKeyWarning(): string {
 }
 
 // 대시보드 라우트: Review Queue 폴링 부트를 환경 변수 기준으로 인라인 주입 (#274)
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', (_req, res) => {
   const dashboardPath = join(staticRoot, 'dashboard.html');
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- staticRoot 하위 고정 파일 dashboard.html
@@ -285,7 +285,7 @@ app.get('/dashboard', (req, res) => {
 });
 
 // 기억 관계 그래프 뷰 (009-memory-graph-view)
-app.get('/graph', (req, res) => {
+app.get('/graph', (_req, res) => {
   res.sendFile('graph.html', { root: staticRoot }, (err) => {
     if (err) {
       logger.error('그래프 파일 로드 실패', { error: err });

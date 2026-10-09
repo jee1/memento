@@ -60,7 +60,7 @@ export class NHopLinkedMemoryService {
   mergeHopCandidates(
     linkedMemories: LinkedMemorySummary[],
     vectorSearchResults: VectorSearchResult[],
-    discoveredMemoryIds: Set<string>,
+    _discoveredMemoryIds: Set<string>,
     threshold: number
   ): Map<string, HopCandidate> {
     const allCandidates = new Map<string, HopCandidate>();

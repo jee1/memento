@@ -82,7 +82,7 @@ async function persistMemoryItem(
   ctx: MemoryItemContext,
   existingMemory: ProceduralMemoryItem | null,
   finalReflectionNotes: string | null,
-  context: ToolContext,
+  _context: ToolContext,
   host: RememberToolHost
 ): Promise<{ casVersion?: number }> {
   const { type, ownerId, processId, sessionId, numTimes, sourceSessionId, confidenceVal, origin_source, project_id_param, last_mentioned_at_param } = ctx;

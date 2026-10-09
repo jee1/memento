@@ -33,7 +33,7 @@ export function createServiceInjector(
   services: ServerServices,
   db: Database.Database
 ) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     req.services = services;
     req.db = db;
     next();

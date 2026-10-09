@@ -12,7 +12,7 @@ export function registerAdminStatsAndHealthRoutes(
   db: Database.Database | null,
   serverServices: ServerServices | null
 ): void {
-  router.post('/memory/cleanup', async (req, res) => {
+  router.post('/memory/cleanup', async (_req, res) => {
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
@@ -41,7 +41,7 @@ export function registerAdminStatsAndHealthRoutes(
     }
   });
 
-  router.get('/stats/forgetting', async (req, res) => {
+  router.get('/stats/forgetting', async (_req, res) => {
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
@@ -73,7 +73,7 @@ export function registerAdminStatsAndHealthRoutes(
     }
   });
 
-  router.get('/stats/performance', async (req, res) => {
+  router.get('/stats/performance', async (_req, res) => {
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
@@ -136,7 +136,7 @@ export function registerAdminStatsAndHealthRoutes(
     }
   });
 
-  router.post('/database/optimize', async (req, res) => {
+  router.post('/database/optimize', async (_req, res) => {
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
@@ -160,7 +160,7 @@ export function registerAdminStatsAndHealthRoutes(
     }
   });
 
-  router.get('/stats/errors', async (req, res) => {
+  router.get('/stats/errors', async (_req, res) => {
     try {
       res.json({
         message: '에러 통계 조회 완료',
@@ -203,7 +203,7 @@ export function registerAdminStatsAndHealthRoutes(
     }
   });
 
-  router.get('/alerts/performance', async (req, res) => {
+  router.get('/alerts/performance', async (_req, res) => {
     try {
       res.json({
         message: '성능 알림 조회 완료',

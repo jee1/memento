@@ -157,13 +157,13 @@ export class AriGraphSchemaExpansionMigration implements Migration {
     }
 
     // Check if relation types already exist (should not exist, but use INSERT OR IGNORE in SQL)
-    const _existingExtractedFrom = db.prepare(`
+    db.prepare(`
       SELECT type_name FROM relation_type_registry WHERE type_name = ?
-    `).get('extracted_from') as { type_name: string } | undefined;
+    `).get('extracted_from');
 
-    const _existingSupportedBy = db.prepare(`
+    db.prepare(`
       SELECT type_name FROM relation_type_registry WHERE type_name = ?
-    `).get('supported_by') as { type_name: string } | undefined;
+    `).get('supported_by');
 
     // Note: We allow existing relation types (INSERT OR IGNORE in SQL), so we don't throw here
     // This allows the migration to be idempotent

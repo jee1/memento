@@ -1117,7 +1117,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
-      const condition = (searchEngine as any).buildReflectionNotesSearchCondition(db, 'tool_error');
+      const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'tool_error');
 
       // Then: LIKE 쿼리 조건을 반환해야 함
       expect(condition).toBe('m.reflection_notes LIKE ?');
@@ -1134,7 +1134,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
-      const condition = (searchEngine as any).buildReflectionNotesSearchCondition(db, 'user_feedback');
+      const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'user_feedback');
 
       // Then: LIKE 쿼리 조건을 반환해야 함
       expect(condition).toBe('m.reflection_notes LIKE ?');
@@ -1173,7 +1173,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
-      const condition = (searchEngine as any).buildReflectionNotesSearchCondition(db, 'metric_failure');
+      const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'metric_failure');
 
       // Then: null을 반환해야 함 (FTS5 MATCH 쿼리 사용)
       expect(condition).toBeNull();
@@ -1213,7 +1213,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
-      const condition = (searchEngine as any).buildReflectionNotesSearchCondition(db, 'tool_error');
+      const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'tool_error');
 
       // Then: 환경 변수로 인해 강제로 LIKE 쿼리 조건을 반환해야 함
       expect(condition).toBe('m.reflection_notes LIKE ?');
@@ -1232,7 +1232,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출 (DB를 전달하므로 DB 상태 우선)
-      const condition = (searchEngine as any).buildReflectionNotesSearchCondition(db, 'tool_error');
+      const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'tool_error');
 
       // Then: DB 상태(pending)를 우선하여 LIKE 쿼리 조건을 반환해야 함
       expect(condition).toBe('m.reflection_notes LIKE ?');

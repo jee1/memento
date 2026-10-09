@@ -6,7 +6,7 @@ import type { Router } from 'express';
 import { getPerformanceMonitor, logger } from '@memento/core';
 
 export function registerAdminRuntimePerformanceRoutes(router: Router): void {
-  router.get('/performance/metrics', async (req, res) => {
+  router.get('/performance/metrics', async (_req, res) => {
     try {
       const monitor = getPerformanceMonitor();
       const metrics = await monitor.collectMetrics();
@@ -27,7 +27,7 @@ export function registerAdminRuntimePerformanceRoutes(router: Router): void {
     }
   });
 
-  router.get('/performance/alerts', async (req, res) => {
+  router.get('/performance/alerts', async (_req, res) => {
     try {
       const monitor = getPerformanceMonitor();
       const alerts = monitor.getActiveAlerts();
@@ -49,7 +49,7 @@ export function registerAdminRuntimePerformanceRoutes(router: Router): void {
     }
   });
 
-  router.get('/performance/summary', async (req, res) => {
+  router.get('/performance/summary', async (_req, res) => {
     try {
       const monitor = getPerformanceMonitor();
       const summary = monitor.getPerformanceSummary();

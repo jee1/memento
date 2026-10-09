@@ -25,7 +25,6 @@ import type { AutoReanchorResult } from './anchor-reanchor-service.js';
 export class AnchorSearchService implements IAnchorSearchService {
   private db: Database.Database | null = null;
   private cacheService: IAnchorCacheService;
-  private hybridSearchEngine: HybridSearchEngine | null = null;
   private vectorSearchEngine: VectorSearchEngine | null = null;
   private errorLoggingService: ErrorLoggingService | null = null;
   
@@ -145,7 +144,6 @@ export class AnchorSearchService implements IAnchorSearchService {
       }
       throw error;
     }
-    this.hybridSearchEngine = hybridSearchEngine;
     // Phase 2.5: Fallback 검색 서비스에도 하이브리드 검색 엔진 설정
     this.fallbackSearchService.setHybridSearchEngine(hybridSearchEngine);
   }

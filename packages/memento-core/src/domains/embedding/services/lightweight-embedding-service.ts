@@ -30,9 +30,6 @@ interface LightweightSimilarityResult {
 export class LightweightEmbeddingService {
   private readonly model = 'lightweight-hybrid';
   private readonly dimensions = 512; // 고정 차원
-  private vocabulary: Map<string, number> = new Map();
-  private documentFrequencies: Map<string, number> = new Map();
-  private totalDocuments = 0;
   private readonly stopWords: Set<string>;
 
   constructor() {

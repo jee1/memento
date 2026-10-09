@@ -144,7 +144,7 @@ export function registerAdminBatchRoutes(
   db: Database.Database | null,
   serverServices: ServerServices | null
 ): void {
-  router.get('/batch/status', async (req, res) => {
+  router.get('/batch/status', async (_req, res) => {
     try {
       const batchScheduler = getBatchScheduler();
       const status = batchScheduler.getStatus();

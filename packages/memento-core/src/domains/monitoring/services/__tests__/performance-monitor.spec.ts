@@ -150,17 +150,17 @@ describe('PerformanceMonitor 임계값', () => {
 
   it('기본 memoryUsagePercent 임계값이 85이어야 함', () => {
     const monitor = new PerformanceMonitor();
-    expect((monitor as any).thresholds.memoryUsagePercent).toBe(85);
+    expect((monitor as any).alertManager.thresholds.memoryUsagePercent).toBe(85);
   });
 
   it('기본 cpuUsagePercent 임계값이 75이어야 함', () => {
     const monitor = new PerformanceMonitor();
-    expect((monitor as any).thresholds.cpuUsagePercent).toBe(75);
+    expect((monitor as any).alertManager.thresholds.cpuUsagePercent).toBe(75);
   });
 
   it('기본 databaseSizeMB 임계값이 500이어야 함 (#697)', () => {
     const monitor = new PerformanceMonitor();
-    expect((monitor as any).thresholds.databaseSizeMB).toBe(500);
+    expect((monitor as any).alertManager.thresholds.databaseSizeMB).toBe(500);
   });
 
   it('PERF_DATABASE_WARN_MB 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
@@ -168,7 +168,7 @@ describe('PerformanceMonitor 임계값', () => {
     process.env.PERF_DATABASE_WARN_MB = '200';
     try {
       const monitor = new PerformanceMonitor();
-      expect((monitor as any).thresholds.databaseSizeMB).toBe(200);
+      expect((monitor as any).alertManager.thresholds.databaseSizeMB).toBe(200);
     } finally {
       if (original === undefined) delete process.env.PERF_DATABASE_WARN_MB;
       else process.env.PERF_DATABASE_WARN_MB = original;
@@ -177,7 +177,7 @@ describe('PerformanceMonitor 임계값', () => {
 
   it('기본 alertRearmMs가 30분이어야 함 (#697)', () => {
     const monitor = new PerformanceMonitor();
-    expect((monitor as any).thresholds.alertRearmMs).toBe(PERF_ALERT_REARM_MS_DEFAULT);
+    expect((monitor as any).alertManager.thresholds.alertRearmMs).toBe(PERF_ALERT_REARM_MS_DEFAULT);
   });
 
   it('PERF_MEMORY_WARN_PERCENT 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
@@ -185,7 +185,7 @@ describe('PerformanceMonitor 임계값', () => {
     process.env.PERF_MEMORY_WARN_PERCENT = '90';
     try {
       const monitor = new PerformanceMonitor();
-      expect((monitor as any).thresholds.memoryUsagePercent).toBe(90);
+      expect((monitor as any).alertManager.thresholds.memoryUsagePercent).toBe(90);
     } finally {
       if (original === undefined) delete process.env.PERF_MEMORY_WARN_PERCENT;
       else process.env.PERF_MEMORY_WARN_PERCENT = original;
@@ -197,7 +197,7 @@ describe('PerformanceMonitor 임계값', () => {
     process.env.PERF_CPU_WARN_PERCENT = 'invalid';
     try {
       const monitor = new PerformanceMonitor();
-      expect((monitor as any).thresholds.cpuUsagePercent).toBe(75);
+      expect((monitor as any).alertManager.thresholds.cpuUsagePercent).toBe(75);
     } finally {
       if (original === undefined) delete process.env.PERF_CPU_WARN_PERCENT;
       else process.env.PERF_CPU_WARN_PERCENT = original;
