@@ -380,15 +380,6 @@ export class ErrorLoggingService {
    * 콘솔 출력 시에도 PII 마스킹 적용 (이미 errorLog에 마스킹된 값이 저장되어 있음)
    */
   private logToConsole(error: ErrorLog): void {
-    const severityColors = {
-      [ErrorSeverity.LOW]: '\x1b[36m', // cyan
-      [ErrorSeverity.MEDIUM]: '\x1b[33m', // yellow
-      [ErrorSeverity.HIGH]: '\x1b[31m', // red
-      [ErrorSeverity.CRITICAL]: '\x1b[41m\x1b[37m' // red background, white text
-    };
-
-    const _resetColor = '\x1b[0m';
-    const _color = severityColors[error.severity] || '';
     
     // errorLog의 message, stack, context는 이미 마스킹되어 있음
     // 추가로 JSON 직렬화된 전체 문자열에도 마스킹 적용 (이중 방어)

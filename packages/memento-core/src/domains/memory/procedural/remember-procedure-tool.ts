@@ -11,27 +11,6 @@ import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { resolveCallerAgentId } from '../../../tools/caller-scope.js';
 import { RememberTool } from '../remember/remember-tool.js';
 
-/** remember_procedure 입력 (procedural 전용 필드만, type 없음) */
-interface _RememberProcedureParams {
-  content: string;
-  task_goal?: string | null;
-  steps?: string | null;
-  reflection_notes?: string | null;
-  workflow_name?: string | null;
-  skill_name?: string | null;
-  trigger_conditions?: string | null;
-  update_mode?: 'replace' | 'incremental' | 'versioned';
-  tags?: string[];
-  importance?: number;
-  source?: string | null;
-  privacy_scope?: 'private' | 'team' | 'public';
-  /** 다중 에이전트 시 소유자 식별자 (미설정 시 context.agentId 사용) */
-  owner_id?: string | null;
-  /** Memori Attribution (Issue #87) */
-  process_id?: string | null;
-  session_id?: string | null;
-}
-
 export class RememberProcedureTool extends BaseTool {
   private readonly rememberTool: RememberTool;
 

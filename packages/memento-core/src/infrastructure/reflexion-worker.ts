@@ -10,8 +10,6 @@ import { AsyncTaskQueue } from './async-optimizer.js';
 import Database from 'better-sqlite3';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
 import { ReflexionReflectionRecorder } from './reflexion-reflection-recorder.js';
-import type { ExtractedProceduralMemory } from '../domains/memory/procedural/procedural-memory-extractor.js';
-import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import {
   attemptRestart,
   performHealthCheck as performHealthCheckModule,
@@ -24,9 +22,7 @@ import {
   type ReflexionWorkerEventQueueDeps
 } from './reflexion-worker/reflexion-worker-event-queue.js';
 import {
-  registerHandler as registerHandlerModule,
-  updateProceduralMemory as updateProceduralMemoryModule,
-  type ReflexionWorkerFailureHandlerDeps
+  registerHandler as registerHandlerModule
 } from './reflexion-worker/reflexion-worker-failure-handler.js';
 import {
   getIntegratedMetrics as getIntegratedMetricsModule,
@@ -44,9 +40,7 @@ interface WorkerStatus extends IWorkerStatus {}
  */
 export class ReflexionWorker implements IReflexionWorker {
   private failureDetector: FailureDetector;
-  private db: Database.Database;
   private eventQueue: AsyncTaskQueue;
-  private duplicateWindow: Map<string, number> = new Map(); // 이벤트 키 -> 타임스탬프
   private readonly WINDOW_SIZE_MS = 5 * 60 * 1000; // 5분
   private readonly MAX_CONCURRENT = 5; // 최대 동시 실행 수
   private readonly MAX_QUEUE_SIZE = 100; // 최대 큐 크기
@@ -72,7 +66,6 @@ export class ReflexionWorker implements IReflexionWorker {
     eventQueue?: AsyncTaskQueue
   ) {
     this.failureDetector = failureDetector;
-    this.db = db;
     // 큐 크기 제한 포함하여 생성
     this.eventQueue = eventQueue || new AsyncTaskQueue(this.MAX_CONCURRENT, this.MAX_QUEUE_SIZE);
     this.proceduralMemoryService = new ReflexionProceduralMemoryService(db);
@@ -114,11 +107,6 @@ export class ReflexionWorker implements IReflexionWorker {
     };
   }
 
-  private getFailureHandlerDeps(): ReflexionWorkerFailureHandlerDeps {
-    return {
-      proceduralMemoryService: this.proceduralMemoryService
-    };
-  }
 
   private getMetricsDeps(): ReflexionWorkerMetricsDeps {
     return {
@@ -225,22 +213,6 @@ export class ReflexionWorker implements IReflexionWorker {
     await processFailureEventModule(this.getEventQueueDeps(), event);
   }
 
-  private async updateProceduralMemory(
-    memoryId: string,
-    extracted: ExtractedProceduralMemory,
-    updateMode: 'replace' | 'incremental' | 'versioned',
-    reflectionNote: ReflectionNotes | Record<string, unknown>,
-    event: FailureEvent
-  ): Promise<void> {
-    await updateProceduralMemoryModule(
-      this.getFailureHandlerDeps(),
-      memoryId,
-      extracted,
-      updateMode,
-      reflectionNote,
-      event
-    );
-  }
 
   /**
    * Worker 상태 조회

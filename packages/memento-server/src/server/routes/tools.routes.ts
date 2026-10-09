@@ -29,7 +29,7 @@ export function createToolsRouter(
   const router = Router();
 
   // 도구 목록 조회
-  router.get('/', (req, res) => {
+  router.get('/', (_req, res) => {
     try {
       const tools = getExposedTools();
       res.json({

@@ -5,6 +5,8 @@
 import type Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SearchEngine, type SearchQuery } from '../search-engine.js';
+import { buildFTSQuery, makeFTSSafe, preprocessQuery } from '../search-engine/search-engine-fts-query.js';
+import { applyRanking, generateRecallReason } from '../search-engine/search-engine-ranking.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
@@ -254,13 +256,13 @@ describe('SearchEngine', () => {
     it('초기 FTS5 미사용 상태는 영구 캐시되지 않아 이후 재확인으로 복구 가능', async () => {
       const { db, counters, state } = createRecoverableSearchDb();
 
-      await expect((searchEngine as any).checkFTS5Availability(db)).resolves.toBe(false);
+      await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(db)).resolves.toBe(false);
 
       state.ftsTableAvailable = true;
       state.ftsHasData = true;
 
-      await expect((searchEngine as any).checkFTS5Availability(db)).resolves.toBe(true);
-      await expect((searchEngine as any).checkFTS5Availability(db)).resolves.toBe(true);
+      await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(db)).resolves.toBe(true);
+      await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(db)).resolves.toBe(true);
 
       expect(counters.ftsAvailabilityChecks).toBe(2);
     });
@@ -402,7 +404,7 @@ describe('SearchEngine', () => {
   describe('buildFTSQuery', () => {
     it('정상적인 FTS 쿼리 구성', () => {
       const query = 'test query';
-      const result = (searchEngine as any).buildFTSQuery(query);
+      const result = buildFTSQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -410,7 +412,7 @@ describe('SearchEngine', () => {
 
     it('빈 쿼리 처리', () => {
       const query = '';
-      const result = (searchEngine as any).buildFTSQuery(query);
+      const result = buildFTSQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -418,7 +420,7 @@ describe('SearchEngine', () => {
 
     it('공백만 있는 쿼리 처리', () => {
       const query = '   ';
-      const result = (searchEngine as any).buildFTSQuery(query);
+      const result = buildFTSQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -426,7 +428,7 @@ describe('SearchEngine', () => {
 
     it('특수문자 포함 쿼리 처리', () => {
       const query = 'test@#$%^&*()_+{}|:"<>?[]\\;\',./';
-      const result = (searchEngine as any).buildFTSQuery(query);
+      const result = buildFTSQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -434,7 +436,7 @@ describe('SearchEngine', () => {
 
     it('긴 쿼리(토큰 6개 초과) 시 OR + prefix 이며 최대 토큰 수 이내', () => {
       const query = 'Memento recall 검색 데이터 조회 하이브리드 검색 엔진 테스트 추가';
-      const result = (searchEngine as any).buildFTSQuery(query);
+      const result = buildFTSQuery(query);
       expect(result).toBeDefined();
       expect(result).toContain(' OR ');
       const terms = result.split(' OR ');
@@ -443,7 +445,7 @@ describe('SearchEngine', () => {
     });
 
     it('짧은 다개념 쿼리는 OR + prefix* 로 결합한다', () => {
-      const result = (searchEngine as any).buildFTSQuery('검색 랭킹 가중치 튜닝');
+      const result = buildFTSQuery('검색 랭킹 가중치 튜닝');
       expect(result).toContain(' OR ');
       expect(result).toMatch(/검색\*/);
       expect(result).toMatch(/랭킹\*/);
@@ -452,14 +454,14 @@ describe('SearchEngine', () => {
     });
 
     it('1글자 어간에는 접두를 붙이지 않는다', () => {
-      const result = (searchEngine as any).buildFTSQuery('z test');
+      const result = buildFTSQuery('z test');
       expect(result).toMatch(/\bz\b/);
       expect(result).not.toMatch(/\bz\*/);
       expect(result).toMatch(/test\*/);
     });
 
     it('연산자처럼 보이는 기호는 MATCH 연산자로 남지 않는다', () => {
-      const result = (searchEngine as any).buildFTSQuery('foo AND bar "baz"');
+      const result = buildFTSQuery('foo AND bar "baz"');
       expect(result).not.toMatch(/\bAND\b/);
       expect(result).not.toContain('"');
       expect(result).toContain(' OR ');
@@ -473,7 +475,7 @@ describe('SearchEngine', () => {
   describe('preprocessQuery', () => {
     it('정상적인 쿼리 전처리', () => {
       const query = 'test query';
-      const result = (searchEngine as any).preprocessQuery(query);
+      const result = preprocessQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -481,7 +483,7 @@ describe('SearchEngine', () => {
 
     it('연속 공백 제거', () => {
       const query = 'test    query';
-      const result = (searchEngine as any).preprocessQuery(query);
+      const result = preprocessQuery(query);
       
       expect(result).toBeDefined();
       expect(result).not.toContain('    ');
@@ -489,7 +491,7 @@ describe('SearchEngine', () => {
 
     it('특수문자 제거', () => {
       const query = 'test@#$%^&*()_+{}|:"<>?[]\\;\',./';
-      const result = (searchEngine as any).preprocessQuery(query);
+      const result = preprocessQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -497,7 +499,7 @@ describe('SearchEngine', () => {
 
     it('불용어 제거', () => {
       const query = 'the test query';
-      const result = (searchEngine as any).preprocessQuery(query);
+      const result = preprocessQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -505,7 +507,7 @@ describe('SearchEngine', () => {
 
     it('한글 쿼리 처리', () => {
       const query = '테스트 쿼리';
-      const result = (searchEngine as any).preprocessQuery(query);
+      const result = preprocessQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -513,7 +515,7 @@ describe('SearchEngine', () => {
 
     it('영문과 한글 혼합 쿼리', () => {
       const query = 'test 테스트 query';
-      const result = (searchEngine as any).preprocessQuery(query);
+      const result = preprocessQuery(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -523,7 +525,7 @@ describe('SearchEngine', () => {
   describe('makeFTSSafe', () => {
     it('FTS5 안전 쿼리 생성', () => {
       const query = 'test query';
-      const result = (searchEngine as any).makeFTSSafe(query);
+      const result = makeFTSSafe(query);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -531,7 +533,7 @@ describe('SearchEngine', () => {
 
     it('대괄호 제거', () => {
       const query = 'test[query]';
-      const result = (searchEngine as any).makeFTSSafe(query);
+      const result = makeFTSSafe(query);
       
       expect(result).toBeDefined();
       expect(result).not.toContain('[');
@@ -540,7 +542,7 @@ describe('SearchEngine', () => {
 
     it('연속 공백 정리', () => {
       const query = 'test    query';
-      const result = (searchEngine as any).makeFTSSafe(query);
+      const result = makeFTSSafe(query);
       
       expect(result).toBeDefined();
       expect(result).not.toContain('    ');
@@ -549,25 +551,25 @@ describe('SearchEngine', () => {
 
   describe('checkFTS5Availability', () => {
     it('FTS5 사용 가능한 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(testDb);
+      const result = await (searchEngine as any).ftsAvailability.checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
 
     it('FTS5 테이블이 없는 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(testDb);
+      const result = await (searchEngine as any).ftsAvailability.checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
 
     it('FTS5 테이블에 데이터가 없는 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(testDb);
+      const result = await (searchEngine as any).ftsAvailability.checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
 
     it('FTS5 쿼리 실패하는 경우', async () => {
-      const result = await (searchEngine as any).checkFTS5Availability(testDb);
+      const result = await (searchEngine as any).ftsAvailability.checkFTS5Availability(testDb);
       
       expect(typeof result).toBe('boolean');
     });
@@ -577,8 +579,8 @@ describe('SearchEngine', () => {
     it('반복 확인 시 reflection_notes 사용 가능 여부는 인스턴스당 한 번만 확인', () => {
       const { db, counters } = createCountingSearchDb();
 
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(true);
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(true);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(true);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(true);
 
       expect(counters.reflectionNotesAvailabilityChecks).toBe(1);
     });
@@ -586,12 +588,12 @@ describe('SearchEngine', () => {
     it('초기 reflection_notes 미사용 상태는 영구 캐시되지 않아 이후 재확인으로 복구 가능', () => {
       const { db, counters, state } = createRecoverableSearchDb();
 
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(false);
 
       state.reflectionNotesAvailable = true;
 
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(true);
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(true);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(true);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(true);
 
       expect(counters.reflectionNotesAvailabilityChecks).toBe(2);
     });
@@ -602,18 +604,18 @@ describe('SearchEngine', () => {
       state.reflectionNotesAvailable = true;
       state.migrationStatus = 'completed';
 
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(true);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(true);
 
       process.env.MEMENTO_FTS5_FALLBACK_ENABLED = 'true';
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(false);
 
       delete process.env.MEMENTO_FTS5_FALLBACK_ENABLED;
       (mementoConfig as { fts5FallbackEnabled: boolean }).fts5FallbackEnabled = true;
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(false);
 
       (mementoConfig as { fts5FallbackEnabled: boolean }).fts5FallbackEnabled = false;
       state.migrationStatus = 'pending';
-      expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+      expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(false);
     });
 
     it('테스트 환경에서는 반복된 fallback 경고를 warn 레벨로 재출력하지 않는다', () => {
@@ -623,8 +625,8 @@ describe('SearchEngine', () => {
       process.env.MEMENTO_FTS5_FALLBACK_ENABLED = 'true';
 
       try {
-        expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
-        expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+        expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(false);
+        expect((searchEngine as any).ftsAvailability.checkReflectionNotesAvailability(db)).toBe(false);
 
         const fallbackLogs = logServerSpy.mock.calls.filter((call) =>
           call[1] === '설정으로 인해 reflection_notes Fallback 활성화'
@@ -658,8 +660,8 @@ describe('SearchEngine', () => {
 
       process.env.NODE_ENV = 'test';
 
-      await expect((searchEngine as any).checkFTS5Availability(unavailableDb)).resolves.toBe(false);
-      await expect((searchEngine as any).checkFTS5Availability(unavailableDb)).resolves.toBe(false);
+      await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(unavailableDb)).resolves.toBe(false);
+      await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(unavailableDb)).resolves.toBe(false);
 
       const fallbackLogs = logServerSpy.mock.calls.filter((call) =>
         call[1] === 'FTS5 테이블이 존재하지 않음, 기본 검색으로 전환'
@@ -700,7 +702,7 @@ describe('SearchEngine', () => {
       const recovered = await searchEngine.search(db, { query: 'test', limit: 10 });
       expect(recovered.items).toHaveLength(1);
 
-      await expect((searchEngine as any).checkFTS5Availability(db)).resolves.toBe(true);
+      await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(db)).resolves.toBe(true);
 
       expect(counters.ftsAvailabilityChecks).toBe(2);
       expect(executeQuerySpy).toHaveBeenCalledTimes(3);
@@ -713,7 +715,7 @@ describe('SearchEngine', () => {
     it('정상적인 랭킹 적용', () => {
       const items = createSearchRows();
       
-      const result = (searchEngine as any).applyRanking(items, 'test');
+      const result = applyRanking((searchEngine as any).ranking, items, 'test');
       
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -722,7 +724,7 @@ describe('SearchEngine', () => {
     it('FTS 랭킹이 있는 경우', () => {
       const items = createSearchRows();
       
-      const result = (searchEngine as any).applyRanking(items, 'test');
+      const result = applyRanking((searchEngine as any).ranking, items, 'test');
       
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -734,7 +736,7 @@ describe('SearchEngine', () => {
         fts_rank: undefined,
       }));
       
-      const result = (searchEngine as any).applyRanking(items, 'test');
+      const result = applyRanking((searchEngine as any).ranking, items, 'test');
       
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -746,7 +748,7 @@ describe('SearchEngine', () => {
         { ...createSearchRows(1)[0], id: 'mem2', content: 'test memory 2', fts_rank: 0.8 }
       ];
       
-      const result = (searchEngine as any).applyRanking(items, 'test');
+      const result = applyRanking((searchEngine as any).ranking, items, 'test');
       
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -756,7 +758,7 @@ describe('SearchEngine', () => {
   describe('generateRecallReason', () => {
     it('FTS5 검색 이유 생성', () => {
       const item = { fts_rank: 0.8 };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -764,7 +766,7 @@ describe('SearchEngine', () => {
 
     it('높은 관련성 이유 생성', () => {
       const item = { fts_rank: 0.9 };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -772,7 +774,7 @@ describe('SearchEngine', () => {
 
     it('최근 생성 이유 생성', () => {
       const item = { created_at: new Date().toISOString() };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -780,7 +782,7 @@ describe('SearchEngine', () => {
 
     it('높은 중요도 이유 생성', () => {
       const item = { importance: 0.9 };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -792,7 +794,7 @@ describe('SearchEngine', () => {
         importance: 0.8, 
         created_at: new Date().toISOString() 
       };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -804,7 +806,7 @@ describe('SearchEngine', () => {
         importance: 0.7, 
         pinned: true 
       };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -812,7 +814,7 @@ describe('SearchEngine', () => {
 
     it('기본 이유 생성', () => {
       const item = { content: 'test' };
-      const result = (searchEngine as any).generateRecallReason(item);
+      const result = generateRecallReason(item);
       
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');

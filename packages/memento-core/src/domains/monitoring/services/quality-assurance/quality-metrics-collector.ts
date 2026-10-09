@@ -31,7 +31,7 @@ export class QualityMetricsCollector {
   private readonly storageCollector: StorageMetricsCollector;
   private readonly categoryAggregator: CategoryQualityAggregator;
 
-  constructor(private db: Database.Database) {
+  constructor(db: Database.Database) {
     if (!db) {
       throw new Error('Database instance is required');
     }

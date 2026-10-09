@@ -128,14 +128,13 @@ export class SearchEngineFtsAvailability {
     }
   }
 
-  buildReflectionNotesSearchCondition(db: Database.Database, searchQuery: string): string | null {
+  buildReflectionNotesSearchCondition(db: Database.Database, _searchQuery: string): string | null {
     const canUseFTS5 = this.checkReflectionNotesAvailability(db);
 
     if (canUseFTS5) {
       return null;
     }
 
-    const _likeQuery = `%${searchQuery}%`;
     return `m.reflection_notes LIKE ?`;
   }
 }

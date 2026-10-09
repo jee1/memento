@@ -209,7 +209,6 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
   } {
     const normalizedText = text.toLowerCase();
     let maxStrength = 0;
-    let _matchedPattern: KeywordPattern | null = null;
     let matchedKeyword = '';
 
     for (const pattern of patterns) {
@@ -225,7 +224,6 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
           const strength = pattern.weight;
           if (strength > maxStrength) {
             maxStrength = strength;
-            _matchedPattern = pattern;
             matchedKeyword = keyword;
           }
         }

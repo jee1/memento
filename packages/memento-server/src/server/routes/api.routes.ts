@@ -28,7 +28,7 @@ export function createApiRouter(
   const router = Router();
 
   // Agent ID 목록 (앵커가 설정된 agent_id 집계)
-  router.get('/anchors/agents', (req, res) => {
+  router.get('/anchors/agents', (_req, res) => {
     try {
       if (!db) {
         return res.status(500).json({

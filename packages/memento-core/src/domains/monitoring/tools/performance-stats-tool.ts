@@ -2,11 +2,8 @@
  * Performance Stats Tool - 성능 통계 도구
  */
 
-import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
-
-const _PerformanceStatsSchema = z.object({});
 
 export class PerformanceStatsTool extends BaseTool {
   constructor() {
@@ -20,7 +17,7 @@ export class PerformanceStatsTool extends BaseTool {
     );
   }
 
-  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
+  async handle(_params: unknown, context: ToolContext): Promise<ToolResult> {
     // 데이터베이스 연결 확인
     this.validateDatabase(context);
     

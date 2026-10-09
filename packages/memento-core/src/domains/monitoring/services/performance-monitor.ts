@@ -60,16 +60,6 @@ export class PerformanceMonitor implements CpuUsageHost {
     this.alertManager = new PerformanceAlertManager(thresholds);
   }
 
-  /** @internal test / legacy access to alert thresholds */
-  private get thresholds(): AlertThresholds {
-    return this.alertManager.thresholds;
-  }
-
-  /** @internal test / legacy access to query resolve counter */
-  private get queryConsecutiveOkCount(): number {
-    return this.alertManager.queryConsecutiveOkCount;
-  }
-
   /**
    * 모니터링 시작
    */

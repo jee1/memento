@@ -26,6 +26,7 @@ import {
 import { createHybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { createQueryCounter, type QueryCounter } from '../test/helpers/query-counter.js';
+import { updateProceduralMemory } from './reflexion-worker/reflexion-worker-failure-handler.js';
 
 /**
  * 이벤트 처리 완료 대기 헬퍼 함수
@@ -2262,7 +2263,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
         trigger_conditions: undefined // undefined 필드
       };
 
-      await workerAny.updateProceduralMemory(
+      await updateProceduralMemory({ proceduralMemoryService: workerAny.proceduralMemoryService },
         existingMemoryId,
         extracted,
         'replace',
@@ -2314,7 +2315,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
         trigger_conditions: undefined
       };
 
-      await workerAny.updateProceduralMemory(
+      await updateProceduralMemory({ proceduralMemoryService: workerAny.proceduralMemoryService },
         existingMemoryId,
         extracted,
         'replace',
@@ -2365,7 +2366,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
         trigger_conditions: 'new_trigger' // 새 값
       };
 
-      await workerAny.updateProceduralMemory(
+      await updateProceduralMemory({ proceduralMemoryService: workerAny.proceduralMemoryService },
         existingMemoryId,
         extracted,
         'replace',
@@ -2418,7 +2419,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
         trigger_conditions: undefined
       };
 
-      await workerAny.updateProceduralMemory(
+      await updateProceduralMemory({ proceduralMemoryService: workerAny.proceduralMemoryService },
         existingMemoryId,
         extracted,
         'incremental',
@@ -2469,7 +2470,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
         trigger_conditions: undefined
       };
 
-      await workerAny.updateProceduralMemory(
+      await updateProceduralMemory({ proceduralMemoryService: workerAny.proceduralMemoryService },
         existingMemoryId,
         extracted,
         'incremental',

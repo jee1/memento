@@ -85,13 +85,6 @@ export class QualityAssuranceSchemaMigration implements Migration {
     return !!result;
   }
 
-  /**
-   * Check if column exists in table
-   */
-  private columnExists(db: Database.Database, tableName: string, columnName: string): boolean {
-    const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
-    return columns.some(col => col.name === columnName);
-  }
 
   /**
    * Validate before migration

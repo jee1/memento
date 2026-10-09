@@ -235,7 +235,7 @@ export class ForgettingPolicyService {
    *
    * @remarks 피드백 가중치는 feedback_event 연동 전까지 보수적 기본값을 사용한다(스케줄 생성만 수행).
    */
-  private async analyzeReviewCandidates(db: Database.Database, memories: PolicyMemoryRow[]): Promise<ReviewSchedule[]> {
+  private async analyzeReviewCandidates(_db: Database.Database, memories: PolicyMemoryRow[]): Promise<ReviewSchedule[]> {
     const schedules: ReviewSchedule[] = [];
 
     for (const memory of memories) {

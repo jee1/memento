@@ -174,7 +174,7 @@ export class ForgetTool extends BaseTool {
       await this.logDeleteAction(id, hard, reason, context);
       
       // 트랜잭션으로 삭제 실행
-      const _result = await DatabaseUtils.runTransaction(context.db!, async () => {
+      await DatabaseUtils.runTransaction(context.db!, async () => {
         if (hard) {
           // 하드 삭제: 완전 제거
           return await this.performHardDelete(id, context);
@@ -353,8 +353,8 @@ export class ForgetTool extends BaseTool {
    */
   private async logDeleteAction(
     id: string, 
-    hard: boolean, 
-    reason: string | undefined, 
+    _hard: boolean, 
+    _reason: string | undefined, 
     context: ToolContext
   ): Promise<void> {
     try {

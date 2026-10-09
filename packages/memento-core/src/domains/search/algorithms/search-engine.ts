@@ -10,11 +10,8 @@ import { logger } from '../../../shared/utils/logger.js';
 import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchEngineFtsAvailability } from './search-engine/search-engine-fts-availability.js';
-import { buildFTSQuery as buildFTSQueryImpl, makeFTSSafe as makeFTSSafeImpl, preprocessQuery as preprocessQueryImpl } from './search-engine/search-engine-fts-query.js';
-import {
-  applyRanking as applyRankingImpl,
-  generateRecallReason as generateRecallReasonFromScores,
-} from './search-engine/search-engine-ranking.js';
+import { buildFTSQuery as buildFTSQueryImpl } from './search-engine/search-engine-fts-query.js';
+import { applyRanking as applyRankingImpl } from './search-engine/search-engine-ranking.js';
 import { buildSearchStatement } from './search-engine/search-engine-sql-builder.js';
 import type { SearchEngineRow, SearchQuery } from './search-engine/search-engine.types.js';
 
@@ -126,55 +123,5 @@ export class SearchEngine {
 
   private async executeQuery(db: Database.Database, sql: string, params: unknown[]): Promise<SearchEngineRow[]> {
     return db.prepare(sql).all(...params) as SearchEngineRow[];
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private buildFTSQuery(query: string): string {
-    return buildFTSQueryImpl(query);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private preprocessQuery(query: string): string {
-    return preprocessQueryImpl(query);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private makeFTSSafe(query: string): string {
-    return makeFTSSafeImpl(query);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private async checkFTS5Availability(db: Database.Database): Promise<boolean> {
-    return this.ftsAvailability.checkFTS5Availability(db);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private checkReflectionNotesAvailability(db: Database.Database): boolean {
-    return this.ftsAvailability.checkReflectionNotesAvailability(db);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private buildReflectionNotesSearchCondition(db: Database.Database, searchQuery: string): string | null {
-    return this.ftsAvailability.buildReflectionNotesSearchCondition(db, searchQuery);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private applyRanking(
-    results: SearchEngineRow[],
-    query: string,
-    opts?: { includeBreakdown?: boolean; feedbackNetByMemory?: Map<string, number> }
-  ): MemorySearchResult[] {
-    return applyRankingImpl(this.ranking, results, query, opts);
-  }
-
-  /** @internal 테스트·하위 호환용 위임 */
-  private generateRecallReason(
-    relevance: number,
-    recency: number,
-    importance: number,
-    finalScore: number,
-    isFTS: boolean = false
-  ): string {
-    return generateRecallReasonFromScores(relevance, recency, importance, finalScore, isFTS);
   }
 }

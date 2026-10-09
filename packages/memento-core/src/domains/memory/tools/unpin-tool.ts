@@ -279,7 +279,7 @@ export class UnpinTool extends BaseTool {
    */
   private async logUnpinAction(
     id: string, 
-    reason: string | undefined, 
+    _reason: string | undefined, 
     context: ToolContext
   ): Promise<void> {
     try {

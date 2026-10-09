@@ -6,14 +6,8 @@
  */
 
 import type Database from 'better-sqlite3';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import type { Migration } from '../types.js';
 import { DependencyValidator } from '../dependency-validator.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /**
  * Consolidation Score Fields Migration
@@ -28,39 +22,7 @@ export class ConsolidationScoreFieldsMigration implements Migration {
   name = 'consolidation-score-fields';
   description = 'Add consolidation score system fields to memory_item table (recall_count, last_accessed_at, consolidation_score, g_value)';
 
-  /**
-   * Load SQL file content
-   */
-  private loadSQLFile(filename: string): string {
-    const filePath = join(__dirname, filename);
-    return readFileSync(filePath, 'utf-8');
-  }
 
-  /**
-   * Execute SQL script
-   * Removes transaction commands (BEGIN TRANSACTION, COMMIT) as MigrationRunner manages transactions
-   */
-  private executeSQL(db: Database.Database, sql: string): void {
-    // MigrationRunner가 트랜잭션을 관리하므로 SQL에서 트랜잭션 명령 제거
-    let cleanedSQL = sql
-      // BEGIN TRANSACTION 제거
-      .replace(/BEGIN\s+TRANSACTION\s*;/gi, '')
-      // COMMIT 제거
-      .replace(/COMMIT\s*;/gi, '')
-      // PRAGMA foreign_keys 명령은 유지 (트랜잭션 외부에서도 작동)
-      .trim();
-    
-    // 빈 줄 제거 및 정리
-    cleanedSQL = cleanedSQL
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .join('\n');
-    
-    if (cleanedSQL.length > 0) {
-      db.exec(cleanedSQL);
-    }
-  }
 
   /**
    * Check if table exists

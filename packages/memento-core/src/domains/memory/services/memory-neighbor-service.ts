@@ -69,7 +69,6 @@ export class MemoryNotFoundError extends Error {
  */
 export class MemoryNeighborService {
   private readonly vectorSearchEngine: VectorSearchEngine;
-  private readonly embeddingService: MemoryEmbeddingService;
   private db: Database.Database | null = null;
 
   /**
@@ -91,7 +90,6 @@ export class MemoryNeighborService {
     }
 
     this.vectorSearchEngine = vectorSearchEngine;
-    this.embeddingService = embeddingService;
     if (db) this.setDatabase(db);
   }
 

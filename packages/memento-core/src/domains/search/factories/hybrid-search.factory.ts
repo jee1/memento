@@ -66,7 +66,7 @@ export class HybridSearchFactory {
    * 기본 설정으로 하이브리드 검색 엔진 생성
    */
   static createDefaultEngine(
-    db: Database,
+    _db: Database,
     embeddingService?: MemoryEmbeddingService,
     options?: CreateDefaultHybridEngineOptions
   ): HybridSearchEngine {

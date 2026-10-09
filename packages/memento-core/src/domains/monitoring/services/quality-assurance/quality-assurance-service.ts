@@ -98,7 +98,7 @@ export class QualityAssuranceService {
   private reporter: QualityReporter;
   private thresholdManager: QualityThresholdManager;
 
-  constructor(private db: Database.Database) {
+  constructor(db: Database.Database) {
     if (!db) {
       throw new Error('Database instance is required');
     }

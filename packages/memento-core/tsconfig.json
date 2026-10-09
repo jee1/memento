@@ -2,6 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "rootDir": "./src",
     "paths": {
       "@memento/core": ["./src/index.ts"],
