@@ -4,6 +4,7 @@
 
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import { rollbackToVersion } from './procedural-rollback-service.js';
 
 export class ProceduralRollbackTool extends BaseTool {
@@ -40,6 +41,15 @@ export class ProceduralRollbackTool extends BaseTool {
     }
     if (!context.db) {
       return this.createErrorResult('database_unavailable', '데이터베이스를 사용할 수 없습니다.');
+    }
+
+    const owned = filterCallerOwnedIds(context, [current_id, target_version_id]);
+    // Same messages as rollbackToVersion, so another owner's memory reads as missing.
+    if (!owned.has(target_version_id)) {
+      return this.createErrorResult('rollback_failed', `Procedural memory not found or wrong type: ${target_version_id}`);
+    }
+    if (!owned.has(current_id)) {
+      return this.createErrorResult('rollback_failed', `Current procedural memory not found: ${current_id}`);
     }
 
     try {

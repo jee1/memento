@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
+import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
@@ -62,6 +63,10 @@ export class GetMemoryNeighborsTool extends BaseTool {
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
 
+      if (!filterCallerOwnedIds(context, [memory_id]).has(memory_id)) {
+        throw new MemoryNotFoundError(memory_id);
+      }
+
       const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
       
       const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
@@ -83,6 +88,9 @@ export class GetMemoryNeighborsTool extends BaseTool {
         limit,
         similarity_threshold
       });
+      // ponytail: post-filter can return fewer than `limit` for bound callers; push owner_id into the vector search if that matters
+      const owned = filterCallerOwnedIds(context, result.neighbors.map((n) => n.id));
+      const neighbors = result.neighbors.filter((n) => owned.has(n.id));
       
       this.logInfo('이웃 기억 조회 성공', {
         memory_id: result.memory_id,
@@ -92,8 +100,8 @@ export class GetMemoryNeighborsTool extends BaseTool {
       
       return this.createSuccessResult({
         memory_id: result.memory_id,
-        neighbors: result.neighbors,
-        total_count: result.total_count,
+        neighbors,
+        total_count: context.boundAgentId ? neighbors.length : result.total_count,
         query_time: result.query_time
       });
     } catch (error) {

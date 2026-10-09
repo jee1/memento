@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { callerOwnerClause, resolveCallerAgentId } from '../../../tools/caller-scope.js';
 
 const SetAnchorSchema = z.object({
   memory_id: z.string().min(1, 'Memory ID cannot be empty'),
@@ -45,7 +46,9 @@ export class SetAnchorTool extends BaseTool {
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
-      const { memory_id, slot, agent_id } = SetAnchorSchema.parse(params);
+      const parsed = SetAnchorSchema.parse(params);
+      const { memory_id, slot } = parsed;
+      const agent_id = resolveCallerAgentId(context, parsed.agent_id);
       
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
@@ -54,9 +57,10 @@ export class SetAnchorTool extends BaseTool {
       this.validateService(context.services.anchorManager, '앵커 관리자');
       
       // 메모리 존재 확인
+      const ownerScope = callerOwnerClause(context);
       const memory = context.db!.prepare(`
-        SELECT id FROM memory_item WHERE id = ?
-      `).get(memory_id) as { id: string } | undefined;
+        SELECT id FROM memory_item WHERE id = ?${ownerScope.sql}
+      `).get(memory_id, ...ownerScope.params) as { id: string } | undefined;
       
       if (!memory) {
         throw new Error(`메모리를 찾을 수 없습니다: ${memory_id}`);

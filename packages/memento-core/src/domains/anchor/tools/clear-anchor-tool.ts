@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { resolveCallerAgentId } from '../../../tools/caller-scope.js';
 
 const ClearAnchorSchema = z.object({
   slot: z.enum(['A', 'B', 'C']).optional(),
@@ -38,7 +39,9 @@ export class ClearAnchorTool extends BaseTool {
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
-      const { slot, agent_id } = ClearAnchorSchema.parse(params);
+      const parsed = ClearAnchorSchema.parse(params);
+      const { slot } = parsed;
+      const agent_id = resolveCallerAgentId(context, parsed.agent_id);
       
       // 데이터베이스 연결 확인
       this.validateDatabase(context);

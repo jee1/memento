@@ -105,6 +105,25 @@ describe('tool dispatch audit', () => {
     expect(new AuditHashChainService(db).list()).toHaveLength(2);
   });
 
+  it('passes only the token binding to tools as boundAgentId (caller scope)', async () => {
+    const seen: Array<{ agentId?: string; boundAgentId?: string }> = [];
+    const dispatch = auditDispatch.createToolDispatcher({
+      execute: async (_name, _args, context) => {
+        seen.push({ agentId: context.agentId, boundAgentId: context.boundAgentId });
+        return { content: [] };
+      },
+    });
+    const services = {} as ServerServices;
+
+    await dispatch('pin', {}, db, services, { transport: 'mcp_http', agentId: 'from-header' });
+    await dispatch('pin', {}, db, services, { transport: 'mcp_http', agentId: 'agent-a', boundAgentId: 'agent-a' });
+
+    expect(seen).toEqual([
+      { agentId: 'from-header', boundAgentId: undefined },
+      { agentId: 'agent-a', boundAgentId: 'agent-a' },
+    ]);
+  });
+
   it('maps memory version conflict to JSON-RPC -32009 for HTTP 409 (#1093)', () => {
     const mapped = auditDispatch.mapToolDispatchError(
       MemoryVersionConflictError.forMemory('mem-cas-1', 1, 2),

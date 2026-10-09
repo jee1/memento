@@ -41,6 +41,8 @@ export interface ToolContext {
   db: Database.Database;
   /** 다중 에이전트 시 현재 에이전트/소유자 식별자 (미설정 시 remember/recall 기본값 사용) */
   agentId?: string;
+  /** API 토큰에 묶인 agent. 헤더·env 로 정한 agentId 는 자기신고라 owner 경계에 쓰지 않는다 (tools/caller-scope.ts) */
+  boundAgentId?: string;
   /** HTTP 요청 헤더 X-Memento-Project-Id 로 받은 기본 프로젝트 식별자 — remember 신규 저장 시 project_id 미지정이면 사용 (#1270) */
   projectId?: string;
   /** Memori Attribution: 프로세스(에이전트/프로그램) 식별자 (Issue #87) */

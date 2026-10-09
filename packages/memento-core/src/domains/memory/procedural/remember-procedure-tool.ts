@@ -8,6 +8,7 @@ import { formatValidationErrors,validateReflectionNotes } from '../../../shared/
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { resolveCallerAgentId } from '../../../tools/caller-scope.js';
 import { RememberTool } from '../remember/remember-tool.js';
 
 /** remember_procedure 입력 (procedural 전용 필드만, type 없음) */
@@ -145,10 +146,10 @@ export class RememberProcedureTool extends BaseTool {
     const privacy_scope: 'private' | 'team' | 'public' =
       raw.privacy_scope === 'team' || raw.privacy_scope === 'public' ? raw.privacy_scope : 'private';
 
-    const owner_id =
-      typeof raw.owner_id === 'string' && raw.owner_id.trim() !== ''
-        ? raw.owner_id.trim()
-        : context.agentId ?? undefined;
+    const owner_id = resolveCallerAgentId(
+      context,
+      typeof raw.owner_id === 'string' && raw.owner_id.trim() !== '' ? raw.owner_id.trim() : undefined,
+    ) ?? context.agentId ?? undefined;
     const process_id =
       typeof raw.process_id === 'string' && raw.process_id.trim() !== ''
         ? raw.process_id.trim()

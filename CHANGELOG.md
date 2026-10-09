@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Security
+
+- **server**: agent 가 묶인 API 토큰으로 호출하면 기억 id 를 받는 도구가 그 agent 의 기억만 다룹니다. 이전에는 `pin`·`unpin`·`feedback`·`get_memory_neighbors`·`procedural_rollback`·`set_anchor`·`get_relations`·`visualize_relations`·`extract_relations`·`get_meta_memory_stats` 가 다른 owner 의 기억 id 를 그대로 받았습니다. 남의 기억은 없는 기억과 같은 응답을 돌려줘 id 존재 여부도 드러나지 않습니다. 이웃·관계·국소 검색(`search_local`) 결과에서도 남의 기억을 뺍니다. 앵커 도구와 `recall` 의 앵커, `remember` 의 `owner_id` 는 묶인 agent 로 고정됩니다. `X-Memento-Agent-Id` 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로 정한 agent 는 바인딩이 아니므로 동작이 바뀌지 않습니다. agent 바인딩 토큰을 쓰지 않는 설치는 영향이 없습니다
+
 ### Added
 
 - **ci**: 2단계 리뷰 파이프라인 (#1284). `npm run hooks:install` 로 까는 `pre-push` 훅이 push 전에 `lint`·`type-check` 를 돌립니다(Claude Code 외 Codex·Cursor·수동 push 도 포함). PR 에는 `PR Risk` 워크플로가 0–100 위험 점수(보안·범위·파괴적 변경·테스트 누락·DB 마이그레이션)로 `risk:low|medium|high` 라벨과 코멘트를 답니다. 머지를 막지 않는 참고 신호입니다
