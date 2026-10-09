@@ -16,7 +16,7 @@ import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
  *   - CI/CD 통합 가능
  */
 
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { readdir } from 'fs/promises';
 import { join, relative } from 'path';
 
@@ -27,12 +27,19 @@ interface CliOptions {
   ci?: boolean;
   directory?: string;
   exclude?: string[];
+  updateBaseline?: boolean;
 }
+
+/**
+ * 검토를 마친 기존 탐지 목록. 이 검사는 줄 단위 휴리스틱이라 `?`·`@param` 조각이나
+ * 고정 테이블명을 보간하는 안전한 코드도 잡는다. 기준선에 없는 새 탐지만 CI 를 깨뜨린다.
+ */
+const BASELINE_PATH = 'scripts/sql-injection-baseline.json';
 
 /**
  * SQL Injection 취약점 발견 위치
  */
-interface SqlInjectionLocation {
+export interface SqlInjectionLocation {
   file: string;
   line: number;
   column: number;
@@ -64,6 +71,8 @@ function parseArgs(): CliOptions {
     const arg = args[i];
     if (arg === '--ci') {
       options.ci = true;
+    } else if (arg === '--update-baseline') {
+      options.updateBaseline = true;
     } else if (arg === '--directory' && args[i + 1]) {
       options.directory = args[i + 1];
       i++;
@@ -94,7 +103,8 @@ SQL Injection 취약점 검사 스크립트
 
 옵션:
   --ci                    CI 모드 (취약점 발견 시 exit code 1 반환)
-  --directory <path>      검사할 디렉토리 (기본값: src/)
+  --directory <path>      검사할 디렉토리 (기본값: packages)
+  --update-baseline       현재 탐지를 검토 완료로 ${BASELINE_PATH} 에 기록
   --exclude <pattern>     제외할 파일 패턴 (여러 번 사용 가능)
   --help, -h              도움말 출력
 
@@ -452,30 +462,52 @@ function findSqlInjectionPatterns(filePath: string): SqlInjectionLocation[] {
  * SQL Injection 취약점 검사
  */
 function checkSqlInjection(files: string[]): CheckResult {
-  const locations: SqlInjectionLocation[] = [];
+  return summarize(files.flatMap(findSqlInjectionPatterns));
+}
+
+function summarize(locations: SqlInjectionLocation[]): CheckResult {
   const byFile = new Map<string, SqlInjectionLocation[]>();
   const byPattern = new Map<string, number>();
-  
-  for (const file of files) {
-    const fileLocations = findSqlInjectionPatterns(file);
-    locations.push(...fileLocations);
-    
-    if (fileLocations.length > 0) {
-      byFile.set(file, fileLocations);
-      
-      for (const loc of fileLocations) {
-        const count = byPattern.get(loc.pattern) || 0;
-        byPattern.set(loc.pattern, count + 1);
-      }
-    }
+
+  for (const loc of locations) {
+    byFile.set(loc.file, [...(byFile.get(loc.file) ?? []), loc]);
+    byPattern.set(loc.pattern, (byPattern.get(loc.pattern) ?? 0) + 1);
   }
-  
+
   return {
     total: locations.length,
     locations,
     byFile,
     byPattern
   };
+}
+
+/** 줄 번호가 밀려도 같은 탐지로 보도록 파일·패턴·코드 줄로 식별한다. */
+function baselineKey(loc: SqlInjectionLocation, projectRoot: string): string {
+  return `${relative(projectRoot, loc.file)}|${loc.pattern}|${loc.context}`;
+}
+
+function readBaseline(): string[] {
+  return existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf-8')) as string[] : [];
+}
+
+/** 기준선에 있는 탐지를 뺀다. 같은 줄이 여러 번 나오면 기록된 횟수만큼만 뺀다. */
+export function withoutBaseline(
+  locations: SqlInjectionLocation[],
+  projectRoot: string,
+  baseline: readonly string[],
+): SqlInjectionLocation[] {
+  const remaining = new Map<string, number>();
+  for (const key of baseline) {
+    remaining.set(key, (remaining.get(key) ?? 0) + 1);
+  }
+  return locations.filter((loc) => {
+    const key = baselineKey(loc, projectRoot);
+    const left = remaining.get(key) ?? 0;
+    if (left === 0) return true;
+    remaining.set(key, left - 1);
+    return false;
+  });
 }
 
 /**
@@ -543,7 +575,7 @@ function printResults(
 async function main(): Promise<void> {
   const options = parseArgs();
   const projectRoot = process.cwd();
-  const directory = options.directory || 'src/';
+  const directory = options.directory || 'packages';
   const exclude = options.exclude || ['**/node_modules/**', '**/dist/**', '**/*.d.ts', '**/*.spec.ts'];
 
   try {
@@ -552,15 +584,26 @@ async function main(): Promise<void> {
     const files = await findFiles(directory, exclude);
     
     if (files.length === 0) {
+      // 빈 검사가 통과로 보이지 않게 CI 에서는 실패시킨다 (코드가 옮겨지면 여기서 드러난다).
       console.log('⚠️  검사할 파일이 없습니다.');
-      process.exit(0);
+      process.exit(options.ci ? 1 : 0);
     }
 
     console.log(`   발견된 파일: ${files.length}개\n`);
 
     // SQL Injection 취약점 검사
     console.log('🔎 SQL Injection 취약점 검사 중...');
-    const result = checkSqlInjection(files);
+    const all = checkSqlInjection(files);
+    if (options.updateBaseline) {
+      const keys = all.locations.map((loc) => baselineKey(loc, projectRoot)).sort();
+      writeFileSync(BASELINE_PATH, `${JSON.stringify(keys, null, 2)}\n`);
+      console.log(`📝 기준선 갱신: ${keys.length}건 → ${BASELINE_PATH}`);
+      return;
+    }
+    const result = summarize(withoutBaseline(all.locations, projectRoot, readBaseline()));
+    if (all.total > result.total) {
+      console.log(`   기준선(검토 완료) 제외: ${all.total - result.total}건`);
+    }
 
     // 결과 출력
     printResults(result, projectRoot);

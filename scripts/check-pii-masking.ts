@@ -57,7 +57,12 @@ interface CheckResult {
 function parseArgs(): CliOptions {
   const args = parseCliArgs().args;
   const options: CliOptions = {
-    exclude: ['**/node_modules/**', '**/dist/**', '**/*.d.ts', '**/*.spec.ts', '**/__tests__/**']
+    exclude: [
+      '**/node_modules/**', '**/dist/**', '**/*.d.ts', '**/*.spec.ts', '**/__tests__/**',
+      // 독립 배포 패키지: core 의 마스킹 logger 에 의존하지 않고, 자체 logger 로 고정 문구·
+      // HTTP 메서드/상태·오류 메시지만 남긴다(기억 본문을 로그로 보내지 않음).
+      '**/memento-client/**', '**/memento-assistant/**',
+    ]
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -94,7 +99,7 @@ PII 마스킹 적용 여부 검사 스크립트
 
 옵션:
   --ci                    CI 모드 (미적용 로거 발견 시 exit code 1 반환)
-  --directory <path>      검사할 디렉토리 (기본값: src/)
+  --directory <path>      검사할 디렉토리 (기본값: packages)
   --exclude <pattern>     제외할 파일 패턴 (여러 번 사용 가능)
   --help, -h              도움말 출력
 
@@ -186,7 +191,8 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     // shared/utils/ 디렉토리 내에서 logger를 import하는 경우도 확인
     // 같은 디렉토리나 상위 디렉토리의 logger.ts를 import하는 경우
     const isInSharedUtils = relativePath.includes('shared/utils/');
-    const importsLoggerFromSameDir = isInSharedUtils && /import\s+.*\blogger\b.*from\s+['"]\.\/logger|from\s+['"]\.\/logger/.test(content);
+    // shared/utils 아래 하위 디렉토리는 '../logger.js' 처럼 상대 경로로 같은 마스킹 logger 를 쓴다.
+    const importsLoggerFromSameDir = isInSharedUtils && /from\s+['"](?:\.\.?\/)+logger(?:\.js)?['"]/.test(content);
     const usesLogger = usesLoggerUtils || importsLoggerFromSameDir;
     
     // 로거 파일인지 확인 (logger, file-logger, error-logging-service 등)
@@ -286,10 +292,14 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
  * 모든 파일 검사
  */
 async function checkAllFiles(options: CliOptions): Promise<CheckResult> {
-  const directory = options.directory || 'src';
+  const directory = options.directory || 'packages';
   const excludePatterns = options.exclude || [];
   
   const files = await findFiles(directory, excludePatterns);
+  // 빈 검사가 통과로 보이지 않게 한다 (코드가 옮겨지면 여기서 드러난다).
+  if (files.length === 0) {
+    throw new Error(`검사할 파일이 없습니다: ${directory}`);
+  }
   const locations: PIIMaskingLocation[] = [];
   const byFile = new Map<string, PIIMaskingLocation[]>();
   const byPattern = new Map<string, number>();
