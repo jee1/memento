@@ -17,6 +17,9 @@ import { SetAnchorTool } from '../../domains/anchor/tools/set-anchor-tool.js';
 import { GetAnchorTool } from '../../domains/anchor/tools/get-anchor-tool.js';
 import { GetRelationsTool } from '../../domains/relation/tools/get-relations-tool.js';
 import { RememberTool } from '../../domains/memory/remember/remember-tool.js';
+import { ProceduralDiffTool } from '../../domains/memory/procedural/procedural-diff-tool.js';
+import { AddRelationTool } from '../../domains/relation/tools/add-relation-tool.js';
+import { RemoveRelationTool } from '../../domains/relation/tools/remove-relation-tool.js';
 
 type Handler = { handle(params: unknown, context: ToolContext): Promise<{ content: Array<{ text?: string }> }> };
 
@@ -70,10 +73,14 @@ describe('caller scope', () => {
     ['procedural_rollback', () => new ProceduralRollbackTool(), (id) => ({ current_id: id, target_version_id: id })],
     ['set_anchor', () => new SetAnchorTool(), (id) => ({ memory_id: id, slot: 'A' })],
     ['get_relations', () => new GetRelationsTool(), (id) => ({ memory_id: id })],
+    ['procedural_diff', () => new ProceduralDiffTool(), (id) => ({ left_id: id, right_id: 'mem_own' })],
+    ['add_relation', () => new AddRelationTool(), (id) => ({ source_id: id, target_id: 'mem_own', relation_type: 'REFERENCES' })],
+    ['remove_relation', () => new RemoveRelationTool(), (id) => ({ source_id: id, target_id: 'mem_own', relation_type: 'REFERENCES' })],
   ];
 
   it.each(guarded)('%s: another owner\'s memory reads exactly like a missing one', async (_name, make, params) => {
-    const ctx = { ...bound, services: { anchorManager: { setAnchor: vi.fn() } } } as unknown as ToolContext;
+    const relationGraph = { removeRelation: vi.fn().mockResolvedValue(true), addRelation: vi.fn() };
+    const ctx = { ...bound, services: { anchorManager: { setAnchor: vi.fn() }, relationGraph } } as unknown as ToolContext;
     const missing = await outcome(make(), params('mem_missing'), ctx, 'mem_missing');
     expect(await outcome(make(), params('mem_other'), ctx, 'mem_other')).toBe(missing);
     expect(await outcome(make(), params('mem_null'), ctx, 'mem_null')).toBe(missing);
@@ -84,6 +91,21 @@ describe('caller scope', () => {
     await new PinTool().handle({ id: 'mem_other' }, unbound);
     const pinned = db.prepare('SELECT id FROM memory_item WHERE pinned = 1 ORDER BY id').all();
     expect(pinned).toEqual([{ id: 'mem_other' }, { id: 'mem_own' }]);
+  });
+
+  it('remove_relation: never deletes an edge touching another owner', async () => {
+    const relationGraph = { removeRelation: vi.fn().mockResolvedValue(true) };
+    const ctx = { ...bound, services: { relationGraph } } as unknown as ToolContext;
+    const { lastInsertRowid } = db.prepare(
+      `INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('mem_own', 'mem_other', 'REFERENCES')`,
+    ).run();
+    const text = (await new RemoveRelationTool().handle({ relation_id: Number(lastInsertRowid) }, ctx)).content[0]!.text!;
+    expect(JSON.parse(text).error).toBe('RELATION_NOT_FOUND');
+    await new RemoveRelationTool().handle({ source_id: 'mem_own', target_id: 'mem_other', relation_type: 'REFERENCES' }, ctx);
+    expect(relationGraph.removeRelation).not.toHaveBeenCalled();
+
+    await new RemoveRelationTool().handle({ source_id: 'mem_own', target_id: 'mem_own2', relation_type: 'REFERENCES' }, ctx);
+    expect(relationGraph.removeRelation).toHaveBeenCalledWith('mem_own', 'mem_own2', 'REFERENCES');
   });
 
   it('get_relations: drops edges into other owners\' memories', async () => {

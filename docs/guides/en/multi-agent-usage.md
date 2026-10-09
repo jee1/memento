@@ -95,7 +95,7 @@ MEMENTO_API_TOKENS='[{"id":"codex","secret":"<hex>","scopes":["tools:invoke"],"a
 - An empty or non-string `agent_id` makes the whole token entry ignored
 - Tokens without `agent_id` keep the header rules above
 
-The strict recall filter and the audit log use this value. Owner boundaries apply only with this token binding (#1285): tools that take a memory id (`forget`, `pin`, `feedback`, `get_relations`, …) touch only that agent's memories, answer for another owner's memory exactly as for a missing one, and drop other owners' memories from neighbor/relation results. An `owner_id` or `agent_id` argument naming another agent is rejected. An agent set only by header or `MEMENTO_HTTP_DEFAULT_AGENT_ID` gets no such boundary, so set `agent_id` whenever you issue one token per agent.
+The strict recall filter and the audit log use this value. Owner boundaries apply only with this token binding (#1285): tools that take a memory id (`forget`, `pin`, `feedback`, `get_relations`, …) touch only that agent's memories, answer for another owner's memory exactly as for a missing one, and drop other owners' memories from neighbor/relation results. An `owner_id` or `agent_id` argument naming another agent is rejected. `/api/v1/agent` follows the same rule: another owner's session looks missing, and operator routes spanning all agents (aggregates, operations status, provenance, promotion candidates, retention, transcript import) return 403. An agent set only by header or `MEMENTO_HTTP_DEFAULT_AGENT_ID` gets no such boundary, so set `agent_id` whenever you issue one token per agent.
 
 ### Legacy NULL-data opt-out
 

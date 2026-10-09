@@ -28,12 +28,17 @@ export function handleGetSessions(req: Request, res: Response, ctx: AgentRouterC
       ownerId: typeof req.query.owner_id === 'string' ? req.query.owner_id : undefined,
       projectId: typeof req.query.project_id === 'string' ? req.query.project_id : undefined,
     });
+    const sessions = page.items.map(item => ({
+      session: sessionDto(item.session),
+      aggregate: item.aggregate,
+    }));
+    // 전체 agent 합계는 운영자용이다. 토큰에 묶인 agent 에게는 자기 세션 목록만 준다.
+    if (req.programmaticAuth?.agentId) {
+      return res.json({ sessions, next_cursor: page.nextCursor });
+    }
     const aggregate = service.getDashboardAggregate();
     return res.json({
-      sessions: page.items.map(item => ({
-        session: sessionDto(item.session),
-        aggregate: item.aggregate,
-      })),
+      sessions,
       next_cursor: page.nextCursor,
       aggregate: {
         sessions_total: aggregate.sessionsTotal,

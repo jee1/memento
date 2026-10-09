@@ -13,6 +13,16 @@ type HttpResponse = {
   body: string;
 };
 
+function getJson(port: number, path: string, headers: Record<string, string>): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    http.get({ hostname: '127.0.0.1', port, path, headers: { Connection: 'close', ...headers } }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => resolve({ statusCode: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }));
+    }).on('error', reject);
+  });
+}
+
 function postJson(
   port: number,
   path: string,
@@ -233,6 +243,18 @@ describe('token-bound agent identity integration', () => {
 
     expect(response.statusCode).toBe(403);
     expect(response.body).not.toContain('owner scope beta secret token');
+  });
+
+  it('bound token: agent API refuses cross-agent endpoints and other owners', async () => {
+    const port = await startRealHttpServer();
+
+    const bound = await getJson(port, '/api/v1/agent/sessions/aggregate', { Authorization: 'Bearer secret-a' });
+    expect(bound.statusCode).toBe(403);
+    const otherOwner = await getJson(port, '/api/v1/agent/sessions?owner_id=agent-b', { Authorization: 'Bearer secret-a' });
+    expect(otherOwner.statusCode).toBe(403);
+
+    const unbound = await getJson(port, '/api/v1/agent/sessions/aggregate', { Authorization: 'Bearer secret-u' });
+    expect(unbound.statusCode).toBe(200);
   });
 
   it('unbound token: recall with any agent header keeps legacy behavior', async () => {

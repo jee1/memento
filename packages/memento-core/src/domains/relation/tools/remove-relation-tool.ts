@@ -6,9 +6,15 @@
 
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
+import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
+
+function ownsBothEnds(context: ToolContext, sourceId: string, targetId: string): boolean {
+  const owned = filterCallerOwnedIds(context, [sourceId, targetId]);
+  return owned.has(sourceId) && owned.has(targetId);
+}
 
 const RemoveRelationSchema = z.object({
   relation_id: z.number().int().positive().optional().describe('관계 ID (relation_id 또는 source_id/target_id/relation_type 조합 중 하나는 필수)'),
@@ -94,7 +100,7 @@ export class RemoveRelationTool extends BaseTool {
           WHERE id = ?
         `, [parsed.relation_id]) as { source_id: string; target_id: string; relation_type: RelationType } | undefined;
 
-        if (!relation) {
+        if (!relation || !ownsBothEnds(context, relation.source_id, relation.target_id)) {
           return {
             content: [{
               type: 'text',
@@ -135,8 +141,9 @@ export class RemoveRelationTool extends BaseTool {
 
         relationInfo = { source_id, target_id, relation_type };
 
-        // When: removeRelation 메서드 사용
-        deleted = await relationGraph.removeRelation(source_id, target_id, relation_type);
+        // When: removeRelation 메서드 사용 (남의 기억 사이 관계는 없는 관계와 같게 응답)
+        deleted = ownsBothEnds(context, source_id, target_id)
+          && await relationGraph.removeRelation(source_id, target_id, relation_type);
       }
 
       // Then: 결과 반환

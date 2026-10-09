@@ -165,7 +165,8 @@ describe('agent integration routes', () => {
       candidate => candidate.route?.path === path && candidate.route.methods[method],
     );
     expect(layer?.route).toBeTruthy();
-    await layer!.route!.stack[0]!.handle(
+    // 마지막 레이어가 핸들러다(앞 레이어는 operatorOnly 같은 가드).
+    await layer!.route!.stack.at(-1)!.handle(
       {
         body: {},
         params: {},
@@ -992,8 +993,8 @@ describe('agent integration routes', () => {
     expect(candidates).toHaveLength(2);
 
     response.json = vi.fn().mockReturnThis();
-    await invoke('post', '/memory/promotion-candidates/:id\\:approve', {
-      params: { id: candidates.find(candidate => candidate.category === 'decision')!.id },
+    await invoke('post', '/memory/promotion-candidates/:candidateId\\:approve', {
+      params: { candidateId: candidates.find(candidate => candidate.category === 'decision')!.id },
     });
     expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
       status: 'approved',
@@ -1001,8 +1002,8 @@ describe('agent integration routes', () => {
     }));
 
     response.json = vi.fn().mockReturnThis();
-    await invoke('post', '/memory/promotion-candidates/:id\\:reject', {
-      params: { id: candidates.find(candidate => candidate.category === 'procedure')!.id },
+    await invoke('post', '/memory/promotion-candidates/:candidateId\\:reject', {
+      params: { candidateId: candidates.find(candidate => candidate.category === 'procedure')!.id },
       body: { reason: 'too generic' },
     });
     expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -1013,5 +1014,132 @@ describe('agent integration routes', () => {
     expect(db.prepare(`
       SELECT COUNT(*) AS count FROM memory_item WHERE type IN ('semantic', 'procedural')
     `).get()).toEqual({ count: 1 });
+  });
+  describe('agent-bound API token', () => {
+    async function withBoundApp(
+      run: (call: (method: string, path: string, body?: unknown, agentId?: string) => Promise<{ status: number; body: Record<string, unknown> }>) => Promise<void>,
+    ) {
+      const app = express();
+      app.use(express.json());
+      // programmatic-auth 미들웨어가 토큰 바인딩에서만 채우는 값을 테스트 헤더로 흉내 낸다.
+      app.use((req, _res, next) => {
+        const agentId = req.get('x-test-bound-agent');
+        if (agentId) req.programmaticAuth = { keyId: 'test', scopes: ['tools:invoke'], agentId };
+        next();
+      });
+      app.use('/api/v1/agent', router);
+      const server = app.listen(0, '127.0.0.1');
+      await new Promise<void>(resolve => server.once('listening', resolve));
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      try {
+        await run(async (method, path, body, agentId = 'agent-a') => {
+          const res = await fetch(`http://127.0.0.1:${port}/api/v1/agent${path}`, {
+            method,
+            headers: {
+              'content-type': 'application/json',
+              ...(agentId ? { 'x-test-bound-agent': agentId } : {}),
+            },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          });
+          const text = await res.text();
+          return { status: res.status, body: text ? JSON.parse(text) as Record<string, unknown> : {} };
+        });
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          server.close(error => error ? reject(error) : resolve());
+        });
+      }
+    }
+
+    const ownedBy = (ownerId: string, sessionId: string, eventId: string) =>
+      event({ session_id: sessionId, event_id: eventId, scope: { owner_id: ownerId, project_id: 'project-1' } });
+
+    it('hides another owner session as not found and keeps it', async () => {
+      await withBoundApp(async (call) => {
+        expect((await call('POST', '/sessions', ownedBy('agent-b', 'session-b', 'evt-b'), '')).status).toBe(201);
+
+        for (const [method, path] of [
+          ['GET', '/sessions/session-b'],
+          ['GET', '/sessions/session-b/observations'],
+          ['GET', '/sessions/session-b/export'],
+          ['DELETE', '/sessions/session-b'],
+        ] as const) {
+          const res = await call(method, path);
+          expect(res.status, `${method} ${path}`).toBe(404);
+          expect(res.body.reason_code).toBe('SESSION_NOT_STARTED');
+        }
+        expect((await call('GET', '/sessions/session-b', undefined, '')).status).toBe(200);
+      });
+    });
+
+    it('lets the bound agent run its own session lifecycle', async () => {
+      await withBoundApp(async (call) => {
+        const start = event({ session_id: 'session-a', event_id: 'evt-a' });
+        delete (start as { scope?: unknown }).scope;
+        expect((await call('POST', '/sessions', start)).status).toBe(201);
+
+        const own = await call('GET', '/sessions/session-a');
+        expect(own.status).toBe(200);
+        expect((own.body.session as { owner_id: string }).owner_id).toBe('agent-a');
+        expect((await call('DELETE', '/sessions/session-a')).status).toBe(204);
+      });
+    });
+
+    it('refuses an event or query naming another owner', async () => {
+      await withBoundApp(async (call) => {
+        expect((await call('POST', '/sessions', ownedBy('agent-b', 'session-x', 'evt-x'))).status).toBe(403);
+        expect((await call('GET', '/sessions?owner_id=agent-b')).status).toBe(403);
+        expect((await call('POST', '/personal:run', { user_message: 'hi', owner_id: 'agent-b' })).status).toBe(403);
+      });
+    });
+
+    it('refuses appending events to another owner session', async () => {
+      await withBoundApp(async (call) => {
+        await call('POST', '/sessions', ownedBy('agent-b', 'session-b', 'evt-b'), '');
+        const res = await call('POST', '/observations:ingest', {
+          events: [event({
+            session_id: 'session-b',
+            event_id: 'evt-prompt',
+            event_type: 'USER_PROMPT',
+            sequence_no: 1,
+            scope: undefined,
+            payload: { prompt: 'hi' },
+          })],
+        });
+        expect(res.status).toBe(404);
+        const observations = await call('GET', '/sessions/session-b/observations', undefined, '');
+        expect((observations.body.observations as unknown[])).toHaveLength(1);
+      });
+    });
+
+    it('lists only the bound agent sessions', async () => {
+      await withBoundApp(async (call) => {
+        await call('POST', '/sessions', ownedBy('agent-b', 'session-b', 'evt-b'), '');
+        await call('POST', '/sessions', ownedBy('agent-a', 'session-a', 'evt-a'), '');
+        const res = await call('GET', '/sessions');
+        expect(res.status).toBe(200);
+        expect((res.body.sessions as Array<{ session: { id: string } }>).map(s => s.session.id)).toEqual(['session-a']);
+        expect(res.body.aggregate).toBeUndefined();
+      });
+    });
+
+    it('blocks endpoints that span all agents', async () => {
+      await withBoundApp(async (call) => {
+        for (const [method, path] of [
+          ['GET', '/sessions/aggregate'],
+          ['GET', '/operations/status'],
+          ['GET', '/injections/metrics'],
+          ['POST', '/transcripts/import'],
+          ['GET', '/provenance?memory_id=m'],
+          ['GET', '/memory/promotion-candidates'],
+          ['POST', '/memory/promotion-candidates/c1:approve'],
+          ['POST', '/retention:enforce'],
+        ] as const) {
+          expect((await call(method, path, method === 'POST' ? {} : undefined)).status, `${method} ${path}`).toBe(403);
+        }
+        expect((await call('GET', '/sessions/aggregate', undefined, '')).status).toBe(200);
+      });
+    });
   });
 });
