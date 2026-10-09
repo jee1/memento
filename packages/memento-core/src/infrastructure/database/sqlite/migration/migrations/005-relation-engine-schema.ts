@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- SQL 파일 경로는 __dirname 기준 고정 경로다. 외부 입력이 닿지 않는다. */
 /**
  * Migration: 005 - Relation Engine Schema
  * Description: Create memory_relation and relation_type_registry tables for semantic relation engine

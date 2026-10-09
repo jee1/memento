@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 설정 파일 경로는 env 설정과 패키지 루트 기준 고정 경로에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 /**
  * 검색 랭킹 가중치 설정 로더
  * TOML 파일에서 검색 랭킹 가중치를 로드하고 검증합니다.

@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 로그 경로는 env 설정이나 process.cwd() 기준 고정 디렉터리에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 /**
  * 파일 로깅 모듈
  * 배치 작업의 에러 로그를 파일에 저장하는 기능 제공

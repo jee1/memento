@@ -181,6 +181,7 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
    * @returns 매칭 여부
    */
   private matchEnglishKeyword(text: string, keyword: string): boolean {
+    // eslint-disable-next-line security/detect-non-literal-regexp -- keyword 는 escapeRegex 로 이스케이프한다.
     const wordBoundaryRegex = new RegExp(`\\b${this.escapeRegex(keyword)}\\b`, 'i');
     return wordBoundaryRegex.test(text);
   }

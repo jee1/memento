@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 품질 리포트·벤치마크 경로는 고정 디렉터리와 운영자 스크립트 인자에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
 import { logger } from '../../../../shared/utils/logger.js';

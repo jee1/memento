@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- SQL 파일 경로는 __dirname 기준 고정 경로다. 외부 입력이 닿지 않는다. */
 import type Database from 'better-sqlite3';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

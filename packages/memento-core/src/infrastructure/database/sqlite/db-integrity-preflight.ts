@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- DB·백업 경로는 env 설정과 운영자 스크립트 인자에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import fs from 'fs';

@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 품질 리포트·벤치마크 경로는 고정 디렉터리와 운영자 스크립트 인자에서 온다. HTTP·MCP 입력이 닿지 않는다. */
 /**
  * 벡터 검색 품질 검증 — 리포트 파일 저장
  * (#910: report-comparison.ts 에서 분리)
