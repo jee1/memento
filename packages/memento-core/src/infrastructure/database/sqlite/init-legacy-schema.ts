@@ -8,7 +8,6 @@ import {
   type VecTableConfig
 } from './vec-schema.js';
 
-
 export function populateVecTables(db: Database.Database, configs: VecTableConfig[]): void {
   if (!configs.length) {
     return;

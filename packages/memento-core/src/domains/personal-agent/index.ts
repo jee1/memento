@@ -1,21 +1,9 @@
 export type {
   KnowledgeCandidate,
-  
-  
-  
-  
-  
-  
   PersonalKnowledgePersistItemResult,
-  
-  
-  
 } from './types/agent-types.js';
 
 export type {
-  
-  
-  
   ILLMPort,
 } from './ports/llm-port.js';
 

@@ -24,10 +24,7 @@ import { RecallSchema, type RecallParams } from './recall-tool-schema.js';
 import { executeHybridOrTextSearchForMemoryItem } from './recall-tool-search-execution.js';
 
 export type {
-  
-  
   RecallResultItem,
-  
   RecallResponse
 } from './recall-tool-types.js';
 

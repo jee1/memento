@@ -13,7 +13,6 @@ import type {
   ExpectedRelation,
   ExtractedRelation,
   QualityMetrics,
-  
   TypeMetricSummary,
 } from './types.js';
 

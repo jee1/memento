@@ -26,7 +26,6 @@ export {
 
 // 유사도·병합 로직 re-export
 export {
-  
   calculateSimilarity,
   determineMergeStrategy,
 } from './procedural-memory-similarity.js';

@@ -11,7 +11,6 @@ import {
   runStatus,
   type AgentOpsOptions,
   type AgentOpsRequest,
-  
 } from './agent-ops-core.js';
 import { runDemo } from './agent-ops-demo.js';
 

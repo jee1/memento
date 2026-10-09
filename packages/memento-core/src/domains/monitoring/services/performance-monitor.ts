@@ -28,7 +28,6 @@ import type {
 import { SearchMetricsStore } from './search-metrics-store.js';
 
 export type {
-  
   PerformanceAlert,
   PerformanceMetrics
 } from './performance-monitor-types.js';

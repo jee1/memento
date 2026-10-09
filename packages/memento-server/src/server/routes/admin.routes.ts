@@ -23,7 +23,6 @@ import { registerAdminForgettingRoutes } from './admin/admin-forgetting.routes.j
 import { registerAdminExportRoutes } from './admin/admin-export.routes.js';
 import { registerAdminStatusRoutes } from './admin/admin-status.routes.js';
 
-
 /**
  * Admin 라우터 생성
  */

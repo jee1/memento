@@ -4,12 +4,8 @@
  */
 
 export type {
-  
   ExpectedRelation,
   ExtractedRelation,
-  
-  
-  
 } from './relation-quality-validator/types.js';
 
 import type { RelationType } from '../../../shared/types/relation.js';

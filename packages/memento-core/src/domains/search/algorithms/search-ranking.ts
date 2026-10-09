@@ -6,11 +6,8 @@
  */
 
 export type {
-  
-  
   RelevanceInput,
   SearchFeatures,
-  
   UsageMetrics,
 } from './search-ranking/search-ranking.types.js';
 
