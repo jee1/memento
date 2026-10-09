@@ -13,6 +13,7 @@ import { isMemoryItemType } from '../../../shared/utils/type-guards.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { resolveCallerAgentId } from '../../../tools/caller-scope.js';
 import { recallTelemetryRetrievalStrategy } from './recall-tool-telemetry.js';
 import { RECALL_TOOL_INPUT_SCHEMA } from './recall-tool-definition.js';
 import { recallCoreMemoryDirect, recallVaultMemoryDirect } from './recall-tool-direct.js';
@@ -147,7 +148,7 @@ export class RecallTool extends BaseTool {
       this.validateDatabase(context);
 
       const searchStartTime = Date.now();
-      const agentId = agent_id || 'default';
+      const agentId = resolveCallerAgentId(context, agent_id || 'default');
 
       if (validatedType === 'core') {
         return await recallCoreMemoryDirect(this.host, agentId, key, query, memory_types, searchStartTime, startTime, context);

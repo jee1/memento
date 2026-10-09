@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { filterCallerOwnedIds, resolveCallerAgentId } from '../../../tools/caller-scope.js';
 
 const SearchLocalSchema = z.object({
   slot: z.enum(['A', 'B', 'C'], {
@@ -74,7 +75,14 @@ export class SearchLocalTool extends BaseTool {
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
-      const { slot, query, hop_limit, limit, min_results, agent_id, use_relations } = SearchLocalSchema.parse(params);
+      const parsed = SearchLocalSchema.parse(params);
+      const { slot, query, hop_limit, limit, min_results, use_relations } = parsed;
+      const agent_id = resolveCallerAgentId(context, parsed.agent_id);
+      // Hops and fallbacks can reach other owners' memories; a bound caller only sees its own.
+      const ownedItems = <T extends { id: string }>(items: T[]): T[] => {
+        const owned = filterCallerOwnedIds(context, items.map((item) => item.id));
+        return items.filter((item) => owned.has(item.id));
+      };
       
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
@@ -96,9 +104,10 @@ export class SearchLocalTool extends BaseTool {
           }
         );
         
+        const items = ownedItems(searchResult.items);
         return this.createSuccessResult({
-          items: searchResult.items,
-          total_count: searchResult.total_count,
+          items,
+          total_count: context.boundAgentId ? items.length : searchResult.total_count,
           local_results_count: searchResult.local_results_count,
           fallback_used: searchResult.fallback_used,
           query_time: searchResult.query_time,
@@ -118,12 +127,14 @@ export class SearchLocalTool extends BaseTool {
           try {
             const fallbackResult = await context.services.hybridSearchEngine.search(context.db!, {
               query,
-              limit
+              limit,
+              ...(context.boundAgentId ? { filters: { owner_id: context.boundAgentId } } : {})
             });
+            const items = ownedItems(fallbackResult.items);
             
             return this.createSuccessResult({
-              items: fallbackResult.items,
-              total_count: fallbackResult.total_count,
+              items,
+              total_count: context.boundAgentId ? items.length : fallbackResult.total_count,
               local_results_count: 0,
               fallback_used: true,
               query_time: fallbackResult.query_time || 0,

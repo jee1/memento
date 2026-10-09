@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { resolveCallerAgentId } from '../../../tools/caller-scope.js';
 
 const RestoreAnchorsSchema = z.object({
   agent_id: z.string().optional()
@@ -33,7 +34,8 @@ export class RestoreAnchorsTool extends BaseTool {
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
-      const { agent_id } = RestoreAnchorsSchema.parse(params);
+      // A bound caller only sees its own anchors, never the all-agents listing.
+      const agent_id = resolveCallerAgentId(context, RestoreAnchorsSchema.parse(params).agent_id);
       
       // 데이터베이스 연결 확인
       this.validateDatabase(context);

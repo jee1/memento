@@ -9,6 +9,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import { convertMemoryRowToItem,isMemoryRow } from '../../../shared/utils/type-guards.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { callerOwnerClause } from '../../../tools/caller-scope.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
 
 const ExtractRelationsSchema = z.object({
@@ -47,14 +48,16 @@ export class ExtractRelationsTool extends BaseTool {
   async handle(params: z.infer<typeof ExtractRelationsSchema>, context: ToolContext): Promise<ToolResult> {
     const { memory_id, force } = ExtractRelationsSchema.parse(params);
     const db = context.db;
+    // A bound caller extracts only between its own memories.
+    const ownerScope = callerOwnerClause(context);
 
     try {
       // Given: 메모리 존재 확인
       const memoryResult = DatabaseUtils.get(db, `
         SELECT id, type, content, importance, privacy_scope, created_at
         FROM memory_item
-        WHERE id = ?
-      `, [memory_id]);
+        WHERE id = ?${ownerScope.sql}
+      `, [memory_id, ...ownerScope.params]);
 
       if (!memoryResult || !isMemoryRow(memoryResult)) {
         return {
@@ -88,10 +91,10 @@ export class ExtractRelationsTool extends BaseTool {
       const existingMemoriesResult = DatabaseUtils.all(db, `
         SELECT id, type, content, importance, privacy_scope, created_at
         FROM memory_item
-        WHERE id != ?
+        WHERE id != ?${ownerScope.sql}
         ORDER BY created_at DESC
         LIMIT 1000
-      `, [memory_id]);
+      `, [memory_id, ...ownerScope.params]);
 
       // 타입 가드를 사용하여 안전하게 변환
       const existingMemoryItems = existingMemoriesResult

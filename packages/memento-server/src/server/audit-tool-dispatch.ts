@@ -202,6 +202,7 @@ export function createToolDispatcher(options: {
         db,
         services,
         ...(auditContext.agentId ? { agentId: auditContext.agentId } : {}),
+        ...(auditContext.boundAgentId ? { boundAgentId: auditContext.boundAgentId } : {}),
         ...(auditContext.projectId ? { projectId: auditContext.projectId } : {}),
       });
       const result = await (options.execute ?? executeTool)(name, args, context);

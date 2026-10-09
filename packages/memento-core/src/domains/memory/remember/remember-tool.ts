@@ -14,6 +14,7 @@ import { validateSource } from '../../../shared/validation/source-uri.js';
 import { typeParamRequiredFields, validateProceduralMemoryFields, validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { resolveCallerAgentId } from '../../../tools/caller-scope.js';
 import { RememberSchema } from './remember-tool-schema.js';
 import type { RememberParams } from './remember-tool-schema.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -149,7 +150,7 @@ export class RememberTool extends BaseTool {
         source: source_param,
       } = parsedParams;
 
-      const ownerId = owner_id_param ?? context.agentId ?? null;
+      const ownerId = resolveCallerAgentId(context, owner_id_param ?? undefined) ?? context.agentId ?? null;
       const processId = process_id_param ?? context.processId ?? null;
       const sessionId = session_id_param ?? context.sessionId ?? null;
       const numTimes = num_times_param ?? 1;

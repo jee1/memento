@@ -26,6 +26,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import type { GetMetaMemoryStatsParams, MetaMemoryStatsResult } from '../../../shared/types/memory.types.js';
 import { buildIntrospectionHint } from '../../../shared/constants/introspection-constants.js';
 import type { MetaMemoryService } from '../../memory/introspection/meta-memory-service.js';
@@ -133,9 +134,12 @@ export class GetMetaMemoryStatsTool extends BaseTool {
       // MetaMemoryService.getStats 호출
       const metaMemoryService = context.services.metaMemoryService as MetaMemoryService;
       const result: MetaMemoryStatsResult = await metaMemoryService.getStats(paramsWithDefaults);
+      // ponytail: post-filter, so a bound caller can get fewer than `limit` rows; push owner into getStats if that matters
+      const owned = filterCallerOwnedIds(context, result.items.map((item) => item.memory_id));
+      const items = result.items.filter((item) => owned.has(item.memory_id));
 
       const resultObj: Record<string, unknown> = {
-        items: result.items.map(item => ({
+        items: items.map(item => ({
           memory_id: item.memory_id,
           recall_count: item.recall_count,
           success_count: item.success_count,
@@ -145,7 +149,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
           created_at: item.created_at.toISOString(),
           updated_at: item.updated_at.toISOString()
         })),
-        total_count: result.total_count,
+        total_count: context.boundAgentId ? items.length : result.total_count,
         message: '메타 메모리 통계 조회 완료'
       };
       // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함

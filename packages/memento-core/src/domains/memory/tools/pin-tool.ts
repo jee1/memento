@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
+import { callerOwnerClause } from '../../../tools/caller-scope.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -204,10 +205,11 @@ export class PinTool extends BaseTool {
    * 기억 조회
    */
   private async getMemoryById(id: string, context: ToolContext): Promise<MemoryPinRow | undefined> {
+    const ownerScope = callerOwnerClause(context);
     return await DatabaseUtils.get(
       context.db!,
-      'SELECT * FROM memory_item WHERE id = ?',
-      [id]
+      `SELECT * FROM memory_item WHERE id = ?${ownerScope.sql}`,
+      [id, ...ownerScope.params]
     ) as MemoryPinRow | undefined;
   }
 
@@ -216,11 +218,12 @@ export class PinTool extends BaseTool {
    */
   private async getMemoriesByIds(ids: string[], context: ToolContext): Promise<Map<string, MemoryPinRow>> {
     if (ids.length === 0) return new Map();
+    const ownerScope = callerOwnerClause(context);
     const placeholders = ids.map(() => '?').join(',');
     const rows = await DatabaseUtils.all(
       context.db!,
-      `SELECT * FROM memory_item WHERE id IN (${placeholders})`,
-      ids
+      `SELECT * FROM memory_item WHERE id IN (${placeholders})${ownerScope.sql}`,
+      [...ids, ...ownerScope.params]
     ) as MemoryPinRow[];
     return new Map(rows.map((r) => [r.id, r]));
   }

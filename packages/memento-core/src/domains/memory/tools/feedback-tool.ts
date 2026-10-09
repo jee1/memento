@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
+import { callerOwnerClause, resolveCallerAgentId } from '../../../tools/caller-scope.js';
 import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
@@ -142,11 +143,13 @@ export class FeedbackTool extends BaseTool {
     const t0 = Date.now();
     const parsed = FeedbackSchema.parse(params);
     this.validateDatabase(context);
+    const agentId = resolveCallerAgentId(context, parsed.agent_id);
+    const ownerScope = callerOwnerClause(context);
 
     try {
       const row = context.db!
-        .prepare('SELECT id, owner_id, type FROM memory_item WHERE id = ?')
-        .get(parsed.memory_id) as { id: string; owner_id: string | null; type: string } | undefined;
+        .prepare(`SELECT id, owner_id, type FROM memory_item WHERE id = ?${ownerScope.sql}`)
+        .get(parsed.memory_id, ...ownerScope.params) as { id: string; owner_id: string | null; type: string } | undefined;
       if (!row) {
         return this.feedbackContractError('memory not found');
       }
@@ -164,11 +167,11 @@ export class FeedbackTool extends BaseTool {
         score: parsed.score,
         comment: parsed.comment,
         session_id: parsed.session_id,
-        agent_id: parsed.agent_id,
+        agent_id: agentId,
         score_breakdown_json: scoreBreakdownJson
       });
 
-      const ownerForTel = parsed.agent_id ?? context.agentId ?? null;
+      const ownerForTel = agentId ?? context.agentId ?? null;
       context.services?.telemetryService?.record({
         eventType: parsed.helpful ? 'memory.feedback.positive' : 'memory.feedback.negative',
         outcome: 'success',
@@ -208,7 +211,7 @@ export class FeedbackTool extends BaseTool {
       logger.warn('feedback_event 저장 실패', {
         memory_id: parsed.memory_id,
         session_id: parsed.session_id,
-        agent_id: parsed.agent_id,
+        agent_id: agentId,
         error: error instanceof Error ? error.message : String(error),
         timestamp: iso
       });
