@@ -9,10 +9,14 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.0.3] - 2026-10-09
+
+MCP HTTP·agent API 의 요청 한도와 대시보드 세션 쿠키 `Secure` 처리를 보강하는 보안 패치입니다. 기본 한도는 일반 사용량보다 넉넉해 대부분의 설치는 설정을 바꿀 필요가 없습니다. 여러 클라이언트가 토큰 하나를 공유하며 429 를 받으면 `MEMENTO_HTTP_RATE_LIMIT_MCP` 를 올리십시오.
+
 ### Security
 
-- MCP HTTP(`/mcp`·`/messages`)와 `/api/v1/agent` 에 rate limit 을 겁니다. 지금까지는 `/tools`·`/admin`·`/auth` 만 한도가 있어, 토큰 하나로 MCP 경로를 무제한 호출할 수 있었습니다. 기본값은 키당 15분에 mcp 1500회, agent 600회입니다(운영 최대치의 약 3배). `MEMENTO_HTTP_RATE_LIMIT_MCP`·`MEMENTO_HTTP_RATE_LIMIT_AGENT` 로 조정합니다.
-- 대시보드 세션 쿠키가 HTTPS 요청(`req.secure`, `MEMENTO_TRUST_PROXY` 반영)이면 `NODE_ENV` 와 상관없이 `Secure` 를 붙입니다. 전에는 `NODE_ENV=production` 일 때만 붙어, 개발 모드로 HTTPS 프록시 뒤에 둔 서버의 쿠키가 평문 HTTP 로도 전송될 수 있었습니다.
+- MCP HTTP(`/mcp`·`/messages`)와 `/api/v1/agent` 에 rate limit 을 겁니다. 지금까지는 `/tools`·`/admin`·`/auth` 만 한도가 있어, 토큰 하나로 MCP 경로를 무제한 호출할 수 있었습니다. 기본값은 키당 15분에 mcp 1500회, agent 600회입니다(운영 최대치의 약 3배). `MEMENTO_HTTP_RATE_LIMIT_MCP`·`MEMENTO_HTTP_RATE_LIMIT_AGENT` 로 조정합니다. (#1290)
+- 대시보드 세션 쿠키가 HTTPS 요청(`req.secure`, `MEMENTO_TRUST_PROXY` 반영)이면 `NODE_ENV` 와 상관없이 `Secure` 를 붙입니다. 전에는 `NODE_ENV=production` 일 때만 붙어, 개발 모드로 HTTPS 프록시 뒤에 둔 서버의 쿠키가 평문 HTTP 로도 전송될 수 있었습니다. (#1290)
 
 ## [2.0.2] - 2026-10-09
 
