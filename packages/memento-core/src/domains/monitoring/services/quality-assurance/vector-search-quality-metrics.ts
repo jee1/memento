@@ -28,8 +28,6 @@ export {
   saveGroundTruth,
   loadGroundTruth,
   generateOrLoadGroundTruth,
-  saveOrderPreservationReport,
-  saveQualityComparisonReport,
 } from './vector-search-quality-metrics/report-comparison.js';
 export type {
   QualityMetrics,
@@ -42,6 +40,5 @@ export type {
   QualityDegradationDetection,
   QualityAlertOptions,
   GroundTruthGenerationOptions,
-  ReportSaveOptions,
 } from './vector-search-quality-metrics/report-comparison.js';
 export type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';

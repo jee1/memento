@@ -6,6 +6,8 @@ import Database from 'better-sqlite3';
 import { CONFIDENCE } from '../../../shared/constants/relation-constants.js';
 import type {
   AddRelationOptions,
+  RelationBatchItem,
+  RelationBatchResult,
   RelationMetadata
 } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
@@ -165,32 +167,10 @@ export class RelationGraphMutations {
    * 배치 관계 추가
    */
   async addRelationsBatch(
-    relations: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      confidence?: number;
-      metadata?: RelationMetadata;
-    }>
-  ): Promise<{
-    insertedIds: number[];
-    failed: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      error: string;
-    }>;
-    total: number;
-    success: number;
-    failedCount: number;
-  }> {
+    relations: RelationBatchItem[]
+  ): Promise<RelationBatchResult> {
     const insertedIds: number[] = [];
-    const failed: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      error: string;
-    }> = [];
+    const failed: RelationBatchResult['failed'] = [];
 
     await DatabaseUtils.runTransaction(this.db, async () => {
       for (const relation of relations) {

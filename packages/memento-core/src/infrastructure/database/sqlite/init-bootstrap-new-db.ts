@@ -4,7 +4,7 @@ import { populateVecTables } from './init-legacy-schema.js';
 import { log } from './init-log.js';
 import { recordBundledSchemaSqlMigrationBaseline } from './init-migration-baseline.js';
 import { MigrationDetector } from './migration/migration-detector.js';
-import { MigrationRunner } from './migration/migration-runner.js';
+import { runPendingMigrationsOrThrow } from './init-migrate-existing.js';
 
 export async function bootstrapNewDatabaseSchema(db: Database.Database): Promise<void> {
   log('[INFO] 새 데이터베이스 감지 - 초기화 전략 결정 중...');
@@ -40,51 +40,32 @@ export async function bootstrapNewDatabaseSchema(db: Database.Database): Promise
     if (hasPendingMigrations) {
       log(`[PKG] 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개 - 마이그레이션 우선 실행`);
 
-      const runner = new MigrationRunner(db);
-      const migrations = detectionResult.pendingMigrations.map(d => d.migration);
-      const results = await runner.runMigrations(migrations, {
-        createBackup: true,
-        autoRollback: true,
-        validate: true
-      });
-
-      const successCount = results.filter(r => r.success).length;
-      const failCount = results.filter(r => !r.success).length;
-
-      log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
-
-      if (failCount > 0) {
-        const failedMigrations = results.filter(r => !r.success);
-        for (const failed of failedMigrations) {
-          log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
-        }
-        const detail = failedMigrations
-          .map(f => `${f.name} (v${f.version}): ${f.error ?? 'unknown error'}`)
-          .join('; ');
-        throw new Error(
+      await runPendingMigrationsOrThrow(
+        db,
+        detectionResult.pendingMigrations.map(d => d.migration),
+        (failCount, detail) =>
           `신규 DB 마이그레이션 실패 (${failCount}건). schema.sql 폴백 없이 중단합니다. ${detail}`
-        );
-      } else {
-        populateVecTables(db, []);
+      );
 
-        try {
-          const zeroVersionCount = db.prepare(`
-              SELECT COUNT(*) as count FROM core_memory WHERE version = 0
-            `).get() as { count: number } | undefined;
+      populateVecTables(db, []);
 
-          if (zeroVersionCount && zeroVersionCount.count > 0) {
-            const errorMessage = `마이그레이션 검증 실패: core_memory 테이블에 version=0인 행이 ${zeroVersionCount.count}개 있습니다. 마이그레이션 010이 완료되지 않았을 수 있습니다.`;
-            log(`[ERR] ${errorMessage}`);
-            throw new Error(errorMessage);
-          }
+      try {
+        const zeroVersionCount = db.prepare(`
+            SELECT COUNT(*) as count FROM core_memory WHERE version = 0
+          `).get() as { count: number } | undefined;
 
-          log('[OK] core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
-        } catch (validationError) {
-          if (validationError instanceof Error && validationError.message.includes('no such table')) {
-            log('[WARN]  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
-          } else {
-            throw validationError;
-          }
+        if (zeroVersionCount && zeroVersionCount.count > 0) {
+          const errorMessage = `마이그레이션 검증 실패: core_memory 테이블에 version=0인 행이 ${zeroVersionCount.count}개 있습니다. 마이그레이션 010이 완료되지 않았을 수 있습니다.`;
+          log(`[ERR] ${errorMessage}`);
+          throw new Error(errorMessage);
+        }
+
+        log('[OK] core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
+      } catch (validationError) {
+        if (validationError instanceof Error && validationError.message.includes('no such table')) {
+          log('[WARN]  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
+        } else {
+          throw validationError;
         }
       }
     }

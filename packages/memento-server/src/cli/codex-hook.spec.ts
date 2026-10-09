@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentEventEnvelope } from '@memento/agent-integration';
 
-import { createCodexHttpTransport } from './codex-hook.js';
+import { createAgentHookHttpTransport as createCodexHttpTransport } from './agent-hook-command.js';
 
 function event(eventType: AgentEventEnvelope['event_type']): AgentEventEnvelope {
   return {

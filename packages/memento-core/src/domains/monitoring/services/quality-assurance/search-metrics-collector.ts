@@ -61,6 +61,89 @@ export function calculateMRR(
   return validQueries > 0 ? sumReciprocalRank / groundTruths.length : 0;
 }
 
+/** Precision@K·Recall@K·NDCG@K (K=5,10) 의 쿼리 평균. 결과가 없는 쿼리는 빼고 센다. */
+function computeRankingMetricsAtK(
+  groundTruths: GroundTruth[],
+  queryResults: Map<string, SearchResult[]>
+): Record<string, number> {
+  const metrics: Record<string, number> = {};
+  const kValues = [5, 10];
+  for (const k of kValues) {
+    let sumPrecision = 0;
+    let sumRecall = 0;
+    let sumNDCG = 0;
+    let validQueries = 0;
+
+    for (const groundTruth of groundTruths) {
+      const results = queryResults.get(groundTruth.queryId);
+      if (!results || results.length === 0) continue;
+
+      const precision = calculatePrecisionAtK(results, groundTruth.relevantIds, k);
+      const recall = calculateRecallAtK(results, groundTruth.relevantIds, k);
+      const ndcg = calculateNDCGAtK(results, groundTruth.relevantIds, k);
+
+      sumPrecision += precision;
+      sumRecall += recall;
+      sumNDCG += ndcg;
+      validQueries++;
+    }
+
+    if (validQueries > 0) {
+      metrics[`precision_at_${k}`] = sumPrecision / validQueries;
+      metrics[`recall_at_${k}`] = sumRecall / validQueries;
+      metrics[`ndcg_at_${k}`] = sumNDCG / validQueries;
+    } else {
+      metrics[`precision_at_${k}`] = 0;
+      metrics[`recall_at_${k}`] = 0;
+      metrics[`ndcg_at_${k}`] = 0;
+    }
+  }
+  return metrics;
+}
+
+/** 벡터 단독 대비 consolidation 결과의 Kendall's Tau·Top5/Top10 유지율 평균. */
+function computeOrderPreservationMetrics(
+  searchResultPairs: Array<{ vectorOnly: SearchResult[]; withConsolidation: SearchResult[] }>
+): Record<string, number> {
+  const metrics: Record<string, number> = {};
+  let sumKendallTau = 0;
+  let sumTop5Retention = 0;
+  let sumTop10Retention = 0;
+  let validPairs = 0;
+
+  for (const pair of searchResultPairs) {
+    const vectorIds = pair.vectorOnly.map(r => r.id);
+    const consolidationIds = pair.withConsolidation.map(r => r.id);
+    
+    const kendallTau = calculateKendallTau(vectorIds, consolidationIds);
+    sumKendallTau += kendallTau;
+
+    // Top-K 유지율 계산
+    const top5Vector = new Set(vectorIds.slice(0, 5));
+    const top10Vector = new Set(vectorIds.slice(0, 10));
+    const top5Consolidation = new Set(consolidationIds.slice(0, 5));
+    const top10Consolidation = new Set(consolidationIds.slice(0, 10));
+
+    const top5Retention = Array.from(top5Vector).filter(id => top5Consolidation.has(id)).length / 5;
+    const top10Retention = Array.from(top10Vector).filter(id => top10Consolidation.has(id)).length / 10;
+
+    sumTop5Retention += top5Retention;
+    sumTop10Retention += top10Retention;
+    validPairs++;
+  }
+
+  if (validPairs > 0) {
+    metrics.kendalls_tau = sumKendallTau / validPairs;
+    metrics.top_5_retention = sumTop5Retention / validPairs;
+    metrics.top_10_retention = sumTop10Retention / validPairs;
+  } else {
+    metrics.kendalls_tau = 0;
+    metrics.top_5_retention = 0;
+    metrics.top_10_retention = 0;
+  }
+  return metrics;
+}
+
 export class SearchMetricsCollector {
   constructor(private db: Database.Database) {}
 
@@ -178,38 +261,7 @@ export class SearchMetricsCollector {
     if (groundTruths && queryResults && groundTruths.length > 0) {
       // groundTruths와 queryResults는 위에서 로드/생성됨
 
-      // Precision@K, Recall@K, NDCG@K 계산
-      const kValues = [5, 10];
-      for (const k of kValues) {
-        let sumPrecision = 0;
-        let sumRecall = 0;
-        let sumNDCG = 0;
-        let validQueries = 0;
-
-        for (const groundTruth of groundTruths) {
-          const results = queryResults.get(groundTruth.queryId);
-          if (!results || results.length === 0) continue;
-
-          const precision = calculatePrecisionAtK(results, groundTruth.relevantIds, k);
-          const recall = calculateRecallAtK(results, groundTruth.relevantIds, k);
-          const ndcg = calculateNDCGAtK(results, groundTruth.relevantIds, k);
-
-          sumPrecision += precision;
-          sumRecall += recall;
-          sumNDCG += ndcg;
-          validQueries++;
-        }
-
-        if (validQueries > 0) {
-          metrics[`precision_at_${k}`] = sumPrecision / validQueries;
-          metrics[`recall_at_${k}`] = sumRecall / validQueries;
-          metrics[`ndcg_at_${k}`] = sumNDCG / validQueries;
-        } else {
-          metrics[`precision_at_${k}`] = 0;
-          metrics[`recall_at_${k}`] = 0;
-          metrics[`ndcg_at_${k}`] = 0;
-        }
-      }
+      Object.assign(metrics, computeRankingMetricsAtK(groundTruths, queryResults));
 
       // MRR 계산
       metrics.mrr = calculateMRR(queryResults, groundTruths);
@@ -292,41 +344,7 @@ export class SearchMetricsCollector {
 
       // Kendall's Tau 및 순서 보존 지표 계산
       if (searchResultPairs && searchResultPairs.length > 0) {
-        let sumKendallTau = 0;
-        let sumTop5Retention = 0;
-        let sumTop10Retention = 0;
-        let validPairs = 0;
-
-        for (const pair of searchResultPairs) {
-          const vectorIds = pair.vectorOnly.map(r => r.id);
-          const consolidationIds = pair.withConsolidation.map(r => r.id);
-          
-          const kendallTau = calculateKendallTau(vectorIds, consolidationIds);
-          sumKendallTau += kendallTau;
-
-          // Top-K 유지율 계산
-          const top5Vector = new Set(vectorIds.slice(0, 5));
-          const top10Vector = new Set(vectorIds.slice(0, 10));
-          const top5Consolidation = new Set(consolidationIds.slice(0, 5));
-          const top10Consolidation = new Set(consolidationIds.slice(0, 10));
-
-          const top5Retention = Array.from(top5Vector).filter(id => top5Consolidation.has(id)).length / 5;
-          const top10Retention = Array.from(top10Vector).filter(id => top10Consolidation.has(id)).length / 10;
-
-          sumTop5Retention += top5Retention;
-          sumTop10Retention += top10Retention;
-          validPairs++;
-        }
-
-        if (validPairs > 0) {
-          metrics.kendalls_tau = sumKendallTau / validPairs;
-          metrics.top_5_retention = sumTop5Retention / validPairs;
-          metrics.top_10_retention = sumTop10Retention / validPairs;
-        } else {
-          metrics.kendalls_tau = 0;
-          metrics.top_5_retention = 0;
-          metrics.top_10_retention = 0;
-        }
+        Object.assign(metrics, computeOrderPreservationMetrics(searchResultPairs));
       } else {
         metrics.kendalls_tau = 0;
         metrics.top_5_retention = 0;

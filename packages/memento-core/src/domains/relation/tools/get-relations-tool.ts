@@ -12,6 +12,7 @@ import { formatMementoResourceUri, memoryItemResourceKind } from '../../../share
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { callerOwnerClause, filterCallerOwnedIds } from '../../../tools/caller-scope.js';
+import { relationToolError } from './relation-tool-response.js';
 
 type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
 
@@ -104,30 +105,12 @@ export class GetRelationsTool extends BaseTool {
       `, [memory_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
 
       if (!memory) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'MEMORY_NOT_FOUND',
-              message: `메모리를 찾을 수 없습니다: ${memory_id}`
-            }, null, 2)
-          }]
-        };
+        return relationToolError('MEMORY_NOT_FOUND', `메모리를 찾을 수 없습니다: ${memory_id}`);
       }
 
       const relationGraph = context.services.relationGraph;
       if (!relationGraph) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'RELATION_GRAPH_UNAVAILABLE',
-              message: '관계 그래프 서비스가 구성되지 않았습니다'
-            }, null, 2)
-          }]
-        };
+        return relationToolError('RELATION_GRAPH_UNAVAILABLE', '관계 그래프 서비스가 구성되지 않았습니다');
       }
 
       // When: 관계 조회 수행
@@ -229,16 +212,7 @@ export class GetRelationsTool extends BaseTool {
       });
 
     } catch (error) {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: 'QUERY_FAILED',
-            message: error instanceof Error ? error.message : String(error)
-          }, null, 2)
-        }]
-      };
+      return relationToolError('QUERY_FAILED', error instanceof Error ? error.message : String(error));
     }
   }
 }

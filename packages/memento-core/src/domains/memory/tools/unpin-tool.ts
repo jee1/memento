@@ -298,21 +298,6 @@ export class UnpinTool extends BaseTool {
   }
 
   /**
-   * 데이터베이스 락 처리
-   */
-  private async handleDatabaseLock(context: ToolContext): Promise<void> {
-    try {
-      await DatabaseUtils.checkpointWAL(context.db);
-      logger.info('WAL 체크포인트 완료');
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.warn('WAL 체크포인트 실패', {
-        error: maskedError.message
-      });
-    }
-  }
-
-  /**
    * 고정 해제 가능한 기억 목록 조회
    */
   async getUnpinnableMemories(

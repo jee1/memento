@@ -253,21 +253,6 @@ export class PinTool extends BaseTool {
   }
 
   /**
-   * 데이터베이스 락 처리
-   */
-  private async handleDatabaseLock(context: ToolContext): Promise<void> {
-    try {
-      await DatabaseUtils.checkpointWAL(context.db);
-      logger.info('WAL 체크포인트 완료');
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.warn('WAL 체크포인트 실패', {
-        error: maskedError.message
-      });
-    }
-  }
-
-  /**
    * 고정된 기억 목록 조회
    */
   async getPinnedMemories(context: ToolContext, limit: number = 50): Promise<MemoryPinRow[]> {

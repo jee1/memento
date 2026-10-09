@@ -8,6 +8,8 @@ import type { FailureDetector } from '../domains/monitoring/services/failure-det
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import { ToolInputValidationError } from '../shared/errors/tool-input-validation-error.js';
 import { logger } from '../shared/utils/logger.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 import type { z } from 'zod';
 
@@ -201,6 +203,21 @@ export abstract class BaseTool {
   protected validateDatabase(context: ToolContext): void {
     if (!context.db) {
       throw new Error('데이터베이스가 초기화되지 않았습니다');
+    }
+  }
+
+  /**
+   * 데이터베이스 락 처리: WAL 체크포인트를 시도하고 실패는 경고만 남긴다
+   */
+  protected async handleDatabaseLock(context: ToolContext): Promise<void> {
+    try {
+      await DatabaseUtils.checkpointWAL(context.db);
+      logger.info('WAL 체크포인트 완료');
+    } catch (error) {
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      logger.warn('WAL 체크포인트 실패', {
+        error: maskedError.message
+      });
     }
   }
 

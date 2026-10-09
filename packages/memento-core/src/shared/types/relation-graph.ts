@@ -156,6 +156,33 @@ export interface AddRelationOptions {
 }
 
 /**
+ * 배치 관계 추가 입력 항목
+ */
+export interface RelationBatchItem {
+  source_id: string;
+  target_id: string;
+  relation_type: RelationType;
+  confidence?: number;
+  metadata?: RelationMetadata;
+}
+
+/**
+ * 배치 관계 추가 결과
+ */
+export interface RelationBatchResult {
+  insertedIds: number[];
+  failed: Array<{
+    source_id: string;
+    target_id: string;
+    relation_type: RelationType;
+    error: string;
+  }>;
+  total: number;
+  success: number;
+  failedCount: number;
+}
+
+/**
  * 관계 그래프 인터페이스
  */
 export interface IRelationGraph {
@@ -273,23 +300,6 @@ export interface IRelationGraph {
    * @returns 성공/실패 상세 결과
    */
   addRelationsBatch(
-    relations: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      confidence?: number;
-      metadata?: RelationMetadata;
-    }>
-  ): Promise<{
-    insertedIds: number[];
-    failed: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      error: string;
-    }>;
-    total: number;
-    success: number;
-    failedCount: number;
-  }>;
+    relations: RelationBatchItem[]
+  ): Promise<RelationBatchResult>;
 }

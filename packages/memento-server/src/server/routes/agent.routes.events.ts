@@ -32,53 +32,30 @@ export function prepareEvent(input: unknown): PersistedAgentEventInput {
     );
   }
   const redaction = redactAgentEvent(normalized);
-  if (redaction.action === 'DROPPED') {
-    const droppedHash = canonicalize({ reason: redaction.reason });
-    return {
-      contractVersion: normalized.contract_version,
-      eventId: normalized.event_id,
-      eventType: normalized.event_type,
-      occurredAt: normalized.occurred_at,
-      adapterName: normalized.adapter_name,
-      adapterVersion: normalized.adapter_version,
-      sessionId: normalized.session_id,
-      sequenceNo: normalized.sequence_no,
-      scope: {
-        ownerId: normalized.scope.owner_id,
-        projectId: normalized.scope.project_id,
-        processId: normalized.scope.process_id,
-      },
-      payloadJson: null,
-      payloadSha256: droppedHash.sha256,
-      redactionMetadataJson: JSON.stringify(redaction.metadata),
-      captureStatus: 'DROPPED',
-      dropReason: redaction.reason,
-    };
-  }
+  // 버려진 이벤트는 payload 없이 사유의 해시만 남긴다.
+  const dropped = (dropReason: string) => ({
+    contractVersion: normalized.contract_version,
+    eventId: normalized.event_id,
+    eventType: normalized.event_type,
+    occurredAt: normalized.occurred_at,
+    adapterName: normalized.adapter_name,
+    adapterVersion: normalized.adapter_version,
+    sessionId: normalized.session_id,
+    sequenceNo: normalized.sequence_no,
+    scope: {
+      ownerId: normalized.scope.owner_id,
+      projectId: normalized.scope.project_id,
+      processId: normalized.scope.process_id,
+    },
+    payloadJson: null,
+    payloadSha256: canonicalize({ reason: dropReason }).sha256,
+    redactionMetadataJson: JSON.stringify(redaction.metadata),
+    captureStatus: 'DROPPED' as const,
+    dropReason,
+  });
+  if (redaction.action === 'DROPPED') return dropped(redaction.reason);
   const sized = applySizePolicy(redaction.event);
-  if (sized.action === 'DROPPED') {
-    const droppedHash = canonicalize({ reason: sized.reason });
-    return {
-      contractVersion: normalized.contract_version,
-      eventId: normalized.event_id,
-      eventType: normalized.event_type,
-      occurredAt: normalized.occurred_at,
-      adapterName: normalized.adapter_name,
-      adapterVersion: normalized.adapter_version,
-      sessionId: normalized.session_id,
-      sequenceNo: normalized.sequence_no,
-      scope: {
-        ownerId: normalized.scope.owner_id,
-        projectId: normalized.scope.project_id,
-        processId: normalized.scope.process_id,
-      },
-      payloadJson: null,
-      payloadSha256: droppedHash.sha256,
-      redactionMetadataJson: JSON.stringify(redaction.metadata),
-      captureStatus: 'DROPPED',
-      dropReason: sized.reason,
-    };
-  }
+  if (sized.action === 'DROPPED') return dropped(sized.reason);
   const payload = sized.event.payload as unknown as Record<string, unknown>;
   const canonicalPayload = canonicalize(payload);
 

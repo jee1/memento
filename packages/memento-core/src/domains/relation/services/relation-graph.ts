@@ -19,7 +19,8 @@ import type {
   GetRelationsOptions,
   IRelationGraph,
   MemoryRelation,
-  RelationMetadata
+  RelationBatchItem,
+  RelationBatchResult
 } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { RelationGraphCache } from './relation-graph-cache.js';
@@ -115,25 +116,8 @@ export class RelationGraph implements IRelationGraph {
   }
 
   async addRelationsBatch(
-    relations: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      confidence?: number;
-      metadata?: RelationMetadata;
-    }>
-  ): Promise<{
-    insertedIds: number[];
-    failed: Array<{
-      source_id: string;
-      target_id: string;
-      relation_type: RelationType;
-      error: string;
-    }>;
-    total: number;
-    success: number;
-    failedCount: number;
-  }> {
+    relations: RelationBatchItem[]
+  ): Promise<RelationBatchResult> {
     return this.mutations.addRelationsBatch(relations);
   }
 }
