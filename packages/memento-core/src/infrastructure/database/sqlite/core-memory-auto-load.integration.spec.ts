@@ -11,7 +11,7 @@ import { join } from 'path';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
-import type { CoreMemoryRepository } from '../../../../domains/memory/repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRepository } from '../../../domains/memory/repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../../../domains/memory/services/core-memory-cache-service.js';
 

@@ -15,7 +15,7 @@ import type { ServerServices } from '../bootstrap.js';
 import { cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';
 import { insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 import { RecallTool } from '@memento/core/domains/memory/recall/recall-tool.js';
-import type { ToolContext } from '@memento/coretypes.js';
+import type { ToolContext } from '../tools/types.js';
 
 describe('test-sleep-consolidation-isolation', () => {
   let db: Database.Database;

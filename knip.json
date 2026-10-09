@@ -32,6 +32,10 @@
       ],
       "project": [
         "src/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "d3",
+        "@jee1/memento-client"
       ]
     }
   },
