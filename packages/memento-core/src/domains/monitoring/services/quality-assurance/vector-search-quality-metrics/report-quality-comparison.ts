@@ -84,7 +84,7 @@ function measureVectorOnlyQuality(
  * console.log(`NDCG@5: ${metrics.ndcg[5]}`);
  * ```
  */
-export function measureConsolidationQuality(
+function measureConsolidationQuality(
   results: SearchResult[],
   groundTruth: { queryId: string; relevantIds: string[] },
   kValues: number[] = [1, 5, 10]
@@ -149,7 +149,7 @@ export interface QualityDegradation {
  * console.log(`NDCG@5 저하율: ${(degradation.ndcg[5] * 100).toFixed(2)}%`);
  * ```
  */
-export function calculateQualityDegradation(
+function calculateQualityDegradation(
   vectorOnlyMetrics: QualityMetrics,
   consolidationMetrics: QualityMetrics,
   kValues: number[] = [1, 5, 10]

@@ -85,17 +85,3 @@ export const RATE_LIMITER = {
   /** 토큰 리필 속도 (초당 토큰 수) */
   REFILL_RATE: 1
 } as const;
-
-/**
- * 시간 관련 상수 (밀리초)
- */
-export const TIME = {
-  /** 1초 */
-  SECOND_MS: 1000,
-  /** 1분 */
-  MINUTE_MS: 60 * 1000,
-  /** 1시간 */
-  HOUR_MS: 60 * 60 * 1000,
-  /** 1일 */
-  DAY_MS
-} as const;

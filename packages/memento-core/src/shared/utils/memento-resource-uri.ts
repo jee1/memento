@@ -2,7 +2,7 @@
  * Canonical, owner-scoped Memento resource identifiers (#656).
  */
 
-export const MEMENTO_RESOURCE_KINDS = ['memory', 'procedure', 'anchor', 'relation'] as const;
+const MEMENTO_RESOURCE_KINDS = ['memory', 'procedure', 'anchor', 'relation'] as const;
 
 export type MementoResourceKind = (typeof MEMENTO_RESOURCE_KINDS)[number];
 

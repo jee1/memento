@@ -13,7 +13,7 @@ import type {
 import { embeddingColumnToNumbers } from './embedding-serialization.js';
 
 /** memory_item 하이브리드 검색에 쓰이는 네 타입 */
-export const MEMORY_ITEM_TYPES: readonly MemoryType[] = [
+const MEMORY_ITEM_TYPES: readonly MemoryType[] = [
   'working',
   'episodic',
   'semantic',
@@ -65,7 +65,7 @@ export function isMemoryRow(value: unknown): value is MemoryRow {
  * @param value 확인할 값
  * @returns MemoryType 여부
  */
-export function isMemoryType(value: string): value is MemoryType {
+function isMemoryType(value: string): value is MemoryType {
   return value === 'working' || value === 'episodic' || value === 'semantic' || value === 'procedural';
 }
 
@@ -89,7 +89,7 @@ export function isFullMemoryItemTypeSet(types: readonly MemoryType[]): boolean {
  * @param value 확인할 값
  * @returns PrivacyScope 여부
  */
-export function isPrivacyScope(value: string): value is PrivacyScope {
+function isPrivacyScope(value: string): value is PrivacyScope {
   return value === 'private' || value === 'team' || value === 'public';
 }
 

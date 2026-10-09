@@ -242,11 +242,3 @@ export function getVectorSearchEngine(): VectorSearchEngine {
   }
   return vectorSearchEngineInstance;
 }
-
-export function createVectorSearchEngine(): VectorSearchEngine {
-  return new VectorSearchEngine();
-}
-
-export function resetVectorSearchEngine(): void {
-  vectorSearchEngineInstance = null;
-}

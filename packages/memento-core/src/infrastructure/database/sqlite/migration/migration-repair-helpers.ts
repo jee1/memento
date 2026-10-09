@@ -74,7 +74,7 @@ const DEFAULT_PREDICATE_DICTIONARY: PredicateDictionary = {
   '추가함': ['추가한다', '추가함', 'add', 'append'],
 };
 
-export class PredicateCanonicalizer {
+class PredicateCanonicalizer {
   private dictionary: PredicateDictionary;
   private reverseIndex: Map<string, string> = new Map();
 
@@ -219,7 +219,7 @@ export function hasBrokenTripleConjugation(content: string): boolean {
   return /(됨|음|름)합니다/.test(content);
 }
 
-export function tripleToNaturalLanguage(subject: string, predicate: string, object: string): string {
+function tripleToNaturalLanguage(subject: string, predicate: string, object: string): string {
   const sentence = buildTripleSentence(subject, predicate, object);
   if (sentence) {
     return sentence;

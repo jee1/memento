@@ -160,20 +160,6 @@ export function isApplicableRelationType(
 }
 
 /**
- * 관계 유형의 카테고리를 반환
- */
-export function getRelationCategory(relationType: RelationType): RelationCategory {
-  return RELATION_TYPE_CATEGORY_MAP[relationType];
-}
-
-/**
- * 관계 유형의 검색 부스트 가중치를 반환
- */
-export function getRelationBoost(relationType: RelationType): number {
-  return RELATION_TYPE_BOOST_MAP[relationType];
-}
-
-/**
  * 모든 관계 유형 목록
  * 여러 파일에서 중복 정의를 방지하기 위한 공통 상수
  */

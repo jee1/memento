@@ -78,7 +78,7 @@ export type ProviderVectorSearchDeps = {
   logSearchStep: SearchStepLogger;
 };
 
-export async function runSingleProviderVectorSearch(
+async function runSingleProviderVectorSearch(
   deps: ProviderVectorSearchDeps,
   provider: EmbeddingProvider,
   query: string,

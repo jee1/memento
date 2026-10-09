@@ -125,18 +125,3 @@ export function errorHandler(
   res.status(statusCode).json(errorResponse);
 }
 
-/**
- * 비동기 에러 핸들러 래퍼
- * 비동기 라우트 핸들러에서 발생한 에러를 자동으로 catch
- * 
- * @param fn 비동기 라우트 핸들러 함수
- * @returns Express 라우트 핸들러
- */
-export function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
-) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-}
-

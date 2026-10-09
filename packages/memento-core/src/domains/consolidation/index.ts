@@ -1,6 +1,3 @@
-export { ConsolidationRepository } from './repositories/consolidation-repository.js';
-export { ClusteringService } from './services/clustering-service.js';
-export { SummarizationService } from './services/summarization-service.js';
 export {
   SleepConsolidationService,
   ConsolidationAlreadyRunningError

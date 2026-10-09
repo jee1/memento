@@ -7,7 +7,7 @@ import type {
   MigrationStepStatus,
 } from '../../../../shared/types/migration.types.js';
 
-export function createSnapshot(progress: MigrationProgress): MigrationProgress {
+function createSnapshot(progress: MigrationProgress): MigrationProgress {
   return {
     ...progress,
     stepHistory: progress.stepHistory.map(step => ({ ...step })),
@@ -15,7 +15,7 @@ export function createSnapshot(progress: MigrationProgress): MigrationProgress {
   };
 }
 
-export function resolveRunStatus(progress: MigrationProgress): MigrationRunStatus {
+function resolveRunStatus(progress: MigrationProgress): MigrationRunStatus {
   const finished =
     !progress.currentStep && (progress.total === 0 || progress.processed >= progress.total);
   if (finished) {

@@ -28,7 +28,7 @@ import type { JsonRpcResponse, SSETransport } from './types.js';
 
 export type ApplyMcpCorsHeaders = (req: Request, res: Response) => void;
 
-export function applyMcpCorsHeaders(req: Request, res: Response): void {
+function applyMcpCorsHeaders(req: Request, res: Response): void {
   const origin = req.get('origin') ?? undefined;
   const headers = buildMcpManualCorsHeaders(origin, mementoConfig.corsAllowedOrigins);
   for (const [key, value] of Object.entries(headers)) {
@@ -165,7 +165,7 @@ function sendModernHttpMethodNotAllowed(res: Response): void {
   res.status(405).end();
 }
 
-export function isModernProtocolHttpRequest(req: Request): boolean {
+function isModernProtocolHttpRequest(req: Request): boolean {
   return Boolean(req.get('mcp-protocol-version'));
 }
 

@@ -241,23 +241,6 @@ export const mementoConfig: MementoConfig = {
   mcpEra: parseMcpEraMode(getRawEnvValue('MEMENTO_MCP_ERA')),
 };
 
-// 검색 랭킹 가중치 (Memento-Goals.md 참조)
-export const searchRankingWeights = {
-  relevance: 0.50,
-  recency: 0.20,
-  importance: 0.20,
-  usage: 0.10,
-  duplication_penalty: 0.15
-};
-
-// 기본 태그 분류
-export const defaultTags = {
-  tech: ['javascript', 'typescript', 'react', 'node', 'sqlite', 'mcp'],
-  pref: ['coffee', 'tea', 'morning', 'evening'],
-  task: ['ads-settlement', 'defect-fix', 'feature', 'refactor'],
-  project: ['memento', 'mcp-server', 'ai-agent']
-};
-
 // 유효성 검사
 export function validateConfig(): void {
   if (!isValidConfigurationEnvironment()) {

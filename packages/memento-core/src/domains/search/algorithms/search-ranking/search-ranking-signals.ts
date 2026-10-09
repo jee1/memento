@@ -10,7 +10,7 @@ import { daysBetween } from '../../../../shared/utils/date.js';
  * recency 반감기(일). 텍스트 레인과 융합 레인이 이 값 하나만 쓴다 (#1178).
  * 타입별 반감기는 타입 사전확률을 한 번 더 얹어 incident/ops 정답(episodic)을 밀어낸다. 타입 가산은 getTypeBoost 가 importance 에서 맡는다.
  */
-export const RECENCY_HALF_LIFE_DAYS = 30;
+const RECENCY_HALF_LIFE_DAYS = 30;
 
 /**
  * 시간에 따른 기억의 자연스러운 감쇠를 반영하여 최신 정보를 우선 제공합니다.

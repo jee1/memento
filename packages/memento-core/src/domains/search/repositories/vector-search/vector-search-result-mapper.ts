@@ -8,7 +8,7 @@ import type { VectorSearchResult } from '../../../../shared/types/vector-search.
 import type { RawVectorSearchResult } from './vector-search.types.js';
 import type { VectorSearchExecutionOptions } from './vector-search.types.js';
 
-export function safeParseTags(raw: string | null | undefined): string[] {
+function safeParseTags(raw: string | null | undefined): string[] {
   if (!raw) {
     return [];
   }

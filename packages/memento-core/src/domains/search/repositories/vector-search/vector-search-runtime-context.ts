@@ -18,7 +18,7 @@ export function getTableName(provider: string, dimensions?: number): string {
   return getValidatedVectorTableName(provider ?? 'tfidf', dimensions);
 }
 
-export function getExpectedDimensions(provider?: string): number {
+function getExpectedDimensions(provider?: string): number {
   const effectiveProvider = provider ?? 'tfidf';
   return VECTOR_SEARCH_CONFIG.providerDimensions[effectiveProvider] ?? VECTOR_SEARCH_CONFIG.defaultDimensions;
 }
@@ -26,7 +26,7 @@ export function getExpectedDimensions(provider?: string): number {
 /**
  * memory_embedding 우세 dimensions로 vec 테이블을 고를지 여부.
  */
-export function shouldUseDominantStoredDimensionsForTable(provider: string | undefined): boolean {
+function shouldUseDominantStoredDimensionsForTable(provider: string | undefined): boolean {
   return (provider ?? 'tfidf').toLowerCase() === 'tfidf';
 }
 
@@ -49,7 +49,7 @@ export function getVecTableSchemaDimensions(tableName: string): number {
 /**
  * provider별로 가장 많이 등장하는 dimensions를 사용합니다.
  */
-export function getDominantStoredDimensions(db: Database.Database, provider: string): number | null {
+function getDominantStoredDimensions(db: Database.Database, provider: string): number | null {
   const row = db
     .prepare(
       `SELECT dimensions

@@ -24,7 +24,7 @@ export function validateReflectionNotesJson(reflectionNotes: string): void {
   }
 }
 
-export function parseReflectionNotes(
+function parseReflectionNotes(
   reflectionNotes: string | null,
   host: RememberToolHost
 ): ExistingReflectionNotesResult {
@@ -50,7 +50,7 @@ export function parseReflectionNotes(
   }
 }
 
-export async function getExistingReflectionNotes(
+async function getExistingReflectionNotes(
   db: Database.Database,
   taskGoal: string | null | undefined,
   host: RememberToolHost

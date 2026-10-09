@@ -17,7 +17,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type Database from 'better-sqlite3';
 
 /** 프로젝트 인계 브리프 태그 (#1271) */
-export const PROJECT_BRIEF_TAG = 'project-brief';
+const PROJECT_BRIEF_TAG = 'project-brief';
 
 // core 목록 페이로드 상한(toolset.spec.ts) 때문에 짧게 둔다
 const INCLUDE_PROJECT_BRIEF_DESCRIPTION =

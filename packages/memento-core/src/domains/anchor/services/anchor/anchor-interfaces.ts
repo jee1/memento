@@ -179,7 +179,6 @@ export class MemoryNotFoundError extends Error {
   }
 }
 
-
 /**
  * 데이터베이스 검증 에러 (Phase 8.4)
  */
@@ -197,16 +196,6 @@ export class AnchorNotFoundError extends Error {
   constructor(agentId: string, slot: AnchorSlot) {
     super(`Anchor not found for agent_id: ${agentId}, slot: ${slot}`);
     this.name = 'AnchorNotFoundError';
-  }
-}
-
-/**
- * 임베딩을 찾을 수 없을 때 발생하는 에러 (Phase 8.4)
- */
-export class EmbeddingNotFoundError extends Error {
-  constructor(memoryId: string) {
-    super(`Embedding not found for anchor memory_id: ${memoryId}`);
-    this.name = 'EmbeddingNotFoundError';
   }
 }
 

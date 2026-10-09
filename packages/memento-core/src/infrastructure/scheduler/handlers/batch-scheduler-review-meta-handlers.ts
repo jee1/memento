@@ -18,7 +18,7 @@ import {
 } from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
-export function buildMemoryReviewCandidateUpsertInputs(
+function buildMemoryReviewCandidateUpsertInputs(
   db: Database.Database,
   maxCandidates?: number
 ): {

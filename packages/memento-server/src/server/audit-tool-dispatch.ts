@@ -36,7 +36,7 @@ export type ToolDispatcher = (
   auditContext: ToolAuditContext,
 ) => Promise<ToolResult>;
 
-export class ToolDispatchError extends McpError {
+class ToolDispatchError extends McpError {
   constructor(
     code: number,
     readonly protocolMessage: string,

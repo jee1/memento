@@ -43,7 +43,7 @@ const REQUIRED_EVENTS = [
   'STOP',
 ] as const;
 
-export const SYNTHETIC_MARKER = 'memento-doctor-secret';
+const SYNTHETIC_MARKER = 'memento-doctor-secret';
 
 const REASON_GUIDES: Record<string, Omit<ReasonGuide, 'reason_code'>> = {
   NONE: {
@@ -339,7 +339,7 @@ export async function runDoctor(
   };
 }
 
-export function parseSince(value: string, now: Date): string {
+function parseSince(value: string, now: Date): string {
   const match = /^(\d+)(m|h|d)$/.exec(value);
   if (match) {
     const amount = Number(match[1]);

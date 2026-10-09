@@ -33,7 +33,7 @@ import { vectorCompatibilityService } from './vector-compatibility-service.js';
  * - 기존 임베딩 벡터를 목표 제공자의 차원에 맞게 재투영
  * - 마이그레이션 플랜/실행/진행 상태 관리
  */
-export class EmbeddingMigrationService {
+class EmbeddingMigrationService {
   createPlan(
     sourceProvider: EmbeddingProvider,
     targetProvider: EmbeddingProvider,

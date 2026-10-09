@@ -108,7 +108,7 @@ function writeAgentMismatch(
 }
 
 /** Client-claimed agent id: X-Memento-Agent-Id, then X-Agent-Id (#1258). */
-export function readAgentIdHeader(req: Request): string | null {
+function readAgentIdHeader(req: Request): string | null {
   for (const name of ['x-memento-agent-id', 'x-agent-id']) {
     const value = req.headers[name];
     if (typeof value === 'string' && value.trim() !== '') return value.trim();

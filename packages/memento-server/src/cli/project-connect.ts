@@ -142,7 +142,7 @@ function isMementoTable(name: string): boolean {
 
 /** `[mcp_servers.memento]` 와 하위 테이블만 잘라 낸다. */
 // ponytail: 줄 단위 TOML 처리 — 인라인 테이블(`http_headers = {...}`)·따옴표 키 테이블명은 못 읽는다. 필요해지면 TOML 파서 의존성 추가
-export function codexMementoTables(text: string): string | undefined {
+function codexMementoTables(text: string): string | undefined {
   const out: string[] = [];
   let inside = false;
   for (const line of text.split('\n')) {

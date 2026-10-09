@@ -11,7 +11,7 @@ import type {
   EmbeddingData,
 } from '../../../shared/types/embedding.types.js';
 
-export const MOCK_EMBEDDING_DIMENSIONS = 64;
+const MOCK_EMBEDDING_DIMENSIONS = 64;
 
 /**
  * 결정론적 해시 함수 (seed 기반)
