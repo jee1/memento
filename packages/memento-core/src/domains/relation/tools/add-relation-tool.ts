@@ -10,6 +10,7 @@ import { formatMementoResourceUri, memoryItemResourceKind } from '../../../share
 import { BaseTool } from '../../../tools/base-tool.js';
 import { callerOwnerClause } from '../../../tools/caller-scope.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { relationToolError } from './relation-tool-response.js';
 
 type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
 
@@ -77,16 +78,7 @@ export class AddRelationTool extends BaseTool {
       `, [source_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
 
       if (!sourceMemory) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'SOURCE_MEMORY_NOT_FOUND',
-              message: `소스 메모리를 찾을 수 없습니다: ${source_id}`
-            }, null, 2)
-          }]
-        };
+        return relationToolError('SOURCE_MEMORY_NOT_FOUND', `소스 메모리를 찾을 수 없습니다: ${source_id}`);
       }
 
       const targetMemory = DatabaseUtils.get(db, `
@@ -94,44 +86,17 @@ export class AddRelationTool extends BaseTool {
       `, [target_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
 
       if (!targetMemory) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'TARGET_MEMORY_NOT_FOUND',
-              message: `타겟 메모리를 찾을 수 없습니다: ${target_id}`
-            }, null, 2)
-          }]
-        };
+        return relationToolError('TARGET_MEMORY_NOT_FOUND', `타겟 메모리를 찾을 수 없습니다: ${target_id}`);
       }
 
       // 소스와 타겟이 같으면 에러
       if (source_id === target_id) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'INVALID_RELATION',
-              message: '소스 메모리와 타겟 메모리는 같을 수 없습니다'
-            }, null, 2)
-          }]
-        };
+        return relationToolError('INVALID_RELATION', '소스 메모리와 타겟 메모리는 같을 수 없습니다');
       }
 
       const relationGraph = context.services.relationGraph;
       if (!relationGraph) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'RELATION_GRAPH_UNAVAILABLE',
-              message: '관계 그래프 서비스가 구성되지 않았습니다'
-            }, null, 2)
-          }]
-        };
+        return relationToolError('RELATION_GRAPH_UNAVAILABLE', '관계 그래프 서비스가 구성되지 않았습니다');
       }
 
       // When: 관계 추가 수행
@@ -174,43 +139,16 @@ export class AddRelationTool extends BaseTool {
 
       } catch (error) {
         if (error instanceof DuplicateRelationError) {
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'DUPLICATE_RELATION',
-                message: error.message
-              }, null, 2)
-            }]
-          };
+          return relationToolError('DUPLICATE_RELATION', error.message);
         }
         if (error instanceof CyclicRelationError) {
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'CYCLIC_RELATION',
-                message: error.message
-              }, null, 2)
-            }]
-          };
+          return relationToolError('CYCLIC_RELATION', error.message);
         }
         throw error;
       }
 
     } catch (error) {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: 'ADD_RELATION_FAILED',
-            message: error instanceof Error ? error.message : String(error)
-          }, null, 2)
-        }]
-      };
+      return relationToolError('ADD_RELATION_FAILED', error instanceof Error ? error.message : String(error));
     }
   }
 }

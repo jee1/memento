@@ -236,44 +236,14 @@ export class ReflexionWorker implements IReflexionWorker {
   /**
    * Reflexion 기록 메트릭 수집
    */
-  getReflexionMetrics(): {
-    processedCount: number;
-    failedCount: number;
-    successRate: number; // 기록 성공률
-    averageProcessingTime: number; // 평균 처리 시간 (밀리초)
-    queueSize: number;
-    activeWorkers: number;
-    restartCount: number;
-  } {
+  getReflexionMetrics(): ReturnType<typeof getReflexionMetricsModule> {
     return getReflexionMetricsModule(this.getMetricsDeps());
   }
 
   /**
    * 통합 메트릭 수집 (FailureDetector + ReflexionWorker)
    */
-  getIntegratedMetrics(): {
-    detection: {
-      totalDetections: number;
-      toolErrorCount: number;
-      userFeedbackCount: number;
-      metricFailureCount: number;
-      detectionRate: number;
-    };
-    reflexion: {
-      processedCount: number;
-      failedCount: number;
-      successRate: number;
-      averageProcessingTime: number;
-      queueSize: number;
-      activeWorkers: number;
-      restartCount: number;
-    };
-    overall: {
-      recall: number; // 재현율 (감지된 실패 / 실제 실패)
-      precision: number; // 정밀도 (올바르게 감지된 실패 / 감지된 실패)
-      reflexionSuccessRate: number; // Reflexion 기록 성공률
-    };
-  } {
+  getIntegratedMetrics(): ReturnType<typeof getIntegratedMetricsModule> {
     return getIntegratedMetricsModule(this.getMetricsDeps());
   }
 }

@@ -7,8 +7,9 @@ import { mcpLogger } from '../../../../server/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../../shared/config/vector-search.config.js';
-import { buildMemoryFilterSql, hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
+import { hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
 import { mapKnnResults } from './vector-search-result-mapper.js';
+import { buildOuterWhereSql, buildScopedCandidateSql } from './vector-search-scope.js';
 import type {
   RawVectorSearchResult,
   RuntimeVectorContext,
@@ -22,43 +23,6 @@ interface KnnQueryParams {
   runtimeContext: RuntimeVectorContext;
   scope: VectorSearchScope;
   options: VectorSearchExecutionOptions;
-}
-
-function buildOuterWhereSql(
-  filters: VectorSearchScope,
-  modelFilter: string | null
-): { sql: string; params: SqlParam[] } {
-  const { clauses, params } = buildMemoryFilterSql(filters, {
-    itemAlias: 'mi',
-    embeddingAlias: 'me',
-    modelFilter,
-  });
-  const sql = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')} ` : '';
-  return { sql, params };
-}
-
-function buildScopedCandidateSql(
-  filters: VectorSearchScope,
-  provider: string,
-  modelFilter: string | null
-): { sql: string; params: SqlParam[] } {
-  const { clauses, params } = buildMemoryFilterSql(filters, {
-    itemAlias: 'scoped_mi',
-    embeddingAlias: 'scoped_me',
-    modelFilter,
-  });
-  const whereParts = [
-    'scoped_me.embedding_provider = ?',
-    '(COALESCE(scoped_mi.is_deleted, 0) = 0)',
-    ...clauses,
-  ];
-  const sql =
-    '  AND rowid IN (' +
-    'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
-    'JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id ' +
-    `WHERE ${whereParts.join(' AND ')}` +
-    ') ';
-  return { sql, params: [provider, ...params] };
 }
 
 export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {

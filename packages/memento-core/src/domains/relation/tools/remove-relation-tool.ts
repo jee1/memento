@@ -10,6 +10,7 @@ import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
+import { relationToolError } from './relation-tool-response.js';
 
 function ownsBothEnds(context: ToolContext, sourceId: string, targetId: string): boolean {
   const owned = filterCallerOwnedIds(context, [sourceId, targetId]);
@@ -76,16 +77,7 @@ export class RemoveRelationTool extends BaseTool {
     try {
       const relationGraph = context.services.relationGraph;
       if (!relationGraph) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'RELATION_GRAPH_UNAVAILABLE',
-              message: '관계 그래프 서비스가 구성되지 않았습니다'
-            }, null, 2)
-          }]
-        };
+        return relationToolError('RELATION_GRAPH_UNAVAILABLE', '관계 그래프 서비스가 구성되지 않았습니다');
       }
 
       let deleted = false;
@@ -101,16 +93,7 @@ export class RemoveRelationTool extends BaseTool {
         `, [parsed.relation_id]) as { source_id: string; target_id: string; relation_type: RelationType } | undefined;
 
         if (!relation || !ownsBothEnds(context, relation.source_id, relation.target_id)) {
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'RELATION_NOT_FOUND',
-                message: `관계를 찾을 수 없습니다: relation_id=${parsed.relation_id}`
-              }, null, 2)
-            }]
-          };
+          return relationToolError('RELATION_NOT_FOUND', `관계를 찾을 수 없습니다: relation_id=${parsed.relation_id}`);
         }
 
         relationInfo = relation;
@@ -127,16 +110,7 @@ export class RemoveRelationTool extends BaseTool {
         const { source_id, target_id, relation_type } = parsed;
 
         if (!source_id || !target_id || !relation_type) {
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'INVALID_PARAMS',
-                message: 'source_id, target_id, relation_type이 모두 필요합니다'
-              }, null, 2)
-            }]
-          };
+          return relationToolError('INVALID_PARAMS', 'source_id, target_id, relation_type이 모두 필요합니다');
         }
 
         relationInfo = { source_id, target_id, relation_type };
@@ -169,16 +143,7 @@ export class RemoveRelationTool extends BaseTool {
       }
 
     } catch (error) {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: 'REMOVE_RELATION_FAILED',
-            message: error instanceof Error ? error.message : String(error)
-          }, null, 2)
-        }]
-      };
+      return relationToolError('REMOVE_RELATION_FAILED', error instanceof Error ? error.message : String(error));
     }
   }
 }

@@ -11,6 +11,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { callerOwnerClause } from '../../../tools/caller-scope.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
+import { relationToolError } from './relation-tool-response.js';
 
 const ExtractRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
@@ -60,31 +61,13 @@ export class ExtractRelationsTool extends BaseTool {
       `, [memory_id, ...ownerScope.params]);
 
       if (!memoryResult || !isMemoryRow(memoryResult)) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'MEMORY_NOT_FOUND',
-              message: `메모리를 찾을 수 없습니다: ${memory_id}`
-            }, null, 2)
-          }]
-        };
+        return relationToolError('MEMORY_NOT_FOUND', `메모리를 찾을 수 없습니다: ${memory_id}`);
       }
 
       // MemoryItem으로 변환 (타입 안전성 보장)
       const memoryItem = convertMemoryRowToItem(memoryResult);
       if (!memoryItem) {
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              success: false,
-              error: 'INVALID_MEMORY_TYPE',
-              message: `메모리 타입이 유효하지 않습니다: ${memory_id}`
-            }, null, 2)
-          }]
-        };
+        return relationToolError('INVALID_MEMORY_TYPE', `메모리 타입이 유효하지 않습니다: ${memory_id}`);
       }
 
       // 기존 메모리 목록 조회 (자기 자신 제외)
@@ -136,16 +119,7 @@ export class ExtractRelationsTool extends BaseTool {
       if (candidates.length > 0) {
         const relationGraph = context.services.relationGraph;
         if (!relationGraph) {
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'RELATION_GRAPH_UNAVAILABLE',
-                message: '관계 그래프 서비스가 구성되지 않았습니다'
-              }, null, 2)
-            }]
-          };
+          return relationToolError('RELATION_GRAPH_UNAVAILABLE', '관계 그래프 서비스가 구성되지 않았습니다');
         }
 
         for (const candidate of candidates) {
@@ -185,16 +159,7 @@ export class ExtractRelationsTool extends BaseTool {
       });
 
     } catch (error) {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: 'EXTRACTION_FAILED',
-            message: error instanceof Error ? error.message : String(error)
-          }, null, 2)
-        }]
-      };
+      return relationToolError('EXTRACTION_FAILED', error instanceof Error ? error.message : String(error));
     }
   }
 }
