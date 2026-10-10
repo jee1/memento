@@ -39,11 +39,8 @@ export { createToolContext, createServerContext } from './context.js';
 export {
   getToolRegistry,
   getExposedTools,
-  resolveToolsetMode,
   CORE_TOOLSET,
   executeTool,
-  resolveTelemetryOwnerId,
-  flattenNestedToolFilters,
 } from './tools/index.js';
 export type { ToolsetMode } from './tools/index.js';
 export { initializeServices, shutdownServices } from './bootstrap.js';
@@ -71,15 +68,6 @@ export {
   MementoHttpSecurityStartupError
 } from './shared/http/http-bind-policy.js';
 export { DatabaseUtils } from './shared/utils/database.js';
-export { ensureMemoryReviewCandidateSchema } from './shared/utils/ensure-memory-review-candidate-schema.js';
-export {
-  selectMemoryReviewCandidates,
-  selectionWindowLimit
-} from './domains/memory/review/memory-review-candidate-selection-service.js';
-export {
-  parseMemoryReviewQueueControlEnv,
-  parseMemoryReviewSelectionEnv
-} from './domains/memory/review/memory-review-candidate-selection-env.js';
 export type {
   MemoryReviewStaleAnchorKind as StaleAnchorKind,
   MemoryReviewCandidateSourceRow as SourceRow,
@@ -91,26 +79,20 @@ export type {
 } from './domains/memory/review/memory-review-candidate-selection.types.js';
 export {
   upsertPendingMemoryReviewCandidates,
-  getMemoryReviewCandidateById,
   listMemoryReviewCandidates,
   queryMemoryReviewCandidates,
-  countPendingMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
-  markMemoryReviewCandidateExpired,
   bulkUpdatePendingMemoryReviewCandidates,
   countPendingMemoryReviewCandidatesBySelector,
 } from './domains/memory/review/memory-review-candidate-persistence-service.js';
 export {
-  MEMORY_REVIEW_CANDIDATE_PAGE_SIZES,
   MEMORY_REVIEW_MEMORY_TYPES,
 } from './domains/memory/review/memory-review-candidate-list-query.js';
 export {
   computeMemoryReviewQueueHealthLive,
-  recordMemoryReviewQueueHealthSnapshot,
   listMemoryReviewQueueHealthSnapshots,
   maybeRecordMemoryReviewQueueHealthSnapshot,
-  memoryReviewQueueHealthSnapshotTableReady,
 } from './domains/memory/review/memory-review-queue-health-service.js';
 export type {
   MemoryReviewQueueHealthLive,
@@ -135,8 +117,6 @@ export type {
 } from './domains/memory/review/memory-review-candidate-persistence.types.js';
 export {
   MemoryReviewCandidateError,
-  MEMORY_REVIEW_CANDIDATE_NOT_FOUND,
-  MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
 } from './domains/memory/review/memory-review-candidate-persistence-error.js';
 export {
   parseAdminMemoryItemIdParam,
@@ -145,15 +125,11 @@ export {
 export type { AdminMemoryItemPreview } from './domains/memory/services/admin-memory-item-preview-service.js';
 export { logger } from './shared/utils/logger.js';
 export {
-  computeL2Norm,
   decodeFloat32Embedding,
   embeddingColumnToNumbers,
   encodeFloat32Embedding,
-  migrateJsonEmbeddingToBlob,
-  shouldNormalizeFlag,
 } from './shared/utils/embedding-serialization.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
-export { withErrorHandling } from './shared/utils/error-handling.js';
 export type { MemoryItem } from './shared/types/memory.types.js';
 export type { ApiScope, ApiTokenEntry } from './shared/types/api-token.js';
 export type { IErrorLoggingService } from './shared/interfaces/error-logging.interface.js';
@@ -164,18 +140,15 @@ export {
   MemoryVersionConflictError,
   MEMORY_VERSION_CONFLICT,
   MEMORY_VERSION_CONFLICT_JSON_RPC_CODE,
-  memoryItemEffectiveVersion,
 } from './shared/errors/memory-version-conflict-error.js';
 export { getBatchScheduler, resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 export { BatchJobAlreadyRunningError } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-types.js';
 
 // --- 도메인·인프라 re-export (서버 thin화용) ---
 export { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
-export { SearchEngine } from './domains/search/algorithms/search-engine.js';
-export { HybridSearchEngine, createHybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
+export { HybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
 export { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
-export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 export { QualityAssuranceService } from './domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 export { QualityThresholdManager } from './domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
@@ -240,34 +213,19 @@ export { RemoveRelationTool } from './domains/relation/tools/remove-relation-too
 export { VisualizeRelationsTool } from './domains/relation/tools/visualize-relations-tool.js';
 export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.js';
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
-export { GetIntrospectionSummaryTool } from './domains/memory/introspection/get-introspection-summary-tool.js';
-export { FeedbackTool } from './domains/memory/tools/feedback-tool.js';
 export { ExportMemoriesTool } from './domains/memory/tools/export-memories-tool.js';
-export { validateSource } from './shared/validation/source-uri.js';
 export {
   formatMementoResourceUri,
-  isMementoResourceKind,
-  memoryItemResourceKind,
-  parseMementoResourceUri,
   type FormatMementoResourceUriInput,
   type MementoResourceKind,
   type MementoResourceUriParts,
 } from './shared/utils/memento-resource-uri.js';
-export { IntrospectionScanCache } from './domains/memory/introspection/introspection-scan-cache.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
 export { IntrospectionHealTool } from './domains/memory/introspection/introspection-heal-tool.js';
-export {
-  IntrospectionHealingService,
-  INTROSPECTION_HEAL_POLICY_NAME,
-} from './domains/memory/introspection/introspection-healing-service.js';
 export type {
   IntrospectionHealOptions,
   IntrospectionHealResult,
 } from './domains/memory/introspection/introspection-healing-service.js';
-export {
-  SleepConsolidationService,
-  ConsolidationAlreadyRunningError
-} from './domains/consolidation/index.js';
 export type { SleepConsolidationRunResult } from './shared/types/consolidation.types.js';
 export type { SleepConsolidationServiceDeps } from './domains/consolidation/index.js';
 
@@ -278,7 +236,6 @@ export {
   ToolContextKnowledgeContextAdapter,
   ToolContextRememberPersistenceAdapter,
   PersonalAgentLlmError,
-  isPersonalAgentLlmError,
   parsePersonalAgentLlmEnv,
   createPersonalAgentLlmPort,
   OpenAiChatLlmAdapter,
@@ -321,7 +278,6 @@ export {
 } from './domains/agent-integration/services/agent-memory-promotion-service.js';
 export {
   AgentSessionSummaryService,
-  buildAgentSessionSummary,
 } from './domains/agent-integration/services/agent-session-summary-service.js';
 export type {
   AgentMemoryPromotionServiceOptions,
@@ -356,7 +312,6 @@ export type {
 export { AgentContextRecallService } from './domains/agent-integration/services/agent-context-recall-service.js';
 export {
   AgentContextInjectionService,
-  summarizeAgentInjectionTelemetry,
 } from './domains/agent-integration/services/agent-context-injection-service.js';
 export type {
   AgentContextInjectionBundle,
@@ -390,12 +345,9 @@ export type { RecallResultItem } from './domains/memory/recall/recall-tool.js';
 
 export { MEMENTO_LATEST_SCHEMA_VERSION } from './shared/constants/schema-version.js';
 export {
-  MEMORY_JSONL_FORMAT_VERSION,
   exportMemoryJsonl,
   exportMemoryJsonlSync,
   importMemoryJsonl,
-  parseMemoryJsonl,
-  resolveExportSchemaVersion,
   MemoryJsonlSchemaError,
   MemoryJsonlChecksumError,
 } from './domains/memory/services/memory-jsonl-portability.js';
@@ -407,9 +359,7 @@ export type {
   MemoryImportResult,
 } from './domains/memory/services/memory-jsonl-portability.js';
 export {
-  ForgettingEventRepository,
   listForgettingEvents,
-  DEFAULT_FORGETTING_POLICY_NAME,
 } from './domains/forgetting/repositories/forgetting-event-repository.js';
 export type {
   ForgettingEventAction,
@@ -417,22 +367,13 @@ export type {
   ForgettingEventRow,
   ListForgettingEventsOptions,
 } from './domains/forgetting/repositories/forgetting-event-repository.js';
-export { MemoryForgettingEventMigration } from './infrastructure/database/sqlite/migration/migrations/037-memory-forgetting-event.js';
 export { AuditHashChainMigration } from './infrastructure/database/sqlite/migration/migrations/040-audit-hash-chain.js';
-export { VecCosineMetricMigration } from './infrastructure/database/sqlite/migration/migrations/041-vec-cosine-metric.js';
 export { AuditTransportExpansionMigration } from './infrastructure/database/sqlite/migration/migrations/042-audit-transport-expansion.js';
 export { JobRunMigration } from './infrastructure/database/sqlite/migration/migrations/044-job-run.js';
-export { VecOrphanCleanupMigration, deleteOrphanVecRows } from './infrastructure/database/sqlite/migration/migrations/045-vec-orphan-cleanup.js';
-export { replaceMemoryEmbedding } from './shared/utils/memory-embedding-write.js';
 export type { MemoryEmbeddingWrite } from './shared/utils/memory-embedding-write.js';
 export {
-  WINDOW_PROJECTION_TYPES,
   WINDOW_PROJECTION_PREFIX,
   WINDOW_CANDIDATE_MIN_CHARS,
-  buildWindowProjectionType,
-  isWindowProjectionType,
-  replaceWindowEmbeddings,
-  deleteWindowEmbeddings,
 } from './shared/utils/window-embedding-write.js';
 export { JobRunLogMigration } from './infrastructure/database/sqlite/migration/migrations/046-job-run-log.js';
 export {
@@ -448,8 +389,6 @@ export type {
 } from './infrastructure/scheduler/repositories/job-run-repository.js';
 export {
   JobRunLogRepository,
-  appendJobRunLogSafe,
-  appendJobRunLogsManySafe,
 } from './infrastructure/scheduler/repositories/job-run-log-repository.js';
 export type {
   JobRunLogLevel,
@@ -463,14 +402,10 @@ export {
 } from './infrastructure/scheduler/job-run-log-buffer.js';
 export type { JobRunLogBufferLine } from './infrastructure/scheduler/job-run-log-buffer.js';
 export {
-  REGISTERED_MANUAL_BATCH_JOB_TYPES,
   isRegisteredManualBatchJobType,
 } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 export type { ManualBatchSchedulerJobType } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 export {
-  VEC_DISTANCE_METRIC,
-  VEC_TABLES,
-  checkVecCardinality,
   listExistingVecTables,
   recreateVecTriggers,
 } from './infrastructure/database/sqlite/vec-schema.js';

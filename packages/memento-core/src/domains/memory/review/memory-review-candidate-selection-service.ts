@@ -44,7 +44,7 @@ ORDER BY m.importance DESC, COALESCE(s.last_recalled_at, m.created_at) ASC
 LIMIT ?
 `;
 
-export function selectionWindowLimit(maxCandidates: number): number {
+function selectionWindowLimit(maxCandidates: number): number {
   return Math.max(maxCandidates * 10, 200);
 }
 

@@ -40,7 +40,7 @@ export interface BenchmarkQueryLookup {
   byQueryText: Map<string, BenchmarkQuery>;
 }
 
-export const DEFAULT_SEARCH_BENCHMARK_DIR = join(
+const DEFAULT_SEARCH_BENCHMARK_DIR = join(
   process.cwd(),
   'tests',
   'fixtures',

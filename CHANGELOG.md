@@ -16,6 +16,7 @@
 - 개발: core·server tsconfig 에 `noUnusedLocals`·`noUnusedParameters` 를 켰습니다(#1294). 쓰이지 않던 지역 변수·private 멤버·테스트 전용 위임 메서드를 지우고, 자리가 의미 있는 인자는 `_` 접두사로 남겼습니다. 런타임 동작은 바뀌지 않습니다.
 - 개발: eslint 경고를 0 으로 만들고 `lint:ts`·`lint:js` 에 `--max-warnings 0` 을 걸었습니다(#1295). core 의 파일 경로 경고 101건은 모두 env·고정 경로·운영자 스크립트 인자에서 온 경로라 파일마다 근거 주석으로 허용하고, 경고로 낮춰 두던 디렉터리 override 를 지워 새 코드는 다시 error 로 잡힙니다. 런타임 동작은 바뀌지 않습니다.
 - 개발: jscpd 측정 상위 중복을 정리했습니다(#1296). 중복 비율 1.52% → 1.07%(1,465 → 1,028줄). 관계 도구 실패 응답·SQLite 재시도 루프·마이그레이션 실행부·hook HTTP 전송·벡터 검색 scope SQL 을 공통 helper 로 합치고, 호출되지 않던 품질 리포트 저장 함수 2개를 지웠습니다. 런타임 동작은 바뀌지 않습니다.
+- 개발: `npm run knip` 에 `--include-entry-exports` 를 켰습니다(#1307). 그동안 `@memento/core` 의 `src/index.ts`·subpath export 진입점 파일은 검사 대상이 아니라 그 뒤의 미사용 export 가 남았습니다. 저장소 어디서도 import 하지 않던 `src/index.ts` 재export 59개, 호출되지 않던 품질 지표·경고 함수(`generateQualityReport`·`printQualityAlert`·`generateOrLoadGroundTruth` 등)와 상수·타입을 지웠습니다. 동적 import 로 읽는 번호 마이그레이션 파일은 knip `exports` 검사에서 뺍니다. 런타임 동작은 바뀌지 않습니다.
 
 ## [2.0.3] - 2026-10-09
 

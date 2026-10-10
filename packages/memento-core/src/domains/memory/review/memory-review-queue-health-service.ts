@@ -102,10 +102,6 @@ export function computeMemoryReviewQueueHealthLive(
   };
 }
 
-export function memoryReviewQueueHealthSnapshotTableReady(db: Database.Database): boolean {
-  return snapshotTableReady(db);
-}
-
 /**
  * Append one snapshot row from current metrics. No-op when migration 034 is not applied.
  */

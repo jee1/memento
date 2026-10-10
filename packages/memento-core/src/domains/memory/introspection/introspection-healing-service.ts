@@ -26,7 +26,7 @@ import {
   ForgettingEventRepository,
 } from '../../forgetting/repositories/forgetting-event-repository.js';
 
-export const INTROSPECTION_HEAL_POLICY_NAME = 'introspection-heal';
+const INTROSPECTION_HEAL_POLICY_NAME = 'introspection-heal';
 
 export interface IntrospectionHealOptions {
   /** 시뮬레이션 모드 (DB 변경 없음). 기본 true — 명시적으로 false를 줘야 실행됨. */

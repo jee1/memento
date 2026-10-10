@@ -8,7 +8,7 @@ import { MEMENTO_LATEST_SCHEMA_VERSION } from '../../../shared/constants/schema-
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { SchemaVersionManager } from '../../../infrastructure/database/sqlite/migration/schema-version-manager.js';
 
-export const MEMORY_JSONL_FORMAT_VERSION = 1;
+const MEMORY_JSONL_FORMAT_VERSION = 1;
 
 type MemoryJsonlRecordType = 'memory_item' | 'memory_relation';
 
@@ -69,7 +69,7 @@ function buildInsertStatement(table: string, columns: string[]): string {
   return `INSERT OR REPLACE INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`;
 }
 
-export async function resolveExportSchemaVersion(db: Database.Database): Promise<string> {
+async function resolveExportSchemaVersion(db: Database.Database): Promise<string> {
   const manager = new SchemaVersionManager(db);
   const current = await manager.getCurrentVersion();
   return current ?? MEMENTO_LATEST_SCHEMA_VERSION;
@@ -140,7 +140,7 @@ export function exportMemoryJsonlSync(
   return buildMemoryJsonlContent(db, options, MEMENTO_LATEST_SCHEMA_VERSION);
 }
 
-export function parseMemoryJsonl(content: string): {
+function parseMemoryJsonl(content: string): {
   manifest: MemoryJsonlManifest;
   records: MemoryJsonlRecord[];
 } {

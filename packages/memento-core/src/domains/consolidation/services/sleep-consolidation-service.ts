@@ -28,13 +28,6 @@ interface SleepConsolidationRunOptions {
   lookbackDays?: number;
 }
 
-export class ConsolidationAlreadyRunningError extends Error {
-  constructor() {
-    super('Consolidation already running');
-    this.name = 'ConsolidationAlreadyRunningError';
-  }
-}
-
 /** 부트스트랩에서 `createRelationGraph(db)` 등으로 주입 (domains → infrastructure 직접 의존 금지) */
 export interface SleepConsolidationServiceDeps {
   relationGraph: IRelationGraph;

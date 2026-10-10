@@ -65,7 +65,7 @@ export function parseMementoResourceUri(uri: string): MementoResourceUriParts {
   }
 }
 
-export function isMementoResourceKind(value: string): value is MementoResourceKind {
+function isMementoResourceKind(value: string): value is MementoResourceKind {
   return (MEMENTO_RESOURCE_KINDS as readonly string[]).includes(value);
 }
 
