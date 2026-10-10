@@ -12,6 +12,10 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { callerOwnerClause } from '../../../tools/caller-scope.js';
+import { ForgettingEventRepository } from '../../forgetting/repositories/forgetting-event-repository.js';
+
+const MANUAL_FORGET_POLICY_NAME = 'manual-forget';
+const MANUAL_FORGET_DEFAULT_REASON = 'manual';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -48,6 +52,8 @@ type DeleteStats = Record<string, unknown> & {
 };
 
 export class ForgetTool extends BaseTool {
+  private readonly forgettingEventRepository = new ForgettingEventRepository();
+
   constructor() {
     super(
       'forget',
@@ -171,7 +177,7 @@ export class ForgetTool extends BaseTool {
       await this.validateDeletePermission(memory, context);
       
       // 삭제 로그 기록
-      await this.logDeleteAction(id, hard, reason, context);
+      await this.logDeleteAction(id, context);
       
       // 트랜잭션으로 삭제 실행
       await DatabaseUtils.runTransaction(context.db!, async () => {
@@ -191,6 +197,8 @@ export class ForgetTool extends BaseTool {
       
       // 관련 데이터 정리
       await this.cleanupRelatedData(id, hard, context);
+
+      this.recordForgettingEvent(id, hard, reason, context);
 
       return this.createSuccessResult({
         memory_id: id,
@@ -351,12 +359,7 @@ export class ForgetTool extends BaseTool {
   /**
    * 삭제 로그 기록
    */
-  private async logDeleteAction(
-    id: string, 
-    _hard: boolean, 
-    _reason: string | undefined, 
-    context: ToolContext
-  ): Promise<void> {
+  private async logDeleteAction(id: string, context: ToolContext): Promise<void> {
     try {
       await DatabaseUtils.run(
         context.db!,
@@ -367,6 +370,32 @@ export class ForgetTool extends BaseTool {
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       logger.warn('삭제 로그 기록 실패', {
+        error: maskedError.message
+      });
+    }
+  }
+
+  /**
+   * 수동 삭제를 memory_forgetting_event 에 남긴다 (#1304).
+   * feedback_event 는 memory_item 에 ON DELETE CASCADE 로 묶여 하드 삭제 때 함께 지워지므로,
+   * FK 가 없는 이 테이블이 soft/hard 구분과 사유를 보존한다.
+   */
+  private recordForgettingEvent(
+    id: string,
+    hard: boolean,
+    reason: string | undefined,
+    context: ToolContext
+  ): void {
+    try {
+      this.forgettingEventRepository.insert(context.db!, {
+        memory_id: id,
+        action: hard ? 'hard' : 'soft',
+        reason: reason || MANUAL_FORGET_DEFAULT_REASON,
+        policy: MANUAL_FORGET_POLICY_NAME,
+      });
+    } catch (error) {
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      logger.warn('망각 이벤트 기록 실패', {
         error: maskedError.message
       });
     }

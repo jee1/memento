@@ -18,6 +18,10 @@
 - 개발: jscpd 측정 상위 중복을 정리했습니다(#1296). 중복 비율 1.52% → 1.07%(1,465 → 1,028줄). 관계 도구 실패 응답·SQLite 재시도 루프·마이그레이션 실행부·hook HTTP 전송·벡터 검색 scope SQL 을 공통 helper 로 합치고, 호출되지 않던 품질 리포트 저장 함수 2개를 지웠습니다. 런타임 동작은 바뀌지 않습니다.
 - 개발: `npm run knip` 에 `--include-entry-exports` 를 켰습니다(#1307). 그동안 `@memento/core` 의 `src/index.ts`·subpath export 진입점 파일은 검사 대상이 아니라 그 뒤의 미사용 export 가 남았습니다. 저장소 어디서도 import 하지 않던 `src/index.ts` 재export 59개, 호출되지 않던 품질 지표·경고 함수(`generateQualityReport`·`printQualityAlert`·`generateOrLoadGroundTruth` 등)와 상수·타입을 지웠습니다. 동적 import 로 읽는 번호 마이그레이션 파일은 knip `exports` 검사에서 뺍니다. 런타임 동작은 바뀌지 않습니다.
 
+### Fixed
+
+- `forget`·`pin`·`unpin` 도구가 받은 `reason`(와 `forget` 의 soft/hard 구분)을 어디에도 남기지 않던 문제를 고쳤습니다(#1304). `forget` 은 성공한 삭제를 `memory_forgetting_event` 에 `policy: manual-forget`, `action: soft|hard`, `reason`(없으면 `manual`)으로 기록합니다. 이 테이블은 `memory_item` 과 FK 로 묶이지 않아 하드 삭제 뒤에도 남고, 관리자 `GET /admin/forgetting/events` 에서 자동 망각 이력과 함께 보입니다(보존 90일). `pin`·`unpin` 은 기존 `feedback_event` 행의 `comment` 컬럼에 사유를 넣습니다. MCP 도구 스키마와 DB 스키마는 바뀌지 않습니다.
+
 ## [2.0.3] - 2026-10-09
 
 MCP HTTP·agent API 의 요청 한도와 대시보드 세션 쿠키 `Secure` 처리를 보강하는 보안 패치입니다. 기본 한도는 일반 사용량보다 넉넉해 대부분의 설치는 설정을 바꿀 필요가 없습니다. 여러 클라이언트가 토큰 하나를 공유하며 429 를 받으면 `MEMENTO_HTTP_RATE_LIMIT_MCP` 를 올리십시오.
