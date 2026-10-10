@@ -55,15 +55,6 @@ export function assertMacroCategory(value: string, contextLabel: string): MacroC
   return value as MacroCategory;
 }
 
-export interface QueryWithCategory {
-  query_id: string;
-  query: string;
-  language: string;
-  category: string;
-  macro_category?: MacroCategory;
-  notes?: string;
-}
-
 export interface CategoryQualityReport {
   macro_category: MacroCategory;
   /** 실제 채점된 쿼리 수 (GT 보유) */

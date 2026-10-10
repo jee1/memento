@@ -35,7 +35,6 @@ export type { PersonalKnowledgeAgentDeps } from './services/personal-knowledge-a
 
 export {
   PersonalAgentLlmError,
-  isPersonalAgentLlmError,
 } from './errors/personal-agent-llm-error.js';
 export type { PersonalAgentLlmErrorCode } from './errors/personal-agent-llm-error.js';
 

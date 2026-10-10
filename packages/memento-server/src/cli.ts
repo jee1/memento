@@ -155,7 +155,7 @@ const subIdx = preOptions.subIdx;
 const commandToken = preOptions.commandToken;
 const showHelp = preOptions.help || (!commandToken && !subcommand);
 
-export async function main(): Promise<number> {
+async function main(): Promise<number> {
   const agentTokens = stripGlobalArgvForAgentDetection(process.argv);
   if (
     agentTokens[0] === 'doctor'

@@ -28,7 +28,6 @@ import { RemoveRelationTool } from '../domains/relation/tools/remove-relation-to
 import { ExportMemoriesTool } from '../domains/memory/tools/export-memories-tool.js';
 import { flattenNestedToolFilters } from './flatten-tool-params.js';
 
-export { flattenNestedToolFilters } from './flatten-tool-params.js';
 
 const coreTools = [
   new RememberTool(),
@@ -134,7 +133,7 @@ function telemetryParamsContext(params: unknown): Record<string, unknown> | null
 }
 
 /** 스펙 순서: params.owner_id → params.ownerId → input.context?.owner_id → input.context?.agent_id → ToolContext.agentId */
-export function resolveTelemetryOwnerId(context: ToolContext, params: unknown): string | null {
+function resolveTelemetryOwnerId(context: ToolContext, params: unknown): string | null {
   if (params && typeof params === 'object' && !Array.isArray(params)) {
     const p = params as Record<string, unknown>;
     const top = p.owner_id ?? p.ownerId;

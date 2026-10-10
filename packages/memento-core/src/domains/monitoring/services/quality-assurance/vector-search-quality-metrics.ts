@@ -22,12 +22,9 @@ export {
   loadBaselineSnapshot,
   compareWithBaseline,
   detectQualityDegradation,
-  printQualityAlert,
-  detectAndAlertQualityDegradation,
   generateGroundTruth,
   saveGroundTruth,
   loadGroundTruth,
-  generateOrLoadGroundTruth,
 } from './vector-search-quality-metrics/report-comparison.js';
 export type {
   QualityMetrics,
@@ -38,7 +35,6 @@ export type {
   BaselineSnapshot,
   BaselineComparisonResult,
   QualityDegradationDetection,
-  QualityAlertOptions,
   GroundTruthGenerationOptions,
 } from './vector-search-quality-metrics/report-comparison.js';
 export type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';

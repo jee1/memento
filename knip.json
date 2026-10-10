@@ -45,8 +45,9 @@
     }
   },
   "ignoreIssues": {
-    "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/*.ts": [
-      "duplicates"
+    "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/[0-9]*.ts": [
+      "duplicates",
+      "exports"
     ]
   }
 }

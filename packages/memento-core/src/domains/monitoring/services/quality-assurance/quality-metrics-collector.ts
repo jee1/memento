@@ -14,9 +14,6 @@ import type {
 } from './quality-metrics-types.js';
 export type {
   CollectedMetrics,
-  SearchQualityMetrics,
-  RelationQualityMetrics,
-  StorageQualityMetrics,
   SearchMetricsOptions,
   RelationMetricsOptions,
 } from './quality-metrics-types.js';

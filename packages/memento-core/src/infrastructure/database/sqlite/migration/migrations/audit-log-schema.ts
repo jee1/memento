@@ -3,7 +3,7 @@ import type Database from 'better-sqlite3';
 const BASE_TRANSPORTS = "'mcp_stdio', 'mcp_http', 'http_admin'";
 const ALL_TRANSPORTS = "'mcp_stdio', 'mcp_http', 'mcp_ws', 'rest', 'http_admin'";
 
-export function createAuditLogTable(
+function createAuditLogTable(
   db: Database.Database,
   tableName: 'audit_log' | 'audit_log_next' = 'audit_log',
   includeToolTransports = true,
@@ -36,7 +36,7 @@ export function createAuditLogTable(
   `);
 }
 
-export function createAuditLogIndexesAndTriggers(db: Database.Database): void {
+function createAuditLogIndexesAndTriggers(db: Database.Database): void {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_audit_log_filter ON audit_log(action, transport, timestamp);

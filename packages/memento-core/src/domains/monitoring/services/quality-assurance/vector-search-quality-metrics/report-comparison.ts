@@ -40,19 +40,15 @@ export type {
 
 export {
   detectQualityDegradation,
-  printQualityAlert,
-  detectAndAlertQualityDegradation,
 } from './report-degradation-alerts.js';
 export type {
   QualityDegradationDetection,
-  QualityAlertOptions,
 } from './report-degradation-alerts.js';
 
 export {
   generateGroundTruth,
   saveGroundTruth,
   loadGroundTruth,
-  generateOrLoadGroundTruth,
 } from './report-ground-truth.js';
 export type { GroundTruthGenerationOptions } from './report-ground-truth.js';
 

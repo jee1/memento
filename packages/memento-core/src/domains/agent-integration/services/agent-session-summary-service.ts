@@ -56,7 +56,7 @@ function formatPayload(payloadJson: string): string {
   }
 }
 
-export function buildAgentSessionSummary(
+function buildAgentSessionSummary(
   session: AgentSession,
   observations: AgentObservation[],
 ): { content: string; observationIds: string[] } | null {
