@@ -21,12 +21,60 @@ export function filterRecallItemsByTags(
   });
 }
 
+type TriggerConditions = Record<string, unknown>;
+
+/** trigger_conditions 를 객체로 파싱한다. 객체가 아니거나 파싱 실패면 null. */
+function parseTriggerConditions(raw: unknown): TriggerConditions | null {
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as TriggerConditions;
+  } catch {
+    return null;
+  }
+}
+
+/** 한쪽이 다른 쪽을 포함하면 일치. 둘 다 객체면 JSON 문자열로 비교한다. */
+function triggerValueMatches(value: unknown, contextValue: unknown): boolean {
+  const bothObjects =
+    typeof value === 'object' &&
+    typeof contextValue === 'object' &&
+    value !== null &&
+    contextValue !== null;
+  const valueStr = (bothObjects ? JSON.stringify(value) : String(value)).toLowerCase();
+  const contextStr = (bothObjects ? JSON.stringify(contextValue) : String(contextValue)).toLowerCase();
+  return valueStr.includes(contextStr) || contextStr.includes(valueStr);
+}
+
+/** 구조화된 컨텍스트: trigger_conditions 의 모든 키/값 쌍이 컨텍스트와 매칭되어야 한다. */
+function matchesTriggerContext(
+  conditions: TriggerConditions,
+  triggerContext: Record<string, unknown>
+): boolean {
+  return Object.entries(conditions).every(([key, value]) => {
+    const contextValue = triggerContext[key];
+    return contextValue !== undefined && triggerValueMatches(value, contextValue);
+  });
+}
+
+/** 쿼리 텍스트 fallback: 키 또는 값 중 하나라도 쿼리와 매칭되면 통과. */
+function matchesQueryText(conditions: TriggerConditions, queryText: string): boolean {
+  const overlaps = (s: string) => s.includes(queryText) || queryText.includes(s);
+  return (
+    Object.keys(conditions).some((k) => overlaps(k.toLowerCase())) ||
+    Object.values(conditions).some((v) => overlaps(String(v).toLowerCase()))
+  );
+}
+
 /**
  * trigger_conditions로 필터링
  * match_trigger_conditions=true일 때, 현재 컨텍스트와 trigger_conditions가 매칭되는 항목만 반환
  *
  * PRD 요구사항: 구조화된 컨텍스트(예: tool_name, error_type, params)와 JSON 매칭
- * 구조화된 컨텍스트가 제공되면 이를 우선 사용하고, 없으면 쿼리 텍스트를 사용
+ * 구조화된 컨텍스트가 제공되면 이를 우선 사용하고, 없으면 쿼리 텍스트를 사용.
+ * 쿼리와 컨텍스트가 모두 없으면 매칭 기준이 없으므로 통과하지 않는다.
  */
 export function filterRecallItemsByTriggerConditions(
   items: RecallSearchItem[],
@@ -34,86 +82,43 @@ export function filterRecallItemsByTriggerConditions(
   triggerContext?: Record<string, unknown>
 ): RecallSearchItem[] {
   const queryText = query?.toLowerCase() || '';
+  const hasContext = triggerContext !== undefined && Object.keys(triggerContext).length > 0;
 
   return items.filter((item) => {
-    // trigger_conditions가 없는 항목은 제외
-    if (!item.trigger_conditions) {
-      return false;
-    }
-
-    try {
-      // JSON 파싱 시도
-      const parsed =
-        typeof item.trigger_conditions === 'string'
-          ? JSON.parse(item.trigger_conditions)
-          : item.trigger_conditions;
-
-      // 객체인지 확인 (배열이나 null이 아닌 경우)
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        return false;
-      }
-
-      // 구조화된 컨텍스트가 제공된 경우: 키-값 기반 정확 매칭
-      // 모든 키/값 쌍이 매칭되어야 함 (첫 번째 키만 맞으면 통과하는 문제 수정)
-      if (triggerContext && Object.keys(triggerContext).length > 0) {
-        // trigger_conditions의 모든 키-값 쌍이 컨텍스트와 매칭되는지 확인
-        for (const [key, value] of Object.entries(parsed)) {
-          const contextValue = triggerContext[key];
-
-          // trigger_conditions에 있는 키가 컨텍스트에 없으면 매칭 실패
-          if (contextValue === undefined) {
-            return false;
-          }
-
-          // 값이 객체인 경우 재귀적으로 비교
-          if (
-            typeof value === 'object' &&
-            typeof contextValue === 'object' &&
-            value !== null &&
-            contextValue !== null
-          ) {
-            // 중첩 객체 매칭: context의 값이 trigger_conditions의 값과 부분적으로 일치하는지 확인
-            const valueStr = JSON.stringify(value).toLowerCase();
-            const contextStr = JSON.stringify(contextValue).toLowerCase();
-            if (!(valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
-              // 하나라도 매칭되지 않으면 실패
-              return false;
-            }
-          } else {
-            // 단순 값 매칭: 문자열로 변환하여 비교
-            const valueStr = String(value).toLowerCase();
-            const contextStr = String(contextValue).toLowerCase();
-            if (!(valueStr === contextStr || valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
-              // 하나라도 매칭되지 않으면 실패
-              return false;
-            }
-          }
-        }
-        // 모든 키/값 쌍이 매칭됨
-        return true;
-      }
-
-      // 구조화된 컨텍스트가 없는 경우: 쿼리 텍스트 기반 매칭 (fallback)
-      if (queryText) {
-        // 키 매칭: tool_name, error_type, params 등 구조화된 필드명과 매칭
-        const triggerKeys = Object.keys(parsed).map((k) => k.toLowerCase());
-        const triggerValues = Object.values(parsed).map((v) => String(v).toLowerCase());
-
-        // 키 또는 값 중 하나라도 쿼리와 매칭되면 통과
-        const keyMatch = triggerKeys.some((k) => k.includes(queryText) || queryText.includes(k));
-        const valueMatch = triggerValues.some((v) => v.includes(queryText) || queryText.includes(v));
-        return keyMatch || valueMatch;
-      }
-
-      // 쿼리와 컨텍스트가 모두 없으면 매칭 기준이 없으므로 필터링
-      // PRD: "현재 컨텍스트와 매칭" 요구사항 - 매칭 기준이 없으면 통과하지 않음
-      return false;
-    } catch {
-      // JSON 파싱 실패 시 제외
-      return false;
-    }
+    const conditions = item.trigger_conditions ? parseTriggerConditions(item.trigger_conditions) : null;
+    if (!conditions) return false;
+    if (hasContext) return matchesTriggerContext(conditions, triggerContext);
+    return queryText !== '' && matchesQueryText(conditions, queryText);
   });
 }
+
+type FilterPresence = (value: unknown) => boolean;
+const nonEmpty: FilterPresence = (value) => Boolean(value) && (value as { length: number }).length > 0;
+const truthy: FilterPresence = (value) => Boolean(value);
+const defined: FilterPresence = (value) => value !== undefined;
+
+/** filters_applied 에 싣는 키와 "적용됨" 판정. 순서가 응답 키 순서다. */
+const APPLIED_FILTER_RULES: ReadonlyArray<readonly [keyof AppliedFilters & keyof RecallFilters, FilterPresence]> = [
+  ['type', nonEmpty],
+  ['tags', nonEmpty],
+  ['privacy_scope', nonEmpty],
+  ['time_from', truthy],
+  ['time_to', truthy],
+  ['pinned', defined],
+  ['importance_min', defined],
+  ['importance_max', defined],
+  ['has_reflection_notes', defined],
+  // Procedural Version Management (Issue #57 Phase 2)
+  ['version_filter', truthy],
+  ['version_series_id', truthy],
+  ['version_number', defined],
+  ['include_version_chain', defined],
+  ['owner_id', defined],
+  ['process_id', defined],
+  ['session_id', defined],
+  ['project_id', defined],
+  ['include_diff_with', truthy]
+];
 
 /**
  * 적용된 필터 정보 반환
@@ -121,45 +126,9 @@ export function filterRecallItemsByTriggerConditions(
 export function getAppliedRecallFilters(filters?: RecallFilters): AppliedFilters {
   if (!filters) return {};
 
-  const applied: AppliedFilters = {};
-
-  if (filters.type && filters.type.length > 0) {
-    applied.type = filters.type;
+  const applied: Record<string, unknown> = {};
+  for (const [key, isApplied] of APPLIED_FILTER_RULES) {
+    if (isApplied(filters[key])) applied[key] = filters[key];
   }
-  if (filters.tags && filters.tags.length > 0) {
-    applied.tags = filters.tags;
-  }
-  if (filters.privacy_scope && filters.privacy_scope.length > 0) {
-    applied.privacy_scope = filters.privacy_scope;
-  }
-  if (filters.time_from) {
-    applied.time_from = filters.time_from;
-  }
-  if (filters.time_to) {
-    applied.time_to = filters.time_to;
-  }
-  if (filters.pinned !== undefined) {
-    applied.pinned = filters.pinned;
-  }
-  if (filters.importance_min !== undefined) {
-    applied.importance_min = filters.importance_min;
-  }
-  if (filters.importance_max !== undefined) {
-    applied.importance_max = filters.importance_max;
-  }
-  if (filters.has_reflection_notes !== undefined) {
-    applied.has_reflection_notes = filters.has_reflection_notes;
-  }
-  // Procedural Version Management (Issue #57 Phase 2)
-  if (filters.version_filter) applied.version_filter = filters.version_filter;
-  if (filters.version_series_id) applied.version_series_id = filters.version_series_id;
-  if (filters.version_number !== undefined) applied.version_number = filters.version_number;
-  if (filters.include_version_chain !== undefined) applied.include_version_chain = filters.include_version_chain;
-  if (filters.owner_id !== undefined) applied.owner_id = filters.owner_id;
-  if (filters.process_id !== undefined) applied.process_id = filters.process_id;
-  if (filters.session_id !== undefined) applied.session_id = filters.session_id;
-  if (filters.project_id !== undefined) applied.project_id = filters.project_id;
-  if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
-
-  return applied;
+  return applied as AppliedFilters;
 }

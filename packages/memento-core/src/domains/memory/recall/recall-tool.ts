@@ -67,58 +67,11 @@ export class RecallTool extends BaseTool {
     this.logInfo('Recall 도구 호출됨', { params });
 
     try {
-      const {
-        query,
-        type,
-        key,
-        agent_id,
-        memory_types,
-        tags,
-        privacy_scope,
-        time_from,
-        time_to,
-        pinned,
-        importance_min,
-        importance_max,
-        workflow_name,
-        skill_name,
-        match_trigger_conditions,
-        context: triggerContext,
-        trigger_context,
-        return_format,
-        limit,
-        vector_weight,
-        text_weight,
-        enable_hybrid,
-        include_metadata,
-        provider_filter,
-        auto_set_anchor,
-        include_neighbors,
-        neighbors_limit,
-        neighbors_per_item,
-        neighbors_similarity_threshold,
-        version_filter,
-        version_series_id,
-        version_number,
-        include_version_chain,
-        include_diff_with,
-        owner_id: owner_id_filter,
-        process_id: process_id_filter,
-        session_id: session_id_filter,
-        project_id: project_id_filter,
-        include_score_breakdown
-      } = RecallSchema.parse(params);
-
-      const effectiveAutoSetAnchor = auto_set_anchor ?? mementoConfig.autoSetAnchorDefault;
-
-      const actualTriggerContext = triggerContext || trigger_context;
-
-      const originalTypeProvided = !!type;
-      const validatedType = type;
-      const hasMemoryTypesFilter = Array.isArray(memory_types) && memory_types.length > 0;
+      const parsed = RecallSchema.parse(params);
+      const { query, type, key, agent_id, memory_types } = parsed;
 
       // #1188: memory_types 만 준 호출은 memory_types 로 검색한다. 기본 타입은 둘 다 없을 때만.
-      if (!type && !hasMemoryTypesFilter) {
+      if (!type && !(Array.isArray(memory_types) && memory_types.length > 0)) {
         const typeValidation = validateTypeParam(undefined, 'recall');
 
         if (!typeValidation.isValid) {
@@ -128,17 +81,17 @@ export class RecallTool extends BaseTool {
 
       this.logInfo('파라미터 파싱 완료', {
         query,
-        type: validatedType,
+        type,
         key,
         agent_id,
         memory_types,
-        tags,
-        privacy_scope,
-        limit,
-        vector_weight,
-        text_weight,
-        enable_hybrid,
-        provider_filter
+        tags: parsed.tags,
+        privacy_scope: parsed.privacy_scope,
+        limit: parsed.limit,
+        vector_weight: parsed.vector_weight,
+        text_weight: parsed.text_weight,
+        enable_hybrid: parsed.enable_hybrid,
+        provider_filter: parsed.provider_filter
       });
 
       this.validateDatabase(context);
@@ -146,186 +99,212 @@ export class RecallTool extends BaseTool {
       const searchStartTime = Date.now();
       const agentId = resolveCallerAgentId(context, agent_id || 'default');
 
-      if (validatedType === 'core') {
+      if (type === 'core') {
         return await recallCoreMemoryDirect(this.host, agentId, key, query, memory_types, searchStartTime, startTime, context);
       }
-      if (validatedType === 'vault') {
+      if (type === 'vault') {
         return await recallVaultMemoryDirect(this.host, agentId, key, query, memory_types, searchStartTime, startTime, context);
       }
-      {
-        if (!query) {
-          throw new ToolInputValidationError("query 파라미터는 필수입니다 (type='core' 또는 'vault'가 아닌 경우)");
-        }
-
-        this.validateString(query, '검색 쿼리', 1000);
-        this.validateNumber(limit, '결과 제한', 1, 100);
-
-        this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
-
-        if (originalTypeProvided && memory_types && memory_types.length > 0) {
-          this.logWarning('type 파라미터와 memory_types를 동시에 사용했습니다. type 파라미터를 우선 적용하고 memory_types는 무시합니다.', {
-            type: validatedType,
-            memory_types
-          });
-        }
-
-        let filteredMemoryTypes: MemoryTypeRequest[] | undefined;
-        if (validatedType) {
-          filteredMemoryTypes = [validatedType];
-        } else {
-          filteredMemoryTypes = memory_types;
-        }
-        if (filteredMemoryTypes && filteredMemoryTypes.length > 0) {
-          const invalidTypes = filteredMemoryTypes.filter(t => t === 'core' || t === 'vault');
-          if (invalidTypes.length > 0) {
-            this.logWarning('memory_types 배열에서 core/vault는 memory_item 검색에 사용할 수 없습니다. 자동으로 제거합니다.', {
-              invalid_types: invalidTypes,
-              original_memory_types: filteredMemoryTypes,
-              suggestion: 'Core/Vault 조회는 단일 type 파라미터를 사용하세요.'
-            });
-            filteredMemoryTypes = filteredMemoryTypes.filter(t => t !== 'core' && t !== 'vault') as MemoryTypeRequest[];
-            if (filteredMemoryTypes.length === 0) {
-              throw new ToolInputValidationError("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type 파라미터를 사용하여 Core/Vault를 조회하세요.");
-            }
-          }
-
-          const validMemoryTypes = filteredMemoryTypes.filter((t): t is MemoryType => isMemoryItemType(t));
-          if (validMemoryTypes.length === 0) {
-            throw new ToolInputValidationError("memory_types 배열에 유효한 타입이 없습니다.");
-          }
-          filteredMemoryTypes = validMemoryTypes;
-        }
-
-        const finalMemoryTypes: MemoryType[] | undefined = filteredMemoryTypes && filteredMemoryTypes.length > 0
-          ? (filteredMemoryTypes as MemoryType[])
-          : undefined;
-        const filters: MemorySearchFilters = {
-          type: finalMemoryTypes,
-          tags,
-          privacy_scope,
-          time_from,
-          time_to,
-          pinned,
-          importance_min,
-          importance_max,
-          has_reflection_notes: params.has_reflection_notes,
-          workflow_name,
-          skill_name,
-          version_filter: version_filter as VersionFilterType | undefined,
-          version_series_id,
-          version_number,
-          include_version_chain,
-          include_diff_with,
-          owner_id: owner_id_filter,
-          process_id: process_id_filter,
-          session_id: session_id_filter,
-          project_id: project_id_filter
-        };
-
-        const vectorWeight = vector_weight ?? 0.6;
-        const textWeight = text_weight ?? 0.4;
-        const enableHybrid = enable_hybrid ?? true;
-        const includeMetadata = include_metadata ?? true;
-        const wantScoreBreakdown = includeMetadata && include_score_breakdown === true;
-
-        const totalWeight = vectorWeight + textWeight;
-        const normalizedVectorWeight = totalWeight > 0 ? vectorWeight / totalWeight : 0.6;
-        const normalizedTextWeight = totalWeight > 0 ? textWeight / totalWeight : 0.4;
-
-        const queryHash = createHash('sha256').update(query).digest('hex').slice(0, 16);
-        const useHybridRecall = Boolean(
-          enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable()
-        );
-        const retrievalStrategy = recallTelemetryRetrievalStrategy(
-          useHybridRecall,
-          normalizedVectorWeight,
-          normalizedTextWeight
-        );
-        const { searchResult, executionTime } = await executeHybridOrTextSearchForMemoryItem(this.host, context, {
-          query,
-          filters,
-          limit,
-          normalizedVectorWeight,
-          normalizedTextWeight,
-          provider_filter,
-          match_trigger_conditions,
-          actualTriggerContext,
-          wantScoreBreakdown,
-          useHybridRecall,
-          enableHybrid,
-          searchStartTime,
-          retrievalStrategy,
-          queryHash
-        });
-
-        const { searchItems, processedResults } = await runMemoryItemPostSearchPipeline(this.host, context, searchResult, {
-          query,
-          version_filter,
-          version_series_id,
-          version_number,
-          include_version_chain,
-          include_diff_with,
-          owner_id_filter,
-          process_id_filter,
-          session_id_filter,
-          project_id_filter,
-          tags_filter: tags,
-          match_trigger_conditions,
-          actualTriggerContext,
-          includeMetadata,
-          return_format
-        });
-
-        return await finalizeMemoryItemRecallEnvelope(this.host, context, {
-          agentId,
-          query,
-          searchItems,
-          processedResults,
-          searchResult,
-          executionTime,
-          startTime,
-          searchStartTime,
-          enableHybrid,
-          includeMetadata,
-          auto_set_anchor: effectiveAutoSetAnchor,
-          include_neighbors,
-          neighbors_limit,
-          neighbors_per_item,
-          neighbors_similarity_threshold,
-          filters,
-          normalizedVectorWeight,
-          normalizedTextWeight,
-          retrievalStrategy,
-          queryHash
-        });
-      }
-
+      return await this.recallMemoryItems(parsed, params, context, { agentId, startTime, searchStartTime });
     } catch (error) {
-      if (isRecallInputValidationError(error)) {
-        this.logWarning('Recall 도구 실행 실패 (입력 검증)', { params, error: error.message });
-      } else {
-        this.logError(error as Error, 'Recall 도구 실행 실패', { params });
-      }
-
-      const executionTime = Date.now() - startTime;
-      await this.handleFailure(
-        error instanceof Error ? error : new Error(String(error)),
-        params,
-        context,
-        executionTime
-      );
-
-      if (error instanceof Error) {
-        if (error.message.includes('validation')) {
-          throw new Error(`입력 검증 실패: ${error.message}`);
-        } else if (error.message.includes('database')) {
-          throw new Error(`데이터베이스 오류: ${error.message}`);
-        } else if (error.message.includes('search')) {
-          throw new Error(`검색 오류: ${error.message}`);
-        }
-      }
-
-      throw error;
+      await this.reportFailure(error, params, context, startTime);
+      throw toRecallError(error);
     }
   }
+
+  /** memory_item 하이브리드/텍스트 검색 → 후처리 → 응답 봉투 */
+  private async recallMemoryItems(
+    parsed: ParsedRecallParams,
+    params: RecallParams,
+    context: ToolContext,
+    timing: { agentId: string; startTime: number; searchStartTime: number }
+  ): Promise<ToolResult> {
+    const { query, limit } = parsed;
+    if (!query) {
+      throw new ToolInputValidationError("query 파라미터는 필수입니다 (type='core' 또는 'vault'가 아닌 경우)");
+    }
+
+    this.validateString(query, '검색 쿼리', 1000);
+    this.validateNumber(limit, '결과 제한', 1, 100);
+
+    this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
+
+    const filters = buildRecallSearchFilters(parsed, this.resolveMemoryItemTypes(parsed), params.has_reflection_notes);
+
+    const enableHybrid = parsed.enable_hybrid ?? true;
+    const includeMetadata = parsed.include_metadata ?? true;
+    const wantScoreBreakdown = includeMetadata && parsed.include_score_breakdown === true;
+    const { normalizedVectorWeight, normalizedTextWeight } = normalizeRecallWeights(parsed.vector_weight, parsed.text_weight);
+    const actualTriggerContext = parsed.context || parsed.trigger_context;
+
+    const queryHash = createHash('sha256').update(query).digest('hex').slice(0, 16);
+    const useHybridRecall = Boolean(
+      enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable()
+    );
+    const retrievalStrategy = recallTelemetryRetrievalStrategy(
+      useHybridRecall,
+      normalizedVectorWeight,
+      normalizedTextWeight
+    );
+    const { searchResult, executionTime } = await executeHybridOrTextSearchForMemoryItem(this.host, context, {
+      query,
+      filters,
+      limit,
+      normalizedVectorWeight,
+      normalizedTextWeight,
+      provider_filter: parsed.provider_filter,
+      match_trigger_conditions: parsed.match_trigger_conditions,
+      actualTriggerContext,
+      wantScoreBreakdown,
+      useHybridRecall,
+      enableHybrid,
+      searchStartTime: timing.searchStartTime,
+      retrievalStrategy,
+      queryHash
+    });
+
+    const { searchItems, processedResults } = await runMemoryItemPostSearchPipeline(this.host, context, searchResult, {
+      query,
+      version_filter: parsed.version_filter,
+      version_series_id: parsed.version_series_id,
+      version_number: parsed.version_number,
+      include_version_chain: parsed.include_version_chain,
+      include_diff_with: parsed.include_diff_with,
+      owner_id_filter: parsed.owner_id,
+      process_id_filter: parsed.process_id,
+      session_id_filter: parsed.session_id,
+      project_id_filter: parsed.project_id,
+      tags_filter: parsed.tags,
+      match_trigger_conditions: parsed.match_trigger_conditions,
+      actualTriggerContext,
+      includeMetadata,
+      return_format: parsed.return_format
+    });
+
+    return await finalizeMemoryItemRecallEnvelope(this.host, context, {
+      agentId: timing.agentId,
+      query,
+      searchItems,
+      processedResults,
+      searchResult,
+      executionTime,
+      startTime: timing.startTime,
+      searchStartTime: timing.searchStartTime,
+      enableHybrid,
+      includeMetadata,
+      auto_set_anchor: parsed.auto_set_anchor ?? mementoConfig.autoSetAnchorDefault,
+      include_neighbors: parsed.include_neighbors,
+      neighbors_limit: parsed.neighbors_limit,
+      neighbors_per_item: parsed.neighbors_per_item,
+      neighbors_similarity_threshold: parsed.neighbors_similarity_threshold,
+      filters,
+      normalizedVectorWeight,
+      normalizedTextWeight,
+      retrievalStrategy,
+      queryHash
+    });
+  }
+
+  /**
+   * memory_item 검색에 쓸 타입 목록. type 이 있으면 type 만, 없으면 memory_types.
+   * memory_types 의 core/vault 는 경고 후 제거하고, 남는 유효 타입이 없으면 입력 오류.
+   */
+  private resolveMemoryItemTypes(parsed: ParsedRecallParams): MemoryType[] | undefined {
+    const { type, memory_types } = parsed;
+    if (type && memory_types && memory_types.length > 0) {
+      this.logWarning('type 파라미터와 memory_types를 동시에 사용했습니다. type 파라미터를 우선 적용하고 memory_types는 무시합니다.', {
+        type,
+        memory_types
+      });
+    }
+
+    const requested: MemoryTypeRequest[] | undefined = type ? [type] : memory_types;
+    if (!requested || requested.length === 0) return undefined;
+
+    const invalidTypes = requested.filter(t => t === 'core' || t === 'vault');
+    if (invalidTypes.length > 0) {
+      this.logWarning('memory_types 배열에서 core/vault는 memory_item 검색에 사용할 수 없습니다. 자동으로 제거합니다.', {
+        invalid_types: invalidTypes,
+        original_memory_types: requested,
+        suggestion: 'Core/Vault 조회는 단일 type 파라미터를 사용하세요.'
+      });
+      if (requested.length === invalidTypes.length) {
+        throw new ToolInputValidationError("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type 파라미터를 사용하여 Core/Vault를 조회하세요.");
+      }
+    }
+
+    const validMemoryTypes = requested.filter((t): t is MemoryType => isMemoryItemType(t));
+    if (validMemoryTypes.length === 0) {
+      throw new ToolInputValidationError("memory_types 배열에 유효한 타입이 없습니다.");
+    }
+    return validMemoryTypes;
+  }
+
+  private async reportFailure(error: unknown, params: RecallParams, context: ToolContext, startTime: number): Promise<void> {
+    if (isRecallInputValidationError(error)) {
+      this.logWarning('Recall 도구 실행 실패 (입력 검증)', { params, error: error.message });
+    } else {
+      this.logError(error as Error, 'Recall 도구 실행 실패', { params });
+    }
+
+    await this.handleFailure(
+      error instanceof Error ? error : new Error(String(error)),
+      params,
+      context,
+      Date.now() - startTime
+    );
+  }
+}
+
+type ParsedRecallParams = ReturnType<typeof RecallSchema.parse>;
+
+function buildRecallSearchFilters(
+  parsed: ParsedRecallParams,
+  memoryTypes: MemoryType[] | undefined,
+  hasReflectionNotes: RecallParams['has_reflection_notes']
+): MemorySearchFilters {
+  return {
+    type: memoryTypes,
+    tags: parsed.tags,
+    privacy_scope: parsed.privacy_scope,
+    time_from: parsed.time_from,
+    time_to: parsed.time_to,
+    pinned: parsed.pinned,
+    importance_min: parsed.importance_min,
+    importance_max: parsed.importance_max,
+    has_reflection_notes: hasReflectionNotes,
+    workflow_name: parsed.workflow_name,
+    skill_name: parsed.skill_name,
+    version_filter: parsed.version_filter as VersionFilterType | undefined,
+    version_series_id: parsed.version_series_id,
+    version_number: parsed.version_number,
+    include_version_chain: parsed.include_version_chain,
+    include_diff_with: parsed.include_diff_with,
+    owner_id: parsed.owner_id,
+    process_id: parsed.process_id,
+    session_id: parsed.session_id,
+    project_id: parsed.project_id
+  };
+}
+
+/** vector/text 가중치를 합이 1 이 되게 정규화한다. 합이 0 이하면 기본 0.6/0.4. */
+function normalizeRecallWeights(
+  vectorWeight = 0.6,
+  textWeight = 0.4
+): { normalizedVectorWeight: number; normalizedTextWeight: number } {
+  const totalWeight = vectorWeight + textWeight;
+  if (totalWeight <= 0) return { normalizedVectorWeight: 0.6, normalizedTextWeight: 0.4 };
+  return { normalizedVectorWeight: vectorWeight / totalWeight, normalizedTextWeight: textWeight / totalWeight };
+}
+
+/**
+ * 메시지에 validation/database/search 가 들어간 오류는 접두어를 붙인 새 Error 로 감싼다.
+ * 원래 오류 클래스는 사라진다 (기존 동작 유지, #1312).
+ */
+function toRecallError(error: unknown): unknown {
+  if (!(error instanceof Error)) return error;
+  if (error.message.includes('validation')) return new Error(`입력 검증 실패: ${error.message}`);
+  if (error.message.includes('database')) return new Error(`데이터베이스 오류: ${error.message}`);
+  if (error.message.includes('search')) return new Error(`검색 오류: ${error.message}`);
+  return error;
 }
