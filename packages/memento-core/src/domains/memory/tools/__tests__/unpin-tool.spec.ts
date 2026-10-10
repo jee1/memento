@@ -103,6 +103,13 @@ describe('UnpinTool', () => {
 
       const resultData = JSON.parse(result.content[0].text);
       expect(resultData.reason).toBe(reason);
+
+      const row = DatabaseUtils.get(
+        db,
+        "SELECT comment FROM feedback_event WHERE memory_id = ? AND event = 'edited'",
+        [memoryId]
+      ) as { comment: string | null } | undefined;
+      expect(row?.comment).toBe(reason);
     });
 
     it('존재하지 않는 메모리 고정 해제 시 에러를 던져야 함', async () => {

@@ -112,6 +112,29 @@ describe('ForgetTool', () => {
 
       const resultData = JSON.parse(result.content[0].text);
       expect(resultData.reason).toBe(reason);
+
+      const events = DatabaseUtils.all(
+        db,
+        'SELECT action, reason, policy FROM memory_forgetting_event WHERE memory_id = ?',
+        [memoryId]
+      );
+      expect(events).toEqual([{ action: 'soft', reason, policy: 'manual-forget' }]);
+    });
+
+    it('하드 삭제 뒤에도 망각 이벤트가 남아야 함 (feedback_event 는 CASCADE 로 사라짐)', async () => {
+      const memoryId = createTestMemory(db, {
+        content: 'Test memory',
+        type: 'episodic'
+      });
+
+      await tool.handle({ id: memoryId, hard: true, confirm: true }, context);
+
+      const events = DatabaseUtils.all(
+        db,
+        'SELECT action, reason, policy FROM memory_forgetting_event WHERE memory_id = ?',
+        [memoryId]
+      );
+      expect(events).toEqual([{ action: 'hard', reason: 'manual', policy: 'manual-forget' }]);
     });
   });
 
@@ -610,6 +633,8 @@ describe('ForgetTool', () => {
 
       const memory = DatabaseUtils.get(db, 'SELECT content FROM memory_item WHERE id = ?', [memoryId]);
       expect(memory?.content).toBe('other owner hard-delete target');
+      const events = DatabaseUtils.all(db, 'SELECT id FROM memory_forgetting_event WHERE memory_id = ?', [memoryId]);
+      expect(events).toEqual([]);
     });
 
     it('batch forget skips cross-owner ids without mutating them', async () => {

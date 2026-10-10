@@ -233,16 +233,16 @@ export class PinTool extends BaseTool {
    */
   private async logPinAction(
     id: string, 
-    _reason: string | undefined, 
+    reason: string | undefined, 
     priority: number, 
     context: ToolContext
   ): Promise<void> {
     try {
       await DatabaseUtils.run(
         context.db!,
-        `INSERT INTO feedback_event (memory_id, event, score, created_at) 
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
-        [id, 'helpful', priority]
+        `INSERT INTO feedback_event (memory_id, event, score, comment, created_at) 
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [id, 'helpful', priority, reason ?? null]
       );
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
