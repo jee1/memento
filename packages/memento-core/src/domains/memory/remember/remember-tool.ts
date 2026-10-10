@@ -20,7 +20,7 @@ import type { RememberParams } from './remember-tool-schema.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import { handleCoreMemory } from './remember-tool-core.js';
 import { handleVaultMemory } from './remember-tool-vault.js';
-import { handleMemoryItem } from './remember-tool-memory-item.js';
+import { handleMemoryItem, type MemoryItemContext } from './remember-tool-memory-item.js';
 import { validateReflectionNotesJson } from './remember-tool-reflection.js';
 import type { MemoryTypeRequest } from '../../../shared/types/memory.types.js';
 
@@ -135,84 +135,107 @@ export class RememberTool extends BaseTool {
     );
   }
 
+  // protected 메서드를 RememberToolHost 인터페이스로 노출하는 위임 객체
+  private readonly host: RememberToolHost = {
+    logInfo: (msg, data) => this.logInfo(msg, data),
+    logWarning: (msg, data) => this.logWarning(msg, data),
+    logError: (err, ctx, data) => this.logError(err, ctx, data),
+    createSuccessResult: (data) => this.createSuccessResult(data),
+    createErrorResult: (error, message, data) => {
+      const payload = {
+        success: false,
+        error: { code: error, message: message ?? error },
+        ...(data ? { data } : {}),
+      };
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(payload, null, 2),
+          },
+        ],
+        error,
+        ...(message ? { message } : {}),
+      };
+    },
+  };
+
+  /** type·source·procedural 필드를 검증하고 저장할 type 을 정한다. 유효한 source 는 정규화해 params 에 되쓴다 */
+  private validateInput(parsedParams: RememberParams): MemoryTypeRequest {
+    const { type: rawType, source: source_param, reflection_notes, workflow_name, skill_name, trigger_conditions } = parsedParams;
+
+    const typeValidation = validateTypeParam(rawType, 'remember');
+    if (!typeValidation.isValid) {
+      throw new ToolInputValidationError(typeValidation.message || 'type 파라미터는 필수입니다.');
+    }
+
+    const sourceValidation = validateSource(source_param);
+    if (!sourceValidation.isValid) {
+      const msg = sourceValidation.message ?? 'source URI 형식이 유효하지 않습니다';
+      if (mementoConfig.sourceStrict) {
+        throw new ToolInputValidationError(`❌ remember: ${msg}`);
+      }
+      this.logWarning(`⚠️  remember: ${msg} (source='${source_param}')`);
+    } else if (sourceValidation.normalizedSource) {
+      parsedParams.source = sourceValidation.normalizedSource;
+    }
+
+    const type = (rawType || typeValidation.defaultType || 'episodic') as MemoryTypeRequest;
+
+    if (type === 'procedural') {
+      if (reflection_notes != null) {
+        validateReflectionNotesJson(reflection_notes);
+      }
+      try {
+        validateProceduralMemoryFields({ workflow_name, skill_name, trigger_conditions });
+      } catch (error) {
+        throw new ToolInputValidationError(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    if (parsedParams.memory_id && (type === 'core' || type === 'vault')) {
+      throw new ToolInputValidationError(
+        'memory_id는 core/vault 타입에 사용할 수 없습니다. core/vault는 key로 대상을 지정합니다',
+      );
+    }
+    return type;
+  }
+
+  /** memory_item 쓰기 맥락: 호출자(owner·process·session)와 저장 메타데이터 */
+  private buildMemoryItemContext(
+    parsedParams: RememberParams,
+    context: ToolContext,
+    type: MemoryTypeRequest,
+    ownerId: string | null,
+    origin_source: string,
+    startTime: number,
+  ): MemoryItemContext {
+    const sessionId = parsedParams.session_id ?? context.sessionId ?? null;
+    const isPlainSave = !parsedParams.memory_id && !parsedParams.update_mode;
+    return {
+      type,
+      ownerId,
+      processId: parsedParams.process_id ?? context.processId ?? null,
+      sessionId,
+      numTimes: parsedParams.num_times ?? 1,
+      sourceSessionId: parsedParams.source_session_id ?? sessionId,
+      confidenceVal: parsedParams.confidence ?? null,
+      origin_source,
+      startTime,
+      project_id_param: parsedParams.project_id ?? (isPlainSave ? context.projectId : undefined),
+      last_mentioned_at_param: parsedParams.last_mentioned_at ?? null,
+    };
+  }
+
   async handle(params: RememberParams, context: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
     try {
       const parsedParams = RememberSchema.parse(params);
-      const {
-        type: rawType,
-        key, value, always_load, immutable,
-        reflection_notes, workflow_name, skill_name, trigger_conditions,
-        owner_id: owner_id_param, process_id: process_id_param,
-        session_id: session_id_param, project_id: project_id_param,
-        num_times: num_times_param, last_mentioned_at: last_mentioned_at_param,
-        source_session_id: source_session_id_param, confidence: confidence_param,
-        source: source_param,
-      } = parsedParams;
-
-      const ownerId = resolveCallerAgentId(context, owner_id_param ?? undefined) ?? context.agentId ?? null;
-      const processId = process_id_param ?? context.processId ?? null;
-      const sessionId = session_id_param ?? context.sessionId ?? null;
-      const numTimes = num_times_param ?? 1;
-      const sourceSessionId = source_session_id_param ?? sessionId;
-      const confidenceVal = confidence_param ?? null;
-
-      const typeValidation = validateTypeParam(rawType, 'remember');
-      if (!typeValidation.isValid) {
-        throw new ToolInputValidationError(typeValidation.message || 'type 파라미터는 필수입니다.');
-      }
-
-      const sourceValidation = validateSource(source_param);
-      if (!sourceValidation.isValid) {
-        const msg = sourceValidation.message ?? 'source URI 형식이 유효하지 않습니다';
-        if (mementoConfig.sourceStrict) {
-          throw new ToolInputValidationError(`❌ remember: ${msg}`);
-        }
-        this.logWarning(`⚠️  remember: ${msg} (source='${source_param}')`);
-      } else if (sourceValidation.normalizedSource) {
-        parsedParams.source = sourceValidation.normalizedSource;
-      }
-
-      const type = (rawType || typeValidation.defaultType || 'episodic') as MemoryTypeRequest;
-
-      if (type === 'procedural' && reflection_notes != null) {
-        validateReflectionNotesJson(reflection_notes);
-      }
-      if (type === 'procedural') {
-        try {
-          validateProceduralMemoryFields({ workflow_name, skill_name, trigger_conditions });
-        } catch (error) {
-          throw new ToolInputValidationError(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error)}`);
-        }
-      }
-
+      const ownerId = resolveCallerAgentId(context, parsedParams.owner_id ?? undefined) ?? context.agentId ?? null;
+      const type = this.validateInput(parsedParams);
       this.validateDatabase(context);
 
-      // protected 메서드를 RememberToolHost 인터페이스로 노출하는 위임 객체
-      const host: RememberToolHost = {
-        logInfo: (msg, data) => this.logInfo(msg, data),
-        logWarning: (msg, data) => this.logWarning(msg, data),
-        logError: (err, ctx, data) => this.logError(err, ctx, data),
-        createSuccessResult: (data) => this.createSuccessResult(data),
-        createErrorResult: (error, message, data) => {
-          const payload = {
-            success: false,
-            error: { code: error, message: message ?? error },
-            ...(data ? { data } : {}),
-          };
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify(payload, null, 2),
-              },
-            ],
-            error,
-            ...(message ? { message } : {}),
-          };
-        },
-      };
-
+      const { key, value, always_load, immutable } = parsedParams;
       const origin_source = JSON.stringify({
         tool: 'remember',
         caller: 'user',
@@ -225,36 +248,18 @@ export class RememberTool extends BaseTool {
         }
       });
 
-      if (parsedParams.memory_id && (type === 'core' || type === 'vault')) {
-        throw new ToolInputValidationError(
-          'memory_id는 core/vault 타입에 사용할 수 없습니다. core/vault는 key로 대상을 지정합니다',
-        );
+      if (type === 'core' || type === 'vault') {
+        if (!key || !value) throw new ToolInputValidationError(`type='${type}'일 때는 key와 value가 필수입니다`);
+        return type === 'core'
+          ? await handleCoreMemory({ key, value, always_load, origin_source, ownerId, startTime }, context, this.host)
+          : await handleVaultMemory({ key, value, immutable, origin_source, ownerId, startTime }, context, this.host);
       }
-
-      if (type === 'core') {
-        if (!key || !value) throw new ToolInputValidationError("type='core'일 때는 key와 value가 필수입니다");
-        return await handleCoreMemory({ key, value, always_load, origin_source, ownerId, startTime }, context, host);
-      }
-
-      if (type === 'vault') {
-        if (!key || !value) throw new ToolInputValidationError("type='vault'일 때는 key와 value가 필수입니다");
-        return await handleVaultMemory({ key, value, immutable, origin_source, ownerId, startTime }, context, host);
-      }
-
-      const isPlainSave = !parsedParams.memory_id && !parsedParams.update_mode;
-      const projectIdParam = project_id_param ?? (isPlainSave ? context.projectId : undefined);
 
       return await handleMemoryItem(
         parsedParams,
         context,
-        {
-          type, ownerId, processId, sessionId,
-          numTimes, sourceSessionId, confidenceVal,
-          origin_source, startTime,
-          project_id_param: projectIdParam,
-          last_mentioned_at_param: last_mentioned_at_param ?? null
-        },
-        host
+        this.buildMemoryItemContext(parsedParams, context, type, ownerId, origin_source, startTime),
+        this.host
       );
     } catch (error) {
       const executionTime = Date.now() - startTime;
