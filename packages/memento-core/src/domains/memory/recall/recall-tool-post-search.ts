@@ -136,46 +136,57 @@ async function collectMetaMemoryStats(
   }
 }
 
+type PostSearchInput = {
+  query: string;
+  version_filter: RecallParams['version_filter'];
+  version_series_id: RecallParams['version_series_id'];
+  version_number: RecallParams['version_number'];
+  include_version_chain: RecallParams['include_version_chain'];
+  include_diff_with: RecallParams['include_diff_with'];
+  owner_id_filter: RecallParams['owner_id'];
+  process_id_filter: RecallParams['process_id'];
+  session_id_filter: RecallParams['session_id'];
+  project_id_filter: RecallParams['project_id'];
+  tags_filter: RecallParams['tags'];
+  match_trigger_conditions: boolean;
+  actualTriggerContext: Record<string, unknown> | undefined;
+  includeMetadata: boolean;
+  return_format: 'full' | 'steps_only';
+};
+
+/** scope id 필터(단일 값 또는 배열). 값이 null 인 항목은 떨어뜨린다. 필터가 비면 그대로. */
+function filterByScopeId(
+  items: RecallSearchItem[],
+  filter: string | string[] | undefined,
+  pick: (item: RecallSearchItem) => string | null | undefined
+): RecallSearchItem[] {
+  if (!filter || filter.length === 0) return items;
+  const ids = Array.isArray(filter) ? filter : [filter];
+  return items.filter((item) => {
+    const id = pick(item);
+    return id != null && ids.includes(id);
+  });
+}
+
+/** version → tags → owner → process → session → project 순서로 거른다. */
+function applyPostSearchFilters(items: RecallSearchItem[], input: PostSearchInput): RecallSearchItem[] {
+  let filtered = items;
+  if (input.version_filter) {
+    filtered = applyVersionFilter(filtered, input.version_filter, input.version_series_id, input.version_number);
+  }
+  filtered = filterRecallItemsByTags(filtered, input.tags_filter);
+  filtered = filterByScopeId(filtered, input.owner_id_filter, (i) => i.owner_id);
+  filtered = filterByScopeId(filtered, input.process_id_filter, (i) => i.process_id);
+  filtered = filterByScopeId(filtered, input.session_id_filter, (i) => i.session_id);
+  return filterByScopeId(filtered, input.project_id_filter, (i) => i.project_id);
+}
+
 export async function runMemoryItemPostSearchPipeline(
   host: RecallToolHost,
   context: ToolContext,
   searchResult: RecallHybridOrTextSearchResult | undefined,
-  input: {
-    query: string;
-    version_filter: RecallParams['version_filter'];
-    version_series_id: RecallParams['version_series_id'];
-    version_number: RecallParams['version_number'];
-    include_version_chain: RecallParams['include_version_chain'];
-    include_diff_with: RecallParams['include_diff_with'];
-    owner_id_filter: RecallParams['owner_id'];
-    process_id_filter: RecallParams['process_id'];
-    session_id_filter: RecallParams['session_id'];
-    project_id_filter: RecallParams['project_id'];
-    tags_filter: RecallParams['tags'];
-    match_trigger_conditions: boolean;
-    actualTriggerContext: Record<string, unknown> | undefined;
-    includeMetadata: boolean;
-    return_format: 'full' | 'steps_only';
-  }
+  input: PostSearchInput
 ): Promise<{ searchItems: RecallSearchItem[]; processedResults: RecallResultItem[] }> {
-  const {
-    query,
-    version_filter,
-    version_series_id,
-    version_number,
-    include_version_chain,
-    include_diff_with,
-    owner_id_filter,
-    process_id_filter,
-    session_id_filter,
-    project_id_filter,
-    tags_filter,
-    match_trigger_conditions,
-    actualTriggerContext,
-    includeMetadata,
-    return_format
-  } = input;
-
   let searchItems: RecallSearchItem[] = (searchResult?.items ?? []) as RecallSearchItem[];
 
   if (context.db && searchItems.length > 0) {
@@ -183,60 +194,25 @@ export async function runMemoryItemPostSearchPipeline(
     searchItems = enrichRecallItemsWithMemoryMetadata(context.db, searchItems);
   }
 
-  if (version_filter && searchItems.length > 0) {
-    searchItems = applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
-  }
+  searchItems = applyPostSearchFilters(searchItems, input);
 
-  if (tags_filter && tags_filter.length > 0 && searchItems.length > 0) {
-    searchItems = filterRecallItemsByTags(searchItems, tags_filter);
-  }
-
-  if (owner_id_filter && owner_id_filter.length > 0 && searchItems.length > 0) {
-    const ownerIds = Array.isArray(owner_id_filter) ? owner_id_filter : [owner_id_filter];
-    searchItems = searchItems.filter(
-      (i: RecallSearchItem) => i.owner_id != null && ownerIds.includes(i.owner_id)
-    );
-  }
-
-  if (process_id_filter && process_id_filter.length > 0 && searchItems.length > 0) {
-    const processIds = Array.isArray(process_id_filter) ? process_id_filter : [process_id_filter];
-    searchItems = searchItems.filter(
-      (i: RecallSearchItem) => i.process_id != null && processIds.includes(i.process_id)
-    );
-  }
-  if (session_id_filter && session_id_filter.length > 0 && searchItems.length > 0) {
-    const sessionIds = Array.isArray(session_id_filter) ? session_id_filter : [session_id_filter];
-    searchItems = searchItems.filter(
-      (i: RecallSearchItem) => i.session_id != null && sessionIds.includes(i.session_id)
-    );
-  }
-  if (project_id_filter && searchItems.length > 0) {
-    searchItems = searchItems.filter(
-      (i: RecallSearchItem) => i.project_id != null && i.project_id === project_id_filter
-    );
-  }
-
-  if ((include_version_chain || include_diff_with) && context.db && searchItems.length > 0) {
+  if ((input.include_version_chain || input.include_diff_with) && context.db) {
     searchItems = await enrichProceduralVersionInfo(
       context.db,
       searchItems,
-      include_version_chain === true,
-      include_diff_with
+      input.include_version_chain === true,
+      input.include_diff_with
     );
   }
 
-  if (match_trigger_conditions && searchItems.length > 0) {
-    searchItems = filterRecallItemsByTriggerConditions(searchItems, query, actualTriggerContext);
+  if (input.match_trigger_conditions) {
+    searchItems = filterRecallItemsByTriggerConditions(searchItems, input.query, input.actualTriggerContext);
   }
 
-  if (context.services.metaMemoryService && searchItems.length > 0) {
-    try {
-      await collectMetaMemoryStats(host, searchItems, context.services.metaMemoryService);
-    } catch (error) {
-      host.logError(error as Error, '메타 통계 수집 실패', {});
-    }
+  if (context.services.metaMemoryService) {
+    await collectMetaMemoryStats(host, searchItems, context.services.metaMemoryService);
   }
 
-  const processedResults = mapRecallSearchItemsToResultItems(searchItems, includeMetadata, return_format);
+  const processedResults = mapRecallSearchItemsToResultItems(searchItems, input.includeMetadata, input.return_format);
   return { searchItems, processedResults };
 }
