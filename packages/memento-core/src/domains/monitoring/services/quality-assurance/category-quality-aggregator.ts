@@ -10,11 +10,14 @@ import {
 } from '../../../../shared/types/benchmark.types.js';
 import {
   calculateNDCGAtK,
+  type GroundTruth,
   type SearchResult,
 } from './search-quality-metrics.js';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
+  type BenchmarkCorpusEntry,
+  type BenchmarkQuery,
 } from './search-quality-benchmark-fixtures.js';
 import {
   normalizeBenchmarkGroundTruths,
@@ -55,6 +58,184 @@ export function top10LongDocRatio(
   return top.filter((i) => (i.content?.length ?? 0) > minLength).length / top.length;
 }
 
+interface CategoryMapping {
+  macro_categories: Record<string, string[]>;
+  query_overrides?: Record<string, string>;
+  /** FR-005: queries.json 변경 없이 query_id → 카테고리 라벨(사람 유지) */
+  query_id_to_category: Record<string, string>;
+}
+
+/** 쿼리 하나의 검색 결과와 길이 편향 지표 */
+interface CategorySearchOutcome {
+  results: SearchResult[];
+  top10Length: number;
+  longDocRatio: number;
+}
+
+const ALL_MACROS: MacroCategory[] = [
+  'incident_ops',
+  'procedural',
+  'conceptual',
+  'tag_filter'
+];
+const MRR_THRESHOLD = 0.5;
+
+/** relevantIds 가 있고, maxGroundTruthLength 가 있으면 GT 문서 최대 길이가 그 이하인 쿼리만 남긴다. */
+function selectScoredGroundTruths(
+  benchmarkDir: string,
+  corpus: BenchmarkCorpusEntry[],
+  maxGroundTruthLength: number | undefined
+): GroundTruth[] {
+  const benchmarkIdToLength = new Map(
+    corpus.map((e) => [e.benchmark_id, (e.content ?? '').length])
+  );
+  const gtMaxLen = (ids: string[]): number =>
+    ids.reduce((m, id) => Math.max(m, benchmarkIdToLength.get(id) ?? 0), 0);
+
+  return normalizeBenchmarkGroundTruths(benchmarkDir)
+    .filter((groundTruth) => {
+      if (groundTruth.relevantIds.length > 0) {
+        return true;
+      }
+      logger.warn('카테고리 품질 측정에서 Ground Truth 없는 쿼리 제외', {
+        query: groundTruth.queryId,
+      });
+      return false;
+    })
+    .filter(
+      (gt) =>
+        maxGroundTruthLength === undefined ||
+        gtMaxLen(gt.relevantIds) <= maxGroundTruthLength
+    );
+}
+
+/** query_id 와 쿼리 본문 → macro. 매핑이 빠졌거나 macro 가 잘못되면 throw. */
+function buildQueryMacroMap(queries: BenchmarkQuery[], mapping: CategoryMapping): Map<string, MacroCategory> {
+  const categoryToMacro = new Map<string, MacroCategory>();
+  for (const [macro, cats] of Object.entries(mapping.macro_categories)) {
+    const macroKey = assertMacroCategory(macro, 'macro_categories key');
+    for (const c of cats) {
+      categoryToMacro.set(c, macroKey);
+    }
+  }
+
+  for (const [qid, v] of Object.entries(mapping.query_overrides ?? {})) {
+    if (v !== undefined) {
+      assertMacroCategory(v, `query_overrides[${qid}]`);
+    }
+  }
+
+  const queryIdToMacro = new Map<string, MacroCategory>();
+  for (const q of queries) {
+    const categoryLabel = mapping.query_id_to_category?.[q.query_id];
+    if (!categoryLabel) {
+      throw new Error(
+        `Category mapping missing query_id_to_category for query ${q.query_id}`
+      );
+    }
+    const overrideRaw = mapping.query_overrides?.[q.query_id];
+    const macro =
+      overrideRaw !== undefined ? (overrideRaw as MacroCategory) : categoryToMacro.get(categoryLabel);
+    if (!macro) {
+      throw new Error(
+        `Category mapping missing macro for query ${q.query_id} (category=${categoryLabel})`
+      );
+    }
+    queryIdToMacro.set(q.query_id, macro);
+    // normalizeBenchmarkGroundTruths가 queryId를 쿼리 본문으로 통일하므로 텍스트 키도 등록
+    if (q.query) {
+      queryIdToMacro.set(q.query, macro);
+    }
+  }
+  return queryIdToMacro;
+}
+
+/** #961: short-only 서브셋에서는 authored도 같은 술어로 걸러 coverage 게이트가 죽지 않게 한다 */
+function countAuthoredByMacro(
+  queries: BenchmarkQuery[],
+  queryIdToMacro: Map<string, MacroCategory>,
+  groundTruths: GroundTruth[],
+  maxGroundTruthLength: number | undefined
+): Map<MacroCategory, number> {
+  const scoredQueryKeys = new Set(groundTruths.map((gt) => gt.queryId));
+  const authoredByMacro = new Map<MacroCategory, number>();
+  for (const q of queries) {
+    if (
+      maxGroundTruthLength !== undefined &&
+      !scoredQueryKeys.has(q.query_id) &&
+      !scoredQueryKeys.has(q.query)
+    ) {
+      continue;
+    }
+    const macro = queryIdToMacro.get(q.query_id);
+    if (macro) {
+      authoredByMacro.set(macro, (authoredByMacro.get(macro) ?? 0) + 1);
+    }
+  }
+  return authoredByMacro;
+}
+
+function emptyMacroReport(macro: MacroCategory, authored: number): CategoryQualityReport {
+  // #934: empty scored bucket still emits a row so coverage denominator keeps authored count
+  logger.warn('Ground Truth 없는 카테고리 — scored=0으로 리포트에 유지', {
+    macro_category: macro,
+    authored_query_count: authored,
+  });
+  return {
+    macro_category: macro,
+    query_count: 0,
+    authored_query_count: authored,
+    mrr: 0,
+    ndcg_at_5: 0,
+    ndcg_at_10: 0,
+    mean_top10_content_length: 0,
+    mean_top10_long_doc_ratio: 0,
+    threshold_passed: false,
+  };
+}
+
+/** NDCG·길이 지표는 결과 없는 쿼리를 0 으로 세고 subset 전체 수로 나눈다. */
+function buildMacroReport(
+  macro: MacroCategory,
+  subsetGts: GroundTruth[],
+  authored: number,
+  outcomes: Map<string, CategorySearchOutcome>
+): CategoryQualityReport {
+  if (subsetGts.length === 0) {
+    return emptyMacroReport(macro, authored);
+  }
+
+  const subMap = new Map<string, SearchResult[]>();
+  let ndcg5 = 0;
+  let ndcg10 = 0;
+  let top10LenSum = 0;
+  let longDocRatioSum = 0;
+  for (const gt of subsetGts) {
+    const outcome = outcomes.get(gt.queryId);
+    if (!outcome) continue;
+    subMap.set(gt.queryId, outcome.results);
+    if (outcome.results.length === 0) continue;
+    ndcg5 += calculateNDCGAtK(outcome.results, gt.relevantIds, 5);
+    ndcg10 += calculateNDCGAtK(outcome.results, gt.relevantIds, 10);
+    top10LenSum += outcome.top10Length;
+    longDocRatioSum += outcome.longDocRatio;
+  }
+
+  const mrr = calculateMRR(subMap, subsetGts);
+  const n = subsetGts.length;
+  return {
+    macro_category: macro,
+    query_count: n,
+    authored_query_count: authored,
+    mrr,
+    ndcg_at_5: ndcg5 / n,
+    ndcg_at_10: ndcg10 / n,
+    mean_top10_content_length: top10LenSum / n,
+    mean_top10_long_doc_ratio: longDocRatioSum / n,
+    threshold_passed: mrr >= MRR_THRESHOLD
+  };
+}
+
 export class CategoryQualityAggregator {
   constructor(private db: Database.Database) {}
 
@@ -63,104 +244,44 @@ export class CategoryQualityAggregator {
     mappingPath: string,
     options?: CategoryMetricsOptions
   ): Promise<CategoryQualityReport[]> {
-    const raw = JSON.parse(readFileSync(mappingPath, 'utf8')) as {
-      macro_categories: Record<string, string[]>;
-      query_overrides?: Record<string, string>;
-      /** FR-005: queries.json 변경 없이 query_id → 카테고리 라벨(사람 유지) */
-      query_id_to_category: Record<string, string>;
-    };
+    const mapping = JSON.parse(readFileSync(mappingPath, 'utf8')) as CategoryMapping;
     const queries = loadBenchmarkQueries(benchmarkDir);
     const corpus = loadBenchmarkCorpus(benchmarkDir);
-    const benchmarkIdToLength = new Map(
-      corpus.map((e) => [e.benchmark_id, (e.content ?? '').length])
+    const groundTruths = selectScoredGroundTruths(benchmarkDir, corpus, options?.maxGroundTruthLength);
+    const queryIdToMacro = buildQueryMacroMap(queries, mapping);
+    const authoredByMacro = countAuthoredByMacro(queries, queryIdToMacro, groundTruths, options?.maxGroundTruthLength);
+    const outcomes = await this.runCategorySearches(groundTruths, queries, corpus, options);
+
+    return ALL_MACROS.map((macro) =>
+      buildMacroReport(
+        macro,
+        groundTruths.filter(gt => queryIdToMacro.get(gt.queryId) === macro),
+        authoredByMacro.get(macro) ?? 0,
+        outcomes
+      )
     );
-    const gtMaxLen = (ids: string[]): number =>
-      ids.reduce((m, id) => Math.max(m, benchmarkIdToLength.get(id) ?? 0), 0);
+  }
 
-    const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir)
-      .filter((groundTruth) => {
-        if (groundTruth.relevantIds.length > 0) {
-          return true;
-        }
-        logger.warn('카테고리 품질 측정에서 Ground Truth 없는 쿼리 제외', {
-          query: groundTruth.queryId,
-        });
-        return false;
-      })
-      .filter(
-        (gt) =>
-          options?.maxGroundTruthLength === undefined ||
-          gtMaxLen(gt.relevantIds) <= options.maxGroundTruthLength
-      );
+  /** ground truth 쿼리를 순서대로 검색한다. 결과 id 는 benchmark id 로 바꾼다. */
+  private async runCategorySearches(
+    groundTruths: GroundTruth[],
+    queries: BenchmarkQuery[],
+    corpus: BenchmarkCorpusEntry[],
+    options: CategoryMetricsOptions | undefined
+  ): Promise<Map<string, CategorySearchOutcome>> {
     const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
-
-    const categoryToMacro = new Map<string, MacroCategory>();
-    for (const [macro, cats] of Object.entries(raw.macro_categories)) {
-      const macroKey = assertMacroCategory(macro, 'macro_categories key');
-      for (const c of cats) {
-        categoryToMacro.set(c, macroKey);
-      }
-    }
-
-    if (raw.query_overrides) {
-      for (const qid of Object.keys(raw.query_overrides)) {
-        const v = raw.query_overrides[qid];
-        if (v !== undefined) {
-          assertMacroCategory(v, `query_overrides[${qid}]`);
-        }
-      }
-    }
-
-    const queryIdToMacro = new Map<string, MacroCategory>();
+    const queryById = new Map<string, BenchmarkQuery>();
     for (const q of queries) {
-      const categoryLabel = raw.query_id_to_category?.[q.query_id];
-      if (!categoryLabel) {
-        throw new Error(
-          `Category mapping missing query_id_to_category for query ${q.query_id}`
-        );
-      }
-      const overrideRaw = raw.query_overrides?.[q.query_id];
-      const macro =
-        overrideRaw !== undefined ? (overrideRaw as MacroCategory) : categoryToMacro.get(categoryLabel);
-      if (!macro) {
-        throw new Error(
-          `Category mapping missing macro for query ${q.query_id} (category=${categoryLabel})`
-        );
-      }
-      queryIdToMacro.set(q.query_id, macro);
-      // normalizeBenchmarkGroundTruths가 queryId를 쿼리 본문으로 통일하므로 텍스트 키도 등록
-      if (q.query) {
-        queryIdToMacro.set(q.query, macro);
-      }
-    }
-
-    // #961: short-only 서브셋에서는 authored도 같은 술어로 걸러 coverage 게이트가 죽지 않게 한다
-    const scoredQueryKeys = new Set(groundTruths.map((gt) => gt.queryId));
-    const authoredByMacro = new Map<MacroCategory, number>();
-    for (const q of queries) {
-      if (
-        options?.maxGroundTruthLength !== undefined &&
-        !scoredQueryKeys.has(q.query_id) &&
-        !scoredQueryKeys.has(q.query)
-      ) {
-        continue;
-      }
-      const macro = queryIdToMacro.get(q.query_id);
-      if (macro) {
-        authoredByMacro.set(macro, (authoredByMacro.get(macro) ?? 0) + 1);
-      }
+      if (!queryById.has(q.query_id)) queryById.set(q.query_id, q);
     }
 
     // #961 R4: AdaptiveWeightCalculator caches by query string — callers must use a fresh
     // engine per arm. createDefaultEngine here is per collect() call (sweep creates new collector).
     const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
-    const queryResultsByQueryId = new Map<string, SearchResult[]>();
-    const top10LenByQueryId = new Map<string, number>();
-    const longDocRatioByQueryId = new Map<string, number>();
+    const outcomes = new Map<string, CategorySearchOutcome>();
 
     for (const gt of groundTruths) {
-      const qrow = queries.find(q => q.query_id === gt.queryId);
-      const queryText = qrow?.query ?? gt.queryId;
+      const queryText = queryById.get(gt.queryId)?.query ?? gt.queryId;
       const sr = await searchEngine.search(this.db, {
         query: queryText,
         limit: 20,
@@ -168,86 +289,15 @@ export class CategoryQualityAggregator {
         ...(options?.vectorWeight !== undefined ? { vectorWeight: options.vectorWeight } : {}),
         ...(options?.textWeight !== undefined ? { textWeight: options.textWeight } : {}),
       });
-      const mapped: SearchResult[] = sr.items.map((item) => ({
-        id: memoryIdToBenchmarkId.get(item.id) ?? item.id,
-        score: item.finalScore
-      }));
-      queryResultsByQueryId.set(gt.queryId, mapped);
-      top10LenByQueryId.set(gt.queryId, meanTop10ContentLength(sr.items));
-      longDocRatioByQueryId.set(gt.queryId, top10LongDocRatio(sr.items));
-    }
-
-    const ALL_MACROS: MacroCategory[] = [
-      'incident_ops',
-      'procedural',
-      'conceptual',
-      'tag_filter'
-    ];
-    const MRR_THRESHOLD = 0.5;
-    const reports: CategoryQualityReport[] = [];
-
-    for (const macro of ALL_MACROS) {
-      const subsetGts = groundTruths.filter(gt => queryIdToMacro.get(gt.queryId) === macro);
-      const authored = authoredByMacro.get(macro) ?? 0;
-      // #934: empty scored bucket still emits a row so coverage denominator keeps authored count
-      if (subsetGts.length === 0) {
-        logger.warn('Ground Truth 없는 카테고리 — scored=0으로 리포트에 유지', {
-          macro_category: macro,
-          authored_query_count: authored,
-        });
-        reports.push({
-          macro_category: macro,
-          query_count: 0,
-          authored_query_count: authored,
-          mrr: 0,
-          ndcg_at_5: 0,
-          ndcg_at_10: 0,
-          mean_top10_content_length: 0,
-          mean_top10_long_doc_ratio: 0,
-          threshold_passed: false,
-        });
-        continue;
-      }
-      const subMap = new Map<string, SearchResult[]>();
-      for (const gt of subsetGts) {
-        const r = queryResultsByQueryId.get(gt.queryId);
-        if (r) {
-          subMap.set(gt.queryId, r);
-        }
-      }
-
-      const mrr = calculateMRR(subMap, subsetGts);
-
-      let ndcg5 = 0;
-      let ndcg10 = 0;
-      const ndcgDenom = subsetGts.length;
-      let top10LenSum = 0;
-      let longDocRatioSum = 0;
-      for (const gt of subsetGts) {
-        const results = queryResultsByQueryId.get(gt.queryId);
-        if (!results || results.length === 0) {
-          continue;
-        }
-        ndcg5 += calculateNDCGAtK(results, gt.relevantIds, 5);
-        ndcg10 += calculateNDCGAtK(results, gt.relevantIds, 10);
-        top10LenSum += top10LenByQueryId.get(gt.queryId) ?? 0;
-        longDocRatioSum += longDocRatioByQueryId.get(gt.queryId) ?? 0;
-      }
-
-      const mrrVal = mrr;
-      reports.push({
-        macro_category: macro,
-        query_count: subsetGts.length,
-        authored_query_count: authored,
-        mrr: mrrVal,
-        ndcg_at_5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
-        ndcg_at_10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,
-        mean_top10_content_length: ndcgDenom > 0 ? top10LenSum / ndcgDenom : 0,
-        mean_top10_long_doc_ratio: ndcgDenom > 0 ? longDocRatioSum / ndcgDenom : 0,
-        threshold_passed: mrrVal >= MRR_THRESHOLD
+      outcomes.set(gt.queryId, {
+        results: sr.items.map((item) => ({
+          id: memoryIdToBenchmarkId.get(item.id) ?? item.id,
+          score: item.finalScore
+        })),
+        top10Length: meanTop10ContentLength(sr.items),
+        longDocRatio: top10LongDocRatio(sr.items),
       });
     }
-
-    return reports;
+    return outcomes;
   }
 }

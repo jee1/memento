@@ -19,6 +19,7 @@
 - 개발: `npm run knip` 에 `--include-entry-exports` 를 켰습니다(#1307). 그동안 `@memento/core` 의 `src/index.ts`·subpath export 진입점 파일은 검사 대상이 아니라 그 뒤의 미사용 export 가 남았습니다. 저장소 어디서도 import 하지 않던 `src/index.ts` 재export 59개, 호출되지 않던 품질 지표·경고 함수(`generateQualityReport`·`printQualityAlert`·`generateOrLoadGroundTruth` 등)와 상수·타입을 지웠습니다. 동적 import 로 읽는 번호 마이그레이션 파일은 knip `exports` 검사에서 뺍니다. 런타임 동작은 바뀌지 않습니다.
 - 개발: `remember` 쓰기 경로를 함수 단위로 나눴습니다(#1310). cyclomatic complexity 가 `persistMemoryItem` 트랜잭션 콜백 59 → 3, `handleMemoryItem` 56 → 15, `RememberTool.handle` 39 → 11 로 내려가 `remember/` 의 모든 함수가 16 이하입니다. CAS·비CAS UPDATE 와 INSERT 가 공유 21개 컬럼 값을 한 벌로 만듭니다. 런타임 동작은 바뀌지 않습니다.
 - 개발: `recall` 경로를 함수 단위로 나눴습니다(#1312). cyclomatic complexity 가 응답 봉투 40 → 17, `RecallTool.handle` 38 → 10, 결과 매핑 35 → 8, 앵커 회전 33 → 9, 후처리 파이프라인 32 → 9, 필터 23·22 → 7로 내려가 `recall/` 의 모든 함수가 17 이하입니다. 슬롯마다 따로 있던 pinned 조회 SQL 과 owner·process·session·project 후처리 필터를 한 벌로 합쳤습니다. 런타임 동작은 바뀌지 않습니다.
+- 개발: 검색 품질 collector 를 함수 단위로 나눴습니다(#1313). cyclomatic complexity 가 `SearchMetricsCollector.collect` 55 → 13, `CategoryQualityAggregator.collect` 35 → 1, `RelationMetricsCollector.collect` 25 → 7, `StorageMetricsCollector.collect` 24 → 4 로 내려가 `quality-assurance/` 의 모든 함수가 20 이하입니다. 저장 품질 COUNT 검사 9개는 감점 표 하나로, 0 기본값 블록은 상수로 합쳤고, 카테고리 집계의 쿼리 선형 탐색을 `Map` 조회로 바꿨습니다. 검색 결과 쌍을 만들 때 결과 없는 쿼리를 다시 검색하는 동작은 그대로 두고, 쿼리마다 새로 만들던 검색 엔진만 한 번 만들어 재사용합니다. 지표 값은 바뀌지 않습니다.
 
 ### Fixed
 
