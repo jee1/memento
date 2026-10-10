@@ -245,6 +245,28 @@ describe('RememberProcedureTool', () => {
       expect(row.process_id).toBe('process-deploy');
       expect(row.session_id).toBe('session-001');
     });
+
+    it('Given: 공백뿐인 owner_id·process_id·session_id, When: handle 호출하면, Then: context 값이 저장됨', async () => {
+      const ctx: ToolContext = { ...context, agentId: 'agent-ctx', processId: 'proc-ctx', sessionId: 'sess-ctx' };
+      const result = await tool.handle(
+        { content: '공백 id 절차', workflow_name: 'wf-blank', skill_name: 'sk-blank', owner_id: '  ', process_id: ' ', session_id: '' },
+        ctx,
+      );
+      const data = JSON.parse(result.content[0].text);
+      const row = DatabaseUtils.get(db, 'SELECT owner_id, process_id, session_id FROM memory_item WHERE id = ?', [
+        data.memory_id,
+      ]);
+      expect(row).toMatchObject({ owner_id: 'agent-ctx', process_id: 'proc-ctx', session_id: 'sess-ctx' });
+    });
+  });
+
+  describe('owner 경계 (#1285)', () => {
+    it('Given: 바인딩 agent 와 다른 owner_id, When: handle 호출하면, Then: save_failed 가 아니라 throw', async () => {
+      const ctx: ToolContext = { ...context, boundAgentId: 'agent-a' };
+      await expect(
+        tool.handle({ content: '남의 절차', workflow_name: 'wf-o', skill_name: 'sk-o', owner_id: 'agent-b' }, ctx),
+      ).rejects.toThrow('does not match the token-bound agent');
+    });
   });
 
   describe('검증 실패 시나리오', () => {
