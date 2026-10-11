@@ -1,6 +1,6 @@
 import type { Database, Statement } from 'better-sqlite3';
 
-import { migrationHistoryService } from '../../../../infrastructure/database/migration-history-service.js';
+import { migrationHistoryService } from './migration-history-service.js';
 import type { VectorNormalization } from '../../../../shared/types/embedding.types.js';
 import type {
   EmbeddingMigrationError,

@@ -7,11 +7,11 @@ import type {
   MigrationHistorySummary,
   MigrationResult,
   MigrationRollbackEntry
-} from '../../shared/types/migration.types.js';
-import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../shared/types/embedding.types.js';
-import { PIIMasker } from '../../shared/utils/pii-masker.js';
-import { logger } from '../../shared/utils/logger.js';
-import { DAY_MS } from '../../shared/utils/date.js';
+} from '../../../../shared/types/migration.types.js';
+import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../../../shared/types/embedding.types.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { logger } from '../../../../shared/utils/logger.js';
+import { DAY_MS } from '../../../../shared/utils/date.js';
 
 const DEFAULT_HISTORY_LIMIT = 50;
 

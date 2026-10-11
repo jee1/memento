@@ -22,9 +22,6 @@ const ALLOWED_CONCRETE_RELATION_GRAPH_IMPORTS = [
 type AllowlistEntry = { readonly path: string; readonly rationale: string };
 
 const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
-  { path: 'domains/embedding/services/embedding-migration-service.ts', rationale: 'migration history service wiring' },
-  { path: 'domains/embedding/services/embedding-migration-service/migration-execution.ts', rationale: 'migration history service wiring' },
-  { path: 'domains/embedding/services/embedding-migration-service/migration-progress.ts', rationale: 'migration monitor service wiring' },
   { path: 'domains/memory/services/memory-jsonl-portability.ts', rationale: 'SchemaVersionManager for JSONL portability' },
   { path: 'domains/telemetry/services/telemetry-service.ts', rationale: 'import type BatchScheduler for optional scheduler hook' },
 ] as const;
@@ -32,7 +29,7 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
 const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [] as const;
 
 /** Allowlist growth guard — bump only with explicit review (#749 / FR-018). */
-const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 5; // #1328: SQLite repositories injected via RepositoryProvider
+const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 2; // #1331: embedding migration history/monitor services moved into the embedding domain
 const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 0; // #1327: RetryManager moved to shared
 
 /**
