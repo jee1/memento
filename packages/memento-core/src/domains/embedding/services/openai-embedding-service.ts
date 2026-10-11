@@ -15,8 +15,8 @@ import type {
   EmbeddingData
 } from '../../../shared/types/embedding.types.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
-import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
-import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
+import type { RetryConfig } from '../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import {
   cleanupEmbeddingCache,

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RetryManager, RetryConfig } from '../../../../infrastructure/scheduler/retry-manager.js';
+import { RetryManager, RetryConfig } from '../../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 
 describe('임베딩 제공자 RetryManager 사용', () => {

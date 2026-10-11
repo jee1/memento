@@ -5,7 +5,7 @@ import type { RuntimeDiagnosticsLogger } from '../../../domains/monitoring/servi
 import Database from 'better-sqlite3';
 import type { IReflexionWorker } from '../../../shared/interfaces/reflexion-worker.interface.js';
 import { JobQueue } from '../job-queue.js';
-import { RetryManager } from '../retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import { HealthChecker } from '../health-checker.js';
 import { FileLogger } from '../file-logger.js';
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';

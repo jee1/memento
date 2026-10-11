@@ -4,7 +4,7 @@ import { BatchJobExecutionCoordinator } from '../batch-scheduler/batch-job-execu
 import type { BatchJobExecutionCoordinatorDeps } from '../batch-scheduler/batch-job-execution-coordinator.js';
 import type { BatchJobConfig } from '../batch-scheduler/batch-scheduler-types.js';
 import { JobQueue } from '../job-queue.js';
-import { RetryManager } from '../retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import { JobRunMigration } from '../../database/sqlite/migration/migrations/044-job-run.js';
 import { JobRunLogMigration } from '../../database/sqlite/migration/migrations/046-job-run-log.js';
 import { JobRunRepository } from '../repositories/job-run-repository.js';

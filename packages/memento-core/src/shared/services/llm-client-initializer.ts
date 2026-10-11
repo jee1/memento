@@ -11,8 +11,8 @@
 
 import { mementoConfig } from '../config/index.js';
 import { logger } from '../utils/logger.js';
-import { RetryManager } from '../../infrastructure/scheduler/retry-manager.js';
-import type { RetryConfig } from '../../infrastructure/scheduler/retry-manager.js';
+import { RetryManager } from '../utils/retry-manager.js';
+import type { RetryConfig } from '../utils/retry-manager.js';
 import { getRetryOptions } from '../config/retry-options-loader.js';
 import { getSelectedProvider, resolveLlmModelLabel } from './llm-client-initializer/shared-helpers.js';
 import { initializeOpenAI } from './llm-client-initializer/openai.js';
