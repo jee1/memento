@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.0.4] - 2026-10-11
+
+`forget`·`pin`·`unpin` 이 받은 사유를 기록하도록 고친 패치입니다. 나머지는 사용자에게 보이지 않는 정리입니다. `remember`·`recall` 등 복잡도가 높던 경로를 나눴고, 도메인 코드가 infrastructure 를 직접 import 하던 경계 예외를 모두 없앴습니다. MCP 도구 스키마와 DB 스키마는 바뀌지 않습니다.
+
 ### Changed
 
 - 개발: 에이전트의 PR 머지를 `scripts/pr-merge-gate.ts` 로 일원화했습니다. `PR Risk` 라벨이 low 면 바로, medium 이면 PR 본문의 `## 동작 설명` 이 있을 때, high 면 Codex 리뷰와 사용자의 `approved:human` 라벨이 있을 때만 머지합니다. Claude Code 훅(`scripts/claude-hooks/merge-guard.sh`)이 게이트를 거치지 않은 머지를 막습니다. 런타임 동작은 바뀌지 않습니다.
