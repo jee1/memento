@@ -5,7 +5,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { randomUUID } from 'crypto';
 import { setImmediate } from 'timers';
-import type { BatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler/batch-scheduler.js';
+import type { ISchedulerStatus } from '../../../shared/interfaces/batch-scheduler.interface.js';
 import {
   TelemetryRepository,
   type ConsolidationQualityResult,
@@ -29,6 +29,12 @@ interface TelemetryContext {
   ownerId: string | null;
 }
 
+/** The two scheduler reads telemetry needs; BatchScheduler satisfies it structurally (#1333). */
+type TelemetryScheduler = {
+  getStatus(): Pick<ISchedulerStatus, 'lastExecution'>;
+  getLastJobRunMeta(name: string): { success: boolean; durationMs: number } | undefined;
+};
+
 export class TelemetryService {
   private readonly als = new AsyncLocalStorage<TelemetryContext>();
 
@@ -45,7 +51,7 @@ export class TelemetryService {
 
   constructor(
     private readonly repository: TelemetryRepository,
-    private readonly getScheduler?: () => BatchScheduler | null
+    private readonly getScheduler?: () => TelemetryScheduler | null
   ) {}
 
   getContext(): TelemetryContext | undefined {
@@ -113,7 +119,7 @@ export class TelemetryService {
     return null;
   }
 
-  private buildJobSnapshot(sched: BatchScheduler | null, jobName: string): SchedulerJobSnapshot {
+  private buildJobSnapshot(sched: TelemetryScheduler | null, jobName: string): SchedulerJobSnapshot {
     const et = TelemetryService.jobNameToTelemetryEventType(jobName);
     const roll24 =
       et != null ? this.repository.getBackgroundJobRolling24hStats(et) : null;

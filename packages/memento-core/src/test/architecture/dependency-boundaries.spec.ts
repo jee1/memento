@@ -21,14 +21,12 @@ const ALLOWED_CONCRETE_RELATION_GRAPH_IMPORTS = [
  */
 type AllowlistEntry = { readonly path: string; readonly rationale: string };
 
-const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
-  { path: 'domains/telemetry/services/telemetry-service.ts', rationale: 'import type BatchScheduler for optional scheduler hook' },
-] as const;
+const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [] as const;
 
 const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [] as const;
 
 /** Allowlist growth guard — bump only with explicit review (#749 / FR-018). */
-const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 1; // #1332: JSONL export reads schema version via shared helper
+const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 0; // #1333: telemetry uses a narrow scheduler type
 const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 0; // #1327: RetryManager moved to shared
 
 /**
