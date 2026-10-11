@@ -187,276 +187,143 @@ async function findFiles(directory: string, exclude: string[]): Promise<string[]
  * 2. 템플릿 리터럴로 동적 테이블명/컬럼명: FROM ${, JOIN ${, WHERE ${ (일부는 허용 가능)
  * 3. 파라미터 바인딩 미사용: '...' + variable, "..." + variable
  */
-// eslint-disable-next-line complexity -- 70: 보안 검사 휴리스틱. 분해는 baseline 탐지 결과를 바꾸지 않는지 확인하며 따로 한다.
-function findSqlInjectionPatterns(filePath: string): SqlInjectionLocation[] {
-  const locations: SqlInjectionLocation[] = [];
-  
+export function findSqlInjectionPatterns(filePath: string): SqlInjectionLocation[] {
+  let lines: string[];
   try {
-    const content = readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
-    
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-      const trimmedLine = line.trim();
-      
-      // 주석 제외
-      if (trimmedLine.startsWith('//') || trimmedLine.startsWith('*')) {
-        continue;
-      }
-      
-      // SQL 관련 키워드가 있는 라인만 검사 (성능 최적화)
-      const hasSqlKeyword = /sql|query|SELECT|INSERT|UPDATE|DELETE|FROM|JOIN|WHERE/i.test(line);
-      if (!hasSqlKeyword) {
-        continue;
-      }
-      
-      // 패턴 1: 문자열 연결 검사
-      let match;
-      const concatPattern = /\b(sql|query|stmt|statement)\s*([+]=|=.*\+)/gi;
-      while ((match = concatPattern.exec(line)) !== null) {
-        // false positive 제거: 주석 처리된 코드나 문자열 내부는 제외
-        const beforeMatch = line.substring(0, match.index);
-        const stringCount = (beforeMatch.match(/['"]/g) || []).length;
-        if (stringCount % 2 === 1) {
-          // 문자열 내부에 있음
-          continue;
-        }
-        
-        // 정적 문자열 연결은 허용 (예: query += ' ORDER BY ...')
-        // 변수나 템플릿 리터럴이 포함된 경우만 감지
-        const afterMatch = line.substring(match.index + match[0].length);
-        const hasVariable = /\$\{|\+\s*\w+/.test(afterMatch);
-        if (!hasVariable) {
-          // 정적 문자열만 연결하는 경우는 안전함
-          continue;
-        }
-        
-        // conditions.join(' AND ') 패턴은 이미 파라미터 바인딩을 포함하고 있어 안전함
-        if (line.includes('conditions.join') && line.includes('AND')) {
-          continue;
-        }
-        
-        // placeholders는 '?'로만 구성되어 있어 안전함
-        if (line.includes('placeholders') && line.includes('IN (')) {
-          continue;
-        }
-        
-        // reflectionNotesLike는 buildReflectionNotesSearchCondition()에서 생성되며 이미 '?' 플레이스홀더를 포함하고 있어 안전함
-        if (line.includes('reflectionNotesLike')) {
-          // 이전 라인들에서 buildReflectionNotesSearchCondition() 호출 확인
-          let isFromSafeBuilder = false;
-          for (let i = lineIndex - 1; i >= Math.max(0, lineIndex - 5); i--) {
-            const prevLine = lines[i];
-            if (prevLine.includes('buildReflectionNotesSearchCondition') || 
-                (prevLine.includes('reflectionNotesLike') && prevLine.includes('?'))) {
-              isFromSafeBuilder = true;
-              break;
-            }
-          }
-          if (isFromSafeBuilder || line.includes('?')) {
-            continue;
-          }
-        }
-        
-        locations.push({
-          file: filePath,
-          line: lineIndex + 1,
-          column: match.index + 1,
-          pattern: 'string-concatenation',
-          context: trimmedLine,
-          severity: 'high'
-        });
-      }
-      
-      // 패턴 2: 템플릿 리터럴로 동적 테이블명/컬럼명 사용
-      // FROM ${, JOIN ${ 등은 동적 테이블명일 가능성이 높음
-      const templatePattern = /\b(FROM|JOIN|DELETE FROM)\s+\$\{/gi;
-      while ((match = templatePattern.exec(line)) !== null) {
-        // false positive 제거: 주석 처리된 코드나 문자열 내부는 제외
-        const beforeMatch = line.substring(0, match.index);
-        const stringCount = (beforeMatch.match(/['"]/g) || []).length;
-        if (stringCount % 2 === 1) {
-          // 문자열 내부에 있음
-          continue;
-        }
-        
-        // validateTableName() 또는 getTableName() 호출이 있는지 확인
-        const tableVarPattern = /\$\{(\w+)\}/;
-        const tableMatch = line.match(tableVarPattern);
-        if (tableMatch) {
-          const varName = tableMatch[1];
-          // 이전 라인들에서 validateTableName() 또는 getTableName() 호출 찾기
-          let isValidated = false;
-          // 더 넓은 범위로 검색 (함수 내에서 변수가 재사용될 수 있음)
-          // 같은 파일 내에서 검색 (최대 300라인)
-          for (let i = lineIndex - 1; i >= Math.max(0, lineIndex - 300); i--) {
-            const prevLine = lines[i];
-            // 직접 호출 패턴
-            if (new RegExp(`validateTableName\\(${varName}\\)|validateTableName\\(.*${varName}`).test(prevLine)) {
-              isValidated = true;
-              break;
-            }
-            // 변수 할당 패턴: tableName = getTableName() 또는 this.getTableName() 또는 getVectorTableName()
-            // 더 유연한 패턴 매칭: 변수명과 getTableName이 같은 라인에 있으면 안전함
-            if (prevLine.includes(varName) && (
-                prevLine.includes('getTableName') || 
-                prevLine.includes('getVectorTableName') ||
-                prevLine.includes('getValidatedVectorTableName')
-            )) {
-              // const tableName = this.getTableName(...) 패턴 확인
-              if (new RegExp(`${varName}\\s*=|const\\s+${varName}\\s*=|let\\s+${varName}\\s*=`).test(prevLine)) {
-                isValidated = true;
-                break;
-              }
-            }
-            // 함수 경계 검사 제거 - 같은 파일 내에서만 검색하도록 함
-            // 메서드 호출 패턴: this.getTableName(provider) 또는 this.getVectorTableName(provider)
-            if (new RegExp(`this\\.getTableName|this\\.getVectorTableName`).test(prevLine)) {
-              // 다음 라인에 해당 변수가 있으면 안전함
-              if (i === lineIndex - 1 || (lines[i + 1] && lines[i + 1].includes(varName))) {
-                isValidated = true;
-                break;
-              }
-            }
-            // getVectorTableName 직접 호출 (private 메서드)
-            if (new RegExp(`getVectorTableName\\(|getValidatedVectorTableName\\(`).test(prevLine) && 
-                (i === lineIndex - 1 || (lines[i + 1] && lines[i + 1].includes(varName)))) {
-              isValidated = true;
-              break;
-            }
-            // testTable 같은 경우: sqlite_master에서 가져온 값이므로 안전
-            if (varName.includes('Table') && prevLine.includes('sqlite_master')) {
-              isValidated = true;
-              break;
-            }
-            // 하드코딩된 기본값 패턴: ?? 'memory_item_vec_tfidf'
-            if (prevLine.includes(`??`) && prevLine.includes('memory_item_vec')) {
-              isValidated = true;
-              break;
-            }
-            // VECTOR_SEARCH_CONFIG.tableNames에서 직접 가져온 값은 안전함
-            if (prevLine.includes('VECTOR_SEARCH_CONFIG.tableNames')) {
-              isValidated = true;
-              break;
-            }
-            // sqlite_master에서 가져온 table.name은 안전함
-            if (prevLine.includes('table.name') || prevLine.includes('tableName = table.name')) {
-              isValidated = true;
-              break;
-            }
-            // this.getTableName() 호출이 바로 이전 라인에 있는 경우
-            if (i === lineIndex - 1 && new RegExp(`this\\.getTableName`).test(prevLine)) {
-              isValidated = true;
-              break;
-            }
-          }
-          if (isValidated) {
-            // 화이트리스트 검증을 거친 경우 허용
-            continue;
-          }
-        }
-        
-        locations.push({
-          file: filePath,
-          line: lineIndex + 1,
-          column: match.index + 1,
-          pattern: 'dynamic-table-name',
-          context: trimmedLine,
-          severity: 'medium' // 화이트리스트 검증이 있으면 허용 가능
-        });
-      }
-      
-      // 패턴 3: WHERE 절에서 템플릿 리터럴 사용 (조건부)
-      const whereTemplatePattern = /WHERE.*\$\{/gi;
-      while ((match = whereTemplatePattern.exec(line)) !== null) {
-        // false positive 제거
-        const beforeMatch = line.substring(0, match.index);
-        const stringCount = (beforeMatch.match(/['"]/g) || []).length;
-        if (stringCount % 2 === 1) {
-          continue;
-        }
-        
-        // 파라미터 바인딩(? 플레이스홀더)이 있는지 확인
-        const hasPlaceholder = line.includes('?');
-        
-        // conditions.join(' AND ') 패턴은 이미 파라미터 바인딩을 포함하고 있어 안전함
-        if (line.includes('conditions.join') && line.includes('AND')) {
-          continue;
-        }
-        
-        // config.filter는 하드코딩된 값이므로 안전함
-        if (line.includes('config.filter')) {
-          continue;
-        }
-        
-        // reflectionNotesLike는 이미 '?' 플레이스홀더를 포함하고 있어 안전함
-        if (line.includes('reflectionNotesLike') && line.includes('?')) {
-          continue;
-        }
-        
-        // placeholders 변수가 '?'로만 구성되어 있는 경우 허용
-        // 예: ${placeholders} where placeholders = '?,?,?'
-        const placeholderVarPattern = /\$\{(\w+)\}/;
-        const placeholderMatch = line.match(placeholderVarPattern);
-        if (placeholderMatch) {
-          const varName = placeholderMatch[1];
-          // 이전 라인들에서 변수 정의 찾기
-          for (let i = lineIndex - 1; i >= Math.max(0, lineIndex - 10); i--) {
-            const prevLine = lines[i];
-            // placeholders 변수가 '?'로만 구성되어 있는지 확인
-            if (new RegExp(`\\b${varName}\\s*=\\s*.*map.*\\?.*join`).test(prevLine)) {
-              // placeholders는 안전함
-              continue;
-            }
-            // placeholders 변수명 자체가 placeholders인 경우도 허용 (일반적인 패턴)
-            if (varName === 'placeholders' && prevLine.includes('map') && prevLine.includes('?')) {
-              continue;
-            }
-          }
-          // placeholders 변수명 자체가 placeholders인 경우도 허용
-          if (varName === 'placeholders' && line.includes('IN (')) {
-            continue;
-          }
-        }
-        
-        if (!hasPlaceholder) {
-          locations.push({
-            file: filePath,
-            line: lineIndex + 1,
-            column: match.index + 1,
-            pattern: 'where-template-literal',
-            context: trimmedLine,
-            severity: 'high'
-          });
-        }
-      }
-      
-      // 패턴 4: 문자열 연결로 SQL 쿼리 구성 (파라미터 바인딩 미사용)
-      // 'SELECT * FROM table WHERE id = ' + variable 같은 패턴
-      const sqlStringConcatPattern = /(['"])\s*(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE).*?\1\s*\+\s*\w+/gi;
-      while ((match = sqlStringConcatPattern.exec(line)) !== null) {
-        // false positive 제거
-        const beforeMatch = line.substring(0, match.index);
-        const stringCount = (beforeMatch.match(/['"]/g) || []).length;
-        if (stringCount % 2 === 1) {
-          continue;
-        }
-        
-        locations.push({
-          file: filePath,
-          line: lineIndex + 1,
-          column: match.index + 1,
-          pattern: 'sql-string-concatenation',
-          context: trimmedLine,
-          severity: 'high'
-        });
-      }
-    }
-  } catch (error) {
-    // 파일 읽기 실패 시 무시
+    lines = readFileSync(filePath, 'utf-8').split('\n');
+  } catch {
+    return []; // 파일 읽기 실패 시 무시
   }
-  
+
+  const locations: SqlInjectionLocation[] = [];
+  lines.forEach((line, lineIndex) => {
+    const trimmedLine = line.trim();
+    // 주석 제외
+    if (trimmedLine.startsWith('//') || trimmedLine.startsWith('*')) return;
+    // SQL 관련 키워드가 있는 라인만 검사 (성능 최적화)
+    if (!/sql|query|SELECT|INSERT|UPDATE|DELETE|FROM|JOIN|WHERE/i.test(line)) return;
+
+    const scan: LineScan = { line, lineIndex, lines };
+    const found = [
+      ...findStringConcatenation(scan),
+      ...findDynamicTableName(scan),
+      ...findWhereTemplateLiteral(scan),
+      ...findSqlStringConcatenation(scan),
+    ];
+    for (const { column, pattern, severity } of found) {
+      locations.push({ file: filePath, line: lineIndex + 1, column, pattern, context: trimmedLine, severity });
+    }
+  });
   return locations;
+}
+
+interface LineScan {
+  line: string;
+  lineIndex: number;
+  lines: string[];
+}
+
+type Finding = Pick<SqlInjectionLocation, 'column' | 'pattern' | 'severity'>;
+
+/** 매치 앞의 따옴표 수가 홀수면 문자열 안이다 (false positive 제거). */
+function isInsideString(line: string, index: number): boolean {
+  return (line.substring(0, index).match(/['"]/g) || []).length % 2 === 1;
+}
+
+/** 문자열 밖에 있는 매치만 돌려준다. */
+function codeMatches(line: string, pattern: RegExp): RegExpMatchArray[] {
+  return [...line.matchAll(pattern)].filter(match => !isInsideString(line, match.index!));
+}
+
+/** `lineIndex` 바로 위부터 `distance` 줄 위까지 (가까운 줄부터) */
+function linesAbove(lineIndex: number, distance: number): number[] {
+  const indexes: number[] = [];
+  for (let i = lineIndex - 1; i >= Math.max(0, lineIndex - distance); i--) indexes.push(i);
+  return indexes;
+}
+
+/** 첫 번째 `${name}` 의 name */
+const firstInterpolatedVar = (line: string) => line.match(/\$\{(\w+)\}/)?.[1];
+
+/** 패턴 1: 문자열 연결로 SQL 생성 (sql +=, query = ... +) */
+function findStringConcatenation({ line, lineIndex, lines }: LineScan): Finding[] {
+  return codeMatches(line, /\b(sql|query|stmt|statement)\s*([+]=|=.*\+)/gi)
+    .filter(match => {
+      // 정적 문자열 연결은 허용 (예: query += ' ORDER BY ...'). 변수나 템플릿 리터럴이 있을 때만 감지
+      const afterMatch = line.substring(match.index! + match[0].length);
+      if (!/\$\{|\+\s*\w+/.test(afterMatch)) return false;
+      // conditions.join(' AND ') 은 이미 파라미터 바인딩을 포함한다
+      if (line.includes('conditions.join') && line.includes('AND')) return false;
+      // placeholders 는 '?' 로만 구성된다
+      if (line.includes('placeholders') && line.includes('IN (')) return false;
+      // reflectionNotesLike 는 buildReflectionNotesSearchCondition() 이 '?' 와 함께 만든다
+      return !(line.includes('reflectionNotesLike') && isSafeReflectionNotesLike(line, lineIndex, lines));
+    })
+    .map(match => ({ column: match.index! + 1, pattern: 'string-concatenation', severity: 'high' }));
+}
+
+function isSafeReflectionNotesLike(line: string, lineIndex: number, lines: string[]): boolean {
+  if (line.includes('?')) return true;
+  return linesAbove(lineIndex, 5).some(i =>
+    lines[i].includes('buildReflectionNotesSearchCondition') ||
+    (lines[i].includes('reflectionNotesLike') && lines[i].includes('?'))
+  );
+}
+
+/** 패턴 2: FROM ${ / JOIN ${ — 동적 테이블명 */
+function findDynamicTableName({ line, lineIndex, lines }: LineScan): Finding[] {
+  const varName = firstInterpolatedVar(line);
+  return codeMatches(line, /\b(FROM|JOIN|DELETE FROM)\s+\$\{/gi)
+    .filter(() => !(varName && isValidatedTableVar(lines, lineIndex, varName)))
+    .map(match => ({ column: match.index! + 1, pattern: 'dynamic-table-name', severity: 'medium' }));
+}
+
+/**
+ * 같은 파일에서 최대 300줄 위까지 테이블명 변수가 화이트리스트 검증을 거쳤는지 찾는다.
+ * 규칙 하나라도 맞으면 허용한다.
+ */
+function isValidatedTableVar(lines: string[], lineIndex: number, varName: string): boolean {
+  const validateCall = new RegExp(`validateTableName\\(${varName}\\)|validateTableName\\(.*${varName}`);
+  const assignment = new RegExp(`${varName}\\s*=|const\\s+${varName}\\s*=|let\\s+${varName}\\s*=`);
+  return linesAbove(lineIndex, 300).some(i => {
+    const prevLine = lines[i];
+    // 바로 위 줄이거나, 다음 줄에 변수가 쓰인다
+    const feedsVar = i === lineIndex - 1 || lines[i + 1].includes(varName);
+    return (
+      validateCall.test(prevLine) ||
+      // const tableName = this.getTableName(...) 등
+      (prevLine.includes(varName) &&
+        /getTableName|getVectorTableName|getValidatedVectorTableName/.test(prevLine) &&
+        assignment.test(prevLine)) ||
+      (/this\.getTableName|this\.getVectorTableName/.test(prevLine) && feedsVar) ||
+      (/getVectorTableName\(|getValidatedVectorTableName\(/.test(prevLine) && feedsVar) ||
+      // sqlite_master 에서 가져온 값
+      (varName.includes('Table') && prevLine.includes('sqlite_master')) ||
+      // 하드코딩된 기본값: ?? 'memory_item_vec_tfidf'
+      (prevLine.includes('??') && prevLine.includes('memory_item_vec')) ||
+      prevLine.includes('VECTOR_SEARCH_CONFIG.tableNames') ||
+      // sqlite_master 에서 가져온 table.name
+      prevLine.includes('table.name')
+    );
+  });
+}
+
+/** 패턴 3: WHERE 절의 템플릿 리터럴. 같은 줄에 '?' 플레이스홀더가 있으면 허용 */
+function findWhereTemplateLiteral({ line }: LineScan): Finding[] {
+  if (line.includes('?')) return [];
+  // conditions.join(' AND ') 은 파라미터 바인딩을 포함하고, config.filter 는 하드코딩 값이다
+  if (line.includes('conditions.join') && line.includes('AND')) return [];
+  if (line.includes('config.filter')) return [];
+  // ${placeholders} 는 '?,?,?' 로만 구성된다
+  if (firstInterpolatedVar(line) === 'placeholders' && line.includes('IN (')) return [];
+  return codeMatches(line, /WHERE.*\$\{/gi)
+    .map(match => ({ column: match.index! + 1, pattern: 'where-template-literal', severity: 'high' }));
+}
+
+/** 패턴 4: 'SELECT ... ' + variable */
+function findSqlStringConcatenation({ line }: LineScan): Finding[] {
+  return codeMatches(line, /(['"])\s*(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE).*?\1\s*\+\s*\w+/gi)
+    .map(match => ({ column: match.index! + 1, pattern: 'sql-string-concatenation', severity: 'high' }));
 }
 
 /**
