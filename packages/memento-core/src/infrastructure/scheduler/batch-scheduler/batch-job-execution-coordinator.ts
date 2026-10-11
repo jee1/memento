@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { BatchJobConfig } from './batch-scheduler-types.js';
 import { JobQueue } from '../job-queue.js';
-import { RetryManager } from '../retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import type { JobRunRepository } from '../repositories/job-run-repository.js';
 import { JobRunLogBuffer, flushJobRunLogBufferSafe } from '../job-run-log-buffer.js';

@@ -1,6 +1,6 @@
 import type { SchedulerStatus } from './batch-scheduler-types.js';
 import type { JobQueue } from '../job-queue.js';
-import type { RetryManager } from '../retry-manager.js';
+import type { RetryManager } from '../../../shared/utils/retry-manager.js';
 
 interface BatchSchedulerStatsDeps {
   getStatus: () => SchedulerStatus;

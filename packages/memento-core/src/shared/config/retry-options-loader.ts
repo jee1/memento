@@ -7,7 +7,7 @@
 import { parse } from '@iarna/toml';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { RetryConfig } from '../../infrastructure/scheduler/retry-manager.js';
+import type { RetryConfig } from '../utils/retry-manager.js';
 import { logger } from '../utils/logger.js';
 import { findProjectRoot } from './config-loader-utils.js';
 

@@ -25,10 +25,7 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'domains/embedding/services/embedding-migration-service.ts', rationale: 'migration history service wiring' },
   { path: 'domains/embedding/services/embedding-migration-service/migration-execution.ts', rationale: 'migration history service wiring' },
   { path: 'domains/embedding/services/embedding-migration-service/migration-progress.ts', rationale: 'migration monitor service wiring' },
-  { path: 'domains/embedding/services/gemini-embedding-service.ts', rationale: 'RetryManager for external embedding API' },
-  { path: 'domains/embedding/services/openai-embedding-service.ts', rationale: 'RetryManager for external embedding API' },
   { path: 'domains/memory/services/memory-jsonl-portability.ts', rationale: 'SchemaVersionManager for JSONL portability' },
-  { path: 'domains/memory/procedural/procedural-llm-extractor.ts', rationale: 'RetryManager for LLM extraction' },
   { path: 'domains/memory/tools/feedback-tool.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
   { path: 'domains/memory/recall/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite + createCoreMemoryRepository factory (dynamic) concrete until port injection' },
   { path: 'domains/memory/remember/remember-tool-core.ts', rationale: 'createCoreMemoryRepository factory via dynamic import — concrete until port injection (#926)' },
@@ -38,15 +35,11 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'domains/telemetry/services/telemetry-service.ts', rationale: 'import type BatchScheduler for optional scheduler hook' },
 ] as const;
 
-const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [
-  { path: 'shared/config/retry-options-loader.ts', rationale: 'import type RetryConfig from retry-manager' },
-  { path: 'shared/services/llm-client-initializer.ts', rationale: 'RetryManager construction for LLM clients' },
-  { path: 'shared/services/llm-client-initializer/ollama.ts', rationale: 'import type RetryManager for Ollama client' },
-] as const;
+const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [] as const;
 
 /** Allowlist growth guard — bump only with explicit review (#749 / FR-018). */
-const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 14; // #1237: triple extraction removal
-const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 3; // #1237: triple-cache removed
+const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 11; // #1327: RetryManager moved to shared
+const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 0; // #1327: RetryManager moved to shared
 
 /**
  * Module edges collected via the TypeScript AST (#926).
@@ -206,7 +199,7 @@ describe('dependency boundaries', () => {
     for (const relativePath of relationServiceFiles) {
       const source = await readSource(relativePath);
       const hasConcreteCacheImport = /import\s+.*['"].*infrastructure\/cache\/cache-service\.js['"]/m.test(source);
-      const hasConcreteRetryImport = /import\s+.*['"].*infrastructure\/scheduler\/retry-manager\.js['"]/m.test(source);
+      const hasConcreteRetryImport = /import\s+.*['"].*(?:infrastructure\/scheduler|shared\/utils)\/retry-manager\.js['"]/m.test(source);
 
       if (hasConcreteCacheImport || hasConcreteRetryImport) {
         offenders.push(relativePath);

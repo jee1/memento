@@ -12,7 +12,7 @@ import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.j
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
 import { JobRunRepository } from '../repositories/job-run-repository.js';
 import { JobQueue } from '../job-queue.js';
-import { RetryManager } from '../retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import { HealthChecker } from '../health-checker.js';
 import { FileLogger } from '../file-logger.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';

@@ -13,8 +13,8 @@ import {
 import type { IProceduralMemoryExtractor, ExtractedProceduralMemory, ReflectionNotes } from './procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../../monitoring/services/failure-detector.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
-import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
-import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
+import type { RetryConfig } from '../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import OpenAI from 'openai';
 

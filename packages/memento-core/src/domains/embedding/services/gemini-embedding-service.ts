@@ -7,8 +7,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
-import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { RetryManager } from '../../../shared/utils/retry-manager.js';
+import type { RetryConfig } from '../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { logger, isCliQuiet } from '../../../shared/utils/logger.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
