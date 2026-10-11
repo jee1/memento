@@ -13,7 +13,7 @@ import { isMain } from './lib/cli.js';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { closeDatabase, initializeDatabase } from '@memento/core';
+import { closeDatabase, initializeDatabase, sqliteRepositoryProvider } from '@memento/core';
 import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import { QualityMetricsCollector } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
 import type { CategoryQualityReport } from '../packages/memento-core/src/shared/types/benchmark.types.js';
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
   const started = Date.now();
   let exitCode = 0;
   try {
-    const collector = new QualityMetricsCollector(db);
+    const collector = new QualityMetricsCollector(db, sqliteRepositoryProvider);
     const reports = await collector.collectCategoryMetrics(BENCHMARK_DIR, MAPPING_PATH);
 
     console.log(formatEmbeddingRunHeader(embeddingProvider, vectorDims));

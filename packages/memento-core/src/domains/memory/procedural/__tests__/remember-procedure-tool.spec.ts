@@ -13,6 +13,7 @@ import { MemoryEmbeddingService } from '../../services/memory-embedding-service.
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 /** 테스트용 DB 스키마 (RememberTool procedural 경로와 동일) */
 function initializeTestDatabase(db: Database.Database): void {
@@ -144,7 +145,7 @@ describe('RememberProcedureTool', () => {
     initializeTestDatabase(db);
 
     const embeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = new HybridSearchEngine();
+    const hybridSearchEngine = new HybridSearchEngine(sqliteRepositoryProvider);
 
     resetBatchScheduler();
     const batchScheduler = getBatchScheduler();
@@ -153,7 +154,7 @@ describe('RememberProcedureTool', () => {
     tool = new RememberProcedureTool();
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         relationGraph: createRelationGraph(db),
@@ -349,7 +350,7 @@ describe('RememberProcedureTool', () => {
     it('Given: context에 db 없음, When: handle 호출하면, Then: database_unavailable 에러', async () => {
       const result = await tool.handle(
         { content: '절차 내용' },
-        { db: undefined, services: {} }
+        { db: undefined, services: { repositories: sqliteRepositoryProvider } }
       );
       expect(result.error).toBe('database_unavailable');
     });

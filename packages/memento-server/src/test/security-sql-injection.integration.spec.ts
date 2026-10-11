@@ -7,6 +7,7 @@ import {
 } from '../../../memento-core/test/helpers/test-database.js';
 import { SearchEngine } from '../../../memento-core/src/domains/search/algorithms/search-engine.js';
 import { DatabaseUtils } from '../../../memento-core/src/shared/utils/database.js';
+import { sqliteRepositoryProvider } from '@memento/core';
 
 function tableCount(db: Database.Database): number {
   const rows = DatabaseUtils.all(
@@ -33,7 +34,7 @@ function expectDatabaseIntact(db: Database.Database, initialTableCount: number):
 describe('SQL injection search hardening', () => {
   let db: Database.Database;
   let initialTableCount: number;
-  const searchEngine = new SearchEngine();
+  const searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
   beforeEach(async () => {
     db = await setupTestDatabase();

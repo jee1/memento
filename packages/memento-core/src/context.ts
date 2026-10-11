@@ -57,6 +57,7 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
       errorLoggingService: serverContext.services.errorLoggingService,
       anchorManager: serverContext.services.anchorManager,
       relationGraph: serverContext.services.relationGraph,
+      repositories: serverContext.services.repositories,
       failureDetector: serverContext.services.failureDetector,
       reflexionWorker: serverContext.services.reflexionWorker,
       metaMemoryService: serverContext.services.metaMemoryService,

@@ -3,7 +3,7 @@
  */
 
 import { createHash } from 'crypto';
-import { KnowledgeVaultRepositorySqlite as KnowledgeVaultRepository } from '../../../infrastructure/database/repositories/knowledge-vault-repository-sqlite.impl.js';
+import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -24,7 +24,7 @@ export async function handleVaultMemory(
 ): Promise<ToolResult> {
   const { key, value, immutable, origin_source, ownerId, startTime } = params;
 
-  const knowledgeVaultRepository = new KnowledgeVaultRepository(context.db!);
+  const knowledgeVaultRepository = requireRepositoryProvider(context.services?.repositories).knowledgeVault(context.db!);
   const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
 
   const agent_id = 'default';

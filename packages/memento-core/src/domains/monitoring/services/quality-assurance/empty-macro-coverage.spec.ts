@@ -5,6 +5,7 @@ import { tmpdir } from 'os';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { CategoryQualityAggregator } from './category-quality-aggregator.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 /**
  * Minimal fixture: 4 macros authored, but tag_filter GT all empty → scored=0 for that macro.
@@ -93,7 +94,7 @@ describe('CategoryQualityAggregator empty-macro coverage (#934)', () => {
 
   it('macro 전체 GT가 비어도 collect()가 authored를 유지한 scored=0 행을 낸다', async () => {
     const mapPath = writeEmptyMacroFixture(dir);
-    const reports = await new CategoryQualityAggregator(db).collect(dir, mapPath);
+    const reports = await new CategoryQualityAggregator(db, sqliteRepositoryProvider).collect(dir, mapPath);
 
     expect(reports.map((r) => r.macro_category)).toEqual([
       'incident_ops',

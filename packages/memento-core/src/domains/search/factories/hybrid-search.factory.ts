@@ -22,7 +22,7 @@ import { SearchResultCombiner } from '../algorithms/search-result-combiner.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { logger } from '../../../shared/utils/logger.js';
-import type { Database } from 'better-sqlite3';
+import type { RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
 
 class DefaultSearchLogger implements ISearchLogger {
   logSearchStart(searchId: string, query: HybridSearchQuery): void {
@@ -66,11 +66,11 @@ export class HybridSearchFactory {
    * 기본 설정으로 하이브리드 검색 엔진 생성
    */
   static createDefaultEngine(
-    _db: Database,
+    repositories: RepositoryProvider,
     embeddingService?: MemoryEmbeddingService,
     options?: CreateDefaultHybridEngineOptions
   ): HybridSearchEngine {
-    const textSearchEngine = new SearchEngine();
+    const textSearchEngine = new SearchEngine(repositories);
     const emb = embeddingService ?? new MemoryEmbeddingService();
     const vectorSearchEngine = new VectorSearchEngine();
     const resultCombiner = new SearchResultCombiner();
@@ -78,6 +78,7 @@ export class HybridSearchFactory {
     const searchLogger = new DefaultSearchLogger();
 
     return new HybridSearchEngine(
+      repositories,
       textSearchEngine,
       emb,
       vectorSearchEngine,
@@ -95,6 +96,7 @@ export class HybridSearchFactory {
    * 의존성 주입으로 하이브리드 검색 엔진 생성
    */
   static createEngine(
+    repositories: RepositoryProvider,
     textSearchEngine: ITextSearchEngine,
     embeddingService: IEmbeddingService,
     vectorSearchEngine: IVectorSearchEngine,
@@ -104,6 +106,7 @@ export class HybridSearchFactory {
   ): HybridSearchEngine {
     const queryUnified = resolveQueryUnifiedEmbeddingForHybridSearch(embeddingService);
     return new HybridSearchEngine(
+      repositories,
       textSearchEngine,
       embeddingService,
       vectorSearchEngine,

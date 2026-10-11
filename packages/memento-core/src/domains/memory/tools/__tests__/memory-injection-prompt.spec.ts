@@ -12,6 +12,7 @@ import { ErrorLoggingService } from '../../../monitoring/services/error-logging-
 import type { ToolContext } from '../../../tools/types.js';
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 describe('MemoryInjectionPrompt', () => {
   let db: Database.Database;
@@ -27,11 +28,11 @@ describe('MemoryInjectionPrompt', () => {
     // 에러 로깅 서비스 생성
     errorLoggingService = new ErrorLoggingService(db);
     embeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = createHybridSearchEngine(undefined, embeddingService);
+    const hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, undefined, embeddingService);
     
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         errorLoggingService
@@ -99,7 +100,7 @@ describe('MemoryInjectionPrompt', () => {
       // Given: 하이브리드 검색 엔진이 없는 컨텍스트
       const invalidContext: ToolContext = {
         db,
-        services: {}
+        services: { repositories: sqliteRepositoryProvider }
       };
 
       // When & Then: 에러 발생

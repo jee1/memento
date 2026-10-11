@@ -11,6 +11,7 @@ import type { ForgettingPolicyService } from '../domains/forgetting/services/for
 import type { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import type { RelationGraphPort } from '../domains/relation/ports/relation-graph.port.js';
+import type { RepositoryProvider } from '../domains/memory/repositories/repository-provider.port.js';
 import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.interface.js';
@@ -72,6 +73,8 @@ export interface ToolContext {
     anchorManager?: AnchorManager;
     /** 관계 그래프 서비스 */
     relationGraph?: RelationGraphPort;
+    /** 저장소 port (#1328). 이 값을 쓰는 도구는 없으면 바로 실패한다 */
+    repositories?: RepositoryProvider;
     /** 실패 감지 서비스 (Phase 2) */
     failureDetector?: FailureDetector;
     /** Reflexion Worker 서비스 (Phase 2) */

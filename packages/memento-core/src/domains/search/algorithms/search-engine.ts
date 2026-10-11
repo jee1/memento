@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import { mcpLogger } from '../../../server/mcp-logger.js';
 import type { MemorySearchResult } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
+import { requireRepositoryProvider, type RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchEngineFtsAvailability } from './search-engine/search-engine-fts-availability.js';
 import { buildFTSQuery as buildFTSQueryImpl } from './search-engine/search-engine-fts-query.js';
@@ -21,7 +21,11 @@ export class SearchEngine {
   private ranking: SearchRanking;
   private ftsAvailability: SearchEngineFtsAvailability;
 
-  constructor() {
+  private readonly repositories: RepositoryProvider;
+
+  constructor(repositories: RepositoryProvider) {
+    // feedback 조회는 try/catch 안이라 provider 가 빠지면 조용히 랭킹이 바뀐다 — 생성 시점에 막는다.
+    this.repositories = requireRepositoryProvider(repositories);
     this.ranking = new SearchRanking();
     this.ftsAvailability = new SearchEngineFtsAvailability();
   }
@@ -95,7 +99,7 @@ export class SearchEngine {
         .filter((id): id is string => typeof id === 'string');
       if (ids.length > 0) {
         try {
-          feedbackNetByMemory = new FeedbackRepositorySQLite(db).getNetScores(ids, 90);
+          feedbackNetByMemory = this.repositories.feedback(db).getNetScores(ids, 90);
         } catch (err) {
           logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
             error: err instanceof Error ? err.message : String(err),

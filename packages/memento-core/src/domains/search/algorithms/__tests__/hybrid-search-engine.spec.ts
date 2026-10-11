@@ -20,6 +20,7 @@ import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import { vectorLengthDecayFactor } from '../vector-length-decay.js';
 import type { IRelevanceGatePort } from '../../ports/relevance-gate-port.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 /**
  * #921 길이 감쇠는 기본 on이다. 짧은 fixture content는 감쇠 후 HYBRID_VECTOR_THRESHOLD(0.38)
@@ -114,7 +115,7 @@ describe('HybridSearchEngine', () => {
     mockLogger = createMockLogger();
 
     // HybridSearchEngine 인스턴스 생성
-    hybridSearchEngine = new HybridSearchEngine(
+    hybridSearchEngine = new HybridSearchEngine(sqliteRepositoryProvider, 
       mockTextEngine,
       mockEmbeddingService,
       mockVectorEngine,
@@ -131,7 +132,7 @@ describe('HybridSearchEngine', () => {
     });
 
     it('팩토리 함수로 생성 가능해야 함', () => {
-      const engine = createHybridSearchEngine(
+      const engine = createHybridSearchEngine(sqliteRepositoryProvider, 
         mockTextEngine,
         mockEmbeddingService,
         mockVectorEngine,
@@ -174,7 +175,7 @@ describe('HybridSearchEngine', () => {
         })
       };
 
-      hybridSearchEngine = new HybridSearchEngine(
+      hybridSearchEngine = new HybridSearchEngine(sqliteRepositoryProvider, 
         mockTextEngine,
         mockEmbeddingService,
         mockVectorEngine,
@@ -957,7 +958,7 @@ describe('HybridSearchEngine', () => {
       mockWeightCalculator = createMockWeightCalculator();
       mockLogger = createMockLogger();
 
-      testEngine = new HybridSearchEngine(
+      testEngine = new HybridSearchEngine(sqliteRepositoryProvider, 
         mockTextEngine,
         mockEmbeddingService,
         mockVectorEngine,
@@ -1185,7 +1186,7 @@ describe('HybridSearchEngine', () => {
       mockWeightCalculator = createMockWeightCalculator();
       mockLogger = createMockLogger();
 
-      testEngine = new HybridSearchEngine(
+      testEngine = new HybridSearchEngine(sqliteRepositoryProvider, 
         mockTextEngine,
         mockEmbeddingService,
         mockVectorEngine,
@@ -1603,7 +1604,7 @@ describe('HybridSearchEngine', () => {
       mockWeightCalculator = createMockWeightCalculator();
       mockLogger = createMockLogger();
 
-      testEngine = new HybridSearchEngine(
+      testEngine = new HybridSearchEngine(sqliteRepositoryProvider, 
         mockTextEngine,
         mockEmbeddingService,
         mockVectorEngine,
@@ -1951,7 +1952,7 @@ describe('HybridSearchEngine', () => {
       const migration = new RelationEngineSchemaMigration();
       migration.up(db);
 
-      testEngine = createHybridSearchEngine();
+      testEngine = createHybridSearchEngine(sqliteRepositoryProvider);
     });
 
     afterEach(() => {
@@ -3027,7 +3028,7 @@ describe('ISearchResultCombiner 인터페이스', () => {
       const vectorEngine = createMockVectorSearchEngine();
       const weightCalculator = createMockWeightCalculator();
       const logger = createMockLogger();
-      const engine = new HybridSearchEngine(
+      const engine = new HybridSearchEngine(sqliteRepositoryProvider, 
         textEngine,
         embeddingService,
         vectorEngine,

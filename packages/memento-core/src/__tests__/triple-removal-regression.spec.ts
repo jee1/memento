@@ -12,6 +12,7 @@ import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-e
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ToolContext } from '../tools/types.js';
 import type { RememberToolHost } from '../domains/memory/remember/remember-tool-host.js';
+import { sqliteRepositoryProvider } from '../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function initializeRegressionDatabase(db: Database.Database): void {
   db.exec(`
@@ -106,7 +107,7 @@ describe('triple removal regression (#1237)', () => {
     };
     const context: ToolContext = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         batchScheduler: {
           addJob,
           isJobQueued: () => false,
@@ -158,8 +159,8 @@ describe('triple removal regression (#1237)', () => {
       tool = new RememberTool();
       context = {
         db,
-        services: {
-          hybridSearchEngine: new HybridSearchEngine(),
+        services: { repositories: sqliteRepositoryProvider,
+          hybridSearchEngine: new HybridSearchEngine(sqliteRepositoryProvider),
           embeddingService: new MemoryEmbeddingService(),
           relationGraph: createRelationGraph(db),
           batchScheduler,

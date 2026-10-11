@@ -13,6 +13,7 @@ import { FeedbackTool } from '../feedback-tool.js';
 import { RecallTool } from '../../recall/recall-tool.js';
 import type { ToolContext } from '../../../../tools/types.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 describe('telemetry instrumentation (feedback + service)', () => {
   let db: Database.Database;
@@ -44,7 +45,7 @@ describe('telemetry instrumentation (feedback + service)', () => {
     const context: ToolContext = {
       db,
       agentId: 'agent-tel',
-      services: { telemetryService }
+      services: { repositories: sqliteRepositoryProvider, telemetryService }
     };
     const r = await tool.handle({ memory_id: 'mem_tel_fb', helpful: true }, context);
     const text = r.content[0]?.text;
@@ -94,7 +95,7 @@ describe('telemetry instrumentation (feedback + service)', () => {
     const context: ToolContext = {
       db,
       agentId: 'agent-tel',
-      services: { telemetryService }
+      services: { repositories: sqliteRepositoryProvider, telemetryService }
     };
 
     await tool.handle({ memory_id: 'mem_tel_fb', helpful: false }, context);
@@ -145,7 +146,7 @@ describe('telemetry instrumentation (feedback + service)', () => {
     const context = {
       db,
       agentId: 'agent-rec',
-      services: { telemetryService, hybridSearchEngine: hybrid }
+      services: { repositories: sqliteRepositoryProvider, telemetryService, hybridSearchEngine: hybrid }
     } as ToolContext;
     await expect(
       telemetryService.runWithContext('agent-rec', async () =>
@@ -177,7 +178,7 @@ describe('telemetry instrumentation (feedback + service)', () => {
     const context = {
       db,
       agentId: 'agent-rec-ok',
-      services: { telemetryService, hybridSearchEngine: hybrid }
+      services: { repositories: sqliteRepositoryProvider, telemetryService, hybridSearchEngine: hybrid }
     } as ToolContext;
     await telemetryService.runWithContext('agent-rec-ok', async () =>
       recall.handle(
@@ -243,7 +244,7 @@ describe('telemetry instrumentation (feedback + service)', () => {
     const context = {
       db,
       agentId: 'agent-funnel',
-      services: { telemetryService, hybridSearchEngine: hybrid }
+      services: { repositories: sqliteRepositoryProvider, telemetryService, hybridSearchEngine: hybrid }
     } as ToolContext;
 
     await telemetryService.runWithContext('agent-funnel', () =>

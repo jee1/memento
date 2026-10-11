@@ -11,6 +11,7 @@ import {
   initializeMigrationStatusTable, 
   setMigrationStatus
 } from '../../../../shared/utils/fts5-migration-status.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -70,7 +71,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     initializeTestDatabase(db);
-    searchEngine = new SearchEngine();
+    searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
     // 환경 변수 백업
     originalEnv = process.env.MEMENTO_FTS5_FALLBACK_ENABLED;

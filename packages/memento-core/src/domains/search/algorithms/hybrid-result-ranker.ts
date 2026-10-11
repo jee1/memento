@@ -4,8 +4,7 @@ import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.interface.js';
-import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
-import { ProcessAttributeRepositorySqlite } from '../../../infrastructure/database/repositories/process-attribute-repository-sqlite.impl.js';
+import { requireRepositoryProvider, type RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { applyRelevanceSignalScale } from './search-ranking/search-ranking-signals.js';
@@ -43,8 +42,12 @@ export class HybridResultRanker {
     private resultCombiner: ISearchResultCombiner,
     private ranking: SearchRanking,
     private proceduralMemoryMatcher: IProceduralMemoryMatcher,
-    private getRelationGraph: () => HybridRelationGraphReader | null
-  ) {}
+    private getRelationGraph: () => HybridRelationGraphReader | null,
+    private repositories: RepositoryProvider
+  ) {
+    // feedback·process attribute 조회는 try/catch 안이라 provider 가 빠지면 조용히 랭킹이 바뀐다 — 생성 시점에 막는다.
+    this.repositories = requireRepositoryProvider(repositories);
+  }
 
   async combineAndSortResults(
     textResults: unknown[],
@@ -276,7 +279,7 @@ export class HybridResultRanker {
     memoryIds: string[]
   ): Map<string, number> {
     try {
-      return new FeedbackRepositorySQLite(db).getNetScores(memoryIds, 90);
+      return this.repositories.feedback(db).getNetScores(memoryIds, 90);
     } catch (err) {
       const maskedError = err instanceof Error
         ? PIIMasker.maskError(err)
@@ -300,7 +303,7 @@ export class HybridResultRanker {
       return { processAttributes: null, memoryDetailsMap: new Map() };
     }
 
-    const attrRepo = new ProcessAttributeRepositorySqlite(db);
+    const attrRepo = this.repositories.processAttribute(db);
     const processAttributes = attrRepo.getByProcessId(processId);
     const memoryDetailsMap = new Map<string, MemoryRankingDetails>();
 

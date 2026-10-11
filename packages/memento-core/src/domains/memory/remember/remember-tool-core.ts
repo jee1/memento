@@ -4,6 +4,7 @@
 
 import { createHash } from 'crypto';
 import { CoreMemoryService } from '../services/core-memory-service.js';
+import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 
@@ -23,8 +24,7 @@ export async function handleCoreMemory(
 ): Promise<ToolResult> {
   const { key, value, always_load, origin_source, ownerId, startTime } = params;
 
-  const { createCoreMemoryRepository } = await import('../../../infrastructure/database/factories/core-memory-repository.factory.js');
-  const coreMemoryRepository = createCoreMemoryRepository(context.db!);
+  const coreMemoryRepository = requireRepositoryProvider(context.services?.repositories).coreMemory(context.db!);
   const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
   const coreMemoryCache = getCoreMemoryCache();
   const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);

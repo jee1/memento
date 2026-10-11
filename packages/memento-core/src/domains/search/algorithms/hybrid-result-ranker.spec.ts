@@ -6,6 +6,7 @@ import { SearchResultCombiner } from './search-result-combiner.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
 import type { HybridSearchQuery, IProceduralMemoryMatcher } from './hybrid-search-types.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
+import { sqliteRepositoryProvider } from '../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 const STAMP = '2024-01-01T00:00:00.000Z';
 const TEXT_HEAVY_WEIGHTS = { textWeight: 0.7, vectorWeight: 0.3 };
@@ -30,6 +31,7 @@ function ranker(): HybridResultRanker {
     new SearchRanking(),
     matcher,
     () => null,
+    sqliteRepositoryProvider,
   );
 }
 
@@ -340,6 +342,7 @@ describe('HybridResultRanker includeRelations (#1245)', () => {
       new SearchRanking(),
       matcher,
       () => ({ getRelationsBatch }),
+      sqliteRepositoryProvider,
     );
 
     const items = await r.combineAndSortResults(
@@ -363,6 +366,7 @@ describe('HybridResultRanker includeRelations (#1245)', () => {
       new SearchRanking(),
       matcher,
       () => ({ getRelationsBatch }),
+      sqliteRepositoryProvider,
     );
 
     const items = await r.combineAndSortResults(

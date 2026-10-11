@@ -27,6 +27,8 @@ import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.inte
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
 import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
+import type { RepositoryProvider } from './domains/memory/repositories/repository-provider.port.js';
+import { sqliteRepositoryProvider } from './infrastructure/database/factories/sqlite-repository-provider.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
 import type { MetaMemoryService } from './domains/memory/introspection/meta-memory-service.js';
@@ -47,6 +49,8 @@ export interface ServerServices {
   metaMemoryService: MetaMemoryService;
   anchorManager: AnchorManager;
   relationGraph: RelationGraphPort;
+  /** 저장소 port (#1328) */
+  repositories: RepositoryProvider;
   failureDetector: FailureDetector;
   reflexionWorker?: IReflexionWorker;
   walCheckpointScheduler: WalCheckpointScheduler;
@@ -67,13 +71,14 @@ export interface ServerServices {
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
   try {
+    const repositories = sqliteRepositoryProvider;
     const {
       searchEngine,
       embeddingService,
       hybridSearchEngine,
       forgettingPolicyService,
       databaseOptimizer,
-    } = createSearchEmbeddingAndOptimizerServices(db);
+    } = createSearchEmbeddingAndOptimizerServices(db, repositories);
     const errorLoggingService = new ErrorLoggingService();
     const { vectorSearchEngine, anchorManager, anchorSearchService } = await createAnchorStack(
       db,
@@ -124,6 +129,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       metaMemoryService,
       anchorManager,
       relationGraph,
+      repositories,
       failureDetector,
       reflexionWorker,
       walCheckpointScheduler,

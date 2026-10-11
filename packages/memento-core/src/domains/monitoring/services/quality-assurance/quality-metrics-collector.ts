@@ -21,6 +21,7 @@ import { SearchMetricsCollector } from './search-metrics-collector.js';
 import { RelationMetricsCollector } from './relation-metrics-collector.js';
 import { StorageMetricsCollector } from './storage-metrics-collector.js';
 import { CategoryQualityAggregator } from './category-quality-aggregator.js';
+import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
 
 export class QualityMetricsCollector {
   private readonly searchCollector: SearchMetricsCollector;
@@ -28,15 +29,15 @@ export class QualityMetricsCollector {
   private readonly storageCollector: StorageMetricsCollector;
   private readonly categoryAggregator: CategoryQualityAggregator;
 
-  constructor(db: Database.Database) {
+  constructor(db: Database.Database, repositories: RepositoryProvider) {
     if (!db) {
       throw new Error('Database instance is required');
     }
 
-    this.searchCollector = new SearchMetricsCollector(db);
+    this.searchCollector = new SearchMetricsCollector(db, repositories);
     this.relationCollector = new RelationMetricsCollector(db);
     this.storageCollector = new StorageMetricsCollector(db);
-    this.categoryAggregator = new CategoryQualityAggregator(db);
+    this.categoryAggregator = new CategoryQualityAggregator(db, repositories);
   }
 
   async collectSearchMetrics(

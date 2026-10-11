@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { FeedbackTool } from '../feedback-tool.js';
 import type { ToolContext } from '../../../../tools/types.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function parseData(r: { content: Array<{ text?: string }> }): Record<string, unknown> {
   const text = r.content[0]?.text;
@@ -20,7 +21,7 @@ describe('FeedbackTool', () => {
       `INSERT INTO memory_item (id, type, content) VALUES ('mem_tool_fb_1', 'semantic', 'x')`
     ).run();
     tool = new FeedbackTool();
-    context = { db } as ToolContext;
+    context = { db, services: { repositories: sqliteRepositoryProvider } } as ToolContext;
   });
 
   afterEach(() => {

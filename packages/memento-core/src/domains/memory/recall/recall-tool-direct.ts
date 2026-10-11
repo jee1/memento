@@ -4,7 +4,7 @@
 
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { KnowledgeVaultRepositorySqlite as KnowledgeVaultRepository } from '../../../infrastructure/database/repositories/knowledge-vault-repository-sqlite.impl.js';
+import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';
@@ -27,8 +27,7 @@ export async function recallCoreMemoryDirect(
     host.logWarning('type="core"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
   }
 
-  const { createCoreMemoryRepository } = await import('../../../infrastructure/database/factories/core-memory-repository.factory.js');
-  const coreMemoryRepository = createCoreMemoryRepository(context.db!);
+  const coreMemoryRepository = requireRepositoryProvider(context.services?.repositories).coreMemory(context.db!);
   const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
   const coreMemoryCache = getCoreMemoryCache();
   const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
@@ -81,7 +80,7 @@ export async function recallVaultMemoryDirect(
     host.logWarning('type="vault"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
   }
 
-  const knowledgeVaultRepository = new KnowledgeVaultRepository(context.db!);
+  const knowledgeVaultRepository = requireRepositoryProvider(context.services?.repositories).knowledgeVault(context.db!);
   const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
 
   let records;

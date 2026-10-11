@@ -19,7 +19,7 @@ import { isMain, parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.j
 
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { initializeDatabase, DatabaseUtils } from '@memento/core';
+import { initializeDatabase, DatabaseUtils, sqliteRepositoryProvider } from '@memento/core';
 import {
   generateGroundTruth,
   saveGroundTruth,
@@ -194,7 +194,7 @@ async function generateGroundTruthFromSearch(
   relevantCount: number = 5
 ): Promise<GroundTruth[]> {
   const groundTruths: GroundTruth[] = [];
-  const searchEngine = HybridSearchFactory.createDefaultEngine(db);
+  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
 
   for (const query of queries) {
     try {

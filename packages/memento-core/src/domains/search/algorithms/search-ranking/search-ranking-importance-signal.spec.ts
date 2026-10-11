@@ -13,6 +13,7 @@ import { HybridResultRanker } from '../hybrid-result-ranker.js';
 import { SearchResultCombiner } from '../search-result-combiner.js';
 import type { IProceduralMemoryMatcher } from '../hybrid-search-types.js';
 import type Database from 'better-sqlite3';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 const STAMP = '2024-01-01T00:00:00.000Z';
 
@@ -116,6 +117,7 @@ describe('importance signal scale (#1082)', () => {
       ranking,
       matcher,
       () => null,
+      sqliteRepositoryProvider,
     );
     const [item] = await ranker.combineAndSortResults(
       [{

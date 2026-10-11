@@ -12,6 +12,7 @@ import type { ToolContext } from '@memento/core/index.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 import { HybridSearchEngine } from '@memento/core/domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
+import { sqliteRepositoryProvider } from '@memento/core';
 
 /* eslint-disable security/detect-non-literal-fs-filename */
 // 테스트 환경에서 파일 시스템 함수 사용은 안전함
@@ -100,14 +101,14 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
     initializeTestDatabase(db);
 
     embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = new HybridSearchEngine();
+    hybridSearchEngine = new HybridSearchEngine(sqliteRepositoryProvider);
 
     rememberTool = new RememberTool();
     recallTool = new RecallTool();
 
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService
       }
