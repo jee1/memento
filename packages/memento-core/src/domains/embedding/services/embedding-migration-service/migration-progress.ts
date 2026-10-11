@@ -1,4 +1,4 @@
-import { migrationMonitorService } from '../../../../infrastructure/database/migration-monitor-service.js';
+import { migrationMonitorService } from './migration-monitor-service.js';
 import type {
   MigrationMonitorOptions,
   MigrationProgress,
