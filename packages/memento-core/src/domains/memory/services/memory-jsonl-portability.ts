@@ -6,7 +6,7 @@ import { createHash } from 'crypto';
 import type Database from 'better-sqlite3';
 import { MEMENTO_LATEST_SCHEMA_VERSION } from '../../../shared/constants/schema-version.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { SchemaVersionManager } from '../../../infrastructure/database/sqlite/migration/schema-version-manager.js';
+import { readCurrentSchemaVersion } from '../../../shared/utils/schema-version.js';
 
 const MEMORY_JSONL_FORMAT_VERSION = 1;
 
@@ -69,10 +69,8 @@ function buildInsertStatement(table: string, columns: string[]): string {
   return `INSERT OR REPLACE INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`;
 }
 
-async function resolveExportSchemaVersion(db: Database.Database): Promise<string> {
-  const manager = new SchemaVersionManager(db);
-  const current = await manager.getCurrentVersion();
-  return current ?? MEMENTO_LATEST_SCHEMA_VERSION;
+function resolveExportSchemaVersion(db: Database.Database): string {
+  return readCurrentSchemaVersion(db) ?? MEMENTO_LATEST_SCHEMA_VERSION;
 }
 
 function buildMemoryJsonlContent(
@@ -129,7 +127,7 @@ export async function exportMemoryJsonl(
   db: Database.Database,
   options: MemoryExportOptions = {},
 ): Promise<string> {
-  const schemaVersion = await resolveExportSchemaVersion(db);
+  const schemaVersion = resolveExportSchemaVersion(db);
   return buildMemoryJsonlContent(db, options, schemaVersion);
 }
 

@@ -9,6 +9,7 @@ import type { SchemaVersion } from './types.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { readCurrentSchemaVersion } from '../../../../shared/utils/schema-version.js';
 
 /**
  * 스키마 버전 관리자
@@ -47,19 +48,7 @@ export class SchemaVersionManager {
    * 현재 스키마 버전 조회
    */
   async getCurrentVersion(): Promise<string | null> {
-    try {
-      const result = DatabaseUtils.get(this.db, `
-        SELECT version 
-        FROM memento_schema_version 
-        ORDER BY applied_at DESC 
-        LIMIT 1
-      `);
-
-      return (result as { version?: string } | undefined)?.version ?? null;
-    } catch (error) {
-      // 테이블이 없는 경우 null 반환
-      return null;
-    }
+    return readCurrentSchemaVersion(this.db);
   }
 
   /**
