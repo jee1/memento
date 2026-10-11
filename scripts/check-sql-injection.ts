@@ -187,6 +187,7 @@ async function findFiles(directory: string, exclude: string[]): Promise<string[]
  * 2. 템플릿 리터럴로 동적 테이블명/컬럼명: FROM ${, JOIN ${, WHERE ${ (일부는 허용 가능)
  * 3. 파라미터 바인딩 미사용: '...' + variable, "..." + variable
  */
+// eslint-disable-next-line complexity -- 70: 보안 검사 휴리스틱. 분해는 baseline 탐지 결과를 바꾸지 않는지 확인하며 따로 한다.
 function findSqlInjectionPatterns(filePath: string): SqlInjectionLocation[] {
   const locations: SqlInjectionLocation[] = [];
   

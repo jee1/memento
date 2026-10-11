@@ -36,6 +36,7 @@
     "no-undef": "off",
     "no-unused-vars": "off",
     "max-lines-per-function": "off",
+    "complexity": ["error", 50],
     "security/detect-object-injection": "off",
     "security/detect-non-literal-fs-filename": "error",
     "security/detect-non-literal-regexp": "warn",
