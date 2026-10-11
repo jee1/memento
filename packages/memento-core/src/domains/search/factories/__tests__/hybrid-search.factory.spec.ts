@@ -12,6 +12,7 @@ import { SearchEngine } from '../../algorithms/search-engine.js';
 import { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function resolveRepoRankingProfile(rel: string): string | undefined {
   const candidates = [join(process.cwd(), rel), join(process.cwd(), '..', rel)];
@@ -32,7 +33,7 @@ describe('HybridSearchFactory', () => {
   describe('createDefaultEngine', () => {
     it('기본 설정으로 하이브리드 검색 엔진을 생성해야 함', () => {
       // When: 기본 엔진 생성
-      const engine = HybridSearchFactory.createDefaultEngine(db);
+      const engine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
 
       // Then: HybridSearchEngine 인스턴스 반환
       expect(engine).toBeInstanceOf(HybridSearchEngine);
@@ -40,7 +41,7 @@ describe('HybridSearchFactory', () => {
 
     it('모든 의존성이 올바르게 주입되어야 함', () => {
       // When: 기본 엔진 생성
-      const engine = HybridSearchFactory.createDefaultEngine(db);
+      const engine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
 
       // Then: 엔진이 생성되어야 함 (내부 의존성은 private이므로 인스턴스 확인만)
       expect(engine).toBeDefined();
@@ -51,7 +52,7 @@ describe('HybridSearchFactory', () => {
     it.skipIf(!defaultProfileToml)(
       'rankingWeightsPath로 랭킹 프로파일 TOML을 지정해 엔진을 생성할 수 있음',
       () => {
-        const engine = HybridSearchFactory.createDefaultEngine(db, undefined, {
+        const engine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider, undefined, {
           rankingWeightsPath: defaultProfileToml,
         });
         expect(engine).toBeInstanceOf(HybridSearchEngine);
@@ -62,7 +63,7 @@ describe('HybridSearchFactory', () => {
   describe('createEngine', () => {
     it('의존성 주입으로 하이브리드 검색 엔진을 생성해야 함', () => {
       // Given: 의존성 생성
-      const textSearchEngine = new SearchEngine();
+      const textSearchEngine = new SearchEngine(sqliteRepositoryProvider);
       const embeddingService = new MemoryEmbeddingService();
       const vectorSearchEngine = new VectorSearchEngine();
       const resultCombiner = {
@@ -79,7 +80,7 @@ describe('HybridSearchFactory', () => {
       };
 
       // When: 의존성 주입으로 엔진 생성
-      const engine = HybridSearchFactory.createEngine(
+      const engine = HybridSearchFactory.createEngine(sqliteRepositoryProvider, 
         textSearchEngine,
         embeddingService,
         vectorSearchEngine,
@@ -117,7 +118,7 @@ describe('HybridSearchFactory', () => {
       };
 
       // When: 의존성 주입으로 엔진 생성
-      const engine = HybridSearchFactory.createEngine(
+      const engine = HybridSearchFactory.createEngine(sqliteRepositoryProvider, 
         mockTextSearchEngine,
         mockEmbeddingService,
         mockVectorSearchEngine,
@@ -134,8 +135,8 @@ describe('HybridSearchFactory', () => {
   describe('팩토리 메서드 일관성', () => {
     it('createDefaultEngine과 createEngine이 동일한 타입을 반환해야 함', () => {
       // When: 두 방법으로 엔진 생성
-      const defaultEngine = HybridSearchFactory.createDefaultEngine(db);
-      const textSearchEngine = new SearchEngine();
+      const defaultEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
+      const textSearchEngine = new SearchEngine(sqliteRepositoryProvider);
       const embeddingService = new MemoryEmbeddingService();
       const vectorSearchEngine = new VectorSearchEngine();
       const resultCombiner = { combine: vi.fn() };
@@ -146,7 +147,7 @@ describe('HybridSearchFactory', () => {
         logSearchComplete: vi.fn(),
         logSearchError: vi.fn()
       };
-      const injectedEngine = HybridSearchFactory.createEngine(
+      const injectedEngine = HybridSearchFactory.createEngine(sqliteRepositoryProvider, 
         textSearchEngine,
         embeddingService,
         vectorSearchEngine,

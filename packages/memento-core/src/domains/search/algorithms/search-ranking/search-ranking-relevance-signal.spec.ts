@@ -13,6 +13,7 @@ import { HybridResultRanker } from '../hybrid-result-ranker.js';
 import { SearchResultCombiner } from '../search-result-combiner.js';
 import type { IProceduralMemoryMatcher } from '../hybrid-search-types.js';
 import type Database from 'better-sqlite3';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 const ALPHA = 0.45;
 const FUSION_A = 0.661;
@@ -79,6 +80,7 @@ describe('relevance signal scale (#1180)', () => {
       new SearchRanking(),
       matcher,
       () => null,
+      sqliteRepositoryProvider,
     );
     const [item] = await ranker.combineAndSortResults(
       [{
@@ -155,6 +157,7 @@ describe('relevance signal scale (#1180)', () => {
       new SearchRanking(),
       matcher,
       () => null,
+      sqliteRepositoryProvider,
     );
     const stamp = daysAgo(12);
     const results = await ranker.combineAndSortResults(

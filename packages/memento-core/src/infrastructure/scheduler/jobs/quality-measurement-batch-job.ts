@@ -14,6 +14,7 @@
 
 import Database from 'better-sqlite3';
 import { QualityAssuranceService } from '../../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
+import { sqliteRepositoryProvider } from '../../database/factories/sqlite-repository-provider.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
@@ -173,7 +174,7 @@ export class QualityMeasurementBatchJob {
     try {
       // QualityAssuranceService 초기화
       if (!this.qualityService) {
-        this.qualityService = new QualityAssuranceService(db);
+        this.qualityService = new QualityAssuranceService(db, sqliteRepositoryProvider);
       }
 
       // 타임아웃 체크

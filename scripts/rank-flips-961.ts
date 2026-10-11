@@ -15,7 +15,7 @@
 import { mkdtempSync, writeFileSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { initializeDatabase, closeDatabase } from '@memento/core';
+import { initializeDatabase, closeDatabase, sqliteRepositoryProvider } from '@memento/core';
 import { HybridSearchFactory } from '../packages/memento-core/src/domains/search/factories/hybrid-search.factory.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { getBenchmarkVectorProviderFilter } from '../packages/memento-core/src/shared/types/benchmark.types.js';
@@ -82,7 +82,7 @@ async function main(): Promise<void> {
 
   async function search(k: number, query: string) {
     patchK(k);
-    const engine = HybridSearchFactory.createDefaultEngine(db);
+    const engine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
     return engine.search(db, {
       query,
       limit: 20,

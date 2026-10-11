@@ -12,6 +12,7 @@ import type { ToolContext } from '../../../tools/types.js';
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { buildKnowledgeContextBundle } from '../knowledge-context-bundle-builder.js';
 import { ToolContextKnowledgeContextAdapter } from '../../../personal-agent/adapters/tool-context-knowledge-context-adapter.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function stubSearchHit(
   overrides: Pick<HybridSearchResult, 'id' | 'content'> & Partial<HybridSearchResult>,
@@ -48,10 +49,10 @@ describe('buildKnowledgeContextBundle', () => {
     db = await setupTestDatabase();
     const errorLoggingService = new ErrorLoggingService(db);
     const embeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = createHybridSearchEngine(undefined, embeddingService);
+    const hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, undefined, embeddingService);
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         errorLoggingService,
@@ -231,10 +232,10 @@ describe('ToolContextKnowledgeContextAdapter', () => {
     db = await setupTestDatabase();
     const errorLoggingService = new ErrorLoggingService(db);
     const embeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = createHybridSearchEngine(undefined, embeddingService);
+    const hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, undefined, embeddingService);
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         errorLoggingService,

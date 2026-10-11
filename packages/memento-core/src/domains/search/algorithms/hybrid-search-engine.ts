@@ -42,6 +42,7 @@ import type {
 import type { IRelevanceGatePort } from '../ports/relevance-gate-port.js';
 import { judgeRelevanceGate, type RelevanceGateOutcome } from '../ports/relevance-gate-port.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import type { RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
 
 export {
   resolveHybridVectorPrefetchLimit,
@@ -77,6 +78,7 @@ export class HybridSearchEngine {
   private readonly rankingVersion: string;
 
   constructor(
+    repositories: RepositoryProvider,
     private textSearchEngine: ITextSearchEngine,
     private embeddingService: IEmbeddingService,
     private vectorSearchEngine: IVectorSearchEngine,
@@ -113,7 +115,8 @@ export class HybridSearchEngine {
       this.resultCombiner,
       this.ranking,
       this.proceduralMemoryMatcher,
-      () => this.relationGraph
+      () => this.relationGraph,
+      repositories
     );
   }
 
@@ -454,6 +457,7 @@ export class HybridSearchEngine {
 }
 
 export function createHybridSearchEngine(
+  repositories: RepositoryProvider,
   textSearchEngine?: ITextSearchEngine,
   embeddingService?: IEmbeddingService,
   vectorSearchEngine?: IVectorSearchEngine,
@@ -464,7 +468,8 @@ export function createHybridSearchEngine(
   const memEmb = embeddingService ?? new MemoryEmbeddingService();
   const queryUnified = resolveQueryUnifiedEmbeddingForHybridSearch(memEmb);
   return new HybridSearchEngine(
-    textSearchEngine ?? new SearchEngine(),
+    repositories,
+    textSearchEngine ?? new SearchEngine(repositories),
     memEmb,
     vectorSearchEngine ?? getVectorSearchEngine(),
     resultCombiner ?? new SearchResultCombiner(),

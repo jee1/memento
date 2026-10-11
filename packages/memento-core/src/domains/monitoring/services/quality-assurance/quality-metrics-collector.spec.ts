@@ -8,6 +8,7 @@ import { QualityMetricsCollector, type CollectedMetrics } from './quality-metric
 import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
 import type { SearchResultPair } from './vector-search-quality-metrics.js';
 import type { ExpectedRelation, ExtractedRelation } from '../../../relation/services/relation-quality-validator.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 describe('QualityMetricsCollector', () => {
   let db: Database.Database;
@@ -15,7 +16,7 @@ describe('QualityMetricsCollector', () => {
 
   beforeEach(async () => {
     db = await setupTestDatabase();
-    collector = new QualityMetricsCollector(db);
+    collector = new QualityMetricsCollector(db, sqliteRepositoryProvider);
   });
 
   afterEach(async () => {

@@ -26,6 +26,7 @@ import {
   verifyReviewableBenchmark,
 } from './search-quality-review-verifier.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
+import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
 import type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { CollectedMetrics, SearchMetricsOptions } from './quality-metrics-types.js';
 
@@ -309,7 +310,10 @@ function groundTruthMetadata(
 }
 
 export class SearchMetricsCollector {
-  constructor(private db: Database.Database) {}
+  constructor(
+    private db: Database.Database,
+    private repositories: RepositoryProvider
+  ) {}
 
   async collect(
     context: string = 'default',
@@ -372,7 +376,7 @@ export class SearchMetricsCollector {
   ): Promise<Map<string, SearchResult[]>> {
     try {
       const queryResults = new Map<string, SearchResult[]>();
-      const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+      const searchEngine = HybridSearchFactory.createDefaultEngine(this.repositories);
 
       const resolved = await Promise.all(groundTruths.map(async (groundTruth) => {
         try {
@@ -458,7 +462,7 @@ export class SearchMetricsCollector {
       for (const groundTruth of groundTruths) {
         let items = fullResultsByQuery.get(groundTruth.queryId)?.items ?? [];
         if (items.length === 0) {
-          searchEngine ??= HybridSearchFactory.createDefaultEngine(this.db);
+          searchEngine ??= HybridSearchFactory.createDefaultEngine(this.repositories);
           items = (await searchEngine.search(this.db, { query: groundTruth.queryId, limit: SEARCH_LIMIT })).items;
         }
         try {

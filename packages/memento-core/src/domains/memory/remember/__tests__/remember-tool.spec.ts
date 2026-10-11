@@ -11,6 +11,7 @@ import * as configModule from '../../../../shared/config/index.js';
 import * as environmentCheck from '../../../../shared/utils/environment-check.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -157,7 +158,7 @@ describe('RememberTool', () => {
     initializeTestDatabase(db);
 
     embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = new HybridSearchEngine();
+    hybridSearchEngine = new HybridSearchEngine(sqliteRepositoryProvider);
 
     tool = new RememberTool();
 
@@ -168,7 +169,7 @@ describe('RememberTool', () => {
 
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         relationGraph: createRelationGraph(db)

@@ -22,6 +22,7 @@ import { join, dirname, resolve, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
+import { sqliteRepositoryProvider } from '@memento/core';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
@@ -112,7 +113,7 @@ export async function evaluateProfile(
   const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   const qById = new Map(queries.map((q) => [q.query_id, q]));
 
-  const searchEngine = HybridSearchFactory.createDefaultEngine(db, undefined, {
+  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider, undefined, {
     rankingWeightsPath: resolve(profilePath),
   });
   const queryResults = new Map<string, SearchResult[]>();

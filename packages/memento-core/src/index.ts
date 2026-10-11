@@ -162,6 +162,8 @@ export type {
   CleanupReport,
 } from './infrastructure/database/sqlite/migration/backup-manager.js';
 export { createRelationGraph } from './infrastructure/relation-graph-factory.js';
+export { sqliteRepositoryProvider } from './infrastructure/database/factories/sqlite-repository-provider.js';
+export type { RepositoryProvider } from './domains/memory/repositories/repository-provider.port.js';
 export { RelationExtractor } from './domains/relation/services/relation-extractor.js';
 export {
   RelationQualityValidator,

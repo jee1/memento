@@ -3,7 +3,7 @@ import { parseArgs as parseCliArgs, type CliDatabase } from './lib/cli.js';
 
 import { writeFileSync, mkdirSync } from 'fs';
 import { isAbsolute, join } from 'path';
-import { initializeDatabase, closeDatabase } from '@memento/core';
+import { initializeDatabase, closeDatabase, sqliteRepositoryProvider } from '@memento/core';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
   loadBenchmarkQueries,
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
     const allBenchmarkIds = corpus.map((e) => e.benchmark_id);
 
     db = await initializeDatabase();
-    const searchEngine = HybridSearchFactory.createDefaultEngine(db);
+    const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
 
     const entries: LabelCandidateEntry[] = [];
 

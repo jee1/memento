@@ -21,7 +21,7 @@ import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
 
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { QualityAssuranceService, initializeDatabase } from '@memento/core';
+import { QualityAssuranceService, initializeDatabase, sqliteRepositoryProvider } from '@memento/core';
 
 type ReportFormat = 'markdown' | 'json' | 'html';
 interface ReportOptions {
@@ -125,7 +125,7 @@ async function main(): Promise<void> {
   try {
     // 데이터베이스 초기화
     const db = await initializeDatabase();
-    const qualityService = new QualityAssuranceService(db);
+    const qualityService = new QualityAssuranceService(db, sqliteRepositoryProvider);
 
     // 리포트 옵션 구성
     const reportOptions: ReportOptions = {

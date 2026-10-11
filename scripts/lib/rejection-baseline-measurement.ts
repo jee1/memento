@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
+import { sqliteRepositoryProvider } from '@memento/core';
 import {
   getBenchmarkVectorProviderFilter,
   resolveBenchmarkEmbeddingProvider,
@@ -157,7 +158,7 @@ export async function measureRejectionBaseline(
     options.overlayCorpus.map((entry) => [entry.source_memory_id, entry.benchmark_id])
   );
 
-  const searchEngine = HybridSearchFactory.createDefaultEngine(db);
+  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
   const latencies: number[] = [];
   const relevant: RejectionBaselineRelevantResult[] = [];
   const unrelated: RejectionBaselineUnrelatedResult[] = [];

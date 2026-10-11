@@ -23,6 +23,7 @@ import {
   normalizeBenchmarkGroundTruths,
 } from './search-quality-review-verifier.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
+import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
 import { calculateMRR } from './search-metrics-collector.js';
 
 /** #961: arm/subset 옵션 — 미지정 시 기존 category-report 기본 경로와 동일 */
@@ -237,7 +238,10 @@ function buildMacroReport(
 }
 
 export class CategoryQualityAggregator {
-  constructor(private db: Database.Database) {}
+  constructor(
+    private db: Database.Database,
+    private repositories: RepositoryProvider
+  ) {}
 
   async collect(
     benchmarkDir: string,
@@ -277,7 +281,7 @@ export class CategoryQualityAggregator {
 
     // #961 R4: AdaptiveWeightCalculator caches by query string — callers must use a fresh
     // engine per arm. createDefaultEngine here is per collect() call (sweep creates new collector).
-    const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+    const searchEngine = HybridSearchFactory.createDefaultEngine(this.repositories);
     const outcomes = new Map<string, CategorySearchOutcome>();
 
     for (const gt of groundTruths) {

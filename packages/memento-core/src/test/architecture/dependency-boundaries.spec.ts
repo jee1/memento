@@ -26,19 +26,13 @@ const DOMAIN_TO_INFRA_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'domains/embedding/services/embedding-migration-service/migration-execution.ts', rationale: 'migration history service wiring' },
   { path: 'domains/embedding/services/embedding-migration-service/migration-progress.ts', rationale: 'migration monitor service wiring' },
   { path: 'domains/memory/services/memory-jsonl-portability.ts', rationale: 'SchemaVersionManager for JSONL portability' },
-  { path: 'domains/memory/tools/feedback-tool.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
-  { path: 'domains/memory/recall/recall-tool-direct.ts', rationale: 'KnowledgeVaultRepositorySqlite + createCoreMemoryRepository factory (dynamic) concrete until port injection' },
-  { path: 'domains/memory/remember/remember-tool-core.ts', rationale: 'createCoreMemoryRepository factory via dynamic import — concrete until port injection (#926)' },
-  { path: 'domains/memory/remember/remember-tool-vault.ts', rationale: 'KnowledgeVaultRepositorySqlite concrete until port injection' },
-  { path: 'domains/search/algorithms/hybrid-result-ranker.ts', rationale: 'Feedback/ProcessAttribute SQLite repos until port injection' },
-  { path: 'domains/search/algorithms/search-engine.ts', rationale: 'FeedbackRepositorySQLite concrete until port injection' },
   { path: 'domains/telemetry/services/telemetry-service.ts', rationale: 'import type BatchScheduler for optional scheduler hook' },
 ] as const;
 
 const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [] as const;
 
 /** Allowlist growth guard — bump only with explicit review (#749 / FR-018). */
-const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 11; // #1327: RetryManager moved to shared
+const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 5; // #1328: SQLite repositories injected via RepositoryProvider
 const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 0; // #1327: RetryManager moved to shared
 
 /**
@@ -366,21 +360,6 @@ describe('dependency boundaries', () => {
       '../../infrastructure/g.js',
       '../../infrastructure/h.js',
     ]);
-  });
-
-  it('detects the two known dynamic infrastructure imports in domain files (#926)', async () => {
-    const targets = [
-      'domains/memory/recall/recall-tool-direct.ts',
-      'domains/memory/remember/remember-tool-core.ts',
-    ] as const;
-
-    for (const relativePath of targets) {
-      const source = await readSource(relativePath);
-      const hits = findForbiddenImportSpecs(source, (spec) => spec.includes('infrastructure/'));
-      expect(hits, relativePath).toContain(
-        '../../../infrastructure/database/factories/core-memory-repository.factory.js',
-      );
-    }
   });
 
   it('keeps type-only and dynamic edges out of the runtime cycle graph (#926)', () => {

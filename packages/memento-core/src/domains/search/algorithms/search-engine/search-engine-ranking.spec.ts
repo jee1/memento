@@ -9,6 +9,7 @@ import {
 import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import { applyRanking, ftsRankToRelevance } from './search-engine-ranking.js';
 import type { SearchEngineRow } from './search-engine.types.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function row(id: string, ftsRank: number, content = `memory ${id} about recall`): SearchEngineRow {
   return {
@@ -111,7 +112,7 @@ describe('SearchEngine FTS5 BM25 (#787)', () => {
         importance: 0.5,
       });
 
-      const engine = new SearchEngine();
+      const engine = new SearchEngine(sqliteRepositoryProvider);
       const result = await engine.search(db, {
         query: 'memento production recall funnel bm25',
         limit: 10,

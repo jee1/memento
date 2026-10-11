@@ -27,6 +27,7 @@ import { createHybridSearchEngine } from '../domains/search/algorithms/hybrid-se
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { createQueryCounter, type QueryCounter } from '../test/helpers/query-counter.js';
 import { updateProceduralMemory } from './reflexion-worker/reflexion-worker-failure-handler.js';
+import { sqliteRepositoryProvider } from './database/factories/sqlite-repository-provider.js';
 
 /**
  * 이벤트 처리 완료 대기 헬퍼 함수
@@ -1110,7 +1111,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
 
       // When: HybridSearchEngine으로 workflow_name/skill_name/trigger_conditions로 검색
       const embeddingService = new MemoryEmbeddingService();
-      const hybridSearchEngine = createHybridSearchEngine(
+      const hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, 
         undefined, // textSearchEngine (기본값 사용)
         embeddingService, // embeddingService 전달
         undefined, // vectorSearchEngine (기본값 사용)
@@ -1292,7 +1293,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
 
       // When: 실패 이벤트와 동일 조건으로 검색 (match_trigger_conditions=true, context 제공)
       const embeddingService = new MemoryEmbeddingService();
-      const hybridSearchEngine = createHybridSearchEngine(
+      const hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, 
         undefined,
         embeddingService,
         undefined,
@@ -1417,7 +1418,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
 
       // 변경 전 검색 결과 저장
       const embeddingService = new MemoryEmbeddingService();
-      const hybridSearchEngine = createHybridSearchEngine(
+      const hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, 
         undefined,
         embeddingService,
         undefined,

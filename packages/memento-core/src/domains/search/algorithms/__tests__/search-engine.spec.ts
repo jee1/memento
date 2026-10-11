@@ -11,6 +11,7 @@ import { mementoConfig } from '../../../../shared/config/index.js';
 import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
 import { mcpLogger } from '../../../../server/mcp-logger.js';
 import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function createCountingSearchDb() {
   const counters = {
@@ -213,7 +214,7 @@ describe('SearchEngine', () => {
   let originalNodeEnv: string | undefined;
 
   beforeEach(async () => {
-    searchEngine = new SearchEngine();
+    searchEngine = new SearchEngine(sqliteRepositoryProvider);
     testDb = await setupTestDatabase();
     vi.spyOn(searchEngine as any, 'executeQuery').mockResolvedValue(createSearchRows());
     originalFallbackEnabled = mementoConfig.fts5FallbackEnabled;

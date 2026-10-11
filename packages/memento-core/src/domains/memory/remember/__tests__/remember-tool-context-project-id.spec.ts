@@ -6,6 +6,7 @@ import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-eng
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function initializeTestDatabase(db: Database.Database): void {
   db.exec(`
@@ -64,7 +65,7 @@ describe('RememberTool context.projectId (#1270)', () => {
     initializeTestDatabase(db);
 
     const embeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = new HybridSearchEngine();
+    const hybridSearchEngine = new HybridSearchEngine(sqliteRepositoryProvider);
     tool = new RememberTool();
 
     resetBatchScheduler();
@@ -73,7 +74,7 @@ describe('RememberTool context.projectId (#1270)', () => {
 
     baseContext = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         relationGraph: createRelationGraph(db),

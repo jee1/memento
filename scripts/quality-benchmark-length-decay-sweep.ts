@@ -16,7 +16,7 @@ import { copyFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } fr
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { closeDatabase, initializeDatabase } from '@memento/core';
+import { closeDatabase, initializeDatabase, sqliteRepositoryProvider } from '@memento/core';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { resolveBenchmarkEmbeddingProvider } from '../packages/memento-core/src/shared/types/benchmark.types.js';
 import { QualityMetricsCollector } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
       for (const arm of ARMS) {
         for (const subset of SUBSETS) {
           // Fresh collector → fresh engine per arm (R4 cache warning above).
-          const collector = new QualityMetricsCollector(db);
+          const collector = new QualityMetricsCollector(db, sqliteRepositoryProvider);
           const reports = await collector.collectCategoryMetrics(
             BENCHMARK_DIR,
             MAPPING_PATH,

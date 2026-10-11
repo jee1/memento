@@ -13,6 +13,7 @@ import { HybridResultRanker } from '../hybrid-result-ranker.js';
 import { SearchResultCombiner } from '../search-result-combiner.js';
 import type { IProceduralMemoryMatcher } from '../hybrid-search-types.js';
 import type Database from 'better-sqlite3';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 const OLD_STAMP = '2024-01-01T00:00:00.000Z';
 const BETA = 0.2;
@@ -92,6 +93,7 @@ describe('recency signal scale (#1175)', () => {
       new SearchRanking(),
       matcher,
       () => null,
+      sqliteRepositoryProvider,
     );
     const [item] = await ranker.combineAndSortResults(
       [{
@@ -136,7 +138,7 @@ describe('recency signal scale (#1175)', () => {
     const stubDb = {
       prepare: () => ({ all: () => [], get: () => undefined }),
     } as unknown as Database.Database;
-    const ranker = new HybridResultRanker(new SearchResultCombiner(), ranking, matcher, () => null);
+    const ranker = new HybridResultRanker(new SearchResultCombiner(), ranking, matcher, () => null, sqliteRepositoryProvider);
     await ranker.combineAndSortResults(
       [{
         id: 'mem_a', content: 'content', type: 'semantic', importance: 0.5,

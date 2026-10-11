@@ -8,7 +8,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { callerOwnerClause, resolveCallerAgentId } from '../../../tools/caller-scope.js';
-import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
+import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
   formatMementoResourceUri,
@@ -143,6 +143,7 @@ export class FeedbackTool extends BaseTool {
     const t0 = Date.now();
     const parsed = FeedbackSchema.parse(params);
     this.validateDatabase(context);
+    const repositories = requireRepositoryProvider(context.services?.repositories);
     const agentId = resolveCallerAgentId(context, parsed.agent_id);
     const ownerScope = callerOwnerClause(context);
 
@@ -159,7 +160,7 @@ export class FeedbackTool extends BaseTool {
         scoreBreakdownJson = JSON.stringify(parsed.score_breakdown);
       }
 
-      const repo = new FeedbackRepositorySQLite(context.db!);
+      const repo = repositories.feedback(context.db!);
       const event = parsed.helpful ? 'helpful' : 'not_helpful';
       const inserted = repo.insertFeedback({
         memory_id: parsed.memory_id,

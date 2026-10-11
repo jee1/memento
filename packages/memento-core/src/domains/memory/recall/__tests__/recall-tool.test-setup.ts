@@ -10,6 +10,7 @@ import { setupTestDatabase } from '../../../../../test/helpers/test-database.js'
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { RecallTool } from '../recall-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 export let db: Database.Database;
 export let tool: RecallTool;
@@ -29,7 +30,7 @@ export function describeRecallTool(topic: string, registerTests: () => void): vo
 
       db = await setupTestDatabase();
       embeddingService = new MemoryEmbeddingService();
-      hybridSearchEngine = createHybridSearchEngine(
+      hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, 
         undefined,
         embeddingService,
         undefined,
@@ -55,7 +56,7 @@ export function describeRecallTool(topic: string, registerTests: () => void): vo
       tool = new RecallTool();
       context = {
         db,
-        services: { hybridSearchEngine, embeddingService, anchorManager }
+        services: { repositories: sqliteRepositoryProvider, hybridSearchEngine, embeddingService, anchorManager }
       };
     });
 

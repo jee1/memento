@@ -6,7 +6,7 @@
  * PRD FR-4.7: HTTP API로 임계값 조회/업데이트 기능 구현
  */
 
-import { QualityAssuranceService,QualityThresholdManager,logger } from '@memento/core';
+import { QualityAssuranceService,QualityThresholdManager,logger,sqliteRepositoryProvider } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { Router } from 'express';
 
@@ -23,7 +23,7 @@ export function createQualityRouter(
   let thresholdManager: QualityThresholdManager | null = null;
   if (db) {
     try {
-      qualityService = new QualityAssuranceService(db);
+      qualityService = new QualityAssuranceService(db, sqliteRepositoryProvider);
       thresholdManager = new QualityThresholdManager(db);
     } catch (error) {
       logger.error('QualityAssuranceService 초기화 실패', {

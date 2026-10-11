@@ -9,6 +9,7 @@ import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedd
 import { RememberTool } from '../domains/memory/remember/remember-tool.js';
 import { RecallTool } from '../domains/memory/recall/recall-tool.js';
 import type { ToolContext } from '../tools/types.js';
+import { sqliteRepositoryProvider } from '../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function initializeRegressionDatabase(db: Database.Database): void {
   db.exec(`
@@ -113,11 +114,11 @@ describe('consolidation score removal regression (#1244)', () => {
     rememberTool = new RememberTool();
     recallTool = new RecallTool();
     embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = createHybridSearchEngine(undefined, embeddingService);
+    hybridSearchEngine = createHybridSearchEngine(sqliteRepositoryProvider, undefined, embeddingService);
     vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
     context = {
       db,
-      services: {
+      services: { repositories: sqliteRepositoryProvider,
         hybridSearchEngine,
         embeddingService,
         relationGraph: createRelationGraph(db),

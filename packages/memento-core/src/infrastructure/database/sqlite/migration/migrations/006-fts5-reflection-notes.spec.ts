@@ -21,6 +21,7 @@ import {
 } from '../../../../../shared/utils/fts5-migration-status.js';
 import { mementoConfig } from '../../../../../shared/config/index.js';
 import { normalizeReflectionNotes } from '../../../../../shared/utils/reflection-notes-normalize.js';
+import { sqliteRepositoryProvider } from '../../../factories/sqlite-repository-provider.js';
 
 /**
  * 기본 스키마 생성 (memory_item 테이블 및 기존 FTS5 테이블)
@@ -1114,7 +1115,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // SearchEngine 인스턴스 생성
       const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
-      const searchEngine = new SearchEngine();
+      const searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
       // When: buildReflectionNotesSearchCondition 호출
       const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'tool_error');
@@ -1131,7 +1132,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // SearchEngine 인스턴스 생성
       const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
-      const searchEngine = new SearchEngine();
+      const searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
       // When: buildReflectionNotesSearchCondition 호출
       const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'user_feedback');
@@ -1170,7 +1171,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // SearchEngine 인스턴스 생성
       const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
-      const searchEngine = new SearchEngine();
+      const searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
       // When: buildReflectionNotesSearchCondition 호출
       const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'metric_failure');
@@ -1210,7 +1211,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // SearchEngine 인스턴스 생성
       const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
-      const searchEngine = new SearchEngine();
+      const searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
       // When: buildReflectionNotesSearchCondition 호출
       const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'tool_error');
@@ -1229,7 +1230,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // SearchEngine 인스턴스 생성
       const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
-      const searchEngine = new SearchEngine();
+      const searchEngine = new SearchEngine(sqliteRepositoryProvider);
 
       // When: buildReflectionNotesSearchCondition 호출 (DB를 전달하므로 DB 상태 우선)
       const condition = (searchEngine as any).ftsAvailability.buildReflectionNotesSearchCondition(db, 'tool_error');

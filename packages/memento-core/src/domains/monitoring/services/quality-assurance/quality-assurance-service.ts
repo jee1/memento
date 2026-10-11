@@ -20,6 +20,7 @@ import { QualityMetricsCollector,type CollectedMetrics } from './quality-metrics
 import { QualityRecorder,type MeasurementType } from './quality-recorder.js';
 import { QualityReporter,type ReportOptions } from './quality-reporter.js';
 import { QualityThresholdManager } from './quality-threshold-manager.js';
+import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
 
 /**
  * 품질 측정 옵션
@@ -98,12 +99,12 @@ export class QualityAssuranceService {
   private reporter: QualityReporter;
   private thresholdManager: QualityThresholdManager;
 
-  constructor(db: Database.Database) {
+  constructor(db: Database.Database, repositories: RepositoryProvider) {
     if (!db) {
       throw new Error('Database instance is required');
     }
     ensureQualityAssuranceSchema(db);
-    this.collector = new QualityMetricsCollector(db);
+    this.collector = new QualityMetricsCollector(db, repositories);
     this.evaluator = new QualityEvaluator(db);
     this.recorder = new QualityRecorder(db);
     this.reporter = new QualityReporter(db);
