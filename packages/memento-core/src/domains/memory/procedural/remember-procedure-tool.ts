@@ -75,39 +75,8 @@ export class RememberProcedureTool extends BaseTool {
    */
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     const raw = params as Record<string, unknown>;
-    if (!raw || typeof raw !== 'object') {
-      return this.createErrorResult('invalid_params', 'params는 객체여야 합니다.');
-    }
-
-    const content = raw.content;
-    if (content === undefined || content === null || (typeof content === 'string' && content.trim() === '')) {
-      return this.createErrorResult('invalid_params', 'content는 필수이며 비어 있을 수 없습니다.');
-    }
-
-    // procedural 전용 검증 (workflow_name, skill_name, trigger_conditions)
-    try {
-      validateProceduralMemoryFields({
-        workflow_name: raw.workflow_name as string | null | undefined,
-        skill_name: raw.skill_name as string | null | undefined,
-        trigger_conditions: raw.trigger_conditions as string | null | undefined,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logWarning('Procedural 필드 검증 실패', { message });
-      return this.createErrorResult('validation_failed', `Procedural Memory 필드 검증 실패: ${message}`);
-    }
-
-    // reflection_notes가 제공된 경우 JSON·스키마 검증
-    const reflectionNotes = raw.reflection_notes;
-    if (reflectionNotes !== undefined && reflectionNotes !== null && reflectionNotes !== '') {
-      const str = typeof reflectionNotes === 'string' ? reflectionNotes : String(reflectionNotes);
-      const result = validateReflectionNotes(str);
-      if (!result.isValid) {
-        const message = formatValidationErrors(result);
-        this.logWarning('reflection_notes 검증 실패', { message });
-        return this.createErrorResult('validation_failed', `reflection_notes 스키마 검증 실패:\n${message}`);
-      }
-    }
+    const invalid = this.validateProcedureInput(raw);
+    if (invalid) return invalid;
 
     if (!context.db) {
       return this.createErrorResult('database_unavailable', '데이터베이스를 사용할 수 없습니다.');
@@ -118,41 +87,13 @@ export class RememberProcedureTool extends BaseTool {
       skill_name: raw.skill_name ?? null,
     });
 
-    const importance =
-      typeof raw.importance === 'number' && raw.importance >= 0 && raw.importance <= 1
-        ? raw.importance
-        : 0.5;
-    const privacy_scope: 'private' | 'team' | 'public' =
-      raw.privacy_scope === 'team' || raw.privacy_scope === 'public' ? raw.privacy_scope : 'private';
-
-    const owner_id = resolveCallerAgentId(
-      context,
-      typeof raw.owner_id === 'string' && raw.owner_id.trim() !== '' ? raw.owner_id.trim() : undefined,
-    ) ?? context.agentId ?? undefined;
-    const process_id =
-      typeof raw.process_id === 'string' && raw.process_id.trim() !== ''
-        ? raw.process_id.trim()
-        : context.processId ?? undefined;
-    const session_id =
-      typeof raw.session_id === 'string' && raw.session_id.trim() !== ''
-        ? raw.session_id.trim()
-        : context.sessionId ?? undefined;
-    const rememberParams = {
-      ...raw,
-      type: 'procedural' as const,
-      content: typeof content === 'string' ? content : String(content),
-      importance,
-      privacy_scope,
-      owner_id,
-      process_id,
-      session_id,
-    };
+    // resolveCallerAgentId 의 owner 불일치 throw 는 save_failed 로 바꾸지 않는다 (#1285).
+    const rememberParams = buildRememberParams(raw, context);
 
     try {
-      const result = await this.rememberTool.handle(rememberParams, context);
-      return result;
+      return await this.rememberTool.handle(rememberParams, context);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = errorMessage(err);
       this.logError(err instanceof Error ? err : new Error(message), 'remember_procedure 위임 실패', {
         workflow_name: raw.workflow_name,
         skill_name: raw.skill_name,
@@ -160,4 +101,60 @@ export class RememberProcedureTool extends BaseTool {
       return this.createErrorResult('save_failed', message);
     }
   }
+
+  /** params 객체 → content → procedural 필드 → reflection_notes 순서로 검증한다. */
+  private validateProcedureInput(raw: Record<string, unknown>): ToolResult | null {
+    if (!raw || typeof raw !== 'object') {
+      return this.createErrorResult('invalid_params', 'params는 객체여야 합니다.');
+    }
+
+    const content = raw.content;
+    if (content === undefined || content === null || (typeof content === 'string' && content.trim() === '')) {
+      return this.createErrorResult('invalid_params', 'content는 필수이며 비어 있을 수 없습니다.');
+    }
+
+    try {
+      validateProceduralMemoryFields({
+        workflow_name: raw.workflow_name as string | null | undefined,
+        skill_name: raw.skill_name as string | null | undefined,
+        trigger_conditions: raw.trigger_conditions as string | null | undefined,
+      });
+    } catch (err) {
+      const message = errorMessage(err);
+      this.logWarning('Procedural 필드 검증 실패', { message });
+      return this.createErrorResult('validation_failed', `Procedural Memory 필드 검증 실패: ${message}`);
+    }
+
+    const reflectionNotes = raw.reflection_notes;
+    if (reflectionNotes === undefined || reflectionNotes === null || reflectionNotes === '') return null;
+    const result = validateReflectionNotes(String(reflectionNotes));
+    if (result.isValid) return null;
+    const message = formatValidationErrors(result);
+    this.logWarning('reflection_notes 검증 실패', { message });
+    return this.createErrorResult('validation_failed', `reflection_notes 스키마 검증 실패:\n${message}`);
+  }
+}
+
+const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** 비어 있지 않은 문자열이면 trim 값, 아니면 fallback. */
+function trimmedOr(value: unknown, fallback: string | undefined): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback;
+}
+
+function buildRememberParams(raw: Record<string, unknown>, context: ToolContext) {
+  const importance =
+    typeof raw.importance === 'number' && raw.importance >= 0 && raw.importance <= 1 ? raw.importance : 0.5;
+  const privacy_scope: 'private' | 'team' | 'public' =
+    raw.privacy_scope === 'team' || raw.privacy_scope === 'public' ? raw.privacy_scope : 'private';
+  return {
+    ...raw,
+    type: 'procedural' as const,
+    content: String(raw.content),
+    importance,
+    privacy_scope,
+    owner_id: resolveCallerAgentId(context, trimmedOr(raw.owner_id, undefined)) ?? context.agentId ?? undefined,
+    process_id: trimmedOr(raw.process_id, context.processId ?? undefined),
+    session_id: trimmedOr(raw.session_id, context.sessionId ?? undefined),
+  };
 }
