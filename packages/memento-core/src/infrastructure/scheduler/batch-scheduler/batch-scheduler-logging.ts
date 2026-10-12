@@ -1,4 +1,4 @@
-import { mcpLogger } from '../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { FileLogger } from '../file-logger.js';

@@ -2,7 +2,7 @@
  * FTS5 쿼리 빌드·전처리
  */
 
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
 import { getStopWords } from '../../../../shared/utils/stopwords.js';
 

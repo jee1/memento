@@ -14,7 +14,7 @@
 
 import { PIIMasker } from './pii-masker.js';
 // MCP 모드에서 사용할 mcpLogger (순환 의존성은 실제로 발생하지 않음)
-import { mcpLogger } from '../../server/mcp-logger.js';
+import { mcpLogger } from './mcp-logger.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

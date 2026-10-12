@@ -3,7 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../../shared/config/vector-search.config.js';
 import type { VectorIndexStatus } from '../../../../shared/types/vector-search.types.js';
 import { getTableName, resolveRuntimeVectorContext } from './vector-search-runtime-context.js';

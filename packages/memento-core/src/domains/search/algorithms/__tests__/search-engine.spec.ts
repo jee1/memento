@@ -9,7 +9,7 @@ import { buildFTSQuery, makeFTSSafe, preprocessQuery } from '../search-engine/se
 import { applyRanking, generateRecallReason } from '../search-engine/search-engine-ranking.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
