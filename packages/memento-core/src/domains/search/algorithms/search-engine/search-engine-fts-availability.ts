@@ -3,7 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { shouldUseFallback } from '../../../../shared/utils/fts5-migration-status.js';
 

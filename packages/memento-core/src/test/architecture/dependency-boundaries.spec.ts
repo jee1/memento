@@ -97,15 +97,21 @@ function findForbiddenImportSpecs(source: string, isForbidden: (spec: string) =>
   return collectModuleEdges(source).filter((e) => isForbidden(e.spec)).map((e) => e.spec);
 }
 
-function isInfrastructureOrServerSpec(spec: string): boolean {
+/**
+ * Resolves `spec` from `fromFile` (src-relative) and reports whether it lands in one of `layers`
+ * (top-level src dirs such as `infrastructure`, `server`) or in the memento-server package.
+ * Path-based so core `src/server/` counts as the server layer (#1339).
+ */
+function importsLayer(fromFile: string, spec: string, layers: readonly string[]): boolean {
   const normalized = spec.replace(/\\/g, '/');
-  return (
-    normalized.includes('/infrastructure/')
-    || normalized.includes('infrastructure/')
-    || normalized.includes('memento-server')
-    || normalized.includes('/packages/memento-server/')
-  );
+  if (normalized.includes('memento-server')) {
+    return true;
+  }
+  const resolved = resolveRelativeImport(fromFile, normalized);
+  return resolved !== null && layers.some((layer) => resolved.startsWith(`${layer}/`));
 }
+
+const INFRA_OR_SERVER_LAYERS = ['infrastructure', 'server'] as const;
 
 function resolveRelativeImport(fromFile: string, spec: string): string | null {
   if (!spec.startsWith('.')) {
@@ -248,7 +254,7 @@ describe('dependency boundaries', () => {
     expect(contextSource).toContain('relationGraph: serverContext.services.relationGraph');
   });
 
-  it('freezes domain→infrastructure imports to an allowlist with growth guard (#749)', async () => {
+  it('freezes domain→infrastructure|server imports to an allowlist with growth guard (#749)', async () => {
     expect(DOMAIN_TO_INFRA_ALLOWLIST).toHaveLength(FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE);
     expect(new Set(DOMAIN_TO_INFRA_ALLOWLIST.map((e) => e.path)).size).toBe(FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE);
     expect(DOMAIN_TO_INFRA_ALLOWLIST.every((e) => e.rationale.trim().length > 0)).toBe(true);
@@ -259,10 +265,8 @@ describe('dependency boundaries', () => {
 
     for (const relativePath of domainFiles) {
       const source = await readSource(relativePath);
-      const forbidden = findForbiddenImportSpecs(source, (spec) => {
-        const normalized = spec.replace(/\\/g, '/');
-        return normalized.includes('/infrastructure/') || normalized.includes('infrastructure/');
-      });
+      const forbidden = findForbiddenImportSpecs(source, (spec) =>
+        importsLayer(relativePath, spec, INFRA_OR_SERVER_LAYERS));
       if (forbidden.length > 0) {
         offenders.push(relativePath);
       }
@@ -289,7 +293,7 @@ describe('dependency boundaries', () => {
 
     for (const relativePath of sharedFiles) {
       const source = await readSource(relativePath);
-      const forbidden = findForbiddenImportSpecs(source, isInfrastructureOrServerSpec);
+      const forbidden = findForbiddenImportSpecs(source, (spec) => importsLayer(relativePath, spec, INFRA_OR_SERVER_LAYERS));
       if (forbidden.length > 0) {
         offenders.push(relativePath);
       }

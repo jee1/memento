@@ -314,7 +314,7 @@ describe('BatchScheduler', () => {
         enableLogging: true
       });
 
-      const mcpLoggerModule = await import('../../../../server/mcp-logger.js');
+      const mcpLoggerModule = await import('../../../../shared/utils/mcp-logger.js');
       const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
 
       await testScheduler.start(db);

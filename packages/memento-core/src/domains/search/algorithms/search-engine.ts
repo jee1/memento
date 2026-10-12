@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { mcpLogger } from '../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import type { MemorySearchResult } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { requireRepositoryProvider, type RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';

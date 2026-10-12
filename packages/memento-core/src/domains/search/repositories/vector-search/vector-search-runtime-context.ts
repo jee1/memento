@@ -4,7 +4,7 @@
 
 import type Database from 'better-sqlite3';
 import { vectorCompatibilityService } from '../../../embedding/services/vector-compatibility-service.js';
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { getEmbeddingModelFilter } from '../../../../shared/config/embedding-models.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../../shared/config/vector-search.config.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../../shared/utils/sql-security-validator.js';

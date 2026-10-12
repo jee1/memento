@@ -1,6 +1,7 @@
 /**
- * Core 패키지용 MCP 로거 스텁
+ * Core 패키지용 stderr 로거 (MCP 로거 스텁).
  * MCP 서버 없이 라이브러리 모드에서 사용. stderr로만 출력.
+ * 실제 MCP protocol 로깅은 memento-server 의 `server/mcp-logger.ts` 가 맡는다 (#1339).
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';

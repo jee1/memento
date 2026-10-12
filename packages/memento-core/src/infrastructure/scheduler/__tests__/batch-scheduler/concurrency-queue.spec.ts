@@ -93,7 +93,7 @@ describe('BatchScheduler', () => {
         retryDelay: 100
       });
 
-      const mcpLoggerModule = await import('../../../../server/mcp-logger.js');
+      const mcpLoggerModule = await import('../../../../shared/utils/mcp-logger.js');
       const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
 
       await testScheduler.start(db);
@@ -132,7 +132,7 @@ describe('BatchScheduler', () => {
 
     it('큐를 통해 실행되는 작업이 실제로 타임아웃을 적용해야 함', async () => {
       // Given: 매우 짧은 타임아웃을 가진 스케줄러 및 log 스파이
-      const mcpLoggerModule = await import('../../../../server/mcp-logger.js');
+      const mcpLoggerModule = await import('../../../../shared/utils/mcp-logger.js');
       const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
 
       const shortTimeoutScheduler = new BatchScheduler({
@@ -168,7 +168,7 @@ describe('BatchScheduler', () => {
       // Given: vi.useFakeTimers()로 시간 제어 및 log 스파이
       vi.useFakeTimers();
 
-      const mcpLoggerModule = await import('../../../../server/mcp-logger.js');
+      const mcpLoggerModule = await import('../../../../shared/utils/mcp-logger.js');
       const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
 
       const testScheduler = new BatchScheduler({

@@ -3,7 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../../shared/config/vector-search.config.js';

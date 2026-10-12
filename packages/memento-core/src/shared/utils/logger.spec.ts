@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { logger, type LogLevel } from './logger.js';
-import { mcpLogger } from '../../server/mcp-logger.js';
+import { mcpLogger } from './mcp-logger.js';
 
 describe('logger', () => {
   let originalStderrWrite: typeof process.stderr.write;
@@ -598,7 +598,7 @@ describe('logger', () => {
       // 모듈 재로드하여 MCP 모드 감지
       vi.resetModules();
       const { logger } = await import('./logger.js');
-      const { mcpLogger } = await import('../../server/mcp-logger.js');
+      const { mcpLogger } = await import('./mcp-logger.js');
       
       // mcpLogger.logServer 모킹
       const logServerSpy = vi.spyOn(mcpLogger, 'logServer').mockImplementation(() => {});

@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { logger } from '../logger.js';
-import { mcpLogger } from '../../../server/mcp-logger.js';
+import { mcpLogger } from '../mcp-logger.js';
 import { PIIMasker } from '../pii-masker.js';
 
 /**

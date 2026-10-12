@@ -8,7 +8,7 @@ import { VectorSearchRepositoryImpl } from '../vector-search.repository.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import type { VectorSearchQuery } from '../../../shared/types/vector-search.types.js';
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 

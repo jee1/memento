@@ -12,7 +12,7 @@ import type { RelationType } from '../../../shared/types/relation.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
-import { mcpLogger } from '../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';

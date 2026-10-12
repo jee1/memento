@@ -2,7 +2,7 @@
  * 벡터 검색 결과 매핑
  */
 
-import { mcpLogger } from '../../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { cosineDistanceToSimilarity } from '../../../../shared/utils/vector-similarity.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import type { RawVectorSearchResult } from './vector-search.types.js';

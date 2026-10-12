@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { mcpLogger } from '../../../server/mcp-logger.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
 import type {
