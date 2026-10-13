@@ -8,6 +8,54 @@ import {
   type ResultItem,
 } from './agent-ops-core.js';
 
+/** 통과면 pass·NONE, 아니면 failStatus·응답 reason. */
+function checkItem(
+  name: string,
+  ok: boolean,
+  failReason: () => string,
+  messages: { pass: string; fail: string },
+  failStatus: 'fail' | 'warn' = 'fail',
+): ResultItem {
+  return ok
+    ? item(name, 'pass', 'NONE', messages.pass)
+    : item(name, failStatus, failReason(), messages.fail);
+}
+
+async function cleanupDemo(
+  request: AgentOpsRequest,
+  sessions: ReadonlyArray<readonly [sessionId: string, created: boolean, label: string]>,
+  summaryMemoryId: string | null,
+  steps: ResultItem[],
+): Promise<void> {
+  for (const [sessionId, created, label] of sessions) {
+    if (!created) continue;
+    const cleanup = await request(
+      `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}`,
+      { method: 'DELETE' },
+    );
+    steps.push(checkItem(
+      `cleanup_${label}`,
+      cleanup.status === 204,
+      () => responseReason(cleanup.status, cleanup.body),
+      { pass: 'Demo session을 삭제했습니다.', fail: 'Demo session 정리를 확인하세요.' },
+      'warn',
+    ));
+  }
+  if (summaryMemoryId) {
+    const cleanup = await request('/tools/forget', {
+      method: 'POST',
+      body: JSON.stringify({ id: summaryMemoryId, hard: true, confirm: true }),
+    });
+    steps.push(checkItem(
+      'cleanup_summary',
+      cleanup.status === 200,
+      () => responseReason(cleanup.status, cleanup.body),
+      { pass: 'Demo summary memory를 삭제했습니다.', fail: 'Demo summary memory 정리를 확인하세요.' },
+      'warn',
+    ));
+  }
+}
+
 export async function runDemo(
   endpoint: string,
   request: AgentOpsRequest,
@@ -92,11 +140,11 @@ export async function runDemo(
         const status = objectBody(result).status;
         return status === 'ACCEPTED' || status === 'REDACTED';
       });
-    steps.push(item(
+    steps.push(checkItem(
       'capture',
-      captured ? 'pass' : 'fail',
-      captured ? 'NONE' : responseReason(ingest.status, ingest.body),
-      captured ? 'Prompt와 tool result를 수집했습니다.' : 'Observation 수집에 실패했습니다.',
+      captured,
+      () => responseReason(ingest.status, ingest.body),
+      { pass: 'Prompt와 tool result를 수집했습니다.', fail: 'Observation 수집에 실패했습니다.' },
     ));
     if (!captured) throw new Error('capture failed');
 
@@ -122,11 +170,11 @@ export async function runDemo(
       ? stopBody.summary_job_id
       : null;
     const summarized = stop.status === 200 && summaryMemoryId !== null;
-    steps.push(item(
+    steps.push(checkItem(
       'summary',
-      summarized ? 'pass' : 'fail',
-      summarized ? 'NONE' : responseReason(stop.status, stop.body),
-      summarized ? '첫 session summary memory를 생성했습니다.' : 'Session summary 생성에 실패했습니다.',
+      summarized,
+      () => responseReason(stop.status, stop.body),
+      { pass: '첫 session summary memory를 생성했습니다.', fail: 'Session summary 생성에 실패했습니다.' },
     ));
     if (!summarized) throw new Error('summary failed');
 
@@ -155,45 +203,24 @@ export async function runDemo(
     summaryReused = summaryMemoryId !== null && selected.some(selectedItem =>
       objectBody(selectedItem).memory_id === summaryMemoryId
     );
-    steps.push(item(
+    steps.push(checkItem(
       'next_session_injection',
-      secondCreated && summaryReused ? 'pass' : 'fail',
-      secondCreated && summaryReused ? 'NONE' : responseReason(secondStart.status, secondStart.body),
-      secondCreated && summaryReused
-        ? '두 번째 session에 첫 summary memory가 주입되었습니다.'
-        : '두 번째 session에서 첫 summary memory를 확인하지 못했습니다.',
+      secondCreated && summaryReused,
+      () => responseReason(secondStart.status, secondStart.body),
+      {
+        pass: '두 번째 session에 첫 summary memory가 주입되었습니다.',
+        fail: '두 번째 session에서 첫 summary memory를 확인하지 못했습니다.',
+      },
     ));
   } catch {
     // Step results preserve the actionable failure without exposing request payloads.
   } finally {
-    for (const [sessionId, created] of [
-      [secondSession, secondCreated],
-      [firstSession, firstCreated],
-    ] as const) {
-      if (!created) continue;
-      const cleanup = await request(
-        `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}`,
-        { method: 'DELETE' },
-      );
-      steps.push(item(
-        `cleanup_${sessionId.endsWith('-2') ? 'second' : 'first'}`,
-        cleanup.status === 204 ? 'pass' : 'warn',
-        cleanup.status === 204 ? 'NONE' : responseReason(cleanup.status, cleanup.body),
-        cleanup.status === 204 ? 'Demo session을 삭제했습니다.' : 'Demo session 정리를 확인하세요.',
-      ));
-    }
-    if (summaryMemoryId) {
-      const cleanup = await request('/tools/forget', {
-        method: 'POST',
-        body: JSON.stringify({ id: summaryMemoryId, hard: true, confirm: true }),
-      });
-      steps.push(item(
-        'cleanup_summary',
-        cleanup.status === 200 ? 'pass' : 'warn',
-        cleanup.status === 200 ? 'NONE' : responseReason(cleanup.status, cleanup.body),
-        cleanup.status === 200 ? 'Demo summary memory를 삭제했습니다.' : 'Demo summary memory 정리를 확인하세요.',
-      ));
-    }
+    await cleanupDemo(
+      request,
+      [[secondSession, secondCreated, 'second'], [firstSession, firstCreated, 'first']],
+      summaryMemoryId,
+      steps,
+    );
   }
   const ok = summaryReused
     && steps.every(step => step.status === 'pass' || step.status === 'skip');

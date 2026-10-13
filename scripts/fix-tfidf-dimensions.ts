@@ -28,6 +28,120 @@ async function loadVecExtension(db: any): Promise<void> {
   }
 }
 
+type TfidfMemoryRow = { id: string; content: string; type: string };
+
+/** 384차원 TF-IDF 임베딩 하나를 512차원으로 바꾼다. 실패하면 사유를 돌려준다. */
+async function migrateMemoryEmbedding(
+  db: any,
+  embeddingService: UnifiedEmbeddingService,
+  memory: TfidfMemoryRow,
+  progress: string
+): Promise<{ error: string } | { storedDimensions: number }> {
+  // tfidf provider로 임베딩 생성
+  const embeddingResult = await embeddingService.generateEmbedding(memory.content, 'tfidf');
+  
+  if (!embeddingResult) {
+    console.warn(`${progress} ⚠️ 임베딩 생성 실패: ${memory.id}`);
+    return { error: '임베딩 생성 실패' };
+  }
+
+  const embeddingVector = Array.isArray(embeddingResult.embedding) ? embeddingResult.embedding : [];
+  if (embeddingVector.length === 0) {
+    console.warn(`${progress} ⚠️ 임베딩 결과가 비어있음: ${memory.id}`);
+    return { error: '임베딩 결과가 비어있음' };
+  }
+
+  const provider = 'tfidf';
+
+  // 벡터 호환성 평가
+  const compatibility = vectorCompatibilityService.assessProviderCompatibility(
+    embeddingVector,
+    provider
+  );
+
+  const blockingIssues = compatibility.issues.filter(
+    issue => issue.severity === 'error' && issue.code !== 'dimension_mismatch'
+  );
+
+  if (blockingIssues.length > 0) {
+    const errorMessages = blockingIssues.map(issue => issue.message).join(', ');
+    console.warn(`${progress} ⚠️ 임베딩 벡터 검증 실패: ${memory.id} - ${errorMessages}`);
+    return { error: `검증 실패: ${errorMessages}` };
+  }
+
+  const projection = compatibility.projection;
+  const storedVector = projection.vector;
+  const serializedEmbedding = JSON.stringify(storedVector);
+  const sourceDimensions = projection.sourceDimensions;
+  const storedDimensions = projection.targetDimensions;
+  const projectionType = projection.projectionType;
+  const normalized = projection.normalized ? 1 : 0;
+
+  // 기존 512차원 임베딩이 이미 있는지 확인
+  const existing512 = db.prepare(`
+    SELECT id FROM memory_embedding
+    WHERE memory_id = ?
+      AND embedding_provider = ?
+      AND (dimensions = ? OR (dimensions IS NULL AND dim = ?))
+  `).get(memory.id, provider, storedDimensions, storedDimensions);
+
+  if (existing512) {
+    // 이미 512차원 임베딩이 있으면 기존 384차원만 삭제
+    await DatabaseUtils.run(db, `
+      DELETE FROM memory_embedding
+      WHERE memory_id = ?
+        AND embedding_provider = ?
+        AND (dimensions = 384 OR (dimensions IS NULL AND dim = 384))
+    `, [memory.id, provider]);
+    console.log(`${progress} ℹ️ 이미 512차원 임베딩이 존재하여 384차원만 삭제: ${memory.id}`);
+  } else {
+    // 기존 384차원 임베딩 삭제
+    await DatabaseUtils.run(db, `
+      DELETE FROM memory_embedding
+      WHERE memory_id = ?
+        AND embedding_provider = ?
+        AND (dimensions = 384 OR (dimensions IS NULL AND dim = 384))
+    `, [memory.id, provider]);
+
+    // 새 512차원 임베딩 삽입
+    await DatabaseUtils.run(db, `
+      INSERT INTO memory_embedding (
+        memory_id,
+        embedding_provider,
+        projection_type,
+        embedding,
+        dim,
+        model,
+        dimensions,
+        precision,
+        normalized,
+        version,
+        created_by,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `, [
+      memory.id,
+      provider,
+      projectionType,
+      serializedEmbedding,
+      sourceDimensions,
+      embeddingResult.model || 'tfidf',
+      storedDimensions,
+      32,
+      normalized,
+      1,
+      'fix-tfidf-dimensions-script'
+    ]);
+  }
+
+  if (compatibility.needsProjection) {
+    console.log(`${progress} 🔄 벡터 차원 조정: ${sourceDimensions} → ${storedDimensions} (${projectionType})`);
+  }
+
+  return { storedDimensions };
+}
+
 async function fixTfidfDimensions() {
   console.log('🔧 TF-IDF 벡터 차원 마이그레이션 시작...');
   console.log('📋 목표: 384차원 → 512차원\n');
@@ -125,115 +239,14 @@ async function fixTfidfDimensions() {
       try {
         console.log(`${progress} 처리 중: ${memory.id} (${memory.type})`);
         
-        // tfidf provider로 임베딩 생성
-        const embeddingResult = await embeddingService.generateEmbedding(memory.content, 'tfidf');
-        
-        if (!embeddingResult) {
-          console.warn(`${progress} ⚠️ 임베딩 생성 실패: ${memory.id}`);
+        const migrated = await migrateMemoryEmbedding(db, embeddingService, memory, progress);
+        if ('error' in migrated) {
           errorCount++;
-          errors.push({ memory_id: memory.id, error: '임베딩 생성 실패' });
+          errors.push({ memory_id: memory.id, error: migrated.error });
           continue;
         }
 
-        const embeddingVector = Array.isArray(embeddingResult.embedding) ? embeddingResult.embedding : [];
-        if (embeddingVector.length === 0) {
-          console.warn(`${progress} ⚠️ 임베딩 결과가 비어있음: ${memory.id}`);
-          errorCount++;
-          errors.push({ memory_id: memory.id, error: '임베딩 결과가 비어있음' });
-          continue;
-        }
-
-        const provider = 'tfidf';
-
-        // 벡터 호환성 평가
-        const compatibility = vectorCompatibilityService.assessProviderCompatibility(
-          embeddingVector,
-          provider
-        );
-
-        const blockingIssues = compatibility.issues.filter(
-          issue => issue.severity === 'error' && issue.code !== 'dimension_mismatch'
-        );
-
-        if (blockingIssues.length > 0) {
-          const errorMessages = blockingIssues.map(issue => issue.message).join(', ');
-          console.warn(`${progress} ⚠️ 임베딩 벡터 검증 실패: ${memory.id} - ${errorMessages}`);
-          errorCount++;
-          errors.push({ memory_id: memory.id, error: `검증 실패: ${errorMessages}` });
-          continue;
-        }
-
-        const projection = compatibility.projection;
-        const storedVector = projection.vector;
-        const serializedEmbedding = JSON.stringify(storedVector);
-        const sourceDimensions = projection.sourceDimensions;
-        const storedDimensions = projection.targetDimensions;
-        const projectionType = projection.projectionType;
-        const normalized = projection.normalized ? 1 : 0;
-
-        // 기존 512차원 임베딩이 이미 있는지 확인
-        const existing512 = db.prepare(`
-          SELECT id FROM memory_embedding
-          WHERE memory_id = ?
-            AND embedding_provider = ?
-            AND (dimensions = ? OR (dimensions IS NULL AND dim = ?))
-        `).get(memory.id, provider, storedDimensions, storedDimensions);
-
-        if (existing512) {
-          // 이미 512차원 임베딩이 있으면 기존 384차원만 삭제
-          await DatabaseUtils.run(db, `
-            DELETE FROM memory_embedding
-            WHERE memory_id = ?
-              AND embedding_provider = ?
-              AND (dimensions = 384 OR (dimensions IS NULL AND dim = 384))
-          `, [memory.id, provider]);
-          console.log(`${progress} ℹ️ 이미 512차원 임베딩이 존재하여 384차원만 삭제: ${memory.id}`);
-        } else {
-          // 기존 384차원 임베딩 삭제
-          await DatabaseUtils.run(db, `
-            DELETE FROM memory_embedding
-            WHERE memory_id = ?
-              AND embedding_provider = ?
-              AND (dimensions = 384 OR (dimensions IS NULL AND dim = 384))
-          `, [memory.id, provider]);
-
-          // 새 512차원 임베딩 삽입
-          await DatabaseUtils.run(db, `
-            INSERT INTO memory_embedding (
-              memory_id,
-              embedding_provider,
-              projection_type,
-              embedding,
-              dim,
-              model,
-              dimensions,
-              precision,
-              normalized,
-              version,
-              created_by,
-              created_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-          `, [
-            memory.id,
-            provider,
-            projectionType,
-            serializedEmbedding,
-            sourceDimensions,
-            embeddingResult.model || 'tfidf',
-            storedDimensions,
-            32,
-            normalized,
-            1,
-            'fix-tfidf-dimensions-script'
-          ]);
-        }
-
-        if (compatibility.needsProjection) {
-          console.log(`${progress} 🔄 벡터 차원 조정: ${sourceDimensions} → ${storedDimensions} (${projectionType})`);
-        }
-
-        console.log(`${progress} ✅ 완료: ${memory.id} (${storedDimensions}차원)`);
+        console.log(`${progress} ✅ 완료: ${memory.id} (${migrated.storedDimensions}차원)`);
         successCount++;
 
         // API 제한을 위한 대기 (필요시)

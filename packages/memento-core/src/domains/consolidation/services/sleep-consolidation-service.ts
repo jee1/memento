@@ -114,6 +114,72 @@ export class SleepConsolidationService {
     return this.activeRun !== null;
   }
 
+  /**
+   * 요약과 가장 비슷한 같은 owner 의 시맨틱(병합 임계값 이상)을 찾는다.
+   * judge 가 있으면 judge 가 거부한 대상은 버린다.
+   */
+  private async findMergeTarget(
+    clusterId: string,
+    ownerId: string | null,
+    summaryText: string
+  ): Promise<{ id: string; content: string; originSource: string } | null> {
+    const mergeTh = getMergeSimilarityThreshold();
+    const uni = this.memoryEmbedding.getUnifiedEmbeddingService();
+    let mergeTarget: { id: string; content: string; originSource: string } | null = null;
+    const sumEmbRes = await uni.generateEmbedding(summaryText);
+    if (sumEmbRes?.embedding && Array.isArray(sumEmbRes.embedding)) {
+      const sumVec = sumEmbRes.embedding as number[];
+      // 후보 벡터는 저장된 것을 읽는다. 예전에는 후보마다 generateEmbedding 을 다시
+      // 호출했는데, 모든 후보는 저장 시점에 이미 임베딩된 상태라 결과가 같으면서
+      // 클러스터 하나에 시맨틱 수만큼 모델 추론이 돌았다 (#917).
+      const semantics = this.repo.findSemanticsByOwner(ownerId, {
+        provider: sumEmbRes.provider,
+        model: sumEmbRes.model
+      });
+      let bestSim = -1;
+      let withoutEmbedding = 0;
+      for (const sem of semantics) {
+        if (!sem.embedding) {
+          withoutEmbedding++;
+          continue;
+        }
+        const sim = cosineSimilarity(sumVec, sem.embedding);
+        if (sim >= mergeTh && sim > bestSim) {
+          bestSim = sim;
+          mergeTarget = sem;
+        }
+      }
+      if (withoutEmbedding > 0) {
+        // 현재 모델 벡터가 없는 후보는 비교할 수 없어 병합에서 빠진다. 모델을 바꾸고
+        // 재색인이 끝나지 않은 상태면 여기서 조용히 중복 시맨틱이 쌓이므로 남긴다.
+        mcpLogger.logServer('warn', '현재 모델 임베딩이 없는 시맨틱은 병합 후보에서 제외', {
+          clusterId,
+          ownerId,
+          provider: sumEmbRes.provider ?? null,
+          model: sumEmbRes.model ?? null,
+          withoutEmbedding,
+          candidateCount: semantics.length
+        });
+      }
+    }
+
+    if (mergeTarget && this.clusterJudge) {
+      const [score] = await this.clusterJudge.scorePairs([{ a: summaryText, b: mergeTarget.content }]);
+      const accepted = typeof score === 'number' && score >= getClusterJudgeThreshold();
+      mcpLogger.logServer('info', 'Consolidation judge: merge target', {
+        clusterId,
+        mergeTargetId: mergeTarget.id,
+        score: Number.isFinite(score) ? score : null,
+        accepted
+      });
+      if (!accepted) {
+        mergeTarget = null;
+      }
+    }
+
+    return mergeTarget;
+  }
+
   async run(options: SleepConsolidationRunOptions = {}): Promise<SleepConsolidationRunResult> {
     if (this.activeRun) {
       return {
@@ -193,59 +259,7 @@ export class SleepConsolidationService {
             continue;
           }
 
-          const mergeTh = getMergeSimilarityThreshold();
-          const uni = this.memoryEmbedding.getUnifiedEmbeddingService();
-          let mergeTarget: { id: string; content: string; originSource: string } | null = null;
-          const sumEmbRes = await uni.generateEmbedding(summaryText);
-          if (sumEmbRes?.embedding && Array.isArray(sumEmbRes.embedding)) {
-            const sumVec = sumEmbRes.embedding as number[];
-            // 후보 벡터는 저장된 것을 읽는다. 예전에는 후보마다 generateEmbedding 을 다시
-            // 호출했는데, 모든 후보는 저장 시점에 이미 임베딩된 상태라 결과가 같으면서
-            // 클러스터 하나에 시맨틱 수만큼 모델 추론이 돌았다 (#917).
-            const semantics = this.repo.findSemanticsByOwner(cluster.ownerId, {
-              provider: sumEmbRes.provider,
-              model: sumEmbRes.model
-            });
-            let bestSim = -1;
-            let withoutEmbedding = 0;
-            for (const sem of semantics) {
-              if (!sem.embedding) {
-                withoutEmbedding++;
-                continue;
-              }
-              const sim = cosineSimilarity(sumVec, sem.embedding);
-              if (sim >= mergeTh && sim > bestSim) {
-                bestSim = sim;
-                mergeTarget = sem;
-              }
-            }
-            if (withoutEmbedding > 0) {
-              // 현재 모델 벡터가 없는 후보는 비교할 수 없어 병합에서 빠진다. 모델을 바꾸고
-              // 재색인이 끝나지 않은 상태면 여기서 조용히 중복 시맨틱이 쌓이므로 남긴다.
-              mcpLogger.logServer('warn', '현재 모델 임베딩이 없는 시맨틱은 병합 후보에서 제외', {
-                clusterId,
-                ownerId: cluster.ownerId,
-                provider: sumEmbRes.provider ?? null,
-                model: sumEmbRes.model ?? null,
-                withoutEmbedding,
-                candidateCount: semantics.length
-              });
-            }
-          }
-
-          if (mergeTarget && this.clusterJudge) {
-            const [score] = await this.clusterJudge.scorePairs([{ a: summaryText, b: mergeTarget.content }]);
-            const accepted = typeof score === 'number' && score >= getClusterJudgeThreshold();
-            mcpLogger.logServer('info', 'Consolidation judge: merge target', {
-              clusterId,
-              mergeTargetId: mergeTarget.id,
-              score: Number.isFinite(score) ? score : null,
-              accepted
-            });
-            if (!accepted) {
-              mergeTarget = null;
-            }
-          }
+          const mergeTarget = await this.findMergeTarget(clusterId, cluster.ownerId, summaryText);
 
           if (mergeTarget) {
             const merged = await this.summarization.summarizeMergeForConsolidation({

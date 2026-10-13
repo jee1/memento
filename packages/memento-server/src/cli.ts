@@ -155,132 +155,110 @@ const subIdx = preOptions.subIdx;
 const commandToken = preOptions.commandToken;
 const showHelp = preOptions.help || (!commandToken && !subcommand);
 
-async function main(): Promise<number> {
-  const agentTokens = stripGlobalArgvForAgentDetection(process.argv);
-  if (
-    agentTokens[0] === 'doctor'
-    || agentTokens[0] === 'status'
-    || agentTokens[0] === 'demo'
-  ) {
+const HELP_TEXT = [
+  'memento – Memento CLI for AI\n',
+  'Usage: memento [options] <command> [command-args]\n\n',
+  'Commands:\n',
+  '  recall              관련 기억을 검색합니다 (하이브리드 검색)\n',
+  '  remember            기억을 저장합니다\n',
+  '  forget              기억을 삭제합니다 (소프트/하드)\n',
+  '  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n',
+  '  review-queue cleanup 검토 큐를 dry-run 후 일괄 정리\n',
+  '  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n',
+  '  doctor              Agent endpoint/auth/schema/redaction 진단\n',
+  '  status              최근 capture/injection/drop/degraded 요약\n',
+  '  demo                두 session 자동 기억 주입 E2E 검증\n',
+  '  connect codex       Codex lifecycle hook 연결\n',
+  '  hook codex          Codex hook stdin 처리 (internal)\n\n',
+  '  connect claude-code Claude Code lifecycle hook 연결\n',
+  '  hook claude-code    Claude Code hook stdin 처리 (internal)\n',
+  '  connect project     현재 저장소 MCP 설정에 X-Memento-Project-Id 헤더 기록 (#1270)\n',
+  '\n',
+  'Global options (서브커맨드 앞·뒤 모두 가능):\n',
+  '  --db-path <path>    review-queue cleanup DB 경로 (기타 명령은 deprecated)\n',
+  '  --env-file <path>   (deprecated) .env 파일 경로\n',
+  '  --config-dir <path> 설정 디렉터리 (~/.memento 대체)\n',
+  '  --help, -h           이 도움말\n',
+].join('');
+
+/** 서버 도구가 아닌 명령(doctor·connect·hook·agent·review-queue)을 실행한다. 해당 없으면 undefined. */
+async function runAgentCommand(agentTokens: string[]): Promise<number | undefined> {
+  const [first, second] = agentTokens;
+  if (first === 'doctor' || first === 'status' || first === 'demo') {
     const { runAgentOpsCommand } = await import('./cli/agent-ops.js');
-    return runAgentOpsCommand(agentTokens[0], agentTokens.slice(1));
+    return runAgentOpsCommand(first, agentTokens.slice(1));
   }
-  if (agentTokens[0] === 'connect' && agentTokens[1] === 'codex') {
-    const { runCodexConnect } = await import('./cli/codex-connect.js');
-    return runCodexConnect(agentTokens.slice(2));
-  }
-  if (agentTokens[0] === 'hook' && agentTokens[1] === 'codex') {
-    const { runCodexHookCommand } = await import('./cli/codex-hook.js');
-    return runCodexHookCommand();
-  }
-  if (agentTokens[0] === 'connect' && agentTokens[1] === 'claude-code') {
-    const { runClaudeCodeConnect } = await import('./cli/claude-code-connect.js');
-    return runClaudeCodeConnect(agentTokens.slice(2));
-  }
-  if (agentTokens[0] === 'connect' && agentTokens[1] === 'project') {
-    const { runProjectConnect } = await import('./cli/project-connect.js');
-    return runProjectConnect(agentTokens.slice(2));
-  }
-  if (agentTokens[0] === 'hook' && agentTokens[1] === 'claude-code') {
-    const { runClaudeCodeHookCommand } = await import('./cli/claude-code-hook.js');
-    return runClaudeCodeHookCommand();
-  }
-  if (agentTokens[0] === 'agent') {
+  if (first === 'agent') {
     const { runAgentAskMain, agentAskHelpText } = await import('./cli/agent-ask.js');
-    if (preOptions.help && agentTokens[1] !== 'ask') {
+    if (preOptions.help && second !== 'ask') {
       await writeStderr(agentAskHelpText());
       return 0;
     }
     return runAgentAskMain(preOptions, process.argv);
   }
-  if (agentTokens[0] === 'review-queue' && agentTokens[1] === 'cleanup') {
-    const { runReviewQueueCleanup } = await import('./cli/review-queue-cleanup.js');
-    return runReviewQueueCleanup(agentTokens.slice(2), { dbPath: preOptions.dbPath });
-  }
-
-  if (showHelp) {
-    await writeStderr('memento – Memento CLI for AI\n');
-    await writeStderr('Usage: memento [options] <command> [command-args]\n\n');
-    await writeStderr('Commands:\n');
-    await writeStderr('  recall              관련 기억을 검색합니다 (하이브리드 검색)\n');
-    await writeStderr('  remember            기억을 저장합니다\n');
-    await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
-    await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n');
-    await writeStderr('  review-queue cleanup 검토 큐를 dry-run 후 일괄 정리\n');
-    await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n');
-    await writeStderr('  doctor              Agent endpoint/auth/schema/redaction 진단\n');
-    await writeStderr('  status              최근 capture/injection/drop/degraded 요약\n');
-    await writeStderr('  demo                두 session 자동 기억 주입 E2E 검증\n');
-    await writeStderr('  connect codex       Codex lifecycle hook 연결\n');
-    await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
-    await writeStderr('  connect claude-code Claude Code lifecycle hook 연결\n');
-    await writeStderr('  hook claude-code    Claude Code hook stdin 처리 (internal)\n');
-    await writeStderr('  connect project     현재 저장소 MCP 설정에 X-Memento-Project-Id 헤더 기록 (#1270)\n');
-    await writeStderr('\n');
-    await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
-    await writeStderr('  --db-path <path>    review-queue cleanup DB 경로 (기타 명령은 deprecated)\n');
-    await writeStderr('  --env-file <path>   (deprecated) .env 파일 경로\n');
-    await writeStderr('  --config-dir <path> 설정 디렉터리 (~/.memento 대체)\n');
-    await writeStderr('  --help, -h           이 도움말\n');
-    return 0;
-  }
-
-  if (!subcommand && commandToken) {
-    await writeStderr(`Unknown command: ${commandToken}. Use --help.\n`);
-    return 1;
-  }
-
-  if (!subcommand || !TOOL_SUBCOMMANDS.has(subcommand)) {
-    await writeStderr(`Unknown command: ${String(subcommand)}. Use --help.\n`);
-    return 1;
-  }
-
-  // deprecated 옵션 경고
-  if (preOptions.dbPath) {
-    await writeStderr('[deprecated] --db-path 옵션은 더 이상 사용되지 않습니다. 서버가 DB를 관리합니다.\n');
-  }
-  if (preOptions.envFile) {
-    await writeStderr('[deprecated] --env-file 옵션은 더 이상 사용되지 않습니다.\n');
-  }
-
-  // 인자 검증 (서버 체크 이전: 필수 인자 누락 시 서버 오류보다 명확한 메시지 제공)
-  const cmdArgv =
-    subIdx !== undefined ? subcommandArgvFrom(process.argv, subIdx) : process.argv.slice(3);
-
-  let toolParams: Record<string, unknown>;
-  if (subcommand === 'recall') {
-    const params = recallParams(cmdArgv);
-    if (typeof params.query !== 'string' || !String(params.query).trim()) {
-      await writeStderr('recall requires --query <string>.\n');
-      return 1;
+  switch (`${first} ${second}`) {
+    case 'connect codex': {
+      const { runCodexConnect } = await import('./cli/codex-connect.js');
+      return runCodexConnect(agentTokens.slice(2));
     }
-    toolParams = params as Record<string, unknown>;
-  } else if (subcommand === 'remember') {
-    const params = rememberParams(cmdArgv);
-    if (typeof params.content !== 'string' || !String(params.content).trim()) {
-      await writeStderr('remember requires --content <string>.\n');
-      return 1;
+    case 'hook codex': {
+      const { runCodexHookCommand } = await import('./cli/codex-hook.js');
+      return runCodexHookCommand();
     }
-    toolParams = params as Record<string, unknown>;
-  } else if (subcommand === 'forget') {
-    const params = forgetParams(cmdArgv);
-    if (params.id === undefined && (!Array.isArray(params.batch) || params.batch.length === 0)) {
-      await writeStderr('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
-      return 1;
+    case 'connect claude-code': {
+      const { runClaudeCodeConnect } = await import('./cli/claude-code-connect.js');
+      return runClaudeCodeConnect(agentTokens.slice(2));
     }
-    toolParams = params as Record<string, unknown>;
-  } else if (subcommand === 'memory_injection') {
-    const params = memoryInjectionParams(cmdArgv);
-    if (typeof params.query !== 'string' || !String(params.query).trim()) {
-      await writeStderr('memory_injection requires --query <string>.\n');
-      return 1;
+    case 'connect project': {
+      const { runProjectConnect } = await import('./cli/project-connect.js');
+      return runProjectConnect(agentTokens.slice(2));
     }
-    toolParams = params as Record<string, unknown>;
-  } else {
-    return 0;
+    case 'hook claude-code': {
+      const { runClaudeCodeHookCommand } = await import('./cli/claude-code-hook.js');
+      return runClaudeCodeHookCommand();
+    }
+    case 'review-queue cleanup': {
+      const { runReviewQueueCleanup } = await import('./cli/review-queue-cleanup.js');
+      return runReviewQueueCleanup(agentTokens.slice(2), { dbPath: preOptions.dbPath });
+    }
+    default:
+      return undefined;
   }
+}
 
-  // configDir 결정
+type ToolParamSpec = {
+  build: (argv: string[]) => Record<string, unknown>;
+  isValid: (params: Record<string, unknown>) => boolean;
+  usage: string;
+};
+
+const hasText = (value: unknown): boolean => typeof value === 'string' && value.trim() !== '';
+
+/** 인자 검증은 서버 체크 이전에 한다: 필수 인자 누락 시 서버 오류보다 명확한 메시지 제공. */
+const TOOL_PARAM_SPECS: Record<string, ToolParamSpec> = {
+  recall: {
+    build: (argv) => recallParams(argv) as Record<string, unknown>,
+    isValid: (params) => hasText(params.query),
+    usage: 'recall requires --query <string>.\n',
+  },
+  remember: {
+    build: (argv) => rememberParams(argv) as Record<string, unknown>,
+    isValid: (params) => hasText(params.content),
+    usage: 'remember requires --content <string>.\n',
+  },
+  forget: {
+    build: (argv) => forgetParams(argv) as Record<string, unknown>,
+    isValid: (params) => params.id !== undefined || (Array.isArray(params.batch) && params.batch.length > 0),
+    usage: 'forget requires --id <memory_id> or --batch <id1,id2,...>.\n',
+  },
+  memory_injection: {
+    build: (argv) => memoryInjectionParams(argv) as Record<string, unknown>,
+    isValid: (params) => hasText(params.query),
+    usage: 'memory_injection requires --query <string>.\n',
+  },
+};
+
+async function callRunningServer(toolName: string, toolParams: Record<string, unknown>): Promise<number> {
   const configDir = preOptions.configDir ?? resolveServerInfoConfigDir();
 
   // 서버 발견
@@ -298,7 +276,7 @@ async function main(): Promise<number> {
   }
 
   try {
-    const result = await callToolViaHttp(serverInfo.port, subcommand, toolParams);
+    const result = await callToolViaHttp(serverInfo.port, toolName, toolParams);
     await writeStdout(JSON.stringify(result) + '\n');
     return 0;
   } catch (err) {
@@ -306,6 +284,47 @@ async function main(): Promise<number> {
     await writeStderr(msg + '\n');
     return 1;
   }
+}
+
+async function main(): Promise<number> {
+  const agentExitCode = await runAgentCommand(stripGlobalArgvForAgentDetection(process.argv));
+  if (agentExitCode !== undefined) {
+    return agentExitCode;
+  }
+
+  if (showHelp) {
+    await writeStderr(HELP_TEXT);
+    return 0;
+  }
+
+  if (!subcommand && commandToken) {
+    await writeStderr(`Unknown command: ${commandToken}. Use --help.\n`);
+    return 1;
+  }
+
+  const spec = subcommand && TOOL_SUBCOMMANDS.has(subcommand) ? TOOL_PARAM_SPECS[subcommand] : undefined;
+  if (!subcommand || !spec) {
+    await writeStderr(`Unknown command: ${String(subcommand)}. Use --help.\n`);
+    return 1;
+  }
+
+  // deprecated 옵션 경고
+  if (preOptions.dbPath) {
+    await writeStderr('[deprecated] --db-path 옵션은 더 이상 사용되지 않습니다. 서버가 DB를 관리합니다.\n');
+  }
+  if (preOptions.envFile) {
+    await writeStderr('[deprecated] --env-file 옵션은 더 이상 사용되지 않습니다.\n');
+  }
+
+  const cmdArgv =
+    subIdx !== undefined ? subcommandArgvFrom(process.argv, subIdx) : process.argv.slice(3);
+  const toolParams = spec.build(cmdArgv);
+  if (!spec.isValid(toolParams)) {
+    await writeStderr(spec.usage);
+    return 1;
+  }
+
+  return callRunningServer(subcommand, toolParams);
 }
 
 const isDirectRun = process.argv[1] !== undefined

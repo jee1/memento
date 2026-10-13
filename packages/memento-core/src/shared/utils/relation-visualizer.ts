@@ -65,6 +65,39 @@ export interface VisualizationOptions {
 /**
  * 관계 그래프 시각화 유틸리티 클래스
  */
+type SubgraphLineOptions = Required<
+  Pick<VisualizationOptions, 'indent' | 'arrow' | 'showMemoryIds' | 'showConfidence' | 'showRelationTypes'>
+>;
+
+/** BFS 경로의 마지막 간선 `source--[type]-->target` 을 한 줄로 그린다. 파싱 실패면 memoryId 만. */
+function formatSubgraphPathLine(
+  lastPath: string,
+  depth: number,
+  memoryId: string,
+  relationMap: Map<string, MemoryRelation>,
+  { indent, arrow, showMemoryIds, showConfidence, showRelationTypes }: SubgraphLineOptions
+): string {
+  const match = lastPath.match(/^(.+?)--\[(.+?)\]-->(.+?)$/);
+  if (!match || !match[1] || !match[2] || !match[3]) {
+    return indent.repeat(depth) + memoryId;
+  }
+  const [, source, relationType, target] = match;
+  const relation = relationMap.get(`${source}-${target}-${relationType}`);
+
+  const parts: string[] = [indent.repeat(depth)];
+  if (showMemoryIds) {
+    parts.push(source);
+  }
+  parts.push(showRelationTypes ? `${arrow}[${relationType}]` : arrow);
+  if (showMemoryIds) {
+    parts.push(target);
+  }
+  if (showConfidence && relation) {
+    parts.push(`(confidence: ${relation.confidence.toFixed(2)})`);
+  }
+  return parts.join(' ');
+}
+
 export class RelationVisualizer {
   /**
    * 관계 목록을 텍스트로 시각화
@@ -268,41 +301,11 @@ export class RelationVisualizer {
 
       lines.push(`[${depth}-hop 관계]`);
       for (const item of items) {
-        // path에서 마지막 관계 정보 추출
         const lastPath = item.path[item.path.length - 1];
         if (lastPath) {
-          const match = lastPath.match(/^(.+?)--\[(.+?)\]-->(.+?)$/);
-          if (match && match[1] && match[2] && match[3]) {
-            const [, source, relationType, target] = match;
-            const key = `${source}-${target}-${relationType}`;
-            const relation = relationMap.get(key);
-
-            const parts: string[] = [];
-            parts.push(indent.repeat(depth));
-
-            if (showMemoryIds) {
-              parts.push(source);
-            }
-
-            if (showRelationTypes) {
-              parts.push(`${arrow}[${relationType}]`);
-            } else {
-              parts.push(arrow);
-            }
-
-            if (showMemoryIds) {
-              parts.push(target);
-            }
-
-            if (showConfidence && relation) {
-              parts.push(`(confidence: ${relation.confidence.toFixed(2)})`);
-            }
-
-            lines.push(parts.join(' '));
-          } else {
-            // path 파싱 실패 시 간단히 표시
-            lines.push(indent.repeat(depth) + item.memoryId);
-          }
+          lines.push(formatSubgraphPathLine(lastPath, depth, item.memoryId, relationMap, {
+            indent, arrow, showMemoryIds, showConfidence, showRelationTypes
+          }));
         }
       }
       lines.push('');

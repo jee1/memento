@@ -120,9 +120,63 @@ function parsePositiveInt(
   return parsed;
 }
 
-function parseReviewCandidateListQuery(
+type QueryError = { error: string; status: number };
+
+/** min·max 쿼리 쌍을 파싱하고 min <= max 를 확인한다. 값이 없으면 undefined. */
+function parseQueryRange(
   query: Record<string, unknown>,
-): QueryMemoryReviewCandidatesInput | { error: string; status: number } {
+  minField: string,
+  maxField: string,
+  parse: (raw: unknown, field: string) => number | QueryError,
+): { min?: number; max?: number } | QueryError {
+  const min = parse(query[minField], minField);
+  if (typeof min === 'object') return min;
+  const max = parse(query[maxField], maxField);
+  if (typeof max === 'object') return max;
+
+  const range = {
+    min: Number.isFinite(min) ? min : undefined,
+    max: Number.isFinite(max) ? max : undefined,
+  };
+  if (range.min !== undefined && range.max !== undefined && range.min > range.max) {
+    return { error: `${minField} must be <= ${maxField}`, status: 400 };
+  }
+  return range;
+}
+
+function parseReviewCandidatePagination(
+  query: Record<string, unknown>,
+): { page_size: 25 | 50; page: number } | QueryError | undefined {
+  const hasPageSize = query['page_size'] !== undefined && query['page_size'] !== '';
+  const hasPage = query['page'] !== undefined && query['page'] !== '';
+  if (hasPage && !hasPageSize) {
+    return { error: 'page requires page_size', status: 400 };
+  }
+  if (!hasPageSize) {
+    return undefined;
+  }
+
+  const pageSizeRaw = parseQueryString(query['page_size'], 'page_size');
+  if (typeof pageSizeRaw === 'object') {
+    return pageSizeRaw;
+  }
+  if (pageSizeRaw !== '25' && pageSizeRaw !== '50') {
+    return { error: 'Invalid page_size query', status: 400 };
+  }
+
+  const pageParsed = hasPage ? parsePositiveInt(query['page'], 'page') : 1;
+  if (typeof pageParsed === 'object') {
+    return pageParsed;
+  }
+  return {
+    page_size: pageSizeRaw === '50' ? 50 : 25,
+    page: Number.isFinite(pageParsed) ? pageParsed : 1,
+  };
+}
+
+export function parseReviewCandidateListQuery(
+  query: Record<string, unknown>,
+): QueryMemoryReviewCandidatesInput | QueryError {
   const statusParsed = parseReviewCandidateStatusQuery(query['status']);
   if ('error' in statusParsed) {
     return statusParsed;
@@ -133,37 +187,15 @@ function parseReviewCandidateListQuery(
     input.status = statusParsed.status;
   }
 
-  const importanceMin = parseBoundedUnitInterval(query['importance_min'], 'importance_min');
-  if (typeof importanceMin === 'object') return importanceMin;
-  if (Number.isFinite(importanceMin)) input.importance_min = importanceMin;
+  const importance = parseQueryRange(query, 'importance_min', 'importance_max', parseBoundedUnitInterval);
+  if ('error' in importance) return importance;
+  if (importance.min !== undefined) input.importance_min = importance.min;
+  if (importance.max !== undefined) input.importance_max = importance.max;
 
-  const importanceMax = parseBoundedUnitInterval(query['importance_max'], 'importance_max');
-  if (typeof importanceMax === 'object') return importanceMax;
-  if (Number.isFinite(importanceMax)) input.importance_max = importanceMax;
-
-  if (
-    input.importance_min !== undefined &&
-    input.importance_max !== undefined &&
-    input.importance_min > input.importance_max
-  ) {
-    return { error: 'importance_min must be <= importance_max', status: 400 };
-  }
-
-  const unusedDaysMin = parseNonNegativeInt(query['unused_days_min'], 'unused_days_min');
-  if (typeof unusedDaysMin === 'object') return unusedDaysMin;
-  if (Number.isFinite(unusedDaysMin)) input.unused_days_min = unusedDaysMin;
-
-  const unusedDaysMax = parseNonNegativeInt(query['unused_days_max'], 'unused_days_max');
-  if (typeof unusedDaysMax === 'object') return unusedDaysMax;
-  if (Number.isFinite(unusedDaysMax)) input.unused_days_max = unusedDaysMax;
-
-  if (
-    input.unused_days_min !== undefined &&
-    input.unused_days_max !== undefined &&
-    input.unused_days_min > input.unused_days_max
-  ) {
-    return { error: 'unused_days_min must be <= unused_days_max', status: 400 };
-  }
+  const unusedDays = parseQueryRange(query, 'unused_days_min', 'unused_days_max', parseNonNegativeInt);
+  if ('error' in unusedDays) return unusedDays;
+  if (unusedDays.min !== undefined) input.unused_days_min = unusedDays.min;
+  if (unusedDays.max !== undefined) input.unused_days_max = unusedDays.max;
 
   const memoryType = parseQueryString(query['memory_type'], 'memory_type');
   if (typeof memoryType === 'object') {
@@ -187,40 +219,13 @@ function parseReviewCandidateListQuery(
     input.reason_contains = reasonContains;
   }
 
-  const hasPageSize = query['page_size'] !== undefined && query['page_size'] !== '';
-  const hasPage = query['page'] !== undefined && query['page'] !== '';
-  if (hasPage && !hasPageSize) {
-    return { error: 'page requires page_size', status: 400 };
+  const pagination = parseReviewCandidatePagination(query);
+  if (pagination && 'error' in pagination) {
+    return pagination;
   }
-
-  if (hasPageSize) {
-    const pageSizeRaw = parseQueryString(query['page_size'], 'page_size');
-    if (typeof pageSizeRaw === 'object') {
-      return pageSizeRaw;
-    }
-    if (pageSizeRaw !== '25' && pageSizeRaw !== '50') {
-      return { error: 'Invalid page_size query', status: 400 };
-    }
-    input.page_size = pageSizeRaw === '50' ? 50 : 25;
-
-    const pageParsed = hasPage ? parsePositiveInt(query['page'], 'page') : 1;
-    if (typeof pageParsed === 'object') {
-      return pageParsed;
-    }
-    input.page = Number.isFinite(pageParsed) ? pageParsed : 1;
-  }
-
-  const hasFilters =
-    input.importance_min !== undefined ||
-    input.importance_max !== undefined ||
-    input.unused_days_min !== undefined ||
-    input.unused_days_max !== undefined ||
-    input.memory_type !== undefined ||
-    input.reason_contains !== undefined ||
-    input.page_size !== undefined;
-
-  if (hasFilters || input.status) {
-    return input;
+  if (pagination) {
+    input.page_size = pagination.page_size;
+    input.page = pagination.page;
   }
 
   return input;

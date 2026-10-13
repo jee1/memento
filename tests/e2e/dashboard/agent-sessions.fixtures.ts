@@ -99,6 +99,69 @@ async function fulfillJson(
   });
 }
 
+async function fulfillSessions(
+  route: Route,
+  url: URL,
+  options: AgentApiOptions,
+  sessions: Array<Record<string, unknown>>,
+): Promise<void> {
+  if (options.sessionsDelayMs) {
+    await new Promise((resolve) => setTimeout(resolve, options.sessionsDelayMs));
+  }
+  if (options.sessionsStatus && options.sessionsStatus >= 400) {
+    await fulfillJson(
+      route,
+      { message: options.sessionsMessage ?? 'Agent sessions unavailable.' },
+      options.sessionsStatus,
+    );
+    return;
+  }
+  const sessionPageIndex = url.searchParams.has('cursor') ? 1 : 0;
+  const pageResult = options.sessionPages?.[
+    Math.min(sessionPageIndex, options.sessionPages.length - 1)
+  ];
+  await fulfillJson(route, {
+    sessions: pageResult?.sessions ?? sessions,
+    next_cursor: pageResult?.next_cursor ?? null,
+    aggregate: {
+      sessions_total: 10_000,
+      observations_total: 10_000,
+      redacted_total: 1,
+      dropped_total: 1,
+      degraded_total: sessions.filter((item) => item.status === 'DEGRADED').length,
+    },
+  });
+}
+
+async function fulfillObservations(
+  route: Route,
+  url: URL,
+  options: AgentApiOptions,
+  observations: Array<Record<string, unknown>>,
+): Promise<void> {
+  const observationPageIndex = url.searchParams.has('cursor') ? 1 : 0;
+  const pageResult = options.observationPages?.[
+    Math.min(observationPageIndex, options.observationPages.length - 1)
+  ];
+  const requestedLimit = Number(url.searchParams.get('limit') ?? 100);
+  const limit = Math.min(Number.isFinite(requestedLimit) ? requestedLimit : 100, 100);
+  const cursor = Number(url.searchParams.get('cursor') ?? 0);
+  const offset = Number.isFinite(cursor) ? cursor : 0;
+  const eventType = url.searchParams.get('event_type');
+  const status = url.searchParams.get('status');
+  const filtered = observations.filter((item) =>
+    (!eventType || item.event_type === eventType) &&
+    (!status || item.status === status),
+  );
+  const pagedObservations = filtered.slice(offset, offset + limit);
+  const nextCursor = offset + limit < filtered.length ? String(offset + limit) : null;
+  await fulfillJson(route, {
+    observations: pageResult?.observations ?? pagedObservations,
+    next_cursor: pageResult?.next_cursor ?? nextCursor,
+    aggregate: { total: 10_000 },
+  });
+}
+
 export async function installDashboardRoutes(
   page: Page,
   options: AgentApiOptions = {},
@@ -121,32 +184,7 @@ export async function installDashboardRoutes(
     const path = url.pathname;
 
     if (path === '/api/v1/agent/sessions') {
-      if (options.sessionsDelayMs) {
-        await new Promise((resolve) => setTimeout(resolve, options.sessionsDelayMs));
-      }
-      if (options.sessionsStatus && options.sessionsStatus >= 400) {
-        await fulfillJson(
-          route,
-          { message: options.sessionsMessage ?? 'Agent sessions unavailable.' },
-          options.sessionsStatus,
-        );
-        return;
-      }
-      const sessionPageIndex = url.searchParams.has('cursor') ? 1 : 0;
-      const pageResult = options.sessionPages?.[
-        Math.min(sessionPageIndex, options.sessionPages.length - 1)
-      ];
-      await fulfillJson(route, {
-        sessions: pageResult?.sessions ?? sessions,
-        next_cursor: pageResult?.next_cursor ?? null,
-        aggregate: {
-          sessions_total: 10_000,
-          observations_total: 10_000,
-          redacted_total: 1,
-          dropped_total: 1,
-          degraded_total: sessions.filter((item) => item.status === 'DEGRADED').length,
-        },
-      });
+      await fulfillSessions(route, url, options, sessions);
       return;
     }
 
@@ -154,27 +192,7 @@ export async function installDashboardRoutes(
       /^\/api\/v1\/agent\/sessions\/([^/]+)\/observations$/,
     );
     if (observationMatch) {
-      const observationPageIndex = url.searchParams.has('cursor') ? 1 : 0;
-      const pageResult = options.observationPages?.[
-        Math.min(observationPageIndex, options.observationPages.length - 1)
-      ];
-      const requestedLimit = Number(url.searchParams.get('limit') ?? 100);
-      const limit = Math.min(Number.isFinite(requestedLimit) ? requestedLimit : 100, 100);
-      const cursor = Number(url.searchParams.get('cursor') ?? 0);
-      const offset = Number.isFinite(cursor) ? cursor : 0;
-      const eventType = url.searchParams.get('event_type');
-      const status = url.searchParams.get('status');
-      const filtered = observations.filter((item) =>
-        (!eventType || item.event_type === eventType) &&
-        (!status || item.status === status),
-      );
-      const pagedObservations = filtered.slice(offset, offset + limit);
-      const nextCursor = offset + limit < filtered.length ? String(offset + limit) : null;
-      await fulfillJson(route, {
-        observations: pageResult?.observations ?? pagedObservations,
-        next_cursor: pageResult?.next_cursor ?? nextCursor,
-        aggregate: { total: 10_000 },
-      });
+      await fulfillObservations(route, url, options, observations);
       return;
     }
 
