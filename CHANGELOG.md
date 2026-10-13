@@ -15,6 +15,7 @@
 - Ollama 로 관계를 추출할 때 연결 실패(`fetch failed`·network)를 다른 provider 처럼 RetryManager 로 재시도합니다(#1338). 60초 타임아웃은 재시도하지 않습니다.
 - 개발: CI 의 `check-retry-usage` 게이트가 지워진 루트 `src/` 를 보고 0 파일을 검사한 채 통과하던 문제를 고쳤습니다(#1338). 이제 `packages/` 를 검사하고, 대상이 없거나 0 파일이면 실패합니다. `/g` 정규식이 파일 사이에 `lastIndex` 를 남겨 검사를 건너뛰던 결함과 주석 속 `fetch(` 오탐도 고쳤습니다. 재시도 없이 외부를 호출해도 되는 9개 파일은 근거와 함께 `RETRY_EXEMPTIONS` 에 올렸습니다. TypeScript `noUnusedLocals`·knip 이 잡는 "import 했지만 안 씀" 검사는 지웠습니다.
 - 개발: ESLint `complexity` 상한을 50 에서 30 으로 낮췄습니다(#1340). 30 을 넘던 10개 함수(CLI `main`·`executeTelemetry`·`runDemo`, admin 검토 후보 쿼리 파서·`kMeans`, `validateConfiguration`·`visualizeSubgraph`·sleep consolidation `run`, `fix-tfidf-dimensions` 스크립트, 대시보드 e2e 라우트 fixture)를 나눴습니다. CLI 도움말은 한 번에 출력하고, 검토 후보 쿼리 파서의 결과를 바꾸지 않는 죽은 분기를 지웠습니다. 동작은 바뀌지 않습니다.
+- 개발: 도메인 안의 MCP 핸들러 위치 규칙을 정했습니다(#1341). `tools/types.js`·`base-tool.js`·`caller-scope.js` 는 핸들러 파일(`tools/`·`adapters/` 디렉터리, `*-tool.ts`·`*-tool-*.ts`)만 import 하고, 서비스·리포지토리 등 나머지 도메인 파일의 `tools/` import 는 `dependency-boundaries.spec.ts` 가 막습니다. 유일한 예외였던 remember 핸들러 보조 파일을 `remember-tool-near-duplicate.ts` 로 이름을 바꿨습니다. 동작은 바뀌지 않습니다.
 
 ## [2.0.4] - 2026-10-11
 

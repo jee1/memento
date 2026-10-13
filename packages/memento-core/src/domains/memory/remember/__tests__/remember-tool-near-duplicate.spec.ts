@@ -9,7 +9,7 @@ import * as vectorSearchModule from '../../../search/algorithms/vector-search-en
 import {
   findNearDuplicateCandidates,
   lexicalOverlap,
-} from '../remember-near-duplicate.js';
+} from '../remember-tool-near-duplicate.js';
 import type { RememberParams } from '../remember-tool-schema.js';
 
 const OVERLAPPING_BASE = '프로젝트 memento near-dup 어휘 겹침 테스트 공통 문장 본문';
