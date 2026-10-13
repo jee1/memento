@@ -10,6 +10,7 @@ import type { VectorSearchEngine } from '../../../search/algorithms/vector-searc
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
 import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { selectIdsOwnedBy } from '../../../../shared/utils/owned-ids.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { NHopSearchService } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
@@ -272,6 +273,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       anchorMemoryId,
       vectorThreshold,
       finalHopLimit,
+      // ponytail: n-hop prefetch is not owner-scoped; a bound caller surrounded by foreign memories can still get < limit when no query triggers fallback. Push owner into NHopSearchService if that shows up.
       limit * 2, // 더 많이 가져와서 필터링 후 최종 limit 적용
       useRelations
     );
@@ -284,8 +286,13 @@ export class AnchorSearchService implements IAnchorSearchService {
     );
 
 
-    // 3. 결과 포맷팅
-    const formattedResults = filteredResults.map(result => ({
+    // 3. owner 범위 — limit 을 자르기 전에 걸러야 바인딩 agent 도 limit 만큼 받는다 (#1342)
+    const ownerId = options?.owner_id;
+    const ownedIds = ownerId ? selectIdsOwnedBy(this.db, ownerId, filteredResults.map(r => r.memory_id)) : null;
+    const scopedResults = ownedIds ? filteredResults.filter(r => ownedIds.has(r.memory_id)) : filteredResults;
+
+    // 4. 결과 포맷팅
+    const formattedResults = scopedResults.map(result => ({
       id: result.memory_id,
       content: result.content,
       type: result.type,
@@ -311,11 +318,12 @@ export class AnchorSearchService implements IAnchorSearchService {
       hasQuery: Boolean(query && query.trim().length > 0),
       hopResults: allHopResults.length,
       afterQueryFilter: filteredResults.length,
+      afterOwnerScope: scopedResults.length,
       afterLimit: localCount,
       minResults
     });
 
-    // 4. Fallback 처리
+    // 5. Fallback 처리
     const fallbackResult = await this.localSearchService.handleFallback(
       query,
       localResults,

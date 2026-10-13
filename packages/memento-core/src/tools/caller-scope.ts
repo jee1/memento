@@ -8,6 +8,7 @@
  */
 
 import type { ToolContext } from './types.js';
+import { selectIdsOwnedBy } from '../shared/utils/owned-ids.js';
 
 type ScopeContext = Pick<ToolContext, 'boundAgentId'>;
 
@@ -26,12 +27,8 @@ export function filterCallerOwnedIds(
   context: Pick<ToolContext, 'boundAgentId' | 'db'>,
   ids: readonly string[],
 ): Set<string> {
-  const unique = [...new Set(ids)];
-  if (!context.boundAgentId || unique.length === 0) return new Set(unique);
-  const rows = context.db
-    .prepare(`SELECT id FROM memory_item WHERE owner_id IS ? AND id IN (${unique.map(() => '?').join(',')})`)
-    .all(context.boundAgentId, ...unique) as Array<{ id: string }>;
-  return new Set(rows.map((row) => row.id));
+  if (!context.boundAgentId) return new Set(ids);
+  return selectIdsOwnedBy(context.db, context.boundAgentId, ids);
 }
 
 /**

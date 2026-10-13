@@ -11,6 +11,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { RecallResultItem } from '../recall/recall-tool.js';
 import type { MetaMemoryStats, GetMetaMemoryStatsParams, MetaMemoryStatsResult } from '../../../shared/types/memory.types.js';
+import { selectIdsOwnedBy } from '../../../shared/utils/owned-ids.js';
 
 /**
  * Meta Memory Statistics 업데이트를 위한 CoalescedWrite 확장
@@ -320,6 +321,20 @@ export class MetaMemoryService {
     });
   }
 
+  /** Unflushed stat ids the getStats call may add, limited to the requested ids and owner. */
+  private pendingIdsInScope({ memory_id, memory_ids, owner_id }: GetMetaMemoryStatsParams): string[] {
+    const requested = memory_ids && memory_ids.length > 0
+      ? memory_ids
+      : memory_id
+        ? [memory_id]
+        : Array.from(this.statsBuffer.keys());
+    if (!owner_id) {
+      return requested;
+    }
+    const owned = selectIdsOwnedBy(this.db, owner_id, requested);
+    return requested.filter((id) => owned.has(id));
+  }
+
   /**
    * 통계 조회 (필터링 지원)
    * 
@@ -333,7 +348,8 @@ export class MetaMemoryService {
         memory_ids,
         min_recall_count,
         min_confidence,
-        limit = 100
+        limit = 100,
+        owner_id
       } = params;
 
       // 입력 검증
@@ -383,6 +399,11 @@ export class MetaMemoryService {
         queryParams.push(min_confidence);
       }
 
+      if (owner_id) {
+        conditions.push('memory_id IN (SELECT id FROM memory_item WHERE owner_id IS ?)');
+        queryParams.push(owner_id);
+      }
+
       // WHERE 절 구성
       const whereClause = conditions.length > 0
         ? `WHERE ${conditions.join(' AND ')}`
@@ -421,11 +442,7 @@ export class MetaMemoryService {
         this.overlayPendingWrite(row.memory_id, this.mapRowToMetaMemoryStats(row))
       );
       const seen = new Set(items.map(item => item.memory_id));
-      const pendingIds = memory_ids && memory_ids.length > 0
-        ? memory_ids
-        : memory_id
-          ? [memory_id]
-          : Array.from(this.statsBuffer.keys());
+      const pendingIds = this.pendingIdsInScope(params);
       for (const pendingId of pendingIds) {
         if (seen.has(pendingId) || items.length >= limit) {
           continue;

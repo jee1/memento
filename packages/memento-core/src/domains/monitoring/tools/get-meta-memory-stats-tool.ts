@@ -128,13 +128,14 @@ export class GetMetaMemoryStatsTool extends BaseTool {
       // limit 기본값 적용 (Zod default가 제대로 적용되지 않을 수 있으므로 명시적으로 처리)
       const paramsWithDefaults: GetMetaMemoryStatsParams = {
         ...validatedParams,
-        limit: validatedParams.limit ?? 100
+        limit: validatedParams.limit ?? 100,
+        ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {})
       };
 
       // MetaMemoryService.getStats 호출
       const metaMemoryService = context.services.metaMemoryService as MetaMemoryService;
       const result: MetaMemoryStatsResult = await metaMemoryService.getStats(paramsWithDefaults);
-      // ponytail: post-filter, so a bound caller can get fewer than `limit` rows; push owner into getStats if that matters
+      // getStats already scopes rows by owner; kept as a boundary guard.
       const owned = filterCallerOwnedIds(context, result.items.map((item) => item.memory_id));
       const items = result.items.filter((item) => owned.has(item.memory_id));
 
@@ -149,7 +150,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
           created_at: item.created_at.toISOString(),
           updated_at: item.updated_at.toISOString()
         })),
-        total_count: context.boundAgentId ? items.length : result.total_count,
+        total_count: result.total_count,
         message: '메타 메모리 통계 조회 완료'
       };
       // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함

@@ -178,6 +178,8 @@ export interface GetMetaMemoryStatsParams {
   min_recall_count?: number;
   min_confidence?: number;
   limit?: number;
+  /** Only stats of memories this owner owns. Set by the tool from the token binding, never from client params (#1342). */
+  owner_id?: string;
 }
 
 export interface MetaMemoryStatsResult {
