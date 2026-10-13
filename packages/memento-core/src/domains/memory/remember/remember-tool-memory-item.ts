@@ -32,7 +32,7 @@ import {
   loadMemoryItemById,
   type NearDuplicateCandidate,
   type SimilarityWarning,
-} from './remember-near-duplicate.js';
+} from './remember-tool-near-duplicate.js';
 
 export interface MemoryItemContext {
   type: MemoryTypeRequest;

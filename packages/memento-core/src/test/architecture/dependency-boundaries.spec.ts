@@ -280,6 +280,23 @@ describe('dependency boundaries', () => {
     expect([...offenders].sort()).toEqual([...allowlistPaths].sort());
   });
 
+  it('keeps tools/ imports inside domain handler files (#1341)', async () => {
+    // Handler = MCP tool code living in its domain: a `tools/` or `adapters/` dir, or a `*-tool.ts` / `*-tool-*.ts` file.
+    const isHandlerFile = (p: string): boolean =>
+      /\/(tools|adapters)\//.test(p) || /-tool(-[^/]+)?\.ts$/.test(p);
+    const domainFiles = await collectProductionTsFiles(domainsRoot);
+    const offenders: string[] = [];
+
+    for (const relativePath of domainFiles.filter((p) => !isHandlerFile(p))) {
+      const source = await readSource(relativePath);
+      if (findForbiddenImportSpecs(source, (spec) => importsLayer(relativePath, spec, ['tools'])).length > 0) {
+        offenders.push(relativePath);
+      }
+    }
+
+    expect(offenders, `non-handler domain files importing tools/: ${offenders.join(', ')}`).toEqual([]);
+  });
+
   it('freezes shared→infrastructure|server imports to an allowlist with growth guard (#749)', async () => {
     expect(SHARED_TO_INFRA_OR_SERVER_ALLOWLIST).toHaveLength(FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE);
     expect(new Set(SHARED_TO_INFRA_OR_SERVER_ALLOWLIST.map((e) => e.path)).size).toBe(
