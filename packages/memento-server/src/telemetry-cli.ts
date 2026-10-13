@@ -132,14 +132,14 @@ interface TelemetrySection {
 
 function defineSection<T>(
   type: TelemetrySection['type'],
-  fetch: (runner: TelemetryRunner, period: TelemetryPeriod) => T,
+  load: (runner: TelemetryRunner, period: TelemetryPeriod) => T,
   isEmpty: (result: T) => boolean,
   format: (result: T) => string
 ): TelemetrySection {
   return {
     type,
     collect: (runner, period) => {
-      const result = fetch(runner, period);
+      const result = load(runner, period);
       return { empty: isEmpty(result), text: format(result) };
     },
   };
