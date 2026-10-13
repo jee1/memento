@@ -78,7 +78,7 @@ export class SearchLocalTool extends BaseTool {
       const parsed = SearchLocalSchema.parse(params);
       const { slot, query, hop_limit, limit, min_results, use_relations } = parsed;
       const agent_id = resolveCallerAgentId(context, parsed.agent_id);
-      // Hops and fallbacks can reach other owners' memories; a bound caller only sees its own.
+      // searchLocal scopes hops and fallbacks by owner before applying limit; kept as a boundary guard.
       const ownedItems = <T extends { id: string }>(items: T[]): T[] => {
         const owned = filterCallerOwnedIds(context, items.map((item) => item.id));
         return items.filter((item) => owned.has(item.id));
@@ -100,14 +100,15 @@ export class SearchLocalTool extends BaseTool {
           {
             limit,
             min_results,
-            use_relations
+            use_relations,
+            ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {})
           }
         );
         
         const items = ownedItems(searchResult.items);
         return this.createSuccessResult({
           items,
-          total_count: context.boundAgentId ? items.length : searchResult.total_count,
+          total_count: searchResult.total_count,
           local_results_count: searchResult.local_results_count,
           fallback_used: searchResult.fallback_used,
           query_time: searchResult.query_time,
@@ -134,7 +135,7 @@ export class SearchLocalTool extends BaseTool {
             
             return this.createSuccessResult({
               items,
-              total_count: context.boundAgentId ? items.length : fallbackResult.total_count,
+              total_count: fallbackResult.total_count,
               local_results_count: 0,
               fallback_used: true,
               query_time: fallbackResult.query_time || 0,

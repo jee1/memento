@@ -86,9 +86,10 @@ export class GetMemoryNeighborsTool extends BaseTool {
       // 이웃 기억 조회
       const result = await neighborService.getNeighbors(memory_id, {
         limit,
-        similarity_threshold
+        similarity_threshold,
+        ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {})
       });
-      // ponytail: post-filter can return fewer than `limit` for bound callers; push owner_id into the vector search if that matters
+      // getNeighbors already scopes the vector search by owner; kept as a boundary guard.
       const owned = filterCallerOwnedIds(context, result.neighbors.map((n) => n.id));
       const neighbors = result.neighbors.filter((n) => owned.has(n.id));
       
@@ -101,7 +102,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
       return this.createSuccessResult({
         memory_id: result.memory_id,
         neighbors,
-        total_count: context.boundAgentId ? neighbors.length : result.total_count,
+        total_count: result.total_count,
         query_time: result.query_time
       });
     } catch (error) {

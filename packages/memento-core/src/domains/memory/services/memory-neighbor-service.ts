@@ -40,6 +40,8 @@ interface NeighborSearchResult {
 interface NeighborSearchOptions {
   limit?: number;
   similarity_threshold?: number;
+  /** Only neighbors this owner owns, applied inside the vector search (#1342). */
+  owner_id?: string;
 }
 
 /** memory_embedding 단일 행 (get 조회) */
@@ -234,6 +236,7 @@ export class MemoryNeighborService {
             limit: searchLimit,
             threshold: 0.0, // 임계값은 나중에 필터링에서 적용
             includeContent: true,
+            ...(options.owner_id ? { owner_id: options.owner_id } : {}),
           },
           embeddingProvider
         );
