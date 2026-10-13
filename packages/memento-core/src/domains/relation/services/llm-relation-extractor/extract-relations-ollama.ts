@@ -1,4 +1,5 @@
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { resolveBoundLlmProvider, resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -70,14 +71,28 @@ export async function extractRelationsWithOllama(
       
       let response: Response;
       try {
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+        const retryOptions = getRetryOptions();
+        response = await deps.retryManager.retry(
+          async () => {
+            return await fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestBody),
+              signal: AbortSignal.timeout(60000) // 60초 타임아웃
+            });
           },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(60000) // 60초 타임아웃
-        });
+          {
+            maxAttempts: retryOptions.external_api.maxAttempts,
+            baseDelay: retryOptions.external_api.baseDelay,
+            // 연결 실패만 재시도한다. 60초 타임아웃을 재시도하면 한 호출이 몇 분으로 늘어난다.
+            shouldRetry: (error: Error) => {
+              const message = error.message.toLowerCase();
+              return message.includes('network') || message.includes('fetch failed');
+            }
+          }
+        );
       } catch (fetchError) {
         logger.error('Ollama API fetch 실패', {
           error: fetchError instanceof Error ? fetchError.message : String(fetchError),

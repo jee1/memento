@@ -12,6 +12,8 @@
 ### Changed
 
 - 개발: core 의 stderr 로거 스텁 `mcpLogger` 를 `src/server/mcp-logger.ts` 에서 `src/shared/utils/mcp-logger.ts` 로 옮겼습니다(#1339). shared 의 `logger.ts` 와 search·consolidation 도메인이 server 레이어를 import 하던 의존이 사라졌습니다. 경계 테스트(`dependency-boundaries.spec.ts`)는 import 를 경로로 풀어 core `src/server/` 도 server 레이어로 보고, domain 에서 server 로 가는 import 도 막습니다. 런타임 동작은 바뀌지 않습니다.
+- Ollama 로 관계를 추출할 때 연결 실패(`fetch failed`·network)를 다른 provider 처럼 RetryManager 로 재시도합니다(#1338). 60초 타임아웃은 재시도하지 않습니다.
+- 개발: CI 의 `check-retry-usage` 게이트가 지워진 루트 `src/` 를 보고 0 파일을 검사한 채 통과하던 문제를 고쳤습니다(#1338). 이제 `packages/` 를 검사하고, 대상이 없거나 0 파일이면 실패합니다. `/g` 정규식이 파일 사이에 `lastIndex` 를 남겨 검사를 건너뛰던 결함과 주석 속 `fetch(` 오탐도 고쳤습니다. 재시도 없이 외부를 호출해도 되는 9개 파일은 근거와 함께 `RETRY_EXEMPTIONS` 에 올렸습니다. TypeScript `noUnusedLocals`·knip 이 잡는 "import 했지만 안 씀" 검사는 지웠습니다.
 
 ## [2.0.4] - 2026-10-11
 
