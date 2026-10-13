@@ -43,12 +43,9 @@ function issue(level: ValidationLevel, code: string, message: string, suggestion
   return { level, code, message, suggestion };
 }
 
-export function validateConfiguration(config: MementoConfig, options: ValidateOptions = {}): ConfigValidationResult {
-  const errors: ConfigValidationIssue[] = [];
-  const warnings: ConfigValidationIssue[] = [];
+type IssueSink = { errors: ConfigValidationIssue[]; warnings: ConfigValidationIssue[] };
 
-  const logger = options.logger ?? console;
-
+function checkStorageAndPorts(config: MementoConfig, { errors, warnings }: IssueSink): void {
   if (!config.dbPath || config.dbPath.trim() === '') {
     errors.push(
       issue('error', 'DB_PATH_EMPTY', 'DB_PATH가 비어 있습니다.', '데이터베이스 파일 경로를 설정해주세요.')
@@ -79,7 +76,9 @@ export function validateConfiguration(config: MementoConfig, options: ValidateOp
       )
     );
   }
+}
 
+function checkEmbedding(config: MementoConfig, { errors, warnings }: IssueSink): void {
   const provider = config.embeddingProvider;
   const requirement = providerRequirements[provider];
   if (!requirement) {
@@ -129,7 +128,9 @@ export function validateConfiguration(config: MementoConfig, options: ValidateOp
       );
     }
   }
+}
 
+function checkLimits(config: MementoConfig, { errors }: IssueSink): void {
   if (config.searchDefaultLimit <= 0 || config.searchMaxLimit <= 0) {
     errors.push(
       issue('error', 'SEARCH_LIMIT_INVALID', '검색 제한 값은 양수여야 합니다.', '양수 값을 설정해주세요.')
@@ -177,7 +178,9 @@ export function validateConfiguration(config: MementoConfig, options: ValidateOp
       );
     }
   }
+}
 
+function checkLogLevel(config: MementoConfig, { warnings }: IssueSink): void {
   if (!config.logLevel || config.logLevel.trim() === '') {
     warnings.push(
       issue('warning', 'LOG_LEVEL_EMPTY', 'LOG_LEVEL이 비어있습니다.', 'info, warn, error 등 유효한 레벨을 설정해주세요.')
@@ -194,6 +197,16 @@ export function validateConfiguration(config: MementoConfig, options: ValidateOp
         'log level을 info 이상으로 조정해 불필요한 로그를 줄이는 것을 권장합니다.'
       )
     );
+  }
+}
+
+export function validateConfiguration(config: MementoConfig, options: ValidateOptions = {}): ConfigValidationResult {
+  const errors: ConfigValidationIssue[] = [];
+  const warnings: ConfigValidationIssue[] = [];
+  const logger = options.logger ?? console;
+
+  for (const check of [checkStorageAndPorts, checkEmbedding, checkLimits, checkLogLevel]) {
+    check(config, { errors, warnings });
   }
 
   const result: ConfigValidationResult = {

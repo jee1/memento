@@ -125,70 +125,71 @@ export interface TelemetryRunResult {
  * 텔레메트리 데이터를 조회하고 포맷된 출력을 반환합니다.
  * main()에서 분리되어 단위 테스트가 가능합니다.
  */
+interface TelemetrySection {
+  type: Exclude<TelemetryType, 'all'>;
+  collect(runner: TelemetryRunner, period: TelemetryPeriod): { empty: boolean; text: string };
+}
+
+function defineSection<T>(
+  type: TelemetrySection['type'],
+  load: (runner: TelemetryRunner, period: TelemetryPeriod) => T,
+  isEmpty: (result: T) => boolean,
+  format: (result: T) => string
+): TelemetrySection {
+  return {
+    type,
+    collect: (runner, period) => {
+      const result = load(runner, period);
+      return { empty: isEmpty(result), text: format(result) };
+    },
+  };
+}
+
+/** 출력 순서대로. `all` 은 모든 섹션이 비었을 때만 "데이터 없음" 이다. */
+const TELEMETRY_SECTIONS: TelemetrySection[] = [
+  defineSection(
+    'search-quality',
+    (runner, period) => runner.getSearchQuality(period, null),
+    (r) => r.search_count === null && r.avg_latency_ms === null
+      && r.p95_latency_ms === null && r.empty_retrieval_rate === null,
+    (r) => formatSearchQuality(r)
+  ),
+  defineSection(
+    'memory-quality',
+    (runner, period) => runner.getMemoryQuality(period, null),
+    (r) => r.total_memories === null && r.duplicate_write_rate_24h === null,
+    (r) => formatMemoryQuality(r)
+  ),
+  defineSection(
+    'feedback-quality',
+    (runner, period) => runner.getFeedbackQuality(period, null),
+    (r) => r.recall_count === 0 && r.positive_count === 0 && r.negative_count === 0,
+    (r) => formatFeedbackQuality(r)
+  ),
+  defineSection(
+    'system',
+    (runner, period) => runner.getSystemMetrics(period, null),
+    (r) => r.tools.recall.request_count === null && r.tools.remember.request_count === null
+      && r.tools.feedback.request_count === null,
+    (r) => formatSystemMetrics(r)
+  ),
+];
+
 export function executeTelemetry(runner: TelemetryRunner, options: CliOptions): TelemetryRunResult {
   try {
     const { period, type } = options;
+    const collected = TELEMETRY_SECTIONS
+      .filter((section) => type === 'all' || section.type === type)
+      .map((section) => section.collect(runner, period));
 
-    const searchResult: SearchQualityResult | null = (type === 'search-quality' || type === 'all')
-      ? runner.getSearchQuality(period, null)
-      : null;
-    const memoryResult: MemoryQualityResult | null = (type === 'memory-quality' || type === 'all')
-      ? runner.getMemoryQuality(period, null)
-      : null;
-    const systemResult: SystemMetricsResult | null = (type === 'system' || type === 'all')
-      ? runner.getSystemMetrics(period, null)
-      : null;
-    const feedbackResult: FeedbackQualityResult | null = (type === 'feedback-quality' || type === 'all')
-      ? runner.getFeedbackQuality(period, null)
-      : null;
-
-    const isSearchEmpty = searchResult === null || (
-      searchResult.search_count === null &&
-      searchResult.avg_latency_ms === null &&
-      searchResult.p95_latency_ms === null &&
-      searchResult.empty_retrieval_rate === null
-    );
-    const isMemoryEmpty = memoryResult === null || (
-      memoryResult.total_memories === null &&
-      memoryResult.duplicate_write_rate_24h === null
-    );
-    const isSystemEmpty = systemResult === null || (
-      systemResult.tools.recall.request_count === null &&
-      systemResult.tools.remember.request_count === null &&
-      systemResult.tools.feedback.request_count === null
-    );
-    const isFeedbackEmpty = feedbackResult === null || (
-      feedbackResult.recall_count === 0 &&
-      feedbackResult.positive_count === 0 &&
-      feedbackResult.negative_count === 0
-    );
-
-    const allEmpty =
-      (type === 'all' && isSearchEmpty && isMemoryEmpty && isSystemEmpty && isFeedbackEmpty) ||
-      (type === 'search-quality' && isSearchEmpty) ||
-      (type === 'memory-quality' && isMemoryEmpty) ||
-      (type === 'system' && isSystemEmpty) ||
-      (type === 'feedback-quality' && isFeedbackEmpty);
-
-    if (allEmpty) {
+    if (collected.every((section) => section.empty)) {
       return { stdout: '기록된 텔레메트리 데이터가 없습니다.\n', stderr: '', exitCode: 0 };
     }
 
-    const parts: string[] = [`=== Memento Telemetry (${period}) ===\n`];
-
-    if (searchResult !== null) {
-      parts.push('\n' + formatSearchQuality(searchResult) + '\n');
-    }
-    if (memoryResult !== null) {
-      parts.push('\n' + formatMemoryQuality(memoryResult) + '\n');
-    }
-    if (feedbackResult !== null) {
-      parts.push('\n' + formatFeedbackQuality(feedbackResult) + '\n');
-    }
-    if (systemResult !== null) {
-      parts.push('\n' + formatSystemMetrics(systemResult) + '\n');
-    }
-
+    const parts = [
+      `=== Memento Telemetry (${period}) ===\n`,
+      ...collected.map((section) => '\n' + section.text + '\n'),
+    ];
     return { stdout: parts.join(''), stderr: '', exitCode: 0 };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

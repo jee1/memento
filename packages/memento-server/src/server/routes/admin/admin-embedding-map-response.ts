@@ -123,26 +123,9 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/**
- * Lloyd's K-Means (max 100 iter).
- * `rng`이 있으면 초기/빈 군집 재시드가 결정적이라 캐시 만료 후에도 같은 입력에 대해 색 라벨이 안정적입니다.
- */
-export function kMeans(
-  points: number[][],
-  k: number,
-  maxIter = 100,
-  rng: () => number = Math.random
-): number[] {
+/** 겹치지 않는 무작위 점 effK 개로 초기 중심을 고른다. 모자라면 앞에서부터 채운다. */
+function seedCentroids(points: number[][], effK: number, rng: () => number): number[][] | null {
   const n = points.length;
-  if (n === 0) {
-    return [];
-  }
-  const effK = Math.min(Math.max(1, k), n);
-  const firstPoint = points[0];
-  if (firstPoint === undefined) {
-    return [];
-  }
-  const d = firstPoint.length;
   const centroids: number[][] = [];
   const used = new Set<number>();
   let guard = 0;
@@ -160,69 +143,110 @@ export function kMeans(
   }
   while (centroids.length < effK) {
     const point = points[centroids.length % n];
-    if (point === undefined) return [];
+    if (point === undefined) return null;
     centroids.push([...point]);
+  }
+  return centroids;
+}
+
+/** 각 점을 가장 가까운 중심에 배정한다. 배정이 바뀌었으면 true. */
+function assignToNearest(points: number[][], centroids: number[][], assignments: number[]): boolean {
+  let changed = false;
+  for (let i = 0; i < points.length; i++) {
+    let best = 0;
+    let bestD = Infinity;
+    const point = points[i];
+    if (point === undefined) continue;
+    for (let c = 0; c < centroids.length; c++) {
+      const centroid = centroids[c];
+      if (centroid === undefined) continue;
+      const ds = distSq(point, centroid);
+      if (ds < bestD) {
+        bestD = ds;
+        best = c;
+      }
+    }
+    if (assignments[i] !== best) {
+      assignments[i] = best;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function sumClusters(points: number[][], assignments: number[], k: number, d: number) {
+  const counts = new Array<number>(k).fill(0);
+  const sums = Array.from({ length: k }, () => new Array<number>(d).fill(0));
+  for (let i = 0; i < points.length; i++) {
+    const c = assignments[i];
+    const point = points[i];
+    if (c === undefined || point === undefined) continue;
+    counts[c] = (counts[c] ?? 0) + 1;
+    for (let j = 0; j < d; j++) {
+      const coordinate = point[j];
+      const clusterSum = sums[c];
+      if (coordinate === undefined || clusterSum === undefined) continue;
+      clusterSum[j] = (clusterSum[j] ?? 0) + coordinate;
+    }
+  }
+  return { counts, sums };
+}
+
+/** 중심을 군집 평균으로 옮긴다. 빈 군집은 무작위 점으로 재시드한다. */
+function moveCentroids(
+  points: number[][],
+  assignments: number[],
+  centroids: number[][],
+  d: number,
+  rng: () => number
+): void {
+  const { counts, sums } = sumClusters(points, assignments, centroids.length, d);
+  for (let c = 0; c < centroids.length; c++) {
+    if (counts[c] === 0) {
+      const point = points[Math.floor(rng() * points.length)];
+      if (point !== undefined) {
+        centroids[c] = [...point];
+      }
+      continue;
+    }
+    const centroid = centroids[c];
+    const clusterSum = sums[c];
+    const count = counts[c];
+    if (centroid === undefined || clusterSum === undefined || count === undefined) continue;
+    for (let j = 0; j < d; j++) {
+      const sum = clusterSum[j];
+      if (sum !== undefined) {
+        centroid[j] = sum / count;
+      }
+    }
+  }
+}
+
+/**
+ * Lloyd's K-Means (max 100 iter).
+ * `rng`이 있으면 초기/빈 군집 재시드가 결정적이라 캐시 만료 후에도 같은 입력에 대해 색 라벨이 안정적입니다.
+ */
+export function kMeans(
+  points: number[][],
+  k: number,
+  maxIter = 100,
+  rng: () => number = Math.random
+): number[] {
+  const n = points.length;
+  const firstPoint = points[0];
+  if (n === 0 || firstPoint === undefined) {
+    return [];
+  }
+  const effK = Math.min(Math.max(1, k), n);
+  const centroids = seedCentroids(points, effK, rng);
+  if (centroids === null) {
+    return [];
   }
 
   const assignments = new Array<number>(n).fill(0);
-
   for (let iter = 0; iter < maxIter; iter++) {
-    let changed = false;
-    for (let i = 0; i < n; i++) {
-      let best = 0;
-      let bestD = Infinity;
-      const point = points[i];
-      if (point === undefined) continue;
-      for (let c = 0; c < effK; c++) {
-        const centroid = centroids[c];
-        if (centroid === undefined) continue;
-        const ds = distSq(point, centroid);
-        if (ds < bestD) {
-          bestD = ds;
-          best = c;
-        }
-      }
-      if (assignments[i] !== best) {
-        assignments[i] = best;
-        changed = true;
-      }
-    }
-
-    const counts = new Array(effK).fill(0);
-    const sums = Array.from({ length: effK }, () => new Array(d).fill(0));
-    for (let i = 0; i < n; i++) {
-      const c = assignments[i];
-      const point = points[i];
-      if (c === undefined || point === undefined) continue;
-      counts[c] = (counts[c] ?? 0) + 1;
-      for (let j = 0; j < d; j++) {
-        const coordinate = point[j];
-        const clusterSum = sums[c];
-        if (coordinate === undefined || clusterSum === undefined) continue;
-        clusterSum[j] = (clusterSum[j] ?? 0) + coordinate;
-      }
-    }
-
-    for (let c = 0; c < effK; c++) {
-      if (counts[c] === 0) {
-        const point = points[Math.floor(rng() * n)];
-        if (point !== undefined) {
-          centroids[c] = [...point];
-        }
-        continue;
-      }
-      const centroid = centroids[c];
-      const clusterSum = sums[c];
-      const count = counts[c];
-      if (centroid === undefined || clusterSum === undefined || count === undefined) continue;
-      for (let j = 0; j < d; j++) {
-        const sum = clusterSum[j];
-        if (sum !== undefined) {
-          centroid[j] = sum / count;
-        }
-      }
-    }
-
+    const changed = assignToNearest(points, centroids, assignments);
+    moveCentroids(points, assignments, centroids, firstPoint.length, rng);
     if (!changed) {
       break;
     }
