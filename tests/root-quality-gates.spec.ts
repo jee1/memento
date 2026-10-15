@@ -124,9 +124,11 @@ describe('root quality gate contracts', () => {
     const eslint = new ESLint({ cwd: process.cwd() });
     const staticConfig = await eslint.calculateConfigForFile('static/js/anchor-map.js');
 
-    expect(staticConfig.env?.browser).toBe(true);
-    expect(staticConfig.globals?.d3).toBe('readonly');
-    expect(staticConfig.globals?.mementoAdminFetch).toBe('readonly');
+    const globals = staticConfig.languageOptions?.globals;
+    expect(globals?.document).toBeDefined();
+    expect(globals?.process).toBeUndefined();
+    expect(globals?.d3).toBe('readonly');
+    expect(globals?.mementoAdminFetch).toBe('readonly');
     expect(ruleSeverity(staticConfig.rules?.['no-undef'])).toBe(2);
     expect(ruleSeverity(staticConfig.rules?.['no-console'])).toBe(2);
     expect(ruleSeverity(staticConfig.rules?.['no-unused-vars'])).toBe(2);

@@ -297,6 +297,7 @@ export function extractSteps(
  * 3. error_message 키워드 기반 조건 생성
  * 4. context 정보 기반 조건 생성
  */
+// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
 export function generateTriggerConditions(
   reflectionNotes: ReflectionNotes | Record<string, unknown>,
   event?: FailureEvent

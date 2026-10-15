@@ -23,6 +23,7 @@ interface MemoryFilterSqlOptions {
   modelFilter?: string | null;
 }
 
+// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
 export function buildMemoryFilterSql(
   filters: MemorySearchFilters | undefined,
   options: MemoryFilterSqlOptions

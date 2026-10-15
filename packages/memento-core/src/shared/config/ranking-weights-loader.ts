@@ -119,6 +119,7 @@ function resolveRankingWeightsFilePath(configPath?: string): string {
  * @returns 검색 랭킹 가중치 설정 객체
  * @throws 설정 파일을 읽을 수 없거나 파싱에 실패한 경우
  */
+// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
 export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
   const path = resolveRankingWeightsFilePath(configPath);
 
