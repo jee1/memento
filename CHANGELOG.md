@@ -11,6 +11,7 @@
 
 ### Changed
 
+- 의존성: `openai` SDK 를 4.104 에서 7.34 로 올렸습니다(#1352). memento 는 `chat.completions.create`·`embeddings.create` 만 쓰고 두 API 는 바뀌지 않았습니다. openai 7 은 Node 22 이상을 요구하지만 memento 는 이미 Node 24 이상입니다. OpenAI 임베딩·LLM provider 동작은 같습니다.
 - 개발: `hybrid-search-engine.spec.ts` 에서 꺼져 있던 유일한 테스트를 살렸습니다(#1351). 제목은 "임베딩 생성이 실패하면 SearchError 를 던져야 함"이었지만 현재 계약은 반대입니다. 쿼리 임베딩 생성이 실패하면 그 provider 만 실패로 기록하고 텍스트 결과로 검색을 마칩니다. 테스트를 이 계약에 맞췄습니다. 런타임 동작은 바뀌지 않습니다.
 
 ## [2.0.5] - 2026-10-15
