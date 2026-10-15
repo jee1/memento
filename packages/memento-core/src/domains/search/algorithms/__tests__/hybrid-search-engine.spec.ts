@@ -278,20 +278,43 @@ describe('HybridSearchEngine', () => {
       await expect(hybridSearchEngine.search(mockDb, query)).rejects.toThrow('텍스트 검색 실행 중 오류가 발생했습니다');
     });
 
-    it.skip('임베딩 생성이 실패하면 SearchError를 던져야 함', async () => {
-      // 이 테스트는 복잡한 Mock 설정 때문에 스킵
-      // 실제 환경에서는 EmbeddingService가 실패할 때 적절한 에러를 던짐
-      const query = {
-        query: 'test query',
-        limit: 10
-      };
-
-      // Mock 설정
+    it('쿼리 임베딩 생성이 실패해도 검색은 던지지 않고 벡터 결과 없이 결합한다', async () => {
+      // generateQueryVector 의 SearchError(EMBEDDING_GENERATION_FAILED)는 provider 작업이 받아
+      // 그 provider 만 실패로 기록한다 — 텍스트 결과로 검색을 마치는 것이 계약이다.
+      const db = new Database(':memory:');
+      initializeTestDatabase(db);
+      insertMemoryItem(db, { id: 'mem1', type: 'episodic', content: LONG_BODY });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem1',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+      const generateEmbedding = vi.fn().mockRejectedValue(new Error('provider down'));
+      const engine = new HybridSearchEngine(sqliteRepositoryProvider,
+        mockTextEngine,
+        mockEmbeddingService,
+        mockVectorEngine,
+        mockResultCombiner,
+        mockWeightCalculator,
+        mockLogger,
+        { generateEmbedding, getEmbedding: generateEmbedding } as unknown as UnifiedEmbeddingService
+      );
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
-      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(false);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
 
-      const result = await hybridSearchEngine.search(mockDb, query);
-      expect(result).toBeDefined();
+      try {
+        await expect(engine.search(db, { query: 'test query', limit: 10 })).resolves.toBeDefined();
+        expect(generateEmbedding).toHaveBeenCalled();
+        expect(mockVectorEngine.search).not.toHaveBeenCalled();
+        expect((mockResultCombiner.combine as Mock).mock.calls[0]?.[1]).toEqual([]);
+      } finally {
+        db.close();
+      }
     });
 
     it('결과 결합이 실패하면 SearchError를 던져야 함', async () => {
