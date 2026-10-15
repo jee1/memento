@@ -27,6 +27,7 @@ function pushUnique(out: KnowledgeCandidatePayload[], c: KnowledgeCandidatePaylo
 /**
  * `userMessage`만 분석한다 (#234). 명시적 신호가 없으면 빈 배열.
  */
+// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
 export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandidatePayload[] {
   const text = userMessage.trim();
   if (text.length < 4) return [];

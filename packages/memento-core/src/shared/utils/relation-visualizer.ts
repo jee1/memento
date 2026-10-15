@@ -170,6 +170,7 @@ export class RelationVisualizer {
    * @param options 시각화 옵션
    * @returns 시각화된 텍스트
    */
+  // eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
   static visualizeSubgraph(
     centerMemoryId: string,
     relations: MemoryRelation[],
