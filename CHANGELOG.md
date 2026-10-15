@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.0.5] - 2026-10-15
+
+API 토큰에 묶인 agent 가 `get_memory_neighbors`·`search_local`·`get_meta_memory_stats` 에서 `limit` 보다 적은 결과를 받던 문제를 고치고, Ollama 관계 추출의 연결 실패를 재시도하는 패치입니다. 나머지는 사용자에게 보이지 않는 정리입니다. 복잡도 상한을 30 으로 낮췄고, 레이어 경계 테스트가 core `src/server/` 와 도메인의 `tools/` import 도 검사합니다. 원격 MCP 접속은 OAuth 없이 TLS 프록시 + 스코프드 토큰으로 정했고 가이드를 추가했습니다(#1343). MCP 도구 스키마와 DB 스키마는 바뀌지 않습니다.
+
 ### Changed
 
 - 개발: core 의 stderr 로거 스텁 `mcpLogger` 를 `src/server/mcp-logger.ts` 에서 `src/shared/utils/mcp-logger.ts` 로 옮겼습니다(#1339). shared 의 `logger.ts` 와 search·consolidation 도메인이 server 레이어를 import 하던 의존이 사라졌습니다. 경계 테스트(`dependency-boundaries.spec.ts`)는 import 를 경로로 풀어 core `src/server/` 도 server 레이어로 보고, domain 에서 server 로 가는 import 도 막습니다. 런타임 동작은 바뀌지 않습니다.
