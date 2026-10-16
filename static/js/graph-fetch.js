@@ -14,9 +14,15 @@
   ns.buildUrl = function buildUrl() {
     const { impSlider, fullGraphToggle } = ns.dom;
     const checked = [...document.querySelectorAll('.type-check input:checked')].map((el) => el.value);
+    const relationChecked = [...document.querySelectorAll('.relation-check input:checked')].map(
+      (el) => el.value
+    );
     const params = new URLSearchParams();
     if (checked.length < 4 && checked.length > 0) {
       params.set('types', checked.join(','));
+    }
+    if (relationChecked.length < 4 && relationChecked.length > 0) {
+      params.set('relation_types', relationChecked.join(','));
     }
     const imp = parseFloat(impSlider.value);
     if (imp > 0) {
@@ -69,10 +75,19 @@
   function getVisibleGraph() {
     const nodes = state.rawGraphNodes ?? [];
     const edges = state.rawGraphEdges ?? [];
-    if (!ns.dom.orphanToggle.checked) {
-      return { nodes, edges, hiddenCount: 0 };
+    const visible = ns.dom.orphanToggle.checked
+      ? ns.filterConnectedNodes(nodes, edges)
+      : { nodes, edges, hiddenCount: 0 };
+    if (!state.localMode || !state.localFocusId) {
+      return visible;
     }
-    return ns.filterConnectedNodes(nodes, edges);
+    const trimmed = ns.trimToLocalDepth(
+      visible.nodes,
+      visible.edges,
+      state.localFocusId,
+      state.localDepth
+    );
+    return { nodes: trimmed.nodes, edges: trimmed.edges, hiddenCount: visible.hiddenCount };
   }
 
   function updateOrphanBadge(hiddenCount) {
@@ -83,6 +98,7 @@
   ns.renderVisibleGraph = function renderVisibleGraph() {
     const visible = getVisibleGraph();
     updateOrphanBadge(visible.hiddenCount);
+    ns.updateLocalFocusHint();
     state.lastGraphNodes = visible.nodes;
     state.lastGraphEdges = visible.edges;
 

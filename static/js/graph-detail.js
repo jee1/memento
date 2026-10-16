@@ -43,8 +43,15 @@
   }
 
   ns.showDetail = function showDetail(d) {
+    if (d && d.id != null && d.id !== '') {
+      ns.state.localFocusId = d.id;
+    }
+    ns.updateLocalFocusHint(d);
     ns.dom.detailContent.innerHTML = buildDetailRows(d);
     ns.dom.detailPanel.style.display = 'block';
+    if (ns.state.localMode && ns.state.rawGraphNodes) {
+      ns.renderVisibleGraph();
+    }
   };
 
   ns.closePanel = function closePanel() {
