@@ -113,13 +113,80 @@ function resolveRankingWeightsFilePath(configPath?: string): string {
   return resolve(defaultPath);
 }
 
+const RANKING_WEIGHTS_SCHEMA = {
+  'ranking_weights.alpha': { type: 'number' as const, min: 0, max: 1 },
+  'ranking_weights.beta': { type: 'number' as const, min: 0, max: 1 },
+  'ranking_weights.gamma': { type: 'number' as const, min: 0, max: 1 },
+  'ranking_weights.delta': { type: 'number' as const, min: 0, max: 1 },
+  'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
+  'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
+  'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
+  'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
+  'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
+  'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
+  'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 },
+  'recency_signal.scale': { type: 'number' as const, min: 0, max: 1 },
+  'relevance_signal.scale': { type: 'number' as const, min: 0, max: SEARCH_RANKING.RELEVANCE_SIGNAL_SCALE_MAX }
+};
+
+/** 중첩 객체를 평탄화하여 검증. 섹션 정규화 전 값을 보므로 숫자가 아닌 값도 검증에 걸린다 */
+function flattenRankingWeightsForValidation(config: RankingWeightsConfig): Record<string, unknown> {
+  return {
+    'ranking_weights.alpha': config.ranking_weights.alpha,
+    'ranking_weights.beta': config.ranking_weights.beta,
+    'ranking_weights.gamma': config.ranking_weights.gamma,
+    'ranking_weights.delta': config.ranking_weights.delta,
+    'ranking_weights.epsilon': config.ranking_weights.epsilon,
+    'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
+    'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
+    'vector_length_decay.characteristic_length':
+      config.vector_length_decay?.characteristic_length ??
+      DEFAULT_CONFIG.vector_length_decay.characteristic_length,
+    'vector_length_decay.saturation_length':
+      config.vector_length_decay?.saturation_length ??
+      DEFAULT_CONFIG.vector_length_decay.saturation_length,
+    'fts_relevance.temperature':
+      config.fts_relevance?.temperature ??
+      DEFAULT_CONFIG.fts_relevance.temperature,
+    'importance_signal.scale':
+      config.importance_signal?.scale ??
+      DEFAULT_CONFIG.importance_signal.scale,
+    'recency_signal.scale':
+      config.recency_signal?.scale ??
+      DEFAULT_CONFIG.recency_signal.scale,
+    'relevance_signal.scale':
+      config.relevance_signal?.scale ??
+      DEFAULT_CONFIG.relevance_signal.scale
+  };
+}
+
+function finiteOr(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+/** mergeWithDefaults may omit nested section when TOML lacks it */
+function normalizeRankingWeightsSections(config: RankingWeightsConfig): void {
+  const decay = config.vector_length_decay;
+  const defaults = DEFAULT_CONFIG.vector_length_decay;
+  config.vector_length_decay = {
+    enabled: typeof decay?.enabled === 'boolean' ? decay.enabled : defaults.enabled,
+    characteristic_length: finiteOr(decay?.characteristic_length, defaults.characteristic_length),
+    saturation_length: finiteOr(decay?.saturation_length, defaults.saturation_length)
+  };
+  config.fts_relevance = {
+    temperature: finiteOr(config.fts_relevance?.temperature, DEFAULT_CONFIG.fts_relevance.temperature)
+  };
+  config.importance_signal = {
+    scale: finiteOr(config.importance_signal?.scale, DEFAULT_CONFIG.importance_signal.scale)
+  };
+}
+
 /**
  * TOML 파일에서 검색 랭킹 가중치 설정을 로드합니다.
  * @param configPath TOML 설정 파일 경로 (기본값: config/ranking-weights.toml)
  * @returns 검색 랭킹 가중치 설정 객체
  * @throws 설정 파일을 읽을 수 없거나 파싱에 실패한 경우
  */
-// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
 export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
   const path = resolveRankingWeightsFilePath(configPath);
 
@@ -130,87 +197,10 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
     // 기본값과 병합
     const config = mergeWithDefaults(parsed as unknown as Record<string, unknown>, DEFAULT_CONFIG as unknown as Record<string, unknown>) as unknown as RankingWeightsConfig;
 
-    // 값 검증 (공통 검증 로직 사용)
-    const validationSchema = {
-      'ranking_weights.alpha': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.beta': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.gamma': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.delta': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
-      'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
-      'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
-      'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
-      'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
-      'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 },
-      'recency_signal.scale': { type: 'number' as const, min: 0, max: 1 },
-      'relevance_signal.scale': { type: 'number' as const, min: 0, max: SEARCH_RANKING.RELEVANCE_SIGNAL_SCALE_MAX }
-    };
+    const flatConfig = flattenRankingWeightsForValidation(config);
+    normalizeRankingWeightsSections(config);
 
-    // 중첩 객체를 평탄화하여 검증
-    const flatConfig: Record<string, unknown> = {
-      'ranking_weights.alpha': config.ranking_weights.alpha,
-      'ranking_weights.beta': config.ranking_weights.beta,
-      'ranking_weights.gamma': config.ranking_weights.gamma,
-      'ranking_weights.delta': config.ranking_weights.delta,
-      'ranking_weights.epsilon': config.ranking_weights.epsilon,
-      'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
-      'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
-      'vector_length_decay.characteristic_length':
-        config.vector_length_decay?.characteristic_length ??
-        DEFAULT_CONFIG.vector_length_decay.characteristic_length,
-      'vector_length_decay.saturation_length':
-        config.vector_length_decay?.saturation_length ??
-        DEFAULT_CONFIG.vector_length_decay.saturation_length,
-      'fts_relevance.temperature':
-        config.fts_relevance?.temperature ??
-        DEFAULT_CONFIG.fts_relevance.temperature,
-      'importance_signal.scale':
-        config.importance_signal?.scale ??
-        DEFAULT_CONFIG.importance_signal.scale,
-      'recency_signal.scale':
-        config.recency_signal?.scale ??
-        DEFAULT_CONFIG.recency_signal.scale,
-      'relevance_signal.scale':
-        config.relevance_signal?.scale ??
-        DEFAULT_CONFIG.relevance_signal.scale
-    };
-
-    // mergeWithDefaults may omit nested section when TOML lacks it
-    config.vector_length_decay = {
-      enabled:
-        typeof config.vector_length_decay?.enabled === 'boolean'
-          ? config.vector_length_decay.enabled
-          : DEFAULT_CONFIG.vector_length_decay.enabled,
-      characteristic_length:
-        typeof config.vector_length_decay?.characteristic_length === 'number' &&
-        Number.isFinite(config.vector_length_decay.characteristic_length)
-          ? config.vector_length_decay.characteristic_length
-          : DEFAULT_CONFIG.vector_length_decay.characteristic_length,
-      saturation_length:
-        typeof config.vector_length_decay?.saturation_length === 'number' &&
-        Number.isFinite(config.vector_length_decay.saturation_length)
-          ? config.vector_length_decay.saturation_length
-          : DEFAULT_CONFIG.vector_length_decay.saturation_length
-    };
-
-    config.fts_relevance = {
-      temperature:
-        typeof config.fts_relevance?.temperature === 'number' &&
-        Number.isFinite(config.fts_relevance.temperature)
-          ? config.fts_relevance.temperature
-          : DEFAULT_CONFIG.fts_relevance.temperature
-    };
-
-    config.importance_signal = {
-      scale:
-        typeof config.importance_signal?.scale === 'number' &&
-        Number.isFinite(config.importance_signal.scale)
-          ? config.importance_signal.scale
-          : DEFAULT_CONFIG.importance_signal.scale
-    };
-
-    const validationResult = validateConfig(flatConfig, validationSchema);
+    const validationResult = validateConfig(flatConfig, RANKING_WEIGHTS_SCHEMA);
     if (!validationResult.valid) {
       throw new Error(`검색 랭킹 가중치 설정 검증 실패: ${validationResult.errors.join(', ')}`);
     }

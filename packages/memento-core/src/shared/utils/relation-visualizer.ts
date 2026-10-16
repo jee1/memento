@@ -69,6 +69,67 @@ type SubgraphLineOptions = Required<
   Pick<VisualizationOptions, 'indent' | 'arrow' | 'showMemoryIds' | 'showConfidence' | 'showRelationTypes'>
 >;
 
+type SubgraphNode = { memoryId: string; depth: number; path: string[]; relation: MemoryRelation | null };
+
+/** 중심 메모리에서 양방향 BFS 로 maxDepth 까지 닿는 노드 (중심 제외, 방문 순서) */
+function collectSubgraphNodes(
+  centerMemoryId: string,
+  relations: MemoryRelation[],
+  maxDepth: number
+): SubgraphNode[] {
+  const graph = new Map<string, Array<{ target: string; relation: MemoryRelation }>>();
+  const reverseGraph = new Map<string, Array<{ source: string; relation: MemoryRelation }>>();
+
+  for (const relation of relations) {
+    if (!graph.has(relation.source_id)) {
+      graph.set(relation.source_id, []);
+    }
+    graph.get(relation.source_id)!.push({ target: relation.target_id, relation });
+
+    if (!reverseGraph.has(relation.target_id)) {
+      reverseGraph.set(relation.target_id, []);
+    }
+    reverseGraph.get(relation.target_id)!.push({ source: relation.source_id, relation });
+  }
+
+  const visited = new Set<string>([centerMemoryId]);
+  const queue: Array<{ memoryId: string; depth: number; path: string[] }> = [
+    { memoryId: centerMemoryId, depth: 0, path: [] }
+  ];
+  const result: SubgraphNode[] = [];
+
+  const enqueue = (memoryId: string, depth: number, path: string[]) => {
+    if (!visited.has(memoryId)) {
+      visited.add(memoryId);
+      queue.push({ memoryId, depth, path });
+    }
+  };
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+
+    if (current.depth > 0) {
+      result.push({ ...current, relation: null }); // path에서 관계 정보 추출 가능
+    }
+    if (current.depth >= maxDepth) {
+      continue;
+    }
+
+    for (const { target, relation } of graph.get(current.memoryId) || []) {
+      enqueue(target, current.depth + 1, [
+        ...current.path, `${current.memoryId}--[${relation.relation_type}]-->${target}`
+      ]);
+    }
+    for (const { source, relation } of reverseGraph.get(current.memoryId) || []) {
+      enqueue(source, current.depth + 1, [
+        ...current.path, `${source}--[${relation.relation_type}]-->${current.memoryId}`
+      ]);
+    }
+  }
+
+  return result;
+}
+
 /** BFS 경로의 마지막 간선 `source--[type]-->target` 을 한 줄로 그린다. 파싱 실패면 memoryId 만. */
 function formatSubgraphPathLine(
   lastPath: string,
@@ -170,7 +231,6 @@ export class RelationVisualizer {
    * @param options 시각화 옵션
    * @returns 시각화된 텍스트
    */
-  // eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
   static visualizeSubgraph(
     centerMemoryId: string,
     relations: MemoryRelation[],
@@ -197,81 +257,8 @@ export class RelationVisualizer {
       return `중심 메모리: ${centerMemoryId}\n관계가 없습니다.`;
     }
 
-    // 그래프 구조 생성 (BFS 방식)
-    const graph = new Map<string, Array<{ target: string; relation: MemoryRelation }>>();
-    const reverseGraph = new Map<string, Array<{ source: string; relation: MemoryRelation }>>();
-
-    for (const relation of filteredRelations) {
-      // Outgoing 관계
-      if (!graph.has(relation.source_id)) {
-        graph.set(relation.source_id, []);
-      }
-      graph.get(relation.source_id)!.push({
-        target: relation.target_id,
-        relation
-      });
-
-      // Incoming 관계
-      if (!reverseGraph.has(relation.target_id)) {
-        reverseGraph.set(relation.target_id, []);
-      }
-      reverseGraph.get(relation.target_id)!.push({
-        source: relation.source_id,
-        relation
-      });
-    }
-
     // BFS로 서브그래프 탐색
-    const visited = new Set<string>();
-    const queue: Array<{ memoryId: string; depth: number; path: string[] }> = [];
-    const result: Array<{ memoryId: string; depth: number; path: string[]; relation: MemoryRelation | null }> = [];
-
-    queue.push({ memoryId: centerMemoryId, depth: 0, path: [] });
-    visited.add(centerMemoryId);
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-
-      if (current.depth > 0) {
-        // 중심 메모리가 아닌 경우 결과에 추가
-        result.push({
-          memoryId: current.memoryId,
-          depth: current.depth,
-          path: current.path,
-          relation: null // path에서 관계 정보 추출 가능
-        });
-      }
-
-      if (current.depth >= maxDepth) {
-        continue;
-      }
-
-      // Outgoing 관계 탐색
-      const outgoing = graph.get(current.memoryId) || [];
-      for (const { target, relation } of outgoing) {
-        if (!visited.has(target)) {
-          visited.add(target);
-          queue.push({
-            memoryId: target,
-            depth: current.depth + 1,
-            path: [...current.path, `${current.memoryId}--[${relation.relation_type}]-->${target}`]
-          });
-        }
-      }
-
-      // Incoming 관계 탐색
-      const incoming = reverseGraph.get(current.memoryId) || [];
-      for (const { source, relation } of incoming) {
-        if (!visited.has(source)) {
-          visited.add(source);
-          queue.push({
-            memoryId: source,
-            depth: current.depth + 1,
-            path: [...current.path, `${source}--[${relation.relation_type}]-->${current.memoryId}`]
-          });
-        }
-      }
-    }
+    const result = collectSubgraphNodes(centerMemoryId, filteredRelations, maxDepth);
 
     // 시각화 텍스트 생성
     const lines: string[] = [];
