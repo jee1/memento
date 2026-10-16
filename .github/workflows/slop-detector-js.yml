@@ -31,12 +31,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install ai-slop-detector
-        run: pip install --progress-bar off 'ai-slop-detector==3.8.5'
+        run: pip install --progress-bar off 'ai-slop-detector[js]==3.10.1'
 
       - name: Review repository (CI hard advisory)
         run: |
           set -o pipefail
-          slop-detector review . --js --config .slopconfig.yaml --ci-mode hard --no-color 2>&1 | tee slop-review-hard.log
+          slop-detector --project . --js --config .slopconfig.yaml --ci-mode hard --ci-report --no-color 2>&1 | tee slop-review-hard.log
 
       - name: Scan packages (prod src, JS/TS gate report)
         run: |
