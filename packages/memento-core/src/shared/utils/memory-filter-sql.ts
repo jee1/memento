@@ -23,107 +23,98 @@ interface MemoryFilterSqlOptions {
   modelFilter?: string | null;
 }
 
-// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
+interface FilterSql {
+  clauses: string[];
+  params: SqlParam[];
+}
+
+function pushIn(out: FilterSql, column: string, values: readonly SqlParam[] | undefined): void {
+  if (values && values.length > 0) {
+    out.clauses.push(`${column} IN (${values.map(() => '?').join(',')})`);
+    out.params.push(...values);
+  }
+}
+
+function pushIfDefined(out: FilterSql, clause: string, value: SqlParam | undefined): void {
+  if (value !== undefined) {
+    out.clauses.push(clause);
+    out.params.push(value);
+  }
+}
+
+function appendIdentityClauses(out: FilterSql, filters: MemorySearchFilters, a: string): void {
+  pushIn(out, `${a}.id`, filters.id);
+  pushIn(out, `${a}.type`, filters.type);
+  for (const tag of filters.tags ?? []) {
+    out.clauses.push(`EXISTS (SELECT 1 FROM json_each(COALESCE(${a}.tags, '[]')) WHERE value = ?)`);
+    out.params.push(tag);
+  }
+  pushIn(out, `${a}.privacy_scope`, filters.privacy_scope);
+  if (filters.pinned !== undefined) {
+    pushIfDefined(out, `${a}.pinned = ?`, filters.pinned ? 1 : 0);
+  }
+}
+
+function appendRangeClauses(out: FilterSql, filters: MemorySearchFilters, a: string): void {
+  if (filters.time_from) {
+    pushIfDefined(out, `${a}.created_at >= ?`, toIsoTimestampParam(filters.time_from));
+  }
+  if (filters.time_to) {
+    pushIfDefined(out, `${a}.created_at <= ?`, toIsoTimestampParam(filters.time_to));
+  }
+  pushIfDefined(out, `${a}.importance >= ?`, filters.importance_min);
+  pushIfDefined(out, `${a}.importance <= ?`, filters.importance_max);
+}
+
+function appendProceduralClauses(out: FilterSql, filters: MemorySearchFilters, a: string): void {
+  if (filters.has_reflection_notes !== undefined) {
+    out.clauses.push(
+      filters.has_reflection_notes
+        ? `${a}.reflection_notes IS NOT NULL`
+        : `${a}.reflection_notes IS NULL`
+    );
+  }
+  if (filters.workflow_name) {
+    pushIfDefined(out, `${a}.workflow_name = ?`, filters.workflow_name);
+  }
+  if (filters.skill_name) {
+    pushIfDefined(out, `${a}.skill_name = ?`, filters.skill_name);
+  }
+}
+
+function appendScopeClauses(out: FilterSql, filters: MemorySearchFilters, a: string): void {
+  if (filters.project_id !== undefined && filters.project_id !== null && filters.project_id !== '') {
+    pushIfDefined(out, `${a}.project_id = ?`, filters.project_id);
+  }
+  for (const [column, value] of [
+    ['owner_id', filters.owner_id],
+    ['process_id', filters.process_id],
+    ['session_id', filters.session_id],
+  ] as const) {
+    if (Array.isArray(value)) {
+      pushIn(out, `${a}.${column}`, value);
+    } else if (typeof value === 'string' && value.length > 0) {
+      pushIfDefined(out, `${a}.${column} = ?`, value);
+    }
+  }
+}
+
 export function buildMemoryFilterSql(
   filters: MemorySearchFilters | undefined,
   options: MemoryFilterSqlOptions
-): { clauses: string[]; params: SqlParam[] } {
-  const a = options.itemAlias;
-  const clauses: string[] = [];
-  const params: SqlParam[] = [];
-
-  if (filters?.id && filters.id.length > 0) {
-    clauses.push(`${a}.id IN (${filters.id.map(() => '?').join(',')})`);
-    params.push(...filters.id);
+): FilterSql {
+  const out: FilterSql = { clauses: [], params: [] };
+  if (filters) {
+    const a = options.itemAlias;
+    appendIdentityClauses(out, filters, a);
+    appendRangeClauses(out, filters, a);
+    appendProceduralClauses(out, filters, a);
+    appendScopeClauses(out, filters, a);
   }
-
-  if (filters?.type && filters.type.length > 0) {
-    clauses.push(`${a}.type IN (${filters.type.map(() => '?').join(',')})`);
-    params.push(...filters.type);
-  }
-
-  if (filters?.tags && filters.tags.length > 0) {
-    for (const tag of filters.tags) {
-      clauses.push(
-        `EXISTS (SELECT 1 FROM json_each(COALESCE(${a}.tags, '[]')) WHERE value = ?)`
-      );
-      params.push(tag);
-    }
-  }
-
-  if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
-    clauses.push(`${a}.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
-    params.push(...filters.privacy_scope);
-  }
-
-  if (filters?.pinned !== undefined) {
-    clauses.push(`${a}.pinned = ?`);
-    params.push(filters.pinned ? 1 : 0);
-  }
-
-  if (filters?.time_from) {
-    clauses.push(`${a}.created_at >= ?`);
-    params.push(toIsoTimestampParam(filters.time_from));
-  }
-
-  if (filters?.time_to) {
-    clauses.push(`${a}.created_at <= ?`);
-    params.push(toIsoTimestampParam(filters.time_to));
-  }
-
-  if (filters?.importance_min !== undefined) {
-    clauses.push(`${a}.importance >= ?`);
-    params.push(filters.importance_min);
-  }
-
-  if (filters?.importance_max !== undefined) {
-    clauses.push(`${a}.importance <= ?`);
-    params.push(filters.importance_max);
-  }
-
-  if (filters?.has_reflection_notes !== undefined) {
-    if (filters.has_reflection_notes) {
-      clauses.push(`${a}.reflection_notes IS NOT NULL`);
-    } else {
-      clauses.push(`${a}.reflection_notes IS NULL`);
-    }
-  }
-
-  if (filters?.workflow_name) {
-    clauses.push(`${a}.workflow_name = ?`);
-    params.push(filters.workflow_name);
-  }
-
-  if (filters?.skill_name) {
-    clauses.push(`${a}.skill_name = ?`);
-    params.push(filters.skill_name);
-  }
-
-  if (filters?.project_id !== undefined && filters.project_id !== null && filters.project_id !== '') {
-    clauses.push(`${a}.project_id = ?`);
-    params.push(filters.project_id);
-  }
-
-  for (const [column, value] of [
-    ['owner_id', filters?.owner_id],
-    ['process_id', filters?.process_id],
-    ['session_id', filters?.session_id],
-  ] as const) {
-    if (Array.isArray(value) && value.length > 0) {
-      clauses.push(`${a}.${column} IN (${value.map(() => '?').join(',')})`);
-      params.push(...value);
-    } else if (typeof value === 'string' && value.length > 0) {
-      clauses.push(`${a}.${column} = ?`);
-      params.push(value);
-    }
-  }
-
   if (options.embeddingAlias && options.modelFilter) {
-    clauses.push(`${options.embeddingAlias}.model = ?`);
-    params.push(options.modelFilter);
+    pushIfDefined(out, `${options.embeddingAlias}.model = ?`, options.modelFilter);
   }
-
-  return { clauses, params };
+  return out;
 }
 
 /** 절이 하나라도 생기는지. 벡터 레인의 hasScopedCandidates 판단에 쓴다. */

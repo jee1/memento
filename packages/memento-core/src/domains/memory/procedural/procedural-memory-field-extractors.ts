@@ -297,91 +297,91 @@ export function extractSteps(
  * 3. error_message 키워드 기반 조건 생성
  * 4. context 정보 기반 조건 생성
  */
-// eslint-disable-next-line complexity -- ESLint 9 counts ?. and default values; split tracked in #1357
+type TriggerNotes = ReflectionNotes | Record<string, unknown>;
+
+const TRIGGER_ERROR_KEYWORDS = [
+  'validation', '검증', 'database', '데이터베이스', 'sqlite',
+  'timeout', '타임아웃', 'permission', '권한', 'not found', '찾을 수 없음'
+];
+
+const TRIGGER_IMPORTANT_PARAMS = ['type', 'workflow_name', 'skill_name'];
+
+/** reflection_notes.failure_type 이 있으면 그것만 본다 (문자열이 아니어도 event 로 넘어가지 않는다) */
+function triggerErrorType(reflectionNotes: TriggerNotes, event?: FailureEvent): string | undefined {
+  if (reflectionNotes?.failure_type) {
+    return typeof reflectionNotes.failure_type === 'string' ? reflectionNotes.failure_type : undefined;
+  }
+  return typeof event?.error_type === 'string' && event.error_type ? event.error_type : undefined;
+}
+
+function triggerErrorKeywords(reflectionNotes: TriggerNotes, event?: FailureEvent): string[] {
+  const errorMessage =
+    (typeof reflectionNotes?.failure_description === 'string' ? reflectionNotes.failure_description : '') ||
+    (typeof event?.error_message === 'string' ? event.error_message : '');
+  const lower = errorMessage.toLowerCase();
+  return TRIGGER_ERROR_KEYWORDS.filter(keyword => lower.includes(keyword.toLowerCase()));
+}
+
+function appendContextConditions(
+  conditions: Record<string, unknown>,
+  context: NonNullable<FailureEvent['context']>
+): void {
+  // execution_time_ms가 임계값을 초과한 경우
+  if (context.execution_time_ms && context.execution_time_ms > 5000) {
+    conditions.slow_execution = true;
+    conditions.min_execution_time_ms = context.execution_time_ms;
+  }
+  // 중요한 파라미터만 추출 (예: type, workflow_name 등)
+  if (context.params) {
+    for (const param of TRIGGER_IMPORTANT_PARAMS) {
+      if (context.params[param]) {
+        conditions[`param_${param}`] = context.params[param];
+      }
+    }
+  }
+}
+
+/** string 또는 Date만 변환 (string[] 등은 제외). 잘못된 날짜 문자열은 RangeError 를 던진다 */
+function triggerTimestampPattern(ts: unknown): string | undefined {
+  if (ts instanceof Date) {
+    return ts.toISOString().split('T')[0];
+  }
+  return typeof ts === 'string' ? new Date(ts).toISOString().split('T')[0] : undefined;
+}
+
 export function generateTriggerConditions(
-  reflectionNotes: ReflectionNotes | Record<string, unknown>,
+  reflectionNotes: TriggerNotes,
   event?: FailureEvent
 ): string | undefined {
   try {
     const conditions: Record<string, unknown> = {};
 
     // 1. error_type 기반 조건
-    if (reflectionNotes?.failure_type) {
-      const failureType = reflectionNotes.failure_type;
-      // 타입 안전성 체크
-      if (typeof failureType === 'string') {
-        conditions.error_type = failureType;
-      }
-    } else if (event?.error_type) {
-      // 타입 안전성 체크
-      if (typeof event.error_type === 'string') {
-        conditions.error_type = event.error_type;
-      }
+    const errorType = triggerErrorType(reflectionNotes, event);
+    if (errorType) {
+      conditions.error_type = errorType;
     }
 
     // 2. tool_name 기반 조건
-    if (event?.tool_name) {
-      // 타입 안전성 체크
-      if (typeof event.tool_name === 'string') {
-        conditions.tool_name = event.tool_name;
-      }
+    if (event?.tool_name && typeof event.tool_name === 'string') {
+      conditions.tool_name = event.tool_name;
     }
 
     // 3. error_message 키워드 기반 조건
-    const errorMessage =
-      (typeof reflectionNotes?.failure_description === 'string' ? reflectionNotes.failure_description : '') ||
-      (typeof event?.error_message === 'string' ? event.error_message : '') ||
-      '';
-    const keywords: string[] = [];
-
-    // 에러 메시지에서 중요한 키워드 추출 (문자열인 경우에만)
-    if (typeof errorMessage === 'string' && errorMessage.length > 0) {
-      const importantKeywords = [
-        'validation', '검증', 'database', '데이터베이스', 'sqlite',
-        'timeout', '타임아웃', 'permission', '권한', 'not found', '찾을 수 없음'
-      ];
-
-      for (const keyword of importantKeywords) {
-        if (errorMessage.toLowerCase().includes(keyword.toLowerCase())) {
-          keywords.push(keyword);
-        }
-      }
-    }
-
+    const keywords = triggerErrorKeywords(reflectionNotes, event);
     if (keywords.length > 0) {
       conditions.error_keywords = keywords;
     }
 
     // 4. context 정보 기반 조건
     if (event?.context) {
-      const context = event.context;
-
-      // execution_time_ms가 임계값을 초과한 경우
-      if (context.execution_time_ms && context.execution_time_ms > 5000) {
-        conditions.slow_execution = true;
-        conditions.min_execution_time_ms = context.execution_time_ms;
-      }
-
-      // params 정보가 있는 경우
-      if (context.params) {
-        // 중요한 파라미터만 추출 (예: type, workflow_name 등)
-        const importantParams = ['type', 'workflow_name', 'skill_name'];
-        for (const param of importantParams) {
-          if (context.params[param]) {
-            conditions[`param_${param}`] = context.params[param];
-          }
-        }
-      }
+      appendContextConditions(conditions, event.context);
     }
 
-    // 5. timestamp 기반 조건 (선택적) — string 또는 Date만 변환 (string[] 등은 제외)
-    const ts = reflectionNotes?.timestamp;
-    if (ts !== undefined && ts !== null) {
-      if (ts instanceof Date) {
-        conditions.timestamp_pattern = ts.toISOString().split('T')[0];
-      } else if (typeof ts === 'string') {
-        conditions.timestamp_pattern = new Date(ts).toISOString().split('T')[0];
-      }
+    // 5. timestamp 기반 조건 (선택적)
+    const timestampPattern = triggerTimestampPattern(reflectionNotes?.timestamp);
+    if (timestampPattern !== undefined) {
+      conditions.timestamp_pattern = timestampPattern;
     }
 
     // 조건이 비어있으면 기본 조건 생성
