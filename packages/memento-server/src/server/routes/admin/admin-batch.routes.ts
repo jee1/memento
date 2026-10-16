@@ -3,7 +3,7 @@
  * Issue #834: run logs, pause/resume, Run now widen, dual-run 409, read-only.
  */
 
-import type { Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import {
   appendJobRunSafe,
@@ -99,7 +99,7 @@ function isJobsReadOnly(): boolean {
   return Boolean(mementoConfig.adminJobsReadOnly);
 }
 
-function rejectIfReadOnly(res: import('express').Response): boolean {
+function rejectIfReadOnly(res: Response): boolean {
   if (!isJobsReadOnly()) {
     return false;
   }
@@ -139,119 +139,112 @@ function resolveJobIntervalMs(name: string, config: Record<string, unknown>): nu
   return typeof value === 'number' ? value : null;
 }
 
-export function registerAdminBatchRoutes(
-  router: Router,
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): void {
-  router.get('/batch/status', async (_req, res) => {
-    try {
-      const batchScheduler = getBatchScheduler();
-      const status = batchScheduler.getStatus();
-
-      res.json({
-        message: '배치 스케줄러 상태 조회 완료',
-        status,
-        pausedJobs: typeof batchScheduler.getPausedJobNames === 'function'
-          ? batchScheduler.getPausedJobNames()
-          : [],
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      logger.error('Batch scheduler status retrieval failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      res.status(500).json({
-        error: '배치 스케줄러 상태 조회 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+function respondInternalError(res: Response, logMessage: string, errorLabel: string, error: unknown): Response {
+  logger.error(logMessage, {
+    error: error instanceof Error ? error.message : String(error)
   });
-
-  router.get('/batch/stats', async (_req, res) => {
-    try {
-      const batchScheduler = getBatchScheduler();
-      const detailed = batchScheduler.getDetailedStats();
-      const config = detailed.status.config as unknown as Record<string, unknown>;
-
-      const jobs = detailed.jobs.map(job => {
-        const paused = Boolean(
-          (job as { paused?: boolean }).paused ??
-            (typeof batchScheduler.isJobPaused === 'function' && batchScheduler.isJobPaused(job.name))
-        );
-        return {
-          name: job.name,
-          intervalMs: resolveJobIntervalMs(job.name, config),
-          enabled: !paused,
-          paused,
-          lastExecution: job.lastExecution ? job.lastExecution.toISOString() : null,
-          totalExecutions: job.totalExecutions,
-          errorCount: job.errorCount,
-          errorRate: job.errorRate,
-          isRunning: job.isRunning,
-        };
-      });
-
-      res.json({
-        message: '배치 스케줄러 상세 통계 조회 완료',
-        schedulerRunning: detailed.status.isRunning,
-        readOnly: isJobsReadOnly(),
-        health: {
-          memoryUsage: detailed.health.memoryUsage,
-          runningJobs: detailed.health.runningJobs,
-          queueSize: detailed.health.queueSize,
-          errorRate: detailed.health.errorRate,
-          uptime: detailed.health.uptime,
-          uptimeHuman: formatDurationHumanKo(detailed.health.uptime),
-        },
-        jobs,
-        queue: {
-          size: detailed.health.queueSize,
-          runningCount: detailed.health.runningJobs,
-          runningNames: batchScheduler.getRunningNames(),
-          queuedNames: batchScheduler.getQueuedNames(),
-        },
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Batch scheduler detailed stats retrieval failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      res.status(500).json({
-        error: '배치 스케줄러 상세 통계 조회 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+  return res.status(500).json({
+    error: errorLabel,
+    message: error instanceof Error ? error.message : 'Unknown error'
   });
+}
 
-  router.get('/batch/run-history', (req, res) => {
-    try {
-      const raw = req.query['limit'];
-      const parsed =
-        typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
-      const floored = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
-      const limit = Math.min(Math.max(1, floored), BATCH_RUN_HISTORY_MAX_STORED);
-      const slice = getManualBatchRunHistory(limit);
+type BatchJobResult = Awaited<ReturnType<ReturnType<typeof getBatchScheduler>['runJob']>>;
 
-      res.json({
-        message: 'Manual batch run history (POST /admin/batch/run)',
-        entries: slice,
-        limit,
-        maxStored: BATCH_RUN_HISTORY_MAX_STORED,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      logger.error('Batch run history retrieval failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      res.status(500).json({
-        error: '배치 실행 이력 조회 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+const warnJobRunWrite = (message: string, data?: unknown): void =>
+  logger.warn(message, data as Record<string, unknown> | undefined);
 
-  router.get('/batch/runs', (req, res) => {
+function getBatchStatus(_req: Request, res: Response) {
+  try {
+    const batchScheduler = getBatchScheduler();
+    const status = batchScheduler.getStatus();
+
+    res.json({
+      message: '배치 스케줄러 상태 조회 완료',
+      status,
+      pausedJobs: typeof batchScheduler.getPausedJobNames === 'function'
+        ? batchScheduler.getPausedJobNames()
+        : [],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    respondInternalError(res, 'Batch scheduler status retrieval failed', '배치 스케줄러 상태 조회 실패', error);
+  }
+}
+
+function getBatchStats(_req: Request, res: Response) {
+  try {
+    const batchScheduler = getBatchScheduler();
+    const detailed = batchScheduler.getDetailedStats();
+    const config = detailed.status.config as unknown as Record<string, unknown>;
+
+    const jobs = detailed.jobs.map(job => {
+      const paused = Boolean(
+        (job as { paused?: boolean }).paused ??
+          (typeof batchScheduler.isJobPaused === 'function' && batchScheduler.isJobPaused(job.name))
+      );
+      return {
+        name: job.name,
+        intervalMs: resolveJobIntervalMs(job.name, config),
+        enabled: !paused,
+        paused,
+        lastExecution: job.lastExecution ? job.lastExecution.toISOString() : null,
+        totalExecutions: job.totalExecutions,
+        errorCount: job.errorCount,
+        errorRate: job.errorRate,
+        isRunning: job.isRunning,
+      };
+    });
+
+    res.json({
+      message: '배치 스케줄러 상세 통계 조회 완료',
+      schedulerRunning: detailed.status.isRunning,
+      readOnly: isJobsReadOnly(),
+      health: {
+        memoryUsage: detailed.health.memoryUsage,
+        runningJobs: detailed.health.runningJobs,
+        queueSize: detailed.health.queueSize,
+        errorRate: detailed.health.errorRate,
+        uptime: detailed.health.uptime,
+        uptimeHuman: formatDurationHumanKo(detailed.health.uptime),
+      },
+      jobs,
+      queue: {
+        size: detailed.health.queueSize,
+        runningCount: detailed.health.runningJobs,
+        runningNames: batchScheduler.getRunningNames(),
+        queuedNames: batchScheduler.getQueuedNames(),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    respondInternalError(res, 'Batch scheduler detailed stats retrieval failed', '배치 스케줄러 상세 통계 조회 실패', error);
+  }
+}
+
+function getBatchRunHistory(req: Request, res: Response) {
+  try {
+    const raw = req.query['limit'];
+    const parsed =
+      typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
+    const floored = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
+    const limit = Math.min(Math.max(1, floored), BATCH_RUN_HISTORY_MAX_STORED);
+    const slice = getManualBatchRunHistory(limit);
+
+    res.json({
+      message: 'Manual batch run history (POST /admin/batch/run)',
+      entries: slice,
+      limit,
+      maxStored: BATCH_RUN_HISTORY_MAX_STORED,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    respondInternalError(res, 'Batch run history retrieval failed', '배치 실행 이력 조회 실패', error);
+  }
+}
+
+function listJobRuns(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
@@ -267,18 +260,14 @@ export function registerAdminBatchRoutes(
         limit,
       });
     } catch (error) {
-      logger.error('Job run history retrieval failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return res.status(500).json({
-        error: '작업 실행 이력 조회 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return respondInternalError(res, 'Job run history retrieval failed', '작업 실행 이력 조회 실패', error);
     }
-  });
+  };
+}
 
-  /** Issue #834: GET structured logs for a durable job_run. */
-  router.get('/batch/runs/:runId/logs', (req, res) => {
+/** Issue #834: GET structured logs for a durable job_run. */
+function listJobRunLogs(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
         return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
@@ -302,99 +291,165 @@ export function registerAdminBatchRoutes(
         limit,
       });
     } catch (error) {
-      logger.error('Job run logs retrieval failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return res.status(500).json({
-        error: '작업 실행 로그 조회 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
+      return respondInternalError(res, 'Job run logs retrieval failed', '작업 실행 로그 조회 실패', error);
+    }
+  };
+}
+
+/** Issue #834: pause schedule job (stop interval; in-flight not killed). */
+function pauseBatchJob(req: Request, res: Response) {
+  try {
+    if (rejectIfReadOnly(res)) {
+      return;
+    }
+    const jobType = resolveJobTypeFromBody(req.body);
+    const batchScheduler = getBatchScheduler();
+    if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
+      return res.status(400).json({
+        error: 'Invalid or unknown jobType',
       });
     }
-  });
 
-  /** Issue #834: pause schedule job (stop interval; in-flight not killed). */
-  router.post('/batch/pause', (req, res) => {
-    try {
-      if (rejectIfReadOnly(res)) {
-        return;
-      }
-      const jobType = resolveJobTypeFromBody(req.body);
-      const batchScheduler = getBatchScheduler();
-      if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
-        return res.status(400).json({
-          error: 'Invalid or unknown jobType',
-        });
-      }
-
-      const result = batchScheduler.pauseJob(jobType);
-      if (!result.ok) {
-        return res.status(400).json({
-          error: result.reason === 'unknown_job' ? 'Unknown jobType' : 'Failed to pause job',
-          jobType,
-        });
-      }
-
-      return res.json({
-        message: `배치 작업 ${jobType} 일시정지`,
+    const result = batchScheduler.pauseJob(jobType);
+    if (!result.ok) {
+      return res.status(400).json({
+        error: result.reason === 'unknown_job' ? 'Unknown jobType' : 'Failed to pause job',
         jobType,
-        paused: true,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Batch job pause failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return res.status(500).json({
-        error: '배치 작업 일시정지 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
 
-  /** Issue #834: resume schedule job via expanded restart registry. */
-  router.post('/batch/resume', (req, res) => {
-    try {
-      if (rejectIfReadOnly(res)) {
-        return;
-      }
-      const jobType = resolveJobTypeFromBody(req.body);
-      const batchScheduler = getBatchScheduler();
-      if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
-        return res.status(400).json({
-          error: 'Invalid or unknown jobType',
-        });
-      }
+    return res.json({
+      message: `배치 작업 ${jobType} 일시정지`,
+      jobType,
+      paused: true,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return respondInternalError(res, 'Batch job pause failed', '배치 작업 일시정지 실패', error);
+  }
+}
 
-      const result = batchScheduler.resumeJob(jobType);
-      if (!result.ok) {
-        const status = result.reason === 'config_disabled' ? 400 : 400;
-        return res.status(status).json({
-          error:
-            result.reason === 'config_disabled'
-              ? `Job ${jobType} cannot be resumed (config disabled or dependency missing)`
-              : 'Unknown jobType',
-          jobType,
-        });
-      }
+/** Issue #834: resume schedule job via expanded restart registry. */
+function resumeBatchJob(req: Request, res: Response) {
+  try {
+    if (rejectIfReadOnly(res)) {
+      return;
+    }
+    const jobType = resolveJobTypeFromBody(req.body);
+    const batchScheduler = getBatchScheduler();
+    if (!jobType || !batchScheduler.isManualRunnable(jobType)) {
+      return res.status(400).json({
+        error: 'Invalid or unknown jobType',
+      });
+    }
 
-      return res.json({
-        message: `배치 작업 ${jobType} 재개`,
+    const result = batchScheduler.resumeJob(jobType);
+    if (!result.ok) {
+      return res.status(400).json({
+        error:
+          result.reason === 'config_disabled'
+            ? `Job ${jobType} cannot be resumed (config disabled or dependency missing)`
+            : 'Unknown jobType',
         jobType,
-        paused: false,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Batch job resume failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return res.status(500).json({
-        error: '배치 작업 재개 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
+
+    return res.json({
+      message: `배치 작업 ${jobType} 재개`,
+      jobType,
+      paused: false,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return respondInternalError(res, 'Batch job resume failed', '배치 작업 재개 실패', error);
+  }
+}
+
+function persistManualRun(
+  db: Database.Database | null,
+  jobType: string,
+  requestedAt: Date,
+  result: BatchJobResult
+): void {
+  const logBuffer = new JobRunLogBuffer();
+  logBuffer.append({
+    level: 'info',
+    message: `${jobType} started (manual)`,
+    context: { phase: 'start', trigger: 'manual' },
+    ts: requestedAt.toISOString(),
+  });
+  logBuffer.append({
+    level: result.success ? 'info' : 'error',
+    message: result.success
+      ? `${jobType} finished (manual)`
+      : `${jobType} ended with failure (manual)`,
+    context: {
+      phase: 'end',
+      success: result.success,
+      durationMs: result.duration,
+      errorCount: result.errors.length,
+    },
   });
 
-  router.post('/batch/run', async (req, res) => {
+  const runId = appendJobRunSafe(
+    db,
+    {
+      job_name: jobType,
+      trigger: 'manual',
+      started_at: result.startTime.toISOString(),
+      ended_at: result.endTime.toISOString(),
+      success: result.success,
+      duration_ms: result.duration,
+      processed: result.processed,
+      error_count: result.errors.length,
+      details_json: result.details != null ? JSON.stringify(result.details) : null,
+    },
+    warnJobRunWrite
+  );
+
+  if (runId) {
+    flushJobRunLogBufferSafe(db, runId, logBuffer, warnJobRunWrite);
+  } else {
+    logBuffer.drain();
+  }
+}
+
+function persistFailedManualRun(
+  db: Database.Database | null,
+  jobType: string,
+  requestedAt: Date,
+  error: unknown
+): void {
+  const failedAt = new Date();
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  recordManualBatchRunFailure(jobType, requestedAt, failedAt, errorMessage);
+  const failBuffer = new JobRunLogBuffer();
+  failBuffer.append({
+    level: 'error',
+    message: `${jobType} failed (manual): ${errorMessage}`,
+    context: { phase: 'error', trigger: 'manual' },
+  });
+  const runId = appendJobRunSafe(
+    db,
+    {
+      job_name: jobType,
+      trigger: 'manual',
+      started_at: requestedAt.toISOString(),
+      ended_at: failedAt.toISOString(),
+      success: false,
+      duration_ms: failedAt.getTime() - requestedAt.getTime(),
+      error_count: 1,
+      details_json: JSON.stringify({ error: errorMessage }),
+    },
+    warnJobRunWrite
+  );
+  if (runId) {
+    flushJobRunLogBufferSafe(db, runId, failBuffer, warnJobRunWrite);
+  }
+}
+
+function runBatchJob(db: Database.Database | null) {
+  return async (req: Request, res: Response) => {
     const requestedAt = new Date();
     try {
       if (rejectIfReadOnly(res)) {
@@ -402,7 +457,6 @@ export function registerAdminBatchRoutes(
       }
 
       const jobType = resolveJobTypeFromBody(req.body);
-
       const batchScheduler = getBatchScheduler();
 
       // Issue #834: intentional allowlist widen — all registered schedule job names.
@@ -420,56 +474,9 @@ export function registerAdminBatchRoutes(
         });
       }
 
-      const logBuffer = new JobRunLogBuffer();
-      logBuffer.append({
-        level: 'info',
-        message: `${jobType} started (manual)`,
-        context: { phase: 'start', trigger: 'manual' },
-        ts: requestedAt.toISOString(),
-      });
-
       const result = await batchScheduler.runJob(jobType);
       recordManualBatchRunSuccess(jobType, requestedAt, result);
-
-      logBuffer.append({
-        level: result.success ? 'info' : 'error',
-        message: result.success
-          ? `${jobType} finished (manual)`
-          : `${jobType} ended with failure (manual)`,
-        context: {
-          phase: 'end',
-          success: result.success,
-          durationMs: result.duration,
-          errorCount: result.errors.length,
-        },
-      });
-
-      const runId = appendJobRunSafe(
-        db,
-        {
-          job_name: jobType,
-          trigger: 'manual',
-          started_at: result.startTime.toISOString(),
-          ended_at: result.endTime.toISOString(),
-          success: result.success,
-          duration_ms: result.duration,
-          processed: result.processed,
-          error_count: result.errors.length,
-          details_json: result.details != null ? JSON.stringify(result.details) : null,
-        },
-        (message, data) => logger.warn(message, data as Record<string, unknown> | undefined)
-      );
-
-      if (runId) {
-        flushJobRunLogBufferSafe(
-          db,
-          runId,
-          logBuffer,
-          (message, data) => logger.warn(message, data as Record<string, unknown> | undefined)
-        );
-      } else {
-        logBuffer.drain();
-      }
+      persistManualRun(db, jobType, requestedAt, result);
 
       if (jobType === 'memory_review_candidates') {
         broadcastReviewCandidatesChanged({ reason: 'batch_memory_review_candidates' });
@@ -487,52 +494,17 @@ export function registerAdminBatchRoutes(
           jobType: error.jobType,
         });
       }
-      const body = req.body as { jobType?: string; job?: string };
-      const jt = resolveJobTypeFromBody(body);
-      if (jt && isRegisteredManualBatchJobType(jt)) {
-        const failedAt = new Date();
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        recordManualBatchRunFailure(jt, requestedAt, failedAt, errorMessage);
-        const failBuffer = new JobRunLogBuffer();
-        failBuffer.append({
-          level: 'error',
-          message: `${jt} failed (manual): ${errorMessage}`,
-          context: { phase: 'error', trigger: 'manual' },
-        });
-        const runId = appendJobRunSafe(
-          db,
-          {
-            job_name: jt,
-            trigger: 'manual',
-            started_at: requestedAt.toISOString(),
-            ended_at: failedAt.toISOString(),
-            success: false,
-            duration_ms: failedAt.getTime() - requestedAt.getTime(),
-            error_count: 1,
-            details_json: JSON.stringify({ error: errorMessage }),
-          },
-          (message, data) => logger.warn(message, data as Record<string, unknown> | undefined)
-        );
-        if (runId) {
-          flushJobRunLogBufferSafe(
-            db,
-            runId,
-            failBuffer,
-            (message, data) => logger.warn(message, data as Record<string, unknown> | undefined)
-          );
-        }
+      const jobType = resolveJobTypeFromBody(req.body);
+      if (jobType && isRegisteredManualBatchJobType(jobType)) {
+        persistFailedManualRun(db, jobType, requestedAt, error);
       }
-      logger.error('Batch job execution failed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return res.status(500).json({
-        error: '배치 작업 실행 실패',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return respondInternalError(res, 'Batch job execution failed', '배치 작업 실행 실패', error);
     }
-  });
+  };
+}
 
-  router.post('/consolidation/run', async (req, res) => {
+function runConsolidation(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       const svc = serverServices?.sleepConsolidationService;
       if (!db || !svc) {
@@ -569,5 +541,21 @@ export function registerAdminBatchRoutes(
         error: `Consolidation failed: ${error instanceof Error ? error.message : String(error)}`
       });
     }
-  });
+  };
+}
+
+export function registerAdminBatchRoutes(
+  router: Router,
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): void {
+  router.get('/batch/status', getBatchStatus);
+  router.get('/batch/stats', getBatchStats);
+  router.get('/batch/run-history', getBatchRunHistory);
+  router.get('/batch/runs', listJobRuns(db));
+  router.get('/batch/runs/:runId/logs', listJobRunLogs(db));
+  router.post('/batch/pause', pauseBatchJob);
+  router.post('/batch/resume', resumeBatchJob);
+  router.post('/batch/run', runBatchJob(db));
+  router.post('/consolidation/run', runConsolidation(db, serverServices));
 }
