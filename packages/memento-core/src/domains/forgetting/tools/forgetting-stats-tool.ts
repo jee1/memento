@@ -38,7 +38,7 @@ export class ForgettingStatsTool extends BaseTool {
         message: '망각 통계 조회 완료'
       });
     } catch (error) {
-      throw new Error(`망각 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`망각 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 }

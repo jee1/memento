@@ -97,7 +97,7 @@ export function validateTriggerConditions(triggerConditions: string | undefined 
     }
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error(`trigger_conditions must be a valid JSON object string: ${error.message}`);
+      throw new Error(`trigger_conditions must be a valid JSON object string: ${error.message}`, { cause: error });
     }
     throw error;
   }

@@ -143,7 +143,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`서비스 초기화 실패: ${errorMessage}`);
+    throw new Error(`서비스 초기화 실패: ${errorMessage}`, { cause: error });
   }
 }
 

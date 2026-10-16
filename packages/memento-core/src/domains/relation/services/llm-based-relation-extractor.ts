@@ -499,7 +499,7 @@ ${memoryList}
       
       // 네트워크 오류와 실제 관계가 없는 경우를 구분하기 위해 예외를 던짐
       // 호출자는 이 예외를 catch하여 fallback 전략을 사용할 수 있음
-      throw new Error(`LLM 기반 관계 추출 실패: ${errorMessage}. ${errorDetails.suggestion}`);
+      throw new Error(`LLM 기반 관계 추출 실패: ${errorMessage}. ${errorDetails.suggestion}`, { cause: error });
     }
 
     // 최소 신뢰도 필터링

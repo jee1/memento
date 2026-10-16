@@ -51,6 +51,7 @@ export function migrateJsonEmbeddingToBlob(json: string): {
   } catch (err) {
     throw new Error(
       `migrateJsonEmbeddingToBlob: invalid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
     );
   }
 

@@ -122,7 +122,7 @@ export class SearchLocalTool extends BaseTool {
           searchMsg.includes('Embedding not found')
         )) {
           if (!context.services.hybridSearchEngine) {
-            throw new Error('HybridSearchEngine is not available for fallback');
+            throw new Error('HybridSearchEngine is not available for fallback', { cause: searchError });
           }
           
           try {
@@ -161,7 +161,7 @@ export class SearchLocalTool extends BaseTool {
       this.logError(error as Error, '국소 검색 실패', { params });
       
       if (error instanceof z.ZodError) {
-        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`);
+        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`, { cause: error });
       }
       
       throw error;

@@ -42,8 +42,6 @@ export default [
       'no-undef': 'off',
       'no-unused-vars': 'off',
       'max-lines-per-function': 'off',
-      // Added to eslint:recommended in ESLint 10; adoption tracked in #1360.
-      'preserve-caught-error': 'off',
       complexity: ['error', 30],
       'security/detect-object-injection': 'off',
       'security/detect-non-literal-fs-filename': 'error',

@@ -149,7 +149,7 @@ export class MemoryNeighborService {
           memoryId,
           error: error instanceof Error ? error.message : String(error)
         });
-        throw new Error(`Failed to query memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`Failed to query memory: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
       }
       
       if (!memory) {
@@ -179,7 +179,7 @@ export class MemoryNeighborService {
           memoryId,
           error: error instanceof Error ? error.message : String(error)
         });
-        throw new Error(`Failed to query embedding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`Failed to query embedding: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
       }
       
       // 1.6 - 임베딩이 없는 경우 처리
@@ -222,6 +222,7 @@ export class MemoryNeighborService {
           error: maskedError.message,
           memoryId
         });
+        // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
         throw new Error(`Failed to initialize VectorSearchEngine: ${maskedError.message}`);
       }
       
@@ -245,7 +246,7 @@ export class MemoryNeighborService {
           memoryId,
           error: error instanceof Error ? error.message : String(error)
         });
-        throw new Error(`Failed to search similar memories: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`Failed to search similar memories: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
       }
       
       // 1.8 - 결과 필터링: 동일한 memory_id 제외, 유사도 임계값(threshold) 이상만 반환
@@ -305,10 +306,10 @@ export class MemoryNeighborService {
       
       // 사용자 친화적인 에러 메시지로 변환
       if (error instanceof Error) {
-        throw new Error(`Failed to get memory neighbors: ${error.message}`);
+        throw new Error(`Failed to get memory neighbors: ${error.message}`, { cause: error });
       }
       
-      throw new Error(`Failed to get memory neighbors: Unknown error`);
+      throw new Error(`Failed to get memory neighbors: Unknown error`, { cause: error });
     }
   }
 

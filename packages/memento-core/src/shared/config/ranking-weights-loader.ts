@@ -215,7 +215,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       console.warn(`[ranking-weights] 설정 파일을 찾을 수 없습니다: ${path}. 기본값을 사용합니다.`);
       return DEFAULT_CONFIG;
     }
-    throw new Error(`검색 랭킹 가중치 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`검색 랭킹 가중치 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 

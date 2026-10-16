@@ -177,7 +177,8 @@ export function saveGroundTruth(
     writeFileSync(targetPath, jsonContent, 'utf-8');
   } catch (error) {
     throw new Error(
-      `Ground Truth 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+      `Ground Truth 저장 실패: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
     );
   }
 }

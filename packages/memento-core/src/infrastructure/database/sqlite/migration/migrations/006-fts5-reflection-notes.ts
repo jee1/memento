@@ -123,7 +123,7 @@ export class FTS5ReflectionNotesMigration implements Migration {
       db.exec('CREATE VIRTUAL TABLE IF NOT EXISTS test_fts5 USING fts5(content)');
       db.exec('DROP TABLE IF EXISTS test_fts5');
     } catch (error) {
-      throw new Error('FTS5 is not available. Cannot proceed with migration.');
+      throw new Error('FTS5 is not available. Cannot proceed with migration.', { cause: error });
     }
   }
 
@@ -223,7 +223,8 @@ export class FTS5ReflectionNotesMigration implements Migration {
       } catch (error) {
         // MigrationRunner가 트랜잭션을 관리하므로 여기서는 에러만 전파
         throw new Error(
-          `Re-indexing failed at batch starting at offset ${offset}: ${error instanceof Error ? error.message : String(error)}`
+          `Re-indexing failed at batch starting at offset ${offset}: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error }
         );
       }
     }

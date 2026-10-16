@@ -120,7 +120,8 @@ export async function prepareReflectionNotes(
     if (errorMessage.includes('최대') && errorMessage.includes('바이트')) {
       throw new Error(
         `reflection_notes 크기 제한 초과: ${errorMessage}. ` +
-        `단일 객체는 최대 10KB, 전체 필드는 최대 1MB를 초과할 수 없습니다.`
+        `단일 객체는 최대 10KB, 전체 필드는 최대 1MB를 초과할 수 없습니다.`,
+        { cause: error }
       );
     }
 

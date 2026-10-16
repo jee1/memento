@@ -71,7 +71,7 @@ export class CleanupMemoryTool extends BaseTool {
         });
       }
     } catch (error) {
-      throw new Error(`메모리 정리 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`메모리 정리 실패: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 }

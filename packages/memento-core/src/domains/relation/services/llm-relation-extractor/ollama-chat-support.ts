@@ -149,7 +149,8 @@ export function parseOllamaChatResponsePayload(
         headers: http.headers
       });
       throw new Error(
-        `Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+        `Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        { cause: parseError }
       );
     }
   }

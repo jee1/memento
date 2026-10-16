@@ -60,7 +60,7 @@ function readJsonFile<T>(filePath: string, label: string): T {
   try {
     return JSON.parse(readFileSync(filePath, 'utf-8')) as T;
   } catch (error) {
-    throw new Error(`${label} load failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`${label} load failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 

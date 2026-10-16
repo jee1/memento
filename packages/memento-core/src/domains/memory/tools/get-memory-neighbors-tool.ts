@@ -80,7 +80,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
         );
       } catch (error) {
         this.logError(error as Error, 'MemoryNeighborService 생성 실패');
-        throw new Error(`이웃 기억 서비스 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`이웃 기억 서비스 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
       }
       
       // 이웃 기억 조회
@@ -110,29 +110,29 @@ export class GetMemoryNeighborsTool extends BaseTool {
       
       // MemoryNotFoundError는 그대로 전파 (명확한 에러 메시지)
       if (error instanceof MemoryNotFoundError) {
-        throw new Error(`메모리를 찾을 수 없습니다: ${error.message}`);
+        throw new Error(`메모리를 찾을 수 없습니다: ${error.message}`, { cause: error });
       }
       
       // Zod 스키마 검증 에러 처리
       if (error instanceof z.ZodError) {
         const errorMessages = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-        throw new Error(`입력 검증 실패: ${errorMessages}`);
+        throw new Error(`입력 검증 실패: ${errorMessages}`, { cause: error });
       }
       
       // 사용자 친화적인 에러 메시지 반환
       if (error instanceof Error) {
         if (error.message.includes('validation') || error.message.includes('검증')) {
-          throw new Error(`입력 검증 실패: ${error.message}`);
+          throw new Error(`입력 검증 실패: ${error.message}`, { cause: error });
         } else if (error.message.includes('database') || error.message.includes('데이터베이스')) {
-          throw new Error(`데이터베이스 오류: ${error.message}`);
+          throw new Error(`데이터베이스 오류: ${error.message}`, { cause: error });
         } else if (error.message.includes('search') || error.message.includes('검색')) {
-          throw new Error(`검색 오류: ${error.message}`);
+          throw new Error(`검색 오류: ${error.message}`, { cause: error });
         } else if (error.message.includes('not found') || error.message.includes('찾을 수 없습니다')) {
           throw error; // 이미 처리된 에러는 그대로 전파
         }
       }
       
-      throw new Error(`이웃 기억 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`이웃 기억 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 }

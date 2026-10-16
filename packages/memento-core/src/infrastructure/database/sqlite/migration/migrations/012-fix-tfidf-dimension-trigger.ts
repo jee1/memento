@@ -287,7 +287,8 @@ export class FixTfidfDimensionTriggerMigration implements Migration {
       db.prepare('DELETE FROM memento_schema_version WHERE version = ?').run('12.0');
     } catch (error) {
       throw new Error(
-        `Failed to rollback migration: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to rollback migration: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       );
     }
   }

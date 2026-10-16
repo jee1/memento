@@ -122,7 +122,7 @@ export async function executeHybridOrTextSearchForMemoryItem(
         message: msg
       }
     });
-    throw new Error(`검색 실행 실패: ${msg}`);
+    throw new Error(`검색 실행 실패: ${msg}`, { cause: searchError });
   }
 
   const rerankedCount = 'reranked_count' in searchResult
