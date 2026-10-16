@@ -246,8 +246,6 @@ export function validateConfig(): void {
   if (!isValidConfigurationEnvironment()) {
     return;
   }
-  // MCP 프로토콜 준수: stderr로만 출력하도록 logger 설정
-  // console.warn/error는 이미 오버라이드되었지만, 명시적으로 stderr logger 전달
   validateConfiguration(mementoConfig, {
     logger: {
       warn: (message?: unknown, ...optionalParams: unknown[]) => {
