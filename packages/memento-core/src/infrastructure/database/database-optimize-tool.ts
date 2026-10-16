@@ -76,7 +76,7 @@ export class DatabaseOptimizeTool extends BaseTool {
         report: report
       });
     } catch (error) {
-      throw new Error(`데이터베이스 최적화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`데이터베이스 최적화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 }

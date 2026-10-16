@@ -135,7 +135,7 @@ function readJson<T>(path: string, label: string): T {
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as T;
   } catch (error) {
-    throw new Error(`${label} is invalid JSON: ${errorMessage(error)}`);
+    throw new Error(`${label} is invalid JSON: ${errorMessage(error)}`, { cause: error });
   }
 }
 
@@ -151,7 +151,7 @@ function readJsonLines<T>(path: string, label: string): T[] {
     try {
       return JSON.parse(line) as T;
     } catch (error) {
-      throw new Error(`${label} line ${index + 1} is invalid JSON: ${errorMessage(error)}`);
+      throw new Error(`${label} line ${index + 1} is invalid JSON: ${errorMessage(error)}`, { cause: error });
     }
   });
 }

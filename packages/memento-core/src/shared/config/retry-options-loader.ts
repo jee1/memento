@@ -118,7 +118,7 @@ export function loadRetryOptions(configPath?: string): RetryOptionsConfig {
       });
       return DEFAULT_CONFIG;
     }
-    throw new Error(`재시도 옵션 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`재시도 옵션 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 

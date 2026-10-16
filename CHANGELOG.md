@@ -19,6 +19,7 @@
 - 개발: ESLint 를 9.39 에서 10.12 로 올렸습니다(#1353). `eslint-plugin-security` 3 은 ESLint 10 에서 제거된 `context.getSourceCode()` 를 불러 lint 가 멈추므로 4.2 로 함께 올렸고, `@typescript-eslint` 8.71·`@eslint/js` 10·`globals` 17 도 맞췄습니다. ESLint 10 `eslint:recommended` 에 새로 들어온 `preserve-caught-error`(67건)·`no-useless-assignment`(29건)·`no-unassigned-vars`(1건)는 꺼 두고 #1360 에서 적용합니다. lint 결과는 전후 같습니다.
 - 개발: 쓰이지 않는 `eslint-disable` 주석 26개(16파일)를 지우고 `reportUnusedDisableDirectives` 를 `error` 로 켰습니다(#1353). 이제 낡은 disable 주석은 lint 를 깨뜨립니다. `security/detect-non-literal-fs-filename` disable 48개는 모두 실제로 쓰이고 #1295 에서 근거를 적은 것이라 그대로 둡니다.
 - 개발: ESLint 10 `eslint:recommended` 의 `no-useless-assignment`·`no-unassigned-vars` 를 켰습니다(#1360). 읽히기 전에 덮어쓰이는 초기값 29곳을 지우고, 대입하지 않는 `db` 를 닫던 `init.spec.ts` 의 `afterEach` 를 지웠습니다. 런타임 동작은 바뀌지 않습니다.
+- 개발: ESLint 10 `eslint:recommended` 의 `preserve-caught-error` 를 켰습니다(#1360). catch 에서 새 Error 를 던지는 61곳이 원래 에러를 `cause` 로 넘깁니다. 로거는 최상위 Error 를 message·name·stack 으로 바꾸고 `JSON.stringify` 는 `cause` 를 건너뛰어 로그·도구 응답은 같습니다. 원래 메시지를 `PIIMasker` 로 가리고 던지는 6곳은 `cause` 를 넘기면 `util.inspect` 출력에 마스킹 전 원문이 남으므로 사유를 단 disable 주석을 두었습니다.
 
 ## [2.0.5] - 2026-10-15
 

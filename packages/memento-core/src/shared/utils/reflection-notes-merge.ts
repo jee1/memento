@@ -172,7 +172,8 @@ function normalizeNewReflectionNotes(newNotes: NewReflectionNotes): unknown[] {
       return Array.isArray(parsed) ? parsed : [parsed];
     } catch (error) {
       throw new Error(
-        `reflection_notes JSON 파싱 실패: ${error instanceof Error ? error.message : String(error)}`
+        `reflection_notes JSON 파싱 실패: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       );
     }
   }

@@ -66,7 +66,7 @@ describe('stdio HTTP sidecar subprocess integration', () => {
       });
       expect(result.isError, stderr).not.toBe(true);
     } catch (error) {
-      throw new Error(`stdio startup/tool call failed: ${String(error)}\n${stderr}`);
+      throw new Error(`stdio startup/tool call failed: ${String(error)}\n${stderr}`, { cause: error });
     }
     return { client, transport, protocolErrors, stderr: () => stderr };
   }

@@ -41,7 +41,8 @@ export class MetaMemoryStatsSchemaMigration implements Migration {
       return readFileSync(filePath, 'utf-8');
     } catch (error) {
       throw new Error(
-        `Failed to load SQL file: ${filename}. ${error instanceof Error ? error.message : String(error)}`
+        `Failed to load SQL file: ${filename}. ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       );
     }
   }
@@ -75,7 +76,8 @@ export class MetaMemoryStatsSchemaMigration implements Migration {
         db.exec(cleanedSQL);
       } catch (error) {
         throw new Error(
-          `Failed to execute SQL script: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to execute SQL script: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error }
         );
       }
     }
@@ -210,7 +212,8 @@ export class MetaMemoryStatsSchemaMigration implements Migration {
       db.prepare('DELETE FROM memento_schema_version WHERE version = ?').run('11.0');
     } catch (error) {
       throw new Error(
-        `Failed to rollback migration: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to rollback migration: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       );
     }
   }

@@ -73,7 +73,8 @@ export function loadRejectionBaselineOverlay(baselineDir = REJECTION_BASELINE_DI
       return JSON.parse(line) as BenchmarkCorpusEntry;
     } catch (error) {
       throw new Error(
-        `Invalid overlay JSONL at line ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
+        `Invalid overlay JSONL at line ${index + 1}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       );
     }
   });

@@ -166,11 +166,11 @@ export class GetMetaMemoryStatsTool extends BaseTool {
           const path = e.path.length > 0 ? e.path.join('.') : 'root';
           return `${path}: ${e.message}`;
         }).join(', ');
-        throw new Error(`파라미터 검증 실패: ${errorMessages}`);
+        throw new Error(`파라미터 검증 실패: ${errorMessages}`, { cause: error });
       }
       
       // 기타 에러는 원본 메시지 포함
-      throw new Error(`메타 메모리 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`메타 메모리 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 }

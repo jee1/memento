@@ -159,7 +159,7 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
       const rawResults = statement.all(JSON.stringify(queryVector));
       return Array.isArray(rawResults) ? rawResults.filter(isVectorPerformanceRow) : [];
     } catch (error) {
-      throw new Error(`검색 실행 실패: ${error}`);
+      throw new Error(`검색 실행 실패: ${error}`, { cause: error });
     }
   }
 }

@@ -55,7 +55,8 @@ export function initializeMigrationStatusTable(db: Database.Database): void {
     `, [MIGRATION_KEY]);
   } catch (error) {
     throw new Error(
-      `마이그레이션 상태 테이블 초기화 실패: ${error instanceof Error ? error.message : String(error)}`
+      `마이그레이션 상태 테이블 초기화 실패: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
     );
   }
 }
@@ -176,7 +177,8 @@ export function setMigrationStatus(
     cacheMigrationStatus(status);
   } catch (error) {
     throw new Error(
-      `마이그레이션 상태 업데이트 실패: ${error instanceof Error ? error.message : String(error)}`
+      `마이그레이션 상태 업데이트 실패: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
     );
   }
 }

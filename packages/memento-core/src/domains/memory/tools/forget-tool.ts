@@ -145,11 +145,11 @@ export class ForgetTool extends BaseTool {
       // 사용자 친화적인 에러 메시지 반환
       if (error instanceof Error) {
         if (error.message.includes('validation')) {
-          throw new Error(`입력 검증 실패: ${error.message}`);
+          throw new Error(`입력 검증 실패: ${error.message}`, { cause: error });
         } else if (error.message.includes('database')) {
-          throw new Error(`데이터베이스 오류: ${error.message}`);
+          throw new Error(`데이터베이스 오류: ${error.message}`, { cause: error });
         } else if (error.message.includes('not found')) {
-          throw new Error(`메모리를 찾을 수 없습니다: ${error.message}`);
+          throw new Error(`메모리를 찾을 수 없습니다: ${error.message}`, { cause: error });
         }
       }
       

@@ -125,9 +125,9 @@ export function loadTOMLConfig<T = Record<string, unknown>>(
       if (defaults !== undefined) {
         return defaults;
       }
-      throw new Error(`설정 파일을 찾을 수 없습니다: ${configPath}`);
+      throw new Error(`설정 파일을 찾을 수 없습니다: ${configPath}`, { cause: error });
     }
-    throw new Error(`TOML 파일 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`TOML 파일 파싱 실패: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 

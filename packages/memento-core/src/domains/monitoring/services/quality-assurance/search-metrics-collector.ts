@@ -198,7 +198,7 @@ function loadBenchmarkInputs(benchmarkDir: string, strict: boolean): BenchmarkIn
     const corpus = loadBenchmarkCorpus(benchmarkDir);
     memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   } catch (error) {
-    throw new Error(`Benchmark corpus load failed: ${getErrorMessage(error)}`);
+    throw new Error(`Benchmark corpus load failed: ${getErrorMessage(error)}`, { cause: error });
   }
   const queries = loadBenchmarkQueries(benchmarkDir);
   const queryIdToQueryText = new Map(

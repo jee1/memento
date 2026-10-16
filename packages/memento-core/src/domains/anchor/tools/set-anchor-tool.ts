@@ -80,7 +80,7 @@ export class SetAnchorTool extends BaseTool {
       this.logError(error as Error, '앵커 설정 실패', { params });
       
       if (error instanceof z.ZodError) {
-        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`);
+        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`, { cause: error });
       }
       
       throw error;

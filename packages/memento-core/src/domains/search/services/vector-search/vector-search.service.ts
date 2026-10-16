@@ -32,7 +32,7 @@ export class VectorSearchService {
     try {
       return await this.repository.search(query);
     } catch (error) {
-      throw new Error(`벡터 검색 실패: ${error}`);
+      throw new Error(`벡터 검색 실패: ${error}`, { cause: error });
     }
   }
 
@@ -45,7 +45,7 @@ export class VectorSearchService {
     try {
       return await this.repository.hybridSearch(query);
     } catch (error) {
-      throw new Error(`하이브리드 검색 실패: ${error}`);
+      throw new Error(`하이브리드 검색 실패: ${error}`, { cause: error });
     }
   }
 

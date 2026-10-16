@@ -248,7 +248,7 @@ export class NHopSearchService implements INHopSearchService {
       logger.error('1-hop search failed', {
         error: error instanceof Error ? error.message : String(error)
       });
-      throw new Error(`Failed to perform 1-hop search: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to perform 1-hop search: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 

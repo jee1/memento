@@ -38,7 +38,7 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       fs.mkdirSync(dbDir, { recursive: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(`[memento] DB 디렉터리 생성 실패: ${dbDir}\n원인: ${msg}`);
+      throw new Error(`[memento] DB 디렉터리 생성 실패: ${dbDir}\n원인: ${msg}`, { cause: error });
     }
   }
 
