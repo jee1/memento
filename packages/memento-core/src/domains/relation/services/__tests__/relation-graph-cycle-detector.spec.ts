@@ -63,6 +63,8 @@ describe('RelationGraphCycleDetector', () => {
 
   it('깊이 한계에 여러 번 걸려도 경고는 호출당 한 줄만 남긴다', async () => {
     createDepthLimitGraph(db);
+    // 들어오는 간선이 있어야 조기 종료를 건너뛰고 깊이 한계까지 탐색한다.
+    addRelation(db, 'elsewhere', 'unreachable');
 
     const isCyclic = await detector.detectCycleInternal('unreachable', 'chain_0', 'CAUSES');
 
@@ -87,5 +89,14 @@ describe('RelationGraphCycleDetector', () => {
     addRelation(db, 'b', 'c');
 
     await expect(detector.detectCycleInternal('c', 'a', 'CAUSES')).resolves.toBe(true);
+  });
+
+  it('들어오는 간선이 없는 source 는 DFS 없이 false 이고 깊이 경고를 남기지 않는다', async () => {
+    createDepthLimitGraph(db);
+
+    const isCyclic = await detector.detectCycleInternal('brand_new', 'chain_0', 'CAUSES');
+
+    expect(isCyclic).toBe(false);
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });

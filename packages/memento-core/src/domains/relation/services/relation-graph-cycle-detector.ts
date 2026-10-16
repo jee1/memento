@@ -24,6 +24,17 @@ export class RelationGraphCycleDetector {
       return false;
     }
 
+    // source 로 들어오는 같은 타입 간선이 없으면 target→…→source 경로가 불가능하다 (#1379).
+    const inbound = DatabaseUtils.get(this.db, `
+      SELECT 1 AS ok
+      FROM memory_relation
+      WHERE target_id = ? AND relation_type = ?
+      LIMIT 1
+    `, [sourceId, relationType]);
+    if (!inbound) {
+      return false;
+    }
+
     const visited = new Set<string>();
     const nodeRelations = new Map<string, string[]>();
     /**
