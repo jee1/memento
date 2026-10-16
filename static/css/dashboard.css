@@ -492,6 +492,14 @@ body {
   stroke-opacity: 0.4;
 }
 
+.node.focus-dim {
+  opacity: 0.18;
+}
+
+.link.focus-dim {
+  stroke-opacity: 0.12;
+}
+
 /* 반응형 디자인 */
 @media (max-width: 48rem) {
   .dashboard-header {

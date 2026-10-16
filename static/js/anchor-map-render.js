@@ -188,6 +188,24 @@
     return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
   }
 
+  function applyNeighborFocus(focusId) {
+    const api = global.__MEMENTO_NEIGHBOR_FOCUS__;
+    if (!api || !state.svg) return;
+    const keepIds = api.collectKeepIds(focusId, state.links);
+    state.svg.selectAll('.node').classed('focus-dim', function (d) {
+      return !keepIds.has(d.id);
+    });
+    state.svg.selectAll('.link').classed('focus-dim', function (d) {
+      return !api.edgeTouchesKeep(d, keepIds);
+    });
+  }
+
+  function clearNeighborFocus() {
+    if (!state.svg) return;
+    state.svg.selectAll('.node').classed('focus-dim', false);
+    state.svg.selectAll('.link').classed('focus-dim', false);
+  }
+
   function buildLinkSelection(g, links) {
     return g.append('g')
       .selectAll('line')
@@ -220,7 +238,9 @@
       .attr('stroke-dasharray', function (d) { return d.embedding_missing ? '5,3' : null; })
       .attr('opacity', function (d) { return d.embedding_missing ? 0.6 : 1.0; })
       .call(makeDragBehavior(simulation))
-      .on('click', function (event, d) { event.stopPropagation(); ns.selectNode(d); });
+      .on('click', function (event, d) { event.stopPropagation(); ns.selectNode(d); })
+      .on('mouseover', function (_event, d) { applyNeighborFocus(d.id); })
+      .on('mouseout', clearNeighborFocus);
   }
 
   function labelTextFor(d) {

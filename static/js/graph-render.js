@@ -24,6 +24,24 @@
     return { svg, g };
   }
 
+  // One marker per SVG. userSpaceOnUse keeps the head a fixed size while stroke width follows confidence.
+  function appendArrowMarker(svg) {
+    svg
+      .append('defs')
+      .append('marker')
+      .attr('id', 'memory-graph-arrow')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 10)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .attr('markerUnits', 'userSpaceOnUse')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', 'context-stroke');
+  }
+
   function attachZoomAndClick(svg, g) {
     const { svgEl } = ns.dom;
     svg.call(
@@ -68,7 +86,8 @@
       .append('line')
       .attr('class', 'link')
       .attr('stroke', (d) => palette.edgeColors[d.relation_type] ?? palette.edgeColors.default)
-      .attr('stroke-width', (d) => Math.max(1, (d.confidence ?? 1) * 3));
+      .attr('stroke-width', (d) => Math.max(1, (d.confidence ?? 1) * 3))
+      .attr('marker-end', 'url(#memory-graph-arrow)');
     state.renderedLinkSelection = link;
     return link;
   }
@@ -96,12 +115,36 @@
       });
   }
 
+  function applyNeighborFocus(focusId) {
+    const api = global.__MEMENTO_NEIGHBOR_FOCUS__;
+    if (!api) {
+      return;
+    }
+    const keepIds = api.collectKeepIds(focusId, state.lastGraphEdges);
+    if (state.renderedNodeSelection) {
+      state.renderedNodeSelection.classed('focus-dim', (d) => !keepIds.has(d.id));
+    }
+    if (state.renderedLinkSelection) {
+      state.renderedLinkSelection.classed('focus-dim', (d) => !api.edgeTouchesKeep(d, keepIds));
+    }
+  }
+
+  function clearNeighborFocus() {
+    if (state.renderedNodeSelection) {
+      state.renderedNodeSelection.classed('focus-dim', false);
+    }
+    if (state.renderedLinkSelection) {
+      state.renderedLinkSelection.classed('focus-dim', false);
+    }
+  }
+
   function attachCircleHandlers(circle) {
     const { tooltip } = ns.dom;
     circle
       .on('mouseover', (_event, d) => {
         tooltip.style.display = 'block';
         tooltip.textContent = d.label;
+        applyNeighborFocus(d.id);
       })
       .on('mousemove', (event) => {
         tooltip.style.left = `${event.clientX + 12}px`;
@@ -109,6 +152,7 @@
       })
       .on('mouseout', () => {
         tooltip.style.display = 'none';
+        clearNeighborFocus();
       })
       .on('click', (event, d) => {
         event.stopPropagation();
@@ -149,13 +193,29 @@
     return { node, circle };
   }
 
+  // The marker tip is the line end. Stopping at the node center hides the arrow under the circle.
+  function arrowTargetPoint(source, target) {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const dist = Math.hypot(dx, dy);
+    const radius = target.__graphRadius ?? 8;
+    if (!dist || dist <= radius) {
+      return { x: target.x, y: target.y };
+    }
+    const scale = (dist - radius) / dist;
+    return {
+      x: source.x + dx * scale,
+      y: source.y + dy * scale,
+    };
+  }
+
   function bindSimulationTick(simulation, link, node) {
     simulation.on('tick', () => {
       link
         .attr('x1', (d) => d.source.x)
         .attr('y1', (d) => d.source.y)
-        .attr('x2', (d) => d.target.x)
-        .attr('y2', (d) => d.target.y);
+        .attr('x2', (d) => arrowTargetPoint(d.source, d.target).x)
+        .attr('y2', (d) => arrowTargetPoint(d.source, d.target).y);
       node.attr('transform', (d) => `translate(${d.x},${d.y})`);
     });
   }
@@ -164,6 +224,7 @@
     const { W, H } = getContainerSize();
     const palette = ns.getGraphPalette();
     const { svg, g } = createSvgRoot(W, H);
+    appendArrowMarker(svg);
     attachZoomAndClick(svg, g);
 
     const rScale = createRadiusScale();
