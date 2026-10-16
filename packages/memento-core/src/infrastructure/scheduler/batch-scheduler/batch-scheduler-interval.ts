@@ -38,7 +38,6 @@ export async function waitForRunningBatchJobs(deps: BatchSchedulerIntervalDeps):
   const startTime = Date.now();
 
   while (deps.jobQueue.runningCount > 0 && (Date.now() - startTime) < maxWaitTime) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 

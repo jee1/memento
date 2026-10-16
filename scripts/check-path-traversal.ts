@@ -16,7 +16,6 @@ import { parseArgs as parseCliArgs } from './lib/cli.js';
  *   - CI/CD 통합 가능
  */
 
-/* eslint-disable security/detect-unsafe-regex */
 // 정규식 패턴은 안전한 패턴임
 
 import { readFileSync } from 'fs';

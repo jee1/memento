@@ -67,7 +67,6 @@ function parseOptions(
 
 async function readSettings(settingsPath: string): Promise<ClaudeSettings> {
   try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     return JSON.parse(await readFile(settingsPath, 'utf8')) as ClaudeSettings;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};

@@ -58,7 +58,6 @@ function options(argv: readonly string[], env: NodeJS.ProcessEnv): {
 
 async function readSettings(path: string): Promise<CodexHooksSettings> {
   try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     return JSON.parse(await readFile(path, 'utf8')) as CodexHooksSettings;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};

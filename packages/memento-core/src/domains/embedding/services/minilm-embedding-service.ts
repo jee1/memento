@@ -40,7 +40,6 @@ type FeatureExtractionModel = ((
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __minilmModelLoadWarningShown: boolean | undefined;
 }
 

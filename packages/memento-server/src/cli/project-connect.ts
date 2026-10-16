@@ -62,7 +62,6 @@ function defaultClaude(args: readonly string[], cwd: string): number {
 
 async function readText(path: string): Promise<string | undefined> {
   try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     return await readFile(path, 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
@@ -76,9 +75,7 @@ async function readJson<T>(path: string): Promise<T | undefined> {
 }
 
 async function writeText(path: string, text: string): Promise<void> {
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await mkdir(dirname(path), { recursive: true });
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await writeFile(path, text, 'utf8');
 }
 
@@ -94,9 +91,7 @@ async function keepLocal(ctx: Context, path: string): Promise<void> {
   const exclude = ctx.git(['rev-parse', '--git-path', 'info/exclude'], ctx.root);
   if (!exclude) return;
   const target = resolve(ctx.root, exclude);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await mkdir(dirname(target), { recursive: true });
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await appendFile(target, `\n# memento connect project\n/${rel}\n`, 'utf8');
 }
 

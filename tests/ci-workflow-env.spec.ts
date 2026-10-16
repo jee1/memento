@@ -7,7 +7,6 @@ const WORKFLOW_DIR = join(process.cwd(), '.github/workflows');
 function readWorkflows(): Array<{ name: string; source: string }> {
   return readdirSync(WORKFLOW_DIR)
     .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 워크플로 디렉터리 내부 고정 경로
     .map((name) => ({ name, source: readFileSync(join(WORKFLOW_DIR, name), 'utf-8') }));
 }
 
