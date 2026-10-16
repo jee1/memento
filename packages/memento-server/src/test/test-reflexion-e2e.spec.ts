@@ -6,7 +6,6 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDatabase, cleanupTestDatabase, type TestDatabaseContext } from '../server/test/helpers/test-database.js';
 import { executeTool } from '@memento/core/index.js';
-import Database from 'better-sqlite3';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 import { 
   initializeMigrationStatusTable, 
@@ -25,14 +24,13 @@ async function testReflexionE2E() {
   console.log('6. FTS5 검색으로 업데이트된 reflection_notes 검색\n\n');
   
   let ctx: TestDatabaseContext | null = null;
-  let testDb: Database.Database | null = null;
   const createdMemoryIds: string[] = [];
   
   try {
     // 1. 데이터베이스 초기화
     console.log('1️⃣ 데이터베이스 초기화');
     ctx = await setupTestDatabase();
-    testDb = ctx.db;
+    const testDb = ctx.db;
     const services = ctx.services;
 
     // FTS5 마이그레이션 상태 테이블 생성 (이미 core 초기화에서 생성되었을 수 있음)

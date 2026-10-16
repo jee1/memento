@@ -177,8 +177,8 @@ export function runDatabaseIntegrityPreflight(dbPath: string, now: Date = new Da
     return;
   }
 
-  let quickCheckMessages: string[] = [];
-  let integrityCheckMessages: string[] = [];
+  let quickCheckMessages: string[];
+  let integrityCheckMessages: string[];
   let quickCheckErrored = false;
   let integrityCheckErrored = false;
 
@@ -227,7 +227,7 @@ export function runDatabaseIntegrityPreflight(dbPath: string, now: Date = new Da
     throw new Error(`데이터베이스 사전 검사 실패: ${quickCheckMessages.join('; ')}`);
   }
 
-  let quarantinePath: string | null = null;
+  let quarantinePath: string;
   try {
     quarantinePath = quarantineDatabaseFile(dbPath, now);
   } catch (error) {

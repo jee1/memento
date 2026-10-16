@@ -10,7 +10,7 @@ export async function rotateJsonlIfNeeded(
     return false;
   }
 
-  let size = 0;
+  let size: number;
   try {
     size = (await stat(filePath)).size;
   } catch (error) {

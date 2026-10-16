@@ -258,7 +258,7 @@ export async function readJsonlFiles(
   const skips: JsonlReadSkip[] = [];
 
   for (const directory of directories) {
-    let files: string[] = [];
+    let files: string[];
     try {
       files = await readdir(directory);
     } catch {

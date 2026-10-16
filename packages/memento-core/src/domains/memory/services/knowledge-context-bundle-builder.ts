@@ -246,8 +246,8 @@ export async function buildKnowledgeContextBundle(
     ...(ownerId !== undefined && ownerId !== null ? { owner_id: ownerId } : {}),
   };
 
-  let memories: HybridSearchResult[] = [];
-  let excludedDuplicateEarly = 0;
+  let memories: HybridSearchResult[];
+  let excludedDuplicateEarly: number;
   let tfidfEmitted = false;
 
   // #811: 조기 필터 + adaptive overfetch — 고정 *2/*6 shortlist+사후필터만으로는 고비율 손상 시 예산 고갈.

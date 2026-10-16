@@ -139,7 +139,7 @@ export async function createSeededBenchmarkDatabase(
   const embeddingService = new MemoryEmbeddingService();
 
   let vectorDims = 0;
-  let relationCount = 0;
+  let relationCount: number;
 
   try {
     for (let i = 0; i < corpus.length; i++) {

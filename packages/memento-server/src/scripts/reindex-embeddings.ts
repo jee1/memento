@@ -61,7 +61,7 @@ async function main(): Promise<void> {
   const core = await createMementoCore({
     dbPath: expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath),
   });
-  let output = '';
+  let output: string;
 
   try {
     const service = new EmbeddingReindexService(core.db, core.services.embeddingService);

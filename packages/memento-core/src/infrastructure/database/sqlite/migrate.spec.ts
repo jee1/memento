@@ -60,7 +60,7 @@ describe('Database Migration', () => {
     });
 
     it('Given: 기존 DB에 vec0 테이블이 있지만 확장 로드가 실패할 때, When: migrateDatabase를 호출하면, Then: vec 정비 전체를 건너뛰고 "no such module" 없이 완료해야 함', async () => {
-      let vecAvailable = false;
+      let vecAvailable: boolean;
       try {
         const probe = new Database(':memory:');
         try {

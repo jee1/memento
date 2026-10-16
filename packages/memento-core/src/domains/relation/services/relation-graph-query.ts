@@ -41,7 +41,7 @@ export class RelationGraphQuery {
       }
     }
 
-    let query = '';
+    let query: string;
     const params: Array<string | number | RelationType> = [];
 
     if (direction === 'outgoing') {
@@ -110,7 +110,7 @@ export class RelationGraphQuery {
     const idSet = new Set(memoryIds);
     const placeholders = memoryIds.map(() => '?').join(',');
 
-    let query = '';
+    let query: string;
     const params: Array<string | number | RelationType> = [];
 
     if (direction === 'outgoing') {
