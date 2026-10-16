@@ -10,7 +10,7 @@ import { callerOwnerClause, resolveCallerAgentId } from '../../../tools/caller-s
 const SetAnchorSchema = z.object({
   memory_id: z.string().min(1, 'Memory ID cannot be empty'),
   slot: z.enum(['A', 'B', 'C'], {
-    errorMap: () => ({ message: 'Slot must be A, B, or C' })
+    error: 'Slot must be A, B, or C'
   }),
   agent_id: z.string().optional().default('default')
 });
@@ -80,7 +80,7 @@ export class SetAnchorTool extends BaseTool {
       this.logError(error as Error, '앵커 설정 실패', { params });
       
       if (error instanceof z.ZodError) {
-        throw new Error(`입력 검증 실패: ${error.errors.map(e => e.message).join(', ')}`);
+        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`);
       }
       
       throw error;

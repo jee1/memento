@@ -29,13 +29,11 @@ const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
  */
 export const ReflectionNoteSchema = z.object({
   failure_type: z.enum(['tool_error', 'user_feedback', 'metric_failure'], {
-    errorMap: (issue, ctx) => {
-      if (issue.code === z.ZodIssueCode.invalid_enum_value) {
-        return {
-          message: `failure_type는 'tool_error', 'user_feedback', 'metric_failure' 중 하나여야 합니다. 현재 값: ${ctx.data}`
-        };
+    error: (issue) => {
+      if (issue.code === 'invalid_value') {
+        return `failure_type는 'tool_error', 'user_feedback', 'metric_failure' 중 하나여야 합니다. 현재 값: ${String(issue.input)}`;
       }
-      return { message: ctx.defaultError };
+      return undefined;
     }
   }),
   failure_description: z.string()
@@ -71,13 +69,11 @@ export const ReflectionNoteSchema = z.object({
   /** Reflexion 등에서 선택적으로 기록 */
   tool_name: z.string().optional(),
   phase: z.enum(['manual', 'auto'], {
-    errorMap: (issue, ctx) => {
-      if (issue.code === z.ZodIssueCode.invalid_enum_value) {
-        return {
-          message: `phase는 'manual' 또는 'auto'여야 합니다. 현재 값: ${ctx.data}`
-        };
+    error: (issue) => {
+      if (issue.code === 'invalid_value') {
+        return `phase는 'manual' 또는 'auto'여야 합니다. 현재 값: ${String(issue.input)}`;
       }
-      return { message: ctx.defaultError };
+      return undefined;
     }
   }).default('manual')
 });
@@ -112,16 +108,18 @@ export function validateReflectionNote(data: unknown): ValidationResult {
     return { isValid: true };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((err) => {
+      const errors = error.issues.map((err) => {
         const path = err.path.join('.');
+        const expected =
+          err.code === 'invalid_value' && 'values' in err && Array.isArray(err.values)
+            ? `enum 값 중 하나 (${err.values.join(', ')})`
+            : err.code === 'invalid_type' && 'expected' in err
+              ? String(err.expected)
+              : '유효한 값';
         return {
           field: path || 'root',
-          expected: err.code === z.ZodIssueCode.invalid_enum_value
-            ? `enum 값 중 하나 (${err.options?.join(', ')})`
-            : err.code === z.ZodIssueCode.invalid_type
-            ? err.expected
-            : '유효한 값',
-          actual: err.path.length > 0 ? err.path.reduce((obj: unknown, key) => (obj as Record<string | number, unknown>)?.[key], data) : data,
+          expected,
+          actual: err.path.length > 0 ? err.path.reduce((obj: unknown, key) => (obj as Record<string | number, unknown>)?.[key as string | number], data) : data,
           message: err.message
         };
       });

@@ -79,7 +79,7 @@ export class IntrospectionHealTool extends BaseTool {
         return this.createErrorResult(
           'INVALID_PARAMETERS',
           '파라미터 검증 실패',
-          error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+          error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
         );
       }
 

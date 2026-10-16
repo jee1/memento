@@ -9,7 +9,7 @@ import { filterCallerOwnedIds, resolveCallerAgentId } from '../../../tools/calle
 
 const SearchLocalSchema = z.object({
   slot: z.enum(['A', 'B', 'C'], {
-    errorMap: () => ({ message: 'Slot must be A, B, or C' })
+    error: 'Slot must be A, B, or C'
   }),
   query: z.string().optional(),
   hop_limit: z.number().min(1).max(5).optional(),
@@ -161,7 +161,7 @@ export class SearchLocalTool extends BaseTool {
       this.logError(error as Error, '국소 검색 실패', { params });
       
       if (error instanceof z.ZodError) {
-        throw new Error(`입력 검증 실패: ${error.errors.map(e => e.message).join(', ')}`);
+        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`);
       }
       
       throw error;

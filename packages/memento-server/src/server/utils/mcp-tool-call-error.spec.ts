@@ -84,7 +84,7 @@ describe('mapToolExecutionErrorToJsonRpc', () => {
 
     expect(mapped).toEqual({
       code: -32602,
-      message: 'Invalid params: content: Required',
+      message: 'Invalid params: content: Invalid input: expected string, received undefined',
       data: caught!.flatten()
     });
   });

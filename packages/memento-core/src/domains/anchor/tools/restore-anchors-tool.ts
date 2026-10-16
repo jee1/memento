@@ -122,7 +122,7 @@ export class RestoreAnchorsTool extends BaseTool {
       this.logError(error as Error, '앵커 복원 실패', { params });
       
       if (error instanceof z.ZodError) {
-        throw new Error(`입력 검증 실패: ${error.errors.map(e => e.message).join(', ')}`);
+        throw new Error(`입력 검증 실패: ${error.issues.map(e => e.message).join(', ')}`);
       }
       
       throw error;
