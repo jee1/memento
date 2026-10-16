@@ -167,7 +167,8 @@
       flex-wrap: wrap;
     }
 
-    .type-check {
+    .type-check,
+    .relation-check {
       display: flex;
       align-items: center;
       gap: 3px;
@@ -175,7 +176,18 @@
       cursor: pointer;
     }
 
-    .type-check input { cursor: pointer; }
+    .type-check input,
+    .relation-check input { cursor: pointer; }
+
+    #local-depth-select,
+    #local-focus-hint {
+      font-size: var(--font-size-xs);
+      color: var(--color-graph-text-muted);
+    }
+
+    #local-focus-hint {
+      white-space: nowrap;
+    }
 
     .importance-row {
       display: flex;
@@ -576,6 +588,15 @@
       </div>
     </div>
     <div class="filter-group graph-session-only">
+      <label>관계</label>
+      <div class="type-checks">
+        <label class="relation-check"><input type="checkbox" value="supports" checked> supports</label>
+        <label class="relation-check"><input type="checkbox" value="related_to" checked> related_to</label>
+        <label class="relation-check"><input type="checkbox" value="extracted_from" checked> extracted_from</label>
+        <label class="relation-check"><input type="checkbox" value="contradicts" checked> contradicts</label>
+      </div>
+    </div>
+    <div class="filter-group graph-session-only">
       <label>중요도 ≥</label>
       <div class="importance-row">
         <input type="range" id="importance-slider" min="0" max="1" step="0.05" value="0">
@@ -610,6 +631,17 @@
         <input type="checkbox" id="hide-orphans-toggle"> 연결 없는 노드 숨기기
       </label>
       <span id="orphan-hidden-badge" aria-live="polite"></span>
+    </div>
+    <div class="filter-group graph-session-only">
+      <label for="local-mode-toggle">주변만 보기</label>
+      <input type="checkbox" id="local-mode-toggle">
+      <label for="local-depth-select">깊이</label>
+      <select id="local-depth-select">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+      </select>
+      <span id="local-focus-hint"></span>
     </div>
     <button id="apply-btn" class="graph-session-only graph-action-button m-button m-button--primary">필터 적용</button>
     <button id="reset-btn" class="graph-session-only graph-action-button m-button m-button--secondary">초기화</button>

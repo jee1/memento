@@ -17,6 +17,9 @@
     activeSearchQuery: '',
     renderedNodeSelection: null,
     renderedLinkSelection: null,
+    localMode: false,
+    localFocusId: null,
+    localDepth: 2,
   };
 
   ns.readGraphToken = function readGraphToken(name, fallback = '') {
@@ -97,6 +100,91 @@
     };
   };
 
+  /**
+   * 클릭한 노드에서 무방향 BFS 로 depth 홉(1..3) 안의 노드·엣지만 남긴다.
+   * focus 가 없으면 입력을 그대로 돌려준다.
+   */
+  ns.trimToLocalDepth = function trimToLocalDepth(nodes, edges, focusId, depth) {
+    if (focusId == null || focusId === '') {
+      return { nodes, edges };
+    }
+    const nodeList = Array.isArray(nodes) ? nodes : [];
+    const edgeList = Array.isArray(edges) ? edges : [];
+    let hops = Math.floor(Number(depth));
+    if (!Number.isFinite(hops)) {
+      hops = 2;
+    } else if (hops < 1) {
+      hops = 1;
+    } else if (hops > 3) {
+      hops = 3;
+    }
+
+    const adjacent = new Map();
+    const link = (from, to) => {
+      if (from == null || to == null) {
+        return;
+      }
+      const list = adjacent.get(from);
+      if (list) {
+        list.push(to);
+      } else {
+        adjacent.set(from, [to]);
+      }
+    };
+    for (const edge of edgeList) {
+      const sourceId = ns.getEdgeNodeId(edge.source);
+      const targetId = ns.getEdgeNodeId(edge.target);
+      link(sourceId, targetId);
+      if (sourceId !== targetId) {
+        link(targetId, sourceId);
+      }
+    }
+
+    const keep = new Set([focusId]);
+    let frontier = [focusId];
+    for (let hop = 0; hop < hops; hop += 1) {
+      const next = [];
+      for (const id of frontier) {
+        const neighbors = adjacent.get(id) ?? [];
+        for (const neighborId of neighbors) {
+          if (!keep.has(neighborId)) {
+            keep.add(neighborId);
+            next.push(neighborId);
+          }
+        }
+      }
+      frontier = next;
+    }
+
+    return {
+      nodes: nodeList.filter((node) => keep.has(node.id)),
+      edges: edgeList.filter((edge) => {
+        const sourceId = ns.getEdgeNodeId(edge.source);
+        const targetId = ns.getEdgeNodeId(edge.target);
+        return keep.has(sourceId) && keep.has(targetId);
+      }),
+    };
+  };
+
+  ns.updateLocalFocusHint = function updateLocalFocusHint(node) {
+    const hint = ns.dom && ns.dom.localFocusHint;
+    if (!hint) {
+      return;
+    }
+    const id = ns.state.localFocusId;
+    if (id == null || id === '') {
+      hint.textContent = '';
+      hint.title = '';
+      return;
+    }
+    const matched = node && node.id === id
+      ? node
+      : (ns.state.rawGraphNodes ?? []).find((item) => item.id === id);
+    const label = matched && matched.label;
+    hint.textContent = label && label !== id ? `${label} (${id})` : String(id);
+    hint.title = String(id);
+  };
+
   ns.bindDomRefs = function bindDomRefs() {
     ns.dom = {
       svgEl: document.getElementById('graph'),
@@ -117,6 +205,9 @@
       graphModeHint: document.getElementById('graph-mode-hint'),
       orphanToggle: document.getElementById('hide-orphans-toggle'),
       orphanBadge: document.getElementById('orphan-hidden-badge'),
+      localModeToggle: document.getElementById('local-mode-toggle'),
+      localDepthSelect: document.getElementById('local-depth-select'),
+      localFocusHint: document.getElementById('local-focus-hint'),
     };
   };
 
