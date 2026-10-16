@@ -408,7 +408,6 @@ describe('MetaMemoryService', () => {
 
       // 세 번째 recall: confidence = 0.4
       currentAvg = service.updateAvgConfidence(currentAvg, currentCount, 0.4);
-      currentCount = 3;
       // 예상 평균: (0.6 + 0.8 + 0.4) / 3 = 0.6
       expect(currentAvg).toBeCloseTo(0.6, 5);
     });

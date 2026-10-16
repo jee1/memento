@@ -44,8 +44,6 @@ export default [
       'max-lines-per-function': 'off',
       // Added to eslint:recommended in ESLint 10; adoption tracked in #1360.
       'preserve-caught-error': 'off',
-      'no-useless-assignment': 'off',
-      'no-unassigned-vars': 'off',
       complexity: ['error', 30],
       'security/detect-object-injection': 'off',
       'security/detect-non-literal-fs-filename': 'error',

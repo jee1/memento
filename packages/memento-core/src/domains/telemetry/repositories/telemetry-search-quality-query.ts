@@ -116,9 +116,9 @@ export function querySearchQuality(
     ? selectedCount / unionCandidateCount
     : selectedCount === 0 ? null : 0;
 
-  let avgLatency: number | null = null;
-  let p95: number | null = null;
-  let avgCand: number | null = null;
+  let avgLatency: number | null;
+  let p95: number | null;
+  let avgCand: number | null;
 
   if (period === '24h') {
     const latRows = db

@@ -59,7 +59,7 @@ export class VectorPerformanceTester {
     recommendations: string[];
   } {
     const recommendations: string[] = [];
-    let performance: 'excellent' | 'good' | 'fair' | 'poor' = 'good';
+    let performance: 'excellent' | 'good' | 'fair' | 'poor';
 
     if (result.averageTime < 10) {
       performance = 'excellent';

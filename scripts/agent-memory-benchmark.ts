@@ -986,10 +986,9 @@ function evaluateEndToEnd(
     if (!evaluation || !queryById.has(testCase.queryId)) {
       continue;
     }
-    let used = 0;
     const injected = selectWithinTokenBudget(evaluation.ranked, testCase.tokenBudget);
     const selected = new Set(injected.map((document) => document.id));
-    used = injected.reduce((sum, document) => sum + document.tokenEstimate, 0);
+    const used = injected.reduce((sum, document) => sum + document.tokenEstimate, 0);
     injectedTokens += used;
     const found = testCase.requiredEvidenceIds.filter((id) => selected.has(id)).length;
     evidenceFound += found;

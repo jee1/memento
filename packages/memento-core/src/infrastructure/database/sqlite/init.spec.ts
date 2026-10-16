@@ -3,7 +3,7 @@
  * 스키마 버전 검증 및 레거시 스키마 호환성 테스트
  */
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
 import { closeSync, ftruncateSync, mkdtempSync, openSync, rmSync, statSync } from 'fs';
 import { tmpdir } from 'os';
@@ -12,18 +12,6 @@ import { initializeDatabase } from './init.js';
 import { MigrationDetector } from './migration/migration-detector.js';
 
 describe('Database Initialization', () => {
-  let db: Database.Database;
-
-  afterEach(() => {
-    if (db) {
-      try {
-        db.close();
-      } catch {
-        // 이미 닫혀있을 수 있음
-      }
-    }
-  });
-
   describe('스키마 버전 검증', () => {
     it('Given: 레거시 스키마에 embedding 컬럼이 없을 때, When: 데이터베이스를 초기화하면, Then: embedding 컬럼을 안전하게 추가해야 함', async () => {
       // Given: 레거시 스키마 (embedding 컬럼 없음)

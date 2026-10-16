@@ -119,13 +119,12 @@ export async function runProductionRecallBenchmark(
   const dbPath = join(directory, 'benchmark.db');
   let db: Awaited<ReturnType<typeof createMementoCore>>['db'] | undefined;
   let services: Awaited<ReturnType<typeof createMementoCore>>['services'] | undefined;
-  let embeddingProvider = 'tfidf';
 
   try {
     const core = await createMementoCore({ dbPath });
     db = core.db;
     services = core.services;
-    embeddingProvider = await importFixture(
+    const embeddingProvider = await importFixture(
       dataset.documents,
       db,
       services.embeddingService,

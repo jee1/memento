@@ -111,7 +111,7 @@ export function executeAgentCaptureTransaction(
           : event.outcome === 'abandoned'
             ? 'ABANDONED'
             : 'COMPLETED';
-      session = repository.updateSession(event.sessionId, {
+      repository.updateSession(event.sessionId, {
         status,
         endedAt: receivedAt,
         lastEventAt: event.occurredAt,
@@ -119,7 +119,7 @@ export function executeAgentCaptureTransaction(
         degradedReason: status === 'DEGRADED' ? 'STOP_FAILED' : null,
       }, receivedAt);
     } else {
-      session = repository.updateSession(event.sessionId, {
+      repository.updateSession(event.sessionId, {
         status: event.eventType === 'PRE_COMPACT'
           ? (session.status === 'DEGRADED' ? 'DEGRADED' : 'ACTIVE')
           : session.status,

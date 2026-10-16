@@ -149,14 +149,7 @@ export function buildAdminStatus(db: Database.Database | null): AdminStatusRespo
     database: db ? 'connected' : 'disconnected',
   };
 
-  let scheduler: AdminStatusResponse['scheduler'] = {
-    status: 'degraded',
-    running: false,
-    uptimeMs: 0,
-    uptimeHuman: formatDurationHumanKo(0),
-    runningJobs: 0,
-    queueSize: 0,
-  };
+  let scheduler: AdminStatusResponse['scheduler'];
   try {
     const detailed = getBatchScheduler().getDetailedStats();
     const schedulerUptimeMs = detailed.health.uptime;

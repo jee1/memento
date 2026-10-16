@@ -20,7 +20,7 @@ export async function bootstrapNewDatabaseSchema(db: Database.Database): Promise
         )
       `);
 
-  let hasPendingMigrations = false;
+  let hasPendingMigrations: boolean;
   try {
     const detector = new MigrationDetector();
     const detectionResult = await detector.detectPendingMigrations(db);

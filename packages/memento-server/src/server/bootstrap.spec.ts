@@ -115,15 +115,13 @@ describe('initializeServices', () => {
     it('initializeServices를 여러 번 호출해도 PerformanceMonitor는 한 번만 초기화되어야 함', async () => {
       const db1 = new Database(':memory:');
       const db2 = new Database(':memory:');
-      let services1: ServerServices | null = null;
-      let services2: ServerServices | null = null;
       try {
         DatabaseUtils.initializeDatabase(db1);
         DatabaseUtils.initializeDatabase(db2);
 
-        services1 = await initializeServices(db1);
+        const services1 = await initializeServices(db1);
         await (getBatchScheduler() as { stop(): Promise<void> }).stop();
-        services2 = await initializeServices(db2);
+        const services2 = await initializeServices(db2);
 
         expect(services1.performanceMonitor).toBe(services2.performanceMonitor);
         services = services2;

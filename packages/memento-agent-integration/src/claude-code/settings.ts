@@ -107,13 +107,12 @@ export function planClaudeCodeSettings(
 export async function applyClaudeCodeSettings(
   options: ClaudeSettingsOptions,
 ): Promise<ClaudeSettingsApplyResult> {
-  let raw = '{}\n';
   let existing: ClaudeSettings = {};
   let mode: number | undefined;
   let exists = false;
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    raw = await readFile(options.settingsPath, 'utf8');
+    const raw = await readFile(options.settingsPath, 'utf8');
     existing = JSON.parse(raw) as ClaudeSettings;
     // eslint-disable-next-line security/detect-non-literal-fs-filename
     mode = (await stat(options.settingsPath)).mode;

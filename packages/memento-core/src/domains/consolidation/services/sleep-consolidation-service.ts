@@ -56,7 +56,7 @@ function getMergeSimilarityThreshold(): number {
 }
 
 function mergeOriginSourceJson(existingJson: string, clusterIds: string[]): string {
-  let o: Record<string, unknown> = {};
+  let o: Record<string, unknown>;
   try {
     o = JSON.parse(existingJson || '{}') as Record<string, unknown>;
   } catch {
