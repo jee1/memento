@@ -33,6 +33,7 @@ function addRelation(db: Database.Database, sourceId: string, targetId: string):
 /**
  * chain_0 -> ... -> chain_9 -> parent_i (깊이 10) -> frontier (깊이 11)
  * frontier 는 maxDepth 10 을 넘으므로 부모 수만큼 재진입한다.
+ * elsewhere -> unreachable 은 깊이 한계 프로브 source 가 인바운드 조기 종료에 걸리지 않게 한다.
  */
 function createDepthLimitGraph(db: Database.Database): void {
   for (let i = 0; i < LIMITS.MAX_CYCLE_DEPTH - 1; i++) {
@@ -42,6 +43,7 @@ function createDepthLimitGraph(db: Database.Database): void {
     addRelation(db, `chain_${LIMITS.MAX_CYCLE_DEPTH - 1}`, `parent_${i}`);
     addRelation(db, `parent_${i}`, 'frontier');
   }
+  addRelation(db, 'elsewhere', 'unreachable');
 }
 
 describe('RelationGraphCycleDetector', () => {
@@ -63,8 +65,6 @@ describe('RelationGraphCycleDetector', () => {
 
   it('깊이 한계에 여러 번 걸려도 경고는 호출당 한 줄만 남긴다', async () => {
     createDepthLimitGraph(db);
-    // 들어오는 간선이 있어야 조기 종료를 건너뛰고 깊이 한계까지 탐색한다.
-    addRelation(db, 'elsewhere', 'unreachable');
 
     const isCyclic = await detector.detectCycleInternal('unreachable', 'chain_0', 'CAUSES');
 
