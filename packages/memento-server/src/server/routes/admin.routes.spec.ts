@@ -24,6 +24,7 @@ import {
   ReviewQueueHealthSnapshotMigration,
   upsertPendingMemoryReviewCandidates,
   listMemoryReviewCandidates,
+  BatchJobAlreadyRunningError,
   getBatchScheduler,
   resetBatchScheduler,
   JobRunMigration,
@@ -2226,6 +2227,71 @@ describe('admin.routes memory review candidates', () => {
     } finally {
       await scheduler.stop();
       resetBatchScheduler();
+    }
+  });
+
+  it('POST /admin/batch/run maps BatchJobAlreadyRunningError from runJob to 409', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    scheduler.runJob = () => Promise.reject(new BatchJobAlreadyRunningError('cleanup'));
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'cleanup' });
+        expect(res.statusCode).toBe(409);
+        expect(JSON.parse(res.body)).toEqual({ error: 'job already running', jobType: 'cleanup' });
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+    }
+  });
+
+  it('POST /admin/batch/run records a failed manual run when runJob throws', async () => {
+    resetBatchScheduler();
+    resetBatchRunHistoryForTests();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    scheduler.runJob = () => Promise.reject(new Error('boom'));
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'cleanup' });
+        expect(res.statusCode).toBe(500);
+        expect(JSON.parse(res.body)).toEqual({ error: '배치 작업 실행 실패', message: 'boom' });
+
+        const hist = JSON.parse((await getAdmin(port, '/admin/batch/run-history')).body) as {
+          entries: Array<{ jobType: string; success: boolean }>;
+        };
+        expect(hist.entries[0]).toMatchObject({ jobType: 'cleanup', success: false });
+
+        const runs = JSON.parse((await getAdmin(port, '/admin/batch/runs?job=cleanup')).body) as {
+          runs: Array<{ id: string; trigger: string; success: boolean; errorCount: number; details: unknown }>;
+        };
+        expect(runs.runs).toHaveLength(1);
+        expect(runs.runs[0]).toMatchObject({
+          trigger: 'manual',
+          success: false,
+          errorCount: 1,
+          details: { error: 'boom' },
+        });
+
+        const logs = JSON.parse(
+          (await getAdmin(port, `/admin/batch/runs/${runs.runs[0]!.id}/logs`)).body
+        ) as { logs: Array<{ level: string; message: string }> };
+        expect(logs.logs).toEqual([
+          expect.objectContaining({ level: 'error', message: 'cleanup failed (manual): boom' }),
+        ]);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+      resetBatchRunHistoryForTests();
     }
   });
 

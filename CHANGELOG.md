@@ -13,6 +13,8 @@
 
 - 개발: advisory CI `slop-detector-js` 와 `scripts/slop-gate-scan.sh` 의 `ai-slop-detector` 고정 버전을 3.8.5 에서 3.10.1 로 올렸습니다. `[js]` extra 로 tree-sitter-typescript 를 함께 설치해, 정규식 fallback 대신 AST 로 TS 를 분석합니다. 3.10.1 의 `review` 는 `audit` 별칭이 되어 `--js`·`--ci-mode` 를 받지 않으므로, 저장소 전체 hard 게이트는 `--project . --js --ci-mode hard --ci-report` 로 바꿨습니다. 머지를 막지 않는 검사라 필수 체크는 바뀌지 않습니다.
 
+- 개발: `/admin/batch/*`·`/admin/consolidation/run` 라우트 등록 함수 `registerAdminBatchRoutes` 가 핸들러 9개를 인라인 클로저로 품어 432줄이던 것을, 이름 있는 핸들러 함수로 꺼내 15줄짜리 경로 나열로 줄였습니다(#1371). 응답·상태 코드·경로·미들웨어 순서는 그대로입니다. 수동 실행 실패 경로(runJob 예외 → 실패 이력·`job_run` 기록, `BatchJobAlreadyRunningError` → 409)를 고정하는 테스트를 먼저 추가했습니다.
+
 ## [2.1.0] - 2026-10-17
 
 대시보드 그래프에 Obsidian 그래프 뷰의 탐색 패턴을 들여온 마이너 릴리스입니다(#1364). 런타임 의존성 `zod` 를 3 에서 4 로, `openai` SDK 를 4 에서 7 로 올렸습니다. 기본 검증 문구 일부가 Zod 4 문구로 바뀌는 것 말고는 도구 동작이 같습니다. 나머지는 ESLint 8→10 이전과 그에 따른 lint 규칙 적용입니다. MCP 도구 스키마와 DB 스키마는 바뀌지 않습니다.
