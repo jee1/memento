@@ -73,7 +73,7 @@ export class LightweightEmbeddingService {
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       process.stderr.write(`❌ 경량 임베딩 생성 실패: ${maskedError.message}\n`);
-       
+      // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
       throw new Error(`경량 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
