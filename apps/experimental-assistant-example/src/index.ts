@@ -1,4 +1,4 @@
-/* eslint-disable no-console, no-constant-condition */
+/* eslint-disable no-console */
 import { MementoAssistant } from '@jee1/memento-assistant';
 import * as readline from 'node:readline/promises';
 

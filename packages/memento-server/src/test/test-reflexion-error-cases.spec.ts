@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Reflexion 기능 에러 케이스 테스트
  * 잘못된 JSON 형식, 스키마 검증 실패, NULL 처리, 빈 배열, 크기 제한 초과 등
@@ -14,7 +13,6 @@ import { HybridSearchEngine } from '@memento/core/domains/search/algorithms/hybr
 import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
 import { sqliteRepositoryProvider } from '@memento/core';
 
-/* eslint-disable security/detect-non-literal-fs-filename */
 // 테스트 환경에서 파일 시스템 함수 사용은 안전함
 
 /**
@@ -451,9 +449,7 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
 
       await expect(rememberTool.handle(params, context)).rejects.toThrow();
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     it('should reject boolean value', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const params = {
         type: 'procedural',
         content: 'Test procedure',
@@ -484,9 +480,7 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
       expect(record.reflection_notes).toBeNull();
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     it('should ignore reflection_notes for semantic type', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const params = {
         type: 'semantic',
         content: 'Test semantic memory',

@@ -283,9 +283,7 @@ describe('MCP 서버 진입점', () => {
       // 이 테스트는 핸들러가 등록되어 있는지 확인하는 것으로 충분합니다.
       
       // logLevelChanged와 newLogLevel은 현재 사용되지 않지만 향후 검증에 사용될 수 있음
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       let logLevelChanged = false;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       let newLogLevel: string | null = null;
       
       // When: logging/setLevel 핸들러 등록 (구현 단계에서 수행)

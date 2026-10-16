@@ -16,6 +16,7 @@
 - 개발: ESLint 를 8.57(지원 종료)에서 9.39 로 올리고 `.eslintrc.json` 을 `eslint.config.js`(flat config)로 옮겼습니다(#1353). 규칙·override 는 그대로입니다. ESLint 9 기본값이 바뀐 두 곳은 기존 동작을 명시했습니다. 쓰이지 않는 disable 주석은 계속 보고하지 않고, `static/js` 의 `no-unused-vars` 는 catch 변수를 보지 않습니다. ESLint 9 부터 `complexity` 가 `?.`·기본값도 세면서 상한 30을 넘은 함수 5개에는 사유를 붙인 disable 주석을 달았습니다. 분해는 #1357 에서 합니다.
 - 개발: ESLint 9 복잡도 계산으로 상한 30을 넘던 함수 5개를 동작을 바꾸지 않고 나눠 `eslint-disable-next-line complexity` 주석을 모두 지웠습니다(#1357). `buildMemoryFilterSql` 은 절 묶음별 helper, `generateTriggerConditions`·`loadRankingWeights` 는 단계별 helper, `extractKnowledgeCandidates` 는 정규식 규칙 표, `RelationVisualizer.visualizeSubgraph` 는 BFS 를 따로 뺐습니다.
 - 개발: ESLint 를 9.39 에서 10.12 로 올렸습니다(#1353). `eslint-plugin-security` 3 은 ESLint 10 에서 제거된 `context.getSourceCode()` 를 불러 lint 가 멈추므로 4.2 로 함께 올렸고, `@typescript-eslint` 8.71·`@eslint/js` 10·`globals` 17 도 맞췄습니다. ESLint 10 `eslint:recommended` 에 새로 들어온 `preserve-caught-error`(67건)·`no-useless-assignment`(29건)·`no-unassigned-vars`(1건)는 꺼 두고 #1360 에서 적용합니다. lint 결과는 전후 같습니다.
+- 개발: 쓰이지 않는 `eslint-disable` 주석 26개(16파일)를 지우고 `reportUnusedDisableDirectives` 를 `error` 로 켰습니다(#1353). 이제 낡은 disable 주석은 lint 를 깨뜨립니다. `security/detect-non-literal-fs-filename` disable 48개는 모두 실제로 쓰이고 #1295 에서 근거를 적은 것이라 그대로 둡니다.
 
 ## [2.0.5] - 2026-10-15
 

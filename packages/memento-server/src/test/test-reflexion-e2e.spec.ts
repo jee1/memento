@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Reflexion 기능 E2E 테스트
  * remember로 reflection_notes 저장 → recall로 조회 → FTS5 검색 전체 워크플로우 검증

@@ -130,7 +130,6 @@ export async function applyClaudeCodeSettings(
   let backupPath: string | undefined;
   if (exists) {
     backupPath = plan.backupTarget;
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     await copyFile(options.settingsPath, backupPath);
   }
 

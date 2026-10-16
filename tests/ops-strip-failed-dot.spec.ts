@@ -36,7 +36,6 @@ function loadStrip(): { render: (data: unknown) => void; dots: Record<string, st
     fetch: () => Promise.reject(new Error('not used')),
   };
 
-  // eslint-disable-next-line no-new-func
   new Function('window', source + '\n//# sourceURL=ops-strip.js')(win);
 
   const api = win.__MEMENTO_OPS_STRIP__ as { load: () => Promise<void> };

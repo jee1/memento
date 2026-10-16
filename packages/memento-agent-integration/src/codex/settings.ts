@@ -112,7 +112,6 @@ export async function applyCodexHooks(
   let backupPath: string | undefined;
   if (exists) {
     backupPath = plan.backupTarget;
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     await copyFile(options.hooksPath, backupPath);
   }
   const tempPath = `${options.hooksPath}.${process.pid}.tmp`;

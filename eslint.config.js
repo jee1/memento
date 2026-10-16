@@ -21,8 +21,7 @@ export default [
       '@typescript-eslint': tsPlugin,
       security,
     },
-    // ESLint 9 defaults this to "warn"; 8 did not report. Kept off so `--max-warnings 0` behaves as before.
-    linterOptions: { reportUnusedDisableDirectives: 'off' },
+    linterOptions: { reportUnusedDisableDirectives: 'error' },
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
