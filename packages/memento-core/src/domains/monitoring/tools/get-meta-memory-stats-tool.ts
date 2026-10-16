@@ -162,7 +162,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
     } catch (error) {
       // Zod 에러는 사용자 친화적인 메시지로 변환
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map(e => {
+        const errorMessages = error.issues.map(e => {
           const path = e.path.length > 0 ? e.path.join('.') : 'root';
           return `${path}: ${e.message}`;
         }).join(', ');

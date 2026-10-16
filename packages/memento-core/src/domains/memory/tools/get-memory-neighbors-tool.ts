@@ -115,7 +115,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
       
       // Zod 스키마 검증 에러 처리
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        const errorMessages = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         throw new Error(`입력 검증 실패: ${errorMessages}`);
       }
       

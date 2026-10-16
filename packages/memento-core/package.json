@@ -105,6 +105,9 @@
     "db:init": "node dist/infrastructure/database/sqlite/init.js",
     "db:migrate": "node dist/infrastructure/database/sqlite/migrate.js"
   },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
   "engines": {
     "node": ">=24.0.0"
   }
