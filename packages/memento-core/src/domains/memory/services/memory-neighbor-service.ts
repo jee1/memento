@@ -222,7 +222,7 @@ export class MemoryNeighborService {
           error: maskedError.message,
           memoryId
         });
-        // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
+         
         throw new Error(`Failed to initialize VectorSearchEngine: ${maskedError.message}`);
       }
       

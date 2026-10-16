@@ -133,7 +133,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       }
       
       // 에러를 다시 던져서 UnifiedEmbeddingService에서 fallback 처리
-      // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
+       
       throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
