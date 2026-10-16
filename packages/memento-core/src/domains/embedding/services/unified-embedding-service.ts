@@ -72,7 +72,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       try {
         return await this.tryFallbackProviders(text);
       } catch (fallbackError) {
-        // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
+         
         throw new Error(`모든 임베딩 제공자 실패: ${maskedError.message}`);
       }
     }

@@ -237,7 +237,7 @@ export function runDatabaseIntegrityPreflight(dbPath: string, now: Date = new Da
       error: maskedError.message,
       errorName: maskedError.name,
     });
-    // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
+     
     throw new Error(`데이터베이스 무결성 사전 검사 실패 및 quarantine 복사 실패: ${maskedError.message}`);
   }
 

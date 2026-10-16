@@ -196,7 +196,7 @@ export class GeminiEmbeddingService {
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       if (!isCliQuiet()) process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
-      // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
+       
       throw new Error(`임베딩 생성 실패: ${maskedError.message}`);
     }
   }
