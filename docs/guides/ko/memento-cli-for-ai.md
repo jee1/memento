@@ -1,44 +1,91 @@
 # Memento CLI for AI 가이드
 
-AI 에이전트는 Memento 기억을 MCP 도구뿐 아니라 CLI 서브커맨드로도 조작할 수 있습니다. 다른 프로젝트 컨텍스트에서 가장 안전하게 실행하는 형태는 `npm exec --package memento-mcp-server -- memento ...`이며, 글로벌 설치 후에는 단순히 `memento ...`로 호출합니다.
+AI 에이전트는 Memento 기억을 MCP 도구뿐 아니라 CLI 서브커맨드로도 조작합니다.
+
+## MCP와 CLI의 역할
+
+- **MCP**: 에이전트 호스트 도구. Claude, Cursor, Codex 등 MCP 호스트가 stdio·HTTP 프로토콜로 도구를 호출해 대화 맥락을 유지합니다.
+- **CLI**: 도구 서브커맨드(`recall`, `remember`, `forget`, `memory_injection`)를 HTTP 서버로 중계하는 씬 클라이언트(thin client)입니다. 진단·연결·정리(`doctor`, `status`, `demo`, `connect`, `hook`, `agent ask`, `review-queue cleanup`) 같은 운영 명령도 수행합니다.
 
 ## 워크플로
 
-CLI를 사용하는 주요 패턴은 세 단계로 이루어집니다. 작업 전에는 `recall` 또는 `memory_injection`으로 관련 기억을 불러와 컨텍스트로 활용합니다. 작업 중에는 중요한 정보를 타입에 맞게 분류해 저장합니다. 작업 후에는 완료 기록을 `episodic`, 재사용 가능한 지식을 `semantic`, 반복 절차를 `procedural`로 저장합니다.
+작업 흐름은 세 단계입니다.
 
-앵커를 사용하는 환경에서는 MCP의 `search_local`과 동일한 데이터를 CLI의 `recall`로 조회할 수 있습니다.
+1. **작업 전**: `recall` 또는 `memory_injection`으로 관련 기억을 불러와 컨텍스트로 활용합니다.
+2. **작업 중**: 중요 정보를 타입(`episodic`, `semantic`, `procedural`)에 맞게 저장합니다.
+3. **작업 후**: 완료 작업은 `episodic`, 재사용 지식은 `semantic`, 반복 절차는 `procedural`로 기록합니다.
 
-## 설정
+## 서버 실행 및 연결 설정
 
-### DB 경로
+도구 서브커맨드(`recall`, `remember`, `forget`, `memory_injection`)는 SQLite 파일을 직접 열지 않고 실행 중인 HTTP 서버의 `/tools/:toolName`을 호출합니다. 서버가 꺼진 상태에서 CLI를 실행하면 서버 실행 안내 메시지를 출력하고 종료 코드 1로 실패합니다.
 
-`DB_PATH` 환경 변수 또는 `--db-path <path>` 옵션으로 데이터베이스 파일 경로를 지정합니다. 기본값은 `~/.memento/memory.db`입니다.
+```
+Memento 서버가 실행 중이지 않습니다.
+npm run dev 또는 npm run dev:http 로 먼저 서버를 실행하세요.
+```
 
-`.env` 파일 탐색 순서는 다음과 같습니다.
+데이터베이스는 서버가 관리합니다. 도구 서브커맨드에 `--db-path`나 `--env-file`을 넘기면 deprecated 경고를 출력합니다.
 
-1. `--env-file`로 지정한 파일
-2. `--config-dir` 또는 `MEMENTO_CONFIG_DIR`이 가리키는 디렉터리의 `.env`
-3. 현재 작업 디렉터리의 `.env`
-4. `~/.memento/.env`
+### 1. 로컬 MCP + CLI 연동 (권장)
 
-### 권장 실행 형태
+MCP 서버 환경 변수에 `MEMENTO_HTTP_SIDECAR=1`을 지정하면 stdio MCP와 HTTP 서버가 프로세스 하나와 DB 연결을 함께 씁니다.
+
+CLI는 `~/.memento/server.json`(또는 `MEMENTO_CONFIG_DIR/server.json`)에서 서버 포트를 자동 감지합니다.
+
+HTTP 도구 호출은 Bearer 인증을 거치므로, CLI를 실행하는 셸에 `MEMENTO_API_TOKENS`의 secret과 일치하는 `MEMENTO_API_KEY`를 설정합니다.
+
+MCP 클라이언트 설정 예시 (`.cursor/mcp.json` 등):
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "memento-mcp-server@latest"],
+      "env": {
+        "MEMENTO_HTTP_SIDECAR": "1",
+        "MCP_SERVER_PORT": "0",
+        "MEMENTO_API_TOKENS": "[{\"id\":\"local\",\"secret\":\"my-token-secret\",\"scopes\":[\"tools:invoke\"]}]"
+      }
+    }
+  }
+}
+```
+
+셸 환경 변수 설정:
+
+```bash
+export MEMENTO_API_KEY="my-token-secret"
+```
+
+포트 충돌을 피하려면 `MCP_SERVER_PORT=0`을 씁니다. 실제 할당 포트는 `~/.memento/server.json`에 기록되고 CLI가 이를 읽어 접속합니다.
+
+### 2. 독립 HTTP 서버 실행
+
+MCP 없이 서버를 띄울 때는 HTTP 서버를 직접 실행합니다.
+
+```bash
+npm run dev:http
+```
+
+### 실행 방식
 
 상황에 따라 세 가지 실행 방식 중 하나를 선택합니다.
 
 ```bash
-# 다른 프로젝트에서 패키지를 임시로 사용하는 경우
+# 다른 프로젝트에서 패키지를 임시로 사용할 때
 npm exec --package memento-mcp-server -- memento <명령>
 
-# memento-mcp-server가 현재 프로젝트의 로컬 의존성으로 설치된 경우
+# memento-mcp-server가 로컬 의존성으로 설치된 환경
 npm exec -- memento <명령>
 
-# 글로벌 설치 후 (반복 사용에 권장)
+# 글로벌 설치 환경
 memento <명령>
 ```
 
-AI 에이전트가 `recall`/`remember`를 자주 호출하는 경우, `npm exec`나 `npx`의 프로세스 시작 오버헤드가 누적될 수 있습니다. 반복 사용이 많다면 글로벌 설치 또는 로컬 설치 후 바이너리를 직접 실행하는 방식을 권장합니다.
-
 ## 명령 참조
+
+모든 도구 명령은 HTTP 서버 기동이 필요합니다.
 
 ### recall — 기억 검색
 
@@ -46,24 +93,21 @@ AI 에이전트가 `recall`/`remember`를 자주 호출하는 경우, `npm exec`
 
 ```bash
 # 기본 검색
-npm exec --package memento-mcp-server -- memento recall --query "프로젝트 결정 사항" --limit 5
-
-# DB 경로를 명시하는 경우
-npm exec --package memento-mcp-server -- memento --db-path /path/to/db.db recall --query "test" --limit 2
-
-# 글로벌/로컬 설치 후 간단히
 memento recall --query "프로젝트 결정 사항" --limit 5
 
-# 타입과 태그로 필터링
-memento recall --query "배포" --type "procedural" --tags "docker" --limit 10
+# 타입과 태그 필터링
+memento recall --query "배포" --type procedural --tags docker --limit 10
+
+# 다른 프로젝트에서 패키지 임시 호출
+npm exec --package memento-mcp-server -- memento recall --query "JWT 인증" --type episodic --limit 5
 ```
 
-성공 시 stdout에 `{"items":[...],"total_count":n,...}` 형태의 JSON이 출력되고 exit code는 0입니다.
+성공 시 stdout에 JSON을 출력하고 종료 코드는 0입니다.
 
 ### remember — 기억 저장
 
 ```bash
-npm exec --package memento-mcp-server -- memento remember \
+memento remember \
   --content "작업 완료: API 스펙 확정" \
   --type episodic \
   --tags "completed,api"
@@ -76,31 +120,31 @@ memento remember \
   --importance 0.8
 ```
 
-성공 시 stdout에 `memory_id` 등이 포함된 JSON이 출력되고 exit code는 0입니다.
+성공 시 stdout에 `memory_id`를 담은 JSON을 출력하고 종료 코드는 0입니다.
 
 ### forget — 기억 삭제
 
 ```bash
 # 소프트 삭제
-npm exec --package memento-mcp-server -- memento forget --id mem_xxxxx
+memento forget --id mem_xxxxx
 
 # 하드 삭제 (복구 불가)
-npm exec --package memento-mcp-server -- memento forget --id mem_xxxxx --hard --confirm true
+memento forget --id mem_xxxxx --hard --confirm true
 ```
 
 ### memory_injection — 컨텍스트 주입
 
-관련 기억을 요약해 프롬프트에 주입할 수 있는 형태로 반환합니다.
+관련 기억을 요약해 프롬프트에 주입할 형태로 반환합니다.
 
 ```bash
-npm exec --package memento-mcp-server -- memento memory_injection \
-  --query "이전에 논의한 보안 정책" \
+memento memory_injection \
+  --query "보안 정책" \
   --token_budget 1000
 ```
 
 ### agent ask — 개인 지식 Agent
 
-저장된 기억을 기반으로 LLM에게 질문하고 답변을 받습니다. Ollama, OpenAI, Gemini LLM을 지원합니다.
+저장된 기억을 바탕으로 LLM 질의응답을 수행합니다(in-process 실행).
 
 ```bash
 memento agent ask "지금까지 저장된 TypeScript 관련 결정 사항을 요약해줘"
@@ -110,31 +154,31 @@ LLM 제공자는 `LLM_PROVIDER` 환경 변수로 설정합니다(`openai`, `gemi
 
 ### review-queue cleanup — 검토 큐 일괄 정리
 
-누적된 pending 검토 후보를 서버 없이 확인하고 정리합니다. 기본은 dry-run이며, 실제 변경에는 `--execute --yes`가 모두 필요합니다.
+누적된 pending 검토 후보를 서버 없이 SQLite DB에서 직접 확인하고 정리합니다. 기본값은 dry-run이며, 실제 변경에는 `--execute --yes`가 모두 필요합니다.
 
 ```bash
+# 기본 DB (~/.memento/memory.db) 정리
 memento review-queue cleanup --older-than-days 30 --expire
 memento review-queue cleanup --older-than-days 30 --expire --execute --yes
+
+# 특정 DB 경로 지정 (이 명령만 --db-path 지원)
+memento review-queue cleanup --db-path /path/to/memory.db --older-than-days 30 --expire
 ```
 
-운영 절차와 전체 옵션은 [검토 큐 안전 정리](../../operations/ko/review-queue-cleanup.md)를 참고하세요.
+운영 절차와 상세 옵션은 [검토 큐 안전 정리](../../operations/ko/review-queue-cleanup.md)를 참고합니다.
 
 ## 전역 옵션
 
-다음 옵션은 모든 서브커맨드 앞에 올 수 있습니다.
-
 ```bash
-memento --db-path <path>      # 데이터베이스 파일 경로 지정
-memento --env-file <file>     # .env 파일 경로 지정
-memento --config-dir <dir>    # 설정 디렉터리 지정
+memento --config-dir <dir>    # 설정 디렉터리 지정 (~/.memento 대체, server.json 탐색 위치)
+memento --db-path <path>      # review-queue cleanup 전용 DB 경로 (기타 명령은 deprecated)
+memento --env-file <file>     # (deprecated) .env 파일 경로
+memento --help, -h            # 도움말
 ```
+
+도구 서브커맨드(`recall`, `remember`, `forget`, `memory_injection`)는 서버가 DB를 관리하므로 `--db-path`와 `--env-file` 옵션을 쓰지 않습니다.
 
 ## 출력 규칙
 
-CLI는 AI 에이전트와 스크립트가 직접 출력을 파싱할 수 있도록 설계되었습니다.
-
-성공 시에는 **stdout에 JSON만** 출력됩니다. Memento 내부의 INFO, WARN, DEBUG 로그는 CLI 모드에서 억제되어 stdout이나 stderr에 섞이지 않습니다.
-
-실패 시에는 **stderr**에 에러 메시지가 출력되고 **exit code는 non-zero**입니다.
-
-단, onnxruntime 등 서드파티 라이브러리가 stderr에 직접 쓰는 메시지는 환경에 따라 보일 수 있습니다. 이는 CLI 자체의 오류가 아닙니다.
+- **성공**: stdout에 JSON만 출력합니다. Memento 내부 로그(INFO, WARN, DEBUG)는 억제됩니다.
+- **실패**: stderr에 오류 메시지를 출력하고 non-zero 종료 코드를 반환합니다.
