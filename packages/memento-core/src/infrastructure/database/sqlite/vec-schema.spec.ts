@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   VEC_DISTANCE_METRIC,
   VEC_TABLES,
+  assertDisjointProviderSlots,
   buildVecTableDdl,
   buildVecTriggerSql,
   hasCosineDistanceMetric
@@ -32,9 +33,30 @@ describe('VEC_TABLES', () => {
     ]);
   });
 
-  it('legacy 384 테이블은 dimensions 조건을 쓰되 윈도 행은 제외한다 (#1112)', () => {
+  it('legacy 384 테이블은 tfidf·lightweight native 만 받는다', () => {
     const legacy = VEC_TABLES.find(table => table.name === 'memory_item_vec');
-    expect(legacy?.filter).toBe("dimensions = 384 AND projection_type NOT LIKE 'window:%'");
+    expect(legacy?.filter).toBe(
+      "embedding_provider IN ('tfidf', 'lightweight') AND dimensions = 384 AND projection_type = 'native'"
+    );
+  });
+
+  it('같은 차원의 provider 집합은 서로소다', () => {
+    expect(() => assertDisjointProviderSlots(VEC_TABLES)).not.toThrow();
+  });
+
+  it('레거시 허용 목록에 minilm 이 들어가면 384 슬롯이 겹쳐 throw 한다', () => {
+    const broken = VEC_TABLES.map(table => {
+      if (table.name !== 'memory_item_vec') {
+        return table;
+      }
+      const predicates = [
+        "embedding_provider IN ('tfidf', 'lightweight', 'minilm')",
+        'dimensions = 384',
+        "projection_type = 'native'"
+      ];
+      return { ...table, predicates, filter: predicates.join(' AND ') };
+    });
+    expect(() => assertDisjointProviderSlots(broken)).toThrow(/minilm/);
   });
 
   it('제공자별 테이블은 provider + dimensions + native projection으로 필터한다', () => {
@@ -138,11 +160,15 @@ describe('buildVecTriggerSql', () => {
     expect(triggers.update).toContain('NEW.embedding');
   });
 
-  it('insert 트리거가 legacy 384 테이블에서 윈도 행을 제외한다 (#1112)', () => {
-    expect(triggers.insert).toContain('NEW.projection_type NOT LIKE \'window:%\'');
+  it('insert 트리거 레거시 절은 tfidf·lightweight 허용 목록이다', () => {
+    expect(triggers.insert).toContain(
+      "NEW.embedding_provider IN ('tfidf', 'lightweight') AND NEW.dimensions = 384 AND NEW.projection_type = 'native'"
+    );
+    expect(triggers.insert).not.toContain("NEW.projection_type NOT LIKE 'window:%'");
   });
 
-  it('insert 트리거가 minilm 테이블에 윈도 projection을 포함한다 (#1112)', () => {
+  it('insert 트리거가 minilm 테이블에 native 와 윈도 projection을 포함한다 (#1112)', () => {
+    expect(triggers.insert).toContain("embedding_provider = 'minilm'");
     expect(triggers.insert).toContain("'window:15'");
   });
 });
@@ -173,5 +199,16 @@ describe('schema.sql (fresh DB 경로)', () => {
   it('memory_embedding.embedding 컬럼이 BLOB이다', () => {
     expect(schemaSql).toMatch(/embedding\s+BLOB/i);
     expect(schemaSql).not.toMatch(/embedding\s+TEXT\s+NOT\s+NULL/i);
+  });
+
+  it('레거시 WHERE 는 허용 목록이고 float[384] DDL 은 남는다', () => {
+    const legacyWhere =
+      "NEW.embedding_provider IN ('tfidf', 'lightweight') AND NEW.dimensions = 384 AND NEW.projection_type = 'native'";
+    expect(schemaSql).toContain(`INSERT INTO memory_item_vec(rowid, embedding)`);
+    expect(schemaSql.split(legacyWhere).length - 1).toBe(2);
+    expect(schemaSql).toContain(
+      'CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384] distance_metric=cosine)'
+    );
+    expect(schemaSql).not.toContain("NEW.projection_type NOT LIKE 'window:%'");
   });
 });

@@ -62,15 +62,90 @@ function minilmProviderPredicates(dimension: number): string[] {
   ];
 }
 
+/** 레거시 384 슬롯. minilm은 멤버가 아니다. */
+export interface ResidualAllowlistSlot {
+  table: 'memory_item_vec';
+  dimension: 384;
+  providers: readonly ['tfidf', 'lightweight'];
+  projection: 'native';
+}
+
+export const LEGACY_RESIDUAL_SLOT: ResidualAllowlistSlot = {
+  table: 'memory_item_vec',
+  dimension: 384,
+  providers: ['tfidf', 'lightweight'],
+  projection: 'native',
+};
+
+export function residualAllowlistPredicates(slot: ResidualAllowlistSlot): readonly string[] {
+  const list = slot.providers.map(provider => `'${provider}'`).join(', ');
+  return [
+    `embedding_provider IN (${list})`,
+    `dimensions = ${slot.dimension}`,
+    `projection_type = '${slot.projection}'`,
+  ];
+}
+
+/**
+ * 같은 dimension 의 provider 집합이 겹치면 throw.
+ * 테스트에서만 호출한다. import 시점에 돌리지 않는다.
+ */
+export function assertDisjointProviderSlots(tables: readonly VecTableConfig[]): void {
+  const byDimension = new Map<number, { name: string; providers: ReadonlySet<string> }[]>();
+
+  for (const table of tables) {
+    const providers = providersInPredicates(table.predicates);
+    if (providers.size === 0) {
+      throw new Error(`${table.name} has no provider allowlist`);
+    }
+
+    const group = byDimension.get(table.dimension) ?? [];
+    for (const other of group) {
+      for (const provider of providers) {
+        if (other.providers.has(provider)) {
+          throw new Error(
+            `${table.name} and ${other.name} both claim ${provider} at dimension ${table.dimension}`
+          );
+        }
+      }
+    }
+    group.push({ name: table.name, providers });
+    byDimension.set(table.dimension, group);
+  }
+}
+
+function providersInPredicates(predicates: readonly string[]): ReadonlySet<string> {
+  const providers = new Set<string>();
+  for (const predicate of predicates) {
+    const equal = /^embedding_provider = '([^']+)'$/.exec(predicate);
+    const equalProvider = equal?.[1];
+    if (equalProvider) {
+      providers.add(equalProvider);
+      continue;
+    }
+    const list = /^embedding_provider IN \((.+)\)$/.exec(predicate);
+    const listBody = list?.[1];
+    if (!listBody) {
+      continue;
+    }
+    for (const part of listBody.split(',')) {
+      const provider = part.trim().replace(/^'|'$/g, '');
+      if (provider) {
+        providers.add(provider);
+      }
+    }
+  }
+  return providers;
+}
+
 /**
  * 대상 vec 테이블 전체.
  *
- * `memory_item_vec`는 legacy 384 공용 테이블이라 provider 전용이 아니며,
- * dimensions=384인 native·기타 행만 받는다(윈도 행 제외, 제공자별 1:1 비교 대상이 아님).
+ * `memory_item_vec`는 tfidf·lightweight 384 native 잔여 슬롯이다.
+ * minilm 384는 `memory_item_vec_minilm`만 쓴다.
  */
 export const VEC_TABLES: readonly VecTableConfig[] = [
-  // legacy 공용 테이블은 윈도 행을 받지 않는다. 윈도 행은 minilm 전용 테이블에서만 KNN 예산을 쓴다 (#1112).
-  vecTable('memory_item_vec', 384, ['dimensions = 384', "projection_type NOT LIKE 'window:%'"]),
+  vecTable('memory_item_vec', 384, residualAllowlistPredicates(LEGACY_RESIDUAL_SLOT)),
   vecTable('memory_item_vec_tfidf', 512, nativeProviderPredicates('tfidf', 512)),
   vecTable('memory_item_vec_minilm', 384, minilmProviderPredicates(384)),
   vecTable('memory_item_vec_openai', 1536, nativeProviderPredicates('openai', 1536)),
@@ -178,10 +253,27 @@ export function listExistingVecTables(db: Database.Database): VecTableConfig[] {
  */
 export function repopulateVecTable(db: Database.Database, config: VecTableConfig): void {
   assertAllowedVecTable(config.name);
+  // vec0 는 기존 rowid 에 INSERT OR IGNORE 를 주면 UNIQUE 로 실패한다. 없는 행만 넣는다.
   db.exec(
-    `INSERT OR IGNORE INTO ${config.name}(rowid, embedding) ` +
-      `SELECT id, embedding FROM memory_embedding WHERE ${config.filter}`
+    `INSERT INTO ${config.name}(rowid, embedding) ` +
+      `SELECT id, embedding FROM memory_embedding WHERE ${config.filter} ` +
+      `AND id NOT IN (SELECT rowid FROM ${config.name})`
   );
+}
+
+/**
+ * 허용 목록에 없는 rowid 를 vec0 에서 지운다. 가상 테이블은 남긴다.
+ * 045 와 같은 `DELETE … WHERE rowid NOT IN` 형태다.
+ */
+export function evictNonMembers(db: Database.Database, table: VecTableConfig): number {
+  assertAllowedVecTable(table.name);
+  const result = db
+    .prepare(
+      `DELETE FROM ${table.name} WHERE rowid NOT IN (` +
+        `SELECT id FROM memory_embedding WHERE ${table.filter})`
+    )
+    .run();
+  return result.changes;
 }
 
 /**

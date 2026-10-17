@@ -92,11 +92,14 @@ describe('memory_embedding 재작성과 vec 인덱스', () => {
       .get() as { c: number };
     expect(embeddings.c).toBe(1);
 
-    for (const table of ['memory_item_vec', 'memory_item_vec_minilm']) {
-      const total = database.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number };
-      expect(total.c, `${table} 행 수`).toBe(1);
-      expect(orphanCount(database, table), `${table} 고아 행`).toBe(0);
-    }
+    const legacy = database.prepare('SELECT COUNT(*) AS c FROM memory_item_vec').get() as { c: number };
+    const minilm = database.prepare('SELECT COUNT(*) AS c FROM memory_item_vec_minilm').get() as {
+      c: number;
+    };
+    expect(legacy.c, 'minilm 은 레거시 슬롯에 쓰지 않는다').toBe(0);
+    expect(minilm.c, 'memory_item_vec_minilm 행 수').toBe(1);
+    expect(orphanCount(database, 'memory_item_vec'), 'memory_item_vec 고아 행').toBe(0);
+    expect(orphanCount(database, 'memory_item_vec_minilm'), 'memory_item_vec_minilm 고아 행').toBe(0);
   });
 
   it('마지막으로 쓴 모델이 남는다', async () => {
@@ -127,10 +130,10 @@ describe('memory_embedding 재작성과 vec 인덱스', () => {
          VALUES ('m1', 'minilm', 'native', ?, 384, 'model-b', 384, 32, 1, 1, 'test', CURRENT_TIMESTAMP)`
       )
       .run(encodeFloat32Embedding(vector(3)));
+    expect(orphanCount(database, 'memory_item_vec'), 'minilm 은 레거시에 들어가지 않는다').toBe(0);
     expect(orphanCount(database, 'memory_item_vec_minilm'), '옛 경로가 고아 행을 남겼는지').toBe(1);
 
-    // memory_item_vec와 memory_item_vec_minilm 양쪽에 하나씩 남는다.
-    expect(deleteOrphanVecRows(database)).toBe(2);
+    expect(deleteOrphanVecRows(database)).toBe(1);
     expect(orphanCount(database, 'memory_item_vec_minilm')).toBe(0);
     const kept = database.prepare('SELECT COUNT(*) AS c FROM memory_item_vec_minilm').get() as { c: number };
     expect(kept.c).toBe(1);

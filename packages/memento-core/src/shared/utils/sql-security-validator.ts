@@ -58,7 +58,7 @@ export function validateTableName(
 /**
  * 벡터 검색 테이블명을 provider(및 선택적 차원)로부터 안전하게 가져오기
  * 화이트리스트 검증을 포함합니다.
- * 384차원 tfidf/lightweight는 트리거가 memory_item_vec에만 쓰므로, dimensions=384일 때 해당 테이블 반환.
+ * tfidf·lightweight 384 native 는 트리거가 memory_item_vec 에만 쓰므로, dimensions=384 일 때 해당 테이블을 반환한다.
  *
  * @param provider 임베딩 provider 이름
  * @param dimensions 선택적. 전달 시 tfidf+384 → memory_item_vec로 매핑
@@ -67,7 +67,7 @@ export function validateTableName(
 export function getVectorTableName(provider: string, dimensions?: number): string {
   const normalizedProvider = provider.toLowerCase();
 
-  // 384차원 tfidf/lightweight: DB에 tfidf로 저장되더라도 트리거는 memory_item_vec에만 INSERT
+  // tfidf·lightweight 384: 트리거는 memory_item_vec 에만 INSERT (minilm 384 는 별도 테이블)
   if (dimensions === 384 && (normalizedProvider === 'tfidf' || normalizedProvider === 'lightweight')) {
     const table384 = VECTOR_SEARCH_CONFIG.tableNames['lightweight'] as string;
     validateTableName(table384);
