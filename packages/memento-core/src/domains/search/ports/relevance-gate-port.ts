@@ -28,7 +28,7 @@ export const REJECTION_GATE_VERDICTS = ['rejected', 'passed', 'fail_open', 'off'
 
 export type RejectionGateVerdict = (typeof REJECTION_GATE_VERDICTS)[number];
 
-/** Scored gate outcomes for rejection_rate. Excludes `off` (not attached) and `fail_open` (no scores). */
+/** 기각률 분모용 채점 판정. `off`(미부착)·`fail_open`(점수 없음)은 제외. */
 export const REJECTION_GATE_DECIDED_VERDICTS = REJECTION_GATE_VERDICTS.filter(
   (verdict): verdict is 'rejected' | 'passed' =>
     verdict === 'rejected' || verdict === 'passed',

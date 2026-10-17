@@ -6,6 +6,11 @@ type OutcomeSearchResult = {
   query_time?: number;
 };
 
+/**
+ * selected/empty extra의 단계 ms.
+ * `text_ms`는 hybrid면 텍스트 레인만, FTS-only면 `SearchEngine.search` 전체(`query_time`)다.
+ * p50·p95는 `retrieval_strategy`로 거른 뒤 낼 것. (#1386)
+ */
 export function recallOutcomeStageExtra(
   searchResult: OutcomeSearchResult | null | undefined,
   postMs: number,

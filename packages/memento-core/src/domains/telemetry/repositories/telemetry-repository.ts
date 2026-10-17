@@ -37,11 +37,11 @@ export interface SearchQualityResult {
   reranked_count: number;
   selected_count: number;
   ranking_versions: string[];
-  /** rejected / (passed + rejected) on reranked rows. null when that denominator is 0. */
+  /** reranked 행의 rejected / (passed + rejected). 분모가 0이면 null. */
   rejection_rate: number | null;
-  /** Denominator of rejection_rate. Excludes off, fail_open, and rows with no gate key. */
+  /** rejection_rate 분모. off·fail_open·게이트 키 없는 행은 제외. */
   rejection_decided_count: number;
-  /** Reranked rows with verdict fail_open (gate ran but returned no usable scores). */
+  /** verdict가 fail_open인 reranked 행 수(게이트는 돌았으나 쓸 점수가 없음). */
   fail_open_count: number;
   timestamp: string;
 }
