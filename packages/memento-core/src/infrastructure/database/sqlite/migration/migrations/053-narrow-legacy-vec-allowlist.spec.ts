@@ -1,7 +1,3 @@
-/**
- * memory_item_vec membership after migration 053 (#1377)
- */
-
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getVectorTableName } from '../../../../../shared/utils/sql-security-validator.js';

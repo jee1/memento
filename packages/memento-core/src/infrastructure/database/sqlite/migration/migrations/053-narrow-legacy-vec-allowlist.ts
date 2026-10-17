@@ -1,11 +1,3 @@
-/**
- * Migration: 053 — narrow memory_item_vec to the tfidf/lightweight 384 native slot (#1377)
- * Version: 53.0
- *
- * MiniLM 384 used to match both the legacy dimension catch-all and memory_item_vec_minilm.
- * This migration keeps the virtual table and deletes rows outside the allowlist.
- */
-
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../../shared/utils/logger.js';
 import {
