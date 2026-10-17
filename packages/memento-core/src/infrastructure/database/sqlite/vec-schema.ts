@@ -62,21 +62,21 @@ function minilmProviderPredicates(dimension: number): string[] {
   ];
 }
 
-export interface ResidualAllowlistSlot {
+interface ResidualAllowlistSlot {
   table: 'memory_item_vec';
   dimension: 384;
   providers: readonly ['tfidf', 'lightweight'];
   projection: 'native';
 }
 
-export const LEGACY_RESIDUAL_SLOT: ResidualAllowlistSlot = {
+const LEGACY_RESIDUAL_SLOT: ResidualAllowlistSlot = {
   table: 'memory_item_vec',
   dimension: 384,
   providers: ['tfidf', 'lightweight'],
   projection: 'native',
 };
 
-export function residualAllowlistPredicates(slot: ResidualAllowlistSlot): readonly string[] {
+function residualAllowlistPredicates(slot: ResidualAllowlistSlot): readonly string[] {
   const list = slot.providers.map(provider => `'${provider}'`).join(', ');
   return [
     `embedding_provider IN (${list})`,
