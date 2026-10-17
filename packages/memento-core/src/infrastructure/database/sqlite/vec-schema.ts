@@ -62,80 +62,13 @@ function minilmProviderPredicates(dimension: number): string[] {
   ];
 }
 
-interface ResidualAllowlistSlot {
-  table: 'memory_item_vec';
-  dimension: 384;
-  providers: readonly ['tfidf', 'lightweight'];
-  projection: 'native';
-}
-
-const LEGACY_RESIDUAL_SLOT: ResidualAllowlistSlot = {
-  table: 'memory_item_vec',
-  dimension: 384,
-  providers: ['tfidf', 'lightweight'],
-  projection: 'native',
-};
-
-function residualAllowlistPredicates(slot: ResidualAllowlistSlot): readonly string[] {
-  const list = slot.providers.map(provider => `'${provider}'`).join(', ');
-  return [
-    `embedding_provider IN (${list})`,
-    `dimensions = ${slot.dimension}`,
-    `projection_type = '${slot.projection}'`,
-  ];
-}
-
-export function assertDisjointProviderSlots(tables: readonly VecTableConfig[]): void {
-  const byDimension = new Map<number, { name: string; providers: ReadonlySet<string> }[]>();
-
-  for (const table of tables) {
-    const providers = providersInPredicates(table.predicates);
-    if (providers.size === 0) {
-      throw new Error(`${table.name} has no provider allowlist`);
-    }
-
-    const group = byDimension.get(table.dimension) ?? [];
-    for (const other of group) {
-      for (const provider of providers) {
-        if (other.providers.has(provider)) {
-          throw new Error(
-            `${table.name} and ${other.name} both claim ${provider} at dimension ${table.dimension}`
-          );
-        }
-      }
-    }
-    group.push({ name: table.name, providers });
-    byDimension.set(table.dimension, group);
-  }
-}
-
-function providersInPredicates(predicates: readonly string[]): ReadonlySet<string> {
-  const providers = new Set<string>();
-  for (const predicate of predicates) {
-    const equal = /^embedding_provider = '([^']+)'$/.exec(predicate);
-    const equalProvider = equal?.[1];
-    if (equalProvider) {
-      providers.add(equalProvider);
-      continue;
-    }
-    const list = /^embedding_provider IN \((.+)\)$/.exec(predicate);
-    const listBody = list?.[1];
-    if (!listBody) {
-      continue;
-    }
-    for (const part of listBody.split(',')) {
-      const provider = part.trim().replace(/^'|'$/g, '');
-      if (provider) {
-        providers.add(provider);
-      }
-    }
-  }
-  return providers;
-}
-
 /** 대상 vec 테이블 전체. */
 export const VEC_TABLES: readonly VecTableConfig[] = [
-  vecTable('memory_item_vec', 384, residualAllowlistPredicates(LEGACY_RESIDUAL_SLOT)),
+  vecTable('memory_item_vec', 384, [
+    "embedding_provider IN ('tfidf', 'lightweight')",
+    'dimensions = 384',
+    "projection_type = 'native'",
+  ]),
   vecTable('memory_item_vec_tfidf', 512, nativeProviderPredicates('tfidf', 512)),
   vecTable('memory_item_vec_minilm', 384, minilmProviderPredicates(384)),
   vecTable('memory_item_vec_openai', 1536, nativeProviderPredicates('openai', 1536)),

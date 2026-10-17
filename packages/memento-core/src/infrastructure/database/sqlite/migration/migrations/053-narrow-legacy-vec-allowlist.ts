@@ -82,7 +82,6 @@ export class NarrowLegacyVecAllowlistMigration implements Migration {
 
     logLegacyMembership(db);
 
-    // 옛 트리거가 살아있는 동안 DELETE 하면, 동시에 일어나는 UPDATE 가 minilm 을 레거시에 다시 넣는다.
     const existing = listExistingVecTables(db);
     recreateVecTriggers(db, existing);
 
@@ -121,10 +120,6 @@ export class NarrowLegacyVecAllowlistMigration implements Migration {
   async validateAfter(db: Database.Database): Promise<void> {
     if (!isQueryable(db, 'memory_item_vec')) {
       return;
-    }
-
-    if (!tableExists(db, 'memory_item_vec')) {
-      throw new Error('Migration 053 removed memory_item_vec');
     }
 
     const report = checkVecCardinality(db);

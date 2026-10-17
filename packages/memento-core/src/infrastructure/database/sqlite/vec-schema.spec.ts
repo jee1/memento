@@ -9,13 +9,61 @@ import { describe, expect, it } from 'vitest';
 import {
   VEC_DISTANCE_METRIC,
   VEC_TABLES,
-  assertDisjointProviderSlots,
+  type VecTableConfig,
   buildVecTableDdl,
   buildVecTriggerSql,
   hasCosineDistanceMetric
 } from './vec-schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function providersInPredicates(predicates: readonly string[]): ReadonlySet<string> {
+  const providers = new Set<string>();
+  for (const predicate of predicates) {
+    const equal = /^embedding_provider = '([^']+)'$/.exec(predicate);
+    const equalProvider = equal?.[1];
+    if (equalProvider) {
+      providers.add(equalProvider);
+      continue;
+    }
+    const list = /^embedding_provider IN \((.+)\)$/.exec(predicate);
+    const listBody = list?.[1];
+    if (!listBody) {
+      continue;
+    }
+    for (const part of listBody.split(',')) {
+      const provider = part.trim().replace(/^'|'$/g, '');
+      if (provider) {
+        providers.add(provider);
+      }
+    }
+  }
+  return providers;
+}
+
+function assertDisjointProviderSlots(tables: readonly VecTableConfig[]): void {
+  const byDimension = new Map<number, { name: string; providers: ReadonlySet<string> }[]>();
+
+  for (const table of tables) {
+    const providers = providersInPredicates(table.predicates);
+    if (providers.size === 0) {
+      throw new Error(`${table.name} has no provider allowlist`);
+    }
+
+    const group = byDimension.get(table.dimension) ?? [];
+    for (const other of group) {
+      for (const provider of providers) {
+        if (other.providers.has(provider)) {
+          throw new Error(
+            `${table.name} and ${other.name} both claim ${provider} at dimension ${table.dimension}`
+          );
+        }
+      }
+    }
+    group.push({ name: table.name, providers });
+    byDimension.set(table.dimension, group);
+  }
+}
 
 describe('VEC_TABLES', () => {
   it('계약은 cosine이다', () => {
