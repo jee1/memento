@@ -5,6 +5,7 @@ import { createRelationGraph } from '../../../../infrastructure/relation-graph-f
 import type { ToolContext } from '../../../../tools/types.js';
 import type { RememberToolHost } from '../remember-tool-host.js';
 import { runRelationExtraction } from '../remember-tool-augmentation.js';
+import { RelationExtractor } from '../../../relation/services/relation-extractor.js';
 
 /**
  * Issue #711: 관계 추출 결과(runRelationExtraction)가 memory_relation에 영속화되는지 검증.
@@ -65,6 +66,7 @@ describe('runRelationExtraction (Issue #711)', () => {
   let db: Database.Database;
   let host: ReturnType<typeof createHost>;
   let context: ToolContext;
+  let extractSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     db = new Database(':memory:');
@@ -86,6 +88,18 @@ describe('runRelationExtraction (Issue #711)', () => {
         relationGraph: createRelationGraph(db)
       }
     };
+
+    // remember 경로는 LLM만 쓴다. 단위 테스트는 후보를 고정한다 (#1378).
+    extractSpy = vi.spyOn(RelationExtractor.prototype, 'extractRelations').mockResolvedValue([
+      {
+        source_id: 'mem-new',
+        target_id: 'mem-existing-1',
+        relation_type: 'CAUSES',
+        confidence: 0.72,
+        method: 'llm',
+        evidence: '때문에'
+      }
+    ]);
   });
 
   afterEach(() => {
@@ -93,7 +107,7 @@ describe('runRelationExtraction (Issue #711)', () => {
     vi.restoreAllMocks();
   });
 
-  it('하이브리드 추출 후보를 memory_relation에 저장한다 (method/evidence/extracted_at 포함)', async () => {
+  it('LLM 추출 후보를 memory_relation에 저장한다 (method/evidence/extracted_at 포함)', async () => {
     await runRelationExtraction(
       {
         dbRef: db,
@@ -112,13 +126,24 @@ describe('runRelationExtraction (Issue #711)', () => {
       WHERE source_id = 'mem-new'
     `) as Array<{ source_id: string; target_id: string; relation_type: string; confidence: number; metadata: string | null }>;
 
+    expect(extractSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'mem-new' }),
+      expect.any(Array),
+      expect.objectContaining({
+        method: 'llm',
+        minConfidence: 0.5,
+        candidateLimit: 30,
+        immediate: true,
+      })
+    );
+
     expect(rows.length).toBeGreaterThan(0);
     const row = rows[0]!;
     expect(row.target_id).toBe('mem-existing-1');
     expect(row.confidence).toBeGreaterThanOrEqual(0.5);
 
     const metadata = JSON.parse(row.metadata ?? '{}');
-    expect(metadata.method).toBe('rule');
+    expect(metadata.method).toBe('llm');
     expect(typeof metadata.evidence).toBe('string');
     expect(metadata.evidence.length).toBeGreaterThan(0);
     expect(typeof metadata.extracted_at).toBe('string');

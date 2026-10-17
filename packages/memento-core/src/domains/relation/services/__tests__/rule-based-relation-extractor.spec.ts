@@ -180,6 +180,26 @@ describe('RuleBasedRelationExtractor', () => {
       expect(candidates.filter(c => c.relation_type === 'FOLLOWS')).toHaveLength(1);
       expect(candidates.find(c => c.relation_type === 'FOLLOWS')?.target_id).toBe('old');
     });
+
+    it('does not fan out when existing memories are only agent templates', async () => {
+      // 운영 DB처럼 기존 쪽이 템플릿이면 라벨의 '다음'만으로 후보 전체에 FOLLOWS가 생긴다.
+      const template = (topic: string) =>
+        [
+          `결정: ${topic} 정리`,
+          '근거: 측정값 확인',
+          '버린 대안: 없음',
+          '안 통한 것: 없음',
+          '다음 걸림돌: 없음',
+        ].join('\n');
+      const newMemory = createTestMemory('new', '점심에 김밥을 먹었다', 'episodic');
+      const existingMemories = Array.from({ length: 50 }, (_, i) =>
+        createTestMemory(`old-${i}`, template(`무관 주제 ${i}`), 'episodic')
+      );
+
+      const candidates = await extractor.extractRelations(newMemory, existingMemories);
+
+      expect(candidates).toHaveLength(0);
+    });
   });
 
   describe('extractRelations - CONTRASTS_WITH 관계 추출', () => {

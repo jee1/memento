@@ -143,7 +143,8 @@ export async function runRelationExtraction(
     const candidates = await relationExtractor.extractRelations(
       newMemory,
       existingMemories,
-      { method: 'hybrid', minConfidence: 0.5, candidateLimit: 30, immediate: true }
+      // hybrid+rule은 템플릿 코퍼스에서 후보 전체에 간선을 만든다. remember는 LLM만 쓴다 (#1378).
+      { method: 'llm', minConfidence: 0.5, candidateLimit: 30, immediate: true }
     );
 
     if (candidates.length > 0) {
