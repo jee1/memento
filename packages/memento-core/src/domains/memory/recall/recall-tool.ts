@@ -163,6 +163,7 @@ export class RecallTool extends BaseTool {
       queryHash
     });
 
+    const postStart = process.hrtime.bigint();
     const { searchItems, processedResults } = await runMemoryItemPostSearchPipeline(this.host, context, searchResult, {
       query,
       version_filter: parsed.version_filter,
@@ -180,6 +181,7 @@ export class RecallTool extends BaseTool {
       includeMetadata,
       return_format: parsed.return_format
     });
+    const postMs = Number(process.hrtime.bigint() - postStart) / 1_000_000;
 
     return await finalizeMemoryItemRecallEnvelope(this.host, context, {
       agentId: timing.agentId,
@@ -201,7 +203,8 @@ export class RecallTool extends BaseTool {
       normalizedVectorWeight,
       normalizedTextWeight,
       retrievalStrategy,
-      queryHash
+      queryHash,
+      postMs,
     });
   }
 

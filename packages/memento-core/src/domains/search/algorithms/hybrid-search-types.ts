@@ -95,6 +95,19 @@ export interface ISearchLogger {
   logExperiment?(searchId: string, experimentId: string, variant: Record<string, unknown>): void;
 }
 
+/**
+ * 하이브리드 검색 한 번의 레인 시계(ms).
+ * `text_ms`는 항상 있다. 다른 키는 그 시계를 안 돌리면 생략한다. 키에 `0`이 있으면 측정이 끝난 값이다.
+ * `embedding_ms`와 `vector_ms`는 provider별 max라서 서로 다른 provider에서 올 수 있다.
+ * 레인은 병렬이라 단계 ms를 더해도 벽시계와 맞지 않는다. (#1386)
+ */
+export type HybridLaneMs = {
+  text_ms: number;
+  embedding_ms?: number;
+  vector_ms?: number;
+  gate_ms?: number;
+};
+
 export type HybridWeights = { textWeight: number; vectorWeight: number };
 
 export type RelationInfoRow = {

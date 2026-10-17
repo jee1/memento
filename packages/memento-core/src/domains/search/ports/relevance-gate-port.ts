@@ -24,12 +24,22 @@ interface RelevanceGateVerdict {
   unscored: number;
 }
 
+export const REJECTION_GATE_VERDICTS = ['rejected', 'passed', 'fail_open', 'off'] as const;
+
+export type RejectionGateVerdict = (typeof REJECTION_GATE_VERDICTS)[number];
+
+/** 기각률 분모용 채점 판정. `off`(미부착)·`fail_open`(점수 없음)은 제외. */
+export const REJECTION_GATE_DECIDED_VERDICTS = REJECTION_GATE_VERDICTS.filter(
+  (verdict): verdict is 'rejected' | 'passed' =>
+    verdict === 'rejected' || verdict === 'passed',
+);
+
 /**
  * #1191 검색 응답에 싣는 게이트 판정. 로그를 못 보는 호출자가 fail-open 통과와 정상 통과를 가른다.
  * 'off' = 게이트 미부착. 게이트가 붙어 있어도 후보가 0건이면 게이트를 타지 않으므로 이 값 자체가 없다.
  */
 export interface RelevanceGateOutcome {
-  verdict: 'rejected' | 'passed' | 'fail_open' | 'off';
+  verdict: RejectionGateVerdict;
   top_score: number | null;
   unscored: number;
 }

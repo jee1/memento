@@ -1,5 +1,7 @@
 import type Database from 'better-sqlite3';
+import { REJECTION_GATE_DECIDED_VERDICTS } from '../../search/ports/relevance-gate-port.js';
 import type { TelemetryPeriod } from '../types/telemetry.types.js';
+import { SEARCH_QUALITY_EXTRA_KEYS } from '../search-quality/extra-keys.js';
 import type { SearchQualityResult } from './telemetry-repository.js';
 import {
   percentile95Sorted,
@@ -32,6 +34,42 @@ function avgCandidateCountForPeriod(
     .get(qParams) as { a: number | null } | undefined;
   if (row?.a == null || Number.isNaN(row.a)) return null;
   return row.a;
+}
+
+function queryRejectionGateRate(
+  db: Database.Database,
+  params: Record<string, unknown>,
+  ownerClause: string,
+): {
+  rejection_rate: number | null;
+  rejection_decided_count: number;
+  fail_open_count: number;
+} {
+  const verdictPath = `$.${SEARCH_QUALITY_EXTRA_KEYS.rejection_gate_verdict}`;
+  const decidedList = REJECTION_GATE_DECIDED_VERDICTS.map((verdict) => `'${verdict}'`).join(', ');
+  const row = db
+    .prepare(
+      `SELECT
+         SUM(CASE WHEN json_extract(extra_data, '${verdictPath}') = 'rejected' THEN 1 ELSE 0 END) AS rejected_n,
+         SUM(CASE WHEN json_extract(extra_data, '${verdictPath}') IN (${decidedList}) THEN 1 ELSE 0 END) AS decided_n,
+         SUM(CASE WHEN json_extract(extra_data, '${verdictPath}') = 'fail_open' THEN 1 ELSE 0 END) AS fail_open_n
+       FROM telemetry_events
+       WHERE event_type = 'memory.search.reranked'
+         AND created_at >= @cutoff
+         ${ownerClause}`
+    )
+    .get(params) as {
+      rejected_n: number | null;
+      decided_n: number | null;
+      fail_open_n: number | null;
+    } | undefined;
+  const decided = row?.decided_n ?? 0;
+  const rejected = row?.rejected_n ?? 0;
+  return {
+    rejection_rate: decided > 0 ? rejected / decided : null,
+    rejection_decided_count: decided,
+    fail_open_count: row?.fail_open_n ?? 0,
+  };
 }
 
 export function querySearchQuality(
@@ -182,6 +220,7 @@ export function querySearchQuality(
     reranked_count: funnel.reranked_count ?? 0,
     selected_count: selectedCount,
     ranking_versions: rankingRows.map(row => row.version),
+    ...queryRejectionGateRate(db, params, ownerClause),
     timestamp: now
   };
 }

@@ -37,6 +37,12 @@ export interface SearchQualityResult {
   reranked_count: number;
   selected_count: number;
   ranking_versions: string[];
+  /** reranked 행의 rejected / (passed + rejected). 분모가 0이면 null. */
+  rejection_rate: number | null;
+  /** rejection_rate 분모. off·fail_open·게이트 키 없는 행은 제외. */
+  rejection_decided_count: number;
+  /** verdict가 fail_open인 reranked 행 수(게이트는 돌았으나 쓸 점수가 없음). */
+  fail_open_count: number;
   timestamp: string;
 }
 

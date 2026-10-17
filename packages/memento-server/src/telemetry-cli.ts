@@ -231,6 +231,9 @@ export function formatSearchQuality(data: SearchQualityResult): string {
     `  ${pad('p95 latency')} : ${fmtMs(data.p95_latency_ms)}`,
     `  ${pad('Empty result rate')} : ${fmtPct(data.empty_retrieval_rate)}`,
     `  ${pad('Avg candidate count')} : ${fmt(data.avg_candidate_count)}`,
+    `  ${pad('Rejection rate')} : ${fmtPct(data.rejection_rate)}`,
+    `  ${pad('Gate decided')} : ${fmt(data.rejection_decided_count)}`,
+    `  ${pad('Gate fail-open')} : ${fmt(data.fail_open_count)}`,
   ];
   return lines.join('\n');
 }
