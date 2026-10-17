@@ -11,6 +11,8 @@
 
 ### Changed
 
+- 검색/인프라: `memory_item_vec` 쓰기 조건을 tfidf·lightweight 384 native 허용 목록으로 좁혀 MiniLM 이중 저장을 끊습니다(#1377). 마이그레이션 053이 레거시 non-member 행을 지우고, 낡은 트리거 때문에 빠져 있던 MiniLM 윈도 행을 `memory_item_vec_minilm`에 채웁니다. 테이블 DROP은 하지 않습니다. `VECTOR_SEARCH_CONFIG.providerDimensions.lightweight` 384는 그대로 둡니다.
+
 - 개발: advisory CI `slop-detector-js` 와 `scripts/slop-gate-scan.sh` 의 `ai-slop-detector` 고정 버전을 3.8.5 에서 3.10.1 로 올렸습니다. `[js]` extra 로 tree-sitter-typescript 를 함께 설치해, 정규식 fallback 대신 AST 로 TS 를 분석합니다. 3.10.1 의 `review` 는 `audit` 별칭이 되어 `--js`·`--ci-mode` 를 받지 않으므로, 저장소 전체 hard 게이트는 `--project . --js --ci-mode hard --ci-report` 로 바꿨습니다. 머지를 막지 않는 검사라 필수 체크는 바뀌지 않습니다.
 
 - 개발: `/admin/batch/*`·`/admin/consolidation/run` 라우트 등록 함수 `registerAdminBatchRoutes` 가 핸들러 9개를 인라인 클로저로 품어 432줄이던 것을, 이름 있는 핸들러 함수로 꺼내 15줄짜리 경로 나열로 줄였습니다(#1371). 응답·상태 코드·경로·미들웨어 순서는 그대로입니다. 수동 실행 실패 경로(runJob 예외 → 실패 이력·`job_run` 기록, `BatchJobAlreadyRunningError` → 409)를 고정하는 테스트를 먼저 추가했습니다.
