@@ -216,6 +216,15 @@ describe('telemetry instrumentation (feedback + service)', () => {
       'memory.search.empty'
     ]);
     expect(rows[3].outcome).toBe('empty');
+    const emptyExtra = db.prepare(
+      `SELECT extra_data FROM telemetry_events WHERE event_type = 'memory.search.empty'`
+    ).get() as { extra_data: string };
+    const emptyParsed = JSON.parse(emptyExtra.extra_data) as Record<string, unknown>;
+    expect(emptyParsed.post_ms).toEqual(expect.any(Number));
+    expect(emptyParsed).not.toHaveProperty('text_ms');
+    expect(emptyParsed).not.toHaveProperty('embedding_ms');
+    expect(emptyParsed).not.toHaveProperty('vector_ms');
+    expect(emptyParsed).not.toHaveProperty('gate_ms');
   });
 
   it('recall은 실제 ranking profile과 text/vector/union/reranked funnel 수를 기록한다', async () => {
@@ -238,7 +247,8 @@ describe('telemetry instrumentation (feedback + service)', () => {
         text_count: 12,
         vector_count: 14,
         union_count: 20,
-        reranked_count: 10
+        reranked_count: 10,
+        stage_ms: { text_ms: 3, embedding_ms: 0, vector_ms: 4 },
       })
     };
     const context = {
@@ -280,7 +290,14 @@ describe('telemetry instrumentation (feedback + service)', () => {
     expect(extras['memory.search.reranked']).toMatchObject({ candidate_count: 10, reranked_count: 10 });
     expect(extras['memory.search.reranked']).not.toHaveProperty('rejection_gate_verdict');
     expect(extras['memory.search.reranked']).not.toHaveProperty('rejection_gate_top_score');
-    expect(extras['memory.search.selected']).toMatchObject({ selected_count: 5 });
+    expect(extras['memory.search.selected']).toMatchObject({
+      selected_count: 5,
+      text_ms: 3,
+      embedding_ms: 0,
+      vector_ms: 4,
+    });
+    expect(extras['memory.search.selected'].post_ms).toEqual(expect.any(Number));
+    expect(extras['memory.search.selected']).not.toHaveProperty('gate_ms');
   });
 
   it('recall은 rejection_gate가 있으면 reranked extra에 판정과 top score를 같이 남긴다', async () => {

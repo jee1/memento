@@ -95,6 +95,18 @@ export interface ISearchLogger {
   logExperiment?(searchId: string, experimentId: string, variant: Record<string, unknown>): void;
 }
 
+/**
+ * Lane clocks for one hybrid search.
+ * `text_ms` always ran. Other keys are omitted when that clock did not run.
+ * A present `0` is a finished measurement.
+ */
+export type HybridLaneMs = {
+  text_ms: number;
+  embedding_ms?: number;
+  vector_ms?: number;
+  gate_ms?: number;
+};
+
 export type HybridWeights = { textWeight: number; vectorWeight: number };
 
 export type RelationInfoRow = {

@@ -60,6 +60,9 @@ type HybridVectorSearchOutput = {
   thresholded_ids?: string[];
   /** 벡터 레인이 실제로 만들어 쓴 질의 임베딩. #1021 백필이 이것을 쓴다. */
   query_embeddings?: HybridQueryEmbedding[];
+  /** Finished embed clocks only. Fallback search cannot split embed from scan, so both stay absent. */
+  embedding_ms?: number;
+  vector_ms?: number;
 };
 
 export class HybridVectorSearchExecutor {
@@ -168,6 +171,8 @@ export class HybridVectorSearchExecutor {
         queryEmbeddingProviders,
         tfidfQueryEmbeddingFallback,
         tfidfQueryEmbeddingFallbackProviders,
+        embedding_ms,
+        vector_ms,
       } = await executeProviderSearchesWithOverallTimeout(
         searchPromises,
         providersToSearch,
@@ -201,6 +206,8 @@ export class HybridVectorSearchExecutor {
         raw_ids: collectResultIds(allResults),
         thresholded_ids: collectResultIds(thresholded),
         query_embeddings: [...queryEmbeddingSink].map(([provider, embedding]) => ({ provider, embedding })),
+        ...(embedding_ms !== undefined ? { embedding_ms } : {}),
+        ...(vector_ms !== undefined ? { vector_ms } : {}),
       };
     } catch (error) {
       this.searchLogger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {

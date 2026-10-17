@@ -28,6 +28,7 @@ import { collectResultIds } from './hybrid-search-outcome-utils.js';
 import { backfillTextOnlyVectorResults } from './hybrid-vector-backfill.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import type {
+  HybridLaneMs,
   HybridSearchQuery,
   HybridSearchResult,
   HybridWeights,
@@ -146,6 +147,7 @@ export class HybridSearchEngine {
     vector_count?: number;
     fallback_used?: boolean;
     rejection_gate?: RelevanceGateOutcome;
+    stage_ms: HybridLaneMs;
     query_embedding_providers?: EmbeddingProvider[];
     union_count: number;
     reranked_count: number;
@@ -175,7 +177,8 @@ export class HybridSearchEngine {
 
       const vectorPromise = this.vectorExecutor.execute(db, query, searchId);
       const textPromise = this.executeTextSearch(db, query, searchId);
-      const [textResults, vectorOut] = await Promise.all([textPromise, vectorPromise]);
+      const [textOut, vectorOut] = await Promise.all([textPromise, vectorPromise]);
+      const textResults = textOut.items;
       const unionCount = new Set(
         [...textResults, ...vectorOut.results]
           .map(result => (result as { id?: unknown }).id)
@@ -206,6 +209,7 @@ export class HybridSearchEngine {
 
       // #1191 게이트 판정을 응답에도 싣는다. 미부착이면 'off', 후보 0건이라 안 탔으면 없음.
       let rejectionGateOutcome: RelevanceGateOutcome | undefined = this.rejectionGate ? undefined : { verdict: 'off', top_score: null, unscored: 0 };
+      let gateMs: number | undefined;
       // #1095 기각 게이트: 후보 최고 점수가 임계값 미만이면 질의 전체를 기각한다.
       // finalResults 를 재할당하므로 아래 logData·finalIds·return 이 모두 자동으로 따라간다.
       if (this.rejectionGate && finalResults.length > 0) {
@@ -213,7 +217,9 @@ export class HybridSearchEngine {
         // 올라가기만 해서 기각이 느슨해진다. 측정한 조건 그대로 상위 10건만 본다.
         const gateCandidates = finalResults.slice(0, 10);
         const gateDocs = gateCandidates.map((item) => item.content ?? '');
+        const gateStart = process.hrtime.bigint();
         const gateScores = await this.rejectionGate.score(query.query, gateDocs);
+        gateMs = Number(process.hrtime.bigint() - gateStart) / 1_000_000;
         const verdict = judgeRelevanceGate(
           gateScores,
           mementoConfig.searchRejectionGateThreshold,
@@ -290,6 +296,12 @@ export class HybridSearchEngine {
         reranked_count: finalResults.length,
         fallback_used: vectorOut.fallback_used,
         ...(rejectionGateOutcome ? { rejection_gate: rejectionGateOutcome } : {}),
+        stage_ms: {
+          text_ms: textOut.text_ms,
+          ...(vectorOut.embedding_ms !== undefined ? { embedding_ms: vectorOut.embedding_ms } : {}),
+          ...(vectorOut.vector_ms !== undefined ? { vector_ms: vectorOut.vector_ms } : {}),
+          ...(gateMs !== undefined ? { gate_ms: gateMs } : {}),
+        },
         query_embedding_providers: vectorOut.query_embedding_providers,
         tfidf_query_embedding_fallback: vectorOut.tfidf_query_embedding_fallback,
         tfidf_query_embedding_fallback_providers: vectorOut.tfidf_query_embedding_fallback_providers,
@@ -336,7 +348,7 @@ export class HybridSearchEngine {
     db: Database.Database,
     query: HybridSearchQuery,
     searchId: string
-  ): Promise<unknown[]> {
+  ): Promise<{ items: unknown[]; text_ms: number }> {
     try {
       const textSearchStart = process.hrtime.bigint();
       this.logger.logSearchStep(searchId, '텍스트 검색 시작', { query: query.query });
@@ -354,7 +366,7 @@ export class HybridSearchEngine {
         searchTime: `${textSearchTime.toFixed(2)}ms`,
       });
 
-      return textSearchResult.items;
+      return { items: textSearchResult.items, text_ms: textSearchTime };
     } catch (error) {
       throw new SearchError(
         SearchErrorType.TEXT_SEARCH_FAILED,

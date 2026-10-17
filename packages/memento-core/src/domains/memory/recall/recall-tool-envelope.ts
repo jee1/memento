@@ -20,6 +20,7 @@ import {
 } from './recall-tool-telemetry.js';
 import type { RecallHybridOrTextSearchResult, RecallTelemetryRetrievalStrategy } from './recall-tool-schema.js';
 import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
+import { recallOutcomeStageExtra } from '../../telemetry/search-quality/index.js';
 import type {
   MetaStatsItem,
   NeighborMemoryItem,
@@ -94,6 +95,7 @@ type RecallEnvelopeInput = {
   normalizedTextWeight: number;
   retrievalStrategy: RecallTelemetryRetrievalStrategy;
   queryHash: string;
+  postMs: number;
 };
 
 /** 검색 엔진 결과의 선택 필드 (하이브리드·텍스트 결과 공통으로 읽는다) */
@@ -195,7 +197,8 @@ function recordRecallOutcome(context: ToolContext, input: RecallEnvelopeInput): 
   const selectedCount = input.processedResults.length;
   const extraData = {
     ...recallQueryCorrelationExtra(input.queryHash, input.query),
-    retrieval_strategy: input.retrievalStrategy
+    retrieval_strategy: input.retrievalStrategy,
+    ...recallOutcomeStageExtra(input.searchResult, input.postMs),
   };
   context.services?.telemetryService?.record({
     eventType: selectedCount === 0 ? 'memory.search.empty' : 'memory.search.selected',

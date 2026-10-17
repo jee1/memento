@@ -19,6 +19,8 @@ type ProviderVectorRaceResult = {
   error: string | null;
   queryEmbeddingProvider?: EmbeddingProvider;
   tfidfQueryEmbeddingFallback?: boolean;
+  embeddingMs?: number;
+  vectorMs?: number;
 };
 
 type ProviderSearchExecutionSummary = {
@@ -34,9 +36,21 @@ type ProviderSearchExecutionSummary = {
   queryEmbeddingProviders?: EmbeddingProvider[];
   tfidfQueryEmbeddingFallback: boolean;
   tfidfQueryEmbeddingFallbackProviders?: EmbeddingProvider[];
+  embedding_ms?: number;
+  vector_ms?: number;
 };
 
 export type SearchStepLogger = (searchId: string, step: string, data: unknown) => void;
+
+/** Max of finished lane samples. Undefined means nobody finished that clock. 0 stays. */
+function maxMeasured(values: Array<number | undefined>): number | undefined {
+  let max: number | undefined;
+  for (const value of values) {
+    if (value === undefined) continue;
+    max = max === undefined ? value : Math.max(max, value);
+  }
+  return max;
+}
 
 export type ProviderVectorSearchOptions = {
   limit: number;
@@ -85,10 +99,18 @@ async function runSingleProviderVectorSearch(
   searchOptions: ProviderVectorSearchOptions,
   searchId: string,
   providerStartTime: bigint,
-  timeoutMeta: { queryEmbeddingProvider?: EmbeddingProvider; tfidfQueryEmbeddingFallback?: boolean }
+  timeoutMeta: {
+    queryEmbeddingProvider?: EmbeddingProvider;
+    tfidfQueryEmbeddingFallback?: boolean;
+    embeddingMs?: number;
+    vectorMs?: number;
+  }
 ): Promise<ProviderVectorRaceResult> {
   try {
+    const embedStart = process.hrtime.bigint();
     const { embedding, actualProvider } = await deps.generateQueryVector(query, searchId, provider);
+    const embeddingMs = Number(process.hrtime.bigint() - embedStart) / 1_000_000;
+    timeoutMeta.embeddingMs = embeddingMs;
     timeoutMeta.queryEmbeddingProvider = actualProvider;
     timeoutMeta.tfidfQueryEmbeddingFallback = actualProvider === 'tfidf' && provider !== 'tfidf';
     if (actualProvider !== provider) {
@@ -104,10 +126,14 @@ async function runSingleProviderVectorSearch(
         timeMs: providerTime,
         error: null,
         queryEmbeddingProvider: actualProvider,
-        tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback
+        tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback,
+        embeddingMs,
       };
     }
+    const vectorStart = process.hrtime.bigint();
     const vecResults = await deps.vectorSearch(embedding, searchOptions, provider);
+    const vectorMs = Number(process.hrtime.bigint() - vectorStart) / 1_000_000;
+    timeoutMeta.vectorMs = vectorMs;
     const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
     return {
       provider,
@@ -131,7 +157,9 @@ async function runSingleProviderVectorSearch(
       timeMs: providerTime,
       error: null,
       queryEmbeddingProvider: actualProvider,
-      tfidfQueryEmbeddingFallback: false
+      tfidfQueryEmbeddingFallback: false,
+      embeddingMs,
+      vectorMs,
     };
   } catch (error) {
     const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
@@ -146,7 +174,9 @@ async function runSingleProviderVectorSearch(
       results: [] as VectorResultWithProvider[],
       success: false,
       timeMs: providerTime,
-      error: errorMessage
+      error: errorMessage,
+      ...(timeoutMeta.embeddingMs !== undefined ? { embeddingMs: timeoutMeta.embeddingMs } : {}),
+      ...(timeoutMeta.vectorMs !== undefined ? { vectorMs: timeoutMeta.vectorMs } : {}),
     };
   }
 }
@@ -162,6 +192,8 @@ export function createProviderVectorSearchTask(
   const timeoutMeta: {
     queryEmbeddingProvider?: EmbeddingProvider;
     tfidfQueryEmbeddingFallback?: boolean;
+    embeddingMs?: number;
+    vectorMs?: number;
   } = {};
 
   const timeoutPromise = new Promise<ProviderVectorRaceResult>(resolve => {
@@ -174,7 +206,9 @@ export function createProviderVectorSearchTask(
         timeMs: providerTime,
         error: `Provider 검색 타임아웃 (${HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`,
         queryEmbeddingProvider: timeoutMeta.queryEmbeddingProvider,
-        tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback
+        tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback,
+        ...(timeoutMeta.embeddingMs !== undefined ? { embeddingMs: timeoutMeta.embeddingMs } : {}),
+        ...(timeoutMeta.vectorMs !== undefined ? { vectorMs: timeoutMeta.vectorMs } : {}),
       });
     }, HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS);
   });
@@ -235,6 +269,8 @@ export async function executeProviderSearchesWithOverallTimeout(
       timeMs: number;
       error?: string;
     }> = [];
+    const embeddingSamples: Array<number | undefined> = [];
+    const vectorSamples: Array<number | undefined> = [];
     const queryEmbeddingProvidersRaw: EmbeddingProvider[] = [];
     const tfidfFallbackRequestedProvidersRaw: EmbeddingProvider[] = [];
     let tfidfQueryEmbeddingFallback = false;
@@ -256,6 +292,8 @@ export async function executeProviderSearchesWithOverallTimeout(
           timeMs: providerResult.timeMs,
           error: providerResult.error || undefined
         });
+        embeddingSamples.push(providerResult.embeddingMs);
+        vectorSamples.push(providerResult.vectorMs);
 
         if (!providerResult.success) {
           const isTimeout = providerResult.error?.includes('타임아웃');
@@ -301,13 +339,17 @@ export async function executeProviderSearchesWithOverallTimeout(
         ? [...new Set(tfidfFallbackRequestedProvidersRaw)].sort()
         : undefined;
 
+    const embedding_ms = maxMeasured(embeddingSamples);
+    const vector_ms = maxMeasured(vectorSamples);
     return {
       allResults,
       providerStats,
       overallTimeoutOccurred,
       queryEmbeddingProviders,
       tfidfQueryEmbeddingFallback,
-      tfidfQueryEmbeddingFallbackProviders
+      tfidfQueryEmbeddingFallbackProviders,
+      ...(embedding_ms !== undefined ? { embedding_ms } : {}),
+      ...(vector_ms !== undefined ? { vector_ms } : {}),
     };
   } finally {
     cleanupTimeout();

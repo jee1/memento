@@ -496,14 +496,14 @@ describe('HybridSearchEngine', () => {
       (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
 
       const engine = hybridSearchEngine as unknown as {
-        executeTextSearch: (...args: unknown[]) => Promise<unknown[]>;
+        executeTextSearch: (...args: unknown[]) => Promise<{ items: unknown[]; text_ms: number }>;
         vectorExecutor: { execute: (...args: unknown[]) => Promise<{ results: unknown[]; fallback_used: boolean }> };
         resultRanker: { combineAndSortResults: (...args: unknown[]) => Promise<unknown[]> };
       };
 
       vi.spyOn(engine, 'executeTextSearch').mockImplementation(async () => {
         await new Promise(resolve => setTimeout(resolve, TEXT_DELAY_MS));
-        return textItems;
+        return { items: textItems, text_ms: TEXT_DELAY_MS };
       });
       vi.spyOn(engine.vectorExecutor, 'execute').mockImplementation(async () => {
         await new Promise(resolve => setTimeout(resolve, VECTOR_DELAY_MS));
@@ -2949,6 +2949,54 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
 
         expect(gate.score).not.toHaveBeenCalled();
         expect(out.rejection_gate).toBeUndefined();
+        expect(out.stage_ms.gate_ms).toBeUndefined();
+        expect(out.stage_ms.embedding_ms).toBeUndefined();
+        expect(out.stage_ms.vector_ms).toBeUndefined();
+        expect(out.stage_ms.text_ms).toEqual(expect.any(Number));
+      });
+
+      it('stage_ms는 잰 레인만 싣고 gate_ms는 score await만 담는다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, [fakeItem('m1', 'a')]);
+        const engine = hybridSearchEngine as unknown as {
+          vectorExecutor: {
+            execute: (...args: unknown[]) => Promise<{
+              results: unknown[];
+              fallback_used: boolean;
+              embedding_ms?: number;
+              vector_ms?: number;
+            }>;
+          };
+        };
+        vi.spyOn(engine.vectorExecutor, 'execute').mockResolvedValue({
+          results: [],
+          fallback_used: false,
+          embedding_ms: 0,
+          vector_ms: 12,
+        });
+        hybridSearchEngine.setRejectionGate({
+          score: () => new Promise((resolve) => {
+            setTimeout(() => resolve([0.9]), 30);
+          }),
+        });
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(out.stage_ms).toMatchObject({ text_ms: expect.any(Number), embedding_ms: 0, vector_ms: 12 });
+        expect(out.stage_ms.gate_ms).toBeGreaterThanOrEqual(20);
+      });
+
+      it('게이트가 off면 gate_ms를 넣지 않는다', async () => {
+        setupCommonMocks();
+        stubRanked(hybridSearchEngine, [fakeItem('m1', 'a')]);
+        hybridSearchEngine.setRejectionGate(null);
+
+        const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+        expect(out.rejection_gate?.verdict).toBe('off');
+        expect(out.stage_ms.gate_ms).toBeUndefined();
+        expect(out.stage_ms.embedding_ms).toBeUndefined();
+        expect(out.stage_ms.vector_ms).toBeUndefined();
       });
     });
   });
