@@ -5,6 +5,7 @@
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { getRankingVersion } from '../../../shared/config/ranking-weights-loader.js';
 import type { ToolContext } from '../../../tools/types.js';
+import { rejectionGateTelemetryExtra } from '../../telemetry/search-quality/index.js';
 import {
   recallQueryCorrelationExtra,
   recallSearchRequestedExtra
@@ -147,10 +148,15 @@ export async function executeHybridOrTextSearchForMemoryItem(
       union_candidate_count: unionCount
     }
   });
+  const rejectionGate = 'rejection_gate' in searchResult ? searchResult.rejection_gate : undefined;
   tel?.record({
     eventType: 'memory.search.reranked',
     outcome: 'success',
-    extraData: { candidate_count: rerankedCount, reranked_count: rerankedCount }
+    extraData: {
+      candidate_count: rerankedCount,
+      reranked_count: rerankedCount,
+      ...rejectionGateTelemetryExtra(rejectionGate),
+    }
   });
 
   const executionTime = Date.now() - searchStartTime;

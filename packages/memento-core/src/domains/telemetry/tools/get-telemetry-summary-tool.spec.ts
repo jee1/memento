@@ -32,6 +32,8 @@ function makeSearchQuality(overrides: Partial<SearchQualityResult> = {}): Search
     reranked_count: 90,
     selected_count: 70,
     ranking_versions: ['ranking-sha256:abc123def456'],
+    rejection_rate: 0.2,
+    rejection_decided_count: 10,
     timestamp: '2026-03-29T10:00:00.000Z',
     ...overrides,
   };
@@ -168,6 +170,8 @@ describe('GetTelemetrySummaryTool', () => {
       empty_retrieval_rate: null,
       avg_candidate_count: null,
       top_k_selected_rate: null,
+      rejection_rate: null,
+      rejection_decided_count: 0,
     });
     const nullMemory = makeMemoryQuality({
       total_memories: null,
@@ -181,6 +185,8 @@ describe('GetTelemetrySummaryTool', () => {
     const data = JSON.parse(result.content[0].text);
     expect(data.search_quality.search_count).toBeNull();
     expect(data.search_quality.avg_latency_ms).toBeNull();
+    expect(data.search_quality.rejection_rate).toBeNull();
+    expect(data.search_quality.rejection_decided_count).toBe(0);
     expect(data.memory_quality.total_memories).toBeNull();
     expect(data.memory_quality.type_distribution).toBeNull();
   });

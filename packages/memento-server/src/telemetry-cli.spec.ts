@@ -38,12 +38,14 @@ describe('formatSearchQuality', () => {
       reranked_count: 0,
       selected_count: 0,
       ranking_versions: [],
+      rejection_rate: null,
+      rejection_decided_count: 0,
       timestamp: '2026-03-29T10:00:00.000Z',
     };
     const output = formatSearchQuality(input);
     expect(output).toContain('N/A');
-    // 모든 수치 필드가 N/A
-    expect(output).not.toMatch(/: \d/);
+    expect(output).toMatch(/Rejection rate\s+: N\/A/);
+    expect(output).toMatch(/Gate decided\s+: 0/);
   });
 
   it('2) 정상 데이터 → 예상 출력 포함', () => {
@@ -62,6 +64,8 @@ describe('formatSearchQuality', () => {
       reranked_count: 90,
       selected_count: 70,
       ranking_versions: [],
+      rejection_rate: 0.5,
+      rejection_decided_count: 4,
       timestamp: '2026-03-29T10:00:00.000Z',
     };
     const output = formatSearchQuality(input);
@@ -69,6 +73,8 @@ describe('formatSearchQuality', () => {
     expect(output).toContain('123');
     expect(output).toContain('456');
     expect(output).toContain('12.5');
+    expect(output).toContain('50.0');
+    expect(output).toMatch(/Gate decided\s+: 4/);
   });
 });
 
@@ -176,6 +182,8 @@ describe('executeTelemetry', () => {
         reranked_count: 0,
         selected_count: 0,
         ranking_versions: [],
+        rejection_rate: null,
+        rejection_decided_count: 0,
         timestamp: '2026-03-29T10:00:00.000Z',
       }),
       getMemoryQuality: () => ({
@@ -250,6 +258,8 @@ describe('output line length', () => {
       reranked_count: 90,
       selected_count: 70,
       ranking_versions: [],
+      rejection_rate: 0.125,
+      rejection_decided_count: 8,
       timestamp: '2026-03-29T10:00:00.000Z',
     });
     for (const line of searchOutput.split('\n')) {

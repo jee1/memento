@@ -278,6 +278,45 @@ describe('telemetry instrumentation (feedback + service)', () => {
       union_candidate_count: 20
     });
     expect(extras['memory.search.reranked']).toMatchObject({ candidate_count: 10, reranked_count: 10 });
+    expect(extras['memory.search.reranked']).not.toHaveProperty('rejection_gate_verdict');
+    expect(extras['memory.search.reranked']).not.toHaveProperty('rejection_gate_top_score');
     expect(extras['memory.search.selected']).toMatchObject({ selected_count: 5 });
+  });
+
+  it('recall은 rejection_gate가 있으면 reranked extra에 판정과 top score를 같이 남긴다', async () => {
+    const recall = new RecallTool();
+    const hybrid = {
+      isEmbeddingAvailable: () => true,
+      search: async () => ({
+        items: [],
+        total_count: 0,
+        text_count: 2,
+        vector_count: 1,
+        union_count: 2,
+        reranked_count: 0,
+        rejection_gate: { verdict: 'rejected', top_score: 0.05, unscored: 0 },
+      })
+    };
+    const context = {
+      db,
+      agentId: 'agent-gate',
+      services: { repositories: sqliteRepositoryProvider, telemetryService, hybridSearchEngine: hybrid }
+    } as ToolContext;
+
+    await telemetryService.runWithContext('agent-gate', () =>
+      recall.handle({ query: 'gated', type: 'episodic', limit: 5 }, context)
+    );
+    await new Promise<void>(resolve => setImmediate(resolve));
+
+    const row = db.prepare(
+      `SELECT extra_data FROM telemetry_events
+       WHERE owner_id = 'agent-gate' AND event_type = 'memory.search.reranked'`
+    ).get() as { extra_data: string };
+    expect(JSON.parse(row.extra_data)).toMatchObject({
+      candidate_count: 0,
+      reranked_count: 0,
+      rejection_gate_verdict: 'rejected',
+      rejection_gate_top_score: 0.05,
+    });
   });
 });

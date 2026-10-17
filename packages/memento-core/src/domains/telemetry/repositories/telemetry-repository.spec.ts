@@ -193,7 +193,48 @@ describe('TelemetryRepository', () => {
       selected_count: 5,
       avg_candidate_count: 20,
       top_k_selected_rate: 0.25,
-      ranking_versions: ['ranking-o1']
+      ranking_versions: ['ranking-o1'],
+      rejection_rate: null,
+      rejection_decided_count: 0,
+    });
+  });
+
+  it('querySearchQuality 기각률은 off와 키 없는 reranked를 분모에서 뺀다', () => {
+    const record = (requestId: string, ownerId: string, extraData: Record<string, unknown>) => {
+      repo.insertEventSync({
+        eventType: 'memory.search.reranked',
+        requestId,
+        ownerId,
+        outcome: 'success',
+        extraData,
+      });
+    };
+    record('d-rejected', 'o1', { rejection_gate_verdict: 'rejected', rejection_gate_top_score: 0.05 });
+    record('d-passed', 'o1', { rejection_gate_verdict: 'passed', rejection_gate_top_score: 0.9 });
+    record('d-open', 'o1', { rejection_gate_verdict: 'fail_open', rejection_gate_top_score: null });
+    record('d-off', 'o1', { rejection_gate_verdict: 'off', rejection_gate_top_score: null });
+    record('d-missing', 'o1', { candidate_count: 0, reranked_count: 0 });
+    record('d-other', 'o2', { rejection_gate_verdict: 'rejected', rejection_gate_top_score: 0.01 });
+
+    expect(repo.querySearchQuality('24h', 'o1')).toMatchObject({
+      rejection_rate: 1 / 3,
+      rejection_decided_count: 3,
+    });
+    expect(repo.querySearchQuality('24h', 'o2')).toMatchObject({
+      rejection_rate: 1,
+      rejection_decided_count: 1,
+    });
+
+    repo.insertEventSync({
+      eventType: 'memory.search.reranked',
+      requestId: 'd-off-only',
+      ownerId: 'o3',
+      outcome: 'success',
+      extraData: { rejection_gate_verdict: 'off', rejection_gate_top_score: null },
+    });
+    expect(repo.querySearchQuality('24h', 'o3')).toMatchObject({
+      rejection_rate: null,
+      rejection_decided_count: 0,
     });
   });
 
