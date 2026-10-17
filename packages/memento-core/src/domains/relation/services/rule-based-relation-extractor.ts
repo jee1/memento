@@ -287,13 +287,10 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
 
     // 각 기존 기억에 대해 관계 추출 시도
     for (const existingMemory of limitedMemories) {
-      // 새로운 기억과 기존 기억의 내용을 결합하여 분석
-      const combinedText = `${newMemory.content} ${existingMemory.content}`;
-
-      // 각 관계 유형별로 패턴 매칭
+      // 키워드는 기존 기억에서만 찾는다. 새 기억의 표제어만으로 후보 전체에 간선을 만들지 않는다.
       for (const relationType of applicableTypes) {
         const patterns = RELATION_KEYWORD_PATTERNS[relationType];
-        const match = this.findPatternMatch(combinedText, patterns);
+        const match = this.findPatternMatch(existingMemory.content, patterns);
 
         if (match.matched) {
           const confidence = this.calculateConfidence(match.strength);

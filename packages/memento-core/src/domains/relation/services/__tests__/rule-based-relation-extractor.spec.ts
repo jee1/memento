@@ -141,6 +141,47 @@ describe('RuleBasedRelationExtractor', () => {
     });
   });
 
+  describe('extractRelations - 키워드가 한쪽에만 있을 때', () => {
+    it('does not create FOLLOWS for unrelated memories when only the new memory has 다음', async () => {
+      // 5줄 템플릿 키워드가 새 기억에만 있으면 짝이 정해지지 않는다.
+      const newMemory = createTestMemory(
+        'new',
+        [
+          '결정: 관계 추출 판정을 쌍 단위로 좁힌다',
+          '근거: 새 기록의 표제어만으로는 상대를 특정하지 못한다',
+          '버린 대안: 후보 목록 전체에 간선을 심는다',
+          '안 통한 것: 본문에 원인, 관련, 부분이 있어도 상대 기록과 무관하다',
+          '다음 걸림돌: 이미 쌓인 간선은 운영 확인을 받은 뒤 정리한다',
+        ].join('\n'),
+        'episodic'
+      );
+      const existingMemories = [
+        '점심에 김밥을 먹었다',
+        '창밖에 비가 내렸다',
+        '책상 위 연필이 굴렀다',
+        '고양이가 소파에서 잠들었다',
+        '버스가 정류장을 지나갔다',
+      ].map((content, index) => createTestMemory(`old-${index}`, content, 'episodic'));
+
+      const candidates = await extractor.extractRelations(newMemory, existingMemories);
+
+      expect(candidates.filter(c => c.relation_type === 'FOLLOWS')).toHaveLength(0);
+      expect(candidates.filter(c => c.relation_type === 'CAUSES')).toHaveLength(0);
+      expect(candidates.filter(c => c.relation_type === 'REFERENCES')).toHaveLength(0);
+      expect(candidates.filter(c => c.relation_type === 'BELONGS_TO')).toHaveLength(0);
+    });
+
+    it('extracts FOLLOWS when the existing memory contains 이후', async () => {
+      const newMemory = createTestMemory('new', '코드 리뷰 완료', 'episodic');
+      const existingMemory = createTestMemory('old', '이후 머지했습니다', 'episodic');
+
+      const candidates = await extractor.extractRelations(newMemory, [existingMemory]);
+
+      expect(candidates.filter(c => c.relation_type === 'FOLLOWS')).toHaveLength(1);
+      expect(candidates.find(c => c.relation_type === 'FOLLOWS')?.target_id).toBe('old');
+    });
+  });
+
   describe('extractRelations - CONTRASTS_WITH 관계 추출', () => {
     it('should extract CONTRASTS_WITH relation for Korean keyword "그러나"', async () => {
       // Given: 대조 관계를 나타내는 키워드
