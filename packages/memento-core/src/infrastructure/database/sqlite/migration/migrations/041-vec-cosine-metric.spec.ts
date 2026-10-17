@@ -128,7 +128,6 @@ describe('VecCosineMetricMigration (041)', () => {
     const report = checkVecCardinality(db);
     expect(report.every(row => row.matched)).toBe(true);
 
-    // minilm 384 는 memory_item_vec_minilm 에만 적재된다
     expect(report.find(row => row.table === 'memory_item_vec')?.actual).toBe(0);
     expect(report.find(row => row.table === 'memory_item_vec_minilm')?.actual).toBe(1);
   });

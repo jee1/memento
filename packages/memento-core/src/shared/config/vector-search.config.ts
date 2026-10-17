@@ -18,7 +18,6 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
   defaultThreshold: 0.7,
   defaultLimit: 10,
   tableNames: {
-    /** tfidf·lightweight 이면서 384 native 일 때만 트리거가 여기에 INSERT 한다. */
     lightweight: 'memory_item_vec',
     tfidf: 'memory_item_vec_tfidf',
     minilm: 'memory_item_vec_minilm',

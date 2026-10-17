@@ -293,7 +293,6 @@ CREATE TABLE IF NOT EXISTS embedding_model_registry (
 -- 검색 mapper는 `1 - distance`를 cosine similarity로 해석하고 threshold(0.8/0.6/0.4)도 같은 가정을 쓴다.
 -- 정의는 src/infrastructure/database/sqlite/vec-schema.ts(VEC_TABLES)와 동기화되어야 하며,
 -- vec-schema.spec.ts가 이 파일과의 정합을 검증한다.
--- memory_item_vec 는 tfidf·lightweight 384 native 잔여 슬롯이다. minilm 384 는 memory_item_vec_minilm 만 쓴다.
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384] distance_metric=cosine);
 
 -- 제공자별 VEC 테이블들

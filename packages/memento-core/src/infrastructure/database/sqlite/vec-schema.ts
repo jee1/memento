@@ -62,7 +62,6 @@ function minilmProviderPredicates(dimension: number): string[] {
   ];
 }
 
-/** 레거시 384 슬롯. minilm은 멤버가 아니다. */
 export interface ResidualAllowlistSlot {
   table: 'memory_item_vec';
   dimension: 384;
@@ -86,10 +85,6 @@ export function residualAllowlistPredicates(slot: ResidualAllowlistSlot): readon
   ];
 }
 
-/**
- * 같은 dimension 의 provider 집합이 겹치면 throw.
- * 테스트에서만 호출한다. import 시점에 돌리지 않는다.
- */
 export function assertDisjointProviderSlots(tables: readonly VecTableConfig[]): void {
   const byDimension = new Map<number, { name: string; providers: ReadonlySet<string> }[]>();
 
@@ -138,12 +133,7 @@ function providersInPredicates(predicates: readonly string[]): ReadonlySet<strin
   return providers;
 }
 
-/**
- * 대상 vec 테이블 전체.
- *
- * `memory_item_vec`는 tfidf·lightweight 384 native 잔여 슬롯이다.
- * minilm 384는 `memory_item_vec_minilm`만 쓴다.
- */
+/** 대상 vec 테이블 전체. */
 export const VEC_TABLES: readonly VecTableConfig[] = [
   vecTable('memory_item_vec', 384, residualAllowlistPredicates(LEGACY_RESIDUAL_SLOT)),
   vecTable('memory_item_vec_tfidf', 512, nativeProviderPredicates('tfidf', 512)),
@@ -261,10 +251,6 @@ export function repopulateVecTable(db: Database.Database, config: VecTableConfig
   );
 }
 
-/**
- * 허용 목록에 없는 rowid 를 vec0 에서 지운다. 가상 테이블은 남긴다.
- * 045 와 같은 `DELETE … WHERE rowid NOT IN` 형태다.
- */
 export function evictNonMembers(db: Database.Database, table: VecTableConfig): number {
   assertAllowedVecTable(table.name);
   const result = db
