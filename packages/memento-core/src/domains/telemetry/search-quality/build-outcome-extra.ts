@@ -6,11 +6,6 @@ type OutcomeSearchResult = {
   query_time?: number;
 };
 
-/**
- * Stage keys for selected and empty events.
- * Hybrid `query_time` covers the whole search, so it is not used when `stage_ms` is present.
- * FTS-only results have `query_time` and no `stage_ms`. That wider interval is stored as `text_ms`.
- */
 export function recallOutcomeStageExtra(
   searchResult: OutcomeSearchResult | null | undefined,
   postMs: number,

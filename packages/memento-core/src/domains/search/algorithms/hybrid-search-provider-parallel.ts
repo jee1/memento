@@ -42,7 +42,6 @@ type ProviderSearchExecutionSummary = {
 
 export type SearchStepLogger = (searchId: string, step: string, data: unknown) => void;
 
-/** Max of finished lane samples. Undefined means nobody finished that clock. 0 stays. */
 function maxMeasured(values: Array<number | undefined>): number | undefined {
   let max: number | undefined;
   for (const value of values) {

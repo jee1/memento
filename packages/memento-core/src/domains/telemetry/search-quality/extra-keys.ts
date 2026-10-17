@@ -1,4 +1,3 @@
-/** Wire names for search-quality extra_data. SQL and emit sites read this object. */
 export const SEARCH_QUALITY_EXTRA_KEYS = {
   rejection_gate_verdict: 'rejection_gate_verdict',
   rejection_gate_top_score: 'rejection_gate_top_score',

@@ -60,7 +60,6 @@ type HybridVectorSearchOutput = {
   thresholded_ids?: string[];
   /** 벡터 레인이 실제로 만들어 쓴 질의 임베딩. #1021 백필이 이것을 쓴다. */
   query_embeddings?: HybridQueryEmbedding[];
-  /** Finished embed clocks only. Fallback search cannot split embed from scan, so both stay absent. */
   embedding_ms?: number;
   vector_ms?: number;
 };

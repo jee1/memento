@@ -1,10 +1,6 @@
 import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
 import { SEARCH_QUALITY_EXTRA_KEYS } from './extra-keys.js';
 
-/**
- * Both gate keys, or neither. A missing gate (FTS-only, or gate on with an empty ranked list)
- * is not the same as verdict `off`.
- */
 export function rejectionGateTelemetryExtra(
   gate: Pick<RelevanceGateOutcome, 'verdict' | 'top_score'> | undefined,
 ): Record<string, string | number | null> {

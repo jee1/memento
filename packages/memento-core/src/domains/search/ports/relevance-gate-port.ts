@@ -32,7 +32,6 @@ export const REJECTION_GATE_VERDICTS = ['rejected', 'passed', 'fail_open', 'off'
 
 export type RejectionGateVerdict = (typeof REJECTION_GATE_VERDICTS)[number];
 
-/** 기각률 분모. 미부착 `off`는 판정이 아니다. */
 export const REJECTION_GATE_DECIDED_VERDICTS = REJECTION_GATE_VERDICTS.filter(
   (verdict): verdict is Exclude<RejectionGateVerdict, 'off'> => verdict !== 'off',
 );
