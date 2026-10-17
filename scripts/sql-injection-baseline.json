@@ -35,10 +35,15 @@
   "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/045-vec-orphan-cleanup.ts|dynamic-table-name|.prepare(`DELETE FROM ${table} WHERE rowid NOT IN (SELECT id FROM memory_embedding)`)",
   "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/045-vec-orphan-cleanup.ts|dynamic-table-name|`SELECT COUNT(*) AS c FROM ${table} WHERE rowid NOT IN (SELECT id FROM memory_embedding)`",
   "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/045-vec-orphan-cleanup.ts|dynamic-table-name|db.prepare(`SELECT rowid FROM ${table} LIMIT 1`).get();",
+  "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/053-narrow-legacy-vec-allowlist.ts|dynamic-table-name|db.prepare(`SELECT rowid FROM ${table} LIMIT 1`).get();",
+  "packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/053-narrow-legacy-vec-allowlist.ts|where-template-literal|`SELECT id, embedding FROM memory_embedding WHERE ${LEGACY_CATCHALL_FILTER} ` +",
   "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|dynamic-table-name|.map(table => `  DELETE FROM ${table.name} WHERE rowid = NEW.id;`)",
   "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|dynamic-table-name|.map(table => `  DELETE FROM ${table.name} WHERE rowid = OLD.id;`)",
   "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|dynamic-table-name|.prepare(`SELECT COUNT(*) AS count FROM ${table.name}`)",
+  "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|dynamic-table-name|`AND id NOT IN (SELECT rowid FROM ${config.name})`",
+  "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|dynamic-table-name|`DELETE FROM ${table.name} WHERE rowid NOT IN (` +",
   "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|where-template-literal|.prepare(`SELECT COUNT(*) AS count FROM memory_embedding WHERE ${table.filter}`)",
   "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|where-template-literal|`  WHERE ${triggerFilter};`",
+  "packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts|where-template-literal|`SELECT id FROM memory_embedding WHERE ${table.filter})`",
   "packages/memento-server/src/server/routes/admin/admin-graph-response.ts|where-template-literal|` WHERE (mr.source_id = memory_item.id OR mr.target_id = memory_item.id)${typeClause})`;"
 ]

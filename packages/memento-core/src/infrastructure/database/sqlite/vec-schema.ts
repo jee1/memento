@@ -62,15 +62,13 @@ function minilmProviderPredicates(dimension: number): string[] {
   ];
 }
 
-/**
- * 대상 vec 테이블 전체.
- *
- * `memory_item_vec`는 legacy 384 공용 테이블이라 provider 전용이 아니며,
- * dimensions=384인 native·기타 행만 받는다(윈도 행 제외, 제공자별 1:1 비교 대상이 아님).
- */
+/** 대상 vec 테이블 전체. */
 export const VEC_TABLES: readonly VecTableConfig[] = [
-  // legacy 공용 테이블은 윈도 행을 받지 않는다. 윈도 행은 minilm 전용 테이블에서만 KNN 예산을 쓴다 (#1112).
-  vecTable('memory_item_vec', 384, ['dimensions = 384', "projection_type NOT LIKE 'window:%'"]),
+  vecTable('memory_item_vec', 384, [
+    "embedding_provider IN ('tfidf', 'lightweight')",
+    'dimensions = 384',
+    "projection_type = 'native'",
+  ]),
   vecTable('memory_item_vec_tfidf', 512, nativeProviderPredicates('tfidf', 512)),
   vecTable('memory_item_vec_minilm', 384, minilmProviderPredicates(384)),
   vecTable('memory_item_vec_openai', 1536, nativeProviderPredicates('openai', 1536)),
@@ -178,10 +176,23 @@ export function listExistingVecTables(db: Database.Database): VecTableConfig[] {
  */
 export function repopulateVecTable(db: Database.Database, config: VecTableConfig): void {
   assertAllowedVecTable(config.name);
+  // vec0 는 기존 rowid 에 INSERT OR IGNORE 를 주면 UNIQUE 로 실패한다. 없는 행만 넣는다.
   db.exec(
-    `INSERT OR IGNORE INTO ${config.name}(rowid, embedding) ` +
-      `SELECT id, embedding FROM memory_embedding WHERE ${config.filter}`
+    `INSERT INTO ${config.name}(rowid, embedding) ` +
+      `SELECT id, embedding FROM memory_embedding WHERE ${config.filter} ` +
+      `AND id NOT IN (SELECT rowid FROM ${config.name})`
   );
+}
+
+export function evictNonMembers(db: Database.Database, table: VecTableConfig): number {
+  assertAllowedVecTable(table.name);
+  const result = db
+    .prepare(
+      `DELETE FROM ${table.name} WHERE rowid NOT IN (` +
+        `SELECT id FROM memory_embedding WHERE ${table.filter})`
+    )
+    .run();
+  return result.changes;
 }
 
 /**

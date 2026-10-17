@@ -12,13 +12,13 @@ S = α·relevance + β·recency + γ·importance + δ·usage + ζ_fb·(feedback_
 
 ## 벡터 similarity 계약: cosine (Issue #713)
 
-`relevance`에 들어가는 벡터 유사도는 **cosine similarity** 하나로 고정돼 있습니다. 모든 sqlite-vec 가상 테이블은 `vec0(embedding float[N] distance_metric=cosine)`로 생성되며, metric을 생략하면 sqlite-vec 기본값인 L2가 적용되어 계약이 깨집니다. 대상 테이블은 legacy 384 공용 테이블인 `memory_item_vec`과 제공자별 `memory_item_vec_{tfidf,minilm,openai,gemini,mock}`이고, 정의는 `packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts`의 `VEC_TABLES` 하나에서만 관리합니다. `schema.sql`(신규 DB)·마이그레이션 041·`migrate.ts`가 모두 이 정의를 따릅니다.
+`relevance`에 들어가는 벡터 유사도는 **cosine similarity** 하나로 고정돼 있습니다. 모든 sqlite-vec 가상 테이블은 `vec0(embedding float[N] distance_metric=cosine)`로 생성되며, metric을 생략하면 sqlite-vec 기본값인 L2가 적용되어 계약이 깨집니다. 대상 테이블은 legacy 384 잔여 슬롯(`memory_item_vec`, tfidf·lightweight native만)과 제공자별 `memory_item_vec_{tfidf,minilm,openai,gemini,mock}`이고, 정의는 `packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts`의 `VEC_TABLES` 하나에서만 관리합니다. `schema.sql`(신규 DB)·마이그레이션 041·`migrate.ts`가 모두 이 정의를 따릅니다.
 
 검색 결과 매핑은 `similarity = clamp(1 − cosine_distance, 0, 1)`입니다. cosine distance는 [0, 2] 범위이므로 양의 비례 벡터는 similarity 1.0, 직교는 0, 반대 방향(distance 2)은 하한 clamp로 0이 됩니다. 앵커 slot threshold 0.8/0.6/0.4도 이 cosine similarity 기준입니다.
 
 **척도 변경 이력 (issue #806, 2026-08-29)**: 이 날짜 이전의 하이브리드 벡터 채널은 제공자별 결과셋의 min-max로 점수를 다시 늘려 반환했고(최상위가 사실상 항상 1.0), 대체 경로는 거리값을 유사도 필드에 담아 방향이 반대였습니다. 두 결함을 교정해 반환값은 위 계약(`clamp(1 − cosine_distance, 0, 1)`)을 그대로 따릅니다. **해석 기준이 달라집니다**: 교정 후에는 관련 있는 결과도 실제 근접도를 반영해 낮은 값에 놓일 수 있으며, 낮아진 숫자는 검색 실패가 아니라 정직한 값입니다. 결과 수는 under-fill이 채우므로 거의 유지되고 달라지는 것은 점수 분포입니다. 교정 전후 기록은 `getRankingVersion()` 해시로 구분됩니다(`HYBRID_SEARCH.VECTOR_SCORE_SCALE`가 payload에 포함됨). 이전에 저장된 점수 스냅샷은 옛 척도이며 마이그레이션·백필은 수행하지 않았습니다.
 
-vec 인덱스 적재량을 점검할 때는 raw provider 행 수와 1:1로 비교하면 안 됩니다. 각 테이블의 트리거 조건(`embedding_provider` + `dimensions` + `projection_type = 'native'`, legacy 384 테이블은 `dimensions = 384`)을 그대로 쓰는 `checkVecCardinality()`를 사용하세요.
+vec 인덱스 적재량을 점검할 때는 raw provider 행 수와 1:1로 비교하면 안 됩니다. 각 테이블의 트리거 조건(`embedding_provider` + `dimensions` + `projection_type = 'native'`, legacy 384 테이블은 `embedding_provider IN ('tfidf', 'lightweight') AND dimensions = 384 AND projection_type = 'native'`)을 그대로 쓰는 `checkVecCardinality()`를 사용하세요.
 
 ## FTS5 BM25 계약 (Issue #787)
 
