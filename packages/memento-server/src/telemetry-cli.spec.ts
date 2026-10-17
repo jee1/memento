@@ -40,12 +40,14 @@ describe('formatSearchQuality', () => {
       ranking_versions: [],
       rejection_rate: null,
       rejection_decided_count: 0,
+      fail_open_count: 0,
       timestamp: '2026-03-29T10:00:00.000Z',
     };
     const output = formatSearchQuality(input);
     expect(output).toContain('N/A');
     expect(output).toMatch(/Rejection rate\s+: N\/A/);
     expect(output).toMatch(/Gate decided\s+: 0/);
+    expect(output).toMatch(/Gate fail-open\s+: 0/);
   });
 
   it('2) 정상 데이터 → 예상 출력 포함', () => {
@@ -66,6 +68,7 @@ describe('formatSearchQuality', () => {
       ranking_versions: [],
       rejection_rate: 0.5,
       rejection_decided_count: 4,
+      fail_open_count: 2,
       timestamp: '2026-03-29T10:00:00.000Z',
     };
     const output = formatSearchQuality(input);
@@ -75,6 +78,7 @@ describe('formatSearchQuality', () => {
     expect(output).toContain('12.5');
     expect(output).toContain('50.0');
     expect(output).toMatch(/Gate decided\s+: 4/);
+    expect(output).toMatch(/Gate fail-open\s+: 2/);
   });
 });
 
@@ -184,6 +188,7 @@ describe('executeTelemetry', () => {
         ranking_versions: [],
         rejection_rate: null,
         rejection_decided_count: 0,
+        fail_open_count: 0,
         timestamp: '2026-03-29T10:00:00.000Z',
       }),
       getMemoryQuality: () => ({
@@ -260,6 +265,7 @@ describe('output line length', () => {
       ranking_versions: [],
       rejection_rate: 0.125,
       rejection_decided_count: 8,
+      fail_open_count: 3,
       timestamp: '2026-03-29T10:00:00.000Z',
     });
     for (const line of searchOutput.split('\n')) {

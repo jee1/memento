@@ -37,10 +37,12 @@ export interface SearchQualityResult {
   reranked_count: number;
   selected_count: number;
   ranking_versions: string[];
-  /** rejected / decided reranked rows. null when nothing was decided. */
+  /** rejected / (passed + rejected) on reranked rows. null when that denominator is 0. */
   rejection_rate: number | null;
-  /** Denominator of rejection_rate. Excludes verdict off and rows with no gate key. */
+  /** Denominator of rejection_rate. Excludes off, fail_open, and rows with no gate key. */
   rejection_decided_count: number;
+  /** Reranked rows with verdict fail_open (gate ran but returned no usable scores). */
+  fail_open_count: number;
   timestamp: string;
 }
 

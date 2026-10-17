@@ -86,6 +86,7 @@ export class GetTelemetrySummaryTool extends BaseTool {
           ranking_versions: searchResult.ranking_versions,
           rejection_rate: searchResult.rejection_rate,
           rejection_decided_count: searchResult.rejection_decided_count,
+          fail_open_count: searchResult.fail_open_count,
         },
         memory_quality: {
           total_memories: memoryResult.total_memories,

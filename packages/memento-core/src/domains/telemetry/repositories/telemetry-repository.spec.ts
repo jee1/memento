@@ -196,10 +196,11 @@ describe('TelemetryRepository', () => {
       ranking_versions: ['ranking-o1'],
       rejection_rate: null,
       rejection_decided_count: 0,
+      fail_open_count: 0,
     });
   });
 
-  it('querySearchQuality 기각률은 off와 키 없는 reranked를 분모에서 뺀다', () => {
+  it('querySearchQuality 기각률은 off·fail_open·키 없는 reranked를 분모에서 뺀다', () => {
     const record = (requestId: string, ownerId: string, extraData: Record<string, unknown>) => {
       repo.insertEventSync({
         eventType: 'memory.search.reranked',
@@ -217,12 +218,14 @@ describe('TelemetryRepository', () => {
     record('d-other', 'o2', { rejection_gate_verdict: 'rejected', rejection_gate_top_score: 0.01 });
 
     expect(repo.querySearchQuality('24h', 'o1')).toMatchObject({
-      rejection_rate: 1 / 3,
-      rejection_decided_count: 3,
+      rejection_rate: 1 / 2,
+      rejection_decided_count: 2,
+      fail_open_count: 1,
     });
     expect(repo.querySearchQuality('24h', 'o2')).toMatchObject({
       rejection_rate: 1,
       rejection_decided_count: 1,
+      fail_open_count: 0,
     });
 
     repo.insertEventSync({
@@ -235,6 +238,7 @@ describe('TelemetryRepository', () => {
     expect(repo.querySearchQuality('24h', 'o3')).toMatchObject({
       rejection_rate: null,
       rejection_decided_count: 0,
+      fail_open_count: 0,
     });
   });
 
