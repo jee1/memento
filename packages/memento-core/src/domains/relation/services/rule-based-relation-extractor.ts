@@ -246,10 +246,10 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
   }
 
   /**
-   * 에이전트 5줄 템플릿 줄머리 라벨을 제거한다.
-   * 라벨 안의 '다음'·'근거' 등은 관계 단서가 아니다 (#1378 / PR #1381).
+   * 에이전트 5줄 템플릿 줄 전체를 제거한다 (라벨만이 아니라 `다음 걸림돌: …` 본문까지).
+   * 그 줄의 '다음'·'근거' 등은 관계 단서가 아니다 (#1378 / PR #1381).
    */
-  private stripAgentTemplateLabels(text: string): string {
+  private stripAgentTemplateLines(text: string): string {
     return text.replace(/^(결정|근거|버린 대안|안 통한 것|다음 걸림돌)\s*:.*$/gm, '').trim();
   }
 
@@ -295,8 +295,8 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
 
     // 각 기존 기억에 대해 관계 추출 시도
     for (const existingMemory of limitedMemories) {
-      // 키워드는 기존 기억에서만 찾는다. 템플릿 줄머리 라벨은 매칭 전에 뺀다 (#1378).
-      const existingText = this.stripAgentTemplateLabels(existingMemory.content);
+      // 키워드는 기존 기억에서만 찾는다. 템플릿 줄은 매칭 전에 뺀다 (#1378).
+      const existingText = this.stripAgentTemplateLines(existingMemory.content);
       for (const relationType of applicableTypes) {
         const patterns = RELATION_KEYWORD_PATTERNS[relationType];
         const match = this.findPatternMatch(existingText, patterns);

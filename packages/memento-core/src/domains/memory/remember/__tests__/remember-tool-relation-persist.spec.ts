@@ -6,6 +6,7 @@ import type { ToolContext } from '../../../../tools/types.js';
 import type { RememberToolHost } from '../remember-tool-host.js';
 import { runRelationExtraction } from '../remember-tool-augmentation.js';
 import { RelationExtractor } from '../../../relation/services/relation-extractor.js';
+import { LLMBasedRelationExtractor } from '../../../relation/services/llm-based-relation-extractor.js';
 
 /**
  * Issue #711: 관계 추출 결과(runRelationExtraction)가 memory_relation에 영속화되는지 검증.
@@ -89,7 +90,8 @@ describe('runRelationExtraction (Issue #711)', () => {
       }
     };
 
-    // remember 경로는 LLM만 쓴다. 단위 테스트는 후보를 고정한다 (#1378).
+    // remember 경로는 LLM만 쓴다. 가용성·후보는 고정한다 (#1378).
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(true);
     extractSpy = vi.spyOn(RelationExtractor.prototype, 'extractRelations').mockResolvedValue([
       {
         source_id: 'mem-new',
@@ -230,5 +232,30 @@ describe('runRelationExtraction (Issue #711)', () => {
     )).resolves.toBeUndefined();
 
     expect(host.logWarning).toHaveBeenCalled();
+  });
+
+  it('LLM 비가용이면 extractRelations를 호출하지 않고 rule 간선·실패 warning을 남기지 않는다', async () => {
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
+
+    await runRelationExtraction(
+      {
+        dbRef: db,
+        savedMemoryId: 'mem-new',
+        savedMemoryType: 'episodic',
+        content: '서버 과부하 때문에 장애가 발생했다',
+        importance: 0.6,
+      },
+      context,
+      host
+    );
+
+    expect(extractSpy).not.toHaveBeenCalled();
+    expect(host.logWarning).not.toHaveBeenCalled();
+    expect(host.logInfo).toHaveBeenCalledWith(
+      '관계 추출 건너뜀 (LLM 사용 불가)',
+      expect.objectContaining({ memory_id: 'mem-new' })
+    );
+    const rows = DatabaseUtils.all(db, `SELECT id FROM memory_relation WHERE source_id = 'mem-new'`) as unknown[];
+    expect(rows.length).toBe(0);
   });
 });
