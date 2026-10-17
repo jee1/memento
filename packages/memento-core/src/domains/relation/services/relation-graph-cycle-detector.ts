@@ -11,6 +11,16 @@ import { logger } from '../../../shared/utils/logger.js';
 export class RelationGraphCycleDetector {
   constructor(private db: Database.Database) {}
 
+  private hasInboundSameTypeEdge(nodeId: string, relationType: RelationType): boolean {
+    const row = DatabaseUtils.get(this.db, `
+      SELECT 1 AS ok
+      FROM memory_relation
+      WHERE target_id = ? AND relation_type = ?
+      LIMIT 1
+    `, [nodeId, relationType]);
+    return Boolean(row);
+  }
+
   /**
    * 순환 참조 감지 내부 로직 (트랜잭션 없이 실행)
    */
@@ -21,6 +31,10 @@ export class RelationGraphCycleDetector {
     maxDepth: number = LIMITS.MAX_CYCLE_DEPTH
   ): Promise<boolean> {
     if (sourceId === targetId) {
+      return false;
+    }
+
+    if (!this.hasInboundSameTypeEdge(sourceId, relationType)) {
       return false;
     }
 
