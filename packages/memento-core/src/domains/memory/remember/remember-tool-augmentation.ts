@@ -10,6 +10,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
+import { LLMBasedRelationExtractor } from '../../relation/services/llm-based-relation-extractor.js';
 import type { RelationCandidate } from '../../../shared/types/relation.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -139,11 +140,19 @@ export async function runRelationExtraction(
     const newMemory = await getMemoryById(dbRef, savedMemoryId, host);
     if (!newMemory) return;
 
-    const relationExtractor = new RelationExtractor();
+    // LLM 없으면 extractRelations(method:llm)가 throw→warning 소음이 난다. 가용성만 보고 조용히 건너뛴다 (#1378).
+    const llmExtractor = new LLMBasedRelationExtractor();
+    if (!(await llmExtractor.isAvailableAsync())) {
+      host.logInfo('관계 추출 건너뜀 (LLM 사용 불가)', { memory_id: savedMemoryId });
+      return;
+    }
+
+    const relationExtractor = new RelationExtractor(undefined, llmExtractor);
     const candidates = await relationExtractor.extractRelations(
       newMemory,
       existingMemories,
-      { method: 'hybrid', minConfidence: 0.5, candidateLimit: 30, immediate: true }
+      // hybrid+rule은 템플릿 코퍼스에서 후보 전체에 간선을 만든다. remember는 LLM만 쓴다 (#1378).
+      { method: 'llm', minConfidence: 0.5, candidateLimit: 30, immediate: true }
     );
 
     if (candidates.length > 0) {
