@@ -180,7 +180,8 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
           const gen = await client.models.generateContent({
             model,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            config: { temperature: 0.3, maxOutputTokens: 1024 },
+            // 사고 토큰이 maxOutputTokens 를 먹어 응답이 잘리지 않게 사고를 끈다.
+            config: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
           });
           return gen.text || '{}';
         } finally {

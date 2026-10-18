@@ -50,6 +50,8 @@ export async function extractRelationsWithGemini(
             config: {
               temperature: 0.3,
               maxOutputTokens: LIMITS.MAX_RESPONSE_TOKENS,
+              // 사고 모델(gemini-3-flash-preview)은 사고 토큰이 maxOutputTokens 를 먹어 JSON 이 MAX_TOKENS 로 잘린다.
+              thinkingConfig: { thinkingBudget: 0 },
               responseMimeType: 'application/json'
             }
           });
