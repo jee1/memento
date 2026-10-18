@@ -11,6 +11,8 @@
 
 ### Fixed
 
+- 관계 추출: LLM 응답 한도를 1000 에서 4096 토큰으로 올렸습니다. 후보 10개에 관계마다 근거를 쓰면 1000 을 넘어, `gemini-2.5-flash-lite` 실측에서 6건 중 4건이 `MAX_TOKENS` 로 잘렸습니다. 끝까지 쓴 응답은 600~819 토큰이었습니다.
+
 - LLM: Gemini LLM 기본 모델을 은퇴한 `gemini-2.0-flash`(API 404)에서 별칭 `gemini-flash-latest` 로 바꿨습니다(#1407). `GEMINI_LLM_MODEL` 을 지정하지 않은 설치에서 관계·절차 추출, 요약, personal agent 의 Gemini 호출이 모두 실패하던 문제입니다. 버전을 고정하려면 env 로 지정하십시오.
 - 개발: 기본값을 `DEFAULT_GEMINI_LLM_MODEL` 한 상수로 모으고, compose·env 템플릿이 그 값과 같은지 `tests/gemini-default-model-sync.spec.ts` 가 검사합니다(#1407).
 
