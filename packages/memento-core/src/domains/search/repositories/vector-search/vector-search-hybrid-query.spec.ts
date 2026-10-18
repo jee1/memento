@@ -38,7 +38,10 @@ function selectProjectionUsesPrecomputedSimilarity(sql: string): boolean {
 
 function regionAfterOuterMiJoin(sql: string): string {
   const joinAt = sql.lastIndexOf('JOIN memory_item mi');
-  return joinAt >= 0 ? sql.slice(joinAt) : sql;
+  expect(joinAt).toBeGreaterThan(-1);
+  const groupAt = sql.indexOf('GROUP BY', joinAt);
+  expect(groupAt).toBeGreaterThan(joinAt);
+  return sql.slice(joinAt, groupAt);
 }
 
 function captureHybridSql(

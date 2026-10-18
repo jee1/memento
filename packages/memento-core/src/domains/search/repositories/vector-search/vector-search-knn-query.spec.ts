@@ -51,9 +51,13 @@ describe('executeKnnQuery scoped outer WHERE (#1386)', () => {
 
     expect(sql).toMatch(/rowid IN \(/i);
     expect(sql).toMatch(/scoped_mi\.project_id/i);
-    const afterJoin = sql.split(/JOIN memory_item mi[\s\S]*?\) = 0\)\s*/i)[1] ?? '';
+    const joinAt = sql.lastIndexOf('JOIN memory_item mi');
+    expect(joinAt).toBeGreaterThan(-1);
+    const groupAt = sql.indexOf('GROUP BY', joinAt);
+    expect(groupAt).toBeGreaterThan(joinAt);
+    const afterJoin = sql.slice(joinAt, groupAt);
+    expect(afterJoin).not.toMatch(/\bWHERE\b/);
     expect(afterJoin).not.toMatch(/mi\.project_id\s*=/i);
-    expect(afterJoin).not.toMatch(/^WHERE\s+/i);
   });
 
   it('unscoped path still filters by model on the outer query', () => {
