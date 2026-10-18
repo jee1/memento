@@ -38,8 +38,12 @@ export const LIMITS = {
   MAX_CYCLE_DEPTH: 10,
   /** LLM 프롬프트 최대 토큰 수 */
   MAX_PROMPT_TOKENS: 500,
-  /** LLM 응답 최대 토큰 수 */
-  MAX_RESPONSE_TOKENS: 1000,
+  /**
+   * LLM 응답 최대 토큰 수.
+   * 후보 10개에 관계마다 한국어 reasoning 을 쓰면 1000 을 넘는다. 2026-10-18 gemini-2.5-flash-lite 실측:
+   * 한도 1000 에서 6건 중 4건이 MAX_TOKENS 로 잘렸고, 끝까지 쓴 응답은 600~819 토큰이었다.
+   */
+  MAX_RESPONSE_TOKENS: 4096,
   /** 비용 로그 출력 주기 (호출 횟수) */
   COST_LOG_INTERVAL: 100
 } as const;
