@@ -11,6 +11,8 @@
 
 ### Fixed
 
+- 관계·절차 추출: Gemini 사고 모델(`gemini-3-flash-preview`)에서 사고 토큰이 출력 한도를 먹어 응답 JSON 이 잘리던 문제를 고쳤습니다. 두 호출에서 사고를 끕니다(`thinkingBudget: 0`). 실측으로 기본 설정은 3/3 `MAX_TOKENS`, 사고를 끄면 3/3 정상 JSON 이었습니다.
+
 - 검색: 벤치마크 프로파일 평가가 `relevance_signal`·`fts_relevance`·`vector_length_decay`를 프로파일 TOML이 아니라 전역 설정으로 읽던 문제를 고쳤습니다(#1399). 프로파일 TOML이 모든 랭킹 knob에 적용됩니다.
 - 망각: 정책 정리(`executeMemoryCleanup`)가 soft·유예기간 없이 바로 hard 삭제하던 경로를 제거했습니다(#1389). hard는 `sweepExpiredSoftDeletes`만 수행합니다(`SOFT_DELETE_GRACE_PERIOD_DAYS`가 지난 soft 행).
 
