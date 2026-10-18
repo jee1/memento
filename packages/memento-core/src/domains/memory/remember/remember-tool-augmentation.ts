@@ -7,10 +7,10 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
-import { RelationExtractor } from '../../relation/services/relation-extractor.js';
-import { LLMBasedRelationExtractor } from '../../relation/services/llm-based-relation-extractor.js';
+import { extractForRemember } from '../../relation/services/remember-relation-extraction.js';
 import type { RelationCandidate } from '../../../shared/types/relation.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -140,37 +140,38 @@ export async function runRelationExtraction(
     const newMemory = await getMemoryById(dbRef, savedMemoryId, host);
     if (!newMemory) return;
 
-    // LLM 없으면 extractRelations(method:llm)가 throw→warning 소음이 난다. 가용성만 보고 조용히 건너뛴다 (#1378).
-    const llmExtractor = new LLMBasedRelationExtractor();
-    if (!(await llmExtractor.isAvailableAsync())) {
+    const outcome = await extractForRemember(newMemory, existingMemories, {
+      llmProvider: mementoConfig.llmProvider,
+      relationExtractionOverride: mementoConfig.relationExtractionOverride,
+      typesafeApiKey: mementoConfig.typesafeApiKey,
+      typesafeModel: mementoConfig.typesafeModel,
+    });
+
+    if (outcome.status === 'unavailable') {
       host.logInfo('관계 추출 건너뜀 (LLM 사용 불가)', { memory_id: savedMemoryId });
       return;
     }
-
-    const relationExtractor = new RelationExtractor(undefined, llmExtractor);
-    const candidates = await relationExtractor.extractRelations(
-      newMemory,
-      existingMemories,
-      // hybrid+rule은 템플릿 코퍼스에서 후보 전체에 간선을 만든다. remember는 LLM만 쓴다 (#1378).
-      { method: 'llm', minConfidence: 0.5, candidateLimit: 30, immediate: true }
-    );
-
-    if (candidates.length > 0) {
-      host.logInfo('관계 추출 완료', {
-        memory_id: savedMemoryId,
-        relation_count: candidates.length,
-        relations: candidates.map(c => ({
-          target_id: c.target_id,
-          relation_type: c.relation_type,
-          confidence: c.confidence,
-          method: c.method
-        }))
-      });
-
-      await persistRelationCandidates(candidates, context, host, savedMemoryId);
-    } else {
-      host.logInfo('관계 추출 완료 (관계 없음)', { memory_id: savedMemoryId });
+    if (outcome.status === 'failed') {
+      host.logWarning(`관계 추출 실패 (${savedMemoryId})`, { reason: outcome.reason });
+      return;
     }
+    if (outcome.status === 'none') {
+      host.logInfo('관계 추출 완료 (관계 없음)', { memory_id: savedMemoryId });
+      return;
+    }
+
+    host.logInfo('관계 추출 완료', {
+      memory_id: savedMemoryId,
+      relation_count: outcome.candidates.length,
+      relations: outcome.candidates.map(c => ({
+        target_id: c.target_id,
+        relation_type: c.relation_type,
+        confidence: c.confidence,
+        method: c.method
+      }))
+    });
+
+    await persistRelationCandidates([...outcome.candidates], context, host, savedMemoryId);
   } catch (error) {
     host.logWarning(`관계 추출 실패 (${savedMemoryId})`, {
       error: error instanceof Error ? error.message : String(error)
