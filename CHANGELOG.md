@@ -11,6 +11,8 @@
 
 ### Changed
 
+- 검색: 기각 게이트 기본 임계값을 0.4로 내렸습니다(#1387). 보존된 docker 로그 12건에서 top_score [0.4, 0.5) 기각의 거짓 기각은 6/11이었습니다. 질의 원문은 공개하지 않습니다.
+
 - 검색/인프라: `memory_item_vec` 쓰기 조건을 tfidf·lightweight 384 native 허용 목록으로 좁혀 MiniLM 이중 저장을 끊습니다(#1377). 마이그레이션 053이 레거시 non-member 행을 지우고, 낡은 트리거 때문에 빠져 있던 MiniLM 윈도 행을 `memory_item_vec_minilm`에 채웁니다. 테이블 DROP은 하지 않습니다. `VECTOR_SEARCH_CONFIG.providerDimensions.lightweight` 384는 그대로 둡니다.
 
 - 개발: advisory CI `slop-detector-js` 와 `scripts/slop-gate-scan.sh` 의 `ai-slop-detector` 고정 버전을 3.8.5 에서 3.10.1 로 올렸습니다. `[js]` extra 로 tree-sitter-typescript 를 함께 설치해, 정규식 fallback 대신 AST 로 TS 를 분석합니다. 3.10.1 의 `review` 는 `audit` 별칭이 되어 `--js`·`--ci-mode` 를 받지 않으므로, 저장소 전체 hard 게이트는 `--project . --js --ci-mode hard --ci-report` 로 바꿨습니다. 머지를 막지 않는 검사라 필수 체크는 바뀌지 않습니다.

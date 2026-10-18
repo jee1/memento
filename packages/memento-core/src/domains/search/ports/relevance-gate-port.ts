@@ -44,12 +44,8 @@ export interface RelevanceGateOutcome {
   unscored: number;
 }
 
-/**
- * 2026-09-23 운영 DB 9,470건 실측 기준.
- * 관련 질의 top1 0.230~0.950, 무관 질의 top1 0.010~0.360.
- * T=0.5에서 무관 0/12 통과.
- */
-export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.5;
+/** shared/config 단일 출처. 도메인 소비자는 이 re-export를 써도 된다. */
+export { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../../shared/config/constants.js';
 
 /**
  * #1125 게이트가 점수를 하나도 얻지 못했을 때의 정책.

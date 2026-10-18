@@ -7,6 +7,7 @@
 import os from 'os';
 import path from 'path';
 import packageJson from '../../../package.json' with { type: 'json' };
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 
 /** PERF_ALERT_REARM_MS 단일 소스 (#697). ENV_DEFAULTS·resolveValidatedNumber fallback이 여기만 참조. */
 export const PERF_ALERT_REARM_MS_DEFAULT = 1_800_000;
@@ -32,7 +33,7 @@ const ENV_DEFAULTS: Record<string, string> = {
   SEARCH_MAX_LIMIT: '50',
   // #1095 검색 기각 게이트 — 기본 off 라 켜기 전까지 제품 동작 불변
   SEARCH_REJECTION_GATE: 'off',
-  SEARCH_REJECTION_GATE_THRESHOLD: '0.5',
+  SEARCH_REJECTION_GATE_THRESHOLD: String(DEFAULT_RELEVANCE_GATE_THRESHOLD),
   SEARCH_REJECTION_GATE_TIMEOUT_MS: '1500',
   SEARCH_REJECTION_GATE_DOC_CHARS: '300',
   SEARCH_REJECTION_GATE_ON_ERROR: 'open',

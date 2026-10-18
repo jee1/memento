@@ -171,3 +171,11 @@ export const HYBRID_SEARCH = {
   FTS_MIN_PREFIX_STEM_LENGTH: 2
 } as const;
 
+/**
+ * #1387 기각 게이트 기본 임계값 (`SEARCH_REJECTION_GATE_THRESHOLD`).
+ * 보존된 docker 로그 12건에서 topScore [0.4, 0.5) 기각의 거짓 기각은 6/11.
+ * 질의 원문과 라벨은 비공개라 이 비율은 그 표본 한 번의 값이다.
+ * 이전 기본값 0.5 는 2026-09-23 운영 DB 실측(무관 질의 top1 0.010~0.360, T=0.5 에서 무관 0/12 통과)이었다.
+ */
+export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.4;
+

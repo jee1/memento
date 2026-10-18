@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 
 /**
  * #1125: 기각 게이트 config 파싱을 고정한다.
@@ -47,10 +48,16 @@ describe('기각 임계값 파싱 (#1095)', () => {
     expect(config.searchRejectionGateThreshold).toBe(0.5);
   });
 
-  it('0~1 밖이거나 숫자가 아니면 0.5 로 떨어진다', async () => {
-    expect((await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: '1.5' })).searchRejectionGateThreshold).toBe(0.5);
-    expect((await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: '-0.1' })).searchRejectionGateThreshold).toBe(0.5);
-    expect((await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: 'abc' })).searchRejectionGateThreshold).toBe(0.5);
+  it('설정하지 않으면 포트 기본 임계값이다', async () => {
+    const config = await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: undefined });
+
+    expect(config.searchRejectionGateThreshold).toBe(DEFAULT_RELEVANCE_GATE_THRESHOLD);
+  });
+
+  it('0~1 밖이거나 숫자가 아니면 포트 기본 임계값으로 떨어진다', async () => {
+    expect((await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: '1.5' })).searchRejectionGateThreshold).toBe(DEFAULT_RELEVANCE_GATE_THRESHOLD);
+    expect((await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: '-0.1' })).searchRejectionGateThreshold).toBe(DEFAULT_RELEVANCE_GATE_THRESHOLD);
+    expect((await loadConfig({ SEARCH_REJECTION_GATE_THRESHOLD: 'abc' })).searchRejectionGateThreshold).toBe(DEFAULT_RELEVANCE_GATE_THRESHOLD);
   });
 });
 
