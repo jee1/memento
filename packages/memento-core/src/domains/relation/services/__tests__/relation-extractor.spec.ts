@@ -19,6 +19,7 @@ import type { RelationType } from '../../../shared/types/relation.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { RelationCache } from '../relation-cache.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
 
 // OpenAI 모킹
 vi.mock('openai', () => {
@@ -727,6 +728,111 @@ describe('RelationExtractor', () => {
         'LLM fallback 실패, 규칙 기반 결과 반환',
         expect.objectContaining({ reason: 'llm_call_failed' })
       );
+    });
+  });
+
+  describe('jev seat on the model arm', () => {
+    const saved = {
+      override: mementoConfig.relationExtractionOverride,
+      apiKey: mementoConfig.typesafeApiKey,
+      model: mementoConfig.typesafeModel,
+    };
+    const originalFetch = globalThis.fetch;
+
+    afterEach(() => {
+      mementoConfig.relationExtractionOverride = saved.override;
+      mementoConfig.typesafeApiKey = saved.apiKey;
+      mementoConfig.typesafeModel = saved.model;
+      globalThis.fetch = originalFetch;
+    });
+
+    function seatJev(): void {
+      mementoConfig.relationExtractionOverride = { kind: 'jev' };
+      mementoConfig.typesafeApiKey = 'typesafe-key';
+      mementoConfig.typesafeModel = 'jev-latest';
+      mockLLMExtractor.isAvailable.mockReturnValue(false);
+    }
+
+    function answer(body: unknown): Response {
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    it('answers method llm from jev without asking whether chat is available', async () => {
+      seatJev();
+      const available = vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync');
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce(answer({ answers: { r0: { noul: 0.9 } } }))
+        .mockResolvedValueOnce(answer({ answers: { y0_CAUSES: { noul: 0.8 } } }));
+      const source = createTestMemory('mem1', '원인', 'episodic');
+      const peer = createTestMemory('mem2', '결과', 'episodic');
+
+      const candidates = await extractor.extractRelations(source, [peer], { method: 'llm' });
+
+      expect(available).not.toHaveBeenCalled();
+      expect(mockLLMExtractor.extractRelations).not.toHaveBeenCalled();
+      expect(candidates).toEqual([expect.objectContaining({
+        target_id: 'mem2',
+        relation_type: 'CAUSES',
+        confidence: 0.8,
+        method: 'jev',
+      })]);
+    });
+
+    it('uses jev for the hybrid model fallback when chat is unavailable', async () => {
+      seatJev();
+      const available = vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync');
+      mockRuleExtractor.extractRelations.mockResolvedValue([
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'REFERENCES' as RelationType,
+          confidence: 0.3,
+          method: 'rule' as const,
+          evidence: '관련',
+        },
+      ]);
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce(answer({ answers: { r0: { noul: 0.9 } } }))
+        .mockResolvedValueOnce(answer({ answers: { y0_FOLLOWS: { noul: 0.7 } } }));
+
+      const candidates = await extractor.extractRelations(
+        createTestMemory('mem1', '앞', 'episodic'),
+        [createTestMemory('mem2', '뒤', 'episodic')],
+        { method: 'hybrid', minConfidence: 0.5 },
+      );
+
+      expect(available).not.toHaveBeenCalled();
+      expect(candidates).toEqual([expect.objectContaining({
+        relation_type: 'FOLLOWS',
+        confidence: 0.7,
+        method: 'jev',
+      })]);
+    });
+
+    it('keeps rule edges when the jev call fails', async () => {
+      seatJev();
+      const rules = [{
+        source_id: 'mem1',
+        target_id: 'mem2',
+        relation_type: 'REFERENCES' as RelationType,
+        confidence: 0.3,
+        method: 'rule' as const,
+        evidence: '관련',
+      }];
+      mockRuleExtractor.extractRelations.mockResolvedValue(rules);
+      globalThis.fetch = vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+
+      const candidates = await extractor.extractRelations(
+        createTestMemory('mem1', '앞', 'episodic'),
+        [createTestMemory('mem2', '뒤', 'episodic')],
+        { method: 'hybrid', minConfidence: 0.5 },
+      );
+
+      expect(candidates).toEqual(rules);
+      expect(mockLLMExtractor.extractRelations).not.toHaveBeenCalled();
     });
   });
 });
