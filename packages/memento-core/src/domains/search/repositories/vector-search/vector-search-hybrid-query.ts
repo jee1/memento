@@ -42,7 +42,11 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
 
   const hasTextQuery = Boolean(textQuery && textQuery.trim().length > 0);
   const hasScopedCandidates = hasMemoryFilter(scope);
-  const outerWhere = buildOuterWhereSql(scope, modelFilter);
+  // #1386: scope already applied in rowid IN (buildScopedCandidateSql). Repeating it in
+  // outer WHERE lets SQLite drive from memory_item and re-run vec0 KNN per in-scope row.
+  const outerWhere = hasScopedCandidates
+    ? { sql: '', params: [] as SqlParam[] }
+    : buildOuterWhereSql(scope, modelFilter);
   const scopedCandidate = hasScopedCandidates
     ? buildScopedCandidateSql(scope, provider, modelFilter)
     : { sql: '', params: [] as SqlParam[] };

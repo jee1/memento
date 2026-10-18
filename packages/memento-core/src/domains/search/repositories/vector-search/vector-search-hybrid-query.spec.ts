@@ -36,7 +36,15 @@ function selectProjectionUsesPrecomputedSimilarity(sql: string): boolean {
   return /1\s*-\s*(?:vs\.vector_distance|t\.distance)/i.test(withoutOrderBy);
 }
 
-function captureHybridSql(textQuery: string | undefined): string {
+function regionAfterOuterMiJoin(sql: string): string {
+  const joinAt = sql.lastIndexOf('JOIN memory_item mi');
+  return joinAt >= 0 ? sql.slice(joinAt) : sql;
+}
+
+function captureHybridSql(
+  textQuery: string | undefined,
+  scope: VectorSearchScope = emptyScope
+): string {
   let captured = '';
   const db = {
     prepare: (sql: string) => {
@@ -50,7 +58,7 @@ function captureHybridSql(textQuery: string | undefined): string {
     effectiveQueryVector: new Array(512).fill(0.1),
     textQuery,
     runtimeContext,
-    scope: emptyScope,
+    scope,
     options
   });
 
@@ -78,5 +86,20 @@ describe('executeHybridQuery SQL contract (#811 US5)', () => {
   it('텍스트-only 분기는 벡터 미매칭을 distance=1(→ similarity 0)로 보낸다', () => {
     const sql = captureHybridSql('only text');
     expect(sql).toMatch(/1\s+as\s+vector_distance/i);
+  });
+
+  it('scoped project_id omits outer mi.project_id on vector CTE and vector-only (#1386)', () => {
+    const scope: VectorSearchScope = { project_id: 'obsidian-wiki' };
+
+    const vectorOnly = captureHybridSql(undefined, scope);
+    expect(vectorOnly).toMatch(/rowid IN \(/i);
+    expect(vectorOnly).toMatch(/scoped_mi\.project_id/i);
+    expect(regionAfterOuterMiJoin(vectorOnly)).not.toMatch(/mi\.project_id\s*=/i);
+
+    const withText = captureHybridSql('q', scope);
+    const vectorCte = withText.slice(0, withText.indexOf('text_search AS'));
+    expect(vectorCte).toMatch(/scoped_mi\.project_id/i);
+    expect(regionAfterOuterMiJoin(vectorCte)).not.toMatch(/mi\.project_id\s*=/i);
+    expect(withText).toMatch(/AND mi\.project_id = \?/);
   });
 });
