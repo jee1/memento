@@ -179,3 +179,10 @@ export const HYBRID_SEARCH = {
  */
 export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.4;
 
+
+/**
+ * #1407 Gemini LLM 기본 모델 (`GEMINI_LLM_MODEL`, personal agent `MEMENTO_PERSONAL_AGENT_GEMINI_MODEL`).
+ * 고정 버전 `gemini-2.0-flash` 가 은퇴해 404 가 났다. 별칭은 은퇴하지 않는다. 버전 고정은 env 로 한다.
+ * 2026-10-18 이 별칭은 gemini-3.8-flash 를 가리켰고 thinkingBudget 0 + JSON 응답이 정상이었다.
+ */
+export const DEFAULT_GEMINI_LLM_MODEL = 'gemini-flash-latest';

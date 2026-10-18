@@ -39,7 +39,7 @@ describe('createPersonalAgentLlmPort', () => {
 
   it('throws when gemini is requested without factory', () => {
     expect(() =>
-      createPersonalAgentLlmPort({ provider: 'gemini', model: 'gemini-2.0-flash' }),
+      createPersonalAgentLlmPort({ provider: 'gemini', model: 'gemini-flash-latest' }),
     ).toThrow(PersonalAgentLlmError);
   });
 

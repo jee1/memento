@@ -118,7 +118,7 @@ const { createMockConfig, mockConfig } = vi.hoisted(() => {
     openaiModel: 'gpt-4o-mini',
     openaiLlmModel: 'gpt-4o-mini',
     geminiModel: 'gemini-1.5-flash',
-    geminiLlmModel: 'gemini-2.0-flash',
+    geminiLlmModel: 'gemini-flash-latest',
     llmModelOverrides: {} as Record<string, string | undefined>,
     llmProviderOverrides: {} as Record<string, string | undefined>,
     ollamaBaseUrl: undefined as string | undefined,

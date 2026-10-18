@@ -7,7 +7,7 @@
 import os from 'os';
 import path from 'path';
 import packageJson from '../../../package.json' with { type: 'json' };
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
+import { DEFAULT_GEMINI_LLM_MODEL, DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 
 /** PERF_ALERT_REARM_MS 단일 소스 (#697). ENV_DEFAULTS·resolveValidatedNumber fallback이 여기만 참조. */
 export const PERF_ALERT_REARM_MS_DEFAULT = 1_800_000;
@@ -25,7 +25,7 @@ const ENV_DEFAULTS: Record<string, string> = {
   OPENAI_MODEL: 'text-embedding-3-small',
   OPENAI_LLM_MODEL: 'gpt-4o-mini',
   GEMINI_MODEL: 'text-embedding-004',
-  GEMINI_LLM_MODEL: 'gemini-2.0-flash',
+  GEMINI_LLM_MODEL: DEFAULT_GEMINI_LLM_MODEL,
   OLLAMA_BASE_URL: 'http://localhost:11434',
   OLLAMA_MODEL: 'llama3',
   LLM_PROVIDER: 'auto',

@@ -45,7 +45,7 @@ OPENAI_LLM_MODEL=gpt-4o-mini   # 기본값
 ```bash
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your_api_key_here
-GEMINI_LLM_MODEL=gemini-2.0-flash   # 기본값
+GEMINI_LLM_MODEL=gemini-flash-latest   # 기본값
 ```
 
 `GEMINI_LLM_MODEL`은 LLM 추론 전용입니다. 임베딩에 사용되는 `GEMINI_MODEL`과 별개입니다.
@@ -83,7 +83,7 @@ LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
 
 1. 해당 용도의 `LLM_MODEL_*` 환경 변수 (설정된 경우) — **단, 런타임 제공자가 모델이 묶인 제공자(아래 바인딩 규칙)와 같을 때만**
 2. 제공자의 기본 LLM 모델 (`OPENAI_LLM_MODEL` 등)
-3. 코드 하드코딩 기본값 (gpt-4o-mini, gemini-2.0-flash, llama3)
+3. 코드 하드코딩 기본값 (gpt-4o-mini, gemini-flash-latest, llama3)
 
 빈 문자열·공백만 있는 `LLM_MODEL_*` 값은 미설정과 같습니다.
 

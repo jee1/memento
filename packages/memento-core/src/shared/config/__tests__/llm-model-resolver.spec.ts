@@ -142,7 +142,7 @@ describe('resolveLlmModel', () => {
       ollamaModel: 'llama3',
       llmModelOverrides: {},
     };
-    expect(resolveLlmModel('gemini', 'relation_extraction', config)).toBe('gemini-2.0-flash');
+    expect(resolveLlmModel('gemini', 'relation_extraction', config)).toBe('gemini-flash-latest');
   });
 
   it('uses code fallback when provider LLM env is empty', () => {
@@ -153,7 +153,7 @@ describe('resolveLlmModel', () => {
       llmModelOverrides: {},
     };
     expect(resolveLlmModel('openai', 'consolidation', config)).toBe('gpt-4o-mini');
-    expect(resolveLlmModel('gemini', 'consolidation', config)).toBe('gemini-2.0-flash');
+    expect(resolveLlmModel('gemini', 'consolidation', config)).toBe('gemini-flash-latest');
     expect(resolveLlmModel('ollama', 'procedural', config)).toBe('llama3');
   });
 });

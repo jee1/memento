@@ -20,7 +20,7 @@ function llmConfig(over: Partial<SummarizationLlmConfig> = {}): SummarizationLlm
     llmProviderOverrides: {},
     llmModelOverrides: {},
     openaiLlmModel: 'gpt-4o-mini',
-    geminiLlmModel: 'gemini-2.0-flash',
+    geminiLlmModel: 'gemini-flash-latest',
     ollamaModel: 'llama3',
     ollamaBaseUrl: 'http://ollama.test:11434',
     ...over,

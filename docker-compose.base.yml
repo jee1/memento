@@ -18,7 +18,7 @@ x-default-environment: &default-environment
   OPENAI_LLM_MODEL: ${OPENAI_LLM_MODEL:-gpt-4o-mini}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   GEMINI_MODEL: ${GEMINI_MODEL:-text-embedding-004}
-  GEMINI_LLM_MODEL: ${GEMINI_LLM_MODEL:-gemini-2.0-flash}
+  GEMINI_LLM_MODEL: ${GEMINI_LLM_MODEL:-gemini-flash-latest}
   # 용도별 LLM provider override (미설정·빈 값 → 전역 LLM_PROVIDER; #820)
   LLM_PROVIDER_RELATION_EXTRACTION: ${LLM_PROVIDER_RELATION_EXTRACTION:-}
   LLM_PROVIDER_PROCEDURAL: ${LLM_PROVIDER_PROCEDURAL:-}

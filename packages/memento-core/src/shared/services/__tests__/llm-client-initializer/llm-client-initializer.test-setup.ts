@@ -10,7 +10,7 @@ const mockMementoConfig = vi.hoisted(() => ({
   ollamaModel: 'llama3',
   openaiLlmModel: 'gpt-4o-mini',
   geminiModel: 'gemini-1.5-flash',
-  geminiLlmModel: 'gemini-2.0-flash',
+  geminiLlmModel: 'gemini-flash-latest',
   llmModelOverrides: {},
   llmProviderOverrides: {},
   llmProvider: 'auto' as const
@@ -59,7 +59,7 @@ export function resetLlmClientInitializerTestEnv(): void {
   mockMementoConfig.ollamaModel = 'llama3';
   mockMementoConfig.openaiLlmModel = 'gpt-4o-mini';
   mockMementoConfig.geminiModel = 'gemini-1.5-flash';
-  mockMementoConfig.geminiLlmModel = 'gemini-2.0-flash';
+  mockMementoConfig.geminiLlmModel = 'gemini-flash-latest';
   mockMementoConfig.llmModelOverrides = {};
   mockMementoConfig.llmProviderOverrides = {};
   mockMementoConfig.llmProvider = 'auto';

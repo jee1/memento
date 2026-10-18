@@ -11,6 +11,9 @@
 
 ### Fixed
 
+- LLM: Gemini LLM 기본 모델을 은퇴한 `gemini-2.0-flash`(API 404)에서 별칭 `gemini-flash-latest` 로 바꿨습니다(#1407). `GEMINI_LLM_MODEL` 을 지정하지 않은 설치에서 관계·절차 추출, 요약, personal agent 의 Gemini 호출이 모두 실패하던 문제입니다. 버전을 고정하려면 env 로 지정하십시오.
+- 개발: 기본값을 `DEFAULT_GEMINI_LLM_MODEL` 한 상수로 모으고, compose·env 템플릿이 그 값과 같은지 `tests/gemini-default-model-sync.spec.ts` 가 검사합니다(#1407).
+
 - 관계·절차 추출: Gemini 사고 모델(`gemini-3-flash-preview`)에서 사고 토큰이 출력 한도를 먹어 응답 JSON 이 잘리던 문제를 고쳤습니다. 두 호출에서 사고를 끕니다(`thinkingBudget: 0`). 실측으로 기본 설정은 3/3 `MAX_TOKENS`, 사고를 끄면 3/3 정상 JSON 이었습니다.
 
 - 검색: 벤치마크 프로파일 평가가 `relevance_signal`·`fts_relevance`·`vector_length_decay`를 프로파일 TOML이 아니라 전역 설정으로 읽던 문제를 고쳤습니다(#1399). 프로파일 TOML이 모든 랭킹 knob에 적용됩니다.

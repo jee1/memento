@@ -191,7 +191,7 @@ LLM_PROVIDER=openai
 EMBEDDING_PROVIDER=gemini
 GEMINI_API_KEY=...
 GEMINI_MODEL=text-embedding-004
-GEMINI_LLM_MODEL=gemini-2.0-flash
+GEMINI_LLM_MODEL=gemini-flash-latest
 LLM_PROVIDER=gemini
 ```
 

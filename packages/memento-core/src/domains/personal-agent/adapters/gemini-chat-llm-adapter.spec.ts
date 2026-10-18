@@ -30,7 +30,7 @@ describe('GeminiChatLlmAdapter', () => {
     });
     const adapter = new GeminiChatLlmAdapter({
       apiKey: 'AIza-test',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-flash-latest',
     });
     const result = await adapter.complete([
       { role: 'system', content: 'You are helpful.' },
@@ -38,7 +38,7 @@ describe('GeminiChatLlmAdapter', () => {
     ]);
     expect(GoogleGenAI).toHaveBeenCalledWith({ apiKey: 'AIza-test' });
     expect(mockGenerateContent).toHaveBeenCalledWith({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-flash-latest',
       contents: [
         {
           role: 'user',
@@ -52,7 +52,7 @@ describe('GeminiChatLlmAdapter', () => {
     });
     expect(result.content).toBe('hello gemini');
     expect(result.metadata.provider).toBe('gemini');
-    expect(result.metadata.model).toBe('gemini-2.0-flash');
+    expect(result.metadata.model).toBe('gemini-flash-latest');
   });
 
   it('omits empty system block', async () => {
@@ -61,11 +61,11 @@ describe('GeminiChatLlmAdapter', () => {
     });
     const adapter = new GeminiChatLlmAdapter({
       apiKey: 'k',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-flash-latest',
     });
     await adapter.complete([{ role: 'user', content: 'only user' }]);
     expect(mockGenerateContent).toHaveBeenCalledWith({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-flash-latest',
       contents: [{ role: 'user', parts: [{ text: 'user: only user' }] }],
     });
   });
@@ -74,7 +74,7 @@ describe('GeminiChatLlmAdapter', () => {
     mockGenerateContent.mockRejectedValue(new Error('quota'));
     const adapter = new GeminiChatLlmAdapter({
       apiKey: 'k',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-flash-latest',
     });
     await expect(adapter.complete([{ role: 'user', content: 'x' }])).rejects.toSatisfy(
       (e: unknown) =>
