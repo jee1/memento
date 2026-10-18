@@ -15,6 +15,7 @@ import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-seria
 import { deleteOrphanVecRows } from '../migration/migrations/045-vec-orphan-cleanup.js';
 import { initializeDatabase } from '../init.js';
 import { replaceMemoryEmbedding } from '../../../../shared/utils/memory-embedding-write.js';
+import { hashMemoryContent } from '../../../../shared/utils/memory-content-hash.js';
 
 const DIMENSIONS = 384;
 let vecAvailable = false;
@@ -35,8 +36,9 @@ function vector(seed: number): number[] {
 }
 
 function write(db: Database.Database, memoryId: string, seed: number, model: string): Promise<void> {
-  return replaceMemoryEmbedding(db, {
+  return Promise.resolve(replaceMemoryEmbedding(db, {
     memoryId,
+    contentHash: hashMemoryContent('재임베딩 대상'),
     provider: 'minilm',
     projectionType: 'native',
     embedding: encodeFloat32Embedding(vector(seed)),
@@ -45,7 +47,7 @@ function write(db: Database.Database, memoryId: string, seed: number, model: str
     dimensions: DIMENSIONS,
     normalized: 1,
     createdBy: 'test',
-  });
+  }));
 }
 
 function orphanCount(db: Database.Database, table: string): number {

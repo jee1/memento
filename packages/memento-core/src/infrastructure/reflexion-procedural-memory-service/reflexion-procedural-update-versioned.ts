@@ -7,20 +7,23 @@ import type { ReflectionNotes } from '../../domains/memory/procedural/procedural
 import { toDbRelationType } from '../../shared/utils/relation-type-converter.js';
 import { logger } from '../../shared/utils/logger.js';
 import { createProceduralMemory } from './reflexion-procedural-create.js';
+import { MemoryEmbeddingService } from '../../domains/memory/services/memory-embedding-service.js';
 
 export async function updateProceduralMemoryVersioned(
   db: Database.Database,
   memoryId: string,
   extracted: ExtractedProceduralMemory,
   reflectionNote: ReflectionNotes | Record<string, unknown>,
-  event: FailureEvent
+  event: FailureEvent,
+  embeddingService: MemoryEmbeddingService = new MemoryEmbeddingService()
 ): Promise<void> {
   const newMemoryId = await createProceduralMemory(
     db,
     extracted,
     reflectionNote,
     event,
-    memoryId
+    memoryId,
+    embeddingService
   );
 
   if (!newMemoryId) {

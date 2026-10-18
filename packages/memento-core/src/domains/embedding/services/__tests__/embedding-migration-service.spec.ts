@@ -33,6 +33,7 @@ function createSchema(db: Database.Database): void {
       normalized INTEGER DEFAULT 0,
       version INTEGER DEFAULT 1,
       created_by TEXT DEFAULT 'system',
+      content_hash TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(memory_id, embedding_provider, projection_type)
     );

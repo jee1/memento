@@ -31,7 +31,8 @@ export function createBatchSchedulerJobRunnerCallbacks(source: BatchSchedulerCon
     runTelemetryCleanupBatch: () => runners.runTelemetryCleanupBatch(),
     runForgettingEventCleanupBatch: () => runners.runForgettingEventCleanupBatch(),
     runJobRunCleanupBatch: () => runners.runJobRunCleanupBatch(),
-    runAnchorAutoRefresh: () => runners.runAnchorAutoRefresh()
+    runAnchorAutoRefresh: () => runners.runAnchorAutoRefresh(),
+    runEmbeddingReconciliation: () => runners.runEmbeddingReconciliation()
   };
 }
 

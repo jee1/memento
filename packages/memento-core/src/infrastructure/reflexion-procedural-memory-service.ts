@@ -4,6 +4,7 @@ import { determineMergeStrategy, type ExtractedProceduralMemory } from '../domai
 import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { logger } from '../shared/utils/logger.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { createProceduralMemory } from './reflexion-procedural-memory-service/reflexion-procedural-create.js';
 import { resolveExtractedProceduralMemory } from './reflexion-procedural-memory-service/reflexion-procedural-extraction.js';
 import { updateProceduralMemoryIncremental } from './reflexion-procedural-memory-service/reflexion-procedural-update-incremental.js';
@@ -11,7 +12,10 @@ import { updateProceduralMemoryReplace } from './reflexion-procedural-memory-ser
 import { updateProceduralMemoryVersioned } from './reflexion-procedural-memory-service/reflexion-procedural-update-versioned.js';
 
 export class ReflexionProceduralMemoryService {
-  constructor(private readonly db: Database.Database) {}
+  constructor(
+    private readonly db: Database.Database,
+    private readonly embeddingService = new MemoryEmbeddingService()
+  ) {}
 
   /**
    * reflection_notes를 procedural memory로 자동 변환
@@ -41,7 +45,7 @@ export class ReflexionProceduralMemoryService {
           event
         );
       } else {
-        await createProceduralMemory(this.db, extracted, reflectionNote, event);
+        await createProceduralMemory(this.db, extracted, reflectionNote, event, undefined, this.embeddingService);
       }
     } catch (error) {
       logger.error('Procedural Memory 변환 실패', {
@@ -61,11 +65,13 @@ export class ReflexionProceduralMemoryService {
     try {
       if (updateMode === 'replace') {
         updateProceduralMemoryReplace(this.db, memoryId, extracted);
+        await this.refreshEmbedding(memoryId);
         return;
       }
 
       if (updateMode === 'incremental') {
         updateProceduralMemoryIncremental(this.db, memoryId, extracted);
+        await this.refreshEmbedding(memoryId);
         return;
       }
 
@@ -74,7 +80,8 @@ export class ReflexionProceduralMemoryService {
         memoryId,
         extracted,
         reflectionNote,
-        event
+        event,
+        this.embeddingService
       );
     } catch (error) {
       logger.error('Procedural Memory 업데이트 실패', {
@@ -83,6 +90,23 @@ export class ReflexionProceduralMemoryService {
         update_mode: updateMode
       });
       throw error;
+    }
+  }
+
+  private async refreshEmbedding(memoryId: string): Promise<void> {
+    const memory = this.db.prepare(
+      "SELECT content FROM memory_item WHERE id = ? AND type = 'procedural' AND COALESCE(is_deleted, 0) = 0"
+    ).get(memoryId) as { content: string } | undefined;
+    if (!memory) return;
+
+    const embedding = await this.embeddingService.createAndStoreEmbedding(
+      this.db,
+      memoryId,
+      memory.content,
+      'procedural'
+    );
+    if (!embedding) {
+      logger.warn('Procedural Memory embedding pending reconciliation', { memory_id: memoryId });
     }
   }
 }

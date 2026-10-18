@@ -177,11 +177,26 @@ export async function initializeDatabase(db: Database.Database): Promise<void> {
           embedding_provider TEXT DEFAULT 'tfidf',
           dimensions INTEGER,
           created_by TEXT DEFAULT 'system',
+          content_hash TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
           UNIQUE(memory_id)
         )
       `
+    );
+
+    const memoryEmbeddingColumns = db.prepare('PRAGMA table_info(memory_embedding)').all() as Array<{ name: string }>;
+    if (!memoryEmbeddingColumns.some(column => column.name === 'content_hash')) {
+      runQuery(db, 'ALTER TABLE memory_embedding ADD COLUMN content_hash TEXT');
+    }
+    runQuery(
+      db,
+      `CREATE TRIGGER IF NOT EXISTS memory_item_embedding_content_update
+       AFTER UPDATE OF content ON memory_item
+       WHEN OLD.content IS NOT NEW.content
+       BEGIN
+         DELETE FROM memory_embedding WHERE memory_id = NEW.id;
+       END`
     );
 
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type)');

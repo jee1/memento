@@ -3,6 +3,7 @@ import type { JobQueue } from '../job-queue.js';
 import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-context.js';
 import {
   scheduleAnchorAutoRefresh,
+  scheduleEmbeddingReconciliation,
   scheduleCleanupJob,
   scheduleForgettingEventCleanup,
   scheduleHealthcheckJob,
@@ -89,7 +90,8 @@ function buildRestartHandlers(): Record<string, RestartHandler> {
     telemetry_cleanup_batch: scheduleTelemetryCleanup,
     forgetting_event_cleanup_batch: scheduleForgettingEventCleanup,
     job_run_cleanup_batch: scheduleJobRunCleanup,
-    anchor_auto_refresh: scheduleAnchorAutoRefresh
+    anchor_auto_refresh: scheduleAnchorAutoRefresh,
+    embedding_reconciliation: scheduleEmbeddingReconciliation
   };
 }
 

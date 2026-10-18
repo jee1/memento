@@ -25,6 +25,7 @@ export interface BatchRecurringScheduleContext {
   runForgettingEventCleanupBatch: () => Promise<void>;
   runJobRunCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
+  runEmbeddingReconciliation: () => Promise<BatchJobResult>;
 }
 
 export function scheduleCleanupJob(ctx: BatchRecurringScheduleContext): void {
@@ -195,11 +196,21 @@ export function scheduleAnchorAutoRefresh(ctx: BatchRecurringScheduleContext): v
   );
 }
 
+export function scheduleEmbeddingReconciliation(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'embedding_reconciliation',
+    ctx.config.embeddingReconciliationInterval,
+    () => ctx.runEmbeddingReconciliation(),
+    8
+  );
+}
+
 export function registerAllRecurringJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleCoreMaintenanceJobs(ctx);
   scheduleConsolidationRelationAndLogJobs(ctx);
   scheduleAugmentationAndTelemetryJobs(ctx);
   scheduleMetaMemoryAndReviewJobs(ctx);
+  scheduleEmbeddingReconciliation(ctx);
   if (ctx.config.anchorAutoRefreshEnabled && ctx.hasAnchorManager) {
     scheduleAnchorAutoRefresh(ctx);
   } else {

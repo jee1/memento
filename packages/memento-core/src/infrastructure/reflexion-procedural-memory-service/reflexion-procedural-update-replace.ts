@@ -16,13 +16,15 @@ export function updateProceduralMemoryReplace(
            skill_name = COALESCE(?, skill_name),
            trigger_conditions = COALESCE(?, trigger_conditions),
            steps = COALESCE(?, steps),
-           task_goal = COALESCE(?, task_goal)
+           task_goal = COALESCE(?, task_goal),
+           content = COALESCE(?, content)
        WHERE id = ?`,
     [
       extracted.workflow_name || null,
       extracted.skill_name || null,
       extracted.trigger_conditions || null,
       extracted.steps || null,
+      extracted.task_goal || null,
       extracted.task_goal || null,
       memoryId
     ]

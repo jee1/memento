@@ -181,7 +181,8 @@ export class BatchScheduler implements IBatchScheduler {
       runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch(),
       runForgettingEventCleanupBatch: () => this.runForgettingEventCleanupBatch(),
       runJobRunCleanupBatch: () => this.runJobRunCleanupBatch(),
-      runAnchorAutoRefresh: () => this.runAnchorAutoRefresh()
+      runAnchorAutoRefresh: () => this.runAnchorAutoRefresh(),
+      runEmbeddingReconciliation: () => this.runEmbeddingReconciliation()
     };
   }
 
@@ -378,6 +379,10 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runAnchorAutoRefresh(): Promise<BatchJobResult> {
     return this.getJobRunners().runAnchorAutoRefresh();
+  }
+
+  private async runEmbeddingReconciliation(): Promise<BatchJobResult> {
+    return this.getJobRunners().runEmbeddingReconciliation();
   }
 
   private log(message: string, data?: unknown, level: 'info' | 'warn' | 'error' = 'info'): void {
