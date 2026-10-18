@@ -157,7 +157,6 @@ export class ForgettingPolicyService {
         }
       }
 
-      // 5. 리뷰 스케줄 업데이트 (병렬 실행으로 N+1 완화)
       const reviewCandidates = reviewSchedules.filter(s => s.needs_review);
       await Promise.all(reviewCandidates.map(async (schedule) => {
         await this.updateReviewSchedule(db, schedule);
