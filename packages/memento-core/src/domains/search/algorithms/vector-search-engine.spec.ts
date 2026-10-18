@@ -340,14 +340,12 @@ describe('VectorSearchEngine', () => {
         tags: row.tags
       }));
       const allMock = vi.fn((...params: any[]) => {
-        // 실제 구현의 파라미터 순서: query, k, candidate provider/types, outer types, limit
+        // query, k, candidate provider/types, limit. Scope is not repeated outside vec0 (#1386).
         expect(params[0]).toBe(JSON.stringify(queryVector));
         expect(params).toEqual([
           JSON.stringify(queryVector),
           resolveVectorPrefetchLimit(options.limit), // #1112 프리페치 깊이는 최종 limit 과 분리됨
           'tfidf',
-          'episodic',
-          'semantic',
           'episodic',
           'semantic',
           options.limit,
@@ -375,9 +373,12 @@ describe('VectorSearchEngine', () => {
         const isVectorSearchQuery = /vec\.embedding\s+MATCH|FROM\s+memory_item_vec_|FROM\s+\(\s*SELECT\s+rowid,\s+distance/.test(sql);
         if (isVectorSearchQuery) {
           if (sql.includes('mi.type IN')) {
-            expect(sql).toContain('mi.type IN (?,?)');
+            expect(sql).toContain('scoped_mi.type IN (?,?)');
             expect(sql).toContain('AND k = ?');
             expect(sql).toContain('rowid IN (SELECT scoped_me.id');
+            const joinAt = sql.lastIndexOf('JOIN memory_item mi');
+            const groupAt = sql.indexOf('GROUP BY', joinAt);
+            expect(sql.slice(joinAt, groupAt)).not.toMatch(/\bWHERE\b/);
           }
           // allMock이 함수이므로 직접 호출 가능하도록 설정
           const mockStatement = { all: allMock };
