@@ -272,15 +272,17 @@ export class CategoryQualityAggregator {
         outcomes
       )
     );
-    const scored_query_ids_by_macro = Object.fromEntries(
-      ALL_MACROS.map((macro) => [
-        macro,
-        groundTruths
-          .filter((groundTruth) => queryIdToMacro.get(groundTruth.queryId) === macro)
-          .map((groundTruth) => groundTruth.queryId)
-          .sort(),
-      ]),
-    ) as CategoryMeasurement['scored_query_ids_by_macro'];
+    const queryIdsForMacro = (macro: MacroCategory): readonly string[] =>
+      groundTruths
+        .filter((groundTruth) => queryIdToMacro.get(groundTruth.queryId) === macro)
+        .map((groundTruth) => groundTruth.queryId)
+        .sort();
+    const scored_query_ids_by_macro = {
+      incident_ops: queryIdsForMacro('incident_ops'),
+      procedural: queryIdsForMacro('procedural'),
+      conceptual: queryIdsForMacro('conceptual'),
+      tag_filter: queryIdsForMacro('tag_filter'),
+    } satisfies CategoryMeasurement['scored_query_ids_by_macro'];
     return { reports, scored_query_ids_by_macro };
   }
 
