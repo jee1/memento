@@ -148,7 +148,7 @@ export class RelationExtractor implements IRelationExtractor {
     if (!hasAnyResults || !hasHighConfidenceResults) {
       const jev = await this.jevArm(newMemory, existingMemories);
       if (jev.seated) {
-        if (!jev.ok) {
+        if (jev.ok === false) {
           logger.info('Jev 관계 추출 실패, 규칙 기반 결과 반환', {
             memoryId: newMemory.id,
             reason: jev.reason,
@@ -243,7 +243,7 @@ export class RelationExtractor implements IRelationExtractor {
       }),
       new UnifiedEmbeddingService(),
     ).judge(source, existing);
-    if (!judged.ok) {
+    if (judged.ok === false) {
       return { seated: true, ok: false, reason: judged.reason };
     }
     return { seated: true, ok: true, candidates: [...judged.candidates] };

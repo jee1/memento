@@ -80,7 +80,7 @@ export async function extractForRemember(
       timeoutMs: RELATION_JEV_TIMEOUT_MS,
     });
     const judged = await new JevRelationJudge(client, new UnifiedEmbeddingService()).judge(source, existing);
-    if (!judged.ok) {
+    if (judged.ok === false) {
       return { status: 'failed', reason: judged.reason };
     }
     if (judged.candidates.length === 0) {

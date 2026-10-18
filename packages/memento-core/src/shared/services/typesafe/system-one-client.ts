@@ -131,10 +131,10 @@ export class SystemOneClient {
     }
 
     const first = await this.post(state, questions);
-    if (first.ok) {
+    if (first.ok === true) {
       return { ok: true, noulById: first.noulById, wafRetried: false };
     }
-    if (first.reason !== 'waf') {
+    if (first.ok === false && first.reason !== 'waf') {
       return { ok: false, reason: first.reason, wafRetried: false };
     }
 
@@ -144,10 +144,10 @@ export class SystemOneClient {
     }
 
     const second = await this.post(next, questions);
-    if (second.ok) {
+    if (second.ok === true) {
       return { ok: true, noulById: second.noulById, wafRetried: true };
     }
-    return { ok: false, reason: second.reason, wafRetried: true };
+    return { ok: false, reason: second.ok === false ? second.reason : 'network', wafRetried: true };
   }
 
   private async post(

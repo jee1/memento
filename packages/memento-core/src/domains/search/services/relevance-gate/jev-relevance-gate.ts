@@ -55,14 +55,15 @@ export class JevRelevanceGate implements IRelevanceGatePort {
     const result = await this.client.ask(state, questions, retryState);
     const elapsedMs = Date.now() - startedAt;
 
-    if (result.ok) {
+    if (result.ok === true) {
       if (result.wafRetried) {
         this.logWaf(docs.length, elapsedMs, true);
       }
       return candidateIds.map((candidateId) => result.noulById.get(candidateId) ?? Number.NaN);
     }
-
-    this.logFailure(result.reason, docs.length, elapsedMs, result.wafRetried);
+    if (result.ok === false) {
+      this.logFailure(result.reason, docs.length, elapsedMs, result.wafRetried);
+    }
     return nanScores(docs.length);
   }
 

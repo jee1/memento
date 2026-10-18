@@ -109,7 +109,7 @@ export class JevRelationJudge {
           instructions: fill(RELEVANCE_QUESTION, `t${index}`),
         })),
       );
-      if (!relevance.ok) {
+      if (relevance.ok === false) {
         return { ok: false, reason: relevance.reason };
       }
 
@@ -136,7 +136,7 @@ export class JevRelationJudge {
           instructions: fill(TYPE_QUESTION[type], `t${index}`),
         }))),
       );
-      if (!typed.ok) {
+      if (typed.ok === false) {
         return { ok: false, reason: typed.reason };
       }
 
