@@ -5,7 +5,7 @@
  */
 
 import Database from 'better-sqlite3';
-import type { CategoryQualityReport } from '../../../../shared/types/benchmark.types.js';
+import type { CategoryMeasurement, CategoryQualityReport } from '../../../../shared/types/benchmark.types.js';
 import type { CategoryMetricsOptions } from './category-quality-aggregator.js';
 import type {
   CollectedMetrics,
@@ -87,6 +87,15 @@ export class QualityMetricsCollector {
     mappingPath: string,
     options?: CategoryMetricsOptions
   ): Promise<CategoryQualityReport[]> {
+    const measurement = await this.collectCategoryMeasurement(benchmarkDir, mappingPath, options);
+    return [...measurement.reports];
+  }
+
+  async collectCategoryMeasurement(
+    benchmarkDir: string,
+    mappingPath: string,
+    options?: CategoryMetricsOptions
+  ): Promise<CategoryMeasurement> {
     return this.categoryAggregator.collect(benchmarkDir, mappingPath, options);
   }
 }

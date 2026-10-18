@@ -54,7 +54,7 @@ jobs:
       # #961 M1: seed benchmark-v3 once; category-report / sweep / long-distractor share it.
       - name: Seed search-quality benchmark DB (shared)
         run: npx tsx scripts/seed-benchmark-db.ts /tmp/memento-bench-nightly.db
-      - name: Gate category search quality (MRR >= 0.5)
+      - name: Gate category search quality (relative MRR)
         env:
           MEMENTO_BENCHMARK_DB_PATH: /tmp/memento-bench-nightly.db
         run: npm run quality -- benchmark category-report
