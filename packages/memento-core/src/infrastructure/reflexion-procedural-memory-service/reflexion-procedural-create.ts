@@ -6,13 +6,15 @@ import { DatabaseUtils } from '../../shared/utils/database.js';
 import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/procedural-memory-extractor.js';
 import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../../shared/utils/logger.js';
+import { MemoryEmbeddingService } from '../../domains/memory/services/memory-embedding-service.js';
 
 export async function createProceduralMemory(
   db: Database.Database,
   extracted: ExtractedProceduralMemory,
   reflectionNote: ReflectionNotes | Record<string, unknown>,
   event: FailureEvent,
-  existingMemoryIdForVersion?: string
+  existingMemoryIdForVersion?: string,
+  embeddingService: MemoryEmbeddingService = new MemoryEmbeddingService()
 ): Promise<string | null> {
   try {
     const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -63,6 +65,16 @@ export async function createProceduralMemory(
       workflow_name: extracted.workflow_name,
       skill_name: extracted.skill_name
     });
+
+    const embedding = await embeddingService.createAndStoreEmbedding(
+      db,
+      memoryId,
+      content,
+      'procedural'
+    );
+    if (!embedding) {
+      logger.warn('Procedural Memory embedding pending reconciliation', { memory_id: memoryId });
+    }
 
     return memoryId;
   } catch (error) {

@@ -96,7 +96,8 @@ export function processMigrationRow(params: {
         32,
         normalizedFlag,
         1,
-        createdBy
+        createdBy,
+        row.content_hash
       );
 
       if (existing) {
@@ -114,6 +115,7 @@ export function processMigrationRow(params: {
           version: existing.version,
           createdBy: existing.created_by,
           createdAt: existing.created_at ?? undefined,
+          contentHash: existing.content_hash,
         });
       } else {
         rollbackEntries.push({

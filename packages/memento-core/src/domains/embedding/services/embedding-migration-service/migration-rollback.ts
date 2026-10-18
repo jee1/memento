@@ -26,8 +26,9 @@ export function rollback(db: Database, entries: ReadonlyArray<MigrationRollbackE
         normalized,
         version,
         created_by,
+        content_hash,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(memory_id, embedding_provider, projection_type) DO UPDATE SET
         embedding = excluded.embedding,
         dim = excluded.dim,
@@ -37,6 +38,7 @@ export function rollback(db: Database, entries: ReadonlyArray<MigrationRollbackE
         normalized = excluded.normalized,
         version = excluded.version,
         created_by = excluded.created_by,
+        content_hash = excluded.content_hash,
         created_at = excluded.created_at
     `
   );
@@ -70,6 +72,7 @@ function applyRollbackRestore(restoreStatement: Statement, entry: MigrationRollb
     entry.normalized ?? 0,
     entry.version ?? 1,
     entry.createdBy ?? DEFAULT_CREATED_BY,
+    entry.contentHash ?? null,
     entry.createdAt ?? new Date().toISOString()
   );
 }

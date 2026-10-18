@@ -17,9 +17,11 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
+import { hashMemoryContent } from './memory-content-hash.js';
 
 export interface MemoryEmbeddingWrite {
   memoryId: string;
+  contentHash: string;
   provider: string;
   projectionType: string;
   embedding: Buffer;
@@ -45,9 +47,10 @@ const UPSERT_SQL = `
     normalized,
     version,
     created_by,
+    content_hash,
     created_at
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   ON CONFLICT(memory_id, embedding_provider, projection_type) DO UPDATE SET
     embedding = excluded.embedding,
     dim = excluded.dim,
@@ -57,15 +60,16 @@ const UPSERT_SQL = `
     normalized = excluded.normalized,
     version = excluded.version,
     created_by = excluded.created_by,
+    content_hash = excluded.content_hash,
     created_at = CURRENT_TIMESTAMP
 `;
 
 /** UNIQUE(memory_id, embedding_provider, projection_type) 한 행을 교체한다. */
-export async function replaceMemoryEmbedding(
+export function replaceMemoryEmbedding(
   db: Database.Database,
   row: MemoryEmbeddingWrite
-): Promise<void> {
-  await DatabaseUtils.run(db, UPSERT_SQL, [
+): void {
+  DatabaseUtils.run(db, UPSERT_SQL, [
     row.memoryId,
     row.provider,
     row.projectionType,
@@ -76,6 +80,9 @@ export async function replaceMemoryEmbedding(
     32,
     row.normalized,
     1,
-    row.createdBy
+    row.createdBy,
+    row.contentHash
   ]);
 }
+
+export { hashMemoryContent };

@@ -54,13 +54,15 @@ export function updateProceduralMemoryIncremental(
              skill_name = COALESCE(?, skill_name), 
              trigger_conditions = COALESCE(?, trigger_conditions), 
              steps = ?,
-             task_goal = COALESCE(?, task_goal)
+             task_goal = COALESCE(?, task_goal),
+             content = COALESCE(?, content)
          WHERE id = ?`,
       [
         extracted.workflow_name || null,
         extracted.skill_name || null,
         extracted.trigger_conditions || null,
         mergedSteps,
+        extracted.task_goal || null,
         extracted.task_goal || null,
         memoryId
       ]
@@ -72,12 +74,14 @@ export function updateProceduralMemoryIncremental(
          SET workflow_name = COALESCE(?, workflow_name), 
              skill_name = COALESCE(?, skill_name), 
              trigger_conditions = COALESCE(?, trigger_conditions), 
-             task_goal = COALESCE(?, task_goal)
+             task_goal = COALESCE(?, task_goal),
+             content = COALESCE(?, content)
          WHERE id = ?`,
       [
         extracted.workflow_name || null,
         extracted.skill_name || null,
         extracted.trigger_conditions || null,
+        extracted.task_goal || null,
         extracted.task_goal || null,
         memoryId
       ]

@@ -569,7 +569,7 @@ export async function handleMemoryItem(
     message: draft.existingMemoryId
       ? `기억이 갱신되었습니다: ${id}`
       : `기억이 저장되었습니다: ${id}`,
-    embedding_created: context.services.embeddingService?.isAvailable() || false,
+    embedding_pending: true,
     ...(similarity_warning ? { similarity_warning } : {})
   });
 }

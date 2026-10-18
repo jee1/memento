@@ -61,6 +61,7 @@ export interface BatchSchedulerRecurringContextSource extends BatchSchedulerCont
   runForgettingEventCleanupBatch: () => Promise<void>;
   runJobRunCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
+  runEmbeddingReconciliation: () => Promise<BatchJobResult>;
 }
 
 function createMutableJobRef<T>(
@@ -143,6 +144,7 @@ export function buildBatchRecurringScheduleContext(
     runTelemetryCleanupBatch: () => source.runTelemetryCleanupBatch(),
     runForgettingEventCleanupBatch: () => source.runForgettingEventCleanupBatch(),
     runJobRunCleanupBatch: () => source.runJobRunCleanupBatch(),
-    runAnchorAutoRefresh: () => source.runAnchorAutoRefresh()
+    runAnchorAutoRefresh: () => source.runAnchorAutoRefresh(),
+    runEmbeddingReconciliation: () => source.runEmbeddingReconciliation()
   };
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchRecurringScheduleContext } from '../batch-scheduler/batch-recurring-schedules.js';
-import { scheduleCleanupJob } from '../batch-scheduler/batch-recurring-schedules.js';
+import { scheduleCleanupJob, scheduleEmbeddingReconciliation } from '../batch-scheduler/batch-recurring-schedules.js';
 
 function createFakeContext(
   overrides: Partial<BatchRecurringScheduleContext> = {}
@@ -25,6 +25,7 @@ function createFakeContext(
     memoryReviewCandidatesSchedulerEnabled: true,
     anchorAutoRefreshInterval: 21_600_000,
     anchorAutoRefreshEnabled: true,
+    embeddingReconciliationInterval: 86_400_000,
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,
@@ -65,6 +66,7 @@ function createFakeContext(
     runForgettingEventCleanupBatch: vi.fn(),
     runJobRunCleanupBatch: vi.fn(),
     runAnchorAutoRefresh: vi.fn(),
+    runEmbeddingReconciliation: vi.fn(),
     ...overrides,
   };
 
@@ -81,5 +83,23 @@ describe('batch-recurring-schedules wrappers (#1264)', () => {
 
     await expect(cleanupJob()).resolves.toEqual(failedResult);
     expect(runMemoryCleanup).toHaveBeenCalledOnce();
+  });
+
+  it('registers embedding reconciliation on its configured recurring interval', async () => {
+    const scheduleJob = vi.fn();
+    const runEmbeddingReconciliation = vi.fn().mockResolvedValue({ success: true });
+    const { ctx } = createFakeContext({ scheduleJob, runEmbeddingReconciliation });
+
+    scheduleEmbeddingReconciliation(ctx);
+
+    expect(scheduleJob).toHaveBeenCalledWith(
+      'embedding_reconciliation',
+      ctx.config.embeddingReconciliationInterval,
+      expect.any(Function),
+      8
+    );
+    const job = scheduleJob.mock.calls[0]?.[2] as () => Promise<unknown>;
+    await job();
+    expect(runEmbeddingReconciliation).toHaveBeenCalledOnce();
   });
 });

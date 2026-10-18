@@ -208,6 +208,21 @@ describe('remember near-duplicate write path (#730, #997)', () => {
     return JSON.parse(result.content[0].text);
   }
 
+  it('reports embedding work as pending when the remember response is returned', async () => {
+    vi.spyOn(context.services.embeddingService!, 'isAvailable').mockReturnValue(false);
+
+    const result = await handleMemoryItem(
+      { type: 'semantic', content: 'embedding pending response' },
+      context,
+      baseCtx('semantic'),
+      host,
+    );
+    const data = parsePayload(result);
+
+    expect(data.embedding_pending).toBe(true);
+    expect(data).not.toHaveProperty('embedding_created');
+  });
+
   it('warns on near-duplicate content in same scope', async () => {
     insertMemory(db, {
       id: 'mem_existing',

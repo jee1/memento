@@ -257,6 +257,7 @@ CREATE TABLE IF NOT EXISTS memory_embedding (
   normalized BOOLEAN DEFAULT FALSE, -- 정규화 여부
   version INTEGER DEFAULT 1, -- 임베딩 버전
   created_by TEXT DEFAULT 'system',
+  content_hash TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
   UNIQUE(memory_id, embedding_provider, projection_type)
@@ -269,6 +270,13 @@ CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider_projection ON memory_em
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions);
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model);
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_version ON memory_embedding(version);
+
+CREATE TRIGGER IF NOT EXISTS memory_item_embedding_content_update
+AFTER UPDATE OF content ON memory_item
+WHEN OLD.content IS NOT NEW.content
+BEGIN
+  DELETE FROM memory_embedding WHERE memory_id = NEW.id;
+END;
 
 -- 임베딩 모델 레지스트리 (제공자별 차원 및 메타데이터)
 CREATE TABLE IF NOT EXISTS embedding_model_registry (

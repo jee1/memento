@@ -8,7 +8,7 @@ import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { UnifiedEmbeddingService } from '../domains/embedding/services/unified-embedding-service.js';
 import type { EmbeddingProvider } from '../shared/types/embedding.types.js';
-import { replaceMemoryEmbedding } from '../shared/utils/memory-embedding-write.js';
+import { hashMemoryContent, replaceMemoryEmbedding } from '../shared/utils/memory-embedding-write.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../domains/embedding/services/vector-compatibility-service.js';
 import {
@@ -158,6 +158,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
     // 쓰면 vec 인덱스에 고아 행이 남는다 — memory-embedding-write.ts 주석 참조.
     await replaceMemoryEmbedding(db, {
       memoryId,
+      contentHash: hashMemoryContent(content),
       provider,
       projectionType,
       embedding: serializedEmbedding,

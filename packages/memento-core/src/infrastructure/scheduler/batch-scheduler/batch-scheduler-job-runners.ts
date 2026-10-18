@@ -17,6 +17,7 @@ import {
   runJobRunCleanupBatch
 } from '../handlers/batch-scheduler-sleep-telemetry-handlers.js';
 import { runAnchorAutoRefresh } from '../handlers/batch-scheduler-anchor-handlers.js';
+import { runEmbeddingReconciliation } from '../handlers/batch-scheduler-embedding-handlers.js';
 import {
   buildBatchSchedulerRunContext,
   type BatchSchedulerContextSource
@@ -39,6 +40,7 @@ export const REGISTERED_MANUAL_BATCH_JOB_TYPES = [
   'forgetting_event_cleanup_batch',
   'job_run_cleanup_batch',
   'anchor_auto_refresh',
+  'embedding_reconciliation',
 ] as const;
 
 export type ManualBatchSchedulerJobType = (typeof REGISTERED_MANUAL_BATCH_JOB_TYPES)[number];
@@ -63,7 +65,8 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
     runTelemetryCleanupBatch: () => runTelemetryCleanupBatch(ctx()),
     runForgettingEventCleanupBatch: () => runForgettingEventCleanupBatch(ctx()),
     runJobRunCleanupBatch: () => runJobRunCleanupBatch(ctx()),
-    runAnchorAutoRefresh: () => runAnchorAutoRefresh(ctx())
+    runAnchorAutoRefresh: () => runAnchorAutoRefresh(ctx()),
+    runEmbeddingReconciliation: () => runEmbeddingReconciliation(ctx())
   };
 }
 
@@ -136,6 +139,8 @@ function dispatchManualJob(
       return wrapVoidRunner(jobType, () => runners.runJobRunCleanupBatch());
     case 'anchor_auto_refresh':
       return runners.runAnchorAutoRefresh();
+    case 'embedding_reconciliation':
+      return runners.runEmbeddingReconciliation();
     default:
       throw new Error(`Unknown job type: ${jobType satisfies never}`);
   }

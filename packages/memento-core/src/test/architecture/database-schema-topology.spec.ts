@@ -37,6 +37,7 @@ const INLINE_MEMORY_EMBEDDING_DDL_ALLOWLIST = [
   'src/domains/memory/introspection/__tests__/introspection-heal-tool.spec.ts',
   'src/infrastructure/database/sqlite/__tests__/ensure-memory-embedding-metadata-defaults.spec.ts',
   'src/infrastructure/database/sqlite/__tests__/migrate-embedding-rebuild-atomicity.spec.ts',
+  'src/infrastructure/scheduler/jobs/embedding-reconciliation-batch-job.spec.ts',
   'src/infrastructure/database/sqlite/init.spec.ts',
   'src/infrastructure/database/sqlite/migrate.spec.ts'
 ];

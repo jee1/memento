@@ -44,7 +44,10 @@ async function runEmbeddingAndNeighbors(
   const { dbRef, savedMemoryId, savedMemoryType, content } = params;
   const embeddingServiceRef = context.services.embeddingService;
 
-  if (!embeddingServiceRef?.isAvailable()) return;
+  if (!embeddingServiceRef?.isAvailable()) {
+    host.logWarning('임베딩 서비스가 준비되지 않아 주기 재조정 대기열에 남깁니다', { memory_id: savedMemoryId });
+    return;
+  }
 
   let embeddingResult = null;
   try {
@@ -55,7 +58,10 @@ async function runEmbeddingAndNeighbors(
     });
   }
 
-  if (!embeddingResult) return;
+  if (!embeddingResult) {
+    host.logWarning('임베딩이 생성되지 않아 주기 재조정을 기다립니다', { memory_id: savedMemoryId });
+    return;
+  }
 
   try {
     const dbValid = await checkDbConnection(dbRef);

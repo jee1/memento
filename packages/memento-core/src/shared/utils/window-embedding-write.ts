@@ -12,7 +12,7 @@ import {
   encodeFloat32Embedding,
   shouldNormalizeFlag,
 } from './embedding-serialization.js';
-import { replaceMemoryEmbedding } from './memory-embedding-write.js';
+import { hashMemoryContent, replaceMemoryEmbedding } from './memory-embedding-write.js';
 
 export const WINDOW_PROJECTION_PREFIX = 'window:';
 
@@ -55,34 +55,43 @@ export async function deleteWindowEmbeddings(
   );
 }
 
-export async function replaceWindowEmbeddings(
+export function replaceWindowEmbeddings(
   db: Database.Database,
   row: {
     memoryId: string;
     provider: string;
     model: string | undefined;
+    content: string;
     vectors: number[][];
   }
-): Promise<void> {
-  await deleteWindowEmbeddings(db, row.memoryId, row.provider);
-
-  if (row.vectors.length < 2) {
-    return;
-  }
-
+): void {
   const vectors = row.vectors.slice(0, MAX_WINDOW_ROWS);
-  for (let i = 0; i < vectors.length; i++) {
-    const vector = vectors[i]!;
-    await replaceMemoryEmbedding(db, {
-      memoryId: row.memoryId,
-      provider: row.provider,
-      projectionType: buildWindowProjectionType(i),
-      embedding: encodeFloat32Embedding(vector),
-      dim: vector.length,
-      model: row.model,
-      dimensions: vector.length,
-      normalized: shouldNormalizeFlag(computeL2Norm(vector)),
-      createdBy: 'memory_embedding_service',
-    });
-  }
+  const contentHash = hashMemoryContent(row.content);
+  db.transaction(() => {
+    const currentMemory = db.prepare('SELECT content FROM memory_item WHERE id = ?').get(row.memoryId) as
+      | { content: string }
+      | undefined;
+    if (!currentMemory || currentMemory.content !== row.content) return;
+
+    db.prepare(
+      `DELETE FROM memory_embedding WHERE memory_id = ? AND embedding_provider = ? AND projection_type LIKE 'window:%'`
+    ).run(row.memoryId, row.provider);
+    if (vectors.length < 2) return;
+
+    for (let i = 0; i < vectors.length; i++) {
+      const vector = vectors[i]!;
+      replaceMemoryEmbedding(db, {
+        memoryId: row.memoryId,
+        contentHash,
+        provider: row.provider,
+        projectionType: buildWindowProjectionType(i),
+        embedding: encodeFloat32Embedding(vector),
+        dim: vector.length,
+        model: row.model,
+        dimensions: vector.length,
+        normalized: shouldNormalizeFlag(computeL2Norm(vector)),
+        createdBy: 'memory_embedding_service',
+      });
+    }
+  })();
 }

@@ -9,6 +9,7 @@ export interface RawEmbeddingRow {
   dim: number;
   dimensions: number;
   created_at: string;
+  content_hash: string | null;
 }
 
 export interface ExistingEmbeddingRow {
@@ -21,6 +22,7 @@ export interface ExistingEmbeddingRow {
   version: number;
   created_by: string | null;
   created_at: string | null;
+  content_hash: string | null;
 }
 
 export const DEFAULT_BATCH_SIZE = 500;
