@@ -61,6 +61,55 @@ export interface ProfileEvalResult {
   rr: number[];
   ndcg_at_10_per_query: number[];
   recall_at_10_per_query: number[];
+  /** 아래 배열은 모두 query_ids 와 같은 순서(쿼리당 1개). */
+  query_ids: string[];
+  empty_per_query: number[];
+  /** top-10 안에서 relevance 컴포넌트 점수가 같은(|차|<1e-9) 쌍 수 */
+  relevance_tie_pairs: number[];
+  /** top-10 안의 전체 쌍 수 */
+  pairs: number[];
+}
+
+const RELEVANCE_TIE_EPSILON = 1e-9;
+
+export function countRelevanceTies(scores: number[]): { tied: number; pairs: number } {
+  let tied = 0;
+  let pairs = 0;
+  for (let i = 0; i < scores.length; i++) {
+    for (let j = i + 1; j < scores.length; j++) {
+      pairs++;
+      if (Math.abs(scores[i]! - scores[j]!) < RELEVANCE_TIE_EPSILON) tied++;
+    }
+  }
+  return { tied, pairs };
+}
+
+/** 지정한 query_id 만 남긴 결과를 새로 집계한다 (explore/judge 부분집합 평가용). */
+export function restrictEvalToQueries(r: ProfileEvalResult, ids: readonly string[]): ProfileEvalResult {
+  const keep = new Set(ids);
+  const idx = r.query_ids.flatMap((id, i) => (keep.has(id) ? [i] : []));
+  const pick = <T,>(arr: T[]): T[] => idx.map((i) => arr[i]!);
+  const rr = pick(r.rr);
+  const ndcg = pick(r.ndcg_at_10_per_query);
+  const recall = pick(r.recall_at_10_per_query);
+  const empty = pick(r.empty_per_query);
+  const latency = pick(r.latency_ms);
+  return {
+    ...r,
+    mrr: mean(rr),
+    ndcg_at_10: mean(ndcg),
+    recall_at_10: mean(recall),
+    empty_result_rate: mean(empty),
+    latency_ms: latency,
+    p95_latency_ms: calcP95(latency),
+    rr,
+    ndcg_at_10_per_query: ndcg,
+    recall_at_10_per_query: recall,
+    query_ids: pick(r.query_ids),
+    empty_per_query: empty,
+    relevance_tie_pairs: pick(r.relevance_tie_pairs),
+    pairs: pick(r.pairs),
+  };
 }
 
 export function calcP95(latencyMs: number[]): number {
@@ -127,9 +176,11 @@ async function evaluateProfileWithActiveWeights(
   const corpus = loadBenchmarkCorpus(benchmarkDir);
   const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   const qById = new Map(queries.map((q) => [q.query_id, q]));
+  const queryTextToId = new Map(queries.map((q) => [q.query, q.query_id]));
 
   const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
   const queryResults = new Map<string, SearchResult[]>();
+  const tieByQuery = new Map<string, { tied: number; pairs: number }>();
   const latencyMs: number[] = [];
 
   for (const gt of groundTruths) {
@@ -139,6 +190,7 @@ async function evaluateProfileWithActiveWeights(
     const sr = await searchEngine.search(db, {
       query: queryText,
       limit: 20,
+      include_score_breakdown: true,
       provider_filter: getBenchmarkVectorProviderFilter(),
     });
     latencyMs.push(performance.now() - t0);
@@ -147,6 +199,10 @@ async function evaluateProfileWithActiveWeights(
       score: item.finalScore,
     }));
     queryResults.set(gt.queryId, mapped);
+    tieByQuery.set(
+      gt.queryId,
+      countRelevanceTies(sr.items.slice(0, 10).map((item) => item.score_breakdown?.relevance.score ?? Number.NaN)),
+    );
   }
 
   const rr: number[] = [];
@@ -174,11 +230,13 @@ async function evaluateProfileWithActiveWeights(
   const ndcgDenom = groundTruths.length;
   const ndcgAt10PerQuery: number[] = [];
   const recallAt10PerQuery: number[] = [];
+  const emptyPerQuery: number[] = [];
 
   for (const gt of groundTruths) {
     const results = queryResults.get(gt.queryId) ?? [];
     if (results.length === 0) {
       emptyCount++;
+      emptyPerQuery.push(1);
       ndcgAt10PerQuery.push(0);
       recallAt10PerQuery.push(0);
       continue;
@@ -190,6 +248,7 @@ async function evaluateProfileWithActiveWeights(
     recall10 += r10;
     ndcgAt10PerQuery.push(q10);
     recallAt10PerQuery.push(r10);
+    emptyPerQuery.push(0);
   }
 
   return {
@@ -203,6 +262,10 @@ async function evaluateProfileWithActiveWeights(
     rr,
     ndcg_at_10_per_query: ndcgAt10PerQuery,
     recall_at_10_per_query: recallAt10PerQuery,
+    query_ids: groundTruths.map((gt) => queryTextToId.get(gt.queryId) ?? gt.queryId),
+    empty_per_query: emptyPerQuery,
+    relevance_tie_pairs: groundTruths.map((gt) => tieByQuery.get(gt.queryId)?.tied ?? 0),
+    pairs: groundTruths.map((gt) => tieByQuery.get(gt.queryId)?.pairs ?? 0),
   };
 }
 
