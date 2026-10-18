@@ -15,6 +15,8 @@
 | quality-thresholds.ts | 품질 임계값 | `npm run quality:thresholds` |
 | quality-report.ts | 품질 리포트 | `npm run quality:report` |
 | generate-ground-truth.ts | ground truth 생성 | `npm run quality:ground-truth:generate` |
+| quality-benchmark-category-report.ts | 카테고리 상대 MRR 게이트 | `npm run quality -- benchmark category-report` |
+| quality-benchmark-perf-smoke.ts | 1만 행 검색 p95·RSS 스모크 | `npm run quality -- benchmark perf-smoke` |
 | compare-weight-profiles.ts | 랭킹 프로파일 A/B 비교 (MRR·NDCG·permutation test) | `npm run quality -- benchmark compare-profiles` |
 | tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality -- benchmark tune-weights` |
 | tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality -- benchmark tune-report` |

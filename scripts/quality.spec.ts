@@ -23,6 +23,13 @@ describe('quality command dispatcher', () => {
     });
   });
 
+  it('routes perf-smoke and keeps write-baseline', () => {
+    expect(resolveQualityCommand(['benchmark', 'perf-smoke', '--write-baseline'])).toEqual({
+      script: 'quality-benchmark-perf-smoke.ts',
+      args: ['--write-baseline'],
+    });
+  });
+
   it('rejects unknown commands with the supported command list', () => {
     expect(() => resolveQualityCommand(['unknown'])).toThrow(/benchmark:export/);
   });
