@@ -12,6 +12,7 @@ import { SearchEngine } from '../../algorithms/search-engine.js';
 import { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
+import { resetRankingWeightsCache } from '../../../../shared/config/ranking-weights-loader.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 function resolveRepoRankingProfile(rel: string): string | undefined {
@@ -50,12 +51,19 @@ describe('HybridSearchFactory', () => {
 
     const defaultProfileToml = resolveRepoRankingProfile('config/ranking-profiles/default.toml');
     it.skipIf(!defaultProfileToml)(
-      'rankingWeightsPath로 랭킹 프로파일 TOML을 지정해 엔진을 생성할 수 있음',
+      'MEMENTO_RANKING_WEIGHTS_PATH로 지정한 랭킹 프로파일 TOML로 엔진을 생성할 수 있음',
       () => {
-        const engine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider, undefined, {
-          rankingWeightsPath: defaultProfileToml,
-        });
-        expect(engine).toBeInstanceOf(HybridSearchEngine);
+        const prev = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+        process.env.MEMENTO_RANKING_WEIGHTS_PATH = defaultProfileToml;
+        resetRankingWeightsCache();
+        try {
+          const engine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
+          expect(engine).toBeInstanceOf(HybridSearchEngine);
+        } finally {
+          if (prev === undefined) delete process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+          else process.env.MEMENTO_RANKING_WEIGHTS_PATH = prev;
+          resetRankingWeightsCache();
+        }
       }
     );
   });

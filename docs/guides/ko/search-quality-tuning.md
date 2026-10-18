@@ -66,16 +66,40 @@ npm run quality -- benchmark tune-weights -- \
 |------|--------|------|
 | `--candidates` | `30` | 생성할 후보 수. 많을수록 탐색 범위가 넓어지고 시간이 늘어납니다. |
 | `--seed` | `Date.now()` | PRNG 시드. 같은 값이면 동일한 후보 집합을 재현할 수 있습니다. |
-| `--baseline-profile` | `default` | 기준 프로파일명 (`config/ranking-profiles/*.toml`) |
+| `--baseline-profile` | `default` | 기준 프로파일명(`config/ranking-profiles/*.toml`) 또는 `.toml` 경로(절대 경로 또는 cwd 기준) |
+| `--knobs` | 전체 | 움직일 knob을 쉼표로 지정합니다. 알 수 없는 키는 오류입니다. 고르지 않은 knob은 baseline 값을 유지합니다. |
 | `--benchmark-dir` | `tests/fixtures/.../benchmark-v3` | 벤치마크 데이터셋 경로 |
 | `--output-dir` | `tmp/tune-weights/` | 결과 저장 경로 |
 
-후보가 다음 게이트 기준 중 하나라도 위반하면 자동으로 거부됩니다.
+탐색하는 knob과 범위는 다음과 같습니다. 후보는 baseline 전체 설정에서 선택한 knob만 바꾼 TOML입니다.
+
+| knob | 샘플링 | 범위 |
+|------|--------|------|
+| `ranking_weights.alpha`, `beta`, `gamma`, `delta`, `epsilon`, `theta`, `zeta_fb` | baseline × U[0.8, 1.2] | 0 ~ 1 (clamp) |
+| `relevance_signal.scale` | 균등 | 0.5 ~ 3.0 |
+| `recency_signal.scale` | 균등 | 0.05 ~ 1 |
+| `importance_signal.scale` | 균등 | 0.05 ~ 1 |
+| `fts_relevance.temperature` | 균등 | 2 ~ 30 |
+| `vector_length_decay.characteristic_length` | 균등 | 10 ~ 120 |
+| `vector_length_decay.saturation_length` | 균등 | 20 ~ 300 (항상 `characteristic_length` 이상) |
+
+### 탐색/판정 분할
+
+쿼리를 `category-mapping.json`의 macro 카테고리별로 층화해, 층마다 시드 셔플 후 절반(올림)을 탐색(explore), 나머지를 판정(judge)에 배정합니다. 매핑이 없는 쿼리는 `unmapped` 층입니다. 후보의 복합 점수와 NDCG 게이트, 최고 후보 선택은 explore 쿼리만 씁니다. judge 쿼리는 선택된 단일 후보와 baseline의 paired permutation 검정(MRR·NDCG@10·Recall@10)에만 쓰입니다. 분할은 `--seed`에서 결정되며 `summary.json`의 `seed`, `split.explore_query_ids`, `split.judge_query_ids`, `split.strata`에 기록됩니다. benchmark-v3는 29개 쿼리뿐이라 judge 절반(14개)의 유의성은 약합니다.
+
+`summary.json`의 `candidates[]`에는 모든 후보의 `knobs`, `composite_score`, `gate_passed`, `gate_reject_reason`, `tie_rate`, explore 지표가 있어 게이트 판정을 감사할 수 있습니다. 최고 후보의 knob 값은 `best_knobs`입니다.
+
+### relevance 동점 게이트
+
+`relevance_signal.scale`을 키우면 relevance 점수가 상한에서 포화해 top-10 안에서 정답끼리 동점이 늘고, relevance 가 순서를 정하는 힘을 잃어 recency·importance 가 순위를 정합니다(#1180). 최종 점수(`finalScore`)는 다른 항이 동점을 깨므로 scale 3.0에서도 동점이 0이라 이 현상을 가리지 못합니다. 그래서 게이트는 `score_breakdown.relevance.score`를 읽어 top-10 쌍 중 점수 차가 1e-9 미만인 쌍의 비율을 셉니다. 후보 비율이 `baseline_tie_rate + 0.005`를 넘으면 `tie` 사유로 거부합니다. benchmark-v3 실측 쌍 비율은 scale 1.0에서 0, 2.0에서 0.0008, 2.25에서 0.0031, 2.5에서 0.0084, 3.0에서 0.036입니다. 정답 라벨을 쓰지 않으므로 전체 쿼리로 계산해도 judge 누출이 없습니다.
+
+후보가 다음 게이트 기준 중 하나라도 위반하면 자동으로 거부됩니다. 지표는 explore 쿼리 기준입니다(레이턴시와 동점 비율 제외).
 
 | 조건 | 이유 |
 |------|------|
 | `p95_latency_ms > 2000ms` | 레이턴시 예산 초과 |
 | `ndcg_at_10 < baseline − 0.05` | NDCG 회귀 허용 한계 초과 |
+| relevance 동점 비율 `> baseline + 0.005` | `relevance_signal.scale` 포화로 인한 동점 증가 |
 
 게이트를 통과한 후보는 복합 점수로 순위가 매겨집니다.
 

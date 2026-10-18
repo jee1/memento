@@ -61,6 +61,55 @@ export interface ProfileEvalResult {
   rr: number[];
   ndcg_at_10_per_query: number[];
   recall_at_10_per_query: number[];
+  /** 아래 배열은 모두 query_ids 와 같은 순서(쿼리당 1개). */
+  query_ids: string[];
+  empty_per_query: number[];
+  /** top-10 안에서 relevance 컴포넌트 점수가 같은(|차|<1e-9) 쌍 수 */
+  relevance_tie_pairs: number[];
+  /** top-10 안의 전체 쌍 수 */
+  pairs: number[];
+}
+
+const RELEVANCE_TIE_EPSILON = 1e-9;
+
+export function countRelevanceTies(scores: number[]): { tied: number; pairs: number } {
+  let tied = 0;
+  let pairs = 0;
+  for (let i = 0; i < scores.length; i++) {
+    for (let j = i + 1; j < scores.length; j++) {
+      pairs++;
+      if (Math.abs(scores[i]! - scores[j]!) < RELEVANCE_TIE_EPSILON) tied++;
+    }
+  }
+  return { tied, pairs };
+}
+
+/** 지정한 query_id 만 남긴 결과를 새로 집계한다 (explore/judge 부분집합 평가용). */
+export function restrictEvalToQueries(r: ProfileEvalResult, ids: readonly string[]): ProfileEvalResult {
+  const keep = new Set(ids);
+  const idx = r.query_ids.flatMap((id, i) => (keep.has(id) ? [i] : []));
+  const pick = <T,>(arr: T[]): T[] => idx.map((i) => arr[i]!);
+  const rr = pick(r.rr);
+  const ndcg = pick(r.ndcg_at_10_per_query);
+  const recall = pick(r.recall_at_10_per_query);
+  const empty = pick(r.empty_per_query);
+  const latency = pick(r.latency_ms);
+  return {
+    ...r,
+    mrr: mean(rr),
+    ndcg_at_10: mean(ndcg),
+    recall_at_10: mean(recall),
+    empty_result_rate: mean(empty),
+    latency_ms: latency,
+    p95_latency_ms: calcP95(latency),
+    rr,
+    ndcg_at_10_per_query: ndcg,
+    recall_at_10_per_query: recall,
+    query_ids: pick(r.query_ids),
+    empty_per_query: empty,
+    relevance_tie_pairs: pick(r.relevance_tie_pairs),
+    pairs: pick(r.pairs),
+  };
 }
 
 export function calcP95(latencyMs: number[]): number {
@@ -105,18 +154,33 @@ export async function evaluateProfile(
   profilePath: string,
   benchmarkDir: string = BENCHMARK_DIR,
 ): Promise<ProfileEvalResult> {
+  // 랭킹 신호 대부분이 getRankingWeights()를 무인자로 읽으므로 경로 인자가 아니라 env로 프로파일 전체를 적용한다.
+  const prevEnvPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+  process.env.MEMENTO_RANKING_WEIGHTS_PATH = resolve(profilePath);
   resetRankingWeightsCache();
+  try {
+    return await evaluateProfileWithActiveWeights(db, benchmarkDir);
+  } finally {
+    if (prevEnvPath === undefined) delete process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+    else process.env.MEMENTO_RANKING_WEIGHTS_PATH = prevEnvPath;
+    resetRankingWeightsCache();
+  }
+}
 
+async function evaluateProfileWithActiveWeights(
+  db: CliDatabase,
+  benchmarkDir: string,
+): Promise<ProfileEvalResult> {
   const queries = loadBenchmarkQueries(benchmarkDir);
   const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir);
   const corpus = loadBenchmarkCorpus(benchmarkDir);
   const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   const qById = new Map(queries.map((q) => [q.query_id, q]));
+  const queryTextToId = new Map(queries.map((q) => [q.query, q.query_id]));
 
-  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider, undefined, {
-    rankingWeightsPath: resolve(profilePath),
-  });
+  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
   const queryResults = new Map<string, SearchResult[]>();
+  const tieByQuery = new Map<string, { tied: number; pairs: number }>();
   const latencyMs: number[] = [];
 
   for (const gt of groundTruths) {
@@ -126,6 +190,7 @@ export async function evaluateProfile(
     const sr = await searchEngine.search(db, {
       query: queryText,
       limit: 20,
+      include_score_breakdown: true,
       provider_filter: getBenchmarkVectorProviderFilter(),
     });
     latencyMs.push(performance.now() - t0);
@@ -134,6 +199,10 @@ export async function evaluateProfile(
       score: item.finalScore,
     }));
     queryResults.set(gt.queryId, mapped);
+    tieByQuery.set(
+      gt.queryId,
+      countRelevanceTies(sr.items.slice(0, 10).map((item) => item.score_breakdown?.relevance.score ?? Number.NaN)),
+    );
   }
 
   const rr: number[] = [];
@@ -161,11 +230,13 @@ export async function evaluateProfile(
   const ndcgDenom = groundTruths.length;
   const ndcgAt10PerQuery: number[] = [];
   const recallAt10PerQuery: number[] = [];
+  const emptyPerQuery: number[] = [];
 
   for (const gt of groundTruths) {
     const results = queryResults.get(gt.queryId) ?? [];
     if (results.length === 0) {
       emptyCount++;
+      emptyPerQuery.push(1);
       ndcgAt10PerQuery.push(0);
       recallAt10PerQuery.push(0);
       continue;
@@ -177,6 +248,7 @@ export async function evaluateProfile(
     recall10 += r10;
     ndcgAt10PerQuery.push(q10);
     recallAt10PerQuery.push(r10);
+    emptyPerQuery.push(0);
   }
 
   return {
@@ -190,6 +262,10 @@ export async function evaluateProfile(
     rr,
     ndcg_at_10_per_query: ndcgAt10PerQuery,
     recall_at_10_per_query: recallAt10PerQuery,
+    query_ids: groundTruths.map((gt) => queryTextToId.get(gt.queryId) ?? gt.queryId),
+    empty_per_query: emptyPerQuery,
+    relevance_tie_pairs: groundTruths.map((gt) => tieByQuery.get(gt.queryId)?.tied ?? 0),
+    pairs: groundTruths.map((gt) => tieByQuery.get(gt.queryId)?.pairs ?? 0),
   };
 }
 
