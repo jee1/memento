@@ -3,10 +3,13 @@ import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
 import { logger } from '../../../../shared/utils/logger.js';
 import {
+  ALL_MACROS,
   assertMacroCategory,
   getBenchmarkVectorProviderFilter,
+  type CategoryMeasurement,
   type CategoryQualityReport,
   type MacroCategory,
+  type ResolvedRankingScope,
 } from '../../../../shared/types/benchmark.types.js';
 import {
   calculateNDCGAtK,
@@ -33,6 +36,8 @@ export interface CategoryMetricsOptions {
   /** 하이브리드 융합 가중치 강제 (#961 vector-dominant arm). 미지정 시 엔진 기본값. */
   vectorWeight?: number;
   textWeight?: number;
+  /** When set, score only these query ids. Sweep omits this and keeps the full fixture. */
+  scope?: ResolvedRankingScope;
 }
 
 /** #934: top-10 content 길이 평균 — 길이 편향 무-GT 지표 (게이트 아님) */
@@ -73,12 +78,6 @@ interface CategorySearchOutcome {
   longDocRatio: number;
 }
 
-const ALL_MACROS: MacroCategory[] = [
-  'incident_ops',
-  'procedural',
-  'conceptual',
-  'tag_filter'
-];
 const MRR_THRESHOLD = 0.5;
 
 /** relevantIds 가 있고, maxGroundTruthLength 가 있으면 GT 문서 최대 길이가 그 이하인 쿼리만 남긴다. */
@@ -156,13 +155,13 @@ function countAuthoredByMacro(
   queries: BenchmarkQuery[],
   queryIdToMacro: Map<string, MacroCategory>,
   groundTruths: GroundTruth[],
-  maxGroundTruthLength: number | undefined
+  restrictToScored: boolean
 ): Map<MacroCategory, number> {
   const scoredQueryKeys = new Set(groundTruths.map((gt) => gt.queryId));
   const authoredByMacro = new Map<MacroCategory, number>();
   for (const q of queries) {
     if (
-      maxGroundTruthLength !== undefined &&
+      restrictToScored &&
       !scoredQueryKeys.has(q.query_id) &&
       !scoredQueryKeys.has(q.query)
     ) {
@@ -247,16 +246,25 @@ export class CategoryQualityAggregator {
     benchmarkDir: string,
     mappingPath: string,
     options?: CategoryMetricsOptions
-  ): Promise<CategoryQualityReport[]> {
+  ): Promise<CategoryMeasurement> {
     const mapping = JSON.parse(readFileSync(mappingPath, 'utf8')) as CategoryMapping;
     const queries = loadBenchmarkQueries(benchmarkDir);
     const corpus = loadBenchmarkCorpus(benchmarkDir);
-    const groundTruths = selectScoredGroundTruths(benchmarkDir, corpus, options?.maxGroundTruthLength);
+    let groundTruths = selectScoredGroundTruths(benchmarkDir, corpus, options?.maxGroundTruthLength);
+    if (options?.scope) {
+      const allowed = new Set(options.scope.queryIds);
+      groundTruths = groundTruths.filter((groundTruth) => allowed.has(groundTruth.queryId));
+    }
     const queryIdToMacro = buildQueryMacroMap(queries, mapping);
-    const authoredByMacro = countAuthoredByMacro(queries, queryIdToMacro, groundTruths, options?.maxGroundTruthLength);
+    const authoredByMacro = countAuthoredByMacro(
+      queries,
+      queryIdToMacro,
+      groundTruths,
+      options?.maxGroundTruthLength !== undefined || options?.scope !== undefined,
+    );
     const outcomes = await this.runCategorySearches(groundTruths, queries, corpus, options);
 
-    return ALL_MACROS.map((macro) =>
+    const reports = ALL_MACROS.map((macro) =>
       buildMacroReport(
         macro,
         groundTruths.filter(gt => queryIdToMacro.get(gt.queryId) === macro),
@@ -264,6 +272,18 @@ export class CategoryQualityAggregator {
         outcomes
       )
     );
+    const queryIdsForMacro = (macro: MacroCategory): readonly string[] =>
+      groundTruths
+        .filter((groundTruth) => queryIdToMacro.get(groundTruth.queryId) === macro)
+        .map((groundTruth) => groundTruth.queryId)
+        .sort();
+    const scored_query_ids_by_macro = {
+      incident_ops: queryIdsForMacro('incident_ops'),
+      procedural: queryIdsForMacro('procedural'),
+      conceptual: queryIdsForMacro('conceptual'),
+      tag_filter: queryIdsForMacro('tag_filter'),
+    } satisfies CategoryMeasurement['scored_query_ids_by_macro'];
+    return { reports, scored_query_ids_by_macro };
   }
 
   /** ground truth 쿼리를 순서대로 검색한다. 결과 id 는 benchmark id 로 바꾼다. */

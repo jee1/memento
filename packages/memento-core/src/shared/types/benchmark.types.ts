@@ -55,6 +55,28 @@ export function assertMacroCategory(value: string, contextLabel: string): MacroC
   return value as MacroCategory;
 }
 
+/** Aggregator, category-report, and the baseline identity all derive from this list. */
+export const ALL_MACROS = [
+  'incident_ops',
+  'procedural',
+  'conceptual',
+  'tag_filter',
+] as const satisfies readonly MacroCategory[];
+
+export type RankingScopeName = 'nightly' | 'pr';
+
+/**
+ * Corpus and scored-query identity for one ranking run.
+ * Nightly and PR name different corpora. Query ids are the MRR denominator.
+ */
+export interface ResolvedRankingScope {
+  readonly name: RankingScopeName;
+  /** benchmark_ids that must be the rows in the database. Sorted. */
+  readonly corpusBenchmarkIds: readonly string[];
+  /** Scored ground-truth keys (the ids normalizeBenchmarkGroundTruths already uses). Sorted. */
+  readonly queryIds: readonly string[];
+}
+
 export interface CategoryQualityReport {
   macro_category: MacroCategory;
   /** 실제 채점된 쿼리 수 (GT 보유) */
@@ -68,6 +90,18 @@ export interface CategoryQualityReport {
   mean_top10_content_length: number;
   /** top-10 중 2,000자 초과 문서 비율 — 프로덕션 점유율과 같은 정의 (#961, 게이트 아님) */
   mean_top10_long_doc_ratio: number;
-  /** MRR ≥ 0.5 게이트 통과 여부 */
+  /**
+   * Diagnostic leftover: mrr >= 0.5.
+   * The ranking gate does not read this field.
+   */
   threshold_passed: boolean;
+}
+
+/**
+ * Return value of CategoryQualityAggregator.collect.
+ * `reports` is the sweep view. `scored_query_ids_by_macro` is the MRR denominator.
+ */
+export interface CategoryMeasurement {
+  readonly reports: readonly CategoryQualityReport[];
+  readonly scored_query_ids_by_macro: Readonly<Record<MacroCategory, readonly string[]>>;
 }

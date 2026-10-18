@@ -141,6 +141,7 @@ export async function createRejectionBaselineUnitTestDatabase(
       embeddingProvider: provider,
       vectorDims,
       relationCount: 0,
+      seededBenchmarkIds: corpus.map((entry) => entry.benchmark_id).sort(),
       overlayCount: overlay.length,
       parentDocumentCount: UNIT_TEST_DISTRACTORS.length,
     };

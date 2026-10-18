@@ -94,7 +94,7 @@ describe('CategoryQualityAggregator empty-macro coverage (#934)', () => {
 
   it('macro 전체 GT가 비어도 collect()가 authored를 유지한 scored=0 행을 낸다', async () => {
     const mapPath = writeEmptyMacroFixture(dir);
-    const reports = await new CategoryQualityAggregator(db, sqliteRepositoryProvider).collect(dir, mapPath);
+    const { reports } = await new CategoryQualityAggregator(db, sqliteRepositoryProvider).collect(dir, mapPath);
 
     expect(reports.map((r) => r.macro_category)).toEqual([
       'incident_ops',

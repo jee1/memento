@@ -1,7 +1,7 @@
 # benchmark-v3 macro_category 정의
 
 `tests/fixtures/search-quality/benchmark-v3` 의 26개 질의는 네 개의 macro_category 로 묶여
-`npm run quality -- benchmark category-report` 의 게이트(`MRR >= 0.5`) 단위가 됩니다. 매핑은
+`npm run quality -- benchmark category-report` 의 상대 MRR 게이트 단위입니다. 매핑은
 `category-mapping.json` 이 micro-category 를 통해 관리합니다.
 
 | macro_category | micro-category | 재는 것 |

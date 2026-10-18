@@ -15,6 +15,7 @@ const COMMANDS: Record<string, QualityCommand> = {
   'benchmark:checklist': { script: 'generate-search-quality-review-checklist.ts' },
   'benchmark:verify-review': { script: 'verify-search-quality-benchmark-review.ts' },
   'benchmark:category-report': { script: 'quality-benchmark-category-report.ts' },
+  'benchmark:perf-smoke': { script: 'quality-benchmark-perf-smoke.ts' },
   'benchmark:length-decay-sweep': { script: 'quality-benchmark-length-decay-sweep.ts' },
   'benchmark:verify-categories': { script: 'quality-benchmark-verify-categories.ts' },
   'benchmark:rejection-baseline': { script: 'quality-benchmark-rejection-baseline.ts' },

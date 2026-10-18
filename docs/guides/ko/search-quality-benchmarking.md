@@ -111,7 +111,8 @@ npm run quality -- benchmark category-report
 | `npm run quality -- benchmark candidates` | queries.json 기준 후보 생성 → label-candidates.json |
 | `npm run quality -- benchmark checklist` | review-checklist.md 생성 |
 | `npm run quality -- benchmark verify-review` | ground truth / manifest 검증 및 reviewed 상태 확인 |
-| `npm run quality -- benchmark category-report` | 카테고리별 MRR 게이트 (nightly) |
+| `npm run quality -- benchmark category-report` | 카테고리별 상대 MRR 게이트 (nightly, `--scope pr` 는 PR) |
+| `npm run quality -- benchmark perf-smoke` | 1만 행 검색 p95·RSS 스모크 (PR) |
 
 ## 참고
 

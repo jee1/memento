@@ -1,0 +1,92 @@
+# PR ranking delta and perf smoke (#1385).
+# Path filter matches docker-build.yml. This file is on its own path list.
+# Not added to ci.yml. The two jobs do not share a database.
+
+name: Search Quality PR
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'config/ranking-weights.toml'
+      - 'config/ranking-profiles/**'
+      # search/embedding import constants, vector-search.config, embedding-models, index
+      # via shared/config — ranking-weights-loader alone missed model/deps PRs.
+      - 'packages/memento-core/src/shared/config/**'
+      - 'packages/memento-core/src/domains/search/**'
+      - 'packages/memento-core/src/domains/embedding/**'
+      - 'packages/memento-core/src/domains/monitoring/services/quality-assurance/**'
+      - 'packages/memento-core/src/shared/types/benchmark.types.ts'
+      - 'package-lock.json'
+      - 'scripts/quality.ts'
+      - 'scripts/quality-benchmark-category-report.ts'
+      - 'scripts/quality-benchmark-perf-smoke.ts'
+      - 'scripts/lib/quality-baseline.ts'
+      - 'scripts/lib/benchmark-search-database.ts'
+      - 'scripts/seed-benchmark-db.ts'
+      - 'scripts/compare-weight-profiles.ts'
+      - '.github/workflows/search-quality-pr.yml'
+      - 'tests/fixtures/search-quality/**'
+  workflow_dispatch:
+
+env:
+  CI: true
+  EMBEDDING_PROVIDER: minilm
+  # onnxruntime-node postinstall downloads unused CUDA binaries and flakes npm ci (#890).
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+jobs:
+  pr-ranking:
+    name: PR ranking delta
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+      - run: npm ci
+      - name: Cache Hugging Face models
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-hf-minilm-${{ hashFiles('packages/memento-core/src/shared/config/embedding-models.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-hf-minilm-
+      # benchmark-search-database imports @memento/core from dist (#905).
+      - name: Build @memento/core
+        run: npm run build -w @memento/core
+      - name: Ranking delta
+        run: npm run quality -- benchmark category-report --scope pr
+
+  pr-perf:
+    name: PR perf smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+      - run: npm ci
+      - name: Cache Hugging Face models
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-hf-minilm-${{ hashFiles('packages/memento-core/src/shared/config/embedding-models.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-hf-minilm-
+      - name: Build @memento/core
+        run: npm run build -w @memento/core
+      - name: Perf smoke
+        run: npm run quality -- benchmark perf-smoke

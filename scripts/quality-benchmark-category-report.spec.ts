@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   WALL_MS,
   MIN_QUERY_COVERAGE,
-  formatCategoryReportLine,
   formatCoverageLine,
   coverageBelowThreshold,
   formatEmbeddingRunHeader,
-  anyCategoryFailsMrrGate,
+  parseCategoryReportArgs,
 } from './quality-benchmark-category-report.js';
 import type { CategoryQualityReport } from '@memento/core/shared/types/benchmark.types.js';
 import { resolveBenchmarkEmbeddingProvider } from '@memento/core/shared/types/benchmark.types.js';
@@ -42,11 +41,6 @@ describe('quality-benchmark-category-report (T015)', () => {
 
   it('MIN_QUERY_COVERAGE는 1.0이다', () => {
     expect(MIN_QUERY_COVERAGE).toBe(1.0);
-  });
-
-  it('formatCategoryReportLine은 헤더 형식과 동일한 한 줄을 만든다', () => {
-    const line = formatCategoryReportLine(sampleReport());
-    expect(line).toBe('incident_ops | 3/3 | 0.6000 | 0.7000 | 0.6500 | 412 | PASS');
   });
 
   it('formatCoverageLine은 작성·채점 쿼리 수와 비율을 출력한다', () => {
@@ -85,18 +79,6 @@ describe('quality-benchmark-category-report (T015)', () => {
     ).toBe(true);
   });
 
-  it('커버리지 미달은 MRR이 전부 통과해도 게이트를 실패시킨다', () => {
-    const reports = [
-      sampleReport({ query_count: 1, authored_query_count: 4 }),
-      sampleReport({ macro_category: 'procedural' }),
-      sampleReport({ macro_category: 'conceptual' }),
-      sampleReport({ macro_category: 'tag_filter' }),
-    ];
-    expect(anyCategoryFailsMrrGate(reports)).toBe(false);
-    expect(coverageBelowThreshold(reports)).toBe(true);
-    expect(anyCategoryFailsMrrGate(reports) || coverageBelowThreshold(reports)).toBe(true);
-  });
-
   it('macro 전체 scored=0이어도 authored는 coverage 분모에 남는다 (#934)', () => {
     // tag_filter 6건이 전부 빈 GT여도 리포트 행이 남아 coverage < 1.0
     const reports = [
@@ -118,20 +100,6 @@ describe('quality-benchmark-category-report (T015)', () => {
       'queries_authored=26 queries_scored=20 coverage=0.769'
     );
     expect(coverageBelowThreshold(reports)).toBe(true);
-  });
-
-  it('anyCategoryFailsMrrGate는 MRR이 임계 미만인 카테고리가 있으면 true', () => {
-    expect(anyCategoryFailsMrrGate(passingReports())).toBe(false);
-    expect(
-      anyCategoryFailsMrrGate([
-        ...passingReports().slice(0, 3),
-        sampleReport({ macro_category: 'tag_filter', mrr: 0.4, threshold_passed: false }),
-      ])
-    ).toBe(true);
-  });
-
-  it('평가 가능한 Ground Truth가 없는 필수 카테고리는 gate 실패', () => {
-    expect(anyCategoryFailsMrrGate(passingReports().slice(0, 3))).toBe(true);
   });
 
   it('formatEmbeddingRunHeader는 provider와 vector dims를 출력한다 (#905)', () => {
@@ -159,5 +127,22 @@ describe('quality-benchmark-category-report (T015)', () => {
         process.env.EMBEDDING_PROVIDER = previous;
       }
     }
+  });
+
+  it('defaults to nightly and accepts pr scope plus write-baseline', () => {
+    expect(parseCategoryReportArgs([])).toEqual({
+      scope: 'nightly',
+      writeBaseline: false,
+      baselinePath: undefined,
+    });
+    expect(parseCategoryReportArgs(['--scope', 'pr', '--write-baseline', '--baseline', 'out.json'])).toEqual({
+      scope: 'pr',
+      writeBaseline: true,
+      baselinePath: 'out.json',
+    });
+  });
+
+  it('rejects an unknown scope', () => {
+    expect(() => parseCategoryReportArgs(['--scope', 'weekly'])).toThrow(/nightly or pr/);
   });
 });

@@ -35,7 +35,7 @@ describe('CategoryMetricsOptions (#961)', () => {
   });
 
   it('maxGroundTruthLength: 1024 → query_count 합 24, coverage scored/authored = 1.0', async () => {
-    const reports = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
+    const { reports } = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
       maxGroundTruthLength: 1024,
     });
     const scored = reports.reduce((s, r) => s + r.query_count, 0);
@@ -49,11 +49,30 @@ describe('CategoryMetricsOptions (#961)', () => {
     const a = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH);
     const b = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {});
     expect(a).toEqual(b);
-    expect(a.reduce((s, r) => s + r.query_count, 0)).toBe(29);
+    expect(a.reports.reduce((s, r) => s + r.query_count, 0)).toBe(29);
+    for (const report of a.reports) {
+      expect(a.scored_query_ids_by_macro[report.macro_category]).toHaveLength(report.query_count);
+    }
+  });
+
+  it('scope keeps only the named scored query ids', async () => {
+    const full = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH);
+    const only = full.scored_query_ids_by_macro.procedural[0];
+    expect(only).toBeDefined();
+    const scoped = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
+      scope: { name: 'pr', corpusBenchmarkIds: [], queryIds: [only!] },
+    });
+    expect(scoped.scored_query_ids_by_macro.procedural).toEqual([only]);
+    expect(scoped.reports.find((row) => row.macro_category === 'procedural')?.query_count).toBe(1);
+    expect(
+      scoped.reports
+        .filter((row) => row.macro_category !== 'procedural')
+        .every((row) => row.query_count === 0),
+    ).toBe(true);
   });
 
   it('maxGroundTruthLength: 1 이면 4개 macro 행이 query_count: 0', async () => {
-    const reports = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
+    const { reports } = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
       maxGroundTruthLength: 1,
     });
     expect(reports).toHaveLength(4);
