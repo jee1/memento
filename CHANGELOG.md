@@ -11,9 +11,12 @@
 
 ### Fixed
 
+- 검색: 벤치마크 프로파일 평가가 `relevance_signal`·`fts_relevance`·`vector_length_decay`를 프로파일 TOML이 아니라 전역 설정으로 읽던 문제를 고쳤습니다(#1399). 프로파일 TOML이 모든 랭킹 knob에 적용됩니다.
 - 망각: 정책 정리(`executeMemoryCleanup`)가 soft·유예기간 없이 바로 hard 삭제하던 경로를 제거했습니다(#1389). hard는 `sweepExpiredSoftDeletes`만 수행합니다(`SOFT_DELETE_GRACE_PERIOD_DAYS`가 지난 soft 행).
 
 ### Changed
+
+- 개발: `tune-weights`가 신호 knob(relevance·recency·importance scale, FTS temperature, 벡터 길이 감쇠)까지 탐색합니다(#1399). `--knobs`로 움직일 knob을 고르고 `--baseline-profile`에 `.toml` 경로를 줄 수 있습니다. 쿼리를 macro 카테고리별로 explore/judge로 나눠 선택은 explore로, 유의성 판정은 judge로 하며, relevance 컴포넌트 동점 비율이 baseline+0.005를 넘는 후보는 거부합니다.
 
 - 개발: `npm run quality -- benchmark rejection-sweep` 을 추가했습니다(#1400). 기각 게이트 임계값 0.20~0.60(0.05 단위)의 관련 질의 거짓 기각률과 무관 질의 기각률을 Wilson 95% 구간과 함께 냅니다. 공개 픽스처는 게이트 top_score 를 한 번 채점해 `.local/rejection-sweep/` 에 캐시하고(`--refresh` 로 재채점), `--labels <path>` 는 비공개 라벨 팩을 집계만 출력합니다.
 
