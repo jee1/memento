@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { calculateMRR } from '../../packages/memento-core/src/domains/monitoring/services/quality-assurance/search-metrics-collector.js';
 import {
   ALL_MACROS,
   type CategoryMeasurement,
@@ -109,6 +110,48 @@ function writeHigherBaseline(dir: string): { path: string; measurement: Category
 }
 
 describe('evaluateRanking', () => {
+  it('reports mrr_drop when an inverted hit order lowers MRR by more than epsilon', () => {
+    const relevant = 'hit';
+    const distractors = ['d1', 'd2', 'd3', 'd4'];
+    const groundTruth = [{ queryId: 'q-procedural', relevantIds: [relevant] }];
+    const descending = calculateMRR(
+      new Map([[groundTruth[0]!.queryId, [{ id: relevant, score: 1 }, ...distractors.map((id) => ({ id, score: 0 }))]]]),
+      groundTruth,
+    );
+    const ascending = calculateMRR(
+      new Map([[groundTruth[0]!.queryId, [...distractors.map((id) => ({ id, score: 1 })), { id: relevant, score: 0 }]]]),
+      groundTruth,
+    );
+    expect(descending - ascending).toBeGreaterThan(MRR_DROP_EPSILON);
+
+    const higher = measurementFrom({ ...baseMrr, procedural: descending });
+    const scope = prScope(higher);
+    const path = join(tempDir(), 'ranking.json');
+    expect(
+      evaluateRanking({
+        measurement: higher,
+        scope,
+        seededBenchmarkIds: scope.corpusBenchmarkIds,
+        embeddingProvider: 'minilm',
+        baselinePath: path,
+        elapsedMs: 10,
+        writeBaseline: true,
+      }).mode,
+    ).toBe('write');
+    const outcome = evaluateRanking({
+      measurement: measurementFrom({ ...baseMrr, procedural: ascending }),
+      scope,
+      seededBenchmarkIds: scope.corpusBenchmarkIds,
+      embeddingProvider: 'minilm',
+      baselinePath: path,
+      elapsedMs: 10,
+      writeBaseline: false,
+    });
+    expect(outcome.mode).toBe('fail');
+    if (outcome.mode !== 'fail') return;
+    expect(outcome.causes).toContainEqual({ kind: 'ranking', reason: 'mrr_drop', macros: ['procedural'] });
+  });
+
   it('fails mrr_drop when one macro drops by 0.031', () => {
     const { path, measurement, scope } = writeHigherBaseline(tempDir());
     const outcome = evaluateRanking({
@@ -260,7 +303,7 @@ describe('evaluatePerf', () => {
     };
   }
 
-  it('fails p95 when the search wall is just over 2× the baseline', () => {
+  it('fails p95 when the search wall is just over 2×, which is how an O(n²) recall on 10k rows trips the smoke', () => {
     const path = join(tempDir(), 'perf.json');
     expect(evaluatePerf(perfInput([10, 10, 10], 1_000, path, true)).mode).toBe('write');
     const inflated = 10 * PERF_P95_SLACK + 0.1;
