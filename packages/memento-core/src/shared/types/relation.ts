@@ -5,6 +5,12 @@
 
 import type { MemoryItem, MemoryType } from './memory.types.js';
 
+/** Written on the row. Hybrid is a strategy, not a recorded method. */
+export type RecordedRelationMethod = 'rule' | 'llm' | 'jev';
+
+/** RelationExtractor strategy. Deliberately has no 'jev' arm. */
+export type ExtractionStrategy = 'rule' | 'llm' | 'hybrid';
+
 /**
  * 관계 추출 후보
  * 관계 추출 엔진이 발견한 잠재적 관계를 나타냅니다.
@@ -14,7 +20,7 @@ export interface RelationCandidate {
   target_id: string; // 타겟 기억 ID (기존 기억)
   relation_type: RelationType; // 관계 유형
   confidence: number; // 신뢰도 (0.0~1.0)
-  method: 'rule' | 'llm'; // 추출 방법
+  method: RecordedRelationMethod;
   evidence?: string; // 추출 근거 (패턴 매칭된 키워드 또는 LLM 설명)
 }
 
@@ -51,7 +57,7 @@ export interface ExtractOptions {
    * 추출 방법 강제 지정 ('rule' | 'llm' | 'hybrid')
    * 기본값: 'hybrid' (규칙 기반 먼저 시도, 실패 시 LLM)
    */
-  method?: 'rule' | 'llm' | 'hybrid';
+  method?: ExtractionStrategy;
 
   /**
    * 최소 신뢰도 임계값 (이 값 이상인 관계만 반환)
