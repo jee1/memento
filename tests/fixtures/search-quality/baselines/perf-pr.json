@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "kind": "perf",
+  "identity": {
+    "fixture": "benchmark-v3-scaled",
+    "embedding_provider": "minilm",
+    "corpus_row_count": 10000,
+    "measured_query_count": 29
+  },
+  "metrics": {
+    "search_p95_ms": 321.1507500000298,
+    "rss_bytes": 1032605696,
+    "rss_sample_point": "post_warmup"
+  }
+}
