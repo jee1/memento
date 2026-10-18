@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { JevRelevanceGate } from './jev-relevance-gate.js';
+import { SystemOneClient } from '../../../../shared/services/typesafe/system-one-client.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -10,11 +11,20 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
-function makeGate(overrides: Partial<ConstructorParameters<typeof JevRelevanceGate>[0]> = {}) {
-  return new JevRelevanceGate({
-    apiKey: 'test-api-key',
-    ...overrides,
+function makeGate(overrides: {
+  apiKey?: string;
+  model?: string;
+  baseUrl?: string;
+  timeoutMs?: number;
+  docChars?: number;
+} = {}) {
+  const client = new SystemOneClient({
+    apiKey: overrides.apiKey ?? 'test-api-key',
+    model: overrides.model,
+    baseUrl: overrides.baseUrl,
+    timeoutMs: overrides.timeoutMs,
   });
+  return new JevRelevanceGate(client, overrides.docChars);
 }
 
 afterEach(() => {

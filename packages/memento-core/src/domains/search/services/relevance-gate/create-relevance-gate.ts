@@ -6,6 +6,7 @@
 
 import type { IRelevanceGatePort } from '../../ports/relevance-gate-port.js';
 import { JevRelevanceGate } from './jev-relevance-gate.js';
+import { SystemOneClient } from '../../../../shared/services/typesafe/system-one-client.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
@@ -25,12 +26,12 @@ export function createRelevanceGate(): IRelevanceGatePort | null {
         return null;
       }
 
-      const gateInstance = new JevRelevanceGate({
+      const client = new SystemOneClient({
         apiKey,
         model: mementoConfig.typesafeModel,
         timeoutMs: mementoConfig.searchRejectionGateTimeoutMs,
-        docChars: mementoConfig.searchRejectionGateDocChars,
       });
+      const gateInstance = new JevRelevanceGate(client, mementoConfig.searchRejectionGateDocChars);
 
       logger.info('Relevance rejection gate enabled', {
         provider: 'typesafe',
