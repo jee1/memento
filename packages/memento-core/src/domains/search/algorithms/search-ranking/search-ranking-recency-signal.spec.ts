@@ -65,18 +65,22 @@ describe('recency signal scale (#1175)', () => {
   });
 
   it('keeps newer above older at the shipped scale', () => {
-    const ranking = new SearchRanking(undefined, tomlWithScale(0.3));
+    const ranking = (useGlobalConfig(0.3), new SearchRanking());
     const newer = ranking.calculateRecency(new Date(Date.now() - 86_400_000));
     const older = ranking.calculateRecency(new Date(Date.now() - 200 * 86_400_000));
     expect(newer).toBeGreaterThan(older);
   });
 
   it('text lane reads recency_signal.scale from the TOML it was given', () => {
-    const flat = new SearchRanking(undefined, tomlWithScale(0));
-    const raw = new SearchRanking(undefined, tomlWithScale(1));
+    useGlobalConfig(0);
+    const flat = new SearchRanking();
+    const flatOld = flat.calculateRecency(new Date(OLD_STAMP));
+    const flatNow = flat.calculateRecency(new Date());
+    useGlobalConfig(1);
+    const raw = new SearchRanking();
     // scale=0 flattens every age to exactly 0.5; scale=1 keeps the bare half-life curve.
-    expect(flat.calculateRecency(new Date(OLD_STAMP))).toBeCloseTo(0.5, 8);
-    expect(flat.calculateRecency(new Date())).toBeCloseTo(0.5, 8);
+    expect(flatOld).toBeCloseTo(0.5, 8);
+    expect(flatNow).toBeCloseTo(0.5, 8);
     expect(raw.calculateRecency(new Date(OLD_STAMP))).toBeLessThan(0.001);
     expect(raw.calculateRecency(new Date())).toBeCloseTo(1, 6);
   });

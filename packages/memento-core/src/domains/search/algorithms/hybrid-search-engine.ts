@@ -88,12 +88,11 @@ export class HybridSearchEngine {
     private logger: ISearchLogger,
     private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService(),
     relationGraph?: RelationGraph,
-    proceduralMemoryMatcher?: IProceduralMemoryMatcher,
-    rankingWeightsPath?: string
+    proceduralMemoryMatcher?: IProceduralMemoryMatcher
   ) {
     this.proceduralMemoryMatcher = proceduralMemoryMatcher ?? new ProceduralMemoryMatcher();
-    const config = getRankingWeights(rankingWeightsPath);
-    this.rankingVersion = getRankingVersion(rankingWeightsPath);
+    const config = getRankingWeights();
+    this.rankingVersion = getRankingVersion();
     this.ranking = new SearchRanking({
       relevance: config.ranking_weights.alpha,
       recency: config.ranking_weights.beta,
@@ -101,7 +100,7 @@ export class HybridSearchEngine {
       usage: config.ranking_weights.delta,
       duplication_penalty: config.ranking_weights.epsilon,
       zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
-    }, rankingWeightsPath);
+    });
     this.relationGraph = relationGraph || null;
     this.vectorExecutor = new HybridVectorSearchExecutor(
       this.embeddingService,

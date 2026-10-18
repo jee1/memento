@@ -105,17 +105,30 @@ export async function evaluateProfile(
   profilePath: string,
   benchmarkDir: string = BENCHMARK_DIR,
 ): Promise<ProfileEvalResult> {
+  // 랭킹 신호 대부분이 getRankingWeights()를 무인자로 읽으므로 경로 인자가 아니라 env로 프로파일 전체를 적용한다.
+  const prevEnvPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+  process.env.MEMENTO_RANKING_WEIGHTS_PATH = resolve(profilePath);
   resetRankingWeightsCache();
+  try {
+    return await evaluateProfileWithActiveWeights(db, benchmarkDir);
+  } finally {
+    if (prevEnvPath === undefined) delete process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+    else process.env.MEMENTO_RANKING_WEIGHTS_PATH = prevEnvPath;
+    resetRankingWeightsCache();
+  }
+}
 
+async function evaluateProfileWithActiveWeights(
+  db: CliDatabase,
+  benchmarkDir: string,
+): Promise<ProfileEvalResult> {
   const queries = loadBenchmarkQueries(benchmarkDir);
   const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir);
   const corpus = loadBenchmarkCorpus(benchmarkDir);
   const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   const qById = new Map(queries.map((q) => [q.query_id, q]));
 
-  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider, undefined, {
-    rankingWeightsPath: resolve(profilePath),
-  });
+  const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
   const queryResults = new Map<string, SearchResult[]>();
   const latencyMs: number[] = [];
 

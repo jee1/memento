@@ -26,6 +26,7 @@ describe('importance signal scale (#1082)', () => {
   });
 
   afterEach(() => {
+    delete process.env.MEMENTO_RANKING_WEIGHTS_PATH;
     if (existsSync(tempConfigPath)) {
       unlinkSync(tempConfigPath);
     }
@@ -78,7 +79,7 @@ describe('importance signal scale (#1082)', () => {
 
   it('resolves absent and non-finite importance at the shared boundary', () => {
     writeConfig(0.35);
-    const ranking = new SearchRanking(undefined, tempConfigPath);
+    const ranking = new SearchRanking();
     const baseline = ranking.calculateImportance(0.5, false, 'semantic');
     expect(ranking.calculateImportance(undefined, false, 'semantic')).toBeCloseTo(baseline, 8);
     expect(ranking.calculateImportance(null, false, 'semantic')).toBeCloseTo(baseline, 8);
@@ -86,16 +87,19 @@ describe('importance signal scale (#1082)', () => {
     expect(ranking.calculateImportance(0, false, 'semantic')).toBeLessThan(baseline);
   });
 
-  it('uses rankingWeightsPath for importance_signal.scale', () => {
+  it('reads importance_signal.scale from MEMENTO_RANKING_WEIGHTS_PATH', () => {
     const lowScaleToml = join(tmpdir(), `ranking-weights-low-${randomUUID()}.toml`);
     const highScaleToml = join(tmpdir(), `ranking-weights-high-${randomUUID()}.toml`);
     const base = readFileSync(join(process.cwd(), 'config/ranking-weights.toml'), 'utf8');
     writeFileSync(lowScaleToml, patchImportanceScale(base, 0.1), 'utf8');
     writeFileSync(highScaleToml, patchImportanceScale(base, 0.9), 'utf8');
-    const low = new SearchRanking(undefined, lowScaleToml);
-    const high = new SearchRanking(undefined, highScaleToml);
-    const lowScore = low.calculateImportance(0.9, false, 'semantic');
-    const highScore = high.calculateImportance(0.9, false, 'semantic');
+    const scoreWith = (path: string): number => {
+      process.env.MEMENTO_RANKING_WEIGHTS_PATH = path;
+      resetRankingWeightsCache();
+      return new SearchRanking().calculateImportance(0.9, false, 'semantic');
+    };
+    const lowScore = scoreWith(lowScaleToml);
+    const highScore = scoreWith(highScaleToml);
     expect(highScore).toBeGreaterThan(lowScore);
     if (existsSync(lowScaleToml)) unlinkSync(lowScaleToml);
     if (existsSync(highScaleToml)) unlinkSync(highScaleToml);
@@ -103,7 +107,7 @@ describe('importance signal scale (#1082)', () => {
 
   it('hybrid ranker uses SearchRanking scaled importance signal', async () => {
     writeConfig(0.35);
-    const ranking = new SearchRanking(undefined, tempConfigPath);
+    const ranking = new SearchRanking();
     const expected = ranking.calculateImportance(0.8, true, 'semantic');
 
     const stubDb = {
