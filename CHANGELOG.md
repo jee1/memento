@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- 망각: 정책 정리(`executeMemoryCleanup`)가 soft·유예기간 없이 바로 hard 삭제하던 경로를 제거했습니다(#1389). hard는 `sweepExpiredSoftDeletes`만 수행합니다(`SOFT_DELETE_GRACE_PERIOD_DAYS`가 지난 soft 행).
+
 ### Changed
 
 - 검색: 기각 게이트 기본 임계값을 0.4로 내렸습니다(#1387). 보존된 docker 로그 12건에서 top_score [0.4, 0.5) 기각의 거짓 기각은 6/11이었습니다. 질의 원문은 공개하지 않습니다.

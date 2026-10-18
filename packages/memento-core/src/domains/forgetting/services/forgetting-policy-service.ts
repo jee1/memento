@@ -157,28 +157,7 @@ export class ForgettingPolicyService {
         }
       }
 
-      // 5. 하드 삭제 실행
-      const hardDeleteCandidates = forgetResults.filter(r =>
-        r.should_forget &&
-        r.forget_score >= this.config.hardDeleteThreshold &&
-        !r.features.pinned
-      );
-
-      for (const candidate of hardDeleteCandidates) {
-        const memory = memoryById.get(candidate.memory_id);
-        if (memory && this.isHardDeleteCandidate(memory, candidate.forget_score)) {
-          const ttlDays = this.config.ttlHard[memory.type as keyof typeof this.config.ttlHard];
-          await this.hardDeleteMemory(db, candidate.memory_id, {
-            forgetScore: candidate.forget_score,
-            reason: candidate.reason,
-            ttlDays,
-          });
-          result.hardDeleted.push(candidate.memory_id);
-          result.summary.actualHardDeletes++;
-        }
-      }
-
-      // 6. 리뷰 스케줄 업데이트 (병렬 실행으로 N+1 완화)
+      // 5. 리뷰 스케줄 업데이트 (병렬 실행으로 N+1 완화)
       const reviewCandidates = reviewSchedules.filter(s => s.needs_review);
       await Promise.all(reviewCandidates.map(async (schedule) => {
         await this.updateReviewSchedule(db, schedule);
@@ -281,18 +260,6 @@ export class ForgettingPolicyService {
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
     
     return forgetScore >= this.config.softDeleteThreshold && 
-           ageDays >= ttl && 
-           !memory.pinned;
-  }
-
-  /**
-   * 하드 삭제 후보 확인
-   */
-  private isHardDeleteCandidate(memory: PolicyMemoryRow, forgetScore: number): boolean {
-    const ageDays = daysBetween(new Date(), new Date(memory.created_at));
-    const ttl = this.config.ttlHard[memory.type as keyof typeof this.config.ttlHard];
-    
-    return forgetScore >= this.config.hardDeleteThreshold && 
            ageDays >= ttl && 
            !memory.pinned;
   }

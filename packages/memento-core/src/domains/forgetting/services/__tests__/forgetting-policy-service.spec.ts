@@ -130,6 +130,91 @@ describe('ForgettingPolicyService', () => {
       vi.unstubAllEnvs();
     });
 
+    it('#1389: hard 임계를 넘어도 첫 실행은 soft만; 유예기간 뒤에만 hard', async () => {
+      vi.stubEnv('SOFT_DELETE_GRACE_PERIOD_DAYS', '7');
+      service = new ForgettingPolicyService({
+        softDeleteThreshold: 0.1,
+        hardDeleteThreshold: 0.5,
+        ttlSoft: { working: 1, episodic: 1, semantic: 999, procedural: 999 },
+        ttlHard: { working: 1, episodic: 1, semantic: 999, procedural: 999 },
+      });
+
+      const memoryId = createTestMemory(db, {
+        content: 'Hard-threshold candidate',
+        type: 'episodic',
+        importance: 0.01,
+        pinned: false,
+      });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ? WHERE id = ?', [
+        new Date(Date.now() - 10 * DAY_MS).toISOString(),
+        memoryId,
+      ]);
+
+      const analyzeSpy = vi.spyOn(service['forgettingAlgorithm'], 'analyzeForgetCandidates');
+      analyzeSpy.mockReturnValue([
+        {
+          memory_id: memoryId,
+          forget_score: 0.95,
+          should_forget: true,
+          reason: '사용되지 않음',
+          features: {
+            recency: 0.05,
+            usage: 0.05,
+            duplication_ratio: 0,
+            importance: 0.01,
+            pinned: false,
+          },
+        },
+      ]);
+      vi.spyOn(service['spacedRepetition'], 'createReviewSchedule').mockReturnValue({
+        memory_id: memoryId,
+        current_interval: 7,
+        next_review: new Date(),
+        recall_probability: 0.4,
+        needs_review: false,
+        multiplier: 1,
+      });
+
+      const first = await service.executeMemoryCleanup(db);
+      expect(first.softDeleted).toContain(memoryId);
+      expect(first.hardDeleted).not.toContain(memoryId);
+      const afterSoft = DatabaseUtils.get(
+        db,
+        'SELECT is_deleted, deleted_at FROM memory_item WHERE id = ?',
+        [memoryId],
+      ) as { is_deleted: number; deleted_at: string } | undefined;
+      expect(afterSoft).toBeDefined();
+      expect(Number(afterSoft?.is_deleted)).toBe(1);
+      expect(afterSoft?.deleted_at).toBeTruthy();
+
+      const softEvents = DatabaseUtils.all(
+        db,
+        `SELECT action FROM memory_forgetting_event WHERE memory_id = ? AND action = 'soft'`,
+        [memoryId],
+      );
+      expect(softEvents).toHaveLength(1);
+      const hardEventsAfterFirst = DatabaseUtils.all(
+        db,
+        `SELECT action FROM memory_forgetting_event WHERE memory_id = ? AND action = 'hard'`,
+        [memoryId],
+      );
+      expect(hardEventsAfterFirst).toHaveLength(0);
+
+      DatabaseUtils.run(db, 'UPDATE memory_item SET deleted_at = ? WHERE id = ?', [
+        new Date(Date.now() - 8 * DAY_MS).toISOString(),
+        memoryId,
+      ]);
+
+      const second = await service.executeMemoryCleanup(db);
+      expect(second.hardDeleted).toContain(memoryId);
+      expect(
+        DatabaseUtils.get(db, 'SELECT id FROM memory_item WHERE id = ?', [memoryId]),
+      ).toBeUndefined();
+
+      analyzeSpy.mockRestore();
+      vi.unstubAllEnvs();
+    });
+
     it('리뷰 후보를 처리해야 함', async () => {
       createTestMemory(db, {
         content: 'Review candidate',
