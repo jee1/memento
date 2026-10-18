@@ -110,7 +110,15 @@ export interface SeededBenchmarkDb {
   embeddingProvider: EmbeddingProvider;
   vectorDims: number;
   relationCount: number;
+  /** Sorted benchmark_ids actually inserted. */
+  readonly seededBenchmarkIds: readonly string[];
 }
+
+/** fixture, subset, and scale are mutually exclusive. Scaling a subset is not a mode. */
+export type BenchmarkSeedOptions =
+  | { readonly dbPath?: string; readonly mode?: 'fixture' }
+  | { readonly dbPath?: string; readonly mode: 'subset'; readonly corpusBenchmarkIds: readonly string[] }
+  | { readonly dbPath?: string; readonly mode: 'scale'; readonly scaleTo: number };
 
 /**
  * @param benchmarkDir manifest/corpus.jsonl이 있는 디렉터리 (예: tests/fixtures/search-quality/benchmark-v3)
@@ -118,12 +126,13 @@ export interface SeededBenchmarkDb {
  */
 export async function createSeededBenchmarkDatabase(
   benchmarkDir: string,
-  options?: { dbPath?: string }
+  options?: BenchmarkSeedOptions,
 ): Promise<SeededBenchmarkDb> {
   const corpus = loadBenchmarkCorpus(benchmarkDir);
   if (corpus.length === 0) {
     throw new Error(`Benchmark corpus is empty: ${benchmarkDir}`);
   }
+  const rows = selectSeedRows(corpus, options);
 
   const provider = resolveBenchmarkEmbeddingProvider();
 
@@ -142,18 +151,18 @@ export async function createSeededBenchmarkDatabase(
   let relationCount: number;
 
   try {
-    for (let i = 0; i < corpus.length; i++) {
-      const entry = corpus[i]!;
+    for (let i = 0; i < rows.length; i++) {
+      const entry = rows[i]!;
       const dims = await seedOneCorpusRow(db, embeddingService, entry, provider);
       if (vectorDims === 0) {
         vectorDims = dims;
       }
       if ((i + 1) % 500 === 0) {
-        process.stderr.write(`[benchmark-seed] ${i + 1}/${corpus.length} provider=${provider}\n`);
+        process.stderr.write(`[benchmark-seed] ${i + 1}/${rows.length} provider=${provider}\n`);
       }
     }
-    assertWindowEmbeddingsSeeded(db, provider, corpus);
-    relationCount = seedBenchmarkRelations(db, corpus, benchmarkDir);
+    assertWindowEmbeddingsSeeded(db, provider, rows);
+    relationCount = seedBenchmarkRelations(db, rows, benchmarkDir);
   } catch (e) {
     closeDatabase(db);
     if (useTempDir && tmpRoot) {
@@ -191,7 +200,60 @@ export async function createSeededBenchmarkDatabase(
     }
   };
 
-  return { db, dbPath, close, embeddingProvider: provider, vectorDims, relationCount };
+  return {
+    db,
+    dbPath,
+    close,
+    embeddingProvider: provider,
+    vectorDims,
+    relationCount,
+    seededBenchmarkIds: rows.map((entry) => entry.benchmark_id).sort(),
+  };
+}
+
+function selectSeedRows(
+  corpus: BenchmarkCorpusEntry[],
+  options: BenchmarkSeedOptions | undefined,
+): BenchmarkCorpusEntry[] {
+  if (options?.mode === 'subset') {
+    if (options.corpusBenchmarkIds.length === 0) {
+      throw new Error('subset corpus is empty');
+    }
+    const byId = new Map(corpus.map((entry) => [entry.benchmark_id, entry]));
+    const seen = new Set<string>();
+    const rows: BenchmarkCorpusEntry[] = [];
+    for (const id of options.corpusBenchmarkIds) {
+      if (seen.has(id)) {
+        throw new Error(`subset corpus repeats benchmark_id: ${id}`);
+      }
+      seen.add(id);
+      const entry = byId.get(id);
+      if (!entry) {
+        throw new Error(`Benchmark corpus is missing id: ${id}`);
+      }
+      rows.push(entry);
+    }
+    return rows;
+  }
+  if (options?.mode === 'scale') {
+    if (options.scaleTo < corpus.length) {
+      throw new Error(`Cannot scale corpus of ${corpus.length} rows down to ${options.scaleTo}`);
+    }
+    const rows = [...corpus];
+    let cloneIndex = 0;
+    while (rows.length < options.scaleTo) {
+      const source = corpus[cloneIndex % corpus.length]!;
+      const id = `bench_scale_${cloneIndex}`;
+      rows.push({
+        ...source,
+        benchmark_id: id,
+        source_memory_id: id,
+      });
+      cloneIndex++;
+    }
+    return rows;
+  }
+  return corpus;
 }
 
 /**
