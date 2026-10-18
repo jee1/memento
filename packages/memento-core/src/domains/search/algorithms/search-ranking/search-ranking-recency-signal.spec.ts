@@ -65,7 +65,8 @@ describe('recency signal scale (#1175)', () => {
   });
 
   it('keeps newer above older at the shipped scale', () => {
-    const ranking = (useGlobalConfig(0.3), new SearchRanking());
+    useGlobalConfig(0.3);
+    const ranking = new SearchRanking();
     const newer = ranking.calculateRecency(new Date(Date.now() - 86_400_000));
     const older = ranking.calculateRecency(new Date(Date.now() - 200 * 86_400_000));
     expect(newer).toBeGreaterThan(older);

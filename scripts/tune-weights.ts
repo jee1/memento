@@ -344,14 +344,17 @@ async function main(): Promise<void> {
       const score = compositeScore(explore, baselineExplore);
       const tieRate = relevanceTieRate(result);
 
-      let gateRejectReason: string | undefined;
-      if (result.p95_latency_ms > LATENCY_BUDGET_MS) {
-        gateRejectReason = `p95_latency_ms ${result.p95_latency_ms.toFixed(1)} > budget ${LATENCY_BUDGET_MS}`;
-      } else if (explore.ndcg_at_10 < baselineExplore.ndcg_at_10 - NDCG_REGRESSION_THRESHOLD) {
-        gateRejectReason = `ndcg_at_10 regression: ${explore.ndcg_at_10.toFixed(4)} < ${(baselineExplore.ndcg_at_10 - NDCG_REGRESSION_THRESHOLD).toFixed(4)}`;
-      } else {
-        gateRejectReason = tieGateRejectReason(tieRate, baselineTieRate);
-      }
+      // 사유를 모두 남긴다. 하나만 남기면 앞 게이트가 뒤 게이트(동점)를 가려 감사할 수 없다.
+      const reasons = [
+        result.p95_latency_ms > LATENCY_BUDGET_MS
+          ? `p95_latency_ms ${result.p95_latency_ms.toFixed(1)} > budget ${LATENCY_BUDGET_MS}`
+          : undefined,
+        explore.ndcg_at_10 < baselineExplore.ndcg_at_10 - NDCG_REGRESSION_THRESHOLD
+          ? `ndcg_at_10 regression: ${explore.ndcg_at_10.toFixed(4)} < ${(baselineExplore.ndcg_at_10 - NDCG_REGRESSION_THRESHOLD).toFixed(4)}`
+          : undefined,
+        tieGateRejectReason(tieRate, baselineTieRate),
+      ].filter((reason): reason is string => reason !== undefined);
+      const gateRejectReason = reasons.length > 0 ? reasons.join('; ') : undefined;
 
       const record: CandidateRecord = {
         candidate_index: i,

@@ -91,7 +91,7 @@ npm run quality -- benchmark tune-weights -- \
 
 ### relevance 동점 게이트
 
-`relevance_signal.scale`을 키우면 relevance 점수가 상한에서 포화해 top-10 안에서 동점이 늘고, 순위가 입력 순서에 좌우됩니다. 최종 점수(`finalScore`)는 다른 항이 동점을 깨므로 scale 3.0에서도 동점이 0이라 이 현상을 가리지 못합니다. 그래서 게이트는 `score_breakdown.relevance.score`를 읽어 top-10 쌍 중 점수 차가 1e-9 미만인 쌍의 비율을 셉니다. 후보 비율이 `baseline_tie_rate + 0.005`를 넘으면 `tie` 사유로 거부합니다. benchmark-v3 실측 쌍 비율은 scale 1.0에서 0, 2.0에서 0.0008, 2.25에서 0.0031, 2.5에서 0.0084, 3.0에서 0.036입니다. 정답 라벨을 쓰지 않으므로 전체 쿼리로 계산해도 judge 누출이 없습니다.
+`relevance_signal.scale`을 키우면 relevance 점수가 상한에서 포화해 top-10 안에서 정답끼리 동점이 늘고, relevance 가 순서를 정하는 힘을 잃어 recency·importance 가 순위를 정합니다(#1180). 최종 점수(`finalScore`)는 다른 항이 동점을 깨므로 scale 3.0에서도 동점이 0이라 이 현상을 가리지 못합니다. 그래서 게이트는 `score_breakdown.relevance.score`를 읽어 top-10 쌍 중 점수 차가 1e-9 미만인 쌍의 비율을 셉니다. 후보 비율이 `baseline_tie_rate + 0.005`를 넘으면 `tie` 사유로 거부합니다. benchmark-v3 실측 쌍 비율은 scale 1.0에서 0, 2.0에서 0.0008, 2.25에서 0.0031, 2.5에서 0.0084, 3.0에서 0.036입니다. 정답 라벨을 쓰지 않으므로 전체 쿼리로 계산해도 judge 누출이 없습니다.
 
 후보가 다음 게이트 기준 중 하나라도 위반하면 자동으로 거부됩니다. 지표는 explore 쿼리 기준입니다(레이턴시와 동점 비율 제외).
 
