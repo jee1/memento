@@ -2,6 +2,7 @@
  * 메모리·MCP 요청 타입 정의
  */
 
+import type { RelationExtractionOverride } from '../config/relation-extraction-seat.js';
 import type { ApiTokenEntry } from './api-token.js';
 import type { EmbeddingProvider } from './embedding.types.js';
 
@@ -78,6 +79,11 @@ export interface MementoConfig {
     procedural?: LLMProvider;
     consolidation?: LLMProvider;
   };
+  /**
+   * LLM_PROVIDER_RELATION_EXTRACTION 원문.
+   * jev 는 llmProviderOverrides 에 들어가지 않는다.
+   */
+  relationExtractionOverride: RelationExtractionOverride;
   searchDefaultLimit: number;
   searchMaxLimit: number;
   /**
