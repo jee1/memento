@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "rejection-baseline-v1",
+  "gate": { "provider": "typesafe", "model": "test-model", "doc_chars": 800 },
+  "rows": [
+    { "query_id": "rb_rel_001", "group": "relevant", "top_score": 0.9 },
+    { "query_id": "rb_rel_002", "group": "relevant", "top_score": 0.45 },
+    { "query_id": "rb_rel_003", "group": "relevant", "top_score": 0.3 },
+    { "query_id": "rb_rel_004", "group": "relevant", "top_score": null },
+    { "query_id": "rb_unr_001", "group": "unrelated", "top_score": 0.25 },
+    { "query_id": "rb_unr_002", "group": "unrelated", "top_score": 0.4 },
+    { "query_id": "rb_unr_003", "group": "unrelated", "top_score": 0.55 },
+    { "query_id": "rb_unr_004", "group": "unrelated", "top_score": 0.1 }
+  ]
+}
