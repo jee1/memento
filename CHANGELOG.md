@@ -15,6 +15,8 @@
 
 ### Changed
 
+- 개발: `npm run quality -- benchmark rejection-sweep` 을 추가했습니다(#1400). 기각 게이트 임계값 0.20~0.60(0.05 단위)의 관련 질의 거짓 기각률과 무관 질의 기각률을 Wilson 95% 구간과 함께 냅니다. 공개 픽스처는 게이트 top_score 를 한 번 채점해 `.local/rejection-sweep/` 에 캐시하고(`--refresh` 로 재채점), `--labels <path>` 는 비공개 라벨 팩을 집계만 출력합니다.
+
 - 검색: 기각 게이트 기본 임계값을 0.4로 내렸습니다(#1387). 보존된 docker 로그 12건에서 top_score [0.4, 0.5) 기각의 거짓 기각은 6/11이었습니다. 질의 원문은 공개하지 않습니다.
 
 - 검색/인프라: `memory_item_vec` 쓰기 조건을 tfidf·lightweight 384 native 허용 목록으로 좁혀 MiniLM 이중 저장을 끊습니다(#1377). 마이그레이션 053이 레거시 non-member 행을 지우고, 낡은 트리거 때문에 빠져 있던 MiniLM 윈도 행을 `memory_item_vec_minilm`에 채웁니다. 테이블 DROP은 하지 않습니다. `VECTOR_SEARCH_CONFIG.providerDimensions.lightweight` 384는 그대로 둡니다.

@@ -19,6 +19,7 @@ const COMMANDS: Record<string, QualityCommand> = {
   'benchmark:length-decay-sweep': { script: 'quality-benchmark-length-decay-sweep.ts' },
   'benchmark:verify-categories': { script: 'quality-benchmark-verify-categories.ts' },
   'benchmark:rejection-baseline': { script: 'quality-benchmark-rejection-baseline.ts' },
+  'benchmark:rejection-sweep': { script: 'quality-benchmark-rejection-sweep.ts' },
   'benchmark:maxsim': { script: 'quality-benchmark-maxsim.ts' },
   'benchmark:compare-profiles': { script: 'compare-weight-profiles.ts' },
   'benchmark:tune-weights': { script: 'tune-weights.ts' },
