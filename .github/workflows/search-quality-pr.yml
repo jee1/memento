@@ -10,11 +10,14 @@ on:
     paths:
       - 'config/ranking-weights.toml'
       - 'config/ranking-profiles/**'
-      - 'packages/memento-core/src/shared/config/ranking-weights-loader.ts'
+      # search/embedding import constants, vector-search.config, embedding-models, index
+      # via shared/config — ranking-weights-loader alone missed model/deps PRs.
+      - 'packages/memento-core/src/shared/config/**'
       - 'packages/memento-core/src/domains/search/**'
       - 'packages/memento-core/src/domains/embedding/**'
       - 'packages/memento-core/src/domains/monitoring/services/quality-assurance/**'
       - 'packages/memento-core/src/shared/types/benchmark.types.ts'
+      - 'package-lock.json'
       - 'scripts/quality.ts'
       - 'scripts/quality-benchmark-category-report.ts'
       - 'scripts/quality-benchmark-perf-smoke.ts'
