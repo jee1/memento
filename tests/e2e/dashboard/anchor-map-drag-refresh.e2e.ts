@@ -124,7 +124,16 @@ test.describe('Anchor Map drag refresh deferral (issue 948)', () => {
     // A3 — deferred refresh applied; mem-b gone → 4 nodes
     await expect.poll(async () => page.locator('#anchor-map svg .node').count()).toBe(4);
 
-    // A4 — dragged node stays where released and is pinned
+    // A4 — dragged node stays where released and is pinned.
+    // After flush, D3 may recreate circles before the next tick sets cx/cy
+    // (anchor-map-render.js tick → attr('cx', d.x)). Wait for finite attrs
+    // so Math.abs does not see NaN on a still-truthy {cx:NaN,cy:NaN}.
+    await expect
+      .poll(async () => {
+        const point = await circleXY(page, 'mem-a');
+        return point != null && Number.isFinite(point.cx) && Number.isFinite(point.cy);
+      })
+      .toBe(true);
     const afterUp = await circleXY(page, 'mem-a');
     expect(afterUp).toBeTruthy();
     expect(Math.abs(afterUp!.cx - midAfter!.cx)).toBeLessThan(5);
