@@ -308,11 +308,12 @@ export class ForgetTool extends BaseTool {
     // Bound callers (tools/caller-scope.ts) only touch their own memories.
     const ownerScope = callerOwnerClause(context);
 
-    // pinned 해제하고 삭제 플래그 설정
+    // pinned 해제 + is_deleted/deleted_at (망각 정책 softDeleteMemory 와 동일 컬럼; last_accessed 는 갱신하지 않음 — #1388)
+    const deletedAt = new Date().toISOString();
     const updateResult = await DatabaseUtils.run(
       context.db!,
-      `UPDATE memory_item SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?${ownerScope.sql}`,
-      [id, ...ownerScope.params],
+      `UPDATE memory_item SET pinned = FALSE, is_deleted = 1, deleted_at = ? WHERE id = ?${ownerScope.sql}`,
+      [deletedAt, id, ...ownerScope.params],
     );
     
     if (updateResult.changes === 0) {
