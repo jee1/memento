@@ -44,12 +44,8 @@ export interface RelevanceGateOutcome {
   unscored: number;
 }
 
-/**
- * #1387. 보존된 docker 로그 12건에서 topScore [0.4, 0.5) 기각의 거짓 기각은 6/11.
- * 질의 원문과 라벨은 비공개라 이 비율은 그 표본 한 번의 값이다.
- * 이전 기본값 0.5 는 2026-09-23 운영 DB 실측(무관 질의 top1 0.010~0.360, T=0.5 에서 무관 0/12 통과)이었다.
- */
-export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.4;
+/** shared/config 단일 출처. 도메인 소비자는 이 re-export를 써도 된다. */
+export { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../../shared/config/constants.js';
 
 /**
  * #1125 게이트가 점수를 하나도 얻지 못했을 때의 정책.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../domains/search/ports/relevance-gate-port.js';
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 
 /**
  * #1125: 기각 게이트 config 파싱을 고정한다.

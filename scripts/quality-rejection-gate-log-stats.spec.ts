@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../packages/memento-core/src/domains/search/ports/relevance-gate-port.js';
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../packages/memento-core/src/shared/config/constants.js';
 import {
   DEFAULT_LOG_CONTAINER,
   DEFAULT_STATS_THRESHOLD,

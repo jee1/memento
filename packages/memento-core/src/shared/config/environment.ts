@@ -7,7 +7,7 @@
 import os from 'os';
 import path from 'path';
 import packageJson from '../../../package.json' with { type: 'json' };
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../domains/search/ports/relevance-gate-port.js';
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 
 /** PERF_ALERT_REARM_MS 단일 소스 (#697). ENV_DEFAULTS·resolveValidatedNumber fallback이 여기만 참조. */
 export const PERF_ALERT_REARM_MS_DEFAULT = 1_800_000;

@@ -17,7 +17,7 @@ import {
 import { parseMcpEraMode } from '../utils/mcp-era-mode.js';
 import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
 import { resolveApiTokens } from './api-tokens.js';
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../domains/search/ports/relevance-gate-port.js';
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 import {
   providerDimensionDefaults,
   resolveNumber,

@@ -213,7 +213,7 @@ export class HybridSearchEngine {
       // #1095 기각 게이트: 후보 최고 점수가 임계값 미만이면 질의 전체를 기각한다.
       // finalResults 를 재할당하므로 아래 logData·finalIds·return 이 모두 자동으로 따라간다.
       if (this.rejectionGate && finalResults.length > 0) {
-        // 임계값 0.5 는 top-10 의 최고 점수로 교정한 값이다. 후보를 더 넣으면 최고 점수가
+        // 임계값은 top-10 안의 최고 점수로 교정한다. 후보를 더 넣으면 최고 점수가
         // 올라가기만 해서 기각이 느슨해진다. 측정한 조건 그대로 상위 10건만 본다.
         const gateCandidates = finalResults.slice(0, 10);
         const gateDocs = gateCandidates.map((item) => item.content ?? '');

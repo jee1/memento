@@ -2779,7 +2779,7 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
 
       await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
 
-      // 임계값 0.5 는 top-10 최고 점수로 교정한 값이다. 후보를 더 넣으면 최고 점수가 올라가 기각이 느슨해진다.
+      // 임계값은 top-10 최고 점수로 교정한다. 후보를 더 넣으면 최고 점수가 올라가 기각이 느슨해진다.
       expect(gate.score).toHaveBeenCalledTimes(1);
       expect((gate.score as Mock).mock.calls[0]?.[1]).toHaveLength(10);
     });
