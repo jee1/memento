@@ -10,6 +10,8 @@ import type { ToolContext } from '../../../tools/types.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
+import { SearchEngine } from '../../../search/algorithms/search-engine.js';
+import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 describe('ForgetTool', () => {
   let tool: ForgetTool;
@@ -59,6 +61,45 @@ describe('ForgetTool', () => {
       const memory = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [memoryId]);
       expect(memory).toBeDefined();
       expect(memory.pinned).toBe(0); // pinned 해제됨
+    });
+
+    it('소프트 삭제 후 검색(recall 텍스트 레인)에 나오지 않아야 함 (#1388)', async () => {
+      const marker = `softforget1388_${Date.now()}`;
+      const memoryId = createTestMemory(db, {
+        content: `Unique soft-forget recall marker ${marker}`,
+        type: 'episodic',
+      });
+
+      const before = DatabaseUtils.get(
+        db,
+        'SELECT last_accessed FROM memory_item WHERE id = ?',
+        [memoryId],
+      ) as { last_accessed: string };
+
+      await tool.handle({ id: memoryId, hard: false }, context);
+
+      const memory = DatabaseUtils.get(
+        db,
+        'SELECT is_deleted, deleted_at, pinned, last_accessed FROM memory_item WHERE id = ?',
+        [memoryId],
+      ) as {
+        is_deleted: number;
+        deleted_at: string | null;
+        pinned: number;
+        last_accessed: string;
+      };
+      expect(memory.is_deleted).toBe(1);
+      expect(memory.deleted_at).toBeTruthy();
+      expect(memory.pinned).toBe(0);
+      expect(memory.last_accessed).toBe(before.last_accessed);
+
+      const searchEngine = new SearchEngine(sqliteRepositoryProvider);
+      const result = await searchEngine.search(db, {
+        query: marker,
+        limit: 10,
+        memory_types: ['episodic'],
+      });
+      expect(result.items.map((item) => item.id)).not.toContain(memoryId);
     });
 
     it('하드 삭제를 수행해야 함', async () => {
