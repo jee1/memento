@@ -17,6 +17,7 @@ import {
 import { parseMcpEraMode } from '../utils/mcp-era-mode.js';
 import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
 import { resolveApiTokens } from './api-tokens.js';
+import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../domains/search/ports/relevance-gate-port.js';
 import {
   providerDimensionDefaults,
   resolveNumber,
@@ -93,7 +94,7 @@ function resolveRejectionGateThreshold(): number {
   const raw = resolveString('SEARCH_REJECTION_GATE_THRESHOLD');
   const parsed = Number.parseFloat(raw);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
-    return 0.5;
+    return DEFAULT_RELEVANCE_GATE_THRESHOLD;
   }
   return parsed;
 }

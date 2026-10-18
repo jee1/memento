@@ -60,8 +60,8 @@ describe('judgeRelevanceGate', () => {
     expect(judgeRelevanceGate([0.3], 0.42).threshold).toBe(0.42);
   });
 
-  it('기본 임계값은 2026-09-23 운영 DB 실측 기준 0.5 다', () => {
-    expect(DEFAULT_RELEVANCE_GATE_THRESHOLD).toBe(0.5);
+  it('기본 임계값은 0.4 다', () => {
+    expect(DEFAULT_RELEVANCE_GATE_THRESHOLD).toBe(0.4);
   });
 
   it('점수를 하나도 못 얻으면 기본값(open)은 기각하지 않는다', () => {
