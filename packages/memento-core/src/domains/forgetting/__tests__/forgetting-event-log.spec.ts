@@ -56,6 +56,7 @@ describe('forgetting event log', () => {
   });
 
   it('records soft and hard delete events during batch cleanup', async () => {
+    vi.stubEnv('SOFT_DELETE_GRACE_PERIOD_DAYS', '7');
     const softId = createTestMemory(db, {
       content: 'Soft candidate',
       type: 'episodic',
@@ -113,19 +114,34 @@ describe('forgetting event log', () => {
 
     const insertSpy = vi.spyOn(ForgettingEventRepository.prototype, 'insert');
 
-    const result = await service.executeMemoryCleanup(db);
-    expect(result.summary.actualSoftDeletes).toBe(2);
-    expect(result.summary.actualHardDeletes).toBe(1);
+    const first = await service.executeMemoryCleanup(db);
+    expect(first.summary.actualSoftDeletes).toBe(2);
+    expect(first.summary.actualHardDeletes).toBe(0);
+    expect(first.softDeleted).toContain(hardId);
+    expect(first.hardDeleted).not.toContain(hardId);
 
     expect(insertSpy).toHaveBeenCalled();
     const softEvents = eventRepo.list(db, { memory_id: softId, action: 'soft' });
-    const hardEvents = eventRepo.list(db, { memory_id: hardId, action: 'hard' });
     expect(softEvents[0]?.policy).toBe(DEFAULT_FORGETTING_POLICY_NAME);
     expect(softEvents[0]?.ttl_days).toBe(1);
-    expect(hardEvents[0]?.reason).toBe('사용되지 않음');
+    expect(eventRepo.list(db, { memory_id: hardId, action: 'hard' })).toHaveLength(0);
+    expect(DatabaseUtils.get(db, 'SELECT id FROM memory_item WHERE id = ?', [hardId])).toBeDefined();
+
+    DatabaseUtils.run(db, 'UPDATE memory_item SET deleted_at = ? WHERE id = ?', [
+      new Date(Date.now() - 8 * DAY_MS).toISOString(),
+      hardId,
+    ]);
+
+    const second = await service.executeMemoryCleanup(db);
+    expect(second.summary.actualHardDeletes).toBe(1);
+    expect(second.hardDeleted).toContain(hardId);
+    const hardEvents = eventRepo.list(db, { memory_id: hardId, action: 'hard' });
+    expect(hardEvents).toHaveLength(1);
+    expect(hardEvents[0]?.reason).toBe('soft_delete_grace_period_expired');
     expect(DatabaseUtils.get(db, 'SELECT id FROM memory_item WHERE id = ?', [hardId])).toBeUndefined();
 
     insertSpy.mockRestore();
     analyzeSpy.mockRestore();
+    vi.unstubAllEnvs();
   });
 });
