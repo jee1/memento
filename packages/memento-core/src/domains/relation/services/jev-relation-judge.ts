@@ -28,7 +28,7 @@ export type JevRelationType = (typeof JEV_RELATION_TYPES)[number];
 export const RELATION_JEV_TYPE_MIN = 0.5;
 
 /** A pair below this floor is not sent into the type round. */
-export const RELATION_JEV_RELEVANCE_MIN = 0.5;
+const RELATION_JEV_RELEVANCE_MIN = 0.5;
 
 export const RELATION_JEV_TIMEOUT_MS = 10_000;
 
