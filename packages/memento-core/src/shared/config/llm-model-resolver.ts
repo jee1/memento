@@ -3,6 +3,7 @@
  * 임베딩 모델(GEMINI_MODEL, OPENAI_MODEL)과 분리한다.
  */
 
+import { DEFAULT_GEMINI_LLM_MODEL } from './constants.js';
 import { mementoConfig } from './index.js';
 import type { LLMProvider, MementoConfig } from '../types/memory.types.js';
 import { logger } from '../utils/logger.js';
@@ -18,7 +19,7 @@ type LlmModelProvider = 'openai' | 'gemini' | 'ollama';
 
 const PROVIDER_CODE_DEFAULTS: Record<LlmModelProvider, string> = {
   openai: 'gpt-4o-mini',
-  gemini: 'gemini-2.0-flash',
+  gemini: DEFAULT_GEMINI_LLM_MODEL,
   ollama: 'llama3',
 };
 

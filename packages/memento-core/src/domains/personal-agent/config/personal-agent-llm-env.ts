@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_GEMINI_LLM_MODEL } from '../../../shared/config/constants.js';
 import { PersonalAgentLlmError } from '../errors/personal-agent-llm-error.js';
 
 const providerEnum = z.enum(['mock', 'openai', 'gemini', 'ollama']);
@@ -15,7 +16,6 @@ export type ParsePersonalAgentLlmEnvKeys = {
 };
 
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
-const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash';
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434';
 
 function readProviderToken(env: NodeJS.ProcessEnv): string {
@@ -71,7 +71,7 @@ export function parsePersonalAgentLlmEnv(
       });
     }
     const model =
-      env.MEMENTO_PERSONAL_AGENT_GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+      env.MEMENTO_PERSONAL_AGENT_GEMINI_MODEL?.trim() || DEFAULT_GEMINI_LLM_MODEL;
     return { provider: 'gemini', model };
   }
 

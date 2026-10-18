@@ -45,7 +45,7 @@ OPENAI_LLM_MODEL=gpt-4o-mini   # default
 ```bash
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your_api_key_here
-GEMINI_LLM_MODEL=gemini-2.0-flash   # default
+GEMINI_LLM_MODEL=gemini-flash-latest   # default
 ```
 
 `GEMINI_LLM_MODEL` is for LLM inference only and is separate from `GEMINI_MODEL`, which controls the embedding model.
@@ -81,7 +81,7 @@ When set, these values take precedence over the provider's default model (`OPENA
 
 1. The corresponding `LLM_MODEL_*` variable (if set and bound provider matches runtime)
 2. The provider's default model variable (`OPENAI_LLM_MODEL`, etc.)
-3. The code's hardcoded fallback (gpt-4o-mini, gemini-2.0-flash, llama3)
+3. The code's hardcoded fallback (gpt-4o-mini, gemini-flash-latest, llama3)
 
 Empty or whitespace-only `LLM_MODEL_*` values are treated as unset.
 

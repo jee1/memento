@@ -52,7 +52,7 @@ describe('parsePersonalAgentLlmEnv', () => {
     const result = parsePersonalAgentLlmEnv(process.env, {
       geminiApiKey: 'AIza-test',
     });
-    expect(result).toEqual({ provider: 'gemini', model: 'gemini-2.0-flash' });
+    expect(result).toEqual({ provider: 'gemini', model: 'gemini-flash-latest' });
   });
 
   it('throws when ollama is selected without model', () => {
