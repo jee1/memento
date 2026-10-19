@@ -111,6 +111,89 @@ describe('applyRanking FTS5 BM25 contract (#787)', () => {
   });
 });
 
+describe('text lane score for fusion handoff (#1393)', () => {
+  it('keeps applyRanking score in [0, 1] even when fact metadata would boost past 1', () => {
+    const ranking = new SearchRanking();
+    const temperature = getRankingWeights().fts_relevance.temperature;
+    const ftsRank = -50 * temperature;
+    const items = applyRanking(
+      ranking,
+      [
+        {
+          ...row('hot-fact', ftsRank, 'production recall funnel bm25 contract'),
+          importance: 1.0,
+          created_at: new Date().toISOString(),
+          pinned: 1,
+          num_times: 10_000,
+          last_mentioned_at: new Date().toISOString(),
+        },
+      ],
+      'recall',
+    );
+
+    const score = items[0]?.score ?? Number.NaN;
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThanOrEqual(1);
+  });
+
+  it('passes BM25 sigmoid relevance as score when fts_rank is present (no composite/factBoost)', () => {
+    const ranking = new SearchRanking();
+    const temperature = getRankingWeights().fts_relevance.temperature;
+    const ftsRank = -50 * temperature;
+    const bm25 = ftsRankToRelevance(ftsRank, temperature)!;
+    const items = applyRanking(
+      ranking,
+      [
+        {
+          ...row('hot-fact', ftsRank, 'production recall funnel bm25 contract'),
+          importance: 1.0,
+          created_at: new Date().toISOString(),
+          pinned: 1,
+          num_times: 10_000,
+          last_mentioned_at: new Date().toISOString(),
+        },
+      ],
+      'recall',
+    );
+
+    expect(items[0]?.score).toBeCloseTo(bm25, 12);
+  });
+
+  it('uses lexical relevance as score when fts_rank is 0', () => {
+    const ranking = new SearchRanking();
+    const content = 'memory lexical about recall';
+    const query = 'recall';
+    const createdAt = new Date().toISOString();
+    const lexical = ranking.calculateRelevance({ query, content, tags: [] });
+    const composite = ranking.calculateFinalScore({
+      relevance: lexical,
+      recency: ranking.calculateRecency(new Date(createdAt)),
+      importance: ranking.calculateImportance(1, true, 'semantic'),
+      usage: ranking.calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 }),
+      duplication_penalty: ranking.calculateDuplicationPenalty(content, []),
+      feedback_score: 0.5,
+    });
+    const items = applyRanking(
+      ranking,
+      [
+        {
+          ...row('lexical', 0, content),
+          importance: 1,
+          created_at: createdAt,
+          pinned: 1,
+        },
+      ],
+      query,
+    );
+
+    const score = items[0]?.score ?? Number.NaN;
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThanOrEqual(1);
+    expect(score).toBeCloseTo(lexical, 12);
+    expect(Math.abs(score - composite)).toBeGreaterThan(0.05);
+  });
+});
+
 describe('SearchEngine FTS5 BM25 (#787)', () => {
   it('returns the best FTS5 match first on a real in-memory index', async () => {
     const db = await setupTestDatabase();

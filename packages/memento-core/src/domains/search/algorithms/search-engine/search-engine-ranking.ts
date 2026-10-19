@@ -5,9 +5,7 @@
 import { getRankingWeights } from '../../../../shared/config/ranking-weights-loader.js';
 import type { MemorySearchResult } from '../../../../shared/types/search.types.js';
 import type { ScoreBreakdown } from '../../../../shared/types/search.types.js';
-import { DAY_MS } from '../../../../shared/utils/date.js';
-import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.interface.js';
-import { SearchRanking, type SearchFeatures } from '../search-ranking.js';
+import { SearchRanking } from '../search-ranking.js';
 import type { SearchEngineRow } from './search-engine.types.js';
 
 function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: number): ScoreBreakdown {
@@ -25,15 +23,6 @@ function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: number)
     duplication_penalty: map(bd.duplication_penalty),
     total: displayTotal
   };
-}
-
-function calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Date | null): number {
-  const logFactor = Math.log(1 + Math.max(0, numTimes));
-  const recencyFactor = lastMentionedAt
-    ? 1 / (1 + (Date.now() - lastMentionedAt.getTime()) / (30 * DAY_MS))
-    : 1;
-  const boost = 1 + 0.1 * logFactor * recencyFactor;
-  return Math.min(boost, 1.2);
 }
 
 /**
@@ -82,10 +71,8 @@ interface ScoredRow {
   relevance: number;
   recency: number;
   importance: number;
-  baseFeatures: SearchFeatures;
   /** BM25 레인이면 sigmoid relevance, 아니면 null */
   bm25Relevance: number | null;
-  factBoost: number;
   finalScore: number;
 }
 
@@ -105,11 +92,10 @@ const parseTags = (row: SearchEngineRow): string[] => {
   }
 };
 
-/** `selectedContents` 는 앞선 행들의 content. duplication penalty 가 이 순서에 의존한다. */
 function scoreRow(
   ranking: SearchRanking,
   row: SearchEngineRow,
-  ctx: { query: string; tags: string[]; temperature: number; selectedContents: string[]; opts?: RankingOpts }
+  ctx: { query: string; tags: string[]; temperature: number }
 ): ScoredRow {
   const ftsRank = typeof row.fts_rank === 'number' ? row.fts_rank : Number(row.fts_rank ?? 0);
   const bm25Relevance = ftsRankToRelevance(ftsRank, ctx.temperature);
@@ -117,23 +103,7 @@ function scoreRow(
     bm25Relevance ?? ranking.calculateRelevance({ query: ctx.query, content: row.content, tags: ctx.tags });
   const recency = ranking.calculateRecency(toDate(row.created_at));
   const importance = ranking.calculateImportance(row.importance, Boolean(row.pinned), row.type);
-
-  const baseFeatures: SearchFeatures = {
-    relevance,
-    recency,
-    importance,
-    usage: ranking.calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 }),
-    duplication_penalty: ranking.calculateDuplicationPenalty(row.content, ctx.selectedContents),
-    feedback_score: sigmoidNormalizedNet(ctx.opts?.feedbackNetByMemory?.get(row.id) ?? 0),
-  };
-
-  const baseScore = ranking.calculateFinalScore(baseFeatures);
-  const preBoost = bm25Relevance !== null ? relevance * 0.7 + baseScore * 0.3 : baseScore;
-  const factBoost = calculateFactMetadataBoost(
-    row.num_times != null ? Number(row.num_times) : 1,
-    row.last_mentioned_at ? new Date(row.last_mentioned_at) : null
-  );
-  return { relevance, recency, importance, baseFeatures, bm25Relevance, factBoost, finalScore: preBoost * factBoost };
+  return { relevance, recency, importance, bm25Relevance, finalScore: relevance };
 }
 
 /** null·undefined 가 아니면 복사 */
@@ -170,27 +140,16 @@ function buildSearchResult(row: SearchEngineRow, tags: string[], scored: ScoredR
   return result;
 }
 
-/**
- * 표시 점수(finalScore)에 맞춰 breakdown 각 항을 스케일한다.
- * BM25: (항 × 0.3 [+ relevance × 0.7]) × factBoost, 아니면 항 × factBoost.
- * 곱셈 순서는 `(score * weight) * factBoost` — `x * 1` 은 x 와 비트 단위로 같다.
- */
-function scaleBreakdown(bd: ScoreBreakdown, scored: ScoredRow): ScoreBreakdown {
-  const { bm25Relevance, factBoost, finalScore } = scored;
-  const weight = bm25Relevance === null ? 1 : 0.3;
-  const scale = (c: { score: number }) => ({ score: c.score * weight * factBoost, pct: 0 });
-  const relevanceScore =
-    bm25Relevance === null
-      ? bd.relevance.score * factBoost
-      : (bd.relevance.score * 0.3 + scored.relevance * 0.7) * factBoost;
+function relevanceOnlyBreakdown(finalScore: number): ScoreBreakdown {
+  const zero = { score: 0, pct: 0 };
   return {
-    relevance: { score: relevanceScore, pct: 0 },
-    recency: scale(bd.recency),
-    importance: scale(bd.importance),
-    usage: scale(bd.usage),
-    feedback: scale(bd.feedback),
-    duplication_penalty: scale(bd.duplication_penalty),
-    total: finalScore
+    relevance: { score: finalScore, pct: 0 },
+    recency: zero,
+    importance: zero,
+    usage: zero,
+    feedback: zero,
+    duplication_penalty: zero,
+    total: finalScore,
   };
 }
 
@@ -200,21 +159,18 @@ export function applyRanking(
   query: string,
   opts?: RankingOpts
 ): MemorySearchResult[] {
-  const selectedContents: string[] = [];
   const temperature = getRankingWeights().fts_relevance.temperature;
 
   return results
     .map((row) => {
       const tags = parseTags(row);
-      const scored = scoreRow(ranking, row, { query, tags, temperature, selectedContents, opts });
-      selectedContents.push(row.content);
-
+      const scored = scoreRow(ranking, row, { query, tags, temperature });
       const result = buildSearchResult(row, tags, scored);
       if (opts?.includeBreakdown) {
-        const bd = ranking.calculateFinalScoreAndBreakdown(scored.baseFeatures, { includeBreakdown: true });
-        if (bd.breakdown) {
-          result.score_breakdown = attachBreakdownToDisplayTotal(scaleBreakdown(bd.breakdown, scored), scored.finalScore);
-        }
+        result.score_breakdown = attachBreakdownToDisplayTotal(
+          relevanceOnlyBreakdown(scored.finalScore),
+          scored.finalScore,
+        );
       }
       return result;
     })

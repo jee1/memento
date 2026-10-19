@@ -24,7 +24,7 @@ vec 인덱스 적재량을 점검할 때는 raw provider 행 수와 1:1로 비�
 
 SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값은 **음수일 수 있습니다**. 빈 쿼리·LIKE fallback SQL은 `0 as fts_rank`를 쓰므로 `0`은 BM25 없음(lexical relevance)입니다.
 
-텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank))`로 (0, 1) relevance에 올린 뒤 기존 가중합에 넣습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다.
+텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank / T))`로 (0, 1) relevance에 올려 **그 값을 레인 `score`로 그대로** 넘깁니다(Issue [#1393](https://github.com/jee1/memento/issues/1393)). BM25가 없으면 lexical relevance만 씁니다. recency·importance·usage·feedback·dup는 융합(`HybridResultRanker`)에서 한 번만 가중합합니다. 예전에 레인이 `(0.7·bm25 + 0.3·composite)×factBoost`를 `textScore`로 넘기면 융합에서 recency·importance가 이중 반영되고 `textScore`가 1을 넘었습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다. `text_lane_score: relevance_only`는 `getRankingVersion()` 해시에 포함됩니다.
 
 시그모이드에는 온도 `T`가 들어갑니다(`1 / (1 + exp(rank / T))`, Issue [#1079](https://github.com/jee1/memento/issues/1079)). `T`는 `config/ranking-weights.toml`의 `[fts_relevance].temperature`(기본 10)이며 `getRankingVersion()` 해시에 포함됩니다. `T = 1`이면 시그모이드의 변곡점이 `rank = 0`에 놓이는데 그 값은 "BM25 없음" 센티넬이라 실제로는 나오지 않습니다. 실측 rank 구간(-19.8 ~ -2.4)이 전부 포화 꼬리에 들어가 동적 범위가 0.083으로 뭉개지고, BM25 순위 전체가 importance 항보다 7.7배 약해져 결과 순서가 사실상 질의 독립이 됩니다. `T = 8~12`가 평탄역이라 10을 씁니다.
 

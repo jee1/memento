@@ -453,32 +453,32 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
     });
   });
 
-  describe('Fact 메타데이터 가중 (Issue #88)', () => {
-    it('Given: 동일 유사도 semantic 두 건(num_times·last_mentioned_at 상이), When: 검색 시, Then: num_times·last_mentioned_at이 큰 항목이 더 높은 스코어', async () => {
+  describe('Fact metadata is not a text-lane score (#1393)', () => {
+    it('keeps the same score when only num_times and last_mentioned_at differ', async () => {
       setMigrationStatus(db, 'pending');
 
       const now = new Date();
       const oldDate = new Date(now.getTime() - 90 * DAY_MS).toISOString();
       const recentDate = new Date(now.getTime() - DAY_MS).toISOString();
-
-      // fact_high를 먼저 삽입해 rowid가 작아 검색 결과 순서에서 먼저 오도록 함. 중복 패널티가 fact_low에만 적용되어도 fact_high가 boost로 우선.
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, ['fact_high', 'semantic', 'Fact test keyword item first', 0.5, 'private', oldDate, 10, recentDate]);
+      const content = 'Fact test keyword item';
 
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, ['fact_low', 'semantic', 'Fact test keyword item second', 0.5, 'private', oldDate, 1, oldDate]);
+      `, ['fact_high', 'semantic', content, 0.5, 'private', oldDate, 10, recentDate]);
+
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, ['fact_low', 'semantic', content, 0.5, 'private', oldDate, 1, oldDate]);
 
       const query: SearchQuery = { query: 'Fact test keyword', limit: 10 };
       const result = await searchEngine.search(db, query);
 
       expect(result.items.length).toBeGreaterThanOrEqual(2);
-      const highIdx = result.items.findIndex((r: { id: string }) => r.id === 'fact_high');
-      const lowIdx = result.items.findIndex((r: { id: string }) => r.id === 'fact_low');
-      expect(highIdx).toBeGreaterThanOrEqual(0);
-      expect(lowIdx).toBeGreaterThanOrEqual(0);
-      expect(result.items[highIdx].score).toBeGreaterThan(result.items[lowIdx].score);
+      const high = result.items.find((r: { id: string }) => r.id === 'fact_high');
+      const low = result.items.find((r: { id: string }) => r.id === 'fact_low');
+      expect(high?.score).toBeGreaterThanOrEqual(0);
+      expect(high?.score).toBeLessThanOrEqual(1);
+      expect(high?.score).toBeCloseTo(low?.score ?? Number.NaN, 12);
     });
   });
 });

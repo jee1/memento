@@ -273,6 +273,7 @@ export function getRankingVersionPayload(configPath?: string): {
   vector_score_scale: string;
   vector_length_decay_enabled: boolean;
   vector_length_decay_characteristic_length: number;
+  text_lane_score: 'relevance_only';
 } {
   const weights = getRankingWeights(configPath);
   return {
@@ -283,6 +284,7 @@ export function getRankingVersionPayload(configPath?: string): {
     vector_score_scale: HYBRID_SEARCH.VECTOR_SCORE_SCALE,
     vector_length_decay_enabled: weights.vector_length_decay.enabled,
     vector_length_decay_characteristic_length: weights.vector_length_decay.characteristic_length,
+    text_lane_score: 'relevance_only',
   };
 }
 
