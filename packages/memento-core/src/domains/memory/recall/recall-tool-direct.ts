@@ -3,12 +3,15 @@
  */
 
 import { mementoConfig } from '../../../shared/config/index.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import type { ToolResult } from '../../../tools/types.js';
 import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';
 import type { RecallParams } from './recall-tool-schema.js';
+import type { RecallContext } from './recall-tool-types.js';
+
+type RecallDirectContext = RecallContext<'repositories'>;
 
 export async function recallCoreMemoryDirect(
   host: RecallToolHost,
@@ -18,7 +21,7 @@ export async function recallCoreMemoryDirect(
   memory_types: RecallParams['memory_types'],
   searchStartTime: number,
   startTime: number,
-  context: ToolContext
+  context: RecallDirectContext
 ): Promise<ToolResult> {
   if (query) {
     host.logWarning('type="core"일 때 query 파라미터는 무시됩니다', { query });
@@ -71,7 +74,7 @@ export async function recallVaultMemoryDirect(
   memory_types: RecallParams['memory_types'],
   searchStartTime: number,
   startTime: number,
-  context: ToolContext
+  context: RecallDirectContext
 ): Promise<ToolResult> {
   if (query) {
     host.logWarning('type="vault"일 때 query 파라미터는 무시됩니다', { query });

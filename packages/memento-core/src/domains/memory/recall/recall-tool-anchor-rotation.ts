@@ -5,7 +5,9 @@
 import type Database from 'better-sqlite3';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RecallToolHost } from './recall-tool-host.js';
-import type { AnchorSetMetadata, RecallSearchItem } from './recall-tool-types.js';
+import type { AnchorSetMetadata, RecallContext, RecallSearchItem } from './recall-tool-types.js';
+
+export type RecallAnchorContext = RecallContext<'anchorManager'>;
 
 export interface AnchorSetResult {
   success: boolean;
@@ -118,7 +120,7 @@ async function shiftSlotBToC(
 /** A→B→C 로 한 칸씩 민다. 슬롯 A 가 pinned 면 아무것도 하지 않고 false. */
 async function rotateSlotsDown(
   host: RecallToolHost,
-  context: ToolContext,
+  context: RecallAnchorContext,
   anchorManager: AnchorManager,
   agentId: string
 ): Promise<boolean> {
@@ -151,7 +153,7 @@ export async function handleAutoSetAnchor(
   host: RecallToolHost,
   searchItems: RecallSearchItem[],
   agentId: string,
-  context: ToolContext
+  context: RecallAnchorContext
 ): Promise<AnchorSetResult> {
   if (!searchItems || searchItems.length === 0) {
     return {

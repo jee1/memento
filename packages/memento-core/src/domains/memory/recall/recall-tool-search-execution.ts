@@ -4,7 +4,6 @@
 
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { getRankingVersion } from '../../../shared/config/ranking-weights-loader.js';
-import type { ToolContext } from '../../../tools/types.js';
 import { rejectionGateTelemetryExtra } from '../../telemetry/search-quality/index.js';
 import {
   recallQueryCorrelationExtra,
@@ -17,10 +16,13 @@ import {
   type RecallParams,
   type RecallTelemetryRetrievalStrategy
 } from './recall-tool-schema.js';
+import type { RecallContext } from './recall-tool-types.js';
+
+type RecallSearchContext = RecallContext<'hybridSearchEngine' | 'searchEngine' | 'telemetryService'>;
 
 export async function executeHybridOrTextSearchForMemoryItem(
   host: RecallToolHost,
-  context: ToolContext,
+  context: RecallSearchContext,
   input: {
     query: string;
     filters: MemorySearchFilters;
