@@ -93,6 +93,22 @@ describe('applyRanking FTS5 BM25 contract (#787)', () => {
 
     expect(items.map((item) => item.id)).toEqual(['best', 'mid', 'weak']);
   });
+
+  it('keeps the rest of the result set when one tags value is malformed JSON (#1390)', () => {
+    const ranking = new SearchRanking();
+    const items = applyRanking(
+      ranking,
+      [
+        { ...row('good', -8), tags: '["keep"]' },
+        { ...row('broken', -4), tags: '{not-json' },
+      ],
+      'recall',
+    );
+
+    expect(items.map((item) => item.id).sort()).toEqual(['broken', 'good']);
+    expect(items.find((item) => item.id === 'good')?.tags).toEqual(['keep']);
+    expect(items.find((item) => item.id === 'broken')?.tags).toEqual([]);
+  });
 });
 
 describe('SearchEngine FTS5 BM25 (#787)', () => {

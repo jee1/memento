@@ -77,7 +77,8 @@ describe('buildSearchStatement', () => {
     });
 
     const candidateLimitIndex = result.sql.lastIndexOf('LIMIT ?');
-    const tagExists = "EXISTS (SELECT 1 FROM json_each(COALESCE(m.tags, '[]')) WHERE value = ?)";
+    const tagExists =
+      "EXISTS (SELECT 1 FROM json_each(CASE WHEN m.tags IS NOT NULL AND json_valid(m.tags) THEN m.tags ELSE '[]' END) WHERE value = ?)";
     expect(result.sql).toContain(tagExists);
     expect(result.sql.indexOf(tagExists)).toBeLessThan(candidateLimitIndex);
     expect(result.params).toEqual([

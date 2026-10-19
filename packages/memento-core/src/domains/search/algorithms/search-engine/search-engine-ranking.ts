@@ -93,8 +93,17 @@ type RankingOpts = { includeBreakdown?: boolean; feedbackNetByMemory?: Map<strin
 
 const toDate = (value: Date | string) => (value instanceof Date ? value : new Date(value));
 
-const parseTags = (row: SearchEngineRow) =>
-  typeof row.tags === 'string' ? (JSON.parse(row.tags) as string[]) : [];
+const parseTags = (row: SearchEngineRow): string[] => {
+  if (typeof row.tags !== 'string' || !row.tags) {
+    return [];
+  }
+  try {
+    const parsed: unknown = JSON.parse(row.tags);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+};
 
 /** `selectedContents` 는 앞선 행들의 content. duplication penalty 가 이 순서에 의존한다. */
 function scoreRow(

@@ -2,6 +2,7 @@
  * #998: filters_applied 키 ↔ buildMemoryFilterSql 절 드리프트 가드
  */
 
+import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { getAppliedRecallFilters } from '../../domains/memory/recall/recall-tool-filters.js';
 import type { MemorySearchFilters } from '../types/search.types.js';
@@ -41,6 +42,24 @@ describe('memory-filter-sql contract (#998)', () => {
 
       const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm' });
       expect(clauses.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('one malformed tags value does not abort a tag filter (#1390)', () => {
+    const db = new Database(':memory:');
+    try {
+      db.exec('CREATE TABLE m (id TEXT PRIMARY KEY, tags TEXT)');
+      const insert = db.prepare('INSERT INTO m (id, tags) VALUES (?, ?)');
+      insert.run('good', '["alpha"]');
+      insert.run('other', '["beta"]');
+      insert.run('broken', '{not-json');
+
+      const { clauses, params } = buildMemoryFilterSql({ tags: ['alpha'] }, { itemAlias: 'm' });
+      const rows = db.prepare(`SELECT id FROM m WHERE ${clauses.join(' AND ')}`).all(...params) as { id: string }[];
+
+      expect(rows.map((row) => row.id)).toEqual(['good']);
+    } finally {
+      db.close();
     }
   });
 
