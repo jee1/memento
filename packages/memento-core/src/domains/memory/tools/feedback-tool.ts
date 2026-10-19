@@ -148,7 +148,7 @@ export class FeedbackTool extends BaseTool {
     const ownerScope = callerOwnerClause(context);
 
     try {
-      const row = context.db!
+      const row = context.db
         .prepare(`SELECT id, owner_id, type FROM memory_item WHERE id = ?${ownerScope.sql}`)
         .get(parsed.memory_id, ...ownerScope.params) as { id: string; owner_id: string | null; type: string } | undefined;
       if (!row) {
@@ -160,7 +160,7 @@ export class FeedbackTool extends BaseTool {
         scoreBreakdownJson = JSON.stringify(parsed.score_breakdown);
       }
 
-      const repo = repositories.feedback(context.db!);
+      const repo = repositories.feedback(context.db);
       const event = parsed.helpful ? 'helpful' : 'not_helpful';
       const inserted = repo.insertFeedback({
         memory_id: parsed.memory_id,
@@ -180,7 +180,7 @@ export class FeedbackTool extends BaseTool {
         latencyMs: Date.now() - t0,
         extraData: { memory_id: parsed.memory_id }
       });
-      const promotionCandidate = findApprovedPromotionCandidate(context.db!, parsed.memory_id);
+      const promotionCandidate = findApprovedPromotionCandidate(context.db, parsed.memory_id);
       if (promotionCandidate) {
         context.services?.telemetryService?.record({
           eventType: 'agent.promotion.usage',

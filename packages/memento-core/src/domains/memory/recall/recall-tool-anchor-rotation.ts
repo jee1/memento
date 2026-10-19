@@ -127,7 +127,7 @@ async function rotateSlotsDown(
   const slotAAnchor = asSingleAnchor(await anchorManager.getAnchor(agentId, 'A'));
   if (!slotAAnchor) return true;
 
-  const db = context.db!;
+  const db = context.db;
   if (isPinnedMemory(db, slotAAnchor.memory_id)) {
     host.logInfo('슬롯 A에 pinned 앵커가 있어 앵커 설정을 건너뜁니다', {
       agent_id: agentId,

@@ -155,9 +155,9 @@ export class UnpinTool extends BaseTool {
       await this.logUnpinAction(id, reason, context);
       
       // 트랜잭션으로 고정 해제 실행
-      await DatabaseUtils.runTransaction(context.db!, async () => {
+      await DatabaseUtils.runTransaction(context.db, async () => {
         const result = await DatabaseUtils.run(
-          context.db!, 
+          context.db, 
           'UPDATE memory_item SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?', 
           [id]
         );
@@ -250,7 +250,7 @@ export class UnpinTool extends BaseTool {
   ): Promise<MemoryItemUnpinRow | undefined> {
     const ownerScope = callerOwnerClause(context);
     return await DatabaseUtils.get(
-      context.db!,
+      context.db,
       `SELECT * FROM memory_item WHERE id = ?${ownerScope.sql}`,
       [id, ...ownerScope.params]
     ) as MemoryItemUnpinRow | undefined;
@@ -267,7 +267,7 @@ export class UnpinTool extends BaseTool {
     const ownerScope = callerOwnerClause(context);
     const placeholders = ids.map(() => '?').join(',');
     const rows = (await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT * FROM memory_item WHERE id IN (${placeholders})${ownerScope.sql}`,
       [...ids, ...ownerScope.params]
     )) as MemoryItemUnpinRow[];
@@ -284,7 +284,7 @@ export class UnpinTool extends BaseTool {
   ): Promise<void> {
     try {
       await DatabaseUtils.run(
-        context.db!,
+        context.db,
         `INSERT INTO feedback_event (memory_id, event, score, comment, created_at) 
          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [id, 'edited', 0, reason ?? null]
@@ -307,7 +307,7 @@ export class UnpinTool extends BaseTool {
     this.validateDatabase(context);
 
     return (await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT id, content, type, importance, created_at, last_accessed 
        FROM memory_item 
        WHERE pinned = TRUE 
@@ -324,7 +324,7 @@ export class UnpinTool extends BaseTool {
     this.validateDatabase(context);
 
     const stats = (await DatabaseUtils.get(
-      context.db!,
+      context.db,
       `SELECT 
          COUNT(*) as total_memories,
          COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_count,
@@ -334,7 +334,7 @@ export class UnpinTool extends BaseTool {
     )) as UnpinStatsAggregateRow | undefined;
 
     const recentUnpins = (await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT memory_id, event, created_at 
        FROM feedback_event 
        WHERE event = 'unpinned' 
@@ -358,7 +358,7 @@ export class UnpinTool extends BaseTool {
     this.validateDatabase(context);
 
     return (await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT id, content, type, importance, created_at, last_accessed,
               (julianday('now') - julianday(created_at)) as days_old
        FROM memory_item 

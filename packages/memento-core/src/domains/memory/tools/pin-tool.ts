@@ -122,9 +122,9 @@ export class PinTool extends BaseTool {
       await this.logPinAction(id, reason, priority, context);
       
       // 트랜잭션으로 고정 실행
-      await DatabaseUtils.runTransaction(context.db!, async () => {
+      await DatabaseUtils.runTransaction(context.db, async () => {
         const result = await DatabaseUtils.run(
-          context.db!, 
+          context.db, 
           'UPDATE memory_item SET pinned = TRUE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?', 
           [id]
         );
@@ -207,7 +207,7 @@ export class PinTool extends BaseTool {
   private async getMemoryById(id: string, context: ToolContext): Promise<MemoryPinRow | undefined> {
     const ownerScope = callerOwnerClause(context);
     return await DatabaseUtils.get(
-      context.db!,
+      context.db,
       `SELECT * FROM memory_item WHERE id = ?${ownerScope.sql}`,
       [id, ...ownerScope.params]
     ) as MemoryPinRow | undefined;
@@ -221,7 +221,7 @@ export class PinTool extends BaseTool {
     const ownerScope = callerOwnerClause(context);
     const placeholders = ids.map(() => '?').join(',');
     const rows = await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT * FROM memory_item WHERE id IN (${placeholders})${ownerScope.sql}`,
       [...ids, ...ownerScope.params]
     ) as MemoryPinRow[];
@@ -239,7 +239,7 @@ export class PinTool extends BaseTool {
   ): Promise<void> {
     try {
       await DatabaseUtils.run(
-        context.db!,
+        context.db,
         `INSERT INTO feedback_event (memory_id, event, score, comment, created_at) 
          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [id, 'helpful', priority, reason ?? null]
@@ -259,7 +259,7 @@ export class PinTool extends BaseTool {
     this.validateDatabase(context);
     
     return await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT id, content, type, importance, created_at, last_accessed 
        FROM memory_item 
        WHERE pinned = TRUE 
@@ -276,7 +276,7 @@ export class PinTool extends BaseTool {
     this.validateDatabase(context);
     
     const stats = await DatabaseUtils.get(
-      context.db!,
+      context.db,
       `SELECT 
          COUNT(*) as total_memories,
          COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_count,
@@ -286,7 +286,7 @@ export class PinTool extends BaseTool {
     );
     
     const recentPins = await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT memory_id, event, score, created_at 
        FROM feedback_event 
        WHERE event = 'pinned' 

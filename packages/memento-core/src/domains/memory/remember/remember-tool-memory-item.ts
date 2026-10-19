@@ -514,7 +514,7 @@ export async function handleMemoryItem(
     throw new Error(`Invalid memory type: ${type}`);
   }
 
-  const db = context.db!;
+  const db = context.db;
   const finalReflectionNotes = type === 'procedural' && reflection_notes != null
     ? await prepareReflectionNotes(db, reflection_notes, task_goal, host)
     : null;

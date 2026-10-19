@@ -30,7 +30,7 @@ export async function recallCoreMemoryDirect(
     host.logWarning('type="core"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
   }
 
-  const coreMemoryRepository = requireRepositoryProvider(context.services?.repositories).coreMemory(context.db!);
+  const coreMemoryRepository = requireRepositoryProvider(context.services?.repositories).coreMemory(context.db);
   const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
   const coreMemoryCache = getCoreMemoryCache();
   const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
@@ -83,7 +83,7 @@ export async function recallVaultMemoryDirect(
     host.logWarning('type="vault"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
   }
 
-  const knowledgeVaultRepository = requireRepositoryProvider(context.services?.repositories).knowledgeVault(context.db!);
+  const knowledgeVaultRepository = requireRepositoryProvider(context.services?.repositories).knowledgeVault(context.db);
   const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
 
   let records;

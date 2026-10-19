@@ -32,7 +32,7 @@ export async function handleIncludeNeighbors(
   try {
     const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
     const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
-    neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService, context.db!);
+    neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService, context.db);
   } catch (error) {
     host.logError(error as Error, 'MemoryNeighborService 초기화 실패', {});
     return Array.from({ length: topResults.length }, () => []);

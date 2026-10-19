@@ -193,7 +193,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
 
-      const db = context.db!;
+      const db = context.db;
       const startTime = Date.now();
 
       // 마이그레이션할 메모리 조회

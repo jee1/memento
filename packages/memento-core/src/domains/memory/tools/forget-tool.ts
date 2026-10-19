@@ -180,7 +180,7 @@ export class ForgetTool extends BaseTool {
       await this.logDeleteAction(id, context);
       
       // 트랜잭션으로 삭제 실행
-      await DatabaseUtils.runTransaction(context.db!, async () => {
+      await DatabaseUtils.runTransaction(context.db, async () => {
         if (hard) {
           // 하드 삭제: 완전 제거
           return await this.performHardDelete(id, context);
@@ -267,7 +267,7 @@ export class ForgetTool extends BaseTool {
 
     // 메인 테이블에서 삭제
     const deleteResult = await DatabaseUtils.run(
-      context.db!,
+      context.db,
       `DELETE FROM memory_item WHERE id = ?${ownerScope.sql}`,
       [id, ...ownerScope.params],
     );
@@ -278,19 +278,19 @@ export class ForgetTool extends BaseTool {
     
     // 관련 테이블에서도 삭제
     await DatabaseUtils.run(
-      context.db!, 
+      context.db, 
       'DELETE FROM memory_item_tag WHERE memory_id = ?', 
       [id]
     );
     
     await DatabaseUtils.run(
-      context.db!, 
+      context.db, 
       'DELETE FROM memory_link WHERE source_id = ? OR target_id = ?', 
       [id, id]
     );
     
     await DatabaseUtils.run(
-      context.db!, 
+      context.db, 
       'DELETE FROM feedback_event WHERE memory_id = ?', 
       [id]
     );
@@ -311,7 +311,7 @@ export class ForgetTool extends BaseTool {
     // pinned 해제 + is_deleted/deleted_at (망각 정책 softDeleteMemory 와 동일 컬럼; last_accessed 는 갱신하지 않음 — #1388)
     const deletedAt = new Date().toISOString();
     const updateResult = await DatabaseUtils.run(
-      context.db!,
+      context.db,
       `UPDATE memory_item SET pinned = FALSE, is_deleted = 1, deleted_at = ? WHERE id = ?${ownerScope.sql}`,
       [deletedAt, id, ...ownerScope.params],
     );
@@ -332,7 +332,7 @@ export class ForgetTool extends BaseTool {
   ): Promise<MemoryDeleteRow | undefined> {
     const ownerScope = callerOwnerClause(context);
     return await DatabaseUtils.get(
-      context.db!,
+      context.db,
       `SELECT * FROM memory_item WHERE id = ?${ownerScope.sql}`,
       [id, ...ownerScope.params],
     ) as MemoryDeleteRow | undefined;
@@ -363,7 +363,7 @@ export class ForgetTool extends BaseTool {
   private async logDeleteAction(id: string, context: ToolContext): Promise<void> {
     try {
       await DatabaseUtils.run(
-        context.db!,
+        context.db,
         `INSERT INTO feedback_event (memory_id, event, score, created_at) 
          VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
         [id, 'neglected', 0]
@@ -388,7 +388,7 @@ export class ForgetTool extends BaseTool {
     context: ToolContext
   ): void {
     try {
-      this.forgettingEventRepository.insert(context.db!, {
+      this.forgettingEventRepository.insert(context.db, {
         memory_id: id,
         action: hard ? 'hard' : 'soft',
         reason: reason || MANUAL_FORGET_DEFAULT_REASON,
@@ -428,14 +428,14 @@ export class ForgetTool extends BaseTool {
     try {
       // FTS 테이블에서 삭제
       await DatabaseUtils.run(
-        context.db!,
+        context.db,
         'DELETE FROM memory_item_fts WHERE rowid = (SELECT rowid FROM memory_item WHERE id = ?)',
         [id]
       );
       
       // 제공자별 vec0 테이블에서 삭제
       const embeddingInfo = DatabaseUtils.get(
-        context.db!,
+        context.db,
         'SELECT embedding_provider FROM memory_embedding WHERE memory_id = ?',
         [id]
       ) as { embedding_provider?: string } | undefined;
@@ -445,7 +445,7 @@ export class ForgetTool extends BaseTool {
         const tableName = getValidatedVectorTableName(provider);
         
         await DatabaseUtils.run(
-          context.db!,
+          context.db,
           `DELETE FROM ${tableName} WHERE rowid = ?`,
           [id]
         );
@@ -453,7 +453,7 @@ export class ForgetTool extends BaseTool {
       
       // 임베딩 테이블에서 삭제
       await DatabaseUtils.run(
-        context.db!,
+        context.db,
         'DELETE FROM memory_embedding WHERE memory_id = ?',
         [id]
       );
@@ -472,7 +472,7 @@ export class ForgetTool extends BaseTool {
     this.validateDatabase(context);
     
     return await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT id, content, type, importance, pinned, created_at 
        FROM memory_item 
        WHERE pinned = FALSE 
@@ -489,7 +489,7 @@ export class ForgetTool extends BaseTool {
     this.validateDatabase(context);
     
     const stats = await DatabaseUtils.get(
-      context.db!,
+      context.db,
       `SELECT 
          COUNT(*) as total_memories,
          COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_count,
@@ -499,7 +499,7 @@ export class ForgetTool extends BaseTool {
     );
     
     const recentDeletes = await DatabaseUtils.all(
-      context.db!,
+      context.db,
       `SELECT memory_id, event, created_at 
        FROM feedback_event 
        WHERE event IN ('soft_deleted', 'hard_deleted') 

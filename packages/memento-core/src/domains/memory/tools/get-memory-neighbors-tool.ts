@@ -76,7 +76,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
         neighborService = new MemoryNeighborService(
           vectorSearchEngine,
           embeddingService,
-          context.db!
+          context.db
         );
       } catch (error) {
         this.logError(error as Error, 'MemoryNeighborService 생성 실패');

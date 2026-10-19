@@ -58,7 +58,7 @@ export class SetAnchorTool extends BaseTool {
       
       // 메모리 존재 확인
       const ownerScope = callerOwnerClause(context);
-      const memory = context.db!.prepare(`
+      const memory = context.db.prepare(`
         SELECT id FROM memory_item WHERE id = ?${ownerScope.sql}
       `).get(memory_id, ...ownerScope.params) as { id: string } | undefined;
       
