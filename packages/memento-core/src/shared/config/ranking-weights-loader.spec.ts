@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import {
   loadRankingWeights,
@@ -183,6 +183,21 @@ alpha = 0.45
       expect(payload.weights.vector_length_decay.enabled).toBe(true);
       expect(payload.weights.vector_length_decay.characteristic_length).toBe(40);
       expect(getRankingVersion()).toMatch(/^ranking-sha256:[a-f0-9]{12}$/);
+    });
+
+    it('includes text_lane_score relevance_only in ranking version payload (#1393)', () => {
+      const payload = getRankingVersionPayload();
+      expect(payload.text_lane_score).toBe('relevance_only');
+      const withMode = createHash('sha256')
+        .update(JSON.stringify(payload))
+        .digest('hex')
+        .slice(0, 12);
+      const withoutMode = createHash('sha256')
+        .update(JSON.stringify({ ...payload, text_lane_score: undefined }))
+        .digest('hex')
+        .slice(0, 12);
+      expect(withMode).not.toBe(withoutMode);
+      expect(getRankingVersion()).toBe(`ranking-sha256:${withMode}`);
     });
 
     it('defaults importance_signal.scale when section is absent (#1082)', () => {
