@@ -67,8 +67,6 @@ export interface ToolContext {
     databaseOptimizer?: IDatabaseOptimizer;
     /** 에러 로깅 서비스 */
     errorLoggingService?: ErrorLoggingService;
-    /** 성능 모니터링 통합 서비스 (주석 처리됨, 향후 사용 예정) */
-    performanceMonitoringIntegration?: unknown; // 향후 타입 정의 예정
     /** 앵커 관리자 서비스 */
     anchorManager?: AnchorManager;
     /** 관계 그래프 서비스 */
