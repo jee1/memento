@@ -16,6 +16,10 @@ import {
 } from '../utils/remember-dedup-config.js';
 import { parseMcpEraMode } from '../utils/mcp-era-mode.js';
 import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
+import {
+  parseRelationExtractionOverride,
+  warnInvalidRelationExtractionOverride,
+} from './relation-extraction-seat.js';
 import { resolveApiTokens } from './api-tokens.js';
 import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
 import {
@@ -41,13 +45,12 @@ const llmProvider = (resolveString('LLM_PROVIDER') as LLMProvider) || 'auto';
 
 const llmProviderOverrideWarnedKeys = new Set<string>();
 const llmProviderOverrides: MementoConfig['llmProviderOverrides'] = {};
-const relationProviderOverride = loadLlmProviderOverrideFromEnv(
-  'LLM_PROVIDER_RELATION_EXTRACTION',
+const relationExtractionOverride = parseRelationExtractionOverride(
   getRawEnvValue('LLM_PROVIDER_RELATION_EXTRACTION'),
-  llmProviderOverrideWarnedKeys
 );
-if (relationProviderOverride !== undefined) {
-  llmProviderOverrides.relation_extraction = relationProviderOverride;
+warnInvalidRelationExtractionOverride(relationExtractionOverride, llmProviderOverrideWarnedKeys);
+if (relationExtractionOverride.kind === 'chat') {
+  llmProviderOverrides.relation_extraction = relationExtractionOverride.provider;
 }
 const proceduralProviderOverride = loadLlmProviderOverrideFromEnv(
   'LLM_PROVIDER_PROCEDURAL',
@@ -143,6 +146,7 @@ export const mementoConfig: MementoConfig = {
     consolidation: resolveOptionalString('LLM_MODEL_CONSOLIDATION'),
   },
   llmProviderOverrides,
+  relationExtractionOverride,
 
   // 검색 설정
   searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),

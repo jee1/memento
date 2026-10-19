@@ -16,8 +16,13 @@ import type {
 } from '../../../shared/types/relation.js';
 import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import type { MemoryType, MemoryItem } from '../../../shared/types/memory.types.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import { resolveRelationExtractionSeat } from '../../../shared/config/relation-extraction-seat.js';
+import { SystemOneClient } from '../../../shared/services/typesafe/system-one-client.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
+import { JevRelationJudge, RELATION_JEV_TIMEOUT_MS } from './jev-relation-judge.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
@@ -64,6 +69,10 @@ export class RelationExtractor implements IRelationExtractor {
     const method = options?.method ?? 'hybrid';
     const minConfidence = options?.minConfidence ?? CONFIDENCE.MIN_RULE_BASED;
     const immediate = options?.immediate ?? false;
+    const jevSeat = resolveRelationExtractionSeat({
+      llmProvider: mementoConfig.llmProvider,
+      relationExtractionOverride: mementoConfig.relationExtractionOverride,
+    }).kind === 'jev';
 
     // 타입별 관계 유형 필터링
     const applicableTypes = this.getApplicableRelationTypes(newMemory.type, options?.relationTypes);
@@ -72,8 +81,8 @@ export class RelationExtractor implements IRelationExtractor {
       return [];
     }
 
-    // 캐시 키 생성 (즉시 처리인 경우에만 캐싱)
-    if (immediate) {
+    // 캐시 키는 엔진을 포함하지 않는다. jev 결과는 넣지 않는다.
+    if (immediate && !jevSeat) {
       const cacheKey = this.generateCacheKey(newMemory.id, existingMemories.map(m => m.id), options);
       const cached = this.cache.get(cacheKey);
       if (cached) {
@@ -96,6 +105,10 @@ export class RelationExtractor implements IRelationExtractor {
     }
 
     if (method === 'llm') {
+      const jev = await this.jevArm(newMemory, existingMemories);
+      if (jev.seated) {
+        return jev.ok ? jev.candidates : [];
+      }
       // LLM만 사용하는 경우, LLM이 사용 가능한지 확인 (초기화 완료까지 대기)
       if (!(await this.llmExtractor.isAvailableAsync())) {
         throw new Error('LLM 서비스가 사용 불가능합니다. 규칙 기반 추출을 사용하거나 API 키를 설정해주세요.');
@@ -131,8 +144,21 @@ export class RelationExtractor implements IRelationExtractor {
       return filtered;
     }
 
-    // 규칙 기반 결과가 없거나 신뢰도가 낮으면 LLM fallback
+    // 규칙 기반 결과가 없거나 신뢰도가 낮으면 모델 폴백
     if (!hasAnyResults || !hasHighConfidenceResults) {
+      const jev = await this.jevArm(newMemory, existingMemories);
+      if (jev.seated) {
+        if (jev.ok === false) {
+          logger.info('Jev 관계 추출 실패, 규칙 기반 결과 반환', {
+            memoryId: newMemory.id,
+            reason: jev.reason,
+          });
+          return ruleCandidates;
+        }
+        return this.mergeCandidates(ruleCandidates, jev.candidates)
+          .filter(candidate => candidate.confidence >= minConfidence);
+      }
+
       // LLM이 사용 가능한지 확인 (진행 중인 초기화 완료까지 대기)
       if (!(await this.llmExtractor.isAvailableAsync())) {
         // 사유는 중립값이다. 초기화가 끝났는데도 프로바이더가 없다는 것만 알 수 있고,
@@ -184,6 +210,43 @@ export class RelationExtractor implements IRelationExtractor {
     }
 
     return ruleCandidates;
+  }
+
+  /**
+   * Model arms only. A jev seat never calls chat availability or determineLlmProvider.
+   * `seated: false` means the caller should keep the chat path.
+   */
+  private async jevArm(
+    source: MemoryItem,
+    existing: readonly MemoryItem[],
+  ): Promise<
+    | { readonly seated: false }
+    | { readonly seated: true; readonly ok: true; readonly candidates: RelationCandidate[] }
+    | { readonly seated: true; readonly ok: false; readonly reason: string }
+  > {
+    const seat = resolveRelationExtractionSeat({
+      llmProvider: mementoConfig.llmProvider,
+      relationExtractionOverride: mementoConfig.relationExtractionOverride,
+    });
+    if (seat.kind !== 'jev') {
+      return { seated: false };
+    }
+    const apiKey = mementoConfig.typesafeApiKey?.trim();
+    if (!apiKey) {
+      return { seated: true, ok: false, reason: 'unavailable' };
+    }
+    const judged = await new JevRelationJudge(
+      new SystemOneClient({
+        apiKey,
+        model: mementoConfig.typesafeModel,
+        timeoutMs: RELATION_JEV_TIMEOUT_MS,
+      }),
+      new UnifiedEmbeddingService(),
+    ).judge(source, existing);
+    if (judged.ok === false) {
+      return { seated: true, ok: false, reason: judged.reason };
+    }
+    return { seated: true, ok: true, candidates: [...judged.candidates] };
   }
 
   /**

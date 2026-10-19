@@ -3,7 +3,7 @@
  * 기억 간의 관계를 저장하고 관리하기 위한 타입들
  */
 
-import type { RelationType } from './relation.js';
+import type { RelationType, RecordedRelationMethod } from './relation.js';
 
 /**
  * 메모리 관계 (데이터베이스 저장용)
@@ -23,10 +23,7 @@ export interface MemoryRelation {
  * 관계 메타데이터 (JSON 형식으로 저장)
  */
 export interface RelationMetadata {
-  /**
-   * 추출 방법 ('rule' | 'llm')
-   */
-  method?: 'rule' | 'llm';
+  method?: RecordedRelationMethod;
   
   /**
    * 추출 시점 타임스탬프

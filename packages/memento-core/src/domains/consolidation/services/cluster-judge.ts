@@ -2,6 +2,9 @@
  * #1225: second opinion on consolidation clusters. MiniLM cosine similarity groups records of
  * the same genre (e.g. two unrelated work logs) above the cluster threshold; a judge model
  * decides whether two texts cover the same task or topic.
+ *
+ * This fetch stays private. SystemOneClient retries a WAF block with fences removed, and
+ * that retry would change consolidation scores.
  */
 import { logger } from '../../../shared/utils/logger.js';
 import { stripMemoryTemplateLabels } from './template-label-normalizer.js';

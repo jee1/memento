@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  isChatLlmProvider,
   loadLlmProviderOverrideFromEnv,
   parseLlmProviderOverride,
 } from '../llm-provider-override.js';
@@ -20,6 +21,13 @@ describe('parseLlmProviderOverride', () => {
     const r = parseLlmProviderOverride('anthropic');
     expect(r.value).toBeUndefined();
     expect(r.invalidRaw).toBeTruthy();
+  });
+
+  it('rejects jev so the chat allow-list stays chat-only', () => {
+    expect(isChatLlmProvider('jev')).toBe(false);
+    const parsed = parseLlmProviderOverride('jev');
+    expect(parsed.value).toBeUndefined();
+    expect(parsed.invalidRaw).toBe('jev');
   });
 
   it('accepts auto and equals-global-compatible tokens', () => {

@@ -52,6 +52,8 @@ export const RETRY_EXEMPTIONS: Readonly<Record<string, string>> = {
     'LLM 요약 실패는 extractive 요약으로 폴백한다',
   'memento-core/src/domains/search/services/relevance-gate/jev-relevance-gate.ts':
     '검색 경로의 타임아웃 예산 안에서 도는 게이트다. 실패하면 게이트를 건너뛴다(재시도는 지연을 곱한다)',
+  'memento-core/src/shared/services/typesafe/system-one-client.ts':
+    'System One noul 전송이다. ask 는 던지지 않고 waf|auth|http|timeout|parse|network 로 돌린다. WAF 펜스 재시도 1회는 클라이언트 안에 있다. RetryManager 재시도는 검색 게이트·관계 추출 soft-fail 지연을 곱한다',
   'memento-core/src/domains/personal-agent/adapters/gemini-chat-llm-adapter.ts':
     '대화형 호출이다. 실패를 PersonalAgentLlmError 로 호출자에게 바로 알린다',
   'memento-core/src/domains/personal-agent/adapters/ollama-chat-llm-adapter.ts':

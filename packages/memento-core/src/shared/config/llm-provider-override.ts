@@ -2,6 +2,11 @@ import type { LLMProvider } from '../types/memory.types.js';
 
 const ALLOWED_LLM_PROVIDERS = new Set<LLMProvider>(['openai', 'gemini', 'ollama', 'auto']);
 
+/** Canonical lowercase chat token. `jev` is not a member. */
+export function isChatLlmProvider(value: string): value is LLMProvider {
+  return ALLOWED_LLM_PROVIDERS.has(value as LLMProvider);
+}
+
 type ParseLlmProviderOverrideResult = {
   value?: LLMProvider;
   invalidRaw?: string;
@@ -15,8 +20,8 @@ export function parseLlmProviderOverride(raw: string | undefined): ParseLlmProvi
   if (!normalized) {
     return {};
   }
-  if (ALLOWED_LLM_PROVIDERS.has(normalized as LLMProvider)) {
-    return { value: normalized as LLMProvider };
+  if (isChatLlmProvider(normalized)) {
+    return { value: normalized };
   }
   return { invalidRaw: raw.trim() };
 }

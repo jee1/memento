@@ -7,6 +7,7 @@ import type { RememberToolHost } from '../remember-tool-host.js';
 import { runRelationExtraction } from '../remember-tool-augmentation.js';
 import { RelationExtractor } from '../../../relation/services/relation-extractor.js';
 import { LLMBasedRelationExtractor } from '../../../relation/services/llm-based-relation-extractor.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
 
 /**
  * Issue #711: 관계 추출 결과(runRelationExtraction)가 memory_relation에 영속화되는지 검증.
@@ -68,6 +69,12 @@ describe('runRelationExtraction (Issue #711)', () => {
   let host: ReturnType<typeof createHost>;
   let context: ToolContext;
   let extractSpy: ReturnType<typeof vi.spyOn>;
+  const originalFetch = globalThis.fetch;
+  const savedSeat = {
+    override: mementoConfig.relationExtractionOverride,
+    apiKey: mementoConfig.typesafeApiKey,
+    model: mementoConfig.typesafeModel,
+  };
 
   beforeEach(() => {
     db = new Database(':memory:');
@@ -90,6 +97,8 @@ describe('runRelationExtraction (Issue #711)', () => {
       }
     };
 
+    mementoConfig.relationExtractionOverride = { kind: 'unset' };
+
     // remember 경로는 LLM만 쓴다. 가용성·후보는 고정한다 (#1378).
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(true);
     extractSpy = vi.spyOn(RelationExtractor.prototype, 'extractRelations').mockResolvedValue([
@@ -106,6 +115,10 @@ describe('runRelationExtraction (Issue #711)', () => {
 
   afterEach(() => {
     db.close();
+    globalThis.fetch = originalFetch;
+    mementoConfig.relationExtractionOverride = savedSeat.override;
+    mementoConfig.typesafeApiKey = savedSeat.apiKey;
+    mementoConfig.typesafeModel = savedSeat.model;
     vi.restoreAllMocks();
   });
 
@@ -258,4 +271,64 @@ describe('runRelationExtraction (Issue #711)', () => {
     const rows = DatabaseUtils.all(db, `SELECT id FROM memory_relation WHERE source_id = 'mem-new'`) as unknown[];
     expect(rows.length).toBe(0);
   });
+
+  it('Jev만 있으면 method jev 로 저장하고 챗 추출기를 부르지 않는다', async () => {
+    mementoConfig.relationExtractionOverride = { kind: 'jev' };
+    mementoConfig.typesafeApiKey = 'typesafe-key';
+    mementoConfig.typesafeModel = 'jev-latest';
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(200, { answers: { r0: { noul: 0.9 } } }))
+      .mockResolvedValueOnce(jsonResponse(200, { answers: { y0_CAUSES: { noul: 0.8 } } }));
+
+    await runRelationExtraction(
+      {
+        dbRef: db,
+        savedMemoryId: 'mem-new',
+        savedMemoryType: 'episodic',
+        content: '서버 과부하 때문에 장애가 발생했다',
+        importance: 0.6,
+      },
+      context,
+      host
+    );
+
+    expect(extractSpy).not.toHaveBeenCalled();
+    const rows = DatabaseUtils.all(db, `
+      SELECT confidence, metadata FROM memory_relation WHERE source_id = 'mem-new'
+    `) as Array<{ confidence: number; metadata: string }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.confidence).toBe(0.8);
+    expect(JSON.parse(rows[0]?.metadata ?? '{}').method).toBe('jev');
+    expect(host.logWarning).not.toHaveBeenCalled();
+  });
+
+  it('Jev 장애는 경고만 남기고 저장하지 않는다', async () => {
+    mementoConfig.relationExtractionOverride = { kind: 'jev' };
+    mementoConfig.typesafeApiKey = 'typesafe-key';
+    globalThis.fetch = vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+
+    await expect(runRelationExtraction(
+      {
+        dbRef: db,
+        savedMemoryId: 'mem-new',
+        savedMemoryType: 'episodic',
+        content: '서버 과부하 때문에 장애가 발생했다',
+        importance: 0.6,
+      },
+      context,
+      host
+    )).resolves.toBeUndefined();
+
+    expect(host.logWarning).toHaveBeenCalled();
+    const rows = DatabaseUtils.all(db, `SELECT id FROM memory_relation WHERE source_id = 'mem-new'`) as unknown[];
+    expect(rows).toHaveLength(0);
+  });
 });
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

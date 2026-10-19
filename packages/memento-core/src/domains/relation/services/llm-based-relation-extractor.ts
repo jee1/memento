@@ -33,11 +33,11 @@ import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js'
 import { logger } from '../../../shared/utils/logger.js';
 import { TokenBucketRateLimiter } from '../../../shared/utils/token-bucket-rate-limiter.js';
 import { determineLlmProvider } from './llm-provider-selection.js';
+import { prepareRelationCandidatePool } from './relation-candidate-pool.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { RelationCache } from './relation-cache.js';
 import { RelationRetryManager } from './relation-retry-manager.js';
 
-import { filterRelationCandidatesByEmbedding } from './llm-relation-extractor/embedding-candidate-filter.js';
 import { parseLlmRelationsResponse } from './llm-relation-extractor/llm-response-parse.js';
 import {
   extractRelationsWithOpenAI,
@@ -205,19 +205,6 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     return determineLlmProvider(requestedProvider, this.providerAvailability());
   }
 
-  private async filterCandidatesByEmbedding(
-    newMemory: MemoryItem,
-    existingMemories: MemoryItem[],
-    limit: number = LIMITS.LLM_CANDIDATE_DEFAULT
-  ): Promise<MemoryItem[]> {
-    return filterRelationCandidatesByEmbedding(
-      this.embeddingService,
-      newMemory,
-      existingMemories,
-      limit
-    );
-  }
-
   private openAiDeps(): OpenAiRelationExtractDeps {
     return {
       rateLimiter: this.rateLimiter,
@@ -301,24 +288,6 @@ ${memoryList}
 }
 
 관계가 없는 경우 빈 배열을 반환하세요. JSON 형식만 반환하고 다른 설명은 포함하지 마세요.`;
-  }
-
-  /**
-   * 기존 기억 목록을 요약하여 프롬프트 크기 축소
-   * 간단한 요약: 내용을 최대 길이로 제한
-   */
-  private compressMemories(memories: MemoryItem[], maxTokens: number = LIMITS.MAX_PROMPT_TOKENS): MemoryItem[] {
-    const avgTokensPerMemory = 50; // 대략적인 토큰 수
-    const maxMemories = Math.floor(maxTokens / avgTokensPerMemory);
-    const limited = memories.slice(0, maxMemories);
-
-    // 각 기억의 내용을 요약 (간단한 버전: 최대 200자로 제한)
-    return limited.map(memory => ({
-      ...memory,
-      content: memory.content.length > 200 
-        ? memory.content.substring(0, 200) + '...'
-        : memory.content
-    }));
   }
 
   /**
@@ -425,16 +394,12 @@ ${memoryList}
       return [];
     }
 
-    // Embedding 기반 후보 제한 (cosine similarity 상위 N개)
-    const candidateLimit = options?.candidateLimit ?? LIMITS.LLM_CANDIDATE_DEFAULT;
-    const filteredMemories = await this.filterCandidatesByEmbedding(
+    const compressedMemories = await prepareRelationCandidatePool(
+      this.embeddingService,
       newMemory,
       existingMemories,
-      candidateLimit
+      options?.candidateLimit ?? LIMITS.LLM_CANDIDATE_DEFAULT,
     );
-
-    // 프롬프트 압축
-    const compressedMemories = this.compressMemories(filteredMemories, LIMITS.MAX_PROMPT_TOKENS);
 
     // 프롬프트 생성
     const prompt = this.buildPrompt(newMemory, compressedMemories, applicableTypes);
