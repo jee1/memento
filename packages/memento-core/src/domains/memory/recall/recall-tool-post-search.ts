@@ -4,7 +4,6 @@
 
 import type Database from 'better-sqlite3';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
-import type { ToolContext } from '../../../tools/types.js';
 import { computeProceduralDiff } from '../procedural/procedural-memory-diff.js';
 import { getVersionChain } from '../procedural/procedural-versioning.js';
 import type { MetaMemoryService } from '../introspection/meta-memory-service.js';
@@ -13,7 +12,9 @@ import { enrichRecallItemsWithMemoryMetadata } from './recall-tool-metadata-enri
 import type { RecallToolHost } from './recall-tool-host.js';
 import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
 import type { RecallHybridOrTextSearchResult, RecallParams } from './recall-tool-schema.js';
-import type { RecallResultItem, RecallSearchItem } from './recall-tool-types.js';
+import type { RecallContext, RecallResultItem, RecallSearchItem } from './recall-tool-types.js';
+
+type RecallPostSearchContext = RecallContext<'metaMemoryService'>;
 
 function filterLatestOnly(procedural: RecallSearchItem[]): RecallSearchItem[] {
   const bySeries = new Map<string, RecallSearchItem>();
@@ -183,7 +184,7 @@ function applyPostSearchFilters(items: RecallSearchItem[], input: PostSearchInpu
 
 export async function runMemoryItemPostSearchPipeline(
   host: RecallToolHost,
-  context: ToolContext,
+  context: RecallPostSearchContext,
   searchResult: RecallHybridOrTextSearchResult | undefined,
   input: PostSearchInput
 ): Promise<{ searchItems: RecallSearchItem[]; processedResults: RecallResultItem[] }> {

@@ -2,13 +2,14 @@
  * Recall neighbor fetch (recall-tool-envelope.ts에서 분리, #507).
  */
 
-import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';
-import type { RecallSearchItem } from './recall-tool-types.js';
+import type { RecallContext, RecallSearchItem } from './recall-tool-types.js';
+
+export type RecallNeighborsContext = RecallContext<'vectorSearchEngine' | 'embeddingService'>;
 
 /**
  * 자동 이웃 기억 포함 처리
@@ -19,7 +20,7 @@ export async function handleIncludeNeighbors(
   neighborsLimit: number,
   neighborsPerItem: number,
   neighborsSimilarityThreshold: number,
-  context: ToolContext
+  context: RecallNeighborsContext
 ): Promise<NeighborMemory[][]> {
   if (!searchItems || searchItems.length === 0) {
     return [];

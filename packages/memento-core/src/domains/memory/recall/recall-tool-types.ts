@@ -7,6 +7,14 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
+import type { ToolContext } from '../../../tools/types.js';
+
+/**
+ * 헬퍼가 실제로 쓰는 ToolContext 필드만 고른 타입. ToolContext 는 그대로 대입된다
+ */
+export type RecallContext<S extends keyof ToolContext['services']> = Pick<ToolContext, 'db'> & {
+  services: Pick<ToolContext['services'], S>;
+};
 
 /**
  * 앵커 설정 메타데이터 타입

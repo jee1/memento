@@ -7,13 +7,13 @@ import { buildIntrospectionHint } from '../../../shared/constants/introspection-
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import type { ToolResult } from '../../../tools/types.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import type { MetaMemoryService } from '../introspection/meta-memory-service.js';
 import { getAppliedRecallFilters } from './recall-tool-filters.js';
-import { handleAutoSetAnchor, type AnchorSetResult } from './recall-tool-anchor-rotation.js';
+import { handleAutoSetAnchor, type AnchorSetResult, type RecallAnchorContext } from './recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from './recall-tool-host.js';
-import { handleIncludeNeighbors } from './recall-tool-neighbors-fetch.js';
+import { handleIncludeNeighbors, type RecallNeighborsContext } from './recall-tool-neighbors-fetch.js';
 import {
   buildQueryEmbeddingMetadataFields,
   recallQueryCorrelationExtra
@@ -24,10 +24,17 @@ import { recallOutcomeStageExtra } from '../../telemetry/search-quality/index.js
 import type {
   MetaStatsItem,
   NeighborMemoryItem,
+  RecallContext,
   RecallResponseMetadata,
   RecallResultItem,
   RecallSearchItem
 } from './recall-tool-types.js';
+
+type RecallEnvelopeContext = RecallContext<
+  'hybridSearchEngine' | 'metaMemoryService' | 'telemetryService' | 'introspectionScanCache'
+> &
+  RecallAnchorContext &
+  RecallNeighborsContext;
 
 /**
  * Meta Memory Statistics 조회
@@ -109,11 +116,11 @@ type SearchResultExtras = {
   tfidf_query_embedding_fallback_providers?: string[];
 };
 
-function didHybridRun(enableHybrid: boolean, context: ToolContext): boolean | undefined {
+function didHybridRun(enableHybrid: boolean, context: RecallEnvelopeContext): boolean | undefined {
   return enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
 }
 
-async function attachNeighbors(host: RecallToolHost, context: ToolContext, input: RecallEnvelopeInput): Promise<void> {
+async function attachNeighbors(host: RecallToolHost, context: RecallEnvelopeContext, input: RecallEnvelopeInput): Promise<void> {
   const { searchItems, processedResults } = input;
   const neighborsResults: NeighborMemory[][] = await handleIncludeNeighbors(
     host,
@@ -143,7 +150,7 @@ function applyAnchorMetadata(metadata: RecallResponseMetadata, anchorSetResult: 
 
 function applySearchResultMetadata(
   metadata: RecallResponseMetadata,
-  context: ToolContext,
+  context: RecallEnvelopeContext,
   input: RecallEnvelopeInput,
   sr: SearchResultExtras
 ): void {
@@ -166,7 +173,7 @@ function applySearchResultMetadata(
 
 async function buildRecallMetadata(
   host: RecallToolHost,
-  context: ToolContext,
+  context: RecallEnvelopeContext,
   input: RecallEnvelopeInput,
   anchorSetResult: AnchorSetResult | null,
   sr: SearchResultExtras
@@ -193,7 +200,7 @@ function hasExplicitScopeFilter(filters: MemorySearchFilters): boolean {
   ].some(value => Array.isArray(value) ? value.length > 0 : Boolean(value));
 }
 
-function recordRecallOutcome(context: ToolContext, input: RecallEnvelopeInput): void {
+function recordRecallOutcome(context: RecallEnvelopeContext, input: RecallEnvelopeInput): void {
   const selectedCount = input.processedResults.length;
   const extraData = {
     ...recallQueryCorrelationExtra(input.queryHash, input.query),
@@ -210,7 +217,7 @@ function recordRecallOutcome(context: ToolContext, input: RecallEnvelopeInput): 
 
 export async function finalizeMemoryItemRecallEnvelope(
   host: RecallToolHost,
-  context: ToolContext,
+  context: RecallEnvelopeContext,
   input: RecallEnvelopeInput
 ): Promise<ToolResult> {
   const { searchItems, processedResults, searchResult, executionTime, enableHybrid, includeMetadata, filters } = input;
