@@ -46,7 +46,9 @@ function appendIdentityClauses(out: FilterSql, filters: MemorySearchFilters, a: 
   pushIn(out, `${a}.id`, filters.id);
   pushIn(out, `${a}.type`, filters.type);
   for (const tag of filters.tags ?? []) {
-    out.clauses.push(`EXISTS (SELECT 1 FROM json_each(COALESCE(${a}.tags, '[]')) WHERE value = ?)`);
+    out.clauses.push(
+      `EXISTS (SELECT 1 FROM json_each(CASE WHEN ${a}.tags IS NOT NULL AND json_valid(${a}.tags) THEN ${a}.tags ELSE '[]' END) WHERE value = ?)`
+    );
     out.params.push(tag);
   }
   pushIn(out, `${a}.privacy_scope`, filters.privacy_scope);
