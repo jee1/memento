@@ -126,7 +126,7 @@ export class SearchLocalTool extends BaseTool {
           }
           
           try {
-            const fallbackResult = await context.services.hybridSearchEngine.search(context.db!, {
+            const fallbackResult = await context.services.hybridSearchEngine.search(context.db, {
               query,
               limit,
               ...(context.boundAgentId ? { filters: { owner_id: context.boundAgentId } } : {})

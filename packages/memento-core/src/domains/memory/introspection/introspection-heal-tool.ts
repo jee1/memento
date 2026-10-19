@@ -60,7 +60,7 @@ export class IntrospectionHealTool extends BaseTool {
       this.validateDatabase(context);
       this.validateService(context.services.embeddingService, '임베딩 서비스');
 
-      const service = new IntrospectionHealingService(context.db!, context.services.embeddingService!);
+      const service = new IntrospectionHealingService(context.db, context.services.embeddingService!);
       const result = await service.heal({
         provider: parsed.provider,
         dryRun: parsed.dry_run,

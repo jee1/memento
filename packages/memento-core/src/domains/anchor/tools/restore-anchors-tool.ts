@@ -46,7 +46,7 @@ export class RestoreAnchorsTool extends BaseTool {
       // 앵커 복원
       // 현재 restoreCacheFromDB는 모든 agent_id를 복원하므로
       // agent_id 파라미터는 무시됩니다 (향후 특정 agent_id만 복원하는 기능 추가 가능)
-      await context.services.anchorManager!.restoreCacheFromDB(context.db!);
+      await context.services.anchorManager!.restoreCacheFromDB(context.db);
       
       // 복원된 앵커 정보 조회
       const restoredAnchors: Record<string, { A: unknown; B: unknown; C: unknown }> = {};
@@ -76,7 +76,7 @@ export class RestoreAnchorsTool extends BaseTool {
       } else {
         // 모든 agent_id의 앵커 조회
         // DB에서 직접 조회하여 agent_id 목록 가져오기
-        const agentIds = context.db!.prepare(`
+        const agentIds = context.db.prepare(`
           SELECT DISTINCT agent_id FROM anchor
         `).all() as Array<{ agent_id: string }>;
         
