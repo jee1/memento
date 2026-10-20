@@ -24,7 +24,7 @@ export async function handleCoreMemory(
 ): Promise<ToolResult> {
   const { key, value, always_load, origin_source, ownerId, startTime } = params;
 
-  const coreMemoryRepository = requireRepositoryProvider(context.services?.repositories).coreMemory(context.db);
+  const coreMemoryRepository = requireRepositoryProvider(context.services.repositories).coreMemory(context.db);
   const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
   const coreMemoryCache = getCoreMemoryCache();
   const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
