@@ -2,8 +2,6 @@ import type Database from 'better-sqlite3';
 import type { ServerServices } from '../../bootstrap.js';
 import {
   getExposedTools,
-  executeTool,
-  createToolContext,
   logger,
   DatabaseUtils,
   MemoryNeighborService,
@@ -182,7 +180,10 @@ export async function processMcpMessage(
   }
 
   if (message.method === 'prompts/call') {
-    return handlePromptsCall(message, db, serverServices);
+    if (message.params?.name !== 'memory_injection') {
+      return createJsonRpcError(message.id, -32601, 'Prompt not found');
+    }
+    return handleToolsCall(message, db, serverServices, auditContext);
   }
 
   if (message.method === 'resources/list') {
@@ -222,16 +223,6 @@ function memoryInjectionPromptDefinition(): {
       }
     ]
   };
-}
-
-function createServerToolContext(
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): ReturnType<typeof createToolContext> | null {
-  if (!db || !serverServices) {
-    return null;
-  }
-  return createToolContext({ db, services: serverServices });
 }
 
 function handleToolsList(message: McpRequestMessage): JsonRpcResponse {
@@ -286,37 +277,6 @@ async function handleToolsCall(
       logger.warn('MCP tools/call failed', { tool: name, code: mapped.code, error: mapped.data });
     }
     return createJsonRpcError(message.id, mapped.code, mapped.protocolMessage, mapped.data);
-  }
-}
-
-async function handlePromptsCall(
-  message: McpRequestMessage,
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): Promise<JsonRpcResponse> {
-  const { name, arguments: args } = message.params ?? {};
-  if (name !== 'memory_injection') {
-    return createJsonRpcError(message.id, -32601, 'Prompt not found');
-  }
-
-  try {
-    const toolContext = createServerToolContext(db, serverServices);
-    if (!toolContext) {
-      return createJsonRpcError(message.id, -32603, 'Internal error', '서비스가 초기화되지 않았습니다');
-    }
-    const promptResult = await executeTool('memory_injection', args, toolContext);
-    return {
-      jsonrpc: '2.0',
-      id: message.id,
-      result: promptResult
-    };
-  } catch (error) {
-    return createJsonRpcError(
-      message.id,
-      -32603,
-      'Prompt execution failed',
-      error instanceof Error ? error.message : 'Unknown error'
-    );
   }
 }
 

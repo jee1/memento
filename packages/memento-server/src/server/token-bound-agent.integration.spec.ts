@@ -245,6 +245,39 @@ describe('token-bound agent identity integration', () => {
     expect(response.body).not.toContain('owner scope beta secret token');
   });
 
+  function promptsCallMemoryInjection(port: number, args: Record<string, unknown>): Promise<HttpResponse> {
+    return postJson(
+      port,
+      '/mcp',
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'prompts/call',
+        params: { name: 'memory_injection', arguments: { query: 'owner scope secret token', ...args } },
+      },
+      { Authorization: 'Bearer secret-a' },
+    );
+  }
+
+  it('bound token: MCP prompts/call memory_injection naming another owner_id is refused', async () => {
+    const port = await startRealHttpServer();
+
+    const response = await promptsCallMemoryInjection(port, { owner_id: 'agent-b' });
+
+    expect(response.body).not.toContain('owner scope beta secret token');
+    expect((JSON.parse(response.body) as { error?: unknown }).error).toBeDefined();
+  });
+
+  it('bound token: MCP prompts/call memory_injection without owner_id returns only owned memories', async () => {
+    const port = await startRealHttpServer();
+
+    const response = await promptsCallMemoryInjection(port, {});
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('owner scope alpha secret token');
+    expect(response.body).not.toContain('owner scope beta secret token');
+  });
+
   it('bound token: agent API refuses cross-agent endpoints and other owners', async () => {
     const port = await startRealHttpServer();
 
