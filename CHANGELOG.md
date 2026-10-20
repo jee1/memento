@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Security
+
+- 의존성: production audit의 `follow-redirects` high와 `hono` moderate를 잠금 파일에서 `1.16.1`, `4.13.13`으로 올렸습니다.
+
 ### Changed
 
 - 망각: spaced repetition 검토는 `last_accessed`만 갱신하고 `memory_forgetting_event`에 review 행을 남기지 않습니다(#1375). 정리 잡은 review 행을 나이와 상관없이 지우고, soft와 hard는 `FORGETTING_EVENT_RETENTION_DAYS`(기본 90일)를 그대로 둡니다.
