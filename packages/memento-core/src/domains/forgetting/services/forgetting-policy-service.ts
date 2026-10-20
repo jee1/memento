@@ -358,20 +358,6 @@ export class ForgettingPolicyService {
       SET last_accessed = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [schedule.memory_id]);
-    this.forgettingEventRepository.insert(db, {
-      memory_id: schedule.memory_id,
-      action: 'review',
-      reason: 'spaced_repetition_due',
-      policy: DEFAULT_FORGETTING_POLICY_NAME,
-      forget_score: schedule.recall_probability ?? null,
-      ttl_days: schedule.current_interval ?? null,
-      metadata_json: JSON.stringify({
-        needs_review: schedule.needs_review,
-        next_review: schedule.next_review instanceof Date
-          ? schedule.next_review.toISOString()
-          : schedule.next_review,
-      }),
-    });
   }
 
   /**
