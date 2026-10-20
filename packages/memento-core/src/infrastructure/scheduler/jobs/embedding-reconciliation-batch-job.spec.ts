@@ -27,11 +27,17 @@ function createDb(): Database.Database {
   return db;
 }
 
-function insertEmbedding(db: Database.Database, memoryId: string, contentHash: string): void {
+function insertEmbedding(
+  db: Database.Database,
+  memoryId: string,
+  contentHash: string,
+  provider = 'tfidf',
+  projectionType = 'native'
+): void {
   db.prepare(
     `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, content_hash)
-     VALUES (?, 'tfidf', 'native', ?)`
-  ).run(memoryId, contentHash);
+     VALUES (?, ?, ?, ?)`
+  ).run(memoryId, provider, projectionType, contentHash);
 }
 
 describe('EmbeddingReconciliationBatchJob', () => {
@@ -47,7 +53,7 @@ describe('EmbeddingReconciliationBatchJob', () => {
         insertEmbedding(db, memoryId, hashMemoryContent(content));
         return { provider: 'tfidf' };
       });
-      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never);
+      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never, 'tfidf');
 
       const result = await job.run();
 
@@ -77,7 +83,7 @@ describe('EmbeddingReconciliationBatchJob', () => {
           insertEmbedding(db, memoryId, hashMemoryContent(content));
           return { provider: 'tfidf' };
         });
-      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never);
+      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never, 'tfidf');
 
       const failedCycle = await job.run();
       expect(failedCycle.success).toBe(false);
@@ -91,6 +97,60 @@ describe('EmbeddingReconciliationBatchJob', () => {
         content_hash: hashMemoryContent('new content'),
       });
       expect(createAndStoreEmbedding).toHaveBeenCalledTimes(2);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('keeps the existing native row when re-embedding returns no result', async () => {
+    const db = createDb();
+    try {
+      db.prepare("INSERT INTO memory_item (id, content, type) VALUES ('memory', 'content', 'semantic')").run();
+      insertEmbedding(db, 'memory', 'stale-hash');
+      const createAndStoreEmbedding = vi.fn(async () => null);
+      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never, 'tfidf');
+
+      const result = await job.run();
+
+      expect(result.success).toBe(false);
+      expect(db.prepare('SELECT embedding_provider, content_hash FROM memory_embedding').all()).toEqual([
+        { embedding_provider: 'tfidf', content_hash: 'stale-hash' },
+      ]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('re-embeds memories whose current native row belongs to another provider', async () => {
+    const db = createDb();
+    try {
+      db.prepare("INSERT INTO memory_item (id, content, type) VALUES ('fallback', 'fb', 'semantic'), ('ready', 'rd', 'semantic')").run();
+      insertEmbedding(db, 'fallback', hashMemoryContent('fb'), 'tfidf');
+      insertEmbedding(db, 'ready', hashMemoryContent('rd'), 'minilm');
+      const createAndStoreEmbedding = vi.fn(async () => ({ provider: 'minilm' }));
+      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never, 'minilm');
+
+      await job.run();
+
+      expect(createAndStoreEmbedding).toHaveBeenCalledTimes(1);
+      expect(createAndStoreEmbedding).toHaveBeenCalledWith(db, 'fallback', 'fb', 'semantic');
+    } finally {
+      db.close();
+    }
+  });
+
+  it('regenerates window rows when only they are stale', async () => {
+    const db = createDb();
+    try {
+      db.prepare("INSERT INTO memory_item (id, content, type) VALUES ('memory', 'content', 'semantic')").run();
+      insertEmbedding(db, 'memory', hashMemoryContent('content'), 'minilm', 'native');
+      insertEmbedding(db, 'memory', 'stale-hash', 'minilm', 'window:0');
+      const createAndStoreEmbedding = vi.fn(async () => ({ provider: 'minilm' }));
+      const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never, 'minilm');
+
+      await job.run();
+
+      expect(createAndStoreEmbedding).toHaveBeenCalledTimes(1);
     } finally {
       db.close();
     }
