@@ -24,7 +24,7 @@ export async function handleVaultMemory(
 ): Promise<ToolResult> {
   const { key, value, immutable, origin_source, ownerId, startTime } = params;
 
-  const knowledgeVaultRepository = requireRepositoryProvider(context.services?.repositories).knowledgeVault(context.db);
+  const knowledgeVaultRepository = requireRepositoryProvider(context.services.repositories).knowledgeVault(context.db);
   const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
 
   const agent_id = 'default';

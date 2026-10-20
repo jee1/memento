@@ -143,7 +143,7 @@ export class FeedbackTool extends BaseTool {
     const t0 = Date.now();
     const parsed = FeedbackSchema.parse(params);
     this.validateDatabase(context);
-    const repositories = requireRepositoryProvider(context.services?.repositories);
+    const repositories = requireRepositoryProvider(context.services.repositories);
     const agentId = resolveCallerAgentId(context, parsed.agent_id);
     const ownerScope = callerOwnerClause(context);
 
