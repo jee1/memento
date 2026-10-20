@@ -164,13 +164,21 @@ The 17 tools exposed to agents:
 
 | Job | Default Interval | Role |
 |-----|-----------------|------|
-| `sleep_consolidation` | 1 hour | Distill episodic → semantic memories |
-| `quality_measurement` | 24 hours | Measure memory quality metrics |
-| `forgetting_cleanup` | 24 hours | Delete TTL-expired memories |
+| `cleanup` | 24 hours | Delete TTL-expired memories (forgetting policy) |
+| `monitoring` | 5 minutes | Collect performance metrics |
+| `healthcheck` | 5 minutes | Check scheduler and DB health |
+| `sleep_consolidation_batch` | 1 hour | Distill episodic → semantic memories |
+| `quality_measurement_batch` | 24 hours | Measure memory quality metrics |
 | `memory_review_candidates` | 24 hours | Refresh spaced-repetition review queue |
 | `meta_memory_introspection` | 6 hours | Identify low-confidence memories |
 | `log_rotation` | 24 hours | Rotate log files |
-| `telemetry_cleanup` | 24 hours | Purge old telemetry data |
+| `telemetry_cleanup_batch` | 24 hours | Purge old telemetry data |
+| `forgetting_event_cleanup_batch` | 24 hours | Purge old forgetting events |
+| `job_run_cleanup_batch` | 24 hours | Purge old `job_run` rows |
+| `anchor_auto_refresh` | 6 hours | Refresh anchors (`ANCHOR_AUTO_REFRESH_ENABLED`) |
+| `embedding_reconciliation` | 24 hours | Rebuild missing or stale embeddings |
+
+Pass these exact names as `jobType` to `/admin/batch/run`; any other name returns 400 `Invalid or unknown jobType`. The registered list lives in `infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.ts` and the default intervals in `batch-scheduler-default-config.ts`.
 
 ---
 

@@ -291,12 +291,11 @@ rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → 
 
 | Job | 주기 | 역할 |
 |-----|------|------|
-| `triple_extraction` | 1h | 에피소드 → Triple |
-| `sleep_consolidation` | 1h | 에피소드 → 시맨틱 |
-| `forgetting_cleanup` | 24h | TTL 만료 정리 |
+| `sleep_consolidation_batch` | 1h | 에피소드 → 시맨틱 |
+| `cleanup` | 24h | TTL 만료 정리 |
 | `meta_memory_introspection` | 6h | 저신뢰 기억 식별 |
-| `quality_measurement` | 24h | 검색 품질 측정 |
-| `telemetry_cleanup` | 24h | 텔레메트리 정리 |
+| `quality_measurement_batch` | 24h | 검색 품질 측정 |
+| `telemetry_cleanup_batch` | 24h | 텔레메트리 정리 |
 
 전체 목록: [아키텍처 개요 §BatchScheduler](./architecture.md)
 

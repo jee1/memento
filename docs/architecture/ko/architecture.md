@@ -165,13 +165,21 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 | 작업 | 기본 주기 | 역할 |
 |------|-----------|------|
-| `sleep_consolidation` | 1시간 | 에피소드 → 시맨틱 증류 |
-| `quality_measurement` | 24시간 | 메모리 품질 측정 |
-| `forgetting_cleanup` | 24시간 | TTL 만료 기억 정리 |
+| `cleanup` | 24시간 | TTL 만료 기억 정리 (망각 정책) |
+| `monitoring` | 5분 | 성능 지표 수집 |
+| `healthcheck` | 5분 | 스케줄러·DB 상태 점검 |
+| `sleep_consolidation_batch` | 1시간 | 에피소드 → 시맨틱 증류 |
+| `quality_measurement_batch` | 24시간 | 메모리 품질 측정 |
 | `memory_review_candidates` | 24시간 | 복습 후보 갱신 |
 | `meta_memory_introspection` | 6시간 | 신뢰도 낮은 기억 식별 |
 | `log_rotation` | 24시간 | 로그 파일 순환 |
-| `telemetry_cleanup` | 24시간 | 텔레메트리 데이터 정리 |
+| `telemetry_cleanup_batch` | 24시간 | 텔레메트리 데이터 정리 |
+| `forgetting_event_cleanup_batch` | 24시간 | 오래된 망각 이벤트 정리 |
+| `job_run_cleanup_batch` | 24시간 | 오래된 `job_run` 기록 정리 |
+| `anchor_auto_refresh` | 6시간 | 앵커 자동 갱신 (`ANCHOR_AUTO_REFRESH_ENABLED`) |
+| `embedding_reconciliation` | 24시간 | 누락·낡은 임베딩 재생성 |
+
+`/admin/batch/run` 의 `jobType` 에는 위 이름을 그대로 쓴다. 다른 이름은 400 `Invalid or unknown jobType` 이다. 등록 목록은 `infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.ts`, 기본 주기는 `batch-scheduler-default-config.ts` 가 원본이다.
 
 ---
 

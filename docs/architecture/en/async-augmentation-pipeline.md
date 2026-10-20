@@ -22,13 +22,13 @@ These jobs run through **BatchScheduler** (queue and/or cron):
 | Job | Trigger | Role |
 |-----|---------|------|
 | Per-item relation extraction | JobQueue (`addJob` from remember-tool) | Enqueued right after episodic save |
-| `sleep_consolidation` | Every hour | Episodic → semantic distillation (`SleepConsolidationService`) |
-| `quality_measurement` | Every 24h | Memory quality measurement |
-| `forgetting_cleanup` | Every 24h | TTL-expired memory cleanup |
+| `sleep_consolidation_batch` | Every hour | Episodic → semantic distillation (`SleepConsolidationService`) |
+| `quality_measurement_batch` | Every 24h | Memory quality measurement |
+| `cleanup` | Every 24h | TTL-expired memory cleanup |
 | `memory_review_candidates` | Every 24h | Spaced-repetition review queue refresh |
 
 Reference files:
-- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`
+- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler/batch-scheduler.ts`
 - `packages/memento-core/src/workers/consolidation-score-worker.ts`
 
 ## Retry and monitoring
