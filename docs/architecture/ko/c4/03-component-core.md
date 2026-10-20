@@ -38,7 +38,7 @@ C4Component
         Component(metaMem, "Meta Memory / Introspection", "introspection/", "MetaMemoryService, IntrospectionScanCache, heal 후보")
         Component(telemetry, "Telemetry Service", "domains/telemetry/", "owner/agent 컨텍스트·search/feedback 품질 텔레메트리")
         Component(monitoring, "Monitoring Stack", "domains/monitoring/", "PerformanceMonitor, FailureDetector, ReflexionWorker, ErrorLogging")
-        Component(batch, "Batch Scheduler", "infrastructure/scheduler/", "11종 배치: triple_extraction, sleep_consolidation, forgetting, …")
+        Component(batch, "Batch Scheduler", "infrastructure/scheduler/", "13종 배치: cleanup, sleep_consolidation_batch, embedding_reconciliation, …")
         Component(repos, "Repository Layer", "infrastructure/database/repositories/", "memory·vector·telemetry·anchor stores")
         Component(dbInfra, "DB Infrastructure", "infrastructure/database/", "WAL checkpoint, lock monitor, write coalescing, migrations")
     }
@@ -66,11 +66,10 @@ C4Component
     Rel(anchor, vectorEngine, "앵커 주변 탐색")
     Rel(anchor, relation, "로컬 그래프")
 
-    Rel(batch, relation, "TripleExtractionBatchJob")
     Rel(batch, consolidation, "SleepConsolidationBatch")
-    Rel(batch, forgetting, "forgetting_cleanup")
+    Rel(batch, forgetting, "cleanup")
     Rel(batch, metaMem, "meta_memory_introspection")
-    Rel(batch, telemetry, "telemetry_cleanup")
+    Rel(batch, telemetry, "telemetry_cleanup_batch")
     Rel(relation, llm, "Triple·관계 추출 LLM")
 
     Rel(repos, db, "SQL")
@@ -190,12 +189,12 @@ S = α·relevance + β·recency + γ·importance + δ·usage
 
 | Job | 기본 주기 | 담당 컴포넌트 |
 |-----|-----------|---------------|
-| `sleep_consolidation` | 1h | Sleep Consolidation |
-| `forgetting_cleanup` | 24h | Forgetting Policy |
+| `sleep_consolidation_batch` | 1h | Sleep Consolidation |
+| `cleanup` | 24h | Forgetting Policy |
 | `meta_memory_introspection` | 6h | Meta Memory |
 | `memory_review_candidates` | 24h | Memory |
-| `quality_measurement` | 24h | Search 품질 |
-| `telemetry_cleanup` | 24h | Telemetry |
+| `quality_measurement_batch` | 24h | Search 품질 |
+| `telemetry_cleanup_batch` | 24h | Telemetry |
 | `log_rotation` | 24h | Monitoring |
 
 전체 파이프라인: [async-augmentation-pipeline.md](../async-augmentation-pipeline.md).
