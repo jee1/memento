@@ -31,6 +31,7 @@ export async function findExistingProceduralMemory(
       WHERE type = 'procedural'
         AND workflow_name = ?
         AND skill_name = ?
+        AND (COALESCE(is_deleted, 0) = 0)
       ORDER BY created_at DESC
       LIMIT 1
     `, [workflow_name, skill_name]);
