@@ -256,6 +256,43 @@ describe('#998 벡터 레인 필터 적용', () => {
     expect(knnIds.sort()).toEqual(['pinned-a', 'pinned-b']);
     expect(hybridIds.sort()).toEqual(['pinned-a', 'pinned-b']);
   });
+
+  it('latest_only 를 후보 LIMIT 전에 적용한다 (#1392)', async () => {
+    if (!vecAvailable) return;
+    const database = await openDb();
+    const insert = (
+      id: string,
+      vector: number[],
+      version: number,
+      series: string
+    ) => {
+      database.prepare(
+        `INSERT INTO memory_item (id, type, content, importance, created_at, pinned, tags, privacy_scope, version, version_series_id)
+         VALUES (?, 'procedural', ?, 0.5, '2026-05-05T01:11:07.877Z', 0, '[]', 'private', ?, ?)`
+      ).run(id, id, version, series);
+      database.prepare(
+        `INSERT INTO memory_embedding
+           (memory_id, embedding_provider, projection_type, embedding, dim, model, dimensions, precision, normalized, version, created_by)
+         VALUES (?, 'minilm', 'native', ?, ?, ?, ?, 32, 1, 1, 'test')`
+      ).run(id, encodeFloat32Embedding(vector), DIMENSIONS, MINILM_MODEL_NAME, DIMENSIONS);
+    };
+    insert('mem_a_v1', unitVector(0), 1, 'series-a');
+    insert('mem_a_v2', unitVector(0), 2, 'series-a');
+    insert('mem_a_v3', unitVector(0), 3, 'series-a');
+    insert('mem_a_v4', weaklyAlignedVector(0), 4, 'series-a');
+    insert('mem_b_v1', weaklyAlignedVector(1), 1, 'series-b');
+
+    const { knnIds, hybridIds } = runBothLanes(database, { version_filter: 'latest_only' }, 2);
+
+    expect(knnIds).toHaveLength(2);
+    expect(hybridIds).toHaveLength(2);
+    expect(knnIds).toContain('mem_a_v4');
+    expect(hybridIds).toContain('mem_a_v4');
+    expect(knnIds).not.toContain('mem_a_v1');
+    expect(knnIds).not.toContain('mem_a_v2');
+    expect(knnIds).not.toContain('mem_a_v3');
+    expect(hybridIds).not.toContain('mem_a_v1');
+  });
 });
 
 describe('#1006 벡터 레인 메타데이터', () => {

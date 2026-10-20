@@ -19,7 +19,7 @@ import { RECALL_TOOL_INPUT_SCHEMA } from './recall-tool-definition.js';
 import { recallCoreMemoryDirect, recallVaultMemoryDirect } from './recall-tool-direct.js';
 import { finalizeMemoryItemRecallEnvelope } from './recall-tool-envelope.js';
 import type { RecallToolHost } from './recall-tool-host.js';
-import { runMemoryItemPostSearchPipeline } from './recall-tool-post-search.js';
+import { collectMetaMemoryStats, runMemoryItemPostSearchPipeline } from './recall-tool-post-search.js';
 import { RecallSchema, type RecallParams } from './recall-tool-schema.js';
 import { executeHybridOrTextSearchForMemoryItem } from './recall-tool-search-execution.js';
 
@@ -146,41 +146,67 @@ export class RecallTool extends BaseTool {
       normalizedVectorWeight,
       normalizedTextWeight
     );
-    const { searchResult, executionTime } = await executeHybridOrTextSearchForMemoryItem(this.host, context, {
-      query,
-      filters,
-      limit,
-      normalizedVectorWeight,
-      normalizedTextWeight,
-      provider_filter: parsed.provider_filter,
-      match_trigger_conditions: parsed.match_trigger_conditions,
-      actualTriggerContext,
-      wantScoreBreakdown,
-      useHybridRecall,
-      enableHybrid,
-      searchStartTime: timing.searchStartTime,
-      retrievalStrategy,
-      queryHash
-    });
+    const callerLimit = limit;
+    const matchTrigger = parsed.match_trigger_conditions === true;
+    const triggerFetchCap = 500;
+    let fetchLimit = callerLimit;
+    let searchResult: Awaited<ReturnType<typeof executeHybridOrTextSearchForMemoryItem>>['searchResult'] | undefined;
+    let executionTime: number;
+    let searchItems: Awaited<ReturnType<typeof runMemoryItemPostSearchPipeline>>['searchItems'];
+    let processedResults: Awaited<ReturnType<typeof runMemoryItemPostSearchPipeline>>['processedResults'];
 
     const postStart = process.hrtime.bigint();
-    const { searchItems, processedResults } = await runMemoryItemPostSearchPipeline(this.host, context, searchResult, {
-      query,
-      version_filter: parsed.version_filter,
-      version_series_id: parsed.version_series_id,
-      version_number: parsed.version_number,
-      include_version_chain: parsed.include_version_chain,
-      include_diff_with: parsed.include_diff_with,
-      owner_id_filter: parsed.owner_id,
-      process_id_filter: parsed.process_id,
-      session_id_filter: parsed.session_id,
-      project_id_filter: parsed.project_id,
-      tags_filter: parsed.tags,
-      match_trigger_conditions: parsed.match_trigger_conditions,
-      actualTriggerContext,
-      includeMetadata,
-      return_format: parsed.return_format
-    });
+    for (;;) {
+      ({ searchResult, executionTime } = await executeHybridOrTextSearchForMemoryItem(this.host, context, {
+        query,
+        filters,
+        limit: fetchLimit,
+        normalizedVectorWeight,
+        normalizedTextWeight,
+        provider_filter: parsed.provider_filter,
+        match_trigger_conditions: parsed.match_trigger_conditions,
+        actualTriggerContext,
+        wantScoreBreakdown,
+        useHybridRecall,
+        enableHybrid,
+        searchStartTime: timing.searchStartTime,
+        retrievalStrategy,
+        queryHash
+      }));
+      const pageFull = (searchResult?.items?.length ?? 0) >= fetchLimit;
+      const nextFetch = Math.min(triggerFetchCap, fetchLimit * 2);
+      const canGrow = matchTrigger && pageFull && nextFetch > fetchLimit;
+      ({ searchItems, processedResults } = await runMemoryItemPostSearchPipeline(this.host, context, searchResult, {
+        query,
+        version_filter: parsed.version_filter,
+        version_series_id: parsed.version_series_id,
+        version_number: parsed.version_number,
+        include_version_chain: parsed.include_version_chain,
+        include_diff_with: parsed.include_diff_with,
+        owner_id_filter: parsed.owner_id,
+        process_id_filter: parsed.process_id,
+        session_id_filter: parsed.session_id,
+        project_id_filter: parsed.project_id,
+        tags_filter: parsed.tags,
+        match_trigger_conditions: parsed.match_trigger_conditions,
+        actualTriggerContext,
+        includeMetadata,
+        return_format: parsed.return_format,
+        recordMetaStats: !matchTrigger
+      }));
+      if (!canGrow || processedResults.length >= callerLimit) break;
+      fetchLimit = nextFetch;
+    }
+    if (processedResults.length > callerLimit) {
+      processedResults = processedResults.slice(0, callerLimit);
+      searchItems = searchItems.slice(0, callerLimit);
+    }
+    if (matchTrigger && context.services.metaMemoryService) {
+      await collectMetaMemoryStats(this.host, searchItems, context.services.metaMemoryService);
+    }
+    if (matchTrigger && searchResult && fetchLimit > callerLimit) {
+      searchResult = { ...searchResult, total_count: processedResults.length };
+    }
     const postMs = Number(process.hrtime.bigint() - postStart) / 1_000_000;
 
     return await finalizeMemoryItemRecallEnvelope(this.host, context, {

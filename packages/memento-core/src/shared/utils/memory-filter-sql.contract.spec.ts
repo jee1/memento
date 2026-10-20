@@ -8,15 +8,6 @@ import { getAppliedRecallFilters } from '../../domains/memory/recall/recall-tool
 import type { MemorySearchFilters } from '../types/search.types.js';
 import { buildMemoryFilterSql } from './memory-filter-sql.js';
 
-/** 절차 기억 버전 필터 — 컬럼 필터가 아니라 recall 후처리에서 다룬다 */
-const PROCEDURAL_VERSION_FILTER_KEYS = [
-  'version_filter',
-  'version_series_id',
-  'version_number',
-  'include_version_chain',
-  'include_diff_with',
-] as const;
-
 const SAMPLE_VALUES: Record<string, unknown> = {
   type: ['semantic'],
   tags: ['alpha'],
@@ -63,11 +54,29 @@ describe('memory-filter-sql contract (#998)', () => {
     }
   });
 
-  it('절차 기억 버전 관련 키는 buildMemoryFilterSql 에 없다', () => {
-    for (const key of PROCEDURAL_VERSION_FILTER_KEYS) {
+  it('버전 체인·diff 와 all_versions 는 buildMemoryFilterSql 에 없다', () => {
+    for (const key of ['include_version_chain', 'include_diff_with', 'version_series_id', 'version_number'] as const) {
       const filters = { [key]: key === 'version_number' ? 2 : 'latest' } as MemorySearchFilters;
       const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm' });
       expect(clauses).toEqual([]);
     }
+    const allVersions = buildMemoryFilterSql({ version_filter: 'all_versions' }, { itemAlias: 'm' });
+    expect(allVersions.clauses).toEqual([]);
+    const bareSpecific = buildMemoryFilterSql({ version_filter: 'specific_version' }, { itemAlias: 'm' });
+    expect(bareSpecific.clauses).toEqual([]);
+  });
+
+  it('latest_only 와 specific_version 은 LIMIT 전에 거는 절을 만든다', () => {
+    const latest = buildMemoryFilterSql({ version_filter: 'latest_only' }, { itemAlias: 'm' });
+    expect(latest.clauses.join('\n')).toContain('NOT EXISTS');
+    expect(latest.params).toEqual([]);
+
+    const specific = buildMemoryFilterSql(
+      { version_filter: 'specific_version', version_series_id: 'series-a', version_number: 2 },
+      { itemAlias: 'm' }
+    );
+    expect(specific.clauses.join('\n')).toContain('m.version_series_id = ?');
+    expect(specific.clauses.join('\n')).toContain('COALESCE(m.version, 0) = ?');
+    expect(specific.params).toEqual(['series-a', 2]);
   });
 });

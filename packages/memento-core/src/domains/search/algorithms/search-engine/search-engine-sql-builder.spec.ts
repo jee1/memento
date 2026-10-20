@@ -106,4 +106,23 @@ describe('buildSearchStatement', () => {
     const limitIndex = result.sql.lastIndexOf('LIMIT ?');
     expect(result.sql.search(/ORDER BY fts_rank ASC/)).toBeLessThan(limitIndex);
   });
+
+  it('latest_only 를 후보 LIMIT 전에 적용한다 (#1392)', async () => {
+    const result = await buildSearchStatement({
+      db: {} as never,
+      searchQuery: 'deploy checklist',
+      filters: { version_filter: 'latest_only' },
+      limit: 2,
+      hasIdFilter: false,
+      preferFts: true,
+      checkFTS5Availability: async () => true,
+      buildFTSQuery: (query) => query,
+      buildReflectionNotesSearchCondition: () => null,
+    });
+
+    const candidateLimitIndex = result.sql.lastIndexOf('LIMIT ?');
+    expect(result.sql).toContain('NOT EXISTS');
+    expect(result.sql.indexOf('NOT EXISTS')).toBeLessThan(candidateLimitIndex);
+    expect(result.params.at(-1)).toBe(6);
+  });
 });

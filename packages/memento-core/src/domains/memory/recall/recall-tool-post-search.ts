@@ -104,7 +104,7 @@ async function enrichProceduralVersionInfo(
 /**
  * Meta Memory Statistics 수집
  */
-async function collectMetaMemoryStats(
+export async function collectMetaMemoryStats(
   host: RecallToolHost,
   searchItems: RecallSearchItem[],
   metaMemoryService: MetaMemoryService
@@ -153,6 +153,7 @@ type PostSearchInput = {
   actualTriggerContext: Record<string, unknown> | undefined;
   includeMetadata: boolean;
   return_format: 'full' | 'steps_only';
+  recordMetaStats?: boolean;
 };
 
 /** scope id 필터(단일 값 또는 배열). 값이 null 인 항목은 떨어뜨린다. 필터가 비면 그대로. */
@@ -210,7 +211,7 @@ export async function runMemoryItemPostSearchPipeline(
     searchItems = filterRecallItemsByTriggerConditions(searchItems, input.query, input.actualTriggerContext);
   }
 
-  if (context.services.metaMemoryService) {
+  if (input.recordMetaStats !== false && context.services.metaMemoryService) {
     await collectMetaMemoryStats(host, searchItems, context.services.metaMemoryService);
   }
 
