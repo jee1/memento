@@ -305,6 +305,14 @@ function createDbStub(
       };
     }
 
+    if (sql.includes('SELECT content FROM memory_item WHERE id = ?')) {
+      return { get: vi.fn((id: string) => getMemoryItems().get(id)) };
+    }
+
+    if (sql.includes('DELETE FROM memory_embedding')) {
+      return { run: vi.fn() };
+    }
+
     if (sql.includes('SELECT distance FROM memory_item_vec')) {
       return { get: vi.fn().mockReturnValue({ distance: 0.2 }) };
     }
@@ -375,6 +383,7 @@ function createDbStub(
 
   return {
     loadExtension: vi.fn(),
-    prepare
+    prepare,
+    transaction: <T>(fn: () => T) => fn
   };
 }

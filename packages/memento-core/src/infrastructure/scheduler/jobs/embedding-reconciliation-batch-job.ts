@@ -13,16 +13,18 @@ interface ActiveMemoryRow {
 
 interface EmbeddingRow {
   memory_id: string;
+  embedding_provider: string;
   projection_type: string;
   content_hash: string | null;
 }
 
 type EmbeddingWriter = Pick<MemoryEmbeddingService, 'createAndStoreEmbedding'>;
 
-function findCandidates(memories: ActiveMemoryRow[], embeddings: EmbeddingRow[]): {
-  missingNative: ActiveMemoryRow[];
-  stale: ActiveMemoryRow[];
-} {
+function findCandidates(
+  memories: ActiveMemoryRow[],
+  embeddings: EmbeddingRow[],
+  targetProvider: string
+): ActiveMemoryRow[] {
   const rowsByMemory = new Map<string, EmbeddingRow[]>();
   for (const row of embeddings) {
     const rows = rowsByMemory.get(row.memory_id) ?? [];
@@ -30,26 +32,24 @@ function findCandidates(memories: ActiveMemoryRow[], embeddings: EmbeddingRow[])
     rowsByMemory.set(row.memory_id, rows);
   }
 
-  const missingNative: ActiveMemoryRow[] = [];
-  const stale: ActiveMemoryRow[] = [];
-  for (const memory of memories) {
+  return memories.filter(memory => {
     const contentHash = hashMemoryContent(memory.content);
     const rows = rowsByMemory.get(memory.id) ?? [];
-    if (!rows.some(row => row.projection_type === 'native' && row.content_hash === contentHash)) {
-      (rows.some(row => row.projection_type === 'native') ? stale : missingNative).push(memory);
-    } else if (rows.some(row => row.content_hash !== contentHash)) {
-      stale.push(memory);
-    }
-  }
-  return { missingNative, stale };
+    const hasCurrentTargetNative = rows.some(
+      row => row.projection_type === 'native'
+        && row.embedding_provider === targetProvider
+        && row.content_hash === contentHash
+    );
+    return !hasCurrentTargetNative || rows.some(row => row.content_hash !== contentHash);
+  });
 }
 
 function scanCandidates(
   db: Database.Database,
-  candidateLimit: number
+  candidateLimit: number,
+  targetProvider: string
 ): { candidates: ActiveMemoryRow[]; total: number } {
-  const missingCandidates: ActiveMemoryRow[] = [];
-  const staleCandidates: ActiveMemoryRow[] = [];
+  const candidates: ActiveMemoryRow[] = [];
   let total = 0;
   let lastId = '';
   const pageSize = 500;
@@ -65,55 +65,32 @@ function scanCandidates(
 
     const placeholders = memories.map(() => '?').join(', ');
     const embeddings = db.prepare(
-      `SELECT memory_id, projection_type, content_hash FROM memory_embedding
+      `SELECT memory_id, embedding_provider, projection_type, content_hash FROM memory_embedding
        WHERE memory_id IN (${placeholders})`
     ).all(...memories.map(memory => memory.id)) as EmbeddingRow[];
-    const pageCandidates = findCandidates(memories, embeddings);
-    total += pageCandidates.missingNative.length + pageCandidates.stale.length;
-    if (missingCandidates.length < candidateLimit) {
-      missingCandidates.push(...pageCandidates.missingNative.slice(0, candidateLimit - missingCandidates.length));
-    }
-    if (staleCandidates.length < candidateLimit) {
-      staleCandidates.push(...pageCandidates.stale.slice(0, candidateLimit - staleCandidates.length));
+    const pageCandidates = findCandidates(memories, embeddings, targetProvider);
+    total += pageCandidates.length;
+    if (candidates.length < candidateLimit) {
+      candidates.push(...pageCandidates.slice(0, candidateLimit - candidates.length));
     }
   }
 
-  return { candidates: [...missingCandidates, ...staleCandidates].slice(0, candidateLimit), total };
+  return { candidates, total };
 }
 
 export class EmbeddingReconciliationBatchJob {
   constructor(
     private readonly db: Database.Database,
-    private readonly embeddingService: EmbeddingWriter
+    private readonly embeddingService: EmbeddingWriter,
+    private readonly targetProvider: string
   ) {}
 
   async run(batchSize = 1000): Promise<BatchJobResult> {
     const result = createEmptyBatchJobResult('embedding_reconciliation');
 
     try {
-      const { candidates, total: candidateCount } = scanCandidates(this.db, batchSize);
-      const staleRows = this.db.prepare(
-        `DELETE FROM memory_embedding
-         WHERE memory_id = ? AND (content_hash IS NULL OR content_hash <> ?)
-           AND EXISTS (
-             SELECT 1 FROM memory_item
-             WHERE id = ? AND content = ? AND COALESCE(is_deleted, 0) = 0 AND deleted_at IS NULL
-           )`
-      );
-
+      const { candidates, total: candidateCount } = scanCandidates(this.db, batchSize, this.targetProvider);
       for (const memory of candidates.slice(0, batchSize)) {
-        const contentHash = hashMemoryContent(memory.content);
-        staleRows.run(memory.id, contentHash, memory.id, memory.content);
-
-        const hasCurrentNative = this.db.prepare(
-          `SELECT 1 FROM memory_embedding
-           WHERE memory_id = ? AND projection_type = 'native' AND content_hash = ? LIMIT 1`
-        ).get(memory.id, contentHash);
-        if (hasCurrentNative) {
-          result.processed++;
-          continue;
-        }
-
         try {
           const embedding = await this.embeddingService.createAndStoreEmbedding(
             this.db,
@@ -133,7 +110,7 @@ export class EmbeddingReconciliationBatchJob {
         }
       }
 
-      const remaining = scanCandidates(this.db, 0).total;
+      const remaining = scanCandidates(this.db, 0, this.targetProvider).total;
       result.success = result.errors.length === 0 && remaining === 0;
       result.details = { candidates: candidateCount, remaining };
       if (remaining > 0 && result.errors.length === 0) {

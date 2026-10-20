@@ -387,8 +387,10 @@ export class MemoryEmbeddingService {
         }
 
         db.prepare(
-          'DELETE FROM memory_embedding WHERE memory_id = ? AND embedding_provider <> ?'
-        ).run(memoryId, provider);
+          `DELETE FROM memory_embedding
+           WHERE memory_id = ? AND embedding_provider <> ?
+             AND (content_hash IS NULL OR content_hash <> ?)`
+        ).run(memoryId, provider, hashMemoryContent(content));
         this.insertMemoryEmbeddingForCreate(db, memoryId, content, provider, embeddingResult, compatibility);
         return true;
       })();
