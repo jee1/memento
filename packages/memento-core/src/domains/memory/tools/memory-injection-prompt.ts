@@ -146,7 +146,7 @@ export class MemoryInjectionPrompt extends BaseTool {
         throw new Error('데이터베이스가 연결되지 않았습니다');
       }
 
-      if (!context.services?.hybridSearchEngine) {
+      if (!context.services.hybridSearchEngine) {
         throw new Error('하이브리드 검색 엔진이 사용할 수 없습니다');
       }
 
@@ -187,7 +187,7 @@ export class MemoryInjectionPrompt extends BaseTool {
       if (
         mementoConfig.autoSetAnchorDefault
         && bundle.topMemoryId
-        && context.services?.anchorManager
+        && context.services.anchorManager
       ) {
         const anchorHost: RecallToolHost = {
           logInfo: (message, additionalData) => this.logInfo(message, additionalData),

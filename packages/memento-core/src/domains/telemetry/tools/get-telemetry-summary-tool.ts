@@ -47,10 +47,10 @@ export class GetTelemetrySummaryTool extends BaseTool {
     }
 
     // ALS context에서 ownerId 추출
-    const ownerId = context.services?.telemetryService?.getContext()?.ownerId ?? null;
+    const ownerId = context.services.telemetryService?.getContext()?.ownerId ?? null;
 
     try {
-      const telemetryService = context.services?.telemetryService;
+      const telemetryService = context.services.telemetryService;
       if (!telemetryService) {
         return this.createErrorResult('TelemetryService가 초기화되지 않았습니다');
       }

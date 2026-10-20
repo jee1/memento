@@ -150,12 +150,12 @@ export async function findNearDuplicateCandidates(
   host?: RememberToolHost,
 ): Promise<NearDuplicateSearchResult> {
   try {
-    const embSvc = context.services?.embeddingService;
+    const embSvc = context.services.embeddingService;
     if (!embSvc?.isAvailable()) {
       return { candidates: [], truncated: false };
     }
 
-    const vecEng = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
+    const vecEng = context.services.vectorSearchEngine ?? getVectorSearchEngine();
     vecEng.initialize(db);
     const unified = embSvc.getUnifiedEmbeddingService();
     const qEmb = await unified.generateEmbedding(content);

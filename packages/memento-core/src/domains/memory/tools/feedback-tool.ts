@@ -173,7 +173,7 @@ export class FeedbackTool extends BaseTool {
       });
 
       const ownerForTel = agentId ?? context.agentId ?? null;
-      context.services?.telemetryService?.record({
+      context.services.telemetryService?.record({
         eventType: parsed.helpful ? 'memory.feedback.positive' : 'memory.feedback.negative',
         outcome: 'success',
         ownerId: ownerForTel,
@@ -182,7 +182,7 @@ export class FeedbackTool extends BaseTool {
       });
       const promotionCandidate = findApprovedPromotionCandidate(context.db, parsed.memory_id);
       if (promotionCandidate) {
-        context.services?.telemetryService?.record({
+        context.services.telemetryService?.record({
           eventType: 'agent.promotion.usage',
           outcome: parsed.helpful ? 'success' : 'failure',
           ownerId: ownerForTel,

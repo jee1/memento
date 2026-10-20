@@ -154,7 +154,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
         message: '메타 메모리 통계 조회 완료'
       };
       // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
-      const introspectionHint = buildIntrospectionHint(context.services?.introspectionScanCache?.get());
+      const introspectionHint = buildIntrospectionHint(context.services.introspectionScanCache?.get());
       if (introspectionHint) {
         resultObj.introspection_hint = introspectionHint;
       }
