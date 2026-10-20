@@ -9,11 +9,10 @@ import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import { buildAnchorMapData, listAnchorAgentIds } from '../handlers/anchor-map.handler.js';
 import { extractToolResultPayload } from '../handlers/tool-result.utils.js';
-import { createToolContext } from '../context.js';
+import { dispatchTool } from '../audit-tool-dispatch.js';
 import {
   MemoryNeighborService,
   MemoryNotFoundError,
-  executeTool,
   getVectorSearchEngine,
   logger,
 } from '@memento/core';
@@ -103,8 +102,11 @@ export function createApiRouter(
         });
       }
 
-      const toolContext = createToolContext(db, serverServices);
-      const toolResult = await executeTool('search_local', req.body, toolContext);
+      const toolResult = await dispatchTool('search_local', req.body, db, serverServices, {
+        transport: 'rest',
+        actorId: req.programmaticAuth?.keyId,
+        boundAgentId: req.programmaticAuth?.agentId,
+      });
       const result = extractToolResultPayload(toolResult);
 
       return res.json({
