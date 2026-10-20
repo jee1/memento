@@ -9,6 +9,14 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.2.0] - 2026-10-20
+
+보안 수정 1건과 관계 추출 Jev 경로, 검색 품질 도구, 망각·관계·검색 수정을 묶은 마이너 릴리스입니다. 바인딩 API 토큰을 쓰는 설치는 업데이트하십시오. 마이그레이션 053 이 기동 시 `memory_item_vec` 의 레거시 행을 정리합니다.
+
+### Security
+
+- MCP HTTP `prompts/call` 의 `memory_injection` 과 `POST /api/anchors/search` 가 도구 실행 경계(`dispatchTool`)를 거치지 않았습니다. 그래서 API 토큰에 묶인 agent 가 `memory_injection` 으로 다른 agent 의 기억을 읽을 수 있었고, 두 경로 모두 감사 로그와 동시성 제한에서 빠졌습니다. 이제 다른 transport 와 같은 경계를 지납니다. (#1422)
+
 ### Added
 
 - 관계 추출: `LLM_PROVIDER_RELATION_EXTRACTION=jev` 가 TypeSafe System One noul로 관계를 만듭니다(#1410). 저장된 method는 `jev`이고 신뢰도는 채택된 유형의 noul입니다. 관련성 하한과 유형 하한은 각각 0.5이며 검색 게이트 0.4, 클러스터 판정 0.6과 공유하지 않습니다. 키 없음, 시간 초과, WAF, 인증 실패는 로그만 남기고 remember가 이미 저장한 기억은 그대로 둡니다. `jev`는 `LLMProvider`가 아니므로 절차·공고화 오버라이드와 openai/gemini/ollama 폴백에 들어가지 않습니다.
