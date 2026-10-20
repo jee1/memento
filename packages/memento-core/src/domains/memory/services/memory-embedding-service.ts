@@ -14,7 +14,8 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
 import { buildMemoryFilterSql, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
-import { hashMemoryContent, replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
+import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
+import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import {
   WINDOW_CANDIDATE_MIN_CHARS,
   deleteWindowEmbeddings,

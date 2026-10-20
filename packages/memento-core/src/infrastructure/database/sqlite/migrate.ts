@@ -15,6 +15,7 @@ import {
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
+import { ensureMemoryEmbeddingContentHash } from '../../../shared/utils/ensure-memory-embedding-content-hash.js';
 import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
 import {
   checkVecCardinality,
@@ -93,7 +94,6 @@ function migrateDatabase() {
     // 레거시 스키마 호환성: embedding 컬럼 존재 여부 확인
     const hasEmbedding = columnInfo.some(column => column.name === 'embedding');
     const hasProjectionType = columnInfo.some(column => column.name === 'projection_type');
-    const hasContentHash = columnInfo.some(column => column.name === 'content_hash');
     const needsRebuild = !hasEmbeddingTable || !hasEmbedding || !hasProjectionType;
 
     if (needsRebuild) {
@@ -270,17 +270,7 @@ function migrateDatabase() {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
     }
 
-    if (!hasContentHash && !needsRebuild) {
-      db.exec('ALTER TABLE memory_embedding ADD COLUMN content_hash TEXT');
-    }
-    db.exec(`
-      CREATE TRIGGER IF NOT EXISTS memory_item_embedding_content_update
-      AFTER UPDATE OF content ON memory_item
-      WHEN OLD.content IS NOT NEW.content
-      BEGIN
-        DELETE FROM memory_embedding WHERE memory_id = NEW.id;
-      END;
-    `);
+    ensureMemoryEmbeddingContentHash(db);
 
     logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`

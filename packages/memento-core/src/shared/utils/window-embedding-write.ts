@@ -12,7 +12,8 @@ import {
   encodeFloat32Embedding,
   shouldNormalizeFlag,
 } from './embedding-serialization.js';
-import { hashMemoryContent, replaceMemoryEmbedding } from './memory-embedding-write.js';
+import { hashMemoryContent } from './memory-content-hash.js';
+import { replaceMemoryEmbedding } from './memory-embedding-write.js';
 
 export const WINDOW_PROJECTION_PREFIX = 'window:';
 

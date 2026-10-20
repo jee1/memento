@@ -17,7 +17,6 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
-import { hashMemoryContent } from './memory-content-hash.js';
 
 export interface MemoryEmbeddingWrite {
   memoryId: string;
@@ -84,5 +83,3 @@ export function replaceMemoryEmbedding(
     row.contentHash
   ]);
 }
-
-export { hashMemoryContent };

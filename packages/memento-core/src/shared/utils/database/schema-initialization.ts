@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 
+import { ensureMemoryEmbeddingContentHash } from '../ensure-memory-embedding-content-hash.js';
 import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../fts5-migration-status.js';
 import { normalizeReflectionNotes } from '../reflection-notes-normalize.js';
 import { log } from './database-error-helpers.js';
@@ -185,19 +186,7 @@ export async function initializeDatabase(db: Database.Database): Promise<void> {
       `
     );
 
-    const memoryEmbeddingColumns = db.prepare('PRAGMA table_info(memory_embedding)').all() as Array<{ name: string }>;
-    if (!memoryEmbeddingColumns.some(column => column.name === 'content_hash')) {
-      runQuery(db, 'ALTER TABLE memory_embedding ADD COLUMN content_hash TEXT');
-    }
-    runQuery(
-      db,
-      `CREATE TRIGGER IF NOT EXISTS memory_item_embedding_content_update
-       AFTER UPDATE OF content ON memory_item
-       WHEN OLD.content IS NOT NEW.content
-       BEGIN
-         DELETE FROM memory_embedding WHERE memory_id = NEW.id;
-       END`
-    );
+    ensureMemoryEmbeddingContentHash(db);
 
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type)');
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_created_at ON memory_item(created_at)');
