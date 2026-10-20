@@ -30,7 +30,7 @@ export async function handleIncludeNeighbors(
 
   let neighborService: MemoryNeighborService;
   try {
-    const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
+    const vectorSearchEngine = context.services.vectorSearchEngine ?? getVectorSearchEngine();
     const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
     neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService, context.db);
   } catch (error) {

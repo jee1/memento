@@ -20,7 +20,7 @@ export class GetIntrospectionSummaryTool extends BaseTool {
   }
 
   async handle(_params: unknown, context: ToolContext): Promise<ReturnType<BaseTool['createSuccessResult']>> {
-    const cached = context.services?.introspectionScanCache?.get();
+    const cached = context.services.introspectionScanCache?.get();
     if (!cached) {
       return this.createSuccessResult({
         summary: '스캔 결과가 없습니다. meta_memory_introspection job이 실행된 후 다시 시도하세요.',

@@ -474,8 +474,8 @@ function recordWriteCompleted(
 ): void {
   const since24h = new Date(Date.now() - 86_400_000).toISOString();
   const isDuplicate =
-    context.services?.telemetryService?.hasPriorWriteWithContentHash(ctx.ownerId, contentHash, since24h) ?? false;
-  context.services?.telemetryService?.record({
+    context.services.telemetryService?.hasPriorWriteWithContentHash(ctx.ownerId, contentHash, since24h) ?? false;
+  context.services.telemetryService?.record({
     eventType: 'memory.write.completed',
     outcome: 'success',
     latencyMs: Date.now() - ctx.startTime,
@@ -504,7 +504,7 @@ export async function handleMemoryItem(
   }
 
   const contentHash = createHash('sha256').update(content).digest('hex').slice(0, 16);
-  context.services?.telemetryService?.record({
+  context.services.telemetryService?.record({
     eventType: 'memory.write.requested',
     outcome: 'success',
     extraData: { memory_type: type, content_hash: contentHash }

@@ -67,7 +67,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
         throw new MemoryNotFoundError(memory_id);
       }
 
-      const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
+      const vectorSearchEngine = context.services.vectorSearchEngine ?? getVectorSearchEngine();
       
       const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
       

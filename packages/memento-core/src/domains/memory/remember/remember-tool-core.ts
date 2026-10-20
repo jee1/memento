@@ -33,9 +33,9 @@ export async function handleCoreMemory(
   const ch = createHash('sha256').update(`${key}:${value}`).digest('hex').slice(0, 16);
   const since24h = new Date(Date.now() - 86_400_000).toISOString();
   const isDuplicate =
-    context.services?.telemetryService?.hasPriorWriteWithContentHash(ownerId, ch, since24h) ?? false;
+    context.services.telemetryService?.hasPriorWriteWithContentHash(ownerId, ch, since24h) ?? false;
 
-  context.services?.telemetryService?.record({
+  context.services.telemetryService?.record({
     eventType: 'memory.write.requested',
     outcome: 'success',
     extraData: { memory_type: 'core', content_hash: ch }
@@ -49,7 +49,7 @@ export async function handleCoreMemory(
     origin_source
   });
 
-  context.services?.telemetryService?.record({
+  context.services.telemetryService?.record({
     eventType: 'memory.write.completed',
     outcome: 'success',
     latencyMs: Date.now() - startTime,

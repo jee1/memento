@@ -207,7 +207,7 @@ function recordRecallOutcome(context: RecallEnvelopeContext, input: RecallEnvelo
     retrieval_strategy: input.retrievalStrategy,
     ...recallOutcomeStageExtra(input.searchResult, input.postMs),
   };
-  context.services?.telemetryService?.record({
+  context.services.telemetryService?.record({
     eventType: selectedCount === 0 ? 'memory.search.empty' : 'memory.search.selected',
     outcome: selectedCount === 0 ? 'empty' : 'success',
     latencyMs: Date.now() - input.searchStartTime,
@@ -273,7 +273,7 @@ export async function finalizeMemoryItemRecallEnvelope(
     resultObj.metadata = recallMetadata.metadata;
     if (recallMetadata.metaStats !== undefined) resultObj.meta_stats = recallMetadata.metaStats;
   }
-  const introspectionHint = buildIntrospectionHint(context.services?.introspectionScanCache?.get());
+  const introspectionHint = buildIntrospectionHint(context.services.introspectionScanCache?.get());
   if (introspectionHint) {
     resultObj.introspection_hint = introspectionHint;
   }

@@ -251,7 +251,7 @@ export abstract class BaseTool {
         return;
       }
 
-      const failureDetector: FailureDetector | undefined = context.services?.failureDetector;
+      const failureDetector: FailureDetector | undefined = context.services.failureDetector;
       
       if (!failureDetector) {
         // FailureDetector가 없으면 로그만 기록
@@ -269,7 +269,7 @@ export abstract class BaseTool {
 
       if (detectionResult.detected && detectionResult.event) {
         // Reflexion Worker가 있으면 직접 큐에 추가
-        const reflexionWorker: IReflexionWorker | undefined = context.services?.reflexionWorker;
+        const reflexionWorker: IReflexionWorker | undefined = context.services.reflexionWorker;
         
         if (reflexionWorker) {
           // Reflexion Worker의 queueFailureEvent 사용 (큐 크기 제한 포함)

@@ -40,7 +40,7 @@ export async function executeHybridOrTextSearchForMemoryItem(
     queryHash: string;
   }
 ): Promise<{ searchResult: RecallHybridOrTextSearchResult; executionTime: number }> {
-  const tel = context.services?.telemetryService;
+  const tel = context.services.telemetryService;
   const {
     query,
     filters,

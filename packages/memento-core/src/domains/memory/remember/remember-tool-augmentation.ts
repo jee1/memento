@@ -64,7 +64,7 @@ async function runEmbeddingAndNeighbors(
       return;
     }
 
-    const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
+    const vectorSearchEngine = context.services.vectorSearchEngine ?? getVectorSearchEngine();
     const neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingServiceRef, dbRef);
     const neighborIds = await neighborService.updateNeighborsForNewMemory(savedMemoryId, 0.8);
 

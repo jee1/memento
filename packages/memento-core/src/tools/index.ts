@@ -157,7 +157,7 @@ function resolveTelemetryOwnerId(context: ToolContext, params: unknown): string 
 export async function executeTool(name: string, params: unknown, context: ToolContext) {
   // Client HTTP posts nested `filters`; MCP stdio uses top-level. Flatten once here.
   const normalizedParams = flattenNestedToolFilters(params);
-  const tel = context.services?.telemetryService;
+  const tel = context.services.telemetryService;
   if (!tel) {
     return await toolRegistry.execute(name, normalizedParams, context);
   }
