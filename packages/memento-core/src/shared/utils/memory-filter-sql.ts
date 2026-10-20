@@ -68,6 +68,34 @@ function appendRangeClauses(out: FilterSql, filters: MemorySearchFilters, a: str
   pushIfDefined(out, `${a}.importance <= ?`, filters.importance_max);
 }
 
+function appendLatestOnlyClause(out: FilterSql, a: string): void {
+  out.clauses.push(`(
+    ${a}.type != 'procedural'
+    OR ${a}.version_series_id IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM memory_item AS newer
+      WHERE newer.type = 'procedural'
+        AND COALESCE(newer.is_deleted, 0) = 0
+        AND newer.version_series_id = ${a}.version_series_id
+        AND COALESCE(newer.version, 0) > COALESCE(${a}.version, 0)
+    )
+  )`);
+}
+
+function appendSpecificVersionClause(out: FilterSql, filters: MemorySearchFilters, a: string): void {
+  const parts: string[] = [];
+  if (filters.version_series_id) {
+    parts.push(`${a}.version_series_id = ?`);
+    out.params.push(filters.version_series_id);
+  }
+  if (filters.version_number !== undefined) {
+    parts.push(`COALESCE(${a}.version, 0) = ?`);
+    out.params.push(filters.version_number);
+  }
+  if (parts.length === 0) return;
+  out.clauses.push(`(${a}.type != 'procedural' OR (${parts.join(' AND ')}))`);
+}
+
 function appendProceduralClauses(out: FilterSql, filters: MemorySearchFilters, a: string): void {
   if (filters.has_reflection_notes !== undefined) {
     out.clauses.push(
@@ -81,6 +109,11 @@ function appendProceduralClauses(out: FilterSql, filters: MemorySearchFilters, a
   }
   if (filters.skill_name) {
     pushIfDefined(out, `${a}.skill_name = ?`, filters.skill_name);
+  }
+  if (filters.version_filter === 'latest_only') {
+    appendLatestOnlyClause(out, a);
+  } else if (filters.version_filter === 'specific_version') {
+    appendSpecificVersionClause(out, filters, a);
   }
 }
 

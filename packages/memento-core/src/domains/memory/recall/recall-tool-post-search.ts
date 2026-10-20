@@ -52,11 +52,15 @@ function applyVersionFilter(
   versionNumber?: number
 ): RecallSearchItem[] {
   const procedural = items.filter((i: RecallSearchItem) => i.type === 'procedural');
-  const nonProcedural = items.filter((i: RecallSearchItem) => i.type !== 'procedural');
   if (procedural.length === 0) return items;
-  if (versionFilter === 'latest_only') return [...nonProcedural, ...filterLatestOnly(procedural)];
-  if (versionFilter === 'specific_version') return [...nonProcedural, ...filterSpecificVersion(procedural, versionSeriesId, versionNumber)];
-  return items;
+  const kept = new Set(
+    versionFilter === 'latest_only'
+      ? filterLatestOnly(procedural)
+      : versionFilter === 'specific_version'
+        ? filterSpecificVersion(procedural, versionSeriesId, versionNumber)
+        : procedural,
+  );
+  return items.filter((item) => item.type !== 'procedural' || kept.has(item));
 }
 
 /**
@@ -104,7 +108,7 @@ async function enrichProceduralVersionInfo(
 /**
  * Meta Memory Statistics 수집
  */
-async function collectMetaMemoryStats(
+export async function collectMetaMemoryStats(
   host: RecallToolHost,
   searchItems: RecallSearchItem[],
   metaMemoryService: MetaMemoryService
@@ -153,6 +157,7 @@ type PostSearchInput = {
   actualTriggerContext: Record<string, unknown> | undefined;
   includeMetadata: boolean;
   return_format: 'full' | 'steps_only';
+  recordMetaStats?: boolean;
 };
 
 /** scope id 필터(단일 값 또는 배열). 값이 null 인 항목은 떨어뜨린다. 필터가 비면 그대로. */
@@ -210,7 +215,7 @@ export async function runMemoryItemPostSearchPipeline(
     searchItems = filterRecallItemsByTriggerConditions(searchItems, input.query, input.actualTriggerContext);
   }
 
-  if (context.services.metaMemoryService) {
+  if (input.recordMetaStats !== false && context.services.metaMemoryService) {
     await collectMetaMemoryStats(host, searchItems, context.services.metaMemoryService);
   }
 
