@@ -52,11 +52,15 @@ function applyVersionFilter(
   versionNumber?: number
 ): RecallSearchItem[] {
   const procedural = items.filter((i: RecallSearchItem) => i.type === 'procedural');
-  const nonProcedural = items.filter((i: RecallSearchItem) => i.type !== 'procedural');
   if (procedural.length === 0) return items;
-  if (versionFilter === 'latest_only') return [...nonProcedural, ...filterLatestOnly(procedural)];
-  if (versionFilter === 'specific_version') return [...nonProcedural, ...filterSpecificVersion(procedural, versionSeriesId, versionNumber)];
-  return items;
+  const kept = new Set(
+    versionFilter === 'latest_only'
+      ? filterLatestOnly(procedural)
+      : versionFilter === 'specific_version'
+        ? filterSpecificVersion(procedural, versionSeriesId, versionNumber)
+        : procedural,
+  );
+  return items.filter((item) => item.type !== 'procedural' || kept.has(item));
 }
 
 /**

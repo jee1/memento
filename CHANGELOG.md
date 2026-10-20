@@ -15,7 +15,7 @@
 
 ### Fixed
 
-- recall: `version_filter` 가 `latest_only` 또는 `specific_version` 일 때 옛 버전이 `limit` 칸을 채운 뒤 버려져 결과가 `limit` 보다 적던 문제를 고쳤습니다(#1392). 두 필터는 검색 SQL 에서 페이지를 자르기 전에 걸립니다. `match_trigger_conditions` 는 매칭이 페이지 밖에 있으면 후보를 최대 500건까지 늘린 뒤 `limit` 건만 돌려줍니다.
+- recall: `version_filter` 가 `latest_only` 또는 `specific_version` 일 때 옛 버전이 `limit` 칸을 채운 뒤 버려져 결과가 `limit` 보다 적던 문제를 고쳤습니다(#1392). 두 필터는 검색 SQL 에서 페이지를 자르기 전에 걸립니다. 후처리도 검색 순서를 유지한 채 맞지 않는 버전만 뺍니다. `match_trigger_conditions` 는 매칭이 페이지 밖에 있으면 후보를 최대 500건까지 늘린 뒤 `limit` 건만 돌려줍니다.
 
 - 관계 추출: LLM 응답 한도를 1000 에서 4096 토큰으로 올렸습니다. 후보 10개에 관계마다 근거를 쓰면 1000 을 넘어, `gemini-2.5-flash-lite` 실측에서 6건 중 4건이 `MAX_TOKENS` 로 잘렸습니다. 끝까지 쓴 응답은 600~819 토큰이었습니다.
 
