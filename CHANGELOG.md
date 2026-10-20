@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Changed
+
+- 망각: spaced repetition 검토는 `last_accessed`만 갱신하고 `memory_forgetting_event`에 review 행을 남기지 않습니다(#1375). 정리 잡은 review 행을 나이와 상관없이 지우고, soft와 hard는 `FORGETTING_EVENT_RETENTION_DAYS`(기본 90일)를 그대로 둡니다.
+
 ## [2.2.0] - 2026-10-20
 
 보안 수정 1건과 관계 추출 Jev 경로, 검색 품질 도구, 망각·관계·검색 수정을 묶은 마이너 릴리스입니다. 바인딩 API 토큰을 쓰는 설치는 업데이트하십시오. 마이그레이션 053 이 기동 시 `memory_item_vec` 의 레거시 행을 정리합니다.
