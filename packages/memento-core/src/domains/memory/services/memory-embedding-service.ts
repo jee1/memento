@@ -14,6 +14,7 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
 import { buildMemoryFilterSql, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
+import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import {
   WINDOW_CANDIDATE_MIN_CHARS,
@@ -138,13 +139,14 @@ export class MemoryEmbeddingService {
       .forEach((issue) => this.writeEmbeddingStderr('warn', `임베딩 경고: ${issue.message}`));
   }
 
-  private async insertMemoryEmbeddingForCreate(
+  private insertMemoryEmbeddingForCreate(
     db: Database.Database,
     memoryId: string,
+    content: string,
     provider: EmbeddingProvider,
     embeddingResult: EmbeddingResult,
     compatibility: VectorCompatibilityAssessment
-  ): Promise<void> {
+  ): void {
     const projection = compatibility.projection;
     const storedVector = projection.vector;
     const serializedEmbedding = encodeFloat32Embedding(storedVector);
@@ -153,8 +155,9 @@ export class MemoryEmbeddingService {
     const projectionType = projection.projectionType;
     const normalized = shouldNormalizeFlag(computeL2Norm(storedVector));
 
-    await replaceMemoryEmbedding(db, {
+    replaceMemoryEmbedding(db, {
       memoryId,
+      contentHash: hashMemoryContent(content),
       provider,
       projectionType,
       embedding: serializedEmbedding,
@@ -203,6 +206,7 @@ export class MemoryEmbeddingService {
         memoryId,
         provider,
         model,
+        content,
         vectors,
       });
     } catch (error) {
@@ -375,9 +379,28 @@ export class MemoryEmbeddingService {
 
       this.emitCompatibilityDiagnosticsForCreate(compatibility);
 
-      // #753: metadata table-wide repair는 migrate/bootstrap 1회 — hot path에서 호출하지 않음
-      await this.insertMemoryEmbeddingForCreate(db, memoryId, provider, embeddingResult, compatibility);
+      const stored = db.transaction(() => {
+        const currentMemory = db.prepare(
+          'SELECT content FROM memory_item WHERE id = ?'
+        ).get(memoryId) as { content: string } | undefined;
+        if (!currentMemory || currentMemory.content !== content) {
+          return false;
+        }
 
+        db.prepare(
+          `DELETE FROM memory_embedding
+           WHERE memory_id = ? AND embedding_provider <> ?
+             AND (content_hash IS NULL OR content_hash <> ?)`
+        ).run(memoryId, provider, hashMemoryContent(content));
+        this.insertMemoryEmbeddingForCreate(db, memoryId, content, provider, embeddingResult, compatibility);
+        return true;
+      })();
+      if (!stored) {
+        this.writeEmbeddingStderr('warn', `임베딩 생성 중 기억 내용이 변경되어 저장을 건너뜁니다. memoryId=${memoryId}`);
+        return null;
+      }
+
+      // #753: metadata table-wide repair는 migrate/bootstrap 1회 — hot path에서 호출하지 않음
       // #1112: 윈도 벡터는 native 행과 별개로 저장한다. 실패해도 native 저장은 유지된다.
       await this.storeWindowEmbeddings(db, memoryId, provider, content, embeddingResult.model);
 

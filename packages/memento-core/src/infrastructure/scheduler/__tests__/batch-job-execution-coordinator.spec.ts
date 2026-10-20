@@ -35,6 +35,7 @@ function createCoordinator(
     memoryReviewCandidatesSchedulerEnabled: true,
     anchorAutoRefreshInterval: 21_600_000,
     anchorAutoRefreshEnabled: true,
+    embeddingReconciliationInterval: 86_400_000,
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,

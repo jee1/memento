@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 
+import { ensureMemoryEmbeddingContentHash } from '../ensure-memory-embedding-content-hash.js';
 import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../fts5-migration-status.js';
 import { normalizeReflectionNotes } from '../reflection-notes-normalize.js';
 import { log } from './database-error-helpers.js';
@@ -177,12 +178,15 @@ export async function initializeDatabase(db: Database.Database): Promise<void> {
           embedding_provider TEXT DEFAULT 'tfidf',
           dimensions INTEGER,
           created_by TEXT DEFAULT 'system',
+          content_hash TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
           UNIQUE(memory_id)
         )
       `
     );
+
+    ensureMemoryEmbeddingContentHash(db);
 
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type)');
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_created_at ON memory_item(created_at)');

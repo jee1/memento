@@ -100,6 +100,7 @@ export interface MigrationRollbackEntry {
   version?: number;
   createdBy?: string | null;
   createdAt?: string;
+  contentHash?: string | null;
 }
 
 export interface MigrationHistoryRecord {

@@ -5,6 +5,7 @@ import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { initializeDatabase } from '../../../infrastructure/database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../embedding-serialization.js';
+import { hashMemoryContent } from '../memory-content-hash.js';
 import { replaceMemoryEmbedding } from '../memory-embedding-write.js';
 import {
   MAX_WINDOW_ROWS,
@@ -29,6 +30,7 @@ async function insertNativeRow(db: Database.Database): Promise<void> {
   const vector = [0.1, 0.2, 0.3];
   await replaceMemoryEmbedding(db, {
     memoryId: MEMORY_ID,
+    contentHash: hashMemoryContent('test content'),
     provider: PROVIDER,
     projectionType: 'native',
     embedding: encodeFloat32Embedding(vector),
@@ -87,6 +89,7 @@ describe('window-embedding-write', () => {
       memoryId: MEMORY_ID,
       provider: PROVIDER,
       model: 'test-model',
+      content: 'test content',
       vectors: makeVectors(2),
     });
 
@@ -101,6 +104,7 @@ describe('window-embedding-write', () => {
       memoryId: MEMORY_ID,
       provider: PROVIDER,
       model: 'test-model',
+      content: 'test content',
       vectors: makeVectors(1),
     });
 
@@ -114,6 +118,7 @@ describe('window-embedding-write', () => {
       memoryId: MEMORY_ID,
       provider: PROVIDER,
       model: 'test-model',
+      content: 'test content',
       vectors: makeVectors(3),
     });
 
@@ -121,6 +126,7 @@ describe('window-embedding-write', () => {
       memoryId: MEMORY_ID,
       provider: PROVIDER,
       model: 'test-model',
+      content: 'test content',
       vectors: makeVectors(2),
     });
 
@@ -134,6 +140,7 @@ describe('window-embedding-write', () => {
       memoryId: MEMORY_ID,
       provider: PROVIDER,
       model: 'test-model',
+      content: 'test content',
       vectors: makeVectors(MAX_WINDOW_ROWS + 3),
     });
 

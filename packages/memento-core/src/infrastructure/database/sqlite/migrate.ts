@@ -15,6 +15,7 @@ import {
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
+import { ensureMemoryEmbeddingContentHash } from '../../../shared/utils/ensure-memory-embedding-content-hash.js';
 import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
 import {
   checkVecCardinality,
@@ -120,6 +121,7 @@ function migrateDatabase() {
             normalized BOOLEAN DEFAULT FALSE,
             version INTEGER DEFAULT 1,
             created_by TEXT DEFAULT 'system',
+            content_hash TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
             UNIQUE(memory_id, embedding_provider, projection_type)
@@ -134,6 +136,7 @@ function migrateDatabase() {
           const hasModel = columnInfo.some(column => column.name === 'model');
           const hasCreatedBy = columnInfo.some(column => column.name === 'created_by');
           const hasCreatedAt = columnInfo.some(column => column.name === 'created_at');
+          const hasContentHashColumn = columnInfo.some(column => column.name === 'content_hash');
           const hasId = columnInfo.some(column => column.name === 'id');
 
           // #809: JSON TEXT를 BLOB 컬럼에 그대로 SELECT 복사하지 않고 JS에서 변환
@@ -147,6 +150,7 @@ function migrateDatabase() {
               ${hasDimensions ? 'dimensions' : 'dim AS dimensions'},
               ${hasModel ? 'model' : 'NULL AS model'},
               ${hasCreatedBy ? 'created_by' : "'system' AS created_by"},
+              ${hasContentHashColumn ? 'content_hash' : 'NULL AS content_hash'},
               ${hasCreatedAt ? 'created_at' : 'CURRENT_TIMESTAMP AS created_at'}
             FROM memory_embedding
           `;
@@ -165,6 +169,7 @@ function migrateDatabase() {
               normalized,
               version,
               created_by,
+              content_hash,
               created_at
             ) VALUES (
               @id,
@@ -179,6 +184,7 @@ function migrateDatabase() {
               @normalized,
               1,
               @created_by,
+              @content_hash,
               @created_at
             )
           `);
@@ -192,6 +198,7 @@ function migrateDatabase() {
             dimensions: number;
             model: string | null;
             created_by: string | null;
+            content_hash: string | null;
             created_at: string;
           }>;
 
@@ -206,6 +213,7 @@ function migrateDatabase() {
               model: row.model,
               created_by:
                 row.created_by && row.created_by !== '' ? row.created_by : 'system',
+              content_hash: row.content_hash,
               created_at: row.created_at,
             };
 
@@ -261,6 +269,8 @@ function migrateDatabase() {
     } else {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
     }
+
+    ensureMemoryEmbeddingContentHash(db);
 
     logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`

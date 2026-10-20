@@ -31,6 +31,7 @@ export function applyConsolidationTestSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS memory_embedding (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       memory_id TEXT NOT NULL,
+      content_hash TEXT,
       embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
       projection_type TEXT NOT NULL DEFAULT 'native',
       embedding BLOB,

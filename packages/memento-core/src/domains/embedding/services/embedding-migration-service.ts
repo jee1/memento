@@ -158,7 +158,7 @@ class EmbeddingMigrationService {
 
     const selectStatement = db.prepare(
       `
-      SELECT memory_id, embedding, model, embedding_provider, projection_type, dim, dimensions, created_at
+      SELECT memory_id, embedding, model, embedding_provider, projection_type, dim, dimensions, created_at, content_hash
       FROM memory_embedding
       WHERE embedding_provider = ?
         AND (? IS NULL OR memory_id > ?)
@@ -181,8 +181,9 @@ class EmbeddingMigrationService {
         normalized,
         version,
         created_by,
+        content_hash,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(memory_id, embedding_provider, projection_type) DO UPDATE SET
         embedding = excluded.embedding,
         dim = excluded.dim,
@@ -192,6 +193,7 @@ class EmbeddingMigrationService {
         normalized = excluded.normalized,
         version = excluded.version,
         created_by = excluded.created_by,
+        content_hash = excluded.content_hash,
         created_at = CURRENT_TIMESTAMP
     `
     );
@@ -199,7 +201,7 @@ class EmbeddingMigrationService {
     const normalizationMode: VectorNormalization = plan.normalization ?? 'none';
     const existingStatement = db.prepare(
       `
-      SELECT embedding, dim, model, dimensions, precision, normalized, version, created_by, created_at
+      SELECT embedding, dim, model, dimensions, precision, normalized, version, created_by, created_at, content_hash
       FROM memory_embedding
       WHERE memory_id = ? AND embedding_provider = ? AND projection_type = ?
     `

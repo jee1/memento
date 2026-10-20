@@ -65,6 +65,12 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     anchorAutoRefreshEnabled: resolveBoolean('ANCHOR_AUTO_REFRESH_ENABLED', {
       defaultValue: true
     }),
+    embeddingReconciliationInterval: resolveValidatedNumber(
+      'EMBEDDING_RECONCILIATION_INTERVAL_MS',
+      DAY_MS,
+      n => n >= 60_000,
+      '최솟값 60000'
+    ),
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,

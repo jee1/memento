@@ -103,6 +103,7 @@ export interface BatchSchedulerRecurringCallbacks {
   runForgettingEventCleanupBatch: () => Promise<void>;
   runJobRunCleanupBatch: () => Promise<void>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
+  runEmbeddingReconciliation: () => Promise<BatchJobResult>;
 }
 
 export function createBatchSchedulerWiring(

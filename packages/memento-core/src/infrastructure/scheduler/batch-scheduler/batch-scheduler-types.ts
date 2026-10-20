@@ -31,6 +31,8 @@ export interface BatchJobConfig {
   anchorAutoRefreshInterval: number;
   /** When false, skip registering the anchor auto-refresh periodic schedule. */
   anchorAutoRefreshEnabled: boolean;
+  /** Interval (ms) for repairing missing or stale memory embeddings. */
+  embeddingReconciliationInterval: number;
 
   maxBatchSize: number;
   enableLogging: boolean;
