@@ -113,12 +113,12 @@ export class ForgettingEventRepository {
     return Number(row.c);
   }
 
-  /** Issue #810: ISO cutoff + strict `<` — never shell `date -Iseconds` strings. */
+  /** Deletes every review row, plus soft or hard rows older than the ISO cutoff. Never use shell `date -Iseconds` strings. */
   deleteExpiredEvents(db: Database.Database, retentionDays: number): number {
     const cutoff = new Date(Date.now() - retentionDays * 86_400_000).toISOString();
     const result = DatabaseUtils.run(
       db,
-      `DELETE FROM memory_forgetting_event WHERE created_at < ?`,
+      `DELETE FROM memory_forgetting_event WHERE action = 'review' OR created_at < ?`,
       [cutoff],
     );
     return result.changes;

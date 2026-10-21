@@ -144,4 +144,51 @@ describe('forgetting event log', () => {
     analyzeSpy.mockRestore();
     vi.unstubAllEnvs();
   });
+
+  it('리뷰 스케줄 갱신은 last_accessed만 바꾸고 review 이벤트를 남기지 않는다', async () => {
+    const memoryId = createTestMemory(db, {
+      content: 'Review candidate',
+      type: 'semantic',
+      importance: 0.8,
+    });
+    DatabaseUtils.run(db, 'UPDATE memory_item SET last_accessed = ? WHERE id = ?', [
+      '2000-01-01 00:00:00',
+      memoryId,
+    ]);
+
+    vi.spyOn(service['forgettingAlgorithm'], 'analyzeForgetCandidates').mockReturnValue([
+      {
+        memory_id: memoryId,
+        forget_score: 0.01,
+        should_forget: false,
+        reason: 'keep',
+        features: {
+          recency: 1,
+          usage: 1,
+          duplication_ratio: 0,
+          importance: 0.8,
+          pinned: false,
+        },
+      },
+    ]);
+    vi.spyOn(service['spacedRepetition'], 'createReviewSchedule').mockReturnValue({
+      memory_id: memoryId,
+      current_interval: 7,
+      next_review: new Date(),
+      recall_probability: 0.4,
+      needs_review: true,
+      multiplier: 1,
+    });
+
+    const result = await service.executeMemoryCleanup(db);
+
+    expect(result.reviewed).toContain(memoryId);
+    const row = DatabaseUtils.get(
+      db,
+      'SELECT last_accessed FROM memory_item WHERE id = ?',
+      [memoryId],
+    ) as { last_accessed: string };
+    expect(row.last_accessed).not.toBe('2000-01-01 00:00:00');
+    expect(eventRepo.list(db, { memory_id: memoryId, action: 'review' })).toHaveLength(0);
+  });
 });

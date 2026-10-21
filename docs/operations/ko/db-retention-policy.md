@@ -6,7 +6,7 @@
 
 | 테이블 | 보존 | 환경 변수 | 지우는 잡 |
 |---|---|---|---|
-| `memory_forgetting_event` | 90일 | `FORGETTING_EVENT_RETENTION_DAYS` | `forgetting_event_cleanup_batch` |
+| `memory_forgetting_event` | soft, hard 90일. review 행은 정리 때마다 삭제 | `FORGETTING_EVENT_RETENTION_DAYS` | `forgetting_event_cleanup_batch` |
 | `telemetry_events` | 90일 | `TELEMETRY_RETENTION_DAYS` | `telemetry_cleanup_batch` |
 | `job_run` | 90일 + 잡별 성공 실행 최신 3000건 | `JOB_RUN_RETENTION_DAYS` | `job_run_cleanup_batch` |
 | `quality_measurement_history` | 90일 | `QUALITY_MEASUREMENT_HISTORY_RETENTION_DAYS` | `quality_measurement_batch` 안에서 정리 |
@@ -40,7 +40,7 @@ WHERE job_name IN (
 GROUP BY job_name;
 ```
 
-**행이 많이 남아 있다고 해서 정리가 안 도는 것은 아닙니다.** 보존 기간보다 젊은 행은 지울 대상이 아닙니다. 예를 들어 2026-09-19 측정에서 `memory_forgetting_event` 는 104,177 행이었지만 90일을 넘긴 행은 0건이었고, `forgetting_event_cleanup_batch` 는 72회 실행에 72회 성공이었습니다. 잡은 정상이고 데이터가 아직 안 늙었을 뿐입니다.
+**행이 많이 남아 있다고 해서 정리가 안 도는 것은 아닙니다.** 보존 기간보다 젊은 soft, hard 행은 지울 대상이 아닙니다. 예를 들어 2026-09-19 측정에서 `memory_forgetting_event` 는 104,177 행이었지만 90일을 넘긴 행은 0건이었고, `forgetting_event_cleanup_batch` 는 72회 실행에 72회 성공이었습니다. 잡은 정상이고 데이터가 아직 안 늙었을 뿐입니다.
 
 ## 타임스탬프 비교 주의
 

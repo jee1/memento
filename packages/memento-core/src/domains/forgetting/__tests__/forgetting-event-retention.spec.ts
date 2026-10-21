@@ -48,4 +48,53 @@ describe('ForgettingEventRepository.deleteExpiredEvents', () => {
   it('빈 테이블이면 0을 반환한다', () => {
     expect(repo.deleteExpiredEvents(db, 90)).toBe(0);
   });
+
+  it('review 행은 나이와 상관없이 지우고 soft, hard는 보존 기간을 지킨다', () => {
+    const recent = new Date(Date.now() - DAY_MS).toISOString();
+    const expired = new Date(Date.now() - 91 * DAY_MS).toISOString();
+    repo.insert(db, {
+      memory_id: 'mem_review_recent',
+      action: 'review',
+      reason: 'recent review',
+      policy: 'test',
+      created_at: recent,
+    });
+    repo.insert(db, {
+      memory_id: 'mem_review_old',
+      action: 'review',
+      reason: 'old review',
+      policy: 'test',
+      created_at: expired,
+    });
+    repo.insert(db, {
+      memory_id: 'mem_soft_recent',
+      action: 'soft',
+      reason: 'recent soft',
+      policy: 'test',
+      created_at: recent,
+    });
+    repo.insert(db, {
+      memory_id: 'mem_hard_recent',
+      action: 'hard',
+      reason: 'recent hard',
+      policy: 'test',
+      created_at: recent,
+    });
+    repo.insert(db, {
+      memory_id: 'mem_soft_old',
+      action: 'soft',
+      reason: 'old soft',
+      policy: 'test',
+      created_at: expired,
+    });
+
+    const deleted = repo.deleteExpiredEvents(db, 90);
+
+    expect(deleted).toBe(3);
+    expect(repo.list(db, { action: 'review' })).toHaveLength(0);
+    expect(repo.list(db, { memory_id: 'mem_soft_recent', action: 'soft' })).toHaveLength(1);
+    expect(repo.list(db, { memory_id: 'mem_hard_recent', action: 'hard' })).toHaveLength(1);
+    expect(repo.list(db, { memory_id: 'mem_soft_old' })).toHaveLength(0);
+    expect(repo.deleteExpiredEvents(db, 90)).toBe(0);
+  });
 });
