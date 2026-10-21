@@ -2,7 +2,7 @@
  * 관리자 /admin/relations/* 라우트
  */
 
-import type { Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import {
   createRelationGraph,
@@ -54,11 +54,34 @@ function isRelationDirection(value: string): value is RelationDirection {
   return value === 'outgoing' || value === 'incoming' || value === 'both';
 }
 
-export function registerAdminRelationRoutes(router: Router, db: Database.Database | null): void {
-  router.post('/relations/extract', async (req, res) => {
+function databaseUnavailable(res: Response) {
+  return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+}
+
+function relationToolContext(db: Database.Database) {
+  return {
+    db,
+    services: { relationGraph: createRelationGraph(db) }
+  };
+}
+
+function respondWithToolResult(res: Response, message: string, resultText: string) {
+  const resultData = JSON.parse(resultText) as { success?: boolean };
+  if (resultData.success === false) {
+    return res.status(400).json(resultData);
+  }
+  return res.json({
+    message,
+    ...resultData,
+    timestamp: new Date().toISOString()
+  });
+}
+
+function postRelationExtract(db: Database.Database | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
       const { memory_id, force } = req.body;
@@ -69,27 +92,13 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         });
       }
 
-      const relationGraph = createRelationGraph(db);
-      const context = {
-        db,
-        services: { relationGraph }
-      };
-
       const extractTool = new ExtractRelationsTool();
-      const result = await extractTool.handle({ memory_id, force: force || false }, context);
+      const result = await extractTool.handle(
+        { memory_id, force: force || false },
+        relationToolContext(db)
+      );
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '관계 추출 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '관계 추출 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Relation extraction failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -99,48 +108,33 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/relations/:memory_id', async (req, res) => {
+function getRelations(db: Database.Database | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
-      const { memory_id } = req.params;
+      const memoryId = req.params.memory_id ?? '';
       const { relation_type, category, direction } = req.query;
       const relationType = getQueryString(relation_type);
       const relationCategory = getQueryString(category);
       const relationDirection = getQueryString(direction);
 
-      const relationGraph = createRelationGraph(db);
-      const context = {
-        db,
-        services: { relationGraph }
-      };
-
       const getTool = new GetRelationsTool();
       const safeDirection: RelationDirection =
         relationDirection && isRelationDirection(relationDirection) ? relationDirection : 'both';
       const result = await getTool.handle({
-        memory_id,
+        memory_id: memoryId,
         ...(relationType && isRelationType(relationType) ? { relation_type: relationType } : {}),
         ...(relationCategory && isRelationCategory(relationCategory) ? { category: relationCategory } : {}),
         direction: safeDirection
-      }, context);
+      }, relationToolContext(db));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '관계 조회 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '관계 조회 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Relation retrieval failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -150,12 +144,14 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.post('/relations', async (req, res) => {
+function postRelation(db: Database.Database | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
       const { source_id, target_id, relation_type, confidence } = req.body;
@@ -166,32 +162,15 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         });
       }
 
-      const relationGraph = createRelationGraph(db);
-      const context = {
-        db,
-        services: { relationGraph }
-      };
-
       const addTool = new AddRelationTool();
       const result = await addTool.handle({
         source_id,
         target_id,
         relation_type,
         confidence: confidence || 0.7
-      }, context);
+      }, relationToolContext(db));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '관계 추가 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '관계 추가 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Relation addition failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -201,16 +180,17 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.delete('/relations/:relation_id', async (req, res) => {
+function deleteRelation(db: Database.Database | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
-      const { relation_id } = req.params;
-      const relationIdNum = parseInt(relation_id, 10);
+      const relationIdNum = parseInt(req.params.relation_id ?? '', 10);
       if (Number.isNaN(relationIdNum) || relationIdNum < 1) {
         return res.status(400).json({
           error: 'Invalid relation_id',
@@ -218,29 +198,12 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         });
       }
 
-      const relationGraph = createRelationGraph(db);
-      const context = {
-        db,
-        services: { relationGraph }
-      };
-
       const removeTool = new RemoveRelationTool();
       const result = await removeTool.handle({
         relation_id: relationIdNum
-      }, context);
+      }, relationToolContext(db));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '관계 삭제 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '관계 삭제 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Relation removal failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -250,15 +213,17 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/relations/:memory_id/visualize', async (req, res) => {
+function getRelationVisualization(db: Database.Database | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
-      const { memory_id } = req.params;
+      const memoryId = req.params.memory_id ?? '';
       const { format, max_depth, min_confidence, relation_types, show_memory_ids, show_confidence, show_relation_types } = req.query;
 
       const parsedMaxDepth = max_depth ? parseInt(max_depth as string, 10) : 2;
@@ -269,12 +234,6 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
       if (min_confidence !== undefined && (parsedMinConf === undefined || Number.isNaN(parsedMinConf) || parsedMinConf < 0 || parsedMinConf > 1)) {
         return res.status(400).json({ error: 'Invalid min_confidence', message: 'min_confidence는 0–1 사이 숫자여야 합니다' });
       }
-
-      const relationGraph = createRelationGraph(db);
-      const context = {
-        db,
-        services: { relationGraph }
-      };
 
       const validRelationTypes = ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'] as const;
       const parsedRelationTypes = relation_types
@@ -288,7 +247,7 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
 
       const visualizeTool = new VisualizeRelationsTool();
       const result = await visualizeTool.handle({
-        memory_id,
+        memory_id: memoryId,
         format: (format as 'text' | 'subgraph' | 'simple' | 'json') || 'subgraph',
         max_depth: parsedMaxDepth,
         min_confidence: parsedMinConf,
@@ -296,20 +255,9 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         show_memory_ids: show_memory_ids !== undefined ? show_memory_ids === 'true' : true,
         show_confidence: show_confidence !== undefined ? show_confidence === 'true' : true,
         show_relation_types: show_relation_types !== undefined ? show_relation_types === 'true' : true
-      }, context);
+      }, relationToolContext(db));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '관계 시각화 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '관계 시각화 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Relation visualization failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -319,5 +267,13 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
+
+export function registerAdminRelationRoutes(router: Router, db: Database.Database | null): void {
+  router.post('/relations/extract', postRelationExtract(db));
+  router.get('/relations/:memory_id', getRelations(db));
+  router.post('/relations', postRelation(db));
+  router.delete('/relations/:relation_id', deleteRelation(db));
+  router.get('/relations/:memory_id/visualize', getRelationVisualization(db));
 }
