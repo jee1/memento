@@ -31,6 +31,10 @@ npm run lint && npm run type-check  # 커밋 전 필수
 
 Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 그 결과를 실제로 썼다면 `feedback`(helpful/not_helpful)을 남기고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다. 저신뢰·고실패 기억이 쌓이면(`introspection_hint`/`get_introspection_summary`) 운영자가 `POST /admin/introspection/heal`(dry-run 우선)로 정리합니다 — recall→feedback→heal 체크리스트는 [agent-workflow.md §MCP·메모리](./docs/agents/agent-workflow.md#mcp메모리--작업-전후-기억-루프)를 보세요. **코드를 고치는** 에이전트는 graphify 리포트가 없거나 오래됐다면 먼저 재빌드하고 `graphify-out/GRAPH_REPORT.md`를 확인하며, 수정 후에도 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
 
+기억에 코드를 붙여 넣지 않는다. 저장소 상대 경로, 수정한 함수나 클래스 이름, 바뀐 시그니처, 확정한 상수나 정규식만 적는다.
+
+완료 작업의 `episodic` 기록은 그대로 남긴다. `semantic`과 `procedural`은 세 조건을 모두 만족할 때만 남긴다. 문제가 반복된다. 내용은 결정 근거, 여러 단계의 우회, 다시 쓰는 절차다. 다음 에이전트가 검색 결과를 그대로 쓴다.
+
 상세 워크플로: [agent-workflow.md](./docs/agents/agent-workflow.md)
 
 ## 3.1 Gotchas
