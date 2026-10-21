@@ -2,7 +2,7 @@
  * Admin: 메모리 미리보기, 리뷰 큐·SSE·후보 처리
  */
 
-import type { Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import { validate as uuidValidate } from 'uuid';
 import {
@@ -282,11 +282,15 @@ function parseBulkSelector(body: unknown): BulkMemoryReviewCandidateSelector | {
   return { all_pending: true };
 }
 
-export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Database | null): void {
-  router.get('/memory/items/:memory_id', (req, res) => {
+function databaseUnavailable(res: Response) {
+  return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+}
+
+function getMemoryItemPreview(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
       const parsedId = parseAdminMemoryItemIdParam(req.params.memory_id ?? '');
       if ('error' in parsedId) {
@@ -311,12 +315,14 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  });
+  };
+}
 
-  router.get('/memory/review-candidates', (req, res) => {
+  function listReviewCandidates(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
       const queryRecord = req.query as Record<string, unknown>;
       if (usesReviewCandidateListExtensions(queryRecord)) {
@@ -352,12 +358,15 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/memory/review-candidates/metrics', (req, res) => {
+
+  function getReviewCandidateMetrics(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
       const raw = req.query['history_limit'];
       const parsed = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number.NaN;
@@ -389,9 +398,12 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  });
+  };
+}
 
-  router.get('/memory/review-candidates/stream', (_req, res) => {
+
+  function streamReviewCandidates() {
+  return (_req: Request, res: Response) => {
     try {
       attachReviewCandidatesSse(res);
       return;
@@ -407,11 +419,14 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
       }
       return;
     }
-  });
+  };
+}
 
-  router.post('/memory/review-candidates/bulk-dismiss', (req, res) => {
+
+  function bulkDismissReviewCandidates(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     if (!db) {
-      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      return databaseUnavailable(res);
     }
     const selector = parseBulkSelector(req.body);
     if ('error' in selector) {
@@ -433,11 +448,14 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  });
+  };
+}
 
-  router.post('/memory/review-candidates/bulk-expire', (req, res) => {
+
+  function bulkExpireReviewCandidates(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     if (!db) {
-      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      return databaseUnavailable(res);
     }
     const selector = parseBulkSelector(req.body);
     if ('error' in selector) {
@@ -459,14 +477,17 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  });
+  };
+}
 
-  router.post('/memory/review-candidates/:id/review', (req, res) => {
+
+  function reviewMemoryCandidate(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
-      const { id } = req.params;
+      const id = req.params.id ?? '';
       if (!uuidValidate(id)) {
         return res.status(400).json({ error: 'Invalid candidate id' });
       }
@@ -487,14 +508,17 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.post('/memory/review-candidates/:id/dismiss', (req, res) => {
+
+  function dismissMemoryCandidate(db: Database.Database | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
-      const { id } = req.params;
+      const id = req.params.id ?? '';
       if (!uuidValidate(id)) {
         return res.status(400).json({ error: 'Invalid candidate id' });
       }
@@ -515,5 +539,16 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
+
+export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Database | null): void {
+  router.get('/memory/items/:memory_id', getMemoryItemPreview(db));
+  router.get('/memory/review-candidates', listReviewCandidates(db));
+  router.get('/memory/review-candidates/metrics', getReviewCandidateMetrics(db));
+  router.get('/memory/review-candidates/stream', streamReviewCandidates());
+  router.post('/memory/review-candidates/bulk-dismiss', bulkDismissReviewCandidates(db));
+  router.post('/memory/review-candidates/bulk-expire', bulkExpireReviewCandidates(db));
+  router.post('/memory/review-candidates/:id/review', reviewMemoryCandidate(db));
+  router.post('/memory/review-candidates/:id/dismiss', dismissMemoryCandidate(db));
 }
