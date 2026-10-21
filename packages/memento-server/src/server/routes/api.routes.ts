@@ -4,7 +4,7 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import { buildAnchorMapData, listAnchorAgentIds } from '../handlers/anchor-map.handler.js';
@@ -17,17 +17,8 @@ import {
   logger,
 } from '@memento/core';
 
-/**
- * API 라우터 생성
- */
-export function createApiRouter(
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): Router {
-  const router = Router();
-
-  // Agent ID 목록 (앵커가 설정된 agent_id 집계)
-  router.get('/anchors/agents', (_req, res) => {
+function getAnchorAgents(db: Database.Database | null) {
+  return (_req: Request, res: Response) => {
     try {
       if (!db) {
         return res.status(500).json({
@@ -53,10 +44,11 @@ export function createApiRouter(
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  });
+  };
+}
 
-  // Anchor Map 조회
-  router.get('/anchors/map', async (req, res) => {
+function getAnchorMap(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     const agentId = (req.query.agent_id as string) || 'default';
 
     try {
@@ -75,7 +67,6 @@ export function createApiRouter(
         });
       }
 
-      // Anchor Map 데이터 생성 (핸들러 사용)
       const mapData = await buildAnchorMapData(db, serverServices, agentId);
 
       return res.json(mapData);
@@ -90,10 +81,11 @@ export function createApiRouter(
         agent_id: agentId
       });
     }
-  });
+  };
+}
 
-  // Anchor Map 검색 (브라우저 세션; /tools/search_local 과 동일 result shape)
-  router.post('/anchors/search', async (req, res) => {
+function postAnchorSearch(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db || !serverServices) {
         return res.status(500).json({
@@ -122,11 +114,12 @@ export function createApiRouter(
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  });
+  };
+}
 
-  // 메모리 이웃 조회
-  router.get('/memories/:id/neighbors', async (req, res) => {
-    const { id } = req.params;
+function getMemoryNeighbors(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
+    const id = req.params.id ?? '';
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 5;
     const similarityThreshold = req.query.similarity_threshold
       ? parseFloat(req.query.similarity_threshold as string)
@@ -140,7 +133,6 @@ export function createApiRouter(
         });
       }
 
-      // 파라미터 검증
       if (isNaN(limit) || limit < 1 || limit > 50) {
         return res.status(400).json({
           error: 'Invalid limit parameter',
@@ -155,7 +147,6 @@ export function createApiRouter(
         });
       }
 
-      // MemoryNeighborService 사용
       if (!serverServices) {
         return res.status(500).json({
           error: 'Services not initialized',
@@ -205,8 +196,22 @@ export function createApiRouter(
         memory_id: id
       });
     }
-  });
+  };
+}
+
+/**
+ * API 라우터 생성
+ */
+export function createApiRouter(
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): Router {
+  const router = Router();
+
+  router.get('/anchors/agents', getAnchorAgents(db));
+  router.get('/anchors/map', getAnchorMap(db, serverServices));
+  router.post('/anchors/search', postAnchorSearch(db, serverServices));
+  router.get('/memories/:id/neighbors', getMemoryNeighbors(db, serverServices));
 
   return router;
 }
-
