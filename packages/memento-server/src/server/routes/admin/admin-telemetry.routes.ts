@@ -2,7 +2,7 @@
  * 관리자 /admin/telemetry/* 라우트
  */
 
-import type { Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import {
   logger,
@@ -12,118 +12,122 @@ import {
 import type { ServerServices } from '../../bootstrap.js';
 import { TELEMETRY_PERIODS, effectiveTelemetryPeriod } from './admin-telemetry-utils.js';
 
-export function registerAdminTelemetryRoutes(
-  router: Router,
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): void {
-  router.get('/telemetry/search-quality', (req, res) => {
+function telemetryUnavailable(res: Response) {
+  return res.status(503).json({ error: 'DB unavailable' });
+}
+
+function telemetryInternalError(res: Response, error: unknown) {
+  return res.status(500).json({
+    error: 'Internal error',
+    message: error instanceof Error ? error.message : 'Unknown error'
+  });
+}
+
+function ownerQuery(value: unknown): string | null {
+  const ownerQ = value as string | undefined;
+  return ownerQ === undefined || ownerQ === '' ? null : ownerQ;
+}
+
+function getSearchQuality(db: Database.Database | null, serverServices: ServerServices | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(503).json({ error: 'DB unavailable' });
+        return telemetryUnavailable(res);
       }
       const periodRaw = req.query.period as string | undefined;
       const effectivePeriod = effectiveTelemetryPeriod(periodRaw);
       if (!TELEMETRY_PERIODS.includes(effectivePeriod as TelemetryPeriod)) {
         return res.status(400).json({ error: 'Invalid period', allowed: TELEMETRY_PERIODS });
       }
-      const ownerQ = req.query.owner_id as string | undefined;
       const data = serverServices.telemetryService.getSearchQuality(
         effectivePeriod as TelemetryPeriod,
-        ownerQ === undefined || ownerQ === '' ? null : ownerQ
+        ownerQuery(req.query.owner_id)
       );
       return res.json(data);
     } catch (error) {
       logger.error('telemetry search-quality failed', {
         error: error instanceof Error ? error.message : String(error)
       });
-      return res.status(500).json({
-        error: 'Internal error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return telemetryInternalError(res, error);
     }
-  });
+  };
+}
 
-  router.get('/telemetry/memory-quality', (req, res) => {
+function getMemoryQuality(db: Database.Database | null, serverServices: ServerServices | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(503).json({ error: 'DB unavailable' });
+        return telemetryUnavailable(res);
       }
-      const ownerQ = req.query.owner_id as string | undefined;
       const data = serverServices.telemetryService.getMemoryQuality(
         '24h',
-        ownerQ === undefined || ownerQ === '' ? null : ownerQ
+        ownerQuery(req.query.owner_id)
       );
       return res.json(data);
     } catch (error) {
       logger.error('telemetry memory-quality failed', {
         error: error instanceof Error ? error.message : String(error)
       });
-      return res.status(500).json({
-        error: 'Internal error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return telemetryInternalError(res, error);
     }
-  });
+  };
+}
 
-  router.get('/telemetry/system', (req, res) => {
+function getSystemTelemetry(db: Database.Database | null, serverServices: ServerServices | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(503).json({ error: 'DB unavailable' });
+        return telemetryUnavailable(res);
       }
       const periodRaw = req.query.period as string | undefined;
       const effectivePeriod = effectiveTelemetryPeriod(periodRaw);
       if (!TELEMETRY_PERIODS.includes(effectivePeriod as TelemetryPeriod)) {
         return res.status(400).json({ error: 'Invalid period', allowed: TELEMETRY_PERIODS });
       }
-      const ownerQ = req.query.owner_id as string | undefined;
       const data = serverServices.telemetryService.getSystemMetrics(
         effectivePeriod as TelemetryPeriod,
-        ownerQ === undefined || ownerQ === '' ? null : ownerQ
+        ownerQuery(req.query.owner_id)
       );
       return res.json(data);
     } catch (error) {
       logger.error('telemetry system failed', {
         error: error instanceof Error ? error.message : String(error)
       });
-      return res.status(500).json({
-        error: 'Internal error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return telemetryInternalError(res, error);
     }
-  });
+  };
+}
 
-  router.get('/telemetry/feedback', (req, res) => {
+function getFeedbackTelemetry(db: Database.Database | null, serverServices: ServerServices | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(503).json({ error: 'DB unavailable' });
+        return telemetryUnavailable(res);
       }
       const periodRaw = req.query.period as string | undefined;
       const effectivePeriod = effectiveTelemetryPeriod(periodRaw);
       if (!TELEMETRY_PERIODS.includes(effectivePeriod as TelemetryPeriod)) {
         return res.status(400).json({ error: 'Invalid period', allowed: TELEMETRY_PERIODS });
       }
-      const ownerQ = req.query.owner_id as string | undefined;
       const data = serverServices.telemetryService.getFeedbackQuality(
         effectivePeriod as TelemetryPeriod,
-        ownerQ === undefined || ownerQ === '' ? null : ownerQ
+        ownerQuery(req.query.owner_id)
       );
       return res.json(data);
     } catch (error) {
       logger.error('telemetry feedback failed', {
         error: error instanceof Error ? error.message : String(error)
       });
-      return res.status(500).json({
-        error: 'Internal error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return telemetryInternalError(res, error);
     }
-  });
+  };
+}
 
-  router.get('/telemetry/events', (req, res) => {
+function getTelemetryEvents(db: Database.Database | null, serverServices: ServerServices | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(503).json({ error: 'DB unavailable' });
+        return telemetryUnavailable(res);
       }
       const from = req.query.from as string | undefined;
       const to = req.query.to as string | undefined;
@@ -191,10 +195,19 @@ export function registerAdminTelemetryRoutes(
       logger.error('telemetry events failed', {
         error: error instanceof Error ? error.message : String(error)
       });
-      return res.status(500).json({
-        error: 'Internal error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return telemetryInternalError(res, error);
     }
-  });
+  };
+}
+
+export function registerAdminTelemetryRoutes(
+  router: Router,
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): void {
+  router.get('/telemetry/search-quality', getSearchQuality(db, serverServices));
+  router.get('/telemetry/memory-quality', getMemoryQuality(db, serverServices));
+  router.get('/telemetry/system', getSystemTelemetry(db, serverServices));
+  router.get('/telemetry/feedback', getFeedbackTelemetry(db, serverServices));
+  router.get('/telemetry/events', getTelemetryEvents(db, serverServices));
 }
