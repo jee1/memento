@@ -88,9 +88,11 @@ export async function getExistingMemoriesForRelationExtraction(
         is_consolidated
       FROM memory_item
       WHERE id != ?
+        AND COALESCE(is_deleted, 0) = 0
+        AND COALESCE(owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
       ORDER BY created_at DESC
       LIMIT ?
-    `, [excludeId, limit]) as MemoryItemRow[];
+    `, [excludeId, excludeId, limit]) as MemoryItemRow[];
 
     return rows.map((row: MemoryItemRow): MemoryItem => ({
       id: row.id,

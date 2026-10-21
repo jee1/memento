@@ -17,6 +17,8 @@
 
 ### Fixed
 
+- remember: 저장 뒤 관계 추출이 후보로 고르는 기존 기억을 새 기억과 같은 owner 의 삭제되지 않은 기억으로 한정합니다. 이전에는 owner 와 상관없이 전체에서 최근 100건을 골라, 다른 owner 의 기억 내용이 관계 추출 입력(LLM 또는 Jev 요청)에 들어가고 owner 사이에 관계가 생길 수 있었고, soft forget 된 기억도 후보에 남았습니다. owner 가 없는 기억은 owner 가 없는 기억끼리만 이어집니다.
+
 - recall: `version_filter` 가 `latest_only` 또는 `specific_version` 일 때 옛 버전이 `limit` 칸을 채운 뒤 버려져 결과가 `limit` 보다 적던 문제를 고쳤습니다(#1392). 두 필터는 검색 SQL 에서 페이지를 자르기 전에 걸립니다. 후처리도 검색 순서를 유지한 채 맞지 않는 버전만 뺍니다. `match_trigger_conditions` 는 매칭이 페이지 밖에 있으면 후보를 최대 500건까지 늘린 뒤 `limit` 건만 돌려줍니다.
 
 - 개발: 아키텍처 문서(ko/en `architecture.md`, `async-augmentation-pipeline.md`, `arc42.md`, C4 component)의 BatchScheduler 작업 표를 실제 등록 이름 13개로 맞췄습니다. `sleep_consolidation`, `quality_measurement`, `forgetting_cleanup`, `telemetry_cleanup`, `triple_extraction` 은 없는 이름이라 `/admin/batch/run` 이 400 을 냅니다.
