@@ -122,10 +122,8 @@ CREATE TABLE IF NOT EXISTS relation_type_registry (
   search_boost REAL DEFAULT 1.0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_memory_relation_source ON memory_relation(source_id);
-CREATE INDEX IF NOT EXISTS idx_memory_relation_target ON memory_relation(target_id);
-CREATE INDEX IF NOT EXISTS idx_memory_relation_type ON memory_relation(relation_type);
-CREATE INDEX IF NOT EXISTS idx_memory_relation_confidence ON memory_relation(confidence);
+-- #1376: source·target 단일 인덱스는 source_type·target_type·UNIQUE 접두사와 같다.
+-- relation_type·confidence 단독 조회는 없다. 기존 DB는 마이그레이션 055가 지운다.
 CREATE INDEX IF NOT EXISTS idx_memory_relation_source_type ON memory_relation(source_id, relation_type);
 CREATE INDEX IF NOT EXISTS idx_memory_relation_target_type ON memory_relation(target_id, relation_type);
 CREATE INDEX IF NOT EXISTS idx_relation_type_registry_category ON relation_type_registry(category);
