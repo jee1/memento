@@ -25,7 +25,9 @@ function initializeSchema(db: Database.Database): void {
       pinned BOOLEAN DEFAULT FALSE,
       tags TEXT,
       source TEXT,
-      is_consolidated BOOLEAN DEFAULT FALSE
+      is_consolidated BOOLEAN DEFAULT FALSE,
+      owner_id TEXT,
+      is_deleted INTEGER DEFAULT 0
     );
 
     CREATE TABLE memory_relation (

@@ -25,7 +25,9 @@ function initializeProductionLikeSchema(db: Database.Database): void {
       pinned BOOLEAN DEFAULT FALSE,
       tags TEXT,
       source TEXT,
-      is_consolidated BOOLEAN DEFAULT FALSE
+      is_consolidated BOOLEAN DEFAULT FALSE,
+      owner_id TEXT,
+      is_deleted INTEGER DEFAULT 0
     );
   `);
 }
@@ -95,6 +97,24 @@ describe('RememberTool relation load (Issue #544)', () => {
         (call) => call[0] === '기존 기억 조회 실패'
       );
       expect(relationLoadWarnings).toHaveLength(0);
+    });
+
+    it('새 기억과 같은 owner 의 삭제되지 않은 기억만 후보로 반환한다', async () => {
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, owner_id, is_deleted) VALUES
+          ('mem-a-1', 'semantic', 'A 의 지식', 'agent-a', 0),
+          ('mem-a-deleted', 'semantic', 'A 의 지운 지식', 'agent-a', 1),
+          ('mem-b-1', 'semantic', 'B 의 지식', 'agent-b', 0),
+          ('mem-null-1', 'semantic', '소유자 없는 지식', NULL, 0),
+          ('mem-a-new', 'episodic', 'A 의 새 기억', 'agent-a', 0),
+          ('mem-null-new', 'episodic', '소유자 없는 새 기억', NULL, 0)
+      `);
+
+      const forA = await getExistingMemoriesForRelationExtraction(db, 'mem-a-new', 100, host);
+      expect(forA.map((m) => m.id)).toEqual(['mem-a-1']);
+
+      const forNull = await getExistingMemoriesForRelationExtraction(db, 'mem-null-new', 100, host);
+      expect(forNull.map((m) => m.id)).toEqual(['mem-null-1']);
     });
 
     it('조회 실패 시 기존 기억 조회 실패 warn을 남기지 않는다', async () => {
