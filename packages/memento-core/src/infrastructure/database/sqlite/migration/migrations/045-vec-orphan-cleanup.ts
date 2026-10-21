@@ -14,7 +14,6 @@ import type Database from 'better-sqlite3';
 import type { Migration } from '../types.js';
 
 const VEC_TABLES = [
-  'memory_item_vec',
   'memory_item_vec_tfidf',
   'memory_item_vec_minilm',
   'memory_item_vec_openai',

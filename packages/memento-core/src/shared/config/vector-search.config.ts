@@ -18,7 +18,7 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
   defaultThreshold: 0.7,
   defaultLimit: 10,
   tableNames: {
-    lightweight: 'memory_item_vec',
+    lightweight: 'memory_item_vec_tfidf',
     tfidf: 'memory_item_vec_tfidf',
     minilm: 'memory_item_vec_minilm',
     openai: 'memory_item_vec_openai',
@@ -26,7 +26,7 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
     mock: 'memory_item_vec_mock'
   },
   providerDimensions: {
-    lightweight: 384,
+    lightweight: 512,
     tfidf: 512,
     minilm: 384,
     openai: 1536,

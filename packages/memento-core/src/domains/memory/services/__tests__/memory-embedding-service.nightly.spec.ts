@@ -80,8 +80,7 @@ type MemoryItemRecord = {
 };
 
 const providerTableMap: Record<string, string> = {
-  // legacy 384 vec table used by lightweight and 일부 tfidf 경로
-  lightweight: 'memory_item_vec',
+  lightweight: 'memory_item_vec_tfidf',
   tfidf: 'memory_item_vec_tfidf',
   minilm: 'memory_item_vec_minilm',
   openai: 'memory_item_vec_openai',
@@ -237,16 +236,9 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine nightly', () => {
     });
   });
 
-  it('legacy 384 vec table(memory_item_vec) path is discoverable in sqlite_master preflight', async () => {
-    const tableRows = Object.values(providerTableMap).map(name => ({ name }));
-    const sqliteMasterStub = createDbStub(() => [], () => new Map<string, MemoryItemRecord>());
-
-    const sqliteMasterResult = sqliteMasterStub
-      .prepare('SELECT 1 as ok FROM sqlite_master WHERE type IN (\'table\', \'virtual\') AND name = ? LIMIT 1')
-      .get('memory_item_vec') as { ok?: number } | undefined;
-
-    expect(tableRows.some(row => row.name === 'memory_item_vec')).toBe(true);
-    expect(sqliteMasterResult?.ok).toBe(1);
+  it('lightweight shares the 512 tfidf vec table', () => {
+    expect(providerTableMap.lightweight).toBe('memory_item_vec_tfidf');
+    expect(Object.values(providerTableMap)).not.toContain('memory_item_vec');
   });
 
   it('pads legacy 384-dimension embeddings for openai provider', async () => {

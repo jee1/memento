@@ -70,9 +70,8 @@ describe('VEC_TABLES', () => {
     expect(VEC_DISTANCE_METRIC).toBe('cosine');
   });
 
-  it('legacy 384 테이블과 제공자별 테이블을 모두 포함한다', () => {
+  it('제공자별 테이블과 차원을 포함한다', () => {
     expect(VEC_TABLES.map(table => [table.name, table.dimension])).toEqual([
-      ['memory_item_vec', 384],
       ['memory_item_vec_tfidf', 512],
       ['memory_item_vec_minilm', 384],
       ['memory_item_vec_openai', 1536],
@@ -81,29 +80,21 @@ describe('VEC_TABLES', () => {
     ]);
   });
 
-  it('legacy 384 테이블은 tfidf·lightweight native 만 받는다', () => {
-    const legacy = VEC_TABLES.find(table => table.name === 'memory_item_vec');
-    expect(legacy?.filter).toBe(
-      "embedding_provider IN ('tfidf', 'lightweight') AND dimensions = 384 AND projection_type = 'native'"
-    );
+  it('legacy memory_item_vec 는 신규 스키마에 없다', () => {
+    expect(VEC_TABLES.some(table => table.name === 'memory_item_vec')).toBe(false);
   });
 
   it('같은 차원의 provider 집합은 서로소다', () => {
     expect(() => assertDisjointProviderSlots(VEC_TABLES)).not.toThrow();
   });
 
-  it('레거시 허용 목록에 minilm 이 들어가면 384 슬롯이 겹쳐 throw 한다', () => {
-    const broken = VEC_TABLES.map(table => {
-      if (table.name !== 'memory_item_vec') {
-        return table;
-      }
-      const predicates = [
-        "embedding_provider IN ('tfidf', 'lightweight', 'minilm')",
-        'dimensions = 384',
-        "projection_type = 'native'"
-      ];
-      return { ...table, predicates, filter: predicates.join(' AND ') };
-    });
+  it('같은 384 슬롯에 minilm 을 두 번 넣으면 throw 한다', () => {
+    const minilm = VEC_TABLES.find(table => table.name === 'memory_item_vec_minilm');
+    expect(minilm).toBeDefined();
+    const broken = [
+      ...VEC_TABLES,
+      { ...minilm!, name: 'memory_item_vec_minilm_dup' },
+    ];
     expect(() => assertDisjointProviderSlots(broken)).toThrow(/minilm/);
   });
 
@@ -115,9 +106,7 @@ describe('VEC_TABLES', () => {
     expect(minilm?.filter).toContain("'native'");
     expect(minilm?.filter).toContain("'window:0'");
 
-    for (const table of VEC_TABLES.filter(
-      t => t.name !== 'memory_item_vec' && t.name !== 'memory_item_vec_minilm'
-    )) {
+    for (const table of VEC_TABLES.filter(t => t.name !== 'memory_item_vec_minilm')) {
       expect(table.filter).toContain('embedding_provider =');
       expect(table.filter).toContain(`dimensions = ${table.dimension}`);
       expect(table.filter).toContain("projection_type = 'native'");
@@ -208,10 +197,8 @@ describe('buildVecTriggerSql', () => {
     expect(triggers.update).toContain('NEW.embedding');
   });
 
-  it('insert 트리거 레거시 절은 tfidf·lightweight 허용 목록이다', () => {
-    expect(triggers.insert).toContain(
-      "NEW.embedding_provider IN ('tfidf', 'lightweight') AND NEW.dimensions = 384 AND NEW.projection_type = 'native'"
-    );
+  it('insert 트리거는 레거시 memory_item_vec 에 적재하지 않는다', () => {
+    expect(triggers.insert).not.toContain('INSERT INTO memory_item_vec(');
     expect(triggers.insert).not.toContain("NEW.projection_type NOT LIKE 'window:%'");
   });
 
@@ -249,13 +236,14 @@ describe('schema.sql (fresh DB 경로)', () => {
     expect(schemaSql).not.toMatch(/embedding\s+TEXT\s+NOT\s+NULL/i);
   });
 
-  it('레거시 WHERE 는 허용 목록이고 float[384] DDL 은 남는다', () => {
-    const legacyWhere =
-      "NEW.embedding_provider IN ('tfidf', 'lightweight') AND NEW.dimensions = 384 AND NEW.projection_type = 'native'";
-    expect(schemaSql).toContain(`INSERT INTO memory_item_vec(rowid, embedding)`);
-    expect(schemaSql.split(legacyWhere).length - 1).toBe(2);
-    expect(schemaSql).toContain(
+  it('레거시 memory_item_vec DDL 은 없고 minilm float[384] 은 남는다', () => {
+    expect(schemaSql).not.toContain('INSERT INTO memory_item_vec(');
+    expect(schemaSql).not.toContain('DELETE FROM memory_item_vec ');
+    expect(schemaSql).not.toContain(
       'CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384] distance_metric=cosine)'
+    );
+    expect(schemaSql).toContain(
+      'CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_minilm USING vec0(embedding float[384] distance_metric=cosine)'
     );
     expect(schemaSql).not.toContain("NEW.projection_type NOT LIKE 'window:%'");
   });

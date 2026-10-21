@@ -62,13 +62,14 @@ function minilmProviderPredicates(dimension: number): string[] {
   ];
 }
 
+/**
+ * #1383 이전 레거시 float[384] 테이블. 신규 VEC_TABLES·schema.sql 에는 없다.
+ * 마이그레이션 053 이 기존 DB 트리거를 다시 쓸 때만 이 이름을 허용한다.
+ */
+export const LEGACY_VEC_TABLE_NAME = 'memory_item_vec';
+
 /** 대상 vec 테이블 전체. */
 export const VEC_TABLES: readonly VecTableConfig[] = [
-  vecTable('memory_item_vec', 384, [
-    "embedding_provider IN ('tfidf', 'lightweight')",
-    'dimensions = 384',
-    "projection_type = 'native'",
-  ]),
   vecTable('memory_item_vec_tfidf', 512, nativeProviderPredicates('tfidf', 512)),
   vecTable('memory_item_vec_minilm', 384, minilmProviderPredicates(384)),
   vecTable('memory_item_vec_openai', 1536, nativeProviderPredicates('openai', 1536)),
@@ -76,7 +77,10 @@ export const VEC_TABLES: readonly VecTableConfig[] = [
   vecTable('memory_item_vec_mock', 64, nativeProviderPredicates('mock', 64))
 ];
 
-const ALLOWED_VEC_TABLE_NAMES: ReadonlySet<string> = new Set(VEC_TABLES.map(table => table.name));
+const ALLOWED_VEC_TABLE_NAMES: ReadonlySet<string> = new Set([
+  ...VEC_TABLES.map(table => table.name),
+  LEGACY_VEC_TABLE_NAME,
+]);
 
 function assertAllowedVecTable(name: string): void {
   if (!ALLOWED_VEC_TABLE_NAMES.has(name)) {

@@ -12,7 +12,7 @@ import type { RuntimeVectorContext } from './vector-search.types.js';
 
 /**
  * 테이블명 반환
- * dimensions 전달 시 tfidf+384 → memory_item_vec 매핑 적용.
+ * 테이블은 provider 화이트리스트다. 384 레거시 테이블은 없다 (#1383).
  */
 export function getTableName(provider: string, dimensions?: number): string {
   return getValidatedVectorTableName(provider ?? 'tfidf', dimensions);
@@ -36,7 +36,6 @@ function shouldUseDominantStoredDimensionsForTable(provider: string | undefined)
 export function getVecTableSchemaDimensions(tableName: string): number {
   const { providerDimensions, defaultDimensions } = VECTOR_SEARCH_CONFIG;
   const schemaByTable: Record<string, number> = {
-    memory_item_vec: providerDimensions.lightweight ?? defaultDimensions,
     memory_item_vec_tfidf: providerDimensions.tfidf ?? defaultDimensions,
     memory_item_vec_minilm: providerDimensions.minilm ?? defaultDimensions,
     memory_item_vec_openai: providerDimensions.openai ?? defaultDimensions,
@@ -89,7 +88,7 @@ export function resolveRuntimeVectorContext(
       provider: effectiveProvider,
       expectedDimensions,
       actualStoredDimensions,
-      message: '저장된 차원을 사용해 테이블을 선택합니다 (384 시 memory_item_vec).'
+      message: '저장된 차원을 사용해 테이블을 선택합니다.'
     });
   }
 

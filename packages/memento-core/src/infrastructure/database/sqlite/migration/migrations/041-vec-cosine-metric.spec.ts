@@ -128,7 +128,7 @@ describe('VecCosineMetricMigration (041)', () => {
     const report = checkVecCardinality(db);
     expect(report.every(row => row.matched)).toBe(true);
 
-    expect(report.find(row => row.table === 'memory_item_vec')?.actual).toBe(0);
+    expect(report.find(row => row.table === 'memory_item_vec')).toBeUndefined();
     expect(report.find(row => row.table === 'memory_item_vec_minilm')?.actual).toBe(1);
   });
 

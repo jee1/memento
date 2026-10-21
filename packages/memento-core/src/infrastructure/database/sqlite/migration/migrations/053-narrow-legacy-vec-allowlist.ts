@@ -1,7 +1,6 @@
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../../shared/utils/logger.js';
 import {
-  VEC_TABLES,
   type VecTableConfig,
   checkVecCardinality,
   evictNonMembers,
@@ -37,6 +36,20 @@ function tableExists(db: Database.Database, name: string): boolean {
     db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name)
   );
 }
+
+const LEGACY_MEMBER_FILTER =
+  "embedding_provider IN ('tfidf', 'lightweight') AND dimensions = 384 AND projection_type = 'native'";
+
+const LEGACY_MEMBER_TABLE: VecTableConfig = {
+  name: 'memory_item_vec',
+  dimension: 384,
+  predicates: [
+    "embedding_provider IN ('tfidf', 'lightweight')",
+    'dimensions = 384',
+    "projection_type = 'native'",
+  ],
+  filter: LEGACY_MEMBER_FILTER,
+};
 
 function withLegacyCatchall(tables: readonly VecTableConfig[]): VecTableConfig[] {
   return tables.map(table => {
@@ -82,14 +95,10 @@ export class NarrowLegacyVecAllowlistMigration implements Migration {
 
     logLegacyMembership(db);
 
-    const existing = listExistingVecTables(db);
-    recreateVecTriggers(db, existing);
+    const existing = listExistingVecTables(db).filter(table => table.name !== 'memory_item_vec');
+    recreateVecTriggers(db, [...existing, LEGACY_MEMBER_TABLE]);
 
-    const legacy = VEC_TABLES.find(table => table.name === 'memory_item_vec');
-    if (!legacy) {
-      throw new Error('memory_item_vec is missing from VEC_TABLES');
-    }
-    const deleted = evictNonMembers(db, legacy);
+    const deleted = evictNonMembers(db, LEGACY_MEMBER_TABLE);
     logger.info('narrow-legacy-vec-allowlist: evicted non-members', { deleted });
 
     const minilm = existing.find(table => table.name === 'memory_item_vec_minilm');
@@ -103,7 +112,10 @@ export class NarrowLegacyVecAllowlistMigration implements Migration {
       return;
     }
 
-    const existing = withLegacyCatchall(listExistingVecTables(db));
+    const existing = withLegacyCatchall([
+      ...listExistingVecTables(db).filter(table => table.name !== 'memory_item_vec'),
+      LEGACY_MEMBER_TABLE,
+    ]);
     recreateVecTriggers(db, existing);
     // vec0 는 기존 rowid 에 INSERT OR IGNORE 를 주면 UNIQUE 로 실패한다.
     db.exec(
@@ -123,17 +135,21 @@ export class NarrowLegacyVecAllowlistMigration implements Migration {
     }
 
     const report = checkVecCardinality(db);
-    for (const name of ['memory_item_vec', 'memory_item_vec_minilm'] as const) {
-      const row = report.find(item => item.table === name);
-      if (!row) {
-        if (name === 'memory_item_vec_minilm') {
-          continue;
-        }
-        throw new Error(`${name} missing from cardinality report`);
-      }
-      if (!row.matched) {
-        throw new Error(`${name} cardinality mismatch: expected ${row.expected}, actual ${row.actual}`);
-      }
+    const minilm = report.find(item => item.table === 'memory_item_vec_minilm');
+    if (minilm && !minilm.matched) {
+      throw new Error(
+        `memory_item_vec_minilm cardinality mismatch: expected ${minilm.expected}, actual ${minilm.actual}`
+      );
+    }
+
+    const stray = db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM memory_item_vec
+         WHERE rowid NOT IN (SELECT id FROM memory_embedding WHERE ${LEGACY_MEMBER_FILTER})`
+      )
+      .get() as { count: number };
+    if (stray.count !== 0) {
+      throw new Error(`Migration 053 left ${stray.count} non-member rowids in memory_item_vec`);
     }
 
     const minilmInLegacy = db

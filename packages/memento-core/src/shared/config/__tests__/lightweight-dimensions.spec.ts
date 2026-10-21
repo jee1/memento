@@ -30,8 +30,8 @@ describe('lightweight provider dimensions (#1221)', () => {
     );
   });
 
-  it('memory_item_vec schema dimensions remain 384 (shared vec0 table)', () => {
-    // shared 384-dim vec0 table; not the lightweight service dimension (#1221)
-    expect(getVecTableSchemaDimensions('memory_item_vec')).toBe(384);
+  it('lightweight schema width is the 512 tfidf table', () => {
+    expect(getVecTableSchemaDimensions('memory_item_vec_tfidf')).toBe(512);
+    expect(getVecTableSchemaDimensions('memory_item_vec_tfidf')).toBe(serviceDimensions);
   });
 });

@@ -36,7 +36,6 @@ export function checkVecAvailability(db: Database.Database | null): boolean {
         SELECT 1 as ok FROM sqlite_master
         WHERE type IN ('table', 'virtual')
           AND name IN (
-            'memory_item_vec',
             'memory_item_vec_tfidf',
             'memory_item_vec_minilm',
             'memory_item_vec_openai',
