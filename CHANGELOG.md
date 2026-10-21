@@ -11,7 +11,13 @@
 
 ### Security
 
-- 의존성: production audit의 `follow-redirects` high와 `hono` moderate를 잠금 파일에서 `1.16.1`, `4.13.13`으로 올렸습니다.
+- 의존성: 전이 의존성 `follow-redirects` 1.16.0 → 1.16.1(GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c, high), `hono` 4.13.7 → 4.13.13(GHSA-5r4p-p66f-jhc7, moderate)으로 올렸습니다. `package-lock.json` 만 바뀝니다.
+
+### Fixed
+
+- recall: `version_filter` 가 `latest_only` 또는 `specific_version` 일 때 옛 버전이 `limit` 칸을 채운 뒤 버려져 결과가 `limit` 보다 적던 문제를 고쳤습니다(#1392). 두 필터는 검색 SQL 에서 페이지를 자르기 전에 걸립니다. 후처리도 검색 순서를 유지한 채 맞지 않는 버전만 뺍니다. `match_trigger_conditions` 는 매칭이 페이지 밖에 있으면 후보를 최대 500건까지 늘린 뒤 `limit` 건만 돌려줍니다.
+
+- 개발: 아키텍처 문서(ko/en `architecture.md`, `async-augmentation-pipeline.md`, `arc42.md`, C4 component)의 BatchScheduler 작업 표를 실제 등록 이름 13개로 맞췄습니다. `sleep_consolidation`, `quality_measurement`, `forgetting_cleanup`, `telemetry_cleanup`, `triple_extraction` 은 없는 이름이라 `/admin/batch/run` 이 400 을 냅니다.
 
 ### Changed
 
@@ -30,8 +36,6 @@
 - 관계 추출: `LLM_PROVIDER_RELATION_EXTRACTION=jev` 가 TypeSafe System One noul로 관계를 만듭니다(#1410). 저장된 method는 `jev`이고 신뢰도는 채택된 유형의 noul입니다. 관련성 하한과 유형 하한은 각각 0.5이며 검색 게이트 0.4, 클러스터 판정 0.6과 공유하지 않습니다. 키 없음, 시간 초과, WAF, 인증 실패는 로그만 남기고 remember가 이미 저장한 기억은 그대로 둡니다. `jev`는 `LLMProvider`가 아니므로 절차·공고화 오버라이드와 openai/gemini/ollama 폴백에 들어가지 않습니다.
 
 ### Fixed
-
-- recall: `version_filter` 가 `latest_only` 또는 `specific_version` 일 때 옛 버전이 `limit` 칸을 채운 뒤 버려져 결과가 `limit` 보다 적던 문제를 고쳤습니다(#1392). 두 필터는 검색 SQL 에서 페이지를 자르기 전에 걸립니다. 후처리도 검색 순서를 유지한 채 맞지 않는 버전만 뺍니다. `match_trigger_conditions` 는 매칭이 페이지 밖에 있으면 후보를 최대 500건까지 늘린 뒤 `limit` 건만 돌려줍니다.
 
 - 관계 추출: LLM 응답 한도를 1000 에서 4096 토큰으로 올렸습니다. 후보 10개에 관계마다 근거를 쓰면 1000 을 넘어, `gemini-2.5-flash-lite` 실측에서 6건 중 4건이 `MAX_TOKENS` 로 잘렸습니다. 끝까지 쓴 응답은 600~819 토큰이었습니다.
 

@@ -22,13 +22,13 @@
 | 작업 | 트리거 | 역할 |
 |------|--------|------|
 | Per-item 관계 추출 | JobQueue (`addJob` from remember-tool) | episodic 저장 직후 작업 등록 |
-| `sleep_consolidation` | 1시간 주기 | 에피소드 → 시맨틱 증류 (`SleepConsolidationService`) |
-| `quality_measurement` | 24시간 | 메모리 품질 측정 |
-| `forgetting_cleanup` | 24시간 | TTL 만료 기억 정리 |
+| `sleep_consolidation_batch` | 1시간 주기 | 에피소드 → 시맨틱 증류 (`SleepConsolidationService`) |
+| `quality_measurement_batch` | 24시간 | 메모리 품질 측정 |
+| `cleanup` | 24시간 | TTL 만료 기억 정리 |
 | `memory_review_candidates` | 24시간 | 복습 후보 갱신 |
 
 참고 파일:
-- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`
+- `packages/memento-core/src/infrastructure/scheduler/batch-scheduler/batch-scheduler.ts`
 - `packages/memento-core/src/workers/consolidation-score-worker.ts`
 
 ## 실패 재시도·모니터링
