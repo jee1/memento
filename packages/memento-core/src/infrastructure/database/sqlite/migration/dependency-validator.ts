@@ -302,7 +302,6 @@ export class DependencyValidator {
 
       // VEC 가상 테이블 존재 확인 (선택적, sqlite-vec 확장이 설치되어 있을 때만)
       const vecTables = [
-        'memory_item_vec',
         'memory_item_vec_tfidf',
         'memory_item_vec_minilm',
         'memory_item_vec_openai',

@@ -47,12 +47,20 @@ function createEmbeddingTable(db: Database.Database): void {
   `);
 }
 
+const LEGACY_VEC: VecTableConfig = {
+  name: 'memory_item_vec',
+  dimension: 384,
+  predicates: [
+    "embedding_provider IN ('tfidf', 'lightweight')",
+    'dimensions = 384',
+    "projection_type = 'native'",
+  ],
+  filter:
+    "embedding_provider IN ('tfidf', 'lightweight') AND dimensions = 384 AND projection_type = 'native'",
+};
+
 function staleTriggerTables(): VecTableConfig[] {
-  return VEC_TABLES.map(table => {
-    if (table.name === 'memory_item_vec') {
-      const predicates = ['dimensions = 384'];
-      return { ...table, predicates, filter: predicates.join(' AND ') };
-    }
+  const current = VEC_TABLES.map(table => {
     if (table.name === 'memory_item_vec_minilm') {
       const predicates = [
         "embedding_provider = 'minilm'",
@@ -63,6 +71,15 @@ function staleTriggerTables(): VecTableConfig[] {
     }
     return table;
   });
+  const legacyPredicates = ['dimensions = 384'];
+  return [
+    ...current,
+    {
+      ...LEGACY_VEC,
+      predicates: legacyPredicates,
+      filter: legacyPredicates.join(' AND '),
+    },
+  ];
 }
 
 function insertEmbedding(
@@ -149,12 +166,12 @@ function knnRowids(db: Database.Database, query: string): number[] {
 }
 
 describe('getVectorTableName routing', () => {
-  it('minilm 과 tfidf 384 매핑은 그대로다', () => {
+  it('lightweight 와 tfidf 384 는 512 tfidf 테이블을 쓴다', () => {
     expect(getVectorTableName('minilm')).toBe('memory_item_vec_minilm');
     expect(getVectorTableName('minilm', 384)).toBe('memory_item_vec_minilm');
-    expect(getVectorTableName('tfidf', 384)).toBe('memory_item_vec');
-    expect(getVectorTableName('lightweight', 384)).toBe('memory_item_vec');
-    expect(getVectorTableName('lightweight')).toBe('memory_item_vec');
+    expect(getVectorTableName('tfidf', 384)).toBe('memory_item_vec_tfidf');
+    expect(getVectorTableName('lightweight', 384)).toBe('memory_item_vec_tfidf');
+    expect(getVectorTableName('lightweight')).toBe('memory_item_vec_tfidf');
     expect(getVectorTableName('tfidf', 512)).toBe('memory_item_vec_tfidf');
   });
 });
@@ -170,7 +187,7 @@ describe('NarrowLegacyVecAllowlistMigration (053)', () => {
     if (!vecAvailable) {
       return;
     }
-    for (const table of VEC_TABLES) {
+    for (const table of [...VEC_TABLES, LEGACY_VEC]) {
       db.exec(buildVecTableDdl(table));
     }
     recreateVecTriggers(db, staleTriggerTables());
@@ -228,8 +245,19 @@ describe('NarrowLegacyVecAllowlistMigration (053)', () => {
     expect(hasRow(db, 'memory_item_vec_tfidf', ROW.tfidf512)).toBe(true);
     expect(hasRow(db, 'memory_item_vec', ROW.tfidf512)).toBe(false);
 
+    const stray = db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM memory_item_vec
+         WHERE rowid NOT IN (
+           SELECT id FROM memory_embedding
+           WHERE embedding_provider IN ('tfidf', 'lightweight')
+             AND dimensions = 384
+             AND projection_type = 'native'
+         )`
+      )
+      .get() as { c: number };
+    expect(stray.c).toBe(0);
     const report = checkVecCardinality(db);
-    expect(report.find(row => row.table === 'memory_item_vec')?.matched).toBe(true);
     expect(report.find(row => row.table === 'memory_item_vec_minilm')?.matched).toBe(true);
   });
 

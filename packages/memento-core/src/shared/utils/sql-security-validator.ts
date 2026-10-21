@@ -60,17 +60,11 @@ export function validateTableName(
  * 화이트리스트 검증을 포함합니다.
  *
  * @param provider 임베딩 provider 이름
- * @param dimensions 선택적. 전달 시 tfidf+384 → memory_item_vec로 매핑
+ * @param dimensions 호출부 호환용. 테이블 선택은 provider 화이트리스트만 본다 (#1383).
  * @returns 검증된 테이블명
  */
-export function getVectorTableName(provider: string, dimensions?: number): string {
+export function getVectorTableName(provider: string, _dimensions?: number): string {
   const normalizedProvider = provider.toLowerCase();
-
-  if (dimensions === 384 && (normalizedProvider === 'tfidf' || normalizedProvider === 'lightweight')) {
-    const table384 = VECTOR_SEARCH_CONFIG.tableNames['lightweight'] as string;
-    validateTableName(table384);
-    return table384;
-  }
 
   // 화이트리스트에서 테이블명 조회
   const tableName = VECTOR_SEARCH_CONFIG.tableNames[normalizedProvider as keyof typeof VECTOR_SEARCH_CONFIG.tableNames];

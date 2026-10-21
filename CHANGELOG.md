@@ -14,6 +14,7 @@
 - 에이전트: 기억 쓰기 안내에 좌표 규칙과 가치 문턱을 넣었습니다(#1429). 코드 블록 대신 저장소 상대 경로, 함수나 클래스 이름, 바뀐 시그니처, 확정한 상수나 정규식만 적습니다. `semantic`과 `procedural`은 문제가 반복되고, 결정 근거나 여러 단계의 우회나 다시 쓰는 절차이며, 다음 에이전트가 검색 결과를 그대로 쓸 때만 남깁니다. 완료 작업의 `episodic` 기록은 그대로 남깁니다. Claude Code 플러그인 스킬이 바뀌어 플러그인 버전을 0.1.1로 올렸습니다.
 - 개발: `createQualityRouter`가 핸들러 10개를 인라인 클로저로 품던 것을 이름 있는 함수로 꺼내 경로 나열만 남겼습니다(#1371). 응답·상태 코드·경로 순서는 그대로입니다.
 - 데이터베이스: `memory_relation`의 `source`·`target` 단일 인덱스와 `relation_type`·`confidence` 인덱스를 제거합니다(#1376). source·target 조회는 `source_type`·`target_type`과 UNIQUE(source, target, type) 접두사를 씁니다. 마이그레이션 055가 기존 DB에서 인덱스를 지웁니다.
+- 검색: 빈 레거시 `memory_item_vec`(float[384])를 제거합니다(#1383). tfidf·lightweight 는 512차원 `memory_item_vec_tfidf` 만 씁니다. 마이그레이션 056이 기존 DB에서 테이블을 지우고 vec 트리거를 다시 만듭니다. MiniLM 검색 테이블은 그대로입니다.
 
 ## [2.2.1] - 2026-10-21
 

@@ -171,7 +171,7 @@ describe('VectorSearchRepositoryImpl', () => {
       }
     });
 
-    it('저장 차원 다수(384)와 네이티브 쿼리(512) 불일치 시 투영으로 벡터 차원 오류를 피해야 함', async () => {
+    it('저장 차원 다수(384)여도 tfidf 쿼리(512)는 512 테이블 차원으로 맞춘다', async () => {
       if (!repository.checkVecAvailability()) {
         return;
       }
@@ -205,10 +205,13 @@ describe('VectorSearchRepositoryImpl', () => {
       );
       expect(dimensionErrors.length).toBe(0);
 
-      const projected = logSpy.mock.calls.filter(
-        (call) => call[0] === 'warn' && call[1] === '쿼리 임베딩을 저장소 차원에 맞게 투영했습니다'
+      const corrected = logSpy.mock.calls.filter(
+        (call) => call[0] === 'warn' && call[1] === 'vec0 테이블 스키마 차원으로 MATCH 차원을 보정했습니다'
       );
-      expect(projected.length).toBeGreaterThan(0);
+      expect(corrected.length).toBeGreaterThan(0);
+      const payload = corrected[0]?.[2] as { targetDimensions?: number; tableName?: string } | undefined;
+      expect(payload?.targetDimensions).toBe(512);
+      expect(payload?.tableName).toBe('memory_item_vec_tfidf');
 
       logSpy.mockRestore();
     });
