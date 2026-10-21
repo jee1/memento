@@ -17,6 +17,7 @@
 - 검색: 빈 레거시 `memory_item_vec`(float[384])를 제거합니다(#1383). tfidf·lightweight 는 512차원 `memory_item_vec_tfidf` 만 씁니다. 마이그레이션 056이 기존 DB에서 테이블을 지우고 vec 트리거를 다시 만듭니다. MiniLM 검색 테이블은 그대로입니다.
 - 개발: `registerAdminRelationRoutes`가 핸들러 5개를 인라인 클로저로 품던 것을 이름 있는 함수로 꺼내 경로 나열만 남겼습니다(#1371). 응답·상태 코드·경로 순서는 그대로입니다.
 - 개발: `registerAdminTelemetryRoutes`가 핸들러 5개를 인라인 클로저로 품던 것을 이름 있는 함수로 꺼내 경로 나열만 남겼습니다(#1371). 응답·상태 코드·경로 순서는 그대로입니다.
+- 개발: `registerAdminMemoryReviewRoutes`가 핸들러 8개를 인라인 클로저로 품던 것을 이름 있는 함수로 꺼내 경로 나열만 남겼습니다(#1371). 응답·상태 코드·경로 순서는 그대로입니다.
 
 ## [2.2.1] - 2026-10-21
 
