@@ -1,55 +1,59 @@
 /**
  * Quality Assurance 라우터
  * /api/v1/quality/* 엔드포인트 처리
- * 
+ *
  * PRD FR-5.2: HTTP API 엔드포인트로 품질 리포트를 조회할 수 있어야 함
  * PRD FR-4.7: HTTP API로 임계값 조회/업데이트 기능 구현
  */
 
-import { QualityAssuranceService,QualityThresholdManager,logger,sqliteRepositoryProvider } from '@memento/core';
+import { QualityAssuranceService, QualityThresholdManager, logger, sqliteRepositoryProvider } from '@memento/core';
 import type Database from 'better-sqlite3';
+import type { Request, Response } from 'express';
 import { Router } from 'express';
 
-/**
- * Quality Assurance 라우터 생성
- */
-export function createQualityRouter(
-  db: Database.Database | null
-): Router {
-  const router = Router();
-
-  // Quality Assurance Service 초기화
-  let qualityService: QualityAssuranceService | null = null;
-  let thresholdManager: QualityThresholdManager | null = null;
-  if (db) {
-    try {
-      qualityService = new QualityAssuranceService(db, sqliteRepositoryProvider);
-      thresholdManager = new QualityThresholdManager(db);
-    } catch (error) {
-      logger.error('QualityAssuranceService 초기화 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
+function createQualityServices(db: Database.Database | null): {
+  qualityService: QualityAssuranceService | null;
+  thresholdManager: QualityThresholdManager | null;
+} {
+  if (!db) {
+    return { qualityService: null, thresholdManager: null };
   }
+  try {
+    return {
+      qualityService: new QualityAssuranceService(db, sqliteRepositoryProvider),
+      thresholdManager: new QualityThresholdManager(db),
+    };
+  } catch (error) {
+    logger.error('QualityAssuranceService 초기화 실패', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return { qualityService: null, thresholdManager: null };
+  }
+}
 
-  /**
-   * GET /api/v1/quality/report
-   * 품질 리포트 생성
-   * 
-   * Query Parameters:
-   *   - format: 'markdown' | 'json' | 'html' (기본값: 'markdown')
-   *   - namespace: 네임스페이스 필터 (선택적)
-   *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
-   *   - from: 시작 시간 (ISO 8601 형식, 선택적)
-   *   - to: 종료 시간 (ISO 8601 형식, 선택적)
-   */
-  router.get('/report', async (req, res) => {
+function respondQualityUnavailable(res: Response) {
+  return res.status(500).json({
+    error: 'QualityAssuranceService not initialized',
+    message: 'QualityAssuranceService가 초기화되지 않았습니다'
+  });
+}
+
+/**
+ * GET /api/v1/quality/report
+ * 품질 리포트 생성
+ *
+ * Query Parameters:
+ *   - format: 'markdown' | 'json' | 'html' (기본값: 'markdown')
+ *   - namespace: 네임스페이스 필터 (선택적)
+ *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
+ *   - from: 시작 시간 (ISO 8601 형식, 선택적)
+ *   - to: 종료 시간 (ISO 8601 형식, 선택적)
+ */
+function getQualityReport(qualityService: QualityAssuranceService | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const format = (req.query.format as 'markdown' | 'json' | 'html') || 'markdown';
@@ -66,7 +70,6 @@ export function createQualityRouter(
         to
       });
 
-      // Content-Type 설정
       if (format === 'json') {
         res.setHeader('Content-Type', 'application/json');
       } else if (format === 'html') {
@@ -85,25 +88,24 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * GET /api/v1/quality/report/data
-   * 품질 리포트 데이터 조회 (JSON 형식)
-   * 
-   * Query Parameters:
-   *   - namespace: 네임스페이스 필터 (선택적)
-   *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
-   *   - from: 시작 시간 (ISO 8601 형식, 선택적)
-   *   - to: 종료 시간 (ISO 8601 형식, 선택적)
-   */
-  router.get('/report/data', async (req, res) => {
+/**
+ * GET /api/v1/quality/report/data
+ * 품질 리포트 데이터 조회 (JSON 형식)
+ *
+ * Query Parameters:
+ *   - namespace: 네임스페이스 필터 (선택적)
+ *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
+ *   - from: 시작 시간 (ISO 8601 형식, 선택적)
+ *   - to: 종료 시간 (ISO 8601 형식, 선택적)
+ */
+function getQualityReportData(qualityService: QualityAssuranceService | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const namespace = req.query.namespace as string | undefined;
@@ -128,26 +130,25 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * GET /api/v1/quality/history
-   * 측정 이력 조회
-   * 
-   * Query Parameters:
-   *   - namespace: 네임스페이스 필터 (선택적)
-   *   - context: 컨텍스트 필터 (선택적)
-   *   - from: 시작 시간 (ISO 8601 형식, 선택적)
-   *   - to: 종료 시간 (ISO 8601 형식, 선택적)
-   *   - limit: 최대 개수 (기본값: 100)
-   */
-  router.get('/history', (req, res) => {
+/**
+ * GET /api/v1/quality/history
+ * 측정 이력 조회
+ *
+ * Query Parameters:
+ *   - namespace: 네임스페이스 필터 (선택적)
+ *   - context: 컨텍스트 필터 (선택적)
+ *   - from: 시작 시간 (ISO 8601 형식, 선택적)
+ *   - to: 종료 시간 (ISO 8601 형식, 선택적)
+ *   - limit: 최대 개수 (기본값: 100)
+ */
+function getQualityHistory(qualityService: QualityAssuranceService | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const namespace = req.query.namespace as string | undefined;
@@ -173,23 +174,22 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * GET /api/v1/quality/thresholds
-   * 모든 임계값 조회
-   * 
-   * Query Parameters:
-   *   - namespace: 네임스페이스 필터 (선택적)
-   *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
-   */
-  router.get('/thresholds', (req, res) => {
+/**
+ * GET /api/v1/quality/thresholds
+ * 모든 임계값 조회
+ *
+ * Query Parameters:
+ *   - namespace: 네임스페이스 필터 (선택적)
+ *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
+ */
+function listQualityThresholds(qualityService: QualityAssuranceService | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const namespace = req.query.namespace as string | undefined;
@@ -212,22 +212,24 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * GET /api/v1/quality/thresholds/:namespace/:key
-   * 특정 임계값 조회
-   * 
-   * Query Parameters:
-   *   - context: 컨텍스트 (선택적, 기본값: 'default')
-   */
-  router.get('/thresholds/:namespace/:key', (req, res) => {
+/**
+ * GET /api/v1/quality/thresholds/:namespace/:key
+ * 특정 임계값 조회
+ *
+ * Query Parameters:
+ *   - context: 컨텍스트 (선택적, 기본값: 'default')
+ */
+function getQualityThreshold(
+  qualityService: QualityAssuranceService | null,
+  thresholdManager: QualityThresholdManager | null
+) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       if (!thresholdManager) {
@@ -237,7 +239,8 @@ export function createQualityRouter(
         });
       }
 
-      const { namespace, key } = req.params;
+      const namespace = req.params.namespace ?? '';
+      const key = req.params.key ?? '';
       const context = (req.query.context as string) || 'default';
 
       const threshold = thresholdManager.getThreshold(namespace, key, context);
@@ -259,33 +262,32 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * PUT /api/v1/quality/thresholds/:namespace/:key
-   * 임계값 설정 (생성 또는 업데이트)
-   * 
-   * Request Body:
-   *   {
-   *     "threshold_value": number,
-   *     "threshold_type": "min" | "max",
-   *     "description"?: string,
-   *     "context"?: string (기본값: "default")
-   *   }
-   */
-  router.put('/thresholds/:namespace/:key', (req, res) => {
+/**
+ * PUT /api/v1/quality/thresholds/:namespace/:key
+ * 임계값 설정 (생성 또는 업데이트)
+ *
+ * Request Body:
+ *   {
+ *     "threshold_value": number,
+ *     "threshold_type": "min" | "max",
+ *     "description"?: string,
+ *     "context"?: string (기본값: "default")
+ *   }
+ */
+function putQualityThreshold(qualityService: QualityAssuranceService | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
-      const { namespace, key } = req.params;
+      const namespace = req.params.namespace ?? '';
+      const key = req.params.key ?? '';
       const { threshold_value, threshold_type, description, context = 'default' } = req.body;
 
-      // 유효성 검증
       if (threshold_value === undefined || threshold_type === undefined) {
         return res.status(400).json({
           error: 'Invalid request',
@@ -329,25 +331,25 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * DELETE /api/v1/quality/thresholds/:namespace/:key
-   * 임계값 삭제
-   * 
-   * Query Parameters:
-   *   - context: 컨텍스트 (선택적, 기본값: 'default')
-   */
-  router.delete('/thresholds/:namespace/:key', (req, res) => {
+/**
+ * DELETE /api/v1/quality/thresholds/:namespace/:key
+ * 임계값 삭제
+ *
+ * Query Parameters:
+ *   - context: 컨텍스트 (선택적, 기본값: 'default')
+ */
+function deleteQualityThreshold(qualityService: QualityAssuranceService | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
-      const { namespace, key } = req.params;
+      const namespace = req.params.namespace ?? '';
+      const key = req.params.key ?? '';
       const context = (req.query.context as string) || 'default';
 
       const deleted = qualityService.deleteThreshold(namespace, key, context);
@@ -374,23 +376,22 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * GET /api/v1/quality/metrics
-   * 최신 품질 지표 조회
-   * 
-   * Query Parameters:
-   *   - namespace: 네임스페이스 필터 (선택적)
-   *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
-   */
-  router.get('/metrics', (req, res) => {
+/**
+ * GET /api/v1/quality/metrics
+ * 최신 품질 지표 조회
+ *
+ * Query Parameters:
+ *   - namespace: 네임스페이스 필터 (선택적)
+ *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
+ */
+function getQualityMetrics(qualityService: QualityAssuranceService | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const namespace = req.query.namespace as string | undefined;
@@ -413,27 +414,26 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * POST /api/v1/quality/measure
-   * 품질 측정 실행
-   * 
-   * Request Body (선택적):
-   *   {
-   *     "measurement_type"?: "batch" | "test" | "manual" (기본값: "batch"),
-   *     "context"?: string (기본값: "default"),
-   *     "namespaces"?: string[],
-   *     "record"?: boolean (기본값: true)
-   *   }
-   */
-  router.post('/measure', async (req, res) => {
+/**
+ * POST /api/v1/quality/measure
+ * 품질 측정 실행
+ *
+ * Request Body (선택적):
+ *   {
+ *     "measurement_type"?: "batch" | "test" | "manual" (기본값: "batch"),
+ *     "context"?: string (기본값: "default"),
+ *     "namespaces"?: string[],
+ *     "record"?: boolean (기본값: true)
+ *   }
+ */
+function postQualityMeasure(qualityService: QualityAssuranceService | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const {
@@ -463,25 +463,24 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  /**
-   * POST /api/v1/quality/thresholds/init
-   * 기본 임계값 초기화
-   * 
-   * Request Body (선택적):
-   *   {
-   *     "context"?: string (기본값: "default"),
-   *     "overwrite"?: boolean (기본값: false)
-   *   }
-   */
-  router.post('/thresholds/init', (req, res) => {
+/**
+ * POST /api/v1/quality/thresholds/init
+ * 기본 임계값 초기화
+ *
+ * Request Body (선택적):
+ *   {
+ *     "context"?: string (기본값: "default"),
+ *     "overwrite"?: boolean (기본값: false)
+ *   }
+ */
+function postQualityThresholdInit(qualityService: QualityAssuranceService | null) {
+  return (req: Request, res: Response) => {
     try {
       if (!qualityService) {
-        return res.status(500).json({
-          error: 'QualityAssuranceService not initialized',
-          message: 'QualityAssuranceService가 초기화되지 않았습니다'
-        });
+        return respondQualityUnavailable(res);
       }
 
       const { context = 'default', overwrite = false } = req.body;
@@ -503,8 +502,28 @@ export function createQualityRouter(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
+
+/**
+ * Quality Assurance 라우터 생성
+ */
+export function createQualityRouter(
+  db: Database.Database | null
+): Router {
+  const router = Router();
+  const { qualityService, thresholdManager } = createQualityServices(db);
+
+  router.get('/report', getQualityReport(qualityService));
+  router.get('/report/data', getQualityReportData(qualityService));
+  router.get('/history', getQualityHistory(qualityService));
+  router.get('/thresholds', listQualityThresholds(qualityService));
+  router.get('/thresholds/:namespace/:key', getQualityThreshold(qualityService, thresholdManager));
+  router.put('/thresholds/:namespace/:key', putQualityThreshold(qualityService));
+  router.delete('/thresholds/:namespace/:key', deleteQualityThreshold(qualityService));
+  router.get('/metrics', getQualityMetrics(qualityService));
+  router.post('/measure', postQualityMeasure(qualityService));
+  router.post('/thresholds/init', postQualityThresholdInit(qualityService));
 
   return router;
 }
-
