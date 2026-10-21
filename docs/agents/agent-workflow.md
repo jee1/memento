@@ -10,6 +10,10 @@ Memento를 사용하는 에이전트는 아래 순서가 습관이 되어야 합
 2. **recall 결과를 실제로 썼다면**: 그 자리에서 `feedback` MCP 도구(helpful/not_helpful)를 호출한다. 예: `client.recordRecallFeedback(recallResult, memoryId, true)` — 랭킹 공식의 `ζ_fb·(feedback_norm − 0.5)` 항은 이 신호로만 갱신됩니다([search-ranking.md](./search-ranking.md)).
 3. **작업 후**: `remember`로 결과를 남기되 기억 타입을 구분한다. 48시간 안에 다시 쓸 컨텍스트는 `working`, 에피소드·사건 기록은 `episodic`, 재사용 가능한 지식은 `semantic`, 반복 절차는 `procedural`입니다. 이 구분이 나중에 검색 품질을 결정합니다.
 
+기억에 코드를 붙여 넣지 않는다. 저장소 상대 경로, 수정한 함수나 클래스 이름, 바뀐 시그니처, 확정한 상수나 정규식만 적는다.
+
+완료 작업의 `episodic` 기록은 그대로 남긴다. `semantic`과 `procedural`은 세 조건을 모두 만족할 때만 남긴다. 문제가 반복된다. 내용은 결정 근거, 여러 단계의 우회, 다시 쓰는 절차다. 다음 에이전트가 검색 결과를 그대로 쓴다.
+
 **관측**: `feedback` 채택률(1단계 대비 2단계 실행 비율)은 `get_telemetry_summary`의 `feedback_quality.recall_without_feedback_rate`, HTTP `GET /admin/telemetry/feedback`, 또는 `npm run telemetry -- --type feedback-quality`로 확인합니다. 1에 가까울수록 recall만 하고 feedback을 남기지 않는 비율이 높다는 뜻입니다.
 
 ### 진단 프로브 (#811)

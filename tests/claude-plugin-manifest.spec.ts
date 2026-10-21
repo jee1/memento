@@ -62,5 +62,8 @@ describe("Claude Code plugin marketplace (#764)", () => {
     expect(skill).toMatch(/^description: .+/m);
     expect(skill).toContain("recall");
     expect(skill).toContain("remember");
+    expect(skill).toContain("Do not paste source into a memory.");
+    expect(skill).toContain("Save `semantic` and `procedural` memories only when all three hold.");
+    expect(skill).toContain("A completed `episodic` record is exempt.");
   });
 });

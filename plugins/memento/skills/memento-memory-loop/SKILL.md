@@ -47,6 +47,10 @@ remember(
 )
 ```
 
+Do not paste source into a memory. Record the repository-relative path, the function or class you changed, the signature that changed, and any constant or regular expression you settled.
+
+Save `semantic` and `procedural` memories only when all three hold. The problem recurs. The note is a decision reason, a multi-step workaround, or a reusable procedure. The next agent searches for it and uses the result. A completed `episodic` record is exempt.
+
 Write a memory whenever a turn produced real work — a code change, a decision, a configuration, a fix. Search first (`recall`) so you update instead of duplicating.
 
 ## The rest of the toolset
