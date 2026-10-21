@@ -13,6 +13,8 @@
 
 - 의존성: 전이 의존성 `follow-redirects` 1.16.0 → 1.16.1(GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c, high), `hono` 4.13.7 → 4.13.13(GHSA-5r4p-p66f-jhc7, moderate)으로 올렸습니다. `package-lock.json` 만 바뀝니다.
 
+- 의존성: `@modelcontextprotocol/server` 2.0.0 → 2.3.1, 그에 묶인 `@modelcontextprotocol/core` 2.0.0 → 2.3.1(GHSA-jm63-cq47-j5jp, GHSA-46jr-4wx8-v453, GHSA-rvq5-wwqv-78pq, high). `package.json` 범위 `^2.0.0` 은 그대로이고 `package-lock.json` 만 바뀝니다.
+
 ### Fixed
 
 - recall: `version_filter` 가 `latest_only` 또는 `specific_version` 일 때 옛 버전이 `limit` 칸을 채운 뒤 버려져 결과가 `limit` 보다 적던 문제를 고쳤습니다(#1392). 두 필터는 검색 SQL 에서 페이지를 자르기 전에 걸립니다. 후처리도 검색 순서를 유지한 채 맞지 않는 버전만 뺍니다. `match_trigger_conditions` 는 매칭이 페이지 밖에 있으면 후보를 최대 500건까지 늘린 뒤 `limit` 건만 돌려줍니다.
