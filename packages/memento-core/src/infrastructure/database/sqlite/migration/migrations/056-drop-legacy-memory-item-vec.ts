@@ -11,11 +11,9 @@ import { logger } from '../../../../../shared/utils/logger.js';
 import { listExistingVecTables, recreateVecTriggers } from '../../vec-schema.js';
 import type { Migration } from '../types.js';
 
-const LEGACY_TABLE = 'memory_item_vec';
-
-function isQueryable(db: Database.Database, table: string): boolean {
+function legacyVecTableExists(db: Database.Database): boolean {
   try {
-    db.prepare(`SELECT rowid FROM ${table} LIMIT 1`).get();
+    db.prepare('SELECT rowid FROM memory_item_vec LIMIT 1').get();
     return true;
   } catch {
     return false;
@@ -30,8 +28,8 @@ export class DropLegacyMemoryItemVecMigration implements Migration {
   async validateBefore(_db: Database.Database): Promise<void> {}
 
   async up(db: Database.Database): Promise<void> {
-    if (isQueryable(db, LEGACY_TABLE)) {
-      db.exec(`DROP TABLE ${LEGACY_TABLE}`);
+    if (legacyVecTableExists(db)) {
+      db.exec('DROP TABLE memory_item_vec');
     }
     const hasEmbedding = Boolean(
       db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'memory_embedding'").get()
@@ -48,7 +46,7 @@ export class DropLegacyMemoryItemVecMigration implements Migration {
   }
 
   async validateAfter(db: Database.Database): Promise<void> {
-    if (isQueryable(db, LEGACY_TABLE)) {
+    if (legacyVecTableExists(db)) {
       throw new Error('memory_item_vec still exists after migration 056');
     }
     const trigger = db

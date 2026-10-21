@@ -142,12 +142,12 @@ export class NarrowLegacyVecAllowlistMigration implements Migration {
       );
     }
 
-    const stray = db
-      .prepare(
-        `SELECT COUNT(*) AS count FROM memory_item_vec
-         WHERE rowid NOT IN (SELECT id FROM memory_embedding WHERE ${LEGACY_MEMBER_FILTER})`
-      )
-      .get() as { count: number };
+    const strayNonMemberSql =
+      'SELECT COUNT(*) AS count FROM memory_item_vec ' +
+      'WHERE rowid NOT IN (SELECT id FROM memory_embedding WHERE ' +
+      LEGACY_MEMBER_FILTER +
+      ')';
+    const stray = db.prepare(strayNonMemberSql).get() as { count: number };
     if (stray.count !== 0) {
       throw new Error(`Migration 053 left ${stray.count} non-member rowids in memory_item_vec`);
     }

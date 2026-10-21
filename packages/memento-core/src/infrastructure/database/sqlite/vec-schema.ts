@@ -66,7 +66,7 @@ function minilmProviderPredicates(dimension: number): string[] {
  * #1383 이전 레거시 float[384] 테이블. 신규 VEC_TABLES·schema.sql 에는 없다.
  * 마이그레이션 053 이 기존 DB 트리거를 다시 쓸 때만 이 이름을 허용한다.
  */
-export const LEGACY_VEC_TABLE_NAME = 'memory_item_vec';
+const LEGACY_VEC_TABLE_NAME = 'memory_item_vec';
 
 /** 대상 vec 테이블 전체. */
 export const VEC_TABLES: readonly VecTableConfig[] = [
