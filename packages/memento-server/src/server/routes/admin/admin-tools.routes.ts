@@ -2,7 +2,7 @@
  * Admin: MCP에서 제거된 운영 도구(앵커 복원, 임베딩 마이그레이션, 변환, 메타 통계)
  */
 
-import type { Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import {
   RestoreAnchorsTool,
@@ -14,35 +14,39 @@ import {
 } from '@memento/core';
 import type { ServerServices } from '../../bootstrap.js';
 
-export function registerAdminToolRoutes(
-  router: Router,
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): void {
-  router.post('/anchors/restore', async (req, res) => {
+function servicesUnavailable(res: Response) {
+  return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+}
+
+function toolContext(db: Database.Database, serverServices: ServerServices) {
+  return createToolContext({ db, services: serverServices });
+}
+
+function respondWithToolResult(res: Response, message: string, resultText: string) {
+  const resultData = JSON.parse(resultText) as { success?: boolean };
+  if (resultData.success === false) {
+    return res.status(400).json(resultData);
+  }
+  return res.json({
+    message,
+    ...resultData,
+    timestamp: new Date().toISOString()
+  });
+}
+
+function postAnchorRestore(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db || !serverServices) {
-        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+        return servicesUnavailable(res);
       }
 
       const { agent_id } = req.body;
 
-      const toolContext = createToolContext({ db, services: serverServices });
       const restoreTool = new RestoreAnchorsTool();
-      const result = await restoreTool.handle({ agent_id }, toolContext);
+      const result = await restoreTool.handle({ agent_id }, toolContext(db, serverServices));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '앵커 복원 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '앵커 복원 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Anchor restoration failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -52,12 +56,14 @@ export function registerAdminToolRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.post('/embeddings/migrate', async (req, res) => {
+function postEmbeddingMigrate(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db || !serverServices) {
-        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+        return servicesUnavailable(res);
       }
 
       const { source_provider, target_provider, batch_size, dry_run } = req.body;
@@ -68,27 +74,15 @@ export function registerAdminToolRoutes(
         });
       }
 
-      const toolContext = createToolContext({ db, services: serverServices });
       const migrateTool = new MigrateEmbeddingsTool();
       const result = await migrateTool.handle({
         source_provider,
         target_provider,
         batch_size: batch_size || 100,
         dry_run: dry_run || false
-      }, toolContext);
+      }, toolContext(db, serverServices));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '임베딩 마이그레이션 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '임베딩 마이그레이션 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Embedding migration failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -98,12 +92,14 @@ export function registerAdminToolRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.post('/introspection/heal', async (req, res) => {
+function postIntrospectionHeal(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db || !serverServices) {
-        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+        return servicesUnavailable(res);
       }
 
       const {
@@ -116,7 +112,6 @@ export function registerAdminToolRoutes(
         soft_delete_importance_threshold
       } = req.body ?? {};
 
-      const toolContext = createToolContext({ db, services: serverServices });
       const healTool = new IntrospectionHealTool();
       const result = await healTool.handle({
         provider,
@@ -126,20 +121,9 @@ export function registerAdminToolRoutes(
         demote_factor,
         min_importance,
         soft_delete_importance_threshold
-      }, toolContext);
+      }, toolContext(db, serverServices));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: 'Introspection heal 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, 'Introspection heal 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Introspection heal failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -149,18 +133,17 @@ export function registerAdminToolRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/memory/meta-stats', async (req, res) => {
+function getMetaMemoryStats(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db || !serverServices) {
-        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+        return servicesUnavailable(res);
       }
 
       const { memory_id, memory_ids, min_recall_count, min_confidence, limit } = req.query;
-
-      const toolContext = createToolContext({ db, services: serverServices });
-      const statsTool = new GetMetaMemoryStatsTool();
 
       const params: Record<string, unknown> = {};
       if (memory_id !== undefined && memory_id !== '') {
@@ -197,20 +180,10 @@ export function registerAdminToolRoutes(
         params.limit = l;
       }
 
-      const result = await statsTool.handle(params, toolContext);
+      const statsTool = new GetMetaMemoryStatsTool();
+      const result = await statsTool.handle(params, toolContext(db, serverServices));
 
-      const resultText = result.content[0]?.text || '{}';
-      const resultData = JSON.parse(resultText);
-
-      if (resultData.success === false) {
-        return res.status(400).json(resultData);
-      }
-
-      return res.json({
-        message: '메타 메모리 통계 조회 완료',
-        ...resultData,
-        timestamp: new Date().toISOString()
-      });
+      return respondWithToolResult(res, '메타 메모리 통계 조회 완료', result.content[0]?.text || '{}');
     } catch (error) {
       logger.error('Meta memory stats retrieval failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -220,5 +193,16 @@ export function registerAdminToolRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
+
+export function registerAdminToolRoutes(
+  router: Router,
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): void {
+  router.post('/anchors/restore', postAnchorRestore(db, serverServices));
+  router.post('/embeddings/migrate', postEmbeddingMigrate(db, serverServices));
+  router.post('/introspection/heal', postIntrospectionHeal(db, serverServices));
+  router.get('/memory/meta-stats', getMetaMemoryStats(db, serverServices));
 }
