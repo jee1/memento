@@ -2,20 +2,20 @@
  * Admin: 메모리 정리, 통계(망각/성능/공고화), DB 최적화, 에러/알림 스텁
  */
 
-import type { Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import { logger } from '@memento/core';
 import type { ServerServices } from '../../bootstrap.js';
 
-export function registerAdminStatsAndHealthRoutes(
-  router: Router,
-  db: Database.Database | null,
-  serverServices: ServerServices | null
-): void {
-  router.post('/memory/cleanup', async (_req, res) => {
+function databaseUnavailable(res: Response) {
+  return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+}
+
+function postMemoryCleanup(db: Database.Database | null) {
+  return async (_req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
       const result = await db.prepare(`
@@ -39,12 +39,14 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/stats/forgetting', async (_req, res) => {
+function getForgettingStats(db: Database.Database | null) {
+  return async (_req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
       const stats = await db.prepare(`
@@ -71,12 +73,14 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/stats/performance', async (_req, res) => {
+function getPerformanceStats(db: Database.Database | null) {
+  return async (_req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
       const stats = await db.prepare(`
@@ -104,12 +108,14 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/stats/consolidation', async (req, res) => {
+function getConsolidationStats(db: Database.Database | null, serverServices: ServerServices | null) {
+  return async (req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
       const telemetry = serverServices?.telemetryService;
       if (!telemetry) {
@@ -134,12 +140,14 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.post('/database/optimize', async (_req, res) => {
+function postDatabaseOptimize(db: Database.Database | null) {
+  return async (_req: Request, res: Response) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return databaseUnavailable(res);
       }
 
       await db.prepare('VACUUM').run();
@@ -158,9 +166,11 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/stats/errors', async (_req, res) => {
+function getErrorStats() {
+  return async (_req: Request, res: Response) => {
     try {
       res.json({
         message: '에러 통계 조회 완료',
@@ -180,9 +190,11 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.post('/errors/resolve', async (req, res) => {
+function postErrorResolve() {
+  return async (req: Request, res: Response) => {
     try {
       const { errorId, resolvedBy, reason } = req.body;
       res.json({
@@ -201,9 +213,11 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
 
-  router.get('/alerts/performance', async (_req, res) => {
+function getPerformanceAlerts() {
+  return async (_req: Request, res: Response) => {
     try {
       res.json({
         message: '성능 알림 조회 완료',
@@ -219,5 +233,20 @@ export function registerAdminStatsAndHealthRoutes(
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+  };
+}
+
+export function registerAdminStatsAndHealthRoutes(
+  router: Router,
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): void {
+  router.post('/memory/cleanup', postMemoryCleanup(db));
+  router.get('/stats/forgetting', getForgettingStats(db));
+  router.get('/stats/performance', getPerformanceStats(db));
+  router.get('/stats/consolidation', getConsolidationStats(db, serverServices));
+  router.post('/database/optimize', postDatabaseOptimize(db));
+  router.get('/stats/errors', getErrorStats());
+  router.post('/errors/resolve', postErrorResolve());
+  router.get('/alerts/performance', getPerformanceAlerts());
 }
