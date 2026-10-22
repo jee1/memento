@@ -1,5 +1,5 @@
 # Multi-stage build for Memento MCP Server
-FROM node:24-alpine AS builder
+FROM node:24.22.1-alpine AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ COPY config/ ./config/
 RUN npm run build:packages
 
 # Production stage
-FROM node:24-slim AS production
+FROM node:24.22.1-slim AS production
 
 # Install SQLite and development tools (FTS5 is included in SQLite)
 # Install dependencies for sqlite-vec compilation

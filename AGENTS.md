@@ -45,7 +45,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 ## 3.1 Gotchas
 
 - **Docker 배포 전**: `npm run db:pre-docker-deploy` (DB 무결성 점검)
-- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`·`which node` 확인(Cursor agent PATH가 nvm을 가릴 수 있음). major 전환 후 `npm run rebuild-native`. Docker는 #702 (`node:24-*`)
+- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`·`which node` 확인(Cursor agent PATH가 nvm을 가릴 수 있음). major 전환 후 `npm run rebuild-native`. Docker 베이스는 `node:24.22.1-alpine`(builder, log-issue-monitor) / `node:24.22.1-slim`(production). 플로팅 `node:24-*` 는 로컬 캐시가 2026-10 패치 이전에 남으면 구버전이 들어가므로 쓰지 않는다 (#702 는 major 24)
 - **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
 - **memory_embedding migrate rebuild (#755)**: create/copy/drop/rename + `memory_embedding_vec_*` DROP은 단일 `db.transaction()`; 실패 시 live 테이블·트리거 함께 롤백. `recreateVecTriggers`는 성공 후 트랜잭션 밖
 - **memory_embedding metadata repair (#753)**: `ensureMemoryEmbeddingMetadataDefaults`는 `migrate.ts`·`initializeDatabase` 1회만 — `MemoryEmbeddingService` create/search/stats hot path에 테이블 전역 UPDATE 금지

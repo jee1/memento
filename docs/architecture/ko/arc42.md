@@ -323,7 +323,7 @@ rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → 
                    │
 ┌──────────────────▼──────────────────────┐
 │  Container: memento-mcp-server          │
-│  Base: node:24-slim                     │
+│  Base: node:24.22.1-slim                │
 │  Port: 9001 (HTTP MCP + Admin)          │
 │  DB_PATH=/app/data/memory.db            │
 │  start-container.sh → wal_checkpoint    │
