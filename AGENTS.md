@@ -9,6 +9,7 @@
 | [agent-workflow.md](./docs/agents/agent-workflow.md) | MCP·graphify·UI·복리 |
 | [search-ranking.md](./docs/agents/search-ranking.md) | 랭킹 공식 |
 | [DEVELOPMENT_RULES.md](./DEVELOPMENT_RULES.md) | 코딩 표준 |
+| [GLOSSARY.md](./GLOSSARY.md) | 도메인 용어 |
 
 ## 1. 프로젝트 개요
 
@@ -34,6 +35,10 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 기억에 코드를 붙여 넣지 않는다. 저장소 상대 경로, 수정한 함수나 클래스 이름, 바뀐 시그니처, 확정한 상수나 정규식만 적는다.
 
 완료 작업의 `episodic` 기록은 그대로 남긴다. `semantic`과 `procedural`은 세 조건을 모두 만족할 때만 남긴다. 문제가 반복된다. 내용은 결정 근거, 여러 단계의 우회, 다시 쓰는 절차다. 다음 에이전트가 검색 결과를 그대로 쓴다.
+
+도메인 용어는 [GLOSSARY.md](./GLOSSARY.md) 하나에서 정의한다. 용어 뜻이 바뀌거나 새 용어를 확정하면 같은 PR에서 갱신한다.
+
+ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 비교해 고른 결정만 남긴다. 파일은 `docs/adr/YYYY-MM-DD-issue-<n>-<slug>.md`, 한글, 상단에 상태/날짜/이슈 목록. 이 규칙이 domain-modeling 스킬의 `0001-` 번호 규칙보다 우선한다.
 
 상세 워크플로: [agent-workflow.md](./docs/agents/agent-workflow.md)
 
