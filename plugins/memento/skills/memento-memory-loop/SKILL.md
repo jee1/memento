@@ -47,6 +47,22 @@ remember(
 )
 ```
 
+For a completed episodic task, pass `record` instead of putting the five labels in `content`. `failed` may be an empty string. Recall renders the labels. Embeddings and FTS see the field values only.
+
+```
+remember(
+  type: "episodic",
+  tags: ["completed"],
+  record: {
+    decision: "What was decided",
+    rationale: "Measurement, error text, or file:line",
+    rejected: "Option reviewed and why it lost",
+    failed: "",
+    next_blocker: "What will stop the next session"
+  }
+)
+```
+
 Do not paste source into a memory. Record the repository-relative path, the function or class you changed, the signature that changed, and any constant or regular expression you settled.
 
 Save `semantic` and `procedural` memories only when all three hold. The problem recurs. The note is a decision reason, a multi-step workaround, or a reusable procedure. The next agent searches for it and uses the result. A completed `episodic` record is exempt.

@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 
 import { ensureMemoryEmbeddingContentHash } from '../ensure-memory-embedding-content-hash.js';
+import { ensureWorkRecordColumn } from '../ensure-work-record-column.js';
 import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../fts5-migration-status.js';
 import { normalizeReflectionNotes } from '../reflection-notes-normalize.js';
 import { log } from './database-error-helpers.js';
@@ -76,6 +77,7 @@ export async function initializeDatabase(db: Database.Database): Promise<void> {
     if (!memoryItemColumns.some(c => c.name === 'project_id')) {
       runQuery(db, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
     }
+    ensureWorkRecordColumn(db);
 
     runQuery(
       db,

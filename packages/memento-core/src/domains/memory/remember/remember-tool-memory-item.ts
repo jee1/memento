@@ -22,6 +22,8 @@ import type { ProceduralMemoryItem } from './remember-tool-types.js';
 import { findExistingProceduralMemory } from './remember-tool-db-helpers.js';
 import { prepareReflectionNotes } from './remember-tool-reflection.js';
 import { launchBackgroundAugmentation } from './remember-tool-augmentation.js';
+import { ensureWorkRecordColumn } from '../../../shared/utils/ensure-work-record-column.js';
+import { resolveStoredContent } from './work-record.js';
 import type { RememberParams } from './remember-tool-schema.js';
 import {
   applyNearDupMergeInputs,
@@ -78,7 +80,7 @@ async function assertMemoryVersionConflict(
 type ExistingMemory = ProceduralMemoryItem & { owner_id?: string | null; project_id?: string | null };
 
 /**
- * UPDATE·INSERT 가 공유하는 21개 컬럼은 아래 SQL 세 벌에서 같은 순서다. `buildSharedColumnValues` 가 그 순서로 값을 만든다.
+ * UPDATE·INSERT 가 공유하는 22개 컬럼은 아래 SQL 세 벌에서 같은 순서다. `buildSharedColumnValues` 가 그 순서로 값을 만든다.
  */
 const UPDATE_MEMORY_ITEM_SQL = `
   UPDATE memory_item SET
@@ -87,7 +89,8 @@ const UPDATE_MEMORY_ITEM_SQL = `
     workflow_name = ?, skill_name = ?, trigger_conditions = ?,
     recall_count = ?, last_accessed_at = ?,
     owner_id = ?, process_id = ?, session_id = ?,
-    num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?
+    num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?,
+    work_record = ?
   WHERE id = ?
 `;
 
@@ -99,6 +102,7 @@ const UPDATE_MEMORY_ITEM_CAS_SQL = `
     recall_count = ?, last_accessed_at = ?,
     owner_id = ?, process_id = ?, session_id = ?,
     num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?,
+    work_record = ?,
     version = ?
   WHERE id = ?
     AND owner_id IS ?
@@ -114,10 +118,10 @@ const INSERT_MEMORY_ITEM_SQL = `
     workflow_name, skill_name, trigger_conditions,
     recall_count, last_accessed_at,
     owner_id, process_id, session_id,
-    num_times, last_mentioned_at, source_session_id, confidence,
+    num_times, last_mentioned_at, source_session_id, confidence, work_record,
     id, type, created_at, version, version_series_id, project_id
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 /** 기존 행을 그 자리에서 고치는 갱신인가 (versioned 는 새 행을 만든다) */
@@ -152,7 +156,7 @@ function mergeSteps(
 }
 
 /**
- * 공유 21개 컬럼 값을 SQL 상수의 컬럼 순서대로 만든다.
+ * 공유 22개 컬럼 값을 SQL 상수의 컬럼 순서대로 만든다.
  * `previous` 는 그 자리에서 고칠 기존 행이다 (새 행이면 null).
  */
 function buildSharedColumnValues(
@@ -178,6 +182,7 @@ function buildSharedColumnValues(
     recallCount, lastAccessedAt,
     ctx.ownerId, ctx.processId, ctx.sessionId,
     ctx.numTimes, lastMentionedAt, ctx.sourceSessionId, ctx.confidenceVal,
+    params.record ? JSON.stringify(params.record) : null,
   ];
 }
 
@@ -272,6 +277,7 @@ async function persistMemoryItem(
   const previous = isUpdate ? existingMemory : null;
 
   try {
+    ensureWorkRecordColumn(db);
     await DatabaseUtils.runTransaction(db, async () => {
       const createdAt = new Date().toISOString();
       const sharedValues = buildSharedColumnValues(params, ctx, previous, finalReflectionNotes, createdAt, host);
@@ -496,6 +502,10 @@ export async function handleMemoryItem(
   ctx: MemoryItemContext,
   host: RememberToolHost
 ): Promise<ToolResult> {
+  params = {
+    ...params,
+    content: resolveStoredContent(params.content, params.record),
+  };
   const { type } = ctx;
   const { content, task_goal, reflection_notes, importance } = params;
 

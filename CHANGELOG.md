@@ -9,6 +9,12 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- remember: episodic 작업 기록은 `record`(decision, rationale, rejected, failed, next_blocker)로 저장합니다(#1446). 임베딩과 FTS 는 라벨 없는 필드 값만 보고, recall 과 memory_injection 이 라벨을 붙여 보여 줍니다. `failed` 는 빈 문자열을 허용합니다. 마이그레이션 057이 `memory_item.work_record` 를 추가합니다. `content` 만 보내는 호출은 그대로입니다.
+- 검색: 5줄 템플릿 라벨이 recall 순위에 미치는 영향을 재는 읽기 전용 스크립트 `scripts/measure-template-label-recall.ts` 를 추가합니다(#1445). 측정 결과 영향이 작아 기존 행 백필과 라벨 제거 정규식 삭제는 하지 않습니다(#1448).
+- 에이전트: 기억 쓰기 훅을 `plugins/memento/hooks/memento-recall.sh` 로 옮기고 episodic 은 `record` 필드를 쓰도록 바꿨습니다(#1447). Claude Code 플러그인 버전을 0.1.2로 올렸습니다.
+
 ### Changed
 
 - 에이전트: 기억 쓰기 안내에 좌표 규칙과 가치 문턱을 넣었습니다(#1429). 코드 블록 대신 저장소 상대 경로, 함수나 클래스 이름, 바뀐 시그니처, 확정한 상수나 정규식만 적습니다. `semantic`과 `procedural`은 문제가 반복되고, 결정 근거나 여러 단계의 우회나 다시 쓰는 절차이며, 다음 에이전트가 검색 결과를 그대로 쓸 때만 남깁니다. 완료 작업의 `episodic` 기록은 그대로 남깁니다. Claude Code 플러그인 스킬이 바뀌어 플러그인 버전을 0.1.1로 올렸습니다.

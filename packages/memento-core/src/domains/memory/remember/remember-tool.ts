@@ -36,7 +36,19 @@ export class RememberTool extends BaseTool {
         properties: {
           content: {
             type: 'string',
-            description: '저장할 내용 (type이 core/vault가 아닐 때 필수)'
+            description: '저장할 내용. episodic record 를 주면 생략할 수 있다. record 가 있으면 검색 본문은 라벨 없는 필드 값이다'
+          },
+          record: {
+            type: 'object',
+            description: 'episodic 작업 기록. 임베딩과 FTS 는 라벨을 보지 않고, recall 은 라벨을 붙여 보여 준다',
+            properties: {
+              decision: { type: 'string', description: '결정' },
+              rationale: { type: 'string', description: '근거' },
+              rejected: { type: 'string', description: '버린 대안' },
+              failed: { type: 'string', description: '안 통한 것. 빈 문자열 허용' },
+              next_blocker: { type: 'string', description: '다음 걸림돌' },
+            },
+            required: ['decision', 'rationale', 'rejected', 'failed', 'next_blocker'],
           },
           type: {
             type: 'string',

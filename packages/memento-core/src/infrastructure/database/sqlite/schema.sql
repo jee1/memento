@@ -46,7 +46,9 @@ CREATE TABLE IF NOT EXISTS memory_item (
   is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
   deleted_at TEXT,
   -- Project-scoped memory (Issue #81, migration 032)
-  project_id TEXT
+  project_id TEXT,
+  -- Episodic work record JSON (Issue #1446, migration 057). Search text stays in content.
+  work_record TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
   ON memory_item(is_deleted)
