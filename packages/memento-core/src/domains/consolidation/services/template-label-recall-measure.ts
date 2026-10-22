@@ -79,7 +79,7 @@ export function summarizePairwiseJaccard(texts: string[]): PairwiseJaccardSummar
   };
 }
 
-export function cosineSimilarity(left: number[], right: number[]): number {
+function cosineSimilarity(left: number[], right: number[]): number {
   const length = Math.min(left.length, right.length);
   let dot = 0;
   let leftNorm = 0;

@@ -40,7 +40,7 @@ export function renderWorkRecord(record: WorkRecord): string {
     .join('\n');
 }
 
-export function isWorkRecord(value: unknown): value is WorkRecord {
+function isWorkRecord(value: unknown): value is WorkRecord {
   if (!value || typeof value !== 'object') return false;
   const record = value as Partial<WorkRecord>;
   return FIELD_ORDER.every((field) => typeof record[field] === 'string');
