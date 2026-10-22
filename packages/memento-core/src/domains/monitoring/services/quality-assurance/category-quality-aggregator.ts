@@ -23,8 +23,15 @@ import {
   type BenchmarkQuery,
 } from './search-quality-benchmark-fixtures.js';
 import {
+  knowledgeUpdatePairIds,
   normalizeBenchmarkGroundTruths,
 } from './search-quality-review-verifier.js';
+import {
+  PAIR_RANK_WINDOW,
+  classifyPairRankOutcome,
+  summarizePairRankOutcomes,
+  type PairRankMacroSummary,
+} from './pair-rank-outcome.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
 import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
 import { calculateMRR } from './search-metrics-collector.js';
@@ -232,8 +239,22 @@ function buildMacroReport(
     ndcg_at_10: ndcg10 / n,
     mean_top10_content_length: top10LenSum / n,
     mean_top10_long_doc_ratio: longDocRatioSum / n,
-    threshold_passed: mrr >= MRR_THRESHOLD
+    threshold_passed: mrr >= MRR_THRESHOLD,
+    ...(macro === 'knowledge_update' ? { pair_rank: pairRankSummary(subsetGts, outcomes) } : {}),
   };
+}
+
+function pairRankSummary(
+  subsetGts: GroundTruth[],
+  outcomes: Map<string, CategorySearchOutcome>,
+): PairRankMacroSummary {
+  return summarizePairRankOutcomes(
+    subsetGts.map((groundTruth) => {
+      const { freshId, staleId } = knowledgeUpdatePairIds(groundTruth);
+      const ordered = outcomes.get(groundTruth.queryId)?.results.map((result) => result.id) ?? [];
+      return classifyPairRankOutcome(ordered, freshId, staleId);
+    }),
+  );
 }
 
 export class CategoryQualityAggregator {
@@ -277,12 +298,10 @@ export class CategoryQualityAggregator {
         .filter((groundTruth) => queryIdToMacro.get(groundTruth.queryId) === macro)
         .map((groundTruth) => groundTruth.queryId)
         .sort();
-    const scored_query_ids_by_macro = {
-      incident_ops: queryIdsForMacro('incident_ops'),
-      procedural: queryIdsForMacro('procedural'),
-      conceptual: queryIdsForMacro('conceptual'),
-      tag_filter: queryIdsForMacro('tag_filter'),
-    } satisfies CategoryMeasurement['scored_query_ids_by_macro'];
+    const scored_query_ids_by_macro = {} as { [K in MacroCategory]: readonly string[] };
+    for (const macro of ALL_MACROS) {
+      scored_query_ids_by_macro[macro] = queryIdsForMacro(macro);
+    }
     return { reports, scored_query_ids_by_macro };
   }
 
@@ -308,7 +327,7 @@ export class CategoryQualityAggregator {
       const queryText = queryById.get(gt.queryId)?.query ?? gt.queryId;
       const sr = await searchEngine.search(this.db, {
         query: queryText,
-        limit: 20,
+        limit: PAIR_RANK_WINDOW,
         provider_filter: getBenchmarkVectorProviderFilter(),
         ...(options?.vectorWeight !== undefined ? { vectorWeight: options.vectorWeight } : {}),
         ...(options?.textWeight !== undefined ? { textWeight: options.textWeight } : {}),

@@ -7,7 +7,7 @@ import {
   loadBenchmarkQueries,
 } from './search-quality-benchmark-fixtures.js';
 import { normalizeBenchmarkGroundTruths } from './search-quality-review-verifier.js';
-import { assertMacroCategory, type MacroCategory } from '../../../../shared/types/benchmark.types.js';
+import { ALL_MACROS, assertMacroCategory, type MacroCategory } from '../../../../shared/types/benchmark.types.js';
 
 const BENCHMARK_DIR = join(
   process.cwd(),
@@ -44,13 +44,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
       queryIdToMacro.set(q.query, macro);
     }
 
-    const ALL: MacroCategory[] = [
-      'incident_ops',
-      'procedural',
-      'conceptual',
-      'tag_filter',
-    ];
-    const counts = ALL.map((macro) => {
+    const counts = ALL_MACROS.map((macro) => {
       const n = groundTruths.filter((gt) => queryIdToMacro.get(gt.queryId) === macro).length;
       return [macro, n] as const;
     });
@@ -60,6 +54,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
       ['procedural', 6],
       ['conceptual', 10],
       ['tag_filter', 6],
+      ['knowledge_update', 24],
     ]);
   });
 
@@ -87,7 +82,7 @@ describe('benchmark-v3 category coverage (#934, lightweight)', () => {
       expect(categoryToMacro.has(label)).toBe(true);
       expect(scored.has(q.query) || scored.has(q.query_id)).toBe(true);
     }
-    expect(queries).toHaveLength(29);
-    expect(loadBenchmarkGroundTruth(BENCHMARK_DIR)).toHaveLength(29);
+    expect(queries).toHaveLength(53);
+    expect(loadBenchmarkGroundTruth(BENCHMARK_DIR)).toHaveLength(53);
   });
 });

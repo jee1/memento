@@ -163,5 +163,221 @@
       "bench_mem_003297",
       "bench_mem_003298"
     ]
+  },
+  {
+    "queryId": "합성지식 01 사내 위키 첨부 용량 한도 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0001"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0001"
+    ]
+  },
+  {
+    "queryId": "합성지식 02 배포 승인에 필요한 리뷰어 수 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0002"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0002"
+    ]
+  },
+  {
+    "queryId": "합성지식 03 API 요청 분당 한도 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0003"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0003"
+    ]
+  },
+  {
+    "queryId": "합성지식 04 세션 유지 시간 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0004"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0004"
+    ]
+  },
+  {
+    "queryId": "합성지식 05 비밀번호 최소 길이 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0005"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0005"
+    ]
+  },
+  {
+    "queryId": "합성지식 06 로그 보관 기간 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0006"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0006"
+    ]
+  },
+  {
+    "queryId": "합성지식 07 백업 주기 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0007"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0007"
+    ]
+  },
+  {
+    "queryId": "합성지식 08 동시 접속 세션 한도 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0008"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0008"
+    ]
+  },
+  {
+    "queryId": "합성지식 09 파일 업로드 타임아웃 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0009"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0009"
+    ]
+  },
+  {
+    "queryId": "합성지식 10 검색 결과 페이지 크기 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0010"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0010"
+    ]
+  },
+  {
+    "queryId": "합성지식 11 알림 재시도 횟수 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0011"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0011"
+    ]
+  },
+  {
+    "queryId": "합성지식 12 캐시 유효 시간 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0012"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0012"
+    ]
+  },
+  {
+    "queryId": "합성지식 13 일일 내보내기 한도 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0013"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0013"
+    ]
+  },
+  {
+    "queryId": "합성지식 14 회의 녹화 보관 일수 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0014"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0014"
+    ]
+  },
+  {
+    "queryId": "합성지식 15 게스트 계정 유효 기간 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0015"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0015"
+    ]
+  },
+  {
+    "queryId": "합성지식 16 인용 메시지 최대 길이 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0016"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0016"
+    ]
+  },
+  {
+    "queryId": "합성지식 17 장애 초기 연락 시간 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0017"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0017"
+    ]
+  },
+  {
+    "queryId": "합성지식 18 코드 리뷰 대기 상한 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0018"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0018"
+    ]
+  },
+  {
+    "queryId": "합성지식 19 테스트 커버리지 하한 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0019"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0019"
+    ]
+  },
+  {
+    "queryId": "합성지식 20 벡터 인덱스 재빌드 주기 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0020"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0020"
+    ]
+  },
+  {
+    "queryId": "합성지식 21 휴지통 보관 일수 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0021"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0021"
+    ]
+  },
+  {
+    "queryId": "합성지식 22 온콜 교대 길이 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0022"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0022"
+    ]
+  },
+  {
+    "queryId": "합성지식 23 프리뷰 환경 수명 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0023"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0023"
+    ]
+  },
+  {
+    "queryId": "합성지식 24 감사 로그 보존 기간 현재 값",
+    "relevantIds": [
+      "bench_syn_ku_fresh_0024"
+    ],
+    "staleIds": [
+      "bench_syn_ku_stale_0024"
+    ]
   }
 ]

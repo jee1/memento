@@ -51,12 +51,9 @@ function report(macro: MacroCategory, mrr: number): CategoryQualityReport {
 }
 
 function measurementFrom(mrrByMacro: Record<MacroCategory, number>): CategoryMeasurement {
-  const scored_query_ids_by_macro = {
-    incident_ops: ['q-incident_ops'],
-    procedural: ['q-procedural'],
-    conceptual: ['q-conceptual'],
-    tag_filter: ['q-tag_filter'],
-  } as const;
+  const scored_query_ids_by_macro = Object.fromEntries(
+    ALL_MACROS.map((macro) => [macro, [`q-${macro}`]]),
+  ) as CategoryMeasurement['scored_query_ids_by_macro'];
   return {
     reports: ALL_MACROS.map((macro) => report(macro, mrrByMacro[macro])),
     scored_query_ids_by_macro,
@@ -85,12 +82,7 @@ function prScope(measurement: CategoryMeasurement): ResolvedRankingScope {
   };
 }
 
-const baseMrr = {
-  incident_ops: 0.8,
-  procedural: 0.8,
-  conceptual: 0.8,
-  tag_filter: 0.8,
-} as const;
+const baseMrr = Object.fromEntries(ALL_MACROS.map((macro) => [macro, 0.8])) as Record<MacroCategory, number>;
 
 function writeHigherBaseline(dir: string): { path: string; measurement: CategoryMeasurement; scope: ResolvedRankingScope } {
   const measurement = measurementFrom(baseMrr);
@@ -170,6 +162,51 @@ describe('evaluateRanking', () => {
     ]);
     expect(outcome.stdout.join('\n')).not.toContain('MRR>=0.5');
     expect(outcome.stdout.join('\n')).not.toContain('threshold_passed');
+  });
+
+  it('prints pair_rank and leaves it out of the baseline document', () => {
+    const measurement = measurementFrom(baseMrr);
+    const withPair: CategoryMeasurement = {
+      ...measurement,
+      reports: measurement.reports.map((row) =>
+        row.macro_category === 'knowledge_update'
+          ? {
+              ...row,
+              pair_rank: {
+                judged: 2,
+                numerator: 1,
+                fresh_strictly_above_rate: 0.5,
+                outcome_histogram: {
+                  fresh_strictly_above: 0,
+                  stale_strictly_above: 0,
+                  tied: 0,
+                  fresh_only_in_window: 1,
+                  stale_only_in_window: 0,
+                  neither_in_window: 1,
+                },
+              },
+            }
+          : row,
+      ),
+    };
+    const scope = prScope(withPair);
+    const path = join(tempDir(), 'ranking.json');
+    const outcome = evaluateRanking({
+      measurement: withPair,
+      scope,
+      seededBenchmarkIds: scope.corpusBenchmarkIds,
+      embeddingProvider: 'minilm',
+      baselinePath: path,
+      elapsedMs: 10,
+      writeBaseline: true,
+    });
+    expect(outcome.mode).toBe('write');
+    expect(outcome.stdout.join('\n')).toContain(
+      'knowledge_update fresh_strictly_above=0.500 judged=2 numerator=fresh_strictly_above+fresh_only_in_window denominator=scored_knowledge_update_queries fresh_strictly_above=0 fresh_only_in_window=1 stale_strictly_above=0 stale_only_in_window=0 tied=0 neither_in_window=1',
+    );
+    const written = readFileSync(path, 'utf8');
+    expect(written).not.toContain('pair_rank');
+    expect(written).not.toContain('fresh_strictly_above');
   });
 
   it('passes a drop equal to the epsilon', () => {
@@ -365,6 +402,50 @@ describe('planRankingRun', () => {
       .sort((a, b) => sha256(a).localeCompare(sha256(b)) || a.localeCompare(b));
     const expected = [...relevant, ...distractors.slice(0, PR_CORPUS_CAP - relevant.length)].sort();
     expect(scope.corpusBenchmarkIds).toEqual(expected);
+  });
+
+  it('pins stale ids and throws when required ids exceed the cap', () => {
+    const dir = tempDir();
+    const ids = Array.from({ length: 420 }, (_, index) => `bench_${String(index).padStart(4, '0')}`);
+    const relevant = ids[0]!;
+    const distractors = ids
+      .filter((id) => id !== relevant)
+      .sort((a, b) => sha256(a).localeCompare(sha256(b)) || a.localeCompare(b));
+    const stale = distractors[distractors.length - 1]!;
+    writeFileSync(
+      join(dir, 'corpus.jsonl'),
+      ids.map((id) => JSON.stringify({ benchmark_id: id, source_memory_id: id, content: id })).join('\n') + '\n',
+    );
+    writeFileSync(join(dir, 'queries.json'), JSON.stringify([{ query_id: 'q1', query: 'alpha search' }]));
+    writeFileSync(
+      join(dir, 'ground-truth.json'),
+      JSON.stringify([{ queryId: 'q1', relevantIds: [relevant], staleIds: [stale] }]),
+    );
+    const scope = planRankingRun('pr', dir);
+    expect(scope.corpusBenchmarkIds).toHaveLength(PR_CORPUS_CAP);
+    expect(scope.corpusBenchmarkIds).toContain(relevant);
+    expect(scope.corpusBenchmarkIds).toContain(stale);
+    const fill = ids
+      .filter((id) => id !== relevant && id !== stale)
+      .sort((a, b) => sha256(a).localeCompare(sha256(b)) || a.localeCompare(b));
+    expect(scope.corpusBenchmarkIds).not.toContain(fill[fill.length - 1]);
+
+    const over = tempDir();
+    const overIds = Array.from({ length: 401 }, (_, index) => `over_${String(index).padStart(4, '0')}`);
+    writeFileSync(
+      join(over, 'corpus.jsonl'),
+      overIds.map((id) => JSON.stringify({ benchmark_id: id, source_memory_id: id, content: id })).join('\n') + '\n',
+    );
+    writeFileSync(join(over, 'queries.json'), JSON.stringify([{ query_id: 'q1', query: 'alpha search' }]));
+    writeFileSync(
+      join(over, 'ground-truth.json'),
+      JSON.stringify([{
+        queryId: 'q1',
+        relevantIds: overIds.slice(0, 200),
+        staleIds: overIds.slice(200),
+      }]),
+    );
+    expect(() => planRankingRun('pr', over)).toThrow(/PR_CORPUS_CAP/);
   });
 
   it('uses the full corpus for nightly', () => {

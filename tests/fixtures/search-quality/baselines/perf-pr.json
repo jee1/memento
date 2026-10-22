@@ -5,11 +5,11 @@
     "fixture": "benchmark-v3-scaled",
     "embedding_provider": "minilm",
     "corpus_row_count": 10000,
-    "measured_query_count": 29
+    "measured_query_count": 53
   },
   "metrics": {
-    "search_p95_ms": 321.1507500000298,
-    "rss_bytes": 1032605696,
+    "search_p95_ms": 60.80973700003233,
+    "rss_bytes": 915750912,
     "rss_sample_point": "post_warmup"
   }
 }

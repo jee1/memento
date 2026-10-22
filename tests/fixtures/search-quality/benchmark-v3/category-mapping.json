@@ -3,7 +3,8 @@
     "incident_ops": ["incident", "operations"],
     "procedural": ["procedure", "procedural", "database", "build"],
     "conceptual": ["search", "memory", "anchor", "embedding", "relation", "security", "forgetting"],
-    "tag_filter": ["config", "dev", "resilience", "testing"]
+    "tag_filter": ["config", "dev", "resilience", "testing"],
+    "knowledge_update": ["knowledge_update"]
   },
   "query_overrides": {},
   "query_id_to_category": {
@@ -35,6 +36,30 @@
     "q_033": "config",
     "q_034": "incident",
     "q_035": "incident",
-    "q_036": "operations"
+    "q_036": "operations",
+    "q_ku_01": "knowledge_update",
+    "q_ku_02": "knowledge_update",
+    "q_ku_03": "knowledge_update",
+    "q_ku_04": "knowledge_update",
+    "q_ku_05": "knowledge_update",
+    "q_ku_06": "knowledge_update",
+    "q_ku_07": "knowledge_update",
+    "q_ku_08": "knowledge_update",
+    "q_ku_09": "knowledge_update",
+    "q_ku_10": "knowledge_update",
+    "q_ku_11": "knowledge_update",
+    "q_ku_12": "knowledge_update",
+    "q_ku_13": "knowledge_update",
+    "q_ku_14": "knowledge_update",
+    "q_ku_15": "knowledge_update",
+    "q_ku_16": "knowledge_update",
+    "q_ku_17": "knowledge_update",
+    "q_ku_18": "knowledge_update",
+    "q_ku_19": "knowledge_update",
+    "q_ku_20": "knowledge_update",
+    "q_ku_21": "knowledge_update",
+    "q_ku_22": "knowledge_update",
+    "q_ku_23": "knowledge_update",
+    "q_ku_24": "knowledge_update"
   }
 }

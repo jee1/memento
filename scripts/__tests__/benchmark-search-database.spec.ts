@@ -265,9 +265,12 @@ describe('#973 합성 코퍼스의 created_at 은 실제 범위 안에 흩어져
     const realTimes = real.map((r) => Date.parse(r.created_at)).filter((t) => Number.isFinite(t));
     const lo = Math.min(...realTimes);
     const hi = Math.max(...realTimes);
+    // knowledge_update pairs sit after the snapshot max so the ranker still sees a half-life gap.
+    // Uniqueness above keeps those rows from sharing one recency value.
     for (const s of synthetic) {
       const t = Date.parse(s.created_at);
       expect(Number.isFinite(t)).toBe(true);
+      if (s.benchmark_id.startsWith('bench_syn_ku_')) continue;
       expect(t).toBeGreaterThanOrEqual(lo);
       expect(t).toBeLessThanOrEqual(hi);
     }
