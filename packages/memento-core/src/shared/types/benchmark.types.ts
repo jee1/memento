@@ -2,6 +2,7 @@
  * 검색 품질 벤치마크·카테고리 리포트 타입
  */
 
+import type { PairRankMacroSummary } from '../../domains/monitoring/services/quality-assurance/pair-rank-outcome.js';
 import type { EmbeddingProvider } from './embedding.types.js';
 
 const BENCHMARK_EMBEDDING_PROVIDERS = new Set<string>([
@@ -35,14 +36,19 @@ export type MacroCategory =
   | 'incident_ops'
   | 'procedural'
   | 'conceptual'
-  | 'tag_filter';
+  | 'tag_filter'
+  | 'knowledge_update';
 
-const MACRO_CATEGORY_SET = new Set<string>([
+/** Aggregator, category-report, and the baseline identity all derive from this list. */
+export const ALL_MACROS = [
   'incident_ops',
   'procedural',
   'conceptual',
   'tag_filter',
-]);
+  'knowledge_update',
+] as const satisfies readonly MacroCategory[];
+
+const MACRO_CATEGORY_SET = new Set<string>(ALL_MACROS);
 
 /** category-mapping.json의 query_overrides 등 — 오타 시 즉시 실패 */
 export function assertMacroCategory(value: string, contextLabel: string): MacroCategory {
@@ -54,14 +60,6 @@ export function assertMacroCategory(value: string, contextLabel: string): MacroC
   }
   return value as MacroCategory;
 }
-
-/** Aggregator, category-report, and the baseline identity all derive from this list. */
-export const ALL_MACROS = [
-  'incident_ops',
-  'procedural',
-  'conceptual',
-  'tag_filter',
-] as const satisfies readonly MacroCategory[];
 
 export type RankingScopeName = 'nightly' | 'pr';
 
@@ -95,6 +93,8 @@ export interface CategoryQualityReport {
    * The ranking gate does not read this field.
    */
   threshold_passed: boolean;
+  /** Fresh-vs-stale placement. Set only for knowledge_update. The ranking gate does not read it. */
+  readonly pair_rank?: PairRankMacroSummary;
 }
 
 /**

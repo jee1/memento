@@ -1036,6 +1036,7 @@ describe('QualityMetricsCollector', () => {
         ['procedural', 6],
         ['conceptual', 10],
         ['tag_filter', 6],
+        ['knowledge_update', 24],
       ]);
       expect(reports.every((r) => r.query_count === r.authored_query_count)).toBe(true);
       // 빈 테스트 DB에서는 검색 히트가 없어 길이가 0일 수 있음 — 필드 존재·비음수만 고정

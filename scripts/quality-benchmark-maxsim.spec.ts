@@ -5,6 +5,7 @@ import {
 } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
 import { calculateMRR } from '@memento/core/domains/monitoring/services/quality-assurance/search-metrics-collector.js';
 import type { GroundTruth } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-metrics.js';
+import { ALL_MACROS } from '@memento/core/shared/types/benchmark.types.js';
 import { resolveQualityCommand } from './quality.js';
 import {
   rankByScore,
@@ -13,8 +14,6 @@ import {
 } from './lib/maxsim-measurement.js';
 import { BENCHMARK_V3_DIR } from './lib/rejection-baseline-database.js';
 import { buildMaxsimReport } from './quality-benchmark-maxsim.js';
-
-const REQUIRED_MACROS = ['incident_ops', 'procedural', 'conceptual', 'tag_filter'] as const;
 
 function makeRanking(ids: string[]): Array<{ id: string; score: number }> {
   return ids.map((id, index) => ({ id, score: 1 - index * 0.01 }));
@@ -121,7 +120,7 @@ describe('quality-benchmark-maxsim (issue 1107)', () => {
       perQuery,
     });
 
-    expect(report.macro.map((row) => row.macro_category)).toEqual([...REQUIRED_MACROS]);
+    expect(report.macro.map((row) => row.macro_category)).toEqual([...ALL_MACROS]);
     expect(report.macro.find((row) => row.macro_category === 'incident_ops')?.query_count).toBe(7);
     expect(report.macro.find((row) => row.macro_category === 'tag_filter')?.query_count).toBe(6);
     expect(report.macro.find((row) => row.macro_category === 'procedural')?.query_count).toBe(6);

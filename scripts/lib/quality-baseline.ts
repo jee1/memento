@@ -27,7 +27,7 @@ export const MRR_DROP_EPSILON = 0.03;
 export const PERF_P95_SLACK = 2;
 export const PERF_RSS_SLACK = 1.5;
 
-/** Relevants are never dropped, so a seed can exceed this when GT grows past it. */
+/** Required relevant and stale ids are kept. A required set longer than this throws. */
 export const PR_CORPUS_CAP = 400;
 
 export const PERF_CORPUS_ROWS = 10_000;
@@ -164,7 +164,7 @@ interface CompareResult {
   readonly perfField?: 'search_p95_ms' | 'rss_bytes';
 }
 
-/** One scope per process. PR keeps every GT relevant id, then sha256-ordered distractors. */
+/** One scope per process. PR pins relevant and stale ids, then sha256-ordered distractors up to the cap. */
 export function planRankingRun(name: RankingScopeName, benchmarkDir: string): ResolvedRankingScope {
   return resolveRankingScope(name, benchmarkDir);
 }
@@ -257,22 +257,28 @@ function resolveRankingScope(name: RankingScopeName, benchmarkDir: string): Reso
     (groundTruth) => groundTruth.relevantIds.length > 0,
   );
   const queryIds = groundTruths.map((groundTruth) => groundTruth.queryId).sort();
-  const relevantIds = groundTruths.flatMap((groundTruth) => groundTruth.relevantIds);
+  const requiredIds = groundTruths.flatMap((groundTruth) => [
+    ...groundTruth.relevantIds,
+    ...(groundTruth.staleIds ?? []),
+  ]);
   const corpusBenchmarkIds =
-    name === 'nightly' ? uniqueSorted(corpusIds) : selectPrCorpus(corpusIds, relevantIds);
+    name === 'nightly' ? uniqueSorted(corpusIds) : selectPrCorpus(corpusIds, requiredIds);
   return { name, corpusBenchmarkIds, queryIds };
 }
 
-function selectPrCorpus(corpusIds: readonly string[], relevantIds: readonly string[]): string[] {
+function selectPrCorpus(corpusIds: readonly string[], requiredIds: readonly string[]): string[] {
   const corpusSet = new Set(corpusIds);
   const relevant: string[] = [];
-  for (const id of relevantIds) {
+  for (const id of requiredIds) {
     if (!corpusSet.has(id)) {
-      throw new Error(`Ground truth relevant id is not in the corpus: ${id}`);
+      throw new Error(`Ground truth id is not in the corpus: ${id}`);
     }
     if (!relevant.includes(id)) {
       relevant.push(id);
     }
+  }
+  if (relevant.length > PR_CORPUS_CAP) {
+    throw new Error(`PR corpus required ids exceed PR_CORPUS_CAP: ${relevant.length} > ${PR_CORPUS_CAP}`);
   }
   const relevantSet = new Set(relevant);
   const distractors = corpusIds.filter((id) => !relevantSet.has(id));
@@ -656,8 +662,27 @@ function formatRankingStdout(
     lines.push(
       `${report.macro_category} | ${report.query_count}/${report.authored_query_count} | ${report.mrr.toFixed(4)} | ${report.ndcg_at_5.toFixed(4)} | ${report.ndcg_at_10.toFixed(4)} | ${report.mean_top10_content_length.toFixed(0)} | ${drop}`,
     );
+    if (report.pair_rank) {
+      lines.push(formatPairRankLine(report.pair_rank));
+    }
   }
   return lines;
+}
+
+function formatPairRankLine(summary: NonNullable<CategoryQualityReport['pair_rank']>): string {
+  const counts = summary.outcome_histogram;
+  return [
+    `knowledge_update fresh_strictly_above=${summary.fresh_strictly_above_rate.toFixed(3)}`,
+    `judged=${summary.judged}`,
+    'numerator=fresh_strictly_above+fresh_only_in_window',
+    'denominator=scored_knowledge_update_queries',
+    `fresh_strictly_above=${counts.fresh_strictly_above}`,
+    `fresh_only_in_window=${counts.fresh_only_in_window}`,
+    `stale_strictly_above=${counts.stale_strictly_above}`,
+    `stale_only_in_window=${counts.stale_only_in_window}`,
+    `tied=${counts.tied}`,
+    `neither_in_window=${counts.neither_in_window}`,
+  ].join(' ');
 }
 
 function formatPerfStdout(

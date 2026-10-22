@@ -1,9 +1,13 @@
 import {
   buildBenchmarkQueryLookup,
+  loadBenchmarkCategoryMapping,
   loadBenchmarkCorpus,
   loadBenchmarkGroundTruth,
   loadBenchmarkManifest,
   loadBenchmarkQueries,
+  type BenchmarkCategoryMapping,
+  type BenchmarkCorpusEntry,
+  type BenchmarkQuery,
 } from './search-quality-benchmark-fixtures.js';
 import type { GroundTruth } from './search-quality-metrics.js';
 
@@ -20,6 +24,71 @@ export interface ReviewVerificationResult {
 
 export interface ReviewVerificationOptions {
   requireReviewed?: boolean;
+}
+
+export function knowledgeUpdatePairIds(groundTruth: GroundTruth): { freshId: string; staleId: string } {
+  const freshId = groundTruth.relevantIds.length === 1 ? groundTruth.relevantIds[0] : undefined;
+  const staleId = groundTruth.staleIds?.length === 1 ? groundTruth.staleIds[0] : undefined;
+  if (freshId === undefined || staleId === undefined) {
+    throw new Error(
+      `knowledge_update query requires exactly one fresh id and one stale id: ${groundTruth.queryId}`,
+    );
+  }
+  return { freshId, staleId };
+}
+
+/** Corpus rows store `YYYY-MM-DD HH:MM:SS` as well as ISO. Only the first space becomes `T`. */
+function parseCorpusCreatedAt(value: string | undefined): number | undefined {
+  if (value === undefined || value.length === 0) {
+    return undefined;
+  }
+  const parsed = Date.parse(value.replace(' ', 'T'));
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function isKnowledgeUpdateQuery(query: BenchmarkQuery, mapping: BenchmarkCategoryMapping): boolean {
+  const override = mapping.query_overrides?.[query.query_id];
+  if (override !== undefined) {
+    return override === 'knowledge_update';
+  }
+  const label = mapping.query_id_to_category[query.query_id];
+  if (label === undefined) {
+    return false;
+  }
+  return (mapping.macro_categories.knowledge_update ?? []).includes(label);
+}
+
+function knowledgeUpdateChronologyErrors(
+  query: BenchmarkQuery,
+  groundTruth: GroundTruth,
+  corpusById: ReadonlyMap<string, BenchmarkCorpusEntry>,
+): string[] {
+  let freshId: string;
+  let staleId: string;
+  try {
+    ({ freshId, staleId } = knowledgeUpdatePairIds(groundTruth));
+  } catch (error) {
+    return [error instanceof Error ? error.message : String(error)];
+  }
+  const errors: string[] = [];
+  const fresh = corpusById.get(freshId);
+  const stale = corpusById.get(staleId);
+  if (!stale) {
+    errors.push(`Stale ID not found in corpus: ${staleId}`);
+  }
+  if (!fresh || !stale) {
+    return errors;
+  }
+  const freshAt = parseCorpusCreatedAt(fresh.created_at);
+  const staleAt = parseCorpusCreatedAt(stale.created_at);
+  if (freshAt === undefined || staleAt === undefined) {
+    errors.push(`knowledge_update ${query.query_id}: created_at is not a timestamp`);
+    return errors;
+  }
+  if (freshAt <= staleAt) {
+    errors.push(`knowledge_update ${query.query_id}: fresh created_at must be later than stale created_at`);
+  }
+  return errors;
 }
 
 export function normalizeBenchmarkGroundTruths(
@@ -81,6 +150,23 @@ export function verifyReviewableBenchmark(
 
   if (manifest.corpus_size !== corpus.length) {
     errors.push(`Manifest corpus_size mismatch: expected ${corpus.length}, got ${manifest.corpus_size}`);
+  }
+
+  const mapping = loadBenchmarkCategoryMapping(benchmarkDir);
+  if (mapping) {
+    const corpusById = new Map(corpus.map((entry) => [entry.benchmark_id, entry]));
+    for (const query of queries) {
+      if (!isKnowledgeUpdateQuery(query, mapping)) {
+        continue;
+      }
+      const groundTruth = groundTruths.find(
+        (row) => row.queryId === query.query || row.queryId === query.query_id,
+      );
+      if (!groundTruth) {
+        continue;
+      }
+      errors.push(...knowledgeUpdateChronologyErrors(query, groundTruth, corpusById));
+    }
   }
 
   if (options.requireReviewed && manifest.ground_truth_reviewed !== true) {

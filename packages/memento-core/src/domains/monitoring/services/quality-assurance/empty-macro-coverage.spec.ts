@@ -101,6 +101,7 @@ describe('CategoryQualityAggregator empty-macro coverage (#934)', () => {
       'procedural',
       'conceptual',
       'tag_filter',
+      'knowledge_update',
     ]);
     const tag = reports.find((r) => r.macro_category === 'tag_filter');
     expect(tag).toEqual(

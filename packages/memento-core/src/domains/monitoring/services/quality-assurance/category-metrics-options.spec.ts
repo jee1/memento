@@ -40,8 +40,8 @@ describe('CategoryMetricsOptions (#961)', () => {
     });
     const scored = reports.reduce((s, r) => s + r.query_count, 0);
     const authored = reports.reduce((s, r) => s + r.authored_query_count, 0);
-    expect(scored).toBe(24);
-    expect(authored).toBe(24);
+    expect(scored).toBe(48);
+    expect(authored).toBe(48);
     expect(scored / authored).toBe(1);
   });
 
@@ -49,7 +49,7 @@ describe('CategoryMetricsOptions (#961)', () => {
     const a = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH);
     const b = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {});
     expect(a).toEqual(b);
-    expect(a.reports.reduce((s, r) => s + r.query_count, 0)).toBe(29);
+    expect(a.reports.reduce((s, r) => s + r.query_count, 0)).toBe(53);
     for (const report of a.reports) {
       expect(a.scored_query_ids_by_macro[report.macro_category]).toHaveLength(report.query_count);
     }
@@ -71,11 +71,11 @@ describe('CategoryMetricsOptions (#961)', () => {
     ).toBe(true);
   });
 
-  it('maxGroundTruthLength: 1 이면 4개 macro 행이 query_count: 0', async () => {
+  it('maxGroundTruthLength: 1 이면 macro 행이 query_count: 0', async () => {
     const { reports } = await aggregator.collect(BENCHMARK_DIR, MAPPING_PATH, {
       maxGroundTruthLength: 1,
     });
-    expect(reports).toHaveLength(4);
+    expect(reports).toHaveLength(5);
     expect(reports.every((r) => r.query_count === 0)).toBe(true);
     expect(reports.every((r) => r.mean_top10_long_doc_ratio === 0)).toBe(true);
   });

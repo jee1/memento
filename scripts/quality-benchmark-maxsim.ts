@@ -20,6 +20,7 @@ import {
   type SearchResult,
 } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-metrics.js';
 import {
+  ALL_MACROS,
   assertMacroCategory,
   resolveBenchmarkEmbeddingProvider,
   type MacroCategory,
@@ -38,13 +39,6 @@ const MRR_THRESHOLD = 0.5;
 const RECALL_DEPTHS = [10, 20, 50, 100] as const;
 type RecallDepth = (typeof RECALL_DEPTHS)[number];
 type RecallAtRecord = Record<'10' | '20' | '50' | '100', number>;
-
-const ALL_MACROS: MacroCategory[] = [
-  'incident_ops',
-  'procedural',
-  'conceptual',
-  'tag_filter',
-];
 
 /** issue 1107: macro별 mean·max-sim arm MRR·NDCG */
 export interface MaxsimArmMetrics {

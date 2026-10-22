@@ -13,6 +13,8 @@ export interface SearchResult {
 export interface GroundTruth {
   queryId: string;
   relevantIds: string[]; // 관련 결과 ID 목록
+  /** Pair-rank only. calculateMRR and calculateNDCGAtK read relevantIds. */
+  readonly staleIds?: readonly string[];
 }
 
 /**

@@ -101,6 +101,20 @@ export function assertStrictBenchmark(manifest: BenchmarkManifest): void {
   }
 }
 
+export interface BenchmarkCategoryMapping {
+  macro_categories: Record<string, string[]>;
+  query_overrides?: Record<string, string>;
+  query_id_to_category: Record<string, string>;
+}
+
+export function loadBenchmarkCategoryMapping(benchmarkDir?: string): BenchmarkCategoryMapping | undefined {
+  const filePath = join(resolveBenchmarkDir(benchmarkDir), 'category-mapping.json');
+  if (!existsSync(filePath)) {
+    return undefined;
+  }
+  return readJsonFile<BenchmarkCategoryMapping>(filePath, 'Benchmark category mapping');
+}
+
 export function loadBenchmarkQueries(benchmarkDir?: string): BenchmarkQuery[] {
   const queries = readJsonFile<BenchmarkQuery[]>(
     join(resolveBenchmarkDir(benchmarkDir), 'queries.json'),
@@ -134,6 +148,12 @@ export function loadBenchmarkGroundTruth(benchmarkDir?: string): GroundTruth[] {
   for (const groundTruth of groundTruths) {
     if (!groundTruth.queryId || !Array.isArray(groundTruth.relevantIds)) {
       throw new Error('Invalid benchmark ground truth: queryId/relevantIds are required');
+    }
+    if (
+      groundTruth.staleIds !== undefined &&
+      (!Array.isArray(groundTruth.staleIds) || groundTruth.staleIds.some((id) => typeof id !== 'string'))
+    ) {
+      throw new Error('Invalid benchmark ground truth: staleIds must be an array of strings');
     }
   }
 
