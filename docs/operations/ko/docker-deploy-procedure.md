@@ -3,7 +3,7 @@
 Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 공식 절차입니다.  
 `memory.db`는 호스트 `~/.memento/data/`에 마운트되므로, 컨테이너 재기동만으로도 DB 무결성 검사(`quick_check`)가 실행됩니다. 손상된 DB는 서버가 **의도적으로 기동을 거부**합니다.
 
-메인 `Dockerfile` 베이스는 **Node 24**입니다 (`node:24-alpine` builder / `node:24-slim` production). `package.json` `engines.node`·CI와 동일 major입니다. 배포 전 무결성 점검은 아래 `npm run db:pre-docker-deploy`를 따릅니다.
+메인 `Dockerfile` 베이스는 **Node 24.22.1**입니다 (`node:24.22.1-alpine` builder / `node:24.22.1-slim` production). `package.json` `engines.node`·CI와 동일 major입니다. 플로팅 `node:24-*` 태그는 쓰지 않습니다. 배포 전 무결성 점검은 아래 `npm run db:pre-docker-deploy`를 따릅니다.
 
 관련 문서:
 
