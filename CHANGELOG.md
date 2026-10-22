@@ -15,8 +15,13 @@
 - 검색: 5줄 템플릿 라벨이 recall 순위에 미치는 영향을 재는 읽기 전용 스크립트 `scripts/measure-template-label-recall.ts` 를 추가합니다(#1445). 측정 결과 영향이 작아 기존 행 백필과 라벨 제거 정규식 삭제는 하지 않습니다(#1448).
 - 에이전트: 기억 쓰기 훅을 `plugins/memento/hooks/memento-recall.sh` 로 옮기고 episodic 은 `record` 필드를 쓰도록 바꿨습니다(#1447). Claude Code 플러그인 버전을 0.1.2로 올렸습니다.
 
+## [2.2.2] - 2026-10-22
+
+Docker Node 베이스를 2026-10 보안 릴리스 24.22.1로 고정합니다. 2.2.1 이후 main에 들어간 변경을 함께 담습니다.
+
 ### Changed
 
+- Docker: builder와 log-issue-monitor는 `node:24.22.1-alpine`, production은 `node:24.22.1-slim`입니다. 플로팅 `node:24` 태그는 패치 이전 로컬 캐시를 그대로 씁니다.
 - 에이전트: 기억 쓰기 안내에 좌표 규칙과 가치 문턱을 넣었습니다(#1429). 코드 블록 대신 저장소 상대 경로, 함수나 클래스 이름, 바뀐 시그니처, 확정한 상수나 정규식만 적습니다. `semantic`과 `procedural`은 문제가 반복되고, 결정 근거나 여러 단계의 우회나 다시 쓰는 절차이며, 다음 에이전트가 검색 결과를 그대로 쓸 때만 남깁니다. 완료 작업의 `episodic` 기록은 그대로 남깁니다. Claude Code 플러그인 스킬이 바뀌어 플러그인 버전을 0.1.1로 올렸습니다.
 - 개발: `createQualityRouter`가 핸들러 10개를 인라인 클로저로 품던 것을 이름 있는 함수로 꺼내 경로 나열만 남겼습니다(#1371). 응답·상태 코드·경로 순서는 그대로입니다.
 - 데이터베이스: `memory_relation`의 `source`·`target` 단일 인덱스와 `relation_type`·`confidence` 인덱스를 제거합니다(#1376). source·target 조회는 `source_type`·`target_type`과 UNIQUE(source, target, type) 접두사를 씁니다. 마이그레이션 055가 기존 DB에서 인덱스를 지웁니다.
