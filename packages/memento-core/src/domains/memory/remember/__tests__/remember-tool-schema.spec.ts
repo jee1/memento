@@ -51,4 +51,17 @@ describe('RememberSchema (#1000)', () => {
       update_mode: 'incremental',
     })).not.toThrow();
   });
+
+  it('episodic record 는 content 없이 통과하고 다른 타입은 거절한다', () => {
+    const record = {
+      decision: '컬럼을 추가한다',
+      rationale: 'regex 가 대시를 놓친다',
+      rejected: 'reflection_notes 재사용',
+      failed: '',
+      next_blocker: '운영 백필',
+    };
+    expect(RememberSchema.parse({ type: 'episodic', record }).record).toEqual(record);
+    expect(() => RememberSchema.parse({ type: 'semantic', record })).toThrow(ZodError);
+    expect(() => RememberSchema.parse({ type: 'episodic' })).toThrow(ZodError);
+  });
 });

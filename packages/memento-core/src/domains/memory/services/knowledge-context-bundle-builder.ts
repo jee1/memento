@@ -9,6 +9,7 @@ import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embeddin
 import { logger } from '../../../shared/utils/logger.js';
 import { isFullMemoryItemTypeSet } from '../../../shared/utils/type-guards.js';
 import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
+import { overlayWorkRecordDisplay } from '../remember/work-record.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
@@ -323,7 +324,7 @@ export async function buildKnowledgeContextBundle(
     };
   }
 
-  const summary = summarizeMemories(memories, tokenBudget, maxMemories);
+  const summary = summarizeMemories(overlayWorkRecordDisplay(deps.db, memories), tokenBudget, maxMemories);
   const formattedPrompt = formatMemoryPrompt(summary, query);
   const tokenEstimate = estimateTokens(formattedPrompt);
 

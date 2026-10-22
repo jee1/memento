@@ -9,6 +9,16 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Security
+
+- 의존성: 전이 의존성 `ip-address` 10.7.2 → 10.7.4 (GHSA-rxp7-6hxx-x8q5, moderate). `express-rate-limit` 범위 안에서 lockfile 만 바뀝니다.
+
+### Added
+
+- remember: episodic 작업 기록은 `record`(decision, rationale, rejected, failed, next_blocker)로 저장합니다(#1446). 임베딩과 FTS 는 라벨 없는 필드 값만 보고, recall 과 memory_injection 이 라벨을 붙여 보여 줍니다. `failed` 는 빈 문자열을 허용합니다. 마이그레이션 057이 `memory_item.work_record` 를 추가합니다. `content` 만 보내는 호출은 그대로입니다.
+- 검색: 5줄 템플릿 라벨이 recall 순위에 미치는 영향을 재는 읽기 전용 스크립트 `scripts/measure-template-label-recall.ts` 를 추가합니다(#1445). 측정 결과 영향이 작아 기존 행 백필과 라벨 제거 정규식 삭제는 하지 않습니다(#1448).
+- 에이전트: 기억 쓰기 훅을 `plugins/memento/hooks/memento-recall.sh` 로 옮기고 episodic 은 `record` 필드를 쓰도록 바꿨습니다(#1447). Claude Code 플러그인 버전을 0.1.2로 올렸습니다.
+
 ## [2.2.2] - 2026-10-22
 
 Docker Node 베이스를 2026-10 보안 릴리스 24.22.1로 고정합니다. 2.2.1 이후 main에 들어간 변경을 함께 담습니다.

@@ -752,7 +752,7 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "boolean",
           },
           "content": {
-            "description": "저장할 내용 (type이 core/vault가 아닐 때 필수)",
+            "description": "저장할 내용. episodic record 를 주면 생략할 수 있다. record 가 있으면 검색 본문은 라벨 없는 필드 값이다",
             "type": "string",
           },
           "expected_version": {
@@ -789,6 +789,39 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
               "public",
             ],
             "type": "string",
+          },
+          "record": {
+            "description": "episodic 작업 기록. 임베딩과 FTS 는 라벨을 보지 않고, recall 은 라벨을 붙여 보여 준다",
+            "properties": {
+              "decision": {
+                "description": "결정",
+                "type": "string",
+              },
+              "failed": {
+                "description": "안 통한 것. 빈 문자열 허용",
+                "type": "string",
+              },
+              "next_blocker": {
+                "description": "다음 걸림돌",
+                "type": "string",
+              },
+              "rationale": {
+                "description": "근거",
+                "type": "string",
+              },
+              "rejected": {
+                "description": "버린 대안",
+                "type": "string",
+              },
+            },
+            "required": [
+              "decision",
+              "rationale",
+              "rejected",
+              "failed",
+              "next_blocker",
+            ],
+            "type": "object",
           },
           "reflection_notes": {
             "description": "Reflexion 기록 (JSON 객체 문자열, Procedural Memory용)",

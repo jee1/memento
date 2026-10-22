@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { CommonSchemas } from '../../../tools/types.js';
+import { WorkRecordSchema } from './work-record.js';
 
 export const RememberSchema = z.object({
   content: CommonSchemas.Content,
@@ -45,13 +46,22 @@ export const RememberSchema = z.object({
   last_mentioned_at: z.string().datetime().optional(),
   source_session_id: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
+  record: WorkRecordSchema.optional()
+    .describe('episodic 작업 기록. 임베딩과 FTS 는 라벨 없는 필드 값만 본다'),
 }).strict().refine((data) => {
+  if (data.record && data.type !== 'episodic') {
+    return false;
+  }
+  return true;
+}, {
+  message: 'record 는 type=episodic 에서만 쓸 수 있습니다',
+}).refine((data) => {
   if (data.type === 'core' || data.type === 'vault') {
     return !!(data.key && data.value);
   }
-  return !!data.content;
+  return !!(data.content || data.record);
 }, {
-  message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content가 필수입니다"
+  message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content 또는 episodic record가 필수입니다",
 }).refine((data) => {
   if (data.expected_version === undefined) {
     return true;

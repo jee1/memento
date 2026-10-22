@@ -9,6 +9,7 @@ import { getVersionChain } from '../procedural/procedural-versioning.js';
 import type { MetaMemoryService } from '../introspection/meta-memory-service.js';
 import { filterRecallItemsByTags, filterRecallItemsByTriggerConditions } from './recall-tool-filters.js';
 import { enrichRecallItemsWithMemoryMetadata } from './recall-tool-metadata-enrich.js';
+import { overlayWorkRecordDisplay } from '../remember/work-record.js';
 import type { RecallToolHost } from './recall-tool-host.js';
 import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
 import type { RecallHybridOrTextSearchResult, RecallParams } from './recall-tool-schema.js';
@@ -217,6 +218,10 @@ export async function runMemoryItemPostSearchPipeline(
 
   if (input.recordMetaStats !== false && context.services.metaMemoryService) {
     await collectMetaMemoryStats(host, searchItems, context.services.metaMemoryService);
+  }
+
+  if (context.db) {
+    searchItems = overlayWorkRecordDisplay(context.db, searchItems);
   }
 
   const processedResults = mapRecallSearchItemsToResultItems(searchItems, input.includeMetadata, input.return_format);
