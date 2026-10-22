@@ -501,24 +501,7 @@ ADR 형식 요약. 상세 이슈·PR은 GitHub 참조.
 
 ## 12. 용어집
 
-| 용어 | 정의 |
-|------|------|
-| **MCP** | Model Context Protocol — AI Host와 도구 서버 간 JSON-RPC 프로토콜 |
-| **Working memory** | 48h TTL, 현재 작업 맥락 (`type: working`) |
-| **Episodic memory** | 90d TTL, 대화·사건 기록; Triple·증류 원천 |
-| **Semantic memory** | 무기한, 지식·사실 |
-| **Procedural memory** | 무기한, 버전 관리 절차 (`version_series_id`) |
-| **Triple** | Subject–Predicate–Object; KG·관계 추출 단위 |
-| **Anchor** | A/B/C 슬롯; search_local 탐색 기준점 |
-| **Sleep Consolidation** | 에피소드 → 시맨틱 증류 배치 (1h) |
-| **Hybrid Search** | FTS5 + 벡터 병렬 → 가중 합산 → MMR |
-| **MMR** | Maximal Marginal Relevance — 결과 다양성 |
-| **owner_id** | 다중 에이전트/테넌트 격리 키 |
-| **CORE toolset** | tools/list 4개: recall, remember, memory_injection, feedback |
-| **dispatchTool** | 모든 transport의 tools/call 단일 진입점 |
-| **WAL** | Write-Ahead Logging — SQLite 동시 읽기 |
-| **sqlite-vec** | SQLite 벡터 ANN 확장 |
-| **Introspection / heal** | 저신뢰 기억 식별·정리 (`POST /admin/introspection/heal`) |
+도메인 용어는 저장소 루트 [GLOSSARY.md](../../../GLOSSARY.md) 한곳에서 관리합니다.
 
 ---
 
@@ -537,7 +520,7 @@ ADR 형식 요약. 상세 이슈·PR은 GitHub 참조.
 | 9 Decisions | §9 | GitHub Issues/PRs |
 | 10 Quality | §10 | [search-ranking.md](../../agents/search-ranking.md) |
 | 11 Risks | §11 | [#593](https://github.com/jee1/memento/issues/593) |
-| 12 Glossary | §12 | — |
+| 12 Glossary | §12 | [GLOSSARY.md](../../../GLOSSARY.md) |
 
 ## 부록 B — 문서 유지
 
