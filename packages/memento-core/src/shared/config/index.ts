@@ -245,6 +245,9 @@ export const mementoConfig: MementoConfig = {
   rememberDedupMergeLexicalFloor: parseRememberDedupMergeLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR')),
   mcpEra: parseMcpEraMode(getRawEnvValue('MEMENTO_MCP_ERA')),
   offlineStrict: resolveBoolean('MEMENTO_OFFLINE_STRICT', { defaultValue: false }),
+  projectScopeEnabled: resolveBoolean('MEMENTO_PROJECT_SCOPE_ENABLED', { defaultValue: true }),
+  granularToolScopesEnabled: resolveBoolean('MEMENTO_GRANULAR_TOOL_SCOPES_ENABLED', { defaultValue: true }),
+  wipeMemoryEnabled: resolveBoolean('MEMENTO_WIPE_MEMORY_ENABLED', { defaultValue: true }),
 };
 
 // 유효성 검사

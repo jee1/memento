@@ -1,4 +1,4 @@
-import type { ApiScope } from '@memento/core';
+import { mementoConfig, type ApiScope } from '@memento/core';
 import type { NextFunction, Request, Response } from 'express';
 
 import {
@@ -226,16 +226,17 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
     }
 
     const claimedProjectId = readProjectIdHeader(req);
-    if (resolved.projectId && claimedProjectId !== null && claimedProjectId !== resolved.projectId) {
+    if (mementoConfig.projectScopeEnabled && resolved.projectId && claimedProjectId !== null && claimedProjectId !== resolved.projectId) {
       writeProjectMismatch(res, config.errorFormat);
       return;
     }
 
+    const boundProjectId = mementoConfig.projectScopeEnabled ? resolved.projectId : undefined;
     req.programmaticAuth = {
       keyId: resolved.id,
       scopes: [...resolved.scopes],
       ...(resolved.agentId ? { agentId: resolved.agentId } : {}),
-      ...(resolved.projectId ? { projectId: resolved.projectId } : {}),
+      ...(boundProjectId ? { projectId: boundProjectId } : {}),
     };
     next();
   };

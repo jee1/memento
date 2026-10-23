@@ -4,7 +4,7 @@
 
 import type { Router } from 'express';
 import type Database from 'better-sqlite3';
-import { listForgettingEvents, logger, WipeMemoryTool, type ForgettingEventAction } from '@memento/core';
+import { listForgettingEvents, logger, mementoConfig, WipeMemoryTool, type ForgettingEventAction } from '@memento/core';
 
 const FORGETTING_ACTIONS: ForgettingEventAction[] = ['soft', 'hard', 'review', 'wipe'];
 
@@ -13,6 +13,10 @@ export function registerAdminForgettingRoutes(router: Router, db: Database.Datab
     try {
       if (!db) {
         return res.status(503).json({ error: 'DB unavailable' });
+      }
+
+      if (!mementoConfig.wipeMemoryEnabled) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Wipe memory is disabled by configuration' });
       }
 
       const wipeTool = new WipeMemoryTool();

@@ -6,6 +6,7 @@ import {
   formatMementoResourceUri,
   getAuditMode,
   isStrictAuditAction,
+  mementoConfig,
   type ApiScope,
   type AuditAction,
   type AuditTransport,
@@ -104,6 +105,9 @@ export function assertToolScope(name: string, scopes?: readonly ApiScope[]): voi
     }
     return;
   }
+  if (!mementoConfig.granularToolScopesEnabled) {
+    return;
+  }
   if (scopes.includes('tools:invoke')) {
     return;
   }
@@ -183,7 +187,7 @@ export function scopeArgsToBoundAgent(
     }
   }
 
-  if (boundProjectId) {
+  if (boundProjectId && mementoConfig.projectScopeEnabled) {
     const current = (result && typeof result === 'object' && !Array.isArray(result)
       ? result
       : record ?? {}) as Record<string, unknown>;

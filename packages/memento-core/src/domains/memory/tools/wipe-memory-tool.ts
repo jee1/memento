@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { AuditHashChainService } from '../../telemetry/services/audit-hash-chain-service.js';
 import { ForgettingEventRepository } from '../../forgetting/repositories/forgetting-event-repository.js';
 import { MemoryItemRepository } from '../repositories/memory-item-repository.js';
@@ -67,6 +68,10 @@ export class WipeMemoryTool extends BaseTool {
   }
 
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
+    if (!mementoConfig.wipeMemoryEnabled) {
+      throw new Error('wipe_memory tool is disabled by configuration (MEMENTO_WIPE_MEMORY_ENABLED=false)');
+    }
+
     const parsed = WipeMemorySchema.parse(params ?? {});
     const { id, dry_run, retention_purge, retention_days, zero_fill, vacuum } = parsed;
 

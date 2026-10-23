@@ -1,4 +1,4 @@
-import type { ApiScope, ApiTokenEntry } from '@memento/core';
+import { mementoConfig, type ApiScope, type ApiTokenEntry } from '@memento/core';
 
 export type ResolvedApiToken = {
   id: string;
@@ -47,12 +47,26 @@ export function hasScope(
   required: ApiScope | ApiScope[],
 ): boolean {
   const requiredScopes = Array.isArray(required) ? required : [required];
-  return requiredScopes.every((scope) => scopes.includes(scope));
+  return requiredScopes.every((scope) => {
+    if (scopes.includes(scope)) return true;
+    if (!mementoConfig.granularToolScopesEnabled) {
+      if (scope.startsWith('tools:') && scopes.some((s) => s.startsWith('tools:'))) {
+        return true;
+      }
+    }
+    return false;
+  });
 }
 
 export function hasAnyScope(
   scopes: readonly ApiScope[],
   candidates: readonly ApiScope[],
 ): boolean {
-  return candidates.some((scope) => scopes.includes(scope));
+  if (candidates.some((scope) => scopes.includes(scope))) return true;
+  if (!mementoConfig.granularToolScopesEnabled) {
+    if (candidates.some((c) => c.startsWith('tools:')) && scopes.some((s) => s.startsWith('tools:'))) {
+      return true;
+    }
+  }
+  return false;
 }
