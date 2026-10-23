@@ -96,7 +96,7 @@ export function auditActionForTool(name: string): AuditAction {
 }
 
 export function assertToolScope(name: string, scopes?: readonly ApiScope[]): void {
-  if (!scopes) {
+  if (!scopes || scopes.length === 0) {
     return;
   }
   if (name === 'wipe_memory') {
@@ -170,10 +170,13 @@ export function scopeArgsToBoundAgent(
   boundAgentId: string | null | undefined,
   boundProjectId?: string | null | undefined,
 ): unknown {
+  if (!boundAgentId && (!boundProjectId || !mementoConfig.projectScopeEnabled)) {
+    return args;
+  }
   let result = args;
-  const record = args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : null;
+  const record = args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {};
 
-  if (boundAgentId && record) {
+  if (boundAgentId) {
     for (const key of ['owner_id', 'agent_id']) {
       const value = record[key];
       if (value === undefined || value === null) continue;
@@ -190,7 +193,7 @@ export function scopeArgsToBoundAgent(
   if (boundProjectId && mementoConfig.projectScopeEnabled) {
     const current = (result && typeof result === 'object' && !Array.isArray(result)
       ? result
-      : record ?? {}) as Record<string, unknown>;
+      : record) as Record<string, unknown>;
 
     const projectIdVal = current.project_id;
     if (projectIdVal !== undefined && projectIdVal !== null) {
