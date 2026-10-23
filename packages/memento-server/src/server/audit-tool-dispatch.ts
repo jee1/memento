@@ -16,6 +16,7 @@ import {
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import type Database from 'better-sqlite3';
 import { mapToolExecutionErrorToJsonRpc } from './utils/mcp-tool-call-error.js';
+import { OWNER_FILTER_TOOLS } from './owner-filter-tools.js';
 
 export type ToolAuditContext = {
   transport: AuditTransport;
@@ -114,9 +115,6 @@ function coverageInput(name: string, args: unknown, context: ToolAuditContext) {
     outputState: 'omitted' as const,
   };
 }
-
-/** owner_id 가 누구의 기억을 읽을지 정하는 도구들. */
-const OWNER_FILTER_TOOLS = new Set(['recall', 'memory_injection', 'export_memories']);
 
 /**
  * 토큰에 묶인 agent 는 owner_id·agent_id 인자로 다른 agent 를 지정할 수 없고,

@@ -53,7 +53,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 
 ## Multi-agent owner scope (HTTP)
 
-- **`/tools/recall` and `/tools/memory_injection`**: Default `MEMENTO_OWNER_SCOPE_MODE=strict` — when `owner_id` is omitted, filter with `X-Memento-Agent-Id` or `MEMENTO_HTTP_DEFAULT_AGENT_ID`. Missing identity → **400**.
+- **`/tools/recall`, `/tools/memory_injection`, and `/tools/export_memories`**: Default `MEMENTO_OWNER_SCOPE_MODE=strict` — when `owner_id` is omitted, filter with `X-Memento-Agent-Id` or `MEMENTO_HTTP_DEFAULT_AGENT_ID`. Missing identity → **400**.
 - **Legacy opt-out**: To allow global HTTP recall of `owner_id = NULL` rows, relax with `MEMENTO_OWNER_SCOPE_MODE=warn` (warn only) or `off` (no enforcement). Details: [`docs/guides/en/multi-agent-usage.md`](../../guides/en/multi-agent-usage.md).
 
 ## HTTP programmatic audit log (JSONL + hash chain)

@@ -162,4 +162,24 @@ describe('HTTP owner scope integration', () => {
     expect(parsed.error).toBe('Owner scope required');
     expect(parsed.message).toContain('MEMENTO_OWNER_SCOPE_MODE=strict');
   });
+
+  it('strict mode: export_memories without agent header or owner_id returns 400', async () => {
+    const port = await startRealHttpServer();
+
+    const response = await postJson(
+      port,
+      '/tools/export_memories',
+      {
+        format: 'jsonl'
+      },
+      {
+        Authorization: 'Bearer integration-admin-key'
+      }
+    );
+
+    expect(response.statusCode).toBe(400);
+    const parsed = JSON.parse(response.body) as { error: string; message: string };
+    expect(parsed.error).toBe('Owner scope required');
+    expect(parsed.message).toContain('MEMENTO_OWNER_SCOPE_MODE=strict');
+  });
 });

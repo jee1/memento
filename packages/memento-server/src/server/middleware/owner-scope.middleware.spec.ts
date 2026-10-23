@@ -16,7 +16,7 @@ vi.mock('@memento/core', () => ({
 import { createOwnerScopeMiddleware } from './owner-scope.middleware.js';
 
 function runMiddleware(
-  req: Partial<Request> & { body?: Record<string, unknown>; callerAgentId?: string },
+  req: Partial<Request> & { body?: Record<string, unknown>; callerAgentId?: string; path?: string },
   mode: 'strict' | 'warn' | 'off' = 'strict'
 ) {
   mementoConfigMock.ownerScopeMode = mode;
@@ -29,7 +29,7 @@ function runMiddleware(
   middleware(
     {
       method: 'POST',
-      path: '/recall',
+      path: req.path ?? '/recall',
       body: req.body ?? {},
       callerAgentId: req.callerAgentId
     } as Request,
@@ -77,6 +77,19 @@ describe('createOwnerScopeMiddleware', () => {
     const body = { query: 'test', type: 'semantic', owner_id: 'explicit' };
     const { next } = runMiddleware({ body, callerAgentId: 'agent-a' });
     expect(body.owner_id).toBe('explicit');
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('rejects /export_memories in strict mode without agentId or owner_id', () => {
+    const { res, next } = runMiddleware({ path: '/export_memories', body: { format: 'markdown' } });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('injects owner_id for /export_memories in strict mode with callerAgentId', () => {
+    const body = { format: 'jsonl' };
+    const { next } = runMiddleware({ path: '/export_memories', body, callerAgentId: 'agent-export' });
+    expect(body.owner_id).toBe('agent-export');
     expect(next).toHaveBeenCalledOnce();
   });
 });
