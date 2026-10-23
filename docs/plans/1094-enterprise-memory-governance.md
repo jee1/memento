@@ -19,51 +19,51 @@ Tests alone are not sufficient verification. A PR is verified only when its unit
 
 ### Arm the program
 
-- [ ] State the protocol and this plan to the operator, then stop. Start execution only on the operator's explicit go.
-- [ ] Read these from trunk at program start. Re-read them at every tick.
-  - [ ] `git show origin/main:pstack/skills/poteto-mode/playbooks/autopilot-stack.md`
-  - [ ] `git show origin/main:pstack/skills/swarm/SKILL.md`
-  - [ ] `git show origin/main:pstack/skills/control-cli/SKILL.md`
-  - [ ] `git show origin/main:pstack/skills/poteto-mode/playbooks/opening-a-pr.md`
-  - [ ] `git show origin/main:pstack/skills/principle-sequence-verifiable-units/SKILL.md`
-- [ ] On the operator's go, arm the audit tick as `/loop 1h` with the tick prompt below. Never leave the cadence to memory.
-- [ ] Use this tick prompt, verbatim. "Re-read the execution playbook from trunk. Audit the operation against it and fix drift in this tick. Probe every active lane and judge progress by side effects only. Stand down a stuck lane and dispatch its replacement now. Then post a short status message to the operator in chat only when the audit found a tracked change that no earlier status message reported, such as a PR opened, a code-ready head, a round launched or closed, a verdict, a merge, a stuck agent and the action taken, a blocker added or cleared, or a decision only the operator can make. Name every such change and nothing else. Do not repeat a table, the merged list, or an unchanged blocker. If the audit found none, end the turn with no reply text. Either way, log this tick's row in your decision trail. The row names the items reported, or none."
-- [ ] On the operator's hold or stand-down, send every owner a zero-writes order at once.
+- [x] State the protocol and this plan to the operator, then stop. Start execution only on the operator's explicit go.
+- [x] Read these from trunk at program start. Re-read them at every tick.
+  - [x] `git show origin/main:pstack/skills/poteto-mode/playbooks/autopilot-stack.md`
+  - [x] `git show origin/main:pstack/skills/swarm/SKILL.md`
+  - [x] `git show origin/main:pstack/skills/control-cli/SKILL.md`
+  - [x] `git show origin/main:pstack/skills/poteto-mode/playbooks/opening-a-pr.md`
+  - [x] `git show origin/main:pstack/skills/principle-sequence-verifiable-units/SKILL.md`
+- [x] On the operator's go, arm the audit tick as `/loop 1h` with the tick prompt below. Never leave the cadence to memory.
+- [x] Use this tick prompt, verbatim. "Re-read the execution playbook from trunk. Audit the operation against it and fix drift in this tick. Probe every active lane and judge progress by side effects only. Stand down a stuck lane and dispatch its replacement now. Then post a short status message to the operator in chat only when the audit found a tracked change that no earlier status message reported, such as a PR opened, a code-ready head, a round launched or closed, a verdict, a merge, a stuck agent and the action taken, a blocker added or cleared, or a decision only the operator can make. Name every such change and nothing else. Do not repeat a table, the merged list, or an unchanged blocker. If the audit found none, end the turn with no reply text. Either way, log this tick's row in your decision trail. The row names the items reported, or none."
+- [x] On the operator's hold or stand-down, send every owner a zero-writes order at once.
 
 ### Spawn owners
 
-- [ ] Spawn one owner per PR with the full lifecycle the execution playbook names.
-- [ ] Follow this dependency graph. Start dependent work only after its parent branch is ready.
-  - [ ] PR-1094-1 branches from `main`.
-  - [ ] PR-1094-2 after PR-1094-1.
-  - [ ] PR-1094-3 after PR-1094-2.
-  - [ ] PR-1094-4 after PR-1094-3.
-- [ ] Hold the file boundaries. PR-1094-1 touches token config, middleware, and caller scope. PR-1094-2 touches token types and dispatch auth. PR-1094-3 touches offline config and provider factories. PR-1094-4 touches wipe tools and retention repositories.
-- [ ] Hold the review gate. No PR in this stack changes interactive UI. Every PR is non-interactive backend governance.
+- [x] Spawn one owner per PR with the full lifecycle the execution playbook names.
+- [x] Follow this dependency graph. Start dependent work only after its parent branch is ready.
+  - [x] PR-1094-1 branches from `main`.
+  - [x] PR-1094-2 after PR-1094-1.
+  - [x] PR-1094-3 after PR-1094-2.
+  - [x] PR-1094-4 after PR-1094-3.
+- [x] Hold the file boundaries. PR-1094-1 touches token config, middleware, and caller scope. PR-1094-2 touches token types and dispatch auth. PR-1094-3 touches offline config and provider factories. PR-1094-4 touches wipe tools and retention repositories.
+- [x] Hold the review gate. No PR in this stack changes interactive UI. Every PR is non-interactive backend governance.
 
 ### PR mechanics, for every PR
 
-- [ ] Resolve the forge once. Default to `gh`. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Record any fallback to `gh`. Never require `gt`.
-- [ ] Open the PR ready, never draft, per opening-a-pr. Use `gh pr create --base <base-branch>`. A stack child targets its parent branch.
-- [ ] Run the repo lint and typecheck once before the PR-facing push. Push with hooks on.
-- [ ] Run `/deslop` before each commit and `/no-comments` before review.
-- [ ] Triage every Bugbot and security-reviewer comment per `../references/bugbot-triage.md`.
-- [ ] Rebase onto current trunk before the code-ready report and babysit. Keep that merge base in fix rounds.
+- [x] Resolve the forge once. Default to `gh`. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Record any fallback to `gh`. Never require `gt`.
+- [x] Open the PR ready, never draft, per opening-a-pr. Use `gh pr create --base <base-branch>`. A stack child targets its parent branch.
+- [x] Run the repo lint and typecheck once before the PR-facing push. Push with hooks on.
+- [x] Run `/deslop` before each commit and `/no-comments` before review.
+- [x] Triage every Bugbot and security-reviewer comment per `../references/bugbot-triage.md`.
+- [x] Rebase onto current trunk before the code-ready report and babysit. Keep that merge base in fix rounds.
 
 ### Verdict and merge, for every PR
 
-- [ ] A full swarm runs once, at the code-ready head. Run each full swarm per `pstack/skills/swarm/SKILL.md`. One gates lane. The ten live lanes from the PR's Verify, live block. The perf lane from its Verify, perf block. Two audit lanes that read the diff and receipts.
-- [ ] Clean only when every lane is `PASS`. Findings go back to the owner.
-- [ ] The owner reports STACK-READY. The root appends the PR to the base-branch stack and the operator lands it bottom-up.
+- [x] A full swarm runs once, at the code-ready head. Run each full swarm per `pstack/skills/swarm/SKILL.md`. One gates lane. The ten live lanes from the PR's Verify, live block. The perf lane from its Verify, perf block. Two audit lanes that read the diff and receipts.
+- [x] Clean only when every lane is `PASS`. Findings go back to the owner.
+- [x] The owner reports STACK-READY. The root appends the PR to the base-branch stack and the operator lands it bottom-up.
 
 ### Boot recipe, for every live lane
 
 Each live lane runs on its own cloud VM at the PR head. Drive through `control-cli`.
 
-- [ ] `git fetch origin <head-branch> && git checkout <head SHA>`.
-- [ ] Start the test server on an ephemeral port. Wait for readiness.
-- [ ] Deliver input only through HTTP or CLI commands. Name the read-only diagnostics.
-- [ ] Save every screenshot to `/tmp/swarm-<pr-id>/worker-<n>/<slug>.png` and return the paths with the report.
+- [x] `git fetch origin <head-branch> && git checkout <head SHA>`.
+- [x] Start the test server on an ephemeral port. Wait for readiness.
+- [x] Deliver input only through HTTP or CLI commands. Name the read-only diagnostics.
+- [x] Save every screenshot to `/tmp/swarm-<pr-id>/worker-<n>/<slug>.png` and return the paths with the report.
 
 ## Bind project scope to API tokens (PR-1094-1)
 
