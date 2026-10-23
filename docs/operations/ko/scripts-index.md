@@ -25,7 +25,7 @@
 | backup-in-docker.sh | 컨테이너 안에서 online backup 실행, 출력은 호스트 소유 백업 디렉터리 | `npm run db:backup:docker` |
 | pre-docker-deploy.mjs | 배포 전 백업 + quick_check; `source-dir-unwritable` 시 컨테이너 백업 자동 폴백 | `npm run db:pre-docker-deploy` |
 | restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
-| db-residue-cleanup.ts | DB 잔재 report·dimensions=0 embedding cleanup | `npm run db:residue -- report`, `npm run db:residue -- cleanup-embeddings`, `npm run db:residue -- cleanup-embeddings --apply` |
+| db-residue-cleanup.ts | DB 잔재 report·dimensions=0 embedding cleanup·rule 관계 cleanup | `npm run db:residue -- report`, `npm run db:residue -- cleanup-embeddings`, `npm run db:residue -- cleanup-embeddings --apply`, `npm run db:residue -- cleanup-rule-relations`, `npm run db:residue -- cleanup-rule-relations --apply` |
 | db-vacuum.ts | DELETE 후 공간 회수 측정 | `npm run db:vacuum` |
 | backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
 | regenerate-embeddings.js | 임베딩 재생성 | `npm run regenerate:embeddings` |

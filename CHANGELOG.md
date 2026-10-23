@@ -15,6 +15,7 @@
 
 ### Added
 
+- 개발: `npm run db:residue -- cleanup-rule-relations [--apply]` 를 추가합니다(#1450). #1381 이전 rule 추출기가 만든 `memory_relation` 행(`metadata.method = 'rule'`, 약 133,925건, 표본 정확도 약 6%)을 미리 보고 삭제합니다. 기본은 preview 입니다.
 - remember: episodic 작업 기록은 `record`(decision, rationale, rejected, failed, next_blocker)로 저장합니다(#1446). 임베딩과 FTS 는 라벨 없는 필드 값만 보고, recall 과 memory_injection 이 라벨을 붙여 보여 줍니다. `failed` 는 빈 문자열을 허용합니다. 마이그레이션 057이 `memory_item.work_record` 를 추가합니다. `content` 만 보내는 호출은 그대로입니다.
 - 검색: 5줄 템플릿 라벨이 recall 순위에 미치는 영향을 재는 읽기 전용 스크립트 `scripts/measure-template-label-recall.ts` 를 추가합니다(#1445). 측정 결과 영향이 작아 기존 행 백필과 라벨 제거 정규식 삭제는 하지 않습니다(#1448).
 - 에이전트: 기억 쓰기 훅을 `plugins/memento/hooks/memento-recall.sh` 로 옮기고 episodic 은 `record` 필드를 쓰도록 바꿨습니다(#1447). Claude Code 플러그인 버전을 0.1.2로 올렸습니다.
