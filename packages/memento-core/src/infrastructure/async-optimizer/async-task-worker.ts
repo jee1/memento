@@ -27,7 +27,8 @@ export class AsyncTaskWorker {
         success: true,
         data: result,
         executionTime: Date.now() - this.startTime,
-        retryCount: this.task.retryCount
+        retryCount: this.task.retryCount,
+        completedAt: new Date()
       });
     } catch (error) {
       clearTimeout(timeout);
@@ -41,7 +42,8 @@ export class AsyncTaskWorker {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
           executionTime: Date.now() - this.startTime,
-          retryCount: this.task.retryCount
+          retryCount: this.task.retryCount,
+          completedAt: new Date()
         });
       }
     }
@@ -124,7 +126,8 @@ export class AsyncTaskWorker {
       success: false,
       error: 'Task timeout',
       executionTime: Date.now() - this.startTime,
-      retryCount: this.task.retryCount
+      retryCount: this.task.retryCount,
+      completedAt: new Date()
     });
   }
 }

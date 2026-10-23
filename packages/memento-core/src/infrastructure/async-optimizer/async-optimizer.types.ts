@@ -16,6 +16,7 @@ export interface TaskResult<T = unknown> {
   error?: string;
   executionTime: number;
   retryCount: number;
+  completedAt?: Date;
 }
 
 export interface QueueStats {

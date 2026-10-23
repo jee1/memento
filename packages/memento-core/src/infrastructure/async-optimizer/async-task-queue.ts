@@ -12,6 +12,7 @@ export class AsyncTaskQueue implements IAsyncTaskQueue {
   private workers: Set<AsyncTaskWorker> = new Set();
   private maxWorkers: number;
   private maxQueueSize: number | null = null;
+  private maxHistorySize: number | null = 1000;
   private running: boolean = false;
   private stats: QueueStats = {
     pending: 0,
@@ -23,9 +24,14 @@ export class AsyncTaskQueue implements IAsyncTaskQueue {
     throughput: 0
   };
 
-  constructor(maxWorkers: number = 8, maxQueueSize: number | null = null) {
+  constructor(
+    maxWorkers: number = 8,
+    maxQueueSize: number | null = null,
+    maxHistorySize: number | null = 1000
+  ) {
     this.maxWorkers = maxWorkers;
     this.maxQueueSize = maxQueueSize;
+    this.maxHistorySize = maxHistorySize;
   }
 
   addTask<T>(task: Omit<Task<T>, 'id' | 'createdAt' | 'retryCount'> & { id?: string }): string | false {
@@ -127,6 +133,24 @@ export class AsyncTaskQueue implements IAsyncTaskQueue {
     return { ...this.stats };
   }
 
+  private setWithHistoryLimit(map: Map<string, TaskResult>, taskId: string, result: TaskResult): void {
+    if (map.has(taskId)) {
+      map.delete(taskId);
+    }
+    map.set(taskId, result);
+
+    if (this.maxHistorySize !== null && this.maxHistorySize >= 0) {
+      while (map.size > this.maxHistorySize) {
+        const oldestKey = map.keys().next().value;
+        if (oldestKey !== undefined) {
+          map.delete(oldestKey);
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
   private updateStats(): void {
     this.stats.pending = this.queue.length;
     this.stats.processing = this.processing.size;
@@ -137,20 +161,34 @@ export class AsyncTaskQueue implements IAsyncTaskQueue {
     const allResults = [...this.completed.values(), ...this.failed.values()];
     if (allResults.length > 0) {
       this.stats.averageProcessingTime = allResults.reduce((sum, r) => sum + r.executionTime, 0) / allResults.length;
+    } else {
+      this.stats.averageProcessingTime = 0;
     }
 
     const now = Date.now();
-    const recentResults = allResults.filter(r => now - r.executionTime < 60000);
+    const recentResults = allResults.filter(r => {
+      let completedTime: number;
+      if (r.completedAt instanceof Date) {
+        completedTime = r.completedAt.getTime();
+      } else if (typeof r.completedAt === 'number') {
+        completedTime = r.completedAt;
+      } else {
+        completedTime = now;
+      }
+      return now - completedTime < 60000;
+    });
     this.stats.throughput = recentResults.length / 60;
   }
 
   onTaskCompleted(taskId: string, result: TaskResult): void {
-    this.completed.set(taskId, result);
+    result.completedAt = result.completedAt ?? new Date();
+    this.setWithHistoryLimit(this.completed, taskId, result);
     this.updateStats();
   }
 
   onTaskFailed(taskId: string, result: TaskResult): void {
-    this.failed.set(taskId, result);
+    result.completedAt = result.completedAt ?? new Date();
+    this.setWithHistoryLimit(this.failed, taskId, result);
     this.updateStats();
   }
 
@@ -172,8 +210,23 @@ export class AsyncTaskQueue implements IAsyncTaskQueue {
     return false;
   }
 
-  clear(): void {
+  clear(clearHistory: boolean | { clearHistory?: boolean } = false): void {
+    const shouldClearHistory =
+      typeof clearHistory === 'boolean'
+        ? clearHistory
+        : Boolean(clearHistory?.clearHistory);
+
     this.queue = [];
+    if (shouldClearHistory) {
+      this.completed.clear();
+      this.failed.clear();
+    }
+    this.updateStats();
+  }
+
+  clearHistory(): void {
+    this.completed.clear();
+    this.failed.clear();
     this.updateStats();
   }
 
