@@ -101,4 +101,27 @@ describe('resolveCallerMiddleware', () => {
     expect(req.projectId).toBeUndefined();
     expect(next).toHaveBeenCalledOnce();
   });
+
+  it('prefers programmaticAuth.projectId over header', () => {
+    const req = createMockRequest({
+      headers: { 'x-memento-project-id': 'header-proj' },
+      programmaticAuth: { projectId: 'auth-proj' } as any,
+    });
+
+    resolveCallerMiddleware(req, res, next);
+
+    expect(req.projectId).toBe('auth-proj');
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('extracts projectId from x-project-id header when x-memento-project-id is absent', () => {
+    const req = createMockRequest({
+      headers: { 'x-project-id': 'custom-proj' },
+    });
+
+    resolveCallerMiddleware(req, res, next);
+
+    expect(req.projectId).toBe('custom-proj');
+    expect(next).toHaveBeenCalledOnce();
+  });
 });

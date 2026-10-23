@@ -38,4 +38,22 @@ describe('api-token-registry', () => {
     });
     expect(registry.resolveToken('unbound-secret')).not.toHaveProperty('agentId');
   });
+
+  it('resolveToken returns projectId for a bound token and none for unbound', () => {
+    const registry = createApiTokenRegistry([
+      { id: 'bound', secret: 'bound-secret', scopes: ['tools:invoke'], projectId: 'proj-alpha' },
+      { id: 'unbound', secret: 'unbound-secret', scopes: ['tools:invoke'] },
+    ]);
+
+    expect(registry.resolveToken('bound-secret')).toEqual({
+      id: 'bound',
+      scopes: ['tools:invoke'],
+      projectId: 'proj-alpha',
+    });
+    expect(registry.resolveToken('unbound-secret')).toEqual({
+      id: 'unbound',
+      scopes: ['tools:invoke'],
+    });
+    expect(registry.resolveToken('unbound-secret')).not.toHaveProperty('projectId');
+  });
 });

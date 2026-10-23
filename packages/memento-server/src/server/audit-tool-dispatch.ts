@@ -24,6 +24,8 @@ export type ToolAuditContext = {
   agentId?: string | null;
   /** API 토큰에 묶인 agent. 헤더로 주장한 agentId 와 달리 인자로 바꿀 수 없다. */
   boundAgentId?: string | null;
+  /** API 토큰에 묶인 project. 헤더로 주장한 projectId 와 달리 인자로 바꿀 수 없다 (#1094). */
+  boundProjectId?: string | null;
   projectId?: string | null;
 };
 
@@ -120,18 +122,48 @@ function coverageInput(name: string, args: unknown, context: ToolAuditContext) {
  * 토큰에 묶인 agent 는 owner_id·agent_id 인자로 다른 agent 를 지정할 수 없고,
  * owner_id 를 비우면 자기 기억만 읽는다. 모든 transport 가 이 경계를 지난다.
  */
-export function scopeArgsToBoundAgent(name: string, args: unknown, boundAgentId: string | null | undefined): unknown {
-  if (!boundAgentId) return args;
-  const record = args && typeof args === 'object' && !Array.isArray(args) ? args as Record<string, unknown> : {};
-  for (const key of ['owner_id', 'agent_id']) {
-    const value = record[key];
-    if (value === undefined || value === null) continue;
-    const values: unknown[] = Array.isArray(value) ? value : [value];
-    if (values.some((v) => v !== boundAgentId)) {
-      throw new ToolInputValidationError(`${key} must match the agent bound to this API token.`);
+export function scopeArgsToBoundAgent(
+  name: string,
+  args: unknown,
+  boundAgentId: string | null | undefined,
+  boundProjectId?: string | null | undefined,
+): unknown {
+  let result = args;
+  const record = args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : null;
+
+  if (boundAgentId && record) {
+    for (const key of ['owner_id', 'agent_id']) {
+      const value = record[key];
+      if (value === undefined || value === null) continue;
+      const values: unknown[] = Array.isArray(value) ? value : [value];
+      if (values.some((v) => v !== boundAgentId)) {
+        throw new ToolInputValidationError(`${key} must match the agent bound to this API token.`);
+      }
+    }
+    if (OWNER_FILTER_TOOLS.has(name) && record.owner_id == null) {
+      result = { ...record, owner_id: boundAgentId };
     }
   }
-  return OWNER_FILTER_TOOLS.has(name) && record.owner_id == null ? { ...record, owner_id: boundAgentId } : args;
+
+  if (boundProjectId) {
+    const current = (result && typeof result === 'object' && !Array.isArray(result)
+      ? result
+      : record ?? {}) as Record<string, unknown>;
+
+    const projectIdVal = current.project_id;
+    if (projectIdVal !== undefined && projectIdVal !== null) {
+      const values: unknown[] = Array.isArray(projectIdVal) ? projectIdVal : [projectIdVal];
+      if (values.some((v) => v !== boundProjectId)) {
+        throw new ToolInputValidationError('project_id must match the project bound to this API token.');
+      }
+    }
+
+    if (current.project_id == null) {
+      result = { ...current, project_id: boundProjectId };
+    }
+  }
+
+  return result;
 }
 
 /** Validates strict-mode audit prerequisites before a tool can mutate state. */
@@ -193,7 +225,7 @@ export function createToolDispatcher(options: {
     let executionStarted = false;
     let args = rawArgs;
     try {
-      args = scopeArgsToBoundAgent(name, rawArgs, auditContext.boundAgentId);
+      args = scopeArgsToBoundAgent(name, rawArgs, auditContext.boundAgentId, auditContext.boundProjectId);
       assertToolAuditCoverage(db, name, args, auditContext);
       executionStarted = true;
       const context = createToolContext({
@@ -201,6 +233,7 @@ export function createToolDispatcher(options: {
         services,
         ...(auditContext.agentId ? { agentId: auditContext.agentId } : {}),
         ...(auditContext.boundAgentId ? { boundAgentId: auditContext.boundAgentId } : {}),
+        ...(auditContext.boundProjectId ? { boundProjectId: auditContext.boundProjectId } : {}),
         ...(auditContext.projectId ? { projectId: auditContext.projectId } : {}),
       });
       const result = await (options.execute ?? executeTool)(name, args, context);

@@ -72,9 +72,11 @@ export function setupWebSocketServer(
   getDb: () => Database.Database | null,
   getServerServices: () => ServerServices | null,
   getBoundAgentId: (req: IncomingMessage) => string | undefined = () => undefined,
+  getBoundProjectId: (req: IncomingMessage) => string | undefined = () => undefined,
 ): void {
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     const boundAgentId = getBoundAgentId(req);
+    const boundProjectId = getBoundProjectId(req);
     logger.info('WebSocket 클라이언트 연결됨');
     const connectionDb = getDb();
     if (connectionDb) recordWebSocketRequestAudit(connectionDb);
@@ -142,7 +144,12 @@ export function setupWebSocketServer(
             return;
           }
 
-          const result = await dispatchTool(name, args, db, serverServices, { transport: 'mcp_ws', agentId: boundAgentId, boundAgentId });
+          const result = await dispatchTool(name, args, db, serverServices, {
+            transport: 'mcp_ws',
+            agentId: boundAgentId,
+            boundAgentId,
+            boundProjectId,
+          });
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             id: message.id,

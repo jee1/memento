@@ -13,6 +13,7 @@ declare global {
         keyId: string;
         scopes: ApiScope[];
         agentId?: string;
+        projectId?: string;
       };
     }
   }
@@ -107,9 +108,39 @@ function writeAgentMismatch(
   });
 }
 
+function writeProjectMismatch(
+  res: Response,
+  format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
+): void {
+  const message = 'X-Memento-Project-Id does not match the project bound to this API token.';
+  if (format === 'agent') {
+    res.status(403).json({
+      status: 403,
+      reason_code: 'PROJECT_ID_MISMATCH',
+      message,
+      retryable: false,
+    });
+    return;
+  }
+  res.status(403).json({
+    error: 'Forbidden',
+    message,
+    timestamp: new Date().toISOString(),
+  });
+}
+
 /** Client-claimed agent id: X-Memento-Agent-Id, then X-Agent-Id (#1258). */
 function readAgentIdHeader(req: Request): string | null {
   for (const name of ['x-memento-agent-id', 'x-agent-id']) {
+    const value = req.headers[name];
+    if (typeof value === 'string' && value.trim() !== '') return value.trim();
+  }
+  return null;
+}
+
+/** Client-claimed project id: X-Memento-Project-Id, then X-Project-Id (#1094). */
+function readProjectIdHeader(req: Request): string | null {
+  for (const name of ['x-memento-project-id', 'x-project-id']) {
     const value = req.headers[name];
     if (typeof value === 'string' && value.trim() !== '') return value.trim();
   }
@@ -187,10 +218,17 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
+    const claimedProjectId = readProjectIdHeader(req);
+    if (resolved.projectId && claimedProjectId !== null && claimedProjectId !== resolved.projectId) {
+      writeProjectMismatch(res, config.errorFormat);
+      return;
+    }
+
     req.programmaticAuth = {
       keyId: resolved.id,
       scopes: [...resolved.scopes],
       ...(resolved.agentId ? { agentId: resolved.agentId } : {}),
+      ...(resolved.projectId ? { projectId: resolved.projectId } : {}),
     };
     next();
   };

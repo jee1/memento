@@ -4,6 +4,7 @@ export type ResolvedApiToken = {
   id: string;
   scopes: ApiScope[];
   agentId?: string;
+  projectId?: string;
 };
 
 export type ApiTokenRegistry = {
@@ -23,6 +24,7 @@ export function createApiTokenRegistry(tokens: readonly ApiTokenEntry[]): ApiTok
       id: token.id,
       scopes: [...token.scopes],
       ...(token.agentId ? { agentId: token.agentId } : {}),
+      ...(token.projectId ? { projectId: token.projectId } : {}),
     });
   }
 

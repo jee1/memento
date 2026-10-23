@@ -510,6 +510,7 @@ setupWebSocketServer(
   () => db,
   () => serverServices,
   (req) => resolveAuthenticatedToken(req, wsTokenRegistry())?.agentId,
+  (req) => resolveAuthenticatedToken(req, wsTokenRegistry())?.projectId,
 );
 
 /** Stop HTTP-owned resources without touching the shared core. */

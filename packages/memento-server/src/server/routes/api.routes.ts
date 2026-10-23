@@ -98,6 +98,8 @@ function postAnchorSearch(db: Database.Database | null, serverServices: ServerSe
         transport: 'rest',
         actorId: req.programmaticAuth?.keyId,
         boundAgentId: req.programmaticAuth?.agentId,
+        boundProjectId: req.programmaticAuth?.projectId,
+        projectId: req.projectId,
       });
       const result = extractToolResultPayload(toolResult);
 

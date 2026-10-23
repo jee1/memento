@@ -67,6 +67,7 @@ export function createToolsRouter(
         actorId: req.programmaticAuth?.keyId,
         agentId: req.callerAgentId,
         boundAgentId: req.programmaticAuth?.agentId,
+        boundProjectId: req.programmaticAuth?.projectId,
         projectId: req.projectId,
       });
 
