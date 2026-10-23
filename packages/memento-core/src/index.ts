@@ -59,12 +59,6 @@ export {
   isModernMcpServiceEnabled,
   parseMcpEraMode,
 } from './shared/utils/mcp-era-mode.js';
-export {
-  isLocalHost,
-  ExternalNetworkEgressForbiddenError,
-  assertAllowedNetworkEgress,
-  installNetworkGuard,
-} from './shared/utils/network-guard.js';
 export type { McpEraMode } from './shared/utils/mcp-era-mode.js';
 export {
   isHttpBindHostRemotelyReachable,
@@ -137,7 +131,6 @@ export {
 } from './shared/utils/embedding-serialization.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export type { MemoryItem } from './shared/types/memory.types.js';
-export { API_SCOPES } from './shared/types/api-token.js';
 export type { ApiScope, ApiTokenEntry } from './shared/types/api-token.js';
 export type { IErrorLoggingService } from './shared/interfaces/error-logging.interface.js';
 export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';
@@ -224,7 +217,6 @@ export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
 export { ExportMemoriesTool } from './domains/memory/tools/export-memories-tool.js';
 export { WipeMemoryTool } from './domains/memory/tools/wipe-memory-tool.js';
-export { MemoryItemRepository } from './domains/memory/repositories/memory-item-repository.js';
 export {
   formatMementoResourceUri,
   type FormatMementoResourceUriInput,
