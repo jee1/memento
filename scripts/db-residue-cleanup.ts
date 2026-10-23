@@ -2,17 +2,21 @@
 import { parseArgs, openDb, isMain, resolveDbPath } from './lib/cli.js';
 import {
   applyDimensionsZeroCleanup,
+  applyRuleRelationCleanup,
   buildDbResidueReport,
   previewDimensionsZeroCleanup,
+  previewRuleRelationCleanup,
 } from './lib/db-residue.js';
 
 function printHelp(): void {
   process.stdout.write(`Usage:
   npm run db:residue -- report
   npm run db:residue -- cleanup-embeddings [--apply]
+  npm run db:residue -- cleanup-rule-relations [--apply]
 
 Options:
-  --apply   Delete memory_embedding rows where dimensions = 0 (default: preview only)
+  --apply   Delete memory_embedding rows where dimensions = 0, or memory_relation rows
+            where metadata.method = 'rule' (default: preview only)
 `);
 }
 
@@ -53,6 +57,21 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       const deleted = applyDimensionsZeroCleanup(db);
       process.stdout.write(
         `${JSON.stringify({ ok: true, mode: 'apply', deleted, preview_ids: preview.ids }, null, 2)}\n`,
+      );
+      return 0;
+    }
+
+    if (subcommand === 'cleanup-rule-relations') {
+      const preview = previewRuleRelationCleanup(db);
+      if (!values.apply) {
+        process.stdout.write(
+          `${JSON.stringify({ ok: true, mode: 'preview', ...preview }, null, 2)}\n`,
+        );
+        return 0;
+      }
+      const deleted = applyRuleRelationCleanup(db);
+      process.stdout.write(
+        `${JSON.stringify({ ok: true, mode: 'apply', deleted, before: preview }, null, 2)}\n`,
       );
       return 0;
     }

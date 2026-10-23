@@ -101,3 +101,26 @@ export function previewDimensionsZeroCleanup(db: Database.Database): { count: nu
 export function applyDimensionsZeroCleanup(db: Database.Database): number {
   return db.prepare(`DELETE FROM memory_embedding WHERE dimensions = 0`).run().changes;
 }
+
+const RULE_RELATION_WHERE = `json_extract(metadata, '$.method') = 'rule'`;
+
+export function previewRuleRelationCleanup(db: Database.Database): {
+  total: number;
+  by_type: Record<string, number>;
+} {
+  const rows = db
+    .prepare(
+      `SELECT relation_type, COUNT(*) AS c FROM memory_relation WHERE ${RULE_RELATION_WHERE} GROUP BY relation_type ORDER BY c DESC`,
+    )
+    .all() as Array<{ relation_type: string; c: number }>;
+  return {
+    total: rows.reduce((sum, r) => sum + r.c, 0),
+    by_type: Object.fromEntries(rows.map(r => [r.relation_type, r.c])),
+  };
+}
+
+export function applyRuleRelationCleanup(db: Database.Database): number {
+  return db.transaction(
+    () => db.prepare(`DELETE FROM memory_relation WHERE ${RULE_RELATION_WHERE}`).run().changes,
+  )();
+}
