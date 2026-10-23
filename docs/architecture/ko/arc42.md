@@ -284,7 +284,7 @@ MCP Server → dispatchTool('recall')
 ### 6.4 HTTP `/tools` 미들웨어 체인
 
 ```text
-rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → router
+rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit → router
 ```
 
 ### 6.5 BatchScheduler 주요 job

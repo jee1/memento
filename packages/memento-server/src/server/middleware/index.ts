@@ -4,7 +4,7 @@
  */
 
 export { createServiceInjector } from './service-injector.middleware.js';
-export { createToolContextMiddleware } from './tool-context.middleware.js';
+export { resolveCallerMiddleware } from './resolve-caller.middleware.js';
 export { createAdminAuthMiddleware } from './admin-auth.middleware.js';
 export {
   createSessionAuthMiddleware,

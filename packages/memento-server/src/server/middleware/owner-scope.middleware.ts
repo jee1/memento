@@ -51,7 +51,7 @@ export function createOwnerScopeMiddleware() {
       return;
     }
 
-    const agentId = req.toolContext?.agentId;
+    const agentId = req.callerAgentId;
     if (agentId) {
       if (!req.body || typeof req.body !== 'object') {
         req.body = { owner_id: agentId };
