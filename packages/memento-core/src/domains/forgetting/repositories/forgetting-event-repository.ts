@@ -6,7 +6,7 @@ import type Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 
-export type ForgettingEventAction = 'soft' | 'hard' | 'review';
+export type ForgettingEventAction = 'soft' | 'hard' | 'review' | 'wipe';
 
 export interface ForgettingEventInsert {
   memory_id: string;

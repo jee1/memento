@@ -94,32 +94,32 @@ Each live lane runs on its own cloud VM at the PR head. Drive through `control-c
 
 **Verify, live.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked. Ten lanes on `grok-4.7-xhigh-fast` at the PR head, per the boot recipe.
 
-- [ ] Lane 1. Regression lane against trunk. Run standard unscoped token requests at trunk and head. Save `lane-1-unscoped.png`. Pass when status is 200 and behavior is identical.
-- [ ] Lane 2. Project-bound token without header. Save `lane-2-bound-no-header.png`. Pass when request succeeds and defaults to bound project.
-- [ ] Lane 3. Project-bound token with matching header. Save `lane-3-matching-header.png`. Pass when request succeeds with 200.
-- [ ] Lane 4. Project-bound token with conflicting header. Save `lane-4-conflicting-header.png`. Pass when server rejects with 403.
-- [ ] Lane 5. Unbound token with custom project header. Save `lane-5-unbound-custom-header.png`. Pass when server permits custom project for legacy callers.
-- [ ] Lane 6. Forget tool with bound project. Save `lane-6-forget-bound-project.png`. Pass when items outside project return not found.
-- [ ] Lane 7. Remember tool with bound project. Save `lane-7-remember-bound-project.png`. Pass when inserted item carries bound project id.
-- [ ] Lane 8. Recall tool with bound project filter. Save `lane-8-recall-bound-project.png`. Pass when only project memories appear in search.
-- [ ] Lane 9. Audit trail verification. Save `lane-9-audit-project.png`. Pass when audit log records bound project id.
-- [ ] Lane 10. CLI export tool with bound project. Save `lane-10-export-project.png`. Pass when exported memories match bound project.
+- [x] Lane 1. Regression lane against trunk. Run standard unscoped token requests at trunk and head. Save `lane-1-unscoped.png`. Pass when status is 200 and behavior is identical.
+- [x] Lane 2. Project-bound token without header. Save `lane-2-bound-no-header.png`. Pass when request succeeds and defaults to bound project.
+- [x] Lane 3. Project-bound token with matching header. Save `lane-3-matching-header.png`. Pass when request succeeds with 200.
+- [x] Lane 4. Project-bound token with conflicting header. Save `lane-4-conflicting-header.png`. Pass when server rejects with 403.
+- [x] Lane 5. Unbound token with custom project header. Save `lane-5-unbound-custom-header.png`. Pass when server permits custom project for legacy callers.
+- [x] Lane 6. Forget tool with bound project. Save `lane-6-forget-bound-project.png`. Pass when items outside project return not found.
+- [x] Lane 7. Remember tool with bound project. Save `lane-7-remember-bound-project.png`. Pass when inserted item carries bound project id.
+- [x] Lane 8. Recall tool with bound project filter. Save `lane-8-recall-bound-project.png`. Pass when only project memories appear in search.
+- [x] Lane 9. Audit trail verification. Save `lane-9-audit-project.png`. Pass when audit log records bound project id.
+- [x] Lane 10. CLI export tool with bound project. Save `lane-10-export-project.png`. Pass when exported memories match bound project.
 
 **Verify, perf.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Middleware execution overhead in microseconds.
-- [ ] Probe. Run benchmark probe over 1000 requests to `/tools` with bound project token.
-- [ ] Baseline. Measure trunk resolve-caller middleware latency baseline.
-- [ ] Rule. Head latency must not exceed trunk by more than 0.15ms per request.
+- [x] Metric. Middleware execution overhead in microseconds.
+- [x] Probe. Run benchmark probe over 1000 requests to `/tools` with bound project token.
+- [x] Baseline. Measure trunk resolve-caller middleware latency baseline.
+- [x] Rule. Head latency must not exceed trunk by more than 0.15ms per request.
 
 **Review gate.** None. PR-1094-1 is not review-gated.
 
 **Merge.**
 
-- [ ] Root clean verdict at head SHA.
-- [ ] Bugbot triage done.
-- [ ] Rebased onto current trunk after verdict.
-- [ ] Root appends PR to base-branch stack.
+- [x] Root clean verdict at head SHA.
+- [x] Bugbot triage done.
+- [x] Rebased onto current trunk after verdict.
+- [x] Root appends PR to base-branch stack.
 
 ## Add granular tool read and write scopes (PR-1094-2)
 
@@ -237,59 +237,59 @@ Each live lane runs on its own cloud VM at the PR head. Drive through `control-c
 
 **Files.**
 
-- [ ] Create `packages/memento-core/src/domains/memory/tools/wipe-memory-tool.ts`.
-- [ ] Edit `packages/memento-core/src/domains/memory/repositories/memory-item-repository.ts`.
-- [ ] Edit `packages/memento-core/src/domains/forgetting/repositories/forgetting-event-repository.ts`.
-- [ ] Edit `packages/memento-server/src/server/routes/admin/admin.routes.ts`.
-- [ ] Create `packages/memento-core/src/domains/memory/tools/__tests__/wipe-memory-tool.spec.ts`.
+- [x] Create `packages/memento-core/src/domains/memory/tools/wipe-memory-tool.ts`.
+- [x] Edit `packages/memento-core/src/domains/memory/repositories/memory-item-repository.ts`.
+- [x] Edit `packages/memento-core/src/domains/forgetting/repositories/forgetting-event-repository.ts`.
+- [x] Edit `packages/memento-server/src/server/routes/admin/admin.routes.ts`.
+- [x] Create `packages/memento-core/src/domains/memory/tools/__tests__/wipe-memory-tool.spec.ts`.
 
 **Build.**
 
-- [ ] Create `WipeMemoryTool` supporting retention expiration purge and cryptographic zero-fill of vectors.
-- [ ] Add database transaction ensuring atomic removal across `memory_item`, vector tables, and relations.
-- [ ] Append immutable audit record with HMAC verifying complete eradication.
+- [x] Create `WipeMemoryTool` supporting retention expiration purge and cryptographic zero-fill of vectors.
+- [x] Add database transaction ensuring atomic removal across `memory_item`, vector tables, and relations.
+- [x] Append immutable audit record with HMAC verifying complete eradication.
 
 **You see.**
 
-- [ ] Running wipe on expired soft-deleted memories returns `purged_count` and zeroes out matching vector rows in `memory_item_vec_tfidf`.
+- [x] Running wipe on expired soft-deleted memories returns `purged_count` and zeroes out matching vector rows in `memory_item_vec_tfidf`.
 
 **Verify, unit.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `wipe-memory-tool.spec.ts` verifies atomic purge, vector zeroing, and audit logging. Run `npm test -- packages/memento-core/src/domains/memory/tools/__tests__/wipe-memory-tool.spec.ts`.
+- [x] `wipe-memory-tool.spec.ts` verifies atomic purge, vector zeroing, and audit logging. Run `npm test -- packages/memento-core/src/domains/memory/tools/__tests__/wipe-memory-tool.spec.ts`.
 
 **Verify, live.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked. Ten lanes on `grok-4.7-xhigh-fast` at the PR head, per the boot recipe.
 
-- [ ] Lane 1. Regression lane against trunk. Run standard soft forget at trunk and head. Save `lane-1-soft-forget.png`. Pass when deleted memory is soft-marked.
-- [ ] Lane 2. Wipe memory dry run mode. Save `lane-2-wipe-dry-run.png`. Pass when candidate count is returned with zero database mutations.
-- [ ] Lane 3. Wipe memory with explicit memory id. Save `lane-3-wipe-single-id.png`. Pass when memory and vector row are completely removed.
-- [ ] Lane 4. Wipe memory retention purge for expired items. Save `lane-4-wipe-retention.png`. Pass when items older than retention window are wiped.
-- [ ] Lane 5. Retention policy preserving active memories. Save `lane-5-retention-preserve.png`. Pass when active memories remain untouched.
-- [ ] Lane 6. Wipe memory token boundary check. Save `lane-6-wipe-auth-boundary.png`. Pass when wipe requires `admin:destructive` scope.
-- [ ] Lane 7. Cryptographic vector row zero-fill verification. Save `lane-7-vector-zeroing.png`. Pass when vector table index has zero remnants.
-- [ ] Lane 8. Relation graph cascade cleanup. Save `lane-8-relation-cleanup.png`. Pass when orphaned relations are eliminated.
-- [ ] Lane 9. Audit log entry for wipe operation. Save `lane-9-audit-wipe-record.png`. Pass when audit chain contains cryptographic wipe hash.
-- [ ] Lane 10. Database vacuum and integrity verification after wipe. Save `lane-10-db-integrity.png`. Pass when `PRAGMA integrity_check` returns ok.
+- [x] Lane 1. Regression lane against trunk. Run standard soft forget at trunk and head. Save `lane-1-soft-forget.png`. Pass when deleted memory is soft-marked.
+- [x] Lane 2. Wipe memory dry run mode. Save `lane-2-wipe-dry-run.png`. Pass when candidate count is returned with zero database mutations.
+- [x] Lane 3. Wipe memory with explicit memory id. Save `lane-3-wipe-single-id.png`. Pass when memory and vector row are completely removed.
+- [x] Lane 4. Wipe memory retention purge for expired items. Save `lane-4-wipe-retention.png`. Pass when items older than retention window are wiped.
+- [x] Lane 5. Retention policy preserving active memories. Save `lane-5-retention-preserve.png`. Pass when active memories remain untouched.
+- [x] Lane 6. Wipe memory token boundary check. Save `lane-6-wipe-auth-boundary.png`. Pass when wipe requires `admin:destructive` scope.
+- [x] Lane 7. Cryptographic vector row zero-fill verification. Save `lane-7-vector-zeroing.png`. Pass when vector table index has zero remnants.
+- [x] Lane 8. Relation graph cascade cleanup. Save `lane-8-relation-cleanup.png`. Pass when orphaned relations are eliminated.
+- [x] Lane 9. Audit log entry for wipe operation. Save `lane-9-audit-wipe-record.png`. Pass when audit chain contains cryptographic wipe hash.
+- [x] Lane 10. Database vacuum and integrity verification after wipe. Save `lane-10-db-integrity.png`. Pass when `PRAGMA integrity_check` returns ok.
 
 **Verify, perf.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Batch wipe execution throughput in items per second.
-- [ ] Probe. Purge batch of 500 soft-deleted test memories and measure execution time.
-- [ ] Baseline. Measure standard batch hard delete latency on 500 items.
-- [ ] Rule. Wiping 500 items including vector purge and audit chain must complete in under 1.5 seconds.
+- [x] Metric. Batch wipe execution throughput in items per second.
+- [x] Probe. Purge batch of 500 soft-deleted test memories and measure execution time.
+- [x] Baseline. Measure standard batch hard delete latency on 500 items.
+- [x] Rule. Wiping 500 items including vector purge and audit chain must complete in under 1.5 seconds.
 
 **Review gate.** None. PR-1094-4 is not review-gated.
 
 **Merge.**
 
-- [ ] Root clean verdict at head SHA.
-- [ ] Bugbot triage done.
-- [ ] Rebased onto parent branch after verdict.
-- [ ] Root appends PR to base-branch stack.
+- [x] Root clean verdict at head SHA.
+- [x] Bugbot triage done.
+- [x] Rebased onto parent branch after verdict.
+- [x] Root appends PR to base-branch stack.
 
 ## Close the program
 
-- [ ] Every box above is checked with its evidence.
-- [ ] Reply to the operator with the report the execution playbook names.
+- [x] Every box above is checked with its evidence.
+- [x] Reply to the operator with the report the execution playbook names.
 
 ## Appendix A. Prototype evidence
 

@@ -19,6 +19,7 @@
 
 ### Added
 
+- tools: 규정 준수 보존 정책과 영구 삭제 도구 wipe_memory 를 추가합니다(#1094). admin:destructive 권한으로 보존 기간이 지난 삭제 표시 기억을 일괄 정리하고, 벡터 테이블과 연관 관계를 원자적으로 제거하며 암호학적 영구 삭제(zero-fill) 감사 증적을 남깁니다. 시뮬레이션용 dry_run 모드를 지원합니다.
 - auth: MEMENTO_OFFLINE_STRICT 설정을 추가합니다(#1094). 오프라인 모드 활성화 시 외부 임베딩이나 LLM provider 설정을 즉시 차단하고, 루프백 이외의 외부 네트워크 소켓 연결을 차단합니다.
 - auth: API 토큰 스코프에 세분화된 tools:read 와 tools:write 를 지원합니다(#1094). tools:read 는 읽기 도구(recall, export_memories 등)만 허용하고 쓰기 도구 호출 시 403을 반환합니다. tools:write 는 쓰기 도구(remember, forget 등)만 허용하고 읽기 도구 호출 시 403을 반환합니다. tools:invoke 는 전체 도구 권한을 유지합니다.
 - auth: MEMENTO_API_TOKENS 항목에 선택 필드 project_id를 지원합니다(#1094). 묶인 토큰의 요청은 그 값을 project 신원으로 고정하고, X-Memento-Project-Id나 X-Project-Id가 다르면 403 PROJECT_ID_MISMATCH를 반환합니다. 도구 실행 시 project_id 인자 위조를 차단하고 기본값으로 주입합니다.

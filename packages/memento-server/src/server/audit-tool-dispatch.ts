@@ -86,7 +86,7 @@ class Semaphore {
 }
 
 export function auditActionForTool(name: string): AuditAction {
-  if (name === 'forget' || name.startsWith('remove_') || name.startsWith('delete_')) return 'delete';
+  if (name === 'forget' || name === 'wipe_memory' || name.startsWith('remove_') || name.startsWith('delete_')) return 'delete';
   if (
     name === 'recall' || name === 'memory_injection' || name === 'export_memories'
     || name.startsWith('get_') || name.startsWith('search_') || name.startsWith('list_')
@@ -96,6 +96,12 @@ export function auditActionForTool(name: string): AuditAction {
 
 export function assertToolScope(name: string, scopes?: readonly ApiScope[]): void {
   if (!scopes) {
+    return;
+  }
+  if (name === 'wipe_memory') {
+    if (!scopes.includes('admin:destructive')) {
+      throw new ToolScopeForbiddenError('wipe_memory requires admin:destructive scope');
+    }
     return;
   }
   if (scopes.includes('tools:invoke')) {

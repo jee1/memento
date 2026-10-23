@@ -4,11 +4,36 @@
 
 import type { Router } from 'express';
 import type Database from 'better-sqlite3';
-import { listForgettingEvents, logger, type ForgettingEventAction } from '@memento/core';
+import { listForgettingEvents, logger, WipeMemoryTool, type ForgettingEventAction } from '@memento/core';
 
-const FORGETTING_ACTIONS: ForgettingEventAction[] = ['soft', 'hard', 'review'];
+const FORGETTING_ACTIONS: ForgettingEventAction[] = ['soft', 'hard', 'review', 'wipe'];
 
 export function registerAdminForgettingRoutes(router: Router, db: Database.Database | null): void {
+  router.post('/forgetting/wipe', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({ error: 'DB unavailable' });
+      }
+
+      const wipeTool = new WipeMemoryTool();
+      const result = await wipeTool.handle(req.body, {
+        db,
+        services: {} as any,
+        agentId: req.callerAgentId,
+      });
+
+      return res.json(result);
+    } catch (error) {
+      logger.error('forgetting wipe failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Wipe failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
   router.get('/forgetting/events', (req, res) => {
     try {
       if (!db) {
