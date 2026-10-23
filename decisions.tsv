@@ -1,0 +1,6 @@
+ts	phase	decision	why	evidence	result
+2026-10-24T00:05:38Z	PR-1094-1	bind project scope to API tokens and return 403 on mismatch	prevent project spoofing from untrusted client headers	commit ed5556f2	tests green, 77 passed
+2026-10-24T00:38:00Z	PR-1094-2	add granular tools:read and tools:write API token scopes	enforce least-privilege access for read-only and write-only agents	granular-tool-scopes.spec.ts	all 11 tests passed, HTTP 403 on mutation
+2026-10-24T00:43:45Z	PR-1094-3	enforce strict offline operation mode with zero external egress	guarantee zero data leakage to cloud providers in air-gapped deployments	offline-strict-mode.spec.ts	all 12 tests passed, remote providers blocked
+2026-10-24T00:54:25Z	PR-1094-4	implement compliant retention and secure memory wipe tool	provide cryptographic zero-fill and atomic deletion for enterprise governance	wipe-memory-tool.spec.ts	all 7 tests passed, vector zeroed, audit logged
+2026-10-24T05:25:00Z	PR-1094-5	support independent configuration toggles for all governance features	allow environments to selectively toggle project scope, granular scopes, and memory wipe tool	governance-feature-toggles.spec.ts, governance-feature-toggles.integration.spec.ts	all 8 tests passed, clean type-check and lint

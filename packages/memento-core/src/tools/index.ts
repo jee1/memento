@@ -26,6 +26,7 @@ import { AddRelationTool } from '../domains/relation/tools/add-relation-tool.js'
 import { GetRelationsTool } from '../domains/relation/tools/get-relations-tool.js';
 import { RemoveRelationTool } from '../domains/relation/tools/remove-relation-tool.js';
 import { ExportMemoriesTool } from '../domains/memory/tools/export-memories-tool.js';
+import { WipeMemoryTool } from '../domains/memory/tools/wipe-memory-tool.js';
 import { flattenNestedToolFilters } from './flatten-tool-params.js';
 
 
@@ -51,6 +52,7 @@ const coreTools = [
   new GetRelationsTool(),
   new RemoveRelationTool(),
   new ExportMemoriesTool(),
+  new WipeMemoryTool(),
 ];
 
 const toolRegistry = new ToolRegistry({

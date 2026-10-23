@@ -339,4 +339,96 @@ describe('createProgrammaticAuthMiddleware', () => {
       retryable: false,
     });
   });
+
+  it('bound token: no project header sets programmaticAuth.projectId', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'proj-tok', secret: 's1', scopes: ['tools:invoke'], projectId: 'proj-alpha' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = { headers: { authorization: 'Bearer s1' } } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.programmaticAuth).toEqual({
+      keyId: 'proj-tok',
+      scopes: ['tools:invoke'],
+      projectId: 'proj-alpha',
+    });
+  });
+
+  it('bound token: matching X-Memento-Project-Id is allowed', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'proj-tok', secret: 's1', scopes: ['tools:invoke'], projectId: 'proj-alpha' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-project-id': 'proj-alpha',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('bound token: mismatched X-Memento-Project-Id returns 403', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'proj-tok', secret: 's1', scopes: ['tools:invoke'], projectId: 'proj-alpha' },
+      ]),
+      requiredScope: 'tools:invoke',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-project-id': 'proj-beta',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('bound token: agent format returns PROJECT_ID_MISMATCH on header mismatch', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      registry: createApiTokenRegistry([
+        { id: 'proj-tok', secret: 's1', scopes: ['tools:invoke'], projectId: 'proj-alpha' },
+      ]),
+      requiredScope: 'tools:invoke',
+      errorFormat: 'agent',
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer s1',
+        'x-memento-project-id': 'proj-beta',
+      },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(res.body).toEqual({
+      status: 403,
+      reason_code: 'PROJECT_ID_MISMATCH',
+      message: 'X-Memento-Project-Id does not match the project bound to this API token.',
+      retryable: false,
+    });
+  });
 });

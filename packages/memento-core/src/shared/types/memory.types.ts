@@ -164,6 +164,14 @@ export interface MementoConfig {
   rememberDedupMergeLexicalFloor: number;
   /** HTTP MCP dual-era rollback gate (#840). Env: MEMENTO_MCP_ERA */
   mcpEra: 'dual' | 'legacy' | 'modern';
+  /** 오프라인 모드 강제 (#1094). Env: MEMENTO_OFFLINE_STRICT */
+  offlineStrict: boolean;
+  /** 프로젝트 스코프 강제 활성화 (#1094). Env: MEMENTO_PROJECT_SCOPE_ENABLED (기본 true) */
+  projectScopeEnabled: boolean;
+  /** 도구 세부 스코프(tools:read, tools:write) 활성화 (#1094). Env: MEMENTO_GRANULAR_TOOL_SCOPES_ENABLED (기본 true) */
+  granularToolScopesEnabled: boolean;
+  /** 영구 삭제(wipe_memory) 도구 활성화 (#1094). Env: MEMENTO_WIPE_MEMORY_ENABLED (기본 true) */
+  wipeMemoryEnabled: boolean;
 }
 
 /** meta_memory_stats 테이블과 일대일 대응되는 통계 */

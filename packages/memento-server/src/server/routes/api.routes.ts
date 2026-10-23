@@ -97,7 +97,10 @@ function postAnchorSearch(db: Database.Database | null, serverServices: ServerSe
       const toolResult = await dispatchTool('search_local', req.body, db, serverServices, {
         transport: 'rest',
         actorId: req.programmaticAuth?.keyId,
+        scopes: req.programmaticAuth?.scopes,
         boundAgentId: req.programmaticAuth?.agentId,
+        boundProjectId: req.programmaticAuth?.projectId,
+        projectId: req.projectId,
       });
       const result = extractToolResultPayload(toolResult);
 

@@ -19,7 +19,7 @@ export function resolveCallerMiddleware(
   const headerAgentId = req.get('x-memento-agent-id')?.trim();
   const defaultAgentId = mementoConfig.httpDefaultAgentId?.trim();
   const agentId = req.programmaticAuth?.agentId || headerAgentId || defaultAgentId || undefined;
-  const projectId = readProjectIdHeader(req);
+  const projectId = req.programmaticAuth?.projectId || readProjectIdHeader(req);
 
   req.callerAgentId = agentId;
   req.projectId = projectId;

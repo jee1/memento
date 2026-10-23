@@ -16,6 +16,8 @@ export interface ServerContext {
   boundAgentId?: string;
   /** HTTP/MCP 요청별 프로젝트 식별자 (미설정 시 ToolContext.projectId 생략) */
   projectId?: string;
+  /** API 토큰에 묶인 project — 헤더로 자기신고한 projectId 와 달리 신뢰할 수 있다 (#1094) */
+  boundProjectId?: string;
 }
 
 export function createServerContext(
@@ -46,6 +48,7 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
     ...(serverContext.agentId ? { agentId: serverContext.agentId } : {}),
     ...(serverContext.boundAgentId ? { boundAgentId: serverContext.boundAgentId } : {}),
     ...(serverContext.projectId ? { projectId: serverContext.projectId } : {}),
+    ...(serverContext.boundProjectId ? { boundProjectId: serverContext.boundProjectId } : {}),
     services: {
       searchEngine: serverContext.services.searchEngine,
       hybridSearchEngine: serverContext.services.hybridSearchEngine,

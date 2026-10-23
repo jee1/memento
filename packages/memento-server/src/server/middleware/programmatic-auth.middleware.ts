@@ -1,7 +1,8 @@
-import type { ApiScope } from '@memento/core';
+import { mementoConfig, type ApiScope } from '@memento/core';
 import type { NextFunction, Request, Response } from 'express';
 
 import {
+  hasAnyScope,
   hasScope,
   type ApiTokenRegistry,
 } from '../auth/api-token-registry.js';
@@ -13,6 +14,7 @@ declare global {
         keyId: string;
         scopes: ApiScope[];
         agentId?: string;
+        projectId?: string;
       };
     }
   }
@@ -20,7 +22,8 @@ declare global {
 
 type ProgrammaticAuthMiddlewareConfig = {
   registry: ApiTokenRegistry;
-  requiredScope: ApiScope | ApiScope[];
+  requiredScope?: ApiScope | ApiScope[];
+  anyOfScopes?: readonly ApiScope[];
   errorFormat?: 'legacy' | 'agent';
 };
 
@@ -66,7 +69,7 @@ function writeUnauthorized(
 
 function writeForbidden(
   res: Response,
-  requiredScope: ApiScope | ApiScope[],
+  requiredScope: ApiScope | ApiScope[] | readonly ApiScope[] | string,
   format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
 ): void {
   const required = Array.isArray(requiredScope) ? requiredScope.join(', ') : requiredScope;
@@ -107,9 +110,39 @@ function writeAgentMismatch(
   });
 }
 
+function writeProjectMismatch(
+  res: Response,
+  format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
+): void {
+  const message = 'X-Memento-Project-Id does not match the project bound to this API token.';
+  if (format === 'agent') {
+    res.status(403).json({
+      status: 403,
+      reason_code: 'PROJECT_ID_MISMATCH',
+      message,
+      retryable: false,
+    });
+    return;
+  }
+  res.status(403).json({
+    error: 'Forbidden',
+    message,
+    timestamp: new Date().toISOString(),
+  });
+}
+
 /** Client-claimed agent id: X-Memento-Agent-Id, then X-Agent-Id (#1258). */
 function readAgentIdHeader(req: Request): string | null {
   for (const name of ['x-memento-agent-id', 'x-agent-id']) {
+    const value = req.headers[name];
+    if (typeof value === 'string' && value.trim() !== '') return value.trim();
+  }
+  return null;
+}
+
+/** Client-claimed project id: X-Memento-Project-Id, then X-Project-Id (#1094). */
+function readProjectIdHeader(req: Request): string | null {
+  for (const name of ['x-memento-project-id', 'x-project-id']) {
     const value = req.headers[name];
     if (typeof value === 'string' && value.trim() !== '') return value.trim();
   }
@@ -176,7 +209,12 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
-    if (!hasScope(resolved.scopes, config.requiredScope)) {
+    if (config.anyOfScopes && !hasAnyScope(resolved.scopes, config.anyOfScopes)) {
+      writeForbidden(res, config.anyOfScopes, config.errorFormat);
+      return;
+    }
+
+    if (config.requiredScope && !hasScope(resolved.scopes, config.requiredScope)) {
       writeForbidden(res, config.requiredScope, config.errorFormat);
       return;
     }
@@ -187,10 +225,18 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
+    const claimedProjectId = readProjectIdHeader(req);
+    if (mementoConfig.projectScopeEnabled && resolved.projectId && claimedProjectId !== null && claimedProjectId !== resolved.projectId) {
+      writeProjectMismatch(res, config.errorFormat);
+      return;
+    }
+
+    const boundProjectId = mementoConfig.projectScopeEnabled ? resolved.projectId : undefined;
     req.programmaticAuth = {
       keyId: resolved.id,
       scopes: [...resolved.scopes],
       ...(resolved.agentId ? { agentId: resolved.agentId } : {}),
+      ...(boundProjectId ? { projectId: boundProjectId } : {}),
     };
     next();
   };

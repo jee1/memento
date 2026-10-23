@@ -216,6 +216,7 @@ export { VisualizeRelationsTool } from './domains/relation/tools/visualize-relat
 export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.js';
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
 export { ExportMemoriesTool } from './domains/memory/tools/export-memories-tool.js';
+export { WipeMemoryTool } from './domains/memory/tools/wipe-memory-tool.js';
 export {
   formatMementoResourceUri,
   type FormatMementoResourceUriInput,

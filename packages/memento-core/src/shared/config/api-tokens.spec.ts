@@ -115,6 +115,62 @@ describe('resolveApiTokens', () => {
     warnSpy.mockRestore();
   });
 
+  it('parses project_id and trims whitespace', () => {
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'bound-proj', secret: 'secret-p', scopes: ['tools:invoke'], project_id: '  proj-alpha  ' },
+        { id: 'bound-camel', secret: 'secret-c', scopes: ['tools:invoke'], projectId: '  proj-beta  ' },
+      ]),
+    );
+
+    const tokens = resolveApiTokens(undefined);
+    expect(tokens).toEqual([
+      { id: 'bound-proj', secret: 'secret-p', scopes: ['tools:invoke'], projectId: 'proj-alpha' },
+      { id: 'bound-camel', secret: 'secret-c', scopes: ['tools:invoke'], projectId: 'proj-beta' },
+    ]);
+  });
+
+  it('omits projectId when absent', () => {
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'unbound', secret: 'unbound-secret', scopes: ['tools:invoke'] },
+      ]),
+    );
+
+    const tokens = resolveApiTokens(undefined);
+    expect(tokens[0]).not.toHaveProperty('projectId');
+  });
+
+  it('ignores entries with invalid project_id while parsing valid siblings', async () => {
+    const { logger } = await import('../utils/logger.js');
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    vi.stubEnv(
+      'MEMENTO_API_TOKENS',
+      JSON.stringify([
+        { id: 'bad-empty', secret: 's1', scopes: ['tools:invoke'], project_id: '' },
+        { id: 'bad-space', secret: 's2', scopes: ['tools:invoke'], project_id: '  ' },
+        { id: 'bad-number', secret: 's3', scopes: ['tools:invoke'], project_id: 123 },
+        { id: 'bad-null', secret: 's4', scopes: ['tools:invoke'], project_id: null },
+        { id: 'good', secret: 'good-secret', scopes: ['tools:invoke'], project_id: 'proj-ok' },
+      ]),
+    );
+
+    const tokens = resolveApiTokens(undefined);
+    expect(tokens).toEqual([
+      { id: 'good', secret: 'good-secret', scopes: ['tools:invoke'], projectId: 'proj-ok' },
+    ]);
+    expect(warnSpy).toHaveBeenCalledTimes(4);
+    expect(
+      warnSpy.mock.calls.every(([message]) =>
+        String(message).includes('project_id must be a non-empty string'),
+      ),
+    ).toBe(true);
+
+    warnSpy.mockRestore();
+  });
+
   it('does not log the migration error when MEMENTO_API_TOKENS is unset', async () => {
     const { logger } = await import('../utils/logger.js');
     const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);

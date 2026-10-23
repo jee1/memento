@@ -385,12 +385,12 @@ function registerRoutes(
   const adminAuth = createAdminAuthMiddleware(tokenRegistry);
   const programmaticAuth = createProgrammaticAuthMiddleware({
     registry: tokenRegistry,
-    requiredScope: 'tools:invoke',
+    anyOfScopes: ['tools:invoke', 'tools:read', 'tools:write'],
   });
   const ownerScopeMiddleware = createOwnerScopeMiddleware();
   const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
     registry: tokenRegistry,
-    requiredScope: 'tools:invoke',
+    anyOfScopes: ['tools:invoke', 'tools:read', 'tools:write'],
     errorFormat: 'agent',
   });
   const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
@@ -510,6 +510,8 @@ setupWebSocketServer(
   () => db,
   () => serverServices,
   (req) => resolveAuthenticatedToken(req, wsTokenRegistry())?.agentId,
+  (req) => resolveAuthenticatedToken(req, wsTokenRegistry())?.projectId,
+  (req) => resolveAuthenticatedToken(req, wsTokenRegistry())?.scopes,
 );
 
 /** Stop HTTP-owned resources without touching the shared core. */

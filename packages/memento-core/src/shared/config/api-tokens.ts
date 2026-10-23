@@ -38,7 +38,7 @@ function parseTokenEntry(raw: unknown, index: number): ApiTokenEntry | null {
     }
   }
 
-  const agentIdRaw = record.agent_id;
+  const agentIdRaw = record.agent_id !== undefined ? record.agent_id : record.agentId;
   let agentId: string | undefined;
   if (agentIdRaw === undefined) {
     agentId = undefined;
@@ -49,7 +49,24 @@ function parseTokenEntry(raw: unknown, index: number): ApiTokenEntry | null {
     return null;
   }
 
-  return { id, secret, scopes, ...(agentId ? { agentId } : {}) };
+  const projectIdRaw = record.project_id !== undefined ? record.project_id : record.projectId;
+  let projectId: string | undefined;
+  if (projectIdRaw === undefined) {
+    projectId = undefined;
+  } else if (typeof projectIdRaw === 'string' && projectIdRaw.trim() !== '') {
+    projectId = projectIdRaw.trim();
+  } else {
+    logger.warn('MEMENTO_API_TOKENS entry ignored: project_id must be a non-empty string', { index, id });
+    return null;
+  }
+
+  return {
+    id,
+    secret,
+    scopes,
+    ...(agentId ? { agentId } : {}),
+    ...(projectId ? { projectId } : {}),
+  };
 }
 
 function parseEnvTokens(raw: string): ApiTokenEntry[] {

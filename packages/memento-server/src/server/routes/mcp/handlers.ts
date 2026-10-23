@@ -34,6 +34,18 @@ function applyMcpCorsHeaders(req: Request, res: Response): void {
   }
 }
 
+function buildMcpHttpAuditContext(req: Request): ToolAuditContext {
+  return {
+    transport: 'mcp_http',
+    actorId: req.programmaticAuth?.keyId,
+    scopes: req.programmaticAuth?.scopes,
+    agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+    boundAgentId: req.programmaticAuth?.agentId,
+    boundProjectId: req.programmaticAuth?.projectId,
+    projectId: req.programmaticAuth?.projectId ?? readProjectIdHeader(req),
+  };
+}
+
 export function sendMcpCorsPreflight(req: Request, res: Response): void {
   applyMcpCorsHeaders(req, res);
   res.status(204).end();
@@ -240,13 +252,7 @@ export async function handleStreamableMcpPost(
   }
 
   try {
-    const auditContext: ToolAuditContext = {
-      transport: 'mcp_http',
-      actorId: req.programmaticAuth?.keyId,
-      agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
-      boundAgentId: req.programmaticAuth?.agentId,
-      projectId: readProjectIdHeader(req),
-    };
+    const auditContext = buildMcpHttpAuditContext(req);
     const result = await processMcpMessage(message, db, serverServices, auditContext, {
       modernEra: modernClaim,
     });
@@ -312,13 +318,7 @@ export async function handleSseMessagePost(
 
   const message = req.body;
   try {
-    const auditContext: ToolAuditContext = {
-      transport: 'mcp_http',
-      actorId: req.programmaticAuth?.keyId,
-      agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
-      boundAgentId: req.programmaticAuth?.agentId,
-      projectId: readProjectIdHeader(req),
-    };
+    const auditContext = buildMcpHttpAuditContext(req);
     const result = await processMcpMessage(message, db, serverServices, auditContext);
     if (!writeSseJson(transport, result)) {
       res.status(500).json({ error: 'SSE transport invalid' });

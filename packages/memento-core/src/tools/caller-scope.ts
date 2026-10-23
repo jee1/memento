@@ -11,6 +11,7 @@ import type { ToolContext } from './types.js';
 import { selectIdsOwnedBy } from '../shared/utils/owned-ids.js';
 
 type ScopeContext = Pick<ToolContext, 'boundAgentId'>;
+type ProjectScopeContext = Pick<ToolContext, 'boundProjectId'>;
 
 /** `AND <column> IS ?` for bound callers, empty for unbound ones. */
 export function callerOwnerClause(
@@ -19,6 +20,16 @@ export function callerOwnerClause(
 ): { sql: string; params: string[] } {
   return context.boundAgentId
     ? { sql: ` AND ${column} IS ?`, params: [context.boundAgentId] }
+    : { sql: '', params: [] };
+}
+
+/** `AND <column> IS ?` for bound project callers, empty for unbound ones (#1094). */
+export function callerProjectClause(
+  context: ProjectScopeContext,
+  column = 'project_id',
+): { sql: string; params: string[] } {
+  return context.boundProjectId
+    ? { sql: ` AND ${column} IS ?`, params: [context.boundProjectId] }
     : { sql: '', params: [] };
 }
 

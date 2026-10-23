@@ -97,6 +97,19 @@ MEMENTO_API_TOKENS='[{"id":"codex","secret":"<hex>","scopes":["tools:invoke"],"a
 
 The strict recall filter and the audit log use this value. Owner boundaries apply only with this token binding (#1285): tools that take a memory id (`forget`, `pin`, `feedback`, `get_relations`, …) touch only that agent's memories, answer for another owner's memory exactly as for a missing one, and drop other owners' memories from neighbor/relation results. An `owner_id` or `agent_id` argument naming another agent is rejected. `/api/v1/agent` follows the same rule: another owner's session looks missing, and operator routes spanning all agents (aggregates, operations status, provenance, promotion candidates, retention, transcript import) return 403. An agent set only by header or `MEMENTO_HTTP_DEFAULT_AGENT_ID` gets no such boundary, so set `agent_id` whenever you issue one token per agent.
 
+### Binding a project to a token (#1094)
+
+The project header is client-provided. Set `project_id` on the token entry to lock requests to a fixed project boundary.
+
+```bash
+MEMENTO_API_TOKENS='[{"id":"memento-dev","secret":"<hex>","scopes":["tools:invoke"],"project_id":"memento"}]'
+```
+
+- Requests with this token always set `ToolContext.projectId` and `boundProjectId` to `"memento"`; no header needed
+- A conflicting `X-Memento-Project-Id` or `X-Project-Id` is rejected with **403** (`PROJECT_ID_MISMATCH`)
+- Tool dispatch with a conflicting `project_id` parameter is rejected; omitting `project_id` injects the bound project by default
+- Tokens without `project_id` keep the header-based behavior
+
 ### Legacy NULL-data opt-out
 
 If the DB still has many `owner_id = NULL` rows and HTTP recall must keep **unscoped global search**:

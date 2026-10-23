@@ -19,6 +19,9 @@ export function initializeGemini(
   result: LLMClientInitializationResult,
   selectedProvider: LLMProvider
 ): GoogleGenAI | null {
+  if (mementoConfig.offlineStrict) {
+    return null;
+  }
   if (!mementoConfig.geminiApiKey) {
     if (shouldWarnMissingGeminiKey(selectedProvider)) {
       const warningMessage = 'GEMINI_API_KEY가 없습니다.';

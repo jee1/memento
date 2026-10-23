@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type Database from 'better-sqlite3';
 import { setupTestDatabase } from '../../test/helpers/test-database.js';
 import type { ToolContext } from '../types.js';
-import { callerOwnerClause, filterCallerOwnedIds, resolveCallerAgentId } from '../caller-scope.js';
+import { callerOwnerClause, callerProjectClause, filterCallerOwnedIds, resolveCallerAgentId } from '../caller-scope.js';
 import { PinTool } from '../../domains/memory/tools/pin-tool.js';
 import { UnpinTool } from '../../domains/memory/tools/unpin-tool.js';
 import { FeedbackTool } from '../../domains/memory/tools/feedback-tool.js';
@@ -57,6 +57,9 @@ describe('caller scope', () => {
   it('helpers scope only bound callers', () => {
     expect(callerOwnerClause(unbound)).toEqual({ sql: '', params: [] });
     expect(callerOwnerClause(bound)).toEqual({ sql: ' AND owner_id IS ?', params: ['agent-a'] });
+    expect(callerProjectClause({ boundProjectId: undefined })).toEqual({ sql: '', params: [] });
+    expect(callerProjectClause({ boundProjectId: 'proj-1' })).toEqual({ sql: ' AND project_id IS ?', params: ['proj-1'] });
+    expect(callerProjectClause({ boundProjectId: 'proj-1' }, 'p_id')).toEqual({ sql: ' AND p_id IS ?', params: ['proj-1'] });
     expect([...filterCallerOwnedIds(bound, ['mem_own', 'mem_other', 'mem_null', 'mem_missing'])]).toEqual(['mem_own']);
     expect(filterCallerOwnedIds(unbound, ['mem_other', 'mem_missing']).size).toBe(2);
     expect(resolveCallerAgentId(unbound, 'agent-b')).toBe('agent-b');

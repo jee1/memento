@@ -1144,6 +1144,44 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
       },
       "name": "unpin",
     },
+    {
+      "description": "기억 및 관련 벡터, 관계 데이터를 영구 삭제하고 감사 증적을 남깁니다",
+      "inputSchema": {
+        "properties": {
+          "dry_run": {
+            "default": false,
+            "description": "시뮬레이션 모드 (데이터 변경 없음)",
+            "type": "boolean",
+          },
+          "id": {
+            "description": "완전 삭제할 단일 기억 ID",
+            "type": "string",
+          },
+          "retention_days": {
+            "default": 30,
+            "description": "보존 기간 (일 단위)",
+            "type": "number",
+          },
+          "retention_purge": {
+            "default": false,
+            "description": "보존 기간 만료 기억 일괄 영구 삭제",
+            "type": "boolean",
+          },
+          "vacuum": {
+            "default": false,
+            "description": "데이터베이스 vacuum 수행",
+            "type": "boolean",
+          },
+          "zero_fill": {
+            "default": true,
+            "description": "벡터 테이블 0 채움 완전 파기",
+            "type": "boolean",
+          },
+        },
+        "type": "object",
+      },
+      "name": "wipe_memory",
+    },
   ],
 }
 `;

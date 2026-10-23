@@ -46,6 +46,8 @@ export interface ToolContext {
   boundAgentId?: string;
   /** HTTP 요청 헤더 X-Memento-Project-Id 로 받은 기본 프로젝트 식별자 — remember 신규 저장 시 project_id 미지정이면 사용 (#1270) */
   projectId?: string;
+  /** API 토큰에 묶인 project. 헤더로 정한 projectId 와 달리 신뢰할 수 있다 (tools/caller-scope.ts, #1094) */
+  boundProjectId?: string;
   /** Memori Attribution: 프로세스(에이전트/프로그램) 식별자 (Issue #87) */
   processId?: string;
   /** Memori Attribution: 세션(작업 흐름) 식별자 (Issue #87) */

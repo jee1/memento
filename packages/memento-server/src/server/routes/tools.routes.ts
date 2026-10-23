@@ -13,6 +13,7 @@ import { dispatchTool, mapToolDispatchError } from '../audit-tool-dispatch.js';
 
 function httpStatusForToolError(code: number): number {
   if (code === -32602) return 400;
+  if (code === -32003) return 403;
   if (code === -32601) return 404;
   if (code === MEMORY_VERSION_CONFLICT_JSON_RPC_CODE) return 409;
   return 500;
@@ -65,8 +66,10 @@ export function createToolsRouter(
       const toolResult = await dispatchTool(name, params, db, serverServices, {
         transport: 'rest',
         actorId: req.programmaticAuth?.keyId,
+        scopes: req.programmaticAuth?.scopes,
         agentId: req.callerAgentId,
         boundAgentId: req.programmaticAuth?.agentId,
+        boundProjectId: req.programmaticAuth?.projectId,
         projectId: req.projectId,
       });
 

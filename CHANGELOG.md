@@ -19,6 +19,11 @@
 
 ### Added
 
+- config: 엔터프라이즈 거버넌스 기능별 독립 On/Off 설정을 추가합니다(#1094). MEMENTO_PROJECT_SCOPE_ENABLED(기본값 true), MEMENTO_GRANULAR_TOOL_SCOPES_ENABLED(기본값 true), MEMENTO_WIPE_MEMORY_ENABLED(기본값 true), MEMENTO_OFFLINE_STRICT(기본값 false) 환경변수로 각 기능을 독립적으로 활성화하거나 비활성화합니다.
+- tools: 규정 준수 보존 정책과 영구 삭제 도구 wipe_memory 를 추가합니다(#1094). admin:destructive 권한으로 보존 기간이 지난 삭제 표시 기억을 일괄 정리하고, 벡터 테이블과 연관 관계를 원자적으로 제거하며 암호학적 영구 삭제(zero-fill) 감사 증적을 남깁니다. 시뮬레이션용 dry_run 모드를 지원합니다.
+- auth: MEMENTO_OFFLINE_STRICT 설정을 추가합니다(#1094). 오프라인 모드 활성화 시 외부 임베딩이나 LLM provider 설정을 즉시 차단하고, 루프백 이외의 외부 네트워크 소켓 연결을 차단합니다.
+- auth: API 토큰 스코프에 세분화된 tools:read 와 tools:write 를 지원합니다(#1094). tools:read 는 읽기 도구(recall, export_memories 등)만 허용하고 쓰기 도구 호출 시 403을 반환합니다. tools:write 는 쓰기 도구(remember, forget 등)만 허용하고 읽기 도구 호출 시 403을 반환합니다. tools:invoke 는 전체 도구 권한을 유지합니다.
+- auth: MEMENTO_API_TOKENS 항목에 선택 필드 project_id를 지원합니다(#1094). 묶인 토큰의 요청은 그 값을 project 신원으로 고정하고, X-Memento-Project-Id나 X-Project-Id가 다르면 403 PROJECT_ID_MISMATCH를 반환합니다. 도구 실행 시 project_id 인자 위조를 차단하고 기본값으로 주입합니다.
 - 개발: `npm run db:residue -- cleanup-rule-relations [--apply]` 를 추가합니다(#1450). #1381 이전 rule 추출기가 만든 `memory_relation` 행(`metadata.method = 'rule'`, 약 133,925건, 표본 정확도 약 6%)을 미리 보고 삭제합니다. 기본은 preview 입니다.
 - remember: episodic 작업 기록은 `record`(decision, rationale, rejected, failed, next_blocker)로 저장합니다(#1446). 임베딩과 FTS 는 라벨 없는 필드 값만 보고, recall 과 memory_injection 이 라벨을 붙여 보여 줍니다. `failed` 는 빈 문자열을 허용합니다. 마이그레이션 057이 `memory_item.work_record` 를 추가합니다. `content` 만 보내는 호출은 그대로입니다.
 - 검색: 5줄 템플릿 라벨이 recall 순위에 미치는 영향을 재는 읽기 전용 스크립트 `scripts/measure-template-label-recall.ts` 를 추가합니다(#1445). 측정 결과 영향이 작아 기존 행 백필과 라벨 제거 정규식 삭제는 하지 않습니다(#1448).

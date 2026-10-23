@@ -97,6 +97,19 @@ MEMENTO_API_TOKENS='[{"id":"codex","secret":"<hex>","scopes":["tools:invoke"],"a
 
 strict recall 필터·감사 로그가 이 값을 쓴다. owner 경계는 이 토큰 바인딩이 있을 때만 걸린다(#1285): 기억 id 를 받는 도구(`forget`·`pin`·`feedback`·`get_relations` 등)는 그 agent 의 기억만 다루고 남의 기억은 없는 기억처럼 응답하며, 이웃·관계 결과에서도 빠진다. 도구 인자 `owner_id`·`agent_id` 로 다른 agent 를 지정하면 거부된다. `/api/v1/agent` 도 같다: 남의 세션은 없는 세션처럼 보이고, 모든 agent 에 걸친 운영 경로(집계·운영 상태·provenance·승격 후보·retention·transcript import)는 403 이다. 헤더나 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 로만 정한 agent 에는 이 경계가 걸리지 않으므로, 에이전트마다 토큰을 따로 발급할 때 함께 설정한다.
 
+### 토큰에 project 묶기 (#1094)
+
+헤더 값은 클라이언트가 마음대로 정한다. 토큰 항목에 `project_id` 를 두면 요청의 프로젝트가 고정된다.
+
+```bash
+MEMENTO_API_TOKENS='[{"id":"memento-dev","secret":"<hex>","scopes":["tools:invoke"],"project_id":"memento"}]'
+```
+
+- 이 토큰으로 온 요청은 항상 `ToolContext.projectId`와 `boundProjectId`가 `memento`다. 헤더가 없어도 된다
+- `X-Memento-Project-Id`·`X-Project-Id` 가 다른 값이면 **403** (`PROJECT_ID_MISMATCH`)
+- 도구 호출 시 인자 `project_id` 가 다르면 거절되고, 비어 있으면 토큰의 `project_id` 가 기본 주입된다
+- `project_id` 가 없는 토큰은 기존 헤더 동작을 유지한다
+
 ### 레거시 NULL 데이터 opt-out
 
 기존 DB에 `owner_id = NULL`인 기억이 많고, HTTP recall에서 **소유자 미지정 전체 조회**를 유지해야 한다면:

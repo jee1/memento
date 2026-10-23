@@ -15,6 +15,9 @@ export function initializeOpenAI(
   result: LLMClientInitializationResult,
   selectedProvider: LLMProvider
 ): OpenAI | null {
+  if (mementoConfig.offlineStrict) {
+    return null;
+  }
   if (!mementoConfig.openaiApiKey) {
     if (shouldWarnMissingOpenaiKey(selectedProvider)) {
       const warningMessage = 'OPENAI_API_KEY가 없습니다.';
