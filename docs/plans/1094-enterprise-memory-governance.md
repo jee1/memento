@@ -182,54 +182,54 @@ Each live lane runs on its own cloud VM at the PR head. Drive through `control-c
 
 **Files.**
 
-- [ ] Edit `packages/memento-core/src/shared/config/index.ts`.
-- [ ] Edit `packages/memento-core/src/domains/embedding/embedding-service-factory.ts`.
-- [ ] Edit `packages/memento-core/src/infrastructure/llm/llm-service-factory.ts`.
-- [ ] Edit `packages/memento-core/src/shared/utils/network-guard.ts`.
-- [ ] Create `packages/memento-core/src/__tests__/offline-strict-mode.spec.ts`.
+- [x] Edit `packages/memento-core/src/shared/config/index.ts`.
+- [x] Edit `packages/memento-core/src/domains/embedding/embedding-service-factory.ts`.
+- [x] Edit `packages/memento-core/src/infrastructure/llm/llm-service-factory.ts`.
+- [x] Edit `packages/memento-core/src/shared/utils/network-guard.ts`.
+- [x] Create `packages/memento-core/src/__tests__/offline-strict-mode.spec.ts`.
 
 **Build.**
 
-- [ ] Add `MEMENTO_OFFLINE_STRICT` boolean configuration option.
-- [ ] In embedding and LLM factories, throw fatal configuration error if remote provider is selected under offline mode.
-- [ ] Add network egress boundary assertion preventing external socket connections.
+- [x] Add `MEMENTO_OFFLINE_STRICT` boolean configuration option.
+- [x] In embedding and LLM factories, throw fatal configuration error if remote provider is selected under offline mode.
+- [x] Add network egress boundary assertion preventing external socket connections.
 
 **You see.**
 
-- [ ] Server boot with `MEMENTO_OFFLINE_STRICT=true` and `EMBEDDING_PROVIDER=openai` fails immediately with `remote provider openai is forbidden in offline strict mode`.
+- [x] Server boot with `MEMENTO_OFFLINE_STRICT=true` and `EMBEDDING_PROVIDER=openai` fails immediately with `remote provider openai is forbidden in offline strict mode`.
 
 **Verify, unit.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `offline-strict-mode.spec.ts` verifies provider validation and offline assertion. Run `npm test -- packages/memento-core/src/__tests__/offline-strict-mode.spec.ts`.
+- [x] `offline-strict-mode.spec.ts` verifies provider validation and offline assertion. Run `npm test -- packages/memento-core/src/__tests__/offline-strict-mode.spec.ts`.
 
 **Verify, live.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked. Ten lanes on `grok-4.7-xhigh-fast` at the PR head, per the boot recipe.
 
-- [ ] Lane 1. Regression lane against trunk. Boot server with default settings at trunk and head. Save `lane-1-default-boot.png`. Pass when boot succeeds without error.
-- [ ] Lane 2. Boot with offline strict and ONNX MiniLM. Save `lane-2-offline-minilm.png`. Pass when local embedding model initializes successfully.
-- [ ] Lane 3. Boot with offline strict and local Ollama. Save `lane-3-offline-ollama.png`. Pass when local provider initializes with host loopback.
-- [ ] Lane 4. Boot with offline strict and OpenAI embedding. Save `lane-4-offline-openai.png`. Pass when boot fails with fatal configuration error.
-- [ ] Lane 5. Boot with offline strict and Anthropic LLM. Save `lane-5-offline-anthropic.png`. Pass when boot fails with fatal configuration error.
-- [ ] Lane 6. Local hybrid search run in offline mode. Save `lane-6-offline-search.png`. Pass when hybrid search completes without external calls.
-- [ ] Lane 7. Offline procedural distillation run. Save `lane-7-offline-procedural.png`. Pass when local summarizer operates without network.
-- [ ] Lane 8. Network egress trap during memory insertion. Save `lane-8-network-trap.png`. Pass when zero external network packets are observed.
-- [ ] Lane 9. Healthcheck probe in offline mode. Save `lane-9-offline-health.png`. Pass when `/health` returns healthy and reports mode offline.
-- [ ] Lane 10. Audit log recording of offline mode. Save `lane-10-offline-audit.png`. Pass when system startup event logs `offline_strict=true`.
+- [x] Lane 1. Regression lane against trunk. Boot server with default settings at trunk and head. Save `lane-1-default-boot.png`. Pass when boot succeeds without error.
+- [x] Lane 2. Boot with offline strict and ONNX MiniLM. Save `lane-2-offline-minilm.png`. Pass when local embedding model initializes successfully.
+- [x] Lane 3. Boot with offline strict and local Ollama. Save `lane-3-offline-ollama.png`. Pass when local provider initializes with host loopback.
+- [x] Lane 4. Boot with offline strict and OpenAI embedding. Save `lane-4-offline-openai.png`. Pass when boot fails with fatal configuration error.
+- [x] Lane 5. Boot with offline strict and Anthropic LLM. Save `lane-5-offline-anthropic.png`. Pass when boot fails with fatal configuration error.
+- [x] Lane 6. Local hybrid search run in offline mode. Save `lane-6-offline-search.png`. Pass when hybrid search completes without external calls.
+- [x] Lane 7. Offline procedural distillation run. Save `lane-7-offline-procedural.png`. Pass when local summarizer operates without network.
+- [x] Lane 8. Network egress trap during memory insertion. Save `lane-8-network-trap.png`. Pass when zero external network packets are observed.
+- [x] Lane 9. Healthcheck probe in offline mode. Save `lane-9-offline-health.png`. Pass when `/health` returns healthy and reports mode offline.
+- [x] Lane 10. Audit log recording of offline mode. Save `lane-10-offline-audit.png`. Pass when system startup event logs `offline_strict=true`.
 
 **Verify, perf.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Server startup and initialization duration in milliseconds.
-- [ ] Probe. Start server with local ONNX MiniLM ten times and measure ready latency.
-- [ ] Baseline. Measure trunk startup time with local ONNX MiniLM.
-- [ ] Rule. Startup time in offline strict mode must not exceed baseline by more than 100ms.
+- [x] Metric. Server startup and initialization duration in milliseconds.
+- [x] Probe. Start server with local ONNX MiniLM ten times and measure ready latency.
+- [x] Baseline. Measure trunk startup time with local ONNX MiniLM.
+- [x] Rule. Startup time in offline strict mode must not exceed baseline by more than 100ms.
 
 **Review gate.** None. PR-1094-3 is not review-gated.
 
 **Merge.**
 
-- [ ] Root clean verdict at head SHA.
-- [ ] Bugbot triage done.
-- [ ] Rebased onto parent branch after verdict.
-- [ ] Root appends PR to base-branch stack.
+- [x] Root clean verdict at head SHA.
+- [x] Bugbot triage done.
+- [x] Rebased onto parent branch after verdict.
+- [x] Root appends PR to base-branch stack.
 
 ## Implement compliant retention and secure memory wipe (PR-1094-4)
 

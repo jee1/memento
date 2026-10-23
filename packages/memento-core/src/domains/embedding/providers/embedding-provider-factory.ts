@@ -52,8 +52,10 @@ export class EmbeddingProviderFactory {
   private initializeProviders(): void {
     this.providers.set('minilm', this.createService('minilm'));
     this.providers.set('tfidf', this.createService('tfidf'));
-    this.providers.set('gemini', this.createService('gemini'));
-    this.providers.set('openai', this.createService('openai'));
+    if (!mementoConfig.offlineStrict) {
+      this.providers.set('gemini', this.createService('gemini'));
+      this.providers.set('openai', this.createService('openai'));
+    }
     this.providers.set('mock', this.createService('mock'));
   }
 
@@ -65,6 +67,9 @@ export class EmbeddingProviderFactory {
     const normalized = this.normalizeProviderName(provider);
     if (!normalized) {
       return null;
+    }
+    if (mementoConfig.offlineStrict && (normalized === 'openai' || normalized === 'gemini')) {
+      throw new Error(`remote provider ${normalized} is forbidden in offline strict mode`);
     }
     return this.providers.get(normalized) || null;
   }
@@ -137,6 +142,14 @@ export class EmbeddingProviderFactory {
    * TDD: 사용 가능한 제공자 중 우선순위가 높은 것 선택
    */
   selectProvider(preferredProvider?: EmbeddingProvider): EmbeddingServiceInterface | null {
+    if (mementoConfig.offlineStrict) {
+      if (preferredProvider === 'openai' || preferredProvider === 'gemini') {
+        throw new Error(`remote provider ${preferredProvider} is forbidden in offline strict mode`);
+      }
+      if (mementoConfig.embeddingProvider === 'openai' || mementoConfig.embeddingProvider === 'gemini') {
+        throw new Error(`remote provider ${mementoConfig.embeddingProvider} is forbidden in offline strict mode`);
+      }
+    }
     const availableProviders = this.getAvailableProviders();
 
     // 1. 명시적으로 요청된 제공자 우선
@@ -268,6 +281,9 @@ export class EmbeddingProviderFactory {
   }
 
   private createService(provider: EmbeddingProvider): EmbeddingServiceInterface {
+    if (mementoConfig.offlineStrict && (provider === 'openai' || provider === 'gemini')) {
+      throw new Error(`remote provider ${provider} is forbidden in offline strict mode`);
+    }
     switch (provider) {
       case 'minilm':
         return new MiniLMEmbeddingService();

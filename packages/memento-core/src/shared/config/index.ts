@@ -244,6 +244,7 @@ export const mementoConfig: MementoConfig = {
   rememberDedupLexicalFloor: parseRememberDedupLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR')),
   rememberDedupMergeLexicalFloor: parseRememberDedupMergeLexicalFloor(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR')),
   mcpEra: parseMcpEraMode(getRawEnvValue('MEMENTO_MCP_ERA')),
+  offlineStrict: resolveBoolean('MEMENTO_OFFLINE_STRICT', { defaultValue: false }),
 };
 
 // 유효성 검사

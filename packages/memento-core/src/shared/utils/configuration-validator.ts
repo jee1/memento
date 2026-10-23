@@ -200,12 +200,66 @@ function checkLogLevel(config: MementoConfig, { warnings }: IssueSink): void {
   }
 }
 
+function checkOfflineMode(config: MementoConfig, { errors }: IssueSink): void {
+  if (!config.offlineStrict) {
+    return;
+  }
+
+  const remoteEmbeddingProviders = ['openai', 'gemini'];
+  if (remoteEmbeddingProviders.includes(config.embeddingProvider)) {
+    errors.push(
+      issue(
+        'error',
+        'OFFLINE_STRICT_EMBEDDING_FORBIDDEN',
+        `remote provider ${config.embeddingProvider} is forbidden in offline strict mode`,
+        'EMBEDDING_PROVIDER를 minilm 또는 tfidf로 설정해주세요.'
+      )
+    );
+  }
+
+  const remoteLlmProviders = ['openai', 'gemini', 'anthropic'];
+  if (remoteLlmProviders.includes(config.llmProvider)) {
+    errors.push(
+      issue(
+        'error',
+        'OFFLINE_STRICT_LLM_FORBIDDEN',
+        `remote provider ${config.llmProvider} is forbidden in offline strict mode`,
+        'LLM_PROVIDER를 ollama 또는 auto로 설정해주세요.'
+      )
+    );
+  }
+
+  for (const [key, provider] of Object.entries(config.llmProviderOverrides ?? {})) {
+    if (provider && remoteLlmProviders.includes(provider)) {
+      errors.push(
+        issue(
+          'error',
+          'OFFLINE_STRICT_LLM_OVERRIDE_FORBIDDEN',
+          `remote provider ${provider} for ${key} is forbidden in offline strict mode`,
+          '로컬 LLM provider를 설정해주세요.'
+        )
+      );
+    }
+  }
+
+  if (config.searchRejectionGate === 'typesafe') {
+    errors.push(
+      issue(
+        'error',
+        'OFFLINE_STRICT_REJECTION_GATE_FORBIDDEN',
+        'searchRejectionGate typesafe is forbidden in offline strict mode',
+        'SEARCH_REJECTION_GATE를 off 또는 ollama로 설정해주세요.'
+      )
+    );
+  }
+}
+
 export function validateConfiguration(config: MementoConfig, options: ValidateOptions = {}): ConfigValidationResult {
   const errors: ConfigValidationIssue[] = [];
   const warnings: ConfigValidationIssue[] = [];
   const logger = options.logger ?? console;
 
-  for (const check of [checkStorageAndPorts, checkEmbedding, checkLimits, checkLogLevel]) {
+  for (const check of [checkStorageAndPorts, checkEmbedding, checkLimits, checkLogLevel, checkOfflineMode]) {
     check(config, { errors, warnings });
   }
 

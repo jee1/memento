@@ -164,6 +164,8 @@ export interface MementoConfig {
   rememberDedupMergeLexicalFloor: number;
   /** HTTP MCP dual-era rollback gate (#840). Env: MEMENTO_MCP_ERA */
   mcpEra: 'dual' | 'legacy' | 'modern';
+  /** 오프라인 모드 강제 (#1094). Env: MEMENTO_OFFLINE_STRICT */
+  offlineStrict: boolean;
 }
 
 /** meta_memory_stats 테이블과 일대일 대응되는 통계 */

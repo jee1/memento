@@ -70,6 +70,15 @@ export class LLMClientInitializer {
     // 환경 변수 우선순위에 따라 provider 선택
     const selectedProvider = getSelectedProvider();
 
+    if (
+      mementoConfig.offlineStrict &&
+      (selectedProvider === 'openai' ||
+        selectedProvider === 'gemini' ||
+        (selectedProvider as string) === 'anthropic')
+    ) {
+      throw new Error(`remote provider ${selectedProvider} is forbidden in offline strict mode`);
+    }
+
     // 클라이언트 초기화
     result.openaiClient = initializeOpenAI(result, selectedProvider);
     result.geminiClient = initializeGemini(result, selectedProvider);

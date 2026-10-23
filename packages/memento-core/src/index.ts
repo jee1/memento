@@ -59,6 +59,12 @@ export {
   isModernMcpServiceEnabled,
   parseMcpEraMode,
 } from './shared/utils/mcp-era-mode.js';
+export {
+  isLocalHost,
+  ExternalNetworkEgressForbiddenError,
+  assertAllowedNetworkEgress,
+  installNetworkGuard,
+} from './shared/utils/network-guard.js';
 export type { McpEraMode } from './shared/utils/mcp-era-mode.js';
 export {
   isHttpBindHostRemotelyReachable,
