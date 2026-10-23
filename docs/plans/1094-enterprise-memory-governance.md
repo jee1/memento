@@ -127,54 +127,54 @@ Each live lane runs on its own cloud VM at the PR head. Drive through `control-c
 
 **Files.**
 
-- [ ] Edit `packages/memento-core/src/shared/types/api-token.ts`.
-- [ ] Edit `packages/memento-server/src/server/auth/api-token-registry.ts`.
-- [ ] Edit `packages/memento-server/src/server/middleware/programmatic-auth.middleware.ts`.
-- [ ] Edit `packages/memento-server/src/server/audit-tool-dispatch.ts`.
-- [ ] Create `packages/memento-server/src/server/__tests__/granular-tool-scopes.spec.ts`.
+- [x] Edit `packages/memento-core/src/shared/types/api-token.ts`.
+- [x] Edit `packages/memento-server/src/server/auth/api-token-registry.ts`.
+- [x] Edit `packages/memento-server/src/server/middleware/programmatic-auth.middleware.ts`.
+- [x] Edit `packages/memento-server/src/server/audit-tool-dispatch.ts`.
+- [x] Create `packages/memento-server/src/server/__tests__/granular-tool-scopes.spec.ts`.
 
 **Build.**
 
-- [ ] Extend `ApiScope` with `tools:read` and `tools:write`.
-- [ ] In `audit-tool-dispatch.ts`, assert token permits tool action based on `auditActionForTool`.
-- [ ] Reject mutating tool invocations from `tools:read`-only tokens with HTTP 403.
+- [x] Extend `ApiScope` with `tools:read` and `tools:write`.
+- [x] In `audit-tool-dispatch.ts`, assert token permits tool action based on `auditActionForTool`.
+- [x] Reject mutating tool invocations from `tools:read`-only tokens with HTTP 403.
 
 **You see.**
 
-- [ ] Invoking `remember` with a `tools:read` token returns error `scope tools:read does not permit action write`.
+- [x] Invoking `remember` with a `tools:read` token returns error `scope tools:read does not permit action write`.
 
 **Verify, unit.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `granular-tool-scopes.spec.ts` verifies action mapping and rejection of forbidden mutations. Run `npm test -- packages/memento-server/src/server/__tests__/granular-tool-scopes.spec.ts`.
+- [x] `granular-tool-scopes.spec.ts` verifies action mapping and rejection of forbidden mutations. Run `npm test -- packages/memento-server/src/server/__tests__/granular-tool-scopes.spec.ts`.
 
 **Verify, live.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked. Ten lanes on `grok-4.7-xhigh-fast` at the PR head, per the boot recipe.
 
-- [ ] Lane 1. Regression lane against trunk. Run `tools:invoke` super-scope at trunk and head. Save `lane-1-super-scope.png`. Pass when all tools execute normally.
-- [ ] Lane 2. Recall tool with `tools:read` scope. Save `lane-2-read-recall.png`. Pass when recall succeeds with 200.
-- [ ] Lane 3. Remember tool with `tools:read` scope. Save `lane-3-read-remember.png`. Pass when invocation is rejected with 403.
-- [ ] Lane 4. Forget tool with `tools:read` scope. Save `lane-4-read-forget.png`. Pass when invocation is rejected with 403.
-- [ ] Lane 5. Remember tool with `tools:write` scope. Save `lane-5-write-remember.png`. Pass when memory is saved successfully.
-- [ ] Lane 6. Recall tool with `tools:write` only. Save `lane-6-write-recall.png`. Pass when read action is rejected.
-- [ ] Lane 7. Pin and unpin tools with read scope. Save `lane-7-read-pin.png`. Pass when pin mutation is rejected.
-- [ ] Lane 8. Combined `tools:read` and `tools:write` token. Save `lane-8-dual-scope.png`. Pass when both read and write tools succeed.
-- [ ] Lane 9. Audit log status check. Save `lane-9-audit-auth-fail.png`. Pass when rejected dispatch is logged as failure with missing scope.
-- [ ] Lane 10. Admin endpoint safety check. Save `lane-10-admin-isolation.png`. Pass when `admin:destructive` remains strictly segregated.
+- [x] Lane 1. Regression lane against trunk. Run `tools:invoke` super-scope at trunk and head. Save `lane-1-super-scope.png`. Pass when all tools execute normally.
+- [x] Lane 2. Recall tool with `tools:read` scope. Save `lane-2-read-recall.png`. Pass when recall succeeds with 200.
+- [x] Lane 3. Remember tool with `tools:read` scope. Save `lane-3-read-remember.png`. Pass when invocation is rejected with 403.
+- [x] Lane 4. Forget tool with `tools:read` scope. Save `lane-4-read-forget.png`. Pass when invocation is rejected with 403.
+- [x] Lane 5. Remember tool with `tools:write` scope. Save `lane-5-write-remember.png`. Pass when memory is saved successfully.
+- [x] Lane 6. Recall tool with `tools:write` only. Save `lane-6-write-recall.png`. Pass when read action is rejected.
+- [x] Lane 7. Pin and unpin tools with read scope. Save `lane-7-read-pin.png`. Pass when pin mutation is rejected.
+- [x] Lane 8. Combined `tools:read` and `tools:write` token. Save `lane-8-dual-scope.png`. Pass when both read and write tools succeed.
+- [x] Lane 9. Audit log status check. Save `lane-9-audit-auth-fail.png`. Pass when rejected dispatch is logged as failure with missing scope.
+- [x] Lane 10. Admin endpoint safety check. Save `lane-10-admin-isolation.png`. Pass when `admin:destructive` remains strictly segregated.
 
 **Verify, perf.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Tool authorization check duration in microseconds.
-- [ ] Probe. Interleaved tool dispatch calls comparing `tools:invoke` versus granular check.
-- [ ] Baseline. Measure trunk tool dispatch authorization check latency.
-- [ ] Rule. Authorization step must add less than 50 microseconds overhead.
+- [x] Metric. Tool authorization check duration in microseconds.
+- [x] Probe. Interleaved tool dispatch calls comparing `tools:invoke` versus granular check.
+- [x] Baseline. Measure trunk tool dispatch authorization check latency.
+- [x] Rule. Authorization step must add less than 50 microseconds overhead.
 
 **Review gate.** None. PR-1094-2 is not review-gated.
 
 **Merge.**
 
-- [ ] Root clean verdict at head SHA.
-- [ ] Bugbot triage done.
-- [ ] Rebased onto parent branch after verdict.
-- [ ] Root appends PR to base-branch stack.
+- [x] Root clean verdict at head SHA.
+- [x] Bugbot triage done.
+- [x] Rebased onto parent branch after verdict.
+- [x] Root appends PR to base-branch stack.
 
 ## Enforce strict offline operation mode (PR-1094-3)
 

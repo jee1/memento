@@ -6,6 +6,7 @@ import {
   formatMementoResourceUri,
   getAuditMode,
   isStrictAuditAction,
+  type ApiScope,
   type AuditAction,
   type AuditTransport,
   type ServerServices,
@@ -27,6 +28,7 @@ export type ToolAuditContext = {
   /** API 토큰에 묶인 project. 헤더로 주장한 projectId 와 달리 인자로 바꿀 수 없다 (#1094). */
   boundProjectId?: string | null;
   projectId?: string | null;
+  scopes?: readonly ApiScope[];
 };
 
 type ToolExecutor = (name: string, args: unknown, context: ToolContext) => Promise<ToolResult>;
@@ -46,6 +48,13 @@ class ToolDispatchError extends McpError {
     data?: unknown,
   ) {
     super(code, protocolMessage, data);
+  }
+}
+
+export class ToolScopeForbiddenError extends McpError {
+  constructor(message: string) {
+    super(-32003, message, message);
+    this.name = 'ToolScopeForbiddenError';
   }
 }
 
@@ -76,13 +85,36 @@ class Semaphore {
   }
 }
 
-function auditActionForTool(name: string): AuditAction {
+export function auditActionForTool(name: string): AuditAction {
   if (name === 'forget' || name.startsWith('remove_') || name.startsWith('delete_')) return 'delete';
   if (
     name === 'recall' || name === 'memory_injection' || name === 'export_memories'
     || name.startsWith('get_') || name.startsWith('search_') || name.startsWith('list_')
   ) return 'read';
   return 'write';
+}
+
+export function assertToolScope(name: string, scopes?: readonly ApiScope[]): void {
+  if (!scopes) {
+    return;
+  }
+  if (scopes.includes('tools:invoke')) {
+    return;
+  }
+  const action = auditActionForTool(name);
+  if (action === 'read') {
+    if (!scopes.includes('tools:read')) {
+      throw new ToolScopeForbiddenError(`scope ${scopes.join(',')} does not permit action read`);
+    }
+    return;
+  }
+  if (action === 'write' || action === 'delete') {
+    if (!scopes.includes('tools:write')) {
+      throw new ToolScopeForbiddenError(`scope ${scopes.join(',')} does not permit action ${action}`);
+    }
+    return;
+  }
+  throw new ToolScopeForbiddenError(`scope ${scopes.join(',')} does not permit action ${action}`);
 }
 
 function stringArgument(args: unknown, key: string): string | null {
@@ -200,6 +232,9 @@ export function recordToolAudit(
 
 export function mapToolDispatchError(error: unknown): ToolDispatchError {
   if (error instanceof ToolDispatchError) return error;
+  if (error instanceof ToolScopeForbiddenError) {
+    return new ToolDispatchError(-32003, error.message, error.message);
+  }
   if (error instanceof McpError) {
     const prefix = `MCP error ${error.code}: `;
     const protocolMessage = error.message.startsWith(prefix) ? error.message.slice(prefix.length) : error.message;
@@ -228,6 +263,7 @@ export function createToolDispatcher(options: {
       args = scopeArgsToBoundAgent(name, rawArgs, auditContext.boundAgentId, auditContext.boundProjectId);
       assertToolAuditCoverage(db, name, args, auditContext);
       executionStarted = true;
+      assertToolScope(name, auditContext.scopes);
       const context = createToolContext({
         db,
         services,

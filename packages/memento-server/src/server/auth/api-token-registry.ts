@@ -49,3 +49,10 @@ export function hasScope(
   const requiredScopes = Array.isArray(required) ? required : [required];
   return requiredScopes.every((scope) => scopes.includes(scope));
 }
+
+export function hasAnyScope(
+  scopes: readonly ApiScope[],
+  candidates: readonly ApiScope[],
+): boolean {
+  return candidates.some((scope) => scopes.includes(scope));
+}

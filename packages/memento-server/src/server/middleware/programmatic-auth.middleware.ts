@@ -2,6 +2,7 @@ import type { ApiScope } from '@memento/core';
 import type { NextFunction, Request, Response } from 'express';
 
 import {
+  hasAnyScope,
   hasScope,
   type ApiTokenRegistry,
 } from '../auth/api-token-registry.js';
@@ -21,7 +22,8 @@ declare global {
 
 type ProgrammaticAuthMiddlewareConfig = {
   registry: ApiTokenRegistry;
-  requiredScope: ApiScope | ApiScope[];
+  requiredScope?: ApiScope | ApiScope[];
+  anyOfScopes?: readonly ApiScope[];
   errorFormat?: 'legacy' | 'agent';
 };
 
@@ -67,7 +69,7 @@ function writeUnauthorized(
 
 function writeForbidden(
   res: Response,
-  requiredScope: ApiScope | ApiScope[],
+  requiredScope: ApiScope | ApiScope[] | readonly ApiScope[] | string,
   format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
 ): void {
   const required = Array.isArray(requiredScope) ? requiredScope.join(', ') : requiredScope;
@@ -207,7 +209,12 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
-    if (!hasScope(resolved.scopes, config.requiredScope)) {
+    if (config.anyOfScopes && !hasAnyScope(resolved.scopes, config.anyOfScopes)) {
+      writeForbidden(res, config.anyOfScopes, config.errorFormat);
+      return;
+    }
+
+    if (config.requiredScope && !hasScope(resolved.scopes, config.requiredScope)) {
       writeForbidden(res, config.requiredScope, config.errorFormat);
       return;
     }

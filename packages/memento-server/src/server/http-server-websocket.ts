@@ -1,6 +1,7 @@
 import {
   getExposedTools,
   logger,
+  type ApiScope,
   type ServerServices,
 } from '@memento/core';
 import type Database from 'better-sqlite3';
@@ -8,7 +9,7 @@ import type { IncomingMessage } from 'http';
 import type { VerifyClientCallbackAsync, WebSocket } from 'ws';
 import type { WebSocketServer } from 'ws';
 import { dispatchTool, mapToolDispatchError } from './audit-tool-dispatch.js';
-import { hasScope, type ApiTokenRegistry } from './auth/api-token-registry.js';
+import { hasAnyScope, type ApiTokenRegistry } from './auth/api-token-registry.js';
 import type { SessionStore } from './auth/session-store.js';
 import { recordWebSocketRequestAudit } from './middleware/http-audit.middleware.js';
 import { resolveAuthenticatedToken } from './middleware/programmatic-auth.middleware.js';
@@ -43,7 +44,7 @@ export function createWebSocketVerifyClient(config: WebSocketAuthConfig): Verify
     if (registry.hasConfiguredTokens()) {
       const token = resolveAuthenticatedToken(req, registry);
       if (token) {
-        done(hasScope(token.scopes, 'tools:invoke'), 403);
+        done(hasAnyScope(token.scopes, ['tools:invoke', 'tools:read', 'tools:write']), 403);
         return;
       }
     }
@@ -73,10 +74,12 @@ export function setupWebSocketServer(
   getServerServices: () => ServerServices | null,
   getBoundAgentId: (req: IncomingMessage) => string | undefined = () => undefined,
   getBoundProjectId: (req: IncomingMessage) => string | undefined = () => undefined,
+  getScopes: (req: IncomingMessage) => readonly ApiScope[] | undefined = () => undefined,
 ): void {
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     const boundAgentId = getBoundAgentId(req);
     const boundProjectId = getBoundProjectId(req);
+    const scopes = getScopes(req);
     logger.info('WebSocket 클라이언트 연결됨');
     const connectionDb = getDb();
     if (connectionDb) recordWebSocketRequestAudit(connectionDb);
@@ -149,6 +152,7 @@ export function setupWebSocketServer(
             agentId: boundAgentId,
             boundAgentId,
             boundProjectId,
+            scopes,
           });
           ws.send(JSON.stringify({
             jsonrpc: '2.0',

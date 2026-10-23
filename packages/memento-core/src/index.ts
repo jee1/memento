@@ -131,6 +131,7 @@ export {
 } from './shared/utils/embedding-serialization.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export type { MemoryItem } from './shared/types/memory.types.js';
+export { API_SCOPES } from './shared/types/api-token.js';
 export type { ApiScope, ApiTokenEntry } from './shared/types/api-token.js';
 export type { IErrorLoggingService } from './shared/interfaces/error-logging.interface.js';
 export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';

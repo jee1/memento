@@ -210,6 +210,8 @@ export function validateModernRequest(
 
 export function mapModernJsonRpcErrorHttpStatus(code: number): number {
   switch (code) {
+    case -32003:
+      return 403;
     case -32022:
     case -32020:
     case -32021:

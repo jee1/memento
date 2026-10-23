@@ -38,6 +38,7 @@ function buildMcpHttpAuditContext(req: Request): ToolAuditContext {
   return {
     transport: 'mcp_http',
     actorId: req.programmaticAuth?.keyId,
+    scopes: req.programmaticAuth?.scopes,
     agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
     boundAgentId: req.programmaticAuth?.agentId,
     boundProjectId: req.programmaticAuth?.projectId,
