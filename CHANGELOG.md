@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- server: HTTP owner scope 대상 도구 목록을 dispatcher와 단일 상수(`OWNER_FILTER_TOOLS`)로 공유합니다(#1452). `MEMENTO_OWNER_SCOPE_MODE=strict`에서 `export_memories`가 누락되어 검증을 우회하던 문제를 수정하고, 식별자 없는 호출에 400을 반환합니다.
+
 ### Security
 
 - 의존성: 전이 의존성 `ip-address` 10.7.2 → 10.7.4 (GHSA-rxp7-6hxx-x8q5, moderate). `express-rate-limit` 범위 안에서 lockfile 만 바뀝니다.

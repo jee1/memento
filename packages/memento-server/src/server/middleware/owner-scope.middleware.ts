@@ -1,11 +1,10 @@
 /**
- * HTTP owner scope enforcement for /tools/recall and /tools/memory_injection (Issue #664)
+ * HTTP owner scope enforcement for tools in OWNER_FILTER_TOOLS (Issue #664, #1452)
  */
 
 import type { Request, Response, NextFunction } from 'express';
 import { logger, mementoConfig } from '@memento/core';
-
-const OWNER_SCOPED_TOOL_PATHS = new Set(['/recall', '/memory_injection']);
+import { OWNER_FILTER_TOOLS } from '../owner-filter-tools.js';
 
 function hasOwnerIdInBody(body: unknown): boolean {
   if (!body || typeof body !== 'object') {
@@ -25,7 +24,11 @@ function hasOwnerIdInBody(body: unknown): boolean {
 }
 
 function isOwnerScopedToolRequest(req: Request): boolean {
-  return req.method === 'POST' && OWNER_SCOPED_TOOL_PATHS.has(req.path);
+  if (req.method !== 'POST') {
+    return false;
+  }
+  const toolName = req.path.replace(/^\/+|\/+$/g, '');
+  return OWNER_FILTER_TOOLS.has(toolName);
 }
 
 /**
@@ -62,17 +65,18 @@ export function createOwnerScopeMiddleware() {
       return;
     }
 
+    const targetTools = Array.from(OWNER_FILTER_TOOLS).join('/');
     if (mode === 'strict') {
       res.status(400).json({
         error: 'Owner scope required',
         message:
-          'MEMENTO_OWNER_SCOPE_MODE=strict: recall/memory_injection requires X-Memento-Agent-Id header, ' +
+          `MEMENTO_OWNER_SCOPE_MODE=strict: ${targetTools} requires X-Memento-Agent-Id header, ` +
           'MEMENTO_HTTP_DEFAULT_AGENT_ID, or explicit owner_id in the request body.'
       });
       return;
     }
 
-    logger.warn('HTTP owner scope: recall/memory_injection without owner_id or agentId (legacy behavior)', {
+    logger.warn(`HTTP owner scope: ${targetTools} without owner_id or agentId (legacy behavior)`, {
       path: req.path,
       mode
     });
