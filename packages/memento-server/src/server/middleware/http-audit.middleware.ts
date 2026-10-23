@@ -148,8 +148,8 @@ function extractAgentId(req: Request): string | null {
     }
   }
 
-  if (req.toolContext?.agentId?.trim()) {
-    return req.toolContext.agentId.trim();
+  if (req.callerAgentId?.trim()) {
+    return req.callerAgentId.trim();
   }
 
   return null;

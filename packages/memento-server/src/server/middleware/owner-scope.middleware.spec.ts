@@ -16,7 +16,7 @@ vi.mock('@memento/core', () => ({
 import { createOwnerScopeMiddleware } from './owner-scope.middleware.js';
 
 function runMiddleware(
-  req: Partial<Request> & { body?: Record<string, unknown>; toolContext?: { agentId?: string } },
+  req: Partial<Request> & { body?: Record<string, unknown>; callerAgentId?: string },
   mode: 'strict' | 'warn' | 'off' = 'strict'
 ) {
   mementoConfigMock.ownerScopeMode = mode;
@@ -31,7 +31,7 @@ function runMiddleware(
       method: 'POST',
       path: '/recall',
       body: req.body ?? {},
-      toolContext: req.toolContext
+      callerAgentId: req.callerAgentId
     } as Request,
     res,
     next
@@ -45,9 +45,9 @@ describe('createOwnerScopeMiddleware', () => {
     mementoConfigMock.ownerScopeMode = 'strict';
   });
 
-  it('injects owner_id from toolContext.agentId in strict mode', () => {
+  it('injects owner_id from callerAgentId in strict mode', () => {
     const body = { query: 'test', type: 'semantic' };
-    const { next } = runMiddleware({ body, toolContext: { agentId: 'agent-a' } });
+    const { next } = runMiddleware({ body, callerAgentId: 'agent-a' });
     expect(body.owner_id).toBe('agent-a');
     expect(next).toHaveBeenCalledOnce();
   });
@@ -75,7 +75,7 @@ describe('createOwnerScopeMiddleware', () => {
 
   it('does not override explicit owner_id', () => {
     const body = { query: 'test', type: 'semantic', owner_id: 'explicit' };
-    const { next } = runMiddleware({ body, toolContext: { agentId: 'agent-a' } });
+    const { next } = runMiddleware({ body, callerAgentId: 'agent-a' });
     expect(body.owner_id).toBe('explicit');
     expect(next).toHaveBeenCalledOnce();
   });

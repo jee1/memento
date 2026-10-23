@@ -68,7 +68,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **gh pr merge**: 머지는 성공해도 worktree 미제거 시 로컬 브랜치 삭제만 실패 — `worktree remove` 후 `git branch -D`(squash merge는 `-d` 불가)·`git fetch --prune`
 - **병렬 HTTP 보안 PR**: #662→#663→#664 순 merge·rebase 권장(토큰→audit `keyId`→owner scope); 독립 CI(#665)는 선행 가능 — **CHANGELOG·http-server 충돌** 예상
 - **rate limit 키 (#1161)**: `express-rate-limit` 기본 키(`req.ip`)는 Docker 포트 퍼블리싱·프록시 뒤에서 전원 공용 버킷이 된다 — 버킷 추가 시 `keyGenerator: resolveRateLimitKey` 유지(API 키 해시 → 세션 id 해시 → `ipKeyGenerator(req.ip)`). rate limit 은 인증 **앞**이라 `req.programmaticAuth` 없음 전제; 감사 로그의 `'session'` 상수를 키로 재사용 금지(세션 뭉침). `trust proxy` 는 `MEMENTO_TRUST_PROXY` 로만 켠다 — 기본 미설정(=XFF 무시)이 스펙이고 `true` 는 헤더 위조로 한도 우회
-- **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
+- **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
 - **도구 실행 경계 (#793)**: stdio·HTTP MCP·WebSocket·REST의 `tools/call`은 모두 `server/audit-tool-dispatch.ts`의 `dispatchTool()`을 경유 — transport에서 `executeTool()` 직접 호출 금지(동시성·audit·에러 매핑 분기 방지)
 - **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
 - **preserve-caught-error (#1366)**: PII 마스킹 재throw는 `eslint-disable-next-line preserve-caught-error` 유지(raw `cause`가 PII 노출). 로컬은 `npm ci`로 ESLint 10 맞출 것 — ESLint 9는 해당 disable을 unused로 보고 `--fix`가 지워 버리면 CI lint/Security Check가 실패한다

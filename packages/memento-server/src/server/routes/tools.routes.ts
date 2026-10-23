@@ -54,11 +54,10 @@ export function createToolsRouter(
     const params = req.body;
 
     try {
-      // Phase 0: 미들웨어에서 주입된 ToolContext 사용
-      if (!req.toolContext || !serverServices) {
+      if (!serverServices) {
         return res.status(500).json({
-          error: 'ToolContext not initialized',
-          message: 'ToolContext가 초기화되지 않았습니다. tool-context 미들웨어를 먼저 적용하세요.'
+          error: 'Services not initialized',
+          message: 'ServerServices가 초기화되지 않았습니다.'
         });
       }
 
@@ -66,9 +65,9 @@ export function createToolsRouter(
       const toolResult = await dispatchTool(name, params, db, serverServices, {
         transport: 'rest',
         actorId: req.programmaticAuth?.keyId,
-        agentId: req.toolContext.agentId,
+        agentId: req.callerAgentId,
         boundAgentId: req.programmaticAuth?.agentId,
-        projectId: req.toolContext.projectId,
+        projectId: req.projectId,
       });
 
       const actualResult = extractToolResultPayload(toolResult);

@@ -64,7 +64,7 @@ import {
   resolveAuthenticatedToken,
   createServiceInjector,
   createSessionAuthMiddleware,
-  createToolContextMiddleware,
+  resolveCallerMiddleware,
   createToolsRateLimitMiddleware,
   resolveTrustProxySetting,
   DASHBOARD_SESSION_COOKIE_NAME,
@@ -413,7 +413,7 @@ function registerRoutes(
     httpAudit,
     programmaticAuth,
     strictToolsAudit,
-    createToolContextMiddleware,
+    resolveCallerMiddleware,
     ownerScopeMiddleware,
     toolsRouter!,
   );

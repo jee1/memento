@@ -13,7 +13,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   AuditHashChainService,
   CORE_TOOLSET,
-  createToolContext,
   getExposedTools,
   getToolRegistry,
 } from '@memento/core';
@@ -216,7 +215,7 @@ async function startRestServer(
   app.use(express.json());
   app.use((req, _res, next) => {
     req.programmaticAuth = { keyId: 'rest-key', scopes: [] };
-    req.toolContext = createToolContext({ db: ctx.db, services: ctx.services, agentId: 'rest-agent' });
+    req.callerAgentId = 'rest-agent';
     next();
   });
   app.use(

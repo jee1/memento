@@ -104,7 +104,7 @@ MCP Host
 프로그래matic 호출 경로는 아래 순서를 따릅니다 (Issue #662–#664).
 
 ```text
-rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → router
+rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit → router
 ```
 
 ---
