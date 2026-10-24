@@ -2,12 +2,14 @@
  * 검색 랭킹 가중치 설정 로더 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs, { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createHash, randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
+import * as configLoaderUtils from './config-loader-utils.js';
+import { SearchRanking } from '../../domains/search/algorithms/search-ranking.js';
 import {
   loadRankingWeights,
   getRankingWeights,
@@ -536,6 +538,26 @@ max_relations = 10
       const b = getRankingWeights(pathB);
       expect(a.ranking_weights.alpha).toBe(0.11);
       expect(b.ranking_weights.alpha).toBe(0.46);
+    });
+
+    it('워밍업 후 기본 설정 조회와 SearchRanking 핫루프에서 파일시스템 stat이나 경로 탐색을 수행하지 않는다 (#1476)', () => {
+      const initial = getRankingWeights();
+      const ranking = new SearchRanking();
+
+      const existsSpy = vi.spyOn(fs, 'existsSync');
+      const findRootSpy = vi.spyOn(configLoaderUtils, 'findProjectRoot');
+      try {
+        for (let i = 0; i < 40; i += 1) {
+          expect(getRankingWeights()).toBe(initial);
+          ranking.calculateRecency(new Date());
+          ranking.calculateImportance(0.7, false, 'episodic');
+        }
+        expect(existsSpy).not.toHaveBeenCalled();
+        expect(findRootSpy).not.toHaveBeenCalled();
+      } finally {
+        existsSpy.mockRestore();
+        findRootSpy.mockRestore();
+      }
     });
   });
 });

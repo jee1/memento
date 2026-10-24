@@ -5,7 +5,7 @@
  */
 
 import { join, resolve } from 'path';
-import { existsSync } from 'fs';
+import fs from 'fs';
 import { createHash } from 'crypto';
 import {
   loadTOMLConfig,
@@ -105,9 +105,9 @@ function resolveRankingWeightsFilePath(configPath?: string): string {
   let defaultPath = join(projectRoot, 'config', 'ranking-weights.toml');
   const distConfigPath = join(projectRoot, 'dist', 'config', 'ranking-weights.toml');
   const envPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
-  if (envPath && existsSync(envPath)) {
+  if (envPath && fs.existsSync(envPath)) {
     defaultPath = envPath;
-  } else if (!existsSync(defaultPath) && existsSync(distConfigPath)) {
+  } else if (!fs.existsSync(defaultPath) && fs.existsSync(distConfigPath)) {
     defaultPath = distConfigPath;
   }
   return resolve(defaultPath);
@@ -255,12 +255,27 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
   }
 }
 
+let defaultRankingWeightsCache: {
+  envPath: string | undefined;
+  config: RankingWeightsConfig;
+} | null = null;
+
 /**
  * 검색 랭킹 가중치 설정을 가져옵니다 (캐싱됨).
  * @param configPath TOML 설정 파일 경로
  * @returns 검색 랭킹 가중치 설정 객체
  */
 export function getRankingWeights(configPath?: string): RankingWeightsConfig {
+  if (configPath === undefined) {
+    const envPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+    if (defaultRankingWeightsCache && defaultRankingWeightsCache.envPath === envPath) {
+      return defaultRankingWeightsCache.config;
+    }
+    const cacheKey = `ranking-weights:${resolveRankingWeightsFilePath(undefined)}`;
+    const config = getCachedConfig(cacheKey, () => loadRankingWeights(undefined));
+    defaultRankingWeightsCache = { envPath, config };
+    return config;
+  }
   const cacheKey = `ranking-weights:${resolveRankingWeightsFilePath(configPath)}`;
   return getCachedConfig(cacheKey, () => loadRankingWeights(configPath));
 }
@@ -300,5 +315,6 @@ export function getRankingVersion(configPath?: string): string {
  * 캐시된 설정을 초기화합니다 (테스트용).
  */
 export function resetRankingWeightsCache(): void {
+  defaultRankingWeightsCache = null;
   clearConfigCacheByPrefix('ranking-weights:');
 }
