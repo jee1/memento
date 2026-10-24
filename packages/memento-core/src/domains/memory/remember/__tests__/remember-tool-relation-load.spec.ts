@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { RememberTool } from '../remember-tool.js';
 import {
   getExistingMemoriesForRelationExtraction,
@@ -142,62 +143,42 @@ describe('RememberTool relation load (Issue #544)', () => {
     });
 
     it('memory_embedding과 memory_item_vec_minilm이 있으면 저장된 임베딩으로 vec0 KNN 후보를 우선 반환한다 (#1473)', async () => {
+      const vecDb = await setupTestDatabase();
       try {
-        const { getLoadablePath } = await import('sqlite-vec');
-        db.loadExtension(getLoadablePath());
-      } catch {
-        return;
+        const makeVecJson = (val: number) => {
+          const arr = new Array(384).fill(0);
+          arr[0] = val;
+          arr[1] = 1 - val;
+          return JSON.stringify(arr);
+        };
+
+        DatabaseUtils.run(vecDb, `
+          INSERT INTO memory_item (id, type, content, created_at, owner_id, is_deleted) VALUES
+            ('mem-old-near', 'semantic', '오래되었지만 의미가 매우 가까운 기억', '2025-01-01T00:00:00.000Z', 'agent-a', 0),
+            ('mem-recent-far', 'semantic', '최신이지만 의미가 먼 기억', '2026-05-01T00:00:00.000Z', 'agent-a', 0),
+            ('mem-new', 'episodic', '새 기억', '2026-06-01T00:00:00.000Z', 'agent-a', 0)
+        `);
+
+        const vecNew = makeVecJson(1.0);
+        const vecNear = makeVecJson(0.99);
+        const vecFar = makeVecJson(0.0);
+
+        const insertEmb = vecDb.prepare(`
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model, precision, normalized, version, created_by
+          ) VALUES (?, 'minilm', 'native', ?, 384, 384, 'all-MiniLM-L6-v2', 32, 1, 1, 'test')
+        `);
+
+        insertEmb.run('mem-old-near', vecNear);
+        insertEmb.run('mem-recent-far', vecFar);
+        insertEmb.run('mem-new', vecNew);
+
+        const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
+        expect(candidates).toHaveLength(1);
+        expect(candidates[0]?.id).toBe('mem-old-near');
+      } finally {
+        vecDb.close();
       }
-
-      db.exec(`
-        CREATE TABLE memory_embedding (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          memory_id TEXT NOT NULL,
-          embedding_provider TEXT NOT NULL,
-          embedding BLOB NOT NULL,
-          chunk_index INTEGER DEFAULT 0
-        );
-        CREATE VIRTUAL TABLE memory_item_vec_minilm USING vec0(embedding float[384]);
-      `);
-
-      const makeVecBuffer = (val: number) => {
-        const arr = new Float32Array(384);
-        arr[0] = val;
-        arr[1] = 1 - val;
-        return Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength);
-      };
-
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, created_at, owner_id, is_deleted) VALUES
-          ('mem-old-near', 'semantic', '오래되었지만 의미가 매우 가까운 기억', '2025-01-01T00:00:00.000Z', 'agent-a', 0),
-          ('mem-recent-far', 'semantic', '최신이지만 의미가 먼 기억', '2026-05-01T00:00:00.000Z', 'agent-a', 0),
-          ('mem-new', 'episodic', '새 기억', '2026-06-01T00:00:00.000Z', 'agent-a', 0)
-      `);
-
-      const vecNew = makeVecBuffer(1.0);
-      const vecNear = makeVecBuffer(0.99);
-      const vecFar = makeVecBuffer(0.0);
-
-      const insertEmb = db.prepare(`
-        INSERT INTO memory_embedding (memory_id, embedding_provider, embedding, chunk_index)
-        VALUES (?, 'minilm', ?, 0)
-      `);
-      const insertVec = db.prepare(`
-        INSERT INTO memory_item_vec_minilm (rowid, embedding) VALUES (?, ?)
-      `);
-
-      const rNear = insertEmb.run('mem-old-near', vecNear);
-      insertVec.run(BigInt(rNear.lastInsertRowid), vecNear);
-
-      const rFar = insertEmb.run('mem-recent-far', vecFar);
-      insertVec.run(BigInt(rFar.lastInsertRowid), vecFar);
-
-      const rNew = insertEmb.run('mem-new', vecNew);
-      insertVec.run(BigInt(rNew.lastInsertRowid), vecNew);
-
-      const candidates = await getExistingMemoriesForRelationExtraction(db, 'mem-new', 1, host);
-      expect(candidates).toHaveLength(1);
-      expect(candidates[0]?.id).toBe('mem-old-near');
     });
   });
 

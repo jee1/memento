@@ -79,7 +79,7 @@ try {
       FROM memory_embedding
       WHERE memory_id = ?
         AND embedding_provider = 'minilm'
-        AND COALESCE(chunk_index, 0) = 0
+        AND COALESCE(projection_type, 'native') = 'native'
       ORDER BY id ASC
       LIMIT 1
     `);
