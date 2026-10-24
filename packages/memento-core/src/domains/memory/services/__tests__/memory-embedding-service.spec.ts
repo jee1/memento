@@ -612,6 +612,18 @@ describe('MemoryEmbeddingService', () => {
         expect(['tfidf', 'minilm', 'openai', 'gemini']).toContain(result.provider);
       }
     });
+
+    it('동일 데이터베이스 핸들에 대해 loadExtension을 1회만 호출해야 함 (#1474)', async () => {
+      const m1 = createTestMemory(db, { content: 'First memory', type: 'episodic' });
+      const m2 = createTestMemory(db, { content: 'Second memory', type: 'episodic' });
+      const loadExtSpy = vi.spyOn(db, 'loadExtension');
+
+      await service.createAndStoreEmbedding(db, m1, 'First memory', 'episodic');
+      await service.createAndStoreEmbedding(db, m2, 'Second memory', 'episodic');
+
+      expect(loadExtSpy).toHaveBeenCalledTimes(1);
+      loadExtSpy.mockRestore();
+    });
   });
 });
 

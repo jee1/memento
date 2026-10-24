@@ -157,5 +157,24 @@ describe('MiniLMEmbeddingService', () => {
       await expect(service.generateEmbedding('')).rejects.toThrow('텍스트가 비어있습니다');
       await expect(service.generateEmbedding('   ')).rejects.toThrow('텍스트가 비어있습니다');
     });
+
+    it('Given: 800자 이상 동일 문서, When: generateEmbedding 후 generateWindowEmbeddings를 호출하면, Then: 모델 추론은 윈도당 1회만 실행되어야 함 (#1474)', async () => {
+      const tokenCount = WINDOW_TOKENS * 3;
+      const modelFn = installMockModel({ tokenCount, withTokenizer: true });
+      const expectedWindows = Math.ceil(tokenCount / WINDOW_TOKENS);
+      const longDoc = '가나다라마바사아자차카타파하 '.repeat(80);
+
+      const embeddingResult = await service.generateEmbedding(longDoc);
+      expect(modelFn).toHaveBeenCalledTimes(expectedWindows);
+
+      const windowResult = await service.generateWindowEmbeddings(longDoc);
+      expect(modelFn).toHaveBeenCalledTimes(expectedWindows);
+      expect(windowResult.vectors).toHaveLength(expectedWindows);
+      expect(meanPoolNormalize(windowResult.vectors)).toEqual(embeddingResult?.embedding);
+
+      service.clearCache();
+      await service.generateWindowEmbeddings(longDoc);
+      expect(modelFn).toHaveBeenCalledTimes(expectedWindows * 2);
+    });
   });
 });

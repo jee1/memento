@@ -151,14 +151,27 @@ export async function createSeededBenchmarkDatabase(
   let relationCount: number;
 
   try {
-    for (let i = 0; i < rows.length; i++) {
-      const entry = rows[i]!;
-      const dims = await seedOneCorpusRow(db, embeddingService, entry, provider);
-      if (vectorDims === 0) {
-        vectorDims = dims;
-      }
-      if ((i + 1) % 500 === 0) {
-        process.stderr.write(`[benchmark-seed] ${i + 1}/${rows.length} provider=${provider}\n`);
+    const SEED_BATCH_SIZE = 500;
+    for (let batchStart = 0; batchStart < rows.length; batchStart += SEED_BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + SEED_BATCH_SIZE, rows.length);
+      db.exec('BEGIN');
+      try {
+        for (let i = batchStart; i < batchEnd; i++) {
+          const entry = rows[i]!;
+          const dims = await seedOneCorpusRow(db, embeddingService, entry, provider);
+          if (vectorDims === 0) {
+            vectorDims = dims;
+          }
+          if ((i + 1) % 500 === 0) {
+            process.stderr.write(`[benchmark-seed] ${i + 1}/${rows.length} provider=${provider}\n`);
+          }
+        }
+        db.exec('COMMIT');
+      } catch (batchErr) {
+        if (db.inTransaction) {
+          db.exec('ROLLBACK');
+        }
+        throw batchErr;
       }
     }
     assertWindowEmbeddingsSeeded(db, provider, rows);
@@ -281,28 +294,30 @@ function seedBenchmarkRelations(
     .filter((line) => line.trim().length > 0);
 
   let count = 0;
-  for (const line of lines) {
-    const row = JSON.parse(line) as {
-      source: string;
-      target: string;
-      relation_type: string;
-      confidence: number;
-    };
-    const sourceId = benchmarkIdToMemoryId.get(row.source);
-    if (!sourceId) {
-      throw new Error(`Benchmark relation references unknown benchmark_id: ${row.source}`);
+  db.transaction(() => {
+    for (const line of lines) {
+      const row = JSON.parse(line) as {
+        source: string;
+        target: string;
+        relation_type: string;
+        confidence: number;
+      };
+      const sourceId = benchmarkIdToMemoryId.get(row.source);
+      if (!sourceId) {
+        throw new Error(`Benchmark relation references unknown benchmark_id: ${row.source}`);
+      }
+      const targetId = benchmarkIdToMemoryId.get(row.target);
+      if (!targetId) {
+        throw new Error(`Benchmark relation references unknown benchmark_id: ${row.target}`);
+      }
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`,
+        [sourceId, targetId, row.relation_type, row.confidence]
+      );
+      count++;
     }
-    const targetId = benchmarkIdToMemoryId.get(row.target);
-    if (!targetId) {
-      throw new Error(`Benchmark relation references unknown benchmark_id: ${row.target}`);
-    }
-    DatabaseUtils.run(
-      db,
-      `INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`,
-      [sourceId, targetId, row.relation_type, row.confidence]
-    );
-    count++;
-  }
+  })();
 
   process.stderr.write(`[benchmark-seed] relations=${count}\n`);
   return count;
