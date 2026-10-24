@@ -15,11 +15,6 @@ export async function filterRelationCandidatesByEmbedding(
   }
 
   try {
-    const newEmbedding = await embeddingService.generateEmbedding(newMemory.content);
-    if (!newEmbedding || !newEmbedding.embedding) {
-      return existingMemories.slice(0, limit);
-    }
-
     const embeddingData: EmbeddingData[] = [];
     for (const memory of existingMemories) {
       if (memory.embedding && memory.embedding.length > 0) {
@@ -32,6 +27,11 @@ export async function filterRelationCandidatesByEmbedding(
     }
 
     if (embeddingData.length === 0) {
+      return existingMemories.slice(0, limit);
+    }
+
+    const newEmbedding = await embeddingService.generateEmbedding(newMemory.content);
+    if (!newEmbedding || !newEmbedding.embedding) {
       return existingMemories.slice(0, limit);
     }
 

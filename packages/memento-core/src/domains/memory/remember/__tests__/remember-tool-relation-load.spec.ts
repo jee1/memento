@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { RememberTool } from '../remember-tool.js';
 import {
   getExistingMemoriesForRelationExtraction,
@@ -139,6 +140,45 @@ describe('RememberTool relation load (Issue #544)', () => {
         (call) => call[0] === '기존 기억 조회 실패'
       );
       expect(relationLoadWarnings).toHaveLength(0);
+    });
+
+    it('memory_embedding과 memory_item_vec_minilm이 있으면 저장된 임베딩으로 vec0 KNN 후보를 우선 반환한다 (#1473)', async () => {
+      const vecDb = await setupTestDatabase();
+      try {
+        const makeVecJson = (val: number) => {
+          const arr = new Array(384).fill(0);
+          arr[0] = val;
+          arr[1] = 1 - val;
+          return JSON.stringify(arr);
+        };
+
+        DatabaseUtils.run(vecDb, `
+          INSERT INTO memory_item (id, type, content, created_at, owner_id, is_deleted) VALUES
+            ('mem-old-near', 'semantic', '오래되었지만 의미가 매우 가까운 기억', '2025-01-01T00:00:00.000Z', 'agent-a', 0),
+            ('mem-recent-far', 'semantic', '최신이지만 의미가 먼 기억', '2026-05-01T00:00:00.000Z', 'agent-a', 0),
+            ('mem-new', 'episodic', '새 기억', '2026-06-01T00:00:00.000Z', 'agent-a', 0)
+        `);
+
+        const vecNew = makeVecJson(1.0);
+        const vecNear = makeVecJson(0.99);
+        const vecFar = makeVecJson(0.0);
+
+        const insertEmb = vecDb.prepare(`
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model, precision, normalized, version, created_by
+          ) VALUES (?, 'minilm', 'native', ?, 384, 384, 'all-MiniLM-L6-v2', 32, 1, 1, 'test')
+        `);
+
+        insertEmb.run('mem-old-near', vecNear);
+        insertEmb.run('mem-recent-far', vecFar);
+        insertEmb.run('mem-new', vecNew);
+
+        const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
+        expect(candidates).toHaveLength(1);
+        expect(candidates[0]?.id).toBe('mem-old-near');
+      } finally {
+        vecDb.close();
+      }
     });
   });
 
