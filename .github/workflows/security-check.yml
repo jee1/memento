@@ -54,8 +54,8 @@ jobs:
 
       # Full-tree audit gate (#909): dev 의존성까지 포함해 `npm audit` 를 돌린다.
       # wanted(minor/patch) 범위에서 고칠 수 있는 High/Critical 이 남으면 실패한다.
-      # dev moderate(vitest 4→5 major)는 wanted-only 정책상 게이트 대상이 아니다
-      # (AGENTS.md deps) — 별도 이슈로 다룬다.
+      # dev Moderate는 심각도 정책상 게이트 대상이 아니다.
+      # 현재 범위의 minor/patch 수정은 의존성 유지보수에서 처리한다.
       # 목록에 없는 upstream-blocked 항목이면 실패 — `security/accepted-audit.json` (#942)
       - name: Full npm audit (dev included)
         run: node scripts/check-production-audit-fixable.mjs --include-dev

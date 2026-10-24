@@ -289,12 +289,12 @@ describe('DatabaseLockMonitor class', () => {
   });
 
   describe('checkLockStatus - IMMEDIATE 트랜잭션 기반 락 감지', () => {
-    it('락이 없을 때 isLocked가 false여야 함', async () => {
+    it('probe는 락이 없을 때 isLocked가 false여야 함', async () => {
       // Given: 락이 없는 데이터베이스와 모니터가 준비되어 있음
       const monitor = new DatabaseLockMonitor(db, config, mockLogger as Logger);
       
-      // When: checkLockStatus 호출 (private 메서드이므로 any로 캐스팅)
-      const status = await (monitor as any).checkLockStatus();
+      // When: 공개 probe 호출
+      const status = await monitor.probe();
 
       // Then: isLocked가 false여야 함
       expect(status.isLocked).toBe(false);
@@ -303,7 +303,7 @@ describe('DatabaseLockMonitor class', () => {
       expect(status.busyCount).toBe(0);
     });
 
-    it('락이 있을 때 isLocked가 true여야 함', async () => {
+    it.each([false, true])('probe는 락 감지와 대응 결과를 전달해야 함 (대응 실패: %s)', async (failHandling) => {
       // Given: 파일 기반 데이터베이스와 다른 연결로 락을 보유한 상황
       const os = await import('os');
       const path = await import('path');
@@ -315,24 +315,41 @@ describe('DatabaseLockMonitor class', () => {
       
       // 다른 연결로 락 획득
       const lockDb = openLockTestDatabase(testDbPath);
-      const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
-      lockStmt.run(); // 락 획득
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const monitor = new DatabaseLockMonitor(
+        testDb, config, mockLogger, mockPerformanceMonitor, undefined, { writeEvent }
+      );
+      const error = new Error('metric collection failed');
+      if (failHandling) {
+        mockPerformanceMonitor.incrementCounter.mockImplementationOnce(() => { throw error; });
+      }
 
-      const monitor = new DatabaseLockMonitor(testDb, config, mockLogger as Logger);
+      try {
+        lockDb.prepare('BEGIN IMMEDIATE TRANSACTION').run();
+        const result = monitor.probe();
 
-      // When: checkLockStatus 호출
-      const status = await (monitor as any).checkLockStatus();
-
-      // Then: isLocked가 true여야 함
-      expect(status.isLocked).toBe(true);
-      expect(status.detectionMethod).toBe('immediate_transaction');
-      
-      // 정리
-      lockDb.prepare('ROLLBACK').run();
-      lockDb.close();
-      testDb.close();
-      if (fs.existsSync(testDbPath)) {
-        fs.unlinkSync(testDbPath);
+        if (failHandling) {
+          await expect(result).rejects.toBe(error);
+          expect(mockLogger.error).toHaveBeenCalledWith('락 모니터링 실패', { error });
+          expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'database_lock_monitor_error', error: error.message
+          }));
+        } else {
+          await expect(result).resolves.toMatchObject({
+            isLocked: true, detectionMethod: 'immediate_transaction', busyCount: 1
+          });
+          expect(mockPerformanceMonitor.recordMetric).toHaveBeenCalledWith(
+            'database_lock_duration', expect.any(Number)
+          );
+        }
+        expect(mockPerformanceMonitor.incrementCounter).toHaveBeenCalledWith('database_lock_count');
+        expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+          type: 'database_lock_detected', detectionMethod: 'immediate_transaction', busyCount: 1
+        }));
+      } finally {
+        lockDb.close();
+        testDb.close();
+        fs.rmSync(testDbPath, { force: true });
       }
     });
 

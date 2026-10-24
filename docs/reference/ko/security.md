@@ -26,7 +26,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 | `nanoid@3.3.15` (dev — `vitest` → `vite` → `postcss`) | [GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv), [GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8) (High, 무한 루프 DoS) | **조치 완료 (검증됨)** — lockfile bump `3.3.15→3.3.18` | `postcss` bump 와 함께 재검증 |
 | `postcss@8.5.15` (dev — `vitest@3.2.7` → `vite@7.3.6`) | [GHSA-r28c-9q8g-f849](https://github.com/advisories/GHSA-r28c-9q8g-f849) (High, sourceMappingURL path traversal), [GHSA-fxqj-rqcc-2cmp](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp) (Moderate, 불완전 수정) | **조치 완료 (검증됨)** — lockfile bump `8.5.15→8.5.28` | vite/vitest 업그레이드 시 재검증 |
 
-- **Moderate 3건 (dev)**: `vitest` · `@vitest/mocker` · `@vitest/coverage-v8` — [GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) (path traversal via mocker redirect). **수용**: 수정에 `vitest@5` **major** 가 필요하고 wanted-only 정책상 major 는 별도 이슈다 (`AGENTS.md` deps). 그래서 dev 게이트는 High/Critical 만 본다.
+- **Vitest 개발 의존성 경고 조치**: `vitest` · `@vitest/mocker` · `@vitest/coverage-v8`를 `4.1.12`로 갱신해 [수동 mock 코드 주입](https://github.com/advisories/GHSA-qxg6-89mg-rqv8)과 [Windows 경로 우회](https://github.com/advisories/GHSA-xp26-3454-mjgp)를 수정했다. 두 공지는 공개 mocker/interceptor 플러그인의 WebSocket 경로에 해당하며 일반 Node 테스트 실행은 해당 핸들러를 등록하지 않는다. dev 게이트는 High/Critical만 차단하며, Moderate의 minor/patch 수정은 의존성 유지보수에서 처리한다.
 - **CI**: `Full npm audit (dev included)` 스텝(`--include-dev`)이 wanted 범위에서 고칠 수 있는 High/Critical 을 막고, `npm audit summary` 스텝이 전체 목록을 job summary 에 남긴다. dev 취약점이 다시 조용히 쌓이지 않는다.
 - **Exploitability note**: MiniLM / local embedding 경로에서만 해당 transitive가 로드됩니다. ZIP/이미지 입력을 신뢰하지 않는 운영에서는 노출면이 제한적입니다. 새 fixable High/Moderate가 생기면 CI가 막습니다.
 

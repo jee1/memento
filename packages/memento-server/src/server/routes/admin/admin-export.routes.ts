@@ -9,13 +9,13 @@ import type { ServerServices } from '../../bootstrap.js';
 
 const MEMORY_ITEM_TYPES = new Set(['working', 'episodic', 'semantic', 'procedural']);
 
-function parseTypesQuery(value: unknown): Array<'working' | 'episodic' | 'semantic' | 'procedural'> | undefined {
-  if (value === undefined || value === '') return undefined;
-  const raw = Array.isArray(value) ? value : String(value).split(',');
-  const types = raw
-    .map((t) => String(t).trim())
-    .filter((t) => MEMORY_ITEM_TYPES.has(t)) as Array<'working' | 'episodic' | 'semantic' | 'procedural'>;
-  return types.length > 0 ? types : undefined;
+function parseTypesQuery(value: unknown): Array<'working' | 'episodic' | 'semantic' | 'procedural'> | undefined | null {
+  if (value === undefined) return undefined;
+  const raw = typeof value === 'string' ? value.split(',') : value;
+  if (!Array.isArray(raw) || raw.length === 0 || raw.some((t) => typeof t !== 'string' || !MEMORY_ITEM_TYPES.has(t.trim()))) {
+    return null;
+  }
+  return raw.map((t) => t.trim()) as Array<'working' | 'episodic' | 'semantic' | 'procedural'>;
 }
 
 export function registerAdminExportRoutes(
@@ -31,9 +31,13 @@ export function registerAdminExportRoutes(
 
       const format = req.query.format === 'jsonl' ? 'jsonl' : 'markdown';
       const types = parseTypesQuery(req.query.type ?? req.query.types);
+      if (types === null) {
+        return res.status(400).json({ error: 'type는 working, episodic, semantic, procedural 중 하나여야 합니다' });
+      }
       const ownerId = typeof req.query.owner_id === 'string' ? req.query.owner_id : undefined;
       const limitRaw = req.query.limit;
-      const limit = limitRaw !== undefined ? parseInt(String(limitRaw), 10) : undefined;
+      const limit = limitRaw === undefined ? undefined
+        : typeof limitRaw === 'string' && /^\d+$/.test(limitRaw) ? Number(limitRaw) : NaN;
 
       if (limit !== undefined && (Number.isNaN(limit) || limit < 1 || limit > 10000)) {
         return res.status(400).json({ error: 'limit는 1–10000 사이 정수여야 합니다' });

@@ -133,7 +133,11 @@ describe('AddRelationTool', () => {
       expect(relations[0].relation_type).toBe('CAUSES');
     });
 
-    it('confidence가 없으면 기본값 0.7을 사용해야 함', async () => {
+    it.each([
+      [0, 0],
+      [0.8, 0.8],
+      [undefined, 0.7]
+    ])('confidence %s를 저장하고 응답해야 함', async (confidence, expectedConfidence) => {
       // Given: 메모리 생성
       createTestMemory(db, 'mem1', 'Test memory 1');
       createTestMemory(db, 'mem2', 'Test memory 2');
@@ -141,17 +145,20 @@ describe('AddRelationTool', () => {
       const params = {
         source_id: 'mem1',
         target_id: 'mem2',
-        relation_type: 'FOLLOWS' as const
-        // confidence 생략
+        relation_type: 'FOLLOWS' as const,
+        confidence
       };
 
       // When: 관계 추가
       const result = await tool.handle(params, context);
 
-      // Then: 기본값 0.7 사용
+      // Then: 응답과 저장값 일치
       expect(result.content).toBeDefined();
       const data = JSON.parse(result.content[0].text);
-      expect(data.confidence).toBe(0.7);
+      expect(data.confidence).toBe(expectedConfidence);
+      expect(db.prepare('SELECT confidence FROM memory_relation').get()).toEqual({
+        confidence: expectedConfidence
+      });
     });
 
     it('소스 메모리가 없으면 에러를 반환해야 함', async () => {
@@ -372,7 +379,7 @@ describe('AddRelationTool', () => {
       await expect(tool.handle(params, context)).rejects.toThrow();
     });
 
-    it('confidence가 범위를 벗어나면 에러를 반환해야 함', async () => {
+    it.each([-0.1, 1.5])('confidence %s가 범위를 벗어나면 에러를 반환해야 함', async (confidence) => {
       // Given: 메모리 생성
       createTestMemory(db, 'mem1', 'Test memory 1');
       createTestMemory(db, 'mem2', 'Test memory 2');
@@ -381,7 +388,7 @@ describe('AddRelationTool', () => {
         source_id: 'mem1',
         target_id: 'mem2',
         relation_type: 'CAUSES' as const,
-        confidence: 1.5 // 범위 초과
+        confidence
       };
 
       // When: 관계 추가 시도

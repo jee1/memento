@@ -106,7 +106,7 @@ export class AddRelationTool extends BaseTool {
           target_id,
           relation_type,
           { 
-            confidence: confidence || 0.7,
+            confidence,
             metadata: {
               method: 'manual' as 'rule' | 'llm', // 'manual'은 타입 정의에 없지만 런타임에서는 허용됨
               extracted_at: new Date().toISOString()
@@ -133,7 +133,7 @@ export class AddRelationTool extends BaseTool {
             id: target_id,
           }),
           relation_type,
-          confidence: confidence || 0.7,
+          confidence,
           message: `관계가 추가되었습니다: ${source_id} --[${relation_type}]--> ${target_id}`
         });
 

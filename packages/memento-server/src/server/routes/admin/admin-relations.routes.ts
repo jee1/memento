@@ -167,7 +167,7 @@ function postRelation(db: Database.Database | null) {
         source_id,
         target_id,
         relation_type,
-        confidence: confidence || 0.7
+        confidence
       }, relationToolContext(db));
 
       return respondWithToolResult(res, '관계 추가 완료', result.content[0]?.text || '{}');
