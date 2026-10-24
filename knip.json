@@ -13,14 +13,10 @@
       "project": [
         "scripts/**/*.{ts,js,mjs,cjs}",
         "tests/**/*.ts"
-      ],
-      "ignore": [
-        "static/**"
       ]
     },
     "packages/memento-core": {
       "entry": [
-        "src/index.ts",
         "src/infrastructure/database/sqlite/migration/migrations/*.ts"
       ],
       "project": [
@@ -29,9 +25,6 @@
     },
     "packages/memento-server": {
       "entry": [
-        "src/server/index.ts",
-        "src/cli.ts",
-        "src/server/http-server.ts",
         "src/telemetry-cli.ts",
         "src/scripts/*.ts"
       ],

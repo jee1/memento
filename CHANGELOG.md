@@ -15,6 +15,7 @@
 - 관계 추가: 도구와 admin 경로에서 명시한 신뢰도 `0`을 응답과 저장값에 보존합니다.
 - 릴리스: agent-integration·assistant의 기존 workspace 테스트를 배포 전 검사에 포함합니다. DB 락 모니터는 공개 `probe()`의 정상·락 감지·오류 진단과 재throw를 회귀 검증합니다.
 - 개발 의존성: Vitest·coverage를 4.1.12로 갱신해 mocker 보안 경고를 해소합니다.
+- 개발: 참조가 없는 스크립트 3개(`scripts/orchestrate.sh`, `scripts/rank-flips-961.ts`, `scripts/verify-obsidian-cli.sh`)를 지우고, knip 이 중복이라고 알린 `knip.json` entry·ignore 패턴을 걷어냈습니다.
 - 관계 추출: 관계 판정용으로 기억을 200자에서 자를 때 이모지 같은 서로게이트 쌍을 반으로 가르지 않습니다. 반쪽 문자가 들어간 요청을 Jev(System One)가 `400 Request contains invalid Unicode text.` 로 거부해, 199번째 글자에 이모지가 있는 기억을 후보로 둔 관계 추출이 모두 실패했습니다.
 
 ### Added
