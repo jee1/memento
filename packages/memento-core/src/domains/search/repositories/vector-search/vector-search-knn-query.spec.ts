@@ -65,4 +65,17 @@ describe('executeKnnQuery scoped outer WHERE (#1386)', () => {
     expect(sql).not.toMatch(/rowid IN \(/i);
     expect(sql).toMatch(/WHERE me\.model = \?/);
   });
+
+  it('uses 2-stage late materialization to aggregate top_k before joining wide memory_item columns (#1477)', () => {
+    const sql = captureKnnSql({ project_id: 'obsidian-wiki' });
+
+    const topKStart = sql.indexOf('FROM (  SELECT     me.memory_id as memory_id,     MIN(t.distance) as similarity');
+    expect(topKStart).toBeGreaterThan(-1);
+    const topKEnd = sql.indexOf(') top_k JOIN memory_item m ON m.id = top_k.memory_id', topKStart);
+    expect(topKEnd).toBeGreaterThan(topKStart);
+    const innerSubquery = sql.slice(topKStart, topKEnd);
+    expect(innerSubquery).not.toMatch(/\bmi\.content\b/);
+    expect(innerSubquery).not.toMatch(/\bmi\.reflection_notes\b/);
+    expect(innerSubquery).toMatch(/GROUP BY me\.memory_id\s+ORDER BY similarity ASC\s+LIMIT \?/);
+  });
 });
