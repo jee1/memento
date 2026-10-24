@@ -80,6 +80,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private model: unknown = null;
   private loadingPromise: Promise<FeatureExtractionModel> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
+  private readonly windowCache = new Map<string, { vectors: number[][]; tokenCount: number; model: string }>();
 
   constructor() {
     // 초기화 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
@@ -99,9 +100,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     }
 
     try {
-      const model = await this.getModel();
-      const processedText = this.preprocessText(text);
-      const { embedding, tokenCount } = await this.embedWithWindows(model, processedText);
+      const { vectors, tokenCount } = await this.getOrComputeWindowEmbeddings(text, cacheKey);
+      const embedding = meanPoolNormalize(vectors);
       const embeddingResult: EmbeddingResult = {
         embedding,
         model: this.modelName,
@@ -299,21 +299,21 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     return { vectors, tokenCount: windows.tokenCount };
   }
 
-  /**
-   * 본문을 모델 창(510토큰) 단위로 나눠 각각 임베딩한 뒤 평균 내어 하나의 벡터로 만든다 (#1013).
-   *
-   * 왜 필요한가? 예전에는 앞 1024자만 넘겼는데 한국어는 2.124 chars/token 이라 그게 약 493토큰이었다.
-   * 긴 기억의 뒤쪽 절반은 벡터에 한 번도 들어가지 않았다. 토크나이저로 잘라야 언어에 상관없이 맞는다.
-   *
-   * 윈도가 하나면 예전과 같은 단일 호출이다. 토크나이저를 쓸 수 없는 환경(테스트 모킹 등)에서는
-   * 전체 텍스트를 그대로 넘긴다 — 모델이 512토큰에서 알아서 자르므로 예전 동작 이하로 떨어지지 않는다.
-   */
-  private async embedWithWindows(
-    model: FeatureExtractionModel,
-    text: string
-  ): Promise<{ embedding: number[]; tokenCount: number }> {
-    const result = await this.embedWindows(model, text);
-    return { embedding: meanPoolNormalize(result.vectors), tokenCount: result.tokenCount };
+  private async getOrComputeWindowEmbeddings(
+    text: string,
+    cacheKey: string
+  ): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
+    const cachedWindow = this.windowCache.get(cacheKey);
+    if (cachedWindow) {
+      return cachedWindow;
+    }
+
+    const model = await this.getModel();
+    const processedText = this.preprocessText(text);
+    const { vectors, tokenCount } = await this.embedWindows(model, processedText);
+    const windowResult = { vectors, tokenCount, model: this.modelName };
+    this.windowCache.set(cacheKey, windowResult);
+    return windowResult;
   }
 
   /**
@@ -324,10 +324,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    */
   async generateWindowEmbeddings(text: string): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
     this.validateInput(text);
-    const model = await this.getModel();
-    const processedText = this.preprocessText(text);
-    const { vectors, tokenCount } = await this.embedWindows(model, processedText);
-    return { vectors, tokenCount, model: this.modelName };
+    const cacheKey = generateEmbeddingCacheKey('minilm', text);
+    return this.getOrComputeWindowEmbeddings(text, cacheKey);
   }
 
   /**
@@ -370,6 +368,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    */
   clearCache(): void {
     this.cache.clear();
+    this.windowCache.clear();
   }
 
   /**

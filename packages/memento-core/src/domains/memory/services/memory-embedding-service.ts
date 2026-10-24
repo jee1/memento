@@ -81,6 +81,8 @@ export interface SearchBySimilarityOutcome {
 
 type GlobalWithVecWarning = typeof globalThis & { __vecExtensionLoadWarningShown?: boolean };
 
+const vecExtensionLoadedDbs = new WeakSet<Database.Database>();
+
 export class MemoryEmbeddingService {
   private embeddingService: UnifiedEmbeddingService;
   private readonly defaultProvider: EmbeddingProvider = 'tfidf';
@@ -314,6 +316,10 @@ export class MemoryEmbeddingService {
    * init.ts와 동일한 방식으로 sqlite-vec 패키지의 getLoadablePath() 사용
    */
   private async loadVecExtension(db: Database.Database): Promise<void> {
+    if (vecExtensionLoadedDbs.has(db)) {
+      return;
+    }
+    vecExtensionLoadedDbs.add(db);
     try {
       // sqlite-vec 패키지에서 올바른 경로 가져오기
       const { getLoadablePath } = await import('sqlite-vec');
