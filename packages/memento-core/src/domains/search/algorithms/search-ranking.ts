@@ -43,9 +43,14 @@ import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
 
 export class SearchRanking {
   private readonly weights: SearchRankingWeights;
+  private readonly recencyScale: number;
+  private readonly importanceScale: number;
 
   constructor(weights?: Partial<SearchRankingWeights>) {
     this.weights = resolveSearchRankingWeights(weights);
+    const config = getRankingWeights();
+    this.recencyScale = config.recency_signal.scale;
+    this.importanceScale = config.importance_signal.scale;
   }
 
   calculateProceduralMemoryBoost(features: SearchFeatures): number {
@@ -69,15 +74,13 @@ export class SearchRanking {
 
   calculateRecency(createdAt: Date): number {
     const raw = computeRecency(createdAt);
-    const scale = getRankingWeights().recency_signal.scale;
-    return applyRecencySignalScale(raw, scale);
+    return applyRecencySignalScale(raw, this.recencyScale);
   }
 
   calculateImportance(userImportance: unknown, isPinned: boolean, type: string): number {
     const resolved = resolveUserImportanceForRanking(userImportance);
     const raw = computeImportance(resolved, isPinned, type);
-    const scale = getRankingWeights().importance_signal.scale;
-    return applyImportanceSignalScale(raw, scale);
+    return applyImportanceSignalScale(raw, this.importanceScale);
   }
 
   calculateUsage(metrics: UsageMetrics, batchMin?: number, batchMax?: number): number {
