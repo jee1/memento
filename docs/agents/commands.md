@@ -150,6 +150,8 @@ npm run db:residue -- cleanup-embeddings              # dimensions=0 preview
 npm run db:residue -- cleanup-embeddings --apply      # dimensions=0 삭제
 npm run db:residue -- cleanup-rule-relations          # metadata.method='rule' 관계 preview
 npm run db:residue -- cleanup-rule-relations --apply  # metadata.method='rule' 관계 삭제
+npm run db:backfill-relations-jev                     # Jev 관계 백필 preview (5건)
+npm run db:backfill-relations-jev -- --apply          # 관계 없는 기억 전체 백필 (재실행 시 처리분 건너뜀)
 npm run db:vacuum                 # DELETE 후 VACUUM (before/after/reclaimed JSON)
 npm run docker:build              # 이미지 빌드
 npm run docker:up                 # 컨테이너 기동

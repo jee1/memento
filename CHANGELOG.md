@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- 개발: `npm run db:backfill-relations-jev [-- --apply] [--limit N]` 를 추가합니다. Jev 관계 추출 이전에 저장돼 내용 관계가 없는 기억을 서버 이미지 안에서 Jev 로 판정해 관계를 채웁니다. 후보는 저장 당시처럼 같은 owner 의 그 이전 기억 100건입니다. 기본은 5건 preview 이고, 처리한 id 는 `/app/data/backfill-relations-jev.done` 에 남겨 재실행 시 건너뜁니다.
+
 ## [2.3.0] - 2026-10-24
 
 온프레미스 거버넌스 설정(`wipe_memory` 도구, 토큰 스코프 `tools:read`, `tools:write`, 토큰별 `project_id`, `MEMENTO_OFFLINE_STRICT`)과 episodic 작업 기록 `record` 필드(마이그레이션 057)를 더합니다. strict owner scope 의 `export_memories` 검증 누락을 고치고, 실패 이벤트 큐에 상한을 둡니다.
