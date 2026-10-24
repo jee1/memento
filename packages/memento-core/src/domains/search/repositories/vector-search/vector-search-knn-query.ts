@@ -74,7 +74,7 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
     '    MIN(t.distance) as similarity ' +
     '  FROM (' +
     '    SELECT rowid, distance ' +
-    `    FROM ${tableName} ` +
+    `  FROM ${tableName} ` +
     '    WHERE embedding MATCH ? ' +
     knnFilterSql +
     '    ORDER BY distance ASC ' +
