@@ -105,7 +105,11 @@ describe('JevRelationJudge', () => {
     expect(typeQuestions.find((question) => question.id === 'y0_CAUSES')?.instructions)
       .toBe('새 기억(s)이 기존 기억(t0)의 원인이다');
     expect(ask.mock.calls[0]?.[1]?.[0]?.instructions)
-      .toBe('기존 기억(t0)은 새 기억(s)과 같은 일의 맥락으로 이어 볼 만하다');
+      .toBe('기존 기억(t0)은 새 기억(s)과 같은 구체적 작업 흐름이나 사건의 맥락으로 이어 볼 만하다');
+    expect(typeQuestions.find((question) => question.id === 'y0_FOLLOWS')?.instructions)
+      .toBe('새 기억(s)의 사건·단계는 기존 기억(t0)과 같은 작업 흐름에서 그 뒤에 발생·실행된다. 인과는 필요 없다. 저장 순서·내용 반복·무관한 사건의 시간 인접만으로는 성립하지 않는다');
+    expect(typeQuestions.find((question) => question.id === 'y0_CONTRASTS_WITH')?.instructions)
+      .toBe('새 기억(s)과 기존 기억(t0)은 같은 대상의 같은 비교 축에서 서로 다른 주장·선택지·조건을 대조한다. 같은 내용 반복·동급 작업·단순 후속 실행은 대조가 아니다');
   });
 
   it('sorts candidates by confidence descending', async () => {
@@ -140,6 +144,9 @@ describe('JevRelationJudge', () => {
     const ids = (ask.mock.calls[1]?.[1] as Array<{ id: string }>).map((question) => question.id);
     expect(ids).toEqual(['y0_DEPENDS_ON', 'y0_FOLLOWS', 'y0_REFERENCES']);
     expect(ids.join(' ')).not.toContain('VERSION_OF');
+    const typeQuestions = ask.mock.calls[1]?.[1] as Array<{ id: string; instructions: string }>;
+    expect(typeQuestions.find((question) => question.id === 'y0_DEPENDS_ON')?.instructions)
+      .toBe('새 기억(s)이 설명하는 대상이나 절차가 성립·실행되려면 기존 기억(t0)의 대상이 필수 전제로 필요하다. 단순 참조·내용 반복·시간 순서는 의존이 아니다');
   });
 
   it('passes the client failure reason through and does not emit an edge', async () => {
