@@ -993,4 +993,73 @@ describe('MetaMemoryService', () => {
       expect(item?.success_count).toBe(1);
     });
   });
+
+  describe('batch SQL optimizations (#1478)', () => {
+    it('recordRecall batches persisted stats lookup into a single WHERE memory_id IN (...) query', async () => {
+      const prepareSpy = vi.spyOn(db, 'prepare');
+      const searchResults: RecallResultItem[] = [
+        {
+          memory_id: 'mem_1',
+          content: 'Test content 1',
+          type: 'episodic',
+          importance: 0.8,
+          created_at: '2024-01-01T00:00:00.000Z',
+          final_score: 0.9,
+        },
+        {
+          memory_id: 'mem_2',
+          content: 'Test content 2',
+          type: 'semantic',
+          importance: 0.7,
+          created_at: '2024-01-01T00:00:00.000Z',
+          final_score: 0.8,
+        },
+        {
+          memory_id: 'mem_success',
+          content: 'Success content',
+          type: 'episodic',
+          importance: 0.8,
+          created_at: '2024-01-01T00:00:00.000Z',
+          final_score: 0.7,
+        },
+      ];
+
+      await service.recordRecall(searchResults);
+
+      const preparedSqls = prepareSpy.mock.calls.map(([sql]) => String(sql));
+      const singleIdSelects = preparedSqls.filter((sql) =>
+        /FROM meta_memory_stats\s+WHERE memory_id = \?/i.test(sql)
+      );
+      const batchIdSelects = preparedSqls.filter((sql) =>
+        /FROM meta_memory_stats\s+WHERE memory_id IN \(/i.test(sql)
+      );
+
+      expect(singleIdSelects).toHaveLength(0);
+      expect(batchIdSelects).toHaveLength(1);
+    });
+
+    it('getStats skips SELECT COUNT(*) when returned rows are fewer than limit', async () => {
+      await service.recordRecall([
+        {
+          memory_id: 'mem_1',
+          content: 'Test content 1',
+          type: 'episodic',
+          importance: 0.8,
+          created_at: '2024-01-01T00:00:00.000Z',
+          final_score: 0.9,
+        },
+      ]);
+      await service.destroy();
+
+      const prepareSpy = vi.spyOn(db, 'prepare');
+      const stats = await service.getStats({ memory_ids: ['mem_1', 'mem_2'], limit: 100 });
+
+      expect(stats.items).toHaveLength(1);
+      expect(stats.total_count).toBe(1);
+      const countSqls = prepareSpy.mock.calls
+        .map(([sql]) => String(sql))
+        .filter((sql) => /SELECT COUNT\(\*\)/i.test(sql));
+      expect(countSqls).toHaveLength(0);
+    });
+  });
 });

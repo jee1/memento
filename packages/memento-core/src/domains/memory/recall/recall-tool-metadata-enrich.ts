@@ -10,7 +10,7 @@ import type Database from 'better-sqlite3';
 import { logger } from '../../../shared/utils/logger.js';
 import type { RecallSearchItem } from './recall-tool-types.js';
 
-const METADATA_COLUMNS = [
+const BASE_METADATA_COLUMNS = [
   'privacy_scope',
   'source',
   'origin_source',
@@ -24,11 +24,40 @@ const METADATA_COLUMNS = [
   'version_series_id',
 ] as const;
 
+const METADATA_COLUMNS = [
+  ...BASE_METADATA_COLUMNS,
+  'work_record',
+] as const;
+
 type MetadataColumn = (typeof METADATA_COLUMNS)[number];
 
 type MetadataRow = {
   id: string;
-} & Record<MetadataColumn, string | number | null>;
+} & Partial<Record<MetadataColumn, string | number | null>>;
+
+function queryMetadataRows(
+  db: Database.Database,
+  ids: string[],
+): { rows: MetadataRow[]; columns: readonly MetadataColumn[] } {
+  const placeholders = ids.map(() => '?').join(',');
+  try {
+    const sql = `SELECT id, ${METADATA_COLUMNS.join(', ')} FROM memory_item WHERE id IN (${placeholders})`;
+    return {
+      rows: db.prepare(sql).all(...ids) as MetadataRow[],
+      columns: METADATA_COLUMNS,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('work_record')) {
+      const fallbackSql = `SELECT id, ${BASE_METADATA_COLUMNS.join(', ')} FROM memory_item WHERE id IN (${placeholders})`;
+      return {
+        rows: db.prepare(fallbackSql).all(...ids) as MetadataRow[],
+        columns: BASE_METADATA_COLUMNS,
+      };
+    }
+    throw error;
+  }
+}
 
 /**
  * 검색 후보 항목에 memory_item 메타데이터를 배치 조회해 채운다.
@@ -51,10 +80,7 @@ export function enrichRecallItemsWithMemoryMetadata(
   }
 
   try {
-    const placeholders = ids.map(() => '?').join(',');
-    const columns = METADATA_COLUMNS.join(', ');
-    const sql = `SELECT id, ${columns} FROM memory_item WHERE id IN (${placeholders})`;
-    const rows = db.prepare(sql).all(...ids) as MetadataRow[];
+    const { rows, columns } = queryMetadataRows(db, ids);
     const rowById = new Map(rows.map((row) => [row.id, row]));
 
     return items.map((item) => {
@@ -69,9 +95,9 @@ export function enrichRecallItemsWithMemoryMetadata(
       }
 
       const enriched: RecallSearchItem = { ...item };
-      for (const field of METADATA_COLUMNS) {
+      for (const field of columns) {
         if (enriched[field] === undefined) {
-          (enriched as Record<string, unknown>)[field] = row[field];
+          (enriched as Record<string, unknown>)[field] = row[field] ?? null;
         }
       }
       return enriched;

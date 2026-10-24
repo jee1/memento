@@ -71,6 +71,14 @@ export class MetaMemoryService {
     // 이렇게 하면 같은 호출 내에서는 버퍼의 값을 확인할 수 있고,
     // 다른 호출 사이에서는 debounce가 작동하여 마지막 호출만 반영됨
     const currentCallBuffer: Map<string, MetaMemoryStatsWrite> = new Map();
+    const uniqueMemoryIds = Array.from(
+      new Set(
+        items
+          .map((item) => item.memory_id || item.id)
+          .filter((id): id is string => Boolean(id))
+      )
+    );
+    const persistedStatsById = this.readPersistedStatsByIds(uniqueMemoryIds);
 
     // 각 항목별로 통계 업데이트
     for (const item of items) {
@@ -92,9 +100,9 @@ export class MetaMemoryService {
 
         // 현재 통계 조회
         // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리하기 위해
-        // 먼저 현재 호출의 버퍼를 확인하고, 없으면 DB에서 가져옴
+        // 먼저 현재 호출의 버퍼를 확인하고, 없으면 배치 조회한 DB 값에서 가져옴
         // 다른 호출 사이에서는 debounce가 작동하여 마지막 호출만 반영됨
-        let baseStats = this.readPersistedStatsById(memoryId);
+        let baseStats = persistedStatsById.get(memoryId) ?? this.emptyStats(memoryId);
         
         // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리
         // 현재 호출의 버퍼에 같은 memoryId가 이미 있으면 그 값을 기반으로 계산
@@ -253,6 +261,45 @@ export class MetaMemoryService {
   }
 
   /**
+   * DB에 flush된 통계를 배치로 읽는다 (#1478).
+   */
+  private readPersistedStatsByIds(memoryIds: string[]): Map<string, MetaMemoryStats> {
+    const result = new Map<string, MetaMemoryStats>();
+    if (memoryIds.length === 0) {
+      return result;
+    }
+
+    try {
+      const placeholders = memoryIds.map(() => '?').join(', ');
+      const stmt = this.db.prepare(`
+        SELECT 
+          memory_id,
+          recall_count,
+          success_count,
+          failure_count,
+          avg_confidence,
+          last_recalled_at,
+          created_at,
+          updated_at
+        FROM meta_memory_stats
+        WHERE memory_id IN (${placeholders})
+      `);
+
+      const rows = stmt.all(...memoryIds) as MetaMemoryStatsRow[];
+      for (const row of rows) {
+        result.set(row.memory_id, this.mapRowToMetaMemoryStats(row));
+      }
+    } catch (error) {
+      logger.error('MetaMemoryService: 통계 배치 조회 실패', {
+        error: error instanceof Error ? error.message : String(error),
+        memory_ids_count: memoryIds.length
+      });
+    }
+
+    return result;
+  }
+
+  /**
    * DB에 flush된 통계만 읽는다. recordRecall의 debounce last-write-wins 기준값.
    */
   private readPersistedStatsById(memoryId: string): MetaMemoryStats {
@@ -335,6 +382,82 @@ export class MetaMemoryService {
     return requested.filter((id) => owned.has(id));
   }
 
+  private buildGetStatsWhereClause(params: GetMetaMemoryStatsParams): {
+    whereClause: string;
+    queryParams: (string | number)[];
+  } {
+    const {
+      memory_id,
+      memory_ids,
+      min_recall_count,
+      min_confidence,
+      owner_id
+    } = params;
+    const conditions: string[] = [];
+    const queryParams: (string | number)[] = [];
+
+    if (memory_id) {
+      if (typeof memory_id !== 'string') {
+        throw new Error('memory_id는 문자열이어야 합니다');
+      }
+      conditions.push('memory_id = ?');
+      queryParams.push(memory_id);
+    }
+
+    if (memory_ids && memory_ids.length > 0) {
+      if (!Array.isArray(memory_ids) || memory_ids.some(id => typeof id !== 'string')) {
+        throw new Error('memory_ids는 문자열 배열이어야 합니다');
+      }
+      const placeholders = memory_ids.map(() => '?').join(', ');
+      conditions.push(`memory_id IN (${placeholders})`);
+      queryParams.push(...memory_ids);
+    }
+
+    if (min_recall_count !== undefined) {
+      if (typeof min_recall_count !== 'number' || min_recall_count < 0) {
+        throw new Error('min_recall_count는 0 이상의 숫자여야 합니다');
+      }
+      conditions.push('recall_count >= ?');
+      queryParams.push(min_recall_count);
+    }
+
+    if (min_confidence !== undefined) {
+      if (typeof min_confidence !== 'number' || min_confidence < 0 || min_confidence > 1) {
+        throw new Error('min_confidence는 0 이상 1 이하의 숫자여야 합니다');
+      }
+      conditions.push('avg_confidence >= ?');
+      queryParams.push(min_confidence);
+    }
+
+    if (owner_id) {
+      conditions.push('memory_id IN (SELECT id FROM memory_item WHERE owner_id IS ?)');
+      queryParams.push(owner_id);
+    }
+
+    return {
+      whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+      queryParams
+    };
+  }
+
+  private resolveTotalCount(
+    whereClause: string,
+    queryParams: (string | number)[],
+    rowsLength: number,
+    limit: number
+  ): number {
+    if (rowsLength < limit) {
+      return rowsLength;
+    }
+    const countStmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM meta_memory_stats
+      ${whereClause}
+    `);
+    const countResult = countStmt.get(...queryParams) as { count: number };
+    return countResult.count;
+  }
+
   /**
    * 통계 조회 (필터링 지원)
    * 
@@ -344,80 +467,17 @@ export class MetaMemoryService {
   async getStats(params: GetMetaMemoryStatsParams = {}): Promise<MetaMemoryStatsResult> {
     try {
       const {
-        memory_id,
-        memory_ids,
         min_recall_count,
         min_confidence,
-        limit = 100,
-        owner_id
+        limit = 100
       } = params;
 
-      // 입력 검증
       if (limit < 1 || limit > 1000) {
         logger.warn('MetaMemoryService: limit 값이 유효 범위를 벗어남', { limit });
         throw new Error('limit은 1 이상 1000 이하여야 합니다');
       }
 
-      // WHERE 조건 구성
-      const conditions: string[] = [];
-      const queryParams: (string | number)[] = [];
-
-      // memory_id 필터
-      if (memory_id) {
-        if (typeof memory_id !== 'string') {
-          throw new Error('memory_id는 문자열이어야 합니다');
-        }
-        conditions.push('memory_id = ?');
-        queryParams.push(memory_id);
-      }
-
-      // memory_ids 필터
-      if (memory_ids && memory_ids.length > 0) {
-        if (!Array.isArray(memory_ids) || memory_ids.some(id => typeof id !== 'string')) {
-          throw new Error('memory_ids는 문자열 배열이어야 합니다');
-        }
-        const placeholders = memory_ids.map(() => '?').join(', ');
-        conditions.push(`memory_id IN (${placeholders})`);
-        queryParams.push(...memory_ids);
-      }
-
-      // min_recall_count 필터
-      if (min_recall_count !== undefined) {
-        if (typeof min_recall_count !== 'number' || min_recall_count < 0) {
-          throw new Error('min_recall_count는 0 이상의 숫자여야 합니다');
-        }
-        conditions.push('recall_count >= ?');
-        queryParams.push(min_recall_count);
-      }
-
-      // min_confidence 필터
-      if (min_confidence !== undefined) {
-        if (typeof min_confidence !== 'number' || min_confidence < 0 || min_confidence > 1) {
-          throw new Error('min_confidence는 0 이상 1 이하의 숫자여야 합니다');
-        }
-        conditions.push('avg_confidence >= ?');
-        queryParams.push(min_confidence);
-      }
-
-      if (owner_id) {
-        conditions.push('memory_id IN (SELECT id FROM memory_item WHERE owner_id IS ?)');
-        queryParams.push(owner_id);
-      }
-
-      // WHERE 절 구성
-      const whereClause = conditions.length > 0
-        ? `WHERE ${conditions.join(' AND ')}`
-        : '';
-
-      // 전체 개수 조회
-      const countStmt = this.db.prepare(`
-        SELECT COUNT(*) as count
-        FROM meta_memory_stats
-        ${whereClause}
-      `);
-
-      const countResult = countStmt.get(...queryParams) as { count: number };
-      const totalCount = countResult.count;
+      const { whereClause, queryParams } = this.buildGetStatsWhereClause(params);
 
       // 데이터 조회 (정렬: recall_count DESC, avg_confidence DESC)
       const dataStmt = this.db.prepare(`
@@ -437,6 +497,7 @@ export class MetaMemoryService {
       `);
 
       const rows = dataStmt.all(...queryParams, limit) as MetaMemoryStatsRow[];
+      const totalCount = this.resolveTotalCount(whereClause, queryParams, rows.length, limit);
 
       const items: MetaMemoryStats[] = rows.map(row =>
         this.overlayPendingWrite(row.memory_id, this.mapRowToMetaMemoryStats(row))
@@ -514,6 +575,26 @@ export class MetaMemoryService {
 
     try {
       await DatabaseUtils.runTransaction(this.db, async () => {
+        const stmt = this.db.prepare(`
+          INSERT INTO meta_memory_stats (
+            memory_id,
+            recall_count,
+            success_count,
+            failure_count,
+            avg_confidence,
+            last_recalled_at,
+            created_at,
+            updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT(memory_id) DO UPDATE SET
+            recall_count = ?,
+            success_count = ?,
+            failure_count = ?,
+            avg_confidence = ?,
+            last_recalled_at = ?,
+            updated_at = CURRENT_TIMESTAMP
+        `);
+
         for (const write of writes) {
           // 입력 검증
           if (!write.memoryId || typeof write.memoryId !== 'string') {
@@ -526,27 +607,6 @@ export class MetaMemoryService {
             typeof write.avgConfidence === 'number' && Number.isFinite(write.avgConfidence)
               ? write.avgConfidence
               : 0;
-
-          // UPSERT (INSERT OR UPDATE)
-          const stmt = this.db.prepare(`
-            INSERT INTO meta_memory_stats (
-              memory_id,
-              recall_count,
-              success_count,
-              failure_count,
-              avg_confidence,
-              last_recalled_at,
-              created_at,
-              updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON CONFLICT(memory_id) DO UPDATE SET
-              recall_count = ?,
-              success_count = ?,
-              failure_count = ?,
-              avg_confidence = ?,
-              last_recalled_at = ?,
-              updated_at = CURRENT_TIMESTAMP
-          `);
 
           stmt.run(
             write.memoryId,

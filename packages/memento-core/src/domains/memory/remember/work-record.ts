@@ -76,24 +76,32 @@ export function displayWorkRecordContent(storedContent: string, workRecordJson: 
   return rendered;
 }
 
-export function overlayWorkRecordDisplay<T extends { id?: string; memory_id?: string; content: string }>(
+export function overlayWorkRecordDisplay<
+  T extends { id?: string; memory_id?: string; content: string; work_record?: string | null }
+>(
   db: Database.Database,
   items: T[],
 ): T[] {
   if (items.length === 0) return items;
-  const ids = items
+  const missingIds = items
+    .filter((item) => item.work_record === undefined)
     .map((item) => item.id ?? item.memory_id)
     .filter((id): id is string => Boolean(id));
-  if (ids.length === 0) return items;
+  if (missingIds.length === 0) {
+    return items.map((item) => {
+      if (!item.work_record) return item;
+      return { ...item, content: displayWorkRecordContent(item.content, item.work_record) };
+    });
+  }
   try {
-    const placeholders = ids.map(() => '?').join(',');
+    const placeholders = missingIds.map(() => '?').join(',');
     const rows = db.prepare(
       `SELECT id, work_record AS workRecord FROM memory_item WHERE id IN (${placeholders}) AND work_record IS NOT NULL`,
-    ).all(...ids) as Array<{ id: string; workRecord: string }>;
+    ).all(...missingIds) as Array<{ id: string; workRecord: string }>;
     const byId = new Map(rows.map((row) => [row.id, row.workRecord]));
     return items.map((item) => {
       const id = item.id ?? item.memory_id;
-      const json = id ? byId.get(id) : undefined;
+      const json = item.work_record !== undefined ? item.work_record : (id ? byId.get(id) : undefined);
       if (!json) return item;
       return { ...item, content: displayWorkRecordContent(item.content, json) };
     });
