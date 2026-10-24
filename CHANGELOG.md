@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- reflexion: 부트스트랩의 실패 이벤트 큐(`failure-reflexion.ts`)에 대기열 상한 100을 둡니다. `ReflexionWorker` 큐와 같은 값이며, 넘치면 가장 오래된 작업을 버립니다.
 - server: HTTP owner scope 대상 도구 목록을 dispatcher와 단일 상수(`OWNER_FILTER_TOOLS`)로 공유합니다(#1452). `MEMENTO_OWNER_SCOPE_MODE=strict`에서 `export_memories`가 누락되어 검증을 우회하던 문제를 수정하고, 식별자 없는 호출에 400을 반환합니다.
 
 ### Security
