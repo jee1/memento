@@ -133,7 +133,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   }
 
   checkAvailability(): boolean {
-    return this.checkVecAvailability();
+    return this.isVecAvailable;
   }
 
   private resolveExecutionOptions(
