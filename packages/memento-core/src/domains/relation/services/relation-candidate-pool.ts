@@ -12,7 +12,9 @@ export function clipRelationText(text: string, chars: number): string {
   if (text.length <= chars) {
     return text;
   }
-  return `${text.substring(0, chars)}...`;
+  // A cut inside a surrogate pair leaves a lone surrogate, which System One rejects as invalid Unicode.
+  const end = /[\uD800-\uDBFF]/.test(text.charAt(chars - 1)) ? chars - 1 : chars;
+  return `${text.substring(0, end)}...`;
 }
 
 export function compressRelationMemories(
