@@ -15,6 +15,7 @@
 
 ### Security
 
+- 의존성: 전이 의존성 `fast-uri` 3.1.8 → 3.1.9 (GHSA-w74x-v6f9-j3xg 외 3건, moderate). `ajv` 범위 안에서 lockfile 만 바뀝니다.
 - 의존성: 전이 의존성 `ip-address` 10.7.2 → 10.7.4 (GHSA-rxp7-6hxx-x8q5, moderate). `express-rate-limit` 범위 안에서 lockfile 만 바뀝니다.
 
 ### Added
