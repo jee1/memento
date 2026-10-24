@@ -6,7 +6,7 @@ export async function startFailureAndReflexion(db: import('better-sqlite3').Data
   failureDetector: FailureDetector;
   reflexionWorker: ReflexionWorker;
 }> {
-  const failureEventQueue = new AsyncTaskQueue(5);
+  const failureEventQueue = new AsyncTaskQueue(5, 100);
   const failureDetector = new FailureDetector(failureEventQueue);
   await failureDetector.startQueue();
   const reflexionWorker = new ReflexionWorker(failureDetector, db);
