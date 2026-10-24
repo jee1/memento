@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.3.0] - 2026-10-24
+
+온프레미스 거버넌스 설정(`wipe_memory` 도구, 토큰 스코프 `tools:read`, `tools:write`, 토큰별 `project_id`, `MEMENTO_OFFLINE_STRICT`)과 episodic 작업 기록 `record` 필드(마이그레이션 057)를 더합니다. strict owner scope 의 `export_memories` 검증 누락을 고치고, 실패 이벤트 큐에 상한을 둡니다.
+
 ### Fixed
 
 - reflexion: 부트스트랩의 실패 이벤트 큐(`failure-reflexion.ts`)에 대기열 상한 100을 둡니다. `ReflexionWorker` 큐와 같은 값이며, 넘치면 가장 오래된 작업을 버립니다.
