@@ -6,7 +6,6 @@
 import Database from 'better-sqlite3';
 import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import type { MemorySearchResult } from '../../../shared/types/search.types.js';
-import { logger } from '../../../shared/utils/logger.js';
 import { requireRepositoryProvider, type RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchEngineFtsAvailability } from './search-engine/search-engine-fts-availability.js';
@@ -21,11 +20,8 @@ export class SearchEngine {
   private ranking: SearchRanking;
   private ftsAvailability: SearchEngineFtsAvailability;
 
-  private readonly repositories: RepositoryProvider;
-
   constructor(repositories: RepositoryProvider) {
-    // feedback 조회는 try/catch 안이라 provider 가 빠지면 조용히 랭킹이 바뀐다 — 생성 시점에 막는다.
-    this.repositories = requireRepositoryProvider(repositories);
+    requireRepositoryProvider(repositories);
     this.ranking = new SearchRanking();
     this.ftsAvailability = new SearchEngineFtsAvailability();
   }
@@ -44,7 +40,6 @@ export class SearchEngine {
       filters,
       limit = 10,
       include_score_breakdown: includeScoreBreakdown,
-      omit_feedback_in_ranking: omitFeedbackInRanking,
     } = query;
 
     const hasIdFilter = filters?.id && filters.id.length > 0;
@@ -92,25 +87,10 @@ export class SearchEngine {
       resultCount: results.length
     });
 
-    let feedbackNetByMemory = new Map<string, number>();
-    if (results.length > 0 && !omitFeedbackInRanking) {
-      const ids = (results as Array<{ id?: string }>)
-        .map((r) => r.id)
-        .filter((id): id is string => typeof id === 'string');
-      if (ids.length > 0) {
-        try {
-          feedbackNetByMemory = this.repositories.feedback(db).getNetScores(ids, 90);
-        } catch (err) {
-          logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      }
-    }
-
+    // #1393, #1478: 텍스트 레인 점수는 relevance 전용이라 feedback_event 조회를 하지 않는다.
+    // 하이브리드 융합 시 HybridResultRanker.fetchFeedbackScores 에서 한 번만 조회한다.
     const rankedResults = applyRankingImpl(this.ranking, results, searchQuery, {
       includeBreakdown: includeScoreBreakdown === true,
-      feedbackNetByMemory
     });
 
     const finalResults = rankedResults.slice(0, limit);

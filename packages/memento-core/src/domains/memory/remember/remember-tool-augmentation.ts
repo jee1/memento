@@ -8,8 +8,6 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
-import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { extractForRemember } from '../../relation/services/remember-relation-extraction.js';
 import type { RelationCandidate } from '../../../shared/types/relation.js';
 import type { ToolContext } from '../../../tools/types.js';
@@ -61,26 +59,6 @@ async function runEmbeddingAndNeighbors(
   if (!embeddingResult) {
     host.logWarning('임베딩이 생성되지 않아 주기 재조정을 기다립니다', { memory_id: savedMemoryId });
     return;
-  }
-
-  try {
-    const dbValid = await checkDbConnection(dbRef);
-    if (!dbValid) {
-      host.logWarning('데이터베이스 연결이 유효하지 않아 인접 기억 갱신을 건너뜁니다', { memory_id: savedMemoryId });
-      return;
-    }
-
-    const vectorSearchEngine = context.services.vectorSearchEngine ?? getVectorSearchEngine();
-    const neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingServiceRef, dbRef);
-    const neighborIds = await neighborService.updateNeighborsForNewMemory(savedMemoryId, 0.8);
-
-    if (neighborIds.length > 0) {
-      host.logInfo('인접 기억 갱신 완료', { memory_id: savedMemoryId, neighbor_count: neighborIds.length });
-    }
-  } catch (error) {
-    host.logWarning(`인접 기억 갱신 실패 (${savedMemoryId})`, {
-      error: error instanceof Error ? error.message : String(error)
-    });
   }
 }
 

@@ -385,3 +385,52 @@ describe('HybridResultRanker includeRelations (#1245)', () => {
     ]);
   });
 });
+
+describe('HybridResultRanker procedural matcher gating (#1478)', () => {
+  it('skips fetchProceduralMemoryMatches when no candidate has type procedural', async () => {
+    const fetchProceduralMemoryMatches = vi.fn().mockReturnValue(new Map());
+    const r = new HybridResultRanker(
+      new SearchResultCombiner(),
+      new SearchRanking(),
+      { fetchProceduralMemoryMatches },
+      () => null,
+      sqliteRepositoryProvider,
+    );
+
+    await r.combineAndSortResults(
+      [textHit('mem1', 0.8)],
+      [vectorHit('mem2', 0.7)],
+      TEXT_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+
+    expect(fetchProceduralMemoryMatches).not.toHaveBeenCalled();
+  });
+
+  it('passes only procedural candidate IDs to fetchProceduralMemoryMatches', async () => {
+    const fetchProceduralMemoryMatches = vi.fn().mockReturnValue(new Map());
+    const r = new HybridResultRanker(
+      new SearchResultCombiner(),
+      new SearchRanking(),
+      { fetchProceduralMemoryMatches },
+      () => null,
+      sqliteRepositoryProvider,
+    );
+
+    await r.combineAndSortResults(
+      [textHit('sem1', 0.8), { ...textHit('proc1', 0.7), type: 'procedural' }],
+      [vectorHit('sem2', 0.6)],
+      TEXT_HEAVY_WEIGHTS,
+      10,
+      stubDb,
+      false,
+      query,
+    );
+
+    expect(fetchProceduralMemoryMatches).toHaveBeenCalledTimes(1);
+    expect(fetchProceduralMemoryMatches.mock.calls[0]?.[1]).toEqual(['proc1']);
+  });
+});

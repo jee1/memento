@@ -255,6 +255,7 @@ export interface RecallSearchItem {
   workflow_name?: string | null;
   skill_name?: string | null;
   reflection_notes?: string | null;
+  work_record?: string | null;
   version_chain?: unknown;
   diff_with_previous?: unknown;
   diff_with?: unknown;
