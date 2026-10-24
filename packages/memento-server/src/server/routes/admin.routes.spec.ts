@@ -799,6 +799,30 @@ describe('admin.routes graph', () => {
     }
   });
 
+  it('GET /admin/graph — soft delete한 기억을 노드와 전체 개수에서 제외한다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance, is_deleted) VALUES (?, ?, ?, ?, ?)`).run(
+      'active', '활성 기억', 'semantic', 0.8, 0
+    );
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance, is_deleted, deleted_at) VALUES (?, ?, ?, ?, ?, ?)`).run(
+      'deleted', '삭제한 기억', 'semantic', 0.99, 1, '2026-10-24T00:00:00.000Z'
+    );
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        nodes: Array<{ id: string }>;
+        meta: { total_nodes: number; total_available_nodes: number };
+      };
+      expect(body.nodes.map(n => n.id)).toEqual(['active']);
+      expect(body.meta.total_nodes).toBe(1);
+      expect(body.meta.total_available_nodes).toBe(1);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
   // T007: 빈 DB 처리
   it('GET /admin/graph — DB가 비어있을 때 빈 nodes/edges를 반환한다', async () => {
     const { server, port } = await listen(makeApp(db));
@@ -947,6 +971,32 @@ describe('admin.routes graph', () => {
       expect(body.nodes.map(n => n.id).sort()).toEqual(['c1', 'c2']);
       expect(body.meta.total_available_nodes).toBe(2);
       expect(body.meta.applied_filters.exclude_orphans).toBe(true);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/graph?exclude_orphans=true — 삭제한 기억과의 관계를 연결로 세지 않는다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, is_deleted) VALUES (?, ?, ?, ?)`).run(
+      'active', '활성 기억', 'semantic', 0
+    );
+    db.prepare(`INSERT INTO memory_item (id, content, type, is_deleted) VALUES (?, ?, ?, ?)`).run(
+      'deleted', '삭제한 기억', 'semantic', 1
+    );
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES (?, ?, ?)`).run(
+      'active', 'deleted', 'supports'
+    );
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?exclude_orphans=true');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        nodes: Array<{ id: string }>;
+        meta: { total_available_nodes: number };
+      };
+      expect(body.nodes).toEqual([]);
+      expect(body.meta.total_available_nodes).toBe(0);
     } finally {
       await new Promise<void>(r => server.close(() => r()));
     }
