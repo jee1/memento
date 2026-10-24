@@ -37,6 +37,9 @@ export class VectorSearchContainer {
    * 데이터베이스 연결 설정
    */
   setDatabase(db: Database.Database): void {
+    if (this.db === db && this.services !== null) {
+      return;
+    }
     this.db = db;
     this.services = null;
   }
