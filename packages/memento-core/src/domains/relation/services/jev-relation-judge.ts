@@ -34,14 +34,14 @@ export const RELATION_JEV_TIMEOUT_MS = 10_000;
 
 const TYPE_QUESTION: Record<JevRelationType, string> = {
   CAUSES: '새 기억(s)이 기존 기억({target})의 원인이다',
-  DEPENDS_ON: '새 기억(s)이 기존 기억({target})에 의존한다',
-  FOLLOWS: '새 기억(s)이 기존 기억({target}) 다음에 온다',
-  CONTRASTS_WITH: '새 기억(s)이 기존 기억({target})과 대조된다',
+  DEPENDS_ON: '새 기억(s)이 설명하는 대상이나 절차가 성립·실행되려면 기존 기억({target})의 대상이 필수 전제로 필요하다. 단순 참조·내용 반복·시간 순서는 의존이 아니다',
+  FOLLOWS: '새 기억(s)의 사건·단계는 기존 기억({target})과 같은 작업 흐름에서 그 뒤에 발생·실행된다. 인과는 필요 없다. 저장 순서·내용 반복·무관한 사건의 시간 인접만으로는 성립하지 않는다',
+  CONTRASTS_WITH: '새 기억(s)과 기존 기억({target})은 같은 대상의 같은 비교 축에서 서로 다른 주장·선택지·조건을 대조한다. 같은 내용 반복·동급 작업·단순 후속 실행은 대조가 아니다',
   REFERENCES: '새 기억(s)이 기존 기억({target})을 가리킨다',
   BELONGS_TO: '새 기억(s)이 기존 기억({target})에 속한다',
 };
 
-const RELEVANCE_QUESTION = '기존 기억({target})은 새 기억(s)과 같은 일의 맥락으로 이어 볼 만하다';
+const RELEVANCE_QUESTION = '기존 기억({target})은 새 기억(s)과 같은 구체적 작업 흐름이나 사건의 맥락으로 이어 볼 만하다';
 
 export type JevJudgeResult =
   | { readonly ok: true; readonly candidates: readonly RelationCandidate[] }

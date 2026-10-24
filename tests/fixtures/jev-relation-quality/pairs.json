@@ -1,0 +1,499 @@
+{
+  "version": 1,
+  "review": {
+    "status": "accepted",
+    "accepted_by": "user (same-thread implementation authorization: 진행해줘.)",
+    "accepted_at": "2026-10-24T10:09:57.842864+00:00",
+    "basis": "합성 평가표와 목표 제안 제시 후 사용자가 진행 지시. 개별 쌍 직접 검사나 독립 사람 라벨링은 확인하지 않음."
+  },
+  "cases": [
+    {
+      "id": "f01",
+      "source": {
+        "type": "episodic",
+        "content": "별항 프로젝트의 릴리스 검증을 마친 다음, 같은 릴리스의 배포를 시작했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "별항 프로젝트의 릴리스 검증을 마쳤다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "FOLLOWS"
+        ],
+        "reason": "같은 릴리스의 검증 다음 배포라는 순서가 명시된다. 인과는 요구하지 않는다."
+      }
+    },
+    {
+      "id": "f02",
+      "source": {
+        "type": "episodic",
+        "content": "달빛 앱 장애 대응의 두 번째 단계로 복구 상태를 점검했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "달빛 앱 장애 대응의 첫 번째 단계로 트래픽을 차단했다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "FOLLOWS"
+        ],
+        "reason": "동일 장애 대응의 첫 단계와 두 번째 단계다."
+      }
+    },
+    {
+      "id": "f03",
+      "source": {
+        "type": "procedural",
+        "content": "해솔 배포 절차: 산출물 검증을 끝낸 다음 배포 승인을 요청한다."
+      },
+      "target": {
+        "type": "procedural",
+        "content": "해솔 배포 절차: 산출물을 검증한다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "FOLLOWS"
+        ],
+        "reason": "같은 절차의 실행 순서를 표현한다. 시간 순서만으로 인과를 추가하지 않는다."
+      }
+    },
+    {
+      "id": "f04",
+      "source": {
+        "type": "procedural",
+        "content": "초록 장비 점검 절차의 2단계는 외관을 촬영하는 작업이다."
+      },
+      "target": {
+        "type": "procedural",
+        "content": "초록 장비 점검 절차의 1단계는 기기 번호를 기록하는 작업이다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "FOLLOWS"
+        ],
+        "reason": "명시한 단계 순서다. 2단계가 1단계의 결과라는 근거는 없다."
+      }
+    },
+    {
+      "id": "c01",
+      "source": {
+        "type": "semantic",
+        "content": "모래 서비스의 동일한 세션 캐시에 대해 대안 B는 서버 메모리에만 저장한다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "모래 서비스의 동일한 세션 캐시에 대해 대안 A는 외부 저장소에 저장한다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "CONTRASTS_WITH"
+        ],
+        "reason": "동일 결정 대상과 저장 위치라는 비교 축, 서로 다른 선택지가 명시된다."
+      }
+    },
+    {
+      "id": "c02",
+      "source": {
+        "type": "semantic",
+        "content": "구름 보고서의 보존 정책 대안은 모든 보고서를 30일 뒤 삭제하는 방식이다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "구름 보고서의 보존 정책 대안은 모든 보고서를 영구 보존하는 방식이다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "CONTRASTS_WITH"
+        ],
+        "reason": "같은 대상의 영구 보존과 30일 삭제가 충돌한다."
+      }
+    },
+    {
+      "id": "c03",
+      "source": {
+        "type": "episodic",
+        "content": "도담 시스템의 같은 부하 실험에서 캐시를 끈 조건은 평균 응답 500ms였다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "도담 시스템의 같은 부하 실험에서 캐시를 켠 조건은 평균 응답 100ms였다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "CONTRASTS_WITH"
+        ],
+        "reason": "같은 실험에서 캐시 유무와 응답 시간을 대조한다. 기록 시점만 다른 후속 작업이 아니다."
+      }
+    },
+    {
+      "id": "c04",
+      "source": {
+        "type": "episodic",
+        "content": "한울 팀은 같은 인증 방식 결정에 대해 비밀번호 로그인을 폐지하자는 반대안을 냈다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "한울 팀은 같은 인증 방식 결정에 대해 비밀번호 로그인을 유지하자는 안을 냈다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "CONTRASTS_WITH"
+        ],
+        "reason": "동일 논점에 대한 유지와 폐지라는 반대 선택지다."
+      }
+    },
+    {
+      "id": "r01",
+      "source": {
+        "type": "working",
+        "content": "푸른 API 구현 메모: 응답 필드는 문서 설계-A의 명세를 참고한다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "문서 설계-A는 푸른 API의 응답 필드 명세다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "REFERENCES"
+        ],
+        "reason": "구현 메모가 특정 문서 설계-A를 명시적으로 참조한다."
+      }
+    },
+    {
+      "id": "r02",
+      "source": {
+        "type": "episodic",
+        "content": "나래 회의 기록은 결정문 결정-B를 인용했다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "결정문 결정-B는 나래 서비스의 이름 규칙을 설명한다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "REFERENCES"
+        ],
+        "reason": "같은 아티팩트의 식별자와 인용 관계가 명시된다."
+      }
+    },
+    {
+      "id": "r03",
+      "source": {
+        "type": "semantic",
+        "content": "새별 안내서의 오류 코드 표는 문서 표-C를 가리킨다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "문서 표-C는 새별 오류 코드 목록이다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "REFERENCES"
+        ],
+        "reason": "소스가 타깃 아티팩트를 가리키며 인과나 순서는 주장하지 않는다."
+      }
+    },
+    {
+      "id": "r04",
+      "source": {
+        "type": "procedural",
+        "content": "이든 운영 절차에서 사용자가 원하면 안내서 안내-D를 참고한다. 필수 전제는 아니다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "안내서 안내-D는 이든 서비스의 선택적 사용 팁이다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "REFERENCES"
+        ],
+        "reason": "선택적 참조다. 실행 필수 전제라는 DEPENDS_ON은 부적절하다."
+      }
+    },
+    {
+      "id": "cause01",
+      "source": {
+        "type": "episodic",
+        "content": "누리 시험에서 인증 설정 설정-I에 잘못된 값을 적용했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "누리 시험에서 설정-I에 적용한 잘못된 값 때문에 인증 오류가 발생했다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "CAUSES"
+        ],
+        "reason": "소스의 설정 적용이 타깃 오류의 직접 원인임을 명시한다."
+      }
+    },
+    {
+      "id": "cause02",
+      "source": {
+        "type": "episodic",
+        "content": "마루 시험에서 연결 풀 상한 상한-J를 2로 낮췄다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "마루 시험에서 상한-J를 2로 낮춘 조치 때문에 요청 대기가 발생했다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "CAUSES"
+        ],
+        "reason": "원인 조치에서 결과로 향한다. 새 기억이라는 저장 순서와 사건 방향은 다르다."
+      }
+    },
+    {
+      "id": "dep01",
+      "source": {
+        "type": "semantic",
+        "content": "다온 집계 작업은 입력 스키마 규약-E가 없으면 실행되지 않는다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "입력 스키마 규약-E는 다온 집계 입력의 필수 필드를 정의한다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "DEPENDS_ON"
+        ],
+        "reason": "소스 실행의 필수 전제가 타깃이다."
+      }
+    },
+    {
+      "id": "dep02",
+      "source": {
+        "type": "procedural",
+        "content": "라온 복구 명령은 복구 키 키-F가 반드시 있어야 실행된다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "복구 키 키-F는 라온 백업을 여는 필수 키다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "DEPENDS_ON"
+        ],
+        "reason": "소스 절차가 타깃 키에 의존한다. 키 값은 포함하지 않은 합성 사례다."
+      }
+    },
+    {
+      "id": "bel01",
+      "source": {
+        "type": "semantic",
+        "content": "아람 인증 모듈의 하위 구성 요소는 로그인 처리기다. 이 기억은 그 로그인 처리기를 설명한다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "아람 인증 모듈은 로그인 처리기와 권한 처리기로 구성된다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "BELONGS_TO"
+        ],
+        "reason": "소스 구성 요소가 타깃 모듈의 부분이다."
+      }
+    },
+    {
+      "id": "bel02",
+      "source": {
+        "type": "episodic",
+        "content": "보람 프로젝트의 하위 작업인 화면 검수를 담당했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "보람 프로젝트는 화면 검수와 문서 검수 작업을 포함한다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "BELONGS_TO"
+        ],
+        "reason": "화면 검수 작업에서 전체 프로젝트로 향하는 포함 관계다."
+      }
+    },
+    {
+      "id": "u01",
+      "source": {
+        "type": "episodic",
+        "content": "10월 2일 오전 10시에 잎새 앱의 로그인 색상을 수정했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "10월 2일 오전 9시에 바다 앱의 세금 계산을 점검했다."
+      },
+      "expected": {
+        "relevance": "unrelated",
+        "types": [],
+        "reason": "시간상 인접하지만 서로 다른 앱과 작업이다."
+      }
+    },
+    {
+      "id": "u02",
+      "source": {
+        "type": "episodic",
+        "content": "같은 저장소에서 결제 화면 번역을 수정했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "같은 저장소에서 개발용 로그 파일 보존 기간을 바꿨다."
+      },
+      "expected": {
+        "relevance": "unrelated",
+        "types": [],
+        "reason": "같은 저장소라는 배경만 공유한다. 구체적인 작업 연결은 없다."
+      }
+    },
+    {
+      "id": "u03",
+      "source": {
+        "type": "semantic",
+        "content": "햇살 서비스의 캐시 정책은 사용자 프로필을 5분 보존한다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "겨울 장비의 캐시는 센서 값을 1초 보존한다."
+      },
+      "expected": {
+        "relevance": "unrelated",
+        "types": [],
+        "reason": "캐시라는 공통 단어와 값 차이만으로 다른 대상의 기록을 대조하지 않는다."
+      }
+    },
+    {
+      "id": "u04",
+      "source": {
+        "type": "episodic",
+        "content": "성능 시험용 템플릿: 가상 서비스 오름에서 샘플 알파를 실행했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "성능 시험용 템플릿: 가상 서비스 내림에서 샘플 베타를 실행했다."
+      },
+      "expected": {
+        "relevance": "unrelated",
+        "types": [],
+        "reason": "형식이 같은 시험 템플릿일 뿐 동일 실험이나 비교 축의 근거가 없다."
+      }
+    },
+    {
+      "id": "d01",
+      "source": {
+        "type": "episodic",
+        "content": "기록-G 재기록: 은하 프로젝트의 배포 승인 완료. 내용은 이전 기록과 동일하다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "기록-G: 은하 프로젝트의 배포 승인 완료."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "REFERENCES"
+        ],
+        "reason": "같은 기록-G의 명시적 재기록이다. 반대 주장이나 후속 실행은 없다."
+      }
+    },
+    {
+      "id": "d02",
+      "source": {
+        "type": "semantic",
+        "content": "문서-H 요약을 다시 저장한다. 온유 서비스의 제한은 분당 10회다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "문서-H 요약: 온유 서비스의 제한은 분당 10회다."
+      },
+      "expected": {
+        "relevance": "related",
+        "types": [
+          "REFERENCES"
+        ],
+        "reason": "같은 문서-H와 같은 주장이다. 반복을 대조로 분류하지 않는다."
+      }
+    },
+    {
+      "id": "s01",
+      "source": {
+        "type": "episodic",
+        "content": "다솜 프로젝트의 버튼 구현 작업을 완료했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "다솜 프로젝트의 문구 검토 작업을 완료했다."
+      },
+      "expected": {
+        "relevance": "ambiguous",
+        "types": [],
+        "reason": "같은 프로젝트의 동급 작업이다. 선후·인과·직접 참조 근거가 부족하다. 느슨한 REFERENCES 허용 여부를 사람이 결정한다."
+      }
+    },
+    {
+      "id": "s02",
+      "source": {
+        "type": "semantic",
+        "content": "아침 모듈은 전체 봄 시스템의 구성 요소다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "저녁 모듈은 전체 봄 시스템의 구성 요소다."
+      },
+      "expected": {
+        "relevance": "ambiguous",
+        "types": [],
+        "reason": "두 구성 요소는 동급이다. source가 target에 속하지 않는다. 느슨한 REFERENCES 허용 여부는 미확정이다."
+      }
+    },
+    {
+      "id": "a01",
+      "source": {
+        "type": "episodic",
+        "content": "서버 점검을 마치고 화면 작업을 시작했다."
+      },
+      "target": {
+        "type": "episodic",
+        "content": "서버 점검을 시작했다."
+      },
+      "expected": {
+        "relevance": "ambiguous",
+        "types": [],
+        "reason": "같은 서비스의 연속 작업인지 별개 작업인지 판정할 식별 맥락이 없다."
+      }
+    },
+    {
+      "id": "a02",
+      "source": {
+        "type": "semantic",
+        "content": "새 제한은 20회다."
+      },
+      "target": {
+        "type": "semantic",
+        "content": "이전 제한은 10회다."
+      },
+      "expected": {
+        "relevance": "ambiguous",
+        "types": [],
+        "reason": "같은 대상·조건의 정책 변경인지 다른 대상의 수치인지 알 수 없다."
+      }
+    }
+  ]
+}
