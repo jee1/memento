@@ -77,7 +77,7 @@
 
   /**
    * View orphan (issue 835) 필터 — 현재 응답 엣지에서 degree=0 인 노드를 제외한다.
-   * DB orphan(memory_relation 전무)과는 다르며, limit 밖 관계는 여기서 고아로 보인다.
+   * DB orphan(삭제되지 않은 기억 사이의 memory_relation 전무)과는 다르며, limit 밖 관계는 여기서 고아로 보인다.
    */
   ns.filterConnectedNodes = function filterConnectedNodes(nodes, edges) {
     const nodeList = Array.isArray(nodes) ? nodes : [];

@@ -18,7 +18,7 @@ HTTP Admin API는 `/admin/relations/*` 라우트를 사용합니다.
 
     ## 그래프 뷰 API — GET /admin/graph
 
-    관리 대시보드의 Memory Graph(`/graph`)가 쓰는 읽기 전용 라우트입니다. 노드는 `memory_item`, 엣지는 `memory_relation` 에서 옵니다.
+    관리 대시보드의 Memory Graph(`/graph`)가 쓰는 읽기 전용 라우트입니다. 노드는 `memory_item`, 엣지는 `memory_relation` 에서 옵니다. soft delete한 기억은 노드와 개수에서 제외합니다.
 
     | 파라미터 | 값 | 기본값 |
     |---|---|---|
@@ -37,7 +37,7 @@ HTTP Admin API는 `/admin/relations/*` 라우트를 사용합니다.
     | 용어 | 뜻 | 어디서 거르나 |
     |---|---|---|
     | **View orphan** | 지금 응답에 실린 엣지 기준 degree=0 | 클라이언트 토글 (#836, `static/js/graph-fetch.js`) |
-    | **DB orphan** | `memory_relation` 에 source·target 으로 한 번도 안 나옴 | `exclude_orphans=true` (#837, 서버) |
+    | **DB orphan** | 삭제되지 않은 기억 사이의 `memory_relation` 에 source·target 으로 한 번도 안 나옴 | `exclude_orphans=true` (#837, 서버) |
 
     `exclude_orphans=true` 는 DB orphan 을 노드 선발 단계에서 빼므로, importance 상위 `limit` 칸이 관계 있는 노드로 채워집니다. `total_available_nodes` 도 같은 기준으로 셉니다.
 
