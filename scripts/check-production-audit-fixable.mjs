@@ -8,8 +8,8 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
  *
  * `--include-dev` (#909): audits the full tree (dev included). That lane gates
  * High/Critical only and ignores fixes that need a semver-major bump, because
- * AGENTS.md pins deps to wanted (minor/patch) ranges — vitest 4→5 is a separate
- * issue, not a security gate failure. The production lane is unchanged.
+ * AGENTS.md pins deps to wanted (minor/patch) ranges. Dev Moderate findings
+ * remain outside this gate. The production lane is unchanged.
  *
  * Fail-closed (#925): audit service error JSON, missing report schema,
  * spawn/parse failures exit non-zero. Valid schema + npm exit≠0 (vulns present)
@@ -37,8 +37,7 @@ import {
 import { assertValidProductionAuditReport } from './lib/production-audit-report.js';
 
 const PROD_FAIL_SEVERITIES = new Set(['critical', 'high', 'moderate']);
-// #909: dev 를 포함한 전체 트리는 high/critical 만 본다. dev moderate(vitest)는
-// major 업그레이드가 있어야 풀려서 wanted-only 정책과 충돌한다.
+// #909: dev 를 포함한 전체 트리는 high/critical 만 본다.
 const FULL_TREE_FAIL_SEVERITIES = new Set(['critical', 'high']);
 
 const cli = parseCliArgs({ options: { 'include-dev': { type: 'boolean' } } });
