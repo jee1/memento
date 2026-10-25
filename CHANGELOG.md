@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- Claude Code hook: `MEMENTO_DIRECTIVES=1` 로 UserPromptSubmit 마다 `case` 태그 기억을 recall해 `additionalContext` 로 주입합니다(#1486). 기본 `shadow` 는 로그만 남기고, `live` 로 올리면 주입합니다. 세션 안 중복은 append-only jsonl 로그로 거르고 PreCompact 에서 초기화합니다. 3.5초 마감을 넘기거나 서버가 없으면 빈 출력과 fallback 로그 한 줄로 끝납니다. 설정은 [agent-integration README](./packages/memento-agent-integration/README.md#case-지침-주입-userpromptsubmit) 를 보세요.
+
 ## [2.3.1] - 2026-10-25
 
 관계 추출이 이모지가 든 기억에서 실패하던 문제와 그래프에 삭제한 기억이 남던 문제를 고칩니다. recall, remember, 검색, 관계 후보 조회, 임베딩 경로의 중복 쿼리와 중복 계산을 걷어냅니다.
@@ -26,7 +30,6 @@
 
 ### Added
 
-- Claude Code hook: `MEMENTO_DIRECTIVES=1` 로 UserPromptSubmit 마다 `case` 태그 기억을 recall해 `additionalContext` 로 주입합니다(#1486). 기본 `shadow` 는 로그만 남기고, `live` 로 올리면 주입합니다. 세션 안 중복은 append-only jsonl 로그로 거르고 PreCompact 에서 초기화합니다. 3.5초 마감을 넘기거나 서버가 없으면 빈 출력과 fallback 로그 한 줄로 끝납니다. 설정은 [agent-integration README](./packages/memento-agent-integration/README.md#case-지침-주입-userpromptsubmit) 를 보세요.
 - 개발: `npm run db:backfill-relations-jev [-- --apply] [--limit N]` 를 추가합니다. Jev 관계 추출 이전에 저장돼 내용 관계가 없는 기억을 서버 이미지 안에서 Jev 로 판정해 관계를 채웁니다. 후보는 저장 당시처럼 같은 owner 의 그 이전 기억 100건입니다. 기본은 5건 preview 이고, 처리한 id 는 `/app/data/backfill-relations-jev.done` 에 남겨 재실행 시 건너뜁니다.
 
 ### Changed
