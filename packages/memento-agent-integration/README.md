@@ -31,3 +31,28 @@ Stop command hook payload를 공통 envelope로 변환한다.
 idempotent하게 추가한다. 변경 시 원본 backup을 만든 뒤 temp file rename으로 교체한다.
 `memento hook claude-code`는 stdin payload를 처리하고 서버 장애나 잘못된 입력에서도
 Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
+
+### Case 지침 주입 (UserPromptSubmit)
+
+`case` 태그 기억을 프롬프트마다 recall해 `additionalContext`로 붙인다. 기본은 꺼짐이다.
+`~/.claude/settings.json`의 `env` 블록에 아래 값을 둔다. hook 프로세스가 이 환경 변수를 읽는다.
+
+```json
+{
+  "env": {
+    "MEMENTO_DIRECTIVES": "1",
+    "MEMENTO_DIRECTIVES_MODE": "shadow"
+  }
+}
+```
+
+| 변수 | 뜻 |
+|------|----|
+| `MEMENTO_DIRECTIVES` | `1`/`true`일 때만 켠다 |
+| `MEMENTO_DIRECTIVES_MODE` | `shadow`(기본, 로그만 남기고 주입 안 함) 또는 `live` |
+| `MEMENTO_DIRECTIVES_PINNED_FILE` | 매번 앞에 붙일 고정 지침 파일(1KB 이하) |
+| `MEMENTO_DIRECTIVES_LOG_DIR` | 주입 로그 폴더. 기본 `~/.claude/state/directive-log` |
+
+먼저 `shadow`로 로그를 보고 `live`로 올린다. 설치된 `memento` 바이너리가 있어야 한다. `npx`는
+기동이 느려 3.5초 마감을 넘기기 쉽다. 한 세션에서 같은 case는 한 번만 주입하고,
+PreCompact에서 초기화한다. 서버 장애나 마감 초과는 빈 출력과 fallback 로그 한 줄로 끝난다.
