@@ -38,6 +38,7 @@ export interface IEmbeddingService {
 
 export interface IVectorSearchEngine {
   initialize(db: Database.Database): void;
+  isAvailable?(): boolean;
   getIndexStatus(): { available: boolean };
   search(
     vector: number[],

@@ -256,3 +256,44 @@ describe('HybridVectorSearchExecutor length decay (#921)', () => {
     expect(out.results[0]!.id).toBe('long');
   });
 });
+
+describe('HybridVectorSearchExecutor lightweight availability check (#1475)', () => {
+  it('isAvailable()를 우선 호출해 검색 경로에서 getIndexStatus()의 COUNT(*) 스캔을 생략한다', async () => {
+    const getIndexStatusSpy = vi.fn(() => ({
+      available: true,
+      tableExists: true,
+      recordCount: 100,
+      dimensions: 384,
+      vecExtensionLoaded: true,
+    }));
+    const isAvailableSpy = vi.fn(() => true);
+    const engine = {
+      initialize: vi.fn(),
+      isAvailable: isAvailableSpy,
+      getIndexStatus: getIndexStatusSpy,
+      search: vi.fn(async () => [row('hit', 0.91)]),
+    };
+    const embeddingService = {
+      isAvailable: () => true,
+      getUnifiedEmbeddingService: () => ({}),
+      searchBySimilarity: vi.fn(),
+    };
+    const executor = new HybridVectorSearchExecutor(
+      embeddingService as never,
+      engine as never,
+      {} as never,
+      { logSearchStep: vi.fn() } as never,
+      vi.fn(async () => [{ provider: 'minilm', count: 10, avg_dimensions: 384 }]) as never,
+      vi.fn(async (_q: string, _sid: string, preferred: string) => ({
+        embedding: [0.1, 0.2, 0.3],
+        actualProvider: preferred,
+      })) as never
+    );
+
+    const out = await executor.execute({} as never, { query: 'q', limit: 5 } as never, 'sid');
+
+    expect(out.fallback_used).toBe(false);
+    expect(isAvailableSpy).toHaveBeenCalledTimes(1);
+    expect(getIndexStatusSpy).not.toHaveBeenCalled();
+  });
+});

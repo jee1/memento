@@ -98,7 +98,12 @@ export class HybridVectorSearchExecutor {
 
     this.vectorSearchEngine.initialize(db);
 
-    if (this.vectorSearchEngine.getIndexStatus().available) {
+    const available =
+      typeof this.vectorSearchEngine.isAvailable === 'function'
+        ? this.vectorSearchEngine.isAvailable()
+        : this.vectorSearchEngine.getIndexStatus().available;
+
+    if (available) {
       return this.executeVecSearch(db, query, searchId, vectorSearchStart);
     }
 

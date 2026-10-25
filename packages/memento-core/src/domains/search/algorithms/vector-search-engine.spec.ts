@@ -128,6 +128,53 @@ describe('VectorSearchEngine', () => {
       // VEC 사용 불가능 상태가 되어야 함
       expect(vectorEngine.isAvailable()).toBe(false);
     });
+
+    it('동일한 db 인스턴스로 재초기화하면 컨테이너 서비스를 리셋하거나 VEC 가용성을 재탐색하지 않는다 (#1475)', () => {
+      let availabilityProbeCount = 0;
+      let countQueryCalls = 0;
+      mockDb.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('sqlite_master')) {
+          availabilityProbeCount += 1;
+          return defaultTfidfVecRegistry(sql);
+        }
+        if (sql.includes('SELECT COUNT(*) as count FROM memory_item_vec_')) {
+          countQueryCalls += 1;
+          return { get: vi.fn().mockReturnValue({ count: 1 }) };
+        }
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
+          return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
+        }
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
+      });
+
+      vectorEngine.initialize(mockDb);
+      expect(vectorEngine.isAvailable()).toBe(true);
+      const firstProbeCount = availabilityProbeCount;
+      expect(firstProbeCount).toBeGreaterThan(0);
+      expect(countQueryCalls).toBe(0);
+
+      vectorEngine.initialize(mockDb);
+      expect(vectorEngine.isAvailable()).toBe(true);
+      expect(availabilityProbeCount).toBe(firstProbeCount);
+      expect(countQueryCalls).toBe(0);
+
+      const secondDb = {
+        prepare: vi.fn((sql: string) => {
+          if (sql.includes('sqlite_master')) {
+            availabilityProbeCount += 1;
+            return defaultTfidfVecRegistry(sql);
+          }
+          if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
+            return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
+          }
+          return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
+        }),
+      } as unknown as Database.Database;
+
+      vectorEngine.initialize(secondDb);
+      expect(vectorEngine.isAvailable()).toBe(true);
+      expect(availabilityProbeCount).toBeGreaterThan(firstProbeCount);
+    });
   });
 
   describe('checkVecAvailability', () => {
