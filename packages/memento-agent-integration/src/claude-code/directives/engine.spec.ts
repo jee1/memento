@@ -88,11 +88,12 @@ describe('runDirectives', () => {
     expect(await logLines()).toMatchObject([{ skipped: ['big'], cases: [{ id: 'ok' }] }]);
   });
 
-  it('queries the case tag with the clipped prompt', async () => {
+  it('queries semantic memories tagged case with the clipped prompt', async () => {
     const recall = recallOf();
     await runDirectives(prompt('😀'.repeat(DIRECTIVE_POLICY.queryMaxChars + 50)), depsOf(recall));
 
     const [request] = vi.mocked(recall).mock.calls[0]!;
+    expect(request.type).toBe('semantic');
     expect(request.tags).toEqual(['case']);
     expect(request.limit).toBe(DIRECTIVE_POLICY.recallLimit);
     expect(Array.from(request.query)).toHaveLength(DIRECTIVE_POLICY.queryMaxChars);

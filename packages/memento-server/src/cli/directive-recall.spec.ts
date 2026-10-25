@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createDirectiveRecallPort } from './directive-recall.js';
 
-const REQUEST = { query: 'flaky tests', tags: ['case'], limit: 15 } as const;
+const REQUEST = { query: 'flaky tests', type: 'semantic', tags: ['case'], limit: 15 } as const;
 
 let server: Server;
 let received: { headers: IncomingMessage['headers']; url?: string; body: unknown } | undefined;

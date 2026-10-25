@@ -24,6 +24,7 @@ export type DirectiveConfig =
 
 export interface RecallRequest {
   readonly query: string;
+  readonly type: 'semantic';
   readonly tags: readonly string[];
   readonly limit: number;
 }

@@ -92,7 +92,7 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
     const fetchCandidates = async (): Promise<CaseCandidate[]> => {
       if (!query.trim()) return [];
       const raw = await recall(
-        { query, tags: [DIRECTIVE_POLICY.caseTag], limit: DIRECTIVE_POLICY.recallLimit },
+        { query, type: 'semantic', tags: [DIRECTIVE_POLICY.caseTag], limit: DIRECTIVE_POLICY.recallLimit },
         AbortSignal.timeout(DIRECTIVE_POLICY.recallTimeoutMs),
       );
       return parseRecallItems(raw);
