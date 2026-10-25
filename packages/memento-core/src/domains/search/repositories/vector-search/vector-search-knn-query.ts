@@ -44,43 +44,51 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
   const knnLimitSql = hasScopedCandidates ? '' : '  LIMIT ?';
 
   // #1112: 한 memory 가 native + window:N 행을 여러 개 가진다. memory_id 별 MIN(distance) 가
-  // max-sim(가장 가까운 윈도)이다. SQLite 는 집계가 min() 하나뿐일 때 bare 컬럼을
-  // 그 최소 행에서 가져오므로 mi.* 는 정답 윈도가 속한 행의 값이 된다.
+  // max-sim(가장 가까운 윈도)이다.
+  // #1477: 내부 top_k 서브쿼리에서 memory_id 와 MIN(t.distance) 만 집계해 상위 K 건을 먼저 추리고,
+  // 최종 승자 K 건만 바깥 쿼리에서 memory_item m 과 조인해 무거운 텍스트 컬럼을 읽는다.
   const vecQuery =
     'SELECT ' +
-    '  me.memory_id as memory_id, ' +
-    '  MIN(t.distance) as similarity, ' +
-    '  mi.content, ' +
-    '  mi.type, ' +
-    '  mi.importance, ' +
-    '  mi.created_at, ' +
-    '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
-    '  mi.pinned, ' +
-    '  mi.tags, ' +
-    '  mi.project_id, ' +
-    '  mi.owner_id, ' +
-    '  mi.process_id, ' +
-    '  mi.session_id, ' +
-    '  mi.task_goal, ' +
-    '  mi.steps, ' +
-    '  mi.reflection_notes, ' +
-    '  mi.workflow_name, ' +
-    '  mi.skill_name, ' +
-    '  mi.trigger_conditions ' +
+    '  top_k.memory_id as memory_id, ' +
+    '  top_k.similarity as similarity, ' +
+    '  m.content, ' +
+    '  m.type, ' +
+    '  m.importance, ' +
+    '  m.created_at, ' +
+    '  COALESCE(m.last_accessed_at, m.last_accessed) as last_accessed_at, ' +
+    '  m.pinned, ' +
+    '  m.tags, ' +
+    '  m.project_id, ' +
+    '  m.owner_id, ' +
+    '  m.process_id, ' +
+    '  m.session_id, ' +
+    '  m.task_goal, ' +
+    '  m.steps, ' +
+    '  m.reflection_notes, ' +
+    '  m.workflow_name, ' +
+    '  m.skill_name, ' +
+    '  m.trigger_conditions ' +
     'FROM (' +
-    '  SELECT rowid, distance ' +
+    '  SELECT ' +
+    '    me.memory_id as memory_id, ' +
+    '    MIN(t.distance) as similarity ' +
+    '  FROM (' +
+    '    SELECT rowid, distance ' +
     `  FROM ${tableName} ` +
-    '  WHERE embedding MATCH ? ' +
+    '    WHERE embedding MATCH ? ' +
     knnFilterSql +
-    '  ORDER BY distance ASC ' +
+    '    ORDER BY distance ASC ' +
     knnLimitSql +
-    ') t ' +
-    'JOIN memory_embedding me ON t.rowid = me.id ' +
-    'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
+    '  ) t ' +
+    '  JOIN memory_embedding me ON t.rowid = me.id ' +
+    '  JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
     outerWhere.sql +
-    'GROUP BY me.memory_id ' +
-    'ORDER BY similarity ASC ' +
-    'LIMIT ?';
+    '  GROUP BY me.memory_id ' +
+    '  ORDER BY similarity ASC ' +
+    '  LIMIT ?' +
+    ') top_k ' +
+    'JOIN memory_item m ON m.id = top_k.memory_id ' +
+    'ORDER BY top_k.similarity ASC';
 
   const sqlParams = [
     JSON.stringify(effectiveQueryVector),
