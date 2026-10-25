@@ -63,13 +63,16 @@ export class HybridResultRanker {
 
       const memoryIds = combinedResults.map(r => r.id);
       if (memoryIds.length > 0) {
+        const proceduralIds = combinedResults
+          .filter(r => r.type === 'procedural')
+          .map(r => r.id);
         const processId =
           query.filters?.process_id != null
             ? Array.isArray(query.filters.process_id)
               ? query.filters.process_id[0]
               : query.filters.process_id
             : undefined;
-        const ctx = await this.buildRankingContext(db, memoryIds, processId, query);
+        const ctx = await this.buildRankingContext(db, memoryIds, proceduralIds, processId, query);
         this.normalizeScores(
           combinedResults,
           ctx,
@@ -105,13 +108,16 @@ export class HybridResultRanker {
       return [];
     }
 
+    const proceduralIds = deduped
+      .filter((result) => result.type === 'procedural')
+      .map((result) => result.id);
     const processId =
       query.filters?.process_id != null
         ? Array.isArray(query.filters.process_id)
           ? query.filters.process_id[0]
           : query.filters.process_id
         : undefined;
-    const ctx = await this.buildRankingContext(db, memoryIds, processId, query);
+    const ctx = await this.buildRankingContext(db, memoryIds, proceduralIds, processId, query);
 
     this.normalizeScores(
       deduped,
@@ -249,17 +255,21 @@ export class HybridResultRanker {
   private async buildRankingContext(
     db: Database.Database,
     memoryIds: string[],
+    proceduralIds: string[],
     processId: string | undefined,
     query: HybridSearchQuery
   ): Promise<RankingContext> {
     const relationInfo = query.includeRelations
       ? await this.fetchRelationInfo(memoryIds)
       : new Map<string, RelationInfoRow[]>();
-    const proceduralMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(
-      db,
-      memoryIds,
-      query
-    );
+    const proceduralMatches =
+      proceduralIds.length > 0
+        ? this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(
+            db,
+            proceduralIds,
+            query
+          )
+        : new Map<string, ProceduralMemoryMatch>();
     const { processAttributes, memoryDetailsMap } = this.fetchProcessAttributeContext(
       db,
       memoryIds,

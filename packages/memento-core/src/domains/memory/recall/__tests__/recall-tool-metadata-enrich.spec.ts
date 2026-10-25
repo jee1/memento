@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type Database from 'better-sqlite3';
 import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';
 import { enrichRecallItemsWithMemoryMetadata } from '../recall-tool-metadata-enrich.js';
+import { overlayWorkRecordDisplay } from '../../remember/work-record.js';
 import type { RecallSearchItem } from '../recall-tool-types.js';
 
 describe('enrichRecallItemsWithMemoryMetadata', () => {
@@ -130,5 +131,37 @@ describe('enrichRecallItemsWithMemoryMetadata', () => {
     expect(enriched).toHaveLength(1);
     expect(enriched[0].privacy_scope).toBeUndefined();
     expect(enriched[0].trigger_conditions).toBeUndefined();
+  });
+
+  it('T1-e: enrichRecallItemsWithMemoryMetadata 가 work_record 를 채우면 overlayWorkRecordDisplay 는 추가 SELECT 없이 렌더링한다 (#1478)', () => {
+    const workRecordJson = JSON.stringify({
+      decision: '배치 조회로 통합',
+      rationale: '중복 SELECT 제거',
+      rejected: '개별 조회 유지',
+      failed: '',
+      next_blocker: '없음',
+    });
+    db.prepare(`
+      INSERT INTO memory_item (id, type, content, importance, created_at, work_record)
+      VALUES ('enrich-wr', 'episodic', '배치 조회로 통합\n중복 SELECT 제거\n개별 조회 유지\n없음', 0.8, CURRENT_TIMESTAMP, ?)
+    `).run(workRecordJson);
+
+    const items: RecallSearchItem[] = [
+      {
+        id: 'enrich-wr',
+        content: '배치 조회로 통합\n중복 SELECT 제거\n개별 조회 유지\n없음',
+        type: 'episodic',
+        importance: 0.8,
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    const enriched = enrichRecallItemsWithMemoryMetadata(db, items);
+    expect(enriched[0]?.work_record).toBe(workRecordJson);
+
+    const prepareSpy = vi.spyOn(db, 'prepare');
+    const overlaid = overlayWorkRecordDisplay(db, enriched);
+    expect(prepareSpy).not.toHaveBeenCalled();
+    expect(overlaid[0]?.content).toContain('결정: 배치 조회로 통합');
   });
 });
