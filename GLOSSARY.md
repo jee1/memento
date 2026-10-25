@@ -50,6 +50,28 @@ _Avoid_: combined search
 `search_local`이 탐색 기준점으로 삼는 A, B, C 슬롯.
 _Avoid_: pin, bookmark
 
+## 지침 주입
+
+**Case**:
+`case` 태그를 단 기억. UserPromptSubmit 때 recall해 에이전트 컨텍스트에 붙이는 행동 지침 후보다.
+_Avoid_: rule, lesson
+
+**Pinned directives**:
+매 주입 맨 앞에 붙이는 고정 지침 파일의 내용(1KB 이하). recall 결과와 무관하다.
+_Avoid_: system prompt, static rules
+
+**Directive injection log**:
+주입 한 번마다 jsonl 한 줄을 남기는 append-only 로그. 세션 안 중복 제거는 이 로그를 접어 계산하며 다른 상태는 없다.
+_Avoid_: dedup cache, injection state
+
+**Shadow mode**:
+주입 결과를 로그에만 남기고 에이전트에는 주지 않는 모드. `live`로 올리기 전 검증용이다.
+_Avoid_: dry run, silent mode
+
+**inj_id**:
+주입 한 번을 가리키는 `<session 앞 8자>-<epoch ms>-<프롬프트 sha1 앞 6자>`. 컨텍스트 첫 줄 `[inj:<id>]`와 로그 줄이 같은 값을 가진다. 로그에서 주입 줄은 `inj_id` 가 있는 줄이고 reset 줄은 `reset` 이 있는 줄이다.
+_Avoid_: injection id, trace id
+
 ## 격리와 도구
 
 **Owner**:

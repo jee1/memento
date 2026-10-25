@@ -1,8 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { AgentEventEnvelope } from '@memento/agent-integration';
 
-import { createAgentHookHttpTransport as createClaudeCodeHttpTransport } from './agent-hook-command.js';
+import {
+  createAgentHookHttpTransport as createClaudeCodeHttpTransport,
+  runAgentHookCommand,
+} from './agent-hook-command.js';
 
 function event(eventType: AgentEventEnvelope['event_type']): AgentEventEnvelope {
   return {
@@ -69,5 +77,46 @@ describe('Claude Code hook HTTP transport', () => {
 
     expect(await transport([event('STOP')], new AbortController().signal))
       .toEqual({ ok: false, reason: 'AUTH_FAILED' });
+  });
+});
+
+describe('runAgentHookCommand stdout', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  async function run(stdout: string, serverJson?: object) {
+    const configDir = await mkdtemp(join(tmpdir(), 'hook-cmd-'));
+    try {
+      if (serverJson) await writeFile(join(configDir, 'server.json'), JSON.stringify(serverJson));
+      vi.stubEnv('MEMENTO_CONFIG_DIR', configDir);
+      const write = vi.spyOn(process.stdout, 'write').mockImplementation(
+        ((_chunk: unknown, cb?: () => void) => { cb?.(); return true; }) as typeof process.stdout.write,
+      );
+      const runHook = vi.fn().mockResolvedValue({ exitCode: 0, stdout, stderr: '' });
+      const code = await runAgentHookCommand(runHook, Readable.from(['{}']));
+      return { code, write, runHook };
+    } finally {
+      await rm(configDir, { recursive: true, force: true });
+    }
+  }
+
+  it('writes non-empty hook stdout', async () => {
+    const { code, write } = await run('{"ok":true}');
+    expect(code).toBe(0);
+    expect(write).toHaveBeenCalledWith('{"ok":true}', expect.any(Function));
+  });
+
+  it('writes nothing when stdout is empty', async () => {
+    const { write } = await run('');
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it('hands the runner a recall port only when a server is registered', async () => {
+    const without = await run('');
+    expect(without.runHook.mock.calls[0]?.[0].directives.recall).toBeNull();
+    const withServer = await run('', { port: 1, pid: 1, startedAt: 'now' });
+    expect(withServer.runHook.mock.calls[0]?.[0].directives.recall).toBeTypeOf('function');
   });
 });

@@ -66,6 +66,8 @@ export const RETRY_EXEMPTIONS: Readonly<Record<string, string>> = {
     '로컬 서버 생존 확인·CLI 도구 호출이다. 실패를 그대로 사용자에게 보여 준다',
   'memento-server/src/cli/agent-ops.ts':
     'CLI 요청이다. 실패를 그대로 사용자에게 보여 준다',
+  'memento-server/src/cli/directive-recall.ts':
+    'hook 의 1.5 s 예산 안에서 한 번만 부른다. 실패하면 지침 주입 엔진이 폴백 줄을 남기고 stdout 을 비운다(재시도는 프롬프트 지연을 곱한다)',
 };
 
 async function getAllTsFiles(dir: string, baseDir: string = dir): Promise<string[]> {

@@ -1,5 +1,7 @@
+import { homedir } from 'node:os';
 import type { Readable } from 'node:stream';
 
+import { parseDirectiveConfig } from '@memento/agent-integration';
 import type {
   AgentEventEnvelope,
   CaptureReason,
@@ -11,6 +13,7 @@ import {
   readServerInfo,
   resolveServerInfoConfigDir,
 } from '../server/server-info.js';
+import { createDirectiveRecallPort } from './directive-recall.js';
 
 type Fetcher = (
   input: string,
@@ -120,18 +123,26 @@ export async function runAgentHookCommand(
   const input = await readStream(stream);
   const configDir = resolveServerInfoConfigDir();
   const serverInfo = await readServerInfo(configDir);
+  const apiKey = process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim();
   const transport: Transport = serverInfo
-    ? createAgentHookHttpTransport({
-        port: serverInfo.port,
-        apiKey: process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim(),
-      })
+    ? createAgentHookHttpTransport({ port: serverInfo.port, apiKey })
     : async () => ({ ok: false, reason: 'SERVER_UNAVAILABLE' });
   const result = await runHook({
     input,
     transport,
     timeoutMs: 1_000,
     maxRetries: 0,
+    directives: {
+      config: parseDirectiveConfig(process.env, homedir()),
+      recall: serverInfo
+        ? createDirectiveRecallPort({ port: serverInfo.port, apiKey })
+        : null,
+      now: Date.now,
+    },
   });
   if (result.stderr) process.stderr.write(result.stderr);
+  if (result.stdout) {
+    await new Promise<void>((resolve) => process.stdout.write(result.stdout, () => resolve()));
+  }
   return result.exitCode;
 }
