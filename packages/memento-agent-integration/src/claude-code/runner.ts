@@ -1,6 +1,7 @@
 import { CaptureRuntime } from '../runtime.js';
 import type { CaptureResult } from '../types.js';
 import { normalizeClaudeCodeHook } from './adapter.js';
+import { runDirectives } from './directives/engine.js';
 import type { ClaudeHookRunOptions, ClaudeHookRunResult } from './types.js';
 
 function invalid(reason: CaptureResult['reason']): CaptureResult {
@@ -25,12 +26,23 @@ export async function runClaudeCodeHook(
       max_retries: options.maxRetries,
     });
     const capture = runtime.capture(event);
-    const dispatch = capture.status === 'ACCEPTED' || capture.status === 'REDACTED'
-      ? await runtime.drain()
-      : undefined;
+    const hook = (parsed ?? {}) as { cwd?: unknown; prompt?: unknown };
+    const [dispatch, stdout] = await Promise.all([
+      capture.status === 'ACCEPTED' || capture.status === 'REDACTED'
+        ? runtime.drain()
+        : undefined,
+      options.directives
+        ? runDirectives({
+            eventType: event.event_type,
+            sessionId: event.session_id,
+            cwd: typeof hook.cwd === 'string' ? hook.cwd : '',
+            prompt: typeof hook.prompt === 'string' ? hook.prompt : '',
+          }, options.directives)
+        : '',
+    ]);
     return {
       exitCode: 0,
-      stdout: '',
+      stdout,
       stderr: dispatch?.status === 'DEGRADED'
         ? `Memento capture degraded: ${dispatch.reason}\n`
         : '',

@@ -6,6 +6,16 @@ export * from './codex/settings.js';
 export * from './codex/types.js';
 export * from './claude-code/adapter.js';
 export * from './claude-code/diagnostics.js';
+export { parseDirectiveConfig } from './claude-code/directives/config.js';
+export { runDirectives } from './claude-code/directives/engine.js';
+export type {
+  DirectiveConfig,
+  DirectiveDeps,
+  DirectiveMode,
+  DirectiveRunInput,
+  RecallPort,
+  RecallRequest,
+} from './claude-code/directives/types.js';
 export * from './claude-code/runner.js';
 export * from './claude-code/scope.js';
 export * from './claude-code/settings.js';

@@ -1,5 +1,7 @@
+import { homedir } from 'node:os';
 import type { Readable } from 'node:stream';
 
+import { parseDirectiveConfig } from '@memento/agent-integration';
 import type {
   AgentEventEnvelope,
   CaptureReason,
@@ -8,6 +10,7 @@ import type {
 } from '@memento/agent-integration';
 
 import {
+  callToolViaHttp,
   readServerInfo,
   resolveServerInfoConfigDir,
 } from '../server/server-info.js';
@@ -131,7 +134,17 @@ export async function runAgentHookCommand(
     transport,
     timeoutMs: 1_000,
     maxRetries: 0,
+    directives: {
+      config: parseDirectiveConfig(process.env, homedir()),
+      recall: serverInfo
+        ? (request, signal) => callToolViaHttp(serverInfo.port, 'recall', { ...request }, { signal })
+        : null,
+      now: Date.now,
+    },
   });
   if (result.stderr) process.stderr.write(result.stderr);
+  if (result.stdout) {
+    await new Promise<void>((resolve) => process.stdout.write(result.stdout, () => resolve()));
+  }
   return result.exitCode;
 }

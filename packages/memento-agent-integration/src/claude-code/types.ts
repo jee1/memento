@@ -1,3 +1,4 @@
+import type { DirectiveDeps } from './directives/types.js';
 import type { AgentEventEnvelope, CaptureResult, DispatchResult, Transport } from '../types.js';
 
 export const CLAUDE_CODE_HOOK_EVENTS = [
@@ -37,11 +38,12 @@ export interface ClaudeHookRunOptions {
   now?: () => number;
   timeoutMs?: number;
   maxRetries?: number;
+  directives?: DirectiveDeps;
 }
 
 export interface ClaudeHookRunResult {
   exitCode: 0;
-  stdout: '';
+  stdout: string;
   stderr: string;
   capture: CaptureResult;
   dispatch?: DispatchResult;
