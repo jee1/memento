@@ -144,6 +144,7 @@ export class HybridResultRanker {
     includeScoreBreakdown: boolean,
     weights: HybridWeights
   ): void {
+    const relevanceScale = getRankingWeights().relevance_signal.scale;
     results.forEach(result => {
       if (includeRelations) {
         const relations = ctx.relationInfo.get(result.id);
@@ -172,7 +173,7 @@ export class HybridResultRanker {
           weights.textWeight,
           weights.vectorWeight
         ),
-        getRankingWeights().relevance_signal.scale
+        relevanceScale
       );
 
       const baseFeatures = this.buildBaseFeatures(
