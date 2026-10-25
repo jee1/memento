@@ -3,6 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -96,10 +97,11 @@ function tryLoadVecRelationCandidateRows(
        FROM memory_embedding
        WHERE memory_id = ?
          AND embedding_provider = 'minilm'
+         AND model = ?
          AND COALESCE(projection_type, 'native') = 'native'
        ORDER BY id ASC
        LIMIT 1`,
-      [excludeId]
+      [excludeId, MINILM_MODEL_NAME]
     ) as { embedding: Buffer | string | null } | undefined;
     if (!sourceEmbRow || !sourceEmbRow.embedding) {
       return null;
@@ -136,6 +138,7 @@ function tryLoadVecRelationCandidateRows(
                FROM memory_embedding scoped_me
                JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id
                WHERE scoped_me.embedding_provider = 'minilm'
+                 AND scoped_me.model = ?
                  AND scoped_mi.id != ?
                  AND COALESCE(scoped_mi.is_deleted, 0) = 0
                  AND COALESCE(scoped_mi.owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
@@ -148,7 +151,7 @@ function tryLoadVecRelationCandidateRows(
        ) top_k
        JOIN memory_item mi ON mi.id = top_k.memory_id
        ORDER BY top_k.min_distance ASC`,
-      [queryVectorParam, prefetchK, excludeId, excludeId, limit]
+      [queryVectorParam, prefetchK, MINILM_MODEL_NAME, excludeId, excludeId, limit]
     ) as MemoryItemRow[];
 
     return rows.length > 0 ? rows : null;

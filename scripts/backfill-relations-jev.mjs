@@ -11,6 +11,7 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import Database from 'better-sqlite3';
+import { MINILM_MODEL_NAME } from '../packages/memento-core/dist/shared/config/embedding-models.js';
 import { mementoConfig } from '../packages/memento-core/dist/shared/config/index.js';
 import { extractForRemember } from '../packages/memento-core/dist/domains/relation/services/remember-relation-extraction.js';
 import { createRelationGraph } from '../packages/memento-core/dist/infrastructure/relation-graph-factory.js';
@@ -79,6 +80,7 @@ try {
       FROM memory_embedding
       WHERE memory_id = ?
         AND embedding_provider = 'minilm'
+        AND model = ?
         AND COALESCE(projection_type, 'native') = 'native'
       ORDER BY id ASC
       LIMIT 1
@@ -99,6 +101,7 @@ try {
               FROM memory_embedding scoped_me
               JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id
               WHERE scoped_me.embedding_provider = 'minilm'
+                AND scoped_me.model = ?
                 AND scoped_mi.id != ?
                 AND COALESCE(scoped_mi.is_deleted, 0) = 0
                 AND COALESCE(scoped_mi.owner_id, '') = COALESCE(?, '')
@@ -123,9 +126,15 @@ function loadCandidatePool(id, row) {
   if (!row) return [];
   if (selectSourceEmbedding && selectVecPool) {
     try {
-      const embRow = selectSourceEmbedding.get(id);
+      const embRow = selectSourceEmbedding.get(id, MINILM_MODEL_NAME);
       if (embRow && embRow.embedding) {
-        const vecRows = selectVecPool.all(embRow.embedding, id, row.owner_id, row.created_at);
+        const vecRows = selectVecPool.all(
+          embRow.embedding,
+          MINILM_MODEL_NAME,
+          id,
+          row.owner_id,
+          row.created_at
+        );
         if (vecRows.length > 0) {
           return vecRows.map(toMemoryItem);
         }

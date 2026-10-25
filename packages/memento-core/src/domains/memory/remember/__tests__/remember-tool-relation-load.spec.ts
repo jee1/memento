@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { RememberTool } from '../remember-tool.js';
@@ -166,16 +167,51 @@ describe('RememberTool relation load (Issue #544)', () => {
         const insertEmb = vecDb.prepare(`
           INSERT INTO memory_embedding (
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model, precision, normalized, version, created_by
-          ) VALUES (?, 'minilm', 'native', ?, 384, 384, 'all-MiniLM-L6-v2', 32, 1, 1, 'test')
+          ) VALUES (?, 'minilm', 'native', ?, 384, 384, ?, 32, 1, 1, 'test')
         `);
 
-        insertEmb.run('mem-old-near', vecNear);
-        insertEmb.run('mem-recent-far', vecFar);
-        insertEmb.run('mem-new', vecNew);
+        insertEmb.run('mem-old-near', vecNear, MINILM_MODEL_NAME);
+        insertEmb.run('mem-recent-far', vecFar, MINILM_MODEL_NAME);
+        insertEmb.run('mem-new', vecNew, MINILM_MODEL_NAME);
 
         const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
         expect(candidates).toHaveLength(1);
         expect(candidates[0]?.id).toBe('mem-old-near');
+      } finally {
+        vecDb.close();
+      }
+    });
+
+    it('재색인 중 구버전 MiniLM 모델 행이 섞여 있어도 현재 모델(MINILM_MODEL_NAME) 후보만 선정한다 (#1473)', async () => {
+      const vecDb = await setupTestDatabase();
+      try {
+        const makeVecJson = (val: number) => {
+          const arr = new Array(384).fill(0);
+          arr[0] = val;
+          arr[1] = 1 - val;
+          return JSON.stringify(arr);
+        };
+
+        DatabaseUtils.run(vecDb, `
+          INSERT INTO memory_item (id, type, content, created_at, owner_id, is_deleted) VALUES
+            ('mem-legacy-closest', 'semantic', '구모델이지만 수치상 거리가 가장 가까운 기억', '2025-01-01T00:00:00.000Z', 'agent-a', 0),
+            ('mem-current-near', 'semantic', '현재 모델로 임베딩된 가까운 기억', '2025-02-01T00:00:00.000Z', 'agent-a', 0),
+            ('mem-new', 'episodic', '새 기억', '2026-06-01T00:00:00.000Z', 'agent-a', 0)
+        `);
+
+        const insertEmb = vecDb.prepare(`
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model, precision, normalized, version, created_by
+          ) VALUES (?, 'minilm', 'native', ?, 384, 384, ?, 32, 1, 1, 'test')
+        `);
+
+        insertEmb.run('mem-legacy-closest', makeVecJson(1.0), 'all-MiniLM-L6-v2');
+        insertEmb.run('mem-current-near', makeVecJson(0.9), MINILM_MODEL_NAME);
+        insertEmb.run('mem-new', makeVecJson(1.0), MINILM_MODEL_NAME);
+
+        const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
+        expect(candidates).toHaveLength(1);
+        expect(candidates[0]?.id).toBe('mem-current-near');
       } finally {
         vecDb.close();
       }
