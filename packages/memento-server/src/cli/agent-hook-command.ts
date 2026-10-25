@@ -10,10 +10,10 @@ import type {
 } from '@memento/agent-integration';
 
 import {
-  callToolViaHttp,
   readServerInfo,
   resolveServerInfoConfigDir,
 } from '../server/server-info.js';
+import { createDirectiveRecallPort } from './directive-recall.js';
 
 type Fetcher = (
   input: string,
@@ -123,11 +123,9 @@ export async function runAgentHookCommand(
   const input = await readStream(stream);
   const configDir = resolveServerInfoConfigDir();
   const serverInfo = await readServerInfo(configDir);
+  const apiKey = process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim();
   const transport: Transport = serverInfo
-    ? createAgentHookHttpTransport({
-        port: serverInfo.port,
-        apiKey: process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim(),
-      })
+    ? createAgentHookHttpTransport({ port: serverInfo.port, apiKey })
     : async () => ({ ok: false, reason: 'SERVER_UNAVAILABLE' });
   const result = await runHook({
     input,
@@ -137,7 +135,7 @@ export async function runAgentHookCommand(
     directives: {
       config: parseDirectiveConfig(process.env, homedir()),
       recall: serverInfo
-        ? (request, signal) => callToolViaHttp(serverInfo.port, 'recall', { ...request }, { signal })
+        ? createDirectiveRecallPort({ port: serverInfo.port, apiKey })
         : null,
       now: Date.now,
     },

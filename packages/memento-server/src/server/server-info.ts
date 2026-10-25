@@ -92,17 +92,16 @@ export async function callToolViaHttp(
   port: number,
   toolName: string,
   params: Record<string, unknown>,
-  options: { signal?: AbortSignal } = {},
 ): Promise<unknown> {
   const apiKey = process.env.MEMENTO_API_KEY?.trim() || process.env.ADMIN_API_KEY?.trim();
-  const res = await fetch(`http://127.0.0.1:${port}/tools/${toolName}`, {
+  const res = await fetch(`http://localhost:${port}/tools/${toolName}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     },
     body: JSON.stringify(params),
-    signal: options.signal ?? AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(30_000),
   });
 
   const body = await res.json() as Record<string, unknown>;

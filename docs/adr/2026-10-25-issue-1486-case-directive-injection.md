@@ -17,7 +17,7 @@
 - 정책 상수는 `DIRECTIVE_POLICY` 한 곳에 둔다(case 300자, 최대 5건, 본문 4500바이트, 고정 지침 1KB, recall 1.5초, 마감 3.5초).
 - `runDirectives` 는 reject 하지 않는다. 마감 타이머와 작업 경로는 먼저 잡은 쪽만 로그를 쓴다. 불변식은 로그 줄을 쓴 뒤에만 stdout 을 돌려주고, 쓰기에 실패하면 빈 문자열이다.
 - 설정은 환경 변수만 쓴다(`MEMENTO_DIRECTIVES*`). 사용자는 Claude Code `settings.json` 의 `env` 블록에 둔다. 기본은 꺼짐이고 켜면 `shadow` 다.
-- recall 은 `callToolViaHttp` 를 재사용한다. 호출마다 `signal` 을 받고 호스트를 `127.0.0.1` 로 고정한다(IPv6 우선 해석으로 `localhost` 가 느려지는 경우를 피한다).
+- recall 은 `/mcp` 에 JSON-RPC `tools/call` 을 한 번 보낸다(initialize 없음, `Authorization: Bearer`). `/tools/recall` 은 owner 범위가 strict 일 때 `X-Memento-Agent-Id` 나 `owner_id` 를 요구해 hook 이 쓸 수 없었다. 호출은 엔진이 넘긴 `AbortSignal` 을 따르고 `127.0.0.1` 로 고정한다.
 
 ## 대안
 
@@ -30,6 +30,6 @@
 
 - `ClaudeHookRunResult.stdout` 이 `''` 리터럴에서 `string` 으로 넓어진다.
 - hook 프로세스가 `memento` 바이너리로 설치돼 있어야 3.5초 마감 안에 시작한다. `npx` 는 맞지 않는다.
-- `/tools` 라우트 rate limit(창당 100회)에 프롬프트마다 recall 1회가 쓰인다. 429 가 보이면 `/mcp` 로 옮긴다.
+- `/mcp` 라우트 rate limit 에 프롬프트마다 recall 1회가 쓰인다.
 - 프로젝트 범위 헤더가 없어 case 는 사용자 전역이다.
 - `/clear` 가 session_id 를 유지하는지는 확인 전이다. 유지하면 SessionStart `source=clear` 에서 reset 을 더한다.
