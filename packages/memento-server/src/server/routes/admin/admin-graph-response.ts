@@ -81,8 +81,8 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
   const limit = Math.min(filters.limit ?? defaultLimit, maxLimit); // FR-006: 기본 200
   const minImportance = filters.min_importance ?? 0.0;
 
-  let nodeQuery = `SELECT id, content, type, importance, created_at, tags, pinned FROM memory_item WHERE 1=1`;
-  let countQuery = `SELECT COUNT(*) AS count FROM memory_item WHERE 1=1`;
+  let nodeQuery = `SELECT id, content, type, importance, created_at, tags, pinned FROM memory_item WHERE 1=1 AND COALESCE(is_deleted, 0) = 0`;
+  let countQuery = `SELECT COUNT(*) AS count FROM memory_item WHERE 1=1 AND COALESCE(is_deleted, 0) = 0`;
   const nodeParams: (string | number)[] = [];
   const countParams: (string | number)[] = [];
 
@@ -99,7 +99,6 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
   nodeParams.push(minImportance);
   countParams.push(minImportance);
 
-  // DB orphan 기준: memory_relation 에 source/target 으로 한 번도 나오지 않는 노드를 뺀다.
   // 응답 엣지에서 degree=0 인 View orphan(Phase 1, static/js/graph-fetch.js)과는 다르다.
   // relation_types 가 걸려 있으면 그 타입만 관계로 인정한다 - 아니면 "연결됨"으로
   // 뽑혀 놓고 엣지가 0개인 노드가 생긴다.
@@ -112,7 +111,10 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
         : '';
     const existsClause =
       ` AND EXISTS (SELECT 1 FROM memory_relation mr` +
-      ` WHERE (mr.source_id = memory_item.id OR mr.target_id = memory_item.id)${typeClause})`;
+      ` JOIN memory_item related ON related.id = CASE` +
+      ` WHEN mr.source_id = memory_item.id THEN mr.target_id ELSE mr.source_id END` +
+      ` WHERE (mr.source_id = memory_item.id OR mr.target_id = memory_item.id)` +
+      ` AND COALESCE(related.is_deleted, 0) = 0${typeClause})`;
     nodeQuery += existsClause;
     countQuery += existsClause;
     nodeParams.push(...orphanRelationTypes);
