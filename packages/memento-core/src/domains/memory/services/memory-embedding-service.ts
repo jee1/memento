@@ -81,6 +81,9 @@ export interface SearchBySimilarityOutcome {
 
 type GlobalWithVecWarning = typeof globalThis & { __vecExtensionLoadWarningShown?: boolean };
 
+const vecExtensionLoadedDbs = new WeakSet<Database.Database>();
+const vecExtensionLoadingDbs = new WeakMap<Database.Database, Promise<void>>();
+
 export class MemoryEmbeddingService {
   private embeddingService: UnifiedEmbeddingService;
   private readonly defaultProvider: EmbeddingProvider = 'tfidf';
@@ -314,25 +317,40 @@ export class MemoryEmbeddingService {
    * init.ts와 동일한 방식으로 sqlite-vec 패키지의 getLoadablePath() 사용
    */
   private async loadVecExtension(db: Database.Database): Promise<void> {
-    try {
-      // sqlite-vec 패키지에서 올바른 경로 가져오기
-      const { getLoadablePath } = await import('sqlite-vec');
-      const extensionPath = getLoadablePath();
-      db.loadExtension(extensionPath);
-      // 성공 시 로그는 출력하지 않음 (너무 많은 로그 방지)
-    } catch (error) {
-      // 실패해도 치명적이지 않음 (TF-IDF fallback 사용)
-      // 로그는 한 번만 출력하도록 조건부 처리
-      const g = globalThis as GlobalWithVecWarning;
-      if (!g.__vecExtensionLoadWarningShown) {
-        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        this.writeEmbeddingStderr(
-          'warn',
-          `sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용): ${maskedError.message}`
-        );
-        g.__vecExtensionLoadWarningShown = true;
-      }
+    if (vecExtensionLoadedDbs.has(db)) {
+      return;
     }
+    const existingLoad = vecExtensionLoadingDbs.get(db);
+    if (existingLoad) {
+      await existingLoad;
+      return;
+    }
+    const loadPromise = (async () => {
+      try {
+        // sqlite-vec 패키지에서 올바른 경로 가져오기
+        const { getLoadablePath } = await import('sqlite-vec');
+        const extensionPath = getLoadablePath();
+        db.loadExtension(extensionPath);
+        vecExtensionLoadedDbs.add(db);
+        // 성공 시 로그는 출력하지 않음 (너무 많은 로그 방지)
+      } catch (error) {
+        // 실패해도 치명적이지 않음 (TF-IDF fallback 사용)
+        // 로그는 한 번만 출력하도록 조건부 처리
+        const g = globalThis as GlobalWithVecWarning;
+        if (!g.__vecExtensionLoadWarningShown) {
+          const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+          this.writeEmbeddingStderr(
+            'warn',
+            `sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용): ${maskedError.message}`
+          );
+          g.__vecExtensionLoadWarningShown = true;
+        }
+      } finally {
+        vecExtensionLoadingDbs.delete(db);
+      }
+    })();
+    vecExtensionLoadingDbs.set(db, loadPromise);
+    await loadPromise;
   }
 
   /**

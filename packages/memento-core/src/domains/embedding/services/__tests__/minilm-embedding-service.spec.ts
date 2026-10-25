@@ -157,5 +157,48 @@ describe('MiniLMEmbeddingService', () => {
       await expect(service.generateEmbedding('')).rejects.toThrow('텍스트가 비어있습니다');
       await expect(service.generateEmbedding('   ')).rejects.toThrow('텍스트가 비어있습니다');
     });
+
+    it('Given: 800자 이상 동일 문서, When: generateEmbedding 후 generateWindowEmbeddings를 호출하면, Then: 모델 추론은 윈도당 1회만 실행되어야 함 (#1474)', async () => {
+      const tokenCount = WINDOW_TOKENS * 3;
+      const modelFn = installMockModel({ tokenCount, withTokenizer: true });
+      const expectedWindows = Math.ceil(tokenCount / WINDOW_TOKENS);
+      const longDoc = '가나다라마바사아자차카타파하 '.repeat(80);
+
+      const embeddingResult = await service.generateEmbedding(longDoc);
+      expect(modelFn).toHaveBeenCalledTimes(expectedWindows);
+
+      const windowResult = await service.generateWindowEmbeddings(longDoc);
+      expect(modelFn).toHaveBeenCalledTimes(expectedWindows);
+      expect(windowResult.vectors).toHaveLength(expectedWindows);
+      expect(meanPoolNormalize(windowResult.vectors)).toEqual(embeddingResult?.embedding);
+
+      service.clearCache();
+      await service.generateWindowEmbeddings(longDoc);
+      expect(modelFn).toHaveBeenCalledTimes(expectedWindows * 2);
+    });
+
+    it('Given: 다수의 고유 문서 임베딩 생성, When: 상한을 초과해 호출하면, Then: windowCache와 cache 크기가 상한 이하로 유지되고 가장 오래된 항목이 퇴출되어야 함 (#1474)', async () => {
+      const modelFn = installMockModel({ tokenCount: WINDOW_TOKENS * 2, withTokenizer: true });
+
+      for (let i = 0; i < 100; i++) {
+        await service.generateEmbedding(`unique document number ${i}`);
+      }
+
+      const internal = service as unknown as {
+        windowCache: Map<string, unknown>;
+        cache: Map<string, unknown>;
+      };
+      expect(internal.windowCache.size).toBeLessThanOrEqual(64);
+      expect(internal.cache.size).toBeLessThanOrEqual(256);
+
+      const callsAfterLoop = modelFn.mock.calls.length;
+      // 가장 최근 문서는 windowCache에 남아 있어 추가 모델 호출이 없어야 함
+      await service.generateWindowEmbeddings('unique document number 99');
+      expect(modelFn.mock.calls.length).toBe(callsAfterLoop);
+
+      // 가장 오래된 문서는 windowCache에서 퇴출되어 재계산되어야 함
+      await service.generateWindowEmbeddings('unique document number 0');
+      expect(modelFn.mock.calls.length).toBe(callsAfterLoop + 2);
+    });
   });
 });

@@ -612,6 +612,64 @@ describe('MemoryEmbeddingService', () => {
         expect(['tfidf', 'minilm', 'openai', 'gemini']).toContain(result.provider);
       }
     });
+
+    it('동일 데이터베이스 핸들에 대해 loadExtension을 1회만 호출해야 함 (#1474)', async () => {
+      const m1 = createTestMemory(db, { content: 'First memory', type: 'episodic' });
+      const m2 = createTestMemory(db, { content: 'Second memory', type: 'episodic' });
+      const loadExtSpy = vi.spyOn(db, 'loadExtension');
+
+      await service.createAndStoreEmbedding(db, m1, 'First memory', 'episodic');
+      await service.createAndStoreEmbedding(db, m2, 'Second memory', 'episodic');
+
+      expect(loadExtSpy).toHaveBeenCalledTimes(1);
+      loadExtSpy.mockRestore();
+    });
+
+    it('병렬 저장 시 확장 로드가 완료될 때까지 대기하고 로드 실패는 완료로 캐시하지 않아야 함 (#1474)', async () => {
+      const m1 = createTestMemory(db, { content: 'Concurrent memory 1', type: 'episodic' });
+      const m2 = createTestMemory(db, { content: 'Concurrent memory 2', type: 'episodic' });
+
+      let extensionReady = false;
+      const originalPrepare = db.prepare.bind(db);
+      const prepareSpy = vi.spyOn(db, 'prepare').mockImplementation(((sql: string) => {
+        if (sql.includes('INSERT INTO memory_embedding') && !extensionReady) {
+          throw new Error('vec extension not ready yet');
+        }
+        return originalPrepare(sql);
+      }) as typeof db.prepare);
+
+      let loadAttempts = 0;
+      const originalLoadExtension = db.loadExtension.bind(db);
+      const loadExtSpy = vi.spyOn(db, 'loadExtension').mockImplementation((...args: Parameters<typeof db.loadExtension>) => {
+        loadAttempts += 1;
+        if (loadAttempts === 1) {
+          throw new Error('simulated transient load failure');
+        }
+        extensionReady = true;
+        return originalLoadExtension(...args);
+      });
+
+      try {
+        // 첫 호출에서 loadExtension이 실패하더라도 완료로 캐시되지 않아야 함
+        await (service as unknown as { loadVecExtension(d: Database.Database): Promise<void> }).loadVecExtension(db);
+        expect(extensionReady).toBe(false);
+        expect(loadAttempts).toBe(1);
+
+        // 이후 동일 DB에서 병렬 저장 시 두 요청 모두 진행 중 로드가 끝난 뒤 SQL을 실행해야 함
+        const [r1, r2] = await Promise.all([
+          service.createAndStoreEmbedding(db, m1, 'Concurrent memory 1', 'episodic'),
+          service.createAndStoreEmbedding(db, m2, 'Concurrent memory 2', 'episodic'),
+        ]);
+
+        expect(extensionReady).toBe(true);
+        expect(loadAttempts).toBe(2);
+        expect(r1).not.toBeNull();
+        expect(r2).not.toBeNull();
+      } finally {
+        prepareSpy.mockRestore();
+        loadExtSpy.mockRestore();
+      }
+    });
   });
 });
 
