@@ -55,6 +55,35 @@ async function extractWithChat(
   }
 }
 
+let sharedRememberEmbeddingService: UnifiedEmbeddingService | null = null;
+let cachedJevJudge: {
+  key: string;
+  judge: JevRelationJudge;
+} | null = null;
+
+function getSharedRememberEmbeddingService(): UnifiedEmbeddingService {
+  if (!sharedRememberEmbeddingService) {
+    sharedRememberEmbeddingService = new UnifiedEmbeddingService();
+  }
+  return sharedRememberEmbeddingService;
+}
+
+function getOrCreateJevJudge(apiKey: string, model: string): JevRelationJudge {
+  const cacheKey = `${apiKey}\u0000${model}`;
+  if (!cachedJevJudge || cachedJevJudge.key !== cacheKey) {
+    const client = new SystemOneClient({
+      apiKey,
+      model,
+      timeoutMs: RELATION_JEV_TIMEOUT_MS,
+    });
+    cachedJevJudge = {
+      key: cacheKey,
+      judge: new JevRelationJudge(client, getSharedRememberEmbeddingService()),
+    };
+  }
+  return cachedJevJudge.judge;
+}
+
 /**
  * Remember's configured relation engine. Never throws.
  * A jev seat does not construct a chat extractor and does not fall back to one.
@@ -74,12 +103,8 @@ export async function extractForRemember(
     if (!hasTypesafeKey(config.typesafeApiKey)) {
       return { status: 'unavailable' };
     }
-    const client = new SystemOneClient({
-      apiKey: config.typesafeApiKey.trim(),
-      model: config.typesafeModel,
-      timeoutMs: RELATION_JEV_TIMEOUT_MS,
-    });
-    const judged = await new JevRelationJudge(client, new UnifiedEmbeddingService()).judge(source, existing);
+    const judge = getOrCreateJevJudge(config.typesafeApiKey.trim(), config.typesafeModel);
+    const judged = await judge.judge(source, existing);
     if (judged.ok === false) {
       return { status: 'failed', reason: judged.reason };
     }

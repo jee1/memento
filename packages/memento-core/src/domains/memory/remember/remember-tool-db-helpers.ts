@@ -3,6 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -74,6 +75,91 @@ export async function findExistingProceduralMemory(
   }
 }
 
+function tryLoadVecRelationCandidateRows(
+  db: Database.Database,
+  excludeId: string,
+  limit: number
+): MemoryItemRow[] | null {
+  try {
+    const vecReady = DatabaseUtils.get(
+      db,
+      `SELECT COUNT(*) AS cnt FROM sqlite_master
+       WHERE type IN ('table', 'virtual')
+         AND name IN ('memory_embedding', 'memory_item_vec_minilm')`
+    ) as { cnt: number } | undefined;
+    if (!vecReady || vecReady.cnt < 2) {
+      return null;
+    }
+
+    const sourceEmbRow = DatabaseUtils.get(
+      db,
+      `SELECT embedding
+       FROM memory_embedding
+       WHERE memory_id = ?
+         AND embedding_provider = 'minilm'
+         AND model = ?
+         AND COALESCE(projection_type, 'native') = 'native'
+       ORDER BY id ASC
+       LIMIT 1`,
+      [excludeId, MINILM_MODEL_NAME]
+    ) as { embedding: Buffer | string | null } | undefined;
+    if (!sourceEmbRow || !sourceEmbRow.embedding) {
+      return null;
+    }
+
+    let queryVectorParam: Buffer | string;
+    if (Buffer.isBuffer(sourceEmbRow.embedding)) {
+      if (sourceEmbRow.embedding.byteLength === 0) {
+        return null;
+      }
+      queryVectorParam = sourceEmbRow.embedding;
+    } else if (typeof sourceEmbRow.embedding === 'string' && sourceEmbRow.embedding.length > 0) {
+      queryVectorParam = sourceEmbRow.embedding;
+    } else {
+      return null;
+    }
+
+    const prefetchK = Math.max(limit * 4, 100);
+    const rows = DatabaseUtils.all(
+      db,
+      `SELECT
+         mi.id, mi.type, mi.content, mi.importance, mi.privacy_scope,
+         mi.created_at, mi.last_accessed, mi.pinned, mi.tags, mi.source,
+         mi.is_consolidated
+       FROM (
+         SELECT me.memory_id, MIN(v.distance) AS min_distance
+         FROM (
+           SELECT rowid, distance
+           FROM memory_item_vec_minilm
+           WHERE embedding MATCH ?
+             AND k = ?
+             AND rowid IN (
+               SELECT scoped_me.id
+               FROM memory_embedding scoped_me
+               JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id
+               WHERE scoped_me.embedding_provider = 'minilm'
+                 AND scoped_me.model = ?
+                 AND scoped_mi.id != ?
+                 AND COALESCE(scoped_mi.is_deleted, 0) = 0
+                 AND COALESCE(scoped_mi.owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
+             )
+         ) v
+         JOIN memory_embedding me ON me.id = v.rowid
+         GROUP BY me.memory_id
+         ORDER BY min_distance ASC
+         LIMIT ?
+       ) top_k
+       JOIN memory_item mi ON mi.id = top_k.memory_id
+       ORDER BY top_k.min_distance ASC`,
+      [queryVectorParam, prefetchK, MINILM_MODEL_NAME, excludeId, excludeId, limit]
+    ) as MemoryItemRow[];
+
+    return rows.length > 0 ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getExistingMemoriesForRelationExtraction(
   db: Database.Database,
   excludeId: string,
@@ -81,7 +167,8 @@ export async function getExistingMemoriesForRelationExtraction(
   host: RememberToolHost
 ): Promise<MemoryItem[]> {
   try {
-    const rows = await DatabaseUtils.all(db, `
+    const vecRows = tryLoadVecRelationCandidateRows(db, excludeId, limit);
+    const rows = vecRows ?? (await DatabaseUtils.all(db, `
       SELECT
         id, type, content, importance, privacy_scope,
         created_at, last_accessed, pinned, tags, source,
@@ -92,7 +179,7 @@ export async function getExistingMemoriesForRelationExtraction(
         AND COALESCE(owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
       ORDER BY created_at DESC
       LIMIT ?
-    `, [excludeId, excludeId, limit]) as MemoryItemRow[];
+    `, [excludeId, excludeId, limit]) as MemoryItemRow[]);
 
     return rows.map((row: MemoryItemRow): MemoryItem => ({
       id: row.id,

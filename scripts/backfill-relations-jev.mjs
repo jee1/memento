@@ -11,6 +11,7 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import Database from 'better-sqlite3';
+import { MINILM_MODEL_NAME } from '../packages/memento-core/dist/shared/config/embedding-models.js';
 import { mementoConfig } from '../packages/memento-core/dist/shared/config/index.js';
 import { extractForRemember } from '../packages/memento-core/dist/domains/relation/services/remember-relation-extraction.js';
 import { createRelationGraph } from '../packages/memento-core/dist/infrastructure/relation-graph-factory.js';
@@ -36,6 +37,12 @@ if (mementoConfig.relationExtractionOverride.kind !== 'jev') {
 const done = new Set(existsSync(values.state) ? readFileSync(values.state, 'utf8').split('\n').filter(Boolean) : []);
 const db = new Database(mementoConfig.dbPath, { readonly: !apply });
 db.pragma('busy_timeout = 10000');
+try {
+  const { getLoadablePath } = await import('sqlite-vec');
+  db.loadExtension(getLoadablePath());
+} catch {
+  // Fallback to created_at DESC pool when sqlite-vec is unavailable
+}
 
 const typeList = JEV_TYPES.map(() => '?').join(', ');
 const sources = db.prepare(`
@@ -53,11 +60,91 @@ const selectPool = db.prepare(`
   SELECT id, type, content, importance, privacy_scope, created_at, last_accessed, pinned, tags, source
   FROM memory_item
   WHERE id != ? AND COALESCE(is_deleted, 0) = 0
-    AND COALESCE(owner_id, '') = COALESCE(?, '')
+     AND COALESCE(owner_id, '') = COALESCE(?, '')
     AND created_at < ?
   ORDER BY created_at DESC
   LIMIT ${POOL_SIZE}
 `);
+
+let selectSourceEmbedding = null;
+let selectVecPool = null;
+try {
+  const vecReady = db.prepare(`
+    SELECT COUNT(*) AS cnt FROM sqlite_master
+    WHERE type IN ('table', 'virtual')
+      AND name IN ('memory_embedding', 'memory_item_vec_minilm')
+  `).get();
+  if (vecReady && vecReady.cnt >= 2) {
+    selectSourceEmbedding = db.prepare(`
+      SELECT embedding
+      FROM memory_embedding
+      WHERE memory_id = ?
+        AND embedding_provider = 'minilm'
+        AND model = ?
+        AND COALESCE(projection_type, 'native') = 'native'
+      ORDER BY id ASC
+      LIMIT 1
+    `);
+    selectVecPool = db.prepare(`
+      SELECT
+        mi.id, mi.type, mi.content, mi.importance, mi.privacy_scope,
+        mi.created_at, mi.last_accessed, mi.pinned, mi.tags, mi.source
+      FROM (
+        SELECT me.memory_id, MIN(v.distance) AS min_distance
+        FROM (
+          SELECT rowid, distance
+          FROM memory_item_vec_minilm
+          WHERE embedding MATCH ?
+            AND k = ${POOL_SIZE * 4}
+            AND rowid IN (
+              SELECT scoped_me.id
+              FROM memory_embedding scoped_me
+              JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id
+              WHERE scoped_me.embedding_provider = 'minilm'
+                AND scoped_me.model = ?
+                AND scoped_mi.id != ?
+                AND COALESCE(scoped_mi.is_deleted, 0) = 0
+                AND COALESCE(scoped_mi.owner_id, '') = COALESCE(?, '')
+                AND scoped_mi.created_at < ?
+            )
+        ) v
+        JOIN memory_embedding me ON me.id = v.rowid
+        GROUP BY me.memory_id
+        ORDER BY min_distance ASC
+        LIMIT ${POOL_SIZE}
+      ) top_k
+      JOIN memory_item mi ON mi.id = top_k.memory_id
+      ORDER BY top_k.min_distance ASC
+    `);
+  }
+} catch {
+  selectSourceEmbedding = null;
+  selectVecPool = null;
+}
+
+function loadCandidatePool(id, row) {
+  if (!row) return [];
+  if (selectSourceEmbedding && selectVecPool) {
+    try {
+      const embRow = selectSourceEmbedding.get(id, MINILM_MODEL_NAME);
+      if (embRow && embRow.embedding) {
+        const vecRows = selectVecPool.all(
+          embRow.embedding,
+          MINILM_MODEL_NAME,
+          id,
+          row.owner_id,
+          row.created_at
+        );
+        if (vecRows.length > 0) {
+          return vecRows.map(toMemoryItem);
+        }
+      }
+    } catch {
+      // Fallback to created_at DESC pool
+    }
+  }
+  return selectPool.all(id, row.owner_id, row.created_at).map(toMemoryItem);
+}
 
 function parseTags(raw) {
   try {
@@ -89,7 +176,7 @@ console.log(`[backfill-relations-jev] mode=${apply ? 'apply' : 'preview'} pendin
 
 for (const id of sources.slice(0, limit)) {
   const row = selectItem.get(id);
-  const pool = row ? selectPool.all(id, row.owner_id, row.created_at).map(toMemoryItem) : [];
+  const pool = loadCandidatePool(id, row);
   if (!row || pool.length === 0) {
     tally.skipped++;
     if (apply) appendFileSync(values.state, `${id}\n`);
