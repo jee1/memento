@@ -69,7 +69,7 @@ _Avoid_: dedup cache, injection state
 _Avoid_: dry run, silent mode
 
 **inj_id**:
-주입 한 번을 가리키는 8자리 hex. 컨텍스트 첫 줄 `[inj:<id>]`와 로그 줄이 같은 값을 가진다.
+주입 한 번을 가리키는 `<session 앞 8자>-<epoch ms>-<프롬프트 sha1 앞 6자>`. 컨텍스트 첫 줄 `[inj:<id>]`와 로그 줄이 같은 값을 가진다. 로그에서 주입 줄은 `inj_id` 가 있는 줄이고 reset 줄은 `reset` 이 있는 줄이다.
 _Avoid_: injection id, trace id
 
 ## 격리와 도구

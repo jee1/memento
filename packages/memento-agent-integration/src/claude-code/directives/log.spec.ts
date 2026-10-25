@@ -15,14 +15,15 @@ const injection = (
   cases: string[],
   overrides: Partial<InjectionLine> = {},
 ): InjectionLine => ({
-  kind: 'injection',
-  ts: NOW,
+  inj_id: injId('abcd1234-1-aaaaaa'),
+  ts: new Date(NOW).toISOString(),
   session_id: sessionId(session),
-  inj_id: injId('abcd1234'),
+  cwd: '/work',
   mode: 'live',
-  fallback: false,
-  cases: cases.map(caseId),
+  prompt_sha1: 'p',
+  cases: cases.map((id) => ({ id: caseId(id), sha1: 's', text: id })),
   skipped: [],
+  fallback: false,
   context_text: '',
   ...overrides,
 });
@@ -53,7 +54,7 @@ describe('directive injection log', () => {
 
   it('clears the set on reset and keeps later injections', async () => {
     await appendLine(dir, injection('s1', ['a']), NOW);
-    await appendLine(dir, { kind: 'reset', ts: NOW, session_id: sessionId('s1') }, NOW);
+    await appendLine(dir, { session_id: sessionId('s1'), reset: true, ts: new Date(NOW).toISOString() }, NOW);
     await appendLine(dir, injection('s1', ['b']), NOW);
 
     expect([...(await readInContext(dir, 's1', 'live', NOW))]).toEqual(['b']);
@@ -71,7 +72,7 @@ describe('directive injection log', () => {
   it('ignores a torn or garbage line and keeps the rest', async () => {
     await appendLine(dir, injection('s1', ['a']), NOW);
     const file = (await readdir(dir))[0]!;
-    await writeFile(join(dir, file), `{"kind":"inj\nnot json\n`, { flag: 'a' });
+    await writeFile(join(dir, file), `{"inj_id":"x\nnot json\n`, { flag: 'a' });
     await appendLine(dir, injection('s1', ['b']), NOW);
 
     expect([...(await readInContext(dir, 's1', 'live', NOW))].sort()).toEqual(['a', 'b']);
@@ -88,7 +89,7 @@ describe('directive injection log', () => {
 
     const file = join(logDir, 'injections-2026-10-25.jsonl');
     const lines = (await readFile(file, 'utf8')).trimEnd().split('\n');
-    expect(lines.map((l) => (JSON.parse(l) as InjectionLine).cases)).toEqual([['a'], ['b']]);
+    expect(lines.map((l) => (JSON.parse(l) as InjectionLine).cases.map((c) => c.id))).toEqual([['a'], ['b']]);
     expect((await stat(file)).mode & 0o777).toBe(0o600);
     expect((await stat(logDir)).mode & 0o777).toBe(0o700);
   });

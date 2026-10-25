@@ -6,7 +6,6 @@ import {
   type CaseCandidate,
   type CaseId,
   type InjId,
-  type SkippedCase,
 } from './types.js';
 
 export const DIRECTIVE_POLICY = {
@@ -49,7 +48,7 @@ export function parseRecallItems(raw: unknown): CaseCandidate[] {
 
 export interface CasePlan {
   readonly chosen: readonly CaseCandidate[];
-  readonly skipped: readonly SkippedCase[];
+  readonly skipped: readonly CaseId[];
 }
 
 export function selectCases(
@@ -57,29 +56,27 @@ export function selectCases(
   inContext: ReadonlySet<CaseId>,
 ): CasePlan {
   const chosen: CaseCandidate[] = [];
-  const skipped: SkippedCase[] = [];
+  const skipped: CaseId[] = [];
   let bytes = 0;
   for (const candidate of candidates) {
     if (chosen.length >= DIRECTIVE_POLICY.maxCases) break;
     if (inContext.has(candidate.id)) continue;
     if (codePointLength(candidate.text) > DIRECTIVE_POLICY.caseMaxChars) {
-      skipped.push({ id: candidate.id, reason: 'over_length' });
+      skipped.push(candidate.id);
       continue;
     }
     const size = Buffer.byteLength(candidate.text, 'utf8');
-    if (bytes + size > DIRECTIVE_POLICY.maxCaseBytes) {
-      skipped.push({ id: candidate.id, reason: 'over_budget' });
-      continue;
-    }
+    if (bytes + size > DIRECTIVE_POLICY.maxCaseBytes) continue;
     bytes += size;
     chosen.push(candidate);
   }
   return { chosen, skipped };
 }
 
+export const sha1Hex = (text: string): string => createHash('sha1').update(text).digest('hex');
+
 export function makeInjId(session: string, nowMs: number, prompt: string): InjId {
-  const digest = createHash('sha256').update(`${session}|${nowMs}|${prompt}`).digest('hex');
-  return injId(digest.slice(0, 8));
+  return injId(`${session.slice(0, 8)}-${nowMs}-${sha1Hex(prompt).slice(0, 6)}`);
 }
 
 export function renderContext(

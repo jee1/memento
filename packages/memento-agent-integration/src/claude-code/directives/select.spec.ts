@@ -39,7 +39,7 @@ describe('selectCases', () => {
     const tooLong = 'x'.repeat(DIRECTIVE_POLICY.caseMaxChars + 1);
     const plan = selectCases([cand('ok', exact), cand('emoji', emoji), cand('long', tooLong)], none);
     expect(plan.chosen.map((c) => c.id)).toEqual(['ok', 'emoji']);
-    expect(plan.skipped).toEqual([{ id: 'long', reason: 'over_length' }]);
+    expect(plan.skipped).toEqual(['long']);
   });
 
   it('drops cases already in context and keeps rank order', () => {
@@ -51,14 +51,14 @@ describe('selectCases', () => {
     expect(plan.skipped).toEqual([]);
   });
 
-  it('passes over a case that busts the byte budget and keeps walking', () => {
+  it('passes over a case that busts the byte budget without reporting it as skipped', () => {
     const heavy = '😀'.repeat(DIRECTIVE_POLICY.caseMaxChars);
     const plan = selectCases(
       [cand('1', heavy), cand('2', heavy), cand('3', heavy), cand('4', heavy), cand('small', 'tiny')],
       none,
     );
     expect(plan.chosen.map((c) => c.id)).toEqual(['1', '2', '3', 'small']);
-    expect(plan.skipped).toEqual([{ id: '4', reason: 'over_budget' }]);
+    expect(plan.skipped).toEqual([]);
   });
 
   it('caps the number of chosen cases', () => {
@@ -77,8 +77,8 @@ describe('renderContext', () => {
     );
   });
 
-  it('is stable for the same inputs and differs when they change', () => {
-    expect(makeInjId('s', 1, 'p')).toBe(id);
+  it('builds inj_id from session prefix, epoch ms and prompt sha1 prefix', () => {
+    expect(makeInjId('abcdefghijkl', 1761364800000, 'hello')).toBe('abcdefgh-1761364800000-aaf4c6');
     expect(makeInjId('s', 2, 'p')).not.toBe(id);
   });
 

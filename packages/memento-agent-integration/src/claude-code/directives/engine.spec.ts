@@ -63,10 +63,29 @@ describe('runDirectives', () => {
     const stdout = await runDirectives(prompt(), depsOf(recallOf(['c1', 'Run tests in isolation'])));
 
     const context = contextOf(stdout);
-    expect(context).toMatch(/^\[inj:[0-9a-f]{8}\]\n- Run tests in isolation\n\[cases-in-context: c1\]$/);
+    expect(context).toMatch(/^\[inj:s1-\d+-[0-9a-f]{6}\]\n- Run tests in isolation\n\[cases-in-context: c1\]$/);
     const lines = await logLines();
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ fallback: false, mode: 'live', cases: ['c1'], context_text: context });
+    expect(lines[0]).toMatchObject({
+      fallback: false,
+      mode: 'live',
+      cwd: '/work',
+      skipped: [],
+      context_text: context,
+      cases: [{ id: 'c1', text: 'Run tests in isolation' }],
+    });
+    expect(lines[0]!.ts).toBe(new Date(NOW).toISOString());
+    expect(lines[0]!.prompt_sha1).toMatch(/^[0-9a-f]{40}$/);
+    expect(lines[0]!.cases[0]!.sha1).toMatch(/^[0-9a-f]{40}$/);
+    expect(lines[0]!.inj_id).toMatch(/^s1-\d+-[0-9a-f]{6}$/);
+  });
+
+  it('logs over-length case ids as skipped and leaves them out of the context', async () => {
+    const long = 'x'.repeat(DIRECTIVE_POLICY.caseMaxChars + 1);
+    const stdout = await runDirectives(prompt(), depsOf(recallOf(['big', long], ['ok', 'fine'])));
+
+    expect(contextOf(stdout)).not.toContain('xxx');
+    expect(await logLines()).toMatchObject([{ skipped: ['big'], cases: [{ id: 'ok' }] }]);
   });
 
   it('queries the case tag with the clipped prompt', async () => {
@@ -92,7 +111,7 @@ describe('runDirectives', () => {
     const stdout = await runDirectives(prompt(), depsOf(recallOf(['c1', 'x']), 'shadow'));
 
     expect(stdout).toBe('');
-    expect(await logLines()).toMatchObject([{ fallback: false, mode: 'shadow', cases: ['c1'] }]);
+    expect(await logLines()).toMatchObject([{ fallback: false, mode: 'shadow', cases: [{ id: 'c1' }] }]);
   });
 
   it('a failing recall returns nothing and logs one fallback line', async () => {
@@ -120,7 +139,7 @@ describe('runDirectives', () => {
     const stdout = await runDirectives(prompt('   '), depsOf(recall));
 
     expect(recall).not.toHaveBeenCalled();
-    expect(contextOf(stdout)).toMatch(/^\[inj:[0-9a-f]{8}\]\n\[cases-in-context: \]$/);
+    expect(contextOf(stdout)).toMatch(/^\[inj:s1-\d+-[0-9a-f]{6}\]\n\[cases-in-context: \]$/);
   });
 
   it('a recall that outlives the deadline returns nothing and writes exactly one fallback line', async () => {
@@ -158,7 +177,9 @@ describe('runDirectives', () => {
     const again = contextOf(await runDirectives(prompt(), deps));
 
     expect(again).toContain('- first');
-    expect((await logLines()).map((l) => l.kind)).toEqual(['injection', 'reset', 'injection']);
+    const lines = await logLines() as unknown as Array<Record<string, unknown>>;
+    expect(lines.map((l) => ('reset' in l ? 'reset' : 'inj_id' in l ? 'injection' : '?'))).toEqual(['injection', 'reset', 'injection']);
+    expect(lines[1]).toEqual({ session_id: 's1', reset: true, ts: new Date(NOW).toISOString() });
   });
 
   it('ignores other events', async () => {

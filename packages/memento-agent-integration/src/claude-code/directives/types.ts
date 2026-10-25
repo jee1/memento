@@ -49,30 +49,32 @@ export interface CaseCandidate {
   readonly text: string;
 }
 
-export type SkipReason = 'over_length' | 'over_budget';
-
-export interface SkippedCase {
+export interface LoggedCase {
   readonly id: CaseId;
-  readonly reason: SkipReason;
+  readonly sha1: string;
+  readonly text: string;
 }
 
+/** 로그 줄은 `inj_id` 가 있으면 주입, `reset` 이 있으면 초기화다. */
 export interface InjectionLine {
-  readonly kind: 'injection';
-  readonly ts: number;
-  readonly session_id: SessionId;
   readonly inj_id: InjId;
+  readonly ts: string;
+  readonly session_id: SessionId;
+  readonly cwd: string;
   readonly mode: DirectiveMode;
+  readonly prompt_sha1: string;
+  readonly cases: readonly LoggedCase[];
+  /** 300자를 넘어 건너뛴 case id. 예산 때문에 못 고른 case 는 기록하지 않는다. */
+  readonly skipped: readonly CaseId[];
   readonly fallback: boolean;
-  readonly cases: readonly CaseId[];
-  readonly skipped: readonly SkippedCase[];
   readonly context_text: string;
   readonly pinned_skipped?: true;
 }
 
 export interface ResetLine {
-  readonly kind: 'reset';
-  readonly ts: number;
   readonly session_id: SessionId;
+  readonly reset: true;
+  readonly ts: string;
 }
 
 export type LogLine = InjectionLine | ResetLine;

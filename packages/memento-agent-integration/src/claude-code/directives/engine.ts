@@ -8,6 +8,7 @@ import {
   parseRecallItems,
   renderContext,
   selectCases,
+  sha1Hex,
   toHookStdout,
 } from './select.js';
 import {
@@ -58,7 +59,11 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
   const session = sessionId(input.sessionId);
 
   if (input.eventType === 'PRE_COMPACT') {
-    await appendLine(config.logDir, { kind: 'reset', ts: now(), session_id: session }, now())
+    await appendLine(
+      config.logDir,
+      { session_id: session, reset: true, ts: new Date(now()).toISOString() },
+      now(),
+    )
       .catch(() => undefined);
     return '';
   }
@@ -66,9 +71,15 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
 
   const startedAt = now();
   const id = makeInjId(input.sessionId, startedAt, input.prompt);
-  const base = { kind: 'injection', session_id: session, inj_id: id, mode: config.mode } as const;
+  const base = {
+    inj_id: id,
+    session_id: session,
+    cwd: input.cwd,
+    mode: config.mode,
+    prompt_sha1: sha1Hex(input.prompt),
+  } as const;
   const fallbackLine: InjectionLine = {
-    ...base, ts: startedAt, fallback: true, cases: [], skipped: [], context_text: '',
+    ...base, ts: new Date(startedAt).toISOString(), fallback: true, cases: [], skipped: [], context_text: '',
   };
 
   // 마감과 작업 경로가 같은 줄을 두 번 쓰지 못하게 먼저 잡은 쪽이 이긴다.
@@ -98,10 +109,10 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
     try {
       await appendLine(config.logDir, {
         ...base,
-        ts: now(),
-        fallback: false,
-        cases: plan.chosen.map((c) => c.id),
+        ts: new Date(now()).toISOString(),
+        cases: plan.chosen.map((c) => ({ id: c.id, sha1: sha1Hex(c.text), text: c.text })),
         skipped: plan.skipped,
+        fallback: false,
         context_text: context,
         ...(pinned.skipped ? { pinned_skipped: true as const } : {}),
       }, now());

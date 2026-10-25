@@ -7,6 +7,7 @@ import {
   type DirectiveMode,
   type InjectionLine,
   type LogLine,
+  type ResetLine,
 } from './types.js';
 
 function localDate(ms: number, dayOffset = 0): string {
@@ -57,16 +58,16 @@ export async function readInContext(
   const files = [logFile(logDir, nowMs, -1), logFile(logDir, nowMs)];
   for (const file of files) {
     for (const entry of await readLines(file)) {
-      const line = entry as Partial<LogLine> | null;
+      const line = entry as Partial<InjectionLine & ResetLine> | null;
       if (line?.session_id !== session) continue;
-      if (line.kind === 'reset') {
+      if (line.reset === true) {
         inContext.clear();
-      } else if (line.kind === 'injection') {
+      } else if (line.inj_id !== undefined) {
         const injection = line as InjectionLine;
         if (injection.mode !== mode || injection.fallback !== false) continue;
         if (!Array.isArray(injection.cases)) continue;
-        for (const id of injection.cases) {
-          if (typeof id === 'string') inContext.add(caseId(id));
+        for (const entry of injection.cases) {
+          if (typeof entry?.id === 'string') inContext.add(caseId(entry.id));
         }
       }
     }
