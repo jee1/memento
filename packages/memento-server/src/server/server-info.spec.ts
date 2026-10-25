@@ -88,7 +88,7 @@ describe('callToolViaHttp', () => {
 
     await callToolViaHttp(51764, 'remember', { content: 'test', type: 'episodic' });
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:51764/tools/remember', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:51764/tools/remember', expect.objectContaining({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer k-memento' },
     }));
@@ -101,7 +101,7 @@ describe('callToolViaHttp', () => {
 
     await expect(callToolViaHttp(51764, 'remember', { content: 'test', type: 'episodic' }))
       .resolves.toEqual({ id: 'memory-1' });
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:51764/tools/remember', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:51764/tools/remember', expect.objectContaining({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test-admin-key' },
       body: JSON.stringify({ content: 'test', type: 'episodic' }),
@@ -115,8 +115,22 @@ describe('callToolViaHttp', () => {
 
     await callToolViaHttp(51764, 'recall', { query: 'test', type: 'episodic' });
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:51764/tools/recall', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:51764/tools/recall', expect.objectContaining({
       headers: { 'Content-Type': 'application/json' },
     }));
+  });
+
+  it('전달한 signal 이 abort 되면 요청을 중단한다', async () => {
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+
+    const pending = callToolViaHttp(51764, 'recall', { query: 'q' }, { signal: controller.signal });
+    controller.abort();
+
+    await expect(pending).rejects.toThrow('aborted');
+    expect(fetchMock.mock.calls[0]?.[1].signal).toBe(controller.signal);
   });
 });
