@@ -74,6 +74,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   // 모델 호출이 늘 1회였는데, 그게 사라진 자리에 명시적인 상한을 둔다 (#1013).
   // 16 윈도 = 8,160 토큰 = 한국어 약 17,000자. 운영 DB 최장 기억이 11,688자(약 11 윈도)라 실데이터는 다 들어간다.
   private static readonly MAX_WINDOWS = 16;
+  private static readonly MAX_CACHE_ENTRIES = 256;
+  private static readonly MAX_WINDOW_CACHE_ENTRIES = 64;
   
   private readonly modelName = MiniLMEmbeddingService.MODEL_NAME;
   private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
@@ -96,6 +98,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     const cacheKey = generateEmbeddingCacheKey('minilm', text);
     const cached = this.cache.get(cacheKey);
     if (cached) {
+      this.cache.delete(cacheKey);
+      this.cache.set(cacheKey, cached);
       return cached;
     }
 
@@ -111,7 +115,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         }
       };
 
-      this.cache.set(cacheKey, embeddingResult);
+      this.setBoundedCacheEntry(this.cache, cacheKey, embeddingResult, MiniLMEmbeddingService.MAX_CACHE_ENTRIES);
       return embeddingResult;
 
     } catch (error) {
@@ -299,12 +303,26 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     return { vectors, tokenCount: windows.tokenCount };
   }
 
+  private setBoundedCacheEntry<V>(map: Map<string, V>, key: string, value: V, maxEntries: number): void {
+    if (map.has(key)) {
+      map.delete(key);
+    } else if (map.size >= maxEntries) {
+      const oldestKey = map.keys().next().value;
+      if (oldestKey !== undefined) {
+        map.delete(oldestKey);
+      }
+    }
+    map.set(key, value);
+  }
+
   private async getOrComputeWindowEmbeddings(
     text: string,
     cacheKey: string
   ): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
     const cachedWindow = this.windowCache.get(cacheKey);
     if (cachedWindow) {
+      this.windowCache.delete(cacheKey);
+      this.windowCache.set(cacheKey, cachedWindow);
       return cachedWindow;
     }
 
@@ -312,7 +330,12 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     const processedText = this.preprocessText(text);
     const { vectors, tokenCount } = await this.embedWindows(model, processedText);
     const windowResult = { vectors, tokenCount, model: this.modelName };
-    this.windowCache.set(cacheKey, windowResult);
+    this.setBoundedCacheEntry(
+      this.windowCache,
+      cacheKey,
+      windowResult,
+      MiniLMEmbeddingService.MAX_WINDOW_CACHE_ENTRIES
+    );
     return windowResult;
   }
 

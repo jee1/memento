@@ -176,5 +176,29 @@ describe('MiniLMEmbeddingService', () => {
       await service.generateWindowEmbeddings(longDoc);
       expect(modelFn).toHaveBeenCalledTimes(expectedWindows * 2);
     });
+
+    it('Given: 다수의 고유 문서 임베딩 생성, When: 상한을 초과해 호출하면, Then: windowCache와 cache 크기가 상한 이하로 유지되고 가장 오래된 항목이 퇴출되어야 함 (#1474)', async () => {
+      const modelFn = installMockModel({ tokenCount: WINDOW_TOKENS * 2, withTokenizer: true });
+
+      for (let i = 0; i < 100; i++) {
+        await service.generateEmbedding(`unique document number ${i}`);
+      }
+
+      const internal = service as unknown as {
+        windowCache: Map<string, unknown>;
+        cache: Map<string, unknown>;
+      };
+      expect(internal.windowCache.size).toBeLessThanOrEqual(64);
+      expect(internal.cache.size).toBeLessThanOrEqual(256);
+
+      const callsAfterLoop = modelFn.mock.calls.length;
+      // 가장 최근 문서는 windowCache에 남아 있어 추가 모델 호출이 없어야 함
+      await service.generateWindowEmbeddings('unique document number 99');
+      expect(modelFn.mock.calls.length).toBe(callsAfterLoop);
+
+      // 가장 오래된 문서는 windowCache에서 퇴출되어 재계산되어야 함
+      await service.generateWindowEmbeddings('unique document number 0');
+      expect(modelFn.mock.calls.length).toBe(callsAfterLoop + 2);
+    });
   });
 });
