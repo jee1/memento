@@ -17,6 +17,7 @@
 - CI: 모든 워크플로에 최상위 `permissions` 를 두어 기본 토큰을 `contents: read` 로 낮춥니다. relation-engine 워크플로의 미고정 `sqlite-vec` 전역 설치와 `latest` 바이너리 다운로드를 없앱니다.
 - `docker/docker-compose.prod.yml`(`scripts/deploy.sh`)도 MCP 포트와 nginx 를 기본으로 루프백에만 게시합니다. LAN 노출이 필요하면 `MCP_PUBLISH_HOST=0.0.0.0` 을 두고 토큰과 TLS 를 함께 설정하세요.
 - agent 에 묶인 API 토큰은 `ownerId`, `agentId`, `context.owner_id` 같은 변형 키로도 다른 owner 를 지정할 수 없고, 텔레메트리는 항상 바인딩된 agent 로 기록됩니다. 전에는 `get_telemetry_summary` 로 다른 owner 의 검색 품질 집계를 볼 수 있었습니다.
+- log-issue-monitor: 기본값을 dry-run 으로 바꾸고, 이슈 발췌에서 질의문, 내용, source 같은 사용자 입력 필드를 지웁니다. 전에는 공개 저장소 이슈에 recall 질의문이 그대로 실릴 수 있었습니다.
 
 ## [2.3.2] - 2026-10-26
 

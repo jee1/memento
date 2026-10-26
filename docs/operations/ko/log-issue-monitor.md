@@ -57,6 +57,10 @@ GITHUB_TOKEN=... docker compose \
 | `LOG_ISSUE_MONITOR_LABELS` | `bug,needs-triage,memento-log-monitor` | 생성/검색에 사용할 GitHub label |
 | `LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES` | `6000` | 저장/전송할 excerpt 최대 길이 |
 
+기본 dry-run 값은 `true`입니다. 이슈를 실제로 생성하려면 `GITHUB_TOKEN`과 함께 `LOG_ISSUE_MONITOR_DRY_RUN=false`를 명시하세요.
+이슈 본문에서 사용자 입력 필드(query, content, source 등)는 `[omitted]`로 바뀝니다.
+이슈 대상은 공개 저장소 대신 비공개 저장소를 사용하세요.
+
 ## 컨테이너 메모리 상한
 
 Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다. `docker/docker-compose.mem-limits.yml` 오버레이로 cgroup 상한을 서비스별로 둡니다.

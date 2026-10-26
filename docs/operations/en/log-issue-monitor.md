@@ -57,6 +57,10 @@ When an open issue already contains the same fingerprint, the monitor updates on
 | `LOG_ISSUE_MONITOR_LABELS` | `bug,needs-triage,memento-log-monitor` | GitHub labels used for create/search |
 | `LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES` | `6000` | Maximum stored/sent excerpt length |
 
+Dry-run now defaults to `true`. To create issues, explicitly set `LOG_ISSUE_MONITOR_DRY_RUN=false` along with `GITHUB_TOKEN`.
+User input fields (query, content, source, and others) in issue excerpts are replaced with `[omitted]`.
+Use a private repository for issues instead of a public repository.
+
 ## Container memory limits
 
 Docker Desktop may not expose sub-1GB per-container limits in the UI. Use the `docker/docker-compose.mem-limits.yml` overlay instead.
