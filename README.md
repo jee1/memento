@@ -95,6 +95,7 @@ const results = await client.callTool({
 - **하이브리드 검색**: FTS5 + 벡터, 태그 필터
 - **살아있는 기억**: 강화·망각·이웃 탐색·앵커
 - **절차 버전**: `procedural_diff` / `procedural_rollback`
+- **Case 지침 주입**: Claude Code 프롬프트마다 관련 지침만 고정 예산으로 주입 ([가이드](docs/guides/ko/case-directive-injection.md))
 - **그래프·대시보드**: HTTP 서버 기동 후 전체 관리 흐름은 `/dashboard`에서 여는 편이 가장 안전하며, `/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증 패널로 세션을 시작하거나 복구할 수 있습니다.
 
 망각 TTL·임베딩·보안 등 설정값은 README에 숫자를 두지 않습니다. [env.example](env.example)가 기준입니다.
