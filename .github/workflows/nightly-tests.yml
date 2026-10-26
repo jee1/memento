@@ -8,6 +8,9 @@ on:
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   CI: true
   NODE_ENV: test

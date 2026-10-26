@@ -11,6 +11,9 @@ on:
       - develop
 
 
+permissions:
+  contents: read
+
 env:
   # onnxruntime-node의 postinstall은 nuget.org에서 CUDA/TensorRT provider 바이너리를 받는다.
   # 러너에 GPU가 없어 쓰이지 않는데, 이 다운로드가 ETIMEDOUT으로 npm ci를 자주 깨뜨린다 (#890).
