@@ -83,6 +83,11 @@ function withHeader(server: McpServer, projectId: string): McpServer {
   return { ...server, headers: { ...server.headers, [HEADER]: projectId } };
 }
 
+function isTracked(ctx: Context, path: string): boolean {
+  if (!ctx.git(['rev-parse', '--git-dir'], ctx.root)) return false;
+  return Boolean(ctx.git(['ls-files', '--error-unmatch', relative(ctx.root, path)], ctx.root));
+}
+
 /** 저장소 파일에는 API key 가 들어가므로 커밋되지 않게 .git/info/exclude 에 올린다. */
 async function keepLocal(ctx: Context, path: string): Promise<void> {
   const rel = relative(ctx.root, path);
@@ -121,6 +126,14 @@ async function connectCursor(ctx: Context): Promise<ClientResult> {
     ?? (await readJson<McpJson>(join(ctx.home, '.cursor', 'mcp.json')))?.mcpServers?.memento;
   if (!base) return { client: 'cursor', path, status: 'skipped', reason: 'memento MCP server not configured' };
   if (base.headers?.[HEADER] === ctx.projectId) return { client: 'cursor', path, status: 'unchanged' };
+  if (isTracked(ctx, path)) {
+    return {
+      client: 'cursor',
+      path,
+      status: 'skipped',
+      reason: `${path} is tracked by git; refusing to write an API token into it. Untrack it or add the X-Memento-Project-Id header manually.`,
+    };
+  }
   if (!ctx.dryRun) {
     const next = { ...current, mcpServers: { ...current.mcpServers, memento: withHeader(base, ctx.projectId) } };
     await writeText(path, `${JSON.stringify(next, null, 2)}\n`);
@@ -176,6 +189,14 @@ async function connectCodex(ctx: Context): Promise<ClientResult> {
   }
   next = setCodexProjectHeader(next, ctx.projectId);
   if (next === current) return { client: 'codex', path, status: 'unchanged' };
+  if (isTracked(ctx, path)) {
+    return {
+      client: 'codex',
+      path,
+      status: 'skipped',
+      reason: `${path} is tracked by git; refusing to write an API token into it. Untrack it or add the X-Memento-Project-Id header manually.`,
+    };
+  }
   if (!ctx.dryRun) {
     await writeText(path, next);
     await keepLocal(ctx, path);

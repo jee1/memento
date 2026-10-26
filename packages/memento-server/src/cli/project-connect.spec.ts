@@ -93,4 +93,48 @@ describe('memento connect project', () => {
     expect(setCodexProjectHeader(text, 'new'))
       .toBe('[mcp_servers.memento.http_headers]\n"X-Memento-Project-Id" = "new"\nX-API-Key = "k"\n');
   });
+
+  it('skips cursor config when .cursor/mcp.json is tracked by git', async () => {
+    const { root, output, deps } = await fixture();
+    const cursorPath = join(root, '.cursor', 'mcp.json');
+    await mkdir(join(root, '.cursor'), { recursive: true });
+    await writeFile(cursorPath, '{"mcpServers":{}}\n', 'utf8');
+    const git = (args: readonly string[], _cwd: string): string | undefined => {
+      if (args[0] === 'rev-parse' && args[1] === '--show-toplevel') return root;
+      if (args[0] === 'rev-parse' && args[1] === '--git-dir') return '.git';
+      if (args[0] === 'ls-files' && args[1] === '--error-unmatch' && args[2] === '.cursor/mcp.json') {
+        return '.cursor/mcp.json';
+      }
+      return undefined;
+    };
+
+    expect(await runProjectConnect([], { ...deps, git })).toBe(0);
+    const result = JSON.parse(output.at(-1)!);
+    const cursorResult = result.clients.find((c: { client: string }) => c.client === 'cursor');
+    expect(cursorResult.status).toBe('skipped');
+    expect(cursorResult.reason).toContain('is tracked by git');
+    expect(await readFile(cursorPath, 'utf8')).toBe('{"mcpServers":{}}\n');
+  });
+
+  it('skips codex config when .codex/config.toml is tracked by git', async () => {
+    const { root, output, deps } = await fixture();
+    const codexPath = join(root, '.codex', 'config.toml');
+    await mkdir(join(root, '.codex'), { recursive: true });
+    await writeFile(codexPath, 'model = "team"\n', 'utf8');
+    const git = (args: readonly string[], _cwd: string): string | undefined => {
+      if (args[0] === 'rev-parse' && args[1] === '--show-toplevel') return root;
+      if (args[0] === 'rev-parse' && args[1] === '--git-dir') return '.git';
+      if (args[0] === 'ls-files' && args[1] === '--error-unmatch' && args[2] === '.codex/config.toml') {
+        return '.codex/config.toml';
+      }
+      return undefined;
+    };
+
+    expect(await runProjectConnect([], { ...deps, git })).toBe(0);
+    const result = JSON.parse(output.at(-1)!);
+    const codexResult = result.clients.find((c: { client: string }) => c.client === 'codex');
+    expect(codexResult.status).toBe('skipped');
+    expect(codexResult.reason).toContain('is tracked by git');
+    expect(await readFile(codexPath, 'utf8')).toBe('model = "team"\n');
+  });
 });

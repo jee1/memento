@@ -137,6 +137,7 @@ claude mcp add --scope local --transport http memento http://localhost:9001/mcp 
 ```
 
 Run `memento connect project` inside a repository to write this header to the Claude Code (local scope), Codex (`.codex/config.toml`) and Cursor (`.cursor/mcp.json`) configs at once. The project name comes from `--project-id`, then `MEMENTO_PROJECT_ID`, then the repository folder name. URL and API key are copied from each client's global memento config; a client with no global config is reported as `skipped`. Repo files hold the API key, so they are added to `.git/info/exclude` unless git already ignores them. `--dry-run` writes nothing.
+If `.cursor/mcp.json` or `.codex/config.toml` is already tracked by git, it is reported as `skipped` and left untouched so an API token is not staged for commit.
 
 ```bash
 cd ~/git/my-repo && memento connect project            # project_id = my-repo
