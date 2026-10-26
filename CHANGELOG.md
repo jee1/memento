@@ -17,6 +17,7 @@
 
 - agent 에 묶인 API 토큰은 `introspection_heal`, `cleanup_memory`, `migrate_embeddings` 를 호출할 수 없습니다. 이 도구들은 owner 를 보지 않고 DB 전체에 작용해, 묶인 토큰이 다른 agent 의 기억을 soft-delete 하거나 강등할 수 있었습니다.
 - WebSocket `anchor_map_updates` 구독은 묶인 토큰이면 자기 agent 로 고정됩니다. 다른 `agent_id` 를 주면 오류를 돌려줍니다. 전에는 다른 agent 의 anchor map(기억 내용 일부)을 받을 수 있었습니다.
+- 릴리스 워크플로: `mcp-publisher` 를 버전(v1.8.1)과 sha256 으로 고정하고 MCP 레지스트리 게시를 `contents: read` 인 별도 job 으로 분리합니다. 워크플로 기본 권한은 비우고 action 은 commit SHA 로 고정합니다.
 
 ## [2.3.1] - 2026-10-25
 

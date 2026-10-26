@@ -14,9 +14,7 @@ on:
           - "false"
           - "true"
 
-permissions:
-  contents: write
-  id-token: write # MCP 공식 레지스트리 OIDC 인증용 (#763)
+permissions: {}
 
 
 env:
@@ -28,10 +26,16 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      npm_tag: ${{ steps.version.outputs.npm_tag }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -91,7 +95,7 @@ jobs:
       # 토큰 없이 발행하는 지금은 그 줄이 빈 자격증명으로 남아 OIDC 교환을 막을 수 있고,
       # npmjs 는 npm 의 기본 레지스트리라 따로 지정할 이유도 없다 (#1027).
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           cache: "npm"
@@ -363,7 +367,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.check_release.outputs.tag_name }}
           name: ${{ steps.release_body.outputs.name }}
@@ -379,6 +383,19 @@ jobs:
           echo "ℹ️ Release already exists for tag ${{ steps.check_release.outputs.tag_name }}. Skipping creation."
           echo "✅ npm package published successfully!"
 
+  mcp-registry:
+    needs: release
+    if: needs.release.outputs.npm_tag == 'latest'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.1
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       # MCP 공식 레지스트리 등재 (#763)
       # 정식 릴리스만 등재한다 (pre-release는 npm dist-tag next로만 배포).
       # 레지스트리는 메타데이터만 보관하므로 npm publish 이후에 실행해야 하고,
@@ -387,11 +404,10 @@ jobs:
       # 실측 전파 시간은 약 4분인데 mcp-publisher 재시도 창은 60초뿐이라 사실상 매번 부족하다.
       # 여기서 먼저 기다리면 "전파 미완"과 "레지스트리의 진짜 거절"이 로그에서 갈린다.
       - name: Wait for npm propagation
-        if: steps.version.outputs.npm_tag == 'latest'
         run: |
           set -euo pipefail
           PKG="$(node -p "require('./package.json').name")"
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ needs.release.outputs.version }}"
           DEADLINE=$((SECONDS + 600))
           while :; do
             STATUS="$(curl -sS -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/${PKG}/${VERSION}" || true)"
@@ -411,10 +427,9 @@ jobs:
           done
 
       - name: Sync server.json version (MCP Registry)
-        if: steps.version.outputs.npm_tag == 'latest'
         run: |
           set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ needs.release.outputs.version }}"
           if [ -z "$VERSION" ]; then
             echo "E_MCP_REGISTRY_VERSION: version output is empty"
             exit 1
@@ -424,14 +439,14 @@ jobs:
           cat server.json
 
       - name: Install mcp-publisher
-        if: steps.version.outputs.npm_tag == 'latest'
         run: |
           set -euo pipefail
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          curl -fsSL -o mcp-publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
           ./mcp-publisher --help >/dev/null
 
       - name: Publish to MCP Registry
-        if: steps.version.outputs.npm_tag == 'latest'
         run: |
           set -euo pipefail
           ./mcp-publisher login github-oidc
