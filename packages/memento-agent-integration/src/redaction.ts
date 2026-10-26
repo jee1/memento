@@ -33,6 +33,7 @@ const KEY_RULES: Array<[RegExp, RedactionRule]> = [
   [/(?:^|_)credential(?:s)?(?:$|_)/i, 'CREDENTIAL'],
 ];
 const NON_SECRET_CONTROL_KEYS = new Set(['token_budget']);
+const IDENTIFIER_KEY = /(?:^|_)(?:id|sha256|hash)$/i;
 const INLINE_ASSIGNMENT_RULES: Array<[RedactionRule, RegExp]> = [
   ['API_KEY', /(\bapi(?:[_-]|\s)?key\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
   ['TOKEN', /(\b(?:(?:access|auth)(?:[_-]|\s)?)?token\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
@@ -41,6 +42,11 @@ const INLINE_ASSIGNMENT_RULES: Array<[RedactionRule, RegExp]> = [
   ['CREDENTIAL', /(\b(?:credentials?|client(?:[_-]|\s)?secret)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
 ];
 const INLINE_RULES: Array<[RedactionRule, RegExp]> = [
+  ['API_KEY', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g],
+  ['TOKEN', /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g],
+  ['TOKEN', /\bxox[abposr]-[A-Za-z0-9-]{10,}/g],
+  ['API_KEY', /\bAIza[0-9A-Za-z_-]{35}\b/g],
+  ['HIGH_ENTROPY_SECRET', /\b(?:[0-9a-f]{32,}|[0-9A-F]{32,})\b/g],
   ['API_KEY', /\b(?:sk|pk)(?:[_-](?:live|test|proj))?[_-][A-Za-z0-9_-]{16,}\b/g],
   ['TOKEN', /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g],
   ['EMAIL', /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi],
@@ -110,6 +116,7 @@ function redactValue(
       return `[REDACTED:${keyRule}]`;
     }
   }
+  if (typeof value === 'string' && key && IDENTIFIER_KEY.test(key)) return value;
   if (typeof value === 'string') return redactString(value, counts);
   if (Array.isArray(value)) return value.map((item) => redactValue(item, counts));
   if (typeof value === 'object' && value !== null) {

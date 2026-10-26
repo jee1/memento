@@ -76,6 +76,75 @@ describe('fail-closed redaction', () => {
     expect(result.metadata).toContainEqual({ rule: 'API_KEY', count: 1 });
   });
 
+  it.each([
+    ['AKIAABCDEFGHIJKLMNOP', 'API_KEY'],
+    ['ASIA0123456789ABCDEF', 'API_KEY'],
+    [`ghp_${'a'.repeat(36)}`, 'TOKEN'],
+    [`xoxb-${'0'.repeat(12)}`, 'TOKEN'],
+    [`AIza${'a'.repeat(35)}`, 'API_KEY'],
+    ['a'.repeat(32), 'HIGH_ENTROPY_SECRET'],
+    ['F'.repeat(32), 'HIGH_ENTROPY_SECRET'],
+  ] as const)('redacts standalone credential format (%s -> %s)', (rawSecret, rule) => {
+    const result = redactAgentEvent(eventFixture('USER_PROMPT', {
+      payload: {
+        content: `Observed ${rawSecret} in output`,
+        content_format: 'text',
+      },
+    }));
+
+    expect(result.action).toBe('REDACTED');
+    expect(JSON.stringify(result)).not.toContain(rawSecret);
+    const ruleEntry = result.metadata.find((entry) => entry.rule === rule);
+    expect(ruleEntry?.count ?? 0).toBeGreaterThanOrEqual(1);
+  });
+
+  it('leaves ordinary prose and short hex strings untouched', () => {
+    const shortHex = 'a'.repeat(31);
+    const content = `the quick brown fox ${shortHex}`;
+    const result = redactAgentEvent(eventFixture('USER_PROMPT', {
+      payload: {
+        content,
+        content_format: 'text',
+      },
+    }));
+
+    expect(result.action).toBe('ACCEPTED');
+    if (result.action !== 'DROPPED') {
+      expect(result.event.payload).toMatchObject({ content });
+    }
+  });
+
+  it('preserves hex digests in identifier keys while redacting hex secrets in payload content', () => {
+    const eventId = `claude-userpromptsubmit-${'0123456789abcdef'.repeat(2)}`;
+    const clean = redactAgentEvent(eventFixture('USER_PROMPT', {
+      event_id: eventId,
+      payload: {
+        content: 'remember this',
+        content_format: 'text',
+      },
+    }));
+
+    expect(clean.action).toBe('ACCEPTED');
+    if (clean.action !== 'DROPPED') {
+      expect(clean.event.event_id).toBe(eventId);
+    }
+
+    const bodySecret = 'deadbeef'.repeat(8);
+    const withHexSecret = redactAgentEvent(eventFixture('USER_PROMPT', {
+      event_id: eventId,
+      payload: {
+        content: `token ${bodySecret}`,
+        content_format: 'text',
+      },
+    }));
+
+    expect(withHexSecret.action).toBe('REDACTED');
+    if (withHexSecret.action !== 'DROPPED') {
+      expect(withHexSecret.event.event_id).toBe(eventId);
+      expect(JSON.stringify(withHexSecret.event.payload)).not.toContain(bodySecret);
+    }
+  });
+
   it('preserves the pre-compact token budget control field', () => {
     const result = redactAgentEvent(eventFixture('PRE_COMPACT', {
       payload: {

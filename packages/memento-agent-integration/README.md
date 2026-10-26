@@ -11,6 +11,7 @@
 
 `capture()`는 로컬 처리와 enqueue만 수행한다. 네트워크 전송은 `drain()`으로 분리되어
 에이전트 hook 반환을 차단하지 않는다.
+저장 전 마스킹은 AWS access key id, GitHub, Slack, Google API 토큰과 32자 이상 16진수 문자열도 가린다.
 
 ## Codex
 
