@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.3.2] - 2026-10-26
+
+agent 에 묶인 API 토큰이 다른 agent 의 기억에 닿던 경로 두 곳을 막습니다. 여러 agent 에 토큰을 따로 묶어 쓰는 배포는 업그레이드를 권합니다. 릴리스 워크플로의 외부 바이너리와 action 을 고정해 공급망 노출을 줄이고, Claude Code hook 에 `case` 지침 주입을 더합니다.
+
 ### Added
 
 - Claude Code hook: `MEMENTO_DIRECTIVES=1` 로 UserPromptSubmit 마다 `case` 태그 기억을 recall해 `additionalContext` 로 주입합니다(#1486). 기본 `shadow` 는 로그만 남기고, `live` 로 올리면 주입합니다. 세션 안 중복은 append-only jsonl 로그로 거르고 PreCompact 에서 초기화합니다. 3.5초 마감을 넘기거나 서버가 없으면 빈 출력과 fallback 로그 한 줄로 끝납니다. 설정은 [agent-integration README](./packages/memento-agent-integration/README.md#case-지침-주입-userpromptsubmit) 를 보세요.
