@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Security
+
+- CLI: `memento connect project` 는 git 이 이미 추적하는 `.cursor/mcp.json`, `.codex/config.toml` 에 API 토큰이 든 설정을 쓰지 않고 건너뜁니다. 전에는 `.git/info/exclude` 만 갱신해 추적 중인 파일이면 다음 커밋에 토큰이 실릴 수 있었습니다.
+
 ## [2.3.2] - 2026-10-26
 
 agent 에 묶인 API 토큰이 다른 agent 의 기억에 닿던 경로 두 곳을 막습니다. 여러 agent 에 토큰을 따로 묶어 쓰는 배포는 업그레이드를 권합니다. 릴리스 워크플로의 외부 바이너리와 action 을 고정해 공급망 노출을 줄이고, Claude Code hook 에 `case` 지침 주입을 더합니다.

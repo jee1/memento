@@ -137,6 +137,7 @@ claude mcp add --scope local --transport http memento http://localhost:9001/mcp 
 ```
 
 `memento connect project` 를 저장소 안에서 실행하면 이 헤더를 Claude Code(local scope)·Codex(`.codex/config.toml`)·Cursor(`.cursor/mcp.json`) 설정에 한 번에 씁니다. 프로젝트 이름은 `--project-id` → `MEMENTO_PROJECT_ID` → 저장소 폴더명 순입니다. URL·API key 는 각 클라이언트의 전역 memento 설정에서 복사하고, 전역 설정이 없는 클라이언트는 `skipped` 로 건너뜁니다. 저장소 파일에는 API key 가 들어가므로 git 이 무시하지 않으면 `.git/info/exclude` 에 추가합니다. `--dry-run` 은 아무것도 쓰지 않습니다.
+이미 git 이 추적하는 `.cursor/mcp.json` 이나 `.codex/config.toml` 은 API 토큰이 커밋되지 않도록 쓰지 않고 `skipped` 로 건너뜁니다.
 
 ```bash
 cd ~/git/my-repo && memento connect project            # project_id = my-repo
