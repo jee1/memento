@@ -120,6 +120,14 @@ describe('auditActionForTool and assertToolScope units', () => {
     expect(() => assertToolScope('remember', ['tools:read', 'tools:write'])).not.toThrow();
     expect(() => assertToolScope('forget', ['tools:read', 'tools:write'])).not.toThrow();
   });
+
+  it('rejects operator-only tools when boundAgentId is set', () => {
+    expect(() => assertToolScope('introspection_heal', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
+    expect(() => assertToolScope('cleanup_memory', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
+    expect(() => assertToolScope('migrate_embeddings', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
+    expect(() => assertToolScope('introspection_heal', ['tools:invoke'])).not.toThrow();
+    expect(() => assertToolScope('recall', ['tools:invoke'], 'agent-b')).not.toThrow();
+  });
 });
 
 describe('granular-tool-scopes HTTP integration', () => {

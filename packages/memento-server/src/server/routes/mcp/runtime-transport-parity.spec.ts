@@ -428,4 +428,39 @@ describe('runtime transport parity (all four tool wrappers)', () => {
     expect(new AuditHashChainService(ctx.db).list({ transport: 'mcp_ws' }))
       .not.toEqual(expect.arrayContaining([expect.objectContaining({ toolOrEndpoint: 'forget' })]));
   });
+
+  it('pins WebSocket anchor_map_updates subscription to boundAgentId and rejects mismatched agent_id', async () => {
+    const wss = new FakeWebSocketServer();
+    const subscribers = new Map<string, Set<WebSocket>>();
+    setupWebSocketServer(
+      wss as unknown as WebSocketServer,
+      subscribers,
+      () => ctx.db,
+      () => ctx.services,
+      () => 'agent-b',
+    );
+    const ws = new FakeWebSocket();
+    wss.emit('connection', ws as unknown as WebSocket);
+
+    ws.emit('message', Buffer.from(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'subscribe',
+      params: { type: 'anchor_map_updates', agent_id: 'agent-a' },
+    })));
+    const firstResponse = await waitForMessage(ws);
+    expect(firstResponse.error).toBeDefined();
+    expect(subscribers.get('agent-a')?.has(ws as unknown as WebSocket) ?? false).toBe(false);
+
+    ws.sent.length = 0;
+    ws.emit('message', Buffer.from(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'subscribe',
+      params: { type: 'anchor_map_updates' },
+    })));
+    const secondResponse = await waitForMessage(ws);
+    expect((secondResponse.result as { agent_id?: string }).agent_id).toBe('agent-b');
+    expect(subscribers.get('agent-b')?.has(ws as unknown as WebSocket)).toBe(true);
+  });
 });

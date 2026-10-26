@@ -13,6 +13,11 @@
 
 - Claude Code hook: `MEMENTO_DIRECTIVES=1` 로 UserPromptSubmit 마다 `case` 태그 기억을 recall해 `additionalContext` 로 주입합니다(#1486). 기본 `shadow` 는 로그만 남기고, `live` 로 올리면 주입합니다. 세션 안 중복은 append-only jsonl 로그로 거르고 PreCompact 에서 초기화합니다. 3.5초 마감을 넘기거나 서버가 없으면 빈 출력과 fallback 로그 한 줄로 끝납니다. 설정은 [agent-integration README](./packages/memento-agent-integration/README.md#case-지침-주입-userpromptsubmit) 를 보세요.
 
+### Security
+
+- agent 에 묶인 API 토큰은 `introspection_heal`, `cleanup_memory`, `migrate_embeddings` 를 호출할 수 없습니다. 이 도구들은 owner 를 보지 않고 DB 전체에 작용해, 묶인 토큰이 다른 agent 의 기억을 soft-delete 하거나 강등할 수 있었습니다.
+- WebSocket `anchor_map_updates` 구독은 묶인 토큰이면 자기 agent 로 고정됩니다. 다른 `agent_id` 를 주면 오류를 돌려줍니다. 전에는 다른 agent 의 anchor map(기억 내용 일부)을 받을 수 있었습니다.
+
 ## [2.3.1] - 2026-10-25
 
 관계 추출이 이모지가 든 기억에서 실패하던 문제와 그래프에 삭제한 기억이 남던 문제를 고칩니다. recall, remember, 검색, 관계 후보 조회, 임베딩 경로의 중복 쿼리와 중복 계산을 걷어냅니다.
