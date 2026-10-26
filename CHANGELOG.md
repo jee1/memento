@@ -12,6 +12,7 @@
 ### Security
 
 - CLI: `memento connect project` 는 git 이 이미 추적하는 `.cursor/mcp.json`, `.codex/config.toml` 에 API 토큰이 든 설정을 쓰지 않고 건너뜁니다. 전에는 `.git/info/exclude` 만 갱신해 추적 중인 파일이면 다음 커밋에 토큰이 실릴 수 있었습니다.
+- agent 에 묶인 API 토큰은 `get_introspection_summary`, `forgetting_stats`, `performance_stats` 도 호출할 수 없습니다. 앞의 도구는 다른 agent 의 기억 id 를 돌려줬습니다.
 
 ## [2.3.2] - 2026-10-26
 
