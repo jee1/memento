@@ -90,7 +90,16 @@ export function setupWebSocketServer(
         message = JSON.parse(data.toString()) as WebSocketMessage;
 
         if (message.method === 'subscribe' && message.params?.type === 'anchor_map_updates') {
-          const agentId = typeof message.params.agent_id === 'string' ? message.params.agent_id : 'default';
+          const requested = typeof message.params.agent_id === 'string' ? message.params.agent_id : undefined;
+          if (boundAgentId && requested !== undefined && requested !== 'default' && requested !== boundAgentId) {
+            ws.send(JSON.stringify({
+              jsonrpc: '2.0',
+              id: message.id,
+              error: { code: -32602, message: 'Invalid params', data: 'agent_id does not match the token-bound agent' },
+            }));
+            return;
+          }
+          const agentId = boundAgentId ?? requested ?? 'default';
           if (!anchorMapSubscribers.has(agentId)) {
             anchorMapSubscribers.set(agentId, new Set<WebSocket>());
           }
