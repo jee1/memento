@@ -17,6 +17,7 @@ Memento를 처음 켜 보려면, 아래 **시작하기** 문서부터 읽는 것
 | 사용자 매뉴얼 | [user-manual.md](guides/ko/user-manual.md) | [user-manual.md](guides/en/user-manual.md) |
 | Cursor / MCP 설정 | [cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | [memento-cli-for-ai.md](guides/en/memento-cli-for-ai.md) |
+| Case 지침 주입 (Claude Code) | [case-directive-injection.md](guides/ko/case-directive-injection.md) | [case-directive-injection.md](guides/en/case-directive-injection.md) |
 | type 파라미터 롤아웃 | [type-param-rollout.md](guides/ko/type-param-rollout.md) | [type-param-rollout.md](guides/en/type-param-rollout.md) |
 
 ### 연동·레퍼런스
