@@ -124,6 +124,35 @@ describe('tool dispatch audit', () => {
     ]);
   });
 
+  it('rejects operator-only tools before execution when boundAgentId is set', async () => {
+    let callCount = 0;
+    const dispatch = auditDispatch.createToolDispatcher({
+      execute: async () => {
+        callCount += 1;
+        return { content: [] };
+      },
+    });
+    const services = {} as ServerServices;
+
+    await expect(
+      dispatch('introspection_heal', { dry_run: false }, db, services, {
+        transport: 'mcp_http',
+        agentId: 'agent-b',
+        boundAgentId: 'agent-b',
+        scopes: ['tools:invoke'],
+      }),
+    ).rejects.toThrow();
+    expect(callCount).toBe(0);
+
+    await expect(
+      dispatch('introspection_heal', { dry_run: false }, db, services, {
+        transport: 'mcp_http',
+        scopes: ['tools:invoke'],
+      }),
+    ).resolves.toEqual({ content: [] });
+    expect(callCount).toBe(1);
+  });
+
   it('maps memory version conflict to JSON-RPC -32009 for HTTP 409 (#1093)', () => {
     const mapped = auditDispatch.mapToolDispatchError(
       MemoryVersionConflictError.forMemory('mem-cas-1', 1, 2),
