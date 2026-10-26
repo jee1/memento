@@ -20,7 +20,14 @@ import type Database from 'better-sqlite3';
 import { mapToolExecutionErrorToJsonRpc } from './utils/mcp-tool-call-error.js';
 import { OWNER_FILTER_TOOLS } from './owner-filter-tools.js';
 
-const OPERATOR_ONLY_TOOLS: ReadonlySet<string> = new Set(['introspection_heal', 'cleanup_memory', 'migrate_embeddings']);
+const OPERATOR_ONLY_TOOLS: ReadonlySet<string> = new Set([
+  'introspection_heal',
+  'cleanup_memory',
+  'migrate_embeddings',
+  'get_introspection_summary',
+  'forgetting_stats',
+  'performance_stats',
+]);
 
 export type ToolAuditContext = {
   transport: AuditTransport;

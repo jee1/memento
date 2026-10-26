@@ -122,6 +122,12 @@ describe('auditActionForTool and assertToolScope units', () => {
   });
 
   it('rejects operator-only tools when boundAgentId is set', () => {
+    expect(() => assertToolScope('get_introspection_summary', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
+    expect(() => assertToolScope('get_introspection_summary', ['tools:invoke'])).not.toThrow();
+    expect(() => assertToolScope('forgetting_stats', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
+    expect(() => assertToolScope('forgetting_stats', ['tools:invoke'])).not.toThrow();
+    expect(() => assertToolScope('performance_stats', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
+    expect(() => assertToolScope('performance_stats', ['tools:invoke'])).not.toThrow();
     expect(() => assertToolScope('introspection_heal', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
     expect(() => assertToolScope('cleanup_memory', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
     expect(() => assertToolScope('migrate_embeddings', ['tools:invoke'], 'agent-b')).toThrow(ToolScopeForbiddenError);
