@@ -124,6 +124,44 @@ describe('tool dispatch audit', () => {
     ]);
   });
 
+  it('rejects mismatched camelCase ownerId and allows matching ownerId when boundAgentId is set', async () => {
+    const dispatch = auditDispatch.createToolDispatcher({
+      execute: async () => ({ content: [] }),
+    });
+    const services = {} as ServerServices;
+
+    await expect(
+      dispatch('get_telemetry_summary', { ownerId: 'agent-a' }, db, services, {
+        transport: 'mcp_http',
+        agentId: 'agent-b',
+        boundAgentId: 'agent-b',
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      dispatch('get_telemetry_summary', { ownerId: 'agent-b' }, db, services, {
+        transport: 'mcp_http',
+        agentId: 'agent-b',
+        boundAgentId: 'agent-b',
+      }),
+    ).resolves.toEqual({ content: [] });
+  });
+
+  it('rejects mismatched nested context.owner_id when boundAgentId is set', async () => {
+    const dispatch = auditDispatch.createToolDispatcher({
+      execute: async () => ({ content: [] }),
+    });
+    const services = {} as ServerServices;
+
+    await expect(
+      dispatch('get_telemetry_summary', { context: { owner_id: 'agent-a' } }, db, services, {
+        transport: 'mcp_http',
+        agentId: 'agent-b',
+        boundAgentId: 'agent-b',
+      }),
+    ).rejects.toThrow();
+  });
+
   it('rejects operator-only tools before execution when boundAgentId is set', async () => {
     let callCount = 0;
     const dispatch = auditDispatch.createToolDispatcher({

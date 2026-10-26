@@ -136,6 +136,7 @@ function telemetryParamsContext(params: unknown): Record<string, unknown> | null
 
 /** 스펙 순서: params.owner_id → params.ownerId → input.context?.owner_id → input.context?.agent_id → ToolContext.agentId */
 function resolveTelemetryOwnerId(context: ToolContext, params: unknown): string | null {
+  if (context.boundAgentId) return context.boundAgentId;
   if (params && typeof params === 'object' && !Array.isArray(params)) {
     const p = params as Record<string, unknown>;
     const top = p.owner_id ?? p.ownerId;
