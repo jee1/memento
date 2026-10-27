@@ -172,6 +172,17 @@ function coverageInput(name: string, args: unknown, context: ToolAuditContext) {
   };
 }
 
+function assertBoundAgentFields(record: Record<string, unknown>, boundAgentId: string): void {
+  for (const key of ['owner_id', 'agent_id', 'ownerId', 'agentId']) {
+    const value = record[key];
+    if (value === undefined || value === null) continue;
+    const values: unknown[] = Array.isArray(value) ? value : [value];
+    if (values.some((v) => v !== boundAgentId)) {
+      throw new ToolInputValidationError(`${key} must match the agent bound to this API token.`);
+    }
+  }
+}
+
 /**
  * 토큰에 묶인 agent 는 owner_id·agent_id 인자로 다른 agent 를 지정할 수 없고,
  * owner_id 를 비우면 자기 기억만 읽는다. 모든 transport 가 이 경계를 지난다.
@@ -189,13 +200,9 @@ export function scopeArgsToBoundAgent(
   const record = args && typeof args === 'object' && !Array.isArray(args) ? (args as Record<string, unknown>) : {};
 
   if (boundAgentId) {
-    for (const key of ['owner_id', 'agent_id']) {
-      const value = record[key];
-      if (value === undefined || value === null) continue;
-      const values: unknown[] = Array.isArray(value) ? value : [value];
-      if (values.some((v) => v !== boundAgentId)) {
-        throw new ToolInputValidationError(`${key} must match the agent bound to this API token.`);
-      }
+    assertBoundAgentFields(record, boundAgentId);
+    if (record.context && typeof record.context === 'object' && !Array.isArray(record.context)) {
+      assertBoundAgentFields(record.context as Record<string, unknown>, boundAgentId);
     }
     if (OWNER_FILTER_TOOLS.has(name) && record.owner_id == null) {
       result = { ...record, owner_id: boundAgentId };
