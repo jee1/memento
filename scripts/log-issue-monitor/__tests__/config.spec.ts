@@ -14,7 +14,7 @@ describe('loadMonitorConfig', () => {
     expect(config.intervalSeconds).toBe(30);
     expect(config.warnThreshold).toBe(3);
     expect(config.warnWindowSeconds).toBe(600);
-    expect(config.dryRun).toBe(false);
+    expect(config.dryRun).toBe(true);
     expect(config.labels).toEqual(['bug', 'needs-triage', 'memento-log-monitor']);
     expect(config.logsRoot).toBe(expectedLogs);
     expect(config.stateDir).toBe(join(expectedLogs, 'log-issue-monitor'));
@@ -71,7 +71,7 @@ describe('loadMonitorConfig', () => {
       LOG_ISSUE_MONITOR_INCLUDE_STACK: 'maybe',
     });
 
-    expect(config.dryRun).toBe(false);
+    expect(config.dryRun).toBe(true);
     expect(config.includeStack).toBe(true);
   });
 });

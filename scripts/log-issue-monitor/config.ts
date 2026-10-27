@@ -40,7 +40,7 @@ export function loadMonitorConfig(env: NodeJS.ProcessEnv = process.env): Monitor
     intervalSeconds: numberFromEnv(env.LOG_ISSUE_MONITOR_INTERVAL_SECONDS, 30),
     warnThreshold: numberFromEnv(env.LOG_ISSUE_MONITOR_WARN_THRESHOLD, 3),
     warnWindowSeconds: numberFromEnv(env.LOG_ISSUE_MONITOR_WARN_WINDOW_SECONDS, 600),
-    dryRun: booleanFromEnv(env.LOG_ISSUE_MONITOR_DRY_RUN, false),
+    dryRun: booleanFromEnv(env.LOG_ISSUE_MONITOR_DRY_RUN, true),
     labels: labelsFromEnv(env.LOG_ISSUE_MONITOR_LABELS),
     maxExcerptBytes: numberFromEnv(env.LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES, 6000),
     includeStack: booleanFromEnv(env.LOG_ISSUE_MONITOR_INCLUDE_STACK, true),
