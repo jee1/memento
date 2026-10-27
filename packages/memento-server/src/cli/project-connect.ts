@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 
@@ -76,7 +76,8 @@ async function readJson<T>(path: string): Promise<T | undefined> {
 
 async function writeText(path: string, text: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, text, 'utf8');
+  await writeFile(path, text, { encoding: 'utf8', mode: 0o600 });
+  await chmod(path, 0o600);
 }
 
 function withHeader(server: McpServer, projectId: string): McpServer {

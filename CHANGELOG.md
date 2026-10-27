@@ -27,6 +27,10 @@
 
 - 절차 기억의 암시적 갱신 대상을 호출자의 owner·project로 제한하고, 일반 갱신에서도 같은 쓰기 경계를 검증합니다.
 - recall의 절차 버전 비교와 버전 목록에 소유자 검증을 적용하고 삭제된 비교 대상을 제외합니다.
+- 설치형 CLI는 작업 디렉터리 `.env`를 기본으로 읽지 않습니다. `--env-file`, `--config-dir`, `MEMENTO_CONFIG_DIR`, `~/.memento/.env`만 읽습니다.
+- `doctor`, `status`, `demo`의 원격 HTTP(S) 주소는 `--endpoint`를 넘긴 경우에만 사용합니다.
+- 루프백(`127.0.0.1`, `::1`, `localhost`)이 아닌 주소로는 `ADMIN_API_KEY`를 보내지 않습니다. `--api-key`와 `MEMENTO_API_KEY`는 그 주소에도 전송합니다.
+- `memento connect project`가 쓰는 `.cursor/mcp.json` 파일 모드는 0600입니다.
 
 ## [2.3.3] - 2026-10-27
 

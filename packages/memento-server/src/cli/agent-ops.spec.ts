@@ -1,3 +1,7 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -311,5 +315,172 @@ describe('agent operations CLI', () => {
     expect(authHeaders.every((headers) => headers.Authorization !== 'Bearer admin-key')).toBe(true);
 
     vi.unstubAllGlobals();
+  });
+
+  it('does not request env MEMENTO_ENDPOINT when --endpoint is absent', async () => {
+    const configDir = await mkdtemp(join(tmpdir(), 'memento-ops-empty-'));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const code = await runAgentOpsCommand('doctor', ['--json'], {
+        writeStdout: vi.fn(),
+        writeStderr: vi.fn(),
+        now: () => new Date('2026-06-07T00:00:00.000Z'),
+        randomId: () => 'fixed-id',
+        env: {
+          MEMENTO_ENDPOINT: 'https://remote.example',
+          MEMENTO_CONFIG_DIR: configDir,
+          ADMIN_API_KEY: 'admin-key',
+        },
+      });
+
+      expect(code).toBe(1);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+      await rm(configDir, { recursive: true, force: true });
+    }
+  });
+
+  it('uses the loopback server-info port when MEMENTO_ENDPOINT is set', async () => {
+    const configDir = await mkdtemp(join(tmpdir(), 'memento-ops-info-'));
+    await writeFile(join(configDir, 'server.json'), JSON.stringify({
+      port: 9,
+      pid: 1,
+      startedAt: '2026-06-07T00:00:00.000Z',
+    }));
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      text: async () => JSON.stringify({
+        status: 'healthy',
+        version: '1.17.0',
+        database: 'connected',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await runAgentOpsCommand('doctor', ['--json'], {
+        writeStdout: vi.fn(),
+        writeStderr: vi.fn(),
+        now: () => new Date('2026-06-07T00:00:00.000Z'),
+        randomId: () => 'fixed-id',
+        env: {
+          MEMENTO_ENDPOINT: 'https://remote.example',
+          MEMENTO_CONFIG_DIR: configDir,
+          ADMIN_API_KEY: 'admin-key',
+        },
+      });
+
+      const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(urls.length).toBeGreaterThan(0);
+      expect(urls.every((url) => url.startsWith('http://127.0.0.1:9/'))).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+      await rm(configDir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ['http://127.0.0.1:9', 'Bearer admin-key'],
+    ['http://localhost:9', 'Bearer admin-key'],
+    ['http://[::1]:9', 'Bearer admin-key'],
+    ['https://remote.example', undefined],
+    ['https://localhost.example', undefined],
+  ] as const)(
+    'Authorization for %s is %s when only ADMIN_API_KEY is set',
+    async (endpoint, authorization) => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        text: async () => JSON.stringify({
+          status: 'healthy',
+          version: '1.17.0',
+          database: 'connected',
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      try {
+        await runAgentOpsCommand('doctor', ['--json', '--endpoint', endpoint], {
+          writeStdout: vi.fn(),
+          writeStderr: vi.fn(),
+          now: () => new Date('2026-06-07T00:00:00.000Z'),
+          randomId: () => 'fixed-id',
+          env: { ADMIN_API_KEY: 'admin-key' },
+        });
+
+        expect(fetchMock).toHaveBeenCalled();
+        for (const [, init] of fetchMock.mock.calls) {
+          const headers = (init as RequestInit).headers as Record<string, string>;
+          expect(headers.Authorization).toBe(authorization);
+        }
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
+  it('sends MEMENTO_API_KEY to an explicit remote endpoint and omits ADMIN_API_KEY', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      text: async () => JSON.stringify({
+        status: 'healthy',
+        version: '1.17.0',
+        database: 'connected',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await runAgentOpsCommand('doctor', ['--json', '--endpoint', 'https://remote.example'], {
+        writeStdout: vi.fn(),
+        writeStderr: vi.fn(),
+        now: () => new Date('2026-06-07T00:00:00.000Z'),
+        randomId: () => 'fixed-id',
+        env: {
+          MEMENTO_API_KEY: 'operator-key',
+          ADMIN_API_KEY: 'admin-key',
+        },
+      });
+
+      expect(fetchMock).toHaveBeenCalled();
+      for (const [url, init] of fetchMock.mock.calls) {
+        expect(String(url).startsWith('https://remote.example/')).toBe(true);
+        const headers = (init as RequestInit).headers as Record<string, string>;
+        expect(headers.Authorization).toBe('Bearer operator-key');
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('sends --api-key to an explicit remote endpoint and omits ADMIN_API_KEY', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      text: async () => JSON.stringify({
+        status: 'healthy',
+        version: '1.17.0',
+        database: 'connected',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await runAgentOpsCommand(
+        'doctor',
+        ['--json', '--endpoint', 'https://remote.example', '--api-key', 'flag-key'],
+        {
+          writeStdout: vi.fn(),
+          writeStderr: vi.fn(),
+          now: () => new Date('2026-06-07T00:00:00.000Z'),
+          randomId: () => 'fixed-id',
+          env: { ADMIN_API_KEY: 'admin-key' },
+        },
+      );
+
+      expect(fetchMock).toHaveBeenCalled();
+      for (const [, init] of fetchMock.mock.calls) {
+        const headers = (init as RequestInit).headers as Record<string, string>;
+        expect(headers.Authorization).toBe('Bearer flag-key');
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

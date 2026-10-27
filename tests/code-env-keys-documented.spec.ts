@@ -116,7 +116,6 @@ const NOT_DOCUMENTED: Record<string, string> = {
   DB_TYPE: "저장소 팩토리 선택자. sqlite 만 구현돼 있고 'postgres' 는 미구현 오류를 던진다.",
   // CLI 클라이언트 쪽 — 서버 .env 가 아니라 CLI 를 부르는 셸에서 준다
   MEMENTO_API_KEY: 'agent-ops CLI 가 서버를 부를 때 쓰는 클라이언트 키. 서버 설정이 아니다.',
-  MEMENTO_ENDPOINT: 'agent-ops CLI 가 부를 서버 주소. 서버 설정이 아니다.',
   MEMENTO_CLI_QUIET: "agent-ask CLI 가 실행 중에 스스로 '1' 로 설정해 로그를 끈다.",
   MEMENTO_HTTP_SIDECAR: 'stdio 서버 전용. MCP 클라이언트 설정의 env 로 켠다 (docs/agents/commands.md). 컨테이너(sse)에는 의미가 없다.',
   // 우회·디버그 스위치 — 운영에서 켤 이유가 없다

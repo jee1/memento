@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, realpath, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -136,5 +136,29 @@ describe('memento connect project', () => {
     expect(codexResult.status).toBe('skipped');
     expect(codexResult.reason).toContain('is tracked by git');
     expect(await readFile(codexPath, 'utf8')).toBe('model = "team"\n');
+  });
+
+  it('writes .cursor/mcp.json with mode 0600 when umask would otherwise leave it wider', async () => {
+    const { root, deps } = await fixture();
+    const previous = process.umask(0);
+    try {
+      expect(await runProjectConnect([], deps)).toBe(0);
+      const mode = (await stat(join(root, '.cursor', 'mcp.json'))).mode & 0o777;
+      expect(mode).toBe(0o600);
+    } finally {
+      process.umask(previous);
+    }
+  });
+
+  it('narrows an existing .cursor/mcp.json to mode 0600', async () => {
+    const { root, deps } = await fixture();
+    const cursorPath = join(root, '.cursor', 'mcp.json');
+    await mkdir(join(root, '.cursor'), { recursive: true });
+    await writeFile(cursorPath, '{"mcpServers":{}}\n');
+    await chmod(cursorPath, 0o644);
+
+    expect(await runProjectConnect([], deps)).toBe(0);
+
+    expect((await stat(cursorPath)).mode & 0o777).toBe(0o600);
   });
 });
