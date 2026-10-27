@@ -39,13 +39,14 @@ export interface ClaudeHookRunOptions {
   timeoutMs?: number;
   maxRetries?: number;
   directives?: DirectiveDeps;
+  captureEnabled?: boolean;
 }
 
 export interface ClaudeHookRunResult {
   exitCode: 0;
   stdout: string;
   stderr: string;
-  capture: CaptureResult;
+  capture?: CaptureResult;
   dispatch?: DispatchResult;
   event?: AgentEventEnvelope;
 }

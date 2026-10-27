@@ -71,6 +71,7 @@ Register the wrapper under `UserPromptSubmit` and `PreCompact` in `~/.claude/set
 ```
 
 This hook also runs lifecycle capture, so the raw prompt is stored as an observation on the local server. [#1494](https://github.com/jee1/memento/issues/1494) tracks an option to turn capture off.
+To disable lifecycle capture and keep directive injection only, set `MEMENTO_CAPTURE=0` (#1494).
 
 ## 3. Review the shadow log
 

@@ -336,7 +336,7 @@ async function verifyLifecycle(adapter: AdapterName): Promise<LifecycleCheck[]> 
       event,
       normalized_event: result.event?.event_type,
       status: accepted ? 'pass' : 'fail',
-      reason_code: accepted ? 'NONE' : result.dispatch?.reason ?? result.capture.reason,
+      reason_code: accepted ? 'NONE' : result.dispatch?.reason ?? result.capture?.reason ?? 'SERVER_UNAVAILABLE',
     });
   }
   return checks;

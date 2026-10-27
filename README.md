@@ -32,6 +32,7 @@ Memento는 그 인프라입니다. 단순 저장소가 아니라, 기억이 생�
 ```
 
 기억 DB는 `${CLAUDE_PLUGIN_DATA}/memory.db`에 두어 플러그인 업데이트 후에도 유지됩니다. `/plugin` 패널에서 `memento` MCP가 연결됐는지 확인해 주세요.
+`memento hook claude-code`에서 lifecycle 캡처를 끄고 지침 주입만 쓰려면 `MEMENTO_CAPTURE=0`으로 설정합니다 (기본값: 1).
 
 ### Cursor·기타 MCP → npx + mcp.json
 

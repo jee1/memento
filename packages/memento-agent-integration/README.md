@@ -46,6 +46,7 @@ Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
 | `MEMENTO_DIRECTIVES_MODE` | `shadow`(기본, 로그만 남기고 주입 안 함) 또는 `live` |
 | `MEMENTO_DIRECTIVES_PINNED_FILE` | 매번 앞에 붙일 고정 지침 파일(1KB 이하) |
 | `MEMENTO_DIRECTIVES_LOG_DIR` | 주입 로그 폴더. 기본 `~/.claude/state/directive-log` |
+| `MEMENTO_CAPTURE` | `0`이면 lifecycle 캡처를 끈다 (기본: 1) |
 
 - case 는 `case` 태그를 단 semantic 기억이다. 본문은 300자 이하로 둔다.
 - 유한한 숫자 `final_score`가 0.5 이상인 후보만 고른다. 점수가 없거나 잘못된 후보는 제외한다.
@@ -57,5 +58,6 @@ Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
   실행한다([#1492](https://github.com/jee1/memento/issues/1492)).
 - 이 훅은 lifecycle 캡처도 함께 실행한다. 지침 주입만 켜는 옵션은
   [#1494](https://github.com/jee1/memento/issues/1494)에서 다룬다.
+- lifecycle 캡처를 끄고 지침 주입만 쓰려면 `MEMENTO_CAPTURE=0`으로 둔다 (#1494).
 - 한 세션에서 같은 case는 한 번만 주입하고 PreCompact에서 초기화한다. 서버 장애나 마감 초과는 빈
   출력과 fallback 로그 한 줄로 끝난다.

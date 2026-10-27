@@ -14,6 +14,9 @@
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
 - Docker Compose 파일에서 obsolete `version` 키를 제거해 `docker compose` 경고를 없앱니다(#1491).
+### Added
+
+- Claude Code hook: `MEMENTO_CAPTURE=0` 설정으로 lifecycle 캡처를 끄고 지침 주입만 실행하는 옵션을 추가합니다 (#1494). 기본값은 켬(1)입니다.
 
 ### Fixed
 

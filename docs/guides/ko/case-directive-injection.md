@@ -71,6 +71,7 @@ exec memento hook claude-code
 ```
 
 이 훅은 lifecycle 캡처도 함께 실행합니다. 프롬프트 원문이 로컬 서버에 observation 으로 저장됩니다. 끄는 옵션은 [#1494](https://github.com/jee1/memento/issues/1494) 에서 다룹니다.
+lifecycle 캡처를 끄고 지침 주입만 쓰려면 `MEMENTO_CAPTURE=0`으로 설정합니다 (#1494).
 
 ## 3. shadow 로그 확인
 
