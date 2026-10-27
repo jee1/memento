@@ -42,13 +42,13 @@ export function computeProceduralDiff(
 ): ProceduralDiffResult | null {
   const left = DatabaseUtils.get(
     db,
-    `SELECT id, type, workflow_name, skill_name, task_goal, trigger_conditions, steps FROM memory_item WHERE id = ?`,
+    `SELECT id, type, workflow_name, skill_name, task_goal, trigger_conditions, steps FROM memory_item WHERE id = ? AND COALESCE(is_deleted, 0) = 0`,
     [leftId]
   ) as { id: string; type: string; workflow_name: string | null; skill_name: string | null; task_goal: string | null; trigger_conditions: string | null; steps: string | null } | undefined;
 
   const right = DatabaseUtils.get(
     db,
-    `SELECT id, type, workflow_name, skill_name, task_goal, trigger_conditions, steps FROM memory_item WHERE id = ?`,
+    `SELECT id, type, workflow_name, skill_name, task_goal, trigger_conditions, steps FROM memory_item WHERE id = ? AND COALESCE(is_deleted, 0) = 0`,
     [rightId]
   ) as { id: string; type: string; workflow_name: string | null; skill_name: string | null; task_goal: string | null; trigger_conditions: string | null; steps: string | null } | undefined;
 

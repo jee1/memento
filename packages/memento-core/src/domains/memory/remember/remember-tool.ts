@@ -223,7 +223,7 @@ export class RememberTool extends BaseTool {
     startTime: number,
   ): MemoryItemContext {
     const sessionId = parsedParams.session_id ?? context.sessionId ?? null;
-    const isPlainSave = !parsedParams.memory_id && !parsedParams.update_mode;
+    const isImplicitTarget = !parsedParams.memory_id;
     return {
       type,
       ownerId,
@@ -234,7 +234,7 @@ export class RememberTool extends BaseTool {
       confidenceVal: parsedParams.confidence ?? null,
       origin_source,
       startTime,
-      project_id_param: parsedParams.project_id ?? (isPlainSave ? context.projectId : undefined),
+      project_id_param: parsedParams.project_id ?? (isImplicitTarget ? context.projectId : undefined),
       last_mentioned_at_param: parsedParams.last_mentioned_at ?? null,
     };
   }

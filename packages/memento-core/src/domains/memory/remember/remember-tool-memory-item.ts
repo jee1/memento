@@ -92,6 +92,9 @@ const UPDATE_MEMORY_ITEM_SQL = `
     num_times = ?, last_mentioned_at = ?, source_session_id = ?, confidence = ?,
     work_record = ?
   WHERE id = ?
+    AND owner_id IS ?
+    AND project_id IS ?
+    AND COALESCE(is_deleted, 0) = 0
 `;
 
 const UPDATE_MEMORY_ITEM_CAS_SQL = `
@@ -195,7 +198,10 @@ async function updateMemoryItemRow(
   expectedVersion: number | undefined,
 ): Promise<void> {
   if (expectedVersion === undefined) {
-    await DatabaseUtils.run(db, UPDATE_MEMORY_ITEM_SQL, [...sharedValues, id]);
+    const result = await DatabaseUtils.run(db, UPDATE_MEMORY_ITEM_SQL, [...sharedValues, id, ownerId, projectId]);
+    if (result.changes === 0) {
+      throw new ToolInputValidationError(`memory_id를 찾을 수 없습니다: ${id}`);
+    }
     return;
   }
   const result = await DatabaseUtils.run(db, UPDATE_MEMORY_ITEM_CAS_SQL, [
@@ -389,7 +395,9 @@ async function resolveWriteTarget(
   if (params.memory_id) {
     await applyExplicitTarget(db, draft, params.memory_id, ctx, host);
   } else if (ctx.type === 'procedural' && params.update_mode) {
-    draft.existingMemory = await findExistingProceduralMemory(db, params.workflow_name, params.skill_name, host);
+    draft.existingMemory = await findExistingProceduralMemory(
+      db, params.workflow_name, params.skill_name, ctx.ownerId, draft.projectId, host,
+    );
     if (isInPlaceUpdate(draft.existingMemory, params.update_mode)) {
       draft.existingMemoryId = draft.existingMemory!.id;
       draft.proceduralHit = true;

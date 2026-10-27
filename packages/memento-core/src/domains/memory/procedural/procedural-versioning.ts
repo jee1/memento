@@ -16,7 +16,7 @@ import type { VersionChainItem } from '../../../shared/types/procedural-versioni
 export function getVersionChain(db: Database.Database, memoryId: string): VersionChainItem[] {
   const row = DatabaseUtils.get(
     db,
-    `SELECT id, version, version_series_id, created_at FROM memory_item WHERE id = ? AND type = 'procedural'`,
+    `SELECT id, version, version_series_id, created_at FROM memory_item WHERE id = ? AND type = 'procedural' AND COALESCE(is_deleted, 0) = 0`,
     [memoryId]
   ) as { id: string; version: number | null; version_series_id: string | null; created_at: string } | undefined;
 
@@ -34,7 +34,7 @@ export function getVersionChain(db: Database.Database, memoryId: string): Versio
 
   const rows = DatabaseUtils.all(
     db,
-    `SELECT id, version, created_at FROM memory_item WHERE type = 'procedural' AND version_series_id = ? ORDER BY COALESCE(version, 1) ASC`,
+    `SELECT id, version, created_at FROM memory_item WHERE type = 'procedural' AND version_series_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY COALESCE(version, 1) ASC`,
     [row.version_series_id]
   ) as Array<{ id: string; version: number | null; created_at: string }>;
 

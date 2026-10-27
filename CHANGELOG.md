@@ -23,6 +23,11 @@
 
 - CLI: `npm i -g memento-mcp-server` 가 `memento` 명령을 설치하고, npm bin symlink 로 실행해도 명령이 동작합니다. 전에는 `memento connect claude-code` 로 등록한 훅이 command not found 로 조용히 실패했습니다 (#1492).
 
+### Security
+
+- 절차 기억의 암시적 갱신 대상을 호출자의 owner·project로 제한하고, 일반 갱신에서도 같은 쓰기 경계를 검증합니다.
+- recall의 절차 버전 비교와 버전 목록에 소유자 검증을 적용하고 삭제된 비교 대상을 제외합니다.
+
 ## [2.3.3] - 2026-10-27
 
 agent 에 묶인 API 토큰이 전역 통계와 다른 owner 의 텔레메트리에 닿던 경로를 막습니다. agent hook 마스킹을 넓히고, log-issue-monitor 가 사용자 입력을 공개 이슈에 올리지 않게 합니다. `memento connect project` 는 git 추적 파일에 토큰을 쓰지 않고, CI 워크플로와 prod compose 의 기본 노출을 줄입니다.
