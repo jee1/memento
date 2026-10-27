@@ -15,6 +15,10 @@
 
 서버가 없거나 recall 이 1.5초 안에 끝나지 않으면 출력은 비고, 로그에 `fallback:true` 한 줄이 남습니다. 훅은 항상 exit 0 이라 Claude Code 를 막지 않습니다.
 
+관련도 하한은 `DIRECTIVE_POLICY.minFinalScore`의 `0.5`입니다. `final_score`가 이 값 이상인 후보만 고릅니다. 점수가 없거나 유한한 숫자가 아니면 제외합니다. 기존 중복 제거·300자·5개·4,500 bytes 제한은 그대로 적용합니다.
+
+기존 shadow 로그 61줄(case 51건)에는 점수가 없어 분포로 하한을 보정하지 못했습니다. `0.5`는 초기값이며, 새 로그의 `candidates[{id, final_score}]`로 하한 미만을 포함한 전체 유효 후보의 분포를 확인해 조정합니다.
+
 ## 준비
 
 - 실행 중인 memento HTTP 서버. 훅은 `server.json` 으로 포트를 찾습니다. 기본 위치는 `~/.memento/server.json` 이고, 다른 곳이면 `MEMENTO_CONFIG_DIR` 로 폴더를 알려 줍니다.
@@ -81,9 +85,12 @@ jq -c 'select(.inj_id) | {ts, n: (.cases | length), fallback, ids: [.cases[].id]
 
 - 에이전트가 지침을 어겼을 때 그 지침이 해당 프롬프트의 `cases` 에 있었는지.
 - 관련 없는 case 가 자주 끼는지([#1493](https://github.com/jee1/memento/issues/1493)).
+- `cases[].final_score`와 `candidates[].final_score`를 비교해 관련도 하한 아래 후보가 제외됐는지.
 - `fallback:true` 가 잦은지. 잦으면 서버 상태와 토큰을 봅니다.
 
 로그 한 줄의 필드는 `inj_id`, `ts`, `session_id`, `cwd`, `mode`, `prompt_sha1`, `cases[{id, sha1, text}]`, `skipped`, `fallback`, `context_text` 입니다. 초기화 줄은 `{session_id, reset: true, ts}` 입니다.
+
+새 주입 로그는 `cases[].final_score`와 `candidates[{id, final_score}]`도 기록합니다. 기존 로그의 중복 판정은 점수 필드 없이도 그대로 동작합니다.
 
 ## 4. live 로 전환
 

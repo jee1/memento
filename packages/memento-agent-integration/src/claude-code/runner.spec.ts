@@ -55,7 +55,7 @@ describe('Claude Code hook runner', () => {
     try {
       const transport = vi.fn().mockResolvedValue({ ok: true });
       const recall = vi.fn().mockResolvedValue({
-        items: [{ memory_id: 'c1', content: 'Run tests in isolation' }],
+        items: [{ memory_id: 'c1', content: 'Run tests in isolation', final_score: 0.8 }],
       });
       const result = await runClaudeCodeHook({
         input: {
