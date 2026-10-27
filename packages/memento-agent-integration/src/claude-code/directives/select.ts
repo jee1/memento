@@ -10,6 +10,7 @@ import {
 
 export const DIRECTIVE_POLICY = {
   caseTag: 'case',
+  minFinalScore: 0.5,
   caseMaxChars: 300,
   queryMaxChars: 500,
   recallLimit: 15,
@@ -38,10 +39,11 @@ export function parseRecallItems(raw: unknown): CaseCandidate[] {
   if (!Array.isArray(items)) throw new Error('recall result has no items array');
   const out: CaseCandidate[] = [];
   for (const item of items as unknown[]) {
-    const { memory_id: id, content } = (item ?? {}) as Record<string, unknown>;
+    const { memory_id: id, content, final_score } = (item ?? {}) as Record<string, unknown>;
     if (typeof id !== 'string' || typeof content !== 'string') continue;
+    if (typeof final_score !== 'number' || !Number.isFinite(final_score)) continue;
     const text = oneLine(content);
-    if (id && text) out.push({ id: caseId(id), text });
+    if (id && text) out.push({ id: caseId(id), text, final_score });
   }
   return out;
 }
@@ -60,6 +62,7 @@ export function selectCases(
   let bytes = 0;
   for (const candidate of candidates) {
     if (chosen.length >= DIRECTIVE_POLICY.maxCases) break;
+    if (candidate.final_score < DIRECTIVE_POLICY.minFinalScore) continue;
     if (inContext.has(candidate.id)) continue;
     if (codePointLength(candidate.text) > DIRECTIVE_POLICY.caseMaxChars) {
       skipped.push(candidate.id);

@@ -110,7 +110,8 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
       await appendLine(config.logDir, {
         ...base,
         ts: new Date(now()).toISOString(),
-        cases: plan.chosen.map((c) => ({ id: c.id, sha1: sha1Hex(c.text), text: c.text })),
+        cases: plan.chosen.map((c) => ({ id: c.id, sha1: sha1Hex(c.text), text: c.text, final_score: c.final_score })),
+        candidates: candidates.map((c) => ({ id: c.id, final_score: c.final_score })),
         skipped: plan.skipped,
         fallback: false,
         context_text: context,

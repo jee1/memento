@@ -21,7 +21,7 @@ const injection = (
   cwd: '/work',
   mode: 'live',
   prompt_sha1: 'p',
-  cases: cases.map((id) => ({ id: caseId(id), sha1: 's', text: id })),
+  cases: cases.map((id) => ({ id: caseId(id), sha1: 's', text: id, final_score: 0.8 })),
   skipped: [],
   fallback: false,
   context_text: '',
@@ -45,6 +45,12 @@ describe('directive injection log', () => {
     await appendLine(dir, injection('other', ['z']), NOW);
 
     expect([...(await readInContext(dir, 's1', 'live', NOW))].sort()).toEqual(['a', 'b']);
+  });
+
+  it('deduplicates old log entries without score fields', async () => {
+    const legacy = { ...injection('s1', []), cases: [{ id: 'old', sha1: 's', text: 'old' }] };
+    await writeFile(join(dir, 'injections-2026-10-25.jsonl'), `${JSON.stringify(legacy)}\n`);
+    expect([...(await readInContext(dir, 's1', 'live', NOW))]).toEqual(['old']);
   });
 
   it('ignores files older than yesterday', async () => {

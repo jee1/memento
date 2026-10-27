@@ -15,6 +15,10 @@ Korean documentation: [case-directive-injection.md (KO)](../ko/case-directive-in
 
 If the server is missing or recall takes longer than 1.5 seconds, the output is empty and the log gets one `fallback:true` line. The hook always exits 0 and never blocks Claude Code.
 
+The relevance floor is `DIRECTIVE_POLICY.minFinalScore`, initially `0.5`. Only candidates with a finite numeric `final_score` at or above this value are eligible. Missing or invalid scores are excluded. Session deduplication and the 300-character, 5-case, and 4,500-byte limits still apply.
+
+The existing 61 shadow log lines (51 cases) contained no scores, so this initial floor could not be calibrated from their distribution. New logs include `candidates[{id, final_score}]` for all valid candidates, including those below the floor, to support later calibration.
+
 ## Requirements
 
 - A running memento HTTP server. The hook finds the port through `server.json`. The default location is `~/.memento/server.json`. Set `MEMENTO_CONFIG_DIR` to the folder if it is elsewhere.
@@ -83,7 +87,7 @@ Check:
 - Do unrelated cases show up often ([#1493](https://github.com/jee1/memento/issues/1493))?
 - Is `fallback:true` frequent? If so, check the server and the token.
 
-Each line has `inj_id`, `ts`, `session_id`, `cwd`, `mode`, `prompt_sha1`, `cases[{id, sha1, text}]`, `skipped`, `fallback`, and `context_text`. A reset line is `{session_id, reset: true, ts}`.
+Each line has `inj_id`, `ts`, `session_id`, `cwd`, `mode`, `prompt_sha1`, `cases[{id, sha1, text}]`, `skipped`, `fallback`, and `context_text`. A reset line is `{session_id, reset: true, ts}`. New injection logs also record `cases[].final_score` and `candidates[{id, final_score}]`. Deduplication still reads older logs without score fields.
 
 ## 4. Switch to live
 

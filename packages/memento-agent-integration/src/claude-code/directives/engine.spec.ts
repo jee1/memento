@@ -20,7 +20,7 @@ const prompt = (text = 'how do I fix flaky tests', session = 's1'): DirectiveRun
 
 const recallOf = (...cases: Array<[string, string]>): RecallPort =>
   vi.fn().mockResolvedValue({
-    items: cases.map(([memory_id, content]) => ({ memory_id, content })),
+    items: cases.map(([memory_id, content]) => ({ memory_id, content, final_score: 0.8 })),
   });
 
 let dir: string;
@@ -78,6 +78,24 @@ describe('runDirectives', () => {
     expect(lines[0]!.prompt_sha1).toMatch(/^[0-9a-f]{40}$/);
     expect(lines[0]!.cases[0]!.sha1).toMatch(/^[0-9a-f]{40}$/);
     expect(lines[0]!.inj_id).toMatch(/^s1-\d+-[0-9a-f]{6}$/);
+  });
+
+  it.each(['live', 'shadow'] as const)('filters low scores in %s mode and logs candidate scores', async (mode) => {
+    const recall = vi.fn().mockResolvedValue({ items: [
+      { memory_id: 'low', content: 'unrelated', final_score: 0.4999 },
+      { memory_id: 'boundary', content: 'relevant', final_score: 0.5 },
+    ] });
+    const stdout = await runDirectives(prompt(), depsOf(recall, mode));
+    const [line] = await logLines();
+    expect(line).toMatchObject({
+      fallback: false,
+      cases: [{ id: 'boundary', final_score: 0.5 }],
+      candidates: [{ id: 'low', final_score: 0.4999 }, { id: 'boundary', final_score: 0.5 }],
+    });
+    expect(line!.cases).toHaveLength(1);
+    expect(line!.context_text).not.toContain('unrelated');
+    if (mode === 'live') expect(contextOf(stdout)).toBe(line!.context_text);
+    else expect(stdout).toBe('');
   });
 
   it('logs over-length case ids as skipped and leaves them out of the context', async () => {

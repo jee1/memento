@@ -48,12 +48,14 @@ export interface DirectiveRunInput {
 export interface CaseCandidate {
   readonly id: CaseId;
   readonly text: string;
+  readonly final_score: number;
 }
 
 export interface LoggedCase {
   readonly id: CaseId;
   readonly sha1: string;
   readonly text: string;
+  readonly final_score: number;
 }
 
 /** 로그 줄은 `inj_id` 가 있으면 주입, `reset` 이 있으면 초기화다. */
@@ -65,6 +67,7 @@ export interface InjectionLine {
   readonly mode: DirectiveMode;
   readonly prompt_sha1: string;
   readonly cases: readonly LoggedCase[];
+  readonly candidates?: ReadonlyArray<Pick<CaseCandidate, 'id' | 'final_score'>>;
   /** 300자를 넘어 건너뛴 case id. 예산 때문에 못 고른 case 는 기록하지 않는다. */
   readonly skipped: readonly CaseId[];
   readonly fallback: boolean;

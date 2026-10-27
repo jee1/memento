@@ -10,14 +10,14 @@ import {
 } from './select.js';
 import { caseId, type CaseCandidate, type CaseId } from './types.js';
 
-const cand = (id: string, text: string): CaseCandidate => ({ id: caseId(id), text });
+const cand = (id: string, text: string, final_score = 0.8): CaseCandidate => ({ id: caseId(id), text, final_score });
 const none = new Set<CaseId>();
 
 describe('parseRecallItems', () => {
   it('keeps items with string id and content and collapses whitespace', () => {
     const parsed = parseRecallItems({
       items: [
-        { memory_id: 'a', content: 'line one\n  line two' },
+        { memory_id: 'a', content: 'line one\n  line two', final_score: 0.8 },
         { memory_id: 7, content: 'bad id' },
         { memory_id: 'c' },
         null,
@@ -27,12 +27,32 @@ describe('parseRecallItems', () => {
     expect(parsed).toEqual([cand('a', 'line one line two')]);
   });
 
+  it.each([undefined, null, '0.8', NaN, Infinity, -Infinity])('ignores invalid final_score (%s)', (final_score) => {
+    expect(parseRecallItems({ items: [{ memory_id: 'bad', content: 'do not inject', final_score }] })).toEqual([]);
+  });
+
   it.each([null, {}, { items: 'x' }, []])('throws when items is not an array (%j)', (raw) => {
     expect(() => parseRecallItems(raw)).toThrow();
   });
 });
 
 describe('selectCases', () => {
+  it('excludes scores below the floor, including zero, and accepts the exact boundary', () => {
+    const plan = selectCases([
+      cand('low', 'irrelevant', 0.4999),
+      cand('zero', 'irrelevant', 0),
+      cand('boundary', 'relevant', 0.5),
+      cand('above', 'relevant', 0.5001),
+    ], none);
+    expect(plan.chosen.map((c) => c.id)).toEqual(['boundary', 'above']);
+    expect(plan.skipped).toEqual([]);
+  });
+
+  it('does not let low scores consume the count or byte budget', () => {
+    const low = Array.from({ length: 6 }, (_, i) => cand(`low${i}`, '😀'.repeat(300), 0.1));
+    expect(selectCases([...low, cand('ok', 'relevant')], none).chosen.map((c) => c.id)).toEqual(['ok']);
+  });
+
   it('skips over-length cases by code points instead of truncating', () => {
     const exact = '가'.repeat(DIRECTIVE_POLICY.caseMaxChars);
     const emoji = '😀'.repeat(DIRECTIVE_POLICY.caseMaxChars);
