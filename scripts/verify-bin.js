@@ -42,6 +42,9 @@ const BIN_EXPECTATIONS = {
   // 일회성 셋업 스크립트. 실행하면 저장소 루트에 .env 를 쓰고 네이티브 모듈을 재빌드하고
   // 시작 스크립트를 만든다. 검증 목적으로 돌릴 수 없으므로 정적 검사만 한다.
   'memento-setup': { mode: 'static-only', reason: 'mutates the working tree (.env, native rebuild)' },
+
+  // 일회성 CLI. 서버가 아니므로 띄워 둘 대상이 없다. symlink 실행은 cli-ac5-ac6.spec.ts 가 잡는다.
+  memento: { mode: 'static-only', reason: 'one-shot CLI, exits after each command' },
 };
 
 function reserveFreePort() {

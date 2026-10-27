@@ -57,6 +57,8 @@ npx memento-mcp-server@latest
 
 자주 쓴다면 `npm i -g memento-mcp-server`로 글로벌 설치하는 편이 낫습니다. 공식 MCP 레지스트리 이름은 `io.github.jee1/memento-mcp-server`입니다 (`server.json`).
 
+글로벌 설치하면 `memento` CLI 도 함께 깔립니다. `memento connect claude-code` 가 등록하는 `memento hook claude-code` 훅이 이 명령을 씁니다.
+
 ### 운영·자체 호스팅 → INSTALL.md
 
 Docker, 소스 빌드, HTTP MCP(다중 에이전트), 환경 오버레이는 [INSTALL.md](INSTALL.md)를 따라 주세요.

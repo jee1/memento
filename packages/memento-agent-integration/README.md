@@ -32,6 +32,7 @@ Stop command hook payload를 공통 envelope로 변환한다.
 idempotent하게 추가한다. 변경 시 원본 backup을 만든 뒤 temp file rename으로 교체한다.
 `memento hook claude-code`는 stdin payload를 처리하고 서버 장애나 잘못된 입력에서도
 Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
+두 명령은 `npm i -g memento-mcp-server` 가 설치하는 `memento` bin 으로 실행한다.
 
 ### Case 지침 주입 (UserPromptSubmit)
 

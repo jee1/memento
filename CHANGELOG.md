@@ -15,6 +15,10 @@
 
 - Docker Compose 파일에서 obsolete `version` 키를 제거해 `docker compose` 경고를 없앱니다(#1491).
 
+### Fixed
+
+- CLI: `npm i -g memento-mcp-server` 가 `memento` 명령을 설치하고, npm bin symlink 로 실행해도 명령이 동작합니다. 전에는 `memento connect claude-code` 로 등록한 훅이 command not found 로 조용히 실패했습니다 (#1492).
+
 ## [2.3.3] - 2026-10-27
 
 agent 에 묶인 API 토큰이 전역 통계와 다른 owner 의 텔레메트리에 닿던 경로를 막습니다. agent hook 마스킹을 넓히고, log-issue-monitor 가 사용자 입력을 공개 이슈에 올리지 않게 합니다. `memento connect project` 는 git 추적 파일에 토큰을 쓰지 않고, CI 워크플로와 prod compose 의 기본 노출을 줄입니다.
