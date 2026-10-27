@@ -29,6 +29,9 @@ on:
       - 'tests/fixtures/search-quality/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   CI: true
   EMBEDDING_PROVIDER: minilm

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 그래서 외부 노출 여부를 정하는 것은 compose `ports:` 앞자리 하나뿐이다. 앞자리가 없으면
  * 0.0.0.0 게시가 되어 LAN 의 누구나 /tools·/mcp 에 도달한다 — 2026-09-23 실제 상태였다.
  */
-const COMPOSE_PATHS = ['docker-compose.yml', 'apps/multi-agent-orchestration/docker-compose.yml'] as const;
+const COMPOSE_PATHS = ['docker-compose.yml', 'apps/multi-agent-orchestration/docker-compose.yml', 'docker/docker-compose.prod.yml'] as const;
 
 function readPublishEntries(composePath: string): string[] {
   const lines = readFileSync(join(process.cwd(), composePath), 'utf-8').split('\n');

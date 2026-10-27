@@ -23,6 +23,9 @@ on:
       - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   docker-build-smoke:
     runs-on: ubuntu-latest
