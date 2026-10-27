@@ -50,6 +50,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 - 같은 제한이 `get_introspection_summary`·`forgetting_stats`·`performance_stats` 에도 적용됩니다. 이 도구들은 owner 를 가리지 않고 전체 기억의 통계와 id 를 돌려줍니다.
 - **절차 기억 갱신·비교**: workflow·skill로 찾는 갱신 대상은 요청의 owner·project 안에서 선택합니다. 묶인 호출자의 recall 버전 비교·목록은 자기 소유의 활성 기억만 포함하며, 소유자 바인딩이 없는 운영자·stdio의 비교 범위는 유지합니다.
 - 같은 제한이 국소 검색과 관계 추출에도 적용됩니다. 바인딩된 토큰은 `search_local` 의 중첩 `predecessor_ids` 와 `extract_relations` 에서 다른 agent 소유의 기억 식별자에 접근하거나 관계를 맺지 못합니다.
+- `project_id` 만 묶인 토큰(`MEMENTO_PROJECT_SCOPE_ENABLED`, #1094)도 같은 전역 도구와 `/api/v1/agent` 운영 경로(집계, retention, promotion 승인 등)에서 403 입니다. `/api/v1/agent` 의 `project_id` 는 묶인 project 로 고정되고, 다른 project 의 세션은 404 로 응답합니다.
 - **`ADMIN_API_KEY`**: 브라우저 대시보드 `/auth/session` 로그인 키입니다. v2.0.0(#1241)부터 programmatic 표면에는 쓰이지 않습니다. `MEMENTO_API_TOKENS` 없이 이 키만 두면 programmatic 표면은 401 이고 기동 로그에 오류가 남습니다.
 - **권장 사용**: 특별한 이유가 없다면 HTTP 서버는 **루프백 또는 내부망**에만 두세요. 브라우저 대시보드/그래프는 서버와 동일 출처에서 열어 세션 쿠키가 다른 오리진으로 퍼지지 않게 유지하세요.
 - **운영 환경**: programmatic 접근에는 스코프드 토큰을 사용하고, 의도적으로 노출하는 경우가 아니면 `MEMENTO_HTTP_BIND_HOST`를 루프백으로 유지하세요.

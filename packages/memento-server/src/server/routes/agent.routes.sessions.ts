@@ -7,6 +7,7 @@ import {
   sessionDto,
 } from './agent.routes.dto.js';
 import { buildInjectionDetails } from './agent.routes.injection.js';
+import { isBoundToken } from './agent.routes.bound-agent.js';
 import type { AgentRouterCtx } from './agent.routes.types.js';
 import { average, percentile, requireString, writeError } from './agent.routes.utils.js';
 
@@ -33,7 +34,7 @@ export function handleGetSessions(req: Request, res: Response, ctx: AgentRouterC
       aggregate: item.aggregate,
     }));
     // 전체 agent 합계는 운영자용이다. 토큰에 묶인 agent 에게는 자기 세션 목록만 준다.
-    if (req.programmaticAuth?.agentId) {
+    if (isBoundToken(req)) {
       return res.json({ sessions, next_cursor: page.nextCursor });
     }
     const aggregate = service.getDashboardAggregate();

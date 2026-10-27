@@ -134,6 +134,13 @@ describe('auditActionForTool and assertToolScope units', () => {
     expect(() => assertToolScope('introspection_heal', ['tools:invoke'])).not.toThrow();
     expect(() => assertToolScope('recall', ['tools:invoke'], 'agent-b')).not.toThrow();
   });
+
+  it('rejects operator-only tools when only boundProjectId is set', () => {
+    for (const name of ['get_introspection_summary', 'forgetting_stats', 'performance_stats', 'introspection_heal', 'cleanup_memory', 'migrate_embeddings']) {
+      expect(() => assertToolScope(name, ['tools:invoke'], null, 'project-b'), name).toThrow(ToolScopeForbiddenError);
+    }
+    expect(() => assertToolScope('recall', ['tools:invoke'], null, 'project-b')).not.toThrow();
+  });
 });
 
 describe('granular-tool-scopes HTTP integration', () => {

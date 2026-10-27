@@ -104,9 +104,14 @@ export function auditActionForTool(name: string): AuditAction {
   return 'write';
 }
 
-export function assertToolScope(name: string, scopes?: readonly ApiScope[], boundAgentId?: string | null): void {
-  if (boundAgentId && OPERATOR_ONLY_TOOLS.has(name)) {
-    throw new ToolScopeForbiddenError(`${name} is not available to agent-bound API tokens`);
+export function assertToolScope(
+  name: string,
+  scopes?: readonly ApiScope[],
+  boundAgentId?: string | null,
+  boundProjectId?: string | null,
+): void {
+  if ((boundAgentId || boundProjectId) && OPERATOR_ONLY_TOOLS.has(name)) {
+    throw new ToolScopeForbiddenError(`${name} is not available to agent- or project-bound API tokens`);
   }
   if (!scopes || scopes.length === 0) {
     return;
@@ -295,7 +300,7 @@ export function createToolDispatcher(options: {
       args = scopeArgsToBoundAgent(name, rawArgs, auditContext.boundAgentId, auditContext.boundProjectId);
       assertToolAuditCoverage(db, name, args, auditContext);
       executionStarted = true;
-      assertToolScope(name, auditContext.scopes, auditContext.boundAgentId);
+      assertToolScope(name, auditContext.scopes, auditContext.boundAgentId, auditContext.boundProjectId);
       const context = createToolContext({
         db,
         services,

@@ -36,6 +36,7 @@
 - `doctor`, `status`, `demo`의 원격 HTTP(S) 주소는 `--endpoint`를 넘긴 경우에만 사용합니다.
 - 루프백(`127.0.0.1`, `::1`, `localhost`)이 아닌 주소로는 `ADMIN_API_KEY`를 보내지 않습니다. `--api-key`와 `MEMENTO_API_KEY`는 그 주소에도 전송합니다.
 - `memento connect project`가 쓰는 `.cursor/mcp.json` 파일 모드는 0600입니다.
+- HTTP: `project_id` 만 묶인 API 토큰이 운영자 전용 도구와 `/api/v1/agent` 운영 경로를 호출하지 못하게 하고, `/api/v1/agent` 의 세션 조회와 변경을 묶인 project 로 제한합니다.
 
 ## [2.3.3] - 2026-10-27
 
