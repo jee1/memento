@@ -57,6 +57,8 @@ Config locations: Cursor uses `.cursor/mcp.json` or `~/.cursor/mcp.json`; Claude
 
 For frequent use, prefer `npm i -g memento-mcp-server`. Official MCP registry name: `io.github.jee1/memento-mcp-server` (`server.json`).
 
+A global install also provides the `memento` CLI, which the `memento hook claude-code` hook registered by `memento connect claude-code` runs.
+
 ### Ops / self-hosting → INSTALL.en.md
 
 Docker, source builds, HTTP MCP for multi-agent setups, and environment overlays: [INSTALL.en.md](INSTALL.en.md).

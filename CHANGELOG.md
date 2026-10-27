@@ -14,6 +14,9 @@
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
 - Docker Compose 파일에서 obsolete `version` 키를 제거해 `docker compose` 경고를 없앱니다(#1491).
+### Fixed
+
+- CLI: `npm i -g memento-mcp-server` 가 `memento` 명령을 설치하고, npm bin symlink 로 실행해도 명령이 동작합니다. 전에는 `memento connect claude-code` 로 등록한 훅이 command not found 로 조용히 실패했습니다 (#1492).
 
 ## [2.3.3] - 2026-10-27
 

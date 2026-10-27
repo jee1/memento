@@ -28,7 +28,7 @@ function writeStderr(message: string): Promise<void> {
   });
 }
 
-import { resolve } from 'node:path';
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { loadEnv } from './cli/env-loader.js';
@@ -328,7 +328,7 @@ async function main(): Promise<number> {
 }
 
 const isDirectRun = process.argv[1] !== undefined
-  && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
   void main().then((code) => {

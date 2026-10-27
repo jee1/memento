@@ -167,6 +167,23 @@ describe('CLI AC5/AC6', () => {
     expect(output).toContain('review-queue cleanup');
   });
 
+  it('issue #1492: runs when invoked through an npm bin symlink', () => {
+    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'memento-bin-'));
+    try {
+      const linkPath = path.join(binDir, 'memento');
+      fs.symlinkSync(cliPath, linkPath);
+      const result = spawnSync(process.execPath, [linkPath, '--help'], {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      });
+
+      expect(result.status).toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain('hook claude-code');
+    } finally {
+      fs.rmSync(binDir, { recursive: true, force: true });
+    }
+  });
+
   it('review-queue cleanup routes to a dry-run without starting the server', async () => {
     const dbPath = path.join(os.tmpdir(), `memento-cli-review-${Date.now()}.db`);
     createReviewQueueDatabase(dbPath);
