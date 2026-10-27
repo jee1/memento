@@ -1,4 +1,5 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createAdminRateLimitMiddleware,
   createAgentRateLimitMiddleware,
+  createAuthFailureRateLimitMiddleware,
   createMcpRateLimitMiddleware,
   createToolsRateLimitMiddleware,
   isHttpRateLimitDisabled,
@@ -41,6 +43,18 @@ function getRequest(
     req.end();
   });
 }
+
+// 버킷 limiter 는 인증 뒤에 붙는다. 검증을 통과한 요청에 인증 미들웨어가 남기는 값을 흉내 낸다.
+const verifiedApiKey: RequestHandler = (req, _res, next) => {
+  const key = req.get('x-api-key');
+  if (key) req.programmaticAuth = { keyId: key, scopes: ['tools:invoke'] };
+  next();
+};
+const verifiedSession: RequestHandler = (req, res, next) => {
+  const match = /memento_admin_session=([^;]+)/.exec(req.headers.cookie ?? '');
+  if (match) res.locals.dashboardSessionId = match[1];
+  next();
+};
 
 describe('http-rate-limit.middleware', () => {
   afterEach(() => {
@@ -85,6 +99,7 @@ describe('http-rate-limit.middleware', () => {
     vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_AGENT', '1');
 
     const app = express();
+    app.use(verifiedApiKey);
     app.use(['/mcp', '/messages'], createMcpRateLimitMiddleware());
     app.use('/api/v1/agent', createAgentRateLimitMiddleware());
     app.use((_req, res) => {
@@ -152,7 +167,7 @@ describe('http-rate-limit.middleware', () => {
     vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ', '2');
 
     const app = express();
-    app.use('/admin', createAdminRateLimitMiddleware(), (_req, res) => {
+    app.use('/admin', verifiedSession, createAdminRateLimitMiddleware(), (_req, res) => {
       res.status(200).json({ ok: true });
     });
 
@@ -183,7 +198,7 @@ describe('http-rate-limit.middleware', () => {
     vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_TOOLS', '1');
 
     const app = express();
-    app.use('/tools', createToolsRateLimitMiddleware(), (_req, res) => {
+    app.use('/tools', verifiedApiKey, createToolsRateLimitMiddleware(), (_req, res) => {
       res.status(200).json({ ok: true });
     });
 
@@ -195,10 +210,7 @@ describe('http-rate-limit.middleware', () => {
       const keyA = { 'X-API-Key': 'token-a' };
       expect((await getRequest(port, '/tools/recall', 'GET', keyA)).statusCode).toBe(200);
       expect((await getRequest(port, '/tools/recall', 'GET', keyA)).statusCode).toBe(429);
-      expect(
-        (await getRequest(port, '/tools/recall', 'GET', { Authorization: 'Bearer token-b' }))
-          .statusCode,
-      ).toBe(200);
+      expect((await getRequest(port, '/tools/recall', 'GET', { 'X-API-Key': 'token-b' })).statusCode).toBe(200);
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
@@ -266,6 +278,65 @@ describe('http-rate-limit.middleware', () => {
         (await getRequest(port, '/tools/recall', 'GET', { 'X-Forwarded-For': '203.0.113.9' }))
           .statusCode,
       ).toBe(200);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
+  it('does not give an unverified credential or session its own budget', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_DISABLED', '');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_TOOLS', '1');
+
+    const app = express();
+    app.use('/tools', createToolsRateLimitMiddleware(), (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    const server = http.createServer(app);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+
+    try {
+      expect((await getRequest(port, '/tools/recall', 'GET', { 'X-API-Key': 'guess-1' })).statusCode).toBe(200);
+      expect((await getRequest(port, '/tools/recall', 'GET', { 'X-API-Key': 'guess-2' })).statusCode).toBe(429);
+      expect(
+        (await getRequest(port, '/tools/recall', 'GET', { Cookie: 'memento_admin_session=guess-3' })).statusCode,
+      ).toBe(429);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
+  it('counts failed authentication per IP whatever credential is presented', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_DISABLED', '');
+    vi.stubEnv('MEMENTO_HTTP_RATE_LIMIT_AUTH_FAILURES', '2');
+
+    const app = express();
+    app.use(createAuthFailureRateLimitMiddleware(), (req, res) => {
+      if (req.get('x-api-key') === 'valid') res.status(200).json({ ok: true });
+      else res.status(401).json({ error: 'Unauthorized' });
+    });
+
+    const server = http.createServer(app);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    const valid = { 'X-API-Key': 'valid' };
+
+    try {
+      for (let i = 0; i < 3; i += 1) {
+        expect((await getRequest(port, '/auth/session', 'POST', valid)).statusCode).toBe(200);
+      }
+      expect((await getRequest(port, '/auth/session', 'POST', { 'X-API-Key': 'guess-1' })).statusCode).toBe(401);
+      expect((await getRequest(port, '/auth/session', 'POST', { 'X-API-Key': 'guess-2' })).statusCode).toBe(401);
+      const limited = await getRequest(port, '/auth/session', 'POST', { 'X-API-Key': 'guess-3' });
+      expect(limited.statusCode).toBe(429);
+      expect(limited.headers['retry-after']).toBeTruthy();
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));

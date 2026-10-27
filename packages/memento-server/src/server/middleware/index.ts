@@ -16,6 +16,7 @@ export { createHttpAuditMiddleware, createStrictAuditCoverageMiddleware } from '
 export {
   createAdminRateLimitMiddleware,
   createAgentRateLimitMiddleware,
+  createAuthFailureRateLimitMiddleware,
   createMcpRateLimitMiddleware,
   createToolsRateLimitMiddleware,
   

@@ -37,6 +37,7 @@
 - 루프백(`127.0.0.1`, `::1`, `localhost`)이 아닌 주소로는 `ADMIN_API_KEY`를 보내지 않습니다. `--api-key`와 `MEMENTO_API_KEY`는 그 주소에도 전송합니다.
 - `memento connect project`가 쓰는 `.cursor/mcp.json` 파일 모드는 0600입니다.
 - HTTP: `project_id` 만 묶인 API 토큰이 운영자 전용 도구와 `/api/v1/agent` 운영 경로를 호출하지 못하게 하고, `/api/v1/agent` 의 세션 조회와 변경을 묶인 project 로 제한합니다.
+- HTTP rate limit: 검증 전 자격증명이나 세션 쿠키로 새 예산을 만들 수 없게 버킷 limiter 를 인증 뒤로 옮기고, 인증 실패(401)를 IP 별로 세는 한도(`MEMENTO_HTTP_RATE_LIMIT_AUTH_FAILURES`, 기본 100회/15분)를 추가합니다. `/api/v1/quality`, `/api/v1/maintenance`, `/api/v1/audit` 에도 admin 버킷을 붙입니다.
 
 ## [2.3.3] - 2026-10-27
 
