@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.3.3] - 2026-10-27
+
+agent 에 묶인 API 토큰이 전역 통계와 다른 owner 의 텔레메트리에 닿던 경로를 막습니다. agent hook 마스킹을 넓히고, log-issue-monitor 가 사용자 입력을 공개 이슈에 올리지 않게 합니다. `memento connect project` 는 git 추적 파일에 토큰을 쓰지 않고, CI 워크플로와 prod compose 의 기본 노출을 줄입니다.
+
 ### Security
 
 - CLI: `memento connect project` 는 git 이 이미 추적하는 `.cursor/mcp.json`, `.codex/config.toml` 에 API 토큰이 든 설정을 쓰지 않고 건너뜁니다. 전에는 `.git/info/exclude` 만 갱신해 추적 중인 파일이면 다음 커밋에 토큰이 실릴 수 있었습니다.
