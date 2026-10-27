@@ -2182,5 +2182,65 @@ describe('LLMBasedRelationExtractor', () => {
       expect(candidates).toHaveLength(1);
       expect(candidates[0].confidence).toBeGreaterThanOrEqual(0.6);
     });
+
+    it('F17: 후보 목록(existingMemories)에 없는 target_id는 LLM 응답에서 제외되어야 함', async () => {
+      // Given: newMemory와 existingMemories (mem2만 포함)
+      const newMem: MemoryItem = {
+        id: 'mem1',
+        type: 'episodic',
+        content: '소스 기억',
+        importance: 0.8,
+        privacy_scope: 'private',
+        created_at: new Date()
+      };
+      const existingMem: MemoryItem[] = [
+        {
+          id: 'mem2',
+          type: 'episodic',
+          content: '인가된 후보 기억',
+          importance: 0.7,
+          privacy_scope: 'private',
+          created_at: new Date()
+        }
+      ];
+
+      mockCacheService.get.mockReturnValue(null);
+      mockGenerateEmbedding.mockResolvedValue({
+        embedding: new Array(384).fill(0.1),
+        provider: 'minilm'
+      });
+      mockSearchSimilar.mockResolvedValue([
+        { id: 'mem2', similarity: 0.9, score: 0.9 }
+      ]);
+
+      // LLM이 인가된 mem2 외에 임의의 타 메모리 foreign-mem99를 반환하도록 모킹
+      if (extractWithOpenAISpy) {
+        extractWithOpenAISpy.mockResolvedValue({
+          success: true,
+          relations: [
+            {
+              target_id: 'mem2',
+              relation_type: 'CAUSES',
+              confidence: 0.9
+            },
+            {
+              target_id: 'foreign-mem99',
+              relation_type: 'CAUSES',
+              confidence: 0.95
+            }
+          ]
+        });
+      }
+
+      // When: 관계 추출 수행
+      const candidates = await extractor.extractRelations(newMem, existingMem, {
+        immediate: true
+      });
+
+      // Then: 인가된 mem2만 candidate에 포함되고 foreign-mem99는 제외되어야 함
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0].target_id).toBe('mem2');
+      expect(candidates.some(c => c.target_id === 'foreign-mem99')).toBe(false);
+    });
   });
 });

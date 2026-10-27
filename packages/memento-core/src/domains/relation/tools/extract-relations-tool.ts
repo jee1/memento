@@ -13,6 +13,11 @@ import { callerOwnerClause } from '../../../tools/caller-scope.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
 import { relationToolError } from './relation-tool-response.js';
 
+function memoryItemHasOwnerIdColumn(db: NonNullable<ToolContext['db']>): boolean {
+  const columns = DatabaseUtils.all(db, 'PRAGMA table_info(memory_item)') as Array<{ name: string }>;
+  return columns.some((column) => column.name === 'owner_id');
+}
+
 const ExtractRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
   force: z.boolean().optional().default(false).describe('강제 재추출 여부 (캐시 무시)')
@@ -116,13 +121,45 @@ export class ExtractRelationsTool extends BaseTool {
 
       // 추출된 관계를 RelationGraph에 저장
       let savedCount = 0;
-      if (candidates.length > 0) {
+      const validTargetIds = new Set(existingMemoryItems.map(m => m.id));
+      const hasOwnerIdCol = memoryItemHasOwnerIdColumn(db);
+      const sourceOwnerId = hasOwnerIdCol
+        ? (DatabaseUtils.get(db, 'SELECT owner_id FROM memory_item WHERE id = ?', [memory_id]) as { owner_id?: string | null } | undefined)?.owner_id ?? null
+        : null;
+
+      const validCandidates = candidates.filter(candidate => {
+        if (!validTargetIds.has(candidate.target_id) || candidate.source_id !== memory_id) {
+          logger.warn('관계 대상이 유효한 후보 메모리가 아니므로 제외합니다', {
+            source_id: candidate.source_id,
+            target_id: candidate.target_id
+          });
+          return false;
+        }
+
+        if (hasOwnerIdCol) {
+          const targetRow = DatabaseUtils.get(db, 'SELECT owner_id FROM memory_item WHERE id = ?', [candidate.target_id]) as { owner_id?: string | null } | undefined;
+          const targetOwnerId = targetRow?.owner_id ?? null;
+          if (sourceOwnerId !== targetOwnerId) {
+            logger.warn('양 끝점의 소유자가 달라 관계 대상에서 제외합니다', {
+              source_id: candidate.source_id,
+              target_id: candidate.target_id,
+              source_owner: sourceOwnerId,
+              target_owner: targetOwnerId
+            });
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      if (validCandidates.length > 0) {
         const relationGraph = context.services.relationGraph;
         if (!relationGraph) {
           return relationToolError('RELATION_GRAPH_UNAVAILABLE', '관계 그래프 서비스가 구성되지 않았습니다');
         }
 
-        for (const candidate of candidates) {
+        for (const candidate of validCandidates) {
           try {
             await relationGraph.addRelation(
               candidate.source_id,
@@ -147,15 +184,15 @@ export class ExtractRelationsTool extends BaseTool {
       // Then: 결과 반환
       return this.createSuccessResult({
         memory_id,
-        extracted_count: candidates.length,
+        extracted_count: validCandidates.length,
         saved_count: savedCount,
-        relations: candidates.map(c => ({
+        relations: validCandidates.map(c => ({
           source_id: c.source_id,
           target_id: c.target_id,
           relation_type: c.relation_type,
           confidence: c.confidence
         })),
-        message: `${candidates.length}개의 관계를 추출했습니다 (${savedCount}개 저장됨)`
+        message: `${validCandidates.length}개의 관계를 추출했습니다 (${savedCount}개 저장됨)`
       });
 
     } catch (error) {

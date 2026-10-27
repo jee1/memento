@@ -79,9 +79,34 @@ export class SearchLocalTool extends BaseTool {
       const { slot, query, hop_limit, limit, min_results, use_relations } = parsed;
       const agent_id = resolveCallerAgentId(context, parsed.agent_id);
       // searchLocal scopes hops and fallbacks by owner before applying limit; kept as a boundary guard.
-      const ownedItems = <T extends { id: string }>(items: T[]): T[] => {
+      const ownedItems = <T extends { id: string; predecessor_id?: string; predecessor_ids?: string[] }>(items: T[]): T[] => {
         const owned = filterCallerOwnedIds(context, items.map((item) => item.id));
-        return items.filter((item) => owned.has(item.id));
+        const filtered = items.filter((item) => owned.has(item.id));
+        if (!context.boundAgentId) {
+          return filtered;
+        }
+        const predIdsToVerify: string[] = [];
+        for (const item of filtered) {
+          if (item.predecessor_id) predIdsToVerify.push(item.predecessor_id);
+          if (item.predecessor_ids) predIdsToVerify.push(...item.predecessor_ids);
+        }
+        const ownedPreds = filterCallerOwnedIds(context, predIdsToVerify);
+        return filtered.map((item) => {
+          let predecessor_ids = item.predecessor_ids;
+          let predecessor_id = item.predecessor_id;
+          if (predecessor_ids) {
+            predecessor_ids = predecessor_ids.filter((id) => ownedPreds.has(id));
+            if (predecessor_ids.length === 0) predecessor_ids = undefined;
+          }
+          if (predecessor_id && !ownedPreds.has(predecessor_id)) {
+            predecessor_id = undefined;
+          }
+          return {
+            ...item,
+            predecessor_id,
+            predecessor_ids
+          };
+        });
       };
       
       // 데이터베이스 연결 확인

@@ -148,7 +148,7 @@ export class NHopLinkedMemoryService {
     return { hopResults, nextHopSeeds };
   }
 
-  async getLinkedMemoriesBatch(memoryIds: string[]): Promise<Map<string, LinkedMemorySummary[]>> {
+  async getLinkedMemoriesBatch(memoryIds: string[], ownerId?: string): Promise<Map<string, LinkedMemorySummary[]>> {
     const result = new Map<string, LinkedMemorySummary[]>();
     memoryIds.forEach(id => result.set(id, []));
     const db = this.getDb();
@@ -166,9 +166,11 @@ export class NHopLinkedMemoryService {
       });
       if (allTargetIds.size === 0) return result;
       const placeholders = Array.from(allTargetIds).map(() => '?').join(',');
+      const ownerClause = ownerId ? ' AND owner_id IS ?' : '';
+      const params = ownerId ? [...Array.from(allTargetIds), ownerId] : Array.from(allTargetIds);
       const memoryRecords = db.prepare(
-        `SELECT id, content, type, importance, created_at, tags FROM memory_item WHERE id IN (${placeholders})`
-      ).all(...Array.from(allTargetIds)) as Array<{ id: string; content: string; type: string; importance: number; created_at: string; tags?: string }>;
+        `SELECT id, content, type, importance, created_at, tags FROM memory_item WHERE id IN (${placeholders})${ownerClause}`
+      ).all(...params) as Array<{ id: string; content: string; type: string; importance: number; created_at: string; tags?: string }>;
       const memoryMap = new Map(memoryRecords.map(m => [m.id, m]));
 
       relationsByMemory.forEach((rels, sourceId) => {
@@ -192,7 +194,7 @@ export class NHopLinkedMemoryService {
       return result;
     }
 
-    const batchResults = await Promise.all(memoryIds.map((id) => this.getLinkedMemories(id)));
+    const batchResults = await Promise.all(memoryIds.map((id) => this.getLinkedMemories(id, ownerId)));
     memoryIds.forEach((id, i) => result.set(id, batchResults[i] ?? []));
     return result;
   }
@@ -216,7 +218,7 @@ export class NHopLinkedMemoryService {
     return { memory_id: memoryId };
   }
 
-  private async getLinkedMemories(memoryId: string): Promise<LinkedMemorySummary[]> {
+  private async getLinkedMemories(memoryId: string, ownerId?: string): Promise<LinkedMemorySummary[]> {
     const db = this.getDb();
     if (!db) {
       return [];
@@ -233,11 +235,13 @@ export class NHopLinkedMemoryService {
         if (relations.length > 0) {
           const memoryIds = relations.map(r => r.target_id);
           const placeholders = memoryIds.map(() => '?').join(',');
+          const ownerClause = ownerId ? ' AND owner_id IS ?' : '';
+          const params = ownerId ? [...memoryIds, ownerId] : memoryIds;
           const memoryRecords = db.prepare(
             `SELECT id, content, type, importance, created_at, tags ` +
             `FROM memory_item ` +
-            `WHERE id IN (${placeholders})`
-          ).all(...memoryIds) as Array<{
+            `WHERE id IN (${placeholders})${ownerClause}`
+          ).all(...params) as Array<{
             id: string;
             content: string;
             type: string;

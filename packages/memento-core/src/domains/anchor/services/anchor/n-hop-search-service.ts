@@ -11,6 +11,7 @@ import { isInitializableVectorSearchEngine } from './vector-search-engine-types.
 import { getRelationTypeBoost, NHopLinkedMemoryService } from './n-hop-linked-memory-service.js';
 import type { LinkedMemorySummary } from './n-hop-linked-memory-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { selectIdsOwnedBy } from '../../../../shared/utils/owned-ids.js';
 
 /**
  * N-hop 검색 결과
@@ -70,7 +71,8 @@ export interface INHopSearchService {
     threshold: number,
     maxHops: number,
     limit: number,
-    useRelations?: boolean
+    useRelations?: boolean,
+    ownerId?: string
   ): Promise<NHopSearchResult[]>;
 }
 
@@ -262,7 +264,8 @@ export class NHopSearchService implements INHopSearchService {
     threshold: number,
     maxHops: number,
     limit: number,
-    useRelations: boolean = true
+    useRelations: boolean = true,
+    ownerId?: string
   ): Promise<NHopSearchResult[]> {
     if (!this.db) {
       throw new Error('Database is not set.');
@@ -296,7 +299,7 @@ export class NHopSearchService implements INHopSearchService {
 
       const memoryIdsThisHop = currentHopMemories.map(m => m.memory_id);
       const linkedByMemory = useRelations
-        ? await this.linkedMemoryService.getLinkedMemoriesBatch(memoryIdsThisHop)
+        ? await this.linkedMemoryService.getLinkedMemoriesBatch(memoryIdsThisHop, ownerId)
         : new Map<string, LinkedMemorySummary[]>();
 
       const vectorResults = await Promise.all(
@@ -308,6 +311,7 @@ export class NHopSearchService implements INHopSearchService {
                   limit: vectorSearchLimit,
                   threshold: 0.0,
                   includeContent: true,
+                  ...(ownerId ? { owner_id: ownerId } : {})
                 },
                 m.provider ?? provider
               )
@@ -363,6 +367,26 @@ export class NHopSearchService implements INHopSearchService {
       const predecessors = predecessorsByMemoryId.get(result.memory_id);
       if (predecessors && predecessors.size > 0) {
         result.predecessor_ids = Array.from(predecessors);
+      }
+    }
+
+    if (ownerId && this.db) {
+      const allPredIds: string[] = [];
+      for (const r of allResults) {
+        if (r.predecessor_id) allPredIds.push(r.predecessor_id);
+        if (r.predecessor_ids) allPredIds.push(...r.predecessor_ids);
+      }
+      const ownedPredSet = selectIdsOwnedBy(this.db, ownerId, allPredIds);
+      for (const r of allResults) {
+        if (r.predecessor_ids) {
+          r.predecessor_ids = r.predecessor_ids.filter((id) => ownedPredSet.has(id));
+          if (r.predecessor_ids.length === 0) {
+            delete r.predecessor_ids;
+          }
+        }
+        if (r.predecessor_id && !ownedPredSet.has(r.predecessor_id)) {
+          delete r.predecessor_id;
+        }
       }
     }
 

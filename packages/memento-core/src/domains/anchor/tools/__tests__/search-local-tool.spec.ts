@@ -398,5 +398,80 @@ describe('SearchLocalTool', () => {
         }, context)
       ).rejects.toThrow();
     });
+
+    it('F18: bound caller 환경에서 search_local 반환값의 중첩 predecessor_ids에 타 소유자 ID가 제거되어야 함 (두 owner 음성 대조)', async () => {
+      // Given: memory_item에 owner_id 컬럼 추가
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN owner_id TEXT');
+      } catch {
+        // 이미 존재하면 무시
+      }
+
+      // owner-a와 owner-b 메모리 생성
+      db.prepare(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES (?, 'episodic', ?, 0.5, 'private', ?, CURRENT_TIMESTAMP)
+      `).run('mem-a-target', 'Owner A Target', 'owner-a');
+
+      db.prepare(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES (?, 'episodic', ?, 0.5, 'private', ?, CURRENT_TIMESTAMP)
+      `).run('mem-a-anchor', 'Owner A Anchor', 'owner-a');
+
+      db.prepare(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES (?, 'episodic', ?, 0.5, 'private', ?, CURRENT_TIMESTAMP)
+      `).run('mem-b-foreign', 'Owner B Foreign', 'owner-b');
+
+      // anchorManager.searchLocal 모킹: 타 소유자가 포함된 predecessor_ids 반환
+      vi.spyOn(anchorManager, 'searchLocal').mockResolvedValue({
+        items: [
+          {
+            id: 'mem-a-target',
+            content: 'Owner A Target',
+            type: 'episodic',
+            similarity: 0.9,
+            hop_distance: 2,
+            importance: 0.5,
+            created_at: new Date().toISOString(),
+            predecessor_id: 'mem-b-foreign',
+            predecessor_ids: ['mem-a-anchor', 'mem-b-foreign']
+          }
+        ],
+        total_count: 1,
+        local_results_count: 1,
+        fallback_used: false,
+        query_time: 5,
+        anchor_info: { memory_id: 'mem-a-anchor', slot: 'A', created_at: '' } as any
+      });
+
+      // When 1: bound caller (owner-a)
+      const boundContext: ToolContext = {
+        ...context,
+        boundAgentId: 'owner-a'
+      };
+
+      const boundResult = await tool.handle({
+        slot: 'A',
+        agent_id: 'owner-a'
+      }, boundContext);
+
+      const boundData = JSON.parse(boundResult.content[0].text);
+      expect(boundData.items).toHaveLength(1);
+      expect(boundData.items[0].id).toBe('mem-a-target');
+      expect(boundData.items[0].predecessor_ids).toEqual(['mem-a-anchor']);
+      expect(boundData.items[0].predecessor_id).toBeUndefined();
+
+      // When 2 (음성 대조): unbound caller (boundAgentId 없음)
+      const unboundResult = await tool.handle({
+        slot: 'A',
+        agent_id: 'default'
+      }, context);
+
+      const unboundData = JSON.parse(unboundResult.content[0].text);
+      expect(unboundData.items).toHaveLength(1);
+      expect(unboundData.items[0].predecessor_ids).toEqual(['mem-a-anchor', 'mem-b-foreign']);
+      expect(unboundData.items[0].predecessor_id).toBe('mem-b-foreign');
+    });
   });
 });

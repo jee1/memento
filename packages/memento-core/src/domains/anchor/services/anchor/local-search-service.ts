@@ -96,7 +96,8 @@ export class LocalSearchService {
     threshold: number,
     maxHops: number,
     limit: number,
-    useRelations: boolean = true
+    useRelations: boolean = true,
+    ownerId?: string
   ): Promise<NHopSearchResult[]> {
     return this.nHopSearchService.searchNHop(
       anchorEmbedding,
@@ -105,7 +106,8 @@ export class LocalSearchService {
       threshold,
       maxHops,
       limit,
-      useRelations
+      useRelations,
+      ownerId
     );
   }
 

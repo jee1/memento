@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### Security
+
+- 관계 추출(`extract_relations` 및 기억 저장 시 관계 추출)에서 모델이 반환한 대상 식별자를 인가된 후보 기억 집합으로 한정하고, 관계 저장 직전 양 끝점의 소유자 일치 여부를 검증합니다.
+- 국소 검색(`search_local`) 결과의 중첩 경로 추적 목록(`predecessor_ids`, `predecessor_id`)에서 바인딩된 호출자 소유가 아닌 기억 식별자를 걸러내고, 다중 홉 탐색 단계에 소유자 범위를 전달합니다.
+
 ### Changed
 
 - Claude Code case 지침: `final_score`가 0.5 미만이거나 유효한 점수가 없는 후보는 주입하지 않습니다. 선택한 case와 전체 유효 후보의 점수를 로그에 남깁니다(#1493).
