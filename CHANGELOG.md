@@ -15,6 +15,10 @@
 
 - Docker Compose 파일에서 obsolete `version` 키를 제거해 `docker compose` 경고를 없앱니다(#1491).
 
+### Added
+
+- Claude Code hook: `MEMENTO_CAPTURE=0` 설정으로 lifecycle 캡처를 끄고 지침 주입만 실행하는 옵션을 추가합니다 (#1494). 기본값은 켬(1)입니다.
+
 ### Fixed
 
 - CLI: `npm i -g memento-mcp-server` 가 `memento` 명령을 설치하고, npm bin symlink 로 실행해도 명령이 동작합니다. 전에는 `memento connect claude-code` 로 등록한 훅이 command not found 로 조용히 실패했습니다 (#1492).

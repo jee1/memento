@@ -119,4 +119,10 @@ describe('runAgentHookCommand stdout', () => {
     const withServer = await run('', { port: 1, pid: 1, startedAt: 'now' });
     expect(withServer.runHook.mock.calls[0]?.[0].directives.recall).toBeTypeOf('function');
   });
+
+  it('passes process.env to runner', async () => {
+    vi.stubEnv('MEMENTO_CAPTURE', '0');
+    const { runHook } = await run('');
+    expect(runHook.mock.calls[0]?.[0].env?.MEMENTO_CAPTURE).toBe('0');
+  });
 });

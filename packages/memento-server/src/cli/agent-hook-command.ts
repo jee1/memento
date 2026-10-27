@@ -132,6 +132,7 @@ export async function runAgentHookCommand(
     transport,
     timeoutMs: 1_000,
     maxRetries: 0,
+    env: process.env,
     directives: {
       config: parseDirectiveConfig(process.env, homedir()),
       recall: serverInfo
