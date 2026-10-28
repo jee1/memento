@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   CI: true
@@ -47,7 +48,18 @@ jobs:
         continue-on-error: false
       - run: npx tsx scripts/check-vi-mock-paths.ts --ci
         continue-on-error: false
-      - run: npx tsx scripts/check-version-sync.ts --ci
+      - name: Check version sync & changelog
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -n "$PR_BASE" ]; then
+            npx tsx scripts/check-version-sync.ts --ci --base "$PR_BASE" --head "$PR_HEAD" --title "$PR_TITLE" --labels "$PR_LABELS"
+          else
+            npx tsx scripts/check-version-sync.ts --ci
+          fi
         continue-on-error: false
       - run: npm run type-check
       - name: Unused files, exports and types (knip)
