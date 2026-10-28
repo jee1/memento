@@ -144,10 +144,20 @@ export async function runRelationExtraction(
       return;
     }
 
+    const allowedTargetIds = new Set(existingMemories.map(m => m.id));
+    const safeCandidates = outcome.candidates.filter(
+      c => c.source_id === savedMemoryId && allowedTargetIds.has(c.target_id)
+    );
+
+    if (safeCandidates.length === 0) {
+      host.logInfo('관계 추출 완료 (유효한 후보 대상 없음)', { memory_id: savedMemoryId });
+      return;
+    }
+
     host.logInfo('관계 추출 완료', {
       memory_id: savedMemoryId,
-      relation_count: outcome.candidates.length,
-      relations: outcome.candidates.map(c => ({
+      relation_count: safeCandidates.length,
+      relations: safeCandidates.map(c => ({
         target_id: c.target_id,
         relation_type: c.relation_type,
         confidence: c.confidence,
@@ -155,7 +165,7 @@ export async function runRelationExtraction(
       }))
     });
 
-    await persistRelationCandidates([...outcome.candidates], context, host, savedMemoryId);
+    await persistRelationCandidates([...safeCandidates], context, host, savedMemoryId);
   } catch (error) {
     host.logWarning(`관계 추출 실패 (${savedMemoryId})`, {
       error: error instanceof Error ? error.message : String(error)

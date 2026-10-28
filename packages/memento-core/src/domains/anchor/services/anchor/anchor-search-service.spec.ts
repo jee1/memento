@@ -1475,5 +1475,93 @@ describe('AnchorSearchService', () => {
       // Phase 8.4: 커스텀 에러 클래스 검증
       expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(DatabaseValidationError);
     });
+
+    it('F18: searchLocal에서 owner_id 지정 시 중첩 predecessor_ids 및 predecessor_id의 타 소유자 ID가 제거되어야 함 (두 owner 음성 대조)', async () => {
+      // Given: memory_item에 owner_id 컬럼 확인
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN owner_id TEXT');
+      } catch {
+        // 이미 존재하면 무시
+      }
+
+      // owner-a와 owner-b 메모리 생성
+      db.prepare(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES (?, 'episodic', ?, 0.5, 'private', ?, CURRENT_TIMESTAMP)
+      `).run('mem-a-anchor', 'Owner A Anchor', 'owner-a');
+
+      db.prepare(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES (?, 'episodic', ?, 0.5, 'private', ?, CURRENT_TIMESTAMP)
+      `).run('mem-a-target', 'Owner A Target', 'owner-a');
+
+      db.prepare(`
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES (?, 'episodic', ?, 0.5, 'private', ?, CURRENT_TIMESTAMP)
+      `).run('mem-b-foreign', 'Owner B Foreign', 'owner-b');
+
+      const mockEmbedding = {
+        embedding: new Array(384).fill(0.1),
+        provider: 'minilm'
+      };
+
+      // LocalSearchService.performNHopSearch 모킹: mem-a-target이 타 소유자 mem-b-foreign을 predecessor로 가짐
+      const localSearchService = (service as any).localSearchService;
+      vi.spyOn(localSearchService, 'performNHopSearch').mockResolvedValue([
+        {
+          memory_id: 'mem-a-target',
+          content: 'Owner A Target',
+          type: 'episodic',
+          similarity: 0.85,
+          hop_distance: 2,
+          importance: 0.5,
+          created_at: new Date().toISOString(),
+          predecessor_id: 'mem-b-foreign',
+          predecessor_ids: ['mem-a-anchor', 'mem-b-foreign']
+        }
+      ]);
+
+      // When 1: owner_id='owner-a'로 국소 검색 수행
+      const scopedResult = await service.searchLocal(
+        agentId,
+        'A',
+        undefined,
+        2,
+        {
+          limit: 10,
+          min_results: 1,
+          owner_id: 'owner-a'
+        },
+        'mem-a-anchor',
+        mockEmbedding,
+        Date.now()
+      );
+
+      // Then 1: 타 소유자 mem-b-foreign이 predecessor_ids와 predecessor_id에서 필터링됨
+      expect(scopedResult.items).toHaveLength(1);
+      expect(scopedResult.items[0].id).toBe('mem-a-target');
+      expect(scopedResult.items[0].predecessor_ids).toEqual(['mem-a-anchor']);
+      expect(scopedResult.items[0].predecessor_id).toBeUndefined();
+
+      // When 2 (음성 대조): unbound (owner_id 미지정)로 국소 검색 수행
+      const unscopedResult = await service.searchLocal(
+        agentId,
+        'A',
+        undefined,
+        2,
+        {
+          limit: 10,
+          min_results: 1
+        },
+        'mem-a-anchor',
+        mockEmbedding,
+        Date.now()
+      );
+
+      // Then 2: unbound인 경우 타 소유자 predecessor_ids가 그대로 보존됨
+      expect(unscopedResult.items).toHaveLength(1);
+      expect(unscopedResult.items[0].predecessor_ids).toEqual(['mem-a-anchor', 'mem-b-foreign']);
+      expect(unscopedResult.items[0].predecessor_id).toBe('mem-b-foreign');
+    });
   });
 });

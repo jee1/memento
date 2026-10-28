@@ -12,7 +12,7 @@ import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-in
 import { logger } from '../../../../shared/utils/logger.js';
 import { selectIdsOwnedBy } from '../../../../shared/utils/owned-ids.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
-import { NHopSearchService } from './n-hop-search-service.js';
+import { NHopSearchService, type NHopSearchResult } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';
 import { LocalSearchService } from './local-search-service.js';
@@ -266,16 +266,17 @@ export class AnchorSearchService implements IAnchorSearchService {
     }
 
     // Phase 3.6: LocalSearchService를 사용하여 파이프라인 실행
-    // 1. N-hop 검색 수행
+    const ownerId = options?.owner_id;
+    // 1. N-hop 검색 수행 (소유자 범위 전달)
     const allHopResults = await this.localSearchService.performNHopSearch(
       anchorEmbedding?.embedding ?? null,
       anchorEmbedding?.provider ?? '',
       anchorMemoryId,
       vectorThreshold,
       finalHopLimit,
-      // ponytail: n-hop prefetch is not owner-scoped; a bound caller surrounded by foreign memories can still get < limit when no query triggers fallback. Push owner into NHopSearchService if that shows up.
       limit * 2, // 더 많이 가져와서 필터링 후 최종 limit 적용
-      useRelations
+      useRelations,
+      ownerId
     );
 
     // 2. 쿼리 필터링 적용
@@ -287,23 +288,11 @@ export class AnchorSearchService implements IAnchorSearchService {
 
 
     // 3. owner 범위 — limit 을 자르기 전에 걸러야 바인딩 agent 도 limit 만큼 받는다 (#1342)
-    const ownerId = options?.owner_id;
     const ownedIds = ownerId ? selectIdsOwnedBy(this.db, ownerId, filteredResults.map(r => r.memory_id)) : null;
     const scopedResults = ownedIds ? filteredResults.filter(r => ownedIds.has(r.memory_id)) : filteredResults;
 
-    // 4. 결과 포맷팅
-    const formattedResults = scopedResults.map(result => ({
-      id: result.memory_id,
-      content: result.content,
-      type: result.type,
-      similarity: result.similarity,
-      hop_distance: result.hop_distance,
-      importance: result.importance,
-      created_at: result.created_at,
-      tags: result.tags,
-      predecessor_id: result.predecessor_id,
-      predecessor_ids: result.predecessor_ids
-    }));
+    // 4. 결과 포맷팅 (중첩 predecessor도 소유자 검증)
+    const formattedResults = this.formatLocalResults(scopedResults, ownerId);
 
     // 최종 limit 적용
     const localResults = formattedResults.slice(0, limit);
@@ -346,6 +335,60 @@ export class AnchorSearchService implements IAnchorSearchService {
         embedding_missing: !anchorEmbedding
       }
     };
+  }
+
+  private formatLocalResults(
+    scopedResults: NHopSearchResult[],
+    ownerId?: string
+  ): Array<{
+    id: string;
+    content: string;
+    type: string;
+    similarity: number;
+    hop_distance: number;
+    importance: number;
+    created_at: string;
+    tags?: string[];
+    predecessor_id?: string;
+    predecessor_ids?: string[];
+  }> {
+    let ownedPredecessors: Set<string> | null = null;
+    if (ownerId && this.db) {
+      const allPredecessorCandidateIds: string[] = [];
+      for (const r of scopedResults) {
+        if (r.predecessor_id) allPredecessorCandidateIds.push(r.predecessor_id);
+        if (r.predecessor_ids) allPredecessorCandidateIds.push(...r.predecessor_ids);
+      }
+      ownedPredecessors = selectIdsOwnedBy(this.db, ownerId, allPredecessorCandidateIds);
+    }
+
+    return scopedResults.map(result => {
+      let predecessor_ids = result.predecessor_ids;
+      let predecessor_id = result.predecessor_id;
+      if (ownedPredecessors) {
+        if (predecessor_ids) {
+          predecessor_ids = predecessor_ids.filter((id: string) => ownedPredecessors.has(id));
+          if (predecessor_ids.length === 0) {
+            predecessor_ids = undefined;
+          }
+        }
+        if (predecessor_id && !ownedPredecessors.has(predecessor_id)) {
+          predecessor_id = undefined;
+        }
+      }
+      return {
+        id: result.memory_id,
+        content: result.content,
+        type: result.type,
+        similarity: result.similarity,
+        hop_distance: result.hop_distance,
+        importance: result.importance,
+        created_at: result.created_at,
+        tags: result.tags,
+        predecessor_id,
+        predecessor_ids
+      };
+    });
   }
 
   /**

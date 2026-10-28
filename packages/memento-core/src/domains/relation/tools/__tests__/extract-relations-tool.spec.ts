@@ -372,5 +372,66 @@ describe('ExtractRelationsTool', () => {
       const data = JSON.parse(result.content[0].text);
       expect(data.extracted_count).toBeGreaterThanOrEqual(0);
     });
+
+    it('F17: bound caller 환경에서 타 소유자 ID가 target_id로 반환되어도 관계 저장이 차단되어야 함 (두 owner 음성 대조)', async () => {
+      // Given: owner_id 컬럼 추가
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN owner_id TEXT');
+      } catch {
+        // 이미 있으면 무시
+      }
+
+      // owner-a와 owner-b의 메모리 생성
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, owner_id) VALUES (?, ?, ?, ?)
+      `, ['mem-a1', 'episodic', 'Owner A Memory 1', 'owner-a']);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, owner_id) VALUES (?, ?, ?, ?)
+      `, ['mem-a2', 'episodic', 'Owner A Memory 2', 'owner-a']);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, owner_id) VALUES (?, ?, ?, ?)
+      `, ['mem-b1', 'episodic', 'Owner B Memory 1', 'owner-b']);
+
+      // RelationExtractor가 owner-a의 후보(mem-a2)와 타 소유자(mem-b1)를 함께 반환하도록 모킹
+      vi.spyOn(RelationExtractor.prototype, 'extractRelations').mockResolvedValue([
+        {
+          source_id: 'mem-a1',
+          target_id: 'mem-a2',
+          relation_type: 'CAUSES',
+          confidence: 0.85
+        },
+        {
+          source_id: 'mem-a1',
+          target_id: 'mem-b1',
+          relation_type: 'CAUSES',
+          confidence: 0.9
+        }
+      ]);
+
+      const boundContext: ToolContext = {
+        db,
+        boundAgentId: 'owner-a',
+        services: {
+          relationGraph
+        }
+      };
+
+      // When: owner-a가 mem-a1에 대해 관계 추출 수행
+      const result = await tool.handle({ memory_id: 'mem-a1' }, boundContext);
+      const data = JSON.parse(result.content[0].text);
+
+      // Then: 타 소유자 mem-b1과의 관계는 제외되고, 자기 소유 mem-a2와의 관계만 추출/저장됨
+      expect(data.extracted_count).toBe(1);
+      expect(data.saved_count).toBe(1);
+      expect(data.relations).toHaveLength(1);
+      expect(data.relations[0].target_id).toBe('mem-a2');
+
+      // DB 확인: mem-b1에 대한 관계가 memory_relation에 없어야 함
+      const relationsInDb = DatabaseUtils.all(db, `
+        SELECT * FROM memory_relation WHERE source_id = 'mem-a1'
+      `) as Array<{ target_id: string }>;
+      expect(relationsInDb.some(r => r.target_id === 'mem-b1')).toBe(false);
+      expect(relationsInDb.some(r => r.target_id === 'mem-a2')).toBe(true);
+    });
   });
 });

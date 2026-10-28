@@ -467,12 +467,13 @@ ${memoryList}
       throw new Error(`LLM 기반 관계 추출 실패: ${errorMessage}. ${errorDetails.suggestion}`, { cause: error });
     }
 
-    // 최소 신뢰도 필터링
+    // 최소 신뢰도 필터링 및 인가된 후보 ID 집합 제한
     const minConfidence = options?.minConfidence ?? CONFIDENCE.MIN_LLM_BASED;
+    const allowedTargetIds = new Set(existingMemories.map(m => m.id).filter(id => id !== newMemory.id));
 
-    // RelationCandidate로 변환
+    // RelationCandidate로 변환 (후보 밖 target_id는 제외)
     const candidates: RelationCandidate[] = parsedResponse.relations
-      .filter(rel => rel.confidence >= minConfidence)
+      .filter(rel => allowedTargetIds.has(rel.target_id) && rel.confidence >= minConfidence)
       .map(rel => ({
         source_id: newMemory.id,
         target_id: rel.target_id,

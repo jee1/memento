@@ -46,10 +46,12 @@ async function extractWithChat(
         immediate: true,
       },
     );
-    if (candidates.length === 0) {
+    const allowedTargetIds = new Set(existing.map((m) => m.id).filter((id) => id !== source.id));
+    const validCandidates = candidates.filter((c) => allowedTargetIds.has(c.target_id));
+    if (validCandidates.length === 0) {
       return { status: 'none' };
     }
-    return { status: 'extracted', candidates };
+    return { status: 'extracted', candidates: validCandidates };
   } catch {
     return { status: 'failed', reason: 'chat_failed' };
   }
