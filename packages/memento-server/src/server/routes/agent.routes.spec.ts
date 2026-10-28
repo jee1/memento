@@ -1017,14 +1017,16 @@ describe('agent integration routes', () => {
   });
   describe('agent-bound API token', () => {
     async function withBoundApp(
-      run: (call: (method: string, path: string, body?: unknown, agentId?: string) => Promise<{ status: number; body: Record<string, unknown> }>) => Promise<void>,
+      run: (call: (method: string, path: string, body?: unknown, bound?: string | { projectId: string }) => Promise<{ status: number; body: Record<string, unknown> }>) => Promise<void>,
     ) {
       const app = express();
       app.use(express.json());
       // programmatic-auth 미들웨어가 토큰 바인딩에서만 채우는 값을 테스트 헤더로 흉내 낸다.
       app.use((req, _res, next) => {
         const agentId = req.get('x-test-bound-agent');
+        const projectId = req.get('x-test-bound-project');
         if (agentId) req.programmaticAuth = { keyId: 'test', scopes: ['tools:invoke'], agentId };
+        if (projectId) req.programmaticAuth = { keyId: 'test', scopes: ['tools:invoke'], projectId };
         next();
       });
       app.use('/api/v1/agent', router);
@@ -1033,12 +1035,14 @@ describe('agent integration routes', () => {
       const address = server.address();
       const port = typeof address === 'object' && address ? address.port : 0;
       try {
-        await run(async (method, path, body, agentId = 'agent-a') => {
+        await run(async (method, path, body, bound = 'agent-a') => {
           const res = await fetch(`http://127.0.0.1:${port}/api/v1/agent${path}`, {
             method,
             headers: {
               'content-type': 'application/json',
-              ...(agentId ? { 'x-test-bound-agent': agentId } : {}),
+              ...(typeof bound === 'object'
+                ? { 'x-test-bound-project': bound.projectId }
+                : bound ? { 'x-test-bound-agent': bound } : {}),
             },
             ...(body === undefined ? {} : { body: JSON.stringify(body) }),
           });
@@ -1139,6 +1143,70 @@ describe('agent integration routes', () => {
           expect((await call(method, path, method === 'POST' ? {} : undefined)).status, `${method} ${path}`).toBe(403);
         }
         expect((await call('GET', '/sessions/aggregate', undefined, '')).status).toBe(200);
+      });
+    });
+
+    describe('project-bound API token', () => {
+      const projectA = { projectId: 'project-a' };
+      const inProject = (projectId: string, sessionId: string, eventId: string) =>
+        event({ session_id: sessionId, event_id: eventId, scope: { owner_id: 'owner-1', project_id: projectId } });
+
+      it('hides another project session as not found and keeps it', async () => {
+        await withBoundApp(async (call) => {
+          expect((await call('POST', '/sessions', inProject('project-b', 'session-b', 'evt-b'), '')).status).toBe(201);
+
+          for (const [method, path] of [
+            ['GET', '/sessions/session-b'],
+            ['GET', '/sessions/session-b/observations'],
+            ['GET', '/sessions/session-b/export'],
+            ['DELETE', '/sessions/session-b'],
+          ] as const) {
+            const res = await call(method, path, undefined, projectA);
+            expect(res.status, `${method} ${path}`).toBe(404);
+            expect(res.body.reason_code).toBe('SESSION_NOT_STARTED');
+          }
+          expect((await call('GET', '/sessions/session-b', undefined, '')).status).toBe(200);
+        });
+      });
+
+      it('lists only the bound project sessions and refuses another project_id', async () => {
+        await withBoundApp(async (call) => {
+          await call('POST', '/sessions', inProject('project-b', 'session-b', 'evt-b'), '');
+          await call('POST', '/sessions', inProject('project-a', 'session-a', 'evt-a'), '');
+          const res = await call('GET', '/sessions', undefined, projectA);
+          expect(res.status).toBe(200);
+          expect((res.body.sessions as Array<{ session: { id: string } }>).map(s => s.session.id)).toEqual(['session-a']);
+          expect(res.body.aggregate).toBeUndefined();
+          expect((await call('GET', '/sessions?project_id=project-b', undefined, projectA)).status).toBe(403);
+          expect((await call('POST', '/sessions', inProject('project-b', 'session-x', 'evt-x'), projectA)).status).toBe(403);
+        });
+      });
+
+      it('pins a session started without a project to the bound project', async () => {
+        await withBoundApp(async (call) => {
+          const start = event({ session_id: 'session-a', event_id: 'evt-a', scope: { owner_id: 'owner-1' } });
+          expect((await call('POST', '/sessions', start, projectA)).status).toBe(201);
+          const own = await call('GET', '/sessions/session-a', undefined, projectA);
+          expect(own.status).toBe(200);
+          expect((own.body.session as { project_id: string }).project_id).toBe('project-a');
+        });
+      });
+
+      it('blocks endpoints that span all projects', async () => {
+        await withBoundApp(async (call) => {
+          for (const [method, path] of [
+            ['GET', '/sessions/aggregate'],
+            ['GET', '/operations/status'],
+            ['GET', '/injections/metrics'],
+            ['POST', '/transcripts/import'],
+            ['GET', '/provenance?memory_id=m'],
+            ['GET', '/memory/promotion-candidates'],
+            ['POST', '/memory/promotion-candidates/c1:approve'],
+            ['POST', '/retention:enforce'],
+          ] as const) {
+            expect((await call(method, path, method === 'POST' ? {} : undefined, projectA)).status, `${method} ${path}`).toBe(403);
+          }
+        });
       });
     });
   });

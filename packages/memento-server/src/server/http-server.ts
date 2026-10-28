@@ -56,6 +56,7 @@ import {
   createAdminAuthMiddleware,
   createAdminRateLimitMiddleware,
   createAgentRateLimitMiddleware,
+  createAuthFailureRateLimitMiddleware,
   createMcpRateLimitMiddleware,
   createHttpAuditMiddleware,
   createStrictAuditCoverageMiddleware,
@@ -402,35 +403,38 @@ function registerRoutes(
   const adminRateLimit = createAdminRateLimitMiddleware();
   const mcpRateLimit = createMcpRateLimitMiddleware();
   const agentRateLimit = createAgentRateLimitMiddleware();
+  const authFailureRateLimit = createAuthFailureRateLimitMiddleware();
   const httpAudit = createHttpAuditMiddleware({ database });
   const adminHttpAudit = createHttpAuditMiddleware({ database, transport: 'http_admin' });
   const strictToolsAudit = createStrictAuditCoverageMiddleware({ database });
   const strictAdminAudit = createStrictAuditCoverageMiddleware({ database, transport: 'http_admin' });
 
+  // 버킷 limiter 는 검증된 신원으로 키를 만들도록 인증 뒤에 둔다. 인증 실패는 여기서 IP 로 센다.
+  app.use(['/tools', '/auth', '/admin', '/api', ...MCP_PROGRAMMATIC_PATHS], authFailureRateLimit);
   app.use(
     '/tools',
-    toolsRateLimit,
     httpAudit,
     programmaticAuth,
+    toolsRateLimit,
     strictToolsAudit,
     resolveCallerMiddleware,
     ownerScopeMiddleware,
     toolsRouter!,
   );
   app.use('/auth', adminRateLimit, authRouter!);
-  app.use('/admin', adminRateLimit, browserSessionAuth, adminRouter!);
-  app.use('/api/v1/quality', adminHttpAudit, adminAuth, strictAdminAudit, qualityRouter, (_req, res) => {
+  app.use('/admin', browserSessionAuth, adminRateLimit, adminRouter!);
+  app.use('/api/v1/quality', adminHttpAudit, adminAuth, adminRateLimit, strictAdminAudit, qualityRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Quality API route not found.' });
   });
-  app.use('/api/v1/maintenance', adminHttpAudit, adminAuth, strictAdminAudit, maintenanceRouter, (_req, res) => {
+  app.use('/api/v1/maintenance', adminHttpAudit, adminAuth, adminRateLimit, strictAdminAudit, maintenanceRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Maintenance API route not found.' });
   });
-  app.use('/api/v1/audit', adminHttpAudit, adminAuth, strictAdminAudit, auditRouter, (_req, res) => {
+  app.use('/api/v1/audit', adminHttpAudit, adminAuth, adminRateLimit, strictAdminAudit, auditRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Audit API route not found.' });
   });
-  app.use('/api/v1/agent', agentRateLimit, httpAudit, agentProgrammaticAuth, agentRouter);
+  app.use('/api/v1/agent', httpAudit, agentProgrammaticAuth, agentRateLimit, agentRouter);
   app.use('/api', browserSessionAuth, apiRouter!);
-  app.use(MCP_PROGRAMMATIC_PATHS, mcpRateLimit, mcpOriginGuard, httpAudit, mcpProgrammaticAuth, strictToolsAudit);
+  app.use(MCP_PROGRAMMATIC_PATHS, mcpOriginGuard, httpAudit, mcpProgrammaticAuth, mcpRateLimit, strictToolsAudit);
   app.use('/', mcpRouter!);
   app.use(errorHandler);
 }

@@ -3,8 +3,6 @@ import { createHash } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import rateLimit, { ipKeyGenerator, type Options as RateLimitOptions } from 'express-rate-limit';
 
-import { readAuthCredential } from './http-audit.middleware.js';
-import { DASHBOARD_SESSION_COOKIE_NAME, readCookie } from './session-auth.middleware.js';
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
@@ -16,14 +14,15 @@ const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
  */
 const ADMIN_READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-type RateLimitBucket = 'tools' | 'mcp' | 'agent' | 'admin' | 'admin_read';
+type RateLimitBucket = 'tools' | 'mcp' | 'agent' | 'admin' | 'admin_read' | 'auth_failures';
 
 type RateLimitEnvKey =
   | 'MEMENTO_HTTP_RATE_LIMIT_TOOLS'
   | 'MEMENTO_HTTP_RATE_LIMIT_MCP'
   | 'MEMENTO_HTTP_RATE_LIMIT_AGENT'
   | 'MEMENTO_HTTP_RATE_LIMIT_ADMIN'
-  | 'MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ';
+  | 'MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ'
+  | 'MEMENTO_HTTP_RATE_LIMIT_AUTH_FAILURES';
 
 export function isHttpRateLimitDisabled(): boolean {
   return process.env.NODE_ENV === 'test' || process.env.MEMENTO_HTTP_RATE_LIMIT_DISABLED === '1';
@@ -38,26 +37,19 @@ function hashIdentity(value: string): string {
  * 리버스 프록시 뒤에서는 모든 클라이언트가 같은 출발지로 보여 서버 전체가 버킷 1개가 된다
  * (한 브라우저 탭이 예산을 태우면 다른 기기까지 429).
  *
- * 그래서 이미 있는 신원 정보를 먼저 쓴다 — 우선순위는 감사 로그(`resolveHttpAuditKeyId`)와
- * 같지만, 브라우저 세션은 `'session'` 상수로 뭉치지 않고 **세션 id 해시**까지 내려간다.
- * 서로 다른 세션은 독립 예산을, 같은 세션의 여러 탭은 한 예산을 쓴다.
- *
- * rate limit 은 인증 **앞**에 있으므로(무인증 폭주 차단) `req.programmaticAuth` 가 아직
- * 없는 경우가 많다. 자격증명 원문에서 직접 키를 만들되 해시만 저장한다.
+ * 그래서 검증된 신원을 먼저 쓴다. 서로 다른 세션은 독립 예산을, 같은 세션의 여러 탭은
+ * 한 예산을 쓴다. 버킷 limiter 는 인증 **뒤**에 붙는다. 검증 전 자격증명이나 쿠키로 키를
+ * 만들면 추측값마다 새 버킷이 생겨 한도가 무의미해진다. 인증 실패는
+ * `createAuthFailureRateLimitMiddleware` 가 IP 로 센다.
  */
-function resolveRateLimitKey(req: Request): string {
+function resolveRateLimitKey(req: Request, res: Response): string {
   const programmaticKeyId = req.programmaticAuth?.keyId?.trim();
   if (programmaticKeyId) {
     return `key:${programmaticKeyId}`;
   }
 
-  const credential = readAuthCredential(req);
-  if (credential) {
-    return `key:${hashIdentity(credential)}`;
-  }
-
-  const sessionId = readCookie(req.headers.cookie, DASHBOARD_SESSION_COOKIE_NAME);
-  if (sessionId) {
+  const sessionId: unknown = res.locals.dashboardSessionId;
+  if (typeof sessionId === 'string' && sessionId) {
     return `session:${hashIdentity(sessionId)}`;
   }
 
@@ -92,6 +84,7 @@ function createBucketRateLimitMiddleware(
   bucket: RateLimitBucket,
   defaultMax: number,
   envKey: RateLimitEnvKey,
+  options: Partial<RateLimitOptions> = {},
 ): RequestHandler {
   if (isHttpRateLimitDisabled()) {
     return (_req: Request, _res: Response, next: NextFunction) => {
@@ -108,6 +101,19 @@ function createBucketRateLimitMiddleware(
     legacyHeaders: false,
     keyGenerator: resolveRateLimitKey,
     handler: createRateLimitHandler(bucket),
+    ...options,
+  });
+}
+
+/**
+ * 인증 미들웨어 앞에 붙어 401 응답만 IP 별로 센다. 한도를 넘으면 그 IP 의 요청을 창이 끝날 때까지
+ * 막는다(올바른 자격증명 포함). 막지 않으면 추측 결과가 401/200 으로 드러난다.
+ */
+export function createAuthFailureRateLimitMiddleware(): RequestHandler {
+  return createBucketRateLimitMiddleware('auth_failures', 100, 'MEMENTO_HTTP_RATE_LIMIT_AUTH_FAILURES', {
+    keyGenerator: (req) => `ip:${ipKeyGenerator(req.ip ?? '')}`,
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: (_req, res) => res.statusCode !== 401,
   });
 }
 

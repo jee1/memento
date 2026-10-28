@@ -5,7 +5,7 @@ import { createSessionStore } from '../auth/session-store.js';
 import { createSessionAuthMiddleware } from './session-auth.middleware.js';
 
 function createMockResponse() {
-  const res: Partial<Response> & { statusCode?: number; body?: unknown } = {};
+  const res: Partial<Response> & { statusCode?: number; body?: unknown } = { locals: {} };
   res.statusCode = 200;
   res.status = vi.fn((code: number) => {
     res.statusCode = code;

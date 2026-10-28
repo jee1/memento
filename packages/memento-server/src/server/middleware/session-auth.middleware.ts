@@ -49,6 +49,7 @@ export function createSessionAuthMiddleware(config: SessionAuthMiddlewareConfig)
       return;
     }
 
+    res.locals.dashboardSessionId = sessionId;
     next();
   };
 }

@@ -50,6 +50,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 - 같은 제한이 `get_introspection_summary`·`forgetting_stats`·`performance_stats` 에도 적용됩니다. 이 도구들은 owner 를 가리지 않고 전체 기억의 통계와 id 를 돌려줍니다.
 - **절차 기억 갱신·비교**: workflow·skill로 찾는 갱신 대상은 요청의 owner·project 안에서 선택합니다. 묶인 호출자의 recall 버전 비교·목록은 자기 소유의 활성 기억만 포함하며, 소유자 바인딩이 없는 운영자·stdio의 비교 범위는 유지합니다.
 - 같은 제한이 국소 검색과 관계 추출에도 적용됩니다. 바인딩된 토큰은 `search_local` 의 중첩 `predecessor_ids` 와 `extract_relations` 에서 다른 agent 소유의 기억 식별자에 접근하거나 관계를 맺지 못합니다.
+- `project_id` 만 묶인 토큰(`MEMENTO_PROJECT_SCOPE_ENABLED`, #1094)도 같은 전역 도구와 `/api/v1/agent` 운영 경로(집계, retention, promotion 승인 등)에서 403 입니다. `/api/v1/agent` 의 `project_id` 는 묶인 project 로 고정되고, 다른 project 의 세션은 404 로 응답합니다.
 - **`ADMIN_API_KEY`**: 브라우저 대시보드 `/auth/session` 로그인 키입니다. v2.0.0(#1241)부터 programmatic 표면에는 쓰이지 않습니다. `MEMENTO_API_TOKENS` 없이 이 키만 두면 programmatic 표면은 401 이고 기동 로그에 오류가 남습니다.
 - **권장 사용**: 특별한 이유가 없다면 HTTP 서버는 **루프백 또는 내부망**에만 두세요. 브라우저 대시보드/그래프는 서버와 동일 출처에서 열어 세션 쿠키가 다른 오리진으로 퍼지지 않게 유지하세요.
 - **운영 환경**: programmatic 접근에는 스코프드 토큰을 사용하고, 의도적으로 노출하는 경우가 아니면 `MEMENTO_HTTP_BIND_HOST`를 루프백으로 유지하세요.
@@ -78,6 +79,8 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 - **기본값**: tools 100회/15분, mcp 1500회/15분(운영 키당 최대 약 480회의 3배), agent 600회/15분, admin 조회 300회/15분, admin 쓰기 30회/15분. 대시보드는 한 번 열 때 패널마다 `/admin/*`를 조회하므로 조회 예산이 쓰기와 분리돼 있어야 조회가 예산을 소진해도 운영자가 잡을 실행할 수 있습니다.
 - **환경 변수**: `MEMENTO_HTTP_RATE_LIMIT_TOOLS`, `MEMENTO_HTTP_RATE_LIMIT_MCP`, `MEMENTO_HTTP_RATE_LIMIT_AGENT`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN_READ`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN` (정수, 창당 최대 요청 수). `MEMENTO_HTTP_RATE_LIMIT_DISABLED=1` 또는 `NODE_ENV=test`면 비활성화.
 - **429 응답**: 초과 시 `429 Too Many Requests`와 `Retry-After`(초) 헤더를 반환합니다.
+- **인증 실패 한도**: `/tools`, `/auth`, `/admin`, `/api`, `/mcp`, `/messages` 의 401 응답을 IP 별로 셉니다. 기본 100회/15분(`MEMENTO_HTTP_RATE_LIMIT_AUTH_FAILURES`)을 넘으면 그 IP 의 요청은 올바른 자격증명이어도 창이 끝날 때까지 429 입니다. 프록시 뒤에서는 `MEMENTO_TRUST_PROXY` 를 설정해야 클라이언트마다 따로 셉니다.
+- 버킷 limiter 는 인증 뒤에서 동작하고, 키는 검증된 토큰 id 와 대시보드 세션만 씁니다. 검증 전 자격증명이나 쿠키로는 새 예산을 만들 수 없습니다. `/api/v1/quality`, `/api/v1/maintenance`, `/api/v1/audit` 도 admin 조회/쓰기 버킷을 씁니다.
 - **키 (누구의 예산인가)**: `express-rate-limit` 기본 키는 `req.ip` 하나라 Docker 포트 퍼블리싱·리버스 프록시 뒤에서는 모든 브라우저·탭·기기·스크립트가 **한 카운터**를 공유했습니다 (#1161). 이제 키는 **API 키(`Authorization: Bearer`·`X-API-Key` 해시) → 대시보드 세션 id 해시 → IP** 순으로 정해집니다. 서로 다른 세션은 독립 예산을 갖고, 같은 세션의 여러 탭은 한 예산을 공유합니다. 자격증명·세션 id 는 해시만 쓰고 원문은 보관하지 않습니다.
 - **`MEMENTO_TRUST_PROXY`**: 미인증 요청만 IP 로 떨어지므로, 프록시 뒤에서는 이 설정이 없으면 미인증 몫이 프록시 IP 하나로 합쳐집니다. 기본값은 **미설정**이고 그때 `X-Forwarded-For`를 **무시**합니다 — 헤더를 신뢰하면 누구나 위조해 키를 바꿔 한도를 우회할 수 있기 때문입니다. 허용 형식은 Express `trust proxy` 와 같습니다: 홉 수(`1`), `loopback`·`linklocal`·`uniquelocal`, IP·CIDR 목록(쉼표 구분), `true`/`false`. `true` 는 모든 헤더를 신뢰하므로 경고를 남기며 권장하지 않습니다. 해석할 수 없는 값은 경고 후 **무시**합니다(헤더 미신뢰 유지).
 
