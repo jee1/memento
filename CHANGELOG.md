@@ -9,6 +9,11 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Security
+
+- 인증: `MEMENTO_API_TOKENS` 파싱 시 secret 최소 길이를 32자로 검증합니다. 32자 미만 항목은 경고 후 무시하며 서버 기동은 유지합니다.
+- 공급망: Claude Code 플러그인(`plugins/memento/.mcp.json`)의 `memento-mcp-server` 실행 버전을 현재 릴리스 버전으로 고정하고 `check-version-sync` 검사 대상에 추가합니다.
+
 ### Added
 
 - Case 지침 주입: Codex `UserPromptSubmit`과 Cursor `beforeSubmitPrompt`에도 Claude Code와 같은 선택·로그 계약을 붙입니다. Cursor stdout은 `additional_context` 스키마입니다 (#1496).
