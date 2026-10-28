@@ -64,4 +64,15 @@ describe('ProceduralDiffTool', () => {
     );
     expect(result.error).toBe('not_found_or_not_procedural');
   });
+
+  it.each(['proc-left', 'proc-right'])('rejects a deleted comparison operand: %s', async (deletedId) => {
+    db.prepare('UPDATE memory_item SET is_deleted = 1 WHERE id = ?').run(deletedId);
+
+    const result = await tool.handle(
+      { left_id: 'proc-left', right_id: 'proc-right' },
+      { db, services: {} }
+    );
+
+    expect(result.error).toBe('not_found_or_not_procedural');
+  });
 });

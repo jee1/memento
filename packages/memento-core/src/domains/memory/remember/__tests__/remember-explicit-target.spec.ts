@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { ToolInputValidationError } from '../../../../shared/errors/tool-input-validation-error.js';
 import { handleMemoryItem, type MemoryItemContext } from '../remember-tool-memory-item.js';
+import { RememberTool } from '../remember-tool.js';
 import type { RememberToolHost } from '../remember-tool-host.js';
 import type { ToolContext } from '../../../../tools/types.js';
 import * as configModule from '../../../../shared/config/index.js';
@@ -592,4 +593,129 @@ describe('remember explicit memory_id target (#1000)', () => {
     const count = DatabaseUtils.get(db, 'SELECT COUNT(*) AS c FROM memory_item', []) as { c: number };
     expect(count.c).toBe(1);
   });
+
+  describe('implicit procedural target scope', () => {
+    it.each(['replace', 'incremental', 'versioned'] as const)(
+      '%s retains the context project when project_id is omitted through RememberTool.handle',
+      async (updateMode) => {
+        const tool = new RememberTool();
+        context.agentId = 'owner-a';
+        context.projectId = 'proj-a';
+        const initial = parsePayload(await tool.handle({
+          type: 'procedural', content: 'original procedure', workflow_name: 'context-workflow',
+          skill_name: 'context-skill', steps: '["original"]',
+        }, context));
+
+        const result = parsePayload(await tool.handle({
+          type: 'procedural', content: 'updated procedure', workflow_name: 'context-workflow',
+          skill_name: 'context-skill', steps: '["new"]', update_mode: updateMode,
+        }, context));
+
+        expect(db.prepare('SELECT owner_id, project_id, steps FROM memory_item WHERE id = ?')
+          .get(result.memory_id)).toEqual({
+          owner_id: 'owner-a', project_id: 'proj-a',
+          steps: updateMode === 'incremental' ? '["original","new"]' : '["new"]',
+        });
+        if (updateMode === 'versioned') {
+          expect(result.memory_id).not.toBe(initial.memory_id);
+          expect(db.prepare('SELECT target_id FROM memory_link WHERE source_id = ?')
+            .get(result.memory_id)).toEqual({ target_id: initial.memory_id });
+        } else {
+          expect(result.memory_id).toBe(initial.memory_id);
+          expect(result.updated).toBe(true);
+        }
+      },
+    );
+
+    it.each(['replace', 'incremental', 'versioned'] as const)(
+      '%s selects the matching owner and project before newer unrelated rows',
+      async (updateMode) => {
+        for (const [id, owner, project, date] of [
+          ['owned', 'owner-a', 'proj-a', '2026-01-01'],
+          ['other-owner', 'owner-b', 'proj-a', '2026-01-02'],
+          ['other-project', 'owner-a', 'proj-b', '2026-01-03'],
+        ]) {
+          insertMemory(db, {
+            id, type: 'procedural', content: id, owner_id: owner, project_id: project,
+            workflow_name: 'shared-workflow', skill_name: 'shared-skill', steps: '["original"]',
+          });
+          db.prepare('UPDATE memory_item SET created_at = ? WHERE id = ?').run(date, id);
+        }
+        context.boundAgentId = 'owner-a';
+        const result = parsePayload(await handleMemoryItem({
+          type: 'procedural', content: 'new procedure', workflow_name: 'shared-workflow',
+          skill_name: 'shared-skill', steps: '["new"]', update_mode: updateMode,
+        }, context, baseCtx('procedural'), host));
+
+        for (const id of ['other-owner', 'other-project']) {
+          expect(db.prepare('SELECT content, owner_id, project_id FROM memory_item WHERE id = ?').get(id))
+            .toEqual({ content: id, owner_id: id === 'other-owner' ? 'owner-b' : 'owner-a',
+              project_id: id === 'other-project' ? 'proj-b' : 'proj-a' });
+        }
+        if (updateMode === 'versioned') {
+          expect(db.prepare('SELECT target_id FROM memory_link WHERE source_id = ?').get(result.memory_id))
+            .toEqual({ target_id: 'owned' });
+        } else {
+          expect(result.memory_id).toBe('owned');
+          expect(result.updated).toBe(true);
+        }
+      },
+    );
+
+    it.each(['replace', 'incremental', 'versioned'] as const)(
+      '%s creates a separate procedure when only another owner matches',
+      async (updateMode) => {
+        insertMemory(db, {
+          id: 'foreign', type: 'procedural', content: 'foreign procedure', owner_id: 'owner-b',
+          project_id: 'proj-a', workflow_name: 'shared-workflow', skill_name: 'shared-skill',
+          steps: '["foreign-step"]',
+        });
+        context.boundAgentId = 'owner-a';
+        const result = parsePayload(await handleMemoryItem({
+          type: 'procedural', content: 'new procedure', workflow_name: 'shared-workflow',
+          skill_name: 'shared-skill', steps: '["new"]', update_mode: updateMode,
+        }, context, baseCtx('procedural'), host));
+
+        expect(result.memory_id).not.toBe('foreign');
+        expect(result.updated).toBeUndefined();
+        expect(db.prepare('SELECT content, owner_id, steps FROM memory_item WHERE id = ?').get('foreign'))
+          .toEqual({ content: 'foreign procedure', owner_id: 'owner-b', steps: '["foreign-step"]' });
+        expect(db.prepare('SELECT COUNT(*) AS count FROM memory_link').get()).toEqual({ count: 0 });
+      },
+    );
+
+    it.each([null, 'owner-a'])(
+      'unbound callers keep implicit updates for effective owner %s and NULL project',
+      async (ownerId) => {
+        insertMemory(db, {
+          id: 'legacy', type: 'procedural', content: 'legacy procedure', owner_id: ownerId,
+          workflow_name: 'legacy-workflow', skill_name: 'legacy-skill', steps: '["old"]',
+        });
+        const result = parsePayload(await handleMemoryItem({
+          type: 'procedural', content: 'updated legacy procedure', workflow_name: 'legacy-workflow',
+          skill_name: 'legacy-skill', update_mode: 'replace',
+        }, context, baseCtx('procedural', { ownerId, project_id_param: undefined }), host));
+        expect(result.memory_id).toBe('legacy');
+        expect(result.updated).toBe(true);
+      },
+    );
+  });
+
+  it('non-CAS writes recheck ownership after target selection', async () => {
+    insertMemory(db, {
+      id: 'ownership-changed', type: 'semantic', content: 'unchanged',
+      owner_id: 'owner-a', project_id: 'proj-a',
+    });
+    const runTransaction = DatabaseUtils.runTransaction.bind(DatabaseUtils);
+    vi.spyOn(DatabaseUtils, 'runTransaction').mockImplementationOnce(async (database, callback) => {
+      database.prepare('UPDATE memory_item SET owner_id = ? WHERE id = ?').run('owner-b', 'ownership-changed');
+      return runTransaction(database, callback);
+    });
+    await expect(handleMemoryItem({
+      type: 'semantic', content: 'replacement', memory_id: 'ownership-changed', update_mode: 'replace',
+    }, context, baseCtx('semantic'), host)).rejects.toThrow(ToolInputValidationError);
+    expect(db.prepare('SELECT content, owner_id FROM memory_item WHERE id = ?').get('ownership-changed'))
+      .toEqual({ content: 'unchanged', owner_id: 'owner-b' });
+  });
+
 });

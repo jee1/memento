@@ -13,6 +13,8 @@ export async function findExistingProceduralMemory(
   db: Database.Database,
   workflow_name: string | null | undefined,
   skill_name: string | null | undefined,
+  ownerId: string | null,
+  projectId: string | null,
   host: RememberToolHost
 ): Promise<ProceduralMemoryItem | null> {
   if (!workflow_name || !skill_name) {
@@ -32,10 +34,12 @@ export async function findExistingProceduralMemory(
       WHERE type = 'procedural'
         AND workflow_name = ?
         AND skill_name = ?
+        AND owner_id IS ?
+        AND project_id IS ?
         AND (COALESCE(is_deleted, 0) = 0)
       ORDER BY created_at DESC
       LIMIT 1
-    `, [workflow_name, skill_name]);
+    `, [workflow_name, skill_name, ownerId, projectId]);
 
     if (!row) {
       return null;

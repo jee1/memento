@@ -2,7 +2,8 @@
  * Recall 검색 후처리 파이프라인 (recall-tool.ts에서 분리, #445).
  */
 
-import type Database from 'better-sqlite3';
+import type { ToolContext } from '../../../tools/types.js';
+import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
 import { computeProceduralDiff } from '../procedural/procedural-memory-diff.js';
 import { getVersionChain } from '../procedural/procedural-versioning.js';
@@ -15,7 +16,7 @@ import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
 import type { RecallHybridOrTextSearchResult, RecallParams } from './recall-tool-schema.js';
 import type { RecallContext, RecallResultItem, RecallSearchItem } from './recall-tool-types.js';
 
-type RecallPostSearchContext = RecallContext<'metaMemoryService'>;
+type RecallPostSearchContext = RecallContext<'metaMemoryService'> & Pick<ToolContext, 'boundAgentId'>;
 
 function filterLatestOnly(procedural: RecallSearchItem[]): RecallSearchItem[] {
   const bySeries = new Map<string, RecallSearchItem>();
@@ -68,7 +69,7 @@ function applyVersionFilter(
  * procedural 항목에 version_chain 및 diff_with_previous/diff_with를 채웁니다.
  */
 async function enrichProceduralVersionInfo(
-  db: Database.Database,
+  context: RecallPostSearchContext,
   items: RecallSearchItem[],
   includeVersionChain: boolean,
   includeDiffWith?: string
@@ -77,25 +78,31 @@ async function enrichProceduralVersionInfo(
     if (item.type !== 'procedural') return item;
     const out = { ...item };
     const itemId = item.id;
-    if (includeVersionChain && itemId) {
+    let chain: ReturnType<typeof getVersionChain> = [];
+    if ((includeVersionChain || includeDiffWith === 'previous') && itemId) {
       try {
-        out.version_chain = getVersionChain(db, itemId);
+        const candidates = getVersionChain(context.db, itemId);
+        const owned = filterCallerOwnedIds(context, [itemId, ...candidates.map((entry) => entry.id)]);
+        if (owned.has(itemId)) chain = candidates.filter((entry) => owned.has(entry.id));
       } catch {
-        out.version_chain = [];
+        chain = [];
       }
+      if (includeVersionChain) out.version_chain = chain;
     }
     if (includeDiffWith && itemId) {
       try {
         if (includeDiffWith === 'previous') {
-          const chain = getVersionChain(db, itemId);
           const prev = chain.filter((c: { version?: number; id: string }) => (c.version ?? 0) < (item.version ?? 0)).sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
           if (prev) {
-            out.diff_with_previous = computeProceduralDiff(db, prev.id, itemId);
+            out.diff_with_previous = computeProceduralDiff(context.db, prev.id, itemId);
           } else {
             out.diff_with_previous = null;
           }
         } else {
-          out.diff_with = computeProceduralDiff(db, itemId, includeDiffWith);
+          const owned = filterCallerOwnedIds(context, [itemId, includeDiffWith]);
+          out.diff_with = owned.has(itemId) && owned.has(includeDiffWith)
+            ? computeProceduralDiff(context.db, itemId, includeDiffWith)
+            : null;
         }
       } catch {
         if (includeDiffWith === 'previous') out.diff_with_previous = null;
@@ -205,7 +212,7 @@ export async function runMemoryItemPostSearchPipeline(
 
   if ((input.include_version_chain || input.include_diff_with) && context.db) {
     searchItems = await enrichProceduralVersionInfo(
-      context.db,
+      context,
       searchItems,
       input.include_version_chain === true,
       input.include_diff_with
