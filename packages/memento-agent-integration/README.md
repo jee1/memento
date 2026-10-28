@@ -34,10 +34,11 @@ idempotent하게 추가한다. 변경 시 원본 backup을 만든 뒤 temp file 
 Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
 두 명령은 `npm i -g memento-mcp-server` 가 설치하는 `memento` bin 으로 실행한다.
 
-### Case 지침 주입 (UserPromptSubmit)
+### Case 지침 주입 (UserPromptSubmit / beforeSubmitPrompt)
 
-`case` 태그 기억을 프롬프트마다 recall해 `additionalContext`로 붙인다. 기본은 꺼짐이다.
-설정, 래퍼 스크립트, shadow 로그 검토, live 전환은
+`case` 태그 기억을 프롬프트마다 recall해 호스트 스키마로 붙인다. Claude Code와 Codex는
+`hookSpecificOutput.additionalContext`, Cursor는 `additional_context`이다. 선택·중복 제거·로그는
+세 호스트가 같다. 기본은 꺼짐이다. 설정, 래퍼 스크립트, shadow 로그 검토, live 전환은
 [case 지침 주입 가이드](../../docs/guides/ko/case-directive-injection.md)에 있다.
 
 | 변수 | 뜻 |
@@ -54,10 +55,9 @@ Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
 - recall 은 `server.json`(`MEMENTO_CONFIG_DIR`)의 포트로 `/mcp`에 `tools/call` 을 한 번 보낸다.
   `MEMENTO_API_KEY`는 `MEMENTO_API_TOKENS`에 있는 토큰이어야 한다.
 - 훅은 전역 설치한 CLI로 실행한다. `npx`는 기동이 느려 3.5초 마감을 넘긴다. 전역 설치에
-  `memento` 명령이 없으면 `node "$(npm root -g)/memento-mcp-server/dist/cli.js" hook claude-code`로
+  `memento` 명령이 없으면 `node "$(npm root -g)/memento-mcp-server/dist/cli.js" hook <claude-code|codex|cursor>`로
   실행한다([#1492](https://github.com/jee1/memento/issues/1492)).
-- 이 훅은 lifecycle 캡처도 함께 실행한다. 지침 주입만 켜는 옵션은
-  [#1494](https://github.com/jee1/memento/issues/1494)에서 다룬다.
+- Claude Code와 Codex 훅은 lifecycle 캡처도 함께 실행한다. Cursor `hook cursor`는 지침 주입만 한다.
 - lifecycle 캡처를 끄고 지침 주입만 쓰려면 `MEMENTO_CAPTURE=0`으로 둔다 (#1494).
-- 한 세션에서 같은 case는 한 번만 주입하고 PreCompact에서 초기화한다. 서버 장애나 마감 초과는 빈
-  출력과 fallback 로그 한 줄로 끝난다.
+- 한 세션에서 같은 case는 한 번만 주입하고 Claude Code/Codex PreCompact에서 초기화한다. 서버 장애나
+  마감 초과는 빈 출력과 fallback 로그 한 줄로 끝난다.

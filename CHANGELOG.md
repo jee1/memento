@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- Case 지침 주입: Codex `UserPromptSubmit`과 Cursor `beforeSubmitPrompt`에도 Claude Code와 같은 선택·로그 계약을 붙입니다. Cursor stdout은 `additional_context` 스키마입니다 (#1496).
+
 ## [2.3.4] - 2026-10-28
 
 agent 나 project 에 묶인 API 토큰이 다른 owner 의 절차 기억을 덮어쓰거나 비교 조회하고, 관계와 국소 검색 결과로 다른 owner 의 기억 id 에 닿던 경로를 막습니다. project 만 묶인 토큰도 운영자 전용 경로에서 막고, rate limit 은 검증된 신원으로만 셉니다. 설치형 CLI 는 작업 디렉터리 `.env` 로 API 키를 원격에 보내지 않습니다. 여러 agent 나 project 에 토큰을 나눠 쓰는 배포는 업그레이드를 권합니다. 이 밖에 case 지침 관련도 하한, lifecycle 캡처 끄기, 전역 설치 `memento` bin 이 들어갑니다.

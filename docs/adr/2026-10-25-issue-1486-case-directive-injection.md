@@ -24,7 +24,7 @@
 - **서버 쪽 트리거.** 서버가 UserPromptSubmit 응답에 지침을 실어 보낸다. 선택 로직이 서버와 hook 으로 갈리고, 고정 지침 파일과 로그가 호스트에만 있어 Docker 서버에서는 보이지 않는다. 전송 계약도 넓어진다. 기각.
 - **설정 파일(`~/.memento/directives.json`).** env 로 충분하고 설정 경로가 둘이 된다. 기각.
 - **상태 파일이나 캐시.** 로그와 이중 기록이 되어 어긋난다. 로그를 접는 쪽이 단일 진실이다.
-- **Codex 와 hook 경로 분리.** 파싱이 두 번 일어나고 Codex 호출부 위험이 생긴다. 공유 `runAgentHookCommand` 에 선택적 `directives` 옵션만 더했다. Codex 러너는 무시한다.
+- **Codex 와 hook 경로 분리.** 파싱이 두 번 일어나고 Codex 호출부 위험이 생긴다. 공유 `runAgentHookCommand` 에 선택적 `directives` 옵션만 더했다. Codex 러너는 당시 무시했고, #1496 에서 같은 옵션을 받아 쓰기 시작했다. Cursor 는 `beforeSubmitPrompt` 용 `additional_context` 렌더러만 추가했다.
 
 ## Consequences
 

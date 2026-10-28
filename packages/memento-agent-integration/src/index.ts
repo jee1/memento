@@ -8,6 +8,10 @@ export * from './claude-code/adapter.js';
 export * from './claude-code/diagnostics.js';
 export { parseDirectiveConfig } from './claude-code/directives/config.js';
 export { runDirectives } from './claude-code/directives/engine.js';
+export {
+  toCursorHookStdout,
+  toHookStdout,
+} from './claude-code/directives/select.js';
 export type {
   DirectiveConfig,
   DirectiveDeps,
@@ -20,6 +24,7 @@ export * from './claude-code/runner.js';
 export * from './claude-code/scope.js';
 export * from './claude-code/settings.js';
 export * from './claude-code/types.js';
+export * from './cursor/runner.js';
 export * from './normalize.js';
 export * from './injection-contract.js';
 export * from './priority-queue.js';

@@ -6,6 +6,7 @@ import {
   parseRecallItems,
   renderContext,
   selectCases,
+  toCursorHookStdout,
   toHookStdout,
 } from './select.js';
 import { caseId, type CaseCandidate, type CaseId } from './types.js';
@@ -105,6 +106,13 @@ describe('renderContext', () => {
   it('wraps the context as UserPromptSubmit additionalContext', () => {
     expect(JSON.parse(toHookStdout('ctx'))).toEqual({
       hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'ctx' },
+    });
+  });
+
+  it('wraps the same context as Cursor beforeSubmitPrompt additional_context', () => {
+    expect(JSON.parse(toCursorHookStdout('ctx'))).toEqual({
+      additional_context: 'ctx',
+      continue: true,
     });
   });
 });

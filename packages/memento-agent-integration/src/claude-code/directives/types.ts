@@ -36,6 +36,8 @@ export interface DirectiveDeps {
   readonly config: DirectiveConfig;
   readonly recall: RecallPort | null;
   readonly now: () => number;
+  /** live 모드 stdout. 기본은 Claude Code/Codex `hookSpecificOutput` 래퍼. */
+  readonly formatStdout?: (context: string) => string;
 }
 
 export interface DirectiveRunInput {

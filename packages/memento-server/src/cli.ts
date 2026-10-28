@@ -172,6 +172,7 @@ const HELP_TEXT = [
   '  hook codex          Codex hook stdin 처리 (internal)\n\n',
   '  connect claude-code Claude Code lifecycle hook 연결\n',
   '  hook claude-code    Claude Code hook stdin 처리 (internal)\n',
+  '  hook cursor         Cursor beforeSubmitPrompt 지침 주입 (internal)\n',
   '  connect project     현재 저장소 MCP 설정에 X-Memento-Project-Id 헤더 기록 (#1270)\n',
   '\n',
   'Global options (서브커맨드 앞·뒤 모두 가능):\n',
@@ -216,6 +217,10 @@ async function runAgentCommand(agentTokens: string[]): Promise<number | undefine
     case 'hook claude-code': {
       const { runClaudeCodeHookCommand } = await import('./cli/claude-code-hook.js');
       return runClaudeCodeHookCommand();
+    }
+    case 'hook cursor': {
+      const { runCursorHookCommand } = await import('./cli/cursor-hook.js');
+      return runCursorHookCommand();
     }
     case 'review-queue cleanup': {
       const { runReviewQueueCleanup } = await import('./cli/review-queue-cleanup.js');

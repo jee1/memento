@@ -101,3 +101,8 @@ export function toHookStdout(context: string): string {
     hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context },
   });
 }
+
+/** Cursor `beforeSubmitPrompt` 네이티브 스키마. */
+export function toCursorHookStdout(context: string): string {
+  return JSON.stringify({ additional_context: context, continue: true });
+}
