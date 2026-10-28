@@ -110,6 +110,8 @@ MEMENTO_API_TOKENS='[{"id":"memento-dev","secret":"<hex>","scopes":["tools:invok
 - 도구 호출 시 인자 `project_id` 가 다르면 거절되고, 비어 있으면 토큰의 `project_id` 가 기본 주입된다
 - `project_id` 가 없는 토큰은 기존 헤더 동작을 유지한다
 
+도구 레지스트리의 결과 캐시는 기본으로 꺼집니다. `ToolRegistry`에서 `enableCaching: true`로 켜면 호출자의 agent·project와 토큰 바인딩별로 결과를 분리하고, 같은 호출자가 같은 도구·인자로 다시 호출하면 캐시를 재사용합니다.
+
 ### 레거시 NULL 데이터 opt-out
 
 기존 DB에 `owner_id = NULL`인 기억이 많고, HTTP recall에서 **소유자 미지정 전체 조회**를 유지해야 한다면:
