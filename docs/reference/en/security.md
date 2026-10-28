@@ -83,6 +83,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 In production, prefer **not** putting API keys and tokens as plaintext environment variables.
 
 - **`.env`**: Local development only. Do not commit it. Confirm `.env` is in `.gitignore`.
+- **Installed CLI**: It does not load a working-directory `.env` by default. A remote endpoint is used only with `--endpoint`, `ADMIN_API_KEY` is not sent to a non-loopback host, and `connect project` writes `.cursor/mcp.json` as mode 0600.
 - **File mounts**: In Docker/systemd, read files such as `secrets/openai_api_key` and inject via start scripts, e.g. `export OPENAI_API_KEY="$(cat /run/secrets/openai_api_key)"`.
 - **Permissions**: Secret files should be `chmod 600`, owned by the service account only. Review scripts so values never print to logs or stderr.
 - **`MEMENTO_API_TOKENS`**: You can keep the full JSON array in a file and have a wrapper set `MEMENTO_API_TOKENS` from it (e.g. `MEMENTO_API_TOKENS_FILE=/run/secrets/memento_api_tokens.json` as a deploy convention — the official env key remains `MEMENTO_API_TOKENS`).

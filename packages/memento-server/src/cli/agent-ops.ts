@@ -75,12 +75,28 @@ function normalizeEndpoint(value: string): string {
   return url.origin;
 }
 
+function isLoopbackEndpoint(endpoint: string): boolean {
+  const raw = new URL(endpoint).hostname.toLowerCase();
+  const host = raw.startsWith('[') && raw.endsWith(']') ? raw.slice(1, -1) : raw;
+  return host === '127.0.0.1' || host === '::1' || host === 'localhost';
+}
+
+function apiKeyForEndpoint(
+  endpoint: string,
+  explicitApiKey: string | undefined,
+  env: NodeJS.ProcessEnv,
+): string | undefined {
+  if (explicitApiKey !== undefined) return explicitApiKey;
+  if (env.MEMENTO_API_KEY !== undefined) return env.MEMENTO_API_KEY.trim();
+  if (!isLoopbackEndpoint(endpoint)) return undefined;
+  return env.ADMIN_API_KEY?.trim();
+}
+
 async function defaultResolveEndpoint(
   explicitEndpoint: string | undefined,
   env: NodeJS.ProcessEnv,
 ): Promise<string> {
   if (explicitEndpoint) return normalizeEndpoint(explicitEndpoint);
-  if (env.MEMENTO_ENDPOINT?.trim()) return normalizeEndpoint(env.MEMENTO_ENDPOINT.trim());
   const serverInfo = await readServerInfo(resolveServerInfoConfigDir({ env }));
   if (!serverInfo) throw new Error('Memento server endpoint is unavailable');
   return `http://127.0.0.1:${serverInfo.port}`;
@@ -133,9 +149,7 @@ export async function runAgentOpsCommand(
       options.endpoint,
       env,
     );
-    const apiKey = options.apiKey
-      ?? env.MEMENTO_API_KEY?.trim()
-      ?? env.ADMIN_API_KEY?.trim();
+    const apiKey = apiKeyForEndpoint(endpoint, options.apiKey, env);
     const request = dependencies.request
       ?? createRequest(endpoint, apiKey, options.timeoutMs);
     const now = dependencies.now ?? (() => new Date());

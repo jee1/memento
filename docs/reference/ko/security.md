@@ -85,6 +85,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 운영 환경에서 API 키·토큰을 **환경 변수에 평문으로 두지 않는** 것을 권장합니다.
 
 - **`.env`**: 로컬 개발 전용. Git에 커밋하지 말 것. `.gitignore`에 `.env`가 포함되어 있는지 확인하세요.
+- **설치형 CLI**: 작업 디렉터리 `.env`는 기본으로 읽지 않습니다. 원격 주소는 `--endpoint`가 있을 때만 쓰고, 루프백이 아니면 `ADMIN_API_KEY`를 보내지 않으며, `connect project`가 쓰는 `.cursor/mcp.json` 모드는 0600입니다.
 - **파일 마운트**: Docker·systemd에서 `secrets/openai_api_key` 같은 파일을 읽고, 컨테이너/프로세스 시작 스크립트가 `export OPENAI_API_KEY="$(cat /run/secrets/openai_api_key)"` 형태로 주입합니다.
 - **권한**: 시크릿 파일은 `chmod 600`, 소유자는 서비스 계정만. 로그·stderr에 값이 출력되지 않도록 스크립트를 검토하세요.
 - **`MEMENTO_API_TOKENS`**: JSON 배열 전체를 파일로 두고 `MEMENTO_API_TOKENS_FILE=/run/secrets/memento_api_tokens.json`처럼 래퍼 스크립트에서 읽어 env에 설정할 수 있습니다 (공식 env 키는 `MEMENTO_API_TOKENS` — 파일 경로 env는 배포 스크립트 관례).
