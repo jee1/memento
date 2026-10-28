@@ -2,7 +2,17 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkChangelogGate, checkVersionSync, countUnreleasedEntries } from './check-version-sync.js';
+import {
+  checkChangelogGate,
+  checkPrChangelogGate,
+  checkVersionSync,
+  countUnreleasedEntries,
+  extractUnreleasedSection,
+  hasNoChangelogLabel,
+  isExemptPrTitle,
+  isUnreleasedSectionUpdated,
+  isUserFacingPath,
+} from './check-version-sync.js';
 
 const MANIFEST_PATHS = [
   'package.json',
@@ -97,5 +107,177 @@ describe('checkChangelogGate', () => {
     const result = checkChangelogGate({ ...base, commitsSinceTag: 0, changelog: changelogWith('\n') });
     expect(result.violated).toBe(false);
     expect(result.skipReason).toBe('no-commits');
+  });
+});
+
+describe('isUserFacingPath', () => {
+  it('packages 하위 src 와 static 은 사용자 영향 경로로 판정한다', () => {
+    expect(isUserFacingPath('packages/memento-core/src/index.ts')).toBe(true);
+    expect(isUserFacingPath('packages/memento-server/src/server.ts')).toBe(true);
+    expect(isUserFacingPath('packages/memento-client/src/client.ts')).toBe(true);
+    expect(isUserFacingPath('static/index.html')).toBe(true);
+    expect(isUserFacingPath('apps/dashboard/src/main.ts')).toBe(true);
+  });
+
+  it('docs, scripts, .github, 설정 파일 등은 사용자 영향 경로에서 제외한다', () => {
+    expect(isUserFacingPath('docs/architecture.md')).toBe(false);
+    expect(isUserFacingPath('scripts/check-version-sync.ts')).toBe(false);
+    expect(isUserFacingPath('.github/workflows/ci.yml')).toBe(false);
+    expect(isUserFacingPath('package.json')).toBe(false);
+    expect(isUserFacingPath('CHANGELOG.md')).toBe(false);
+  });
+});
+
+describe('isExemptPrTitle', () => {
+  it('test, docs, chore, style, ci 제목 타입은 예외로 인정한다', () => {
+    expect(isExemptPrTitle('test: add unit test')).toBe(true);
+    expect(isExemptPrTitle('test(core): add regression test')).toBe(true);
+    expect(isExemptPrTitle('test!: breaking test')).toBe(true);
+    expect(isExemptPrTitle('docs: update manual')).toBe(true);
+    expect(isExemptPrTitle('chore: bump dependency')).toBe(true);
+    expect(isExemptPrTitle('style: format code')).toBe(true);
+    expect(isExemptPrTitle('ci: update workflow')).toBe(true);
+    expect(isExemptPrTitle('CI: uppercase prefix')).toBe(true);
+  });
+
+  it('feat, fix, perf, refactor 및 비형식 제목은 예외가 아니다', () => {
+    expect(isExemptPrTitle('feat: new feature')).toBe(false);
+    expect(isExemptPrTitle('fix: solve bug')).toBe(false);
+    expect(isExemptPrTitle('fix(graph): address edge case')).toBe(false);
+    expect(isExemptPrTitle('perf: optimize query')).toBe(false);
+    expect(isExemptPrTitle('refactor: rewrite module')).toBe(false);
+    expect(isExemptPrTitle('random commit message')).toBe(false);
+    expect(isExemptPrTitle('')).toBe(false);
+  });
+});
+
+describe('hasNoChangelogLabel', () => {
+  it('no-changelog 라벨이 있으면 true 를 반환한다', () => {
+    expect(hasNoChangelogLabel(['no-changelog'])).toBe(true);
+    expect(hasNoChangelogLabel(['NO-CHANGELOG'])).toBe(true);
+    expect(hasNoChangelogLabel(['bug', 'no-changelog'])).toBe(true);
+  });
+
+  it('no-changelog 라벨이 없으면 false 를 반환한다', () => {
+    expect(hasNoChangelogLabel([])).toBe(false);
+    expect(hasNoChangelogLabel(['enhancement', 'bug'])).toBe(false);
+  });
+});
+
+describe('extractUnreleasedSection & isUnreleasedSectionUpdated', () => {
+  it('Unreleased 섹션 내용만 올바르게 추출한다', () => {
+    const content = changelogWith('\n### Added\n- 새 항목 1\n');
+    const unreleased = extractUnreleasedSection(content);
+    expect(unreleased).toContain('### Added');
+    expect(unreleased).toContain('- 새 항목 1');
+    expect(unreleased).not.toContain('이전 릴리스 항목');
+  });
+
+  it('Unreleased 절의 내용이 변경되었을 때 true 를 반환한다', () => {
+    const baseChangelog = changelogWith('\n- 기존 항목\n');
+    const headChangelog = changelogWith('\n- 기존 항목\n- 새 항목 추가\n');
+    expect(isUnreleasedSectionUpdated(baseChangelog, headChangelog)).toBe(true);
+  });
+
+  it('과거 릴리스 절만 수정되고 Unreleased 절이 같으면 false 를 반환한다', () => {
+    const baseChangelog = `# Changelog\n\n## [Unreleased]\n\n- 유지 항목\n\n## [1.32.0] - 2026-09-20\n\n- 과거 항목\n`;
+    const headChangelog = `# Changelog\n\n## [Unreleased]\n\n- 유지 항목\n\n## [1.32.0] - 2026-09-20\n\n- 과거 항목 오타 수정\n`;
+    expect(isUnreleasedSectionUpdated(baseChangelog, headChangelog)).toBe(false);
+  });
+});
+
+describe('checkPrChangelogGate (#1489)', () => {
+  const userFacingFile = 'packages/memento-core/src/index.ts';
+  const baseChangelog = changelogWith('\n- 이전 항목\n');
+  const updatedHeadChangelog = changelogWith('\n- 이전 항목\n- 신규 반영 항목 (#1489)\n');
+
+  it('사용자 영향 경로가 변경되었는데 CHANGELOG.md 가 없으면 위반이다', () => {
+    const result = checkPrChangelogGate({
+      changedFiles: [userFacingFile],
+      title: 'feat: add awesome feature',
+    });
+    expect(result.violated).toBe(true);
+    expect(result.skipReason).toBeNull();
+    expect(result.userFacingFiles).toEqual([userFacingFile]);
+    expect(result.reason).toContain('CHANGELOG.md 가 수정되지 않았습니다');
+  });
+
+  it('이슈 #1489 에 언급된 누락 PR 유형(perf, fix)은 CHANGELOG 가 없으면 차단된다', () => {
+    const perfResult = checkPrChangelogGate({
+      changedFiles: ['packages/memento-server/src/server.ts'],
+      title: 'perf: optimize cache throughput (#1479)',
+    });
+    expect(perfResult.violated).toBe(true);
+
+    const fixResult = checkPrChangelogGate({
+      changedFiles: ['packages/memento-core/src/graph.ts'],
+      title: 'fix(graph): resolve cycle (#1485)',
+    });
+    expect(fixResult.violated).toBe(true);
+
+    const fixJevResult = checkPrChangelogGate({
+      changedFiles: ['packages/memento-core/src/jev.ts'],
+      title: 'fix(Jev 판정): fix threshold logic (#1472)',
+    });
+    expect(fixJevResult.violated).toBe(true);
+  });
+
+  it('사용자 영향 경로가 변경되었더라도 CHANGELOG [Unreleased] 가 함께 수정되면 통과한다', () => {
+    const result = checkPrChangelogGate({
+      changedFiles: [userFacingFile, 'CHANGELOG.md'],
+      title: 'feat: add awesome feature',
+      baseChangelog,
+      headChangelog: updatedHeadChangelog,
+    });
+    expect(result.violated).toBe(false);
+    expect(result.skipReason).toBeNull();
+  });
+
+  it('CHANGELOG.md 가 변경 목록에 있으나 [Unreleased] 절 내용에 변화가 없으면 위반이다', () => {
+    const unmodifiedHeadChangelog = `# Changelog\n\n## [Unreleased]\n\n- 이전 항목\n\n## [1.32.0] - 2026-09-20\n\n- 오타 수정만 발생\n`;
+    const result = checkPrChangelogGate({
+      changedFiles: [userFacingFile, 'CHANGELOG.md'],
+      title: 'feat: add awesome feature',
+      baseChangelog,
+      headChangelog: unmodifiedHeadChangelog,
+    });
+    expect(result.violated).toBe(true);
+    expect(result.reason).toContain('[Unreleased] 절 내용에 변경이 없습니다');
+  });
+
+  it('사용자 영향 경로가 변경되지 않은 PR 은 통과한다', () => {
+    const result = checkPrChangelogGate({
+      changedFiles: ['docs/README.md', 'scripts/helper.ts', '.github/workflows/ci.yml'],
+      title: 'chore: update docs and scripts',
+    });
+    expect(result.violated).toBe(false);
+    expect(result.skipReason).toBe('no-user-facing-changes');
+  });
+
+  it('사용자 영향 경로가 바뀌었어도 예외 제목 타입(test, docs, chore, style, ci)은 통과한다', () => {
+    for (const title of [
+      'test(core): add edge-case test',
+      'docs: update inline comments in src',
+      'chore: clean up internal deps',
+      'style: fix formatting',
+      'ci: adjust pipeline config',
+    ]) {
+      const result = checkPrChangelogGate({
+        changedFiles: [userFacingFile],
+        title,
+      });
+      expect(result.violated).toBe(false);
+      expect(result.skipReason).toBe('exempt-title');
+    }
+  });
+
+  it('사용자 영향 경로가 바뀌었어도 no-changelog 라벨이 있으면 통과한다', () => {
+    const result = checkPrChangelogGate({
+      changedFiles: [userFacingFile],
+      title: 'refactor: internal clean up',
+      labels: ['no-changelog'],
+    });
+    expect(result.violated).toBe(false);
+    expect(result.skipReason).toBe('exempt-label');
   });
 });
