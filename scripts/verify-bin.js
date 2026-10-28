@@ -5,9 +5,9 @@
  * bin 필드에 지정된 파일들이 존재하고 실행 가능한지 확인
  */
 
-import { existsSync, statSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, statSync, mkdtempSync, rmSync, symlinkSync } from 'fs';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { tmpdir } from 'os';
@@ -306,6 +306,10 @@ async function main() {
         runtimeTmpDir = mkdtempSync(join(tmpdir(), 'verify-bin-'));
       }
 
+      // npm global bins are symlinks; a real-path launch misses entrypoint guard regressions.
+      const binLink = join(runtimeTmpDir, name);
+      symlinkSync(resolve(fullPath), binLink);
+
       const runtimeEnv = {
         ...process.env,
         DB_PATH: join(runtimeTmpDir, 'verify.db'),
@@ -315,12 +319,12 @@ async function main() {
       };
 
       if (expectation.mode === 'stays-alive') {
-        const ok = await verifyStaysAlive(name, fullPath, runtimeEnv);
+        const ok = await verifyStaysAlive(name, binLink, runtimeEnv);
         if (!ok) {
           hasErrors = true;
         }
       } else if (expectation.mode === 'listens') {
-        const ok = await verifyListens(name, fullPath, runtimeEnv);
+        const ok = await verifyListens(name, binLink, runtimeEnv);
         if (!ok) {
           hasErrors = true;
         }

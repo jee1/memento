@@ -24,12 +24,12 @@ import {
 import Database from 'better-sqlite3';
 import cors from 'cors';
 import express from 'express';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, realpathSync } from 'fs';
 import helmet from 'helmet';
 import { createServer, type Server } from 'http';
 import { createRequire } from 'module';
 import { optionalEnvNumber } from './optional-env-number.js';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { fileURLToPath } from 'url';
 import {
   injectReviewQueueBootIntoDashboardHtml,
@@ -671,7 +671,8 @@ export const __test: {
 // index.ts 가 TRANSPORT_TYPE=sse 로 import 할 때나 테스트가 import 할 때는 띄우지 않는다.
 const currentFile = fileURLToPath(import.meta.url);
 const entryScriptPath = process.argv[1] || '';
-if (entryScriptPath !== '' && currentFile === resolve(entryScriptPath)) {
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- argv[1] 은 이 프로세스 진입 스크립트 경로
+if (entryScriptPath !== '' && currentFile === realpathSync(entryScriptPath)) {
   startServer().catch((error: unknown) => {
     const err = error instanceof Error ? error : new Error(String(error));
     process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
