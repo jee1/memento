@@ -7,13 +7,13 @@ Korean documentation: [case-directive-injection.md (KO)](../ko/case-directive-in
 ## How it works
 
 1. When the host submits a prompt, the hook runs `memento hook claude-code`, `memento hook codex`, or `memento hook cursor`.
-2. The hook recalls memories tagged `case`, using the first 500 characters of the prompt (up to 15 candidates).
+2. The hook picks up to 15 candidates from the first 500 characters of the prompt. Candidates come from memento server `case` memories or from the `MEMENTO_DIRECTIVES_CASES_DIR` markdown folder.
 3. It skips cases longer than 300 characters and cases already injected in this session. It then takes the rest in rank order, up to 5 cases and 4,500 bytes of case text.
 4. If a pinned directives file exists, its text goes first.
 5. In `live` mode the hook returns host-shaped stdout. Claude Code and Codex use `hookSpecificOutput.additionalContext`. Cursor (`beforeSubmitPrompt`) uses `additional_context` plus `continue: true`. In `shadow` mode it returns nothing and only writes the log.
 6. On Claude Code and Codex `PreCompact`, the hook resets the session's dedup record so directives lost to compaction can be injected again.
 
-If the server is missing or recall takes longer than 1.5 seconds, the output is empty and the log gets one `fallback:true` line. The hook always exits 0 and never blocks the host. All three hosts share the same selection, dedup, and log contract; only the stdout wrapper differs.
+If no candidate source is available or recall takes longer than 1.5 seconds, the output is empty and the log gets one `fallback:true` line. The hook always exits 0 and never blocks the host. All three hosts share the same selection, dedup, and log contract; only the stdout wrapper differs.
 
 The relevance floor is `DIRECTIVE_POLICY.minFinalScore`, initially `0.5`. Only candidates with a finite numeric `final_score` at or above this value are eligible. Missing or invalid scores are excluded. Session deduplication and the 300-character, 5-case, and 4,500-byte limits still apply.
 
@@ -21,11 +21,44 @@ The existing 61 shadow log lines (51 cases) contained no scores, so this initial
 
 ## Requirements
 
-- A running memento HTTP server. The hook finds the port through `server.json`. The default location is `~/.memento/server.json`. Set `MEMENTO_CONFIG_DIR` to the folder if it is elsewhere.
-- An API token listed in `MEMENTO_API_TOKENS`. The hook sends `MEMENTO_API_KEY` as `Authorization: Bearer`.
-- A globally installed memento CLI. Do not use `npx` in the hook: a cold start takes tens of seconds.
+You only need one of these paths:
 
-## 1. Store directives as cases
+- **Markdown folder (no server; starter path):** see «Markdown folder without a server» below.
+- **memento server:** a running HTTP server (`~/.memento/server.json`) and an API token from `MEMENTO_API_TOKENS` passed as `MEMENTO_API_KEY`.
+
+Shared: a globally installed memento CLI. Do not use `npx` in the hook: a cold start takes tens of seconds.
+
+## Markdown folder without a server
+
+Use a folder of directive files with the same injection and log contract, and no running server.
+
+1. Create a folder, for example `mkdir -p ~/memento-cases`.
+2. Add `.md` files. **One line = one case.** `#` headings and blank lines are ignored. A leading YAML frontmatter block (`---`) is ignored too.
+
+```text
+# git.md
+risk:low PRs merge after CI passes
+Ask the user before merging medium/high risk PRs
+```
+
+3. Add one line to the wrapper:
+
+```bash
+export MEMENTO_DIRECTIVES_CASES_DIR="$HOME/memento-cases"
+```
+
+When `MEMENTO_DIRECTIVES_CASES_DIR` is set, the folder wins over server recall. No API key or server is required. Set `MEMENTO_CAPTURE=0` if you also want to skip lifecycle capture.
+
+4. Check with `MEMENTO_DIRECTIVES_MODE=shadow` for a day, then read the log:
+
+```bash
+jq -c 'select(.inj_id) | {ts, n: (.cases | length), fallback, ids: [.cases[].id]}' \
+  ~/.claude/state/directive-log/injections-*.jsonl
+```
+
+When the expected lines show up in `cases`, switch to `live`. Folder matching scores how many directive tokens appear in the prompt. At least half the tokens must overlap for a case to stay eligible.
+
+## 1. Store directives as cases (server path)
 
 Store each directive as one semantic memory with the `case` tag. Split a directive longer than 300 characters into two memories.
 
@@ -115,10 +148,11 @@ Use the `inj_id` to find in the log which directives were in context at that poi
 | `MEMENTO_DIRECTIVES_MODE` | `shadow` (default) or `live` |
 | `MEMENTO_DIRECTIVES_PINNED_FILE` | Pinned directives file prepended every time (1 KB max) |
 | `MEMENTO_DIRECTIVES_LOG_DIR` | Log folder. Default `~/.claude/state/directive-log` |
+| `MEMENTO_DIRECTIVES_CASES_DIR` | Markdown case folder used without a server. Wins over server recall when set |
 | `MEMENTO_CONFIG_DIR` | Folder that holds `server.json`. Default `~/.memento` |
-| `MEMENTO_API_KEY` | Server API token |
+| `MEMENTO_API_KEY` | Server API token (not needed for the folder path) |
 
 ## Limits
 
-- A memento server is required. [#1495](https://github.com/jee1/memento/issues/1495) tracks a markdown-folder backend that needs no server.
+- The markdown folder matches by local token overlap only. It does not use server embedding recall.
 - Cursor supports `beforeSubmitPrompt` only. Dedup reset after compaction is available on the Claude Code/Codex `PreCompact` path.

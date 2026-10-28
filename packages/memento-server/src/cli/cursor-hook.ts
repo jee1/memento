@@ -10,7 +10,7 @@ import {
   readServerInfo,
   resolveServerInfoConfigDir,
 } from '../server/server-info.js';
-import { createDirectiveRecallPort } from './directive-recall.js';
+import { resolveDirectiveRecallPort } from './resolve-directive-recall.js';
 
 async function readStream(stream: Readable): Promise<string> {
   let input = '';
@@ -30,9 +30,12 @@ export async function runCursorHookCommand(
     input,
     directives: {
       config: parseDirectiveConfig(process.env, homedir()),
-      recall: serverInfo
-        ? createDirectiveRecallPort({ port: serverInfo.port, apiKey })
-        : null,
+      recall: resolveDirectiveRecallPort({
+        env: process.env,
+        home: homedir(),
+        ...(serverInfo ? { serverPort: serverInfo.port } : {}),
+        apiKey,
+      }),
       now: Date.now,
     },
   });

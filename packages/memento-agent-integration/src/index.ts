@@ -8,6 +8,7 @@ export * from './claude-code/adapter.js';
 export * from './claude-code/diagnostics.js';
 export { parseDirectiveConfig } from './claude-code/directives/config.js';
 export { runDirectives } from './claude-code/directives/engine.js';
+export { createMarkdownDirectiveRecallPort } from './claude-code/directives/markdown-recall.js';
 export {
   toCursorHookStdout,
   toHookStdout,
