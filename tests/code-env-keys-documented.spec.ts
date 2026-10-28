@@ -117,6 +117,7 @@ const NOT_DOCUMENTED: Record<string, string> = {
   // CLI 클라이언트 쪽 — 서버 .env 가 아니라 CLI 를 부르는 셸에서 준다
   MEMENTO_API_KEY: 'agent-ops CLI 가 서버를 부를 때 쓰는 클라이언트 키. 서버 설정이 아니다.',
   MEMENTO_CLI_QUIET: "agent-ask CLI 가 실행 중에 스스로 '1' 로 설정해 로그를 끈다.",
+  MEMENTO_DIRECTIVES_CASES_DIR: 'agent hook 래퍼가 마크다운 case 폴더를 가리킬 때 쓴다. 서버 .env 가 아니라 CLI 훅 셸에서 준다 (#1495).',
   MEMENTO_HTTP_SIDECAR: 'stdio 서버 전용. MCP 클라이언트 설정의 env 로 켠다 (docs/agents/commands.md). 컨테이너(sse)에는 의미가 없다.',
   // 우회·디버그 스위치 — 운영에서 켤 이유가 없다
   MCP_MODE: '로거의 stdio 자동 감지를 강제로 덮는 디버그 스위치. 기본은 TTY 로 자동 감지한다.',

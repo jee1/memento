@@ -7,13 +7,13 @@
 ## 동작
 
 1. 호스트가 프롬프트를 보내면 훅이 `memento hook claude-code` / `memento hook codex` / `memento hook cursor` 를 실행합니다.
-2. 훅은 프롬프트 앞 500자로 `case` 태그 기억을 recall 합니다(최대 15개 후보).
+2. 훅은 프롬프트 앞 500자로 후보를 고릅니다(최대 15개). 후보는 memento 서버 `case` 기억이거나, `MEMENTO_DIRECTIVES_CASES_DIR` 마크다운 폴더입니다.
 3. 300자를 넘는 case 는 건너뛰고, 이 세션에서 이미 넣은 case 도 뺍니다. 남은 것을 순위대로 최대 5개, 본문 합계 4,500 bytes 까지 고릅니다.
 4. 고정 지침 파일(pinned)이 있으면 맨 앞에 붙입니다.
 5. `live` 모드면 호스트 스키마로 컨텍스트를 넘깁니다. Claude Code와 Codex는 `hookSpecificOutput.additionalContext`, Cursor(`beforeSubmitPrompt`)는 `additional_context` + `continue: true` 입니다. `shadow` 모드면 넘기지 않고 로그만 씁니다.
 6. Claude Code와 Codex의 `PreCompact` 에서 세션 중복 기록을 초기화합니다. compact 로 사라진 지침이 다시 들어갈 수 있게 합니다.
 
-서버가 없거나 recall 이 1.5초 안에 끝나지 않으면 출력은 비고, 로그에 `fallback:true` 한 줄이 남습니다. 훅은 항상 exit 0 이라 호스트를 막지 않습니다. 세 호스트는 같은 선택·중복 제거·로그 계약을 쓰고, stdout 래퍼만 다릅니다.
+후보 소스가 없거나 recall 이 1.5초 안에 끝나지 않으면 출력은 비고, 로그에 `fallback:true` 한 줄이 남습니다. 훅은 항상 exit 0 이라 호스트를 막지 않습니다. 세 호스트는 같은 선택·중복 제거·로그 계약을 쓰고, stdout 래퍼만 다릅니다.
 
 관련도 하한은 `DIRECTIVE_POLICY.minFinalScore`의 `0.5`입니다. `final_score`가 이 값 이상인 후보만 고릅니다. 점수가 없거나 유한한 숫자가 아니면 제외합니다. 기존 중복 제거·300자·5개·4,500 bytes 제한은 그대로 적용합니다.
 
@@ -21,11 +21,44 @@
 
 ## 준비
 
-- 실행 중인 memento HTTP 서버. 훅은 `server.json` 으로 포트를 찾습니다. 기본 위치는 `~/.memento/server.json` 이고, 다른 곳이면 `MEMENTO_CONFIG_DIR` 로 폴더를 알려 줍니다.
-- `MEMENTO_API_TOKENS` 에 등록된 API 토큰. 훅은 `MEMENTO_API_KEY` 를 `Authorization: Bearer` 로 보냅니다.
-- 전역 설치한 memento CLI. `npx` 는 첫 기동이 수십 초라 훅에 쓰지 않습니다.
+두 경로 중 하나만 있으면 됩니다.
 
-## 1. 지침을 case 로 저장
+- **마크다운 폴더(서버 불필요, 권장 입문 경로):** 아래 «서버 없이 마크다운 폴더» 절.
+- **memento 서버:** 실행 중인 HTTP 서버(`~/.memento/server.json`), `MEMENTO_API_TOKENS` 에 등록한 토큰을 `MEMENTO_API_KEY` 로 전달.
+
+공통: 전역 설치한 memento CLI. `npx` 는 첫 기동이 수십 초라 훅에 쓰지 않습니다.
+
+## 서버 없이 마크다운 폴더
+
+서버를 띄우지 않고 지침 파일만으로 같은 주입·로그 계약을 씁니다.
+
+1. 폴더를 만듭니다. 예: `mkdir -p ~/memento-cases`
+2. `.md` 파일을 넣고, **지침 한 줄 = case 하나**로 적습니다. `#` 제목 줄과 빈 줄은 무시합니다. 파일 맨 앞 YAML frontmatter(`---`)도 무시합니다.
+
+```text
+# git.md
+risk:low PR 은 CI 통과 후 직접 머지한다
+medium/high risk PR 은 사용자에게 묻는다
+```
+
+3. 래퍼에 한 줄을 추가합니다.
+
+```bash
+export MEMENTO_DIRECTIVES_CASES_DIR="$HOME/memento-cases"
+```
+
+`MEMENTO_DIRECTIVES_CASES_DIR` 이 있으면 서버 recall 보다 폴더를 먼저 씁니다. API 키와 서버는 필요 없습니다. lifecycle 캡처까지 끄려면 `MEMENTO_CAPTURE=0` 도 함께 둡니다.
+
+4. 확인: `MEMENTO_DIRECTIVES_MODE=shadow` 로 하루 쓰고 로그를 봅니다.
+
+```bash
+jq -c 'select(.inj_id) | {ts, n: (.cases | length), fallback, ids: [.cases[].id]}' \
+  ~/.claude/state/directive-log/injections-*.jsonl
+```
+
+`cases` 에 기대한 줄이 보이면 `live` 로 올립니다. 폴더 매칭은 지침 단어가 프롬프트에 얼마나 등장하는지로 점수를 매깁니다. 관련 단어가 절반 이상 겹치면 후보에 남습니다.
+
+## 1. 지침을 case 로 저장 (서버 경로)
 
 지침 한 줄을 semantic 기억 하나로 저장하고 `case` 태그를 붙입니다. 300자를 넘는 지침은 둘로 나눠 저장합니다.
 
@@ -118,10 +151,11 @@ jq -c 'select(.inj_id) | {ts, n: (.cases | length), fallback, ids: [.cases[].id]
 | `MEMENTO_DIRECTIVES_MODE` | `shadow`(기본) 또는 `live` |
 | `MEMENTO_DIRECTIVES_PINNED_FILE` | 매번 앞에 붙일 고정 지침 파일(1KB 이하) |
 | `MEMENTO_DIRECTIVES_LOG_DIR` | 로그 폴더. 기본 `~/.claude/state/directive-log` |
+| `MEMENTO_DIRECTIVES_CASES_DIR` | 서버 없이 읽을 마크다운 case 폴더. 설정 시 서버 recall 보다 우선 |
 | `MEMENTO_CONFIG_DIR` | `server.json` 이 있는 폴더. 기본 `~/.memento` |
-| `MEMENTO_API_KEY` | 서버 API 토큰 |
+| `MEMENTO_API_KEY` | 서버 API 토큰(폴더 경로에서는 불필요) |
 
 ## 한계
 
-- memento 서버가 있어야 합니다. 서버 없이 마크다운 폴더로 동작하는 방식은 [#1495](https://github.com/jee1/memento/issues/1495) 에서 다룹니다.
+- 마크다운 폴더는 로컬 단어 겹침으로만 고릅니다. 서버 임베딩 recall 만큼 의미 매칭은 하지 않습니다.
 - Cursor 는 `beforeSubmitPrompt` 만 지원합니다. compact 후 중복 초기화는 Claude Code/Codex `PreCompact` 경로에만 있습니다.

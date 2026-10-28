@@ -97,7 +97,7 @@ More connection paths (MCP SDK, `@jee1/memento-client`, external-assistant SDK):
 - **Hybrid search**: FTS5 + vectors, tag filters
 - **Living memory**: reinforcement, forgetting, neighbors, anchors
 - **Procedural versions**: `procedural_diff` / `procedural_rollback`
-- **Case directive injection**: inject only the directives relevant to each Claude Code, Codex, or Cursor prompt, within a fixed budget ([guide](docs/guides/en/case-directive-injection.md))
+- **Case directive injection**: inject only the directives relevant to each Claude Code, Codex, or Cursor prompt, within a fixed budget, from server `case` memories or a markdown folder (`MEMENTO_DIRECTIVES_CASES_DIR`) ([guide](docs/guides/en/case-directive-injection.md))
 - **Graph and dashboard**: after the HTTP server starts, `/dashboard` is the preferred entry point for the full admin flow; opening `/graph` directly now offers the same `/auth/session` re-auth path for session recovery.
 
 Forgetting TTLs, embeddings, and security settings are not restated as numbers here. [env.example](env.example) is the source of truth.

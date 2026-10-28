@@ -13,7 +13,7 @@ import {
   readServerInfo,
   resolveServerInfoConfigDir,
 } from '../server/server-info.js';
-import { createDirectiveRecallPort } from './directive-recall.js';
+import { resolveDirectiveRecallPort } from './resolve-directive-recall.js';
 
 type Fetcher = (
   input: string,
@@ -135,9 +135,12 @@ export async function runAgentHookCommand(
     env: process.env,
     directives: {
       config: parseDirectiveConfig(process.env, homedir()),
-      recall: serverInfo
-        ? createDirectiveRecallPort({ port: serverInfo.port, apiKey })
-        : null,
+      recall: resolveDirectiveRecallPort({
+        env: process.env,
+        home: homedir(),
+        ...(serverInfo ? { serverPort: serverInfo.port } : {}),
+        apiKey,
+      }),
       now: Date.now,
     },
   });

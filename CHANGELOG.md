@@ -12,6 +12,7 @@
 ### Added
 
 - Case 지침 주입: Codex `UserPromptSubmit`과 Cursor `beforeSubmitPrompt`에도 Claude Code와 같은 선택·로그 계약을 붙입니다. Cursor stdout은 `additional_context` 스키마입니다 (#1496).
+- Case 지침 주입: `MEMENTO_DIRECTIVES_CASES_DIR` 마크다운 폴더로 서버 없이 같은 선택·로그 계약을 씁니다. 지침 한 줄이 case 하나이고, 설정 시 서버 recall보다 폴더가 우선합니다 (#1495).
 - CI: 사용자 영향 경로(`packages/*/src/**`, `static/**` 등)를 변경한 PR에서 `CHANGELOG.md`의 `[Unreleased]` 절 갱신 여부를 검증하는 PR 단위 게이트를 추가합니다 (#1489).
 
 ### Fixed
