@@ -18,6 +18,7 @@
 ### Fixed
 
 - 서버: 전역 설치의 npm bin symlink로 실행해도 `memento-mcp-server`와 `memento-dev`가 기동하도록 직접 실행 판별을 고칩니다 (#1513).
+- `scripts/bench-release-latency.ts`: 릴리스 worktree 두 개를 같은 DB 사본에 붙여 recall, remember, 관계 추출 로컬 구간 p50/p95 를 비교합니다 (#1490).
 
 ## [2.3.4] - 2026-10-28
 
