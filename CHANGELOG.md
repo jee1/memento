@@ -20,6 +20,10 @@
 - 서버: 전역 설치의 npm bin symlink로 실행해도 `memento-mcp-server`와 `memento-dev`가 기동하도록 직접 실행 판별을 고칩니다 (#1513).
 - `scripts/bench-release-latency.ts`: 릴리스 worktree 두 개를 같은 DB 사본에 붙여 recall, remember, 관계 추출 로컬 구간 p50/p95 를 비교합니다 (#1490).
 
+### Security
+
+- 파일 경로 허용 검사는 문자열 접두사가 아니라 디렉터리 경계 기준으로 판정합니다. 허용 경로와 이름만 겹치는 형제 경로는 거부합니다.
+
 ## [2.3.4] - 2026-10-28
 
 agent 나 project 에 묶인 API 토큰이 다른 owner 의 절차 기억을 덮어쓰거나 비교 조회하고, 관계와 국소 검색 결과로 다른 owner 의 기억 id 에 닿던 경로를 막습니다. project 만 묶인 토큰도 운영자 전용 경로에서 막고, rate limit 은 검증된 신원으로만 셉니다. 설치형 CLI 는 작업 디렉터리 `.env` 로 API 키를 원격에 보내지 않습니다. 여러 agent 나 project 에 토큰을 나눠 쓰는 배포는 업그레이드를 권합니다. 이 밖에 case 지침 관련도 하한, lifecycle 캡처 끄기, 전역 설치 `memento` bin 이 들어갑니다.

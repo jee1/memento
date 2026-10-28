@@ -152,6 +152,15 @@ describe('Path Traversal 방지 유틸리티', () => {
         delete process.env.ALLOWED_FILE_DIRS;
       }
     });
+
+    it('허용 경로와 같은 접두사만 공유하는 형제 디렉터리는 거부해야 함', () => {
+      expect(validateFilePath('/allowed-evil/x', '/allowed')).toBe(false);
+    });
+
+    it('허용 디렉터리 자체와 그 하위 경로는 허용해야 함', () => {
+      expect(validateFilePath('/allowed', '/allowed')).toBe(true);
+      expect(validateFilePath('/allowed/x', '/allowed')).toBe(true);
+    });
   });
 
   describe('sanitizeFileName', () => {

@@ -6,7 +6,7 @@
  * 파일 경로 검증 및 파일명 정제를 제공하여 Path Traversal 공격을 방지합니다.
  */
 
-import { isAbsolute,join,normalize } from 'path';
+import { isAbsolute, join, normalize, relative } from 'path';
 
 /**
  * 기본 허용 디렉토리 목록
@@ -96,8 +96,9 @@ function isWithinAllowedDirs(path: string, allowedDirs: string[]): boolean {
       ? normalize(normalizedPath)
       : normalize(join(cwd, normalizedPath));
     
-    // 경로가 허용된 디렉토리로 시작하는지 확인
-    if (resolvedPath.startsWith(allowedPath) || resolvedPath === allowedPath) {
+    // 경로 경계 기준: 접두사 문자열이 아니라 allowed 아래(또는 동일)인지
+    const rel = relative(allowedPath, resolvedPath);
+    if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
       return true;
     }
   }
