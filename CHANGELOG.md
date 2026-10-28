@@ -7,29 +7,16 @@
 
 ## [Unreleased]
 
+<!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
+
+## [2.3.4] - 2026-10-28
+
+agent 나 project 에 묶인 API 토큰이 다른 owner 의 절차 기억을 덮어쓰거나 비교 조회하고, 관계와 국소 검색 결과로 다른 owner 의 기억 id 에 닿던 경로를 막습니다. project 만 묶인 토큰도 운영자 전용 경로에서 막고, rate limit 은 검증된 신원으로만 셉니다. 설치형 CLI 는 작업 디렉터리 `.env` 로 API 키를 원격에 보내지 않습니다. 여러 agent 나 project 에 토큰을 나눠 쓰는 배포는 업그레이드를 권합니다. 이 밖에 case 지침 관련도 하한, lifecycle 캡처 끄기, 전역 설치 `memento` bin 이 들어갑니다.
+
 ### Security
 
 - 관계 추출(`extract_relations` 및 기억 저장 시 관계 추출)에서 모델이 반환한 대상 식별자를 인가된 후보 기억 집합으로 한정하고, 관계 저장 직전 양 끝점의 소유자 일치 여부를 검증합니다.
 - 국소 검색(`search_local`) 결과의 중첩 경로 추적 목록(`predecessor_ids`, `predecessor_id`)에서 바인딩된 호출자 소유가 아닌 기억 식별자를 걸러내고, 다중 홉 탐색 단계에 소유자 범위를 전달합니다.
-
-### Changed
-
-- Claude Code case 지침: `final_score`가 0.5 미만이거나 유효한 점수가 없는 후보는 주입하지 않습니다. 선택한 case와 전체 유효 후보의 점수를 로그에 남깁니다(#1493).
-
-<!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
-
-- Docker Compose 파일에서 obsolete `version` 키를 제거해 `docker compose` 경고를 없앱니다(#1491).
-
-### Added
-
-- Claude Code hook: `MEMENTO_CAPTURE=0` 설정으로 lifecycle 캡처를 끄고 지침 주입만 실행하는 옵션을 추가합니다 (#1494). 기본값은 켬(1)입니다.
-
-### Fixed
-
-- CLI: `npm i -g memento-mcp-server` 가 `memento` 명령을 설치하고, npm bin symlink 로 실행해도 명령이 동작합니다. 전에는 `memento connect claude-code` 로 등록한 훅이 command not found 로 조용히 실패했습니다 (#1492).
-
-### Security
-
 - 절차 기억의 암시적 갱신 대상을 호출자의 owner·project로 제한하고, 일반 갱신에서도 같은 쓰기 경계를 검증합니다.
 - recall의 절차 버전 비교와 버전 목록에 소유자 검증을 적용하고 삭제된 비교 대상을 제외합니다.
 - 설치형 CLI는 작업 디렉터리 `.env`를 기본으로 읽지 않습니다. `--env-file`, `--config-dir`, `MEMENTO_CONFIG_DIR`, `~/.memento/.env`만 읽습니다.
@@ -38,6 +25,19 @@
 - `memento connect project`가 쓰는 `.cursor/mcp.json` 파일 모드는 0600입니다.
 - HTTP: `project_id` 만 묶인 API 토큰이 운영자 전용 도구와 `/api/v1/agent` 운영 경로를 호출하지 못하게 하고, `/api/v1/agent` 의 세션 조회와 변경을 묶인 project 로 제한합니다.
 - HTTP rate limit: 검증 전 자격증명이나 세션 쿠키로 새 예산을 만들 수 없게 버킷 limiter 를 인증 뒤로 옮기고, 인증 실패(401)를 IP 별로 세는 한도(`MEMENTO_HTTP_RATE_LIMIT_AUTH_FAILURES`, 기본 100회/15분)를 추가합니다. `/api/v1/quality`, `/api/v1/maintenance`, `/api/v1/audit` 에도 admin 버킷을 붙입니다.
+
+### Added
+
+- Claude Code hook: `MEMENTO_CAPTURE=0` 설정으로 lifecycle 캡처를 끄고 지침 주입만 실행하는 옵션을 추가합니다 (#1494). 기본값은 켬(1)입니다.
+
+### Changed
+
+- Claude Code case 지침: `final_score`가 0.5 미만이거나 유효한 점수가 없는 후보는 주입하지 않습니다. 선택한 case와 전체 유효 후보의 점수를 로그에 남깁니다(#1493).
+- Docker Compose 파일에서 obsolete `version` 키를 제거해 `docker compose` 경고를 없앱니다(#1491).
+
+### Fixed
+
+- CLI: `npm i -g memento-mcp-server` 가 `memento` 명령을 설치하고, npm bin symlink 로 실행해도 명령이 동작합니다. 전에는 `memento connect claude-code` 로 등록한 훅이 command not found 로 조용히 실패했습니다 (#1492).
 
 ## [2.3.3] - 2026-10-27
 
