@@ -62,6 +62,22 @@ function runVerifyBin(root: string, extraEnv?: Record<string, string>) {
 const SHEBANG = '#!/usr/bin/env node\n';
 
 describe('verify-bin runtime checks (#1034)', () => {
+  it.each(['memento-mcp-server', 'memento-dev'])('rejects %s that only starts through its real path', (name) => {
+    const start = name === 'memento-dev'
+      ? "import('node:net').then(({ default: net }) => net.createServer().listen(Number(process.env.PORT), '127.0.0.1'));"
+      : 'setInterval(() => {}, 1000);';
+    const root = createFakeProject({
+      bin: { [name]: './entry.js' },
+      entries: {
+        'entry.js': `${SHEBANG}import { fileURLToPath } from 'node:url';\nif (process.argv[1] === fileURLToPath(import.meta.url)) { ${start} }\n`,
+      },
+    });
+
+    const result = runVerifyBin(root);
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(1);
+    expect(result.stderr).toContain('종료했습니다');
+  });
+
   it('exit 0 진입점은 실패한다 (#1029 회귀)', () => {
     const root = createFakeProject({
       bin: {

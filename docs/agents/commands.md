@@ -22,6 +22,8 @@ npm run start        # 컴파일된 MCP 서버
 npm run start:http   # 컴파일된 HTTP 서버
 ```
 
+`npm i -g memento-mcp-server`로 설치하면 `memento-mcp-server`는 MCP stdio 서버를, `memento-dev`는 HTTP 서버를 실행합니다. 두 명령은 npm이 만든 symlink 경로로도 기동합니다. 발행 전 `npm run verify-bin`은 임시 symlink를 통해 MCP 서버 생존과 HTTP 포트 응답을 확인합니다.
+
 ### stdio와 HTTP 동시 기동 (#841)
 
 로컬에서 MCP와 CLI·훅·대시보드를 함께 쓰려면 MCP 설치 환경에

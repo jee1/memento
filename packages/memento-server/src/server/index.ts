@@ -279,12 +279,13 @@ process.on('uncaughtException', (error: Error) => {
 });
 
 // Entry point
-import { resolve } from 'node:path';
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'url';
 
 const currentFile = fileURLToPath(import.meta.url);
 const scriptPath = process.argv[1] || '';
-const isMainModule = scriptPath !== '' && currentFile === resolve(scriptPath);
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- argv[1] 은 이 프로세스 진입 스크립트 경로
+const isMainModule = scriptPath !== '' && currentFile === realpathSync(scriptPath);
 
 export function resolveServerStart(transportType = process.env.TRANSPORT_TYPE) {
   const normalizedType = transportType?.toLowerCase() || 'stdio';
