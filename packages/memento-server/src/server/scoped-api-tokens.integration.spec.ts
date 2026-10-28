@@ -88,10 +88,11 @@ describe('scoped API tokens integration', () => {
   });
 
   it('tools token: /tools OK, /api/v1/quality 403', async () => {
+    const toolsSecret = 'tools-only-secret-01234567890123';
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'tools-1', secret: 'tools-only-secret', scopes: ['tools:invoke'] },
+        { id: 'tools-1', secret: toolsSecret, scopes: ['tools:invoke'] },
       ]),
     );
     vi.resetModules();
@@ -99,24 +100,25 @@ describe('scoped API tokens integration', () => {
     const port = await startRealHttpServer();
 
     const tools = await getRequest(port, '/tools', {
-      Authorization: 'Bearer tools-only-secret',
+      Authorization: `Bearer ${toolsSecret}`,
     });
     expect(tools.statusCode).toBe(200);
 
     const quality = await getRequest(port, '/api/v1/quality/metrics', {
-      Authorization: 'Bearer tools-only-secret',
+      Authorization: `Bearer ${toolsSecret}`,
     });
     expect(quality.statusCode).toBe(403);
     expect(quality.body).toContain('admin:destructive');
   });
 
   it('admin token: /tools and /api/v1/quality both OK', async () => {
+    const adminSecret = 'admin-secret-0123456789012345678';
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
         {
           id: 'admin-1',
-          secret: 'admin-secret',
+          secret: adminSecret,
           scopes: ['admin:destructive', 'tools:invoke'],
         },
       ]),
@@ -126,12 +128,12 @@ describe('scoped API tokens integration', () => {
     const port = await startRealHttpServer();
 
     const tools = await getRequest(port, '/tools', {
-      Authorization: 'Bearer admin-secret',
+      Authorization: `Bearer ${adminSecret}`,
     });
     expect(tools.statusCode).toBe(200);
 
     const quality = await getRequest(port, '/api/v1/quality/metrics', {
-      Authorization: 'Bearer admin-secret',
+      Authorization: `Bearer ${adminSecret}`,
     });
     expect(quality.statusCode).toBe(200);
   });

@@ -11,7 +11,7 @@ describe('stdio HTTP sidecar subprocess integration', () => {
   let configDir: string;
   const clients: Client[] = [];
   const listeners: Server[] = [];
-  const apiKey = 'sidecar-integration-key';
+  const apiKey = 'sidecar-integration-key-01234567890123';
 
   beforeEach(async () => {
     configDir = await mkdtemp(join(tmpdir(), 'memento-stdio-sidecar-'));

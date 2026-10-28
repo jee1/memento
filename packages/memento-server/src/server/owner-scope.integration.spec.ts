@@ -85,13 +85,13 @@ describe('HTTP owner scope integration', () => {
   }
 
   beforeEach(async () => {
-    vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
+    vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key-012345678901');
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
         {
           id: 'integration',
-          secret: 'integration-admin-key',
+          secret: 'integration-admin-key-012345678901',
           scopes: ['admin:destructive', 'tools:invoke'],
         },
       ]),
@@ -125,7 +125,7 @@ describe('HTTP owner scope integration', () => {
         enable_hybrid: false
       },
       {
-        Authorization: 'Bearer integration-admin-key',
+        Authorization: 'Bearer integration-admin-key-012345678901',
         'X-Memento-Agent-Id': 'agent-a'
       }
     );
@@ -153,7 +153,7 @@ describe('HTTP owner scope integration', () => {
         enable_hybrid: false
       },
       {
-        Authorization: 'Bearer integration-admin-key'
+        Authorization: 'Bearer integration-admin-key-012345678901'
       }
     );
 
@@ -173,7 +173,7 @@ describe('HTTP owner scope integration', () => {
         format: 'jsonl'
       },
       {
-        Authorization: 'Bearer integration-admin-key'
+        Authorization: 'Bearer integration-admin-key-012345678901'
       }
     );
 

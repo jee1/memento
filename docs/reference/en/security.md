@@ -35,7 +35,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 - **Current state**: The HTTP server uses a **split trust model**. `/auth/session` starts the cookie-backed browser-session flow. `/admin/*` and `/api/*` require that browser session. Programmatic routes use scoped tokens as follows:
   - `/tools/*`, `/mcp`, `/messages`, `/api/v1/agent` — **`tools:invoke` scope** token (`Authorization: Bearer` or `X-API-Key`)
   - `/api/v1/quality/*`, `/api/v1/maintenance/*`, `/api/v1/audit/*` — **`admin:destructive` scope** token (programmatic admin APIs)
-- **Scoped tokens (`MEMENTO_API_TOKENS`)**: Configure multiple keys as a JSON array. Example:
+- **Scoped tokens (`MEMENTO_API_TOKENS`)**: Configure multiple keys as a JSON array. Each entry's `secret` must be at least 32 characters (shorter entries are logged as a warning and ignored). Example:
   ```json
   [
     { "id": "agent-tools", "secret": "<hex>", "scopes": ["tools:invoke"] },

@@ -218,13 +218,13 @@ describe('programmatic auth integration', () => {
   }
 
   beforeEach(async () => {
-    vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
+    vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key-012345678901');
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
         {
           id: 'integration',
-          secret: 'integration-admin-key',
+          secret: 'integration-admin-key-012345678901',
           scopes: ['admin:destructive', 'tools:invoke'],
         },
       ]),
@@ -248,7 +248,7 @@ describe('programmatic auth integration', () => {
     const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     expect(login.statusCode).toBe(204);
 
@@ -269,12 +269,12 @@ describe('programmatic auth integration', () => {
     expect(searchLocalWithCookieOnly.statusCode).toBe(401);
 
     const toolsWithHeader = await getRequest(port, '/tools', {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     expect(toolsWithHeader.statusCode).toBe(200);
 
     const toolsWithApiKey = await getRequest(port, '/tools', {
-      'X-API-Key': 'integration-admin-key'
+      'X-API-Key': 'integration-admin-key-012345678901'
     });
     expect(toolsWithApiKey.statusCode).toBe(200);
 
@@ -308,13 +308,13 @@ describe('programmatic auth integration', () => {
     expect(mcpStreamTrailingSlashWithCookieOnly.statusCode).toBe(401);
 
     const mcpStreamWithHeader = await openMcpStream(port, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     expect(mcpStreamWithHeader.statusCode).toBe(200);
     const messagesPath = extractSessionPath(mcpStreamWithHeader.body);
 
     const mcpStreamWithApiKey = await openMcpStream(port, {
-      'X-API-Key': 'integration-admin-key'
+      'X-API-Key': 'integration-admin-key-012345678901'
     });
     expect(mcpStreamWithApiKey.statusCode).toBe(200);
 
@@ -334,7 +334,7 @@ describe('programmatic auth integration', () => {
       method: 'initialize',
       params: {}
     }, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     expect(mcpPostWithHeader.statusCode).toBe(200);
 
@@ -344,7 +344,7 @@ describe('programmatic auth integration', () => {
       method: 'initialize',
       params: {}
     }, {
-      'X-API-Key': 'integration-admin-key'
+      'X-API-Key': 'integration-admin-key-012345678901'
     });
     expect(mcpPostWithApiKey.statusCode).toBe(200);
 
@@ -360,7 +360,7 @@ describe('programmatic auth integration', () => {
       jsonrpc: '2.0',
       method: 'notifications/initialized'
     }, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     expect(messagesWithHeader.statusCode).toBe(200);
 
@@ -368,7 +368,7 @@ describe('programmatic auth integration', () => {
       jsonrpc: '2.0',
       method: 'notifications/initialized'
     }, {
-      'X-API-Key': 'integration-admin-key'
+      'X-API-Key': 'integration-admin-key-012345678901'
     });
     expect(messagesWithApiKey.statusCode).toBe(200);
 
@@ -401,7 +401,7 @@ describe('programmatic auth integration', () => {
   it('rejects MCP requests from untrusted browser origins (DNS rebinding)', async () => {
     const port = await startRealHttpServer();
     const initialize = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} };
-    const auth = { Authorization: 'Bearer integration-admin-key' };
+    const auth = { Authorization: 'Bearer integration-admin-key-012345678901' };
 
     const rebound = await postJson(port, '/mcp', initialize, {
       ...auth,

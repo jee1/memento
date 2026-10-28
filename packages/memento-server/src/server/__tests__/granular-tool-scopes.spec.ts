@@ -185,7 +185,7 @@ describe('granular-tool-scopes HTTP integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'invoke-tok', secret: 'sec-invoke', scopes: ['tools:invoke'], agent_id: 'test-agent' },
+        { id: 'invoke-tok', secret: 'sec-invoke-01234567890123456789012', scopes: ['tools:invoke'], agent_id: 'test-agent' },
       ]),
     );
     vi.resetModules();
@@ -196,7 +196,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/remember',
       'POST',
-      { Authorization: 'Bearer sec-invoke' },
+      { Authorization: 'Bearer sec-invoke-01234567890123456789012' },
       { content: 'Super scope test', type: 'episodic' },
     );
     expect(remRes.statusCode).toBe(200);
@@ -205,7 +205,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/recall',
       'POST',
-      { Authorization: 'Bearer sec-invoke' },
+      { Authorization: 'Bearer sec-invoke-01234567890123456789012' },
       { query: 'Super scope test', type: 'episodic' },
     );
     expect(recRes.statusCode).toBe(200);
@@ -215,7 +215,7 @@ describe('granular-tool-scopes HTTP integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'read-tok', secret: 'sec-read', scopes: ['tools:read'], agent_id: 'test-agent' },
+        { id: 'read-tok', secret: 'sec-read-0123456789012345678901234', scopes: ['tools:read'], agent_id: 'test-agent' },
       ]),
     );
     vi.resetModules();
@@ -226,7 +226,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/recall',
       'POST',
-      { Authorization: 'Bearer sec-read' },
+      { Authorization: 'Bearer sec-read-0123456789012345678901234' },
       { query: 'any query', type: 'episodic' },
     );
     expect(recRes.statusCode).toBe(200);
@@ -235,7 +235,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/remember',
       'POST',
-      { Authorization: 'Bearer sec-read' },
+      { Authorization: 'Bearer sec-read-0123456789012345678901234' },
       { content: 'Must fail', type: 'episodic' },
     );
     expect(remRes.statusCode).toBe(403);
@@ -245,7 +245,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/forget',
       'POST',
-      { Authorization: 'Bearer sec-read' },
+      { Authorization: 'Bearer sec-read-0123456789012345678901234' },
       { id: 'non-existent', hard: false },
     );
     expect(fgtRes.statusCode).toBe(403);
@@ -256,7 +256,7 @@ describe('granular-tool-scopes HTTP integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'write-tok', secret: 'sec-write', scopes: ['tools:write'], agent_id: 'test-agent' },
+        { id: 'write-tok', secret: 'sec-write-012345678901234567890123', scopes: ['tools:write'], agent_id: 'test-agent' },
       ]),
     );
     vi.resetModules();
@@ -267,7 +267,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/remember',
       'POST',
-      { Authorization: 'Bearer sec-write' },
+      { Authorization: 'Bearer sec-write-012345678901234567890123' },
       { content: 'Write only test', type: 'episodic' },
     );
     expect(remRes.statusCode).toBe(200);
@@ -276,7 +276,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/recall',
       'POST',
-      { Authorization: 'Bearer sec-write' },
+      { Authorization: 'Bearer sec-write-012345678901234567890123' },
       { query: 'any query', type: 'episodic' },
     );
     expect(recRes.statusCode).toBe(403);
@@ -287,7 +287,7 @@ describe('granular-tool-scopes HTTP integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'dual-tok', secret: 'sec-dual', scopes: ['tools:read', 'tools:write'], agent_id: 'test-agent' },
+        { id: 'dual-tok', secret: 'sec-dual-0123456789012345678901234', scopes: ['tools:read', 'tools:write'], agent_id: 'test-agent' },
       ]),
     );
     vi.resetModules();
@@ -298,7 +298,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/remember',
       'POST',
-      { Authorization: 'Bearer sec-dual' },
+      { Authorization: 'Bearer sec-dual-0123456789012345678901234' },
       { content: 'Dual scope test', type: 'episodic' },
     );
     expect(remRes.statusCode).toBe(200);
@@ -307,7 +307,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/recall',
       'POST',
-      { Authorization: 'Bearer sec-dual' },
+      { Authorization: 'Bearer sec-dual-0123456789012345678901234' },
       { query: 'Dual scope test', type: 'episodic' },
     );
     expect(recRes.statusCode).toBe(200);
@@ -317,7 +317,7 @@ describe('granular-tool-scopes HTTP integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'admin-tok', secret: 'sec-admin', scopes: ['admin:destructive'], agent_id: 'test-agent' },
+        { id: 'admin-tok', secret: 'sec-admin-012345678901234567890123', scopes: ['admin:destructive'], agent_id: 'test-agent' },
       ]),
     );
     vi.resetModules();
@@ -328,7 +328,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/recall',
       'POST',
-      { Authorization: 'Bearer sec-admin' },
+      { Authorization: 'Bearer sec-admin-012345678901234567890123' },
       { query: 'test', type: 'episodic' },
     );
     expect(res.statusCode).toBe(403);
@@ -339,7 +339,7 @@ describe('granular-tool-scopes HTTP integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'read-tok', secret: 'sec-read', scopes: ['tools:read'], agent_id: 'test-agent' },
+        { id: 'read-tok', secret: 'sec-read-0123456789012345678901234', scopes: ['tools:read'], agent_id: 'test-agent' },
       ]),
     );
     vi.resetModules();
@@ -350,7 +350,7 @@ describe('granular-tool-scopes HTTP integration', () => {
       port,
       '/tools/remember',
       'POST',
-      { Authorization: 'Bearer sec-read' },
+      { Authorization: 'Bearer sec-read-0123456789012345678901234' },
       { content: 'Will fail audit check', type: 'episodic' },
     );
 

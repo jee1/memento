@@ -63,6 +63,9 @@ function postJson(
   });
 }
 
+const SECRET_A = 'secret-a-0123456789012345678901234';
+const SECRET_U = 'secret-u-0123456789012345678901234';
+
 function seedOwnerScopedMemories(ctx: TestDatabaseContext): void {
   const insert = ctx.db.prepare(`
     INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at, is_deleted)
@@ -106,8 +109,8 @@ describe('token-bound agent identity integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'a', secret: 'secret-a', scopes: ['tools:invoke'], agent_id: 'agent-a' },
-        { id: 'u', secret: 'secret-u', scopes: ['tools:invoke'] },
+        { id: 'a', secret: SECRET_A, scopes: ['tools:invoke'], agent_id: 'agent-a' },
+        { id: 'u', secret: SECRET_U, scopes: ['tools:invoke'] },
       ]),
     );
     vi.stubEnv('MEMENTO_OWNER_SCOPE_MODE', 'strict');
@@ -139,7 +142,7 @@ describe('token-bound agent identity integration', () => {
         enable_hybrid: false,
       },
       {
-        Authorization: 'Bearer secret-a',
+        Authorization: `Bearer ${SECRET_A}`,
         'X-Memento-Agent-Id': 'agent-b',
       },
     );
@@ -161,7 +164,7 @@ describe('token-bound agent identity integration', () => {
         limit: 10,
         enable_hybrid: false,
       },
-      { Authorization: 'Bearer secret-a' },
+      { Authorization: `Bearer ${SECRET_A}` },
     );
 
     expect(response.statusCode).toBe(400);
@@ -181,7 +184,7 @@ describe('token-bound agent identity integration', () => {
         enable_hybrid: false,
       },
       {
-        Authorization: 'Bearer secret-a',
+        Authorization: `Bearer ${SECRET_A}`,
       },
     );
 
@@ -206,7 +209,7 @@ describe('token-bound agent identity integration', () => {
         confirm: true,
       },
       {
-        Authorization: 'Bearer secret-a',
+        Authorization: `Bearer ${SECRET_A}`,
         'X-Memento-Agent-Id': 'agent-b',
       },
     );
@@ -236,7 +239,7 @@ describe('token-bound agent identity integration', () => {
         },
       },
       {
-        Authorization: 'Bearer secret-a',
+        Authorization: `Bearer ${SECRET_A}`,
         'X-Memento-Agent-Id': 'agent-b',
       },
     );
@@ -255,7 +258,7 @@ describe('token-bound agent identity integration', () => {
         method: 'prompts/call',
         params: { name: 'memory_injection', arguments: { query: 'owner scope secret token', ...args } },
       },
-      { Authorization: 'Bearer secret-a' },
+      { Authorization: `Bearer ${SECRET_A}` },
     );
   }
 
@@ -281,12 +284,12 @@ describe('token-bound agent identity integration', () => {
   it('bound token: agent API refuses cross-agent endpoints and other owners', async () => {
     const port = await startRealHttpServer();
 
-    const bound = await getJson(port, '/api/v1/agent/sessions/aggregate', { Authorization: 'Bearer secret-a' });
+    const bound = await getJson(port, '/api/v1/agent/sessions/aggregate', { Authorization: `Bearer ${SECRET_A}` });
     expect(bound.statusCode).toBe(403);
-    const otherOwner = await getJson(port, '/api/v1/agent/sessions?owner_id=agent-b', { Authorization: 'Bearer secret-a' });
+    const otherOwner = await getJson(port, '/api/v1/agent/sessions?owner_id=agent-b', { Authorization: `Bearer ${SECRET_A}` });
     expect(otherOwner.statusCode).toBe(403);
 
-    const unbound = await getJson(port, '/api/v1/agent/sessions/aggregate', { Authorization: 'Bearer secret-u' });
+    const unbound = await getJson(port, '/api/v1/agent/sessions/aggregate', { Authorization: `Bearer ${SECRET_U}` });
     expect(unbound.statusCode).toBe(200);
   });
 
@@ -303,7 +306,7 @@ describe('token-bound agent identity integration', () => {
         enable_hybrid: false,
       },
       {
-        Authorization: 'Bearer secret-u',
+        Authorization: `Bearer ${SECRET_U}`,
         'X-Memento-Agent-Id': 'agent-b',
       },
     );

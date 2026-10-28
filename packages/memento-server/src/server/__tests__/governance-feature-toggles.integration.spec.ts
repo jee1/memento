@@ -102,7 +102,7 @@ describe('governance feature toggles (integration)', () => {
       vi.stubEnv(
         'MEMENTO_API_TOKENS',
         JSON.stringify([
-          { id: 'proj-tok', secret: 'sec-proj', scopes: ['tools:invoke'], agent_id: 'test-agent', project_id: 'proj-alpha' },
+          { id: 'proj-tok', secret: 'sec-proj-0123456789012345678901234', scopes: ['tools:invoke'], agent_id: 'test-agent', project_id: 'proj-alpha' },
         ]),
       );
       vi.resetModules();
@@ -113,7 +113,7 @@ describe('governance feature toggles (integration)', () => {
         '/tools/remember',
         'POST',
         {
-          Authorization: 'Bearer sec-proj',
+          Authorization: 'Bearer sec-proj-0123456789012345678901234',
           'X-Memento-Project-Id': 'proj-beta',
         },
         { content: 'Test project mismatch', type: 'episodic' },
@@ -128,7 +128,7 @@ describe('governance feature toggles (integration)', () => {
       vi.stubEnv(
         'MEMENTO_API_TOKENS',
         JSON.stringify([
-          { id: 'proj-tok', secret: 'sec-proj', scopes: ['tools:invoke'], agent_id: 'test-agent', project_id: 'proj-alpha' },
+          { id: 'proj-tok', secret: 'sec-proj-0123456789012345678901234', scopes: ['tools:invoke'], agent_id: 'test-agent', project_id: 'proj-alpha' },
         ]),
       );
       vi.resetModules();
@@ -139,7 +139,7 @@ describe('governance feature toggles (integration)', () => {
         '/tools/remember',
         'POST',
         {
-          Authorization: 'Bearer sec-proj',
+          Authorization: 'Bearer sec-proj-0123456789012345678901234',
           'X-Memento-Project-Id': 'proj-beta',
         },
         { content: 'Test project mismatch allowed when off', type: 'episodic' },
@@ -155,7 +155,7 @@ describe('governance feature toggles (integration)', () => {
       vi.stubEnv(
         'MEMENTO_API_TOKENS',
         JSON.stringify([
-          { id: 'read-tok', secret: 'sec-read', scopes: ['tools:read'], agent_id: 'test-agent' },
+          { id: 'read-tok', secret: 'sec-read-0123456789012345678901234', scopes: ['tools:read'], agent_id: 'test-agent' },
         ]),
       );
       vi.resetModules();
@@ -165,7 +165,7 @@ describe('governance feature toggles (integration)', () => {
         port,
         '/tools/remember',
         'POST',
-        { Authorization: 'Bearer sec-read' },
+        { Authorization: 'Bearer sec-read-0123456789012345678901234' },
         { content: 'Should fail in granular mode', type: 'episodic' },
       );
 
@@ -178,7 +178,7 @@ describe('governance feature toggles (integration)', () => {
       vi.stubEnv(
         'MEMENTO_API_TOKENS',
         JSON.stringify([
-          { id: 'read-tok', secret: 'sec-read', scopes: ['tools:read'], agent_id: 'test-agent' },
+          { id: 'read-tok', secret: 'sec-read-0123456789012345678901234', scopes: ['tools:read'], agent_id: 'test-agent' },
         ]),
       );
       vi.resetModules();
@@ -188,7 +188,7 @@ describe('governance feature toggles (integration)', () => {
         port,
         '/tools/remember',
         'POST',
-        { Authorization: 'Bearer sec-read' },
+        { Authorization: 'Bearer sec-read-0123456789012345678901234' },
         { content: 'Allowed when granular scope enforcement is off', type: 'episodic' },
       );
 

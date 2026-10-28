@@ -37,7 +37,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
   - `/admin/*`, `/api/*` — **브라우저 세션이 필요합니다**
   - `/tools/*`, `/mcp`, `/messages`, `/api/v1/agent` — **`tools:invoke` 스코프** 토큰 (`Authorization: Bearer` 또는 `X-API-Key`)
   - `/api/v1/quality/*`, `/api/v1/maintenance/*`, `/api/v1/audit/*` — **`admin:destructive` 스코프** 토큰 (programmatic 관리 API)
-- **스코프드 토큰 (`MEMENTO_API_TOKENS`)**: JSON 배열로 여러 키를 설정합니다. 예:
+- **스코프드 토큰 (`MEMENTO_API_TOKENS`)**: JSON 배열로 여러 키를 설정합니다. 각 항목의 `secret`은 최소 32자 이상이어야 합니다(32자 미만 항목은 경고 로그 후 무시). 예:
   ```json
   [
     { "id": "agent-tools", "secret": "<hex>", "scopes": ["tools:invoke"] },

@@ -3,6 +3,8 @@ import type { ApiScope, ApiTokenEntry } from '../types/api-token.js';
 import { API_SCOPES } from '../types/api-token.js';
 import { getRawEnvValue } from './environment.js';
 
+export const MIN_API_TOKEN_SECRET_LENGTH = 32;
+
 function isApiScope(value: unknown): value is ApiScope {
   return typeof value === 'string' && (API_SCOPES as readonly string[]).includes(value);
 }
@@ -20,6 +22,14 @@ function parseTokenEntry(raw: unknown, index: number): ApiTokenEntry | null {
 
   if (!id || !secret) {
     logger.warn('MEMENTO_API_TOKENS entry ignored: id and secret are required', { index, id: id || undefined });
+    return null;
+  }
+
+  if (secret.length < MIN_API_TOKEN_SECRET_LENGTH) {
+    logger.warn('MEMENTO_API_TOKENS entry ignored: secret must be at least 32 characters', {
+      index,
+      id: id || undefined,
+    });
     return null;
   }
 
