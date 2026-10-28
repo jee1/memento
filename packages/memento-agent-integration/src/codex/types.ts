@@ -1,3 +1,4 @@
+import type { DirectiveDeps } from '../claude-code/directives/types.js';
 import type {
   AgentEventEnvelope,
   CaptureResult,
@@ -40,13 +41,15 @@ export interface CodexHookRunOptions {
   now?: () => number;
   timeoutMs?: number;
   maxRetries?: number;
+  directives?: DirectiveDeps;
+  captureEnabled?: boolean;
 }
 
 export interface CodexHookRunResult {
   exitCode: 0;
-  stdout: '';
+  stdout: string;
   stderr: string;
-  capture: CaptureResult;
+  capture?: CaptureResult;
   dispatch?: DispatchResult;
   event?: AgentEventEnvelope;
 }

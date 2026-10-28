@@ -6,14 +6,14 @@
 
 ## 동작
 
-1. Claude Code 가 프롬프트를 보내면 `UserPromptSubmit` 훅이 `memento hook claude-code` 를 실행합니다.
+1. 호스트가 프롬프트를 보내면 훅이 `memento hook claude-code` / `memento hook codex` / `memento hook cursor` 를 실행합니다.
 2. 훅은 프롬프트 앞 500자로 `case` 태그 기억을 recall 합니다(최대 15개 후보).
 3. 300자를 넘는 case 는 건너뛰고, 이 세션에서 이미 넣은 case 도 뺍니다. 남은 것을 순위대로 최대 5개, 본문 합계 4,500 bytes 까지 고릅니다.
 4. 고정 지침 파일(pinned)이 있으면 맨 앞에 붙입니다.
-5. `live` 모드면 Claude Code 에 `additionalContext` 로 넘기고, `shadow` 모드면 넘기지 않고 로그만 씁니다.
-6. `PreCompact` 에서 세션 중복 기록을 초기화합니다. compact 로 사라진 지침이 다시 들어갈 수 있게 합니다.
+5. `live` 모드면 호스트 스키마로 컨텍스트를 넘깁니다. Claude Code와 Codex는 `hookSpecificOutput.additionalContext`, Cursor(`beforeSubmitPrompt`)는 `additional_context` + `continue: true` 입니다. `shadow` 모드면 넘기지 않고 로그만 씁니다.
+6. Claude Code와 Codex의 `PreCompact` 에서 세션 중복 기록을 초기화합니다. compact 로 사라진 지침이 다시 들어갈 수 있게 합니다.
 
-서버가 없거나 recall 이 1.5초 안에 끝나지 않으면 출력은 비고, 로그에 `fallback:true` 한 줄이 남습니다. 훅은 항상 exit 0 이라 Claude Code 를 막지 않습니다.
+서버가 없거나 recall 이 1.5초 안에 끝나지 않으면 출력은 비고, 로그에 `fallback:true` 한 줄이 남습니다. 훅은 항상 exit 0 이라 호스트를 막지 않습니다. 세 호스트는 같은 선택·중복 제거·로그 계약을 쓰고, stdout 래퍼만 다릅니다.
 
 관련도 하한은 `DIRECTIVE_POLICY.minFinalScore`의 `0.5`입니다. `final_score`가 이 값 이상인 후보만 고릅니다. 점수가 없거나 유한한 숫자가 아니면 제외합니다. 기존 중복 제거·300자·5개·4,500 bytes 제한은 그대로 적용합니다.
 
@@ -45,33 +45,37 @@ remember({
 
 ```bash
 #!/usr/bin/env bash
-# ~/.claude/hooks/memento-directives.sh
+# ~/.claude/hooks/memento-directives.sh  (Codex·Cursor 도 HOST 만 바꿔 재사용)
+HOST="${1:-claude-code}"   # claude-code | codex | cursor
 export MEMENTO_DIRECTIVES=1
 export MEMENTO_DIRECTIVES_MODE=shadow
 export MEMENTO_DIRECTIVES_PINNED_FILE="$HOME/.claude/pinned-directives.md"
 export MEMENTO_API_KEY="<MEMENTO_API_TOKENS 에 등록한 토큰을 읽어 오는 명령>"
-exec memento hook claude-code
+exec memento hook "$HOST"
 ```
 
-전역 설치에 `memento` 명령이 없으면([#1492](https://github.com/jee1/memento/issues/1492)) 마지막 줄을 `exec node "$(npm root -g)/memento-mcp-server/dist/cli.js" hook claude-code` 로 바꿉니다.
+전역 설치에 `memento` 명령이 없으면([#1492](https://github.com/jee1/memento/issues/1492)) 마지막 줄을 `exec node "$(npm root -g)/memento-mcp-server/dist/cli.js" hook "$HOST"` 로 바꿉니다.
 
-`~/.claude/settings.json` 의 `UserPromptSubmit` 과 `PreCompact` 에 래퍼를 등록합니다.
+**Claude Code** — `~/.claude/settings.json` 의 `UserPromptSubmit` 과 `PreCompact`:
 
 ```json
 {
   "hooks": {
     "UserPromptSubmit": [
-      { "hooks": [{ "type": "command", "command": "~/.claude/hooks/memento-directives.sh", "timeout": 5 }] }
+      { "hooks": [{ "type": "command", "command": "~/.claude/hooks/memento-directives.sh claude-code", "timeout": 5 }] }
     ],
     "PreCompact": [
-      { "hooks": [{ "type": "command", "command": "~/.claude/hooks/memento-directives.sh", "timeout": 5 }] }
+      { "hooks": [{ "type": "command", "command": "~/.claude/hooks/memento-directives.sh claude-code", "timeout": 5 }] }
     ]
   }
 }
 ```
 
-이 훅은 lifecycle 캡처도 함께 실행합니다. 프롬프트 원문이 로컬 서버에 observation 으로 저장됩니다. 끄는 옵션은 [#1494](https://github.com/jee1/memento/issues/1494) 에서 다룹니다.
-lifecycle 캡처를 끄고 지침 주입만 쓰려면 `MEMENTO_CAPTURE=0`으로 설정합니다 (#1494).
+**Codex** — `~/.codex/hooks.json` 의 `UserPromptSubmit` 과 `PreCompact` 에 `memento hook codex` 래퍼를 등록합니다 (`memento connect codex` 가 lifecycle 핸들러를 넣을 때와 같은 파일).
+
+**Cursor** — `~/.cursor/hooks.json` 의 `beforeSubmitPrompt` 에 `memento hook cursor` 래퍼를 등록합니다. Cursor 경로는 lifecycle 캡처 없이 지침 주입만 합니다.
+
+Claude Code와 Codex 훅은 lifecycle 캡처도 함께 실행합니다. 프롬프트 원문이 로컬 서버에 observation 으로 저장됩니다. lifecycle 캡처를 끄고 지침 주입만 쓰려면 `MEMENTO_CAPTURE=0`으로 설정합니다 (#1494).
 
 ## 3. shadow 로그 확인
 
@@ -120,4 +124,4 @@ jq -c 'select(.inj_id) | {ts, n: (.cases | length), fallback, ids: [.cases[].id]
 ## 한계
 
 - memento 서버가 있어야 합니다. 서버 없이 마크다운 폴더로 동작하는 방식은 [#1495](https://github.com/jee1/memento/issues/1495) 에서 다룹니다.
-- Claude Code 만 지원합니다. Cursor 와 Codex 는 [#1496](https://github.com/jee1/memento/issues/1496) 입니다.
+- Cursor 는 `beforeSubmitPrompt` 만 지원합니다. compact 후 중복 초기화는 Claude Code/Codex `PreCompact` 경로에만 있습니다.

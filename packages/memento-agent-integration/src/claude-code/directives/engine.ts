@@ -120,7 +120,8 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
     } catch {
       return '';
     }
-    return config.mode === 'live' ? toHookStdout(context) : '';
+    const format = deps.formatStdout ?? toHookStdout;
+    return config.mode === 'live' ? format(context) : '';
   };
 
   let timer: NodeJS.Timeout | undefined;
