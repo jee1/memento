@@ -38,7 +38,7 @@ describe('#1115: <VAR>_FILE Docker secrets 주입', () => {
 
   it('MEMENTO_API_TOKENS_FILE 의 내용을 MEMENTO_API_TOKENS 로 주입한다', () => {
     const file = join(dir, 'tokens.json');
-    const payload = '[{"id":"a","secret":"b","scopes":["tools:invoke"]}]';
+    const payload = '[{"id":"a","secret":"secret-01234567890123456789012345678901","scopes":["tools:invoke"]}]';
     writeFileSync(file, `${payload}\n`, 'utf-8');
 
     const result = runSource({ MEMENTO_API_TOKENS_FILE: file }, 'MEMENTO_API_TOKENS');

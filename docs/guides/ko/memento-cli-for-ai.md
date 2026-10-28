@@ -45,7 +45,7 @@ MCP 클라이언트 설정 예시 (`.cursor/mcp.json` 등):
       "env": {
         "MEMENTO_HTTP_SIDECAR": "1",
         "MCP_SERVER_PORT": "0",
-        "MEMENTO_API_TOKENS": "[{\"id\":\"local\",\"secret\":\"my-token-secret\",\"scopes\":[\"tools:invoke\"]}]"
+        "MEMENTO_API_TOKENS": "[{\"id\":\"local\",\"secret\":\"my-token-secret-01234567890123456789\",\"scopes\":[\"tools:invoke\"]}]"
       }
     }
   }
@@ -55,7 +55,7 @@ MCP 클라이언트 설정 예시 (`.cursor/mcp.json` 등):
 셸 환경 변수 설정:
 
 ```bash
-export MEMENTO_API_KEY="my-token-secret"
+export MEMENTO_API_KEY="my-token-secret-01234567890123456789"
 ```
 
 포트 충돌을 피하려면 `MCP_SERVER_PORT=0`을 씁니다. 실제 할당 포트는 `~/.memento/server.json`에 기록되고 CLI가 이를 읽어 접속합니다.
