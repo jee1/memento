@@ -1,23 +1,10 @@
 ---
-globs: "src/domains/monitoring/**/*.ts,src/test/test-performance*.ts"
-description: 성능 모니터링·알림 도메인 개발 규칙 (실시간 메트릭, 임계값 알림, 자동 복구)
+globs: "packages/memento-core/src/domains/monitoring/**/*.ts"
+description: Performance monitoring — pointer
 ---
 
-# 성능 모니터링 및 알림
+# 성능 모니터링
 
-## 적용 경로
+구현: `packages/memento-core/src/domains/monitoring/` (`performance-monitor.ts` 진입점).
 
-- `src/domains/monitoring/`: performance-monitor, performance-alert-service, performance-alerts 도구, error-logging-service
-- `src/test/test-performance*.ts`: 성능·알림 테스트
-
-## 원칙
-
-- **메트릭**: 메모리, CPU, 응답시간, 처리량, 에러율 수집 후 구조화된 형태로 노출.
-- **알림**: AlertLevel(INFO/WARNING/CRITICAL), AlertType(response_time, memory_usage, error_rate, throughput) 구분. createAlert / resolveAlert / getActiveAlerts / getStats 일관 유지.
-- **임계값**: 설정 가능한 warning/critical로 알림 생성. 자동 복구는 critical 시에만 제한적으로 수행.
-- **로깅**: 파일·콘솔 로깅 시 구조화된 JSON/필드 유지. 오래된 알림은 maxAlerts 기준으로 정리.
-
-## 참고
-
-- MCP 도구: `performance_alerts` 등은 `src/domains/monitoring/tools/` 및 서버 툴 등록과 일치시킬 것.
-- 테스트: given/when/then, DatabaseUtils 등 기존 테스트 패턴 준수.
+원칙: 메트릭·알림 레벨/타입은 코드와 도구 등록을 맞춘다. 상세 복붙 금지 — [architecture.md](../../docs/agents/architecture.md).
