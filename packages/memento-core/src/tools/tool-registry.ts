@@ -5,6 +5,7 @@
 
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
 import { logger } from '../shared/utils/logger.js';
+import { resolveCallerAgentId } from './caller-scope.js';
 
 interface ToolRegistryConfig {
   enableLogging: boolean;
@@ -81,7 +82,7 @@ export class ToolRegistry {
       throw new Error(`Unknown tool: ${name}`);
     }
     if (this.config.enableCaching) {
-      const cacheKey = this.generateCacheKey(name, params);
+      const cacheKey = this.generateCacheKey(name, params, context);
       const cached = this.cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < cached.ttl) {
         this.log(`Cache hit for tool: ${name}`);
@@ -101,7 +102,7 @@ export class ToolRegistry {
         this.updateMetrics(name, true, Date.now() - startTime);
       }
       if (this.config.enableCaching && result.success) {
-        this.cacheResult(name, params, result);
+        this.cacheResult(name, params, context, result);
       }
       this.log(`Tool executed successfully: ${name}`, { duration: Date.now() - startTime });
       return result;
@@ -150,16 +151,20 @@ export class ToolRegistry {
     metric.errorRate = metric.failedExecutions / metric.totalExecutions;
   }
 
-  private generateCacheKey(name: string, params: unknown): string {
-    return `${name}:${JSON.stringify(params)}`;
+  private generateCacheKey(name: string, params: unknown, context: ToolContext): string {
+    return JSON.stringify([
+      name, JSON.stringify(params),
+      resolveCallerAgentId(context, undefined), context.boundProjectId,
+      context.agentId, context.projectId,
+    ]);
   }
 
-  private cacheResult(name: string, params: unknown, result: ToolResult): void {
+  private cacheResult(name: string, params: unknown, context: ToolContext, result: ToolResult): void {
     if (this.cache.size >= this.config.cacheSize) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey) this.cache.delete(oldestKey);
     }
-    this.cache.set(this.generateCacheKey(name, params), {
+    this.cache.set(this.generateCacheKey(name, params, context), {
       result,
       timestamp: Date.now(),
       ttl: 5 * 60 * 1000
