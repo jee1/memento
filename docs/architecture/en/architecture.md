@@ -10,31 +10,9 @@ The interface is MCP (Model Context Protocol). An agent calls tools like `rememb
 
 ## Package Structure
 
-The root is an npm workspaces monorepo. Dependencies flow in one direction:
+Canonical package list, workspace edges, and MCP tool registration live in [agent architecture](../../agents/architecture.md). This page keeps narrative only.
 
-```
-memento-core  ←  memento-server
-              ←  memento-client
-              ←  memento-assistant
-              ←  memento-agent-integration
-```
-
-**`packages/memento-core` (`@memento/core`)**
-All domain logic, database access, services, schedulers, and MCP tools live here. Every other package is a shell that consumes this library.
-
-**`packages/memento-server`**
-Exposes `@memento/core` as two server types:
-- **MCP server** (`cli.ts`): the endpoint AI agents connect to. Supports stdio, SSE, and Streamable HTTP transports.
-- **HTTP admin server** (`http-server.ts`): dashboard, batch manual triggers, agent session management, operational APIs.
-
-**`packages/memento-client` (`@jee1/memento-client`)**
-Client library for connecting to the server remotely.
-
-**`packages/memento-assistant`**
-Integration package for external assistants (OpenClaw/NanoClaw family).
-
-**`packages/memento-agent-integration`**
-Contract and runtime for agents that embed Memento in-process.
+**`packages/memento-server`** exposes `@memento/core` over MCP (stdio and related) and the HTTP admin server. **`@jee1/memento-client`** is the remote client and does not depend on core. **`@jee1/memento-assistant`** depends on client. **`@memento/agent-integration`** holds hooks/contracts (private); server consumes it.
 
 ---
 
@@ -127,7 +105,7 @@ The **Sleep Consolidation** service distills episodic memories into semantic one
 Three monitoring layers:
 
 - **`ErrorLoggingService`**: structured error logging with LOW/MEDIUM/HIGH/CRITICAL severity and categories (DATABASE, NETWORK, VALIDATION, etc.).
-- **`PerformanceMonitor`**: generates memory, CPU, database-size, and query-time alerts in one monitor-owned store. The `performance_alerts` tool and telemetry summary read that same lifecycle state, while the notification service emits delivery events without copying the alerts.
+- **`PerformanceMonitor`**: generates memory, CPU, database-size, and query-time alerts in one monitor-owned store. `get_telemetry_summary` reads that same lifecycle state; the notification service emits delivery events without copying alerts. (A `performance_alerts` tool module exists but is not registered in `tools/index.ts` `coreTools`.)
 - **`FailureDetector` + `ReflexionWorker`**: detect repeated failure patterns; `MetaMemoryIntrospectionService` identifies low-confidence memories to support self-correction.
 
 ### telemetry
@@ -138,23 +116,7 @@ Tracks tool calls and memory access patterns. `TelemetryService` isolates contex
 
 ## MCP Tools
 
-The 17 tools exposed to agents:
-
-| Tool | Category | Description |
-|------|----------|-------------|
-| `remember` | memory | Save a memory |
-| `recall` | memory | Retrieve memories via hybrid search |
-| `forget` | memory | Delete a memory (soft or hard) |
-| `pin` / `unpin` | memory | Pin/unpin a memory |
-| `feedback` | memory | Report memory usefulness |
-| `memory_injection` | memory | Generate a prompt that injects memories into context |
-| `get_memory_neighbors` | memory | Explore neighboring memories |
-| `set_anchor` / `get_anchor` / `clear_anchor` | anchor | Set/get/clear context anchors |
-| `search_local` | anchor | Search around a context anchor |
-| `remember_procedure` | procedural | Save a versioned procedural memory |
-| `procedural_diff` / `procedural_rollback` | procedural | Compare versions / roll back |
-| `get_introspection_summary` | meta | Summarize memory quality introspection |
-| `get_telemetry_summary` | telemetry | Retrieve agent usage statistics |
+Do not hard-code tool counts here. Canonical registration and default exposure (`MEMENTO_TOOLSET=core`) are in [agent architecture](../../agents/architecture.md), `packages/memento-core/src/tools/index.ts`, and the `toolset-surface.spec.ts` snapshot.
 
 ---
 

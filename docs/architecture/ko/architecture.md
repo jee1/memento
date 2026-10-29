@@ -12,31 +12,9 @@ AI 에이전트는 기본적으로 무상태(stateless)다. 대화가 끝나면 
 
 ## 패키지 구조
 
-루트는 npm workspaces 기반 모노레포다. 의존 방향은 단방향이다.
+패키지 목록·워크스페이스 의존·MCP 도구 등록의 정본은 [에이전트 아키텍처](../../agents/architecture.md)다. 여기에는 내러티브만 둔다.
 
-```
-memento-core  ←  memento-server
-              ←  memento-client
-              ←  memento-assistant
-              ←  memento-agent-integration
-```
-
-**`packages/memento-core` (`@memento/core`)**
-모든 도메인 로직, DB 접근, 서비스, 스케줄러, MCP 도구가 여기 있다. 나머지 패키지는 모두 이 라이브러리를 소비하는 셸이다.
-
-**`packages/memento-server`**
-`@memento/core`를 외부로 노출하는 두 종류의 서버를 담고 있다.
-- **MCP 서버** (`cli.ts`): AI 에이전트가 직접 연결. stdio, SSE, Streamable HTTP 트랜스포트를 지원한다.
-- **HTTP 관리 서버** (`http-server.ts`): 대시보드, 배치 수동 실행, 에이전트 세션 관리 등 운영 API를 제공한다.
-
-**`packages/memento-client` (`@jee1/memento-client`)**
-서버에 원격으로 연결하는 클라이언트 라이브러리.
-
-**`packages/memento-assistant`**
-외부 어시스턴트(OpenClaw/NanoClaw 계열) 통합용 패키지.
-
-**`packages/memento-agent-integration`**
-에이전트가 Memento를 in-process로 삽입할 때 사용하는 계약(contract)과 런타임.
+**`packages/memento-server`**는 `@memento/core`를 MCP(stdio 등)와 HTTP 관리 서버로 노출한다. **`@jee1/memento-client`**는 원격 클라이언트이고 core에 의존하지 않는다. **`@jee1/memento-assistant`**는 client에 의존한다. **`@memento/agent-integration`**은 훅·계약(private)이며 server가 소비한다.
 
 ---
 
@@ -128,7 +106,7 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 세 계층의 모니터링이 있다:
 - **`ErrorLoggingService`**: LOW/MEDIUM/HIGH/CRITICAL 심각도와 DATABASE/NETWORK/VALIDATION 등 카테고리별 구조화된 오류 로깅.
-- **`PerformanceMonitor`**: 메모리·CPU·데이터베이스 크기·쿼리 시간 경보를 모니터 소유 단일 스토어에 생성한다. `performance_alerts` 도구와 텔레메트리 요약이 같은 생명주기 상태를 읽고, 알림 서비스는 경보를 복제하지 않고 전달 이벤트만 발행한다.
+- **`PerformanceMonitor`**: 메모리·CPU·데이터베이스 크기·쿼리 시간 경보를 모니터 소유 단일 스토어에 생성한다. `get_telemetry_summary`가 같은 생명주기 상태를 읽고, 알림 서비스는 경보를 복제하지 않고 전달 이벤트만 발행한다. (`performance_alerts` 도구 파일은 있으나 `tools/index.ts`의 `coreTools`에 등록되지 않음.)
 - **`FailureDetector` + `ReflexionWorker`**: 반복 실패 패턴을 감지하고, `MetaMemoryIntrospectionService`가 신뢰도 낮은 기억을 식별해 자기 교정을 돕는다.
 
 ### telemetry
@@ -139,23 +117,7 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 ## MCP 도구 목록
 
-서버가 에이전트에게 노출하는 17개 도구:
-
-| 도구 | 카테고리 | 설명 |
-|------|----------|------|
-| `remember` | memory | 기억 저장 |
-| `recall` | memory | 하이브리드 검색으로 기억 조회 |
-| `forget` | memory | 기억 삭제 (소프트/하드) |
-| `pin` / `unpin` | memory | 기억 고정·해제 |
-| `feedback` | memory | 기억 유용성 피드백 |
-| `memory_injection` | memory | 현재 세션에 기억을 주입하는 프롬프트 생성 |
-| `get_memory_neighbors` | memory | 관련 기억 이웃 탐색 |
-| `set_anchor` / `get_anchor` / `clear_anchor` | anchor | 컨텍스트 앵커 설정·조회·해제 |
-| `search_local` | anchor | 앵커 주변 로컬 검색 |
-| `remember_procedure` | procedural | 버전 관리 절차 기억 저장 |
-| `procedural_diff` / `procedural_rollback` | procedural | 버전 비교·롤백 |
-| `get_introspection_summary` | meta | 메모리 품질 인트로스펙션 요약 |
-| `get_telemetry_summary` | telemetry | 에이전트 사용 통계 조회 |
+등록·기본 노출(`MEMENTO_TOOLSET=core` 4개)·전체 목록은 문서에 숫자를 적지 않는다. 정본은 [에이전트 아키텍처](../../agents/architecture.md)와 `packages/memento-core/src/tools/index.ts`, 계약 스냅샷 `toolset-surface.spec.ts`다.
 
 ---
 

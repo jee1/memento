@@ -4,7 +4,40 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 ## 패키지 구성
 
-저장소는 여섯 개의 패키지로 나뉩니다. `packages/memento-core`(`@memento/core`)가 핵심으로, 도메인 로직·DB·서비스를 모두 담당합니다. `packages/memento-server`는 MCP stdio와 HTTP 관리 서버를 제공하고, `packages/memento-client`(`@jee1/memento-client`)는 서버에 연결하는 클라이언트입니다. `packages/memento-assistant`(`@jee1/memento-assistant`)는 에이전트 어시스턴트 유틸리티를, `packages/memento-agent-integration`(`@memento/agent-integration`)은 에이전트 통합 계약과 어댑터를 담습니다(내부 전용, npm 미발행). `apps/experimental-example`은 core를 in-process로 사용하는 데모 앱입니다.
+이 절이 **패키지·워크스페이스 의존·MCP 도구 등록**의 문서 정본이다. 다른 아키텍처 문서(`docs/architecture/{ko,en}/`, arc42, c4)는 여기로 링크한다. 도구 이름·개수는 문서에 고정하지 않는다. 등록 목록은 `packages/memento-core/src/tools/index.ts`의 `coreTools`, 계약 스냅샷은 `toolset-surface.spec.ts`다.
+
+루트 `package.json` workspaces는 `packages/` 다섯 개와 `apps/*`다.
+
+| 경로 | npm name | 역할 |
+|------|----------|------|
+| `packages/memento-core` | `@memento/core` | 도메인·DB·MCP 도구 등록 |
+| `packages/memento-server` | `memento-server` | MCP stdio + HTTP 관리 |
+| `packages/memento-client` | `@jee1/memento-client` | 원격 클라이언트 |
+| `packages/memento-assistant` | `@jee1/memento-assistant` | 어시스턴트 유틸 |
+| `packages/memento-agent-integration` | `@memento/agent-integration` | 에이전트 훅·계약(private) |
+
+`apps/experimental-example`은 `@memento/core`를 in-process로 쓴다. `apps/experimental-assistant-example`은 `@jee1/memento-assistant`를 쓴다. `apps/multi-agent-orchestration/`은 `package.json`이 없어 워크스페이스 멤버가 아니다. `plugins/memento/`(Claude Code 플러그인)·`services/agent/`(README·env 예시)는 workspaces 밖이다.
+
+### 워크스페이스 의존 (package.json 기준)
+
+```
+@memento/core                    (memento-* 내부 의존 없음)
+@memento/agent-integration       (memento-* 의존 없음)
+@jee1/memento-client             (memento-* 의존 없음)
+@jee1/memento-assistant        → @jee1/memento-client
+memento-server                 → @memento/core, @memento/agent-integration
+experimental-example           → @memento/core
+experimental-assistant-example → @jee1/memento-assistant
+```
+
+`client`·`assistant`·`agent-integration`이 `core`에 의존한다고 쓰지 않는다.
+
+### MCP 도구 등록
+
+- 등록: `packages/memento-core/src/tools/index.ts`의 `coreTools` → `ToolRegistry`
+- 기본 `tools/list`: `MEMENTO_TOOLSET=core`일 때 `CORE_TOOLSET` 4개만
+- 계약 고정: `toolset-surface.spec.ts` 스냅샷 + `toolset.spec.ts` 등록 이름 목록
+- 문서에 "N개 도구"를 적지 않는다. `performance_alerts` 모듈은 등록되지 않는다.
 
 ## 도메인 구조
 

@@ -32,6 +32,34 @@ describe('MCP toolset exposure', () => {
     expect(getExposedTools('full')).toEqual(getToolRegistry().getAll());
   });
 
+  // #1533: docs must not invent tool counts; this list is the registered set from tools/index.ts coreTools
+  it('keeps the registered tool name set stable for architecture docs', () => {
+    expect(getToolRegistry().getAll().map((tool) => tool.name).sort()).toEqual([
+      'add_relation',
+      'clear_anchor',
+      'export',
+      'feedback',
+      'forget',
+      'get_anchor',
+      'get_introspection_summary',
+      'get_memory_neighbors',
+      'get_relations',
+      'get_telemetry_summary',
+      'memory_injection',
+      'pin',
+      'procedural_diff',
+      'procedural_rollback',
+      'recall',
+      'remember',
+      'remember_procedure',
+      'remove_relation',
+      'search_local',
+      'set_anchor',
+      'unpin',
+      'wipe_memory',
+    ]);
+  });
+
   it('keeps withheld tools registered and executable', () => {
     const exposed = new Set(getExposedTools('core').map((tool) => tool.name));
     const withheld = getToolRegistry().getAll().filter((tool) => !exposed.has(tool.name));
