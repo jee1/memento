@@ -126,10 +126,13 @@ logger.info('Request processed', {
 ### 마스킹 대상
 
 - 이메일 주소
-- 전화번호
-- 신용카드 번호
-- IP 주소
-- 기타 개인 식별 정보
+- 전화번호 (한국 휴대전화, `+` 국제 표기)
+- API 키 (`sk-`/`pk-` 계열, Google, AWS 액세스 키, `*API_KEY*=`/`*SECRET*=` 할당)
+- 토큰 (Bearer, JWT, GitHub, Slack, `token=` 할당)
+- 비밀번호 할당 (`password`/`pwd`/`passwd`)
+- 기타 credential: `secret=`/`key=`/`credential=` 할당, 32자 이상 hex 문자열, 대소문자와 숫자가 섞인 32자 이상 문자열
+
+에이전트 이벤트 redaction(`packages/memento-agent-integration/src/redaction.ts`)도 같은 비밀값 집합을 가립니다. `tests/secret-redaction-parity.spec.ts` 가 두 경로를 같은 샘플로 검사합니다.
 
 ## 로깅 정책
 
