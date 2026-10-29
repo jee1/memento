@@ -9,10 +9,16 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.3.5] - 2026-10-29
+
 ### Security
 
 - 인증: `MEMENTO_API_TOKENS` 파싱 시 secret 최소 길이를 32자로 검증합니다. 32자 미만 항목은 경고 후 무시하며 서버 기동은 유지합니다.
 - 공급망: Claude Code 플러그인(`plugins/memento/.mcp.json`)의 `memento-mcp-server` 실행 버전을 현재 릴리스 버전으로 고정하고 `check-version-sync` 검사 대상에 추가합니다.
+- MCP SDK를 1.32.2로 갱신하고 `@hono/node-server`를 패치 버전 2.1.3 이상으로 제한해 GHSA-rmxm-3fg6-px4f 의존성 보안 경고를 해소합니다.
+- 파일 경로 허용 검사는 문자열 접두사가 아니라 디렉터리 경계 기준으로 판정합니다. 허용 경로와 이름만 겹치는 형제 경로는 거부합니다.
+- 로그 PII 마스킹과 에이전트 이벤트 redaction이 같은 비밀값 집합을 가립니다. 로그 쪽에 AWS, GitHub, Slack, `sk_live_` 계열 키, `Bearer` 헤더, 32자 이상 hex 및 고엔트로피 문자열을, 에이전트 이벤트 쪽에 `*_API_KEY=`, `*SECRET*=`, `pwd`/`passwd`, `bearer=`, `key=` 할당을 추가합니다.
+- 도구 결과 캐시를 활성화하면 호출자의 agent·project와 토큰 바인딩별로 결과를 분리합니다. 캐시 기본값은 비활성 상태를 유지합니다.
 
 ### Added
 
@@ -24,18 +30,6 @@
 
 - 서버: 전역 설치의 npm bin symlink로 실행해도 `memento-mcp-server`와 `memento-dev`가 기동하도록 직접 실행 판별을 고칩니다 (#1513).
 - `scripts/bench-release-latency.ts`: 릴리스 worktree 두 개를 같은 DB 사본에 붙여 recall, remember, 관계 추출 로컬 구간 p50/p95 를 비교합니다 (#1490).
-
-### Security
-
-- MCP SDK를 1.32.2로 갱신하고 `@hono/node-server`를 패치 버전 2.1.3 이상으로 제한해 GHSA-rmxm-3fg6-px4f 의존성 보안 경고를 해소합니다.
-
-- 파일 경로 허용 검사는 문자열 접두사가 아니라 디렉터리 경계 기준으로 판정합니다. 허용 경로와 이름만 겹치는 형제 경로는 거부합니다.
-- 로그 PII 마스킹과 에이전트 이벤트 redaction이 같은 비밀값 집합을 가립니다. 로그 쪽에 AWS, GitHub, Slack, `sk_live_` 계열 키, `Bearer` 헤더, 32자 이상 hex 및 고엔트로피 문자열을, 에이전트 이벤트 쪽에 `*_API_KEY=`, `*SECRET*=`, `pwd`/`passwd`, `bearer=`, `key=` 할당을 추가합니다.
-
-### Security
-
-- 도구 결과 캐시를 활성화하면 호출자의 agent·project와 토큰 바인딩별로 결과를 분리합니다. 캐시 기본값은 비활성 상태를 유지합니다.
-
 ## [2.3.4] - 2026-10-28
 
 agent 나 project 에 묶인 API 토큰이 다른 owner 의 절차 기억을 덮어쓰거나 비교 조회하고, 관계와 국소 검색 결과로 다른 owner 의 기억 id 에 닿던 경로를 막습니다. project 만 묶인 토큰도 운영자 전용 경로에서 막고, rate limit 은 검증된 신원으로만 셉니다. 설치형 CLI 는 작업 디렉터리 `.env` 로 API 키를 원격에 보내지 않습니다. 여러 agent 나 project 에 토큰을 나눠 쓰는 배포는 업그레이드를 권합니다. 이 밖에 case 지침 관련도 하한, lifecycle 캡처 끄기, 전역 설치 `memento` bin 이 들어갑니다.
