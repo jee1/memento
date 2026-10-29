@@ -3,10 +3,12 @@
 Memento의 검색 결과 정렬은 아래 가중합 공식으로 점수를 계산합니다. 가중치는 `config/ranking-weights.toml`에서 읽어 옵니다.
 
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+S = α·relevance + β·recency + γ·importance + δ·usage
+  + ζ_fb·(feedback_norm − 0.5) + θ·process_attribute_fit − ε·duplication_penalty
+  + procedural_boost
 ```
 
-각 계수의 기본값과 역할은 다음과 같습니다. `α`(0.45)는 검색어와의 관련성으로 가장 큰 비중을 차지합니다. `β`(0.20)는 최신성, `γ`(0.20)는 중요도, `δ`(0.10)는 사용 빈도입니다. `ζ_fb`(0.05)는 사용자 피드백을 반영합니다. `ε`(0.10)은 중복 기억에 패널티를 주어 결과의 다양성을 높입니다.
+가중합 뒤에 `calculateFinalScore`가 `procedural_boost`와 `θ·process_attribute_fit`를 더한다(`search-ranking-composite.ts`). `θ` 기본은 `ranking-weights.toml`의 `theta = 0.10`이고, `process_attribute_fit`가 없으면 그 항은 0이다. `α`(0.45)·`β`(0.20)·`γ`(0.20)·`δ`(0.10)·`ζ_fb`(0.05)·`ε`(0.10)은 toml과 같다.
 
 검색 품질 튜닝 방법은 [recall-performance-tuning.md](../guides/ko/recall-performance-tuning.md)에서 다룹니다.
 
@@ -107,10 +109,11 @@ combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeig
 짧은 기계 생성 문장(대략 20자대)의 mean-pooling 벡터가 관련 질의에서도 긴 정답보다 높은 원시 cosine을 받는 경우가 있습니다. 하이브리드 벡터 경로에서는 threshold / under-fill / fusion **직전**에 본문 길이 기반 소프트 감쇠를 곱합니다.
 
 ```
-effective_similarity = cosine_similarity × (len / (len + k))
+factor = min(1, len / (len + k))   # saturation_length(기본 80) 이상이면 1
+effective_similarity = cosine_similarity × factor
 ```
 
-`k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다. #934 이전 nightly 픽스처에는 5,000자 초과 문서가 없어 길이 편향을 관측할 수 없었고, minilm 벤치마크의 임베딩 지평선(약 1,024자)과 달리 감쇠는 전체 `content.length`를 씁니다 — 계측기는 합성 장문 코퍼스와 `top10_len` 리포트로 그 괴리를 보이게 합니다. #961: `npm run quality -- benchmark length-decay-sweep` 으로 k×arm×subset 스윕과 `long10pct`(>2,000자 top-10 점유율)를 재실행 가능하게 진단합니다(게이트 아님; arm=`vector_dom`은 실효 vector≈0.8/text≈0.2).
+`k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `saturation_length`(기본 80) 이상이면 계수를 1로 자른다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다. #934 이전 nightly 픽스처에는 5,000자 초과 문서가 없어 길이 편향을 관측할 수 없었고, minilm 벤치마크의 임베딩 지평선(약 1,024자)과 달리 감쇠는 전체 `content.length`를 씁니다 — 계측기는 합성 장문 코퍼스와 `top10_len` 리포트로 그 괴리를 보이게 합니다. #961: `npm run quality -- benchmark length-decay-sweep` 으로 k×arm×subset 스윕과 `long10pct`(>2,000자 top-10 점유율)를 재실행 가능하게 진단합니다(게이트 아님; arm=`vector_dom`은 실효 vector≈0.8/text≈0.2).
 
 ## 런타임 가중치 재로드 (Issue #667)
 

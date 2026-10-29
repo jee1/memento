@@ -85,13 +85,13 @@ UI를 손볼 때는 `static/css/tokens.css`에 정의된 디자인 토큰부터 
 
 저장소에는 Spec Kit가 초기화되어 있어 `.specify/`와 `specs/NNN-short-name/`(spec·plan·tasks) 구조를 씁니다. 새 기능이나 이슈 작업을 시작할 때는 `.specify/scripts/bash/create-new-feature.sh '설명' --short-name 'short-name'`으로 브랜치와 spec 디렉터리를 한 번에 만드세요. NNN은 자동으로 부여됩니다.
 
-이슈를 격리해서 작업하려면 `git worktree add -b NNN-name ../memento-issue-NNN main`으로 워크트리를 만든 뒤, 그 경로에서 `npm install`을 실행해 의존성을 맞춥니다. 작업 흐름은 spec → plan → tasks → 구현 → PR(`Closes #이슈`) 순입니다. 작업이 끝나면 `git worktree remove <worktree-path>`로 먼저 연결을 끊고, 그 다음에 브랜치를 삭제해야 합니다. 순서가 바뀌면 로컬 브랜치 삭제에 실패합니다.
+이슈를 격리해서 작업하려면 `git worktree add -b issue-<num>-<slug> ~/git/memento-worktrees/issue-<num>-<slug> origin/main`으로 워크트리를 만든 뒤, 그 경로에서 `npm install`을 실행해 의존성을 맞춥니다([AGENTS.md](../../AGENTS.md) §3.1). 작업 흐름은 spec → plan → tasks → 구현 → PR(`Closes #이슈`) 순입니다. 작업이 끝나면 `git worktree remove <worktree-path>`로 먼저 연결을 끊고, 그 다음에 브랜치를 삭제해야 합니다. 순서가 바뀌면 로컬 브랜치 삭제에 실패합니다.
 
 대형 리팩터(god node 분해 #593 계열)는 public import·export를 그대로 두고 내부를 composition sub-module(단일 파일 ≤500줄)로 나눕니다. 선행 spec이 green인지 확인하고 시작하세요.
 
 ## PR·지식 복리
 
-커밋할 때 `.cursor/hooks.json`에 설정된 `revise-claude-md` 훅이 `AGENTS.md`·`CLAUDE.md`를 자동으로 갱신·스테이징합니다. 이 훅을 건너뛰고 싶으면 `REVISE_CLAUDE_MD_SKIP=1` 환경변수를 설정하세요. 이후 전역 훅으로 `npm run lint` / `test` / `build`와 staged diff 리뷰가 이어집니다.
+커밋할 때 `.cursor/hooks.json`에 설정된 `revise-claude-md` 훅이 주로 `AGENTS.md` §3.1을 갱신·스테이징합니다(`CLAUDE.md`는 AGENTS 위임이면 건드리지 않아도 됨). 건너뛰려면 `REVISE_CLAUDE_MD_SKIP=1`. 저장소 `pre-push`는 `lint`·`type-check`만 돌린다(테스트는 CI required).
 
 재현이 어려운 버그나 운영 함정을 해결한 뒤 PR을 준비할 때는 `/ce-compound`를 제안받을 수 있습니다(검증 완료 후). 생성된 초안을 그대로 쌓지 말고 재사용 가능한 절차는 기존 공식 가이드에, 장기 설계 결정은 ADR에 반영한 뒤 PR 템플릿의 「지식 복리」 섹션을 채우세요.
 

@@ -127,14 +127,13 @@ npm run verify-pack-bundle
 
 ## Git worktree — 이슈 격리 작업
 
-여러 이슈를 동시에 작업할 때는 git worktree로 각각을 독립된 디렉터리에서 처리합니다. 브랜치 이름은 `NNN-feature-name` 형식을 쓰고, worktree 경로는 형제 디렉터리(`../memento-worktrees/`)에 두는 것이 권장됩니다. worktree를 만든 뒤에는 반드시 그 경로에서 `npm install`을 실행해 의존성을 맞춰야 합니다. 작업이 끝나면 브랜치를 삭제하기 **전에** 먼저 `git worktree remove`로 연결을 끊어야 합니다. 순서가 바뀌면 로컬 브랜치 삭제에 실패합니다.
+여러 이슈를 동시에 작업할 때는 git worktree로 각각을 독립된 디렉터리에서 처리합니다. 정본 경로는 [AGENTS.md](../../AGENTS.md)와 같이 `~/git/memento-worktrees/issue-<num>-<slug>`입니다. worktree를 만든 뒤에는 반드시 그 경로에서 `npm install`을 실행해 의존성을 맞춰야 합니다. 작업이 끝나면 브랜치를 삭제하기 **전에** 먼저 `git worktree remove`로 연결을 끊어야 합니다. 순서가 바뀌면 로컬 브랜치 삭제에 실패합니다.
 
 ```bash
-git worktree add -b 031-feature-name ../memento-issue-123 main
-# 형제 디렉터리 예: git worktree add ../memento-worktrees/032-feature-name -b 032-feature-name origin/main
-cd ../memento-issue-123 && npm install
+git worktree add -b issue-123-feature-name ~/git/memento-worktrees/issue-123-feature-name origin/main
+cd ~/git/memento-worktrees/issue-123-feature-name && npm install
 git worktree list
-git worktree remove ../memento-issue-123   # 브랜치 삭제 전 필수
+git worktree remove ~/git/memento-worktrees/issue-123-feature-name   # 브랜치 삭제 전 필수
 ```
 
 ## Docker 및 DB 운영
@@ -171,7 +170,7 @@ DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](.
 
 ## 핵심 환경 변수
 
-자주 사용하는 환경 변수 세 가지를 정리합니다. `DB_PATH`는 SQLite 파일 경로로, 프로덕션에서는 반드시 절대 경로를 써야 합니다(`~`는 확장되지 않음). `ADMIN_API_KEY`는 브라우저 대시보드 로그인 키로 프로덕션에서는 필수이고, programmatic HTTP 는 `MEMENTO_API_TOKENS` 로 인증합니다. `MEMENTO_HTTP_BIND_HOST`는 HTTP 서버의 바인드 주소로 기본값은 `127.0.0.1`입니다.
+자주 쓰는 환경 변수 네 가지를 정리합니다. `DB_PATH`는 SQLite 파일 경로로, 프로덕션에서는 반드시 절대 경로를 써야 합니다(`~`는 확장되지 않음). `ADMIN_API_KEY`는 브라우저 대시보드 로그인 키로 프로덕션에서는 필수이고, programmatic HTTP 는 `MEMENTO_API_TOKENS` 로 인증합니다. `MEMENTO_HTTP_BIND_HOST`는 HTTP 서버의 바인드 주소로 기본값은 `127.0.0.1`입니다.
 
 | 변수 | 용도 |
 |------|------|
@@ -287,14 +286,20 @@ DB_PATH=/tmp/quarantine-copy-b.db npm run memory:quarantine-065 -- rehearse
 `meta_memory_introspection` 스캔이 찾은 저신뢰·고실패 메모리를 re-embed/demote/soft-delete/review로
 분류·처리합니다. **먼저 dry-run으로 분류 결과를 확인한 뒤 apply(`dry_run: false`)를 실행하세요.**
 
+`/admin`은 브라우저 세션 쿠키(`memento_admin_session`)만 통과합니다. heal URL에 `ADMIN_API_KEY` Bearer를 직접 붙여도 통과하지 않습니다. 먼저 `/auth/session`에 같은 키를 `Authorization: Bearer` 또는 `X-API-Key`로 보내 쿠키를 발급하세요.
+
 ```bash
+# 세션 발급 (Set-Cookie → memento_admin_session)
+curl -c /tmp/memento-admin.cookie -X POST http://localhost:9001/auth/session \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+
 # dry-run (기본값, DB 변경 없음)
-curl -X POST http://localhost:9001/admin/introspection/heal \
-  -H "Authorization: Bearer $ADMIN_API_KEY" -H "Content-Type: application/json" -d '{}'
+curl -b /tmp/memento-admin.cookie -X POST http://localhost:9001/admin/introspection/heal \
+  -H "Content-Type: application/json" -d '{}'
 
 # apply
-curl -X POST http://localhost:9001/admin/introspection/heal \
-  -H "Authorization: Bearer $ADMIN_API_KEY" -H "Content-Type: application/json" \
+curl -b /tmp/memento-admin.cookie -X POST http://localhost:9001/admin/introspection/heal \
+  -H "Content-Type: application/json" \
   -d '{"dry_run": false}'
 ```
 

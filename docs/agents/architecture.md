@@ -8,7 +8,7 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 ## 도메인 구조
 
-`memento-core/src/domains/` 아래에 각 기능이 독립된 도메인으로 자리합니다. `memory/`가 remember·recall·pin·forget을 담당하고, `search/`가 FTS5와 벡터를 결합한 하이브리드 검색과 랭킹을 처리합니다. `embedding/`에는 TF-IDF·MiniLM·OpenAI·Gemini 네 종류의 임베딩 구현이 있고, `forgetting/`은 TTL과 데이터 정리를 맡습니다. `anchor/`는 슬롯 A/B/C로 나뉜 앵커 기반 검색을, `relation/`은 관계 추출과 시각화를 제공합니다. `procedural/`은 버전 관리가 있는 절차 메모리를 구현하고, `monitoring/services/`에는 `PerformanceMonitor`가 있습니다. PerformanceMonitor는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 분해되어 있으며, `performance-monitor.ts`가 진입점입니다.
+`packages/memento-core/src/domains/` 아래 최상위는 `memory/`, `search/`, `embedding/`, `forgetting/`, `anchor/`, `relation/`, `monitoring/`, `consolidation/`, `telemetry/`, `personal-agent/`, `agent-integration/`이다. 절차 메모리 도구·서비스는 형제 도메인이 아니라 `memory/procedural/`에 있다. `embedding/`에는 TF-IDF·lightweight·MiniLM·OpenAI·Gemini가 있다. `monitoring/`의 `PerformanceMonitor`(`performance-monitor.ts`)는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 나뉜다.
 
 ## Workspace 의존성 pin 정책
 
@@ -20,6 +20,6 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 의존성은 `shared` ← `domains` ← `infrastructure` 방향으로만 흘러야 합니다. 이 경계를 지키면 도메인 로직이 인프라 세부에 오염되지 않습니다. 신규 금지 방향(domain→infra, shared→infra/server)과 확인된 runtime cycle은 `packages/memento-core/src/test/architecture/dependency-boundaries.spec.ts`가 CI에서 막습니다(기존 위반은 allowlist+rationale로 freeze; allowlist 증가는 frozen size bump가 필요해 명시 리뷰를 강제). MCP 도구 핸들러는 자기 도메인 안에 둡니다(도메인 = 기능 단위). 핸들러 파일은 `tools/`·`adapters/` 디렉터리 아래에 두거나 이름을 `*-tool.ts`·`*-tool-*.ts` 로 짓고, `tools/types.js`(`ToolContext`)·`tools/base-tool.js`·`tools/caller-scope.js` 를 import 하는 곳은 이 핸들러 파일뿐입니다. 서비스·리포지토리 등 나머지 도메인 파일이 `tools/` 를 import 하면 같은 spec 이 막습니다(#1341). 전체 원칙은 [DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md)에서 다룹니다(**Functional Core, Structured Shell** 지침 참조).
 
-## 최근 활성 기술
+## 변경 이력
 
-현재 진행 중이거나 최근 적용된 기술 영역은 다음과 같습니다. Docker DB 운영(`db:backup`, `db:pre-docker-deploy` 등)이 안정화되었고, 에피소딕 → 시맨틱 오프라인 증류(`005-sleep-consolidation`)와 Docker 보안 강화·Helmet.js(`011-docker-security-hardening`)가 적용되어 있습니다. 환경 설정 정리는 `016-env-config-cleanup`으로 진행되었습니다.
+기능·하드닝의 최신 목록은 루트 [CHANGELOG.md](../../CHANGELOG.md)와 [AGENTS.md](../../AGENTS.md) §3.1을 본다. 이 문서에 스펙 폴더 번호를 나열하지 않는다.
