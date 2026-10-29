@@ -16,7 +16,7 @@ Last updated: 2026-10-29
 - `packages/memento-core` (`@memento/core`), `memento-server`, `@jee1/memento-client`, `@jee1/memento-assistant`, `@memento/agent-integration`
 - SQLite (`better-sqlite3`, `sqlite-vec`), Zod, Vitest, Express 5.x
 - Admin UI: `static/js/`, D3.js; 스타일은 `static/css/tokens.css` 토큰 우선
-- LLM use-case overrides (#820): `LLM_PROVIDER_TRIPLE_EXTRACTION` / `_RELATION_EXTRACTION` / `_PROCEDURAL` + FR-004 model binding in `llm-model-resolver`
+- LLM use-case overrides (#820/#1126): `LLM_PROVIDER_RELATION_EXTRACTION` / `_PROCEDURAL` / `_CONSOLIDATION` + FR-004 model binding in `llm-model-resolver`
 
 ## Project Structure
 

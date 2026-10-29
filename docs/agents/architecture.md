@@ -8,7 +8,7 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 ## 도메인 구조
 
-`packages/memento-core/src/domains/` 아래에 각 기능이 독립된 도메인으로 자리합니다. `memory/`가 remember·recall·pin·forget을 담당하고, `search/`가 FTS5와 벡터를 결합한 하이브리드 검색과 랭킹을 처리합니다. `embedding/`에는 TF-IDF·MiniLM·OpenAI·Gemini 네 종류의 임베딩 구현이 있고, `forgetting/`은 TTL과 데이터 정리를 맡습니다. `anchor/`는 슬롯 A/B/C로 나뉜 앵커 기반 검색을, `relation/`은 관계 추출과 시각화를 제공합니다. `procedural/`은 버전 관리가 있는 절차 메모리를 구현하고, `monitoring/services/`에는 `PerformanceMonitor`가 있습니다. PerformanceMonitor는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 분해되어 있으며, `performance-monitor.ts`가 진입점입니다.
+`packages/memento-core/src/domains/` 아래 최상위는 `memory/`, `search/`, `embedding/`, `forgetting/`, `anchor/`, `relation/`, `monitoring/`, `consolidation/`, `telemetry/`, `personal-agent/`, `agent-integration/`이다. 절차 메모리 도구·서비스는 형제 도메인이 아니라 `memory/procedural/`에 있다. `embedding/`에는 TF-IDF·lightweight·MiniLM·OpenAI·Gemini가 있다. `monitoring/`의 `PerformanceMonitor`(`performance-monitor.ts`)는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 나뉜다.
 
 ## Workspace 의존성 pin 정책
 
