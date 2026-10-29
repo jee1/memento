@@ -38,8 +38,15 @@ const EXTERNAL_API_PATTERNS = [
   /\.embedContent\s*\(/,
 ];
 
-// RetryManager 사용 패턴 (배치 작업용 shouldRetry·incrementErrorCount 등 포함)
-const RETRY_MANAGER_PATTERN = /retryManager\.(retry|shouldRetry|incrementErrorCount|getErrorCount|resetErrorCount)\s*\(/;
+/**
+ * RetryManager 사용 패턴 (배치 작업용 shouldRetry·incrementErrorCount 등 포함).
+ * `retryChatLlmCall` 은 RetryManager 를 받아 `retry` 를 부르는 공용 래퍼다
+ * (`memento-core/src/shared/services/chat-llm/chat-llm-retry.ts`).
+ */
+const RETRY_USAGE_PATTERNS = [
+  /retryManager\.(retry|shouldRetry|incrementErrorCount|getErrorCount|resetErrorCount)\s*\(/,
+  /\bretryChatLlmCall\s*\(/,
+];
 
 /**
  * 재시도 없이 외부 호출을 해도 되는 파일과 그 근거 (`--directory` 기준 경로).
@@ -103,7 +110,7 @@ function stripComments(content: string): string {
 export function checkRetryUsage(file: string, content: string): RetryUsageResult {
   const code = stripComments(content);
   const hasExternalAPICall = EXTERNAL_API_PATTERNS.some(pattern => pattern.test(code));
-  const usesRetryManager = RETRY_MANAGER_PATTERN.test(code);
+  const usesRetryManager = RETRY_USAGE_PATTERNS.some(pattern => pattern.test(code));
   const issues: string[] = [];
 
   if (hasExternalAPICall && !usesRetryManager && !(file in RETRY_EXEMPTIONS)) {
