@@ -14,7 +14,7 @@ export interface TestServer {
 
 export async function startTestHttpServer(): Promise<TestServer> {
   const port = await findFreePort();
-  const apiKey = 'test-key-123';
+  const apiKey = 'test-key-123456789012345678901234567890';
 
   const proc = spawn('node', [HTTP_BIN], {
     env: {

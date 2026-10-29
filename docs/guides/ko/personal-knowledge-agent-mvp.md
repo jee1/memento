@@ -116,8 +116,8 @@ HTTP 호스트는 저장을 자동으로 수행하지 않습니다. 먼저 한 �
 `/api/v1/agent/*` 엔드포인트는 API 키 인증을 사용합니다. 로컬 테스트에서는 mock LLM이 기본값입니다.
 
 ```bash
-export MEMENTO_API_TOKENS='[{"id":"dev","secret":"dev-key","scopes":["tools:invoke"]}]'
-export MEMENTO_API_KEY=dev-key
+export MEMENTO_API_TOKENS='[{"id":"dev","secret":"dev-key-01234567890123456789012345678901","scopes":["tools:invoke"]}]'
+export MEMENTO_API_KEY=dev-key-01234567890123456789012345678901
 export MEMENTO_PERSONAL_AGENT_LLM_PROVIDER=mock
 npm run dev:http
 ```

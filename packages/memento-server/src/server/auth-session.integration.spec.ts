@@ -142,13 +142,13 @@ describe('auth session integration', () => {
   }
 
   beforeEach(async () => {
-    vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
+    vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key-012345678901');
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
         {
           id: 'integration',
-          secret: 'integration-admin-key',
+          secret: 'integration-admin-key-012345678901',
           scopes: ['admin:destructive', 'tools:invoke'],
         },
       ]),
@@ -171,7 +171,7 @@ describe('auth session integration', () => {
     const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
 
     expect(login.statusCode).toBe(204);
@@ -188,7 +188,7 @@ describe('auth session integration', () => {
     const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     const sessionCookie = login.headers['set-cookie']?.[0] ?? '';
 
@@ -209,7 +209,7 @@ describe('auth session integration', () => {
     const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     const sessionCookie = login.headers['set-cookie']?.[0] ?? '';
 
@@ -244,7 +244,7 @@ describe('auth session integration', () => {
     const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     const sessionCookie = login.headers['set-cookie']?.[0] ?? '';
 
@@ -266,13 +266,13 @@ describe('auth session integration', () => {
     const port = await startRealHttpServer();
 
     const qualityWithHeader = await getJson(port, '/api/v1/quality/thresholds', {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
 
     expect(qualityWithHeader.statusCode).toBe(200);
 
     const login = await postJson(port, '/auth/session', {}, {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
     const sessionCookie = login.headers['set-cookie']?.[0] ?? '';
 
@@ -283,7 +283,7 @@ describe('auth session integration', () => {
     expect(qualityWithCookieOnly.statusCode).toBe(401);
 
     const unknownQualityWithHeader = await getJson(port, '/api/v1/quality/not-found', {
-      Authorization: 'Bearer integration-admin-key'
+      Authorization: 'Bearer integration-admin-key-012345678901'
     });
 
     expect(unknownQualityWithHeader.statusCode).toBe(404);

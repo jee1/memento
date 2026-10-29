@@ -17,6 +17,8 @@ vi.mock('./server-info.js', () => ({
   deleteServerInfo: vi.fn().mockResolvedValue(undefined),
 }));
 
+const SIDECAR_TOKEN = 'sidecar-test-token-01234567890123456';
+
 describe('HTTP sidecar lifecycle', () => {
   let ctx: TestDatabaseContext;
   let http: typeof import('./http-server.js');
@@ -30,7 +32,7 @@ describe('HTTP sidecar lifecycle', () => {
     Object.assign(mementoConfig, {
       port: 0,
       httpListenHost: '127.0.0.1',
-      apiTokens: [{ id: 'test', secret: 'sidecar-test-token', scopes: ['tools:invoke'] }],
+      apiTokens: [{ id: 'test', secret: SIDECAR_TOKEN, scopes: ['tools:invoke'] }],
     });
     http = await import('./http-server.js');
   });
@@ -113,12 +115,12 @@ describe('HTTP sidecar lifecycle', () => {
     const server = await http.startServer({ database: ctx.db, serverServices: ctx.services });
     const port = (server.address() as AddressInfo).port;
     const socket = new WebSocket(`ws://127.0.0.1:${port}`, {
-      headers: { Authorization: 'Bearer sidecar-test-token' },
+      headers: { Authorization: `Bearer ${SIDECAR_TOKEN}` },
     });
     await once(socket, 'open');
     const socketClosed = once(socket, 'close');
     const response = await fetch(`http://127.0.0.1:${port}/mcp`, {
-      headers: { Authorization: 'Bearer sidecar-test-token' },
+      headers: { Authorization: `Bearer ${SIDECAR_TOKEN}` },
     });
     expect(response.status).toBe(200);
     const reader = response.body!.getReader();

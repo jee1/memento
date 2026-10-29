@@ -134,7 +134,7 @@ describe('X-Memento-Project-Id integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'u', secret: 'secret-u', scopes: ['tools:invoke'] },
+        { id: 'u', secret: 'secret-u-0123456789012345678901234', scopes: ['tools:invoke'] },
       ]),
     );
     vi.stubEnv('MEMENTO_OWNER_SCOPE_MODE', 'off');
@@ -163,7 +163,7 @@ describe('X-Memento-Project-Id integration', () => {
         type: 'semantic',
       },
       {
-        Authorization: 'Bearer secret-u',
+        Authorization: 'Bearer secret-u-0123456789012345678901234',
         'X-Memento-Project-Id': 'memento',
       },
     );
@@ -183,7 +183,7 @@ describe('X-Memento-Project-Id integration', () => {
         type: 'semantic',
       },
       {
-        Authorization: 'Bearer secret-u',
+        Authorization: 'Bearer secret-u-0123456789012345678901234',
       },
     );
 
@@ -202,7 +202,7 @@ describe('X-Memento-Project-Id integration', () => {
         type: 'semantic',
       },
       {
-        Authorization: 'Bearer secret-u',
+        Authorization: 'Bearer secret-u-0123456789012345678901234',
         'X-Memento-Project-Id': 'x'.repeat(201),
       },
     );

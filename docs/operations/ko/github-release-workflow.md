@@ -150,13 +150,14 @@ git push origin v1.7.3
 
 ## 버전은 저장소가 단일 출처다 (#1077)
 
-릴리스를 만들기 **전에** 세 매니페스트의 `version` 을 올려 PR 로 머지해야 합니다.
+릴리스를 만들기 **전에** 매니페스트와 플러그인 설정의 `version` 을 올려 PR 로 머지해야 합니다.
 
 - `package.json`
 - `packages/memento-core/package.json`
 - `packages/memento-server/package.json`
+- `plugins/memento/.mcp.json` (`args`의 `memento-mcp-server@<version>`)
 
-셋이 서로 다르거나 태그와 다르면 릴리스 워크플로가 `E_VERSION_MISMATCH` 로 실패합니다.
+서로 다르거나 태그와 다르면 릴리스 워크플로가 `E_VERSION_MISMATCH` 로 실패합니다.
 
 예전에는 워크플로가 발행 시점에 루트 `package.json` 을 태그 버전으로 덮어썼습니다. 그
 변경은 저장소로 되돌아오지 않았기 때문에, tarball 은 올바른 버전으로 나가도 저장소는 낡은

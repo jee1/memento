@@ -96,13 +96,13 @@ describe('project-scope-binding integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'proj-token', secret: 'bound-sec', scopes: ['tools:invoke'], projectId: 'project-a' },
+        { id: 'proj-token', secret: 'bound-sec-0123456789012345678901234', scopes: ['tools:invoke'], projectId: 'project-a' },
       ]),
     );
     vi.resetModules();
 
     const port = await startRealHttpServer();
-    const res = await request(port, '/tools', 'GET', { Authorization: 'Bearer bound-sec' });
+    const res = await request(port, '/tools', 'GET', { Authorization: 'Bearer bound-sec-0123456789012345678901234' });
     expect(res.statusCode).toBe(200);
   });
 
@@ -110,14 +110,14 @@ describe('project-scope-binding integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'proj-token', secret: 'bound-sec', scopes: ['tools:invoke'], projectId: 'project-a' },
+        { id: 'proj-token', secret: 'bound-sec-0123456789012345678901234', scopes: ['tools:invoke'], projectId: 'project-a' },
       ]),
     );
     vi.resetModules();
 
     const port = await startRealHttpServer();
     const res = await request(port, '/tools', 'GET', {
-      Authorization: 'Bearer bound-sec',
+      Authorization: 'Bearer bound-sec-0123456789012345678901234',
       'X-Memento-Project-Id': 'project-a',
     });
     expect(res.statusCode).toBe(200);
@@ -127,14 +127,14 @@ describe('project-scope-binding integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'proj-token', secret: 'bound-sec', scopes: ['tools:invoke'], projectId: 'project-a' },
+        { id: 'proj-token', secret: 'bound-sec-0123456789012345678901234', scopes: ['tools:invoke'], projectId: 'project-a' },
       ]),
     );
     vi.resetModules();
 
     const port = await startRealHttpServer();
     const res = await request(port, '/tools', 'GET', {
-      Authorization: 'Bearer bound-sec',
+      Authorization: 'Bearer bound-sec-0123456789012345678901234',
       'X-Memento-Project-Id': 'project-conflict',
     });
     expect(res.statusCode).toBe(403);
@@ -145,14 +145,14 @@ describe('project-scope-binding integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'unbound-token', secret: 'unbound-sec', scopes: ['tools:invoke'] },
+        { id: 'unbound-token', secret: 'unbound-sec-01234567890123456789012-0123456789012345678901234', scopes: ['tools:invoke'] },
       ]),
     );
     vi.resetModules();
 
     const port = await startRealHttpServer();
     const res = await request(port, '/tools', 'GET', {
-      Authorization: 'Bearer unbound-sec',
+      Authorization: 'Bearer unbound-sec-01234567890123456789012-0123456789012345678901234',
       'X-Memento-Project-Id': 'custom-project',
     });
     expect(res.statusCode).toBe(200);
@@ -162,7 +162,7 @@ describe('project-scope-binding integration', () => {
     vi.stubEnv(
       'MEMENTO_API_TOKENS',
       JSON.stringify([
-        { id: 'proj-token', secret: 'bound-sec', scopes: ['tools:invoke'], projectId: 'project-scoped' },
+        { id: 'proj-token', secret: 'bound-sec-0123456789012345678901234', scopes: ['tools:invoke'], projectId: 'project-scoped' },
       ]),
     );
     vi.resetModules();
@@ -172,7 +172,7 @@ describe('project-scope-binding integration', () => {
       port,
       '/tools/remember',
       'POST',
-      { Authorization: 'Bearer bound-sec' },
+      { Authorization: 'Bearer bound-sec-0123456789012345678901234' },
       { content: 'Project memory test', type: 'episodic' },
     );
 

@@ -103,7 +103,7 @@ describe('http-bind-policy', () => {
         getMementoHttpSecurityStartupViolationMessage({
           httpListenHost: '0.0.0.0',
           adminApiKey: undefined,
-          apiTokens: [{ id: 'tools-1', secret: 'x', scopes: ['tools:invoke'] }],
+          apiTokens: [{ id: 'tools-1', secret: 'tools-secret-0123456789012345678901234', scopes: ['tools:invoke'] }],
           allowInsecureHttpAdmin: false,
         }),
       ).toBeNull();

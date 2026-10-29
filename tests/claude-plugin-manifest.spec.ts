@@ -43,12 +43,13 @@ describe("Claude Code plugin marketplace (#764)", () => {
   });
 
   it("launches the published npm server and keeps the database in plugin data", () => {
+    const pkg = readJson<{ version: string }>("package.json");
     const mcp = readJson<McpConfig>(join(pluginDir, ".mcp.json"));
     const server = mcp.mcpServers.memento;
 
     expect(server).toBeDefined();
     expect(server?.command).toBe("npx");
-    expect(server?.args).toContain("memento-mcp-server@latest");
+    expect(server?.args).toContain(`memento-mcp-server@${pkg.version}`);
     // 플러그인 업데이트 시 DB가 날아가지 않도록 CLAUDE_PLUGIN_DATA 아래에 둔다.
     expect(server?.env?.DB_PATH).toBe("${CLAUDE_PLUGIN_DATA}/memory.db");
   });

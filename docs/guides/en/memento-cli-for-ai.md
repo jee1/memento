@@ -47,7 +47,7 @@ MCP client configuration example (`.cursor/mcp.json`, etc.):
       "env": {
         "MEMENTO_HTTP_SIDECAR": "1",
         "MCP_SERVER_PORT": "0",
-        "MEMENTO_API_TOKENS": "[{\"id\":\"local\",\"secret\":\"my-token-secret\",\"scopes\":[\"tools:invoke\"]}]"
+        "MEMENTO_API_TOKENS": "[{\"id\":\"local\",\"secret\":\"my-token-secret-01234567890123456789\",\"scopes\":[\"tools:invoke\"]}]"
       }
     }
   }
@@ -57,7 +57,7 @@ MCP client configuration example (`.cursor/mcp.json`, etc.):
 Shell environment variable:
 
 ```bash
-export MEMENTO_API_KEY="my-token-secret"
+export MEMENTO_API_KEY="my-token-secret-01234567890123456789"
 ```
 
 Use `MCP_SERVER_PORT=0` to avoid port collisions. The allocated port is recorded in `~/.memento/server.json`, which the CLI reads automatically.
