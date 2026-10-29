@@ -27,7 +27,7 @@ AI가 코드를 정확히 이해하고 검증할 수 있도록 비즈니스 로�
 
 ### 의존성 규칙
 *   **의존성 방향:** `shared` ← `domains` ← `infrastructure`
-*   **패키지 간 참조:** `core` ← `server`, `core` ← `client`. 반대 방향(순환 참조)은 금지됩니다.
+*   **패키지 간 참조:** `memento-server` → `@memento/core`·`@memento/agent-integration`. `@jee1/memento-client`는 core에 의존하지 않는다. `@jee1/memento-assistant` → client. 정본 표는 [docs/agents/architecture.md](./docs/agents/architecture.md). 순환 참조 금지.
 *   **도메인 기반 구조:** 코드는 비즈니스 도메인 단위로 조직화하며, 도메인 간 독립성을 최대한 유지합니다.
 
 ### 핵심 기술 스택

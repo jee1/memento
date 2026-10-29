@@ -11,6 +11,7 @@
 
 ### Changed
 
+- 구조 문서: 패키지·의존·MCP 도구 등록의 정본을 `docs/agents/architecture.md`로 모으고, ko/en 아키텍처·`DEVELOPMENT_RULES`·`AGENTS.md`의 어긋난 수치·의존 화살표를 코드 기준으로 맞춥니다 (#1533).
 - 에이전트 지침: `.cursor/rules` 과잉을 `AGENTS.md`/`docs/agents` 포인터로 줄이고, 문서와 코드가 어긋난 gotcha·heal·랭킹 설명을 맞춥니다 (#1530).
 
 ## [2.3.5] - 2026-10-29
