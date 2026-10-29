@@ -35,11 +35,11 @@ const KEY_RULES: Array<[RegExp, RedactionRule]> = [
 const NON_SECRET_CONTROL_KEYS = new Set(['token_budget']);
 const IDENTIFIER_KEY = /(?:^|_)(?:id|sha256|hash)$/i;
 const INLINE_ASSIGNMENT_RULES: Array<[RedactionRule, RegExp]> = [
-  ['API_KEY', /(\bapi(?:[_-]|\s)?key\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
-  ['TOKEN', /(\b(?:(?:access|auth)(?:[_-]|\s)?)?token\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['API_KEY', /((?<![A-Za-z0-9])api(?:[_-]|\s)?key\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['TOKEN', /(\b(?:(?:(?:access|auth)(?:[_-]|\s)?)?token|bearer)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
   ['TOKEN', /(\bauthorization\s*[:=]\s*(?:Bearer\s+)?)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
-  ['PASSWORD', /(\bpassword\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
-  ['CREDENTIAL', /(\b(?:credentials?|client(?:[_-]|\s)?secret)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['PASSWORD', /(\b(?:password|passwd|pwd)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['CREDENTIAL', /(\b(?:credentials?|key|\w*secret\w*)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
 ];
 const INLINE_RULES: Array<[RedactionRule, RegExp]> = [
   ['API_KEY', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g],

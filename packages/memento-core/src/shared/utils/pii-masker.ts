@@ -47,10 +47,16 @@ const PII_RULES: PIIRule[] = [
     pattern: /(?<![0-9])\+\d{1,3}[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?![0-9])/g,
     placeholder: '[PHONE]'
   },
-  // OpenAI API 키: sk-... 또는 sk-proj-... (하이픈·언더스코어 포함)
-  { type: 'api_key', pattern: /sk-(?:proj-)?[a-zA-Z0-9_-]{20,}/g, placeholder: '[API_KEY]' },
+  // sk-/pk- 계열 API 키: sk-proj-..., sk_live_... 등 (하이픈·언더스코어 포함)
+  { type: 'api_key', pattern: /\b(?:sk|pk)(?:[_-](?:live|test|proj))?[_-][A-Za-z0-9_-]{16,}\b/g, placeholder: '[API_KEY]' },
   // Google API 키: AIza...
   { type: 'api_key', pattern: /AIza[0-9A-Za-z_-]{35}/g, placeholder: '[API_KEY]' },
+  // AWS 액세스 키: AKIA... / ASIA...
+  { type: 'api_key', pattern: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, placeholder: '[API_KEY]' },
+  // GitHub 토큰: ghp_... 등
+  { type: 'token', pattern: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g, placeholder: '[TOKEN]' },
+  // Slack 토큰: xoxb-... 등
+  { type: 'token', pattern: /\bxox[abposr]-[A-Za-z0-9-]{10,}/g, placeholder: '[TOKEN]' },
   // 일반 API 키 패턴: api_key=..., OPENAI_API_KEY=..., *_SECRET=... (= 할당만; Token: 등은 토큰 마스킹에 위임)
   {
     type: 'api_key',
@@ -60,8 +66,8 @@ const PII_RULES: PIIRule[] = [
   },
   // 비밀번호
   { type: 'password', pattern: /\b(password|pwd|passwd)[=:]\s*[^\s&"']+/gi, placeholder: '[PASSWORD]', keepPrefix: true },
-  // Bearer 토큰
-  { type: 'token', pattern: /\b(bearer|token)[=:]\s*[a-zA-Z0-9._-]{20,}/gi, placeholder: '[TOKEN]', keepPrefix: true },
+  // Bearer 토큰: `Bearer <값>` 헤더 또는 bearer=/token= 할당
+  { type: 'token', pattern: /\b(?:bearer\s+|(?:bearer|token)[=:]\s*)[a-zA-Z0-9._-]{20,}/gi, placeholder: '[TOKEN]', keepPrefix: true },
   // JWT 토큰 (header.payload.signature 3-segment 형식)
   { type: 'token', pattern: /\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, placeholder: '[JWT_TOKEN]' },
   // 기타 credential: secret=..., key=..., token=... 등.
@@ -71,6 +77,14 @@ const PII_RULES: PIIRule[] = [
     pattern: /\b(secret|key|token|credential)[=:]\s*[a-zA-Z0-9._-]{10,}/gi,
     placeholder: '[CREDENTIAL]',
     keepPrefix: true
+  },
+  // 32자 이상 hex 비밀값
+  { type: 'credential', pattern: /\b(?:[0-9a-f]{32,}|[0-9A-F]{32,})\b/g, placeholder: '[CREDENTIAL]' },
+  // 대소문자·숫자가 섞인 32자 이상 문자열
+  {
+    type: 'credential',
+    pattern: /\b(?=[A-Za-z0-9]{32,}\b)(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[a-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]+\b/g,
+    placeholder: '[CREDENTIAL]'
   }
 ];
 

@@ -30,6 +30,7 @@
 - MCP SDK를 1.32.2로 갱신하고 `@hono/node-server`를 패치 버전 2.1.3 이상으로 제한해 GHSA-rmxm-3fg6-px4f 의존성 보안 경고를 해소합니다.
 
 - 파일 경로 허용 검사는 문자열 접두사가 아니라 디렉터리 경계 기준으로 판정합니다. 허용 경로와 이름만 겹치는 형제 경로는 거부합니다.
+- 로그 PII 마스킹과 에이전트 이벤트 redaction이 같은 비밀값 집합을 가립니다. 로그 쪽에 AWS, GitHub, Slack, `sk_live_` 계열 키, `Bearer` 헤더, 32자 이상 hex 및 고엔트로피 문자열을, 에이전트 이벤트 쪽에 `*_API_KEY=`, `*SECRET*=`, `pwd`/`passwd`, `bearer=`, `key=` 할당을 추가합니다.
 
 ### Security
 
