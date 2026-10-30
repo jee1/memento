@@ -3,7 +3,8 @@ import type { ServerServices } from '../../bootstrap.js';
 import {
   getExposedTools,
   logger,
-  DatabaseUtils,
+  findMemoryResourceRowById,
+  listRecentMemoryResourceIds,
   MemoryNeighborService,
   getVectorSearchEngine
 } from '@memento/core';
@@ -45,10 +46,6 @@ export function getDiscoverSupportedVersions(): string[] {
   return [...SUPPORTED_PROTOCOL_VERSIONS];
 }
 
-type MemoryResourceListRow = {
-  id: string;
-};
-
 type MemoryResourceData = {
   id: string;
   type: string;
@@ -63,19 +60,6 @@ type MemoryResourceData = {
   neighbors?: unknown[];
   neighbors_count?: number;
   neighbors_query_time?: number;
-};
-
-type MemoryResourceRow = {
-  id: string;
-  type: string;
-  content: string;
-  importance: number;
-  privacy_scope: string;
-  tags: string | null;
-  source: string | null;
-  created_at: string;
-  last_accessed: string | null;
-  pinned: number | boolean;
 };
 
 export async function processMcpMessage(
@@ -290,10 +274,7 @@ async function handleResourcesList(
   }
 
   try {
-    const memories = await DatabaseUtils.all(
-      db,
-      'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000'
-    ) as MemoryResourceListRow[];
+    const memories = listRecentMemoryResourceIds(db);
 
     return {
       jsonrpc: '2.0',
@@ -381,11 +362,7 @@ async function readMemoryResource(
     return createJsonRpcError(requestId, -32602, 'Invalid params', `Invalid memory ID in URI: ${uri}`);
   }
 
-  const memory = DatabaseUtils.get(
-    db,
-    'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
-    [memoryId]
-  ) as MemoryResourceRow | undefined;
+  const memory = findMemoryResourceRowById(db, memoryId);
   if (!memory) {
     return createJsonRpcError(requestId, -32602, 'Invalid params', `Memory not found: ${memoryId}`);
   }

@@ -1,4 +1,8 @@
-import { AgentIntegrationError, SqliteAgentIntegrationRepository } from '@memento/core';
+import {
+  AgentIntegrationError,
+  findMemoryProvenancePreviews,
+  SqliteAgentIntegrationRepository,
+} from '@memento/core';
 import type Database from 'better-sqlite3';
 import type { Request, Response } from 'express';
 import { observationDto, provenanceDto, sessionDto } from './agent.routes.dto.js';
@@ -18,18 +22,11 @@ function loadProvenanceMemories(
   db: Database.Database,
   edges: ReadonlyArray<{ memoryId: string; sourceDeleted?: boolean | null }>,
 ) {
-  const stmt = db.prepare(`
-    SELECT id, type, substr(content, 1, 240) AS content_preview, created_at
-    FROM memory_item
-    WHERE id = ?
-  `);
-  const memoryIds = [...new Set(edges.map(e => e.memoryId))];
-  return memoryIds.flatMap((id) => {
-    const row = stmt.get(id) as {
-      id: string; type: string; content_preview: string; created_at: string | null;
-    } | undefined;
-    return row ? [{ ...row, source_deleted: edges.some(e => e.memoryId === id && e.sourceDeleted) }] : [];
-  });
+  const rows = findMemoryProvenancePreviews(db, edges.map(e => e.memoryId));
+  return rows.map((row) => ({
+    ...row,
+    source_deleted: edges.some(e => e.memoryId === row.id && e.sourceDeleted),
+  }));
 }
 
 function loadProvenanceObservations(

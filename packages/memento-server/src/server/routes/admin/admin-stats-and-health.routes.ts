@@ -4,7 +4,12 @@
 
 import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
-import { logger } from '@memento/core';
+import {
+  deleteExpiredWorkingMemories,
+  logger,
+  queryMemoryCountsByTypeStats,
+  queryMemoryForgettingStatsByType,
+} from '@memento/core';
 import type { ServerServices } from '../../bootstrap.js';
 
 function databaseUnavailable(res: Response) {
@@ -18,16 +23,11 @@ function postMemoryCleanup(db: Database.Database | null) {
         return databaseUnavailable(res);
       }
 
-      const result = await db.prepare(`
-        DELETE FROM memory_item 
-        WHERE pinned = FALSE 
-          AND type = 'working' 
-          AND created_at < datetime('now', '-2 days')
-      `).run();
+      const deletedCount = deleteExpiredWorkingMemories(db);
 
       return res.json({
         message: '메모리 정리 완료',
-        deleted_count: result.changes,
+        deleted_count: deletedCount,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -49,15 +49,7 @@ function getForgettingStats(db: Database.Database | null) {
         return databaseUnavailable(res);
       }
 
-      const stats = await db.prepare(`
-        SELECT 
-          type,
-          COUNT(*) as total_count,
-          COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_count,
-          COUNT(CASE WHEN created_at < datetime('now', '-30 days') THEN 1 END) as old_count
-        FROM memory_item 
-        GROUP BY type
-      `).all();
+      const stats = queryMemoryForgettingStatsByType(db);
 
       return res.json({
         message: '망각 통계 조회 완료',
@@ -83,16 +75,7 @@ function getPerformanceStats(db: Database.Database | null) {
         return databaseUnavailable(res);
       }
 
-      const stats = await db.prepare(`
-        SELECT 
-          COUNT(*) as total_memories,
-          COUNT(CASE WHEN type = 'working' THEN 1 END) as working_memories,
-          COUNT(CASE WHEN type = 'episodic' THEN 1 END) as episodic_memories,
-          COUNT(CASE WHEN type = 'semantic' THEN 1 END) as semantic_memories,
-          COUNT(CASE WHEN type = 'procedural' THEN 1 END) as procedural_memories,
-          COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_memories
-        FROM memory_item
-      `).get();
+      const stats = queryMemoryCountsByTypeStats(db);
 
       return res.json({
         message: '성능 통계 조회 완료',

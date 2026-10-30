@@ -7,7 +7,7 @@
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import type { WebSocket } from 'ws';
-import { logger } from '@memento/core';
+import { findAnchorMemorySummaryById, logger } from '@memento/core';
 
 /**
  * Anchor Map 노드 타입
@@ -225,17 +225,7 @@ async function buildNetworkNodesAndLinks(
     if (!anchor.memory_id) continue;
 
     // 앵커 노드 추가
-    const anchorMemory = db.prepare(`
-      SELECT id, content, type, importance, created_at
-      FROM memory_item
-      WHERE id = ?
-    `).get(anchor.memory_id) as {
-      id: string;
-      content: string;
-      type: string;
-      importance: number;
-      created_at: string;
-    } | undefined;
+    const anchorMemory = findAnchorMemorySummaryById(db, anchor.memory_id);
 
     if (anchorMemory) {
       if (!nodeIds.has(anchor.memory_id)) {
