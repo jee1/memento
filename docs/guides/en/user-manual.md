@@ -193,6 +193,10 @@ GEMINI_API_KEY=your_key_here
 
 With semantic embeddings active, a search for "car" can match memories containing "vehicle," and a search for "programming" will surface memories about "coding."
 
+## HTTP dashboard — Jobs tab
+
+After starting the HTTP admin server (`npm run dev:http`) and signing in at `/dashboard`, open the **Jobs** tab to view schedules, queue snapshots, and durable run history. Click **Refresh** to load `GET /admin/batch/stats`, which includes a Korean **`description`** per scheduled job. The same text appears under each job name in the schedule table, in the drawer when a row is selected, and in the **What is this?** guide list. Descriptions are defined in `@memento/core` `batch-scheduler-job-descriptions.ts`.
+
 ## Managing Memories
 
 ### Pinning and Unpinning

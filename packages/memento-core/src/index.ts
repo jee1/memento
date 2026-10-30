@@ -409,6 +409,9 @@ export {
 } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 export type { ManualBatchSchedulerJobType } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 export {
+  resolveBatchSchedulerJobDescription,
+} from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-descriptions.js';
+export {
   listExistingVecTables,
   recreateVecTriggers,
 } from './infrastructure/database/sqlite/vec-schema.js';

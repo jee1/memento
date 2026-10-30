@@ -133,6 +133,8 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
   el('jobs-drawer-job');
   el('jobs-drawer-run');
   el('jobs-drawer-badge');
+  el('jobs-drawer-description', { classList: createClassList() });
+  el('jobs-batch-guide-list');
   el('jobs-dtab-runs', {
     addEventListener: vi.fn((event: string, handler: () => void) => {
       if (event === 'click' || event === 'keydown') {
@@ -212,6 +214,7 @@ function createJobsHarness(options: JobsHarnessOptions = {}) {
               errorCount: 0,
               errorRate: 0,
               isRunning: false,
+              description: '망각 정책 배치 — 테스트',
             },
           ],
           queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
@@ -358,6 +361,8 @@ describe('dashboard jobs panel (#832)', () => {
     expect(dashboardHtml).toContain('id="jobs-schedule-table"');
     expect(dashboardHtml).toContain('id="jobs-queue-summary"');
     expect(dashboardHtml).toContain('id="jobs-run-history"');
+    expect(dashboardHtml).toContain('id="jobs-batch-guide-list"');
+    expect(dashboardHtml).toContain('id="jobs-drawer-description"');
     expect(dashboardHtml).toMatch(/process-local|#833/i);
     for (const name of JOBS_PANEL_SCRIPTS) {
       expect(dashboardHtml).toContain(`/static/js/${name}`);
@@ -417,6 +422,7 @@ describe('dashboard jobs panel (#832)', () => {
     expect(panelJs).toContain('/admin/batch/run-history');
     expect(panelJs).toContain('/admin/batch/runs');
     expect(panelJs).toContain('initJobsPanel');
+    expect(panelJs).toContain('renderBatchGuide');
   });
 
   it('jobs panel Phase 3 sources wire logs + confirm writes (no SSE) (#834)', () => {
@@ -571,6 +577,20 @@ describe('dashboard jobs panel (#832)', () => {
     expect(h.elements['jobs-health-summary'].textContent).not.toContain('uptimeMs=');
     expect(h.elements['jobs-health-summary'].textContent).not.toContain('errorRate=');
     expect(h.elements['jobs-health-summary'].textContent).not.toContain('memory%=');
+  });
+
+  it('renders job description from stats in schedule, guide, and drawer (#1464)', async () => {
+    const h = createJobsHarness();
+    await h.init();
+    const row = h.elements['jobs-schedule-tbody'].children[0] as {
+      children: Array<{ children?: Array<{ className?: string; textContent?: string }> }>;
+    };
+    const nameTd = row.children[1];
+    const descNode = (nameTd.children || []).find(c => c.className === 'jobs-schedule__desc');
+    expect(descNode?.textContent).toMatch(/망각/);
+    expect(h.elements['jobs-batch-guide-list'].children.length).toBe(1);
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.selectJob('cleanup');
+    expect(h.elements['jobs-drawer-description'].textContent).toMatch(/망각/);
   });
 
   it('refresh fetches stats+history and error path does not wipe prior snapshot', async () => {
