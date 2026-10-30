@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import { closeSync, ftruncateSync, mkdtempSync, openSync, rmSync, statSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { migrateDatabase } from './migrate.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -116,6 +117,82 @@ describe('Database Migration', () => {
         expect(() => migrateModule.migrateDatabase()).not.toThrow();
       } finally {
         loadExtensionSpy.mockRestore();
+        if (previousDbPath === undefined) {
+          delete process.env.DB_PATH;
+        } else {
+          process.env.DB_PATH = previousDbPath;
+        }
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('Given: 054 이전 memory_embedding(embedding·projection_type만 있음), When: migrateDatabase CLI 경로 실행, Then: content_hash·트리거·backfill·내용 변경 무효화', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'memento-migrate-content-hash-'));
+      const dbPath = join(dir, 'memory.db');
+
+      const setupDb = new Database(dbPath);
+      setupDb.exec(`
+        CREATE TABLE memory_item (
+          id TEXT PRIMARY KEY, type TEXT NOT NULL, content TEXT NOT NULL,
+          project_id TEXT, is_deleted BOOLEAN DEFAULT FALSE NOT NULL, deleted_at TEXT
+        );
+        CREATE TABLE memory_embedding (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          memory_id TEXT NOT NULL,
+          embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
+          projection_type TEXT NOT NULL DEFAULT 'native',
+          embedding BLOB,
+          dim INTEGER NOT NULL DEFAULT 0,
+          dimensions INTEGER DEFAULT 0,
+          model TEXT,
+          version INTEGER DEFAULT 1
+        );
+        INSERT INTO memory_item (id, type, content) VALUES ('mem-1', 'semantic', 'alpha');
+        INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, dim)
+          VALUES ('mem-1', 'minilm', 'native', 384);
+      `);
+      setupDb.close();
+
+      const probeDb = new Database(dbPath);
+      const columnsBefore = probeDb
+        .prepare(`SELECT name FROM pragma_table_info('memory_embedding')`)
+        .all() as Array<{ name: string }>;
+      probeDb.close();
+      expect(columnsBefore.some((c) => c.name === 'embedding')).toBe(true);
+      expect(columnsBefore.some((c) => c.name === 'projection_type')).toBe(true);
+      expect(columnsBefore.some((c) => c.name === 'content_hash')).toBe(false);
+
+      const previousDbPath = process.env.DB_PATH;
+      try {
+        vi.resetModules();
+        process.env.DB_PATH = dbPath;
+        const migrateModule = await import('./migrate.js');
+        expect(() => migrateModule.migrateDatabase()).not.toThrow();
+
+        const verifyDb = new Database(dbPath);
+        const columnsAfter = verifyDb
+          .prepare(`SELECT name FROM pragma_table_info('memory_embedding')`)
+          .all() as Array<{ name: string }>;
+        expect(columnsAfter.some((c) => c.name === 'content_hash')).toBe(true);
+
+        const trigger = verifyDb
+          .prepare(
+            `SELECT name FROM sqlite_master WHERE type='trigger' AND name='memory_item_embedding_content_update'`,
+          )
+          .get();
+        expect(trigger).toBeDefined();
+
+        const hashRow = verifyDb
+          .prepare(
+            `SELECT content_hash FROM memory_embedding WHERE memory_id = 'mem-1' AND projection_type = 'native'`,
+          )
+          .get() as { content_hash: string };
+        expect(hashRow.content_hash).toBe(hashMemoryContent('alpha'));
+
+        verifyDb.prepare(`UPDATE memory_item SET content = 'beta' WHERE id = 'mem-1'`).run();
+        expect(verifyDb.prepare('SELECT COUNT(*) AS n FROM memory_embedding').get()).toEqual({ n: 0 });
+        verifyDb.close();
+      } finally {
         if (previousDbPath === undefined) {
           delete process.env.DB_PATH;
         } else {

@@ -22,6 +22,7 @@ import {
   reconcileVecDistanceMetric,
   recreateVecTriggers
 } from './vec-schema.js';
+import { applyMemoryEmbeddingContentHash } from './migration/idempotent-ddl.js';
 
 function isDuplicateColumnError(err: unknown): boolean {
   return err instanceof Error && err.message.includes('duplicate column name');
@@ -267,6 +268,12 @@ function migrateDatabase() {
       logger.info('✅ memory_embedding 테이블 재구성 완료');
     } else {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
+    }
+
+    if (hasEmbeddingTable) {
+      logger.info('🔐 memory_embedding content_hash 보정 중...');
+      applyMemoryEmbeddingContentHash(db);
+      logger.info('✅ memory_embedding content_hash 보정 완료');
     }
 
     logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
