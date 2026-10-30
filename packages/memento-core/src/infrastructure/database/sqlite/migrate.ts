@@ -270,11 +270,9 @@ function migrateDatabase() {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
     }
 
-    if (hasEmbeddingTable) {
-      logger.info('🔐 memory_embedding content_hash 보정 중...');
-      applyMemoryEmbeddingContentHash(db);
-      logger.info('✅ memory_embedding content_hash 보정 완료');
-    }
+    logger.info('🔐 memory_embedding content_hash 보정 중...');
+    applyMemoryEmbeddingContentHash(db);
+    logger.info('✅ memory_embedding content_hash 보정 완료');
 
     logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`

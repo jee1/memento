@@ -126,6 +126,66 @@ describe('Database Migration', () => {
       }
     });
 
+    it('Given: memory_item만 있고 memory_embedding 없음, When: migrateDatabase CLI 경로 실행, Then: content_hash·트리거 후 임베딩 삽입·내용 변경 무효화 (#1540 재리뷰)', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'memento-migrate-no-embedding-table-'));
+      const dbPath = join(dir, 'memory.db');
+
+      const setupDb = new Database(dbPath);
+      setupDb.exec(`
+        CREATE TABLE memory_item (
+          id TEXT PRIMARY KEY, type TEXT NOT NULL, content TEXT NOT NULL,
+          project_id TEXT, is_deleted BOOLEAN DEFAULT FALSE NOT NULL, deleted_at TEXT
+        );
+        INSERT INTO memory_item (id, type, content) VALUES ('mem-1', 'semantic', 'alpha');
+      `);
+      setupDb.close();
+
+      const previousDbPath = process.env.DB_PATH;
+      try {
+        vi.resetModules();
+        process.env.DB_PATH = dbPath;
+        const migrateModule = await import('./migrate.js');
+        expect(() => migrateModule.migrateDatabase()).not.toThrow();
+
+        const verifyDb = new Database(dbPath);
+        const table = verifyDb
+          .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'`)
+          .get();
+        expect(table).toBeDefined();
+
+        const columnsAfter = verifyDb
+          .prepare(`SELECT name FROM pragma_table_info('memory_embedding')`)
+          .all() as Array<{ name: string }>;
+        expect(columnsAfter.some((c) => c.name === 'content_hash')).toBe(true);
+
+        const trigger = verifyDb
+          .prepare(
+            `SELECT name FROM sqlite_master WHERE type='trigger' AND name='memory_item_embedding_content_update'`,
+          )
+          .get();
+        expect(trigger).toBeDefined();
+
+        verifyDb
+          .prepare(
+            `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, dim, embedding)
+             VALUES ('mem-1', 'minilm', 'native', 384, X'00')`,
+          )
+          .run();
+        expect(verifyDb.prepare('SELECT COUNT(*) AS n FROM memory_embedding').get()).toEqual({ n: 1 });
+
+        verifyDb.prepare(`UPDATE memory_item SET content = 'beta' WHERE id = 'mem-1'`).run();
+        expect(verifyDb.prepare('SELECT COUNT(*) AS n FROM memory_embedding').get()).toEqual({ n: 0 });
+        verifyDb.close();
+      } finally {
+        if (previousDbPath === undefined) {
+          delete process.env.DB_PATH;
+        } else {
+          process.env.DB_PATH = previousDbPath;
+        }
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
     it('Given: 054 이전 memory_embedding(embedding·projection_type만 있음), When: migrateDatabase CLI 경로 실행, Then: content_hash·트리거·backfill·내용 변경 무효화', async () => {
       const dir = mkdtempSync(join(tmpdir(), 'memento-migrate-content-hash-'));
       const dbPath = join(dir, 'memory.db');
