@@ -482,7 +482,6 @@ describe('dependency boundaries', () => {
   it('has no runtime import cycle among database utils / schema-init / fts5 (#749)', async () => {
     const cycleFiles = [
       'shared/utils/database.ts',
-      'shared/utils/database/schema-initialization.ts',
       'shared/utils/fts5-migration-status.ts',
     ] as const;
 

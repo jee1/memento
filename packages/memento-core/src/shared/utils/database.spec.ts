@@ -256,48 +256,6 @@ describe('DatabaseUtils', () => {
     });
   });
 
-  describe('initializeDatabase', () => {
-    it('데이터베이스를 초기화해야 함', async () => {
-      // Given: 새로운 메모리 데이터베이스
-      const newDb = new Database(':memory:');
-
-      // When: 데이터베이스 초기화
-      await DatabaseUtils.initializeDatabase(newDb);
-
-      // Then: 기본 테이블이 생성되어야 함
-      const memoryItemTable = DatabaseUtils.get(newDb, `
-        SELECT name FROM sqlite_master WHERE type='table' AND name='memory_item'
-      `);
-      expect(memoryItemTable).toBeDefined();
-
-      const memoryTagTable = DatabaseUtils.get(newDb, `
-        SELECT name FROM sqlite_master WHERE type='table' AND name='memory_tag'
-      `);
-      expect(memoryTagTable).toBeDefined();
-
-      newDb.close();
-    });
-
-    it('기본 테이블들을 생성해야 함', async () => {
-      // Given: 새로운 메모리 데이터베이스
-      const newDb = new Database(':memory:');
-
-      // When: 데이터베이스 초기화
-      await DatabaseUtils.initializeDatabase(newDb);
-
-      // Then: 모든 기본 테이블이 생성되어야 함
-      const tables = DatabaseUtils.all(newDb, `
-        SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
-      `);
-      const tableNames = tables.map(t => t.name);
-      expect(tableNames).toContain('memory_item');
-      expect(tableNames).toContain('memory_tag');
-      expect(tableNames).toContain('memory_item_tag');
-
-      newDb.close();
-    });
-  });
-
   describe('checkpointWAL', () => {
     it('WAL 체크포인트를 실행해야 함', () => {
       // When: WAL 체크포인트 실행

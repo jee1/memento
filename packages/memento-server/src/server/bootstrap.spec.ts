@@ -7,9 +7,9 @@ import {
   initializeServices,
   shutdownServices,
   type ServerServices,
-  DatabaseUtils,
   getPerformanceMonitor,
-  getBatchScheduler
+  getBatchScheduler,
+  initializeDatabase,
 } from '@memento/core';
 import Database from 'better-sqlite3';
 
@@ -17,10 +17,8 @@ describe('initializeServices', () => {
   let db: Database.Database;
   let services: ServerServices | null = null;
 
-  beforeEach(() => {
-    // 메모리 데이터베이스 생성
-    db = new Database(':memory:');
-    DatabaseUtils.initializeDatabase(db);
+  beforeEach(async () => {
+    db = await initializeDatabase(':memory:');
     services = null;
   });
 
@@ -113,12 +111,9 @@ describe('initializeServices', () => {
     });
 
     it('initializeServices를 여러 번 호출해도 PerformanceMonitor는 한 번만 초기화되어야 함', async () => {
-      const db1 = new Database(':memory:');
-      const db2 = new Database(':memory:');
+      const db1 = await initializeDatabase(':memory:');
+      const db2 = await initializeDatabase(':memory:');
       try {
-        DatabaseUtils.initializeDatabase(db1);
-        DatabaseUtils.initializeDatabase(db2);
-
         const services1 = await initializeServices(db1);
         await (getBatchScheduler() as { stop(): Promise<void> }).stop();
         const services2 = await initializeServices(db2);
@@ -304,8 +299,7 @@ describe('initializeServices', () => {
     // (2026-09-19 두 기제를 하나씩·동시에 제거해 확인).
     it('같은 프로세스에서 initializeServices 를 연달아 세 번 호출할 수 있어야 함', async () => {
       for (let i = 0; i < 3; i += 1) {
-        const roundDb = new Database(':memory:');
-        DatabaseUtils.initializeDatabase(roundDb);
+        const roundDb = await initializeDatabase(':memory:');
         const roundServices = await initializeServices(roundDb);
         expect(roundServices.walCheckpointScheduler).toBeDefined();
         await shutdownServices(roundServices);

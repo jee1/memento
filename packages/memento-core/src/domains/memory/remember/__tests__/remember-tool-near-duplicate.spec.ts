@@ -53,6 +53,7 @@ function initializeTestDatabase(db: Database.Database): void {
       source_session_id TEXT,
       confidence REAL,
       project_id TEXT NULL,
+      work_record TEXT,
       is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
       deleted_at TEXT
     );

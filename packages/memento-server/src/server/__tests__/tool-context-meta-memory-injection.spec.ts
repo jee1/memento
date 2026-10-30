@@ -5,17 +5,15 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createToolContext, createServerContext } from '../context.js';
-import { initializeServices, type ServerServices, DatabaseUtils, type ToolContext, getBatchScheduler } from '@memento/core';
+import { initializeServices, type ServerServices, initializeDatabase, type ToolContext, getBatchScheduler } from '@memento/core';
 import Database from 'better-sqlite3';
 
 describe('ToolContext에 metaMemoryService 주입', () => {
   let db: Database.Database;
   let services: ServerServices | null = null;
 
-  beforeEach(() => {
-    // 메모리 데이터베이스 생성
-    db = new Database(':memory:');
-    DatabaseUtils.initializeDatabase(db);
+  beforeEach(async () => {
+    db = await initializeDatabase(':memory:');
     services = null;
   });
 

@@ -48,6 +48,7 @@ function initializeRegressionDatabase(db: Database.Database): void {
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
       confidence REAL,
+      work_record TEXT,
       is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
       deleted_at TEXT
     );

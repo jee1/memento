@@ -22,7 +22,6 @@ import type { ProceduralMemoryItem } from './remember-tool-types.js';
 import { findExistingProceduralMemory } from './remember-tool-db-helpers.js';
 import { prepareReflectionNotes } from './remember-tool-reflection.js';
 import { launchBackgroundAugmentation } from './remember-tool-augmentation.js';
-import { ensureWorkRecordColumn } from '../../../shared/utils/ensure-work-record-column.js';
 import { resolveStoredContent } from './work-record.js';
 import type { RememberParams } from './remember-tool-schema.js';
 import {
@@ -283,7 +282,6 @@ async function persistMemoryItem(
   const previous = isUpdate ? existingMemory : null;
 
   try {
-    ensureWorkRecordColumn(db);
     await DatabaseUtils.runTransaction(db, async () => {
       const createdAt = new Date().toISOString();
       const sharedValues = buildSharedColumnValues(params, ctx, previous, finalReflectionNotes, createdAt, host);

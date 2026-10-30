@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { ensureMemoryEmbeddingContentHash } from '../../../../../shared/utils/ensure-memory-embedding-content-hash.js';
+import { applyMemoryEmbeddingContentHash } from '../idempotent-ddl.js';
 import type { Migration } from '../types.js';
 
 function hasColumn(db: Database.Database, table: string, column: string): boolean {
@@ -23,7 +23,7 @@ export class MemoryEmbeddingContentHashMigration implements Migration {
   }
 
   async up(db: Database.Database): Promise<void> {
-    ensureMemoryEmbeddingContentHash(db);
+    applyMemoryEmbeddingContentHash(db);
   }
 
   async down(db: Database.Database): Promise<void> {

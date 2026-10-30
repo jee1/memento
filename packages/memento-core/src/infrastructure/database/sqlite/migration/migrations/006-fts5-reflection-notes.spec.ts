@@ -1251,8 +1251,8 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'pending';
 
       // When: DatabaseUtils.initializeDatabase 호출
-      const { DatabaseUtils } = await import('../../../../../shared/utils/database.js');
-      await DatabaseUtils.initializeDatabase(db);
+      const { initializeLegacyFullSchemaBootstrap } = await import('../../../../../test/helpers/legacy-full-schema-bootstrap.js');
+      await initializeLegacyFullSchemaBootstrap(db);
 
       // Then: DB 상태가 config에 캐시되어야 함
       expect(mementoConfig.fts5MigrationStatus).toBe('completed');
@@ -1267,8 +1267,8 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'pending';
 
       // When: DatabaseUtils.initializeDatabase 호출
-      const { DatabaseUtils } = await import('../../../../../shared/utils/database.js');
-      await DatabaseUtils.initializeDatabase(db);
+      const { initializeLegacyFullSchemaBootstrap } = await import('../../../../../test/helpers/legacy-full-schema-bootstrap.js');
+      await initializeLegacyFullSchemaBootstrap(db);
 
       // Then: 테이블이 생성되고 기본값 pending이 config에 캐시되어야 함
       const tableExists = db.prepare(`
@@ -1361,8 +1361,8 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'pending';
 
       // When: DatabaseUtils.initializeDatabase 호출
-      const { DatabaseUtils } = await import('../../../../../shared/utils/database.js');
-      await DatabaseUtils.initializeDatabase(db);
+      const { initializeLegacyFullSchemaBootstrap } = await import('../../../../../test/helpers/legacy-full-schema-bootstrap.js');
+      await initializeLegacyFullSchemaBootstrap(db);
 
       // Then: 기본값 pending이 설정되고 초기화는 계속 진행되어야 함
       // (getMigrationStatus가 자동으로 테이블을 생성하므로 정상적으로 pending 반환)

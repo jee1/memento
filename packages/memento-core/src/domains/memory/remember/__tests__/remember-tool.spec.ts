@@ -64,6 +64,7 @@ function initializeTestDatabase(db: Database.Database): void {
       confidence REAL,
       -- Project-scoped memory (Issue #81)
       project_id TEXT NULL,
+      work_record TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT
     );

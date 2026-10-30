@@ -1,6 +1,5 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import { ensureMemoryReviewCandidateSchema } from '../../../shared/utils/ensure-memory-review-candidate-schema.js';
 import type {
   BulkMemoryReviewCandidateAction,
   BulkMemoryReviewCandidateSelector,
@@ -14,7 +13,6 @@ import type {
   UpsertPendingMemoryReviewCandidatesResult,
 } from './memory-review-candidate-persistence.types.js';
 import { MemoryReviewCandidateError } from './memory-review-candidate-persistence-error.js';
-import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
 import {
   buildMemoryReviewCandidateCountSql,
   buildMemoryReviewCandidateListSql,
@@ -27,7 +25,6 @@ export function upsertPendingMemoryReviewCandidates(
   items: UpsertPendingMemoryReviewCandidateInput[],
   now: string,
 ): UpsertPendingMemoryReviewCandidatesResult {
-  ensureMemoryReviewCandidateSchema(db);
   let inserted = 0;
   let updated = 0;
 
@@ -104,7 +101,6 @@ export function getMemoryReviewCandidateById(
   db: Database.Database,
   id: string,
 ): MemoryReviewCandidateRow | null {
-  ensureMemoryReviewCandidateSchema(db);
   const r = db
     .prepare<[string], Record<string, unknown>>(`SELECT * FROM memory_review_candidate WHERE id = ?`)
     .get(id);
@@ -115,7 +111,6 @@ export function listMemoryReviewCandidates(
   db: Database.Database,
   query: ListMemoryReviewCandidatesQuery = {},
 ): MemoryReviewCandidateRow[] {
-  ensureMemoryReviewCandidateSchema(db);
   if (query.status) {
     return db
       .prepare<[string], Record<string, unknown>>(
@@ -153,9 +148,6 @@ export function queryMemoryReviewCandidates(
   input: QueryMemoryReviewCandidatesInput,
   options?: { now?: string },
 ): MemoryReviewCandidatesQueryResult {
-  ensureMemoryReviewCandidateSchema(db);
-  ensureMetaMemoryStatsSchema(db);
-
   const nowIso = options?.now ?? new Date().toISOString();
   const built = buildMemoryReviewCandidateListSql(input, nowIso);
   const countStmt = db.prepare(buildMemoryReviewCandidateCountSql(built).sql);
@@ -186,7 +178,6 @@ export function queryMemoryReviewCandidates(
 }
 
 export function countPendingMemoryReviewCandidates(db: Database.Database): number {
-  ensureMemoryReviewCandidateSchema(db);
   return (
     db
       .prepare<[], { count: number }>(
@@ -201,7 +192,6 @@ export function markMemoryReviewCandidateReviewed(
   candidateId: string,
   now: string,
 ): void {
-  ensureMemoryReviewCandidateSchema(db);
   const run = db.transaction(() => {
     const cur = db
       .prepare<[string], { status: string }>(`SELECT status FROM memory_review_candidate WHERE id = ?`)
@@ -236,7 +226,6 @@ export function markMemoryReviewCandidateDismissed(
   candidateId: string,
   now: string,
 ): void {
-  ensureMemoryReviewCandidateSchema(db);
   const run = db.transaction(() => {
     const cur = db
       .prepare<[string], { status: string }>(`SELECT status FROM memory_review_candidate WHERE id = ?`)
@@ -264,7 +253,6 @@ export function markMemoryReviewCandidateExpired(
   candidateId: string,
   now: string,
 ): void {
-  ensureMemoryReviewCandidateSchema(db);
   const run = db.transaction(() => {
     const cur = db
       .prepare<[string], { status: string }>(`SELECT status FROM memory_review_candidate WHERE id = ?`)
@@ -326,7 +314,6 @@ export function countPendingMemoryReviewCandidatesBySelector(
   selector: BulkMemoryReviewCandidateSelector,
   now: string,
 ): number {
-  ensureMemoryReviewCandidateSchema(db);
   const { whereSql, params } = buildPendingMemoryReviewCandidateSelector(selector, now);
   return countPendingMemoryReviewCandidatesBySelectorUnsafe(db, whereSql, params);
 }
@@ -337,8 +324,6 @@ export function bulkUpdatePendingMemoryReviewCandidates(
   selector: BulkMemoryReviewCandidateSelector,
   now: string,
 ): BulkMemoryReviewCandidatesResult {
-  ensureMemoryReviewCandidateSchema(db);
-
   return db.transaction(() => {
     const { whereSql, params } = buildPendingMemoryReviewCandidateSelector(selector, now);
     const matched = countPendingMemoryReviewCandidatesBySelectorUnsafe(db, whereSql, params);

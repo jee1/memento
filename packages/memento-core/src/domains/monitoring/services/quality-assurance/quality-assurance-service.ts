@@ -13,7 +13,6 @@
  */
 
 import Database from 'better-sqlite3';
-import { ensureQualityAssuranceSchema } from '../../../../shared/utils/ensure-quality-assurance-schema.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { QualityEvaluator,type QualityEvaluationResult } from './quality-evaluator.js';
 import { QualityMetricsCollector,type CollectedMetrics } from './quality-metrics-collector.js';
@@ -103,7 +102,6 @@ export class QualityAssuranceService {
     if (!db) {
       throw new Error('Database instance is required');
     }
-    ensureQualityAssuranceSchema(db);
     this.collector = new QualityMetricsCollector(db, repositories);
     this.evaluator = new QualityEvaluator(db);
     this.recorder = new QualityRecorder(db);

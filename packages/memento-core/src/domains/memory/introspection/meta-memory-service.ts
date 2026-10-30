@@ -6,7 +6,6 @@
  */
 
 import Database from 'better-sqlite3';
-import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { RecallResultItem } from '../recall/recall-tool.js';
@@ -50,7 +49,6 @@ export class MetaMemoryService {
       throw new Error('Database instance is required');
     }
 
-    ensureMetaMemoryStatsSchema(db);
   }
 
   /**

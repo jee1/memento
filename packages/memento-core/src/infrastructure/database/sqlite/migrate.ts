@@ -15,7 +15,6 @@ import {
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
-import { ensureMemoryEmbeddingContentHash } from '../../../shared/utils/ensure-memory-embedding-content-hash.js';
 import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
 import {
   checkVecCardinality,
@@ -269,8 +268,6 @@ function migrateDatabase() {
     } else {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
     }
-
-    ensureMemoryEmbeddingContentHash(db);
 
     logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`

@@ -26,7 +26,7 @@ const LEGACY_FULL_SCHEMA_BOOTSTRAP_ALLOWLIST = [
   // Historical migration fixture: the pre-migration FTS shape is the behavior under test.
   'src/infrastructure/database/sqlite/migration/migrations/006-fts5-reflection-notes.spec.ts',
   // Self-test for the legacy initializer itself.
-  'src/shared/utils/database.spec.ts'
+  'src/test/helpers/legacy-full-schema-bootstrap.spec.ts',
 ];
 
 const INLINE_MEMORY_EMBEDDING_DDL_ALLOWLIST = [
@@ -53,7 +53,7 @@ const RECALL_SHARDS = {
 describe('database test topology', () => {
   it('keeps legacy full-schema bootstrap calls on an explicit behavior allowlist', () => {
     const actual = specs
-      .filter(path => readFileSync(path, 'utf8').includes('DatabaseUtils.initializeDatabase('))
+      .filter(path => readFileSync(path, 'utf8').includes('initializeLegacyFullSchemaBootstrap('))
       .map(packagePath)
       .sort();
 
@@ -94,5 +94,36 @@ describe('database test topology', () => {
     expect(specs.map(packagePath)).not.toContain(
       'src/domains/memory/tools/__tests__/recall-tool.spec.ts'
     );
+  });
+});
+
+function collectProductionTsUnderSrc(): string[] {
+  const srcRoot = packageRoot;
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const absPath = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === '__tests__' || entry.name === 'test') {
+          return [];
+        }
+        return walk(absPath);
+      }
+      if (!entry.name.endsWith('.ts') || entry.name.endsWith('.spec.ts') || entry.name.endsWith('.test.ts')) {
+        return [];
+      }
+      return [relative(srcRoot, absPath).replaceAll('\\', '/')];
+    });
+
+  return walk(srcRoot);
+}
+
+describe('DDL source topology (#1535)', () => {
+  it('does not import removed shared/utils ensure-* modules from production code', () => {
+    const productionFiles = collectProductionTsUnderSrc();
+    const offenders = productionFiles.filter((file) =>
+      /shared\/utils\/ensure-/.test(readFileSync(resolve(packageRoot, file), 'utf8')),
+    );
+
+    expect(offenders).toEqual([]);
   });
 });

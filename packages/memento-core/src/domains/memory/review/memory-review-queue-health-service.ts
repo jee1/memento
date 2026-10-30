@@ -3,8 +3,6 @@
  * Uses memory_review_candidate timestamps; optional append-only snapshots for trends.
  */
 import type Database from 'better-sqlite3';
-import { ensureMemoryReviewCandidateSchema } from '../../../shared/utils/ensure-memory-review-candidate-schema.js';
-
 export interface ReviewQueueWindowCounts {
   /** Rows inserted in the window (producer signal; created_at). */
   candidatesCreated: number;
@@ -85,7 +83,6 @@ export function computeMemoryReviewQueueHealthLive(
   db: Database.Database,
   nowMs?: number,
 ): MemoryReviewQueueHealthLive {
-  ensureMemoryReviewCandidateSchema(db);
   const now = nowMs ?? Date.now();
   const sampledAt = new Date(now).toISOString();
   const cutoff1h = new Date(now - 3_600_000).toISOString();
@@ -109,7 +106,6 @@ export function recordMemoryReviewQueueHealthSnapshot(
   db: Database.Database,
   nowMs?: number,
 ): MemoryReviewQueueHealthSnapshotRow | null {
-  ensureMemoryReviewCandidateSchema(db);
   if (!snapshotTableReady(db)) {
     return null;
   }
