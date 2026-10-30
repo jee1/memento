@@ -7,7 +7,10 @@ import { DatabaseUtils } from './database.js';
  */
 export function readCurrentSchemaVersion(db: Database.Database): string | null {
   try {
-    const row = DatabaseUtils.get(db, 'SELECT version FROM memento_schema_version ORDER BY applied_at DESC LIMIT 1') as
+    const row = DatabaseUtils.get(
+      db,
+      'SELECT version FROM memento_schema_version ORDER BY applied_at DESC, CAST(version AS REAL) DESC LIMIT 1',
+    ) as
       | { version?: string }
       | undefined;
     return row?.version ?? null;
