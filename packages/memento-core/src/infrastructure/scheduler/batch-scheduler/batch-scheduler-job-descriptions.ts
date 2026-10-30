@@ -4,10 +4,11 @@
  */
 export const BATCH_SCHEDULER_JOB_DESCRIPTIONS: Readonly<Record<string, string>> = {
   cleanup:
-    '망각 정책 배치 — TTL 만료 working/episodic soft delete, 유예 기간이 지난 항목 hard delete',
+    '망각 정책 배치 — 타입별 TTL·망각 점수 soft delete(working/episodic/semantic/procedural), 유예 기간 경과 hard delete',
   monitoring:
     'PerformanceMonitor — Node 힙, DB 크기, 쿼리 지연 등 자원 지표 수집 및 경고',
-  healthcheck: 'DB 연결, sqlite-vec 등 필수 컴포넌트 건전성 점검',
+  healthcheck:
+    'HealthChecker — DB SELECT 1, Node 힙 사용률, 실행 중 잡 수, 큐 크기 점검',
   log_rotation:
     '로그·백업 보존 — 텔레메트리 retention, migration 백업 개수, docker diagnostics·monitor jsonl 용량 상한',
   quality_measurement_batch:
@@ -22,13 +23,17 @@ export const BATCH_SCHEDULER_JOB_DESCRIPTIONS: Readonly<Record<string, string>> 
   forgetting_event_cleanup_batch: '보존 기간이 지난 forgetting_event 감사 로그 삭제',
   job_run_cleanup_batch:
     '오래된 job_run 및 job_run_log durable 실행 이력 삭제 (JOB_RUN_RETENTION_DAYS)',
-  anchor_auto_refresh: '앵커 맵 자동 force 시뮬레이션 및 슬롯 배치 갱신',
+  anchor_auto_refresh:
+    '빈 슬롯·1일 이상 미갱신 앵커 슬롯에 후보 memory_item을 고르고 setAnchor로 슬롯 기억 교체',
   embedding_reconciliation:
-    'memory_item 대비 embedding 누락·차원 불일치·provider drift 보정',
+    '활성 memory_item 대비 native embedding 누락, content_hash 불일치, 현재 provider 미일치 행 재생성',
 };
 
 export function resolveBatchSchedulerJobDescription(jobName: string): string | null {
   if (typeof jobName !== 'string' || jobName.trim() === '') {
+    return null;
+  }
+  if (!Object.hasOwn(BATCH_SCHEDULER_JOB_DESCRIPTIONS, jobName)) {
     return null;
   }
   return BATCH_SCHEDULER_JOB_DESCRIPTIONS[jobName] ?? null;

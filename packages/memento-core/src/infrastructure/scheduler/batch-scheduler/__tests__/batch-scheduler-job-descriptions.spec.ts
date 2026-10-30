@@ -16,4 +16,10 @@ describe('batch-scheduler-job-descriptions (#1464)', () => {
     expect(resolveBatchSchedulerJobDescription('not_a_real_job')).toBeNull();
     expect(resolveBatchSchedulerJobDescription('')).toBeNull();
   });
+
+  it('returns null for inherited property names, not prototype values (#1541)', () => {
+    expect(resolveBatchSchedulerJobDescription('constructor')).toBeNull();
+    expect(resolveBatchSchedulerJobDescription('toString')).toBeNull();
+    expect(resolveBatchSchedulerJobDescription('__proto__')).toBeNull();
+  });
 });
