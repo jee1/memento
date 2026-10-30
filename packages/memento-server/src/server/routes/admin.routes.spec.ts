@@ -1938,7 +1938,10 @@ describe('admin.routes memory review candidates', () => {
           expect(typeof job.errorCount).toBe('number');
           expect(typeof job.errorRate).toBe('number');
           expect(typeof job.isRunning).toBe('boolean');
+          expect(job.description === null || typeof job.description === 'string').toBe(true);
         }
+        const cleanup = jobs.find(j => j.name === 'cleanup');
+        expect(cleanup?.description).toMatch(/망각/);
 
         const queue = body.queue as Record<string, unknown>;
         expect(typeof queue.size).toBe('number');

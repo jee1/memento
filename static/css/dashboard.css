@@ -2253,6 +2253,24 @@ circle.em-dot:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.jobs-schedule__name {
+  font-weight: var(--font-weight-medium, 600);
+}
+
+.jobs-schedule__desc {
+  margin-top: var(--spacing-2xs, 0.25rem);
+  font-size: var(--font-size-xs, 0.8125rem);
+  color: var(--color-text-muted, #6b7280);
+  font-weight: normal;
+}
+
+.jobs-drawer__description {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted, #6b7280);
+  line-height: 1.45;
+}
+
 .jobs-subheading {
   margin: var(--spacing-md) 0 var(--spacing-xs);
   font-size: var(--font-size-sm);

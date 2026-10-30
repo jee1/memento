@@ -700,6 +700,9 @@
                   <li>실행 로그: <code>GET /admin/batch/runs/:runId/logs</code> (수동 새로고침; SSE 없음)</li>
                   <li>수동 실행 이력: <code>GET /admin/batch/run-history</code> (process-local 링 버퍼, 보조; POST /admin/batch/run만)</li>
                 </ul>
+                <h3 class="m-about__heading">등록 배치 역할</h3>
+                <p class="jobs-intro">새로고침 후 <code class="m-code-inline">GET /admin/batch/stats</code>의 <code class="m-code-inline">jobs[].description</code>과 동일한 요약입니다.</p>
+                <ul id="jobs-batch-guide-list" class="m-about__list"></ul>
               </div>
             </details>
           </div>
@@ -738,6 +741,7 @@
               <h3 id="jobs-drawer-title" class="jobs-drawer__title"><span id="jobs-drawer-job">전체 작업</span><span id="jobs-drawer-run" class="jobs-drawer__run hidden"></span></h3>
               <span id="jobs-drawer-badge" class="m-badge hidden"></span>
             </header>
+            <p id="jobs-drawer-description" class="jobs-drawer__description hidden"></p>
             <div class="m-subtabs" role="tablist" aria-label="선택한 작업 상세">
               <button type="button" id="jobs-dtab-runs" class="m-subtab" role="tab" aria-selected="true" aria-controls="jobs-dpanel-runs" data-drawer-tab="runs">실행 이력</button>
               <button type="button" id="jobs-dtab-logs" class="m-subtab" role="tab" aria-selected="false" aria-controls="jobs-dpanel-logs" data-drawer-tab="logs" tabindex="-1">로그</button>

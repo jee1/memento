@@ -11,6 +11,7 @@ import {
   flushJobRunLogBufferSafe,
   getBatchScheduler,
   isRegisteredManualBatchJobType,
+  resolveBatchSchedulerJobDescription,
   JobRunLogBuffer,
   JobRunLogRepository,
   JobRunRepository,
@@ -193,6 +194,7 @@ function getBatchStats(_req: Request, res: Response) {
         errorCount: job.errorCount,
         errorRate: job.errorRate,
         isRunning: job.isRunning,
+        description: resolveBatchSchedulerJobDescription(job.name),
       };
     });
 

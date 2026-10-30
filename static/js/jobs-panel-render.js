@@ -59,6 +59,32 @@
     }
   };
 
+  ns.renderBatchGuide = function (jobs) {
+    const ul = ns.$('jobs-batch-guide-list');
+    if (!ul) {
+      return;
+    }
+    ns.clearNode(ul);
+    const list = Array.isArray(jobs) ? jobs.slice() : [];
+    list.sort(function (a, b) {
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''));
+    });
+    list.forEach(function (job) {
+      if (!job || !job.description) {
+        return;
+      }
+      const li = document.createElement('li');
+      const code = document.createElement('code');
+      code.className = 'm-code-inline';
+      code.textContent = job.name || '';
+      li.appendChild(code);
+      const rest = document.createElement('span');
+      rest.textContent = ' — ' + String(job.description);
+      li.appendChild(rest);
+      ul.appendChild(li);
+    });
+  };
+
   ns.renderHealth = function (health, schedulerRunning) {
     const el = ns.$('jobs-health-summary');
     if (!el) {
@@ -111,7 +137,18 @@
       badge.textContent = state.label;
       stateTd.appendChild(badge);
       row.appendChild(stateTd);
-      appendCell(row, name);
+      const nameTd = document.createElement('td');
+      const nameEl = document.createElement('div');
+      nameEl.className = 'jobs-schedule__name';
+      nameEl.textContent = name;
+      nameTd.appendChild(nameEl);
+      if (job.description) {
+        const descEl = document.createElement('div');
+        descEl.className = 'jobs-schedule__desc';
+        descEl.textContent = String(job.description);
+        nameTd.appendChild(descEl);
+      }
+      row.appendChild(nameTd);
       appendCell(
         row,
         job.intervalMs == null ? '—' : ns.formatNumber(job.intervalMs),

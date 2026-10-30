@@ -110,6 +110,7 @@
       ns.renderHealth(stats.health, stats.schedulerRunning);
       ns.renderKpis(stats, status);
       ns.renderSchedule(stats.jobs);
+      ns.renderBatchGuide(stats.jobs);
       ns.renderQueue(stats.queue);
       ns.renderRunHistory(history.entries);
       ns.renderTimeline(runs.runs);

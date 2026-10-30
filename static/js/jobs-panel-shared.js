@@ -191,6 +191,19 @@
         ns.setHidden(badgeEl, true);
       }
     }
+    const descEl = ns.$('jobs-drawer-description');
+    if (descEl) {
+      const jobs = (ns.state.lastStats || {}).jobs;
+      const list = Array.isArray(jobs) ? jobs : [];
+      const job = ns.state.selectedJob
+        ? list.find(function (j) {
+            return j && j.name === ns.state.selectedJob;
+          })
+        : null;
+      const text = job && job.description ? String(job.description) : '';
+      descEl.textContent = text;
+      ns.setHidden(descEl, !text);
+    }
   };
 
   ns.syncActionButtons = function () {
