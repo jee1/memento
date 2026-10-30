@@ -4,17 +4,15 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { initializeServices, type ServerServices, DatabaseUtils, getBatchScheduler } from '@memento/core';
+import { initializeServices, type ServerServices, initializeDatabase, getBatchScheduler } from '@memento/core';
 import Database from 'better-sqlite3';
 
 describe('MetaMemoryService 초기화', () => {
   let db: Database.Database;
   let services: ServerServices | null = null;
 
-  beforeEach(() => {
-    // 메모리 데이터베이스 생성
-    db = new Database(':memory:');
-    DatabaseUtils.initializeDatabase(db);
+  beforeEach(async () => {
+    db = await initializeDatabase(':memory:');
     services = null;
   });
 

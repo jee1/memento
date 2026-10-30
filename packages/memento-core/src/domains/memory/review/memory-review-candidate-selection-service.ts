@@ -3,8 +3,6 @@
  */
 
 import Database from 'better-sqlite3';
-import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
-import { ensureMemoryReviewCandidateSchema } from '../../../shared/utils/ensure-memory-review-candidate-schema.js';
 import { parseMemoryReviewSelectionEnv } from './memory-review-candidate-selection-env.js';
 import {
   buildReason,
@@ -52,9 +50,6 @@ export function selectMemoryReviewCandidates(
   db: Database.Database,
   options?: Partial<MemoryReviewCandidateSelectionOptions>,
 ): MemoryReviewCandidateSelectionItem[] {
-  ensureMetaMemoryStatsSchema(db);
-  ensureMemoryReviewCandidateSchema(db);
-
   const env = parseMemoryReviewSelectionEnv();
   const merged: MemoryReviewCandidateSelectionOptions = {
     importanceThreshold: options?.importanceThreshold ?? env.importanceThreshold,

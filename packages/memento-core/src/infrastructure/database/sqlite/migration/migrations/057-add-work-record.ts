@@ -6,7 +6,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { ensureWorkRecordColumn } from '../../../../../shared/utils/ensure-work-record-column.js';
+import { applyWorkRecordColumn } from '../idempotent-ddl.js';
 import type { Migration } from '../types.js';
 
 export class AddWorkRecordMigration implements Migration {
@@ -21,7 +21,7 @@ export class AddWorkRecordMigration implements Migration {
   }
 
   async up(db: Database.Database): Promise<void> {
-    ensureWorkRecordColumn(db);
+    applyWorkRecordColumn(db);
   }
 
   async down(db: Database.Database): Promise<void> {

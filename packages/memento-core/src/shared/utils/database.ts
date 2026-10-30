@@ -4,7 +4,6 @@
 
 import Database from 'better-sqlite3';
 
-import { initializeDatabase as initializeDatabaseSchema } from './database/schema-initialization.js';
 import { allQuery, execQuery, getQuery, runQuery } from './database/query-helpers.js';
 import {
   forceCleanupTransaction,
@@ -77,9 +76,5 @@ export class DatabaseUtils {
     inTransaction: boolean;
   } {
     return getDatabaseStatus(db);
-  }
-
-  static async initializeDatabase(db: Database.Database): Promise<void> {
-    return initializeDatabaseSchema(db);
   }
 }

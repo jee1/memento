@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { initializeLegacyFullSchemaBootstrap } from '../../../../test/helpers/legacy-full-schema-bootstrap.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { MemoryNeighborService, MemoryNotFoundError } from '../memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../../../domains/search/algorithms/vector-search-engine.js';
@@ -28,7 +29,7 @@ describe('MemoryNeighborService', () => {
   beforeEach(async () => {
     // This suite deliberately permits malformed legacy embedding rows.
     db = new Database(':memory:');
-    await DatabaseUtils.initializeDatabase(db);
+    await initializeLegacyFullSchemaBootstrap(db);
     
     vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);

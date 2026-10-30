@@ -235,6 +235,10 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
     rationale: '기존 저장·스키마 검증·업그레이드 경로; 이번 server 이관 범위 밖',
   },
   {
+    path: 'packages/memento-core/src/infrastructure/database/sqlite/migration/idempotent-ddl.ts',
+    rationale: 'migration 054/057 up() 전용 idempotent DDL; 운영 서비스 경로에서 호출하지 않음 (#1535)',
+  },
+  {
     path: 'packages/memento-core/src/infrastructure/database/sqlite/migrate.ts',
     rationale: '기존 저장·스키마 검증·업그레이드 경로; 이번 server 이관 범위 밖',
   },
@@ -279,18 +283,6 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
     rationale: '기존 배치·reflexion 기억 접근; 후속 이관 대상',
   },
   {
-    path: 'packages/memento-core/src/shared/utils/database/schema-initialization.ts',
-    rationale: '기존 공용 필터·스키마·쓰기 경로; 이번 server 이관 범위 밖',
-  },
-  {
-    path: 'packages/memento-core/src/shared/utils/ensure-memory-embedding-content-hash.ts',
-    rationale: '기존 공용 필터·스키마·쓰기 경로; 이번 server 이관 범위 밖',
-  },
-  {
-    path: 'packages/memento-core/src/shared/utils/ensure-work-record-column.ts',
-    rationale: '기존 공용 필터·스키마·쓰기 경로; 이번 server 이관 범위 밖',
-  },
-  {
     path: 'packages/memento-core/src/shared/utils/memory-filter-sql.ts',
     rationale: '기존 공용 필터·스키마·쓰기 경로; 이번 server 이관 범위 밖',
   },
@@ -309,7 +301,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
 ] as const;
 
 /** 허용 목록 증가 방지 가드 — 리뷰 없이 올리지 않는다 (#1531). */
-const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 72;
+const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 70;
 
 /**
  * 문자열 리터럴 안의 `memory_item` 테이블 참조.

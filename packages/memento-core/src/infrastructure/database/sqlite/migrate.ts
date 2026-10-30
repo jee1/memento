@@ -15,7 +15,6 @@ import {
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
-import { ensureMemoryEmbeddingContentHash } from '../../../shared/utils/ensure-memory-embedding-content-hash.js';
 import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
 import {
   checkVecCardinality,
@@ -23,6 +22,7 @@ import {
   reconcileVecDistanceMetric,
   recreateVecTriggers
 } from './vec-schema.js';
+import { applyMemoryEmbeddingContentHash } from './migration/idempotent-ddl.js';
 
 function isDuplicateColumnError(err: unknown): boolean {
   return err instanceof Error && err.message.includes('duplicate column name');
@@ -270,7 +270,9 @@ function migrateDatabase() {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
     }
 
-    ensureMemoryEmbeddingContentHash(db);
+    logger.info('🔐 memory_embedding content_hash 보정 중...');
+    applyMemoryEmbeddingContentHash(db);
+    logger.info('✅ memory_embedding content_hash 보정 완료');
 
     logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`

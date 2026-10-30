@@ -1,13 +1,15 @@
 import type Database from 'better-sqlite3';
 
-import { ensureMemoryEmbeddingContentHash } from '../ensure-memory-embedding-content-hash.js';
-import { ensureWorkRecordColumn } from '../ensure-work-record-column.js';
-import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../fts5-migration-status.js';
-import { normalizeReflectionNotes } from '../reflection-notes-normalize.js';
-import { log } from './database-error-helpers.js';
-import { runQuery } from './query-helpers.js';
+import {
+  applyMemoryEmbeddingContentHash,
+  applyWorkRecordColumn,
+} from '../../infrastructure/database/sqlite/migration/idempotent-ddl.js';
+import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../../shared/utils/fts5-migration-status.js';
+import { normalizeReflectionNotes } from '../../shared/utils/reflection-notes-normalize.js';
+import { log } from '../../shared/utils/database/database-error-helpers.js';
+import { runQuery } from '../../shared/utils/database/query-helpers.js';
 
-export async function initializeDatabase(db: Database.Database): Promise<void> {
+export async function initializeLegacyFullSchemaBootstrap(db: Database.Database): Promise<void> {
   try {
     runQuery(db, 'PRAGMA journal_mode = WAL');
     runQuery(db, 'PRAGMA synchronous = NORMAL');
@@ -77,7 +79,7 @@ export async function initializeDatabase(db: Database.Database): Promise<void> {
     if (!memoryItemColumns.some(c => c.name === 'project_id')) {
       runQuery(db, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
     }
-    ensureWorkRecordColumn(db);
+    applyWorkRecordColumn(db);
 
     runQuery(
       db,
@@ -188,7 +190,7 @@ export async function initializeDatabase(db: Database.Database): Promise<void> {
       `
     );
 
-    ensureMemoryEmbeddingContentHash(db);
+    applyMemoryEmbeddingContentHash(db);
 
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type)');
     runQuery(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_created_at ON memory_item(created_at)');

@@ -9,9 +9,6 @@ import fs from 'fs';
 import { dirname } from 'path';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
-import { ensureMemoryReviewCandidateSchema } from '../../../shared/utils/ensure-memory-review-candidate-schema.js';
-import { ensureQualityAssuranceSchema } from '../../../shared/utils/ensure-quality-assurance-schema.js';
 import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../../../shared/utils/fts5-migration-status.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
@@ -61,9 +58,6 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       await bootstrapNewDatabaseSchema(db);
     }
 
-    ensureMetaMemoryStatsSchema(db);
-    ensureQualityAssuranceSchema(db);
-    ensureMemoryReviewCandidateSchema(db);
     // #753: CLI migrate를 거치지 않는 기존 DB도 기동 시 1회 보정 (hot path 아님)
     ensureMemoryEmbeddingMetadataDefaults(db);
 
