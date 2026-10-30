@@ -12,7 +12,7 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import { clamp01 } from '../../../shared/utils/clamp.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
-import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
+import type { VectorSearchResult } from '../../embedding/services/memory-embedding-service.js';
 import { applyVectorLengthDecay } from './vector-length-decay.js';
 
 /** 벡터 레인이 실제로 사용한 질의 임베딩. provider 별로 하나씩. */

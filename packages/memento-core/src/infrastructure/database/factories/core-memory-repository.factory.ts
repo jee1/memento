@@ -6,7 +6,7 @@
 import Database from 'better-sqlite3';
 import { SqliteCoreMemoryAdapter } from '../adapters/sqlite-core-memory-adapter.js';
 import { CoreMemoryRepositorySqliteImpl } from '../repositories/core-memory-repository-sqlite.impl.js';
-import type { CoreMemoryRepository } from '../../../domains/memory/repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRepository } from '../../../shared/ports/core-memory-repository.interface.js';
 
 /**
  * 지원되는 데이터베이스 타입

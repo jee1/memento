@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stripMemoryTemplateLabels } from './template-label-normalizer.js';
+import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 
 describe('stripMemoryTemplateLabels', () => {
   const labels = ['결정', '근거', '버린 대안', '안 통한 것', '다음 걸림돌'] as const;

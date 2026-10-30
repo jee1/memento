@@ -9,7 +9,7 @@ import { createHybridSearchEngine } from '../../../search/algorithms/hybrid-sear
 import type { HybridSearchEngine, HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 import { ErrorLoggingService } from '../../../monitoring/services/error-logging-service.js';
 import type { ToolContext } from '../../../tools/types.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { buildKnowledgeContextBundle } from '../knowledge-context-bundle-builder.js';
 import { ToolContextKnowledgeContextAdapter } from '../../../personal-agent/adapters/tool-context-knowledge-context-adapter.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';

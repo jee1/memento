@@ -7,7 +7,7 @@
   "packages/memento-core/src/domains/memory/review/memory-review-candidate-persistence-service.ts|where-template-literal|.prepare(`UPDATE memory_review_candidate SET ${setSql} WHERE ${whereSql}`)",
   "packages/memento-core/src/domains/memory/review/memory-review-candidate-persistence-service.ts|where-template-literal|`SELECT COUNT(*) AS count FROM memory_review_candidate WHERE ${whereSql}`,",
   "packages/memento-core/src/domains/memory/review/memory-review-queue-health-service.ts|where-template-literal|.prepare(`SELECT COUNT(*) AS n FROM memory_review_candidate WHERE ${whereSql}`)",
-  "packages/memento-core/src/domains/memory/services/memory-embedding-service.ts|dynamic-table-name|`  FROM ${tableName} ` +",
+  "packages/memento-core/src/domains/embedding/services/memory-embedding-service.ts|dynamic-table-name|`  FROM ${tableName} ` +",
   "packages/memento-core/src/domains/search/repositories/vector-search/vector-search-availability.ts|dynamic-table-name|`SELECT distance FROM ${runtimeContext.tableName} WHERE embedding MATCH ? LIMIT 0`",
   "packages/memento-core/src/domains/search/repositories/vector-search/vector-search-hybrid-query.ts|dynamic-table-name|`    FROM ${tableName} ` +",
   "packages/memento-core/src/domains/search/repositories/vector-search/vector-search-hybrid-query.ts|dynamic-table-name|`  FROM ${tableName} ` +",

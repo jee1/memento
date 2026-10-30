@@ -3,7 +3,7 @@ import type { ToolContext } from '../types.js';
 import { AnchorCacheService } from '../../services/anchor/anchor-cache-service.js';
 import { AnchorManager } from '../../services/anchor/anchor-manager.js';
 import { AnchorSearchService } from '../../services/anchor/anchor-search-service.js';
-import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';

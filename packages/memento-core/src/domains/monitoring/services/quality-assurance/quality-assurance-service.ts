@@ -20,7 +20,7 @@ import { QualityMetricsCollector,type CollectedMetrics } from './quality-metrics
 import { QualityRecorder,type MeasurementType } from './quality-recorder.js';
 import { QualityReporter,type ReportOptions } from './quality-reporter.js';
 import { QualityThresholdManager } from './quality-threshold-manager.js';
-import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 
 /**
  * 품질 측정 옵션

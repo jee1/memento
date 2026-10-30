@@ -5,7 +5,7 @@ import { SearchRanking } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
 import type { HybridSearchQuery, IProceduralMemoryMatcher } from './hybrid-search-types.js';
-import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
+import type { VectorSearchResult } from '../../embedding/services/memory-embedding-service.js';
 import { sqliteRepositoryProvider } from '../../../infrastructure/database/factories/sqlite-repository-provider.js';
 
 const STAMP = '2024-01-01T00:00:00.000Z';

@@ -4,7 +4,7 @@
 
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { ToolResult } from '../../../tools/types.js';
-import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
+import { requireRepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';

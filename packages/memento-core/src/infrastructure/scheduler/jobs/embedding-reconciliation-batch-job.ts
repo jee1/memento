@@ -3,7 +3,7 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { createEmptyBatchJobResult, finalizeBatchJobTiming } from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
-import type { MemoryEmbeddingService } from '../../../domains/memory/services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../../domains/embedding/services/memory-embedding-service.js';
 
 interface ActiveMemoryRow {
   id: string;

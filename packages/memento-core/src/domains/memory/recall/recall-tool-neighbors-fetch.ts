@@ -4,7 +4,7 @@
 
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';
 import type { RecallContext, RecallSearchItem } from './recall-tool-types.js';

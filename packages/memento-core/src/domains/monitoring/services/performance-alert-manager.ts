@@ -5,7 +5,7 @@
 import { PERF_ALERT_REARM_MS_DEFAULT, resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { DAY_MS } from '../../../shared/utils/date.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { alertNotificationService } from './alert-notification-service.js';
+import { alertNotificationService } from '../../../shared/services/alert-notification-service.js';
 import { getMemoryPressureDenominatorBytes, memoryRatioToPercent } from './memory-pressure-utils.js';
 import type { AlertThresholds, PerformanceAlert, PerformanceMetrics } from './performance-monitor-types.js';
 

@@ -2,7 +2,7 @@
  * 검색 품질 벤치마크·카테고리 리포트 타입
  */
 
-import type { PairRankMacroSummary } from '../../domains/monitoring/services/quality-assurance/pair-rank-outcome.js';
+import type { PairRankMacroSummary } from './pair-rank.types.js';
 import type { EmbeddingProvider } from './embedding.types.js';
 
 const BENCHMARK_EMBEDDING_PROVIDERS = new Set<string>([

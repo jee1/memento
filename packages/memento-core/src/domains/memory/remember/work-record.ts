@@ -5,7 +5,7 @@
 
 import type Database from 'better-sqlite3';
 import { z } from 'zod';
-import { stripMemoryTemplateLabels } from '../../consolidation/services/template-label-normalizer.js';
+import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 
 export const WorkRecordSchema = z.object({
   decision: z.string().min(1),

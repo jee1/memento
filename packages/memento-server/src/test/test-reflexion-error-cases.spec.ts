@@ -10,7 +10,7 @@ import { RecallTool } from '@memento/core/domains/memory/recall/recall-tool.js';
 import type { ToolContext } from '@memento/core/index.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 import { HybridSearchEngine } from '@memento/core/domains/search/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '@memento/core/domains/embedding/services/memory-embedding-service.js';
 import { sqliteRepositoryProvider } from '@memento/core';
 
 // 테스트 환경에서 파일 시스템 함수 사용은 안전함

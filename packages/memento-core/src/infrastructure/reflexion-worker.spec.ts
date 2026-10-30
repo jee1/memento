@@ -24,7 +24,7 @@ import {
   hasProceduralMemoryChanged,
 } from '../domains/memory/procedural/procedural-memory-change-detector.js';
 import { createHybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import { createQueryCounter, type QueryCounter } from '../test/helpers/query-counter.js';
 import { updateProceduralMemory } from './reflexion-worker/reflexion-worker-failure-handler.js';
 import { sqliteRepositoryProvider } from './database/factories/sqlite-repository-provider.js';

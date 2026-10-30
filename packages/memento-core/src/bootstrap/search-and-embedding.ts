@@ -1,12 +1,12 @@
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { OnDemandDatabaseOptimizer } from '../infrastructure/database/on-demand-database-optimizer.js';
 import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
 import { createRelevanceGate } from '../domains/search/services/relevance-gate/create-relevance-gate.js';
-import type { RepositoryProvider } from '../domains/memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../shared/ports/repository-provider.port.js';
 
 export function createSearchEmbeddingAndOptimizerServices(
   db: import('better-sqlite3').Database,

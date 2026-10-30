@@ -12,7 +12,7 @@
 import {
   type IKnowledgeVaultRepository,
   type KnowledgeVaultRecord
-} from '../repositories/knowledge-vault-repository.interface.js';
+} from '../../../shared/ports/knowledge-vault-repository.interface.js';
 
 interface CreateKnowledgeVaultServiceInput {
   agent_id?: string;

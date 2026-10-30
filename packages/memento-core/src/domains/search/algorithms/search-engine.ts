@@ -6,7 +6,7 @@
 import Database from 'better-sqlite3';
 import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import type { MemorySearchResult } from '../../../shared/types/search.types.js';
-import { requireRepositoryProvider, type RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
+import { requireRepositoryProvider, type RepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchEngineFtsAvailability } from './search-engine/search-engine-fts-availability.js';
 import { buildFTSQuery as buildFTSQueryImpl } from './search-engine/search-engine-fts-query.js';

@@ -6,7 +6,7 @@ import { DatabaseUtils } from '../../shared/utils/database.js';
 import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/procedural-memory-extractor.js';
 import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../../shared/utils/logger.js';
-import { MemoryEmbeddingService } from '../../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../domains/embedding/services/memory-embedding-service.js';
 
 export async function createProceduralMemory(
   db: Database.Database,

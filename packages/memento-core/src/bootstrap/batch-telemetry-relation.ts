@@ -7,7 +7,7 @@ import { createRelationGraph } from '../infrastructure/relation-graph-factory.js
 import { IntrospectionScanCache } from '../domains/memory/introspection/introspection-scan-cache.js';
 import { TelemetryRepository } from '../domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from '../domains/telemetry/services/telemetry-service.js';
-import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import type { RuntimeDiagnosticsLogger } from '../domains/monitoring/services/runtime-diagnostics-logger.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';

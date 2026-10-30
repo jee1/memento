@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { CreateFeedbackEventInput, FeedbackNetScore } from '../../../shared/types/feedback.types.js';
-import type { IFeedbackRepository } from '../../../domains/memory/repositories/feedback-repository.interface.js';
+import type { IFeedbackRepository } from '../../../shared/ports/feedback-repository.interface.js';
 
 /**
  * SQLite `SQLITE_MAX_VARIABLE_NUMBER`는 빌드마다 다르지만 흔히 999.

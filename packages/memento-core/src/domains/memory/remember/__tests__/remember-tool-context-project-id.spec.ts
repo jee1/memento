@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { RememberTool } from '../remember-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';

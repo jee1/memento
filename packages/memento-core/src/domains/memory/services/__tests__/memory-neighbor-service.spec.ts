@@ -4,7 +4,7 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { MemoryNeighborService, MemoryNotFoundError } from '../memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../../../domains/search/algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {

@@ -14,7 +14,7 @@ import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybr
 import { normalizeBenchmarkGroundTruths } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-review-verifier.js';
 import { getBenchmarkVectorProviderFilter } from '@memento/core/shared/types/benchmark.types.js';
 import type Database from 'better-sqlite3';
-import type { RepositoryProvider } from '@memento/core/domains/memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '@memento/core/shared/ports/repository-provider.port.js';
 import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 import { evaluatePerf, PERF_BASELINE_PATH, PERF_CORPUS_ROWS } from './lib/quality-baseline.js';
 

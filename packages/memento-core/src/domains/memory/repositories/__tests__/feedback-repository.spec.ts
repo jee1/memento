@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { sigmoidNormalizedNet } from '../feedback-repository.interface.js';
+import { sigmoidNormalizedNet } from '../../../../shared/ports/feedback-repository.interface.js';
 import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 

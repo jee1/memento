@@ -4,7 +4,7 @@
  */
 
 import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
-import type { MemoryEmbeddingService } from './memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';

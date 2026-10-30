@@ -27,7 +27,7 @@ vi.mock('../../../shared/utils/database.js', () => ({
   },
 }));
 
-const { MemoryEmbeddingService } = await import('./memory-embedding-service.js');
+const { MemoryEmbeddingService } = await import('../../embedding/services/memory-embedding-service.js');
 
 describe('searchBySimilarity 근접도 방향 (#806)', () => {
   let service: InstanceType<typeof MemoryEmbeddingService>;

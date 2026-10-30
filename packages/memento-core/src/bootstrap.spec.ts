@@ -119,7 +119,7 @@ vi.mock('./domains/search/factories/hybrid-search.factory.js', () => ({
   }
 }));
 
-vi.mock('./domains/memory/services/memory-embedding-service.js', () => ({
+vi.mock('./domains/embedding/services/memory-embedding-service.js', () => ({
   MemoryEmbeddingService: vi.fn().mockImplementation(function () { return {}; })
 }));
 

@@ -3,9 +3,9 @@ import { getRankingWeights } from '../../../shared/config/ranking-weights-loader
 import type { ProcessAttribute } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.interface.js';
-import { requireRepositoryProvider, type RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
-import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
+import { sigmoidNormalizedNet } from '../../../shared/ports/feedback-repository.interface.js';
+import { requireRepositoryProvider, type RepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
+import type { VectorSearchResult } from '../../embedding/services/memory-embedding-service.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { applyRelevanceSignalScale } from './search-ranking/search-ranking-signals.js';
 import { SearchRanking, type SearchFeatures } from './search-ranking.js';

@@ -5,7 +5,7 @@ import { mementoConfig } from '../shared/config/index.js';
 import { getBatchScheduler, resetBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../infrastructure/relation-graph-factory.js';
 import { createHybridSearchEngine, type HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import { RememberTool } from '../domains/memory/remember/remember-tool.js';
 import { RecallTool } from '../domains/memory/recall/recall-tool.js';
 import type { ToolContext } from '../tools/types.js';

@@ -26,7 +26,7 @@ import {
   verifyReviewableBenchmark,
 } from './search-quality-review-verifier.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
-import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 import type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { CollectedMetrics, SearchMetricsOptions } from './quality-metrics-types.js';
 

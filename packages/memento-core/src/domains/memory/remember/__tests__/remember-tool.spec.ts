@@ -5,7 +5,7 @@ import { ToolInputValidationError } from '../../../../shared/errors/tool-input-v
 import { RememberTool } from '../remember-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import * as configModule from '../../../../shared/config/index.js';
 import * as environmentCheck from '../../../../shared/utils/environment-check.js';

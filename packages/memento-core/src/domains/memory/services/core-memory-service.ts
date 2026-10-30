@@ -8,7 +8,7 @@
  * - 캐시 연동: always_load=true인 항목은 캐시에 유지
  */
 
-import type { CoreMemoryRecord,CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRecord,CoreMemoryRepository } from '../../../shared/ports/core-memory-repository.interface.js';
 
 export interface CoreMemoryCache {
   /**

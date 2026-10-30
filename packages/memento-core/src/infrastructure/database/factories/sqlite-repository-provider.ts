@@ -1,4 +1,4 @@
-import type { RepositoryProvider } from '../../../domains/memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 import { FeedbackRepositorySQLite } from '../repositories/feedback-repository-sqlite.impl.js';
 import { ProcessAttributeRepositorySqlite } from '../repositories/process-attribute-repository-sqlite.impl.js';
 import { KnowledgeVaultRepositorySqlite } from '../repositories/knowledge-vault-repository-sqlite.impl.js';

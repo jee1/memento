@@ -4,7 +4,7 @@
 
 import { createHash } from 'crypto';
 import { CoreMemoryService } from '../services/core-memory-service.js';
-import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
+import { requireRepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createCoreMemoryRepository } from '../../../../infrastructure/database/factories/core-memory-repository.factory.js';
-import type { CoreMemoryRepository } from '../core-memory-repository.interface.js';
+import type { CoreMemoryRepository } from '../../../../shared/ports/core-memory-repository.interface.js';
 
 /**
  * core_memory 테이블 생성

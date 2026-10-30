@@ -9,7 +9,7 @@ import { ZodError } from 'zod';
 import { getBatchScheduler, resetBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../infrastructure/relation-graph-factory.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import type { ToolContext } from '../tools/types.js';
 import type { RememberToolHost } from '../domains/memory/remember/remember-tool-host.js';
 import { sqliteRepositoryProvider } from '../infrastructure/database/factories/sqlite-repository-provider.js';

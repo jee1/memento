@@ -4,7 +4,7 @@ import type {
   ProviderHealthCheckOptions,
   ProviderHealthStatus
 } from '../../../shared/types/embedding-provider-monitoring.types.js';
-import { alertNotificationService } from '../../monitoring/services/alert-notification-service.js';
+import { alertNotificationService } from '../../../shared/services/alert-notification-service.js';
 
 const DEFAULT_HEALTH_SAMPLE = 'System health check';
 

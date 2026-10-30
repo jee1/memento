@@ -33,7 +33,7 @@ import {
   type PairRankMacroSummary,
 } from './pair-rank-outcome.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
-import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 import { calculateMRR } from './search-metrics-collector.js';
 
 /** #961: arm/subset 옵션 — 미지정 시 기존 category-report 기본 경로와 동일 */

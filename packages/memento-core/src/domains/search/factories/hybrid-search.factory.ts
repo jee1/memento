@@ -19,10 +19,10 @@ import type {
 } from '../algorithms/hybrid-search-engine.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { SearchResultCombiner } from '../algorithms/search-result-combiner.js';
-import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { logger } from '../../../shared/utils/logger.js';
-import type { RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 
 class DefaultSearchLogger implements ISearchLogger {
   logSearchStart(searchId: string, query: HybridSearchQuery): void {

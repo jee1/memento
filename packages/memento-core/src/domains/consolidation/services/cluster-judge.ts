@@ -7,7 +7,7 @@
  * that retry would change consolidation scores.
  */
 import { logger } from '../../../shared/utils/logger.js';
-import { stripMemoryTemplateLabels } from './template-label-normalizer.js';
+import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 
 export interface ClusterJudgePair {
   a: string;

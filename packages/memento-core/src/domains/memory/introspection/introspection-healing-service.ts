@@ -14,7 +14,7 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { clamp01 } from '../../../shared/utils/clamp.js';
 import { MetaMemoryIntrospectionService } from './meta-memory-introspection-service.js';
-import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import {
   EmbeddingReindexService,
   ID_CHUNK_SIZE,

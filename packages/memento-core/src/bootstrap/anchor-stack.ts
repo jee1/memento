@@ -4,7 +4,7 @@ import { getVectorSearchEngine } from '../domains/search/algorithms/vector-searc
 import { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import { AnchorCacheService } from '../domains/anchor/services/anchor/anchor-cache-service.js';
 import { AnchorSearchService } from '../domains/anchor/services/anchor/anchor-search-service.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
 
 export async function createAnchorStack(

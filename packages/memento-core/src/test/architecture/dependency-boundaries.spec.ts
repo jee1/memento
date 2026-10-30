@@ -29,6 +29,88 @@ const SHARED_TO_INFRA_OR_SERVER_ALLOWLIST: readonly AllowlistEntry[] = [] as con
 const FROZEN_DOMAIN_TO_INFRA_ALLOWLIST_SIZE = 0; // #1333: telemetry uses a narrow scheduler type
 const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 0; // #1327: RetryManager moved to shared
 
+// #1534: direction pairs include type-only and dynamic edges; order proves the frozen graph is a DAG.
+const DOMAIN_DEPENDENCY_ORDER = [
+  'agent-integration', 'anchor', 'consolidation', 'personal-agent', 'monitoring',
+  'memory', 'forgetting', 'telemetry', 'search', 'relation', 'embedding',
+] as const;
+const DOMAIN_DIRECTION_ALLOWLIST: readonly AllowlistEntry[] = [
+  { path: 'agent-integration→search', rationale: '주입 후보 검색' },
+  { path: 'anchor→embedding', rationale: '앵커 검색·관계 탐색·관측' },
+  { path: 'anchor→monitoring', rationale: '앵커 검색·관계 탐색·관측' },
+  { path: 'anchor→relation', rationale: '앵커 검색·관계 탐색·관측' },
+  { path: 'anchor→search', rationale: '앵커 검색·관계 탐색·관측' },
+  { path: 'consolidation→embedding', rationale: '증류 임베딩·요약·텔레메트리' },
+  { path: 'consolidation→personal-agent', rationale: '증류 임베딩·요약·텔레메트리' },
+  { path: 'consolidation→telemetry', rationale: '증류 임베딩·요약·텔레메트리' },
+  { path: 'memory→embedding', rationale: '기억 조회·망각·관계·관측' },
+  { path: 'memory→forgetting', rationale: '기억 조회·망각·관계·관측' },
+  { path: 'memory→relation', rationale: '기억 조회·망각·관계·관측' },
+  { path: 'memory→search', rationale: '기억 조회·망각·관계·관측' },
+  { path: 'memory→telemetry', rationale: '기억 조회·망각·관계·관측' },
+  { path: 'monitoring→memory', rationale: '품질 측정·메타 메모리 통계' },
+  { path: 'monitoring→relation', rationale: '품질 측정·메타 메모리 통계' },
+  { path: 'monitoring→search', rationale: '품질 측정·메타 메모리 통계' },
+  { path: 'personal-agent→memory', rationale: '지식 컨텍스트 구성' },
+  { path: 'relation→embedding', rationale: '관계 임베딩' },
+  { path: 'search→embedding', rationale: '검색 임베딩·관계 확장' },
+  { path: 'search→relation', rationale: '검색 임베딩·관계 확장' },
+  { path: 'telemetry→search', rationale: '검색 품질 집계' },
+];
+const FROZEN_DOMAIN_DIRECTION_ALLOWLIST_SIZE = 21;
+
+// Registration stays here until ToolContext contracts are separated from the composition root.
+const TOOLS_TO_DOMAIN_ALLOWLIST = [
+  { path: 'tools/base-tool.ts', rationale: '실패 감지 훅 타입', targets: [
+    'domains/monitoring/services/failure-detector.ts',
+  ] },
+  { path: 'tools/types.ts', rationale: '기존 ToolContext 서비스 계약; 새 서비스 의존은 별도 리뷰', targets: [
+    'domains/search/algorithms/search-engine.ts',
+    'domains/search/algorithms/hybrid-search-engine.ts',
+    'domains/embedding/services/memory-embedding-service.ts',
+    'domains/forgetting/services/forgetting-policy-service.ts',
+    'domains/monitoring/services/error-logging-service.ts',
+    'domains/anchor/services/anchor/anchor-manager.ts',
+    'domains/relation/ports/relation-graph.port.ts',
+    'domains/search/algorithms/vector-search-engine.ts',
+    'domains/monitoring/services/failure-detector.ts',
+    'domains/memory/introspection/meta-memory-service.ts',
+    'domains/memory/introspection/introspection-scan-cache.ts',
+    'domains/monitoring/services/performance-monitor.ts',
+    'domains/telemetry/services/telemetry-service.ts',
+  ] },
+  { path: 'tools/migrate-embeddings-tool.ts', rationale: '임베딩 이관 핸들러', targets: [
+    'domains/embedding/services/unified-embedding-service.ts',
+    'domains/embedding/services/vector-compatibility-service.ts',
+  ] },
+  { path: 'tools/index.ts', rationale: '도구 등록 조립 루트', targets: [
+    'domains/memory/remember/remember-tool.ts',
+    'domains/memory/recall/recall-tool.ts',
+    'domains/memory/tools/forget-tool.ts',
+    'domains/memory/tools/pin-tool.ts',
+    'domains/memory/tools/unpin-tool.ts',
+    'domains/memory/tools/memory-injection-prompt.ts',
+    'domains/memory/tools/get-memory-neighbors-tool.ts',
+    'domains/anchor/tools/set-anchor-tool.ts',
+    'domains/anchor/tools/get-anchor-tool.ts',
+    'domains/anchor/tools/search-local-tool.ts',
+    'domains/anchor/tools/clear-anchor-tool.ts',
+    'domains/memory/procedural/procedural-diff-tool.ts',
+    'domains/memory/procedural/procedural-rollback-tool.ts',
+    'domains/memory/procedural/remember-procedure-tool.ts',
+    'domains/memory/introspection/get-introspection-summary-tool.ts',
+    'domains/memory/tools/feedback-tool.ts',
+    'domains/telemetry/tools/get-telemetry-summary-tool.ts',
+    'domains/relation/tools/add-relation-tool.ts',
+    'domains/relation/tools/get-relations-tool.ts',
+    'domains/relation/tools/remove-relation-tool.ts',
+    'domains/memory/tools/export-memories-tool.ts',
+    'domains/memory/tools/wipe-memory-tool.ts',
+  ] },
+] as const;
+const FROZEN_TOOLS_TO_DOMAIN_EDGE_COUNT = 38;
+const TOOL_CONTRACT_FILES = new Set(['tools/types.ts', 'tools/base-tool.ts', 'tools/caller-scope.ts']);
+
 /**
  * Module edges collected via the TypeScript AST (#926).
  * Covers static / dynamic / side-effect imports, `export ... from`, and `import('...')` type nodes —
@@ -114,6 +196,9 @@ function importsLayer(fromFile: string, spec: string, layers: readonly string[])
 const INFRA_OR_SERVER_LAYERS = ['infrastructure', 'server'] as const;
 
 function resolveRelativeImport(fromFile: string, spec: string): string | null {
+  if (spec.startsWith('@memento/core/')) {
+    return path.posix.normalize(spec.slice('@memento/core/'.length)).replace(/\.js$/, '.ts');
+  }
   if (!spec.startsWith('.')) {
     return null;
   }
@@ -324,6 +409,76 @@ describe('dependency boundaries', () => {
     expect([...offenders].sort()).toEqual([...allowlistPaths].sort());
   });
 
+  it('forbids shared→domains imports (#1534)', async () => {
+    const offenders: string[] = [];
+    for (const file of await collectProductionTsFiles(sharedRoot)) {
+      for (const edge of collectModuleEdges(await readSource(file))) {
+        if (resolveRelativeImport(file, edge.spec)?.startsWith('domains/')) {
+          offenders.push(`${file}→${edge.spec}`);
+        }
+      }
+    }
+    expect(offenders, `shared→domains imports: ${offenders.join(', ')}`).toEqual([]);
+  });
+
+  it('freezes domain directions to an acyclic graph (#1534)', async () => {
+    expect(DOMAIN_DIRECTION_ALLOWLIST).toHaveLength(FROZEN_DOMAIN_DIRECTION_ALLOWLIST_SIZE);
+    const allowed = new Set(DOMAIN_DIRECTION_ALLOWLIST.map((entry) => entry.path));
+    expect(allowed.size).toBe(FROZEN_DOMAIN_DIRECTION_ALLOWLIST_SIZE);
+    expect(DOMAIN_DIRECTION_ALLOWLIST.every((entry) => entry.rationale.trim().length > 0)).toBe(true);
+    const order = new Map<string, number>(DOMAIN_DEPENDENCY_ORDER.map((domain, index) => [domain, index]));
+    for (const direction of allowed) {
+      const [from, to] = direction.split('→');
+      expect(order.has(from) && order.has(to), direction).toBe(true);
+      expect(order.get(from)!, direction).toBeLessThan(order.get(to)!);
+    }
+
+    const directions = new Set<string>();
+    const offenders: string[] = [];
+    const files = await collectProductionTsFiles(domainsRoot);
+    expect([...new Set(files.map((file) => file.split('/')[1]))].sort()).toEqual([...order.keys()].sort());
+    for (const file of files) {
+      const from = file.split('/')[1];
+      for (const edge of collectModuleEdges(await readSource(file))) {
+        const target = resolveRelativeImport(file, edge.spec);
+        if (!target?.startsWith('domains/')) continue;
+        const to = target.split('/')[1];
+        if (from === to) continue;
+        const direction = `${from}→${to}`;
+        directions.add(direction);
+        if (!allowed.has(direction)) offenders.push(`${file}→${target}`);
+      }
+    }
+    expect(offenders, `new domain directions: ${offenders.join(', ')}`).toEqual([]);
+    expect([...directions].sort()).toEqual([...allowed].sort());
+  });
+
+  it('freezes tools→domain imports and permits only tool contracts from domain handlers (#1534)', async () => {
+    expect(TOOLS_TO_DOMAIN_ALLOWLIST.every((entry) => entry.rationale.trim().length > 0)).toBe(true);
+    const allowed = TOOLS_TO_DOMAIN_ALLOWLIST.flatMap((entry) => entry.targets.map((target) => `${entry.path}→${target}`));
+    expect(allowed).toHaveLength(FROZEN_TOOLS_TO_DOMAIN_EDGE_COUNT);
+    expect(new Set(allowed).size).toBe(FROZEN_TOOLS_TO_DOMAIN_EDGE_COUNT);
+    const actual: string[] = [];
+    for (const file of await collectProductionTsFiles(path.join(srcRoot, 'tools'))) {
+      for (const edge of collectModuleEdges(await readSource(file))) {
+        const target = resolveRelativeImport(file, edge.spec);
+        if (target?.startsWith('domains/')) actual.push(`${file}→${target}`);
+      }
+    }
+    expect(actual.sort()).toEqual([...allowed].sort());
+
+    const offenders: string[] = [];
+    for (const file of await collectProductionTsFiles(domainsRoot)) {
+      for (const edge of collectModuleEdges(await readSource(file))) {
+        const target = resolveRelativeImport(file, edge.spec);
+        if (target?.startsWith('tools/') && !TOOL_CONTRACT_FILES.has(target)) {
+          offenders.push(`${file}→${target}`);
+        }
+      }
+    }
+    expect(offenders, `domain imports of tool registration/implementation: ${offenders.join(', ')}`).toEqual([]);
+  });
+
   it('has no runtime import cycle among database utils / schema-init / fts5 (#749)', async () => {
     const cycleFiles = [
       'shared/utils/database.ts',
@@ -347,6 +502,8 @@ describe('dependency boundaries', () => {
   });
 
   it('detects dynamic import, re-export, multiline and side-effect edges (#926)', () => {
+    expect(resolveRelativeImport('shared/probe.ts', '@memento/core/shared/../domains/search/algorithms/search-engine.js'))
+      .toBe('domains/search/algorithms/search-engine.ts');
     const source = [
       "import { A } from '../../infrastructure/a.js';",
       'import {',

@@ -147,7 +147,7 @@ export { BatchJobAlreadyRunningError } from './infrastructure/scheduler/batch-sc
 // --- 도메인·인프라 re-export (서버 thin화용) ---
 export { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
 export { HybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
-export { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
+export { MemoryEmbeddingService } from './domains/embedding/services/memory-embedding-service.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 export { QualityAssuranceService } from './domains/monitoring/services/quality-assurance/quality-assurance-service.js';
@@ -163,7 +163,7 @@ export type {
 } from './infrastructure/database/sqlite/migration/backup-manager.js';
 export { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 export { sqliteRepositoryProvider } from './infrastructure/database/factories/sqlite-repository-provider.js';
-export type { RepositoryProvider } from './domains/memory/repositories/repository-provider.port.js';
+export type { RepositoryProvider } from './shared/ports/repository-provider.port.js';
 export { RelationExtractor } from './domains/relation/services/relation-extractor.js';
 export {
   RelationQualityValidator,
