@@ -9,8 +9,13 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- 관계 추출: OpenAI 경로가 출력 상한을 `max_completion_tokens`로 보냅니다. gpt-5.x 계열 모델이 `max_tokens`를 400으로 거절해 관계 추출이 실패하던 문제를 고칩니다 (#1532).
+
 ### Changed
 
+- 관계 추출 LLM 호출: provider 별로 갈려 있던 세 함수를 공용 chat LLM 포트(`@memento/core` `shared/services/chat-llm`)로 모읍니다. 출력 상한과 thinking 정책, provider 별 파라미터 이름이 어댑터 한 곳에 있습니다. `LLM_PROVIDER*`, `LLM_MODEL*` 환경변수 계약과 provider 선택 동작은 그대로입니다 (#1532).
 - 구조 문서: 패키지·의존·MCP 도구 등록의 정본을 `docs/agents/architecture.md`로 모으고, ko/en 아키텍처·`DEVELOPMENT_RULES`·`AGENTS.md`의 어긋난 수치·의존 화살표를 코드 기준으로 맞춥니다 (#1533).
 - 에이전트 지침: `.cursor/rules` 과잉을 `AGENTS.md`/`docs/agents` 포인터로 줄이고, 문서와 코드가 어긋난 gotcha·heal·랭킹 설명을 맞춥니다 (#1530).
 

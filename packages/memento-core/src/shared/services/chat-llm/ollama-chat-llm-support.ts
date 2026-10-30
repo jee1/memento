@@ -1,6 +1,6 @@
-import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
-import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
-import { logger } from '../../../../shared/utils/logger.js';
+import type { IRetryManager } from '../../interfaces/retry-manager.interface.js';
+import { getRetryOptions } from '../../config/retry-options-loader.js';
+import { logger } from '../../utils/logger.js';
 
 export async function checkOllamaModel(
   retryManager: IRetryManager,
@@ -52,9 +52,8 @@ export function buildOllamaErrorLogContext(
       model: string;
       messages: Array<{ role: string; content: string }>;
       options: { temperature: number; num_predict: number };
-      format: 'json';
-    },
-    prompt: string
+      format?: 'json';
+    }
   ): Record<string, unknown> {
     return {
       requestBody: {
@@ -68,11 +67,7 @@ export function buildOllamaErrorLogContext(
               ? msg.content
               : msg.content.substring(0, 1000) + '...' + msg.content.substring(msg.content.length - 1000)
         }))
-      },
-      promptLength: prompt.length,
-      promptPreview: prompt.substring(0, 500),
-      promptFull:
-        prompt.length < 2000 ? prompt : prompt.substring(0, 1000) + '...' + prompt.substring(prompt.length - 1000)
+      }
     };
   }
 

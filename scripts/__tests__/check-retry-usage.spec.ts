@@ -44,4 +44,14 @@ describe('check-retry-usage', () => {
     const content = 'await this.retryManager.retry(() => fetch(url), opts);';
     expect(checkRetryUsage('x.ts', content).issues).toEqual([]);
   });
+
+  it('retryChatLlmCall 래퍼로 감싸면 통과한다', () => {
+    const content = 'await retryChatLlmCall(this.retryManager, ctx, () => fetch(url));';
+    expect(checkRetryUsage('x.ts', content).issues).toEqual([]);
+  });
+
+  it('래퍼 이름만 비슷하면 통과시키지 않는다', () => {
+    const content = 'await myRetryHelper(this.manager, () => fetch(url));';
+    expect(checkRetryUsage('x.ts', content).issues).toHaveLength(1);
+  });
 });

@@ -12,15 +12,22 @@
  * - 비용 모니터링
  */
 
-import { GoogleGenAI } from '@google/genai';
-import OpenAI from 'openai';
 import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { resolveLlmProvider } from '../../../shared/config/llm-model-resolver.js';
+import {
+  resolveBoundLlmProvider,
+  resolveLlmModel,
+  resolveLlmProvider
+} from '../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { CACHE, CONFIDENCE, LIMITS, LLM_COST, RATE_LIMITER } from '../../../shared/constants/relation-constants.js';
+import type { ChatLlmPort } from '../../../shared/services/chat-llm/chat-llm-port.js';
+import { GeminiChatLlm } from '../../../shared/services/chat-llm/gemini-chat-llm.js';
+import { OllamaChatLlm } from '../../../shared/services/chat-llm/ollama-chat-llm.js';
+import { OpenAiChatLlm } from '../../../shared/services/chat-llm/openai-chat-llm.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
+import type { LLMClientInitializationResult } from '../../../shared/services/llm-client-initializer.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type {
 ExtractOptions,
@@ -38,20 +45,18 @@ import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedd
 import { RelationCache } from './relation-cache.js';
 import { RelationRetryManager } from './relation-retry-manager.js';
 
-import { parseLlmRelationsResponse } from './llm-relation-extractor/llm-response-parse.js';
 import {
-  extractRelationsWithOpenAI,
-  type OpenAiRelationExtractDeps
-} from './llm-relation-extractor/extract-relations-openai.js';
-import {
-  extractRelationsWithGemini,
-  type GeminiRelationExtractDeps
-} from './llm-relation-extractor/extract-relations-gemini.js';
-import {
-  extractRelationsWithOllama,
-  type OllamaRelationExtractDeps
-} from './llm-relation-extractor/extract-relations-ollama.js';
+  parseLlmRelationsResponse,
+  prepareOllamaRelationJsonContent
+} from './llm-relation-extractor/llm-response-parse.js';
 import type { ParseResult } from './llm-relation-extractor/types.js';
+
+/** 관계 추출 요청의 system 지시. 세 provider 가 같은 문장을 받는다. */
+const RELATION_SYSTEM_PROMPT =
+  'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.';
+
+/** 일관성을 위해 낮은 temperature 를 쓴다. */
+const RELATION_TEMPERATURE = 0.3;
 
 /**
  * LLM 비용 모니터링
@@ -67,8 +72,8 @@ interface LLMCostMetrics {
  * LLM 기반 관계 추출기
  */
 export class LLMBasedRelationExtractor implements IRelationExtractor {
-  private openaiClient: OpenAI | null = null;
-  private geminiClient: GoogleGenAI | null = null;
+  private openaiClient: LLMClientInitializationResult['openaiClient'] = null;
+  private geminiClient: LLMClientInitializationResult['geminiClient'] = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
   private readonly initializationPromise: Promise<void>;
@@ -205,49 +210,62 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     return determineLlmProvider(requestedProvider, this.providerAvailability());
   }
 
-  private openAiDeps(): OpenAiRelationExtractDeps {
-    return {
-      rateLimiter: this.rateLimiter,
-      retryManager: this.retryManager,
-      calculateAndLogCost: (provider, promptTokens, completionTokens) =>
-        this.calculateAndLogCost(provider, promptTokens, completionTokens),
-      parseLlmRelationsResponse,
-      initPreferredProvider: this.preferredProvider,
-    };
-  }
+  /**
+   * 포트 한 곳으로 관계 추출을 호출한다. 출력 상한과 thinking 정책, provider 별
+   * 파라미터 이름은 어댑터가 갖는다 (#1532).
+   */
+  private async extractWithPort(port: ChatLlmPort, prompt: string): Promise<ParseResult> {
+    await this.rateLimiter.consume();
 
-  private geminiDeps(): GeminiRelationExtractDeps {
-    return {
-      rateLimiter: this.rateLimiter,
-      retryManager: this.retryManager,
-      calculateAndLogCost: (provider, promptTokens, completionTokens) =>
-        this.calculateAndLogCost(provider, promptTokens, completionTokens),
-      parseLlmRelationsResponse,
-      initPreferredProvider: this.preferredProvider,
-    };
-  }
+    const model = resolveLlmModel(port.provider, 'relation_extraction', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('relation_extraction', this.preferredProvider),
+    });
 
-  private ollamaDeps(): OllamaRelationExtractDeps {
-    return {
-      rateLimiter: this.rateLimiter,
-      retryManager: this.retryManager,
-      calculateAndLogCost: (provider, promptTokens, completionTokens) =>
-        this.calculateAndLogCost(provider, promptTokens, completionTokens),
-      parseLlmRelationsResponse,
-      initPreferredProvider: this.preferredProvider,
-    };
+    try {
+      const result = await port.complete({
+        model,
+        messages: [
+          { role: 'system', content: RELATION_SYSTEM_PROMPT },
+          { role: 'user', content: prompt },
+        ],
+        temperature: RELATION_TEMPERATURE,
+        maxOutputTokens: LIMITS.MAX_RESPONSE_TOKENS,
+        json: true,
+      });
+
+      this.calculateAndLogCost(port.provider, result.usage.promptTokens, result.usage.completionTokens);
+
+      // Ollama 는 JSON 모드에서도 객체 앞뒤에 설명을 붙여 보낸다.
+      const content =
+        port.provider === 'ollama' ? prepareOllamaRelationJsonContent(result.content) : result.content;
+
+      const parseResult = parseLlmRelationsResponse(content);
+      if (!parseResult.success) {
+        // 파싱 실패 시 예외를 던져 호출자가 실패를 인지할 수 있도록 함
+        throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
+      }
+      return parseResult;
+    } catch (error) {
+      logger.error('LLM 관계 추출 호출 실패', {
+        provider: port.provider,
+        model,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 
   private async extractWithOpenAI(prompt: string): Promise<ParseResult> {
-    return extractRelationsWithOpenAI(this.openaiClient!, prompt, this.openAiDeps());
+    return this.extractWithPort(new OpenAiChatLlm(this.openaiClient!, this.retryManager), prompt);
   }
 
   private async extractWithGemini(prompt: string): Promise<ParseResult> {
-    return extractRelationsWithGemini(this.geminiClient!, prompt, this.geminiDeps());
+    return this.extractWithPort(new GeminiChatLlm(this.geminiClient!, this.retryManager), prompt);
   }
 
   private async extractWithOllama(prompt: string): Promise<ParseResult> {
-    return extractRelationsWithOllama(prompt, this.ollamaDeps());
+    const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
+    return this.extractWithPort(new OllamaChatLlm(baseUrl, this.retryManager), prompt);
   }
 
   /**
