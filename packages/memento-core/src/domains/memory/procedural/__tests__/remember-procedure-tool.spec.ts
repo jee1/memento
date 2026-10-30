@@ -9,7 +9,7 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RememberProcedureTool } from '../remember-procedure-tool.js';
 import type { ToolContext } from '../../../../tools/types.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';

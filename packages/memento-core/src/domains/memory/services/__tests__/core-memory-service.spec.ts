@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CoreMemoryService } from '../core-memory-service.js';
 import { CoreMemoryCacheService } from '../core-memory-cache-service.js';
 import type { CoreMemoryCache } from '../core-memory-service.js';
-import type { CoreMemoryRepository, CoreMemoryRecord } from '../../repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRepository, CoreMemoryRecord } from '../../../../shared/ports/core-memory-repository.interface.js';
 
 /**
  * Mock CoreMemoryRepository 구현

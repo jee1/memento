@@ -1,4 +1,4 @@
-import type { CreateFeedbackEventInput, FeedbackNetScore } from '../../../shared/types/feedback.types.js';
+import type { CreateFeedbackEventInput, FeedbackNetScore } from '../types/feedback.types.js';
 
 export interface IFeedbackRepository {
   insertFeedback(input: CreateFeedbackEventInput): { id: number; created_at: string };

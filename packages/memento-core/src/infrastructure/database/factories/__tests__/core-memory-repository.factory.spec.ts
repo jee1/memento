@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { createCoreMemoryRepository } from '../core-memory-repository.factory.js';
 import { CoreMemoryRepositorySqliteImpl } from '../../repositories/core-memory-repository-sqlite.impl.js';
-import type { CoreMemoryRepository } from '../../../../domains/memory/repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRepository } from '../../../../shared/ports/core-memory-repository.interface.js';
 
 describe('createCoreMemoryRepository', () => {
   let db: Database.Database;

@@ -3,12 +3,12 @@
  * CoreMemoryDatabaseConnection 인터페이스를 사용하여 구현
  */
 
-import type { CoreMemoryRepository } from '../../../domains/memory/repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRepository } from '../../../shared/ports/core-memory-repository.interface.js';
 import type {
   CoreMemoryRecord,
   CreateCoreMemoryInput,
   UpdateCoreMemoryInput
-} from '../../../domains/memory/repositories/core-memory-repository.interface.js';
+} from '../../../shared/ports/core-memory-repository.interface.js';
 import type { CoreMemoryDatabaseConnection } from '../../../domains/memory/repositories/core-memory-database.interface.js';
 
 /**

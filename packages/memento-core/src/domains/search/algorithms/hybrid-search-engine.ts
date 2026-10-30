@@ -8,7 +8,7 @@ import { getRankingVersion, getRankingWeights } from '../../../shared/config/ran
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { AdaptiveWeightCalculator } from './adaptive-weight-calculator.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
@@ -43,7 +43,7 @@ import type {
 import type { IRelevanceGatePort } from '../ports/relevance-gate-port.js';
 import { judgeRelevanceGate, type RelevanceGateOutcome } from '../ports/relevance-gate-port.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import type { RepositoryProvider } from '../../memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 
 export {
   resolveHybridVectorPrefetchLimit,

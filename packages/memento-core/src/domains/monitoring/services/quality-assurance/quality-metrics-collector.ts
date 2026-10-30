@@ -21,7 +21,7 @@ import { SearchMetricsCollector } from './search-metrics-collector.js';
 import { RelationMetricsCollector } from './relation-metrics-collector.js';
 import { StorageMetricsCollector } from './storage-metrics-collector.js';
 import { CategoryQualityAggregator } from './category-quality-aggregator.js';
-import type { RepositoryProvider } from '../../../memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 
 export class QualityMetricsCollector {
   private readonly searchCollector: SearchMetricsCollector;

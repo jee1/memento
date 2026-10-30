@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics } from '../search-ranking.js';
-import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.interface.js';
+import { sigmoidNormalizedNet } from '../../../../shared/ports/feedback-repository.interface.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 
 describe('SearchRanking', () => {

@@ -8,7 +8,7 @@ import {
   type KnowledgeVaultRecord, 
   type CreateKnowledgeVaultInput, 
   type UpdateKnowledgeVaultInput 
-} from '../../../domains/memory/repositories/knowledge-vault-repository.interface.js';
+} from '../../../shared/ports/knowledge-vault-repository.interface.js';
 
 export class KnowledgeVaultRepositorySqlite implements IKnowledgeVaultRepository {
   private db: Database.Database;

@@ -9,7 +9,7 @@ import type {
 import type {
   SearchBySimilarityOutcome,
   VectorSearchResult,
-} from '../../memory/services/memory-embedding-service.js';
+} from '../../embedding/services/memory-embedding-service.js';
 
 export interface ITextSearchEngine {
   search(

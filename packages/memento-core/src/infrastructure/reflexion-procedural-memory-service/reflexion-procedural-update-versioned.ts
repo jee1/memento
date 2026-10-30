@@ -7,7 +7,7 @@ import type { ReflectionNotes } from '../../domains/memory/procedural/procedural
 import { toDbRelationType } from '../../shared/utils/relation-type-converter.js';
 import { logger } from '../../shared/utils/logger.js';
 import { createProceduralMemory } from './reflexion-procedural-create.js';
-import { MemoryEmbeddingService } from '../../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../domains/embedding/services/memory-embedding-service.js';
 
 export async function updateProceduralMemoryVersioned(
   db: Database.Database,

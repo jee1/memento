@@ -10,7 +10,7 @@ import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers
 import { createHybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { ErrorLoggingService } from '../../../monitoring/services/error-logging-service.js';
 import type { ToolContext } from '../../../tools/types.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
 

@@ -53,6 +53,12 @@ experimental-assistant-example → @jee1/memento-assistant
 
 의존성은 `shared` ← `domains` ← `infrastructure` 방향으로만 흘러야 합니다. 이 경계를 지키면 도메인 로직이 인프라 세부에 오염되지 않습니다. 신규 금지 방향(domain→infra, shared→infra/server)과 확인된 runtime cycle은 `packages/memento-core/src/test/architecture/dependency-boundaries.spec.ts`가 CI에서 막습니다(기존 위반은 allowlist+rationale로 freeze; allowlist 증가는 frozen size bump가 필요해 명시 리뷰를 강제). MCP 도구 핸들러는 자기 도메인 안에 둡니다(도메인 = 기능 단위). 핸들러 파일은 `tools/`·`adapters/` 디렉터리 아래에 두거나 이름을 `*-tool.ts`·`*-tool-*.ts` 로 짓고, `tools/types.js`(`ToolContext`)·`tools/base-tool.js`·`tools/caller-scope.js` 를 import 하는 곳은 이 핸들러 파일뿐입니다. 서비스·리포지토리 등 나머지 도메인 파일이 `tools/` 를 import 하면 같은 spec 이 막습니다(#1341). 전체 원칙은 [DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md)에서 다룹니다(**Functional Core, Structured Shell** 지침 참조).
 
+`shared→domains`는 금지하고, 도메인 간 방향은 같은 spec의 DAG 허용 목록으로 동결한다. `MemoryEmbeddingService`는 `embedding/services/`, `RepositoryProvider`와 반환 계약은 `shared/ports/`, 공용 알림 서비스는 `shared/services/`가 소유한다. `tools/`의 도메인 의존도 파일·대상별 허용 목록으로 고정한다(#1534).
+
+### ToolContext 계약과 등록부 분리 방향
+
+후속 분리에서는 `tools/types.ts`·`base-tool.ts`·`caller-scope.ts`를 `tools/contract/`로 모으고, `tools/index.ts`·`ToolRegistry`는 `bootstrap/`과 함께 조립 루트에 둔다. 도메인 핸들러는 계약만 참조하고 등록부를 참조하지 않는다. 계약의 도메인 서비스 타입 의존은 현재 목록을 유지하며, 새 의존은 포트 추출 여부를 먼저 검토한다. 이 이슈에서는 이 파일들을 이동하거나 optional 서비스 구조를 바꾸지 않는다.
+
 ## 변경 이력
 
 기능·하드닝의 최신 목록은 루트 [CHANGELOG.md](../../CHANGELOG.md)와 [AGENTS.md](../../AGENTS.md) §3.1을 본다. 이 문서에 스펙 폴더 번호를 나열하지 않는다.

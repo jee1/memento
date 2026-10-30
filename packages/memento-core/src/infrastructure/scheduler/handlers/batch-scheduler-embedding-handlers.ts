@@ -1,5 +1,5 @@
 import { mementoConfig } from '../../../shared/config/index.js';
-import { MemoryEmbeddingService } from '../../../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../domains/embedding/services/memory-embedding-service.js';
 import { EmbeddingReconciliationBatchJob } from '../jobs/embedding-reconciliation-batch-job.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';

@@ -8,7 +8,7 @@ import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-sc
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
-import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 
 function insertEpisodic(
   db: Database.Database,

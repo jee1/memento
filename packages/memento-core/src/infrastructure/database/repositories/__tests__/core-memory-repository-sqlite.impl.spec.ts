@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { CoreMemoryRepositorySqliteImpl } from '../core-memory-repository-sqlite.impl.js';
 import { SqliteCoreMemoryAdapter } from '../../adapters/sqlite-core-memory-adapter.js';
-import type { CoreMemoryRepository } from '../../../../domains/memory/repositories/core-memory-repository.interface.js';
+import type { CoreMemoryRepository } from '../../../../shared/ports/core-memory-repository.interface.js';
 import type { CoreMemoryDatabaseConnection } from '../../../../domains/memory/repositories/core-memory-database.interface.js';
 
 describe('CoreMemoryRepositorySqliteImpl', () => {

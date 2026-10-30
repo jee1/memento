@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import type { FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
 import { createProceduralMemory } from './reflexion-procedural-memory-service/reflexion-procedural-create.js';

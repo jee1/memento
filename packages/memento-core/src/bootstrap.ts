@@ -9,7 +9,7 @@ import { mementoConfig } from './shared/config/index.js';
 import type { SearchEngine } from './domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
 import { createSearchEmbeddingAndOptimizerServices } from './bootstrap/search-and-embedding.js';
-import { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from './domains/embedding/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from './domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 import { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
@@ -27,7 +27,7 @@ import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.inte
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
 import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
-import type { RepositoryProvider } from './domains/memory/repositories/repository-provider.port.js';
+import type { RepositoryProvider } from './shared/ports/repository-provider.port.js';
 import { sqliteRepositoryProvider } from './infrastructure/database/factories/sqlite-repository-provider.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';

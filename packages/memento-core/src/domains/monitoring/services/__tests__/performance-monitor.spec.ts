@@ -4,7 +4,7 @@ import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
 import os from 'os';
 import { logger } from '../../../../shared/utils/logger.js';
-import { alertNotificationService } from '../alert-notification-service.js';
+import { alertNotificationService } from '../../../../shared/services/alert-notification-service.js';
 import { getMemoryPressureNumeratorBytes } from '../memory-pressure-utils.js';
 
 vi.mock('../memory-pressure-utils.js', async (importOriginal) => ({

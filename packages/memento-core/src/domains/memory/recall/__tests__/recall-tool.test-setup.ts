@@ -7,7 +7,7 @@ import { createHybridSearchEngine, type HybridSearchEngine } from '../../../sear
 import { getVectorSearchEngine, type VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { setupTestDatabase } from '../../../../../test/helpers/test-database.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { RecallTool } from '../recall-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';

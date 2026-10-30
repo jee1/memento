@@ -5,7 +5,7 @@ import { GetMemoryNeighborsTool, GetMemoryNeighborsSchema } from '../get-memory-
 import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import * as vectorSearchEngineModule from '../../../search/algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading

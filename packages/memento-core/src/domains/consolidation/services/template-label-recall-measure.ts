@@ -3,7 +3,7 @@
  * 임베딩 호출과 DB 접근은 스크립트에 두고, 여기에는 비교 함수만 둔다.
  */
 
-import { stripMemoryTemplateLabels } from './template-label-normalizer.js';
+import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 
 export const TEMPLATE_LABELS = ['결정', '근거', '버린 대안', '안 통한 것', '다음 걸림돌'] as const;
 

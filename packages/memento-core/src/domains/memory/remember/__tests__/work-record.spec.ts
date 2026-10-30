@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripMemoryTemplateLabels } from '../../../consolidation/services/template-label-normalizer.js';
+import { stripMemoryTemplateLabels } from '../../../../shared/utils/template-label-normalizer.js';
 import {
   displayWorkRecordContent,
   renderWorkRecord,

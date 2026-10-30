@@ -11,7 +11,7 @@ import {
   resolveLlmProvider,
 } from '../../../shared/config/llm-model-resolver.js';
 import type { IProceduralMemoryExtractor, ExtractedProceduralMemory, ReflectionNotes } from './procedural-memory-extractor.types.js';
-import type { FailureEvent } from '../../monitoring/services/failure-detector.js';
+import type { FailureEvent } from '../../../shared/types/failure-event.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
 import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import type { RetryConfig } from '../../../shared/utils/retry-manager.js';

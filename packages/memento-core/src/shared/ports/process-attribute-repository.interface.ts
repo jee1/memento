@@ -1,4 +1,4 @@
-import type { ProcessAttribute } from '../../../shared/types/search.types.js';
+import type { ProcessAttribute } from '../types/search.types.js';
 
 /**
  * ProcessAttribute Repository Interface

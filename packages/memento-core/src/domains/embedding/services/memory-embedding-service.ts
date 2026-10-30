@@ -30,8 +30,8 @@ import {
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { cosineDistanceToSimilarity } from '../../../shared/utils/vector-similarity.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
+import { UnifiedEmbeddingService } from './unified-embedding-service.js';
+import { vectorCompatibilityService } from './vector-compatibility-service.js';
 
 export interface VectorSearchResult {
   id: string;

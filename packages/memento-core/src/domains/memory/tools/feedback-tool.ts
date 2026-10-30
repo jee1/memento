@@ -8,7 +8,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { callerOwnerClause, resolveCallerAgentId } from '../../../tools/caller-scope.js';
-import { requireRepositoryProvider } from '../repositories/repository-provider.port.js';
+import { requireRepositoryProvider } from '../../../shared/ports/repository-provider.port.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
   formatMementoResourceUri,

@@ -8,7 +8,7 @@ import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
+import type { VectorSearchResult } from '../../embedding/services/memory-embedding-service.js';
 import { normalizeSearchBySimilarityOutcome, collectResultIds, filterByVectorThreshold, fillUnderfilledVectorResults } from './hybrid-search-outcome-utils.js';
 import { applyVectorLengthDecay } from './vector-length-decay.js';
 import {

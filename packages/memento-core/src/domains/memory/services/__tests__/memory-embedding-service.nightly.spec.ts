@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
-import { MemoryEmbeddingService } from '../memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../../domains/search/algorithms/vector-search-engine.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { decodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';

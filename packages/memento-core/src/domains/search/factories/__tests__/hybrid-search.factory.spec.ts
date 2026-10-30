@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HybridSearchFactory } from '../hybrid-search.factory.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { SearchEngine } from '../../algorithms/search-engine.js';
-import { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
 import { resetRankingWeightsCache } from '../../../../shared/config/ranking-weights-loader.js';

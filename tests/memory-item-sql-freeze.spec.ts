@@ -135,8 +135,8 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
     rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
   },
   {
-    path: 'packages/memento-core/src/domains/memory/services/memory-embedding-service.ts',
-    rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    path: 'packages/memento-core/src/domains/embedding/services/memory-embedding-service.ts',
+    rationale: 'embedding 도메인의 임베딩 저장·유사도 검색 질의; 기존 접근 범위 유지',
   },
   {
     path: 'packages/memento-core/src/domains/memory/services/memory-jsonl-portability.ts',

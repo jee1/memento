@@ -4,7 +4,7 @@ import { determineMergeStrategy, type ExtractedProceduralMemory } from '../domai
 import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { logger } from '../shared/utils/logger.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import { createProceduralMemory } from './reflexion-procedural-memory-service/reflexion-procedural-create.js';
 import { resolveExtractedProceduralMemory } from './reflexion-procedural-memory-service/reflexion-procedural-extraction.js';
 import { updateProceduralMemoryIncremental } from './reflexion-procedural-memory-service/reflexion-procedural-update-incremental.js';
