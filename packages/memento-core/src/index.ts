@@ -413,3 +413,20 @@ export {
   recreateVecTriggers,
 } from './infrastructure/database/sqlite/vec-schema.js';
 export type { VecCardinalityRow } from './infrastructure/database/sqlite/vec-schema.js';
+export {
+  listActiveMemoryIdAndContent,
+  findAnchorMemorySummaryById,
+  countActiveMemoryItems,
+  listMemoryEmbeddingMapCandidates,
+  queryMemoryGraphNodes,
+  queryProjectMemoryStats,
+  listProjectMemoryCleanupCandidates,
+  deleteProjectMemoriesOlderThan,
+  deleteExpiredWorkingMemories,
+  queryMemoryForgettingStatsByType,
+  queryMemoryCountsByTypeStats,
+  findMemoryProvenancePreviews,
+  listRecentMemoryResourceIds,
+  findMemoryResourceRowById,
+} from './domains/memory/repositories/memory-item-repository.js';
+export type { MemoryEmbeddingMapCandidateRow } from './domains/memory/repositories/memory-item-repository.js';

@@ -4,6 +4,11 @@
 
 import type { Router } from 'express';
 import type Database from 'better-sqlite3';
+import {
+  deleteProjectMemoriesOlderThan,
+  listProjectMemoryCleanupCandidates,
+  queryProjectMemoryStats,
+} from '@memento/core';
 
 /**
  * cleanup 파라미터 파싱 헬퍼 (Issue #81)
@@ -38,12 +43,14 @@ export function registerAdminProjectMemoryRoutes(router: Router, db: Database.Da
       if (!project_id || project_id.length > 200) {
         return res.status(400).json({ error: 'project_id는 1~200자여야 합니다' });
       }
-      const total = (db.prepare(`SELECT COUNT(*) as c FROM memory_item WHERE project_id = ? AND COALESCE(is_deleted, 0) = 0`).get(project_id) as { c: number }).c;
-      const byTypeRows = db.prepare(`SELECT type, COUNT(*) as c FROM memory_item WHERE project_id = ? AND COALESCE(is_deleted, 0) = 0 GROUP BY type`).all(project_id) as Array<{ type: string; c: number }>;
-      const by_type: Record<string, number> = {};
-      for (const row of byTypeRows) { by_type[row.type] = row.c; }
-      const dates = db.prepare(`SELECT MIN(created_at) as oldest, MAX(created_at) as newest FROM memory_item WHERE project_id = ? AND COALESCE(is_deleted, 0) = 0`).get(project_id) as { oldest: string | null; newest: string | null };
-      return res.json({ project_id, total, by_type, oldest_created_at: dates.oldest, newest_created_at: dates.newest });
+      const stats = queryProjectMemoryStats(db, project_id);
+      return res.json({
+        project_id,
+        total: stats.total,
+        by_type: stats.by_type,
+        oldest_created_at: stats.oldest,
+        newest_created_at: stats.newest,
+      });
     } catch (error) {
       return res.status(500).json({ error: '프로젝트 통계 조회 실패', message: String(error) });
     }
@@ -59,10 +66,7 @@ export function registerAdminProjectMemoryRoutes(router: Router, db: Database.Da
       const parsed = parseCleanupParams(req.query as Record<string, unknown>);
       if ('error' in parsed) return res.status(parsed.status).json({ error: parsed.error });
       const { olderThanDays, types } = parsed;
-      const placeholders = types.map(() => '?').join(', ');
-      const rows = db.prepare(
-        `SELECT id, content, type, created_at FROM memory_item WHERE project_id = ? AND type IN (${placeholders}) AND created_at < datetime('now', '-${olderThanDays} days') AND COALESCE(is_deleted, 0) = 0`
-      ).all(project_id, ...types) as Array<{ id: string; content: string; type: string; created_at: string }>;
+      const rows = listProjectMemoryCleanupCandidates(db, project_id, types, olderThanDays);
       return res.json({ would_delete: rows.length, items: rows });
     } catch (error) {
       return res.status(500).json({ error: '프로젝트 정리 미리보기 실패', message: String(error) });
@@ -79,11 +83,8 @@ export function registerAdminProjectMemoryRoutes(router: Router, db: Database.Da
       const parsed = parseCleanupParams(req.query as Record<string, unknown>);
       if ('error' in parsed) return res.status(parsed.status).json({ error: parsed.error });
       const { olderThanDays, types } = parsed;
-      const placeholders = types.map(() => '?').join(', ');
-      const result = db.prepare(
-        `DELETE FROM memory_item WHERE project_id = ? AND type IN (${placeholders}) AND created_at < datetime('now', '-${olderThanDays} days') AND COALESCE(is_deleted, 0) = 0`
-      ).run(project_id, ...types);
-      return res.json({ deleted: result.changes });
+      const deleted = deleteProjectMemoriesOlderThan(db, project_id, types, olderThanDays);
+      return res.json({ deleted });
     } catch (error) {
       return res.status(500).json({ error: '프로젝트 정리 실패', message: String(error) });
     }

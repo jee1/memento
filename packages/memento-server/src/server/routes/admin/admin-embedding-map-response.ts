@@ -5,10 +5,13 @@
 import type Database from 'better-sqlite3';
 import { UMAP } from 'umap-js';
 import {
+  countActiveMemoryItems,
   embeddingColumnToNumbers,
   expectedDimensions,
   getEmbeddingModelFilter,
+  listMemoryEmbeddingMapCandidates,
   logger,
+  type MemoryEmbeddingMapCandidateRow,
 } from '@memento/core';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -255,19 +258,6 @@ export function kMeans(
   return assignments;
 }
 
-interface MemoryEmbeddingRow {
-  id: string;
-  content: string;
-  type: string;
-  importance: number | null;
-  created_at: string | null;
-  tags: string | null;
-  embedding: Buffer;
-  dim: number;
-  dimensions: number | null;
-  model: string | null;
-}
-
 function parseTags(raw: string | null): string[] {
   try {
     const v = JSON.parse(raw ?? '[]');
@@ -309,34 +299,8 @@ export async function buildEmbeddingMapResponse(
 
   const dimensions = expectedDimensions(params.provider);
   const model = getEmbeddingModelFilter(params.provider);
-  const populationCount = (db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM memory_item
-    WHERE COALESCE(is_deleted, 0) = 0
-  `).get() as { count: number }).count;
-  const stmt = db.prepare(`
-    SELECT
-      mi.id,
-      mi.content,
-      mi.type,
-      mi.importance,
-      mi.created_at,
-      mi.tags,
-      me.embedding,
-      me.dim,
-      me.dimensions,
-      me.model
-    FROM memory_item mi
-    INNER JOIN memory_embedding me
-      ON me.memory_id = mi.id
-      AND me.embedding_provider = ?
-      AND me.projection_type = 'native'
-    WHERE COALESCE(mi.is_deleted, 0) = 0
-    ORDER BY COALESCE(mi.importance, 0.5) DESC, datetime(mi.created_at) DESC
-    LIMIT ?
-  `);
-
-  const rows = stmt.all(params.provider, params.limit) as MemoryEmbeddingRow[];
+  const populationCount = countActiveMemoryItems(db);
+  const rows = listMemoryEmbeddingMapCandidates(db, params.provider, params.limit);
 
   if (rows.length === 0) {
     throw new EmbeddingMapBuildError(
@@ -354,7 +318,7 @@ export async function buildEmbeddingMapResponse(
     );
   }
 
-  const parsed: { row: MemoryEmbeddingRow; vector: number[] }[] = [];
+  const parsed: { row: MemoryEmbeddingMapCandidateRow; vector: number[] }[] = [];
   let excludedUnreadableCount = 0;
   let excludedDimensionMismatchCount = 0;
   let excludedModelDriftCount = 0;

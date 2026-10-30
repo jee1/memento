@@ -3,6 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { queryMemoryGraphNodes } from '@memento/core';
 
 interface GraphNode {
   id: string;
@@ -51,16 +52,6 @@ interface GraphResponse {
   };
 }
 
-interface MemoryItemRow {
-  id: string;
-  content: string;
-  type: string;
-  importance: number | null;
-  created_at: string | null;
-  tags: string | null;
-  pinned: number | null;
-}
-
 interface MemoryRelationRow {
   id: number;
   source_id: string;
@@ -81,52 +72,17 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
   const limit = Math.min(filters.limit ?? defaultLimit, maxLimit); // FR-006: 기본 200
   const minImportance = filters.min_importance ?? 0.0;
 
-  let nodeQuery = `SELECT id, content, type, importance, created_at, tags, pinned FROM memory_item WHERE 1=1 AND COALESCE(is_deleted, 0) = 0`;
-  let countQuery = `SELECT COUNT(*) AS count FROM memory_item WHERE 1=1 AND COALESCE(is_deleted, 0) = 0`;
-  const nodeParams: (string | number)[] = [];
-  const countParams: (string | number)[] = [];
-
-  if (filters.types && filters.types.length > 0) {
-    const placeholders = filters.types.map(() => '?').join(', ');
-    nodeQuery += ` AND type IN (${placeholders})`;
-    countQuery += ` AND type IN (${placeholders})`;
-    nodeParams.push(...filters.types);
-    countParams.push(...filters.types);
-  }
-
-  nodeQuery += ` AND COALESCE(importance, 0.5) >= ?`;
-  countQuery += ` AND COALESCE(importance, 0.5) >= ?`;
-  nodeParams.push(minImportance);
-  countParams.push(minImportance);
-
   // 응답 엣지에서 degree=0 인 View orphan(Phase 1, static/js/graph-fetch.js)과는 다르다.
   // relation_types 가 걸려 있으면 그 타입만 관계로 인정한다 - 아니면 "연결됨"으로
   // 뽑혀 놓고 엣지가 0개인 노드가 생긴다.
   const excludeOrphans = filters.exclude_orphans === true;
-  if (excludeOrphans) {
-    const orphanRelationTypes = filters.relation_types ?? [];
-    const typeClause =
-      orphanRelationTypes.length > 0
-        ? ` AND mr.relation_type IN (${orphanRelationTypes.map(() => '?').join(', ')})`
-        : '';
-    const existsClause =
-      ` AND EXISTS (SELECT 1 FROM memory_relation mr` +
-      ` JOIN memory_item related ON related.id = CASE` +
-      ` WHEN mr.source_id = memory_item.id THEN mr.target_id ELSE mr.source_id END` +
-      ` WHERE (mr.source_id = memory_item.id OR mr.target_id = memory_item.id)` +
-      ` AND COALESCE(related.is_deleted, 0) = 0${typeClause})`;
-    nodeQuery += existsClause;
-    countQuery += existsClause;
-    nodeParams.push(...orphanRelationTypes);
-    countParams.push(...orphanRelationTypes);
-  }
-
-  nodeQuery += ` ORDER BY COALESCE(importance, 0.5) DESC LIMIT ?`;
-  nodeParams.push(limit + 1);
-
-  const countRow = db.prepare(countQuery).get(...countParams) as { count: number } | undefined;
-  const totalAvailableNodes = countRow?.count ?? 0;
-  const rawNodes = db.prepare(nodeQuery).all(...nodeParams) as MemoryItemRow[];
+  const { totalAvailableNodes, rawNodes } = queryMemoryGraphNodes(db, {
+    types: filters.types,
+    relation_types: filters.relation_types,
+    min_importance: minImportance,
+    exclude_orphans: excludeOrphans,
+    limit,
+  });
   const truncated = rawNodes.length > limit;
   const nodeRows = truncated ? rawNodes.slice(0, limit) : rawNodes;
 

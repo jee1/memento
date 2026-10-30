@@ -20,6 +20,7 @@ import {
   createMementoCore,
   EmbeddingReindexService,
   expandHomeDirPath,
+  listActiveMemoryIdAndContent,
   mementoConfig,
   shutdownServices,
   type EmbeddingProvider,
@@ -69,9 +70,7 @@ async function main(): Promise<void> {
     if (onlyTruncated) {
       // #1013 으로 벡터가 실제로 달라지는 기억만 고른다. 한 윈도(510토큰)에 들어가고
       // 예전 문자 컷(1024자)에도 걸리지 않았던 기억은 재색인해도 같은 벡터가 나온다.
-      const rows = core.db
-        .prepare('SELECT id, content FROM memory_item WHERE COALESCE(is_deleted, 0) = 0')
-        .all() as { id: string; content: string }[];
+      const rows = listActiveMemoryIdAndContent(core.db);
       const ids = rows
         .filter((row) => row.content.trim().replace(/\s+/g, ' ').length > 800)
         .map((row) => row.id);
