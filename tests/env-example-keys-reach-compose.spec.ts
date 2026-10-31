@@ -81,6 +81,12 @@ const NOT_FORWARDED: Record<string, string> = {
   MEMENTO_AGENT_GEMINI_MODEL: '별도 배포물 services/agent/ 용 (#1126).',
   MEMENTO_AGENT_LOG_LEVEL: '별도 배포물 services/agent/ 용 (#1126).',
   MEMENTO_AGENT_TIMEOUT_MS: '별도 배포물 services/agent/ 용 (#1126).',
+  MEMENTO_HTTP_URL:
+    '호스트 ops-report CLI 가 붙을 HTTP origin (#1561). 컨테이너 프로세스는 리슨 포트만 알면 된다.',
+  MEMENTO_ADMIN_URL:
+    'MEMENTO_HTTP_URL 별칭. ops-report CLI 전용 (#1561). 컨테이너 env 가 아니다.',
+  MEMENTO_HTTP_PORT:
+    '호스트 CLI가 origin 을 조립할 때 쓰는 포트 힌트 (#1561). compose 는 ports 매핑으로 게시한다.',
 };
 
 describe('#1133: env.example 이 문서화한 키가 컨테이너에 도달한다', () => {

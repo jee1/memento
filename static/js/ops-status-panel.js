@@ -25,6 +25,7 @@
 
 
   ns.STATUS_URL = '/admin/status';
+  ns.SUMMARY_URL = '/admin/ops/summary?period=24h';
 
   ns.state = ns.state || {
     wired: false,
@@ -320,19 +321,48 @@
     );
   };
 
+  ns.renderSummary = function (data) {
+    const el = ns.$('ops-summary-body');
+    if (!el || !data || !data.questions) {
+      return;
+    }
+    const q = data.questions;
+    const lines = [
+      '기간 ' + data.window.period + ' (' + data.window.since + ' ~ ' + data.window.until + ')',
+      '[1 검색] ' + q.search_health.availability + ' · queries ' + String(q.search_health.search_query_count) + ' · failed events ' + String(q.search_health.search_failed_events),
+      '[2 배치] ' + q.batch_jobs.availability + ' · failed runs ' + String(q.batch_jobs.failed_run_count) + ' / sample ' + String(q.batch_jobs.failed_run_count + q.batch_jobs.success_run_count),
+      '[3 LLM] ' + q.llm_pressure.availability + (q.llm_pressure.reason ? ' · ' + q.llm_pressure.reason : ''),
+      '[4 품질] ' + q.quality_trend.availability + ' · measured ' + String(q.quality_trend.measured_metric_count) + ' · unmeasured ' + String(q.quality_trend.unmeasured_metric_count),
+    ];
+    el.textContent = lines.join('\n');
+    el.classList.remove('m-empty');
+  };
+
   ns.refresh = async function () {
     const generation = ++ns.state.refreshGeneration;
     ns.setLoading(true);
     try {
-      const response = await global.fetch(ns.STATUS_URL, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        credentials: 'same-origin',
-      });
-      if (!response.ok) {
-        throw new Error('HTTP ' + response.status + ' for ' + ns.STATUS_URL);
+      const [statusResponse, summaryResponse] = await Promise.all([
+        global.fetch(ns.STATUS_URL, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        }),
+        global.fetch(ns.SUMMARY_URL, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        }),
+      ]);
+      if (!statusResponse.ok) {
+        throw new Error('HTTP ' + statusResponse.status + ' for ' + ns.STATUS_URL);
       }
-      const data = await response.json();
+      const data = await statusResponse.json();
+      if (summaryResponse.ok) {
+        ns.renderSummary(await summaryResponse.json());
+      } else if (ns.$('ops-summary-body')) {
+        ns.$('ops-summary-body').textContent = '운영 요약 불러오지 못함 — HTTP ' + summaryResponse.status;
+      }
       if (generation !== ns.state.refreshGeneration) {
         return;
       }

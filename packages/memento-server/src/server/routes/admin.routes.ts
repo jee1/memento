@@ -22,6 +22,7 @@ import { registerAdminEvolutionDemoRoutes } from './admin/admin-evolution-demo.r
 import { registerAdminForgettingRoutes } from './admin/admin-forgetting.routes.js';
 import { registerAdminExportRoutes } from './admin/admin-export.routes.js';
 import { registerAdminStatusRoutes } from './admin/admin-status.routes.js';
+import { registerAdminOpsSummaryRoutes } from './admin/admin-ops-summary.routes.js';
 
 /**
  * Admin 라우터 생성
@@ -34,6 +35,7 @@ export function createAdminRouter(
 
   registerAdminStatsAndHealthRoutes(router, db, serverServices);
   registerAdminStatusRoutes(router, db);
+  registerAdminOpsSummaryRoutes(router, db, serverServices);
   registerAdminMemoryReviewRoutes(router, db);
   registerAdminMemorySearchRoutes(router, db, serverServices);
   registerAdminBatchRoutes(router, db, serverServices);

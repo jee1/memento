@@ -20,6 +20,7 @@
   },
   "scripts": {
     "telemetry": "npm run telemetry -w memento-server",
+    "ops-report": "tsx packages/memento-server/src/ops-report-cli.ts",
     "dev": "npm run dev -w memento-server",
     "dev:http": "npm run dev:http -w memento-server",
     "build": "npm run build:packages",

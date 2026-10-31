@@ -26,6 +26,7 @@
     "packages/memento-server": {
       "entry": [
         "src/telemetry-cli.ts",
+        "src/ops-report-cli.ts",
         "src/scripts/*.ts"
       ],
       "project": [
