@@ -1,0 +1,902 @@
+[
+ {
+  "query_id": "cl_01_q_single",
+  "relevant_memory_ids": [
+   "cl_01_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_01_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_01_q_multi",
+  "relevant_memory_ids": [
+   "cl_01_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·3번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_01_q_trap",
+  "relevant_memory_ids": [
+   "cl_01_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_01_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_02_q_single",
+  "relevant_memory_ids": [
+   "cl_02_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_02_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_02_q_multi",
+  "relevant_memory_ids": [
+   "cl_02_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·4번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_02_q_trap",
+  "relevant_memory_ids": [
+   "cl_02_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_02_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_03_q_single",
+  "relevant_memory_ids": [
+   "cl_03_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_03_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_03_q_multi",
+  "relevant_memory_ids": [
+   "cl_03_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·5번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_03_q_trap",
+  "relevant_memory_ids": [
+   "cl_03_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_03_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_04_q_single",
+  "relevant_memory_ids": [
+   "cl_04_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_04_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_04_q_multi",
+  "relevant_memory_ids": [
+   "cl_04_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·6번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_04_q_trap",
+  "relevant_memory_ids": [
+   "cl_04_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_04_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_05_q_single",
+  "relevant_memory_ids": [
+   "cl_05_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_05_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_05_q_multi",
+  "relevant_memory_ids": [
+   "cl_05_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·7번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_05_q_trap",
+  "relevant_memory_ids": [
+   "cl_05_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_05_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_06_q_single",
+  "relevant_memory_ids": [
+   "cl_06_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_06_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_06_q_multi",
+  "relevant_memory_ids": [
+   "cl_06_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·8번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_06_q_trap",
+  "relevant_memory_ids": [
+   "cl_06_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_06_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_07_q_single",
+  "relevant_memory_ids": [
+   "cl_07_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_07_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_07_q_multi",
+  "relevant_memory_ids": [
+   "cl_07_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·9번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_07_q_trap",
+  "relevant_memory_ids": [
+   "cl_07_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_07_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_08_q_single",
+  "relevant_memory_ids": [
+   "cl_08_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_08_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_08_q_multi",
+  "relevant_memory_ids": [
+   "cl_08_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·10번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_08_q_trap",
+  "relevant_memory_ids": [
+   "cl_08_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_08_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_09_q_single",
+  "relevant_memory_ids": [
+   "cl_09_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_09_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_09_q_multi",
+  "relevant_memory_ids": [
+   "cl_09_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·11번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_09_q_trap",
+  "relevant_memory_ids": [
+   "cl_09_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_09_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_10_q_single",
+  "relevant_memory_ids": [
+   "cl_10_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_10_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_10_q_multi",
+  "relevant_memory_ids": [
+   "cl_10_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·12번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_10_q_trap",
+  "relevant_memory_ids": [
+   "cl_10_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_10_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_11_q_single",
+  "relevant_memory_ids": [
+   "cl_11_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_11_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_11_q_multi",
+  "relevant_memory_ids": [
+   "cl_11_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·13번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_11_q_trap",
+  "relevant_memory_ids": [
+   "cl_11_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_11_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_12_q_single",
+  "relevant_memory_ids": [
+   "cl_12_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_12_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_12_q_multi",
+  "relevant_memory_ids": [
+   "cl_12_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·14번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_12_q_trap",
+  "relevant_memory_ids": [
+   "cl_12_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_12_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_13_q_single",
+  "relevant_memory_ids": [
+   "cl_13_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_13_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_13_q_multi",
+  "relevant_memory_ids": [
+   "cl_13_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·15번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_13_q_trap",
+  "relevant_memory_ids": [
+   "cl_13_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_13_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_14_q_single",
+  "relevant_memory_ids": [
+   "cl_14_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_14_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_14_q_multi",
+  "relevant_memory_ids": [
+   "cl_14_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·16번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_14_q_trap",
+  "relevant_memory_ids": [
+   "cl_14_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_14_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_15_q_single",
+  "relevant_memory_ids": [
+   "cl_15_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_15_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_15_q_multi",
+  "relevant_memory_ids": [
+   "cl_15_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·17번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_15_q_trap",
+  "relevant_memory_ids": [
+   "cl_15_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_15_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_16_q_single",
+  "relevant_memory_ids": [
+   "cl_16_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_16_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_16_q_multi",
+  "relevant_memory_ids": [
+   "cl_16_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·18번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_16_q_trap",
+  "relevant_memory_ids": [
+   "cl_16_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_16_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_17_q_single",
+  "relevant_memory_ids": [
+   "cl_17_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_17_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_17_q_multi",
+  "relevant_memory_ids": [
+   "cl_17_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·19번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_17_q_trap",
+  "relevant_memory_ids": [
+   "cl_17_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_17_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_18_q_single",
+  "relevant_memory_ids": [
+   "cl_18_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_18_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_18_q_multi",
+  "relevant_memory_ids": [
+   "cl_18_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·20번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_18_q_trap",
+  "relevant_memory_ids": [
+   "cl_18_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_18_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_19_q_single",
+  "relevant_memory_ids": [
+   "cl_19_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_19_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_19_q_multi",
+  "relevant_memory_ids": [
+   "cl_19_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·21번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_19_q_trap",
+  "relevant_memory_ids": [
+   "cl_19_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_19_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_20_q_single",
+  "relevant_memory_ids": [
+   "cl_20_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_20_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_20_q_multi",
+  "relevant_memory_ids": [
+   "cl_20_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·22번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_20_q_trap",
+  "relevant_memory_ids": [
+   "cl_20_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_20_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_21_q_single",
+  "relevant_memory_ids": [
+   "cl_21_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_21_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_21_q_multi",
+  "relevant_memory_ids": [
+   "cl_21_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·23번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_21_q_trap",
+  "relevant_memory_ids": [
+   "cl_21_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_21_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_22_q_single",
+  "relevant_memory_ids": [
+   "cl_22_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_22_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_22_q_multi",
+  "relevant_memory_ids": [
+   "cl_22_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·24번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_22_q_trap",
+  "relevant_memory_ids": [
+   "cl_22_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_22_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_23_q_single",
+  "relevant_memory_ids": [
+   "cl_23_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_23_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_23_q_multi",
+  "relevant_memory_ids": [
+   "cl_23_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·25번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_23_q_trap",
+  "relevant_memory_ids": [
+   "cl_23_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_23_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_24_q_single",
+  "relevant_memory_ids": [
+   "cl_24_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_24_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_24_q_multi",
+  "relevant_memory_ids": [
+   "cl_24_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·26번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_24_q_trap",
+  "relevant_memory_ids": [
+   "cl_24_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_24_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_25_q_single",
+  "relevant_memory_ids": [
+   "cl_25_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "본문만으로 답한다: cl_25_direct 가 금요일 정기 휴무 오후 2시부터라고 명시. 같은 장소의 '오전 10시' 초안(trap_wrong)은 폐기 예정 옛 안내라 제외하고, hub 는 '답은 여기 없다'고 밝힌다. scope 밖 owner(foreign)와 deleted 기록도 제외.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_25_q_multi",
+  "relevant_memory_ids": [
+   "cl_25_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "관계 추적: hop_obs(장소·27번째·민원, 사례번호) → hop_try(사례번호 동일, 임시 스티커 퇴색) → hop_ans(사례번호로만 연결, 승인 결정: UV계열 잉크 전면 도색, 7일 주기 점검, 임시 부착 금지). 최종 규격은 hop_ans 뿐. ans 본문에 장소명·구역 번호가 없어 질의 어휘만으로는 도달 불가. obs/try 는 중간 노드라 제외. hub 의 REFERENCES 등 링크는 색인일 뿐 답 아님.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_25_q_trap",
+  "relevant_memory_ids": [
+   "cl_25_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "난방 시작일은 cl_25_iso_ok 본문에 직접 있다(11월 15일). hub 는 관계로 trap_wrong(폐기된 휴무 초안) 등에 연결되지만 난방과 무관해 제외. superseded/삭제/타 owner 기록은 현재 답 근거가 아니다.",
+  "reviewer_id": "머슴5 reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:30:33Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ }
+]

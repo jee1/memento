@@ -1,6 +1,8 @@
-# relation-ko-panel-v1 (#1555 1단계 재생성)
+# relation-ko-panel-v1 (#1555)
 
-관계 BFS 검색 효용 측정용 **합성** 한국어 패널. agent_panel gold 없음(1차 75/75 판정본 폐기, protocol 참고).
+관계 BFS 검색 효용 측정용 **합성** 한국어 패널. agent_panel gold 75건 동결(2차 판정). 사람 gold 아님.
+
+산출물: `reviewer-a|b/answers.json`, `ground-truth.json`, `panel-result.json`, `fixture-seals.json`, `protocol.md`.
 
 재생성(개발용):
 

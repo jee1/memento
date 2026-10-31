@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { tokenize } from '../scripts/agent-memory-benchmark.js';
@@ -120,6 +120,8 @@ describe('relation-ko-panel-v1 fixture (#1555)', () => {
       'generator-key.json',
       'split.json',
       'fixture-seals.json',
+      'ground-truth.json',
+      'panel-result.json',
       'README.md',
     ]) {
       expect(readFileSync(join(dir, name)).length).toBeGreaterThan(0);
@@ -172,7 +174,7 @@ describe('relation-ko-panel-v1 fixture (#1555)', () => {
     expect(protocol).toContain(splitSha);
   });
 
-  it('pins fixture byte seals including blind adjudication packet', () => {
+  it('pins fixture byte seals including blind adjudication packet and reviewer submissions', () => {
     const seals = JSON.parse(readFileSync(join(dir, 'fixture-seals.json'), 'utf8')) as {
       blind_packet_sha256: string;
       split_json_sha256: string;
@@ -180,13 +182,26 @@ describe('relation-ko-panel-v1 fixture (#1555)', () => {
       corpus_jsonl_sha256: string;
       relations_jsonl_sha256: string;
       queries_json_sha256: string;
+      reviewer_a_answers_sha256: string;
+      reviewer_b_answers_sha256: string;
+      ground_truth_sha256: string;
+      panel_result_sha256: string;
     };
     expect(sha256(readFileSync(join(dir, 'split.json')))).toBe(seals.split_json_sha256);
     expect(sha256(readFileSync(join(dir, 'generator-key.json')))).toBe(seals.generator_key_sha256);
+    expect(seals.split_json_sha256).toBe('2582d083f8975dd26a9eb041367d875be8eb292f481d04d81e38cb36a5f8bf43');
+    expect(seals.generator_key_sha256).toBe('0f66ebe30bca4ea30052911643ab6e5e8b9ace1432988d2fdaed87545fd1f493');
     expect(sha256(readFileSync(join(dir, 'corpus.jsonl')))).toBe(seals.corpus_jsonl_sha256);
     expect(sha256(readFileSync(join(dir, 'relations.jsonl')))).toBe(seals.relations_jsonl_sha256);
     expect(sha256(readFileSync(join(dir, 'queries.json')))).toBe(seals.queries_json_sha256);
     expect(blindPacketSha256FromFixtureDir(dir)).toBe(seals.blind_packet_sha256);
+    expect(seals.blind_packet_sha256).toBe('a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10');
+    expect(sha256(readFileSync(join(dir, 'reviewer-a/answers.json')))).toBe(seals.reviewer_a_answers_sha256);
+    expect(sha256(readFileSync(join(dir, 'reviewer-b/answers.json')))).toBe(seals.reviewer_b_answers_sha256);
+    expect(seals.reviewer_a_answers_sha256).toBe('d150b75610b14b675d0609cede0d6c1df74594b60aeec4c0991edabe1c1a0418');
+    expect(seals.reviewer_b_answers_sha256).toBe('f258b04fca03f7bd5805cae574e04a7f4b0f53c8f41abb423500c317a118bcda');
+    expect(sha256(readFileSync(join(dir, 'ground-truth.json')))).toBe(seals.ground_truth_sha256);
+    expect(sha256(readFileSync(join(dir, 'panel-result.json')))).toBe(seals.panel_result_sha256);
     const corpus = readFileSync(join(dir, 'corpus.jsonl'), 'utf8');
     const relations = readFileSync(join(dir, 'relations.jsonl'), 'utf8')
       .trim()
@@ -195,6 +210,26 @@ describe('relation-ko-panel-v1 fixture (#1555)', () => {
     const queries = loadQueries() as BlindQueryRow[];
     expect(blindPacketSha256FromParts(corpus, relations, queries)).toBe(seals.blind_packet_sha256);
     expect(readFileSync(join(dir, 'protocol.md'), 'utf8')).toContain(seals.blind_packet_sha256);
+  });
+
+  it('keeps agent_panel ground-truth ids in corpus and off forbidden lists', () => {
+    const corpusIds = new Set(loadCorpus().map(c => c.benchmark_id));
+    const forbiddenByQuery = new Map(
+      loadKey().queries.map(q => [q.query_id, new Set(q.forbidden_memory_ids)]),
+    );
+    const ground = JSON.parse(readFileSync(join(dir, 'ground-truth.json'), 'utf8')) as {
+      label_source: string;
+      items: { queryId: string; relevantIds: string[] }[];
+    };
+    expect(ground.label_source).toBe('agent_panel');
+    expect(ground.items).toHaveLength(75);
+    for (const row of ground.items) {
+      const forbidden = forbiddenByQuery.get(row.queryId) ?? new Set<string>();
+      for (const id of row.relevantIds) {
+        expect(corpusIds.has(id), `missing corpus id ${id} for ${row.queryId}`).toBe(true);
+        expect(forbidden.has(id), `forbidden id ${id} in gold for ${row.queryId}`).toBe(false);
+      }
+    }
   });
 
   it('enforces multi_hop lexical isolation and direct/trap retrievability', () => {
@@ -229,35 +264,41 @@ describe('relation-ko-panel-v1 fixture (#1555)', () => {
     }
   });
 
-  it('when agent_panel artifacts exist, reviewer submissions match seals and ground-truth', () => {
-    const groundPath = join(dir, 'ground-truth.json');
-    const panelPath = join(dir, 'panel-result.json');
-    const aPath = join(dir, 'reviewer-a/answers.json');
-    const bPath = join(dir, 'reviewer-b/answers.json');
-    if (!existsSync(groundPath)) return;
-
+  it('aligns panel-result sealed_before_judging and blind packet with fixture-seals', () => {
+    const panel = JSON.parse(readFileSync(join(dir, 'panel-result.json'), 'utf8')) as {
+      blind_packet_sha256: string;
+      sealed_before_judging: { split_json_sha256: string; generator_key_sha256: string };
+      ground_truth_sha256: string;
+    };
     const seals = JSON.parse(readFileSync(join(dir, 'fixture-seals.json'), 'utf8')) as {
       blind_packet_sha256: string;
-      reviewer_a_answers_sha256?: string;
-      reviewer_b_answers_sha256?: string;
+      split_json_sha256: string;
+      generator_key_sha256: string;
+      ground_truth_sha256: string;
+      panel_result_sha256: string;
     };
-    expect(existsSync(aPath)).toBe(true);
-    expect(existsSync(bPath)).toBe(true);
-    expect(existsSync(panelPath)).toBe(true);
+    expect(panel.blind_packet_sha256).toBe(seals.blind_packet_sha256);
+    expect(panel.sealed_before_judging.split_json_sha256).toBe(seals.split_json_sha256);
+    expect(panel.sealed_before_judging.generator_key_sha256).toBe(seals.generator_key_sha256);
+    expect(panel.ground_truth_sha256).toBe(seals.ground_truth_sha256);
+    expect(sha256(readFileSync(join(dir, 'panel-result.json')))).toBe(seals.panel_result_sha256);
+  });
 
-    const aRaw = readFileSync(aPath);
-    const bRaw = readFileSync(bPath);
-    if (seals.reviewer_a_answers_sha256) {
-      expect(sha256(aRaw)).toBe(seals.reviewer_a_answers_sha256);
-    }
-    if (seals.reviewer_b_answers_sha256) {
-      expect(sha256(bRaw)).toBe(seals.reviewer_b_answers_sha256);
-    }
+  it('matches reviewer submissions to seals and normalized ground-truth', () => {
+    const seals = JSON.parse(readFileSync(join(dir, 'fixture-seals.json'), 'utf8')) as {
+      blind_packet_sha256: string;
+      reviewer_a_answers_sha256: string;
+      reviewer_b_answers_sha256: string;
+    };
+    const aRaw = readFileSync(join(dir, 'reviewer-a/answers.json'));
+    const bRaw = readFileSync(join(dir, 'reviewer-b/answers.json'));
+    expect(sha256(aRaw)).toBe(seals.reviewer_a_answers_sha256);
+    expect(sha256(bRaw)).toBe(seals.reviewer_b_answers_sha256);
 
     const corpus = loadCorpus();
     const a = JSON.parse(aRaw.toString()) as AnswerRow[];
     const b = JSON.parse(bRaw.toString()) as AnswerRow[];
-    const ground = JSON.parse(readFileSync(groundPath, 'utf8')) as {
+    const ground = JSON.parse(readFileSync(join(dir, 'ground-truth.json'), 'utf8')) as {
       items: { queryId: string; relevantIds: string[] }[];
     };
     const groundById = new Map(ground.items.map(row => [row.queryId, row.relevantIds.sort().join(',')]));

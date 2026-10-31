@@ -22,15 +22,27 @@ export type QueryRow = {
   scope_project_id: string;
 };
 
+export function formatRelationRow(row: Omit<RelationRow, 'note'>): string {
+  return `{"source": "${row.source}", "target": "${row.target}", "relation_type": "${row.relation_type}", "confidence": ${row.confidence}}`;
+}
+
+/** Matches 마름 panel packet JSON (1-space array indent, no trailing newline). */
+export function formatBlindQueriesJson(queries: Record<string, unknown>[]): string {
+  const parts = queries.map(query => {
+    const lines = Object.entries(query).map(([key, value]) => `  "${key}": ${JSON.stringify(value)}`);
+    return ` {\n${lines.join(',\n')}\n }`;
+  });
+  return `[\n${parts.join(',\n')}\n]`;
+}
+
 export function buildBlindPacketPayload(
   corpus: string,
   relations: RelationRow[],
   queries: QueryRow[],
 ): string {
-  const relBody = `${relations.map(({ note: _note, ...row }) => JSON.stringify(row)).join('\n')}\n`;
+  const relBody = `${relations.map(({ note: _note, ...row }) => formatRelationRow(row)).join('\n')}\n`;
   const blindQueries = queries.map(({ category: _c, split: _s, cluster_id: _id, ...row }) => row);
-  const queryBody = `${JSON.stringify(blindQueries, null, 2)}\n`;
-  return corpus + relBody + queryBody;
+  return corpus + relBody + formatBlindQueriesJson(blindQueries);
 }
 
 export function blindPacketSha256FromParts(
