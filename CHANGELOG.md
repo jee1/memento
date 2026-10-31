@@ -12,6 +12,8 @@
 ### Added
 
 - LLM 사용량: 기능별 attempt(success/429/기타)와 logical 최종 경로를 Pacific 날짜로 저장하고 `GET /admin/telemetry/llm-usage`로 조회합니다. 코드에 일일 cap 은 두지 않습니다 (#1546).
+- `GET /admin/ops/summary`와 `npm run ops-report`로 기존 admin·품질 조회만 묶어 네 가지 운영 질문(검색·배치·LLM 압력·품질)을 기간·분모·미측정 상태와 함께 보여 줍니다. LLM 사용량(#1546)이 없으면 해당 항목은 미측정으로 표시합니다 (#1561).
+- Jev 관계 평가: 사용자 승인 합성 48쌍, 고정 모델 440회 비교와 후보별 회귀를 기록합니다. 사전 기준 미충족으로 질문 변경은 적용하지 않습니다 (#1470).
 - Admin 대시보드 배치 작업 탭: `GET /admin/batch/stats`의 `jobs[].description`과 스케줄 표·드로어·「이건 뭔가요」 가이드에 스케줄별 역할 설명을 표시합니다 (#1464).
 
 ### Fixed

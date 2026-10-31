@@ -1,0 +1,246 @@
+import { getRetryOptions, RetryManager } from '@memento/core';
+import {
+  readServerInfo,
+  resolveServerInfoConfigDir,
+} from './server/server-info.js';
+import {
+  runOpsReport,
+  type OpsReportOptions,
+  type OpsReportPeriod,
+  type OpsReportRequest,
+} from './cli/ops-report-core.js';
+
+let opsReportRetryManager: RetryManager | undefined;
+
+function getOpsReportRetryManager(): RetryManager {
+  if (!opsReportRetryManager) {
+    const retryOptions = getRetryOptions();
+    opsReportRetryManager = new RetryManager({
+      maxAttempts: retryOptions.external_api.maxAttempts,
+      baseDelay: retryOptions.external_api.baseDelay,
+    });
+  }
+  return opsReportRetryManager;
+}
+
+function shouldRetryOpsReportFetch(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  if (message.includes('auth_failed')) return false;
+  return (
+    message.includes('fetch failed') ||
+    message.includes('econnrefused') ||
+    message.includes('enotfound') ||
+    message.includes('aborted') ||
+    message.includes('timeout') ||
+    message.includes('http 5')
+  );
+}
+
+function opsReportRetryCallOptions() {
+  const retryOptions = getRetryOptions();
+  return {
+    maxAttempts: retryOptions.external_api.maxAttempts,
+    baseDelay: retryOptions.external_api.baseDelay,
+    shouldRetry: shouldRetryOpsReportFetch,
+  };
+}
+
+const ALLOWED_PERIODS: OpsReportPeriod[] = ['24h', '7d', '30d'];
+
+function parseOptions(argv: readonly string[]): OpsReportOptions {
+  const parsed: OpsReportOptions = {
+    endpoint: '',
+    apiKey: '',
+    period: '24h',
+    json: false,
+    timeoutMs: 10_000,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--json') {
+      parsed.json = true;
+      continue;
+    }
+    if (arg === '--help' || arg === '-h') {
+      printHelp();
+      process.exit(0);
+    }
+    const value = argv[i + 1];
+    if (!value) throw new Error(`${arg} requires a value`);
+    if (arg === '--endpoint') parsed.endpoint = value;
+    else if (arg === '--api-key') parsed.apiKey = value;
+    else if (arg === '--period') {
+      if (!ALLOWED_PERIODS.includes(value as OpsReportPeriod)) {
+        throw new Error(`Invalid --period: ${value}`);
+      }
+      parsed.period = value as OpsReportPeriod;
+    } else if (arg === '--timeout-ms') {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 1) throw new Error('--timeout-ms must be positive');
+      parsed.timeoutMs = n;
+    } else {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+    i += 1;
+  }
+  return parsed;
+}
+
+function printHelp(): void {
+  process.stdout.write(
+    [
+      'Usage: npm run ops-report -- [--options]',
+      '',
+      'Read-only ops summary via GET /admin/ops/summary (no local DB bootstrap).',
+      '',
+      'Options:',
+      '  --endpoint   HTTP admin base (default: server-info or http://127.0.0.1:PORT)',
+      '  --api-key    ADMIN_API_KEY (POST /auth/session, then cookie for /admin)',
+      '  --period     24h | 7d | 30d (default 24h)',
+      '  --json       Machine-readable output',
+      '  --timeout-ms Request timeout (default 10000)',
+      '',
+    ].join('\n'),
+  );
+}
+
+async function resolveEndpoint(explicit: string | undefined, env: NodeJS.ProcessEnv): Promise<string> {
+  if (explicit) return new URL(explicit).origin;
+  const info = await readServerInfo(resolveServerInfoConfigDir({ env }));
+  if (info) return `http://127.0.0.1:${info.port}`;
+  return 'http://127.0.0.1:3000';
+}
+
+function resolveApiKey(explicit: string | undefined, env: NodeJS.ProcessEnv): string {
+  return explicit ?? env.ADMIN_API_KEY ?? '';
+}
+
+function readSessionCookieHeader(setCookie: string | null): string {
+  if (!setCookie) {
+    throw new Error('Missing session cookie from /auth/session');
+  }
+  return setCookie.split(';')[0]?.trim() ?? '';
+}
+
+/** Dashboard sign-in: POST /auth/session with admin key, same as static/js/dashboard-auth-sign-in.js */
+export async function establishAdminSessionCookie(
+  endpoint: string,
+  adminApiKey: string,
+  timeoutMs: number,
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const retryManager = getOpsReportRetryManager();
+    return await retryManager.retry(async () => {
+      const response = await fetch(`${endpoint}/auth/session`, {
+        method: 'POST',
+        headers: { 'X-API-Key': adminApiKey },
+        signal: controller.signal,
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`AUTH_FAILED HTTP ${response.status}`);
+      }
+      if (response.status !== 204) {
+        if (response.status >= 500) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const setCookies =
+        typeof response.headers.getSetCookie === 'function'
+          ? response.headers.getSetCookie()
+          : [];
+      const raw = setCookies[0] ?? response.headers.get('set-cookie');
+      return readSessionCookieHeader(raw);
+    }, opsReportRetryCallOptions());
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function createOpsReportRequest(
+  endpoint: string,
+  sessionCookie: string,
+  timeoutMs: number,
+): OpsReportRequest {
+  return async (path, init) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const headers = new Headers(init?.headers);
+      headers.set('Cookie', sessionCookie);
+      const retryManager = getOpsReportRetryManager();
+      const response = await retryManager.retry(async () => {
+        const fetchResponse = await fetch(`${endpoint}${path}`, {
+          ...init,
+          headers,
+          signal: controller.signal,
+        });
+        if (fetchResponse.status >= 500) {
+          throw new Error(`HTTP ${fetchResponse.status}`);
+        }
+        return fetchResponse;
+      }, opsReportRetryCallOptions());
+      const text = await response.text();
+      let body: unknown = text;
+      try {
+        body = text ? JSON.parse(text) : null;
+      } catch {
+        body = text;
+      }
+      return { status: response.status, body };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
+
+export async function runOpsReportCommand(argv: string[]): Promise<number> {
+  const { loadEnv } = await import('./cli/env-loader.js');
+  loadEnv();
+  let options: OpsReportOptions;
+  try {
+    options = parseOptions(argv);
+  } catch (err) {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    return 1;
+  }
+
+  options.endpoint = await resolveEndpoint(options.endpoint || undefined, process.env);
+  options.apiKey = resolveApiKey(options.apiKey || undefined, process.env);
+  if (!options.apiKey) {
+    process.stderr.write('Missing admin key (--api-key or ADMIN_API_KEY)\n');
+    return 1;
+  }
+
+  let sessionCookie: string;
+  try {
+    sessionCookie = await establishAdminSessionCookie(
+      options.endpoint,
+      options.apiKey,
+      options.timeoutMs,
+    );
+  } catch (err) {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    return 1;
+  }
+
+  const request = createOpsReportRequest(options.endpoint, sessionCookie, options.timeoutMs);
+  const result = await runOpsReport(options, request);
+  if (result.stderr) process.stderr.write(`${result.stderr}\n`);
+  if (result.stdout) process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+const isDirectRun =
+  process.argv[1]?.endsWith('ops-report-cli.ts') || process.argv[1]?.endsWith('ops-report-cli.js');
+
+if (isDirectRun) {
+  runOpsReportCommand(process.argv.slice(2))
+    .then((code) => process.exit(code))
+    .catch((err) => {
+      process.stderr.write(String(err?.message ?? err) + '\n');
+      process.exit(1);
+    });
+}

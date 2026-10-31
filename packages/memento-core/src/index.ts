@@ -124,6 +124,8 @@ export {
 } from './domains/memory/services/admin-memory-item-preview-service.js';
 export type { AdminMemoryItemPreview } from './domains/memory/services/admin-memory-item-preview-service.js';
 export { logger } from './shared/utils/logger.js';
+export { RetryManager } from './shared/utils/retry-manager.js';
+export { getRetryOptions } from './shared/config/retry-options-loader.js';
 export {
   decodeFloat32Embedding,
   embeddingColumnToNumbers,

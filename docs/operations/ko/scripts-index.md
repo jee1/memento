@@ -12,7 +12,7 @@
 | check-migration-status | 마이그레이션 상태 확인 | `npm run db:check-migration` (구현: `packages/memento-server/src/scripts`) |
 | generate-relation-report.ts | 관계 엔진 리포트 생성 | `npm run generate-relation-report` |
 | weekly-relation-validation.ts | 관계 검증 (주간) | `npm run weekly-relation-validation` |
-| quality-thresholds.ts | 품질 임계값 | `npm run quality:thresholds` |
+| ops-report-cli.ts | HTTP 운영 요약 (4질문, DB 부트스트랩 없음) | `npm run ops-report` |
 | quality-report.ts | 품질 리포트 | `npm run quality:report` |
 | generate-ground-truth.ts | ground truth 생성 | `npm run quality:ground-truth:generate` |
 | quality-benchmark-category-report.ts | 카테고리 상대 MRR 게이트 | `npm run quality -- benchmark category-report` |

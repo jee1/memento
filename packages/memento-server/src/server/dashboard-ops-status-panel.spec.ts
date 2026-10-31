@@ -247,8 +247,21 @@ describe('dashboard ops status panel', () => {
       },
     };
 
+    const summaryMock = {
+      window: { period: '24h', since: '2026-08-20T00:00:00.000Z', until: '2026-09-19T00:00:00.000Z' },
+      questions: {
+        search_health: { availability: 'partial', search_query_count: 0, search_failed_events: 0 },
+        batch_jobs: { availability: 'measured', failed_run_count: 2, success_run_count: 10 },
+        llm_pressure: { availability: 'unmeasured', reason: 'not deployed' },
+        quality_trend: { availability: 'partial', measured_metric_count: 0, unmeasured_metric_count: 1 },
+      },
+    };
+
     const harness = createOpsStatusHarness({
       fetchImpl: async (url) => {
+        if (String(url).includes('/admin/ops/summary')) {
+          return summaryMock;
+        }
         expect(url).toBe('/admin/status');
         return mockResponse;
       },
@@ -257,6 +270,7 @@ describe('dashboard ops status panel', () => {
     await harness.ns.refresh();
 
     expect(harness.fetchCalls).toContain('/admin/status');
+    expect(harness.fetchCalls.some((u) => String(u).includes('/admin/ops/summary'))).toBe(true);
     expect(harness.elements['ops-status-process-uptime'].textContent).toBe('1시간');
     expect(harness.elements['ops-status-scheduler'].textContent).toBe('실행 중');
     expect(harness.elements['ops-status-scheduler-uptime'].textContent).toBe('2분');
