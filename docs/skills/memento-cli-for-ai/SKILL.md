@@ -41,7 +41,7 @@ memento recall --query "How did we fix JWT expiry in this repo?" --type episodic
 memento memory_injection --query "deployment checklist for this project" --token_budget 1000
 ```
 
-- Pass **`--type`** on `recall` when filtering (`working` | `episodic` | `semantic` | `procedural`). Server validation matches MCP.
+- **`--type`** on `recall` is **required** (not an optional filter). Allowed: `working` | `episodic` | `semantic` | `procedural` | `core` | `vault`. Omitting it fails with the same error as MCP (`'type' 파라미터는 필수입니다`).
 - Diagnostic probes: `--auto-set-anchor false` on `recall` so stats and anchor slots are not polluted.
 
 There is **no CLI subcommand for `feedback`**. Use MCP `feedback` when available; otherwise skip (ranking signal is lost).
@@ -67,7 +67,7 @@ memento remember \
 
 Do not paste source into `--content`. Record paths, symbol names, signatures, and settled constants only.
 
-Save `semantic` and `procedural` only when the problem recurs, the note is a decision reason or reusable procedure, and the next agent will search for it. Search first (`recall`). To update an existing row by id, use MCP `remember` with `memory_id` and `update_mode` (the CLI `remember` subcommand does not expose those flags yet).
+Save `semantic` and `procedural` only when the problem recurs, the note is a decision reason or reusable procedure, and the next agent will search for it. Search first (`recall` with required `--type`). To update an existing row by id, use MCP `remember` with `memory_id` and `update_mode` (the CLI `remember` subcommand does not expose those flags yet).
 
 ## Anchors and extended tools
 

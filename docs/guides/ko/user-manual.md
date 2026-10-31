@@ -169,11 +169,11 @@ const tuned = await client.hybridSearch({
 CLI에서는 `recall` 명령으로 검색합니다.
 
 ```bash
-# 기본 검색
-memento recall --query "React Hook" --limit 5
+# 기본 검색 (--type 필수)
+memento recall --query "React Hook" --type episodic --limit 5
 
-# 타입과 태그로 필터링
-memento recall --query "TypeScript" --type "episodic,semantic" --tags "programming" --limit 10
+# 타입과 태그로 좁히기
+memento recall --query "TypeScript" --type semantic --tags "programming" --limit 10
 ```
 
 검색 결과에는 `score`(관련성 점수)와 `recall_reason`(검색된 이유)이 포함되어 어떤 근거로 해당 기억이 반환되었는지 파악할 수 있습니다.
@@ -244,7 +244,7 @@ memento forget --id mem_xxxxx --hard --confirm true
 
 ```bash
 memento remember "프로젝트 A 아키텍처 결정" --type episodic --tags "project-a,architecture,decision"
-memento recall --query "아키텍처" --tags "project-a"
+memento recall --query "아키텍처" --type episodic --tags "project-a"
 ```
 
 ## 관계 그래프

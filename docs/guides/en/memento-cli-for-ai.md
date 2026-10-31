@@ -95,11 +95,13 @@ All memory tool commands require a running HTTP server.
 
 Performs hybrid search (FTS5 full-text search + vector search) and returns relevant memories.
 
-```bash
-# Basic search
-memento recall --query "project decisions" --limit 5
+`--type` is **required**. Omitting it fails validation the same way as MCP. Values: `working`, `episodic`, `semantic`, `procedural`, `core`, `vault`.
 
-# Filter by type and tags
+```bash
+# Basic search (type required)
+memento recall --query "project decisions" --type episodic --limit 5
+
+# Narrow by type and tags
 memento recall --query "deployment" --type procedural --tags docker --limit 10
 
 # Call from another project
