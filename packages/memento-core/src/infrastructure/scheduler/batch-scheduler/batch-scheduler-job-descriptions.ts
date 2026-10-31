@@ -27,6 +27,8 @@ export const BATCH_SCHEDULER_JOB_DESCRIPTIONS: Readonly<Record<string, string>> 
     '빈 슬롯·1일 이상 미갱신 앵커 슬롯에 후보 memory_item을 고르고 setAnchor로 슬롯 기억 교체',
   embedding_reconciliation:
     '활성 memory_item 대비 native embedding 누락, content_hash 불일치, 현재 provider 미일치 행 재생성',
+  supersede_candidate_scan:
+    '최근 기억과 같은 범위의 옛 기억 쌍을 LLM 으로 확정/확인 대기/양립으로 분류해 후보 테이블에만 기록 (기억은 바꾸지 않음, SUPERSEDE_CANDIDATE_SCAN_ENABLED=true 일 때만)',
 };
 
 export function resolveBatchSchedulerJobDescription(jobName: string): string | null {

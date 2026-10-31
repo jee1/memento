@@ -33,6 +33,9 @@ export interface BatchJobConfig {
   anchorAutoRefreshEnabled: boolean;
   /** Interval (ms) for repairing missing or stale memory embeddings. */
   embeddingReconciliationInterval: number;
+  /** Issue #1548: supersede 후보 판정 배치. 기본 off — LLM 을 호출하므로 명시적으로 켠다. */
+  supersedeCandidateScanEnabled: boolean;
+  supersedeCandidateScanInterval: number;
 
   maxBatchSize: number;
   enableLogging: boolean;

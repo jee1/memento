@@ -130,6 +130,7 @@ const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
   forgetting_event_cleanup_batch: 'forgettingEventCleanupInterval',
   job_run_cleanup_batch: 'jobRunCleanupInterval',
   anchor_auto_refresh: 'anchorAutoRefreshInterval',
+  supersede_candidate_scan: 'supersedeCandidateScanInterval',
 };
 
 function resolveJobIntervalMs(name: string, config: Record<string, unknown>): number | null {

@@ -18,6 +18,7 @@ describe('ManualBatchSchedulerJobType registry (#834)', () => {
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('anchor_auto_refresh');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('embedding_reconciliation');
     expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('job_run_cleanup_batch');
+    expect(REGISTERED_MANUAL_BATCH_JOB_TYPES).toContain('supersede_candidate_scan');
   });
 
   it('isRegisteredManualBatchJobType rejects unknown names', () => {

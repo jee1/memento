@@ -5,6 +5,7 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 
 export interface MemoryItemEntity {
   id: string;
@@ -119,12 +120,84 @@ export interface MemoryResourceRow {
   pinned: number | boolean;
 }
 
+export interface SupersedeScopeMemoryRow {
+  id: string;
+  content: string;
+  type: string;
+  ownerId: string | null;
+  projectId: string | null;
+  privacyScope: string;
+  createdAt: string;
+  /** julianday(created_at). created_at 은 ISO 와 공백 형식이 섞여 있어 문자열 비교를 쓰지 않는다. */
+  createdJd: number;
+  /** created_at 이 호출 시점 기준 lookback 안에 있다. */
+  isRecent: boolean;
+  embedding: number[];
+  embeddingModel: string | null;
+}
+
+export interface SupersedeScopeMemories {
+  memories: SupersedeScopeMemoryRow[];
+  withoutEmbedding: number;
+}
+
 export function listActiveMemoryIdAndContent(
   db: Database.Database,
 ): ActiveMemoryIdAndContentRow[] {
   return db
     .prepare('SELECT id, content FROM memory_item WHERE COALESCE(is_deleted, 0) = 0')
     .all() as ActiveMemoryIdAndContentRow[];
+}
+
+/**
+ * 대체 후보 탐색 대상: 삭제되지 않은 semantic/episodic 과 native 임베딩 하나(가장 최근 행).
+ * 벡터가 없는 기억은 쌍을 만들 수 없어 개수만 센다.
+ */
+export function findSupersedeScopeMemories(
+  db: Database.Database,
+  lookbackDays: number,
+): SupersedeScopeMemories {
+  const rows = db
+    .prepare(
+      `SELECT
+         mi.id AS id,
+         mi.content AS content,
+         mi.type AS type,
+         mi.owner_id AS ownerId,
+         mi.project_id AS projectId,
+         COALESCE(mi.privacy_scope, 'private') AS privacyScope,
+         mi.created_at AS createdAt,
+         julianday(mi.created_at) AS createdJd,
+         julianday(mi.created_at) >= julianday('now') - ? AS isRecent,
+         me.embedding AS embedding,
+         me.model AS embeddingModel
+       FROM memory_item mi
+       LEFT JOIN memory_embedding me
+         ON me.memory_id = mi.id
+        AND me.projection_type = 'native'
+        AND me.id = (
+          SELECT MAX(latest.id) FROM memory_embedding latest
+          WHERE latest.memory_id = mi.id AND latest.projection_type = 'native'
+        )
+       WHERE mi.type IN ('semantic', 'episodic')
+         AND COALESCE(mi.is_deleted, 0) = 0
+         AND julianday(mi.created_at) IS NOT NULL`,
+    )
+    .all(lookbackDays) as Array<
+    Omit<SupersedeScopeMemoryRow, 'embedding' | 'isRecent'> & { embedding: Buffer | null; isRecent: number }
+  >;
+
+  const memories: SupersedeScopeMemoryRow[] = [];
+  let withoutEmbedding = 0;
+  for (const row of rows) {
+    const embedding = embeddingColumnToNumbers(row.embedding);
+    if (!embedding) {
+      withoutEmbedding += 1;
+      continue;
+    }
+    memories.push({ ...row, embedding, isRecent: row.isRecent === 1 });
+  }
+  return { memories, withoutEmbedding };
 }
 
 export function findAnchorMemorySummaryById(

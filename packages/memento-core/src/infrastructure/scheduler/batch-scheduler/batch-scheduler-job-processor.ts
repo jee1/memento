@@ -32,7 +32,8 @@ export function createBatchSchedulerJobRunnerCallbacks(source: BatchSchedulerCon
     runForgettingEventCleanupBatch: () => runners.runForgettingEventCleanupBatch(),
     runJobRunCleanupBatch: () => runners.runJobRunCleanupBatch(),
     runAnchorAutoRefresh: () => runners.runAnchorAutoRefresh(),
-    runEmbeddingReconciliation: () => runners.runEmbeddingReconciliation()
+    runEmbeddingReconciliation: () => runners.runEmbeddingReconciliation(),
+    runSupersedeCandidateScan: () => runners.runSupersedeCandidateScan()
   };
 }
 
