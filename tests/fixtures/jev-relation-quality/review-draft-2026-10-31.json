@@ -1,9 +1,13 @@
 {
   "version": 1,
   "review": {
-    "status": "pending",
-    "human_reviewed": false,
-    "basis": "2026-10-31 브리프에 따른 에이전트 초안. 사용자 개별 검토·정답 확정 전. 기존 측정 집합과 별도."
+    "status": "reviewed",
+    "human_reviewed": true,
+    "reviewer": "jee1lee",
+    "reviewed_at": "2026-10-31T09:12:00+09:00",
+    "basis": "사용자 48쌍 수정 없이 승인 및 사전 등록 제안 v1 승인. 마름 경유 검토완료; issue-1470-stage2-brief.md.",
+    "approved_draft_sha256": "cdfeac5a75d49170ad3c43dc3542f3c4404463e5bd48a5f28867a7b924be9545",
+    "approved_cases_sha256": "bce49f69c6316c7bc2cb138d9d9e441e0517679fb51add45bcd9a3ba3fe81384"
   },
   "provenance": "newly-authored-synthetic; no private memory text or identifiers",
   "cases": [
