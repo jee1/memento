@@ -1,0 +1,455 @@
+{
+  "version": "adoption-ko-panel-v1",
+  "status": "test_frozen",
+  "frozen_at": "2026-10-31T12:33:04.759437Z",
+  "source_split_sha256": "4e7d026a7e75e82bfde0785eef6f06774d713f99747f7db819bfe4416805502c",
+  "development": [
+    {
+      "path": "tests/fixtures/search-quality/benchmark-v3/manifest.json",
+      "sha256": "7251fd24bbf35aaa6f304abe6ba202de513086b71322348b2be3d5a9a3726a5e"
+    },
+    {
+      "path": "tests/fixtures/search-quality/benchmark-v3/corpus.jsonl",
+      "sha256": "10f010c6ae6cf022f1c0dac5425a22fc329afe51f8d832235a0459c4c12a7cfb"
+    },
+    {
+      "path": "tests/fixtures/search-quality/benchmark-v3/queries.json",
+      "sha256": "9f92dea25a58c5b42f079b84ec17df9586d93d7b45f3f9623824fad446bf677e"
+    },
+    {
+      "path": "tests/fixtures/search-quality/benchmark-v3/ground-truth.json",
+      "sha256": "6a49473c2ccee2f557a61824ffd9e97cdad0128f79f6e6c3deb545c395b06450"
+    },
+    {
+      "path": "tests/fixtures/jev-relation-quality/review-draft-2026-10-31.json",
+      "sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854"
+    }
+  ],
+  "dev_counts": {
+    "knowledge_update": 24,
+    "jev_review_draft": 48
+  },
+  "test_cases": [
+    {
+      "case_id": "c_9963f1f8d5dc",
+      "episode_id": "episode_9963f1f8d5dc",
+      "family": "family_9963f1f8d5dc",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_b359ea28f1c0",
+      "episode_id": "episode_b359ea28f1c0",
+      "family": "family_b359ea28f1c0",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_f1f32f08a300",
+      "episode_id": "episode_f1f32f08a300",
+      "family": "family_f1f32f08a300",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_5d1d4e90f57e",
+      "episode_id": "episode_5d1d4e90f57e",
+      "family": "family_5d1d4e90f57e",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_5970242779ea",
+      "episode_id": "episode_5970242779ea",
+      "family": "family_5970242779ea",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_f8a616d7b17b",
+      "episode_id": "episode_f8a616d7b17b",
+      "family": "family_f8a616d7b17b",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_e6fe7719f2b9",
+      "episode_id": "episode_e6fe7719f2b9",
+      "family": "family_e6fe7719f2b9",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_16c8bf488b09",
+      "episode_id": "episode_16c8bf488b09",
+      "family": "family_16c8bf488b09",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_c455100c64b4",
+      "episode_id": "episode_c455100c64b4",
+      "family": "family_c455100c64b4",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_9db293265c59",
+      "episode_id": "episode_9db293265c59",
+      "family": "family_9db293265c59",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_ec69abc5a371",
+      "episode_id": "episode_ec69abc5a371",
+      "family": "family_ec69abc5a371",
+      "split": "test",
+      "gold": false
+    },
+    {
+      "case_id": "c_857afcdb422e",
+      "episode_id": "episode_857afcdb422e",
+      "family": "family_857afcdb422e",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_5d9cd916c073",
+      "episode_id": "episode_5d9cd916c073",
+      "family": "family_5d9cd916c073",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_2f84f0bebc73",
+      "episode_id": "episode_2f84f0bebc73",
+      "family": "family_2f84f0bebc73",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_327f9089fef4",
+      "episode_id": "episode_327f9089fef4",
+      "family": "family_327f9089fef4",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_df16956170b0",
+      "episode_id": "episode_df16956170b0",
+      "family": "family_df16956170b0",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_9a39a043cc69",
+      "episode_id": "episode_9a39a043cc69",
+      "family": "family_9a39a043cc69",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_4672d0762140",
+      "episode_id": "episode_4672d0762140",
+      "family": "family_4672d0762140",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_99486eb89e40",
+      "episode_id": "episode_99486eb89e40",
+      "family": "family_99486eb89e40",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_e31fd082f17f",
+      "episode_id": "episode_e31fd082f17f",
+      "family": "family_e31fd082f17f",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_c931a5fbcb43",
+      "episode_id": "episode_c931a5fbcb43",
+      "family": "family_c931a5fbcb43",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_56e80ed7ded4",
+      "episode_id": "episode_56e80ed7ded4",
+      "family": "family_56e80ed7ded4",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_7836d879ad79",
+      "episode_id": "episode_7836d879ad79",
+      "family": "family_7836d879ad79",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_9903b11a7933",
+      "episode_id": "episode_9903b11a7933",
+      "family": "family_9903b11a7933",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_3d2eea39ec44",
+      "episode_id": "episode_3d2eea39ec44",
+      "family": "family_3d2eea39ec44",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_d5dd7ea5f73b",
+      "episode_id": "episode_d5dd7ea5f73b",
+      "family": "family_d5dd7ea5f73b",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_853b7dd69501",
+      "episode_id": "episode_853b7dd69501",
+      "family": "family_853b7dd69501",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_9d1ea5fe4159",
+      "episode_id": "episode_9d1ea5fe4159",
+      "family": "family_9d1ea5fe4159",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_529dd26ec531",
+      "episode_id": "episode_529dd26ec531",
+      "family": "family_529dd26ec531",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_a8264cc3b923",
+      "episode_id": "episode_a8264cc3b923",
+      "family": "family_a8264cc3b923",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_e4789813319b",
+      "episode_id": "episode_e4789813319b",
+      "family": "family_e4789813319b",
+      "split": "test",
+      "gold": false
+    },
+    {
+      "case_id": "c_e25cad83e7cd",
+      "episode_id": "episode_e25cad83e7cd",
+      "family": "family_e25cad83e7cd",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_340611f0de85",
+      "episode_id": "episode_340611f0de85",
+      "family": "family_340611f0de85",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_296a8e6217e1",
+      "episode_id": "episode_296a8e6217e1",
+      "family": "family_296a8e6217e1",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_490d330f6281",
+      "episode_id": "episode_490d330f6281",
+      "family": "family_490d330f6281",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_4fc2d6add783",
+      "episode_id": "episode_4fc2d6add783",
+      "family": "family_4fc2d6add783",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_1615bc7cdfa7",
+      "episode_id": "episode_1615bc7cdfa7",
+      "family": "family_1615bc7cdfa7",
+      "split": "test",
+      "gold": false
+    },
+    {
+      "case_id": "c_4c435ee03890",
+      "episode_id": "episode_4c435ee03890",
+      "family": "family_4c435ee03890",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_720ee871692e",
+      "episode_id": "episode_720ee871692e",
+      "family": "family_720ee871692e",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_4f0fb64bb0db",
+      "episode_id": "episode_4f0fb64bb0db",
+      "family": "family_4f0fb64bb0db",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_ca7bdbefe96a",
+      "episode_id": "episode_ca7bdbefe96a",
+      "family": "family_ca7bdbefe96a",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_bbbef70407c1",
+      "episode_id": "episode_bbbef70407c1",
+      "family": "family_bbbef70407c1",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_23e94f27f4d2",
+      "episode_id": "episode_23e94f27f4d2",
+      "family": "family_23e94f27f4d2",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_9a1a45574b95",
+      "episode_id": "episode_9a1a45574b95",
+      "family": "family_9a1a45574b95",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_f3f9e20891a0",
+      "episode_id": "episode_f3f9e20891a0",
+      "family": "family_f3f9e20891a0",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_b90ae7b35872",
+      "episode_id": "episode_b90ae7b35872",
+      "family": "family_b90ae7b35872",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_81f6bb8f85cd",
+      "episode_id": "episode_81f6bb8f85cd",
+      "family": "family_81f6bb8f85cd",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_aa9070ed2c1c",
+      "episode_id": "episode_aa9070ed2c1c",
+      "family": "family_aa9070ed2c1c",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_0968eab113f8",
+      "episode_id": "episode_0968eab113f8",
+      "family": "family_0968eab113f8",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_8f0f05768a43",
+      "episode_id": "episode_8f0f05768a43",
+      "family": "family_8f0f05768a43",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_5d11c11ce18e",
+      "episode_id": "episode_5d11c11ce18e",
+      "family": "family_5d11c11ce18e",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_0f059c1fd174",
+      "episode_id": "episode_0f059c1fd174",
+      "family": "family_0f059c1fd174",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_ca14289d341f",
+      "episode_id": "episode_ca14289d341f",
+      "family": "family_ca14289d341f",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_99642f06e14d",
+      "episode_id": "episode_99642f06e14d",
+      "family": "family_99642f06e14d",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_7a8046b27002",
+      "episode_id": "episode_7a8046b27002",
+      "family": "family_7a8046b27002",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_6f7ce8bd400c",
+      "episode_id": "episode_6f7ce8bd400c",
+      "family": "family_6f7ce8bd400c",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_e73979769b4f",
+      "episode_id": "episode_e73979769b4f",
+      "family": "family_e73979769b4f",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_c6a56f25340b",
+      "episode_id": "episode_c6a56f25340b",
+      "family": "family_c6a56f25340b",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_dfb2123b424b",
+      "episode_id": "episode_dfb2123b424b",
+      "family": "family_dfb2123b424b",
+      "split": "test",
+      "gold": true
+    },
+    {
+      "case_id": "c_3ea1aa11b785",
+      "episode_id": "episode_3ea1aa11b785",
+      "family": "family_3ea1aa11b785",
+      "split": "test",
+      "gold": true
+    }
+  ],
+  "policy": "기존 개발 episode/사실의 재서술 금지. 판정 전 test_candidate, 합의·동결 후 test. 결과 공개 후 고친 사례는 dev로 이동하고 새 test를 추가한다."
+}

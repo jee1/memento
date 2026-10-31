@@ -1,0 +1,3287 @@
+{
+  "label_source": "agent_panel",
+  "summary": {
+    "total": 60,
+    "label_agreement": 60,
+    "gold_count": 57,
+    "labels": {
+      "retire": 30,
+      "retain": 27,
+      "ambiguous": 3
+    },
+    "retrieval_gold_count": 55,
+    "retrieval_held_count": 5
+  },
+  "decisions": [
+    {
+      "case_id": "c_9963f1f8d5dc",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_9963f1f8d5dc_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_9963f1f8d5dc",
+            "label": "retain",
+            "expected_outcome": "현재 안내 언어는 한국어와 영어",
+            "forbidden_outcome": "한국어만 안내한다고 답변",
+            "rationale": "e2는 8월 개편 전 과거 전시 사진에 대한 보완 설명이다. 10월 1일부터 적용된 e1의 안내 언어 규칙(한국어와 영어)이 유효하다.",
+            "evidence_refs": [
+              "c_9963f1f8d5dc_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_9963f1f8d5dc_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_9963f1f8d5dc",
+            "label": "retain",
+            "expected_outcome": "한국어·영어 안내(10/1부터)",
+            "forbidden_outcome": "현재 한국어만",
+            "rationale": "e2는 8월 개편 전 과거 설명으로 e1 현재 규칙을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_9963f1f8d5dc_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_b359ea28f1c0",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_b359ea28f1c0_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_b359ea28f1c0",
+            "label": "retire",
+            "expected_outcome": "통학차량 3호 정규 출발 시각은 오전 8시 20분",
+            "forbidden_outcome": "오전 8시 출발 안내",
+            "rationale": "e2에서 정규 출발 시각을 오전 8시 20분으로 변경하고 기존 8시 안내를 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_b359ea28f1c0_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_b359ea28f1c0_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_b359ea28f1c0",
+            "label": "retire",
+            "expected_outcome": "오전 8시 20분 출발",
+            "forbidden_outcome": "오전 8시 출발",
+            "rationale": "e2가 3호 정규 출발을 8:20으로 변경하고 8시 안내 종료를 명시한다.",
+            "evidence_refs": [
+              "c_b359ea28f1c0_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_b359ea28f1c0_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_f1f32f08a300",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_f1f32f08a300_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_f1f32f08a300",
+            "label": "retain",
+            "expected_outcome": "정규 미술 수업은 수요일",
+            "forbidden_outcome": "미술 수업 요일 변경 또는 금요일 안내",
+            "rationale": "e2는 음악 수업 추가 기록이며 미술 수업 요일에 영향을 주지 않고 양립한다. e1은 온전히 유효하다.",
+            "evidence_refs": [
+              "c_f1f32f08a300_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_f1f32f08a300_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_f1f32f08a300",
+            "label": "retain",
+            "expected_outcome": "수요일 정규 미술 수업",
+            "forbidden_outcome": "미술 수업 요일 변경",
+            "rationale": "e2는 금요일 음악 수업 추가로 미술 수요일 규칙과 무관하다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_f1f32f08a300_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_5d1d4e90f57e",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_5d1d4e90f57e_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_5d1d4e90f57e",
+            "label": "retire",
+            "expected_outcome": "예약 방식은 방문 예약만 접수",
+            "forbidden_outcome": "전화 예약 안내",
+            "rationale": "e2에서 전화 예약 정책을 취소하고 방문 예약만 받기로 확정했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_5d1d4e90f57e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_5d1d4e90f57e_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_5d1d4e90f57e",
+            "label": "retire",
+            "expected_outcome": "방문 예약만",
+            "forbidden_outcome": "전화 예약만",
+            "rationale": "e2가 전화 예약 정책 취소와 방문 예약만 확정을 명시해 e1 전체를 대체한다.",
+            "evidence_refs": [
+              "c_5d1d4e90f57e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_5d1d4e90f57e_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_5970242779ea",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_5970242779ea_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_5970242779ea",
+            "label": "retire",
+            "expected_outcome": "바퀴를 끼운 뒤 받침 부착",
+            "forbidden_outcome": "받침을 붙인 뒤 바퀴 장착",
+            "rationale": "e2가 조립 순서를 전면 개정하여 바퀴를 끼운 뒤 받침을 붙이도록 하고 이전 순서를 폐기했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_5970242779ea_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_5970242779ea_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_5970242779ea",
+            "label": "retire",
+            "expected_outcome": "바퀴 끼운 뒤 받침",
+            "forbidden_outcome": "받침 뒤 바퀴",
+            "rationale": "e2가 조립 순서 전면 개정과 이전 순서 폐기를 명시해 e1 전체를 대체한다.",
+            "evidence_refs": [
+              "c_5970242779ea_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_5970242779ea_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_f8a616d7b17b",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_f8a616d7b17b_e1",
+        "c_f8a616d7b17b_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_f8a616d7b17b",
+            "label": "retain",
+            "expected_outcome": "신분 확인 후 물품 인도 단계 유지, 보증금 면제",
+            "forbidden_outcome": "보증금 수령 요구, 또는 신분 확인과 물품 인도 절차의 폐기",
+            "rationale": "e2에서 보증금만 면제하고 신분 확인 후 물품 인도 단계는 유지한다고 명시했다. e1의 주요 단계가 여전히 유효한 부분 변경이므로 전체 퇴역이 성립하지 않는다.",
+            "evidence_refs": [
+              "c_f8a616d7b17b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_f8a616d7b17b_e1",
+              "c_f8a616d7b17b_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_f8a616d7b17b",
+            "label": "retain",
+            "expected_outcome": "신분 확인 후 물품 인도(보증금 면제)",
+            "forbidden_outcome": "e1의 보증금 수령 단계를 현재 절차로",
+            "rationale": "e2는 보증금 면제만 바꾸고 나머지 절차는 유지해 e1 전체 퇴역 근거가 성립하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_f8a616d7b17b_e1",
+              "c_f8a616d7b17b_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_e6fe7719f2b9",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_e6fe7719f2b9_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_e6fe7719f2b9",
+            "label": "retire",
+            "expected_outcome": "공식 이름은 한결 자료관",
+            "forbidden_outcome": "한결 전시관 안내",
+            "rationale": "e2가 동일 대상 H91의 이름을 한결 자료관으로 변경하고 기존 이름을 안내하지 않는다고 명시했다. e1 전체가 교체된다.",
+            "evidence_refs": [
+              "c_e6fe7719f2b9_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e6fe7719f2b9_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_e6fe7719f2b9",
+            "label": "retire",
+            "expected_outcome": "공식 이름 한결 자료관",
+            "forbidden_outcome": "한결 전시관이 현재 공식명",
+            "rationale": "e2가 동일 ID H91 공식명 변경과 전시관 안내 중단을 명시한다.",
+            "evidence_refs": [
+              "c_e6fe7719f2b9_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e6fe7719f2b9_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_16c8bf488b09",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_16c8bf488b09_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_16c8bf488b09",
+            "label": "retire",
+            "expected_outcome": "발표문 제목 서체는 고딕",
+            "forbidden_outcome": "명조 서체 안내",
+            "rationale": "e2에서 제목 서체를 고딕으로 확정 변경하고 명조 제목 규칙을 종료했다. e1 전체가 교체된다.",
+            "evidence_refs": [
+              "c_16c8bf488b09_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_16c8bf488b09_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_16c8bf488b09",
+            "label": "retire",
+            "expected_outcome": "제목 고딕",
+            "forbidden_outcome": "제목 명조",
+            "rationale": "e2가 고딕 확정과 명조 규칙 종료를 명시한다.",
+            "evidence_refs": [
+              "c_16c8bf488b09_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_16c8bf488b09_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_c455100c64b4",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_c455100c64b4_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_c455100c64b4",
+            "label": "retain",
+            "expected_outcome": "미리내 자료실 월요일 정기 휴관",
+            "forbidden_outcome": "월요일 휴관 폐지 또는 다른 요일 휴관",
+            "rationale": "e2는 토요일 사진 강좌 개설 정보이며 e1의 월요일 정기 휴관 규칙과 무관하게 양립한다.",
+            "evidence_refs": [
+              "c_c455100c64b4_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_c455100c64b4_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_c455100c64b4",
+            "label": "retain",
+            "expected_outcome": "월요일 정기 휴관",
+            "forbidden_outcome": "월요일 개장",
+            "rationale": "e2는 토요일 사진 강좌로 휴관일 규칙과 별개 주제다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_c455100c64b4_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_9db293265c59",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_9db293265c59_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_9db293265c59",
+            "label": "retain",
+            "expected_outcome": "플래시 없는 촬영 허용 규칙 유지",
+            "forbidden_outcome": "촬영 전면 금지 규정 적용",
+            "rationale": "e2는 담당자에게 제안하지 않은 개인 초안에 불과하다. rubric상 제안은 승인으로 승격하지 않으므로 e1의 촬영 규칙이 온전히 유효하다.",
+            "evidence_refs": [
+              "c_9db293265c59_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_9db293265c59_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_9db293265c59",
+            "label": "retain",
+            "expected_outcome": "플래시 없이 촬영 허용",
+            "forbidden_outcome": "촬영 전면 금지가 현재 규칙",
+            "rationale": "e2는 미제안 개인 초안으로 승인·확정 결정이 아니며 e1의 허용 규칙을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_9db293265c59_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_ec69abc5a371",
+      "label": "ambiguous",
+      "gold": false,
+      "label_agreement": true,
+      "hold_reasons": [
+        "panel_ambiguous",
+        "contract_disagreement"
+      ],
+      "relevant_evidence_refs": null,
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_ec69abc5a371",
+            "label": "ambiguous",
+            "expected_outcome": "발급 방식 판정 보류, 지시 대상 및 승인 여부 확인 필요",
+            "forbidden_outcome": "입장권 전자식 확정 또는 종이 발급 단정",
+            "rationale": "e2는 대명사 '이건'의 지시 대상이 명시되지 않았고 승인 여부도 남기지 않은 메모다. rubric의 hold 사유인 대명사 지시 대상 누락 및 확인되지 않은 승인에 해당한다.",
+            "evidence_refs": [
+              "c_ec69abc5a371_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_ec69abc5a371_e1",
+              "c_ec69abc5a371_e2"
+            ],
+            "hold_reason": "대명사('이건')가 입장권을 가리키는지 식권을 가리키는지 불명확하며 승인 여부도 기록되지 않음. 구체적 대상 지시와 승인 확인 기록 필요.",
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_ec69abc5a371",
+            "label": "ambiguous",
+            "expected_outcome": "종이 입장권(대상·승인 불명)",
+            "forbidden_outcome": "전자식 전환 확정",
+            "rationale": "메모가 무엇을 전자식으로 바꿀지·승인 여부를 남기지 않아 퇴역·현재 답을 확정할 수 없다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_ec69abc5a371_e1"
+            ],
+            "hold_reason": "대명사·대상 불명·승인 부재",
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_857afcdb422e",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_857afcdb422e_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_857afcdb422e",
+            "label": "retire",
+            "expected_outcome": "지평 어학시험 제7회 응시 장소는 서관 5호실",
+            "forbidden_outcome": "동관 2호실 안내",
+            "rationale": "e2가 제7회 장소를 서관 5호실로 확정 변경하고 기존 동관 2호실 안내를 오안내로 명시 정정했다. e1 전체가 정정 대상이 된다.",
+            "evidence_refs": [
+              "c_857afcdb422e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_857afcdb422e_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_857afcdb422e",
+            "label": "retire",
+            "expected_outcome": "서관 5호실",
+            "forbidden_outcome": "동관 2호실",
+            "rationale": "e2가 제7회 장소를 서관 5호실로 확정 정정하고 동관 안내를 잘못으로 명시한다.",
+            "evidence_refs": [
+              "c_857afcdb422e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_857afcdb422e_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_5d9cd916c073",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_5d9cd916c073_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_5d9cd916c073",
+            "label": "retain",
+            "expected_outcome": "동쪽 섬 한울 마을 공동 우편함은 회관 앞",
+            "forbidden_outcome": "동쪽 섬 우편함을 선착장 앞으로 안내",
+            "rationale": "e2는 서쪽 섬 한울 마을에 관한 변경이며 e1의 동쪽 섬 한울 마을과 대상이 다르다. e1은 그대로 유효하다.",
+            "evidence_refs": [
+              "c_5d9cd916c073_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_5d9cd916c073_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_5d9cd916c073",
+            "label": "retain",
+            "expected_outcome": "동쪽 섬 회관 앞 우편함",
+            "forbidden_outcome": "동쪽 섬 선착장 앞",
+            "rationale": "e2는 서쪽 섬 한울 마을 변경으로 질의 대상(동쪽)과 다르다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_5d9cd916c073_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_2f84f0bebc73",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_2f84f0bebc73_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_2f84f0bebc73",
+            "label": "retire",
+            "expected_outcome": "문자 라벨 부착",
+            "forbidden_outcome": "숫자 라벨 부착",
+            "rationale": "e2가 운반 상자 라벨을 문자 라벨로 전면 교체하고 숫자 라벨 규칙을 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_2f84f0bebc73_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_2f84f0bebc73_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_2f84f0bebc73",
+            "label": "retire",
+            "expected_outcome": "문자 라벨",
+            "forbidden_outcome": "숫자 라벨",
+            "rationale": "e2가 문자 라벨 전면 교체와 숫자 규칙 종료를 명시한다.",
+            "evidence_refs": [
+              "c_2f84f0bebc73_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_2f84f0bebc73_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_327f9089fef4",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": null,
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_327f9089fef4",
+            "label": "retain",
+            "expected_outcome": "정기 합주는 화요일 저녁",
+            "forbidden_outcome": "화요일 저녁 합주 규칙 폐기",
+            "rationale": "e2는 e1과 동일한 주장을 분실 대비로 다시 기록한 중복 기록이다. rubric상 중복은 전체 퇴역 근거가 성립하지 않는다.",
+            "evidence_refs": [
+              "c_327f9089fef4_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_327f9089fef4_e1",
+              "c_327f9089fef4_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_327f9089fef4",
+            "label": "retain",
+            "expected_outcome": "화요일 저녁 정기 합주",
+            "forbidden_outcome": "합주 요일 변경",
+            "rationale": "e2는 e1과 동일한 안내의 중복 기록으로 e1을 대체·정정하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_327f9089fef4_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_df16956170b0",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_df16956170b0_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_df16956170b0",
+            "label": "retire",
+            "expected_outcome": "납품용 원본 출력 형식은 TIFF",
+            "forbidden_outcome": "PNG 출력 안내",
+            "rationale": "e2에서 출력 형식을 TIFF로 확정하고 PNG 출력 규칙을 교체했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_df16956170b0_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_df16956170b0_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_df16956170b0",
+            "label": "retire",
+            "expected_outcome": "TIFF 출력",
+            "forbidden_outcome": "PNG 출력",
+            "rationale": "e2가 TIFF 확정과 PNG 규칙 교체를 명시한다.",
+            "evidence_refs": [
+              "c_df16956170b0_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_df16956170b0_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_9a39a043cc69",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_9a39a043cc69_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_9a39a043cc69",
+            "label": "retain",
+            "expected_outcome": "소유자 우진의 보슬 공방 도장은 원형",
+            "forbidden_outcome": "우진의 도장 모양을 사각형으로 안내",
+            "rationale": "e2는 소유자 서진(other_owner)의 동명 공방 도장에 관한 기록으로 질의 대상인 소유자 우진과 scope(owner)가 다르다. e1은 그대로 유효하다.",
+            "evidence_refs": [
+              "c_9a39a043cc69_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_9a39a043cc69_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_9a39a043cc69",
+            "label": "retain",
+            "expected_outcome": "우진 보슬 공방 도장 원형",
+            "forbidden_outcome": "우진 도장이 사각형",
+            "rationale": "e2는 다른 소유자(서진)의 도장 변경으로 질의 scope와 대상이 다르다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_9a39a043cc69_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_4672d0762140",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_4672d0762140_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_4672d0762140",
+            "label": "retire",
+            "expected_outcome": "전자 양식으로만 신청 접수",
+            "forbidden_outcome": "종이 신청서 접수 안내",
+            "rationale": "e2에서 전자 양식으로만 받도록 변경하고 종이 신청서 접수를 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_4672d0762140_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4672d0762140_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_4672d0762140",
+            "label": "retire",
+            "expected_outcome": "전자 양식만",
+            "forbidden_outcome": "종이 신청서만",
+            "rationale": "e2가 전자만 받도록 바꾸고 종이 접수 종료를 명시한다.",
+            "evidence_refs": [
+              "c_4672d0762140_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4672d0762140_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_99486eb89e40",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_99486eb89e40_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_99486eb89e40",
+            "label": "retain",
+            "expected_outcome": "원고는 양면으로 출력",
+            "forbidden_outcome": "단면 출력 안내",
+            "rationale": "e2는 8월 2일 과거 구판 안내 등록 기록이며 e1의 10월 1일 시행 양면 출력 정책이 현재 시점에 온전히 유효하다.",
+            "evidence_refs": [
+              "c_99486eb89e40_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_99486eb89e40_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_99486eb89e40",
+            "label": "retain",
+            "expected_outcome": "10/1부터 양면 출력",
+            "forbidden_outcome": "현재 단면 출력",
+            "rationale": "e2는 8월 구판 과거 기록 보완으로 10/1부터 양면 규칙(e1)을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_99486eb89e40_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_e31fd082f17f",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_e31fd082f17f_e1",
+        "c_e31fd082f17f_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_e31fd082f17f",
+            "label": "retain",
+            "expected_outcome": "밀봉한 생수만 반입 허용, 그 외 음식 반입 금지 유지",
+            "forbidden_outcome": "음식 전면 허용 또는 밀봉 생수 반입 금지",
+            "rationale": "e2에서 밀봉한 생수만 허용하고 나머지 음식 반입 금지는 유지한다고 명시했다. e1의 음식 반입 금지 원칙이 여전히 유효한 부분 변경이다.",
+            "evidence_refs": [
+              "c_e31fd082f17f_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e31fd082f17f_e1",
+              "c_e31fd082f17f_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_e31fd082f17f",
+            "label": "retain",
+            "expected_outcome": "밀봉 생수만 허용·그 외 음식 금지",
+            "forbidden_outcome": "모든 음식 반입 금지(생수 포함)",
+            "rationale": "e2는 생수 예외만 추가해 전면 금지 규칙 전체를 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_e31fd082f17f_e1",
+              "c_e31fd082f17f_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_c931a5fbcb43",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_c931a5fbcb43_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_c931a5fbcb43",
+            "label": "retain",
+            "expected_outcome": "드라이버는 공구함 A 보관",
+            "forbidden_outcome": "드라이버 보관 위치 변경 또는 망치 규칙 혼용",
+            "rationale": "e2는 망치 보관에 관한 별개 공구 규칙이며 e1의 드라이버 보관 규칙과 양립한다. e1은 그대로 유효하다.",
+            "evidence_refs": [
+              "c_c931a5fbcb43_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_c931a5fbcb43_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_c931a5fbcb43",
+            "label": "retain",
+            "expected_outcome": "드라이버 공구함 A",
+            "forbidden_outcome": "드라이버를 공구함 B",
+            "rationale": "e2는 망치 보관 위치로 드라이버 규칙과 무관하다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_c931a5fbcb43_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_56e80ed7ded4",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": null,
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_56e80ed7ded4",
+            "label": "retain",
+            "expected_outcome": "성인과 어린이 모두 장갑 착용 의무 유지",
+            "forbidden_outcome": "장갑 착용 의무 해제 또는 변경",
+            "rationale": "e2에서 어린이용 장갑 재질을 바꿨으나 장갑 착용 의무는 유지한다고 명시했다. e1의 장갑 착용 의무 주장이 그대로 유효하다.",
+            "evidence_refs": [
+              "c_56e80ed7ded4_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_56e80ed7ded4_e1",
+              "c_56e80ed7ded4_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_56e80ed7ded4",
+            "label": "retain",
+            "expected_outcome": "성인·어린이 모두 장갑 착용",
+            "forbidden_outcome": "장갑 착용 의무 폐지",
+            "rationale": "e2는 장갑 재질 교체로 착용 의무 변경이 없다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_56e80ed7ded4_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_7836d879ad79",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_7836d879ad79_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_7836d879ad79",
+            "label": "retire",
+            "expected_outcome": "열쇠 보관 위치는 관리실 204호",
+            "forbidden_outcome": "관리실 102호 안내",
+            "rationale": "e2에서 열쇠를 204호로 옮기고 위치 안내를 102호에서 204호로 교체했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_7836d879ad79_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_7836d879ad79_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_7836d879ad79",
+            "label": "retire",
+            "expected_outcome": "관리실 204호",
+            "forbidden_outcome": "관리실 102호",
+            "rationale": "e2가 열쇠 보관을 204호로 옮기고 안내 교체를 명시한다.",
+            "evidence_refs": [
+              "c_7836d879ad79_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_7836d879ad79_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_9903b11a7933",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_9903b11a7933_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_9903b11a7933",
+            "label": "retain",
+            "expected_outcome": "평일 매표 창구는 3번",
+            "forbidden_outcome": "평일 창구를 5번으로 안내",
+            "rationale": "e2는 주말 매표 창구 변경이며 평일 운영 변경은 없다고 명시했다. e1의 평일 창구 규칙(3번)은 온전히 유효하다.",
+            "evidence_refs": [
+              "c_9903b11a7933_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_9903b11a7933_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_9903b11a7933",
+            "label": "retain",
+            "expected_outcome": "평일 매표 3번",
+            "forbidden_outcome": "평일 매표 5번",
+            "rationale": "e2는 주말 창구만 변경하고 평일 운영 변경 없음을 명시한다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_9903b11a7933_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_3d2eea39ec44",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_3d2eea39ec44_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_3d2eea39ec44",
+            "label": "retire",
+            "expected_outcome": "녹담 배양실 실험 A의 설정 온도는 24도",
+            "forbidden_outcome": "22도 설정 온도 안내",
+            "rationale": "e2가 동일 대상과 범위에서 실험 A의 설정 온도를 24도로 확정하고 기존 22도 설정을 명시 폐기했다. 질의 시점(11월 3일)에 유효하므로 e1의 모든 주장이 교체된다.",
+            "evidence_refs": [
+              "c_3d2eea39ec44_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_3d2eea39ec44_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_3d2eea39ec44",
+            "label": "retire",
+            "expected_outcome": "실험 A 설정 24도",
+            "forbidden_outcome": "설정 22도",
+            "rationale": "e2가 24도 확정과 22도 폐기를 명시한다.",
+            "evidence_refs": [
+              "c_3d2eea39ec44_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_3d2eea39ec44_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_d5dd7ea5f73b",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_d5dd7ea5f73b_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_d5dd7ea5f73b",
+            "label": "retain",
+            "expected_outcome": "10월 물품 배송지는 창고 C",
+            "forbidden_outcome": "10월 물품을 창고 A로 배송했다고 안내",
+            "rationale": "e2는 9월 물품의 과거 배송 기록이며 e1의 10월 물품 배송 사실과 대상/일자가 다른 별개 사건이다. e1은 그대로 유효하다.",
+            "evidence_refs": [
+              "c_d5dd7ea5f73b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_d5dd7ea5f73b_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_d5dd7ea5f73b",
+            "label": "retain",
+            "expected_outcome": "10월 물품 창고 C(10/1)",
+            "forbidden_outcome": "10월 배송을 창고 A로",
+            "rationale": "e2는 9월 행사·다른 시점 기록으로 10월 배송 주장과 별개다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_d5dd7ea5f73b_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_853b7dd69501",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_853b7dd69501_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_853b7dd69501",
+            "label": "retire",
+            "expected_outcome": "참고문헌 정렬은 발행연도순",
+            "forbidden_outcome": "저자 이름순 정렬",
+            "rationale": "e2에서 정렬 기준을 발행연도순으로 변경하고 저자 이름순 규칙을 철회했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_853b7dd69501_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_853b7dd69501_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_853b7dd69501",
+            "label": "retire",
+            "expected_outcome": "발행연도순 정렬",
+            "forbidden_outcome": "저자 이름순 정렬",
+            "rationale": "e2가 참고문헌 정렬 기준을 발행연도순으로 바꾸고 이름순 규칙 철회를 명시한다.",
+            "evidence_refs": [
+              "c_853b7dd69501_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_853b7dd69501_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_9d1ea5fe4159",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_9d1ea5fe4159_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_9d1ea5fe4159",
+            "label": "retain",
+            "expected_outcome": "해늬 식당 기본 메뉴의 국은 된장국",
+            "forbidden_outcome": "된장국 메뉴 폐지 또는 반찬 추가로 인한 국 변경",
+            "rationale": "e2는 기본 메뉴 반찬 추가에 관한 기록으로 e1의 국(된장국)에 관한 주장을 침해하지 않고 양립한다.",
+            "evidence_refs": [
+              "c_9d1ea5fe4159_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_9d1ea5fe4159_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_9d1ea5fe4159",
+            "label": "retain",
+            "expected_outcome": "기본 메뉴 국 된장국",
+            "forbidden_outcome": "된장국 폐지",
+            "rationale": "e2는 반찬 추가로 국(된장국) 주장을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_9d1ea5fe4159_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_529dd26ec531",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_529dd26ec531_e1",
+        "c_529dd26ec531_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_529dd26ec531",
+            "label": "retain",
+            "expected_outcome": "10시 개장, 19시 폐장, 신발 벗기 규칙 유지",
+            "forbidden_outcome": "9시 개장 안내, 또는 폐장 시각/신발 규칙 폐기",
+            "rationale": "e2에서 개장 시각만 10시로 변경하고 폐장 시각(19시)과 신발 규칙은 그대로 유지한다고 명시했다. e1의 핵심 내용이 남아있으므로 부분 변경으로 retain 판정한다.",
+            "evidence_refs": [
+              "c_529dd26ec531_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_529dd26ec531_e1",
+              "c_529dd26ec531_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_529dd26ec531",
+            "label": "retain",
+            "expected_outcome": "10시 개장·19시 폐장·신발 벗음",
+            "forbidden_outcome": "9시 개장",
+            "rationale": "e2는 개장 시각만 변경하고 폐장·신발 규칙은 e1과 같아 부분 변경이다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_529dd26ec531_e1",
+              "c_529dd26ec531_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_a8264cc3b923",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_a8264cc3b923_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_a8264cc3b923",
+            "label": "retain",
+            "expected_outcome": "현금 결제 허용",
+            "forbidden_outcome": "현금 결제 불가 안내",
+            "rationale": "e2에서 카드 단말기가 배송되었으나 결제 정책 변경 공지는 없었다고 명시했다. e1의 현금 결제 허용 정책은 그대로 유효하다.",
+            "evidence_refs": [
+              "c_a8264cc3b923_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_a8264cc3b923_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_a8264cc3b923",
+            "label": "retain",
+            "expected_outcome": "현금 결제 허용",
+            "forbidden_outcome": "현금 결제 중단 확정",
+            "rationale": "e2는 단말기 배송 사실만 있고 결제 정책 변경 공지가 없다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_a8264cc3b923_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_e4789813319b",
+      "label": "ambiguous",
+      "gold": false,
+      "label_agreement": true,
+      "hold_reasons": [
+        "panel_ambiguous",
+        "contract_disagreement"
+      ],
+      "relevant_evidence_refs": null,
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_e4789813319b",
+            "label": "ambiguous",
+            "expected_outcome": "재료 지급일 변경 여부 판정 보류, 공식 담당자 확인 필요",
+            "forbidden_outcome": "외부 방문자의 전언만으로 15일 변경을 확정하거나 기존 첫날 지급을 단정",
+            "rationale": "e2는 외부 방문자의 전언이며 담당자 확인이 없다고 명시했다. rubric상 확인되지 않은 권한 및 전언에 해당해 원문만으로 실제 지급일 변경 여부를 확정하기 어려우므로 보류한다.",
+            "evidence_refs": [
+              "c_e4789813319b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e4789813319b_e1",
+              "c_e4789813319b_e2"
+            ],
+            "hold_reason": "외부 방문자의 전언만 있고 공식 담당자의 확인이나 확정 기록이 없어 재료 지급일 변경 여부를 확정하지 못함. 담당자의 승인/확인 기록 필요.",
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_e4789813319b",
+            "label": "ambiguous",
+            "expected_outcome": "매월 첫날 지급(미확인)",
+            "forbidden_outcome": "15일 지급 확정",
+            "rationale": "방문자 전언만 있고 담당 확인·확정 결정이 없어 현재 지급일을 바꿀 근거가 부족하다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_e4789813319b_e1"
+            ],
+            "hold_reason": "확인되지 않은 전언·승인 부재",
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_e25cad83e7cd",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_e25cad83e7cd_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_e25cad83e7cd",
+            "label": "retire",
+            "expected_outcome": "정기 여객선 승선장은 D",
+            "forbidden_outcome": "승선장 B 안내",
+            "rationale": "e2에서 승선장을 D로 영구 이전하고 B 승선 안내를 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_e25cad83e7cd_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e25cad83e7cd_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_e25cad83e7cd",
+            "label": "retire",
+            "expected_outcome": "승선장 D",
+            "forbidden_outcome": "승선장 B",
+            "rationale": "e2가 B 안내 종료와 D 영구 이전을 명시한다.",
+            "evidence_refs": [
+              "c_e25cad83e7cd_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e25cad83e7cd_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_340611f0de85",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_340611f0de85_e1",
+        "c_340611f0de85_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_340611f0de85",
+            "label": "retain",
+            "expected_outcome": "동관 21시 폐장, 서관 20시 폐장 유지",
+            "forbidden_outcome": "동관 20시 폐장 안내 또는 서관 21시 폐장 안내",
+            "rationale": "e2에서 동관 폐장 시각만 21시로 변경하고 서관 20시 폐장은 유지한다고 명시했다. e1의 서관 폐장 정보가 유효하므로 부분 변경에 해당해 전체 퇴역하지 않는다.",
+            "evidence_refs": [
+              "c_340611f0de85_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_340611f0de85_e1",
+              "c_340611f0de85_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_340611f0de85",
+            "label": "retain",
+            "expected_outcome": "동관 21시·서관 20시 폐장",
+            "forbidden_outcome": "동관·서관 모두 20시 폐장",
+            "rationale": "e2는 동관만 변경하고 서관 20시는 유지해 e1의 '모두 20시' 주장 전체를 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_340611f0de85_e1",
+              "c_340611f0de85_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_296a8e6217e1",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_296a8e6217e1_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_296a8e6217e1",
+            "label": "retain",
+            "expected_outcome": "초등부 합창단의 반주 악기는 피아노",
+            "forbidden_outcome": "초등부 반주 악기를 기타로 안내",
+            "rationale": "e2는 성인부 합창단에 관한 규칙 변경이며 e1의 초등부 합창단과 대상이 다르다. e1은 온전히 유효하다.",
+            "evidence_refs": [
+              "c_296a8e6217e1_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_296a8e6217e1_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_296a8e6217e1",
+            "label": "retain",
+            "expected_outcome": "초등부 반주 피아노",
+            "forbidden_outcome": "초등부 반주 기타",
+            "rationale": "e2는 성인부 합창단 변경으로 질의 대상(초등부)과 다르다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_296a8e6217e1_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_490d330f6281",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_490d330f6281_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_490d330f6281",
+            "label": "retain",
+            "expected_outcome": "현재 출입구는 북문",
+            "forbidden_outcome": "남문을 현재 출입구로 안내",
+            "rationale": "e2의 등록 시각은 10월 20일이나 사건 시각은 9월 3일의 과거 관찰 일지다. e1의 10월 1일 시행 정책이 질의 시점에 온전히 유효하다.",
+            "evidence_refs": [
+              "c_490d330f6281_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_490d330f6281_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_490d330f6281",
+            "label": "retain",
+            "expected_outcome": "북문 출입(10/1부터)",
+            "forbidden_outcome": "현재 출입구 남문",
+            "rationale": "e2는 9/3 당시 관찰 일지로 10/1부터 북문 규칙(e1)을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_490d330f6281_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_4fc2d6add783",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_4fc2d6add783_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_4fc2d6add783",
+            "label": "retire",
+            "expected_outcome": "2차 총회 실제 개최일은 10월 13일",
+            "forbidden_outcome": "개최일을 10월 12일로 안내",
+            "rationale": "e2가 10월 12일이 오기임을 명시 정정하고 실제 개최일이 10월 13일임을 확정했다. e1 전체가 정정 퇴역된다.",
+            "evidence_refs": [
+              "c_4fc2d6add783_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4fc2d6add783_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_4fc2d6add783",
+            "label": "retire",
+            "expected_outcome": "2차 총회 개최일 10월 13일",
+            "forbidden_outcome": "10월 12일 개최",
+            "rationale": "e2가 동일 총회 날짜를 10월 13일로 정정하고 12일을 오기로 명시한다.",
+            "evidence_refs": [
+              "c_4fc2d6add783_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4fc2d6add783_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_1615bc7cdfa7",
+      "label": "ambiguous",
+      "gold": false,
+      "label_agreement": true,
+      "hold_reasons": [
+        "panel_ambiguous",
+        "contract_disagreement"
+      ],
+      "relevant_evidence_refs": null,
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_1615bc7cdfa7",
+            "label": "ambiguous",
+            "expected_outcome": "총회 개최 방식 판정 보류, 처리 결과 확인 필요",
+            "forbidden_outcome": "대면 또는 비대면 방식의 단정적 안내",
+            "rationale": "e2에서 비대면 변경 요청의 철회 요청 사실만 있고 처리 결과를 기록하지 않았다고 명시했다. rubric상 일관된 현재 답을 만들 근거가 부족하므로 보류한다.",
+            "evidence_refs": [
+              "c_1615bc7cdfa7_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_1615bc7cdfa7_e1",
+              "c_1615bc7cdfa7_e2"
+            ],
+            "hold_reason": "비대면 전환 요청의 철회 요청에 대한 최종 처리 결과가 기록되지 않아 확정 총회 개최 방식을 원문만으로 알 수 없음. 최종 총회 개최 방식 승인 결과 필요.",
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_1615bc7cdfa7",
+            "label": "ambiguous",
+            "expected_outcome": "대면 총회(처리 결과 불명)",
+            "forbidden_outcome": "비대면 전환 확정",
+            "rationale": "비대면 전환 철회 요청만 있고 처리 결과가 없어 e1의 대면 개최가 여전히 유효한지 확정할 수 없다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_1615bc7cdfa7_e1"
+            ],
+            "hold_reason": "철회 요청 처리 결과·확정 결정 부재",
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_4c435ee03890",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_4c435ee03890_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_4c435ee03890",
+            "label": "retire",
+            "expected_outcome": "돌 표본 K4 질량은 21g",
+            "forbidden_outcome": "12g 안내",
+            "rationale": "e2에서 12g은 전사 오류였으며 검산 완료한 21g으로 정정한다고 명시했다. e1 전체가 정정 퇴역된다.",
+            "evidence_refs": [
+              "c_4c435ee03890_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4c435ee03890_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_4c435ee03890",
+            "label": "retire",
+            "expected_outcome": "K4 질량 21g",
+            "forbidden_outcome": "K4 질량 12g",
+            "rationale": "e2가 동일 표본 K4 질량을 12g 오류에서 21g으로 정정해 e1 주장 전체를 교체한다.",
+            "evidence_refs": [
+              "c_4c435ee03890_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4c435ee03890_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_720ee871692e",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_720ee871692e_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_720ee871692e",
+            "label": "retire",
+            "expected_outcome": "정규 저녁 식사 시작은 18시 30분",
+            "forbidden_outcome": "18시 시작 안내",
+            "rationale": "e2에서 저녁 식사 시작을 18시 30분으로 변경하고 18시 안내를 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_720ee871692e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_720ee871692e_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_720ee871692e",
+            "label": "retire",
+            "expected_outcome": "18시 30분 시작",
+            "forbidden_outcome": "18시 시작",
+            "rationale": "e2가 같은 scope에서 정규 저녁 식사 시작 시각을 18:30으로 확정하고 18시 안내 종료를 명시해 e1 전체 주장을 대체한다.",
+            "evidence_refs": [
+              "c_720ee871692e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_720ee871692e_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_4f0fb64bb0db",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_4f0fb64bb0db_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_4f0fb64bb0db",
+            "label": "retire",
+            "expected_outcome": "1차 검토 뒤 표시 색은 초록색",
+            "forbidden_outcome": "파란색 표시 안내",
+            "rationale": "e2에서 표시 색을 초록색으로 변경하고 파란색 표시는 더 사용하지 않는다고 명시했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_4f0fb64bb0db_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4f0fb64bb0db_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_4f0fb64bb0db",
+            "label": "retire",
+            "expected_outcome": "1차 검토 뒤 초록색 표시",
+            "forbidden_outcome": "파란색 표시",
+            "rationale": "e2가 표시 색을 초록으로 변경하고 파란색 사용 중단을 명시한다.",
+            "evidence_refs": [
+              "c_4f0fb64bb0db_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_4f0fb64bb0db_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_ca7bdbefe96a",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_ca7bdbefe96a_e1",
+        "c_ca7bdbefe96a_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_ca7bdbefe96a",
+            "label": "retain",
+            "expected_outcome": "정규 열람료는 무료",
+            "forbidden_outcome": "행사 열람료 2천원 안내",
+            "rationale": "e2의 2천원 열람료는 10월 25일에 종료된 한시적 행사였으며 행사 종료 뒤 무료 규칙을 재개한다고 명시했다. 질의 시점(11월 3일)에는 기간 종료로 e1의 무료 규칙이 유효하다.",
+            "evidence_refs": [
+              "c_ca7bdbefe96a_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_ca7bdbefe96a_e1",
+              "c_ca7bdbefe96a_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_ca7bdbefe96a",
+            "label": "retain",
+            "expected_outcome": "정규 열람료 무료",
+            "forbidden_outcome": "정규 열람료 2천원",
+            "rationale": "e2는 기간 한정 특별 요금 후 정규 무료 재개이며 query_at(11/3)에는 e1 정규 규칙이 유효하다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_ca7bdbefe96a_e1",
+              "c_ca7bdbefe96a_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_bbbef70407c1",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_bbbef70407c1_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_bbbef70407c1",
+            "label": "retire",
+            "expected_outcome": "검사 뒤 선반 S2 적치",
+            "forbidden_outcome": "선반 S1 적치",
+            "rationale": "e2가 적치 위치를 선반 S2로 변경하고 기존 S1 적치를 명시 중단했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_bbbef70407c1_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_bbbef70407c1_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_bbbef70407c1",
+            "label": "retire",
+            "expected_outcome": "검사 뒤 선반 S2 적치",
+            "forbidden_outcome": "선반 S1 적치",
+            "rationale": "e2가 완성품 적치를 S2로 바꾸고 S1 중단을 명시해 e1을 대체한다.",
+            "evidence_refs": [
+              "c_bbbef70407c1_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_bbbef70407c1_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_23e94f27f4d2",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_23e94f27f4d2_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_23e94f27f4d2",
+            "label": "retain",
+            "expected_outcome": "겨울 난방 목표 온도는 23도",
+            "forbidden_outcome": "겨울 난방 온도를 26도로 안내하거나 변경 간주",
+            "rationale": "e2는 여름 냉방에 관한 규칙 변경이며 e1의 겨울 난방 목표 온도와 조건 및 계절이 다른 별개 대상이다. e1은 그대로 유효하다.",
+            "evidence_refs": [
+              "c_23e94f27f4d2_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_23e94f27f4d2_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_23e94f27f4d2",
+            "label": "retain",
+            "expected_outcome": "겨울 난방 목표 23도",
+            "forbidden_outcome": "겨울 난방 26도",
+            "rationale": "e2는 여름 냉방 변경으로 겨울 난방 target과 조건이 다르다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_23e94f27f4d2_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_9a1a45574b95",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_9a1a45574b95_e1",
+        "c_9a1a45574b95_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_9a1a45574b95",
+            "label": "retain",
+            "expected_outcome": "견습생은 작업대 닦기(바닥 면제), 일반 작업자는 작업대와 바닥 모두 청소",
+            "forbidden_outcome": "모든 작업자의 바닥 닦기 면제 또는 견습생 작업대 닦기 면제",
+            "rationale": "e2에서 견습생의 바닥 닦기만 면제하고 작업대 닦기 및 일반 작업자 규칙은 유지한다고 명시했다. e1의 규칙 대부분이 유효한 부분 변경이다.",
+            "evidence_refs": [
+              "c_9a1a45574b95_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_9a1a45574b95_e1",
+              "c_9a1a45574b95_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_9a1a45574b95",
+            "label": "retain",
+            "expected_outcome": "견습생 바닥 면제·작업대 닦기 유지·타 작업자 전체 청소",
+            "forbidden_outcome": "모든 작업자 동일 전체 청소",
+            "rationale": "e2는 견습생 바닥만 면제하는 부분 예외로 e1 전체 규칙을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_9a1a45574b95_e1",
+              "c_9a1a45574b95_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_f3f9e20891a0",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_f3f9e20891a0_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_f3f9e20891a0",
+            "label": "retain",
+            "expected_outcome": "전원 차단 뒤 외관 점검 절차 유지",
+            "forbidden_outcome": "전원을 켠 채 점검하는 미승인 절차 적용",
+            "rationale": "e2는 개별 시험 실패 및 절차 개정 승인 미취득 기록이다. rubric상 개별 실험은 승인으로 승격하지 않으므로 e1의 승인된 검사 절차가 유지된다.",
+            "evidence_refs": [
+              "c_f3f9e20891a0_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_f3f9e20891a0_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_f3f9e20891a0",
+            "label": "retain",
+            "expected_outcome": "전원 차단 뒤 외관 점검",
+            "forbidden_outcome": "전원 켠 채 점검",
+            "rationale": "e2는 미승인 실험 실패 기록으로 승인된 절차 개정이 아니며 e1을 대체하지 않는다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_f3f9e20891a0_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_b90ae7b35872",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_b90ae7b35872_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_b90ae7b35872",
+            "label": "retain",
+            "expected_outcome": "10월 1일 정오 강수량 3mm",
+            "forbidden_outcome": "10월 1일 정오 강수량을 8mm로 답변하거나 e1 기록 부정",
+            "rationale": "e1과 e2는 사건 일자(10월 1일 대 10월 20일)가 다른 별개 사건 관측 기록이다. 10월 1일의 강수량 기록 e1은 유효하다.",
+            "evidence_refs": [
+              "c_b90ae7b35872_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_b90ae7b35872_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_b90ae7b35872",
+            "label": "retain",
+            "expected_outcome": "10/1 정오 강수량 3mm",
+            "forbidden_outcome": "10/1 강수량 8mm",
+            "rationale": "e2는 10/20 관측으로 10/1 기록과 다른 날짜·사건이다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_b90ae7b35872_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_81f6bb8f85cd",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_81f6bb8f85cd_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_81f6bb8f85cd",
+            "label": "retire",
+            "expected_outcome": "정기 급수일은 목요일",
+            "forbidden_outcome": "화요일 급수 안내",
+            "rationale": "e2에서 급수일을 목요일로 변경하고 화요일 규칙을 대체했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_81f6bb8f85cd_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_81f6bb8f85cd_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_81f6bb8f85cd",
+            "label": "retire",
+            "expected_outcome": "목요일 급수",
+            "forbidden_outcome": "화요일 급수",
+            "rationale": "e2가 급수일을 목요일로 대체하고 화요일 규칙 종료를 명시한다.",
+            "evidence_refs": [
+              "c_81f6bb8f85cd_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_81f6bb8f85cd_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_aa9070ed2c1c",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_aa9070ed2c1c_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_aa9070ed2c1c",
+            "label": "retire",
+            "expected_outcome": "초벌 목표 온도는 섭씨 950도",
+            "forbidden_outcome": "900도 안내",
+            "rationale": "e2에서 900도는 입력 오류였으며 승인된 목표가 섭씨 950도임을 밝히고 900도 기록을 정정했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_aa9070ed2c1c_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_aa9070ed2c1c_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_aa9070ed2c1c",
+            "label": "retire",
+            "expected_outcome": "초벌 목표 950도",
+            "forbidden_outcome": "900도 목표",
+            "rationale": "e2가 900도를 입력 오류로 정정하고 승인 목표 950도로 e1을 교체한다.",
+            "evidence_refs": [
+              "c_aa9070ed2c1c_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_aa9070ed2c1c_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_0968eab113f8",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_0968eab113f8_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_0968eab113f8",
+            "label": "retire",
+            "expected_outcome": "빈 상자 적재 위치는 출구 쪽",
+            "forbidden_outcome": "입구 쪽 적재 안내",
+            "rationale": "e2에서 적재 위치를 출구 쪽으로 영구 변경하고 입구 쪽 적재 규칙을 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_0968eab113f8_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_0968eab113f8_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_0968eab113f8",
+            "label": "retire",
+            "expected_outcome": "출구 쪽 적재",
+            "forbidden_outcome": "입구 쪽 적재",
+            "rationale": "e2가 적재 위치를 출구로 영구 변경하고 입구 규칙 종료를 명시한다.",
+            "evidence_refs": [
+              "c_0968eab113f8_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_0968eab113f8_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_8f0f05768a43",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_8f0f05768a43_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_8f0f05768a43",
+            "label": "retire",
+            "expected_outcome": "수령 담당자는 역할 담당-나",
+            "forbidden_outcome": "역할 담당-가를 수령 담당자로 안내",
+            "rationale": "e2에서 담당-나로 인계를 완료하고 담당-가를 수령 업무에서 해제했음을 명시했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_8f0f05768a43_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_8f0f05768a43_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_8f0f05768a43",
+            "label": "retire",
+            "expected_outcome": "수령 담당 역할 담당-나",
+            "forbidden_outcome": "담당-가 수령",
+            "rationale": "e2가 수령 담당 인계 완료와 담당-가 해제를 명시해 e1을 대체한다.",
+            "evidence_refs": [
+              "c_8f0f05768a43_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_8f0f05768a43_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_5d11c11ce18e",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_5d11c11ce18e_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_5d11c11ce18e",
+            "label": "retain",
+            "expected_outcome": "초급반은 손뼉으로 박자를 맞춘 뒤 노래",
+            "forbidden_outcome": "초급반에 메트로놈 사용 규칙 적용",
+            "rationale": "e2는 고급반 규칙 변경이며 e1의 초급반 규칙과 대상이 다르다. e1의 초급반 연습 절차는 그대로 유효하다.",
+            "evidence_refs": [
+              "c_5d11c11ce18e_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_5d11c11ce18e_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_5d11c11ce18e",
+            "label": "retain",
+            "expected_outcome": "초급반 손뼉 박자 후 노래",
+            "forbidden_outcome": "초급반 메트로놈 순서",
+            "rationale": "e2는 고급반 절차 변경으로 초급반 target과 대상이 다르다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_5d11c11ce18e_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_0f059c1fd174",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_0f059c1fd174_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_0f059c1fd174",
+            "label": "retire",
+            "expected_outcome": "일반석 구역 이름은 바람",
+            "forbidden_outcome": "하늘 구역명 안내",
+            "rationale": "e2에서 2026년 11월 2일부터 구역명을 바람으로 영구 변경하고 하늘 안내를 종료했다. 질의 시점(11월 3일)에 변경 효력이 발생했으므로 e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_0f059c1fd174_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_0f059c1fd174_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_0f059c1fd174",
+            "label": "retire",
+            "expected_outcome": "일반석 구역명 바람",
+            "forbidden_outcome": "구역명 하늘",
+            "rationale": "query_at이 변경 효력일(11/2) 이후이며 e2가 하늘 안내 종료와 바람 영구 변경을 확정한다.",
+            "evidence_refs": [
+              "c_0f059c1fd174_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_0f059c1fd174_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_ca14289d341f",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_ca14289d341f_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_ca14289d341f",
+            "label": "retire",
+            "expected_outcome": "회계 문서 인장 색은 보라",
+            "forbidden_outcome": "검정 인장 사용",
+            "rationale": "e2가 회계 문서 인장 색을 보라로 확정하고 기존 검정 인장 규칙을 교체했다. e1의 모든 주장이 대체된다.",
+            "evidence_refs": [
+              "c_ca14289d341f_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_ca14289d341f_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_ca14289d341f",
+            "label": "retire",
+            "expected_outcome": "인장 색 보라",
+            "forbidden_outcome": "인장 색 검정",
+            "rationale": "e2가 보라 확정과 검정 규칙 교체를 명시한다.",
+            "evidence_refs": [
+              "c_ca14289d341f_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_ca14289d341f_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_99642f06e14d",
+      "label": "retain",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_99642f06e14d_e1"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_99642f06e14d",
+            "label": "retain",
+            "expected_outcome": "현재 예약 대표자는 역할 다",
+            "forbidden_outcome": "역할 나를 현재 예약 대표자로 안내",
+            "rationale": "e2는 9월 1일 과거 회의록 보관 기록이며 '지금의 변경을 취소하는 결정은 아니다'라고 명시했다. 10월 1일부터 적용된 e1의 예약 대표자(역할 다)가 유효하다.",
+            "evidence_refs": [
+              "c_99642f06e14d_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_99642f06e14d_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_99642f06e14d",
+            "label": "retain",
+            "expected_outcome": "예약 대표 역할 다다(10/1부터)",
+            "forbidden_outcome": "현재 대표 역할 나",
+            "rationale": "e2는 9월 과거 회의록 보관이며 현재 변경 취소가 아니다.",
+            "evidence_refs": [],
+            "relevant_evidence_refs": [
+              "c_99642f06e14d_e1"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_7a8046b27002",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_7a8046b27002_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_7a8046b27002",
+            "label": "retire",
+            "expected_outcome": "폐장 시각은 매일 18시",
+            "forbidden_outcome": "17시 폐장 안내",
+            "rationale": "e2에서 폐장 시각을 매일 18시로 확정 변경하고 17시 안내 사용을 종료했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_7a8046b27002_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_7a8046b27002_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_7a8046b27002",
+            "label": "retire",
+            "expected_outcome": "매일 18시 폐장",
+            "forbidden_outcome": "17시 폐장",
+            "rationale": "e2가 폐장 시각 18시 확정 변경과 17시 안내 종료를 명시한다.",
+            "evidence_refs": [
+              "c_7a8046b27002_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_7a8046b27002_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_6f7ce8bd400c",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_6f7ce8bd400c_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_6f7ce8bd400c",
+            "label": "retire",
+            "expected_outcome": "2026년 접수 마감일은 11월 7일",
+            "forbidden_outcome": "10월 31일 마감 안내",
+            "rationale": "e2에서 마감일을 11월 7일로 연장 확정하고 기존 10월 31일 공고를 대체했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_6f7ce8bd400c_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_6f7ce8bd400c_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_6f7ce8bd400c",
+            "label": "retire",
+            "expected_outcome": "접수 마감 11월 7일",
+            "forbidden_outcome": "10월 31일 마감",
+            "rationale": "e2가 마감 연장 확정과 10/31 공고 대체를 명시해 e1 마감일 주장을 대체한다.",
+            "evidence_refs": [
+              "c_6f7ce8bd400c_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_6f7ce8bd400c_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_e73979769b4f",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_e73979769b4f_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_e73979769b4f",
+            "label": "retire",
+            "expected_outcome": "공식 표기 부호는 Y",
+            "forbidden_outcome": "표기 부호 X 안내",
+            "rationale": "e2에서 표기 부호가 Y로 변경되었으며 기존 부호 X는 쓰지 않는다고 명시했다. e1 전체가 교체된다.",
+            "evidence_refs": [
+              "c_e73979769b4f_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e73979769b4f_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_e73979769b4f",
+            "label": "retire",
+            "expected_outcome": "공식 표기 부호 Y",
+            "forbidden_outcome": "부호 X",
+            "rationale": "e2가 동일 표본의 공식 부호를 Y로 바꾸고 X 사용 중단을 명시해 e1을 대체한다.",
+            "evidence_refs": [
+              "c_e73979769b4f_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_e73979769b4f_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_c6a56f25340b",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_c6a56f25340b_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_c6a56f25340b",
+            "label": "retire",
+            "expected_outcome": "배송품 고정 재료는 천끈",
+            "forbidden_outcome": "종이띠 고정 안내",
+            "rationale": "e2에서 종이띠 고정 규칙을 철회하고 천끈 고정으로 전면 교체했다. e1 전체가 퇴역된다.",
+            "evidence_refs": [
+              "c_c6a56f25340b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_c6a56f25340b_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_c6a56f25340b",
+            "label": "retire",
+            "expected_outcome": "천끈 고정",
+            "forbidden_outcome": "종이띠 고정",
+            "rationale": "e2가 종이띠 규칙 철회와 천끈 전면 교체를 명시한다.",
+            "evidence_refs": [
+              "c_c6a56f25340b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_c6a56f25340b_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_dfb2123b424b",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_dfb2123b424b_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_dfb2123b424b",
+            "label": "retire",
+            "expected_outcome": "교정 줄표는 긴 줄표 사용",
+            "forbidden_outcome": "짧은 줄표 사용",
+            "rationale": "e2가 교정 줄표를 긴 줄표로 통일하고 짧은 줄표 규칙을 명시 종료했다. e1 전체가 교체된다.",
+            "evidence_refs": [
+              "c_dfb2123b424b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_dfb2123b424b_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_dfb2123b424b",
+            "label": "retire",
+            "expected_outcome": "긴 줄표 통일",
+            "forbidden_outcome": "짧은 줄표 사용",
+            "rationale": "e2가 짧은 줄표 규칙 종료와 긴 줄표 통일을 확정해 e1 전체를 대체한다.",
+            "evidence_refs": [
+              "c_dfb2123b424b_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_dfb2123b424b_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "c_3ea1aa11b785",
+      "label": "retire",
+      "gold": true,
+      "label_agreement": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "c_3ea1aa11b785_e2"
+      ],
+      "judgments": [
+        {
+          "reviewer_id": "머슴4",
+          "answer": {
+            "case_id": "c_3ea1aa11b785",
+            "label": "retire",
+            "expected_outcome": "기준 통화는 달러",
+            "forbidden_outcome": "원화 기준 작성 안내",
+            "rationale": "e2에서 달러를 기준 통화로 사용하고 원화 기준 작성 규칙을 철회했다. e1 전체가 교체된다.",
+            "evidence_refs": [
+              "c_3ea1aa11b785_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_3ea1aa11b785_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        },
+        {
+          "reviewer_id": "머슴1-reviewer-b",
+          "answer": {
+            "case_id": "c_3ea1aa11b785",
+            "label": "retire",
+            "expected_outcome": "기준 통화 달러",
+            "forbidden_outcome": "기준 통화 원화",
+            "rationale": "e2가 달러 기준으로 바꾸고 원화 규칙 철회를 명시한다.",
+            "evidence_refs": [
+              "c_3ea1aa11b785_e2"
+            ],
+            "relevant_evidence_refs": [
+              "c_3ea1aa11b785_e2"
+            ],
+            "hold_reason": null,
+            "execution_evidence": "unmeasured"
+          }
+        }
+      ]
+    }
+  ],
+  "ground_truth": [
+    {
+      "queryId": "c_9963f1f8d5dc",
+      "relevantIds": [
+        "c_9963f1f8d5dc_e1"
+      ]
+    },
+    {
+      "queryId": "c_b359ea28f1c0",
+      "relevantIds": [
+        "c_b359ea28f1c0_e2"
+      ],
+      "staleIds": [
+        "c_b359ea28f1c0_e1"
+      ]
+    },
+    {
+      "queryId": "c_f1f32f08a300",
+      "relevantIds": [
+        "c_f1f32f08a300_e1"
+      ]
+    },
+    {
+      "queryId": "c_5d1d4e90f57e",
+      "relevantIds": [
+        "c_5d1d4e90f57e_e2"
+      ],
+      "staleIds": [
+        "c_5d1d4e90f57e_e1"
+      ]
+    },
+    {
+      "queryId": "c_5970242779ea",
+      "relevantIds": [
+        "c_5970242779ea_e2"
+      ],
+      "staleIds": [
+        "c_5970242779ea_e1"
+      ]
+    },
+    {
+      "queryId": "c_f8a616d7b17b",
+      "relevantIds": [
+        "c_f8a616d7b17b_e1",
+        "c_f8a616d7b17b_e2"
+      ]
+    },
+    {
+      "queryId": "c_e6fe7719f2b9",
+      "relevantIds": [
+        "c_e6fe7719f2b9_e2"
+      ],
+      "staleIds": [
+        "c_e6fe7719f2b9_e1"
+      ]
+    },
+    {
+      "queryId": "c_16c8bf488b09",
+      "relevantIds": [
+        "c_16c8bf488b09_e2"
+      ],
+      "staleIds": [
+        "c_16c8bf488b09_e1"
+      ]
+    },
+    {
+      "queryId": "c_c455100c64b4",
+      "relevantIds": [
+        "c_c455100c64b4_e1"
+      ]
+    },
+    {
+      "queryId": "c_9db293265c59",
+      "relevantIds": [
+        "c_9db293265c59_e1"
+      ]
+    },
+    {
+      "queryId": "c_857afcdb422e",
+      "relevantIds": [
+        "c_857afcdb422e_e2"
+      ],
+      "staleIds": [
+        "c_857afcdb422e_e1"
+      ]
+    },
+    {
+      "queryId": "c_5d9cd916c073",
+      "relevantIds": [
+        "c_5d9cd916c073_e1"
+      ]
+    },
+    {
+      "queryId": "c_2f84f0bebc73",
+      "relevantIds": [
+        "c_2f84f0bebc73_e2"
+      ],
+      "staleIds": [
+        "c_2f84f0bebc73_e1"
+      ]
+    },
+    {
+      "queryId": "c_df16956170b0",
+      "relevantIds": [
+        "c_df16956170b0_e2"
+      ],
+      "staleIds": [
+        "c_df16956170b0_e1"
+      ]
+    },
+    {
+      "queryId": "c_9a39a043cc69",
+      "relevantIds": [
+        "c_9a39a043cc69_e1"
+      ]
+    },
+    {
+      "queryId": "c_4672d0762140",
+      "relevantIds": [
+        "c_4672d0762140_e2"
+      ],
+      "staleIds": [
+        "c_4672d0762140_e1"
+      ]
+    },
+    {
+      "queryId": "c_99486eb89e40",
+      "relevantIds": [
+        "c_99486eb89e40_e1"
+      ]
+    },
+    {
+      "queryId": "c_e31fd082f17f",
+      "relevantIds": [
+        "c_e31fd082f17f_e1",
+        "c_e31fd082f17f_e2"
+      ]
+    },
+    {
+      "queryId": "c_c931a5fbcb43",
+      "relevantIds": [
+        "c_c931a5fbcb43_e1"
+      ]
+    },
+    {
+      "queryId": "c_7836d879ad79",
+      "relevantIds": [
+        "c_7836d879ad79_e2"
+      ],
+      "staleIds": [
+        "c_7836d879ad79_e1"
+      ]
+    },
+    {
+      "queryId": "c_9903b11a7933",
+      "relevantIds": [
+        "c_9903b11a7933_e1"
+      ]
+    },
+    {
+      "queryId": "c_3d2eea39ec44",
+      "relevantIds": [
+        "c_3d2eea39ec44_e2"
+      ],
+      "staleIds": [
+        "c_3d2eea39ec44_e1"
+      ]
+    },
+    {
+      "queryId": "c_d5dd7ea5f73b",
+      "relevantIds": [
+        "c_d5dd7ea5f73b_e1"
+      ]
+    },
+    {
+      "queryId": "c_853b7dd69501",
+      "relevantIds": [
+        "c_853b7dd69501_e2"
+      ],
+      "staleIds": [
+        "c_853b7dd69501_e1"
+      ]
+    },
+    {
+      "queryId": "c_9d1ea5fe4159",
+      "relevantIds": [
+        "c_9d1ea5fe4159_e1"
+      ]
+    },
+    {
+      "queryId": "c_529dd26ec531",
+      "relevantIds": [
+        "c_529dd26ec531_e1",
+        "c_529dd26ec531_e2"
+      ]
+    },
+    {
+      "queryId": "c_a8264cc3b923",
+      "relevantIds": [
+        "c_a8264cc3b923_e1"
+      ]
+    },
+    {
+      "queryId": "c_e25cad83e7cd",
+      "relevantIds": [
+        "c_e25cad83e7cd_e2"
+      ],
+      "staleIds": [
+        "c_e25cad83e7cd_e1"
+      ]
+    },
+    {
+      "queryId": "c_340611f0de85",
+      "relevantIds": [
+        "c_340611f0de85_e1",
+        "c_340611f0de85_e2"
+      ]
+    },
+    {
+      "queryId": "c_296a8e6217e1",
+      "relevantIds": [
+        "c_296a8e6217e1_e1"
+      ]
+    },
+    {
+      "queryId": "c_490d330f6281",
+      "relevantIds": [
+        "c_490d330f6281_e1"
+      ]
+    },
+    {
+      "queryId": "c_4fc2d6add783",
+      "relevantIds": [
+        "c_4fc2d6add783_e2"
+      ],
+      "staleIds": [
+        "c_4fc2d6add783_e1"
+      ]
+    },
+    {
+      "queryId": "c_4c435ee03890",
+      "relevantIds": [
+        "c_4c435ee03890_e2"
+      ],
+      "staleIds": [
+        "c_4c435ee03890_e1"
+      ]
+    },
+    {
+      "queryId": "c_720ee871692e",
+      "relevantIds": [
+        "c_720ee871692e_e2"
+      ],
+      "staleIds": [
+        "c_720ee871692e_e1"
+      ]
+    },
+    {
+      "queryId": "c_4f0fb64bb0db",
+      "relevantIds": [
+        "c_4f0fb64bb0db_e2"
+      ],
+      "staleIds": [
+        "c_4f0fb64bb0db_e1"
+      ]
+    },
+    {
+      "queryId": "c_ca7bdbefe96a",
+      "relevantIds": [
+        "c_ca7bdbefe96a_e1",
+        "c_ca7bdbefe96a_e2"
+      ]
+    },
+    {
+      "queryId": "c_bbbef70407c1",
+      "relevantIds": [
+        "c_bbbef70407c1_e2"
+      ],
+      "staleIds": [
+        "c_bbbef70407c1_e1"
+      ]
+    },
+    {
+      "queryId": "c_23e94f27f4d2",
+      "relevantIds": [
+        "c_23e94f27f4d2_e1"
+      ]
+    },
+    {
+      "queryId": "c_9a1a45574b95",
+      "relevantIds": [
+        "c_9a1a45574b95_e1",
+        "c_9a1a45574b95_e2"
+      ]
+    },
+    {
+      "queryId": "c_f3f9e20891a0",
+      "relevantIds": [
+        "c_f3f9e20891a0_e1"
+      ]
+    },
+    {
+      "queryId": "c_b90ae7b35872",
+      "relevantIds": [
+        "c_b90ae7b35872_e1"
+      ]
+    },
+    {
+      "queryId": "c_81f6bb8f85cd",
+      "relevantIds": [
+        "c_81f6bb8f85cd_e2"
+      ],
+      "staleIds": [
+        "c_81f6bb8f85cd_e1"
+      ]
+    },
+    {
+      "queryId": "c_aa9070ed2c1c",
+      "relevantIds": [
+        "c_aa9070ed2c1c_e2"
+      ],
+      "staleIds": [
+        "c_aa9070ed2c1c_e1"
+      ]
+    },
+    {
+      "queryId": "c_0968eab113f8",
+      "relevantIds": [
+        "c_0968eab113f8_e2"
+      ],
+      "staleIds": [
+        "c_0968eab113f8_e1"
+      ]
+    },
+    {
+      "queryId": "c_8f0f05768a43",
+      "relevantIds": [
+        "c_8f0f05768a43_e2"
+      ],
+      "staleIds": [
+        "c_8f0f05768a43_e1"
+      ]
+    },
+    {
+      "queryId": "c_5d11c11ce18e",
+      "relevantIds": [
+        "c_5d11c11ce18e_e1"
+      ]
+    },
+    {
+      "queryId": "c_0f059c1fd174",
+      "relevantIds": [
+        "c_0f059c1fd174_e2"
+      ],
+      "staleIds": [
+        "c_0f059c1fd174_e1"
+      ]
+    },
+    {
+      "queryId": "c_ca14289d341f",
+      "relevantIds": [
+        "c_ca14289d341f_e2"
+      ],
+      "staleIds": [
+        "c_ca14289d341f_e1"
+      ]
+    },
+    {
+      "queryId": "c_99642f06e14d",
+      "relevantIds": [
+        "c_99642f06e14d_e1"
+      ]
+    },
+    {
+      "queryId": "c_7a8046b27002",
+      "relevantIds": [
+        "c_7a8046b27002_e2"
+      ],
+      "staleIds": [
+        "c_7a8046b27002_e1"
+      ]
+    },
+    {
+      "queryId": "c_6f7ce8bd400c",
+      "relevantIds": [
+        "c_6f7ce8bd400c_e2"
+      ],
+      "staleIds": [
+        "c_6f7ce8bd400c_e1"
+      ]
+    },
+    {
+      "queryId": "c_e73979769b4f",
+      "relevantIds": [
+        "c_e73979769b4f_e2"
+      ],
+      "staleIds": [
+        "c_e73979769b4f_e1"
+      ]
+    },
+    {
+      "queryId": "c_c6a56f25340b",
+      "relevantIds": [
+        "c_c6a56f25340b_e2"
+      ],
+      "staleIds": [
+        "c_c6a56f25340b_e1"
+      ]
+    },
+    {
+      "queryId": "c_dfb2123b424b",
+      "relevantIds": [
+        "c_dfb2123b424b_e2"
+      ],
+      "staleIds": [
+        "c_dfb2123b424b_e1"
+      ]
+    },
+    {
+      "queryId": "c_3ea1aa11b785",
+      "relevantIds": [
+        "c_3ea1aa11b785_e2"
+      ],
+      "staleIds": [
+        "c_3ea1aa11b785_e1"
+      ]
+    }
+  ]
+}
