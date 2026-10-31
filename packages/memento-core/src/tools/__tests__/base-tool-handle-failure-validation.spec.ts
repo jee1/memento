@@ -1,7 +1,8 @@
 /**
  * BaseTool.handleFailure — ToolInputValidationError must not enqueue Reflexion (#856)
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mementoConfig } from '../../shared/config/index.js';
 import { BaseTool } from '../base-tool.js';
 import { ToolInputValidationError } from '../../shared/errors/tool-input-validation-error.js';
 import type { ToolContext, ToolResult } from '../types.js';
@@ -33,6 +34,11 @@ describe('BaseTool.handleFailure validation skip (#856)', () => {
   let detectToolError: ReturnType<typeof vi.fn>;
   let queueFailureEvent: ReturnType<typeof vi.fn>;
   let context: ToolContext;
+  const savedObservationOnly = mementoConfig.reflexionObservationOnly;
+
+  afterEach(() => {
+    mementoConfig.reflexionObservationOnly = savedObservationOnly;
+  });
 
   beforeEach(() => {
     tool = new ProbeTool();
@@ -95,5 +101,29 @@ describe('BaseTool.handleFailure validation skip (#856)', () => {
 
     expect(detectToolError).toHaveBeenCalledOnce();
     expect(queueFailureEvent).toHaveBeenCalledOnce();
+  });
+
+  it('attaches the token-bound scope instead of failed input attribution (#1547)', async () => {
+    mementoConfig.reflexionObservationOnly = true;
+    Object.assign(context, {
+      boundAgentId: 'bound-owner', agentId: 'self-reported-owner',
+      boundProjectId: 'bound-project', projectId: 'self-reported-project',
+      processId: 'process-1', sessionId: 'session-1',
+    });
+    await tool.fail(new Error('database timeout'), { owner_id: 'other-owner', project_id: 'other-project' }, context);
+    expect(queueFailureEvent).toHaveBeenCalledWith(expect.objectContaining({ scope: {
+      owner_id: 'bound-owner', project_id: 'bound-project', process_id: 'process-1', session_id: 'session-1',
+    } }));
+  });
+
+  it('does not attach scope when observation-only is off (#1547)', async () => {
+    mementoConfig.reflexionObservationOnly = false;
+    Object.assign(context, {
+      boundAgentId: 'bound-owner', boundProjectId: 'bound-project',
+      processId: 'process-1', sessionId: 'session-1',
+    });
+    await tool.fail(new Error('database timeout'), { owner_id: 'other-owner', project_id: 'other-project' }, context);
+    expect(queueFailureEvent).toHaveBeenCalledOnce();
+    expect(queueFailureEvent.mock.calls[0][0]).not.toHaveProperty('scope');
   });
 });

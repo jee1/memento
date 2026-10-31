@@ -136,6 +136,7 @@ export interface MementoConfig {
   batchSchedulerEnabled: boolean;
   walCheckpointEnabled: boolean;
   dbLockMonitorEnabled: boolean;
+  reflexionObservationOnly: boolean;
   proceduralExtractionStrategy: 'llm_first' | 'rule_only';
   proceduralLlmExtractorTimeoutMs: number;
   corsAllowedOrigins: string[];

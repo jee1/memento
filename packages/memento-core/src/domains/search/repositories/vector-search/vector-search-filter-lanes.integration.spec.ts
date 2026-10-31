@@ -137,6 +137,23 @@ describe('#998 벡터 레인 필터 적용', () => {
     return db;
   }
 
+  it('procedural 검색은 더 가까운 episodic 관찰·후보를 LIMIT 전에 제외한다 (#1547)', async () => {
+    if (!vecAvailable) return;
+    const database = await openDb();
+    insertMemory(database, 'legacy-procedure', '기존 절차', partiallyAlignedVector(0));
+    insertMemory(database, 'failure-observation', '실패 관찰', unitVector(0), { pinned: 1 });
+    insertMemory(database, 'unverified-candidate', '미검증 후보', unitVector(0), { pinned: 1 });
+    database.prepare("UPDATE memory_item SET type = 'procedural' WHERE id = 'legacy-procedure'").run();
+    database.prepare("UPDATE memory_item SET type = 'episodic' WHERE id != 'legacy-procedure'").run();
+
+    const procedures = runBothLanes(database, { type: ['procedural'] }, 1);
+    expect(procedures.knnIds).toEqual(['legacy-procedure']);
+    expect(procedures.hybridIds).toEqual(['legacy-procedure']);
+    const history = runBothLanes(database, { type: ['episodic'] });
+    expect(history.knnIds.sort()).toEqual(['failure-observation', 'unverified-candidate']);
+    expect(history.hybridIds.sort()).toEqual(['failure-observation', 'unverified-candidate']);
+  });
+
   it('time_from/time_to 창 안 항목만 반환한다', async () => {
     if (!vecAvailable) return;
     const database = await openDb();
