@@ -63,6 +63,10 @@ env: [commands.md — remember dedup](./commands.md#remember-near-duplicate-730)
 
 코드를 읽기 전에 파일 전체를 무작정 읽지 마세요. `get_symbols_overview`나 `find_symbol`로 원하는 심볼을 찾은 뒤 필요한 부분만 확인하는 것이 훨씬 빠릅니다. 파일이 50줄 미만이면 전체를 읽어도 괜찮지만, 그 이상이면 심볼 도구를 먼저 쓰는 것을 규칙으로 삼으세요.
 
+## 운영 recall 주간 감사
+
+주 5건 private recall의 무작위 표본·서로 다른 모델의 독립 판정·분모/보류 기록은 [운영 recall 주간 감사](../guides/ko/recall-audit.md)를 따른다. `node scripts/sample-recall-audit.mjs`는 원문 없는 요청 목록에서 해시와 집계만 출력한다. 오류 발견 묶음은 운영 오류율에 합치지 않으며 현재성 자동 검사는 #1551→#1552 이후다.
+
 ## graphify — 코드 지도를 먼저 보기
 
 `graphify-out/`은 Git에 커밋하지 않는 로컬 생성물입니다. 코드를 분석하거나 리팩터를 시작할 때 리포트가 없거나 오래됐다면 먼저 재빌드한 뒤 `graphify-out/GRAPH_REPORT.md`를 확인하세요. `graphify-out/wiki/index.md`가 있다면 위키를 우선 참고하세요. 코드를 수정한 뒤에도 반드시 다시 빌드해야 리포트가 최신 상태를 반영합니다.
