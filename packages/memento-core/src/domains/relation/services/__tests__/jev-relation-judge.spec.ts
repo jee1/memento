@@ -112,6 +112,8 @@ describe('JevRelationJudge', () => {
       .toBe('새 기억(s)과 기존 기억(t0)은 동일한 구체적 대상의 같은 비교 기준에 대해 서로 다른 주장·대안·조건을 제시한다. 대상이 다른 독립 작업, 공통 문장 형식, 같은 내용 반복, 동급 구성 요소, 단순 후속 실행만으로는 대조가 아니다');
     expect(typeQuestions.find((question) => question.id === 'y0_REFERENCES')?.instructions)
       .toMatch(/명시적으로 인용.*같은 주제·내용 중복·인과·필수 전제·부분-전체.*추정하지 않는다/);
+    expect(typeQuestions.find((question) => question.id === 'y0_REFERENCES')?.instructions)
+      .toContain('선택적 참고도 참조');
   });
 
   it('sorts candidates by confidence descending', async () => {
