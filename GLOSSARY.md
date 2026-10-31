@@ -40,6 +40,10 @@ _Avoid_: link, edge
 신뢰도가 낮거나 자주 실패하는 기억을 찾아내고 정리(heal)하는 운영 절차.
 _Avoid_: cleanup, audit
 
+**Supersede candidate**:
+같은 owner, project, privacy scope, type, 임베딩 모델 안에서 새 기억이 옛 기억을 대체하는지 LLM 이 분류해 `memory_supersede_candidate`에 남긴 판정 기록. 상태는 `confirmed`(확정 대체), `pending`(확인 대기), `compatible`(양립)이며 사람이 검토할 업무 상태일 뿐 안전 보장이 아니다. 판정이 나와도 기억은 비활성화하거나 바꾸지 않는다.
+_Avoid_: retirement, auto-supersede
+
 ## 검색
 
 **Hybrid search**:
