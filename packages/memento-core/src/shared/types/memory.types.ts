@@ -145,6 +145,11 @@ export interface MementoConfig {
    * Env: ADMIN_JOBS_READ_ONLY (default false). Issue #834.
    */
   adminJobsReadOnly: boolean;
+  /**
+   * When true, admin supersede apply/restore routes accept approvals. Env: SUPERSEDE_APPLY_ENABLED (default false).
+   * Keep off until every read path filters superseded memories (#1552). Issue #1551.
+   */
+  supersedeApplyEnabled: boolean;
   /** MEMENTO_API_TOKENS 또는 legacy ADMIN_API_KEY에서 파생된 programmatic API 토큰 */
   apiTokens: ApiTokenEntry[];
   /** HTTP 서버 바인드 주소 (MEMENTO_HTTP_BIND_HOST, 미설정 시 기본 127.0.0.1) */

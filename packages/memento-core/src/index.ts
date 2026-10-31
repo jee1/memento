@@ -119,6 +119,10 @@ export {
   MemoryReviewCandidateError,
 } from './domains/memory/review/memory-review-candidate-persistence-error.js';
 export {
+  applySupersedeCandidate,
+  restoreSupersededMemory,
+} from './domains/memory/supersede/supersede-apply-service.js';
+export {
   parseAdminMemoryItemIdParam,
   getAdminMemoryItemPreviewById,
 } from './domains/memory/services/admin-memory-item-preview-service.js';

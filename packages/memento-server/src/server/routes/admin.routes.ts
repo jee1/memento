@@ -13,6 +13,7 @@ import { registerAdminGraphRoute } from './admin/admin-graph.routes.js';
 import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.routes.js';
 import { registerAdminStatsAndHealthRoutes } from './admin/admin-stats-and-health.routes.js';
 import { registerAdminMemoryReviewRoutes } from './admin/admin-memory-review.routes.js';
+import { registerAdminMemorySupersedeRoutes } from './admin/admin-memory-supersede.routes.js';
 import { registerAdminMemorySearchRoutes } from './admin/admin-memory-search.routes.js';
 import { registerAdminBatchRoutes } from './admin/admin-batch.routes.js';
 import { registerAdminRuntimePerformanceRoutes } from './admin/admin-runtime-performance.routes.js';
@@ -37,6 +38,7 @@ export function createAdminRouter(
   registerAdminStatusRoutes(router, db);
   registerAdminOpsSummaryRoutes(router, db, serverServices);
   registerAdminMemoryReviewRoutes(router, db);
+  registerAdminMemorySupersedeRoutes(router, db);
   registerAdminMemorySearchRoutes(router, db, serverServices);
   registerAdminBatchRoutes(router, db, serverServices);
   registerAdminRuntimePerformanceRoutes(router);
