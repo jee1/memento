@@ -13,6 +13,12 @@ import type {
 } from '../../../shared/config/llm-model-resolver.js';
 import type { MementoConfig } from '../../../shared/types/memory.types.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { coerceUsageField } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import {
+  recordLlmUsageAttempt,
+  recordLlmUsageLogicalFinal,
+} from '../../../shared/services/llm-usage/llm-usage-recorder.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
 import { OllamaChatLlmAdapter } from '../../personal-agent/adapters/ollama-chat-llm-adapter.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
@@ -76,6 +82,30 @@ export class SummarizationService {
     return { ok: false, reason };
   }
 
+  private recordLogical(result: SummarizeClusterResult, provider: string | null, model: string | null): void {
+    if (result.ok) {
+      recordLlmUsageLogicalFinal({ finalPath: 'llm', provider, model });
+      return;
+    }
+    if (result.ok === false && result.reason === 'no_llm_configured') {
+      recordLlmUsageLogicalFinal({
+        finalPath: 'not_configured',
+        finalReason: result.reason,
+        provider,
+        model,
+      });
+      return;
+    }
+    if (result.ok === false) {
+      recordLlmUsageLogicalFinal({
+        finalPath: 'deferred',
+        finalReason: result.reason,
+        provider,
+        model,
+      });
+    }
+  }
+
   private async callOpenAi(prompt: string): Promise<SummarizeClusterResult> {
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) {
@@ -100,10 +130,44 @@ export class SummarizationService {
       })
     });
     if (!res.ok) {
+      recordLlmUsageAttempt({
+        provider: 'openai',
+        model,
+        outcome: res.status === 429 ? 'rate_limited' : 'failure',
+        failureReason: `http_${res.status}`,
+        attemptCoverage: 'full',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       return this.defer(deferFromHttpStatus(res.status));
     }
-    const text = textFromOpenAiResponse((await res.json()) as Parameters<typeof textFromOpenAiResponse>[0]);
-    return text ? { ok: true, content: text, method: 'llm' } : this.defer('empty_response');
+    const payload = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
+    const text = textFromOpenAiResponse(payload);
+    if (text) {
+      const providerReported = payload.usage != null;
+      recordLlmUsageAttempt({
+        provider: 'openai',
+        model,
+        outcome: 'success',
+        attemptCoverage: 'full',
+        inputTokens: coerceUsageField(payload.usage?.prompt_tokens, providerReported),
+        outputTokens: coerceUsageField(payload.usage?.completion_tokens, providerReported),
+      });
+      return { ok: true, content: text, method: 'llm' };
+    }
+    recordLlmUsageAttempt({
+      provider: 'openai',
+      model,
+      outcome: 'failure',
+      failureReason: 'empty_response',
+      attemptCoverage: 'full',
+      inputTokens: 'unknown',
+      outputTokens: 'unknown',
+    });
+    return this.defer('empty_response');
   }
 
   private async callGemini(prompt: string): Promise<SummarizeClusterResult> {
@@ -123,10 +187,44 @@ export class SummarizationService {
       })
     });
     if (!res.ok) {
+      recordLlmUsageAttempt({
+        provider: 'gemini',
+        model,
+        outcome: res.status === 429 ? 'rate_limited' : 'failure',
+        failureReason: `http_${res.status}`,
+        attemptCoverage: 'full',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       return this.defer(deferFromHttpStatus(res.status));
     }
-    const text = textFromGeminiResponse((await res.json()) as Parameters<typeof textFromGeminiResponse>[0]);
-    return text ? { ok: true, content: text, method: 'llm' } : this.defer('empty_response');
+    const payload = (await res.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    };
+    const text = textFromGeminiResponse(payload);
+    if (text) {
+      const providerReported = payload.usageMetadata != null;
+      recordLlmUsageAttempt({
+        provider: 'gemini',
+        model,
+        outcome: 'success',
+        attemptCoverage: 'full',
+        inputTokens: coerceUsageField(payload.usageMetadata?.promptTokenCount, providerReported),
+        outputTokens: coerceUsageField(payload.usageMetadata?.candidatesTokenCount, providerReported),
+      });
+      return { ok: true, content: text, method: 'llm' };
+    }
+    recordLlmUsageAttempt({
+      provider: 'gemini',
+      model,
+      outcome: 'failure',
+      failureReason: 'empty_response',
+      attemptCoverage: 'full',
+      inputTokens: 'unknown',
+      outputTokens: 'unknown',
+    });
+    return this.defer('empty_response');
   }
 
   private async callOllama(prompt: string): Promise<SummarizeClusterResult> {
@@ -142,13 +240,51 @@ export class SummarizationService {
       { role: 'user', content: prompt },
     ]);
     const text = result.content.trim();
-    return text ? { ok: true, content: text, method: 'llm' } : this.defer('empty_response');
+    if (text) {
+      recordLlmUsageAttempt({
+        provider: 'ollama',
+        model,
+        outcome: 'success',
+        attemptCoverage: 'unknown',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
+      return { ok: true, content: text, method: 'llm' };
+    }
+    recordLlmUsageAttempt({
+      provider: 'ollama',
+      model,
+      outcome: 'failure',
+      failureReason: 'empty_response',
+      attemptCoverage: 'unknown',
+      inputTokens: 'unknown',
+      outputTokens: 'unknown',
+    });
+    return this.defer('empty_response');
   }
 
   /**
    * LLM 키가 있으면 OpenAI / Gemini / Ollama 호출. 실패·429·빈 응답은 defer.
    */
   async summarizeCluster(input: SummarizeClusterInput): Promise<SummarizeClusterResult> {
+    return runWithLlmUsageLogicalContext('consolidation_summarize', null, async () => {
+      const provider = resolveLlmProvider('consolidation', this.llmConfig);
+      let model: string | null = null;
+      if (provider === 'openai' || provider === 'auto') {
+        model = resolveLlmModel('openai', 'consolidation', undefined, { boundProvider: 'openai' });
+      } else if (provider === 'gemini') {
+        model = resolveLlmModel('gemini', 'consolidation', undefined, { boundProvider: 'gemini' });
+      } else if (provider === 'ollama') {
+        model = resolveLlmModel('ollama', 'consolidation', this.llmConfig, { boundProvider: 'ollama' });
+      }
+
+      const result = await this.summarizeClusterInner(input);
+      this.recordLogical(result, provider, model);
+      return result;
+    });
+  }
+
+  private async summarizeClusterInner(input: SummarizeClusterInput): Promise<SummarizeClusterResult> {
     const { clusterEpisodes } = input;
     if (clusterEpisodes.length === 0) {
       return this.defer('empty_response');

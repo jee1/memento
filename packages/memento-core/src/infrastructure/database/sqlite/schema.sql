@@ -796,6 +796,47 @@ CREATE TABLE IF NOT EXISTS job_run_log (
 CREATE INDEX IF NOT EXISTS idx_job_run_log_run_ts
   ON job_run_log(run_id, ts ASC, id ASC);
 
+-- LLM usage observability (migration 058, Issue #1546)
+CREATE TABLE IF NOT EXISTS llm_usage_attempt (
+  id                  TEXT PRIMARY KEY,
+  logical_request_id  TEXT NOT NULL,
+  attempt_index       INTEGER NOT NULL,
+  feature             TEXT NOT NULL,
+  provider            TEXT NOT NULL,
+  model               TEXT NOT NULL,
+  outcome             TEXT NOT NULL,
+  failure_reason      TEXT,
+  attempt_coverage    TEXT NOT NULL,
+  input_tokens        INTEGER,
+  output_tokens       INTEGER,
+  usage_unknown       INTEGER NOT NULL DEFAULT 0,
+  latency_ms          INTEGER,
+  run_id              TEXT,
+  pacific_date        TEXT NOT NULL,
+  created_at          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_llm_usage_attempt_pacific_feature
+  ON llm_usage_attempt(pacific_date, feature);
+CREATE INDEX IF NOT EXISTS idx_llm_usage_attempt_logical
+  ON llm_usage_attempt(logical_request_id);
+
+CREATE TABLE IF NOT EXISTS llm_usage_logical (
+  id                  TEXT PRIMARY KEY,
+  logical_request_id  TEXT NOT NULL UNIQUE,
+  feature             TEXT NOT NULL,
+  provider            TEXT,
+  model               TEXT,
+  final_path          TEXT NOT NULL,
+  final_reason        TEXT,
+  attempt_count       INTEGER NOT NULL,
+  rate_limited_count  INTEGER NOT NULL,
+  run_id              TEXT,
+  pacific_date        TEXT NOT NULL,
+  created_at          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_llm_usage_logical_pacific_feature
+  ON llm_usage_logical(pacific_date, feature);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

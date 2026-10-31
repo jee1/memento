@@ -6,6 +6,8 @@ import { createClusterJudge } from '../domains/consolidation/services/cluster-ju
 import { createRelationGraph } from '../infrastructure/relation-graph-factory.js';
 import { IntrospectionScanCache } from '../domains/memory/introspection/introspection-scan-cache.js';
 import { TelemetryRepository } from '../domains/telemetry/repositories/telemetry-repository.js';
+import { LlmUsageRepository } from '../shared/services/llm-usage/llm-usage-repository.js';
+import { setLlmUsageRepository } from '../shared/services/llm-usage/llm-usage-recorder.js';
 import { TelemetryService } from '../domains/telemetry/services/telemetry-service.js';
 import type { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
 import type { RuntimeDiagnosticsLogger } from '../domains/monitoring/services/runtime-diagnostics-logger.js';
@@ -25,6 +27,7 @@ export async function createBatchTelemetryRelationAndSleep(
 ): Promise<{
   introspectionScanCache: IntrospectionScanCache;
   telemetryRepository: TelemetryRepository;
+  llmUsageRepository: LlmUsageRepository;
   batchScheduler: ReturnType<typeof getBatchScheduler>;
   telemetryService: TelemetryService;
   relationGraph: ReturnType<typeof createRelationGraph>;
@@ -32,6 +35,8 @@ export async function createBatchTelemetryRelationAndSleep(
 }> {
   const introspectionScanCache = new IntrospectionScanCache();
   const telemetryRepository = new TelemetryRepository(db);
+  const llmUsageRepository = new LlmUsageRepository(db);
+  setLlmUsageRepository(llmUsageRepository);
   const batchScheduler = getBatchScheduler();
   batchScheduler.setDatabaseMaintenance(
     walCheckpointScheduler ?? null,
@@ -57,6 +62,7 @@ export async function createBatchTelemetryRelationAndSleep(
   return {
     introspectionScanCache,
     telemetryRepository,
+    llmUsageRepository,
     batchScheduler,
     telemetryService,
     relationGraph,

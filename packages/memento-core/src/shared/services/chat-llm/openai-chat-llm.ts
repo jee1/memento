@@ -1,6 +1,8 @@
 import type OpenAI from 'openai';
 import type { IRetryManager } from '../../interfaces/retry-manager.interface.js';
 import type { ChatLlmMessage, ChatLlmPort, ChatLlmRequest, ChatLlmResult } from './chat-llm-port.js';
+import { coerceUsageField } from '../llm-usage/llm-usage-classify.js';
+import { recordLlmUsageAttempt } from '../llm-usage/llm-usage-recorder.js';
 import { retryChatLlmCall } from './chat-llm-retry.js';
 
 type OpenAiMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
@@ -26,7 +28,7 @@ export class OpenAiChatLlm implements ChatLlmPort {
   async complete(request: ChatLlmRequest): Promise<ChatLlmResult> {
     const response = await retryChatLlmCall(
       this.retryManager,
-      { provider: this.provider, model: request.model, transient: 'cloud' },
+      { provider: this.provider, model: request.model, transient: 'cloud', attemptCoverage: 'partial' },
       () =>
         this.client.chat.completions.create({
           model: request.model,
@@ -44,11 +46,23 @@ export class OpenAiChatLlm implements ChatLlmPort {
       throw new Error('OpenAI 응답이 비어있습니다.');
     }
 
+    const providerReported = response.usage != null;
+    const promptTokens = coerceUsageField(response.usage?.prompt_tokens, providerReported);
+    const completionTokens = coerceUsageField(response.usage?.completion_tokens, providerReported);
+    recordLlmUsageAttempt({
+      provider: this.provider,
+      model: request.model,
+      outcome: 'success',
+      attemptCoverage: 'partial',
+      inputTokens: promptTokens,
+      outputTokens: completionTokens,
+    });
+
     return {
       content,
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? 0,
-        completionTokens: response.usage?.completion_tokens ?? 0,
+        promptTokens: promptTokens === 'unknown' ? 0 : promptTokens,
+        completionTokens: completionTokens === 'unknown' ? 0 : completionTokens,
       },
     };
   }

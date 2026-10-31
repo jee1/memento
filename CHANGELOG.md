@@ -11,7 +11,7 @@
 
 ### Added
 
-- Jev 관계 평가: 사용자 승인 합성 48쌍, 고정 모델 440회 비교와 후보별 회귀를 기록합니다. 사전 기준 미충족으로 질문 변경은 적용하지 않습니다 (#1470).
+- LLM 사용량: 기능별 attempt(success/429/기타)와 logical 최종 경로를 Pacific 날짜로 저장하고 `GET /admin/telemetry/llm-usage`로 조회합니다. 코드에 일일 cap 은 두지 않습니다 (#1546).
 - Admin 대시보드 배치 작업 탭: `GET /admin/batch/stats`의 `jobs[].description`과 스케줄 표·드로어·「이건 뭔가요」 가이드에 스케줄별 역할 설명을 표시합니다 (#1464).
 
 ### Fixed
