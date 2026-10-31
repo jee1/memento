@@ -40,15 +40,15 @@ describe('scoreSupersedeVerdicts (#1548)', () => {
     const report = scoreSupersedeVerdicts(synthetic(10, 10, 1), verdicts);
 
     expect(report.counts).toMatchObject({
-      tp: 3, fp: 1, fn: 7, missing_positive: 5, missing_negative: 6, excluded: 1,
+      tp: 3, fp: 1, fn: 7, missing_positive: 5, missing_negative: 6, unjudged: 11, excluded: 1,
     });
     expect(report.precision).toMatchObject({ numerator: 3, denominator: 4, rate: 0.75 });
     expect(report.detection).toMatchObject({ numerator: 3, denominator: 10, rate: 0.3 });
-    expect(report.false_retire).toMatchObject({ numerator: 1, denominator: 10, rate: 0.1 });
+    expect(report.false_retire).toMatchObject({ numerator: 1, denominator: 4, rate: 0.25 });
     expect(report.detection_lenient).toMatchObject({ numerator: 4, denominator: 10, rate: 0.4 });
     expect(report.detection_loss).toMatchObject({ numerator: 1, denominator: 10 });
     expect(report.detection_loss.rate).toBeCloseTo(0.1, 12);
-    expect(report.false_retire_lenient).toMatchObject({ numerator: 3, denominator: 10, rate: 0.3 });
+    expect(report.false_retire_lenient).toMatchObject({ numerator: 3, denominator: 4, rate: 0.75 });
   });
 
   it('각 비율에 Wilson 95% 구간을 붙인다', () => {
@@ -59,7 +59,8 @@ describe('scoreSupersedeVerdicts (#1548)', () => {
   });
 
   it('오류 0건이면 false_retire 에 단측 95% 상한 1 - 0.05^(1/n) 을 함께 낸다', () => {
-    const clean = scoreSupersedeVerdicts(synthetic(0, 30), new Map());
+    const allCompatible = new Map(Array.from({ length: 30 }, (_, i) => [`n${i}`, 'compatible' as const]));
+    const clean = scoreSupersedeVerdicts(synthetic(0, 30), allCompatible);
     expect(clean.false_retire.numerator).toBe(0);
     expect(clean.false_retire.zero_error_upper95).toBeCloseTo(1 - 0.05 ** (1 / 30), 12);
     expect(clean.false_retire.zero_error_upper95).toBeCloseTo(0.095, 3);
@@ -74,11 +75,36 @@ describe('scoreSupersedeVerdicts (#1548)', () => {
       numerator: 0, denominator: 0, rate: null, ci95: null, reason: 'no_confirmed_verdicts',
     });
 
-    const empty = scoreSupersedeVerdicts([], new Map());
-    for (const ratio of [empty.detection, empty.false_retire, empty.detection_lenient, empty.false_retire_lenient, empty.detection_loss]) {
-      expect(ratio).toMatchObject({ rate: null, ci95: null, reason: 'empty_denominator' });
+    const noNegatives = scoreSupersedeVerdicts(synthetic(5, 0), new Map([['p0', 'confirmed']]));
+    for (const ratio of [noNegatives.false_retire, noNegatives.false_retire_lenient]) {
+      expect(ratio).toMatchObject({ rate: null, ci95: null, reason: 'no_judged_negatives' });
     }
-    expect(empty.false_retire.zero_error_upper95).toBeNull();
+    expect(noNegatives.false_retire.zero_error_upper95).toBeNull();
+  });
+
+  it('판정이 0건이면 모든 지표를 측정 없음(null)으로 내고 0% 로 채우지 않는다', () => {
+    const report = scoreSupersedeVerdicts(decisions, new Map());
+    for (const ratio of [
+      report.precision, report.detection, report.false_retire,
+      report.detection_lenient, report.detection_loss, report.false_retire_lenient,
+    ]) {
+      expect(ratio).toMatchObject({ rate: null, ci95: null, reason: 'no_verdicts' });
+    }
+    expect(report.false_retire.zero_error_upper95).toBeNull();
+    expect(report.counts).toMatchObject({ unjudged: 57, missing_negative: 27 });
+  });
+
+  it('미판정 negative 는 비퇴역으로 세지 않고 false_retire 분모에서 빼며 수를 따로 낸다', () => {
+    const report = scoreSupersedeVerdicts(
+      synthetic(2, 10),
+      new Map([['p0', 'confirmed'], ['n0', 'compatible'], ['n1', 'compatible'], ['n2', 'pending']]),
+    );
+    expect(report.false_retire).toMatchObject({ numerator: 0, denominator: 3, rate: 0 });
+    expect(report.false_retire.zero_error_upper95).toBeCloseTo(1 - 0.05 ** (1 / 3), 12);
+    expect(report.false_retire_lenient).toMatchObject({ numerator: 1, denominator: 3 });
+    expect(report.counts).toMatchObject({ missing_negative: 7, missing_positive: 1, unjudged: 8 });
+    // #1545 protocol: detection 의 분모는 N_positive 이고 누락은 FN 이다.
+    expect(report.detection).toMatchObject({ numerator: 1, denominator: 2, rate: 0.5 });
   });
 
   it('coverage 는 이진 분모 대비 판정이 있는 비율이다', () => {

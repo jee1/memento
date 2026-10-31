@@ -184,12 +184,13 @@ export class SupersedeCandidateService {
           recordLlmUsageLogicalFinal({ finalPath: 'llm', ...usage });
           return false;
         }
-        const reason = outcome.kind === 'rate_limited' ? 'rate_limited' : outcome.reason;
-        recordLlmUsageLogicalFinal({ finalPath: 'deferred', finalReason: reason, ...usage });
-        if (outcome.kind === 'failed') {
-          summary.failed += 1;
+        if (outcome.kind === 'rate_limited') {
+          recordLlmUsageLogicalFinal({ finalPath: 'deferred', finalReason: 'rate_limited', ...usage });
+          return true;
         }
-        return outcome.kind === 'rate_limited';
+        recordLlmUsageLogicalFinal({ finalPath: 'failed', finalReason: outcome.reason, ...usage });
+        summary.failed += 1;
+        return false;
       });
 
       if (rateLimited) {

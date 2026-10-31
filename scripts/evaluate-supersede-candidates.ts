@@ -77,6 +77,7 @@ export function scoreSupersedeVerdicts(
 ) {
   const positives = decisions.filter((d) => d.gold && d.label === 'retire');
   const negatives = decisions.filter((d) => d.gold && d.label === 'retain');
+  const judgedNegatives = negatives.filter((d) => verdictByCaseId.has(d.case_id));
   const count = (rows: PanelDecision[], verdict: SupersedeVerdict) =>
     rows.filter((d) => verdictByCaseId.get(d.case_id) === verdict).length;
   const missing = (rows: PanelDecision[]) => rows.filter((d) => !verdictByCaseId.has(d.case_id)).length;
@@ -86,8 +87,17 @@ export function scoreSupersedeVerdicts(
   const pendingPositive = count(positives, 'pending');
   const pendingNegative = count(negatives, 'pending');
   const binaryCases = positives.length + negatives.length;
-  const judged = binaryCases - missing(positives) - missing(negatives);
-  const falseRetire = ratio(fp, negatives.length, 'empty_denominator');
+  const unjudged = missing(positives) + missing(negatives);
+  const judged = binaryCases - unjudged;
+
+  // 판정이 하나도 없으면 측정이 없는 것이지 0% 가 아니다 (#1560).
+  const measured = (numerator: number, denominator: number, emptyReason: string): RatioReport =>
+    judged === 0
+      ? { numerator, denominator, rate: null, ci95: null, reason: 'no_verdicts' }
+      : ratio(numerator, denominator, emptyReason);
+  // 미판정 negative 를 비퇴역(TN)으로 세면 오폐기율이 낮아 보인다. 판정된 negative 만 분모다.
+  // detection 은 #1545 protocol 대로 N_positive 가 분모이고 누락은 FN 이다.
+  const falseRetire = measured(fp, judgedNegatives.length, 'no_judged_negatives');
 
   return {
     counts: {
@@ -99,21 +109,23 @@ export function scoreSupersedeVerdicts(
       fn: positives.length - tp,
       missing_positive: missing(positives),
       missing_negative: missing(negatives),
+      unjudged,
     },
     coverage: {
       judged,
       binary_cases: binaryCases,
       rate: binaryCases === 0 ? null : judged / binaryCases,
     },
-    precision: ratio(tp, tp + fp, 'no_confirmed_verdicts'),
-    detection: ratio(tp, positives.length, 'empty_denominator'),
+    precision: measured(tp, tp + fp, 'no_confirmed_verdicts'),
+    detection: measured(tp, positives.length, 'empty_denominator'),
     false_retire: {
       ...falseRetire,
-      zero_error_upper95: fp === 0 && negatives.length > 0 ? 1 - 0.05 ** (1 / negatives.length) : null,
+      zero_error_upper95:
+        falseRetire.rate === 0 ? 1 - 0.05 ** (1 / judgedNegatives.length) : null,
     },
-    detection_lenient: ratio(tp + pendingPositive, positives.length, 'empty_denominator'),
-    detection_loss: ratio(pendingPositive, positives.length, 'empty_denominator'),
-    false_retire_lenient: ratio(fp + pendingNegative, negatives.length, 'empty_denominator'),
+    detection_lenient: measured(tp + pendingPositive, positives.length, 'empty_denominator'),
+    detection_loss: measured(pendingPositive, positives.length, 'empty_denominator'),
+    false_retire_lenient: measured(fp + pendingNegative, judgedNegatives.length, 'no_judged_negatives'),
   };
 }
 

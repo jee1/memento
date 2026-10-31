@@ -17,7 +17,8 @@ export type LlmAttemptOutcome = 'success' | 'rate_limited' | 'failure' | 'timeou
 
 export type LlmAttemptCoverage = 'full' | 'partial' | 'unknown';
 
-export type LlmLogicalFinalPath = 'llm' | 'extractive' | 'skipped' | 'deferred' | 'not_configured';
+/** deferred 는 429 등 다음 run 으로 미룬 요청, failed 는 응답 해석 실패나 LLM 오류다. */
+export type LlmLogicalFinalPath = 'llm' | 'extractive' | 'skipped' | 'deferred' | 'failed' | 'not_configured';
 
 export type LlmUsageTokenField = number | 'unknown';
 

@@ -182,18 +182,20 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(candidates()).toHaveLength(3);
   });
 
-  it('parse_failed 는 그 쌍만 건너뛰고 다음 쌍을 판정한다', async () => {
+  it('parse_failed 와 llm_failed 는 그 쌍만 건너뛰고 429 defer 와 다른 failed 로 기록한다', async () => {
     seedThreePairs();
-    const port = fakeChatPort((_request, index) => (index === 0 ? '판정 불가' : judgeReply('pending')));
+    const port = fakeChatPort((_request, index) =>
+      index === 0 ? '판정 불가' : index === 1 ? new Error('500 server error') : judgeReply('pending'),
+    );
 
     const result = await service(port).scan({ runId: 'run-1' });
 
     expect(port.calls).toHaveLength(3);
-    expect(result).toMatchObject({ status: 'completed', judged: 2, failed: 1 });
-    expect(candidates()).toHaveLength(2);
+    expect(result).toMatchObject({ status: 'completed', judged: 1, failed: 2 });
+    expect(candidates()).toHaveLength(1);
     expect(logicalRows().map((r) => [r.final_path, r.final_reason])).toEqual([
-      ['deferred', 'parse_failed'],
-      ['llm', null],
+      ['failed', 'parse_failed'],
+      ['failed', 'llm_failed'],
       ['llm', null],
     ]);
   });
