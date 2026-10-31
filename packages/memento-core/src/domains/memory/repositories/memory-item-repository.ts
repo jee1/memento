@@ -150,8 +150,83 @@ export function listActiveMemoryIdAndContent(
 }
 
 /**
+ * #1551: 승인된 직접 대체는 포인터가 가리키는 target 이 살아 있을 때만 유효하다.
+ * target 이 지워지면 옛 기억은 쓰기 없이 다시 현재가 된다. memory_relation, memory_link 는 보지 않는다.
+ * 보간 없는 고정 SQL 이라 memory_item 별칭이 mi 인 질의에서만 쓴다.
+ */
+const SUPERSEDED_BY_ACTIVE_TARGET_SQL = `EXISTS (SELECT 1 FROM memory_item supersede_target
+    WHERE supersede_target.id = mi.superseded_by AND COALESCE(supersede_target.is_deleted, 0) = 0)`;
+
+/** 주어진 id 중 지금 대체된 기억. */
+export function findSupersededMemoryIds(db: Database.Database, ids: readonly string[]): Set<string> {
+  if (ids.length === 0) {
+    return new Set();
+  }
+  const placeholders = ids.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `SELECT mi.id AS id FROM memory_item mi
+       WHERE mi.id IN (${placeholders})
+         AND ${SUPERSEDED_BY_ACTIVE_TARGET_SQL}`,
+    )
+    .all(...ids) as Array<{ id: string }>;
+  return new Set(rows.map((row) => row.id));
+}
+
+export interface SupersedeApplyMemoryRow {
+  id: string;
+  content: string;
+  type: string;
+  ownerId: string | null;
+  projectId: string | null;
+  privacyScope: string;
+  isDeleted: boolean;
+  supersededBy: string | null;
+}
+
+export function findSupersedeApplyMemory(
+  db: Database.Database,
+  id: string,
+): SupersedeApplyMemoryRow | undefined {
+  const row = db
+    .prepare(
+      `SELECT id, content, type, owner_id AS ownerId, project_id AS projectId,
+              COALESCE(privacy_scope, 'private') AS privacyScope,
+              COALESCE(is_deleted, 0) AS isDeleted, superseded_by AS supersededBy
+       FROM memory_item WHERE id = ?`,
+    )
+    .get(id) as (Omit<SupersedeApplyMemoryRow, 'isDeleted'> & { isDeleted: number }) | undefined;
+  return row && { ...row, isDeleted: row.isDeleted !== 0 };
+}
+
+/** CAS: 포인터가 비었고 삭제되지 않은 행만 바꾼다. */
+export function compareAndSetSupersededBy(db: Database.Database, oldId: string, newId: string): boolean {
+  return (
+    db
+      .prepare(
+        `UPDATE memory_item SET superseded_by = ?
+         WHERE id = ? AND superseded_by IS NULL AND COALESCE(is_deleted, 0) = 0`,
+      )
+      .run(newId, oldId).changes === 1
+  );
+}
+
+/** CAS: 포인터가 기대한 target 일 때만 지운다. */
+export function compareAndClearSupersededBy(
+  db: Database.Database,
+  oldId: string,
+  expectedNewId: string,
+): boolean {
+  return (
+    db
+      .prepare('UPDATE memory_item SET superseded_by = NULL WHERE id = ? AND superseded_by = ?')
+      .run(oldId, expectedNewId).changes === 1
+  );
+}
+
+/**
  * 대체 후보 탐색 대상: 삭제되지 않은 semantic/episodic 과 native 임베딩 하나(가장 최근 행).
- * 벡터가 없는 기억은 쌍을 만들 수 없어 개수만 센다.
+ * 이미 대체된 기억은 뺀다. 벡터가 없는 기억은 쌍을 만들 수 없어 개수만 센다.
  */
 export function findSupersedeScopeMemories(
   db: Database.Database,
@@ -181,6 +256,7 @@ export function findSupersedeScopeMemories(
         )
        WHERE mi.type IN ('semantic', 'episodic')
          AND COALESCE(mi.is_deleted, 0) = 0
+         AND NOT ${SUPERSEDED_BY_ACTIVE_TARGET_SQL}
          AND julianday(mi.created_at) IS NOT NULL`,
     )
     .all(lookbackDays) as Array<

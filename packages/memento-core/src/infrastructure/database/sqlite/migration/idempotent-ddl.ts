@@ -18,6 +18,31 @@ export function applyWorkRecordColumn(db: Database.Database): void {
   }
 }
 
+/** #1551: 포인터와 감사 사건. 사건은 기억이 지워져도 남도록 FK 를 걸지 않는다. */
+export function applySupersedePointerDdl(db: Database.Database): void {
+  db.transaction(() => {
+    if (!hasColumn(db, 'memory_item', 'superseded_by')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN superseded_by TEXT');
+    }
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS memory_supersede_event (
+        id                 TEXT PRIMARY KEY,
+        action             TEXT NOT NULL CHECK (action IN ('applied', 'restored')),
+        old_memory_id      TEXT NOT NULL,
+        new_memory_id      TEXT NOT NULL,
+        candidate_id       TEXT,
+        actor              TEXT NOT NULL,
+        reason             TEXT,
+        old_content_sha256 TEXT NOT NULL,
+        new_content_sha256 TEXT,
+        created_at         TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_memory_supersede_event_old
+        ON memory_supersede_event(old_memory_id);
+    `);
+  })();
+}
+
 export function applyMemoryEmbeddingContentHash(db: Database.Database): void {
   db.transaction(() => {
     if (!hasColumn(db, 'memory_embedding', 'content_hash')) {

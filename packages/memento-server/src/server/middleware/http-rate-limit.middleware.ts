@@ -1,7 +1,6 @@
-import { createHash } from 'node:crypto';
-
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import rateLimit, { ipKeyGenerator, type Options as RateLimitOptions } from 'express-rate-limit';
+import { dashboardSessionIdentity } from './session-auth.middleware.js';
 
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -28,10 +27,6 @@ export function isHttpRateLimitDisabled(): boolean {
   return process.env.NODE_ENV === 'test' || process.env.MEMENTO_HTTP_RATE_LIMIT_DISABLED === '1';
 }
 
-function hashIdentity(value: string): string {
-  return createHash('sha256').update(value).digest('hex').slice(0, 16);
-}
-
 /**
  * Issue #1161: express-rate-limit 의 기본 키는 `req.ip` 하나다. Docker 포트 퍼블리싱이나
  * 리버스 프록시 뒤에서는 모든 클라이언트가 같은 출발지로 보여 서버 전체가 버킷 1개가 된다
@@ -48,9 +43,9 @@ function resolveRateLimitKey(req: Request, res: Response): string {
     return `key:${programmaticKeyId}`;
   }
 
-  const sessionId: unknown = res.locals.dashboardSessionId;
-  if (typeof sessionId === 'string' && sessionId) {
-    return `session:${hashIdentity(sessionId)}`;
+  const sessionIdentity = dashboardSessionIdentity(res);
+  if (sessionIdentity) {
+    return sessionIdentity;
   }
 
   // 미인증 요청만 IP 로 떨어진다. `req.ip` 가 프록시 헤더를 반영할지는 `trust proxy`
