@@ -80,14 +80,13 @@ function applyMetadataFields(processed: ProcessedItem, item: RecallSearchItem): 
   }
 }
 
-/** Procedural Memory 전용 필드 (v7.0 Enhancement 포함) */
+/** 절차와 미검증 Reflexion 제안의 내용 */
 function applyProceduralFields(processed: ProcessedItem, item: RecallSearchItem): void {
   processed.task_goal = item.task_goal || null;
   processed.steps = item.steps || null;
   processed.workflow_name = item.workflow_name || null;
   processed.skill_name = item.skill_name || null;
   processed.trigger_conditions = item.trigger_conditions || null;
-  copyDefined(processed, item, VERSION_FIELDS);
   processed.reflection_notes = item.reflection_notes ? parseJsonOrRaw(item.reflection_notes) : null;
 }
 
@@ -109,8 +108,14 @@ function mapRecallSearchItem(
 
   applyMetadataFields(processed, item);
 
-  if (item.type === 'procedural') {
+  const state = (processed.origin_source as { reflexion?: { state?: string } } | null)?.reflexion?.state;
+  const unverified = item.type === 'episodic' && item.source === 'reflexion'
+    && (state === 'failure_observation' || state === 'unverified_candidate');
+  if (item.type === 'procedural' || unverified) {
     applyProceduralFields(processed, item);
+  }
+  if (item.type === 'procedural') {
+    copyDefined(processed, item, VERSION_FIELDS);
     // return_format='steps_only'일 때 steps만 반환
     if (returnFormat === 'steps_only') {
       return {

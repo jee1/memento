@@ -11,6 +11,8 @@ import {
 import type { ReflectionNotes } from '../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../shared/utils/logger.js';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
+import { createUnverifiedReflexionMemory } from './reflexion-procedural-memory-service/reflexion-procedural-create.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 interface FailurePatternAnalysis {
   repeatCount: number;
@@ -29,7 +31,7 @@ export class ReflexionReflectionRecorder {
   ) {}
 
   /**
-   * 실패 정보를 바탕으로 reflection_notes를 생성, 저장, procedural memory 변환까지 수행한다.
+   * 실패를 기록한다. 관찰 분리 설정에서는 기존 절차 대신 관찰·미검증 후보를 남긴다.
    * @returns 중복 이벤트가 아니어서 실제 저장/변환을 시도했으면 true
    */
   async record(event: FailureEvent): Promise<boolean> {
@@ -42,10 +44,16 @@ export class ReflexionReflectionRecorder {
     }
 
     const eventKey = this.generateEventKey(event);
-    this.duplicateWindow.set(eventKey, Date.now());
-
     const reflectionNote = this.generateReflectionNote(event);
     const taskGoal = event.original_task || this.extractTaskGoal(event);
+
+    if (mementoConfig.reflexionObservationOnly) {
+      await createUnverifiedReflexionMemory(this.db, reflectionNote, event, 'failure_observation', { task_goal: taskGoal });
+      this.duplicateWindow.set(eventKey, Date.now());
+      await this.proceduralMemoryService.convert(reflectionNote, event);
+      return true;
+    }
+    this.duplicateWindow.set(eventKey, Date.now());
 
     if (taskGoal) {
       await this.recordWithTaskGoal(event, reflectionNote, taskGoal);
@@ -197,6 +205,13 @@ export class ReflexionReflectionRecorder {
   }
 
   private generateEventKey(event: FailureEvent): string {
+    if (mementoConfig.reflexionObservationOnly) {
+      return createHash('sha256').update(JSON.stringify([
+        event.id, event.scope?.owner_id, event.scope?.project_id, event.scope?.process_id,
+        event.scope?.session_id, event.context?.environment, event.context?.tool_version,
+        this.extractTaskGoal(event),
+      ])).digest('hex');
+    }
     const keyString = `${event.tool_name}_${event.error_type}_${event.error_message_hash}`;
     return createHash('sha256').update(keyString).digest('hex');
   }

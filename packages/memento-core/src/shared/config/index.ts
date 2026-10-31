@@ -203,6 +203,7 @@ export const mementoConfig: MementoConfig = {
   dbLockMonitorEnabled: resolveBoolean('DB_LOCK_MONITOR_ENABLED', { defaultValue: true }),
 
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
+  reflexionObservationOnly: resolveBoolean('REFLEXION_OBSERVATION_ONLY', { defaultValue: false }),
   proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
     ? 'llm_first'
     : 'rule_only') as 'llm_first' | 'rule_only',

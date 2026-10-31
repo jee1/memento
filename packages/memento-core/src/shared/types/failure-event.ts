@@ -18,5 +18,12 @@ export interface FailureEvent {
     [key: string]: unknown;
   };
   original_task?: string;
+  /** 서버가 확정한 호출 범위. params의 owner/project로 덮어쓰지 않는다. */
+  scope?: {
+    owner_id?: string;
+    project_id?: string;
+    process_id?: string;
+    session_id?: string;
+  };
   priority: number;
 }

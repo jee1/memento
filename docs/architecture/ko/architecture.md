@@ -108,6 +108,7 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 - **`ErrorLoggingService`**: LOW/MEDIUM/HIGH/CRITICAL 심각도와 DATABASE/NETWORK/VALIDATION 등 카테고리별 구조화된 오류 로깅.
 - **`PerformanceMonitor`**: 메모리·CPU·데이터베이스 크기·쿼리 시간 경보를 모니터 소유 단일 스토어에 생성한다. `get_telemetry_summary`가 같은 생명주기 상태를 읽고, 알림 서비스는 경보를 복제하지 않고 전달 이벤트만 발행한다. (`performance_alerts` 도구 파일은 있으나 `tools/index.ts`의 `coreTools`에 등록되지 않음.)
 - **`FailureDetector` + `ReflexionWorker`**: 반복 실패 패턴을 감지하고, `MetaMemoryIntrospectionService`가 신뢰도 낮은 기억을 식별해 자기 교정을 돕는다.
+  `REFLEXION_OBSERVATION_ONLY`는 기본 off다. 켜면 실패 관찰·미검증 후보를 기존 절차와 분리한다([저장·조회 계약](../../guides/ko/reflexion-observations.md)).
 
 ### telemetry
 
