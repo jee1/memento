@@ -40,11 +40,13 @@ function countSearchFailures(
   serverServices: ServerServices,
   since: string,
   until: string,
+  ownerId: string | null,
 ): { count: number; recent: OpsSummaryResponse['questions']['search_health']['recent_search_failures'] } {
   const events = serverServices.telemetryService?.getEvents({
     event_type: 'memory.search.failed',
     from: since,
     to: until,
+    owner_id: ownerId ?? undefined,
     limit: 100,
     offset: 0,
   });
@@ -312,7 +314,7 @@ export async function buildOpsSummary(
     const tel = serverServices.telemetryService;
     const searchQuality = tel.getSearchQuality(period, ownerId);
     const system = tel.getSystemMetrics(period, ownerId);
-    const failures = countSearchFailures(serverServices, window.since, window.until);
+    const failures = countSearchFailures(serverServices, window.since, window.until, ownerId);
     const recallBucket = system.tools.recall;
     searchHealth = {
       availability:

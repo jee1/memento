@@ -59,7 +59,7 @@ function printHelp(): void {
       '',
       'Options:',
       '  --endpoint   HTTP admin base (default: server-info or http://127.0.0.1:PORT)',
-      '  --api-key    Admin/programmatic API key',
+      '  --api-key    ADMIN_API_KEY (POST /auth/session, then cookie for /admin)',
       '  --period     24h | 7d | 30d (default 24h)',
       '  --json       Machine-readable output',
       '  --timeout-ms Request timeout (default 10000)',
@@ -70,21 +70,56 @@ function printHelp(): void {
 
 async function resolveEndpoint(explicit: string | undefined, env: NodeJS.ProcessEnv): Promise<string> {
   if (explicit) return new URL(explicit).origin;
-  const fromEnv = env.MEMENTO_HTTP_URL ?? env.MEMENTO_ADMIN_URL;
-  if (fromEnv) return new URL(fromEnv).origin;
   const info = await readServerInfo(resolveServerInfoConfigDir({ env }));
   if (info) return `http://127.0.0.1:${info.port}`;
-  const port = env.MEMENTO_HTTP_PORT ?? '3000';
-  return `http://127.0.0.1:${port}`;
+  return 'http://127.0.0.1:3000';
 }
 
 function resolveApiKey(explicit: string | undefined, env: NodeJS.ProcessEnv): string {
-  return explicit ?? env.MEMENTO_API_KEY ?? env.ADMIN_API_KEY ?? '';
+  return explicit ?? env.ADMIN_API_KEY ?? '';
+}
+
+function readSessionCookieHeader(setCookie: string | null): string {
+  if (!setCookie) {
+    throw new Error('Missing session cookie from /auth/session');
+  }
+  return setCookie.split(';')[0]?.trim() ?? '';
+}
+
+/** Dashboard sign-in: POST /auth/session with admin key, same as static/js/dashboard-auth-sign-in.js */
+export async function establishAdminSessionCookie(
+  endpoint: string,
+  adminApiKey: string,
+  timeoutMs: number,
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${endpoint}/auth/session`, {
+      method: 'POST',
+      headers: { 'X-API-Key': adminApiKey },
+      signal: controller.signal,
+    });
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`AUTH_FAILED HTTP ${response.status}`);
+    }
+    if (response.status !== 204) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const setCookies =
+      typeof response.headers.getSetCookie === 'function'
+        ? response.headers.getSetCookie()
+        : [];
+    const raw = setCookies[0] ?? response.headers.get('set-cookie');
+    return readSessionCookieHeader(raw);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function createOpsReportRequest(
   endpoint: string,
-  apiKey: string,
+  sessionCookie: string,
   timeoutMs: number,
 ): OpsReportRequest {
   return async (path, init) => {
@@ -92,7 +127,7 @@ export function createOpsReportRequest(
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const headers = new Headers(init?.headers);
-      if (apiKey) headers.set('X-API-Key', apiKey);
+      headers.set('Cookie', sessionCookie);
       const response = await fetch(`${endpoint}${path}`, {
         ...init,
         headers,
@@ -126,11 +161,23 @@ export async function runOpsReportCommand(argv: string[]): Promise<number> {
   options.endpoint = await resolveEndpoint(options.endpoint || undefined, process.env);
   options.apiKey = resolveApiKey(options.apiKey || undefined, process.env);
   if (!options.apiKey) {
-    process.stderr.write('Missing API key (--api-key, MEMENTO_API_KEY, or ADMIN_API_KEY)\n');
+    process.stderr.write('Missing admin key (--api-key or ADMIN_API_KEY)\n');
     return 1;
   }
 
-  const request = createOpsReportRequest(options.endpoint, options.apiKey, options.timeoutMs);
+  let sessionCookie: string;
+  try {
+    sessionCookie = await establishAdminSessionCookie(
+      options.endpoint,
+      options.apiKey,
+      options.timeoutMs,
+    );
+  } catch (err) {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    return 1;
+  }
+
+  const request = createOpsReportRequest(options.endpoint, sessionCookie, options.timeoutMs);
   const result = await runOpsReport(options, request);
   if (result.stderr) process.stderr.write(`${result.stderr}\n`);
   if (result.stdout) process.stdout.write(result.stdout);

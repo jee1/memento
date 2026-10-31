@@ -288,4 +288,34 @@ describe('auth session integration', () => {
 
     expect(unknownQualityWithHeader.statusCode).toBe(404);
   });
+
+  it('rejects unsigned GET /admin/ops/summary with 401', async () => {
+    const port = await startRealHttpServer();
+    const res = await getJson(port, '/admin/ops/summary?period=24h');
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('ops-report CLI session login can read GET /admin/ops/summary', async () => {
+    const port = await startRealHttpServer();
+    const endpoint = `http://127.0.0.1:${port}`;
+    const adminKey = 'integration-admin-key-012345678901';
+    const { establishAdminSessionCookie, createOpsReportRequest } = await import('../ops-report-cli.js');
+    const { runOpsReport } = await import('../cli/ops-report-core.js');
+
+    const sessionCookie = await establishAdminSessionCookie(endpoint, adminKey, 10_000);
+    const request = createOpsReportRequest(endpoint, sessionCookie, 10_000);
+    const result = await runOpsReport(
+      {
+        endpoint,
+        apiKey: adminKey,
+        period: '24h',
+        json: true,
+        timeoutMs: 10_000,
+      },
+      request,
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('"questions"');
+  });
 });

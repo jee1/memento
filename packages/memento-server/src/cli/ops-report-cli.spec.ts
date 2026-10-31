@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { formatOpsSummaryHuman, runOpsReport } from './ops-report-core.js';
+import { createOpsReportRequest } from '../ops-report-cli.js';
 import type { OpsSummaryResponse } from '../server/routes/admin/admin-ops-summary.types.js';
 
 const sample: OpsSummaryResponse = {
@@ -54,6 +55,22 @@ describe('ops-report-core', () => {
     expect(text).toContain('#1546');
     expect(text).toContain('[1]');
     expect(text).toContain('[4]');
+  });
+
+  it('createOpsReportRequest attaches session cookie to admin GET', async () => {
+    const httpRequest = createOpsReportRequest('http://127.0.0.1:9', 'memento_admin_session=s1', 1000);
+    const captured: RequestInit[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        captured.push(init ?? {});
+        return { status: 200, text: async () => '{}' };
+      }),
+    );
+    await httpRequest('/admin/ops/summary?period=24h', { method: 'GET' });
+    expect(new Headers(captured[0]?.headers).get('Cookie')).toBe('memento_admin_session=s1');
+    expect(new Headers(captured[0]?.headers).get('X-API-Key')).toBeNull();
+    vi.unstubAllGlobals();
   });
 
   it('runOpsReport uses HTTP request only', async () => {
