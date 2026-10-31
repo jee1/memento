@@ -1,0 +1,902 @@
+[
+ {
+  "query_id": "cl_01_q_single",
+  "relevant_memory_ids": [
+   "cl_01_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_01_q_multi",
+  "relevant_memory_ids": [
+   "cl_01_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_01_q_trap",
+  "relevant_memory_ids": [
+   "cl_01_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_02_q_single",
+  "relevant_memory_ids": [
+   "cl_02_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_02_q_multi",
+  "relevant_memory_ids": [
+   "cl_02_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_02_q_trap",
+  "relevant_memory_ids": [
+   "cl_02_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_03_q_single",
+  "relevant_memory_ids": [
+   "cl_03_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_03_q_multi",
+  "relevant_memory_ids": [
+   "cl_03_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_03_q_trap",
+  "relevant_memory_ids": [
+   "cl_03_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_04_q_single",
+  "relevant_memory_ids": [
+   "cl_04_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_04_q_multi",
+  "relevant_memory_ids": [
+   "cl_04_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_04_q_trap",
+  "relevant_memory_ids": [
+   "cl_04_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_05_q_single",
+  "relevant_memory_ids": [
+   "cl_05_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_05_q_multi",
+  "relevant_memory_ids": [
+   "cl_05_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_05_q_trap",
+  "relevant_memory_ids": [
+   "cl_05_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_06_q_single",
+  "relevant_memory_ids": [
+   "cl_06_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_06_q_multi",
+  "relevant_memory_ids": [
+   "cl_06_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_06_q_trap",
+  "relevant_memory_ids": [
+   "cl_06_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_07_q_single",
+  "relevant_memory_ids": [
+   "cl_07_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_07_q_multi",
+  "relevant_memory_ids": [
+   "cl_07_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_07_q_trap",
+  "relevant_memory_ids": [
+   "cl_07_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_08_q_single",
+  "relevant_memory_ids": [
+   "cl_08_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_08_q_multi",
+  "relevant_memory_ids": [
+   "cl_08_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_08_q_trap",
+  "relevant_memory_ids": [
+   "cl_08_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_09_q_single",
+  "relevant_memory_ids": [
+   "cl_09_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_09_q_multi",
+  "relevant_memory_ids": [
+   "cl_09_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_09_q_trap",
+  "relevant_memory_ids": [
+   "cl_09_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_10_q_single",
+  "relevant_memory_ids": [
+   "cl_10_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_10_q_multi",
+  "relevant_memory_ids": [
+   "cl_10_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_10_q_trap",
+  "relevant_memory_ids": [
+   "cl_10_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_11_q_single",
+  "relevant_memory_ids": [
+   "cl_11_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_11_q_multi",
+  "relevant_memory_ids": [
+   "cl_11_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_11_q_trap",
+  "relevant_memory_ids": [
+   "cl_11_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_12_q_single",
+  "relevant_memory_ids": [
+   "cl_12_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_12_q_multi",
+  "relevant_memory_ids": [
+   "cl_12_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_12_q_trap",
+  "relevant_memory_ids": [
+   "cl_12_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_13_q_single",
+  "relevant_memory_ids": [
+   "cl_13_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_13_q_multi",
+  "relevant_memory_ids": [
+   "cl_13_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_13_q_trap",
+  "relevant_memory_ids": [
+   "cl_13_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_14_q_single",
+  "relevant_memory_ids": [
+   "cl_14_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_14_q_multi",
+  "relevant_memory_ids": [
+   "cl_14_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_14_q_trap",
+  "relevant_memory_ids": [
+   "cl_14_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_15_q_single",
+  "relevant_memory_ids": [
+   "cl_15_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_15_q_multi",
+  "relevant_memory_ids": [
+   "cl_15_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_15_q_trap",
+  "relevant_memory_ids": [
+   "cl_15_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_16_q_single",
+  "relevant_memory_ids": [
+   "cl_16_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_16_q_multi",
+  "relevant_memory_ids": [
+   "cl_16_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_16_q_trap",
+  "relevant_memory_ids": [
+   "cl_16_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_17_q_single",
+  "relevant_memory_ids": [
+   "cl_17_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_17_q_multi",
+  "relevant_memory_ids": [
+   "cl_17_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_17_q_trap",
+  "relevant_memory_ids": [
+   "cl_17_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_18_q_single",
+  "relevant_memory_ids": [
+   "cl_18_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_18_q_multi",
+  "relevant_memory_ids": [
+   "cl_18_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_18_q_trap",
+  "relevant_memory_ids": [
+   "cl_18_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_19_q_single",
+  "relevant_memory_ids": [
+   "cl_19_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_19_q_multi",
+  "relevant_memory_ids": [
+   "cl_19_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_19_q_trap",
+  "relevant_memory_ids": [
+   "cl_19_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_20_q_single",
+  "relevant_memory_ids": [
+   "cl_20_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_20_q_multi",
+  "relevant_memory_ids": [
+   "cl_20_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_20_q_trap",
+  "relevant_memory_ids": [
+   "cl_20_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_21_q_single",
+  "relevant_memory_ids": [
+   "cl_21_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_21_q_multi",
+  "relevant_memory_ids": [
+   "cl_21_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_21_q_trap",
+  "relevant_memory_ids": [
+   "cl_21_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_22_q_single",
+  "relevant_memory_ids": [
+   "cl_22_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_22_q_multi",
+  "relevant_memory_ids": [
+   "cl_22_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_22_q_trap",
+  "relevant_memory_ids": [
+   "cl_22_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_23_q_single",
+  "relevant_memory_ids": [
+   "cl_23_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_23_q_multi",
+  "relevant_memory_ids": [
+   "cl_23_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_23_q_trap",
+  "relevant_memory_ids": [
+   "cl_23_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_24_q_single",
+  "relevant_memory_ids": [
+   "cl_24_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_24_q_multi",
+  "relevant_memory_ids": [
+   "cl_24_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_24_q_trap",
+  "relevant_memory_ids": [
+   "cl_24_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_25_q_single",
+  "relevant_memory_ids": [
+   "cl_25_src_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_direct: 본문에 금요일 정기 휴무가 오후 2시부터라고 직접 적혔다. 옛 안내 초안(trap_wrong, 오전 10시, 폐기 예정)과 허브(답 없음)는 제외. 범위 밖 owner/삭제 기록이 있으면 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_25_q_multi",
+  "relevant_memory_ids": [
+   "cl_25_src_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_hop_ans: 민원(hop_obs)에서 복구 시도(hop_try)를 거쳐 최종 규격(hop_ans)에 도달하는 체인. 질의가 묻는 최종 규격은 hop_ans 본문에만 있다. obs/try는 중간 노드라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_25_q_trap",
+  "relevant_memory_ids": [
+   "cl_25_src_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_iso_ok: 겨울철 난방 가동 시작일은 iso_ok 본문(11월 15일)에 있다. 허브와 폐기/구판 기록은 관련 없거나 현재 답이 아니라 제외.",
+  "reviewer_id": "머슴5-reviewer-b",
+  "model": "claude-sonnet-5-5",
+  "judged_at": "2026-10-31T23:04:57Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ }
+]

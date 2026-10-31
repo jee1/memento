@@ -1,0 +1,902 @@
+[
+ {
+  "query_id": "cl_01_q_single",
+  "relevant_memory_ids": [
+   "cl_01_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_01_hub는 색인 문서로 답이 없고 cl_01_trap_wrong는 폐기 예정 옛 초안이라 제외. rk_trap_own_foreign는 외부 owner_id(owner_rkpanel_foreign)로 scope 밖이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_01_q_multi",
+  "relevant_memory_ids": [
+   "cl_01_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_01_hop_obs에서 시작해 관계(cl_01_hop_obs -> cl_01_hop_try -> cl_01_hop_ans)를 따라 도달한 cl_01_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_01_q_trap",
+  "relevant_memory_ids": [
+   "cl_01_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_01_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_02_q_single",
+  "relevant_memory_ids": [
+   "cl_02_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_02_hub는 색인 문서로 답이 없고 cl_02_trap_wrong는 폐기 예정 옛 초안이라 제외. rk_trap_deleted는 status=deleted라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_02_q_multi",
+  "relevant_memory_ids": [
+   "cl_02_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_02_hop_obs에서 시작해 관계(cl_02_hop_obs -> cl_02_hop_try -> cl_02_hop_ans)를 따라 도달한 cl_02_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_02_q_trap",
+  "relevant_memory_ids": [
+   "cl_02_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_02_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_03_q_single",
+  "relevant_memory_ids": [
+   "cl_03_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_03_hub는 색인 문서로 답이 없고 cl_03_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_03_q_multi",
+  "relevant_memory_ids": [
+   "cl_03_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_03_hop_obs에서 시작해 관계(cl_03_hop_obs -> cl_03_hop_try -> cl_03_hop_ans)를 따라 도달한 cl_03_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_03_q_trap",
+  "relevant_memory_ids": [
+   "cl_03_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_03_hub)와 휴무 관련 기억은 무관하므로 제외. rk_trap_replaced_old는 status=superseded 구판이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_04_q_single",
+  "relevant_memory_ids": [
+   "cl_04_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_04_hub는 색인 문서로 답이 없고 cl_04_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_04_q_multi",
+  "relevant_memory_ids": [
+   "cl_04_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_04_hop_obs에서 시작해 관계(cl_04_hop_obs -> cl_04_hop_try -> cl_04_hop_ans)를 따라 도달한 cl_04_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_04_q_trap",
+  "relevant_memory_ids": [
+   "cl_04_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_04_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_05_q_single",
+  "relevant_memory_ids": [
+   "cl_05_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_05_hub는 색인 문서로 답이 없고 cl_05_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_05_q_multi",
+  "relevant_memory_ids": [
+   "cl_05_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_05_hop_obs에서 시작해 관계(cl_05_hop_obs -> cl_05_hop_try -> cl_05_hop_ans)를 따라 도달한 cl_05_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_05_q_trap",
+  "relevant_memory_ids": [
+   "cl_05_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_05_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_06_q_single",
+  "relevant_memory_ids": [
+   "cl_06_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_06_hub는 색인 문서로 답이 없고 cl_06_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_06_q_multi",
+  "relevant_memory_ids": [
+   "cl_06_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_06_hop_obs에서 시작해 관계(cl_06_hop_obs -> cl_06_hop_try -> cl_06_hop_ans)를 따라 도달한 cl_06_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_06_q_trap",
+  "relevant_memory_ids": [
+   "cl_06_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_06_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_07_q_single",
+  "relevant_memory_ids": [
+   "cl_07_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_07_hub는 색인 문서로 답이 없고 cl_07_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_07_q_multi",
+  "relevant_memory_ids": [
+   "cl_07_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_07_hop_obs에서 시작해 관계(cl_07_hop_obs -> cl_07_hop_try -> cl_07_hop_ans)를 따라 도달한 cl_07_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_07_q_trap",
+  "relevant_memory_ids": [
+   "cl_07_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_07_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_08_q_single",
+  "relevant_memory_ids": [
+   "cl_08_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_08_hub는 색인 문서로 답이 없고 cl_08_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_08_q_multi",
+  "relevant_memory_ids": [
+   "cl_08_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_08_hop_obs에서 시작해 관계(cl_08_hop_obs -> cl_08_hop_try -> cl_08_hop_ans)를 따라 도달한 cl_08_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_08_q_trap",
+  "relevant_memory_ids": [
+   "cl_08_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_08_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_09_q_single",
+  "relevant_memory_ids": [
+   "cl_09_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_09_hub는 색인 문서로 답이 없고 cl_09_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_09_q_multi",
+  "relevant_memory_ids": [
+   "cl_09_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_09_hop_obs에서 시작해 관계(cl_09_hop_obs -> cl_09_hop_try -> cl_09_hop_ans)를 따라 도달한 cl_09_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_09_q_trap",
+  "relevant_memory_ids": [
+   "cl_09_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_09_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_10_q_single",
+  "relevant_memory_ids": [
+   "cl_10_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_10_hub는 색인 문서로 답이 없고 cl_10_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_10_q_multi",
+  "relevant_memory_ids": [
+   "cl_10_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_10_hop_obs에서 시작해 관계(cl_10_hop_obs -> cl_10_hop_try -> cl_10_hop_ans)를 따라 도달한 cl_10_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_10_q_trap",
+  "relevant_memory_ids": [
+   "cl_10_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_10_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_11_q_single",
+  "relevant_memory_ids": [
+   "cl_11_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_11_hub는 색인 문서로 답이 없고 cl_11_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_11_q_multi",
+  "relevant_memory_ids": [
+   "cl_11_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_11_hop_obs에서 시작해 관계(cl_11_hop_obs -> cl_11_hop_try -> cl_11_hop_ans)를 따라 도달한 cl_11_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_11_q_trap",
+  "relevant_memory_ids": [
+   "cl_11_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_11_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_12_q_single",
+  "relevant_memory_ids": [
+   "cl_12_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_12_hub는 색인 문서로 답이 없고 cl_12_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_12_q_multi",
+  "relevant_memory_ids": [
+   "cl_12_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_12_hop_obs에서 시작해 관계(cl_12_hop_obs -> cl_12_hop_try -> cl_12_hop_ans)를 따라 도달한 cl_12_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_12_q_trap",
+  "relevant_memory_ids": [
+   "cl_12_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_12_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_13_q_single",
+  "relevant_memory_ids": [
+   "cl_13_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_13_hub는 색인 문서로 답이 없고 cl_13_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_13_q_multi",
+  "relevant_memory_ids": [
+   "cl_13_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_13_hop_obs에서 시작해 관계(cl_13_hop_obs -> cl_13_hop_try -> cl_13_hop_ans)를 따라 도달한 cl_13_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_13_q_trap",
+  "relevant_memory_ids": [
+   "cl_13_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_13_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_14_q_single",
+  "relevant_memory_ids": [
+   "cl_14_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_14_hub는 색인 문서로 답이 없고 cl_14_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_14_q_multi",
+  "relevant_memory_ids": [
+   "cl_14_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_14_hop_obs에서 시작해 관계(cl_14_hop_obs -> cl_14_hop_try -> cl_14_hop_ans)를 따라 도달한 cl_14_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_14_q_trap",
+  "relevant_memory_ids": [
+   "cl_14_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_14_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_15_q_single",
+  "relevant_memory_ids": [
+   "cl_15_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_15_hub는 색인 문서로 답이 없고 cl_15_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_15_q_multi",
+  "relevant_memory_ids": [
+   "cl_15_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_15_hop_obs에서 시작해 관계(cl_15_hop_obs -> cl_15_hop_try -> cl_15_hop_ans)를 따라 도달한 cl_15_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_15_q_trap",
+  "relevant_memory_ids": [
+   "cl_15_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_15_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_16_q_single",
+  "relevant_memory_ids": [
+   "cl_16_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_16_hub는 색인 문서로 답이 없고 cl_16_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_16_q_multi",
+  "relevant_memory_ids": [
+   "cl_16_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_16_hop_obs에서 시작해 관계(cl_16_hop_obs -> cl_16_hop_try -> cl_16_hop_ans)를 따라 도달한 cl_16_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_16_q_trap",
+  "relevant_memory_ids": [
+   "cl_16_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_16_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_17_q_single",
+  "relevant_memory_ids": [
+   "cl_17_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_17_hub는 색인 문서로 답이 없고 cl_17_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_17_q_multi",
+  "relevant_memory_ids": [
+   "cl_17_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_17_hop_obs에서 시작해 관계(cl_17_hop_obs -> cl_17_hop_try -> cl_17_hop_ans)를 따라 도달한 cl_17_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_17_q_trap",
+  "relevant_memory_ids": [
+   "cl_17_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_17_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_18_q_single",
+  "relevant_memory_ids": [
+   "cl_18_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_18_hub는 색인 문서로 답이 없고 cl_18_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_18_q_multi",
+  "relevant_memory_ids": [
+   "cl_18_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_18_hop_obs에서 시작해 관계(cl_18_hop_obs -> cl_18_hop_try -> cl_18_hop_ans)를 따라 도달한 cl_18_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_18_q_trap",
+  "relevant_memory_ids": [
+   "cl_18_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_18_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_19_q_single",
+  "relevant_memory_ids": [
+   "cl_19_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_19_hub는 색인 문서로 답이 없고 cl_19_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_19_q_multi",
+  "relevant_memory_ids": [
+   "cl_19_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_19_hop_obs에서 시작해 관계(cl_19_hop_obs -> cl_19_hop_try -> cl_19_hop_ans)를 따라 도달한 cl_19_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_19_q_trap",
+  "relevant_memory_ids": [
+   "cl_19_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_19_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_20_q_single",
+  "relevant_memory_ids": [
+   "cl_20_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_20_hub는 색인 문서로 답이 없고 cl_20_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_20_q_multi",
+  "relevant_memory_ids": [
+   "cl_20_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_20_hop_obs에서 시작해 관계(cl_20_hop_obs -> cl_20_hop_try -> cl_20_hop_ans)를 따라 도달한 cl_20_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_20_q_trap",
+  "relevant_memory_ids": [
+   "cl_20_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_20_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_21_q_single",
+  "relevant_memory_ids": [
+   "cl_21_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_21_hub는 색인 문서로 답이 없고 cl_21_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_21_q_multi",
+  "relevant_memory_ids": [
+   "cl_21_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_21_hop_obs에서 시작해 관계(cl_21_hop_obs -> cl_21_hop_try -> cl_21_hop_ans)를 따라 도달한 cl_21_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_21_q_trap",
+  "relevant_memory_ids": [
+   "cl_21_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_21_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_22_q_single",
+  "relevant_memory_ids": [
+   "cl_22_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_22_hub는 색인 문서로 답이 없고 cl_22_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_22_q_multi",
+  "relevant_memory_ids": [
+   "cl_22_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_22_hop_obs에서 시작해 관계(cl_22_hop_obs -> cl_22_hop_try -> cl_22_hop_ans)를 따라 도달한 cl_22_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_22_q_trap",
+  "relevant_memory_ids": [
+   "cl_22_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_22_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_23_q_single",
+  "relevant_memory_ids": [
+   "cl_23_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_23_hub는 색인 문서로 답이 없고 cl_23_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_23_q_multi",
+  "relevant_memory_ids": [
+   "cl_23_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_23_hop_obs에서 시작해 관계(cl_23_hop_obs -> cl_23_hop_try -> cl_23_hop_ans)를 따라 도달한 cl_23_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_23_q_trap",
+  "relevant_memory_ids": [
+   "cl_23_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_23_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_24_q_single",
+  "relevant_memory_ids": [
+   "cl_24_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_24_hub는 색인 문서로 답이 없고 cl_24_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_24_q_multi",
+  "relevant_memory_ids": [
+   "cl_24_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_24_hop_obs에서 시작해 관계(cl_24_hop_obs -> cl_24_hop_try -> cl_24_hop_ans)를 따라 도달한 cl_24_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_24_q_trap",
+  "relevant_memory_ids": [
+   "cl_24_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_24_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_25_q_single",
+  "relevant_memory_ids": [
+   "cl_25_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_direct 본문에서 금요일 정기 휴무가 오후 2시부터임을 직접 명시한다. cl_25_hub는 색인 문서로 답이 없고 cl_25_trap_wrong는 폐기 예정 옛 초안이라 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_25_q_multi",
+  "relevant_memory_ids": [
+   "cl_25_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "질의의 구역 안내판 글자 깨짐 민원은 cl_25_hop_obs에서 시작해 관계(cl_25_hop_obs -> cl_25_hop_try -> cl_25_hop_ans)를 따라 도달한 cl_25_hop_ans에서 최종 규격(내구 UV 잉크 전면 재도색 및 주 1회 점검)이 확정된다.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ },
+ {
+  "query_id": "cl_25_q_trap",
+  "relevant_memory_ids": [
+   "cl_25_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_iso_ok 본문에서 겨울철 난방 가동 시작일이 11월 15일임을 직접 명시한다. 허브(cl_25_hub)와 휴무 관련 기억은 무관하므로 제외.",
+  "reviewer_id": "머슴4",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:06:47Z",
+  "data_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+ }
+]

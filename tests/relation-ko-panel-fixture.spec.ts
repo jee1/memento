@@ -85,6 +85,39 @@ describe('relation-ko-panel-v1 fixture (#1555 stage 1)', () => {
     expect(protocol).toContain(splitSha);
   });
 
+  it('pins agent_panel gold: corpus membership and no forbidden overlap (#1555 stage 2)', () => {
+    const corpusIds = new Set(
+      readFileSync(join(dir, 'corpus.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => (JSON.parse(line) as CorpusRow).benchmark_id),
+    );
+    const key = JSON.parse(readFileSync(join(dir, 'generator-key.json'), 'utf8')) as {
+      queries: { query_id: string; forbidden_memory_ids: string[] }[];
+    };
+    const forbiddenByQuery = new Map(key.queries.map(q => [q.query_id, new Set(q.forbidden_memory_ids)]));
+    const ground = JSON.parse(readFileSync(join(dir, 'ground-truth.json'), 'utf8')) as {
+      label_source: string;
+      items: { queryId: string; relevantIds: string[] }[];
+    };
+    expect(ground.label_source).toBe('agent_panel');
+    expect(ground.items).toHaveLength(75);
+    for (const row of ground.items) {
+      const forbidden = forbiddenByQuery.get(row.queryId) ?? new Set<string>();
+      for (const id of row.relevantIds) {
+        expect(corpusIds.has(id), `missing corpus id ${id} for ${row.queryId}`).toBe(true);
+        expect(forbidden.has(id), `forbidden id ${id} in gold for ${row.queryId}`).toBe(false);
+      }
+    }
+    const panel = JSON.parse(readFileSync(join(dir, 'panel-result.json'), 'utf8')) as {
+      summary: { agent_panel_gold_queries: number; matches_generator_key: boolean };
+      ground_truth_sha256: string;
+    };
+    expect(panel.summary.agent_panel_gold_queries).toBe(75);
+    expect(panel.summary.matches_generator_key).toBe(true);
+    expect(sha256(readFileSync(join(dir, 'ground-truth.json')))).toBe(panel.ground_truth_sha256);
+  });
+
   it('includes scope traps without marking deleted/superseded as default answers', () => {
     const corpus = readFileSync(join(dir, 'corpus.jsonl'), 'utf8')
       .trim()
