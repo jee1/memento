@@ -18,6 +18,7 @@ import {
 } from '../handlers/batch-scheduler-sleep-telemetry-handlers.js';
 import { runAnchorAutoRefresh } from '../handlers/batch-scheduler-anchor-handlers.js';
 import { runEmbeddingReconciliation } from '../handlers/batch-scheduler-embedding-handlers.js';
+import { runSupersedeCandidateScan } from '../handlers/batch-scheduler-supersede-handlers.js';
 import {
   buildBatchSchedulerRunContext,
   type BatchSchedulerContextSource
@@ -41,6 +42,7 @@ export const REGISTERED_MANUAL_BATCH_JOB_TYPES = [
   'job_run_cleanup_batch',
   'anchor_auto_refresh',
   'embedding_reconciliation',
+  'supersede_candidate_scan',
 ] as const;
 
 export type ManualBatchSchedulerJobType = (typeof REGISTERED_MANUAL_BATCH_JOB_TYPES)[number];
@@ -66,7 +68,8 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
     runForgettingEventCleanupBatch: () => runForgettingEventCleanupBatch(ctx()),
     runJobRunCleanupBatch: () => runJobRunCleanupBatch(ctx()),
     runAnchorAutoRefresh: () => runAnchorAutoRefresh(ctx()),
-    runEmbeddingReconciliation: () => runEmbeddingReconciliation(ctx())
+    runEmbeddingReconciliation: () => runEmbeddingReconciliation(ctx()),
+    runSupersedeCandidateScan: () => runSupersedeCandidateScan(ctx())
   };
 }
 
@@ -106,6 +109,8 @@ function dispatchManualJob(
       return runners.runAnchorAutoRefresh();
     case 'embedding_reconciliation':
       return runners.runEmbeddingReconciliation();
+    case 'supersede_candidate_scan':
+      return runners.runSupersedeCandidateScan();
     default:
       throw new Error(`Unknown job type: ${jobType satisfies never}`);
   }

@@ -71,6 +71,15 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
       n => n >= 60_000,
       '최솟값 60000'
     ),
+    supersedeCandidateScanEnabled: resolveBoolean('SUPERSEDE_CANDIDATE_SCAN_ENABLED', {
+      defaultValue: false
+    }),
+    supersedeCandidateScanInterval: resolveValidatedNumber(
+      'SUPERSEDE_CANDIDATE_SCAN_INTERVAL_MS',
+      DAY_MS,
+      n => n >= 60_000,
+      '최솟값 60000'
+    ),
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,

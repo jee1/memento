@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchRecurringScheduleContext } from '../batch-scheduler/batch-recurring-schedules.js';
-import { scheduleCleanupJob, scheduleEmbeddingReconciliation, scheduleSleepConsolidation } from '../batch-scheduler/batch-recurring-schedules.js';
+import {
+  registerAllRecurringJobs,
+  scheduleCleanupJob,
+  scheduleEmbeddingReconciliation,
+  scheduleSleepConsolidation,
+} from '../batch-scheduler/batch-recurring-schedules.js';
 
 function createFakeContext(
   overrides: Partial<BatchRecurringScheduleContext> = {}
@@ -26,6 +31,8 @@ function createFakeContext(
     anchorAutoRefreshInterval: 21_600_000,
     anchorAutoRefreshEnabled: true,
     embeddingReconciliationInterval: 86_400_000,
+    supersedeCandidateScanInterval: 86_400_000,
+    supersedeCandidateScanEnabled: false,
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,
@@ -67,6 +74,7 @@ function createFakeContext(
     runJobRunCleanupBatch: vi.fn(),
     runAnchorAutoRefresh: vi.fn(),
     runEmbeddingReconciliation: vi.fn(),
+    runSupersedeCandidateScan: vi.fn(),
     ...overrides,
   };
 
@@ -126,5 +134,27 @@ describe('batch-recurring-schedules wrappers (#1264)', () => {
 
     await expect(scheduledJob()).resolves.toEqual(batchResult);
     expect(runSleepConsolidationBatch).toHaveBeenCalledOnce();
+  });
+
+  it('supersede 후보 scan 은 flag 가 꺼져 있으면 예약하지 않고 켜면 설정 주기로 예약한다 (#1548)', async () => {
+    const scheduleJob = vi.fn();
+    const runSupersedeCandidateScan = vi.fn().mockResolvedValue({ success: true });
+    const { ctx } = createFakeContext({ scheduleJob, runSupersedeCandidateScan });
+
+    registerAllRecurringJobs(ctx);
+    expect(scheduleJob.mock.calls.map(call => call[0])).not.toContain('supersede_candidate_scan');
+
+    scheduleJob.mockClear();
+    registerAllRecurringJobs({ ...ctx, config: { ...ctx.config, supersedeCandidateScanEnabled: true } });
+    expect(scheduleJob).toHaveBeenCalledWith(
+      'supersede_candidate_scan',
+      ctx.config.supersedeCandidateScanInterval,
+      expect.any(Function),
+      8
+    );
+
+    const job = scheduleJob.mock.calls.find(call => call[0] === 'supersede_candidate_scan')?.[2] as () => Promise<unknown>;
+    await job();
+    expect(runSupersedeCandidateScan).toHaveBeenCalledOnce();
   });
 });

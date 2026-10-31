@@ -4,6 +4,7 @@ import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-co
 import {
   scheduleAnchorAutoRefresh,
   scheduleEmbeddingReconciliation,
+  scheduleSupersedeCandidateScan,
   scheduleCleanupJob,
   scheduleForgettingEventCleanup,
   scheduleHealthcheckJob,
@@ -91,7 +92,8 @@ function buildRestartHandlers(): Record<string, RestartHandler> {
     forgetting_event_cleanup_batch: scheduleForgettingEventCleanup,
     job_run_cleanup_batch: scheduleJobRunCleanup,
     anchor_auto_refresh: scheduleAnchorAutoRefresh,
-    embedding_reconciliation: scheduleEmbeddingReconciliation
+    embedding_reconciliation: scheduleEmbeddingReconciliation,
+    supersede_candidate_scan: scheduleSupersedeCandidateScan
   };
 }
 
@@ -115,6 +117,10 @@ function canRestartJob(
   }
   if (jobName === 'anchor_auto_refresh' && (!state.config.anchorAutoRefreshEnabled || !ctx.hasAnchorManager)) {
     log('restartJob(anchor_auto_refresh): disabled or AnchorManager not available', { level: 'warn' });
+    return false;
+  }
+  if (jobName === 'supersede_candidate_scan' && !state.config.supersedeCandidateScanEnabled) {
+    log('restartJob(supersede_candidate_scan): disabled (SUPERSEDE_CANDIDATE_SCAN_ENABLED=false)', { level: 'warn' });
     return false;
   }
   if (jobName === 'sleep_consolidation_batch' && !ctx.hasSleepConsolidation) {

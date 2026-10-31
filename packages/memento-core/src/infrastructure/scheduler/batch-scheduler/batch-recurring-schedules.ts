@@ -26,6 +26,7 @@ export interface BatchRecurringScheduleContext {
   runJobRunCleanupBatch: () => Promise<BatchJobResult>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
   runEmbeddingReconciliation: () => Promise<BatchJobResult>;
+  runSupersedeCandidateScan: () => Promise<BatchJobResult>;
 }
 
 export function scheduleCleanupJob(ctx: BatchRecurringScheduleContext): void {
@@ -192,12 +193,26 @@ export function scheduleEmbeddingReconciliation(ctx: BatchRecurringScheduleConte
   );
 }
 
+export function scheduleSupersedeCandidateScan(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'supersede_candidate_scan',
+    ctx.config.supersedeCandidateScanInterval,
+    () => ctx.runSupersedeCandidateScan(),
+    8
+  );
+}
+
 export function registerAllRecurringJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleCoreMaintenanceJobs(ctx);
   scheduleConsolidationRelationAndLogJobs(ctx);
   scheduleAugmentationAndTelemetryJobs(ctx);
   scheduleMetaMemoryAndReviewJobs(ctx);
   scheduleEmbeddingReconciliation(ctx);
+  if (ctx.config.supersedeCandidateScanEnabled) {
+    scheduleSupersedeCandidateScan(ctx);
+  } else {
+    ctx.log('supersede_candidate_scan schedule disabled (SUPERSEDE_CANDIDATE_SCAN_ENABLED=false)', { level: 'info' });
+  }
   if (ctx.config.anchorAutoRefreshEnabled && ctx.hasAnchorManager) {
     scheduleAnchorAutoRefresh(ctx);
   } else {
