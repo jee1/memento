@@ -50,6 +50,10 @@ _Avoid_: cleanup, audit
 같은 owner, project, privacy scope, type, 임베딩 모델 안에서 새 기억이 옛 기억을 대체하는지 LLM 이 분류해 `memory_supersede_candidate`에 남긴 판정 기록. 상태는 `confirmed`(확정 대체), `pending`(확인 대기), `compatible`(양립)이며 사람이 검토할 업무 상태일 뿐 안전 보장이 아니다. 판정이 나와도 기억은 비활성화하거나 바꾸지 않는다.
 _Avoid_: retirement, auto-supersede
 
+**Supersede pointer**:
+사람이 승인한 대체 후보 하나를 적용한 `memory_item.superseded_by` 값. 같은 owner, project, privacy scope, type 안의 원자적 직접 교체만 뜻한다. 가리키는 기억이 살아 있을 때만 옛 기억이 대체된 상태이고, 그 기억이 지워지면 옛 기억은 다시 현재가 된다. `memory_relation` 의 `supersedes` 관계와 별개이며 관계 편집은 이 상태를 바꾸지 않는다. 적용과 복원은 `memory_supersede_event` 에 남는다.
+_Avoid_: validity model, version chain
+
 ## 검색
 
 **Hybrid search**:

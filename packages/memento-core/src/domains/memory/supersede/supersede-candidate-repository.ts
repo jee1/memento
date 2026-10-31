@@ -21,7 +21,31 @@ export interface SupersedeCandidateInsert {
   llmLogicalRequestId: string | null;
 }
 
-/** memory_supersede_candidate 만 다룬다. memory_item 질의는 memory-item-repository 에 둔다. */
+export interface SupersedeCandidateRow {
+  id: string;
+  oldMemoryId: string;
+  newMemoryId: string;
+  ownerId: string | null;
+  projectId: string | null;
+  privacyScope: string;
+  memoryType: string;
+  verdict: SupersedeVerdict;
+  oldContentSha256: string;
+  newContentSha256: string;
+}
+
+export interface SupersedeEventInsert {
+  action: 'applied' | 'restored';
+  oldMemoryId: string;
+  newMemoryId: string;
+  candidateId: string | null;
+  actor: string;
+  reason: string | null;
+  oldContentSha256: string;
+  newContentSha256: string | null;
+}
+
+/** memory_supersede_candidate 와 memory_supersede_event 만 다룬다. memory_item 질의는 memory-item-repository 에 둔다. */
 export class SupersedeCandidateRepository {
   constructor(private readonly db: Database.Database) {}
 
@@ -48,5 +72,32 @@ export class SupersedeCandidateRepository {
         )`,
       )
       .run({ ...candidate, id: randomUUID(), createdAt: new Date().toISOString() });
+  }
+
+  findCandidateById(id: string): SupersedeCandidateRow | undefined {
+    return this.db
+      .prepare(
+        `SELECT id, old_memory_id AS oldMemoryId, new_memory_id AS newMemoryId, owner_id AS ownerId,
+                project_id AS projectId, privacy_scope AS privacyScope, memory_type AS memoryType, verdict,
+                old_content_sha256 AS oldContentSha256, new_content_sha256 AS newContentSha256
+         FROM memory_supersede_candidate WHERE id = ?`,
+      )
+      .get(id) as SupersedeCandidateRow | undefined;
+  }
+
+  insertEvent(event: SupersedeEventInsert): string {
+    const id = randomUUID();
+    this.db
+      .prepare(
+        `INSERT INTO memory_supersede_event (
+          id, action, old_memory_id, new_memory_id, candidate_id, actor, reason,
+          old_content_sha256, new_content_sha256, created_at
+        ) VALUES (
+          @id, @action, @oldMemoryId, @newMemoryId, @candidateId, @actor, @reason,
+          @oldContentSha256, @newContentSha256, @createdAt
+        )`,
+      )
+      .run({ ...event, id, createdAt: new Date().toISOString() });
+    return id;
   }
 }

@@ -48,7 +48,9 @@ CREATE TABLE IF NOT EXISTS memory_item (
   -- Project-scoped memory (Issue #81, migration 032)
   project_id TEXT,
   -- Episodic work record JSON (Issue #1446, migration 057). Search text stays in content.
-  work_record TEXT
+  work_record TEXT,
+  -- Approved same-scope direct replacement (Issue #1551, migration 060). No FK: a deleted target revives this row.
+  superseded_by TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
   ON memory_item(is_deleted)
@@ -864,6 +866,22 @@ CREATE INDEX IF NOT EXISTS idx_memory_supersede_candidate_old
   ON memory_supersede_candidate(old_memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_supersede_candidate_new
   ON memory_supersede_candidate(new_memory_id);
+
+-- Supersede audit events (migration 060, Issue #1551): 기억이 지워져도 남도록 FK 를 걸지 않는다
+CREATE TABLE IF NOT EXISTS memory_supersede_event (
+  id                 TEXT PRIMARY KEY,
+  action             TEXT NOT NULL CHECK (action IN ('applied', 'restored')),
+  old_memory_id      TEXT NOT NULL,
+  new_memory_id      TEXT NOT NULL,
+  candidate_id       TEXT,
+  actor              TEXT NOT NULL,
+  reason             TEXT,
+  old_content_sha256 TEXT NOT NULL,
+  new_content_sha256 TEXT,
+  created_at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_memory_supersede_event_old
+  ON memory_supersede_event(old_memory_id);
 
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)

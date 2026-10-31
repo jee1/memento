@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 
 import {
   applyMemoryEmbeddingContentHash,
+  applySupersedePointerDdl,
   applyWorkRecordColumn,
 } from '../../infrastructure/database/sqlite/migration/idempotent-ddl.js';
 import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../../shared/utils/fts5-migration-status.js';
@@ -80,6 +81,7 @@ export async function initializeLegacyFullSchemaBootstrap(db: Database.Database)
       runQuery(db, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
     }
     applyWorkRecordColumn(db);
+    applySupersedePointerDdl(db);
 
     runQuery(
       db,

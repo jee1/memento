@@ -21,6 +21,7 @@
 - 수면 통합 비교: `consolidation-replay-v1` 30시퀀스의 사전등록·agent_panel 교집합 계약 58건/보류 32건을 동결합니다. complete test 10/25로 채택 판정은 inconclusive이며 A/B/D는 미실행입니다 (#1553).
 - 대체 후보 판정: `SUPERSEDE_CANDIDATE_SCAN_ENABLED=true`(기본 꺼짐)일 때 `supersede_candidate_scan` 배치가 같은 범위의 옛/새 기억 쌍을 확정/확인 대기/양립으로 분류해 `memory_supersede_candidate`(migration 059)에만 기록합니다. 기억은 바꾸지 않으며 입력 해시·출처·모델·프롬프트 버전을 남기고 429 를 받으면 그 run 을 멈춥니다. 평가 runner(`scripts/evaluate-supersede-candidates.ts`)는 있으나 실측은 미실행입니다 (#1548).
 - Reflexion: 기본 off인 `REFLEXION_OBSERVATION_ONLY`를 켜면 실패 관찰·미검증 후보를 고정 episodic으로 분리하고 기존 절차 갱신·자동 채택을 막습니다. 기존 회고는 그대로 조회합니다 (#1547).
+- 직접 대체 승인과 복원: `SUPERSEDE_APPLY_ENABLED=true`(기본 꺼짐)일 때 `POST /admin/memory/supersede-candidates/:id/apply` 가 확정 또는 확인 대기 후보 하나를 `memory_item.superseded_by`(migration 060) 포인터로 적용하고 `POST /admin/memory/items/:memory_id/supersede/restore` 가 되돌립니다. 포인터 변경과 `memory_supersede_event` 감사 사건(actor 는 대시보드 세션)은 한 트랜잭션이며 CAS 로 경쟁 승인, 순환, 판정 뒤 본문 변경, 범위 불일치를 거절합니다. target 이 지워지면 옛 기억은 쓰기 없이 다시 현재가 되고, 남은 포인터는 restore 로 정리해야 새 승인을 겁니다(`dangling_pointer`). 검색 레인은 아직 포인터를 읽지 않으므로 #1552 전에는 켜지 않습니다. Admin `:memory_id` 경로 파라미터는 접두 없는 UUID 기억도 받습니다 (#1551).
 
 ### Fixed
 

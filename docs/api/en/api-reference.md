@@ -646,7 +646,7 @@ When the review queue list omits body text, fetch one `memory_item` row by `memo
 GET /admin/memory/items/:memory_id
 ```
 
-- `:memory_id` must be URL-encoded and match **`mem_` + letters, digits, or `_`**. Anything else returns **400**.
+- `:memory_id` must be URL-encoded and match **`mem_` + letters, digits, or `_`**, or a **bare UUID** (memories created by agent session summary and promotion). Anything else returns **400**.
 - Soft-deleted memories (`is_deleted = 1`) return **404**.
 
 **Response (200)**
@@ -766,6 +766,35 @@ The request body must contain **exactly one** selector:
 - `updated`: rows actually changed by the transaction
 - `400`: missing, mixed, or invalid selector
 - `500`: database unavailable or update failure
+
+##### Approve or restore a supersede candidate (#1551)
+
+Active only when `SUPERSEDE_APPLY_ENABLED=true`. It is off by default; while off, both endpoints return `403` (`code: SUPERSEDE_APPLY_DISABLED`) and write nothing. Search lanes do not read the pointer yet, so keep it off until #1552.
+
+```http
+POST /admin/memory/supersede-candidates/:id/apply
+Content-Type: application/json
+
+{ "reason": "verified" }
+```
+
+Applies one `confirmed` or `pending` row of `memory_supersede_candidate` as the `memory_item.superseded_by` pointer and records an `applied` event in `memory_supersede_event`, in one transaction. The event `actor` comes from the authenticated dashboard session (`session:<16 hex>` hash of its id), not from the request body. Success returns `{ "ok": true, "outcome": { "kind": "applied", "eventId": "..." } }`; approving the same candidate again returns `kind: "already_applied"`.
+
+```http
+POST /admin/memory/items/:memory_id/supersede/restore
+Content-Type: application/json
+
+{ "expected_new_memory_id": "mem_...", "reason": "wrong approval" }
+```
+
+Clears the pointer only when it still equals `expected_new_memory_id` and records a `restored` event. Use it to clear a pointer whose target was deleted.
+
+- `400`: invalid candidate or memory id, non-string `reason`
+- `401`: no dashboard session (`SESSION_REQUIRED`)
+- `404`: `candidate_not_found`, `memory_not_found`
+- `409`: `already_superseded` (another approval set the pointer first), `dangling_pointer` (the pointer target was deleted; restore it first), `cycle`, `input_changed` (content changed after judgment), `scope_mismatch`, `memory_deleted`, `verdict_not_applicable` (`compatible`), `pointer_changed`, `not_superseded`
+
+An old memory counts as superseded only while the memory its pointer names is alive. Deleting that memory makes the old one current again without a write. Editing `memory_relation` or `memory_link` never changes this state.
 
 ##### Batch: select and upsert queue
 

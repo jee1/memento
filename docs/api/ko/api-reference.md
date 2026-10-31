@@ -761,7 +761,7 @@ GET /admin/memory/review-candidates/stream
 GET /admin/memory/items/:memory_id
 ```
 
-- `:memory_id`는 URL 인코딩된 문자열이며, **`mem_` + 영문·숫자·밑줄(`_`)** 패턴만 허용합니다. 그 외 형식은 `400`입니다.
+- `:memory_id`는 URL 인코딩된 문자열이며, **`mem_` + 영문, 숫자, 밑줄(`_`)** 또는 **접두 없는 UUID**(에이전트 세션 요약과 승격이 만든 기억)만 허용합니다. 그 외 형식은 `400`입니다.
 - 소프트 삭제(`is_deleted = 1`)된 기억은 `404`입니다.
 
 **응답 (200)**
@@ -881,6 +881,35 @@ Content-Type: application/json
 - `updated`: 트랜잭션에서 실제 상태가 변경된 행 수
 - `400`: selector 누락·중복 또는 값 형식 오류
 - `500`: DB 미연결 또는 상태 변경 실패
+
+##### 대체 후보 승인과 복원 (#1551)
+
+`SUPERSEDE_APPLY_ENABLED=true` 일 때만 동작합니다. 기본은 꺼짐이며 꺼져 있으면 두 endpoint 모두 `403`(`code: SUPERSEDE_APPLY_DISABLED`)을 돌려주고 아무것도 쓰지 않습니다. 검색 레인은 아직 포인터를 읽지 않으므로 #1552 전에는 켜지 않습니다.
+
+```http
+POST /admin/memory/supersede-candidates/:id/apply
+Content-Type: application/json
+
+{ "reason": "확인함" }
+```
+
+`memory_supersede_candidate` 의 `confirmed` 또는 `pending` 후보 하나를 `memory_item.superseded_by` 포인터로 적용하고 `memory_supersede_event` 에 `applied` 사건을 남깁니다. 두 쓰기는 한 트랜잭션입니다. 사건의 `actor` 는 요청 본문이 아니라 인증된 대시보드 세션 id 의 해시(`session:<16 hex>`)입니다. 성공하면 `{ "ok": true, "outcome": { "kind": "applied", "eventId": "..." } }`, 같은 후보를 다시 승인하면 `kind: "already_applied"` 입니다.
+
+```http
+POST /admin/memory/items/:memory_id/supersede/restore
+Content-Type: application/json
+
+{ "expected_new_memory_id": "mem_...", "reason": "잘못된 승인" }
+```
+
+포인터가 `expected_new_memory_id` 일 때만 지우고 `restored` 사건을 남깁니다. target 이 지워져 남은 포인터도 이 경로로 정리합니다.
+
+- `400`: 잘못된 후보 id 나 기억 id, 문자열이 아닌 `reason`
+- `401`: 대시보드 세션 없음(`SESSION_REQUIRED`)
+- `404`: `candidate_not_found`, `memory_not_found`
+- `409`: `already_superseded`(다른 승인이 먼저 포인터를 걸었다), `dangling_pointer`(포인터의 target 이 지워졌다. restore 로 먼저 정리한다), `cycle`, `input_changed`(판정 뒤 본문이 바뀌었다), `scope_mismatch`, `memory_deleted`, `verdict_not_applicable`(`compatible`), `pointer_changed`, `not_superseded`
+
+옛 기억은 포인터가 가리키는 기억이 살아 있을 때만 대체된 상태입니다. 그 기억이 지워지면 쓰기 없이 다시 현재가 됩니다. `memory_relation` 이나 `memory_link` 편집은 이 상태를 바꾸지 않습니다.
 
 ##### 배치: 후보 선정·큐 갱신
 
