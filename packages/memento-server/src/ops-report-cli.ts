@@ -1,3 +1,4 @@
+import { getRetryOptions, RetryManager } from '@memento/core';
 import {
   readServerInfo,
   resolveServerInfoConfigDir,
@@ -8,6 +9,41 @@ import {
   type OpsReportPeriod,
   type OpsReportRequest,
 } from './cli/ops-report-core.js';
+
+let opsReportRetryManager: RetryManager | undefined;
+
+function getOpsReportRetryManager(): RetryManager {
+  if (!opsReportRetryManager) {
+    const retryOptions = getRetryOptions();
+    opsReportRetryManager = new RetryManager({
+      maxAttempts: retryOptions.external_api.maxAttempts,
+      baseDelay: retryOptions.external_api.baseDelay,
+    });
+  }
+  return opsReportRetryManager;
+}
+
+function shouldRetryOpsReportFetch(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  if (message.includes('auth_failed')) return false;
+  return (
+    message.includes('fetch failed') ||
+    message.includes('econnrefused') ||
+    message.includes('enotfound') ||
+    message.includes('aborted') ||
+    message.includes('timeout') ||
+    message.includes('http 5')
+  );
+}
+
+function opsReportRetryCallOptions() {
+  const retryOptions = getRetryOptions();
+  return {
+    maxAttempts: retryOptions.external_api.maxAttempts,
+    baseDelay: retryOptions.external_api.baseDelay,
+    shouldRetry: shouldRetryOpsReportFetch,
+  };
+}
 
 const ALLOWED_PERIODS: OpsReportPeriod[] = ['24h', '7d', '30d'];
 
@@ -95,23 +131,29 @@ export async function establishAdminSessionCookie(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${endpoint}/auth/session`, {
-      method: 'POST',
-      headers: { 'X-API-Key': adminApiKey },
-      signal: controller.signal,
-    });
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(`AUTH_FAILED HTTP ${response.status}`);
-    }
-    if (response.status !== 204) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const setCookies =
-      typeof response.headers.getSetCookie === 'function'
-        ? response.headers.getSetCookie()
-        : [];
-    const raw = setCookies[0] ?? response.headers.get('set-cookie');
-    return readSessionCookieHeader(raw);
+    const retryManager = getOpsReportRetryManager();
+    return await retryManager.retry(async () => {
+      const response = await fetch(`${endpoint}/auth/session`, {
+        method: 'POST',
+        headers: { 'X-API-Key': adminApiKey },
+        signal: controller.signal,
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`AUTH_FAILED HTTP ${response.status}`);
+      }
+      if (response.status !== 204) {
+        if (response.status >= 500) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const setCookies =
+        typeof response.headers.getSetCookie === 'function'
+          ? response.headers.getSetCookie()
+          : [];
+      const raw = setCookies[0] ?? response.headers.get('set-cookie');
+      return readSessionCookieHeader(raw);
+    }, opsReportRetryCallOptions());
   } finally {
     clearTimeout(timer);
   }
@@ -128,11 +170,18 @@ export function createOpsReportRequest(
     try {
       const headers = new Headers(init?.headers);
       headers.set('Cookie', sessionCookie);
-      const response = await fetch(`${endpoint}${path}`, {
-        ...init,
-        headers,
-        signal: controller.signal,
-      });
+      const retryManager = getOpsReportRetryManager();
+      const response = await retryManager.retry(async () => {
+        const fetchResponse = await fetch(`${endpoint}${path}`, {
+          ...init,
+          headers,
+          signal: controller.signal,
+        });
+        if (fetchResponse.status >= 500) {
+          throw new Error(`HTTP ${fetchResponse.status}`);
+        }
+        return fetchResponse;
+      }, opsReportRetryCallOptions());
       const text = await response.text();
       let body: unknown = text;
       try {
