@@ -60,7 +60,7 @@ curl -i http://localhost:9001/health
 저장이 되긴 했는지부터 확인합니다. 같은 환경에서 CLI로 직접 회상해 봅니다.
 
 ```bash
-npx memento-mcp-server@latest recall --query "테스트 키워드"
+npx memento-mcp-server@latest recall --query "테스트 키워드" --type episodic
 ```
 
 서버가 살아있고 같은 `DB_PATH`를 본다면 결과가 나와야 합니다. 결과가 비어 있으면 다음 세 가지를 차례로 확인하세요.
@@ -229,7 +229,7 @@ curl -i -H "Authorization: Bearer $MEMENTO_TOKEN" \
   http://localhost:9001/api/v1/quality/snapshot
 
 # 4) CLI로 회상이 되는가 (서버가 살아있고 같은 DB를 봐야 함)
-npx memento-mcp-server@latest recall --query "ping"
+npx memento-mcp-server@latest recall --query "ping" --type episodic
 
 # 5) 포트 점유 누가 하고 있나
 lsof -i :9001 || ss -ltnp | grep 9001

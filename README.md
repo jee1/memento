@@ -56,6 +56,8 @@ npx memento-mcp-server@latest
 
 설정 파일 위치는 다음과 같습니다. Cursor는 `.cursor/mcp.json` 또는 `~/.cursor/mcp.json`입니다. Claude Desktop·Claude Code는 [INSTALL.md](INSTALL.md)와 [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md)를 참고해 주세요.
 
+MCP 없이 터미널에서만 `memento` CLI를 쓰는 에이전트는 [CLI agent skill](docs/skills/memento-cli-for-ai/SKILL.md)(작업 전/후 recall·remember 워크플로)와 [CLI for AI 가이드](docs/guides/ko/memento-cli-for-ai.md)를 함께 참고해 주세요.
+
 자주 쓴다면 `npm i -g memento-mcp-server`로 글로벌 설치하는 편이 낫습니다. 공식 MCP 레지스트리 이름은 `io.github.jee1/memento-mcp-server`입니다 (`server.json`).
 
 글로벌 설치하면 `memento` CLI 도 함께 깔립니다. `memento connect claude-code` 가 등록하는 `memento hook claude-code` 훅이 이 명령을 씁니다.

@@ -169,11 +169,11 @@ const tuned = await client.hybridSearch({
 From the CLI, use the `recall` command.
 
 ```bash
-# Basic search
-memento recall --query "React Hook" --limit 5
+# Basic search (--type required)
+memento recall --query "React Hook" --type episodic --limit 5
 
-# Filter by type and tags
-memento recall --query "TypeScript" --type "episodic,semantic" --tags "programming" --limit 10
+# Narrow by type and tags
+memento recall --query "TypeScript" --type semantic --tags "programming" --limit 10
 ```
 
 Search results include a `score` (relevance) and `recall_reason` (why the memory was returned), which helps you understand and refine retrieval behavior.
@@ -236,7 +236,7 @@ For multi-project setups, the simplest isolation strategy is a consistent projec
 
 ```bash
 memento remember "Project A architecture decision" --type episodic --tags "project-a,architecture,decision"
-memento recall --query "architecture" --tags "project-a"
+memento recall --query "architecture" --type episodic --tags "project-a"
 ```
 
 ## Memory Relationships

@@ -2,6 +2,10 @@
 
 AI 에이전트는 Memento 기억을 MCP 도구뿐 아니라 CLI 서브커맨드로도 조작합니다.
 
+## Agent Skill (Cursor·터미널 에이전트)
+
+MCP 없이 셸에서 `memento`만 쓰는 에이전트는 프로젝트 스킬 [`docs/skills/memento-cli-for-ai/SKILL.md`](../../skills/memento-cli-for-ai/SKILL.md)를 적용합니다. 작업 전 `recall`/`memory_injection`, 작업 후 `remember` 흐름과 stdout JSON 규칙이 요약돼 있습니다. Cursor에 노출하려면 [`README.md`](../../skills/memento-cli-for-ai/README.md)의 복사 절차를 따릅니다. MCP가 연결된 Cursor/Claude Code는 `plugins/memento/skills/memento-memory-loop/`를 우선합니다.
+
 ## MCP와 CLI의 역할
 
 - **MCP**: 에이전트 호스트 도구. Claude, Cursor, Codex 등 MCP 호스트가 stdio·HTTP 프로토콜로 도구를 호출해 대화 맥락을 유지합니다.
@@ -91,11 +95,13 @@ memento <명령>
 
 하이브리드 검색(FTS5 전문 검색 + 벡터 검색)으로 관련 기억을 반환합니다.
 
-```bash
-# 기본 검색
-memento recall --query "프로젝트 결정 사항" --limit 5
+`--type`은 **필수**입니다. 생략하면 서버·MCP와 동일하게 검증에 실패합니다. 값: `working`, `episodic`, `semantic`, `procedural`, `core`, `vault`.
 
-# 타입과 태그 필터링
+```bash
+# 기본 검색 (타입 필수)
+memento recall --query "프로젝트 결정 사항" --type episodic --limit 5
+
+# 타입과 태그로 좁히기
 memento recall --query "배포" --type procedural --tags docker --limit 10
 
 # 다른 프로젝트에서 패키지 임시 호출
