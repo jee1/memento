@@ -646,7 +646,7 @@ When the review queue list omits body text, fetch one `memory_item` row by `memo
 GET /admin/memory/items/:memory_id
 ```
 
-- `:memory_id` must be URL-encoded and match **`mem_` + letters, digits, or `_`**. Anything else returns **400**.
+- `:memory_id` must be URL-encoded and match **`mem_` + letters, digits, or `_`**, or a **bare UUID** (memories created by agent session summary and promotion). Anything else returns **400**.
 - Soft-deleted memories (`is_deleted = 1`) return **404**.
 
 **Response (200)**

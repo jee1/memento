@@ -116,6 +116,26 @@ describe('admin supersede approval routes (#1551)', () => {
     expect(eventActors()).toEqual([sessionActor, sessionActor]);
   });
 
+  it('restores bare UUID memories that apply accepted', async () => {
+    mementoConfig.supersedeApplyEnabled = true;
+    const [oldId, newId, uuidCandidateId] = [randomUUID(), randomUUID(), randomUUID()];
+    insertSeedMemory(db, { id: oldId, content: 'U 옛 본문', createdAt: isoDaysAgo(20) });
+    insertSeedMemory(db, { id: newId, content: 'U 새 본문', createdAt: isoDaysAgo(10) });
+    db.prepare(
+      `INSERT INTO memory_supersede_candidate (
+         id, old_memory_id, new_memory_id, owner_id, project_id, privacy_scope, memory_type, verdict,
+         rationale, evidence_quote, old_content_sha256, new_content_sha256, provider, model,
+         prompt_version, input_hash, llm_logical_request_id, created_at
+       ) VALUES (?, ?, ?, NULL, NULL, 'private', 'semantic', 'confirmed', '근거', NULL, ?, ?,
+                 'gemini', 'm', 'v', ?, NULL, '2026-11-01T00:00:00.000Z')`,
+    ).run(uuidCandidateId, oldId, newId, sha256('U 옛 본문'), sha256('U 새 본문'), uuidCandidateId);
+
+    expect((await post(`/memory/supersede-candidates/${uuidCandidateId}/apply`, {})).status).toBe(200);
+    const restored = await post(`/memory/items/${oldId}/supersede/restore`, { expected_new_memory_id: newId });
+    expect(restored.status).toBe(200);
+    expect(await restored.json()).toMatchObject({ ok: true, outcome: { kind: 'restored' } });
+  });
+
   it('refuses approval without an authenticated dashboard session', async () => {
     mementoConfig.supersedeApplyEnabled = true;
     const bare = baseUrl.replace(/\/admin$/, '/no-session');

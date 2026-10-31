@@ -761,7 +761,7 @@ GET /admin/memory/review-candidates/stream
 GET /admin/memory/items/:memory_id
 ```
 
-- `:memory_id`는 URL 인코딩된 문자열이며, **`mem_` + 영문·숫자·밑줄(`_`)** 패턴만 허용합니다. 그 외 형식은 `400`입니다.
+- `:memory_id`는 URL 인코딩된 문자열이며, **`mem_` + 영문, 숫자, 밑줄(`_`)** 또는 **접두 없는 UUID**(에이전트 세션 요약과 승격이 만든 기억)만 허용합니다. 그 외 형식은 `400`입니다.
 - 소프트 삭제(`is_deleted = 1`)된 기억은 `404`입니다.
 
 **응답 (200)**

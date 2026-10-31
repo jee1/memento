@@ -1,7 +1,11 @@
 import type Database from 'better-sqlite3';
 
-/** Admin 단건 조회용 `memory_id` 경로 파라미터 (SQL 인젝션·경로 조작 방지). */
-const MEMORY_ID_PARAM_RE = /^mem_[A-Za-z0-9_]{1,220}$/;
+/**
+ * Admin 단건 조회용 `memory_id` 경로 파라미터 (SQL 인젝션·경로 조작 방지).
+ * 에이전트 세션 요약과 승격 서비스는 접두 없는 UUID 로 기억을 만든다.
+ */
+const MEMORY_ID_PARAM_RE =
+  /^(?:mem_[A-Za-z0-9_]{1,220}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 
 export type AdminMemoryItemPreview = {
   id: string;

@@ -38,6 +38,12 @@ describe('admin-memory-item-preview-service', () => {
     expect(ok).toEqual({ memoryId: 'mem_abc_01' });
   });
 
+  it('parseAdminMemoryItemIdParam accepts bare UUID ids', () => {
+    const id = '3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b';
+    expect(parseAdminMemoryItemIdParam(id)).toEqual({ memoryId: id });
+    expect(parseAdminMemoryItemIdParam(`${id}x`)).toMatchObject({ status: 400 });
+  });
+
   it('parseAdminMemoryItemIdParam rejects invalid ids', () => {
     const bad = parseAdminMemoryItemIdParam('../etc');
     expect(bad).toMatchObject({ error: 'Invalid memory id', status: 400 });
