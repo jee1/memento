@@ -365,15 +365,15 @@ export class BatchScheduler implements IBatchScheduler {
     return this.getJobRunners().runSleepConsolidationBatch();
   }
 
-  private async runTelemetryCleanupBatch(): Promise<void> {
+  private async runTelemetryCleanupBatch(): Promise<BatchJobResult> {
     return this.getJobRunners().runTelemetryCleanupBatch();
   }
 
-  private async runForgettingEventCleanupBatch(): Promise<void> {
+  private async runForgettingEventCleanupBatch(): Promise<BatchJobResult> {
     return this.getJobRunners().runForgettingEventCleanupBatch();
   }
 
-  private async runJobRunCleanupBatch(): Promise<void> {
+  private async runJobRunCleanupBatch(): Promise<BatchJobResult> {
     return this.getJobRunners().runJobRunCleanupBatch();
   }
 

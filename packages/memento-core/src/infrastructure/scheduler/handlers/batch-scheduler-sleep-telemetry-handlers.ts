@@ -5,23 +5,34 @@ import { ForgettingEventRepository } from '../../../domains/forgetting/repositor
 import { JobRunCleanupBatchJob } from '../jobs/job-run-cleanup-batch-job.js';
 import { JobRunRepository } from '../repositories/job-run-repository.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
+import {
+  createEmptyBatchJobResult,
+  finalizeBatchJobTiming,
+} from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
-export async function runTelemetryCleanupBatch(ctx: BatchSchedulerRunContext): Promise<void> {
+function skippedBatchResult(jobType: string): BatchJobResult {
+  const result = createEmptyBatchJobResult(jobType);
+  result.success = true;
+  finalizeBatchJobTiming(result);
+  return result;
+}
+
+export async function runTelemetryCleanupBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   if (!ctx.telemetryCleanupRepository) {
-    return;
+    return skippedBatchResult('telemetry_cleanup_batch');
   }
   if (!ctx.telemetryCleanupBatchJob.current) {
     ctx.telemetryCleanupBatchJob.current = new TelemetryCleanupBatchJob({
       repository: ctx.telemetryCleanupRepository
     });
   }
-  await ctx.telemetryCleanupBatchJob.current.execute();
+  return ctx.telemetryCleanupBatchJob.current.execute();
 }
 
-export async function runForgettingEventCleanupBatch(ctx: BatchSchedulerRunContext): Promise<void> {
+export async function runForgettingEventCleanupBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   if (!ctx.db) {
-    return;
+    return skippedBatchResult('forgetting_event_cleanup_batch');
   }
   if (!ctx.forgettingEventCleanupBatchJob.current) {
     ctx.forgettingEventCleanupBatchJob.current = new ForgettingEventCleanupBatchJob({
@@ -29,12 +40,12 @@ export async function runForgettingEventCleanupBatch(ctx: BatchSchedulerRunConte
       repository: new ForgettingEventRepository(),
     });
   }
-  await ctx.forgettingEventCleanupBatchJob.current.execute();
+  return ctx.forgettingEventCleanupBatchJob.current.execute();
 }
 
-export async function runJobRunCleanupBatch(ctx: BatchSchedulerRunContext): Promise<void> {
+export async function runJobRunCleanupBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   if (!ctx.db) {
-    return;
+    return skippedBatchResult('job_run_cleanup_batch');
   }
   if (!ctx.jobRunCleanupBatchJob.current) {
     ctx.jobRunCleanupBatchJob.current = new JobRunCleanupBatchJob({
@@ -42,7 +53,7 @@ export async function runJobRunCleanupBatch(ctx: BatchSchedulerRunContext): Prom
       repository: new JobRunRepository(),
     });
   }
-  await ctx.jobRunCleanupBatchJob.current.execute();
+  return ctx.jobRunCleanupBatchJob.current.execute();
 }
 
 export async function runSleepConsolidationBatch(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {

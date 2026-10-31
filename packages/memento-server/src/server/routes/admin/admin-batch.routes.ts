@@ -11,6 +11,7 @@ import {
   flushJobRunLogBufferSafe,
   getBatchScheduler,
   isRegisteredManualBatchJobType,
+  jobRunSummaryFieldsFromBatchJobResult,
   resolveBatchSchedulerJobDescription,
   JobRunLogBuffer,
   JobRunLogRepository,
@@ -393,6 +394,8 @@ function persistManualRun(
     },
   });
 
+  const summary = jobRunSummaryFieldsFromBatchJobResult(result);
+
   const runId = appendJobRunSafe(
     db,
     {
@@ -402,9 +405,9 @@ function persistManualRun(
       ended_at: result.endTime.toISOString(),
       success: result.success,
       duration_ms: result.duration,
-      processed: result.processed,
-      error_count: result.errors.length,
-      details_json: result.details != null ? JSON.stringify(result.details) : null,
+      processed: summary.processed,
+      error_count: summary.error_count,
+      details_json: summary.details_json,
     },
     warnJobRunWrite
   );

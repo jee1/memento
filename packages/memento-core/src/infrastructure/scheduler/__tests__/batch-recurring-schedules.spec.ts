@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { BatchJobConfig, BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import type { BatchRecurringScheduleContext } from '../batch-scheduler/batch-recurring-schedules.js';
-import { scheduleCleanupJob, scheduleEmbeddingReconciliation } from '../batch-scheduler/batch-recurring-schedules.js';
+import { scheduleCleanupJob, scheduleEmbeddingReconciliation, scheduleSleepConsolidation } from '../batch-scheduler/batch-recurring-schedules.js';
 
 function createFakeContext(
   overrides: Partial<BatchRecurringScheduleContext> = {}
@@ -101,5 +101,30 @@ describe('batch-recurring-schedules wrappers (#1264)', () => {
     const job = scheduleJob.mock.calls[0]?.[2] as () => Promise<unknown>;
     await job();
     expect(runEmbeddingReconciliation).toHaveBeenCalledOnce();
+  });
+
+  it('sleep consolidation wrapper returns batch result to coordinator (#1559)', async () => {
+    const batchResult: BatchJobResult = {
+      jobType: 'sleep_consolidation_batch',
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 1,
+      success: true,
+      processed: 2,
+      errors: [],
+      warnings: [],
+      details: { clustersProcessed: 2 },
+    };
+    let scheduledJob!: () => Promise<unknown>;
+    const scheduleJob = vi.fn((_name, _interval, job) => {
+      scheduledJob = job;
+    });
+    const runSleepConsolidationBatch = vi.fn().mockResolvedValue(batchResult);
+    const { ctx } = createFakeContext({ scheduleJob, runSleepConsolidationBatch });
+
+    scheduleSleepConsolidation(ctx);
+
+    await expect(scheduledJob()).resolves.toEqual(batchResult);
+    expect(runSleepConsolidationBatch).toHaveBeenCalledOnce();
   });
 });

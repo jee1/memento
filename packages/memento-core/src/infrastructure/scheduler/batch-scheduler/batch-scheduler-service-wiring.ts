@@ -99,9 +99,9 @@ export interface BatchSchedulerRecurringCallbacks {
   runQualityMeasurementBatch: () => Promise<BatchJobResult>;
   runLogRotation: () => Promise<BatchJobResult>;
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
-  runTelemetryCleanupBatch: () => Promise<void>;
-  runForgettingEventCleanupBatch: () => Promise<void>;
-  runJobRunCleanupBatch: () => Promise<void>;
+  runTelemetryCleanupBatch: () => Promise<BatchJobResult>;
+  runForgettingEventCleanupBatch: () => Promise<BatchJobResult>;
+  runJobRunCleanupBatch: () => Promise<BatchJobResult>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
   runEmbeddingReconciliation: () => Promise<BatchJobResult>;
 }

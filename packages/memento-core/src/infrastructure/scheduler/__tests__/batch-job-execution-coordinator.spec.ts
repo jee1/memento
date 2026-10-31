@@ -355,4 +355,107 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
       db.close();
     }
   });
+
+  it('persists processed, error_count, and details_json from BatchJobResult (#1559)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry(
+        'sleep_consolidation_batch',
+        async () => ({
+          jobType: 'sleep_consolidation_batch',
+          startTime: new Date(),
+          endTime: new Date(),
+          duration: 1,
+          success: true,
+          processed: 3,
+          errors: ['deferred-one'],
+          warnings: [],
+          details: { clustersProcessed: 3 },
+        }),
+        8,
+        0
+      );
+
+      const rows = repo.list(db, { jobName: 'sleep_consolidation_batch' });
+      expect(rows[0]!.processed).toBe(3);
+      expect(rows[0]!.error_count).toBe(1);
+      expect(JSON.parse(rows[0]!.details_json!)).toEqual({ clustersProcessed: 3 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('stores throw message in details_json on schedule failure (#1559)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry(
+        'custom_failing_job',
+        async () => {
+          throw new Error('boom');
+        },
+        1,
+        999
+      );
+
+      const rows = repo.list(db, { jobName: 'custom_failing_job' });
+      expect(rows[0]!.error_count).toBe(1);
+      expect(JSON.parse(rows[0]!.details_json!)).toEqual({ error: 'boom' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('does not append job_run when job is already running (#1559)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator, jobQueue } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+      jobQueue.markRunning('cleanup');
+
+      await coordinator.executeJobWithRetry('cleanup', async () => {}, 1, 0);
+
+      expect(repo.list(db, { jobName: 'cleanup' })).toHaveLength(0);
+      jobQueue.markCompleted('cleanup');
+    } finally {
+      db.close();
+    }
+  });
+
+  it('records processed=0 for void schedule success (#1559)', async () => {
+    const db = new Database(':memory:');
+    await new JobRunMigration().up(db);
+    const repo = new JobRunRepository();
+    try {
+      const { coordinator } = createCoordinator({}, vi.fn(), {
+        getDb: () => db,
+        jobRunRepository: repo,
+      });
+
+      await coordinator.executeJobWithRetry('cleanup', async () => undefined, 1, 0);
+
+      const rows = repo.list(db, { jobName: 'cleanup' });
+      expect(rows[0]!.processed).toBe(0);
+      expect(rows[0]!.error_count).toBe(0);
+    } finally {
+      db.close();
+    }
+  });
 });
