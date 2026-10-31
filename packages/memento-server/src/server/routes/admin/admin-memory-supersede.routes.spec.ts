@@ -11,6 +11,11 @@ import {
   insertSeedMemory,
   isoDaysAgo,
 } from '@memento/core/domains/memory/supersede/__tests__/supersede-test-support.js';
+import { createSessionStore } from '../../auth/session-store.js';
+import {
+  createSessionAuthMiddleware,
+  DASHBOARD_SESSION_COOKIE_NAME,
+} from '../../middleware/session-auth.middleware.js';
 import { registerAdminMemorySupersedeRoutes } from './admin-memory-supersede.routes.js';
 
 const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
@@ -21,6 +26,7 @@ describe('admin supersede approval routes (#1551)', () => {
   let baseUrl: string;
   let candidateId: string;
   let previousFlag: boolean;
+  let sessionId: string;
 
   beforeEach(async () => {
     previousFlag = mementoConfig.supersedeApplyEnabled;
@@ -37,11 +43,14 @@ describe('admin supersede approval routes (#1551)', () => {
                  'gemini', 'm', 'v', ?, NULL, '2026-11-01T00:00:00.000Z')`,
     ).run(candidateId, sha256('A 본문'), sha256('B 본문'), candidateId);
 
+    const store = createSessionStore({ idleTtlMs: 60_000, absoluteTtlMs: 60_000 });
+    sessionId = store.create().sessionId;
     const app = express();
     app.use(express.json());
     const router = express.Router();
     registerAdminMemorySupersedeRoutes(router, db);
-    app.use('/admin', router);
+    app.use('/admin', createSessionAuthMiddleware({ store, cookieName: DASHBOARD_SESSION_COOKIE_NAME }), router);
+    app.use('/no-session', router);
     server = await new Promise<Server>((resolve) => {
       const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
     });
@@ -56,12 +65,21 @@ describe('admin supersede approval routes (#1551)', () => {
     closeSupersedeTestDb(db);
   });
 
-  const post = (path: string, body: unknown) =>
-    fetch(`${baseUrl}${path}`, {
+  const post = (path: string, body: unknown, prefix = baseUrl) =>
+    fetch(`${prefix}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Connection: 'close' },
+      headers: {
+        'Content-Type': 'application/json',
+        Connection: 'close',
+        Cookie: `${DASHBOARD_SESSION_COOKIE_NAME}=${sessionId}`,
+      },
       body: JSON.stringify(body),
     });
+
+  const eventActors = () =>
+    (db.prepare('SELECT actor FROM memory_supersede_event ORDER BY rowid').all() as Array<{ actor: string }>).map(
+      (row) => row.actor,
+    );
 
   const pointer = () =>
     (db.prepare("SELECT superseded_by FROM memory_item WHERE id = 'mem_A'").get() as { superseded_by: string | null })
@@ -70,8 +88,8 @@ describe('admin supersede approval routes (#1551)', () => {
   it('refuses both routes and writes nothing while SUPERSEDE_APPLY_ENABLED is off', async () => {
     mementoConfig.supersedeApplyEnabled = false;
 
-    const apply = await post(`/memory/supersede-candidates/${candidateId}/apply`, { actor: 'operator' });
-    const restore = await post('/memory/items/mem_A/supersede/restore', { actor: 'operator', expected_new_memory_id: 'mem_B' });
+    const apply = await post(`/memory/supersede-candidates/${candidateId}/apply`, {});
+    const restore = await post('/memory/items/mem_A/supersede/restore', { expected_new_memory_id: 'mem_B' });
 
     expect([apply.status, restore.status]).toEqual([403, 403]);
     expect(await apply.json()).toMatchObject({ code: 'SUPERSEDE_APPLY_DISABLED' });
@@ -79,31 +97,44 @@ describe('admin supersede approval routes (#1551)', () => {
     expect(db.prepare('SELECT COUNT(*) AS n FROM memory_supersede_event').get()).toEqual({ n: 0 });
   });
 
-  it('applies an approved candidate, maps a stale restore to 409 and restores explicitly', async () => {
+  it('records the dashboard session as actor and ignores a self-reported one', async () => {
     mementoConfig.supersedeApplyEnabled = true;
+    const sessionActor = `session:${sha256(sessionId).slice(0, 16)}`;
 
-    const applied = await post(`/memory/supersede-candidates/${candidateId}/apply`, { actor: 'operator', reason: '확인' });
+    const applied = await post(`/memory/supersede-candidates/${candidateId}/apply`, { actor: 'spoofed', reason: '확인' });
     expect(applied.status).toBe(200);
     expect(await applied.json()).toMatchObject({ ok: true, outcome: { kind: 'applied' } });
     expect(pointer()).toBe('mem_B');
 
-    const stale = await post('/memory/items/mem_A/supersede/restore', { actor: 'operator', expected_new_memory_id: 'mem_C' });
+    const stale = await post('/memory/items/mem_A/supersede/restore', { expected_new_memory_id: 'mem_C' });
     expect(stale.status).toBe(409);
     expect(await stale.json()).toMatchObject({ code: 'pointer_changed' });
 
-    const restored = await post('/memory/items/mem_A/supersede/restore', { actor: 'operator', expected_new_memory_id: 'mem_B' });
+    const restored = await post('/memory/items/mem_A/supersede/restore', { actor: 'spoofed', expected_new_memory_id: 'mem_B' });
     expect(restored.status).toBe(200);
     expect(pointer()).toBeNull();
+    expect(eventActors()).toEqual([sessionActor, sessionActor]);
+  });
+
+  it('refuses approval without an authenticated dashboard session', async () => {
+    mementoConfig.supersedeApplyEnabled = true;
+    const bare = baseUrl.replace(/\/admin$/, '/no-session');
+
+    const apply = await post(`/memory/supersede-candidates/${candidateId}/apply`, {}, bare);
+    expect(apply.status).toBe(401);
+    expect(await apply.json()).toMatchObject({ code: 'SESSION_REQUIRED' });
+    expect(pointer()).toBeNull();
+    expect(eventActors()).toEqual([]);
   });
 
   it('validates input before touching the database', async () => {
     mementoConfig.supersedeApplyEnabled = true;
 
-    expect((await post('/memory/supersede-candidates/not-a-uuid/apply', { actor: 'operator' })).status).toBe(400);
-    expect((await post(`/memory/supersede-candidates/${candidateId}/apply`, {})).status).toBe(400);
-    expect((await post('/memory/items/mem_A/supersede/restore', { actor: 'operator' })).status).toBe(400);
-    expect((await post('/memory/items/A/supersede/restore', { actor: 'operator', expected_new_memory_id: 'mem_B' })).status).toBe(400);
-    expect((await post(`/memory/supersede-candidates/${randomUUID()}/apply`, { actor: 'operator' })).status).toBe(404);
+    expect((await post('/memory/supersede-candidates/not-a-uuid/apply', {})).status).toBe(400);
+    expect((await post(`/memory/supersede-candidates/${candidateId}/apply`, { reason: 7 })).status).toBe(400);
+    expect((await post('/memory/items/mem_A/supersede/restore', {})).status).toBe(400);
+    expect((await post('/memory/items/A/supersede/restore', { expected_new_memory_id: 'mem_B' })).status).toBe(400);
+    expect((await post(`/memory/supersede-candidates/${randomUUID()}/apply`, {})).status).toBe(404);
     expect(pointer()).toBeNull();
   });
 });

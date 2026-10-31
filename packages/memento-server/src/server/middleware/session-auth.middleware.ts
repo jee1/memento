@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import type { SessionStore } from '../auth/session-store.js';
 
@@ -33,6 +34,17 @@ function writeUnauthorized(res: Response): void {
     message: 'Admin dashboard session is missing or expired.',
     timestamp: new Date().toISOString()
   });
+}
+
+/**
+ * 인증된 대시보드 세션의 신원. 세션 id 는 쿠키 비밀이라 rate limit 키와 감사 기록에는 해시만 남긴다.
+ */
+export function dashboardSessionIdentity(res: Response): string | null {
+  const sessionId: unknown = res.locals.dashboardSessionId;
+  if (typeof sessionId !== 'string' || !sessionId) {
+    return null;
+  }
+  return `session:${createHash('sha256').update(sessionId).digest('hex').slice(0, 16)}`;
 }
 
 export function createSessionAuthMiddleware(config: SessionAuthMiddlewareConfig) {

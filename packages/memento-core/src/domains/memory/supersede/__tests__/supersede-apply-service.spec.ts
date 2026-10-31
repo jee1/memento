@@ -229,12 +229,25 @@ describe('direct supersede apply and restore (#1551)', () => {
     const toC = candidate('A', 'C');
     db.prepare("DELETE FROM memory_item WHERE id = 'B'").run();
 
-    expect(approve(toC)).toEqual({ kind: 'rejected', reason: 'already_superseded' });
+    expect(approve(toC)).toEqual({ kind: 'rejected', reason: 'dangling_pointer' });
     expect(
       restoreSupersededMemory(db, { oldMemoryId: 'A', expectedNewMemoryId: 'B', actor: 'operator', reason: 'target removed' }),
     ).toMatchObject({ kind: 'restored' });
     expect(approve(toC)).toMatchObject({ kind: 'applied' });
     expect(pointer('A')).toBe('C');
+  });
+
+  it('a pointer to a soft-deleted target is also dangling, not a competing approval', () => {
+    memory('A', 30);
+    memory('B', 20);
+    memory('C', 10);
+    expect(approve(candidate('A', 'B'))).toMatchObject({ kind: 'applied' });
+    const toC = candidate('A', 'C');
+    db.prepare("UPDATE memory_item SET is_deleted = 1 WHERE id = 'B'").run();
+
+    expect(approve(toC)).toEqual({ kind: 'rejected', reason: 'dangling_pointer' });
+    expect(pointer('A')).toBe('B');
+    expect(events()).toHaveLength(1);
   });
 
   it('explicit restore clears the pointer with an audit event and refuses a stale target', () => {

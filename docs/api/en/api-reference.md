@@ -775,23 +775,24 @@ Active only when `SUPERSEDE_APPLY_ENABLED=true`. It is off by default; while off
 POST /admin/memory/supersede-candidates/:id/apply
 Content-Type: application/json
 
-{ "actor": "operator", "reason": "verified" }
+{ "reason": "verified" }
 ```
 
-Applies one `confirmed` or `pending` row of `memory_supersede_candidate` as the `memory_item.superseded_by` pointer and records an `applied` event in `memory_supersede_event`, in one transaction. Success returns `{ "ok": true, "outcome": { "kind": "applied", "eventId": "..." } }`; approving the same candidate again returns `kind: "already_applied"`.
+Applies one `confirmed` or `pending` row of `memory_supersede_candidate` as the `memory_item.superseded_by` pointer and records an `applied` event in `memory_supersede_event`, in one transaction. The event `actor` comes from the authenticated dashboard session (`session:<16 hex>` hash of its id), not from the request body. Success returns `{ "ok": true, "outcome": { "kind": "applied", "eventId": "..." } }`; approving the same candidate again returns `kind: "already_applied"`.
 
 ```http
 POST /admin/memory/items/:memory_id/supersede/restore
 Content-Type: application/json
 
-{ "actor": "operator", "expected_new_memory_id": "mem_...", "reason": "wrong approval" }
+{ "expected_new_memory_id": "mem_...", "reason": "wrong approval" }
 ```
 
 Clears the pointer only when it still equals `expected_new_memory_id` and records a `restored` event. Use it to clear a pointer whose target was deleted.
 
-- `400`: invalid candidate or memory id, empty `actor`
+- `400`: invalid candidate or memory id, non-string `reason`
+- `401`: no dashboard session (`SESSION_REQUIRED`)
 - `404`: `candidate_not_found`, `memory_not_found`
-- `409`: `already_superseded` (another approval set the pointer first), `cycle`, `input_changed` (content changed after judgment), `scope_mismatch`, `memory_deleted`, `verdict_not_applicable` (`compatible`), `pointer_changed`, `not_superseded`
+- `409`: `already_superseded` (another approval set the pointer first), `dangling_pointer` (the pointer target was deleted; restore it first), `cycle`, `input_changed` (content changed after judgment), `scope_mismatch`, `memory_deleted`, `verdict_not_applicable` (`compatible`), `pointer_changed`, `not_superseded`
 
 An old memory counts as superseded only while the memory its pointer names is alive. Deleting that memory makes the old one current again without a write. Editing `memory_relation` or `memory_link` never changes this state.
 

@@ -25,7 +25,8 @@ export type SupersedeApplyRejection =
   | 'scope_mismatch'
   | 'input_changed'
   | 'cycle'
-  | 'already_superseded';
+  | 'already_superseded'
+  | 'dangling_pointer';
 
 export type SupersedeApplyOutcome =
   | { kind: 'applied'; eventId: string }
@@ -91,6 +92,11 @@ function applyInTransaction(
   }
   if (closesCycle(db, old.id, next.id)) {
     return reject('cycle');
+  }
+  if (old.supersededBy !== null) {
+    const target = findSupersedeApplyMemory(db, old.supersededBy);
+    // target 이 지워져 남은 포인터다. restore 로 먼저 정리해야 새 승인을 건다.
+    return reject(!target || target.isDeleted ? 'dangling_pointer' : 'already_superseded');
   }
   if (!compareAndSetSupersededBy(db, old.id, next.id)) {
     return reject('already_superseded');
