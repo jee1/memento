@@ -72,41 +72,6 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
 
 type BatchSchedulerJobRunners = ReturnType<typeof createBatchSchedulerJobRunners>;
 
-function wrapVoidRunner(
-  jobType: ManualBatchSchedulerJobType,
-  run: () => Promise<void>
-): Promise<BatchJobResult> {
-  const startTime = new Date();
-  return run()
-    .then(() => {
-      const endTime = new Date();
-      return {
-        jobType,
-        startTime,
-        endTime,
-        duration: endTime.getTime() - startTime.getTime(),
-        success: true,
-        processed: 0,
-        errors: [] as string[],
-        warnings: [] as string[],
-      };
-    })
-    .catch((error: unknown) => {
-      const endTime = new Date();
-      const message = error instanceof Error ? error.message : String(error);
-      return {
-        jobType,
-        startTime,
-        endTime,
-        duration: endTime.getTime() - startTime.getTime(),
-        success: false,
-        processed: 0,
-        errors: [message],
-        warnings: [] as string[],
-      };
-    });
-}
-
 /**
  * Dispatch map: schedule job name → runner. Kept in sync with createBatchSchedulerJobRunners.
  */
@@ -132,11 +97,11 @@ function dispatchManualJob(
     case 'sleep_consolidation_batch':
       return runners.runSleepConsolidationBatch();
     case 'telemetry_cleanup_batch':
-      return wrapVoidRunner(jobType, () => runners.runTelemetryCleanupBatch());
+      return runners.runTelemetryCleanupBatch();
     case 'forgetting_event_cleanup_batch':
-      return wrapVoidRunner(jobType, () => runners.runForgettingEventCleanupBatch());
+      return runners.runForgettingEventCleanupBatch();
     case 'job_run_cleanup_batch':
-      return wrapVoidRunner(jobType, () => runners.runJobRunCleanupBatch());
+      return runners.runJobRunCleanupBatch();
     case 'anchor_auto_refresh':
       return runners.runAnchorAutoRefresh();
     case 'embedding_reconciliation':

@@ -6,6 +6,7 @@ import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import type { JobRunRepository } from '../repositories/job-run-repository.js';
 import { JobRunLogBuffer, flushJobRunLogBufferSafe } from '../job-run-log-buffer.js';
 import { resolveBatchJobTimeout } from './batch-job-timeout-resolver.js';
+import { jobRunSummaryFieldsFromOutcome } from './batch-job-result-job-run-summary.js';
 
 /** #1264: a job that resolves a BatchJobResult-like object with success === false failed, even without throwing. */
 function failedJobResultErrors(outcome: unknown): string[] | null {
@@ -120,6 +121,8 @@ export class BatchJobExecutionCoordinator {
     const startTime = Date.now();
     let retryCount = initialRetryCount;
     let jobOk = false;
+    let outcome: unknown;
+    let failureMessage: string | undefined;
     /** Issue #834: MVP boundary lines; flushed after job_run append. */
     const logBuffer = new JobRunLogBuffer();
     logBuffer.append({
@@ -137,7 +140,7 @@ export class BatchJobExecutionCoordinator {
 
     try {
       const jobTimeoutMs = resolveBatchJobTimeout(name, this.deps.getConfig());
-      const outcome = await this.executeWithTimeout(job, jobTimeoutMs);
+      outcome = await this.executeWithTimeout(job, jobTimeoutMs);
       this.deps.lastExecution.set(name, new Date());
       this.deps.totalExecutions.set(name, (this.deps.totalExecutions.get(name) || 0) + 1);
       const resultErrors = failedJobResultErrors(outcome);
@@ -176,10 +179,11 @@ export class BatchJobExecutionCoordinator {
       }
     } catch (error) {
       retryCount++;
+      failureMessage = error instanceof Error ? error.message : String(error);
       const totalErrorCount = this.deps.retryManager.incrementErrorCount(name);
 
       const errorInfo = {
-        error: error instanceof Error ? error.message : String(error),
+        error: failureMessage,
         stack: error instanceof Error ? error.stack : undefined,
         errorCount: totalErrorCount,
         retryCount,
@@ -261,7 +265,7 @@ export class BatchJobExecutionCoordinator {
         success: jobOk,
         durationMs
       });
-      this.appendScheduleJobRun(name, startTime, durationMs, jobOk, logBuffer);
+      this.appendScheduleJobRun(name, startTime, durationMs, jobOk, logBuffer, outcome, failureMessage);
       this.deps.jobQueue.markCompleted(name);
     }
   }
@@ -272,7 +276,9 @@ export class BatchJobExecutionCoordinator {
     startTime: number,
     durationMs: number,
     success: boolean,
-    logBuffer?: JobRunLogBuffer
+    logBuffer?: JobRunLogBuffer,
+    outcome?: unknown,
+    failureMessage?: string
   ): void {
     const db = this.deps.getDb?.();
     const repository = this.deps.jobRunRepository;
@@ -281,13 +287,17 @@ export class BatchJobExecutionCoordinator {
       return;
     }
     try {
+      const summary = jobRunSummaryFieldsFromOutcome(success, outcome, failureMessage);
       const row = repository.append(db, {
         job_name: name,
         trigger: 'schedule',
         started_at: new Date(startTime).toISOString(),
         ended_at: new Date(startTime + durationMs).toISOString(),
         success,
-        duration_ms: durationMs
+        duration_ms: durationMs,
+        processed: summary.processed,
+        error_count: summary.error_count,
+        details_json: summary.details_json,
       });
       if (logBuffer && logBuffer.size > 0) {
         flushJobRunLogBufferSafe(db, row.id, logBuffer, (message, data) => {

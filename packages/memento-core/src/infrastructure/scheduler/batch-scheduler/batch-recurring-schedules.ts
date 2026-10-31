@@ -21,9 +21,9 @@ export interface BatchRecurringScheduleContext {
   runMetaMemoryIntrospection: () => Promise<BatchJobResult>;
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
-  runTelemetryCleanupBatch: () => Promise<void>;
-  runForgettingEventCleanupBatch: () => Promise<void>;
-  runJobRunCleanupBatch: () => Promise<void>;
+  runTelemetryCleanupBatch: () => Promise<BatchJobResult>;
+  runForgettingEventCleanupBatch: () => Promise<BatchJobResult>;
+  runJobRunCleanupBatch: () => Promise<BatchJobResult>;
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
   runEmbeddingReconciliation: () => Promise<BatchJobResult>;
 }
@@ -122,12 +122,7 @@ export function scheduleMemoryReviewCandidatesInterval(ctx: BatchRecurringSchedu
   ctx.scheduleJob(
     'memory_review_candidates',
     ctx.config.memoryReviewCandidatesInterval,
-    async () => {
-      const r = await ctx.runMemoryReviewCandidatesJob();
-      if (!r.success) {
-        throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
-      }
-    },
+    () => ctx.runMemoryReviewCandidatesJob(),
     8
   );
 }
@@ -147,9 +142,7 @@ export function scheduleSleepConsolidation(ctx: BatchRecurringScheduleContext): 
   ctx.scheduleJob(
     'sleep_consolidation_batch',
     ctx.config.sleepConsolidationInterval,
-    async () => {
-      await ctx.runSleepConsolidationBatch();
-    },
+    () => ctx.runSleepConsolidationBatch(),
     8
   );
 }
@@ -158,9 +151,7 @@ export function scheduleTelemetryCleanup(ctx: BatchRecurringScheduleContext): vo
   ctx.scheduleJob(
     'telemetry_cleanup_batch',
     ctx.config.telemetryCleanupInterval,
-    async () => {
-      await ctx.runTelemetryCleanupBatch();
-    },
+    () => ctx.runTelemetryCleanupBatch(),
     9
   );
 }
@@ -169,9 +160,7 @@ export function scheduleForgettingEventCleanup(ctx: BatchRecurringScheduleContex
   ctx.scheduleJob(
     'forgetting_event_cleanup_batch',
     ctx.config.forgettingEventCleanupInterval,
-    async () => {
-      await ctx.runForgettingEventCleanupBatch();
-    },
+    () => ctx.runForgettingEventCleanupBatch(),
     9
   );
 }
@@ -180,9 +169,7 @@ export function scheduleJobRunCleanup(ctx: BatchRecurringScheduleContext): void 
   ctx.scheduleJob(
     'job_run_cleanup_batch',
     ctx.config.jobRunCleanupInterval,
-    async () => {
-      await ctx.runJobRunCleanupBatch();
-    },
+    () => ctx.runJobRunCleanupBatch(),
     9
   );
 }
