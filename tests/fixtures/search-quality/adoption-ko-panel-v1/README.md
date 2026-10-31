@@ -14,6 +14,7 @@
 ## 재현과 분모
 
 ```bash
+mkdir -p .local
 npx tsx scripts/aggregate-adoption-panel.ts > .local/issue-1545-panel-result.json
 npx vitest run scripts/__tests__/adoption-panel.spec.ts tests/adoption-panel-fixture.spec.ts
 ```
