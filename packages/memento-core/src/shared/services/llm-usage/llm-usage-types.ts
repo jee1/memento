@@ -8,6 +8,7 @@ export const LLM_USAGE_FEATURES = [
   'relevance_gate',
   'cluster_judge',
   'directive_recall',
+  'supersede_judge',
 ] as const;
 
 export type LlmUsageFeature = (typeof LLM_USAGE_FEATURES)[number];

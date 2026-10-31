@@ -837,6 +837,34 @@ CREATE TABLE IF NOT EXISTS llm_usage_logical (
 CREATE INDEX IF NOT EXISTS idx_llm_usage_logical_pacific_feature
   ON llm_usage_logical(pacific_date, feature);
 
+-- Supersede candidates (migration 059, Issue #1548): 판정 기록만 남기고 memory_item 은 바꾸지 않는다
+CREATE TABLE IF NOT EXISTS memory_supersede_candidate (
+  id                     TEXT PRIMARY KEY,
+  old_memory_id          TEXT NOT NULL,
+  new_memory_id          TEXT NOT NULL,
+  owner_id               TEXT,
+  project_id             TEXT,
+  privacy_scope          TEXT NOT NULL,
+  memory_type            TEXT NOT NULL,
+  verdict                TEXT NOT NULL CHECK (verdict IN ('confirmed', 'pending', 'compatible')),
+  rationale              TEXT NOT NULL,
+  evidence_quote         TEXT,
+  old_content_sha256     TEXT NOT NULL,
+  new_content_sha256     TEXT NOT NULL,
+  provider               TEXT NOT NULL,
+  model                  TEXT NOT NULL,
+  prompt_version         TEXT NOT NULL,
+  input_hash             TEXT NOT NULL UNIQUE,
+  llm_logical_request_id TEXT,
+  created_at             TEXT NOT NULL,
+  FOREIGN KEY (old_memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (new_memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_memory_supersede_candidate_old
+  ON memory_supersede_candidate(old_memory_id);
+CREATE INDEX IF NOT EXISTS idx_memory_supersede_candidate_new
+  ON memory_supersede_candidate(new_memory_id);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);
