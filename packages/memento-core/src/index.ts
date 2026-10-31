@@ -409,7 +409,6 @@ export {
 } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
 export {
   jobRunSummaryFieldsFromBatchJobResult,
-  jobRunSummaryFieldsFromOutcome,
 } from './infrastructure/scheduler/batch-scheduler/batch-job-result-job-run-summary.js';
 export type { JobRunSummaryFields } from './infrastructure/scheduler/batch-scheduler/batch-job-result-job-run-summary.js';
 export type { ManualBatchSchedulerJobType } from './infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';

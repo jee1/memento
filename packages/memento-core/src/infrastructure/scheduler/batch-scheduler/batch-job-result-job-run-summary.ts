@@ -12,7 +12,7 @@ export interface JobRunSummaryFields {
   details_json: string | null;
 }
 
-export function isBatchJobResultLike(value: unknown): value is BatchJobResult {
+function isBatchJobResultLike(value: unknown): value is BatchJobResult {
   if (!value || typeof value !== 'object') {
     return false;
   }
