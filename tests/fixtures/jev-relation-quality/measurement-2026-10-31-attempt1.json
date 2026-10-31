@@ -1,0 +1,323 @@
+{
+  "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+  "human_reviewed": true,
+  "preregistration_sha256": "15fbd3baad6d96315c7ce5baecfc1c0f5d140b7fb532ed39d47997ed1a6abea9",
+  "model": "jev-1.14.0",
+  "baseline": {
+    "revision": "eca3dcf58ade077124a28d5baf09dd9a0c123f06",
+    "code_sha256": "584883008120f91a36682d0728a7f0468a669411ffbd1123c15a164a49f23b56",
+    "model": "jev-1.14.0",
+    "created_at": "2026-10-31T00:26:46.604Z",
+    "evaluable_count": 42,
+    "ambiguous_count": 6,
+    "accepted_count": 36,
+    "type_precision": 0.8333333333333334,
+    "unrelated_connection_rate": 0.05555555555555555,
+    "unrelated_false_positive_rate": 0.25,
+    "false_negative_rate": 0.11764705882352941,
+    "rejection_rate": 0.14285714285714285,
+    "error_rate": 0,
+    "wrong_type_count": 4,
+    "by_type": {
+      "CAUSES": {
+        "expected": 4,
+        "predicted": 3,
+        "correct": 3,
+        "precision": 1,
+        "missed_rate": 0.25
+      },
+      "DEPENDS_ON": {
+        "expected": 4,
+        "predicted": 3,
+        "correct": 3,
+        "precision": 1,
+        "missed_rate": 0.25
+      },
+      "FOLLOWS": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "CONTRASTS_WITH": {
+        "expected": 8,
+        "predicted": 10,
+        "correct": 8,
+        "precision": 0.8,
+        "missed_rate": 0
+      },
+      "REFERENCES": {
+        "expected": 6,
+        "predicted": 10,
+        "correct": 6,
+        "precision": 0.6,
+        "missed_rate": 0
+      },
+      "BELONGS_TO": {
+        "expected": 4,
+        "predicted": 2,
+        "correct": 2,
+        "precision": 1,
+        "missed_rate": 0.5
+      }
+    },
+    "jev_calls": 90,
+    "retries": 0,
+    "response_models": [
+      "jev-1.14.0"
+    ],
+    "peer_results": [
+      {
+        "id": "amb01",
+        "status": "ok",
+        "relation_type": "FOLLOWS"
+      },
+      {
+        "id": "amb02",
+        "status": "ok",
+        "relation_type": null
+      }
+    ],
+    "mistakes": [
+      {
+        "id": "cause03",
+        "predicted": "REFERENCES",
+        "expected": [
+          "CAUSES"
+        ]
+      },
+      {
+        "id": "dep03",
+        "predicted": "REFERENCES",
+        "expected": [
+          "DEPENDS_ON"
+        ]
+      },
+      {
+        "id": "bel02",
+        "predicted": "REFERENCES",
+        "expected": [
+          "BELONGS_TO"
+        ]
+      },
+      {
+        "id": "bel04",
+        "predicted": "REFERENCES",
+        "expected": [
+          "BELONGS_TO"
+        ]
+      },
+      {
+        "id": "unrel06",
+        "predicted": "CONTRASTS_WITH",
+        "expected": []
+      },
+      {
+        "id": "unrel08",
+        "predicted": "CONTRASTS_WITH",
+        "expected": []
+      }
+    ]
+  },
+  "candidate": {
+    "revision": "fbc2a8face3cf4717e146ce8eddcf1ec69581227",
+    "code_sha256": "7210c03c01e79b5d1a58dca5f13d5998403d1ff438bb19a6a55a91a2eac82226",
+    "model": "jev-1.14.0",
+    "created_at": "2026-10-31T00:31:57.965Z",
+    "evaluable_count": 42,
+    "ambiguous_count": 6,
+    "accepted_count": 33,
+    "type_precision": 1,
+    "unrelated_connection_rate": 0,
+    "unrelated_false_positive_rate": 0,
+    "false_negative_rate": 0.029411764705882353,
+    "rejection_rate": 0.21428571428571427,
+    "error_rate": 0,
+    "wrong_type_count": 0,
+    "by_type": {
+      "CAUSES": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "DEPENDS_ON": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "FOLLOWS": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "CONTRASTS_WITH": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "REFERENCES": {
+        "expected": 6,
+        "predicted": 5,
+        "correct": 5,
+        "precision": 1,
+        "missed_rate": 0.16666666666666666
+      },
+      "BELONGS_TO": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      }
+    },
+    "jev_calls": 88,
+    "retries": 0,
+    "response_models": [
+      "jev-1.14.0"
+    ],
+    "peer_results": [
+      {
+        "id": "amb01",
+        "status": "ok",
+        "relation_type": "FOLLOWS"
+      },
+      {
+        "id": "amb02",
+        "status": "ok",
+        "relation_type": null
+      }
+    ],
+    "mistakes": [
+      {
+        "id": "ref02",
+        "predicted": null,
+        "expected": [
+          "REFERENCES"
+        ]
+      }
+    ],
+    "gates": {
+      "per_type_precision": true,
+      "per_type_correct": false,
+      "target_errors": true,
+      "unrelated_count": true,
+      "unrelated_among_accepted": true,
+      "false_negative": true,
+      "per_type_missed": false,
+      "coverage": true,
+      "rejection": true,
+      "errors": true,
+      "peer_forbidden": true
+    }
+  },
+  "candidate_repeat": {
+    "revision": "fbc2a8face3cf4717e146ce8eddcf1ec69581227",
+    "code_sha256": "7210c03c01e79b5d1a58dca5f13d5998403d1ff438bb19a6a55a91a2eac82226",
+    "model": "jev-1.14.0",
+    "created_at": "2026-10-31T00:32:22.544Z",
+    "evaluable_count": 42,
+    "ambiguous_count": 6,
+    "accepted_count": 33,
+    "type_precision": 1,
+    "unrelated_connection_rate": 0,
+    "unrelated_false_positive_rate": 0,
+    "false_negative_rate": 0.029411764705882353,
+    "rejection_rate": 0.21428571428571427,
+    "error_rate": 0,
+    "wrong_type_count": 0,
+    "by_type": {
+      "CAUSES": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "DEPENDS_ON": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "FOLLOWS": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "CONTRASTS_WITH": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "REFERENCES": {
+        "expected": 6,
+        "predicted": 5,
+        "correct": 5,
+        "precision": 1,
+        "missed_rate": 0.16666666666666666
+      },
+      "BELONGS_TO": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      }
+    },
+    "jev_calls": 88,
+    "retries": 0,
+    "response_models": [
+      "jev-1.14.0"
+    ],
+    "peer_results": [
+      {
+        "id": "amb01",
+        "status": "ok",
+        "relation_type": "FOLLOWS"
+      },
+      {
+        "id": "amb02",
+        "status": "ok",
+        "relation_type": null
+      }
+    ],
+    "mistakes": [
+      {
+        "id": "ref02",
+        "predicted": null,
+        "expected": [
+          "REFERENCES"
+        ]
+      }
+    ],
+    "gates": {
+      "per_type_precision": true,
+      "per_type_correct": false,
+      "target_errors": true,
+      "unrelated_count": true,
+      "unrelated_among_accepted": true,
+      "false_negative": true,
+      "per_type_missed": false,
+      "coverage": true,
+      "rejection": true,
+      "errors": true,
+      "peer_forbidden": true
+    }
+  },
+  "jev_calls_total": 266,
+  "all_gates_passed": false
+}

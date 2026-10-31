@@ -1,0 +1,78 @@
+{
+  "scope": "Stage2 inference POST requests only, including retries; GET models excluded. Baseline ran once and was reused in both comparisons.",
+  "runs": [
+    {
+      "run": "baseline",
+      "revision": "eca3dcf58ade077124a28d5baf09dd9a0c123f06",
+      "code_sha256": "584883008120f91a36682d0728a7f0468a669411ffbd1123c15a164a49f23b56",
+      "created_at": "2026-10-31T00:26:46.604Z",
+      "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+      "model": "jev-1.14.0",
+      "jev_calls": 90,
+      "retries": 0,
+      "response_models": [
+        "jev-1.14.0"
+      ],
+      "request_ledger_sha256": "2ea480c72670af2ce9ff9cf31ac852c11feddfc2d5e8c9f525fbdb6e14724366"
+    },
+    {
+      "run": "candidate",
+      "revision": "fbc2a8face3cf4717e146ce8eddcf1ec69581227",
+      "code_sha256": "7210c03c01e79b5d1a58dca5f13d5998403d1ff438bb19a6a55a91a2eac82226",
+      "created_at": "2026-10-31T00:31:57.965Z",
+      "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+      "model": "jev-1.14.0",
+      "jev_calls": 88,
+      "retries": 0,
+      "response_models": [
+        "jev-1.14.0"
+      ],
+      "request_ledger_sha256": "66dcafb95820661a9f96f299f509b80d2a56f8a8eab2b8b63e2fb3294f21cde6"
+    },
+    {
+      "run": "candidate-repeat",
+      "revision": "fbc2a8face3cf4717e146ce8eddcf1ec69581227",
+      "code_sha256": "7210c03c01e79b5d1a58dca5f13d5998403d1ff438bb19a6a55a91a2eac82226",
+      "created_at": "2026-10-31T00:32:22.544Z",
+      "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+      "model": "jev-1.14.0",
+      "jev_calls": 88,
+      "retries": 0,
+      "response_models": [
+        "jev-1.14.0"
+      ],
+      "request_ledger_sha256": "ceda5448d684a2f3bf325df974d535250a513e4fdbdd888b36cf737828345a16"
+    },
+    {
+      "run": "candidate2",
+      "revision": "48c46774506145770b8985cfa0e7943d18eafc3e",
+      "code_sha256": "b1acc00ab3b60820ebf3b2a066637966dc73cf35d47a1589c0b1b436556de732",
+      "created_at": "2026-10-31T00:37:07.141Z",
+      "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+      "model": "jev-1.14.0",
+      "jev_calls": 87,
+      "retries": 0,
+      "response_models": [
+        "jev-1.14.0"
+      ],
+      "request_ledger_sha256": "9037c7406cc7ec424d2a918d5e47e3223bfbcce69d3953036892283e886ddada"
+    },
+    {
+      "run": "candidate2-repeat",
+      "revision": "48c46774506145770b8985cfa0e7943d18eafc3e",
+      "code_sha256": "b1acc00ab3b60820ebf3b2a066637966dc73cf35d47a1589c0b1b436556de732",
+      "created_at": "2026-10-31T00:37:32.086Z",
+      "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+      "model": "jev-1.14.0",
+      "jev_calls": 87,
+      "retries": 0,
+      "response_models": [
+        "jev-1.14.0"
+      ],
+      "request_ledger_sha256": "ab80f341630bc50c2c29fd6b5a8e2ab9b37a80ec32173456bb15e8f7b710b3e5"
+    }
+  ],
+  "jev_calls_total": 440,
+  "retries_total": 0,
+  "backfill_calls": 0
+}

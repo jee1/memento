@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "registered_at": "2026-10-31T00:33:42.792542+00:00",
+  "status": "frozen-before-attempt2-inference",
+  "parent_sha256": "15fbd3baad6d96315c7ce5baecfc1c0f5d140b7fb532ed39d47997ed1a6abea9",
+  "reason": "Original single-candidate experiment failed REFERENCES correct-count and missed-rate gates on ref02 in both candidate/repeat. Preserve that failed experiment; register one additional development candidate before inference.",
+  "limits": "Same evaluation set informed this repair; no independent holdout or original single-attempt success claim.",
+  "changes": "Only clarify explicit optional reference as REFERENCES; no labels, order, criteria, threshold, pool or model changes.",
+  "baseline_revision": "eca3dcf58ade077124a28d5baf09dd9a0c123f06",
+  "model": "jev-1.14.0",
+  "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+  "source_sha256": "7e9f1add167c092f900c616e36f86bd15b401c461e74de03577bd300efd68e54",
+  "candidate_attempts": 1,
+  "repeat_count": 1,
+  "criteria": "unchanged from parent registration",
+  "order": "unchanged from parent registration"
+}
