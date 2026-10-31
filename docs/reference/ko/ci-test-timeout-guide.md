@@ -52,6 +52,10 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 
 **검색 품질 카테고리 리포트**는 weekly **`nightly-tests.yml`**의 `test-search-quality` job에서 `npm run quality -- benchmark category-report`로 실행합니다 (#665, #731, #1385). PR에서 ranking 경로가 바뀌면 **`search-quality-pr.yml`**이 같은 상대 비교를 `--scope pr`로 돌리고, perf smoke를 따로 돌립니다. `ci.yml`에는 이 job이 없습니다.
 
+카테고리 리포트와 `scripts/seed-benchmark-db.ts`는 시드·랭킹의 기준 시각을 `2026-10-22T12:00:00.000Z`로 고정합니다 (#1572). 기존 ranking baseline을 기록한 날짜를 쓰므로 baseline 수치·MRR 허용 하락폭은 바꾸지 않습니다. 출력의 `reference_time`으로 기준 시각을 확인합니다. 시드 이후 30초 제한은 `performance.now()`로 실제 경과 시간을 측정합니다. 운영 검색의 시계·랭킹 설정은 바꾸지 않습니다.
+
+`MEMENTO_BENCHMARK_DB_PATH`로 nightly DB를 재사용한다면 이전 시계로 만든 DB를 버리고 위 시드 스크립트로 다시 만듭니다. 기준 시각을 바꿀 때는 PR·nightly baseline을 함께 재측정하고 변경 근거를 남깁니다. 다른 sweep·perf 명령은 이 고정 시계를 적용하지 않습니다.
+
 ---
 
 ## 현황 참고
