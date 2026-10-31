@@ -24,6 +24,12 @@ _Avoid_: fact memory, knowledge entry
 버전을 쌓아 가며 관리하는 작업 절차.
 _Avoid_: recipe, playbook
 
+**Failure observation (실패 관찰)**:
+실패 이벤트와 당시 작업·적용 범위를 남긴 사건 기록. 개선 제안이나 실행 성공의 증거와 구분한다.
+
+**Unverified procedural candidate (미검증 절차 후보)**:
+실패 관찰에서 추출한 개선 제안. 실행·검증 결과를 받기 전에는 채택한 절차로 취급하지 않는다. 저장·조회는 [Reflexion 관찰 가이드](./docs/guides/ko/reflexion-observations.md)를 따른다.
+
 **Sleep consolidation**:
 episodic 기억을 모아 semantic 기억으로 증류하는 주기 배치. v2.0.0에서 제거한 랭킹의 consolidation 블렌드([search-ranking.md](./docs/agents/search-ranking.md))와는 다른 개념이다.
 _Avoid_: consolidation(단독), consolidation score

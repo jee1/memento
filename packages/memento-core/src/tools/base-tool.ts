@@ -10,6 +10,7 @@ import { ToolInputValidationError } from '../shared/errors/tool-input-validation
 import { logger } from '../shared/utils/logger.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 import type { z } from 'zod';
 
@@ -268,6 +269,14 @@ export abstract class BaseTool {
       );
 
       if (detectionResult.detected && detectionResult.event) {
+        if (mementoConfig.reflexionObservationOnly) {
+          detectionResult.event.scope = {
+            owner_id: context.boundAgentId ?? context.agentId,
+            project_id: context.boundProjectId ?? context.projectId,
+            process_id: context.processId,
+            session_id: context.sessionId,
+          };
+        }
         // Reflexion Worker가 있으면 직접 큐에 추가
         const reflexionWorker: IReflexionWorker | undefined = context.services.reflexionWorker;
         

@@ -20,6 +20,7 @@
 - 채택 계약 평가: 한국어 합성 60건의 독립 `agent_panel` 판정과 합의·보류·SHA를 동결합니다. gate/답 계약 57건, retrieval 계약 55건을 분리하며 성능은 미측정으로 둡니다 (#1545).
 - 수면 통합 비교: `consolidation-replay-v1` 30시퀀스의 사전등록·agent_panel 교집합 계약 58건/보류 32건을 동결합니다. complete test 10/25로 채택 판정은 inconclusive이며 A/B/D는 미실행입니다 (#1553).
 - 대체 후보 판정: `SUPERSEDE_CANDIDATE_SCAN_ENABLED=true`(기본 꺼짐)일 때 `supersede_candidate_scan` 배치가 같은 범위의 옛/새 기억 쌍을 확정/확인 대기/양립으로 분류해 `memory_supersede_candidate`(migration 059)에만 기록합니다. 기억은 바꾸지 않으며 입력 해시·출처·모델·프롬프트 버전을 남기고 429 를 받으면 그 run 을 멈춥니다. 평가 runner(`scripts/evaluate-supersede-candidates.ts`)는 있으나 실측은 미실행입니다 (#1548).
+- Reflexion: 기본 off인 `REFLEXION_OBSERVATION_ONLY`를 켜면 실패 관찰·미검증 후보를 고정 episodic으로 분리하고 기존 절차 갱신·자동 채택을 막습니다. 기존 회고는 그대로 조회합니다 (#1547).
 - 직접 대체 승인과 복원: `SUPERSEDE_APPLY_ENABLED=true`(기본 꺼짐)일 때 `POST /admin/memory/supersede-candidates/:id/apply` 가 확정 또는 확인 대기 후보 하나를 `memory_item.superseded_by`(migration 060) 포인터로 적용하고 `POST /admin/memory/items/:memory_id/supersede/restore` 가 되돌립니다. 포인터 변경과 `memory_supersede_event` 감사 사건(actor 는 대시보드 세션)은 한 트랜잭션이며 CAS 로 경쟁 승인, 순환, 판정 뒤 본문 변경, 범위 불일치를 거절합니다. target 이 지워지면 옛 기억은 쓰기 없이 다시 현재가 되고, 남은 포인터는 restore 로 정리해야 새 승인을 겁니다(`dangling_pointer`). 검색 레인은 아직 포인터를 읽지 않으므로 #1552 전에는 켜지 않습니다. Admin `:memory_id` 경로 파라미터는 접두 없는 UUID 기억도 받습니다 (#1551).
 
 ### Fixed
@@ -29,6 +30,7 @@
 - 관계 추출: OpenAI 경로가 출력 상한을 `max_completion_tokens`로 보냅니다. gpt-5.x 계열 모델이 `max_tokens`를 400으로 거절해 관계 추출이 실패하던 문제를 고칩니다 (#1532).
 - 품질 측정: 정답셋이 없을 때 precision/recall 0으로 기록하던 동작을 미측정 상태로 구분합니다. collector metadata·metric_states가 recorder·evaluator·리포트까지 유지됩니다 (#1560).
 - PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
+- Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
 
 ### Changed
 
