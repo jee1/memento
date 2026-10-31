@@ -1,0 +1,902 @@
+[
+ {
+  "query_id": "cl_01_q_single",
+  "relevant_memory_ids": [
+   "cl_01_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_direct 본문이 별빛 도서관 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_01_hub는 색인 문서라 답이 없고, cl_01_trap_wrong은 폐기 예정 옛 초안이며, rk_trap_own_foreign은 scope 밖 owner(owner_rkpanel_foreign) 기록이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_01_q_multi",
+  "relevant_memory_ids": [
+   "cl_01_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_hop_obs(별빛 도서관 3번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-01-Z3)와 cl_01_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_01_hop_ans가 RK-01-Z3 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_01_q_trap",
+  "relevant_memory_ids": [
+   "cl_01_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_01_iso_ok가 별빛 도서관 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_01_hub와 cl_01_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_02_q_single",
+  "relevant_memory_ids": [
+   "cl_02_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_direct 본문이 솔내 연구실 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_02_hub는 색인 문서라 답이 없고, cl_02_trap_wrong은 폐기 예정 옛 초안이며, rk_trap_deleted는 status가 deleted라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_02_q_multi",
+  "relevant_memory_ids": [
+   "cl_02_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_hop_obs(솔내 연구실 4번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-02-Z4)와 cl_02_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_02_hop_ans가 RK-02-Z4 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_02_q_trap",
+  "relevant_memory_ids": [
+   "cl_02_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_02_iso_ok가 솔내 연구실 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_02_hub와 cl_02_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_03_q_single",
+  "relevant_memory_ids": [
+   "cl_03_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_direct 본문이 푸른 항구 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_03_hub는 색인 문서라 답이 없고, cl_03_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_03_q_multi",
+  "relevant_memory_ids": [
+   "cl_03_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_hop_obs(푸른 항구 5번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-03-Z5)와 cl_03_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_03_hop_ans가 RK-03-Z5 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_03_q_trap",
+  "relevant_memory_ids": [
+   "cl_03_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_03_iso_ok가 푸른 항구 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_03_hub와 cl_03_trap_wrong은 무관한 함정이고, rk_trap_replaced_old는 status가 superseded(superseded_by: cl_03_iso_ok)인 구판 기록이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_04_q_single",
+  "relevant_memory_ids": [
+   "cl_04_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_direct 본문이 무지개 공방 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_04_hub는 색인 문서라 답이 없고, cl_04_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_04_q_multi",
+  "relevant_memory_ids": [
+   "cl_04_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_hop_obs(무지개 공방 6번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-04-Z6)와 cl_04_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_04_hop_ans가 RK-04-Z6 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_04_q_trap",
+  "relevant_memory_ids": [
+   "cl_04_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_04_iso_ok가 무지개 공방 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_04_hub와 cl_04_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_05_q_single",
+  "relevant_memory_ids": [
+   "cl_05_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_direct 본문이 은하 수목원 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_05_hub는 색인 문서라 답이 없고, cl_05_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_05_q_multi",
+  "relevant_memory_ids": [
+   "cl_05_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_hop_obs(은하 수목원 7번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-05-Z7)와 cl_05_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_05_hop_ans가 RK-05-Z7 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_05_q_trap",
+  "relevant_memory_ids": [
+   "cl_05_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_05_iso_ok가 은하 수목원 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_05_hub와 cl_05_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_06_q_single",
+  "relevant_memory_ids": [
+   "cl_06_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_direct 본문이 달빛 어학원 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_06_hub는 색인 문서라 답이 없고, cl_06_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_06_q_multi",
+  "relevant_memory_ids": [
+   "cl_06_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_hop_obs(달빛 어학원 8번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-06-Z8)와 cl_06_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_06_hop_ans가 RK-06-Z8 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_06_q_trap",
+  "relevant_memory_ids": [
+   "cl_06_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_06_iso_ok가 달빛 어학원 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_06_hub와 cl_06_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_07_q_single",
+  "relevant_memory_ids": [
+   "cl_07_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_direct 본문이 새벽 시장 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_07_hub는 색인 문서라 답이 없고, cl_07_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_07_q_multi",
+  "relevant_memory_ids": [
+   "cl_07_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_hop_obs(새벽 시장 9번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-07-Z9)와 cl_07_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_07_hop_ans가 RK-07-Z9 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_07_q_trap",
+  "relevant_memory_ids": [
+   "cl_07_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_07_iso_ok가 새벽 시장 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_07_hub와 cl_07_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_08_q_single",
+  "relevant_memory_ids": [
+   "cl_08_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_direct 본문이 고요 정원 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_08_hub는 색인 문서라 답이 없고, cl_08_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_08_q_multi",
+  "relevant_memory_ids": [
+   "cl_08_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_hop_obs(고요 정원 10번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-08-Z10)와 cl_08_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_08_hop_ans가 RK-08-Z10 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_08_q_trap",
+  "relevant_memory_ids": [
+   "cl_08_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_08_iso_ok가 고요 정원 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_08_hub와 cl_08_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_09_q_single",
+  "relevant_memory_ids": [
+   "cl_09_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_direct 본문이 바람 천문대 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_09_hub는 색인 문서라 답이 없고, cl_09_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_09_q_multi",
+  "relevant_memory_ids": [
+   "cl_09_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_hop_obs(바람 천문대 11번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-09-Z11)와 cl_09_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_09_hop_ans가 RK-09-Z11 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_09_q_trap",
+  "relevant_memory_ids": [
+   "cl_09_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_09_iso_ok가 바람 천문대 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_09_hub와 cl_09_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_10_q_single",
+  "relevant_memory_ids": [
+   "cl_10_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_direct 본문이 한울 제빵소 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_10_hub는 색인 문서라 답이 없고, cl_10_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_10_q_multi",
+  "relevant_memory_ids": [
+   "cl_10_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_hop_obs(한울 제빵소 12번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-10-Z12)와 cl_10_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_10_hop_ans가 RK-10-Z12 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_10_q_trap",
+  "relevant_memory_ids": [
+   "cl_10_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_10_iso_ok가 한울 제빵소 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_10_hub와 cl_10_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_11_q_single",
+  "relevant_memory_ids": [
+   "cl_11_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_direct 본문이 서리 마을 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_11_hub는 색인 문서라 답이 없고, cl_11_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_11_q_multi",
+  "relevant_memory_ids": [
+   "cl_11_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_hop_obs(서리 마을 13번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-11-Z13)와 cl_11_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_11_hop_ans가 RK-11-Z13 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_11_q_trap",
+  "relevant_memory_ids": [
+   "cl_11_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_11_iso_ok가 서리 마을 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_11_hub와 cl_11_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_12_q_single",
+  "relevant_memory_ids": [
+   "cl_12_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_direct 본문이 노을 갤러리 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_12_hub는 색인 문서라 답이 없고, cl_12_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_12_q_multi",
+  "relevant_memory_ids": [
+   "cl_12_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_hop_obs(노을 갤러리 14번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-12-Z14)와 cl_12_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_12_hop_ans가 RK-12-Z14 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_12_q_trap",
+  "relevant_memory_ids": [
+   "cl_12_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_12_iso_ok가 노을 갤러리 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_12_hub와 cl_12_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_13_q_single",
+  "relevant_memory_ids": [
+   "cl_13_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_direct 본문이 이슬 농장 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_13_hub는 색인 문서라 답이 없고, cl_13_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_13_q_multi",
+  "relevant_memory_ids": [
+   "cl_13_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_hop_obs(이슬 농장 15번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-13-Z15)와 cl_13_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_13_hop_ans가 RK-13-Z15 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_13_q_trap",
+  "relevant_memory_ids": [
+   "cl_13_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_13_iso_ok가 이슬 농장 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_13_hub와 cl_13_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_14_q_single",
+  "relevant_memory_ids": [
+   "cl_14_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_direct 본문이 산들 카페 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_14_hub는 색인 문서라 답이 없고, cl_14_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_14_q_multi",
+  "relevant_memory_ids": [
+   "cl_14_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_hop_obs(산들 카페 16번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-14-Z16)와 cl_14_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_14_hop_ans가 RK-14-Z16 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_14_q_trap",
+  "relevant_memory_ids": [
+   "cl_14_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_14_iso_ok가 산들 카페 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_14_hub와 cl_14_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_15_q_single",
+  "relevant_memory_ids": [
+   "cl_15_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_direct 본문이 해온 항만 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_15_hub는 색인 문서라 답이 없고, cl_15_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_15_q_multi",
+  "relevant_memory_ids": [
+   "cl_15_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_hop_obs(해온 항만 17번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-15-Z17)와 cl_15_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_15_hop_ans가 RK-15-Z17 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_15_q_trap",
+  "relevant_memory_ids": [
+   "cl_15_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_15_iso_ok가 해온 항만 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_15_hub와 cl_15_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_16_q_single",
+  "relevant_memory_ids": [
+   "cl_16_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_direct 본문이 자람 학당 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_16_hub는 색인 문서라 답이 없고, cl_16_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_16_q_multi",
+  "relevant_memory_ids": [
+   "cl_16_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_hop_obs(자람 학당 18번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-16-Z18)와 cl_16_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_16_hop_ans가 RK-16-Z18 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_16_q_trap",
+  "relevant_memory_ids": [
+   "cl_16_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_16_iso_ok가 자람 학당 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_16_hub와 cl_16_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_17_q_single",
+  "relevant_memory_ids": [
+   "cl_17_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_direct 본문이 미르 공연장 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_17_hub는 색인 문서라 답이 없고, cl_17_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_17_q_multi",
+  "relevant_memory_ids": [
+   "cl_17_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_hop_obs(미르 공연장 19번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-17-Z19)와 cl_17_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_17_hop_ans가 RK-17-Z19 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_17_q_trap",
+  "relevant_memory_ids": [
+   "cl_17_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_17_iso_ok가 미르 공연장 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_17_hub와 cl_17_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_18_q_single",
+  "relevant_memory_ids": [
+   "cl_18_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_direct 본문이 초록 언덕 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_18_hub는 색인 문서라 답이 없고, cl_18_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_18_q_multi",
+  "relevant_memory_ids": [
+   "cl_18_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_hop_obs(초록 언덕 20번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-18-Z20)와 cl_18_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_18_hop_ans가 RK-18-Z20 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_18_q_trap",
+  "relevant_memory_ids": [
+   "cl_18_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_18_iso_ok가 초록 언덕 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_18_hub와 cl_18_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_19_q_single",
+  "relevant_memory_ids": [
+   "cl_19_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_direct 본문이 하늘 도장 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_19_hub는 색인 문서라 답이 없고, cl_19_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_19_q_multi",
+  "relevant_memory_ids": [
+   "cl_19_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_hop_obs(하늘 도장 21번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-19-Z21)와 cl_19_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_19_hop_ans가 RK-19-Z21 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_19_q_trap",
+  "relevant_memory_ids": [
+   "cl_19_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_19_iso_ok가 하늘 도장 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_19_hub와 cl_19_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_20_q_single",
+  "relevant_memory_ids": [
+   "cl_20_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_direct 본문이 빛고을 센터 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_20_hub는 색인 문서라 답이 없고, cl_20_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_20_q_multi",
+  "relevant_memory_ids": [
+   "cl_20_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_hop_obs(빛고을 센터 22번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-20-Z22)와 cl_20_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_20_hop_ans가 RK-20-Z22 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_20_q_trap",
+  "relevant_memory_ids": [
+   "cl_20_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_20_iso_ok가 빛고을 센터 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_20_hub와 cl_20_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_21_q_single",
+  "relevant_memory_ids": [
+   "cl_21_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_direct 본문이 들판 우체국 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_21_hub는 색인 문서라 답이 없고, cl_21_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_21_q_multi",
+  "relevant_memory_ids": [
+   "cl_21_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_hop_obs(들판 우체국 23번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-21-Z23)와 cl_21_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_21_hop_ans가 RK-21-Z23 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_21_q_trap",
+  "relevant_memory_ids": [
+   "cl_21_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_21_iso_ok가 들판 우체국 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_21_hub와 cl_21_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_22_q_single",
+  "relevant_memory_ids": [
+   "cl_22_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_direct 본문이 물결 수영장 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_22_hub는 색인 문서라 답이 없고, cl_22_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_22_q_multi",
+  "relevant_memory_ids": [
+   "cl_22_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_hop_obs(물결 수영장 24번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-22-Z24)와 cl_22_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_22_hop_ans가 RK-22-Z24 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_22_q_trap",
+  "relevant_memory_ids": [
+   "cl_22_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_22_iso_ok가 물결 수영장 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_22_hub와 cl_22_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_23_q_single",
+  "relevant_memory_ids": [
+   "cl_23_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_direct 본문이 고개 전망대 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_23_hub는 색인 문서라 답이 없고, cl_23_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_23_q_multi",
+  "relevant_memory_ids": [
+   "cl_23_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_hop_obs(고개 전망대 25번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-23-Z25)와 cl_23_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_23_hop_ans가 RK-23-Z25 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_23_q_trap",
+  "relevant_memory_ids": [
+   "cl_23_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_23_iso_ok가 고개 전망대 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_23_hub와 cl_23_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_24_q_single",
+  "relevant_memory_ids": [
+   "cl_24_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_direct 본문이 나무 서점 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_24_hub는 색인 문서라 답이 없고, cl_24_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_24_q_multi",
+  "relevant_memory_ids": [
+   "cl_24_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_hop_obs(나무 서점 26번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-24-Z26)와 cl_24_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_24_hop_ans가 RK-24-Z26 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_24_q_trap",
+  "relevant_memory_ids": [
+   "cl_24_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_24_iso_ok가 나무 서점 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_24_hub와 cl_24_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_25_q_single",
+  "relevant_memory_ids": [
+   "cl_25_direct"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_direct 본문이 새싹 병원 금요일 정기 휴무 시작 시각(오후 2시)을 직접 명시한다. cl_25_hub는 색인 문서라 답이 없고, cl_25_trap_wrong은 폐기 예정 옛 초안이라 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_25_q_multi",
+  "relevant_memory_ids": [
+   "cl_25_hop_ans"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_hop_obs(새싹 병원 27번째 구역 안내판 글자 깨짐 민원, 사례번호 RK-25-Z27)와 cl_25_hop_try(복구 시도)를 거쳐 관계로 연결되는 cl_25_hop_ans가 RK-25-Z27 최종 승인 규격(상등급 UV계열 잉크 전면 도색, 7일 주기 현장 점검, 임시 부착식 금지)을 담는다. 시작/중간 노드에는 최종 규격이 없고 최종 정답 본문에는 장소명이 없어 관계 추적으로만 도달한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ },
+ {
+  "query_id": "cl_25_q_trap",
+  "relevant_memory_ids": [
+   "cl_25_iso_ok"
+  ],
+  "ambiguous": false,
+  "rationale": "cl_25_iso_ok가 새싹 병원 겨울철 난방 가동 시작일(11월 15일)을 직접 명시한다. cl_25_hub와 cl_25_trap_wrong 등 관계 허브 및 함정 노드는 난방 시작일 답이 아니므로 제외한다.",
+  "reviewer_id": "reviewer-a",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T23:32:00Z",
+  "data_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10"
+ }
+]

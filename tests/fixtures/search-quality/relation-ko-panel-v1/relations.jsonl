@@ -1,0 +1,205 @@
+{"source":"cl_01_hop_obs","target":"cl_01_hop_try","relation_type":"supported_by","confidence":0.85,"note":"cl_01 chain 1"}
+{"source":"cl_01_hop_try","target":"cl_01_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_01 chain 2"}
+{"source":"cl_01_hub","target":"cl_01_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_01 hub edge"}
+{"source":"cl_01_hub","target":"cl_01_hop_try","relation_type":"REFERENCES","confidence":0.45,"note":"cl_01 hub edge"}
+{"source":"cl_01_hub","target":"cl_01_hop_ans","relation_type":"REFERENCES","confidence":0.45,"note":"cl_01 hub edge"}
+{"source":"cl_01_hub","target":"cl_01_direct","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_01 hub edge"}
+{"source":"cl_01_hub","target":"cl_01_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_01 stale trap path"}
+{"source":"cl_02_hop_obs","target":"cl_02_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_02 chain 1"}
+{"source":"cl_02_hop_try","target":"cl_02_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_02 chain 2"}
+{"source":"cl_02_hub","target":"cl_02_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_02 hub edge"}
+{"source":"cl_02_hub","target":"cl_02_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_02 hub edge"}
+{"source":"cl_02_hub","target":"cl_02_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_02 hub edge"}
+{"source":"cl_02_hub","target":"cl_02_direct","relation_type":"extracted_from","confidence":0.45,"note":"cl_02 hub edge"}
+{"source":"cl_02_hub","target":"cl_02_trap_wrong","relation_type":"REFERENCES","confidence":0.7,"note":"cl_02 stale trap path"}
+{"source":"cl_03_hop_obs","target":"cl_03_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_03 chain 1"}
+{"source":"cl_03_hop_try","target":"cl_03_hop_ans","relation_type":"REFERENCES","confidence":0.9,"note":"cl_03 chain 2"}
+{"source":"cl_03_hub","target":"cl_03_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_03 hub edge"}
+{"source":"cl_03_hub","target":"cl_03_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_03 hub edge"}
+{"source":"cl_03_hub","target":"cl_03_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_03 hub edge"}
+{"source":"cl_03_hub","target":"cl_03_direct","relation_type":"supported_by","confidence":0.45,"note":"cl_03 hub edge"}
+{"source":"cl_03_hub","target":"cl_03_trap_wrong","relation_type":"supported_by","confidence":0.7,"note":"cl_03 stale trap path"}
+{"source":"cl_04_hop_obs","target":"cl_04_hop_try","relation_type":"REFERENCES","confidence":0.85,"note":"cl_04 chain 1"}
+{"source":"cl_04_hop_try","target":"cl_04_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_04 chain 2"}
+{"source":"cl_04_hub","target":"cl_04_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_04 hub edge"}
+{"source":"cl_04_hub","target":"cl_04_hop_try","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_04 hub edge"}
+{"source":"cl_04_hub","target":"cl_04_hop_ans","relation_type":"REFERENCES","confidence":0.45,"note":"cl_04 hub edge"}
+{"source":"cl_04_hub","target":"cl_04_direct","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_04 hub edge"}
+{"source":"cl_04_hub","target":"cl_04_trap_wrong","relation_type":"supported_by","confidence":0.7,"note":"cl_04 stale trap path"}
+{"source":"cl_05_hop_obs","target":"cl_05_hop_try","relation_type":"extracted_from","confidence":0.85,"note":"cl_05 chain 1"}
+{"source":"cl_05_hop_try","target":"cl_05_hop_ans","relation_type":"REFERENCES","confidence":0.9,"note":"cl_05 chain 2"}
+{"source":"cl_05_hub","target":"cl_05_hop_obs","relation_type":"REFERENCES","confidence":0.45,"note":"cl_05 hub edge"}
+{"source":"cl_05_hub","target":"cl_05_hop_try","relation_type":"extracted_from","confidence":0.45,"note":"cl_05 hub edge"}
+{"source":"cl_05_hub","target":"cl_05_hop_ans","relation_type":"extracted_from","confidence":0.45,"note":"cl_05 hub edge"}
+{"source":"cl_05_hub","target":"cl_05_direct","relation_type":"REFERENCES","confidence":0.45,"note":"cl_05 hub edge"}
+{"source":"cl_05_hub","target":"cl_05_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_05 stale trap path"}
+{"source":"cl_06_hop_obs","target":"cl_06_hop_try","relation_type":"extracted_from","confidence":0.85,"note":"cl_06 chain 1"}
+{"source":"cl_06_hop_try","target":"cl_06_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_06 chain 2"}
+{"source":"cl_06_hub","target":"cl_06_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_06 hub edge"}
+{"source":"cl_06_hub","target":"cl_06_hop_try","relation_type":"supported_by","confidence":0.45,"note":"cl_06 hub edge"}
+{"source":"cl_06_hub","target":"cl_06_hop_ans","relation_type":"supported_by","confidence":0.45,"note":"cl_06 hub edge"}
+{"source":"cl_06_hub","target":"cl_06_direct","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_06 hub edge"}
+{"source":"cl_06_hub","target":"cl_06_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_06 stale trap path"}
+{"source":"cl_07_hop_obs","target":"cl_07_hop_try","relation_type":"CONTRASTS_WITH","confidence":0.85,"note":"cl_07 chain 1"}
+{"source":"cl_07_hop_try","target":"cl_07_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_07 chain 2"}
+{"source":"cl_07_hub","target":"cl_07_hop_obs","relation_type":"extracted_from","confidence":0.45,"note":"cl_07 hub edge"}
+{"source":"cl_07_hub","target":"cl_07_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_07 hub edge"}
+{"source":"cl_07_hub","target":"cl_07_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_07 hub edge"}
+{"source":"cl_07_hub","target":"cl_07_direct","relation_type":"extracted_from","confidence":0.45,"note":"cl_07 hub edge"}
+{"source":"cl_07_hub","target":"cl_07_trap_wrong","relation_type":"extracted_from","confidence":0.7,"note":"cl_07 stale trap path"}
+{"source":"cl_08_hop_obs","target":"cl_08_hop_try","relation_type":"supported_by","confidence":0.85,"note":"cl_08 chain 1"}
+{"source":"cl_08_hop_try","target":"cl_08_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_08 chain 2"}
+{"source":"cl_08_hub","target":"cl_08_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_08 hub edge"}
+{"source":"cl_08_hub","target":"cl_08_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_08 hub edge"}
+{"source":"cl_08_hub","target":"cl_08_hop_ans","relation_type":"extracted_from","confidence":0.45,"note":"cl_08 hub edge"}
+{"source":"cl_08_hub","target":"cl_08_direct","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_08 hub edge"}
+{"source":"cl_08_hub","target":"cl_08_trap_wrong","relation_type":"REFERENCES","confidence":0.7,"note":"cl_08 stale trap path"}
+{"source":"cl_09_hop_obs","target":"cl_09_hop_try","relation_type":"REFERENCES","confidence":0.85,"note":"cl_09 chain 1"}
+{"source":"cl_09_hop_try","target":"cl_09_hop_ans","relation_type":"REFERENCES","confidence":0.9,"note":"cl_09 chain 2"}
+{"source":"cl_09_hub","target":"cl_09_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_09 hub edge"}
+{"source":"cl_09_hub","target":"cl_09_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_09 hub edge"}
+{"source":"cl_09_hub","target":"cl_09_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_09 hub edge"}
+{"source":"cl_09_hub","target":"cl_09_direct","relation_type":"extracted_from","confidence":0.45,"note":"cl_09 hub edge"}
+{"source":"cl_09_hub","target":"cl_09_trap_wrong","relation_type":"extracted_from","confidence":0.7,"note":"cl_09 stale trap path"}
+{"source":"cl_10_hop_obs","target":"cl_10_hop_try","relation_type":"REFERENCES","confidence":0.85,"note":"cl_10 chain 1"}
+{"source":"cl_10_hop_try","target":"cl_10_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_10 chain 2"}
+{"source":"cl_10_hub","target":"cl_10_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_10 hub edge"}
+{"source":"cl_10_hub","target":"cl_10_hop_try","relation_type":"extracted_from","confidence":0.45,"note":"cl_10 hub edge"}
+{"source":"cl_10_hub","target":"cl_10_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_10 hub edge"}
+{"source":"cl_10_hub","target":"cl_10_direct","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_10 hub edge"}
+{"source":"cl_10_hub","target":"cl_10_trap_wrong","relation_type":"extracted_from","confidence":0.7,"note":"cl_10 stale trap path"}
+{"source":"cl_11_hop_obs","target":"cl_11_hop_try","relation_type":"extracted_from","confidence":0.85,"note":"cl_11 chain 1"}
+{"source":"cl_11_hop_try","target":"cl_11_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_11 chain 2"}
+{"source":"cl_11_hub","target":"cl_11_hop_obs","relation_type":"REFERENCES","confidence":0.45,"note":"cl_11 hub edge"}
+{"source":"cl_11_hub","target":"cl_11_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_11 hub edge"}
+{"source":"cl_11_hub","target":"cl_11_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_11 hub edge"}
+{"source":"cl_11_hub","target":"cl_11_direct","relation_type":"extracted_from","confidence":0.45,"note":"cl_11 hub edge"}
+{"source":"cl_11_hub","target":"cl_11_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_11 stale trap path"}
+{"source":"cl_12_hop_obs","target":"cl_12_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_12 chain 1"}
+{"source":"cl_12_hop_try","target":"cl_12_hop_ans","relation_type":"BELONGS_TO","confidence":0.9,"note":"cl_12 chain 2"}
+{"source":"cl_12_hub","target":"cl_12_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_12 hub edge"}
+{"source":"cl_12_hub","target":"cl_12_hop_try","relation_type":"REFERENCES","confidence":0.45,"note":"cl_12 hub edge"}
+{"source":"cl_12_hub","target":"cl_12_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_12 hub edge"}
+{"source":"cl_12_hub","target":"cl_12_direct","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_12 hub edge"}
+{"source":"cl_12_hub","target":"cl_12_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_12 stale trap path"}
+{"source":"cl_13_hop_obs","target":"cl_13_hop_try","relation_type":"supported_by","confidence":0.85,"note":"cl_13 chain 1"}
+{"source":"cl_13_hop_try","target":"cl_13_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_13 chain 2"}
+{"source":"cl_13_hub","target":"cl_13_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_13 hub edge"}
+{"source":"cl_13_hub","target":"cl_13_hop_try","relation_type":"REFERENCES","confidence":0.45,"note":"cl_13 hub edge"}
+{"source":"cl_13_hub","target":"cl_13_hop_ans","relation_type":"extracted_from","confidence":0.45,"note":"cl_13 hub edge"}
+{"source":"cl_13_hub","target":"cl_13_direct","relation_type":"REFERENCES","confidence":0.45,"note":"cl_13 hub edge"}
+{"source":"cl_13_hub","target":"cl_13_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_13 stale trap path"}
+{"source":"cl_14_hop_obs","target":"cl_14_hop_try","relation_type":"REFERENCES","confidence":0.85,"note":"cl_14 chain 1"}
+{"source":"cl_14_hop_try","target":"cl_14_hop_ans","relation_type":"BELONGS_TO","confidence":0.9,"note":"cl_14 chain 2"}
+{"source":"cl_14_hub","target":"cl_14_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_14 hub edge"}
+{"source":"cl_14_hub","target":"cl_14_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_14 hub edge"}
+{"source":"cl_14_hub","target":"cl_14_hop_ans","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_14 hub edge"}
+{"source":"cl_14_hub","target":"cl_14_direct","relation_type":"supported_by","confidence":0.45,"note":"cl_14 hub edge"}
+{"source":"cl_14_hub","target":"cl_14_trap_wrong","relation_type":"BELONGS_TO","confidence":0.7,"note":"cl_14 stale trap path"}
+{"source":"cl_15_hop_obs","target":"cl_15_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_15 chain 1"}
+{"source":"cl_15_hop_try","target":"cl_15_hop_ans","relation_type":"REFERENCES","confidence":0.9,"note":"cl_15 chain 2"}
+{"source":"cl_15_hub","target":"cl_15_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_15 hub edge"}
+{"source":"cl_15_hub","target":"cl_15_hop_try","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_15 hub edge"}
+{"source":"cl_15_hub","target":"cl_15_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_15 hub edge"}
+{"source":"cl_15_hub","target":"cl_15_direct","relation_type":"REFERENCES","confidence":0.45,"note":"cl_15 hub edge"}
+{"source":"cl_15_hub","target":"cl_15_trap_wrong","relation_type":"extracted_from","confidence":0.7,"note":"cl_15 stale trap path"}
+{"source":"cl_16_hop_obs","target":"cl_16_hop_try","relation_type":"extracted_from","confidence":0.85,"note":"cl_16 chain 1"}
+{"source":"cl_16_hop_try","target":"cl_16_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_16 chain 2"}
+{"source":"cl_16_hub","target":"cl_16_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_16 hub edge"}
+{"source":"cl_16_hub","target":"cl_16_hop_try","relation_type":"supported_by","confidence":0.45,"note":"cl_16 hub edge"}
+{"source":"cl_16_hub","target":"cl_16_hop_ans","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_16 hub edge"}
+{"source":"cl_16_hub","target":"cl_16_direct","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_16 hub edge"}
+{"source":"cl_16_hub","target":"cl_16_trap_wrong","relation_type":"supported_by","confidence":0.7,"note":"cl_16 stale trap path"}
+{"source":"cl_17_hop_obs","target":"cl_17_hop_try","relation_type":"REFERENCES","confidence":0.85,"note":"cl_17 chain 1"}
+{"source":"cl_17_hop_try","target":"cl_17_hop_ans","relation_type":"extracted_from","confidence":0.9,"note":"cl_17 chain 2"}
+{"source":"cl_17_hub","target":"cl_17_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_17 hub edge"}
+{"source":"cl_17_hub","target":"cl_17_hop_try","relation_type":"REFERENCES","confidence":0.45,"note":"cl_17 hub edge"}
+{"source":"cl_17_hub","target":"cl_17_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_17 hub edge"}
+{"source":"cl_17_hub","target":"cl_17_direct","relation_type":"REFERENCES","confidence":0.45,"note":"cl_17 hub edge"}
+{"source":"cl_17_hub","target":"cl_17_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_17 stale trap path"}
+{"source":"cl_18_hop_obs","target":"cl_18_hop_try","relation_type":"extracted_from","confidence":0.85,"note":"cl_18 chain 1"}
+{"source":"cl_18_hop_try","target":"cl_18_hop_ans","relation_type":"extracted_from","confidence":0.9,"note":"cl_18 chain 2"}
+{"source":"cl_18_hub","target":"cl_18_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_18 hub edge"}
+{"source":"cl_18_hub","target":"cl_18_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_18 hub edge"}
+{"source":"cl_18_hub","target":"cl_18_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_18 hub edge"}
+{"source":"cl_18_hub","target":"cl_18_direct","relation_type":"extracted_from","confidence":0.45,"note":"cl_18 hub edge"}
+{"source":"cl_18_hub","target":"cl_18_trap_wrong","relation_type":"CONTRASTS_WITH","confidence":0.7,"note":"cl_18 stale trap path"}
+{"source":"cl_19_hop_obs","target":"cl_19_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_19 chain 1"}
+{"source":"cl_19_hop_try","target":"cl_19_hop_ans","relation_type":"REFERENCES","confidence":0.9,"note":"cl_19 chain 2"}
+{"source":"cl_19_hub","target":"cl_19_hop_obs","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_19 hub edge"}
+{"source":"cl_19_hub","target":"cl_19_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_19 hub edge"}
+{"source":"cl_19_hub","target":"cl_19_hop_ans","relation_type":"supported_by","confidence":0.45,"note":"cl_19 hub edge"}
+{"source":"cl_19_hub","target":"cl_19_direct","relation_type":"REFERENCES","confidence":0.45,"note":"cl_19 hub edge"}
+{"source":"cl_19_hub","target":"cl_19_trap_wrong","relation_type":"REFERENCES","confidence":0.7,"note":"cl_19 stale trap path"}
+{"source":"cl_20_hop_obs","target":"cl_20_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_20 chain 1"}
+{"source":"cl_20_hop_try","target":"cl_20_hop_ans","relation_type":"extracted_from","confidence":0.9,"note":"cl_20 chain 2"}
+{"source":"cl_20_hub","target":"cl_20_hop_obs","relation_type":"extracted_from","confidence":0.45,"note":"cl_20 hub edge"}
+{"source":"cl_20_hub","target":"cl_20_hop_try","relation_type":"supported_by","confidence":0.45,"note":"cl_20 hub edge"}
+{"source":"cl_20_hub","target":"cl_20_hop_ans","relation_type":"supported_by","confidence":0.45,"note":"cl_20 hub edge"}
+{"source":"cl_20_hub","target":"cl_20_direct","relation_type":"CONTRASTS_WITH","confidence":0.45,"note":"cl_20 hub edge"}
+{"source":"cl_20_hub","target":"cl_20_trap_wrong","relation_type":"REFERENCES","confidence":0.7,"note":"cl_20 stale trap path"}
+{"source":"cl_21_hop_obs","target":"cl_21_hop_try","relation_type":"FOLLOWS","confidence":0.85,"note":"cl_21 chain 1"}
+{"source":"cl_21_hop_try","target":"cl_21_hop_ans","relation_type":"CONTRASTS_WITH","confidence":0.9,"note":"cl_21 chain 2"}
+{"source":"cl_21_hub","target":"cl_21_hop_obs","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_21 hub edge"}
+{"source":"cl_21_hub","target":"cl_21_hop_try","relation_type":"extracted_from","confidence":0.45,"note":"cl_21 hub edge"}
+{"source":"cl_21_hub","target":"cl_21_hop_ans","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_21 hub edge"}
+{"source":"cl_21_hub","target":"cl_21_direct","relation_type":"extracted_from","confidence":0.45,"note":"cl_21 hub edge"}
+{"source":"cl_21_hub","target":"cl_21_trap_wrong","relation_type":"FOLLOWS","confidence":0.7,"note":"cl_21 stale trap path"}
+{"source":"cl_22_hop_obs","target":"cl_22_hop_try","relation_type":"supported_by","confidence":0.85,"note":"cl_22 chain 1"}
+{"source":"cl_22_hop_try","target":"cl_22_hop_ans","relation_type":"extracted_from","confidence":0.9,"note":"cl_22 chain 2"}
+{"source":"cl_22_hub","target":"cl_22_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_22 hub edge"}
+{"source":"cl_22_hub","target":"cl_22_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_22 hub edge"}
+{"source":"cl_22_hub","target":"cl_22_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_22 hub edge"}
+{"source":"cl_22_hub","target":"cl_22_direct","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_22 hub edge"}
+{"source":"cl_22_hub","target":"cl_22_trap_wrong","relation_type":"CONTRASTS_WITH","confidence":0.7,"note":"cl_22 stale trap path"}
+{"source":"cl_23_hop_obs","target":"cl_23_hop_try","relation_type":"extracted_from","confidence":0.85,"note":"cl_23 chain 1"}
+{"source":"cl_23_hop_try","target":"cl_23_hop_ans","relation_type":"supported_by","confidence":0.9,"note":"cl_23 chain 2"}
+{"source":"cl_23_hub","target":"cl_23_hop_obs","relation_type":"REFERENCES","confidence":0.45,"note":"cl_23 hub edge"}
+{"source":"cl_23_hub","target":"cl_23_hop_try","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_23 hub edge"}
+{"source":"cl_23_hub","target":"cl_23_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_23 hub edge"}
+{"source":"cl_23_hub","target":"cl_23_direct","relation_type":"supported_by","confidence":0.45,"note":"cl_23 hub edge"}
+{"source":"cl_23_hub","target":"cl_23_trap_wrong","relation_type":"BELONGS_TO","confidence":0.7,"note":"cl_23 stale trap path"}
+{"source":"cl_24_hop_obs","target":"cl_24_hop_try","relation_type":"BELONGS_TO","confidence":0.85,"note":"cl_24 chain 1"}
+{"source":"cl_24_hop_try","target":"cl_24_hop_ans","relation_type":"FOLLOWS","confidence":0.9,"note":"cl_24 chain 2"}
+{"source":"cl_24_hub","target":"cl_24_hop_obs","relation_type":"supported_by","confidence":0.45,"note":"cl_24 hub edge"}
+{"source":"cl_24_hub","target":"cl_24_hop_try","relation_type":"CONTRASTS_WITH","confidence":0.45,"note":"cl_24 hub edge"}
+{"source":"cl_24_hub","target":"cl_24_hop_ans","relation_type":"supported_by","confidence":0.45,"note":"cl_24 hub edge"}
+{"source":"cl_24_hub","target":"cl_24_direct","relation_type":"REFERENCES","confidence":0.45,"note":"cl_24 hub edge"}
+{"source":"cl_24_hub","target":"cl_24_trap_wrong","relation_type":"supported_by","confidence":0.7,"note":"cl_24 stale trap path"}
+{"source":"cl_25_hop_obs","target":"cl_25_hop_try","relation_type":"REFERENCES","confidence":0.85,"note":"cl_25 chain 1"}
+{"source":"cl_25_hop_try","target":"cl_25_hop_ans","relation_type":"REFERENCES","confidence":0.9,"note":"cl_25 chain 2"}
+{"source":"cl_25_hub","target":"cl_25_hop_obs","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_25 hub edge"}
+{"source":"cl_25_hub","target":"cl_25_hop_try","relation_type":"BELONGS_TO","confidence":0.45,"note":"cl_25 hub edge"}
+{"source":"cl_25_hub","target":"cl_25_hop_ans","relation_type":"FOLLOWS","confidence":0.45,"note":"cl_25 hub edge"}
+{"source":"cl_25_hub","target":"cl_25_direct","relation_type":"supported_by","confidence":0.45,"note":"cl_25 hub edge"}
+{"source":"cl_25_hub","target":"cl_25_trap_wrong","relation_type":"REFERENCES","confidence":0.7,"note":"cl_25 stale trap path"}
+{"source":"cl_01_hub","target":"rk_trap_own_foreign","relation_type":"supported_by","confidence":0.5,"note":"cross-owner trap edge"}
+{"source":"cl_02_hub","target":"rk_trap_deleted","relation_type":"FOLLOWS","confidence":0.6,"note":"deleted trap edge"}
+{"source":"cl_03_hub","target":"rk_trap_replaced_old","relation_type":"extracted_from","confidence":0.6,"note":"superseded trap edge"}
+{"source":"cl_01_iso_ok","target":"cl_01_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_01 iso link"}
+{"source":"cl_02_iso_ok","target":"cl_02_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_02 iso link"}
+{"source":"cl_03_iso_ok","target":"cl_03_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_03 iso link"}
+{"source":"cl_04_iso_ok","target":"cl_04_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_04 iso link"}
+{"source":"cl_05_iso_ok","target":"cl_05_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_05 iso link"}
+{"source":"cl_06_iso_ok","target":"cl_06_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_06 iso link"}
+{"source":"cl_07_iso_ok","target":"cl_07_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_07 iso link"}
+{"source":"cl_08_iso_ok","target":"cl_08_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_08 iso link"}
+{"source":"cl_09_iso_ok","target":"cl_09_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_09 iso link"}
+{"source":"cl_10_iso_ok","target":"cl_10_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_10 iso link"}
+{"source":"cl_11_iso_ok","target":"cl_11_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_11 iso link"}
+{"source":"cl_12_iso_ok","target":"cl_12_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_12 iso link"}
+{"source":"cl_13_iso_ok","target":"cl_13_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_13 iso link"}
+{"source":"cl_14_iso_ok","target":"cl_14_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_14 iso link"}
+{"source":"cl_15_iso_ok","target":"cl_15_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_15 iso link"}
+{"source":"cl_16_iso_ok","target":"cl_16_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_16 iso link"}
+{"source":"cl_17_iso_ok","target":"cl_17_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_17 iso link"}
+{"source":"cl_18_iso_ok","target":"cl_18_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_18 iso link"}
+{"source":"cl_19_iso_ok","target":"cl_19_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_19 iso link"}
+{"source":"cl_20_iso_ok","target":"cl_20_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_20 iso link"}
+{"source":"cl_21_iso_ok","target":"cl_21_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_21 iso link"}
+{"source":"cl_22_iso_ok","target":"cl_22_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_22 iso link"}
+{"source":"cl_23_iso_ok","target":"cl_23_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_23 iso link"}
+{"source":"cl_24_iso_ok","target":"cl_24_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_24 iso link"}
+{"source":"cl_25_iso_ok","target":"cl_25_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_25 iso link"}
+{"source":"rk_trap_deleted","target":"rk_trap_replaced_old","relation_type":"DEPENDS_ON","confidence":0.75,"note":"lifecycle trap depends"}
+{"source":"rk_trap_own_foreign","target":"rk_trap_deleted","relation_type":"CAUSES","confidence":0.35,"note":"rare type sample"}

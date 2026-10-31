@@ -1,0 +1,456 @@
+{
+  "label_source": "agent_panel",
+  "human_gold": false,
+  "items": [
+    {
+      "queryId": "cl_01_q_single",
+      "relevantIds": [
+        "cl_01_direct"
+      ]
+    },
+    {
+      "queryId": "cl_01_q_multi",
+      "relevantIds": [
+        "cl_01_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_01_q_trap",
+      "relevantIds": [
+        "cl_01_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_02_q_single",
+      "relevantIds": [
+        "cl_02_direct"
+      ]
+    },
+    {
+      "queryId": "cl_02_q_multi",
+      "relevantIds": [
+        "cl_02_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_02_q_trap",
+      "relevantIds": [
+        "cl_02_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_03_q_single",
+      "relevantIds": [
+        "cl_03_direct"
+      ]
+    },
+    {
+      "queryId": "cl_03_q_multi",
+      "relevantIds": [
+        "cl_03_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_03_q_trap",
+      "relevantIds": [
+        "cl_03_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_04_q_single",
+      "relevantIds": [
+        "cl_04_direct"
+      ]
+    },
+    {
+      "queryId": "cl_04_q_multi",
+      "relevantIds": [
+        "cl_04_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_04_q_trap",
+      "relevantIds": [
+        "cl_04_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_05_q_single",
+      "relevantIds": [
+        "cl_05_direct"
+      ]
+    },
+    {
+      "queryId": "cl_05_q_multi",
+      "relevantIds": [
+        "cl_05_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_05_q_trap",
+      "relevantIds": [
+        "cl_05_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_06_q_single",
+      "relevantIds": [
+        "cl_06_direct"
+      ]
+    },
+    {
+      "queryId": "cl_06_q_multi",
+      "relevantIds": [
+        "cl_06_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_06_q_trap",
+      "relevantIds": [
+        "cl_06_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_07_q_single",
+      "relevantIds": [
+        "cl_07_direct"
+      ]
+    },
+    {
+      "queryId": "cl_07_q_multi",
+      "relevantIds": [
+        "cl_07_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_07_q_trap",
+      "relevantIds": [
+        "cl_07_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_08_q_single",
+      "relevantIds": [
+        "cl_08_direct"
+      ]
+    },
+    {
+      "queryId": "cl_08_q_multi",
+      "relevantIds": [
+        "cl_08_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_08_q_trap",
+      "relevantIds": [
+        "cl_08_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_09_q_single",
+      "relevantIds": [
+        "cl_09_direct"
+      ]
+    },
+    {
+      "queryId": "cl_09_q_multi",
+      "relevantIds": [
+        "cl_09_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_09_q_trap",
+      "relevantIds": [
+        "cl_09_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_10_q_single",
+      "relevantIds": [
+        "cl_10_direct"
+      ]
+    },
+    {
+      "queryId": "cl_10_q_multi",
+      "relevantIds": [
+        "cl_10_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_10_q_trap",
+      "relevantIds": [
+        "cl_10_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_11_q_single",
+      "relevantIds": [
+        "cl_11_direct"
+      ]
+    },
+    {
+      "queryId": "cl_11_q_multi",
+      "relevantIds": [
+        "cl_11_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_11_q_trap",
+      "relevantIds": [
+        "cl_11_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_12_q_single",
+      "relevantIds": [
+        "cl_12_direct"
+      ]
+    },
+    {
+      "queryId": "cl_12_q_multi",
+      "relevantIds": [
+        "cl_12_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_12_q_trap",
+      "relevantIds": [
+        "cl_12_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_13_q_single",
+      "relevantIds": [
+        "cl_13_direct"
+      ]
+    },
+    {
+      "queryId": "cl_13_q_multi",
+      "relevantIds": [
+        "cl_13_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_13_q_trap",
+      "relevantIds": [
+        "cl_13_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_14_q_single",
+      "relevantIds": [
+        "cl_14_direct"
+      ]
+    },
+    {
+      "queryId": "cl_14_q_multi",
+      "relevantIds": [
+        "cl_14_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_14_q_trap",
+      "relevantIds": [
+        "cl_14_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_15_q_single",
+      "relevantIds": [
+        "cl_15_direct"
+      ]
+    },
+    {
+      "queryId": "cl_15_q_multi",
+      "relevantIds": [
+        "cl_15_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_15_q_trap",
+      "relevantIds": [
+        "cl_15_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_16_q_single",
+      "relevantIds": [
+        "cl_16_direct"
+      ]
+    },
+    {
+      "queryId": "cl_16_q_multi",
+      "relevantIds": [
+        "cl_16_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_16_q_trap",
+      "relevantIds": [
+        "cl_16_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_17_q_single",
+      "relevantIds": [
+        "cl_17_direct"
+      ]
+    },
+    {
+      "queryId": "cl_17_q_multi",
+      "relevantIds": [
+        "cl_17_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_17_q_trap",
+      "relevantIds": [
+        "cl_17_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_18_q_single",
+      "relevantIds": [
+        "cl_18_direct"
+      ]
+    },
+    {
+      "queryId": "cl_18_q_multi",
+      "relevantIds": [
+        "cl_18_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_18_q_trap",
+      "relevantIds": [
+        "cl_18_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_19_q_single",
+      "relevantIds": [
+        "cl_19_direct"
+      ]
+    },
+    {
+      "queryId": "cl_19_q_multi",
+      "relevantIds": [
+        "cl_19_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_19_q_trap",
+      "relevantIds": [
+        "cl_19_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_20_q_single",
+      "relevantIds": [
+        "cl_20_direct"
+      ]
+    },
+    {
+      "queryId": "cl_20_q_multi",
+      "relevantIds": [
+        "cl_20_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_20_q_trap",
+      "relevantIds": [
+        "cl_20_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_21_q_single",
+      "relevantIds": [
+        "cl_21_direct"
+      ]
+    },
+    {
+      "queryId": "cl_21_q_multi",
+      "relevantIds": [
+        "cl_21_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_21_q_trap",
+      "relevantIds": [
+        "cl_21_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_22_q_single",
+      "relevantIds": [
+        "cl_22_direct"
+      ]
+    },
+    {
+      "queryId": "cl_22_q_multi",
+      "relevantIds": [
+        "cl_22_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_22_q_trap",
+      "relevantIds": [
+        "cl_22_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_23_q_single",
+      "relevantIds": [
+        "cl_23_direct"
+      ]
+    },
+    {
+      "queryId": "cl_23_q_multi",
+      "relevantIds": [
+        "cl_23_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_23_q_trap",
+      "relevantIds": [
+        "cl_23_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_24_q_single",
+      "relevantIds": [
+        "cl_24_direct"
+      ]
+    },
+    {
+      "queryId": "cl_24_q_multi",
+      "relevantIds": [
+        "cl_24_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_24_q_trap",
+      "relevantIds": [
+        "cl_24_iso_ok"
+      ]
+    },
+    {
+      "queryId": "cl_25_q_single",
+      "relevantIds": [
+        "cl_25_direct"
+      ]
+    },
+    {
+      "queryId": "cl_25_q_multi",
+      "relevantIds": [
+        "cl_25_hop_ans"
+      ]
+    },
+    {
+      "queryId": "cl_25_q_trap",
+      "relevantIds": [
+        "cl_25_iso_ok"
+      ]
+    }
+  ]
+}

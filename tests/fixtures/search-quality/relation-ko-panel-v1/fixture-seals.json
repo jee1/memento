@@ -1,0 +1,17 @@
+{
+  "version": "relation-ko-panel-v1",
+  "blind_packet_sha256": "a5df6eac4931b578ad946cf672c85170a1ff66a58cb72a7e5f9183893d859c10",
+  "split_json_sha256": "2582d083f8975dd26a9eb041367d875be8eb292f481d04d81e38cb36a5f8bf43",
+  "generator_key_sha256": "0f66ebe30bca4ea30052911643ab6e5e8b9ace1432988d2fdaed87545fd1f493",
+  "corpus_jsonl_sha256": "d252754e999bb671cb6336fdaec47c8e46f31caec824a3172bf055a2f244545d",
+  "relations_jsonl_sha256": "fa1d9146e0ad4b357b13d4b2515d77389a1b18ee8eb5bedc282eaba1871315b3",
+  "queries_json_sha256": "96e59050e699edd39af5daf8ae97d777e65cedf269cf54a4e120b3d4943782f2",
+  "first_judgment_discarded": {
+    "reason": "multi_hop 25건이 장소명·최종 규격 어휘가 hop_ans 본문에 남아 관계 없이 본문 검색만으로 정답 도달 가능(2~3 hop 필수 계약 위반). agent_panel 75/75 일치본(커밋 8c846644) 폐기.",
+    "prior_blind_packet_sha256": "cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d"
+  },
+  "reviewer_a_answers_sha256": "d150b75610b14b675d0609cede0d6c1df74594b60aeec4c0991edabe1c1a0418",
+  "reviewer_b_answers_sha256": "f258b04fca03f7bd5805cae574e04a7f4b0f53c8f41abb423500c317a118bcda",
+  "ground_truth_sha256": "fd4d064334530fed7abbafdad7236975243775d4e67ce3b331066b8dcf9e210d",
+  "panel_result_sha256": "00b514e8007d7ec984de741253db48fd59ac8385b8fa35bbc83fa0720f7c8420"
+}
