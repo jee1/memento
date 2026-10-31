@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { isMain } from './lib/cli.js';
+import { BENCHMARK_REFERENCE_TIME, withBenchmarkClock } from './lib/benchmark-clock.js';
 /**
  * macro_category별 MRR·NDCG 리포트.
  * 게이트는 커밋된 baseline 대비 상대 MRR이다. threshold_passed 는 종료에 쓰지 않는다.
@@ -112,7 +113,7 @@ async function main(): Promise<void> {
   const embeddingProvider = seeded?.embeddingProvider ?? resolveBenchmarkEmbeddingProvider();
   const vectorDims = seeded?.vectorDims ?? 384;
   /** SC-006: 코퍼스 시드 시간은 제외하고 집계·검색 구간만 측정 */
-  const started = Date.now();
+  const started = performance.now();
   try {
     const collector = new QualityMetricsCollector(db, sqliteRepositoryProvider);
     const measurement = await collector.collectCategoryMeasurement(BENCHMARK_DIR, MAPPING_PATH, {
@@ -124,10 +125,11 @@ async function main(): Promise<void> {
       seededBenchmarkIds: seeded?.seededBenchmarkIds,
       embeddingProvider,
       baselinePath: parsed.baselinePath ?? RANKING_BASELINE_PATH[scope.name],
-      elapsedMs: Date.now() - started,
+      elapsedMs: performance.now() - started,
       writeBaseline: parsed.writeBaseline,
     });
     console.log(formatEmbeddingRunHeader(embeddingProvider, vectorDims));
+    console.log(`reference_time=${BENCHMARK_REFERENCE_TIME}`);
     for (const line of outcome.stdout) {
       console.log(line);
     }
@@ -143,7 +145,7 @@ async function main(): Promise<void> {
 }
 
 if (isMain(import.meta.url)) {
-  main().catch((err) => {
+  withBenchmarkClock(main).catch((err) => {
     console.error(err);
     process.exit(1);
   });

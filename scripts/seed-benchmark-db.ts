@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** One-shot: seed benchmark-v3 to a persistent DB path for #961 tuning. */
 import { join } from 'path';
+import { withBenchmarkClock } from './lib/benchmark-clock.js';
 import { createSeededBenchmarkDatabase } from './lib/benchmark-search-database.js';
 
 async function main(): Promise<void> {
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   r.close();
 }
 
-main().catch((err) => {
+withBenchmarkClock(main).catch((err) => {
   console.error(err);
   process.exit(1);
 });
