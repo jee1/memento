@@ -5,6 +5,13 @@ import {
 } from '../../../relation/services/relation-quality-validator.js';
 import { ALL_RELATION_TYPES, type RelationType } from '../../../../shared/types/relation.js';
 import type { CollectedMetrics, RelationMetricsOptions } from './quality-metrics-types.js';
+import {
+  QUALITY_METRIC_STATE,
+  RELATION_QUALITY_METRIC_KEYS,
+  buildUniformMetricStates,
+  mergeMeasuredStates,
+  type MetricDenominators,
+} from './quality-metric-measurement.js';
 
 function isRelationType(value: string): value is RelationType {
   return (ALL_RELATION_TYPES as readonly string[]).includes(value);
@@ -16,19 +23,15 @@ type ExpectedRelations = NonNullable<RelationMetricsOptions['expectedRelations']
 const SELECT_RELATIONS_SQL = `
   SELECT source_id, target_id, relation_type, confidence
   FROM memory_relation
+  ORDER BY rowid
   LIMIT 1000
 `;
 
-/** 측정할 수 없을 때 돌려주는 지표 (키 순서는 측정 경로와 같다) */
-const ZERO_RELATION_METRICS: Readonly<Record<string, number>> = {
-  precision: 0,
-  recall: 0,
-  f1_score: 0,
-  true_positives: 0,
-  false_positives: 0,
-  false_negatives: 0,
-  confidence_compliance_rate: 0
-};
+/** 측정할 수 없을 때 쓰는 지표 키 (숫자 0 으로 채우지 않음) */
+const UNMEASURED_RELATION_METRIC_STATES = buildUniformMetricStates(
+  RELATION_QUALITY_METRIC_KEYS,
+  QUALITY_METRIC_STATE.UNMEASURED_NO_GROUND_TRUTH
+);
 
 function defaultRelationNote(hasExtracted: boolean, hasExpected: boolean): string {
   if (hasExtracted && !hasExpected) {
@@ -79,11 +82,33 @@ function measureRelations(
     extracted_count: extractedRelations.length
   });
 
+  const precisionDenominator = qualityMetrics.truePositives + qualityMetrics.falsePositives;
+  const recallDenominator = qualityMetrics.truePositives + qualityMetrics.falseNegatives;
+  const metricDenominators: MetricDenominators = {
+    precision: precisionDenominator,
+    recall: recallDenominator,
+    f1_score: null,
+    true_positives: precisionDenominator,
+    false_positives: precisionDenominator,
+    false_negatives: recallDenominator,
+    confidence_compliance_rate: qualityMetrics.truePositives,
+  };
+  const metricStateOverrides: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]> = {};
+  if (precisionDenominator === 0) {
+    metricStateOverrides.precision = QUALITY_METRIC_STATE.DENOMINATOR_ZERO;
+    metricStateOverrides.f1_score = QUALITY_METRIC_STATE.DENOMINATOR_ZERO;
+  }
+  if (recallDenominator === 0) {
+    metricStateOverrides.recall = QUALITY_METRIC_STATE.DENOMINATOR_ZERO;
+  }
+
   return {
     namespace: 'relation',
     context,
     measured_at: new Date().toISOString(),
     metrics,
+    metric_states: mergeMeasuredStates(metrics, metricStateOverrides),
+    metric_denominators: metricDenominators,
     metadata: {
       has_ground_truth: true,
       expected_relations_count: expectedRelations.length,
@@ -110,12 +135,60 @@ export class RelationMetricsCollector {
 
     // 예상 관계와 추출된 관계가 제공된 경우 실제 측정 수행
     const expectedRelations = options?.expectedRelations;
-    if (expectedRelations && extractedRelations.length > 0) {
-      return measureRelations(context, expectedRelations, extractedRelations);
+    if (expectedRelations !== undefined && expectedRelations.length > 0) {
+      return measureRelations(context, expectedRelations, extractedRelations ?? []);
     }
 
     const hasExtractedRelations = extractedRelations.length > 0;
     const hasExpectedRelations = expectedRelations !== undefined && expectedRelations.length > 0;
+
+    if (hasExtractedRelations && !hasExpectedRelations) {
+      const falsePositives = extractedRelations.length;
+      const countMetrics: Record<string, number> = {
+        true_positives: 0,
+        false_positives: falsePositives,
+        false_negatives: 0,
+      };
+      const metricStates = buildUniformMetricStates(
+        RELATION_QUALITY_METRIC_KEYS,
+        QUALITY_METRIC_STATE.UNMEASURED_NO_GROUND_TRUTH
+      );
+      metricStates.true_positives = QUALITY_METRIC_STATE.MEASURED;
+      metricStates.false_positives = QUALITY_METRIC_STATE.MEASURED;
+      metricStates.false_negatives = QUALITY_METRIC_STATE.MEASURED;
+      metricStates.precision = QUALITY_METRIC_STATE.DENOMINATOR_ZERO;
+      metricStates.recall = QUALITY_METRIC_STATE.UNMEASURED_NO_GROUND_TRUTH;
+      metricStates.f1_score = QUALITY_METRIC_STATE.DENOMINATOR_ZERO;
+      metricStates.confidence_compliance_rate = QUALITY_METRIC_STATE.UNMEASURED_NO_GROUND_TRUTH;
+
+      logger.info('관계 추출 품질 지표 수집 완료 (Ground Truth 없음, FP 만 집계)', {
+        context,
+        extracted_relations_count: extractedRelations.length,
+        false_positives: falsePositives,
+      });
+
+      return {
+        namespace: 'relation',
+        context,
+        measured_at: new Date().toISOString(),
+        metrics: countMetrics,
+        metric_states: metricStates,
+        metric_denominators: {
+          false_positives: falsePositives,
+          true_positives: falsePositives,
+          false_negatives: 0,
+          precision: falsePositives,
+          recall: 0,
+        },
+        metadata: {
+          has_ground_truth: false,
+          extracted_relations_count: extractedRelations.length,
+          expected_relations_count: 0,
+          note: 'Ground Truth 없이 추출만 있어 precision/recall 은 미측정 또는 분모 0 으로 표시합니다.',
+        },
+      };
+    }
+
     const note = defaultRelationNote(hasExtractedRelations, hasExpectedRelations);
     const expectedCount = expectedRelations?.length || 0;
 
@@ -130,7 +203,8 @@ export class RelationMetricsCollector {
       namespace: 'relation',
       context,
       measured_at: new Date().toISOString(),
-      metrics: { ...ZERO_RELATION_METRICS },
+      metrics: {},
+      metric_states: { ...UNMEASURED_RELATION_METRIC_STATES },
       metadata: {
         has_ground_truth: hasExpectedRelations,
         extracted_relations_count: extractedRelations.length,

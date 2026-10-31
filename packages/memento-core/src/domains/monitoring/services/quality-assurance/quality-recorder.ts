@@ -16,6 +16,10 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { CollectedMetrics } from './quality-metrics-collector.js';
 import type { QualityEvaluationResult } from './quality-evaluator.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import {
+  isEvaluableMetricState,
+  type QualityMetricState,
+} from './quality-metric-measurement.js';
 
 /**
  * 측정 타입
@@ -107,20 +111,32 @@ export class QualityRecorder {
       context,
       measured_at: collectedMetrics.measured_at,
       metrics: collectedMetrics.metrics,
+      metadata: collectedMetrics.metadata ?? null,
+      metric_states: collectedMetrics.metric_states ?? null,
+      metric_denominators: collectedMetrics.metric_denominators ?? null,
       evaluation: {
         status: evaluationResult.status,
         passed_count: evaluationResult.passedCount,
         failed_count: evaluationResult.failedCount,
         total_count: evaluationResult.totalCount
       },
-      metric_results: evaluationResult.metricResults.map(r => ({
+      metric_results: evaluationResult.metricResults
+        .filter(r => !r.skipped)
+        .map(r => ({
         key: r.key,
         value: r.value,
         passed: r.passed,
         threshold_value: r.threshold?.threshold_value || null,
         threshold_type: r.threshold?.threshold_type || null,
         difference: r.difference
-      }))
+      })),
+      unmeasured_metrics: evaluationResult.metricResults
+        .filter(r => r.skipped)
+        .map(r => ({
+          key: r.key,
+          measurement_state: r.measurement_state ?? null,
+          message: r.message,
+        }))
     });
 
     // warnings JSON 생성
@@ -152,8 +168,18 @@ export class QualityRecorder {
       now
     ]);
 
-    // 2. quality_metrics에 저장 (각 지표별로 UPSERT)
+    // 2. quality_metrics에 저장 (측정된 지표만 UPSERT, 미측정 키는 제거)
+    this.removeUnmeasuredQualityMetrics(
+      collectedMetrics.namespace,
+      context,
+      collectedMetrics.metric_states
+    );
+
     for (const [key, value] of Object.entries(collectedMetrics.metrics)) {
+      const state = collectedMetrics.metric_states?.[key];
+      if (state !== undefined && !isEvaluableMetricState(state)) {
+        continue;
+      }
       const metricResult = evaluationResult.metricResults.find(r => r.key === key);
       const thresholdValue = metricResult?.threshold?.threshold_value || null;
       
@@ -216,6 +242,61 @@ export class QualityRecorder {
     });
 
     return measurementId;
+  }
+
+  private removeUnmeasuredQualityMetrics(
+    namespace: string,
+    context: string,
+    metricStates: Record<string, QualityMetricState> | undefined
+  ): void {
+    if (!metricStates) {
+      return;
+    }
+    const deleteSql = `
+      DELETE FROM quality_metrics
+      WHERE metric_namespace = ? AND metric_key = ? AND context = ?
+    `;
+    for (const [key, state] of Object.entries(metricStates)) {
+      if (!isEvaluableMetricState(state)) {
+        DatabaseUtils.run(this.db, deleteSql, [namespace, key, context]);
+      }
+    }
+  }
+
+  /**
+   * 최근 측정 이력의 metrics JSON 페이로드 (리포트 표시용)
+   */
+  getLatestMeasurementPayload(
+    namespace?: string,
+    context: string = 'default'
+  ): Record<string, unknown> | null {
+    const rows = this.getMeasurementHistory(namespace, context, undefined, undefined, 1);
+    if (rows.length === 0) {
+      return null;
+    }
+    const fullRecord = DatabaseUtils.get(
+      this.db,
+      'SELECT metrics FROM quality_measurement_history WHERE id = ?',
+      [rows[0]!.id]
+    ) as { metrics?: string } | undefined;
+    if (!fullRecord?.metrics) {
+      return null;
+    }
+    try {
+      return JSON.parse(fullRecord.metrics) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * metadata 없이 metric_value 가 0 인 과거 행은 상태 불명(legacy) 으로 취급한다.
+   */
+  isLegacyUnknownMetric(payload: Record<string, unknown> | null): boolean {
+    if (!payload) {
+      return true;
+    }
+    return payload.metric_states == null && payload.metadata == null;
   }
 
   /**

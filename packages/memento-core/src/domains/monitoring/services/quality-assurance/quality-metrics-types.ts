@@ -1,6 +1,8 @@
 import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
 import type { SearchResultPair } from './vector-search-quality-metrics.js';
 import type { ExpectedRelation, ExtractedRelation } from '../../../relation/services/relation-quality-validator.js';
+import type { MetricDenominators, MetricStates } from './quality-metric-measurement.js';
+export type { MetricDenominators, MetricStates, QualityMetricState } from './quality-metric-measurement.js';
 
 export interface CollectedMetrics {
   /**
@@ -23,6 +25,16 @@ export interface CollectedMetrics {
    * 예: { 'precision_at_5': 0.85, 'recall_at_5': 0.72, ... }
    */
   metrics: Record<string, number>;
+
+  /**
+   * 지표별 측정 상태 (미측정·분모 0·실측 0 구분)
+   */
+  metric_states?: MetricStates;
+
+  /**
+   * 지표별 분모 (해당 시)
+   */
+  metric_denominators?: MetricDenominators;
 
   /**
    * 메타데이터 (선택적)

@@ -29,6 +29,12 @@ import { HybridSearchFactory } from '../../../search/factories/hybrid-search.fac
 import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 import type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { CollectedMetrics, SearchMetricsOptions } from './quality-metrics-types.js';
+import {
+  QUALITY_METRIC_STATE,
+  SEARCH_QUALITY_METRIC_KEYS,
+  buildUniformMetricStates,
+  mergeMeasuredStates,
+} from './quality-metric-measurement.js';
 
 type SearchResultPair = { vectorOnly: SearchResult[]; withConsolidation: SearchResult[] };
 type FullResultsByQuery = Map<string, { items: HybridSearchResult[] }>;
@@ -70,8 +76,9 @@ export function calculateMRR(
 function computeRankingMetricsAtK(
   groundTruths: GroundTruth[],
   queryResults: Map<string, SearchResult[]>
-): Record<string, number> {
+): { metrics: Record<string, number>; metricStates: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]> } {
   const metrics: Record<string, number> = {};
+  const metricStates: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]> = {};
   const kValues = [5, 10];
   for (const k of kValues) {
     let sumPrecision = 0;
@@ -93,17 +100,21 @@ function computeRankingMetricsAtK(
       validQueries++;
     }
 
+    const keys = [`precision_at_${k}`, `recall_at_${k}`, `ndcg_at_${k}`] as const;
     if (validQueries > 0) {
       metrics[`precision_at_${k}`] = sumPrecision / validQueries;
       metrics[`recall_at_${k}`] = sumRecall / validQueries;
       metrics[`ndcg_at_${k}`] = sumNDCG / validQueries;
+      for (const key of keys) {
+        metricStates[key] = QUALITY_METRIC_STATE.MEASURED;
+      }
     } else {
-      metrics[`precision_at_${k}`] = 0;
-      metrics[`recall_at_${k}`] = 0;
-      metrics[`ndcg_at_${k}`] = 0;
+      for (const key of keys) {
+        metricStates[key] = QUALITY_METRIC_STATE.UNMEASURED_INSUFFICIENT_SAMPLE;
+      }
     }
   }
-  return metrics;
+  return { metrics, metricStates };
 }
 
 /** 벡터 단독 대비 consolidation 결과의 Kendall's Tau·Top5/Top10 유지율 평균. */
@@ -149,25 +160,12 @@ function computeOrderPreservationMetrics(
   return metrics;
 }
 
-/** Ground Truth 가 없을 때 돌려주는 지표 */
-const EMPTY_SEARCH_METRICS: Readonly<Record<string, number>> = {
-  precision_at_5: 0,
-  precision_at_10: 0,
-  recall_at_5: 0,
-  recall_at_10: 0,
-  ndcg_at_5: 0,
-  ndcg_at_10: 0,
-  mrr: 0,
-  kendalls_tau: 0,
-  top_5_retention: 0,
-  top_10_retention: 0
-};
+/** Ground Truth 가 없을 때 숫자 0 대신 미측정 상태만 둔다 */
+const UNMEASURED_SEARCH_METRIC_STATES = buildUniformMetricStates(
+  SEARCH_QUALITY_METRIC_KEYS,
+  QUALITY_METRIC_STATE.UNMEASURED_NO_GROUND_TRUTH
+);
 
-const EMPTY_ORDER_PRESERVATION_METRICS: Readonly<Record<string, number>> = {
-  kendalls_tau: 0,
-  top_5_retention: 0,
-  top_10_retention: 0
-};
 
 const SEARCH_LIMIT = 20;
 const NO_PAIRS_REASON = '검색 결과가 부족하거나 vectorScore/finalScore가 없을 수 있습니다';
@@ -343,25 +341,80 @@ export class SearchMetricsCollector {
       queryResults = await this.searchGroundTruths(groundTruths, benchmark, fullResultsByQuery, context);
     }
 
-    const metrics = hasItems(groundTruths) && queryResults
-      ? await this.measure(groundTruths, queryResults, fullResultsByQuery, options?.searchResultPairs, context)
-      : this.emptyMetrics(context);
+    const hasRankingInputs = hasItems(groundTruths) && queryResults;
+    const hasOrderPairs = hasItems(options?.searchResultPairs);
+
+    let metrics: {
+      metrics: Record<string, number>;
+      metric_states: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]>;
+      metric_denominators?: Record<string, number | null>;
+    };
+    if (hasRankingInputs) {
+      metrics = await this.measure(
+        groundTruths!,
+        queryResults!,
+        fullResultsByQuery,
+        options?.searchResultPairs,
+        context
+      );
+    } else if (hasOrderPairs) {
+      metrics = this.measureOrderPreservationOnly(options!.searchResultPairs!, context);
+    } else {
+      metrics = this.unmeasuredMetrics(context);
+    }
+
+    const metadata = groundTruthMetadata(options, groundTruths, queryResults);
+    if (!hasItems(groundTruths)) {
+      metadata.note =
+        'Ground Truth 데이터가 없어 랭킹 지표를 미측정으로 기록했습니다. 실제 측정을 위해서는 Ground Truth 데이터가 필요합니다.';
+    }
 
     return {
       namespace: 'search',
       context,
       measured_at: new Date().toISOString(),
-      metrics,
-      metadata: groundTruthMetadata(options, groundTruths, queryResults)
+      metrics: metrics.metrics,
+      metric_states: metrics.metric_states,
+      metric_denominators: metrics.metric_denominators,
+      metadata,
     };
   }
 
-  private emptyMetrics(context: string): Record<string, number> {
-    logger.info('검색 품질 지표 수집 완료 (기본값)', {
-      context,
-      note: 'Ground Truth 데이터가 없어 기본값을 반환했습니다. 실제 측정을 위해서는 Ground Truth 데이터가 필요합니다.'
+  private measureOrderPreservationOnly(
+    searchResultPairs: SearchResultPair[],
+    context: string
+  ): {
+    metrics: Record<string, number>;
+    metric_states: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]>;
+  } {
+    const orderMetrics = computeOrderPreservationMetrics(searchResultPairs);
+    const metricStates = mergeMeasuredStates(orderMetrics, {
+      kendalls_tau: QUALITY_METRIC_STATE.MEASURED,
+      top_5_retention: QUALITY_METRIC_STATE.MEASURED,
+      top_10_retention: QUALITY_METRIC_STATE.MEASURED,
     });
-    return { ...EMPTY_SEARCH_METRICS };
+    for (const key of SEARCH_QUALITY_METRIC_KEYS) {
+      if (!(key in metricStates)) {
+        metricStates[key] = QUALITY_METRIC_STATE.UNMEASURED_NO_GROUND_TRUTH;
+      }
+    }
+    logger.info('검색 순서 보존 지표만 수집', { context, pairCount: searchResultPairs.length });
+    return { metrics: orderMetrics, metric_states: metricStates };
+  }
+
+  private unmeasuredMetrics(context: string): {
+    metrics: Record<string, number>;
+    metric_states: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]>;
+    metric_denominators?: undefined;
+  } {
+    logger.info('검색 품질 지표 수집 완료 (미측정)', {
+      context,
+      note: 'Ground Truth 데이터가 없어 기본값(0) 대신 미측정 상태를 반환했습니다.',
+    });
+    return {
+      metrics: {},
+      metric_states: { ...UNMEASURED_SEARCH_METRIC_STATES },
+    };
   }
 
   /**
@@ -407,18 +460,29 @@ export class SearchMetricsCollector {
     }
   }
 
-  /** 랭킹 지표·MRR·순서 보존 지표 */
   private async measure(
     groundTruths: GroundTruth[],
     queryResults: Map<string, SearchResult[]>,
     fullResultsByQuery: FullResultsByQuery,
     givenPairs: SearchResultPair[] | undefined,
     context: string
-  ): Promise<Record<string, number>> {
-    const metrics: Record<string, number> = {
-      ...computeRankingMetricsAtK(groundTruths, queryResults),
-      mrr: calculateMRR(queryResults, groundTruths)
-    };
+  ): Promise<{
+    metrics: Record<string, number>;
+    metric_states: Record<string, typeof QUALITY_METRIC_STATE[keyof typeof QUALITY_METRIC_STATE]>;
+    metric_denominators: Record<string, number | null>;
+  }> {
+    const ranking = computeRankingMetricsAtK(groundTruths, queryResults);
+    const metrics: Record<string, number> = { ...ranking.metrics };
+    const metricStates = { ...ranking.metricStates };
+
+    const mrr = calculateMRR(queryResults, groundTruths);
+    const hasAnyQueryResults = [...queryResults.values()].some(r => r.length > 0);
+    if (hasAnyQueryResults) {
+      metrics.mrr = mrr;
+      metricStates.mrr = QUALITY_METRIC_STATE.MEASURED;
+    } else {
+      metricStates.mrr = QUALITY_METRIC_STATE.UNMEASURED_INSUFFICIENT_SAMPLE;
+    }
 
     const searchResultPairs = hasItems(givenPairs)
       ? givenPairs
@@ -426,8 +490,13 @@ export class SearchMetricsCollector {
 
     if (searchResultPairs.length > 0) {
       Object.assign(metrics, computeOrderPreservationMetrics(searchResultPairs));
+      for (const key of ['kendalls_tau', 'top_5_retention', 'top_10_retention'] as const) {
+        metricStates[key] = QUALITY_METRIC_STATE.MEASURED;
+      }
     } else {
-      Object.assign(metrics, EMPTY_ORDER_PRESERVATION_METRICS);
+      metricStates.kendalls_tau = QUALITY_METRIC_STATE.UNMEASURED_INSUFFICIENT_SAMPLE;
+      metricStates.top_5_retention = QUALITY_METRIC_STATE.UNMEASURED_INSUFFICIENT_SAMPLE;
+      metricStates.top_10_retention = QUALITY_METRIC_STATE.UNMEASURED_INSUFFICIENT_SAMPLE;
       logger.warn('Kendall\'s Tau 계산 불가: searchResultPairs가 비어있습니다', {
         context,
         groundTruthCount: groundTruths.length,
@@ -442,7 +511,13 @@ export class SearchMetricsCollector {
       kendalls_tau: metrics.kendalls_tau,
       searchResultPairsCount: searchResultPairs.length
     });
-    return metrics;
+    return {
+      metrics,
+      metric_states: mergeMeasuredStates(metrics, metricStates),
+      metric_denominators: {
+        mrr: groundTruths.length,
+      },
+    };
   }
 
   /**
