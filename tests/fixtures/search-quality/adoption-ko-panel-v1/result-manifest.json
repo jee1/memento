@@ -1,0 +1,160 @@
+{
+  "version": "adoption-ko-panel-v1",
+  "status": "not_run",
+  "registered_at": null,
+  "dataset_sha256": "f698a88b99dc10c16c6935513d7d3e6f90dded5c4a7672a5b1db7a1fdb123e19",
+  "corpus_sha256": "6690b8876c43534613d896eae6279e9adc19b05029c48922c6fd3f27b738507b",
+  "queries_sha256": "be62c0c501e491427eb12fcc5199dafd6d16ab35a543ec7847d46ceeff7304b1",
+  "split_sha256": "6b9b5dda17d02fe635273f5c1fcc5258147b8ef6417e86814c7cbb669a40c153",
+  "gold": {
+    "label_source": "agent_panel",
+    "path": "panel-result.json",
+    "sha256": "e8d7a7e82dc0c43aca674c3ca7e36312ca6602b325fb209a687778fecc0cdfcb",
+    "frozen_at": "2026-10-31T12:33:04.759437Z",
+    "agreement_count": 60,
+    "ambiguous_count": 3,
+    "gold_count": 57,
+    "retrieval_path": "ground-truth.json",
+    "retrieval_sha256": "2b575e38b8a39b4353392bf9e353d7282db0add180fdca752802e30aa964b32a",
+    "retrieval_gold_count": 55
+  },
+  "reviewers": [
+    {
+      "reviewer_id": "머슴4",
+      "model": "Gemini 3.8 Flash (High)",
+      "judged_at": "2026-10-31T10:26:00Z",
+      "rubric_version": "adoption-ko-panel-v1",
+      "data_sha256": "c33e916158d7162c669458a1389d513e6d6894e1fc6977dfefa0e71e82dd900d",
+      "answers_path": "reviewer-a/answers.json",
+      "answers_sha256": "fdc0c21f4cc0615fafe3bcb10e0b41f1d9b694c12c83ec08916390472d86e1af"
+    },
+    {
+      "reviewer_id": "머슴1-reviewer-b",
+      "model": "composer-2.5",
+      "judged_at": "2026-10-31T10:20:03Z",
+      "rubric_version": "adoption-ko-panel-v1",
+      "data_sha256": "c8ebdb1da365431a9eab52de01bdfe7d0e5c9b2adce2a83c28299d57e7bc1457",
+      "answers_path": "reviewer-b/answers.json",
+      "answers_sha256": "bc6175d9ce67f95f5af83845f936d73d8f4b6412dc53fcff31b730b83841f23d"
+    }
+  ],
+  "runner": {
+    "commit_sha": null,
+    "command": null
+  },
+  "systems": {
+    "baseline_commit": null,
+    "candidate_commit": null,
+    "prompt_sha256": null,
+    "provider": null,
+    "model_version": null
+  },
+  "preregistration": {
+    "primary_endpoint": "gate.false_retire_rate",
+    "repeat_count": null,
+    "max_actual_calls": null,
+    "thresholds": null,
+    "regression_tolerance": null,
+    "eligible_case_ids_sha256": null
+  },
+  "stages": {
+    "retrieval": null,
+    "gate": null,
+    "final_answer": null,
+    "execution": null
+  },
+  "actual_calls": {
+    "panel_preparation": 0,
+    "provider_attempts": null
+  },
+  "claims": "합성 agent_panel 오류 발견용. 운영 안전·오류율 보장 없음. 미측정 값은 null. 결과 열람 전 실험 조건을 채우고 별도 manifest 바이트를 동결한다.",
+  "aggregation": {
+    "runner_path": "scripts/aggregate-adoption-panel.ts",
+    "runner_sha256": "e0827e868c44102e630e82ac693568d89b0fa4f73cd6375dd357bd1d6c5ce34d",
+    "repository_base_commit": "5d23bd6d29a881b919e2d5ae4ca7c26ba29dff76",
+    "command": "npx tsx scripts/aggregate-adoption-panel.ts",
+    "contract_review_sha256": "e0b2ab356bd982af3ab26a99275d200f8ef1ff662f9ca6b7496d25b824c9023a"
+  },
+  "eligible_denominators": {
+    "input": 60,
+    "gate_positive": 30,
+    "gate_negative": 27,
+    "gate_ambiguous": 3,
+    "gate_judgable": 57,
+    "final_answer_contracts": 57,
+    "retrieval_contracts": 55,
+    "execution_evidence": 0
+  },
+  "unmeasured_metrics": {
+    "recall_at_10": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "mrr_at_10": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "retire_precision": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "detection": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "false_retire_rate": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "system_defer_rate": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "final_answer_success": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "forbidden_exposure": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "execution_success": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    },
+    "zero_error_one_sided_upper95": {
+      "numerator": null,
+      "denominator": null,
+      "value": null,
+      "ci95": null,
+      "reason": "system_not_run"
+    }
+  }
+}

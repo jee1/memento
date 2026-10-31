@@ -125,3 +125,7 @@ npm run quality:agent-memory:production -- \
 ## 7. 공개 여부
 
 이슈 #767은 "수치가 낮으면 공개하지 말고 내부 개선 지표로만 사용"을 완료 조건에 두었습니다. 위 수치는 프로덕션 경로가 단순 FTS 베이스라인에 크게 못 미치므로 **대외 공개 대상이 아니며**, LoCoMo는 라이선스상 상업적 사용도 불가합니다. 현재는 내부 회귀 지표로만 유지하고, 프로덕션 검색이 베이스라인을 넘어선 뒤 재검토합니다.
+
+## 채택 계약 agent_panel (#1545)
+
+[한국어 합성 60건의 채택 계약 fixture](../../../tests/fixtures/search-quality/adoption-ko-panel-v1/README.md)는 서로 다른 모델 2명의 블라인드 판정과 원본 SHA를 보존합니다. gate·최종 답 계약은 퇴역 30/유지 27/보류 3, retrieval 근거 계약은 55건입니다. `agent_panel`은 사람 gold가 아니며 기존 strict benchmark 조건을 완화하지 않습니다. 시스템 성능·실행 성공률은 아직 null입니다. 100% 라벨 일치는 판별력 증명이 아니며, 난이도 분포와 별도 어려운 사례 판본 계획도 fixture에 기록했습니다.
