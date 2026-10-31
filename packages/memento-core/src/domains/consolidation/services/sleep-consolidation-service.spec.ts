@@ -48,6 +48,17 @@ function insertEmbedding(
   );
 }
 
+function llmSummary(content: string) {
+  return { ok: true as const, content, method: 'llm' as const };
+}
+
+function episodicImportance(db: Database.Database, id: string): number {
+  const row = DatabaseUtils.get(db, `SELECT importance FROM memory_item WHERE id = ?`, [id]) as {
+    importance: number;
+  };
+  return row.importance;
+}
+
 describe('SleepConsolidationService', () => {
   let db: Database.Database;
 
@@ -62,7 +73,7 @@ describe('SleepConsolidationService', () => {
     db.close();
   });
 
-  it('creates semantic, relations, and marks episodics consolidated', async () => {
+  it('creates semantic, relations, and marks episodics consolidated when LLM summary succeeds', async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.GEMINI_API_KEY;
     const emb = [1, 0, 0, 0];
@@ -72,10 +83,16 @@ describe('SleepConsolidationService', () => {
       insertEmbedding(db, id, emb);
     }
 
+    const summarization = new SummarizationService();
+    vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(
+      llmSummary('merged semantic body')
+    );
+
     const { createRelationGraph } = await import(
       '../../../infrastructure/relation-graph-factory.js'
     );
     const svc = new SleepConsolidationService(db, {
+      summarizationService: summarization,
       relationGraph: createRelationGraph(db)
     });
     const result = await svc.run({ ownerIdFilter: 'agent-x' });
@@ -92,7 +109,7 @@ describe('SleepConsolidationService', () => {
       context: { source_episodic_ids: string[]; summarization_method: string };
     };
     expect(origin.context.source_episodic_ids).toHaveLength(10);
-    expect(origin.context.summarization_method).toBe('extractive');
+    expect(origin.context.summarization_method).toBe('llm');
 
     const semEmb = DatabaseUtils.get(
       db,
@@ -172,7 +189,13 @@ describe('SleepConsolidationService', () => {
       detectCycle: vi.fn()
     } as unknown as IRelationGraph;
 
-    const svc = new SleepConsolidationService(db, { relationGraph: mockRg });
+    const summarization = new SummarizationService();
+    vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('ok summary'));
+
+    const svc = new SleepConsolidationService(db, {
+      relationGraph: mockRg,
+      summarizationService: summarization
+    });
     const result = await svc.run({ ownerIdFilter: 'o1' });
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.semanticsCreated).toBe(1);
@@ -215,7 +238,7 @@ describe('SleepConsolidationService', () => {
     vi.spyOn(slow, 'summarizeCluster').mockImplementation(
       () =>
         new Promise(resolve => {
-          setTimeout(() => resolve({ content: 'x', method: 'extractive' as const }), 200);
+          setTimeout(() => resolve(llmSummary('x')), 200);
         })
     );
     const svc = new SleepConsolidationService(db, {
@@ -229,7 +252,7 @@ describe('SleepConsolidationService', () => {
     await p1;
   });
 
-  it('FR-002: 병합 요약이 비어 있으면 기존 시맨틱 갱신 없이 신규 시맨틱 삽입으로 폴백하고 에피소딕을 표시 완료 처리한다', async () => {
+  it('FR-002: 병합 요약이 비어 있으면 통합하지 않고 에피소딕 상태를 유지한다 (#1549)', async () => {
     vi.stubEnv('CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD', '0.5');
     delete process.env.OPENAI_API_KEY;
     delete process.env.GEMINI_API_KEY;
@@ -257,9 +280,10 @@ describe('SleepConsolidationService', () => {
     });
 
     const summarization = new SummarizationService();
+    vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('cluster summary'));
     vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue({
-      content: '',
-      method: 'extractive'
+      ok: false,
+      reason: 'empty_response'
     });
 
     const { createRelationGraph } = await import(
@@ -272,14 +296,14 @@ describe('SleepConsolidationService', () => {
     });
     const result = await svc.run({ ownerIdFilter: 'agent-x' });
     expect(result.semanticsMerged).toBe(0);
-    expect(result.semanticsCreated).toBe(1);
-    expect(result.episodicsConsolidated).toBe(10);
+    expect(result.semanticsCreated).toBe(0);
+    expect(result.episodicsConsolidated).toBe(0);
 
     const pending = DatabaseUtils.get(
       db,
       `SELECT COUNT(*) AS c FROM memory_item WHERE type = 'episodic' AND COALESCE(is_consolidated,0) = 0`
     ) as { c: number };
-    expect(Number(pending.c)).toBe(0);
+    expect(Number(pending.c)).toBe(10);
 
     const unchanged = DatabaseUtils.get(
       db,
@@ -319,8 +343,11 @@ describe('SleepConsolidationService', () => {
     const { createRelationGraph } = await import(
       '../../../infrastructure/relation-graph-factory.js'
     );
+    const summarization = new SummarizationService();
+    vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('cluster summary'));
     const svc = new SleepConsolidationService(db, {
       memoryEmbeddingService: memEmb,
+      summarizationService: summarization,
       relationGraph: createRelationGraph(db)
     });
     await svc.run({ ownerIdFilter: 'agent-x' });
@@ -454,7 +481,9 @@ describe('SleepConsolidationService', () => {
     const emb = [1, 0, 0, 0];
     const provider = 'tfidf';
 
-    async function setupTripleCluster() {
+    async function setupTripleCluster(extra?: {
+      summarizationService?: SummarizationService;
+    }) {
       insertEpisodic(db, 'e0', { owner: 'agent-x', content: 'topic seed body' });
       insertEpisodic(db, 'e1', { owner: 'agent-x', content: 'topic member one' });
       insertEpisodic(db, 'e2', { owner: 'agent-x', content: 'topic member two' });
@@ -473,7 +502,8 @@ describe('SleepConsolidationService', () => {
       const svc = new SleepConsolidationService(db, {
         memoryEmbeddingService: memEmb,
         relationGraph: createRelationGraph(db),
-        clusterJudge
+        clusterJudge,
+        summarizationService: extra?.summarizationService
       });
       return { svc, clusterJudge, memEmb };
     }
@@ -501,7 +531,9 @@ describe('SleepConsolidationService', () => {
     it('J3: non-dry run consolidates accepted members only', async () => {
       delete process.env.OPENAI_API_KEY;
       delete process.env.GEMINI_API_KEY;
-      const { svc, clusterJudge } = await setupTripleCluster();
+      const summarization = new SummarizationService();
+      vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('topic summary'));
+      const { svc, clusterJudge } = await setupTripleCluster({ summarizationService: summarization });
       clusterJudge.scorePairs.mockResolvedValue([0.9, 0.1]);
 
       const result = await svc.run({ ownerIdFilter: 'agent-x' });
@@ -556,10 +588,10 @@ describe('SleepConsolidationService', () => {
       });
 
       const summarization = new SummarizationService();
-      vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue({
-        content: 'merged summary',
-        method: 'extractive'
-      });
+      vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('cluster summary'));
+      vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue(
+        llmSummary('merged summary')
+      );
 
       const { createRelationGraph } = await import(
         '../../../infrastructure/relation-graph-factory.js'
@@ -635,10 +667,10 @@ describe('SleepConsolidationService', () => {
       });
 
       const summarization = new SummarizationService();
-      vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue({
-        content: 'merged summary',
-        method: 'extractive'
-      });
+      vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('cluster summary'));
+      vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue(
+        llmSummary('merged summary')
+      );
 
       const { createRelationGraph } = await import(
         '../../../infrastructure/relation-graph-factory.js'
@@ -727,9 +759,12 @@ describe('SleepConsolidationService', () => {
         })
       };
 
+      const summarization = new SummarizationService();
+      vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('ok'));
       const svc = new SleepConsolidationService(db, {
         memoryEmbeddingService: memEmb,
-        relationGraph: failingGraph
+        relationGraph: failingGraph,
+        summarizationService: summarization
       });
 
       const result = await svc.run({ ownerIdFilter: 'agent-x' });
@@ -741,6 +776,109 @@ describe('SleepConsolidationService', () => {
         `SELECT COUNT(*) AS c FROM memory_item WHERE type = 'episodic' AND COALESCE(is_consolidated,0) = 0`
       ) as { c: number };
       expect(Number(unmarked.c)).toBe(10);
+    });
+  });
+
+  describe('#1549: defer insufficient consolidation', () => {
+    const emb = [1, 0, 0, 0];
+
+    it('without LLM keys does not mark episodics consolidated (regression fixture)', async () => {
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      insertEpisodic(db, 'e0', { owner: 'agent-x', importance: 0.9, content: 'alpha body' });
+      insertEpisodic(db, 'e1', { owner: 'agent-x', importance: 0.4, content: 'beta body' });
+      insertEmbedding(db, 'e0', emb);
+      insertEmbedding(db, 'e1', emb);
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const svc = new SleepConsolidationService(db, {
+        relationGraph: createRelationGraph(db)
+      });
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(result.semanticsCreated).toBe(0);
+      expect(result.episodicsConsolidated).toBe(0);
+      expect(result.errors.some(e => e.error === 'deferred:no_llm_configured')).toBe(true);
+      expect(episodicImportance(db, 'e0')).toBe(0.9);
+      expect(episodicImportance(db, 'e1')).toBe(0.4);
+    });
+
+    it('429 stops remaining clusters and leaves all episodics for a later run', async () => {
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      const embA = [1, 0, 0, 0];
+      const embB = [0, 1, 0, 0];
+      for (let i = 0; i < 5; i++) {
+        insertEpisodic(db, `a${i}`, { owner: 'agent-x' });
+        insertEmbedding(db, `a${i}`, embA);
+      }
+      for (let i = 0; i < 5; i++) {
+        insertEpisodic(db, `b${i}`, { owner: 'agent-x' });
+        insertEmbedding(db, `b${i}`, embB);
+      }
+
+      const summarization = new SummarizationService();
+      let clusterCalls = 0;
+      vi.spyOn(summarization, 'summarizeCluster').mockImplementation(async () => {
+        clusterCalls++;
+        if (clusterCalls === 1) {
+          return { ok: false, reason: 'quota_exceeded' };
+        }
+        return llmSummary('should not run');
+      });
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const svc = new SleepConsolidationService(db, {
+        summarizationService: summarization,
+        relationGraph: createRelationGraph(db)
+      });
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(result.stoppedDueToQuota).toBe(true);
+      expect(result.semanticsCreated).toBe(0);
+      expect(clusterCalls).toBe(1);
+      expect(result.errors.some(e => e.error === 'deferred:run_stopped_after_quota')).toBe(true);
+
+      const pending = DatabaseUtils.get(
+        db,
+        `SELECT COUNT(*) AS c FROM memory_item WHERE type = 'episodic' AND COALESCE(is_consolidated,0) = 0`
+      ) as { c: number };
+      expect(Number(pending.c)).toBe(10);
+
+      clusterCalls = 0;
+      vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('recovered'));
+      const retry = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(retry.semanticsCreated).toBeGreaterThanOrEqual(1);
+      expect(retry.episodicsConsolidated).toBeGreaterThan(0);
+    });
+
+    it('LLM success path unchanged', async () => {
+      vi.stubEnv('GEMINI_API_KEY', 'g-test');
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: '  real summary  ' }] } }]
+        })
+      }) as typeof fetch;
+
+      for (let i = 0; i < 10; i++) {
+        const id = `e${i}`;
+        insertEpisodic(db, id, { owner: 'agent-x' });
+        insertEmbedding(db, id, emb);
+      }
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const svc = new SleepConsolidationService(db, {
+        relationGraph: createRelationGraph(db)
+      });
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(result.semanticsCreated).toBe(1);
+      expect(result.episodicsConsolidated).toBe(10);
+      expect(result.stoppedDueToQuota).toBeFalsy();
     });
   });
 });
