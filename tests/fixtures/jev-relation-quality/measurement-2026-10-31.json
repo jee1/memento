@@ -1,0 +1,335 @@
+{
+  "fixture_sha256": "cb9ecfa468fba73654c422db275f3844ee3b66977bcc9b5d6f3581bfaf4a3854",
+  "human_reviewed": true,
+  "preregistration_sha256": "15fbd3baad6d96315c7ce5baecfc1c0f5d140b7fb532ed39d47997ed1a6abea9",
+  "model": "jev-1.14.0",
+  "baseline": {
+    "revision": "eca3dcf58ade077124a28d5baf09dd9a0c123f06",
+    "code_sha256": "584883008120f91a36682d0728a7f0468a669411ffbd1123c15a164a49f23b56",
+    "model": "jev-1.14.0",
+    "created_at": "2026-10-31T00:26:46.604Z",
+    "evaluable_count": 42,
+    "ambiguous_count": 6,
+    "accepted_count": 36,
+    "type_precision": 0.8333333333333334,
+    "unrelated_connection_rate": 0.05555555555555555,
+    "unrelated_false_positive_rate": 0.25,
+    "false_negative_rate": 0.11764705882352941,
+    "rejection_rate": 0.14285714285714285,
+    "error_rate": 0,
+    "wrong_type_count": 4,
+    "by_type": {
+      "CAUSES": {
+        "expected": 4,
+        "predicted": 3,
+        "correct": 3,
+        "precision": 1,
+        "missed_rate": 0.25
+      },
+      "DEPENDS_ON": {
+        "expected": 4,
+        "predicted": 3,
+        "correct": 3,
+        "precision": 1,
+        "missed_rate": 0.25
+      },
+      "FOLLOWS": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "CONTRASTS_WITH": {
+        "expected": 8,
+        "predicted": 10,
+        "correct": 8,
+        "precision": 0.8,
+        "missed_rate": 0
+      },
+      "REFERENCES": {
+        "expected": 6,
+        "predicted": 10,
+        "correct": 6,
+        "precision": 0.6,
+        "missed_rate": 0
+      },
+      "BELONGS_TO": {
+        "expected": 4,
+        "predicted": 2,
+        "correct": 2,
+        "precision": 1,
+        "missed_rate": 0.5
+      }
+    },
+    "jev_calls": 90,
+    "retries": 0,
+    "response_models": [
+      "jev-1.14.0"
+    ],
+    "peer_results": [
+      {
+        "id": "amb01",
+        "status": "ok",
+        "relation_type": "FOLLOWS"
+      },
+      {
+        "id": "amb02",
+        "status": "ok",
+        "relation_type": null
+      }
+    ],
+    "mistakes": [
+      {
+        "id": "cause03",
+        "predicted": "REFERENCES",
+        "expected": [
+          "CAUSES"
+        ]
+      },
+      {
+        "id": "dep03",
+        "predicted": "REFERENCES",
+        "expected": [
+          "DEPENDS_ON"
+        ]
+      },
+      {
+        "id": "bel02",
+        "predicted": "REFERENCES",
+        "expected": [
+          "BELONGS_TO"
+        ]
+      },
+      {
+        "id": "bel04",
+        "predicted": "REFERENCES",
+        "expected": [
+          "BELONGS_TO"
+        ]
+      },
+      {
+        "id": "unrel06",
+        "predicted": "CONTRASTS_WITH",
+        "expected": []
+      },
+      {
+        "id": "unrel08",
+        "predicted": "CONTRASTS_WITH",
+        "expected": []
+      }
+    ]
+  },
+  "candidate": {
+    "revision": "48c46774506145770b8985cfa0e7943d18eafc3e",
+    "code_sha256": "b1acc00ab3b60820ebf3b2a066637966dc73cf35d47a1589c0b1b436556de732",
+    "model": "jev-1.14.0",
+    "created_at": "2026-10-31T00:37:07.141Z",
+    "evaluable_count": 42,
+    "ambiguous_count": 6,
+    "accepted_count": 33,
+    "type_precision": 0.9696969696969697,
+    "unrelated_connection_rate": 0,
+    "unrelated_false_positive_rate": 0,
+    "false_negative_rate": 0.058823529411764705,
+    "rejection_rate": 0.21428571428571427,
+    "error_rate": 0,
+    "wrong_type_count": 1,
+    "by_type": {
+      "CAUSES": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "DEPENDS_ON": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "FOLLOWS": {
+        "expected": 8,
+        "predicted": 7,
+        "correct": 7,
+        "precision": 1,
+        "missed_rate": 0.125
+      },
+      "CONTRASTS_WITH": {
+        "expected": 8,
+        "predicted": 7,
+        "correct": 7,
+        "precision": 1,
+        "missed_rate": 0.125
+      },
+      "REFERENCES": {
+        "expected": 6,
+        "predicted": 7,
+        "correct": 6,
+        "precision": 0.8571428571428571,
+        "missed_rate": 0
+      },
+      "BELONGS_TO": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      }
+    },
+    "jev_calls": 87,
+    "retries": 0,
+    "response_models": [
+      "jev-1.14.0"
+    ],
+    "peer_results": [
+      {
+        "id": "amb01",
+        "status": "ok",
+        "relation_type": "FOLLOWS"
+      },
+      {
+        "id": "amb02",
+        "status": "ok",
+        "relation_type": null
+      }
+    ],
+    "mistakes": [
+      {
+        "id": "follow07",
+        "predicted": "REFERENCES",
+        "expected": [
+          "FOLLOWS"
+        ]
+      },
+      {
+        "id": "contrast04",
+        "predicted": null,
+        "expected": [
+          "CONTRASTS_WITH"
+        ]
+      }
+    ],
+    "gates": {
+      "per_type_precision": true,
+      "per_type_correct": false,
+      "target_errors": true,
+      "unrelated_count": true,
+      "unrelated_among_accepted": true,
+      "false_negative": true,
+      "per_type_missed": false,
+      "coverage": true,
+      "rejection": true,
+      "errors": true,
+      "peer_forbidden": true
+    }
+  },
+  "candidate_repeat": {
+    "revision": "48c46774506145770b8985cfa0e7943d18eafc3e",
+    "code_sha256": "b1acc00ab3b60820ebf3b2a066637966dc73cf35d47a1589c0b1b436556de732",
+    "model": "jev-1.14.0",
+    "created_at": "2026-10-31T00:37:32.086Z",
+    "evaluable_count": 42,
+    "ambiguous_count": 6,
+    "accepted_count": 34,
+    "type_precision": 0.9705882352941176,
+    "unrelated_connection_rate": 0,
+    "unrelated_false_positive_rate": 0,
+    "false_negative_rate": 0.029411764705882353,
+    "rejection_rate": 0.19047619047619047,
+    "error_rate": 0,
+    "wrong_type_count": 1,
+    "by_type": {
+      "CAUSES": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "DEPENDS_ON": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "FOLLOWS": {
+        "expected": 8,
+        "predicted": 7,
+        "correct": 7,
+        "precision": 1,
+        "missed_rate": 0.125
+      },
+      "CONTRASTS_WITH": {
+        "expected": 8,
+        "predicted": 8,
+        "correct": 8,
+        "precision": 1,
+        "missed_rate": 0
+      },
+      "REFERENCES": {
+        "expected": 6,
+        "predicted": 7,
+        "correct": 6,
+        "precision": 0.8571428571428571,
+        "missed_rate": 0
+      },
+      "BELONGS_TO": {
+        "expected": 4,
+        "predicted": 4,
+        "correct": 4,
+        "precision": 1,
+        "missed_rate": 0
+      }
+    },
+    "jev_calls": 87,
+    "retries": 0,
+    "response_models": [
+      "jev-1.14.0"
+    ],
+    "peer_results": [
+      {
+        "id": "amb01",
+        "status": "ok",
+        "relation_type": "FOLLOWS"
+      },
+      {
+        "id": "amb02",
+        "status": "ok",
+        "relation_type": null
+      }
+    ],
+    "mistakes": [
+      {
+        "id": "follow07",
+        "predicted": "REFERENCES",
+        "expected": [
+          "FOLLOWS"
+        ]
+      }
+    ],
+    "gates": {
+      "per_type_precision": true,
+      "per_type_correct": false,
+      "target_errors": true,
+      "unrelated_count": true,
+      "unrelated_among_accepted": true,
+      "false_negative": true,
+      "per_type_missed": false,
+      "coverage": true,
+      "rejection": true,
+      "errors": true,
+      "peer_forbidden": true
+    }
+  },
+  "jev_calls_total": 264,
+  "preregistration_addendum_sha256": "d1e84e13803025f3c1a3fece073e2b7c75fa231ec658e1e8eb1f4b15d827c8a8",
+  "all_gates_passed": false,
+  "jev_calls_scope": "Baseline + candidate2 + candidate2-repeat; baseline reused from original experiment.",
+  "stage2_jev_calls_total": 440,
+  "original_experiment_passed": false,
+  "independent_holdout": false
+}
