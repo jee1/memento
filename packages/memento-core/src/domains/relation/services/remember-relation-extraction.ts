@@ -12,6 +12,8 @@ import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedd
 import { JevRelationJudge, RELATION_JEV_TIMEOUT_MS } from './jev-relation-judge.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import { RelationExtractor } from './relation-extractor.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
+import { recordLlmUsageLogicalFinal } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 export type RememberRelationOutcome =
   | { readonly status: 'extracted'; readonly candidates: readonly RelationCandidate[] }
@@ -80,7 +82,7 @@ function getOrCreateJevJudge(apiKey: string, model: string): JevRelationJudge {
     });
     cachedJevJudge = {
       key: cacheKey,
-      judge: new JevRelationJudge(client, getSharedRememberEmbeddingService()),
+      judge: new JevRelationJudge(client, getSharedRememberEmbeddingService(), model),
     };
   }
   return cachedJevJudge.judge;
@@ -105,15 +107,29 @@ export async function extractForRemember(
     if (!hasTypesafeKey(config.typesafeApiKey)) {
       return { status: 'unavailable' };
     }
-    const judge = getOrCreateJevJudge(config.typesafeApiKey.trim(), config.typesafeModel);
-    const judged = await judge.judge(source, existing);
-    if (judged.ok === false) {
-      return { status: 'failed', reason: judged.reason };
-    }
-    if (judged.candidates.length === 0) {
-      return { status: 'none' };
-    }
-    return { status: 'extracted', candidates: judged.candidates };
+    const model = config.typesafeModel;
+    return runWithLlmUsageLogicalContext('relation_extraction', null, async () => {
+      const judge = getOrCreateJevJudge(config.typesafeApiKey!.trim(), model);
+      const judged = await judge.judge(source, existing);
+      if (judged.ok === false) {
+        recordLlmUsageLogicalFinal({
+          finalPath: 'deferred',
+          finalReason: judged.reason,
+          provider: 'typesafe',
+          model,
+        });
+        return { status: 'failed', reason: judged.reason };
+      }
+      recordLlmUsageLogicalFinal({
+        finalPath: 'llm',
+        provider: 'typesafe',
+        model,
+      });
+      if (judged.candidates.length === 0) {
+        return { status: 'none' };
+      }
+      return { status: 'extracted', candidates: judged.candidates };
+    });
   }
   return extractWithChat(source, existing);
 }

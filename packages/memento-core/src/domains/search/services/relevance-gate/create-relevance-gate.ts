@@ -31,7 +31,11 @@ export function createRelevanceGate(): IRelevanceGatePort | null {
         model: mementoConfig.typesafeModel,
         timeoutMs: mementoConfig.searchRejectionGateTimeoutMs,
       });
-      const gateInstance = new JevRelevanceGate(client, mementoConfig.searchRejectionGateDocChars);
+      const gateInstance = new JevRelevanceGate(
+        client,
+        mementoConfig.typesafeModel ?? 'jev-latest',
+        mementoConfig.searchRejectionGateDocChars,
+      );
 
       logger.info('Relevance rejection gate enabled', {
         provider: 'typesafe',

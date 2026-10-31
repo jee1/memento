@@ -24,7 +24,11 @@ function makeGate(overrides: {
     baseUrl: overrides.baseUrl,
     timeoutMs: overrides.timeoutMs,
   });
-  return new JevRelevanceGate(client, overrides.docChars);
+  return new JevRelevanceGate(
+    client,
+    overrides.model ?? 'jev-latest',
+    overrides.docChars,
+  );
 }
 
 afterEach(() => {
