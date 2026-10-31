@@ -1,0 +1,18 @@
+{
+  "status": "design_registered_before_input_generator",
+  "registered_at": "2026-10-31T13:12:34.630277+00:00",
+  "protocol_sha256": "2051e3b9f8a3db312a5b80214c8f1fb875ddd83461163ad982609f0968f32a5b",
+  "base_commit": "4ac152a6afb5caff4dfc961235e210db37b8cd78",
+  "stage": "panel_preparation_only",
+  "gold_count": 0,
+  "system_calls": 0,
+  "initial_protocol_sha256": "339ae0462a8336cb01e7ffbe1b56bc64f4f146e917be7b2cbfc9ea4bbed87c29",
+  "amended_at": "2026-10-31T13:20:10.762120+00:00",
+  "amendment": "Before panel distribution/system execution: preserve derived-memory ages, pair held denominators, link B clusters across batches, freeze runtime thresholds. Independent plan review read no candidate gold.",
+  "adjudication_amendment": {
+    "at": "2026-10-31T13:58:26.903617+00:00",
+    "authority": "2026-10-31 user instruction: two agent adjudicators; both true only; same-vendor limitation",
+    "previous_protocol_sha256": "5db69f50369ea8db0ab953e02859fa3e68c9fba9d596a1d701ba047311a87685",
+    "system_results_seen": false
+  }
+}

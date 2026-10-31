@@ -1,0 +1,10 @@
+{
+  "test_sequences": 25,
+  "comparisons": 2,
+  "alpha_each": 0.025,
+  "ideal_discordant_count": 7,
+  "ideal_two_sided_exact_p": 0.015625,
+  "ideal_observed_effect_pp": 28.0,
+  "ideal_one_directional_effect_for_80pct_power": 0.3404589154560198,
+  "caveat": "Ideal favorable-discordance-only calculation, not a general power guarantee."
+}

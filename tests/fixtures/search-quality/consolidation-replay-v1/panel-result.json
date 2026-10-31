@@ -1,0 +1,2361 @@
+{
+  "label_source": "agent_panel",
+  "human_gold": false,
+  "same_vendor_adjudicators": true,
+  "summary": {
+    "checkpoints": 90,
+    "contract_gold": 58,
+    "held": 32,
+    "retrieval_gold": 58,
+    "complete_dev": 2,
+    "planned_dev": 5,
+    "complete_test": 10,
+    "planned_test": 25
+  },
+  "decisions": [
+    {
+      "checkpoint_id": "cr_02ed2463abff_t1",
+      "sequence_id": "cr_02ed2463abff",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t1",
+      "sequence_id": "cr_0861bd25a8ad",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_0861bd25a8ad_o1",
+        "cr_0861bd25a8ad_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_0861bd25a8ad_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_0861bd25a8ad_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t1",
+      "sequence_id": "cr_1f3e4823215b",
+      "stage": 1,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_1f3e4823215b_o1",
+        "cr_1f3e4823215b_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_1f3e4823215b_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_1f3e4823215b_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t1",
+      "sequence_id": "cr_215a7f41a363",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_215a7f41a363_o1",
+        "cr_215a7f41a363_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_215a7f41a363_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_215a7f41a363_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t1",
+      "sequence_id": "cr_2703804c1441",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t1",
+      "sequence_id": "cr_29d0d8367872",
+      "stage": 1,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_29d0d8367872_o1",
+        "cr_29d0d8367872_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_29d0d8367872_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_29d0d8367872_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t1",
+      "sequence_id": "cr_2bc6447b6989",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_2bc6447b6989_o1",
+        "cr_2bc6447b6989_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_2bc6447b6989_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_2bc6447b6989_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t1",
+      "sequence_id": "cr_32f59875d5f3",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_32f59875d5f3_o1",
+        "cr_32f59875d5f3_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_32f59875d5f3_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_32f59875d5f3_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t1",
+      "sequence_id": "cr_49bae2d5f8ed",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_49bae2d5f8ed_o1",
+        "cr_49bae2d5f8ed_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_49bae2d5f8ed_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_49bae2d5f8ed_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t1",
+      "sequence_id": "cr_4d74b8c87993",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_4d74b8c87993_o1",
+        "cr_4d74b8c87993_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_4d74b8c87993_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_4d74b8c87993_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t1",
+      "sequence_id": "cr_668798d106b4",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_668798d106b4_o1",
+        "cr_668798d106b4_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_668798d106b4_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_668798d106b4_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t1",
+      "sequence_id": "cr_6b7dc6c6eb04",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_6b7dc6c6eb04_o1",
+        "cr_6b7dc6c6eb04_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_6b7dc6c6eb04_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_6b7dc6c6eb04_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t1",
+      "sequence_id": "cr_7350982d59af",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7350982d59af_o1",
+        "cr_7350982d59af_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_7350982d59af_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_7350982d59af_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t1",
+      "sequence_id": "cr_7d41de362ce0",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7d41de362ce0_o1",
+        "cr_7d41de362ce0_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_7d41de362ce0_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_7d41de362ce0_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t1",
+      "sequence_id": "cr_7e751ae71a7a",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7e751ae71a7a_o1",
+        "cr_7e751ae71a7a_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_7e751ae71a7a_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_7e751ae71a7a_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t1",
+      "sequence_id": "cr_8295228a4783",
+      "stage": 1,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_8295228a4783_o1",
+        "cr_8295228a4783_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_8295228a4783_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_8295228a4783_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t1",
+      "sequence_id": "cr_84e726281e76",
+      "stage": 1,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_84e726281e76_o1",
+        "cr_84e726281e76_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_84e726281e76_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_84e726281e76_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t1",
+      "sequence_id": "cr_8dd0ef55898a",
+      "stage": 1,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t1",
+      "sequence_id": "cr_90512f4a7ff3",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_90512f4a7ff3_o1",
+        "cr_90512f4a7ff3_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_90512f4a7ff3_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_90512f4a7ff3_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t1",
+      "sequence_id": "cr_91a07a3fa4aa",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_91a07a3fa4aa_o1",
+        "cr_91a07a3fa4aa_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_91a07a3fa4aa_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_91a07a3fa4aa_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t1",
+      "sequence_id": "cr_9bd884941ba5",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t1",
+      "sequence_id": "cr_a20719a89ae7",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_a20719a89ae7_o1",
+        "cr_a20719a89ae7_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_a20719a89ae7_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_a20719a89ae7_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t1",
+      "sequence_id": "cr_ad8d7cf4c0a6",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t1",
+      "sequence_id": "cr_b1a1e731f99f",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_b1a1e731f99f_o1",
+        "cr_b1a1e731f99f_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_b1a1e731f99f_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_b1a1e731f99f_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t1",
+      "sequence_id": "cr_b5417ab0076e",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_b5417ab0076e_o1",
+        "cr_b5417ab0076e_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_b5417ab0076e_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_b5417ab0076e_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t1",
+      "sequence_id": "cr_c66f61b183ea",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t1",
+      "sequence_id": "cr_d47265f60808",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_d47265f60808_o1",
+        "cr_d47265f60808_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_d47265f60808_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_d47265f60808_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t1",
+      "sequence_id": "cr_d9eb67f931bb",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_d9eb67f931bb_o1",
+        "cr_d9eb67f931bb_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_d9eb67f931bb_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_d9eb67f931bb_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t1",
+      "sequence_id": "cr_dcfc7c02c76c",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_dcfc7c02c76c_o1",
+        "cr_dcfc7c02c76c_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_dcfc7c02c76c_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_dcfc7c02c76c_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t1",
+      "sequence_id": "cr_e5f75b0acfa6",
+      "stage": 1,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_e5f75b0acfa6_o1",
+        "cr_e5f75b0acfa6_o2"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage1-a-answers.sealed.json",
+          "checkpoint_id": "cr_e5f75b0acfa6_t1"
+        },
+        "b": {
+          "submission": "adjudication/stage1-b-answers.sealed.json",
+          "checkpoint_id": "cr_e5f75b0acfa6_t1"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t2",
+      "sequence_id": "cr_02ed2463abff",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t2",
+      "sequence_id": "cr_0861bd25a8ad",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_0861bd25a8ad_o1",
+        "cr_0861bd25a8ad_o2",
+        "cr_0861bd25a8ad_o3",
+        "cr_0861bd25a8ad_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_0861bd25a8ad_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_0861bd25a8ad_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t2",
+      "sequence_id": "cr_1f3e4823215b",
+      "stage": 2,
+      "split": "dev",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t2",
+      "sequence_id": "cr_215a7f41a363",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_215a7f41a363_o1",
+        "cr_215a7f41a363_o2",
+        "cr_215a7f41a363_o3",
+        "cr_215a7f41a363_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_215a7f41a363_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_215a7f41a363_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t2",
+      "sequence_id": "cr_2703804c1441",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t2",
+      "sequence_id": "cr_29d0d8367872",
+      "stage": 2,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_29d0d8367872_o1",
+        "cr_29d0d8367872_o2",
+        "cr_29d0d8367872_o3",
+        "cr_29d0d8367872_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_29d0d8367872_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_29d0d8367872_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t2",
+      "sequence_id": "cr_2bc6447b6989",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t2",
+      "sequence_id": "cr_32f59875d5f3",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_32f59875d5f3_o1",
+        "cr_32f59875d5f3_o2",
+        "cr_32f59875d5f3_o3",
+        "cr_32f59875d5f3_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_32f59875d5f3_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_32f59875d5f3_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t2",
+      "sequence_id": "cr_49bae2d5f8ed",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_49bae2d5f8ed_o1",
+        "cr_49bae2d5f8ed_o2",
+        "cr_49bae2d5f8ed_o3",
+        "cr_49bae2d5f8ed_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_49bae2d5f8ed_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_49bae2d5f8ed_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t2",
+      "sequence_id": "cr_4d74b8c87993",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_4d74b8c87993_o1",
+        "cr_4d74b8c87993_o2",
+        "cr_4d74b8c87993_o3",
+        "cr_4d74b8c87993_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_4d74b8c87993_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_4d74b8c87993_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t2",
+      "sequence_id": "cr_668798d106b4",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_668798d106b4_o1",
+        "cr_668798d106b4_o2",
+        "cr_668798d106b4_o3",
+        "cr_668798d106b4_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_668798d106b4_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_668798d106b4_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t2",
+      "sequence_id": "cr_6b7dc6c6eb04",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_6b7dc6c6eb04_o1",
+        "cr_6b7dc6c6eb04_o2",
+        "cr_6b7dc6c6eb04_o3",
+        "cr_6b7dc6c6eb04_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_6b7dc6c6eb04_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_6b7dc6c6eb04_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t2",
+      "sequence_id": "cr_7350982d59af",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7350982d59af_o1",
+        "cr_7350982d59af_o2",
+        "cr_7350982d59af_o3",
+        "cr_7350982d59af_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_7350982d59af_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_7350982d59af_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t2",
+      "sequence_id": "cr_7d41de362ce0",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7d41de362ce0_o1",
+        "cr_7d41de362ce0_o2",
+        "cr_7d41de362ce0_o3",
+        "cr_7d41de362ce0_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_7d41de362ce0_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_7d41de362ce0_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t2",
+      "sequence_id": "cr_7e751ae71a7a",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7e751ae71a7a_o1",
+        "cr_7e751ae71a7a_o2",
+        "cr_7e751ae71a7a_o3",
+        "cr_7e751ae71a7a_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_7e751ae71a7a_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_7e751ae71a7a_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t2",
+      "sequence_id": "cr_8295228a4783",
+      "stage": 2,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t2",
+      "sequence_id": "cr_84e726281e76",
+      "stage": 2,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_84e726281e76_o1",
+        "cr_84e726281e76_o2",
+        "cr_84e726281e76_o3",
+        "cr_84e726281e76_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_84e726281e76_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_84e726281e76_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t2",
+      "sequence_id": "cr_8dd0ef55898a",
+      "stage": 2,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_8dd0ef55898a_o1",
+        "cr_8dd0ef55898a_o2",
+        "cr_8dd0ef55898a_o3",
+        "cr_8dd0ef55898a_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_8dd0ef55898a_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_8dd0ef55898a_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t2",
+      "sequence_id": "cr_90512f4a7ff3",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_90512f4a7ff3_o1",
+        "cr_90512f4a7ff3_o2",
+        "cr_90512f4a7ff3_o3",
+        "cr_90512f4a7ff3_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_90512f4a7ff3_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_90512f4a7ff3_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t2",
+      "sequence_id": "cr_91a07a3fa4aa",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_91a07a3fa4aa_o1",
+        "cr_91a07a3fa4aa_o2",
+        "cr_91a07a3fa4aa_o3",
+        "cr_91a07a3fa4aa_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_91a07a3fa4aa_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_91a07a3fa4aa_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t2",
+      "sequence_id": "cr_9bd884941ba5",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t2",
+      "sequence_id": "cr_a20719a89ae7",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_a20719a89ae7_o1",
+        "cr_a20719a89ae7_o2",
+        "cr_a20719a89ae7_o3",
+        "cr_a20719a89ae7_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_a20719a89ae7_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_a20719a89ae7_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t2",
+      "sequence_id": "cr_ad8d7cf4c0a6",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_ad8d7cf4c0a6_o1",
+        "cr_ad8d7cf4c0a6_o2",
+        "cr_ad8d7cf4c0a6_o3",
+        "cr_ad8d7cf4c0a6_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_ad8d7cf4c0a6_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_ad8d7cf4c0a6_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t2",
+      "sequence_id": "cr_b1a1e731f99f",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_b1a1e731f99f_o1",
+        "cr_b1a1e731f99f_o2",
+        "cr_b1a1e731f99f_o3",
+        "cr_b1a1e731f99f_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_b1a1e731f99f_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_b1a1e731f99f_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t2",
+      "sequence_id": "cr_b5417ab0076e",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t2",
+      "sequence_id": "cr_c66f61b183ea",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t2",
+      "sequence_id": "cr_d47265f60808",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_d47265f60808_o1",
+        "cr_d47265f60808_o2",
+        "cr_d47265f60808_o3",
+        "cr_d47265f60808_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_d47265f60808_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_d47265f60808_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t2",
+      "sequence_id": "cr_d9eb67f931bb",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_d9eb67f931bb_o1",
+        "cr_d9eb67f931bb_o2",
+        "cr_d9eb67f931bb_o3",
+        "cr_d9eb67f931bb_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_d9eb67f931bb_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_d9eb67f931bb_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t2",
+      "sequence_id": "cr_dcfc7c02c76c",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_dcfc7c02c76c_o1",
+        "cr_dcfc7c02c76c_o2",
+        "cr_dcfc7c02c76c_o3",
+        "cr_dcfc7c02c76c_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_dcfc7c02c76c_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_dcfc7c02c76c_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t2",
+      "sequence_id": "cr_e5f75b0acfa6",
+      "stage": 2,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_e5f75b0acfa6_o1",
+        "cr_e5f75b0acfa6_o2",
+        "cr_e5f75b0acfa6_o3",
+        "cr_e5f75b0acfa6_o4"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage2-a-answers.sealed.json",
+          "checkpoint_id": "cr_e5f75b0acfa6_t2"
+        },
+        "b": {
+          "submission": "adjudication/stage2-b-answers.sealed.json",
+          "checkpoint_id": "cr_e5f75b0acfa6_t2"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t3",
+      "sequence_id": "cr_02ed2463abff",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t3",
+      "sequence_id": "cr_0861bd25a8ad",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_0861bd25a8ad_o1",
+        "cr_0861bd25a8ad_o2",
+        "cr_0861bd25a8ad_o3",
+        "cr_0861bd25a8ad_o4",
+        "cr_0861bd25a8ad_o5",
+        "cr_0861bd25a8ad_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_0861bd25a8ad_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_0861bd25a8ad_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t3",
+      "sequence_id": "cr_1f3e4823215b",
+      "stage": 3,
+      "split": "dev",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t3",
+      "sequence_id": "cr_215a7f41a363",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t3",
+      "sequence_id": "cr_2703804c1441",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t3",
+      "sequence_id": "cr_29d0d8367872",
+      "stage": 3,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_29d0d8367872_o1",
+        "cr_29d0d8367872_o2",
+        "cr_29d0d8367872_o3",
+        "cr_29d0d8367872_o4",
+        "cr_29d0d8367872_o5",
+        "cr_29d0d8367872_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_29d0d8367872_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_29d0d8367872_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t3",
+      "sequence_id": "cr_2bc6447b6989",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t3",
+      "sequence_id": "cr_32f59875d5f3",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t3",
+      "sequence_id": "cr_49bae2d5f8ed",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_49bae2d5f8ed_o1",
+        "cr_49bae2d5f8ed_o2",
+        "cr_49bae2d5f8ed_o3",
+        "cr_49bae2d5f8ed_o4",
+        "cr_49bae2d5f8ed_o5",
+        "cr_49bae2d5f8ed_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_49bae2d5f8ed_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_49bae2d5f8ed_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t3",
+      "sequence_id": "cr_4d74b8c87993",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_4d74b8c87993_o1",
+        "cr_4d74b8c87993_o2",
+        "cr_4d74b8c87993_o3",
+        "cr_4d74b8c87993_o4",
+        "cr_4d74b8c87993_o5",
+        "cr_4d74b8c87993_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_4d74b8c87993_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_4d74b8c87993_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t3",
+      "sequence_id": "cr_668798d106b4",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+      "sequence_id": "cr_6b7dc6c6eb04",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t3",
+      "sequence_id": "cr_7350982d59af",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_7350982d59af_o1",
+        "cr_7350982d59af_o2",
+        "cr_7350982d59af_o3",
+        "cr_7350982d59af_o4",
+        "cr_7350982d59af_o5",
+        "cr_7350982d59af_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_7350982d59af_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_7350982d59af_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t3",
+      "sequence_id": "cr_7d41de362ce0",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t3",
+      "sequence_id": "cr_7e751ae71a7a",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t3",
+      "sequence_id": "cr_8295228a4783",
+      "stage": 3,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t3",
+      "sequence_id": "cr_84e726281e76",
+      "stage": 3,
+      "split": "dev",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_84e726281e76_o1",
+        "cr_84e726281e76_o2",
+        "cr_84e726281e76_o3",
+        "cr_84e726281e76_o4",
+        "cr_84e726281e76_o5",
+        "cr_84e726281e76_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_84e726281e76_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_84e726281e76_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t3",
+      "sequence_id": "cr_8dd0ef55898a",
+      "stage": 3,
+      "split": "dev",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t3",
+      "sequence_id": "cr_90512f4a7ff3",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_90512f4a7ff3_o1",
+        "cr_90512f4a7ff3_o2",
+        "cr_90512f4a7ff3_o3",
+        "cr_90512f4a7ff3_o4",
+        "cr_90512f4a7ff3_o5",
+        "cr_90512f4a7ff3_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_90512f4a7ff3_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_90512f4a7ff3_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t3",
+      "sequence_id": "cr_91a07a3fa4aa",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_91a07a3fa4aa_o1",
+        "cr_91a07a3fa4aa_o2",
+        "cr_91a07a3fa4aa_o3",
+        "cr_91a07a3fa4aa_o4",
+        "cr_91a07a3fa4aa_o5",
+        "cr_91a07a3fa4aa_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_91a07a3fa4aa_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_91a07a3fa4aa_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t3",
+      "sequence_id": "cr_9bd884941ba5",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t3",
+      "sequence_id": "cr_a20719a89ae7",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_a20719a89ae7_o1",
+        "cr_a20719a89ae7_o2",
+        "cr_a20719a89ae7_o3",
+        "cr_a20719a89ae7_o4",
+        "cr_a20719a89ae7_o5",
+        "cr_a20719a89ae7_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_a20719a89ae7_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_a20719a89ae7_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+      "sequence_id": "cr_ad8d7cf4c0a6",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t3",
+      "sequence_id": "cr_b1a1e731f99f",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_b1a1e731f99f_o1",
+        "cr_b1a1e731f99f_o2",
+        "cr_b1a1e731f99f_o3",
+        "cr_b1a1e731f99f_o4",
+        "cr_b1a1e731f99f_o5",
+        "cr_b1a1e731f99f_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_b1a1e731f99f_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_b1a1e731f99f_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t3",
+      "sequence_id": "cr_b5417ab0076e",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t3",
+      "sequence_id": "cr_c66f61b183ea",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t3",
+      "sequence_id": "cr_d47265f60808",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_d47265f60808_o1",
+        "cr_d47265f60808_o2",
+        "cr_d47265f60808_o3",
+        "cr_d47265f60808_o4",
+        "cr_d47265f60808_o5",
+        "cr_d47265f60808_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_d47265f60808_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_d47265f60808_t3"
+        }
+      }
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t3",
+      "sequence_id": "cr_d9eb67f931bb",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t3",
+      "sequence_id": "cr_dcfc7c02c76c",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "hold_reasons": [
+        "adjudicator_intersection_not_satisfied"
+      ],
+      "relevant_evidence_refs": null,
+      "contracts": null
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t3",
+      "sequence_id": "cr_e5f75b0acfa6",
+      "stage": 3,
+      "split": "test_candidate",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "hold_reasons": [],
+      "relevant_evidence_refs": [
+        "cr_e5f75b0acfa6_o1",
+        "cr_e5f75b0acfa6_o2",
+        "cr_e5f75b0acfa6_o3",
+        "cr_e5f75b0acfa6_o4",
+        "cr_e5f75b0acfa6_o5",
+        "cr_e5f75b0acfa6_o6"
+      ],
+      "contracts": {
+        "a": {
+          "submission": "adjudication/stage3-a-answers.sealed.json",
+          "checkpoint_id": "cr_e5f75b0acfa6_t3"
+        },
+        "b": {
+          "submission": "adjudication/stage3-b-answers.sealed.json",
+          "checkpoint_id": "cr_e5f75b0acfa6_t3"
+        }
+      }
+    }
+  ],
+  "sequences": [
+    {
+      "sequence_id": "cr_02ed2463abff",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_02ed2463abff_t1",
+        "cr_02ed2463abff_t2",
+        "cr_02ed2463abff_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_0861bd25a8ad",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_1f3e4823215b",
+      "split": "dev",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_1f3e4823215b_t2",
+        "cr_1f3e4823215b_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_215a7f41a363",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_215a7f41a363_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_2703804c1441",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_2703804c1441_t1",
+        "cr_2703804c1441_t2",
+        "cr_2703804c1441_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_29d0d8367872",
+      "split": "dev",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_2bc6447b6989",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_2bc6447b6989_t2",
+        "cr_2bc6447b6989_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_32f59875d5f3",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_32f59875d5f3_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_49bae2d5f8ed",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_4d74b8c87993",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_668798d106b4",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_668798d106b4_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_6b7dc6c6eb04",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_6b7dc6c6eb04_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_7350982d59af",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_7d41de362ce0",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_7d41de362ce0_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_7e751ae71a7a",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_7e751ae71a7a_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_8295228a4783",
+      "split": "dev",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_8295228a4783_t2",
+        "cr_8295228a4783_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_84e726281e76",
+      "split": "dev",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_8dd0ef55898a",
+      "split": "dev",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_8dd0ef55898a_t1",
+        "cr_8dd0ef55898a_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_90512f4a7ff3",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_91a07a3fa4aa",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_9bd884941ba5",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_9bd884941ba5_t1",
+        "cr_9bd884941ba5_t2",
+        "cr_9bd884941ba5_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_a20719a89ae7",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_ad8d7cf4c0a6",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_ad8d7cf4c0a6_t1",
+        "cr_ad8d7cf4c0a6_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_b1a1e731f99f",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_b5417ab0076e",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_b5417ab0076e_t2",
+        "cr_b5417ab0076e_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_c66f61b183ea",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_c66f61b183ea_t1",
+        "cr_c66f61b183ea_t2",
+        "cr_c66f61b183ea_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_d47265f60808",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr_d9eb67f931bb",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_d9eb67f931bb_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_dcfc7c02c76c",
+      "split": "test_candidate",
+      "complete": false,
+      "held_checkpoints": [
+        "cr_dcfc7c02c76c_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr_e5f75b0acfa6",
+      "split": "test_candidate",
+      "complete": true,
+      "held_checkpoints": []
+    }
+  ]
+}

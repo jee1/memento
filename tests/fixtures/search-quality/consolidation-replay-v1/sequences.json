@@ -1,0 +1,2916 @@
+{
+  "fixture_version": "consolidation-replay-v1",
+  "source": "synthetic-only",
+  "sequences": [
+    {
+      "sequence_id": "cr_668798d106b4",
+      "family_id": "family_668798d106b4",
+      "owner_id": "owner_668798d106b4",
+      "project_id": "project_668798d106b4",
+      "observations": [
+        {
+          "memory_id": "cr_668798d106b4_o1",
+          "type": "episodic",
+          "subject_id": "subject_668798d106b4_x",
+          "content": "예담 종이 모형 보존 절차는 접기 전에 도면 판본을 확인하고 시트의 앞뒷면을 맞춘다. 두 단계가 끝나기 전에는 첫 접기를 하지 않는다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "9086a8ed1ca56b6ea20ffe759ad187deb755f8b9726d59259a0ed5fff491f45c"
+        },
+        {
+          "memory_id": "cr_668798d106b4_o2",
+          "type": "episodic",
+          "subject_id": "subject_668798d106b4_x",
+          "content": "예담 종이 모형 보존 기록에서 도면 판본 확인과 앞뒷면 맞춤을 모두 수행했다. 도면 번호만 맞춰서는 절차가 끝나지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "44057709424d8dbbede82b2eb77ef69abcccf6d83857da544d93867e755826e6"
+        },
+        {
+          "memory_id": "cr_668798d106b4_o3",
+          "type": "episodic",
+          "subject_id": "subject_668798d106b4_x",
+          "content": "예담 종이 모형 보존에 완성품 아래 별표를 찍는 항목을 더했다. 기존 접기 전 두 단계는 유지한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "6cc72da4af2da4a203d905a108faf6010ad5d360573637e140aa4a78ea111efa"
+        },
+        {
+          "memory_id": "cr_668798d106b4_o4",
+          "type": "episodic",
+          "subject_id": "subject_668798d106b4_x",
+          "content": "예담 종이 모형 보존의 휴대 메모에는 완성품 별표만 적었다. 승인된 원본의 판본 확인·앞뒷면 맞춤을 대체하지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "a91d97b1c8efaddb46d2991ae52e2d4170d6791cf56182626ab2ace956ff2ab2"
+        },
+        {
+          "memory_id": "cr_668798d106b4_o5",
+          "type": "episodic",
+          "subject_id": "subject_668798d106b4_x",
+          "content": "예담 종이 모형 보존 작업 후 사용한 도면을 전용 봉투에 넣는다. 접기 전 판본·앞뒷면 확인도 그대로다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "255b7d51c6a2cb62c1e5b557c7185a13241c07dc11e5e569bb559ea7ccea170f"
+        },
+        {
+          "memory_id": "cr_668798d106b4_o6",
+          "type": "episodic",
+          "subject_id": "subject_668798d106b4_x",
+          "content": "예담 종이 모형 보존 최종 인수표는 선행 두 단계·완성품 별표·도면 봉투 보관이다. 원본 절차표를 함께 보존한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "aea14f6800b93486c1e6914cb5c54a993726d3efc86078671c07e67fac4ee571"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_668798d106b4_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "예담 종이 모형 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_668798d106b4",
+            "project_id": "project_668798d106b4",
+            "subject_id": "subject_668798d106b4_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_668798d106b4_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "예담 종이 모형 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_668798d106b4",
+            "project_id": "project_668798d106b4",
+            "subject_id": "subject_668798d106b4_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_668798d106b4_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "예담 종이 모형 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_668798d106b4",
+            "project_id": "project_668798d106b4",
+            "subject_id": "subject_668798d106b4_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_02ed2463abff",
+      "family_id": "family_02ed2463abff",
+      "owner_id": "owner_02ed2463abff",
+      "project_id": "project_02ed2463abff",
+      "observations": [
+        {
+          "memory_id": "cr_02ed2463abff_o1",
+          "type": "episodic",
+          "subject_id": "subject_02ed2463abff_x",
+          "content": "은재 조형물 명찰 작업 X는 모형 J의 명찰을 받침 앞면에 붙인다. 글자는 회색이고 식별번호를 먼저 대조한다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "36e729167d2dc82d2835302846280a0803de848d25e02e0ad9c5d0af90ff9122"
+        },
+        {
+          "memory_id": "cr_02ed2463abff_o2",
+          "type": "episodic",
+          "subject_id": "subject_02ed2463abff_x",
+          "content": "은재 조형물 명찰 작업 X 일지는 식별번호 대조→회색 글자 명찰→받침 앞면이다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "d8d3e03401796dd021732fb5978f2f72d27c333cfea7a349aeda024d43c68083"
+        },
+        {
+          "memory_id": "cr_02ed2463abff_o3",
+          "type": "episodic",
+          "subject_id": "subject_02ed2463abff_y",
+          "content": "은재 별개 작업 Y의 우편 상자는 뒷면에 주소표를 붙인다. 주소 글자는 녹색이며 조형물 X와 무관하다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "03200c15667cf5e80420b3af74e761ea914f4937aa9e70588532dfb02c3f3692"
+        },
+        {
+          "memory_id": "cr_02ed2463abff_o4",
+          "type": "episodic",
+          "subject_id": "subject_02ed2463abff_y",
+          "content": "은재 우편 작업 Y 체크표의 뒷면·녹색 지시는 주소표에만 해당한다. 모형 J 명찰 위치를 바꾸지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "de58db6f2f70fe33403ebb0cc056dfc4383f5a224c499aa8d5c65dbccefeb88d"
+        },
+        {
+          "memory_id": "cr_02ed2463abff_o5",
+          "type": "episodic",
+          "subject_id": "subject_02ed2463abff_x",
+          "content": "은재 조형물 명찰 작업 X에서 글자색만 남색으로 변경했다. 식별번호 선행 대조와 받침 앞면 위치는 유지한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "8ad8de22a1b06675526ea0d6e240c3b3acd535984bd0a1a1259a5a6f568386df"
+        },
+        {
+          "memory_id": "cr_02ed2463abff_o6",
+          "type": "episodic",
+          "subject_id": "subject_02ed2463abff_x",
+          "content": "은재 조형물 명찰 작업 X 최종표는 식별번호 대조 뒤 남색 명찰을 받침 앞면에 붙이는 절차다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "3bf8d8deb4527873658865d894c25d36db1888a54f481f61c5ac7c9cdb913b96"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_02ed2463abff_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "은재 조형물 명찰 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_02ed2463abff",
+            "project_id": "project_02ed2463abff",
+            "subject_id": "subject_02ed2463abff_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_02ed2463abff_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "은재 조형물 명찰 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_02ed2463abff",
+            "project_id": "project_02ed2463abff",
+            "subject_id": "subject_02ed2463abff_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_02ed2463abff_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "은재 조형물 명찰 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_02ed2463abff",
+            "project_id": "project_02ed2463abff",
+            "subject_id": "subject_02ed2463abff_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_2703804c1441",
+      "family_id": "family_2703804c1441",
+      "owner_id": "owner_2703804c1441",
+      "project_id": "project_2703804c1441",
+      "observations": [
+        {
+          "memory_id": "cr_2703804c1441_o1",
+          "type": "episodic",
+          "subject_id": "subject_2703804c1441_x",
+          "content": "고운 직물 견본 정리 X는 줄무늬 견본을 서랍 D에 넣는다. 재질표를 먼저 붙이고 길이는 15센티미터로 맞춘다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "2e3cfeb35276e8ca35075d3ebffa7a898ba99c7b1b4059bd7e91c31e805f8011"
+        },
+        {
+          "memory_id": "cr_2703804c1441_o2",
+          "type": "episodic",
+          "subject_id": "subject_2703804c1441_x",
+          "content": "고운 직물 견본 정리 X의 작업표는 재질표 부착·15센티미터·서랍 D다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "53a7cd06600b6ded649fedab1858377591931b29c0bb6bc8c9744aa1d6188dd3"
+        },
+        {
+          "memory_id": "cr_2703804c1441_o3",
+          "type": "episodic",
+          "subject_id": "subject_2703804c1441_y",
+          "content": "고운 별개 작업 Y는 포스터 통을 선반 E에 세우는 일이다. 통 높이는 60센티미터이며 재질표 대신 날짜표를 붙인다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "059459d5620a192c5c2d80e3ddc0d5f5cdf8f31d6f501b08f45f87e5f67a2eb5"
+        },
+        {
+          "memory_id": "cr_2703804c1441_o4",
+          "type": "episodic",
+          "subject_id": "subject_2703804c1441_y",
+          "content": "고운 포스터 통 작업 Y 담당자는 선반 E·60센티미터·날짜표를 확인했다. 직물 견본 X에는 적용하지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "ec708dfaaf3218d180a1c7c824b197bdecfa5777ef4ed582223e9b029b6db1e2"
+        },
+        {
+          "memory_id": "cr_2703804c1441_o5",
+          "type": "episodic",
+          "subject_id": "subject_2703804c1441_x",
+          "content": "고운 직물 견본 정리 X로 복귀하며 보관 서랍을 F로 확정 변경했다. 길이 15센티미터와 선행 재질표는 그대로다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "4ae0b7e1ddca068025085a72a64ea5ead8d97ce70ac5f3f892b663bc4e1bb240"
+        },
+        {
+          "memory_id": "cr_2703804c1441_o6",
+          "type": "episodic",
+          "subject_id": "subject_2703804c1441_x",
+          "content": "고운 직물 견본 정리 X 최신 지시는 재질표를 먼저 붙인 15센티미터 견본을 서랍 F에 넣는 절차다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "7c51ca67f92f45a90f752aa0b83756c1365386ff54d1008fe891cef65e25d65a"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_2703804c1441_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "고운 직물 견본 정리의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_2703804c1441",
+            "project_id": "project_2703804c1441",
+            "subject_id": "subject_2703804c1441_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_2703804c1441_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "고운 직물 견본 정리의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_2703804c1441",
+            "project_id": "project_2703804c1441",
+            "subject_id": "subject_2703804c1441_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_2703804c1441_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "고운 직물 견본 정리의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_2703804c1441",
+            "project_id": "project_2703804c1441",
+            "subject_id": "subject_2703804c1441_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_7350982d59af",
+      "family_id": "family_7350982d59af",
+      "owner_id": "owner_7350982d59af",
+      "project_id": "project_7350982d59af",
+      "observations": [
+        {
+          "memory_id": "cr_7350982d59af_o1",
+          "type": "episodic",
+          "subject_id": "subject_7350982d59af_x",
+          "content": "온빛 센서 부착 관찰에서 나무 받침에 붙인 센서 K 하나는 흔들림 표시가 작았다. 금속 받침은 시험하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "1643a3202e7a26bb95516c580e5dfec388a24b0369eb30ecc4ee0bd9960e740a"
+        },
+        {
+          "memory_id": "cr_7350982d59af_o2",
+          "type": "episodic",
+          "subject_id": "subject_7350982d59af_x",
+          "content": "온빛 센서 부착 관찰은 센서 K 한 개·나무 받침 한 개의 기록이다. 장치 전체의 안정성을 검증한 보고서가 아니다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "b4060b050bb65533b3f8c61f997f275e16e746338974c8bf06933e5acc21911c"
+        },
+        {
+          "memory_id": "cr_7350982d59af_o3",
+          "type": "episodic",
+          "subject_id": "subject_7350982d59af_x",
+          "content": "온빛 센서 부착 관찰에서 금속 받침에 같은 K를 붙이자 흔들림 표시가 커졌다. 나무 받침의 첫 관찰은 그대로 남긴다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "39615b6c42c8112c6113002e903868c425fd80438d486e27b3f5020c9e0c1789"
+        },
+        {
+          "memory_id": "cr_7350982d59af_o4",
+          "type": "episodic",
+          "subject_id": "subject_7350982d59af_x",
+          "content": "온빛 센서 부착 관찰 담당자는 받침 재질을 구분해 기록했다. 금속 결과를 나무 결과로 바꾸거나 둘을 평균 정책으로 만들지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "67d58b35bf80ca2dcd121c0d65495b06e3beaacbd3f07b28727f4d13a2c1e713"
+        },
+        {
+          "memory_id": "cr_7350982d59af_o5",
+          "type": "episodic",
+          "subject_id": "subject_7350982d59af_x",
+          "content": "온빛 센서 부착 관찰에서 나무 받침을 세게 두드린 시험은 표시가 커졌다. 평상시 첫 관찰과 충격 조건은 서로 다르다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "d939d74c06ef1e780c52b648a40ec1f319d2d1f9708363c7a75a071805839772"
+        },
+        {
+          "memory_id": "cr_7350982d59af_o6",
+          "type": "episodic",
+          "subject_id": "subject_7350982d59af_x",
+          "content": "온빛 센서 부착 관찰 마감은 나무 평상시 작음·금속 큼·나무 충격 시 큼이다. K가 모든 조건에서 안정적이라는 결론은 없다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "3fef38144ffb2aa4f5e2530a0e5e986ffa102da120fbf7f273c8a9afd89caca7"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_7350982d59af_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "온빛 센서 부착 관찰의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7350982d59af",
+            "project_id": "project_7350982d59af",
+            "subject_id": "subject_7350982d59af_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_7350982d59af_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "온빛 센서 부착 관찰의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7350982d59af",
+            "project_id": "project_7350982d59af",
+            "subject_id": "subject_7350982d59af_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_7350982d59af_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "온빛 센서 부착 관찰의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7350982d59af",
+            "project_id": "project_7350982d59af",
+            "subject_id": "subject_7350982d59af_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_215a7f41a363",
+      "family_id": "family_215a7f41a363",
+      "owner_id": "owner_215a7f41a363",
+      "project_id": "project_215a7f41a363",
+      "observations": [
+        {
+          "memory_id": "cr_215a7f41a363_o1",
+          "type": "episodic",
+          "subject_id": "subject_215a7f41a363_x",
+          "content": "해담 소리통 보존 작업은 시작 전에 통 식별자와 녹음 세션 식별자를 따로 확인한다. 둘이 작업표와 맞아야 시험을 시작한다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "6acb65c28e5ad7776a3972bab61f1f0725f41ff862d659d5f4b77c8565106871"
+        },
+        {
+          "memory_id": "cr_215a7f41a363_o2",
+          "type": "episodic",
+          "subject_id": "subject_215a7f41a363_x",
+          "content": "해담 소리통 보존 일지는 통 식별자·세션 식별자를 각각 적었다. 하나를 다른 하나로 대신 쓰지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "9bedf82cf0e60fc764d8a27019837c53fcd3285eb85e3bdfab55dadf23f19aa4"
+        },
+        {
+          "memory_id": "cr_215a7f41a363_o3",
+          "type": "episodic",
+          "subject_id": "subject_215a7f41a363_x",
+          "content": "해담 소리통 보존 작업에 뚜껑 옆 초록 점 표식을 추가했다. 두 식별자 선행 확인은 계속 필요하다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "2574ea9254bfe98c285b036b6dd4796db77e1c2184e9346cc39217ac2ce28e9d"
+        },
+        {
+          "memory_id": "cr_215a7f41a363_o4",
+          "type": "episodic",
+          "subject_id": "subject_215a7f41a363_x",
+          "content": "해담 소리통 보존의 축약 메모는 초록 점만 언급했다. 원본의 통·세션 식별자 대조를 폐지한 문서가 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "8708fc96496e9eb47dcf2c64061e36e1815de3475e91a52132c90f3f54d80541"
+        },
+        {
+          "memory_id": "cr_215a7f41a363_o5",
+          "type": "episodic",
+          "subject_id": "subject_215a7f41a363_x",
+          "content": "해담 소리통 보존 마감 시 통을 받침 H에 두도록 추가했다. 시험 전 두 식별자 확인은 그대로 유지한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "a4ae9035e5ff00ff07f8e9209683b5524d9895432971c11cf5248e2f30df43b6"
+        },
+        {
+          "memory_id": "cr_215a7f41a363_o6",
+          "type": "episodic",
+          "subject_id": "subject_215a7f41a363_x",
+          "content": "해담 소리통 보존 최종 기록은 통·세션 식별자 선행 대조, 초록 점, 마감 받침 H다. 원본 점검 일지는 함께 보관한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "5cab37d306faa0b82d321be027f7f6b3ac93f89295c2818d2b3a44c39ca51746"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_215a7f41a363_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "해담 소리통 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_215a7f41a363",
+            "project_id": "project_215a7f41a363",
+            "subject_id": "subject_215a7f41a363_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_215a7f41a363_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "해담 소리통 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_215a7f41a363",
+            "project_id": "project_215a7f41a363",
+            "subject_id": "subject_215a7f41a363_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_215a7f41a363_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "해담 소리통 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_215a7f41a363",
+            "project_id": "project_215a7f41a363",
+            "subject_id": "subject_215a7f41a363_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_6b7dc6c6eb04",
+      "family_id": "family_6b7dc6c6eb04",
+      "owner_id": "owner_6b7dc6c6eb04",
+      "project_id": "project_6b7dc6c6eb04",
+      "observations": [
+        {
+          "memory_id": "cr_6b7dc6c6eb04_o1",
+          "type": "episodic",
+          "subject_id": "subject_6b7dc6c6eb04_x",
+          "content": "라온 퍼즐 부품 보존 작업은 조립 전에 홈 방향을 확인하고 누락 부품 수를 센다. 두 확인을 마친 뒤에만 조립한다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "072988b48ea7a2e2e9476b44513eea92f0f76307067e07671e5179458b6f6620"
+        },
+        {
+          "memory_id": "cr_6b7dc6c6eb04_o2",
+          "type": "episodic",
+          "subject_id": "subject_6b7dc6c6eb04_x",
+          "content": "라온 퍼즐 부품 보존 일지는 홈 방향 확인·누락 수 확인을 따로 적는다. 방향만 맞는다고 부품이 모두 있다고 판단하지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "7dbfe29967248827659fba0ed84471b920928c30092570397ffc9394974e546b"
+        },
+        {
+          "memory_id": "cr_6b7dc6c6eb04_o3",
+          "type": "episodic",
+          "subject_id": "subject_6b7dc6c6eb04_x",
+          "content": "라온 퍼즐 부품 보존에 완성판 받침을 붉은색으로 맞추는 지시를 추가했다. 조립 전 두 확인은 변하지 않았다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "e36c15a110eadf2a79617359c8142a8bab5aa6f1dd4f14679e99aada48cff9dc"
+        },
+        {
+          "memory_id": "cr_6b7dc6c6eb04_o4",
+          "type": "episodic",
+          "subject_id": "subject_6b7dc6c6eb04_x",
+          "content": "라온 퍼즐 부품 보존의 빠른 전달 메모는 붉은 받침만 언급했다. 이 메모는 홈 방향과 누락 수 확인을 없애는 변경서가 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "e96476441faab55ea256c300c7bcaa5b9b92e999e0864c91313a0ffed8e48007"
+        },
+        {
+          "memory_id": "cr_6b7dc6c6eb04_o5",
+          "type": "episodic",
+          "subject_id": "subject_6b7dc6c6eb04_x",
+          "content": "라온 퍼즐 부품 보존 작업이 끝나면 남은 부품 봉투에 날짜를 적는다. 방향·누락 수 선행 확인은 그대로 유지한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "e999d4dbc1a18134b3cad6bb661ed6cb808d5596eae6dbe4a706587286c4eb9c"
+        },
+        {
+          "memory_id": "cr_6b7dc6c6eb04_o6",
+          "type": "episodic",
+          "subject_id": "subject_6b7dc6c6eb04_x",
+          "content": "라온 퍼즐 부품 보존 최신표에는 홈 방향·누락 수 확인, 붉은 받침, 잔여 봉투 날짜를 모두 남긴다. 최초 점검표도 보관한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "de366a895c66aadbf3cd0c2f16286facef71857dd4b8b9425ab55b8a0eaf7c8f"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_6b7dc6c6eb04_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "라온 퍼즐 부품 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_6b7dc6c6eb04",
+            "project_id": "project_6b7dc6c6eb04",
+            "subject_id": "subject_6b7dc6c6eb04_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_6b7dc6c6eb04_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "라온 퍼즐 부품 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_6b7dc6c6eb04",
+            "project_id": "project_6b7dc6c6eb04",
+            "subject_id": "subject_6b7dc6c6eb04_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "라온 퍼즐 부품 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_6b7dc6c6eb04",
+            "project_id": "project_6b7dc6c6eb04",
+            "subject_id": "subject_6b7dc6c6eb04_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_84e726281e76",
+      "family_id": "family_84e726281e76",
+      "owner_id": "owner_84e726281e76",
+      "project_id": "project_84e726281e76",
+      "observations": [
+        {
+          "memory_id": "cr_84e726281e76_o1",
+          "type": "episodic",
+          "subject_id": "subject_84e726281e76_x",
+          "content": "솔무 종이 접기 시험의 얇은 정사각 시트 한 장은 네 번 접어도 찢어지지 않았다. 직사각 시트는 아직 시험하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "5422544fb90445c792e3ba9a9e674553ca9347c9d71a5b1bbcbdfb1b5dd46a14"
+        },
+        {
+          "memory_id": "cr_84e726281e76_o2",
+          "type": "episodic",
+          "subject_id": "subject_84e726281e76_x",
+          "content": "솔무 종이 접기 시험 기록자는 얇은 정사각 한 장의 결과만 확인했다. 모든 종이가 네 번 접기를 견딘다고 말하지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "1c0eb7b6ed3d64759b505ee3565456c107cd89436a16b18aeb587522ab8e791a"
+        },
+        {
+          "memory_id": "cr_84e726281e76_o3",
+          "type": "episodic",
+          "subject_id": "subject_84e726281e76_x",
+          "content": "솔무 종이 접기 시험에서 두꺼운 직사각 시트는 세 번째 접기에서 갈라졌다. 얇은 정사각 결과와 다른 표본이다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "2adec94249c50283d71526ffdd6b3d3c480820248d02cbb62613f2eb8605c21d"
+        },
+        {
+          "memory_id": "cr_84e726281e76_o4",
+          "type": "episodic",
+          "subject_id": "subject_84e726281e76_x",
+          "content": "솔무 종이 접기 시험 표에는 얇은 정사각 네 번 무파손·두꺼운 직사각 세 번째 갈라짐을 각각 적었다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "86c117d70ce28bc00e7c54d66468205c7c5dd22171cb7187e68ae8d1ccc631a6"
+        },
+        {
+          "memory_id": "cr_84e726281e76_o5",
+          "type": "episodic",
+          "subject_id": "subject_84e726281e76_x",
+          "content": "솔무 종이 접기 시험에 젖은 얇은 정사각 시트를 넣자 두 번째 접기에서 찢어졌다. 마른 첫 시트 결과를 지우지 않는다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "05e87d4e45b0fa3e6c3c532949ddadf0b2ae134625ed3b649a2bff0039957940"
+        },
+        {
+          "memory_id": "cr_84e726281e76_o6",
+          "type": "episodic",
+          "subject_id": "subject_84e726281e76_x",
+          "content": "솔무 종이 접기 시험은 모양·두께·젖음 조건을 붙여 세 결과를 보관한다. 무조건 네 번 접는 절차는 승인하지 않았다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "5992ec01de04e4a2754a22df8b55dda120268ce8822d3bcd25731748e3edce8c"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_84e726281e76_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "솔무 종이 접기 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_84e726281e76",
+            "project_id": "project_84e726281e76",
+            "subject_id": "subject_84e726281e76_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_84e726281e76_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "솔무 종이 접기 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_84e726281e76",
+            "project_id": "project_84e726281e76",
+            "subject_id": "subject_84e726281e76_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_84e726281e76_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "솔무 종이 접기 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_84e726281e76",
+            "project_id": "project_84e726281e76",
+            "subject_id": "subject_84e726281e76_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_7e751ae71a7a",
+      "family_id": "family_7e751ae71a7a",
+      "owner_id": "owner_7e751ae71a7a",
+      "project_id": "project_7e751ae71a7a",
+      "observations": [
+        {
+          "memory_id": "cr_7e751ae71a7a_o1",
+          "type": "episodic",
+          "subject_id": "subject_7e751ae71a7a_x",
+          "content": "마노 수조 적응 실험의 담수 모형은 파란 통에서 18분 대기한다. 실제 생물 대신 빈 모형만 사용하는 연습이다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "c31bc6b02c6f57ed60d74f1dbed7a08aa22f6d1f8ccbf3bf08f87ce629dae3a8"
+        },
+        {
+          "memory_id": "cr_7e751ae71a7a_o2",
+          "type": "episodic",
+          "subject_id": "subject_7e751ae71a7a_x",
+          "content": "마노 수조 적응 실험 관찰자는 담수 모형 대기 18분을 확인했다. 이 관찰로 다른 모형의 대기 시간을 추정하지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "7963d665425341ccd6c50628b7f476ed637e64ba197401f9feeb258e8eadf3d5"
+        },
+        {
+          "memory_id": "cr_7e751ae71a7a_o3",
+          "type": "episodic",
+          "subject_id": "subject_7e751ae71a7a_x",
+          "content": "마노 수조 적응 실험에 해수 모형 절차를 추가했다. 해수 모형은 회색 통에서 32분 대기하고 담수 모형은 파란 통 18분을 유지한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "aabc8fdeaa6fc951b4f9565e4a720ded44d5604ae56f5fe76bcda95875572648"
+        },
+        {
+          "memory_id": "cr_7e751ae71a7a_o4",
+          "type": "episodic",
+          "subject_id": "subject_7e751ae71a7a_x",
+          "content": "마노 수조 적응 실험 목록은 담수와 해수 모형을 다른 상자로 관리한다. 통 색과 대기 시간은 모형 종류에 종속된다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "f01039d67e6b2df78642e5d882e2299a18b8c61d02ed0c760b8aaff275a3ef1a"
+        },
+        {
+          "memory_id": "cr_7e751ae71a7a_o5",
+          "type": "episodic",
+          "subject_id": "subject_7e751ae71a7a_x",
+          "content": "마노 수조 적응 실험에서 종류 표찰이 떨어진 모형은 대기를 시작하지 않고 표찰 담당자에게 보낸다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "e0913ac340b005f46d16dc48a885ddf1886f5f6843cec7093275ca24088c999b"
+        },
+        {
+          "memory_id": "cr_7e751ae71a7a_o6",
+          "type": "episodic",
+          "subject_id": "subject_7e751ae71a7a_x",
+          "content": "마노 수조 적응 실험 마감: 담수 파란 통 18분·해수 회색 통 32분이며 표찰 없는 모형은 담당자 확인 전 보류한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "3bb53c1936dc3a881646708d1a23d62925b2ac99cd74b0c128c05cebc3af9758"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_7e751ae71a7a_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "마노 수조 적응 실험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7e751ae71a7a",
+            "project_id": "project_7e751ae71a7a",
+            "subject_id": "subject_7e751ae71a7a_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_7e751ae71a7a_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "마노 수조 적응 실험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7e751ae71a7a",
+            "project_id": "project_7e751ae71a7a",
+            "subject_id": "subject_7e751ae71a7a_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_7e751ae71a7a_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "마노 수조 적응 실험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7e751ae71a7a",
+            "project_id": "project_7e751ae71a7a",
+            "subject_id": "subject_7e751ae71a7a_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_49bae2d5f8ed",
+      "family_id": "family_49bae2d5f8ed",
+      "owner_id": "owner_49bae2d5f8ed",
+      "project_id": "project_49bae2d5f8ed",
+      "observations": [
+        {
+          "memory_id": "cr_49bae2d5f8ed_o1",
+          "type": "episodic",
+          "subject_id": "subject_49bae2d5f8ed_x",
+          "content": "해솔 필름 스캔 비교에서 무광 필름 F 한 장은 설정 M으로 줄무늬가 줄었다. 유광 필름은 시험하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "bb93ea38625dea860d8a4db11862c4e07ce727fd89f432c2671ed6874a82695d"
+        },
+        {
+          "memory_id": "cr_49bae2d5f8ed_o2",
+          "type": "episodic",
+          "subject_id": "subject_49bae2d5f8ed_x",
+          "content": "해솔 필름 스캔 비교 기록의 표본은 무광 F 한 장뿐이다. 설정 M이 모든 필름에서 낫다는 결론은 아직 없다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "fa625643defc8952c81322e1e680bfb1f6c6b67173a0a7ed10df07f6c07e4964"
+        },
+        {
+          "memory_id": "cr_49bae2d5f8ed_o3",
+          "type": "episodic",
+          "subject_id": "subject_49bae2d5f8ed_x",
+          "content": "해솔 필름 스캔 비교에 유광 G 한 장을 추가했더니 설정 M에서 얼룩이 생겼다. 무광 F 관찰과 별개 결과로 남긴다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "7ee0953f10d2a2d91b7e20351198bf1159da8583b27fa71a7a1e76da5256006f"
+        },
+        {
+          "memory_id": "cr_49bae2d5f8ed_o4",
+          "type": "episodic",
+          "subject_id": "subject_49bae2d5f8ed_x",
+          "content": "해솔 필름 스캔 비교 담당자는 무광 F의 줄무늬 감소와 유광 G의 얼룩 발생을 모두 기록했다. 필름 전체의 설정을 통일하지 않았다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "f0357c1e790e04761d463e4b2d8077dc48beea9636e9ab09d4f3f341de2be7b9"
+        },
+        {
+          "memory_id": "cr_49bae2d5f8ed_o5",
+          "type": "episodic",
+          "subject_id": "subject_49bae2d5f8ed_x",
+          "content": "해솔 필름 스캔 비교에서 무광 F 두 번째 장은 설정 M에서도 줄무늬가 남았다. 첫 장의 성공 관찰은 삭제하지 않는다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "4a6c4a6fd4a70c3d63ef5193261a8fddb99e45eb9713296996306fa2ef4f6104"
+        },
+        {
+          "memory_id": "cr_49bae2d5f8ed_o6",
+          "type": "episodic",
+          "subject_id": "subject_49bae2d5f8ed_x",
+          "content": "해솔 필름 스캔 비교 종합표는 F 첫 장 개선·F 둘째 장 줄무늬 잔존·G 얼룩 발생이다. 설정 M의 보편적 우수성은 미확정이다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "6abedda037413b29bc53a9c95587e4a5502abe3325e687ac155b5f0248df1f13"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_49bae2d5f8ed_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "해솔 필름 스캔 비교의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_49bae2d5f8ed",
+            "project_id": "project_49bae2d5f8ed",
+            "subject_id": "subject_49bae2d5f8ed_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_49bae2d5f8ed_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "해솔 필름 스캔 비교의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_49bae2d5f8ed",
+            "project_id": "project_49bae2d5f8ed",
+            "subject_id": "subject_49bae2d5f8ed_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_49bae2d5f8ed_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "해솔 필름 스캔 비교의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_49bae2d5f8ed",
+            "project_id": "project_49bae2d5f8ed",
+            "subject_id": "subject_49bae2d5f8ed_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_8dd0ef55898a",
+      "family_id": "family_8dd0ef55898a",
+      "owner_id": "owner_8dd0ef55898a",
+      "project_id": "project_8dd0ef55898a",
+      "observations": [
+        {
+          "memory_id": "cr_8dd0ef55898a_o1",
+          "type": "episodic",
+          "subject_id": "subject_8dd0ef55898a_x",
+          "content": "나린 표본 상자 보존 작업은 상자번호와 봉인번호를 각각 대조한다. 두 번호가 맞기 전에는 뚜껑을 열지 않는다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "92adc93ec4afd654c357795180f084d54a5e9549b06a25b9b0d3009b8df98dd0"
+        },
+        {
+          "memory_id": "cr_8dd0ef55898a_o2",
+          "type": "episodic",
+          "subject_id": "subject_8dd0ef55898a_x",
+          "content": "나린 표본 상자 보존 점검표는 상자번호 확인과 봉인번호 확인을 별도 칸으로 유지한다. 하나의 번호로 다른 번호를 추정하지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "5c8d96f61a38d470a534750c7d140304953bdb46090d2608a6d7ce5b00b68011"
+        },
+        {
+          "memory_id": "cr_8dd0ef55898a_o3",
+          "type": "episodic",
+          "subject_id": "subject_8dd0ef55898a_x",
+          "content": "나린 표본 상자 보존 작업에 파란 모서리 표식을 추가했다. 두 번호 선행 대조를 모서리 표식으로 대체하지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "a1278ccfc942b0b85e98bdf9c8abc662e32bfc3b07f77d08095025da41b83615"
+        },
+        {
+          "memory_id": "cr_8dd0ef55898a_o4",
+          "type": "episodic",
+          "subject_id": "subject_8dd0ef55898a_x",
+          "content": "나린 표본 상자 보존 담당자의 한 줄 메모에는 파란 모서리만 적혔다. 승인 원본의 두 번호 대조 의무는 그대로다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "7b3b7fb9b79ef6317eae24bda5f99840eaa17cf3ebc472f822ec5e8880948e72"
+        },
+        {
+          "memory_id": "cr_8dd0ef55898a_o5",
+          "type": "episodic",
+          "subject_id": "subject_8dd0ef55898a_x",
+          "content": "나린 표본 상자 보존 마감 시 닫힌 뚜껑 사진을 남기기로 했다. 개봉 전 두 번호 대조도 계속 필수다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "b9566f7dae0e84eae6986fa9d82f577f1634f3b07f43436198cea8c7ac6f7d44"
+        },
+        {
+          "memory_id": "cr_8dd0ef55898a_o6",
+          "type": "episodic",
+          "subject_id": "subject_8dd0ef55898a_x",
+          "content": "나린 표본 상자 보존 최종표는 두 번호 대조 후 개봉·파란 모서리·닫힌 뚜껑 사진이다. 원본 점검표는 삭제하지 않는다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "0c634434a9ca8cc93a77b61fc055889b67a10def96f1825486286b928aa216f3"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_8dd0ef55898a_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "나린 표본 상자 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_8dd0ef55898a",
+            "project_id": "project_8dd0ef55898a",
+            "subject_id": "subject_8dd0ef55898a_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_8dd0ef55898a_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "나린 표본 상자 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_8dd0ef55898a",
+            "project_id": "project_8dd0ef55898a",
+            "subject_id": "subject_8dd0ef55898a_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_8dd0ef55898a_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "나린 표본 상자 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_8dd0ef55898a",
+            "project_id": "project_8dd0ef55898a",
+            "subject_id": "subject_8dd0ef55898a_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_0861bd25a8ad",
+      "family_id": "family_0861bd25a8ad",
+      "owner_id": "owner_0861bd25a8ad",
+      "project_id": "project_0861bd25a8ad",
+      "observations": [
+        {
+          "memory_id": "cr_0861bd25a8ad_o1",
+          "type": "episodic",
+          "subject_id": "subject_0861bd25a8ad_x",
+          "content": "도담 소품 포장 작업에서 나무 소품은 천 주머니에 넣는다. 상자 안 완충재는 나무 소품 하나당 종이 두 장이다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "9a8f3787a7997594f0a275cd52bc67f6e40b899d1423f4b3718e7b08e79aa25b"
+        },
+        {
+          "memory_id": "cr_0861bd25a8ad_o2",
+          "type": "episodic",
+          "subject_id": "subject_0861bd25a8ad_x",
+          "content": "도담 소품 포장 작업의 나무 소품 다섯 개를 천 주머니와 각각 종이 두 장으로 포장했다. 유리 소품은 아직 포장하지 않았다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "a3efc3705bc20c4077edadb2c4226359f7bfaa7c73e3422738145d708fc7184e"
+        },
+        {
+          "memory_id": "cr_0861bd25a8ad_o3",
+          "type": "episodic",
+          "subject_id": "subject_0861bd25a8ad_x",
+          "content": "도담 소품 포장 작업에서 유리 소품은 칸막이 상자를 사용하고 완충 종이를 네 장 쓴다. 나무 소품 절차를 유리에 확장하지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "8c2c3cb0767c2584ebf598642fb8b5aea4976b21d023e0aaf1e1e31687d73f7c"
+        },
+        {
+          "memory_id": "cr_0861bd25a8ad_o4",
+          "type": "episodic",
+          "subject_id": "subject_0861bd25a8ad_x",
+          "content": "도담 소품 포장 작업 표에는 나무는 천 주머니·종이 두 장, 유리는 칸막이·종이 네 장으로 구분했다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "a71bec7232abd4f7dc7cac74c1a005323427d7887cdd629d0764561b323f54ce"
+        },
+        {
+          "memory_id": "cr_0861bd25a8ad_o5",
+          "type": "episodic",
+          "subject_id": "subject_0861bd25a8ad_x",
+          "content": "도담 소품 포장 작업에서 젖은 소품은 재질에 관계없이 먼저 건조 검사대로 보낸다. 검사 전에는 포장을 시작하지 않는다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "7d8c327e469e95f8da45f1f7e96b5eef4cd48dc8da187127e8a4ea6927889c0d"
+        },
+        {
+          "memory_id": "cr_0861bd25a8ad_o6",
+          "type": "episodic",
+          "subject_id": "subject_0861bd25a8ad_x",
+          "content": "도담 소품 포장 작업 재검토는 건조 검사만 추가했다. 마른 나무와 마른 유리의 기존 포장 재료·종이 수는 유지한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "0f9934c8b9c63b5e2d194788018c43412ff7dc6da7753ef49519fbac4c50efcf"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_0861bd25a8ad_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "도담 소품 포장의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_0861bd25a8ad",
+            "project_id": "project_0861bd25a8ad",
+            "subject_id": "subject_0861bd25a8ad_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_0861bd25a8ad_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "도담 소품 포장의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_0861bd25a8ad",
+            "project_id": "project_0861bd25a8ad",
+            "subject_id": "subject_0861bd25a8ad_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_0861bd25a8ad_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "도담 소품 포장의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_0861bd25a8ad",
+            "project_id": "project_0861bd25a8ad",
+            "subject_id": "subject_0861bd25a8ad_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_91a07a3fa4aa",
+      "family_id": "family_91a07a3fa4aa",
+      "owner_id": "owner_91a07a3fa4aa",
+      "project_id": "project_91a07a3fa4aa",
+      "observations": [
+        {
+          "memory_id": "cr_91a07a3fa4aa_o1",
+          "type": "episodic",
+          "subject_id": "subject_91a07a3fa4aa_x",
+          "content": "여울 연습 무대 음향에서 독창 장면은 마이크 채널 2와 프리셋 S를 쓴다. 아직 합창 장면의 채널은 배정하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "8f21a4306c8607f015bf6742dab74254db732eb947952334d63a4db73577ca8a"
+        },
+        {
+          "memory_id": "cr_91a07a3fa4aa_o2",
+          "type": "episodic",
+          "subject_id": "subject_91a07a3fa4aa_x",
+          "content": "여울 연습 무대 음향 일지에서 독창 두 장면을 채널 2·프리셋 S로 리허설했다. 이 설정은 독창 장면에 한정한다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "b6619fa3f787fd934d7daad4d30afe27240da197ec9b75cb7ac9927945beaf4f"
+        },
+        {
+          "memory_id": "cr_91a07a3fa4aa_o3",
+          "type": "episodic",
+          "subject_id": "subject_91a07a3fa4aa_x",
+          "content": "여울 연습 무대 음향의 합창 장면은 채널 5·프리셋 C로 배정했다. 독창의 채널 2·프리셋 S와 병행한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "b14cfe0cbc625e27412506700ce07be625daa27c72cc4d0b5431cffaf34355aa"
+        },
+        {
+          "memory_id": "cr_91a07a3fa4aa_o4",
+          "type": "episodic",
+          "subject_id": "subject_91a07a3fa4aa_x",
+          "content": "여울 연습 무대 음향 안내문은 독창과 합창 전환 때 채널과 프리셋을 함께 바꾸도록 적었다. 둘 중 하나만 바꾸지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "fa2cb2f2cee9ff361b7556d098a7ad07612cf58f5421838d7edd19d37ee37874"
+        },
+        {
+          "memory_id": "cr_91a07a3fa4aa_o5",
+          "type": "episodic",
+          "subject_id": "subject_91a07a3fa4aa_x",
+          "content": "여울 연습 무대 음향에서 악기만 나오는 장면은 두 프리셋을 쓰지 않고 음향 담당자의 새 배정을 기다린다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "0a013c244c01e8f4cb558d1b7d6df46f4e89b7b110bdd19795930e896b918a38"
+        },
+        {
+          "memory_id": "cr_91a07a3fa4aa_o6",
+          "type": "episodic",
+          "subject_id": "subject_91a07a3fa4aa_x",
+          "content": "여울 연습 무대 음향 점검은 독창 2·S, 합창 5·C를 유지한다. 악기 단독 장면은 배정 대기다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "b6b214936f5c905c6de473debe7e895cda8aec6b465f373534dacef8842a70ef"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_91a07a3fa4aa_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "여울 연습 무대 음향의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_91a07a3fa4aa",
+            "project_id": "project_91a07a3fa4aa",
+            "subject_id": "subject_91a07a3fa4aa_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_91a07a3fa4aa_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "여울 연습 무대 음향의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_91a07a3fa4aa",
+            "project_id": "project_91a07a3fa4aa",
+            "subject_id": "subject_91a07a3fa4aa_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_91a07a3fa4aa_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "여울 연습 무대 음향의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_91a07a3fa4aa",
+            "project_id": "project_91a07a3fa4aa",
+            "subject_id": "subject_91a07a3fa4aa_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_7d41de362ce0",
+      "family_id": "family_7d41de362ce0",
+      "owner_id": "owner_7d41de362ce0",
+      "project_id": "project_7d41de362ce0",
+      "observations": [
+        {
+          "memory_id": "cr_7d41de362ce0_o1",
+          "type": "episodic",
+          "subject_id": "subject_7d41de362ce0_x",
+          "content": "보담 목판 인쇄 보존 작업은 판을 놓기 전에 판번호를 확인한다. 첫 시트는 폐지로 시험하며 이 두 조건은 생략하지 않는다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "a70fc60327413186285481f9e6ce3250bfd0c250ed011a395a5daf5cb8cb98e3"
+        },
+        {
+          "memory_id": "cr_7d41de362ce0_o2",
+          "type": "episodic",
+          "subject_id": "subject_7d41de362ce0_x",
+          "content": "보담 목판 인쇄 보존 기록에서 판번호 확인과 폐지 첫 시트 시험을 모두 수행했다. 한 조건만 적힌 메모가 전체 절차를 대체하지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "8312450d043df9aca143743e99cffb5d54af20b23c146f05335c3de6a18236d3"
+        },
+        {
+          "memory_id": "cr_7d41de362ce0_o3",
+          "type": "episodic",
+          "subject_id": "subject_7d41de362ce0_x",
+          "content": "보담 목판 인쇄 보존 작업의 손잡이 표식을 주황색으로 추가했다. 판번호 확인과 폐지 시험은 계속 필수다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "ecbbb2807e083e6f0b32b574b910029e74343be89fa594af2bf2e8becdac05b5"
+        },
+        {
+          "memory_id": "cr_7d41de362ce0_o4",
+          "type": "episodic",
+          "subject_id": "subject_7d41de362ce0_x",
+          "content": "보담 목판 인쇄 보존의 짧은 인수 메모에는 손잡이 표식만 적혔다. 원본 작업표의 판번호 확인·폐지 시험을 폐지한 메모가 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "d41905b61aec4c007dc37d6501a7e37787767df3a8133dcad79874f797c22969"
+        },
+        {
+          "memory_id": "cr_7d41de362ce0_o5",
+          "type": "episodic",
+          "subject_id": "subject_7d41de362ce0_x",
+          "content": "보담 목판 인쇄 보존 작업에 마감 후 잉크통 뚜껑 확인을 추가했다. 기존 선행 확인과 첫 시트 시험도 유지한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "de2f72afaf37254e2f69fcc904845741942847f0b541c65184c6cef08172324f"
+        },
+        {
+          "memory_id": "cr_7d41de362ce0_o6",
+          "type": "episodic",
+          "subject_id": "subject_7d41de362ce0_x",
+          "content": "보담 목판 인쇄 보존 최종 대조는 판번호 선행 확인·첫 폐지 시험·주황 표식·마감 뚜껑 확인 네 항목이다. 원본 작업표를 보관한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "063861e3836d8a7833e179b55e06b53959cd9febcae7f63eb8ee3333b9f4acca"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_7d41de362ce0_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "보담 목판 인쇄 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7d41de362ce0",
+            "project_id": "project_7d41de362ce0",
+            "subject_id": "subject_7d41de362ce0_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_7d41de362ce0_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "보담 목판 인쇄 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7d41de362ce0",
+            "project_id": "project_7d41de362ce0",
+            "subject_id": "subject_7d41de362ce0_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_7d41de362ce0_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "보담 목판 인쇄 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_7d41de362ce0",
+            "project_id": "project_7d41de362ce0",
+            "subject_id": "subject_7d41de362ce0_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_2bc6447b6989",
+      "family_id": "family_2bc6447b6989",
+      "owner_id": "owner_2bc6447b6989",
+      "project_id": "project_2bc6447b6989",
+      "observations": [
+        {
+          "memory_id": "cr_2bc6447b6989_o1",
+          "type": "episodic",
+          "subject_id": "subject_2bc6447b6989_x",
+          "content": "가온 직조 폭 설정에서 시제품 W의 완성 폭은 42센티미터이며 가장자리 실은 흰색이다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "721b1785d0ecf4b885d87f69b63273b0c95c366d89690a48eaab796a690d74c9"
+        },
+        {
+          "memory_id": "cr_2bc6447b6989_o2",
+          "type": "episodic",
+          "subject_id": "subject_2bc6447b6989_x",
+          "content": "가온 직조 폭 설정 담당자는 시제품 W 작업 카드에 폭 42센티미터·흰 가장자리 실을 기록했다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "978ac24ebd6d65f261316bd4fa54ec42d5456ef27c3e52b68727bfa2b3291f97"
+        },
+        {
+          "memory_id": "cr_2bc6447b6989_o3",
+          "type": "episodic",
+          "subject_id": "subject_2bc6447b6989_x",
+          "content": "가온 직조 폭 설정 수정 승인: 시제품 W는 10월 12일부터 폭 40센티미터로 바꾼다. 가장자리 실 색은 바꾸지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "4c86338d2e5280b5e90e988b1a817f69861945fc32274e1b27a9b8e10eb34563"
+        },
+        {
+          "memory_id": "cr_2bc6447b6989_o4",
+          "type": "episodic",
+          "subject_id": "subject_2bc6447b6989_x",
+          "content": "가온 직조 폭 설정 검토에서는 폭 42센티미터 카드를 폐기하고 40센티미터 카드를 발급했다. 흰 가장자리 실은 계속 쓴다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "186afbb3cb715a3f09d965c7ad9122a73fa6b342ed2990121d6aa8316ccb13c7"
+        },
+        {
+          "memory_id": "cr_2bc6447b6989_o5",
+          "type": "episodic",
+          "subject_id": "subject_2bc6447b6989_x",
+          "content": "가온 직조 폭 설정 재수정: 10월 19일부터 시제품 W의 완성 폭을 41센티미터로 확정한다. 폭 40센티미터 지시는 종료한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "489b69cb47d6e4c985ad3f5e029096c8723d9cb2abb08ee0df8a0956bca60704"
+        },
+        {
+          "memory_id": "cr_2bc6447b6989_o6",
+          "type": "episodic",
+          "subject_id": "subject_2bc6447b6989_x",
+          "content": "가온 직조 폭 설정 마감표는 현재 폭 41센티미터·흰 가장자리 실이다. 42와 40은 변경 이력 칸에만 남긴다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "0de4da6885a8b78b47670e2daa8aef297acf7cf15abe9c2ea4a09198c25310cc"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_2bc6447b6989_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "가온 직조 폭 설정의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_2bc6447b6989",
+            "project_id": "project_2bc6447b6989",
+            "subject_id": "subject_2bc6447b6989_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_2bc6447b6989_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "가온 직조 폭 설정의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_2bc6447b6989",
+            "project_id": "project_2bc6447b6989",
+            "subject_id": "subject_2bc6447b6989_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_2bc6447b6989_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "가온 직조 폭 설정의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_2bc6447b6989",
+            "project_id": "project_2bc6447b6989",
+            "subject_id": "subject_2bc6447b6989_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_c66f61b183ea",
+      "family_id": "family_c66f61b183ea",
+      "owner_id": "owner_c66f61b183ea",
+      "project_id": "project_c66f61b183ea",
+      "observations": [
+        {
+          "memory_id": "cr_c66f61b183ea_o1",
+          "type": "episodic",
+          "subject_id": "subject_c66f61b183ea_x",
+          "content": "우담 게임 토큰 작업 X는 둥근 토큰 세 개를 한 세트로 묶는다. 시작 전에 각 토큰의 번호를 대조하고 끈은 보라색이다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "ecc5fbf48f7c6efd9cccae9fb2462073e3a35eda86158632a37e75063e4490d5"
+        },
+        {
+          "memory_id": "cr_c66f61b183ea_o2",
+          "type": "episodic",
+          "subject_id": "subject_c66f61b183ea_x",
+          "content": "우담 게임 토큰 작업 X 확인표에 번호 대조·세 개·보라색 끈을 적었다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "1e98c706a2e839cc851abbf8262deb048899e12e1f5f13ba44879181eb14c921"
+        },
+        {
+          "memory_id": "cr_c66f61b183ea_o3",
+          "type": "episodic",
+          "subject_id": "subject_c66f61b183ea_y",
+          "content": "우담 별개 작업 Y는 조명 연습용 사각 판 다섯 개를 흰 끈으로 묶는 일이다. 게임 토큰 X의 수량 규칙이 아니다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "c8d049a0faed9b92802d1f0e7e056737c07d0a47785f81f66900544866bc6d14"
+        },
+        {
+          "memory_id": "cr_c66f61b183ea_o4",
+          "type": "episodic",
+          "subject_id": "subject_c66f61b183ea_y",
+          "content": "우담 조명 판 작업 Y 일지는 다섯 개·흰 끈이다. 둥근 게임 토큰의 작업 카드와 별도로 보관한다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "099f4c49e8ebf941266935229294d180aaa72ff2cf1aebb6f6cee01e59ce8c72"
+        },
+        {
+          "memory_id": "cr_c66f61b183ea_o5",
+          "type": "episodic",
+          "subject_id": "subject_c66f61b183ea_x",
+          "content": "우담 게임 토큰 작업 X로 복귀해 세트 수량만 네 개로 변경했다. 번호 대조와 보라색 끈은 그대로 쓴다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "f0c0e5f0c296ceaa8dcb51b4cca2690d95fef4b4bc6b0a0e4bd2fbc5ddf0c796"
+        },
+        {
+          "memory_id": "cr_c66f61b183ea_o6",
+          "type": "episodic",
+          "subject_id": "subject_c66f61b183ea_x",
+          "content": "우담 게임 토큰 작업 X의 현재 세트는 번호를 대조한 둥근 토큰 네 개·보라색 끈이다. Y의 사각 판과 섞지 않는다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "edf27ce288757a76d073a5906045751732ca155500c662d9cc3cc566a26a55ef"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_c66f61b183ea_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "우담 게임 토큰 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_c66f61b183ea",
+            "project_id": "project_c66f61b183ea",
+            "subject_id": "subject_c66f61b183ea_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_c66f61b183ea_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "우담 게임 토큰 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_c66f61b183ea",
+            "project_id": "project_c66f61b183ea",
+            "subject_id": "subject_c66f61b183ea_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_c66f61b183ea_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "우담 게임 토큰 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_c66f61b183ea",
+            "project_id": "project_c66f61b183ea",
+            "subject_id": "subject_c66f61b183ea_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_9bd884941ba5",
+      "family_id": "family_9bd884941ba5",
+      "owner_id": "owner_9bd884941ba5",
+      "project_id": "project_9bd884941ba5",
+      "observations": [
+        {
+          "memory_id": "cr_9bd884941ba5_o1",
+          "type": "episodic",
+          "subject_id": "subject_9bd884941ba5_x",
+          "content": "호담 별지도 작업 X는 북쪽 격자부터 별표를 붙인다. 별표의 기본 색은 은색이고 격자 좌표를 먼저 확인한다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "2fc82025d78fae199c9ff62345ad216467b4b70e529fc0e4918c8a327d06fb2c"
+        },
+        {
+          "memory_id": "cr_9bd884941ba5_o2",
+          "type": "episodic",
+          "subject_id": "subject_9bd884941ba5_x",
+          "content": "호담 별지도 작업 X 기록자는 좌표 확인 뒤 북쪽 격자·은색 별표를 확인했다. 이 두 지시는 X의 작업 카드에 적었다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "f1ff033254d7881fd8a51224704fcae731112c690361bb646848ab18632a3364"
+        },
+        {
+          "memory_id": "cr_9bd884941ba5_o3",
+          "type": "episodic",
+          "subject_id": "subject_9bd884941ba5_y",
+          "content": "호담 작업실의 별개 작업 Y인 화분 꾸미기는 남쪽 선반부터 한다. 장식표는 노란색이며 별지도 작업 X와 관계없는 작업이다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "f14ad02d4491039d43d6c2b722ef44a06f0bffc3af9d551ac8eed8023ae3cd6e"
+        },
+        {
+          "memory_id": "cr_9bd884941ba5_o4",
+          "type": "episodic",
+          "subject_id": "subject_9bd884941ba5_y",
+          "content": "호담 작업실 화분 작업 Y 재고표에는 남쪽 선반·노란 장식표를 적었다. 별지도 X의 격자나 별표 색을 바꾸는 공지가 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "042794031370ad29be62ef4a617b6b701b4b9cccdce55cf60c9223f1c40b5eb4"
+        },
+        {
+          "memory_id": "cr_9bd884941ba5_o5",
+          "type": "episodic",
+          "subject_id": "subject_9bd884941ba5_x",
+          "content": "호담 별지도 작업 X로 복귀했다. 담당자는 좌표 확인·북쪽 격자 시작을 유지하고 별표 색만 10월 19일부터 청색으로 변경했다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "7be4967cca2ec21af92da91e858a624f4e40f22cfc9d607049c3fae6559d11df"
+        },
+        {
+          "memory_id": "cr_9bd884941ba5_o6",
+          "type": "episodic",
+          "subject_id": "subject_9bd884941ba5_x",
+          "content": "호담 별지도 작업 X 최종 카드는 북쪽 격자부터 청색 별표를 붙이며 좌표를 먼저 확인한다. Y의 노란 장식표는 X에 쓰지 않는다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "dc73e286f7d930cc067f645ae70a8c1571af4559b56cd0f78e08831e40601e6b"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_9bd884941ba5_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "호담 별지도 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_9bd884941ba5",
+            "project_id": "project_9bd884941ba5",
+            "subject_id": "subject_9bd884941ba5_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_9bd884941ba5_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "호담 별지도 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_9bd884941ba5",
+            "project_id": "project_9bd884941ba5",
+            "subject_id": "subject_9bd884941ba5_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_9bd884941ba5_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "호담 별지도 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_9bd884941ba5",
+            "project_id": "project_9bd884941ba5",
+            "subject_id": "subject_9bd884941ba5_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_4d74b8c87993",
+      "family_id": "family_4d74b8c87993",
+      "owner_id": "owner_4d74b8c87993",
+      "project_id": "project_4d74b8c87993",
+      "observations": [
+        {
+          "memory_id": "cr_4d74b8c87993_o1",
+          "type": "episodic",
+          "subject_id": "subject_4d74b8c87993_x",
+          "content": "하람 번들 생성 비교에서 실험 브랜치 cedar의 캐시 켜기 한 번은 18초였다. 운영 브랜치에는 아직 적용하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "c54560cbce05697c8bacdb85801ce87f91b73a629fb096faf5fd31f1715e413d"
+        },
+        {
+          "memory_id": "cr_4d74b8c87993_o2",
+          "type": "episodic",
+          "subject_id": "subject_4d74b8c87993_x",
+          "content": "하람 번들 생성 비교의 18초는 cedar 실험 한 번의 관찰이다. 반복 평균이나 운영 시간으로 적지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "61bfe8a24bb3419f45d2d5d8c56b289a475d9cf64ff1d248590c3d843dc07715"
+        },
+        {
+          "memory_id": "cr_4d74b8c87993_o3",
+          "type": "episodic",
+          "subject_id": "subject_4d74b8c87993_x",
+          "content": "하람 번들 생성 비교의 cedar 캐시 끈 실행 한 번은 22초였다. 입력 파일 수가 달라 공정한 속도 차이로 확정하지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "a386495a30d795f0982f9bd129358563416036a6688c6d245c38b6fe41a1086a"
+        },
+        {
+          "memory_id": "cr_4d74b8c87993_o4",
+          "type": "episodic",
+          "subject_id": "subject_4d74b8c87993_x",
+          "content": "하람 번들 생성 비교 검토자는 캐시 켬 18초·끔 22초와 입력 불일치를 함께 적었다. 운영 적용 승인은 내리지 않았다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "816ea5ed26ccc1b6ae9a750dd3064f0e3dda08519c6bcafc24c0d1b050263123"
+        },
+        {
+          "memory_id": "cr_4d74b8c87993_o5",
+          "type": "episodic",
+          "subject_id": "subject_4d74b8c87993_x",
+          "content": "하람 번들 생성 비교에서 같은 cedar 캐시 켠 재실행은 27초였다. 첫 실행 18초를 모든 실행의 보장값으로 사용하지 않는다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "8eddaaa586bedef604fdad8ae1e92363e3a239f590f608ea8270a93110603145"
+        },
+        {
+          "memory_id": "cr_4d74b8c87993_o6",
+          "type": "episodic",
+          "subject_id": "subject_4d74b8c87993_x",
+          "content": "하람 번들 생성 비교 결론은 cedar 단발 관찰 18·22·27초와 조건 불일치다. 운영 배포나 일관된 가속은 아직 검증하지 않았다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "00b7eabe8dac5a61608b2af405276183e2b716d1e728bd2a233e817af8901dd4"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_4d74b8c87993_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "하람 번들 생성 비교의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_4d74b8c87993",
+            "project_id": "project_4d74b8c87993",
+            "subject_id": "subject_4d74b8c87993_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_4d74b8c87993_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "하람 번들 생성 비교의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_4d74b8c87993",
+            "project_id": "project_4d74b8c87993",
+            "subject_id": "subject_4d74b8c87993_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_4d74b8c87993_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "하람 번들 생성 비교의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_4d74b8c87993",
+            "project_id": "project_4d74b8c87993",
+            "subject_id": "subject_4d74b8c87993_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_29d0d8367872",
+      "family_id": "family_29d0d8367872",
+      "owner_id": "owner_29d0d8367872",
+      "project_id": "project_29d0d8367872",
+      "observations": [
+        {
+          "memory_id": "cr_29d0d8367872_o1",
+          "type": "episodic",
+          "subject_id": "subject_29d0d8367872_x",
+          "content": "푸름 제본 접착 시험은 면지 무게가 120그램 이하이면 얇은 붓을 쓴다. 이 조건의 접착제 양은 한 면에 2밀리리터다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "588da3a863a4e3a5df46f6f8b31d0ec0ed395a48916ead94276c00f92df952e5"
+        },
+        {
+          "memory_id": "cr_29d0d8367872_o2",
+          "type": "episodic",
+          "subject_id": "subject_29d0d8367872_x",
+          "content": "푸름 제본 접착 시험에서 100그램 면지 한 묶음을 얇은 붓과 한 면당 2밀리리터로 처리했다. 무거운 면지는 이번 관찰에 포함하지 않았다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "a52127daa0fa9a04eedfb0c4146b278a2c5a17bd333b330cd4fb27c4fa0d5377"
+        },
+        {
+          "memory_id": "cr_29d0d8367872_o3",
+          "type": "episodic",
+          "subject_id": "subject_29d0d8367872_x",
+          "content": "푸름 제본 접착 시험의 120그램 초과 면지는 넓은 붓과 한 면당 3밀리리터를 쓴다. 가벼운 면지의 양과 붓은 바꾸지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "f441f7da28ae460ded8460d9249d091b3c3bc9b7ccc9d5116d5d091be366a488"
+        },
+        {
+          "memory_id": "cr_29d0d8367872_o4",
+          "type": "episodic",
+          "subject_id": "subject_29d0d8367872_x",
+          "content": "푸름 제본 접착 시험 체크표는 정확히 120그램인 면지를 가벼운 쪽으로 분류한다. 넓은 붓은 120그램을 넘는 면지에만 쓴다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "91b9b7361636433f6eb8c4e03a9682a42f1c27705f755d475ca3234ab93b602e"
+        },
+        {
+          "memory_id": "cr_29d0d8367872_o5",
+          "type": "episodic",
+          "subject_id": "subject_29d0d8367872_x",
+          "content": "푸름 제본 접착 시험에서 코팅 면지는 무게보다 먼저 별도 시편 승인을 받는다. 기존 면지 양을 코팅 면지에 곧바로 적용하지 않는다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "f05a4787c3708fb09ccd561f21cdee3d89a6c9d695b8c34099e2f31eeada87b6"
+        },
+        {
+          "memory_id": "cr_29d0d8367872_o6",
+          "type": "episodic",
+          "subject_id": "subject_29d0d8367872_x",
+          "content": "푸름 제본 접착 시험 재확인: 일반 면지는 120그램 이하 2밀리리터·초과 3밀리리터다. 코팅 면지는 시편 승인 전까지 작업을 보류한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "ae7aadcfdb0339a557e5fdf20f0eef6a14a7c843f5a07c409e8a00b359c10ed8"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_29d0d8367872_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "푸름 제본 접착 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_29d0d8367872",
+            "project_id": "project_29d0d8367872",
+            "subject_id": "subject_29d0d8367872_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_29d0d8367872_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "푸름 제본 접착 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_29d0d8367872",
+            "project_id": "project_29d0d8367872",
+            "subject_id": "subject_29d0d8367872_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_29d0d8367872_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "푸름 제본 접착 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_29d0d8367872",
+            "project_id": "project_29d0d8367872",
+            "subject_id": "subject_29d0d8367872_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_d47265f60808",
+      "family_id": "family_d47265f60808",
+      "owner_id": "owner_d47265f60808",
+      "project_id": "project_d47265f60808",
+      "observations": [
+        {
+          "memory_id": "cr_d47265f60808_o1",
+          "type": "episodic",
+          "subject_id": "subject_d47265f60808_x",
+          "content": "다솜 모종 분무 간격의 연습 트레이 L은 물 대신 색종이 표식을 쓰며 네 칸마다 표시한다. 실제 재배 시험이 아니다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "823351165b1a9997b91d4d70ef04b5ab8f406c21bc7966510a953e6e673baad3"
+        },
+        {
+          "memory_id": "cr_d47265f60808_o2",
+          "type": "episodic",
+          "subject_id": "subject_d47265f60808_x",
+          "content": "다솜 모종 분무 간격 표식 연습에서 트레이 L의 네 칸 간격을 확인했다. 표식 색은 초록이다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "4ad0c2697d142855a7aeb007e1c8dc39d23f0ea0369c5bb4b6f839c462fab9c2"
+        },
+        {
+          "memory_id": "cr_d47265f60808_o3",
+          "type": "episodic",
+          "subject_id": "subject_d47265f60808_x",
+          "content": "다솜 모종 분무 간격 표식 담당자가 트레이 L 간격을 10월 12일부터 세 칸으로 정정했다. 초록색 표식은 유지한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "1e5d5647b31dedb78ba0800908656d29be790324a9c3c9c12f5dc07ec65988ba"
+        },
+        {
+          "memory_id": "cr_d47265f60808_o4",
+          "type": "episodic",
+          "subject_id": "subject_d47265f60808_x",
+          "content": "다솜 모종 분무 간격 카드에서 네 칸 간격은 과거 칸으로 옮겼다. 현재 연습은 세 칸 간격이며 실제 물을 뿌리지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "a0e722d8a6935d7b8973d63715a53322488489ebc6ddb565f71473ca8ee0c117"
+        },
+        {
+          "memory_id": "cr_d47265f60808_o5",
+          "type": "episodic",
+          "subject_id": "subject_d47265f60808_x",
+          "content": "다솜 모종 분무 간격 표식의 새 지시는 10월 19일부터 다섯 칸 간격이다. 세 칸 지시는 이날 종료한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "85f071485d71028839cab898cc859bd900065cbf77ce3c02aac4546ad8178f41"
+        },
+        {
+          "memory_id": "cr_d47265f60808_o6",
+          "type": "episodic",
+          "subject_id": "subject_d47265f60808_x",
+          "content": "다솜 모종 분무 간격 연습 최종표는 L·다섯 칸·초록 표식이다. 실제 재배 효율에 관한 결론은 없다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "ee2ce0d2fe72f2b5436f5a3059a3cdc78e16bb6b435a2d2856fcaf7cdaa27e6d"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_d47265f60808_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "다솜 모종 분무 간격의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_d47265f60808",
+            "project_id": "project_d47265f60808",
+            "subject_id": "subject_d47265f60808_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_d47265f60808_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "다솜 모종 분무 간격의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_d47265f60808",
+            "project_id": "project_d47265f60808",
+            "subject_id": "subject_d47265f60808_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_d47265f60808_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "다솜 모종 분무 간격의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_d47265f60808",
+            "project_id": "project_d47265f60808",
+            "subject_id": "subject_d47265f60808_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_e5f75b0acfa6",
+      "family_id": "family_e5f75b0acfa6",
+      "owner_id": "owner_e5f75b0acfa6",
+      "project_id": "project_e5f75b0acfa6",
+      "observations": [
+        {
+          "memory_id": "cr_e5f75b0acfa6_o1",
+          "type": "episodic",
+          "subject_id": "subject_e5f75b0acfa6_x",
+          "content": "자분 공방 유약 시험에서 얇은 시험편은 덮개를 연 채 12분 식힌다. 두꺼운 시험편의 냉각 규칙은 아직 정하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "045aa1535905220bc6522cbcfe9e5ab0d134d706213f3b4c35c75f12913b513d"
+        },
+        {
+          "memory_id": "cr_e5f75b0acfa6_o2",
+          "type": "episodic",
+          "subject_id": "subject_e5f75b0acfa6_x",
+          "content": "자분 공방 유약 시험 기록: 오늘 사용한 얇은 시험편은 덮개를 연 채 12분 냉각했다. 이 기록은 두꺼운 시험편에 대한 승인이 아니다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "490182c36ffe7ff8b5c4602394d0803a9062c2daef0ddf6b1fbf629f02f33879"
+        },
+        {
+          "memory_id": "cr_e5f75b0acfa6_o3",
+          "type": "episodic",
+          "subject_id": "subject_e5f75b0acfa6_x",
+          "content": "자분 공방 유약 시험에 두꺼운 시험편 규칙을 추가했다. 두꺼운 시험편은 덮개를 닫은 채 25분 식히며 얇은 시험편 규칙은 유지한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "617d95dc5bb53284526a0dbda2ba4106752d80f1c33601c72668bec490aa7c0d"
+        },
+        {
+          "memory_id": "cr_e5f75b0acfa6_o4",
+          "type": "episodic",
+          "subject_id": "subject_e5f75b0acfa6_x",
+          "content": "자분 공방 유약 시험 확인표에 얇은 시험편은 개방 12분, 두꺼운 시험편은 밀폐 25분으로 각각 적었다. 두 조건을 한 숫자로 합치지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "426633edbd751ec1bdef956de3e5688439db4cdacf3d3fc4d66c38ba3a7128f4"
+        },
+        {
+          "memory_id": "cr_e5f75b0acfa6_o5",
+          "type": "episodic",
+          "subject_id": "subject_e5f75b0acfa6_x",
+          "content": "자분 공방 유약 시험 중 젖은 시험편은 두께와 관계없이 먼저 건조 확인을 받는다. 젖었다고 냉각 시간을 더 늘리라는 결정은 없다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "deb90c237ed81e5289ed3ef801adce869ace9547f5232b254d58b6b458e67a1a"
+        },
+        {
+          "memory_id": "cr_e5f75b0acfa6_o6",
+          "type": "episodic",
+          "subject_id": "subject_e5f75b0acfa6_x",
+          "content": "자분 공방 유약 시험 최종 점검: 건조 확인 뒤에도 얇음은 덮개 개방 12분, 두꺼움은 덮개 밀폐 25분이다. 젖은 시험편의 선행 확인만 새로 추가했다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "94ad58cd6b74a70c3ca045f2f4fe1f6d0ca974626bf417b6209409d05450d095"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_e5f75b0acfa6_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "자분 공방 유약 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_e5f75b0acfa6",
+            "project_id": "project_e5f75b0acfa6",
+            "subject_id": "subject_e5f75b0acfa6_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_e5f75b0acfa6_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "자분 공방 유약 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_e5f75b0acfa6",
+            "project_id": "project_e5f75b0acfa6",
+            "subject_id": "subject_e5f75b0acfa6_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_e5f75b0acfa6_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "자분 공방 유약 시험의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_e5f75b0acfa6",
+            "project_id": "project_e5f75b0acfa6",
+            "subject_id": "subject_e5f75b0acfa6_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_a20719a89ae7",
+      "family_id": "family_a20719a89ae7",
+      "owner_id": "owner_a20719a89ae7",
+      "project_id": "project_a20719a89ae7",
+      "observations": [
+        {
+          "memory_id": "cr_a20719a89ae7_o1",
+          "type": "episodic",
+          "subject_id": "subject_a20719a89ae7_x",
+          "content": "별하 망원경 정렬 순서는 기준점 A 다음 기준점 B다. 이 절차는 실내 모형 망원경 T의 연습용이다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "f3316c95e139ec19f705c77459ed22b946b8bd4c8d0f6f218b610ef58b7b01df"
+        },
+        {
+          "memory_id": "cr_a20719a89ae7_o2",
+          "type": "episodic",
+          "subject_id": "subject_a20719a89ae7_x",
+          "content": "별하 망원경 정렬 일지에서 실내 모형 T의 A→B 순서를 확인했다. 실제 천체 관측 성공 기록은 아니다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "15651f788c9f0eeedf0de613c97455cfd01a44cdd6c44ad04c9e4f2140a7685e"
+        },
+        {
+          "memory_id": "cr_a20719a89ae7_o3",
+          "type": "episodic",
+          "subject_id": "subject_a20719a89ae7_x",
+          "content": "별하 망원경 정렬 담당자는 10월 12일부터 실내 모형 T의 순서를 B→A로 확정했다. 기존 A→B 지시는 철회한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "90921dc0a9987efde8d96cbe1d1fc665c69d435228d548b25546509b81256c01"
+        },
+        {
+          "memory_id": "cr_a20719a89ae7_o4",
+          "type": "episodic",
+          "subject_id": "subject_a20719a89ae7_x",
+          "content": "별하 망원경 정렬 카드의 현행 칸은 B→A다. 장비 범위는 계속 실내 모형 T이며 실제 장비로 확대하지 않았다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "07b2d8fb85f4df74dff2a1ec9e87b26370aa11f1896929bc8d346ef6cece82e2"
+        },
+        {
+          "memory_id": "cr_a20719a89ae7_o5",
+          "type": "episodic",
+          "subject_id": "subject_a20719a89ae7_x",
+          "content": "별하 망원경 정렬 최종 카드: 10월 19일부터 실내 모형 T는 기준점 C→B→A 순서로 바꾼다. B→A 단독 절차는 종료한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "b57de2b808dc4330d906c48058b34044a431a8d30918c85a08a2864d08d7e9af"
+        },
+        {
+          "memory_id": "cr_a20719a89ae7_o6",
+          "type": "episodic",
+          "subject_id": "subject_a20719a89ae7_x",
+          "content": "별하 망원경 정렬 이력에서 C→B→A는 현재 지시, A→B와 B→A는 과거 지시다. 실제 관측 성능은 여전히 측정하지 않았다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "4657f5e964b09358124bc0d266a533a645fab19ad4439c7e1bdf660af7fbf9e8"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_a20719a89ae7_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "별하 망원경 정렬 순서의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_a20719a89ae7",
+            "project_id": "project_a20719a89ae7",
+            "subject_id": "subject_a20719a89ae7_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_a20719a89ae7_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "별하 망원경 정렬 순서의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_a20719a89ae7",
+            "project_id": "project_a20719a89ae7",
+            "subject_id": "subject_a20719a89ae7_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_a20719a89ae7_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "별하 망원경 정렬 순서의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_a20719a89ae7",
+            "project_id": "project_a20719a89ae7",
+            "subject_id": "subject_a20719a89ae7_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_90512f4a7ff3",
+      "family_id": "family_90512f4a7ff3",
+      "owner_id": "owner_90512f4a7ff3",
+      "project_id": "project_90512f4a7ff3",
+      "observations": [
+        {
+          "memory_id": "cr_90512f4a7ff3_o1",
+          "type": "episodic",
+          "subject_id": "subject_90512f4a7ff3_x",
+          "content": "서린 천 염색 관찰에서 면 조각 A 한 장은 세척 뒤 파란색이 남았다. 견 조각은 아직 세척하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "62a60ba7be6f144eab84c4cfcfe92627d5ee04e953826b6d6e062b9650991ab4"
+        },
+        {
+          "memory_id": "cr_90512f4a7ff3_o2",
+          "type": "episodic",
+          "subject_id": "subject_90512f4a7ff3_x",
+          "content": "서린 천 염색 관찰은 면 A 한 장의 색 유지 기록이다. 모든 섬유의 내구성 보증으로 쓰지 않는다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "c2ea41078e8dc0814b870dc026005cc3d772c329a54808a34b2a3843d36967ef"
+        },
+        {
+          "memory_id": "cr_90512f4a7ff3_o3",
+          "type": "episodic",
+          "subject_id": "subject_90512f4a7ff3_x",
+          "content": "서린 천 염색 관찰에서 견 조각 B는 세척 뒤 색이 옅어졌다. 면 A 결과와 달라 재질별로 기록한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "b8aa447bf6a2911f803ecfb598d8fb4fefe9cea96236c95c34e878a7bb4694b9"
+        },
+        {
+          "memory_id": "cr_90512f4a7ff3_o4",
+          "type": "episodic",
+          "subject_id": "subject_90512f4a7ff3_x",
+          "content": "서린 천 염색 관찰표에는 면 A 색 유지·견 B 옅어짐을 함께 적었다. 염료 하나로 모든 섬유를 보증하는 표는 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "6e92087190d19bc81761bbd2225ff069328b353f7abafeea994f689b897bb711"
+        },
+        {
+          "memory_id": "cr_90512f4a7ff3_o5",
+          "type": "episodic",
+          "subject_id": "subject_90512f4a7ff3_x",
+          "content": "서린 천 염색 관찰에서 면 A를 두 번째 세척하자 가장자리 색이 옅어졌다. 첫 세척 결과도 별도 회차로 보존한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "6ddfd9e01962c06c6bf8603156fd092e0c913cef084df61db3cd776927ef9a09"
+        },
+        {
+          "memory_id": "cr_90512f4a7ff3_o6",
+          "type": "episodic",
+          "subject_id": "subject_90512f4a7ff3_x",
+          "content": "서린 천 염색 관찰 최종표는 재질과 세척 회차를 붙인다. 면 첫 회차 유지·면 둘째 회차 가장자리 옅어짐·견 첫 회차 옅어짐이다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "d7f94112940e69b61a9597b2509faff071da742f7aea52acbbbc71c808a4f7a6"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_90512f4a7ff3_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "서린 천 염색 관찰의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_90512f4a7ff3",
+            "project_id": "project_90512f4a7ff3",
+            "subject_id": "subject_90512f4a7ff3_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_90512f4a7ff3_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "서린 천 염색 관찰의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_90512f4a7ff3",
+            "project_id": "project_90512f4a7ff3",
+            "subject_id": "subject_90512f4a7ff3_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_90512f4a7ff3_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "서린 천 염색 관찰의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_90512f4a7ff3",
+            "project_id": "project_90512f4a7ff3",
+            "subject_id": "subject_90512f4a7ff3_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_32f59875d5f3",
+      "family_id": "family_32f59875d5f3",
+      "owner_id": "owner_32f59875d5f3",
+      "project_id": "project_32f59875d5f3",
+      "observations": [
+        {
+          "memory_id": "cr_32f59875d5f3_o1",
+          "type": "episodic",
+          "subject_id": "subject_32f59875d5f3_x",
+          "content": "이랑 도장 잉크 배합 연습에서 도장 Z는 파랑과 흰색을 2대1로 섞는다. 종이는 회색 견본지를 쓴다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "13abfab06a0c650450c15b0cdda1028033eb0551aaa551db93f38c918b1cbde8"
+        },
+        {
+          "memory_id": "cr_32f59875d5f3_o2",
+          "type": "episodic",
+          "subject_id": "subject_32f59875d5f3_x",
+          "content": "이랑 도장 잉크 배합 기록은 도장 Z·2대1·회색 견본지다. 다른 도장 배합은 이번 기록의 대상이 아니다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "87166b8e6b5bfef0ce18e31db8f264f5605e3ce0935b2eb0d7dd28a88d1ee017"
+        },
+        {
+          "memory_id": "cr_32f59875d5f3_o3",
+          "type": "episodic",
+          "subject_id": "subject_32f59875d5f3_x",
+          "content": "이랑 도장 잉크 배합 담당자는 10월 12일부터 도장 Z의 파랑 대 흰색 비율을 1대1로 바꿨다. 2대1 지시는 철회했다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "fb1808986e5b7845cfe708933f588b804711850591fe66cd60682a9a23b3271f"
+        },
+        {
+          "memory_id": "cr_32f59875d5f3_o4",
+          "type": "episodic",
+          "subject_id": "subject_32f59875d5f3_x",
+          "content": "이랑 도장 잉크 배합 카드의 현행은 1대1이며 종이는 여전히 회색 견본지다. 다른 도장의 배합을 바꾸지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "c7b82f70e4feceb47d9b9907628ef72a49d8aeda655325e80ebb2b7d5b0e3b0d"
+        },
+        {
+          "memory_id": "cr_32f59875d5f3_o5",
+          "type": "episodic",
+          "subject_id": "subject_32f59875d5f3_x",
+          "content": "이랑 도장 잉크 배합 최종 승인: 10월 19일부터 도장 Z는 파랑 대 흰색 1대2다. 1대1 지시도 종료한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "02ed48b99a4be2f826bfe428fb2160d7bcc1c382f27476298bfc2b52188c03a6"
+        },
+        {
+          "memory_id": "cr_32f59875d5f3_o6",
+          "type": "episodic",
+          "subject_id": "subject_32f59875d5f3_x",
+          "content": "이랑 도장 잉크 배합 이력에는 2대1·1대1을 과거로, 1대2를 현재로 적었다. 회색 견본지는 계속 사용한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "36b173ddebf09f01d49abaaa8e7e02255152af0d4942b6dd75fc918aba0bfabb"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_32f59875d5f3_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "이랑 도장 잉크 배합의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_32f59875d5f3",
+            "project_id": "project_32f59875d5f3",
+            "subject_id": "subject_32f59875d5f3_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_32f59875d5f3_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "이랑 도장 잉크 배합의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_32f59875d5f3",
+            "project_id": "project_32f59875d5f3",
+            "subject_id": "subject_32f59875d5f3_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_32f59875d5f3_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "이랑 도장 잉크 배합의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_32f59875d5f3",
+            "project_id": "project_32f59875d5f3",
+            "subject_id": "subject_32f59875d5f3_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_ad8d7cf4c0a6",
+      "family_id": "family_ad8d7cf4c0a6",
+      "owner_id": "owner_ad8d7cf4c0a6",
+      "project_id": "project_ad8d7cf4c0a6",
+      "observations": [
+        {
+          "memory_id": "cr_ad8d7cf4c0a6_o1",
+          "type": "episodic",
+          "subject_id": "subject_ad8d7cf4c0a6_x",
+          "content": "초담 활자함 보존 절차는 활자 코드와 서랍 코드를 모두 대조한 뒤 활자를 넣는다. 모양이 닮아도 코드 대조를 건너뛰지 않는다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "d3d1004c786e04a6ba39d1b7caa168b4bb35c8b4dffbb46f0e4cd14ddb7b76f2"
+        },
+        {
+          "memory_id": "cr_ad8d7cf4c0a6_o2",
+          "type": "episodic",
+          "subject_id": "subject_ad8d7cf4c0a6_x",
+          "content": "초담 활자함 보존 기록자는 활자 코드 확인과 서랍 코드 확인을 별도 항목으로 남겼다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "6b26b546006ef8f5d10ec30184bdb412de048ec7edceb4e5a3460b0e8442f3ba"
+        },
+        {
+          "memory_id": "cr_ad8d7cf4c0a6_o3",
+          "type": "episodic",
+          "subject_id": "subject_ad8d7cf4c0a6_x",
+          "content": "초담 활자함 보존 작업에 손잡이 흰 줄 표시를 추가했다. 활자·서랍 코드 대조 의무는 변하지 않았다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "155c268e3697f2d577724d758f75ee650d0170399bfb300cf8868adf1a537436"
+        },
+        {
+          "memory_id": "cr_ad8d7cf4c0a6_o4",
+          "type": "episodic",
+          "subject_id": "subject_ad8d7cf4c0a6_x",
+          "content": "초담 활자함 보존의 간단 메모는 손잡이 흰 줄만 적었다. 원본 절차의 코드 대조를 이 메모로 대체하지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "55382820a4df44ace2bacf0066fa8a0810b8928e2bbeef2e226c12d95b30e75e"
+        },
+        {
+          "memory_id": "cr_ad8d7cf4c0a6_o5",
+          "type": "episodic",
+          "subject_id": "subject_ad8d7cf4c0a6_x",
+          "content": "초담 활자함 보존 작업을 마치면 빈 칸 수를 기록한다. 투입 전 활자·서랍 코드 대조도 여전히 필수다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "f9356f315de4349209310cfcdaef98cbea1ed27441f2c5b61b35bd757de4301f"
+        },
+        {
+          "memory_id": "cr_ad8d7cf4c0a6_o6",
+          "type": "episodic",
+          "subject_id": "subject_ad8d7cf4c0a6_x",
+          "content": "초담 활자함 보존 최종 체크는 두 코드 대조·흰 줄·마감 빈 칸 수다. 최초 원본표는 마감 기록과 함께 보관한다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "6ef1fc9650188b9c55c5347046b619256fee17f31a0a3252cc2b54c80cf6c20b"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_ad8d7cf4c0a6_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "초담 활자함 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_ad8d7cf4c0a6",
+            "project_id": "project_ad8d7cf4c0a6",
+            "subject_id": "subject_ad8d7cf4c0a6_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_ad8d7cf4c0a6_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "초담 활자함 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_ad8d7cf4c0a6",
+            "project_id": "project_ad8d7cf4c0a6",
+            "subject_id": "subject_ad8d7cf4c0a6_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "초담 활자함 보존의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_ad8d7cf4c0a6",
+            "project_id": "project_ad8d7cf4c0a6",
+            "subject_id": "subject_ad8d7cf4c0a6_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_b5417ab0076e",
+      "family_id": "family_b5417ab0076e",
+      "owner_id": "owner_b5417ab0076e",
+      "project_id": "project_b5417ab0076e",
+      "observations": [
+        {
+          "memory_id": "cr_b5417ab0076e_o1",
+          "type": "episodic",
+          "subject_id": "subject_b5417ab0076e_x",
+          "content": "아솔 그림자극 준비 작업 X의 첫 장면은 흰 천 뒤에서 시작한다. 광원은 표시선 A에 놓고 인형은 왼쪽에서 넣는다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "ea910bb154d4fafea9a744068ad33c9b82595cccf2eec8eb66d24a1336897114"
+        },
+        {
+          "memory_id": "cr_b5417ab0076e_o2",
+          "type": "episodic",
+          "subject_id": "subject_b5417ab0076e_x",
+          "content": "아솔 그림자극 준비 X 확인자는 흰 천·광원 A·왼쪽 인형 진입을 기록했다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "01115b9a263995867675f48c183bf12c318f40a4dcf6234ca719b21badeb7705"
+        },
+        {
+          "memory_id": "cr_b5417ab0076e_o3",
+          "type": "episodic",
+          "subject_id": "subject_b5417ab0076e_y",
+          "content": "아솔 별개 작업 Y인 휴게실 간식 배치는 검은 쟁반을 오른쪽 탁자에 놓는다. 그림자극 X의 장면 준비와 무관하다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "a50f692d13aa6c43f3dd75082ee638e9de9a83d4dddfffac861f848eaa6c1a98"
+        },
+        {
+          "memory_id": "cr_b5417ab0076e_o4",
+          "type": "episodic",
+          "subject_id": "subject_b5417ab0076e_y",
+          "content": "아솔 간식 작업 Y 체크표는 검은 쟁반·오른쪽 탁자다. 흰 천이나 인형 진입 방향을 정정하는 지시가 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "63b95235337af23772b0855437c3263b1025cac41a3ccc52c516d52de34e670f"
+        },
+        {
+          "memory_id": "cr_b5417ab0076e_o5",
+          "type": "episodic",
+          "subject_id": "subject_b5417ab0076e_x",
+          "content": "아솔 그림자극 준비 X로 돌아와 광원만 표시선 B로 옮기기로 확정했다. 흰 천과 왼쪽 인형 진입은 유지한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "8757ce1b7afcfe309ee64674c78ad9baa9cb3e0dc229a763bc48e8e8c6b97991"
+        },
+        {
+          "memory_id": "cr_b5417ab0076e_o6",
+          "type": "episodic",
+          "subject_id": "subject_b5417ab0076e_x",
+          "content": "아솔 그림자극 준비 X 최종 점검은 흰 천·광원 B·왼쪽 진입이다. 간식 Y의 오른쪽 탁자는 장면 조건이 아니다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "de6cebe48d0c6a5dcf9d4b9311ceae3cf5ba424f32bfd7b0ec30159497266b72"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_b5417ab0076e_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "아솔 그림자극 준비의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_b5417ab0076e",
+            "project_id": "project_b5417ab0076e",
+            "subject_id": "subject_b5417ab0076e_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_b5417ab0076e_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "아솔 그림자극 준비의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_b5417ab0076e",
+            "project_id": "project_b5417ab0076e",
+            "subject_id": "subject_b5417ab0076e_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_b5417ab0076e_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "아솔 그림자극 준비의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_b5417ab0076e",
+            "project_id": "project_b5417ab0076e",
+            "subject_id": "subject_b5417ab0076e_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_8295228a4783",
+      "family_id": "family_8295228a4783",
+      "owner_id": "owner_8295228a4783",
+      "project_id": "project_8295228a4783",
+      "observations": [
+        {
+          "memory_id": "cr_8295228a4783_o1",
+          "type": "episodic",
+          "subject_id": "subject_8295228a4783_x",
+          "content": "새미 판화 압력 기록의 고무판 R은 인쇄기 눈금 4로 승인됐다. 종이는 P묶음을 사용한다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "0e85a615b301f4bb65897790f16e638aa76d5543de3e8d0f973b39b166daf028"
+        },
+        {
+          "memory_id": "cr_8295228a4783_o2",
+          "type": "episodic",
+          "subject_id": "subject_8295228a4783_x",
+          "content": "새미 판화 압력 기록에서 고무판 R을 눈금 4·P묶음 종이로 인쇄했다. 이때의 공식 눈금은 4다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "135ab95b7d1ed31a26917d921bb914b51082fcd7f9d668d84589d9fdde0a83b0"
+        },
+        {
+          "memory_id": "cr_8295228a4783_o3",
+          "type": "episodic",
+          "subject_id": "subject_8295228a4783_x",
+          "content": "새미 판화 압력 기록 정정: 고무판 R의 공식 눈금은 10월 12일부터 3이다. 종이 P묶음은 그대로 두고 눈금 4 안내만 철회한다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "300642e882d8a582ac897f1cc2d7704399cdeb17442bda1df7977491a1e05986"
+        },
+        {
+          "memory_id": "cr_8295228a4783_o4",
+          "type": "episodic",
+          "subject_id": "subject_8295228a4783_x",
+          "content": "새미 판화 압력 기록 확인자는 고무판 R의 눈금 3을 작업표에 반영했다. 종이 종류를 바꾸라는 승인은 없었다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "8a2355e9d9bd76ef3bd2234591e93ac76ad97ac669559104080e98ce341678c1"
+        },
+        {
+          "memory_id": "cr_8295228a4783_o5",
+          "type": "episodic",
+          "subject_id": "subject_8295228a4783_x",
+          "content": "새미 판화 압력 기록 최종 결정: 10월 19일부터 고무판 R은 눈금 2를 쓴다. 눈금 3은 과거 기록으로 남기고 종이는 여전히 P묶음이다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "ad4dc7737f2c998e5128041cd37122e913959b26ac50eaac978842893364a944"
+        },
+        {
+          "memory_id": "cr_8295228a4783_o6",
+          "type": "episodic",
+          "subject_id": "subject_8295228a4783_x",
+          "content": "새미 판화 압력 기록 대조표에는 과거 눈금 4·3과 현재 눈금 2를 구분했다. 현재 작업표에는 눈금 2만 적는다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "c36a451f36fcf529816e149bb9dfbf189398023a3237a7970b2c6f034791a7f8"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_8295228a4783_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "새미 판화 압력 기록의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_8295228a4783",
+            "project_id": "project_8295228a4783",
+            "subject_id": "subject_8295228a4783_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_8295228a4783_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "새미 판화 압력 기록의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_8295228a4783",
+            "project_id": "project_8295228a4783",
+            "subject_id": "subject_8295228a4783_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_8295228a4783_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "새미 판화 압력 기록의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_8295228a4783",
+            "project_id": "project_8295228a4783",
+            "subject_id": "subject_8295228a4783_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_b1a1e731f99f",
+      "family_id": "family_b1a1e731f99f",
+      "owner_id": "owner_b1a1e731f99f",
+      "project_id": "project_b1a1e731f99f",
+      "observations": [
+        {
+          "memory_id": "cr_b1a1e731f99f_o1",
+          "type": "episodic",
+          "subject_id": "subject_b1a1e731f99f_x",
+          "content": "누리 렌즈 측정에서 가시광 모드는 기준판 V를 사용한다. 기준판 V의 위치는 렌즈 앞 30센티미터다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "1c48faab6bee72487a1c219c4e4a2f12a16901b640c9c091504fd8335651f5b2"
+        },
+        {
+          "memory_id": "cr_b1a1e731f99f_o2",
+          "type": "episodic",
+          "subject_id": "subject_b1a1e731f99f_x",
+          "content": "누리 렌즈 측정 일지의 가시광 샘플은 기준판 V를 앞 30센티미터에 뒀다. 적외선 모드 측정은 아직 하지 않았다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "4b3fc71b7ac34352ddbfc5ee991f53ee47d7deb9b26878fd2cbc0e78720c5890"
+        },
+        {
+          "memory_id": "cr_b1a1e731f99f_o3",
+          "type": "episodic",
+          "subject_id": "subject_b1a1e731f99f_x",
+          "content": "누리 렌즈 측정의 적외선 모드는 기준판 I를 앞 45센티미터에 둔다. 가시광 모드의 기준판 V·30센티미터는 그대로다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "28006fde31b8e6b5fc84c034d3dff91a0c818bb2965f4adced2338e7212526a4"
+        },
+        {
+          "memory_id": "cr_b1a1e731f99f_o4",
+          "type": "episodic",
+          "subject_id": "subject_b1a1e731f99f_x",
+          "content": "누리 렌즈 측정 담당표는 모드와 기준판을 짝지어 보관한다. 기준판 V와 I는 서로 바꿔 쓰는 부품이 아니다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "679f13b46a6992c8fa051b01da59413a883e11fc3a8dd834310fbf8477502ecd"
+        },
+        {
+          "memory_id": "cr_b1a1e731f99f_o5",
+          "type": "episodic",
+          "subject_id": "subject_b1a1e731f99f_x",
+          "content": "누리 렌즈 측정에서 혼합광 샘플은 두 모드 중 하나로 임의 분류하지 않는다. 분류 담당자의 판정 전에는 수치를 확정하지 않는다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "bea73e1e74d865459356d3fa7a3ba6807e9a96ac9eefd0693913dabfc46e330c"
+        },
+        {
+          "memory_id": "cr_b1a1e731f99f_o6",
+          "type": "episodic",
+          "subject_id": "subject_b1a1e731f99f_x",
+          "content": "누리 렌즈 측정 마감 기록: 가시광 V·30센티미터, 적외선 I·45센티미터를 유지한다. 혼합광은 담당자 판정을 기다린다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "8fa5f935a210d5b2861dc3b0c69257e316a38431f1f8854f969b07f67fca1f34"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_b1a1e731f99f_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "누리 렌즈 측정의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_b1a1e731f99f",
+            "project_id": "project_b1a1e731f99f",
+            "subject_id": "subject_b1a1e731f99f_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_b1a1e731f99f_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "누리 렌즈 측정의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_b1a1e731f99f",
+            "project_id": "project_b1a1e731f99f",
+            "subject_id": "subject_b1a1e731f99f_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_b1a1e731f99f_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "누리 렌즈 측정의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_b1a1e731f99f",
+            "project_id": "project_b1a1e731f99f",
+            "subject_id": "subject_b1a1e731f99f_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_d9eb67f931bb",
+      "family_id": "family_d9eb67f931bb",
+      "owner_id": "owner_d9eb67f931bb",
+      "project_id": "project_d9eb67f931bb",
+      "observations": [
+        {
+          "memory_id": "cr_d9eb67f931bb_o1",
+          "type": "episodic",
+          "subject_id": "subject_d9eb67f931bb_x",
+          "content": "한울 음향 반사 모형의 빈 방 모형에서 패널 P를 놓자 마이크 하나의 반사 표시가 낮았다. 사람이 찬 방은 측정하지 않았다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "7c89d4578c8edeeb298b70f7b78646c4d7e04e81045d1062b71ab9f383dda19f"
+        },
+        {
+          "memory_id": "cr_d9eb67f931bb_o2",
+          "type": "episodic",
+          "subject_id": "subject_d9eb67f931bb_x",
+          "content": "한울 음향 반사 모형 기록은 빈 모형 방·마이크 하나 조건이다. 실제 공연장의 모든 좌석을 시험한 결과가 아니다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "6194d5d7027d49203668ad0b86b63870d959b344cae734fa3be8e92488305010"
+        },
+        {
+          "memory_id": "cr_d9eb67f931bb_o3",
+          "type": "episodic",
+          "subject_id": "subject_d9eb67f931bb_x",
+          "content": "한울 음향 반사 모형에 천 인형을 채운 조건에서는 패널 P가 있어도 반사 표시가 높았다. 빈 방 결과를 덮어쓰지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "0550d5ba3dc1580dfd672af1742b6cc5712729f5b66b198888eef23c8b1d56d2"
+        },
+        {
+          "memory_id": "cr_d9eb67f931bb_o4",
+          "type": "episodic",
+          "subject_id": "subject_d9eb67f931bb_x",
+          "content": "한울 음향 반사 모형 비교표는 빈 모형 낮음·인형 채움 높음이다. 좌석 전체의 개선을 결론 내리지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "550ab0c8b72342e92781e87a0b4fabc688fe8c959e09ab289f879182764ed322"
+        },
+        {
+          "memory_id": "cr_d9eb67f931bb_o5",
+          "type": "episodic",
+          "subject_id": "subject_d9eb67f931bb_x",
+          "content": "한울 음향 반사 모형에서 빈 방의 마이크를 구석으로 옮기자 표시가 높았다. 처음 낮았던 위치와 구석 위치는 다르다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "8cd69978b9ddb600d41bf9fde1886435acead50407b97b1eb3135f208e7c525d"
+        },
+        {
+          "memory_id": "cr_d9eb67f931bb_o6",
+          "type": "episodic",
+          "subject_id": "subject_d9eb67f931bb_x",
+          "content": "한울 음향 반사 모형 요약은 점유 조건과 마이크 위치를 함께 남겨야 한다. P가 모든 위치와 점유에서 낮춘다는 주장은 미검증이다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "e18e58c13c2cec4385f7d12e024c7fe81728b47c5e283bdfdfd13cb6a80c2f81"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_d9eb67f931bb_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "한울 음향 반사 모형의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_d9eb67f931bb",
+            "project_id": "project_d9eb67f931bb",
+            "subject_id": "subject_d9eb67f931bb_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_d9eb67f931bb_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "한울 음향 반사 모형의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_d9eb67f931bb",
+            "project_id": "project_d9eb67f931bb",
+            "subject_id": "subject_d9eb67f931bb_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_d9eb67f931bb_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "한울 음향 반사 모형의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_d9eb67f931bb",
+            "project_id": "project_d9eb67f931bb",
+            "subject_id": "subject_d9eb67f931bb_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_dcfc7c02c76c",
+      "family_id": "family_dcfc7c02c76c",
+      "owner_id": "owner_dcfc7c02c76c",
+      "project_id": "project_dcfc7c02c76c",
+      "observations": [
+        {
+          "memory_id": "cr_dcfc7c02c76c_o1",
+          "type": "episodic",
+          "subject_id": "subject_dcfc7c02c76c_x",
+          "content": "아람 녹음 파일 규칙에서 연습 세션 Q는 이름 끝에 _take를 붙인다. 저장 폴더는 room-Q다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "a28b6407b03693c061cb0001d2077f4e84940d46d0effc7a8e7424e1d173dc13"
+        },
+        {
+          "memory_id": "cr_dcfc7c02c76c_o2",
+          "type": "episodic",
+          "subject_id": "subject_dcfc7c02c76c_x",
+          "content": "아람 녹음 파일 규칙대로 연습 세션 Q의 파일 두 개를 _take 접미사로 room-Q에 넣었다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "31dc0c113631cd572798c9df582563de8ad48ba7b5300316ab83d23506da0984"
+        },
+        {
+          "memory_id": "cr_dcfc7c02c76c_o3",
+          "type": "episodic",
+          "subject_id": "subject_dcfc7c02c76c_x",
+          "content": "아람 녹음 파일 규칙 변경: 10월 12일부터 세션 Q의 접미사는 _raw다. 폴더 room-Q는 유지하며 _take는 새 파일에 쓰지 않는다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "66bbaafc2144a8c15bde1997b815ce4c0e0400afd9f07c168a22a2e84390e8c8"
+        },
+        {
+          "memory_id": "cr_dcfc7c02c76c_o4",
+          "type": "episodic",
+          "subject_id": "subject_dcfc7c02c76c_x",
+          "content": "아람 녹음 파일 규칙 검사표에 새 Q파일의 _raw를 확인했다. 과거 _take 파일을 지우거나 이동하라는 지시는 없다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "06d2f9df1399d338e06aca74d4da8f97f388c89c55e551fc129971584894643b"
+        },
+        {
+          "memory_id": "cr_dcfc7c02c76c_o5",
+          "type": "episodic",
+          "subject_id": "subject_dcfc7c02c76c_x",
+          "content": "아람 녹음 파일 규칙 확정: 10월 19일부터 세션 Q의 새 파일은 _src를 붙인다. _raw는 이전 기간의 규칙으로 분류한다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "b50ff1605d57823e5e7339cfdc6bd8d4f43ec8967cce17dbd18a2764bfe0c1c4"
+        },
+        {
+          "memory_id": "cr_dcfc7c02c76c_o6",
+          "type": "episodic",
+          "subject_id": "subject_dcfc7c02c76c_x",
+          "content": "아람 녹음 파일 규칙은 현재 _src·room-Q다. 과거 _take와 _raw 파일은 변경 이력으로 보관하고 자동 삭제하지 않는다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "6cfc3365b2905883b5f6fd3c914ba20741258a1067d72b14e50d0bfd4ef7d09d"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_dcfc7c02c76c_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "아람 녹음 파일 규칙의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_dcfc7c02c76c",
+            "project_id": "project_dcfc7c02c76c",
+            "subject_id": "subject_dcfc7c02c76c_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_dcfc7c02c76c_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "아람 녹음 파일 규칙의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_dcfc7c02c76c",
+            "project_id": "project_dcfc7c02c76c",
+            "subject_id": "subject_dcfc7c02c76c_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_dcfc7c02c76c_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "아람 녹음 파일 규칙의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_dcfc7c02c76c",
+            "project_id": "project_dcfc7c02c76c",
+            "subject_id": "subject_dcfc7c02c76c_x"
+          }
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr_1f3e4823215b",
+      "family_id": "family_1f3e4823215b",
+      "owner_id": "owner_1f3e4823215b",
+      "project_id": "project_1f3e4823215b",
+      "observations": [
+        {
+          "memory_id": "cr_1f3e4823215b_o1",
+          "type": "episodic",
+          "subject_id": "subject_1f3e4823215b_x",
+          "content": "온새 카드 분류 작업 X는 동물 카드를 세모 상자에 넣고 뒷면의 점 개수를 확인한다. 숫자 표기는 연필로 한다.",
+          "recorded_at": "2026-10-05T09:00:00Z",
+          "event_at": "2026-10-05T09:00:00Z",
+          "content_sha256": "d2be08cf73945136c9669e16c2ba7827a40114cab5742b4c38612aee57d6b97d"
+        },
+        {
+          "memory_id": "cr_1f3e4823215b_o2",
+          "type": "episodic",
+          "subject_id": "subject_1f3e4823215b_x",
+          "content": "온새 카드 분류 작업 X 일지에서 세모 상자·뒷면 점 확인·연필 표기를 유지했다.",
+          "recorded_at": "2026-10-05T09:10:00Z",
+          "event_at": "2026-10-05T09:10:00Z",
+          "content_sha256": "58cfce20ef5205708587aa96a14224fedddad7091bd0548d22dee49278e71abe"
+        },
+        {
+          "memory_id": "cr_1f3e4823215b_o3",
+          "type": "episodic",
+          "subject_id": "subject_1f3e4823215b_y",
+          "content": "온새 별개 작업 Y의 천 조각 정리는 네모 상자를 쓰며 앞면 색을 확인한다. 표기는 빨간 펜이고 카드 X의 규칙이 아니다.",
+          "recorded_at": "2026-10-12T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "content_sha256": "e85899eefb63bce559be91c46796f5c55e50a0e42076fd21ecd05e3884f6b411"
+        },
+        {
+          "memory_id": "cr_1f3e4823215b_o4",
+          "type": "episodic",
+          "subject_id": "subject_1f3e4823215b_y",
+          "content": "온새 천 조각 작업 Y 담당자는 네모 상자·앞면 색·빨간 펜을 확인했다. 동물 카드 X와 작업표를 합치지 않는다.",
+          "recorded_at": "2026-10-12T09:10:00Z",
+          "event_at": "2026-10-12T09:10:00Z",
+          "content_sha256": "7cb5cd90b22d1fdc953d1973adfa3d6d1c8bc39a734d19873aced55c765ab29b"
+        },
+        {
+          "memory_id": "cr_1f3e4823215b_o5",
+          "type": "episodic",
+          "subject_id": "subject_1f3e4823215b_x",
+          "content": "온새 카드 분류 작업 X를 다시 시작하며 숫자 표기만 검은 펜으로 확정 변경했다. 세모 상자와 뒷면 점 확인은 그대로다.",
+          "recorded_at": "2026-10-19T09:00:00Z",
+          "event_at": "2026-10-19T09:00:00Z",
+          "content_sha256": "46e7bc90ce38ba81f25ec30b0b65f9a300625661bd61b79552c338c22a300b9b"
+        },
+        {
+          "memory_id": "cr_1f3e4823215b_o6",
+          "type": "episodic",
+          "subject_id": "subject_1f3e4823215b_x",
+          "content": "온새 카드 분류 작업 X 최신표는 세모 상자·뒷면 점 확인·검은 펜이다. 천 조각 Y의 앞면 색 확인을 가져오지 않는다.",
+          "recorded_at": "2026-10-19T09:10:00Z",
+          "event_at": "2026-10-19T09:10:00Z",
+          "content_sha256": "010e265b8a1d835ad90397e297b93071c0f187f231482642502667dedc7aabd5"
+        }
+      ],
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr_1f3e4823215b_t1",
+          "after_observation": 2,
+          "query_at": "2026-10-05T10:00:00Z",
+          "query": "온새 카드 분류 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_1f3e4823215b",
+            "project_id": "project_1f3e4823215b",
+            "subject_id": "subject_1f3e4823215b_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_1f3e4823215b_t2",
+          "after_observation": 4,
+          "query_at": "2026-10-12T10:00:00Z",
+          "query": "온새 카드 분류 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_1f3e4823215b",
+            "project_id": "project_1f3e4823215b",
+            "subject_id": "subject_1f3e4823215b_x"
+          }
+        },
+        {
+          "checkpoint_id": "cr_1f3e4823215b_t3",
+          "after_observation": 6,
+          "query_at": "2026-10-19T10:00:00Z",
+          "query": "온새 카드 분류 작업의 질의 시점 현재 지침·관찰과 미확정 범위를 정리하라. 대상·조건·시점·관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+          "scope": {
+            "owner_id": "owner_1f3e4823215b",
+            "project_id": "project_1f3e4823215b",
+            "subject_id": "subject_1f3e4823215b_x"
+          }
+        }
+      ]
+    }
+  ]
+}

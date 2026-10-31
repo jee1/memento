@@ -1,0 +1,28 @@
+{
+  "status": "inconclusive_not_run",
+  "registered_at": "2026-10-31T13:59:54.507660+00:00",
+  "reason": "10/25 complete test sequences; task_noise and source_preservation 0/5 each. No new minimum threshold or selected-subset experiment.",
+  "protocol_sha256": "2051e3b9f8a3db312a5b80214c8f1fb875ddd83461163ad982609f0968f32a5b",
+  "dataset_sha256": "be5dd6390578882a2fe76302049c53faa4c3c2649287ffc74c823c3ace984069",
+  "gold_sha256": "abe81bf8fa9965e003fa8b4701c0bc4f6b10b2af4ffc12461bbe3a0e6c609950",
+  "aggregation_sha256": "56d25da28c88dddf00319baa1b61b027fd52447045ba61c3bbe8c5c242b5596f",
+  "coverage_sha256": "dcd033175d2d41bd509f6716d1ddc23d0851ffe6770fbe014ec6487e938b1078",
+  "split_sha256": "002f28973ba9cbfee9156bf6fb220e94eff75538f22d1fa1360b57340a311be1",
+  "runner": {
+    "path": "scripts/aggregate-consolidation-replay-panel.ts",
+    "sha256": "befb941db58f97b41192adc46ad7e03e790789a9e6bcaa52cccbe9a135b21a2e"
+  },
+  "label_source": "agent_panel",
+  "human_gold": false,
+  "same_vendor_adjudicators": true,
+  "adjudication_true_counts": {
+    "m5": 71,
+    "m2": 58,
+    "both": 58
+  },
+  "actual_calls": 0,
+  "systems": null,
+  "performance": null,
+  "final_answer": null,
+  "execution": null
+}
