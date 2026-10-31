@@ -58,7 +58,15 @@ describe('test-sleep-consolidation', () => {
     }
   }
 
-  it('SC-001/SC-003: 동일 주제 에피소딕 클러스터 후 시맨틱 생성 및 핵심 키워드 보존(extractive)', async () => {
+  it('SC-001/SC-003: 동일 주제 에피소딕 클러스터 후 LLM 시맨틱 생성 및 핵심 키워드 보존', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'g-test');
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: 'alpha-topic consolidated summary' }] } }]
+      })
+    }) as typeof fetch;
+
     const vec = new Array(384).fill(0);
     vec[0] = 1;
     seedCluster(10, vec, { keyword: 'alpha-topic' });
@@ -86,6 +94,14 @@ describe('test-sleep-consolidation', () => {
   });
 
   it('SC-005: 핀된 에피소딕은 통합 후에도 미통합 상태 유지', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'g-test');
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: 'sc5 summary' }] } }]
+      })
+    }) as typeof fetch;
+
     const vec = new Array(384).fill(0);
     vec[1] = 1;
     seedCluster(5, vec, { idPrefix: 'sc5_u' });

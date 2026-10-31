@@ -237,8 +237,18 @@ export class SleepConsolidationService {
 
       const byId = new Map(candidates.map(c => [c.id, c]));
 
+      let stopRemainingClusters = false;
+
       for (const cluster of clusters) {
         const clusterId = `cluster-${cluster.representativeId}`;
+        if (stopRemainingClusters) {
+          result.clustersSkipped++;
+          result.errors.push({
+            clusterId,
+            error: 'deferred:run_stopped_after_quota'
+          });
+          continue;
+        }
         try {
           const episodes: EpisodicCandidateRow[] = cluster.episodicIds
             .map(id => byId.get(id))
@@ -249,15 +259,25 @@ export class SleepConsolidationService {
             continue;
           }
 
-          const { content: summaryText, method } = await this.summarization.summarizeCluster({
+          const summary = await this.summarization.summarizeCluster({
             clusterEpisodes: episodes
           });
 
-          if (!summaryText.trim()) {
+          if (summary.ok === false) {
             result.clustersSkipped++;
-            result.errors.push({ clusterId, error: 'Empty summary' });
+            result.errors.push({
+              clusterId,
+              error: `deferred:${summary.reason}`
+            });
+            if (summary.reason === 'quota_exceeded') {
+              stopRemainingClusters = true;
+              result.stoppedDueToQuota = true;
+            }
             continue;
           }
+
+          const summaryText = summary.content;
+          const method = summary.method;
 
           const mergeTarget = await this.findMergeTarget(clusterId, cluster.ownerId, summaryText);
 
@@ -266,7 +286,7 @@ export class SleepConsolidationService {
               existingSemanticContent: mergeTarget.content,
               clusterEpisodes: episodes
             });
-            if (merged.content.trim()) {
+            if (merged.ok && merged.content.trim()) {
               const newOrigin = mergeOriginSourceJson(mergeTarget.originSource, cluster.episodicIds);
               await DatabaseUtils.runTransaction(this.db, async () => {
                 this.repo.updateSemanticMemory({
@@ -309,6 +329,18 @@ export class SleepConsolidationService {
               result.episodicsConsolidated += cluster.episodicIds.length;
               continue;
             }
+            result.clustersSkipped++;
+            const mergeDeferReason =
+              merged.ok === false ? merged.reason : 'empty_response';
+            result.errors.push({
+              clusterId,
+              error: `deferred:${mergeDeferReason}`
+            });
+            if (merged.ok === false && merged.reason === 'quota_exceeded') {
+              stopRemainingClusters = true;
+              result.stoppedDueToQuota = true;
+            }
+            continue;
           }
 
           const semanticId = newSemanticId();

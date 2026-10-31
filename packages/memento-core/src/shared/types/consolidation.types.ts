@@ -20,6 +20,8 @@ export interface SleepConsolidationRunResult {
   semanticsMerged: number;
   episodicsConsolidated: number;
   errors: Array<{ clusterId: string; error: string }>;
+  /** LLM 429 등으로 이번 run 의 남은 클러스터를 처리하지 않고 중단한 경우 (#1549) */
+  stoppedDueToQuota?: boolean;
   /** 이전 run이 끝나기 전에 호출되어 처리하지 않고 반환한 경우 */
   skippedDueToConcurrentRun?: boolean;
 }

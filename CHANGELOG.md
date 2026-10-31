@@ -16,6 +16,7 @@
 
 ### Fixed
 
+- 수면 통합: LLM 미설정·실패·429 시 extractive 한 줄 복사로 통합하지 않고 클러스터를 미룹니다. 429 는 같은 run 의 남은 클러스터 처리도 중단합니다. 병합 요약이 비어 있으면 에피소딕 `is_consolidated`/중요도를 바꾸지 않습니다 (#1549).
 - 관계 추출: OpenAI 경로가 출력 상한을 `max_completion_tokens`로 보냅니다. gpt-5.x 계열 모델이 `max_tokens`를 400으로 거절해 관계 추출이 실패하던 문제를 고칩니다 (#1532).
 - 마이그레이션: `memento_schema_version`에서 `applied_at`이 같을 때 현재 스키마 버전을 숫자 기준 최댓값으로 고릅니다 (#1542).
 
