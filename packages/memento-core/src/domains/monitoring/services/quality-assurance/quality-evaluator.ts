@@ -19,6 +19,11 @@ import path from 'path';
 import { QualityThresholdManager, type QualityThreshold } from './quality-threshold-manager.js';
 import type { CollectedMetrics } from './quality-metrics-collector.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import {
+  isEvaluableMetricState,
+  QUALITY_METRIC_STATE,
+  type QualityMetricState,
+} from './quality-metric-measurement.js';
 
 /**
  * 지표 평가 결과
@@ -59,6 +64,16 @@ export interface MetricEvaluationResult {
    * 평가 메시지
    */
   message: string;
+
+  /**
+   * 미측정 등으로 임계값 비교에서 제외된 경우
+   */
+  skipped?: boolean;
+
+  /**
+   * 측정 상태 (미측정·분모 0·실측)
+   */
+  measurement_state?: QualityMetricState;
 }
 
 /**
@@ -192,10 +207,29 @@ export class QualityEvaluator {
     const metricResults: MetricEvaluationResult[] = [];
     const warnings: QualityEvaluationResult['warnings'] = [];
 
-    // 각 지표를 평가
+    // 각 지표를 평가 (미측정은 임계값·종합 판정에서 제외)
     for (const [key, value] of Object.entries(metrics.metrics)) {
+      const measurementState = metrics.metric_states?.[key];
+      if (measurementState !== undefined && !isEvaluableMetricState(measurementState)) {
+        metricResults.push({
+          namespace: metrics.namespace,
+          key,
+          value,
+          threshold: null,
+          passed: true,
+          difference: null,
+          message: `미측정(${measurementState})`,
+          skipped: true,
+          measurement_state: measurementState,
+        });
+        continue;
+      }
+
       const result = this.evaluateMetric(metrics.namespace, key, value, context);
-      metricResults.push(result);
+      metricResults.push({
+        ...result,
+        measurement_state: measurementState ?? QUALITY_METRIC_STATE.MEASURED,
+      });
 
       // 임계값 미달 시 경고 추가
       if (!result.passed && result.threshold) {
@@ -209,10 +243,31 @@ export class QualityEvaluator {
       }
     }
 
-    // 상태 결정
-    const passedCount = metricResults.filter(r => r.passed).length;
-    const failedCount = metricResults.filter(r => !r.passed).length;
-    const totalCount = metricResults.length;
+    // metric_states 에만 있고 metrics 에 없는 미측정 키 기록
+    if (metrics.metric_states) {
+      for (const [key, state] of Object.entries(metrics.metric_states)) {
+        if (key in metrics.metrics || isEvaluableMetricState(state)) {
+          continue;
+        }
+        metricResults.push({
+          namespace: metrics.namespace,
+          key,
+          value: 0,
+          threshold: null,
+          passed: true,
+          difference: null,
+          message: `미측정(${state})`,
+          skipped: true,
+          measurement_state: state,
+        });
+      }
+    }
+
+    // 상태 결정 (skipped 제외)
+    const evaluableResults = metricResults.filter(r => !r.skipped);
+    const passedCount = evaluableResults.filter(r => r.passed).length;
+    const failedCount = evaluableResults.filter(r => !r.passed).length;
+    const totalCount = evaluableResults.length;
 
     // 상태 결정 로직:
     // - pass: 모든 지표가 통과
@@ -222,7 +277,7 @@ export class QualityEvaluator {
 
     if (failedCount > 0) {
       // 임계값이 설정된 지표 중 실패한 것이 있으면 fail
-      const failedWithThreshold = metricResults.filter(
+      const failedWithThreshold = evaluableResults.filter(
         r => !r.passed && r.threshold !== null
       ).length;
 

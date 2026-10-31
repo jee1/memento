@@ -22,6 +22,11 @@ import {
   generateMarkdownReport,
   saveReportToFile
 } from './quality-report-renderers.js';
+import {
+  isEvaluableMetricState,
+  QUALITY_METRIC_STATE,
+  type QualityMetricState,
+} from './quality-metric-measurement.js';
 
 /**
  * 리포트 형식
@@ -125,11 +130,13 @@ export interface QualityReport {
     metric_namespace: string;
     metric_key: string;
     context: string;
-    metric_value: number;
+    metric_value: number | null;
     measured_at: string;
     status: 'pass' | 'warning' | 'fail';
     threshold_value: number | null;
     threshold_type: 'min' | 'max' | null;
+    measurement_state?: QualityMetricState;
+    metric_denominator?: number | null;
   }>;
 
   /**
@@ -157,6 +164,73 @@ export interface QualityReport {
     namespace?: string;
     context?: string;
   }>;
+}
+
+type LatestMetricRow = QualityReport['latest_metrics'][number];
+
+function buildMeasuredLatestRows(
+  latestMetrics: ReturnType<QualityRecorder['getLatestMetrics']>,
+  thresholdMap: Map<string, { threshold_type: 'min' | 'max' }>
+): LatestMetricRow[] {
+  return latestMetrics.map(metric => {
+    const threshold = thresholdMap.get(
+      `${metric.metric_namespace}.${metric.metric_key}.${metric.context}`
+    ) ?? null;
+    return {
+      ...metric,
+      status: metric.status as 'pass' | 'warning' | 'fail',
+      threshold_type: threshold?.threshold_type ?? null,
+      measurement_state: QUALITY_METRIC_STATE.MEASURED,
+    };
+  });
+}
+
+function appendUnmeasuredLatestRows(
+  enriched: LatestMetricRow[],
+  payload: Record<string, unknown> | null,
+  namespace: string | undefined,
+  context: string,
+  now: string
+): void {
+  const payloadStates = payload?.metric_states as Record<string, QualityMetricState> | undefined;
+  const payloadDenominators = payload?.metric_denominators as Record<string, number | null> | undefined;
+  const payloadNamespace = typeof payload?.namespace === 'string' ? payload.namespace : namespace;
+  if (!payloadStates || !payloadNamespace) {
+    return;
+  }
+  for (const [metricKey, state] of Object.entries(payloadStates)) {
+    if (isEvaluableMetricState(state)) {
+      continue;
+    }
+    if (enriched.some(
+      m => m.metric_namespace === payloadNamespace && m.metric_key === metricKey && m.context === context
+    )) {
+      continue;
+    }
+    enriched.push({
+      metric_namespace: payloadNamespace,
+      metric_key: metricKey,
+      context,
+      metric_value: null,
+      measured_at: typeof payload?.measured_at === 'string' ? payload.measured_at : now,
+      status: 'warning',
+      threshold_value: null,
+      threshold_type: null,
+      measurement_state: state,
+      metric_denominator: payloadDenominators?.[metricKey] ?? null,
+    });
+  }
+}
+
+function markLegacyUnknownLatestRows(enriched: LatestMetricRow[], isLegacy: boolean): void {
+  if (!isLegacy) {
+    return;
+  }
+  for (const metric of enriched) {
+    if (metric.metric_value === 0 && metric.measurement_state === QUALITY_METRIC_STATE.MEASURED) {
+      metric.measurement_state = QUALITY_METRIC_STATE.UNKNOWN_LEGACY;
+    }
+  }
 }
 
 /**
@@ -308,17 +382,14 @@ export class QualityReporter {
       return h;
     });
 
-    // 8. 최신 지표에 threshold_type 추가 (thresholdMap 재사용)
-    const enrichedLatestMetrics = latestMetrics.map(metric => {
-      const threshold = thresholdMap.get(
-        `${metric.metric_namespace}.${metric.metric_key}.${metric.context}`
-      ) ?? null;
-      return {
-        ...metric,
-        status: metric.status as 'pass' | 'warning' | 'fail',
-        threshold_type: threshold?.threshold_type ?? null
-      };
-    });
+    // 8. 최신 지표에 threshold_type·미측정 상태 반영
+    const enrichedLatestMetrics = buildMeasuredLatestRows(latestMetrics, thresholdMap);
+    const latestPayload = this.recorder.getLatestMeasurementPayload(namespace, context);
+    appendUnmeasuredLatestRows(enrichedLatestMetrics, latestPayload, namespace, context, now);
+    markLegacyUnknownLatestRows(
+      enrichedLatestMetrics,
+      this.recorder.isLegacyUnknownMetric(latestPayload)
+    );
 
     return {
       generated_at: now,

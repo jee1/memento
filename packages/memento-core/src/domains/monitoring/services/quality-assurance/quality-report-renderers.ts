@@ -67,7 +67,12 @@ export function generateMarkdownReport(reportData: QualityReport): string {
       const thresholdStr = metric.threshold_value !== null
         ? `${metric.threshold_value.toFixed(3)} (${metric.threshold_type})`
         : 'N/A';
-      markdown += `| ${metric.metric_namespace} | ${metric.metric_key} | ${metric.metric_value.toFixed(3)} | ${statusIcon} ${metric.status.toUpperCase()} | ${thresholdStr} | ${metric.measured_at} |\n`;
+      const valueStr = metric.metric_value === null
+        ? `미측정 (${metric.measurement_state ?? 'unknown'})`
+        : metric.measurement_state === 'unknown_legacy'
+          ? `${metric.metric_value.toFixed(3)} (legacy, 상태 불명)`
+          : metric.metric_value.toFixed(3);
+      markdown += `| ${metric.metric_namespace} | ${metric.metric_key} | ${valueStr} | ${statusIcon} ${metric.status.toUpperCase()} | ${thresholdStr} | ${metric.measured_at} |\n`;
     }
     markdown += `\n`;
   }
@@ -313,11 +318,16 @@ export function generateHtmlReport(reportData: QualityReport): string {
       const thresholdStr = metric.threshold_value !== null
         ? `${metric.threshold_value.toFixed(3)} (${metric.threshold_type})`
         : 'N/A';
+      const valueStr = metric.metric_value === null
+        ? `미측정 (${metric.measurement_state ?? 'unknown'})`
+        : metric.measurement_state === 'unknown_legacy'
+          ? `${metric.metric_value.toFixed(3)} (legacy, 상태 불명)`
+          : metric.metric_value.toFixed(3);
       html += `
       <tr>
         <td>${escapeHtml(metric.metric_namespace)}</td>
         <td>${escapeHtml(metric.metric_key)}</td>
-        <td>${escapeHtml(metric.metric_value.toFixed(3))}</td>
+        <td>${escapeHtml(valueStr)}</td>
         <td><span class="${safeQualityRowClass(String(metric.status))}">${safeQualityLabel(String(metric.status))}</span></td>
         <td>${escapeHtml(thresholdStr)}</td>
         <td>${escapeHtml(metric.measured_at)}</td>

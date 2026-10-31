@@ -300,17 +300,10 @@ describe('QualityMetricsCollector', () => {
       // When: 검색 품질 지표 수집
       const result = await collector.collectSearchMetrics();
 
-      // Then: 기본값(0)이 반환되어야 함
-      expect(result.metrics.precision_at_5).toBe(0);
-      expect(result.metrics.precision_at_10).toBe(0);
-      expect(result.metrics.recall_at_5).toBe(0);
-      expect(result.metrics.recall_at_10).toBe(0);
-      expect(result.metrics.ndcg_at_5).toBe(0);
-      expect(result.metrics.ndcg_at_10).toBe(0);
-      expect(result.metrics.mrr).toBe(0);
-      expect(result.metrics.kendalls_tau).toBe(0);
-      expect(result.metrics.top_5_retention).toBe(0);
-      expect(result.metrics.top_10_retention).toBe(0);
+      // Then: 미측정 (숫자 0 아님)
+      expect(result.metrics.precision_at_5).toBeUndefined();
+      expect(result.metric_states?.precision_at_5).toBe('unmeasured_no_ground_truth');
+      expect(result.metrics.mrr).toBeUndefined();
     });
 
     it('should calculate precision and recall when ground truth provided', async () => {
@@ -488,9 +481,10 @@ describe('QualityMetricsCollector', () => {
         queryResults: new Map()
       });
 
-      // Then: 기본값이 반환되어야 함
-      expect(result.metrics.precision_at_5).toBe(0);
-      expect(result.metrics.mrr).toBe(0);
+      // Then: 미측정 상태 (숫자 0 아님)
+      expect(result.metrics.precision_at_5).toBeUndefined();
+      expect(result.metric_states?.precision_at_5).toBe('unmeasured_no_ground_truth');
+      expect(result.metrics.mrr).toBeUndefined();
     });
 
     it('should handle missing query results gracefully', async () => {
@@ -506,9 +500,10 @@ describe('QualityMetricsCollector', () => {
         queryResults
       });
 
-      // Then: 기본값이 반환되어야 함
-      expect(result.metrics.precision_at_5).toBe(0);
-      expect(result.metrics.mrr).toBe(0);
+      // Then: 미측정 상태 (숫자 0 아님, GT 는 있으나 표본 부족)
+      expect(result.metrics.precision_at_5).toBeUndefined();
+      expect(result.metric_states?.precision_at_5).toBe('unmeasured_insufficient_sample');
+      expect(result.metrics.mrr).toBeUndefined();
     });
 
     it('should include metadata about ground truth availability', async () => {
@@ -557,14 +552,10 @@ describe('QualityMetricsCollector', () => {
       // When: 관계 추출 품질 지표 수집
       const result = await collector.collectRelationMetrics();
 
-      // Then: 기본값(0)이 반환되어야 함
-      expect(result.metrics.precision).toBe(0);
-      expect(result.metrics.recall).toBe(0);
-      expect(result.metrics.f1_score).toBe(0);
-      expect(result.metrics.true_positives).toBe(0);
-      expect(result.metrics.false_positives).toBe(0);
-      expect(result.metrics.false_negatives).toBe(0);
-      expect(result.metrics.confidence_compliance_rate).toBe(0);
+      // Then: 미측정
+      expect(result.metrics.precision).toBeUndefined();
+      expect(result.metric_states?.precision).toBe('unmeasured_no_ground_truth');
+      expect(result.metric_states?.recall).toBe('unmeasured_no_ground_truth');
     });
 
     it('should calculate precision, recall, and f1_score when relations provided', async () => {
@@ -759,10 +750,10 @@ describe('QualityMetricsCollector', () => {
         extractedRelations: []
       });
 
-      // Then: 기본값이 반환되어야 함
-      expect(result.metrics.precision).toBe(0);
-      expect(result.metrics.recall).toBe(0);
-      expect(result.metrics.f1_score).toBe(0);
+      // Then: 미측정
+      expect(result.metrics.precision).toBeUndefined();
+      expect(result.metrics.recall).toBeUndefined();
+      expect(result.metrics.f1_score).toBeUndefined();
     });
 
     it('should handle empty extracted relations gracefully', async () => {
