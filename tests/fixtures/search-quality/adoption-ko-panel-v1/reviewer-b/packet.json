@@ -1,0 +1,2345 @@
+{
+  "rubric_version": "adoption-ko-panel-v1",
+  "cases": [
+    {
+      "case_id": "c_720ee871692e",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_720ee871692e",
+        "project": "project_720ee871692e",
+        "subject": "subject_720ee871692e"
+      },
+      "query": "월파 연수원의 정규 저녁 식사 시작은?",
+      "retirement_target_ref": "c_720ee871692e_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_720ee871692e_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_720ee871692e",
+            "project": "project_720ee871692e",
+            "subject": "subject_720ee871692e"
+          },
+          "type": "semantic",
+          "content": "월파 연수원의 정규 저녁 식사는 18시에 시작한다.",
+          "sha256": "fb53b3da5c7701a649e2e50213c5859c88b8c3a98d9fb7d53113fde4114b88ed"
+        },
+        {
+          "evidence_id": "c_720ee871692e_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_720ee871692e",
+            "project": "project_720ee871692e",
+            "subject": "subject_720ee871692e"
+          },
+          "type": "semantic",
+          "content": "월파 연수원 정규 저녁 식사를 오늘부터 18시 30분 시작으로 바꾼다. 18시 안내를 종료한다.",
+          "sha256": "ff63aec009fa5a442478fd038d31af5962653396cd1bc2f433a043cd9f54ef40"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9db293265c59",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_9db293265c59",
+        "project": "project_9db293265c59",
+        "subject": "subject_9db293265c59"
+      },
+      "query": "새론 기념관의 현재 촬영 규칙은?",
+      "retirement_target_ref": "c_9db293265c59_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_9db293265c59_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_9db293265c59",
+            "project": "project_9db293265c59",
+            "subject": "subject_9db293265c59"
+          },
+          "type": "semantic",
+          "content": "새론 기념관의 촬영은 플래시 없이 허용한다.",
+          "sha256": "5c4f2120d21d95eb251932f4ae01e492b25214789a7e031c743ea288331094de"
+        },
+        {
+          "evidence_id": "c_9db293265c59_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_9db293265c59",
+            "project": "project_9db293265c59",
+            "subject": "subject_9db293265c59"
+          },
+          "type": "semantic",
+          "content": "새론 기념관에서 촬영을 전면 금지하면 어떨까. 아직 담당자에게 제안하지 않은 개인 초안이다.",
+          "sha256": "bd675c4fe0782ca27ca18a04e7e19d98fdf2e1e7d2bb1192784270c89989c5ac"
+        }
+      ]
+    },
+    {
+      "case_id": "c_dfb2123b424b",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_dfb2123b424b",
+        "project": "project_dfb2123b424b",
+        "subject": "subject_dfb2123b424b"
+      },
+      "query": "민들레 편집회의 교정 줄표 규칙은?",
+      "retirement_target_ref": "c_dfb2123b424b_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_dfb2123b424b_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_dfb2123b424b",
+            "project": "project_dfb2123b424b",
+            "subject": "subject_dfb2123b424b"
+          },
+          "type": "procedural",
+          "content": "민들레 편집회의의 교정 줄표는 짧은 줄표를 쓴다.",
+          "sha256": "21ca57bacb9c1c15fdba69133e70d7aca3130bccde3dcc97570e5bae97363ac2"
+        },
+        {
+          "evidence_id": "c_dfb2123b424b_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_dfb2123b424b",
+            "project": "project_dfb2123b424b",
+            "subject": "subject_dfb2123b424b"
+          },
+          "type": "procedural",
+          "content": "민들레 편집회의는 교정 줄표를 긴 줄표로 통일한다. 짧은 줄표 규칙은 이 결정으로 종료한다.",
+          "sha256": "e50bdee5133b53deca1dc9bc1b01b698cfd5de19cb5eff6f976d6fd2eb1b512d"
+        }
+      ]
+    },
+    {
+      "case_id": "c_4c435ee03890",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_4c435ee03890",
+        "project": "project_4c435ee03890",
+        "subject": "subject_4c435ee03890"
+      },
+      "query": "온결 표본집의 돌 표본 K4 질량은?",
+      "retirement_target_ref": "c_4c435ee03890_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_4c435ee03890_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_4c435ee03890",
+            "project": "project_4c435ee03890",
+            "subject": "subject_4c435ee03890"
+          },
+          "type": "semantic",
+          "content": "온결 표본집에 기록한 돌 표본 K4의 질량은 12g이다.",
+          "sha256": "3bcb3a40c50ae4d3d45b3380d1aef0cf09add47aea269a0af3615d7cf5b6c59f"
+        },
+        {
+          "evidence_id": "c_4c435ee03890_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_4c435ee03890",
+            "project": "project_4c435ee03890",
+            "subject": "subject_4c435ee03890"
+          },
+          "type": "semantic",
+          "content": "돌 표본 K4의 질량 12g은 저울 기록 전사 오류였다. 검산 완료한 21g으로 정정한다.",
+          "sha256": "2e0eb3d1acb23a4df51ad698c0a81cd6828567f23761dbed4fc6b2ca1a3386a1"
+        }
+      ]
+    },
+    {
+      "case_id": "c_853b7dd69501",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_853b7dd69501",
+        "project": "project_853b7dd69501",
+        "subject": "subject_853b7dd69501"
+      },
+      "query": "금호 원고의 참고문헌 정렬 기준은?",
+      "retirement_target_ref": "c_853b7dd69501_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_853b7dd69501_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_853b7dd69501",
+            "project": "project_853b7dd69501",
+            "subject": "subject_853b7dd69501"
+          },
+          "type": "procedural",
+          "content": "금호 원고의 참고문헌은 저자 이름순으로 정렬한다.",
+          "sha256": "88c0ed386e2438932f89b4bdff4d794642e54f49b1825fbfbef046016bcad40d"
+        },
+        {
+          "evidence_id": "c_853b7dd69501_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_853b7dd69501",
+            "project": "project_853b7dd69501",
+            "subject": "subject_853b7dd69501"
+          },
+          "type": "procedural",
+          "content": "금호 원고 참고문헌 정렬은 발행연도순으로 바꾼다. 저자 이름순 규칙은 철회한다.",
+          "sha256": "7f513ace1a3f8eef8064b4d6da6eb70b6d085fe48e18d4bd8cd97a52c09d65c9"
+        }
+      ]
+    },
+    {
+      "case_id": "c_e73979769b4f",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_e73979769b4f",
+        "project": "project_e73979769b4f",
+        "subject": "subject_e73979769b4f"
+      },
+      "query": "표본 식물-71의 공식 표기 부호는?",
+      "retirement_target_ref": "c_e73979769b4f_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_e73979769b4f_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_e73979769b4f",
+            "project": "project_e73979769b4f",
+            "subject": "subject_e73979769b4f"
+          },
+          "type": "semantic",
+          "content": "측정 대상 표본 ID 식물-71의 표기 부호는 X다.",
+          "sha256": "a8ab561dc43904d890ddaebe31f742ce82aad7317f0f272caf7ee5dc28357909"
+        },
+        {
+          "evidence_id": "c_e73979769b4f_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_e73979769b4f",
+            "project": "project_e73979769b4f",
+            "subject": "subject_e73979769b4f"
+          },
+          "type": "semantic",
+          "content": "표본 ID 식물-71의 공식 표기 부호는 Y로 바뀌었다. 기존 부호 X는 더 쓰지 않는다.",
+          "sha256": "259348023acf3a26696d44ad39a8f735beaacfe04e775b01c4814569f3f1ace8"
+        }
+      ]
+    },
+    {
+      "case_id": "c_5d1d4e90f57e",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_5d1d4e90f57e",
+        "project": "project_5d1d4e90f57e",
+        "subject": "subject_5d1d4e90f57e"
+      },
+      "query": "초하 강좌 2026년 겨울반 예약 방식은?",
+      "retirement_target_ref": "c_5d1d4e90f57e_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_5d1d4e90f57e_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_5d1d4e90f57e",
+            "project": "project_5d1d4e90f57e",
+            "subject": "subject_5d1d4e90f57e"
+          },
+          "type": "semantic",
+          "content": "초하 강좌 2026년 겨울반의 예약은 전화로만 받는다.",
+          "sha256": "c10dd04cf029c521dd3aac7cb0f8a7bb7af516577794b1fadf9552342d0c44ac"
+        },
+        {
+          "evidence_id": "c_5d1d4e90f57e_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_5d1d4e90f57e",
+            "project": "project_5d1d4e90f57e",
+            "subject": "subject_5d1d4e90f57e"
+          },
+          "type": "semantic",
+          "content": "초하 강좌 2026년 겨울반 전화 예약 정책을 취소한다. 이제 방문 예약만 받기로 확정했다.",
+          "sha256": "4442ac592d1827433f5d7dfe95c3e7d41f91c00e082a76cfaac48c61f81d9d55"
+        }
+      ]
+    },
+    {
+      "case_id": "c_4f0fb64bb0db",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_4f0fb64bb0db",
+        "project": "project_4f0fb64bb0db",
+        "subject": "subject_4f0fb64bb0db"
+      },
+      "query": "담청 교정 1차 검토 뒤 표시 색은?",
+      "retirement_target_ref": "c_4f0fb64bb0db_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_4f0fb64bb0db_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_4f0fb64bb0db",
+            "project": "project_4f0fb64bb0db",
+            "subject": "subject_4f0fb64bb0db"
+          },
+          "type": "procedural",
+          "content": "담청 교정 절차는 1차 검토 뒤 표시를 파란색으로 한다.",
+          "sha256": "ce111daef1f036fd8b263409f576864f58b48972a414c97934fea04f6f40b638"
+        },
+        {
+          "evidence_id": "c_4f0fb64bb0db_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_4f0fb64bb0db",
+            "project": "project_4f0fb64bb0db",
+            "subject": "subject_4f0fb64bb0db"
+          },
+          "type": "procedural",
+          "content": "담청 교정 절차의 1차 검토 뒤 표시 색을 초록색으로 변경한다. 파란색 표시는 더 사용하지 않는다.",
+          "sha256": "27601dc57a069185bf3090b48da9f219d23aaad91994c773fe0d9fd3d5fa472d"
+        }
+      ]
+    },
+    {
+      "case_id": "c_1615bc7cdfa7",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_1615bc7cdfa7",
+        "project": "project_1615bc7cdfa7",
+        "subject": "subject_1615bc7cdfa7"
+      },
+      "query": "보람 모임의 정기 총회 개최 방식은?",
+      "retirement_target_ref": "c_1615bc7cdfa7_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_1615bc7cdfa7_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_1615bc7cdfa7",
+            "project": "project_1615bc7cdfa7",
+            "subject": "subject_1615bc7cdfa7"
+          },
+          "type": "semantic",
+          "content": "보람 모임의 정기 총회는 대면으로 연다.",
+          "sha256": "e40035fd9175b53e8f0927d91ce2ceca7ec951d8931731569c6bf6c4f8da5735"
+        },
+        {
+          "evidence_id": "c_1615bc7cdfa7_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_1615bc7cdfa7",
+            "project": "project_1615bc7cdfa7",
+            "subject": "subject_1615bc7cdfa7"
+          },
+          "type": "semantic",
+          "content": "보람 모임 총회를 비대면으로 바꾸자는 요청을 철회해 달라고 요청했다. 처리 결과는 기록하지 않았다.",
+          "sha256": "8c8938ec31394d62d80081e1d5ae2041c7d98d753c6d6b39030208f9e19c3a3e"
+        }
+      ]
+    },
+    {
+      "case_id": "c_bbbef70407c1",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_bbbef70407c1",
+        "project": "project_bbbef70407c1",
+        "subject": "subject_bbbef70407c1"
+      },
+      "query": "백동 공방에서 검사한 완성품은 어디에 두나?",
+      "retirement_target_ref": "c_bbbef70407c1_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_bbbef70407c1_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_bbbef70407c1",
+            "project": "project_bbbef70407c1",
+            "subject": "subject_bbbef70407c1"
+          },
+          "type": "procedural",
+          "content": "백동 공방에서 완성품은 검사 뒤 선반 S1에 둔다.",
+          "sha256": "e859c91d6e8fc55fc15392930f8ae20c4a99ade1b06c02bf03415a74518434a4"
+        },
+        {
+          "evidence_id": "c_bbbef70407c1_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_bbbef70407c1",
+            "project": "project_bbbef70407c1",
+            "subject": "subject_bbbef70407c1"
+          },
+          "type": "procedural",
+          "content": "백동 공방의 완성품 적치 절차를 변경한다. 검사 뒤 선반 S2에 둔다. S1 적치는 중단한다.",
+          "sha256": "4a309d60f1978ffb6d18154d72a7d9352f38c68476dfeaf30a5e425aed2ad661"
+        }
+      ]
+    },
+    {
+      "case_id": "c_4fc2d6add783",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_4fc2d6add783",
+        "project": "project_4fc2d6add783",
+        "subject": "subject_4fc2d6add783"
+      },
+      "query": "실비 협의회 2026년 2차 총회 실제 개최일은?",
+      "retirement_target_ref": "c_4fc2d6add783_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_4fc2d6add783_e1",
+          "recorded_at": "2026-10-14T09:00:00Z",
+          "event_at": "2026-10-12T09:00:00Z",
+          "scope": {
+            "owner": "owner_4fc2d6add783",
+            "project": "project_4fc2d6add783",
+            "subject": "subject_4fc2d6add783"
+          },
+          "type": "episodic",
+          "content": "실비 협의회 2026년 2차 총회는 10월 12일에 열렸다.",
+          "sha256": "afd967e128b9d60bf1ee69ea1d6eab8e3105497799436447b84aed6ffedce407"
+        },
+        {
+          "evidence_id": "c_4fc2d6add783_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-13T09:00:00Z",
+          "scope": {
+            "owner": "owner_4fc2d6add783",
+            "project": "project_4fc2d6add783",
+            "subject": "subject_4fc2d6add783"
+          },
+          "type": "episodic",
+          "content": "실비 협의회 2026년 2차 총회 날짜를 정정한다. 10월 12일은 오기이며 실제 개최일은 10월 13일이다.",
+          "sha256": "737d8bb8906c38eb73c0eeb271195a0493a80db15c4cb0f4677099d142193752"
+        }
+      ]
+    },
+    {
+      "case_id": "c_b359ea28f1c0",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_b359ea28f1c0",
+        "project": "project_b359ea28f1c0",
+        "subject": "subject_b359ea28f1c0"
+      },
+      "query": "모람 학교 통학차량 3호의 정규 출발 시각은?",
+      "retirement_target_ref": "c_b359ea28f1c0_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_b359ea28f1c0_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_b359ea28f1c0",
+            "project": "project_b359ea28f1c0",
+            "subject": "subject_b359ea28f1c0"
+          },
+          "type": "semantic",
+          "content": "모람 학교 통학차량 3호의 출발은 오전 8시다.",
+          "sha256": "ed309030409f5d42beecbdba1eddf6a7f1e357d7b9746628d3b7605557ff7c01"
+        },
+        {
+          "evidence_id": "c_b359ea28f1c0_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_b359ea28f1c0",
+            "project": "project_b359ea28f1c0",
+            "subject": "subject_b359ea28f1c0"
+          },
+          "type": "semantic",
+          "content": "모람 학교 통학차량 3호의 정규 출발을 오전 8시 20분으로 변경한다. 오전 8시 출발 안내는 종료한다.",
+          "sha256": "31edd3911bebb6d5230d49f1e21a02f8914825a496f6199a0db18b9b0eaa5ee2"
+        }
+      ]
+    },
+    {
+      "case_id": "c_327f9089fef4",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_327f9089fef4",
+        "project": "project_327f9089fef4",
+        "subject": "subject_327f9089fef4"
+      },
+      "query": "아란 합주단의 정기 합주 요일은?",
+      "retirement_target_ref": "c_327f9089fef4_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_327f9089fef4_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_327f9089fef4",
+            "project": "project_327f9089fef4",
+            "subject": "subject_327f9089fef4"
+          },
+          "type": "semantic",
+          "content": "아란 합주단의 정기 합주는 화요일 저녁이다.",
+          "sha256": "eb74ca72339bfb99e1fc7f5576353ac8ec01b7e261761533ce377e542be4fc71"
+        },
+        {
+          "evidence_id": "c_327f9089fef4_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_327f9089fef4",
+            "project": "project_327f9089fef4",
+            "subject": "subject_327f9089fef4"
+          },
+          "type": "semantic",
+          "content": "아란 합주단의 정기 합주는 화요일 저녁이다. 분실 대비 같은 안내를 다시 적는다.",
+          "sha256": "d7f58704bb6ef796d90000bb7e150ae24e7a7e395889d94bac5c24984072124a"
+        }
+      ]
+    },
+    {
+      "case_id": "c_c455100c64b4",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_c455100c64b4",
+        "project": "project_c455100c64b4",
+        "subject": "subject_c455100c64b4"
+      },
+      "query": "미리내 자료실 정기 휴관일은?",
+      "retirement_target_ref": "c_c455100c64b4_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_c455100c64b4_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_c455100c64b4",
+            "project": "project_c455100c64b4",
+            "subject": "subject_c455100c64b4"
+          },
+          "type": "semantic",
+          "content": "미리내 자료실은 월요일에 정기 휴관한다.",
+          "sha256": "5a6a8d356b680c979d77d10b5a37f50adafc214571f3211d74c06e5cc15142cc"
+        },
+        {
+          "evidence_id": "c_c455100c64b4_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_c455100c64b4",
+            "project": "project_c455100c64b4",
+            "subject": "subject_c455100c64b4"
+          },
+          "type": "semantic",
+          "content": "미리내 자료실의 사진 강좌는 토요일 오전에 열린다.",
+          "sha256": "744a11b7eb7ced760e347fa8c1904f6604662c31508a8446de539483fd85cf24"
+        }
+      ]
+    },
+    {
+      "case_id": "c_f8a616d7b17b",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_f8a616d7b17b",
+        "project": "project_f8a616d7b17b",
+        "subject": "subject_f8a616d7b17b"
+      },
+      "query": "채움 대여의 현재 절차는?",
+      "retirement_target_ref": "c_f8a616d7b17b_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_f8a616d7b17b_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_f8a616d7b17b",
+            "project": "project_f8a616d7b17b",
+            "subject": "subject_f8a616d7b17b"
+          },
+          "type": "procedural",
+          "content": "채움 대여 절차는 신분 확인, 보증금 수령, 물품 인도 순서다.",
+          "sha256": "b66f2b48b5092ced7b3881024fe3354cba0686280b5d70e91bcbf5d7333e22f1"
+        },
+        {
+          "evidence_id": "c_f8a616d7b17b_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_f8a616d7b17b",
+            "project": "project_f8a616d7b17b",
+            "subject": "subject_f8a616d7b17b"
+          },
+          "type": "procedural",
+          "content": "채움 대여 절차에서 보증금만 면제한다. 신분 확인 후 물품 인도 단계는 유지한다.",
+          "sha256": "4453196e6930c540121c26e4b23ef3474bdf3bad951730eb14131750c4121b46"
+        }
+      ]
+    },
+    {
+      "case_id": "c_857afcdb422e",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_857afcdb422e",
+        "project": "project_857afcdb422e",
+        "subject": "subject_857afcdb422e"
+      },
+      "query": "지평 어학시험 제7회 응시 장소는?",
+      "retirement_target_ref": "c_857afcdb422e_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_857afcdb422e_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_857afcdb422e",
+            "project": "project_857afcdb422e",
+            "subject": "subject_857afcdb422e"
+          },
+          "type": "semantic",
+          "content": "지평 어학시험 제7회 응시 장소는 동관 2호실이다.",
+          "sha256": "000c5d60cb44e78fa9b06dc009241db4982281f62e0cae93457a042d80e75e28"
+        },
+        {
+          "evidence_id": "c_857afcdb422e_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_857afcdb422e",
+            "project": "project_857afcdb422e",
+            "subject": "subject_857afcdb422e"
+          },
+          "type": "semantic",
+          "content": "지평 어학시험 제7회 장소를 서관 5호실로 확정 변경한다. 동관 2호실 안내는 잘못된 안내로 정정한다.",
+          "sha256": "2d7a00adca381854334fe1c17688372f2b734c8b5d24204d9442a69845a4f6ce"
+        }
+      ]
+    },
+    {
+      "case_id": "c_f3f9e20891a0",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_f3f9e20891a0",
+        "project": "project_f3f9e20891a0",
+        "subject": "subject_f3f9e20891a0"
+      },
+      "query": "오름 장비의 승인된 검사 순서는?",
+      "retirement_target_ref": "c_f3f9e20891a0_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_f3f9e20891a0_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_f3f9e20891a0",
+            "project": "project_f3f9e20891a0",
+            "subject": "subject_f3f9e20891a0"
+          },
+          "type": "procedural",
+          "content": "오름 장비 검사 절차는 전원 차단 뒤 외관을 점검한다.",
+          "sha256": "19fc06b44e714c81aed766ae6ccdf7728f17bc39455533f4978bffe3ead5dfe5"
+        },
+        {
+          "evidence_id": "c_f3f9e20891a0_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_f3f9e20891a0",
+            "project": "project_f3f9e20891a0",
+            "subject": "subject_f3f9e20891a0"
+          },
+          "type": "procedural",
+          "content": "오름 장비를 전원을 켠 채 점검하는 방법을 실험했다. 시험은 실패했고 절차 개정 승인은 받지 못했다.",
+          "sha256": "d9232c3faf87c71d8cada363c060e1d72a646bff2845cf236582f4fccad6c58a"
+        }
+      ]
+    },
+    {
+      "case_id": "c_a8264cc3b923",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_a8264cc3b923",
+        "project": "project_a8264cc3b923",
+        "subject": "subject_a8264cc3b923"
+      },
+      "query": "다래 판매대의 현금 결제 허용 여부는?",
+      "retirement_target_ref": "c_a8264cc3b923_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_a8264cc3b923_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_a8264cc3b923",
+            "project": "project_a8264cc3b923",
+            "subject": "subject_a8264cc3b923"
+          },
+          "type": "semantic",
+          "content": "다래 판매대는 현금 결제를 받는다.",
+          "sha256": "88d4ef708887704eab7b17220d5bedd30bf192368321e108d93e5ee285da1409"
+        },
+        {
+          "evidence_id": "c_a8264cc3b923_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_a8264cc3b923",
+            "project": "project_a8264cc3b923",
+            "subject": "subject_a8264cc3b923"
+          },
+          "type": "semantic",
+          "content": "다래 판매대에 카드 단말기가 배송됐다. 결제 정책 변경 공지는 없었다.",
+          "sha256": "e446ad127da7720fc0c25ea21c6c14b1f174d745a525a94cbd157b1b72378583"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9a39a043cc69",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_9a39a043cc69",
+        "project": "project_9a39a043cc69",
+        "subject": "subject_9a39a043cc69"
+      },
+      "query": "소유자 우진의 보슬 공방 도장 모양은?",
+      "retirement_target_ref": "c_9a39a043cc69_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_9a39a043cc69_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_9a39a043cc69",
+            "project": "project_9a39a043cc69",
+            "subject": "subject_9a39a043cc69"
+          },
+          "type": "semantic",
+          "content": "소유자 우진의 보슬 공방 도장은 원형이다.",
+          "sha256": "855ec054d6fee433f474ee1b75ab0a32731e3545acc6764bf8a9c671e2a830ca"
+        },
+        {
+          "evidence_id": "c_9a39a043cc69_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "other_owner_9a39a043cc69",
+            "project": "project_9a39a043cc69",
+            "subject": "subject_9a39a043cc69"
+          },
+          "type": "semantic",
+          "content": "소유자 서진의 동명 보슬 공방 도장은 사각형으로 바뀌었다.",
+          "sha256": "803be06c0195a4cb32df528fffa23535334824ab0f1dea934497c2a4ff46d257"
+        }
+      ]
+    },
+    {
+      "case_id": "c_340611f0de85",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_340611f0de85",
+        "project": "project_340611f0de85",
+        "subject": "subject_340611f0de85"
+      },
+      "query": "여름 연습관 동관과 서관의 현재 폐장 시각은?",
+      "retirement_target_ref": "c_340611f0de85_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_340611f0de85_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_340611f0de85",
+            "project": "project_340611f0de85",
+            "subject": "subject_340611f0de85"
+          },
+          "type": "semantic",
+          "content": "여름 연습관은 동관과 서관 모두 20시에 닫는다.",
+          "sha256": "fbf2ff268e1f922a95b51c5e114261f44df1bfb796ab7e2b61ed08670c334608"
+        },
+        {
+          "evidence_id": "c_340611f0de85_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_340611f0de85",
+            "project": "project_340611f0de85",
+            "subject": "subject_340611f0de85"
+          },
+          "type": "semantic",
+          "content": "여름 연습관 동관만 21시 폐장으로 바꾼다. 서관의 20시 폐장은 유지한다.",
+          "sha256": "cebcfeab1e6bc6a08cbd484980a0e59d97f91d6017c475facf1524908d2d994d"
+        }
+      ]
+    },
+    {
+      "case_id": "c_529dd26ec531",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_529dd26ec531",
+        "project": "project_529dd26ec531",
+        "subject": "subject_529dd26ec531"
+      },
+      "query": "나봄 휴게실의 현재 개장·폐장 시각과 신발 규칙은?",
+      "retirement_target_ref": "c_529dd26ec531_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_529dd26ec531_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_529dd26ec531",
+            "project": "project_529dd26ec531",
+            "subject": "subject_529dd26ec531"
+          },
+          "type": "semantic",
+          "content": "나봄 휴게실은 9시에 열고 19시에 닫으며 신발을 벗는다.",
+          "sha256": "49960c62e2f84c1de54b11552155880f54786d2ca1537d4811a0800ecb5364f8"
+        },
+        {
+          "evidence_id": "c_529dd26ec531_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_529dd26ec531",
+            "project": "project_529dd26ec531",
+            "subject": "subject_529dd26ec531"
+          },
+          "type": "semantic",
+          "content": "나봄 휴게실의 개장 시각만 10시로 변경한다. 폐장 시각과 신발 규칙은 그대로다.",
+          "sha256": "3e0650184559cded50cb3a2768d2133a8f73cc2dd88601e8b9874413f835128c"
+        }
+      ]
+    },
+    {
+      "case_id": "c_f1f32f08a300",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_f1f32f08a300",
+        "project": "project_f1f32f08a300",
+        "subject": "subject_f1f32f08a300"
+      },
+      "query": "우솔 교실의 정규 미술 수업 요일은?",
+      "retirement_target_ref": "c_f1f32f08a300_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_f1f32f08a300_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_f1f32f08a300",
+            "project": "project_f1f32f08a300",
+            "subject": "subject_f1f32f08a300"
+          },
+          "type": "semantic",
+          "content": "우솔 교실의 정규 미술 수업은 수요일이다.",
+          "sha256": "7661af4bb186935276abfe09708461dd3497cac3136fe4acc745bb867c6b9057"
+        },
+        {
+          "evidence_id": "c_f1f32f08a300_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_f1f32f08a300",
+            "project": "project_f1f32f08a300",
+            "subject": "subject_f1f32f08a300"
+          },
+          "type": "semantic",
+          "content": "우솔 교실에 정규 음악 수업을 금요일에 추가했다.",
+          "sha256": "920c3c9d5da5847a19c50ea3d06af5d2740fd24f80acbbe9f8609e0ef0744e13"
+        }
+      ]
+    },
+    {
+      "case_id": "c_0f059c1fd174",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_0f059c1fd174",
+        "project": "project_0f059c1fd174",
+        "subject": "subject_0f059c1fd174"
+      },
+      "query": "가온 공연장의 일반석 구역 이름은?",
+      "retirement_target_ref": "c_0f059c1fd174_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_0f059c1fd174_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_0f059c1fd174",
+            "project": "project_0f059c1fd174",
+            "subject": "subject_0f059c1fd174"
+          },
+          "type": "semantic",
+          "content": "가온 공연장의 일반석 구역 이름은 하늘이다.",
+          "sha256": "30710714ae2ceea1c8f03156dc018198de00b291e7d58be00b82afa3adc322c2"
+        },
+        {
+          "evidence_id": "c_0f059c1fd174_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_0f059c1fd174",
+            "project": "project_0f059c1fd174",
+            "subject": "subject_0f059c1fd174"
+          },
+          "type": "semantic",
+          "content": "2026년 11월 2일부터 가온 공연장 일반석 구역 이름을 바람으로 영구 변경한다. 하늘이라는 구역명 안내는 그날 종료한다.",
+          "sha256": "4bcfbdae341a0019174155d7a3c7668de51397324fae357f2e1b029093326d2c"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9a1a45574b95",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_9a1a45574b95",
+        "project": "project_9a1a45574b95",
+        "subject": "subject_9a1a45574b95"
+      },
+      "query": "단비 공방 견습생과 일반 작업자의 퇴실 청소 범위는?",
+      "retirement_target_ref": "c_9a1a45574b95_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_9a1a45574b95_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_9a1a45574b95",
+            "project": "project_9a1a45574b95",
+            "subject": "subject_9a1a45574b95"
+          },
+          "type": "procedural",
+          "content": "단비 공방의 모든 작업자는 퇴실 때 작업대와 바닥을 모두 닦는다.",
+          "sha256": "b3156a2e795ef7370aec54cf8488c777428838d2d78829cfcee70c39b19e83f0"
+        },
+        {
+          "evidence_id": "c_9a1a45574b95_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_9a1a45574b95",
+            "project": "project_9a1a45574b95",
+            "subject": "subject_9a1a45574b95"
+          },
+          "type": "procedural",
+          "content": "단비 공방의 견습생은 퇴실 때 바닥 닦기만 면제한다. 작업대 닦기와 다른 작업자의 규칙은 그대로다.",
+          "sha256": "c347f2ad364c2bea581f7ba6fde2086df75ec9995c072f448591346caebaf594"
+        }
+      ]
+    },
+    {
+      "case_id": "c_d5dd7ea5f73b",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_d5dd7ea5f73b",
+        "project": "project_d5dd7ea5f73b",
+        "subject": "subject_d5dd7ea5f73b"
+      },
+      "query": "다온 행사 10월 물품을 배송한 창고는?",
+      "retirement_target_ref": "c_d5dd7ea5f73b_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_d5dd7ea5f73b_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_d5dd7ea5f73b",
+            "project": "project_d5dd7ea5f73b",
+            "subject": "subject_d5dd7ea5f73b"
+          },
+          "type": "episodic",
+          "content": "다온 행사 10월 물품은 10월 1일 창고 C로 배송했다.",
+          "sha256": "3bc0f06e231696fef3019b26f0d77bf3ce56e31aa6bc9db7f607f39a013cf27b"
+        },
+        {
+          "evidence_id": "c_d5dd7ea5f73b_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-09-15T09:00:00Z",
+          "scope": {
+            "owner": "owner_d5dd7ea5f73b",
+            "project": "project_d5dd7ea5f73b",
+            "subject": "subject_d5dd7ea5f73b"
+          },
+          "type": "episodic",
+          "content": "뒤늦게 입력한 9월 행사 기록: 9월 15일 물품은 창고 A로 배송했다.",
+          "sha256": "4af2e2edf3ca54020f32d1933a740091f2ec11441b03546816c3a61b68a5acb8"
+        }
+      ]
+    },
+    {
+      "case_id": "c_0968eab113f8",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_0968eab113f8",
+        "project": "project_0968eab113f8",
+        "subject": "subject_0968eab113f8"
+      },
+      "query": "운모 실습장 빈 상자 적재 위치는?",
+      "retirement_target_ref": "c_0968eab113f8_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_0968eab113f8_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_0968eab113f8",
+            "project": "project_0968eab113f8",
+            "subject": "subject_0968eab113f8"
+          },
+          "type": "procedural",
+          "content": "운모 실습장의 빈 상자는 입구 쪽에 적재한다.",
+          "sha256": "eac505ba0d8ca65b44d636bfda21a5f909d16001c090f1ad51d472a8f0ead1d5"
+        },
+        {
+          "evidence_id": "c_0968eab113f8_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_0968eab113f8",
+            "project": "project_0968eab113f8",
+            "subject": "subject_0968eab113f8"
+          },
+          "type": "procedural",
+          "content": "운모 실습장 빈 상자의 적재 위치를 출구 쪽으로 영구 변경한다. 입구 쪽 적재 규칙은 종료한다.",
+          "sha256": "0ebbfe0c0dd042e75990c0198135ba4ac517e9c87a738b29f9216359620a9033"
+        }
+      ]
+    },
+    {
+      "case_id": "c_5d11c11ce18e",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_5d11c11ce18e",
+        "project": "project_5d11c11ce18e",
+        "subject": "subject_5d11c11ce18e"
+      },
+      "query": "아람 연습실 초급반의 연습 순서는?",
+      "retirement_target_ref": "c_5d11c11ce18e_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_5d11c11ce18e_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_5d11c11ce18e",
+            "project": "project_5d11c11ce18e",
+            "subject": "subject_5d11c11ce18e"
+          },
+          "type": "procedural",
+          "content": "아람 연습실 초급반은 손뼉으로 박자를 맞춘 뒤 노래한다.",
+          "sha256": "1c13c75ab0096c1223e880810b4913b7d19865377d8eda23ffdbdcb015886ea0"
+        },
+        {
+          "evidence_id": "c_5d11c11ce18e_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_5d11c11ce18e",
+            "project": "project_5d11c11ce18e",
+            "subject": "subject_5d11c11ce18e"
+          },
+          "type": "procedural",
+          "content": "아람 연습실 고급반은 메트로놈으로 박자를 맞춘 뒤 노래하도록 바꿨다.",
+          "sha256": "7746808bdd34694bb99167d36fcd37c905417d7640f656a79a1ec9bc6a488ebc"
+        }
+      ]
+    },
+    {
+      "case_id": "c_e4789813319b",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_e4789813319b",
+        "project": "project_e4789813319b",
+        "subject": "subject_e4789813319b"
+      },
+      "query": "라온 공예반의 현재 재료 지급일은?",
+      "retirement_target_ref": "c_e4789813319b_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_e4789813319b_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_e4789813319b",
+            "project": "project_e4789813319b",
+            "subject": "subject_e4789813319b"
+          },
+          "type": "semantic",
+          "content": "라온 공예반의 재료 지급은 매월 첫날이다.",
+          "sha256": "165c98dc13208a58e60c1a6b7de2bf908b87ed093d5c5ad374beb6eeb0bd3509"
+        },
+        {
+          "evidence_id": "c_e4789813319b_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_e4789813319b",
+            "project": "project_e4789813319b",
+            "subject": "subject_e4789813319b"
+          },
+          "type": "semantic",
+          "content": "외부 방문자가 라온 공예반 재료 지급일이 15일로 바뀌었다고 들었다고 말했다. 담당 확인은 없다.",
+          "sha256": "45d325de91c0ebdfa16cb40bf4ac8f615f5f43054b83e1caffb46a6bd3905445"
+        }
+      ]
+    },
+    {
+      "case_id": "c_5970242779ea",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_5970242779ea",
+        "project": "project_5970242779ea",
+        "subject": "subject_5970242779ea"
+      },
+      "query": "보늬 모형 조립의 현재 순서는?",
+      "retirement_target_ref": "c_5970242779ea_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_5970242779ea_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_5970242779ea",
+            "project": "project_5970242779ea",
+            "subject": "subject_5970242779ea"
+          },
+          "type": "procedural",
+          "content": "보늬 모형 조립은 받침을 붙인 뒤 바퀴를 끼운다.",
+          "sha256": "af7fb48aaede38dd9fa26fdc3ee175f400dc4911f37c2df202e355656c6ed1b6"
+        },
+        {
+          "evidence_id": "c_5970242779ea_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_5970242779ea",
+            "project": "project_5970242779ea",
+            "subject": "subject_5970242779ea"
+          },
+          "type": "procedural",
+          "content": "보늬 모형 조립 순서를 전면 개정한다. 이제 바퀴를 끼운 뒤 받침을 붙인다. 이전 순서는 사용하지 않는다.",
+          "sha256": "1428086c3d2d71de1a902a9402e213c39edc40a858774ccd4736fa0962436610"
+        }
+      ]
+    },
+    {
+      "case_id": "c_c931a5fbcb43",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_c931a5fbcb43",
+        "project": "project_c931a5fbcb43",
+        "subject": "subject_c931a5fbcb43"
+      },
+      "query": "올빛 수리실 드라이버 보관 위치는?",
+      "retirement_target_ref": "c_c931a5fbcb43_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_c931a5fbcb43_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_c931a5fbcb43",
+            "project": "project_c931a5fbcb43",
+            "subject": "subject_c931a5fbcb43"
+          },
+          "type": "semantic",
+          "content": "올빛 수리실의 드라이버는 공구함 A에 보관한다.",
+          "sha256": "b3f1c7f4b29880394ffa3475c2f61ee09333e1d32cf5ccb93b8566b5202875d4"
+        },
+        {
+          "evidence_id": "c_c931a5fbcb43_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_c931a5fbcb43",
+            "project": "project_c931a5fbcb43",
+            "subject": "subject_c931a5fbcb43"
+          },
+          "type": "semantic",
+          "content": "올빛 수리실의 망치는 공구함 B에 보관한다.",
+          "sha256": "e495e6914ce3ffed866f13a36a5629529b769eddb0ea00e3f086362760d3de1b"
+        }
+      ]
+    },
+    {
+      "case_id": "c_e31fd082f17f",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_e31fd082f17f",
+        "project": "project_e31fd082f17f",
+        "subject": "subject_e31fd082f17f"
+      },
+      "query": "초롱 작업실의 음식·생수 반입 규칙은?",
+      "retirement_target_ref": "c_e31fd082f17f_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_e31fd082f17f_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_e31fd082f17f",
+            "project": "project_e31fd082f17f",
+            "subject": "subject_e31fd082f17f"
+          },
+          "type": "semantic",
+          "content": "초롱 작업실에는 음식 반입을 금지한다.",
+          "sha256": "ffae9a5d84f45b3504f9fa835d2f32a129869ac46dfc59fd1d911866ce483799"
+        },
+        {
+          "evidence_id": "c_e31fd082f17f_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_e31fd082f17f",
+            "project": "project_e31fd082f17f",
+            "subject": "subject_e31fd082f17f"
+          },
+          "type": "semantic",
+          "content": "초롱 작업실에서 밀봉한 생수 반입만 허용한다. 나머지 음식 반입 금지는 유지한다.",
+          "sha256": "403068f76e83378939aaa4d71afa012ff3d2a435d79c1fc26cd9300954922595"
+        }
+      ]
+    },
+    {
+      "case_id": "c_aa9070ed2c1c",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_aa9070ed2c1c",
+        "project": "project_aa9070ed2c1c",
+        "subject": "subject_aa9070ed2c1c"
+      },
+      "query": "분청 가마의 초벌 목표 온도는?",
+      "retirement_target_ref": "c_aa9070ed2c1c_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_aa9070ed2c1c_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_aa9070ed2c1c",
+            "project": "project_aa9070ed2c1c",
+            "subject": "subject_aa9070ed2c1c"
+          },
+          "type": "semantic",
+          "content": "분청 가마의 초벌 목표 온도는 섭씨 900도다.",
+          "sha256": "0aec67ad2450df45e9795e081bdb3e60ece8ef3fed4c45d03b4be15af6e8d153"
+        },
+        {
+          "evidence_id": "c_aa9070ed2c1c_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_aa9070ed2c1c",
+            "project": "project_aa9070ed2c1c",
+            "subject": "subject_aa9070ed2c1c"
+          },
+          "type": "semantic",
+          "content": "분청 가마 초벌 목표 온도 900도는 입력 오류였다. 승인된 목표는 섭씨 950도이며 900도 기록을 정정한다.",
+          "sha256": "cb68d248749de81577b89b93ee664beb5204081de101571a811db9f233aefa9c"
+        }
+      ]
+    },
+    {
+      "case_id": "c_8f0f05768a43",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_8f0f05768a43",
+        "project": "project_8f0f05768a43",
+        "subject": "subject_8f0f05768a43"
+      },
+      "query": "소라 행사 소품의 현재 수령 담당은?",
+      "retirement_target_ref": "c_8f0f05768a43_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_8f0f05768a43_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_8f0f05768a43",
+            "project": "project_8f0f05768a43",
+            "subject": "subject_8f0f05768a43"
+          },
+          "type": "semantic",
+          "content": "소라 행사 소품의 수령 담당자는 역할 담당-가다.",
+          "sha256": "a501913ff12b2c2ca68c2aa68ec9b5841b23eeee0bb4c07a38fd24b5b0e5a3a8"
+        },
+        {
+          "evidence_id": "c_8f0f05768a43_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_8f0f05768a43",
+            "project": "project_8f0f05768a43",
+            "subject": "subject_8f0f05768a43"
+          },
+          "type": "semantic",
+          "content": "소라 행사 소품 수령 담당을 역할 담당-나로 인계 완료했다. 담당-가는 수령 업무에서 해제됐다.",
+          "sha256": "88e81e6d0a689cad12ca73ec822c64af8d87a21198f40c684389ac9b2f5080df"
+        }
+      ]
+    },
+    {
+      "case_id": "c_7a8046b27002",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_7a8046b27002",
+        "project": "project_7a8046b27002",
+        "subject": "subject_7a8046b27002"
+      },
+      "query": "유리정원 실내 전시장의 현재 폐장 시각은?",
+      "retirement_target_ref": "c_7a8046b27002_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_7a8046b27002_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_7a8046b27002",
+            "project": "project_7a8046b27002",
+            "subject": "subject_7a8046b27002"
+          },
+          "type": "semantic",
+          "content": "유리정원 실내 전시장은 매일 17시에 문을 닫는다.",
+          "sha256": "de662485007d9a3218d7d4b3849ffd5511a9d92eb7fd31f607a5a34dce6d627a"
+        },
+        {
+          "evidence_id": "c_7a8046b27002_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_7a8046b27002",
+            "project": "project_7a8046b27002",
+            "subject": "subject_7a8046b27002"
+          },
+          "type": "semantic",
+          "content": "유리정원 실내 전시장의 폐장 시각을 오늘부터 매일 18시로 확정 변경한다. 17시 안내는 사용을 끝낸다.",
+          "sha256": "ea617be26a68180545dae89595a9b5ae4aca6201d08685707f8b91e5d5e97770"
+        }
+      ]
+    },
+    {
+      "case_id": "c_99486eb89e40",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_99486eb89e40",
+        "project": "project_99486eb89e40",
+        "subject": "subject_99486eb89e40"
+      },
+      "query": "솔아 편집실의 현재 원고 출력 방식은?",
+      "retirement_target_ref": "c_99486eb89e40_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_99486eb89e40_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_99486eb89e40",
+            "project": "project_99486eb89e40",
+            "subject": "subject_99486eb89e40"
+          },
+          "type": "procedural",
+          "content": "솔아 편집실은 10월 1일부터 원고를 양면으로 출력한다.",
+          "sha256": "2533c67b4353b9def9eff96f6acd56a94d78c722fce24d293ad4e87fa8db529b"
+        },
+        {
+          "evidence_id": "c_99486eb89e40_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-08-02T09:00:00Z",
+          "scope": {
+            "owner": "owner_99486eb89e40",
+            "project": "project_99486eb89e40",
+            "subject": "subject_99486eb89e40"
+          },
+          "type": "procedural",
+          "content": "보관함에서 발견한 8월 2일 구판 안내를 오늘 등록한다. 당시 솔아 편집실 원고는 단면으로 출력했다.",
+          "sha256": "da05a7dc1c4adc9b8e0c195fe7b1d88dd0d1969af07f863dd547dee874b5c126"
+        }
+      ]
+    },
+    {
+      "case_id": "c_3ea1aa11b785",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_3ea1aa11b785",
+        "project": "project_3ea1aa11b785",
+        "subject": "subject_3ea1aa11b785"
+      },
+      "query": "목련 전시회 결산표의 기준 통화는?",
+      "retirement_target_ref": "c_3ea1aa11b785_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_3ea1aa11b785_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_3ea1aa11b785",
+            "project": "project_3ea1aa11b785",
+            "subject": "subject_3ea1aa11b785"
+          },
+          "type": "procedural",
+          "content": "목련 전시회 결산표의 기준 통화는 원화다.",
+          "sha256": "4f46b20aa857cd08e002c0224d2f4567b8810f87c7ca1587e5333a52f1358bdd"
+        },
+        {
+          "evidence_id": "c_3ea1aa11b785_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_3ea1aa11b785",
+            "project": "project_3ea1aa11b785",
+            "subject": "subject_3ea1aa11b785"
+          },
+          "type": "procedural",
+          "content": "목련 전시회 결산표는 이제 달러를 기준 통화로 쓴다. 원화 기준 작성 규칙을 철회한다.",
+          "sha256": "70925f48e232a56d9c5e7eb8ea8fdfb2f932e4eaaba3b10312a0ec6cf5cea6cf"
+        }
+      ]
+    },
+    {
+      "case_id": "c_5d9cd916c073",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_5d9cd916c073",
+        "project": "project_5d9cd916c073",
+        "subject": "subject_5d9cd916c073"
+      },
+      "query": "동쪽 섬 한울 마을의 공동 우편함 위치는?",
+      "retirement_target_ref": "c_5d9cd916c073_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_5d9cd916c073_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_5d9cd916c073",
+            "project": "project_5d9cd916c073",
+            "subject": "subject_5d9cd916c073"
+          },
+          "type": "semantic",
+          "content": "동쪽 섬 한울 마을의 공동 우편함은 회관 앞이다.",
+          "sha256": "45a2c312e44ae1b3f8ec53bc3b398140e97d62e8300846340efbd8d3a86bc79a"
+        },
+        {
+          "evidence_id": "c_5d9cd916c073_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_5d9cd916c073",
+            "project": "project_5d9cd916c073",
+            "subject": "subject_5d9cd916c073"
+          },
+          "type": "semantic",
+          "content": "서쪽 섬 한울 마을의 공동 우편함을 선착장 앞으로 옮겼다.",
+          "sha256": "bd7ccfb038ecf5f6f283cabeef0ece392c48b2fa78a3f9d8d6968925e2d06070"
+        }
+      ]
+    },
+    {
+      "case_id": "c_c6a56f25340b",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_c6a56f25340b",
+        "project": "project_c6a56f25340b",
+        "subject": "subject_c6a56f25340b"
+      },
+      "query": "누비 공방 배송품의 고정 재료는?",
+      "retirement_target_ref": "c_c6a56f25340b_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_c6a56f25340b_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_c6a56f25340b",
+            "project": "project_c6a56f25340b",
+            "subject": "subject_c6a56f25340b"
+          },
+          "type": "procedural",
+          "content": "누비 공방 배송품은 종이띠로 고정한다.",
+          "sha256": "1805becca7203085143139bfe314e59c3524268918bb34e69d71676f507d64e5"
+        },
+        {
+          "evidence_id": "c_c6a56f25340b_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_c6a56f25340b",
+            "project": "project_c6a56f25340b",
+            "subject": "subject_c6a56f25340b"
+          },
+          "type": "procedural",
+          "content": "누비 공방 배송품의 종이띠 고정 규칙을 철회하고 천끈 고정으로 전면 교체한다.",
+          "sha256": "15d1f1dd42eb8ea0891e29764b8252ad6a0f266778e3752e27458d84954de52b"
+        }
+      ]
+    },
+    {
+      "case_id": "c_4672d0762140",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_4672d0762140",
+        "project": "project_4672d0762140",
+        "subject": "subject_4672d0762140"
+      },
+      "query": "햇무리 독서회 신청 방식은?",
+      "retirement_target_ref": "c_4672d0762140_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_4672d0762140_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_4672d0762140",
+            "project": "project_4672d0762140",
+            "subject": "subject_4672d0762140"
+          },
+          "type": "semantic",
+          "content": "햇무리 독서회 신청은 종이 신청서로만 받는다.",
+          "sha256": "cdf6463b4115149d0a26842a667a6847eec680e21d65d86568ef52a4a64a2516"
+        },
+        {
+          "evidence_id": "c_4672d0762140_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_4672d0762140",
+            "project": "project_4672d0762140",
+            "subject": "subject_4672d0762140"
+          },
+          "type": "semantic",
+          "content": "햇무리 독서회 신청은 전자 양식으로만 받도록 바꾼다. 종이 신청서 접수는 종료한다.",
+          "sha256": "af87e2b34aa3d178cff530d96627bde1687dbda415fbf330ce426134f9922b7e"
+        }
+      ]
+    },
+    {
+      "case_id": "c_490d330f6281",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_490d330f6281",
+        "project": "project_490d330f6281",
+        "subject": "subject_490d330f6281"
+      },
+      "query": "연두 공원의 현재 출입구는?",
+      "retirement_target_ref": "c_490d330f6281_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_490d330f6281_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_490d330f6281",
+            "project": "project_490d330f6281",
+            "subject": "subject_490d330f6281"
+          },
+          "type": "semantic",
+          "content": "연두 공원의 현재 출입구는 북문이다. 10월 1일부터 적용한다.",
+          "sha256": "681deed5db366373ba3cc4085a4dc5fecbdc1cc336fe184bf0897ea4ecf70153"
+        },
+        {
+          "evidence_id": "c_490d330f6281_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-09-03T09:00:00Z",
+          "scope": {
+            "owner": "owner_490d330f6281",
+            "project": "project_490d330f6281",
+            "subject": "subject_490d330f6281"
+          },
+          "type": "semantic",
+          "content": "늦게 옮긴 9월 3일 일지: 당시 연두 공원의 출입구는 남문이었다. 그날의 관찰 기록이다.",
+          "sha256": "8421625669fff999d5be7e767a6fd15f69355a2f06002014bf3801642091780a"
+        }
+      ]
+    },
+    {
+      "case_id": "c_df16956170b0",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_df16956170b0",
+        "project": "project_df16956170b0",
+        "subject": "subject_df16956170b0"
+      },
+      "query": "회은 사진관 납품용 원본의 출력 형식은?",
+      "retirement_target_ref": "c_df16956170b0_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_df16956170b0_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_df16956170b0",
+            "project": "project_df16956170b0",
+            "subject": "subject_df16956170b0"
+          },
+          "type": "procedural",
+          "content": "회은 사진관의 납품용 원본은 PNG로 내보낸다.",
+          "sha256": "d798345519f587f810e38933bd7077d583789e4c927362bafadf64bc688fdfa8"
+        },
+        {
+          "evidence_id": "c_df16956170b0_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_df16956170b0",
+            "project": "project_df16956170b0",
+            "subject": "subject_df16956170b0"
+          },
+          "type": "procedural",
+          "content": "회은 사진관 납품용 원본의 출력 형식을 TIFF로 확정했다. PNG 출력 규칙을 TIFF 규칙으로 교체한다.",
+          "sha256": "006feb654f0224b789590ff9c0253cf797dbea590fbaac0b5938c384231df3e7"
+        }
+      ]
+    },
+    {
+      "case_id": "c_56e80ed7ded4",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_56e80ed7ded4",
+        "project": "project_56e80ed7ded4",
+        "subject": "subject_56e80ed7ded4"
+      },
+      "query": "늘품 체험 성인과 어린이의 장갑 착용 의무는?",
+      "retirement_target_ref": "c_56e80ed7ded4_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_56e80ed7ded4_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_56e80ed7ded4",
+            "project": "project_56e80ed7ded4",
+            "subject": "subject_56e80ed7ded4"
+          },
+          "type": "semantic",
+          "content": "늘품 체험은 성인과 어린이 모두 장갑을 착용한다.",
+          "sha256": "f83f195bc3d783dab4d331498eb5d40cb87e68c2fc31c35d6050924fe3e4ea3d"
+        },
+        {
+          "evidence_id": "c_56e80ed7ded4_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_56e80ed7ded4",
+            "project": "project_56e80ed7ded4",
+            "subject": "subject_56e80ed7ded4"
+          },
+          "type": "semantic",
+          "content": "늘품 체험 어린이용 장갑을 새 재질로 교체했다. 장갑 착용 의무는 바꾸지 않았다.",
+          "sha256": "a4f79944a60188a55430d0e96f456b8d7368a664dee447f5d5030d2690949985"
+        }
+      ]
+    },
+    {
+      "case_id": "c_99642f06e14d",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_99642f06e14d",
+        "project": "project_99642f06e14d",
+        "subject": "subject_99642f06e14d"
+      },
+      "query": "모은 연습장의 현재 예약 대표자는?",
+      "retirement_target_ref": "c_99642f06e14d_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_99642f06e14d_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_99642f06e14d",
+            "project": "project_99642f06e14d",
+            "subject": "subject_99642f06e14d"
+          },
+          "type": "semantic",
+          "content": "모은 연습장의 예약 대표자는 10월 1일부터 역할 다다.",
+          "sha256": "52a3d8e94f40c40e4a6e4914e828721ad38961690595316ed609a94a79120dc2"
+        },
+        {
+          "evidence_id": "c_99642f06e14d_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-09-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_99642f06e14d",
+            "project": "project_99642f06e14d",
+            "subject": "subject_99642f06e14d"
+          },
+          "type": "semantic",
+          "content": "9월 1일 회의록을 오늘 보관했다. 당시 모은 연습장 예약 대표자는 역할 나였다. 지금의 변경을 취소하는 결정은 아니다.",
+          "sha256": "bbd17b887bedd79d76f53fb95275be0fa0bfec8d164cbb4a22a5e02a8fe0c178"
+        }
+      ]
+    },
+    {
+      "case_id": "c_81f6bb8f85cd",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_81f6bb8f85cd",
+        "project": "project_81f6bb8f85cd",
+        "subject": "subject_81f6bb8f85cd"
+      },
+      "query": "자운 사무실 화분의 정기 급수일은?",
+      "retirement_target_ref": "c_81f6bb8f85cd_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_81f6bb8f85cd_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_81f6bb8f85cd",
+            "project": "project_81f6bb8f85cd",
+            "subject": "subject_81f6bb8f85cd"
+          },
+          "type": "semantic",
+          "content": "자운 사무실 화분의 정기 급수일은 화요일이다.",
+          "sha256": "7ca16c28b49081bf064379f5b1567adabf9d0c6d00181402c18062993d8560f8"
+        },
+        {
+          "evidence_id": "c_81f6bb8f85cd_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_81f6bb8f85cd",
+            "project": "project_81f6bb8f85cd",
+            "subject": "subject_81f6bb8f85cd"
+          },
+          "type": "semantic",
+          "content": "자운 사무실 화분의 정기 급수일은 이제 목요일이다. 화요일 규칙을 목요일로 대체한다.",
+          "sha256": "07e3b533a1c50dc3fc91defd91f7bb2ab8c197f1b71bada0590d6a05f89a39bd"
+        }
+      ]
+    },
+    {
+      "case_id": "c_ca7bdbefe96a",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_ca7bdbefe96a",
+        "project": "project_ca7bdbefe96a",
+        "subject": "subject_ca7bdbefe96a"
+      },
+      "query": "질의 시점 도래 자료관의 열람료는?",
+      "retirement_target_ref": "c_ca7bdbefe96a_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_ca7bdbefe96a_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_ca7bdbefe96a",
+            "project": "project_ca7bdbefe96a",
+            "subject": "subject_ca7bdbefe96a"
+          },
+          "type": "semantic",
+          "content": "도래 자료관의 정규 열람료는 무료다.",
+          "sha256": "ebc763fc94932d2092cfd29d0398d872b28eb30cef7c45cbc723f9a2558d50e0"
+        },
+        {
+          "evidence_id": "c_ca7bdbefe96a_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_ca7bdbefe96a",
+            "project": "project_ca7bdbefe96a",
+            "subject": "subject_ca7bdbefe96a"
+          },
+          "type": "semantic",
+          "content": "도래 자료관은 10월 20일부터 10월 25일까지 특별 행사 열람료 2천원을 받았다. 행사 종료 뒤 정규 무료 규칙을 재개한다.",
+          "sha256": "e56702be605fe279443b7277dd9242efee9bc4c7bdc37c76c41a5ad31bf7aba3"
+        }
+      ]
+    },
+    {
+      "case_id": "c_2f84f0bebc73",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_2f84f0bebc73",
+        "project": "project_2f84f0bebc73",
+        "subject": "subject_2f84f0bebc73"
+      },
+      "query": "여울 수장고 운반 상자의 라벨 종류는?",
+      "retirement_target_ref": "c_2f84f0bebc73_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_2f84f0bebc73_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_2f84f0bebc73",
+            "project": "project_2f84f0bebc73",
+            "subject": "subject_2f84f0bebc73"
+          },
+          "type": "procedural",
+          "content": "여울 수장고의 운반 상자에는 숫자 라벨을 붙인다.",
+          "sha256": "b579627b0fb62466524854cc4ea9f183d0cd007757d9125de171d9fd96313cb9"
+        },
+        {
+          "evidence_id": "c_2f84f0bebc73_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_2f84f0bebc73",
+            "project": "project_2f84f0bebc73",
+            "subject": "subject_2f84f0bebc73"
+          },
+          "type": "procedural",
+          "content": "여울 수장고 운반 상자 라벨을 문자 라벨로 전면 교체한다. 숫자 라벨 규칙은 종료한다.",
+          "sha256": "22306ea8f24d579baa44243457d62a88e02a5fc62ef74859af8db4c8f4b3970f"
+        }
+      ]
+    },
+    {
+      "case_id": "c_296a8e6217e1",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_296a8e6217e1",
+        "project": "project_296a8e6217e1",
+        "subject": "subject_296a8e6217e1"
+      },
+      "query": "설아 시내 초등부 합창단의 반주 악기는?",
+      "retirement_target_ref": "c_296a8e6217e1_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_296a8e6217e1_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_296a8e6217e1",
+            "project": "project_296a8e6217e1",
+            "subject": "subject_296a8e6217e1"
+          },
+          "type": "semantic",
+          "content": "설아 시내 초등부 합창단의 반주 악기는 피아노다.",
+          "sha256": "95dbd8ef87044172b39c012f8ab1d30761102e401c86fdaf4ce6a2d150d016c6"
+        },
+        {
+          "evidence_id": "c_296a8e6217e1_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_296a8e6217e1",
+            "project": "project_296a8e6217e1",
+            "subject": "subject_296a8e6217e1"
+          },
+          "type": "semantic",
+          "content": "설아 시내 성인부 합창단의 반주 악기를 기타로 변경한다.",
+          "sha256": "3ab69ec4404b178328396d2424bc6a7190c09334435b6f4133af5fe06fb8aacf"
+        }
+      ]
+    },
+    {
+      "case_id": "c_16c8bf488b09",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_16c8bf488b09",
+        "project": "project_16c8bf488b09",
+        "subject": "subject_16c8bf488b09"
+      },
+      "query": "도운 전시 발표문 제목 서체는?",
+      "retirement_target_ref": "c_16c8bf488b09_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_16c8bf488b09_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_16c8bf488b09",
+            "project": "project_16c8bf488b09",
+            "subject": "subject_16c8bf488b09"
+          },
+          "type": "procedural",
+          "content": "도운 전시 발표문 제목은 명조 서체로 쓴다.",
+          "sha256": "d46b40664bf36aa58c47d861a1aa8d19f8fd0e11c74421ceb4cb8d038d078568"
+        },
+        {
+          "evidence_id": "c_16c8bf488b09_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_16c8bf488b09",
+            "project": "project_16c8bf488b09",
+            "subject": "subject_16c8bf488b09"
+          },
+          "type": "procedural",
+          "content": "도운 전시 발표문 제목 서체를 고딕으로 확정 변경한다. 명조 제목 규칙은 오늘 종료한다.",
+          "sha256": "8fa6a9580bdfe9119b52a4d8c5e6697f1a28e80ca08af2e4a1f97e5e866aaccf"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9963f1f8d5dc",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_9963f1f8d5dc",
+        "project": "project_9963f1f8d5dc",
+        "subject": "subject_9963f1f8d5dc"
+      },
+      "query": "이솔 전시의 현재 안내 언어는?",
+      "retirement_target_ref": "c_9963f1f8d5dc_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_9963f1f8d5dc_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_9963f1f8d5dc",
+            "project": "project_9963f1f8d5dc",
+            "subject": "subject_9963f1f8d5dc"
+          },
+          "type": "semantic",
+          "content": "이솔 전시 안내 언어는 10월 1일부터 한국어와 영어다.",
+          "sha256": "5aa4e80d433cb4f0de47ecd0229d302ed04bc7b9e5c88639fc91b06a3e368021"
+        },
+        {
+          "evidence_id": "c_9963f1f8d5dc_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": null,
+          "scope": {
+            "owner": "owner_9963f1f8d5dc",
+            "project": "project_9963f1f8d5dc",
+            "subject": "subject_9963f1f8d5dc"
+          },
+          "type": "semantic",
+          "content": "기록 보완: 이솔 전시는 8월 개편 전에는 한국어만 안내했다. 과거 전시 사진의 설명이다.",
+          "sha256": "c562a5b0a9dd731cea3f5b2aef35f32c85238bb4c695247834bcf4c7194e2039"
+        }
+      ]
+    },
+    {
+      "case_id": "c_7836d879ad79",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_7836d879ad79",
+        "project": "project_7836d879ad79",
+        "subject": "subject_7836d879ad79"
+      },
+      "query": "윤슬 서고 열쇠를 받으려면 어디로 가나?",
+      "retirement_target_ref": "c_7836d879ad79_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_7836d879ad79_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_7836d879ad79",
+            "project": "project_7836d879ad79",
+            "subject": "subject_7836d879ad79"
+          },
+          "type": "semantic",
+          "content": "윤슬 서고 열쇠 보관 위치는 관리실 102호다.",
+          "sha256": "a8365a9f9bf35ff815ab73627de2430daf5f855ca5059e6d5af7cf992a4654ff"
+        },
+        {
+          "evidence_id": "c_7836d879ad79_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_7836d879ad79",
+            "project": "project_7836d879ad79",
+            "subject": "subject_7836d879ad79"
+          },
+          "type": "semantic",
+          "content": "윤슬 서고 열쇠를 관리실 204호로 옮겼다. 열쇠 보관 위치 안내는 102호에서 204호로 교체한다.",
+          "sha256": "1665ff5759c37ffa9cbc1b92107128863e56f42819dbd939862da318fc241c3f"
+        }
+      ]
+    },
+    {
+      "case_id": "c_23e94f27f4d2",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_23e94f27f4d2",
+        "project": "project_23e94f27f4d2",
+        "subject": "subject_23e94f27f4d2"
+      },
+      "query": "고운 산장의 겨울 난방 목표 온도는?",
+      "retirement_target_ref": "c_23e94f27f4d2_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_23e94f27f4d2_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_23e94f27f4d2",
+            "project": "project_23e94f27f4d2",
+            "subject": "subject_23e94f27f4d2"
+          },
+          "type": "semantic",
+          "content": "고운 산장의 겨울 난방 목표 온도는 23도다.",
+          "sha256": "b30b394ea5e1c86bfdb5761a10d77e5f2c322b79116dda680254da4ec1a31698"
+        },
+        {
+          "evidence_id": "c_23e94f27f4d2_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_23e94f27f4d2",
+            "project": "project_23e94f27f4d2",
+            "subject": "subject_23e94f27f4d2"
+          },
+          "type": "semantic",
+          "content": "고운 산장의 여름 냉방 목표 온도를 26도로 바꾼다.",
+          "sha256": "531ddced6d84c39ff7ab1655bacded0527d87c39e80eb3f77214cdd033c41544"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9d1ea5fe4159",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_9d1ea5fe4159",
+        "project": "project_9d1ea5fe4159",
+        "subject": "subject_9d1ea5fe4159"
+      },
+      "query": "해늬 식당 기본 메뉴의 국은?",
+      "retirement_target_ref": "c_9d1ea5fe4159_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_9d1ea5fe4159_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_9d1ea5fe4159",
+            "project": "project_9d1ea5fe4159",
+            "subject": "subject_9d1ea5fe4159"
+          },
+          "type": "semantic",
+          "content": "해늬 식당 기본 메뉴의 국은 된장국이다.",
+          "sha256": "b2ab58417db5efba93f26a65196f4afea284cb6016a4c93c1e0a29bc946e867f"
+        },
+        {
+          "evidence_id": "c_9d1ea5fe4159_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_9d1ea5fe4159",
+            "project": "project_9d1ea5fe4159",
+            "subject": "subject_9d1ea5fe4159"
+          },
+          "type": "semantic",
+          "content": "해늬 식당 기본 메뉴의 반찬에 오이무침을 추가한다.",
+          "sha256": "7ff26fffc4de381fe4bad44612c0a654e2dc3ab051cfa714644203036cb95b55"
+        }
+      ]
+    },
+    {
+      "case_id": "c_b90ae7b35872",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_b90ae7b35872",
+        "project": "project_b90ae7b35872",
+        "subject": "subject_b90ae7b35872"
+      },
+      "query": "해밀 관측일지의 10월 1일 정오 강수량은?",
+      "retirement_target_ref": "c_b90ae7b35872_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_b90ae7b35872_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_b90ae7b35872",
+            "project": "project_b90ae7b35872",
+            "subject": "subject_b90ae7b35872"
+          },
+          "type": "episodic",
+          "content": "해밀 관측일지: 10월 1일 정오 강수량은 3mm였다.",
+          "sha256": "a95ff4080b0e9780f2b708e817fde408f701e443690e2b48e9fa04a072307357"
+        },
+        {
+          "evidence_id": "c_b90ae7b35872_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_b90ae7b35872",
+            "project": "project_b90ae7b35872",
+            "subject": "subject_b90ae7b35872"
+          },
+          "type": "episodic",
+          "content": "해밀 관측일지: 10월 20일 정오 강수량은 8mm였다.",
+          "sha256": "cfe8014815d95b12dedae47e0d1d92f0075782d02da27ab88834e69a9e41f915"
+        }
+      ]
+    },
+    {
+      "case_id": "c_6f7ce8bd400c",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_6f7ce8bd400c",
+        "project": "project_6f7ce8bd400c",
+        "subject": "subject_6f7ce8bd400c"
+      },
+      "query": "선율 장학회 2026년 접수 마감일은?",
+      "retirement_target_ref": "c_6f7ce8bd400c_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_6f7ce8bd400c_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_6f7ce8bd400c",
+            "project": "project_6f7ce8bd400c",
+            "subject": "subject_6f7ce8bd400c"
+          },
+          "type": "semantic",
+          "content": "선율 장학회 2026년 접수 마감은 10월 31일이다.",
+          "sha256": "f038c68db41b1756b0b65f59d793aed4c5e881662fb7cb70fc7c4ddc760cf78c"
+        },
+        {
+          "evidence_id": "c_6f7ce8bd400c_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_6f7ce8bd400c",
+            "project": "project_6f7ce8bd400c",
+            "subject": "subject_6f7ce8bd400c"
+          },
+          "type": "semantic",
+          "content": "선율 장학회 2026년 접수 마감을 11월 7일로 연장 확정한다. 10월 31일 마감 공고는 대체한다.",
+          "sha256": "456c289b1c1724e0b536abd94bef8fdc6b9429e3e8ad7694812ad1f4ed7e184d"
+        }
+      ]
+    },
+    {
+      "case_id": "c_e25cad83e7cd",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_e25cad83e7cd",
+        "project": "project_e25cad83e7cd",
+        "subject": "subject_e25cad83e7cd"
+      },
+      "query": "물새 나루 정기 여객선 승선장은?",
+      "retirement_target_ref": "c_e25cad83e7cd_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_e25cad83e7cd_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_e25cad83e7cd",
+            "project": "project_e25cad83e7cd",
+            "subject": "subject_e25cad83e7cd"
+          },
+          "type": "semantic",
+          "content": "물새 나루의 정기 여객선 승선장은 B다.",
+          "sha256": "e60e92584d2136742dc2bc2b0c0958ca2d3bd79ad9f3a4985dfb911f2e7dcc0d"
+        },
+        {
+          "evidence_id": "c_e25cad83e7cd_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_e25cad83e7cd",
+            "project": "project_e25cad83e7cd",
+            "subject": "subject_e25cad83e7cd"
+          },
+          "type": "semantic",
+          "content": "물새 나루 정기 여객선 승선장을 D로 영구 이전했다. B 승선 안내는 종료한다.",
+          "sha256": "0ef393e4785ad3ee8382d5851acf60be5ae9547c3e88b41515fa1f574ea521f9"
+        }
+      ]
+    },
+    {
+      "case_id": "c_3d2eea39ec44",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_3d2eea39ec44",
+        "project": "project_3d2eea39ec44",
+        "subject": "subject_3d2eea39ec44"
+      },
+      "query": "녹담 배양실 실험 A의 설정 온도는?",
+      "retirement_target_ref": "c_3d2eea39ec44_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_3d2eea39ec44_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_3d2eea39ec44",
+            "project": "project_3d2eea39ec44",
+            "subject": "subject_3d2eea39ec44"
+          },
+          "type": "semantic",
+          "content": "녹담 배양실의 실험 A 설정 온도는 22도다.",
+          "sha256": "62de6de22639c8f2edb17922051425c8c7277ca176587d89f927c1402b2e642e"
+        },
+        {
+          "evidence_id": "c_3d2eea39ec44_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_3d2eea39ec44",
+            "project": "project_3d2eea39ec44",
+            "subject": "subject_3d2eea39ec44"
+          },
+          "type": "semantic",
+          "content": "녹담 배양실 실험 A의 설정 온도를 오늘부터 24도로 확정한다. 기존 22도 설정은 폐기한다.",
+          "sha256": "16d663cb6e8bd9440e6578e26aae89cce2e532c479d4a594745f39990d07326c"
+        }
+      ]
+    },
+    {
+      "case_id": "c_ca14289d341f",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_ca14289d341f",
+        "project": "project_ca14289d341f",
+        "subject": "subject_ca14289d341f"
+      },
+      "query": "토란 동아리 회계 문서 인장 색은?",
+      "retirement_target_ref": "c_ca14289d341f_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_ca14289d341f_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_ca14289d341f",
+            "project": "project_ca14289d341f",
+            "subject": "subject_ca14289d341f"
+          },
+          "type": "semantic",
+          "content": "토란 동아리의 회계 문서 인장 색은 검정이다.",
+          "sha256": "1cef9b8d77382da7495b9cfba13ef8c7d16e7f42eb4c3559704f3edf05fd875d"
+        },
+        {
+          "evidence_id": "c_ca14289d341f_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_ca14289d341f",
+            "project": "project_ca14289d341f",
+            "subject": "subject_ca14289d341f"
+          },
+          "type": "semantic",
+          "content": "토란 동아리 회계 문서 인장 색을 보라로 확정했다. 기존 검정 인장 사용 규칙을 교체한다.",
+          "sha256": "322d6113f2717a974bd604b05309df1c7d961edf543285747c929371e19c3bc6"
+        }
+      ]
+    },
+    {
+      "case_id": "c_ec69abc5a371",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_ec69abc5a371",
+        "project": "project_ec69abc5a371",
+        "subject": "subject_ec69abc5a371"
+      },
+      "query": "누아 행사 입장권의 현재 발급 방식은?",
+      "retirement_target_ref": "c_ec69abc5a371_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_ec69abc5a371_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_ec69abc5a371",
+            "project": "project_ec69abc5a371",
+            "subject": "subject_ec69abc5a371"
+          },
+          "type": "semantic",
+          "content": "누아 행사에는 입장권과 식권이 있고 입장권은 종이로 발급한다.",
+          "sha256": "53530fab2705a1b8348ab4d0ed36cf52d5318db676a2bb0141505c31523f487b"
+        },
+        {
+          "evidence_id": "c_ec69abc5a371_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_ec69abc5a371",
+            "project": "project_ec69abc5a371",
+            "subject": "subject_ec69abc5a371"
+          },
+          "type": "semantic",
+          "content": "누아 행사 메모: 이건 전자식으로 바꾸자. 무엇을 가리키는지 적지 않았다. 승인 여부도 남기지 않았다.",
+          "sha256": "2bfd99f7dc9c8c57ad9171b4c1b99924b4db7edeb1c18139f02eafba29d72905"
+        }
+      ]
+    },
+    {
+      "case_id": "c_e6fe7719f2b9",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_e6fe7719f2b9",
+        "project": "project_e6fe7719f2b9",
+        "subject": "subject_e6fe7719f2b9"
+      },
+      "query": "대상 H91의 현재 공식 이름은?",
+      "retirement_target_ref": "c_e6fe7719f2b9_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_e6fe7719f2b9_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_e6fe7719f2b9",
+            "project": "project_e6fe7719f2b9",
+            "subject": "subject_e6fe7719f2b9"
+          },
+          "type": "semantic",
+          "content": "대상 ID H91의 공식 이름은 한결 전시관이다.",
+          "sha256": "a44372c184289c6b960e26c55232f5870be08f5ed959c5af964f371d496bbe13"
+        },
+        {
+          "evidence_id": "c_e6fe7719f2b9_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_e6fe7719f2b9",
+            "project": "project_e6fe7719f2b9",
+            "subject": "subject_e6fe7719f2b9"
+          },
+          "type": "semantic",
+          "content": "동일 대상 ID H91의 공식 이름을 한결 자료관으로 바꿨다. 한결 전시관은 이전 이름이며 현재 공식 이름으로 안내하지 않는다.",
+          "sha256": "9690bb55bfe9c01ea79c869253e043952fe7e0eb60b37d1d6606fa83dd2b971b"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9903b11a7933",
+      "query_at": "2026-11-03T09:00:00Z",
+      "scope": {
+        "owner": "owner_9903b11a7933",
+        "project": "project_9903b11a7933",
+        "subject": "subject_9903b11a7933"
+      },
+      "query": "가람 기차역의 평일 매표 창구는?",
+      "retirement_target_ref": "c_9903b11a7933_e1",
+      "evidence": [
+        {
+          "evidence_id": "c_9903b11a7933_e1",
+          "recorded_at": "2026-10-01T09:00:00Z",
+          "event_at": "2026-10-01T09:00:00Z",
+          "scope": {
+            "owner": "owner_9903b11a7933",
+            "project": "project_9903b11a7933",
+            "subject": "subject_9903b11a7933"
+          },
+          "type": "semantic",
+          "content": "가람 기차역의 평일 매표 창구는 3번이다.",
+          "sha256": "7d6acbcf1a2274fb103fc5e8c7948e3d3edec25800e80a749c46181512195d6d"
+        },
+        {
+          "evidence_id": "c_9903b11a7933_e2",
+          "recorded_at": "2026-10-20T09:00:00Z",
+          "event_at": "2026-10-20T09:00:00Z",
+          "scope": {
+            "owner": "owner_9903b11a7933",
+            "project": "project_9903b11a7933",
+            "subject": "subject_9903b11a7933"
+          },
+          "type": "semantic",
+          "content": "가람 기차역 주말 매표 창구를 5번으로 변경했다. 평일 운영 변경은 없다.",
+          "sha256": "a43a723e1bc941eeb90d18be69adccdffafee2df24aaa462b9d5973f02d5f628"
+        }
+      ]
+    }
+  ]
+}

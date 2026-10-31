@@ -1,0 +1,48 @@
+{
+  "source": "synthetic-only",
+  "analysis": "post_panel_descriptive_not_preregistered_performance",
+  "strata": {
+    "late_evidence": {
+      "retain": 6
+    },
+    "explicit_change": {
+      "retire": 30
+    },
+    "compatible": {
+      "retain": 6
+    },
+    "partial_change": {
+      "retain": 6
+    },
+    "implicit": {
+      "retain": 3,
+      "ambiguous": 3
+    },
+    "same_name_different_condition": {
+      "retain": 6
+    }
+  },
+  "case_count": 60,
+  "evidence_count": 120,
+  "evidence_per_case": 2,
+  "content_length_characters": {
+    "min": 19,
+    "max": 71
+  },
+  "memory_type_by_case": {
+    "semantic": 41,
+    "procedural": 16,
+    "episodic": 3
+  },
+  "same_rationale_count": 0,
+  "retrieval_ref_disagreement_case_ids": [
+    "c_ec69abc5a371",
+    "c_327f9089fef4",
+    "c_56e80ed7ded4",
+    "c_e4789813319b",
+    "c_1615bc7cdfa7"
+  ],
+  "assessment": "판별력 부족 가능성: 모두 짧은 근거 2건이며 명시 변경 30건이 retire와 완전히 겹친다. 운영 분포·어려운 사례 성능은 미검증이다.",
+  "extend_in_this_pr": false,
+  "extension_reason": "판정 후 입력 변경은 독립 test 계약을 깨므로 60건을 보존한다. 후속 판본에서 장문·다단계 정정·권한 충돌·시간과 조건의 교차를 담은 최소 대조쌍을 새로 만들고 시스템 결과 전에 두 모델이 독립 판정한다."
+}

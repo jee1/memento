@@ -1,0 +1,48 @@
+{
+  "version": "adoption-ko-panel-v1",
+  "status": "not_run",
+  "registered_at": null,
+  "dataset_sha256": "f698a88b99dc10c16c6935513d7d3e6f90dded5c4a7672a5b1db7a1fdb123e19",
+  "corpus_sha256": "6690b8876c43534613d896eae6279e9adc19b05029c48922c6fd3f27b738507b",
+  "queries_sha256": "be62c0c501e491427eb12fcc5199dafd6d16ab35a543ec7847d46ceeff7304b1",
+  "split_sha256": "4e7d026a7e75e82bfde0785eef6f06774d713f99747f7db819bfe4416805502c",
+  "gold": {
+    "label_source": "agent_panel",
+    "path": null,
+    "sha256": null,
+    "frozen_at": null,
+    "agreement_count": null,
+    "ambiguous_count": null
+  },
+  "reviewers": [],
+  "runner": {
+    "commit_sha": null,
+    "command": null
+  },
+  "systems": {
+    "baseline_commit": null,
+    "candidate_commit": null,
+    "prompt_sha256": null,
+    "provider": null,
+    "model_version": null
+  },
+  "preregistration": {
+    "primary_endpoint": "gate.false_retire_rate",
+    "repeat_count": null,
+    "max_actual_calls": null,
+    "thresholds": null,
+    "regression_tolerance": null,
+    "eligible_case_ids_sha256": null
+  },
+  "stages": {
+    "retrieval": null,
+    "gate": null,
+    "final_answer": null,
+    "execution": null
+  },
+  "actual_calls": {
+    "panel_preparation": 0,
+    "provider_attempts": null
+  },
+  "claims": "합성 agent_panel 오류 발견용. 운영 안전·오류율 보장 없음. 미측정 값은 null. 결과 열람 전 실험 조건을 채우고 별도 manifest 바이트를 동결한다."
+}

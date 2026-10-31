@@ -1,0 +1,372 @@
+{
+  "reviewed_by": "머슴3",
+  "role": "contract_comparison_only",
+  "label_authoring": false,
+  "submission_sha256": {
+    "reviewer-a": "fdc0c21f4cc0615fafe3bcb10e0b41f1d9b694c12c83ec08916390472d86e1af",
+    "reviewer-b": "bc6175d9ce67f95f5af83845f936d73d8f4b6412dc53fcff31b730b83841f23d"
+  },
+  "cases": [
+    {
+      "case_id": "c_9963f1f8d5dc",
+      "stratum": "late_evidence",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_b359ea28f1c0",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_f1f32f08a300",
+      "stratum": "compatible",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_5d1d4e90f57e",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_5970242779ea",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_f8a616d7b17b",
+      "stratum": "partial_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_e6fe7719f2b9",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_16c8bf488b09",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_c455100c64b4",
+      "stratum": "compatible",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_9db293265c59",
+      "stratum": "implicit",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_ec69abc5a371",
+      "stratum": "implicit",
+      "contract_agreement": false,
+      "note": "두 판정 모두 ambiguous. A는 현재 답 단정을 금지하고 B는 종이 입장권을 미확인 답으로 남겼다. 현재 답·관련 근거 계약 불일치도 보존하며 tie-break하지 않는다."
+    },
+    {
+      "case_id": "c_857afcdb422e",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_5d9cd916c073",
+      "stratum": "same_name_different_condition",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_2f84f0bebc73",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_327f9089fef4",
+      "stratum": "compatible",
+      "contract_agreement": true,
+      "note": "현재 요일·시각과 변경 금지 계약은 같은 뜻이다. A는 중복 근거 둘, B는 e1만 관련으로 제출해 retrieval gold는 보류한다."
+    },
+    {
+      "case_id": "c_df16956170b0",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_9a39a043cc69",
+      "stratum": "same_name_different_condition",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_4672d0762140",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_99486eb89e40",
+      "stratum": "late_evidence",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_e31fd082f17f",
+      "stratum": "partial_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_c931a5fbcb43",
+      "stratum": "compatible",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_56e80ed7ded4",
+      "stratum": "partial_change",
+      "contract_agreement": true,
+      "note": "성인·어린이 장갑 의무 유지 계약은 같은 뜻이다. A는 재질 변경 근거도 관련으로, B는 e1만 관련으로 제출해 retrieval gold는 보류한다."
+    },
+    {
+      "case_id": "c_7836d879ad79",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_9903b11a7933",
+      "stratum": "same_name_different_condition",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_3d2eea39ec44",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_d5dd7ea5f73b",
+      "stratum": "late_evidence",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_853b7dd69501",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_9d1ea5fe4159",
+      "stratum": "compatible",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_529dd26ec531",
+      "stratum": "partial_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_a8264cc3b923",
+      "stratum": "implicit",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_e4789813319b",
+      "stratum": "implicit",
+      "contract_agreement": false,
+      "note": "두 판정 모두 ambiguous. A는 공식 확인까지 답을 보류하고 B는 첫날 지급을 미확인 답으로 남겼다. 현재 답·관련 근거 계약 불일치도 보존하며 tie-break하지 않는다."
+    },
+    {
+      "case_id": "c_e25cad83e7cd",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_340611f0de85",
+      "stratum": "partial_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_296a8e6217e1",
+      "stratum": "same_name_different_condition",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_490d330f6281",
+      "stratum": "late_evidence",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_4fc2d6add783",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_1615bc7cdfa7",
+      "stratum": "implicit",
+      "contract_agreement": false,
+      "note": "두 판정 모두 ambiguous. A는 개최 방식 단정을 금지하고 B는 대면을 처리 결과 불명 답으로 남겼다. 현재 답·관련 근거 계약 불일치도 보존하며 tie-break하지 않는다."
+    },
+    {
+      "case_id": "c_4c435ee03890",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_720ee871692e",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_4f0fb64bb0db",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_ca7bdbefe96a",
+      "stratum": "late_evidence",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_bbbef70407c1",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_23e94f27f4d2",
+      "stratum": "same_name_different_condition",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_9a1a45574b95",
+      "stratum": "partial_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_f3f9e20891a0",
+      "stratum": "implicit",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_b90ae7b35872",
+      "stratum": "compatible",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_81f6bb8f85cd",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_aa9070ed2c1c",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_0968eab113f8",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_8f0f05768a43",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_5d11c11ce18e",
+      "stratum": "same_name_different_condition",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_0f059c1fd174",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_ca14289d341f",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_99642f06e14d",
+      "stratum": "late_evidence",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_7a8046b27002",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_6f7ce8bd400c",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_e73979769b4f",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_c6a56f25340b",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_dfb2123b424b",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    },
+    {
+      "case_id": "c_3ea1aa11b785",
+      "stratum": "explicit_change",
+      "contract_agreement": true,
+      "note": "동일 scope·질의 시점의 현재 값/순서·유지 조건과 금지 주장은 같은 뜻이다. 표현 길이와 비퇴역 evidence_refs 차이는 원 제출에 보존한다."
+    }
+  ],
+  "input_sha256": "f698a88b99dc10c16c6935513d7d3e6f90dded5c4a7672a5b1db7a1fdb123e19"
+}

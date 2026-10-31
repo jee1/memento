@@ -1,0 +1,921 @@
+{
+  "reviewer_id": "머슴4",
+  "model": "Gemini 3.8 Flash (High)",
+  "judged_at": "2026-10-31T10:26:00Z",
+  "rubric_version": "adoption-ko-panel-v1",
+  "label_source": "agent_panel",
+  "data_sha256": "c33e916158d7162c669458a1389d513e6d6894e1fc6977dfefa0e71e82dd900d",
+  "answers": [
+    {
+      "case_id": "c_3d2eea39ec44",
+      "label": "retire",
+      "expected_outcome": "녹담 배양실 실험 A의 설정 온도는 24도",
+      "forbidden_outcome": "22도 설정 온도 안내",
+      "rationale": "e2가 동일 대상과 범위에서 실험 A의 설정 온도를 24도로 확정하고 기존 22도 설정을 명시 폐기했다. 질의 시점(11월 3일)에 유효하므로 e1의 모든 주장이 교체된다.",
+      "evidence_refs": [
+        "c_3d2eea39ec44_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_3d2eea39ec44_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_857afcdb422e",
+      "label": "retire",
+      "expected_outcome": "지평 어학시험 제7회 응시 장소는 서관 5호실",
+      "forbidden_outcome": "동관 2호실 안내",
+      "rationale": "e2가 제7회 장소를 서관 5호실로 확정 변경하고 기존 동관 2호실 안내를 오안내로 명시 정정했다. e1 전체가 정정 대상이 된다.",
+      "evidence_refs": [
+        "c_857afcdb422e_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_857afcdb422e_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_9db293265c59",
+      "label": "retain",
+      "expected_outcome": "플래시 없는 촬영 허용 규칙 유지",
+      "forbidden_outcome": "촬영 전면 금지 규정 적용",
+      "rationale": "e2는 담당자에게 제안하지 않은 개인 초안에 불과하다. rubric상 제안은 승인으로 승격하지 않으므로 e1의 촬영 규칙이 온전히 유효하다.",
+      "evidence_refs": [
+        "c_9db293265c59_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_9db293265c59_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_56e80ed7ded4",
+      "label": "retain",
+      "expected_outcome": "성인과 어린이 모두 장갑 착용 의무 유지",
+      "forbidden_outcome": "장갑 착용 의무 해제 또는 변경",
+      "rationale": "e2에서 어린이용 장갑 재질을 바꿨으나 장갑 착용 의무는 유지한다고 명시했다. e1의 장갑 착용 의무 주장이 그대로 유효하다.",
+      "evidence_refs": [
+        "c_56e80ed7ded4_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_56e80ed7ded4_e1",
+        "c_56e80ed7ded4_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_9d1ea5fe4159",
+      "label": "retain",
+      "expected_outcome": "해늬 식당 기본 메뉴의 국은 된장국",
+      "forbidden_outcome": "된장국 메뉴 폐지 또는 반찬 추가로 인한 국 변경",
+      "rationale": "e2는 기본 메뉴 반찬 추가에 관한 기록으로 e1의 국(된장국)에 관한 주장을 침해하지 않고 양립한다.",
+      "evidence_refs": [
+        "c_9d1ea5fe4159_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_9d1ea5fe4159_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_f8a616d7b17b",
+      "label": "retain",
+      "expected_outcome": "신분 확인 후 물품 인도 단계 유지, 보증금 면제",
+      "forbidden_outcome": "보증금 수령 요구, 또는 신분 확인과 물품 인도 절차의 폐기",
+      "rationale": "e2에서 보증금만 면제하고 신분 확인 후 물품 인도 단계는 유지한다고 명시했다. e1의 주요 단계가 여전히 유효한 부분 변경이므로 전체 퇴역이 성립하지 않는다.",
+      "evidence_refs": [
+        "c_f8a616d7b17b_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_f8a616d7b17b_e1",
+        "c_f8a616d7b17b_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_c455100c64b4",
+      "label": "retain",
+      "expected_outcome": "미리내 자료실 월요일 정기 휴관",
+      "forbidden_outcome": "월요일 휴관 폐지 또는 다른 요일 휴관",
+      "rationale": "e2는 토요일 사진 강좌 개설 정보이며 e1의 월요일 정기 휴관 규칙과 무관하게 양립한다.",
+      "evidence_refs": [
+        "c_c455100c64b4_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_c455100c64b4_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_bbbef70407c1",
+      "label": "retire",
+      "expected_outcome": "검사 뒤 선반 S2 적치",
+      "forbidden_outcome": "선반 S1 적치",
+      "rationale": "e2가 적치 위치를 선반 S2로 변경하고 기존 S1 적치를 명시 중단했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_bbbef70407c1_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_bbbef70407c1_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_b90ae7b35872",
+      "label": "retain",
+      "expected_outcome": "10월 1일 정오 강수량 3mm",
+      "forbidden_outcome": "10월 1일 정오 강수량을 8mm로 답변하거나 e1 기록 부정",
+      "rationale": "e1과 e2는 사건 일자(10월 1일 대 10월 20일)가 다른 별개 사건 관측 기록이다. 10월 1일의 강수량 기록 e1은 유효하다.",
+      "evidence_refs": [
+        "c_b90ae7b35872_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_b90ae7b35872_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_5d11c11ce18e",
+      "label": "retain",
+      "expected_outcome": "초급반은 손뼉으로 박자를 맞춘 뒤 노래",
+      "forbidden_outcome": "초급반에 메트로놈 사용 규칙 적용",
+      "rationale": "e2는 고급반 규칙 변경이며 e1의 초급반 규칙과 대상이 다르다. e1의 초급반 연습 절차는 그대로 유효하다.",
+      "evidence_refs": [
+        "c_5d11c11ce18e_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_5d11c11ce18e_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_340611f0de85",
+      "label": "retain",
+      "expected_outcome": "동관 21시 폐장, 서관 20시 폐장 유지",
+      "forbidden_outcome": "동관 20시 폐장 안내 또는 서관 21시 폐장 안내",
+      "rationale": "e2에서 동관 폐장 시각만 21시로 변경하고 서관 20시 폐장은 유지한다고 명시했다. e1의 서관 폐장 정보가 유효하므로 부분 변경에 해당해 전체 퇴역하지 않는다.",
+      "evidence_refs": [
+        "c_340611f0de85_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_340611f0de85_e1",
+        "c_340611f0de85_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_dfb2123b424b",
+      "label": "retire",
+      "expected_outcome": "교정 줄표는 긴 줄표 사용",
+      "forbidden_outcome": "짧은 줄표 사용",
+      "rationale": "e2가 교정 줄표를 긴 줄표로 통일하고 짧은 줄표 규칙을 명시 종료했다. e1 전체가 교체된다.",
+      "evidence_refs": [
+        "c_dfb2123b424b_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_dfb2123b424b_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_ca14289d341f",
+      "label": "retire",
+      "expected_outcome": "회계 문서 인장 색은 보라",
+      "forbidden_outcome": "검정 인장 사용",
+      "rationale": "e2가 회계 문서 인장 색을 보라로 확정하고 기존 검정 인장 규칙을 교체했다. e1의 모든 주장이 대체된다.",
+      "evidence_refs": [
+        "c_ca14289d341f_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_ca14289d341f_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_8f0f05768a43",
+      "label": "retire",
+      "expected_outcome": "수령 담당자는 역할 담당-나",
+      "forbidden_outcome": "역할 담당-가를 수령 담당자로 안내",
+      "rationale": "e2에서 담당-나로 인계를 완료하고 담당-가를 수령 업무에서 해제했음을 명시했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_8f0f05768a43_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_8f0f05768a43_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_e4789813319b",
+      "label": "ambiguous",
+      "expected_outcome": "재료 지급일 변경 여부 판정 보류, 공식 담당자 확인 필요",
+      "forbidden_outcome": "외부 방문자의 전언만으로 15일 변경을 확정하거나 기존 첫날 지급을 단정",
+      "rationale": "e2는 외부 방문자의 전언이며 담당자 확인이 없다고 명시했다. rubric상 확인되지 않은 권한 및 전언에 해당해 원문만으로 실제 지급일 변경 여부를 확정하기 어려우므로 보류한다.",
+      "evidence_refs": [
+        "c_e4789813319b_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_e4789813319b_e1",
+        "c_e4789813319b_e2"
+      ],
+      "hold_reason": "외부 방문자의 전언만 있고 공식 담당자의 확인이나 확정 기록이 없어 재료 지급일 변경 여부를 확정하지 못함. 담당자의 승인/확인 기록 필요.",
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_490d330f6281",
+      "label": "retain",
+      "expected_outcome": "현재 출입구는 북문",
+      "forbidden_outcome": "남문을 현재 출입구로 안내",
+      "rationale": "e2의 등록 시각은 10월 20일이나 사건 시각은 9월 3일의 과거 관찰 일지다. e1의 10월 1일 시행 정책이 질의 시점에 온전히 유효하다.",
+      "evidence_refs": [
+        "c_490d330f6281_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_490d330f6281_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_b359ea28f1c0",
+      "label": "retire",
+      "expected_outcome": "통학차량 3호 정규 출발 시각은 오전 8시 20분",
+      "forbidden_outcome": "오전 8시 출발 안내",
+      "rationale": "e2에서 정규 출발 시각을 오전 8시 20분으로 변경하고 기존 8시 안내를 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_b359ea28f1c0_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_b359ea28f1c0_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_5d9cd916c073",
+      "label": "retain",
+      "expected_outcome": "동쪽 섬 한울 마을 공동 우편함은 회관 앞",
+      "forbidden_outcome": "동쪽 섬 우편함을 선착장 앞으로 안내",
+      "rationale": "e2는 서쪽 섬 한울 마을에 관한 변경이며 e1의 동쪽 섬 한울 마을과 대상이 다르다. e1은 그대로 유효하다.",
+      "evidence_refs": [
+        "c_5d9cd916c073_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_5d9cd916c073_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_2f84f0bebc73",
+      "label": "retire",
+      "expected_outcome": "문자 라벨 부착",
+      "forbidden_outcome": "숫자 라벨 부착",
+      "rationale": "e2가 운반 상자 라벨을 문자 라벨로 전면 교체하고 숫자 라벨 규칙을 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_2f84f0bebc73_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_2f84f0bebc73_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_f3f9e20891a0",
+      "label": "retain",
+      "expected_outcome": "전원 차단 뒤 외관 점검 절차 유지",
+      "forbidden_outcome": "전원을 켠 채 점검하는 미승인 절차 적용",
+      "rationale": "e2는 개별 시험 실패 및 절차 개정 승인 미취득 기록이다. rubric상 개별 실험은 승인으로 승격하지 않으므로 e1의 승인된 검사 절차가 유지된다.",
+      "evidence_refs": [
+        "c_f3f9e20891a0_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_f3f9e20891a0_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_e6fe7719f2b9",
+      "label": "retire",
+      "expected_outcome": "공식 이름은 한결 자료관",
+      "forbidden_outcome": "한결 전시관 안내",
+      "rationale": "e2가 동일 대상 H91의 이름을 한결 자료관으로 변경하고 기존 이름을 안내하지 않는다고 명시했다. e1 전체가 교체된다.",
+      "evidence_refs": [
+        "c_e6fe7719f2b9_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_e6fe7719f2b9_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_5970242779ea",
+      "label": "retire",
+      "expected_outcome": "바퀴를 끼운 뒤 받침 부착",
+      "forbidden_outcome": "받침을 붙인 뒤 바퀴 장착",
+      "rationale": "e2가 조립 순서를 전면 개정하여 바퀴를 끼운 뒤 받침을 붙이도록 하고 이전 순서를 폐기했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_5970242779ea_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_5970242779ea_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_e25cad83e7cd",
+      "label": "retire",
+      "expected_outcome": "정기 여객선 승선장은 D",
+      "forbidden_outcome": "승선장 B 안내",
+      "rationale": "e2에서 승선장을 D로 영구 이전하고 B 승선 안내를 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_e25cad83e7cd_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_e25cad83e7cd_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_ec69abc5a371",
+      "label": "ambiguous",
+      "expected_outcome": "발급 방식 판정 보류, 지시 대상 및 승인 여부 확인 필요",
+      "forbidden_outcome": "입장권 전자식 확정 또는 종이 발급 단정",
+      "rationale": "e2는 대명사 '이건'의 지시 대상이 명시되지 않았고 승인 여부도 남기지 않은 메모다. rubric의 hold 사유인 대명사 지시 대상 누락 및 확인되지 않은 승인에 해당한다.",
+      "evidence_refs": [
+        "c_ec69abc5a371_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_ec69abc5a371_e1",
+        "c_ec69abc5a371_e2"
+      ],
+      "hold_reason": "대명사('이건')가 입장권을 가리키는지 식권을 가리키는지 불명확하며 승인 여부도 기록되지 않음. 구체적 대상 지시와 승인 확인 기록 필요.",
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_d5dd7ea5f73b",
+      "label": "retain",
+      "expected_outcome": "10월 물품 배송지는 창고 C",
+      "forbidden_outcome": "10월 물품을 창고 A로 배송했다고 안내",
+      "rationale": "e2는 9월 물품의 과거 배송 기록이며 e1의 10월 물품 배송 사실과 대상/일자가 다른 별개 사건이다. e1은 그대로 유효하다.",
+      "evidence_refs": [
+        "c_d5dd7ea5f73b_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_d5dd7ea5f73b_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_4fc2d6add783",
+      "label": "retire",
+      "expected_outcome": "2차 총회 실제 개최일은 10월 13일",
+      "forbidden_outcome": "개최일을 10월 12일로 안내",
+      "rationale": "e2가 10월 12일이 오기임을 명시 정정하고 실제 개최일이 10월 13일임을 확정했다. e1 전체가 정정 퇴역된다.",
+      "evidence_refs": [
+        "c_4fc2d6add783_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_4fc2d6add783_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_6f7ce8bd400c",
+      "label": "retire",
+      "expected_outcome": "2026년 접수 마감일은 11월 7일",
+      "forbidden_outcome": "10월 31일 마감 안내",
+      "rationale": "e2에서 마감일을 11월 7일로 연장 확정하고 기존 10월 31일 공고를 대체했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_6f7ce8bd400c_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_6f7ce8bd400c_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_720ee871692e",
+      "label": "retire",
+      "expected_outcome": "정규 저녁 식사 시작은 18시 30분",
+      "forbidden_outcome": "18시 시작 안내",
+      "rationale": "e2에서 저녁 식사 시작을 18시 30분으로 변경하고 18시 안내를 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_720ee871692e_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_720ee871692e_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_1615bc7cdfa7",
+      "label": "ambiguous",
+      "expected_outcome": "총회 개최 방식 판정 보류, 처리 결과 확인 필요",
+      "forbidden_outcome": "대면 또는 비대면 방식의 단정적 안내",
+      "rationale": "e2에서 비대면 변경 요청의 철회 요청 사실만 있고 처리 결과를 기록하지 않았다고 명시했다. rubric상 일관된 현재 답을 만들 근거가 부족하므로 보류한다.",
+      "evidence_refs": [
+        "c_1615bc7cdfa7_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_1615bc7cdfa7_e1",
+        "c_1615bc7cdfa7_e2"
+      ],
+      "hold_reason": "비대면 전환 요청의 철회 요청에 대한 최종 처리 결과가 기록되지 않아 확정 총회 개최 방식을 원문만으로 알 수 없음. 최종 총회 개최 방식 승인 결과 필요.",
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_c931a5fbcb43",
+      "label": "retain",
+      "expected_outcome": "드라이버는 공구함 A 보관",
+      "forbidden_outcome": "드라이버 보관 위치 변경 또는 망치 규칙 혼용",
+      "rationale": "e2는 망치 보관에 관한 별개 공구 규칙이며 e1의 드라이버 보관 규칙과 양립한다. e1은 그대로 유효하다.",
+      "evidence_refs": [
+        "c_c931a5fbcb43_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_c931a5fbcb43_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_529dd26ec531",
+      "label": "retain",
+      "expected_outcome": "10시 개장, 19시 폐장, 신발 벗기 규칙 유지",
+      "forbidden_outcome": "9시 개장 안내, 또는 폐장 시각/신발 규칙 폐기",
+      "rationale": "e2에서 개장 시각만 10시로 변경하고 폐장 시각(19시)과 신발 규칙은 그대로 유지한다고 명시했다. e1의 핵심 내용이 남아있으므로 부분 변경으로 retain 판정한다.",
+      "evidence_refs": [
+        "c_529dd26ec531_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_529dd26ec531_e1",
+        "c_529dd26ec531_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_ca7bdbefe96a",
+      "label": "retain",
+      "expected_outcome": "정규 열람료는 무료",
+      "forbidden_outcome": "행사 열람료 2천원 안내",
+      "rationale": "e2의 2천원 열람료는 10월 25일에 종료된 한시적 행사였으며 행사 종료 뒤 무료 규칙을 재개한다고 명시했다. 질의 시점(11월 3일)에는 기간 종료로 e1의 무료 규칙이 유효하다.",
+      "evidence_refs": [
+        "c_ca7bdbefe96a_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_ca7bdbefe96a_e1",
+        "c_ca7bdbefe96a_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_99642f06e14d",
+      "label": "retain",
+      "expected_outcome": "현재 예약 대표자는 역할 다",
+      "forbidden_outcome": "역할 나를 현재 예약 대표자로 안내",
+      "rationale": "e2는 9월 1일 과거 회의록 보관 기록이며 '지금의 변경을 취소하는 결정은 아니다'라고 명시했다. 10월 1일부터 적용된 e1의 예약 대표자(역할 다)가 유효하다.",
+      "evidence_refs": [
+        "c_99642f06e14d_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_99642f06e14d_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_9963f1f8d5dc",
+      "label": "retain",
+      "expected_outcome": "현재 안내 언어는 한국어와 영어",
+      "forbidden_outcome": "한국어만 안내한다고 답변",
+      "rationale": "e2는 8월 개편 전 과거 전시 사진에 대한 보완 설명이다. 10월 1일부터 적용된 e1의 안내 언어 규칙(한국어와 영어)이 유효하다.",
+      "evidence_refs": [
+        "c_9963f1f8d5dc_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_9963f1f8d5dc_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_296a8e6217e1",
+      "label": "retain",
+      "expected_outcome": "초등부 합창단의 반주 악기는 피아노",
+      "forbidden_outcome": "초등부 반주 악기를 기타로 안내",
+      "rationale": "e2는 성인부 합창단에 관한 규칙 변경이며 e1의 초등부 합창단과 대상이 다르다. e1은 온전히 유효하다.",
+      "evidence_refs": [
+        "c_296a8e6217e1_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_296a8e6217e1_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_f1f32f08a300",
+      "label": "retain",
+      "expected_outcome": "정규 미술 수업은 수요일",
+      "forbidden_outcome": "미술 수업 요일 변경 또는 금요일 안내",
+      "rationale": "e2는 음악 수업 추가 기록이며 미술 수업 요일에 영향을 주지 않고 양립한다. e1은 온전히 유효하다.",
+      "evidence_refs": [
+        "c_f1f32f08a300_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_f1f32f08a300_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_327f9089fef4",
+      "label": "retain",
+      "expected_outcome": "정기 합주는 화요일 저녁",
+      "forbidden_outcome": "화요일 저녁 합주 규칙 폐기",
+      "rationale": "e2는 e1과 동일한 주장을 분실 대비로 다시 기록한 중복 기록이다. rubric상 중복은 전체 퇴역 근거가 성립하지 않는다.",
+      "evidence_refs": [
+        "c_327f9089fef4_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_327f9089fef4_e1",
+        "c_327f9089fef4_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_81f6bb8f85cd",
+      "label": "retire",
+      "expected_outcome": "정기 급수일은 목요일",
+      "forbidden_outcome": "화요일 급수 안내",
+      "rationale": "e2에서 급수일을 목요일로 변경하고 화요일 규칙을 대체했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_81f6bb8f85cd_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_81f6bb8f85cd_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_e73979769b4f",
+      "label": "retire",
+      "expected_outcome": "공식 표기 부호는 Y",
+      "forbidden_outcome": "표기 부호 X 안내",
+      "rationale": "e2에서 표기 부호가 Y로 변경되었으며 기존 부호 X는 쓰지 않는다고 명시했다. e1 전체가 교체된다.",
+      "evidence_refs": [
+        "c_e73979769b4f_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_e73979769b4f_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_9a1a45574b95",
+      "label": "retain",
+      "expected_outcome": "견습생은 작업대 닦기(바닥 면제), 일반 작업자는 작업대와 바닥 모두 청소",
+      "forbidden_outcome": "모든 작업자의 바닥 닦기 면제 또는 견습생 작업대 닦기 면제",
+      "rationale": "e2에서 견습생의 바닥 닦기만 면제하고 작업대 닦기 및 일반 작업자 규칙은 유지한다고 명시했다. e1의 규칙 대부분이 유효한 부분 변경이다.",
+      "evidence_refs": [
+        "c_9a1a45574b95_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_9a1a45574b95_e1",
+        "c_9a1a45574b95_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_aa9070ed2c1c",
+      "label": "retire",
+      "expected_outcome": "초벌 목표 온도는 섭씨 950도",
+      "forbidden_outcome": "900도 안내",
+      "rationale": "e2에서 900도는 입력 오류였으며 승인된 목표가 섭씨 950도임을 밝히고 900도 기록을 정정했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_aa9070ed2c1c_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_aa9070ed2c1c_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_853b7dd69501",
+      "label": "retire",
+      "expected_outcome": "참고문헌 정렬은 발행연도순",
+      "forbidden_outcome": "저자 이름순 정렬",
+      "rationale": "e2에서 정렬 기준을 발행연도순으로 변경하고 저자 이름순 규칙을 철회했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_853b7dd69501_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_853b7dd69501_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_23e94f27f4d2",
+      "label": "retain",
+      "expected_outcome": "겨울 난방 목표 온도는 23도",
+      "forbidden_outcome": "겨울 난방 온도를 26도로 안내하거나 변경 간주",
+      "rationale": "e2는 여름 냉방에 관한 규칙 변경이며 e1의 겨울 난방 목표 온도와 조건 및 계절이 다른 별개 대상이다. e1은 그대로 유효하다.",
+      "evidence_refs": [
+        "c_23e94f27f4d2_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_23e94f27f4d2_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_df16956170b0",
+      "label": "retire",
+      "expected_outcome": "납품용 원본 출력 형식은 TIFF",
+      "forbidden_outcome": "PNG 출력 안내",
+      "rationale": "e2에서 출력 형식을 TIFF로 확정하고 PNG 출력 규칙을 교체했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_df16956170b0_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_df16956170b0_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_5d1d4e90f57e",
+      "label": "retire",
+      "expected_outcome": "예약 방식은 방문 예약만 접수",
+      "forbidden_outcome": "전화 예약 안내",
+      "rationale": "e2에서 전화 예약 정책을 취소하고 방문 예약만 받기로 확정했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_5d1d4e90f57e_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_5d1d4e90f57e_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_16c8bf488b09",
+      "label": "retire",
+      "expected_outcome": "발표문 제목 서체는 고딕",
+      "forbidden_outcome": "명조 서체 안내",
+      "rationale": "e2에서 제목 서체를 고딕으로 확정 변경하고 명조 제목 규칙을 종료했다. e1 전체가 교체된다.",
+      "evidence_refs": [
+        "c_16c8bf488b09_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_16c8bf488b09_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_c6a56f25340b",
+      "label": "retire",
+      "expected_outcome": "배송품 고정 재료는 천끈",
+      "forbidden_outcome": "종이띠 고정 안내",
+      "rationale": "e2에서 종이띠 고정 규칙을 철회하고 천끈 고정으로 전면 교체했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_c6a56f25340b_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_c6a56f25340b_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_9903b11a7933",
+      "label": "retain",
+      "expected_outcome": "평일 매표 창구는 3번",
+      "forbidden_outcome": "평일 창구를 5번으로 안내",
+      "rationale": "e2는 주말 매표 창구 변경이며 평일 운영 변경은 없다고 명시했다. e1의 평일 창구 규칙(3번)은 온전히 유효하다.",
+      "evidence_refs": [
+        "c_9903b11a7933_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_9903b11a7933_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_9a39a043cc69",
+      "label": "retain",
+      "expected_outcome": "소유자 우진의 보슬 공방 도장은 원형",
+      "forbidden_outcome": "우진의 도장 모양을 사각형으로 안내",
+      "rationale": "e2는 소유자 서진(other_owner)의 동명 공방 도장에 관한 기록으로 질의 대상인 소유자 우진과 scope(owner)가 다르다. e1은 그대로 유효하다.",
+      "evidence_refs": [
+        "c_9a39a043cc69_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_9a39a043cc69_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_7a8046b27002",
+      "label": "retire",
+      "expected_outcome": "폐장 시각은 매일 18시",
+      "forbidden_outcome": "17시 폐장 안내",
+      "rationale": "e2에서 폐장 시각을 매일 18시로 확정 변경하고 17시 안내 사용을 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_7a8046b27002_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_7a8046b27002_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_0968eab113f8",
+      "label": "retire",
+      "expected_outcome": "빈 상자 적재 위치는 출구 쪽",
+      "forbidden_outcome": "입구 쪽 적재 안내",
+      "rationale": "e2에서 적재 위치를 출구 쪽으로 영구 변경하고 입구 쪽 적재 규칙을 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_0968eab113f8_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_0968eab113f8_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_a8264cc3b923",
+      "label": "retain",
+      "expected_outcome": "현금 결제 허용",
+      "forbidden_outcome": "현금 결제 불가 안내",
+      "rationale": "e2에서 카드 단말기가 배송되었으나 결제 정책 변경 공지는 없었다고 명시했다. e1의 현금 결제 허용 정책은 그대로 유효하다.",
+      "evidence_refs": [
+        "c_a8264cc3b923_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_a8264cc3b923_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_4c435ee03890",
+      "label": "retire",
+      "expected_outcome": "돌 표본 K4 질량은 21g",
+      "forbidden_outcome": "12g 안내",
+      "rationale": "e2에서 12g은 전사 오류였으며 검산 완료한 21g으로 정정한다고 명시했다. e1 전체가 정정 퇴역된다.",
+      "evidence_refs": [
+        "c_4c435ee03890_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_4c435ee03890_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_3ea1aa11b785",
+      "label": "retire",
+      "expected_outcome": "기준 통화는 달러",
+      "forbidden_outcome": "원화 기준 작성 안내",
+      "rationale": "e2에서 달러를 기준 통화로 사용하고 원화 기준 작성 규칙을 철회했다. e1 전체가 교체된다.",
+      "evidence_refs": [
+        "c_3ea1aa11b785_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_3ea1aa11b785_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_7836d879ad79",
+      "label": "retire",
+      "expected_outcome": "열쇠 보관 위치는 관리실 204호",
+      "forbidden_outcome": "관리실 102호 안내",
+      "rationale": "e2에서 열쇠를 204호로 옮기고 위치 안내를 102호에서 204호로 교체했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_7836d879ad79_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_7836d879ad79_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_e31fd082f17f",
+      "label": "retain",
+      "expected_outcome": "밀봉한 생수만 반입 허용, 그 외 음식 반입 금지 유지",
+      "forbidden_outcome": "음식 전면 허용 또는 밀봉 생수 반입 금지",
+      "rationale": "e2에서 밀봉한 생수만 허용하고 나머지 음식 반입 금지는 유지한다고 명시했다. e1의 음식 반입 금지 원칙이 여전히 유효한 부분 변경이다.",
+      "evidence_refs": [
+        "c_e31fd082f17f_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_e31fd082f17f_e1",
+        "c_e31fd082f17f_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_4f0fb64bb0db",
+      "label": "retire",
+      "expected_outcome": "1차 검토 뒤 표시 색은 초록색",
+      "forbidden_outcome": "파란색 표시 안내",
+      "rationale": "e2에서 표시 색을 초록색으로 변경하고 파란색 표시는 더 사용하지 않는다고 명시했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_4f0fb64bb0db_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_4f0fb64bb0db_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_0f059c1fd174",
+      "label": "retire",
+      "expected_outcome": "일반석 구역 이름은 바람",
+      "forbidden_outcome": "하늘 구역명 안내",
+      "rationale": "e2에서 2026년 11월 2일부터 구역명을 바람으로 영구 변경하고 하늘 안내를 종료했다. 질의 시점(11월 3일)에 변경 효력이 발생했으므로 e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_0f059c1fd174_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_0f059c1fd174_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_99486eb89e40",
+      "label": "retain",
+      "expected_outcome": "원고는 양면으로 출력",
+      "forbidden_outcome": "단면 출력 안내",
+      "rationale": "e2는 8월 2일 과거 구판 안내 등록 기록이며 e1의 10월 1일 시행 양면 출력 정책이 현재 시점에 온전히 유효하다.",
+      "evidence_refs": [
+        "c_99486eb89e40_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_99486eb89e40_e1"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "case_id": "c_4672d0762140",
+      "label": "retire",
+      "expected_outcome": "전자 양식으로만 신청 접수",
+      "forbidden_outcome": "종이 신청서 접수 안내",
+      "rationale": "e2에서 전자 양식으로만 받도록 변경하고 종이 신청서 접수를 종료했다. e1 전체가 퇴역된다.",
+      "evidence_refs": [
+        "c_4672d0762140_e2"
+      ],
+      "relevant_evidence_refs": [
+        "c_4672d0762140_e2"
+      ],
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}
