@@ -4,6 +4,10 @@ Agents interact with Memento memory through CLI subcommands as well as MCP tools
 
 Korean documentation: [memento-cli-for-ai.md (KO)](../ko/memento-cli-for-ai.md).
 
+## Agent Skill (Cursor and terminal agents)
+
+For agents that run **`memento` in the shell** without MCP, use the project skill at [`docs/skills/memento-cli-for-ai/SKILL.md`](../../skills/memento-cli-for-ai/SKILL.md). It summarizes the before/after recall and remember workflow and stdout JSON rules. See [`README.md`](../../skills/memento-cli-for-ai/README.md) to install into Cursor. When MCP is connected, prefer `plugins/memento/skills/memento-memory-loop/`.
+
 ## MCP vs CLI Roles
 
 - **MCP**: Host tools for AI agents. MCP hosts (Claude, Cursor, Codex, etc.) call tools over stdio or HTTP to maintain conversation context.

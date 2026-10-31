@@ -16,6 +16,7 @@
 - Jev 관계 평가: 사용자 승인 합성 48쌍, 고정 모델 440회 비교와 후보별 회귀를 기록합니다. 사전 기준 미충족으로 질문 변경은 적용하지 않습니다 (#1470).
 - Admin 대시보드 배치 작업 탭: `GET /admin/batch/stats`의 `jobs[].description`과 스케줄 표·드로어·「이건 뭔가요」 가이드에 스케줄별 역할 설명을 표시합니다 (#1464).
 - 운영 recall 감사: private 요청의 주간 무작위 5건 추출 도구와 agent_panel 판정·보류·분모 절차를 추가합니다. 원문은 `.local/`에만 두며 현재성 자동 검사는 #1551→#1552 이후로 남깁니다 (#1562).
+- Agent Skill: `docs/skills/memento-cli-for-ai/SKILL.md`로 터미널 전용 에이전트가 `memento recall`/`remember`/`memory_injection` 워크플로를 발견하도록 안내합니다 (#112).
 
 ### Fixed
 

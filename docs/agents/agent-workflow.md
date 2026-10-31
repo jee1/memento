@@ -4,6 +4,8 @@
 
 ## MCP·메모리 — 작업 전후 기억 루프
 
+MCP 대신 **`memento` CLI**만 쓰는 터미널 에이전트는 동일 순서를 [docs/skills/memento-cli-for-ai/SKILL.md](../skills/memento-cli-for-ai/SKILL.md)와 [memento-cli-for-ai.md](../guides/ko/memento-cli-for-ai.md)로 적용합니다. `feedback`은 CLI에 없으므로 MCP가 있을 때만 남깁니다.
+
 Memento를 사용하는 에이전트는 아래 순서가 습관이 되어야 합니다(Issue #729 — feedback은 인프라가 있어도 안 쓰면 랭킹에 반영되지 않습니다).
 
 1. **작업 전**: `recall` 또는 `memory_injection`으로 관련 기억을 불러와 맥락을 채운다.
