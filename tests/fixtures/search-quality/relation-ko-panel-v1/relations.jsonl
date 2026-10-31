@@ -176,55 +176,30 @@
 {"source":"cl_01_hub","target":"rk_trap_own_foreign","relation_type":"supported_by","confidence":0.5,"note":"cross-owner trap edge"}
 {"source":"cl_02_hub","target":"rk_trap_deleted","relation_type":"FOLLOWS","confidence":0.6,"note":"deleted trap edge"}
 {"source":"cl_03_hub","target":"rk_trap_replaced_old","relation_type":"extracted_from","confidence":0.6,"note":"superseded trap edge"}
-{"source":"cl_01_direct","target":"cl_01_hop_ans","relation_type":"extracted_from","confidence":0.55,"note":"cl_01 supplemental"}
-{"source":"cl_01_iso_ok","target":"cl_01_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_01 iso link"}
-{"source":"cl_02_direct","target":"cl_02_hop_ans","relation_type":"extracted_from","confidence":0.55,"note":"cl_02 supplemental"}
-{"source":"cl_02_iso_ok","target":"cl_02_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_02 iso link"}
-{"source":"cl_03_direct","target":"cl_03_hop_ans","relation_type":"supported_by","confidence":0.55,"note":"cl_03 supplemental"}
+{"source":"cl_01_iso_ok","target":"cl_01_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_01 iso link"}
+{"source":"cl_02_iso_ok","target":"cl_02_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_02 iso link"}
 {"source":"cl_03_iso_ok","target":"cl_03_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_03 iso link"}
-{"source":"cl_04_direct","target":"cl_04_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_04 supplemental"}
-{"source":"cl_04_iso_ok","target":"cl_04_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_04 iso link"}
-{"source":"cl_05_direct","target":"cl_05_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_05 supplemental"}
-{"source":"cl_05_iso_ok","target":"cl_05_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_05 iso link"}
-{"source":"cl_06_direct","target":"cl_06_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_06 supplemental"}
-{"source":"cl_06_iso_ok","target":"cl_06_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_06 iso link"}
-{"source":"cl_07_direct","target":"cl_07_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_07 supplemental"}
-{"source":"cl_07_iso_ok","target":"cl_07_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_07 iso link"}
-{"source":"cl_08_direct","target":"cl_08_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_08 supplemental"}
-{"source":"cl_08_iso_ok","target":"cl_08_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_08 iso link"}
-{"source":"cl_09_direct","target":"cl_09_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_09 supplemental"}
-{"source":"cl_09_iso_ok","target":"cl_09_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_09 iso link"}
-{"source":"cl_10_direct","target":"cl_10_hop_ans","relation_type":"extracted_from","confidence":0.55,"note":"cl_10 supplemental"}
-{"source":"cl_10_iso_ok","target":"cl_10_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_10 iso link"}
-{"source":"cl_11_direct","target":"cl_11_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_11 supplemental"}
+{"source":"cl_04_iso_ok","target":"cl_04_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_04 iso link"}
+{"source":"cl_05_iso_ok","target":"cl_05_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_05 iso link"}
+{"source":"cl_06_iso_ok","target":"cl_06_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_06 iso link"}
+{"source":"cl_07_iso_ok","target":"cl_07_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_07 iso link"}
+{"source":"cl_08_iso_ok","target":"cl_08_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_08 iso link"}
+{"source":"cl_09_iso_ok","target":"cl_09_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_09 iso link"}
+{"source":"cl_10_iso_ok","target":"cl_10_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_10 iso link"}
 {"source":"cl_11_iso_ok","target":"cl_11_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_11 iso link"}
-{"source":"cl_12_direct","target":"cl_12_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_12 supplemental"}
 {"source":"cl_12_iso_ok","target":"cl_12_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_12 iso link"}
-{"source":"cl_13_direct","target":"cl_13_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_13 supplemental"}
-{"source":"cl_13_iso_ok","target":"cl_13_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_13 iso link"}
-{"source":"cl_14_direct","target":"cl_14_hop_ans","relation_type":"extracted_from","confidence":0.55,"note":"cl_14 supplemental"}
-{"source":"cl_14_iso_ok","target":"cl_14_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_14 iso link"}
-{"source":"cl_15_direct","target":"cl_15_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_15 supplemental"}
-{"source":"cl_15_iso_ok","target":"cl_15_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_15 iso link"}
-{"source":"cl_16_direct","target":"cl_16_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_16 supplemental"}
-{"source":"cl_16_iso_ok","target":"cl_16_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_16 iso link"}
-{"source":"cl_17_direct","target":"cl_17_hop_ans","relation_type":"BELONGS_TO","confidence":0.55,"note":"cl_17 supplemental"}
-{"source":"cl_17_iso_ok","target":"cl_17_direct","relation_type":"CONTRASTS_WITH","confidence":0.4,"note":"cl_17 iso link"}
-{"source":"cl_18_direct","target":"cl_18_hop_ans","relation_type":"BELONGS_TO","confidence":0.55,"note":"cl_18 supplemental"}
-{"source":"cl_18_iso_ok","target":"cl_18_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_18 iso link"}
-{"source":"cl_19_direct","target":"cl_19_hop_ans","relation_type":"extracted_from","confidence":0.55,"note":"cl_19 supplemental"}
-{"source":"cl_19_iso_ok","target":"cl_19_direct","relation_type":"BELONGS_TO","confidence":0.4,"note":"cl_19 iso link"}
-{"source":"cl_20_direct","target":"cl_20_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_20 supplemental"}
-{"source":"cl_20_iso_ok","target":"cl_20_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_20 iso link"}
-{"source":"cl_21_direct","target":"cl_21_hop_ans","relation_type":"REFERENCES","confidence":0.55,"note":"cl_21 supplemental"}
-{"source":"cl_21_iso_ok","target":"cl_21_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_21 iso link"}
-{"source":"cl_22_direct","target":"cl_22_hop_ans","relation_type":"extracted_from","confidence":0.55,"note":"cl_22 supplemental"}
+{"source":"cl_13_iso_ok","target":"cl_13_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_13 iso link"}
+{"source":"cl_14_iso_ok","target":"cl_14_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_14 iso link"}
+{"source":"cl_15_iso_ok","target":"cl_15_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_15 iso link"}
+{"source":"cl_16_iso_ok","target":"cl_16_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_16 iso link"}
+{"source":"cl_17_iso_ok","target":"cl_17_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_17 iso link"}
+{"source":"cl_18_iso_ok","target":"cl_18_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_18 iso link"}
+{"source":"cl_19_iso_ok","target":"cl_19_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_19 iso link"}
+{"source":"cl_20_iso_ok","target":"cl_20_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_20 iso link"}
+{"source":"cl_21_iso_ok","target":"cl_21_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_21 iso link"}
 {"source":"cl_22_iso_ok","target":"cl_22_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_22 iso link"}
-{"source":"cl_23_direct","target":"cl_23_hop_ans","relation_type":"supported_by","confidence":0.55,"note":"cl_23 supplemental"}
-{"source":"cl_23_iso_ok","target":"cl_23_direct","relation_type":"extracted_from","confidence":0.4,"note":"cl_23 iso link"}
-{"source":"cl_24_direct","target":"cl_24_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_24 supplemental"}
-{"source":"cl_24_iso_ok","target":"cl_24_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_24 iso link"}
-{"source":"cl_25_direct","target":"cl_25_hop_ans","relation_type":"FOLLOWS","confidence":0.55,"note":"cl_25 supplemental"}
-{"source":"cl_25_iso_ok","target":"cl_25_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_25 iso link"}
+{"source":"cl_23_iso_ok","target":"cl_23_direct","relation_type":"REFERENCES","confidence":0.4,"note":"cl_23 iso link"}
+{"source":"cl_24_iso_ok","target":"cl_24_direct","relation_type":"supported_by","confidence":0.4,"note":"cl_24 iso link"}
+{"source":"cl_25_iso_ok","target":"cl_25_direct","relation_type":"FOLLOWS","confidence":0.4,"note":"cl_25 iso link"}
 {"source":"rk_trap_deleted","target":"rk_trap_replaced_old","relation_type":"DEPENDS_ON","confidence":0.75,"note":"lifecycle trap depends"}
 {"source":"rk_trap_own_foreign","target":"rk_trap_deleted","relation_type":"CAUSES","confidence":0.35,"note":"rare type sample"}

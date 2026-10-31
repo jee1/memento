@@ -1,10 +1,8 @@
-# relation-ko-panel-v1 (#1555)
+# relation-ko-panel-v1 (#1555 1단계 재생성)
 
-관계 BFS 검색 효용 측정용 **합성** 한국어 패널. agent_panel gold 75건 동결(#1555 2단계). 사람 gold 아님.
+관계 BFS 검색 효용 측정용 **합성** 한국어 패널. agent_panel gold 없음(1차 75/75 판정본 폐기, protocol 참고).
 
-산출물: `reviewer-a|b/answers.json`, `ground-truth.json`, `panel-result.json`, `protocol.md`.
-
-재생성(1단계 입력만, gold는 판정 후 수동 반영):
+재생성(개발용):
 
 ```bash
 npx tsx scripts/generate-relation-ko-panel-v1.ts

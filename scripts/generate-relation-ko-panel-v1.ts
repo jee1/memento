@@ -5,6 +5,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { blindPacketSha256FromParts } from './relation-ko-panel-blind-packet.js';
 
 const root = process.cwd();
 const outDir = join(root, 'tests/fixtures/search-quality/relation-ko-panel-v1');
@@ -121,6 +122,8 @@ function buildClusters(): {
     const cid = `cl_${String(c + 1).padStart(2, '0')}`;
     const place = clusterNames[c]!;
     const base = `2026-09-${String((c % 28) + 1).padStart(2, '0')}T10:00:00Z`;
+    const zoneN = c + 3;
+    const caseRef = `RK-${String(c + 1).padStart(2, '0')}-Z${zoneN}`;
 
     const hopObs = pushMem({
       benchmark_id: `${cid}_hop_obs`,
@@ -128,7 +131,7 @@ function buildClusters(): {
       type: 'episodic',
       created_at: base,
       tags: ['synthetic', cid],
-      content: `${place}에서 ${c + 3}번째 구역 안내판 글자가 깨졌다는 민원이 들어왔다. 아직 원인 조사 전이다.`,
+      content: `${place}에서 ${zoneN}번째 구역 안내판 글자가 깨졌다는 민원이 들어왔다. 사례번호 ${caseRef}로 접수했다. 아직 원인 조사 전이다.`,
       owner_id: DEFAULT_OWNER,
       project_id: DEFAULT_PROJECT,
     });
@@ -138,7 +141,7 @@ function buildClusters(): {
       type: 'episodic',
       created_at: base.replace('10:', '14:'),
       tags: ['synthetic', cid],
-      content: `${place} 안내판 복구 시도. 임시 스티커를 붙였으나 퇴색이 빨라 재도색이 필요하다.`,
+      content: `${place} 안내판 복구 시도(사례 ${caseRef}). 임시 스티커를 붙였으나 퇴색이 빨라 후속 승인안 작성이 필요하다.`,
       owner_id: DEFAULT_OWNER,
       project_id: DEFAULT_PROJECT,
     });
@@ -148,7 +151,7 @@ function buildClusters(): {
       type: 'semantic',
       created_at: base.replace('10:', '18:'),
       tags: ['synthetic', cid, 'decision'],
-      content: `${place} 안내판 최종 규격: 내구 UV 잉크로 전면 재도색하고 주 1회 점검한다. 임시 스티커 방식은 종료한다.`,
+      content: `${caseRef} 승인 결정: 상등급 UV계열 잉크로 전면 도색, 7일 주기 현장 점검. 임시 부착식은 금지한다.`,
       owner_id: DEFAULT_OWNER,
       project_id: DEFAULT_PROJECT,
     });
@@ -230,7 +233,7 @@ function buildClusters(): {
     };
     const qMulti: QueryRow = {
       query_id: `${cid}_q_multi`,
-      query: `${place} ${c + 3}번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?`,
+      query: `${place} ${zoneN}번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?`,
       language: 'ko',
       category: 'multi_hop',
       split: 'held_out',
@@ -264,7 +267,7 @@ function buildClusters(): {
         relevant_memory_ids: [hopAns],
         forbidden_memory_ids: [hopObs, trapWrong],
         min_hops: 2,
-        rationale_impl: '질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다.',
+        rationale_impl: '질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다.',
       },
       {
         query_id: qTrap.query_id,
@@ -332,16 +335,8 @@ function buildClusters(): {
     note: 'superseded trap edge',
   });
 
-  // Density edges: tie direct answers to hop answers within each cluster using remaining pool mix.
   for (let c = 0; c < 25; c++) {
     const cid = `cl_${String(c + 1).padStart(2, '0')}`;
-    relations.push({
-      source: `${cid}_direct`,
-      target: `${cid}_hop_ans`,
-      relation_type: nextRelType(),
-      confidence: 0.55,
-      note: `${cid} supplemental`,
-    });
     relations.push({
       source: `${cid}_iso_ok`,
       target: `${cid}_direct`,
@@ -442,7 +437,30 @@ function main() {
     }, {}),
     queries: keys,
   };
-  writeFileSync(join(outDir, 'generator-key.json'), `${JSON.stringify(generatorKey, null, 2)}\n`, 'utf8');
+  const generatorKeyBody = `${JSON.stringify(generatorKey, null, 2)}\n`;
+  writeFileSync(join(outDir, 'generator-key.json'), generatorKeyBody, 'utf8');
+  const generatorKeySha = sha256(generatorKeyBody);
+
+  const blindPacketSha = blindPacketSha256FromParts(
+    `${corpusLines.join('\n')}\n`,
+    relations,
+    queries,
+  );
+
+  const fixtureSeals = {
+    version: 'relation-ko-panel-v1',
+    blind_packet_sha256: blindPacketSha,
+    split_json_sha256: splitSha,
+    generator_key_sha256: generatorKeySha,
+    corpus_jsonl_sha256: sha256(`${corpusLines.join('\n')}\n`),
+    relations_jsonl_sha256: sha256(`${relLines.join('\n')}\n`),
+    queries_json_sha256: sha256(`${JSON.stringify(queries, null, 2)}\n`),
+    first_judgment_discarded: {
+      reason: 'multi_hop 25건이 장소명·최종 규격 어휘가 hop_ans 본문에 남아 관계 없이 본문 검색만으로 정답 도달 가능(2~3 hop 필수 계약 위반). agent_panel 75/75 일치본(커밋 8c846644) 폐기.',
+      prior_blind_packet_sha256: 'cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d',
+    },
+  };
+  writeFileSync(join(outDir, 'fixture-seals.json'), `${JSON.stringify(fixtureSeals, null, 2)}\n`, 'utf8');
 
   const typeCounts = queries.reduce<Record<string, number>>((acc, q) => {
     acc[q.category] = (acc[q.category] ?? 0) + 1;
@@ -471,7 +489,13 @@ function main() {
 
 dev ${split.dev_query_ids.length}건, held_out ${split.held_out_query_ids.length}건. BFS·탐색 깊이·confidence 컷 등 **하이퍼파라미터 선택은 dev만** 사용한다. held_out 은 agent_panel gold 동결 후 2단계 측정.
 
-\`generator-key.json\`은 구현 의도 감사용이다. **판정자에게 주지 않는다.**
+\`generator-key.json\` SHA256(판정 전 봉인): \`${generatorKeySha}\`
+
+블라인드 판정 패킷 SHA256(corpus + relations(note 제외) + queries에서 category/split/cluster_id 제외): \`${blindPacketSha}\`
+
+## 1차 agent_panel 판정본 폐기
+
+2026-11-01 PR #1579 머슴3 리뷰: multi_hop 25건 전부 hop_ans 본문에 장소명·「최종 규격」 계열 어휘가 남아 관계 없이 본문 검색만으로 정답 도달 가능했다(2~3 hop 필수 계약 위반). 머슴4·머슴5 75/75 일치본(커밋 8c846644)과 ground-truth·panel-result·reviewer 제출은 폐기했다. 이전 블라인드 패킷 SHA256: \`cf614cce0a837d93aa5061566115f101cd3eeb615143d9c04387c289733a508d\`. 마름이 새 패킷으로 재판정 예정.
 
 ## 함정
 
@@ -494,7 +518,7 @@ owner scope 밖 기억(\`${FOREIGN_OWNER}\`), status deleted/superseded 정점�
 ## 질의 유형
 
 - \`single_fact\`: 관계 없이 본문만으로도 답할 수 있어야 한다. 정답 id는 **최소** 집합(동일 사실 중복 제외).
-- \`multi_hop\`: 질의 어휘가 중간 노드와 겹치고, 2~3 hop 관계를 따라야만 최종 사실 기억에 도달한다.
+- \`multi_hop\`: 질의·장소명·핵심 명사는 시작/중간 노드에만 있어야 한다. 최종 정답 기억 본문에는 질의 고유 어휘(장소명 등)가 없어야 하며, 관계 없이 본문 검색만으로 정답 id에 도달하면 안 된다.
 - \`irrelevant_trap\`: 관계로 잘못된 노드(허브·폐기 초안 등)가 연결되지만 정답은 **다른** 고립/직접 기억이다. 함정 id는 정답에 넣지 않는다.
 
 ## 제출
@@ -503,9 +527,9 @@ owner scope 밖 기억(\`${FOREIGN_OWNER}\`), status deleted/superseded 정점�
 `;
   writeFileSync(join(outDir, 'rubric.md'), rubric, 'utf8');
 
-  const readme = `# relation-ko-panel-v1 (#1555 1단계 후보)
+  const readme = `# relation-ko-panel-v1 (#1555 1단계 재생성)
 
-관계 BFS 검색 효용 측정용 **합성** 한국어 패널. agent_panel gold는 아직 없다.
+관계 BFS 검색 효용 측정용 **합성** 한국어 패널. agent_panel gold 없음(1차 75/75 판정본 폐기, protocol 참고).
 
 재생성(개발용):
 

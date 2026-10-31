@@ -14,12 +14,12 @@
     "source": "nightly backup aggregate counts only, no text exported"
   },
   "fixture_relation_type_counts": {
-    "supported_by": 39,
-    "FOLLOWS": 76,
-    "REFERENCES": 44,
-    "extracted_from": 42,
-    "BELONGS_TO": 20,
-    "CONTRASTS_WITH": 7,
+    "supported_by": 34,
+    "FOLLOWS": 69,
+    "REFERENCES": 40,
+    "extracted_from": 37,
+    "BELONGS_TO": 17,
+    "CONTRASTS_WITH": 6,
     "DEPENDS_ON": 1,
     "CAUSES": 1
   },
@@ -47,7 +47,7 @@
         "cl_01_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_01_q_trap",
@@ -83,7 +83,7 @@
         "cl_02_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_02_q_trap",
@@ -119,7 +119,7 @@
         "cl_03_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_03_q_trap",
@@ -155,7 +155,7 @@
         "cl_04_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_04_q_trap",
@@ -191,7 +191,7 @@
         "cl_05_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_05_q_trap",
@@ -227,7 +227,7 @@
         "cl_06_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_06_q_trap",
@@ -263,7 +263,7 @@
         "cl_07_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_07_q_trap",
@@ -299,7 +299,7 @@
         "cl_08_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_08_q_trap",
@@ -335,7 +335,7 @@
         "cl_09_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_09_q_trap",
@@ -371,7 +371,7 @@
         "cl_10_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_10_q_trap",
@@ -407,7 +407,7 @@
         "cl_11_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_11_q_trap",
@@ -443,7 +443,7 @@
         "cl_12_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_12_q_trap",
@@ -479,7 +479,7 @@
         "cl_13_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_13_q_trap",
@@ -515,7 +515,7 @@
         "cl_14_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_14_q_trap",
@@ -551,7 +551,7 @@
         "cl_15_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_15_q_trap",
@@ -587,7 +587,7 @@
         "cl_16_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_16_q_trap",
@@ -623,7 +623,7 @@
         "cl_17_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_17_q_trap",
@@ -659,7 +659,7 @@
         "cl_18_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_18_q_trap",
@@ -695,7 +695,7 @@
         "cl_19_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_19_q_trap",
@@ -731,7 +731,7 @@
         "cl_20_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_20_q_trap",
@@ -767,7 +767,7 @@
         "cl_21_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_21_q_trap",
@@ -803,7 +803,7 @@
         "cl_22_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_22_q_trap",
@@ -839,7 +839,7 @@
         "cl_23_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_23_q_trap",
@@ -875,7 +875,7 @@
         "cl_24_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_24_q_trap",
@@ -911,7 +911,7 @@
         "cl_25_trap_wrong"
       ],
       "min_hops": 2,
-      "rationale_impl": "질의 어휘는 hop_obs와 겹치고 정답은 2-hop 끝 hop_ans다."
+      "rationale_impl": "질의·장소명·안내판 어휘는 hop_obs/hop_try에만 있고 hop_ans는 사례번호만 공유한다. 관계 없이 본문 검색만으로 hop_ans에 도달하면 안 된다."
     },
     {
       "query_id": "cl_25_q_trap",
