@@ -168,12 +168,18 @@ export function evaluateFromVerdictRows(params: {
   const panelPath = join(params.fixtureDir, 'panel-result.json');
   const decisions = (JSON.parse(readFileSync(panelPath, 'utf8')) as { decisions: PanelDecision[] }).decisions;
   const unique = (values: string[]) => [...new Set(values)].sort();
+  const promptVersions = unique(params.rows.map((r) => r.prompt_version));
+  const providersModels = unique(params.rows.map((r) => `${r.provider}/${r.model}`));
+  // 판정 품질은 모델과 prompt 판본마다 따로 잰다. 섞인 행을 합치면 어느 판정기의 수치인지 알 수 없다.
+  if (promptVersions.length > 1 || providersModels.length > 1) {
+    throw new Error('Verdict rows must come from one prompt version and one provider/model');
+  }
   return {
     schema_version: 1,
     inputs: { candidates_sha256: sha256OfFile(candidatesPath), panel_result_sha256: sha256OfFile(panelPath) },
     runner_git_sha: params.runnerGitSha,
-    prompt_versions: unique(params.rows.map((r) => r.prompt_version)),
-    providers_models: unique(params.rows.map((r) => `${r.provider}/${r.model}`)),
+    prompt_versions: promptVersions,
+    providers_models: providersModels,
     score: scoreSupersedeVerdicts(decisions, verdictMapFromRows(params.rows)),
   };
 }

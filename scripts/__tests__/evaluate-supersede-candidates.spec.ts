@@ -177,5 +177,18 @@ describe('evaluateFromVerdictRows (#1548)', () => {
       evaluateFromVerdictRows({ fixtureDir: fixture, rows: [row('confirmed'), row('pending')], runnerGitSha: null }),
     ).toThrow(/conflicting/);
   });
+
+  it('prompt 판본이나 provider/model 이 섞인 판정은 한 점수로 합치지 않는다', () => {
+    const [a, b] = decisions.filter((d) => d.gold);
+    const row = (caseId: string, promptVersion: string, model: string) => ({
+      case_id: caseId, verdict: 'pending', input_hash: caseId, provider: 'g', model, prompt_version: promptVersion,
+    });
+    expect(() =>
+      evaluateFromVerdictRows({ fixtureDir: fixture, rows: [row(a.case_id, 'v1', 'm'), row(b.case_id, 'v2', 'm')], runnerGitSha: null }),
+    ).toThrow(/one prompt version and one provider\/model/);
+    expect(() =>
+      evaluateFromVerdictRows({ fixtureDir: fixture, rows: [row(a.case_id, 'v1', 'm1'), row(b.case_id, 'v1', 'm2')], runnerGitSha: null }),
+    ).toThrow(/one prompt version and one provider\/model/);
+  });
 });
 
