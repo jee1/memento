@@ -1,0 +1,1372 @@
+{
+  "reviewer_id": "머슴1 reviewer-b",
+  "model": "composer-2.5",
+  "judged_at": "2026-10-31T13:29:32Z",
+  "label_source": "agent_panel",
+  "rubric_version": "consolidation-replay-v1",
+  "stage": 1,
+  "packet_sha256": "b21ca5aa2071b0a49c15e93a0710a923984b4875d051fcfc947df8e93d1ddf95",
+  "rubric_sha256": "81389061848fce3919fbb72ab1009bec34490c1b1ac74843c87acfddf1b6188c",
+  "answers": [
+    {
+      "checkpoint_id": "cr_7350982d59af_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs1_sensor_k_wood_shake",
+          "claim": "관찰 1(2026-10-05T09:00Z): 온빛 센서 부착에서 센서 K를 나무 받침에 붙였을 때 흔들림 표시가 작았다.",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o1"
+          ]
+        },
+        {
+          "fact_key": "obs1_metal_untested",
+          "claim": "관찰 1: 금속 받침은 시험하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o1"
+          ]
+        },
+        {
+          "fact_key": "obs2_scope_limit",
+          "claim": "관찰 2(2026-10-05T09:10Z): 기록은 센서 K 한 개·나무 받침 한 개이며 장치 전체 안정성 검증 보고가 아니다.",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "금속 받침에서도 흔들림이 작다",
+          "evidence_refs": [
+            "cr_7350982d59af_o1"
+          ],
+          "reason": "o1은 금속 받침 미시험"
+        },
+        {
+          "claim": "온빛 센서 부착 전체가 안정적이다",
+          "evidence_refs": [
+            "cr_7350982d59af_o2"
+          ],
+          "reason": "o2는 단일 센서·단일 받침 기록"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7350982d59af_o1",
+        "cr_7350982d59af_o2"
+      ],
+      "rationale": "질의 시점(2026-10-05T10:00Z)까지 관찰 2회. 지시문은 없고 관찰만 있다. 금속 받침·다른 센서·장치 전체는 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "directive_pre_assembly",
+          "claim": "현재 지침: 라온 퍼즐 부품 보존은 조립 전 홈 방향 확인과 누락 부품 수 확인을 모두 마친 뒤에만 조립한다.",
+          "supporting_evidence_refs": [
+            "cr_6b7dc6c6eb04_o1"
+          ]
+        },
+        {
+          "fact_key": "logging_separate",
+          "claim": "일지는 홈 방향 확인과 누락 수 확인을 따로 적으며, 방향만 맞다고 부품이 모두 있다고 판단하지 않는다.",
+          "supporting_evidence_refs": [
+            "cr_6b7dc6c6eb04_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "홈 방향만 확인하면 조립 가능",
+          "evidence_refs": [
+            "cr_6b7dc6c6eb04_o1"
+          ],
+          "reason": "o1은 두 확인 모두 필요"
+        },
+        {
+          "claim": "방향이 맞으면 누락 없음",
+          "evidence_refs": [
+            "cr_6b7dc6c6eb04_o2"
+          ],
+          "reason": "o2가 명시적으로 금지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_6b7dc6c6eb04_o1",
+        "cr_6b7dc6c6eb04_o2"
+      ],
+      "rationale": "관찰 2회 모두 절차·기록 규칙을 기술. 별도 시행 관찰 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs1_matte_f_setting_m",
+          "claim": "관찰 1: 무광 필름 F 한 장을 설정 M으로 스캔했을 때 줄무늬가 줄었다.",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o1"
+          ]
+        },
+        {
+          "fact_key": "obs1_gloss_untested",
+          "claim": "관찰 1: 유광 필름은 시험하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o1"
+          ]
+        },
+        {
+          "fact_key": "obs2_sample_scope",
+          "claim": "관찰 2: 표본은 무광 F 한 장뿐이며 설정 M이 모든 필름에서 낫다는 결론은 아직 없다.",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "설정 M이 모든 필름 유형에 최적",
+          "evidence_refs": [
+            "cr_49bae2d5f8ed_o2"
+          ],
+          "reason": "o2가 일반화 부인"
+        },
+        {
+          "claim": "유광 필름에서도 동일 효과",
+          "evidence_refs": [
+            "cr_49bae2d5f8ed_o1"
+          ],
+          "reason": "유광 미시험"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_49bae2d5f8ed_o1",
+        "cr_49bae2d5f8ed_o2"
+      ],
+      "rationale": "지침 없음. 관찰 2회로 단일 표본 결과와 미확정 범위만 확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "product_w_specs",
+          "claim": "시제품 W의 완성 폭 42cm, 가장자리 실 흰색(관찰 1, 2026-10-05T09:00Z).",
+          "supporting_evidence_refs": [
+            "cr_2bc6447b6989_o1"
+          ]
+        },
+        {
+          "fact_key": "card_recorded",
+          "claim": "담당자가 시제품 W 작업 카드에 폭 42cm·흰 가장자리 실을 기록(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_2bc6447b6989_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모든 시제품이 42cm",
+          "evidence_refs": [
+            "cr_2bc6447b6989_o1"
+          ],
+          "reason": "W만 명시"
+        },
+        {
+          "claim": "다른 시제품 폭·색 규칙 확정",
+          "evidence_refs": [
+            "cr_2bc6447b6989_o1"
+          ],
+          "reason": "W만 기술"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_2bc6447b6989_o1",
+        "cr_2bc6447b6989_o2"
+      ],
+      "rationale": "W 한 건의 측정·기록. 다른 시제품 미언급.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "scene_x_first",
+          "claim": "작업 X 첫 장면: 흰 천 뒤 시작, 광원 표시선 A, 인형 왼쪽 진입(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_b5417ab0076e_o1"
+          ]
+        },
+        {
+          "fact_key": "confirmed_logged",
+          "claim": "확인자가 흰 천·광원 A·왼쪽 인형 진입을 기록(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_b5417ab0076e_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "작업 X 전 장면 동일 배치",
+          "evidence_refs": [
+            "cr_b5417ab0076e_o1"
+          ],
+          "reason": "첫 장면만 명시"
+        },
+        {
+          "claim": "다른 작업에도 동일 규칙",
+          "evidence_refs": [
+            "cr_b5417ab0076e_o1"
+          ],
+          "reason": "작업 X만"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_b5417ab0076e_o1",
+        "cr_b5417ab0076e_o2"
+      ],
+      "rationale": "작업 X 첫 장면 지침·확인. 이후 장면 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "thin_square_four_folds",
+          "claim": "관찰 1: 얇은 정사각 시트 한 장은 네 번 접어도 찢어지지 않음.",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o1"
+          ]
+        },
+        {
+          "fact_key": "rect_untested",
+          "claim": "관찰 1: 직사각 시트는 아직 시험하지 않음.",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o1"
+          ]
+        },
+        {
+          "fact_key": "recorder_scope",
+          "claim": "관찰 2: 기록자는 얇은 정사각 한 장 결과만 확인, 모든 종이가 네 번 접기를 견딘다고 말하지 않음.",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모든 종이가 네 번 접기 가능",
+          "evidence_refs": [
+            "cr_84e726281e76_o2"
+          ],
+          "reason": "o2가 일반화 금지"
+        },
+        {
+          "claim": "직사각도 동일 결과",
+          "evidence_refs": [
+            "cr_84e726281e76_o1"
+          ],
+          "reason": "직사각 미시험"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_84e726281e76_o1",
+        "cr_84e726281e76_o2"
+      ],
+      "rationale": "단일 표본 시험. 지침 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "rule_light_paper",
+          "claim": "면지 120g 이하이면 얇은 붓, 접착제 한 면 2ml(지침·관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_29d0d8367872_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_100g_batch",
+          "claim": "관찰 2: 100g 면지 한 묶음을 얇은 붓·한 면 2ml로 처리, 무거운 면지는 이번 관찰 미포함.",
+          "supporting_evidence_refs": [
+            "cr_29d0d8367872_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "120g 초과 면지도 동일 2ml",
+          "evidence_refs": [
+            "cr_29d0d8367872_o2"
+          ],
+          "reason": "무거운 면지 미포함"
+        },
+        {
+          "claim": "무거운 면지 규칙 확정",
+          "evidence_refs": [
+            "cr_29d0d8367872_o1"
+          ],
+          "reason": "120g 이하 조건만"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_29d0d8367872_o1",
+        "cr_29d0d8367872_o2"
+      ],
+      "rationale": "조건부 지침 + 경량 묶음 시행. 중량 상한 초과 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_rules",
+          "claim": "작업 X: 동물 카드는 세모 상자, 뒷면 점 개수 확인, 숫자 표기 연필(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_1f3e4823215b_o1"
+          ]
+        },
+        {
+          "fact_key": "log_maintained",
+          "claim": "일지에서 세모 상자·뒷면 점 확인·연필 표기 유지(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_1f3e4823215b_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "비동물 카드 동일 규칙",
+          "evidence_refs": [
+            "cr_1f3e4823215b_o1"
+          ],
+          "reason": "동물 카드만"
+        },
+        {
+          "claim": "다른 상자 사용 가능",
+          "evidence_refs": [
+            "cr_1f3e4823215b_o1"
+          ],
+          "reason": "세모 상자 지정"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_1f3e4823215b_o1",
+        "cr_1f3e4823215b_o2"
+      ],
+      "rationale": "작업 X 분류 절차. 다른 카드 유형 미언급.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "thin_cool_rule",
+          "claim": "얇은 시험편: 덮개 연 채 12분 식힘(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o1"
+          ]
+        },
+        {
+          "fact_key": "thick_undecided",
+          "claim": "두꺼운 시험편 냉각 규칙은 아직 정하지 않음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o1"
+          ]
+        },
+        {
+          "fact_key": "today_thin_done",
+          "claim": "오늘 얇은 시험편은 덮개 연 채 12분 냉각 기록(관찰 2), 두꺼운 시험편 승인 아님.",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "두꺼운 시험편도 12분 냉각 확정",
+          "evidence_refs": [
+            "cr_e5f75b0acfa6_o2"
+          ],
+          "reason": "o2가 두꺼운에 대한 승인 아님"
+        },
+        {
+          "claim": "모든 시험편 동일 냉각",
+          "evidence_refs": [
+            "cr_e5f75b0acfa6_o1"
+          ],
+          "reason": "두꺼운 규칙 미정"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_e5f75b0acfa6_o1",
+        "cr_e5f75b0acfa6_o2"
+      ],
+      "rationale": "얇은 편만 규칙·시행. 두꺼운 편 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_steps",
+          "claim": "작업 X: 모형 J 명찰을 받침 앞면, 글자 회색, 식별번호 먼저 대조(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_02ed2463abff_o1"
+          ]
+        },
+        {
+          "fact_key": "log_order",
+          "claim": "일지 순서: 식별번호 대조→회색 글자 명찰→받침 앞면(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_02ed2463abff_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "명찰을 받침 뒷면에 붙임",
+          "evidence_refs": [
+            "cr_02ed2463abff_o1"
+          ],
+          "reason": "앞면 지정"
+        },
+        {
+          "claim": "식별번호 대조 생략 가능",
+          "evidence_refs": [
+            "cr_02ed2463abff_o1"
+          ],
+          "reason": "먼저 대조"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_02ed2463abff_o1",
+        "cr_02ed2463abff_o2"
+      ],
+      "rationale": "작업 X 절차·순서. 다른 모형 미언급.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_rules",
+          "claim": "작업 X: 북쪽 격자부터 별표, 기본 색 은색, 격자 좌표 먼저 확인(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_9bd884941ba5_o1"
+          ]
+        },
+        {
+          "fact_key": "card_written",
+          "claim": "좌표 확인 뒤 북쪽 격자·은색 별표 확인, 두 지시는 X 작업 카드에 기록(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_9bd884941ba5_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "남쪽 격자부터 시작",
+          "evidence_refs": [
+            "cr_9bd884941ba5_o1"
+          ],
+          "reason": "북쪽 격자부터"
+        },
+        {
+          "claim": "별표 기본색 금색",
+          "evidence_refs": [
+            "cr_9bd884941ba5_o1"
+          ],
+          "reason": "은색"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_9bd884941ba5_o1",
+        "cr_9bd884941ba5_o2"
+      ],
+      "rationale": "작업 X 지도 규칙. 다른 작업 미언급.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "mandatory_steps",
+          "claim": "판 놓기 전 판번호 확인, 첫 시트는 폐지 시험, 두 조건 생략 불가(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_7d41de362ce0_o1"
+          ]
+        },
+        {
+          "fact_key": "both_done",
+          "claim": "기록에서 판번호 확인과 폐지 첫 시트 시험 모두 수행, 한 조건만 적힌 메모가 전체 절차 대체 불가(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_7d41de362ce0_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "폐지 시험 생략 가능",
+          "evidence_refs": [
+            "cr_7d41de362ce0_o1"
+          ],
+          "reason": "생략 불가"
+        },
+        {
+          "claim": "판번호만 확인하면 충분",
+          "evidence_refs": [
+            "cr_7d41de362ce0_o2"
+          ],
+          "reason": "둘 다 필요"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7d41de362ce0_o1",
+        "cr_7d41de362ce0_o2"
+      ],
+      "rationale": "두 필수 선행 조건. 추가 절차 미언급.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "stamp_z_mix",
+          "claim": "도장 Z: 파랑·흰 2:1, 종이 회색 견본지(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_32f59875d5f3_o1"
+          ]
+        },
+        {
+          "fact_key": "record_scope",
+          "claim": "기록은 도장 Z·2:1·회색 견본지, 다른 도장 배합은 이번 기록 대상 아님(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_32f59875d5f3_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모든 도장 2:1 배합",
+          "evidence_refs": [
+            "cr_32f59875d5f3_o2"
+          ],
+          "reason": "Z만"
+        },
+        {
+          "claim": "다른 견본지 사용",
+          "evidence_refs": [
+            "cr_32f59875d5f3_o1"
+          ],
+          "reason": "회색 견본지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_32f59875d5f3_o1",
+        "cr_32f59875d5f3_o2"
+      ],
+      "rationale": "도장 Z 연습만. 타 도장 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "procedure_codes",
+          "claim": "활자·서랍 코드 모두 대조 후 활자 넣기, 모양 닮아도 코드 대조 건너뛰지 않음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_ad8d7cf4c0a6_o1"
+          ]
+        },
+        {
+          "fact_key": "separate_log",
+          "claim": "활자 코드·서랍 코드 확인을 별도 항목으로 기록(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_ad8d7cf4c0a6_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "활자 코드만 대조하면 충분",
+          "evidence_refs": [
+            "cr_ad8d7cf4c0a6_o1"
+          ],
+          "reason": "둘 다 필요"
+        },
+        {
+          "claim": "모양 일치 시 코드 생략",
+          "evidence_refs": [
+            "cr_ad8d7cf4c0a6_o1"
+          ],
+          "reason": "명시 금지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_ad8d7cf4c0a6_o1",
+        "cr_ad8d7cf4c0a6_o2"
+      ],
+      "rationale": "이중 코드 대조 절차.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre_fold_steps",
+          "claim": "접기 전 도면 판본 확인·앞뒷면 맞춤, 둘 다 끝나기 전 첫 접기 금지(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_668798d106b4_o1"
+          ]
+        },
+        {
+          "fact_key": "both_done",
+          "claim": "도면 판본 확인과 앞뒷면 맞춤 모두 수행, 도면 번호만 맞춰서는 절차 미완(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_668798d106b4_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "도면만 확인하고 접기 시작",
+          "evidence_refs": [
+            "cr_668798d106b4_o1"
+          ],
+          "reason": "두 단계 필요"
+        },
+        {
+          "claim": "앞뒷면 맞춤 생략",
+          "evidence_refs": [
+            "cr_668798d106b4_o2"
+          ],
+          "reason": "둘 다 수행"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_668798d106b4_o1",
+        "cr_668798d106b4_o2"
+      ],
+      "rationale": "접기 전 이중 확인.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "visible_mode_v",
+          "claim": "가시광 모드: 기준판 V, 렌즈 앞 30cm(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o1"
+          ]
+        },
+        {
+          "fact_key": "sample_logged",
+          "claim": "가시광 샘플에서 V를 앞 30cm에 배치 기록(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o2"
+          ]
+        },
+        {
+          "fact_key": "ir_not_done",
+          "claim": "적외선 모드 측정은 아직 하지 않음(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "적외선 모드도 V·30cm",
+          "evidence_refs": [
+            "cr_b1a1e731f99f_o2"
+          ],
+          "reason": "IR 미측정"
+        },
+        {
+          "claim": "모든 모드 동일 배치 확정",
+          "evidence_refs": [
+            "cr_b1a1e731f99f_o2"
+          ],
+          "reason": "가시광만"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_b1a1e731f99f_o1",
+        "cr_b1a1e731f99f_o2"
+      ],
+      "rationale": "가시광만 확정. IR 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "empty_room_obs",
+          "claim": "빈 방 모형에서 패널 P 배치 후 마이크 하나 반사 표시 낮음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o1"
+          ]
+        },
+        {
+          "fact_key": "occupied_untested",
+          "claim": "사람 찬 방은 측정하지 않음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o1"
+          ]
+        },
+        {
+          "fact_key": "record_scope",
+          "claim": "기록은 빈 모형 방·마이크 하나 조건, 실제 공연장 전 좌석 시험 아님(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "사람 있는 방에서도 반사 낮음",
+          "evidence_refs": [
+            "cr_d9eb67f931bb_o1"
+          ],
+          "reason": "미측정"
+        },
+        {
+          "claim": "공연장 전체 좌석 검증 완료",
+          "evidence_refs": [
+            "cr_d9eb67f931bb_o2"
+          ],
+          "reason": "o2 부정"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_d9eb67f931bb_o1",
+        "cr_d9eb67f931bb_o2"
+      ],
+      "rationale": "단일 조건 모형 측정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "wood_rules",
+          "claim": "나무 소품: 천 주머니, 상자 내 완충재 나무 소품당 종이 두 장(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o1"
+          ]
+        },
+        {
+          "fact_key": "five_packed",
+          "claim": "나무 소품 5개를 천 주머니·각 종이 2장으로 포장(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o2"
+          ]
+        },
+        {
+          "fact_key": "glass_unpacked",
+          "claim": "유리 소품은 아직 포장하지 않음(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "유리 소품도 동일 포장 규칙 확정",
+          "evidence_refs": [
+            "cr_0861bd25a8ad_o2"
+          ],
+          "reason": "유리 미포장"
+        },
+        {
+          "claim": "나무 소품당 종이 1장",
+          "evidence_refs": [
+            "cr_0861bd25a8ad_o1"
+          ],
+          "reason": "두 장"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_0861bd25a8ad_o1",
+        "cr_0861bd25a8ad_o2"
+      ],
+      "rationale": "나무 소품 규칙·5건 시행. 유리 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "cotton_a_blue",
+          "claim": "면 조각 A 세척 뒤 파란색 유지(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o1"
+          ]
+        },
+        {
+          "fact_key": "silk_unwashed",
+          "claim": "견 조각은 아직 세척하지 않음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o1"
+          ]
+        },
+        {
+          "fact_key": "single_record",
+          "claim": "면 A 한 장 색 유지 기록, 모든 섬유 내구성 보증 아님(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모든 섬유 세척 후 색 유지",
+          "evidence_refs": [
+            "cr_90512f4a7ff3_o2"
+          ],
+          "reason": "o2 부정"
+        },
+        {
+          "claim": "견도 동일 결과",
+          "evidence_refs": [
+            "cr_90512f4a7ff3_o1"
+          ],
+          "reason": "견 미세척"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_90512f4a7ff3_o1",
+        "cr_90512f4a7ff3_o2"
+      ],
+      "rationale": "면 A 단일 관찰.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "tray_l_practice",
+          "claim": "연습 트레이 L: 물 대신 색종이 표식, 네 칸마다 표시, 실제 재배 시험 아님(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_d47265f60808_o1"
+          ]
+        },
+        {
+          "fact_key": "spacing_confirmed",
+          "claim": "트레이 L 네 칸 간격 확인, 표식 색 초록(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_d47265f60808_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "실제 재배 분무 간격 확정",
+          "evidence_refs": [
+            "cr_d47265f60808_o1"
+          ],
+          "reason": "연습만"
+        },
+        {
+          "claim": "표식 색과 무관하게 간격 규칙 확정",
+          "evidence_refs": [
+            "cr_d47265f60808_o2"
+          ],
+          "reason": "연습 맥락"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_d47265f60808_o1",
+        "cr_d47265f60808_o2"
+      ],
+      "rationale": "표식 연습. 실재배 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "order_ab",
+          "claim": "정렬 순서: 기준점 A 다음 B, 실내 모형 망원경 T 연습용(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_a20719a89ae7_o1"
+          ]
+        },
+        {
+          "fact_key": "log_confirmed",
+          "claim": "실내 모형 T의 A→B 순서 확인, 실제 천체 관측 성공 기록 아님(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_a20719a89ae7_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "실제 천체 관측 성공",
+          "evidence_refs": [
+            "cr_a20719a89ae7_o2"
+          ],
+          "reason": "o2 부정"
+        },
+        {
+          "claim": "야외 망원경 동일 순서 확정",
+          "evidence_refs": [
+            "cr_a20719a89ae7_o1"
+          ],
+          "reason": "T 연습만"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_a20719a89ae7_o1",
+        "cr_a20719a89ae7_o2"
+      ],
+      "rationale": "모형 T 연습 순서.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "dual_id_check",
+          "claim": "시작 전 통 식별자·녹음 세션 식별자 따로 확인, 둘이 작업표와 맞아야 시험 시작(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_215a7f41a363_o1"
+          ]
+        },
+        {
+          "fact_key": "separate_log",
+          "claim": "일지에 통·세션 식별자 각각 기록, 하나로 다른 하나 대체 불가(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_215a7f41a363_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "통 식별자만 확인",
+          "evidence_refs": [
+            "cr_215a7f41a363_o1"
+          ],
+          "reason": "둘 다"
+        },
+        {
+          "claim": "세션 ID로 통 ID 대체",
+          "evidence_refs": [
+            "cr_215a7f41a363_o2"
+          ],
+          "reason": "대체 금지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_215a7f41a363_o1",
+        "cr_215a7f41a363_o2"
+      ],
+      "rationale": "이중 식별자 확인.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_spec",
+          "claim": "작업 X: 줄무늬 견본 서랍 D, 재질표 먼저·길이 15cm(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_2703804c1441_o1"
+          ]
+        },
+        {
+          "fact_key": "worksheet",
+          "claim": "작업표: 재질표 부착·15cm·서랍 D(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_2703804c1441_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "다른 서랍 사용",
+          "evidence_refs": [
+            "cr_2703804c1441_o1"
+          ],
+          "reason": "서랍 D"
+        },
+        {
+          "claim": "길이 15cm 생략",
+          "evidence_refs": [
+            "cr_2703804c1441_o2"
+          ],
+          "reason": "작업표 포함"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_2703804c1441_o1",
+        "cr_2703804c1441_o2"
+      ],
+      "rationale": "작업 X 견본 정리 규칙.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "cedar_18s",
+          "claim": "cedar 실험 브랜치 캐시 켜기 한 번 18초(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o1"
+          ]
+        },
+        {
+          "fact_key": "prod_not_applied",
+          "claim": "운영 브랜치에는 아직 적용하지 않음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o1"
+          ]
+        },
+        {
+          "fact_key": "single_obs",
+          "claim": "18초는 cedar 실험 한 번 관찰, 반복 평균·운영 시간 아님(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "운영 빌드 18초",
+          "evidence_refs": [
+            "cr_4d74b8c87993_o1"
+          ],
+          "reason": "운영 미적용"
+        },
+        {
+          "claim": "평균 빌드 시간 18초",
+          "evidence_refs": [
+            "cr_4d74b8c87993_o2"
+          ],
+          "reason": "단일 관찰"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_4d74b8c87993_o1",
+        "cr_4d74b8c87993_o2"
+      ],
+      "rationale": "실험 단일 측정. 운영 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_bundle",
+          "claim": "작업 X: 둥근 토큰 3개 한 세트, 시작 전 번호 대조, 끈 보라색(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_c66f61b183ea_o1"
+          ]
+        },
+        {
+          "fact_key": "checklist",
+          "claim": "확인표: 번호 대조·세 개·보라색 끈(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_c66f61b183ea_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "토큰 2개 세트",
+          "evidence_refs": [
+            "cr_c66f61b183ea_o1"
+          ],
+          "reason": "세 개"
+        },
+        {
+          "claim": "끈 색 임의",
+          "evidence_refs": [
+            "cr_c66f61b183ea_o1"
+          ],
+          "reason": "보라색"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_c66f61b183ea_o1",
+        "cr_c66f61b183ea_o2"
+      ],
+      "rationale": "작업 X 토큰 묶음 규칙.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "solo_scene",
+          "claim": "독창 장면: 마이크 채널 2·프리셋 S(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o1"
+          ]
+        },
+        {
+          "fact_key": "chorus_unassigned",
+          "claim": "합창 장면 채널 아직 배정 안 함(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o1"
+          ]
+        },
+        {
+          "fact_key": "rehearsal_log",
+          "claim": "독창 두 장면을 채널 2·프리셋 S로 리허설, 설정은 독창에 한정(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "합창도 채널 2",
+          "evidence_refs": [
+            "cr_91a07a3fa4aa_o1"
+          ],
+          "reason": "합창 미배정"
+        },
+        {
+          "claim": "프리셋 S가 전 장면 공통",
+          "evidence_refs": [
+            "cr_91a07a3fa4aa_o2"
+          ],
+          "reason": "독창 한정"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_91a07a3fa4aa_o1",
+        "cr_91a07a3fa4aa_o2"
+      ],
+      "rationale": "독창만 확정. 합창 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "freshwater_18",
+          "claim": "담수 모형: 파란 통에서 18분 대기, 빈 모형만 연습(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_7e751ae71a7a_o1"
+          ]
+        },
+        {
+          "fact_key": "confirmed_no_extrap",
+          "claim": "담수 모형 18분 확인, 다른 모형 대기 시간 추정하지 않음(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_7e751ae71a7a_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "실제 생물 적응 완료",
+          "evidence_refs": [
+            "cr_7e751ae71a7a_o1"
+          ],
+          "reason": "빈 모형 연습"
+        },
+        {
+          "claim": "모든 모형 18분",
+          "evidence_refs": [
+            "cr_7e751ae71a7a_o2"
+          ],
+          "reason": "추정 금지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7e751ae71a7a_o1",
+        "cr_7e751ae71a7a_o2"
+      ],
+      "rationale": "담수 모형 연습 18분.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "dual_number",
+          "claim": "상자번호·봉인번호 각각 대조, 둘이 맞기 전 뚜껑 열지 않음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_8dd0ef55898a_o1"
+          ]
+        },
+        {
+          "fact_key": "separate_fields",
+          "claim": "점검표에서 두 확인 별도 칸, 한 번호로 다른 번호 추정 불가(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_8dd0ef55898a_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "상자번호만으로 개봉",
+          "evidence_refs": [
+            "cr_8dd0ef55898a_o1"
+          ],
+          "reason": "둘 다 필요"
+        },
+        {
+          "claim": "봉인번호로 상자번호 추정",
+          "evidence_refs": [
+            "cr_8dd0ef55898a_o2"
+          ],
+          "reason": "추정 금지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_8dd0ef55898a_o1",
+        "cr_8dd0ef55898a_o2"
+      ],
+      "rationale": "이중 번호 대조.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "plate_r_approved",
+          "claim": "고무판 R: 인쇄기 눈금 4 승인, 종이 P묶음(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_8295228a4783_o1"
+          ]
+        },
+        {
+          "fact_key": "printed_official",
+          "claim": "R을 눈금 4·P묶음으로 인쇄, 공식 눈금 4(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_8295228a4783_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "다른 고무판도 눈금 4",
+          "evidence_refs": [
+            "cr_8295228a4783_o1"
+          ],
+          "reason": "R만"
+        },
+        {
+          "claim": "공식 눈금 4 아님",
+          "evidence_refs": [
+            "cr_8295228a4783_o2"
+          ],
+          "reason": "o2 명시"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_8295228a4783_o1",
+        "cr_8295228a4783_o2"
+      ],
+      "rationale": "고무판 R만 확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t1",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "session_q_rule",
+          "claim": "연습 세션 Q: 파일명 끝 _take, 저장 폴더 room-Q(관찰 1).",
+          "supporting_evidence_refs": [
+            "cr_dcfc7c02c76c_o1"
+          ]
+        },
+        {
+          "fact_key": "two_files",
+          "claim": "Q 파일 두 개를 _take 접미사로 room-Q에 저장(관찰 2).",
+          "supporting_evidence_refs": [
+            "cr_dcfc7c02c76c_o2"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "다른 세션도 room-Q",
+          "evidence_refs": [
+            "cr_dcfc7c02c76c_o1"
+          ],
+          "reason": "Q만"
+        },
+        {
+          "claim": "_take 없이 저장",
+          "evidence_refs": [
+            "cr_dcfc7c02c76c_o1"
+          ],
+          "reason": "규칙 위반"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_dcfc7c02c76c_o1",
+        "cr_dcfc7c02c76c_o2"
+      ],
+      "rationale": "세션 Q 규칙·2파일 시행. 다른 세션 미언급.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}

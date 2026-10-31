@@ -1,0 +1,639 @@
+{
+  "reviewed_by": "머슴5 agent_panel 조정자 Claude Sonnet 5.5 (claude-sonnet-5-5)",
+  "role": "human_contract_comparison_only",
+  "label_authoring": false,
+  "input_audit_sha256": "f0440abd26ff03c0e299d7fe622f149249c1a5f3c27edd2947f8dd872b867a7c",
+  "protocol_sha256": "5db69f50369ea8db0ab953e02859fa3e68c9fba9d596a1d701ba047311a87685",
+  "cases": [
+    {
+      "checkpoint_id": "cr_02ed2463abff_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "작업 X 모형 J의 식별번호 선대조, 회색 글자, 받침 앞면이 양쪽 동일하다. B의 뒷면 금지는 앞면 지정의 부정형이다."
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "나무 소품(천 주머니, 종이 두 장, 5개 포장)과 유리 소품 미포장 및 미확정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "동물 카드, 세모 상자, 뒷면 점 확인, 연필 표기와 다른 카드 확장 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "통 식별자와 세션 식별자 개별 확인, 작업표 일치 후 시작, 상호 대체 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "줄무늬 견본 재질표 선부착, 15센티미터, 서랍 D, 작업표 기록이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "120그램 이하 얇은 붓과 2밀리리터, 100그램 묶음 처리, 무거운 면지 미확정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "시제품 W 42센티미터, 흰색 가장자리 실, 작업 카드 기록, 다른 시제품 확장 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "도장 Z 파랑 대 흰색 2대1, 회색 견본지, 다른 도장 미확정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "무광 F 한 장 설정 M 줄무늬 감소, 유광 미시험, 전체 필름 일반화 불가가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "cedar 캐시 켜기 18초 1회, 운영 미적용, 평균 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "도면 판본 확인과 앞뒷면 맞춤 두 단계 모두 필요, 도면 번호만으로 부족함이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "홈 방향과 누락 수 확인 각각 수행, 방향만으로 부품 유무 판단 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "센서 K 나무 받침 흔들림 작음, 금속 받침 미시험, 장치 전체 검증 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "판번호 확인과 폐지 첫 시트 시험 둘 다 필수, 부분 메모의 대체 불가가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "담수 모형 파란 통 18분, 빈 모형 연습, 다른 모형과 실제 생물 미추정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "고무판 R 눈금 4, P묶음 종이, R 한정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "얇은 정사각 시트 4회 접기 무파손, 직사각 미시험, 일반화 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "상자번호와 봉인번호 각각 대조, 일치 전 개봉 금지, 상호 추정 금지가 동일하다. A만 실행 로그 측정 주장 금지 항목을 두지만 양쪽 execution_evidence가 unmeasured로 같아 결론을 바꾸지 않는다."
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "면 조각 A 색 유지, 견 조각 미세척, 전체 섬유 보증 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "독창 채널 2와 프리셋 S, 합창 채널 미배정, 독창 한정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "좌표 선확인, 북쪽 격자부터, 은색 별표, 작업 카드 기록이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "모형 T 연습용 A에서 B 순서, 실제 천체 관측 성공 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "활자 코드와 서랍 코드 둘 다 대조, 모양 유사 시 생략 금지가 동일하다. A만 실행 로그 측정 주장 금지 항목을 두지만 양쪽 execution_evidence가 unmeasured로 같다."
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "가시광 기준판 V 30센티미터, 적외선 모드 미측정 및 미확정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "작업 X 첫 장면 흰 천, 광원 표시선 A, 왼쪽 인형 진입과 첫 장면 한정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "번호 대조, 둥근 토큰 세 개, 보라색 끈, 작업 X 한정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "트레이 L 네 칸 간격, 초록 색종이 표식 연습, 실제 재배 시험 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "빈 방 모형 패널 P 마이크 하나 반사 낮음, 사람 찬 방 미측정, 전 좌석 시험 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "세션 Q _take 접미사, room-Q, 파일 두 개 저장, 다른 세션 확장 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "얇은 시험편 덮개 개방 12분, 두꺼운 시험편 규칙 미정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X는 동일하나 B가 무관한 별개 작업 Y의 지시를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 무관 입력으로 제외해 질의 범위 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "나무(천 주머니, 종이 두 장)와 유리(칸막이 상자, 종이 네 장) 재질별 분리와 확장 금지가 동일하다. 5개 포장은 A의 괄호 보충이다."
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X는 동일하나 B가 무관한 별개 작업 Y의 지시를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 무관 입력으로 제외해 질의 범위 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "두 식별자 개별 확인과 대체 금지, 초록 점 표식 추가, 축약 메모가 선대조를 폐지하지 않음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X는 동일하나 B가 무관한 별개 작업 Y의 지시를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 무관 입력으로 제외해 질의 범위 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "120그램 이하(120 포함) 얇은 붓 2밀리리터, 초과 넓은 붓 3밀리리터가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "W 폭 42에서 40센티미터로 정정(10-12), 42 카드 폐기, 흰 가장자리 실 유지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "Z 비율 2대1에서 1대1로 정정(10-12), 회색 견본지와 다른 도장 불변이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "무광 F 줄무늬 감소와 유광 G 얼룩을 별개로 기록, 전체 설정 통일 없음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "cedar 켜기 18초와 끄기 22초는 입력 불일치로 공정 비교 불가, 운영 적용 승인 없음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "접기 전 두 단계 유지, 완성품 별표 추가, 휴대 메모의 대체 불가가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "조립 전 두 확인 유지, 붉은 받침 추가, 빠른 메모가 폐지 근거 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "나무 받침 작음과 금속 받침 큼을 재질별로 유지하고 평균 또는 단일 정책을 금지하는 점이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "판번호 확인과 폐지 시험 유지, 주황 손잡이 표식 추가, 인수 메모의 대체 불가가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "담수 파란 통 18분, 해수 회색 통 32분, 빈 모형 연습, 모형별 분리가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "R 공식 눈금 4에서 3으로 정정(10-12), P묶음 유지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "얇은 정사각 4회 무파손과 두꺼운 직사각 3회째 갈라짐을 표본별로 분리, 일반화 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "상자번호와 봉인번호 개별 대조 유지, 파란 모서리 추가, 대체 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "면 A 색 유지와 견 B 옅어짐을 재질별로 기록, 전 섬유 보증 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "독창 채널 2와 프리셋 S, 합창 채널 5와 프리셋 C 병행, 전환 시 둘 다 변경이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X는 동일하나 B가 무관한 별개 작업 Y의 지시를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 무관 입력으로 제외해 질의 범위 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "모형 T 순서 A에서 B가 B에서 A로 정정(10-12), 범위는 실내 모형 T 한정, 실제 관측 성공 아님이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "활자 코드와 서랍 코드 대조 유지, 손잡이 흰 줄 추가, 메모의 대체 불가가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "가시광 V 30센티미터와 적외선 I 45센티미터 짝 유지, 상호 교환 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X는 동일하나 B가 무관한 별개 작업 Y의 지시를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 무관 입력으로 제외해 질의 범위 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X는 동일하나 B가 무관한 별개 작업 Y의 지시를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 무관 입력으로 제외해 질의 범위 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "트레이 L 간격 네 칸에서 세 칸으로 정정(10-12), 초록 색종이 연습 조건 유지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "빈 방 모형 낮음과 인형 채움 높음을 병기, 공연장 전 좌석 결론 없음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "신규 파일 접미사 _take에서 _raw로 정정, room-Q 유지, 과거 _take 파일 삭제 지시 없음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "얇은 시험편 개방 12분, 두꺼운 시험편 밀폐 25분을 분리 유지하는 점이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X의 현행 규칙은 동일하나 B가 무관한 별개 작업 Y를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 제외해 관련 근거 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "마른 나무(천 주머니, 종이 두 장)와 마른 유리(칸막이, 종이 네 장) 유지, 젖은 소품 건조 검사 선행이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X의 현행 규칙은 동일하나 B가 무관한 별개 작업 Y를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 제외해 관련 근거 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "식별자 선대조, 초록 점, 마감 받침 H는 같다. A만 원본 점검 일지 함께 보관을 별도 사실로 요구하고 B에는 없어 판정 기준이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X의 현행 규칙은 동일하나 B가 무관한 별개 작업 Y를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 제외해 관련 근거 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "일반 면지 120그램 이하 2밀리리터와 초과 3밀리리터, 코팅 면지 시편 승인 전 보류가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "W 폭 42, 40을 거쳐 10-19부터 41센티미터, 흰 가장자리 실 유지, 이전 값은 이력이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "Z 비율 2대1, 1대1을 거쳐 10-19부터 1대2, 회색 견본지 유지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "F 첫 장 줄무늬 감소, G 얼룩, F 둘째 장 줄무늬 잔존, 전체 설정 미통일이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "cedar 단발 18초, 22초(입력 불일치), 27초와 운영 배포 및 일관 가속 미검증이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "접기 전 두 단계, 별표, 도면 봉투는 같다. A만 원본 절차표 함께 보존을 별도 사실로 요구하고 B에는 없어 판정 기준이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "조립 전 두 확인, 붉은 받침, 잔여 봉투 날짜는 같다. A만 최초 점검표 함께 보관을 별도 사실로 요구하고 B에는 없어 판정 기준이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "나무 평상시 작음, 금속 큼, 나무 충격 큼을 조건별로 분리, 전체 안정성 결론 없음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "판번호, 폐지 시험, 주황 표식, 마감 뚜껑 확인 네 항목은 같다. A만 원본 작업표 보관을 별도 사실로 요구하고 B에는 없어 판정 기준이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "시간표(담수 파란 통 18분, 해수 회색 통 32분)와 표찰 없는 모형 보류는 같다. B는 A가 요구하는 빈 모형 연습 한정(실제 생물 아님)과 모형별 상자 분리를 최종 계약에서 빠뜨렸다."
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "R 눈금 4, 3을 거쳐 10-19부터 2, 이전 값은 이력, P묶음 유지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "마른 얇은 정사각 4회 무파손, 두꺼운 직사각 3회째 갈라짐, 젖은 얇은 정사각 2회째 찢어짐, 무조건 4회 접기 미승인이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "두 번호 대조, 파란 모서리, 닫힌 뚜껑 사진은 같다. A만 원본 점검표 삭제 금지와 유지를 별도 사실로 요구하고 B에는 없어 판정 기준이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "면 A 첫 세척 유지와 둘째 세척 가장자리 옅어짐, 견 B 첫 세척 옅어짐을 재질과 회차별로 보존하는 점이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "독창 2/S, 합창 5/C 병행과 동시 전환, 악기 단독 장면 배정 대기가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X의 현행 규칙은 동일하나 B가 무관한 별개 작업 Y를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 제외해 관련 근거 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "모형 T 순서 A에서 B, B에서 A를 거쳐 10-19부터 C, B, A, 이전 값은 이력, 실내 모형 한정과 관측 성능 미측정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "두 코드 대조, 흰 줄, 마감 빈 칸 수는 같다. A만 최초 원본표 마감 기록과 함께 보관을 별도 사실로 요구하고 B에는 없어 판정 기준이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "가시광 V 30센티미터, 적외선 I 45센티미터, 혼합광 샘플은 분류 담당자 판정 전 수치 확정 금지가 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X의 현행 규칙은 동일하나 B가 무관한 별개 작업 Y를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 제외해 관련 근거 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "differs",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "사실 내용 X의 현행 규칙은 동일하나 B가 무관한 별개 작업 Y를 required_facts로 올리고 o3/o4를 관련 근거로 삼았다. A는 Y를 제외해 관련 근거 판단이 갈리므로 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "트레이 L 간격 네 칸, 세 칸을 거쳐 10-19부터 다섯 칸, 초록 색종이 연습 한정이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "빈 방 첫 위치 낮음, 인형 채움 높음, 빈 방 구석 높음을 조건과 위치별로 기록, 전 조건 감소 미검증이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "접미사 _take, _raw를 거쳐 10-19부터 _src, room-Q 유지, 과거 파일 자동 삭제 없음이 동일하다."
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "equivalent",
+      "forbidden_claims_comparison": "equivalent",
+      "note": "얇은 개방 12분과 두꺼운 밀폐 25분 유지, 젖은 시험편 건조 확인 선행, 냉각 시간 연장 결정 없음이 동일하다."
+    }
+  ]
+}

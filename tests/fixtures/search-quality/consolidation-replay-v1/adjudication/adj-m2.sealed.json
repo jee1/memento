@@ -1,0 +1,639 @@
+{
+  "reviewed_by": "머슴2 agent_panel 조정자 Claude Opus 5.5 (claude-opus-5-5)",
+  "role": "human_contract_comparison_only",
+  "label_authoring": false,
+  "input_audit_sha256": "f0440abd26ff03c0e299d7fe622f149249c1a5f3c27edd2947f8dd872b867a7c",
+  "protocol_sha256": "5db69f50369ea8db0ab953e02859fa3e68c9fba9d596a1d701ba047311a87685",
+  "cases": [
+    {
+      "checkpoint_id": "cr_02ed2463abff_t1",
+      "contract_agreement": false,
+      "required_facts_comparison": "필수 사실(식별번호 선대조, 회색 글자, 받침 앞면)은 같다.",
+      "forbidden_claims_comparison": "A 에만 대상 밖(다른 대상, 별개 작업) 일반화 금지가 있고 B 에는 같은 축의 금지나 범위 한정 사실이 없다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "나무 소품 규칙(천 주머니, 종이 2장), 5개 포장, 유리 미포장이 양쪽에 있다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "동물 카드 세모 상자, 뒷면 점, 연필 표기가 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 동물 카드 밖 일반화를 금지한다. 나머지는 필수 사실의 부정이다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "두 식별자 각각 확인, 작업표 일치 후 시작, 상호 대체 금지가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t1",
+      "contract_agreement": false,
+      "required_facts_comparison": "재질표 선부착, 15센티미터, 서랍 D 는 같다.",
+      "forbidden_claims_comparison": "A 에만 대상 밖(다른 대상, 별개 작업) 일반화 금지가 있고 B 에는 같은 축의 금지나 범위 한정 사실이 없다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "120그램 이하 조건(얇은 붓, 2밀리리터), 100그램 처리, 무거운 면지 미포함이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "시제품 W 폭 42센티미터, 흰 가장자리 실, 작업 카드 기록이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 W 밖 일반화를 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "도장 Z 2대1, 회색 견본지, 다른 도장은 대상 아님이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "무광 F 한 장 줄무늬 감소, 유광 미시험, 일반 결론 없음이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 모든 필름 일반화와 유광 확장을 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "cedar 캐시 켜기 1회 18초, 운영 미적용, 평균 아님이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 운영 시간, 평균 시간 주장을 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "판본 확인과 앞뒷면 맞춤 둘 다 선행, 도면 번호만으로 미완이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "홈 방향과 누락 수 확인 후 조립, 방향만으로 판단 안 함이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "센서 K 나무 받침 흔들림 작음, 금속 미시험, 전체 검증 아님이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 금속 확장과 장치 전체 안정성 주장을 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "판번호 확인과 폐지 시험 둘 다 필수, 메모가 절차를 대체하지 않음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "담수 빈 모형 파란 통 18분, 다른 모형 추정 금지가 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 실제 생물과 다른 모형 확장을 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "고무판 R 눈금 4 공식 승인, P묶음이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 R 밖 판재 일반화를 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "얇은 정사각 한 장 4번 접기 무파손, 직사각 미시험, 일반화 안 함이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t1",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 번호 별도 칸 대조, 둘 다 맞기 전 개봉 금지, 번호 간 추정 금지는 같다.",
+      "forbidden_claims_comparison": "A 에만 실제 실행 성공이 로그로 측정됐다는 주장 금지가 있고 B 에는 없다.",
+      "note": "실행 성공을 주장한 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "면 A 색 유지, 견 미세척, 모든 섬유 보증 아님이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "독창 채널 2와 프리셋 S, 합창 미배정, 독창 한정이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t1",
+      "contract_agreement": false,
+      "required_facts_comparison": "좌표 선확인, 북쪽 격자부터, 은색 별표는 같다.",
+      "forbidden_claims_comparison": "A 에만 대상 밖(다른 대상, 별개 작업) 일반화 금지가 있고 B 에는 같은 축의 금지나 범위 한정 사실이 없다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "실내 모형 T 연습용 A→B 순서, 실제 관측 성공 기록 아님이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 모형 연습을 실제 관측으로 넓히는 주장을 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t1",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 코드 대조, 모양이 닮아도 생략 안 함, 별도 항목 기록은 같다.",
+      "forbidden_claims_comparison": "A 에만 실제 실행 성공이 로그로 검증됐다는 주장 금지가 있다.",
+      "note": "실행 성공을 주장한 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "가시광 V 30센티미터, 적외선 미측정이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "작업 X 첫 장면 흰 천, 광원 A, 왼쪽 진입이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 다른 장면과 다른 작업 일반화를 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t1",
+      "contract_agreement": false,
+      "required_facts_comparison": "번호 대조, 둥근 토큰 3개, 보라색 끈은 같다.",
+      "forbidden_claims_comparison": "A 에만 대상 밖(다른 대상, 별개 작업) 일반화 금지가 있고 B 에는 같은 축의 금지나 범위 한정 사실이 없다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "트레이 L 초록 색종이 표식, 네 칸 간격, 실제 재배 아님이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 실제 재배 확정 주장을 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "빈 방 모형 패널 P 반사 낮음, 사람 찬 방 미측정, 전 좌석 시험 아님이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "세션 Q _take 접미사, room-Q, 파일 두 개 저장이 같다.",
+      "forbidden_claims_comparison": "양쪽 모두 다른 세션 일반화를 금지한다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t1",
+      "contract_agreement": true,
+      "required_facts_comparison": "얇은 시험편 개방 12분, 두꺼운 규칙 미정이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "나무(천 주머니, 2장)와 유리(칸막이, 4장) 구분이 같다.",
+      "forbidden_claims_comparison": "A 의 역방향 금지(유리 규칙으로 나무 변경)는 B 의 나무 2장 필수 사실로 막힌다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "두 식별자 대조 유지, 초록 점 추가, 축약 메모가 대조를 폐지하지 않음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "120그램 이하(120 포함) 얇은 붓 2밀리리터, 초과 넓은 붓 3밀리리터가 같다.",
+      "forbidden_claims_comparison": "A 의 경계값 금지는 B 의 120 포함 사실로, B 의 전 면지 2밀리리터 금지는 A 의 초과 조건으로 막힌다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "W 폭 42→40센티미터, 흰 실 유지는 같다.",
+      "forbidden_claims_comparison": "A 에만 W 밖 다른 제품에 40센티미터 일괄 적용 금지가 있다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "Z 2대1→1대1, 회색 견본지 유지, 다른 도장 변경 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "무광 F 줄무늬 감소, 유광 G 얼룩, 별개 결과, 설정 통일 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "캐시 켜기 18초, 끄기 22초, 입력 수 불일치, 운영 승인 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "판본 확인과 앞뒷면 맞춤 유지, 별표 추가, 메모가 대체하지 않음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "두 확인 유지, 붉은 받침 추가, 메모가 폐지하지 않음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "나무 작음, 금속 큼, 결과 구분이 같다.",
+      "forbidden_claims_comparison": "A 의 평균 정책 금지와 B 의 받침 무관 단일 정책 금지가 같은 축이다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "판번호 확인과 폐지 시험 유지, 주황 표식 추가가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "담수 파란 통 18분, 해수 회색 통 32분, 빈 모형 연습이 같다.",
+      "forbidden_claims_comparison": "A 의 혼용 금지는 B 의 모형별 필수 사실로 막힌다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "R 눈금 4→3, P묶음 유지는 같다.",
+      "forbidden_claims_comparison": "A 에만 R 밖 다른 판재 일괄 승인 금지가 있다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "얇은 정사각 4번 무파손, 두꺼운 직사각 3번째 갈라짐이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "두 번호 각각 대조, 파란 모서리 추가, 메모가 대체하지 않음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "면 A 유지, 견 B 옅어짐, 모든 섬유 보증 안 함이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "독창 2와 S, 합창 5와 C 병행, 전환 시 함께 변경이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "T 순서 A→B→B→A, A→B 철회, 실내 모형 한정이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "두 코드 대조 유지, 흰 줄 추가가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "가시광 V 30센티미터, 적외선 I 45센티미터, 상호 유지가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t2",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "L 간격 네 칸→세 칸, 초록 표식, 실제 재배 아님이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "빈 방 낮음, 인형 채움 높음, 덮어쓰지 않음, 전 좌석 결론 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "새 파일 _raw, room-Q 유지, 과거 _take 삭제, 이동 지시 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t2",
+      "contract_agreement": true,
+      "required_facts_comparison": "얇은 개방 12분, 두꺼운 밀폐 25분 구분이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다. X 의 현재 값(남색)은 같다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "마른 나무와 마른 유리 규칙, 젖은 소품 건조 검사 선행이 같다.",
+      "forbidden_claims_comparison": "A 의 건조 후 재질 규칙 유지는 B 의 마른 소품 규칙과 건조 선행 사실로 따라 나온다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다. X 의 현재 값(검은 펜)은 같다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 식별자 대조, 초록 점, 받침 H 는 같다. A 에만 원본 점검 일지를 함께 보관한다는 필수 사실이 있다.",
+      "forbidden_claims_comparison": "금지 축(추가 절차로 대조 생략)은 같다.",
+      "note": "원본 기록 보관을 빠뜨리거나 부정한 응답의 판정이 A 와 B 에서 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다. X 의 현재 값(서랍 F)은 같다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "일반 면지 무게 규칙, 코팅 면지 시편 승인 전 보류가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "W 폭 41센티미터 현행, 이력, 흰 실 유지는 같다.",
+      "forbidden_claims_comparison": "A 에만 W 밖 다른 제품 41센티미터 확정 금지가 있다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "Z 1대2 현행, 이력, 회색 견본지는 같다. A 에만 다른 도장 배합은 대상 아님이라는 필수 사실이 있다.",
+      "forbidden_claims_comparison": "A 에만 다른 도장 1대2 변경 금지가 있다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "F 첫 장 감소, G 얼룩, F 둘째 장 잔존, 보편 결론 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "18, 22, 27초 단발 관찰, 입력 불일치, 운영 승인 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 선행 단계, 별표, 도면 봉투는 같다. A 에만 원본 절차표 보존 필수 사실이 있다.",
+      "forbidden_claims_comparison": "금지 축(추가 절차로 선행 단계 생략)은 같다.",
+      "note": "원본 기록 보관을 빠뜨리거나 부정한 응답의 판정이 A 와 B 에서 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 확인, 붉은 받침, 잔여 봉투 날짜는 같다. A 에만 최초 점검표 보관 필수 사실이 있다.",
+      "forbidden_claims_comparison": "금지 축(추가 절차로 확인 폐지)은 같다.",
+      "note": "원본 기록 보관을 빠뜨리거나 부정한 응답의 판정이 A 와 B 에서 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "나무 평상시 작음, 금속 큼, 나무 충격 큼, 조건 구분이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "네 항목(판번호, 폐지 시험, 주황 표식, 뚜껑 확인)은 같다. A 에만 원본 작업표 보관 필수 사실이 있다.",
+      "forbidden_claims_comparison": "금지 축(추가 항목으로 선행 확인 생략)은 같다.",
+      "note": "원본 기록 보관을 빠뜨리거나 부정한 응답의 판정이 A 와 B 에서 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "담수 18분, 해수 32분, 표찰 없는 모형 보류는 같다. A 에만 실제 생물이 아닌 빈 모형 연습이라는 필수 사실과 상자 분리 관리가 있다.",
+      "forbidden_claims_comparison": "금지 축(표찰 없는 모형 대기 시작)은 같다.",
+      "note": "빈 모형 연습 범위를 빠뜨리거나 실제 생물로 넓힌 응답의 판정이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "R 눈금 2 현행, 이력, P묶음 유지는 같다.",
+      "forbidden_claims_comparison": "A 에만 R 밖 다른 판재 눈금 2 일괄 승인 금지가 있다.",
+      "note": "일반화 주장을 담은 응답이 A 는 실패, B 는 통과한다."
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "마른 얇은 정사각, 두꺼운 직사각, 젖은 얇은 정사각 세 결과가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 번호 대조, 파란 모서리, 뚜껑 사진은 같다. A 에만 원본 점검표 삭제하지 않고 유지 필수 사실이 있다.",
+      "forbidden_claims_comparison": "금지 축(추가 표식으로 대조 대체)은 같다.",
+      "note": "원본 기록 보관을 빠뜨리거나 부정한 응답의 판정이 A 와 B 에서 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "면 A 1회 유지와 2회 가장자리 옅어짐, 견 B 옅어짐, 회차 구분이 같다.",
+      "forbidden_claims_comparison": "A 의 모든 섬유 보증 부정은 B 의 견 B, 면 A 2회차 사실로 막힌다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "독창과 합창 병행, 전환 시 함께 변경, 악기 단독 장면 배정 대기가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다. X 의 현재 값(청색)은 같다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "T 순서 C→B→A 현행, 이력, 실내 모형 한정, 관측 미측정이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "두 코드 대조, 흰 줄, 빈 칸 수는 같다. A 에만 최초 원본표 보관과 모양이 닮아도 대조한다는 필수 사실이 있다.",
+      "forbidden_claims_comparison": "금지 축(추가 항목으로 코드 대조 대체)은 같다.",
+      "note": "원본 기록 보관을 빠뜨리거나 부정한 응답의 판정이 A 와 B 에서 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "가시광 V 30센티미터, 적외선 I 45센티미터, 혼합광 판정 대기가 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다. X 의 현재 값(표시선 B)은 같다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "B 는 별개 작업 Y 의 내용과 무관함을 필수 사실로 요구하고, A 는 Y 를 근거에서 빼고 금지 항목으로만 다룬다. X 의 현재 값(4개)은 같다.",
+      "forbidden_claims_comparison": "A 는 Y 규칙의 X 적용을 금지하고 B 도 같은 축을 금지한다.",
+      "note": "X 사실만 답한 응답이 A 는 통과, B 는 필수 사실 누락으로 실패한다. 근거 범위도 갈린다(B 만 o3, o4)."
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "L 다섯 칸 현행, 이력, 초록 표식 연습이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "빈 방 첫 위치 낮음, 인형 채움 높음, 구석 높음은 같다. 첫 마이크 위치를 A 는 처음 위치, B 는 중앙으로 적는다.",
+      "forbidden_claims_comparison": "A 에만 실제 공연장 전 좌석 미검증이 명시되고 B 는 모든 조건 일반화만 금지한다.",
+      "note": "마이크 위치 표기와 공연장 범위가 애매해 보류한다."
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t3",
+      "contract_agreement": false,
+      "required_facts_comparison": "_src 현행, room-Q, 이력 보관은 같다.",
+      "forbidden_claims_comparison": "A 는 과거 파일 삭제와 이동을 모두 금지하고 B 는 자동 삭제만 다룬다.",
+      "note": "과거 파일 이동을 주장한 응답의 판정이 갈린다."
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t3",
+      "contract_agreement": true,
+      "required_facts_comparison": "얇은 개방 12분, 두꺼운 밀폐 25분, 젖은 시험편 건조 선행, 시간 연장 없음이 같다.",
+      "forbidden_claims_comparison": "금지 항목은 축이 같다. 한쪽에만 있는 금지 항목은 상대 필수 사실의 부정이라 판정을 바꾸지 않는다.",
+      "note": "표현과 원자 분할만 다르다."
+    }
+  ]
+}

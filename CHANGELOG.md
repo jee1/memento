@@ -18,6 +18,7 @@
 - 운영 recall 감사: private 요청의 주간 무작위 5건 추출 도구와 agent_panel 판정·보류·분모 절차를 추가합니다. 원문은 `.local/`에만 두며 현재성 자동 검사는 #1551→#1552 이후로 남깁니다 (#1562).
 - Agent Skill: `docs/skills/memento-cli-for-ai/SKILL.md`로 터미널 전용 에이전트가 `memento recall`/`remember`/`memory_injection` 워크플로를 발견하도록 안내합니다 (#112).
 - 채택 계약 평가: 한국어 합성 60건의 독립 `agent_panel` 판정과 합의·보류·SHA를 동결합니다. gate/답 계약 57건, retrieval 계약 55건을 분리하며 성능은 미측정으로 둡니다 (#1545).
+- 수면 통합 비교: `consolidation-replay-v1` 30시퀀스의 사전등록·agent_panel 교집합 계약 58건/보류 32건을 동결합니다. complete test 10/25로 채택 판정은 inconclusive이며 A/B/D는 미실행입니다 (#1553).
 
 ### Fixed
 

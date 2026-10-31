@@ -1,0 +1,24 @@
+{
+  "fixture_version": "consolidation-replay-v1",
+  "status": "not_registered",
+  "runner_commit": null,
+  "dataset_sha256": null,
+  "gold_sha256": null,
+  "preregistration_sha256": null,
+  "systems": {
+    "source_commit": null,
+    "prompt_sha256": null,
+    "gemini_model": null,
+    "jev_model": null,
+    "embedding_model": null,
+    "ranker_version": null,
+    "tokenizer_version": null
+  },
+  "stage": "after_gold_aggregation_only",
+  "registered_at": null,
+  "actual_calls": null,
+  "primary_endpoint": "complete_sequence_context_contract_128_estimated_tokens",
+  "final_answer": null,
+  "execution": null,
+  "result": null
+}

@@ -1,0 +1,1565 @@
+{
+  "reviewer_id": "reviewer-a (머슴4)",
+  "model": "Gemini 4 Argon (High)",
+  "judged_at": "2026-10-31T13:45:00Z",
+  "label_source": "agent_panel",
+  "rubric_version": "consolidation-replay-v1",
+  "stage": 3,
+  "packet_sha256": "8298125f43850cb10ff0b03ccb095ded1a1de69718febbb3b1ee2a09005506e8",
+  "rubric_sha256": "81389061848fce3919fbb72ab1009bec34490c1b1ac74843c87acfddf1b6188c",
+  "answers": [
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "prototype_w_current_width_41cm_from_oct19_and_history",
+          "claim": "가온 직조 폭 설정에서 시제품 W의 완성 폭은 1~2회차(2026-10-05) 42센티미터, 3~4회차(2026-10-12) 40센티미터를 거쳐 5~6회차(2026-10-19)부터 41센티미터로 확정됐으며, 42센티미터와 40센티미터는 변경 이력 칸에만 남긴다.",
+          "supporting_evidence_refs": [
+            "cr_2bc6447b6989_o1",
+            "cr_2bc6447b6989_o2",
+            "cr_2bc6447b6989_o3",
+            "cr_2bc6447b6989_o4",
+            "cr_2bc6447b6989_o5",
+            "cr_2bc6447b6989_o6"
+          ]
+        },
+        {
+          "fact_key": "prototype_w_white_edge_thread_maintained",
+          "claim": "시제품 W의 가장자리 실 색상은 흰색으로 1~6회차(2026-10-05~2026-10-19) 전 기간에 걸쳐 변경 없이 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_2bc6447b6989_o1",
+            "cr_2bc6447b6989_o2",
+            "cr_2bc6447b6989_o3",
+            "cr_2bc6447b6989_o4",
+            "cr_2bc6447b6989_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 시제품 W의 유효 완성 폭이 42센티미터 또는 40센티미터다.",
+          "evidence_refs": [
+            "cr_2bc6447b6989_o5",
+            "cr_2bc6447b6989_o6"
+          ],
+          "reason": "2026-10-19부터 시제품 W의 완성 폭은 41센티미터로 확정됐고 40센티미터 지시는 종료됐으며 42와 40은 변경 이력 칸에만 남긴다."
+        },
+        {
+          "claim": "흰색 가장자리 실 조건이 변경됐거나 시제품 W 외 다른 제품의 폭이 41센티미터로 확정됐다.",
+          "evidence_refs": [
+            "cr_2bc6447b6989_o1",
+            "cr_2bc6447b6989_o3",
+            "cr_2bc6447b6989_o6"
+          ],
+          "reason": "흰 가장자리 실은 그대로 유지되며 모든 지시는 시제품 W에 한정된다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_2bc6447b6989_o1",
+        "cr_2bc6447b6989_o2",
+        "cr_2bc6447b6989_o3",
+        "cr_2bc6447b6989_o4",
+        "cr_2bc6447b6989_o5",
+        "cr_2bc6447b6989_o6"
+      ],
+      "rationale": "과거 원본(o1~o4)은 변경 이력 칸에 보존되는 42cm(10-05) 및 40cm(10-12)의 효력 기간과 초기 흰색 가장자리 실 기준을 복구하는 데 필요하며, o5와 o6은 10월 19일 자 현행 41cm 확정을 뒷받침한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_current_drawer_f_from_oct19_replacing_drawer_d",
+          "claim": "고운 직물 견본 정리 X(subject_2703804c1441_x)의 줄무늬 견본 보관 위치는 1~2회차(2026-10-05)에 서랍 D였으나, 5~6회차(2026-10-19)부터 서랍 F로 확정 변경됐다.",
+          "supporting_evidence_refs": [
+            "cr_2703804c1441_o1",
+            "cr_2703804c1441_o2",
+            "cr_2703804c1441_o5",
+            "cr_2703804c1441_o6"
+          ]
+        },
+        {
+          "fact_key": "task_x_material_label_first_and_15cm_length_maintained",
+          "claim": "고운 직물 견본 정리 X에서 재질표를 먼저 붙이고 견본 길이를 15센티미터로 맞추는 조건은 2026-10-19 서랍 변경 이후에도 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_2703804c1441_o1",
+            "cr_2703804c1441_o2",
+            "cr_2703804c1441_o5",
+            "cr_2703804c1441_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 고운 직물 견본 정리 X의 보관 위치가 서랍 D이거나, 별개 작업 Y의 선반 E, 60센티미터, 날짜표 규칙이 적용된다.",
+          "evidence_refs": [
+            "cr_2703804c1441_o1",
+            "cr_2703804c1441_o3",
+            "cr_2703804c1441_o4",
+            "cr_2703804c1441_o5",
+            "cr_2703804c1441_o6"
+          ],
+          "reason": "2026-10-19부터 작업 X의 보관 서랍은 F로 변경됐으며 o3, o4는 별개 포스터 통 작업 Y(subject_2703804c1441_y)로서 직물 견본 X에 적용하지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_2703804c1441_o1",
+        "cr_2703804c1441_o2",
+        "cr_2703804c1441_o5",
+        "cr_2703804c1441_o6"
+      ],
+      "rationale": "o1, o2는 줄무늬 견본 대상과 유지 조건(재질표 선부착, 15cm) 및 과거 서랍 D 이력을 복구하고 o5, o6은 현행 서랍 F 변경을 확정한다. 별개 작업 Y(subject_2703804c1441_y)인 o3, o4는 무관 입력이므로 relevant_evidence_refs에서 제외한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_current_blue_star_from_oct19_replacing_silver",
+          "claim": "호담 별지도 작업 X(subject_9bd884941ba5_x)의 별표 색은 1~2회차(2026-10-05)에 은색이었으나, 5~6회차(2026-10-19)부터 청색으로 변경됐다.",
+          "supporting_evidence_refs": [
+            "cr_9bd884941ba5_o1",
+            "cr_9bd884941ba5_o2",
+            "cr_9bd884941ba5_o5",
+            "cr_9bd884941ba5_o6"
+          ]
+        },
+        {
+          "fact_key": "task_x_coordinate_precheck_and_north_grid_start_maintained",
+          "claim": "호담 별지도 작업 X에서 격자 좌표를 먼저 확인한 뒤 북쪽 격자부터 별표를 붙이는 절차는 2026-10-19 별표 색 변경 이후에도 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_9bd884941ba5_o1",
+            "cr_9bd884941ba5_o2",
+            "cr_9bd884941ba5_o5",
+            "cr_9bd884941ba5_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 별지도 작업 X의 별표 색이 은색이거나, 별개 화분 작업 Y의 남쪽 선반 및 노란 장식표 규칙을 따른다.",
+          "evidence_refs": [
+            "cr_9bd884941ba5_o1",
+            "cr_9bd884941ba5_o3",
+            "cr_9bd884941ba5_o4",
+            "cr_9bd884941ba5_o5",
+            "cr_9bd884941ba5_o6"
+          ],
+          "reason": "2026-10-19부터 작업 X의 별표 색은 청색으로 변경됐고, o3와 o4는 별개 작업 Y(subject_9bd884941ba5_y) 기록이므로 X에 쓰지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_9bd884941ba5_o1",
+        "cr_9bd884941ba5_o2",
+        "cr_9bd884941ba5_o5",
+        "cr_9bd884941ba5_o6"
+      ],
+      "rationale": "o1, o2는 과거 은색 별표 이력과 유지되는 좌표 선확인 및 북쪽 격자 시작 절차를 복구하고 o5, o6은 10월 19일 자 청색 별표 변경을 확정한다. 별개 화분 작업 Y(o3, o4)는 무관 입력이므로 relevant_evidence_refs에서 제외한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "indoor_model_t_current_order_c_b_a_from_oct19_and_history",
+          "claim": "별하 망원경 정렬 순서에서 실내 모형 망원경 T의 정렬 순서는 1~2회차(2026-10-05) 기준점 A→B, 3~4회차(2026-10-12) 기준점 B→A를 거쳐 5~6회차(2026-10-19)부터 기준점 C→B→A 순서로 확정됐으며, A→B와 B→A는 과거 지시로 남긴다.",
+          "supporting_evidence_refs": [
+            "cr_a20719a89ae7_o1",
+            "cr_a20719a89ae7_o2",
+            "cr_a20719a89ae7_o3",
+            "cr_a20719a89ae7_o4",
+            "cr_a20719a89ae7_o5",
+            "cr_a20719a89ae7_o6"
+          ]
+        },
+        {
+          "fact_key": "indoor_model_t_practice_scope_and_unmeasured_actual_observation",
+          "claim": "이 절차는 계속 실내 모형 망원경 T의 연습용에 한정되며 실제 천체 관측 성능이나 관측 성공은 여전히 측정하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr_a20719a89ae7_o1",
+            "cr_a20719a89ae7_o2",
+            "cr_a20719a89ae7_o4",
+            "cr_a20719a89ae7_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 실내 모형 망원경 T의 유효 정렬 순서가 A→B 또는 B→A 단독 절차다.",
+          "evidence_refs": [
+            "cr_a20719a89ae7_o5",
+            "cr_a20719a89ae7_o6"
+          ],
+          "reason": "2026-10-19부터 실내 모형 T는 C→B→A 순서로 바뀌었고 B→A 단독 절차는 종료됐으며 A→B와 B→A는 과거 지시다."
+        },
+        {
+          "claim": "실제 천체 관측 장비에 C→B→A 절차가 적용돼 실제 관측 성능이 검증됐다.",
+          "evidence_refs": [
+            "cr_a20719a89ae7_o1",
+            "cr_a20719a89ae7_o4",
+            "cr_a20719a89ae7_o6"
+          ],
+          "reason": "실내 모형 T 연습용이며 실제 관측 성능은 여전히 측정하지 않았다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_a20719a89ae7_o1",
+        "cr_a20719a89ae7_o2",
+        "cr_a20719a89ae7_o3",
+        "cr_a20719a89ae7_o4",
+        "cr_a20719a89ae7_o5",
+        "cr_a20719a89ae7_o6"
+      ],
+      "rationale": "과거 원본(o1~o4)은 과거 지시(10-05 A→B, 10-12 B→A)의 시점과 실내 모형 T 연습용 조건을 복구하는 데 필요하며, o5와 o6은 10월 19일 자 현행 C→B→A 순서와 실제 관측 미측정 상태를 확정한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "matte_film_f_first_sheet_stripe_reduced",
+          "claim": "해솔 필름 스캔 비교 1~2회차(2026-10-05)에서 무광 필름 F 첫 번째 장은 설정 M으로 줄무늬가 줄었으며, 이 첫 장의 관찰 기록은 삭제하지 않고 유지한다.",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o1",
+            "cr_49bae2d5f8ed_o2",
+            "cr_49bae2d5f8ed_o5",
+            "cr_49bae2d5f8ed_o6"
+          ]
+        },
+        {
+          "fact_key": "glossy_film_g_stain_and_matte_film_f_second_sheet_stripe_remained",
+          "claim": "설정 M 적용 시 3~4회차(2026-10-12) 유광 필름 G 한 장에서는 얼룩이 생겼고, 5~6회차(2026-10-19) 무광 필름 F 두 번째 장에서는 줄무늬가 남았으며, 종합표에 세 관찰을 모두 구분해 기록했다.",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o3",
+            "cr_49bae2d5f8ed_o4",
+            "cr_49bae2d5f8ed_o5",
+            "cr_49bae2d5f8ed_o6"
+          ]
+        },
+        {
+          "fact_key": "setting_m_universal_superiority_unconfirmed",
+          "claim": "질의 시점(2026-10-19 10:00) 현재 필름 전체 설정은 통일하지 않았으며 설정 M의 보편적 우수성은 미확정이다.",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o2",
+            "cr_49bae2d5f8ed_o4",
+            "cr_49bae2d5f8ed_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "설정 M이 모든 필름이나 모든 무광 필름 F에서 줄무늬를 줄이는 보편 설정으로 확정됐거나, 반대로 둘째 장 결과 때문에 첫 장의 줄무늬 감소 기록이 삭제됐다.",
+          "evidence_refs": [
+            "cr_49bae2d5f8ed_o1",
+            "cr_49bae2d5f8ed_o3",
+            "cr_49bae2d5f8ed_o5",
+            "cr_49bae2d5f8ed_o6"
+          ],
+          "reason": "F 첫 장 개선, F 둘째 장 줄무늬 잔존, G 얼룩 발생을 모두 보존하며 설정 M의 보편적 우수성은 미확정이다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_49bae2d5f8ed_o1",
+        "cr_49bae2d5f8ed_o2",
+        "cr_49bae2d5f8ed_o3",
+        "cr_49bae2d5f8ed_o4",
+        "cr_49bae2d5f8ed_o5",
+        "cr_49bae2d5f8ed_o6"
+      ],
+      "rationale": "무광 F 첫 장(1~2회차), 유광 G(3~4회차), 무광 F 둘째 장(5~6회차)의 회차별 관찰과 보편 우수성 미확정 결론을 복구하기 위해 여섯 관찰이 모두 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "practice_tray_l_current_interval_5_cells_from_oct19_and_history",
+          "claim": "다솜 모종 분무 간격의 연습 트레이 L 표식 간격은 1~2회차(2026-10-05) 네 칸, 3~4회차(2026-10-12) 세 칸을 거쳐 5~6회차(2026-10-19)부터 다섯 칸 간격으로 변경됐으며, 네 칸과 세 칸 지시는 과거 이력이다.",
+          "supporting_evidence_refs": [
+            "cr_d47265f60808_o1",
+            "cr_d47265f60808_o2",
+            "cr_d47265f60808_o3",
+            "cr_d47265f60808_o4",
+            "cr_d47265f60808_o5",
+            "cr_d47265f60808_o6"
+          ]
+        },
+        {
+          "fact_key": "practice_tray_l_green_marker_and_no_cultivation_efficiency_conclusion",
+          "claim": "연습 트레이 L에서 실제 물을 뿌리지 않고 초록색 색종이 표식을 쓰는 연습 조건은 계속 유지되며, 실제 재배 시험이 아니고 실제 재배 효율에 관한 결론은 없다.",
+          "supporting_evidence_refs": [
+            "cr_d47265f60808_o1",
+            "cr_d47265f60808_o2",
+            "cr_d47265f60808_o4",
+            "cr_d47265f60808_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 연습 트레이 L의 표식 간격이 네 칸 또는 세 칸이다.",
+          "evidence_refs": [
+            "cr_d47265f60808_o4",
+            "cr_d47265f60808_o5",
+            "cr_d47265f60808_o6"
+          ],
+          "reason": "2026-10-19부터 다섯 칸 간격이 새 지시이며 네 칸과 세 칸 지시는 종료됐다."
+        },
+        {
+          "claim": "다섯 칸 간격으로 실제 모종에 물을 뿌리는 재배 시험을 수행해 실제 재배 효율이 입증됐다.",
+          "evidence_refs": [
+            "cr_d47265f60808_o1",
+            "cr_d47265f60808_o4",
+            "cr_d47265f60808_o6"
+          ],
+          "reason": "물 대신 초록 색종이 표식을 쓰는 연습이며 실제 재배 효율에 관한 결론은 없다고 명시했다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_d47265f60808_o1",
+        "cr_d47265f60808_o2",
+        "cr_d47265f60808_o3",
+        "cr_d47265f60808_o4",
+        "cr_d47265f60808_o5",
+        "cr_d47265f60808_o6"
+      ],
+      "rationale": "과거 원본(o1~o4)은 과거 간격(10-05 네 칸, 10-12 세 칸)의 시점과 유지되는 연습 조건(물 대신 초록 색종이 표식)을 복구하는 데 필요하며, o5와 o6은 10월 19일 자 현행 다섯 칸 간격과 실제 재배 효율 미확정을 확정한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "cotton_piece_a_first_wash_retained_second_wash_edge_faded",
+          "claim": "서린 천 염색 관찰에서 면 조각 A는 첫 번째 세척(1~2회차, 2026-10-05) 뒤 파란색이 유지됐으나 두 번째 세척(5~6회차, 2026-10-19) 뒤에는 가장자리 색이 옅어졌으며, 두 세척 회차 결과를 모두 별도 회차로 보존한다.",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o1",
+            "cr_90512f4a7ff3_o2",
+            "cr_90512f4a7ff3_o5",
+            "cr_90512f4a7ff3_o6"
+          ]
+        },
+        {
+          "fact_key": "silk_piece_b_first_wash_faded_and_no_universal_durability_guarantee",
+          "claim": "견 조각 B는 첫 번째 세척(3~4회차, 2026-10-12) 뒤 색이 옅어졌으며, 최종표는 재질과 세척 회차를 붙여 기록하고 염료 하나로 모든 섬유의 내구성을 보증하지 않는다.",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o2",
+            "cr_90512f4a7ff3_o3",
+            "cr_90512f4a7ff3_o4",
+            "cr_90512f4a7ff3_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "면 조각 A가 반복 세척에서도 변색 없이 색을 유지한다거나, 반대로 두 번째 세척 결과로 첫 번째 세척의 색 유지 기록이 폐기됐다.",
+          "evidence_refs": [
+            "cr_90512f4a7ff3_o1",
+            "cr_90512f4a7ff3_o4",
+            "cr_90512f4a7ff3_o5",
+            "cr_90512f4a7ff3_o6"
+          ],
+          "reason": "면 첫 회차 유지, 면 둘째 회차 가장자리 옅어짐, 견 첫 회차 옅어짐을 재질과 세척 회차별로 모두 보존한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_90512f4a7ff3_o1",
+        "cr_90512f4a7ff3_o2",
+        "cr_90512f4a7ff3_o3",
+        "cr_90512f4a7ff3_o4",
+        "cr_90512f4a7ff3_o5",
+        "cr_90512f4a7ff3_o6"
+      ],
+      "rationale": "면 A 1차 세척(1~2회차), 견 B 1차 세척(3~4회차), 면 A 2차 세척(5~6회차) 결과를 재질 및 세척 회차별로 복구하기 위해 여섯 관찰이 모두 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "empty_room_initial_mic_position_low_reflection",
+          "claim": "한울 음향 반사 모형 1~2회차(2026-10-05)에서 빈 방 모형에 패널 P를 두고 처음 마이크 위치에서 측정했을 때는 반사 표시가 낮았다.",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o1",
+            "cr_d9eb67f931bb_o2",
+            "cr_d9eb67f931bb_o5",
+            "cr_d9eb67f931bb_o6"
+          ]
+        },
+        {
+          "fact_key": "doll_filled_room_and_empty_room_corner_mic_high_reflection",
+          "claim": "패널 P가 있어도 3~4회차(2026-10-12) 천 인형을 채운 모형 조건과 5~6회차(2026-10-19) 빈 방 모형의 구석 마이크 위치 조건에서는 모두 반사 표시가 높았으며, 요약에는 점유 조건과 마이크 위치를 함께 남긴다.",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o3",
+            "cr_d9eb67f931bb_o4",
+            "cr_d9eb67f931bb_o5",
+            "cr_d9eb67f931bb_o6"
+          ]
+        },
+        {
+          "fact_key": "panel_p_universal_improvement_unverified",
+          "claim": "패널 P가 모든 마이크 위치와 모든 점유 조건 및 실제 공연장 전 좌석에서 반사를 낮춘다는 주장은 미검증이다.",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o2",
+            "cr_d9eb67f931bb_o4",
+            "cr_d9eb67f931bb_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "패널 P가 빈 방의 모든 마이크 위치나 인형이 찬 조건에서도 반사를 낮춘다거나, 구석 위치 측정으로 처음 위치의 낮음 기록이 덮어쓰기됐다.",
+          "evidence_refs": [
+            "cr_d9eb67f931bb_o1",
+            "cr_d9eb67f931bb_o3",
+            "cr_d9eb67f931bb_o5",
+            "cr_d9eb67f931bb_o6"
+          ],
+          "reason": "점유 조건(빈 방 대 인형 채움)과 마이크 위치(처음 위치 대 구석)별로 결과를 구분해 남기며 모든 위치와 점유에서의 감소는 미검증이다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_d9eb67f931bb_o1",
+        "cr_d9eb67f931bb_o2",
+        "cr_d9eb67f931bb_o3",
+        "cr_d9eb67f931bb_o4",
+        "cr_d9eb67f931bb_o5",
+        "cr_d9eb67f931bb_o6"
+      ],
+      "rationale": "빈 방 초기 마이크 위치(1~2회차), 인형 채움 조건(3~4회차), 빈 방 구석 마이크 위치(5~6회차)의 조건별 관찰을 복구하기 위해 여섯 관찰이 모두 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "solo_scene_channel_2_preset_s_and_chorus_channel_5_preset_c_preserved",
+          "claim": "여울 연습 무대 음향(1~6회차, 2026-10-05~2026-10-19)에서 독창 장면은 마이크 채널 2와 프리셋 S, 합창 장면(2026-10-12 3~4회차부터 배정)은 마이크 채널 5와 프리셋 C를 병행 유지하며, 독창과 합창 전환 시 채널과 프리셋을 반드시 함께 바꾼다.",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o1",
+            "cr_91a07a3fa4aa_o2",
+            "cr_91a07a3fa4aa_o3",
+            "cr_91a07a3fa4aa_o4",
+            "cr_91a07a3fa4aa_o6"
+          ]
+        },
+        {
+          "fact_key": "instrumental_only_scene_pending_new_assignment",
+          "claim": "5~6회차(2026-10-19 09:00~09:10) 기준 악기만 나오는 단독 장면은 기존 두 프리셋(S, C)을 쓰지 않고 음향 담당자의 새 배정을 기다리는 배정 대기(미확정) 상태다.",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o5",
+            "cr_91a07a3fa4aa_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "악기 단독 장면에서 프리셋 S나 프리셋 C를 사용한다거나 악기 단독 장면의 채널과 프리셋 배정이 완료됐다.",
+          "evidence_refs": [
+            "cr_91a07a3fa4aa_o5",
+            "cr_91a07a3fa4aa_o6"
+          ],
+          "reason": "악기만 나오는 장면은 두 프리셋을 쓰지 않고 음향 담당자의 새 배정을 기다리는 상태다."
+        },
+        {
+          "claim": "독창과 합창 전환 시 채널과 프리셋 중 하나만 바꿔도 된다.",
+          "evidence_refs": [
+            "cr_91a07a3fa4aa_o4"
+          ],
+          "reason": "독창과 합창 전환 때 채널과 프리셋을 함께 바꾸며 둘 중 하나만 바꾸지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_91a07a3fa4aa_o1",
+        "cr_91a07a3fa4aa_o2",
+        "cr_91a07a3fa4aa_o3",
+        "cr_91a07a3fa4aa_o4",
+        "cr_91a07a3fa4aa_o5",
+        "cr_91a07a3fa4aa_o6"
+      ],
+      "rationale": "독창 설정(1~2회차), 합창 설정 및 동시 전환 규칙(3~4회차), 악기 단독 장면 배정 대기 상태(5~6회차)를 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "stamp_z_current_ratio_1_to_2_from_oct19_and_history",
+          "claim": "이랑 도장 잉크 배합에서 도장 Z의 파랑 대 흰색 비율은 1~2회차(2026-10-05) 2대1, 3~4회차(2026-10-12) 1대1을 거쳐 5~6회차(2026-10-19)부터 1대2로 최종 승인됐으며, 2대1과 1대1은 과거 이력으로 구분한다.",
+          "supporting_evidence_refs": [
+            "cr_32f59875d5f3_o1",
+            "cr_32f59875d5f3_o2",
+            "cr_32f59875d5f3_o3",
+            "cr_32f59875d5f3_o4",
+            "cr_32f59875d5f3_o5",
+            "cr_32f59875d5f3_o6"
+          ]
+        },
+        {
+          "fact_key": "stamp_z_grey_sample_paper_and_other_stamps_excluded_maintained",
+          "claim": "도장 Z에 회색 견본지를 사용하는 조건은 1~6회차 전 기간 유지되며, 도장 Z 외 다른 도장의 배합은 대상이 아니고 바꾸지 않는다.",
+          "supporting_evidence_refs": [
+            "cr_32f59875d5f3_o1",
+            "cr_32f59875d5f3_o2",
+            "cr_32f59875d5f3_o4",
+            "cr_32f59875d5f3_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 도장 Z의 유효 파랑 대 흰색 비율이 2대1 또는 1대1이다.",
+          "evidence_refs": [
+            "cr_32f59875d5f3_o5",
+            "cr_32f59875d5f3_o6"
+          ],
+          "reason": "2026-10-19부터 도장 Z는 파랑 대 흰색 1대2로 최종 승인됐고 2대1과 1대1은 종료된 과거 이력이다."
+        },
+        {
+          "claim": "도장 Z 외 다른 도장도 1대2 배합으로 변경됐거나 회색 견본지 조건이 폐지됐다.",
+          "evidence_refs": [
+            "cr_32f59875d5f3_o2",
+            "cr_32f59875d5f3_o4",
+            "cr_32f59875d5f3_o6"
+          ],
+          "reason": "회색 견본지는 계속 사용하며 다른 도장 배합은 기록 대상이 아니고 바꾸지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_32f59875d5f3_o1",
+        "cr_32f59875d5f3_o2",
+        "cr_32f59875d5f3_o3",
+        "cr_32f59875d5f3_o4",
+        "cr_32f59875d5f3_o5",
+        "cr_32f59875d5f3_o6"
+      ],
+      "rationale": "과거 원본(o1~o4)은 과거 비율(10-05 2대1, 10-12 1대1)의 시점과 유지되는 조건(회색 견본지, 다른 도장 제외)을 복구하는 데 필요하며, o5와 o6은 10월 19일 자 현행 1대2 승인을 확정한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "cedar_single_runs_18s_22s_27s_and_input_mismatch",
+          "claim": "하람 번들 생성 비교에서 실험 브랜치 cedar의 단발 실행 관찰값은 캐시 켜기 첫 실행 18초(1~2회차, 2026-10-05), 캐시 끄기 실행 22초(3~4회차, 2026-10-12, 입력 파일 수 불일치), 캐시 켜기 재실행 27초(5~6회차, 2026-10-19)다.",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o1",
+            "cr_4d74b8c87993_o2",
+            "cr_4d74b8c87993_o3",
+            "cr_4d74b8c87993_o4",
+            "cr_4d74b8c87993_o5",
+            "cr_4d74b8c87993_o6"
+          ]
+        },
+        {
+          "fact_key": "consistent_speedup_and_production_deployment_unverified",
+          "claim": "첫 실행 18초를 모든 실행의 보장값이나 반복 평균으로 쓰지 않으며, 질의 시점 현재 일관된 가속이나 운영 브랜치 배포 승인은 아직 검증·확정되지 않았다.",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o1",
+            "cr_4d74b8c87993_o2",
+            "cr_4d74b8c87993_o4",
+            "cr_4d74b8c87993_o5",
+            "cr_4d74b8c87993_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "실험 브랜치 cedar의 캐시 켜기가 일관되게 18초를 보장한다거나 운영 브랜치 적용이 승인됐다.",
+          "evidence_refs": [
+            "cr_4d74b8c87993_o2",
+            "cr_4d74b8c87993_o4",
+            "cr_4d74b8c87993_o5",
+            "cr_4d74b8c87993_o6"
+          ],
+          "reason": "캐시 켜기 재실행이 27초였고 캐시 끄기(22초)와는 입력 파일 수가 달랐으며 운영 배포나 일관된 가속은 아직 검증하지 않았다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_4d74b8c87993_o1",
+        "cr_4d74b8c87993_o2",
+        "cr_4d74b8c87993_o3",
+        "cr_4d74b8c87993_o4",
+        "cr_4d74b8c87993_o5",
+        "cr_4d74b8c87993_o6"
+      ],
+      "rationale": "세 차례의 단발 관찰(18초, 22초, 27초)과 입력 조건 불일치 및 운영 미검증 상태를 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "three_fold_test_observations_by_shape_thickness_wetness",
+          "claim": "솔무 종이 접기 시험은 모양, 두께, 젖음 조건을 붙여 마른 얇은 정사각 시트 한 장 네 번 접기 무파손(1~2회차, 2026-10-05), 두꺼운 직사각 시트 세 번째 접기 갈라짐(3~4회차, 2026-10-12), 젖은 얇은 정사각 시트 두 번째 접기 찢어짐(5~6회차, 2026-10-19) 세 결과를 모두 보관한다.",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o1",
+            "cr_84e726281e76_o2",
+            "cr_84e726281e76_o3",
+            "cr_84e726281e76_o4",
+            "cr_84e726281e76_o5",
+            "cr_84e726281e76_o6"
+          ]
+        },
+        {
+          "fact_key": "unconditional_four_folds_procedure_unapproved",
+          "claim": "질의 시점 현재 조건 구분 없이 무조건 네 번 접는 절차는 승인하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o2",
+            "cr_84e726281e76_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "얇은 정사각 시트는 젖은 상태에서도 네 번 접기를 견딘다거나, 무조건 네 번 접는 보편 절차가 승인됐다.",
+          "evidence_refs": [
+            "cr_84e726281e76_o1",
+            "cr_84e726281e76_o3",
+            "cr_84e726281e76_o5",
+            "cr_84e726281e76_o6"
+          ],
+          "reason": "젖은 얇은 정사각 시트는 두 번째 접기에서 찢어졌고 두꺼운 직사각 시트는 세 번째 접기에서 갈라졌으며 무조건 네 번 접는 절차는 승인하지 않았다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_84e726281e76_o1",
+        "cr_84e726281e76_o2",
+        "cr_84e726281e76_o3",
+        "cr_84e726281e76_o4",
+        "cr_84e726281e76_o5",
+        "cr_84e726281e76_o6"
+      ],
+      "rationale": "마른 얇은 정사각(1~2회차), 두꺼운 직사각(3~4회차), 젖은 얇은 정사각(5~6회차) 세 표본 결과와 무조건 4회 접기 미승인 상태를 복구하기 위해 여섯 관찰이 모두 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre_test_container_and_session_id_verification_preserved",
+          "claim": "해담 소리통 보존 작업(1~6회차, 2026-10-05~2026-10-19)은 시험 시작 전에 통 식별자와 녹음 세션 식별자를 따로 확인해 각각 기록하고 둘이 작업표와 맞아야 시험을 시작하며, 하나를 다른 하나로 대신 쓰지 않고 원본 점검 일지를 함께 보관한다.",
+          "supporting_evidence_refs": [
+            "cr_215a7f41a363_o1",
+            "cr_215a7f41a363_o2",
+            "cr_215a7f41a363_o3",
+            "cr_215a7f41a363_o4",
+            "cr_215a7f41a363_o5",
+            "cr_215a7f41a363_o6"
+          ]
+        },
+        {
+          "fact_key": "green_dot_mark_and_closing_stand_h_added",
+          "claim": "3~4회차(2026-10-12)에 뚜껑 옆 초록 점 표식이 추가됐고 5~6회차(2026-10-19)에 마감 시 통을 받침 H에 두는 절차가 추가돼, 최종 기록은 통 및 세션 식별자 선행 대조, 초록 점 표식, 마감 받침 H 세 요소를 모두 포함한다.",
+          "supporting_evidence_refs": [
+            "cr_215a7f41a363_o3",
+            "cr_215a7f41a363_o4",
+            "cr_215a7f41a363_o5",
+            "cr_215a7f41a363_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "초록 점 표식이나 마감 받침 H 지시 이후 시험 전 통 식별자와 녹음 세션 식별자 개별 대조가 생략 가능해졌다.",
+          "evidence_refs": [
+            "cr_215a7f41a363_o1",
+            "cr_215a7f41a363_o3",
+            "cr_215a7f41a363_o4",
+            "cr_215a7f41a363_o5",
+            "cr_215a7f41a363_o6"
+          ],
+          "reason": "초록 점과 마감 받침 H는 추가 절차이며 시험 전 두 식별자 선행 확인은 전 회차에서 그대로 유지된다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_215a7f41a363_o1",
+        "cr_215a7f41a363_o2",
+        "cr_215a7f41a363_o3",
+        "cr_215a7f41a363_o4",
+        "cr_215a7f41a363_o5",
+        "cr_215a7f41a363_o6"
+      ],
+      "rationale": "1~2회차의 선행 두 식별자 대조, 3~4회차의 초록 점 표식 추가, 5~6회차의 마감 받침 H 추가 및 원본 일지 보관 원칙을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre_assembly_groove_direction_and_missing_count_checks_preserved",
+          "claim": "라온 퍼즐 부품 보존 작업(1~6회차, 2026-10-05~2026-10-19)은 조립 전에 홈 방향 확인과 누락 부품 수 확인을 각각 수행해 따로 기록하고 두 확인을 마친 뒤에만 조립하며, 최초 점검표도 함께 보관한다.",
+          "supporting_evidence_refs": [
+            "cr_6b7dc6c6eb04_o1",
+            "cr_6b7dc6c6eb04_o2",
+            "cr_6b7dc6c6eb04_o3",
+            "cr_6b7dc6c6eb04_o4",
+            "cr_6b7dc6c6eb04_o5",
+            "cr_6b7dc6c6eb04_o6"
+          ]
+        },
+        {
+          "fact_key": "red_base_and_remaining_parts_bag_date_added",
+          "claim": "3~4회차(2026-10-12)에 완성판 붉은 받침 지시가 추가됐고 5~6회차(2026-10-19)에 작업 종료 후 남은 부품 봉투 날짜 기입이 추가돼, 최신표에는 홈 방향 및 누락 수 확인, 붉은 받침, 잔여 봉투 날짜를 모두 남긴다.",
+          "supporting_evidence_refs": [
+            "cr_6b7dc6c6eb04_o3",
+            "cr_6b7dc6c6eb04_o4",
+            "cr_6b7dc6c6eb04_o5",
+            "cr_6b7dc6c6eb04_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "붉은 받침이나 잔여 봉투 날짜 기입이 추가되면서 조립 전 홈 방향 확인 또는 누락 부품 수 확인이 폐지됐다.",
+          "evidence_refs": [
+            "cr_6b7dc6c6eb04_o1",
+            "cr_6b7dc6c6eb04_o3",
+            "cr_6b7dc6c6eb04_o4",
+            "cr_6b7dc6c6eb04_o5",
+            "cr_6b7dc6c6eb04_o6"
+          ],
+          "reason": "방향 및 누락 수 선행 확인은 그대로 유지하며 최신표에 세 단계 항목을 모두 남기고 최초 점검표도 보관한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_6b7dc6c6eb04_o1",
+        "cr_6b7dc6c6eb04_o2",
+        "cr_6b7dc6c6eb04_o3",
+        "cr_6b7dc6c6eb04_o4",
+        "cr_6b7dc6c6eb04_o5",
+        "cr_6b7dc6c6eb04_o6"
+      ],
+      "rationale": "1~2회차의 조립 전 두 확인, 3~4회차의 붉은 받침 추가, 5~6회차의 잔여 봉투 날짜 기입 추가를 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre_insert_type_and_drawer_code_verification_preserved",
+          "claim": "초담 활자함 보존 절차(1~6회차, 2026-10-05~2026-10-19)는 활자 투입 전에 활자 코드와 서랍 코드를 모두 별도 항목으로 대조하며, 모양이 닮아도 코드 대조를 건너뛰지 않고 최초 원본표를 마감 기록과 함께 보관한다.",
+          "supporting_evidence_refs": [
+            "cr_ad8d7cf4c0a6_o1",
+            "cr_ad8d7cf4c0a6_o2",
+            "cr_ad8d7cf4c0a6_o3",
+            "cr_ad8d7cf4c0a6_o4",
+            "cr_ad8d7cf4c0a6_o5",
+            "cr_ad8d7cf4c0a6_o6"
+          ]
+        },
+        {
+          "fact_key": "handle_white_line_and_closing_empty_slot_count_added",
+          "claim": "3~4회차(2026-10-12)에 손잡이 흰 줄 표시가 추가됐고 5~6회차(2026-10-19)에 작업 마감 시 빈 칸 수 기록이 추가돼, 최종 체크는 두 코드 대조, 손잡이 흰 줄, 마감 빈 칸 수 세 항목을 모두 포함한다.",
+          "supporting_evidence_refs": [
+            "cr_ad8d7cf4c0a6_o3",
+            "cr_ad8d7cf4c0a6_o4",
+            "cr_ad8d7cf4c0a6_o5",
+            "cr_ad8d7cf4c0a6_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "손잡이 흰 줄 표시나 마감 빈 칸 수 기록으로 투입 전 활자 코드 및 서랍 코드 대조를 대체할 수 있다.",
+          "evidence_refs": [
+            "cr_ad8d7cf4c0a6_o1",
+            "cr_ad8d7cf4c0a6_o3",
+            "cr_ad8d7cf4c0a6_o4",
+            "cr_ad8d7cf4c0a6_o5",
+            "cr_ad8d7cf4c0a6_o6"
+          ],
+          "reason": "투입 전 활자 코드와 서랍 코드 대조는 전 회차에서 여전히 필수이며 추가 항목들로 대체되지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_ad8d7cf4c0a6_o1",
+        "cr_ad8d7cf4c0a6_o2",
+        "cr_ad8d7cf4c0a6_o3",
+        "cr_ad8d7cf4c0a6_o4",
+        "cr_ad8d7cf4c0a6_o5",
+        "cr_ad8d7cf4c0a6_o6"
+      ],
+      "rationale": "1~2회차의 두 코드 대조, 3~4회차의 손잡이 흰 줄 추가, 5~6회차의 마감 빈 칸 수 기록 추가 및 최초 원본표 보관을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "plain_endpaper_le_120g_thin_brush_2ml_and_gt_120g_wide_brush_3ml",
+          "claim": "푸름 제본 접착 시험(1~6회차, 2026-10-05~2026-10-19)에서 일반 면지는 무게 120그램 이하(정확히 120그램 포함)일 때 얇은 붓과 한 면당 접착제 2밀리리터를 쓰고(100그램 한 묶음 처리 이력), 120그램 초과일 때 넓은 붓과 한 면당 3밀리리터를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr_29d0d8367872_o1",
+            "cr_29d0d8367872_o2",
+            "cr_29d0d8367872_o3",
+            "cr_29d0d8367872_o4",
+            "cr_29d0d8367872_o6"
+          ]
+        },
+        {
+          "fact_key": "coated_endpaper_hold_pending_separate_specimen_approval",
+          "claim": "5~6회차(2026-10-19 09:00~09:10)부터 코팅 면지는 무게 기준보다 먼저 별도 시편 승인을 받아야 하며, 일반 면지의 접착제 양을 곧바로 적용하지 않고 시편 승인 전까지 작업을 보류한다.",
+          "supporting_evidence_refs": [
+            "cr_29d0d8367872_o5",
+            "cr_29d0d8367872_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "코팅 면지에도 별도 시편 승인 없이 무게에 따라 곧바로 2밀리리터 또는 3밀리리터 접착제를 적용한다.",
+          "evidence_refs": [
+            "cr_29d0d8367872_o5",
+            "cr_29d0d8367872_o6"
+          ],
+          "reason": "코팅 면지는 기존 면지 양을 곧바로 적용하지 않으며 별도 시편 승인 전까지 작업을 보류한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_29d0d8367872_o1",
+        "cr_29d0d8367872_o2",
+        "cr_29d0d8367872_o3",
+        "cr_29d0d8367872_o4",
+        "cr_29d0d8367872_o5",
+        "cr_29d0d8367872_o6"
+      ],
+      "rationale": "일반 면지 120그램 이하 조건(1~2회차), 120그램 초과 및 경계 분류(3~4회차), 코팅 면지 시편 승인 전 보류 규칙(5~6회차)을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "rubber_plate_r_current_scale_2_from_oct19_and_history",
+          "claim": "새미 판화 압력 기록에서 고무판 R의 인쇄기 공식 눈금은 1~2회차(2026-10-05) 눈금 4, 3~4회차(2026-10-12) 눈금 3을 거쳐 5~6회차(2026-10-19)부터 눈금 2로 최종 결정됐으며, 현재 작업표에는 눈금 2만 적고 눈금 4와 3은 과거 기록으로 구분한다.",
+          "supporting_evidence_refs": [
+            "cr_8295228a4783_o1",
+            "cr_8295228a4783_o2",
+            "cr_8295228a4783_o3",
+            "cr_8295228a4783_o4",
+            "cr_8295228a4783_o5",
+            "cr_8295228a4783_o6"
+          ]
+        },
+        {
+          "fact_key": "rubber_plate_r_paper_bundle_p_maintained",
+          "claim": "고무판 R에 종이 P묶음을 사용하는 조건은 1~6회차(2026-10-05~2026-10-19) 전 기간에 걸쳐 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_8295228a4783_o1",
+            "cr_8295228a4783_o2",
+            "cr_8295228a4783_o3",
+            "cr_8295228a4783_o4",
+            "cr_8295228a4783_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 고무판 R의 공식 인쇄기 눈금이 4 또는 3이다.",
+          "evidence_refs": [
+            "cr_8295228a4783_o5",
+            "cr_8295228a4783_o6"
+          ],
+          "reason": "2026-10-19부터 고무판 R은 눈금 2를 쓰며 눈금 4와 3은 과거 기록으로 구분하고 현재 작업표에는 눈금 2만 적는다."
+        },
+        {
+          "claim": "종이 P묶음 조건이 변경됐거나 고무판 R 외 다른 판재에도 눈금 2가 일괄 승인됐다.",
+          "evidence_refs": [
+            "cr_8295228a4783_o1",
+            "cr_8295228a4783_o4",
+            "cr_8295228a4783_o5"
+          ],
+          "reason": "종이는 여전히 P묶음이며 모든 결정은 고무판 R에 한정된다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_8295228a4783_o1",
+        "cr_8295228a4783_o2",
+        "cr_8295228a4783_o3",
+        "cr_8295228a4783_o4",
+        "cr_8295228a4783_o5",
+        "cr_8295228a4783_o6"
+      ],
+      "rationale": "과거 원본(o1~o4)은 과거 눈금(10-05 눈금 4, 10-12 눈금 3)의 시점과 유지되는 종이 P묶음 기준을 복구하는 데 필요하며, o5와 o6은 10월 19일 자 현행 눈금 2 확정을 뒷받침한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "plate_number_precheck_and_waste_paper_first_sheet_preserved",
+          "claim": "보담 목판 인쇄 보존 작업(1~6회차, 2026-10-05~2026-10-19)은 판을 놓기 전 판번호 선행 확인과 첫 시트 폐지 시험 두 조건을 모두 생략 없이 수행하며, 원본 작업표를 보관한다.",
+          "supporting_evidence_refs": [
+            "cr_7d41de362ce0_o1",
+            "cr_7d41de362ce0_o2",
+            "cr_7d41de362ce0_o3",
+            "cr_7d41de362ce0_o4",
+            "cr_7d41de362ce0_o5",
+            "cr_7d41de362ce0_o6"
+          ]
+        },
+        {
+          "fact_key": "orange_handle_mark_and_closing_ink_lid_check_added",
+          "claim": "3~4회차(2026-10-12)에 주황색 손잡이 표식이 추가됐고 5~6회차(2026-10-19)에 마감 후 잉크통 뚜껑 확인이 추가돼, 최종 대조는 판번호 선행 확인, 첫 폐지 시험, 주황 표식, 마감 뚜껑 확인 네 항목이다.",
+          "supporting_evidence_refs": [
+            "cr_7d41de362ce0_o3",
+            "cr_7d41de362ce0_o4",
+            "cr_7d41de362ce0_o5",
+            "cr_7d41de362ce0_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "주황 표식이나 마감 잉크통 뚜껑 확인이 추가되면서 판번호 선행 확인 또는 첫 시트 폐지 시험이 생략 가능해졌다.",
+          "evidence_refs": [
+            "cr_7d41de362ce0_o1",
+            "cr_7d41de362ce0_o3",
+            "cr_7d41de362ce0_o4",
+            "cr_7d41de362ce0_o5",
+            "cr_7d41de362ce0_o6"
+          ],
+          "reason": "최종 대조는 네 항목 모두이며 기존 선행 확인과 첫 시트 시험은 전 회차에서 유지된다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7d41de362ce0_o1",
+        "cr_7d41de362ce0_o2",
+        "cr_7d41de362ce0_o3",
+        "cr_7d41de362ce0_o4",
+        "cr_7d41de362ce0_o5",
+        "cr_7d41de362ce0_o6"
+      ],
+      "rationale": "1~2회차의 판번호 확인 및 첫 폐지 시험, 3~4회차의 주황 손잡이 표식, 5~6회차의 마감 뚜껑 확인 및 원본 작업표 보관을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_current_light_line_b_from_oct19_replacing_line_a",
+          "claim": "아솔 그림자극 준비 작업 X(subject_b5417ab0076e_x) 첫 장면의 광원 위치는 1~2회차(2026-10-05)에 표시선 A였으나, 5~6회차(2026-10-19)부터 표시선 B로 변경 확정됐다.",
+          "supporting_evidence_refs": [
+            "cr_b5417ab0076e_o1",
+            "cr_b5417ab0076e_o2",
+            "cr_b5417ab0076e_o5",
+            "cr_b5417ab0076e_o6"
+          ]
+        },
+        {
+          "fact_key": "task_x_white_cloth_and_left_puppet_entry_maintained",
+          "claim": "아솔 그림자극 준비 작업 X 첫 장면에서 흰 천 뒤에서 시작하고 인형을 왼쪽에서 넣는 조건은 2026-10-19 광원 위치 변경 이후에도 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_b5417ab0076e_o1",
+            "cr_b5417ab0076e_o2",
+            "cr_b5417ab0076e_o5",
+            "cr_b5417ab0076e_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 작업 X의 광원 위치가 표시선 A이거나, 별개 간식 작업 Y의 검은 쟁반 및 오른쪽 탁자 지시가 그림자극 X에 적용된다.",
+          "evidence_refs": [
+            "cr_b5417ab0076e_o1",
+            "cr_b5417ab0076e_o3",
+            "cr_b5417ab0076e_o4",
+            "cr_b5417ab0076e_o5",
+            "cr_b5417ab0076e_o6"
+          ],
+          "reason": "2026-10-19부터 광원은 표시선 B로 확정됐으며, o3와 o4는 별개 간식 작업 Y(subject_b5417ab0076e_y)로서 그림자극 X의 장면 조건이 아니다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_b5417ab0076e_o1",
+        "cr_b5417ab0076e_o2",
+        "cr_b5417ab0076e_o5",
+        "cr_b5417ab0076e_o6"
+      ],
+      "rationale": "o1, o2는 첫 장면 대상과 유지 조건(흰 천, 왼쪽 인형 진입) 및 과거 광원 A 이력을 복구하고 o5, o6은 현행 광원 B 변경을 확정한다. 별개 간식 작업 Y(o3, o4)는 무관 입력이므로 relevant_evidence_refs에서 제외한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "visible_mode_plate_v_30cm_and_infrared_mode_plate_i_45cm_preserved",
+          "claim": "누리 렌즈 측정(1~6회차, 2026-10-05~2026-10-19)에서 가시광 모드는 기준판 V를 렌즈 앞 30센티미터에 두고, 적외선 모드(2026-10-12 3~4회차부터 추가)는 기준판 I를 렌즈 앞 45센티미터에 두며, 기준판 V와 I는 서로 바꿔 쓰지 않는다.",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o1",
+            "cr_b1a1e731f99f_o2",
+            "cr_b1a1e731f99f_o3",
+            "cr_b1a1e731f99f_o4",
+            "cr_b1a1e731f99f_o6"
+          ]
+        },
+        {
+          "fact_key": "mixed_light_sample_hold_pending_classifier_judgment",
+          "claim": "5~6회차(2026-10-19 09:00~09:10) 기준 혼합광 샘플은 가시광이나 적외선 두 모드 중 하나로 임의 분류하지 않으며, 분류 담당자의 판정 전에는 수치를 확정하지 않고 대기한다.",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o5",
+            "cr_b1a1e731f99f_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "혼합광 샘플을 가시광(V, 30센티미터) 또는 적외선(I, 45센티미터) 중 하나로 임의 분류해 수치를 확정할 수 있다.",
+          "evidence_refs": [
+            "cr_b1a1e731f99f_o5",
+            "cr_b1a1e731f99f_o6"
+          ],
+          "reason": "혼합광 샘플은 두 모드 중 하나로 임의 분류하지 않으며 분류 담당자 판정 전에는 수치를 확정하지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_b1a1e731f99f_o1",
+        "cr_b1a1e731f99f_o2",
+        "cr_b1a1e731f99f_o3",
+        "cr_b1a1e731f99f_o4",
+        "cr_b1a1e731f99f_o5",
+        "cr_b1a1e731f99f_o6"
+      ],
+      "rationale": "가시광 모드(1~2회차), 적외선 모드 및 상호 호환 금지(3~4회차), 혼합광 샘플 판정 대기 규칙(5~6회차)을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_model_j_current_navy_letter_from_oct19_replacing_grey",
+          "claim": "은재 조형물 명찰 작업 X(subject_02ed2463abff_x)에서 모형 J 명찰의 글자색은 1~2회차(2026-10-05)에 회색이었으나, 5~6회차(2026-10-19)부터 남색으로 변경됐다.",
+          "supporting_evidence_refs": [
+            "cr_02ed2463abff_o1",
+            "cr_02ed2463abff_o2",
+            "cr_02ed2463abff_o5",
+            "cr_02ed2463abff_o6"
+          ]
+        },
+        {
+          "fact_key": "task_x_model_j_id_precheck_and_front_base_position_maintained",
+          "claim": "은재 조형물 명찰 작업 X에서 모형 J의 식별번호를 먼저 대조한 뒤 명찰을 받침 앞면에 붙이는 절차는 2026-10-19 글자색 변경 이후에도 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_02ed2463abff_o1",
+            "cr_02ed2463abff_o2",
+            "cr_02ed2463abff_o5",
+            "cr_02ed2463abff_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 모형 J 명찰 글자색이 회색이거나, 별개 우편 작업 Y의 뒷면 부착 및 녹색 글자 규칙이 적용된다.",
+          "evidence_refs": [
+            "cr_02ed2463abff_o1",
+            "cr_02ed2463abff_o3",
+            "cr_02ed2463abff_o4",
+            "cr_02ed2463abff_o5",
+            "cr_02ed2463abff_o6"
+          ],
+          "reason": "2026-10-19부터 작업 X의 명찰 글자색은 남색으로 변경됐고, o3와 o4는 별개 우편 상자 작업 Y(subject_02ed2463abff_y)로서 조형물 X와 무관하다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_02ed2463abff_o1",
+        "cr_02ed2463abff_o2",
+        "cr_02ed2463abff_o5",
+        "cr_02ed2463abff_o6"
+      ],
+      "rationale": "o1, o2는 모형 J 대상과 유지 조건(식별번호 선대조, 받침 앞면 부착) 및 과거 회색 글자 이력을 복구하고 o5, o6은 현행 남색 글자 변경을 확정한다. 별개 우편 작업 Y(o3, o4)는 무관 입력이므로 relevant_evidence_refs에서 제외한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_current_four_round_tokens_from_oct19_replacing_three",
+          "claim": "우담 게임 토큰 작업 X(subject_c66f61b183ea_x)의 한 세트당 둥근 토큰 수량은 1~2회차(2026-10-05)에 세 개였으나, 5~6회차(2026-10-19)부터 네 개로 변경됐다.",
+          "supporting_evidence_refs": [
+            "cr_c66f61b183ea_o1",
+            "cr_c66f61b183ea_o2",
+            "cr_c66f61b183ea_o5",
+            "cr_c66f61b183ea_o6"
+          ]
+        },
+        {
+          "fact_key": "task_x_number_precheck_and_purple_cord_maintained",
+          "claim": "우담 게임 토큰 작업 X에서 시작 전에 각 토큰 번호를 대조하고 보라색 끈으로 묶는 조건은 2026-10-19 세트 수량 변경 이후에도 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_c66f61b183ea_o1",
+            "cr_c66f61b183ea_o2",
+            "cr_c66f61b183ea_o5",
+            "cr_c66f61b183ea_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 작업 X의 세트 수량이 세 개이거나, 별개 조명 판 작업 Y의 사각 판 다섯 개 및 흰 끈 규칙이 적용된다.",
+          "evidence_refs": [
+            "cr_c66f61b183ea_o1",
+            "cr_c66f61b183ea_o3",
+            "cr_c66f61b183ea_o4",
+            "cr_c66f61b183ea_o5",
+            "cr_c66f61b183ea_o6"
+          ],
+          "reason": "2026-10-19부터 작업 X의 둥근 토큰 세트는 네 개로 변경됐고, o3와 o4는 별개 조명 판 작업 Y(subject_c66f61b183ea_y)로서 작업 X와 섞지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_c66f61b183ea_o1",
+        "cr_c66f61b183ea_o2",
+        "cr_c66f61b183ea_o5",
+        "cr_c66f61b183ea_o6"
+      ],
+      "rationale": "o1, o2는 유지 조건(시작 전 번호 대조, 둥근 토큰, 보라색 끈)과 과거 3개 이력을 복구하고 o5, o6은 현행 4개 변경을 확정한다. 별개 조명 판 작업 Y(o3, o4)는 무관 입력이므로 relevant_evidence_refs에서 제외한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "sensor_k_three_observations_by_mount_material_and_shock",
+          "claim": "온빛 센서 부착 관찰에서 센서 K의 흔들림 표시는 나무 받침 평상시 조건에서 작음(1~2회차, 2026-10-05), 금속 받침 조건에서 큼(3~4회차, 2026-10-12), 나무 받침을 세게 두드린 충격 조건에서 큼(5~6회차, 2026-10-19)으로 각각 구분해 기록한다.",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o1",
+            "cr_7350982d59af_o2",
+            "cr_7350982d59af_o3",
+            "cr_7350982d59af_o4",
+            "cr_7350982d59af_o5",
+            "cr_7350982d59af_o6"
+          ]
+        },
+        {
+          "fact_key": "sensor_k_universal_stability_unconfirmed",
+          "claim": "센서 K나 장치 전체가 모든 재질 및 충격 조건에서 안정적이라는 결론은 없다.",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o2",
+            "cr_7350982d59af_o4",
+            "cr_7350982d59af_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "나무 받침에서는 충격 조건에서도 흔들림 표시가 작다거나, 충격 시험 결과로 인해 평상시 나무 받침의 작은 흔들림 기록이 무효화됐다.",
+          "evidence_refs": [
+            "cr_7350982d59af_o1",
+            "cr_7350982d59af_o3",
+            "cr_7350982d59af_o5",
+            "cr_7350982d59af_o6"
+          ],
+          "reason": "나무 평상시 작음, 금속 큼, 나무 충격 시 큼을 조건별로 구분해 모두 남기며 모든 조건에서 안정적이라는 결론은 없다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7350982d59af_o1",
+        "cr_7350982d59af_o2",
+        "cr_7350982d59af_o3",
+        "cr_7350982d59af_o4",
+        "cr_7350982d59af_o5",
+        "cr_7350982d59af_o6"
+      ],
+      "rationale": "나무 받침 평상시(1~2회차), 금속 받침(3~4회차), 나무 받침 충격 시(5~6회차) 조건별 관찰과 보편 안정성 미확정을 복구하기 위해 여섯 관찰이 모두 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "freshwater_blue_tub_18min_and_seawater_grey_tub_32min_preserved",
+          "claim": "마노 수조 적응 실험(1~6회차, 2026-10-05~2026-10-19)은 실제 생물 대신 빈 모형만 사용하는 연습으로서 담수 모형은 파란 통에서 18분 대기하고 해수 모형(2026-10-12 3~4회차부터 추가)은 회색 통에서 32분 대기하며, 두 모형은 다른 상자로 관리한다.",
+          "supporting_evidence_refs": [
+            "cr_7e751ae71a7a_o1",
+            "cr_7e751ae71a7a_o2",
+            "cr_7e751ae71a7a_o3",
+            "cr_7e751ae71a7a_o4",
+            "cr_7e751ae71a7a_o6"
+          ]
+        },
+        {
+          "fact_key": "unlabeled_model_hold_pending_label_officer_check",
+          "claim": "5~6회차(2026-10-19 09:00~09:10)부터 종류 표찰이 떨어진(표찰 없는) 모형은 대기를 시작하지 않고 표찰 담당자에게 보내며 담당자 확인 전까지 보류한다.",
+          "supporting_evidence_refs": [
+            "cr_7e751ae71a7a_o5",
+            "cr_7e751ae71a7a_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "표찰이 떨어진 모형을 임의로 파란 통(18분)이나 회색 통(32분)에 넣어 대기를 시작해도 된다.",
+          "evidence_refs": [
+            "cr_7e751ae71a7a_o5",
+            "cr_7e751ae71a7a_o6"
+          ],
+          "reason": "종류 표찰이 없는 모형은 대기를 시작하지 않고 표찰 담당자 확인 전까지 보류한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7e751ae71a7a_o1",
+        "cr_7e751ae71a7a_o2",
+        "cr_7e751ae71a7a_o3",
+        "cr_7e751ae71a7a_o4",
+        "cr_7e751ae71a7a_o5",
+        "cr_7e751ae71a7a_o6"
+      ],
+      "rationale": "빈 담수 모형 규칙(1~2회차), 해수 모형 추가 및 분리 관리(3~4회차), 표찰 없는 모형 보류 규칙(5~6회차)을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre_fold_drawing_version_and_sheet_side_checks_preserved",
+          "claim": "예담 종이 모형 보존 절차(1~6회차, 2026-10-05~2026-10-19)는 첫 접기 전에 도면 판본 확인과 시트 앞뒷면 맞춤 두 선행 단계를 모두 수행하며, 원본 절차표를 함께 보존한다.",
+          "supporting_evidence_refs": [
+            "cr_668798d106b4_o1",
+            "cr_668798d106b4_o2",
+            "cr_668798d106b4_o3",
+            "cr_668798d106b4_o4",
+            "cr_668798d106b4_o5",
+            "cr_668798d106b4_o6"
+          ]
+        },
+        {
+          "fact_key": "star_stamp_and_drawing_envelope_storage_added",
+          "claim": "3~4회차(2026-10-12)에 완성품 아래 별표 찍기가 추가됐고 5~6회차(2026-10-19)에 작업 후 사용한 도면을 전용 봉투에 넣는 절차가 추가돼, 최종 인수표는 선행 두 단계, 완성품 별표, 도면 봉투 보관을 모두 포함한다.",
+          "supporting_evidence_refs": [
+            "cr_668798d106b4_o3",
+            "cr_668798d106b4_o4",
+            "cr_668798d106b4_o5",
+            "cr_668798d106b4_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "완성품 별표나 도면 봉투 보관 절차 추가로 인해 접기 전 도면 판본 확인이나 시트 앞뒷면 맞춤이 생략 가능해졌다.",
+          "evidence_refs": [
+            "cr_668798d106b4_o1",
+            "cr_668798d106b4_o3",
+            "cr_668798d106b4_o4",
+            "cr_668798d106b4_o5",
+            "cr_668798d106b4_o6"
+          ],
+          "reason": "접기 전 도면 판본 확인과 시트 앞뒷면 맞춤 두 단계는 전 회차에서 그대로 유지된다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_668798d106b4_o1",
+        "cr_668798d106b4_o2",
+        "cr_668798d106b4_o3",
+        "cr_668798d106b4_o4",
+        "cr_668798d106b4_o5",
+        "cr_668798d106b4_o6"
+      ],
+      "rationale": "1~2회차의 접기 전 선행 두 단계, 3~4회차의 완성품 별표 추가, 5~6회차의 도면 전용 봉투 보관 추가를 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "thin_open_12min_and_thick_closed_25min_cooling_preserved",
+          "claim": "자분 공방 유약 시험(1~6회차, 2026-10-05~2026-10-19)에서 냉각 규칙은 얇은 시험편은 덮개를 연 채(개방) 12분, 두꺼운 시험편(2026-10-12 3~4회차부터 추가)은 덮개를 닫은 채(밀폐) 25분으로 각각 구분해 유지한다.",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o1",
+            "cr_e5f75b0acfa6_o2",
+            "cr_e5f75b0acfa6_o3",
+            "cr_e5f75b0acfa6_o4",
+            "cr_e5f75b0acfa6_o6"
+          ]
+        },
+        {
+          "fact_key": "wet_specimen_pre_dryness_check_without_extending_cooling_time",
+          "claim": "5~6회차(2026-10-19 09:00~09:10)부터 젖은 시험편은 두께와 관계없이 먼저 건조 확인을 받으며, 젖었다고 냉각 시간을 늘리라는 결정은 없고 건조 확인 뒤에도 기존 두께별 냉각 규칙(얇음 개방 12분, 두꺼움 밀폐 25분)을 그대로 적용한다.",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o5",
+            "cr_e5f75b0acfa6_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "젖은 시험편은 건조 확인 없이 바로 냉각하거나 기존 냉각 시간(12분, 25분)보다 냉각 시간을 더 늘려야 한다.",
+          "evidence_refs": [
+            "cr_e5f75b0acfa6_o5",
+            "cr_e5f75b0acfa6_o6"
+          ],
+          "reason": "젖은 시험편은 먼저 건조 확인을 받으며 냉각 시간을 더 늘리라는 결정은 없고 건조 확인 후 기존 두께별 시간을 유지한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_e5f75b0acfa6_o1",
+        "cr_e5f75b0acfa6_o2",
+        "cr_e5f75b0acfa6_o3",
+        "cr_e5f75b0acfa6_o4",
+        "cr_e5f75b0acfa6_o5",
+        "cr_e5f75b0acfa6_o6"
+      ],
+      "rationale": "얇은 시험편 규칙(1~2회차), 두꺼운 시험편 규칙(3~4회차), 젖은 시험편 선행 건조 확인 추가 및 냉각 시간 불변(5~6회차)을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "session_q_current_suffix_src_from_oct19_and_history",
+          "claim": "아람 녹음 파일 규칙에서 연습 세션 Q의 새 파일 접미사는 1~2회차(2026-10-05) _take, 3~4회차(2026-10-12) _raw를 거쳐 5~6회차(2026-10-19)부터 _src로 확정됐다.",
+          "supporting_evidence_refs": [
+            "cr_dcfc7c02c76c_o1",
+            "cr_dcfc7c02c76c_o2",
+            "cr_dcfc7c02c76c_o3",
+            "cr_dcfc7c02c76c_o4",
+            "cr_dcfc7c02c76c_o5",
+            "cr_dcfc7c02c76c_o6"
+          ]
+        },
+        {
+          "fact_key": "session_q_room_q_folder_and_past_take_raw_files_preserved",
+          "claim": "세션 Q의 저장 폴더 room-Q는 계속 유지되며, 과거에 생성된 _take(2026-10-05 파일 두 개 포함)와 _raw 파일은 변경 이력으로 보관하고 자동 삭제하거나 이동하지 않는다.",
+          "supporting_evidence_refs": [
+            "cr_dcfc7c02c76c_o1",
+            "cr_dcfc7c02c76c_o2",
+            "cr_dcfc7c02c76c_o3",
+            "cr_dcfc7c02c76c_o4",
+            "cr_dcfc7c02c76c_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "2026-10-19 이후 세션 Q의 새 파일에 _take 또는 _raw 접미사를 붙인다.",
+          "evidence_refs": [
+            "cr_dcfc7c02c76c_o3",
+            "cr_dcfc7c02c76c_o5",
+            "cr_dcfc7c02c76c_o6"
+          ],
+          "reason": "2026-10-19부터 세션 Q의 새 파일 접미사는 _src이며 _take와 _raw는 이전 기간의 규칙이다."
+        },
+        {
+          "claim": "과거 _take 파일이나 _raw 파일을 자동 삭제하거나 다른 폴더로 이동해야 한다.",
+          "evidence_refs": [
+            "cr_dcfc7c02c76c_o4",
+            "cr_dcfc7c02c76c_o6"
+          ],
+          "reason": "과거 _take와 _raw 파일은 변경 이력으로 보관하고 자동 삭제나 이동을 하지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_dcfc7c02c76c_o1",
+        "cr_dcfc7c02c76c_o2",
+        "cr_dcfc7c02c76c_o3",
+        "cr_dcfc7c02c76c_o4",
+        "cr_dcfc7c02c76c_o5",
+        "cr_dcfc7c02c76c_o6"
+      ],
+      "rationale": "과거 원본(o1~o4)은 저장 폴더(room-Q) 기준과 보존 대상인 과거 _take(10-05) 및 _raw(10-12) 파일의 이력을 복구하는 데 필요하며, o5와 o6은 10월 19일 자 현행 _src 접미사와 과거 파일 보존 원칙을 확정한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre_open_box_and_seal_number_verification_preserved",
+          "claim": "나린 표본 상자 보존 작업(1~6회차, 2026-10-05~2026-10-19)은 개봉 전에 상자번호와 봉인번호를 별도 칸으로 각각 대조하며, 두 번호가 맞기 전에는 뚜껑을 열지 않고 원본 점검표를 삭제하지 않고 유지한다.",
+          "supporting_evidence_refs": [
+            "cr_8dd0ef55898a_o1",
+            "cr_8dd0ef55898a_o2",
+            "cr_8dd0ef55898a_o3",
+            "cr_8dd0ef55898a_o4",
+            "cr_8dd0ef55898a_o5",
+            "cr_8dd0ef55898a_o6"
+          ]
+        },
+        {
+          "fact_key": "blue_corner_mark_and_closing_closed_lid_photo_added",
+          "claim": "3~4회차(2026-10-12)에 파란 모서리 표식이 추가됐고 5~6회차(2026-10-19)에 마감 시 닫힌 뚜껑 사진 촬영이 추가돼, 최종표는 두 번호 대조 후 개봉, 파란 모서리, 닫힌 뚜껑 사진을 모두 포함한다.",
+          "supporting_evidence_refs": [
+            "cr_8dd0ef55898a_o3",
+            "cr_8dd0ef55898a_o4",
+            "cr_8dd0ef55898a_o5",
+            "cr_8dd0ef55898a_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "파란 모서리 표식이나 닫힌 뚜껑 사진 촬영으로 개봉 전 상자번호와 봉인번호 대조를 대체할 수 있다.",
+          "evidence_refs": [
+            "cr_8dd0ef55898a_o1",
+            "cr_8dd0ef55898a_o3",
+            "cr_8dd0ef55898a_o4",
+            "cr_8dd0ef55898a_o5",
+            "cr_8dd0ef55898a_o6"
+          ],
+          "reason": "개봉 전 상자번호와 봉인번호 대조는 계속 필수이며 원본 점검표도 삭제하지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_8dd0ef55898a_o1",
+        "cr_8dd0ef55898a_o2",
+        "cr_8dd0ef55898a_o3",
+        "cr_8dd0ef55898a_o4",
+        "cr_8dd0ef55898a_o5",
+        "cr_8dd0ef55898a_o6"
+      ],
+      "rationale": "1~2회차의 개봉 전 두 번호 대조, 3~4회차의 파란 모서리 표식 추가, 5~6회차의 마감 닫힌 뚜껑 사진 추가 및 원본 점검표 보존을 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "task_x_current_black_pen_from_oct19_replacing_pencil",
+          "claim": "온새 카드 분류 작업 X(subject_1f3e4823215b_x)의 숫자 표기 도구는 1~2회차(2026-10-05)에 연필이었으나, 5~6회차(2026-10-19)부터 검은 펜으로 확정 변경됐다.",
+          "supporting_evidence_refs": [
+            "cr_1f3e4823215b_o1",
+            "cr_1f3e4823215b_o2",
+            "cr_1f3e4823215b_o5",
+            "cr_1f3e4823215b_o6"
+          ]
+        },
+        {
+          "fact_key": "task_x_animal_card_triangle_box_and_back_dots_maintained",
+          "claim": "온새 카드 분류 작업 X에서 동물 카드를 세모 상자에 넣고 뒷면의 점 개수를 확인하는 절차는 2026-10-19 필기구 변경 이후에도 그대로 유지된다.",
+          "supporting_evidence_refs": [
+            "cr_1f3e4823215b_o1",
+            "cr_1f3e4823215b_o2",
+            "cr_1f3e4823215b_o5",
+            "cr_1f3e4823215b_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "질의 시점(2026-10-19 10:00) 현재 작업 X의 숫자 표기를 연필로 한다거나, 별개 천 조각 작업 Y의 네모 상자, 앞면 색 확인, 빨간 펜 규칙을 적용한다.",
+          "evidence_refs": [
+            "cr_1f3e4823215b_o1",
+            "cr_1f3e4823215b_o3",
+            "cr_1f3e4823215b_o4",
+            "cr_1f3e4823215b_o5",
+            "cr_1f3e4823215b_o6"
+          ],
+          "reason": "2026-10-19부터 작업 X의 숫자 표기는 검은 펜으로 변경됐고, o3와 o4는 별개 천 조각 작업 Y(subject_1f3e4823215b_y)로서 작업 X에 가져오지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_1f3e4823215b_o1",
+        "cr_1f3e4823215b_o2",
+        "cr_1f3e4823215b_o5",
+        "cr_1f3e4823215b_o6"
+      ],
+      "rationale": "o1, o2는 동물 카드 대상과 유지 조건(세모 상자, 뒷면 점 개수 확인) 및 과거 연필 표기 이력을 복구하고 o5, o6은 현행 검은 펜 변경을 확정한다. 별개 천 조각 작업 Y(o3, o4)는 무관 입력이므로 relevant_evidence_refs에서 제외한다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "dry_wood_and_dry_glass_prop_packing_rules_preserved",
+          "claim": "도담 소품 포장 작업(1~6회차, 2026-10-05~2026-10-19)에서 마른 나무 소품은 천 주머니와 소품 하나당 완충 종이 두 장(10-05에 5개 포장 관찰)을 쓰고, 마른 유리 소품(2026-10-12 3~4회차부터 추가)은 칸막이 상자와 완충 종이 네 장을 쓴다.",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o1",
+            "cr_0861bd25a8ad_o2",
+            "cr_0861bd25a8ad_o3",
+            "cr_0861bd25a8ad_o4",
+            "cr_0861bd25a8ad_o6"
+          ]
+        },
+        {
+          "fact_key": "wet_prop_dryness_inspection_before_packing_added",
+          "claim": "5~6회차(2026-10-19 09:00~09:10)부터 젖은 소품은 재질에 관계없이 먼저 건조 검사대로 보내며, 건조 검사 전에는 포장을 시작하지 않고 건조 후에는 기존 재질별 포장 재료와 종이 수를 유지한다.",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o5",
+            "cr_0861bd25a8ad_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "젖은 소품을 건조 검사 없이 곧바로 포장한다거나, 건조 검사 규칙 추가로 마른 나무와 마른 유리 소품의 포장 재료나 완충 종이 매수가 변경됐다.",
+          "evidence_refs": [
+            "cr_0861bd25a8ad_o1",
+            "cr_0861bd25a8ad_o3",
+            "cr_0861bd25a8ad_o5",
+            "cr_0861bd25a8ad_o6"
+          ],
+          "reason": "젖은 소품은 건조 검사 전 포장을 시작하지 않으며 마른 나무와 마른 유리의 기존 포장 재료와 종이 수는 그대로 유지한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_0861bd25a8ad_o1",
+        "cr_0861bd25a8ad_o2",
+        "cr_0861bd25a8ad_o3",
+        "cr_0861bd25a8ad_o4",
+        "cr_0861bd25a8ad_o5",
+        "cr_0861bd25a8ad_o6"
+      ],
+      "rationale": "나무 소품 포장 규칙(1~2회차), 유리 소품 포장 규칙(3~4회차), 젖은 소품 선행 건조 검사 추가 및 기존 재료 유지(5~6회차)를 모두 복구하기 위해 여섯 관찰이 필요하다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}

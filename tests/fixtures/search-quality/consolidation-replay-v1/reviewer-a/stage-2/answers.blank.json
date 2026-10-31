@@ -1,0 +1,312 @@
+{
+  "reviewer_id": null,
+  "model": null,
+  "judged_at": null,
+  "label_source": "agent_panel",
+  "rubric_version": "consolidation-replay-v1",
+  "stage": 2,
+  "packet_sha256": "5a7a60775ec641c3a1478e6f09ec9e7457779358b4cdc47eb6e01c86dedcc725",
+  "rubric_sha256": "81389061848fce3919fbb72ab1009bec34490c1b1ac74843c87acfddf1b6188c",
+  "answers": [
+    {
+      "checkpoint_id": "cr_7350982d59af_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t2",
+      "status": "pending",
+      "required_facts": [],
+      "forbidden_claims": [],
+      "relevant_evidence_refs": [],
+      "rationale": null,
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}

@@ -1,0 +1,1314 @@
+{
+  "reviewer_id": "머슴1 reviewer-b",
+  "model": "composer-2.5",
+  "judged_at": "2026-10-31T13:40:58Z",
+  "label_source": "agent_panel",
+  "rubric_version": "consolidation-replay-v1",
+  "stage": 3,
+  "packet_sha256": "1671e6eaf34b76f1db04317ab9e9e1acab85fb8e226ff0a1cb801a681837016e",
+  "rubric_sha256": "81389061848fce3919fbb72ab1009bec34490c1b1ac74843c87acfddf1b6188c",
+  "answers": [
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "thin_thick",
+          "claim": "얇은: 덮개 개방 12분, 두꺼운: 밀폐 25분 유지(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o1",
+            "cr_e5f75b0acfa6_o4",
+            "cr_e5f75b0acfa6_o6"
+          ]
+        },
+        {
+          "fact_key": "wet_precheck",
+          "claim": "젖은 시험편은 두께와 무관 건조 확인 선행, 냉각 시간 연장 결정 없음(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_e5f75b0acfa6_o5",
+            "cr_e5f75b0acfa6_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "젖으면 냉각 시간을 늘린다",
+          "evidence_refs": [
+            "cr_e5f75b0acfa6_o5"
+          ],
+          "reason": "o5"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_e5f75b0acfa6_o1",
+        "cr_e5f75b0acfa6_o2",
+        "cr_e5f75b0acfa6_o3",
+        "cr_e5f75b0acfa6_o4",
+        "cr_e5f75b0acfa6_o5",
+        "cr_e5f75b0acfa6_o6"
+      ],
+      "rationale": "질의 시점(2026-10-19) 현행: 두께별 냉각+젖은 시험편 건조 선행만 추가.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "history",
+          "claim": "과거 42cm·10/12–18 40cm는 이력(o1–o4).",
+          "supporting_evidence_refs": [
+            "cr_2bc6447b6989_o1",
+            "cr_2bc6447b6989_o4"
+          ]
+        },
+        {
+          "fact_key": "current",
+          "claim": "10/19부터 현행 41cm·흰 가장자리 실(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_2bc6447b6989_o5",
+            "cr_2bc6447b6989_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 폭 40cm",
+          "evidence_refs": [
+            "cr_2bc6447b6989_o5",
+            "cr_2bc6447b6989_o6"
+          ],
+          "reason": "41cm"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_2bc6447b6989_o1",
+        "cr_2bc6447b6989_o2",
+        "cr_2bc6447b6989_o3",
+        "cr_2bc6447b6989_o4",
+        "cr_2bc6447b6989_o5",
+        "cr_2bc6447b6989_o6"
+      ],
+      "rationale": "폭 재정정 41cm, 색 유지.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "past",
+          "claim": "과거 A→B, 이후 B→A는 이력(o1–o4).",
+          "supporting_evidence_refs": [
+            "cr_a20719a89ae7_o1",
+            "cr_a20719a89ae7_o4"
+          ]
+        },
+        {
+          "fact_key": "current",
+          "claim": "10/19부터 T는 C→B→A, 실내 모형만·관측 성능 미측정(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_a20719a89ae7_o5",
+            "cr_a20719a89ae7_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 B→A 단독",
+          "evidence_refs": [
+            "cr_a20719a89ae7_o5"
+          ],
+          "reason": "종료"
+        },
+        {
+          "claim": "실제 관측 성공",
+          "evidence_refs": [
+            "cr_a20719a89ae7_o6"
+          ],
+          "reason": "o6"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_a20719a89ae7_o1",
+        "cr_a20719a89ae7_o2",
+        "cr_a20719a89ae7_o3",
+        "cr_a20719a89ae7_o4",
+        "cr_a20719a89ae7_o5",
+        "cr_a20719a89ae7_o6"
+      ],
+      "rationale": "순서 3단계 정정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "pre",
+          "claim": "조립 전 홈·누락 수 확인 유지(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_6b7dc6c6eb04_o1",
+            "cr_6b7dc6c6eb04_o6"
+          ]
+        },
+        {
+          "fact_key": "extras",
+          "claim": "붉은 받침·잔여 봉투 날짜 추가(o3·o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_6b7dc6c6eb04_o3",
+            "cr_6b7dc6c6eb04_o5",
+            "cr_6b7dc6c6eb04_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "받침만으로 조립 가능",
+          "evidence_refs": [
+            "cr_6b7dc6c6eb04_o4"
+          ],
+          "reason": "o4"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_6b7dc6c6eb04_o1",
+        "cr_6b7dc6c6eb04_o2",
+        "cr_6b7dc6c6eb04_o3",
+        "cr_6b7dc6c6eb04_o4",
+        "cr_6b7dc6c6eb04_o5",
+        "cr_6b7dc6c6eb04_o6"
+      ],
+      "rationale": "선행 확인+부가 항목.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "solo_chorus",
+          "claim": "독창 2·S, 합창 5·C 병행·전환 시 둘 다 변경(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o1",
+            "cr_91a07a3fa4aa_o4",
+            "cr_91a07a3fa4aa_o6"
+          ]
+        },
+        {
+          "fact_key": "instrument",
+          "claim": "악기 단독 장면은 프리셋 없이 배정 대기(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_91a07a3fa4aa_o5",
+            "cr_91a07a3fa4aa_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "악기 장면도 S/C",
+          "evidence_refs": [
+            "cr_91a07a3fa4aa_o5"
+          ],
+          "reason": "대기"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_91a07a3fa4aa_o1",
+        "cr_91a07a3fa4aa_o2",
+        "cr_91a07a3fa4aa_o3",
+        "cr_91a07a3fa4aa_o4",
+        "cr_91a07a3fa4aa_o5",
+        "cr_91a07a3fa4aa_o6"
+      ],
+      "rationale": "장면별 배정+악기 미배정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_current",
+          "claim": "X: 번호 대조·둥근 토큰 4개·보라 끈(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_c66f61b183ea_o5",
+            "cr_c66f61b183ea_o6"
+          ]
+        },
+        {
+          "fact_key": "y_sep",
+          "claim": "Y 사각 판 5·흰 끈은 별도(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_c66f61b183ea_o3",
+            "cr_c66f61b183ea_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "X도 3개·흰 끈",
+          "evidence_refs": [
+            "cr_c66f61b183ea_o6"
+          ],
+          "reason": "4·보라"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_c66f61b183ea_o1",
+        "cr_c66f61b183ea_o2",
+        "cr_c66f61b183ea_o3",
+        "cr_c66f61b183ea_o4",
+        "cr_c66f61b183ea_o5",
+        "cr_c66f61b183ea_o6"
+      ],
+      "rationale": "X 수량 정정, Y 분리.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "models",
+          "claim": "담수 파란 18분·해수 회색 32분(o3·o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_7e751ae71a7a_o3",
+            "cr_7e751ae71a7a_o6"
+          ]
+        },
+        {
+          "fact_key": "label_hold",
+          "claim": "표찰 없는 모형은 대기 시작 전 담당 확인·보류(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_7e751ae71a7a_o5",
+            "cr_7e751ae71a7a_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "표찰 없어도 18/32분 시작",
+          "evidence_refs": [
+            "cr_7e751ae71a7a_o5"
+          ],
+          "reason": "보류"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7e751ae71a7a_o1",
+        "cr_7e751ae71a7a_o2",
+        "cr_7e751ae71a7a_o3",
+        "cr_7e751ae71a7a_o4",
+        "cr_7e751ae71a7a_o5",
+        "cr_7e751ae71a7a_o6"
+      ],
+      "rationale": "모형별 시간+표찰 게이트.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x",
+          "claim": "X: 세모 상자·뒷면 점·검은 펜(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_1f3e4823215b_o5",
+            "cr_1f3e4823215b_o6"
+          ]
+        },
+        {
+          "fact_key": "y",
+          "claim": "Y 천 조각 규칙은 X에 적용 안 함(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_1f3e4823215b_o3",
+            "cr_1f3e4823215b_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "X도 연필·네mo",
+          "evidence_refs": [
+            "cr_1f3e4823215b_o6"
+          ],
+          "reason": "검은 펜·세mo"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_1f3e4823215b_o1",
+        "cr_1f3e4823215b_o2",
+        "cr_1f3e4823215b_o3",
+        "cr_1f3e4823215b_o4",
+        "cr_1f3e4823215b_o5",
+        "cr_1f3e4823215b_o6"
+      ],
+      "rationale": "표기색만 변경.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x",
+          "claim": "X: 재질표 선행·15cm·서랍 F(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_2703804c1441_o5",
+            "cr_2703804c1441_o6"
+          ]
+        },
+        {
+          "fact_key": "y",
+          "claim": "Y 포스터 통은 X 무관(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_2703804c1441_o3",
+            "cr_2703804c1441_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "X는 서랍 D",
+          "evidence_refs": [
+            "cr_2703804c1441_o6"
+          ],
+          "reason": "F"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_2703804c1441_o1",
+        "cr_2703804c1441_o2",
+        "cr_2703804c1441_o3",
+        "cr_2703804c1441_o4",
+        "cr_2703804c1441_o5",
+        "cr_2703804c1441_o6"
+      ],
+      "rationale": "서랍만 F로.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "plain",
+          "claim": "일반 면지 ≤120g 2ml·>120g 3ml(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_29d0d8367872_o1",
+            "cr_29d0d8367872_o4",
+            "cr_29d0d8367872_o6"
+          ]
+        },
+        {
+          "fact_key": "coated",
+          "claim": "코팅 면지는 시편 승인 전 보류, 기존 양 곧바로 적용 금지(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_29d0d8367872_o5",
+            "cr_29d0d8367872_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "코팅도 2ml",
+          "evidence_refs": [
+            "cr_29d0d8367872_o5"
+          ],
+          "reason": "승인 전 보류"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_29d0d8367872_o1",
+        "cr_29d0d8367872_o2",
+        "cr_29d0d8367872_o3",
+        "cr_29d0d8367872_o4",
+        "cr_29d0d8367872_o5",
+        "cr_29d0d8367872_o6"
+      ],
+      "rationale": "일반 규칙+코ating 미확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "history",
+          "claim": "과거 눈금 4·3 이력(o1–o4).",
+          "supporting_evidence_refs": [
+            "cr_8295228a4783_o1",
+            "cr_8295228a4783_o4"
+          ]
+        },
+        {
+          "fact_key": "current",
+          "claim": "10/19부터 R 공식 눈금 2·P묶음 유지(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_8295228a4783_o5",
+            "cr_8295228a4783_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 눈금 3",
+          "evidence_refs": [
+            "cr_8295228a4783_o5",
+            "cr_8295228a4783_o6"
+          ],
+          "reason": "2"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_8295228a4783_o1",
+        "cr_8295228a4783_o2",
+        "cr_8295228a4783_o3",
+        "cr_8295228a4783_o4",
+        "cr_8295228a4783_o5",
+        "cr_8295228a4783_o6"
+      ],
+      "rationale": "눈금 2로 재정정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "dual",
+          "claim": "상자·봉인 번호 각각 대조 후 개봉(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_8dd0ef55898a_o1",
+            "cr_8dd0ef55898a_o6"
+          ]
+        },
+        {
+          "fact_key": "photo",
+          "claim": "파란 모서리·마감 닫힌 뚜껑 사진 추가(o3·o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_8dd0ef55898a_o3",
+            "cr_8dd0ef55898a_o5",
+            "cr_8dd0ef55898a_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모서리만으로 개봉",
+          "evidence_refs": [
+            "cr_8dd0ef55898a_o4"
+          ],
+          "reason": "o4"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_8dd0ef55898a_o1",
+        "cr_8dd0ef55898a_o2",
+        "cr_8dd0ef55898a_o3",
+        "cr_8dd0ef55898a_o4",
+        "cr_8dd0ef55898a_o5",
+        "cr_8dd0ef55898a_o6"
+      ],
+      "rationale": "번호 대조+기록 강화.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x",
+          "claim": "X: 식별번호 대조→남색 명찰→받침 앞면(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_02ed2463abff_o5",
+            "cr_02ed2463abff_o6"
+          ]
+        },
+        {
+          "fact_key": "y",
+          "claim": "Y 우편 녹색·뒷면은 X 무관(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_02ed2463abff_o3",
+            "cr_02ed2463abff_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "X 명찰 회색",
+          "evidence_refs": [
+            "cr_02ed2463abff_o6"
+          ],
+          "reason": "남색"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_02ed2463abff_o1",
+        "cr_02ed2463abff_o2",
+        "cr_02ed2463abff_o3",
+        "cr_02ed2463abff_o4",
+        "cr_02ed2463abff_o5",
+        "cr_02ed2463abff_o6"
+      ],
+      "rationale": "색만 남색.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "dry_thin_sq",
+          "claim": "마른 얇은 정사각 4접 무파손(o1·o4).",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o1",
+            "cr_84e726281e76_o4"
+          ]
+        },
+        {
+          "fact_key": "thick",
+          "claim": "두꺼운 직사각 3접 갈라짐(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o3",
+            "cr_84e726281e76_o4"
+          ]
+        },
+        {
+          "fact_key": "wet",
+          "claim": "젖은 얇은 정사각 2접 찢어짐, 마른 결과 보존(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_84e726281e76_o5",
+            "cr_84e726281e76_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "무조건 4접 가능",
+          "evidence_refs": [
+            "cr_84e726281e76_o6"
+          ],
+          "reason": "o6"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_84e726281e76_o1",
+        "cr_84e726281e76_o2",
+        "cr_84e726281e76_o3",
+        "cr_84e726281e76_o4",
+        "cr_84e726281e76_o5",
+        "cr_84e726281e76_o6"
+      ],
+      "rationale": "조건별 3결과.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "codes",
+          "claim": "활자·서랍 코드 각각 대조 유지(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_ad8d7cf4c0a6_o1",
+            "cr_ad8d7cf4c0a6_o6"
+          ]
+        },
+        {
+          "fact_key": "extras",
+          "claim": "흰 줄·마감 빈 칸 수(o3·o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_ad8d7cf4c0a6_o3",
+            "cr_ad8d7cf4c0a6_o5",
+            "cr_ad8d7cf4c0a6_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "흰 줄로 코드 대체",
+          "evidence_refs": [
+            "cr_ad8d7cf4c0a6_o4"
+          ],
+          "reason": "o4"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_ad8d7cf4c0a6_o1",
+        "cr_ad8d7cf4c0a6_o2",
+        "cr_ad8d7cf4c0a6_o3",
+        "cr_ad8d7cf4c0a6_o4",
+        "cr_ad8d7cf4c0a6_o5",
+        "cr_ad8d7cf4c0a6_o6"
+      ],
+      "rationale": "대조+기록 확장.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "occ",
+          "claim": "빈 방+중앙 마이크 낮음·인형 채움 높음(o1·o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o1",
+            "cr_d9eb67f931bb_o3",
+            "cr_d9eb67f931bb_o4"
+          ]
+        },
+        {
+          "fact_key": "corner",
+          "claim": "빈 방 구석 마이크는 높음, 점유·위치 함께 기록(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_d9eb67f931bb_o5",
+            "cr_d9eb67f931bb_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "P가 모든 조건에서 반사 낮춤",
+          "evidence_refs": [
+            "cr_d9eb67f931bb_o6"
+          ],
+          "reason": "미검증"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_d9eb67f931bb_o1",
+        "cr_d9eb67f931bb_o2",
+        "cr_d9eb67f931bb_o3",
+        "cr_d9eb67f931bb_o4",
+        "cr_d9eb67f931bb_o5",
+        "cr_d9eb67f931bb_o6"
+      ],
+      "rationale": "조건·위치별 관찰.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "prefold",
+          "claim": "접기 전 판본·앞뒷면 유지(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_668798d106b4_o1",
+            "cr_668798d106b4_o6"
+          ]
+        },
+        {
+          "fact_key": "extras",
+          "claim": "완성품 별표·도면 전용 봉투(o3·o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_668798d106b4_o3",
+            "cr_668798d106b4_o5",
+            "cr_668798d106b4_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "별표만으로 접기 전 절차 대체",
+          "evidence_refs": [
+            "cr_668798d106b4_o4"
+          ],
+          "reason": "o4"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_668798d106b4_o1",
+        "cr_668798d106b4_o2",
+        "cr_668798d106b4_o3",
+        "cr_668798d106b4_o4",
+        "cr_668798d106b4_o5",
+        "cr_668798d106b4_o6"
+      ],
+      "rationale": "선행 두 단계+보관.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "runs",
+          "claim": "cedar 단발 18·22·27초·입력 불일치(o1–o5).",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o1",
+            "cr_4d74b8c87993_o3",
+            "cr_4d74b8c87993_o5"
+          ]
+        },
+        {
+          "fact_key": "no_prod",
+          "claim": "운영 배포·일관 가속 미검증(o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_4d74b8c87993_o4",
+            "cr_4d74b8c87993_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "캐시 켬이 항상 18초",
+          "evidence_refs": [
+            "cr_4d74b8c87993_o5",
+            "cr_4d74b8c87993_o6"
+          ],
+          "reason": "27초 재실행"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_4d74b8c87993_o1",
+        "cr_4d74b8c87993_o2",
+        "cr_4d74b8c87993_o3",
+        "cr_4d74b8c87993_o4",
+        "cr_4d74b8c87993_o5",
+        "cr_4d74b8c87993_o6"
+      ],
+      "rationale": "단발 관찰만.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x",
+          "claim": "X: 좌표 선행·북쪽 격자·10/19부터 청색 별표(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_9bd884941ba5_o5",
+            "cr_9bd884941ba5_o6"
+          ]
+        },
+        {
+          "fact_key": "y",
+          "claim": "Y 노란 장식은 X 무관(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_9bd884941ba5_o3",
+            "cr_9bd884941ba5_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "X 별표 은색",
+          "evidence_refs": [
+            "cr_9bd884941ba5_o6"
+          ],
+          "reason": "청색"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_9bd884941ba5_o1",
+        "cr_9bd884941ba5_o2",
+        "cr_9bd884941ba5_o3",
+        "cr_9bd884941ba5_o4",
+        "cr_9bd884941ba5_o5",
+        "cr_9bd884941ba5_o6"
+      ],
+      "rationale": "별색만 변경.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "f1",
+          "claim": "F 첫 장 M에서 줄무늬 감소(o1·o4).",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o1",
+            "cr_49bae2d5f8ed_o4"
+          ]
+        },
+        {
+          "fact_key": "g",
+          "claim": "G M에서 얼룩(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o3",
+            "cr_49bae2d5f8ed_o4"
+          ]
+        },
+        {
+          "fact_key": "f2",
+          "claim": "F 둘째 장 M에서 줄무늬 잔존, 첫 장 관찰 유지(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_49bae2d5f8ed_o5",
+            "cr_49bae2d5f8ed_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "M이 모든 필름에 우수",
+          "evidence_refs": [
+            "cr_49bae2d5f8ed_o6"
+          ],
+          "reason": "미확정"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_49bae2d5f8ed_o1",
+        "cr_49bae2d5f8ed_o2",
+        "cr_49bae2d5f8ed_o3",
+        "cr_49bae2d5f8ed_o4",
+        "cr_49bae2d5f8ed_o5",
+        "cr_49bae2d5f8ed_o6"
+      ],
+      "rationale": "장·필름별 결과.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x",
+          "claim": "X: 흰 천·광원 B·왼쪽 진입(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_b5417ab0076e_o5",
+            "cr_b5417ab0076e_o6"
+          ]
+        },
+        {
+          "fact_key": "y",
+          "claim": "Y 간식 탁자는 X 무관(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_b5417ab0076e_o3",
+            "cr_b5417ab0076e_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "X 광원 A",
+          "evidence_refs": [
+            "cr_b5417ab0076e_o6"
+          ],
+          "reason": "B"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_b5417ab0076e_o1",
+        "cr_b5417ab0076e_o2",
+        "cr_b5417ab0076e_o3",
+        "cr_b5417ab0076e_o4",
+        "cr_b5417ab0076e_o5",
+        "cr_b5417ab0076e_o6"
+      ],
+      "rationale": "광원만 B.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "history",
+          "claim": "과거 _take·_raw 이력(o1–o4).",
+          "supporting_evidence_refs": [
+            "cr_dcfc7c02c76c_o1",
+            "cr_dcfc7c02c76c_o4"
+          ]
+        },
+        {
+          "fact_key": "current",
+          "claim": "현재 Q 새 파일 _src·room-Q, 과거 파일 자동 삭제 없음(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_dcfc7c02c76c_o5",
+            "cr_dcfc7c02c76c_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "신규 _raw",
+          "evidence_refs": [
+            "cr_dcfc7c02c76c_o5",
+            "cr_dcfc7c02c76c_o6"
+          ],
+          "reason": "_src"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_dcfc7c02c76c_o1",
+        "cr_dcfc7c02c76c_o2",
+        "cr_dcfc7c02c76c_o3",
+        "cr_dcfc7c02c76c_o4",
+        "cr_dcfc7c02c76c_o5",
+        "cr_dcfc7c02c76c_o6"
+      ],
+      "rationale": "접미사 _src.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "dry_pack",
+          "claim": "마른 나무 주머니·2장, 마른 유리 칸막이·4장(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o1",
+            "cr_0861bd25a8ad_o4",
+            "cr_0861bd25a8ad_o6"
+          ]
+        },
+        {
+          "fact_key": "wet",
+          "claim": "젖은 소품은 재질 무관 건조 검사 선행(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_0861bd25a8ad_o5",
+            "cr_0861bd25a8ad_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "젖은 소품도 동일 포장 즉시",
+          "evidence_refs": [
+            "cr_0861bd25a8ad_o5"
+          ],
+          "reason": "검사 전 금지"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_0861bd25a8ad_o1",
+        "cr_0861bd25a8ad_o2",
+        "cr_0861bd25a8ad_o3",
+        "cr_0861bd25a8ad_o4",
+        "cr_0861bd25a8ad_o5",
+        "cr_0861bd25a8ad_o6"
+      ],
+      "rationale": "재질별 포장+젖음 게이트.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "core",
+          "claim": "판번호·폐지 첫 시트·주황 표식·마감 뚜껑(o1–o6).",
+          "supporting_evidence_refs": [
+            "cr_7d41de362ce0_o1",
+            "cr_7d41de362ce0_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "표식만으로 절차 대체",
+          "evidence_refs": [
+            "cr_7d41de362ce0_o4"
+          ],
+          "reason": "o4"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7d41de362ce0_o1",
+        "cr_7d41de362ce0_o2",
+        "cr_7d41de362ce0_o3",
+        "cr_7d41de362ce0_o4",
+        "cr_7d41de362ce0_o5",
+        "cr_7d41de362ce0_o6"
+      ],
+      "rationale": "네 항목 절차.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "modes",
+          "claim": "가시광 V·30cm, 적외선 I·45cm(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o1",
+            "cr_b1a1e731f99f_o6"
+          ]
+        },
+        {
+          "fact_key": "mixed",
+          "claim": "혼합광은 임의 분류·수치 확정 금지, 담당 판정 대기(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_b1a1e731f99f_o5",
+            "cr_b1a1e731f99f_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "혼합광을 V 30cm로 확정",
+          "evidence_refs": [
+            "cr_b1a1e731f99f_o5"
+          ],
+          "reason": "대기"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_b1a1e731f99f_o1",
+        "cr_b1a1e731f99f_o2",
+        "cr_b1a1e731f99f_o3",
+        "cr_b1a1e731f99f_o4",
+        "cr_b1a1e731f99f_o5",
+        "cr_b1a1e731f99f_o6"
+      ],
+      "rationale": "모드별+혼합 미확정 범위.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "wood_metal",
+          "claim": "나무 평상시 작음·금속 큼(o1·o3·o6).",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o1",
+            "cr_7350982d59af_o3",
+            "cr_7350982d59af_o6"
+          ]
+        },
+        {
+          "fact_key": "impact",
+          "claim": "나무 충격 시 큼, 평상시와 구분(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_7350982d59af_o5",
+            "cr_7350982d59af_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "K가 모든 조건에서 안정",
+          "evidence_refs": [
+            "cr_7350982d59af_o6"
+          ],
+          "reason": "o6"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_7350982d59af_o1",
+        "cr_7350982d59af_o2",
+        "cr_7350982d59af_o3",
+        "cr_7350982d59af_o4",
+        "cr_7350982d59af_o5",
+        "cr_7350982d59af_o6"
+      ],
+      "rationale": "조건별 3관찰.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "history",
+          "claim": "과거 2:1·1:1 이력(o1–o4).",
+          "supporting_evidence_refs": [
+            "cr_32f59875d5f3_o1",
+            "cr_32f59875d5f3_o4"
+          ]
+        },
+        {
+          "fact_key": "current",
+          "claim": "10/19부터 Z 1:2·회색 견본지(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_32f59875d5f3_o5",
+            "cr_32f59875d5f3_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 1:1",
+          "evidence_refs": [
+            "cr_32f59875d5f3_o5",
+            "cr_32f59875d5f3_o6"
+          ],
+          "reason": "1:2"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_32f59875d5f3_o1",
+        "cr_32f59875d5f3_o2",
+        "cr_32f59875d5f3_o3",
+        "cr_32f59875d5f3_o4",
+        "cr_32f59875d5f3_o5",
+        "cr_32f59875d5f3_o6"
+      ],
+      "rationale": "1:2 최종.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "history",
+          "claim": "과거 4·3칸 이력(o1–o4).",
+          "supporting_evidence_refs": [
+            "cr_d47265f60808_o1",
+            "cr_d47265f60808_o4"
+          ]
+        },
+        {
+          "fact_key": "current",
+          "claim": "10/19부터 L 다섯 칸·초록·연습만(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_d47265f60808_o5",
+            "cr_d47265f60808_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 세 칸",
+          "evidence_refs": [
+            "cr_d47265f60808_o5",
+            "cr_d47265f60808_o6"
+          ],
+          "reason": "다섯 칸"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_d47265f60808_o1",
+        "cr_d47265f60808_o2",
+        "cr_d47265f60808_o3",
+        "cr_d47265f60808_o4",
+        "cr_d47265f60808_o5",
+        "cr_d47265f60808_o6"
+      ],
+      "rationale": "간격 5칸.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "ids",
+          "claim": "통·세션 식별자 각각 선행 대조(o1–o4·o6).",
+          "supporting_evidence_refs": [
+            "cr_215a7f41a363_o1",
+            "cr_215a7f41a363_o6"
+          ]
+        },
+        {
+          "fact_key": "extras",
+          "claim": "초록 점·마감 받침 H(o3·o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_215a7f41a363_o3",
+            "cr_215a7f41a363_o5",
+            "cr_215a7f41a363_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "초록 점만으로 식별자 생략",
+          "evidence_refs": [
+            "cr_215a7f41a363_o4"
+          ],
+          "reason": "o4"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_215a7f41a363_o1",
+        "cr_215a7f41a363_o2",
+        "cr_215a7f41a363_o3",
+        "cr_215a7f41a363_o4",
+        "cr_215a7f41a363_o5",
+        "cr_215a7f41a363_o6"
+      ],
+      "rationale": "식별자+부가.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "cotton1",
+          "claim": "면 A 1회차 세척 색 유지(o1·o4).",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o1",
+            "cr_90512f4a7ff3_o4"
+          ]
+        },
+        {
+          "fact_key": "silk",
+          "claim": "견 B 1회차 옅어짐(o3·o4).",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o3",
+            "cr_90512f4a7ff3_o4"
+          ]
+        },
+        {
+          "fact_key": "cotton2",
+          "claim": "면 A 2회차 가장자리 옅어짐, 1회차 별도 보존(o5·o6).",
+          "supporting_evidence_refs": [
+            "cr_90512f4a7ff3_o5",
+            "cr_90512f4a7ff3_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "면은 항상 색 유지",
+          "evidence_refs": [
+            "cr_90512f4a7ff3_o5",
+            "cr_90512f4a7ff3_o6"
+          ],
+          "reason": "2회차 변화"
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr_90512f4a7ff3_o1",
+        "cr_90512f4a7ff3_o2",
+        "cr_90512f4a7ff3_o3",
+        "cr_90512f4a7ff3_o4",
+        "cr_90512f4a7ff3_o5",
+        "cr_90512f4a7ff3_o6"
+      ],
+      "rationale": "재질·회차별.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}

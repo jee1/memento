@@ -1,0 +1,990 @@
+{
+  "status": "not_gold_do_not_distribute",
+  "candidates": [
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "얇은 시험편은 덮개 개방 12분 냉각",
+        "두꺼운 시험편 규칙은 미정"
+      ],
+      "forbidden_claims": [
+        "모든 두께 12분"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "얇은 시험편은 덮개 개방 12분",
+        "두꺼운 시험편은 덮개 밀폐 25분"
+      ],
+      "forbidden_claims": [
+        "두께와 무관하게 같은 덮개 상태"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_e5f75b0acfa6_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "얇음 개방 12분·두꺼움 밀폐 25분 유지",
+        "젖은 시험편은 냉각 전에 건조 확인"
+      ],
+      "forbidden_claims": [
+        "젖으면 무조건 25분 또는 시간 추가"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "120그램 이하 면지: 얇은 붓·한 면 2밀리리터",
+        "무거운 면지 규칙 미확정"
+      ],
+      "forbidden_claims": [
+        "모든 면지에 2밀리리터"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "120그램 이하는 얇은 붓·2밀리리터",
+        "120그램 초과는 넓은 붓·3밀리리터"
+      ],
+      "forbidden_claims": [
+        "120그램을 초과 쪽으로 분류"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_29d0d8367872_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "일반 면지의 무게 경계와 도구·양 유지",
+        "코팅 면지는 시편 승인 전 보류"
+      ],
+      "forbidden_claims": [
+        "코팅 면지도 무게만으로 즉시 처리"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "가시광은 V·앞 30센티미터",
+        "적외선은 미측정"
+      ],
+      "forbidden_claims": [
+        "모든 모드에서 V 사용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "가시광 V·30센티미터",
+        "적외선 I·45센티미터",
+        "기준판 교환 금지"
+      ],
+      "forbidden_claims": [
+        "적외선에도 30센티미터"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_b1a1e731f99f_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 모드의 기준판·거리 유지",
+        "혼합광은 분류 판정 전 수치 미확정"
+      ],
+      "forbidden_claims": [
+        "혼합광을 자동으로 적외선 처리"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "담수 빈 모형: 파란 통 18분",
+        "실제 생물 실험이 아님"
+      ],
+      "forbidden_claims": [
+        "생물 전체의 적응 시간 18분"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "담수 파란 통 18분",
+        "해수 회색 통 32분",
+        "빈 모형 연습"
+      ],
+      "forbidden_claims": [
+        "해수도 파란 통 사용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7e751ae71a7a_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "종류별 통·시간 유지",
+        "표찰 없는 모형 보류",
+        "실제 생물에 적용한 결과가 아님"
+      ],
+      "forbidden_claims": [
+        "종류 미상 모형에 32분 자동 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "나무: 천 주머니·종이 두 장",
+        "유리는 미관찰"
+      ],
+      "forbidden_claims": [
+        "유리도 천 주머니로 확정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "나무 천 주머니·두 장",
+        "유리 칸막이 상자·네 장"
+      ],
+      "forbidden_claims": [
+        "모든 재질에 종이 네 장"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_0861bd25a8ad_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "재질별 포장 규칙 유지",
+        "젖은 소품은 먼저 건조 검사·검사 전 포장 보류"
+      ],
+      "forbidden_claims": [
+        "젖은 소품도 바로 포장"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "독창 채널 2·S",
+        "합창 미배정"
+      ],
+      "forbidden_claims": [
+        "모든 장면 채널 2"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "독창 2·S",
+        "합창 5·C",
+        "전환 시 채널·프리셋 함께 변경"
+      ],
+      "forbidden_claims": [
+        "합창에 프리셋 S"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_91a07a3fa4aa_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 장면의 설정 유지",
+        "악기 단독 장면 새 배정 대기"
+      ],
+      "forbidden_claims": [
+        "악기 단독은 합창 설정으로 자동 처리"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "R 눈금 4·P종이"
+      ],
+      "forbidden_claims": [
+        "아직 승인되지 않은 3 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "R 현재 눈금 3·P종이",
+        "4는 과거"
+      ],
+      "forbidden_claims": [
+        "4를 현행으로 답함",
+        "종이 변경 단정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_8295228a4783_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "R 현재 눈금 2·P종이",
+        "4·3은 과거"
+      ],
+      "forbidden_claims": [
+        "3 또는 4를 현행으로 답함"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "W 폭 42·흰 가장자리"
+      ],
+      "forbidden_claims": [
+        "40을 미리 현행으로 봄"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "W 현재 폭 40·흰 가장자리"
+      ],
+      "forbidden_claims": [
+        "42가 현행",
+        "가장자리 색 변경"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_2bc6447b6989_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "W 현재 폭 41·흰 가장자리"
+      ],
+      "forbidden_claims": [
+        "40 또는 42가 현행"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "모형 T A→B",
+        "실제 관측 성공 미측정"
+      ],
+      "forbidden_claims": [
+        "실제 관측 절차가 검증됨"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "모형 T B→A",
+        "실제 장비 확대 없음"
+      ],
+      "forbidden_claims": [
+        "A→B가 현행"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_a20719a89ae7_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "모형 T C→B→A",
+        "실제 관측 성공 미측정"
+      ],
+      "forbidden_claims": [
+        "B→A 단독 또는 A→B가 현행",
+        "실제 관측 성공 주장"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "Q _take·room-Q"
+      ],
+      "forbidden_claims": [
+        "폴더 변경"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "Q 새 파일 _raw·room-Q",
+        "과거 파일 삭제 지시 없음"
+      ],
+      "forbidden_claims": [
+        "새 Q파일에 _take",
+        "기존 파일 자동 삭제"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_dcfc7c02c76c_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "Q 새 파일 _src·room-Q",
+        "기존 파일 보관"
+      ],
+      "forbidden_claims": [
+        "새 Q파일에 _raw 또는 _take",
+        "이전 파일 자동 삭제"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "L 네 칸·초록 표식·실제 재배 아님"
+      ],
+      "forbidden_claims": [
+        "실제 분무 주기로 단정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "L 세 칸·초록 표식·실제 물 사용 안 함"
+      ],
+      "forbidden_claims": [
+        "네 칸이 현행"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_d47265f60808_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "L 다섯 칸·초록 표식·재배 효율 미측정"
+      ],
+      "forbidden_claims": [
+        "세 칸 또는 네 칸이 현행",
+        "재배 효율 개선 단정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "Z 파랑:흰색 2:1·회색 종이"
+      ],
+      "forbidden_claims": [
+        "다른 도장에도 같은 비율 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "Z 1:1·회색 종이"
+      ],
+      "forbidden_claims": [
+        "Z 현재 2:1"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_32f59875d5f3_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "Z 1:2·회색 종이"
+      ],
+      "forbidden_claims": [
+        "Z 현재 1:1 또는 2:1",
+        "다른 도장 일괄 변경"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "F 한 장 줄무늬 감소",
+        "유광 미시험·보편 우수성 미확정"
+      ],
+      "forbidden_claims": [
+        "모든 필름에 M 우수"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "F 개선·G 얼룩",
+        "전체 설정 통일 없음"
+      ],
+      "forbidden_claims": [
+        "G에도 M이 좋음"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_49bae2d5f8ed_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "F 두 관찰 차이와 G 얼룩 보존",
+        "보편 우수성 미확정"
+      ],
+      "forbidden_claims": [
+        "M은 항상 성공",
+        "첫 F 관찰이 없었던 일이라고 단정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "나무 평상시 K 한 개 표시 작음",
+        "금속 미시험"
+      ],
+      "forbidden_claims": [
+        "모든 받침에서 안정적"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "나무 첫 관찰 작음·금속 큼"
+      ],
+      "forbidden_claims": [
+        "금속도 작음"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7350982d59af_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "나무 평상시 작음·나무 충격 큼·금속 큼",
+        "일반 안정성 미검증"
+      ],
+      "forbidden_claims": [
+        "충격에도 항상 작음",
+        "장치 전체 안정성 검증"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "마른 얇은 정사각 한 장 네 번 무파손",
+        "다른 모양 미시험"
+      ],
+      "forbidden_claims": [
+        "모든 종이 네 번 무파손"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "얇은 정사각 네 번 무파손·두꺼운 직사각 세 번째 갈라짐"
+      ],
+      "forbidden_claims": [
+        "두꺼운 직사각도 네 번 견딤"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_84e726281e76_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "세 결과와 젖음 조건 보존",
+        "일괄 절차 승인 없음"
+      ],
+      "forbidden_claims": [
+        "젖은 시트도 네 번 견딤",
+        "무조건 네 번 접기 승인"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "cedar 캐시 켬 단발 18초",
+        "운영 미적용"
+      ],
+      "forbidden_claims": [
+        "운영 빌드가 항상18초"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "켬18·끔22, 입력 수 다름",
+        "운영 승인 없음"
+      ],
+      "forbidden_claims": [
+        "캐시가 4초 단축한다고 확정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_4d74b8c87993_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "켬 재실행27 포함 세 관찰 보존",
+        "일관된 가속·운영 적용 미검증"
+      ],
+      "forbidden_claims": [
+        "항상 가속",
+        "운영 적용 완료"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "면A 첫세척 색 유지",
+        "견 미시험"
+      ],
+      "forbidden_claims": [
+        "모든 섬유 색 유지"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "면A 유지·견B 옅어짐",
+        "재질 구분"
+      ],
+      "forbidden_claims": [
+        "견도 색 유지 보증"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_90512f4a7ff3_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "재질·회차별 세 결과 유지"
+      ],
+      "forbidden_claims": [
+        "면은 여러 세척에도 항상 동일",
+        "첫 세척 관찰 삭제"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "빈 모형·최초 마이크 위치 낮음",
+        "실제 공연장 미측정"
+      ],
+      "forbidden_claims": [
+        "실제 공연장 모든 좌석 개선"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "빈 최초 위치 낮음·인형 채움 높음"
+      ],
+      "forbidden_claims": [
+        "인형 채워도 낮음"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_d9eb67f931bb_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "빈 구석 높음 포함 조건별 결과",
+        "전체 위치/점유 개선 미검증"
+      ],
+      "forbidden_claims": [
+        "모든 위치 낮음",
+        "처음 낮은 관찰을 오류라고 삭제"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 좌표확인→북쪽·은색 별표"
+      ],
+      "forbidden_claims": [
+        "남쪽·노란색을 X에 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 좌표확인→북쪽·은색 유지",
+        "Y 남쪽·노란색은 별개"
+      ],
+      "forbidden_claims": [
+        "Y 때문에 X를 남쪽·노란색으로 변경"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_9bd884941ba5_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 좌표확인→북쪽·청색",
+        "Y 별개"
+      ],
+      "forbidden_claims": [
+        "X에 은색 또는 Y 노란색을 현행 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 세모 상자·뒷면 점·연필"
+      ],
+      "forbidden_claims": [
+        "X를 네모 상자로 분류"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 세모·뒷면 점·연필 유지",
+        "Y 별개"
+      ],
+      "forbidden_claims": [
+        "X에 앞면 색·빨간 펜 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_1f3e4823215b_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 세모·뒷면 점·검은 펜"
+      ],
+      "forbidden_claims": [
+        "X 현행 연필 또는 Y 빨간 펜"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 흰 천·광원 A·왼쪽 진입"
+      ],
+      "forbidden_claims": [
+        "X 검은 천으로 추정"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 기존 세 조건 유지",
+        "간식 Y 별개"
+      ],
+      "forbidden_claims": [
+        "X 오른쪽 진입으로 변경"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_b5417ab0076e_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 흰 천·광원 B·왼쪽 진입"
+      ],
+      "forbidden_claims": [
+        "X 광원 A 또는 오른쪽 진입이 현행"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 재질표 먼저·15센티미터·D"
+      ],
+      "forbidden_claims": [
+        "X 길이60으로 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 기존 절차 유지",
+        "포스터 Y 별개"
+      ],
+      "forbidden_claims": [
+        "Y 날짜표·E를 X에 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_2703804c1441_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 재질표 먼저·15센티미터·F"
+      ],
+      "forbidden_claims": [
+        "X 현행 D 또는 선반E",
+        "재질표 생략"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 식별번호 먼저·회색·앞면"
+      ],
+      "forbidden_claims": [
+        "X 녹색 명찰"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 기존 절차 유지",
+        "우편 Y 별개"
+      ],
+      "forbidden_claims": [
+        "X 뒷면·녹색으로 변경"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_02ed2463abff_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 식별번호 먼저·남색·앞면"
+      ],
+      "forbidden_claims": [
+        "X 현재 회색 또는 녹색",
+        "식별번호 대조 생략"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 번호대조·둥근 세 개·보라 끈"
+      ],
+      "forbidden_claims": [
+        "X 다섯 개로 묶음"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 기존 조건 유지",
+        "Y 사각 다섯 개·흰 끈 별개"
+      ],
+      "forbidden_claims": [
+        "Y의 흰 끈·수량을 X에 적용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_c66f61b183ea_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "X 번호대조·둥근 네 개·보라 끈"
+      ],
+      "forbidden_claims": [
+        "X 현재 세 개 또는 다섯 개",
+        "번호 대조 생략"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "판번호 선행 확인",
+        "첫 시트 폐지 시험"
+      ],
+      "forbidden_claims": [
+        "판번호 확인 생략"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "기존 두 조건·주황 표식",
+        "짧은 메모가 원본을 대체하지 않음"
+      ],
+      "forbidden_claims": [
+        "주황 표식만 있으면 전체 절차 완료"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_7d41de362ce0_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "기존 조건·주황 표식·마감 뚜껑 확인",
+        "원본 작업표 보관"
+      ],
+      "forbidden_claims": [
+        "짧은 요약 때문에 원본 조건 폐지",
+        "마감 확인만 남김"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "상자번호·봉인번호 각각 대조 후 개봉"
+      ],
+      "forbidden_claims": [
+        "하나의 번호로 개봉 허용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 번호 선행 대조·파란 모서리",
+        "한 줄 메모는 대체 승인 아님"
+      ],
+      "forbidden_claims": [
+        "파란 표식이 번호 대조 대체"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_8dd0ef55898a_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 번호 대조·파란 모서리·마감 사진",
+        "원본 점검표 보관"
+      ],
+      "forbidden_claims": [
+        "마감 사진만 있으면 선행 대조 생략",
+        "원본 삭제 승인"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "홈 방향·누락 수 확인 후 조립"
+      ],
+      "forbidden_claims": [
+        "방향만 맞으면 누락 확인 불필요"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 선행 확인·붉은 받침",
+        "빠른 메모는 대체 아님"
+      ],
+      "forbidden_claims": [
+        "붉은 받침만으로 조립 준비 완료"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_6b7dc6c6eb04_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 선행 확인·붉은 받침·잔여 봉투 날짜",
+        "최초 점검표 보관"
+      ],
+      "forbidden_claims": [
+        "원본 조건 삭제",
+        "마감 날짜만 남겨도 완전한 절차"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "도면 판본·앞뒷면 확인 후 접기"
+      ],
+      "forbidden_claims": [
+        "판본만 맞으면 접기 시작"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 선행 단계·완성품 별표",
+        "휴대 메모는 대체 아님"
+      ],
+      "forbidden_claims": [
+        "별표만 있으면 전 절차 충족"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_668798d106b4_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "선행 두 단계·별표·도면 봉투",
+        "원본 절차표 보존"
+      ],
+      "forbidden_claims": [
+        "선행 조건 삭제",
+        "원본 절차 폐기 승인"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "통·세션 식별자 각각 확인 후 시험"
+      ],
+      "forbidden_claims": [
+        "통 식별자만으로 시험 허용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 식별자 확인·초록 점",
+        "축약 메모는 폐지 문서 아님"
+      ],
+      "forbidden_claims": [
+        "초록 점만 확인하면 충분"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_215a7f41a363_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 식별자 확인·초록 점·받침 H",
+        "원본 일지 보관"
+      ],
+      "forbidden_claims": [
+        "두 식별자 대조 폐지",
+        "원본 일지 삭제"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t1",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "활자·서랍 코드 모두 대조 후 투입"
+      ],
+      "forbidden_claims": [
+        "모양만 보고 투입 허용"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t2",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 코드 대조·흰 줄",
+        "간단 메모는 대체 아님"
+      ],
+      "forbidden_claims": [
+        "흰 줄이 두 코드 대조 대체"
+      ]
+    },
+    {
+      "checkpoint_id": "cr_ad8d7cf4c0a6_t3",
+      "status": "author_candidate_not_gold",
+      "required_facts": [
+        "두 코드 대조·흰 줄·빈 칸 수",
+        "최초 원본표 보관"
+      ],
+      "forbidden_claims": [
+        "두 코드 확인 삭제",
+        "원본표 폐기 승인"
+      ]
+    }
+  ]
+}
