@@ -1,0 +1,752 @@
+[
+  {
+    "query_id": "cl_01_q_single",
+    "query": "별빛 도서관 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_01",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_01_q_multi",
+    "query": "별빛 도서관 3번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_01",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_01_q_trap",
+    "query": "별빛 도서관 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_01",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_02_q_single",
+    "query": "솔내 연구실 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_02",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_02_q_multi",
+    "query": "솔내 연구실 4번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_02",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_02_q_trap",
+    "query": "솔내 연구실 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_02",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_03_q_single",
+    "query": "푸른 항구 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_03",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_03_q_multi",
+    "query": "푸른 항구 5번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_03",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_03_q_trap",
+    "query": "푸른 항구 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_03",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_04_q_single",
+    "query": "무지개 공방 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_04",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_04_q_multi",
+    "query": "무지개 공방 6번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_04",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_04_q_trap",
+    "query": "무지개 공방 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_04",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_05_q_single",
+    "query": "은하 수목원 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_05",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_05_q_multi",
+    "query": "은하 수목원 7번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_05",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_05_q_trap",
+    "query": "은하 수목원 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_05",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_06_q_single",
+    "query": "달빛 어학원 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_06",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_06_q_multi",
+    "query": "달빛 어학원 8번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_06",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_06_q_trap",
+    "query": "달빛 어학원 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_06",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_07_q_single",
+    "query": "새벽 시장 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_07",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_07_q_multi",
+    "query": "새벽 시장 9번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_07",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_07_q_trap",
+    "query": "새벽 시장 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_07",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_08_q_single",
+    "query": "고요 정원 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "dev",
+    "cluster_id": "cl_08",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_08_q_multi",
+    "query": "고요 정원 10번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "dev",
+    "cluster_id": "cl_08",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_08_q_trap",
+    "query": "고요 정원 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_08",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_09_q_single",
+    "query": "바람 천문대 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_09",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_09_q_multi",
+    "query": "바람 천문대 11번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_09",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_09_q_trap",
+    "query": "바람 천문대 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "dev",
+    "cluster_id": "cl_09",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_10_q_single",
+    "query": "한울 제빵소 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_10",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_10_q_multi",
+    "query": "한울 제빵소 12번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_10",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_10_q_trap",
+    "query": "한울 제빵소 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_10",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_11_q_single",
+    "query": "서리 마을 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_11",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_11_q_multi",
+    "query": "서리 마을 13번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_11",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_11_q_trap",
+    "query": "서리 마을 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_11",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_12_q_single",
+    "query": "노을 갤러리 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_12",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_12_q_multi",
+    "query": "노을 갤러리 14번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_12",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_12_q_trap",
+    "query": "노을 갤러리 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_12",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_13_q_single",
+    "query": "이슬 농장 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_13",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_13_q_multi",
+    "query": "이슬 농장 15번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_13",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_13_q_trap",
+    "query": "이슬 농장 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_13",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_14_q_single",
+    "query": "산들 카페 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_14",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_14_q_multi",
+    "query": "산들 카페 16번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_14",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_14_q_trap",
+    "query": "산들 카페 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_14",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_15_q_single",
+    "query": "해온 항만 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_15",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_15_q_multi",
+    "query": "해온 항만 17번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_15",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_15_q_trap",
+    "query": "해온 항만 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_15",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_16_q_single",
+    "query": "자람 학당 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_16",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_16_q_multi",
+    "query": "자람 학당 18번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_16",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_16_q_trap",
+    "query": "자람 학당 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_16",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_17_q_single",
+    "query": "미르 공연장 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_17",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_17_q_multi",
+    "query": "미르 공연장 19번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_17",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_17_q_trap",
+    "query": "미르 공연장 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_17",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_18_q_single",
+    "query": "초록 언덕 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_18",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_18_q_multi",
+    "query": "초록 언덕 20번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_18",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_18_q_trap",
+    "query": "초록 언덕 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_18",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_19_q_single",
+    "query": "하늘 도장 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_19",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_19_q_multi",
+    "query": "하늘 도장 21번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_19",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_19_q_trap",
+    "query": "하늘 도장 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_19",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_20_q_single",
+    "query": "빛고을 센터 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_20",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_20_q_multi",
+    "query": "빛고을 센터 22번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_20",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_20_q_trap",
+    "query": "빛고을 센터 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_20",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_21_q_single",
+    "query": "들판 우체국 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_21",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_21_q_multi",
+    "query": "들판 우체국 23번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_21",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_21_q_trap",
+    "query": "들판 우체국 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_21",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_22_q_single",
+    "query": "물결 수영장 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_22",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_22_q_multi",
+    "query": "물결 수영장 24번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_22",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_22_q_trap",
+    "query": "물결 수영장 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_22",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_23_q_single",
+    "query": "고개 전망대 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_23",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_23_q_multi",
+    "query": "고개 전망대 25번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_23",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_23_q_trap",
+    "query": "고개 전망대 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_23",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_24_q_single",
+    "query": "나무 서점 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_24",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_24_q_multi",
+    "query": "나무 서점 26번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_24",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_24_q_trap",
+    "query": "나무 서점 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_24",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_25_q_single",
+    "query": "새싹 병원 금요일 정기 휴무는 몇 시부터인가?",
+    "language": "ko",
+    "category": "single_fact",
+    "split": "held_out",
+    "cluster_id": "cl_25",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_25_q_multi",
+    "query": "새싹 병원 27번째 구역 안내판 글자 깨짐 민원 이후 확정된 최종 규격은?",
+    "language": "ko",
+    "category": "multi_hop",
+    "split": "held_out",
+    "cluster_id": "cl_25",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  },
+  {
+    "query_id": "cl_25_q_trap",
+    "query": "새싹 병원 겨울철 난방 가동 시작일은?",
+    "language": "ko",
+    "category": "irrelevant_trap",
+    "split": "held_out",
+    "cluster_id": "cl_25",
+    "scope_owner_id": "owner_rkpanel_default",
+    "scope_project_id": "project_rkpanel_synth"
+  }
+]
