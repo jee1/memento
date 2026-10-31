@@ -1,6 +1,8 @@
 import type { IRetryManager } from '../../interfaces/retry-manager.interface.js';
 import { logger } from '../../utils/logger.js';
 import type { ChatLlmPort, ChatLlmRequest, ChatLlmResult } from './chat-llm-port.js';
+import { classifyLlmAttemptOutcome } from '../llm-usage/llm-usage-classify.js';
+import { recordLlmUsageAttempt } from '../llm-usage/llm-usage-recorder.js';
 import { retryChatLlmCall } from './chat-llm-retry.js';
 import {
   buildOllamaErrorLogContext,
@@ -64,6 +66,15 @@ export class OllamaChatLlm implements ChatLlmPort {
       }
 
       if (!response.ok) {
+        recordLlmUsageAttempt({
+          provider: this.provider,
+          model: request.model,
+          outcome: classifyLlmAttemptOutcome(new Error(String(response.status)), response.status),
+          failureReason: `http_${response.status}`,
+          attemptCoverage: 'full',
+          inputTokens: 'unknown',
+          outputTokens: 'unknown',
+        });
         throw new Error(await this.describeHttpFailure(response, apiUrl, request.model));
       }
 
@@ -110,11 +121,22 @@ export class OllamaChatLlm implements ChatLlmPort {
         throw new Error('Ollama 응답이 비어있습니다.');
       }
 
+      const promptKnown = typeof data.prompt_eval_count === 'number';
+      const completionKnown = typeof data.eval_count === 'number';
+      recordLlmUsageAttempt({
+        provider: this.provider,
+        model: request.model,
+        outcome: 'success',
+        attemptCoverage: 'full',
+        inputTokens: promptKnown ? (data.prompt_eval_count as number) : 'unknown',
+        outputTokens: completionKnown ? (data.eval_count as number) : 'unknown',
+      });
+
       return {
         content,
         usage: {
-          promptTokens: typeof data.prompt_eval_count === 'number' ? data.prompt_eval_count : 0,
-          completionTokens: typeof data.eval_count === 'number' ? data.eval_count : 0,
+          promptTokens: promptKnown ? (data.prompt_eval_count as number) : 0,
+          completionTokens: completionKnown ? (data.eval_count as number) : 0,
         },
       };
     } catch (error) {

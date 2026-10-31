@@ -37,6 +37,7 @@ import { TelemetryService } from './domains/telemetry/services/telemetry-service
 import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
 import { logger } from './shared/utils/logger.js';
 import { resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
+import type { LlmUsageRepository } from './shared/services/llm-usage/llm-usage-repository.js';
 
 export interface ServerServices {
   searchEngine: SearchEngine;
@@ -63,6 +64,8 @@ export interface ServerServices {
   sleepConsolidationService?: SleepConsolidationService;
   /** 006 observability telemetry */
   telemetryService?: TelemetryService;
+  /** #1546 feature-level LLM usage rows */
+  llmUsageRepository?: LlmUsageRepository;
   /** 런타임 샘플 및 부트스트랩 이벤트 진단 로거 */
   runtimeDiagnosticsLogger?: RuntimeDiagnosticsLogger;
   /** diagnostics sampler cleanup hook */
@@ -98,6 +101,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       introspectionScanCache,
       batchScheduler,
       telemetryService,
+      llmUsageRepository,
       relationGraph,
       sleepConsolidationService
     } = await createBatchTelemetryRelationAndSleep(
@@ -138,6 +142,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       introspectionScanCache,
       sleepConsolidationService,
       telemetryService,
+      llmUsageRepository,
       runtimeDiagnosticsLogger,
       runtimeDiagnosticsSamplerCleanup
     };

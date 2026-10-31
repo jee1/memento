@@ -7,7 +7,8 @@ import type Database from 'better-sqlite3';
 import {
   logger,
   type TelemetryPeriod,
-  type EventType
+  type EventType,
+  pacificDateFromUtcIso,
 } from '@memento/core';
 import type { ServerServices } from '../../bootstrap.js';
 import { TELEMETRY_PERIODS, effectiveTelemetryPeriod } from './admin-telemetry-utils.js';
@@ -200,6 +201,33 @@ function getTelemetryEvents(db: Database.Database | null, serverServices: Server
   };
 }
 
+function getLlmUsageTelemetry(db: Database.Database | null, serverServices: ServerServices | null) {
+  return (req: Request, res: Response) => {
+    try {
+      if (!db || !serverServices?.llmUsageRepository) {
+        return telemetryUnavailable(res);
+      }
+      const today = pacificDateFromUtcIso(new Date().toISOString());
+      const from = (req.query.from as string | undefined) || today;
+      const to = (req.query.to as string | undefined) || today;
+      const aggregates = serverServices.llmUsageRepository.queryDailyAggregates(from, to);
+      const starvation = serverServices.llmUsageRepository.buildStarvationReport(from, to);
+      return res.json({
+        from,
+        to,
+        aggregates,
+        starvation,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('telemetry llm-usage failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return telemetryInternalError(res, error);
+    }
+  };
+}
+
 export function registerAdminTelemetryRoutes(
   router: Router,
   db: Database.Database | null,
@@ -210,4 +238,5 @@ export function registerAdminTelemetryRoutes(
   router.get('/telemetry/system', getSystemTelemetry(db, serverServices));
   router.get('/telemetry/feedback', getFeedbackTelemetry(db, serverServices));
   router.get('/telemetry/events', getTelemetryEvents(db, serverServices));
+  router.get('/telemetry/llm-usage', getLlmUsageTelemetry(db, serverServices));
 }

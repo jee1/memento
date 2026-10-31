@@ -4,6 +4,7 @@ import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type { RelationCandidate, RelationType } from '../../../shared/types/relation.js';
 import { MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import type { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { recordSystemOneUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-systemone-attempt.js';
 import {
   clipRelationText,
   prepareRelationCandidatePool,
@@ -77,6 +78,7 @@ export class JevRelationJudge {
   constructor(
     private readonly client: SystemOneClient,
     private readonly embedding: UnifiedEmbeddingService,
+    private readonly model: string = 'jev-latest',
   ) {}
 
   /**
@@ -109,6 +111,7 @@ export class JevRelationJudge {
           instructions: fill(RELEVANCE_QUESTION, `t${index}`),
         })),
       );
+      recordSystemOneUsageAttempt(this.model, relevance);
       if (relevance.ok === false) {
         return { ok: false, reason: relevance.reason };
       }
@@ -136,6 +139,7 @@ export class JevRelationJudge {
           instructions: fill(TYPE_QUESTION[type], `t${index}`),
         }))),
       );
+      recordSystemOneUsageAttempt(this.model, typed);
       if (typed.ok === false) {
         return { ok: false, reason: typed.reason };
       }

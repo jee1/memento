@@ -12,6 +12,8 @@ import {
   type SystemOneState,
 } from '../../../../shared/services/typesafe/system-one-client.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { runWithLlmUsageLogicalContext } from '../../../../shared/services/llm-usage/llm-usage-logical-context.js';
+import { recordSystemOneUsageAttempt } from '../../../../shared/services/llm-usage/llm-usage-systemone-attempt.js';
 
 function nanScores(length: number): number[] {
   return Array.from({ length }, () => Number.NaN);
@@ -28,6 +30,7 @@ function buildNoulInstructions(candidateId: string, query: string): string {
 export class JevRelevanceGate implements IRelevanceGatePort {
   constructor(
     private readonly client: SystemOneClient,
+    private readonly model: string,
     private readonly docChars: number = 300,
   ) {}
 
@@ -39,32 +42,33 @@ export class JevRelevanceGate implements IRelevanceGatePort {
       return [];
     }
 
-    const candidateIds = docs.map((_, index) => `c${index}`);
-    const questions: NoulQuestion[] = candidateIds.map((candidateId) => ({
-      id: candidateId,
-      instructions: buildNoulInstructions(candidateId, query),
-    }));
-    const state = this.buildState(query, docs, false);
-    // #1125: 펜스가 창 안을 차지하면 재시도 본문은 원문에서 펜스를 걷은 뒤 docChars 로 다시 자른다.
-    // 1차 본문은 그대로다. 임계값 교정에 쓴 입력을 바꾸지 않기 위해서다.
-    const retryState = docs.some((doc) => doc.includes('```'))
-      ? this.buildState(query, docs, true)
-      : undefined;
+    return runWithLlmUsageLogicalContext('relevance_gate', null, async () => {
+      const candidateIds = docs.map((_, index) => `c${index}`);
+      const questions: NoulQuestion[] = candidateIds.map((candidateId) => ({
+        id: candidateId,
+        instructions: buildNoulInstructions(candidateId, query),
+      }));
+      const state = this.buildState(query, docs, false);
+      const retryState = docs.some((doc) => doc.includes('```'))
+        ? this.buildState(query, docs, true)
+        : undefined;
 
-    const startedAt = Date.now();
-    const result = await this.client.ask(state, questions, retryState);
-    const elapsedMs = Date.now() - startedAt;
+      const startedAt = Date.now();
+      const result = await this.client.ask(state, questions, retryState);
+      recordSystemOneUsageAttempt(this.model, result);
+      const elapsedMs = Date.now() - startedAt;
 
-    if (result.ok === true) {
-      if (result.wafRetried) {
-        this.logWaf(docs.length, elapsedMs, true);
+      if (result.ok === true) {
+        if (result.wafRetried) {
+          this.logWaf(docs.length, elapsedMs, true);
+        }
+        return candidateIds.map((candidateId) => result.noulById.get(candidateId) ?? Number.NaN);
       }
-      return candidateIds.map((candidateId) => result.noulById.get(candidateId) ?? Number.NaN);
-    }
-    if (result.ok === false) {
-      this.logFailure(result.reason, docs.length, elapsedMs, result.wafRetried);
-    }
-    return nanScores(docs.length);
+      if (result.ok === false) {
+        this.logFailure(result.reason, docs.length, elapsedMs, result.wafRetried);
+      }
+      return nanScores(docs.length);
+    });
   }
 
   private buildState(query: string, docs: string[], neutralizeFences: boolean): SystemOneState {

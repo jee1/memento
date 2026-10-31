@@ -8,6 +8,9 @@
  */
 import { logger } from '../../../shared/utils/logger.js';
 import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
+import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
 
 export interface ClusterJudgePair {
   a: string;
@@ -51,11 +54,13 @@ export class JevClusterJudge implements IClusterJudge {
   }
 
   async scorePairs(pairs: ClusterJudgePair[]): Promise<number[]> {
-    const scores: number[] = [];
-    for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
-      scores.push(...(await this.scoreBatch(pairs.slice(i, i + BATCH_SIZE))));
-    }
-    return scores;
+    return runWithLlmUsageLogicalContext('cluster_judge', null, async () => {
+      const scores: number[] = [];
+      for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
+        scores.push(...(await this.scoreBatch(pairs.slice(i, i + BATCH_SIZE))));
+      }
+      return scores;
+    });
   }
 
   private async scoreBatch(batch: ClusterJudgePair[]): Promise<number[]> {
@@ -77,9 +82,26 @@ export class JevClusterJudge implements IClusterJudge {
         signal: controller.signal
       });
       if (!res.ok) {
+        recordLlmUsageAttempt({
+          provider: 'typesafe',
+          model: this.model,
+          outcome: res.status === 429 ? 'rate_limited' : 'failure',
+          failureReason: `http_${res.status}`,
+          attemptCoverage: 'full',
+          inputTokens: 'unknown',
+          outputTokens: 'unknown',
+        });
         logger.warn(`Consolidation judge: request failed (status ${res.status}, pairs ${batch.length})`);
         return batch.map(() => Number.NaN);
       }
+      recordLlmUsageAttempt({
+        provider: 'typesafe',
+        model: this.model,
+        outcome: 'success',
+        attemptCoverage: 'full',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       const data = (await res.json()) as { answers?: Record<string, { noul?: unknown }> };
       return batch.map((_, k) => {
         const noul = data.answers?.[`q${k}`]?.noul;
@@ -87,6 +109,15 @@ export class JevClusterJudge implements IClusterJudge {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      recordLlmUsageAttempt({
+        provider: 'typesafe',
+        model: this.model,
+        outcome: classifyLlmAttemptOutcome(error),
+        failureReason: message.slice(0, 120),
+        attemptCoverage: 'full',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       logger.warn(`Consolidation judge: ${message} (pairs ${batch.length})`);
       return batch.map(() => Number.NaN);
     } finally {
