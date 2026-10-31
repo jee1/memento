@@ -105,11 +105,13 @@ describe('JevRelationJudge', () => {
     expect(typeQuestions.find((question) => question.id === 'y0_CAUSES')?.instructions)
       .toBe('새 기억(s)이 기존 기억(t0)의 원인이다');
     expect(ask.mock.calls[0]?.[1]?.[0]?.instructions)
-      .toBe('기존 기억(t0)은 새 기억(s)과 같은 구체적 작업 흐름이나 사건의 맥락으로 이어 볼 만하다');
+      .toBe('새 기억(s)과 기존 기억(t0)의 본문은 동일한 구체적 대상·사건·작업이나 명시적 참조·부분-전체 관계로 연결된다. 공통 단어·문장 형식·저장소·시각만 같거나 서로 다른 대상의 독립 작업이면 연결되지 않는다');
     expect(typeQuestions.find((question) => question.id === 'y0_FOLLOWS')?.instructions)
       .toBe('새 기억(s)의 사건·단계는 기존 기억(t0)과 같은 작업 흐름에서 그 뒤에 발생·실행된다. 인과는 필요 없다. 저장 순서·내용 반복·무관한 사건의 시간 인접만으로는 성립하지 않는다');
     expect(typeQuestions.find((question) => question.id === 'y0_CONTRASTS_WITH')?.instructions)
-      .toBe('새 기억(s)과 기존 기억(t0)은 같은 대상의 같은 비교 축에서 서로 다른 주장·선택지·조건을 대조한다. 같은 내용 반복·동급 작업·단순 후속 실행은 대조가 아니다');
+      .toBe('새 기억(s)과 기존 기억(t0)은 동일한 구체적 대상의 같은 비교 기준에 대해 서로 다른 주장·대안·조건을 제시한다. 대상이 다른 독립 작업, 공통 문장 형식, 같은 내용 반복, 동급 구성 요소, 단순 후속 실행만으로는 대조가 아니다');
+    expect(typeQuestions.find((question) => question.id === 'y0_REFERENCES')?.instructions)
+      .toMatch(/명시적으로 인용.*같은 주제·내용 중복·인과·필수 전제·부분-전체.*추정하지 않는다/);
   });
 
   it('sorts candidates by confidence descending', async () => {
