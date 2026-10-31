@@ -1,5 +1,7 @@
 import type { ILLMPort, LLMCompletionResult, LLMMessage } from '../ports/llm-port.js';
 import { PersonalAgentLlmError } from '../errors/personal-agent-llm-error.js';
+import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 export type OllamaChatLlmAdapterOptions = {
   baseUrl: string;
@@ -41,6 +43,15 @@ export class OllamaChatLlmAdapter implements ILLMPort {
 
       if (!res.ok) {
         const detail = await res.text().catch(() => '');
+        recordLlmUsageAttempt({
+          provider: 'ollama',
+          model: this.model,
+          outcome: res.status === 429 ? 'rate_limited' : 'failure',
+          failureReason: `http_${res.status}`,
+          attemptCoverage: 'unknown',
+          inputTokens: 'unknown',
+          outputTokens: 'unknown',
+        });
         throw new PersonalAgentLlmError({
           code: 'provider_runtime_failed',
           message: `Ollama HTTP ${res.status}${detail ? `: ${detail.slice(0, 500)}` : ''}`,
@@ -59,6 +70,14 @@ export class OllamaChatLlmAdapter implements ILLMPort {
       }
 
       const text = body.message?.content ?? '';
+      recordLlmUsageAttempt({
+        provider: 'ollama',
+        model: this.model,
+        outcome: 'success',
+        attemptCoverage: 'unknown',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       return {
         content: text,
         metadata: {
@@ -71,6 +90,15 @@ export class OllamaChatLlmAdapter implements ILLMPort {
       if (cause instanceof PersonalAgentLlmError) {
         throw cause;
       }
+      recordLlmUsageAttempt({
+        provider: 'ollama',
+        model: this.model,
+        outcome: classifyLlmAttemptOutcome(cause),
+        failureReason: cause instanceof Error ? cause.message.slice(0, 120) : String(cause).slice(0, 120),
+        attemptCoverage: 'unknown',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       throw new PersonalAgentLlmError({
         code: 'provider_runtime_failed',
         message: 'Ollama chat request failed',

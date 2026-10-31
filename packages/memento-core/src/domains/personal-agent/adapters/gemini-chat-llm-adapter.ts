@@ -1,6 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ILLMPort, LLMCompletionResult, LLMMessage } from '../ports/llm-port.js';
 import { PersonalAgentLlmError } from '../errors/personal-agent-llm-error.js';
+import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 export type GeminiChatLlmAdapterOptions = {
   apiKey: string;
@@ -32,6 +34,14 @@ export class GeminiChatLlmAdapter implements ILLMPort {
       if (!text) {
         throw new Error('Gemini response is empty');
       }
+      recordLlmUsageAttempt({
+        provider: 'gemini',
+        model: this.modelName,
+        outcome: 'success',
+        attemptCoverage: 'full',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       return {
         content: text,
         metadata: {
@@ -41,6 +51,15 @@ export class GeminiChatLlmAdapter implements ILLMPort {
         },
       };
     } catch (cause) {
+      recordLlmUsageAttempt({
+        provider: 'gemini',
+        model: this.modelName,
+        outcome: classifyLlmAttemptOutcome(cause),
+        failureReason: cause instanceof Error ? cause.message.slice(0, 120) : String(cause).slice(0, 120),
+        attemptCoverage: 'full',
+        inputTokens: 'unknown',
+        outputTokens: 'unknown',
+      });
       throw new PersonalAgentLlmError({
         code: 'provider_runtime_failed',
         message: 'Gemini generateContent failed',

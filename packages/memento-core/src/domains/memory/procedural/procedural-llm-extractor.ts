@@ -17,6 +17,12 @@ import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import type { RetryConfig } from '../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import OpenAI from 'openai';
+import { classifyLlmAttemptOutcome, coerceUsageField } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import {
+  recordLlmUsageAttempt,
+  recordLlmUsageLogicalFinal,
+} from '../../../shared/services/llm-usage/llm-usage-recorder.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
 
 type ConcreteLlmProvider = 'openai' | 'gemini' | 'ollama';
 
@@ -70,21 +76,49 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     notes: ReflectionNotes | Record<string, unknown>,
     event?: FailureEvent
   ): Promise<ExtractedProceduralMemory | null> {
-    const messages = this.buildMessages(notes, event);
-    let raw: string;
-    try {
-      if (this.completionFn) {
-        raw = await this.completionFn(messages);
-      } else {
-        raw = await this.callLLM(messages);
+    return runWithLlmUsageLogicalContext('procedural_extraction', null, async () => {
+      const messages = this.buildMessages(notes, event);
+      let provider: string | null = null;
+      let model: string | null = null;
+      let raw: string;
+      try {
+        if (this.completionFn) {
+          raw = await this.completionFn(messages);
+        } else {
+          const llm = await this.callLLM(messages);
+          raw = llm.raw;
+          provider = llm.provider;
+          model = llm.model;
+        }
+      } catch (err) {
+        recordLlmUsageLogicalFinal({
+          finalPath: 'deferred',
+          finalReason: 'llm_failed',
+          provider,
+          model,
+        });
+        logger.warn('Procedural LLM 추출 실패, fallback 사용', {
+          error: err instanceof Error ? err.message : String(err)
+        });
+        return null;
       }
-    } catch (err) {
-      logger.warn('Procedural LLM 추출 실패, fallback 사용', {
-        error: err instanceof Error ? err.message : String(err)
+      const parsed = this.parseResponse(raw);
+      if (!parsed) {
+        recordLlmUsageLogicalFinal({
+          finalPath: 'deferred',
+          finalReason: 'parse_failed',
+          provider,
+          model,
+        });
+        return null;
+      }
+      recordLlmUsageLogicalFinal({
+        finalPath: 'llm',
+        provider,
+        model,
       });
-      return null;
-    }
-    return this.parseResponse(raw);
+      return parsed;
+    });
   }
 
   private buildMessages(
@@ -102,7 +136,11 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     ];
   }
 
-  private async callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  private async callLLM(messages: Array<{ role: string; content: string }>): Promise<{
+    raw: string;
+    provider: string;
+    model: string;
+  }> {
     if (!this.initPromise) {
       this.initPromise = new LLMClientInitializer().initialize();
     }
@@ -118,13 +156,25 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     });
 
     if (actual === 'openai' && result.openaiClient) {
-      return this.callOpenAI(result.openaiClient, messages, timeoutMs);
+      const model = resolveLlmModel('openai', 'procedural', mementoConfig, {
+        boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+      });
+      const raw = await this.callOpenAI(result.openaiClient, messages, timeoutMs);
+      return { raw, provider: 'openai', model };
     }
     if (actual === 'gemini' && result.geminiClient) {
-      return this.callGemini(result.geminiClient, messages, timeoutMs);
+      const model = resolveLlmModel('gemini', 'procedural', mementoConfig, {
+        boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+      });
+      const raw = await this.callGemini(result.geminiClient, messages, timeoutMs);
+      return { raw, provider: 'gemini', model };
     }
     if (actual === 'ollama') {
-      return this.callOllama(messages, timeoutMs);
+      const model = resolveLlmModel('ollama', 'procedural', mementoConfig, {
+        boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+      });
+      const raw = await this.callOllama(messages, timeoutMs);
+      return { raw, provider: 'ollama', model };
     }
 
     throw new Error('사용 가능한 LLM provider 없음');
@@ -136,17 +186,31 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     timeoutMs: number
   ): Promise<string> {
     const retryOptions = getRetryOptions();
+    const model = resolveLlmModel('openai', 'procedural', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+    });
     const res = await this.retryManager.retry(
       async () => {
-        return await client.chat.completions.create({
-          model: resolveLlmModel('openai', 'procedural', mementoConfig, {
-            boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
-          }),
-          messages: messages as OpenAI.ChatCompletionMessageParam[],
-          temperature: 0.3,
-          max_tokens: 1024,
-          response_format: { type: 'json_object' }
-        }, { timeout: timeoutMs });
+        try {
+          return await client.chat.completions.create({
+            model,
+            messages: messages as OpenAI.ChatCompletionMessageParam[],
+            temperature: 0.3,
+            max_tokens: 1024,
+            response_format: { type: 'json_object' }
+          }, { timeout: timeoutMs });
+        } catch (error) {
+          recordLlmUsageAttempt({
+            provider: 'openai',
+            model,
+            outcome: classifyLlmAttemptOutcome(error),
+            failureReason: error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120),
+            attemptCoverage: 'full',
+            inputTokens: 'unknown',
+            outputTokens: 'unknown',
+          });
+          throw error;
+        }
       },
       {
         maxAttempts: retryOptions.external_api.maxAttempts,
@@ -159,6 +223,15 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     );
     const content = res.choices[0]?.message?.content;
     if (!content) throw new Error('OpenAI 응답 내용 없음');
+    const providerReported = res.usage != null;
+    recordLlmUsageAttempt({
+      provider: 'openai',
+      model,
+      outcome: 'success',
+      attemptCoverage: 'full',
+      inputTokens: coerceUsageField(res.usage?.prompt_tokens, providerReported),
+      outputTokens: coerceUsageField(res.usage?.completion_tokens, providerReported),
+    });
     return content;
   }
 
@@ -168,11 +241,11 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     timeoutMs: number
   ): Promise<string> {
     const retryOptions = getRetryOptions();
+    const model = resolveLlmModel('gemini', 'procedural', mementoConfig, {
+      boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
+    });
     return await this.retryManager.retry(
       async () => {
-        const model = resolveLlmModel('gemini', 'procedural', mementoConfig, {
-          boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
-        });
         const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -180,10 +253,29 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
           const gen = await client.models.generateContent({
             model,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            // 사고 토큰이 maxOutputTokens 를 먹어 응답이 잘리지 않게 사고를 끈다.
             config: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
           });
-          return gen.text || '{}';
+          const text = gen.text || '{}';
+          recordLlmUsageAttempt({
+            provider: 'gemini',
+            model,
+            outcome: 'success',
+            attemptCoverage: 'full',
+            inputTokens: 'unknown',
+            outputTokens: 'unknown',
+          });
+          return text;
+        } catch (error) {
+          recordLlmUsageAttempt({
+            provider: 'gemini',
+            model,
+            outcome: classifyLlmAttemptOutcome(error),
+            failureReason: error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120),
+            attemptCoverage: 'full',
+            inputTokens: 'unknown',
+            outputTokens: 'unknown',
+          });
+          throw error;
         } finally {
           clearTimeout(timeoutId);
         }
@@ -212,26 +304,59 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
 
     return await this.retryManager.retry(
       async () => {
-        const response = await fetch(`${baseUrl}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        try {
+          const response = await fetch(`${baseUrl}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              prompt,
+              stream: false,
+              format: 'json',
+              options: { temperature: 0.3 },
+            }),
+            signal: AbortSignal.timeout(timeoutMs),
+          });
+          if (!response.ok) {
+            const err = new Error(`Ollama HTTP ${response.status}`);
+            recordLlmUsageAttempt({
+              provider: 'ollama',
+              model,
+              outcome: response.status === 429 ? 'rate_limited' : 'failure',
+              failureReason: `http_${response.status}`,
+              attemptCoverage: 'unknown',
+              inputTokens: 'unknown',
+              outputTokens: 'unknown',
+            });
+            throw err;
+          }
+          const payload = (await response.json()) as { response?: string };
+          if (!payload.response) {
+            throw new Error('Ollama 응답 내용 없음');
+          }
+          recordLlmUsageAttempt({
+            provider: 'ollama',
             model,
-            prompt,
-            stream: false,
-            format: 'json',
-            options: { temperature: 0.3 },
-          }),
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-        if (!response.ok) {
-          throw new Error(`Ollama HTTP ${response.status}`);
+            outcome: 'success',
+            attemptCoverage: 'unknown',
+            inputTokens: 'unknown',
+            outputTokens: 'unknown',
+          });
+          return payload.response;
+        } catch (error) {
+          if (!(error instanceof Error) || !error.message.startsWith('Ollama HTTP')) {
+            recordLlmUsageAttempt({
+              provider: 'ollama',
+              model,
+              outcome: classifyLlmAttemptOutcome(error),
+              failureReason: error instanceof Error ? error.message.slice(0, 120) : String(error).slice(0, 120),
+              attemptCoverage: 'unknown',
+              inputTokens: 'unknown',
+              outputTokens: 'unknown',
+            });
+          }
+          throw error;
         }
-        const payload = (await response.json()) as { response?: string };
-        if (!payload.response) {
-          throw new Error('Ollama 응답 내용 없음');
-        }
-        return payload.response;
       },
       {
         maxAttempts: retryOptions.external_api.maxAttempts,

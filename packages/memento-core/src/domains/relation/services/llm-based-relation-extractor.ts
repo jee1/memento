@@ -38,6 +38,10 @@ RelationType
 import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
+import {
+  recordLlmUsageLogicalFinal,
+} from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 import { TokenBucketRateLimiter } from '../../../shared/utils/token-bucket-rate-limiter.js';
 import { determineLlmProvider } from './llm-provider-selection.js';
 import { prepareRelationCandidatePool } from './relation-candidate-pool.js';
@@ -447,6 +451,7 @@ ${memoryList}
     }
 
     // LLM 호출
+    return runWithLlmUsageLogicalContext('relation_extraction', null, async () => {
     let parsedResponse: ParseResult;
 
     try {
@@ -464,6 +469,12 @@ ${memoryList}
           throw new Error(`지원하지 않는 provider: ${actualProvider}`);
       }
     } catch (error) {
+      recordLlmUsageLogicalFinal({
+        finalPath: 'deferred',
+        finalReason: 'llm_failed',
+        provider: actualProvider,
+        model: null,
+      });
       // LLM 호출 실패 시 명확한 에러 메시지와 함께 예외를 던짐
       // 호출자가 실패를 인지하고 적절한 fallback 전략을 사용할 수 있도록 함
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -507,7 +518,16 @@ ${memoryList}
     // 캐시 저장 (7일 TTL)
     this.cache.set(cacheKey, candidates);
 
+    recordLlmUsageLogicalFinal({
+      finalPath: 'llm',
+      provider: actualProvider,
+      model: resolveLlmModel(actualProvider, 'relation_extraction', mementoConfig, {
+        boundProvider: resolveBoundLlmProvider('relation_extraction', this.preferredProvider),
+      }),
+    });
+
     return candidates;
+    });
   }
 
   /**

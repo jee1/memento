@@ -10,6 +10,8 @@ import type {
   PersonalKnowledgePersistResult,
 } from '../types/agent-types.js';
 import { extractKnowledgeCandidates } from '../extractors/knowledge-candidate-extractor.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
+import { recordLlmUsageLogicalFinal } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 export interface PersonalKnowledgeAgentDeps {
   llm: ILLMPort;
@@ -21,41 +23,57 @@ export class PersonalKnowledgeAgentService {
   constructor(private readonly deps: PersonalKnowledgeAgentDeps) {}
 
   async runOneTurn(input: PersonalKnowledgeAgentInput): Promise<PersonalKnowledgeAgentResult> {
-    const bundle = await this.deps.context.buildContext({
-      userMessage: input.userMessage,
-      projectId: input.projectId,
-      ownerId: input.ownerId,
-      tokenBudget: input.tokenBudget,
-      maxMemories: input.maxMemories,
-      memoryTypes: input.memoryTypes,
+    return runWithLlmUsageLogicalContext('agent_chat', null, async () => {
+      const bundle = await this.deps.context.buildContext({
+        userMessage: input.userMessage,
+        projectId: input.projectId,
+        ownerId: input.ownerId,
+        tokenBudget: input.tokenBudget,
+        maxMemories: input.maxMemories,
+        memoryTypes: input.memoryTypes,
+      });
+
+      const raw = extractKnowledgeCandidates(input.userMessage);
+      const candidates: KnowledgeCandidate[] = raw.map((c) => ({
+        ...c,
+        id: `kc_${randomUUID()}`,
+      }));
+
+      let llmResult;
+      try {
+        llmResult = await this.deps.llm.complete([
+          { role: 'system', content: bundle.promptText },
+          { role: 'user', content: input.userMessage },
+        ]);
+        recordLlmUsageLogicalFinal({
+          finalPath: 'llm',
+          provider: llmResult.metadata?.provider ?? null,
+          model: llmResult.metadata?.model ?? null,
+        });
+      } catch (error) {
+        recordLlmUsageLogicalFinal({
+          finalPath: 'deferred',
+          finalReason: 'llm_failed',
+          provider: null,
+          model: null,
+        });
+        throw error;
+      }
+
+      await this.deps.context.proposeCandidates(candidates);
+
+      return {
+        candidates,
+        llmResponse: llmResult.content,
+        llmMetadata: llmResult.metadata,
+        persisted: false,
+        knowledgeContext: {
+          itemCount: bundle.itemCount,
+          tokenEstimate: bundle.tokenEstimate,
+          summary: bundle.contextSummary,
+        },
+      };
     });
-
-    const raw = extractKnowledgeCandidates(input.userMessage);
-    const candidates: KnowledgeCandidate[] = raw.map((c) => ({
-      ...c,
-      id: `kc_${randomUUID()}`,
-    }));
-
-    const llmResult = await this.deps.llm.complete([
-      { role: 'system', content: bundle.promptText },
-      { role: 'user', content: input.userMessage },
-    ]);
-
-    await this.deps.context.proposeCandidates(candidates);
-
-    // #235: remember는 `persistApprovedCandidates`에서만 호출
-
-    return {
-      candidates,
-      llmResponse: llmResult.content,
-      llmMetadata: llmResult.metadata,
-      persisted: false,
-      knowledgeContext: {
-        itemCount: bundle.itemCount,
-        tokenEstimate: bundle.tokenEstimate,
-        summary: bundle.contextSummary,
-      },
-    };
   }
 
   /**

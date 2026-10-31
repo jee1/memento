@@ -28,6 +28,8 @@ import { logger } from '../../../shared/utils/logger.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { CONFIDENCE, LIMITS, CACHE } from '../../../shared/constants/relation-constants.js';
 import { RelationCache } from './relation-cache.js';
+import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
+import { recordLlmUsageLogicalFinal } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 /**
  * 관계 추출 메인 서비스
@@ -235,18 +237,33 @@ export class RelationExtractor implements IRelationExtractor {
     if (!apiKey) {
       return { seated: true, ok: false, reason: 'unavailable' };
     }
-    const judged = await new JevRelationJudge(
-      new SystemOneClient({
-        apiKey,
-        model: mementoConfig.typesafeModel,
-        timeoutMs: RELATION_JEV_TIMEOUT_MS,
-      }),
-      new UnifiedEmbeddingService(),
-    ).judge(source, existing);
-    if (judged.ok === false) {
-      return { seated: true, ok: false, reason: judged.reason };
-    }
-    return { seated: true, ok: true, candidates: [...judged.candidates] };
+    const model = mementoConfig.typesafeModel ?? 'jev-latest';
+    return runWithLlmUsageLogicalContext('relation_extraction', null, async () => {
+      const judged = await new JevRelationJudge(
+        new SystemOneClient({
+          apiKey,
+          model: mementoConfig.typesafeModel,
+          timeoutMs: RELATION_JEV_TIMEOUT_MS,
+        }),
+        new UnifiedEmbeddingService(),
+        model,
+      ).judge(source, existing);
+      if (judged.ok === false) {
+        recordLlmUsageLogicalFinal({
+          finalPath: 'deferred',
+          finalReason: judged.reason,
+          provider: 'typesafe',
+          model,
+        });
+        return { seated: true, ok: false, reason: judged.reason };
+      }
+      recordLlmUsageLogicalFinal({
+        finalPath: 'llm',
+        provider: 'typesafe',
+        model,
+      });
+      return { seated: true, ok: true, candidates: [...judged.candidates] };
+    });
   }
 
   /**
