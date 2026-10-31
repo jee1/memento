@@ -36,14 +36,16 @@ describe('SummarizationService', () => {
     vi.restoreAllMocks();
   });
 
-  it('uses extractive fallback when no LLM keys', async () => {
+  it('defers when no LLM keys instead of extractive copy (#1549)', async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.GEMINI_API_KEY;
     const svc = new SummarizationService();
     const episodes = [row('1', 'low', 0.2), row('2', 'high body', 0.95)];
     const out = await svc.summarizeCluster({ clusterEpisodes: episodes });
-    expect(out.method).toBe('extractive');
-    expect(out.content).toBe('high body');
+    expect(out.ok).toBe(false);
+    if (!out.ok) {
+      expect(out.reason).toBe('no_llm_configured');
+    }
   });
 
   it('calls OpenAI when API key present and returns summary', async () => {
@@ -59,8 +61,11 @@ describe('SummarizationService', () => {
     const out = await svc.summarizeCluster({
       clusterEpisodes: [row('1', 'a', 0.5), row('2', 'b', 0.5)]
     });
-    expect(out.method).toBe('llm');
-    expect(out.content).toBe('merged summary');
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.method).toBe('llm');
+      expect(out.content).toBe('merged summary');
+    }
     expect(global.fetch).toHaveBeenCalled();
   });
 
@@ -76,8 +81,11 @@ describe('SummarizationService', () => {
     const out = await svc.summarizeCluster({
       clusterEpisodes: [row('1', 'a', 0.5)],
     });
-    expect(out.method).toBe('llm');
-    expect(out.content).toBe('ollama summary');
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.method).toBe('llm');
+      expect(out.content).toBe('ollama summary');
+    }
     expect(global.fetch).toHaveBeenCalledWith(
       'http://ollama.test:11434/api/chat',
       expect.anything(),
@@ -98,7 +106,10 @@ describe('SummarizationService', () => {
     const out = await svc.summarizeCluster({
       clusterEpisodes: [row('1', 'a', 0.5)],
     });
-    expect(out.method).toBe('llm');
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.method).toBe('llm');
+    }
   });
 
   it('provider 가 gemini 면 OPENAI_API_KEY 가 있어도 openai 를 부르지 않는다', async () => {
@@ -115,7 +126,10 @@ describe('SummarizationService', () => {
     const out = await svc.summarizeCluster({
       clusterEpisodes: [row('1', 'a', 0.5)],
     });
-    expect(out.content).toBe('gemini summary');
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.content).toBe('gemini summary');
+    }
     const url = String((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![0]);
     expect(url).toContain('generativelanguage.googleapis.com');
   });
