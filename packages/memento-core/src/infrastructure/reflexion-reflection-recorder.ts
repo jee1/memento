@@ -44,16 +44,20 @@ export class ReflexionReflectionRecorder {
     }
 
     const eventKey = this.generateEventKey(event);
+    this.duplicateWindow.set(eventKey, Date.now());
     const reflectionNote = this.generateReflectionNote(event);
     const taskGoal = event.original_task || this.extractTaskGoal(event);
 
     if (mementoConfig.reflexionObservationOnly) {
-      await createUnverifiedReflexionMemory(this.db, reflectionNote, event, 'failure_observation', { task_goal: taskGoal });
-      this.duplicateWindow.set(eventKey, Date.now());
+      try {
+        await createUnverifiedReflexionMemory(this.db, reflectionNote, event, 'failure_observation', { task_goal: taskGoal });
+      } catch (error) {
+        this.duplicateWindow.delete(eventKey);
+        throw error;
+      }
       await this.proceduralMemoryService.convert(reflectionNote, event);
       return true;
     }
-    this.duplicateWindow.set(eventKey, Date.now());
 
     if (taskGoal) {
       await this.recordWithTaskGoal(event, reflectionNote, taskGoal);
@@ -207,7 +211,8 @@ export class ReflexionReflectionRecorder {
   private generateEventKey(event: FailureEvent): string {
     if (mementoConfig.reflexionObservationOnly) {
       return createHash('sha256').update(JSON.stringify([
-        event.id, event.scope?.owner_id, event.scope?.project_id, event.scope?.process_id,
+        event.tool_name, event.error_type, event.error_message.trim().toLowerCase().replace(/\s+/g, ' '),
+        event.scope?.owner_id, event.scope?.project_id, event.scope?.process_id,
         event.scope?.session_id, event.context?.environment, event.context?.tool_version,
         this.extractTaskGoal(event),
       ])).digest('hex');

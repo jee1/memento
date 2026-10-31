@@ -115,4 +115,15 @@ describe('BaseTool.handleFailure validation skip (#856)', () => {
       owner_id: 'bound-owner', project_id: 'bound-project', process_id: 'process-1', session_id: 'session-1',
     } }));
   });
+
+  it('does not attach scope when observation-only is off (#1547)', async () => {
+    mementoConfig.reflexionObservationOnly = false;
+    Object.assign(context, {
+      boundAgentId: 'bound-owner', boundProjectId: 'bound-project',
+      processId: 'process-1', sessionId: 'session-1',
+    });
+    await tool.fail(new Error('database timeout'), { owner_id: 'other-owner', project_id: 'other-project' }, context);
+    expect(queueFailureEvent).toHaveBeenCalledOnce();
+    expect(queueFailureEvent.mock.calls[0][0]).not.toHaveProperty('scope');
+  });
 });

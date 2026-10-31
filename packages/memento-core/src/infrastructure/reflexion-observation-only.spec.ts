@@ -74,17 +74,76 @@ describe('Reflexion observation-only (#1547)', () => {
     expect(db.prepare("SELECT COUNT(*) AS n FROM memory_item WHERE type = 'procedural'").get()).toEqual({ n: 1 });
   });
 
-  it('does not lose another owner/project/environment/task or event to error-message deduplication', async () => {
-    const events = [failure(), failure(), failure(), failure(), failure(), failure('failure-2')];
+  it('keeps different scopes, environments, tasks and error messages separate', async () => {
+    const events = Array.from({ length: 10 }, (_, i) => failure(`failure-${i}`));
     events[1].scope = { owner_id: 'owner-b', project_id: 'project-a' };
     events[2].scope = { owner_id: 'owner-a', project_id: 'project-b' };
     events[3].context.environment = 'production';
     events[4].original_task = 'another migration';
+    events[5].scope = { ...events[5].scope, process_id: 'another-process' };
+    events[6].scope = { ...events[6].scope, session_id: 'another-session' };
+    events[7].context.tool_version = '2';
+    events[8].tool_name = 'recall';
+    events[9].error_message = 'database timeout after retry';
     for (const event of events) expect(await recorder.record(event)).toBe(true);
     expect(await recorder.record(events[0])).toBe(false);
     const rows = db.prepare('SELECT origin_source FROM memory_item').all() as Array<{ origin_source: string }>;
-    expect(rows).toHaveLength(12);
-    expect(new Set(rows.map(row => JSON.parse(row.origin_source).reflexion.event_id)).size).toBe(2);
+    expect(rows).toHaveLength(20);
+    expect(new Set(rows.map(row => JSON.parse(row.origin_source).reflexion.event_id)).size).toBe(10);
+  });
+
+  it.each([false, true])('bounds a same-error burst with unique event IDs (concurrent=%s)', async (concurrent) => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1800000000000);
+    const events = Array.from({ length: 100 }, (_, i) => ({
+      ...failure(`failure_${i}`), error_message: i % 2 ? '  DATABASE\n timeout  ' : 'database timeout',
+    }));
+    const results: boolean[] = [];
+    if (concurrent) results.push(...await Promise.all(events.map(event => recorder.record(event))));
+    else for (const event of events) results.push(await recorder.record(event));
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item WHERE pinned = 1').get()).toEqual({ n: 2 });
+    expect(embedding.createAndStoreEmbedding).toHaveBeenCalledTimes(1);
+    now.mockReturnValue(1800000059999);
+    expect(await recorder.record(failure('before-expiry'))).toBe(false);
+    now.mockReturnValue(1800000060000);
+    expect(await recorder.record(failure('after-expiry'))).toBe(true);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item WHERE pinned = 1').get()).toEqual({ n: 4 });
+    expect(embedding.createAndStoreEmbedding).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not repeat persisted rows or embeddings after an embedding failure', async () => {
+    embedding.createAndStoreEmbedding.mockRejectedValueOnce(new Error('embedding unavailable'));
+    expect(await recorder.record(failure())).toBe(true);
+    expect(await recorder.record(failure('retry-with-new-id'))).toBe(false);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item WHERE pinned = 1').get()).toEqual({ n: 2 });
+    expect(embedding.createAndStoreEmbedding).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the reservation if conversion throws after the observation was inserted', async () => {
+    const convert = vi.spyOn(service, 'convert').mockRejectedValueOnce(new Error('conversion failed'));
+    await expect(recorder.record(failure())).rejects.toThrow('conversion failed');
+    expect(await recorder.record(failure('retry-with-new-id'))).toBe(false);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item WHERE pinned = 1').get()).toEqual({ n: 1 });
+    expect(convert).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows a retry when the observation INSERT failed without persisting a row', async () => {
+    db.exec(`CREATE TRIGGER reject_observation BEFORE INSERT ON memory_item
+      BEGIN SELECT RAISE(FAIL, 'insert unavailable'); END`);
+    await expect(recorder.record(failure())).rejects.toThrow('insert unavailable');
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item').get()).toEqual({ n: 0 });
+    db.exec('DROP TRIGGER reject_observation');
+    expect(await recorder.record(failure('retry-with-new-id'))).toBe(true);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item WHERE pinned = 1').get()).toEqual({ n: 2 });
+  });
+
+  it('reserves the legacy dedup key before generating a reflection when the flag is off', async () => {
+    mementoConfig.reflexionObservationOnly = false;
+    vi.spyOn(recorder as unknown as { generateReflectionNote: () => never }, 'generateReflectionNote')
+      .mockImplementationOnce(() => { throw new Error('reflection failed'); });
+    await expect(recorder.record(failure())).rejects.toThrow('reflection failed');
+    expect(await recorder.record(failure())).toBe(false);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM memory_item').get()).toEqual({ n: 0 });
   });
 
   it.each(['replace', 'incremental', 'versioned'] as const)('direct %s requests only append an unverified candidate', async (mode) => {
