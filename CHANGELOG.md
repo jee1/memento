@@ -26,6 +26,7 @@
 - 수면 통합: LLM 미설정·실패·429 시 extractive 한 줄 복사로 통합하지 않고 클러스터를 미룹니다. 429 는 같은 run 의 남은 클러스터 처리도 중단합니다. 병합 요약이 비어 있으면 에피소딕 `is_consolidated`/중요도를 바꾸지 않습니다 (#1549).
 - 관계 추출: OpenAI 경로가 출력 상한을 `max_completion_tokens`로 보냅니다. gpt-5.x 계열 모델이 `max_tokens`를 400으로 거절해 관계 추출이 실패하던 문제를 고칩니다 (#1532).
 - 품질 측정: 정답셋이 없을 때 precision/recall 0으로 기록하던 동작을 미측정 상태로 구분합니다. collector metadata·metric_states가 recorder·evaluator·리포트까지 유지됩니다 (#1560).
+- PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
 
 ### Changed
 

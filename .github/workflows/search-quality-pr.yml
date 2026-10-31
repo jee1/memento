@@ -22,6 +22,7 @@ on:
       - 'scripts/quality-benchmark-category-report.ts'
       - 'scripts/quality-benchmark-perf-smoke.ts'
       - 'scripts/lib/quality-baseline.ts'
+      - 'scripts/lib/benchmark-clock.ts'
       - 'scripts/lib/benchmark-search-database.ts'
       - 'scripts/seed-benchmark-db.ts'
       - 'scripts/compare-weight-profiles.ts'
