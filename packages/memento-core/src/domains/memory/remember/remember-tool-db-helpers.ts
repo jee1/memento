@@ -6,6 +6,7 @@ import type Database from 'better-sqlite3';
 import { MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import type { MemoryItemRow, ProceduralMemoryItem } from './remember-tool-types.js';
 
@@ -144,8 +145,7 @@ function tryLoadVecRelationCandidateRows(
                WHERE scoped_me.embedding_provider = 'minilm'
                  AND scoped_me.model = ?
                  AND scoped_mi.id != ?
-                 AND COALESCE(scoped_mi.is_deleted, 0) = 0
-                 AND COALESCE(scoped_mi.owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
+                 AND ${relationCandidateScopeSql('scoped_mi')}
              )
          ) v
          JOIN memory_embedding me ON me.id = v.rowid
@@ -155,13 +155,24 @@ function tryLoadVecRelationCandidateRows(
        ) top_k
        JOIN memory_item mi ON mi.id = top_k.memory_id
        ORDER BY top_k.min_distance ASC`,
-      [queryVectorParam, prefetchK, MINILM_MODEL_NAME, excludeId, excludeId, limit]
+      [queryVectorParam, prefetchK, MINILM_MODEL_NAME, excludeId, excludeId, excludeId, limit]
     ) as MemoryItemRow[];
 
     return rows.length > 0 ? rows : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Relation candidates are current memories in the new memory's owner and project.
+ * NULL matches NULL, like the owner rule before project scoping. Binds the new memory id twice.
+ */
+function relationCandidateScopeSql(a: 'mi' | 'scoped_mi'): string {
+  return `COALESCE(${a}.is_deleted, 0) = 0
+    AND NOT ${supersedeByActiveTargetSql(a)}
+    AND COALESCE(${a}.owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
+    AND COALESCE(${a}.project_id, '') = COALESCE((SELECT project_id FROM memory_item WHERE id = ?), '')`;
 }
 
 export async function getExistingMemoriesForRelationExtraction(
@@ -177,13 +188,12 @@ export async function getExistingMemoriesForRelationExtraction(
         id, type, content, importance, privacy_scope,
         created_at, last_accessed, pinned, tags, source,
         is_consolidated
-      FROM memory_item
-      WHERE id != ?
-        AND COALESCE(is_deleted, 0) = 0
-        AND COALESCE(owner_id, '') = COALESCE((SELECT owner_id FROM memory_item WHERE id = ?), '')
-      ORDER BY created_at DESC
+      FROM memory_item mi
+      WHERE mi.id != ?
+        AND ${relationCandidateScopeSql('mi')}
+      ORDER BY mi.created_at DESC
       LIMIT ?
-    `, [excludeId, excludeId, limit]) as MemoryItemRow[]);
+    `, [excludeId, excludeId, excludeId, limit]) as MemoryItemRow[]);
 
     return rows.map((row: MemoryItemRow): MemoryItem => ({
       id: row.id,

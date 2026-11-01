@@ -437,6 +437,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     slot: AnchorSlot,
     anchorMemoryId: string,
     anchorEmbedding: { embedding: number[]; provider: string },
+    scope: CallerMemoryScope,
     queryEmbedding?: number[]
   ): Promise<Array<{ memory_id: string; score: number; reason: string }>> {
     return this.reanchorService.analyzeAnchorUsage(
@@ -444,6 +445,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       slot,
       anchorMemoryId,
       anchorEmbedding,
+      scope,
       queryEmbedding
     );
   }
@@ -455,6 +457,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     agentId: string,
     slot: AnchorSlot,
     anchorManager: IAnchorManager,
+    scope: CallerMemoryScope,
     queryEmbedding?: number[],
     threshold: number = 0.7,
     strategy: 'gradual' | 'immediate' = 'gradual'
@@ -463,6 +466,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       agentId,
       slot,
       anchorManager,
+      scope,
       queryEmbedding,
       threshold,
       strategy
@@ -476,6 +480,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     agentId: string,
     slot: AnchorSlot,
     anchorManager: IAnchorManager,
+    scope: CallerMemoryScope,
     queryEmbedding?: number[],
     autoMoveEnabled: boolean = false
   ): Promise<AutoReanchorResult | null> {
@@ -483,6 +488,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       agentId,
       slot,
       anchorManager,
+      scope,
       queryEmbedding,
       autoMoveEnabled
     );
