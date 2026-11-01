@@ -6,6 +6,7 @@
 import { initializeDatabase, closeDatabase as closeDb } from './infrastructure/database/sqlite/init.js';
 import { initializeServices } from './bootstrap.js';
 import { validateAndNormalizeDbPath } from './shared/utils/db-path.js';
+import { applyStoredSettingOverrides } from './domains/settings/setting-override-service.js';
 
 export interface MementoCoreOptions {
   dbPath: string;
@@ -25,6 +26,7 @@ export interface MementoCoreInstance {
 export async function createMementoCore(options: MementoCoreOptions): Promise<MementoCoreInstance> {
   const dbPath = validateAndNormalizeDbPath(options.dbPath);
   const db = await initializeDatabase(dbPath);
+  applyStoredSettingOverrides(db);
   const services = await initializeServices(db);
   return { db, services };
 }
@@ -122,6 +124,16 @@ export {
   applySupersedeCandidate,
   restoreSupersededMemory,
 } from './domains/memory/supersede/supersede-apply-service.js';
+export {
+  listRuntimeSettings,
+  revertRuntimeSettingOverride,
+  setRuntimeSettingOverride,
+} from './domains/settings/setting-override-service.js';
+export type {
+  ReadOnlySettingView,
+  RuntimeSettingView,
+  SettingChangeResult,
+} from './domains/settings/setting-override-service.js';
 export {
   parseAdminMemoryItemIdParam,
   getAdminMemoryItemPreviewById,

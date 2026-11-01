@@ -36,6 +36,18 @@ export function parseRelationExtractionOverride(raw: string | undefined): Relati
   return { kind: 'invalid', raw: trimmed };
 }
 
+/** chat 만 provider 맵에 둔다. jev, unset, invalid 는 키를 지워 전역 LLM_PROVIDER 를 따르게 한다. */
+export function syncRelationExtractionProvider(
+  overrides: { relation_extraction?: LLMProvider },
+  override: RelationExtractionOverride,
+): void {
+  if (override.kind === 'chat') {
+    overrides.relation_extraction = override.provider;
+  } else {
+    delete overrides.relation_extraction;
+  }
+}
+
 export function resolveRelationExtractionSeat(config: {
   readonly llmProvider: LLMProvider;
   readonly relationExtractionOverride: RelationExtractionOverride;

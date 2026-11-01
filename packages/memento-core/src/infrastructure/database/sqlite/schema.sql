@@ -913,6 +913,36 @@ BEGIN
   SELECT RAISE(ABORT, 'procedural_execution_evidence is append-only');
 END;
 
+-- Runtime setting override (migration 063, Issue #1582): 이력은 override 행이 지워져도 남도록 FK 를 걸지 않는다
+CREATE TABLE IF NOT EXISTS setting_override (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS setting_override_event (
+  id             TEXT PRIMARY KEY,
+  setting_key    TEXT NOT NULL,
+  action         TEXT NOT NULL CHECK (action IN ('set', 'revert')),
+  previous_value TEXT,
+  new_value      TEXT,
+  actor          TEXT NOT NULL,
+  reason         TEXT,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_setting_override_event_key
+  ON setting_override_event(setting_key, created_at);
+CREATE TRIGGER IF NOT EXISTS setting_override_event_prevent_update
+BEFORE UPDATE ON setting_override_event
+BEGIN
+  SELECT RAISE(ABORT, 'setting_override_event is append-only');
+END;
+CREATE TRIGGER IF NOT EXISTS setting_override_event_prevent_delete
+BEFORE DELETE ON setting_override_event
+BEGIN
+  SELECT RAISE(ABORT, 'setting_override_event is append-only');
+END;
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

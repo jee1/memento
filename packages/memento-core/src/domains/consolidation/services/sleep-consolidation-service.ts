@@ -18,7 +18,8 @@ import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositor
 import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
 import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
-import { getClusterJudgeThreshold, type ClusterJudgePair, type IClusterJudge } from './cluster-judge.js';
+import type { ClusterJudgePair, IClusterJudge } from './cluster-judge.js';
+import { getClusterJudgeThreshold } from '../../../shared/config/cluster-judge-config.js';
 import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
 import type { Outcome } from '../../telemetry/types/telemetry.types.js';
 

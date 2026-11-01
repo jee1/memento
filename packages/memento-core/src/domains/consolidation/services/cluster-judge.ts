@@ -7,6 +7,7 @@
  * that retry would change consolidation scores.
  */
 import { logger } from '../../../shared/utils/logger.js';
+import { isClusterJudgeEnabled } from '../../../shared/config/cluster-judge-config.js';
 import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
 import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
@@ -20,13 +21,6 @@ export interface ClusterJudgePair {
 export interface IClusterJudge {
   /** One P(same task or topic) per pair, in order. Never throws; NaN where no score was obtained. */
   scorePairs(pairs: ClusterJudgePair[]): Promise<number[]>;
-}
-
-/** 40 labeled production pairs (2026-10-03): 0.6 kept 14/15 same-topic and 0/25 different-topic pairs. */
-export function getClusterJudgeThreshold(): number {
-  const raw = process.env.CONSOLIDATION_JUDGE_THRESHOLD;
-  const n = raw ? parseFloat(raw) : 0.6;
-  return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.6;
 }
 
 const QUESTION = '기억 A 와 기억 B 는 같은 작업이나 같은 주제를 다룬다';
@@ -126,9 +120,8 @@ export class JevClusterJudge implements IClusterJudge {
   }
 }
 
-/** CONSOLIDATION_JUDGE=typesafe enables the judge; anything else keeps cosine-only clustering. */
 export function createClusterJudge(apiKey: string | undefined, model: string | undefined): IClusterJudge | null {
-  if (process.env.CONSOLIDATION_JUDGE !== 'typesafe') {
+  if (!isClusterJudgeEnabled()) {
     return null;
   }
   if (!apiKey || apiKey.trim() === '') {
