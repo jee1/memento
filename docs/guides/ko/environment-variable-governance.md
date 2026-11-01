@@ -42,8 +42,6 @@ Memento의 환경 변수는 두 개의 템플릿 파일을 기준으로 관리�
 | `MEMENTO_HTTP_BIND_HOST` | `127.0.0.1` | HTTP 서버 바인드 주소 |
 | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | — | 무키 기동 허용 (로컬 개발 전용) |
 | `MEMENTO_RECALL_PROFILE` | — | `1`로 설정 시 recall 프로파일링 활성화 |
-| `FORGET_WORKING_TTL` | `48` | working 메모리 TTL (시간) |
-| `FORGET_EPISODIC_TTL` | `2160` | episodic 메모리 TTL (시간) |
 
 ## 로딩 규칙
 
@@ -59,4 +57,4 @@ HTTP 서버와 MCP stdio 서버는 CLI와 다른 탐색 경로를 가질 수 있
 
 ## 비파괴 전환 원칙
 
-템플릿(`env.example`, `services/agent/env.example`)이 업데이트되더라도 사용자의 기존 `.env`는 자동으로 수정되거나 삭제되지 않습니다. 변수 이름이 바뀌는 경우 기존 이름과의 호환성을 일정 기간 유지하거나 마이그레이션 안내를 제공합니다.
+템플릿(`env.example`, `services/agent/env.example`)이 업데이트되더라도 사용자의 기존 `.env`는 자동으로 수정되거나 삭제되지 않습니다. 코드나 템플릿에서 제거된 미사용 키가 운영 `.env`에 남아도 Docker Compose 화이트리스트와 런타임 설정 로더는 이를 무시하므로 기동에 영향을 주지 않습니다. 운영자는 점검 시점에 불필요한 키를 정리하면 됩니다. 변수 이름이 바뀌는 경우 기존 이름과의 호환성을 일정 기간 유지하거나 마이그레이션 안내를 제공합니다.

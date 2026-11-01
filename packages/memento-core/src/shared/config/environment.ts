@@ -29,8 +29,6 @@ const ENV_DEFAULTS: Record<string, string> = {
   OLLAMA_BASE_URL: 'http://localhost:11434',
   OLLAMA_MODEL: 'llama3',
   LLM_PROVIDER: 'auto',
-  SEARCH_DEFAULT_LIMIT: '10',
-  SEARCH_MAX_LIMIT: '50',
   // #1095 검색 기각 게이트 — 기본 off 라 켜기 전까지 제품 동작 불변
   SEARCH_REJECTION_GATE: 'off',
   SEARCH_REJECTION_GATE_THRESHOLD: String(DEFAULT_RELEVANCE_GATE_THRESHOLD),
@@ -38,10 +36,6 @@ const ENV_DEFAULTS: Record<string, string> = {
   SEARCH_REJECTION_GATE_DOC_CHARS: '300',
   SEARCH_REJECTION_GATE_ON_ERROR: 'open',
   TYPESAFE_MODEL: 'jev-latest',
-  FORGET_WORKING_TTL: '48',
-  FORGET_EPISODIC_TTL: '2160',
-  FORGET_SEMANTIC_TTL: '-1',
-  FORGET_PROCEDURAL_TTL: '-1',
   MEMENTO_AUTO_SET_ANCHOR_DEFAULT: 'true',
   // WAL 체크포인트 스케줄러 설정
   WAL_CHECKPOINT_INTERVAL_MS: '300000', // 5분 (300000ms)

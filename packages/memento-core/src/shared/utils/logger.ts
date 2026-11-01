@@ -14,7 +14,7 @@
 
 import { PIIMasker } from './pii-masker.js';
 // MCP 모드에서 사용할 mcpLogger (순환 의존성은 실제로 발생하지 않음)
-import { mcpLogger } from './mcp-logger.js';
+import { mcpLogger, shouldLog } from './mcp-logger.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -219,6 +219,7 @@ function buildLogMessage(level: LogLevel, message: string, meta?: Record<string,
  * 일반 모드에서 stderr로 로그 출력
  */
 function logToStderr(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+  if (!shouldLog(level)) return;
   // Error 객체를 PIIMasker.maskObject 전에 plain object로 변환 (JSON.stringify가 Error를 {}로 직렬화하는 버그 방지)
   const normalizedMeta = meta ? normalizeMetaErrors(meta) : undefined;
   const maskedMeta = normalizedMeta ? PIIMasker.maskObject(normalizedMeta) : undefined;
