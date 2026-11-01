@@ -88,6 +88,19 @@ function hybridItemToRanked(
   };
 }
 
+/** 풀 limit·토큰 예산만 적용하고 forbidden/owner/삭제 harness 필터는 적용하지 않는다. */
+export function rankedBenchmarkIdsBeforeHarnessSafetyFilter(
+  items: HybridSearchResult[],
+  ctx: RelationBfsEvalContext,
+): string[] {
+  const mapped = items
+    .map((item) => hybridItemToRanked(item, ctx.memoryIdToBenchmarkId, ctx.contentByBenchmarkId))
+    .filter((row): row is RankedBenchmarkResult => row !== null)
+    .sort((a, b) => b.score - a.score);
+  const trimmed = trimCandidatePool(mapped, ctx.constants.candidatePoolLimit);
+  return selectWithinTokenBudget(trimmed, ctx.constants.tokenBudget).map((row) => row.benchmarkId);
+}
+
 export function countMemoryRelationsInDb(db: Database.Database): number {
   const row = DatabaseUtils.get(db, 'SELECT COUNT(*) AS n FROM memory_relation') as { n: number };
   return row.n;
@@ -284,12 +297,19 @@ export async function evaluateQueryHybridOnly(
   const { items, latencyMs } = cached
     ? { items: cached.items, latencyMs: 0 }
     : await runHybridSearch(ctx, queryRow);
-  const ranked = finalizeRanked(items, ctx, queryRow);
   const metaByBenchmark = new Map<string, MemorySafetyMeta>();
   for (const [id, meta] of ctx.safetyMetaByBenchmarkId) {
     metaByBenchmark.set(id, toSafetyMeta(meta));
   }
   const forbidden = ctx.forbiddenByQueryId.get(queryRow.query_id) ?? [];
+  const rawIds = rankedBenchmarkIdsBeforeHarnessSafetyFilter(items, ctx);
+  const rawSafetyViolations = countSafetyViolations(
+    rawIds,
+    metaByBenchmark,
+    queryRow.scope_owner_id,
+    forbidden,
+  );
+  const ranked = finalizeRanked(items, ctx, queryRow);
   const safetyViolations = countSafetyViolations(
     ranked.map((r) => r.benchmarkId),
     metaByBenchmark,
@@ -302,6 +322,7 @@ export async function evaluateQueryHybridOnly(
     ranked,
     latencyMs,
     returnedTokens: ranked.reduce((sum, row) => sum + row.tokenEstimate, 0),
+    rawSafetyViolations,
     safetyViolations,
   };
 }
@@ -326,12 +347,19 @@ export async function evaluateQueryHybridWithBfs(
   const bfsStarted = measureLatency ? performance.now() : 0;
   const merged = await collectMergedPoolForQuery(ctx, queryRow, hyper, items);
   const bfsMs = measureLatency ? performance.now() - bfsStarted : 0;
-  const ranked = finalizeRanked(merged, ctx, queryRow);
   const metaByBenchmark = new Map<string, MemorySafetyMeta>();
   for (const [id, meta] of ctx.safetyMetaByBenchmarkId) {
     metaByBenchmark.set(id, toSafetyMeta(meta));
   }
   const forbidden = ctx.forbiddenByQueryId.get(queryRow.query_id) ?? [];
+  const rawIds = rankedBenchmarkIdsBeforeHarnessSafetyFilter(merged, ctx);
+  const rawSafetyViolations = countSafetyViolations(
+    rawIds,
+    metaByBenchmark,
+    queryRow.scope_owner_id,
+    forbidden,
+  );
+  const ranked = finalizeRanked(merged, ctx, queryRow);
   const safetyViolations = countSafetyViolations(
     ranked.map((r) => r.benchmarkId),
     metaByBenchmark,
@@ -344,6 +372,7 @@ export async function evaluateQueryHybridWithBfs(
     ranked,
     latencyMs: hybridMs + bfsMs,
     returnedTokens: ranked.reduce((sum, row) => sum + row.tokenEstimate, 0),
+    rawSafetyViolations,
     safetyViolations,
   };
 }

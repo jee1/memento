@@ -35,6 +35,7 @@ describe('relation-bfs-eval-metrics', () => {
         latencyMs: 10,
         returnedTokens: 10,
         safetyViolations: { forbiddenInResults: 0, foreignOwnerInResults: 0, deletedOrSupersededInResults: 0, total: 0 },
+        rawSafetyViolations: { forbiddenInResults: 0, foreignOwnerInResults: 0, deletedOrSupersededInResults: 0, total: 0 },
       },
       {
         queryId: 'q2',
@@ -43,6 +44,7 @@ describe('relation-bfs-eval-metrics', () => {
         latencyMs: 20,
         returnedTokens: 10,
         safetyViolations: { forbiddenInResults: 0, foreignOwnerInResults: 0, deletedOrSupersededInResults: 0, total: 0 },
+        rawSafetyViolations: { forbiddenInResults: 0, foreignOwnerInResults: 0, deletedOrSupersededInResults: 0, total: 0 },
       },
     ];
     const m = computeAggregateMetrics(outcomes, groundTruths);
@@ -61,6 +63,7 @@ describe('relation-bfs-eval-metrics', () => {
       latencyMs: 1,
       returnedTokens: 1,
       safetyViolations: { forbiddenInResults: 0, foreignOwnerInResults: 0, deletedOrSupersededInResults: 0, total: 0 },
+      rawSafetyViolations: { forbiddenInResults: 0, foreignOwnerInResults: 0, deletedOrSupersededInResults: 0, total: 0 },
     });
     const hybridOnly = [base('q1', 'r1'), base('q2', 'r2')];
     const hybridBfs = [base('q1', 'r1'), base('q2', 'noise')];

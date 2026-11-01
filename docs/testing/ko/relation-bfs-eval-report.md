@@ -20,7 +20,167 @@ memory_relation 적재 건수(relations.jsonl): 205
 
 ## 안전 (harness vs 운영)
 
-본 harness는 `expandPoolWithBfs`·`filterHybridItemsForBfsArm`·`finalizeRanked`에서 query별 forbidden·scope owner·삭제/교체 메타를 **반환 풀**에서 제거한다. 운영 `relation-graph-traversal.ts`의 `getRelatedMemories`와 hybrid recall 경로에는 동일 필터가 없다. fixture에서 safety violation 0( forbidden·foreign owner·deleted/교체 집계)은 **고정 fixture + harness 후처리**일 뿐 운영 안전성 증명이 아니다.
+**A(hybrid-only)·B(hybrid+BFS) 모두** `finalizeRanked`에서 query별 forbidden·scope owner·삭제/교체를 반환 풀에서 제거한 뒤 Recall/nDCG·`assertZeroSafetyViolations`를 계산한다. 아래 **raw**는 풀 limit·토큰 trim만 거친 후 harness safety 필터 **적용 전** 후보에 대한 위반 **건수 합**(query당 중복 id도 그대로 센다). 운영 `relation-graph-traversal.ts`·hybrid recall에는 동일 필터가 없다.
+
+| split · arm | raw forbidden | raw foreign | raw deleted | raw total | filtered total (assertZero) |
+|---|---:|---:|---:|---:|---:|
+| dev · hybrid(A) | 40 | 0 | 10 | 50 | 0 |
+| dev · hybrid+BFS(B) | 40 | 0 | 0 | 40 | 0 |
+| held-out · hybrid(A) | 82 | 0 | 12 | 94 | 0 |
+| held-out · hybrid+BFS(B) | 80 | 0 | 0 | 80 | 0 |
+
+raw per-query (total>0):
+
+- dev hybrid(A) `cl_01_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_01_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_01_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid(A) `cl_02_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_02_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_02_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid(A) `cl_03_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=1 total=2
+- dev hybrid(A) `cl_03_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_03_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid(A) `cl_04_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_04_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_04_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=1 total=2
+- dev hybrid(A) `cl_05_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_05_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_05_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=1 total=2
+- dev hybrid(A) `cl_06_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_06_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_06_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid(A) `cl_07_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_07_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_07_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid(A) `cl_08_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid(A) `cl_08_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid(A) `cl_08_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid(A) `cl_09_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- dev hybrid+BFS(B) `cl_01_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_01_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_01_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_02_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_02_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_02_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_03_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_03_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_03_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_04_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_04_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_04_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_05_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_05_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_05_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_06_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_06_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_06_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_07_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_07_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_07_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_08_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- dev hybrid+BFS(B) `cl_08_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_08_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- dev hybrid+BFS(B) `cl_09_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_09_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_09_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_10_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_10_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_10_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_11_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_11_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_11_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_12_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_12_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_12_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_13_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_13_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_13_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_14_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_14_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_14_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_15_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_15_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_15_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_16_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_16_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_16_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_17_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_17_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_17_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_18_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_18_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_18_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_19_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_19_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_19_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_20_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_20_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_20_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_21_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_21_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_21_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_22_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_22_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_22_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=1 total=2
+- held-out hybrid(A) `cl_23_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_23_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_23_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_24_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_24_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_24_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=1 total=3
+- held-out hybrid(A) `cl_25_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid(A) `cl_25_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid(A) `cl_25_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_09_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_09_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_10_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_10_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_10_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_11_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_11_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_11_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_12_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_12_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_12_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_13_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_13_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_13_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_14_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_14_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_14_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_15_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_15_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_15_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_16_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_16_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_16_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_17_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_17_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_17_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_18_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_18_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_18_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_19_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_19_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_19_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_20_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_20_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_20_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_21_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_21_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_21_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_22_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_22_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_22_q_trap`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_23_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_23_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_23_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_24_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_24_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_24_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_25_q_single`: forbidden=1 foreign_owner=0 deleted_or_superseded=0 total=1
+- held-out hybrid+BFS(B) `cl_25_q_multi`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
+- held-out hybrid+BFS(B) `cl_25_q_trap`: forbidden=2 foreign_owner=0 deleted_or_superseded=0 total=2
 
 ## 1차 측정이 multi_hop 0이었던 원인 (harness, 재측정 전)
 
@@ -68,17 +228,17 @@ dev 18조합 중 **h2/h3**, **s3/s5**, **l15~l35**는 multi_hop·overall R@10이
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 8 | 0.875 | 0.875 | 0.706 | 0.706 | 6.0 | 7.7 | 500.9 |
-| multi_hop | 8 | 0.000 | 0.000 | 0.000 | 0.000 | 7.1 | 8.6 | 678.9 |
-| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 5.3 | 5.7 | 419.2 |
+| single_fact | 8 | 0.875 | 0.875 | 0.706 | 0.706 | 6.8 | 12.4 | 500.9 |
+| multi_hop | 8 | 0.000 | 0.000 | 0.000 | 0.000 | 7.4 | 12.0 | 678.9 |
+| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 5.9 | 6.4 | 419.2 |
 
 ### hybrid + BFS
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 8 | 1.000 | 1.000 | 0.760 | 0.760 | 6.3 | 7.0 | 524.6 |
-| multi_hop | 8 | 0.125 | 0.250 | 0.063 | 0.104 | 7.2 | 13.5 | 710.1 |
-| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 5.4 | 5.9 | 462.1 |
+| single_fact | 8 | 1.000 | 1.000 | 0.760 | 0.760 | 7.1 | 7.6 | 524.6 |
+| multi_hop | 8 | 0.125 | 0.250 | 0.063 | 0.104 | 7.7 | 14.3 | 710.1 |
+| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 5.9 | 6.6 | 462.1 |
 
 회귀 query_id (A hit, B miss @10): 없음
 
@@ -88,17 +248,17 @@ dev 18조합 중 **h2/h3**, **s3/s5**, **l15~l35**는 multi_hop·overall R@10이
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 17 | 0.941 | 0.941 | 0.768 | 0.768 | 5.9 | 7.3 | 507.1 |
-| multi_hop | 17 | 0.000 | 0.000 | 0.000 | 0.000 | 6.6 | 12.9 | 679.8 |
-| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 5.1 | 5.7 | 420.6 |
+| single_fact | 17 | 0.941 | 0.941 | 0.768 | 0.768 | 5.9 | 7.1 | 507.1 |
+| multi_hop | 17 | 0.000 | 0.000 | 0.000 | 0.000 | 6.8 | 15.0 | 679.8 |
+| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 5.2 | 9.1 | 420.6 |
 
 ### hybrid + BFS
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 17 | 0.941 | 0.941 | 0.761 | 0.761 | 6.2 | 11.6 | 529.4 |
-| multi_hop | 17 | 0.059 | 0.176 | 0.037 | 0.076 | 6.8 | 7.4 | 714.1 |
-| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 5.5 | 5.9 | 462.6 |
+| single_fact | 17 | 0.941 | 0.941 | 0.761 | 0.761 | 6.3 | 13.8 | 529.4 |
+| multi_hop | 17 | 0.059 | 0.176 | 0.037 | 0.076 | 7.0 | 11.3 | 714.1 |
+| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 5.3 | 8.4 | 462.6 |
 
 회귀 query_id (A hit, B miss @10): 없음
 

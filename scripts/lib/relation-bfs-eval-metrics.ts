@@ -26,6 +26,9 @@ export interface PerQueryEvalOutcome {
   ranked: readonly RankedBenchmarkResult[];
   latencyMs: number;
   returnedTokens: number;
+  /** hybrid/BFS merge 후 harness safety 필터 적용 전(풀·토큰 trim만) 위반 집계 */
+  rawSafetyViolations: SafetyViolationCounts;
+  /** finalizeRanked forbidden·owner·삭제/교체 제거 후 반환 풀 위반( assertZero 대상) */
   safetyViolations: SafetyViolationCounts;
 }
 
@@ -215,6 +218,30 @@ export function assertZeroSafetyViolations(counts: SafetyViolationCounts, label:
         `foreign_owner=${counts.foreignOwnerInResults} deleted_or_superseded=${counts.deletedOrSupersededInResults}`,
     );
   }
+}
+
+export function sumSafetyViolationCounts(
+  counts: readonly SafetyViolationCounts[],
+): SafetyViolationCounts {
+  let forbiddenInResults = 0;
+  let foreignOwnerInResults = 0;
+  let deletedOrSupersededInResults = 0;
+  for (const row of counts) {
+    forbiddenInResults += row.forbiddenInResults;
+    foreignOwnerInResults += row.foreignOwnerInResults;
+    deletedOrSupersededInResults += row.deletedOrSupersededInResults;
+  }
+  return {
+    forbiddenInResults,
+    foreignOwnerInResults,
+    deletedOrSupersededInResults,
+    total: forbiddenInResults + foreignOwnerInResults + deletedOrSupersededInResults,
+  };
+}
+
+export function formatSafetyViolationCounts(counts: SafetyViolationCounts): string {
+  return `forbidden=${counts.forbiddenInResults} foreign_owner=${counts.foreignOwnerInResults} ` +
+    `deleted_or_superseded=${counts.deletedOrSupersededInResults} total=${counts.total}`;
 }
 
 function percentile(values: number[], p: number): number {

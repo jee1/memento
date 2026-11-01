@@ -19,9 +19,12 @@ import {
   computeAggregateMetrics,
   computeMetricsByCategory,
   findRegressionQueryIds,
+  formatSafetyViolationCounts,
+  sumSafetyViolationCounts,
   type AggregateMetrics,
   type CategorySliceMetrics,
   type PerQueryEvalOutcome,
+  type SafetyViolationCounts,
 } from './lib/relation-bfs-eval-metrics.js';
 import {
   buildDevGridRows,
@@ -64,9 +67,65 @@ export interface RelationBfsEvalReport {
   chosenHyperparams: RelationBfsHyperparams;
   dev: SplitReport;
   heldOut: SplitReport;
+  safetyAudit: SafetyHarnessAudit;
   conclusion: 'do_not_expand' | 'exploratory' | 'inconclusive_harness';
   conclusionReason: string;
   syntheticLimitation: string;
+}
+
+export interface SafetyArmAudit {
+  raw: SafetyViolationCounts;
+  filtered: SafetyViolationCounts;
+  rawQueries: Array<{ queryId: string; counts: SafetyViolationCounts }>;
+}
+
+export interface SafetyHarnessAudit {
+  devHybridOnly: SafetyArmAudit;
+  devHybridBfs: SafetyArmAudit;
+  heldHybridOnly: SafetyArmAudit;
+  heldHybridBfs: SafetyArmAudit;
+}
+
+function buildSafetyArmAudit(outcomes: readonly PerQueryEvalOutcome[]): SafetyArmAudit {
+  return {
+    raw: sumSafetyViolationCounts(outcomes.map((o) => o.rawSafetyViolations)),
+    filtered: sumSafetyViolationCounts(outcomes.map((o) => o.safetyViolations)),
+    rawQueries: outcomes
+      .filter((o) => o.rawSafetyViolations.total > 0)
+      .map((o) => ({ queryId: o.queryId, counts: o.rawSafetyViolations })),
+  };
+}
+
+function formatSafetyAuditTable(audit: SafetyHarnessAudit): string {
+  const header =
+    '| split · arm | raw forbidden | raw foreign | raw deleted | raw total | filtered total (assertZero) |\n' +
+    '|---|---:|---:|---:|---:|---:|';
+  const row = (label: string, arm: SafetyArmAudit) =>
+    `| ${label} | ${arm.raw.forbiddenInResults} | ${arm.raw.foreignOwnerInResults} | ` +
+    `${arm.raw.deletedOrSupersededInResults} | ${arm.raw.total} | ${arm.filtered.total} |`;
+  return [
+    header,
+    row('dev · hybrid(A)', audit.devHybridOnly),
+    row('dev · hybrid+BFS(B)', audit.devHybridBfs),
+    row('held-out · hybrid(A)', audit.heldHybridOnly),
+    row('held-out · hybrid+BFS(B)', audit.heldHybridBfs),
+  ].join('\n');
+}
+
+function formatRawSafetyQueryLines(audit: SafetyHarnessAudit): string {
+  const entries: Array<[string, SafetyArmAudit]> = [
+    ['dev hybrid(A)', audit.devHybridOnly],
+    ['dev hybrid+BFS(B)', audit.devHybridBfs],
+    ['held-out hybrid(A)', audit.heldHybridOnly],
+    ['held-out hybrid+BFS(B)', audit.heldHybridBfs],
+  ];
+  const lines: string[] = [];
+  for (const [label, arm] of entries) {
+    for (const q of arm.rawQueries) {
+      lines.push(`- ${label} \`${q.queryId}\`: ${formatSafetyViolationCounts(q.counts)}`);
+    }
+  }
+  return lines.length > 0 ? lines.join('\n') : '- raw total>0 per-query 없음(표 집계만 참고)';
 }
 
 export interface SplitReport {
@@ -272,6 +331,13 @@ export async function runRelationBfsEvaluation(
       heldReport.regressionQueryIdsAt10.length,
     );
 
+    const safetyAudit: SafetyHarnessAudit = {
+      devHybridOnly: buildSafetyArmAudit(devA),
+      devHybridBfs: buildSafetyArmAudit(devBfs),
+      heldHybridOnly: buildSafetyArmAudit(heldA),
+      heldHybridBfs: buildSafetyArmAudit(heldBfs),
+    };
+
     return {
       fixture: fixtureDir,
       labelSource: 'agent_panel (relation-ko-panel-v1, not human gold)',
@@ -280,6 +346,7 @@ export async function runRelationBfsEvaluation(
       chosenHyperparams: chosen,
       dev: devReport,
       heldOut: heldReport,
+      safetyAudit,
       conclusion,
       conclusionReason,
       syntheticLimitation:
@@ -325,7 +392,13 @@ memory_relation 적재 건수(relations.jsonl): ${report.relationRowCount}
 
 ## 안전 (harness vs 운영)
 
-본 harness는 \`expandPoolWithBfs\`·\`filterHybridItemsForBfsArm\`·\`finalizeRanked\`에서 query별 forbidden·scope owner·삭제/교체 메타를 **반환 풀**에서 제거한다. 운영 \`relation-graph-traversal.ts\`의 \`getRelatedMemories\`와 hybrid recall 경로에는 동일 필터가 없다. fixture에서 safety violation 0( forbidden·foreign owner·deleted/교체 집계)은 **고정 fixture + harness 후처리**일 뿐 운영 안전성 증명이 아니다.
+**A(hybrid-only)·B(hybrid+BFS) 모두** \`finalizeRanked\`에서 query별 forbidden·scope owner·삭제/교체를 반환 풀에서 제거한 뒤 Recall/nDCG·\`assertZeroSafetyViolations\`를 계산한다. 아래 **raw**는 풀 limit·토큰 trim만 거친 후 harness safety 필터 **적용 전** 후보에 대한 위반 **건수 합**(query당 중복 id도 그대로 센다). 운영 \`relation-graph-traversal.ts\`·hybrid recall에는 동일 필터가 없다.
+
+${formatSafetyAuditTable(report.safetyAudit)}
+
+raw per-query (total>0):
+
+${formatRawSafetyQueryLines(report.safetyAudit)}
 
 ## 1차 측정이 multi_hop 0이었던 원인 (harness, 재측정 전)
 
