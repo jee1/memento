@@ -29,6 +29,8 @@ function initializeProductionLikeSchema(db: Database.Database): void {
       source TEXT,
       is_consolidated BOOLEAN DEFAULT FALSE,
       owner_id TEXT,
+      project_id TEXT,
+      superseded_by TEXT,
       is_deleted INTEGER DEFAULT 0
     );
   `);
@@ -119,6 +121,24 @@ describe('RememberTool relation load (Issue #544)', () => {
       expect(forNull.map((m) => m.id)).toEqual(['mem-null-1']);
     });
 
+    it('새 기억과 같은 project 의 현재 기억만 후보로 반환한다', async () => {
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, owner_id, project_id, superseded_by) VALUES
+          ('mem-p-1', 'semantic', 'p 의 지식', 'agent-a', 'proj-p', NULL),
+          ('mem-p-old', 'semantic', 'p 의 대체된 지식', 'agent-a', 'proj-p', 'mem-p-1'),
+          ('mem-q-1', 'semantic', 'q 의 지식', 'agent-a', 'proj-q', NULL),
+          ('mem-none-1', 'semantic', 'project 없는 지식', 'agent-a', NULL, NULL),
+          ('mem-p-new', 'episodic', 'p 의 새 기억', 'agent-a', 'proj-p', NULL),
+          ('mem-none-new', 'episodic', 'project 없는 새 기억', 'agent-a', NULL, NULL)
+      `);
+
+      const forP = await getExistingMemoriesForRelationExtraction(db, 'mem-p-new', 100, host);
+      expect(forP.map((m) => m.id)).toEqual(['mem-p-1']);
+
+      const forNone = await getExistingMemoriesForRelationExtraction(db, 'mem-none-new', 100, host);
+      expect(forNone.map((m) => m.id)).toEqual(['mem-none-1']);
+    });
+
     it('조회 실패 시 기존 기억 조회 실패 warn을 남기지 않는다', async () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (id, type, content)
@@ -177,6 +197,46 @@ describe('RememberTool relation load (Issue #544)', () => {
         const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
         expect(candidates).toHaveLength(1);
         expect(candidates[0]?.id).toBe('mem-old-near');
+      } finally {
+        vecDb.close();
+      }
+    });
+
+    it('vec0 KNN 후보도 다른 project 와 대체된 기억을 LIMIT 전에 뺀다', async () => {
+      const vecDb = await setupTestDatabase();
+      try {
+        const makeVecJson = (val: number) => {
+          const arr = new Array(384).fill(0);
+          arr[0] = val;
+          arr[1] = 1 - val;
+          return JSON.stringify(arr);
+        };
+
+        DatabaseUtils.run(vecDb, `
+          INSERT INTO memory_item (id, type, content, owner_id, project_id, is_deleted) VALUES
+            ('mem-other-project', 'semantic', '다른 project 의 가장 가까운 기억', 'agent-a', 'proj-q', 0),
+            ('mem-replaced', 'semantic', '대체된 가까운 기억', 'agent-a', 'proj-p', 0),
+            ('mem-current', 'semantic', '같은 project 의 현재 기억', 'agent-a', 'proj-p', 0),
+            ('mem-new', 'episodic', '새 기억', 'agent-a', 'proj-p', 0)
+        `);
+        DatabaseUtils.run(vecDb, `UPDATE memory_item SET superseded_by = 'mem-current' WHERE id = 'mem-replaced'`);
+
+        const insertEmb = vecDb.prepare(`
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model, precision, normalized, version, created_by
+          ) VALUES (?, 'minilm', 'native', ?, 384, 384, ?, 32, 1, 1, 'test')
+        `);
+        insertEmb.run('mem-other-project', makeVecJson(1.0), MINILM_MODEL_NAME);
+        insertEmb.run('mem-replaced', makeVecJson(0.99), MINILM_MODEL_NAME);
+        insertEmb.run('mem-current', makeVecJson(0.5), MINILM_MODEL_NAME);
+        insertEmb.run('mem-new', makeVecJson(1.0), MINILM_MODEL_NAME);
+
+        const all = vi.spyOn(DatabaseUtils, 'all');
+        const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
+        expect(candidates.map((m) => m.id)).toEqual(['mem-current']);
+        // KNN 경로에서 나온 결과다(텍스트 fallback 이 아니다).
+        expect(all.mock.calls.some(([, sql]) => String(sql).includes('memory_item_vec_minilm'))).toBe(true);
+        expect(all.mock.calls.some(([, sql]) => String(sql).includes('ORDER BY mi.created_at DESC'))).toBe(false);
       } finally {
         vecDb.close();
       }

@@ -13,6 +13,7 @@ import type {
 import { DatabaseValidationError, VectorDimensionMismatchError } from './anchor-interfaces.js';
 import type { NHopSearchResult, NHopSearchService } from './n-hop-search-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import type { CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 import { daysBetween } from '../../../../shared/utils/date.js';
 import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 import { ErrorCategory, ErrorSeverity, ErrorLoggingService } from '../../../../domains/monitoring/services/error-logging-service.js';
@@ -118,11 +119,13 @@ export class AnchorReanchorService {
     }
   }
 
+  /** `scope` bounds the candidates to the caller's owner and project; pass `{}` only for unscoped callers. */
   async analyzeAnchorUsage(
     agentId: string,
     slot: AnchorSlot,
     anchorMemoryId: string,
     anchorEmbedding: { embedding: number[]; provider: string },
+    scope: CallerMemoryScope,
     queryEmbedding?: number[]
   ): Promise<Array<{ memory_id: string; score: number; reason: string }>> {
     if (!this.getDb()) {
@@ -153,7 +156,8 @@ export class AnchorReanchorService {
         slotConfig.vector_threshold * 0.8,
         slotConfig.hop_limit,
         20,
-        true
+        true,
+        scope
       );
 
       const candidates: Array<{ memory_id: string; score: number; reason: string }> = [];
@@ -190,6 +194,7 @@ export class AnchorReanchorService {
     agentId: string,
     slot: AnchorSlot,
     anchorManager: IAnchorManager,
+    scope: CallerMemoryScope,
     queryEmbedding?: number[],
     threshold: number = 0.7,
     strategy: 'gradual' | 'immediate' = 'gradual'
@@ -241,6 +246,7 @@ export class AnchorReanchorService {
         slot,
         currentAnchor.memory_id,
         anchorEmbedding,
+        scope,
         queryEmbedding
       );
 
@@ -310,6 +316,7 @@ export class AnchorReanchorService {
     agentId: string,
     slot: AnchorSlot,
     anchorManager: IAnchorManager,
+    scope: CallerMemoryScope,
     queryEmbedding?: number[],
     autoMoveEnabled: boolean = false
   ): Promise<AutoReanchorResult | null> {
@@ -318,7 +325,7 @@ export class AnchorReanchorService {
     }
 
     try {
-      return await this.autoReanchor(agentId, slot, anchorManager, queryEmbedding, 0.7, 'gradual');
+      return await this.autoReanchor(agentId, slot, anchorManager, scope, queryEmbedding, 0.7, 'gradual');
     } catch (error) {
       logger.debug('Auto reanchor check failed (ignored)', {
         error: error instanceof Error ? error.message : String(error)
