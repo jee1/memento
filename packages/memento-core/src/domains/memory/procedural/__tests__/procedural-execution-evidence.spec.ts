@@ -4,6 +4,7 @@ import { setupTestDatabase } from '../../../../../test/helpers/test-database.js'
 import { mementoConfig } from '../../../../shared/config/index.js';
 import {
   evaluateProceduralAdoption,
+  PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES,
   recordProceduralExecution,
   type ProceduralExecutionInput,
 } from '../procedural-execution-evidence.js';
@@ -205,6 +206,40 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
   it('blocks a candidate proposed for a different workflow than the series', () => {
     db.prepare("UPDATE memory_item SET workflow_name = 'backup-flow' WHERE id = 'cand'").run();
     expect(evaluate()).toEqual({ kind: 'blocked', reason: 'series_mismatch' });
+  });
+
+  it('stores trimmed environment, toolVersion, and caseId so padded values match the fixed environment gate', () => {
+    record('proc-v1', 'base-1', { environment: 'ci-linux ', toolVersion: ' 2.4.0', caseId: ' case-1 ' });
+    record('cand', 'cand-1', { environment: 'ci-linux', toolVersion: '2.4.0', caseId: 'case-1' });
+
+    expect(judged(evaluate()).passed).toBe(true);
+
+    const stored = db
+      .prepare('SELECT environment, tool_version, case_id FROM procedural_execution_evidence WHERE run_id = ?')
+      .get('base-1') as { environment: string; tool_version: string; case_id: string };
+    expect(stored).toEqual({ environment: 'ci-linux', tool_version: '2.4.0', case_id: 'case-1' });
+  });
+
+  it('truncates detail longer than the byte cap and marks truncation in the stored text', () => {
+    const longDetail = 'x'.repeat(PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES + 200);
+    const result = record('cand', 'detail-run', { detail: longDetail });
+    expect(result.kind).toBe('recorded');
+    const row = db.prepare('SELECT detail, length(detail) AS n FROM procedural_execution_evidence WHERE run_id = ?')
+      .get('detail-run') as { detail: string; n: number };
+    expect(row.detail).toContain('...[detail truncated]');
+    expect(Buffer.byteLength(row.detail, 'utf8')).toBeLessThanOrEqual(PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES);
+    expect(row.n).toBeLessThan(longDetail.length);
+  });
+
+  it('rejects recording against a memory outside the caller scope', () => {
+    expect(recordProceduralExecution(db, {
+      memoryId: 'cand', runId: 'scoped', caseId: 'case-1', kind: 'held_out', outcome: 'success', ...ENV,
+    }, { owner_id: 'owner-b' })).toEqual({ kind: 'rejected', reason: 'out_of_scope' });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM procedural_execution_evidence').get()).toEqual({ n: 0 });
+
+    expect(recordProceduralExecution(db, {
+      memoryId: 'cand', runId: 'scoped-ok', caseId: 'case-1', kind: 'held_out', outcome: 'success', ...ENV,
+    }, { owner_id: 'owner-a', project_id: 'project-a' }).kind).toBe('recorded');
   });
 
   it('blocks a missing series, a candidate from another scope, and one that is not an unverified candidate', () => {

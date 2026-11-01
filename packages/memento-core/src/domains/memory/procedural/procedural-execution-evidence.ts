@@ -7,6 +7,7 @@
 import type Database from 'better-sqlite3';
 import { createHash, randomUUID } from 'node:crypto';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { type CallerMemoryScope, selectIdsInScope } from '../../../shared/utils/owned-ids.js';
 import {
   findActiveProcedureSubject,
   findServedProceduralVersion,
@@ -33,7 +34,13 @@ export type ProceduralExecutionRecordOutcome =
   | { kind: 'already_recorded'; id: string }
   | {
       kind: 'rejected';
-      reason: 'disabled' | 'invalid_input' | 'memory_not_found' | 'not_procedure' | 'run_id_conflict';
+      reason:
+        | 'disabled'
+        | 'invalid_input'
+        | 'memory_not_found'
+        | 'not_procedure'
+        | 'out_of_scope'
+        | 'run_id_conflict';
     };
 
 export type AdoptionGateBlock =
@@ -82,14 +89,59 @@ interface EvidenceRow {
 const EXECUTION_KINDS: readonly string[] = ['replay', 'held_out'] satisfies ExecutionKind[];
 const EXECUTION_OUTCOMES: readonly string[] = ['success', 'failure'] satisfies ExecutionOutcome[];
 
-function isValidInput(input: ProceduralExecutionInput): boolean {
-  return (
-    [input.runId, input.caseId, input.environment, input.toolVersion].every(
-      (value) => typeof value === 'string' && value.trim() !== '',
-    ) &&
-    EXECUTION_KINDS.includes(input.kind) &&
-    EXECUTION_OUTCOMES.includes(input.outcome)
-  );
+/** append-only 테이블 detail 상한(UTF-8 바이트). */
+export const PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES = 4096;
+const DETAIL_TRUNCATED_SUFFIX = '\n...[detail truncated]';
+
+function trimExecutionField(value: string): string {
+  return value.trim();
+}
+
+function truncateUtf8Detail(text: string, maxBytes: number): string {
+  if (Buffer.byteLength(text, 'utf8') <= maxBytes) {
+    return text;
+  }
+  const suffixBytes = Buffer.byteLength(DETAIL_TRUNCATED_SUFFIX, 'utf8');
+  const budget = maxBytes - suffixBytes;
+  let end = text.length;
+  while (end > 0 && Buffer.byteLength(text.slice(0, end), 'utf8') > budget) {
+    end -= 1;
+  }
+  return `${text.slice(0, end)}${DETAIL_TRUNCATED_SUFFIX}`;
+}
+
+function normalizeDetail(detail: string | null | undefined): string | null {
+  if (detail == null) {
+    return null;
+  }
+  const trimmed = detail.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  return truncateUtf8Detail(trimmed, PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES);
+}
+
+function normalizeExecutionInput(input: ProceduralExecutionInput): ProceduralExecutionInput | null {
+  if (typeof input.runId !== 'string' || input.runId.trim() === '') {
+    return null;
+  }
+  const caseId = trimExecutionField(input.caseId);
+  const environment = trimExecutionField(input.environment);
+  const toolVersion = trimExecutionField(input.toolVersion);
+  if (!caseId || !environment || !toolVersion) {
+    return null;
+  }
+  if (!EXECUTION_KINDS.includes(input.kind) || !EXECUTION_OUTCOMES.includes(input.outcome)) {
+    return null;
+  }
+  return {
+    ...input,
+    runId: input.runId,
+    caseId,
+    environment,
+    toolVersion,
+    detail: normalizeDetail(input.detail),
+  };
 }
 
 /** 후보가 이 시리즈를 고치려는 제안인지. 추출기가 쓰는 workflow_name 이나 skill_name 이 같아야 한다. */
@@ -122,31 +174,36 @@ function isUnverifiedCandidate(subject: ProcedureSubjectRow): boolean {
 export function recordProceduralExecution(
   db: Database.Database,
   input: ProceduralExecutionInput,
+  scope: CallerMemoryScope = {},
 ): ProceduralExecutionRecordOutcome {
   if (!mementoConfig.proceduralExecutionEvidenceEnabled) {
     return { kind: 'rejected', reason: 'disabled' };
   }
-  if (!isValidInput(input)) {
+  const normalized = normalizeExecutionInput(input);
+  if (!normalized) {
     return { kind: 'rejected', reason: 'invalid_input' };
   }
-  const subject = findActiveProcedureSubject(db, input.memoryId);
+  const subject = findActiveProcedureSubject(db, normalized.memoryId);
   if (!subject) {
     return { kind: 'rejected', reason: 'memory_not_found' };
   }
   if (subject.type !== 'procedural' && !isUnverifiedCandidate(subject)) {
     return { kind: 'rejected', reason: 'not_procedure' };
   }
+  if (!selectIdsInScope(db, scope, [subject.id]).has(subject.id)) {
+    return { kind: 'rejected', reason: 'out_of_scope' };
+  }
   const row: EvidenceRow = {
     id: `pex_${randomUUID()}`,
-    run_id: input.runId,
+    run_id: normalized.runId,
     memory_id: subject.id,
     content_sha256: contentSha256(subject),
-    case_id: input.caseId,
-    kind: input.kind,
-    environment: input.environment,
-    tool_version: input.toolVersion,
-    outcome: input.outcome,
-    detail: input.detail ?? null,
+    case_id: normalized.caseId,
+    kind: normalized.kind,
+    environment: normalized.environment,
+    tool_version: normalized.toolVersion,
+    outcome: normalized.outcome,
+    detail: normalized.detail ?? null,
     created_at: new Date().toISOString(),
   };
   const inserted = db
@@ -163,7 +220,7 @@ export function recordProceduralExecution(
   }
   const existing = db
     .prepare('SELECT * FROM procedural_execution_evidence WHERE run_id = ?')
-    .get(input.runId) as EvidenceRow;
+    .get(normalized.runId) as EvidenceRow;
   return PAYLOAD_FIELDS.every((field) => existing[field] === row[field])
     ? { kind: 'already_recorded', id: existing.id }
     : { kind: 'rejected', reason: 'run_id_conflict' };
@@ -211,6 +268,9 @@ export function evaluateProceduralAdoption(
   db: Database.Database,
   input: { candidateMemoryId: string; versionSeriesId: string } & Environment,
 ): AdoptionGateVerdict {
+  const environment = trimExecutionField(input.environment);
+  const toolVersion = trimExecutionField(input.toolVersion);
+  const env: Environment = { environment, toolVersion };
   const candidate = findActiveProcedureSubject(db, input.candidateMemoryId);
   if (!candidate) {
     return { kind: 'blocked', reason: 'candidate_not_found' };
@@ -229,8 +289,8 @@ export function evaluateProceduralAdoption(
     return { kind: 'blocked', reason: 'series_mismatch' };
   }
 
-  const baseline = currentEvidence(db, served, input);
-  const proposed = currentEvidence(db, candidate, input);
+  const baseline = currentEvidence(db, served, env);
+  const proposed = currentEvidence(db, candidate, env);
   const proposedCases = summarizeCases(proposed.current);
   const baselineSuccessCases = [...summarizeCases(baseline.current)]
     .filter(([, entry]) => entry.succeeded && !entry.failed)

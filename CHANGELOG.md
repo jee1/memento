@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- 절차 실행 증거: `recordProceduralExecution`이 environment·tool_version·case_id를 trim 해 저장하고 `evaluateProceduralAdoption`도 같은 정규화로 비교합니다. detail 은 4KB UTF-8 상한을 넘기면 잘라 표시를 붙이고, `CallerMemoryScope` 밖 기억은 `out_of_scope`로 거절합니다. 플래그 기본값과 스키마는 그대로입니다 (#1594).
+
 ### Added
 
 - 런타임 설정 override: 조정 가능한 12개 키를 DB override 로 얹고 `GET /admin/settings`, `PUT /admin/settings/:key`, `POST /admin/settings/:key/revert` 로 조회, 변경, 되돌립니다. 변경마다 이전/새 값, 세션 actor, 사유를 `setting_override_event`(migration 063)에 남기며 재시작 뒤에도 유지됩니다. 재시작이 필요한 키는 `pending_restart` 로 드러냅니다 (#1582).
