@@ -222,6 +222,8 @@ export async function runRankingPreview(args: PreviewArgs): Promise<RankingPrevi
   const { db, close, cache } = await openSeededDatabase(args.benchmarkDir, args.cacheDir);
   try {
     const options = { queryIds: split.dev_query_ids };
+    // 첫 평가는 모델·SQLite 캐시를 데우느라 느려서 p95 비교를 왜곡한다. 결과는 버린다.
+    await evaluateProfile(db, args.currentProfile, args.benchmarkDir, options);
     const current = await evaluateProfile(db, args.currentProfile, args.benchmarkDir, options);
     const proposed = await evaluateProfile(db, proposedPath, args.benchmarkDir, options);
     const currentMetrics = metricsOf(current);

@@ -35,7 +35,9 @@ describe('ranking-preview', () => {
     try {
       const result = await runRankingPreview(argsFor({ 'relevance_signal.scale': 2.2 }));
       const searched = search.mock.calls.map((call) => (call[1] as { query: string }).query);
-      expect(searched).toHaveLength(12);
+      // 예열 1회 + 현재 + 제안, 모두 dev 6개만
+      expect(searched).toHaveLength(18);
+      expect(new Set(searched).size).toBe(6);
       for (const text of HELD_OUT_TEXT) expect(searched).not.toContain(text);
       expect(result.dev_query_count).toBe(6);
       expect(result.split_version).toBe('mini-split-1');
