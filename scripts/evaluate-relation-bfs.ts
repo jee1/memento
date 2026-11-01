@@ -21,18 +21,27 @@ import {
   findRegressionQueryIds,
   type AggregateMetrics,
   type CategorySliceMetrics,
+  type PerQueryEvalOutcome,
 } from './lib/relation-bfs-eval-metrics.js';
 import {
+  buildDevGridRows,
   DEFAULT_BFS_TUNE_GRID,
+  DEFAULT_RELATION_BFS_EVAL_CONSTANTS,
   evaluateQueryHybridOnly,
   evaluateQueryHybridWithBfs,
+  formatDevGridMarkdown,
   hyperKey,
+  measurePairedSearchLatencies,
   pickBestHyperparamsOnDev,
+  runHybridSearch,
+  type DevGridRow,
+  type HybridSearchSnapshot,
   type RelationBfsEvalContext,
   type RelationBfsHyperparams,
 } from './lib/relation-bfs-eval-runner.js';
 import {
   buildBenchmarkIdMaps,
+  countRelationJsonlRows,
   createSeededRelationKoPanelDatabase,
   loadRelationKoPanelCorpusRows,
   loadRelationKoPanelForbiddenByQuery,
@@ -45,18 +54,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const FIXTURE_DIR = join(ROOT, 'tests/fixtures/search-quality/relation-ko-panel-v1');
 
-export const EVAL_CONSTANTS = {
-  candidatePoolLimit: 30,
-  tokenBudget: 4096,
-} as const;
+export const EVAL_CONSTANTS = DEFAULT_RELATION_BFS_EVAL_CONSTANTS;
 
 export interface RelationBfsEvalReport {
   fixture: string;
   labelSource: string;
+  relationRowCount: number;
+  devGrid: DevGridRow[];
   chosenHyperparams: RelationBfsHyperparams;
   dev: SplitReport;
   heldOut: SplitReport;
-  conclusion: 'do_not_expand' | 'marginal_gain_review';
+  conclusion: 'do_not_expand' | 'marginal_gain_review' | 'inconclusive_harness';
+  conclusionReason: string;
   syntheticLimitation: string;
 }
 
@@ -87,24 +96,43 @@ export function formatMetricsTable(rows: CategorySliceMetrics[]): string {
 }
 
 export function decideConclusion(
-  devA: AggregateMetrics,
-  devB: AggregateMetrics,
+  devGrid: readonly DevGridRow[],
+  chosen: RelationBfsHyperparams,
   heldA: AggregateMetrics,
   heldB: AggregateMetrics,
   regressionCount: number,
-): RelationBfsEvalReport['conclusion'] {
+): { conclusion: RelationBfsEvalReport['conclusion']; reason: string } {
+  const bestMulti = devGrid.find((row) => hyperKey(row.hyper) === hyperKey(chosen))?.multiHopRecallAt10 ?? 0;
+  if (bestMulti <= 0) {
+    return {
+      conclusion: 'inconclusive_harness',
+      reason:
+        'dev 그리드에서 multi_hop Recall@10>0 인 BFS 설정이 없다. BFS가 gold hop 정답에 닿지 않거나 최종 풀/랭킹에 반영되지 않았을 수 있다.',
+    };
+  }
   const gainHeld = heldB.recallAt10 - heldA.recallAt10;
-  const gainDev = devB.recallAt10 - devA.recallAt10;
-  if (gainHeld <= 0 && gainDev <= 0) {
-    return 'do_not_expand';
+  if (gainHeld <= 0) {
+    return {
+      conclusion: 'do_not_expand',
+      reason: `held-out Recall@10 delta=${gainHeld.toFixed(3)}, 회귀=${regressionCount}건`,
+    };
   }
   if (regressionCount > 0 && regressionCount > Math.max(0, Math.round(gainHeld * heldA.queryCount))) {
-    return 'do_not_expand';
+    return {
+      conclusion: 'do_not_expand',
+      reason: `held-out 이득 대비 회귀 과다(delta=${gainHeld.toFixed(3)}, 회귀=${regressionCount})`,
+    };
   }
   if (gainHeld <= 0.01) {
-    return 'do_not_expand';
+    return {
+      conclusion: 'do_not_expand',
+      reason: `held-out Recall@10 delta=${gainHeld.toFixed(3)} (≤0.01)`,
+    };
   }
-  return 'marginal_gain_review';
+  return {
+    conclusion: 'marginal_gain_review',
+    reason: `held-out Recall@10 delta=${gainHeld.toFixed(3)}, 회귀=${regressionCount}건`,
+  };
 }
 
 function buildGroundTruthMap(raw: Map<string, { relevantIds: string[] }>) {
@@ -128,6 +156,7 @@ export async function runRelationBfsEvaluation(
   const seeded = await createSeededRelationKoPanelDatabase(fixtureDir);
   const ctx: RelationBfsEvalContext = {
     db: seeded.db,
+    embeddingProvider: seeded.embeddingProvider,
     memoryIdToBenchmarkId,
     contentByBenchmarkId,
     safetyMetaByBenchmarkId: seeded.safetyMetaByBenchmarkId,
@@ -136,13 +165,19 @@ export async function runRelationBfsEvaluation(
   };
 
   try {
-    const hybridOnlyByQuery = new Map<string, Awaited<ReturnType<typeof evaluateQueryHybridOnly>>>();
-    for (const queryId of [...split.devQueryIds, ...split.heldOutQueryIds]) {
-      const row = queryById.get(queryId);
-      if (!row) {
-        throw new Error(`Missing query row: ${queryId}`);
-      }
-      hybridOnlyByQuery.set(queryId, await evaluateQueryHybridOnly(ctx, row));
+    const relationRowCount = countRelationJsonlRows(fixtureDir);
+    const queryCategoryById = new Map(queries.map((q) => [q.query_id, q.category]));
+    const allQueryIds = [...split.devQueryIds, ...split.heldOutQueryIds];
+
+    const hybridCache = new Map<string, HybridSearchSnapshot>();
+    const warmUpRow = queryById.get(split.devQueryIds[0]!);
+    if (warmUpRow) {
+      await runHybridSearch(ctx, warmUpRow);
+    }
+    for (const queryId of allQueryIds) {
+      const row = queryById.get(queryId)!;
+      const { items } = await runHybridSearch(ctx, row);
+      hybridCache.set(queryId, { items });
     }
 
     const devOutcomesByHyper = new Map<string, Awaited<ReturnType<typeof evaluateQueryHybridWithBfs>>[]>();
@@ -150,26 +185,58 @@ export async function runRelationBfsEvaluation(
       const outcomes = [];
       for (const queryId of split.devQueryIds) {
         const row = queryById.get(queryId)!;
-        outcomes.push(await evaluateQueryHybridWithBfs(ctx, row, hyper));
+        outcomes.push(
+          await evaluateQueryHybridWithBfs(ctx, row, hyper, hybridCache.get(queryId), false),
+        );
       }
       devOutcomesByHyper.set(hyperKey(hyper), outcomes);
     }
 
-    const chosen = pickBestHyperparamsOnDev(devOutcomesByHyper, rawGt);
+    const devGrid = buildDevGridRows(devOutcomesByHyper, rawGt, queryCategoryById);
+    const chosen = pickBestHyperparamsOnDev(devGrid);
+
+    const applyLatencies = async (
+      outcomes: PerQueryEvalOutcome[],
+      queryIds: string[],
+      arm: 'a' | 'b',
+    ): Promise<void> => {
+      for (let i = 0; i < queryIds.length; i++) {
+        const queryId = queryIds[i]!;
+        const row = queryById.get(queryId)!;
+        const paired = await measurePairedSearchLatencies(ctx, row, chosen);
+        const outcome = outcomes[i];
+        if (!outcome) {
+          continue;
+        }
+        outcome.latencyMs = arm === 'a' ? paired.hybridOnlyMs : paired.hybridWithBfsMs;
+      }
+    };
 
     const devBfs = devOutcomesByHyper.get(hyperKey(chosen))!;
-    const heldBfs: typeof devBfs = [];
-    for (const queryId of split.heldOutQueryIds) {
-      const row = queryById.get(queryId)!;
-      heldBfs.push(await evaluateQueryHybridWithBfs(ctx, row, chosen));
-    }
+    const devA = await Promise.all(
+      split.devQueryIds.map((id) =>
+        evaluateQueryHybridOnly(ctx, queryById.get(id)!, hybridCache.get(id)),
+      ),
+    );
+    const heldA = await Promise.all(
+      split.heldOutQueryIds.map((id) =>
+        evaluateQueryHybridOnly(ctx, queryById.get(id)!, hybridCache.get(id)),
+      ),
+    );
+    const heldBfs = await Promise.all(
+      split.heldOutQueryIds.map((id) =>
+        evaluateQueryHybridWithBfs(ctx, queryById.get(id)!, chosen, hybridCache.get(id), false),
+      ),
+    );
 
     for (const outcome of [...devBfs, ...heldBfs]) {
       assertZeroSafetyViolations(outcome.safetyViolations, `bfs:${outcome.queryId}`);
     }
 
-    const devA = split.devQueryIds.map((id) => hybridOnlyByQuery.get(id)!);
-    const heldA = split.heldOutQueryIds.map((id) => hybridOnlyByQuery.get(id)!);
+    await applyLatencies(devA, split.devQueryIds, 'a');
+    await applyLatencies(devBfs, split.devQueryIds, 'b');
+    await applyLatencies(heldA, split.heldOutQueryIds, 'a');
+    await applyLatencies(heldBfs, split.heldOutQueryIds, 'b');
 
     const devReport: SplitReport = {
       hybridOnly: {
@@ -195,19 +262,24 @@ export async function runRelationBfsEvaluation(
       regressionQueryIdsAt10: findRegressionQueryIds(heldA, heldBfs, groundTruths, 10),
     };
 
+    const { conclusion, reason: conclusionReason } = decideConclusion(
+      devGrid,
+      chosen,
+      heldReport.hybridOnly.overall,
+      heldReport.hybridWithBfs.overall,
+      heldReport.regressionQueryIdsAt10.length,
+    );
+
     return {
       fixture: fixtureDir,
       labelSource: 'agent_panel (relation-ko-panel-v1, not human gold)',
+      relationRowCount,
+      devGrid,
       chosenHyperparams: chosen,
       dev: devReport,
       heldOut: heldReport,
-      conclusion: decideConclusion(
-        devReport.hybridOnly.overall,
-        devReport.hybridWithBfs.overall,
-        heldReport.hybridOnly.overall,
-        heldReport.hybridWithBfs.overall,
-        heldReport.regressionQueryIdsAt10.length,
-      ),
+      conclusion,
+      conclusionReason,
       syntheticLimitation:
         '합성 relation-ko-panel-v1 그래프는 운영 관계 분포를 대표하지 않는다. 본 숫자는 fixture 재현 비교이며 운영 검색 품질 향상 주장에 쓰지 않는다.',
     };
@@ -226,9 +298,15 @@ export function renderMarkdownReport(report: RelationBfsEvalReport): string {
 
 후보 풀=${EVAL_CONSTANTS.candidatePoolLimit}, 토큰 예산=${EVAL_CONSTANTS.tokenBudget}, k=5/10.
 
+memory_relation 적재 건수(relations.jsonl): ${report.relationRowCount}
+
 ## 결론
 
-\`${report.conclusion}\` — held-out Recall@10 delta=${(report.heldOut.hybridWithBfs.overall.recallAt10 - report.heldOut.hybridOnly.overall.recallAt10).toFixed(3)}, 회귀(held-out, A hit B miss @10)=${report.heldOut.regressionQueryIdsAt10.length}건.
+\`${report.conclusion}\` — ${report.conclusionReason}
+
+## dev BFS 그리드 (held-out 미사용)
+
+${formatDevGridMarkdown(report.devGrid)}
 
 ## dev (n=${report.dev.hybridOnly.overall.queryCount})
 

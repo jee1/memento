@@ -5,6 +5,10 @@ import {
   formatMetricsTable,
 } from './evaluate-relation-bfs.js';
 import type { AggregateMetrics, CategorySliceMetrics } from './lib/relation-bfs-eval-metrics.js';
+import {
+  scoreBfsCandidate,
+  type DevGridRow,
+} from './lib/relation-bfs-eval-runner.js';
 
 function metrics(partial: Partial<AggregateMetrics>): AggregateMetrics {
   return {
@@ -20,17 +24,32 @@ function metrics(partial: Partial<AggregateMetrics>): AggregateMetrics {
   };
 }
 
+function gridRow(multiHop: number): DevGridRow {
+  return {
+    key: 'h2-s5-l35',
+    hyper: { maxHops: 2, maxSeeds: 5, bfsLimit: 35 },
+    multiHopRecallAt10: multiHop,
+    singleFactRecallAt10: 0.5,
+    irrelevantTrapRecallAt10: 1,
+    overallRecallAt10: 0.5,
+  };
+}
+
 describe('evaluate-relation-bfs', () => {
-  it('decideConclusion returns do_not_expand when held-out gain is non-positive', () => {
+  it('decideConclusion returns inconclusive when dev multi_hop stays 0', () => {
+    const chosen = { maxHops: 1, maxSeeds: 3, bfsLimit: 15 };
+    const devGrid = [gridRow(0)];
     const a = metrics({ recallAt10: 0.8 });
-    const b = metrics({ recallAt10: 0.78 });
-    expect(decideConclusion(a, b, a, b, 0)).toBe('do_not_expand');
+    const b = metrics({ recallAt10: 0.8 });
+    expect(decideConclusion(devGrid, chosen, a, b, 0).conclusion).toBe('inconclusive_harness');
   });
 
-  it('decideConclusion rejects expansion when regressions dominate small gain', () => {
-    const a = metrics({ recallAt10: 0.5, queryCount: 50 });
-    const b = metrics({ recallAt10: 0.52, queryCount: 50 });
-    expect(decideConclusion(a, b, a, b, 5)).toBe('do_not_expand');
+  it('decideConclusion returns do_not_expand when held-out gain is non-positive', () => {
+    const chosen = { maxHops: 2, maxSeeds: 5, bfsLimit: 35 };
+    const devGrid = [gridRow(0.5)];
+    const a = metrics({ recallAt10: 0.8 });
+    const b = metrics({ recallAt10: 0.78 });
+    expect(decideConclusion(devGrid, chosen, a, b, 0).conclusion).toBe('do_not_expand');
   });
 
   it('formatMetricsTable renders category rows', () => {
@@ -43,6 +62,15 @@ describe('evaluate-relation-bfs', () => {
     const table = formatMetricsTable(rows);
     expect(table).toContain('single_fact');
     expect(table).toContain('0.500');
+  });
+
+  it('scoreBfsCandidate multiplies seed score by path edge confidence and type boost', () => {
+    const twoHop = [
+      { relation_type: 'FOLLOWS' },
+      { relation_type: 'FOLLOWS' },
+    ] as const;
+    expect(scoreBfsCandidate(0.85, twoHop)).toBeCloseTo(0.85 * 0.9 * 0.9, 5);
+    expect(scoreBfsCandidate(0.85, [{ relation_type: 'FOLLOWS' }])).toBeCloseTo(0.85 * 0.9, 5);
   });
 
   it('exports fixed eval constants for pool and token budget', () => {

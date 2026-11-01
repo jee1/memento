@@ -3,9 +3,10 @@
  * Offline measurement only — does not change production seed paths.
  */
 
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { DatabaseUtils, mementoConfig } from '@memento/core';
 import {
   createSeededBenchmarkDatabase,
   type SeededBenchmarkDb,
@@ -91,9 +92,37 @@ export async function createSeededRelationKoPanelDatabase(
   benchmarkDir: string,
   dbPath?: string,
 ): Promise<SeededBenchmarkDb & { safetyMetaByBenchmarkId: Map<string, RelationKoPanelSafetyMeta> }> {
-  const seeded = await createSeededBenchmarkDatabase(benchmarkDir, dbPath ? { dbPath } : undefined);
-  const safetyMetaByBenchmarkId = patchRelationKoPanelScopeAndTraps(seeded.db, benchmarkDir);
-  return { ...seeded, safetyMetaByBenchmarkId };
+  const prevProvider = process.env.EMBEDDING_PROVIDER;
+  const candidates = [
+    mementoConfig.embeddingProvider,
+    'tfidf',
+    'minilm',
+  ].filter((value, index, arr) => arr.indexOf(value) === index);
+
+  let lastError: unknown;
+  try {
+    for (const candidate of candidates) {
+      process.env.EMBEDDING_PROVIDER = candidate;
+      try {
+        const seeded = await createSeededBenchmarkDatabase(benchmarkDir, dbPath ? { dbPath } : undefined);
+        const safetyMetaByBenchmarkId = patchRelationKoPanelScopeAndTraps(seeded.db, benchmarkDir);
+        return { ...seeded, safetyMetaByBenchmarkId };
+      } catch (error) {
+        lastError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        if (!message.includes('Benchmark corpus seed must use')) {
+          throw error;
+        }
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  } finally {
+    if (prevProvider === undefined) {
+      delete process.env.EMBEDDING_PROVIDER;
+    } else {
+      process.env.EMBEDDING_PROVIDER = prevProvider;
+    }
+  }
 }
 
 export function loadRelationKoPanelSplit(benchmarkDir: string): {
@@ -156,4 +185,73 @@ export function buildBenchmarkIdMaps(corpus: readonly RelationKoPanelCorpusRow[]
 
 export function loadRelationKoPanelCorpusRows(benchmarkDir: string): RelationKoPanelCorpusRow[] {
   return loadRelationKoPanelCorpus(benchmarkDir);
+}
+
+export function countRelationJsonlRows(benchmarkDir: string): number {
+  const relationsPath = join(benchmarkDir, 'relations.jsonl');
+  return readFileSync(relationsPath, 'utf8')
+    .split('\n')
+    .filter((line) => line.trim().length > 0).length;
+}
+
+/** 임베딩 없이 corpus+relations.jsonl 만 적재(BFS/관계 진단용). */
+export function seedRelationGraphFromCorpusAndJsonl(
+  db: Database.Database,
+  benchmarkDir: string,
+): Map<string, RelationKoPanelSafetyMeta> {
+  const corpus = loadRelationKoPanelCorpus(benchmarkDir);
+  const benchmarkToMemory = new Map(corpus.map((row) => [row.benchmark_id, row.source_memory_id]));
+
+  db.transaction(() => {
+    for (const row of corpus) {
+      const ownerId = row.owner_id ?? DEFAULT_OWNER;
+      const projectId = row.project_id ?? DEFAULT_PROJECT;
+      const isDeleted = row.status === 'deleted' ? 1 : 0;
+      let supersededByMemory: string | null = null;
+      if (row.superseded_by) {
+        supersededByMemory = benchmarkToMemory.get(row.superseded_by) ?? null;
+      }
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_item (id, type, content, tags, created_at, owner_id, project_id, is_deleted, superseded_by, importance, recall_count)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0.5, 0)`,
+        [
+          row.source_memory_id,
+          row.type,
+          row.content,
+          JSON.stringify(row.tags ?? []),
+          row.created_at ?? new Date().toISOString(),
+          ownerId,
+          projectId,
+          isDeleted,
+          supersededByMemory,
+        ],
+      );
+    }
+
+    const relationsPath = join(benchmarkDir, 'relations.jsonl');
+    const lines = readFileSync(relationsPath, 'utf8')
+      .split('\n')
+      .filter((line) => line.trim().length > 0);
+    for (const line of lines) {
+      const rel = JSON.parse(line) as {
+        source: string;
+        target: string;
+        relation_type: string;
+        confidence: number;
+      };
+      const sourceId = benchmarkToMemory.get(rel.source);
+      const targetId = benchmarkToMemory.get(rel.target);
+      if (!sourceId || !targetId) {
+        throw new Error(`Relation references unknown benchmark_id: ${rel.source} -> ${rel.target}`);
+      }
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`,
+        [sourceId, targetId, rel.relation_type, rel.confidence],
+      );
+    }
+  })();
+
+  return buildRelationKoPanelSafetyMeta(corpus);
 }
