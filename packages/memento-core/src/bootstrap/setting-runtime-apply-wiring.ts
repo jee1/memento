@@ -3,9 +3,10 @@
  */
 import { createRelevanceGate } from '../domains/search/services/relevance-gate/create-relevance-gate.js';
 import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { mementoConfig } from '../shared/config/index.js';
 import { resolveBoolean } from '../shared/config/environment.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler/batch-scheduler-singleton.js';
-import { registerSettingRuntimeReapply } from '../domains/settings/setting-runtime-reapply-registry.js';
+import { registerSettingRuntimeReapply, unregisterSettingRuntimeReapply } from '../domains/settings/setting-runtime-reapply-registry.js';
 
 type RejectionGateTarget = Pick<HybridSearchEngine, 'setRejectionGate'>;
 
@@ -23,6 +24,10 @@ function applySupersedeCandidateScanSchedule(): void {
   const enabled = resolveBoolean('SUPERSEDE_CANDIDATE_SCAN_ENABLED', { defaultValue: false });
   const scheduler = getBatchScheduler();
   scheduler.updateConfig({ supersedeCandidateScanEnabled: enabled });
+  const batchEnabled = resolveBoolean('BATCH_SCHEDULER_ENABLED', { defaultValue: true });
+  if (!batchEnabled || !mementoConfig.batchSchedulerEnabled) {
+    return;
+  }
   if (enabled) {
     scheduler.restartJob('supersede_candidate_scan');
   } else {
@@ -38,4 +43,6 @@ export function wireSettingRuntimeReapply(hybridSearchEngine: HybridSearchEngine
 
 export function unwireSettingRuntimeReapply(): void {
   registerSearchRejectionGateTarget(null);
+  unregisterSettingRuntimeReapply('SEARCH_REJECTION_GATE');
+  unregisterSettingRuntimeReapply('SUPERSEDE_CANDIDATE_SCAN_ENABLED');
 }

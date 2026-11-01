@@ -106,7 +106,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     allowed: ['off', 'typesafe'],
     defaultValue: 'off',
     defaultSource: 'shared/config/cluster-judge-config.ts isClusterJudgeEnabled',
-    apply: 'immediate',
+    apply: 'restart',
     risk: 'low',
     refresh: readsEnvDirectly,
     current: () => (isClusterJudgeEnabled() ? 'typesafe' : 'off'),

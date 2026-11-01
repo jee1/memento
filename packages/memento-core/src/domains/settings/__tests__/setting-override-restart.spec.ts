@@ -77,6 +77,7 @@ describe('setting override across a process restart (#1582)', () => {
       source: 'override',
       env_value: null,
       pending_restart: false,
+      revert_target_value: 'off',
     });
 
     second.core.revertRuntimeSettingOverride(second.instance.db, {

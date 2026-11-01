@@ -72,7 +72,11 @@ export interface ReadOnlySettingView {
 
 export type SettingChangeResult =
   | { ok: true; setting: RuntimeSettingView }
-  | { ok: false; code: 'UNKNOWN_SETTING' | 'INVALID_VALUE' | 'NO_OVERRIDE'; message: string };
+  | {
+      ok: false;
+      code: 'UNKNOWN_SETTING' | 'INVALID_VALUE' | 'NO_OVERRIDE' | 'RUNTIME_REAPPLY_FAILED';
+      message: string;
+    };
 
 interface Baseline {
   /** 첫 적용 전 process.env 값. revert 가 되돌아갈 곳이다. undefined 면 키를 지운다. */
@@ -273,6 +277,7 @@ export function setRuntimeSettingOverride(
   const now = new Date().toISOString();
 
   const previousEnv = process.env[definition.key];
+  const overrideBefore = selectOverride(db, input.key);
   const rejected = applyEnvChecked(definition, value);
   if (rejected) {
     return { ok: false, code: 'INVALID_VALUE', message: `${input.key}=${value} is not allowed: ${rejected}` };
@@ -299,7 +304,24 @@ export function setRuntimeSettingOverride(
     throw error;
   }
   ignoredOverrides.delete(input.key);
-  runSettingRuntimeReapply(definition.key);
+  try {
+    runSettingRuntimeReapply(definition.key);
+  } catch (error) {
+    writeEnv(definition.key, previousEnv);
+    definition.refresh();
+    db.transaction(() => {
+      if (overrideBefore) {
+        db.prepare(
+          `INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+        ).run(overrideBefore.key, overrideBefore.value, overrideBefore.updated_at, overrideBefore.updated_by);
+      } else {
+        db.prepare('DELETE FROM setting_override WHERE key = ?').run(input.key);
+      }
+    })();
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: `Runtime reapply failed for ${input.key}: ${message}` };
+  }
   return { ok: true, setting: toView(definition, row, selectLastChange(db, input.key)) };
 }
 
@@ -309,23 +331,33 @@ export function revertRuntimeSettingOverride(db: Database.Database, input: Chang
     return unknownSetting(input.key);
   }
   const now = new Date().toISOString();
-  const removed = db.transaction((): boolean => {
-    const existing = selectOverride(db, input.key);
-    if (!existing) {
-      return false;
-    }
+  const existing = selectOverride(db, input.key);
+  if (!existing) {
+    return { ok: false, code: 'NO_OVERRIDE', message: `${input.key} has no override to revert` };
+  }
+  const envBeforeRevert = process.env[definition.key];
+  db.transaction((): boolean => {
     db.prepare('DELETE FROM setting_override WHERE key = ?').run(input.key);
     insertEvent(db, { ...input, action: 'revert', previous: existing.value, next: null, at: now });
     return true;
   })();
-  if (!removed) {
-    return { ok: false, code: 'NO_OVERRIDE', message: `${input.key} has no override to revert` };
-  }
   const { env } = baselineFor(definition);
   writeEnv(definition.key, env);
   definition.refresh();
   ignoredOverrides.delete(input.key);
-  runSettingRuntimeReapply(definition.key);
+  try {
+    runSettingRuntimeReapply(definition.key);
+  } catch (error) {
+    writeEnv(definition.key, envBeforeRevert);
+    definition.refresh();
+    db.transaction(() => {
+      db.prepare(
+        `INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)`,
+      ).run(existing.key, existing.value, existing.updated_at, existing.updated_by);
+    })();
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: `Runtime reapply failed for ${input.key}: ${message}` };
+  }
   return { ok: true, setting: toView(definition, undefined, selectLastChange(db, input.key)) };
 }
 
@@ -353,8 +385,5 @@ export function applyStoredSettingOverrides(db: Database.Database): void {
     } else {
       ignoredOverrides.delete(row.key);
     }
-  }
-  for (const definition of SETTING_REGISTRY.values()) {
-    baselineFor(definition).boot = definition.current();
   }
 }

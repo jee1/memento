@@ -474,7 +474,33 @@ describe('runtime setting override (#1582)', () => {
       expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ source: 'override', pending_restart: false });
 
       setRuntimeSettingOverride(db, { key: 'CONSOLIDATION_JUDGE', value: 'typesafe', actor: 'session:a', reason: null });
-      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: false });
+      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: true });
+    });
+  });
+
+  describe('runtime reapply rollback (#1600 review)', () => {
+    it('rolls back env and override row when reapply hook throws on set', async () => {
+      const { setRuntimeSettingOverride, listRuntimeSettings } = await load();
+      const { registerSettingRuntimeReapply, clearSettingRuntimeReapplyForTest } = await import(
+        '../setting-runtime-reapply-registry.js'
+      );
+      clearSettingRuntimeReapplyForTest();
+      registerSettingRuntimeReapply('SEARCH_REJECTION_GATE', () => {
+        throw new Error('boom');
+      });
+      const before = process.env.SEARCH_REJECTION_GATE;
+      const result = setRuntimeSettingOverride(db, {
+        key: 'SEARCH_REJECTION_GATE',
+        value: 'ollama',
+        actor: 'session:a',
+        reason: 'fail',
+      });
+      expect(result).toMatchObject({ ok: false, code: 'RUNTIME_REAPPLY_FAILED' });
+      expect(process.env.SEARCH_REJECTION_GATE).toBe(before);
+      expect(listRuntimeSettings(db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE')).toMatchObject({
+        source: 'default',
+        override: null,
+      });
     });
   });
 

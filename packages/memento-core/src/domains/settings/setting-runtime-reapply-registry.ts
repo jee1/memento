@@ -11,6 +11,10 @@ export function clearSettingRuntimeReapplyForTest(): void {
   handlers.clear();
 }
 
+export function unregisterSettingRuntimeReapply(key: string): void {
+  handlers.delete(key);
+}
+
 export function runSettingRuntimeReapply(key: string): void {
   handlers.get(key)?.();
 }

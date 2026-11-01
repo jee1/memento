@@ -13,7 +13,6 @@ import {
   closeDatabase,
   type MementoCoreInstance,
 } from '@memento/core';
-import { isClusterJudgeEnabled } from '@memento/core/shared/config/cluster-judge-config.js';
 import { SettingOverrideMigration } from '@memento/core/infrastructure/database/sqlite/migration/migrations/063-setting-override.js';
 import { createSessionStore } from '../../auth/session-store.js';
 import {
@@ -79,10 +78,11 @@ describe('immediate runtime settings without process restart (#1599)', () => {
       body: JSON.stringify(body),
     });
 
-  it('reapplies search rejection gate, consolidation judge, and supersede scan schedule on set and revert', async () => {
+  it('reapplies search rejection gate and supersede scan config on set and revert', async () => {
     const setSpy = vi.spyOn(core.services.hybridSearchEngine, 'setRejectionGate');
     const scheduler = getBatchScheduler();
     const updateSpy = vi.spyOn(scheduler, 'updateConfig');
+    const restartSpy = vi.spyOn(scheduler, 'restartJob');
 
     const gateOn = await call('PUT', '/settings/SEARCH_REJECTION_GATE', { value: 'ollama', reason: '켠다' });
     expect(gateOn.status).toBe(200);
@@ -90,27 +90,36 @@ describe('immediate runtime settings without process restart (#1599)', () => {
     expect(mementoConfig.searchRejectionGate).toBe('ollama');
     expect(setSpy).toHaveBeenCalled();
 
-    const judgeOn = await call('PUT', '/settings/CONSOLIDATION_JUDGE', { value: 'typesafe', reason: '판정' });
-    expect(judgeOn.status).toBe(200);
-    expect(await judgeOn.json()).toMatchObject({ pending_restart: false, value: 'typesafe' });
-    expect(isClusterJudgeEnabled()).toBe(true);
-
     const scanOn = await call('PUT', '/settings/SUPERSEDE_CANDIDATE_SCAN_ENABLED', { value: 'true', reason: '스캔' });
     expect(scanOn.status).toBe(200);
     expect(await scanOn.json()).toMatchObject({ pending_restart: false, value: 'true' });
     expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supersedeCandidateScanEnabled: true }));
+    expect(restartSpy).not.toHaveBeenCalled();
 
     const gateOff = await call('POST', '/settings/SEARCH_REJECTION_GATE/revert', { reason: '끈다' });
     expect(gateOff.status).toBe(200);
     expect(await gateOff.json()).toMatchObject({ value: 'off', pending_restart: false });
     expect(mementoConfig.searchRejectionGate).toBe('off');
 
-    const judgeOff = await call('POST', '/settings/CONSOLIDATION_JUDGE/revert', { reason: '끈다' });
-    expect(judgeOff.status).toBe(200);
-    expect(isClusterJudgeEnabled()).toBe(false);
-
     const scanOff = await call('POST', '/settings/SUPERSEDE_CANDIDATE_SCAN_ENABLED/revert', { reason: '끈다' });
     expect(scanOff.status).toBe(200);
     expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supersedeCandidateScanEnabled: false }));
+  });
+
+  it('does not restart supersede scan after shutdown cleared runtime reapply hooks', async () => {
+    const scheduler = getBatchScheduler();
+    const restartSpy = vi.spyOn(scheduler, 'restartJob');
+    await shutdownServices(core.services);
+    restartSpy.mockClear();
+
+    const { setRuntimeSettingOverride } = await import('@memento/core');
+    const result = setRuntimeSettingOverride(core.db, {
+      key: 'SUPERSEDE_CANDIDATE_SCAN_ENABLED',
+      value: 'true',
+      actor: 'session:test',
+      reason: 'after shutdown',
+    });
+    expect(result).toMatchObject({ ok: true });
+    expect(restartSpy).not.toHaveBeenCalled();
   });
 });

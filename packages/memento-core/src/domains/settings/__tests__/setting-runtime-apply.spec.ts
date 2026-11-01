@@ -16,7 +16,7 @@ vi.mock('../../../infrastructure/scheduler/batch-scheduler/batch-scheduler-singl
   getBatchScheduler: () => scheduler,
 }));
 
-const { wireSettingRuntimeReapply, registerSearchRejectionGateTarget } = await import(
+const { wireSettingRuntimeReapply, registerSearchRejectionGateTarget, unwireSettingRuntimeReapply } = await import(
   '../../../bootstrap/setting-runtime-apply-wiring.js'
 );
 
@@ -28,6 +28,7 @@ describe('setting runtime reapply wiring (#1599)', () => {
     delete process.env.SUPERSEDE_CANDIDATE_SCAN_ENABLED;
     mementoConfig.searchRejectionGate = 'off';
     mementoConfig.typesafeApiKey = '';
+    mementoConfig.batchSchedulerEnabled = true;
   });
 
   it('pushes a fresh rejection gate into the registered hybrid engine', () => {
@@ -56,5 +57,23 @@ describe('setting runtime reapply wiring (#1599)', () => {
   it('ignores unknown keys', () => {
     registerSettingRuntimeReapply('CUSTOM', vi.fn());
     expect(() => runSettingRuntimeReapply('MISSING')).not.toThrow();
+  });
+
+  it('skips restartJob when batch scheduler is disabled at runtime', () => {
+    wireSettingRuntimeReapply({ setRejectionGate: vi.fn() } as never);
+    mementoConfig.batchSchedulerEnabled = false;
+    vi.stubEnv('BATCH_SCHEDULER_ENABLED', 'false');
+    process.env.SUPERSEDE_CANDIDATE_SCAN_ENABLED = 'true';
+    runSettingRuntimeReapply('SUPERSEDE_CANDIDATE_SCAN_ENABLED');
+    expect(scheduler.updateConfig).toHaveBeenCalledWith({ supersedeCandidateScanEnabled: true });
+    expect(scheduler.restartJob).not.toHaveBeenCalled();
+  });
+
+  it('clears reapply handlers on unwire so later changes do not touch consumers', () => {
+    const target = { setRejectionGate: vi.fn() };
+    wireSettingRuntimeReapply(target as never);
+    unwireSettingRuntimeReapply();
+    runSettingRuntimeReapply('SEARCH_REJECTION_GATE');
+    expect(target.setRejectionGate).not.toHaveBeenCalled();
   });
 });
