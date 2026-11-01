@@ -13,6 +13,7 @@ import { logger } from '../shared/utils/logger.js';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
 import { createUnverifiedReflexionMemory } from './reflexion-procedural-memory-service/reflexion-procedural-create.js';
 import { mementoConfig } from '../shared/config/index.js';
+import { normalizeReflexionObservationErrorMessage } from './reflexion-observation-error-normalize.js';
 
 interface FailurePatternAnalysis {
   repeatCount: number;
@@ -211,7 +212,7 @@ export class ReflexionReflectionRecorder {
   private generateEventKey(event: FailureEvent): string {
     if (mementoConfig.reflexionObservationOnly) {
       return createHash('sha256').update(JSON.stringify([
-        event.tool_name, event.error_type, event.error_message.trim().toLowerCase().replace(/\s+/g, ' '),
+        event.tool_name, event.error_type, normalizeReflexionObservationErrorMessage(event.error_message),
         event.scope?.owner_id, event.scope?.project_id, event.scope?.process_id,
         event.scope?.session_id, event.context?.environment, event.context?.tool_version,
         this.extractTaskGoal(event),

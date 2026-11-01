@@ -195,6 +195,8 @@ export const mementoConfig: MementoConfig = {
 
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
   reflexionObservationOnly: resolveBoolean('REFLEXION_OBSERVATION_ONLY', { defaultValue: false }),
+  /** REFLEXION_OBSERVATION_ONLY 시 pinned reflexion episodic 총량 상한 (#1578) */
+  reflexionObservationPinnedMax: resolveNumber('REFLEXION_OBSERVATION_PINNED_MAX', { defaultValue: 256 }),
   /** Issue #1550: 절차 실행 증거 기록. 채택 게이트는 판정만 하고 기억을 바꾸지 않는다. */
   proceduralExecutionEvidenceEnabled: resolveBoolean('PROCEDURAL_EXECUTION_EVIDENCE_ENABLED', { defaultValue: false }),
   proceduralExtractionStrategy: resolveProceduralExtractionStrategy(),

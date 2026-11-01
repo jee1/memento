@@ -14,6 +14,10 @@
 - 런타임 설정 override: 조정 가능한 12개 키를 DB override 로 얹고 `GET /admin/settings`, `PUT /admin/settings/:key`, `POST /admin/settings/:key/revert` 로 조회, 변경, 되돌립니다. 변경마다 이전/새 값, 세션 actor, 사유를 `setting_override_event`(migration 063)에 남기며 재시작 뒤에도 유지됩니다. 재시작이 필요한 키는 `pending_restart` 로 드러냅니다 (#1582).
 - Admin 대시보드 설정 탭: 조정 가능한 설정 12개의 실효값, 출처, 코드 기본값과의 차이, 마지막 변경을 보여 주고 사유를 받아 변경하고 되돌립니다. `GET /admin/settings/events` 로 변경 이력을 조회하며 변경과 되돌리기 API 는 사유가 필수입니다 (#1583).
 
+### Fixed
+
+- Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
+
 ## [2.3.6] - 2026-11-01
 
 ### Security

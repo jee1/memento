@@ -8,6 +8,7 @@ import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/
 import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../../shared/utils/logger.js';
 import { MemoryEmbeddingService } from '../../domains/embedding/services/memory-embedding-service.js';
+import { enforceReflexionObservationPinnedCap } from '../reflexion-observation-pinned-cap.js';
 
 export async function createUnverifiedReflexionMemory(
   db: Database.Database,
@@ -26,17 +27,28 @@ export async function createUnverifiedReflexionMemory(
     environment: event.context?.environment ?? null,
     tool_version: event.context?.tool_version ?? null,
   } });
-  // pin은 자동 통합의 importance 하향과 TTL 망각으로부터 원본·후보를 보호한다.
-  DatabaseUtils.run(db, `INSERT INTO memory_item (
+  const capScope = {
+    ownerId: scope?.owner_id ?? null,
+    projectId: scope?.project_id ?? null,
+  };
+  const insertObservation = (): void => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (
     id, type, content, task_goal, workflow_name, skill_name, steps, trigger_conditions,
     reflection_notes, importance, privacy_scope, pinned, source, origin_source,
     owner_id, project_id, process_id, session_id, created_at
   ) VALUES (?, 'episodic', ?, ?, ?, ?, ?, ?, ?, 0.7, 'private', 1, 'reflexion', ?, ?, ?, ?, ?, ?)`, [
-    memoryId, content, extracted.task_goal || null, extracted.workflow_name || null,
-    extracted.skill_name || null, extracted.steps || null, extracted.trigger_conditions || null,
-    JSON.stringify(reflectionNote), origin, scope?.owner_id ?? null, scope?.project_id ?? null,
-    scope?.process_id ?? null, scope?.session_id ?? null, new Date().toISOString(),
-  ]);
+      memoryId, content, extracted.task_goal || null, extracted.workflow_name || null,
+      extracted.skill_name || null, extracted.steps || null, extracted.trigger_conditions || null,
+      JSON.stringify(reflectionNote), origin, scope?.owner_id ?? null, scope?.project_id ?? null,
+      scope?.process_id ?? null, scope?.session_id ?? null, new Date().toISOString(),
+    ]);
+  };
+  const capAndInsert = db.transaction(() => {
+    enforceReflexionObservationPinnedCap(db, 1, capScope);
+    insertObservation();
+  });
+  capAndInsert();
+  // pin은 자동 통합의 importance 하향과 TTL 망각으로부터 원본·후보를 보호한다.
   if (embeddingService) {
     const embedding = await embeddingService.createAndStoreEmbedding(db, memoryId, content, 'episodic');
     if (!embedding) logger.warn('Reflexion candidate embedding pending reconciliation', { memory_id: memoryId });

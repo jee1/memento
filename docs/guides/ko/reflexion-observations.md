@@ -8,11 +8,13 @@
 
 두 기록 모두 private이며 `source=reflexion`, `origin_source.reflexion.state`에 각각 `failure_observation`, `unverified_candidate`를 남긴다. 같은 메타데이터에 원본 `event_id`, 호출 범위, environment와 tool_version을 보존한다. owner/project/process/session은 서버 이벤트의 scope를 쓰며 MCP 도구 실패는 토큰 바인딩을 우선한다. 실패한 요청의 owner/project 입력값으로 호출 범위를 덮어쓰지 않는다. 환경·도구 버전을 제공하지 않은 이벤트는 해당 값을 null로 남긴다. 본문에서 범위를 추정하지 않는다.
 
-기록은 append-only다. 중복 키는 도구·오류 유형·전체 오류 문구·owner/project/process/session·환경·도구 버전·작업 목표로 구성한다. 오류 문구는 앞뒤 공백 제거, 소문자 변환, 연속 공백 축약으로 정규화한다. 이벤트 ID가 달라도 같은 키의 실패는 Recorder의 중복 시간 창에서 한 번만 기록하며, 첫 이벤트의 ID를 출처에 남긴다. 다른 범위·환경·목표·오류는 별도 기록한다.
+기록은 append-only다. 중복 키는 도구·오류 유형·정규화한 전체 오류 문구·owner/project/process/session·환경·도구 버전·작업 목표로 구성한다. 오류 문구는 dedup 키용 정규화(공백·대소문자·가변 id·시각·숫자 치환)를 거친다. 이벤트 ID가 달라도 같은 키의 실패는 Recorder의 중복 시간 창에서 한 번만 기록하며, 첫 이벤트의 ID를 출처에 남긴다. 다른 범위·환경·목표·오류는 별도 기록한다.
 
 같은 키·시간 창에서는 동시 요청과 재시도를 합쳐 고정 행을 최대 2개(실패 관찰 1개·미검증 후보 최대 1개), 임베딩 시도를 최대 1회 남긴다. 저장 전에 중복 키를 예약하고 관찰 INSERT 자체가 실패하면 예약을 해제한다. 관찰 저장 뒤 변환·임베딩이 실패하면 중복 키를 유지하므로 재시도로 고정 행을 늘리지 않는다. 시간 창은 첫 시도에서 시작하며 중복 요청으로 연장하지 않는다. 이 상한은 Recorder 인스턴스의 `record` 경로에만 적용된다. 직접 `convert`·`updateProceduralMemory` 호출은 별도로 후보를 추가한다.
 
-중복 키는 메모리에만 남는다. 시간 창 만료·Recorder 재생성·서버 재시작 뒤에는 같은 오류도 다시 기록한다. 서로 다른 키와 여러 시간 창을 합친 전체 누적 상한은 없으며 영속적인 재시도 멱등성을 보장하지 않는다.
+중복 키는 메모리에만 남는다. 시간 창 만료·Recorder 재생성·서버 재시작 뒤에는 같은 오류도 다시 기록할 수 있다. `REFLEXION_OBSERVATION_ONLY=true`일 때 pinned reflexion episodic 총량은 **동일 owner_id·project_id** 범위에서 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)를 넘지 않는다. 다른 owner의 pin은 건드리지 않는다. env 값이 0 이하이면 pinned 상한 enforcement를 하지 않는다(무제한 pin). 초과분은 `created_at`·`rowid` 오름차순으로 가장 오래된 행부터 unpin하며, `is_deleted=1`인 pinned 행은 슬롯 집계에서 제외한다. unpin된 행은 자동 망각 대상이 된다. `record`·`convert`·`updateProceduralMemory` 모두 INSERT 직전에 같은 상한을 트랜잭션으로 적용한다.
+
+오류 문구 정규화는 dedup 키에만 쓴다. 앞뒤 공백 제거, 소문자, 연속 공백 축약에 더해 UUID·긴 `mem_*` id·id 형식 `failure_*`/`failure-*`·ISO 시각·8자리 이상 숫자만 치환한다. HTTP 404/500·DB 포트(5432 등) 같은 짧은 숫자는 유지해 서로 다른 오류가 다른 키로 남는다.
 
 자동 Sleep consolidation과 망각으로 원본이 약해지지 않도록 두 기록을 pin한다. pin은 채택 표시가 아니다. 플래그를 다시 꺼도 저장한 episodic과 pin은 유지한다. 보존 비용이 계속 누적되므로 운영자가 검토한 뒤 명시적으로 unpin·삭제해야 한다.
 

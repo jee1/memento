@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupTestDatabase } from '../../test/helpers/test-database.js';
 import { mementoConfig } from '../shared/config/index.js';
@@ -13,6 +14,17 @@ import { RecallTool } from '../domains/memory/recall/recall-tool.js';
 import { sqliteRepositoryProvider } from './database/factories/sqlite-repository-provider.js';
 import { ReflexionReflectionRecorder } from './reflexion-reflection-recorder.js';
 import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-service.js';
+import { normalizeReflexionObservationErrorMessage } from './reflexion-observation-error-normalize.js';
+import {
+  explainReflexionPinnedVictimQueryPlan,
+} from './reflexion-observation-pinned-cap.js';
+
+function countPinnedReflexionEpisodic(db: Database.Database): number {
+  return Number(
+    (db.prepare(`SELECT COUNT(*) AS n FROM memory_item WHERE type = 'episodic'
+      AND COALESCE(pinned, 0) = 1 AND source = 'reflexion'`).get() as { n: number }).n
+  );
+}
 
 function failure(id = 'failure-1'): FailureEvent {
   return {
@@ -215,5 +227,179 @@ describe('Reflexion observation-only (#1547)', () => {
     const rows = db.prepare('SELECT type FROM memory_item').all();
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every(row => (row as { type: string }).type === 'procedural')).toBe(true);
+  });
+
+  describe('pinned cap and error normalization (#1578)', () => {
+    it('strips variable tokens from error text for dedup keys', () => {
+      const base = normalizeReflexionObservationErrorMessage('Database TIMEOUT');
+      expect(base).toBe('database timeout');
+      const a = normalizeReflexionObservationErrorMessage(
+        `req mem_abc123456789 failed at 2026-01-01T12:00:00.000Z code 404`,
+      );
+      const b = normalizeReflexionObservationErrorMessage(
+        `req mem_xyz987654321 failed at 2026-06-15T08:30:01.500Z code 404`,
+      );
+      expect(a).toBe(b);
+    });
+
+    it('keeps http status codes and short port numbers as distinct dedup keys', () => {
+      expect(
+        normalizeReflexionObservationErrorMessage('upstream http 404 not found'),
+      ).not.toBe(normalizeReflexionObservationErrorMessage('upstream http 500 not found'));
+      expect(
+        normalizeReflexionObservationErrorMessage('connect port 5432 refused'),
+      ).not.toBe(normalizeReflexionObservationErrorMessage('connect port 3306 refused'));
+    });
+
+    it('does not normalize failure_type or mem_alloc as variable ids', () => {
+      const withType = normalizeReflexionObservationErrorMessage('failure_type on remember');
+      const withCode = normalizeReflexionObservationErrorMessage('failure_code on remember');
+      expect(withType).toContain('failure_type');
+      expect(withCode).toContain('failure_code');
+      expect(withType).not.toBe(withCode);
+    });
+
+    it('preserves mem_allocation and failure_validation_error style phrases', () => {
+      expect(normalizeReflexionObservationErrorMessage('mem_allocation failed')).toBe('mem_allocation failed');
+      expect(normalizeReflexionObservationErrorMessage('failure_validation_error raised')).toBe(
+        'failure_validation_error raised',
+      );
+      expect(normalizeReflexionObservationErrorMessage('failure_timeout_exceeded')).toBe('failure_timeout_exceeded');
+    });
+
+    it('uses pinned index in victim selection query plan', () => {
+      const plan = explainReflexionPinnedVictimQueryPlan(db, {
+        ownerId: 'owner-a',
+        projectId: 'project-a',
+      });
+      expect(plan.toLowerCase()).toMatch(/pinned/);
+    });
+
+    it('keeps pinned reflexion rows at or below cap when keys differ every time', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 48 });
+      for (let i = 0; i < 1000; i++) {
+        const event = failure(`failure-${i}`);
+        event.tool_name = `remember_${i}`;
+        event.error_message = `database timeout id=${randomUUID()} at ${Date.now()}`;
+        await recorder.record(event);
+      }
+      expect(countPinnedReflexionEpisodic(db)).toBeLessThanOrEqual(48);
+    });
+
+    it('still enforces cap after a new recorder instance (restart)', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 40 });
+      for (let i = 0; i < 25; i++) {
+        const event = failure(`warm-${i}`);
+        event.tool_name = `remember_warm_${i}`;
+        event.error_message = `warm error ${randomUUID()}`;
+        await recorder.record(event);
+      }
+      expect(countPinnedReflexionEpisodic(db)).toBeLessThanOrEqual(40);
+      const recorderAfterRestart = new ReflexionReflectionRecorder(db, service, 60000);
+      for (let i = 0; i < 25; i++) {
+        const event = failure(`after-${i}`);
+        event.tool_name = `remember_after_${i}`;
+        event.error_message = `after error ${randomUUID()}`;
+        await recorderAfterRestart.record(event);
+      }
+      expect(countPinnedReflexionEpisodic(db)).toBeLessThanOrEqual(40);
+    });
+
+    it('unpins overflow rows so automatic forgetting can remove them', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 4 });
+      for (let i = 0; i < 5; i++) {
+        const event = failure(`old-${i}`);
+        event.tool_name = `remember_old_${i}`;
+        event.error_message = `overflow case ${String.fromCharCode(97 + i)}`;
+        await recorder.record(event);
+      }
+      expect(countPinnedReflexionEpisodic(db)).toBeLessThanOrEqual(4);
+      const unpinnedBefore = Number(
+        (db.prepare(`SELECT COUNT(*) AS n FROM memory_item WHERE source = 'reflexion' AND COALESCE(pinned, 0) = 0`).get() as { n: number }).n
+      );
+      expect(unpinnedBefore).toBeGreaterThan(0);
+      db.prepare(`UPDATE memory_item SET created_at = '2000-01-01T00:00:00.000Z', importance = 0.1,
+        last_accessed = '2000-01-01T00:00:00.000Z' WHERE COALESCE(pinned, 0) = 0`).run();
+      const cleanup = await new ForgettingPolicyService().executeMemoryCleanup(db);
+      expect(cleanup.summary.actualSoftDeletes).toBeGreaterThan(0);
+      const softDeleted = Number(
+        (db.prepare(`SELECT COUNT(*) AS n FROM memory_item WHERE source = 'reflexion'
+          AND COALESCE(pinned, 0) = 0 AND COALESCE(is_deleted, 0) = 1`).get() as { n: number }).n
+      );
+      expect(softDeleted).toBeGreaterThan(0);
+      expect(countPinnedReflexionEpisodic(db)).toBe(4);
+    });
+
+    it('applies cap on direct updateProceduralMemory in observation mode', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 2 });
+      seedLegacy();
+      for (let i = 0; i < 5; i++) {
+        await service.updateProceduralMemory('legacy', {
+          workflow_name: 'database migration', task_goal: `goal-${i}`, steps: '["step"]',
+        }, 'replace', { lessons_learned: `try ${i}` }, failure(`direct-${i}`));
+      }
+      expect(countPinnedReflexionEpisodic(db)).toBeLessThanOrEqual(2);
+    });
+
+    it('scopes pinned cap per owner without unpinning another owner rows', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 2 });
+      for (let i = 0; i < 4; i++) {
+        await recorder.record(failure(`owner-a-${i}`));
+      }
+      const pinnedOwnerA = Number(
+        (db.prepare(`SELECT COUNT(*) AS n FROM memory_item WHERE owner_id = 'owner-a'
+          AND COALESCE(pinned, 0) = 1 AND source = 'reflexion'`).get() as { n: number }).n,
+      );
+      expect(pinnedOwnerA).toBeLessThanOrEqual(2);
+
+      const other = failure('owner-b-only');
+      other.scope = { owner_id: 'owner-b', project_id: 'project-a' };
+      await recorder.record(other);
+      const pinnedOwnerB = Number(
+        (db.prepare(`SELECT COUNT(*) AS n FROM memory_item WHERE owner_id = 'owner-b'
+          AND COALESCE(pinned, 0) = 1 AND source = 'reflexion'`).get() as { n: number }).n,
+      );
+      expect(pinnedOwnerB).toBe(2);
+      expect(pinnedOwnerA).toBeLessThanOrEqual(2);
+    });
+
+    it('does not count soft-deleted pinned rows toward the cap', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 2 });
+      await recorder.record(failure('live-1'));
+      db.prepare(`UPDATE memory_item SET is_deleted = 1, deleted_at = datetime('now')
+        WHERE id = (SELECT id FROM memory_item WHERE source = 'reflexion' LIMIT 1)`).run();
+      await recorder.record(failure('live-2'));
+      const pinnedLive = Number(
+        (db.prepare(`SELECT COUNT(*) AS n FROM memory_item WHERE source = 'reflexion'
+          AND COALESCE(pinned, 0) = 1 AND COALESCE(is_deleted, 0) = 0`).get() as { n: number }).n,
+      );
+      expect(pinnedLive).toBeLessThanOrEqual(2);
+    });
+
+    it('skips cap enforcement when REFLEXION_OBSERVATION_PINNED_MAX is zero', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 0 });
+      for (let i = 0; i < 20; i++) {
+        const event = failure(`free-${i}`);
+        event.tool_name = `remember_free_${i}`;
+        event.error_message = `unique ${randomUUID()}`;
+        await recorder.record(event);
+      }
+      expect(countPinnedReflexionEpisodic(db)).toBeGreaterThan(2);
+    });
+
+    it('rolls back unpin when observation INSERT fails inside the cap transaction', async () => {
+      Object.assign(mementoConfig, { reflexionObservationPinnedMax: 2 });
+      const seed = failure('seed-cap');
+      seed.error_message = `seed ${randomUUID()}`;
+      await recorder.record(seed);
+      const pinnedBefore = countPinnedReflexionEpisodic(db);
+      db.exec(`CREATE TRIGGER reject_cap_insert BEFORE INSERT ON memory_item
+        WHEN NEW.source = 'reflexion' BEGIN SELECT RAISE(FAIL, 'cap insert blocked'); END`);
+      const blocked = failure('should-roll-back');
+      blocked.error_message = `rollback ${randomUUID()}`;
+      await expect(recorder.record(blocked)).rejects.toThrow('cap insert blocked');
+      expect(countPinnedReflexionEpisodic(db)).toBe(pinnedBefore);
+      db.exec('DROP TRIGGER reject_cap_insert');
+    });
   });
 });
