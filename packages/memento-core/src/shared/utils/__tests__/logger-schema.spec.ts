@@ -198,32 +198,30 @@ describe('로깅 스키마 검증 (MCP 스펙 준수)', () => {
     });
 
     it('로그 레벨 필터링 검증', () => {
-      // Given: 로그 레벨이 'warn'으로 설정
-      // Note: mcp-logger.ts의 getCurrentLogLevel()이 환경 변수를 읽지만,
-      // logger.ts는 isMCPMode()를 확인하므로 일반 모드에서는 필터링이 적용되지 않을 수 있음
-      // 이 테스트는 MCP 모드가 아닌 경우를 테스트하므로 필터링이 적용되지 않을 수 있음
       const originalLogLevel = process.env.LOG_LEVEL;
       process.env.LOG_LEVEL = 'warn';
 
       const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
-      // When: 다양한 레벨의 로그 호출
-      logger.debug('디버그 메시지', {});
-      logger.info('정보 메시지', {});
-      logger.warn('경고 메시지', {});
-      logger.error('에러 메시지', {});
+      try {
+        logger.debug('디버그 메시지', {});
+        logger.info('정보 메시지', {});
+        logger.warn('경고 메시지', {});
+        logger.error('에러 메시지', {});
 
-      // Then: 일반 모드에서는 필터링이 적용되지 않을 수 있으므로
-      // 모든 로그가 출력되는지 확인 (실제 구현에 따라 다를 수 있음)
-      // MCP 모드에서는 필터링이 적용되지만, 일반 모드에서는 모든 로그가 출력됨
-      const logCalls = stderrSpy.mock.calls.map(call => String(call[0]));
-      // 일반 모드에서는 모든 로그가 출력되므로, 최소한 warn과 error는 포함되어야 함
-      expect(logCalls.some(call => call.includes('경고 메시지'))).toBe(true);
-      expect(logCalls.some(call => call.includes('에러 메시지'))).toBe(true);
-
-      // Cleanup
-      process.env.LOG_LEVEL = originalLogLevel;
-      stderrSpy.mockRestore();
+        const logCalls = stderrSpy.mock.calls.map(call => String(call[0]));
+        expect(logCalls.some(call => call.includes('디버그 메시지'))).toBe(false);
+        expect(logCalls.some(call => call.includes('정보 메시지'))).toBe(false);
+        expect(logCalls.some(call => call.includes('경고 메시지'))).toBe(true);
+        expect(logCalls.some(call => call.includes('에러 메시지'))).toBe(true);
+      } finally {
+        if (originalLogLevel === undefined) {
+          delete process.env.LOG_LEVEL;
+        } else {
+          process.env.LOG_LEVEL = originalLogLevel;
+        }
+        stderrSpy.mockRestore();
+      }
     });
   });
 });

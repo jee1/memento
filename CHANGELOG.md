@@ -34,6 +34,7 @@
 
 ### Changed
 
+- 설정과 로거: 런타임이 읽지 않던 검색 기본/최대 건수, 망각 계층별 TTL 4종, 로그 파일 경로 환경변수 7개를 설정 객체, 검증기, 템플릿, compose 화이트리스트, 문서에서 제거합니다. 일반 `logger.ts`(`logToStderr`)도 `mcp-logger.ts`와 함께 `LOG_LEVEL`(기본 `info`)을 따르도록 연결합니다. 기존 `.env`에 제거된 키가 남아도 기동에는 영향이 없습니다 (#1587).
 - 관계 추출 LLM 호출: provider 별로 갈려 있던 세 함수를 공용 chat LLM 포트(`@memento/core` `shared/services/chat-llm`)로 모읍니다. 출력 상한과 thinking 정책, provider 별 파라미터 이름이 어댑터 한 곳에 있습니다. `LLM_PROVIDER*`, `LLM_MODEL*` 환경변수 계약과 provider 선택 동작은 그대로입니다 (#1532).
 - 구조 문서: 패키지·의존·MCP 도구 등록의 정본을 `docs/agents/architecture.md`로 모으고, ko/en 아키텍처·`DEVELOPMENT_RULES`·`AGENTS.md`의 어긋난 수치·의존 화살표를 코드 기준으로 맞춥니다 (#1533).
 - 에이전트 지침: `.cursor/rules` 과잉을 `AGENTS.md`/`docs/agents` 포인터로 줄이고, 문서와 코드가 어긋난 gotcha·heal·랭킹 설명을 맞춥니다 (#1530).

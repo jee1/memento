@@ -148,9 +148,6 @@ export const mementoConfig: MementoConfig = {
   llmProviderOverrides,
   relationExtractionOverride,
 
-  // 검색 설정
-  searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),
-  searchMaxLimit: resolveNumber('SEARCH_MAX_LIMIT'),
   // #1095 검색 기각 게이트
   searchRejectionGate: resolveRejectionGateProvider(),
   searchRejectionGateThreshold: resolveRejectionGateThreshold(),
@@ -160,17 +157,8 @@ export const mementoConfig: MementoConfig = {
   typesafeApiKey: resolveOptionalString('TYPESAFE_API_KEY'),
   typesafeModel: resolveString('TYPESAFE_MODEL'),
 
-  // 망각 정책 설정 (시간 단위: 시간)
-  forgetTTL: {
-    working: resolveNumber('FORGET_WORKING_TTL'),
-    episodic: resolveNumber('FORGET_EPISODIC_TTL'),
-    semantic: resolveNumber('FORGET_SEMANTIC_TTL'),
-    procedural: resolveNumber('FORGET_PROCEDURAL_TTL')
-  },
-
   // 로깅 설정
   logLevel: resolveString('LOG_LEVEL'),
-  logFile: resolveOptionalString('LOG_FILE'),
   mcpLogProtocol: resolveBoolean('MCP_LOG_PROTOCOL', { defaultValue: false }),
 
   // 개발 설정

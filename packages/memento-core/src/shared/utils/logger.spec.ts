@@ -47,6 +47,21 @@ describe('logger', () => {
   });
 
   describe('debug', () => {
+    let prevLogLevel: string | undefined;
+
+    beforeEach(() => {
+      prevLogLevel = process.env.LOG_LEVEL;
+      process.env.LOG_LEVEL = 'debug';
+    });
+
+    afterEach(() => {
+      if (prevLogLevel === undefined) {
+        delete process.env.LOG_LEVEL;
+      } else {
+        process.env.LOG_LEVEL = prevLogLevel;
+      }
+    });
+
     it('debug 메시지를 출력해야 함', () => {
       // Given: debug 메시지
       const message = 'Debug message';
@@ -195,28 +210,38 @@ describe('logger', () => {
     it('로그 레벨을 대문자로 포함해야 함', () => {
       // Given: 각 레벨의 로그 메시지
       const message = 'Test message';
+      const prevLogLevel = process.env.LOG_LEVEL;
+      process.env.LOG_LEVEL = 'debug';
 
-      // When: 각 레벨로 로그 출력
-      stderrWriteCalls = [];
-      logger.debug(message);
-      const debugCall = stderrWriteCalls[0];
-      
-      stderrWriteCalls = [];
-      logger.info(message);
-      const infoCall = stderrWriteCalls[0];
-      
-      stderrWriteCalls = [];
-      logger.warn(message);
-      const warnCall = stderrWriteCalls[0];
-      
-      stderrWriteCalls = [];
-      logger.error(message);
-      const errorCall = stderrWriteCalls[0];
+      try {
+        // When: 각 레벨로 로그 출력
+        stderrWriteCalls = [];
+        logger.debug(message);
+        const debugCall = stderrWriteCalls[0];
+        
+        stderrWriteCalls = [];
+        logger.info(message);
+        const infoCall = stderrWriteCalls[0];
+        
+        stderrWriteCalls = [];
+        logger.warn(message);
+        const warnCall = stderrWriteCalls[0];
+        
+        stderrWriteCalls = [];
+        logger.error(message);
+        const errorCall = stderrWriteCalls[0];
 
-      expect(debugCall).toContain('DEBUG');
-      expect(infoCall).toContain('INFO');
-      expect(warnCall).toContain('WARN');
-      expect(errorCall).toContain('ERROR');
+        expect(debugCall).toContain('DEBUG');
+        expect(infoCall).toContain('INFO');
+        expect(warnCall).toContain('WARN');
+        expect(errorCall).toContain('ERROR');
+      } finally {
+        if (prevLogLevel === undefined) {
+          delete process.env.LOG_LEVEL;
+        } else {
+          process.env.LOG_LEVEL = prevLogLevel;
+        }
+      }
     });
 
     it('메시지와 메타데이터를 파이프(|)로 구분해야 함', () => {
@@ -506,14 +531,24 @@ describe('logger', () => {
       it('logger.debug()에서 PII를 자동으로 마스킹해야 함', () => {
         // Given: PII가 포함된 메시지
         const message = 'Debug: user@example.com';
+        const prevLogLevel = process.env.LOG_LEVEL;
+        process.env.LOG_LEVEL = 'debug';
 
-        // When: debug 로그 출력
-        logger.debug(message);
+        try {
+          // When: debug 로그 출력
+          logger.debug(message);
 
-        // Then: PII가 마스킹되어야 함
-        const callArg = stderrWriteCalls[0];
-        expect(callArg).not.toContain('user@example.com');
-        expect(callArg).toContain('[EMAIL]');
+          // Then: PII가 마스킹되어야 함
+          const callArg = stderrWriteCalls[0];
+          expect(callArg).not.toContain('user@example.com');
+          expect(callArg).toContain('[EMAIL]');
+        } finally {
+          if (prevLogLevel === undefined) {
+            delete process.env.LOG_LEVEL;
+          } else {
+            process.env.LOG_LEVEL = prevLogLevel;
+          }
+        }
       });
 
       it('logger.warn()에서 PII를 자동으로 마스킹해야 함', () => {
@@ -696,6 +731,49 @@ describe('logger', () => {
       expect(logServerSpy).toHaveBeenCalledTimes(3);
 
       logServerSpy.mockRestore();
+    });
+  });
+
+  describe('LOG_LEVEL 필터링', () => {
+    let prevLogLevel: string | undefined;
+
+    beforeEach(() => {
+      prevLogLevel = process.env.LOG_LEVEL;
+    });
+
+    afterEach(() => {
+      if (prevLogLevel === undefined) {
+        delete process.env.LOG_LEVEL;
+      } else {
+        process.env.LOG_LEVEL = prevLogLevel;
+      }
+    });
+
+    it('LOG_LEVEL=error일 때 일반 logger의 info와 debug는 출력되지 않고 error만 출력되어야 함', () => {
+      process.env.LOG_LEVEL = 'error';
+
+      logger.debug('Debug suppressed');
+      logger.info('Info suppressed');
+      logger.warn('Warn suppressed');
+      logger.error('Error emitted');
+
+      expect(stderrWriteCalls).toHaveLength(1);
+      expect(stderrWriteCalls[0]).toContain('ERROR');
+      expect(stderrWriteCalls[0]).toContain('Error emitted');
+    });
+
+    it('기본값(LOG_LEVEL 미설정 또는 info)에서 info, warn, error 출력은 그대로 유지되어야 함', () => {
+      delete process.env.LOG_LEVEL;
+
+      logger.debug('Debug suppressed by default');
+      logger.info('Info emitted');
+      logger.warn('Warn emitted');
+      logger.error('Error emitted');
+
+      expect(stderrWriteCalls).toHaveLength(3);
+      expect(stderrWriteCalls[0]).toContain('Info emitted');
+      expect(stderrWriteCalls[1]).toContain('Warn emitted');
+      expect(stderrWriteCalls[2]).toContain('Error emitted');
     });
   });
 });
