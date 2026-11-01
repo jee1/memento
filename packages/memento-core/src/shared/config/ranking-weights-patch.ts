@@ -5,7 +5,7 @@
 
 import { type KnobKey, isKnobKey } from './ranking-knobs.js';
 
-export const RANKING_WEIGHTS_REPO_PATH = 'config/ranking-weights.toml';
+const RANKING_WEIGHTS_REPO_PATH = 'config/ranking-weights.toml';
 
 const CONTEXT_LINES = 3;
 const SECTION_RE = /^\s*\[([^[\]]+)\]\s*(?:#.*)?$/;

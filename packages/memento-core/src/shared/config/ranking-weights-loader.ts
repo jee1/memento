@@ -113,6 +113,15 @@ function resolveRankingWeightsFilePath(configPath?: string): string {
   return resolve(defaultPath);
 }
 
+/** 지금 서버가 읽는 TOML 경로. overridden 은 MEMENTO_RANKING_WEIGHTS_PATH 로 저장소 기본 사본을 바꿨다는 뜻이다. */
+export function getRankingWeightsSource(): { path: string; overridden: boolean } {
+  const envPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+  return {
+    path: resolveRankingWeightsFilePath(undefined),
+    overridden: Boolean(envPath && fs.existsSync(envPath)),
+  };
+}
+
 const RANKING_WEIGHTS_SCHEMA = {
   'ranking_weights.alpha': { type: 'number' as const, min: 0, max: 1 },
   'ranking_weights.beta': { type: 'number' as const, min: 0, max: 1 },

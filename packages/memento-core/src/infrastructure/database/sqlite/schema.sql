@@ -943,6 +943,36 @@ BEGIN
   SELECT RAISE(ABORT, 'setting_override_event is append-only');
 END;
 
+-- Ranking weight proposal (migration 064, Issue #1584): 행은 고치지 않고 preview_json/previewed_at 만 한 번 채운다
+CREATE TABLE IF NOT EXISTS ranking_weight_proposal (
+  id            TEXT PRIMARY KEY,
+  actor         TEXT NOT NULL,
+  reason        TEXT NOT NULL,
+  current_json  TEXT NOT NULL,
+  proposed_json TEXT NOT NULL,
+  patch         TEXT NOT NULL,
+  preview_json  TEXT,
+  previewed_at  TEXT,
+  created_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ranking_weight_proposal_created
+  ON ranking_weight_proposal(created_at);
+CREATE TRIGGER IF NOT EXISTS ranking_weight_proposal_guard_update
+BEFORE UPDATE ON ranking_weight_proposal
+WHEN OLD.preview_json IS NOT NULL OR OLD.previewed_at IS NOT NULL
+  OR NEW.preview_json IS NULL OR NEW.previewed_at IS NULL
+  OR NEW.id IS NOT OLD.id OR NEW.actor IS NOT OLD.actor OR NEW.reason IS NOT OLD.reason
+  OR NEW.current_json IS NOT OLD.current_json OR NEW.proposed_json IS NOT OLD.proposed_json
+  OR NEW.patch IS NOT OLD.patch OR NEW.created_at IS NOT OLD.created_at
+BEGIN
+  SELECT RAISE(ABORT, 'ranking_weight_proposal is append-only');
+END;
+CREATE TRIGGER IF NOT EXISTS ranking_weight_proposal_prevent_delete
+BEFORE DELETE ON ranking_weight_proposal
+BEGIN
+  SELECT RAISE(ABORT, 'ranking_weight_proposal is append-only');
+END;
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);
