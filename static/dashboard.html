@@ -70,6 +70,7 @@
           <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
           <button type="button" id="dashboard-tab-memory-finder" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-memory-finder" data-tab="memory-finder">기억 찾기</button>
           <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
+          <button type="button" id="dashboard-tab-settings" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-settings" data-tab="settings">설정</button>
           <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
         </div>
         <div class="m-nav-group" role="presentation" data-nav-group="learn">
@@ -998,6 +999,80 @@
         </div>
       </div>
     </div>
+    <div id="tab-settings" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-settings" aria-hidden="true">
+      <div class="settings-layout">
+        <header class="settings-header">
+          <div>
+            <h2 class="settings-title">설정</h2>
+            <p class="settings-intro">바꾼 값은 DB에 남습니다. 「즉시 반영」 설정은 재기동 없이, 「재기동 필요」 설정은 다음 기동 때 적용됩니다. 우선순위는 DB 값, .env, 코드 기본값 순입니다. 변경과 되돌리기마다 사유를 남깁니다.</p>
+          </div>
+          <button type="button" id="settings-refresh-btn" class="m-button m-button--secondary">새로고침</button>
+        </header>
+        <div id="settings-loading" class="m-loading hidden" aria-live="polite">설정 불러오는 중…</div>
+        <div id="settings-error" class="m-error hidden" role="alert"></div>
+        <section class="settings-section" aria-labelledby="settings-adjustable-heading">
+          <h3 id="settings-adjustable-heading">조정 가능한 설정</h3>
+          <div class="m-table-wrap settings-table-wrap">
+            <table id="settings-table" class="m-table">
+              <thead>
+                <tr>
+                  <th scope="col">설정</th>
+                  <th scope="col">실효값</th>
+                  <th scope="col">기본값</th>
+                  <th scope="col">위험도 / 반영</th>
+                  <th scope="col">마지막 변경</th>
+                  <th scope="col">변경</th>
+                </tr>
+              </thead>
+              <tbody id="settings-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="settings-section" aria-labelledby="settings-events-heading">
+          <div class="settings-events-head">
+            <h3 id="settings-events-heading">변경 이력</h3>
+            <label class="settings-events-filter">설정
+              <select id="settings-events-key" class="m-input"></select>
+            </label>
+          </div>
+          <div id="settings-events-empty" class="m-empty hidden">변경 이력이 없습니다.</div>
+          <div class="m-table-wrap settings-table-wrap">
+            <table id="settings-events-table" class="m-table m-table--dense">
+              <thead>
+                <tr>
+                  <th scope="col">시각</th>
+                  <th scope="col">설정</th>
+                  <th scope="col">동작</th>
+                  <th scope="col">이전 값</th>
+                  <th scope="col">새 값</th>
+                  <th scope="col">누가</th>
+                  <th scope="col">사유</th>
+                </tr>
+              </thead>
+              <tbody id="settings-events-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="settings-section" aria-labelledby="settings-readonly-heading">
+          <h3 id="settings-readonly-heading">읽기 전용</h3>
+          <p class="settings-intro">비밀값, 인프라, 임베딩 모델은 여기서 바꾸지 않습니다. 비밀값은 설정 여부만 보입니다.</p>
+          <dl id="settings-readonly-list" class="settings-readonly"></dl>
+        </section>
+      </div>
+      <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-dialog-title">
+        <h3 id="settings-dialog-title" class="settings-dialog__title"></h3>
+        <p id="settings-dialog-summary" class="settings-dialog__summary"></p>
+        <div id="settings-dialog-notes" class="settings-dialog__notes"></div>
+        <label class="settings-dialog__label" for="settings-dialog-reason">사유 (필수)</label>
+        <textarea id="settings-dialog-reason" class="m-input settings-dialog__reason" rows="3" maxlength="1000"></textarea>
+        <div id="settings-dialog-error" class="m-error hidden" role="alert"></div>
+        <div class="settings-dialog__actions">
+          <button type="button" id="settings-dialog-cancel" class="m-button m-button--ghost">취소</button>
+          <button type="button" id="settings-dialog-confirm" class="m-button m-button--primary">확인</button>
+        </div>
+      </dialog>
+    </div>
+
 
   </div>
 
@@ -1066,6 +1141,9 @@
   <script src="/static/js/jobs-panel-render.js"></script>
   <script src="/static/js/jobs-panel-fetch.js"></script>
   <script src="/static/js/jobs-panel.js"></script>
+  <script src="/static/js/settings-panel-shared.js"></script>
+  <script src="/static/js/settings-panel-render.js"></script>
+  <script src="/static/js/settings-panel.js"></script>
   <script src="/static/js/agent-sessions-panel-shared.js"></script>
   <script src="/static/js/agent-sessions-panel-data.js"></script>
   <script src="/static/js/agent-sessions-panel-render-dom.js"></script>

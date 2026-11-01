@@ -17,6 +17,7 @@ const ENV_KEYS = [
   'MEMENTO_REMEMBER_DEDUP_MODE',
   'OPENAI_API_KEY',
   'LLM_PROVIDER',
+  'LLM_PROVIDER_PROCEDURAL',
 ] as const;
 
 const savedEnv = new Map<string, string | undefined>();
@@ -65,7 +66,7 @@ describe('runtime setting override (#1582)', () => {
     const { setRuntimeSettingOverride } = await load();
     for (const key of ['NOT_A_SETTING', 'OPENAI_API_KEY', 'LLM_PROVIDER', 'constructor', '__proto__']) {
       expect(
-        setRuntimeSettingOverride(db, { key, value: 'x', actor: 'session:a', reason: null }),
+        setRuntimeSettingOverride(db, { key, value: 'x', actor: 'session:a', reason: '사유' }),
         key,
       ).toMatchObject({ ok: false, code: 'UNKNOWN_SETTING' });
     }
@@ -93,7 +94,7 @@ describe('runtime setting override (#1582)', () => {
     const { setRuntimeSettingOverride, mementoConfig } = await load();
     const before = structuredClone(mementoConfig);
 
-    const result = setRuntimeSettingOverride(db, { key, value, actor: 'session:a', reason: null });
+    const result = setRuntimeSettingOverride(db, { key, value, actor: 'session:a', reason: '사유' });
 
     expect(result).toMatchObject({ ok: false, code: 'INVALID_VALUE' });
     expect(rows(db)).toEqual([]);
@@ -105,7 +106,7 @@ describe('runtime setting override (#1582)', () => {
   it('accepts the inclusive and exclusive range edges', async () => {
     const { setRuntimeSettingOverride } = await load();
     const set = (key: string, value: string) =>
-      setRuntimeSettingOverride(db, { key, value, actor: 'session:a', reason: null });
+      setRuntimeSettingOverride(db, { key, value, actor: 'session:a', reason: '사유' });
     expect(set('SEARCH_REJECTION_GATE_THRESHOLD', '0')).toMatchObject({ ok: true });
     expect(set('SEARCH_REJECTION_GATE_THRESHOLD', '1')).toMatchObject({ ok: true });
     expect(set('CONSOLIDATION_JUDGE_THRESHOLD', '1')).toMatchObject({ ok: true });
@@ -122,7 +123,7 @@ describe('runtime setting override (#1582)', () => {
 
   it('stores the override with its audit event and changes mementoConfig at once', async () => {
     const { setRuntimeSettingOverride, mementoConfig } = await load();
-    const set = (key: string, value: string, reason: string | null = null) =>
+    const set = (key: string, value: string, reason = '사유') =>
       setRuntimeSettingOverride(db, { key, value, actor: 'session:abc', reason });
 
     const first = set('REFLEXION_OBSERVATION_ONLY', 'true', '관찰만 하기로 함');
@@ -148,7 +149,7 @@ describe('runtime setting override (#1582)', () => {
 
     set('REFLEXION_OBSERVATION_ONLY', 'false');
     expect(mementoConfig.reflexionObservationOnly).toBe(false);
-    expect(events(db).at(-1)).toMatchObject({ previous_value: 'true', new_value: 'false', reason: null });
+    expect(events(db).at(-1)).toMatchObject({ previous_value: 'true', new_value: 'false', reason: '사유' });
 
     set('SEARCH_REJECTION_GATE_THRESHOLD', '0.7');
     set('SEARCH_REJECTION_GATE_ON_ERROR', 'closed');
@@ -169,7 +170,7 @@ describe('runtime setting override (#1582)', () => {
   it('moves both relation extraction fields together', async () => {
     const { setRuntimeSettingOverride, revertRuntimeSettingOverride, mementoConfig } = await load();
     const set = (value: string) =>
-      setRuntimeSettingOverride(db, { key: 'LLM_PROVIDER_RELATION_EXTRACTION', value, actor: 'session:a', reason: null });
+      setRuntimeSettingOverride(db, { key: 'LLM_PROVIDER_RELATION_EXTRACTION', value, actor: 'session:a', reason: '사유' });
 
     set('ollama');
     expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'chat', provider: 'ollama' });
@@ -179,7 +180,7 @@ describe('runtime setting override (#1582)', () => {
     expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'jev' });
     expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
 
-    revertRuntimeSettingOverride(db, { key: 'LLM_PROVIDER_RELATION_EXTRACTION', actor: 'session:a', reason: null });
+    revertRuntimeSettingOverride(db, { key: 'LLM_PROVIDER_RELATION_EXTRACTION', actor: 'session:a', reason: '사유' });
     expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'unset' });
     expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
   });
@@ -187,7 +188,7 @@ describe('runtime setting override (#1582)', () => {
   it('leaves no event when the same value is set again', async () => {
     const { setRuntimeSettingOverride } = await load();
     const set = () =>
-      setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: null });
+      setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: '사유' });
     set();
     const again = set();
     expect(again).toMatchObject({ ok: true, setting: { value: 'off', source: 'override' } });
@@ -199,8 +200,8 @@ describe('runtime setting override (#1582)', () => {
     const { setRuntimeSettingOverride, revertRuntimeSettingOverride, mementoConfig } = await load();
     expect(mementoConfig.rememberDedupMode).toBe('strict');
 
-    setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: null });
-    setRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', value: 'true', actor: 'session:a', reason: null });
+    setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: '사유' });
+    setRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', value: 'true', actor: 'session:a', reason: '사유' });
     expect(mementoConfig.rememberDedupMode).toBe('off');
 
     const reverted = revertRuntimeSettingOverride(db, {
@@ -221,7 +222,7 @@ describe('runtime setting override (#1582)', () => {
       reason: '되돌림',
     });
 
-    revertRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', actor: 'session:b', reason: null });
+    revertRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', actor: 'session:b', reason: '사유' });
     expect('REFLEXION_OBSERVATION_ONLY' in process.env).toBe(false);
     expect(mementoConfig.reflexionObservationOnly).toBe(false);
   });
@@ -229,10 +230,10 @@ describe('runtime setting override (#1582)', () => {
   it('reports NO_OVERRIDE without writing an event', async () => {
     const { revertRuntimeSettingOverride } = await load();
     expect(
-      revertRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', actor: 'session:a', reason: null }),
+      revertRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', actor: 'session:a', reason: '사유' }),
     ).toMatchObject({ ok: false, code: 'NO_OVERRIDE' });
     expect(
-      revertRuntimeSettingOverride(db, { key: 'NOT_A_SETTING', actor: 'session:a', reason: null }),
+      revertRuntimeSettingOverride(db, { key: 'NOT_A_SETTING', actor: 'session:a', reason: '사유' }),
     ).toMatchObject({ ok: false, code: 'UNKNOWN_SETTING' });
     expect(events(db)).toEqual([]);
   });
@@ -244,11 +245,11 @@ describe('runtime setting override (#1582)', () => {
 
     expect(Object.values(pending()).some(Boolean)).toBe(false);
 
-    setRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', value: 'typesafe', actor: 'session:a', reason: null });
-    setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: null });
+    setRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', value: 'typesafe', actor: 'session:a', reason: '사유' });
+    setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: '사유' });
     expect(pending()).toMatchObject({ SEARCH_REJECTION_GATE: true, MEMENTO_REMEMBER_DEDUP_MODE: false });
 
-    revertRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', actor: 'session:a', reason: null });
+    revertRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', actor: 'session:a', reason: '사유' });
     expect(pending().SEARCH_REJECTION_GATE).toBe(false);
   });
 
@@ -276,7 +277,7 @@ describe('runtime setting override (#1582)', () => {
       key: 'SEARCH_REJECTION_GATE_ON_ERROR',
       value: 'open',
       actor: 'session:a',
-      reason: null,
+      reason: '사유',
     });
     expect(byKey().get('SEARCH_REJECTION_GATE_ON_ERROR')).toMatchObject({
       value: 'open',
@@ -322,6 +323,73 @@ describe('runtime setting override (#1582)', () => {
     expect(messages).toHaveLength(2);
     const settings = new Map(listRuntimeSettings(db).settings.map((s) => [s.key, s]));
     expect(settings.get('SEARCH_REJECTION_GATE')).toMatchObject({ source: 'override', pending_restart: false });
+  });
+
+  it('describes every adjustable setting', async () => {
+    const { listRuntimeSettings, SETTING_REGISTRY } = await load();
+    const { settings } = listRuntimeSettings(db);
+    expect(settings).toHaveLength(SETTING_REGISTRY.size);
+    for (const setting of settings) {
+      expect(setting.description.trim().length, setting.key).toBeGreaterThan(10);
+    }
+  });
+
+  it('points last_change at the newest event for each key, in the list and in the change result', async () => {
+    const { setRuntimeSettingOverride, revertRuntimeSettingOverride, listRuntimeSettings } = await load();
+    const lastChange = (key: string) =>
+      listRuntimeSettings(db).settings.find((setting) => setting.key === key)!.last_change;
+    expect(lastChange('REFLEXION_OBSERVATION_ONLY')).toBeNull();
+
+    const set = setRuntimeSettingOverride(db, {
+      key: 'REFLEXION_OBSERVATION_ONLY',
+      value: 'true',
+      actor: 'session:a',
+      reason: '켠다',
+    });
+    expect(set).toMatchObject({
+      ok: true,
+      setting: { last_change: { action: 'set', actor: 'session:a', reason: '켠다' } },
+    });
+    expect(lastChange('REFLEXION_OBSERVATION_ONLY')).toEqual({
+      action: 'set',
+      actor: 'session:a',
+      reason: '켠다',
+      created_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    });
+
+    const revert = revertRuntimeSettingOverride(db, {
+      key: 'REFLEXION_OBSERVATION_ONLY',
+      actor: 'session:b',
+      reason: '끈다',
+    });
+    expect(revert).toMatchObject({ ok: true, setting: { last_change: { action: 'revert', actor: 'session:b' } } });
+    expect(lastChange('REFLEXION_OBSERVATION_ONLY')).toMatchObject({ action: 'revert', reason: '끈다' });
+    expect(lastChange('SUPERSEDE_APPLY_ENABLED')).toBeNull();
+  });
+
+  it('lists events newest first, by key, within the limit', async () => {
+    const { setRuntimeSettingOverride, revertRuntimeSettingOverride, listSettingEvents } = await load();
+    const actor = 'session:a';
+    const reason = '사유';
+    setRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', value: 'true', actor, reason });
+    setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor, reason });
+    revertRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', actor, reason });
+
+    const all = listSettingEvents(db, { limit: 50 });
+    expect(all.ok && all.events.map((event) => [event.setting_key, event.action])).toEqual([
+      ['REFLEXION_OBSERVATION_ONLY', 'revert'],
+      ['MEMENTO_REMEMBER_DEDUP_MODE', 'set'],
+      ['REFLEXION_OBSERVATION_ONLY', 'set'],
+    ]);
+    const filtered = listSettingEvents(db, { key: 'REFLEXION_OBSERVATION_ONLY', limit: 50 });
+    expect(filtered.ok && filtered.events.map((event) => event.action)).toEqual(['revert', 'set']);
+    expect(filtered.ok && filtered.events[0]).toMatchObject({ previous_value: 'true', new_value: null, actor, reason });
+    const limited = listSettingEvents(db, { limit: 1 });
+    expect(limited.ok && limited.events).toHaveLength(1);
+    expect(listSettingEvents(db, { key: 'OPENAI_API_KEY', limit: 50 })).toMatchObject({
+      ok: false,
+      code: 'UNKNOWN_SETTING',
+    });
   });
 
   it('lists read-only settings and never returns a secret value', async () => {
@@ -407,6 +475,46 @@ describe('runtime setting override (#1582)', () => {
 
       setRuntimeSettingOverride(db, { key: 'CONSOLIDATION_JUDGE', value: 'typesafe', actor: 'session:a', reason: null });
       expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: true });
+    });
+  });
+
+  describe('stored overrides that were not applied and violations of the same kind (#1583 review)', () => {
+    it('shows a stored row skipped at boot as not applied, with its reason, until a valid change replaces it', async () => {
+      const insert = db.prepare(`INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES (?, ?, 'now', 'session:a')`);
+      insert.run('SEARCH_REJECTION_GATE', 'typesafe');
+      insert.run('REFLEXION_OBSERVATION_ONLY', 'maybe');
+      const { mementoConfig, applyStoredSettingOverrides, listRuntimeSettings, setRuntimeSettingOverride } = await load();
+      mementoConfig.offlineStrict = true;
+      vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+      applyStoredSettingOverrides(db);
+      const view = (key: string) => listRuntimeSettings(db).settings.find((s) => s.key === key);
+
+      expect(view('SEARCH_REJECTION_GATE')).toMatchObject({
+        value: 'off',
+        source: 'default',
+        override: { value: 'typesafe' },
+        override_ignored_reason: expect.stringContaining('OFFLINE_STRICT_REJECTION_GATE_FORBIDDEN'),
+      });
+      expect(view('REFLEXION_OBSERVATION_ONLY')).toMatchObject({
+        value: 'false',
+        source: 'default',
+        override_ignored_reason: expect.stringContaining('must be one of'),
+      });
+
+      setRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', value: 'true', actor: 'session:a', reason: 'fix' });
+      expect(view('REFLEXION_OBSERVATION_ONLY')).toMatchObject({ value: 'true', source: 'override', override_ignored_reason: null });
+    });
+
+    it('refuses a new violation even when a violation with the same code already exists', async () => {
+      process.env.LLM_PROVIDER_PROCEDURAL = 'openai';
+      const { mementoConfig, setRuntimeSettingOverride } = await load();
+      mementoConfig.offlineStrict = true;
+
+      const result = setRuntimeSettingOverride(db, {
+        key: 'LLM_PROVIDER_RELATION_EXTRACTION', value: 'openai', actor: 'session:a', reason: 'try',
+      });
+      expect(result).toMatchObject({ ok: false, code: 'INVALID_VALUE', message: expect.stringContaining('relation_extraction') });
+      expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
     });
   });
 });

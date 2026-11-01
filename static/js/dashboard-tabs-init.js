@@ -69,6 +69,13 @@
     dispatchDashboardResize();
   }
 
+  function initSettingsTab() {
+    if (typeof global.initSettingsPanel === 'function') {
+      global.initSettingsPanel();
+    }
+    dispatchDashboardResize();
+  }
+
   function initOpsOverviewTab() {
     if (typeof global.initOpsOverviewPanel === 'function') {
       global.initOpsOverviewPanel();
@@ -118,6 +125,10 @@
     }
     if (name === 'jobs') {
       initJobsTab();
+      return;
+    }
+    if (name === 'settings') {
+      initSettingsTab();
       return;
     }
     if (name === 'ops-overview') {

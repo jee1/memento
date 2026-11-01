@@ -197,6 +197,11 @@ With semantic embeddings active, a search for "car" can match memories containin
 
 After starting the HTTP admin server (`npm run dev:http`) and signing in at `/dashboard`, open the **Jobs** tab to view schedules, queue snapshots, and durable run history. Click **Refresh** to load `GET /admin/batch/stats`, which includes a Korean **`description`** per scheduled job. The same text appears under each job name in the schedule table, in the drawer when a row is selected, and in the **What is this?** guide list. Descriptions are defined in `@memento/core` `batch-scheduler-job-descriptions.ts`.
 
+
+## HTTP dashboard — Settings tab
+
+The **Settings** tab changes 12 feature flags and operating knobs without a restart. Each row shows the key, a description, the effective value, a source badge (DB, .env, default), the code default, the risk level, how the change applies (immediately or after a restart) and the last change (who, when). A row whose value comes from the DB or differs from the default carries a **differs from default** badge. **Change** opens a confirmation dialog with the old and new value, and the change is saved only with a reason. Medium and high risk keys get an emphasized warning, and restart keys say they apply after a restart. **Revert** on a row with a DB value uses the same dialog and reason. The history table below can be filtered by key. Secrets, infrastructure and the embedding model appear in a read-only list with the key and whether it is set; secret values never reach the page.
+
 ## Managing Memories
 
 ### Pinning and Unpinning
