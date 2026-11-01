@@ -796,7 +796,9 @@ Clears the pointer only when it still equals `expected_new_memory_id` and record
 
 An old memory counts as superseded only while the memory its pointer names is alive. Deleting that memory makes the old one current again without a write. Editing `memory_relation` or `memory_link` never changes this state.
 
-Stage 1 of #1552 filters superseded candidates before LIMIT in text, LIKE, KNN, hybrid, and embedding fallback searches, including unfiltered requests. When all pointers are NULL, returned results remain unchanged. ID resources, anchors, injection, neighbors, consolidation, and explicit history retrieval remain for the next stage; keep application disabled until those contracts and performance pass validation.
+Stage 1 of #1552 filters superseded candidates before LIMIT in text, LIKE, KNN, hybrid, and embedding fallback searches. An explicit `filters.id` also hides a replaced memory. **ID resources, anchors, injection, neighbors, consolidation, and explicit history retrieval must pass validation before enabling `SUPERSEDE_APPLY_ENABLED`.**
+
+Each vector request probes the non-null pointer partial index (migration 062). With no request filters and no live pointers, it retains the original unscoped SQL. Existing pointers continue to apply after the flag is switched off; target deletion and restoration take effect without a pointer-state cache. Run `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts` to assert the partial-index plan and an off/zero-pointer p95 ratio no greater than 1.15 against unscoped SQL.
 
 ##### Batch: select and upsert queue
 

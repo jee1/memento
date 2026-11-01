@@ -109,8 +109,10 @@ describe('current state SQL (#1552)', () => {
       expect(ids(db)).toEqual(['c', 'dangling', 'foreign']);
       expect(ids(db, {})).toEqual(ids(db));
       expect(ids(db, { owner_id: 'owner-a', project_id: 'project-a' })).toEqual(['c', 'dangling']);
-      expect(hasMemoryFilter(undefined)).toBe(true);
-      expect(hasMemoryFilter({})).toBe(true);
+      expect(hasMemoryFilter(undefined)).toBe(false);
+      expect(hasMemoryFilter({})).toBe(false);
+      expect(hasMemoryFilter(undefined, true)).toBe(true);
+      expect(hasMemoryFilter({}, true)).toBe(true);
     } finally { db.close(); }
   });
 

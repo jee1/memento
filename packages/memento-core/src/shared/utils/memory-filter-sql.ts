@@ -1,5 +1,6 @@
 import type { SqlParam } from '../types/memory.types.js';
 import type { MemorySearchFilters } from '../types/search.types.js';
+import type Database from 'better-sqlite3';
 
 /**
  * 시간 필터 파라미터를 저장 형식(ISO-8601 UTC, 밀리초 3자리)에 맞춘다.
@@ -23,9 +24,19 @@ export function supersedeByActiveTargetSql(a: MemoryItemSqlAlias): string {
   ))`;
 }
 
+/** The partial index is empty before the first approval; do not cache pointer state. */
+export function hasActiveSupersedePointers(db: Database.Database): boolean {
+  return db.prepare(`SELECT 1 FROM memory_item mi
+    WHERE mi.superseded_by IS NOT NULL
+      AND ${supersedeByActiveTargetSql('mi')}
+    LIMIT 1`).get() !== undefined;
+}
+
 interface MemoryFilterSqlOptions {
   /** memory_item 별칭 (예: 'm', 'mi', 'scoped_mi', 'scoped_m') */
   itemAlias: MemoryItemSqlAlias;
+  /** Skip current-state SQL only after a same-request DB probe found no live pointers. */
+  currentState?: boolean;
   /**
    * memory_embedding 별칭. 주면 #889 모델 필터 절을 함께 낸다.
    * 텍스트 레인처럼 임베딩 조인이 없는 곳에서는 생략한다.
@@ -151,7 +162,7 @@ export function buildMemoryFilterSql(
   options: MemoryFilterSqlOptions
 ): FilterSql {
   const out: FilterSql = {
-    clauses: [`NOT ${supersedeByActiveTargetSql(options.itemAlias)}`],
+    clauses: options.currentState === false ? [] : [`NOT ${supersedeByActiveTargetSql(options.itemAlias)}`],
     params: [],
   };
   if (filters) {
@@ -167,8 +178,8 @@ export function buildMemoryFilterSql(
   return out;
 }
 
-/** 절이 하나라도 생기는지. 벡터 레인의 hasScopedCandidates 판단에 쓴다. */
-export function hasMemoryFilter(filters: MemorySearchFilters | undefined): boolean {
-  const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm' });
+/** Whether request filters or live replacement pointers require pre-KNN candidate filtering. */
+export function hasMemoryFilter(filters: MemorySearchFilters | undefined, currentState = false): boolean {
+  const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm', currentState });
   return clauses.length > 0;
 }

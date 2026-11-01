@@ -6,7 +6,7 @@ import type Database from 'better-sqlite3';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
@@ -20,16 +20,7 @@ import type { VectorSearchExecutionOptions } from './vector-search.types.js';
 
 const DIMENSIONS = 384;
 
-let vecAvailable = false;
-
-beforeAll(async () => {
-  try {
-    await import('sqlite-vec');
-    vecAvailable = true;
-  } catch {
-    vecAvailable = false;
-  }
-});
+const vecAvailable = await import('sqlite-vec').then(() => true, () => false);
 
 function unitVector(axis: number): number[] {
   const values = new Array<number>(DIMENSIONS).fill(0);
@@ -120,7 +111,7 @@ function runBothLanes(
   };
 }
 
-describe('#998 벡터 레인 필터 적용', () => {
+describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
   let db: Database.Database | undefined;
   let tempDir: string | undefined;
 
@@ -140,7 +131,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   }
 
   it('unfiltered KNN/hybrid keep sparse fresh top-K before LIMIT (#1552)', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     for (let i = 0; i < 70; i++) {
       insertMemory(database, `stale-${i}`, 'supersede needle', unitVector(0));
@@ -184,8 +174,44 @@ describe('#998 벡터 레인 필터 적용', () => {
     }
   });
 
+  it('apply flag off에서도 매 요청의 승인·삭제·복원을 읽고 fresh top-K를 유지한다 (#1552)', async () => {
+    const database = await openDb();
+    insertMemory(database, 'old', 'transition needle', unitVector(0));
+    insertMemory(database, 'target', 'transition needle', partiallyAlignedVector(0));
+    const fallback = new MemoryEmbeddingService();
+    const embeddings = fallback.getUnifiedEmbeddingService();
+    const availableSpy = vi.spyOn(embeddings, 'isAvailable').mockReturnValue(true);
+    const embeddingSpy = vi.spyOn(embeddings, 'generateEmbedding').mockResolvedValue({
+      embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: MINILM_MODEL_NAME,
+    });
+    vi.stubEnv('SUPERSEDE_APPLY_ENABLED', 'false');
+    async function expectTop(id: string): Promise<void> {
+      expect(runBothLanes(database, {}, 1)).toEqual({ knnIds: [id], hybridIds: [id] });
+      const outcome = await fallback.searchBySimilarity(database, 'transition', { limit: 1 });
+      expect(outcome.results.map(row => row.id)).toEqual([id]);
+    }
+    try {
+      await expectTop('old');
+      database.prepare("UPDATE memory_item SET superseded_by = 'target' WHERE id = 'old'").run();
+      await expectTop('target');
+      expect(runBothLanes(database, { id: ['old'] }, 1)).toEqual({ knnIds: [], hybridIds: [] });
+      database.prepare("UPDATE memory_item SET is_deleted = 1 WHERE id = 'target'").run();
+      await expectTop('old');
+      database.prepare("UPDATE memory_item SET is_deleted = 0 WHERE id = 'target'").run();
+      await expectTop('target');
+      database.prepare("UPDATE memory_item SET superseded_by = NULL WHERE id = 'old'").run();
+      await expectTop('old');
+      database.prepare("UPDATE memory_item SET superseded_by = 'target' WHERE id = 'old'").run();
+      database.prepare("DELETE FROM memory_item WHERE id = 'target'").run();
+      await expectTop('old');
+    } finally {
+      availableSpy.mockRestore();
+      embeddingSpy.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('procedural 검색은 더 가까운 episodic 관찰·후보를 LIMIT 전에 제외한다 (#1547)', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'legacy-procedure', '기존 절차', partiallyAlignedVector(0));
     insertMemory(database, 'failure-observation', '실패 관찰', unitVector(0), { pinned: 1 });
@@ -202,7 +228,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('time_from/time_to 창 안 항목만 반환한다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'in-window', '창 안', partiallyAlignedVector(0), {
       created_at: '2026-05-05T01:15:00.000Z',
@@ -222,7 +247,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('time_from/time_to 가 오프셋·밀리초 없는 형식이어도 시간 창에 포함된다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'iso-item', 'ISO 형식', partiallyAlignedVector(0), {
       created_at: '2025-09-23T02:10:19.000Z',
@@ -250,7 +274,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('pinned: true 이면 pinned 행만 반환한다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'pinned-row', '핀됨', partiallyAlignedVector(0), { pinned: 1 });
     insertMemory(database, 'unpinned-row', '핀 안됨', unitVector(0), { pinned: 0 });
@@ -263,7 +286,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('tags 필터는 SQL 단계에서 적용된다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'tagged', '태그 있음', partiallyAlignedVector(0), {
       tags: '["wanted"]',
@@ -280,7 +302,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('privacy_scope 필터를 적용한다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'team', '팀', partiallyAlignedVector(0), { privacy_scope: 'team' });
     insertMemory(database, 'private', '개인', unitVector(0), { privacy_scope: 'private' });
@@ -293,7 +314,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('importance_min/importance_max 필터를 적용한다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'high', '높음', partiallyAlignedVector(0), { importance: 0.95 });
     insertMemory(database, 'low', '낮음', unitVector(0), { importance: 0.1 });
@@ -306,7 +326,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('후보 LIMIT 이전에 필터를 적용한다 (#736 회귀 가드)', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     for (let i = 0; i < 12; i += 1) {
       insertMemory(database, `unpinned-${i}`, `미핀 ${i}`, unitVector(0), { pinned: 0 });
@@ -322,7 +341,6 @@ describe('#998 벡터 레인 필터 적용', () => {
   });
 
   it('latest_only 를 후보 LIMIT 전에 적용한다 (#1392)', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     const insert = (
       id: string,
@@ -379,7 +397,6 @@ describe('#1006 벡터 레인 메타데이터', () => {
   }
 
   it('KNN·하이브리드 레인이 DB pinned/tags 를 행별로 반환한다', async () => {
-    if (!vecAvailable) return;
     const database = await openDb();
     insertMemory(database, 'meta-pinned', '핀+태그', partiallyAlignedVector(0), {
       pinned: 1,

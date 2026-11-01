@@ -911,7 +911,9 @@ Content-Type: application/json
 
 옛 기억은 포인터가 가리키는 기억이 살아 있을 때만 대체된 상태입니다. 그 기억이 지워지면 쓰기 없이 다시 현재가 됩니다. `memory_relation` 이나 `memory_link` 편집은 이 상태를 바꾸지 않습니다.
 
-#1552 1단계는 텍스트·LIKE·KNN·hybrid·임베딩 fallback 검색에서 이 상태를 후보 LIMIT 전에 적용합니다. 요청 필터가 없어도 적용하며, 대체 포인터가 모두 비었으면 반환 결과는 이전과 같습니다. ID 리소스·앵커·주입·이웃·통합 및 명시적 역사 조회의 계약은 후속 단계에서 검증합니다. 모든 읽기 경로 검증을 마치기 전에는 `SUPERSEDE_APPLY_ENABLED`를 켜지 않습니다.
+#1552 1단계는 텍스트·LIKE·KNN·hybrid·임베딩 fallback 검색에서 이 상태를 후보 LIMIT 전에 적용합니다. `filters.id`로 옛 기억을 지정해도 살아 있는 직접 대체 대상이 있으면 숨깁니다. 명시적 역사 조회 옵션은 아직 없으며 ID 리소스·앵커·주입·이웃·통합의 계약도 후속 단계에서 검증합니다. **이 읽기 경로와 역사 조회 계약을 모두 마치기 전에는 `SUPERSEDE_APPLY_ENABLED`를 켜지 않습니다.**
+
+벡터 검색은 매 요청마다 non-null 포인터 partial index(migration 062)를 조회합니다. 실제 범위 필터도 살아 있는 대체 포인터도 없으면 기존 unscoped SQL을 유지합니다. 대체 포인터가 생기면 다음 요청부터 후보 LIMIT 전에 제외합니다. 적용 플래그를 꺼도 이미 저장된 포인터는 계속 적용하며 대상 삭제·복원을 캐시 없이 반영합니다. 무필터 off/포인터 0건의 SQL·partial-index 실행 계획과 p95 비율(기준선 대비 1.15 이하)은 `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts`로 검증합니다.
 
 ##### 배치: 후보 선정·큐 갱신
 

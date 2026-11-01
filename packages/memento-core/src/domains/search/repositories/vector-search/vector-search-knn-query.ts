@@ -7,7 +7,7 @@ import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../../shared/config/vector-search.config.js';
-import { hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
+import { hasActiveSupersedePointers, hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
 import { mapKnnResults } from './vector-search-result-mapper.js';
 import { buildOuterWhereSql, buildScopedCandidateSql } from './vector-search-scope.js';
 import type {
@@ -31,14 +31,15 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
   const { limit } = options;
   const prefetchLimit = resolveVectorPrefetchLimit(limit);
 
-  const hasScopedCandidates = hasMemoryFilter(scope);
+  const currentState = hasActiveSupersedePointers(db);
+  const hasScopedCandidates = hasMemoryFilter(scope, currentState);
   // #1386: scope already applied in rowid IN (buildScopedCandidateSql). Repeating it in
   // outer WHERE lets SQLite drive from memory_item and re-run vec0 KNN per in-scope row.
   const outerWhere = hasScopedCandidates
     ? { sql: '', params: [] as SqlParam[] }
-    : buildOuterWhereSql(scope, modelFilter);
+    : buildOuterWhereSql(scope, modelFilter, currentState);
   const scopedCandidate = hasScopedCandidates
-    ? buildScopedCandidateSql(scope, provider, modelFilter)
+    ? buildScopedCandidateSql(scope, provider, modelFilter, currentState)
     : { sql: '', params: [] as SqlParam[] };
   const knnFilterSql = hasScopedCandidates ? '  AND k = ? ' + scopedCandidate.sql : '';
   const knnLimitSql = hasScopedCandidates ? '' : '  LIMIT ?';

@@ -48,12 +48,14 @@ export function parseVectorSearchScope(query: VectorSearchQuery): VectorSearchSc
 /** 바깥 쿼리 WHERE 절 (mi·me 별칭) */
 export function buildOuterWhereSql(
   filters: VectorSearchScope,
-  modelFilter: string | null
+  modelFilter: string | null,
+  currentState = true,
 ): { sql: string; params: SqlParam[] } {
   const { clauses, params } = buildMemoryFilterSql(filters, {
     itemAlias: 'mi',
     embeddingAlias: 'me',
     modelFilter,
+    currentState,
   });
   const sql = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')} ` : '';
   return { sql, params };
@@ -63,12 +65,14 @@ export function buildOuterWhereSql(
 export function buildScopedCandidateSql(
   filters: VectorSearchScope,
   provider: string,
-  modelFilter: string | null
+  modelFilter: string | null,
+  currentState = true,
 ): { sql: string; params: SqlParam[] } {
   const { clauses, params } = buildMemoryFilterSql(filters, {
     itemAlias: 'scoped_mi',
     embeddingAlias: 'scoped_me',
     modelFilter,
+    currentState,
   });
   const whereParts = [
     'scoped_me.embedding_provider = ?',
