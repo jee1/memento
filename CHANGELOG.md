@@ -9,6 +9,14 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Changed
+
+- MCP 리소스 `findMemoryResourceRowById`·`listRecentMemoryResourceIds` 의 owner/project 범위 SQL 을 `callerMemoryScopeSql` 로 통일합니다. supersede·삭제 필터는 `buildMemoryFilterSql` 을 그대로 씁니다 (#1604).
+
+### Fixed
+
+- `remove_relation` 은 superseded 끝점을 가진 간선을 삭제하지 않는 동작을 #1552 와 같게 문서화합니다. 역사 간선 삭제용 MCP 옵션은 추가하지 않습니다 (#1604).
+
 ## [2.3.8] - 2026-11-01
 
 ### Security

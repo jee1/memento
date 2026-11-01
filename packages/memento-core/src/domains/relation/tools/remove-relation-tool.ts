@@ -39,7 +39,8 @@ export class RemoveRelationTool extends BaseTool {
   constructor() {
     super(
       'remove_relation',
-      '메모리 간의 관계를 삭제합니다. relation_id 또는 source_id/target_id/relation_type 조합으로 삭제 가능합니다.',
+      '메모리 간의 관계를 삭제합니다. relation_id 또는 source_id/target_id/relation_type 조합으로 삭제 가능합니다. '
+        + '양 끝점이 모두 현재 기억(삭제·대체 제외)이어야 하며, 한쪽이라도 superseded 이면 RELATION_NOT_FOUND 로 응답합니다(#1552).',
       {
         type: 'object',
         properties: {

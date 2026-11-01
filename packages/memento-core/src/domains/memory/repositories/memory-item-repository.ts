@@ -564,12 +564,13 @@ export function listRecentMemoryResourceIds(
   db: Database.Database,
   scope: CallerMemoryScope,
 ): Array<{ id: string }> {
-  const { clauses, params } = buildMemoryFilterSql(scope, { itemAlias: 'mi' });
+  const caller = callerMemoryScopeSql(scope);
+  const { clauses, params } = buildMemoryFilterSql(undefined, { itemAlias: 'mi' });
   return DatabaseUtils.all(
     db,
     `SELECT id FROM memory_item mi WHERE COALESCE(mi.is_deleted, 0) = 0
-      ${clauses.map(clause => `AND ${clause}`).join(' ')} ORDER BY created_at DESC LIMIT 1000`,
-    params,
+      ${clauses.map(clause => `AND ${clause}`).join(' ')}${caller.sql} ORDER BY created_at DESC LIMIT 1000`,
+    [...params, ...caller.params],
   ) as Array<{ id: string }>;
 }
 
@@ -579,7 +580,8 @@ export function findMemoryResourceRowById(
   scope: CallerMemoryScope,
   includeSuperseded = false,
 ): MemoryResourceRow | undefined {
-  const { clauses, params } = buildMemoryFilterSql({ ...scope, include_superseded: includeSuperseded }, { itemAlias: 'mi' });
+  const caller = callerMemoryScopeSql(scope);
+  const { clauses, params } = buildMemoryFilterSql({ include_superseded: includeSuperseded }, { itemAlias: 'mi' });
   return DatabaseUtils.get(
     db,
     `SELECT
@@ -587,8 +589,8 @@ export function findMemoryResourceRowById(
        tags, source, created_at, last_accessed, pinned
      FROM memory_item mi
      WHERE id = ? AND COALESCE(mi.is_deleted, 0) = 0
-       ${clauses.map(clause => `AND ${clause}`).join(' ')}`,
-    [id, ...params],
+       ${clauses.map(clause => `AND ${clause}`).join(' ')}${caller.sql}`,
+    [id, ...params, ...caller.params],
   ) as MemoryResourceRow | undefined;
 }
 

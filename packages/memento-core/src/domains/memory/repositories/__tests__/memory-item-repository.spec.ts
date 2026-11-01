@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as ownedIds from '../../../../shared/utils/owned-ids.js';
 import {
   countActiveMemoryItems,
   deleteExpiredWorkingMemories,
@@ -96,6 +97,30 @@ describe('memory-item-repository query helpers (#1531)', () => {
     expect(findAnchorMemorySummaryById(db, 'removed', {})).toBeUndefined();
     expect(findMemoryResourceRowById(db, 'own', bound)?.id).toBe('own');
     expect(findAnchorMemorySummaryById(db, 'other-owner', {})?.id).toBe('other-owner');
+  });
+
+  it('MCP 리소스 owner/project 범위는 callerMemoryScopeSql 로만 붙인다 (#1604)', () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, owner_id, project_id, is_deleted, created_at) VALUES
+       ('null-owner', 'semantic', 'n', NULL, 'proj-1', 0, '2026-01-05T00:00:00Z'),
+       ('scoped', 'semantic', 's', 'agent-a', 'proj-1', 0, '2026-01-04T00:00:00Z')`,
+    ).run();
+    const scope = { owner_id: 'agent-a', project_id: 'proj-1' };
+    const spy = vi.spyOn(ownedIds, 'callerMemoryScopeSql');
+    expect(listRecentMemoryResourceIds(db, scope).map(row => row.id)).toEqual(['scoped']);
+    expect(findMemoryResourceRowById(db, 'null-owner', scope)).toBeUndefined();
+    expect(spy.mock.calls.map(call => call[0])).toEqual([scope, scope]);
+    spy.mockRestore();
+  });
+
+  it('MCP 리소스 단건 조회는 supersede 를 buildMemoryFilterSql 로만 거른다', () => {
+    db.exec(`INSERT INTO memory_item (id, type, content, owner_id, project_id, is_deleted) VALUES
+      ('old', 'semantic', 'old body', 'a', 'p', 0),
+      ('target', 'semantic', 'new body', 'a', 'p', 0);
+      UPDATE memory_item SET superseded_by = 'target' WHERE id = 'old';`);
+    const scope = { owner_id: 'a', project_id: 'p' };
+    expect(findMemoryResourceRowById(db, 'old', scope)).toBeUndefined();
+    expect(findMemoryResourceRowById(db, 'old', scope, true)?.id).toBe('old');
   });
 
   it('임베딩 맵 후보와 그래프 노드를 필터 조건에 맞춰 조회한다', () => {
