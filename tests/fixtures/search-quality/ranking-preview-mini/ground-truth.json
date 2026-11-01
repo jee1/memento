@@ -1,0 +1,50 @@
+[
+  {
+    "queryId": "q_01",
+    "relevantIds": [
+      "mini_004"
+    ]
+  },
+  {
+    "queryId": "q_02",
+    "relevantIds": [
+      "mini_005"
+    ]
+  },
+  {
+    "queryId": "q_03",
+    "relevantIds": [
+      "mini_008"
+    ]
+  },
+  {
+    "queryId": "q_04",
+    "relevantIds": [
+      "mini_015"
+    ]
+  },
+  {
+    "queryId": "q_05",
+    "relevantIds": [
+      "mini_014"
+    ]
+  },
+  {
+    "queryId": "q_06",
+    "relevantIds": [
+      "mini_021"
+    ]
+  },
+  {
+    "queryId": "q_07",
+    "relevantIds": [
+      "mini_025"
+    ]
+  },
+  {
+    "queryId": "q_08",
+    "relevantIds": [
+      "mini_026"
+    ]
+  }
+]

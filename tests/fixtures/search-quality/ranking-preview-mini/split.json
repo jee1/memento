@@ -1,0 +1,18 @@
+{
+  "version": "mini-split-1",
+  "policy": "ranking-preview 테스트용. dev 만 실행하고 held_out 은 실행하지 않는다.",
+  "seed": 1584,
+  "queries_sha256": "60008c1fd26616e7c6840c08cf419ae9bed3fed2209be58ada694b41a16f86fd",
+  "dev_query_ids": [
+    "q_01",
+    "q_02",
+    "q_03",
+    "q_04",
+    "q_05",
+    "q_06"
+  ],
+  "held_out_query_ids": [
+    "q_07",
+    "q_08"
+  ]
+}

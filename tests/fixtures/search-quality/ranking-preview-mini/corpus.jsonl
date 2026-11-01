@@ -1,0 +1,30 @@
+{"benchmark_id": "mini_001", "source_memory_id": "mem_mini_001", "type": "semantic", "tags": ["deploy"], "created_at": "2026-02-11 10:00:00", "content": "배포 파이프라인에서 롤백 절차를 문서화했다"}
+{"benchmark_id": "mini_002", "source_memory_id": "mem_mini_002", "type": "procedural", "tags": ["deploy"], "created_at": "2026-03-12 10:00:00", "content": "blue green deployment switches traffic after health checks"}
+{"benchmark_id": "mini_003", "source_memory_id": "mem_mini_003", "type": "episodic", "tags": ["deploy"], "created_at": "2026-04-13 10:00:00", "content": "배포 전 마이그레이션 드라이런을 반드시 실행한다"}
+{"benchmark_id": "mini_004", "source_memory_id": "mem_mini_004", "type": "semantic", "tags": ["deploy"], "created_at": "2026-05-14 10:00:00", "content": "canary release routes five percent of requests first"}
+{"benchmark_id": "mini_005", "source_memory_id": "mem_mini_005", "type": "procedural", "tags": ["deploy"], "created_at": "2026-06-15 10:00:00", "content": "배포 실패 시 이전 이미지 태그로 되돌린다"}
+{"benchmark_id": "mini_006", "source_memory_id": "mem_mini_006", "type": "episodic", "tags": ["deploy"], "created_at": "2026-07-16 10:00:00", "content": "deployment freeze applies on the last Friday of the month"}
+{"benchmark_id": "mini_007", "source_memory_id": "mem_mini_007", "type": "semantic", "tags": ["index"], "created_at": "2026-08-17 10:00:00", "content": "sqlite index on created_at speeds up recency queries"}
+{"benchmark_id": "mini_008", "source_memory_id": "mem_mini_008", "type": "procedural", "tags": ["index"], "created_at": "2026-09-18 10:00:00", "content": "FTS5 인덱스는 한국어 토큰화 때문에 trigram 을 쓴다"}
+{"benchmark_id": "mini_009", "source_memory_id": "mem_mini_009", "type": "episodic", "tags": ["index"], "created_at": "2026-01-10 10:00:00", "content": "vacuum reclaims free pages after bulk deletes"}
+{"benchmark_id": "mini_010", "source_memory_id": "mem_mini_010", "type": "semantic", "tags": ["index"], "created_at": "2026-02-11 10:00:00", "content": "인덱스 재구축은 야간 배치에서만 수행한다"}
+{"benchmark_id": "mini_011", "source_memory_id": "mem_mini_011", "type": "procedural", "tags": ["index"], "created_at": "2026-03-12 10:00:00", "content": "covering index avoids table lookups for tag filters"}
+{"benchmark_id": "mini_012", "source_memory_id": "mem_mini_012", "type": "episodic", "tags": ["index"], "created_at": "2026-04-13 10:00:00", "content": "WAL checkpoint runs every thousand pages"}
+{"benchmark_id": "mini_013", "source_memory_id": "mem_mini_013", "type": "semantic", "tags": ["auth"], "created_at": "2026-05-14 10:00:00", "content": "세션 쿠키는 HttpOnly 와 SameSite=Strict 로 발급한다"}
+{"benchmark_id": "mini_014", "source_memory_id": "mem_mini_014", "type": "procedural", "tags": ["auth"], "created_at": "2026-06-15 10:00:00", "content": "token rotation invalidates the previous refresh token"}
+{"benchmark_id": "mini_015", "source_memory_id": "mem_mini_015", "type": "episodic", "tags": ["auth"], "created_at": "2026-07-16 10:00:00", "content": "관리자 로그인 실패는 다섯 번 뒤 잠근다"}
+{"benchmark_id": "mini_016", "source_memory_id": "mem_mini_016", "type": "semantic", "tags": ["auth"], "created_at": "2026-08-17 10:00:00", "content": "CSRF header is required for every mutating request"}
+{"benchmark_id": "mini_017", "source_memory_id": "mem_mini_017", "type": "procedural", "tags": ["auth"], "created_at": "2026-09-18 10:00:00", "content": "API 키는 해시로만 저장하고 원문은 한 번만 보여준다"}
+{"benchmark_id": "mini_018", "source_memory_id": "mem_mini_018", "type": "episodic", "tags": ["auth"], "created_at": "2026-01-10 10:00:00", "content": "rate limit applies per session identity"}
+{"benchmark_id": "mini_019", "source_memory_id": "mem_mini_019", "type": "semantic", "tags": ["embed"], "created_at": "2026-02-11 10:00:00", "content": "minilm 임베딩은 384 차원 벡터를 만든다"}
+{"benchmark_id": "mini_020", "source_memory_id": "mem_mini_020", "type": "procedural", "tags": ["embed"], "created_at": "2026-03-12 10:00:00", "content": "embedding provider mismatch triggers a reindex job"}
+{"benchmark_id": "mini_021", "source_memory_id": "mem_mini_021", "type": "episodic", "tags": ["embed"], "created_at": "2026-04-13 10:00:00", "content": "윈도 임베딩은 긴 문서를 510 토큰 단위로 자른다"}
+{"benchmark_id": "mini_022", "source_memory_id": "mem_mini_022", "type": "semantic", "tags": ["embed"], "created_at": "2026-05-14 10:00:00", "content": "cosine similarity threshold rejects unrelated queries"}
+{"benchmark_id": "mini_023", "source_memory_id": "mem_mini_023", "type": "procedural", "tags": ["embed"], "created_at": "2026-06-15 10:00:00", "content": "임베딩 캐시는 내용 해시를 키로 쓴다"}
+{"benchmark_id": "mini_024", "source_memory_id": "mem_mini_024", "type": "episodic", "tags": ["embed"], "created_at": "2026-07-16 10:00:00", "content": "vector dimension change requires a full rebuild"}
+{"benchmark_id": "mini_025", "source_memory_id": "mem_mini_025", "type": "semantic", "tags": ["ops"], "created_at": "2026-08-17 10:00:00", "content": "컨테이너 메모리 상한은 1GiB 로 고정되어 있다"}
+{"benchmark_id": "mini_026", "source_memory_id": "mem_mini_026", "type": "procedural", "tags": ["ops"], "created_at": "2026-09-18 10:00:00", "content": "backup job copies the database nightly at 03:00"}
+{"benchmark_id": "mini_027", "source_memory_id": "mem_mini_027", "type": "episodic", "tags": ["ops"], "created_at": "2026-01-10 10:00:00", "content": "로그 보존 기간은 30일이며 그 뒤 압축한다"}
+{"benchmark_id": "mini_028", "source_memory_id": "mem_mini_028", "type": "semantic", "tags": ["ops"], "created_at": "2026-02-11 10:00:00", "content": "disk usage alert fires above eighty percent"}
+{"benchmark_id": "mini_029", "source_memory_id": "mem_mini_029", "type": "procedural", "tags": ["ops"], "created_at": "2026-03-12 10:00:00", "content": "알림은 야간에 요약 한 통으로만 보낸다"}
+{"benchmark_id": "mini_030", "source_memory_id": "mem_mini_030", "type": "episodic", "tags": ["ops"], "created_at": "2026-04-13 10:00:00", "content": "restore drill is rehearsed once a quarter"}

@@ -149,17 +149,23 @@ export function pairedPermutationPValue(
   return count / iterations;
 }
 
+export interface EvaluateProfileOptions {
+  /** 주어지면 이 id 의 쿼리만 검색을 실행한다. 나머지는 실행하지 않는다(실행 뒤 거르지 않는다). */
+  queryIds?: readonly string[];
+}
+
 export async function evaluateProfile(
   db: CliDatabase,
   profilePath: string,
   benchmarkDir: string = BENCHMARK_DIR,
+  options: EvaluateProfileOptions = {},
 ): Promise<ProfileEvalResult> {
   // 랭킹 신호 대부분이 getRankingWeights()를 무인자로 읽으므로 경로 인자가 아니라 env로 프로파일 전체를 적용한다.
   const prevEnvPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
   process.env.MEMENTO_RANKING_WEIGHTS_PATH = resolve(profilePath);
   resetRankingWeightsCache();
   try {
-    return await evaluateProfileWithActiveWeights(db, benchmarkDir);
+    return await evaluateProfileWithActiveWeights(db, benchmarkDir, options.queryIds);
   } finally {
     if (prevEnvPath === undefined) delete process.env.MEMENTO_RANKING_WEIGHTS_PATH;
     else process.env.MEMENTO_RANKING_WEIGHTS_PATH = prevEnvPath;
@@ -167,16 +173,36 @@ export async function evaluateProfile(
   }
 }
 
+function selectGroundTruths<T extends { queryId: string }>(
+  all: T[],
+  queryIds: readonly string[] | undefined,
+  toQueryId: (gt: T) => string,
+): T[] {
+  if (!queryIds) return all;
+  const wanted = new Set(queryIds);
+  const picked = all.filter((gt) => wanted.has(toQueryId(gt)));
+  if (picked.length !== wanted.size) {
+    const known = new Set(picked.map(toQueryId));
+    throw new Error(`ground truth 에 없는 query id: ${[...wanted].filter((id) => !known.has(id)).join(', ')}`);
+  }
+  return picked;
+}
+
 async function evaluateProfileWithActiveWeights(
   db: CliDatabase,
   benchmarkDir: string,
+  queryIds?: readonly string[],
 ): Promise<ProfileEvalResult> {
   const queries = loadBenchmarkQueries(benchmarkDir);
-  const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir);
   const corpus = loadBenchmarkCorpus(benchmarkDir);
   const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   const qById = new Map(queries.map((q) => [q.query_id, q]));
   const queryTextToId = new Map(queries.map((q) => [q.query, q.query_id]));
+  const groundTruths = selectGroundTruths(
+    normalizeBenchmarkGroundTruths(benchmarkDir),
+    queryIds,
+    (gt) => queryTextToId.get(gt.queryId) ?? gt.queryId,
+  );
 
   const searchEngine = HybridSearchFactory.createDefaultEngine(sqliteRepositoryProvider);
   const queryResults = new Map<string, SearchResult[]>();
