@@ -30,6 +30,14 @@ _Avoid_: recipe, playbook
 **Unverified procedural candidate (미검증 절차 후보)**:
 실패 관찰에서 추출한 개선 제안. 실행·검증 결과를 받기 전에는 채택한 절차로 취급하지 않는다. 저장·조회는 [Reflexion 관찰 가이드](./docs/guides/ko/reflexion-observations.md)를 따른다.
 
+**Served version (제공 버전)**:
+procedural 버전 시리즈에서 지금 제공하는, 지워지지 않은 가장 높은 버전 행. 회귀 판정의 기준이다. 실행 증거는 기록 시점 본문 해시에 묶이므로 행을 제자리에서 고치면 그 전 증거는 이 버전의 근거가 되지 않는다.
+_Avoid_: current procedure, latest(단독)
+
+**Execution evidence (실행 증거)**:
+절차 행 하나를 고정 환경(environment, tool_version)에서 한 case 에 실행한 성공/실패 결과. replay 와 held-out 을 구분하며 helpful 같은 feedback 과 섞지 않는다. 다른 버전이나 다른 환경의 결과는 이 행의 증거가 아니다. 계약은 [Reflexion 관찰 가이드](./docs/guides/ko/reflexion-observations.md)를 따른다.
+_Avoid_: feedback, success signal
+
 **Sleep consolidation**:
 episodic 기억을 모아 semantic 기억으로 증류하는 주기 배치. v2.0.0에서 제거한 랭킹의 consolidation 블렌드([search-ranking.md](./docs/agents/search-ranking.md))와는 다른 개념이다.
 _Avoid_: consolidation(단독), consolidation score

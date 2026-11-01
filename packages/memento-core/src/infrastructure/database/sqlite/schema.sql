@@ -883,6 +883,23 @@ CREATE TABLE IF NOT EXISTS memory_supersede_event (
 CREATE INDEX IF NOT EXISTS idx_memory_supersede_event_old
   ON memory_supersede_event(old_memory_id);
 
+-- Procedural execution evidence (migration 061, Issue #1550): 실행한 행이 지워져도 남도록 FK 를 걸지 않는다
+CREATE TABLE IF NOT EXISTS procedural_execution_evidence (
+  id             TEXT PRIMARY KEY,
+  run_id         TEXT NOT NULL UNIQUE,
+  memory_id      TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  case_id        TEXT NOT NULL,
+  kind           TEXT NOT NULL CHECK (kind IN ('replay', 'held_out')),
+  environment    TEXT NOT NULL,
+  tool_version   TEXT NOT NULL,
+  outcome        TEXT NOT NULL CHECK (outcome IN ('success', 'failure')),
+  detail         TEXT,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_procedural_execution_evidence_memory
+  ON procedural_execution_evidence(memory_id, environment, tool_version);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

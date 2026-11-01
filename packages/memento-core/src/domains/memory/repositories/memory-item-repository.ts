@@ -224,6 +224,41 @@ export function compareAndClearSupersededBy(
   );
 }
 
+export interface ProcedureSubjectRow {
+  id: string;
+  type: string;
+  content: string;
+  steps: string | null;
+  ownerId: string | null;
+  projectId: string | null;
+  originSource: string | null;
+}
+
+const PROCEDURE_SUBJECT_COLUMNS = `id, type, content, steps, owner_id AS ownerId, project_id AS projectId,
+  origin_source AS originSource`;
+
+/** #1550: 실행 증거를 붙이거나 채택 게이트가 읽는 활성 기억 한 건. */
+export function findActiveProcedureSubject(db: Database.Database, id: string): ProcedureSubjectRow | undefined {
+  return db
+    .prepare(`SELECT ${PROCEDURE_SUBJECT_COLUMNS} FROM memory_item WHERE id = ? AND COALESCE(is_deleted, 0) = 0`)
+    .get(id) as ProcedureSubjectRow | undefined;
+}
+
+/** #1550: 시리즈가 지금 제공하는 버전. 지워진 최신 버전은 건너뛴다. 시리즈 id 가 없는 v1 은 자기 id 가 시리즈다. */
+export function findServedProceduralVersion(
+  db: Database.Database,
+  versionSeriesId: string,
+): ProcedureSubjectRow | undefined {
+  return db
+    .prepare(
+      `SELECT ${PROCEDURE_SUBJECT_COLUMNS} FROM memory_item
+       WHERE type = 'procedural' AND COALESCE(is_deleted, 0) = 0
+         AND (version_series_id = ? OR (version_series_id IS NULL AND id = ?))
+       ORDER BY COALESCE(version, 1) DESC LIMIT 1`,
+    )
+    .get(versionSeriesId, versionSeriesId) as ProcedureSubjectRow | undefined;
+}
+
 /**
  * 대체 후보 탐색 대상: 삭제되지 않은 semantic/episodic 과 native 임베딩 하나(가장 최근 행).
  * 이미 대체된 기억은 뺀다. 벡터가 없는 기억은 쌍을 만들 수 없어 개수만 센다.

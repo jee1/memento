@@ -204,6 +204,8 @@ export const mementoConfig: MementoConfig = {
 
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
   reflexionObservationOnly: resolveBoolean('REFLEXION_OBSERVATION_ONLY', { defaultValue: false }),
+  /** Issue #1550: 절차 실행 증거 기록. 채택 게이트는 판정만 하고 기억을 바꾸지 않는다. */
+  proceduralExecutionEvidenceEnabled: resolveBoolean('PROCEDURAL_EXECUTION_EVIDENCE_ENABLED', { defaultValue: false }),
   proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
     ? 'llm_first'
     : 'rule_only') as 'llm_first' | 'rule_only',

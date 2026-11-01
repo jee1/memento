@@ -137,6 +137,8 @@ export interface MementoConfig {
   walCheckpointEnabled: boolean;
   dbLockMonitorEnabled: boolean;
   reflexionObservationOnly: boolean;
+  /** Issue #1550: 절차 실행 증거 기록 (기본 false) */
+  proceduralExecutionEvidenceEnabled: boolean;
   proceduralExtractionStrategy: 'llm_first' | 'rule_only';
   proceduralLlmExtractorTimeoutMs: number;
   corsAllowedOrigins: string[];
