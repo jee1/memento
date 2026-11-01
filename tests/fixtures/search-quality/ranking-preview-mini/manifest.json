@@ -1,0 +1,12 @@
+{
+  "benchmark_version": "mini",
+  "corpus_size": 30,
+  "query_count": 8,
+  "ground_truth_count": 8,
+  "source": "synthetic",
+  "labeling_policy": "binary-human-labeled",
+  "strict_ci": false,
+  "notes": [
+    "ranking-preview 런너와 서버 테스트용 소형 fixture (#1584)"
+  ]
+}

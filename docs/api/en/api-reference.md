@@ -838,6 +838,53 @@ Returns audit events newest first as `{ "events": [{ id, setting_key, action, pr
 - `401`: no dashboard session (`SESSION_REQUIRED`)
 - `404`: key outside the registry or read-only (`UNKNOWN_SETTING`), no override to revert (`NO_OVERRIDE`)
 
+##### Ranking weight proposals and previews (#1584)
+
+A ranking weight chosen on the dashboard does not reach production directly. A proposal is stored only as a patch to `config/ranking-weights.toml`; the production value changes when that patch is merged as a PR and deployed. The existing `/admin` authentication applies and the actor is the dashboard session (`session:<16 hex>`). There are 13 adjustable knobs (`ranking_weights.alpha`/`beta`/`gamma`/`delta`/`epsilon`/`theta`/`zeta_fb`, `relevance_signal.scale`, `recency_signal.scale`, `importance_signal.scale`, `fts_relevance.temperature`, `vector_length_decay.characteristic_length`/`saturation_length`) with the same ranges as `scripts/tune-weights.ts` (`ranking-knobs.ts`).
+
+```http
+GET /admin/ranking/weights
+```
+
+`{ "knobs": [...], "source_path": null, "preview_enabled": false }`. Each `knobs[]` entry is `{ key, value, file_value, min, max, drift }`. `value` is what the server loaded and uses; `file_value` is the TOML file the server reads, parsed again. They differ (`drift: true`) when the file was edited without a restart. `source_path` shows a path only when `MEMENTO_RANKING_WEIGHTS_PATH` replaces the default copy, otherwise `null`. `preview_enabled` is `true` only when `RANKING_PREVIEW_ENABLED=true`.
+
+```http
+POST /admin/ranking/proposals
+Content-Type: application/json
+
+{ "changes": { "relevance_signal.scale": 2.2 }, "reason": "dev metrics" }
+```
+
+Returns `201` with `{ id, current, proposed, patch, commands: { preview, branch_and_pr } }`. `current` holds the file values the patch is based on; entries equal to the file value are dropped. `patch` is a unified diff that `git apply` accepts and leaves comments and other lines untouched. `commands.preview` is `npm run ranking:preview -- --changes '<json>'`; `commands.branch_and_pr` chains branch creation, applying the patch, a commit and `gh pr create --draft`. The server holds no GitHub token, so it creates no PR and only returns the command strings.
+
+- `400 REASON_REQUIRED`: reason missing or blank
+- `404 UNKNOWN_KNOB`: unknown knob
+- `400 INVALID_VALUE`: out of range, not a number, empty `changes`, or `saturation_length` below `characteristic_length`
+- `400 NO_CHANGE`: only values equal to the file values
+- `401 SESSION_REQUIRED`: no dashboard session
+
+```http
+GET /admin/ranking/proposals?limit=<n>
+GET /admin/ranking/proposals/:id/patch
+```
+
+The list is newest first, `{ "proposals": [{ id, actor, reason, current, proposed, preview, previewed_at, created_at, commands }] }` (`limit` defaults to 20, max 100). The patch downloads as a `text/x-diff` attachment (`ranking-<id>.patch`).
+
+```http
+POST /admin/ranking/proposals/:id/preview
+```
+
+Evaluates the proposed and the current values on the **dev queries only** of `tests/fixtures/search-quality/benchmark-v3/split.json`; held-out queries are never run. The evaluation runs in a separate child process (`scripts/ranking-preview.ts`), not in the server process, so the server's ranking weights, environment and config file stay as they are. On success it returns `{ id, preview, previewed_at, commands }` and stores the result once per proposal; a proposal that already has one returns the stored result without running again. `preview` is `{ split_version, dev_query_count, changes, current, proposed, delta, per_category, tie_gate, seed_cache }` with the metrics `ndcg_at_10`, `mrr`, `recall_at_10`, `empty_result_rate`, `p95_latency_ms` and `relevance_tie_rate`. `tie_gate` reports `passed: false` with a `reason` when the proposal's relevance tie rate exceeds the current one by more than 0.005.
+
+- `409 PREVIEW_DISABLED`: `RANKING_PREVIEW_ENABLED` is not `true` (the default). The response carries the CLI `command`. The production container already uses about 660MiB of its 1GiB limit, so it does not run previews
+- `409 PREVIEW_UNAVAILABLE`: the runner script or the benchmark fixture is not in this deployment
+- `409 PREVIEW_BUSY`: another preview is running (one at a time)
+- `504 PREVIEW_TIMEOUT`: exceeded `RANKING_PREVIEW_TIMEOUT_MS` (default 300000) and the child process was killed
+- `502 PREVIEW_FAILED`: the child process failed; details go to the server log only
+- `404 PROPOSAL_NOT_FOUND`
+
+Environment variables: `RANKING_PREVIEW_ENABLED` (default `false`), `RANKING_PREVIEW_TIMEOUT_MS` (default `300000`), `RANKING_PREVIEW_MAX_OLD_SPACE_MB` (default `1024`).
+
 ##### Batch: select and upsert queue
 
 ```http

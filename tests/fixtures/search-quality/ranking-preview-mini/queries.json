@@ -1,0 +1,50 @@
+[
+  {
+    "query_id": "q_01",
+    "query": "canary release 첫 단계 요청 비율",
+    "language": "ko",
+    "category": "deploy"
+  },
+  {
+    "query_id": "q_02",
+    "query": "배포 실패 롤백 이전 이미지",
+    "language": "ko",
+    "category": "deploy"
+  },
+  {
+    "query_id": "q_03",
+    "query": "FTS5 한국어 trigram 인덱스",
+    "language": "ko",
+    "category": "index"
+  },
+  {
+    "query_id": "q_04",
+    "query": "관리자 로그인 실패 잠금",
+    "language": "ko",
+    "category": "auth"
+  },
+  {
+    "query_id": "q_05",
+    "query": "refresh token rotation",
+    "language": "ko",
+    "category": "auth"
+  },
+  {
+    "query_id": "q_06",
+    "query": "윈도 임베딩 510 토큰",
+    "language": "ko",
+    "category": "embed"
+  },
+  {
+    "query_id": "q_07",
+    "query": "컨테이너 메모리 상한",
+    "language": "ko",
+    "category": "ops"
+  },
+  {
+    "query_id": "q_08",
+    "query": "backup nightly database copy",
+    "language": "ko",
+    "category": "ops"
+  }
+]

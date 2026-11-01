@@ -71,6 +71,7 @@
           <button type="button" id="dashboard-tab-memory-finder" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-memory-finder" data-tab="memory-finder">기억 찾기</button>
           <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
           <button type="button" id="dashboard-tab-settings" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-settings" data-tab="settings">설정</button>
+          <button type="button" id="dashboard-tab-ranking" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ranking" data-tab="ranking">랭킹 가중치</button>
           <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">에이전트 세션</button>
         </div>
         <div class="m-nav-group" role="presentation" data-nav-group="learn">
@@ -1072,6 +1073,110 @@
         </div>
       </dialog>
     </div>
+    <div id="tab-ranking" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-ranking" aria-hidden="true">
+      <div class="ranking-layout">
+        <header class="ranking-header">
+          <div>
+            <h2 class="ranking-title">랭킹 가중치</h2>
+            <p class="ranking-intro">값을 고르면 patch 로 저장하고 고정 평가셋의 dev 쿼리로 미리 비교합니다. 운영 값은 patch 를 PR 로 머지하고 배포할 때만 바뀝니다. held-out 쿼리는 값 선택에 쓰지 않습니다.</p>
+          </div>
+          <button type="button" id="ranking-refresh-btn" class="m-button m-button--secondary">새로고침</button>
+        </header>
+        <div id="ranking-loading" class="m-loading hidden" aria-live="polite">랭킹 가중치 불러오는 중…</div>
+        <div id="ranking-error" class="m-error hidden" role="alert"></div>
+        <section class="ranking-section" aria-labelledby="ranking-knobs-heading">
+          <h3 id="ranking-knobs-heading">가중치</h3>
+          <p id="ranking-source" class="ranking-desc hidden"></p>
+          <div class="m-table-wrap ranking-table-wrap">
+            <table id="ranking-table" class="m-table">
+              <thead>
+                <tr>
+                  <th scope="col">knob</th>
+                  <th scope="col">서버 값</th>
+                  <th scope="col">파일 값</th>
+                  <th scope="col">범위</th>
+                  <th scope="col">제안 값</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-tbody"></tbody>
+            </table>
+          </div>
+          <button type="button" id="ranking-propose-btn" class="m-button m-button--primary ranking-btn">제안 만들기</button>
+        </section>
+        <section id="ranking-result" class="ranking-section hidden" aria-labelledby="ranking-result-title">
+          <h3 id="ranking-result-title"></h3>
+          <ul id="ranking-result-changes" class="ranking-changes"></ul>
+          <p id="ranking-preview-pending" class="ranking-desc">아직 미리보기를 실행하지 않았습니다.</p>
+          <p id="ranking-preview-running" class="ranking-desc hidden" aria-live="polite">미리보기 실행 중… 시드 DB 캐시가 비었으면 몇 분 걸립니다.</p>
+          <p id="ranking-preview-disabled" class="ranking-desc hidden">운영 컨테이너에서는 메모리 상한 때문에 서버가 미리보기를 실행하지 않습니다. 개발 PC 에서 아래 명령으로 실행하세요.</p>
+          <button type="button" id="ranking-preview-run" class="m-button m-button--secondary ranking-btn hidden">미리보기 실행</button>
+          <div id="ranking-preview-result" class="hidden">
+            <p id="ranking-preview-scope" class="ranking-desc"></p>
+            <div class="m-table-wrap">
+              <table id="ranking-preview-table" class="m-table m-table--dense">
+                <thead>
+                  <tr>
+                    <th scope="col">지표</th>
+                    <th scope="col">현재</th>
+                    <th scope="col">제안</th>
+                    <th scope="col">차이</th>
+                  </tr>
+                </thead>
+                <tbody id="ranking-preview-tbody"></tbody>
+              </table>
+            </div>
+            <p id="ranking-tie-gate" class="ranking-gate"></p>
+            <div id="ranking-category" class="hidden">
+              <h4 class="ranking-subtitle">카테고리별 (NDCG@10 / MRR / Recall@10 차이)</h4>
+              <div class="m-table-wrap">
+                <table class="m-table m-table--dense">
+                  <tbody id="ranking-category-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="ranking-actions">
+            <a id="ranking-patch-link" class="m-button m-button--secondary" href="#" download>patch 다운로드</a>
+            <button type="button" id="ranking-copy-preview" class="m-button m-button--ghost">미리보기 명령 복사</button>
+            <button type="button" id="ranking-copy-pr" class="m-button m-button--ghost">PR 명령 복사</button>
+            <span id="ranking-copy-status" class="ranking-desc" aria-live="polite"></span>
+          </div>
+          <pre id="ranking-command-preview" class="ranking-command"></pre>
+          <pre id="ranking-command-pr" class="ranking-command"></pre>
+        </section>
+        <section class="ranking-section" aria-labelledby="ranking-proposals-heading">
+          <h3 id="ranking-proposals-heading">최근 제안</h3>
+          <div id="ranking-proposals-empty" class="m-empty hidden">제안이 없습니다.</div>
+          <div class="m-table-wrap ranking-table-wrap">
+            <table id="ranking-proposals-table" class="m-table m-table--dense">
+              <thead>
+                <tr>
+                  <th scope="col">시각</th>
+                  <th scope="col">누가</th>
+                  <th scope="col">변경</th>
+                  <th scope="col">사유</th>
+                  <th scope="col">미리보기</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody id="ranking-proposals-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+      <dialog id="ranking-dialog" class="ranking-dialog" aria-labelledby="ranking-dialog-title">
+        <h3 id="ranking-dialog-title" class="ranking-dialog__title">랭킹 가중치 제안 만들기</h3>
+        <ul id="ranking-dialog-summary" class="ranking-changes"></ul>
+        <p class="ranking-desc">제안은 운영에 바로 반영되지 않습니다. patch 로 저장되고, PR 을 머지하고 배포해야 값이 바뀝니다.</p>
+        <label class="ranking-dialog__label" for="ranking-dialog-reason">사유 (필수)</label>
+        <textarea id="ranking-dialog-reason" class="m-input ranking-dialog__reason" rows="3" maxlength="1000"></textarea>
+        <div id="ranking-dialog-error" class="m-error hidden" role="alert"></div>
+        <div class="ranking-dialog__actions">
+          <button type="button" id="ranking-dialog-cancel" class="m-button m-button--ghost">취소</button>
+          <button type="button" id="ranking-dialog-confirm" class="m-button m-button--primary">확인</button>
+        </div>
+      </dialog>
+    </div>
 
 
   </div>
@@ -1144,6 +1249,9 @@
   <script src="/static/js/settings-panel-shared.js"></script>
   <script src="/static/js/settings-panel-render.js"></script>
   <script src="/static/js/settings-panel.js"></script>
+  <script src="/static/js/ranking-panel-shared.js"></script>
+  <script src="/static/js/ranking-panel-render.js"></script>
+  <script src="/static/js/ranking-panel.js"></script>
   <script src="/static/js/agent-sessions-panel-shared.js"></script>
   <script src="/static/js/agent-sessions-panel-data.js"></script>
   <script src="/static/js/agent-sessions-panel-render-dom.js"></script>

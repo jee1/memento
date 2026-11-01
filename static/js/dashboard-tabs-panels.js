@@ -16,6 +16,7 @@
     { name: 'jobs', id: 'tab-jobs' },
     { name: 'agent-sessions', id: 'tab-agent-sessions' },
     { name: 'settings', id: 'tab-settings' },
+    { name: 'ranking', id: 'tab-ranking' },
   ];
 
   function getPanel(name) {

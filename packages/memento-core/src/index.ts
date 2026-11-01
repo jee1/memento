@@ -142,6 +142,20 @@ export {
   getAdminMemoryItemPreviewById,
 } from './domains/memory/services/admin-memory-item-preview-service.js';
 export type { AdminMemoryItemPreview } from './domains/memory/services/admin-memory-item-preview-service.js';
+export {
+  createRankingProposal,
+  getRankingProposal,
+  listRankingProposals,
+  saveRankingProposalPreview,
+  viewRankingWeights,
+} from './domains/settings/ranking-proposal-service.js';
+export type {
+  CreateRankingProposalResult,
+  RankingKnobView,
+  RankingProposal,
+  RankingWeightsView,
+} from './domains/settings/ranking-proposal-service.js';
+export { getRankingWeightsSource } from './shared/config/ranking-weights-loader.js';
 export { logger } from './shared/utils/logger.js';
 export { RetryManager } from './shared/utils/retry-manager.js';
 export { getRetryOptions } from './shared/config/retry-options-loader.js';

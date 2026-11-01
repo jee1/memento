@@ -3001,3 +3001,140 @@ circle.em-dot:focus-visible {
   gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
 }
+
+/* Ranking weights tab */
+.ranking-layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ranking-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.ranking-title {
+  margin: 0 0 0.35rem;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-main);
+}
+
+.ranking-intro,
+.ranking-desc {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.ranking-section h3 {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+  color: var(--color-text-main);
+}
+
+.ranking-subtitle {
+  margin: var(--spacing-sm) 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-main);
+}
+
+.ranking-table-wrap {
+  max-height: 24rem;
+}
+
+.ranking-key {
+  overflow-wrap: anywhere;
+}
+
+.ranking-num {
+  font-family: var(--font-family-mono);
+  white-space: nowrap;
+}
+
+.ranking-edit {
+  min-width: 8rem;
+}
+
+.ranking-edit .ranking-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ranking-btn {
+  margin-top: var(--spacing-xs);
+}
+
+.ranking-changes {
+  margin: 0 0 var(--spacing-sm);
+  padding-left: 1.2rem;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.ranking-gate {
+  margin: var(--spacing-xs) 0;
+  font-size: var(--font-size-sm);
+}
+
+.ranking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+}
+
+.ranking-command {
+  margin: 0 0 var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ranking-dialog {
+  width: min(32rem, 92vw);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+}
+
+.ranking-dialog__title {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+}
+
+.ranking-dialog__label {
+  display: block;
+  margin: var(--spacing-sm) 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.ranking-dialog__reason {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.ranking-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}

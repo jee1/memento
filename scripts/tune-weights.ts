@@ -10,6 +10,13 @@ import {
   type RankingWeightsConfig,
 } from '@memento/core/shared/config/ranking-weights-loader.js';
 import {
+  TUNABLE_KNOBS,
+  isKnobKey,
+  readKnob,
+  writeKnob,
+  type KnobKey,
+} from '@memento/core/shared/config/ranking-knobs.js';
+import {
   evaluateProfile,
   mean,
   pairedPermutationPValue,
@@ -33,71 +40,13 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-export type KnobKey =
-  | 'ranking_weights.alpha'
-  | 'ranking_weights.beta'
-  | 'ranking_weights.gamma'
-  | 'ranking_weights.delta'
-  | 'ranking_weights.epsilon'
-  | 'ranking_weights.theta'
-  | 'ranking_weights.zeta_fb'
-  | 'relevance_signal.scale'
-  | 'recency_signal.scale'
-  | 'importance_signal.scale'
-  | 'fts_relevance.temperature'
-  | 'vector_length_decay.characteristic_length'
-  | 'vector_length_decay.saturation_length';
-
-/** perturb: 기준값 × U[0.8,1.2] 후 [min,max] 로 clamp. uniform: [min,max] 균등 추출(경계가 탐색 범위 상한). */
-export interface KnobSpec {
-  sample: 'perturb' | 'uniform';
-  min: number;
-  max: number;
-}
-
-const WEIGHT: KnobSpec = { sample: 'perturb', min: 0, max: 1 };
-
-export const TUNABLE_KNOBS: Record<KnobKey, KnobSpec> = {
-  'ranking_weights.alpha': WEIGHT,
-  'ranking_weights.beta': WEIGHT,
-  'ranking_weights.gamma': WEIGHT,
-  'ranking_weights.delta': WEIGHT,
-  'ranking_weights.epsilon': WEIGHT,
-  'ranking_weights.theta': WEIGHT,
-  'ranking_weights.zeta_fb': WEIGHT,
-  'relevance_signal.scale': { sample: 'uniform', min: 0.5, max: 3.0 },
-  'recency_signal.scale': { sample: 'uniform', min: 0.05, max: 1 },
-  'importance_signal.scale': { sample: 'uniform', min: 0.05, max: 1 },
-  'fts_relevance.temperature': { sample: 'uniform', min: 2, max: 30 },
-  'vector_length_decay.characteristic_length': { sample: 'uniform', min: 10, max: 120 },
-  'vector_length_decay.saturation_length': { sample: 'uniform', min: 20, max: 300 },
-};
-
 const ALL_KNOBS = Object.keys(TUNABLE_KNOBS) as KnobKey[];
-
-/** 로더가 theta·zeta_fb 가 없을 때 쓰는 기본값과 같다. */
-const OPTIONAL_WEIGHT_DEFAULTS: Partial<Record<KnobKey, number>> = {
-  'ranking_weights.theta': 0.1,
-  'ranking_weights.zeta_fb': 0.05,
-};
-
-type NumericSections = Record<string, Record<string, number | undefined>>;
-
-function readKnob(config: RankingWeightsConfig, key: KnobKey): number {
-  const [section, field] = key.split('.') as [string, string];
-  return (config as unknown as NumericSections)[section]![field] ?? OPTIONAL_WEIGHT_DEFAULTS[key] ?? 0;
-}
-
-function writeKnob(config: RankingWeightsConfig, key: KnobKey, value: number): void {
-  const [section, field] = key.split('.') as [string, string];
-  (config as unknown as NumericSections)[section]![field] = value;
-}
 
 export function parseKnobs(csv: string): KnobKey[] {
   const keys = csv.split(',').map((k) => k.trim()).filter(Boolean);
   if (keys.length === 0) throw new Error('--knobs 에 키가 없습니다');
   for (const k of keys) {
-    if (!Object.hasOwn(TUNABLE_KNOBS, k)) {
+    if (!isKnobKey(k)) {
       throw new Error(`알 수 없는 knob: ${k}. 사용 가능: ${ALL_KNOBS.join(', ')}`);
     }
   }
@@ -199,16 +148,24 @@ export interface QuerySplit {
   strata: Record<string, { explore: string[]; judge: string[] }>;
 }
 
-/** macro 카테고리별 층화 분할. 층마다 시드 셔플 후 ceil(n/2) 를 explore, 나머지를 judge 로 보낸다. */
-export function splitQueries(queryIds: readonly string[], mapping: CategoryMapping | null, seed: number): QuerySplit {
+/** query id → macro 카테고리. 매핑에 없으면 'unmapped'. */
+export function queryMacroResolver(mapping: CategoryMapping | null): (queryId: string) => string {
   const categoryToMacro = new Map<string, string>();
   for (const [macro, cats] of Object.entries(mapping?.macro_categories ?? {})) {
     for (const c of cats) categoryToMacro.set(c, macro);
   }
+  return (id) => {
+    const label = mapping?.query_id_to_category[id];
+    return mapping?.query_overrides?.[id] ?? (label ? categoryToMacro.get(label) : undefined) ?? 'unmapped';
+  };
+}
+
+/** macro 카테고리별 층화 분할. 층마다 시드 셔플 후 ceil(n/2) 를 explore, 나머지를 judge 로 보낸다. */
+export function splitQueries(queryIds: readonly string[], mapping: CategoryMapping | null, seed: number): QuerySplit {
+  const macroOf = queryMacroResolver(mapping);
   const byStratum = new Map<string, string[]>();
   for (const id of [...queryIds].sort()) {
-    const label = mapping?.query_id_to_category[id];
-    const macro = mapping?.query_overrides?.[id] ?? (label ? categoryToMacro.get(label) : undefined) ?? 'unmapped';
+    const macro = macroOf(id);
     byStratum.set(macro, [...(byStratum.get(macro) ?? []), id]);
   }
   const rand = mulberry32((seed ^ 0x5bd1e995) | 0);
@@ -230,7 +187,7 @@ export function splitQueries(queryIds: readonly string[], mapping: CategoryMappi
   };
 }
 
-function loadCategoryMapping(benchmarkDir: string): CategoryMapping | null {
+export function loadCategoryMapping(benchmarkDir: string): CategoryMapping | null {
   const path = join(benchmarkDir, 'category-mapping.json');
   return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as CategoryMapping) : null;
 }

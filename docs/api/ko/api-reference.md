@@ -953,6 +953,53 @@ GET /admin/settings/events?key=<key>&limit=<n>
 - `401`: 대시보드 세션 없음(`SESSION_REQUIRED`)
 - `404`: 레지스트리 밖이거나 읽기 전용인 키(`UNKNOWN_SETTING`), 되돌릴 override 없음(`NO_OVERRIDE`)
 
+##### 랭킹 가중치 제안과 미리보기 (#1584)
+
+화면에서 고른 랭킹 가중치는 운영에 바로 반영하지 않습니다. 제안은 `config/ranking-weights.toml` 에 대한 patch 로만 저장하고, 운영 값은 그 patch 를 PR 로 머지하고 배포할 때 바뀝니다. 기존 `/admin` 인증을 그대로 쓰며 actor 는 대시보드 세션(`session:<16 hex>`)입니다. 조정할 수 있는 knob 은 13개(`ranking_weights.alpha`/`beta`/`gamma`/`delta`/`epsilon`/`theta`/`zeta_fb`, `relevance_signal.scale`, `recency_signal.scale`, `importance_signal.scale`, `fts_relevance.temperature`, `vector_length_decay.characteristic_length`/`saturation_length`)이고 범위는 `scripts/tune-weights.ts` 와 같은 표(`ranking-knobs.ts`)를 씁니다.
+
+```http
+GET /admin/ranking/weights
+```
+
+`{ "knobs": [...], "source_path": null, "preview_enabled": false }`. `knobs[]` 는 `{ key, value, file_value, min, max, drift }` 입니다. `value` 는 서버가 로드해 쓰는 값, `file_value` 는 서버가 읽는 TOML 파일을 다시 파싱한 값이며 둘이 다르면 `drift: true` 입니다(파일을 고치고 재시작하지 않은 경우). `source_path` 는 `MEMENTO_RANKING_WEIGHTS_PATH` 로 기본 사본을 바꿨을 때만 경로를 보이고 아니면 `null` 입니다. `preview_enabled` 는 `RANKING_PREVIEW_ENABLED=true` 일 때만 `true` 입니다.
+
+```http
+POST /admin/ranking/proposals
+Content-Type: application/json
+
+{ "changes": { "relevance_signal.scale": 2.2 }, "reason": "dev 지표 근거" }
+```
+
+`201` 로 `{ id, current, proposed, patch, commands: { preview, branch_and_pr } }` 를 돌려줍니다. `current` 는 patch 의 기준인 파일 값입니다. 파일 값과 같은 항목은 버립니다. `patch` 는 `git apply` 로 적용되는 unified diff 이고 주석과 다른 줄은 건드리지 않습니다. `commands.preview` 는 `npm run ranking:preview -- --changes '<json>'`, `commands.branch_and_pr` 는 브랜치 생성, patch 적용, 커밋, `gh pr create --draft` 를 잇는 명령입니다. 서버는 GitHub 토큰을 쓰지 않으므로 PR 은 만들지 않고 명령 문자열만 줍니다.
+
+- `400 REASON_REQUIRED`: 사유가 없거나 공백뿐
+- `404 UNKNOWN_KNOB`: 알 수 없는 knob
+- `400 INVALID_VALUE`: 범위 밖, 숫자가 아님, `changes` 가 비어 있음, `saturation_length` 가 `characteristic_length` 보다 작음
+- `400 NO_CHANGE`: 파일 값과 같은 값뿐
+- `401 SESSION_REQUIRED`: 대시보드 세션 없음
+
+```http
+GET /admin/ranking/proposals?limit=<n>
+GET /admin/ranking/proposals/:id/patch
+```
+
+목록은 최신순이며 `{ "proposals": [{ id, actor, reason, current, proposed, preview, previewed_at, created_at, commands }] }` 입니다(`limit` 기본 20, 최대 100). patch 는 `text/x-diff` 첨부(`ranking-<id>.patch`)로 내려갑니다.
+
+```http
+POST /admin/ranking/proposals/:id/preview
+```
+
+제안한 값과 현재 값을 `tests/fixtures/search-quality/benchmark-v3/split.json` 의 **dev 쿼리만**으로 평가합니다. held-out 쿼리는 실행하지 않습니다. 평가는 서버 프로세스 안이 아니라 별도 자식 프로세스(`scripts/ranking-preview.ts`)에서 돌려 서버의 랭킹 가중치, 환경 변수, 설정 파일을 바꾸지 않습니다. 성공하면 `{ id, preview, previewed_at, commands }` 이고 결과는 제안당 한 번만 저장합니다. 이미 저장된 제안은 다시 실행하지 않고 저장본을 돌려줍니다. `preview` 는 `{ split_version, dev_query_count, changes, current, proposed, delta, per_category, tie_gate, seed_cache }` 이고 지표는 `ndcg_at_10`, `mrr`, `recall_at_10`, `empty_result_rate`, `p95_latency_ms`, `relevance_tie_rate` 입니다. `tie_gate` 는 제안의 relevance 동점 비율이 현재 + 0.005 를 넘으면 `passed: false` 와 `reason` 을 줍니다.
+
+- `409 PREVIEW_DISABLED`: `RANKING_PREVIEW_ENABLED` 가 `true` 가 아님(기본). 응답에 CLI `command` 를 담습니다. 운영 컨테이너는 메모리 상한 1GiB 에 이미 약 660MiB 를 써서 서버에서 돌리지 않습니다
+- `409 PREVIEW_UNAVAILABLE`: 런너 스크립트나 benchmark fixture 가 이 배포에 없음
+- `409 PREVIEW_BUSY`: 다른 미리보기가 실행 중(동시 1개)
+- `504 PREVIEW_TIMEOUT`: `RANKING_PREVIEW_TIMEOUT_MS`(기본 300000)를 넘어 자식 프로세스를 종료함
+- `502 PREVIEW_FAILED`: 자식 프로세스 실패. 상세는 서버 로그에만 남깁니다
+- `404 PROPOSAL_NOT_FOUND`
+
+환경 변수: `RANKING_PREVIEW_ENABLED`(기본 `false`), `RANKING_PREVIEW_TIMEOUT_MS`(기본 `300000`), `RANKING_PREVIEW_MAX_OLD_SPACE_MB`(기본 `1024`).
+
 ##### 배치: 후보 선정·큐 갱신
 
 ```http
