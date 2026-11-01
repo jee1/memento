@@ -9,9 +9,7 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
-### Fixed
-
-- 절차 실행 증거: `recordProceduralExecution`이 environment·tool_version·case_id를 trim 해 저장하고 `evaluateProceduralAdoption`도 같은 정규화로 비교합니다. detail 은 4KB UTF-8 상한을 넘기면 잘라 표시를 붙이고, `CallerMemoryScope` 밖 기억은 `memory_not_found`와 동일하게 거절합니다. 같은 `run_id`로 잘린 detail만 다른 재전송은 `already_recorded`가 될 수 있습니다. 플래그 기본값과 스키마는 그대로입니다 (#1594, #1598).
+## [2.3.7] - 2026-11-01
 
 ### Added
 
@@ -21,6 +19,7 @@
 
 ### Fixed
 
+- 절차 실행 증거: `recordProceduralExecution`이 environment·tool_version·case_id를 trim 해 저장하고 `evaluateProceduralAdoption`도 같은 정규화로 비교합니다. detail 은 4KB UTF-8 상한을 넘기면 잘라 표시를 붙이고, `CallerMemoryScope` 밖 기억은 `memory_not_found`와 동일하게 거절합니다. 같은 `run_id`로 잘린 detail만 다른 재전송은 `already_recorded`가 될 수 있습니다. 플래그 기본값과 스키마는 그대로입니다 (#1594, #1598).
 - Admin 설정 즉시 조정(`SEARCH_REJECTION_GATE`, `SUPERSEDE_CANDIDATE_SCAN_ENABLED`)이 override 후 재기동 없이 검색 기각 게이트와 대체 후보 스캔 설정에 다시 묶입니다. `CONSOLIDATION_JUDGE`는 SleepConsolidationService에 부팅 시 주입된 판정기를 바꿀 수 없어 재기동 필요로 분류합니다 (#1599, #1600 리뷰). 되돌리기 확인 창은 env 원문이 아니라 override 적용 전 부팅 실효값(`revert_target_value`)을 보여 줍니다. 재적용 훅 실패 시 env·override를 롤백하고 소비자를 복원 값으로 한 번 더 맞춥니다. 롤백돼도 append-only 감사 event는 남습니다 (#1600 r2).
 - Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
 

@@ -2,7 +2,7 @@
   "mcpServers": {
     "memento": {
       "command": "npx",
-      "args": ["-y", "memento-mcp-server@2.3.6"],
+      "args": ["-y", "memento-mcp-server@2.3.7"],
       "env": {
         "DB_PATH": "${CLAUDE_PLUGIN_DATA}/memory.db"
       }
