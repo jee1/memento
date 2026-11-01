@@ -162,7 +162,8 @@ export function buildMemoryFilterSql(
   options: MemoryFilterSqlOptions
 ): FilterSql {
   const out: FilterSql = {
-    clauses: options.currentState === false ? [] : [`NOT ${supersedeByActiveTargetSql(options.itemAlias)}`],
+    clauses: options.currentState === false || filters?.include_superseded === true
+      ? [] : [`NOT ${supersedeByActiveTargetSql(options.itemAlias)}`],
     params: [],
   };
   if (filters) {
@@ -182,4 +183,16 @@ export function buildMemoryFilterSql(
 export function hasMemoryFilter(filters: MemorySearchFilters | undefined, currentState = false): boolean {
   const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm', currentState });
   return clauses.length > 0;
+}
+
+/** Filter both relation endpoints before ordering, pagination or BFS expansion. */
+export function buildRelationMemoryFilterSql(filters?: MemorySearchFilters): FilterSql {
+  const current = buildMemoryFilterSql(filters, { itemAlias: 'mi' });
+  const endpointSql = ['source_id', 'target_id'].map(column => `EXISTS (
+    SELECT 1 FROM memory_item mi
+    WHERE COALESCE(mi.is_deleted, 0) = 0
+      AND mi.id = ${column}
+      ${current.clauses.map(clause => `AND ${clause}`).join(' ')}
+  )`);
+  return { clauses: endpointSql, params: [...current.params, ...current.params] };
 }

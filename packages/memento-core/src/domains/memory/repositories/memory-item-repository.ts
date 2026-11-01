@@ -4,10 +4,10 @@
  */
 
 import type Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
-import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { buildMemoryFilterSql, supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
+import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 
 export interface MemoryItemEntity {
   id: string;
@@ -316,8 +316,9 @@ export function findAnchorMemorySummaryById(
   return db
     .prepare(
       `SELECT id, content, type, importance, created_at
-       FROM memory_item
-       WHERE id = ? AND COALESCE(is_deleted, 0) = 0${caller.sql}`,
+       FROM memory_item mi
+       WHERE mi.id = ? AND COALESCE(mi.is_deleted, 0) = 0
+         AND NOT ${supersedeByActiveTargetSql('mi')}${caller.sql}`,
     )
     .get(id, ...caller.params) as AnchorMemorySummaryRow | undefined;
 }
@@ -368,8 +369,10 @@ export function queryMemoryGraphNodes(
   filter: MemoryGraphNodeQueryFilter,
 ): MemoryGraphNodeQueryResult {
   const minImportance = filter.min_importance ?? 0.0;
-  let nodeQuery = `SELECT id, content, type, importance, created_at, tags, pinned FROM memory_item WHERE 1=1 AND COALESCE(is_deleted, 0) = 0`;
-  let countQuery = `SELECT COUNT(*) AS count FROM memory_item WHERE 1=1 AND COALESCE(is_deleted, 0) = 0`;
+  let nodeQuery = `SELECT id, content, type, importance, created_at, tags, pinned FROM memory_item mi WHERE COALESCE(mi.is_deleted, 0) = 0
+    AND NOT ${supersedeByActiveTargetSql('mi')}`;
+  let countQuery = `SELECT COUNT(*) AS count FROM memory_item mi WHERE COALESCE(mi.is_deleted, 0) = 0
+    AND NOT ${supersedeByActiveTargetSql('mi')}`;
   const nodeParams: (string | number)[] = [];
   const countParams: (string | number)[] = [];
 
@@ -395,10 +398,10 @@ export function queryMemoryGraphNodes(
         : '';
     const existsClause =
       ` AND EXISTS (SELECT 1 FROM memory_relation mr` +
-      ` JOIN memory_item related ON related.id = CASE` +
-      ` WHEN mr.source_id = memory_item.id THEN mr.target_id ELSE mr.source_id END` +
-      ` WHERE (mr.source_id = memory_item.id OR mr.target_id = memory_item.id)` +
-      ` AND COALESCE(related.is_deleted, 0) = 0${typeClause})`;
+      ` JOIN memory_item m ON m.id = CASE` +
+      ` WHEN mr.source_id = mi.id THEN mr.target_id ELSE mr.source_id END` +
+      ` WHERE (mr.source_id = mi.id OR mr.target_id = mi.id)` +
+      ` AND COALESCE(m.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('m')}${typeClause})`;
     nodeQuery += existsClause;
     countQuery += existsClause;
     nodeParams.push(...orphanRelationTypes);
@@ -561,12 +564,12 @@ export function listRecentMemoryResourceIds(
   db: Database.Database,
   scope: CallerMemoryScope,
 ): Array<{ id: string }> {
-  const caller = callerMemoryScopeSql(scope);
+  const { clauses, params } = buildMemoryFilterSql(scope, { itemAlias: 'mi' });
   return DatabaseUtils.all(
     db,
-    `SELECT id FROM memory_item WHERE COALESCE(is_deleted, 0) = 0
-     ${caller.sql} ORDER BY created_at DESC LIMIT 1000`,
-    caller.params,
+    `SELECT id FROM memory_item mi WHERE COALESCE(mi.is_deleted, 0) = 0
+      ${clauses.map(clause => `AND ${clause}`).join(' ')} ORDER BY created_at DESC LIMIT 1000`,
+    params,
   ) as Array<{ id: string }>;
 }
 
@@ -574,16 +577,18 @@ export function findMemoryResourceRowById(
   db: Database.Database,
   id: string,
   scope: CallerMemoryScope,
+  includeSuperseded = false,
 ): MemoryResourceRow | undefined {
-  const caller = callerMemoryScopeSql(scope);
+  const { clauses, params } = buildMemoryFilterSql({ ...scope, include_superseded: includeSuperseded }, { itemAlias: 'mi' });
   return DatabaseUtils.get(
     db,
     `SELECT
        id, type, content, importance, privacy_scope,
        tags, source, created_at, last_accessed, pinned
-     FROM memory_item
-     WHERE id = ? AND COALESCE(is_deleted, 0) = 0${caller.sql}`,
-    [id, ...caller.params],
+     FROM memory_item mi
+     WHERE id = ? AND COALESCE(mi.is_deleted, 0) = 0
+       ${clauses.map(clause => `AND ${clause}`).join(' ')}`,
+    [id, ...params],
   ) as MemoryResourceRow | undefined;
 }
 

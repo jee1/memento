@@ -4,6 +4,8 @@
  * Phase 1.1: anchor-manager.ts 리팩토링
  */
 
+import { supersedeByActiveTargetSql } from '../../../../shared/utils/memory-filter-sql.js';
+
 import type Database from 'better-sqlite3';
 import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, AnchorChangeListener, SearchOptions, SearchResult } from './anchor-interfaces.js';
 import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError } from './anchor-interfaces.js';
@@ -109,7 +111,7 @@ export class AnchorManager implements IAnchorManager {
 
     // 메모리 존재 확인
     const memory = this.db.prepare(`
-      SELECT id FROM memory_item WHERE id = ?
+      SELECT id FROM memory_item mi WHERE mi.id = ? AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}
     `).get(memoryId) as { id: string } | undefined;
 
     if (!memory) {
@@ -227,7 +229,10 @@ export class AnchorManager implements IAnchorManager {
         const anchor = this.db.prepare(`
           SELECT agent_id, slot, memory_id, created_at, updated_at
           FROM anchor
-          WHERE agent_id = ? AND slot = ?
+          WHERE agent_id = ?
+            AND EXISTS (SELECT 1 FROM memory_item mi
+              WHERE mi.id = anchor.memory_id AND COALESCE(mi.is_deleted, 0) = 0
+                AND NOT ${supersedeByActiveTargetSql('mi')}) AND slot = ?
         `).get(agentId, slot) as AnchorInfo | undefined;
 
         return anchor || null;
@@ -240,6 +245,9 @@ export class AnchorManager implements IAnchorManager {
           SELECT agent_id, slot, memory_id, created_at, updated_at
           FROM anchor
           WHERE agent_id = ?
+            AND EXISTS (SELECT 1 FROM memory_item mi
+              WHERE mi.id = anchor.memory_id AND COALESCE(mi.is_deleted, 0) = 0
+                AND NOT ${supersedeByActiveTargetSql('mi')})
           ORDER BY slot
         `).all(agentId) as AnchorInfo[];
 
@@ -252,7 +260,10 @@ export class AnchorManager implements IAnchorManager {
       const anchor = this.db.prepare(`
         SELECT agent_id, slot, memory_id, created_at, updated_at
         FROM anchor
-        WHERE agent_id = ? AND slot = ?
+        WHERE agent_id = ?
+            AND EXISTS (SELECT 1 FROM memory_item mi
+              WHERE mi.id = anchor.memory_id AND COALESCE(mi.is_deleted, 0) = 0
+                AND NOT ${supersedeByActiveTargetSql('mi')}) AND slot = ?
       `).get(agentId, slot) as AnchorInfo | undefined;
 
       if (anchor) {
@@ -265,6 +276,9 @@ export class AnchorManager implements IAnchorManager {
         SELECT agent_id, slot, memory_id, created_at, updated_at
         FROM anchor
         WHERE agent_id = ?
+            AND EXISTS (SELECT 1 FROM memory_item mi
+              WHERE mi.id = anchor.memory_id AND COALESCE(mi.is_deleted, 0) = 0
+                AND NOT ${supersedeByActiveTargetSql('mi')})
         ORDER BY slot
       `).all(agentId) as AnchorInfo[];
 

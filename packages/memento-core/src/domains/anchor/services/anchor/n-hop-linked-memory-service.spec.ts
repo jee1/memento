@@ -64,6 +64,7 @@ describe('NHopLinkedMemoryService.getLinkedMemoriesBatch — default boost 전�
 
   beforeEach(async () => {
     db = await setupTestDatabase();
+    db.prepare("INSERT INTO memory_item (id, type, content) VALUES ('m1', 'semantic', 'root')").run();
   });
 
   afterEach(async () => {

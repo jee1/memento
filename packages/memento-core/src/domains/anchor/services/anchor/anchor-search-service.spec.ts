@@ -438,6 +438,7 @@ describe('AnchorSearchService', () => {
 
     it('VectorSearchEngine이 없으면 에러를 던져야 함', async () => {
       // Given: VectorSearchEngine이 없는 서비스
+      db.prepare("INSERT INTO memory_item (id, type, content) VALUES ('mem_test', 'semantic', 'seed')").run();
       const serviceWithoutEngine = new AnchorSearchService(cacheService);
       serviceWithoutEngine.setDatabase(db);
 

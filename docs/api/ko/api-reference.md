@@ -911,9 +911,11 @@ Content-Type: application/json
 
 옛 기억은 포인터가 가리키는 기억이 살아 있을 때만 대체된 상태입니다. 그 기억이 지워지면 쓰기 없이 다시 현재가 됩니다. `memory_relation` 이나 `memory_link` 편집은 이 상태를 바꾸지 않습니다.
 
-#1552 1단계는 텍스트·LIKE·KNN·hybrid·임베딩 fallback 검색에서 이 상태를 후보 LIMIT 전에 적용합니다. `filters.id`로 옛 기억을 지정해도 살아 있는 직접 대체 대상이 있으면 숨깁니다. 명시적 역사 조회 옵션은 아직 없으며 ID 리소스·앵커·주입·이웃·통합의 계약도 후속 단계에서 검증합니다. **이 읽기 경로와 역사 조회 계약을 모두 마치기 전에는 `SUPERSEDE_APPLY_ENABLED`를 켜지 않습니다.**
+#1552는 텍스트·LIKE·KNN·hybrid·임베딩 fallback, ID 리소스, 앵커·앵커 맵, 주입, `search_local`·관계 도구·관계 BFS, 이웃, 관리 그래프, 통합 후보에서 대체된 기억을 기본 제외합니다. 후보 제한 전에 걸러 현재 기억 top-K를 보존합니다. 앵커 행과 관계 행은 삭제하지 않으며, 대상 삭제·복원 뒤 읽을 때 다시 판정합니다. 포인터가 0건인 무필터 벡터 검색은 기존 unscoped 경로를 유지합니다.
 
-벡터 검색은 매 요청마다 non-null 포인터 partial index(migration 062)를 조회합니다. 실제 범위 필터도 살아 있는 대체 포인터도 없으면 기존 unscoped SQL을 유지합니다. 대체 포인터가 생기면 다음 요청부터 후보 LIMIT 전에 제외합니다. 적용 플래그를 꺼도 이미 저장된 포인터는 계속 적용하며 대상 삭제·복원을 캐시 없이 반영합니다. 무필터 off/포인터 0건의 SQL·partial-index 실행 계획과 p95 비율(기준선 대비 1.15 이하)은 `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts`로 검증합니다.
+명시적 역사 조회는 `recall`, `get_relations`, `visualize_relations`의 `include_superseded: true`, MCP `resources/read`의 `memory://<id>?include_superseded=true`로 요청합니다. 이 옵션은 owner/project·삭제·개별 검색 필터를 해제하지 않습니다. `recall`의 역사 결과로 자동 앵커를 설정하지 않으며, 주입·앵커·이웃은 현재 기억만 사용합니다. procedural `all_versions`·버전 체인·diff 옵션은 대체 포인터와 별도 계약입니다. 운영 승인과 성능 검증 전에는 `SUPERSEDE_APPLY_ENABLED=off`를 유지합니다. 플래그를 꺼도 이미 승인한 대체 포인터는 읽기에 적용됩니다.
+
+무필터 off/포인터 0건의 SQL·partial-index 실행 계획과 p95 비율(기준선 대비 1.15 이하)은 `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts`로 검증합니다.
 
 ##### 런타임 설정 override (#1582, #1583)
 

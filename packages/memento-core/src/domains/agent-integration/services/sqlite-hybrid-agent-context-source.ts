@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
 import type { MemoryType, PrivacyScope } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import type {
   AgentContextCandidate,
   AgentContextRecallSource,
@@ -99,8 +100,10 @@ export class SqliteHybridAgentContextSource implements AgentContextRecallSource 
         id, type, content, importance, privacy_scope,
         owner_id, project_id, process_id, session_id,
         confidence, created_at, tags
-      FROM memory_item
+      FROM memory_item mi
       WHERE id IN (${placeholders})
+        AND COALESCE(mi.is_deleted, 0) = 0
+        AND NOT ${supersedeByActiveTargetSql('mi')}
     `).all(...ids) as MemoryRow[];
   }
 }

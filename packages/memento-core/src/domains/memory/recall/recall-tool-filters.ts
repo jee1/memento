@@ -113,6 +113,7 @@ const APPLIED_FILTER_RULES: ReadonlyArray<readonly [keyof AppliedFilters & keyof
   ['version_series_id', truthy],
   ['version_number', defined],
   ['include_version_chain', defined],
+  ['include_superseded', defined],
   ['owner_id', defined],
   ['process_id', defined],
   ['session_id', defined],

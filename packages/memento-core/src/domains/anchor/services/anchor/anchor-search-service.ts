@@ -8,9 +8,9 @@ import type Database from 'better-sqlite3';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
-import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-interfaces.js';
+import { DatabaseValidationError, MemoryNotFoundError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { selectIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
+import { selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { NHopSearchService, type NHopSearchResult } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
@@ -234,6 +234,13 @@ export class AnchorSearchService implements IAnchorSearchService {
       throw error;
     }
 
+    const scope: CallerMemoryScope = {
+      ...(options?.owner_id ? { owner_id: options.owner_id } : {}),
+      ...(options?.project_id ? { project_id: options.project_id } : {}),
+    };
+    const currentSeed = selectCurrentIdsInScope(this.db, scope, [anchorMemoryId]).has(anchorMemoryId);
+    if (!currentSeed) throw new MemoryNotFoundError(anchorMemoryId);
+
     // 슬롯별 설정 가져오기
     const slotConfig = this.getSlotConfig(slot);
     const finalHopLimit = hopLimit ?? slotConfig.hop_limit;
@@ -266,8 +273,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     }
 
     // Phase 3.6: LocalSearchService를 사용하여 파이프라인 실행
-    const ownerId = options?.owner_id;
-    // 1. N-hop 검색 수행 (소유자 범위 전달)
+    // 1. N-hop 검색 수행 (호출자 범위 전달)
     const allHopResults = await this.localSearchService.performNHopSearch(
       anchorEmbedding?.embedding ?? null,
       anchorEmbedding?.provider ?? '',
@@ -276,7 +282,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       finalHopLimit,
       limit * 2, // 더 많이 가져와서 필터링 후 최종 limit 적용
       useRelations,
-      ownerId
+      scope
     );
 
     // 2. 쿼리 필터링 적용
@@ -287,15 +293,11 @@ export class AnchorSearchService implements IAnchorSearchService {
     );
 
 
-    // 3. 호출자 범위와 soft-delete — limit 을 자르기 전에 걸러야 바인딩 agent 도 limit 만큼 받는다 (#1342)
-    const scope: CallerMemoryScope = {
-      ...(ownerId ? { owner_id: ownerId } : {}),
-      ...(options?.project_id ? { project_id: options.project_id } : {}),
-    };
-    const visibleIds = selectIdsInScope(this.db, scope, filteredResults.map(r => r.memory_id));
+    // 3. 현재 상태와 호출자 범위를 최종 limit 전에 적용한다.
+    const visibleIds = selectCurrentIdsInScope(this.db, scope, filteredResults.map(r => r.memory_id));
     const scopedResults = filteredResults.filter(r => visibleIds.has(r.memory_id));
 
-    // 4. 결과 포맷팅 (중첩 predecessor도 같은 범위로 검증)
+    // 4. 결과 포맷팅 (중첩 predecessor도 현재성과 범위 검증)
     const formattedResults = this.formatLocalResults(scopedResults, scope);
 
     // 최종 limit 적용
@@ -362,7 +364,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       if (r.predecessor_ids) allPredecessorCandidateIds.push(...r.predecessor_ids);
     }
     const visiblePredecessors = this.db
-      ? selectIdsInScope(this.db, scope, allPredecessorCandidateIds)
+      ? selectCurrentIdsInScope(this.db, scope, allPredecessorCandidateIds)
       : new Set<string>(allPredecessorCandidateIds);
 
     return scopedResults.map(result => {

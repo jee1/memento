@@ -477,6 +477,23 @@ describe('MemoryInjectionPrompt', () => {
       return JSON.parse(result.content?.[0]?.text ?? '{}');
     }
 
+    it('filters superseded briefs before LIMIT and revives them after target deletion (#1552)', async () => {
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [], total_count: 0, query_time: 0,
+      });
+      db.exec(`UPDATE memory_item SET owner_id = 'agent-a' WHERE id = 'plain_b';
+        UPDATE memory_item SET superseded_by = 'plain_b' WHERE id = 'brief_new'`);
+      const request = { query: '무관', project_id: 'proj-b', owner_id: 'agent-a', include_project_brief: true };
+
+      const current = parse(await tool.handle(request, context));
+      expect(current.project_brief.memory_id).toBe('brief_old');
+      expect(current.message).not.toContain(BRIEF);
+      db.exec("UPDATE memory_item SET is_deleted = 1 WHERE id = 'plain_b'");
+      expect(parse(await tool.handle(request, context)).project_brief.memory_id).toBe('brief_new');
+      db.exec("DELETE FROM memory_item WHERE id = 'plain_b'");
+      expect(parse(await tool.handle(request, context)).project_brief.memory_id).toBe('brief_new');
+    });
+
     it('true 면 질의와 무관하게 최신 브리프 전문을 맨 앞에 싣는다', async () => {
       const out = parse(await tool.handle({ query: '전혀 무관한 질의', project_id: 'proj-b', include_project_brief: true }, context));
       expect(out.message.startsWith('# 프로젝트 브리프 — project-brief v3')).toBe(true);

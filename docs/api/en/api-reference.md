@@ -796,9 +796,11 @@ Clears the pointer only when it still equals `expected_new_memory_id` and record
 
 An old memory counts as superseded only while the memory its pointer names is alive. Deleting that memory makes the old one current again without a write. Editing `memory_relation` or `memory_link` never changes this state.
 
-Stage 1 of #1552 filters superseded candidates before LIMIT in text, LIKE, KNN, hybrid, and embedding fallback searches. An explicit `filters.id` also hides a replaced memory. **ID resources, anchors, injection, neighbors, consolidation, and explicit history retrieval must pass validation before enabling `SUPERSEDE_APPLY_ENABLED`.**
+#1552 excludes replaced memories by default from text, LIKE, KNN, hybrid, embedding fallback, ID resources, anchors and Anchor Map, injection, `search_local`, relation tools and BFS, neighbors, admin graphs, and consolidation candidates. Filtering precedes candidate limits to preserve current top-K. Anchor and relation rows remain stored; reads recheck state after target deletion or restoration. Unfiltered vector requests retain the original unscoped path when there are no pointers.
 
-Each vector request probes the non-null pointer partial index (migration 062). With no request filters and no live pointers, it retains the original unscoped SQL. Existing pointers continue to apply after the flag is switched off; target deletion and restoration take effect without a pointer-state cache. Run `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts` to assert the partial-index plan and an off/zero-pointer p95 ratio no greater than 1.15 against unscoped SQL.
+Request explicit history with `include_superseded: true` in `recall`, `get_relations`, or `visualize_relations`, or with `memory://<id>?include_superseded=true` in MCP `resources/read`. History preserves owner/project, deletion, and individual search filters. Historical recall results never become automatic anchors; injection, anchors, and neighbors always use current memories. Procedural `all_versions`, version chains, and diffs remain separate from supersede pointers. Keep `SUPERSEDE_APPLY_ENABLED=off` pending operational approval and performance validation. Switching it off does not ignore pointers already approved.
+
+Run `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts` to assert the partial-index plan and an off/zero-pointer p95 ratio no greater than 1.15 against unscoped SQL.
 
 ##### Runtime setting overrides (#1582, #1583)
 

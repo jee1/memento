@@ -11,7 +11,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
-import { callerVisibleClause, filterCallerVisibleIds } from '../../../tools/caller-scope.js';
+import { callerCurrentClause, callerMemoryScope, filterCallerCurrentIds } from '../../../tools/caller-scope.js';
 import { relationToolError } from './relation-tool-response.js';
 
 type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
@@ -48,6 +48,7 @@ function formatMemoryUri(row: RelationMemoryRow | undefined): string | undefined
 
 const GetRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
+  include_superseded: z.boolean().optional(),
   relation_type: z.enum(['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO', 'VERSION_OF']).optional(),
   category: z.enum(['Causal', 'Temporal', 'Structural', 'Semantic']).optional(),
   direction: z.enum(['incoming', 'outgoing', 'both']).optional().default('both')
@@ -61,6 +62,10 @@ export class GetRelationsTool extends BaseTool {
       {
         type: 'object',
         properties: {
+          include_superseded: {
+            type: 'boolean',
+            description: '대체된 기억을 포함한 역사 조회 (기본값: false)'
+          },
           memory_id: {
             type: 'string',
             description: '관계를 조회할 메모리 ID'
@@ -93,15 +98,15 @@ export class GetRelationsTool extends BaseTool {
    * Then: 조회된 관계 목록 반환
    */
   async handle(params: z.infer<typeof GetRelationsSchema>, context: ToolContext): Promise<ToolResult> {
-    const { memory_id, relation_type, category, direction } = GetRelationsSchema.parse(params);
+    const { memory_id, relation_type, category, direction, include_superseded } = GetRelationsSchema.parse(params);
     const db = context.db;
 
     try {
       // Given: 메모리 존재 확인
       const ownerIdColumn = memoryItemHasOwnerIdColumn(db) ? ', owner_id' : '';
-      const ownerScope = callerVisibleClause(context);
+      const ownerScope = callerCurrentClause(context, include_superseded);
       const memory = DatabaseUtils.get(db, `
-        SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?${ownerScope.sql}
+        SELECT id, type${ownerIdColumn} FROM memory_item mi WHERE id = ?${ownerScope.sql}
       `, [memory_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
 
       if (!memory) {
@@ -115,6 +120,8 @@ export class GetRelationsTool extends BaseTool {
 
       // When: 관계 조회 수행
       const options: GetRelationsOptions = {
+        ...callerMemoryScope(context),
+        include_superseded,
         direction: direction || 'both',
         minConfidence: 0.0 // 모든 신뢰도 포함
       };
@@ -168,9 +175,10 @@ export class GetRelationsTool extends BaseTool {
 
       const allRelations = await relationGraph.getRelations(memory_id, options);
       // Edges into other owners' memories would leak their ids to a bound caller.
-      const owned = filterCallerVisibleIds(
+      const owned = filterCallerCurrentIds(
         context,
         allRelations.flatMap((relation) => [relation.source_id, relation.target_id]),
+        include_superseded,
       );
       const relations = allRelations.filter(
         (relation) => owned.has(relation.source_id) && owned.has(relation.target_id),

@@ -289,6 +289,10 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             ],
             "type": "string",
           },
+          "include_superseded": {
+            "description": "대체된 기억을 포함한 역사 조회 (기본값: false)",
+            "type": "boolean",
+          },
           "memory_id": {
             "description": "관계를 조회할 메모리 ID",
             "type": "string",
@@ -551,6 +555,10 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
           "include_score_breakdown": {
             "default": false,
             "description": "true일 때 각 결과에 score_breakdown 포함. include_metadata=false이면 적용되지 않음(메타·세부 점수 모두 생략). relevance.score/pct는 α·relevance(블렌딩)뿐 아니라 관계·절차·process_fit 기여를 동일 슬롯에 합산(FR-008·contracts §1).",
+            "type": "boolean",
+          },
+          "include_superseded": {
+            "description": "명시적 과거 조회: true이면 대체된 기억도 포함. 삭제·owner·project 필터는 유지한다. 기본값 false",
             "type": "boolean",
           },
           "include_version_chain": {

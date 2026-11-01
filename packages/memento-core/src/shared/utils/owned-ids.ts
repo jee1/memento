@@ -3,6 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { buildMemoryFilterSql } from './memory-filter-sql.js';
 
 /** The subset of `ids` that are live (not soft-deleted) and whose memory_item.owner_id is `ownerId`. */
 export function selectIdsOwnedBy(db: Database.Database, ownerId: string, ids: readonly string[]): Set<string> {
@@ -53,4 +54,21 @@ export function selectIdsInScope(db: Database.Database, scope: CallerMemoryScope
     )
     .all(...unique, ...caller.params) as Array<{ id: string }>;
   return new Set(rows.map((row) => row.id));
+}
+
+/** Current reads compose caller scope, deletion and supersede filtering; explicit history retains scope. */
+export function selectCurrentIdsInScope(
+  db: Database.Database,
+  scope: CallerMemoryScope,
+  ids: readonly string[],
+  includeSuperseded = false,
+): Set<string> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Set();
+  const caller = callerMemoryScopeSql(scope);
+  const { clauses, params } = buildMemoryFilterSql({ id: unique, include_superseded: includeSuperseded }, { itemAlias: 'mi' });
+  const rows = db.prepare(`SELECT id FROM memory_item mi
+    WHERE COALESCE(mi.is_deleted, 0) = 0
+      AND ${clauses.join(' AND ')}${caller.sql}`).all(...params, ...caller.params) as Array<{ id: string }>;
+  return new Set(rows.map(row => row.id));
 }

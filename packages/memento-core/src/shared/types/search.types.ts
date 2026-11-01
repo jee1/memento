@@ -38,6 +38,8 @@ export interface ProcessAttribute {
 }
 
 export interface MemorySearchFilters {
+  /** Explicit history: include replaced memories, while retaining deletion and scope filters. */
+  include_superseded?: boolean | undefined;
   id?: string[] | undefined;
   type?: MemoryType[] | undefined;
   tags?: string[] | undefined;

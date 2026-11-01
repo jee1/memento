@@ -536,6 +536,12 @@ describe('NHopSearchService', () => {
   });
 
   describe('searchNHop - predecessor provenance (#715)', () => {
+    beforeEach(() => {
+      for (const id of ['anchor-memory-1', 'memory-1', 'memory-2', 'memory-x']) {
+        db.prepare("INSERT INTO memory_item (id, type, content) VALUES (?, 'episodic', ?)").run(id, id);
+      }
+    });
+
     it('1-hop 결과의 predecessor_id는 앵커 메모리여야 함', async () => {
       // Given: anchor-memory-1에서 memory-1이 1-hop으로 발견될 때
       const anchorEmbedding = [0.1, 0.2, 0.3];

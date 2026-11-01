@@ -308,6 +308,7 @@ function buildRecallSearchFilters(
     version_series_id: parsed.version_series_id,
     version_number: parsed.version_number,
     include_version_chain: parsed.include_version_chain,
+    include_superseded: parsed.include_superseded,
     include_diff_with: parsed.include_diff_with,
     owner_id: parsed.owner_id,
     process_id: parsed.process_id,

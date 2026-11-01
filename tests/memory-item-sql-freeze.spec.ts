@@ -20,23 +20,23 @@ type AllowlistEntry = { readonly path: string; readonly rationale: string };
 const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   {
     path: 'packages/memento-core/src/domains/agent-integration/services/sqlite-hybrid-agent-context-source.ts',
-    rationale: 'agent-integration 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: 'agent 후보를 current-state 공용 조건으로 LIMIT 전에 제한 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/anchor/services/anchor/anchor-cache-service.ts',
-    rationale: 'anchor 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '앵커 임베딩을 읽기 전 current-state 재검증 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts',
-    rationale: 'anchor 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '앵커 설정·캐시 재조회에 current-state 공용 조건 적용 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/anchor/services/anchor/anchor-reanchor-service.ts',
-    rationale: 'anchor 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '재앵커 점수 계산의 current-state 읽기 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/anchor/services/anchor/n-hop-linked-memory-service.ts',
-    rationale: 'anchor 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '관계·레거시 링크의 seed와 끝점에 current-state 공용 조건 적용 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/anchor/tools/set-anchor-tool.ts',
@@ -44,7 +44,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/domains/consolidation/repositories/consolidation-repository.ts',
-    rationale: 'consolidation 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '통합 후보를 current-state 공용 조건으로 LIMIT 전에 제한 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/embedding/services/embedding-reindex-service.ts',
@@ -116,7 +116,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/domains/memory/repositories/memory-item-repository.ts',
-    rationale: 'server 8파일에서 이관한 질의와 기존 기억 저장소의 SQL 소유 지점',
+    rationale: 'server 질의 소유 지점; ID 역사 옵션과 앵커·그래프 current-state 읽기 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/memory/review/memory-review-candidate-list-query.ts',
@@ -144,7 +144,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/domains/memory/services/memory-neighbor-service.ts',
-    rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '이웃 검색 seed에 current-state 공용 조건 적용 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/memory/services/repetition-meta-update-service.ts',
@@ -164,7 +164,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/domains/memory/tools/memory-injection-prompt.ts',
-    rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+    rationale: '주입할 고정 절차 기억에 current-state 공용 조건 적용 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/memory/tools/pin-tool.ts',
@@ -292,7 +292,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/shared/utils/owned-ids.ts',
-    rationale: '기존 공용 필터·스키마·쓰기 경로; 이번 server 이관 범위 밖',
+    rationale: '호출자 scope 판정과 별도 current-state ID 선택 조합 (#1552)',
   },
   {
     path: 'packages/memento-core/src/shared/utils/window-embedding-write.ts',

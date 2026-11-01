@@ -14,7 +14,7 @@ describe('POST /admin/relations confidence', () => {
   beforeEach(async () => {
     db = new Database(':memory:');
     db.exec(`
-      CREATE TABLE memory_item (id TEXT PRIMARY KEY, type TEXT NOT NULL, is_deleted INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE memory_item (id TEXT PRIMARY KEY, type TEXT NOT NULL, is_deleted INTEGER NOT NULL DEFAULT 0, superseded_by TEXT);
       CREATE TABLE memento_schema_version (version INTEGER PRIMARY KEY, applied_at TEXT);
       INSERT INTO memory_item (id, type) VALUES ('mem1', 'episodic'), ('mem2', 'episodic');
     `);

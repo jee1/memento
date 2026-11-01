@@ -130,6 +130,25 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
     return db;
   }
 
+  it('explicit supersede history keeps owner/project/privacy and deletion filters in both lanes', async (test) => {
+    if (!vecAvailable) test.skip();
+    const database = await openDb();
+    for (const id of ['old-history', 'new-history', 'foreign-owner', 'foreign-project', 'foreign-privacy', 'deleted-history']) {
+      insertMemory(database, id, 'historyneedle', unitVector(0));
+    }
+    database.exec(`UPDATE memory_item SET owner_id = 'a', project_id = 'p';
+      UPDATE memory_item SET superseded_by = 'new-history' WHERE id = 'old-history';
+      UPDATE memory_item SET owner_id = 'b' WHERE id = 'foreign-owner';
+      UPDATE memory_item SET project_id = 'q' WHERE id = 'foreign-project';
+      UPDATE memory_item SET privacy_scope = 'team' WHERE id = 'foreign-privacy';
+      UPDATE memory_item SET is_deleted = 1 WHERE id = 'deleted-history';`);
+    const filters = { include_superseded: true, owner_id: 'a', project_id: 'p', privacy_scope: ['private'] as const };
+    const lanes = runBothLanes(database, { ...filters, privacy_scope: [...filters.privacy_scope] }, 4);
+    expect(lanes.knnIds.sort()).toEqual(['new-history', 'old-history']);
+    expect(lanes.hybridIds.sort()).toEqual(['new-history', 'old-history']);
+    expect(runBothLanes(database, { ...filters, privacy_scope: [...filters.privacy_scope], include_superseded: false }, 4).knnIds).toEqual(['new-history']);
+  });
+
   it('unfiltered KNN/hybrid keep sparse fresh top-K before LIMIT (#1552)', async () => {
     const database = await openDb();
     for (let i = 0; i < 70; i++) {

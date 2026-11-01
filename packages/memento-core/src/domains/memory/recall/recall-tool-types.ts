@@ -280,6 +280,7 @@ export interface AppliedFilters extends Record<string, unknown> {
   version_series_id?: string;
   version_number?: number;
   include_version_chain?: boolean;
+  include_superseded?: boolean;
   include_diff_with?: string;
   owner_id?: string | string[];
   process_id?: string | string[];

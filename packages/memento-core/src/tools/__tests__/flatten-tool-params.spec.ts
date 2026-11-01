@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { flattenNestedToolFilters } from '../flatten-tool-params.js';
 
+it('hoists explicit supersede history while top-level false wins', () => {
+  expect(flattenNestedToolFilters({ filters: { include_superseded: true } })).toEqual({ include_superseded: true });
+  expect(flattenNestedToolFilters({ include_superseded: false, filters: { include_superseded: true } })).toEqual({ include_superseded: false });
+});
+
 describe('flattenNestedToolFilters (#754)', () => {
   it('hoists nested filters.tags/type onto top-level (client search-client shape)', () => {
     const out = flattenNestedToolFilters({

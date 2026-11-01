@@ -21,9 +21,12 @@ describe('SqliteHybridAgentContextSource', () => {
         session_id TEXT,
         confidence REAL,
         created_at TEXT NOT NULL,
-        tags TEXT
+        tags TEXT,
+        is_deleted INTEGER DEFAULT 0,
+        superseded_by TEXT
       );
-      INSERT INTO memory_item VALUES
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id,
+        project_id, process_id, session_id, confidence, created_at, tags) VALUES
         (
           'memory-a', 'semantic', 'stored content', 0.8, 'private',
           'owner-a', 'project-a', 'process-a', 'session-a', 0.75,
@@ -34,6 +37,27 @@ describe('SqliteHybridAgentContextSource', () => {
 
   afterEach(() => {
     db.close();
+  });
+
+  it('rechecks current state after search and revives the predecessor when its target is deleted (#1552)', async () => {
+    db.exec(`INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, project_id, created_at)
+      VALUES ('target', 'semantic', 'replacement', 0.8, 'private', 'owner-a', 'project-a', '2026-06-06T00:00:00.000Z')`);
+    const search = vi.fn().mockImplementation(async () => {
+      db.prepare("UPDATE memory_item SET superseded_by = 'target' WHERE id = 'memory-a'").run();
+      return { items: [{ id: 'memory-a', finalScore: 0.85 }], total_count: 1, query_time: 1 };
+    });
+    const source = new SqliteHybridAgentContextSource({
+      db, hybridSearchEngine: { search } as unknown as HybridSearchEngine,
+    });
+    const request = { query: 'authentication', scope: { ownerId: 'owner-a', projectId: 'project-a' }, limit: 10 };
+
+    expect((await source.recall(request)).items).toEqual([]);
+    db.prepare("UPDATE memory_item SET is_deleted = 1 WHERE id = 'target'").run();
+    expect((await source.recall(request)).items.map(item => item.id)).toEqual(['memory-a']);
+    db.prepare("DELETE FROM memory_item WHERE id = 'target'").run();
+    expect((await source.recall(request)).items.map(item => item.id)).toEqual(['memory-a']);
+    db.prepare("UPDATE memory_item SET is_deleted = 1 WHERE id = 'memory-a'").run();
+    expect((await source.recall(request)).items).toEqual([]);
   });
 
   it('maps hybrid hits to scope-aware candidates using authoritative database metadata', async () => {

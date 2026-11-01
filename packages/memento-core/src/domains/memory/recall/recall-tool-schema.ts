@@ -71,6 +71,7 @@ export const RecallSchema = z
     version_series_id: z.string().optional(),
     version_number: z.number().int().min(1).optional(),
     include_version_chain: z.boolean().optional(),
+    include_superseded: z.boolean().optional(),
     /** 다중 에이전트: 소유자 ID 필터 (단일 또는 배열). 미설정 시 전체 조회 */
     owner_id: z.union([z.string(), z.array(z.string())]).optional(),
     /** Memori Attribution: 프로세스 ID 필터 (Issue #87) */

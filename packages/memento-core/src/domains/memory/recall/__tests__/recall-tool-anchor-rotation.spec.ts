@@ -24,6 +24,8 @@ function createAnchorTable(db: Database.Database): void {
       content TEXT NOT NULL,
       importance REAL DEFAULT 0.5,
       pinned BOOLEAN DEFAULT FALSE,
+      is_deleted INTEGER DEFAULT 0,
+      superseded_by TEXT,
       deleted_at TEXT
     );
   `);

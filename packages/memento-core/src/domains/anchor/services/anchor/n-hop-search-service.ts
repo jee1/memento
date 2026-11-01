@@ -11,7 +11,7 @@ import { isInitializableVectorSearchEngine } from './vector-search-engine-types.
 import { getRelationTypeBoost, NHopLinkedMemoryService } from './n-hop-linked-memory-service.js';
 import type { LinkedMemorySummary } from './n-hop-linked-memory-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { selectIdsOwnedBy } from '../../../../shared/utils/owned-ids.js';
+import { selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 
 /**
  * N-hop 검색 결과
@@ -72,7 +72,7 @@ export interface INHopSearchService {
     maxHops: number,
     limit: number,
     useRelations?: boolean,
-    ownerId?: string
+    scope?: CallerMemoryScope
   ): Promise<NHopSearchResult[]>;
 }
 
@@ -155,7 +155,8 @@ export class NHopSearchService implements INHopSearchService {
 
   private async applyRelationWeightToNHopResult(
     result: NHopSearchResult,
-    useRelations: boolean
+    useRelations: boolean,
+    scope: CallerMemoryScope
   ): Promise<NHopSearchResult> {
     let relationWeight = 0;
     let hasRelation = result.hasRelation ?? false;
@@ -163,6 +164,7 @@ export class NHopSearchService implements INHopSearchService {
     if (useRelations && this.relationGraph) {
       try {
         const relations = await this.relationGraph.getRelations(result.memory_id, {
+          ...scope,
           direction: 'both',
           minConfidence: 0.5
         });
@@ -200,10 +202,11 @@ export class NHopSearchService implements INHopSearchService {
   private async rankAndTruncateNHopResults(
     allResults: NHopSearchResult[],
     useRelations: boolean,
-    limit: number
+    limit: number,
+    scope: CallerMemoryScope
   ): Promise<NHopSearchResult[]> {
     const rankedResults = await Promise.all(
-      allResults.map((r) => this.applyRelationWeightToNHopResult(r, useRelations))
+      allResults.map((r) => this.applyRelationWeightToNHopResult(r, useRelations, scope))
     );
     rankedResults.sort((a, b) => this.compareNHopRankedResults(a, b));
     return rankedResults.slice(0, limit);
@@ -265,7 +268,7 @@ export class NHopSearchService implements INHopSearchService {
     maxHops: number,
     limit: number,
     useRelations: boolean = true,
-    ownerId?: string
+    scope: CallerMemoryScope = {}
   ): Promise<NHopSearchResult[]> {
     if (!this.db) {
       throw new Error('Database is not set.');
@@ -299,7 +302,7 @@ export class NHopSearchService implements INHopSearchService {
 
       const memoryIdsThisHop = currentHopMemories.map(m => m.memory_id);
       const linkedByMemory = useRelations
-        ? await this.linkedMemoryService.getLinkedMemoriesBatch(memoryIdsThisHop, ownerId)
+        ? await this.linkedMemoryService.getLinkedMemoriesBatch(memoryIdsThisHop, scope)
         : new Map<string, LinkedMemorySummary[]>();
 
       const vectorResults = await Promise.all(
@@ -311,7 +314,7 @@ export class NHopSearchService implements INHopSearchService {
                   limit: vectorSearchLimit,
                   threshold: 0.0,
                   includeContent: true,
-                  ...(ownerId ? { owner_id: ownerId } : {})
+                  ...scope
                 },
                 m.provider ?? provider
               )
@@ -370,13 +373,13 @@ export class NHopSearchService implements INHopSearchService {
       }
     }
 
-    if (ownerId && this.db) {
+    if (this.db) {
       const allPredIds: string[] = [];
       for (const r of allResults) {
         if (r.predecessor_id) allPredIds.push(r.predecessor_id);
         if (r.predecessor_ids) allPredIds.push(...r.predecessor_ids);
       }
-      const ownedPredSet = selectIdsOwnedBy(this.db, ownerId, allPredIds);
+      const ownedPredSet = selectCurrentIdsInScope(this.db, scope, allPredIds);
       for (const r of allResults) {
         if (r.predecessor_ids) {
           r.predecessor_ids = r.predecessor_ids.filter((id) => ownedPredSet.has(id));
@@ -390,7 +393,7 @@ export class NHopSearchService implements INHopSearchService {
       }
     }
 
-    return this.rankAndTruncateNHopResults(allResults, useRelations, limit);
+    return this.rankAndTruncateNHopResults(allResults, useRelations, limit, scope);
   }
 
   /**

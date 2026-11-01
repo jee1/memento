@@ -4,6 +4,7 @@
  */
 
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
+import { databaseReadRevision } from '../shared/utils/database/query-helpers.js';
 import { logger } from '../shared/utils/logger.js';
 import { resolveCallerAgentId } from './caller-scope.js';
 
@@ -30,6 +31,9 @@ export class ToolRegistry {
   private config: ToolRegistryConfig;
   private metrics: Map<string, ToolExecutionMetrics> = new Map();
   private cache: Map<string, { result: ToolResult; timestamp: number; ttl: number }> = new Map();
+
+  private readonly databaseIds = new WeakMap<ToolContext['db'], number>();
+  private nextDatabaseId = 1;
 
   constructor(config?: Partial<ToolRegistryConfig>) {
     this.config = {
@@ -81,8 +85,8 @@ export class ToolRegistry {
     if (!tool) {
       throw new Error(`Unknown tool: ${name}`);
     }
-    if (this.config.enableCaching) {
-      const cacheKey = this.generateCacheKey(name, params, context);
+    const cacheKey = this.config.enableCaching ? this.generateCacheKey(name, params, context) : undefined;
+    if (cacheKey !== undefined) {
       const cached = this.cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < cached.ttl) {
         this.log(`Cache hit for tool: ${name}`);
@@ -101,8 +105,8 @@ export class ToolRegistry {
       if (this.config.enableMetrics) {
         this.updateMetrics(name, true, Date.now() - startTime);
       }
-      if (this.config.enableCaching && result.success) {
-        this.cacheResult(name, params, context, result);
+      if (cacheKey !== undefined && result.success && cacheKey === this.generateCacheKey(name, params, context)) {
+        this.cacheResult(cacheKey, result);
       }
       this.log(`Tool executed successfully: ${name}`, { duration: Date.now() - startTime });
       return result;
@@ -152,19 +156,27 @@ export class ToolRegistry {
   }
 
   private generateCacheKey(name: string, params: unknown, context: ToolContext): string {
+    let databaseId = this.databaseIds.get(context.db);
+    if (databaseId === undefined) {
+      databaseId = this.nextDatabaseId++;
+      this.databaseIds.set(context.db, databaseId);
+    }
+    // Own writes change total_changes(); other connections change data_version.
+    // Recheck both so approve/restore/delete cannot reuse an earlier read result.
     return JSON.stringify([
+      databaseId, databaseReadRevision(context.db),
       name, JSON.stringify(params),
       resolveCallerAgentId(context, undefined), context.boundProjectId,
       context.agentId, context.projectId,
     ]);
   }
 
-  private cacheResult(name: string, params: unknown, context: ToolContext, result: ToolResult): void {
+  private cacheResult(cacheKey: string, result: ToolResult): void {
     if (this.cache.size >= this.config.cacheSize) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey) this.cache.delete(oldestKey);
     }
-    this.cache.set(this.generateCacheKey(name, params, context), {
+    this.cache.set(cacheKey, {
       result,
       timestamp: Date.now(),
       ttl: 5 * 60 * 1000

@@ -4,6 +4,8 @@
  * Phase 1.1: anchor-manager.ts 리팩토링
  */
 
+import { supersedeByActiveTargetSql } from '../../../../shared/utils/memory-filter-sql.js';
+
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
 import { embeddingColumnToNumbers } from '../../../../shared/utils/embedding-serialization.js';
@@ -62,7 +64,7 @@ export class AnchorCacheService implements IAnchorCacheService {
     try {
       // Edge Case: 메모리 존재 확인 (메모리 삭제 체크)
       const memoryExists = this.db.prepare(`
-        SELECT id FROM memory_item WHERE id = ?
+        SELECT id FROM memory_item mi WHERE mi.id = ? AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}
       `).get(memoryId) as { id: string } | undefined;
 
       if (!memoryExists) {

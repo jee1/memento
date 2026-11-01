@@ -5,6 +5,7 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 
 export interface EpisodicCandidateRow {
   id: string;
@@ -64,11 +65,12 @@ export class ConsolidationRepository {
         created_at AS createdAt,
         pinned AS pinned,
         COALESCE(is_consolidated, 0) AS isConsolidated
-      FROM memory_item
+      FROM memory_item mi
       WHERE type = 'episodic'
         AND COALESCE(is_consolidated, 0) = 0
         AND COALESCE(pinned, 0) = 0
         AND (is_deleted IS NULL OR is_deleted = 0)
+        AND NOT ${supersedeByActiveTargetSql('mi')}
         AND datetime(created_at) >= datetime('now', '-' || ? || ' days')
         AND (? IS NULL OR owner_id = ?)
       ORDER BY created_at DESC
@@ -129,6 +131,7 @@ export class ConsolidationRepository {
       LEFT JOIN memory_embedding me ON ${joinConditions.join(' AND ')}
       WHERE mi.type = 'semantic'
         AND (mi.is_deleted IS NULL OR mi.is_deleted = 0)
+        AND NOT ${supersedeByActiveTargetSql('mi')}
         AND COALESCE(mi.owner_id, '') = COALESCE(?, '')
         AND mi.origin_source LIKE '%"tool":"sleep-consolidation"%'
       ORDER BY mi.created_at ASC

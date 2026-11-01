@@ -3,6 +3,8 @@
  * Phase 3.6: searchLocal 메서드 분리 - 파이프라인 단계별 메서드 분리
  */
 
+import { selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
+
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
 import type { AnchorSlot,IAnchorCacheService,SearchOptions } from './anchor-interfaces.js';
@@ -70,7 +72,7 @@ export class LocalSearchService {
       WHERE agent_id = ? AND slot = ?
     `).get(agentId, slot) as QueryResult<AnchorInfoRow>;
 
-    if (!anchorInfo || !anchorInfo.memory_id) {
+    if (!anchorInfo?.memory_id || !selectCurrentIdsInScope(this.db, {}, [anchorInfo.memory_id]).has(anchorInfo.memory_id)) {
       return null;
     }
 
@@ -97,7 +99,7 @@ export class LocalSearchService {
     maxHops: number,
     limit: number,
     useRelations: boolean = true,
-    ownerId?: string
+    scope: CallerMemoryScope = {}
   ): Promise<NHopSearchResult[]> {
     return this.nHopSearchService.searchNHop(
       anchorEmbedding,
@@ -107,7 +109,7 @@ export class LocalSearchService {
       maxHops,
       limit,
       useRelations,
-      ownerId
+      scope
     );
   }
 

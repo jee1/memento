@@ -3,6 +3,8 @@
  */
 
 import Database from 'better-sqlite3';
+import type { SqlParam } from '../../../shared/types/memory.types.js';
+import { buildRelationMemoryFilterSql } from '../../../shared/utils/memory-filter-sql.js';
 import type { GetRelatedMemoriesOptions, MemoryRelation } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -72,7 +74,7 @@ export class RelationGraphTraversal {
         const placeholders = nodesToQuery.map(() => '?').join(',');
         let batchQuery =
           `SELECT * FROM memory_relation WHERE (source_id IN (${placeholders}) OR target_id IN (${placeholders}))`;
-        const params: Array<string | number | RelationType> = [
+        const params: SqlParam[] = [
           ...nodesToQuery,
           ...nodesToQuery
         ];
@@ -88,6 +90,9 @@ export class RelationGraphTraversal {
           params.push(minConfidence);
         }
 
+        const visible = buildRelationMemoryFilterSql(options);
+        batchQuery += visible.clauses.map(clause => ` AND ${clause}`).join('');
+        params.push(...visible.params);
         batchQuery += ' ORDER BY confidence DESC';
 
         const batchRows = DatabaseUtils.all(this.db, batchQuery, params);
