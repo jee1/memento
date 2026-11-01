@@ -55,7 +55,8 @@ function initializeTestDatabase(db: Database.Database): void {
       is_consolidated BOOLEAN DEFAULT FALSE,
       is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
       deleted_at TEXT,
-      project_id TEXT
+      project_id TEXT,
+      superseded_by TEXT
     );
   `);
 

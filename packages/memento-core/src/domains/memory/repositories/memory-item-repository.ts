@@ -5,6 +5,7 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 
@@ -150,14 +151,6 @@ export function listActiveMemoryIdAndContent(
     .all() as ActiveMemoryIdAndContentRow[];
 }
 
-/**
- * #1551: 승인된 직접 대체는 포인터가 가리키는 target 이 살아 있을 때만 유효하다.
- * target 이 지워지면 옛 기억은 쓰기 없이 다시 현재가 된다. memory_relation, memory_link 는 보지 않는다.
- * 보간 없는 고정 SQL 이라 memory_item 별칭이 mi 인 질의에서만 쓴다.
- */
-const SUPERSEDED_BY_ACTIVE_TARGET_SQL = `EXISTS (SELECT 1 FROM memory_item supersede_target
-    WHERE supersede_target.id = mi.superseded_by AND COALESCE(supersede_target.is_deleted, 0) = 0)`;
-
 /** 주어진 id 중 지금 대체된 기억. */
 export function findSupersededMemoryIds(db: Database.Database, ids: readonly string[]): Set<string> {
   if (ids.length === 0) {
@@ -168,7 +161,7 @@ export function findSupersededMemoryIds(db: Database.Database, ids: readonly str
     .prepare(
       `SELECT mi.id AS id FROM memory_item mi
        WHERE mi.id IN (${placeholders})
-         AND ${SUPERSEDED_BY_ACTIVE_TARGET_SQL}`,
+         AND ${supersedeByActiveTargetSql('mi')}`,
     )
     .all(...ids) as Array<{ id: string }>;
   return new Set(rows.map((row) => row.id));
@@ -294,7 +287,7 @@ export function findSupersedeScopeMemories(
         )
        WHERE mi.type IN ('semantic', 'episodic')
          AND COALESCE(mi.is_deleted, 0) = 0
-         AND NOT ${SUPERSEDED_BY_ACTIVE_TARGET_SQL}
+         AND NOT ${supersedeByActiveTargetSql('mi')}
          AND julianday(mi.created_at) IS NOT NULL`,
     )
     .all(lookbackDays) as Array<

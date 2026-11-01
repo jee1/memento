@@ -288,7 +288,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/shared/utils/memory-filter-sql.ts',
-    rationale: '기존 공용 필터·스키마·쓰기 경로; 이번 server 이관 범위 밖',
+    rationale: '#1552: 텍스트·벡터 레인의 LIMIT 전 필터 및 #1551 직접 대체 유효성 SQL 단일 출처',
   },
   {
     path: 'packages/memento-core/src/shared/utils/owned-ids.ts',

@@ -9,6 +9,18 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Fixed
+
+- Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
+
+## [2.3.6] - 2026-11-01
+
+### Security
+
+- 이웃 조회(`recall` 의 `include_neighbors`, `get_memory_neighbors`), MCP `resources/list`·`resources/read`, WebSocket 앵커 맵 구독이 토큰에 묶인 owner, project 범위를 일관되게 적용하고 soft-delete 기억을 돌려주지 않습니다. 바인딩 없는 호출자는 기존과 같습니다.
+- `search_local` 과 관계 도구(`get_relations`, `visualize_relations`, `extract_relations`, `add_relation`, `remove_relation`)가 토큰에 묶인 project 범위도 적용하고 soft-delete 기억을 결과, 후보, 연결 대상에서 뺍니다. 바인딩 없는 호출자는 soft-delete 제외만 달라집니다.
+- `export` 도구가 토큰에 묶인 owner, project 범위를 적용합니다. HTTP owner-scope 미들웨어와 감사 분류가 보던 도구 이름을 실제 등록명 `export` 로 맞추고(문서의 `/tools/export_memories` 도 `/tools/export` 로 정정), 바인딩 호출자의 소유 확인이 soft-delete 기억을 제외합니다.
+
 ### Added
 
 - LLM 사용량: 기능별 attempt(success/429/기타)와 logical 최종 경로를 Pacific 날짜로 저장하고 `GET /admin/telemetry/llm-usage`로 조회합니다. 코드에 일일 cap 은 두지 않습니다 (#1546).
@@ -32,8 +44,7 @@
 - 품질 측정: 정답셋이 없을 때 precision/recall 0으로 기록하던 동작을 미측정 상태로 구분합니다. collector metadata·metric_states가 recorder·evaluator·리포트까지 유지됩니다 (#1560).
 - PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
 - Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
-- Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
-- 이웃 조회(`recall` 의 `include_neighbors`, `get_memory_neighbors`), MCP `resources/list`·`resources/read`, WebSocket 앵커 맵 구독이 토큰에 묶인 owner, project 범위를 일관되게 적용하고 soft-delete 기억을 돌려주지 않습니다. 바인딩 없는 호출자는 기존과 같습니다.
+- 검색: 직접 대체된 기억을 텍스트·LIKE·KNN·hybrid·임베딩 fallback의 후보 LIMIT 전에 제외합니다. 무필터 검색의 현재 기억 top-K를 보존하며 대체 대상 삭제 시 원본을 다시 노출합니다. 매 요청의 partial index probe(migration 062)로 살아 있는 대체 포인터가 없고 범위 필터도 없으면 기존 벡터 SQL을 유지합니다. `filters.id`도 현재성 필터를 적용하며 역사 조회는 후속 단계에서 완성합니다. 적용 기능의 기본값은 계속 꺼짐입니다 (#1552 1단계).
 
 ### Changed
 
@@ -42,7 +53,6 @@
 - 구조 문서: 패키지·의존·MCP 도구 등록의 정본을 `docs/agents/architecture.md`로 모으고, ko/en 아키텍처·`DEVELOPMENT_RULES`·`AGENTS.md`의 어긋난 수치·의존 화살표를 코드 기준으로 맞춥니다 (#1533).
 - 에이전트 지침: `.cursor/rules` 과잉을 `AGENTS.md`/`docs/agents` 포인터로 줄이고, 문서와 코드가 어긋난 gotcha·heal·랭킹 설명을 맞춥니다 (#1530).
 - DDL 출처: `shared/utils/ensure-*` 런타임 호출과 `schema-initialization.ts` 를 제거합니다. 레거시 전체 스키마 부트스트랩은 테스트 헬퍼로, idempotent DDL 은 migration·`schema.sql` 경로만 씁니다 (#1535).
-
 - `memory_item` SQL 접근 파일을 실측 80개에서 72개로 줄이고 허용 목록으로 동결합니다. server 8파일의 질의를 core 기억 저장소 함수로 옮깁니다 (#1531).
 - 개발: 임베딩 서비스·저장소 포트·공용 알림의 소유 위치를 정리해 도메인 양방향 의존을 없애고, shared·도메인 DAG·tools 경계를 검사합니다 (#1534).
 

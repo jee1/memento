@@ -76,17 +76,17 @@ describe('VectorSearchEngine', () => {
       }
       // Handle vector search queries - check for the specific SQL pattern
       if (sql.includes('SELECT') && sql.includes('vec.rowid as memory_id')) {
-        return { all: vi.fn().mockReturnValue(mockResults) };
+        return { all: vi.fn().mockReturnValue(mockResults), get: vi.fn().mockReturnValue(undefined) };
       }
       // Handle hybrid search queries
       if (sql.includes('WITH vector_search AS') || sql.includes('FROM memory_item_fts fts')) {
-        return { all: vi.fn().mockReturnValue(mockResults) };
+        return { all: vi.fn().mockReturnValue(mockResults), get: vi.fn().mockReturnValue(undefined) };
       }
       // Default for any SELECT query
       if (sql.includes('SELECT')) {
-        return { all: vi.fn().mockReturnValue(mockResults) };
+        return { all: vi.fn().mockReturnValue(mockResults), get: vi.fn().mockReturnValue(undefined) };
       }
-      return { all: vi.fn().mockReturnValue([]) };
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
     };
   };
 
@@ -432,7 +432,7 @@ describe('VectorSearchEngine', () => {
           return mockStatement;
         }
         
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -549,7 +549,7 @@ describe('VectorSearchEngine', () => {
         if (sql.includes(`memory_item_vec_${provider}`) && sql.includes('JOIN memory_embedding')) {
           return { all: vectorAllMock };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -604,9 +604,9 @@ describe('VectorSearchEngine', () => {
               pinned: false,
               tags: JSON.stringify(['test'])
             }
-          ]) };
+          ]), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -782,7 +782,7 @@ describe('VectorSearchEngine', () => {
               pinned: false,
               tags: JSON.stringify(['test'])
             }
-          ]) };
+          ]), get: vi.fn().mockReturnValue(undefined) };
         }
         return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
@@ -825,9 +825,9 @@ describe('VectorSearchEngine', () => {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT')) {
-          return { all: vi.fn().mockImplementation(() => { throw new Error('Test error'); }) };
+          return { all: vi.fn().mockImplementation(() => { throw new Error('Test error'); }), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -941,9 +941,9 @@ describe('VectorSearchEngine', () => {
               pinned: false,
               tags: 'invalid json'
             }
-          ]) };
+          ]), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -979,9 +979,9 @@ describe('VectorSearchEngine', () => {
               pinned: false,
               tags: JSON.stringify(['test'])
             }
-          ]) };
+          ]), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -1015,9 +1015,9 @@ describe('VectorSearchEngine', () => {
               pinned: false,
               tags: JSON.stringify(['test'])
             }
-          ]) };
+          ]), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -1052,9 +1052,9 @@ describe('VectorSearchEngine', () => {
             pinned: false,
             tags: JSON.stringify(['test'])
           }));
-          return { all: vi.fn().mockReturnValue(mockResults) };
+          return { all: vi.fn().mockReturnValue(mockResults), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);
@@ -1093,9 +1093,9 @@ describe('VectorSearchEngine', () => {
               pinned: false,
               tags: JSON.stringify(['test'])
             }
-          ]) };
+          ]), get: vi.fn().mockReturnValue(undefined) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);

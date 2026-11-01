@@ -5,5 +5,5 @@
 export const OWNER_FILTER_TOOLS: ReadonlySet<string> = new Set([
   'recall',
   'memory_injection',
-  'export_memories'
+  'export'
 ]);

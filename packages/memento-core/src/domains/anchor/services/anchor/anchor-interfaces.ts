@@ -35,6 +35,7 @@ export interface SearchOptions {
   use_relations?: boolean; // 관계 그래프 사용 여부 (기본값: true)
   vector_threshold?: number; // 슬롯 기본값 대신 사용할 벡터 유사도 임계값 (시각화 등 특수 목적용)
   owner_id?: string; // 이 owner 의 기억만 — limit 자르기·fallback 전에 적용 (#1342)
+  project_id?: string; // 이 project 의 기억만 — owner_id 와 같은 시점에 적용
 }
 
 /**

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
+import { callerVisibleClause } from '../../../tools/caller-scope.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 
 const MEMORY_ITEM_TYPES = ['working', 'episodic', 'semantic', 'procedural'] as const;
@@ -117,6 +118,7 @@ function fetchMemories(
 ): MemoryExportRow[] {
   const conditions: string[] = ['is_deleted = 0'];
   const sqlParams: unknown[] = [];
+  const visible = callerVisibleClause(context);
 
   if (params.types && params.types.length > 0) {
     const placeholders = params.types.map(() => '?').join(', ');
@@ -133,9 +135,10 @@ function fetchMemories(
     SELECT id, type, content, importance, privacy_scope, created_at, tags, source,
            task_goal, steps, workflow_name, skill_name, owner_id, project_id
     FROM memory_item
-    WHERE ${conditions.join(' AND ')}
+    WHERE ${conditions.join(' AND ')}${visible.sql}
     ORDER BY created_at ASC
   `;
+  sqlParams.push(...visible.params);
 
   if (params.limit) {
     sql += ' LIMIT ?';

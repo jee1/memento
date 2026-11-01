@@ -109,7 +109,7 @@ executeTool(name, params, context)
 
 | 하위 | 도구 / 서비스 |
 |------|---------------|
-| **CRUD·피드백** | `remember`, `recall`, `forget`, `pin`/`unpin`, `feedback`, `memory_injection`, `get_memory_neighbors`, `export_memories` |
+| **CRUD·피드백** | `remember`, `recall`, `forget`, `pin`/`unpin`, `feedback`, `memory_injection`, `get_memory_neighbors`, `export` |
 | **Procedural** | `remember_procedure`, `procedural_diff`, `procedural_rollback` |
 | **Introspection** | `get_introspection_summary`, `MetaMemoryService`, `IntrospectionScanCache` |
 

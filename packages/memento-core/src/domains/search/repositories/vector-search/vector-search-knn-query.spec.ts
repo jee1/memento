@@ -24,13 +24,14 @@ const options: VectorSearchExecutionOptions = {
 
 function captureKnnSql(
   scope: VectorSearchScope,
-  context: RuntimeVectorContext = runtimeContext
+  context: RuntimeVectorContext = runtimeContext,
+  activeSupersedePointers = false,
 ): string {
   let captured = '';
   const db = {
     prepare: (sql: string) => {
       captured = sql;
-      return { all: vi.fn().mockReturnValue([]) };
+      return { all: vi.fn().mockReturnValue([]), get: () => activeSupersedePointers ? { found: 1 } : undefined };
     },
   } as unknown as Database.Database;
 
@@ -60,10 +61,18 @@ describe('executeKnnQuery scoped outer WHERE (#1386)', () => {
     expect(afterJoin).not.toMatch(/mi\.project_id\s*=/i);
   });
 
-  it('unscoped path still filters by model on the outer query', () => {
-    const sql = captureKnnSql({}, { ...runtimeContext, modelFilter: 'test-model' });
+  it('unfiltered requests apply current state and model before KNN LIMIT (#1552)', () => {
+    const sql = captureKnnSql({}, { ...runtimeContext, modelFilter: 'test-model' }, true);
+    expect(sql).toMatch(/rowid IN \(/i);
+    expect(sql).toContain('scoped_mi.superseded_by');
+    expect(sql).toContain('scoped_me.model = ?');
+  });
+
+  it('zero live pointers preserve unscoped SQL instead of materializing every candidate (#1552)', () => {
+    const sql = captureKnnSql({});
     expect(sql).not.toMatch(/rowid IN \(/i);
-    expect(sql).toMatch(/WHERE me\.model = \?/);
+    expect(sql).not.toContain('superseded_by');
+    expect(sql).toMatch(/ORDER BY distance ASC\s+LIMIT \?/);
   });
 
   it('uses 2-stage late materialization to aggregate top_k before joining wide memory_item columns (#1477)', () => {

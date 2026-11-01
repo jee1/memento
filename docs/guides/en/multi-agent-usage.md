@@ -46,7 +46,7 @@ Pass `owner_id` to `recall` to return only that owner's memories. An array inclu
 }
 ```
 
-If you omit `owner_id`, MCP and legacy paths search across all owners. **Only HTTP `/tools/recall`, `/tools/memory_injection`, and `/tools/export_memories`** run the owner-scope middleware. With the default `MEMENTO_OWNER_SCOPE_MODE=strict`, omitting `owner_id` auto-filters by the agent ID from the request header or environment. MCP isolates only through the `owner_id` parameter.
+If you omit `owner_id`, MCP and legacy paths search across all owners. **Only HTTP `/tools/recall`, `/tools/memory_injection`, and `/tools/export`** run the owner-scope middleware. With the default `MEMENTO_OWNER_SCOPE_MODE=strict`, omitting `owner_id` auto-filters by the agent ID from the request header or environment. MCP isolates only through the `owner_id` parameter.
 
 Each result item includes `owner_id` when `include_metadata` is `true`.
 
@@ -56,7 +56,7 @@ HTTP programmatic APIs (`/tools/*`) can apply owner scope so one agent does not 
 
 | Environment variable | Value | Behavior |
 |----------------------|-------|----------|
-| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (default) | If `recall` / `memory_injection` / `export_memories` omit `owner_id` and an agent ID is present (`X-Memento-Agent-Id` or `MEMENTO_HTTP_DEFAULT_AGENT_ID`), inject that value as `owner_id`. **If no identifier → 400** |
+| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (default) | If `recall` / `memory_injection` / `export` omit `owner_id` and an agent ID is present (`X-Memento-Agent-Id` or `MEMENTO_HTTP_DEFAULT_AGENT_ID`), inject that value as `owner_id`. **If no identifier → 400** |
 | | `warn` | If an agent ID is present, inject `owner_id` the same way as `strict`. **Only when no identifier is present**: log a warning and allow legacy (unscoped) recall |
 | | `off` | No enforcement (legacy behavior) |
 
@@ -168,4 +168,4 @@ For owner scope and writer-isolation design, see [#664](https://github.com/jee1/
 
 The `owner_id` feature is fully backward compatible for MCP and older call paths. Existing data keeps `owner_id = NULL`, and code that never passes `owner_id` keeps working as before. Multi-agent isolation activates only when `owner_id` values are used.
 
-> **HTTP note:** The compatibility story above is for MCP / legacy paths. HTTP `/tools/recall`, `/tools/memory_injection`, and `/tools/export_memories` default to `MEMENTO_OWNER_SCOPE_MODE=strict`, so omitting `owner_id` auto-filters by agent ID (or returns 400) and NULL-owned rows may not appear in scoped results. For unscoped recall, use `warn`/`off` or the legacy NULL opt-out section above.
+> **HTTP note:** The compatibility story above is for MCP / legacy paths. HTTP `/tools/recall`, `/tools/memory_injection`, and `/tools/export` default to `MEMENTO_OWNER_SCOPE_MODE=strict`, so omitting `owner_id` auto-filters by agent ID (or returns 400) and NULL-owned rows may not appear in scoped results. For unscoped recall, use `warn`/`off` or the legacy NULL opt-out section above.

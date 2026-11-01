@@ -4,12 +4,15 @@
 
 import type Database from 'better-sqlite3';
 
-/** The subset of `ids` whose memory_item.owner_id is `ownerId`. */
+/** The subset of `ids` that are live (not soft-deleted) and whose memory_item.owner_id is `ownerId`. */
 export function selectIdsOwnedBy(db: Database.Database, ownerId: string, ids: readonly string[]): Set<string> {
   const unique = [...new Set(ids)];
   if (unique.length === 0) return new Set();
   const rows = db
-    .prepare(`SELECT id FROM memory_item WHERE owner_id IS ? AND id IN (${unique.map(() => '?').join(',')})`)
+    .prepare(
+      `SELECT id FROM memory_item
+       WHERE owner_id IS ? AND COALESCE(is_deleted, 0) = 0 AND id IN (${unique.map(() => '?').join(',')})`,
+    )
     .all(ownerId, ...unique) as Array<{ id: string }>;
   return new Set(rows.map((row) => row.id));
 }

@@ -166,7 +166,7 @@ function resolveAuditAction(req: Request, status: number, tool: string | null, t
   if (status === 401 || status === 403) return 'auth_denied';
   if (transport === 'http_admin') return 'admin';
   if (req.method === 'DELETE' || tool === 'forget' || tool?.startsWith('remove_')) return 'delete';
-  if (tool === 'recall' || tool === 'get_relations' || tool === 'export_memories' || req.method === 'GET') return 'read';
+  if (tool === 'recall' || tool === 'get_relations' || tool === 'export' || req.method === 'GET') return 'read';
   return 'write';
 }
 

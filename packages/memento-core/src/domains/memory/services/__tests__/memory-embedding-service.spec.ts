@@ -246,6 +246,7 @@ describe('MemoryEmbeddingService', () => {
 
     it('process/session 범위를 유사도 SQL에 적용해야 함', () => {
       const { sql, params } = (service as any).buildVecSimilarityQuery(
+        db,
         'tfidf',
         'memory_item_vec_tfidf',
         new Array(512).fill(0.1),
@@ -271,6 +272,14 @@ describe('MemoryEmbeddingService', () => {
         'session-a',
         3,
       ]);
+    });
+
+    it('live 대체 포인터가 없으면 fallback도 unscoped SQL을 유지한다 (#1552)', () => {
+      const { sql } = (service as any).buildVecSimilarityQuery(
+        db, 'tfidf', 'memory_item_vec_tfidf', new Array(512).fill(0.1), { limit: 3 },
+      );
+      expect(sql).not.toContain('rowid IN (');
+      expect(sql).not.toContain('superseded_by');
     });
 
     it('임베딩 서비스가 사용 불가능하면 빈 배열을 반환해야 함', async () => {
