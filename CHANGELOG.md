@@ -34,6 +34,8 @@
 - Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
 - 이웃 조회(`recall` 의 `include_neighbors`, `get_memory_neighbors`), MCP `resources/list`·`resources/read`, WebSocket 앵커 맵 구독이 토큰에 묶인 owner, project 범위를 일관되게 적용하고 soft-delete 기억을 돌려주지 않습니다. 바인딩 없는 호출자는 기존과 같습니다.
 
+- 검색: 직접 대체된 기억을 텍스트·LIKE·KNN·hybrid·임베딩 fallback의 후보 LIMIT 전에 제외합니다. 무필터 검색의 현재 기억 top-K를 보존하며 대체 대상 삭제 시 원본을 다시 노출합니다. 매 요청의 partial index probe(migration 062)로 살아 있는 대체 포인터가 없고 범위 필터도 없으면 기존 벡터 SQL을 유지합니다. `filters.id`도 현재성 필터를 적용하며 역사 조회는 후속 단계에서 완성합니다. 적용 기능의 기본값은 계속 꺼짐입니다 (#1552 1단계).
+
 ### Changed
 
 - 설정과 로거: 런타임이 읽지 않던 검색 기본/최대 건수, 망각 계층별 TTL 4종, 로그 파일 경로 환경변수 7개를 설정 객체, 검증기, 템플릿, compose 화이트리스트, 문서에서 제거합니다. 일반 `logger.ts`(`logToStderr`)도 `mcp-logger.ts`와 함께 `LOG_LEVEL`(기본 `info`)을 따르도록 연결합니다. 기존 `.env`에 제거된 키가 남아도 기동에는 영향이 없습니다 (#1587).

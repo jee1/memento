@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS memory_item (
   -- Approved same-scope direct replacement (Issue #1551, migration 060). No FK: a deleted target revives this row.
   superseded_by TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_memory_item_superseded_by
+  ON memory_item(superseded_by) WHERE superseded_by IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
   ON memory_item(is_deleted)
   WHERE COALESCE(is_deleted, 0) = 0;

@@ -769,7 +769,7 @@ The request body must contain **exactly one** selector:
 
 ##### Approve or restore a supersede candidate (#1551)
 
-Active only when `SUPERSEDE_APPLY_ENABLED=true`. It is off by default; while off, both endpoints return `403` (`code: SUPERSEDE_APPLY_DISABLED`) and write nothing. Search lanes do not read the pointer yet, so keep it off until #1552.
+Active only when `SUPERSEDE_APPLY_ENABLED=true`. It is off by default; while off, both endpoints return `403` (`code: SUPERSEDE_APPLY_DISABLED`) and write nothing. Keep it off until current-state, history, and performance validation covers all read paths (#1552).
 
 ```http
 POST /admin/memory/supersede-candidates/:id/apply
@@ -795,6 +795,10 @@ Clears the pointer only when it still equals `expected_new_memory_id` and record
 - `409`: `already_superseded` (another approval set the pointer first), `dangling_pointer` (the pointer target was deleted; restore it first), `cycle`, `input_changed` (content changed after judgment), `scope_mismatch`, `memory_deleted`, `verdict_not_applicable` (`compatible`), `pointer_changed`, `not_superseded`
 
 An old memory counts as superseded only while the memory its pointer names is alive. Deleting that memory makes the old one current again without a write. Editing `memory_relation` or `memory_link` never changes this state.
+
+Stage 1 of #1552 filters superseded candidates before LIMIT in text, LIKE, KNN, hybrid, and embedding fallback searches. An explicit `filters.id` also hides a replaced memory. **ID resources, anchors, injection, neighbors, consolidation, and explicit history retrieval must pass validation before enabling `SUPERSEDE_APPLY_ENABLED`.**
+
+Each vector request probes the non-null pointer partial index (migration 062). With no request filters and no live pointers, it retains the original unscoped SQL. Existing pointers continue to apply after the flag is switched off; target deletion and restoration take effect without a pointer-state cache. Run `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts` to assert the partial-index plan and an off/zero-pointer p95 ratio no greater than 1.15 against unscoped SQL.
 
 ##### Batch: select and upsert queue
 

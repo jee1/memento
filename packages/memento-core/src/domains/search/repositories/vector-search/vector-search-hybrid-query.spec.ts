@@ -46,13 +46,14 @@ function regionAfterOuterMiJoin(sql: string): string {
 
 function captureHybridSql(
   textQuery: string | undefined,
-  scope: VectorSearchScope = emptyScope
+  scope: VectorSearchScope = emptyScope,
+  activeSupersedePointers = false,
 ): string {
   let captured = '';
   const db = {
     prepare: (sql: string) => {
       captured = sql;
-      return { all: vi.fn().mockReturnValue([]) };
+      return { all: vi.fn().mockReturnValue([]), get: () => activeSupersedePointers ? { found: 1 } : undefined };
     }
   } as unknown as Database.Database;
 
@@ -69,6 +70,16 @@ function captureHybridSql(
 }
 
 describe('executeHybridQuery SQL contract (#811 US5)', () => {
+  it('zero live pointers preserve unscoped hybrid SQL; existing live pointers filter before LIMIT (#1552)', () => {
+    for (const query of [undefined, 'query']) {
+      const unscoped = captureHybridSql(query);
+      expect(unscoped).not.toMatch(/rowid IN \(/i);
+      expect(unscoped).not.toContain('superseded_by');
+      const scoped = captureHybridSql(query, {}, true);
+      expect(scoped).toMatch(/rowid IN \(/i);
+      expect(scoped).toContain('scoped_mi.superseded_by');
+    }
+  });
   it('텍스트 하이브리드 SELECT는 vector_distance를 노출하고 1-distance 변환을 SELECT에 두지 않는다', () => {
     const sql = captureHybridSql('test query');
 

@@ -1,5 +1,6 @@
 import type { SqlParam } from '../types/memory.types.js';
 import type { MemorySearchFilters } from '../types/search.types.js';
+import type Database from 'better-sqlite3';
 
 /**
  * 시간 필터 파라미터를 저장 형식(ISO-8601 UTC, 밀리초 3자리)에 맞춘다.
@@ -11,9 +12,31 @@ function toIsoTimestampParam(value: string): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
 }
 
+type MemoryItemSqlAlias = 'm' | 'mi' | 'scoped_m' | 'scoped_mi';
+
+/** #1551/#1552: direct live target only; deleting it revives its predecessor. */
+export function supersedeByActiveTargetSql(a: MemoryItemSqlAlias): string {
+  return `(${a}.superseded_by IS NOT NULL AND EXISTS (
+    SELECT 1 FROM memory_item supersede_target
+    WHERE
+      supersede_target.id = ${a}.superseded_by
+      AND COALESCE(supersede_target.is_deleted, 0) = 0
+  ))`;
+}
+
+/** The partial index is empty before the first approval; do not cache pointer state. */
+export function hasActiveSupersedePointers(db: Database.Database): boolean {
+  return db.prepare(`SELECT 1 FROM memory_item mi
+    WHERE mi.superseded_by IS NOT NULL
+      AND ${supersedeByActiveTargetSql('mi')}
+    LIMIT 1`).get() !== undefined;
+}
+
 interface MemoryFilterSqlOptions {
   /** memory_item 별칭 (예: 'm', 'mi', 'scoped_mi', 'scoped_m') */
-  itemAlias: string;
+  itemAlias: MemoryItemSqlAlias;
+  /** Skip current-state SQL only after a same-request DB probe found no live pointers. */
+  currentState?: boolean;
   /**
    * memory_embedding 별칭. 주면 #889 모델 필터 절을 함께 낸다.
    * 텍스트 레인처럼 임베딩 조인이 없는 곳에서는 생략한다.
@@ -138,7 +161,10 @@ export function buildMemoryFilterSql(
   filters: MemorySearchFilters | undefined,
   options: MemoryFilterSqlOptions
 ): FilterSql {
-  const out: FilterSql = { clauses: [], params: [] };
+  const out: FilterSql = {
+    clauses: options.currentState === false ? [] : [`NOT ${supersedeByActiveTargetSql(options.itemAlias)}`],
+    params: [],
+  };
   if (filters) {
     const a = options.itemAlias;
     appendIdentityClauses(out, filters, a);
@@ -152,11 +178,8 @@ export function buildMemoryFilterSql(
   return out;
 }
 
-/** 절이 하나라도 생기는지. 벡터 레인의 hasScopedCandidates 판단에 쓴다. */
-export function hasMemoryFilter(filters: MemorySearchFilters | undefined): boolean {
-  if (!filters) {
-    return false;
-  }
-  const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm' });
+/** Whether request filters or live replacement pointers require pre-KNN candidate filtering. */
+export function hasMemoryFilter(filters: MemorySearchFilters | undefined, currentState = false): boolean {
+  const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm', currentState });
   return clauses.length > 0;
 }

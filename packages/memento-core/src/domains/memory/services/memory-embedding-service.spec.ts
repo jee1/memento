@@ -31,6 +31,7 @@ const { MemoryEmbeddingService } = await import('../../embedding/services/memory
 
 describe('searchBySimilarity 근접도 방향 (#806)', () => {
   let service: InstanceType<typeof MemoryEmbeddingService>;
+  const db = { prepare: () => ({ get: () => undefined }) };
 
   beforeEach(() => {
     service = new MemoryEmbeddingService();
@@ -41,7 +42,7 @@ describe('searchBySimilarity 근접도 방향 (#806)', () => {
   });
 
   it('거리가 가까운 행이 더 높은 similarity를 받는다 — 방향 반전 금지', async () => {
-    const out = await service.searchBySimilarity({} as never, 'q');
+    const out = await service.searchBySimilarity(db as never, 'q');
     const near = out.results.find((r) => r.id === 'near')!;
     const far = out.results.find((r) => r.id === 'far')!;
 
@@ -51,7 +52,7 @@ describe('searchBySimilarity 근접도 방향 (#806)', () => {
   });
 
   it('SC-018: 결과 객체에 방향이 다른 근접도 필드가 함께 있지 않다', async () => {
-    const out = await service.searchBySimilarity({} as never, 'q');
+    const out = await service.searchBySimilarity(db as never, 'q');
     expect(out.results.length).toBeGreaterThan(0);
     for (const r of out.results) {
       expect(r).not.toHaveProperty('score');
@@ -60,7 +61,7 @@ describe('searchBySimilarity 근접도 방향 (#806)', () => {
   });
 
   it('모든 similarity가 0~1 유한값이다', async () => {
-    const out = await service.searchBySimilarity({} as never, 'q');
+    const out = await service.searchBySimilarity(db as never, 'q');
     for (const r of out.results) {
       expect(Number.isFinite(r.similarity)).toBe(true);
       expect(r.similarity).toBeGreaterThanOrEqual(0);

@@ -13,7 +13,7 @@ import type {
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
-import { buildMemoryFilterSql, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
+import { buildMemoryFilterSql, hasActiveSupersedePointers, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
 import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import {
@@ -219,22 +219,26 @@ export class MemoryEmbeddingService {
   }
 
   private buildVecSimilarityQuery(
+    db: Database.Database,
     provider: EmbeddingProvider,
     tableName: string,
     queryVector: number[],
     filters?: MemorySearchFilters & { limit?: number; threshold?: number }
   ): { sql: string; params: unknown[] } {
     const memoryFilters: MemorySearchFilters | undefined = filters;
+    const currentState = hasActiveSupersedePointers(db);
     const { clauses: outerClauses, params: outerParams } = buildMemoryFilterSql(memoryFilters, {
       itemAlias: 'm',
+      currentState,
     });
     const outerFilterSql = outerClauses.length > 0
       ? outerClauses.map(clause => `AND ${clause}`).join(' ')
       : '';
     const { clauses: scopedClauses, params: scopedParams } = buildMemoryFilterSql(memoryFilters, {
       itemAlias: 'scoped_m',
+      currentState,
     });
-    const hasScopedCandidates = hasMemoryFilter(memoryFilters);
+    const hasScopedCandidates = hasMemoryFilter(memoryFilters, currentState);
     const scopedCandidateSql = hasScopedCandidates
       ? ' AND rowid IN (' +
         'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
@@ -460,6 +464,7 @@ export class MemoryEmbeddingService {
       queryEmbeddingProviders = [provider];
       const tableName = getValidatedVectorTableName(provider);
       const { sql, params } = this.buildVecSimilarityQuery(
+        db,
         provider,
         tableName,
         queryEmbedding.embedding,
