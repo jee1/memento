@@ -64,7 +64,7 @@ describe('setting override across a process restart (#1582)', () => {
       reason: '사유',
     });
     const beforeRestart = first.core.listRuntimeSettings(first.instance.db).settings;
-    expect(beforeRestart.find((s) => s.key === 'SEARCH_REJECTION_GATE')?.pending_restart).toBe(true);
+    expect(beforeRestart.find((s) => s.key === 'SEARCH_REJECTION_GATE')?.pending_restart).toBe(false);
     await first.stop();
 
     const second = await boot(dbPath);
@@ -87,7 +87,7 @@ describe('setting override across a process restart (#1582)', () => {
     expect(second.core.mementoConfig.searchRejectionGate).toBe('off');
     expect(
       second.core.listRuntimeSettings(second.instance.db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE'),
-    ).toMatchObject({ source: 'default', pending_restart: true });
+    ).toMatchObject({ source: 'default', pending_restart: false });
     await second.stop();
 
     const third = await boot(dbPath);

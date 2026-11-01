@@ -17,6 +17,7 @@ import {
   SETTING_REGISTRY,
   type RuntimeSettingDefinition,
 } from './settings-registry.js';
+import { runSettingRuntimeReapply } from './setting-runtime-reapply-registry.js';
 
 interface OverrideRow {
   key: string;
@@ -56,6 +57,8 @@ export interface RuntimeSettingView {
   pending_restart: boolean;
   /** 저장된 override 를 기동 때 적용하지 않은 이유. null 이면 적용됐거나 override 가 없다. */
   override_ignored_reason: string | null;
+  /** 되돌리기 후 코드가 해석하는 실효값(부팅 직후 baseline). env 원문과 다를 수 있다. */
+  revert_target_value: string | null;
   /** 이 키의 최신 감사 event. 한 번도 바꾼 적이 없으면 null. */
   last_change: SettingLastChange | null;
 }
@@ -155,6 +158,7 @@ function toView(
       : null,
     pending_restart: definition.apply === 'restart' && baseline !== undefined && value !== baseline.boot,
     override_ignored_reason: ignoredReason,
+    revert_target_value: baseline?.boot ?? definition.defaultValue,
     last_change: lastChange,
   };
 }
@@ -295,6 +299,7 @@ export function setRuntimeSettingOverride(
     throw error;
   }
   ignoredOverrides.delete(input.key);
+  runSettingRuntimeReapply(definition.key);
   return { ok: true, setting: toView(definition, row, selectLastChange(db, input.key)) };
 }
 
@@ -320,6 +325,7 @@ export function revertRuntimeSettingOverride(db: Database.Database, input: Chang
   writeEnv(definition.key, env);
   definition.refresh();
   ignoredOverrides.delete(input.key);
+  runSettingRuntimeReapply(definition.key);
   return { ok: true, setting: toView(definition, undefined, selectLastChange(db, input.key)) };
 }
 

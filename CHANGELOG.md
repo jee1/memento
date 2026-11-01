@@ -16,6 +16,7 @@
 
 ### Fixed
 
+- Admin 설정 즉시 조정 3키(`SEARCH_REJECTION_GATE`, `CONSOLIDATION_JUDGE`, `SUPERSEDE_CANDIDATE_SCAN_ENABLED`)가 override 후 재기동 없이 검색 기각 게이트, 통합 판정기, 대체 후보 스캔 스케줄에 다시 묶입니다. 되돌리기 확인 창은 env 원문이 아니라 서버가 정규화한 실효값을 보여 줍니다 (#1599).
 - Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
 
 ## [2.3.6] - 2026-11-01

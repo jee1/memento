@@ -44,6 +44,8 @@
     noteStrong: '운영 동작에 직접 영향을 주는 설정입니다. 값과 사유를 다시 확인하세요.',
     noteRestart: '재기동 후 반영됩니다. 지금 실행 중인 프로세스에는 적용되지 않습니다.',
     noteRevert: '되돌리면 DB 값을 지우고 .env 또는 기본값으로 돌아갑니다.',
+    sameValuePin:
+      '현재 값과 같습니다. 화면 값과 같게 저장해도 DB override 는 만들지 않습니다(.env·기본값을 DB 에 고정하는 pin 은 지원하지 않음).',
     changedBy: function (actor, when) {
       return actor + ' (' + when + ')';
     },

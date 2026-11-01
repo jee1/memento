@@ -247,7 +247,7 @@ describe('runtime setting override (#1582)', () => {
 
     setRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', value: 'typesafe', actor: 'session:a', reason: '사유' });
     setRuntimeSettingOverride(db, { key: 'MEMENTO_REMEMBER_DEDUP_MODE', value: 'off', actor: 'session:a', reason: '사유' });
-    expect(pending()).toMatchObject({ SEARCH_REJECTION_GATE: true, MEMENTO_REMEMBER_DEDUP_MODE: false });
+    expect(pending()).toMatchObject({ SEARCH_REJECTION_GATE: false, MEMENTO_REMEMBER_DEDUP_MODE: false });
 
     revertRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', actor: 'session:a', reason: '사유' });
     expect(pending().SEARCH_REJECTION_GATE).toBe(false);
@@ -289,7 +289,7 @@ describe('runtime setting override (#1582)', () => {
     const gate = byKey().get('SEARCH_REJECTION_GATE_THRESHOLD')!;
     expect(gate).toMatchObject({ kind: 'number', range: { min: 0, max: 1 }, apply: 'immediate', risk: 'medium' });
     expect(gate.default_value).toBe(String(SETTING_REGISTRY.get('SEARCH_REJECTION_GATE_THRESHOLD')!.defaultValue));
-    expect(byKey().get('SEARCH_REJECTION_GATE')).toMatchObject({ allowed: ['off', 'typesafe', 'ollama'], apply: 'restart' });
+    expect(byKey().get('SEARCH_REJECTION_GATE')).toMatchObject({ allowed: ['off', 'typesafe', 'ollama'], apply: 'immediate' });
   });
 
   it('keeps mementoConfig identical when the override table is empty', async () => {
@@ -474,7 +474,7 @@ describe('runtime setting override (#1582)', () => {
       expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ source: 'override', pending_restart: false });
 
       setRuntimeSettingOverride(db, { key: 'CONSOLIDATION_JUDGE', value: 'typesafe', actor: 'session:a', reason: null });
-      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: true });
+      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: false });
     });
   });
 

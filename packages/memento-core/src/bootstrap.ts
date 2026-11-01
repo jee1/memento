@@ -82,6 +82,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       forgettingPolicyService,
       databaseOptimizer,
     } = createSearchEmbeddingAndOptimizerServices(db, repositories);
+    const { wireSettingRuntimeReapply } = await import('./bootstrap/setting-runtime-apply-wiring.js');
+    wireSettingRuntimeReapply(hybridSearchEngine);
     const errorLoggingService = new ErrorLoggingService();
     const { vectorSearchEngine, anchorManager, anchorSearchService } = await createAnchorStack(
       db,
@@ -200,5 +202,12 @@ export async function shutdownServices(services: ServerServices | null | undefin
     resetBatchScheduler();
   } catch (error) {
     logger.warn('BatchScheduler 싱글톤 리셋 실패', { error });
+  }
+
+  try {
+    const { unwireSettingRuntimeReapply } = await import('./bootstrap/setting-runtime-apply-wiring.js');
+    unwireSettingRuntimeReapply();
+  } catch (error) {
+    logger.warn('설정 재적용 훅 해제 실패', { error });
   }
 }

@@ -92,6 +92,7 @@ interface Setting {
   override: { value: string; updated_at: string; updated_by: string } | null;
   pending_restart: boolean;
   override_ignored_reason: string | null;
+  revert_target_value: string | null;
   last_change: { action: string; actor: string; reason: string | null; created_at: string } | null;
 }
 
@@ -109,6 +110,7 @@ const base = (overrides: Partial<Setting> & Pick<Setting, 'key'>): Setting => ({
   override: null,
   pending_restart: false,
   override_ignored_reason: null,
+  revert_target_value: null,
   last_change: null,
   ...overrides,
 });
@@ -128,13 +130,14 @@ const SETTINGS: Setting[] = [
     key: 'SEARCH_REJECTION_GATE',
     kind: 'enum',
     allowed: ['off', 'typesafe', 'ollama'],
-    apply: 'restart',
+    apply: 'immediate',
     risk: 'medium',
     value: 'typesafe',
     default_value: 'off',
+    revert_target_value: 'off',
     source: 'override',
     override: { ...OVERRIDE, value: 'typesafe' },
-    pending_restart: true,
+    pending_restart: false,
   }),
   base({
     key: 'SEARCH_REJECTION_GATE_THRESHOLD',
@@ -316,11 +319,10 @@ describe('dashboard settings panel', () => {
       expect(page.row('REFLEXION_OBSERVATION_ONLY').textContent).toContain('기본값');
     });
 
-    it('shows restart behavior and the pending badge only where it applies', () => {
+    it('shows immediate apply on the three hot-reload keys without a pending restart badge', () => {
       const gate = page.row('SEARCH_REJECTION_GATE').textContent;
-      expect(gate).toContain('재기동 필요');
-      expect(gate).toContain('재기동 대기');
-      expect(page.row('SUPERSEDE_APPLY_ENABLED').textContent).not.toContain('재기동');
+      expect(gate).toContain('즉시 반영');
+      expect(gate).not.toContain('재기동 대기');
     });
 
     it('shows a stored override that was not applied at boot instead of hiding it behind the effective value', () => {
@@ -384,7 +386,7 @@ describe('dashboard settings panel', () => {
       await page.init();
       edit(page, 'REFLEXION_OBSERVATION_ONLY', 'false');
       expect(page.el('settings-dialog').showModal).not.toHaveBeenCalled();
-      expect(page.el('settings-error').textContent).toContain('현재 값과 같습니다');
+      expect(page.el('settings-error').textContent).toContain('DB override');
       expect(page.writes()).toEqual([]);
     });
 
@@ -423,14 +425,14 @@ describe('dashboard settings panel', () => {
       ]);
     });
 
-    it('stresses medium and high risk, and restart keys, in the dialog', async () => {
+    it('stresses medium and high risk in the dialog without a restart note for immediate keys', async () => {
       const page = createHarness();
       await page.init();
       edit(page, 'SEARCH_REJECTION_GATE', 'off');
       const notes = page.el('settings-dialog-notes').children;
-      expect(notes.map((note) => note.className)).toEqual(['settings-note settings-note--strong', 'settings-note']);
+      expect(notes.map((note) => note.className)).toEqual(['settings-note settings-note--strong']);
       expect(notes[0]!.textContent).toContain('위험 중간');
-      expect(notes[1]!.textContent).toContain('재기동 후 반영');
+      expect(notes.some((note) => note.textContent.includes('재기동'))).toBe(false);
 
       edit(page, 'REFLEXION_OBSERVATION_ONLY', 'true');
       expect(page.el('settings-dialog-notes').children).toHaveLength(0);
@@ -448,6 +450,42 @@ describe('dashboard settings panel', () => {
       expect(page.el('settings-dialog-error').textContent).toBe('INVALID_VALUE: must be a decimal number');
       expect(page.el('settings-dialog').close).not.toHaveBeenCalled();
       expect(page.calls.length).toBe(before + 1);
+    });
+
+    it('reverts through the same dialog, showing the normalized baseline value instead of raw env', async () => {
+      const page = createHarness(({ method, url }) => {
+        if (method === 'GET' && url === '/admin/settings') {
+          return {
+            status: 200,
+            data: {
+              settings: [
+                base({
+                  key: 'SEARCH_REJECTION_GATE',
+                  kind: 'enum',
+                  allowed: ['off', 'typesafe', 'ollama'],
+                  apply: 'immediate',
+                  risk: 'medium',
+                  value: 'ollama',
+                  default_value: 'off',
+                  env_value: 'TypeSafe',
+                  revert_target_value: 'typesafe',
+                  source: 'override',
+                  override: { ...OVERRIDE, value: 'ollama' },
+                }),
+              ],
+              read_only: [],
+            },
+          };
+        }
+      });
+      await page.init();
+      page.button('SEARCH_REJECTION_GATE', '되돌리기')!.fire('click');
+
+      expect(page.el('settings-dialog-summary').textContent).toBe('ollama → typesafe');
+      await confirm(page, '원복');
+      expect(page.writes()).toEqual([
+        { method: 'POST', url: '/admin/settings/SEARCH_REJECTION_GATE/revert', body: { reason: '원복' } },
+      ]);
     });
 
     it('reverts through the same dialog, needing a reason, and shows the value it falls back to', async () => {
