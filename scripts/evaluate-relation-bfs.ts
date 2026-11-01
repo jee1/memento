@@ -64,7 +64,7 @@ export interface RelationBfsEvalReport {
   chosenHyperparams: RelationBfsHyperparams;
   dev: SplitReport;
   heldOut: SplitReport;
-  conclusion: 'do_not_expand' | 'marginal_gain_review' | 'inconclusive_harness';
+  conclusion: 'do_not_expand' | 'exploratory' | 'inconclusive_harness';
   conclusionReason: string;
   syntheticLimitation: string;
 }
@@ -130,8 +130,10 @@ export function decideConclusion(
     };
   }
   return {
-    conclusion: 'marginal_gain_review',
-    reason: `held-out Recall@10 delta=${gainHeld.toFixed(3)}, 회귀=${regressionCount}건`,
+    conclusion: 'exploratory',
+    reason:
+      `오염된 held-out: 1차 측정에서 held-out을 본 뒤 점수식·그리드·선택 규칙을 바꿨고 진단도 held-out 기준이었다. ` +
+      `held-out Recall@10 delta=${gainHeld.toFixed(3)}(참고용), 회귀@10=${regressionCount}건. 운영 확대 판단 없음.`,
   };
 }
 
@@ -229,8 +231,8 @@ export async function runRelationBfsEvaluation(
       ),
     );
 
-    for (const outcome of [...devBfs, ...heldBfs]) {
-      assertZeroSafetyViolations(outcome.safetyViolations, `bfs:${outcome.queryId}`);
+    for (const outcome of [...devA, ...devBfs, ...heldA, ...heldBfs]) {
+      assertZeroSafetyViolations(outcome.safetyViolations, `eval:${outcome.queryId}`);
     }
 
     await applyLatencies(devA, split.devQueryIds, 'a');
@@ -290,6 +292,17 @@ export async function runRelationBfsEvaluation(
 
 export function renderMarkdownReport(report: RelationBfsEvalReport): string {
   const hyper = report.chosenHyperparams;
+  const heldA = report.heldOut.hybridOnly.byCategory;
+  const heldB = report.heldOut.hybridWithBfs.byCategory;
+  const sfA = heldA.find((r) => r.category === 'single_fact')?.metrics;
+  const sfB = heldB.find((r) => r.category === 'single_fact')?.metrics;
+  const partialMetricRegression =
+    sfA && sfB
+      ? `| single_fact held-out | Recall@5 | ${sfA.recallAt5.toFixed(3)} | ${sfB.recallAt5.toFixed(3)} | ` +
+        `${sfB.recallAt5 >= sfA.recallAt5 ? '유지/상승' : '하락'} |\n` +
+        `| single_fact held-out | nDCG@10 | ${sfA.ndcgAt10.toFixed(3)} | ${sfB.ndcgAt10.toFixed(3)} | ` +
+        `${sfB.ndcgAt10 >= sfA.ndcgAt10 ? '유지/상승' : '하락'} |`
+      : '';
   return `# relation BFS 검색 효용 측정 (#1555 3단계)
 
 라벨: ${report.labelSource}
@@ -304,7 +317,15 @@ memory_relation 적재 건수(relations.jsonl): ${report.relationRowCount}
 
 \`${report.conclusion}\` — ${report.conclusionReason}
 
-운영 BFS 확대 여부는 본 PR에서 판단하지 않는다. 숫자는 fixture 재현용이다.
+운영 BFS 확대 여부는 본 PR에서 판단하지 않는다. 숫자는 fixture 재현용 탐색(exploratory) 결과다.
+
+## held-out 오염 (프로토콜)
+
+1차 측정에서 held-out split을 본 뒤 BFS 점수식·dev 그리드·\`pickBestHyperparamsOnDev\` 규칙·multi_hop 진단을 수정했다. 아래 held-out 표는 **오염된 held-out** 참고용이며, 깨끗한 held-out 일반화 주장에 쓰지 않는다.
+
+## 안전 (harness vs 운영)
+
+본 harness는 \`expandPoolWithBfs\`·\`filterHybridItemsForBfsArm\`·\`finalizeRanked\`에서 query별 forbidden·scope owner·삭제/교체 메타를 **반환 풀**에서 제거한다. 운영 \`relation-graph-traversal.ts\`의 \`getRelatedMemories\`와 hybrid recall 경로에는 동일 필터가 없다. fixture에서 safety violation 0( forbidden·foreign owner·deleted/교체 집계)은 **고정 fixture + harness 후처리**일 뿐 운영 안전성 증명이 아니다.
 
 ## 1차 측정이 multi_hop 0이었던 원인 (harness, 재측정 전)
 
@@ -322,6 +343,8 @@ memory_relation 적재 건수(relations.jsonl): ${report.relationRowCount}
 held-out multi_hop 17건: **hop_obs는 hybrid top-3 시드 17/17** (시드 3개에 출발 노드 누락 아님). BFS @10 hit **3/17**. 나머지는 2-hop gold가 merged pool에는 들어와도 동일 hybrid 점수대의 타 클러스터 \`hop_obs\`·trap·direct가 상위 30·@10을 채워 \`hop_ans\`가 밀린다.
 
 ## dev BFS 그리드 (held-out 미사용)
+
+dev 18조합 중 **h2/h3**, **s3/s5**, **l15~l35**는 multi_hop·overall R@10이 각각 동일해 판별력이 없다(동점 시 key tie-break).
 
 ${formatDevGridMarkdown(report.devGrid)}
 
@@ -348,6 +371,14 @@ ${formatMetricsTable(report.heldOut.hybridOnly.byCategory)}
 ${formatMetricsTable(report.heldOut.hybridWithBfs.byCategory)}
 
 회귀 query_id (A hit, B miss @10): ${report.heldOut.regressionQueryIdsAt10.length ? report.heldOut.regressionQueryIdsAt10.join(', ') : '없음'}
+
+### held-out @10 회귀 외 지표 (single_fact, 오염된 held-out)
+
+| slice | metric | hybrid | hybrid+BFS | 비고 |
+|---|---|---:|---:|---|
+${partialMetricRegression}
+
+지연은 warm-up 이후 쿼리별 A/B **교대** 재측정(\`measurePairedSearchLatencies\`) 값이다.
 
 ## 한계
 

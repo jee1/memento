@@ -7,6 +7,7 @@ import {
 import type { AggregateMetrics, CategorySliceMetrics } from './lib/relation-bfs-eval-metrics.js';
 import {
   scoreBfsCandidate,
+  pickBestHyperparamsOnDev,
   type DevGridRow,
 } from './lib/relation-bfs-eval-runner.js';
 
@@ -50,6 +51,38 @@ describe('evaluate-relation-bfs', () => {
     const a = metrics({ recallAt10: 0.8 });
     const b = metrics({ recallAt10: 0.78 });
     expect(decideConclusion(devGrid, chosen, a, b, 0).conclusion).toBe('do_not_expand');
+  });
+
+  it('decideConclusion returns exploratory when held-out gain is positive', () => {
+    const chosen = { maxHops: 2, maxSeeds: 5, bfsLimit: 35 };
+    const devGrid = [gridRow(0.25)];
+    const a = metrics({ recallAt10: 0.5, queryCount: 50 });
+    const b = metrics({ recallAt10: 0.56, queryCount: 50 });
+    const result = decideConclusion(devGrid, chosen, a, b, 0);
+    expect(result.conclusion).toBe('exploratory');
+    expect(result.reason).toContain('오염된 held-out');
+  });
+
+  it('pickBestHyperparamsOnDev prefers higher multi_hop Recall@10', () => {
+    const rows: DevGridRow[] = [
+      {
+        key: 'h1-s3-l15',
+        hyper: { maxHops: 1, maxSeeds: 3, bfsLimit: 15 },
+        multiHopRecallAt10: 0.125,
+        singleFactRecallAt10: 0.875,
+        irrelevantTrapRecallAt10: 1,
+        overallRecallAt10: 0.68,
+      },
+      {
+        key: 'h2-s3-l15',
+        hyper: { maxHops: 2, maxSeeds: 3, bfsLimit: 15 },
+        multiHopRecallAt10: 0.25,
+        singleFactRecallAt10: 1,
+        irrelevantTrapRecallAt10: 1,
+        overallRecallAt10: 0.76,
+      },
+    ];
+    expect(pickBestHyperparamsOnDev(rows).maxHops).toBe(2);
   });
 
   it('formatMetricsTable renders category rows', () => {

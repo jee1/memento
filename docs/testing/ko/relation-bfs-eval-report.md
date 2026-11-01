@@ -10,9 +10,17 @@ memory_relation 적재 건수(relations.jsonl): 205
 
 ## 결론
 
-`marginal_gain_review` — held-out Recall@10 delta=0.060, 회귀=0건
+`exploratory` — 오염된 held-out: 1차 측정에서 held-out을 본 뒤 점수식·그리드·선택 규칙을 바꿨고 진단도 held-out 기준이었다. held-out Recall@10 delta=0.060(참고용), 회귀@10=0건. 운영 확대 판단 없음.
 
-운영 BFS 확대 여부는 본 PR에서 판단하지 않는다. 숫자는 fixture 재현용이다.
+운영 BFS 확대 여부는 본 PR에서 판단하지 않는다. 숫자는 fixture 재현용 탐색(exploratory) 결과다.
+
+## held-out 오염 (프로토콜)
+
+1차 측정에서 held-out split을 본 뒤 BFS 점수식·dev 그리드·`pickBestHyperparamsOnDev` 규칙·multi_hop 진단을 수정했다. 아래 held-out 표는 **오염된 held-out** 참고용이며, 깨끗한 held-out 일반화 주장에 쓰지 않는다.
+
+## 안전 (harness vs 운영)
+
+본 harness는 `expandPoolWithBfs`·`filterHybridItemsForBfsArm`·`finalizeRanked`에서 query별 forbidden·scope owner·삭제/교체 메타를 **반환 풀**에서 제거한다. 운영 `relation-graph-traversal.ts`의 `getRelatedMemories`와 hybrid recall 경로에는 동일 필터가 없다. fixture에서 safety violation 0( forbidden·foreign owner·deleted/교체 집계)은 **고정 fixture + harness 후처리**일 뿐 운영 안전성 증명이 아니다.
 
 ## 1차 측정이 multi_hop 0이었던 원인 (harness, 재측정 전)
 
@@ -30,6 +38,8 @@ memory_relation 적재 건수(relations.jsonl): 205
 held-out multi_hop 17건: **hop_obs는 hybrid top-3 시드 17/17** (시드 3개에 출발 노드 누락 아님). BFS @10 hit **3/17**. 나머지는 2-hop gold가 merged pool에는 들어와도 동일 hybrid 점수대의 타 클러스터 `hop_obs`·trap·direct가 상위 30·@10을 채워 `hop_ans`가 밀린다.
 
 ## dev BFS 그리드 (held-out 미사용)
+
+dev 18조합 중 **h2/h3**, **s3/s5**, **l15~l35**는 multi_hop·overall R@10이 각각 동일해 판별력이 없다(동점 시 key tie-break).
 
 | key | maxHops | maxSeeds | bfsLimit | multi_hop R@10 | single_fact R@10 | trap R@10 | overall R@10 |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -58,17 +68,17 @@ held-out multi_hop 17건: **hop_obs는 hybrid top-3 시드 17/17** (시드 3개�
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 8 | 0.875 | 1.000 | 0.535 | 0.579 | 4.9 | 9.6 | 521.3 |
-| multi_hop | 8 | 0.000 | 0.000 | 0.000 | 0.000 | 5.4 | 7.7 | 722.6 |
-| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 4.2 | 8.6 | 463.2 |
+| single_fact | 8 | 0.875 | 0.875 | 0.706 | 0.706 | 6.0 | 7.7 | 500.9 |
+| multi_hop | 8 | 0.000 | 0.000 | 0.000 | 0.000 | 7.1 | 8.6 | 678.9 |
+| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 5.3 | 5.7 | 419.2 |
 
 ### hybrid + BFS
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 8 | 0.875 | 1.000 | 0.535 | 0.579 | 4.7 | 5.8 | 526.3 |
-| multi_hop | 8 | 0.125 | 0.250 | 0.048 | 0.086 | 5.4 | 6.1 | 718.5 |
-| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 4.0 | 4.3 | 464.6 |
+| single_fact | 8 | 1.000 | 1.000 | 0.760 | 0.760 | 6.3 | 7.0 | 524.6 |
+| multi_hop | 8 | 0.125 | 0.250 | 0.063 | 0.104 | 7.2 | 13.5 | 710.1 |
+| irrelevant_trap | 9 | 1.000 | 1.000 | 1.000 | 1.000 | 5.4 | 5.9 | 462.1 |
 
 회귀 query_id (A hit, B miss @10): 없음
 
@@ -78,19 +88,28 @@ held-out multi_hop 17건: **hop_obs는 hybrid top-3 시드 17/17** (시드 3개�
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 17 | 0.941 | 0.941 | 0.567 | 0.567 | 4.0 | 8.4 | 526.1 |
-| multi_hop | 17 | 0.000 | 0.000 | 0.000 | 0.000 | 4.6 | 11.5 | 723.8 |
-| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 3.4 | 4.8 | 464.7 |
+| single_fact | 17 | 0.941 | 0.941 | 0.768 | 0.768 | 5.9 | 7.3 | 507.1 |
+| multi_hop | 17 | 0.000 | 0.000 | 0.000 | 0.000 | 6.6 | 12.9 | 679.8 |
+| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 5.1 | 5.7 | 420.6 |
 
 ### hybrid + BFS
 
 | category | n | Recall@5 | Recall@10 | nDCG@5 | nDCG@10 | p50 ms | p95 ms | mean tokens |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| single_fact | 17 | 0.882 | 0.941 | 0.542 | 0.563 | 4.4 | 8.5 | 530.5 |
-| multi_hop | 17 | 0.059 | 0.176 | 0.029 | 0.065 | 4.8 | 7.9 | 717.9 |
-| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 3.8 | 4.3 | 464.2 |
+| single_fact | 17 | 0.941 | 0.941 | 0.761 | 0.761 | 6.2 | 11.6 | 529.4 |
+| multi_hop | 17 | 0.059 | 0.176 | 0.037 | 0.076 | 6.8 | 7.4 | 714.1 |
+| irrelevant_trap | 16 | 1.000 | 1.000 | 1.000 | 1.000 | 5.5 | 5.9 | 462.6 |
 
 회귀 query_id (A hit, B miss @10): 없음
+
+### held-out @10 회귀 외 지표 (single_fact, 오염된 held-out)
+
+| slice | metric | hybrid | hybrid+BFS | 비고 |
+|---|---|---:|---:|---|
+| single_fact held-out | Recall@5 | 0.941 | 0.941 | 유지/상승 |
+| single_fact held-out | nDCG@10 | 0.768 | 0.761 | 하락 |
+
+지연은 warm-up 이후 쿼리별 A/B **교대** 재측정(`measurePairedSearchLatencies`) 값이다.
 
 ## 한계
 

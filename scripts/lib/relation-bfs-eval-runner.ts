@@ -161,7 +161,7 @@ export async function expandPoolWithBfs(
   const graph = createRelationGraph(db);
   const byId = new Map<string, HybridSearchResult>();
   for (const item of hybridItems) {
-    byId.set(item.id, item);
+    byId.set(item.id, { ...item });
   }
   const seeds = hybridItems.slice(0, hyper.maxSeeds);
 
@@ -182,14 +182,14 @@ export async function expandPoolWithBfs(
       if (meta?.ownerId && meta.ownerId !== scopeOwnerId) {
         continue;
       }
-      if (meta?.isDeleted || meta.supersededByBenchmarkId) {
+      if (meta?.isDeleted || meta?.supersededByBenchmarkId) {
         continue;
       }
       const bfsScore = scoreBfsCandidate(seed.finalScore, rel.relation_path);
       const existing = byId.get(rel.memory_id);
       if (existing) {
         if (bfsScore > existing.finalScore) {
-          existing.finalScore = bfsScore;
+          byId.set(rel.memory_id, { ...existing, finalScore: bfsScore });
         }
         continue;
       }
@@ -251,10 +251,26 @@ export async function collectMergedPoolForQuery(
 function finalizeRanked(
   mergedItems: HybridSearchResult[],
   ctx: RelationBfsEvalContext,
+  queryRow: RelationKoPanelQueryRow,
 ): RankedBenchmarkResult[] {
+  const forbidden = new Set(ctx.forbiddenByQueryId.get(queryRow.query_id) ?? []);
   const mapped = mergedItems
     .map((item) => hybridItemToRanked(item, ctx.memoryIdToBenchmarkId, ctx.contentByBenchmarkId))
     .filter((row): row is RankedBenchmarkResult => row !== null)
+    .filter((row) => !forbidden.has(row.benchmarkId))
+    .filter((row) => {
+      const meta = ctx.safetyMetaByBenchmarkId.get(row.benchmarkId);
+      if (!meta) {
+        return true;
+      }
+      if (meta.ownerId && meta.ownerId !== queryRow.scope_owner_id) {
+        return false;
+      }
+      if (meta.isDeleted || meta.supersededByBenchmarkId) {
+        return false;
+      }
+      return true;
+    })
     .sort((a, b) => b.score - a.score);
   const trimmed = trimCandidatePool(mapped, ctx.constants.candidatePoolLimit);
   return selectWithinTokenBudget(trimmed, ctx.constants.tokenBudget);
@@ -268,15 +284,17 @@ export async function evaluateQueryHybridOnly(
   const { items, latencyMs } = cached
     ? { items: cached.items, latencyMs: 0 }
     : await runHybridSearch(ctx, queryRow);
-  const ranked = finalizeRanked(items, ctx);
+  const ranked = finalizeRanked(items, ctx, queryRow);
   const metaByBenchmark = new Map<string, MemorySafetyMeta>();
   for (const [id, meta] of ctx.safetyMetaByBenchmarkId) {
     metaByBenchmark.set(id, toSafetyMeta(meta));
   }
+  const forbidden = ctx.forbiddenByQueryId.get(queryRow.query_id) ?? [];
   const safetyViolations = countSafetyViolations(
     ranked.map((r) => r.benchmarkId),
     metaByBenchmark,
     queryRow.scope_owner_id,
+    forbidden,
   );
   return {
     queryId: queryRow.query_id,
@@ -308,15 +326,17 @@ export async function evaluateQueryHybridWithBfs(
   const bfsStarted = measureLatency ? performance.now() : 0;
   const merged = await collectMergedPoolForQuery(ctx, queryRow, hyper, items);
   const bfsMs = measureLatency ? performance.now() - bfsStarted : 0;
-  const ranked = finalizeRanked(merged, ctx);
+  const ranked = finalizeRanked(merged, ctx, queryRow);
   const metaByBenchmark = new Map<string, MemorySafetyMeta>();
   for (const [id, meta] of ctx.safetyMetaByBenchmarkId) {
     metaByBenchmark.set(id, toSafetyMeta(meta));
   }
+  const forbidden = ctx.forbiddenByQueryId.get(queryRow.query_id) ?? [];
   const safetyViolations = countSafetyViolations(
     ranked.map((r) => r.benchmarkId),
     metaByBenchmark,
     queryRow.scope_owner_id,
+    forbidden,
   );
   return {
     queryId: queryRow.query_id,

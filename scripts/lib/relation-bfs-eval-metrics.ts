@@ -179,10 +179,16 @@ export function countSafetyViolations(
   resultBenchmarkIds: readonly string[],
   metaByBenchmarkId: ReadonlyMap<string, MemorySafetyMeta>,
   scopeOwnerId: string,
+  forbiddenBenchmarkIds: readonly string[] = [],
 ): SafetyViolationCounts {
+  const forbidden = new Set(forbiddenBenchmarkIds);
+  let forbiddenInResults = 0;
   let foreignOwnerInResults = 0;
   let deletedOrSupersededInResults = 0;
   for (const id of resultBenchmarkIds) {
+    if (forbidden.has(id)) {
+      forbiddenInResults++;
+    }
     const meta = metaByBenchmarkId.get(id);
     if (!meta) {
       continue;
@@ -195,10 +201,10 @@ export function countSafetyViolations(
     }
   }
   return {
-    forbiddenInResults: 0,
+    forbiddenInResults,
     foreignOwnerInResults,
     deletedOrSupersededInResults,
-    total: foreignOwnerInResults + deletedOrSupersededInResults,
+    total: forbiddenInResults + foreignOwnerInResults + deletedOrSupersededInResults,
   };
 }
 

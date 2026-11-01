@@ -75,17 +75,19 @@ describe('relation-bfs-eval-metrics', () => {
       ['foreign', { benchmarkId: 'foreign', ownerId: 'owner_b', isDeleted: false, supersededBy: null }],
       ['deleted', { benchmarkId: 'deleted', ownerId: 'owner_a', isDeleted: true, supersededBy: null }],
       ['old', { benchmarkId: 'old', ownerId: 'owner_a', isDeleted: false, supersededBy: 'ok' }],
+      ['trap', { benchmarkId: 'trap', ownerId: 'owner_a', isDeleted: false, supersededBy: null }],
     ]);
     const counts = countSafetyViolations(
-      ['ok', 'foreign', 'deleted', 'old'],
+      ['ok', 'foreign', 'deleted', 'old', 'trap'],
       meta,
       'owner_a',
+      ['trap'],
     );
     expect(counts).toEqual({
-      forbiddenInResults: 0,
+      forbiddenInResults: 1,
       foreignOwnerInResults: 1,
       deletedOrSupersededInResults: 2,
-      total: 3,
+      total: 4,
     });
     expect(() => assertZeroSafetyViolations(counts, 'arm-b')).toThrow(/arm-b/);
     assertZeroSafetyViolations(
