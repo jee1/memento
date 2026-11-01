@@ -7,7 +7,10 @@
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import type { WebSocket } from 'ws';
-import { findAnchorMemorySummaryById, logger } from '@memento/core';
+import { findAnchorMemorySummaryById, logger, selectIdsInScope, type CallerMemoryScope } from '@memento/core';
+
+/** agent_id 별 구독 소켓과 각 소켓이 읽을 수 있는 기억 범위. */
+export type AnchorMapSubscribers = Map<string, Map<WebSocket, CallerMemoryScope>>;
 
 /**
  * Anchor Map 노드 타입
@@ -84,7 +87,8 @@ interface AnchorMapData {
 export async function buildAnchorMapData(
   db: Database.Database,
   serverServices: ServerServices,
-  agentId: string
+  agentId: string,
+  scope: CallerMemoryScope
 ): Promise<AnchorMapData> {
   const anchorManager = serverServices.anchorManager;
   if (!anchorManager) {
@@ -111,7 +115,8 @@ export async function buildAnchorMapData(
     anchorManager,
     agentId,
     anchorList,
-    serverServices.relationGraph
+    serverServices.relationGraph,
+    scope
   );
 
   return {
@@ -212,7 +217,8 @@ async function buildNetworkNodesAndLinks(
     created_at: string;
     updated_at: string;
   }>,
-  relationGraph: ServerServices['relationGraph']
+  relationGraph: ServerServices['relationGraph'],
+  scope: CallerMemoryScope
 ): Promise<{ nodes: AnchorMapNode[]; links: AnchorMapLink[] }> {
   const nodes: AnchorMapNode[] = [];
   const links: AnchorMapLink[] = [];
@@ -225,7 +231,7 @@ async function buildNetworkNodesAndLinks(
     if (!anchor.memory_id) continue;
 
     // 앵커 노드 추가
-    const anchorMemory = findAnchorMemorySummaryById(db, anchor.memory_id);
+    const anchorMemory = findAnchorMemorySummaryById(db, anchor.memory_id, scope);
 
     if (anchorMemory) {
       if (!nodeIds.has(anchor.memory_id)) {
@@ -248,7 +254,7 @@ async function buildNetworkNodesAndLinks(
           anchor.slot as 'A' | 'B' | 'C',
           undefined,
           slotConfig.hop_limit,
-          { limit: 50 }
+          { limit: 50, ...(scope.owner_id ? { owner_id: scope.owner_id } : {}) }
         );
 
         const anchorNode = nodes.find(n => n.id === anchor.memory_id);
@@ -259,7 +265,11 @@ async function buildNetworkNodesAndLinks(
         // hop 오름차순으로 경로 폐쇄성을 검증해, predecessor가 랭킹/limit/쿼리 필터로
         // 탈락한 hop≥2 노드는 부유(floating) 상태로 남기지 않고 제외한다 (#715 MEDIUM#2).
         // 노드 dedup과 별개로, 하나의 메모리로 여러 경로가 합류하면 edge는 모두 보존한다 (#715 MEDIUM#1).
-        const { reachableItems, edges } = resolvePathClosedItems(searchResult.items, anchor.memory_id);
+        const visible = selectIdsInScope(db, scope, searchResult.items.map(item => item.id));
+        const { reachableItems, edges } = resolvePathClosedItems(
+          searchResult.items.filter(item => visible.has(item.id)),
+          anchor.memory_id
+        );
 
         for (const item of reachableItems) {
           if (!nodeIds.has(item.id)) {
@@ -380,7 +390,7 @@ async function buildRelationLinks(
  * WebSocket 구독자에게 브로드캐스트
  */
 function broadcastToSubscribers(
-  subscribers: Set<WebSocket>,
+  subscribers: Iterable<WebSocket>,
   updateData: AnchorMapData
 ): void {
   for (const ws of subscribers) {
@@ -405,7 +415,7 @@ function broadcastToSubscribers(
 async function broadcastAnchorMapUpdate(
   db: Database.Database | null,
   serverServices: ServerServices | null,
-  anchorMapSubscribers: Map<string, Set<WebSocket>>,
+  anchorMapSubscribers: AnchorMapSubscribers,
   agentId: string
 ): Promise<void> {
   if (!anchorMapSubscribers.has(agentId) || anchorMapSubscribers.get(agentId)!.size === 0) {
@@ -417,12 +427,18 @@ async function broadcastAnchorMapUpdate(
       return;
     }
 
-    // Anchor Map 데이터 생성
-    const updateData = await buildAnchorMapData(db, serverServices, agentId);
-
-    // 구독자에게 브로드캐스트
+    // 같은 범위의 구독자끼리 묶어 범위마다 한 번 만든다.
     const subscribers = anchorMapSubscribers.get(agentId)!;
-    broadcastToSubscribers(subscribers, updateData);
+    const groups = new Map<string, { scope: CallerMemoryScope; sockets: WebSocket[] }>();
+    for (const [ws, scope] of subscribers) {
+      const key = JSON.stringify([scope.owner_id ?? null, scope.project_id ?? null]);
+      const group = groups.get(key) ?? { scope, sockets: [] };
+      group.sockets.push(ws);
+      groups.set(key, group);
+    }
+    for (const { scope, sockets } of groups.values()) {
+      broadcastToSubscribers(sockets, await buildAnchorMapData(db, serverServices, agentId, scope));
+    }
 
     logger.info('Anchor Map update broadcasted', {
       agentId,
@@ -453,7 +469,7 @@ export function subscribeAnchorMapBroadcast(
   anchorManager: ServerServices['anchorManager'] | null,
   getDb: () => Database.Database | null,
   getServices: () => ServerServices | null,
-  anchorMapSubscribers: Map<string, Set<WebSocket>>
+  anchorMapSubscribers: AnchorMapSubscribers
 ): () => void {
   if (!anchorManager || typeof anchorManager.onAnchorChanged !== 'function') {
     logger.warn('AnchorManager가 없어 Anchor Map 브로드캐스트를 연결하지 못했습니다');

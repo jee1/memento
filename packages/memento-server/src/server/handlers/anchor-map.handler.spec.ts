@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 
-import { listAnchorAgentIds, buildAnchorMapData } from './anchor-map.handler.js';
+import { listAnchorAgentIds, buildAnchorMapData, subscribeAnchorMapBroadcast, type AnchorMapSubscribers } from './anchor-map.handler.js';
 import type { ServerServices } from '../bootstrap.js';
 
 function createAnchorSchema(db: Database.Database): void {
@@ -76,7 +76,10 @@ function createMemoryItemSchema(db: Database.Database): void {
       content TEXT NOT NULL,
       type TEXT NOT NULL,
       importance REAL NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      owner_id TEXT,
+      project_id TEXT,
+      is_deleted INTEGER NOT NULL DEFAULT 0
     );
   `);
 }
@@ -157,7 +160,7 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     const sharedNodes = result.nodes.filter(n => n.id === 'mem-shared');
     expect(sharedNodes).toHaveLength(1);
@@ -202,7 +205,7 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     expect(getRelationsBatch).toHaveBeenCalledWith(
       expect.arrayContaining(['anchor-a', 'mem-neighbor']),
@@ -255,7 +258,7 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     expect(result.links.filter(l => l.type === 'link')).toHaveLength(1);
   });
@@ -289,7 +292,7 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     const pairLinks = result.links.filter(
       l => (l.source === 'anchor-a' && l.target === 'mem-neighbor') ||
@@ -327,7 +330,7 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     const serverServices = { anchorManager, relationGraph } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     expect(result.links.filter(l => l.type === 'link')).toHaveLength(0);
     expect(result.nodes.find(n => n.id === 'mem-not-on-map')).toBeUndefined();
@@ -348,7 +351,8 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
     const result = await buildAnchorMapData(
       db,
       { anchorManager, relationGraph } as unknown as ServerServices,
-      'default'
+      'default',
+      {}
     );
 
     expect(result.nodes.find(node => node.id === 'anchor-a')?.embedding_missing).toBe(true);
@@ -368,7 +372,8 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
     await expect(buildAnchorMapData(
       db,
       { anchorManager, relationGraph } as unknown as ServerServices,
-      'default'
+      'default',
+      {}
     )).rejects.toThrow('relation unavailable');
   });
 
@@ -386,7 +391,8 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
     await expect(buildAnchorMapData(
       db,
       { anchorManager, relationGraph } as unknown as ServerServices,
-      'default'
+      'default',
+      {}
     )).rejects.toThrow('relation search unavailable');
   });
 });
@@ -431,7 +437,7 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
 
     const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     expect(result.nodes.map(n => n.id).sort()).toEqual(['anchor-a', 'm1', 'm2']);
 
@@ -465,7 +471,7 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
 
     const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     expect(result.links.filter(l => l.type === 'hop')).toHaveLength(0);
     // 경로가 끊긴 hop≥2 노드는 부유(floating) 상태로 지도에 남지 않아야 함
@@ -499,7 +505,7 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
 
     const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     const xNodes = result.nodes.filter(n => n.id === 'x');
     expect(xNodes).toHaveLength(1);
@@ -527,10 +533,102 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
 
     const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
 
-    const result = await buildAnchorMapData(db, serverServices, 'default');
+    const result = await buildAnchorMapData(db, serverServices, 'default', {});
 
     const hopEdges = result.links.filter(l => l.type === 'hop');
     expect(hopEdges).toHaveLength(2);
     expect(hopEdges.find(l => l.source === 'm1' && l.target === 'm2')).toBeDefined();
+  });
+});
+
+describe('anchor map honours the subscriber scope', () => {
+  let db: Database.Database;
+
+  beforeEach(() => {
+    db = new Database(':memory:');
+    createMemoryItemSchema(db);
+    const insert = db.prepare(
+      `INSERT INTO memory_item (id, content, type, owner_id, project_id, is_deleted) VALUES (?, ?, 'episodic', ?, ?, ?)`
+    );
+    insert.run('anchor-a', 'anchor', 'agent-a', 'proj-1', 0);
+    insert.run('same-scope', 'same', 'agent-a', 'proj-1', 0);
+    insert.run('other-owner', 'other owner', 'agent-b', 'proj-1', 0);
+    insert.run('other-project', 'other project', 'agent-a', 'proj-2', 0);
+    insert.run('removed', 'removed', 'agent-a', 'proj-1', 1);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  function services(anchorMemoryId = 'anchor-a') {
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'agent-a', slot: 'A', memory_id: anchorMemoryId, created_at: 'now', updated_at: 'now' }],
+      {
+        A: ['same-scope', 'other-owner', 'other-project', 'removed'].map(id => ({
+          id, content: id, type: 'episodic', hop_distance: 1, similarity: 0.9,
+        })),
+      }
+    );
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockResolvedValue(new Map()),
+    } as unknown as ServerServices['relationGraph'];
+    return { anchorManager, relationGraph } as unknown as ServerServices;
+  }
+
+  const nodeIds = (data: { nodes: Array<{ id: string }> }) => data.nodes.map(node => node.id).sort();
+
+  it('keeps only live memories in the bound owner and project', async () => {
+    const serverServices = services();
+    const data = await buildAnchorMapData(db, serverServices, 'agent-a', { owner_id: 'agent-a', project_id: 'proj-1' });
+
+    expect(nodeIds(data)).toEqual(['anchor-a', 'same-scope']);
+    expect(vi.mocked(serverServices.anchorManager!.searchLocal).mock.calls[0]?.[4]).toMatchObject({ owner_id: 'agent-a' });
+  });
+
+  it('keeps every live memory for an unscoped caller', async () => {
+    const data = await buildAnchorMapData(db, services(), 'agent-a', {});
+
+    expect(nodeIds(data)).toEqual(['anchor-a', 'other-owner', 'other-project', 'same-scope']);
+  });
+
+  it('drops an anchor memory outside the scope', async () => {
+    const data = await buildAnchorMapData(db, services('other-owner'), 'agent-a', { owner_id: 'agent-a' });
+
+    expect(data.nodes).toEqual([]);
+  });
+
+  it('builds one map per subscriber scope when it broadcasts', async () => {
+    vi.useFakeTimers();
+    try {
+      let notify: (agentId: string) => void = () => {};
+      const serverServices = services();
+      const anchorManager = Object.assign(serverServices.anchorManager!, {
+        onAnchorChanged: (listener: (agentId: string) => void) => {
+          notify = listener;
+          return () => {};
+        },
+      });
+      const socket = () => ({ readyState: 1, send: vi.fn() });
+      const bound = socket();
+      const unbound = socket();
+      const subscribers: AnchorMapSubscribers = new Map([
+        ['agent-a', new Map([
+          [bound as never, { owner_id: 'agent-a', project_id: 'proj-1' }],
+          [unbound as never, {}],
+        ])],
+      ]);
+      subscribeAnchorMapBroadcast(anchorManager, () => db, () => serverServices, subscribers);
+
+      notify('agent-a');
+      await vi.runAllTimersAsync();
+
+      const sentIds = (ws: { send: ReturnType<typeof vi.fn> }) =>
+        nodeIds(JSON.parse(ws.send.mock.calls[0]?.[0] as string).data);
+      expect(sentIds(bound)).toEqual(['anchor-a', 'same-scope']);
+      expect(sentIds(unbound)).toEqual(['anchor-a', 'other-owner', 'other-project', 'same-scope']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

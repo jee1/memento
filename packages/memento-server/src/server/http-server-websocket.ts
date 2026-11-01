@@ -1,4 +1,5 @@
 import {
+  callerMemoryScope,
   getExposedTools,
   logger,
   type ApiScope,
@@ -14,6 +15,7 @@ import type { SessionStore } from './auth/session-store.js';
 import { recordWebSocketRequestAudit } from './middleware/http-audit.middleware.js';
 import { resolveAuthenticatedToken } from './middleware/programmatic-auth.middleware.js';
 import { DASHBOARD_SESSION_COOKIE_NAME, readCookie } from './middleware/session-auth.middleware.js';
+import type { AnchorMapSubscribers } from './handlers/anchor-map.handler.js';
 
 type WebSocketAuthConfig = {
   getSessionStore: () => SessionStore | null;
@@ -69,7 +71,7 @@ interface WebSocketMessage {
 
 export function setupWebSocketServer(
   wss: WebSocketServer,
-  anchorMapSubscribers: Map<string, Set<WebSocket>>,
+  anchorMapSubscribers: AnchorMapSubscribers,
   getDb: () => Database.Database | null,
   getServerServices: () => ServerServices | null,
   getBoundAgentId: (req: IncomingMessage) => string | undefined = () => undefined,
@@ -101,9 +103,9 @@ export function setupWebSocketServer(
           }
           const agentId = boundAgentId ?? requested ?? 'default';
           if (!anchorMapSubscribers.has(agentId)) {
-            anchorMapSubscribers.set(agentId, new Set<WebSocket>());
+            anchorMapSubscribers.set(agentId, new Map());
           }
-          anchorMapSubscribers.get(agentId)!.add(ws);
+          anchorMapSubscribers.get(agentId)!.set(ws, callerMemoryScope({ boundAgentId, boundProjectId }));
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             id: message.id,
