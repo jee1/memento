@@ -884,7 +884,7 @@ Content-Type: application/json
 
 ##### 대체 후보 승인과 복원 (#1551)
 
-`SUPERSEDE_APPLY_ENABLED=true` 일 때만 동작합니다. 기본은 꺼짐이며 꺼져 있으면 두 endpoint 모두 `403`(`code: SUPERSEDE_APPLY_DISABLED`)을 돌려주고 아무것도 쓰지 않습니다. 검색 레인은 아직 포인터를 읽지 않으므로 #1552 전에는 켜지 않습니다.
+`SUPERSEDE_APPLY_ENABLED=true` 일 때만 동작합니다. 기본은 꺼짐이며 꺼져 있으면 두 endpoint 모두 `403`(`code: SUPERSEDE_APPLY_DISABLED`)을 돌려주고 아무것도 쓰지 않습니다. 모든 읽기 경로의 현재성·역사 조회·성능 검증(#1552)을 마치기 전에는 켜지 않습니다.
 
 ```http
 POST /admin/memory/supersede-candidates/:id/apply
@@ -910,6 +910,8 @@ Content-Type: application/json
 - `409`: `already_superseded`(다른 승인이 먼저 포인터를 걸었다), `dangling_pointer`(포인터의 target 이 지워졌다. restore 로 먼저 정리한다), `cycle`, `input_changed`(판정 뒤 본문이 바뀌었다), `scope_mismatch`, `memory_deleted`, `verdict_not_applicable`(`compatible`), `pointer_changed`, `not_superseded`
 
 옛 기억은 포인터가 가리키는 기억이 살아 있을 때만 대체된 상태입니다. 그 기억이 지워지면 쓰기 없이 다시 현재가 됩니다. `memory_relation` 이나 `memory_link` 편집은 이 상태를 바꾸지 않습니다.
+
+#1552 1단계는 텍스트·LIKE·KNN·hybrid·임베딩 fallback 검색에서 이 상태를 후보 LIMIT 전에 적용합니다. 요청 필터가 없어도 적용하며, 대체 포인터가 모두 비었으면 반환 결과는 이전과 같습니다. ID 리소스·앵커·주입·이웃·통합 및 명시적 역사 조회의 계약은 후속 단계에서 검증합니다. 모든 읽기 경로 검증을 마치기 전에는 `SUPERSEDE_APPLY_ENABLED`를 켜지 않습니다.
 
 ##### 배치: 후보 선정·큐 갱신
 

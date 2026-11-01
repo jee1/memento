@@ -60,10 +60,11 @@ describe('executeKnnQuery scoped outer WHERE (#1386)', () => {
     expect(afterJoin).not.toMatch(/mi\.project_id\s*=/i);
   });
 
-  it('unscoped path still filters by model on the outer query', () => {
+  it('unfiltered requests apply current state and model before KNN LIMIT (#1552)', () => {
     const sql = captureKnnSql({}, { ...runtimeContext, modelFilter: 'test-model' });
-    expect(sql).not.toMatch(/rowid IN \(/i);
-    expect(sql).toMatch(/WHERE me\.model = \?/);
+    expect(sql).toMatch(/rowid IN \(/i);
+    expect(sql).toContain('scoped_mi.superseded_by');
+    expect(sql).toContain('scoped_me.model = ?');
   });
 
   it('uses 2-stage late materialization to aggregate top_k before joining wide memory_item columns (#1477)', () => {

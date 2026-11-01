@@ -89,7 +89,8 @@ export function initializeTestDatabase(db: Database.Database): void {
       project_id TEXT,
       work_record TEXT,
       is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
-      deleted_at TEXT
+      deleted_at TEXT,
+      superseded_by TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);

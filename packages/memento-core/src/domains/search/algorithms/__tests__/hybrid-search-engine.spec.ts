@@ -729,7 +729,8 @@ describe('HybridSearchEngine', () => {
           is_consolidated BOOLEAN DEFAULT FALSE,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT,
-          project_id TEXT
+          project_id TEXT,
+          superseded_by TEXT
         );
       `);
 
@@ -2245,7 +2246,8 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
           is_consolidated BOOLEAN DEFAULT FALSE,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT,
-          project_id TEXT
+          project_id TEXT,
+          superseded_by TEXT
         );
       `);
 

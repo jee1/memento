@@ -6,11 +6,13 @@ import type Database from 'better-sqlite3';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import type { MemorySearchFilters } from '../../../../shared/types/search.types.js';
+import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
+import { buildSearchStatement } from '../../algorithms/search-engine/search-engine-sql-builder.js';
 import { executeHybridQuery } from './vector-search-hybrid-query.js';
 import { executeKnnQuery } from './vector-search-knn-query.js';
 import { resolveRuntimeVectorContext } from './vector-search-runtime-context.js';
@@ -136,6 +138,51 @@ describe('#998 벡터 레인 필터 적용', () => {
     db = await initializeDatabase(join(tempDir, 'memory.db'));
     return db;
   }
+
+  it('unfiltered KNN/hybrid keep sparse fresh top-K before LIMIT (#1552)', async () => {
+    if (!vecAvailable) return;
+    const database = await openDb();
+    for (let i = 0; i < 70; i++) {
+      insertMemory(database, `stale-${i}`, 'supersede needle', unitVector(0));
+    }
+    for (let i = 0; i < 3; i++) {
+      insertMemory(database, `fresh-${i}`, 'supersede needle', partiallyAlignedVector(0));
+    }
+    database.prepare("UPDATE memory_item SET superseded_by = 'fresh-0' WHERE id LIKE 'stale-%'").run();
+    const lanes = runBothLanes(database, {}, 3);
+    expect(lanes.knnIds.sort()).toEqual(['fresh-0', 'fresh-1', 'fresh-2']);
+    expect(lanes.hybridIds.sort()).toEqual(['fresh-0', 'fresh-1', 'fresh-2']);
+    const hybridText = executeHybridQuery({
+      db: database, effectiveQueryVector: queryVector, textQuery: 'supersede',
+      runtimeContext: resolveRuntimeVectorContext(database, 'minilm'), scope: {},
+      options: executionOptions,
+    });
+    expect(hybridText.map(row => row.memory_id).sort()).toEqual(['fresh-0', 'fresh-1', 'fresh-2']);
+
+    const fallback = new MemoryEmbeddingService();
+    const embeddings = fallback.getUnifiedEmbeddingService();
+    const availableSpy = vi.spyOn(embeddings, 'isAvailable').mockReturnValue(true);
+    const embeddingSpy = vi.spyOn(embeddings, 'generateEmbedding').mockResolvedValue({
+      embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: MINILM_MODEL_NAME,
+    });
+    try {
+      const outcome = await fallback.searchBySimilarity(database, 'supersede', { limit: 3 });
+      expect(outcome.results.map(row => row.id).sort()).toEqual(['fresh-0', 'fresh-1', 'fresh-2']);
+    } finally {
+      availableSpy.mockRestore();
+      embeddingSpy.mockRestore();
+    }
+
+    for (const [searchQuery, preferFts] of [['supersede', true], ['supersede', false], ['', false]] as const) {
+      const { sql, params } = await buildSearchStatement({
+        db: database, searchQuery, preferFts, limit: 1, hasIdFilter: false,
+        checkFTS5Availability: async () => true, buildFTSQuery: query => query,
+        buildReflectionNotesSearchCondition: () => null,
+      });
+      const rows = database.prepare(sql).all(...params) as { id: string }[];
+      expect(rows.map(row => row.id).sort()).toEqual(['fresh-0', 'fresh-1', 'fresh-2']);
+    }
+  });
 
   it('procedural 검색은 더 가까운 episodic 관찰·후보를 LIMIT 전에 제외한다 (#1547)', async () => {
     if (!vecAvailable) return;

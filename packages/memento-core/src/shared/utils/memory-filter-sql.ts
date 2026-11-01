@@ -11,9 +11,21 @@ function toIsoTimestampParam(value: string): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
 }
 
+type MemoryItemSqlAlias = 'm' | 'mi' | 'scoped_m' | 'scoped_mi';
+
+/** #1551/#1552: direct live target only; deleting it revives its predecessor. */
+export function supersedeByActiveTargetSql(a: MemoryItemSqlAlias): string {
+  return `(${a}.superseded_by IS NOT NULL AND EXISTS (
+    SELECT 1 FROM memory_item supersede_target
+    WHERE
+      supersede_target.id = ${a}.superseded_by
+      AND COALESCE(supersede_target.is_deleted, 0) = 0
+  ))`;
+}
+
 interface MemoryFilterSqlOptions {
   /** memory_item 별칭 (예: 'm', 'mi', 'scoped_mi', 'scoped_m') */
-  itemAlias: string;
+  itemAlias: MemoryItemSqlAlias;
   /**
    * memory_embedding 별칭. 주면 #889 모델 필터 절을 함께 낸다.
    * 텍스트 레인처럼 임베딩 조인이 없는 곳에서는 생략한다.
@@ -138,7 +150,10 @@ export function buildMemoryFilterSql(
   filters: MemorySearchFilters | undefined,
   options: MemoryFilterSqlOptions
 ): FilterSql {
-  const out: FilterSql = { clauses: [], params: [] };
+  const out: FilterSql = {
+    clauses: [`NOT ${supersedeByActiveTargetSql(options.itemAlias)}`],
+    params: [],
+  };
   if (filters) {
     const a = options.itemAlias;
     appendIdentityClauses(out, filters, a);
@@ -154,9 +169,6 @@ export function buildMemoryFilterSql(
 
 /** 절이 하나라도 생기는지. 벡터 레인의 hasScopedCandidates 판단에 쓴다. */
 export function hasMemoryFilter(filters: MemorySearchFilters | undefined): boolean {
-  if (!filters) {
-    return false;
-  }
   const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm' });
   return clauses.length > 0;
 }
