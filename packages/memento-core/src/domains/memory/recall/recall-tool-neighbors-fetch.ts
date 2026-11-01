@@ -7,9 +7,12 @@ import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';
+import { callerMemoryScope } from '../../../tools/caller-scope.js';
 import type { RecallContext, RecallSearchItem } from './recall-tool-types.js';
+import type { ToolContext } from '../../../tools/types.js';
 
-export type RecallNeighborsContext = RecallContext<'vectorSearchEngine' | 'embeddingService'>;
+export type RecallNeighborsContext = RecallContext<'vectorSearchEngine' | 'embeddingService'> &
+  Pick<ToolContext, 'boundAgentId' | 'boundProjectId'>;
 
 /**
  * 자동 이웃 기억 포함 처리
@@ -53,7 +56,8 @@ export async function handleIncludeNeighbors(
 
       const neighborPromise = neighborService.getNeighbors(memoryId, {
         limit: neighborsPerItem,
-        similarity_threshold: neighborsSimilarityThreshold
+        similarity_threshold: neighborsSimilarityThreshold,
+        scope: callerMemoryScope(context),
       }).then(result => ({
         index,
         neighbors: result.neighbors

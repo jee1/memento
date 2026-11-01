@@ -35,7 +35,6 @@ import {
   injectReviewQueueBootIntoDashboardHtml,
   resolveReviewQueueDashboardBootFromEnv
 } from './review-queue-dashboard-boot.js';
-import type { WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
 import packageJson from '../../package.json' with { type: 'json' };
 import { resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
@@ -50,7 +49,7 @@ import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
 import { createMaintenanceRouter } from './routes/maintenance.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 import { createToolsRouter } from './routes/tools.routes.js';
-import { subscribeAnchorMapBroadcast } from './handlers/anchor-map.handler.js';
+import { subscribeAnchorMapBroadcast, type AnchorMapSubscribers } from './handlers/anchor-map.handler.js';
 import { createApiTokenRegistry } from './auth/api-token-registry.js';
 import {
   createAdminAuthMiddleware,
@@ -214,7 +213,7 @@ app.get('/health', (_req, res) => {
 });
 
 // WebSocket 클라이언트 관리 (Anchor Map 업데이트용)
-const anchorMapSubscribers = new Map<string, Set<WebSocket>>();
+const anchorMapSubscribers: AnchorMapSubscribers = new Map();
 
 // 앵커 변경 → Anchor Map 브로드캐스트 구독 해제 함수 (#866)
 let unsubscribeAnchorMapBroadcast: (() => void) | null = null;

@@ -22,6 +22,7 @@
 - 대체 후보 판정: `SUPERSEDE_CANDIDATE_SCAN_ENABLED=true`(기본 꺼짐)일 때 `supersede_candidate_scan` 배치가 같은 범위의 옛/새 기억 쌍을 확정/확인 대기/양립으로 분류해 `memory_supersede_candidate`(migration 059)에만 기록합니다. 기억은 바꾸지 않으며 입력 해시·출처·모델·프롬프트 버전을 남기고 429 를 받으면 그 run 을 멈춥니다. 평가 runner(`scripts/evaluate-supersede-candidates.ts`)는 있으나 실측은 미실행입니다 (#1548).
 - Reflexion: 기본 off인 `REFLEXION_OBSERVATION_ONLY`를 켜면 실패 관찰·미검증 후보를 고정 episodic으로 분리하고 기존 절차 갱신·자동 채택을 막습니다. 기존 회고는 그대로 조회합니다 (#1547).
 - 직접 대체 승인과 복원: `SUPERSEDE_APPLY_ENABLED=true`(기본 꺼짐)일 때 `POST /admin/memory/supersede-candidates/:id/apply` 가 확정 또는 확인 대기 후보 하나를 `memory_item.superseded_by`(migration 060) 포인터로 적용하고 `POST /admin/memory/items/:memory_id/supersede/restore` 가 되돌립니다. 포인터 변경과 `memory_supersede_event` 감사 사건(actor 는 대시보드 세션)은 한 트랜잭션이며 CAS 로 경쟁 승인, 순환, 판정 뒤 본문 변경, 범위 불일치를 거절합니다. target 이 지워지면 옛 기억은 쓰기 없이 다시 현재가 되고, 남은 포인터는 restore 로 정리해야 새 승인을 겁니다(`dangling_pointer`). 검색 레인은 아직 포인터를 읽지 않으므로 #1552 전에는 켜지 않습니다. Admin `:memory_id` 경로 파라미터는 접두 없는 UUID 기억도 받습니다 (#1551).
+- 절차 채택 회귀 게이트: `PROCEDURAL_EXECUTION_EVIDENCE_ENABLED=true`(기본 꺼짐)일 때 `recordProceduralExecution` 이 실행 결과를 절차 행 id, 기록 시점 본문 해시, 환경(environment, tool_version), case, replay/held_out 으로 `procedural_execution_evidence`(migration 061)에 남깁니다. 같은 `run_id` 는 한 번만 남습니다. `evaluateProceduralAdoption` 은 미검증 후보가 시리즈의 제공 버전이 같은 환경에서 성공한 case 를 실패하거나 빠뜨리거나, held-out 증거 없이 replay 만 있거나 held-out 을 한 번이라도 실패하면 통과시키지 않습니다. 같은 case 에 성공과 실패가 섞인 제공 버전 결과는 기준선 성공으로 세지 않고, workflow_name/skill_name 이 시리즈와 다른 후보는 판정하지 않습니다. 빈 환경/case 와 잘못된 kind 는 `invalid_input` 으로 거절하고, 증거 테이블은 트리거로 UPDATE/DELETE 를 막습니다. 다른 버전과 다른 환경, 기록 뒤 바뀐 본문의 결과와 helpful feedback 은 세지 않습니다. 판정만 돌려주고 기억은 바꾸지 않습니다. 호출 경로와 패키지 export 는 아직 없습니다 (#1550).
 
 ### Fixed
 
@@ -31,11 +32,13 @@
 - 품질 측정: 정답셋이 없을 때 precision/recall 0으로 기록하던 동작을 미측정 상태로 구분합니다. collector metadata·metric_states가 recorder·evaluator·리포트까지 유지됩니다 (#1560).
 - PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
 - Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
+- 이웃 조회(`recall` 의 `include_neighbors`, `get_memory_neighbors`), MCP `resources/list`·`resources/read`, WebSocket 앵커 맵 구독이 토큰에 묶인 owner, project 범위를 일관되게 적용하고 soft-delete 기억을 돌려주지 않습니다. 바인딩 없는 호출자는 기존과 같습니다.
 
 - 검색: 직접 대체된 기억을 텍스트·LIKE·KNN·hybrid·임베딩 fallback의 후보 LIMIT 전에 제외합니다. 무필터 검색의 현재 기억 top-K를 보존하며 대체 대상 삭제 시 원본을 다시 노출합니다. 매 요청의 partial index probe(migration 062)로 살아 있는 대체 포인터가 없고 범위 필터도 없으면 기존 벡터 SQL을 유지합니다. `filters.id`도 현재성 필터를 적용하며 역사 조회는 후속 단계에서 완성합니다. 적용 기능의 기본값은 계속 꺼짐입니다 (#1552 1단계).
 
 ### Changed
 
+- 설정과 로거: 런타임이 읽지 않던 검색 기본/최대 건수, 망각 계층별 TTL 4종, 로그 파일 경로 환경변수 7개를 설정 객체, 검증기, 템플릿, compose 화이트리스트, 문서에서 제거합니다. 일반 `logger.ts`(`logToStderr`)도 `mcp-logger.ts`와 함께 `LOG_LEVEL`(기본 `info`)을 따르도록 연결합니다. 기존 `.env`에 제거된 키가 남아도 기동에는 영향이 없습니다 (#1587).
 - 관계 추출 LLM 호출: provider 별로 갈려 있던 세 함수를 공용 chat LLM 포트(`@memento/core` `shared/services/chat-llm`)로 모읍니다. 출력 상한과 thinking 정책, provider 별 파라미터 이름이 어댑터 한 곳에 있습니다. `LLM_PROVIDER*`, `LLM_MODEL*` 환경변수 계약과 provider 선택 동작은 그대로입니다 (#1532).
 - 구조 문서: 패키지·의존·MCP 도구 등록의 정본을 `docs/agents/architecture.md`로 모으고, ko/en 아키텍처·`DEVELOPMENT_RULES`·`AGENTS.md`의 어긋난 수치·의존 화살표를 코드 기준으로 맞춥니다 (#1533).
 - 에이전트 지침: `.cursor/rules` 과잉을 `AGENTS.md`/`docs/agents` 포인터로 줄이고, 문서와 코드가 어긋난 gotcha·heal·랭킹 설명을 맞춥니다 (#1530).

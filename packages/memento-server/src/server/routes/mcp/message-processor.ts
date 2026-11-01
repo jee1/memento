@@ -6,7 +6,9 @@ import {
   findMemoryResourceRowById,
   listRecentMemoryResourceIds,
   MemoryNeighborService,
-  getVectorSearchEngine
+  getVectorSearchEngine,
+  callerMemoryScope,
+  type CallerMemoryScope
 } from '@memento/core';
 import {
   dispatchTool,
@@ -171,11 +173,11 @@ export async function processMcpMessage(
   }
 
   if (message.method === 'resources/list') {
-    return handleResourcesList(message, db);
+    return handleResourcesList(message, db, callerMemoryScope(auditContext));
   }
 
   if (message.method === 'resources/read') {
-    return handleResourcesRead(message, db, serverServices);
+    return handleResourcesRead(message, db, serverServices, callerMemoryScope(auditContext));
   }
 
   return createJsonRpcError(message.id, -32601, 'Method not found');
@@ -266,7 +268,8 @@ async function handleToolsCall(
 
 async function handleResourcesList(
   message: McpRequestMessage,
-  db: Database.Database | null
+  db: Database.Database | null,
+  scope: CallerMemoryScope
 ): Promise<JsonRpcResponse> {
   logger.info('MCP resources/list request processing');
   if (!db) {
@@ -274,7 +277,7 @@ async function handleResourcesList(
   }
 
   try {
-    const memories = listRecentMemoryResourceIds(db);
+    const memories = listRecentMemoryResourceIds(db, scope);
 
     return {
       jsonrpc: '2.0',
@@ -304,7 +307,8 @@ async function handleResourcesList(
 async function handleResourcesRead(
   message: McpRequestMessage,
   db: Database.Database | null,
-  serverServices: ServerServices | null
+  serverServices: ServerServices | null,
+  scope: CallerMemoryScope
 ): Promise<JsonRpcResponse> {
   logger.info('MCP resources/read request processing', { uri: message.params?.uri });
   const { uri } = message.params ?? {};
@@ -316,7 +320,7 @@ async function handleResourcesRead(
   }
 
   try {
-    const memoryData = await readMemoryResource(message.id, uri, db, serverServices);
+    const memoryData = await readMemoryResource(message.id, uri, db, serverServices, scope);
     if ('error' in memoryData) {
       return memoryData;
     }
@@ -350,7 +354,8 @@ async function readMemoryResource(
   requestId: unknown,
   uri: string,
   db: Database.Database,
-  serverServices: ServerServices | null
+  serverServices: ServerServices | null,
+  scope: CallerMemoryScope
 ): Promise<MemoryResourceData | JsonRpcResponse> {
   const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
   if (!uriMatch) {
@@ -362,7 +367,7 @@ async function readMemoryResource(
     return createJsonRpcError(requestId, -32602, 'Invalid params', `Invalid memory ID in URI: ${uri}`);
   }
 
-  const memory = findMemoryResourceRowById(db, memoryId);
+  const memory = findMemoryResourceRowById(db, memoryId, scope);
   if (!memory) {
     return createJsonRpcError(requestId, -32602, 'Invalid params', `Memory not found: ${memoryId}`);
   }
@@ -382,7 +387,7 @@ async function readMemoryResource(
 
   const queryString = uriMatch[2] || '';
   if (queryString.includes('include_neighbors=true')) {
-    await attachMemoryNeighbors(memoryData, memoryId, db, serverServices);
+    await attachMemoryNeighbors(memoryData, memoryId, db, serverServices, scope);
   }
   return memoryData;
 }
@@ -391,7 +396,8 @@ async function attachMemoryNeighbors(
   memoryData: MemoryResourceData,
   memoryId: string,
   db: Database.Database,
-  serverServices: ServerServices | null
+  serverServices: ServerServices | null,
+  scope: CallerMemoryScope
 ): Promise<void> {
   try {
     if (!serverServices) {
@@ -408,7 +414,8 @@ async function attachMemoryNeighbors(
     );
     const neighborsResult = await neighborService.getNeighbors(memoryId, {
       limit: 5,
-      similarity_threshold: 0.8
+      similarity_threshold: 0.8,
+      scope
     });
     memoryData.neighbors = neighborsResult.neighbors;
     memoryData.neighbors_count = neighborsResult.total_count;

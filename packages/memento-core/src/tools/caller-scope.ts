@@ -8,7 +8,7 @@
  */
 
 import type { ToolContext } from './types.js';
-import { selectIdsOwnedBy } from '../shared/utils/owned-ids.js';
+import { selectIdsOwnedBy, type CallerMemoryScope } from '../shared/utils/owned-ids.js';
 
 type ScopeContext = Pick<ToolContext, 'boundAgentId'>;
 type ProjectScopeContext = Pick<ToolContext, 'boundProjectId'>;
@@ -31,6 +31,17 @@ export function callerProjectClause(
   return context.boundProjectId
     ? { sql: ` AND ${column} IS ?`, params: [context.boundProjectId] }
     : { sql: '', params: [] };
+}
+
+/** Owner and project the caller is bound to; `{}` for unbound callers. */
+export function callerMemoryScope(context: {
+  boundAgentId?: string | null;
+  boundProjectId?: string | null;
+}): CallerMemoryScope {
+  return {
+    ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {}),
+    ...(context.boundProjectId ? { project_id: context.boundProjectId } : {}),
+  };
 }
 
 /** The subset of `ids` the caller owns. Unbound callers own every id. */

@@ -7,6 +7,7 @@ import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
+import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 
 export interface MemoryItemEntity {
   id: string;
@@ -217,6 +218,43 @@ export function compareAndClearSupersededBy(
   );
 }
 
+export interface ProcedureSubjectRow {
+  id: string;
+  type: string;
+  content: string;
+  steps: string | null;
+  ownerId: string | null;
+  projectId: string | null;
+  originSource: string | null;
+  workflowName: string | null;
+  skillName: string | null;
+}
+
+const PROCEDURE_SUBJECT_COLUMNS = `id, type, content, steps, owner_id AS ownerId, project_id AS projectId,
+  origin_source AS originSource, workflow_name AS workflowName, skill_name AS skillName`;
+
+/** #1550: 실행 증거를 붙이거나 채택 게이트가 읽는 활성 기억 한 건. */
+export function findActiveProcedureSubject(db: Database.Database, id: string): ProcedureSubjectRow | undefined {
+  return db
+    .prepare(`SELECT ${PROCEDURE_SUBJECT_COLUMNS} FROM memory_item WHERE id = ? AND COALESCE(is_deleted, 0) = 0`)
+    .get(id) as ProcedureSubjectRow | undefined;
+}
+
+/** #1550: 시리즈가 지금 제공하는 버전. 지워진 최신 버전은 건너뛴다. 시리즈 id 가 없는 v1 은 자기 id 가 시리즈다. */
+export function findServedProceduralVersion(
+  db: Database.Database,
+  versionSeriesId: string,
+): ProcedureSubjectRow | undefined {
+  return db
+    .prepare(
+      `SELECT ${PROCEDURE_SUBJECT_COLUMNS} FROM memory_item
+       WHERE type = 'procedural' AND COALESCE(is_deleted, 0) = 0
+         AND (version_series_id = ? OR (version_series_id IS NULL AND id = ?))
+       ORDER BY COALESCE(version, 1) DESC LIMIT 1`,
+    )
+    .get(versionSeriesId, versionSeriesId) as ProcedureSubjectRow | undefined;
+}
+
 /**
  * 대체 후보 탐색 대상: 삭제되지 않은 semantic/episodic 과 native 임베딩 하나(가장 최근 행).
  * 이미 대체된 기억은 뺀다. 벡터가 없는 기억은 쌍을 만들 수 없어 개수만 센다.
@@ -272,14 +310,16 @@ export function findSupersedeScopeMemories(
 export function findAnchorMemorySummaryById(
   db: Database.Database,
   id: string,
+  scope: CallerMemoryScope,
 ): AnchorMemorySummaryRow | undefined {
+  const caller = callerMemoryScopeSql(scope);
   return db
     .prepare(
       `SELECT id, content, type, importance, created_at
        FROM memory_item
-       WHERE id = ?`,
+       WHERE id = ? AND COALESCE(is_deleted, 0) = 0${caller.sql}`,
     )
-    .get(id) as AnchorMemorySummaryRow | undefined;
+    .get(id, ...caller.params) as AnchorMemorySummaryRow | undefined;
 }
 
 export function countActiveMemoryItems(db: Database.Database): number {
@@ -519,25 +559,31 @@ export function findMemoryProvenancePreviews(
 
 export function listRecentMemoryResourceIds(
   db: Database.Database,
+  scope: CallerMemoryScope,
 ): Array<{ id: string }> {
+  const caller = callerMemoryScopeSql(scope);
   return DatabaseUtils.all(
     db,
-    'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000',
+    `SELECT id FROM memory_item WHERE COALESCE(is_deleted, 0) = 0
+     ${caller.sql} ORDER BY created_at DESC LIMIT 1000`,
+    caller.params,
   ) as Array<{ id: string }>;
 }
 
 export function findMemoryResourceRowById(
   db: Database.Database,
   id: string,
+  scope: CallerMemoryScope,
 ): MemoryResourceRow | undefined {
+  const caller = callerMemoryScopeSql(scope);
   return DatabaseUtils.get(
     db,
     `SELECT
        id, type, content, importance, privacy_scope,
        tags, source, created_at, last_accessed, pinned
      FROM memory_item
-     WHERE id = ?`,
-    [id],
+     WHERE id = ? AND COALESCE(is_deleted, 0) = 0${caller.sql}`,
+    [id, ...caller.params],
   ) as MemoryResourceRow | undefined;
 }
 
