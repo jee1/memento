@@ -19,6 +19,7 @@ import {
   syncRelationExtractionProvider,
 } from '../../shared/config/relation-extraction-seat.js';
 import { parseRememberDedupMode } from '../../shared/utils/remember-dedup-config.js';
+import { getClusterJudgeThreshold, isClusterJudgeEnabled } from '../../shared/config/cluster-judge-config.js';
 
 export interface RuntimeSettingDefinition {
   readonly key: string;
@@ -34,6 +35,8 @@ export interface RuntimeSettingDefinition {
   readonly risk: 'low' | 'medium' | 'high';
   /** process.env 에서 mementoConfig 필드를 다시 계산한다. 코드가 process.env 를 직접 읽는 키는 비워 둔다. */
   readonly refresh: () => void;
+  /** 코드가 지금 쓰는 값의 정규 문자열. env 가 비정규거나 무효여도 실제로 해석된 값을 돌려준다. null 은 상위 설정을 따름. */
+  readonly current: () => string | null;
 }
 
 export interface ReadOnlySettingDefinition {
@@ -44,6 +47,11 @@ export interface ReadOnlySettingDefinition {
 }
 
 const readsEnvDirectly = (): void => {};
+
+function relationExtractionValue(override: MementoConfig['relationExtractionOverride']): string | null {
+  if (override.kind === 'chat') return override.provider;
+  return override.kind === 'jev' ? 'jev' : null;
+}
 const boolean = ['true', 'false'] as const;
 
 const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
@@ -58,6 +66,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.searchRejectionGate = resolveRejectionGateProvider();
     },
+    current: () => mementoConfig.searchRejectionGate,
   },
   {
     key: 'SEARCH_REJECTION_GATE_THRESHOLD',
@@ -70,6 +79,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.searchRejectionGateThreshold = resolveRejectionGateThreshold();
     },
+    current: () => String(mementoConfig.searchRejectionGateThreshold),
   },
   {
     key: 'SEARCH_REJECTION_GATE_ON_ERROR',
@@ -82,26 +92,29 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.searchRejectionGateOnError = resolveRejectionGateOnError();
     },
+    current: () => mementoConfig.searchRejectionGateOnError,
   },
   {
     key: 'CONSOLIDATION_JUDGE',
     kind: 'enum',
     allowed: ['off', 'typesafe'],
     defaultValue: 'off',
-    defaultSource: 'domains/consolidation/services/cluster-judge.ts',
+    defaultSource: 'shared/config/cluster-judge-config.ts isClusterJudgeEnabled',
     apply: 'restart',
     risk: 'low',
     refresh: readsEnvDirectly,
+    current: () => (isClusterJudgeEnabled() ? 'typesafe' : 'off'),
   },
   {
     key: 'CONSOLIDATION_JUDGE_THRESHOLD',
     kind: 'number',
     range: { min: 0, max: 1, minExclusive: true },
     defaultValue: '0.6',
-    defaultSource: 'domains/consolidation/services/cluster-judge.ts getClusterJudgeThreshold',
+    defaultSource: 'shared/config/cluster-judge-config.ts getClusterJudgeThreshold',
     apply: 'immediate',
     risk: 'low',
     refresh: readsEnvDirectly,
+    current: () => String(getClusterJudgeThreshold()),
   },
   {
     key: 'LLM_PROVIDER_RELATION_EXTRACTION',
@@ -117,6 +130,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
       mementoConfig.relationExtractionOverride = override;
       syncRelationExtractionProvider(mementoConfig.llmProviderOverrides, override);
     },
+    current: () => relationExtractionValue(mementoConfig.relationExtractionOverride),
   },
   {
     key: 'LLM_MODEL_RELATION_EXTRACTION',
@@ -129,6 +143,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.llmModelOverrides.relation_extraction = resolveOptionalString('LLM_MODEL_RELATION_EXTRACTION');
     },
+    current: () => mementoConfig.llmModelOverrides.relation_extraction ?? null,
   },
   {
     key: 'SUPERSEDE_CANDIDATE_SCAN_ENABLED',
@@ -139,6 +154,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     apply: 'restart',
     risk: 'low',
     refresh: readsEnvDirectly,
+    current: () => String(resolveBoolean('SUPERSEDE_CANDIDATE_SCAN_ENABLED', { defaultValue: false })),
   },
   {
     key: 'SUPERSEDE_APPLY_ENABLED',
@@ -151,6 +167,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.supersedeApplyEnabled = resolveBoolean('SUPERSEDE_APPLY_ENABLED', { defaultValue: false });
     },
+    current: () => String(mementoConfig.supersedeApplyEnabled),
   },
   {
     key: 'REFLEXION_OBSERVATION_ONLY',
@@ -163,6 +180,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.reflexionObservationOnly = resolveBoolean('REFLEXION_OBSERVATION_ONLY', { defaultValue: false });
     },
+    current: () => String(mementoConfig.reflexionObservationOnly),
   },
   {
     key: 'PROCEDURAL_EXTRACTION_STRATEGY',
@@ -175,6 +193,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.proceduralExtractionStrategy = resolveProceduralExtractionStrategy();
     },
+    current: () => mementoConfig.proceduralExtractionStrategy,
   },
   {
     key: 'MEMENTO_REMEMBER_DEDUP_MODE',
@@ -187,6 +206,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     refresh: () => {
       mementoConfig.rememberDedupMode = parseRememberDedupMode(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MODE'));
     },
+    current: () => mementoConfig.rememberDedupMode,
   },
 ];
 

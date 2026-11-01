@@ -8,6 +8,7 @@ const KEYS = ['REFLEXION_OBSERVATION_ONLY', 'SEARCH_REJECTION_GATE'] as const;
 describe('setting override across a process restart (#1582)', () => {
   let dir: string;
   const saved = new Map<string, string | undefined>();
+  const running: Array<() => Promise<void>> = [];
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'memento-settings-'));
@@ -17,7 +18,8 @@ describe('setting override across a process restart (#1582)', () => {
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    for (const stop of running.splice(0)) await stop();
     for (const key of KEYS) {
       const value = saved.get(key);
       if (value === undefined) delete process.env[key];
@@ -33,14 +35,15 @@ describe('setting override across a process restart (#1582)', () => {
     vi.stubEnv('BATCH_SCHEDULER_ENABLED', 'false');
     const core = await import('../../../index.js');
     const instance = await core.createMementoCore({ dbPath });
-    return {
-      core,
-      instance,
-      async stop() {
-        await (instance.services.batchScheduler as { stop(): Promise<void> } | undefined)?.stop();
-        core.closeDatabase(instance.db);
-      },
+    let stopped = false;
+    const stop = async () => {
+      if (stopped) return;
+      stopped = true;
+      await core.shutdownServices(instance.services);
+      core.closeDatabase(instance.db);
     };
+    running.push(stop);
+    return { core, instance, stop };
   }
 
   it('applies a stored override on the next start, with its source and restart status', async () => {

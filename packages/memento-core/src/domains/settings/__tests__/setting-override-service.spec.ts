@@ -348,4 +348,65 @@ describe('runtime setting override (#1582)', () => {
       expect(entry.value).toBeNull();
     }
   });
+
+  describe('config validation after an override (#1596 review)', () => {
+    it('refuses a value that offline strict mode forbids and leaves env, config and storage untouched', async () => {
+      const { mementoConfig, setRuntimeSettingOverride } = await load();
+      mementoConfig.offlineStrict = true;
+
+      for (const [key, value] of [
+        ['SEARCH_REJECTION_GATE', 'typesafe'],
+        ['LLM_PROVIDER_RELATION_EXTRACTION', 'openai'],
+      ] as const) {
+        const result = setRuntimeSettingOverride(db, { key, value, actor: 'session:a', reason: null });
+        expect(result, key).toMatchObject({ ok: false, code: 'INVALID_VALUE', message: expect.stringContaining('OFFLINE_STRICT') });
+        expect(process.env[key], key).toBeUndefined();
+      }
+      expect(mementoConfig.searchRejectionGate).toBe('off');
+      expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
+      expect(rows(db)).toEqual([]);
+      expect(events(db)).toEqual([]);
+
+      expect(setRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', value: 'ollama', actor: 'session:a', reason: null }))
+        .toMatchObject({ ok: true });
+    });
+
+    it('does not apply a stored override that offline strict mode forbids at boot', async () => {
+      db.prepare(
+        `INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES ('SEARCH_REJECTION_GATE', 'typesafe', 'now', 'session:a')`,
+      ).run();
+      const { mementoConfig, applyStoredSettingOverrides, listRuntimeSettings } = await load();
+      mementoConfig.offlineStrict = true;
+      const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+      applyStoredSettingOverrides(db);
+
+      expect(mementoConfig.searchRejectionGate).toBe('off');
+      expect(process.env.SEARCH_REJECTION_GATE).toBeUndefined();
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining('OFFLINE_STRICT'));
+      expect(listRuntimeSettings(db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE'))
+        .toMatchObject({ value: 'off', pending_restart: false });
+    });
+  });
+
+  describe('boot baseline from the parsed value (#1596 review)', () => {
+    it('shows what the code parsed from a non-canonical or invalid env and compares restart state against it', async () => {
+      process.env.SEARCH_REJECTION_GATE = ' TypeSafe ';
+      process.env.CONSOLIDATION_JUDGE = 'bogus';
+      const { applyStoredSettingOverrides, listRuntimeSettings, setRuntimeSettingOverride } = await load();
+      applyStoredSettingOverrides(db);
+      const view = (key: string) => listRuntimeSettings(db).settings.find((s) => s.key === key);
+
+      expect(view('SEARCH_REJECTION_GATE')).toMatchObject({ value: 'typesafe', source: 'env', env_value: 'TypeSafe', pending_restart: false });
+      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'off', source: 'env', env_value: 'bogus', pending_restart: false });
+
+      setRuntimeSettingOverride(db, { key: 'SEARCH_REJECTION_GATE', value: 'typesafe', actor: 'session:a', reason: null });
+      setRuntimeSettingOverride(db, { key: 'CONSOLIDATION_JUDGE', value: 'off', actor: 'session:a', reason: null });
+      expect(view('SEARCH_REJECTION_GATE')).toMatchObject({ source: 'override', pending_restart: false });
+      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ source: 'override', pending_restart: false });
+
+      setRuntimeSettingOverride(db, { key: 'CONSOLIDATION_JUDGE', value: 'typesafe', actor: 'session:a', reason: null });
+      expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: true });
+    });
+  });
 });

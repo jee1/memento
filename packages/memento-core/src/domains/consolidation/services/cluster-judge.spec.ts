@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createClusterJudge,
-  getClusterJudgeThreshold,
   JevClusterJudge
 } from './cluster-judge.js';
+import { getClusterJudgeThreshold } from '../../../shared/config/cluster-judge-config.js';
 
 const originalFetch = globalThis.fetch;
 
