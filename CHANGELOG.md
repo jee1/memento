@@ -33,6 +33,8 @@
 - PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
 - Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
 - 이웃 조회(`recall` 의 `include_neighbors`, `get_memory_neighbors`), MCP `resources/list`·`resources/read`, WebSocket 앵커 맵 구독이 토큰에 묶인 owner, project 범위를 일관되게 적용하고 soft-delete 기억을 돌려주지 않습니다. 바인딩 없는 호출자는 기존과 같습니다.
+- `search_local` 과 관계 도구(`get_relations`, `visualize_relations`, `extract_relations`, `add_relation`, `remove_relation`)가 토큰에 묶인 project 범위도 적용하고 soft-delete 기억을 결과, 후보, 연결 대상에서 뺍니다. 바인딩 없는 호출자는 soft-delete 제외만 달라집니다.
+- `export` 도구가 토큰에 묶인 owner, project 범위를 적용합니다. HTTP owner-scope 미들웨어와 감사 분류가 보던 도구 이름을 실제 등록명 `export` 로 맞추고(문서의 `/tools/export_memories` 도 `/tools/export` 로 정정), 바인딩 호출자의 소유 확인이 soft-delete 기억을 제외합니다.
 
 ### Changed
 

@@ -63,7 +63,7 @@ describe('auditActionForTool and assertToolScope units', () => {
   it('maps tool names to correct audit actions', () => {
     expect(auditActionForTool('recall')).toBe('read');
     expect(auditActionForTool('memory_injection')).toBe('read');
-    expect(auditActionForTool('export_memories')).toBe('read');
+    expect(auditActionForTool('export')).toBe('read');
     expect(auditActionForTool('search_local')).toBe('read');
     expect(auditActionForTool('get_status')).toBe('read');
     expect(auditActionForTool('list_anchors')).toBe('read');

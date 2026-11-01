@@ -9,7 +9,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import { convertMemoryRowToItem,isMemoryRow } from '../../../shared/utils/type-guards.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
-import { callerOwnerClause } from '../../../tools/caller-scope.js';
+import { callerVisibleClause } from '../../../tools/caller-scope.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
 import { relationToolError } from './relation-tool-response.js';
 
@@ -54,8 +54,8 @@ export class ExtractRelationsTool extends BaseTool {
   async handle(params: z.infer<typeof ExtractRelationsSchema>, context: ToolContext): Promise<ToolResult> {
     const { memory_id, force } = ExtractRelationsSchema.parse(params);
     const db = context.db;
-    // A bound caller extracts only between its own memories.
-    const ownerScope = callerOwnerClause(context);
+    // Candidates are live memories inside the caller's bound owner and project.
+    const ownerScope = callerVisibleClause(context);
 
     try {
       // Given: 메모리 존재 확인

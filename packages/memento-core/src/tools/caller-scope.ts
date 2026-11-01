@@ -8,7 +8,12 @@
  */
 
 import type { ToolContext } from './types.js';
-import { selectIdsOwnedBy, type CallerMemoryScope } from '../shared/utils/owned-ids.js';
+import {
+  callerMemoryScopeSql,
+  selectIdsInScope,
+  selectIdsOwnedBy,
+  type CallerMemoryScope,
+} from '../shared/utils/owned-ids.js';
 
 type ScopeContext = Pick<ToolContext, 'boundAgentId'>;
 type ProjectScopeContext = Pick<ToolContext, 'boundProjectId'>;
@@ -42,6 +47,22 @@ export function callerMemoryScope(context: {
     ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {}),
     ...(context.boundProjectId ? { project_id: context.boundProjectId } : {}),
   };
+}
+
+type VisibleScopeContext = Pick<ToolContext, 'boundAgentId' | 'boundProjectId'>;
+
+/** `AND <live> AND owner_id IS ? AND project_id IS ?` for `memory_item` rows the caller may read. */
+export function callerVisibleClause(context: VisibleScopeContext): { sql: string; params: string[] } {
+  const scope = callerMemoryScopeSql(callerMemoryScope(context));
+  return { sql: ` AND COALESCE(is_deleted, 0) = 0${scope.sql}`, params: scope.params };
+}
+
+/** The subset of `ids` that are live and inside the caller's bound owner and project. */
+export function filterCallerVisibleIds(
+  context: VisibleScopeContext & Pick<ToolContext, 'db'>,
+  ids: readonly string[],
+): Set<string> {
+  return selectIdsInScope(context.db, callerMemoryScope(context), ids);
 }
 
 /** The subset of `ids` the caller owns. Unbound callers own every id. */

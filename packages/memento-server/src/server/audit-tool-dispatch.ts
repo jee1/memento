@@ -98,7 +98,7 @@ class Semaphore {
 export function auditActionForTool(name: string): AuditAction {
   if (name === 'forget' || name === 'wipe_memory' || name.startsWith('remove_') || name.startsWith('delete_')) return 'delete';
   if (
-    name === 'recall' || name === 'memory_injection' || name === 'export_memories'
+    name === 'recall' || name === 'memory_injection' || name === 'export'
     || name.startsWith('get_') || name.startsWith('search_') || name.startsWith('list_')
   ) return 'read';
   return 'write';

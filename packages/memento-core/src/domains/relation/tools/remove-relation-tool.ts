@@ -6,14 +6,14 @@
 
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
-import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
+import { filterCallerVisibleIds } from '../../../tools/caller-scope.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { relationToolError } from './relation-tool-response.js';
 
 function ownsBothEnds(context: ToolContext, sourceId: string, targetId: string): boolean {
-  const owned = filterCallerOwnedIds(context, [sourceId, targetId]);
+  const owned = filterCallerVisibleIds(context, [sourceId, targetId]);
   return owned.has(sourceId) && owned.has(targetId);
 }
 

@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { callerOwnerClause, filterCallerOwnedIds } from '../../../tools/caller-scope.js';
+import { callerVisibleClause, filterCallerVisibleIds } from '../../../tools/caller-scope.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationVisualizer, type VisualizationOptions } from '../../../shared/utils/relation-visualizer.js';
 import { relationToolError } from './relation-tool-response.js';
@@ -93,7 +93,7 @@ export class VisualizeRelationsTool extends BaseTool {
 
     try {
       // Given: 메모리 존재 확인
-      const ownerScope = callerOwnerClause(context);
+      const ownerScope = callerVisibleClause(context);
       const memory = DatabaseUtils.get(db, `
         SELECT id FROM memory_item WHERE id = ?${ownerScope.sql}
       `, [parsed.memory_id, ...ownerScope.params]) as { id: string } | undefined;
@@ -113,7 +113,7 @@ export class VisualizeRelationsTool extends BaseTool {
         relationTypes: parsed.relation_types,
         minConfidence: parsed.min_confidence
       });
-      const owned = filterCallerOwnedIds(
+      const owned = filterCallerVisibleIds(
         context,
         allRelations.flatMap((relation) => [relation.source_id, relation.target_id]),
       );

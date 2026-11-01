@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { filterCallerOwnedIds, resolveCallerAgentId } from '../../../tools/caller-scope.js';
+import { callerMemoryScope, filterCallerVisibleIds, resolveCallerAgentId } from '../../../tools/caller-scope.js';
 
 const SearchLocalSchema = z.object({
   slot: z.enum(['A', 'B', 'C'], {
@@ -78,19 +78,16 @@ export class SearchLocalTool extends BaseTool {
       const parsed = SearchLocalSchema.parse(params);
       const { slot, query, hop_limit, limit, min_results, use_relations } = parsed;
       const agent_id = resolveCallerAgentId(context, parsed.agent_id);
-      // searchLocal scopes hops and fallbacks by owner before applying limit; kept as a boundary guard.
+      // searchLocal scopes hops and fallbacks before applying limit; kept as a boundary guard.
       const ownedItems = <T extends { id: string; predecessor_id?: string; predecessor_ids?: string[] }>(items: T[]): T[] => {
-        const owned = filterCallerOwnedIds(context, items.map((item) => item.id));
+        const owned = filterCallerVisibleIds(context, items.map((item) => item.id));
         const filtered = items.filter((item) => owned.has(item.id));
-        if (!context.boundAgentId) {
-          return filtered;
-        }
         const predIdsToVerify: string[] = [];
         for (const item of filtered) {
           if (item.predecessor_id) predIdsToVerify.push(item.predecessor_id);
           if (item.predecessor_ids) predIdsToVerify.push(...item.predecessor_ids);
         }
-        const ownedPreds = filterCallerOwnedIds(context, predIdsToVerify);
+        const ownedPreds = filterCallerVisibleIds(context, predIdsToVerify);
         return filtered.map((item) => {
           let predecessor_ids = item.predecessor_ids;
           let predecessor_id = item.predecessor_id;
@@ -126,7 +123,7 @@ export class SearchLocalTool extends BaseTool {
             limit,
             min_results,
             use_relations,
-            ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {})
+            ...callerMemoryScope(context)
           }
         );
         
@@ -154,7 +151,7 @@ export class SearchLocalTool extends BaseTool {
             const fallbackResult = await context.services.hybridSearchEngine.search(context.db, {
               query,
               limit,
-              ...(context.boundAgentId ? { filters: { owner_id: context.boundAgentId } } : {})
+              filters: callerMemoryScope(context)
             });
             const items = ownedItems(fallbackResult.items);
             

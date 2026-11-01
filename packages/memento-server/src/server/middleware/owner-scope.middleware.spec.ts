@@ -80,15 +80,15 @@ describe('createOwnerScopeMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('rejects /export_memories in strict mode without agentId or owner_id', () => {
-    const { res, next } = runMiddleware({ path: '/export_memories', body: { format: 'markdown' } });
+  it('rejects /export in strict mode without agentId or owner_id', () => {
+    const { res, next } = runMiddleware({ path: '/export', body: { format: 'markdown' } });
     expect(res.status).toHaveBeenCalledWith(400);
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('injects owner_id for /export_memories in strict mode with callerAgentId', () => {
+  it('injects owner_id for /export in strict mode with callerAgentId', () => {
     const body = { format: 'jsonl' };
-    const { next } = runMiddleware({ path: '/export_memories', body, callerAgentId: 'agent-export' });
+    const { next } = runMiddleware({ path: '/export', body, callerAgentId: 'agent-export' });
     expect(body.owner_id).toBe('agent-export');
     expect(next).toHaveBeenCalledOnce();
   });

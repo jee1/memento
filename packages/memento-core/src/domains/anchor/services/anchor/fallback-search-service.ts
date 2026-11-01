@@ -76,7 +76,14 @@ export class FallbackSearchService implements IFallbackSearchService {
         limit: limit,
         vectorWeight: options?.vector_weight,
         textWeight: options?.text_weight,
-        ...(options?.owner_id ? { filters: { owner_id: options.owner_id } } : {})
+        ...(options?.owner_id || options?.project_id
+          ? {
+              filters: {
+                ...(options.owner_id ? { owner_id: options.owner_id } : {}),
+                ...(options.project_id ? { project_id: options.project_id } : {}),
+              },
+            }
+          : {})
       });
 
       // 쿼리 관련성이 없는 항목은 fallback 으로 채우지 않는다 (#873).
