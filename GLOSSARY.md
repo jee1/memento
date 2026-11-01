@@ -113,3 +113,7 @@ _Avoid_: runtime config, config patch
 **Effective value (실효값)**:
 override, 기동 때 env(빈 문자열은 미설정), 코드 기본값 순으로 처음 값이 있는 것. 어느 층이 이겼는지는 `source`(`override`/`env`/`default`)로 함께 보인다. `apply: restart` 키는 실효값이 바뀌어도 만들어 둔 구성 요소가 그대로여서 재시작 전까지 `pending_restart` 다.
 _Avoid_: current setting, active value
+
+**Ranking weight proposal (랭킹 가중치 제안)**:
+대시보드에서 고른 랭킹 가중치를 `config/ranking-weights.toml` 의 patch 로만 저장한 한 건. 사유와 actor 가 남고 행은 고치지 않으며 미리보기 결과만 한 번 채운다. 운영 값은 patch 를 PR 로 머지하고 배포할 때만 바뀐다. 미리보기는 `split.json` 의 dev 쿼리만 쓴다.
+_Avoid_: ranking override, live weight change

@@ -115,6 +115,16 @@ effective_similarity = cosine_similarity × factor
 
 `k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `saturation_length`(기본 80) 이상이면 계수를 1로 자른다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다. #934 이전 nightly 픽스처에는 5,000자 초과 문서가 없어 길이 편향을 관측할 수 없었고, minilm 벤치마크의 임베딩 지평선(약 1,024자)과 달리 감쇠는 전체 `content.length`를 씁니다 — 계측기는 합성 장문 코퍼스와 `top10_len` 리포트로 그 괴리를 보이게 합니다. #961: `npm run quality -- benchmark length-decay-sweep` 으로 k×arm×subset 스윕과 `long10pct`(>2,000자 top-10 점유율)를 재실행 가능하게 진단합니다(게이트 아님; arm=`vector_dom`은 실효 vector≈0.8/text≈0.2).
 
+## 가중치 제안, 미리보기, PR (Issue #1584)
+
+대시보드 **랭킹 가중치** 탭(`GET/POST /admin/ranking/*`)은 가중치를 운영에 바로 반영하지 않습니다. 절차는 제안, 미리보기, PR 입니다.
+
+1. **제안.** 값을 고르고 사유를 적으면 `ranking_weight_proposal`(migration 064)에 patch 가 저장됩니다. 행은 고치지 않고 미리보기 결과만 한 번 채웁니다. patch 는 `applyRankingKnobChanges` 가 `config/ranking-weights.toml` 의 값 토큰만 바꿔 만들어 주석과 줄 순서를 보존합니다.
+2. **미리보기.** `npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'` 가 현재 파일과 제안 적용본을 `benchmark-v3/split.json` 의 `dev_query_ids` 로만 평가합니다. held-out 쿼리는 실행 자체를 하지 않습니다(`evaluateProfile` 의 `queryIds`). 분할은 `queries.json` 의 sha256 을 담고 있어 쿼리가 바뀌면 런너가 낡았다고 거절합니다. 평가는 `getRankingWeights()` 전역 캐시와 `MEMENTO_RANKING_WEIGHTS_PATH` 를 바꾸므로 서버 프로세스 안에서 부르지 않고 항상 별도 프로세스에서 돌립니다. 서버는 `RANKING_PREVIEW_ENABLED=true` 일 때만 자식 프로세스로 실행하며 운영 컨테이너(메모리 1GiB)에서는 끕니다. 시드 DB 는 코퍼스, manifest, 시드 코드, 임베딩 provider·모델이 키인 파일로 캐시합니다. 결과의 `tie_gate` 는 `tune-weights` 와 같은 relevance 동점 게이트(현재 + 0.005)입니다.
+3. **PR.** patch 를 받아 `git checkout -b ranking/<id 앞 8자> && git apply ranking-<id>.patch && git commit -am '...' && gh pr create --draft ...` 로 올립니다(API 가 명령을 만들어 줍니다). 머지와 배포 전까지 운영 값은 그대로입니다. 미리보기는 dev 기준이므로 held-out 결과는 PR 이 열린 뒤 CI 의 search-quality 검사가 봅니다.
+
+채택 계약 평가셋(`adoption-ko-panel-v1`)은 대체 게이트 계약용이라 랭킹 미리보기에 쓰지 않습니다.
+
 ## 런타임 가중치 재로드 (Issue #667)
 
 `β`·`γ` 같은 랭킹 계수는 `config/ranking-weights.toml`에서 읽히므로, 코드 배포 없이 TOML 파일만 수정해 계수를 바꿀 수 있습니다. 방법은 간단합니다. `MEMENTO_RANKING_WEIGHTS_PATH` 환경변수로 TOML 파일의 절대 경로를 지정하거나, 미설정 시에는 기본값인 `config/ranking-weights.toml`이 사용됩니다. 파일을 수정한 뒤에는 **Memento 프로세스를 재시작**해야 합니다. 가중치는 프로세스 기동 시 캐시되며 현재 hot reload는 지원하지 않습니다.

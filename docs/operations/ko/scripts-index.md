@@ -19,6 +19,7 @@
 | quality-benchmark-perf-smoke.ts | 1만 행 검색 p95·RSS 스모크 | `npm run quality -- benchmark perf-smoke` |
 | compare-weight-profiles.ts | 랭킹 프로파일 A/B 비교 (MRR·NDCG·permutation test) | `npm run quality -- benchmark compare-profiles` |
 | tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality -- benchmark tune-weights` |
+| ranking-preview.ts | 랭킹 가중치 제안 미리보기 (현재 값과 제안 값을 benchmark-v3 split 의 dev 쿼리로 비교, held-out 미실행) | `npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'` |
 | tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality -- benchmark tune-report` |
 | migrate-embedding-data.js | 임베딩 데이터 마이그레이션 | `npm run migrate:embedding`, `node scripts/migrate-embedding-data.js analyze`, `node scripts/migrate-embedding-data.js rollback` |
 | backup-memory-db.mjs | memory.db online backup (무인자 계약 유지) 및 backup backlog cleanup preview/apply | `npm run db:backup`, `npm run db:backup:cleanup`, `npm run db:backup:cleanup -- --apply` |

@@ -202,6 +202,12 @@ After starting the HTTP admin server (`npm run dev:http`) and signing in at `/da
 
 The **Settings** tab changes 12 feature flags and operating knobs without a restart. Each row shows the key, a description, the effective value, a source badge (DB, .env, default), the code default, the risk level, how the change applies (immediately or after a restart) and the last change (who, when). A row whose value comes from the DB or differs from the default carries a **differs from default** badge. **Change** opens a confirmation dialog with the old and new value, and the change is saved only with a reason. Medium and high risk keys get an emphasized warning, and restart keys say they apply after a restart. **Revert** on a row with a DB value uses the same dialog and reason. The history table below can be filtered by key. Secrets, infrastructure and the embedding model appear in a read-only list with the key and whether it is set; secret values never reach the page.
 
+## HTTP dashboard — Ranking weights tab
+
+The **Ranking weights** tab drafts a PR that changes the search ranking weights. A value never reaches production directly. For each knob the table shows the value the server loaded, the value in the file the server reads (**differs from file** when they disagree) and the allowed range, and you edit the **proposed value**. **Create proposal** opens a confirmation dialog with the changed values, and the proposal is saved only with a reason. The result area shows a preview table comparing the current and the proposed values on the dev queries of the fixed benchmark-v3 evaluation set (current, proposed and delta per metric, the per-category delta and the relevance tie gate). Held-out queries are not used to choose values. **Download patch** gives a patch that `git apply` accepts, and **Copy PR command** copies the commands from branch creation to `gh pr create --draft`. The production value changes after that PR is merged and deployed.
+
+Because of the container memory limit the production server does not run previews (`RANKING_PREVIEW_ENABLED` is off by default). The page then shows the CLI command to run on a development machine, for example `npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'`. The first run seeds the benchmark-v3 database and takes a few minutes; that database is cached in `MEMENTO_RANKING_PREVIEW_CACHE_DIR` (a temp directory by default) and later runs take seconds.
+
 ## Managing Memories
 
 ### Pinning and Unpinning

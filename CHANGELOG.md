@@ -17,6 +17,7 @@
 
 - 런타임 설정 override: 조정 가능한 12개 키를 DB override 로 얹고 `GET /admin/settings`, `PUT /admin/settings/:key`, `POST /admin/settings/:key/revert` 로 조회, 변경, 되돌립니다. 변경마다 이전/새 값, 세션 actor, 사유를 `setting_override_event`(migration 063)에 남기며 재시작 뒤에도 유지됩니다. 재시작이 필요한 키는 `pending_restart` 로 드러냅니다 (#1582).
 - Admin 대시보드 설정 탭: 조정 가능한 설정 12개의 실효값, 출처, 코드 기본값과의 차이, 마지막 변경을 보여 주고 사유를 받아 변경하고 되돌립니다. `GET /admin/settings/events` 로 변경 이력을 조회하며 변경과 되돌리기 API 는 사유가 필수입니다 (#1583).
+- Admin 랭킹 가중치 제안: 대시보드 랭킹 가중치 탭과 `GET /admin/ranking/weights`, `POST/GET /admin/ranking/proposals`, `GET .../:id/patch`, `POST .../:id/preview` 로 knob 13개의 제안을 `config/ranking-weights.toml` patch 로 저장합니다(`ranking_weight_proposal`, migration 064, 사유 필수, 행은 수정 불가). `npm run ranking:preview` 가 현재 값과 제안 값을 benchmark-v3 split 의 dev 쿼리로만 비교하고 held-out 은 실행하지 않습니다. 서버 미리보기는 `RANKING_PREVIEW_ENABLED=true` 일 때만 별도 프로세스로 실행하며 기본은 꺼짐입니다. 운영 값은 patch 를 PR 로 머지하고 배포할 때만 바뀝니다 (#1584).
 
 ### Fixed
 
