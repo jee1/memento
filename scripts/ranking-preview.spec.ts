@@ -69,6 +69,17 @@ describe('ranking-preview', () => {
     expect(second.proposed.ndcg_at_10).toBe(first.proposed.ndcg_at_10);
   });
 
+  it('원격 임베딩 provider 로는 시드하지 않는다', async () => {
+    process.env.EMBEDDING_PROVIDER = 'openai';
+    try {
+      await expect(runRankingPreview(argsFor({ 'recency_signal.scale': 0.25 }, join(work, 'cache-remote')))).rejects.toThrow(
+        /로컬 임베딩만/,
+      );
+    } finally {
+      process.env.EMBEDDING_PROVIDER = 'tfidf';
+    }
+  });
+
   it('queries.json 이 바뀐 split 은 낡았다고 거절한다', () => {
     const dir = join(work, 'stale');
     mkdirSync(dir, { recursive: true });

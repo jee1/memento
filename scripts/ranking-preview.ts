@@ -31,6 +31,8 @@ const DEFAULT_BENCHMARK_DIR = join(ROOT, 'tests/fixtures/search-quality/benchmar
 const DEFAULT_PROFILE = join(ROOT, 'config/ranking-weights.toml');
 // 캐시가 비었을 때 benchmark-v3 시드(실측 104초)가 시간 안에 들어와야 한다.
 const DEFAULT_TIMEOUT_MS = 300_000;
+// 시드가 코퍼스 전체를 임베딩하므로 원격 provider 면 외부 API 로 수천 건을 보낸다.
+const REMOTE_EMBEDDING_PROVIDERS = new Set(['openai', 'gemini']);
 
 export interface PreviewArgs {
   changes: Partial<Record<KnobKey, number>>;
@@ -210,6 +212,10 @@ function categoryReport(
 }
 
 export async function runRankingPreview(args: PreviewArgs): Promise<RankingPreviewResult> {
+  const provider = resolveBenchmarkEmbeddingProvider();
+  if (REMOTE_EMBEDDING_PROVIDERS.has(provider)) {
+    throw new Error(`미리보기는 로컬 임베딩만 씁니다. EMBEDDING_PROVIDER=${provider} 대신 minilm 으로 실행하세요`);
+  }
   const split = loadPreviewSplit(args.benchmarkDir, args.splitPath);
   const currentText = readFileSync(args.currentProfile, 'utf8');
   const proposedText = applyRankingKnobChanges(currentText, args.changes).text;
