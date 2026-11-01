@@ -18,6 +18,7 @@ import { parseMcpEraMode } from '../utils/mcp-era-mode.js';
 import { loadLlmProviderOverrideFromEnv } from './llm-provider-override.js';
 import {
   parseRelationExtractionOverride,
+  syncRelationExtractionProvider,
   warnInvalidRelationExtractionOverride,
 } from './relation-extraction-seat.js';
 import { resolveApiTokens } from './api-tokens.js';
@@ -49,9 +50,7 @@ const relationExtractionOverride = parseRelationExtractionOverride(
   getRawEnvValue('LLM_PROVIDER_RELATION_EXTRACTION'),
 );
 warnInvalidRelationExtractionOverride(relationExtractionOverride, llmProviderOverrideWarnedKeys);
-if (relationExtractionOverride.kind === 'chat') {
-  llmProviderOverrides.relation_extraction = relationExtractionOverride.provider;
-}
+syncRelationExtractionProvider(llmProviderOverrides, relationExtractionOverride);
 const proceduralProviderOverride = loadLlmProviderOverrideFromEnv(
   'LLM_PROVIDER_PROCEDURAL',
   getRawEnvValue('LLM_PROVIDER_PROCEDURAL'),
@@ -78,7 +77,7 @@ const embeddingDimensions: number =
  * #1095 기각 게이트 provider 파싱. 모르는 값은 경고 후 'off' 로 떨어뜨린다.
  * 게이트 오설정이 검색을 죽이면 안 되므로 예외를 던지지 않는다.
  */
-function resolveRejectionGateProvider(): MementoConfig['searchRejectionGate'] {
+export function resolveRejectionGateProvider(): MementoConfig['searchRejectionGate'] {
   const raw = (resolveString('SEARCH_REJECTION_GATE') || 'off').trim().toLowerCase();
   if (raw === 'off' || raw === 'typesafe' || raw === 'ollama') {
     return raw;
@@ -93,7 +92,7 @@ function resolveRejectionGateProvider(): MementoConfig['searchRejectionGate'] {
  * #1095 기각 임계값 파싱.
  * resolveNumber 는 Number.parseInt 를 쓰므로 0.5 가 0 으로 잘린다 — 반드시 parseFloat 를 써야 한다.
  */
-function resolveRejectionGateThreshold(): number {
+export function resolveRejectionGateThreshold(): number {
   const raw = resolveString('SEARCH_REJECTION_GATE_THRESHOLD');
   const parsed = Number.parseFloat(raw);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
@@ -107,7 +106,7 @@ function resolveRejectionGateThreshold(): number {
  * 기본이 'open' 인 이유: 'closed' 가 기본이면 WAF 가 막는 본문(코드펜스 + curl -s)을 가진
  * 기억이 자기 자신을 찾는 질의에서 영구히 0건이 된다.
  */
-function resolveRejectionGateOnError(): MementoConfig['searchRejectionGateOnError'] {
+export function resolveRejectionGateOnError(): MementoConfig['searchRejectionGateOnError'] {
   const raw = (resolveString('SEARCH_REJECTION_GATE_ON_ERROR') || 'open').trim().toLowerCase();
   if (raw === 'open' || raw === 'closed') {
     return raw;
@@ -116,6 +115,10 @@ function resolveRejectionGateOnError(): MementoConfig['searchRejectionGateOnErro
     `[config] SEARCH_REJECTION_GATE_ON_ERROR="${raw}" 는 알 수 없는 값이다. open 으로 처리한다. (open|closed)`
   );
   return 'open';
+}
+
+export function resolveProceduralExtractionStrategy(): MementoConfig['proceduralExtractionStrategy'] {
+  return getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first' ? 'llm_first' : 'rule_only';
 }
 
 export const mementoConfig: MementoConfig = {
@@ -194,9 +197,7 @@ export const mementoConfig: MementoConfig = {
   reflexionObservationOnly: resolveBoolean('REFLEXION_OBSERVATION_ONLY', { defaultValue: false }),
   /** Issue #1550: 절차 실행 증거 기록. 채택 게이트는 판정만 하고 기억을 바꾸지 않는다. */
   proceduralExecutionEvidenceEnabled: resolveBoolean('PROCEDURAL_EXECUTION_EVIDENCE_ENABLED', { defaultValue: false }),
-  proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
-    ? 'llm_first'
-    : 'rule_only') as 'llm_first' | 'rule_only',
+  proceduralExtractionStrategy: resolveProceduralExtractionStrategy(),
   proceduralLlmExtractorTimeoutMs: resolveNumber('PROCEDURAL_LLM_EXTRACTOR_TIMEOUT_MS', { defaultValue: 10000 }),
 
   // CORS: 허용 오리진 목록 (환경 변수 CORS_ALLOWED_ORIGINS 쉼표 구분, 비어 있으면 크로스 오리진 미허용)

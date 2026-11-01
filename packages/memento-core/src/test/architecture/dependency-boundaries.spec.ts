@@ -32,7 +32,7 @@ const FROZEN_SHARED_TO_INFRA_OR_SERVER_ALLOWLIST_SIZE = 0; // #1327: RetryManage
 // #1534: direction pairs include type-only and dynamic edges; order proves the frozen graph is a DAG.
 const DOMAIN_DEPENDENCY_ORDER = [
   'agent-integration', 'anchor', 'consolidation', 'personal-agent', 'monitoring',
-  'memory', 'forgetting', 'telemetry', 'search', 'relation', 'embedding',
+  'memory', 'forgetting', 'telemetry', 'search', 'relation', 'embedding', 'settings',
 ] as const;
 const DOMAIN_DIRECTION_ALLOWLIST: readonly AllowlistEntry[] = [
   { path: 'agent-integration→search', rationale: '주입 후보 검색' },

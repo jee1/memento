@@ -14,6 +14,7 @@ import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.rout
 import { registerAdminStatsAndHealthRoutes } from './admin/admin-stats-and-health.routes.js';
 import { registerAdminMemoryReviewRoutes } from './admin/admin-memory-review.routes.js';
 import { registerAdminMemorySupersedeRoutes } from './admin/admin-memory-supersede.routes.js';
+import { registerAdminSettingsRoutes } from './admin/admin-settings.routes.js';
 import { registerAdminMemorySearchRoutes } from './admin/admin-memory-search.routes.js';
 import { registerAdminBatchRoutes } from './admin/admin-batch.routes.js';
 import { registerAdminRuntimePerformanceRoutes } from './admin/admin-runtime-performance.routes.js';
@@ -39,6 +40,7 @@ export function createAdminRouter(
   registerAdminOpsSummaryRoutes(router, db, serverServices);
   registerAdminMemoryReviewRoutes(router, db);
   registerAdminMemorySupersedeRoutes(router, db);
+  registerAdminSettingsRoutes(router, db);
   registerAdminMemorySearchRoutes(router, db, serverServices);
   registerAdminBatchRoutes(router, db, serverServices);
   registerAdminRuntimePerformanceRoutes(router);

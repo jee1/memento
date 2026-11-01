@@ -800,6 +800,38 @@ Stage 1 of #1552 filters superseded candidates before LIMIT in text, LIKE, KNN, 
 
 Each vector request probes the non-null pointer partial index (migration 062). With no request filters and no live pointers, it retains the original unscoped SQL. Existing pointers continue to apply after the flag is switched off; target deletion and restoration take effect without a pointer-state cache. Run `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts` to assert the partial-index plan and an off/zero-pointer p95 ratio no greater than 1.15 against unscoped SQL.
 
+##### Runtime setting overrides (#1582)
+
+An operator can layer a DB override over the code defaults and `.env` for 12 adjustable settings. The effective value is the override, then the startup env (an empty string counts as unset), then the code default. The existing `/admin` auth applies. Secrets, infrastructure and the embedding model stay read-only.
+
+```http
+GET /admin/settings
+```
+
+Returns `{ "settings": [...], "read_only": [...] }`. Each `settings[]` item has `key`, `kind` (`enum`/`number`/`boolean`/`string`), `allowed` or `range`, `apply`, `risk`, the effective `value`, `source` (`override`/`env`/`default`), `default_value`, `default_source` (where the code default lives), `env_value`, `override` (`{ value, updated_at, updated_by }` or `null`) and `pending_restart`. A key with `apply: "restart"` leaves the component built at startup (search rejection gate, cluster judge, candidate scan schedule) unchanged, so it reports `pending_restart: true` until the next restart. The next start applies stored overrides before services are created. Each `read_only[]` item is `{ key, secret, set, value }`; `value` is always `null` when `secret` is `true`.
+
+```http
+PUT /admin/settings/:key
+Content-Type: application/json
+
+{ "value": "true", "reason": "observe only" }
+```
+
+Validates the value, writes the `setting_override` row and a `setting_override_event` (previous/new value, actor, reason, time) in one transaction, and returns the updated `settings[]` item. Sending the same value again returns `200` without an event. Values are the same canonical strings an env var takes: `true`/`false` for booleans, decimals for numbers. The actor comes from the authenticated dashboard session (`session:<16 hex>`), not the request body.
+
+```http
+POST /admin/settings/:key/revert
+Content-Type: application/json
+
+{ "reason": "rollback" }
+```
+
+Deletes the override row, records a `revert` event and returns to the startup env value (the code default when the env var is unset).
+
+- `400`: value outside the allowed range (`INVALID_VALUE`, the message names the range), or a `reason` over 1000 characters or not a string (`INVALID_REASON`)
+- `401`: no dashboard session (`SESSION_REQUIRED`)
+- `404`: key outside the registry or read-only (`UNKNOWN_SETTING`), no override to revert (`NO_OVERRIDE`)
+
 ##### Batch: select and upsert queue
 
 ```http
