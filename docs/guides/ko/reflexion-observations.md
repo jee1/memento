@@ -49,19 +49,22 @@ owner/project 필터와 토큰 바인딩은 기존 recall 계약을 따른다. �
 | `runId` | 실행 한 번의 id. 같은 값을 다시 보내면 `already_recorded`, 내용이 다르면 `run_id_conflict` |
 | `caseId`, `kind` | 실행한 작업 case와 `replay`/`held_out` 구분 |
 | `environment`, `toolVersion` | 고정 환경. 둘 다 필수다 |
+
+`runId`, `caseId`, `environment`, `toolVersion`이 비었거나 `kind`, `outcome`이 정한 값이 아니면 `invalid_input`으로 거절하고 아무것도 쓰지 않는다.
 | `outcome`, `detail` | `success`/`failure`와 원본 실행 근거(선택) |
 
-서버는 기록 시점의 행 본문과 steps 해시를 함께 남긴다. `procedural_execution_evidence`(migration 061)는 append-only이며 행이 지워져도 남도록 FK를 걸지 않는다.
+서버는 기록 시점의 행 본문과 steps 해시를 함께 남긴다. `procedural_execution_evidence`(migration 061)는 append-only이며 UPDATE와 DELETE를 트리거가 막는다. 또 행이 지워져도 남도록 FK를 걸지 않는다.
 
-`evaluateProceduralAdoption({ candidateMemoryId, versionSeriesId, environment, toolVersion })`은 후보와 시리즈의 [제공 버전](../../../GLOSSARY.md)을 같은 환경에서 비교한다. owner/project가 다르면 `scope_mismatch`로 판정하지 않는다. 아래 중 하나라도 해당하면 `passed: false`다.
+`evaluateProceduralAdoption({ candidateMemoryId, versionSeriesId, environment, toolVersion })`은 후보와 시리즈의 [제공 버전](../../../GLOSSARY.md)을 같은 환경에서 비교한다. owner/project가 다르면 `scope_mismatch`, 후보의 `workflow_name`과 `skill_name`이 모두 제공 버전과 다르면 `series_mismatch`로 판정하지 않는다. 아래 중 하나라도 해당하면 `passed: false`다.
 
 | reason | 조건 |
 |---|---|
-| `no_baseline_success` | 제공 버전이 이 환경에서 성공한 case가 없다 |
+| `no_baseline_success` | 제공 버전이 이 환경에서 실패 없이 성공한 case가 없다. 같은 case에 성공과 실패가 섞이면 기준선에서 뺀다 |
 | `regression` | 제공 버전이 성공한 case를 후보가 한 번이라도 실패했다 |
 | `missing_case` | 제공 버전이 성공한 case에 후보 결과가 없다 |
 | `replay_only` | 후보의 held-out 결과가 0건이다 |
+| `held_out_failure` | 후보가 held-out case를 한 번이라도 실패했다 |
 
-보고서는 replay와 held-out의 case 수와 통과 수를 따로 둔다. 소수 replay 통과를 held-out 결과로 합치지 않는다. 다른 버전과 다른 환경의 결과, 기록 뒤 본문이 바뀐 행의 결과(`staleEvidence`로 셈), `feedback`의 helpful은 세지 않는다. 그래서 옛 버전의 성공이 새 제공 버전의 기준선으로 넘어가지 않는다. 통과 비율 같은 임계값은 두지 않았다. held-out 결과를 보기 전에 정한 규칙(회귀 0, 누락 0, held-out 1건 이상)만 쓴다.
+보고서는 replay와 held-out의 case 수와 통과 수를 따로 둔다. 소수 replay 통과를 held-out 결과로 합치지 않는다. 다른 버전과 다른 환경의 결과, 기록 뒤 본문이 바뀐 행의 결과(`staleEvidence`로 셈), `feedback`의 helpful은 세지 않는다. 그래서 옛 버전의 성공이 새 제공 버전의 기준선으로 넘어가지 않는다. 통과 비율 같은 임계값은 두지 않았다. held-out 결과를 보기 전에 정한 규칙(회귀 0, 누락 0, held-out 1건 이상, held-out 실패 0)만 쓴다.
 
 게이트는 판정만 돌려준다. `memory_item`을 쓰지 않으므로 미검증 후보는 통과해도 procedural로 노출되지 않는다. 새 버전 채택은 사람이 판정을 보고 따로 한다. 채택 경로, 호출 경로(admin, MCP), 패키지 루트 export 는 아직 없다.

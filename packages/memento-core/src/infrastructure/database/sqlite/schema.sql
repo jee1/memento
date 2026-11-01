@@ -899,6 +899,16 @@ CREATE TABLE IF NOT EXISTS procedural_execution_evidence (
 );
 CREATE INDEX IF NOT EXISTS idx_procedural_execution_evidence_memory
   ON procedural_execution_evidence(memory_id, environment, tool_version);
+CREATE TRIGGER IF NOT EXISTS procedural_execution_evidence_prevent_update
+BEFORE UPDATE ON procedural_execution_evidence
+BEGIN
+  SELECT RAISE(ABORT, 'procedural_execution_evidence is append-only');
+END;
+CREATE TRIGGER IF NOT EXISTS procedural_execution_evidence_prevent_delete
+BEFORE DELETE ON procedural_execution_evidence
+BEGIN
+  SELECT RAISE(ABORT, 'procedural_execution_evidence is append-only');
+END;
 
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)

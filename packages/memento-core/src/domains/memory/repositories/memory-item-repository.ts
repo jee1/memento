@@ -232,10 +232,12 @@ export interface ProcedureSubjectRow {
   ownerId: string | null;
   projectId: string | null;
   originSource: string | null;
+  workflowName: string | null;
+  skillName: string | null;
 }
 
 const PROCEDURE_SUBJECT_COLUMNS = `id, type, content, steps, owner_id AS ownerId, project_id AS projectId,
-  origin_source AS originSource`;
+  origin_source AS originSource, workflow_name AS workflowName, skill_name AS skillName`;
 
 /** #1550: 실행 증거를 붙이거나 채택 게이트가 읽는 활성 기억 한 건. */
 export function findActiveProcedureSubject(db: Database.Database, id: string): ProcedureSubjectRow | undefined {

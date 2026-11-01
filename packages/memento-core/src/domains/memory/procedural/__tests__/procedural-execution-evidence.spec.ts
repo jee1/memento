@@ -19,12 +19,12 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     db = await setupTestDatabase();
     Object.assign(mementoConfig, { proceduralExecutionEvidenceEnabled: true });
     db.prepare(`INSERT INTO memory_item
-      (id, type, content, steps, version, version_series_id, owner_id, project_id)
-      VALUES (?, 'procedural', ?, ?, ?, ?, 'owner-a', 'project-a')`)
+      (id, type, content, steps, workflow_name, version, version_series_id, owner_id, project_id)
+      VALUES (?, 'procedural', ?, ?, 'deploy-flow', ?, ?, 'owner-a', 'project-a')`)
       .run('proc-v1', 'deploy', '["build","ship"]', 1, SERIES);
     db.prepare(`INSERT INTO memory_item
-      (id, type, content, steps, pinned, source, origin_source, owner_id, project_id)
-      VALUES ('cand', 'episodic', '[미검증 절차 후보: 실행·채택 금지] deploy', '["build","test","ship"]', 1,
+      (id, type, content, steps, workflow_name, pinned, source, origin_source, owner_id, project_id)
+      VALUES ('cand', 'episodic', '[미검증 절차 후보: 실행·채택 금지] deploy', '["build","test","ship"]', 'deploy-flow', 1,
       'reflexion', ?, 'owner-a', 'project-a')`)
       .run(JSON.stringify({ tool: 'reflexion', reflexion: { state: 'unverified_candidate', event_id: 'e1' } }));
   });
@@ -72,7 +72,7 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     expect(verdict.report.heldOut).toEqual({ cases: 0, passed: 0 });
   });
 
-  it('keeps replay passes apart from held-out results and refuses replay-only evidence', () => {
+  it('keeps replay passes apart from held-out results and refuses replay-only or failing held-out evidence', () => {
     record('proc-v1', 'base-1', { kind: 'replay' });
     for (const caseId of ['case-1', 'case-2', 'case-3']) {
       record('cand', `cand-${caseId}`, { caseId, kind: 'replay' });
@@ -85,18 +85,33 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     expect(replayOnly.report.heldOut).toEqual({ cases: 0, passed: 0 });
 
     record('cand', 'cand-held-1', { caseId: 'held-1' });
-    record('cand', 'cand-held-2', { caseId: 'held-2', outcome: 'failure' });
     const withHeldOut = judged(evaluate());
     expect(withHeldOut.passed).toBe(true);
-    expect(withHeldOut.report.replay).toEqual({ cases: 3, passed: 3 });
-    expect(withHeldOut.report.heldOut).toEqual({ cases: 2, passed: 1 });
+    expect(withHeldOut.report.heldOut).toEqual({ cases: 1, passed: 1 });
+
+    record('cand', 'cand-held-2', { caseId: 'held-2', outcome: 'failure' });
+    const heldOutFailure = judged(evaluate());
+    expect(heldOutFailure.passed).toBe(false);
+    expect(heldOutFailure.reasons).toEqual(['held_out_failure']);
+    expect(heldOutFailure.report.replay).toEqual({ cases: 3, passed: 3 });
+    expect(heldOutFailure.report.heldOut).toEqual({ cases: 2, passed: 1 });
+  });
+
+  it('does not count a case the served version both passed and failed as a baseline success', () => {
+    record('proc-v1', 'base-1');
+    record('proc-v1', 'base-1-fail', { outcome: 'failure' });
+    record('cand', 'cand-1');
+
+    const verdict = judged(evaluate());
+    expect(verdict.reasons).toEqual(['no_baseline_success']);
+    expect(verdict.report.baselineSuccessCases).toEqual([]);
   });
 
   it('does not attribute an older version success to the newly served version', () => {
     record('proc-v1', 'base-1');
     db.prepare(`INSERT INTO memory_item
-      (id, type, content, steps, version, version_series_id, owner_id, project_id)
-      VALUES ('proc-v2', 'procedural', 'deploy', '["build","lint","ship"]', 2, ?, 'owner-a', 'project-a')`)
+      (id, type, content, steps, workflow_name, version, version_series_id, owner_id, project_id)
+      VALUES ('proc-v2', 'procedural', 'deploy', '["build","lint","ship"]', 'deploy-flow', 2, ?, 'owner-a', 'project-a')`)
       .run(SERIES);
     record('cand', 'cand-1');
 
@@ -107,8 +122,8 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
   });
 
   it('serves a legacy v1 without a series id under its own id and skips a deleted newer version', () => {
-    db.prepare(`INSERT INTO memory_item (id, type, content, steps, owner_id, project_id)
-      VALUES ('legacy', 'procedural', 'deploy', '["ship"]', 'owner-a', 'project-a')`).run();
+    db.prepare(`INSERT INTO memory_item (id, type, content, steps, workflow_name, owner_id, project_id)
+      VALUES ('legacy', 'procedural', 'deploy', '["ship"]', 'deploy-flow', 'owner-a', 'project-a')`).run();
     db.prepare(`INSERT INTO memory_item
       (id, type, content, version, version_series_id, owner_id, project_id, is_deleted)
       VALUES ('proc-v2-deleted', 'procedural', 'deploy', 2, ?, 'owner-a', 'project-a', 1)`).run(SERIES);
@@ -128,7 +143,7 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     expect(verdict.report.staleEvidence).toBe(1);
   });
 
-  it('never writes memory_item, so an unverified candidate gains no active exposure', () => {
+  it('leaves memory_item untouched when the gate passes (no adoption path exists yet)', () => {
     const snapshot = () => db.prepare('SELECT * FROM memory_item ORDER BY id').all();
     const before = snapshot();
     record('proc-v1', 'base-1');
@@ -140,7 +155,7 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     expect(db.prepare("SELECT COUNT(*) AS n FROM memory_item WHERE type = 'procedural'").get()).toEqual({ n: 1 });
   });
 
-  it('does not count helpful feedback as execution success', () => {
+  it('ignores feedback_event rows because the gate reads only execution evidence', () => {
     record('proc-v1', 'base-1');
     const helpful = db.prepare("INSERT INTO feedback_event (memory_id, event, score) VALUES ('cand', 'helpful', 1)");
     helpful.run();
@@ -174,6 +189,22 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     db.prepare("INSERT INTO memory_item (id, type, content) VALUES ('plain', 'episodic', 'note')").run();
     expect(record('plain', 'r1')).toEqual({ kind: 'rejected', reason: 'not_procedure' });
     expect(record('missing', 'r2')).toEqual({ kind: 'rejected', reason: 'memory_not_found' });
+  });
+
+  it('rejects empty fixed-environment fields and unknown kinds without writing', () => {
+    for (const bad of [
+      { environment: '' }, { toolVersion: ' ' }, { caseId: '' }, { runId: '' },
+      { kind: 'live' as never }, { outcome: 'helpful' as never },
+    ]) {
+      const { runId = 'bad', ...rest } = bad as Partial<ProceduralExecutionInput>;
+      expect(record('cand', runId, rest)).toEqual({ kind: 'rejected', reason: 'invalid_input' });
+    }
+    expect(db.prepare('SELECT COUNT(*) AS n FROM procedural_execution_evidence').get()).toEqual({ n: 0 });
+  });
+
+  it('blocks a candidate proposed for a different workflow than the series', () => {
+    db.prepare("UPDATE memory_item SET workflow_name = 'backup-flow' WHERE id = 'cand'").run();
+    expect(evaluate()).toEqual({ kind: 'blocked', reason: 'series_mismatch' });
   });
 
   it('blocks a missing series, a candidate from another scope, and one that is not an unverified candidate', () => {

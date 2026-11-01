@@ -31,10 +31,18 @@ export interface ProceduralExecutionInput {
 export type ProceduralExecutionRecordOutcome =
   | { kind: 'recorded'; id: string }
   | { kind: 'already_recorded'; id: string }
-  | { kind: 'rejected'; reason: 'disabled' | 'memory_not_found' | 'not_procedure' | 'run_id_conflict' };
+  | {
+      kind: 'rejected';
+      reason: 'disabled' | 'invalid_input' | 'memory_not_found' | 'not_procedure' | 'run_id_conflict';
+    };
 
-export type AdoptionGateBlock = 'candidate_not_found' | 'candidate_not_unverified' | 'served_not_found' | 'scope_mismatch';
-export type AdoptionGateReason = 'no_baseline_success' | 'regression' | 'missing_case' | 'replay_only';
+export type AdoptionGateBlock =
+  | 'candidate_not_found'
+  | 'candidate_not_unverified'
+  | 'served_not_found'
+  | 'scope_mismatch'
+  | 'series_mismatch';
+export type AdoptionGateReason = 'no_baseline_success' | 'regression' | 'missing_case' | 'replay_only' | 'held_out_failure';
 
 export interface CaseTally {
   cases: number;
@@ -71,6 +79,27 @@ interface EvidenceRow {
   created_at: string;
 }
 
+const EXECUTION_KINDS: readonly string[] = ['replay', 'held_out'] satisfies ExecutionKind[];
+const EXECUTION_OUTCOMES: readonly string[] = ['success', 'failure'] satisfies ExecutionOutcome[];
+
+function isValidInput(input: ProceduralExecutionInput): boolean {
+  return (
+    [input.runId, input.caseId, input.environment, input.toolVersion].every(
+      (value) => typeof value === 'string' && value.trim() !== '',
+    ) &&
+    EXECUTION_KINDS.includes(input.kind) &&
+    EXECUTION_OUTCOMES.includes(input.outcome)
+  );
+}
+
+/** 후보가 이 시리즈를 고치려는 제안인지. 추출기가 쓰는 workflow_name 이나 skill_name 이 같아야 한다. */
+function proposesForSeries(candidate: ProcedureSubjectRow, served: ProcedureSubjectRow): boolean {
+  return (
+    (candidate.workflowName !== null && candidate.workflowName === served.workflowName) ||
+    (candidate.skillName !== null && candidate.skillName === served.skillName)
+  );
+}
+
 const PAYLOAD_FIELDS = [
   'memory_id', 'content_sha256', 'case_id', 'kind', 'environment', 'tool_version', 'outcome', 'detail',
 ] as const;
@@ -96,6 +125,9 @@ export function recordProceduralExecution(
 ): ProceduralExecutionRecordOutcome {
   if (!mementoConfig.proceduralExecutionEvidenceEnabled) {
     return { kind: 'rejected', reason: 'disabled' };
+  }
+  if (!isValidInput(input)) {
+    return { kind: 'rejected', reason: 'invalid_input' };
   }
   const subject = findActiveProcedureSubject(db, input.memoryId);
   if (!subject) {
@@ -154,7 +186,7 @@ function currentEvidence(db: Database.Database, subject: ProcedureSubjectRow, en
   return { current, stale: rows.length - current.length };
 }
 
-/** case 마다 성공 기록과 실패 기록이 있었는지. 실패가 한 번이라도 있으면 통과가 아니다. */
+/** case 마다 성공 기록과 실패 기록이 있었는지. 실패가 한 번이라도 있으면 통과나 기준선 성공이 아니다. */
 function summarizeCases(rows: EvidenceRow[]): Map<string, { succeeded: boolean; failed: boolean }> {
   const cases = new Map<string, { succeeded: boolean; failed: boolean }>();
   for (const row of rows) {
@@ -193,12 +225,15 @@ export function evaluateProceduralAdoption(
   if (served.ownerId !== candidate.ownerId || served.projectId !== candidate.projectId) {
     return { kind: 'blocked', reason: 'scope_mismatch' };
   }
+  if (!proposesForSeries(candidate, served)) {
+    return { kind: 'blocked', reason: 'series_mismatch' };
+  }
 
   const baseline = currentEvidence(db, served, input);
   const proposed = currentEvidence(db, candidate, input);
   const proposedCases = summarizeCases(proposed.current);
   const baselineSuccessCases = [...summarizeCases(baseline.current)]
-    .filter(([, entry]) => entry.succeeded)
+    .filter(([, entry]) => entry.succeeded && !entry.failed)
     .map(([caseId]) => caseId)
     .sort();
   const report: AdoptionGateReport = {
@@ -216,5 +251,6 @@ export function evaluateProceduralAdoption(
   if (report.regressions.length > 0) reasons.push('regression');
   if (report.missingCases.length > 0) reasons.push('missing_case');
   if (report.heldOut.cases === 0) reasons.push('replay_only');
+  if (report.heldOut.passed < report.heldOut.cases) reasons.push('held_out_failure');
   return { kind: 'judged', passed: reasons.length === 0, reasons, report };
 }

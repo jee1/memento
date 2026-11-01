@@ -23,6 +23,8 @@ const shape = (db: Database.Database) => ({
   foreignKeys: db.prepare('PRAGMA foreign_key_list(procedural_execution_evidence)').all(),
   indexes: db.prepare(`SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='procedural_execution_evidence'
     AND name NOT LIKE 'sqlite_autoindex%' ORDER BY name`).all(),
+  triggers: db.prepare(`SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='procedural_execution_evidence'
+    ORDER BY name`).all(),
 });
 
 describe('061-procedural-execution-evidence', () => {
@@ -41,14 +43,24 @@ describe('061-procedural-execution-evidence', () => {
     db.close();
   });
 
-  it('matches schema.sql columns and indexes', async () => {
+  it('refuses UPDATE and DELETE so the evidence stays append-only', async () => {
+    const db = new Database(':memory:');
+    await new ProceduralExecutionEvidenceMigration().up(db);
+    insert(db);
+    expect(() => db.prepare("UPDATE procedural_execution_evidence SET outcome = 'failure'").run()).toThrow(/append-only/);
+    expect(() => db.prepare('DELETE FROM procedural_execution_evidence').run()).toThrow(/append-only/);
+    expect(db.prepare('SELECT outcome FROM procedural_execution_evidence').all()).toEqual([{ outcome: 'success' }]);
+    db.close();
+  });
+
+  it('matches schema.sql columns, indexes and triggers', async () => {
     const fromMigration = new Database(':memory:');
     await new ProceduralExecutionEvidenceMigration().up(fromMigration);
     const fromSchema = new Database(':memory:');
     const statements = schemaSql.match(
-      /CREATE (?:TABLE|INDEX) IF NOT EXISTS (?:procedural_execution_evidence|idx_procedural_execution_evidence_\w+)[\s\S]*?;/g,
+      /CREATE (?:TABLE|INDEX) IF NOT EXISTS (?:procedural_execution_evidence|idx_procedural_execution_evidence_\w+)[\s\S]*?;|CREATE TRIGGER IF NOT EXISTS procedural_execution_evidence_\w+[\s\S]*?END;/g,
     );
-    expect(statements).toHaveLength(2);
+    expect(statements).toHaveLength(4);
     fromSchema.exec(statements!.join('\n'));
     expect(shape(fromSchema)).toEqual(shape(fromMigration));
     fromMigration.close();

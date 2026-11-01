@@ -3,6 +3,7 @@
  * Version: 61.0
  *
  * 실행 증거는 실행한 절차 행이 지워져도 남도록 memory_item 에 FK 를 걸지 않는다.
+ * UPDATE 와 DELETE 는 트리거가 막는다(append-only).
  */
 
 import type Database from 'better-sqlite3';
@@ -32,6 +33,16 @@ export class ProceduralExecutionEvidenceMigration implements Migration {
       );
       CREATE INDEX IF NOT EXISTS idx_procedural_execution_evidence_memory
         ON procedural_execution_evidence(memory_id, environment, tool_version);
+      CREATE TRIGGER IF NOT EXISTS procedural_execution_evidence_prevent_update
+      BEFORE UPDATE ON procedural_execution_evidence
+      BEGIN
+        SELECT RAISE(ABORT, 'procedural_execution_evidence is append-only');
+      END;
+      CREATE TRIGGER IF NOT EXISTS procedural_execution_evidence_prevent_delete
+      BEFORE DELETE ON procedural_execution_evidence
+      BEGIN
+        SELECT RAISE(ABORT, 'procedural_execution_evidence is append-only');
+      END;
     `);
   }
 
@@ -51,6 +62,12 @@ export class ProceduralExecutionEvidenceMigration implements Migration {
       .get();
     if (!t) {
       throw new Error('Migration 061 did not create procedural_execution_evidence');
+    }
+    const triggers = db
+      .prepare(`SELECT COUNT(*) AS n FROM sqlite_master WHERE type='trigger' AND tbl_name='procedural_execution_evidence'`)
+      .get() as { n: number };
+    if (triggers.n !== 2) {
+      throw new Error('Migration 061 did not create the append-only triggers');
     }
   }
 }
