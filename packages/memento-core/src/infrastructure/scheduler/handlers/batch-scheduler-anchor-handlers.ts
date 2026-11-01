@@ -1,5 +1,6 @@
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
 import { DAY_MS } from '../../../shared/utils/date.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { createEmptyBatchJobResult, finalizeBatchJobTiming } from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
@@ -105,6 +106,8 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
              FROM memory_item m
              WHERE (m.owner_id = ? OR m.owner_id IS NULL)
                AND m.deleted_at IS NULL
+               AND COALESCE(m.is_deleted, 0) = 0
+               AND NOT ${supersedeByActiveTargetSql('m')}
              ORDER BY (has_relation = 0 AND has_embedding = 0) ASC, m.importance DESC, m.created_at DESC
              LIMIT ?`
           )

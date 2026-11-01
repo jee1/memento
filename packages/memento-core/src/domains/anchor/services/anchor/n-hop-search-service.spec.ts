@@ -56,6 +56,15 @@ describe('NHopSearchService', () => {
     await cleanupTestDatabase(db);
   });
 
+  it('searchNHop의 벡터 레인에 호출자 owner/project 범위를 전달한다', async () => {
+    const seed = createTestMemory(db, { id: 'scoped_vector_seed', content: 'seed' });
+    const scope = { owner_id: 'caller', project_id: 'project' };
+    await service.searchNHop([0.1, 0.2, 0.3], 'tfidf', seed, 0.5, 1, 10, false, scope);
+    expect(mockVectorSearchEngine.search).toHaveBeenCalledWith(
+      [0.1, 0.2, 0.3], expect.objectContaining(scope), 'tfidf',
+    );
+  });
+
   describe('searchOneHop', () => {
     it('1-hop 검색을 수행해야 함', async () => {
       // Given: 앵커 임베딩, provider, 앵커 메모리 ID, 임계값, limit이 주어졌을 때
