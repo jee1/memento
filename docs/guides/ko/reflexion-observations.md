@@ -49,7 +49,6 @@ owner/project 필터와 토큰 바인딩은 기존 recall 계약을 따른다. �
 | `runId` | 실행 한 번의 id. 같은 값을 다시 보내면 `already_recorded`, 내용이 다르면 `run_id_conflict` |
 | `caseId`, `kind` | 실행한 작업 case와 `replay`/`held_out` 구분 |
 | `environment`, `toolVersion` | 고정 환경. 둘 다 필수다 |
-
 | `outcome`, `detail` | `success`/`failure`와 원본 실행 근거(선택) |
 
 `runId`, `caseId`, `environment`, `toolVersion`이 비었거나 `kind`, `outcome`이 정한 값이 아니면 `invalid_input`으로 거절하고 아무것도 쓰지 않는다.
