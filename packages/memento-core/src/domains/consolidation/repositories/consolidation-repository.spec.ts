@@ -70,6 +70,26 @@ describe('ConsolidationRepository', () => {
     expect(rows.map(r => r.id)).toEqual(['a']);
   });
 
+  it.each(['episodic', 'semantic'] as const)('%s candidates exclude superseded sources and revive them after target deletion (#1552)', (type) => {
+    const insert = db.prepare(`INSERT INTO memory_item
+      (id, type, content, owner_id, origin_source, created_at, superseded_by, is_deleted)
+      VALUES (?, ?, ?, ?, '{"tool":"sleep-consolidation"}', datetime('now', '-1 day'), ?, ?)`);
+    insert.run('old', type, 'outdated fact', 'owner-a', 'target', 0);
+    insert.run('target', type, 'current fact', 'owner-a', null, 0);
+    insert.run('foreign', type, 'other owner fact', 'owner-b', null, 0);
+    insert.run('deleted', type, 'deleted fact', 'owner-a', null, 1);
+    const ids = () => (type === 'episodic'
+      ? repo.findEpisodicCandidates('owner-a', 30)
+      : repo.findSemanticsByOwner('owner-a', { provider: 'minilm', model: 'model-new' }))
+      .map(row => row.id).sort();
+
+    expect(ids()).toEqual(['target']);
+    db.prepare("UPDATE memory_item SET is_deleted = 1 WHERE id = 'target'").run();
+    expect(ids()).toEqual(['old']);
+    db.prepare("DELETE FROM memory_item WHERE id = 'target'").run();
+    expect(ids()).toEqual(['old']);
+  });
+
   it('findSemanticsByOwner는 요청한 model로 만든 벡터만 붙인다', () => {
     // 같은 기억에 provider가 다른 벡터가 공존할 수 있다. 차원이 다른 벡터를 집으면
     // cosineSimilarity가 0을 돌려주어 병합 후보가 조용히 사라진다 (#889, #917).

@@ -6,13 +6,14 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { callerVisibleClause, filterCallerVisibleIds } from '../../../tools/caller-scope.js';
+import { callerCurrentClause, callerMemoryScope, filterCallerCurrentIds } from '../../../tools/caller-scope.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationVisualizer, type VisualizationOptions } from '../../../shared/utils/relation-visualizer.js';
 import { relationToolError } from './relation-tool-response.js';
 
 const VisualizeRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
+  include_superseded: z.boolean().optional(),
   max_depth: z.number().int().min(1).max(5).optional().default(2).describe('최대 깊이 (1~5, 기본값: 2)'),
   format: z.enum(['text', 'subgraph', 'simple', 'json', 'dot']).optional().default('subgraph').describe('시각화 형식 (text, subgraph, simple, json, dot, 기본값: subgraph)'),
   min_confidence: z.number().min(0).max(1).optional().describe('최소 신뢰도 (0.0~1.0)'),
@@ -30,6 +31,10 @@ export class VisualizeRelationsTool extends BaseTool {
       {
         type: 'object',
         properties: {
+          include_superseded: {
+            type: 'boolean',
+            description: '대체된 기억을 포함한 역사 조회 (기본값: false)'
+          },
           memory_id: {
             type: 'string',
             description: '중심 메모리 ID'
@@ -93,9 +98,9 @@ export class VisualizeRelationsTool extends BaseTool {
 
     try {
       // Given: 메모리 존재 확인
-      const ownerScope = callerVisibleClause(context);
+      const ownerScope = callerCurrentClause(context, parsed.include_superseded);
       const memory = DatabaseUtils.get(db, `
-        SELECT id FROM memory_item WHERE id = ?${ownerScope.sql}
+        SELECT id FROM memory_item mi WHERE id = ?${ownerScope.sql}
       `, [parsed.memory_id, ...ownerScope.params]) as { id: string } | undefined;
 
       if (!memory) {
@@ -109,13 +114,16 @@ export class VisualizeRelationsTool extends BaseTool {
 
       // When: 관계 조회
       const allRelations = await relationGraph.getRelations(parsed.memory_id, {
+        ...callerMemoryScope(context),
+        include_superseded: parsed.include_superseded,
         direction: 'both',
         relationTypes: parsed.relation_types,
         minConfidence: parsed.min_confidence
       });
-      const owned = filterCallerVisibleIds(
+      const owned = filterCallerCurrentIds(
         context,
         allRelations.flatMap((relation) => [relation.source_id, relation.target_id]),
+        parsed.include_superseded,
       );
       const relations = allRelations.filter(
         (relation) => owned.has(relation.source_id) && owned.has(relation.target_id),

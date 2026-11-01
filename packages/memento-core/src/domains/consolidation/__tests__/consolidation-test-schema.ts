@@ -25,7 +25,8 @@ export function applyConsolidationTestSchema(db: Database.Database): void {
       is_consolidated BOOLEAN DEFAULT FALSE,
       is_deleted INTEGER DEFAULT 0,
       deleted_at TEXT,
-      project_id TEXT
+      project_id TEXT,
+      superseded_by TEXT
     );
 
     CREATE TABLE IF NOT EXISTS memory_embedding (

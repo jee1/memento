@@ -56,6 +56,15 @@ describe('NHopSearchService', () => {
     await cleanupTestDatabase(db);
   });
 
+  it('searchNHop의 벡터 레인에 호출자 owner/project 범위를 전달한다', async () => {
+    const seed = createTestMemory(db, { id: 'scoped_vector_seed', content: 'seed' });
+    const scope = { owner_id: 'caller', project_id: 'project' };
+    await service.searchNHop([0.1, 0.2, 0.3], 'tfidf', seed, 0.5, 1, 10, false, scope);
+    expect(mockVectorSearchEngine.search).toHaveBeenCalledWith(
+      [0.1, 0.2, 0.3], expect.objectContaining(scope), 'tfidf',
+    );
+  });
+
   describe('searchOneHop', () => {
     it('1-hop 검색을 수행해야 함', async () => {
       // Given: 앵커 임베딩, provider, 앵커 메모리 ID, 임계값, limit이 주어졌을 때
@@ -536,6 +545,12 @@ describe('NHopSearchService', () => {
   });
 
   describe('searchNHop - predecessor provenance (#715)', () => {
+    beforeEach(() => {
+      for (const id of ['anchor-memory-1', 'memory-1', 'memory-2', 'memory-x']) {
+        db.prepare("INSERT INTO memory_item (id, type, content) VALUES (?, 'episodic', ?)").run(id, id);
+      }
+    });
+
     it('1-hop 결과의 predecessor_id는 앵커 메모리여야 함', async () => {
       // Given: anchor-memory-1에서 memory-1이 1-hop으로 발견될 때
       const anchorEmbedding = [0.1, 0.2, 0.3];

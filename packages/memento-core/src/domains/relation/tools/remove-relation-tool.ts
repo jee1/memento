@@ -6,14 +6,14 @@
 
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
-import { filterCallerVisibleIds } from '../../../tools/caller-scope.js';
+import { filterCallerCurrentIds } from '../../../tools/caller-scope.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { relationToolError } from './relation-tool-response.js';
 
-function ownsBothEnds(context: ToolContext, sourceId: string, targetId: string): boolean {
-  const owned = filterCallerVisibleIds(context, [sourceId, targetId]);
+function hasCurrentEndpoints(context: ToolContext, sourceId: string, targetId: string): boolean {
+  const owned = filterCallerCurrentIds(context, [sourceId, targetId]);
   return owned.has(sourceId) && owned.has(targetId);
 }
 
@@ -92,7 +92,7 @@ export class RemoveRelationTool extends BaseTool {
           WHERE id = ?
         `, [parsed.relation_id]) as { source_id: string; target_id: string; relation_type: RelationType } | undefined;
 
-        if (!relation || !ownsBothEnds(context, relation.source_id, relation.target_id)) {
+        if (!relation || !hasCurrentEndpoints(context, relation.source_id, relation.target_id)) {
           return relationToolError('RELATION_NOT_FOUND', `관계를 찾을 수 없습니다: relation_id=${parsed.relation_id}`);
         }
 
@@ -116,7 +116,7 @@ export class RemoveRelationTool extends BaseTool {
         relationInfo = { source_id, target_id, relation_type };
 
         // When: removeRelation 메서드 사용 (남의 기억 사이 관계는 없는 관계와 같게 응답)
-        deleted = ownsBothEnds(context, source_id, target_id)
+        deleted = hasCurrentEndpoints(context, source_id, target_id)
           && await relationGraph.removeRelation(source_id, target_id, relation_type);
       }
 

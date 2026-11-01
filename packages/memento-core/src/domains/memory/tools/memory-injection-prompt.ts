@@ -14,6 +14,7 @@ import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memo
 import { handleAutoSetAnchor } from '../recall/recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from '../recall/recall-tool-host.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import type Database from 'better-sqlite3';
 
 /** 프로젝트 인계 브리프 태그 (#1271) */
@@ -41,10 +42,11 @@ function findProjectBrief(
   const owners = ownerId === undefined ? [] : Array.isArray(ownerId) ? ownerId : [ownerId];
   const ownerSql = owners.length > 0 ? `AND owner_id IN (${owners.map(() => '?').join(',')})` : '';
   return DatabaseUtils.get(db, `
-    SELECT id, content, version FROM memory_item
+    SELECT id, content, version FROM memory_item mi
     WHERE project_id = ?
       AND type = 'semantic'
       AND COALESCE(is_deleted, 0) = 0
+      AND NOT ${supersedeByActiveTargetSql('mi')}
       AND EXISTS (SELECT 1 FROM json_each(COALESCE(tags, '[]')) WHERE value = ?)
       ${ownerSql}
     ORDER BY created_at DESC, rowid DESC

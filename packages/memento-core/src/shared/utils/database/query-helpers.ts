@@ -59,3 +59,8 @@ export function allQuery(
 export function execQuery(db: Database.Database, sql: string): void {
   db.exec(sql);
 }
+
+/** Own writes and commits from other connections both invalidate a cached read. */
+export function databaseReadRevision(db: Database.Database): string {
+  return `${db.pragma('data_version', { simple: true })}:${db.prepare('SELECT total_changes()').pluck().get()}`;
+}

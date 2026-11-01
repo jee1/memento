@@ -367,7 +367,12 @@ async function readMemoryResource(
     return createJsonRpcError(requestId, -32602, 'Invalid params', `Invalid memory ID in URI: ${uri}`);
   }
 
-  const memory = findMemoryResourceRowById(db, memoryId, scope);
+  const query = new URLSearchParams(uriMatch[2]?.slice(1));
+  const history = query.getAll('include_superseded');
+  if (history.length > 1 || (history.length === 1 && history[0] !== 'true' && history[0] !== 'false')) {
+    return createJsonRpcError(requestId, -32602, 'Invalid params', 'include_superseded must be true or false');
+  }
+  const memory = findMemoryResourceRowById(db, memoryId, scope, history[0] === 'true');
   if (!memory) {
     return createJsonRpcError(requestId, -32602, 'Invalid params', `Memory not found: ${memoryId}`);
   }
@@ -385,8 +390,7 @@ async function readMemoryResource(
     pinned: memory.pinned === 1
   };
 
-  const queryString = uriMatch[2] || '';
-  if (queryString.includes('include_neighbors=true')) {
+  if (query.get('include_neighbors') === 'true') {
     await attachMemoryNeighbors(memoryData, memoryId, db, serverServices, scope);
   }
   return memoryData;

@@ -69,6 +69,25 @@ describe('runAnchorAutoRefresh candidate scoring', () => {
     cleanupTestDatabase(db);
   });
 
+  it('현재 후보만으로 슬롯을 갱신한다', async () => {
+    const fresh = createTestMemory(db, { id: 'refresh_fresh', content: 'fresh', importance: 0.2 });
+    const freshB = createTestMemory(db, { id: 'refresh_fresh_b', content: 'fresh b', importance: 0.19 });
+    const freshC = createTestMemory(db, { id: 'refresh_fresh_c', content: 'fresh c', importance: 0.18 });
+    const replaced = createTestMemory(db, { id: 'refresh_replaced', content: 'replaced', importance: 1 });
+    const deleted = createTestMemory(db, { id: 'refresh_deleted', content: 'deleted', importance: 0.99 });
+    db.prepare('UPDATE memory_item SET superseded_by = ? WHERE id = ?').run(fresh, replaced);
+    db.prepare('UPDATE memory_item SET is_deleted = 1 WHERE id = ?').run(deleted);
+    seedStaleAnchor(db, agentId, replaced);
+
+    const result = await runAnchorAutoRefresh(createContext(db, anchorManager));
+
+    expect(result.errors).toEqual([]);
+    expect(result.success).toBe(true);
+    expect(result.processed).toBe(3);
+    const rows = db.prepare('SELECT memory_id FROM anchor WHERE agent_id = ? ORDER BY slot').all(agentId);
+    expect(rows).toEqual([fresh, freshB, freshC].map(memory_id => ({ memory_id })));
+  });
+
   it('관계도 임베딩도 없는 고립 후보는 대체 후보가 있으면 어떤 슬롯에도 선택되지 않아야 한다', async () => {
     // Given: 슬롯(A/B/C) 수(3)보다 많은 4개의 후보 중 1개만 relation/embedding이 전혀 없음
     const isolated = createTestMemory(db, { id: 'mem_isolated', content: 'isolated', importance: 0.9 });

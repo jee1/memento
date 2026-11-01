@@ -79,7 +79,8 @@ function createMemoryItemSchema(db: Database.Database): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       owner_id TEXT,
       project_id TEXT,
-      is_deleted INTEGER NOT NULL DEFAULT 0
+      is_deleted INTEGER NOT NULL DEFAULT 0,
+      superseded_by TEXT
     );
   `);
 }

@@ -178,6 +178,10 @@ export const RECALL_TOOL_INPUT_SCHEMA = {
       minimum: 1,
       description: '특정 버전 번호 (specific_version일 때 version_series_id와 함께 사용)'
     },
+    include_superseded: {
+      type: 'boolean',
+      description: '명시적 과거 조회: true이면 대체된 기억도 포함. 삭제·owner·project 필터는 유지한다. 기본값 false'
+    },
     include_version_chain: {
       type: 'boolean',
       description: 'true이면 procedural 결과에 version_chain(버전 이력 배열) 포함'

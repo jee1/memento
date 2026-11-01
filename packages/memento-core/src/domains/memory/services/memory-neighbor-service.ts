@@ -6,11 +6,12 @@
 import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import type { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 import Database from 'better-sqlite3';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
+import { selectCurrentIdsInScope, callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 
 /**
  * 이웃 기억 조회 결과
@@ -146,7 +147,7 @@ export class MemoryNeighborService {
       try {
         memory = await DatabaseUtils.get(
           this.db,
-          `SELECT id FROM memory_item WHERE id = ? AND (COALESCE(is_deleted, 0) = 0)${scope.sql}`,
+          `SELECT id FROM memory_item mi WHERE id = ? AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}${scope.sql}`,
           [memoryId, ...scope.params]
         );
       } catch (error) {
@@ -336,6 +337,7 @@ export class MemoryNeighborService {
     }
 
     try {
+      if (!selectCurrentIdsInScope(this.db, {}, [newMemoryId]).has(newMemoryId)) return [];
       // 새 기억의 임베딩 조회
       const embeddingRecord = DatabaseUtils.get(
         this.db,

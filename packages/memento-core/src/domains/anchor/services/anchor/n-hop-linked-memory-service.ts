@@ -8,6 +8,8 @@ import type { RelationGraphPort } from '../../../relation/ports/relation-graph.p
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 import type { NHopSearchResult } from './n-hop-search-service.js';
 import type { GetRelationsOptions, MemoryRelation } from '../../../../shared/types/relation-graph.js';
+import { supersedeByActiveTargetSql } from '../../../../shared/utils/memory-filter-sql.js';
+import { callerMemoryScopeSql, selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
 /** memory_link / relation graph에서 수집한 1차 연결 메모리 요약 */
@@ -148,15 +150,20 @@ export class NHopLinkedMemoryService {
     return { hopResults, nextHopSeeds };
   }
 
-  async getLinkedMemoriesBatch(memoryIds: string[], ownerId?: string): Promise<Map<string, LinkedMemorySummary[]>> {
+  async getLinkedMemoriesBatch(memoryIds: string[], scope: CallerMemoryScope = {}): Promise<Map<string, LinkedMemorySummary[]>> {
     const result = new Map<string, LinkedMemorySummary[]>();
     memoryIds.forEach(id => result.set(id, []));
     const db = this.getDb();
     if (memoryIds.length === 0 || !db) return result;
 
+    const readableSeeds = selectCurrentIdsInScope(db, scope, memoryIds);
+    memoryIds = memoryIds.filter(id => readableSeeds.has(id));
+    if (memoryIds.length === 0) return result;
+
     const relationGraph = this.getRelationGraph();
     if (relationGraph) {
       const relationsByMemory = await relationGraph.getRelationsBatch(memoryIds, {
+        ...scope,
         direction: 'outgoing',
         minConfidence: 0.5
       });
@@ -166,10 +173,10 @@ export class NHopLinkedMemoryService {
       });
       if (allTargetIds.size === 0) return result;
       const placeholders = Array.from(allTargetIds).map(() => '?').join(',');
-      const ownerClause = ownerId ? ' AND owner_id IS ?' : '';
-      const params = ownerId ? [...Array.from(allTargetIds), ownerId] : Array.from(allTargetIds);
+      const caller = callerMemoryScopeSql(scope);
+      const params = [...allTargetIds, ...caller.params];
       const memoryRecords = db.prepare(
-        `SELECT id, content, type, importance, created_at, tags FROM memory_item WHERE id IN (${placeholders})${ownerClause}`
+        `SELECT id, content, type, importance, created_at, tags FROM memory_item mi WHERE id IN (${placeholders}) AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}${caller.sql}`
       ).all(...params) as Array<{ id: string; content: string; type: string; importance: number; created_at: string; tags?: string }>;
       const memoryMap = new Map(memoryRecords.map(m => [m.id, m]));
 
@@ -194,7 +201,7 @@ export class NHopLinkedMemoryService {
       return result;
     }
 
-    const batchResults = await Promise.all(memoryIds.map((id) => this.getLinkedMemories(id, ownerId)));
+    const batchResults = await Promise.all(memoryIds.map((id) => this.getLinkedMemories(id, scope)));
     memoryIds.forEach((id, i) => result.set(id, batchResults[i] ?? []));
     return result;
   }
@@ -218,7 +225,7 @@ export class NHopLinkedMemoryService {
     return { memory_id: memoryId };
   }
 
-  private async getLinkedMemories(memoryId: string, ownerId?: string): Promise<LinkedMemorySummary[]> {
+  private async getLinkedMemories(memoryId: string, scope: CallerMemoryScope): Promise<LinkedMemorySummary[]> {
     const db = this.getDb();
     if (!db) {
       return [];
@@ -228,6 +235,7 @@ export class NHopLinkedMemoryService {
       const relationGraph = this.getRelationGraph();
       if (relationGraph) {
         const relations = await relationGraph.getRelations(memoryId, {
+          ...scope,
           direction: 'outgoing',
           minConfidence: 0.5
         });
@@ -235,12 +243,12 @@ export class NHopLinkedMemoryService {
         if (relations.length > 0) {
           const memoryIds = relations.map(r => r.target_id);
           const placeholders = memoryIds.map(() => '?').join(',');
-          const ownerClause = ownerId ? ' AND owner_id IS ?' : '';
-          const params = ownerId ? [...memoryIds, ownerId] : memoryIds;
+          const caller = callerMemoryScopeSql(scope);
+          const params = [...memoryIds, ...caller.params];
           const memoryRecords = db.prepare(
             `SELECT id, content, type, importance, created_at, tags ` +
-            `FROM memory_item ` +
-            `WHERE id IN (${placeholders})${ownerClause}`
+            `FROM memory_item mi ` +
+            `WHERE id IN (${placeholders}) AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}${caller.sql}`
           ).all(...params) as Array<{
             id: string;
             content: string;
@@ -274,6 +282,7 @@ export class NHopLinkedMemoryService {
         }
       }
 
+      const caller = callerMemoryScopeSql(scope);
       const linkedRecords = db.prepare(`
         SELECT 
           ml.target_id as memory_id,
@@ -286,8 +295,10 @@ export class NHopLinkedMemoryService {
         FROM memory_link ml
         JOIN memory_item mi ON mi.id = ml.target_id
         WHERE ml.source_id = ?
+          AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}
+          ${caller.sql}
         ORDER BY ml.created_at DESC
-      `).all(memoryId) as Array<{
+      `).all(memoryId, ...caller.params) as Array<{
         memory_id: string;
         content: string;
         type: string;

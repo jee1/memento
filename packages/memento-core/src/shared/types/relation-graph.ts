@@ -64,7 +64,14 @@ export type RelationDirection = 'outgoing' | 'incoming' | 'both';
 /**
  * 관계 조회 옵션
  */
-export interface GetRelationsOptions {
+export interface RelationMemoryReadOptions {
+  owner_id?: string;
+  project_id?: string;
+  /** Explicit history preserves replaced endpoints; deleted endpoints remain hidden. */
+  include_superseded?: boolean;
+}
+
+export interface GetRelationsOptions extends RelationMemoryReadOptions {
   /**
    * 조회 방향 (기본값: 'both')
    */
@@ -100,7 +107,7 @@ export interface GetRelationsOptions {
 /**
  * N-hop 관계 탐색 옵션
  */
-export interface GetRelatedMemoriesOptions {
+export interface GetRelatedMemoriesOptions extends RelationMemoryReadOptions {
   /**
    * 최대 hop 수 (기본값: 2)
    */

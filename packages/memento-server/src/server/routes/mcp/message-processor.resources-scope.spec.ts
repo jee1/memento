@@ -14,7 +14,7 @@ describe('MCP resources honour the caller scope', () => {
     db.exec(`CREATE TABLE memory_item (
       id TEXT PRIMARY KEY, type TEXT, content TEXT, importance REAL DEFAULT 0.5,
       privacy_scope TEXT DEFAULT 'private', tags TEXT, source TEXT, created_at TEXT,
-      last_accessed TEXT, pinned INTEGER DEFAULT 0, owner_id TEXT, project_id TEXT, is_deleted INTEGER DEFAULT 0
+      last_accessed TEXT, pinned INTEGER DEFAULT 0, owner_id TEXT, project_id TEXT, is_deleted INTEGER DEFAULT 0, superseded_by TEXT
     )`);
     const insert = db.prepare(
       `INSERT INTO memory_item (id, type, content, owner_id, project_id, is_deleted, created_at)

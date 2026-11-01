@@ -97,6 +97,7 @@ export interface UpdateMemoryParams {
 // ============================================================================
 
 export interface SearchFilters {
+  include_superseded?: boolean;
   id?: string[];
   type?: MemoryType[];
   tags?: string[];
@@ -111,6 +112,8 @@ export interface SearchFilters {
  * `score_breakdown`을 받으려면 서버 계약상 `include_metadata`와 `include_score_breakdown`을 모두 켜야 한다.
  */
 export interface RecallCallOptions {
+  /** Explicit history: includes replaced memories, preserving deletion and scope filters. */
+  include_superseded?: boolean;
   include_metadata?: boolean;
   include_score_breakdown?: boolean;
   /** Server recall memory_types filter; type or memory_types is required by the server (#1242). */

@@ -745,7 +745,8 @@ describe('admin.routes graph', () => {
         pinned INTEGER DEFAULT 0,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
-          deleted_at TEXT
+          deleted_at TEXT,
+          superseded_by TEXT
       );
     `);
     // memory_relation 테이블 생성

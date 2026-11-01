@@ -8,7 +8,7 @@ import { CyclicRelationError, DuplicateRelationError } from '../services/relatio
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
-import { callerVisibleClause } from '../../../tools/caller-scope.js';
+import { callerCurrentClause } from '../../../tools/caller-scope.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { relationToolError } from './relation-tool-response.js';
 
@@ -72,9 +72,9 @@ export class AddRelationTool extends BaseTool {
     try {
       // Given: 소스 및 타겟 메모리 존재 확인
       const ownerIdColumn = memoryItemHasOwnerIdColumn(db) ? ', owner_id' : '';
-      const ownerScope = callerVisibleClause(context);
+      const ownerScope = callerCurrentClause(context);
       const sourceMemory = DatabaseUtils.get(db, `
-        SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?${ownerScope.sql}
+        SELECT id, type${ownerIdColumn} FROM memory_item mi WHERE id = ?${ownerScope.sql}
       `, [source_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
 
       if (!sourceMemory) {
@@ -82,7 +82,7 @@ export class AddRelationTool extends BaseTool {
       }
 
       const targetMemory = DatabaseUtils.get(db, `
-        SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?${ownerScope.sql}
+        SELECT id, type${ownerIdColumn} FROM memory_item mi WHERE id = ?${ownerScope.sql}
       `, [target_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
 
       if (!targetMemory) {

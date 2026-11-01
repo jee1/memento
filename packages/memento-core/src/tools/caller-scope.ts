@@ -8,9 +8,11 @@
  */
 
 import type { ToolContext } from './types.js';
+import { buildMemoryFilterSql } from '../shared/utils/memory-filter-sql.js';
 import {
   callerMemoryScopeSql,
   selectIdsInScope,
+  selectCurrentIdsInScope,
   selectIdsOwnedBy,
   type CallerMemoryScope,
 } from '../shared/utils/owned-ids.js';
@@ -58,11 +60,31 @@ export function callerVisibleClause(context: VisibleScopeContext): { sql: string
 }
 
 /** The subset of `ids` that are live and inside the caller's bound owner and project. */
-export function filterCallerVisibleIds(
+function filterCallerVisibleIds(
   context: VisibleScopeContext & Pick<ToolContext, 'db'>,
   ids: readonly string[],
 ): Set<string> {
   return selectIdsInScope(context.db, callerMemoryScope(context), ids);
+}
+
+/** Current-state reads compose the shared caller scope with the supersede predicate. */
+export function callerCurrentClause(context: VisibleScopeContext, includeSuperseded = false) {
+  const visible = callerVisibleClause(context);
+  const { clauses, params } = buildMemoryFilterSql({ include_superseded: includeSuperseded }, { itemAlias: 'mi' });
+  return {
+    sql: visible.sql + clauses.map(clause => ` AND ${clause}`).join(''),
+    params: [...visible.params, ...params],
+  };
+}
+
+/** Explicit history retains caller scope and deletion checks. */
+export function filterCallerCurrentIds(
+  context: VisibleScopeContext & Pick<ToolContext, 'db'>,
+  ids: readonly string[],
+  includeSuperseded = false,
+): Set<string> {
+  if (includeSuperseded) return filterCallerVisibleIds(context, ids);
+  return selectCurrentIdsInScope(context.db, callerMemoryScope(context), ids);
 }
 
 /** The subset of `ids` the caller owns. Unbound callers own every id. */

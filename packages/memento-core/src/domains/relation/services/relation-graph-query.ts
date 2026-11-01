@@ -3,8 +3,10 @@
  */
 
 import Database from 'better-sqlite3';
+import type { SqlParam } from '../../../shared/types/memory.types.js';
+import { databaseReadRevision } from '../../../shared/utils/database/query-helpers.js';
+import { buildRelationMemoryFilterSql } from '../../../shared/utils/memory-filter-sql.js';
 import type { GetRelationsOptions, MemoryRelation } from '../../../shared/types/relation-graph.js';
-import type { RelationType } from '../../../shared/types/relation.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { RelationGraphCache } from './relation-graph-cache.js';
 import {
@@ -14,6 +16,7 @@ import {
 } from './relation-graph-row-utils.js';
 
 export class RelationGraphQuery {
+  private readonly cacheRevisions = new WeakMap<MemoryRelation[], string>();
   constructor(
     private db: Database.Database,
     private cache: RelationGraphCache
@@ -29,20 +32,19 @@ export class RelationGraphQuery {
     const direction = options?.direction ?? 'both';
     const relationTypes = options?.relationTypes;
     const minConfidence = options?.minConfidence;
-    const limit = options?.limit;
-    const offset = options?.offset ?? 0;
     const bypassCache = options?.bypassCache ?? false;
 
+    const cacheKey = this.cache.generateCacheKey(memoryId, options) + JSON.stringify([
+      options?.owner_id, options?.project_id, options?.include_superseded ?? false,
+    ]);
+    const revision = bypassCache ? undefined : databaseReadRevision(this.db);
     if (!bypassCache) {
-      const cacheKey = this.cache.generateCacheKey(memoryId, options);
       const cached = this.cache.get(cacheKey);
-      if (cached) {
-        return cached;
-      }
+      if (cached && this.cacheRevisions.get(cached) === revision) return cached;
     }
 
     let query: string;
-    const params: Array<string | number | RelationType> = [];
+    const params: SqlParam[] = [];
 
     if (direction === 'outgoing') {
       query = 'SELECT * FROM memory_relation WHERE source_id = ?';
@@ -69,15 +71,17 @@ export class RelationGraphQuery {
       params.push(minConfidence);
     }
 
+    const visible = buildRelationMemoryFilterSql(options);
+    query = `${query}${visible.clauses.map(clause => ` AND ${clause}`).join('')}`;
+    params.push(...visible.params);
     query += ' ORDER BY confidence DESC, created_at DESC';
 
-    if (limit) {
+    if (options?.limit) {
       query += ' LIMIT ?';
-      params.push(limit);
-
-      if (offset > 0) {
+      params.push(options.limit);
+      if (options.offset) {
         query += ' OFFSET ?';
-        params.push(offset);
+        params.push(options.offset);
       }
     }
 
@@ -86,8 +90,8 @@ export class RelationGraphQuery {
     const relations = validRows.map(mapRelationRowToMemoryRelation);
 
     if (!bypassCache) {
-      const cacheKey = this.cache.generateCacheKey(memoryId, options);
       this.cache.set(cacheKey, memoryId, relations);
+      this.cacheRevisions.set(relations, revision!);
     }
 
     return relations;
@@ -111,7 +115,7 @@ export class RelationGraphQuery {
     const placeholders = memoryIds.map(() => '?').join(',');
 
     let query: string;
-    const params: Array<string | number | RelationType> = [];
+    const params: SqlParam[] = [];
 
     if (direction === 'outgoing') {
       query = `SELECT * FROM memory_relation WHERE source_id IN (${placeholders})`;
@@ -134,6 +138,9 @@ export class RelationGraphQuery {
       query += ' AND confidence >= ?';
       params.push(minConfidence);
     }
+    const visible = buildRelationMemoryFilterSql(options);
+    query = `${query}${visible.clauses.map(clause => ` AND ${clause}`).join('')}`;
+    params.push(...visible.params);
     query += ' ORDER BY confidence DESC, created_at DESC';
 
     const rows = DatabaseUtils.all(this.db, query, params);

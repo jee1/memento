@@ -3,11 +3,13 @@
  */
 
 import type Database from 'better-sqlite3';
+import { selectCurrentIdsInScope } from '../../../shared/utils/owned-ids.js';
+import { callerMemoryScope } from '../../../tools/caller-scope.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RecallToolHost } from './recall-tool-host.js';
 import type { AnchorSetMetadata, RecallContext, RecallSearchItem } from './recall-tool-types.js';
 
-export type RecallAnchorContext = RecallContext<'anchorManager'>;
+export type RecallAnchorContext = RecallContext<'anchorManager'> & Pick<ToolContext, 'boundAgentId' | 'boundProjectId'>;
 
 export interface AnchorSetResult {
   success: boolean;
@@ -177,6 +179,9 @@ export async function handleAutoSetAnchor(
   }
 
   try {
+    if (!selectCurrentIdsInScope(context.db, callerMemoryScope(context), [memoryId]).has(memoryId)) {
+      return { success: false, anchor_set: null, skipped: true, skipped_reason: 'memory_not_current' };
+    }
     if (await releaseExistingSlot(host, anchorManager, agentId, memoryId)) {
       return anchorSetSuccess(memoryId, agentId);
     }

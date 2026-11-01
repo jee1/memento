@@ -39,7 +39,8 @@ function createBaseSchema(db: Database.Database): void {
       edit_count INTEGER DEFAULT 0,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
-          deleted_at TEXT
+          deleted_at TEXT,
+          superseded_by TEXT
     );
   `);
 

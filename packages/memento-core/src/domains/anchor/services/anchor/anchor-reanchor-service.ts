@@ -2,6 +2,8 @@
  * Auto-reanchor scoring and movement workflow.
  */
 
+import { supersedeByActiveTargetSql } from '../../../../shared/utils/memory-filter-sql.js';
+
 import type Database from 'better-sqlite3';
 import type {
   AnchorSlot,
@@ -51,8 +53,8 @@ export class AnchorReanchorService {
           last_accessed,
           created_at,
           importance
-        FROM memory_item
-        WHERE id = ?
+        FROM memory_item mi
+        WHERE mi.id = ? AND COALESCE(mi.is_deleted, 0) = 0 AND NOT ${supersedeByActiveTargetSql('mi')}
       `).get(memoryId) as {
         view_count: number;
         cite_count: number;

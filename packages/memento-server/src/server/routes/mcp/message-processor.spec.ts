@@ -90,3 +90,37 @@ describe('message-processor server/discover (#840)', () => {
     expect(serverInfo.version).toBe(packageJson.version);
   });
 });
+
+describe('#1552 MCP current ID resources and explicit history', () => {
+  it('lists current records and keeps history inside bound owner/project', async () => {
+    const { default: Database } = await import('better-sqlite3');
+    const db = new Database(':memory:');
+    try {
+      db.exec(`CREATE TABLE memory_item (
+        id TEXT PRIMARY KEY, type TEXT, content TEXT, importance REAL, privacy_scope TEXT,
+        tags TEXT, source TEXT, created_at TEXT, last_accessed TEXT, pinned INTEGER,
+        owner_id TEXT, project_id TEXT, is_deleted INTEGER DEFAULT 0, superseded_by TEXT);
+        INSERT INTO memory_item (id, type, content, owner_id, project_id, superseded_by) VALUES
+        ('old', 'semantic', 'old body', 'a', 'p', 'target'),
+        ('target', 'semantic', 'new body', 'a', 'p', NULL),
+        ('foreign-owner', 'semantic', 'foreign body', 'b', 'p', NULL),
+        ('foreign-project', 'semantic', 'foreign body', 'a', 'q', NULL);
+        INSERT INTO memory_item (id, is_deleted, owner_id, project_id) VALUES ('deleted', 1, 'a', 'p');`);
+      const audit = { transport: 'mcp_http' as const, boundAgentId: 'a', boundProjectId: 'p' };
+      const list = await processMcpMessage({ jsonrpc: '2.0', id: 1, method: 'resources/list' }, db, null, audit);
+      expect(list.result).toEqual({ resources: [expect.objectContaining({ uri: 'memory://target' })] });
+      const read = (uri: string) => processMcpMessage({ jsonrpc: '2.0', id: 2, method: 'resources/read', params: { uri } }, db, null, audit);
+      expect((await read('memory://old')).error?.code).toBe(-32602);
+      const history = await read('memory://old?include_superseded=true');
+      expect(history.error).toBeUndefined();
+      expect(JSON.parse((history.result as { contents: Array<{ text: string }> }).contents[0]!.text).id).toBe('old');
+      for (const id of ['foreign-owner', 'foreign-project']) {
+        expect((await read(`memory://${id}?include_superseded=true`)).error?.code).toBe(-32602);
+      }
+      expect((await read('memory://deleted?include_superseded=true')).error?.code).toBe(-32602);
+      expect((await read('memory://old?include_superseded=yes')).error?.code).toBe(-32602);
+    } finally {
+      db.close();
+    }
+  });
+});

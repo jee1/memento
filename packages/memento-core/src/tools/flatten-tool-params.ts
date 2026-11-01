@@ -5,6 +5,7 @@
  */
 
 const FILTER_HOIST_KEYS = [
+  'include_superseded',
   'tags',
   'privacy_scope',
   'time_from',
