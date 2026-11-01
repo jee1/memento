@@ -64,7 +64,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     allowed: ['off', 'typesafe', 'ollama'],
     defaultValue: 'off',
     defaultSource: 'shared/config/environment.ts ENV_DEFAULTS',
-    apply: 'restart',
+    apply: 'immediate',
     risk: 'medium',
     refresh: () => {
       mementoConfig.searchRejectionGate = resolveRejectionGateProvider();
@@ -161,7 +161,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     allowed: boolean,
     defaultValue: 'false',
     defaultSource: 'infrastructure/scheduler/batch-scheduler/batch-scheduler-default-config.ts',
-    apply: 'restart',
+    apply: 'immediate',
     risk: 'low',
     refresh: readsEnvDirectly,
     current: () => String(resolveBoolean('SUPERSEDE_CANDIDATE_SCAN_ENABLED', { defaultValue: false })),

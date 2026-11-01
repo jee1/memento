@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const KEYS = ['REFLEXION_OBSERVATION_ONLY', 'SEARCH_REJECTION_GATE'] as const;
+const KEYS = ['REFLEXION_OBSERVATION_ONLY', 'SEARCH_REJECTION_GATE', 'CONSOLIDATION_JUDGE'] as const;
 
 describe('setting override across a process restart (#1582)', () => {
   let dir: string;
@@ -64,7 +64,7 @@ describe('setting override across a process restart (#1582)', () => {
       reason: '사유',
     });
     const beforeRestart = first.core.listRuntimeSettings(first.instance.db).settings;
-    expect(beforeRestart.find((s) => s.key === 'SEARCH_REJECTION_GATE')?.pending_restart).toBe(true);
+    expect(beforeRestart.find((s) => s.key === 'SEARCH_REJECTION_GATE')?.pending_restart).toBe(false);
     await first.stop();
 
     const second = await boot(dbPath);
@@ -77,6 +77,7 @@ describe('setting override across a process restart (#1582)', () => {
       source: 'override',
       env_value: null,
       pending_restart: false,
+      revert_target_value: 'off',
     });
 
     second.core.revertRuntimeSettingOverride(second.instance.db, {
@@ -87,12 +88,34 @@ describe('setting override across a process restart (#1582)', () => {
     expect(second.core.mementoConfig.searchRejectionGate).toBe('off');
     expect(
       second.core.listRuntimeSettings(second.instance.db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE'),
-    ).toMatchObject({ source: 'default', pending_restart: true });
+    ).toMatchObject({ source: 'default', pending_restart: false });
     await second.stop();
 
     const third = await boot(dbPath);
     expect(third.core.mementoConfig.searchRejectionGate).toBe('off');
     expect(third.core.mementoConfig.reflexionObservationOnly).toBe(true);
     await third.stop();
+  });
+
+  it('keeps restart keys aligned after stored override reload (#1600 r2)', async () => {
+    const dbPath = join(dir, 'memento.db');
+    const first = await boot(dbPath);
+    first.core.setRuntimeSettingOverride(first.instance.db, {
+      key: 'CONSOLIDATION_JUDGE',
+      value: 'typesafe',
+      actor: 'session:a',
+      reason: '판정',
+    });
+    await first.stop();
+
+    const second = await boot(dbPath);
+    const judge = second.core.listRuntimeSettings(second.instance.db).settings.find((s) => s.key === 'CONSOLIDATION_JUDGE');
+    expect(judge).toMatchObject({
+      value: 'typesafe',
+      source: 'override',
+      pending_restart: false,
+      revert_target_value: 'off',
+    });
+    await second.stop();
   });
 });

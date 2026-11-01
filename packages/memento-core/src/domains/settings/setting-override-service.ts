@@ -17,6 +17,7 @@ import {
   SETTING_REGISTRY,
   type RuntimeSettingDefinition,
 } from './settings-registry.js';
+import { runSettingRuntimeReapply } from './setting-runtime-reapply-registry.js';
 
 interface OverrideRow {
   key: string;
@@ -56,6 +57,8 @@ export interface RuntimeSettingView {
   pending_restart: boolean;
   /** 저장된 override 를 기동 때 적용하지 않은 이유. null 이면 적용됐거나 override 가 없다. */
   override_ignored_reason: string | null;
+  /** 되돌리기 후 코드가 해석하는 실효값(override 적용 전 부팅 baseline). env 원문과 다를 수 있다. */
+  revert_target_value: string | null;
   /** 이 키의 최신 감사 event. 한 번도 바꾼 적이 없으면 null. */
   last_change: SettingLastChange | null;
 }
@@ -69,14 +72,23 @@ export interface ReadOnlySettingView {
 
 export type SettingChangeResult =
   | { ok: true; setting: RuntimeSettingView }
-  | { ok: false; code: 'UNKNOWN_SETTING' | 'INVALID_VALUE' | 'NO_OVERRIDE'; message: string };
+  | {
+      ok: false;
+      code: 'UNKNOWN_SETTING' | 'INVALID_VALUE' | 'NO_OVERRIDE' | 'RUNTIME_REAPPLY_FAILED';
+      message: string;
+    };
 
 interface Baseline {
   /** 첫 적용 전 process.env 값. revert 가 되돌아갈 곳이다. undefined 면 키를 지운다. */
   env: string | undefined;
-  /** 부팅 직후 코드가 해석한 실효값(current()). 이 값과 지금 값이 다르면 재시작이 필요하다. */
+  /** override 적용 전 부팅 직후 코드가 해석한 실효값. 되돌리기 UI(revert_target_value)용. */
+  revertBase: string | null;
+  /** stored override 적용 후(또는 override 없이 기동 직후)의 실효값. pending_restart 비교용. */
   boot: string | null;
 }
+
+/** reapply 실패 시 API 응답 message (내부 예외는 stderr 로그만). */
+const RUNTIME_REAPPLY_ROLLBACK_MESSAGE = 'Runtime reapply failed; change was rolled back.';
 
 const baselines = new Map<string, Baseline>();
 /** 기동 때 적용하지 않은 저장 행. 화면이 조용히 env/기본값을 override 로 보이지 않게 이유를 남긴다. */
@@ -87,7 +99,8 @@ const nonBlank = (raw: string | undefined): string | null => raw?.trim() || null
 function baselineFor(definition: RuntimeSettingDefinition): Baseline {
   let baseline = baselines.get(definition.key);
   if (!baseline) {
-    baseline = { env: process.env[definition.key], boot: definition.current() };
+    const current = definition.current();
+    baseline = { env: process.env[definition.key], revertBase: current, boot: current };
     baselines.set(definition.key, baseline);
   }
   return baseline;
@@ -155,6 +168,7 @@ function toView(
       : null,
     pending_restart: definition.apply === 'restart' && baseline !== undefined && value !== baseline.boot,
     override_ignored_reason: ignoredReason,
+    revert_target_value: baseline?.revertBase ?? definition.defaultValue,
     last_change: lastChange,
   };
 }
@@ -253,6 +267,29 @@ const unknownSetting = (key: string) => ({
   message: `${key} is not an adjustable setting`,
 });
 
+function runSettingRuntimeReapplyOrRollback(
+  definition: RuntimeSettingDefinition,
+  rollback: () => void,
+): SettingChangeResult | null {
+  try {
+    runSettingRuntimeReapply(definition.key);
+    return null;
+  } catch (error) {
+    process.stderr.write(
+      `[CONFIG WARN] runtime reapply failed for ${definition.key}: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    rollback();
+    try {
+      runSettingRuntimeReapply(definition.key);
+    } catch (resyncError) {
+      process.stderr.write(
+        `[CONFIG WARN] runtime reapply resync failed for ${definition.key}: ${resyncError instanceof Error ? resyncError.message : String(resyncError)}\n`,
+      );
+    }
+    return { ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: RUNTIME_REAPPLY_ROLLBACK_MESSAGE };
+  }
+}
+
 export function setRuntimeSettingOverride(
   db: Database.Database,
   input: ChangeInput & { value: unknown },
@@ -269,6 +306,7 @@ export function setRuntimeSettingOverride(
   const now = new Date().toISOString();
 
   const previousEnv = process.env[definition.key];
+  const overrideBefore = selectOverride(db, input.key);
   const rejected = applyEnvChecked(definition, value);
   if (rejected) {
     return { ok: false, code: 'INVALID_VALUE', message: `${input.key}=${value} is not allowed: ${rejected}` };
@@ -295,6 +333,23 @@ export function setRuntimeSettingOverride(
     throw error;
   }
   ignoredOverrides.delete(input.key);
+  const reapplyFailed = runSettingRuntimeReapplyOrRollback(definition, () => {
+    writeEnv(definition.key, previousEnv);
+    definition.refresh();
+    db.transaction(() => {
+      if (overrideBefore) {
+        db.prepare(
+          `INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+        ).run(overrideBefore.key, overrideBefore.value, overrideBefore.updated_at, overrideBefore.updated_by);
+      } else {
+        db.prepare('DELETE FROM setting_override WHERE key = ?').run(input.key);
+      }
+    })();
+  });
+  if (reapplyFailed) {
+    return reapplyFailed;
+  }
   return { ok: true, setting: toView(definition, row, selectLastChange(db, input.key)) };
 }
 
@@ -304,22 +359,32 @@ export function revertRuntimeSettingOverride(db: Database.Database, input: Chang
     return unknownSetting(input.key);
   }
   const now = new Date().toISOString();
-  const removed = db.transaction((): boolean => {
-    const existing = selectOverride(db, input.key);
-    if (!existing) {
-      return false;
-    }
+  const existing = selectOverride(db, input.key);
+  if (!existing) {
+    return { ok: false, code: 'NO_OVERRIDE', message: `${input.key} has no override to revert` };
+  }
+  const envBeforeRevert = process.env[definition.key];
+  db.transaction((): boolean => {
     db.prepare('DELETE FROM setting_override WHERE key = ?').run(input.key);
     insertEvent(db, { ...input, action: 'revert', previous: existing.value, next: null, at: now });
     return true;
   })();
-  if (!removed) {
-    return { ok: false, code: 'NO_OVERRIDE', message: `${input.key} has no override to revert` };
-  }
   const { env } = baselineFor(definition);
   writeEnv(definition.key, env);
   definition.refresh();
   ignoredOverrides.delete(input.key);
+  const reapplyFailed = runSettingRuntimeReapplyOrRollback(definition, () => {
+    writeEnv(definition.key, envBeforeRevert);
+    definition.refresh();
+    db.transaction(() => {
+      db.prepare(
+        `INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)`,
+      ).run(existing.key, existing.value, existing.updated_at, existing.updated_by);
+    })();
+  });
+  if (reapplyFailed) {
+    return reapplyFailed;
+  }
   return { ok: true, setting: toView(definition, undefined, selectLastChange(db, input.key)) };
 }
 

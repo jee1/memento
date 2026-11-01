@@ -115,7 +115,7 @@
   ns.requestChange = function (setting, rawValue) {
     const value = String(rawValue).trim();
     if (value === setting.value) {
-      ns.setError(S.sameValue);
+      ns.setError(S.sameValuePin || S.sameValue);
       return;
     }
     ns.setError('');
@@ -124,7 +124,12 @@
 
   ns.requestRevert = function (setting) {
     ns.setError('');
-    const restored = setting.env_value !== null ? setting.env_value : setting.default_value;
+    const restored =
+      setting.revert_target_value !== undefined && setting.revert_target_value !== null
+        ? setting.revert_target_value
+        : setting.env_value !== null
+          ? setting.env_value
+          : setting.default_value;
     showDialog({ mode: 'revert', setting: setting, nextValue: restored });
   };
 

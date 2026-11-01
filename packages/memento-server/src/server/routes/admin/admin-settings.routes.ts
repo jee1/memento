@@ -21,7 +21,7 @@ import { dashboardSessionIdentity } from '../../middleware/session-auth.middlewa
 const MAX_REASON_CHARS = 1000;
 const DEFAULT_EVENTS_LIMIT = 50;
 const MAX_EVENTS_LIMIT = 200;
-const STATUS_BY_CODE = { UNKNOWN_SETTING: 404, INVALID_VALUE: 400, NO_OVERRIDE: 404 } as const;
+const STATUS_BY_CODE = { UNKNOWN_SETTING: 404, INVALID_VALUE: 400, NO_OVERRIDE: 404, RUNTIME_REAPPLY_FAILED: 500 } as const;
 
 function parseReason(body: unknown): { reason: string } | { error: string; code: string } {
   const reason = ((body ?? {}) as Record<string, unknown>).reason;

@@ -20,6 +20,7 @@
 
 ### Fixed
 
+- Admin 설정 즉시 조정(`SEARCH_REJECTION_GATE`, `SUPERSEDE_CANDIDATE_SCAN_ENABLED`)이 override 후 재기동 없이 검색 기각 게이트와 대체 후보 스캔 설정에 다시 묶입니다. `CONSOLIDATION_JUDGE`는 SleepConsolidationService에 부팅 시 주입된 판정기를 바꿀 수 없어 재기동 필요로 분류합니다 (#1599, #1600 리뷰). 되돌리기 확인 창은 env 원문이 아니라 override 적용 전 부팅 실효값(`revert_target_value`)을 보여 줍니다. 재적용 훅 실패 시 env·override를 롤백하고 소비자를 복원 값으로 한 번 더 맞춥니다. 롤백돼도 append-only 감사 event는 남습니다 (#1600 r2).
 - Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
 
 ## [2.3.6] - 2026-11-01
