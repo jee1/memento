@@ -23,6 +23,8 @@ import { getClusterJudgeThreshold, isClusterJudgeEnabled } from '../../shared/co
 
 export interface RuntimeSettingDefinition {
   readonly key: string;
+  /** 화면에 보이는 한국어 한 문장. 키가 무엇을 바꾸는지 적는다. */
+  readonly description: string;
   readonly kind: 'enum' | 'number' | 'boolean' | 'string';
   readonly allowed?: readonly string[];
   readonly range?: { readonly min: number; readonly max: number; readonly minExclusive?: boolean };
@@ -57,6 +59,7 @@ const boolean = ['true', 'false'] as const;
 const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   {
     key: 'SEARCH_REJECTION_GATE',
+    description: '무관한 질의를 검색 단계에서 거부하는 게이트의 판정 방식을 고른다. off 면 거부하지 않는다.',
     kind: 'enum',
     allowed: ['off', 'typesafe', 'ollama'],
     defaultValue: 'off',
@@ -70,6 +73,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'SEARCH_REJECTION_GATE_THRESHOLD',
+    description: '상위 후보의 최고 점수가 이 값보다 낮으면 질의를 거부한다(0~1). 높일수록 더 많이 거부한다.',
     kind: 'number',
     range: { min: 0, max: 1 },
     defaultValue: String(DEFAULT_RELEVANCE_GATE_THRESHOLD),
@@ -83,6 +87,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'SEARCH_REJECTION_GATE_ON_ERROR',
+    description: '게이트가 점수를 하나도 얻지 못했을 때 질의를 통과시킬지(open) 거부할지(closed) 정한다.',
     kind: 'enum',
     allowed: ['open', 'closed'],
     defaultValue: 'open',
@@ -96,6 +101,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'CONSOLIDATION_JUDGE',
+    description: '통합 후보 군집을 LLM 이 판정하는 단계를 켠다. off 면 판정 없이 진행한다.',
     kind: 'enum',
     allowed: ['off', 'typesafe'],
     defaultValue: 'off',
@@ -107,6 +113,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'CONSOLIDATION_JUDGE_THRESHOLD',
+    description: '통합 후보 군집 판정에서 통과로 보는 신뢰도 기준값(0 초과 1 이하).',
     kind: 'number',
     range: { min: 0, max: 1, minExclusive: true },
     defaultValue: '0.6',
@@ -118,6 +125,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'LLM_PROVIDER_RELATION_EXTRACTION',
+    description: '관계 추출에 쓰는 LLM 제공자를 고른다. 비우면 전역 LLM_PROVIDER 를 따른다.',
     kind: 'enum',
     // ponytail: chat 값 목록은 llm-provider-override.ts 와 같아야 하며 spec 이 파서와 대조한다.
     allowed: ['jev', 'openai', 'gemini', 'ollama', 'auto'],
@@ -134,6 +142,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'LLM_MODEL_RELATION_EXTRACTION',
+    description: '관계 추출에 쓰는 LLM 모델 이름을 고른다. 비우면 제공자 기본 모델을 쓴다.',
     kind: 'string',
     pattern: /^[A-Za-z0-9._:/-]{1,128}$/,
     defaultValue: null,
@@ -147,6 +156,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'SUPERSEDE_CANDIDATE_SCAN_ENABLED',
+    description: '대체 후보를 찾는 배치 스캔을 켠다. 후보만 만들고 기억은 바꾸지 않는다.',
     kind: 'boolean',
     allowed: boolean,
     defaultValue: 'false',
@@ -158,6 +168,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'SUPERSEDE_APPLY_ENABLED',
+    description: '사람이 승인한 대체 후보를 실제 기억에 적용하는 API 를 연다. 꺼져 있으면 승인이 403 으로 거절된다.',
     kind: 'boolean',
     allowed: boolean,
     defaultValue: 'false',
@@ -171,6 +182,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'REFLEXION_OBSERVATION_ONLY',
+    description: 'reflexion 이 실패 회고를 검증 전 후보 기억으로만 남기고 기존 절차 기억은 고치지 않게 한다.',
     kind: 'boolean',
     allowed: boolean,
     defaultValue: 'false',
@@ -184,6 +196,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'PROCEDURAL_EXTRACTION_STRATEGY',
+    description: '절차 기억 추출 순서를 정한다. rule_only 는 규칙만, llm_first 는 LLM 을 먼저 쓴다.',
     kind: 'enum',
     allowed: ['rule_only', 'llm_first'],
     defaultValue: 'rule_only',
@@ -197,6 +210,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   },
   {
     key: 'MEMENTO_REMEMBER_DEDUP_MODE',
+    description: 'remember 가 중복 기억을 만났을 때 경고만(warn), 거절(strict), 검사 안 함(off) 중 하나로 처리한다.',
     kind: 'enum',
     allowed: ['warn', 'strict', 'off'],
     defaultValue: 'warn',

@@ -55,13 +55,13 @@ describe('setting override across a process restart (#1582)', () => {
       key: 'REFLEXION_OBSERVATION_ONLY',
       value: 'true',
       actor: 'session:a',
-      reason: null,
+      reason: '사유',
     });
     first.core.setRuntimeSettingOverride(first.instance.db, {
       key: 'SEARCH_REJECTION_GATE',
       value: 'ollama',
       actor: 'session:a',
-      reason: null,
+      reason: '사유',
     });
     const beforeRestart = first.core.listRuntimeSettings(first.instance.db).settings;
     expect(beforeRestart.find((s) => s.key === 'SEARCH_REJECTION_GATE')?.pending_restart).toBe(true);
@@ -82,7 +82,7 @@ describe('setting override across a process restart (#1582)', () => {
     second.core.revertRuntimeSettingOverride(second.instance.db, {
       key: 'SEARCH_REJECTION_GATE',
       actor: 'session:a',
-      reason: null,
+      reason: '사유',
     });
     expect(second.core.mementoConfig.searchRejectionGate).toBe('off');
     expect(

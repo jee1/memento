@@ -126,6 +126,7 @@ export {
 } from './domains/memory/supersede/supersede-apply-service.js';
 export {
   listRuntimeSettings,
+  listSettingEvents,
   revertRuntimeSettingOverride,
   setRuntimeSettingOverride,
 } from './domains/settings/setting-override-service.js';
@@ -133,6 +134,8 @@ export type {
   ReadOnlySettingView,
   RuntimeSettingView,
   SettingChangeResult,
+  SettingEvent,
+  SettingEventsResult,
 } from './domains/settings/setting-override-service.js';
 export {
   parseAdminMemoryItemIdParam,
