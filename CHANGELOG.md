@@ -32,6 +32,7 @@
 - 품질 측정: 정답셋이 없을 때 precision/recall 0으로 기록하던 동작을 미측정 상태로 구분합니다. collector metadata·metric_states가 recorder·evaluator·리포트까지 유지됩니다 (#1560).
 - PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
 - Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
+- 이웃 조회(`recall` 의 `include_neighbors`, `get_memory_neighbors`), MCP `resources/list`·`resources/read`, WebSocket 앵커 맵 구독이 토큰에 묶인 owner, project 범위를 일관되게 적용하고 soft-delete 기억을 돌려주지 않습니다. 바인딩 없는 호출자는 기존과 같습니다.
 
 ### Changed
 

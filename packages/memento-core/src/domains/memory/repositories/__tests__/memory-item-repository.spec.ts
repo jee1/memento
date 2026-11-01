@@ -53,27 +53,49 @@ describe('memory-item-repository query helpers (#1531)', () => {
        ('m2', 'episodic', 'short', 0.4, 'private', '2026-01-02T00:00:00Z', 0, NULL, NULL)`,
     ).run(longContent);
 
-    expect(findAnchorMemorySummaryById(db, 'm1')).toEqual({
+    expect(findAnchorMemorySummaryById(db, 'm1', {})).toEqual({
       id: 'm1',
       content: longContent,
       type: 'semantic',
       importance: 0.9,
       created_at: '2026-01-01T00:00:00Z',
     });
-    expect(findAnchorMemorySummaryById(db, 'missing')).toBeUndefined();
+    expect(findAnchorMemorySummaryById(db, 'missing', {})).toBeUndefined();
 
     const previews = findMemoryProvenancePreviews(db, ['m2', 'm1', 'm2', 'missing']);
     expect(previews.map((row) => row.id)).toEqual(['m2', 'm1']);
     expect(previews[1]?.content_preview).toHaveLength(240);
     expect(findMemoryProvenancePreviews(db, [])).toEqual([]);
 
-    expect(listRecentMemoryResourceIds(db)).toEqual([{ id: 'm2' }, { id: 'm1' }]);
-    expect(findMemoryResourceRowById(db, 'm1')).toMatchObject({
+    expect(listRecentMemoryResourceIds(db, {})).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+    expect(findMemoryResourceRowById(db, 'm1', {})).toMatchObject({
       id: 'm1',
       type: 'semantic',
       importance: 0.9,
       privacy_scope: 'team',
     });
+  });
+
+  it('MCP 리소스와 앵커 요약은 호출자 범위 밖이나 삭제된 기억을 돌려주지 않는다', () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, owner_id, project_id, is_deleted, created_at) VALUES
+       ('own', 'semantic', 'a', 'agent-a', 'proj-1', 0, '2026-01-04T00:00:00Z'),
+       ('other-owner', 'semantic', 'b', 'agent-b', 'proj-1', 0, '2026-01-03T00:00:00Z'),
+       ('other-project', 'semantic', 'c', 'agent-a', 'proj-2', 0, '2026-01-02T00:00:00Z'),
+       ('removed', 'semantic', 'd', 'agent-a', 'proj-1', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    const bound = { owner_id: 'agent-a', project_id: 'proj-1' };
+
+    expect(listRecentMemoryResourceIds(db, bound)).toEqual([{ id: 'own' }]);
+    expect(listRecentMemoryResourceIds(db, {})).toEqual([{ id: 'own' }, { id: 'other-owner' }, { id: 'other-project' }]);
+    for (const id of ['other-owner', 'other-project', 'removed']) {
+      expect(findMemoryResourceRowById(db, id, bound)).toBeUndefined();
+      expect(findAnchorMemorySummaryById(db, id, bound)).toBeUndefined();
+    }
+    expect(findMemoryResourceRowById(db, 'removed', {})).toBeUndefined();
+    expect(findAnchorMemorySummaryById(db, 'removed', {})).toBeUndefined();
+    expect(findMemoryResourceRowById(db, 'own', bound)?.id).toBe('own');
+    expect(findAnchorMemorySummaryById(db, 'other-owner', {})?.id).toBe('other-owner');
   });
 
   it('임베딩 맵 후보와 그래프 노드를 필터 조건에 맞춰 조회한다', () => {
@@ -120,10 +142,10 @@ describe('memory-item-repository query helpers (#1531)', () => {
     expect(listProjectMemoryCleanupCandidates(db, 'a', ['working'], 30).map(row => row.id))
       .toEqual(['target']);
     expect(deleteProjectMemoriesOlderThan(db, 'a', ['working'], 30)).toBe(1);
-    expect(listRecentMemoryResourceIds(db).map(row => row.id).sort())
-      .toEqual(['deleted', 'other-project', 'other-type', 'recent']);
-    // 리소스·provenance 경로는 이관 전처럼 soft-delete 행도 읽는다.
-    expect(findMemoryResourceRowById(db, 'deleted')?.content).toBe('deleted');
+    expect(listRecentMemoryResourceIds(db, {}).map(row => row.id).sort())
+      .toEqual(['other-project', 'other-type', 'recent']);
+    // MCP 리소스는 soft-delete 행을 숨긴다. provenance 경로는 이관 전처럼 읽는다.
+    expect(findMemoryResourceRowById(db, 'deleted', {})).toBeUndefined();
     expect(findMemoryProvenancePreviews(db, ['deleted'])[0]?.id).toBe('deleted');
   });
 
@@ -139,8 +161,8 @@ describe('memory-item-repository query helpers (#1531)', () => {
       type: 'working', total_count: 2, pinned_count: 1, old_count: 2,
     });
     expect(deleteExpiredWorkingMemories(db)).toBe(1);
-    expect(findMemoryResourceRowById(db, 'pinned')?.pinned).toBe(1);
-    expect(findMemoryResourceRowById(db, 'deleted')?.id).toBe('deleted');
+    expect(findMemoryResourceRowById(db, 'pinned', {})?.pinned).toBe(1);
+    expect(findMemoryResourceRowById(db, 'deleted', {})).toBeUndefined();
   });
 
   it('프로젝트별 통계/정리 및 만료·망각·성능 통계를 집계한다', () => {

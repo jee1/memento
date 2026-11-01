@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
+import { callerMemoryScope, filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
@@ -87,7 +87,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
       const result = await neighborService.getNeighbors(memory_id, {
         limit,
         similarity_threshold,
-        ...(context.boundAgentId ? { owner_id: context.boundAgentId } : {})
+        scope: callerMemoryScope(context),
       });
       // getNeighbors already scopes the vector search by owner; kept as a boundary guard.
       const owned = filterCallerOwnedIds(context, result.neighbors.map((n) => n.id));

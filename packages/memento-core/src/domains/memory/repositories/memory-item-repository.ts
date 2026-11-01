@@ -6,6 +6,7 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
+import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 
 export interface MemoryItemEntity {
   id: string;
@@ -316,14 +317,16 @@ export function findSupersedeScopeMemories(
 export function findAnchorMemorySummaryById(
   db: Database.Database,
   id: string,
+  scope: CallerMemoryScope,
 ): AnchorMemorySummaryRow | undefined {
+  const caller = callerMemoryScopeSql(scope);
   return db
     .prepare(
       `SELECT id, content, type, importance, created_at
        FROM memory_item
-       WHERE id = ?`,
+       WHERE id = ? AND COALESCE(is_deleted, 0) = 0${caller.sql}`,
     )
-    .get(id) as AnchorMemorySummaryRow | undefined;
+    .get(id, ...caller.params) as AnchorMemorySummaryRow | undefined;
 }
 
 export function countActiveMemoryItems(db: Database.Database): number {
@@ -563,25 +566,31 @@ export function findMemoryProvenancePreviews(
 
 export function listRecentMemoryResourceIds(
   db: Database.Database,
+  scope: CallerMemoryScope,
 ): Array<{ id: string }> {
+  const caller = callerMemoryScopeSql(scope);
   return DatabaseUtils.all(
     db,
-    'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000',
+    `SELECT id FROM memory_item WHERE COALESCE(is_deleted, 0) = 0
+     ${caller.sql} ORDER BY created_at DESC LIMIT 1000`,
+    caller.params,
   ) as Array<{ id: string }>;
 }
 
 export function findMemoryResourceRowById(
   db: Database.Database,
   id: string,
+  scope: CallerMemoryScope,
 ): MemoryResourceRow | undefined {
+  const caller = callerMemoryScopeSql(scope);
   return DatabaseUtils.get(
     db,
     `SELECT
        id, type, content, importance, privacy_scope,
        tags, source, created_at, last_accessed, pinned
      FROM memory_item
-     WHERE id = ?`,
-    [id],
+     WHERE id = ? AND COALESCE(is_deleted, 0) = 0${caller.sql}`,
+    [id, ...caller.params],
   ) as MemoryResourceRow | undefined;
 }
 

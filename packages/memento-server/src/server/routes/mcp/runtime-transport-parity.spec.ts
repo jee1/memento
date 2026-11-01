@@ -22,7 +22,7 @@ import type { WebSocket, WebSocketServer } from 'ws';
 import { dispatchTool } from '../../audit-tool-dispatch.js';
 import { setupWebSocketServer } from '../../http-server-websocket.js';
 import { createHttpAuditMiddleware } from '../../middleware/http-audit.middleware.js';
-import { subscribeAnchorMapBroadcast } from '../../handlers/anchor-map.handler.js';
+import { subscribeAnchorMapBroadcast, type AnchorMapSubscribers } from '../../handlers/anchor-map.handler.js';
 import { createToolsRouter } from '../tools.routes.js';
 import { processMcpMessage } from './message-processor.js';
 import {
@@ -209,7 +209,7 @@ async function postJson(
 async function startRestServer(
   ctx: TestDatabaseContext,
   logPath: string,
-  anchorMapSubscribers: Map<string, Set<WebSocket>> = new Map(),
+  anchorMapSubscribers: AnchorMapSubscribers = new Map(),
 ): Promise<http.Server> {
   const app = express();
   app.use(express.json());
@@ -259,8 +259,8 @@ describe('runtime transport parity (all four tool wrappers)', () => {
 
   it('preserves REST framing and broadcast while recording request and tool audit entries', async () => {
     const subscriber = new FakeWebSocket();
-    const subscribers = new Map<string, Set<WebSocket>>([
-      ['rest-agent', new Set([subscriber as unknown as WebSocket])],
+    const subscribers: AnchorMapSubscribers = new Map([
+      ['rest-agent', new Map([[subscriber as unknown as WebSocket, {}]])],
     ]);
     const server = await startRestServer(ctx, join(tempDir, 'http-audit.jsonl'), subscribers);
 
@@ -302,8 +302,8 @@ describe('runtime transport parity (all four tool wrappers)', () => {
   it('#866: broadcasts when recall rotates the anchor, not only for set_anchor', async () => {
     const subscriber = new FakeWebSocket();
     // recall 의 앵커 회전은 'default' 에이전트에 붙는다 (응답 metadata.anchor_set.agent_id)
-    const subscribers = new Map<string, Set<WebSocket>>([
-      ['default', new Set([subscriber as unknown as WebSocket])],
+    const subscribers: AnchorMapSubscribers = new Map([
+      ['default', new Map([[subscriber as unknown as WebSocket, {}]])],
     ]);
     const server = await startRestServer(ctx, join(tempDir, 'http-audit.jsonl'), subscribers);
 
@@ -431,7 +431,7 @@ describe('runtime transport parity (all four tool wrappers)', () => {
 
   it('pins WebSocket anchor_map_updates subscription to boundAgentId and rejects mismatched agent_id', async () => {
     const wss = new FakeWebSocketServer();
-    const subscribers = new Map<string, Set<WebSocket>>();
+    const subscribers: AnchorMapSubscribers = new Map();
     setupWebSocketServer(
       wss as unknown as WebSocketServer,
       subscribers,
@@ -461,6 +461,6 @@ describe('runtime transport parity (all four tool wrappers)', () => {
     })));
     const secondResponse = await waitForMessage(ws);
     expect((secondResponse.result as { agent_id?: string }).agent_id).toBe('agent-b');
-    expect(subscribers.get('agent-b')?.has(ws as unknown as WebSocket)).toBe(true);
+    expect(subscribers.get('agent-b')?.get(ws as unknown as WebSocket)).toEqual({ owner_id: 'agent-b' });
   });
 });

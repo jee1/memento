@@ -155,6 +155,9 @@ export { getVectorSearchEngine } from './domains/search/algorithms/vector-search
 export { HybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
 export { MemoryEmbeddingService } from './domains/embedding/services/memory-embedding-service.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
+export { callerMemoryScope } from './tools/caller-scope.js';
+export { selectIdsInScope } from './shared/utils/owned-ids.js';
+export type { CallerMemoryScope } from './shared/utils/owned-ids.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 export { QualityAssuranceService } from './domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 export { QualityThresholdManager } from './domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
