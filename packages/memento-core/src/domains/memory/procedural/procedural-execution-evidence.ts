@@ -39,7 +39,6 @@ export type ProceduralExecutionRecordOutcome =
         | 'invalid_input'
         | 'memory_not_found'
         | 'not_procedure'
-        | 'out_of_scope'
         | 'run_id_conflict';
     };
 
@@ -103,6 +102,8 @@ function truncateUtf8Detail(text: string, maxBytes: number): string {
   }
   const suffixBytes = Buffer.byteLength(DETAIL_TRUNCATED_SUFFIX, 'utf8');
   const budget = maxBytes - suffixBytes;
+  // ponytail: O(n^2) 방지 — UTF-8 은 코드 단위당 최소 1바이트이므로 budget 글자로 먼저 자른 뒤 경계만 맞춘다.
+  text = text.slice(0, budget);
   let end = text.length;
   while (end > 0 && Buffer.byteLength(text.slice(0, end), 'utf8') > budget) {
     end -= 1;
@@ -187,11 +188,11 @@ export function recordProceduralExecution(
   if (!subject) {
     return { kind: 'rejected', reason: 'memory_not_found' };
   }
+  if (!selectIdsInScope(db, scope, [subject.id]).has(subject.id)) {
+    return { kind: 'rejected', reason: 'memory_not_found' };
+  }
   if (subject.type !== 'procedural' && !isUnverifiedCandidate(subject)) {
     return { kind: 'rejected', reason: 'not_procedure' };
-  }
-  if (!selectIdsInScope(db, scope, [subject.id]).has(subject.id)) {
-    return { kind: 'rejected', reason: 'out_of_scope' };
   }
   const row: EvidenceRow = {
     id: `pex_${randomUUID()}`,
@@ -221,6 +222,7 @@ export function recordProceduralExecution(
   const existing = db
     .prepare('SELECT * FROM procedural_execution_evidence WHERE run_id = ?')
     .get(normalized.runId) as EvidenceRow;
+  // detail 은 truncate 뒤 바이트로 비교한다. 앞부분이 같고 뒤만 다른 재전송은 already_recorded 가 될 수 있다.
   return PAYLOAD_FIELDS.every((field) => existing[field] === row[field])
     ? { kind: 'already_recorded', id: existing.id }
     : { kind: 'rejected', reason: 'run_id_conflict' };

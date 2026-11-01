@@ -231,15 +231,71 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     expect(row.n).toBeLessThan(longDetail.length);
   });
 
-  it('rejects recording against a memory outside the caller scope', () => {
+  it('rejects recording against a memory outside the caller scope without revealing it exists', () => {
     expect(recordProceduralExecution(db, {
       memoryId: 'cand', runId: 'scoped', caseId: 'case-1', kind: 'held_out', outcome: 'success', ...ENV,
-    }, { owner_id: 'owner-b' })).toEqual({ kind: 'rejected', reason: 'out_of_scope' });
+    }, { owner_id: 'owner-b' })).toEqual({ kind: 'rejected', reason: 'memory_not_found' });
     expect(db.prepare('SELECT COUNT(*) AS n FROM procedural_execution_evidence').get()).toEqual({ n: 0 });
 
+    db.prepare("UPDATE memory_item SET project_id = 'project-b' WHERE id = 'cand'").run();
+    expect(recordProceduralExecution(db, {
+      memoryId: 'cand', runId: 'scoped-project', caseId: 'case-1', kind: 'held_out', outcome: 'success', ...ENV,
+    }, { owner_id: 'owner-a', project_id: 'project-a' })).toEqual({ kind: 'rejected', reason: 'memory_not_found' });
+
+    db.prepare("UPDATE memory_item SET project_id = 'project-a' WHERE id = 'cand'").run();
     expect(recordProceduralExecution(db, {
       memoryId: 'cand', runId: 'scoped-ok', caseId: 'case-1', kind: 'held_out', outcome: 'success', ...ENV,
     }, { owner_id: 'owner-a', project_id: 'project-a' }).kind).toBe('recorded');
+  });
+
+  it('treats padded environment fields on evaluate the same as trimmed stored evidence', () => {
+    record('proc-v1', 'base-1');
+    record('cand', 'cand-1');
+
+    expect(judged(evaluate({ environment: ' ci-linux', toolVersion: '2.4.0 ' })).passed).toBe(true);
+  });
+
+  it('stores detail at, just over, and on a multibyte UTF-8 boundary of the byte cap', () => {
+    const suffix = '\n...[detail truncated]';
+    const suffixBytes = Buffer.byteLength(suffix, 'utf8');
+    const budget = PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES - suffixBytes;
+    const exact = 'a'.repeat(budget);
+    expect(record('cand', 'detail-exact', { detail: exact }).kind).toBe('recorded');
+    expect(
+      (db.prepare('SELECT detail FROM procedural_execution_evidence WHERE run_id = ?').get('detail-exact') as { detail: string })
+        .detail,
+    ).toBe(exact);
+
+    const over = `${exact}${'x'.repeat(suffixBytes + 5)}`;
+    record('cand', 'detail-over', { detail: over });
+    const overRow = db.prepare('SELECT detail FROM procedural_execution_evidence WHERE run_id = ?').get('detail-over') as {
+      detail: string;
+    };
+    expect(overRow.detail.endsWith(suffix)).toBe(true);
+    expect(Buffer.byteLength(overRow.detail, 'utf8')).toBeLessThanOrEqual(PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES);
+
+    const emojiPrefix = '🎉'.repeat(Math.floor(budget / 4));
+    record('cand', 'detail-emoji', { detail: `${emojiPrefix}${'z'.repeat(budget)}` });
+    const emojiRow = db.prepare('SELECT detail FROM procedural_execution_evidence WHERE run_id = ?').get('detail-emoji') as {
+      detail: string;
+    };
+    expect(Buffer.byteLength(emojiRow.detail, 'utf8')).toBeLessThanOrEqual(PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES);
+  });
+
+  it('truncates a one-million-character detail within a time budget', () => {
+    const started = performance.now();
+    expect(record('cand', 'detail-huge', { detail: 'a'.repeat(1_000_000) }).kind).toBe('recorded');
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it('accepts a re-send as already_recorded when truncation erases differing tails', () => {
+    const suffix = '\n...[detail truncated]';
+    const budget = PROCEDURAL_EXECUTION_DETAIL_MAX_BYTES - Buffer.byteLength(suffix, 'utf8');
+    const shared = 'b'.repeat(budget + 200);
+    const first = record('cand', 'truncate-dup', { detail: `${shared}tail-a` });
+    expect(first.kind).toBe('recorded');
+    const again = record('cand', 'truncate-dup', { detail: `${shared}tail-b` });
+    expect(again).toEqual({ kind: 'already_recorded', id: first.kind === 'recorded' ? first.id : '' });
   });
 
   it('blocks a missing series, a candidate from another scope, and one that is not an unverified candidate', () => {

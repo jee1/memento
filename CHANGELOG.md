@@ -11,7 +11,7 @@
 
 ### Fixed
 
-- 절차 실행 증거: `recordProceduralExecution`이 environment·tool_version·case_id를 trim 해 저장하고 `evaluateProceduralAdoption`도 같은 정규화로 비교합니다. detail 은 4KB UTF-8 상한을 넘기면 잘라 표시를 붙이고, `CallerMemoryScope` 밖 기억은 `out_of_scope`로 거절합니다. 플래그 기본값과 스키마는 그대로입니다 (#1594).
+- 절차 실행 증거: `recordProceduralExecution`이 environment·tool_version·case_id를 trim 해 저장하고 `evaluateProceduralAdoption`도 같은 정규화로 비교합니다. detail 은 4KB UTF-8 상한을 넘기면 잘라 표시를 붙이고, `CallerMemoryScope` 밖 기억은 `memory_not_found`와 동일하게 거절합니다. 같은 `run_id`로 잘린 detail만 다른 재전송은 `already_recorded`가 될 수 있습니다. 플래그 기본값과 스키마는 그대로입니다 (#1594, #1598).
 
 ### Added
 
