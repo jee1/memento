@@ -91,6 +91,7 @@ interface Setting {
   env_value: string | null;
   override: { value: string; updated_at: string; updated_by: string } | null;
   pending_restart: boolean;
+  override_ignored_reason: string | null;
   last_change: { action: string; actor: string; reason: string | null; created_at: string } | null;
 }
 
@@ -107,6 +108,7 @@ const base = (overrides: Partial<Setting> & Pick<Setting, 'key'>): Setting => ({
   env_value: null,
   override: null,
   pending_restart: false,
+  override_ignored_reason: null,
   last_change: null,
   ...overrides,
 });
@@ -152,6 +154,15 @@ const SETTINGS: Setting[] = [
     default_value: 'warn',
     source: 'env',
     env_value: 'warn',
+  }),
+  base({
+    key: 'LLM_PROVIDER_RELATION_EXTRACTION',
+    kind: 'enum',
+    allowed: ['jev', 'openai', 'gemini', 'ollama', 'auto'],
+    value: null,
+    default_value: null,
+    override: { ...OVERRIDE, value: 'openai' },
+    override_ignored_reason: '[OFFLINE_STRICT_LLM_OVERRIDE_FORBIDDEN] remote provider openai is forbidden',
   }),
   base({
     key: 'LLM_MODEL_RELATION_EXTRACTION',
@@ -310,6 +321,13 @@ describe('dashboard settings panel', () => {
       expect(gate).toContain('재기동 필요');
       expect(gate).toContain('재기동 대기');
       expect(page.row('SUPERSEDE_APPLY_ENABLED').textContent).not.toContain('재기동');
+    });
+
+    it('shows a stored override that was not applied at boot instead of hiding it behind the effective value', () => {
+      const ignored = page.row('LLM_PROVIDER_RELATION_EXTRACTION').textContent;
+      expect(ignored).toContain('저장됐지만 적용 안 됨');
+      expect(ignored).toContain('OFFLINE_STRICT_LLM_OVERRIDE_FORBIDDEN');
+      expect(page.row('SUPERSEDE_APPLY_ENABLED').textContent).not.toContain('적용 안 됨');
     });
 
     it('offers a revert button only on rows with a DB override', () => {

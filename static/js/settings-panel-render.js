@@ -73,6 +73,10 @@
     if (setting.pending_restart) {
       cell.appendChild(badge('crit', S.pendingRestart));
     }
+    if (setting.override_ignored_reason) {
+      cell.appendChild(badge('crit', S.overrideIgnored));
+      cell.appendChild(ns.el('div', 'settings-desc', setting.override_ignored_reason));
+    }
     return cell;
   }
 

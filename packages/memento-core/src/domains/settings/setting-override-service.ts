@@ -54,6 +54,8 @@ export interface RuntimeSettingView {
   env_value: string | null;
   override: { value: string; updated_at: string; updated_by: string } | null;
   pending_restart: boolean;
+  /** 저장된 override 를 기동 때 적용하지 않은 이유. null 이면 적용됐거나 override 가 없다. */
+  override_ignored_reason: string | null;
   /** 이 키의 최신 감사 event. 한 번도 바꾼 적이 없으면 null. */
   last_change: SettingLastChange | null;
 }
@@ -77,6 +79,8 @@ interface Baseline {
 }
 
 const baselines = new Map<string, Baseline>();
+/** 기동 때 적용하지 않은 저장 행. 화면이 조용히 env/기본값을 override 로 보이지 않게 이유를 남긴다. */
+const ignoredOverrides = new Map<string, string>();
 
 const nonBlank = (raw: string | undefined): string | null => raw?.trim() || null;
 
@@ -99,9 +103,10 @@ function writeEnv(key: string, value: string | undefined): void {
 
 const SILENT = { warn: () => {}, error: () => {} };
 
-function validationErrors(): Map<string, string> {
+/** 같은 code 라도 대상(provider, 키)이 다르면 다른 위반이다. 그래서 code 와 메시지를 함께 키로 쓴다. */
+function validationErrors(): Set<string> {
   const { errors } = validateConfiguration(mementoConfig, { throwOnError: false, logger: SILENT });
-  return new Map(errors.map((issue) => [issue.code, issue.message]));
+  return new Set(errors.map((issue) => `[${issue.code}] ${issue.message}`));
 }
 
 /**
@@ -114,13 +119,13 @@ function applyEnvChecked(definition: RuntimeSettingDefinition, value: string | u
   const previous = process.env[definition.key];
   writeEnv(definition.key, value);
   definition.refresh();
-  const introduced = [...validationErrors()].filter(([code]) => !before.has(code));
+  const introduced = [...validationErrors()].filter((issue) => !before.has(issue));
   if (introduced.length === 0) {
     return null;
   }
   writeEnv(definition.key, previous);
   definition.refresh();
-  return introduced.map(([code, message]) => `[${code}] ${message}`).join('; ');
+  return introduced.join('; ');
 }
 
 function toView(
@@ -131,6 +136,7 @@ function toView(
   const baseline = baselines.get(definition.key);
   const env = nonBlank(baseline ? baseline.env : process.env[definition.key]);
   const value = definition.current();
+  const ignoredReason = override ? (ignoredOverrides.get(definition.key) ?? null) : null;
   return {
     key: definition.key,
     description: definition.description,
@@ -140,7 +146,7 @@ function toView(
     apply: definition.apply,
     risk: definition.risk,
     value,
-    source: override ? 'override' : env !== null ? 'env' : 'default',
+    source: override && ignoredReason === null ? 'override' : env !== null ? 'env' : 'default',
     default_value: definition.defaultValue,
     default_source: definition.defaultSource,
     env_value: env,
@@ -148,6 +154,7 @@ function toView(
       ? { value: override.value, updated_at: override.updated_at, updated_by: override.updated_by }
       : null,
     pending_restart: definition.apply === 'restart' && baseline !== undefined && value !== baseline.boot,
+    override_ignored_reason: ignoredReason,
     last_change: lastChange,
   };
 }
@@ -287,6 +294,7 @@ export function setRuntimeSettingOverride(
     definition.refresh();
     throw error;
   }
+  ignoredOverrides.delete(input.key);
   return { ok: true, setting: toView(definition, row, selectLastChange(db, input.key)) };
 }
 
@@ -311,6 +319,7 @@ export function revertRuntimeSettingOverride(db: Database.Database, input: Chang
   const { env } = baselineFor(definition);
   writeEnv(definition.key, env);
   definition.refresh();
+  ignoredOverrides.delete(input.key);
   return { ok: true, setting: toView(definition, undefined, selectLastChange(db, input.key)) };
 }
 
@@ -328,11 +337,15 @@ export function applyStoredSettingOverrides(db: Database.Database): void {
     const normalized = definition ? normalizeSettingValue(definition, row.value) : null;
     if (!definition || !normalized || 'message' in normalized || normalized.value !== row.value) {
       process.stderr.write(`[CONFIG WARN] setting_override ${row.key}="${row.value}" is not valid; ignoring it.\n`);
+      ignoredOverrides.set(row.key, normalized && 'message' in normalized ? normalized.message : 'not a canonical value');
       continue;
     }
     const rejected = applyEnvChecked(definition, row.value);
     if (rejected) {
       process.stderr.write(`[CONFIG WARN] setting_override ${row.key}="${row.value}" is not allowed (${rejected}); ignoring it.\n`);
+      ignoredOverrides.set(row.key, rejected);
+    } else {
+      ignoredOverrides.delete(row.key);
     }
   }
   for (const definition of SETTING_REGISTRY.values()) {

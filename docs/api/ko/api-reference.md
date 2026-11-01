@@ -923,7 +923,7 @@ Content-Type: application/json
 GET /admin/settings
 ```
 
-`{ "settings": [...], "read_only": [...] }` 를 돌려줍니다. `settings[]` 의 항목은 `key`, `description`(키가 무엇을 바꾸는지 적은 한 문장), `kind`(`enum`/`number`/`boolean`/`string`), `allowed` 또는 `range`, `apply`, `risk`, 실효 `value`, `source`(`override`/`env`/`default`), `default_value`, `default_source`(기본값을 정하는 코드 위치), `env_value`, `override`(`{ value, updated_at, updated_by }` 또는 `null`), `pending_restart`, `last_change`(키의 최신 감사 사건 `{ action, actor, reason, created_at }`, 바꾼 적이 없으면 `null`) 입니다. `apply: "restart"` 키는 값을 바꿔도 이미 만든 구성 요소(검색 기각 게이트, 군집 판정기, 후보 스캔 스케줄)는 그대로여서 재시작 전까지 `pending_restart: true` 입니다. 다음 기동은 저장된 override 를 서비스를 만들기 전에 적용합니다. `read_only[]` 는 `{ key, secret, set, value }` 이며 `secret: true` 항목의 `value` 는 항상 `null` 입니다.
+`{ "settings": [...], "read_only": [...] }` 를 돌려줍니다. `settings[]` 의 항목은 `key`, `description`(키가 무엇을 바꾸는지 적은 한 문장), `kind`(`enum`/`number`/`boolean`/`string`), `allowed` 또는 `range`, `apply`, `risk`, 실효 `value`, `source`(`override`/`env`/`default`), `default_value`, `default_source`(기본값을 정하는 코드 위치), `env_value`, `override`(`{ value, updated_at, updated_by }` 또는 `null`), `pending_restart`, `last_change`(키의 최신 감사 사건 `{ action, actor, reason, created_at }`, 바꾼 적이 없으면 `null`) 입니다. `apply: "restart"` 키는 값을 바꿔도 이미 만든 구성 요소(검색 기각 게이트, 군집 판정기, 후보 스캔 스케줄)는 그대로여서 재시작 전까지 `pending_restart: true` 입니다. 다음 기동은 저장된 override 를 서비스를 만들기 전에 적용합니다. 저장된 값이 형식에 맞지 않거나 설정 검증(offline strict 등)을 통과하지 못하면 적용하지 않고, 그 키의 `source` 는 `env`/`default` 로, `override_ignored_reason` 에 이유를 둡니다(적용됐거나 override 가 없으면 `null`). `read_only[]` 는 `{ key, secret, set, value }` 이며 `secret: true` 항목의 `value` 는 항상 `null` 입니다.
 
 ```http
 PUT /admin/settings/:key

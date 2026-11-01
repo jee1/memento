@@ -17,6 +17,7 @@ const ENV_KEYS = [
   'MEMENTO_REMEMBER_DEDUP_MODE',
   'OPENAI_API_KEY',
   'LLM_PROVIDER',
+  'LLM_PROVIDER_PROCEDURAL',
 ] as const;
 
 const savedEnv = new Map<string, string | undefined>();
@@ -474,6 +475,46 @@ describe('runtime setting override (#1582)', () => {
 
       setRuntimeSettingOverride(db, { key: 'CONSOLIDATION_JUDGE', value: 'typesafe', actor: 'session:a', reason: null });
       expect(view('CONSOLIDATION_JUDGE')).toMatchObject({ value: 'typesafe', pending_restart: true });
+    });
+  });
+
+  describe('stored overrides that were not applied and violations of the same kind (#1583 review)', () => {
+    it('shows a stored row skipped at boot as not applied, with its reason, until a valid change replaces it', async () => {
+      const insert = db.prepare(`INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES (?, ?, 'now', 'session:a')`);
+      insert.run('SEARCH_REJECTION_GATE', 'typesafe');
+      insert.run('REFLEXION_OBSERVATION_ONLY', 'maybe');
+      const { mementoConfig, applyStoredSettingOverrides, listRuntimeSettings, setRuntimeSettingOverride } = await load();
+      mementoConfig.offlineStrict = true;
+      vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+      applyStoredSettingOverrides(db);
+      const view = (key: string) => listRuntimeSettings(db).settings.find((s) => s.key === key);
+
+      expect(view('SEARCH_REJECTION_GATE')).toMatchObject({
+        value: 'off',
+        source: 'default',
+        override: { value: 'typesafe' },
+        override_ignored_reason: expect.stringContaining('OFFLINE_STRICT_REJECTION_GATE_FORBIDDEN'),
+      });
+      expect(view('REFLEXION_OBSERVATION_ONLY')).toMatchObject({
+        value: 'false',
+        source: 'default',
+        override_ignored_reason: expect.stringContaining('must be one of'),
+      });
+
+      setRuntimeSettingOverride(db, { key: 'REFLEXION_OBSERVATION_ONLY', value: 'true', actor: 'session:a', reason: 'fix' });
+      expect(view('REFLEXION_OBSERVATION_ONLY')).toMatchObject({ value: 'true', source: 'override', override_ignored_reason: null });
+    });
+
+    it('refuses a new violation even when a violation with the same code already exists', async () => {
+      process.env.LLM_PROVIDER_PROCEDURAL = 'openai';
+      const { mementoConfig, setRuntimeSettingOverride } = await load();
+      mementoConfig.offlineStrict = true;
+
+      const result = setRuntimeSettingOverride(db, {
+        key: 'LLM_PROVIDER_RELATION_EXTRACTION', value: 'openai', actor: 'session:a', reason: 'try',
+      });
+      expect(result).toMatchObject({ ok: false, code: 'INVALID_VALUE', message: expect.stringContaining('relation_extraction') });
+      expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
     });
   });
 });
