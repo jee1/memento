@@ -259,6 +259,14 @@ describe('Reflexion observation-only (#1547)', () => {
       expect(withType).not.toBe(withCode);
     });
 
+    it('preserves mem_allocation and failure_validation_error style phrases', () => {
+      expect(normalizeReflexionObservationErrorMessage('mem_allocation failed')).toBe('mem_allocation failed');
+      expect(normalizeReflexionObservationErrorMessage('failure_validation_error raised')).toBe(
+        'failure_validation_error raised',
+      );
+      expect(normalizeReflexionObservationErrorMessage('failure_timeout_exceeded')).toBe('failure_timeout_exceeded');
+    });
+
     it('uses pinned index in victim selection query plan', () => {
       const plan = explainReflexionPinnedVictimQueryPlan(db, {
         ownerId: 'owner-a',
