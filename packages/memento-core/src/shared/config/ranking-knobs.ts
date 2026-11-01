@@ -49,7 +49,7 @@ export function isKnobKey(key: string): key is KnobKey {
 }
 
 /** 로더가 theta·zeta_fb 가 없을 때 쓰는 기본값과 같다. */
-export const OPTIONAL_WEIGHT_DEFAULTS: Partial<Record<KnobKey, number>> = {
+const OPTIONAL_WEIGHT_DEFAULTS: Partial<Record<KnobKey, number>> = {
   'ranking_weights.theta': 0.1,
   'ranking_weights.zeta_fb': 0.05,
 };
