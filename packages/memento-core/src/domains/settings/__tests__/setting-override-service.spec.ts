@@ -480,7 +480,7 @@ describe('runtime setting override (#1582)', () => {
 
   describe('runtime reapply rollback (#1600 review)', () => {
     it('rolls back env and override row when reapply hook throws on set', async () => {
-      const { setRuntimeSettingOverride, listRuntimeSettings, RUNTIME_REAPPLY_ROLLBACK_MESSAGE } = await load();
+      const { setRuntimeSettingOverride, listRuntimeSettings } = await load();
       const { registerSettingRuntimeReapply, clearSettingRuntimeReapplyForTest } = await import(
         '../setting-runtime-reapply-registry.js'
       );
@@ -495,7 +495,11 @@ describe('runtime setting override (#1582)', () => {
         actor: 'session:a',
         reason: 'fail',
       });
-      expect(result).toMatchObject({ ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: RUNTIME_REAPPLY_ROLLBACK_MESSAGE });
+      expect(result).toMatchObject({
+        ok: false,
+        code: 'RUNTIME_REAPPLY_FAILED',
+        message: 'Runtime reapply failed; change was rolled back.',
+      });
       expect(process.env.SEARCH_REJECTION_GATE).toBe(before);
       expect(listRuntimeSettings(db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE')).toMatchObject({
         source: 'default',
@@ -504,8 +508,7 @@ describe('runtime setting override (#1582)', () => {
     });
 
     it('rolls back revert and override row when reapply hook throws on revert', async () => {
-      const { setRuntimeSettingOverride, revertRuntimeSettingOverride, listRuntimeSettings, RUNTIME_REAPPLY_ROLLBACK_MESSAGE } =
-        await load();
+      const { setRuntimeSettingOverride, revertRuntimeSettingOverride, listRuntimeSettings } = await load();
       const { registerSettingRuntimeReapply, clearSettingRuntimeReapplyForTest } = await import(
         '../setting-runtime-reapply-registry.js'
       );
@@ -524,7 +527,11 @@ describe('runtime setting override (#1582)', () => {
         actor: 'session:a',
         reason: 'revert',
       });
-      expect(result).toMatchObject({ ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: RUNTIME_REAPPLY_ROLLBACK_MESSAGE });
+      expect(result).toMatchObject({
+        ok: false,
+        code: 'RUNTIME_REAPPLY_FAILED',
+        message: 'Runtime reapply failed; change was rolled back.',
+      });
       expect(listRuntimeSettings(db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE')).toMatchObject({
         value: 'ollama',
         source: 'override',

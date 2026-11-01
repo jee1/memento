@@ -88,7 +88,7 @@ interface Baseline {
 }
 
 /** reapply 실패 시 API 응답 message (내부 예외는 stderr 로그만). */
-export const RUNTIME_REAPPLY_ROLLBACK_MESSAGE = 'Runtime reapply failed; change was rolled back.';
+const RUNTIME_REAPPLY_ROLLBACK_MESSAGE = 'Runtime reapply failed; change was rolled back.';
 
 const baselines = new Map<string, Baseline>();
 /** 기동 때 적용하지 않은 저장 행. 화면이 조용히 env/기본값을 override 로 보이지 않게 이유를 남긴다. */
