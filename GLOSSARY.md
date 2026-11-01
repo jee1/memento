@@ -103,3 +103,13 @@ _Avoid_: user, tenant(단독)
 **CORE toolset**:
 `tools/list`에 기본으로 노출하는 도구 묶음(`recall`, `remember`, `memory_injection`, `feedback`).
 _Avoid_: default tools, basic tools
+
+## 설정
+
+**Setting override**:
+관리자가 DB 에 저장해 `.env` 와 코드 기본값 위에 얹는, 키 하나당 값 하나. 키는 레지스트리에 든 12개만 받고 값은 env 와 같은 정규 문자열이다. 지우면(revert) 기동 때 env 값으로 돌아간다. 모든 set 과 revert 는 `setting_override_event` 에 남는다. 비밀값, 인프라, 임베딩 모델은 override 하지 않는다.
+_Avoid_: runtime config, config patch
+
+**Effective value (실효값)**:
+override, 기동 때 env(빈 문자열은 미설정), 코드 기본값 순으로 처음 값이 있는 것. 어느 층이 이겼는지는 `source`(`override`/`env`/`default`)로 함께 보인다. `apply: restart` 키는 실효값이 바뀌어도 만들어 둔 구성 요소가 그대로여서 재시작 전까지 `pending_restart` 다.
+_Avoid_: current setting, active value

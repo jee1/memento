@@ -915,6 +915,38 @@ Content-Type: application/json
 
 벡터 검색은 매 요청마다 non-null 포인터 partial index(migration 062)를 조회합니다. 실제 범위 필터도 살아 있는 대체 포인터도 없으면 기존 unscoped SQL을 유지합니다. 대체 포인터가 생기면 다음 요청부터 후보 LIMIT 전에 제외합니다. 적용 플래그를 꺼도 이미 저장된 포인터는 계속 적용하며 대상 삭제·복원을 캐시 없이 반영합니다. 무필터 off/포인터 0건의 SQL·partial-index 실행 계획과 p95 비율(기준선 대비 1.15 이하)은 `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts`로 검증합니다.
 
+##### 런타임 설정 override (#1582)
+
+운영자가 코드 기본값과 `.env` 위에 DB override 를 얹어 조정 가능한 설정 12개를 바꿉니다. 실효값은 override, 기동 때 env(빈 문자열은 미설정), 코드 기본값 순입니다. 기존 `/admin` 인증을 그대로 쓰며 비밀값, 인프라, 임베딩 모델은 바꾸지 않습니다.
+
+```http
+GET /admin/settings
+```
+
+`{ "settings": [...], "read_only": [...] }` 를 돌려줍니다. `settings[]` 의 항목은 `key`, `kind`(`enum`/`number`/`boolean`/`string`), `allowed` 또는 `range`, `apply`, `risk`, 실효 `value`, `source`(`override`/`env`/`default`), `default_value`, `default_source`(기본값을 정하는 코드 위치), `env_value`, `override`(`{ value, updated_at, updated_by }` 또는 `null`), `pending_restart` 입니다. `apply: "restart"` 키는 값을 바꿔도 이미 만든 구성 요소(검색 기각 게이트, 군집 판정기, 후보 스캔 스케줄)는 그대로여서 재시작 전까지 `pending_restart: true` 입니다. 다음 기동은 저장된 override 를 서비스를 만들기 전에 적용합니다. `read_only[]` 는 `{ key, secret, set, value }` 이며 `secret: true` 항목의 `value` 는 항상 `null` 입니다.
+
+```http
+PUT /admin/settings/:key
+Content-Type: application/json
+
+{ "value": "true", "reason": "관찰만 하기로 함" }
+```
+
+값을 검증한 뒤 `setting_override` 행과 `setting_override_event`(이전/새 값, actor, 사유, 시각)를 한 트랜잭션으로 쓰고 갱신된 `settings[]` 항목을 돌려줍니다. 같은 값을 다시 보내면 사건 없이 `200` 입니다. 값은 env 와 같은 정규 문자열이며 불리언은 `true`/`false`, 숫자는 십진수입니다. actor 는 요청 본문이 아니라 인증된 대시보드 세션(`session:<16 hex>`)입니다.
+
+```http
+POST /admin/settings/:key/revert
+Content-Type: application/json
+
+{ "reason": "원복" }
+```
+
+override 행을 지우고 `revert` 사건을 남긴 뒤 기동 때 env 값(없으면 코드 기본값)으로 돌아갑니다.
+
+- `400`: 값이 허용 범위 밖(`INVALID_VALUE`, 메시지에 허용 범위), 1000자를 넘거나 문자열이 아닌 `reason`(`INVALID_REASON`)
+- `401`: 대시보드 세션 없음(`SESSION_REQUIRED`)
+- `404`: 레지스트리 밖이거나 읽기 전용인 키(`UNKNOWN_SETTING`), 되돌릴 override 없음(`NO_OVERRIDE`)
+
 ##### 배치: 후보 선정·큐 갱신
 
 ```http

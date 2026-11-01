@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- 런타임 설정 override: 조정 가능한 12개 키를 DB override 로 얹고 `GET /admin/settings`, `PUT /admin/settings/:key`, `POST /admin/settings/:key/revert` 로 조회, 변경, 되돌립니다. 변경마다 이전/새 값, 세션 actor, 사유를 `setting_override_event`(migration 063)에 남기며 재시작 뒤에도 유지됩니다. 재시작이 필요한 키는 `pending_restart` 로 드러냅니다 (#1582).
+
 ## [2.3.6] - 2026-11-01
 
 ### Security
