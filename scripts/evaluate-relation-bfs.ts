@@ -304,6 +304,23 @@ memory_relation 적재 건수(relations.jsonl): ${report.relationRowCount}
 
 \`${report.conclusion}\` — ${report.conclusionReason}
 
+운영 BFS 확대 여부는 본 PR에서 판단하지 않는다. 숫자는 fixture 재현용이다.
+
+## 1차 측정이 multi_hop 0이었던 원인 (harness, 재측정 전)
+
+1차 run은 BFS가 동작해도 지표가 0으로 나왔다. 원인과 수정은 다음과 같다.
+
+| 구분 | 1차 문제 | 수정 (ad92a548) |
+|---|---|---|
+| 관계 적재 | fixture DB에 \`memory_relation\` 미적재·건수 불일치 가능 | \`seedRelationGraphFromCorpusAndJsonl\`, relations.jsonl **205**건=DB (\`relation-bfs-eval-diagnostic.spec.ts\`) |
+| BFS 병합·점수 | hybrid 30 뒤에 BFS append 후 trim → BFS 전량 탈락; \`0.5^hop\`·첫 seed만 점수 유지 → gold merged idx 34 | merge 후 score 정렬; \`scoreBfsCandidate\`(경로 edge confidence×type boost); seed 간 **max** \`finalScore\` |
+| 그리드 | maxHops 1~2, multi_hop 2-hop 미도달 | maxHops **1~3**, dev **multi_hop R@10** 우선 튜닝 |
+| 실행 순서 | hybrid 전량 선행 → B 지연·토큰 왜곡 | warm-up, hybrid cache, 그리드 latency off, A/B **교대** latency |
+
+## multi_hop held-out R@10=0.176에 그친 이유 (진단)
+
+held-out multi_hop 17건: **hop_obs는 hybrid top-3 시드 17/17** (시드 3개에 출발 노드 누락 아님). BFS @10 hit **3/17**. 나머지는 2-hop gold가 merged pool에는 들어와도 동일 hybrid 점수대의 타 클러스터 \`hop_obs\`·trap·direct가 상위 30·@10을 채워 \`hop_ans\`가 밀린다.
+
 ## dev BFS 그리드 (held-out 미사용)
 
 ${formatDevGridMarkdown(report.devGrid)}
