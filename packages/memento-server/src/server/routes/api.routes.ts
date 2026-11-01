@@ -67,7 +67,7 @@ function getAnchorMap(db: Database.Database | null, serverServices: ServerServic
         });
       }
 
-      const mapData = await buildAnchorMapData(db, serverServices, agentId);
+      const mapData = await buildAnchorMapData(db, serverServices, agentId, {});
 
       return res.json(mapData);
     } catch (error) {
@@ -167,9 +167,11 @@ function getMemoryNeighbors(db: Database.Database | null, serverServices: Server
         db
       );
 
+      // /api 는 브라우저 세션(운영자) 전용이라 범위를 걸지 않는다.
       const result = await neighborService.getNeighbors(id, {
         limit,
-        similarity_threshold: similarityThreshold
+        similarity_threshold: similarityThreshold,
+        scope: {}
       });
 
       return res.json({

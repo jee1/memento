@@ -13,16 +13,7 @@ const baseConfig: MementoConfig = {
   geminiApiKey: undefined,
   geminiModel: 'text-embedding-004',
   embeddingDimensions: 384,
-  searchDefaultLimit: 10,
-  searchMaxLimit: 50,
-  forgetTTL: {
-    working: 48,
-    episodic: 2160,
-    semantic: -1,
-    procedural: -1
-  },
   logLevel: 'info',
-  logFile: undefined,
   nodeEnv: 'test'
 };
 

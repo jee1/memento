@@ -71,6 +71,6 @@ describe('bound caller gets limit results (#1342)', () => {
 
     await new GetMemoryNeighborsTool().handle({ memory_id: 'mem_a1' }, context);
 
-    expect(getNeighbors).toHaveBeenCalledWith('mem_a1', expect.objectContaining({ owner_id: 'agent-a' }));
+    expect(getNeighbors).toHaveBeenCalledWith('mem_a1', expect.objectContaining({ scope: { owner_id: 'agent-a' } }));
   });
 });

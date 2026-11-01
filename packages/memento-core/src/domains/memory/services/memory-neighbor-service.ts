@@ -10,6 +10,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 
 /**
  * 이웃 기억 조회 결과
@@ -40,8 +41,8 @@ interface NeighborSearchResult {
 interface NeighborSearchOptions {
   limit?: number;
   similarity_threshold?: number;
-  /** Only neighbors this owner owns, applied inside the vector search (#1342). */
-  owner_id?: string;
+  /** Required so no caller reads neighbors without stating its scope; `{}` is unscoped. */
+  scope: CallerMemoryScope;
 }
 
 /** memory_embedding 단일 행 (get 조회) */
@@ -122,11 +123,15 @@ export class MemoryNeighborService {
    */
   async getNeighbors(
     memoryId: string,
-    options: NeighborSearchOptions = {}
+    options: NeighborSearchOptions
   ): Promise<NeighborSearchResult> {
     const startTime = Date.now();
     
     try {
+      if (!options?.scope) {
+        throw new Error('getNeighbors requires a caller scope');
+      }
+      const scope = callerMemoryScopeSql(options.scope);
       // 기본값 설정
       const limit = options.limit ?? 5;
       const similarityThreshold = options.similarity_threshold ?? 0.8;
@@ -141,8 +146,8 @@ export class MemoryNeighborService {
       try {
         memory = await DatabaseUtils.get(
           this.db,
-          'SELECT id FROM memory_item WHERE id = ? AND (COALESCE(is_deleted, 0) = 0)',
-          [memoryId]
+          `SELECT id FROM memory_item WHERE id = ? AND (COALESCE(is_deleted, 0) = 0)${scope.sql}`,
+          [memoryId, ...scope.params]
         );
       } catch (error) {
         logger.error('메모리 조회 실패', {
@@ -237,7 +242,7 @@ export class MemoryNeighborService {
             limit: searchLimit,
             threshold: 0.0, // 임계값은 나중에 필터링에서 적용
             includeContent: true,
-            ...(options.owner_id ? { owner_id: options.owner_id } : {}),
+            ...options.scope,
           },
           embeddingProvider
         );

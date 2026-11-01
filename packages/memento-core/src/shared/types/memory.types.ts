@@ -84,8 +84,6 @@ export interface MementoConfig {
    * jev 는 llmProviderOverrides 에 들어가지 않는다.
    */
   relationExtractionOverride: RelationExtractionOverride;
-  searchDefaultLimit: number;
-  searchMaxLimit: number;
   /**
    * #1095 검색 기각 게이트 provider.
    * 'off' = 게이트 없음(기본, 현행 동작). 'typesafe' = TypeSafe Jev.
@@ -107,14 +105,7 @@ export interface MementoConfig {
   typesafeApiKey: string | undefined;
   /** TypeSafe Jev 모델명 */
   typesafeModel: string;
-  forgetTTL: {
-    working: number;
-    episodic: number;
-    semantic: number;
-    procedural: number;
-  };
   logLevel: string;
-  logFile: string | undefined;
   mcpLogProtocol: boolean;
   nodeEnv: string;
   fts5MigrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
@@ -138,6 +129,8 @@ export interface MementoConfig {
   dbLockMonitorEnabled: boolean;
   reflexionObservationOnly: boolean;
   reflexionObservationPinnedMax: number;
+  /** Issue #1550: 절차 실행 증거 기록 (기본 false) */
+  proceduralExecutionEvidenceEnabled: boolean;
   proceduralExtractionStrategy: 'llm_first' | 'rule_only';
   proceduralLlmExtractorTimeoutMs: number;
   corsAllowedOrigins: string[];

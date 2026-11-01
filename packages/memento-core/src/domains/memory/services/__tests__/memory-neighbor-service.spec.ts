@@ -78,7 +78,7 @@ describe('MemoryNeighborService', () => {
       );
       // setDatabase를 호출하지 않음
       await expect(
-        service.getNeighbors('test_id', {})
+        service.getNeighbors('test_id', { scope: {} })
       ).rejects.toThrow('Database is not set');
     });
   });
@@ -92,6 +92,7 @@ describe('MemoryNeighborService', () => {
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.getNeighbors(memoryId, {
+        scope: {},
         limit: 5,
         similarity_threshold: 0.8
       });
@@ -145,6 +146,7 @@ describe('MemoryNeighborService', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const result = await neighborService.getNeighbors(memoryId1, {
+        scope: {},
         limit: 5,
         similarity_threshold: 0.5 // 낮은 임계값으로 설정
       });
@@ -163,6 +165,7 @@ describe('MemoryNeighborService', () => {
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.getNeighbors(memoryId, {
+        scope: {},
         limit: 3,
         similarity_threshold: 0.8
       });
@@ -177,6 +180,7 @@ describe('MemoryNeighborService', () => {
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.getNeighbors(memoryId, {
+        scope: {},
         limit: 5,
         similarity_threshold: 0.9 // 높은 임계값
       });
@@ -191,7 +195,7 @@ describe('MemoryNeighborService', () => {
   describe('getNeighbors - 에러 케이스', () => {
     it('should throw MemoryNotFoundError for non-existent memory', async () => {
       await expect(
-        neighborService.getNeighbors('non_existent_id', {})
+        neighborService.getNeighbors('non_existent_id', { scope: {} })
       ).rejects.toThrow(MemoryNotFoundError);
     });
 
@@ -209,7 +213,7 @@ describe('MemoryNeighborService', () => {
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [memoryId, Buffer.from([1, 2, 3]), 'tfidf', 512, 512]);
 
-      const result = await neighborService.getNeighbors(memoryId, {});
+      const result = await neighborService.getNeighbors(memoryId, { scope: {} });
 
       expect(result.neighbors).toEqual([]);
       expect(result.total_count).toBe(0);

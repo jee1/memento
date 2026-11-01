@@ -130,56 +130,6 @@ function checkEmbedding(config: MementoConfig, { errors, warnings }: IssueSink):
   }
 }
 
-function checkLimits(config: MementoConfig, { errors }: IssueSink): void {
-  if (config.searchDefaultLimit <= 0 || config.searchMaxLimit <= 0) {
-    errors.push(
-      issue('error', 'SEARCH_LIMIT_INVALID', '검색 제한 값은 양수여야 합니다.', '양수 값을 설정해주세요.')
-    );
-  } else if (config.searchDefaultLimit > config.searchMaxLimit) {
-    errors.push(
-      issue(
-        'error',
-        'SEARCH_LIMIT_RELATION_INVALID',
-        `SEARCH_DEFAULT_LIMIT(${config.searchDefaultLimit})이 SEARCH_MAX_LIMIT(${config.searchMaxLimit})보다 클 수 없습니다.`,
-        'SEARCH_MAX_LIMIT을 더 크게 설정하거나 기본 제한을 줄여주세요.'
-      )
-    );
-  }
-
-  const ttlEntries: Array<[keyof MementoConfig['forgetTTL'], number]> = [
-    ['working', config.forgetTTL.working],
-    ['episodic', config.forgetTTL.episodic],
-    ['semantic', config.forgetTTL.semantic],
-    ['procedural', config.forgetTTL.procedural]
-  ];
-
-  for (const [key, value] of ttlEntries) {
-    const isAlwaysRetain = key === 'semantic' || key === 'procedural';
-    if (!Number.isFinite(value)) {
-      errors.push(
-        issue(
-          'error',
-          'TTL_NOT_A_NUMBER',
-          `${key} TTL 값이 숫자가 아닙니다.`,
-          '시간(시간 단위)을 나타내는 정수를 사용해주세요.'
-        )
-      );
-      continue;
-    }
-
-    if (value < 0 && !isAlwaysRetain) {
-      errors.push(
-        issue(
-          'error',
-          'TTL_NEGATIVE',
-          `${key} TTL(${value})은 음수가 될 수 없습니다.`,
-          '0보다 큰 값을 사용하거나 무기한 유지가 필요하면 semantic/procedural에 -1을 사용해주세요.'
-        )
-      );
-    }
-  }
-}
-
 function checkLogLevel(config: MementoConfig, { warnings }: IssueSink): void {
   if (!config.logLevel || config.logLevel.trim() === '') {
     warnings.push(
@@ -259,7 +209,7 @@ export function validateConfiguration(config: MementoConfig, options: ValidateOp
   const warnings: ConfigValidationIssue[] = [];
   const logger = options.logger ?? console;
 
-  for (const check of [checkStorageAndPorts, checkEmbedding, checkLimits, checkLogLevel, checkOfflineMode]) {
+  for (const check of [checkStorageAndPorts, checkEmbedding, checkLogLevel, checkOfflineMode]) {
     check(config, { errors, warnings });
   }
 

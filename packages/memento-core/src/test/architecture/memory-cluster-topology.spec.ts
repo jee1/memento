@@ -39,7 +39,7 @@ describe('memory domain cluster topology', () => {
       recall: 15,
       remember: 12,
       review: 9,
-      procedural: 12,
+      procedural: 13,
       introspection: 6,
     });
     expect(Object.values(counts).every((count) => count <= 20)).toBe(true);
