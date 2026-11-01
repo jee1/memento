@@ -12,9 +12,9 @@
 
 같은 키·시간 창에서는 동시 요청과 재시도를 합쳐 고정 행을 최대 2개(실패 관찰 1개·미검증 후보 최대 1개), 임베딩 시도를 최대 1회 남긴다. 저장 전에 중복 키를 예약하고 관찰 INSERT 자체가 실패하면 예약을 해제한다. 관찰 저장 뒤 변환·임베딩이 실패하면 중복 키를 유지하므로 재시도로 고정 행을 늘리지 않는다. 시간 창은 첫 시도에서 시작하며 중복 요청으로 연장하지 않는다. 이 상한은 Recorder 인스턴스의 `record` 경로에만 적용된다. 직접 `convert`·`updateProceduralMemory` 호출은 별도로 후보를 추가한다.
 
-중복 키는 메모리에만 남는다. 시간 창 만료·Recorder 재생성·서버 재시작 뒤에는 같은 오류도 다시 기록할 수 있다. `REFLEXION_OBSERVATION_ONLY=true`일 때 pinned reflexion episodic 총량은 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)를 넘지 않는다. 초과분은 `created_at`이 가장 오래된 행부터 unpin하며, unpin된 행은 자동 망각 대상이 된다. `record`·`convert`·`updateProceduralMemory` 모두 INSERT 직전에 같은 상한을 적용한다.
+중복 키는 메모리에만 남는다. 시간 창 만료·Recorder 재생성·서버 재시작 뒤에는 같은 오류도 다시 기록할 수 있다. `REFLEXION_OBSERVATION_ONLY=true`일 때 pinned reflexion episodic 총량은 **동일 owner_id·project_id** 범위에서 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)를 넘지 않는다. 다른 owner의 pin은 건드리지 않는다. env 값이 0 이하이면 pinned 상한 enforcement를 하지 않는다(무제한 pin). 초과분은 `created_at`·`rowid` 오름차순으로 가장 오래된 행부터 unpin하며, `is_deleted=1`인 pinned 행은 슬롯 집계에서 제외한다. unpin된 행은 자동 망각 대상이 된다. `record`·`convert`·`updateProceduralMemory` 모두 INSERT 직전에 같은 상한을 트랜잭션으로 적용한다.
 
-오류 문구 정규화는 dedup 키에만 쓴다. 앞뒤 공백 제거, 소문자, 연속 공백 축약에 더해 UUID·`mem_*` id·`failure_*` id·ISO 시각·숫자 토큰을 치환해 id나 시각이 섞인 메시지가 매번 다른 키가 되지 않게 한다.
+오류 문구 정규화는 dedup 키에만 쓴다. 앞뒤 공백 제거, 소문자, 연속 공백 축약에 더해 UUID·긴 `mem_*` id·id 형식 `failure_*`/`failure-*`·ISO 시각·8자리 이상 숫자만 치환한다. HTTP 404/500·DB 포트(5432 등) 같은 짧은 숫자는 유지해 서로 다른 오류가 다른 키로 남는다.
 
 자동 Sleep consolidation과 망각으로 원본이 약해지지 않도록 두 기록을 pin한다. pin은 채택 표시가 아니다. 플래그를 다시 꺼도 저장한 episodic과 pin은 유지한다. 보존 비용이 계속 누적되므로 운영자가 검토한 뒤 명시적으로 unpin·삭제해야 한다.
 
