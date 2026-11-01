@@ -271,6 +271,10 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
     rationale: '기존 배치·reflexion 기억 접근; 후속 이관 대상',
   },
   {
+    path: 'packages/memento-core/src/infrastructure/reflexion-observation-pinned-cap.ts',
+    rationale: 'Reflexion 관찰 pinned 상한·unpin (#1578); reflexion create 경로와 동일 동결',
+  },
+  {
     path: 'packages/memento-core/src/infrastructure/scheduler/batch-scheduler/batch-scheduler-database-stats.ts',
     rationale: '기존 배치·reflexion 기억 접근; 후속 이관 대상',
   },
@@ -301,7 +305,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
 ] as const;
 
 /** 허용 목록 증가 방지 가드 — 리뷰 없이 올리지 않는다 (#1531). */
-const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 70;
+const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 71;
 
 /**
  * 문자열 리터럴 안의 `memory_item` 테이블 참조.

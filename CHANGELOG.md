@@ -31,6 +31,7 @@
 - 품질 측정: 정답셋이 없을 때 precision/recall 0으로 기록하던 동작을 미측정 상태로 구분합니다. collector metadata·metric_states가 recorder·evaluator·리포트까지 유지됩니다 (#1560).
 - PR·weekly 검색 품질 벤치마크의 시드·랭킹 기준 시각을 고정해 날짜 경과만으로 MRR 게이트가 실패하던 문제를 고칩니다. 30초 제한은 실제 경과 시간으로 측정합니다 (#1572).
 - Reflexion 관찰 분리: 같은 오류의 이벤트 ID가 달라도 범위별 시간 창에서 중복을 막고, 동시 요청·임베딩 실패 뒤 재시도의 고정 행 누적을 제한합니다. 플래그 off의 중복 등록 순서도 복원합니다 (#1547, #1576).
+- Reflexion 관찰 분리: `REFLEXION_OBSERVATION_ONLY`에서 pinned reflexion episodic 총량을 `REFLEXION_OBSERVATION_PINNED_MAX`(기본 256)로 제한하고 초과분을 unpin합니다. dedup 키용 오류 문구에서 가변 id·시각·숫자를 치환합니다 (#1578).
 
 ### Changed
 

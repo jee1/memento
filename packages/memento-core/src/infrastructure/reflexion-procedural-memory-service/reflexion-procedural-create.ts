@@ -8,6 +8,7 @@ import type { ExtractedProceduralMemory } from '../../domains/memory/procedural/
 import type { ReflectionNotes } from '../../domains/memory/procedural/procedural-memory-extractor.types.js';
 import { logger } from '../../shared/utils/logger.js';
 import { MemoryEmbeddingService } from '../../domains/embedding/services/memory-embedding-service.js';
+import { enforceReflexionObservationPinnedCap } from '../reflexion-observation-pinned-cap.js';
 
 export async function createUnverifiedReflexionMemory(
   db: Database.Database,
@@ -26,6 +27,7 @@ export async function createUnverifiedReflexionMemory(
     environment: event.context?.environment ?? null,
     tool_version: event.context?.tool_version ?? null,
   } });
+  enforceReflexionObservationPinnedCap(db, 1);
   // pin은 자동 통합의 importance 하향과 TTL 망각으로부터 원본·후보를 보호한다.
   DatabaseUtils.run(db, `INSERT INTO memory_item (
     id, type, content, task_goal, workflow_name, skill_name, steps, trigger_conditions,

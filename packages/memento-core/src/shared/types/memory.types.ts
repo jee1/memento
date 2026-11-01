@@ -137,6 +137,7 @@ export interface MementoConfig {
   walCheckpointEnabled: boolean;
   dbLockMonitorEnabled: boolean;
   reflexionObservationOnly: boolean;
+  reflexionObservationPinnedMax: number;
   proceduralExtractionStrategy: 'llm_first' | 'rule_only';
   proceduralLlmExtractorTimeoutMs: number;
   corsAllowedOrigins: string[];

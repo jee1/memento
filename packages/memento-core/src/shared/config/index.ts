@@ -204,6 +204,8 @@ export const mementoConfig: MementoConfig = {
 
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
   reflexionObservationOnly: resolveBoolean('REFLEXION_OBSERVATION_ONLY', { defaultValue: false }),
+  /** REFLEXION_OBSERVATION_ONLY 시 pinned reflexion episodic 총량 상한 (#1578) */
+  reflexionObservationPinnedMax: resolveNumber('REFLEXION_OBSERVATION_PINNED_MAX', { defaultValue: 256 }),
   proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
     ? 'llm_first'
     : 'rule_only') as 'llm_first' | 'rule_only',
