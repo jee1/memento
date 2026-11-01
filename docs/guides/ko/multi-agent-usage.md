@@ -46,7 +46,7 @@ Memento는 이를 위해 `owner_id` 필드를 지원합니다. 기억을 저장�
 }
 ```
 
-`owner_id`를 지정하지 않으면 MCP와 레거시 경로는 소유자 구분 없이 전체 검색합니다. **HTTP `/tools/recall`, `/tools/memory_injection`, `/tools/export_memories`만** owner-scope 미들웨어가 적용되며, 기본값 `MEMENTO_OWNER_SCOPE_MODE=strict`에서는 `owner_id`가 없을 때 요청 헤더나 환경 변수에서 읽은 에이전트 ID로 자동 필터됩니다. MCP는 파라미터 `owner_id`로만 격리합니다.
+`owner_id`를 지정하지 않으면 MCP와 레거시 경로는 소유자 구분 없이 전체 검색합니다. **HTTP `/tools/recall`, `/tools/memory_injection`, `/tools/export`만** owner-scope 미들웨어가 적용되며, 기본값 `MEMENTO_OWNER_SCOPE_MODE=strict`에서는 `owner_id`가 없을 때 요청 헤더나 환경 변수에서 읽은 에이전트 ID로 자동 필터됩니다. MCP는 파라미터 `owner_id`로만 격리합니다.
 
 조회 결과에는 각 기억 항목의 `owner_id`가 포함됩니다(`include_metadata: true` 설정 시).
 
@@ -56,7 +56,7 @@ HTTP programmatic API(`/tools/*`)는 다중 에이전트 환경에서 타 에이
 
 | 환경 변수 | 값 | 동작 |
 |-----------|-----|------|
-| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (기본) | `recall` / `memory_injection` / `export_memories`에 `owner_id`가 없고 에이전트 ID(`X-Memento-Agent-Id` 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID`)가 있으면 그 값으로 `owner_id`를 자동 주입. **식별자가 없으면 400** |
+| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (기본) | `recall` / `memory_injection` / `export`에 `owner_id`가 없고 에이전트 ID(`X-Memento-Agent-Id` 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID`)가 있으면 그 값으로 `owner_id`를 자동 주입. **식별자가 없으면 400** |
 | | `warn` | 에이전트 ID가 있으면 `strict`와 같이 `owner_id`를 주입. **식별자가 없을 때만** 경고 로그 후 레거시(전체) 조회 허용 |
 | | `off` | 강제 없음 (레거시와 동일) |
 
@@ -191,4 +191,4 @@ owner scope·writer 격리 설계는 [#664](https://github.com/jee1/memento/issu
 
 owner_id 기능은 기존 코드와 완전히 하위 호환됩니다. 기존 데이터는 모두 `owner_id = NULL`을 유지하며, `owner_id`를 지정하지 않은 기존 코드는 변경 없이 이전과 동일하게 동작합니다. 새로운 필드를 사용해야만 다중 에이전트 분리 기능이 활성화됩니다.
 
-> **HTTP 참고:** 위 하위 호환 설명은 MCP와 구코드 경로 기준입니다. HTTP `/tools/recall`, `/tools/memory_injection`, `/tools/export_memories`는 기본 `MEMENTO_OWNER_SCOPE_MODE=strict`라서, `owner_id`를 생략해도 에이전트 ID로 자동 필터되거나(없으면 400) NULL 기억이 스코프 결과에 안 잡힐 수 있습니다. 전체 조회가 필요하면 `warn`/`off` 또는 위 «레거시 NULL 데이터 opt-out»을 보세요.
+> **HTTP 참고:** 위 하위 호환 설명은 MCP와 구코드 경로 기준입니다. HTTP `/tools/recall`, `/tools/memory_injection`, `/tools/export`는 기본 `MEMENTO_OWNER_SCOPE_MODE=strict`라서, `owner_id`를 생략해도 에이전트 ID로 자동 필터되거나(없으면 400) NULL 기억이 스코프 결과에 안 잡힐 수 있습니다. 전체 조회가 필요하면 `warn`/`off` 또는 위 «레거시 NULL 데이터 opt-out»을 보세요.

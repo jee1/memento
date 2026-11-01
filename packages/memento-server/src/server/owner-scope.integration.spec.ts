@@ -163,12 +163,12 @@ describe('HTTP owner scope integration', () => {
     expect(parsed.message).toContain('MEMENTO_OWNER_SCOPE_MODE=strict');
   });
 
-  it('strict mode: export_memories without agent header or owner_id returns 400', async () => {
+  it('strict mode: export without agent header or owner_id returns 400', async () => {
     const port = await startRealHttpServer();
 
     const response = await postJson(
       port,
-      '/tools/export_memories',
+      '/tools/export',
       {
         format: 'jsonl'
       },

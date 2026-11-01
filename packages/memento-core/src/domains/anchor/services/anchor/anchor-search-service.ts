@@ -10,7 +10,7 @@ import type { VectorSearchEngine } from '../../../search/algorithms/vector-searc
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
 import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { selectIdsOwnedBy } from '../../../../shared/utils/owned-ids.js';
+import { selectIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { NHopSearchService, type NHopSearchResult } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
@@ -287,12 +287,16 @@ export class AnchorSearchService implements IAnchorSearchService {
     );
 
 
-    // 3. owner 범위 — limit 을 자르기 전에 걸러야 바인딩 agent 도 limit 만큼 받는다 (#1342)
-    const ownedIds = ownerId ? selectIdsOwnedBy(this.db, ownerId, filteredResults.map(r => r.memory_id)) : null;
-    const scopedResults = ownedIds ? filteredResults.filter(r => ownedIds.has(r.memory_id)) : filteredResults;
+    // 3. 호출자 범위와 soft-delete — limit 을 자르기 전에 걸러야 바인딩 agent 도 limit 만큼 받는다 (#1342)
+    const scope: CallerMemoryScope = {
+      ...(ownerId ? { owner_id: ownerId } : {}),
+      ...(options?.project_id ? { project_id: options.project_id } : {}),
+    };
+    const visibleIds = selectIdsInScope(this.db, scope, filteredResults.map(r => r.memory_id));
+    const scopedResults = filteredResults.filter(r => visibleIds.has(r.memory_id));
 
-    // 4. 결과 포맷팅 (중첩 predecessor도 소유자 검증)
-    const formattedResults = this.formatLocalResults(scopedResults, ownerId);
+    // 4. 결과 포맷팅 (중첩 predecessor도 같은 범위로 검증)
+    const formattedResults = this.formatLocalResults(scopedResults, scope);
 
     // 최종 limit 적용
     const localResults = formattedResults.slice(0, limit);
@@ -339,7 +343,7 @@ export class AnchorSearchService implements IAnchorSearchService {
 
   private formatLocalResults(
     scopedResults: NHopSearchResult[],
-    ownerId?: string
+    scope: CallerMemoryScope
   ): Array<{
     id: string;
     content: string;
@@ -352,29 +356,26 @@ export class AnchorSearchService implements IAnchorSearchService {
     predecessor_id?: string;
     predecessor_ids?: string[];
   }> {
-    let ownedPredecessors: Set<string> | null = null;
-    if (ownerId && this.db) {
-      const allPredecessorCandidateIds: string[] = [];
-      for (const r of scopedResults) {
-        if (r.predecessor_id) allPredecessorCandidateIds.push(r.predecessor_id);
-        if (r.predecessor_ids) allPredecessorCandidateIds.push(...r.predecessor_ids);
-      }
-      ownedPredecessors = selectIdsOwnedBy(this.db, ownerId, allPredecessorCandidateIds);
+    const allPredecessorCandidateIds: string[] = [];
+    for (const r of scopedResults) {
+      if (r.predecessor_id) allPredecessorCandidateIds.push(r.predecessor_id);
+      if (r.predecessor_ids) allPredecessorCandidateIds.push(...r.predecessor_ids);
     }
+    const visiblePredecessors = this.db
+      ? selectIdsInScope(this.db, scope, allPredecessorCandidateIds)
+      : new Set<string>(allPredecessorCandidateIds);
 
     return scopedResults.map(result => {
       let predecessor_ids = result.predecessor_ids;
       let predecessor_id = result.predecessor_id;
-      if (ownedPredecessors) {
-        if (predecessor_ids) {
-          predecessor_ids = predecessor_ids.filter((id: string) => ownedPredecessors.has(id));
-          if (predecessor_ids.length === 0) {
-            predecessor_ids = undefined;
-          }
+      if (predecessor_ids) {
+        predecessor_ids = predecessor_ids.filter((id: string) => visiblePredecessors.has(id));
+        if (predecessor_ids.length === 0) {
+          predecessor_ids = undefined;
         }
-        if (predecessor_id && !ownedPredecessors.has(predecessor_id)) {
-          predecessor_id = undefined;
-        }
+      }
+      if (predecessor_id && !visiblePredecessors.has(predecessor_id)) {
+        predecessor_id = undefined;
       }
       return {
         id: result.memory_id,

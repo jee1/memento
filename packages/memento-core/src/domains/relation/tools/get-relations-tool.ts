@@ -11,7 +11,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
-import { callerOwnerClause, filterCallerOwnedIds } from '../../../tools/caller-scope.js';
+import { callerVisibleClause, filterCallerVisibleIds } from '../../../tools/caller-scope.js';
 import { relationToolError } from './relation-tool-response.js';
 
 type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
@@ -99,7 +99,7 @@ export class GetRelationsTool extends BaseTool {
     try {
       // Given: 메모리 존재 확인
       const ownerIdColumn = memoryItemHasOwnerIdColumn(db) ? ', owner_id' : '';
-      const ownerScope = callerOwnerClause(context);
+      const ownerScope = callerVisibleClause(context);
       const memory = DatabaseUtils.get(db, `
         SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?${ownerScope.sql}
       `, [memory_id, ...ownerScope.params]) as RelationMemoryRow | undefined;
@@ -168,7 +168,7 @@ export class GetRelationsTool extends BaseTool {
 
       const allRelations = await relationGraph.getRelations(memory_id, options);
       // Edges into other owners' memories would leak their ids to a bound caller.
-      const owned = filterCallerOwnedIds(
+      const owned = filterCallerVisibleIds(
         context,
         allRelations.flatMap((relation) => [relation.source_id, relation.target_id]),
       );
