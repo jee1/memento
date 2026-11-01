@@ -4,6 +4,8 @@ import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { AnchorManager } from './anchor-manager.js';
 import { AnchorCacheService } from './anchor-cache-service.js';
 import { AnchorSearchService } from './anchor-search-service.js';
+import { SearchLocalTool } from '../../tools/search-local-tool.js';
+import type { ToolContext } from '../../../../tools/types.js';
 import { MemoryNeighborService } from '../../../memory/services/memory-neighbor-service.js';
 import { AddRelationTool } from '../../../relation/tools/add-relation-tool.js';
 import { ExtractRelationsTool } from '../../../relation/tools/extract-relations-tool.js';
@@ -166,6 +168,32 @@ describe('#1552 current read contracts', () => {
   it('search_local rejects an anchor seed outside a project-only scope', async () => {
     await expect(search.searchLocal('a', 'A', undefined, 1,
       { min_results: 0, ...{ project_id: 'q' } }, 'target', null, Date.now())).rejects.toThrow('not found');
+  });
+
+  it('uses the same absent-anchor response for empty, replaced and out-of-scope slots', async () => {
+    const failures: Array<{ name: string; message: string }> = [];
+    const fallback = vi.fn().mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+    const tool = new SearchLocalTool();
+    const context = { db, boundAgentId: 'a', boundProjectId: 'p', services: {
+      anchorManager: manager, hybridSearchEngine: { search: fallback },
+    } } as unknown as ToolContext;
+    const responses = [];
+    for (const memoryId of [null, 'old', 'foreign']) {
+      db.prepare('DELETE FROM anchor').run();
+      if (memoryId) db.prepare("INSERT INTO anchor (agent_id, slot, memory_id) VALUES ('a', 'A', ?)").run(memoryId);
+      const error = await manager.searchLocal('a', 'A', undefined, 1,
+        { min_results: 0, owner_id: 'a', project_id: 'p' }).then(() => null, (error: Error) => error);
+      expect(error).toBeInstanceOf(Error);
+      failures.push({ name: error!.name, message: error!.message });
+      responses.push(await tool.handle({ slot: 'A', query: 'body' }, context));
+    }
+    expect(responses).toEqual(Array(3).fill(responses[0]));
+    expect(JSON.parse(responses[0]!.content[0]!.text!)).toMatchObject({ fallback_used: true, items: [] });
+    expect(fallback).toHaveBeenCalledTimes(3);
+    for (const [, options] of fallback.mock.calls) expect(options.filters).toEqual({ owner_id: 'a', project_id: 'p' });
+    expect(failures).toEqual(Array(3).fill({
+      name: 'AnchorNotFoundError', message: 'Anchor not found for agent_id: a, slot: A',
+    }));
   });
 
   it.each(['graph', 'legacy'] as const)('search_local preserves a scoped fresh top-1 before hop limits (%s)', async mode => {

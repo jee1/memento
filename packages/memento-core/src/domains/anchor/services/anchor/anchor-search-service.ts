@@ -8,7 +8,7 @@ import type Database from 'better-sqlite3';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
-import { DatabaseValidationError, MemoryNotFoundError, ServiceNotInitializedError } from './anchor-interfaces.js';
+import { DatabaseValidationError, AnchorNotFoundError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
@@ -239,7 +239,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       ...(options?.project_id ? { project_id: options.project_id } : {}),
     };
     const currentSeed = selectCurrentIdsInScope(this.db, scope, [anchorMemoryId]).has(anchorMemoryId);
-    if (!currentSeed) throw new MemoryNotFoundError(anchorMemoryId);
+    if (!currentSeed) throw new AnchorNotFoundError(agentId, slot);
 
     // 슬롯별 설정 가져오기
     const slotConfig = this.getSlotConfig(slot);
