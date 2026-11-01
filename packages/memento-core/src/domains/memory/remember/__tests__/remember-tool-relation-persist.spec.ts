@@ -27,6 +27,8 @@ function initializeSchema(db: Database.Database): void {
       source TEXT,
       is_consolidated BOOLEAN DEFAULT FALSE,
       owner_id TEXT,
+      project_id TEXT,
+      superseded_by TEXT,
       is_deleted INTEGER DEFAULT 0
     );
 
