@@ -205,7 +205,7 @@ GEMINI_API_KEY=your_key_here
 
 **랭킹 가중치** 탭은 검색 랭킹 가중치를 바꾸는 PR 초안을 만듭니다. 값은 운영에 바로 반영되지 않습니다. 표에서 knob 마다 서버가 로드한 값, 서버가 읽는 파일 값(둘이 다르면 **파일과 다름**), 허용 범위를 보고 **제안 값**을 고칩니다. **제안 만들기**를 누르면 바뀐 값과 함께 사유를 받는 확인 창이 열리고, 사유를 적어야 저장됩니다. 결과 영역에서 고정 평가셋(benchmark-v3)의 dev 쿼리로 현재 값과 제안 값을 비교한 미리보기 표(지표별 현재, 제안, 차이, 카테고리별 차이, relevance 동점 게이트)를 봅니다. held-out 쿼리는 값을 고르는 데 쓰지 않습니다. **patch 다운로드**로 `git apply` 가 되는 patch 를 받고, **PR 명령 복사**로 브랜치 생성부터 `gh pr create --draft` 까지의 명령을 복사합니다. 운영 값은 그 PR 을 머지하고 배포한 뒤에 바뀝니다.
 
-운영 컨테이너는 메모리 상한 때문에 서버가 미리보기를 실행하지 않습니다(`RANKING_PREVIEW_ENABLED` 기본 꺼짐). 이 경우 화면이 CLI 명령을 보여 주며, 개발 PC 에서 `npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'` 처럼 실행합니다. 처음 실행은 benchmark-v3 시드 DB 를 만드느라 몇 분 걸리고, 시드 DB 는 `MEMENTO_RANKING_PREVIEW_CACHE_DIR`(기본 임시 디렉터리)에 캐시되어 이후 실행은 몇 초입니다.
+운영 컨테이너는 메모리 상한 때문에 서버가 미리보기를 실행하지 않습니다(`RANKING_PREVIEW_ENABLED` 기본 꺼짐). 이 경우 화면이 CLI 명령을 보여 주며, 개발 PC 에서 `npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'` 처럼 실행합니다. 실행마다 benchmark-v3 시드 DB 를 실행 전용 임시 디렉터리에 새로 만들어 몇 분 걸립니다. `MEMENTO_RANKING_PREVIEW_CACHE_DIR`(또는 `--cache-dir`)에 본인만 쓰는 디렉터리를 주면 시드 DB 를 그곳에 캐시해 이후 실행은 몇 초입니다.
 
 ## 기억 관리하기
 

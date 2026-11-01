@@ -53,7 +53,8 @@ export function buildProposalCommands(proposal: RankingProposal): ProposalComman
     branch_and_pr: [
       `git checkout -b ranking/${shortId}`,
       `git apply ranking-${proposal.id}.patch`,
-      `git commit -am ${shellQuote(title)}`,
+      'git add config/ranking-weights.toml',
+      `git commit -m ${shellQuote(title)}`,
       `gh pr create --draft --title ${shellQuote(title)} --body ${shellQuote(body)}`,
     ].join(' && '),
   };

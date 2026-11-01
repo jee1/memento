@@ -69,6 +69,13 @@ describe('ranking-preview', () => {
     expect(second.proposed.ndcg_at_10).toBe(first.proposed.ndcg_at_10);
   });
 
+  it('캐시 디렉터리를 주지 않으면 실행마다 새로 시드한다', async () => {
+    const args = parsePreviewArgs(['--changes', '{"recency_signal.scale":0.25}', '--benchmark-dir', MINI]);
+    const first = await runRankingPreview(args);
+    const second = await runRankingPreview(args);
+    expect([first.seed_cache.hit, second.seed_cache.hit]).toEqual([false, false]);
+  });
+
   it('원격 임베딩 provider 로는 시드하지 않는다', async () => {
     process.env.EMBEDDING_PROVIDER = 'openai';
     try {

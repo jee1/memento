@@ -121,7 +121,7 @@ effective_similarity = cosine_similarity × factor
 
 1. **제안.** 값을 고르고 사유를 적으면 `ranking_weight_proposal`(migration 064)에 patch 가 저장됩니다. 행은 고치지 않고 미리보기 결과만 한 번 채웁니다. patch 는 `applyRankingKnobChanges` 가 `config/ranking-weights.toml` 의 값 토큰만 바꿔 만들어 주석과 줄 순서를 보존합니다.
 2. **미리보기.** `npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'` 가 현재 파일과 제안 적용본을 `benchmark-v3/split.json` 의 `dev_query_ids` 로만 평가합니다. held-out 쿼리는 실행 자체를 하지 않습니다(`evaluateProfile` 의 `queryIds`). 분할은 `queries.json` 의 sha256 을 담고 있어 쿼리가 바뀌면 런너가 낡았다고 거절합니다. 평가는 `getRankingWeights()` 전역 캐시와 `MEMENTO_RANKING_WEIGHTS_PATH` 를 바꾸므로 서버 프로세스 안에서 부르지 않고 항상 별도 프로세스에서 돌립니다. 서버는 `RANKING_PREVIEW_ENABLED=true` 일 때만 자식 프로세스로 실행하며 운영 컨테이너(메모리 1GiB)에서는 끕니다. 시드 DB 는 코퍼스, manifest, 시드 코드, 임베딩 provider·모델이 키인 파일로 캐시합니다. 결과의 `tie_gate` 는 `tune-weights` 와 같은 relevance 동점 게이트(현재 + 0.005)입니다.
-3. **PR.** patch 를 받아 `git checkout -b ranking/<id 앞 8자> && git apply ranking-<id>.patch && git commit -am '...' && gh pr create --draft ...` 로 올립니다(API 가 명령을 만들어 줍니다). 머지와 배포 전까지 운영 값은 그대로입니다. 미리보기는 dev 기준이므로 held-out 결과는 PR 이 열린 뒤 CI 의 search-quality 검사가 봅니다.
+3. **PR.** patch 를 받아 `git checkout -b ranking/<id 앞 8자> && git apply ranking-<id>.patch && git add config/ranking-weights.toml && git commit -m '...' && gh pr create --draft ...` 로 올립니다(API 가 명령을 만들어 줍니다). 머지와 배포 전까지 운영 값은 그대로입니다. 미리보기는 dev 기준이므로 held-out 결과는 PR 이 열린 뒤 CI 의 search-quality 검사가 봅니다.
 
 채택 계약 평가셋(`adoption-ko-panel-v1`)은 대체 게이트 계약용이라 랭킹 미리보기에 쓰지 않습니다.
 

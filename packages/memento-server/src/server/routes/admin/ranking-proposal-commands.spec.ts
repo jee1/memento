@@ -35,7 +35,9 @@ describe('buildProposalCommands', () => {
     const steps = command.split(' && ');
     expect(steps[0]).toBe('git checkout -b ranking/12345678');
     expect(steps[1]).toBe('git apply ranking-12345678-aaaa-bbbb-cccc-1234567890ab.patch');
-    expect(steps[2]).toMatch(/^git commit -am '/);
+    // 다른 추적 파일의 변경이 섞이지 않게 설정 파일만 스테이징한다.
+    expect(steps[2]).toBe('git add config/ranking-weights.toml');
+    expect(steps[3]).toMatch(/^git commit -m '/);
     expect(command).toContain('gh pr create --draft --title ');
     const body = /--body ('(?:[^']|'\\'')*')$/.exec(command)?.[1];
     expect(viaShell(body!)).toContain("사유 'quote' $HOME `date` \"dq\"\n둘째 줄");

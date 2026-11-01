@@ -7,7 +7,8 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,11 +64,20 @@ export function runRankingPreviewChild(
     ...(options.extraArgs ?? []),
   ];
 
+  // 자식의 임시 파일(시드 DB, 제안 toml)은 실행마다 만든 이 디렉터리에만 둔다. SIGKILL 로 끝나도 부모가 지운다.
+  const workDir = mkdtempSync(join(tmpdir(), 'memento-ranking-preview-'));
+  const removeWorkDir = (): void => rmSync(workDir, { recursive: true, force: true });
+
   return new Promise<PreviewOutcome>((resolve) => {
     let child: ChildProcess;
     try {
-      child = spawnFn(process.execPath, args, { cwd: options.projectRoot, stdio: ['ignore', 'pipe', 'pipe'] });
+      child = spawnFn(process.execPath, args, {
+        cwd: options.projectRoot,
+        env: { ...process.env, TMPDIR: workDir },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
     } catch (error) {
+      removeWorkDir();
       resolve({ status: 'failed', message: error instanceof Error ? error.message : String(error) });
       return;
     }
@@ -80,6 +90,7 @@ export function runRankingPreviewChild(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      removeWorkDir();
       resolve(outcome);
     };
     // 자식도 같은 시간 상한으로 스스로 끝나지만, 멈춘 자식을 서버가 직접 정리한다.

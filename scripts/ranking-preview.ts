@@ -87,7 +87,8 @@ export function parsePreviewArgs(argv: string[]): PreviewArgs {
     changes: {},
     benchmarkDir: DEFAULT_BENCHMARK_DIR,
     splitPath: '',
-    cacheDir: process.env.MEMENTO_RANKING_PREVIEW_CACHE_DIR || join(tmpdir(), 'memento-ranking-preview'),
+    // 비면 실행마다 만든 임시 디렉터리에 시드한다. 공유 /tmp 의 고정 경로는 남이 심은 DB 를 읽을 수 있다.
+    cacheDir: process.env.MEMENTO_RANKING_PREVIEW_CACHE_DIR ?? '',
     timeoutMs: DEFAULT_TIMEOUT_MS,
     currentProfile: DEFAULT_PROFILE,
   };
@@ -225,7 +226,7 @@ export async function runRankingPreview(args: PreviewArgs): Promise<RankingPrevi
   const proposedPath = join(tmp, 'proposed.toml');
   writeFileSync(proposedPath, proposedText);
 
-  const { db, close, cache } = await openSeededDatabase(args.benchmarkDir, args.cacheDir);
+  const { db, close, cache } = await openSeededDatabase(args.benchmarkDir, args.cacheDir || join(tmp, 'cache'));
   try {
     const options = { queryIds: split.dev_query_ids };
     // 첫 평가는 모델·SQLite 캐시를 데우느라 느려서 p95 비교를 왜곡한다. 결과는 버린다.
