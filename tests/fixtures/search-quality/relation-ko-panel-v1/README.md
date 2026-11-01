@@ -15,3 +15,10 @@ npx tsx scripts/generate-relation-ko-panel-v1.ts
 ```bash
 npx vitest run tests/relation-ko-panel-fixture.spec.ts
 ```
+
+BFS 효용 측정(#1555 3단계, 운영 경로 변경 없음):
+
+```bash
+npm run build -w @memento/core
+npm run quality -- benchmark:relation-bfs -- --write-report docs/testing/ko/relation-bfs-eval-report.md
+```

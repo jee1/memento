@@ -22,6 +22,7 @@ const COMMANDS: Record<string, QualityCommand> = {
   'benchmark:rejection-sweep': { script: 'quality-benchmark-rejection-sweep.ts' },
   'benchmark:maxsim': { script: 'quality-benchmark-maxsim.ts' },
   'benchmark:compare-profiles': { script: 'compare-weight-profiles.ts' },
+  'benchmark:relation-bfs': { script: 'evaluate-relation-bfs.ts' },
   'benchmark:tune-weights': { script: 'tune-weights.ts' },
   'benchmark:tune-report': { script: 'tune-report.ts' },
   'longmemeval:acquire': { script: 'acquire-longmemeval.ts' },
