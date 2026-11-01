@@ -42,6 +42,11 @@
       "import": "./dist/shared/config/ranking-weights-loader.js",
       "default": "./dist/shared/config/ranking-weights-loader.js"
     },
+    "./shared/config/ranking-knobs.js": {
+      "types": "./dist/shared/config/ranking-knobs.d.ts",
+      "import": "./dist/shared/config/ranking-knobs.js",
+      "default": "./dist/shared/config/ranking-knobs.js"
+    },
     "./domains/monitoring/services/quality-assurance/quality-metrics-collector.js": {
       "types": "./dist/domains/monitoring/services/quality-assurance/quality-metrics-collector.d.ts",
       "import": "./dist/domains/monitoring/services/quality-assurance/quality-metrics-collector.js",

@@ -5,7 +5,6 @@ import { describe, it, expect } from 'vitest';
 import { loadRankingWeights } from '@memento/core/shared/config/ranking-weights-loader.js';
 import {
   TIE_RATE_TOLERANCE,
-  TUNABLE_KNOBS,
   generateCandidate,
   parseKnobs,
   parseTuneArgs,
@@ -13,8 +12,8 @@ import {
   splitQueries,
   tieGateRejectReason,
   type CategoryMapping,
-  type KnobKey,
 } from './tune-weights.js';
+import { TUNABLE_KNOBS, type KnobKey } from '@memento/core/shared/config/ranking-knobs.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const mapping = JSON.parse(
