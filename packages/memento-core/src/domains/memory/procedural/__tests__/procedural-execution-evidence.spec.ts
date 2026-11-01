@@ -106,6 +106,18 @@ describe('procedural execution evidence and adoption gate (#1550)', () => {
     expect(verdict.report.baselineSuccessCases).toEqual([]);
   });
 
+  it('serves a legacy v1 without a series id under its own id and skips a deleted newer version', () => {
+    db.prepare(`INSERT INTO memory_item (id, type, content, steps, owner_id, project_id)
+      VALUES ('legacy', 'procedural', 'deploy', '["ship"]', 'owner-a', 'project-a')`).run();
+    db.prepare(`INSERT INTO memory_item
+      (id, type, content, version, version_series_id, owner_id, project_id, is_deleted)
+      VALUES ('proc-v2-deleted', 'procedural', 'deploy', 2, ?, 'owner-a', 'project-a', 1)`).run(SERIES);
+
+    const legacy = evaluateProceduralAdoption(db, { candidateMemoryId: 'cand', versionSeriesId: 'legacy', ...ENV });
+    expect(judged(legacy).report.servedMemoryId).toBe('legacy');
+    expect(judged(evaluate()).report.servedMemoryId).toBe('proc-v1');
+  });
+
   it('drops evidence recorded against content that was later edited in place', () => {
     record('proc-v1', 'base-1');
     record('cand', 'cand-1');
