@@ -148,16 +148,24 @@ export interface QuerySplit {
   strata: Record<string, { explore: string[]; judge: string[] }>;
 }
 
-/** macro 카테고리별 층화 분할. 층마다 시드 셔플 후 ceil(n/2) 를 explore, 나머지를 judge 로 보낸다. */
-export function splitQueries(queryIds: readonly string[], mapping: CategoryMapping | null, seed: number): QuerySplit {
+/** query id → macro 카테고리. 매핑에 없으면 'unmapped'. */
+export function queryMacroResolver(mapping: CategoryMapping | null): (queryId: string) => string {
   const categoryToMacro = new Map<string, string>();
   for (const [macro, cats] of Object.entries(mapping?.macro_categories ?? {})) {
     for (const c of cats) categoryToMacro.set(c, macro);
   }
+  return (id) => {
+    const label = mapping?.query_id_to_category[id];
+    return mapping?.query_overrides?.[id] ?? (label ? categoryToMacro.get(label) : undefined) ?? 'unmapped';
+  };
+}
+
+/** macro 카테고리별 층화 분할. 층마다 시드 셔플 후 ceil(n/2) 를 explore, 나머지를 judge 로 보낸다. */
+export function splitQueries(queryIds: readonly string[], mapping: CategoryMapping | null, seed: number): QuerySplit {
+  const macroOf = queryMacroResolver(mapping);
   const byStratum = new Map<string, string[]>();
   for (const id of [...queryIds].sort()) {
-    const label = mapping?.query_id_to_category[id];
-    const macro = mapping?.query_overrides?.[id] ?? (label ? categoryToMacro.get(label) : undefined) ?? 'unmapped';
+    const macro = macroOf(id);
     byStratum.set(macro, [...(byStratum.get(macro) ?? []), id]);
   }
   const rand = mulberry32((seed ^ 0x5bd1e995) | 0);
@@ -179,7 +187,7 @@ export function splitQueries(queryIds: readonly string[], mapping: CategoryMappi
   };
 }
 
-function loadCategoryMapping(benchmarkDir: string): CategoryMapping | null {
+export function loadCategoryMapping(benchmarkDir: string): CategoryMapping | null {
   const path = join(benchmarkDir, 'category-mapping.json');
   return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as CategoryMapping) : null;
 }

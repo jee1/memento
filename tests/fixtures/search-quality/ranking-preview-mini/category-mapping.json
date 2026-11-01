@@ -1,0 +1,25 @@
+{
+  "macro_categories": {
+    "incident_ops": [
+      "deploy",
+      "ops"
+    ],
+    "conceptual": [
+      "index",
+      "embed"
+    ],
+    "procedural": [
+      "auth"
+    ]
+  },
+  "query_id_to_category": {
+    "q_01": "deploy",
+    "q_02": "deploy",
+    "q_03": "index",
+    "q_04": "auth",
+    "q_05": "auth",
+    "q_06": "embed",
+    "q_07": "ops",
+    "q_08": "ops"
+  }
+}
