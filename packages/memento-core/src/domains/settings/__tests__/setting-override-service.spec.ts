@@ -480,7 +480,7 @@ describe('runtime setting override (#1582)', () => {
 
   describe('runtime reapply rollback (#1600 review)', () => {
     it('rolls back env and override row when reapply hook throws on set', async () => {
-      const { setRuntimeSettingOverride, listRuntimeSettings } = await load();
+      const { setRuntimeSettingOverride, listRuntimeSettings, RUNTIME_REAPPLY_ROLLBACK_MESSAGE } = await load();
       const { registerSettingRuntimeReapply, clearSettingRuntimeReapplyForTest } = await import(
         '../setting-runtime-reapply-registry.js'
       );
@@ -495,12 +495,62 @@ describe('runtime setting override (#1582)', () => {
         actor: 'session:a',
         reason: 'fail',
       });
-      expect(result).toMatchObject({ ok: false, code: 'RUNTIME_REAPPLY_FAILED' });
+      expect(result).toMatchObject({ ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: RUNTIME_REAPPLY_ROLLBACK_MESSAGE });
       expect(process.env.SEARCH_REJECTION_GATE).toBe(before);
       expect(listRuntimeSettings(db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE')).toMatchObject({
         source: 'default',
         override: null,
       });
+    });
+
+    it('rolls back revert and override row when reapply hook throws on revert', async () => {
+      const { setRuntimeSettingOverride, revertRuntimeSettingOverride, listRuntimeSettings, RUNTIME_REAPPLY_ROLLBACK_MESSAGE } =
+        await load();
+      const { registerSettingRuntimeReapply, clearSettingRuntimeReapplyForTest } = await import(
+        '../setting-runtime-reapply-registry.js'
+      );
+      setRuntimeSettingOverride(db, {
+        key: 'SEARCH_REJECTION_GATE',
+        value: 'ollama',
+        actor: 'session:a',
+        reason: 'set',
+      });
+      clearSettingRuntimeReapplyForTest();
+      registerSettingRuntimeReapply('SEARCH_REJECTION_GATE', () => {
+        throw new Error('boom');
+      });
+      const result = revertRuntimeSettingOverride(db, {
+        key: 'SEARCH_REJECTION_GATE',
+        actor: 'session:a',
+        reason: 'revert',
+      });
+      expect(result).toMatchObject({ ok: false, code: 'RUNTIME_REAPPLY_FAILED', message: RUNTIME_REAPPLY_ROLLBACK_MESSAGE });
+      expect(listRuntimeSettings(db).settings.find((s) => s.key === 'SEARCH_REJECTION_GATE')).toMatchObject({
+        value: 'ollama',
+        source: 'override',
+      });
+    });
+
+    it('resyncs runtime consumers after rollback using restored env', async () => {
+      const { setRuntimeSettingOverride } = await load();
+      const { registerSettingRuntimeReapply, clearSettingRuntimeReapplyForTest } = await import(
+        '../setting-runtime-reapply-registry.js'
+      );
+      let attempts = 0;
+      clearSettingRuntimeReapplyForTest();
+      registerSettingRuntimeReapply('SEARCH_REJECTION_GATE', () => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new Error('partial');
+        }
+      });
+      setRuntimeSettingOverride(db, {
+        key: 'SEARCH_REJECTION_GATE',
+        value: 'ollama',
+        actor: 'session:a',
+        reason: 'fail',
+      });
+      expect(attempts).toBe(2);
     });
   });
 
