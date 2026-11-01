@@ -50,8 +50,9 @@ owner/project 필터와 토큰 바인딩은 기존 recall 계약을 따른다. �
 | `caseId`, `kind` | 실행한 작업 case와 `replay`/`held_out` 구분 |
 | `environment`, `toolVersion` | 고정 환경. 둘 다 필수다 |
 
-`runId`, `caseId`, `environment`, `toolVersion`이 비었거나 `kind`, `outcome`이 정한 값이 아니면 `invalid_input`으로 거절하고 아무것도 쓰지 않는다.
 | `outcome`, `detail` | `success`/`failure`와 원본 실행 근거(선택) |
+
+`runId`, `caseId`, `environment`, `toolVersion`이 비었거나 `kind`, `outcome`이 정한 값이 아니면 `invalid_input`으로 거절하고 아무것도 쓰지 않는다.
 
 서버는 기록 시점의 행 본문과 steps 해시를 함께 남긴다. `procedural_execution_evidence`(migration 061)는 append-only이며 UPDATE와 DELETE를 트리거가 막는다. 또 행이 지워져도 남도록 FK를 걸지 않는다.
 
