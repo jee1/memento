@@ -32,10 +32,11 @@ export interface SupersedeCandidateRow {
   verdict: SupersedeVerdict;
   oldContentSha256: string;
   newContentSha256: string;
+  dismissedAt: string | null;
 }
 
 export interface SupersedeEventInsert {
-  action: 'applied' | 'restored';
+  action: 'applied' | 'restored' | 'dismissed';
   oldMemoryId: string;
   newMemoryId: string;
   candidateId: string | null;
@@ -79,10 +80,21 @@ export class SupersedeCandidateRepository {
       .prepare(
         `SELECT id, old_memory_id AS oldMemoryId, new_memory_id AS newMemoryId, owner_id AS ownerId,
                 project_id AS projectId, privacy_scope AS privacyScope, memory_type AS memoryType, verdict,
-                old_content_sha256 AS oldContentSha256, new_content_sha256 AS newContentSha256
+                old_content_sha256 AS oldContentSha256, new_content_sha256 AS newContentSha256,
+                dismissed_at AS dismissedAt
          FROM memory_supersede_candidate WHERE id = ?`,
       )
       .get(id) as SupersedeCandidateRow | undefined;
+  }
+
+  markDismissed(candidateId: string, dismissedAt: string): boolean {
+    const info = this.db
+      .prepare(
+        `UPDATE memory_supersede_candidate SET dismissed_at = @dismissedAt
+         WHERE id = @candidateId AND dismissed_at IS NULL`,
+      )
+      .run({ candidateId, dismissedAt });
+    return info.changes === 1;
   }
 
   insertEvent(event: SupersedeEventInsert): string {

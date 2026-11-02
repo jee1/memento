@@ -123,7 +123,26 @@ export {
 export {
   applySupersedeCandidate,
   restoreSupersededMemory,
+  dismissSupersedeCandidate,
 } from './domains/memory/supersede/supersede-apply-service.js';
+export type {
+  SupersedeApplyOutcome,
+  SupersedeRestoreOutcome,
+  SupersedeDismissOutcome,
+} from './domains/memory/supersede/supersede-apply-service.js';
+export { querySupersedeCandidates } from './domains/memory/supersede/supersede-candidate-list-service.js';
+export {
+  SUPERSEDE_CANDIDATE_LIFECYCLE_STATUSES,
+  SUPERSEDE_LIST_DEFAULT_VERDICTS,
+} from './domains/memory/supersede/supersede-candidate-list.types.js';
+export type {
+  QuerySupersedeCandidatesInput,
+  SupersedeCandidateFiltersApplied,
+  SupersedeCandidateLifecycleStatus,
+  SupersedeCandidateListItem,
+  SupersedeCandidatePagination,
+  SupersedeCandidatesQueryResult,
+} from './domains/memory/supersede/supersede-candidate-list.types.js';
 export {
   listRuntimeSettings,
   listSettingEvents,

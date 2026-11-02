@@ -9,6 +9,7 @@ import { LlmUsageRepository } from '../../../../shared/services/llm-usage/llm-us
 import { LlmUsageTelemetryMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/058-llm-usage-telemetry.js';
 import { MemorySupersedeCandidateMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/059-memory-supersede-candidate.js';
 import { MemorySupersedePointerMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/060-memory-supersede-pointer.js';
+import { SupersedeCandidateDismissMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/065-supersede-candidate-dismiss.js';
 import { applyConsolidationTestSchema } from '../../../consolidation/__tests__/consolidation-test-schema.js';
 
 export async function createSupersedeTestDb(): Promise<Database.Database> {
@@ -26,6 +27,7 @@ export async function createSupersedeTestDb(): Promise<Database.Database> {
   await new LlmUsageTelemetryMigration().up(db);
   await new MemorySupersedeCandidateMigration().up(db);
   await new MemorySupersedePointerMigration().up(db);
+  await new SupersedeCandidateDismissMigration().up(db);
   setLlmUsageRepository(new LlmUsageRepository(db));
   return db;
 }

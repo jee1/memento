@@ -767,6 +767,30 @@ The request body must contain **exactly one** selector:
 - `400`: missing, mixed, or invalid selector
 - `500`: database unavailable or update failure
 
+##### Supersede candidate list and dismiss (#1618)
+
+Requires a dashboard session (`401` `SESSION_REQUIRED`).
+
+```http
+GET /admin/memory/supersede-candidates?verdict=confirmed&project_id=proj&lifecycle_status=not_applied&page_size=25&page=1
+```
+
+- `verdict` (optional): `confirmed` | `pending` | `compatible`. Default: `confirmed` and `pending`.
+- `project_id` (optional): project id. Use `null` for candidates with no project.
+- `lifecycle_status` (optional): `not_applied` | `applied` | `restored` | `dismissed`. Default list excludes dismissed rows (`dismissed_at` set).
+- `page_size`: `25` | `50`. `page` requires `page_size`.
+
+Each row includes old/new ids, 200-char content previews, type, project, verdict, LLM provider/model, `judged_at`, `lifecycle_status`, and `supersede_apply_enabled` for the current process.
+
+```http
+POST /admin/memory/supersede-candidates/:id/dismiss
+Content-Type: application/json
+
+{ "reason": "keep both" }
+```
+
+Works regardless of `SUPERSEDE_APPLY_ENABLED`. Sets `dismissed_at` and records a `dismissed` audit event. Already applied candidates return `409` `already_applied`.
+
 ##### Approve or restore a supersede candidate (#1551)
 
 Active only when `SUPERSEDE_APPLY_ENABLED=true`. It is off by default; while off, both endpoints return `403` (`code: SUPERSEDE_APPLY_DISABLED`) and write nothing. Keep it off until current-state, history, and performance validation covers all read paths (#1552).

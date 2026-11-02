@@ -17,6 +17,7 @@ import {
   DASHBOARD_SESSION_COOKIE_NAME,
 } from '../../middleware/session-auth.middleware.js';
 import { registerAdminMemorySupersedeRoutes } from './admin-memory-supersede.routes.js';
+import { parseSupersedeCandidateListQuery } from './admin-memory-supersede.routes.js';
 
 const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -74,6 +75,15 @@ describe('admin supersede approval routes (#1551)', () => {
         Cookie: `${DASHBOARD_SESSION_COOKIE_NAME}=${sessionId}`,
       },
       body: JSON.stringify(body),
+    });
+
+  const get = (path: string, prefix = baseUrl) =>
+    fetch(`${prefix}${path}`, {
+      method: 'GET',
+      headers: {
+        Connection: 'close',
+        Cookie: `${DASHBOARD_SESSION_COOKIE_NAME}=${sessionId}`,
+      },
     });
 
   const eventActors = () =>
@@ -156,5 +166,36 @@ describe('admin supersede approval routes (#1551)', () => {
     expect((await post('/memory/items/A/supersede/restore', { expected_new_memory_id: 'mem_B' })).status).toBe(400);
     expect((await post(`/memory/supersede-candidates/${randomUUID()}/apply`, {})).status).toBe(404);
     expect(pointer()).toBeNull();
+  });
+
+  it('lists candidates for the dashboard session and dismisses without apply flag', async () => {
+    const list = await get('/memory/supersede-candidates?page_size=25&page=1');
+    expect(list.status).toBe(200);
+    const payload = await list.json();
+    expect(payload.candidates).toHaveLength(1);
+    expect(payload.candidates[0]).toMatchObject({
+      id: candidateId,
+      old_memory_id: 'mem_A',
+      new_memory_id: 'mem_B',
+      supersede_apply_enabled: false,
+    });
+
+    mementoConfig.supersedeApplyEnabled = false;
+    const dismissed = await post(`/memory/supersede-candidates/${candidateId}/dismiss`, { reason: '아님' });
+    expect(dismissed.status).toBe(200);
+    expect(
+      db.prepare('SELECT dismissed_at FROM memory_supersede_candidate WHERE id = ?').get(candidateId),
+    ).toMatchObject({ dismissed_at: expect.any(String) });
+
+    const after = await get('/memory/supersede-candidates?page_size=25&page=1');
+    expect((await after.json()).candidates).toHaveLength(0);
+  });
+
+  it('parses list query params', () => {
+    expect(parseSupersedeCandidateListQuery({ page_size: '25', page: '2' })).toMatchObject({
+      page_size: 25,
+      page: 2,
+    });
+    expect(parseSupersedeCandidateListQuery({ verdict: 'nope' })).toMatchObject({ status: 400 });
   });
 });

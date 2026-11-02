@@ -69,6 +69,13 @@
     dispatchDashboardResize();
   }
 
+  function initSupersedeTab() {
+    if (typeof global.initSupersedeCandidatesPanel === 'function') {
+      global.initSupersedeCandidatesPanel();
+    }
+    dispatchDashboardResize();
+  }
+
   function initSettingsTab() {
     if (typeof global.initSettingsPanel === 'function') {
       global.initSettingsPanel();
@@ -120,6 +127,10 @@
     }
     if (name === 'review') {
       initReviewTab();
+      return;
+    }
+    if (name === 'supersede') {
+      initSupersedeTab();
       return;
     }
     if (name === 'agent-sessions') {

@@ -123,6 +123,10 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
     rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
   },
   {
+    path: 'packages/memento-core/src/domains/memory/supersede/supersede-candidate-list-query.ts',
+    rationale: 'admin 대체 후보 목록이 old/new 본문 미리보기와 lifecycle 을 memory_item 과 JOIN (#1618)',
+  },
+  {
     path: 'packages/memento-core/src/domains/memory/review/memory-review-candidate-persistence-service.ts',
     rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
   },
@@ -305,7 +309,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
 ] as const;
 
 /** 허용 목록 증가 방지 가드 — 리뷰 없이 올리지 않는다 (#1531). */
-const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 71;
+const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 72;
 
 /**
  * 문자열 리터럴 안의 `memory_item` 테이블 참조.

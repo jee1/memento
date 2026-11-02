@@ -11,6 +11,7 @@
 
 ### Added
 
+- Admin `GET /admin/memory/supersede-candidates` 로 대체 후보 목록(판정·project·lifecycle 필터, 페이지)을 조회하고, 대시보드 「대체 후보」 탭에서 old/new 미리보기·승인·복원·거절을 처리합니다. 거절은 `dismissed_at` 과 `memory_supersede_event` `dismissed` 감사(migration 065)로 남기며 같은 입력 해시 재스캔을 막습니다. `SUPERSEDE_APPLY_ENABLED=false` 이면 UI 와 apply/restore 가 403 이고 거절만 가능합니다 (#1618).
 - 개발: `scripts/verify-supersede-integration.ts` 는 운영 DB 사본에서 대체 승인과 복원을 걸고 읽기 경로별 대체된 기억 노출, 범위 유출, 역사 조회, 복원 뒤 원상태, live 포인터 0개와 N개의 지연과 실행 계획을 잽니다. 사본에 후보가 없으면 2B 짝짓기를 LLM 없이 돌려 판정만 합성합니다 (#1614).
 
 ### Changed

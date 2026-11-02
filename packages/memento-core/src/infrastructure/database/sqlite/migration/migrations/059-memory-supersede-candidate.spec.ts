@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { MemorySupersedeCandidateMigration } from './059-memory-supersede-candidate.js';
+import { SupersedeCandidateDismissMigration } from './065-supersede-candidate-dismiss.js';
 
 const schemaSql = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'schema.sql'),
@@ -73,6 +74,7 @@ describe('059-memory-supersede-candidate', () => {
   it('schema.sql 과 열, 인덱스가 일치한다', async () => {
     const fromMigration = seededDb();
     await new MemorySupersedeCandidateMigration().up(fromMigration);
+    await new SupersedeCandidateDismissMigration().up(fromMigration);
 
     const fromSchema = seededDb();
     const statements = schemaSql.match(

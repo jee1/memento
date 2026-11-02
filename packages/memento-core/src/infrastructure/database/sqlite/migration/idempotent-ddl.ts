@@ -27,7 +27,7 @@ export function applySupersedePointerDdl(db: Database.Database): void {
     db.exec(`
       CREATE TABLE IF NOT EXISTS memory_supersede_event (
         id                 TEXT PRIMARY KEY,
-        action             TEXT NOT NULL CHECK (action IN ('applied', 'restored')),
+        action             TEXT NOT NULL CHECK (action IN ('applied', 'restored', 'dismissed')),
         old_memory_id      TEXT NOT NULL,
         new_memory_id      TEXT NOT NULL,
         candidate_id       TEXT,
