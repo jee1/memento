@@ -151,7 +151,8 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
 
   it('unfiltered KNN/hybrid keep sparse fresh top-K before LIMIT (#1552)', async () => {
     const database = await openDb();
-    for (let i = 0; i < 70; i++) {
+    // More stale rows than the KNN prefetch (100 for limit 3), so filtering them only after a fixed-depth KNN starves fresh top-K (#1615).
+    for (let i = 0; i < 150; i++) {
       insertMemory(database, `stale-${i}`, 'supersede needle', unitVector(0));
     }
     for (let i = 0; i < 3; i++) {

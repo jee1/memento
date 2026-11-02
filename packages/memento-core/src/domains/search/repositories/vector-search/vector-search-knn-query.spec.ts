@@ -22,16 +22,21 @@ const options: VectorSearchExecutionOptions = {
   includeContent: true,
 };
 
-function captureKnnSql(
+/** hiddenEmbeddingRows null means no live pointers; a number is what the hidden-row count returns. */
+function captureKnn(
   scope: VectorSearchScope,
   context: RuntimeVectorContext = runtimeContext,
-  activeSupersedePointers = false,
-): string {
+  hiddenEmbeddingRows: number | null = null,
+): { sql: string; params: unknown[] } {
   let captured = '';
+  let params: unknown[] = [];
   const db = {
     prepare: (sql: string) => {
       captured = sql;
-      return { all: vi.fn().mockReturnValue([]), get: () => activeSupersedePointers ? { found: 1 } : undefined };
+      return {
+        all: (...values: unknown[]) => { params = values; return []; },
+        get: () => hiddenEmbeddingRows === null ? undefined : { found: 1, hidden: hiddenEmbeddingRows },
+      };
     },
   } as unknown as Database.Database;
 
@@ -43,7 +48,11 @@ function captureKnnSql(
     options,
   });
 
-  return captured;
+  return { sql: captured, params };
+}
+
+function captureKnnSql(scope: VectorSearchScope, context?: RuntimeVectorContext): string {
+  return captureKnn(scope, context).sql;
 }
 
 describe('executeKnnQuery scoped outer WHERE (#1386)', () => {
@@ -61,11 +70,20 @@ describe('executeKnnQuery scoped outer WHERE (#1386)', () => {
     expect(afterJoin).not.toMatch(/mi\.project_id\s*=/i);
   });
 
-  it('unfiltered requests apply current state and model before KNN LIMIT (#1552)', () => {
-    const sql = captureKnnSql({}, { ...runtimeContext, modelFilter: 'test-model' }, true);
+  it('live pointers alone keep unscoped KNN and dig deeper by the embedding rows they hide (#1615)', () => {
+    const { sql, params } = captureKnn({}, { ...runtimeContext, modelFilter: 'test-model' }, 7);
+    expect(sql).not.toMatch(/rowid IN \(/i);
+    expect(sql).toMatch(/ORDER BY distance ASC\s+LIMIT \?/);
+    expect(sql).toContain('mi.superseded_by');
+    expect(sql).toContain('me.model = ?');
+    expect(params[1]).toBe(100 + 7);
+  });
+
+  it('falls back to rowid IN before KNN when the deeper k would exceed the vec0 limit (#1615)', () => {
+    const { sql, params } = captureKnn({}, runtimeContext, 5000);
     expect(sql).toMatch(/rowid IN \(/i);
     expect(sql).toContain('scoped_mi.superseded_by');
-    expect(sql).toContain('scoped_me.model = ?');
+    expect(params[1]).toBe(100);
   });
 
   it('zero live pointers preserve unscoped SQL instead of materializing every candidate (#1552)', () => {

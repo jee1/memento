@@ -13,7 +13,7 @@ import type {
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
-import { buildMemoryFilterSql, hasActiveSupersedePointers, hasMemoryFilter } from '../../../shared/utils/memory-filter-sql.js';
+import { buildMemoryFilterSql, planKnnCandidates } from '../../../shared/utils/memory-filter-sql.js';
 import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
 import {
@@ -226,7 +226,9 @@ export class MemoryEmbeddingService {
     filters?: MemorySearchFilters & { limit?: number; threshold?: number }
   ): { sql: string; params: unknown[] } {
     const memoryFilters: MemorySearchFilters | undefined = filters;
-    const currentState = hasActiveSupersedePointers(db);
+    const limit = filters?.limit || 10;
+    const { currentState, scoped: hasScopedCandidates, depth } =
+      planKnnCandidates(db, memoryFilters, provider, resolveVectorPrefetchLimit(limit));
     const { clauses: outerClauses, params: outerParams } = buildMemoryFilterSql(memoryFilters, {
       itemAlias: 'm',
       currentState,
@@ -238,7 +240,6 @@ export class MemoryEmbeddingService {
       itemAlias: 'scoped_m',
       currentState,
     });
-    const hasScopedCandidates = hasMemoryFilter(memoryFilters, currentState);
     const scopedCandidateSql = hasScopedCandidates
       ? ' AND rowid IN (' +
         'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
@@ -248,7 +249,6 @@ export class MemoryEmbeddingService {
         (scopedClauses.length > 0 ? scopedClauses.map(clause => `AND ${clause}`).join(' ') : '') +
         ') '
       : '';
-    const limit = filters?.limit || 10;
     // #1112: 한 memory 가 native + window:N 행을 여러 개 가진다. memory_id 별 MIN(distance) 가
     // max-sim(가장 가까운 윈도)이다. SQLite 는 집계가 min() 하나뿐일 때 bare 컬럼을
     // 그 최소 행에서 가져오므로 m.* 는 정답 윈도가 속한 행의 값이 된다.
@@ -289,7 +289,7 @@ export class MemoryEmbeddingService {
       sql,
       params: [
         JSON.stringify(queryVector),
-        resolveVectorPrefetchLimit(limit),
+        depth,
         ...(hasScopedCandidates ? [provider, ...scopedParams] : []),
         provider,
         ...outerParams,
