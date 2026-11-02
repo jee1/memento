@@ -65,6 +65,15 @@ function groupKey(row: SupersedeScopeMemoryRow): string {
   return JSON.stringify([row.ownerId, row.projectId, row.privacyScope, row.type, row.embeddingModel]);
 }
 
+/**
+ * #1622: consolidation 요약은 에피소드에서 뽑아낸 파생물이라 사용자가 직접 남긴 기억을 대체할 근거가 못 된다.
+ * 사용자 기억이 요약을 대체하는 쌍과 요약끼리의 쌍(다시 요약한 결과)은 그대로 판정한다.
+ * 출처 미상의 옛 기억은 사용자 것인지 알 수 없어 막지 않는다.
+ */
+function canSupersede(old: SupersedeScopeMemoryRow, next: SupersedeScopeMemoryRow): boolean {
+  return !(next.origin === 'consolidation' && old.origin === 'user');
+}
+
 function buildPairs(memories: SupersedeScopeMemoryRow[]): CandidatePair[] {
   const groups = new Map<string, SupersedeScopeMemoryRow[]>();
   for (const memory of memories) {
@@ -82,7 +91,7 @@ function buildPairs(memories: SupersedeScopeMemoryRow[]): CandidatePair[] {
   for (const next of recent) {
     const olds = groups
       .get(groupKey(next))!
-      .filter((candidate) => candidate.createdJd < next.createdJd)
+      .filter((candidate) => candidate.createdJd < next.createdJd && canSupersede(candidate, next))
       .map((old) => ({ old, similarity: cosineSimilarity(next.embedding, old.embedding) }))
       .filter(({ similarity }) => similarity >= MIN_COSINE)
       .sort((a, b) => b.similarity - a.similarity)

@@ -51,12 +51,13 @@ export interface SeedMemory {
   privacyScope?: string;
   vec?: number[] | null;
   model?: string;
+  originSource?: Record<string, unknown>;
 }
 
 export function insertSeedMemory(db: Database.Database, memory: SeedMemory): void {
   db.prepare(
-    `INSERT INTO memory_item (id, type, content, privacy_scope, created_at, owner_id, project_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO memory_item (id, type, content, privacy_scope, created_at, owner_id, project_id, origin_source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     memory.id,
     memory.type ?? 'semantic',
@@ -65,6 +66,7 @@ export function insertSeedMemory(db: Database.Database, memory: SeedMemory): voi
     memory.createdAt,
     memory.ownerId ?? null,
     memory.projectId ?? null,
+    JSON.stringify(memory.originSource ?? {}),
   );
   const vec = memory.vec === undefined ? [1, 0, 0] : memory.vec;
   if (vec) {
