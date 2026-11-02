@@ -1,6 +1,6 @@
 {
   "name": "memento-server",
-  "version": "2.3.8",
+  "version": "2.3.9",
   "description": "Memento MCP/HTTP server - consumes @memento/core",
   "type": "module",
   "private": true,
