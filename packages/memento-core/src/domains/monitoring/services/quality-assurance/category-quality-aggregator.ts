@@ -32,7 +32,7 @@ import {
   summarizePairRankOutcomes,
   type PairRankMacroSummary,
 } from './pair-rank-outcome.js';
-import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
+import { HybridSearchFactory } from '../../../search/index.js';
 import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 import { calculateMRR } from './search-metrics-collector.js';
 

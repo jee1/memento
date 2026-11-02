@@ -5,8 +5,7 @@
 import { z } from 'zod';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
-import type { SearchEngine } from '../../search/algorithms/search-engine.js';
+import type { HybridSearchEngine, SearchEngine } from '../../search/index.js';
 import { recallTelemetryRetrievalStrategy } from './recall-tool-telemetry.js';
 
 /**

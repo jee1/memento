@@ -6,7 +6,7 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
-import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
+import type { RelevanceGateOutcome } from '../../search/index.js';
 import type { ToolContext } from '../../../tools/types.js';
 
 /**

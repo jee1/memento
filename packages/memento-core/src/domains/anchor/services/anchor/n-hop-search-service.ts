@@ -4,7 +4,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../../search/index.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { isInitializableVectorSearchEngine } from './vector-search-engine-types.js';

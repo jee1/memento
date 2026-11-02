@@ -3,7 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { VectorSearchResult } from '../../../search/algorithms/vector-search-engine.js';
+import type { VectorSearchResult } from '../../../search/index.js';
 import type { RelationGraphPort } from '../../../relation/ports/relation-graph.port.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 import type { NHopSearchResult } from './n-hop-search-service.js';

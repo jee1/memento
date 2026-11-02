@@ -4,7 +4,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
+import type { HybridSearchEngine } from '../../../search/index.js';
 import type { SearchOptions, SearchResult } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';

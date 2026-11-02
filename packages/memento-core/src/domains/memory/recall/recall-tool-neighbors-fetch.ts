@@ -2,7 +2,7 @@
  * Recall neighbor fetch (recall-tool-envelope.ts에서 분리, #507).
  */
 
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../../search/index.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import { MemoryEmbeddingService } from '../../embedding/index.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';

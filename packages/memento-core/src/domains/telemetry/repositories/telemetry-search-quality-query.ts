@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { REJECTION_GATE_DECIDED_VERDICTS } from '../../search/ports/relevance-gate-port.js';
+import { REJECTION_GATE_DECIDED_VERDICTS } from '../../search/index.js';
 import type { TelemetryPeriod } from '../types/telemetry.types.js';
 import { SEARCH_QUALITY_EXTRA_KEYS } from '../search-quality/extra-keys.js';
 import type { SearchQualityResult } from './telemetry-repository.js';

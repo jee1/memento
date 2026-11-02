@@ -11,7 +11,7 @@
 
 ### Changed
 
-- 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, embedding 도메인 공개 index 로 cross-import 27건을 이전합니다 (#1610).
+- 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, embedding·search 도메인 공개 index 로 cross-import 를 이전합니다 (embedding 27건, search 25건) (#1610).
 
 ## [2.3.9] - 2026-11-02
 

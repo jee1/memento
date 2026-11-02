@@ -6,7 +6,7 @@ import type Database from 'better-sqlite3';
 import type { MemoryTypeRequest } from '../../../shared/types/memory.types.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../../search/index.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
 import type { ProceduralMemoryItem } from './remember-tool-types.js';

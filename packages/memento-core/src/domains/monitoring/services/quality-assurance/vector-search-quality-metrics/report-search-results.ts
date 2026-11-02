@@ -4,8 +4,7 @@
  */
 
 import type { SearchResult } from '../search-quality-metrics.js';
-import type { HybridSearchResult } from '../../../../search/algorithms/hybrid-search-engine.js';
-import { hybridFusionRelevance } from '../../../../search/algorithms/hybrid-result-ranker.js';
+import { hybridFusionRelevance, type HybridSearchResult } from '../../../../search/index.js';
 import { HYBRID_SEARCH } from '../../../../../shared/config/constants.js';
 import { calculateKendallTau } from './kendall-tau.js';
 import { calculateSpearmanRho } from './spearman.js';

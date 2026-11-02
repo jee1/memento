@@ -3,7 +3,7 @@
  * 벡터 유사도를 기반으로 특정 기억의 이웃 기억을 조회하는 서비스
  */
 
-import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../search/index.js';
 import type { MemoryEmbeddingService } from '../../embedding/index.js';
 import Database from 'better-sqlite3';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';

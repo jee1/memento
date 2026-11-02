@@ -4,7 +4,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../../search/index.js';
 
 /**
  * 초기화 가능한 VectorSearchEngine 타입

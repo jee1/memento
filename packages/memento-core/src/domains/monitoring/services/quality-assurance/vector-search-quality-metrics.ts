@@ -37,4 +37,4 @@ export type {
   QualityDegradationDetection,
   GroundTruthGenerationOptions,
 } from './vector-search-quality-metrics/report-comparison.js';
-export type { HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
+export type { HybridSearchResult } from '../../../search/index.js';
