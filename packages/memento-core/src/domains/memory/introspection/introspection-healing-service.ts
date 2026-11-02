@@ -24,7 +24,7 @@ import {
 } from '../../embedding/index.js';
 import {
   ForgettingEventRepository,
-} from '../../forgetting/repositories/forgetting-event-repository.js';
+} from '../../forgetting/index.js';
 
 const INTROSPECTION_HEAL_POLICY_NAME = 'introspection-heal';
 

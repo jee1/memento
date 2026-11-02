@@ -12,7 +12,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { callerOwnerClause } from '../../../tools/caller-scope.js';
-import { ForgettingEventRepository } from '../../forgetting/repositories/forgetting-event-repository.js';
+import { ForgettingEventRepository } from '../../forgetting/index.js';
 
 const MANUAL_FORGET_POLICY_NAME = 'manual-forget';
 const MANUAL_FORGET_DEFAULT_REASON = 'manual';

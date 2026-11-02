@@ -29,7 +29,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import type { GetMetaMemoryStatsParams, MetaMemoryStatsResult } from '../../../shared/types/memory.types.js';
 import { buildIntrospectionHint } from '../../../shared/constants/introspection-constants.js';
-import type { MetaMemoryService } from '../../memory/introspection/meta-memory-service.js';
+import type { MetaMemoryService } from '../../memory/index.js';
 
 /**
  * Get Meta Memory Stats 파라미터 스키마

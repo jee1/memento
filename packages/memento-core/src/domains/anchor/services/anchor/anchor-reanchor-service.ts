@@ -16,7 +16,7 @@ import { logger } from '../../../../shared/utils/logger.js';
 import type { CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
 import { daysBetween } from '../../../../shared/utils/date.js';
 import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
-import { ErrorCategory, ErrorSeverity, ErrorLoggingService } from '../../../../domains/monitoring/services/error-logging-service.js';
+import { ErrorCategory, ErrorSeverity, ErrorLoggingService } from '../../../monitoring/index.js';
 
 export type AutoReanchorResult = {
   moved: boolean;

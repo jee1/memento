@@ -1,6 +1,6 @@
 import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
 import type { SearchResultPair } from './vector-search-quality-metrics.js';
-import type { ExpectedRelation, ExtractedRelation } from '../../../relation/services/relation-quality-validator.js';
+import type { ExpectedRelation, ExtractedRelation } from '../../../relation/index.js';
 import type { MetricDenominators, MetricStates } from './quality-metric-measurement.js';
 export type { MetricDenominators, MetricStates, QualityMetricState } from './quality-metric-measurement.js';
 

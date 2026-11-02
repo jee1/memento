@@ -9,8 +9,8 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { AuditHashChainService } from '../../telemetry/services/audit-hash-chain-service.js';
-import { ForgettingEventRepository } from '../../forgetting/repositories/forgetting-event-repository.js';
+import { AuditHashChainService } from '../../telemetry/index.js';
+import { ForgettingEventRepository } from '../../forgetting/index.js';
 import { MemoryItemRepository } from '../repositories/memory-item-repository.js';
 
 const WipeMemorySchema = z.object({

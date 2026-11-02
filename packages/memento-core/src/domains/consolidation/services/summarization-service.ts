@@ -19,7 +19,7 @@ import {
   recordLlmUsageLogicalFinal,
 } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
-import { OllamaChatLlmAdapter } from '../../personal-agent/adapters/ollama-chat-llm-adapter.js';
+import { OllamaChatLlmAdapter } from '../../personal-agent/index.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
 export type SummarizationDeferReason =

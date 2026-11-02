@@ -1,8 +1,8 @@
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { KnowledgeCandidate } from '../types/agent-types.js';
-import type { KnowledgeContextBundle } from '../../memory/services/knowledge-context-bundle-builder.js';
+import type { KnowledgeContextBundle } from '../../memory/index.js';
 
-export type { KnowledgeContextBundle } from '../../memory/services/knowledge-context-bundle-builder.js';
+export type { KnowledgeContextBundle } from '../../memory/index.js';
 
 /** 인프로세스 context builder 입력 (#232) */
 export interface KnowledgeContextRequest {

@@ -10,7 +10,7 @@ import type Database from 'better-sqlite3';
 import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, AnchorChangeListener, SearchOptions, SearchResult } from './anchor-interfaces.js';
 import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../monitoring/index.js';
 
 /**
  * Anchor Manager 구현

@@ -9,7 +9,7 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
 import { UnifiedEmbeddingService } from '../../embedding/index.js';
 import { MemoryEmbeddingService } from '../../embedding/index.js';
-import { RelationGraph } from '../../relation/services/relation-graph.js';
+import { RelationGraph } from '../../relation/index.js';
 import { AdaptiveWeightCalculator } from './adaptive-weight-calculator.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
 import {
