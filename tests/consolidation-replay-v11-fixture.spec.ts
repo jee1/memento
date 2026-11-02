@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ADJ_INPUT_DIR, buildV11Adjudication } from '../scripts/build-consolidation-replay-v11-adjudication.js';
 import { V11_DIR, buildV11Panel } from '../scripts/build-consolidation-replay-v11-panel.js';
+import { aggregateV11Panel } from '../scripts/aggregate-consolidation-replay-v11-panel.js';
 
 const v1Dir = join(process.cwd(), 'tests/fixtures/search-quality/consolidation-replay-v1');
 const dir = join(process.cwd(), V11_DIR);
@@ -115,6 +116,18 @@ describe('consolidation-replay-v1.1 panel fixture (#1574)', () => {
     for (const leak of ['reviewer_id', '"model"', 'judged_at', 'author-candidates', 'split', 'v1_stratum', ...idMap.sequences.map((s: any) => s.v1_sequence_id)]) {
       expect(input.includes(leak), `input contains ${leak}`).toBe(false);
     }
+  });
+
+  it('panel result is the aggregation of the sealed adjudications, gold only when both agree', () => {
+    const { pins, result } = aggregateV11Panel();
+    expect(read('panel-result.json')).toEqual(result);
+    expect(read('adjudication/source-pins.json')).toEqual(pins);
+    for (const d of result.decisions) {
+      expect(d.contract_gold).toBe(d.adjudicator_approvals.every(Boolean));
+      expect(d.relevant_evidence_refs === null).toBe(!(d.contract_gold && d.relevant_evidence_agreement));
+    }
+    expect(result.summary.contract_gold + result.summary.held).toBe(36);
+    expect(result.strata.map(s => s.planned_sequences)).toEqual([6, 6]);
   });
 
   it.each(distributed.filter(p => p.endsWith('answers.blank.json')))('%s is an unjudged form bound to its packet', (path) => {
