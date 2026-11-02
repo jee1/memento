@@ -4,7 +4,7 @@ name: PR Risk
 on:
   pull_request:
     branches: [ main ]
-    types: [ opened, synchronize, reopened, edited ]
+    types: [ opened, synchronize, reopened, edited, labeled, unlabeled ]
 
 permissions:
   contents: read
@@ -13,8 +13,17 @@ permissions:
 
 jobs:
   score:
-    # 포크 PR 토큰은 읽기 전용이라 라벨·코멘트를 못 단다
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # 포크 PR 토큰은 읽기 전용이라 라벨·코멘트를 못 단다.
+    # labeled/unlabeled 는 사람이 risk 라벨을 바꾼 경우만 처리한다. 봇의 라벨 편집(GITHUB_TOKEN)은 워크플로를 다시 일으키지 않아 반복되지 않는다.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled' ||
+      startsWith(github.event.label.name, 'risk:'))
+    # 같은 PR 의 실행이 겹치면 라벨 편집이 엇갈리므로 최신 것만 남긴다.
+    # job 단위라 위 if 로 건너뛴 실행(무관한 라벨 변경)은 진행 중인 실행을 취소하지 않는다.
+    concurrency:
+      group: pr-risk-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

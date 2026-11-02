@@ -3,7 +3,7 @@
  * PR 리스크 스코어 (0–100) — 리뷰 깊이 라우팅용 advisory 지표
  *
  * 보안 30 · 범위 20 · 파괴적 변경 20 · 테스트 누락 15 · DB 마이그레이션 15.
- * 검색 경로(벡터/하이브리드 질의, 필터 SQL) 동작 코드 변경은 점수와 무관하게 최소 medium.
+ * 검색 경로(`domains/search/` 전체, 필터 SQL) 동작 코드 변경은 점수와 무관하게 최소 medium.
  * 라벨은 올리기만 한다: 이미 붙은 더 높은 risk 라벨(수동 상향)은 점수가 낮아도 유지한다.
  * 차단하지 않는다. 머지 차단권은 lint·type-check·test 같은 결정론적 required check 에만 있다.
  *
@@ -51,9 +51,9 @@ const MIGRATION_RE = /(\/migrations\/|schema\.sql$)/;
 // 외부에 보이는 계약: MCP 도구 스키마, 클라이언트 SDK, 배포 설정
 const PUBLIC_SURFACE_RE =
   /(^packages\/memento-core\/src\/(tools|domains\/[^/]+\/tools)\/|^packages\/memento-client\/src\/|^docker-compose[^/]*\.yml$|^\.env\.example$|^config\/)/;
-// 검색 동작: 벡터/하이브리드 질의와 필터 SQL. 점수에 안 잡혀도 최소 medium (#1619)
+// 검색 동작: 텍스트/벡터/하이브리드 질의, 랭킹, 필터 SQL. 점수에 안 잡혀도 최소 medium (#1619)
 const SEARCH_PATH_RE =
-  /(^packages\/memento-core\/src\/domains\/search\/repositories\/|^packages\/memento-core\/src\/shared\/utils\/memory-filter-sql\.ts$)/;
+  /(^packages\/memento-core\/src\/domains\/search\/|^packages\/memento-core\/src\/shared\/utils\/memory-filter-sql\.ts$)/;
 const BREAKING_TITLE_RE = /(^\w+(\([^)]*\))?!:|BREAKING)/;
 
 export function scoreRisk(files: ChangedFile[], title = ""): RiskResult {

@@ -42,8 +42,17 @@ export function codexMarker(sha: string): string {
   return `${CODEX_MARKER_PREFIX}${sha} -->`;
 }
 
+const RISK_ORDER = ["low", "medium", "high"];
+
+// 수동 상향 직후 워크플로가 정리하기 전에는 risk 라벨이 둘 이상일 수 있다 — 가장 높은 등급을 쓴다. 모르는 값이 섞이면 unknown(대기).
+export function highestRiskLevel(labels: string[]): string {
+  const levels = labels.filter((l) => l.startsWith("risk:")).map((l) => l.slice(5));
+  if (levels.length === 0 || levels.some((l) => !RISK_ORDER.includes(l))) return "unknown";
+  return levels.reduce((a, b) => (RISK_ORDER.indexOf(a) >= RISK_ORDER.indexOf(b) ? a : b));
+}
+
 export function decide(pr: GateInput): GateDecision {
-  const level = pr.labels.find((l) => l.startsWith("risk:"))?.slice(5) ?? "unknown";
+  const level = highestRiskLevel(pr.labels);
 
   if (pr.state !== "OPEN") return { action: "needs", level, reasons: [`PR 상태가 ${pr.state}`] };
 

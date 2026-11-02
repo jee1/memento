@@ -76,6 +76,9 @@ describe("검색 경로 최소 medium", () => {
   it.each([
     `${core}/domains/search/repositories/vector-search/vector-search-knn-query.ts`,
     `${core}/domains/search/repositories/vector-search.repository.ts`,
+    `${core}/domains/search/algorithms/search-engine/search-engine-sql-builder.ts`,
+    `${core}/domains/search/algorithms/hybrid-result-ranker.ts`,
+    `${core}/domains/search/services/relevance-gate/rejection-gate.ts`,
     `${core}/shared/utils/memory-filter-sql.ts`,
   ])("%s 동작 코드 변경은 0점이어도 medium", (path) => {
     const result = scoreRisk([
