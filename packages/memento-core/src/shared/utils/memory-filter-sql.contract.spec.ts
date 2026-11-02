@@ -154,6 +154,7 @@ describe('KNN candidate plan (#1615)', () => {
       expect(planKnnCandidates(db, undefined, 'tfidf', 100)).toEqual({ currentState: true, scoped: false, depth: 101 });
       expect(planKnnCandidates(db, { project_id: 'p' }, 'minilm', 100)).toEqual({ currentState: true, scoped: true, depth: 100 });
       expect(planKnnCandidates(db, {}, 'minilm', 4094)).toEqual({ currentState: true, scoped: true, depth: 4094 });
+      expect(planKnnCandidates(db, { include_superseded: true }, 'minilm', 4094)).toEqual({ currentState: true, scoped: false, depth: 4094 });
 
       const statements: string[] = [];
       planKnnCandidates({ prepare: (sql: string) => { statements.push(sql); return db.prepare(sql); } } as never, {}, 'minilm', 100);

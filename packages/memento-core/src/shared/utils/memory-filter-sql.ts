@@ -207,7 +207,8 @@ export function planKnnCandidates(
   if (buildMemoryFilterSql(filters, { itemAlias: 'm', currentState: false }).clauses.length > 0) {
     return { currentState, scoped: true, depth: prefetch };
   }
-  if (!currentState) {
+  // History reads keep replaced rows, so nothing is hidden and KNN needs no extra depth.
+  if (!currentState || filters?.include_superseded === true) {
     return { currentState, scoped: false, depth: prefetch };
   }
   // CROSS JOIN pins memory_item outer so the partial index drives; a plain JOIN lets SQLite
