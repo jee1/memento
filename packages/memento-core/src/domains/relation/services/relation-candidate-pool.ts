@@ -1,6 +1,6 @@
 import { LIMITS } from '../../../shared/constants/relation-constants.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
-import type { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import type { UnifiedEmbeddingService } from '../../embedding/index.js';
 import { filterRelationCandidatesByEmbedding } from './llm-relation-extractor/embedding-candidate-filter.js';
 
 /** Chat prompts already append '...' past this length. Jev state uses the same clip. */

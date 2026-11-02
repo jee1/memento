@@ -2,7 +2,7 @@ import type { EmbeddingData } from '../../../../shared/types/embedding.types.js'
 import type { MemoryItem } from '../../../../shared/types/memory.types.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
+import type { UnifiedEmbeddingService } from '../../../embedding/index.js';
 
 export async function filterRelationCandidatesByEmbedding(
   embeddingService: UnifiedEmbeddingService,

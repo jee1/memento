@@ -22,7 +22,7 @@ import { SystemOneClient } from '../../../shared/services/typesafe/system-one-cl
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import { JevRelationJudge, RELATION_JEV_TIMEOUT_MS } from './jev-relation-judge.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/index.js';
 import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';

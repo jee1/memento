@@ -9,7 +9,7 @@ import { supersedeByActiveTargetSql } from '../../../../shared/utils/memory-filt
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
 import { embeddingColumnToNumbers } from '../../../../shared/utils/embedding-serialization.js';
-import type { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../../embedding/index.js';
 import type { AnchorSlot,IAnchorCacheService } from './anchor-interfaces.js';
 
 /**

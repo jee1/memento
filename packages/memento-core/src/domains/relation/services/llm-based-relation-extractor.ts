@@ -45,7 +45,7 @@ import {
 import { TokenBucketRateLimiter } from '../../../shared/utils/token-bucket-rate-limiter.js';
 import { determineLlmProvider } from './llm-provider-selection.js';
 import { prepareRelationCandidatePool } from './relation-candidate-pool.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/index.js';
 import { RelationCache } from './relation-cache.js';
 import { RelationRetryManager } from './relation-retry-manager.js';
 

@@ -8,7 +8,7 @@ import {
   resolveRelationExtractionSeat,
   type RelationExtractionOverride,
 } from '../../../shared/config/relation-extraction-seat.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/index.js';
 import { JevRelationJudge, RELATION_JEV_TIMEOUT_MS } from './jev-relation-judge.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import { RelationExtractor } from './relation-extractor.js';

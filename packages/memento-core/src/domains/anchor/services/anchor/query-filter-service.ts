@@ -5,7 +5,7 @@
 
 import { logger } from '../../../../shared/utils/logger.js';
 import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
-import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from '../../../embedding/index.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 
 /**
