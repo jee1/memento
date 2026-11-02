@@ -1,0 +1,35 @@
+{
+  "fixture_version": "consolidation-replay-v1.1",
+  "status": "rubric_registered_before_packets",
+  "registered_at": "2026-11-02T13:17:00+00:00",
+  "base_commit": "0a47134e13a59e0d7910d293076fe6d8356e34cc",
+  "protocol_sha256": "5ea92f3d5aaeeaaad6f7681b298a0350f676fe414d72bfae4ec8293bd0c41541",
+  "rubric_sha256": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+  "v1_source_sha256": {
+    "sequences.json": "be5dd6390578882a2fe76302049c53faa4c3c2649287ffc74c823c3ace984069",
+    "split.json": "df32c32ef9ad4ce197111eda3d7df4f4c98e0b49e39f4bcb355758ee8dfdc1f3",
+    "reviewer-a/stage-1/rubric.md": "81389061848fce3919fbb72ab1009bec34490c1b1ac74843c87acfddf1b6188c"
+  },
+  "scope": {
+    "strata": [
+      "task_noise",
+      "source_preservation"
+    ],
+    "sequences": 12,
+    "checkpoints": 36,
+    "v1_1_split": "dev"
+  },
+  "v1_results_reopened": false,
+  "v1_files_not_opened_this_session": [
+    "adjudication/*sealed.json",
+    "adjudication/panel-audit.json",
+    "ground-truth.json",
+    "panel-result.json",
+    "coverage.json",
+    "author-candidates.json"
+  ],
+  "author_prior_exposure": "머슴2 was a v1 adjudicator (2026-10-31) and read both v1 contracts for these sequences in that session.",
+  "gold_count": 0,
+  "system_calls": 0,
+  "amendments": []
+}
