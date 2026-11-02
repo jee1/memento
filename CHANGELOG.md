@@ -11,7 +11,7 @@
 
 ### Changed
 
-- 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, embedding·search 도메인 공개 index 로 cross-import 를 이전합니다 (embedding 27건, search 25건) (#1610).
+- 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, cross-import 74건(embedding 27건, search 25건, 나머지 22건)을 공개 index 로 옮겨 allowlist 를 77→3 으로 줄였습니다. 남은 3 edge 는 구체 `RelationGraph` import 로 `relation/services/relation-graph.js` 고정 목록 검사 대상입니다 (#1610, #1611, #1612, #1613).
 
 ## [2.3.9] - 2026-11-02
 

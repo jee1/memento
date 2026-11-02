@@ -20,8 +20,8 @@ import { SummarizationService } from './summarization-service.js';
 import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 import type { ClusterJudgePair, IClusterJudge } from './cluster-judge.js';
 import { getClusterJudgeThreshold } from '../../../shared/config/cluster-judge-config.js';
-import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
-import type { Outcome } from '../../telemetry/types/telemetry.types.js';
+import type { TelemetryService } from '../../telemetry/index.js';
+import type { Outcome } from '../../telemetry/index.js';
 
 interface SleepConsolidationRunOptions {
   dryRun?: boolean;

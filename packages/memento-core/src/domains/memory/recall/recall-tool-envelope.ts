@@ -20,7 +20,7 @@ import {
 } from './recall-tool-telemetry.js';
 import type { RecallHybridOrTextSearchResult, RecallTelemetryRetrievalStrategy } from './recall-tool-schema.js';
 import type { RelevanceGateOutcome } from '../../search/index.js';
-import { recallOutcomeStageExtra } from '../../telemetry/search-quality/index.js';
+import { recallOutcomeStageExtra } from '../../telemetry/index.js';
 import type {
   MetaStatsItem,
   NeighborMemoryItem,

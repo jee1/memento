@@ -64,33 +64,20 @@ const FROZEN_DOMAIN_DIRECTION_ALLOWLIST_SIZE = 21;
  * Other domains must import `domains/<b>/index.js` only; shrink via domain index PRs.
  */
 const DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST: readonly AllowlistEntry[] = [
-  { path: 'domains/anchor/services/anchor/anchor-manager.ts→domains/monitoring/services/error-logging-service.ts', rationale: 'legacy internal import; migrate to domains/monitoring/index (#1610)' },
-  { path: 'domains/anchor/services/anchor/anchor-reanchor-service.ts→domains/monitoring/services/error-logging-service.ts', rationale: 'legacy internal import; migrate to domains/monitoring/index (#1610)' },
-  { path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/monitoring/services/error-logging-service.ts', rationale: 'legacy internal import; migrate to domains/monitoring/index (#1610)' },
-  { path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/relation/services/relation-graph.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
-  { path: 'domains/anchor/services/anchor/n-hop-linked-memory-service.ts→domains/relation/ports/relation-graph.port.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
-  { path: 'domains/anchor/services/anchor/n-hop-search-service.ts→domains/relation/services/relation-graph.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
-  { path: 'domains/consolidation/services/sleep-consolidation-service.ts→domains/telemetry/services/telemetry-service.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
-  { path: 'domains/consolidation/services/sleep-consolidation-service.ts→domains/telemetry/types/telemetry.types.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
-  { path: 'domains/consolidation/services/summarization-service.ts→domains/personal-agent/adapters/ollama-chat-llm-adapter.ts', rationale: 'legacy internal import; migrate to domains/personal-agent/index (#1610)' },
-  { path: 'domains/memory/introspection/introspection-healing-service.ts→domains/forgetting/repositories/forgetting-event-repository.ts', rationale: 'legacy internal import; migrate to domains/forgetting/index (#1610)' },
-  { path: 'domains/memory/recall/recall-tool-envelope.ts→domains/telemetry/search-quality/index.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
-  { path: 'domains/memory/recall/recall-tool-search-execution.ts→domains/telemetry/search-quality/index.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
-  { path: 'domains/memory/remember/remember-tool-augmentation.ts→domains/relation/services/remember-relation-extraction.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
-  { path: 'domains/memory/tools/forget-tool.ts→domains/forgetting/repositories/forgetting-event-repository.ts', rationale: 'legacy internal import; migrate to domains/forgetting/index (#1610)' },
-  { path: 'domains/memory/tools/wipe-memory-tool.ts→domains/forgetting/repositories/forgetting-event-repository.ts', rationale: 'legacy internal import; migrate to domains/forgetting/index (#1610)' },
-  { path: 'domains/memory/tools/wipe-memory-tool.ts→domains/telemetry/services/audit-hash-chain-service.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
-  { path: 'domains/monitoring/services/quality-assurance/quality-metrics-types.ts→domains/relation/services/relation-quality-validator.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
-  { path: 'domains/monitoring/services/quality-assurance/relation-metrics-collector.ts→domains/relation/services/relation-quality-validator.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
-  { path: 'domains/monitoring/tools/get-meta-memory-stats-tool.ts→domains/memory/introspection/meta-memory-service.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
-  { path: 'domains/personal-agent/adapters/tool-context-knowledge-context-adapter.ts→domains/memory/services/knowledge-context-bundle-builder.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
-  { path: 'domains/personal-agent/adapters/tool-context-knowledge-context-adapter.ts→domains/memory/utils/normalize-memory-types-for-item-search.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
-  { path: 'domains/personal-agent/adapters/tool-context-remember-persistence-adapter.ts→domains/memory/remember/remember-tool.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
-  { path: 'domains/personal-agent/mappers/knowledge-candidate-to-remember-params.ts→domains/memory/remember/remember-tool.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
-  { path: 'domains/personal-agent/ports/context-port.ts→domains/memory/services/knowledge-context-bundle-builder.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
-  { path: 'domains/search/algorithms/hybrid-search-engine.ts→domains/relation/services/relation-graph.ts', rationale: 'relation graph reader wired in hybrid search; migrate when relation index exists (#1610)' },
-];
-const FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE = 25;
+  {
+    path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/relation/services/relation-graph.ts',
+    rationale: '구체 RelationGraph import; relation/index 경유 시 concrete allowlist 검사 우회 (#1613)',
+  },
+  {
+    path: 'domains/anchor/services/anchor/n-hop-search-service.ts→domains/relation/services/relation-graph.ts',
+    rationale: '구체 RelationGraph import; relation/index 경유 시 concrete allowlist 검사 우회 (#1613)',
+  },
+  {
+    path: 'domains/search/algorithms/hybrid-search-engine.ts→domains/relation/services/relation-graph.ts',
+    rationale: '구체 RelationGraph import; relation/index 경유 시 concrete allowlist 검사 우회 (#1613)',
+  },
+] as const;
+const FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE = 3;
 
 function domainPublicIndexPath(domain: string): string {
   return `domains/${domain}/index.ts`;

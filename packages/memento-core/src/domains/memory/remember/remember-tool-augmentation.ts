@@ -8,7 +8,7 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { extractForRemember } from '../../relation/services/remember-relation-extraction.js';
+import { extractForRemember } from '../../relation/index.js';
 import type { RelationCandidate } from '../../../shared/types/relation.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';

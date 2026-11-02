@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
 import {
   RelationQualityValidator,
-} from '../../../relation/services/relation-quality-validator.js';
+} from '../../../relation/index.js';
 import { ALL_RELATION_TYPES, type RelationType } from '../../../../shared/types/relation.js';
 import type { CollectedMetrics, RelationMetricsOptions } from './quality-metrics-types.js';
 import {

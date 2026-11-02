@@ -4,7 +4,7 @@
 
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { getRankingVersion } from '../../../shared/config/ranking-weights-loader.js';
-import { rejectionGateTelemetryExtra } from '../../telemetry/search-quality/index.js';
+import { rejectionGateTelemetryExtra } from '../../telemetry/index.js';
 import {
   recallQueryCorrelationExtra,
   recallSearchRequestedExtra

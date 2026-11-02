@@ -3,8 +3,8 @@ import type { ToolContext } from '../../../tools/types.js';
 import {
   buildKnowledgeContextBundle,
   type KnowledgeContextBundle,
-} from '../../memory/services/knowledge-context-bundle-builder.js';
-import { normalizeMemoryTypesForHybridItemSearch } from '../../memory/utils/normalize-memory-types-for-item-search.js';
+} from '../../memory/index.js';
+import { normalizeMemoryTypesForHybridItemSearch } from '../../memory/index.js';
 import type { IContextPort, KnowledgeContextRequest } from '../ports/context-port.js';
 import type { KnowledgeCandidate } from '../types/agent-types.js';
 
