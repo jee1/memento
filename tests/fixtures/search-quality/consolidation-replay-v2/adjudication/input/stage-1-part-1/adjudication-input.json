@@ -1,0 +1,2562 @@
+{
+  "fixture_version": "consolidation-replay-v2",
+  "role": "contract_adjudication_input",
+  "bundle": "stage-1-part-1",
+  "stage": 1,
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "equivalence_sha256": "aacf2016282b42e758f46eb05be41fb1430d670fa013be051c41ffead7d43dc6",
+  "sealed_submissions_sha256": {
+    "stage1-a-answers.sealed.json": "76c1c5afc4a371c92327945072cffe84c8f7a81ced85582fbb7c21b771e2bb02",
+    "stage1-b-answers.sealed.json": "d95e9390bf31ccddbba14dbafe014777e820ce91d33238c713488b6fe40abd06"
+  },
+  "cases": [
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_09734b74dcd2",
+        "family_id": "family_09734b74dcd2",
+        "checkpoint_id": "cr2_09734b74dcd2_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "나루 공부방 집중 타이머의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_09734b74dcd2",
+          "project_id": "project_09734b74dcd2",
+          "subject_id": "subject_09734b74dcd2_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_09734b74dcd2_o1",
+            "type": "episodic",
+            "content": "나루 공부방 집중 타이머 시험에서 중학생 반 한 곳은 25분 타이머를 쓰자 쉬는 시간 뒤 지각이 줄었다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_09734b74dcd2",
+              "project_id": "project_09734b74dcd2",
+              "subject_id": "subject_09734b74dcd2_x"
+            },
+            "sha256": "8ad78d5c37eacd7927fd404132daf0c728eb0e12efc9a809942d791729a66af1"
+          },
+          {
+            "evidence_id": "cr2_09734b74dcd2_o2",
+            "type": "episodic",
+            "content": "나루 공부방 집중 타이머 시험은 초등학생 반에서는 아직 하지 않았다. 고등학생 반도 시험 전이다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_09734b74dcd2",
+              "project_id": "project_09734b74dcd2",
+              "subject_id": "subject_09734b74dcd2_x"
+            },
+            "sha256": "0365ff1def15ae9c4d4b6bff41085f4c2b70e40b843d117f74d435483c96db0e"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_09734b74dcd2_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_middle",
+            "claim": "시험: 중학생 반 한 곳 25분 타이머 사용 후 쉬는 시간 뒤 지각 감소.",
+            "supporting_evidence_refs": [
+              "cr2_09734b74dcd2_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_not_done",
+            "claim": "초등·고등학생 반은 아직 시험 전/미시행.",
+            "supporting_evidence_refs": [
+              "cr2_09734b74dcd2_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "전 학년에 타이머 시험이 적용되었다고 단정한다.",
+            "evidence_refs": [
+              "cr2_09734b74dcd2_o2"
+            ],
+            "reason": "미시행"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_09734b74dcd2_o1",
+          "cr2_09734b74dcd2_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_09734b74dcd2_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "trial_middle_less_late",
+            "claim": "집중 타이머 시험 1회(2026-10-05 기록)에서 중학생 반 한 곳은 25분 타이머를 쓰자 쉬는 시간 뒤 지각이 줄었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_09734b74dcd2_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_elementary",
+            "claim": "집중 타이머 시험은 초등학생 반에서는 아직 하지 않았다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_09734b74dcd2_o2"
+            ]
+          },
+          {
+            "fact_key": "untested_high",
+            "claim": "고등학생 반도 시험 전이다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_09734b74dcd2_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "25분 타이머는 모든 반의 지각을 줄인다.",
+            "evidence_refs": [
+              "cr2_09734b74dcd2_o1",
+              "cr2_09734b74dcd2_o2"
+            ],
+            "reason": "중학생 반 한 곳의 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "공부방 전체에 25분 타이머를 쓰기로 정했다.",
+            "evidence_refs": [
+              "cr2_09734b74dcd2_o1"
+            ],
+            "reason": "지시 문장이 없다(DF2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_09734b74dcd2_o1",
+          "cr2_09734b74dcd2_o2"
+        ],
+        "rationale": "관찰과 미시험 범위만 있고 현재 지침 문장은 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_1af94e4d743d",
+        "family_id": "family_1af94e4d743d",
+        "checkpoint_id": "cr2_1af94e4d743d_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "개울목 어린이집 낮잠 시간의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_1af94e4d743d",
+          "project_id": "project_1af94e4d743d",
+          "subject_id": "subject_1af94e4d743d_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_1af94e4d743d_o1",
+            "type": "episodic",
+            "content": "개울목 어린이집 낮잠 시간에서 만 2세 반은 오후 1시에 눕는다. 만 4세 반은 원하는 아이만 쉰다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_1af94e4d743d",
+              "project_id": "project_1af94e4d743d",
+              "subject_id": "subject_1af94e4d743d_x"
+            },
+            "sha256": "a538cf7cd5db7398945427dd954f22c6252911c8372b724c9a9f111ea5e4a12f"
+          },
+          {
+            "evidence_id": "cr2_1af94e4d743d_o2",
+            "type": "episodic",
+            "content": "개울목 어린이집 낮잠 시간은 소풍이 있는 날 만 2세 반만 30분 늦춘다. 다른 반은 평소대로다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_1af94e4d743d",
+              "project_id": "project_1af94e4d743d",
+              "subject_id": "subject_1af94e4d743d_x"
+            },
+            "sha256": "1883087bfc475647b2c029cc81b28629ae17ebd91d3cb4308ce2ef030b49ebb0"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_1af94e4d743d_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_age2_4",
+            "claim": "만 2세 반 오후 1시 눕기, 만 4세 반은 원하는 아이만 쉰다.",
+            "supporting_evidence_refs": [
+              "cr2_1af94e4d743d_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_picnic",
+            "claim": "소풍 날 만 2세 반만 30분 늦춤, 다른 반은 평소대로.",
+            "supporting_evidence_refs": [
+              "cr2_1af94e4d743d_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_1af94e4d743d_o1",
+          "cr2_1af94e4d743d_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_1af94e4d743d_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "age2_nap_1pm",
+            "claim": "개울목 어린이집 만 2세 반은 오후 1시에 낮잠을 위해 눕는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_1af94e4d743d_o1"
+            ]
+          },
+          {
+            "fact_key": "age4_optional",
+            "claim": "만 4세 반은 원하는 아이만 쉰다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_1af94e4d743d_o1"
+            ]
+          },
+          {
+            "fact_key": "picnic_age2_delay",
+            "claim": "소풍이 있는 날 만 2세 반만 낮잠을 30분 늦춘다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_1af94e4d743d_o2"
+            ]
+          },
+          {
+            "fact_key": "picnic_others_normal",
+            "claim": "소풍이 있는 날에도 다른 반은 평소대로다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_1af94e4d743d_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "소풍 날 모든 반의 낮잠 시간을 30분 늦춘다.",
+            "evidence_refs": [
+              "cr2_1af94e4d743d_o2"
+            ],
+            "reason": "만 2세 반만 늦추고 다른 반은 평소대로다."
+          },
+          {
+            "claim": "만 4세 반은 전원 낮잠을 잔다.",
+            "evidence_refs": [
+              "cr2_1af94e4d743d_o1"
+            ],
+            "reason": "원하는 아이만 쉰다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_1af94e4d743d_o1",
+          "cr2_1af94e4d743d_o2"
+        ],
+        "rationale": "모두 현재 지침. 만 3세 반 등 다른 반의 평소 낮잠 시각은 원문에 없어 미확정.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_26090b384cbc",
+        "family_id": "family_26090b384cbc",
+        "checkpoint_id": "cr2_26090b384cbc_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "바다숲 해양 쓰레기 조사표의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_26090b384cbc",
+          "project_id": "project_26090b384cbc",
+          "subject_id": "subject_26090b384cbc_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_26090b384cbc_o1",
+            "type": "episodic",
+            "content": "바다숲 해양 쓰레기 조사표는 쓰레기를 열 가지 종류로 나눠 개수를 적는다. 조사는 만조 두 시간 뒤에 한다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_26090b384cbc",
+              "project_id": "project_26090b384cbc",
+              "subject_id": "subject_26090b384cbc_x"
+            },
+            "sha256": "6d4d0c1bc0f122cca4f932062baff92363f24a30a35c93505d5efbfd22bea425"
+          },
+          {
+            "evidence_id": "cr2_26090b384cbc_o2",
+            "type": "episodic",
+            "content": "10월 5일 바다숲 해양 쓰레기 조사표 첫 회차에 페트병이 마흔세 개로 가장 많았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_26090b384cbc",
+              "project_id": "project_26090b384cbc",
+              "subject_id": "subject_26090b384cbc_x"
+            },
+            "sha256": "8cdeb101ea5a9730df0f9cacb2000bc6822438a9d3deba21e948fcfe0243cb05"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_26090b384cbc_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_survey",
+            "claim": "열 가지 종류 개수, 만조 두 시간 뒤 조사.",
+            "supporting_evidence_refs": [
+              "cr2_26090b384cbc_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2025-10-05_r1",
+            "claim": "10월 5일 첫 회차: 페트병 43개로 최다.",
+            "supporting_evidence_refs": [
+              "cr2_26090b384cbc_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "페트병이 항상 최다라고 단정한다.",
+            "evidence_refs": [
+              "cr2_26090b384cbc_o2"
+            ],
+            "reason": "DF1"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_26090b384cbc_o1",
+          "cr2_26090b384cbc_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_26090b384cbc_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "ten_categories_count",
+            "claim": "바다숲 해양 쓰레기 조사표는 쓰레기를 열 가지 종류로 나눠 개수를 적는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_26090b384cbc_o1"
+            ]
+          },
+          {
+            "fact_key": "survey_2h_after_high_tide",
+            "claim": "조사는 만조 두 시간 뒤에 한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_26090b384cbc_o1"
+            ]
+          },
+          {
+            "fact_key": "round1_pet_43_most",
+            "claim": "10월 5일 첫 회차에 페트병이 마흔세 개로 가장 많았다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_26090b384cbc_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "페트병이 항상(매 회차) 가장 많다.",
+            "evidence_refs": [
+              "cr2_26090b384cbc_o2"
+            ],
+            "reason": "첫 회차 한 번의 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "조사는 간조 때 / 만조 직후에 한다.",
+            "evidence_refs": [
+              "cr2_26090b384cbc_o1"
+            ],
+            "reason": "만조 두 시간 뒤에 한다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_26090b384cbc_o1",
+          "cr2_26090b384cbc_o2"
+        ],
+        "rationale": "지침 2건과 첫 회차 관찰 1건. 열 가지 종류의 구체 목록은 원문에 없어 미확정.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_2b4e7d165d4a",
+        "family_id": "family_2b4e7d165d4a",
+        "checkpoint_id": "cr2_2b4e7d165d4a_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "들꽃 사진반 전시 액자의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_2b4e7d165d4a",
+          "project_id": "project_2b4e7d165d4a",
+          "subject_id": "subject_2b4e7d165d4a_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_2b4e7d165d4a_o1",
+            "type": "episodic",
+            "content": "들꽃 사진반 전시 액자는 가로 40센티미터 흰 나무 액자를 쓴다. 사진 아래에 이름표를 붙인다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_2b4e7d165d4a",
+              "project_id": "project_2b4e7d165d4a",
+              "subject_id": "subject_2b4e7d165d4a_x"
+            },
+            "sha256": "fcbe0c99f9fa2740372d797a8a6b63f324ab04641c414b0eb28ce7a51d618147"
+          },
+          {
+            "evidence_id": "cr2_2b4e7d165d4a_o2",
+            "type": "episodic",
+            "content": "들꽃 사진반 전시 액자의 이름표에는 촬영자 이름과 촬영 장소를 적는다. 촬영 날짜는 적지 않는다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_2b4e7d165d4a",
+              "project_id": "project_2b4e7d165d4a",
+              "subject_id": "subject_2b4e7d165d4a_x"
+            },
+            "sha256": "fb274f34d52f9bb3b229fc4f5e1c16e9cac15092d2dd6f4b44378e87f92f6cd0"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_2b4e7d165d4a_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_frame",
+            "claim": "가로 40cm 흰 나무 액자, 사진 아래 이름표.",
+            "supporting_evidence_refs": [
+              "cr2_2b4e7d165d4a_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_nameplate",
+            "claim": "이름표: 촬영자·장소, 촬영 날짜는 적지 않음.",
+            "supporting_evidence_refs": [
+              "cr2_2b4e7d165d4a_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_2b4e7d165d4a_o1",
+          "cr2_2b4e7d165d4a_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_2b4e7d165d4a_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "frame_40cm_white_wood",
+            "claim": "들꽃 사진반 전시 액자는 가로 40센티미터 흰 나무 액자를 쓴다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2b4e7d165d4a_o1"
+            ]
+          },
+          {
+            "fact_key": "name_tag_below",
+            "claim": "사진 아래에 이름표를 붙인다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2b4e7d165d4a_o1"
+            ]
+          },
+          {
+            "fact_key": "tag_name_place",
+            "claim": "이름표에는 촬영자 이름과 촬영 장소를 적는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2b4e7d165d4a_o2"
+            ]
+          },
+          {
+            "fact_key": "tag_no_date",
+            "claim": "이름표에 촬영 날짜는 적지 않는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2b4e7d165d4a_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "이름표에 촬영 날짜를 적는다.",
+            "evidence_refs": [
+              "cr2_2b4e7d165d4a_o2"
+            ],
+            "reason": "원문이 명시적으로 적지 않는다고 했다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_2b4e7d165d4a_o1",
+          "cr2_2b4e7d165d4a_o2"
+        ],
+        "rationale": "모두 현재 지침, 상충 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_2bb6e01c1d00",
+        "family_id": "family_2bb6e01c1d00",
+        "checkpoint_id": "cr2_2bb6e01c1d00_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "꽃마루 경로당 건강 체조의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_2bb6e01c1d00",
+          "project_id": "project_2bb6e01c1d00",
+          "subject_id": "subject_2bb6e01c1d00_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_2bb6e01c1d00_o1",
+            "type": "episodic",
+            "content": "꽃마루 경로당 건강 체조는 오전 10시에 20분 동안 한다. 의자에 앉아서 하는 동작만 쓴다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_2bb6e01c1d00",
+              "project_id": "project_2bb6e01c1d00",
+              "subject_id": "subject_2bb6e01c1d00_x"
+            },
+            "sha256": "a18576285f1dc9d566cd2690d8230ce344e7d8cdf2d0033723436dfc4f4ae859"
+          },
+          {
+            "evidence_id": "cr2_2bb6e01c1d00_o2",
+            "type": "episodic",
+            "content": "꽃마루 경로당 건강 체조에서 음악은 2번 음반을 튼다. 무릎 수술을 한 분은 팔 동작만 한다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_2bb6e01c1d00",
+              "project_id": "project_2bb6e01c1d00",
+              "subject_id": "subject_2bb6e01c1d00_x"
+            },
+            "sha256": "5b3aad97c2d5148c9cd64b8d9f0e4a103595776e85093c86172ed09e10985ca1"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_2bb6e01c1d00_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_session",
+            "claim": "오전 10시 20분, 의자 동작만.",
+            "supporting_evidence_refs": [
+              "cr2_2bb6e01c1d00_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_music_knee",
+            "claim": "음악 2번 음반, 무릎 수술 분은 팔 동작만.",
+            "supporting_evidence_refs": [
+              "cr2_2bb6e01c1d00_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_2bb6e01c1d00_o1",
+          "cr2_2bb6e01c1d00_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_2bb6e01c1d00_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "time_duration",
+            "claim": "꽃마루 경로당 건강 체조는 오전 10시에 20분 동안 한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2bb6e01c1d00_o1"
+            ]
+          },
+          {
+            "fact_key": "seated_only",
+            "claim": "의자에 앉아서 하는 동작만 쓴다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2bb6e01c1d00_o1"
+            ]
+          },
+          {
+            "fact_key": "music_album2",
+            "claim": "음악은 2번 음반을 튼다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2bb6e01c1d00_o2"
+            ]
+          },
+          {
+            "fact_key": "knee_surgery_arms_only",
+            "claim": "무릎 수술을 한 분은 팔 동작만 한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2bb6e01c1d00_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "서서 하는 동작도 포함한다.",
+            "evidence_refs": [
+              "cr2_2bb6e01c1d00_o1"
+            ],
+            "reason": "앉아서 하는 동작만 쓴다."
+          },
+          {
+            "claim": "무릎 수술을 한 분도 다리 동작을 한다.",
+            "evidence_refs": [
+              "cr2_2bb6e01c1d00_o2"
+            ],
+            "reason": "팔 동작만 한다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_2bb6e01c1d00_o1",
+          "cr2_2bb6e01c1d00_o2"
+        ],
+        "rationale": "모두 현재 지침, 상충 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_2e8ce95d0324",
+        "family_id": "family_2e8ce95d0324",
+        "checkpoint_id": "cr2_2e8ce95d0324_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "미루 합창단 연습 배치의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_2e8ce95d0324",
+          "project_id": "project_2e8ce95d0324",
+          "subject_id": "subject_2e8ce95d0324_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_2e8ce95d0324_o1",
+            "type": "episodic",
+            "content": "미루 합창단 연습 배치에서 소프라노는 무대 왼쪽에 선다. 알토가 설 자리는 아직 정하지 않았다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_2e8ce95d0324",
+              "project_id": "project_2e8ce95d0324",
+              "subject_id": "subject_2e8ce95d0324_x"
+            },
+            "sha256": "1063684f93866c1da50465e8281503fd133cba97152932193e601a87251c966a"
+          },
+          {
+            "evidence_id": "cr2_2e8ce95d0324_o2",
+            "type": "episodic",
+            "content": "미루 합창단 연습 배치는 반주자가 있는 날에는 피아노 옆에 세 줄로 선다. 반주자가 없으면 두 줄로 선다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_2e8ce95d0324",
+              "project_id": "project_2e8ce95d0324",
+              "subject_id": "subject_2e8ce95d0324_x"
+            },
+            "sha256": "83c6f0ca6bfc9872ae5c3d0cf2bcd67d3a54fd318ba8bb6ecaaf2a8dc95bc40d"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_2e8ce95d0324_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_soprano",
+            "claim": "소프라노 무대 왼쪽.",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_alto",
+            "claim": "알토 설 자리는 아직 정하지 않음(미확정).",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_rows",
+            "claim": "반주자 있으면 피아노 옆 세 줄, 없으면 두 줄.",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "알토 자리가 확정되었다고 단정한다.",
+            "evidence_refs": [
+              "cr2_2e8ce95d0324_o1"
+            ],
+            "reason": "원문 미확정 명시"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_2e8ce95d0324_o1",
+          "cr2_2e8ce95d0324_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_2e8ce95d0324_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "soprano_stage_left",
+            "claim": "미루 합창단 연습 배치에서 소프라노는 무대 왼쪽에 선다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o1"
+            ]
+          },
+          {
+            "fact_key": "alto_undecided",
+            "claim": "알토가 설 자리는 아직 정하지 않았다(미확정).",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o1"
+            ]
+          },
+          {
+            "fact_key": "accompanist_three_rows",
+            "claim": "반주자가 있는 날에는 피아노 옆에 세 줄로 선다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o2"
+            ]
+          },
+          {
+            "fact_key": "no_accompanist_two_rows",
+            "claim": "반주자가 없으면 두 줄로 선다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_2e8ce95d0324_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "알토 자리가 정해졌다(예: 무대 오른쪽).",
+            "evidence_refs": [
+              "cr2_2e8ce95d0324_o1"
+            ],
+            "reason": "원문은 아직 정하지 않았다고 한다."
+          },
+          {
+            "claim": "반주자 유무와 상관없이 세 줄로 선다.",
+            "evidence_refs": [
+              "cr2_2e8ce95d0324_o2"
+            ],
+            "reason": "반주자가 없으면 두 줄이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_2e8ce95d0324_o1",
+          "cr2_2e8ce95d0324_o2"
+        ],
+        "rationale": "알토 자리는 원문이 명시한 미확정 범위.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_31d53c1662d6",
+        "family_id": "family_31d53c1662d6",
+        "checkpoint_id": "cr2_31d53c1662d6_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "소나무 마을 도서 교환함 관리의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_31d53c1662d6",
+          "project_id": "project_31d53c1662d6",
+          "subject_id": "subject_31d53c1662d6_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_31d53c1662d6_o1",
+            "type": "episodic",
+            "content": "소나무 마을 도서 교환함 관리는 매주 수요일에 칸을 정리한다. 젖은 책은 꺼내서 버린다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_31d53c1662d6",
+              "project_id": "project_31d53c1662d6",
+              "subject_id": "subject_31d53c1662d6_x"
+            },
+            "sha256": "7fb291750d9364c6163a837f312d3752706b198e069d9313a3268d917357c564"
+          },
+          {
+            "evidence_id": "cr2_31d53c1662d6_o2",
+            "type": "episodic",
+            "content": "소나무 마을 도서 교환함 관리에서 아동 도서는 아래 두 칸에 둔다. 교환함 문은 노란색으로 칠했다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_31d53c1662d6",
+              "project_id": "project_31d53c1662d6",
+              "subject_id": "subject_31d53c1662d6_x"
+            },
+            "sha256": "55fd6b7c5d7a2270ec18b66c4201657bd15bd9194ec2395e804cfdd4bc5a01d4"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_31d53c1662d6_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_wed",
+            "claim": "매주 수요일 칸 정리, 젖은 책은 버림.",
+            "supporting_evidence_refs": [
+              "cr2_31d53c1662d6_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_shelves",
+            "claim": "아동 도서 아래 두 칸, 교환함 문 노란색.",
+            "supporting_evidence_refs": [
+              "cr2_31d53c1662d6_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_31d53c1662d6_o1",
+          "cr2_31d53c1662d6_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_31d53c1662d6_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "wed_tidy",
+            "claim": "소나무 마을 도서 교환함은 매주 수요일에 칸을 정리한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_31d53c1662d6_o1"
+            ]
+          },
+          {
+            "fact_key": "wet_books_discard",
+            "claim": "젖은 책은 꺼내서 버린다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_31d53c1662d6_o1"
+            ]
+          },
+          {
+            "fact_key": "kids_books_bottom2",
+            "claim": "아동 도서는 아래 두 칸에 둔다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_31d53c1662d6_o2"
+            ]
+          },
+          {
+            "fact_key": "door_yellow",
+            "claim": "교환함 문은 노란색으로 칠했다(현재 상태).",
+            "supporting_evidence_refs": [
+              "cr2_31d53c1662d6_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "젖은 책은 말려서 다시 넣는다.",
+            "evidence_refs": [
+              "cr2_31d53c1662d6_o1"
+            ],
+            "reason": "꺼내서 버린다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_31d53c1662d6_o1",
+          "cr2_31d53c1662d6_o2"
+        ],
+        "rationale": "모두 현재 지침/상태, 상충 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_501830241ceb",
+        "family_id": "family_501830241ceb",
+        "checkpoint_id": "cr2_501830241ceb_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "새벽별 마라톤 동호회 급수대의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_501830241ceb",
+          "project_id": "project_501830241ceb",
+          "subject_id": "subject_501830241ceb_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_501830241ceb_o1",
+            "type": "episodic",
+            "content": "새벽별 마라톤 동호회 급수대는 연습 코스의 5킬로미터 지점에 둔다. 컵은 종이컵을 쓴다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_501830241ceb",
+              "project_id": "project_501830241ceb",
+              "subject_id": "subject_501830241ceb_x"
+            },
+            "sha256": "5956f18ba9bb6962e4bada973fac32ef8a09d658758ed877ba3dee93046840c4"
+          },
+          {
+            "evidence_id": "cr2_501830241ceb_o2",
+            "type": "episodic",
+            "content": "새벽별 마라톤 동호회 급수대 당번은 출발 40분 전에 도착한다. 물은 한 사람당 두 컵으로 계산한다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_501830241ceb",
+              "project_id": "project_501830241ceb",
+              "subject_id": "subject_501830241ceb_x"
+            },
+            "sha256": "6780a120d2f3c57980301c39310a44b54e0c310945c99f123831550d7dfbf0fb"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_501830241ceb_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_location",
+            "claim": "연습 코스 5km 지점, 종이컵 사용.",
+            "supporting_evidence_refs": [
+              "cr2_501830241ceb_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_duty",
+            "claim": "당번 출발 40분 전 도착, 물은 1인당 두 컵.",
+            "supporting_evidence_refs": [
+              "cr2_501830241ceb_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_501830241ceb_o1",
+          "cr2_501830241ceb_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_501830241ceb_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "station_5km",
+            "claim": "새벽별 마라톤 동호회 급수대는 연습 코스의 5킬로미터 지점에 둔다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_501830241ceb_o1"
+            ]
+          },
+          {
+            "fact_key": "paper_cups",
+            "claim": "컵은 종이컵을 쓴다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_501830241ceb_o1"
+            ]
+          },
+          {
+            "fact_key": "duty_arrive_40min",
+            "claim": "급수대 당번은 출발 40분 전에 도착한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_501830241ceb_o2"
+            ]
+          },
+          {
+            "fact_key": "water_two_cups_pp",
+            "claim": "물은 한 사람당 두 컵으로 계산한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_501830241ceb_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "급수대에 다회용 컵을 쓴다.",
+            "evidence_refs": [
+              "cr2_501830241ceb_o1"
+            ],
+            "reason": "종이컵을 쓴다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_501830241ceb_o1",
+          "cr2_501830241ceb_o2"
+        ],
+        "rationale": "모두 현재 지침, 상충 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_51bb92b6fe47",
+        "family_id": "family_51bb92b6fe47",
+        "checkpoint_id": "cr2_51bb92b6fe47_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "너울 연극반 대본 수정의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_51bb92b6fe47",
+          "project_id": "project_51bb92b6fe47",
+          "subject_id": "subject_51bb92b6fe47_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_51bb92b6fe47_o1",
+            "type": "episodic",
+            "content": "너울 연극반 대본 수정은 연출이 빨간 펜으로 원고에 직접 고친다. 고친 쪽은 모서리를 접는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_51bb92b6fe47",
+              "project_id": "project_51bb92b6fe47",
+              "subject_id": "subject_51bb92b6fe47_x"
+            },
+            "sha256": "2f0b2d0e5182fe534442bb652e339c3220075d7cd9d6e18278cace89450c8538"
+          },
+          {
+            "evidence_id": "cr2_51bb92b6fe47_o2",
+            "type": "episodic",
+            "content": "10월 5일 너울 연극반 대본 수정 첫 회차에 1막 대사 열두 줄이 빨간 펜으로 고쳐졌다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_51bb92b6fe47",
+              "project_id": "project_51bb92b6fe47",
+              "subject_id": "subject_51bb92b6fe47_x"
+            },
+            "sha256": "03640958512544b506c23abe081a0caf2cf5b0767b6e0045312d5d6e7311962d"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_51bb92b6fe47_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_edit",
+            "claim": "연출 빨간 펜 원고 수정, 고친 쪽 모서리 접음.",
+            "supporting_evidence_refs": [
+              "cr2_51bb92b6fe47_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2025-10-05_r1",
+            "claim": "10월 5일 첫 회차: 1막 대사 12줄 빨간 펜 수정.",
+            "supporting_evidence_refs": [
+              "cr2_51bb92b6fe47_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_51bb92b6fe47_o1",
+          "cr2_51bb92b6fe47_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_51bb92b6fe47_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "director_red_pen",
+            "claim": "너울 연극반 대본 수정은 연출이 빨간 펜으로 원고에 직접 고친다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_51bb92b6fe47_o1"
+            ]
+          },
+          {
+            "fact_key": "fold_corner",
+            "claim": "고친 쪽은 모서리를 접는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_51bb92b6fe47_o1"
+            ]
+          },
+          {
+            "fact_key": "round1_act1_12_lines",
+            "claim": "10월 5일 첫 회차에 1막 대사 열두 줄이 빨간 펜으로 고쳐졌다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_51bb92b6fe47_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "첫 회차에 고친 쪽의 모서리를 접었다(실행 완료).",
+            "evidence_refs": [
+              "cr2_51bb92b6fe47_o1",
+              "cr2_51bb92b6fe47_o2"
+            ],
+            "reason": "모서리 접기는 지침이고 실행 기록은 없다(DF4)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_51bb92b6fe47_o1",
+          "cr2_51bb92b6fe47_o2"
+        ],
+        "rationale": "지침과 첫 회차 관찰.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_547ab5fe47f6",
+        "family_id": "family_547ab5fe47f6",
+        "checkpoint_id": "cr2_547ab5fe47f6_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "다래 청소년 독서 동아리 질문 카드의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_547ab5fe47f6",
+          "project_id": "project_547ab5fe47f6",
+          "subject_id": "subject_547ab5fe47f6_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_547ab5fe47f6_o1",
+            "type": "episodic",
+            "content": "다래 청소년 독서 동아리 질문 카드 시험에서 소설 모임 한 번은 카드를 쓰자 발언한 학생이 늘었다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_547ab5fe47f6",
+              "project_id": "project_547ab5fe47f6",
+              "subject_id": "subject_547ab5fe47f6_x"
+            },
+            "sha256": "78aabce545bba1cea58ecd74274c093a4fea68e65306f5e030e310f3f8ce91fc"
+          },
+          {
+            "evidence_id": "cr2_547ab5fe47f6_o2",
+            "type": "episodic",
+            "content": "다래 청소년 독서 동아리 질문 카드 시험은 과학책 모임과 시 모임에서는 아직 쓰지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_547ab5fe47f6",
+              "project_id": "project_547ab5fe47f6",
+              "subject_id": "subject_547ab5fe47f6_x"
+            },
+            "sha256": "d3d0e57e688ee92aaf627f00ade3b35046dbb04cbde6b7e79fe28f49b39d62e1"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_547ab5fe47f6_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_novel",
+            "claim": "시험: 소설 모임 한 번 카드 사용 후 발언 학생 증가.",
+            "supporting_evidence_refs": [
+              "cr2_547ab5fe47f6_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_not_done",
+            "claim": "과학책·시 모임에서는 아직 사용 안 함.",
+            "supporting_evidence_refs": [
+              "cr2_547ab5fe47f6_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "모든 모임에 질문 카드가 적용되었다고 단정한다.",
+            "evidence_refs": [
+              "cr2_547ab5fe47f6_o2"
+            ],
+            "reason": "미적용 범위"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_547ab5fe47f6_o1",
+          "cr2_547ab5fe47f6_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_547ab5fe47f6_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "trial_novel_more_speakers",
+            "claim": "질문 카드 시험 1회(2026-10-05 기록)에서 소설 모임 한 번은 카드를 쓰자 발언한 학생이 늘었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_547ab5fe47f6_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_science_poetry",
+            "claim": "질문 카드는 과학책 모임과 시 모임에서는 아직 쓰지 않았다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_547ab5fe47f6_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "질문 카드는 모든 모임에서 발언을 늘린다.",
+            "evidence_refs": [
+              "cr2_547ab5fe47f6_o1",
+              "cr2_547ab5fe47f6_o2"
+            ],
+            "reason": "소설 모임 한 번의 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "질문 카드를 모든 모임에서 쓰기로 정했다.",
+            "evidence_refs": [
+              "cr2_547ab5fe47f6_o1"
+            ],
+            "reason": "지시 문장이 없다(DF2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_547ab5fe47f6_o1",
+          "cr2_547ab5fe47f6_o2"
+        ],
+        "rationale": "관찰과 미시험 범위만 있고 현재 지침 문장은 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_58b13c8d3bb1",
+        "family_id": "family_58b13c8d3bb1",
+        "checkpoint_id": "cr2_58b13c8d3bb1_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "반딧불 마을 기록관 사진 정리의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_58b13c8d3bb1",
+          "project_id": "project_58b13c8d3bb1",
+          "subject_id": "subject_58b13c8d3bb1_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_58b13c8d3bb1_o1",
+            "type": "episodic",
+            "content": "반딧불 마을 기록관 사진 정리는 사진 뒷면에 연도와 장소를 연필로 적는다. 날짜를 모르면 비워 둔다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_58b13c8d3bb1",
+              "project_id": "project_58b13c8d3bb1",
+              "subject_id": "subject_58b13c8d3bb1_x"
+            },
+            "sha256": "2ec89b8353f441bf69dbe695fcab8795a7ee3265535f7db36afe86065c58a395"
+          },
+          {
+            "evidence_id": "cr2_58b13c8d3bb1_o2",
+            "type": "episodic",
+            "content": "10월 5일 반딧불 마을 기록관 사진 정리 첫 회차에 사진 서른 장을 적었고 여섯 장은 장소를 몰랐다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_58b13c8d3bb1",
+              "project_id": "project_58b13c8d3bb1",
+              "subject_id": "subject_58b13c8d3bb1_x"
+            },
+            "sha256": "b1c95ab3e75f4e001954f67123bcd54d3df136805a87bd6b590e604e4edc8701"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_58b13c8d3bb1_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_label",
+            "claim": "뒷면에 연도·장소 연필, 날짜 모르면 비움.",
+            "supporting_evidence_refs": [
+              "cr2_58b13c8d3bb1_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2025-10-05_r1",
+            "claim": "10월 5일 첫 회차: 사진 30장 적음, 6장 장소 불명.",
+            "supporting_evidence_refs": [
+              "cr2_58b13c8d3bb1_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_58b13c8d3bb1_o1",
+          "cr2_58b13c8d3bb1_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_58b13c8d3bb1_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "write_year_place_pencil",
+            "claim": "반딧불 마을 기록관 사진 정리는 사진 뒷면에 연도와 장소를 연필로 적는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_58b13c8d3bb1_o1"
+            ]
+          },
+          {
+            "fact_key": "unknown_date_blank",
+            "claim": "날짜를 모르면 비워 둔다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_58b13c8d3bb1_o1"
+            ]
+          },
+          {
+            "fact_key": "round1_30_photos",
+            "claim": "10월 5일 첫 회차에 사진 서른 장을 적었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_58b13c8d3bb1_o2"
+            ]
+          },
+          {
+            "fact_key": "round1_6_unknown_place",
+            "claim": "10월 5일 첫 회차에 여섯 장은 장소를 몰랐다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_58b13c8d3bb1_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "장소를 모르는 사진은 비워 둔다는 지침이 있다 / 여섯 장의 장소 칸을 비워 두었다.",
+            "evidence_refs": [
+              "cr2_58b13c8d3bb1_o1",
+              "cr2_58b13c8d3bb1_o2"
+            ],
+            "reason": "비워 두는 지침은 날짜에 대해서만 있고, 여섯 장 처리 방식은 기록되지 않았다(DF5)."
+          },
+          {
+            "claim": "모든 사진(또는 서른 장 전부)의 장소가 확인됐다.",
+            "evidence_refs": [
+              "cr2_58b13c8d3bb1_o2"
+            ],
+            "reason": "여섯 장은 장소를 몰랐다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_58b13c8d3bb1_o1",
+          "cr2_58b13c8d3bb1_o2"
+        ],
+        "rationale": "장소를 모르는 사진의 처리 규칙은 원문에 없어 미확정.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_5f005a76924e",
+        "family_id": "family_5f005a76924e",
+        "checkpoint_id": "cr2_5f005a76924e_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "은하수 학교 과학실 시약 장부의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_5f005a76924e",
+          "project_id": "project_5f005a76924e",
+          "subject_id": "subject_5f005a76924e_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_5f005a76924e_o1",
+            "type": "episodic",
+            "content": "은하수 학교 과학실 시약 장부에는 시약을 쓸 때마다 이름과 사용량을 손으로 적는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_5f005a76924e",
+              "project_id": "project_5f005a76924e",
+              "subject_id": "subject_5f005a76924e_x"
+            },
+            "sha256": "b56ff77d4eb890041368f4b066ba538af9d83a37b007b3ecd9af5f2c69493f4d"
+          },
+          {
+            "evidence_id": "cr2_5f005a76924e_o2",
+            "type": "episodic",
+            "content": "10월 5일 은하수 학교 과학실 시약 장부 첫 회차에 식초 200밀리리터와 베이킹소다 50그램 사용이 적혔다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_5f005a76924e",
+              "project_id": "project_5f005a76924e",
+              "subject_id": "subject_5f005a76924e_x"
+            },
+            "sha256": "6564c433c4955927dacaf411fe5f66e0aa49bd23419a33f85aa7f641dd30b436"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_5f005a76924e_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_log",
+            "claim": "시약 사용 시마다 이름과 사용량을 손으로 기록.",
+            "supporting_evidence_refs": [
+              "cr2_5f005a76924e_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2025-10-05_r1",
+            "claim": "10월 5일 첫 회차: 식초 200ml, 베이킹소다 50g 사용 기록.",
+            "supporting_evidence_refs": [
+              "cr2_5f005a76924e_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_5f005a76924e_o1",
+          "cr2_5f005a76924e_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_5f005a76924e_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "log_name_amount_by_hand",
+            "claim": "은하수 학교 과학실 시약 장부에는 시약을 쓸 때마다 이름과 사용량을 손으로 적는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_5f005a76924e_o1"
+            ]
+          },
+          {
+            "fact_key": "round1_vinegar_200ml",
+            "claim": "10월 5일 첫 회차에 식초 200밀리리터 사용이 적혔다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_5f005a76924e_o2"
+            ]
+          },
+          {
+            "fact_key": "round1_baking_soda_50g",
+            "claim": "10월 5일 첫 회차에 베이킹소다 50그램 사용이 적혔다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_5f005a76924e_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "시약 장부는 전산(디지털)으로 기록한다.",
+            "evidence_refs": [
+              "cr2_5f005a76924e_o1"
+            ],
+            "reason": "손으로 적는다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_5f005a76924e_o1",
+          "cr2_5f005a76924e_o2"
+        ],
+        "rationale": "지침 1건과 첫 회차 관찰.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_67871557b105",
+        "family_id": "family_67871557b105",
+        "checkpoint_id": "cr2_67871557b105_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "산들 마을버스 큰 글씨 시간표의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_67871557b105",
+          "project_id": "project_67871557b105",
+          "subject_id": "subject_67871557b105_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_67871557b105_o1",
+            "type": "episodic",
+            "content": "산들 마을버스 큰 글씨 시간표 시험에서 시장 앞 정류장 한 곳은 시간표를 붙이자 문의 전화가 줄었다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_67871557b105",
+              "project_id": "project_67871557b105",
+              "subject_id": "subject_67871557b105_x"
+            },
+            "sha256": "e891010e41a1a9487e1c7c56cb8ba233439b3affc2e93328c7a0f575b7969435"
+          },
+          {
+            "evidence_id": "cr2_67871557b105_o2",
+            "type": "episodic",
+            "content": "산들 마을버스 큰 글씨 시간표 시험은 학교 앞과 병원 앞 정류장에는 아직 붙이지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_67871557b105",
+              "project_id": "project_67871557b105",
+              "subject_id": "subject_67871557b105_x"
+            },
+            "sha256": "dbd1ba7bbd199025e1d7a3fef7603364cb30b3da647119c6bbd1c42beeb3478c"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_67871557b105_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_market_stop",
+            "claim": "시험 중 시장 앞 정류장에 시간표를 붙인 뒤 문의 전화가 줄었다(해당 정류장 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_67871557b105_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_not_posted",
+            "claim": "학교 앞·병원 앞 정류장에는 아직 시간표를 붙이지 않았다(미확정/미시행 범위).",
+            "supporting_evidence_refs": [
+              "cr2_67871557b105_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "모든 정류장에 시간표가 붙어 있다고 단정한다.",
+            "evidence_refs": [
+              "cr2_67871557b105_o2"
+            ],
+            "reason": "학교·병원 앞은 아직 미부착"
+          },
+          {
+            "claim": "시장 앞 한 곳의 효과를 전체 노선 보편 정책으로 단정한다.",
+            "evidence_refs": [
+              "cr2_67871557b105_o1"
+            ],
+            "reason": "DF1"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_67871557b105_o1",
+          "cr2_67871557b105_o2"
+        ],
+        "rationale": "o1은 시장 앞 관찰, o2는 미부착 범위. 전역 부착 지침은 원문 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_67871557b105_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "trial_market_fewer_calls",
+            "claim": "큰 글씨 시간표 시험 1회(2026-10-05 기록)에서 시장 앞 정류장 한 곳은 시간표를 붙이자 문의 전화가 줄었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_67871557b105_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_school_hospital",
+            "claim": "큰 글씨 시간표는 학교 앞과 병원 앞 정류장에는 아직 붙이지 않았다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_67871557b105_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "큰 글씨 시간표는 모든 정류장의 문의 전화를 줄인다.",
+            "evidence_refs": [
+              "cr2_67871557b105_o1",
+              "cr2_67871557b105_o2"
+            ],
+            "reason": "한 정류장 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "모든 정류장에 큰 글씨 시간표를 붙이기로 정했다.",
+            "evidence_refs": [
+              "cr2_67871557b105_o1"
+            ],
+            "reason": "지시 문장이 없다(DF2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_67871557b105_o1",
+          "cr2_67871557b105_o2"
+        ],
+        "rationale": "관찰과 미시험 범위만 있고 현재 지침 문장은 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_6fe9f88e61a3",
+        "family_id": "family_6fe9f88e61a3",
+        "checkpoint_id": "cr2_6fe9f88e61a3_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "매화 동네 카페 종이 빨대의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_6fe9f88e61a3",
+          "project_id": "project_6fe9f88e61a3",
+          "subject_id": "subject_6fe9f88e61a3_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_6fe9f88e61a3_o1",
+            "type": "episodic",
+            "content": "매화 동네 카페 종이 빨대 시험에서 아이스 아메리카노 한 잔은 30분 뒤에도 빨대가 무르지 않았다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_6fe9f88e61a3",
+              "project_id": "project_6fe9f88e61a3",
+              "subject_id": "subject_6fe9f88e61a3_x"
+            },
+            "sha256": "ee604a852e2d831903b26b54560088d1003818aa5a244a794a1bfdbddfa18682"
+          },
+          {
+            "evidence_id": "cr2_6fe9f88e61a3_o2",
+            "type": "episodic",
+            "content": "매화 동네 카페 종이 빨대 시험은 우유가 들어간 음료와 뜨거운 음료로는 하지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_6fe9f88e61a3",
+              "project_id": "project_6fe9f88e61a3",
+              "subject_id": "subject_6fe9f88e61a3_x"
+            },
+            "sha256": "cfea8e9fec4213d4e82c102ff65d0877370e9b0ef33345004d79b2279f4320b3"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_6fe9f88e61a3_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_ice_americano",
+            "claim": "시험: 아이스 아메리카노 한 잔 30분 후에도 빨대 무르지 않음.",
+            "supporting_evidence_refs": [
+              "cr2_6fe9f88e61a3_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_not_tested",
+            "claim": "우유 음료·뜨거운 음료로는 시험하지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_6fe9f88e61a3_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "모든 음료에서 종이 빨대가 적합하다고 단정한다.",
+            "evidence_refs": [
+              "cr2_6fe9f88e61a3_o2"
+            ],
+            "reason": "미시험 범위"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_6fe9f88e61a3_o1",
+          "cr2_6fe9f88e61a3_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_6fe9f88e61a3_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "trial_iced_americano_30min",
+            "claim": "종이 빨대 시험 1회(2026-10-05 기록)에서 아이스 아메리카노 한 잔은 30분 뒤에도 빨대가 무르지 않았다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_6fe9f88e61a3_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_milk_hot",
+            "claim": "종이 빨대 시험은 우유가 들어간 음료와 뜨거운 음료로는 하지 않았다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_6fe9f88e61a3_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "종이 빨대는 모든 음료에서 30분 이상 무르지 않는다.",
+            "evidence_refs": [
+              "cr2_6fe9f88e61a3_o1",
+              "cr2_6fe9f88e61a3_o2"
+            ],
+            "reason": "아이스 아메리카노 한 잔 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "카페가 종이 빨대를 전면 도입하기로 정했다.",
+            "evidence_refs": [
+              "cr2_6fe9f88e61a3_o1"
+            ],
+            "reason": "지시 문장이 없다(DF2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_6fe9f88e61a3_o1",
+          "cr2_6fe9f88e61a3_o2"
+        ],
+        "rationale": "관찰과 미시험 범위만 있고 현재 지침 문장은 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_7ac29410d9c4",
+        "family_id": "family_7ac29410d9c4",
+        "checkpoint_id": "cr2_7ac29410d9c4_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "버들 수목원 나무 이름표의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_7ac29410d9c4",
+          "project_id": "project_7ac29410d9c4",
+          "subject_id": "subject_7ac29410d9c4_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_7ac29410d9c4_o1",
+            "type": "episodic",
+            "content": "버들 수목원 나무 이름표는 나무판에 학명과 우리말 이름을 쓴다. 이름표는 줄기에서 1미터 떨어진 말뚝에 단다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_7ac29410d9c4",
+              "project_id": "project_7ac29410d9c4",
+              "subject_id": "subject_7ac29410d9c4_x"
+            },
+            "sha256": "4dbc1ad07d8d3ab569aef16a7d8ddbc5b578f784c1d97c3f6a9edbd84a3e915b"
+          },
+          {
+            "evidence_id": "cr2_7ac29410d9c4_o2",
+            "type": "episodic",
+            "content": "10월 5일 버들 수목원 나무 이름표 첫 회차에 느티나무 이름표 세 개의 글씨가 비에 지워진 것을 봤다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_7ac29410d9c4",
+              "project_id": "project_7ac29410d9c4",
+              "subject_id": "subject_7ac29410d9c4_x"
+            },
+            "sha256": "5290cf0170fa47e049c399982545d51839bc9947aebece6c44628768dc87ea46"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_7ac29410d9c4_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_sign",
+            "claim": "나무판에 학명·우리말 이름, 줄기에서 1m 말뚝.",
+            "supporting_evidence_refs": [
+              "cr2_7ac29410d9c4_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2025-10-05_r1",
+            "claim": "10월 5일 첫 회차: 느티나무 이름표 세 개 글씨가 비에 지워짐.",
+            "supporting_evidence_refs": [
+              "cr2_7ac29410d9c4_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "모든 이름표가 항상 선명하다고 단정한다.",
+            "evidence_refs": [
+              "cr2_7ac29410d9c4_o2"
+            ],
+            "reason": "첫 회차 손상 관찰"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_7ac29410d9c4_o1",
+          "cr2_7ac29410d9c4_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_7ac29410d9c4_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "tag_sci_korean_names",
+            "claim": "버들 수목원 나무 이름표는 나무판에 학명과 우리말 이름을 쓴다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_7ac29410d9c4_o1"
+            ]
+          },
+          {
+            "fact_key": "tag_on_stake_1m",
+            "claim": "이름표는 줄기에서 1미터 떨어진 말뚝에 단다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_7ac29410d9c4_o1"
+            ]
+          },
+          {
+            "fact_key": "round1_zelkova_3_erased",
+            "claim": "10월 5일 첫 회차에 느티나무 이름표 세 개의 글씨가 비에 지워진 것을 봤다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_7ac29410d9c4_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "이름표 재질/필기구를 바꾸거나 다시 쓰라는 지시가 있다.",
+            "evidence_refs": [
+              "cr2_7ac29410d9c4_o2"
+            ],
+            "reason": "관찰만 있고 대응 지시는 없다(DF5, DF2)."
+          },
+          {
+            "claim": "모든 이름표 글씨가 비에 지워졌다.",
+            "evidence_refs": [
+              "cr2_7ac29410d9c4_o2"
+            ],
+            "reason": "느티나무 이름표 세 개만 관찰됐다(DF1)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_7ac29410d9c4_o1",
+          "cr2_7ac29410d9c4_o2"
+        ],
+        "rationale": "지워진 이름표의 대응은 원문에 없어 미확정.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_80dde188a3da",
+        "family_id": "family_80dde188a3da",
+        "checkpoint_id": "cr2_80dde188a3da_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "은행나무 초등학교 급식 잔반 스티커의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_80dde188a3da",
+          "project_id": "project_80dde188a3da",
+          "subject_id": "subject_80dde188a3da_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_80dde188a3da_o1",
+            "type": "episodic",
+            "content": "은행나무 초등학교 급식 잔반 스티커 시험에서 3학년 2반 한 곳은 스티커 판을 붙인 주에 잔반이 줄었다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_80dde188a3da",
+              "project_id": "project_80dde188a3da",
+              "subject_id": "subject_80dde188a3da_x"
+            },
+            "sha256": "ef1464216146b5b6482944400fa7833de756cd57e8a62d7d5ba311514bb4042b"
+          },
+          {
+            "evidence_id": "cr2_80dde188a3da_o2",
+            "type": "episodic",
+            "content": "은행나무 초등학교 급식 잔반 스티커 시험은 다른 3학년 반과 저학년 반에서는 아직 하지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_80dde188a3da",
+              "project_id": "project_80dde188a3da",
+              "subject_id": "subject_80dde188a3da_x"
+            },
+            "sha256": "b81fcdffe5d99e8ec453c18b1327e5c45c0f16de2136cf70e7d573206266e52b"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_80dde188a3da_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_3-2",
+            "claim": "시험에서 3학년 2반 한 곳, 스티커 판 부착 주에 잔반이 줄었다.",
+            "supporting_evidence_refs": [
+              "cr2_80dde188a3da_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_not_done",
+            "claim": "다른 3학년 반·저학년 반에서는 아직 시험하지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_80dde188a3da_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "전 학년·전반에 스티커 시험이 적용되었다고 단정한다.",
+            "evidence_refs": [
+              "cr2_80dde188a3da_o2"
+            ],
+            "reason": "미시행 범위 명시"
+          },
+          {
+            "claim": "3학년 2반 한 곳의 잔반 감소를 전교 정책 효과로 단정한다.",
+            "evidence_refs": [
+              "cr2_80dde188a3da_o1"
+            ],
+            "reason": "DF1"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_80dde188a3da_o1",
+          "cr2_80dde188a3da_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_80dde188a3da_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "trial_3_2_reduced",
+            "claim": "잔반 스티커 시험 1회(2026-10-05 기록)에서 3학년 2반 한 곳은 스티커 판을 붙인 주에 잔반이 줄었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_80dde188a3da_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_other_classes",
+            "claim": "잔반 스티커 시험은 다른 3학년 반과 저학년 반에서는 아직 하지 않았다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_80dde188a3da_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "잔반 스티커는 학교 전체(모든 반)의 잔반을 줄인다.",
+            "evidence_refs": [
+              "cr2_80dde188a3da_o1",
+              "cr2_80dde188a3da_o2"
+            ],
+            "reason": "한 반 한 주의 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "잔반 스티커가 전교 급식 지침으로 도입됐다.",
+            "evidence_refs": [
+              "cr2_80dde188a3da_o1"
+            ],
+            "reason": "지시 문장이 없다(DF2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_80dde188a3da_o1",
+          "cr2_80dde188a3da_o2"
+        ],
+        "rationale": "관찰과 미시험 범위만 있다. 고학년 다른 반 시험 여부는 원문에 없어 미확정.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_81538441219f",
+        "family_id": "family_81538441219f",
+        "checkpoint_id": "cr2_81538441219f_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "솔섬 해변 정화 활동의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_81538441219f",
+          "project_id": "project_81538441219f",
+          "subject_id": "subject_81538441219f_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_81538441219f_o1",
+            "type": "episodic",
+            "content": "솔섬 해변 정화 활동은 오전 7시에 북쪽 끝에서 시작한다. 장갑은 흰 면장갑을 쓴다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_81538441219f",
+              "project_id": "project_81538441219f",
+              "subject_id": "subject_81538441219f_x"
+            },
+            "sha256": "d9cb5c228b6e5a9748962a73fb49e8e3a30a2a098e33bfad6ec5b0ad50608da8"
+          },
+          {
+            "evidence_id": "cr2_81538441219f_o2",
+            "type": "episodic",
+            "content": "솔섬 해변 정화 활동에서 주운 플라스틱은 파란 자루에, 유리는 따로 상자에 담는다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_81538441219f",
+              "project_id": "project_81538441219f",
+              "subject_id": "subject_81538441219f_x"
+            },
+            "sha256": "1d61d817c682d65c6f22c9989589efdf3b22eb1d2e022a1a0678e4e08967a26d"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_81538441219f_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_start",
+            "claim": "활동은 오전 7시 북쪽 끝에서 시작한다.",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_gloves",
+            "claim": "장갑은 흰 면장갑을 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_sort",
+            "claim": "주운 플라스틱은 파란 자루, 유리는 따로 상자에 담는다.",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_81538441219f_o1",
+          "cr2_81538441219f_o2"
+        ],
+        "rationale": "o1·o2 모두 현재 지침. 회차별 관찰 기록·미확정 범위는 원문 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_81538441219f_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "start_7am_north",
+            "claim": "솔섬 해변 정화 활동은 오전 7시에 북쪽 끝에서 시작한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o1"
+            ]
+          },
+          {
+            "fact_key": "white_cotton_gloves",
+            "claim": "장갑은 흰 면장갑을 쓴다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o1"
+            ]
+          },
+          {
+            "fact_key": "plastic_blue_sack",
+            "claim": "주운 플라스틱은 파란 자루에 담는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o2"
+            ]
+          },
+          {
+            "fact_key": "glass_separate_box",
+            "claim": "유리는 따로 상자에 담는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_81538441219f_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "유리도 파란 자루에 플라스틱과 함께 담는다.",
+            "evidence_refs": [
+              "cr2_81538441219f_o2"
+            ],
+            "reason": "유리는 따로 상자에 담는다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_81538441219f_o1",
+          "cr2_81538441219f_o2"
+        ],
+        "rationale": "모두 현재 지침, 상충 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_84a8da463af3",
+        "family_id": "family_84a8da463af3",
+        "checkpoint_id": "cr2_84a8da463af3_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "노루목 약수터 수질 기록의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_84a8da463af3",
+          "project_id": "project_84a8da463af3",
+          "subject_id": "subject_84a8da463af3_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_84a8da463af3_o1",
+            "type": "episodic",
+            "content": "노루목 약수터 수질 기록은 매주 월요일에 물을 떠서 시험지 색으로 산도를 본다. 결과는 공책에 적는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_84a8da463af3",
+              "project_id": "project_84a8da463af3",
+              "subject_id": "subject_84a8da463af3_x"
+            },
+            "sha256": "136451e7db6f78a020cf9c6d394fcf11d58120c7f6966f00e386b61168ddf17d"
+          },
+          {
+            "evidence_id": "cr2_84a8da463af3_o2",
+            "type": "episodic",
+            "content": "10월 5일 노루목 약수터 수질 기록 첫 회차에 시험지가 연두색으로 변해 산도를 7 근처로 적었다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_84a8da463af3",
+              "project_id": "project_84a8da463af3",
+              "subject_id": "subject_84a8da463af3_x"
+            },
+            "sha256": "2a85d426aef3366f764a9ae25193be3aa94a1b76e81fe7339a714074a050e8c2"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_84a8da463af3_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_procedure",
+            "claim": "매주 월요일 시험지로 산도 확인, 결과 공책 기록.",
+            "supporting_evidence_refs": [
+              "cr2_84a8da463af3_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2025-10-05_r1",
+            "claim": "10월 5일 첫 회차: 시험지 연두색, 산도 약 7 기록.",
+            "supporting_evidence_refs": [
+              "cr2_84a8da463af3_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "약수 산도가 항상 7이다고 단정한다.",
+            "evidence_refs": [
+              "cr2_84a8da463af3_o2"
+            ],
+            "reason": "DF1: 한 회차 측정값 일반화"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_84a8da463af3_o1",
+          "cr2_84a8da463af3_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_84a8da463af3_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "weekly_monday_ph_strip",
+            "claim": "노루목 약수터 수질 기록은 매주 월요일에 물을 떠서 시험지 색으로 산도를 본다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_84a8da463af3_o1"
+            ]
+          },
+          {
+            "fact_key": "record_in_notebook",
+            "claim": "결과는 공책에 적는다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_84a8da463af3_o1"
+            ]
+          },
+          {
+            "fact_key": "round1_lightgreen_ph7",
+            "claim": "10월 5일 첫 회차에 시험지가 연두색으로 변해 산도를 7 근처로 적었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_84a8da463af3_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "약수터 물의 산도는 늘 7이다 / 마시기에 안전하다고 확인됐다.",
+            "evidence_refs": [
+              "cr2_84a8da463af3_o2"
+            ],
+            "reason": "첫 회차 한 번의 시험지 관찰을 일반화하거나 원문에 없는 판정을 더한다(DF1, DF5)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_84a8da463af3_o1",
+          "cr2_84a8da463af3_o2"
+        ],
+        "rationale": "지침과 첫 회차 관찰. 음용 적합성 판정은 원문에 없어 미확정.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_88a3a2553755",
+        "family_id": "family_88a3a2553755",
+        "checkpoint_id": "cr2_88a3a2553755_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "바람골 청소년 축구부 훈련의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_88a3a2553755",
+          "project_id": "project_88a3a2553755",
+          "subject_id": "subject_88a3a2553755_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_88a3a2553755_o1",
+            "type": "episodic",
+            "content": "바람골 청소년 축구부 훈련은 기온이 30도를 넘으면 60분으로 줄인다. 30도 이하이면 90분 동안 한다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_88a3a2553755",
+              "project_id": "project_88a3a2553755",
+              "subject_id": "subject_88a3a2553755_x"
+            },
+            "sha256": "4cf671210ca061c280cfba068eeda70a7a5cb4707b42510ab7ba60b6fecee263"
+          },
+          {
+            "evidence_id": "cr2_88a3a2553755_o2",
+            "type": "episodic",
+            "content": "바람골 청소년 축구부 훈련의 골키퍼는 첫 20분 동안 따로 반사 훈련을 한다. 필드 선수는 그동안 패스 연습을 한다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_88a3a2553755",
+              "project_id": "project_88a3a2553755",
+              "subject_id": "subject_88a3a2553755_x"
+            },
+            "sha256": "457d85f967130b6fa2ecfdfd64e707906209266bf5551b859f089eb2749a163b"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_88a3a2553755_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "guideline_duration",
+            "claim": "기온 30도 초과 60분, 30도 이하 90분.",
+            "supporting_evidence_refs": [
+              "cr2_88a3a2553755_o1"
+            ]
+          },
+          {
+            "fact_key": "guideline_gk",
+            "claim": "골키퍼 첫 20분 반사 훈련, 필드 선수 패스 연습.",
+            "supporting_evidence_refs": [
+              "cr2_88a3a2553755_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_88a3a2553755_o1",
+          "cr2_88a3a2553755_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_88a3a2553755_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "over30_60min",
+            "claim": "바람골 청소년 축구부 훈련은 기온이 30도를 넘으면 60분으로 줄인다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_88a3a2553755_o1"
+            ]
+          },
+          {
+            "fact_key": "le30_90min",
+            "claim": "기온이 30도 이하이면 90분 동안 한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_88a3a2553755_o1"
+            ]
+          },
+          {
+            "fact_key": "gk_reflex_first20",
+            "claim": "골키퍼는 첫 20분 동안 따로 반사 훈련을 한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_88a3a2553755_o2"
+            ]
+          },
+          {
+            "fact_key": "field_passing_first20",
+            "claim": "그동안(첫 20분) 필드 선수는 패스 연습을 한다(현재 지침).",
+            "supporting_evidence_refs": [
+              "cr2_88a3a2553755_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "기온과 무관하게 훈련은 항상 90분(또는 60분)이다.",
+            "evidence_refs": [
+              "cr2_88a3a2553755_o1"
+            ],
+            "reason": "기온 30도 기준으로 시간이 갈린다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_88a3a2553755_o1",
+          "cr2_88a3a2553755_o2"
+        ],
+        "rationale": "모두 현재 지침, 상충 없음.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t1",
+      "stage": 1,
+      "packet_case": {
+        "sequence_id": "cr2_8b78b9db9f3a",
+        "family_id": "family_8b78b9db9f3a",
+        "checkpoint_id": "cr2_8b78b9db9f3a_t1",
+        "after_observation": 2,
+        "query_at": "2026-10-05T10:00:00Z",
+        "query": "노을 세탁소 친환경 세제의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_8b78b9db9f3a",
+          "project_id": "project_8b78b9db9f3a",
+          "subject_id": "subject_8b78b9db9f3a_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_8b78b9db9f3a_o1",
+            "type": "episodic",
+            "content": "노을 세탁소 친환경 세제 시험에서 면 셔츠 한 벌은 얼룩이 기존 세제만큼 빠졌다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_8b78b9db9f3a",
+              "project_id": "project_8b78b9db9f3a",
+              "subject_id": "subject_8b78b9db9f3a_x"
+            },
+            "sha256": "9821f7c895c44651ac794b2fc18ee3697cbd613f656049771890e8902cc4a592"
+          },
+          {
+            "evidence_id": "cr2_8b78b9db9f3a_o2",
+            "type": "episodic",
+            "content": "노을 세탁소 친환경 세제 시험은 울 스웨터와 기름 얼룩이 묻은 작업복으로는 하지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_8b78b9db9f3a",
+              "project_id": "project_8b78b9db9f3a",
+              "subject_id": "subject_8b78b9db9f3a_x"
+            },
+            "sha256": "87a8cf8c32defea97b972eb6e6ce836a477eeeba87860b404d90aa927f585037"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_8b78b9db9f3a_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_cotton",
+            "claim": "시험: 면 셔츠 한 벌 얼룩이 기존 세제만큼 빠짐.",
+            "supporting_evidence_refs": [
+              "cr2_8b78b9db9f3a_o1"
+            ]
+          },
+          {
+            "fact_key": "scope_not_tested",
+            "claim": "울 스웨터·기름 얼룩 작업복으로는 시험 안 함.",
+            "supporting_evidence_refs": [
+              "cr2_8b78b9db9f3a_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "친환경 세제가 모든 섬유·얼룩에 동일 효과라고 단정한다.",
+            "evidence_refs": [
+              "cr2_8b78b9db9f3a_o2"
+            ],
+            "reason": "미시험 범위"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_8b78b9db9f3a_o1",
+          "cr2_8b78b9db9f3a_o2"
+        ],
+        "rationale": null,
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_8b78b9db9f3a_t1",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "trial_cotton_shirt_equal",
+            "claim": "친환경 세제 시험 1회(2026-10-05 기록)에서 면 셔츠 한 벌은 얼룩이 기존 세제만큼 빠졌다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_8b78b9db9f3a_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_wool_oil",
+            "claim": "친환경 세제 시험은 울 스웨터와 기름 얼룩이 묻은 작업복으로는 하지 않았다(미시험 범위).",
+            "supporting_evidence_refs": [
+              "cr2_8b78b9db9f3a_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "친환경 세제는 모든 의류/얼룩에 기존 세제만큼 효과가 있다.",
+            "evidence_refs": [
+              "cr2_8b78b9db9f3a_o1",
+              "cr2_8b78b9db9f3a_o2"
+            ],
+            "reason": "면 셔츠 한 벌 관찰을 일반화(DF1)."
+          },
+          {
+            "claim": "세탁소가 친환경 세제로 전환하기로 정했다.",
+            "evidence_refs": [
+              "cr2_8b78b9db9f3a_o1"
+            ],
+            "reason": "지시 문장이 없다(DF2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_8b78b9db9f3a_o1",
+          "cr2_8b78b9db9f3a_o2"
+        ],
+        "rationale": "관찰과 미시험 범위만 있고 현재 지침 문장은 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    }
+  ]
+}

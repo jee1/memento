@@ -1,0 +1,3660 @@
+{
+  "reviewer_id": "mseum5-claude-code",
+  "model": "claude-opus-5-5 (Claude Opus 5.5, Claude Code)",
+  "judged_at": "2026-11-02T15:15:07Z",
+  "label_source": "agent_panel",
+  "rubric_version": "consolidation-replay-v2",
+  "stage": 3,
+  "packet_sha256": "b36d3ee2ec345b25026ca9a6d29f51b745dc39c5e862c376a13f158a3ec237dc",
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "answers": [
+    {
+      "checkpoint_id": "cr2_e404469d4273_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "timing_4w",
+          "claim": "현재 악보 배부는 연주회 4주 전에 한다(10-12 지시로 3주 전에서 앞당김).",
+          "supporting_evidence_refs": [
+            "cr2_e404469d4273_o3"
+          ]
+        },
+        {
+          "fact_key": "violin_1",
+          "claim": "현재 바이올린 파트는 1부를 받는다(10-19 정정, 기존 2부).",
+          "supporting_evidence_refs": [
+            "cr2_e404469d4273_o5"
+          ]
+        },
+        {
+          "fact_key": "surplus_return",
+          "claim": "남는 악보는 회수한다(10-19 지시).",
+          "supporting_evidence_refs": [
+            "cr2_e404469d4273_o5"
+          ]
+        },
+        {
+          "fact_key": "cello_1",
+          "claim": "첼로 파트는 1부를 받는다.",
+          "supporting_evidence_refs": [
+            "cr2_e404469d4273_o2"
+          ]
+        },
+        {
+          "fact_key": "cello_memo_stop",
+          "claim": "첼로 지휘자 메모 사본은 이번 연주회부터 주지 않는다(10-19 지시).",
+          "supporting_evidence_refs": [
+            "cr2_e404469d4273_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1012",
+          "claim": "10월 12일 배부 회차에 바이올린 파트에 2부씩, 첼로 파트에 1부와 메모 사본을 나눴다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e404469d4273_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 배부 시기가 연주회 3주 전이다.",
+          "evidence_refs": [
+            "cr2_e404469d4273_o1",
+            "cr2_e404469d4273_o3"
+          ],
+          "reason": "10-12에 4주 전으로 바뀌었다."
+        },
+        {
+          "claim": "현재 바이올린 파트는 2부를 받는다.",
+          "evidence_refs": [
+            "cr2_e404469d4273_o1",
+            "cr2_e404469d4273_o4",
+            "cr2_e404469d4273_o5"
+          ],
+          "reason": "10-19 정정으로 1부다. 2부는 과거 지시와 10-12 회차 관찰로만 인용한다."
+        },
+        {
+          "claim": "현재 첼로 파트가 메모 사본을 함께 받는다.",
+          "evidence_refs": [
+            "cr2_e404469d4273_o2",
+            "cr2_e404469d4273_o4",
+            "cr2_e404469d4273_o6"
+          ],
+          "reason": "10-19 지시로 이번 연주회부터 주지 않는다."
+        },
+        {
+          "claim": "10월 12일 회차에 바이올린 파트에 1부씩 나눴다.",
+          "evidence_refs": [
+            "cr2_e404469d4273_o4",
+            "cr2_e404469d4273_o5"
+          ],
+          "reason": "정정은 현재 지시만 바꾼다. 10-12 관찰은 2부씩이다."
+        },
+        {
+          "claim": "남는 악보 회수가 이미 끝났다.",
+          "evidence_refs": [
+            "cr2_e404469d4273_o5"
+          ],
+          "reason": "회수 지시만 있고 실행 기록이 없다(DF4)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_e404469d4273_o1",
+        "cr2_e404469d4273_o2",
+        "cr2_e404469d4273_o3",
+        "cr2_e404469d4273_o4",
+        "cr2_e404469d4273_o5",
+        "cr2_e404469d4273_o6"
+      ],
+      "rationale": "모든 원본이 subject x. o1, o2의 옛 값은 o3, o5, o6의 정정 관계와 o4 관찰 해석에 필요해 관련 근거에 넣었다. '이번 연주회'가 어느 연주회인지는 원문에 없다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_e8509911972d_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "start_time",
+          "claim": "야간 순찰은 밤 9시에 출발한다(10-19에도 그대로).",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o1",
+            "cr2_e8509911972d_o5"
+          ]
+        },
+        {
+          "fact_key": "start_point",
+          "claim": "현재 출발 지점은 후문이다(10-19 지시, 기존 정문).",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o5"
+          ]
+        },
+        {
+          "fact_key": "route",
+          "claim": "순찰은 호수 둘레를 돈다.",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o1"
+          ]
+        },
+        {
+          "fact_key": "vest",
+          "claim": "순찰 조끼는 주황색이다.",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o1"
+          ]
+        },
+        {
+          "fact_key": "playground",
+          "claim": "놀이터는 두 번째 바퀴에만 들른다.",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o2"
+          ]
+        },
+        {
+          "fact_key": "team",
+          "claim": "순찰은 두 명이 한 조다.",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 순찰 회차에 두 번째 바퀴에서 놀이터 그네 줄 하나가 끊어진 것을 봤다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e8509911972d_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 순찰은 정문에서 출발한다.",
+          "evidence_refs": [
+            "cr2_e8509911972d_o1",
+            "cr2_e8509911972d_o5"
+          ],
+          "reason": "10-19에 후문으로 옮겼다."
+        },
+        {
+          "claim": "야간 순찰이 밤 10시에 시작하거나, 노란 조끼를 입거나, 세 명이 한 조다.",
+          "evidence_refs": [
+            "cr2_e8509911972d_o3",
+            "cr2_e8509911972d_o4"
+          ],
+          "reason": "가로등 교체(별개 작업 y)의 조건이다(DF3)."
+        },
+        {
+          "claim": "끊어진 그네 줄을 수리했다.",
+          "evidence_refs": [
+            "cr2_e8509911972d_o6"
+          ],
+          "reason": "관찰만 있고 수리 기록이 없다(DF4/DF5)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_e8509911972d_o1",
+        "cr2_e8509911972d_o2",
+        "cr2_e8509911972d_o5",
+        "cr2_e8509911972d_o6"
+      ],
+      "rationale": "o3, o4는 별개 작업(가로등 교체, subject y)이라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_da745e7d6bc9_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_peel",
+          "claim": "10월 5일 무렵 시험에서 채소 껍질 한 통은 6시간 만에 바싹 말랐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_da745e7d6bc9_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 시험은 국물 있는 음식물과 생선 뼈로는 하지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_da745e7d6bc9_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_peel",
+          "claim": "10월 12일 시험에서 채소 껍질 두 번째 통도 6시간 안에 말랐고 냄새가 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_da745e7d6bc9_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_stew",
+          "claim": "10월 19일 시험에서 국물이 남은 찌개 한 통은 10시간 뒤에도 축축했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_da745e7d6bc9_o5"
+          ]
+        },
+        {
+          "fact_key": "current_peel_only",
+          "claim": "현재 건조기에는 채소 껍질만 넣는다.",
+          "supporting_evidence_refs": [
+            "cr2_da745e7d6bc9_o6"
+          ]
+        },
+        {
+          "fact_key": "current_other_bin",
+          "claim": "채소 껍질 외 다른 음식물은 기존 수거함에 버린다.",
+          "supporting_evidence_refs": [
+            "cr2_da745e7d6bc9_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "건조기에 모든 음식물을 넣는다(승인된 지시).",
+          "evidence_refs": [
+            "cr2_da745e7d6bc9_o4",
+            "cr2_da745e7d6bc9_o6"
+          ],
+          "reason": "관리인 제안일 뿐 투표도 없었고, 10-19 지시는 채소 껍질만이다(DF2)."
+        },
+        {
+          "claim": "국물 음식물이나 생선 뼈도 건조기에 넣는다.",
+          "evidence_refs": [
+            "cr2_da745e7d6bc9_o2",
+            "cr2_da745e7d6bc9_o5",
+            "cr2_da745e7d6bc9_o6"
+          ],
+          "reason": "현재 지시는 채소 껍질만이다. 생선 뼈는 시험 기록이 없다."
+        },
+        {
+          "claim": "건조기는 어떤 음식물이든 6시간 안에 말린다.",
+          "evidence_refs": [
+            "cr2_da745e7d6bc9_o1",
+            "cr2_da745e7d6bc9_o3",
+            "cr2_da745e7d6bc9_o5"
+          ],
+          "reason": "채소 껍질 관찰의 일반화다. 찌개는 10시간 뒤에도 축축했다(DF1)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_da745e7d6bc9_o1",
+        "cr2_da745e7d6bc9_o2",
+        "cr2_da745e7d6bc9_o3",
+        "cr2_da745e7d6bc9_o4",
+        "cr2_da745e7d6bc9_o5",
+        "cr2_da745e7d6bc9_o6"
+      ],
+      "rationale": "o4 제안은 o6 결정으로 채택되지 않았으므로 필수 사실이 아니라 금지 근거로 썼다. 생선 뼈는 질의 시점까지 시험 기록이 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_ef728f684700_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "groups",
+          "claim": "대진표는 실력 순서로 4개 조를 나눈다(10-19에도 조 편성 그대로).",
+          "supporting_evidence_refs": [
+            "cr2_ef728f684700_o1",
+            "cr2_ef728f684700_o5"
+          ]
+        },
+        {
+          "fact_key": "table1",
+          "claim": "1조가 1번 탁구대를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_ef728f684700_o1"
+          ]
+        },
+        {
+          "fact_key": "format",
+          "claim": "현재 경기는 11점 5세트다(10-19 정정, 기존 11점 3세트).",
+          "supporting_evidence_refs": [
+            "cr2_ef728f684700_o5"
+          ]
+        },
+        {
+          "fact_key": "same_group_first",
+          "claim": "같은 조끼리 먼저 붙는다.",
+          "supporting_evidence_refs": [
+            "cr2_ef728f684700_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 대진표 회차에 1조 경기가 1번 탁구대에서 끝까지 진행됐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_ef728f684700_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 경기는 11점 3세트다.",
+          "evidence_refs": [
+            "cr2_ef728f684700_o2",
+            "cr2_ef728f684700_o5"
+          ],
+          "reason": "10-19 정정으로 11점 5세트다."
+        },
+        {
+          "claim": "대진표 조건으로 1번 탁구대 네트를 새로 사거나 흰 공 5세트 묶음을 쓴다.",
+          "evidence_refs": [
+            "cr2_ef728f684700_o3",
+            "cr2_ef728f684700_o4"
+          ],
+          "reason": "장비 구매(별개 작업 y)다(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_ef728f684700_o1",
+        "cr2_ef728f684700_o2",
+        "cr2_ef728f684700_o5",
+        "cr2_ef728f684700_o6"
+      ],
+      "rationale": "o3, o4는 장비 구매(subject y)라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "time",
+          "claim": "건강 체조는 오전 10시에 한다.",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o1"
+          ]
+        },
+        {
+          "fact_key": "duration_30",
+          "claim": "현재 체조 시간은 30분이다(10-19 지시, 기존 20분).",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o5"
+          ]
+        },
+        {
+          "fact_key": "last10_standing",
+          "claim": "마지막 10분은 서서 하는 동작이다(10-19 지시).",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o5"
+          ]
+        },
+        {
+          "fact_key": "music_2",
+          "claim": "체조 음악은 2번 음반을 튼다.",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o2"
+          ]
+        },
+        {
+          "fact_key": "knee_arm_only",
+          "claim": "무릎 수술을 한 분은 팔 동작만 한다.",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_count",
+          "claim": "10월 19일 체조 회차에 열한 분이 참여했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_music",
+          "claim": "10월 19일 체조 회차에 2번 음반이 중간에 끊겼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_2bb6e01c1d00_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 체조 시간은 20분이다.",
+          "evidence_refs": [
+            "cr2_2bb6e01c1d00_o1",
+            "cr2_2bb6e01c1d00_o5"
+          ],
+          "reason": "10-19에 30분으로 늘렸다."
+        },
+        {
+          "claim": "현재 체조 전체를 의자에 앉아서 하는 동작만으로 한다.",
+          "evidence_refs": [
+            "cr2_2bb6e01c1d00_o1",
+            "cr2_2bb6e01c1d00_o5"
+          ],
+          "reason": "마지막 10분은 서서 하는 동작으로 바뀌었다."
+        },
+        {
+          "claim": "체조 음악이 1번 음반이거나 체조가 오전 11시 30분에 시작한다.",
+          "evidence_refs": [
+            "cr2_2bb6e01c1d00_o3",
+            "cr2_2bb6e01c1d00_o4"
+          ],
+          "reason": "점심 배식(별개 작업 y)의 조건이다(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_2bb6e01c1d00_o1",
+        "cr2_2bb6e01c1d00_o2",
+        "cr2_2bb6e01c1d00_o5",
+        "cr2_2bb6e01c1d00_o6"
+      ],
+      "rationale": "o3, o4는 점심 배식(subject y)이라 관련 근거에서 뺐다. 처음 20분 동작 방식은 원문이 따로 말하지 않는다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_e14c985fef9c_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_knee",
+          "claim": "10월 5일 무렵 하산 구간 한 번은 접이식 지팡이를 쓴 회원의 무릎 통증 보고가 없었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e14c985fef9c_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 오르막 구간과 눈 쌓인 길에서는 시험하지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e14c985fef9c_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_wrist",
+          "claim": "10월 12일 두 번째 하산에서 지팡이를 쓴 회원 한 명이 손목이 아프다고 했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e14c985fef9c_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_uphill",
+          "claim": "10월 19일 오르막 구간 첫 시도는 걸음이 오히려 느려졌다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e14c985fef9c_o5"
+          ]
+        },
+        {
+          "fact_key": "current_optional",
+          "claim": "현재 하산 구간에서는 원하는 회원만 지팡이를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_e14c985fef9c_o6"
+          ]
+        },
+        {
+          "fact_key": "purchase_on_hold",
+          "claim": "현재 지팡이 단체 구매는 보류한다.",
+          "supporting_evidence_refs": [
+            "cr2_e14c985fef9c_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모든 회원에게 지팡이를 사 주기로 결정했다.",
+          "evidence_refs": [
+            "cr2_e14c985fef9c_o4",
+            "cr2_e14c985fef9c_o6"
+          ],
+          "reason": "제안이었고 현재 보류다(DF2)."
+        },
+        {
+          "claim": "지팡이를 쓰면 무릎 통증이 없다/모든 회원이 지팡이를 써야 한다.",
+          "evidence_refs": [
+            "cr2_e14c985fef9c_o1",
+            "cr2_e14c985fef9c_o3",
+            "cr2_e14c985fef9c_o6"
+          ],
+          "reason": "한 번의 관찰을 일반화한 것이다. 사용은 원하는 회원만이다(DF1)."
+        },
+        {
+          "claim": "오르막이나 눈길에서도 지팡이를 쓰도록 했다.",
+          "evidence_refs": [
+            "cr2_e14c985fef9c_o2",
+            "cr2_e14c985fef9c_o5",
+            "cr2_e14c985fef9c_o6"
+          ],
+          "reason": "현재 지시는 하산 구간만 말한다. 눈길은 시험 기록이 없다(B3/DF5)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_e14c985fef9c_o1",
+        "cr2_e14c985fef9c_o2",
+        "cr2_e14c985fef9c_o3",
+        "cr2_e14c985fef9c_o4",
+        "cr2_e14c985fef9c_o5",
+        "cr2_e14c985fef9c_o6"
+      ],
+      "rationale": "눈 쌓인 길 시험은 질의 시점까지 기록이 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_b6f54e11c8a9_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "cover_tape",
+          "claim": "표지가 찢어진 책은 투명 보수 테이프를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o1"
+          ]
+        },
+        {
+          "fact_key": "missing_no_tape",
+          "claim": "페이지가 빠진 책에는 테이프를 쓰지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o1"
+          ]
+        },
+        {
+          "fact_key": "missing_sew",
+          "claim": "페이지가 빠진 책은 실로 다시 꿰맨다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o2"
+          ]
+        },
+        {
+          "fact_key": "sewn_press",
+          "claim": "꿰맨 책은 하루 동안 무거운 판 아래 둔다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o2"
+          ]
+        },
+        {
+          "fact_key": "kids_vinyl",
+          "claim": "아동 열람실 책은 표지가 찢어져도 테이프 대신 비닐 덮개를 씌운다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1012",
+          "claim": "10월 12일 수선 회차에 아동 열람실 책 다섯 권에 비닐 덮개를 씌웠다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o4"
+          ]
+        },
+        {
+          "fact_key": "wet_dry_2d",
+          "claim": "습기에 젖은 책은 수선 전에 이틀 말린다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o5"
+          ]
+        },
+        {
+          "fact_key": "wet_no_repair",
+          "claim": "마르기 전에는 테이프도 실도 쓰지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o5"
+          ]
+        },
+        {
+          "fact_key": "dry_shelf",
+          "claim": "건조는 환기되는 선반에서 한다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o6"
+          ]
+        },
+        {
+          "fact_key": "kids_wet_dry",
+          "claim": "아동 열람실 책도 젖었으면 같은 건조를 먼저 한다.",
+          "supporting_evidence_refs": [
+            "cr2_b6f54e11c8a9_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "아동 열람실 책의 찢어진 표지에 투명 테이프를 쓴다.",
+          "evidence_refs": [
+            "cr2_b6f54e11c8a9_o1",
+            "cr2_b6f54e11c8a9_o3"
+          ],
+          "reason": "아동 열람실 책은 비닐 덮개 예외다."
+        },
+        {
+          "claim": "젖은 책을 마르기 전에 테이프나 실로 수선한다.",
+          "evidence_refs": [
+            "cr2_b6f54e11c8a9_o5"
+          ],
+          "reason": "이틀 건조 전 수선 금지다."
+        },
+        {
+          "claim": "아동 열람실 책은 젖어도 건조 없이 비닐 덮개만 씌운다.",
+          "evidence_refs": [
+            "cr2_b6f54e11c8a9_o3",
+            "cr2_b6f54e11c8a9_o6"
+          ],
+          "reason": "젖은 아동 열람실 책도 건조를 먼저 한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_b6f54e11c8a9_o1",
+        "cr2_b6f54e11c8a9_o2",
+        "cr2_b6f54e11c8a9_o3",
+        "cr2_b6f54e11c8a9_o4",
+        "cr2_b6f54e11c8a9_o5",
+        "cr2_b6f54e11c8a9_o6"
+      ],
+      "rationale": "모든 지시가 누적되며 서로를 폐기하지 않는다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_ae95f66d90dc_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "large_two",
+          "claim": "대형견은 봉사자 두 명이 함께 데리고 나간다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o1"
+          ]
+        },
+        {
+          "fact_key": "small_two_max",
+          "claim": "소형견은 봉사자 한 명이 두 마리까지 데려간다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o1"
+          ]
+        },
+        {
+          "fact_key": "newbie_one",
+          "claim": "처음 온 봉사자는 소형견이라도 한 마리만 데려간다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o3"
+          ]
+        },
+        {
+          "fact_key": "unvaccinated_yard",
+          "claim": "예방접종을 마치지 않은 개는 보호소 마당 안에서만 걷게 한다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o2"
+          ]
+        },
+        {
+          "fact_key": "postsurgery_yard",
+          "claim": "예방접종을 마친 개라도 수술 뒤 일주일은 마당 안에서만 걷게 한다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o6"
+          ]
+        },
+        {
+          "fact_key": "rain_large",
+          "claim": "비 오는 날은 대형견 산책을 30분 이내로 줄인다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o5"
+          ]
+        },
+        {
+          "fact_key": "rain_small",
+          "claim": "비 오는 날 소형견은 실내 놀이로 바꾼다.",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1012",
+          "claim": "10월 12일 산책 회차에 대형견 세 마리가 각각 봉사자 두 명과 나갔다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_ae95f66d90dc_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "처음 온 봉사자도 소형견 두 마리를 데려갈 수 있다.",
+          "evidence_refs": [
+            "cr2_ae95f66d90dc_o1",
+            "cr2_ae95f66d90dc_o3"
+          ],
+          "reason": "처음 온 봉사자는 한 마리만이다."
+        },
+        {
+          "claim": "예방접종을 마친 개는 수술 직후에도 마당 밖으로 산책한다.",
+          "evidence_refs": [
+            "cr2_ae95f66d90dc_o2",
+            "cr2_ae95f66d90dc_o6"
+          ],
+          "reason": "수술 뒤 일주일은 마당 안에서만이다."
+        },
+        {
+          "claim": "비 오는 날에도 소형견을 바깥 산책시킨다.",
+          "evidence_refs": [
+            "cr2_ae95f66d90dc_o5"
+          ],
+          "reason": "비 오는 날 소형견은 실내 놀이다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_ae95f66d90dc_o1",
+        "cr2_ae95f66d90dc_o2",
+        "cr2_ae95f66d90dc_o3",
+        "cr2_ae95f66d90dc_o4",
+        "cr2_ae95f66d90dc_o5",
+        "cr2_ae95f66d90dc_o6"
+      ],
+      "rationale": "모든 지시가 누적 조건이다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "age2_1pm",
+          "claim": "만 2세 반은 오후 1시에 눕는다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o1"
+          ]
+        },
+        {
+          "fact_key": "age4_optional",
+          "claim": "만 4세 반은 원하는 아이만 쉰다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o1"
+          ]
+        },
+        {
+          "fact_key": "picnic_age2",
+          "claim": "소풍이 있는 날은 만 2세 반만 낮잠을 30분 늦추고 다른 반은 평소대로다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o2"
+          ]
+        },
+        {
+          "fact_key": "blanket_friday",
+          "claim": "낮잠 이불은 금요일마다 집으로 보낸다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o3"
+          ]
+        },
+        {
+          "fact_key": "blanket_cold",
+          "claim": "감기 증상이 있는 아이 이불은 그날 바로 보낸다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1012",
+          "claim": "10월 12일 낮잠 회차에 소풍 날 만 2세 반은 오후 1시 30분에 누웠다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o4"
+          ]
+        },
+        {
+          "fact_key": "age4_room_b",
+          "claim": "만 4세 반 중 쉬는 아이는 조용한 방 B를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o5"
+          ]
+        },
+        {
+          "fact_key": "room_b_full",
+          "claim": "방 B가 차면 독서 구석을 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o5"
+          ]
+        },
+        {
+          "fact_key": "age3_winter",
+          "claim": "겨울 학기부터 만 3세 반도 오후 1시에 눕는다. 질의 시점은 가을 학기라 아직 적용 전이다.",
+          "supporting_evidence_refs": [
+            "cr2_1af94e4d743d_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재(가을 학기) 만 3세 반이 오후 1시에 눕는다.",
+          "evidence_refs": [
+            "cr2_1af94e4d743d_o6"
+          ],
+          "reason": "겨울 학기부터 적용하는 예정 지시다."
+        },
+        {
+          "claim": "소풍 날 모든 반이 낮잠을 30분 늦춘다.",
+          "evidence_refs": [
+            "cr2_1af94e4d743d_o2"
+          ],
+          "reason": "만 2세 반만 늦추고 다른 반은 평소대로다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_1af94e4d743d_o1",
+        "cr2_1af94e4d743d_o2",
+        "cr2_1af94e4d743d_o3",
+        "cr2_1af94e4d743d_o4",
+        "cr2_1af94e4d743d_o5",
+        "cr2_1af94e4d743d_o6"
+      ],
+      "rationale": "가을 학기 만 3세 반의 현재 낮잠 규칙은 원문에 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_drop",
+          "claim": "10월 5일 무렵 시험에서 3학년 2반은 스티커 판을 붙인 주에 잔반이 줄었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_80dde188a3da_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 다른 3학년 반과 저학년 반에서는 시험하지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_80dde188a3da_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_rise",
+          "claim": "10월 12일 3학년 2반 둘째 주는 잔반이 첫 주보다 다시 늘었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_80dde188a3da_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_forced",
+          "claim": "10월 19일 1학년 1반 첫날 억지로 먹는 아이가 있었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_80dde188a3da_o5"
+          ]
+        },
+        {
+          "fact_key": "current_two_classes",
+          "claim": "현재 스티커 판은 3학년 2반과 1학년 1반에서만 이어 간다.",
+          "supporting_evidence_refs": [
+            "cr2_80dde188a3da_o6"
+          ]
+        },
+        {
+          "fact_key": "expansion_undecided",
+          "claim": "다른 반으로의 확대 여부는 정하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr2_80dde188a3da_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "스티커 판을 전교나 다른 반으로 확대하기로 했다.",
+          "evidence_refs": [
+            "cr2_80dde188a3da_o6"
+          ],
+          "reason": "확대 여부는 미정이다(DF2/DF5)."
+        },
+        {
+          "claim": "스티커 판이 잔반을 줄인다는 효과가 확인됐다.",
+          "evidence_refs": [
+            "cr2_80dde188a3da_o1",
+            "cr2_80dde188a3da_o3"
+          ],
+          "reason": "첫 주 한 번의 감소이고 둘째 주에는 다시 늘었다(DF1)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_80dde188a3da_o1",
+        "cr2_80dde188a3da_o2",
+        "cr2_80dde188a3da_o3",
+        "cr2_80dde188a3da_o4",
+        "cr2_80dde188a3da_o5",
+        "cr2_80dde188a3da_o6"
+      ],
+      "rationale": "o4(1학년 1반 담임의 시도 의사, 시작일 미정)는 o5, o6에서 실제 시작과 현재 지시로 이어져 별도 필수 사실로 두지 않았다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "scan_list",
+          "claim": "현재 사진 정리는 디지털 스캔 목록으로 한다(10-12 지시로 방식 변경).",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o3"
+          ]
+        },
+        {
+          "fact_key": "keep_original",
+          "claim": "원본 사진은 스캔 뒤에도 중성 종이 봉투에 보관한다.",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o3"
+          ]
+        },
+        {
+          "fact_key": "envelope_no",
+          "claim": "스캔 목록에는 원본이 든 봉투 번호를 함께 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o5"
+          ]
+        },
+        {
+          "fact_key": "unknown_place",
+          "claim": "장소를 모르는 사진은 목록에 미상으로 적고 추측해 채우지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_30",
+          "claim": "10월 5일 첫 회차에 사진 서른 장을 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_6unknown",
+          "claim": "10월 5일 첫 회차에 여섯 장은 장소를 몰랐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_20",
+          "claim": "10월 12일 회차에 원본 사진 스무 장을 스캔했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_smudge",
+          "claim": "10월 12일 회차에 한 장은 뒷면 글씨가 번져 있었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_58b13c8d3bb1_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "원본 사진은 스캔 뒤 버린다.",
+          "evidence_refs": [
+            "cr2_58b13c8d3bb1_o3"
+          ],
+          "reason": "스캔 뒤에도 중성 종이 봉투에 보관한다."
+        },
+        {
+          "claim": "장소를 모르는 사진에 추측한 장소를 적는다.",
+          "evidence_refs": [
+            "cr2_58b13c8d3bb1_o6"
+          ],
+          "reason": "미상으로 적고 추측하지 않는다."
+        },
+        {
+          "claim": "현재 정리 방식이 여전히 사진 뒷면 연필 기재다.",
+          "evidence_refs": [
+            "cr2_58b13c8d3bb1_o1",
+            "cr2_58b13c8d3bb1_o3"
+          ],
+          "reason": "10-12에 디지털 스캔 목록으로 바꿨다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_58b13c8d3bb1_o1",
+        "cr2_58b13c8d3bb1_o2",
+        "cr2_58b13c8d3bb1_o3",
+        "cr2_58b13c8d3bb1_o4",
+        "cr2_58b13c8d3bb1_o5",
+        "cr2_58b13c8d3bb1_o6"
+      ],
+      "rationale": "o1(뒷면 연필 기재)은 o2 관찰과 방식 변경 관계를 해석하는 데 필요해 관련 근거에 넣었다. 스캔 목록 도입 뒤 뒷면 연필 기재를 계속하는지, 연도와 날짜 기재 규칙이 목록에 이어지는지는 원문에 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "categories_15",
+          "claim": "현재 조사표는 쓰레기를 열다섯 가지 종류로 나눠 개수를 적는다(10-12 개정, 기존 열 가지).",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o1",
+            "cr2_26090b384cbc_o3"
+          ]
+        },
+        {
+          "fact_key": "binder_keep",
+          "claim": "첫 판 조사표 원본은 바인더에 그대로 보관한다(10-19에도 계속).",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o3",
+            "cr2_26090b384cbc_o5"
+          ]
+        },
+        {
+          "fact_key": "time_low_tide",
+          "claim": "현재 조사 시각은 간조 직후다(10-19 지시, 기존 만조 두 시간 뒤).",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o5"
+          ]
+        },
+        {
+          "fact_key": "no_merge",
+          "claim": "개정 전 회차와 개정 뒤 회차의 개수를 같은 표에 합치지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_pet",
+          "claim": "10월 5일 첫 회차에 페트병이 마흔세 개로 가장 많았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_first_revised",
+          "claim": "10월 12일 회차에 개정 조사표를 처음 썼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_net",
+          "claim": "10월 12일 회차에 새 항목인 그물 조각이 스물한 개 나왔다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_26090b384cbc_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 조사표는 열 가지 종류다.",
+          "evidence_refs": [
+            "cr2_26090b384cbc_o1",
+            "cr2_26090b384cbc_o3"
+          ],
+          "reason": "10-12에 열다섯 가지로 개정했다."
+        },
+        {
+          "claim": "현재 조사는 만조 두 시간 뒤에 한다.",
+          "evidence_refs": [
+            "cr2_26090b384cbc_o1",
+            "cr2_26090b384cbc_o5"
+          ],
+          "reason": "10-19에 간조 직후로 바꿨다."
+        },
+        {
+          "claim": "10월 5일과 10월 12일 개수를 한 표에 합산해 비교한다.",
+          "evidence_refs": [
+            "cr2_26090b384cbc_o6"
+          ],
+          "reason": "개정 전후 회차를 같은 표에 합치지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_26090b384cbc_o1",
+        "cr2_26090b384cbc_o2",
+        "cr2_26090b384cbc_o3",
+        "cr2_26090b384cbc_o4",
+        "cr2_26090b384cbc_o5",
+        "cr2_26090b384cbc_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "over30_60",
+          "claim": "기온이 30도를 넘으면 훈련을 60분으로 줄인다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o1"
+          ]
+        },
+        {
+          "fact_key": "under30_90",
+          "claim": "기온이 30도 이하이면 90분 동안 한다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o1"
+          ]
+        },
+        {
+          "fact_key": "matchday_eve_45",
+          "claim": "경기 전날은 기온과 관계없이 45분만 훈련하고 끝낸다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o3"
+          ]
+        },
+        {
+          "fact_key": "gk_reflex_20",
+          "claim": "골키퍼는 첫 20분 동안 따로 반사 훈련을 한다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o2"
+          ]
+        },
+        {
+          "fact_key": "field_pass",
+          "claim": "골키퍼 반사 훈련 동안 필드 선수는 패스 연습을 한다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o2"
+          ]
+        },
+        {
+          "fact_key": "gk_eve_10",
+          "claim": "경기 전날에는 골키퍼 반사 훈련을 10분으로 줄인다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o6"
+          ]
+        },
+        {
+          "fact_key": "turf_rubber",
+          "claim": "인조 잔디 구장에서는 고무 스터드 축구화만 신는다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o4"
+          ]
+        },
+        {
+          "fact_key": "natural_free",
+          "claim": "천연 잔디 구장은 축구화 제한이 없다.",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 훈련은 기온이 31도까지 올라 60분으로 줄여 끝냈다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_88a3a2553755_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "경기 전날에도 30도를 넘으면 60분, 30도 이하이면 90분 훈련한다.",
+          "evidence_refs": [
+            "cr2_88a3a2553755_o1",
+            "cr2_88a3a2553755_o3"
+          ],
+          "reason": "경기 전날은 기온과 관계없이 45분이다."
+        },
+        {
+          "claim": "경기 전날에도 골키퍼 반사 훈련을 20분 한다.",
+          "evidence_refs": [
+            "cr2_88a3a2553755_o2",
+            "cr2_88a3a2553755_o6"
+          ],
+          "reason": "경기 전날은 10분이다."
+        },
+        {
+          "claim": "천연 잔디 구장에서도 고무 스터드만 신는다.",
+          "evidence_refs": [
+            "cr2_88a3a2553755_o4"
+          ],
+          "reason": "천연 잔디 구장은 제한이 없다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_88a3a2553755_o1",
+        "cr2_88a3a2553755_o2",
+        "cr2_88a3a2553755_o3",
+        "cr2_88a3a2553755_o4",
+        "cr2_88a3a2553755_o5",
+        "cr2_88a3a2553755_o6"
+      ],
+      "rationale": "모든 지시가 누적 조건이다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "frame_black_metal",
+          "claim": "현재 액자는 검은 금속 액자다(10-12 정정, 기존 흰 나무).",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o3"
+          ]
+        },
+        {
+          "fact_key": "frame_40",
+          "claim": "액자 크기는 가로 40센티미터다.",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o1",
+            "cr2_2b4e7d165d4a_o3"
+          ]
+        },
+        {
+          "fact_key": "label_name",
+          "claim": "이름표에는 촬영자 이름을 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o2"
+          ]
+        },
+        {
+          "fact_key": "label_place",
+          "claim": "이름표에는 촬영 장소를 적는다(10-19에도 계속).",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o2",
+            "cr2_2b4e7d165d4a_o5"
+          ]
+        },
+        {
+          "fact_key": "label_date",
+          "claim": "현재 이름표에 촬영 날짜도 적는다(10-19 지시, 기존 미기재).",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o5"
+          ]
+        },
+        {
+          "fact_key": "label_wall",
+          "claim": "현재 이름표 위치는 액자 오른쪽 벽이다(10-19 지시, 기존 사진 아래).",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_12",
+          "claim": "10월 12일 회차에 검은 금속 액자 열두 개를 받았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_crack",
+          "claim": "10월 12일 회차에 받은 액자 중 두 개는 유리에 금이 가 있었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_2b4e7d165d4a_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 흰 나무 액자를 쓴다.",
+          "evidence_refs": [
+            "cr2_2b4e7d165d4a_o1",
+            "cr2_2b4e7d165d4a_o3"
+          ],
+          "reason": "10-12 정정으로 검은 금속 액자다."
+        },
+        {
+          "claim": "현재 이름표에 촬영 날짜를 적지 않는다.",
+          "evidence_refs": [
+            "cr2_2b4e7d165d4a_o2",
+            "cr2_2b4e7d165d4a_o5"
+          ],
+          "reason": "10-19에 날짜도 적기로 바꿨다."
+        },
+        {
+          "claim": "현재 이름표를 사진 아래에 붙인다.",
+          "evidence_refs": [
+            "cr2_2b4e7d165d4a_o1",
+            "cr2_2b4e7d165d4a_o6"
+          ],
+          "reason": "10-19에 액자 오른쪽 벽으로 옮겼다."
+        },
+        {
+          "claim": "금 간 액자 두 개를 교체했다.",
+          "evidence_refs": [
+            "cr2_2b4e7d165d4a_o4"
+          ],
+          "reason": "교체 기록이 없다(DF4/DF5)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_2b4e7d165d4a_o1",
+        "cr2_2b4e7d165d4a_o2",
+        "cr2_2b4e7d165d4a_o3",
+        "cr2_2b4e7d165d4a_o4",
+        "cr2_2b4e7d165d4a_o5",
+        "cr2_2b4e7d165d4a_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_novel",
+          "claim": "10월 5일 무렵 소설 모임 한 번은 카드를 쓰자 발언한 학생이 늘었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_547ab5fe47f6_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 과학책 모임과 시 모임에서는 카드를 쓰지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_547ab5fe47f6_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_similar",
+          "claim": "10월 12일 소설 모임 두 번째 회차는 발언 수가 첫 회차와 비슷했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_547ab5fe47f6_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_science",
+          "claim": "10월 19일 과학책 모임이 카드를 처음 썼고 책과 맞지 않는다는 의견이 나왔다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_547ab5fe47f6_o5"
+          ]
+        },
+        {
+          "fact_key": "current_novel",
+          "claim": "현재 질문 카드는 소설 모임에서 계속 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_547ab5fe47f6_o6"
+          ]
+        },
+        {
+          "fact_key": "science_new_cards",
+          "claim": "과학책 모임용 카드는 새로 만들기로 했다.",
+          "supporting_evidence_refs": [
+            "cr2_547ab5fe47f6_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "기존 질문 카드를 과학책 모임에서 계속 쓰기로 했다.",
+          "evidence_refs": [
+            "cr2_547ab5fe47f6_o4",
+            "cr2_547ab5fe47f6_o6"
+          ],
+          "reason": "제안 뒤 시범에서 맞지 않는다는 의견이 나왔고, 과학책 모임용 카드는 새로 만들기로 했다(DF2)."
+        },
+        {
+          "claim": "시 모임에서도 질문 카드를 쓴다.",
+          "evidence_refs": [
+            "cr2_547ab5fe47f6_o2",
+            "cr2_547ab5fe47f6_o6"
+          ],
+          "reason": "시 모임 사용 기록이나 지시가 없다(DF5)."
+        },
+        {
+          "claim": "질문 카드가 발언을 늘린다는 효과가 확인됐다.",
+          "evidence_refs": [
+            "cr2_547ab5fe47f6_o1",
+            "cr2_547ab5fe47f6_o3"
+          ],
+          "reason": "한 번의 증가이고 두 번째 회차는 비슷했다(DF1)."
+        },
+        {
+          "claim": "과학책 모임용 새 카드가 완성됐다.",
+          "evidence_refs": [
+            "cr2_547ab5fe47f6_o6"
+          ],
+          "reason": "만들기로 한 결정만 있다(DF4)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_547ab5fe47f6_o1",
+        "cr2_547ab5fe47f6_o2",
+        "cr2_547ab5fe47f6_o3",
+        "cr2_547ab5fe47f6_o4",
+        "cr2_547ab5fe47f6_o5",
+        "cr2_547ab5fe47f6_o6"
+      ],
+      "rationale": "o4 제안은 o5 시범과 o6 결정으로 이어져 별도 필수 사실로 두지 않았다. 시 모임 사용 여부는 질의 시점까지 기록이 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_e484b388077f_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "day_sunday",
+          "claim": "현재 퇴비장 뒤집기는 매주 일요일에 한다(10-12 지시, 기존 토요일).",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o1",
+            "cr2_e484b388077f_o3"
+          ]
+        },
+        {
+          "fact_key": "start_cell3",
+          "claim": "현재 시작은 가장 오래된 3번 칸부터다(10-12 정정, 기존 1번 칸).",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o4"
+          ]
+        },
+        {
+          "fact_key": "number_order",
+          "claim": "칸은 번호 순서로 뒤집는다.",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o1"
+          ]
+        },
+        {
+          "fact_key": "wet_leaves",
+          "claim": "물이 고인 칸은 뒤집기 전에 마른 낙엽을 한 층 덮는다.",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_temp",
+          "claim": "10월 5일 첫 회차에 1번 칸 온도가 55도였다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_smell",
+          "claim": "10월 5일 첫 회차에 1번 칸에서 냄새가 나지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_from3",
+          "claim": "10월 19일 회차에 3번 칸부터 뒤집었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_water",
+          "claim": "10월 19일 회차에 2번 칸에 물이 고여 있었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_e484b388077f_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 뒤집기는 토요일에 한다.",
+          "evidence_refs": [
+            "cr2_e484b388077f_o1",
+            "cr2_e484b388077f_o3"
+          ],
+          "reason": "10-12에 일요일로 바꿨다."
+        },
+        {
+          "claim": "현재 1번 칸부터 시작한다.",
+          "evidence_refs": [
+            "cr2_e484b388077f_o1",
+            "cr2_e484b388077f_o3",
+            "cr2_e484b388077f_o4"
+          ],
+          "reason": "o3의 '시작 칸은 그대로'는 같은 날 o4 정정으로 3번 칸이 됐다."
+        },
+        {
+          "claim": "2번 칸에 낙엽을 덮었다.",
+          "evidence_refs": [
+            "cr2_e484b388077f_o5",
+            "cr2_e484b388077f_o6"
+          ],
+          "reason": "지시만 있고 실행 기록이 없다(DF4)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_e484b388077f_o1",
+        "cr2_e484b388077f_o2",
+        "cr2_e484b388077f_o3",
+        "cr2_e484b388077f_o4",
+        "cr2_e484b388077f_o5",
+        "cr2_e484b388077f_o6"
+      ],
+      "rationale": "3번 칸에서 시작한 뒤 번호 순서가 정확히 어떻게 이어지는지(3,4,... 또는 3,1,2)는 원문에 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_f01483fe5435_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "lettuce_2day",
+          "claim": "상추 두둑은 이틀에 한 번 아침에 물을 준다.",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o1"
+          ]
+        },
+        {
+          "fact_key": "rain_skip",
+          "claim": "비가 온 다음 날은 상추 물 주기를 건너뛴다.",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o1"
+          ]
+        },
+        {
+          "fact_key": "pepper_dry",
+          "claim": "고추 두둑은 흙 겉면이 말랐을 때만 물을 주고 젖어 있으면 주지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o2"
+          ]
+        },
+        {
+          "fact_key": "transplant_daily",
+          "claim": "새로 옮겨 심은 첫 주에는 상추와 고추 모두 매일 저녁 물을 준다.",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1012",
+          "claim": "10월 12일 회차에 고추 두둑 겉면이 젖어 있어 물을 주지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o4"
+          ]
+        },
+        {
+          "fact_key": "construction_rain",
+          "claim": "수도 공사가 있는 날은 수돗물 대신 빗물 통의 물만 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o5"
+          ]
+        },
+        {
+          "fact_key": "rain_tank_empty",
+          "claim": "빗물 통이 비면 그날은 상추 두둑에만 물을 주고 고추는 다음 날로 미룬다.",
+          "supporting_evidence_refs": [
+            "cr2_f01483fe5435_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "수도 공사가 있는 날에도 수돗물을 쓴다.",
+          "evidence_refs": [
+            "cr2_f01483fe5435_o5"
+          ],
+          "reason": "빗물 통의 물만 쓴다."
+        },
+        {
+          "claim": "빗물 통이 비어도 그날 고추에 물을 준다.",
+          "evidence_refs": [
+            "cr2_f01483fe5435_o6"
+          ],
+          "reason": "고추는 다음 날로 미룬다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_f01483fe5435_o1",
+        "cr2_f01483fe5435_o2",
+        "cr2_f01483fe5435_o3",
+        "cr2_f01483fe5435_o4",
+        "cr2_f01483fe5435_o5",
+        "cr2_f01483fe5435_o6"
+      ],
+      "rationale": "모든 지시가 누적 조건이다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "location_4km",
+          "claim": "현재 급수대는 연습 코스 4킬로미터 지점에 둔다(10-12 지시, 다리 공사 때문, 기존 5킬로미터).",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o3"
+          ]
+        },
+        {
+          "fact_key": "cups_reusable",
+          "claim": "현재 컵은 다회용 컵이다(10-19 지시, 기존 종이컵).",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o5"
+          ]
+        },
+        {
+          "fact_key": "cups_wash",
+          "claim": "다회용 컵은 당번이 씻어 온다.",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o5"
+          ]
+        },
+        {
+          "fact_key": "arrive_1h",
+          "claim": "현재 당번은 출발 1시간 전에 도착한다(10-19 지시, 기존 40분 전).",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o6"
+          ]
+        },
+        {
+          "fact_key": "water_two_cups",
+          "claim": "물은 한 사람당 두 컵으로 계산한다.",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_arrive",
+          "claim": "10월 12일 회차에 당번이 출발 40분 전에 도착했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_water",
+          "claim": "10월 12일 회차에 물이 모자라지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_501830241ceb_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 급수대는 5킬로미터 지점이다.",
+          "evidence_refs": [
+            "cr2_501830241ceb_o1",
+            "cr2_501830241ceb_o3"
+          ],
+          "reason": "10-12에 4킬로미터로 옮겼다."
+        },
+        {
+          "claim": "현재 종이컵을 쓴다.",
+          "evidence_refs": [
+            "cr2_501830241ceb_o1",
+            "cr2_501830241ceb_o5"
+          ],
+          "reason": "10-19에 다회용 컵으로 바꿨다."
+        },
+        {
+          "claim": "현재 당번은 출발 40분 전에 도착한다.",
+          "evidence_refs": [
+            "cr2_501830241ceb_o2",
+            "cr2_501830241ceb_o6"
+          ],
+          "reason": "10-19에 1시간 전으로 앞당겼다. 40분은 10-12 관찰로만 인용한다."
+        },
+        {
+          "claim": "다리 공사가 끝나면 5킬로미터 지점으로 돌아간다.",
+          "evidence_refs": [
+            "cr2_501830241ceb_o3"
+          ],
+          "reason": "원문에 복귀 조건이 없다(DF5)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_501830241ceb_o1",
+        "cr2_501830241ceb_o2",
+        "cr2_501830241ceb_o3",
+        "cr2_501830241ceb_o4",
+        "cr2_501830241ceb_o5",
+        "cr2_501830241ceb_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_9282c3126a72_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "tablet",
+          "claim": "현재 출석부는 태블릿 입력이다(10-12 지시, 기존 종이 명단 서명).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o3"
+          ]
+        },
+        {
+          "fact_key": "paper_keep",
+          "claim": "지금까지의 종이 명단은 버리지 말고 상자에 보관한다(10-19에도 그대로).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o3",
+            "cr2_9282c3126a72_o5"
+          ]
+        },
+        {
+          "fact_key": "activity_time",
+          "claim": "태블릿 입력에 활동 시간도 함께 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_18",
+          "claim": "10월 5일 첫 회차에 서명이 열여덟 명이었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_missing2",
+          "claim": "10월 5일 첫 회차에 두 명은 서명을 빠뜨렸다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_21",
+          "claim": "10월 12일 회차에 태블릿 출석을 처음 받았고 스물한 명이 입력했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_paper10",
+          "claim": "10월 19일 회차에 태블릿이 꺼져 열 명은 종이에 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_moved",
+          "claim": "10월 19일 회차에 종이에 적은 열 명을 나중에 태블릿에 옮겼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9282c3126a72_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 출석은 종이 명단 서명으로 받는다.",
+          "evidence_refs": [
+            "cr2_9282c3126a72_o1",
+            "cr2_9282c3126a72_o3"
+          ],
+          "reason": "10-12에 태블릿 입력으로 바꿨다."
+        },
+        {
+          "claim": "종이 명단을 버린다.",
+          "evidence_refs": [
+            "cr2_9282c3126a72_o3",
+            "cr2_9282c3126a72_o5"
+          ],
+          "reason": "상자에 보관한다."
+        },
+        {
+          "claim": "태블릿이 꺼지면 종이에 적는 것이 정해진 규칙이다.",
+          "evidence_refs": [
+            "cr2_9282c3126a72_o6"
+          ],
+          "reason": "10-19 한 회차의 관찰이다(DF1)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_9282c3126a72_o1",
+        "cr2_9282c3126a72_o2",
+        "cr2_9282c3126a72_o3",
+        "cr2_9282c3126a72_o4",
+        "cr2_9282c3126a72_o5",
+        "cr2_9282c3126a72_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "metal_plate",
+          "claim": "현재 이름표는 금속판이다(10-12 지시, 기존 나무판).",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o3"
+          ]
+        },
+        {
+          "fact_key": "names",
+          "claim": "이름표에 학명과 우리말 이름을 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o1"
+          ]
+        },
+        {
+          "fact_key": "planted_year",
+          "claim": "금속판에는 심은 해도 새긴다.",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o5"
+          ]
+        },
+        {
+          "fact_key": "stake_1m",
+          "claim": "이름표는 줄기에서 1미터 떨어진 말뚝에 단다(10-19에도 그대로).",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o1",
+            "cr2_7ac29410d9c4_o5"
+          ]
+        },
+        {
+          "fact_key": "wood_keep",
+          "claim": "떼어 낸 나무판 이름표는 버리지 않고 창고 선반에 모아 둔다.",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 느티나무 이름표 세 개의 글씨가 비에 지워진 것을 봤다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_metal10",
+          "claim": "10월 12일 회차에 금속판 열 개를 달았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_wood10",
+          "claim": "10월 12일 회차에 떼어 낸 나무판 열 개를 창고로 옮겼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_typo",
+          "claim": "10월 19일 회차에 금속판 하나는 학명 철자가 틀려 다시 주문했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_7ac29410d9c4_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 이름표는 나무판이다.",
+          "evidence_refs": [
+            "cr2_7ac29410d9c4_o1",
+            "cr2_7ac29410d9c4_o3"
+          ],
+          "reason": "10-12에 금속판으로 교체했다."
+        },
+        {
+          "claim": "떼어 낸 나무판을 버린다.",
+          "evidence_refs": [
+            "cr2_7ac29410d9c4_o3"
+          ],
+          "reason": "창고 선반에 모아 둔다."
+        },
+        {
+          "claim": "다시 주문한 금속판을 달았다.",
+          "evidence_refs": [
+            "cr2_7ac29410d9c4_o6"
+          ],
+          "reason": "재주문 기록만 있다(DF4)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_7ac29410d9c4_o1",
+        "cr2_7ac29410d9c4_o2",
+        "cr2_7ac29410d9c4_o3",
+        "cr2_7ac29410d9c4_o4",
+        "cr2_7ac29410d9c4_o5",
+        "cr2_7ac29410d9c4_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_bd50d0f24f2a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "plastic_tue_fri",
+          "claim": "현재 플라스틱은 화요일과 금요일 두 번 걷는다(10-12 지시).",
+          "supporting_evidence_refs": [
+            "cr2_bd50d0f24f2a_o3"
+          ]
+        },
+        {
+          "fact_key": "paper_thu_now",
+          "claim": "종이는 이번 달(10월)은 목요일에 걷는다.",
+          "supporting_evidence_refs": [
+            "cr2_bd50d0f24f2a_o3",
+            "cr2_bd50d0f24f2a_o5"
+          ]
+        },
+        {
+          "fact_key": "paper_mon_next",
+          "claim": "종이 수거는 다음 달부터 월요일로 옮긴다.",
+          "supporting_evidence_refs": [
+            "cr2_bd50d0f24f2a_o5"
+          ]
+        },
+        {
+          "fact_key": "bin_parking",
+          "claim": "현재 수거함은 지하 주차장 입구에 둔다(10-12 지시, 기존 B동 앞).",
+          "supporting_evidence_refs": [
+            "cr2_bd50d0f24f2a_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 플라스틱 수거함이 화요일 오전에 가득 찼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_bd50d0f24f2a_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 회차에 금요일 플라스틱 수거가 처음 지하 주차장 입구에서 진행됐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_bd50d0f24f2a_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 종이를 월요일에 걷는다.",
+          "evidence_refs": [
+            "cr2_bd50d0f24f2a_o5"
+          ],
+          "reason": "월요일은 다음 달부터다. 이번 달은 목요일이다."
+        },
+        {
+          "claim": "현재 수거함은 B동 앞에 있다.",
+          "evidence_refs": [
+            "cr2_bd50d0f24f2a_o1",
+            "cr2_bd50d0f24f2a_o4"
+          ],
+          "reason": "지하 주차장 입구로 옮겼다."
+        },
+        {
+          "claim": "현재 플라스틱은 화요일에만 걷는다.",
+          "evidence_refs": [
+            "cr2_bd50d0f24f2a_o1",
+            "cr2_bd50d0f24f2a_o3"
+          ],
+          "reason": "화요일과 금요일 두 번이다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_bd50d0f24f2a_o1",
+        "cr2_bd50d0f24f2a_o2",
+        "cr2_bd50d0f24f2a_o3",
+        "cr2_bd50d0f24f2a_o4",
+        "cr2_bd50d0f24f2a_o5",
+        "cr2_bd50d0f24f2a_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "soprano_left",
+          "claim": "소프라노는 무대 왼쪽에 선다.",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o1"
+          ]
+        },
+        {
+          "fact_key": "alto_right",
+          "claim": "알토는 무대 오른쪽에 선다(10-12 결정).",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o3"
+          ]
+        },
+        {
+          "fact_key": "accomp_three",
+          "claim": "반주자가 있는 날에는 피아노 옆에 세 줄로 선다.",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o2"
+          ]
+        },
+        {
+          "fact_key": "no_accomp_two",
+          "claim": "반주자가 없으면 두 줄로 선다.",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o2"
+          ]
+        },
+        {
+          "fact_key": "tall_back",
+          "claim": "키가 큰 단원은 줄 수와 관계없이 맨 뒷줄에 선다.",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o4"
+          ]
+        },
+        {
+          "fact_key": "solo_front",
+          "claim": "독창이 있는 곡은 독창자만 맨 앞 가운데로 나오고 나머지 배치는 그대로다.",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_two",
+          "claim": "10월 19일 연습은 반주자가 없어 두 줄로 섰다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_soprano",
+          "claim": "10월 19일 연습에서 소프라노가 왼쪽에 섰다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_2e8ce95d0324_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "알토 자리는 아직 정하지 않았다.",
+          "evidence_refs": [
+            "cr2_2e8ce95d0324_o1",
+            "cr2_2e8ce95d0324_o3"
+          ],
+          "reason": "10-12에 무대 오른쪽으로 정했다."
+        },
+        {
+          "claim": "알토는 소프라노 뒤에 선다.",
+          "evidence_refs": [
+            "cr2_2e8ce95d0324_o3"
+          ],
+          "reason": "소프라노 뒤가 아니라 무대 오른쪽이다."
+        },
+        {
+          "claim": "독창곡에서 독창자 외 다른 단원 배치도 바뀐다.",
+          "evidence_refs": [
+            "cr2_2e8ce95d0324_o6"
+          ],
+          "reason": "나머지 배치는 그대로다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_2e8ce95d0324_o1",
+        "cr2_2e8ce95d0324_o2",
+        "cr2_2e8ce95d0324_o3",
+        "cr2_2e8ce95d0324_o4",
+        "cr2_2e8ce95d0324_o5",
+        "cr2_2e8ce95d0324_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "start_630",
+          "claim": "현재 정화 활동은 오전 6시 30분에 시작한다(10-19 지시, 기존 오전 7시).",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o5"
+          ]
+        },
+        {
+          "fact_key": "start_north",
+          "claim": "시작 장소는 북쪽 끝이다(10-19에도 장소 같음).",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o1",
+            "cr2_81538441219f_o5"
+          ]
+        },
+        {
+          "fact_key": "gloves_white",
+          "claim": "장갑은 흰 면장갑을 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o1"
+          ]
+        },
+        {
+          "fact_key": "plastic_blue",
+          "claim": "주운 플라스틱은 파란 자루에 담는다.",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o2"
+          ]
+        },
+        {
+          "fact_key": "glass_box",
+          "claim": "유리는 따로 상자에 담는다.",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_bags",
+          "claim": "10월 19일 회차에 파란 자루 아홉 개가 찼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_glass",
+          "claim": "10월 19일 회차에 유리 상자는 반쯤 찼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_81538441219f_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 정화 활동은 오전 7시에 시작한다.",
+          "evidence_refs": [
+            "cr2_81538441219f_o1",
+            "cr2_81538441219f_o5"
+          ],
+          "reason": "10-19에 6시 30분으로 앞당겼다."
+        },
+        {
+          "claim": "정화 활동에 고무장갑을 쓰거나 남쪽 끝 망루, 오전 8시, 파란 깃발 조건을 적용한다.",
+          "evidence_refs": [
+            "cr2_81538441219f_o3",
+            "cr2_81538441219f_o4"
+          ],
+          "reason": "안전요원 교대(별개 작업 y)다(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_81538441219f_o1",
+        "cr2_81538441219f_o2",
+        "cr2_81538441219f_o5",
+        "cr2_81538441219f_o6"
+      ],
+      "rationale": "o3, o4는 안전요원 교대(subject y)라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_adf7c457ae36_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "instructor_d",
+          "claim": "강사 차량은 D구역에 댄다(10-12 정정, 기존 C구역. 층은 o1의 지하 2층).",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o1",
+            "cr2_adf7c457ae36_o3"
+          ]
+        },
+        {
+          "fact_key": "c_construction",
+          "claim": "C구역은 공사 중이다(10-12 기록).",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o3"
+          ]
+        },
+        {
+          "fact_key": "d_after_construction",
+          "claim": "C구역 공사가 끝나도 강사 차량 구역은 D로 유지한다.",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o6"
+          ]
+        },
+        {
+          "fact_key": "visitor_b1",
+          "claim": "방문객은 지하 1층을 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o1"
+          ]
+        },
+        {
+          "fact_key": "free_3h",
+          "claim": "현재 수강생 무료 주차는 3시간이다(10-12 지시, 기존 2시간).",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o4"
+          ]
+        },
+        {
+          "fact_key": "overtime_fee",
+          "claim": "초과 시간은 30분마다 1천 원이다(10-12에도 그대로).",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o2",
+            "cr2_adf7c457ae36_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 회차에 강사 차량 네 대가 D구역에 댔다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_adf7c457ae36_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 강사 차량은 C구역에 댄다.",
+          "evidence_refs": [
+            "cr2_adf7c457ae36_o1",
+            "cr2_adf7c457ae36_o3"
+          ],
+          "reason": "10-12 정정으로 D구역이다."
+        },
+        {
+          "claim": "현재 수강생 무료 주차는 2시간이다.",
+          "evidence_refs": [
+            "cr2_adf7c457ae36_o2",
+            "cr2_adf7c457ae36_o4"
+          ],
+          "reason": "10-12에 3시간으로 늘렸다."
+        },
+        {
+          "claim": "C구역 공사가 끝나면 강사 차량은 C구역으로 돌아간다.",
+          "evidence_refs": [
+            "cr2_adf7c457ae36_o6"
+          ],
+          "reason": "공사가 끝나도 D로 유지한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_adf7c457ae36_o1",
+        "cr2_adf7c457ae36_o2",
+        "cr2_adf7c457ae36_o3",
+        "cr2_adf7c457ae36_o4",
+        "cr2_adf7c457ae36_o5",
+        "cr2_adf7c457ae36_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_middle",
+          "claim": "10월 5일 무렵 시험에서 중학생 반 한 곳은 25분 타이머를 쓰자 쉬는 시간 뒤 지각이 줄었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_09734b74dcd2_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 초등학생 반과 고등학생 반은 시험 전이었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_09734b74dcd2_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_middle",
+          "claim": "10월 12일 중학생 반 둘째 주 지각도 첫 주와 비슷하게 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_09734b74dcd2_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_high",
+          "claim": "10월 19일 고등학생 반 하루 시범은 지각 수가 줄지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_09734b74dcd2_o5"
+          ]
+        },
+        {
+          "fact_key": "current_middle",
+          "claim": "현재 집중 타이머는 중학생 반에서 계속 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_09734b74dcd2_o6"
+          ]
+        },
+        {
+          "fact_key": "others_undecided",
+          "claim": "다른 반에서 쓸지는 정하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr2_09734b74dcd2_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "초등학생 반이나 고등학생 반에도 타이머를 쓰기로 했다.",
+          "evidence_refs": [
+            "cr2_09734b74dcd2_o4",
+            "cr2_09734b74dcd2_o6"
+          ],
+          "reason": "제안과 하루 시범뿐이고 다른 반은 미정이다(DF2)."
+        },
+        {
+          "claim": "25분 타이머가 모든 반의 지각을 줄인다.",
+          "evidence_refs": [
+            "cr2_09734b74dcd2_o1",
+            "cr2_09734b74dcd2_o5"
+          ],
+          "reason": "중학생 반 관찰의 일반화이고 고등학생 반은 줄지 않았다(DF1)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_09734b74dcd2_o1",
+        "cr2_09734b74dcd2_o2",
+        "cr2_09734b74dcd2_o3",
+        "cr2_09734b74dcd2_o4",
+        "cr2_09734b74dcd2_o5",
+        "cr2_09734b74dcd2_o6"
+      ],
+      "rationale": "초등학생 반 시험 기록은 질의 시점까지 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_ce490e6605c4_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "tent4_20k",
+          "claim": "4인용 텐트는 보증금 2만 원을 받는다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o1"
+          ]
+        },
+        {
+          "fact_key": "tent2_free",
+          "claim": "2인용 텐트는 보증금 없이 빌려준다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o1"
+          ]
+        },
+        {
+          "fact_key": "group_tent4_10k",
+          "claim": "단체 예약 손님은 4인용 텐트 보증금을 1만 원으로 받는다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o3"
+          ]
+        },
+        {
+          "fact_key": "group_only_tent4",
+          "claim": "단체 할인은 4인용 텐트에만 적용하고 침낭과 랜턴에는 할인이 없다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o6"
+          ]
+        },
+        {
+          "fact_key": "sleeping_bag",
+          "claim": "침낭은 영하 예보가 있는 날에만 두꺼운 것을 내주고 다른 날은 얇은 침낭을 내준다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o2"
+          ]
+        },
+        {
+          "fact_key": "lantern_check",
+          "claim": "랜턴은 반납할 때 배터리 칸을 열어 본다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o4"
+          ]
+        },
+        {
+          "fact_key": "lantern_leak",
+          "claim": "배터리가 새면 보증금을 깎지 않고 기록만 한다.",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 대여 창구는 영하 예보가 없어 얇은 침낭만 내줬다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_ce490e6605c4_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "단체 손님에게 침낭이나 랜턴도 할인한다.",
+          "evidence_refs": [
+            "cr2_ce490e6605c4_o6"
+          ],
+          "reason": "단체 할인은 4인용 텐트에만이다."
+        },
+        {
+          "claim": "랜턴 배터리가 새면 보증금을 깎는다.",
+          "evidence_refs": [
+            "cr2_ce490e6605c4_o4"
+          ],
+          "reason": "깎지 않고 기록만 한다."
+        },
+        {
+          "claim": "단체 예약 손님도 4인용 텐트 보증금 2만 원을 낸다.",
+          "evidence_refs": [
+            "cr2_ce490e6605c4_o1",
+            "cr2_ce490e6605c4_o3"
+          ],
+          "reason": "단체는 1만 원이다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_ce490e6605c4_o1",
+        "cr2_ce490e6605c4_o2",
+        "cr2_ce490e6605c4_o3",
+        "cr2_ce490e6605c4_o4",
+        "cr2_ce490e6605c4_o5",
+        "cr2_ce490e6605c4_o6"
+      ],
+      "rationale": "모든 지시가 누적 조건이다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_market",
+          "claim": "10월 5일 무렵 시험에서 시장 앞 정류장은 시간표를 붙이자 문의 전화가 줄었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_67871557b105_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 학교 앞과 병원 앞 정류장에는 붙이지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_67871557b105_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_wet",
+          "claim": "10월 12일 시장 앞 시간표가 비에 젖어 일부가 번졌다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_67871557b105_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_hospital",
+          "claim": "10월 19일 병원 앞 정류장 하루 시범 뒤 문의 전화 수는 그대로였다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_67871557b105_o5"
+          ]
+        },
+        {
+          "fact_key": "current_market_cover",
+          "claim": "현재 시간표는 시장 앞 정류장에서 방수 덮개를 씌워 유지한다.",
+          "supporting_evidence_refs": [
+            "cr2_67871557b105_o6"
+          ]
+        },
+        {
+          "fact_key": "others_undecided",
+          "claim": "다른 정류장은 정하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr2_67871557b105_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "모든 정류장에 큰 글씨 시간표를 붙이기로 했다.",
+          "evidence_refs": [
+            "cr2_67871557b105_o4",
+            "cr2_67871557b105_o6"
+          ],
+          "reason": "운영위원 한 명의 제안이고 다른 정류장은 미정이다(DF2)."
+        },
+        {
+          "claim": "병원 앞 정류장에도 시간표를 계속 유지한다.",
+          "evidence_refs": [
+            "cr2_67871557b105_o5",
+            "cr2_67871557b105_o6"
+          ],
+          "reason": "하루 시범뿐이고 다른 정류장은 미정이다."
+        },
+        {
+          "claim": "큰 글씨 시간표가 문의 전화를 줄인다는 효과가 확인됐다.",
+          "evidence_refs": [
+            "cr2_67871557b105_o1",
+            "cr2_67871557b105_o5"
+          ],
+          "reason": "시장 앞 한 곳 관찰이고 병원 앞은 그대로였다(DF1)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_67871557b105_o1",
+        "cr2_67871557b105_o2",
+        "cr2_67871557b105_o3",
+        "cr2_67871557b105_o4",
+        "cr2_67871557b105_o5",
+        "cr2_67871557b105_o6"
+      ],
+      "rationale": "학교 앞 정류장 시험 기록은 질의 시점까지 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "electronic",
+          "claim": "현재 시약 장부는 전자 표로 옮겨 기록한다(10-12 지시, 기존 손 기록).",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o3"
+          ]
+        },
+        {
+          "fact_key": "name_amount",
+          "claim": "시약을 쓸 때마다 이름과 사용량을 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o1"
+          ]
+        },
+        {
+          "fact_key": "hand_ledger_safe",
+          "claim": "손으로 적은 장부는 교무실 금고에 함께 보관한다.",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o3"
+          ]
+        },
+        {
+          "fact_key": "erased_unknown",
+          "claim": "지워진 칸은 전자 표에 확인 불가로 적고 값을 추정하지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 식초 200밀리리터와 베이킹소다 50그램 사용이 적혔다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_first_row",
+          "claim": "10월 12일 회차에 전자 표 첫 줄을 입력했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_erased",
+          "claim": "10월 12일 회차에 손 장부의 사용량 한 칸이 지워져 있었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_six",
+          "claim": "10월 19일 회차에 전자 표에 사용량 여섯 줄이 더 입력됐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_5f005a76924e_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "지워진 칸의 사용량을 추정해 채운다.",
+          "evidence_refs": [
+            "cr2_5f005a76924e_o5"
+          ],
+          "reason": "확인 불가로 적고 추정하지 않는다."
+        },
+        {
+          "claim": "손으로 적은 장부를 버린다.",
+          "evidence_refs": [
+            "cr2_5f005a76924e_o3"
+          ],
+          "reason": "교무실 금고에 보관한다."
+        },
+        {
+          "claim": "현재도 장부를 손으로만 적는다.",
+          "evidence_refs": [
+            "cr2_5f005a76924e_o1",
+            "cr2_5f005a76924e_o3"
+          ],
+          "reason": "10-12에 전자 표로 옮겼다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_5f005a76924e_o1",
+        "cr2_5f005a76924e_o2",
+        "cr2_5f005a76924e_o3",
+        "cr2_5f005a76924e_o4",
+        "cr2_5f005a76924e_o5",
+        "cr2_5f005a76924e_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "shared_doc",
+          "claim": "현재 대본 수정은 공유 문서 편집으로 한다(10-12 지시, 기존 빨간 펜 직접 수정).",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o3"
+          ]
+        },
+        {
+          "fact_key": "manuscript_keep",
+          "claim": "빨간 펜으로 고친 원고 묶음은 연출 사물함에 보관한다(10-19에도 계속).",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o3",
+            "cr2_51bb92b6fe47_o5"
+          ]
+        },
+        {
+          "fact_key": "line_dates",
+          "claim": "공유 문서에는 고친 날짜를 줄마다 남긴다.",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o5"
+          ]
+        },
+        {
+          "fact_key": "act1_frozen",
+          "claim": "1막은 다시 고치지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o6"
+          ]
+        },
+        {
+          "fact_key": "act2_3_only",
+          "claim": "2막과 3막만 공유 문서에서 고친다.",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 1막 대사 열두 줄이 빨간 펜으로 고쳐졌다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_act2",
+          "claim": "10월 12일 회차에 공유 문서로 2막을 고쳤다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_old_lines",
+          "claim": "10월 12일 회차에 배우 두 명이 이전 원고 대사로 연습했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_51bb92b6fe47_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재도 연출이 빨간 펜으로 원고에 직접 고친다.",
+          "evidence_refs": [
+            "cr2_51bb92b6fe47_o1",
+            "cr2_51bb92b6fe47_o3"
+          ],
+          "reason": "10-12에 공유 문서 편집으로 바꿨다."
+        },
+        {
+          "claim": "1막을 공유 문서에서 다시 고친다.",
+          "evidence_refs": [
+            "cr2_51bb92b6fe47_o6"
+          ],
+          "reason": "1막은 다시 고치지 않는다."
+        },
+        {
+          "claim": "빨간 펜 원고 묶음을 버린다.",
+          "evidence_refs": [
+            "cr2_51bb92b6fe47_o3",
+            "cr2_51bb92b6fe47_o5"
+          ],
+          "reason": "연출 사물함에 계속 보관한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_51bb92b6fe47_o1",
+        "cr2_51bb92b6fe47_o2",
+        "cr2_51bb92b6fe47_o3",
+        "cr2_51bb92b6fe47_o4",
+        "cr2_51bb92b6fe47_o5",
+        "cr2_51bb92b6fe47_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_d3741b4c7805_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "food_left",
+          "claim": "음식 부스는 입구 왼쪽에 두고 번호 1부터 6까지 붙인다.",
+          "supporting_evidence_refs": [
+            "cr2_d3741b4c7805_o1"
+          ]
+        },
+        {
+          "fact_key": "food_5_6_water",
+          "claim": "음식 부스 번호 5와 6은 수도 가까운 쪽으로 옮긴다(10-19 지시).",
+          "supporting_evidence_refs": [
+            "cr2_d3741b4c7805_o5"
+          ]
+        },
+        {
+          "fact_key": "clothes_north",
+          "claim": "옷 부스는 그늘이 있는 북쪽 벽을 따라 둔다.",
+          "supporting_evidence_refs": [
+            "cr2_d3741b4c7805_o2"
+          ]
+        },
+        {
+          "fact_key": "tent_blue",
+          "claim": "부스 천막은 파란색이다.",
+          "supporting_evidence_refs": [
+            "cr2_d3741b4c7805_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_tents",
+          "claim": "10월 19일 회차에 파란 천막 여덟 개를 세웠다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_d3741b4c7805_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_empty",
+          "claim": "10월 19일 회차에 옷 부스 하나가 비었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_d3741b4c7805_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "부스 배치에 빨간 바탕 흰 글씨나 3번 현수막 입구 오른쪽 기둥 조건을 적용한다.",
+          "evidence_refs": [
+            "cr2_d3741b4c7805_o3",
+            "cr2_d3741b4c7805_o4"
+          ],
+          "reason": "현수막 제작(별개 작업 y)이다(DF3)."
+        },
+        {
+          "claim": "음식 부스 5와 6은 원래 자리에 그대로 둔다.",
+          "evidence_refs": [
+            "cr2_d3741b4c7805_o1",
+            "cr2_d3741b4c7805_o5"
+          ],
+          "reason": "10-19에 수도 가까운 쪽으로 옮겼다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_d3741b4c7805_o1",
+        "cr2_d3741b4c7805_o2",
+        "cr2_d3741b4c7805_o5",
+        "cr2_d3741b4c7805_o6"
+      ],
+      "rationale": "o3, o4는 현수막 제작(subject y)이라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_americano",
+          "claim": "10월 5일 무렵 시험에서 아이스 아메리카노 한 잔은 30분 뒤에도 빨대가 무르지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_6fe9f88e61a3_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 우유가 들어간 음료와 뜨거운 음료로는 시험하지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_6fe9f88e61a3_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_milk",
+          "claim": "10월 12일 시험에서 딸기 우유 한 잔은 20분 뒤 빨대 끝이 풀어졌다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_6fe9f88e61a3_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_greentea",
+          "claim": "10월 19일 시험에서 아이스 녹차 한 잔은 30분 뒤에도 문제가 없었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_6fe9f88e61a3_o5"
+          ]
+        },
+        {
+          "fact_key": "current_cold_nonmilk",
+          "claim": "현재 종이 빨대는 우유가 없는 차가운 음료에만 시범으로 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_6fe9f88e61a3_o6"
+          ]
+        },
+        {
+          "fact_key": "full_undecided",
+          "claim": "전체 적용은 정하지 않았다.",
+          "supporting_evidence_refs": [
+            "cr2_6fe9f88e61a3_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "다음 달부터 모든 음료에 종이 빨대를 쓰기로 했다.",
+          "evidence_refs": [
+            "cr2_6fe9f88e61a3_o4",
+            "cr2_6fe9f88e61a3_o6"
+          ],
+          "reason": "사장의 제안이고 전체 적용은 미정이다(DF2)."
+        },
+        {
+          "claim": "우유가 든 음료에도 종이 빨대를 쓴다.",
+          "evidence_refs": [
+            "cr2_6fe9f88e61a3_o3",
+            "cr2_6fe9f88e61a3_o6"
+          ],
+          "reason": "우유가 없는 차가운 음료에만 시범이다."
+        },
+        {
+          "claim": "뜨거운 음료에도 종이 빨대가 문제없다.",
+          "evidence_refs": [
+            "cr2_6fe9f88e61a3_o2",
+            "cr2_6fe9f88e61a3_o6"
+          ],
+          "reason": "뜨거운 음료 시험 기록이 없다(DF5)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_6fe9f88e61a3_o1",
+        "cr2_6fe9f88e61a3_o2",
+        "cr2_6fe9f88e61a3_o3",
+        "cr2_6fe9f88e61a3_o4",
+        "cr2_6fe9f88e61a3_o5",
+        "cr2_6fe9f88e61a3_o6"
+      ],
+      "rationale": "뜨거운 음료 시험 기록은 질의 시점까지 없다(미확정).",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_da6ae709f2a1_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "weekday_3_5",
+          "claim": "현재 평일 면회 시간은 오후 3시부터 5시까지다(10-12 지시, 기존 2시~4시).",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o3"
+          ]
+        },
+        {
+          "fact_key": "weekend_10_12",
+          "claim": "주말 면회 시간은 오전 10시부터 12시까지다(10-12에도 바꾸지 않음).",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o2",
+            "cr2_da6ae709f2a1_o3"
+          ]
+        },
+        {
+          "fact_key": "three_people",
+          "claim": "현재 면회객은 한 번에 세 명까지다(10-19 지시, 기존 두 명).",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o5"
+          ]
+        },
+        {
+          "fact_key": "kids_not_counted",
+          "claim": "어린이는 면회 인원에 세지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o5"
+          ]
+        },
+        {
+          "fact_key": "flu_one",
+          "claim": "독감 유행 기간에는 면회를 한 명으로 줄인다.",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o6"
+          ]
+        },
+        {
+          "fact_key": "flu_not_announced",
+          "claim": "질의 시점까지 독감 유행 기간 공지는 없다.",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1012",
+          "claim": "10월 12일 회차에 평일 면회객 일부가 3시 전에 와서 로비에서 기다렸다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_da6ae709f2a1_o4"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 평일 면회는 오후 2시부터 4시까지다.",
+          "evidence_refs": [
+            "cr2_da6ae709f2a1_o1",
+            "cr2_da6ae709f2a1_o3"
+          ],
+          "reason": "10-12에 3시~5시로 늦췄다."
+        },
+        {
+          "claim": "현재 면회는 한 번에 두 명까지다.",
+          "evidence_refs": [
+            "cr2_da6ae709f2a1_o1",
+            "cr2_da6ae709f2a1_o2",
+            "cr2_da6ae709f2a1_o5"
+          ],
+          "reason": "10-19에 세 명으로 늘렸다."
+        },
+        {
+          "claim": "현재 독감 유행 기간이라 면회가 한 명으로 제한된다.",
+          "evidence_refs": [
+            "cr2_da6ae709f2a1_o6"
+          ],
+          "reason": "유행 기간 공지가 아직 없다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_da6ae709f2a1_o1",
+        "cr2_da6ae709f2a1_o2",
+        "cr2_da6ae709f2a1_o3",
+        "cr2_da6ae709f2a1_o4",
+        "cr2_da6ae709f2a1_o5",
+        "cr2_da6ae709f2a1_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_d0f71a26404d_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "post_board2",
+          "claim": "회의록은 회의 다음 날까지 시장 공용 게시판 2번 칸에 붙인다.",
+          "supporting_evidence_refs": [
+            "cr2_d0f71a26404d_o1"
+          ]
+        },
+        {
+          "fact_key": "content",
+          "claim": "회의록에는 참석자 수와 결정 사항을 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_d0f71a26404d_o2"
+          ]
+        },
+        {
+          "fact_key": "no_speaker",
+          "claim": "발언자 이름은 적지 않는다(10-19에도 계속).",
+          "supporting_evidence_refs": [
+            "cr2_d0f71a26404d_o2",
+            "cr2_d0f71a26404d_o5"
+          ]
+        },
+        {
+          "fact_key": "next_date",
+          "claim": "회의록에 다음 회의 날짜도 적는다(10-19 결정).",
+          "supporting_evidence_refs": [
+            "cr2_d0f71a26404d_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_posted",
+          "claim": "10월 19일 회의록이 공용 게시판 2번 칸에 붙었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_d0f71a26404d_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_14",
+          "claim": "10월 19일 회의록 기준 참석자는 열네 명이었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_d0f71a26404d_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "회의록을 게시판 3번 칸에 붙이거나 참석자 이름을 적는다.",
+          "evidence_refs": [
+            "cr2_d0f71a26404d_o3",
+            "cr2_d0f71a26404d_o4"
+          ],
+          "reason": "주차장 청소 안내문(별개 작업 y)의 조건이다(DF3)."
+        },
+        {
+          "claim": "회의록에 발언자 이름을 적는다.",
+          "evidence_refs": [
+            "cr2_d0f71a26404d_o2",
+            "cr2_d0f71a26404d_o5"
+          ],
+          "reason": "발언자 이름은 계속 적지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_d0f71a26404d_o1",
+        "cr2_d0f71a26404d_o2",
+        "cr2_d0f71a26404d_o5",
+        "cr2_d0f71a26404d_o6"
+      ],
+      "rationale": "o3, o4는 주차장 청소(subject y)라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_d6328978bc46_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "time_3pm",
+          "claim": "현재 간식은 오후 3시에 차린다(10-19 지시, 기존 3시 30분).",
+          "supporting_evidence_refs": [
+            "cr2_d6328978bc46_o5"
+          ]
+        },
+        {
+          "fact_key": "no_nuts",
+          "claim": "간식에 견과류는 쓰지 않는다(10-19에도 그대로).",
+          "supporting_evidence_refs": [
+            "cr2_d6328978bc46_o1",
+            "cr2_d6328978bc46_o5"
+          ]
+        },
+        {
+          "fact_key": "two_fruits",
+          "claim": "과일은 두 가지를 낸다.",
+          "supporting_evidence_refs": [
+            "cr2_d6328978bc46_o2"
+          ]
+        },
+        {
+          "fact_key": "green_plates",
+          "claim": "접시는 초록 접시 열두 개를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_d6328978bc46_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_fruit",
+          "claim": "10월 19일 회차에 사과와 귤을 냈다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_d6328978bc46_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_broken",
+          "claim": "10월 19일 회차에 초록 접시 두 개가 깨졌다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_d6328978bc46_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 간식은 오후 3시 30분에 차린다.",
+          "evidence_refs": [
+            "cr2_d6328978bc46_o1",
+            "cr2_d6328978bc46_o5"
+          ],
+          "reason": "10-19에 3시로 당겼다."
+        },
+        {
+          "claim": "간식 준비에 견과류 껍질 재료나 빨간 상자, 오후 4시 조건을 적용한다.",
+          "evidence_refs": [
+            "cr2_d6328978bc46_o3",
+            "cr2_d6328978bc46_o4"
+          ],
+          "reason": "미술 재료 정리(별개 작업 y)다(DF3)."
+        },
+        {
+          "claim": "깨진 초록 접시를 새로 채웠다.",
+          "evidence_refs": [
+            "cr2_d6328978bc46_o6"
+          ],
+          "reason": "보충 기록이 없다(DF4/DF5)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_d6328978bc46_o1",
+        "cr2_d6328978bc46_o2",
+        "cr2_d6328978bc46_o5",
+        "cr2_d6328978bc46_o6"
+      ],
+      "rationale": "o3, o4는 미술 재료 정리(subject y)라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_9d80ee6afca1_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "drill_2d",
+          "claim": "현재 전동 드릴 대여 기간은 2일이다(10-19 지시, 배터리 충전 시간 때문, 기존 3일).",
+          "supporting_evidence_refs": [
+            "cr2_9d80ee6afca1_o6"
+          ]
+        },
+        {
+          "fact_key": "ladder_5d",
+          "claim": "사다리 대여 기간은 5일이다(10-12 정정, 기존 7일).",
+          "supporting_evidence_refs": [
+            "cr2_9d80ee6afca1_o3"
+          ]
+        },
+        {
+          "fact_key": "extend_twice",
+          "claim": "연장은 두 번까지 된다(10-12 지시, 기존 한 번).",
+          "supporting_evidence_refs": [
+            "cr2_9d80ee6afca1_o4"
+          ]
+        },
+        {
+          "fact_key": "no_extend_reserved",
+          "claim": "예약자가 있으면 연장하지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_9d80ee6afca1_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 전동 드릴 네 대가 모두 대여됐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9d80ee6afca1_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 회차에 사다리 두 개가 빌려 간 지 5일 만에 반납됐다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_9d80ee6afca1_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 전동 드릴 대여 기간은 3일이다.",
+          "evidence_refs": [
+            "cr2_9d80ee6afca1_o1",
+            "cr2_9d80ee6afca1_o3",
+            "cr2_9d80ee6afca1_o6"
+          ],
+          "reason": "10-19에 2일로 줄였다."
+        },
+        {
+          "claim": "현재 사다리 대여 기간은 7일이다.",
+          "evidence_refs": [
+            "cr2_9d80ee6afca1_o1",
+            "cr2_9d80ee6afca1_o3"
+          ],
+          "reason": "10-12 정정으로 5일이다."
+        },
+        {
+          "claim": "현재 연장은 한 번만 된다.",
+          "evidence_refs": [
+            "cr2_9d80ee6afca1_o1",
+            "cr2_9d80ee6afca1_o4"
+          ],
+          "reason": "10-12에 두 번까지로 늘렸다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_9d80ee6afca1_o1",
+        "cr2_9d80ee6afca1_o2",
+        "cr2_9d80ee6afca1_o3",
+        "cr2_9d80ee6afca1_o4",
+        "cr2_9d80ee6afca1_o5",
+        "cr2_9d80ee6afca1_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_db5a4ec8eccc_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "mtb_wet",
+          "claim": "산악자전거 체인에는 젖은 날씨용 윤활유를 바른다.",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o1"
+          ]
+        },
+        {
+          "fact_key": "road_dry_default",
+          "claim": "도로용 자전거 체인에는 비 오는 주가 아니면 건조한 날씨용 윤활유를 바른다.",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o3",
+            "cr2_db5a4ec8eccc_o6"
+          ]
+        },
+        {
+          "fact_key": "road_wet_rainy",
+          "claim": "비 오는 주에는 도로용 자전거에도 젖은 날씨용 윤활유를 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o6"
+          ]
+        },
+        {
+          "fact_key": "replace_over_05",
+          "claim": "늘어남 측정값이 0.5를 넘으면 체인을 교체한다.",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o2"
+          ]
+        },
+        {
+          "fact_key": "clean_under_05",
+          "claim": "0.5 이하이면 세척만 한다.",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o2"
+          ]
+        },
+        {
+          "fact_key": "kids_visual",
+          "claim": "아동용 자전거는 측정 대신 눈으로 처짐을 보고, 처지면 정비사에게 넘긴다.",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 점검에서 산악자전거 두 대의 체인이 0.6으로 측정돼 교체했다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_db5a4ec8eccc_o5"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "도로용 자전거 윤활유는 아직 정하지 않았다.",
+          "evidence_refs": [
+            "cr2_db5a4ec8eccc_o1",
+            "cr2_db5a4ec8eccc_o3"
+          ],
+          "reason": "10-12에 건조용으로 정했다."
+        },
+        {
+          "claim": "도로용 자전거는 비 오는 주에도 건조용 윤활유를 쓴다.",
+          "evidence_refs": [
+            "cr2_db5a4ec8eccc_o3",
+            "cr2_db5a4ec8eccc_o6"
+          ],
+          "reason": "비 오는 주는 젖은 날씨용이다."
+        },
+        {
+          "claim": "아동용 자전거도 0.5 측정 기준으로 교체를 판정한다.",
+          "evidence_refs": [
+            "cr2_db5a4ec8eccc_o2",
+            "cr2_db5a4ec8eccc_o4"
+          ],
+          "reason": "아동용은 눈으로 처짐을 보고 정비사에게 넘긴다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_db5a4ec8eccc_o1",
+        "cr2_db5a4ec8eccc_o2",
+        "cr2_db5a4ec8eccc_o3",
+        "cr2_db5a4ec8eccc_o4",
+        "cr2_db5a4ec8eccc_o5",
+        "cr2_db5a4ec8eccc_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "obs_1005_cotton",
+          "claim": "10월 5일 무렵 시험에서 면 셔츠 한 벌은 얼룩이 기존 세제만큼 빠졌다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_8b78b9db9f3a_o1"
+          ]
+        },
+        {
+          "fact_key": "obs_1005_untested",
+          "claim": "10월 5일 시점 울 스웨터와 기름 얼룩 작업복으로는 시험하지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_8b78b9db9f3a_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_wool",
+          "claim": "10월 12일 시험에서 울 스웨터 한 벌은 세탁 뒤 조금 줄어들었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_8b78b9db9f3a_o3"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_oil",
+          "claim": "10월 19일 시험에서 기름 얼룩 작업복 한 벌은 얼룩이 절반쯤 남았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_8b78b9db9f3a_o5"
+          ]
+        },
+        {
+          "fact_key": "current_cotton_only",
+          "claim": "현재 친환경 세제는 면 셔츠에만 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_8b78b9db9f3a_o6"
+          ]
+        },
+        {
+          "fact_key": "wool_work_existing",
+          "claim": "울과 작업복은 기존 세제를 유지한다.",
+          "supporting_evidence_refs": [
+            "cr2_8b78b9db9f3a_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "친환경 세제를 모든 세탁물에 쓰기로 했다.",
+          "evidence_refs": [
+            "cr2_8b78b9db9f3a_o4",
+            "cr2_8b78b9db9f3a_o6"
+          ],
+          "reason": "직원 한 명의 제안이었고 현재 지시는 면 셔츠에만이다(DF2)."
+        },
+        {
+          "claim": "울이나 작업복에도 친환경 세제를 쓴다.",
+          "evidence_refs": [
+            "cr2_8b78b9db9f3a_o3",
+            "cr2_8b78b9db9f3a_o5",
+            "cr2_8b78b9db9f3a_o6"
+          ],
+          "reason": "울과 작업복은 기존 세제를 유지한다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_8b78b9db9f3a_o1",
+        "cr2_8b78b9db9f3a_o2",
+        "cr2_8b78b9db9f3a_o3",
+        "cr2_8b78b9db9f3a_o4",
+        "cr2_8b78b9db9f3a_o5",
+        "cr2_8b78b9db9f3a_o6"
+      ],
+      "rationale": "o4 제안은 o6 결정으로 채택되지 않아 필수 사실이 아니라 금지 근거로 썼다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_cf4fc38cde9d_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "items_state",
+          "claim": "기부받은 장난감을 품목과 상태로 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o1"
+          ]
+        },
+        {
+          "fact_key": "photo_form",
+          "claim": "현재 장부는 사진을 함께 붙이는 새 양식이다(10-12 지시).",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o3"
+          ]
+        },
+        {
+          "fact_key": "green_notebook_keep",
+          "claim": "초록 공책은 새 양식 옆에 함께 둔다.",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o3"
+          ]
+        },
+        {
+          "fact_key": "broken_status",
+          "claim": "망가진 장난감은 지우지 않고 상태를 망가짐으로 바꿔 적는다.",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 블록 세트 두 개와 그림책 아홉 권이 적혔다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_six",
+          "claim": "10월 12일 회차에 새 양식으로 장난감 여섯 개를 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_photo",
+          "claim": "10월 12일 회차에 흐린 사진 두 장은 다시 찍었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019",
+          "claim": "10월 19일 회차에 블록 세트 하나가 망가져 상태를 바꿔 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_cf4fc38cde9d_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "초록 공책을 버리거나 치운다.",
+          "evidence_refs": [
+            "cr2_cf4fc38cde9d_o3"
+          ],
+          "reason": "새 양식 옆에 함께 둔다."
+        },
+        {
+          "claim": "망가진 장난감은 장부에서 지운다.",
+          "evidence_refs": [
+            "cr2_cf4fc38cde9d_o5"
+          ],
+          "reason": "지우지 않고 상태를 바꿔 적는다."
+        },
+        {
+          "claim": "현재 장부는 초록 공책만 쓴다.",
+          "evidence_refs": [
+            "cr2_cf4fc38cde9d_o1",
+            "cr2_cf4fc38cde9d_o3"
+          ],
+          "reason": "10-12에 사진 붙이는 새 양식으로 바꿨다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_cf4fc38cde9d_o1",
+        "cr2_cf4fc38cde9d_o2",
+        "cr2_cf4fc38cde9d_o3",
+        "cr2_cf4fc38cde9d_o4",
+        "cr2_cf4fc38cde9d_o5",
+        "cr2_cf4fc38cde9d_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "day_friday",
+          "claim": "현재 칸 정리는 매주 금요일에 한다(10-19 지시, 기존 수요일).",
+          "supporting_evidence_refs": [
+            "cr2_31d53c1662d6_o5"
+          ]
+        },
+        {
+          "fact_key": "wet_discard",
+          "claim": "젖은 책은 꺼내서 버린다(10-19에도 같음).",
+          "supporting_evidence_refs": [
+            "cr2_31d53c1662d6_o1",
+            "cr2_31d53c1662d6_o5"
+          ]
+        },
+        {
+          "fact_key": "kids_bottom",
+          "claim": "아동 도서는 아래 두 칸에 둔다.",
+          "supporting_evidence_refs": [
+            "cr2_31d53c1662d6_o2"
+          ]
+        },
+        {
+          "fact_key": "door_yellow",
+          "claim": "교환함 문은 노란색으로 칠했다.",
+          "supporting_evidence_refs": [
+            "cr2_31d53c1662d6_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_wet3",
+          "claim": "10월 19일 회차에 젖은 책 세 권을 꺼냈다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_31d53c1662d6_o6"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_full",
+          "claim": "10월 19일 회차에 아동 도서 칸이 꽉 찼다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_31d53c1662d6_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 칸 정리는 수요일에 한다.",
+          "evidence_refs": [
+            "cr2_31d53c1662d6_o1",
+            "cr2_31d53c1662d6_o5"
+          ],
+          "reason": "10-19에 금요일로 바꿨다."
+        },
+        {
+          "claim": "교환함 정리를 토요일 저녁에 하거나 아래 두 칸에 행사 포스터만 둔다.",
+          "evidence_refs": [
+            "cr2_31d53c1662d6_o3",
+            "cr2_31d53c1662d6_o4"
+          ],
+          "reason": "게시판 정리(별개 작업 y)다(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_31d53c1662d6_o1",
+        "cr2_31d53c1662d6_o2",
+        "cr2_31d53c1662d6_o5",
+        "cr2_31d53c1662d6_o6"
+      ],
+      "rationale": "o3, o4는 게시판 정리(subject y)라 관련 근거에서 뺐다.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t3",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "monday",
+          "claim": "수질 기록은 매주 월요일에 물을 떠서 한다.",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o1"
+          ]
+        },
+        {
+          "fact_key": "meter",
+          "claim": "현재 산도는 휴대용 측정기로 잰다(10-12 지시, 기존 시험지 색).",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o3"
+          ]
+        },
+        {
+          "fact_key": "strips_keep",
+          "claim": "쓰고 난 시험지는 날짜를 적은 봉투에 넣어 보관한다.",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o3"
+          ]
+        },
+        {
+          "fact_key": "notebook_continue",
+          "claim": "측정기를 쓰면서도 공책은 계속 쓴다.",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o1",
+            "cr2_84a8da463af3_o5"
+          ]
+        },
+        {
+          "fact_key": "notebook_first_page",
+          "claim": "공책 첫 쪽의 시험지 기록은 지우지 않는다.",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o5"
+          ]
+        },
+        {
+          "fact_key": "obs_1005",
+          "claim": "10월 5일 첫 회차에 시험지가 연두색으로 변해 산도를 7 근처로 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o2"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_68",
+          "claim": "10월 12일 회차에 측정기로 산도 6.8을 적었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1012_strip",
+          "claim": "10월 12일 회차에 비교용 시험지 한 장도 봉투에 넣었다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o4"
+          ]
+        },
+        {
+          "fact_key": "obs_1019_none",
+          "claim": "10월 19일 회차에 측정기 배터리가 약해 값이 깜빡여 그날 산도는 적지 않았다(과거 관찰).",
+          "supporting_evidence_refs": [
+            "cr2_84a8da463af3_o6"
+          ]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "현재 산도는 시험지 색으로 판정한다.",
+          "evidence_refs": [
+            "cr2_84a8da463af3_o1",
+            "cr2_84a8da463af3_o3"
+          ],
+          "reason": "10-12에 휴대용 측정기로 바꿨다."
+        },
+        {
+          "claim": "10월 19일 산도 값을 적었거나 추정해 채운다.",
+          "evidence_refs": [
+            "cr2_84a8da463af3_o6"
+          ],
+          "reason": "그날 산도는 적지 않았다."
+        },
+        {
+          "claim": "공책 사용을 그만두거나 첫 쪽 시험지 기록을 지운다.",
+          "evidence_refs": [
+            "cr2_84a8da463af3_o5"
+          ],
+          "reason": "공책은 계속 쓰고 첫 쪽 기록은 지우지 않는다."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr2_84a8da463af3_o1",
+        "cr2_84a8da463af3_o2",
+        "cr2_84a8da463af3_o3",
+        "cr2_84a8da463af3_o4",
+        "cr2_84a8da463af3_o5",
+        "cr2_84a8da463af3_o6"
+      ],
+      "rationale": "모든 원본이 subject x.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}

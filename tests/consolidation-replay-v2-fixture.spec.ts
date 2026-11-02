@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ADJ_INPUT_DIR, buildV2Adjudication, checkV2Adjudication } from '../scripts/build-consolidation-replay-v2-adjudication.js';
 import { STRATA, V2_DIR, buildV2Panel, queryFor } from '../scripts/build-consolidation-replay-v2-panel.js';
 
 const searchQuality = join(process.cwd(), 'tests/fixtures/search-quality');
@@ -121,5 +122,91 @@ describe('consolidation-replay-v2 fixture (#1624)', () => {
     for (const answer of blank.answers) {
       expect(answer).toMatchObject({ status: 'pending', required_facts: [], forbidden_claims: [], relevant_evidence_refs: [], execution_evidence: 'unmeasured' });
     }
+  });
+});
+
+describe('consolidation-replay-v2 adjudication input (#1624)', () => {
+  const generated = buildV2Adjudication();
+  const bundles = [...new Set([...generated.keys()].map(k => k.split('/')[0]!))];
+
+  it('committed input is exactly what the builder produces, six bundles of twenty covering all 120 checkpoints', () => {
+    for (const [path, body] of generated) {
+      expect(text(join(dir, ADJ_INPUT_DIR, path)), path).toBe(body);
+    }
+    expect(bundles).toEqual(['stage-1-part-1', 'stage-1-part-2', 'stage-2-part-1', 'stage-2-part-2', 'stage-3-part-1', 'stage-3-part-2']);
+    const ids = bundles.flatMap(b => JSON.parse(generated.get(`${b}/adjudication-input.json`)!).cases.map((c: any) => c.checkpoint_id));
+    expect(ids).toHaveLength(120);
+    expect(new Set(ids)).toEqual(new Set(sequences.flatMap(s => s.checkpoints.map((c: any) => c.checkpoint_id))));
+  });
+
+  it('sealed submissions match their seals and their distributed inputs', () => {
+    for (const stage of [1, 2, 3]) {
+      for (const reviewer of ['a', 'b']) {
+        const base = `adjudication/seals/stage${stage}-${reviewer}`;
+        const raw = text(join(dir, `adjudication/stage${stage}-${reviewer}-answers.sealed.json`));
+        expect(sha(raw)).toBe(text(join(dir, `${base}-submission.sha256`)).split(/\s+/)[0]);
+        const inputs = Object.fromEntries(text(join(dir, `${base}-input.sha256`)).trim().split('\n').map(l => l.split(/\s+/).reverse()));
+        for (const file of ['packet.json', 'rubric.md', 'answers.blank.json']) {
+          expect(inputs[file], `${base} ${file}`).toBe(sha(text(join(dir, `reviewer-${reviewer}/stage-${stage}/${file}`))));
+        }
+      }
+    }
+  });
+
+  it('names judges only as A and B and leaks no stratum, split, or judge identity', () => {
+    for (const [path, body] of [...generated].filter(([path]) => path.endsWith('adjudication-input.json'))) {
+      for (const leak of [...STRATA, 'reviewer_id', '"model"', 'judged_at', 'split', 'inputs.source', 'composer', 'claude', 'opus']) {
+        expect(body.toLowerCase().includes(leak), `${path} contains ${leak}`).toBe(false);
+      }
+    }
+  });
+
+  describe('checker', () => {
+    const inputRaw = generated.get('stage-1-part-1/adjudication-input.json')!;
+    const input = JSON.parse(inputRaw);
+    /** Every fact on its own row: a fact only one contract requires splits the verdicts, so agreement is false. */
+    const filled = () => ({
+      ...JSON.parse(generated.get('stage-1-part-1/adjudication.blank.json')!),
+      adjudicator_id: 'adj-test', model: 'test', adjudicated_at: '2026-11-03T00:00:00Z',
+      cases: input.cases.map((c: any) => {
+        const rows = [
+          ...c.contract_a.required_facts.map((f: any, i: number) => ({ row: `a${i + 1}`, a: [f.fact_key], b: [] })),
+          ...c.contract_b.required_facts.map((f: any, i: number) => ({ row: `b${i + 1}`, a: [], b: [f.fact_key] })),
+        ];
+        return {
+          checkpoint_id: c.checkpoint_id, contract_agreement: false, fact_alignment: rows,
+          probes: [
+            { probe: 'P_A', target: null, verdict_a: 'pass', verdict_b: 'pass' },
+            { probe: 'P_B', target: null, verdict_a: 'pass', verdict_b: 'pass' },
+            ...rows.map(r => ({ probe: 'P_omit', target: r.row, verdict_a: r.a.length ? 'fail' : 'pass', verdict_b: r.b.length ? 'fail' : 'pass' })),
+            ...c.contract_a.forbidden_claims.map((_: unknown, i: number) => ({ probe: 'P_assert', target: `A.fc${i + 1}`, verdict_a: 'fail', verdict_b: 'fail' })),
+            ...c.contract_b.forbidden_claims.map((_: unknown, i: number) => ({ probe: 'P_assert', target: `B.fc${i + 1}`, verdict_a: 'fail', verdict_b: 'fail' })),
+          ],
+          boundaries_applied: [], rationale: 'test',
+        };
+      }),
+    });
+
+    it('accepts a complete record and rejects the blank form', () => {
+      expect(checkV2Adjudication(inputRaw, JSON.stringify(filled()))).toEqual([]);
+      expect(checkV2Adjudication(inputRaw, generated.get('stage-1-part-1/adjudication.blank.json')!).length).toBeGreaterThan(0);
+    });
+
+    it('rejects agreement that contradicts the probes', () => {
+      const bad = filled();
+      bad.cases[0].contract_agreement = true;
+      expect(checkV2Adjudication(inputRaw, JSON.stringify(bad))).toEqual([
+        `adj-test ${bad.cases[0].checkpoint_id}: contract_agreement=true but probes diverge`,
+      ]);
+    });
+
+    it('rejects an alignment that drops a fact or a P_omit that skips a row', () => {
+      const dropped = filled();
+      dropped.cases[0].fact_alignment.pop();
+      expect(checkV2Adjudication(inputRaw, JSON.stringify(dropped)).join('\n')).toMatch(/does not cover every B fact_key|one P_omit per fact_alignment row/);
+      const skipped = filled();
+      skipped.cases[1].probes = skipped.cases[1].probes.filter((p: any) => p.target !== 'a1');
+      expect(checkV2Adjudication(inputRaw, JSON.stringify(skipped))).toEqual([`${skipped.cases[1].checkpoint_id}: needs exactly one P_omit per fact_alignment row`]);
+    });
   });
 });

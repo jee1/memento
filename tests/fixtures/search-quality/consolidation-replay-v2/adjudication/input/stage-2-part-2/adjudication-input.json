@@ -1,0 +1,3475 @@
+{
+  "fixture_version": "consolidation-replay-v2",
+  "role": "contract_adjudication_input",
+  "bundle": "stage-2-part-2",
+  "stage": 2,
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "equivalence_sha256": "aacf2016282b42e758f46eb05be41fb1430d670fa013be051c41ffead7d43dc6",
+  "sealed_submissions_sha256": {
+    "stage2-a-answers.sealed.json": "ddbd2ca4d22dcc91a0890c9c1b2d21eb240c315cb871c528400c77a9748fb2ad",
+    "stage2-b-answers.sealed.json": "cacb9a5ba6df32d525c447f085e6f44c38749d9a030df46b34e2d135b6ed1526"
+  },
+  "cases": [
+    {
+      "checkpoint_id": "cr2_9282c3126a72_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_9282c3126a72",
+        "family_id": "family_9282c3126a72",
+        "checkpoint_id": "cr2_9282c3126a72_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "참나무 청소년 자원봉사 출석부의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_9282c3126a72",
+          "project_id": "project_9282c3126a72",
+          "subject_id": "subject_9282c3126a72_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_9282c3126a72_o1",
+            "type": "episodic",
+            "content": "참나무 청소년 자원봉사 출석부는 종이 명단에 서명을 받는다. 명단은 활동마다 새로 출력한다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_9282c3126a72",
+              "project_id": "project_9282c3126a72",
+              "subject_id": "subject_9282c3126a72_x"
+            },
+            "sha256": "f49059bcd59bbd75f1d8329a11633beb0a92e94b79008ebcad7d53eecbef28b4"
+          },
+          {
+            "evidence_id": "cr2_9282c3126a72_o2",
+            "type": "episodic",
+            "content": "10월 5일 참나무 청소년 자원봉사 출석부 첫 회차에 서명이 열여덟 명이었고 두 명은 서명을 빠뜨렸다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_9282c3126a72",
+              "project_id": "project_9282c3126a72",
+              "subject_id": "subject_9282c3126a72_x"
+            },
+            "sha256": "98178e7195395a87c9c1df1fc1f56510ff10e92e8c7c58da86a25a974abde059"
+          },
+          {
+            "evidence_id": "cr2_9282c3126a72_o3",
+            "type": "episodic",
+            "content": "참나무 청소년 자원봉사 출석부를 태블릿 입력으로 바꾼다. 지금까지의 종이 명단은 버리지 말고 상자에 보관한다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_9282c3126a72",
+              "project_id": "project_9282c3126a72",
+              "subject_id": "subject_9282c3126a72_x"
+            },
+            "sha256": "4aa9b5e3b822e9c47eb174e0f730505a62682d64e05218f28f359fe5def574b3"
+          },
+          {
+            "evidence_id": "cr2_9282c3126a72_o4",
+            "type": "episodic",
+            "content": "10월 12일 참나무 청소년 자원봉사 출석부 회차에 태블릿 출석을 처음 받았고 스물한 명이 입력했다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_9282c3126a72",
+              "project_id": "project_9282c3126a72",
+              "subject_id": "subject_9282c3126a72_x"
+            },
+            "sha256": "63a03eeb8000a01ee27c5ba4f0e7f318ab0205ae0dde7a74b3964f0015c94e5b"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_9282c3126a72_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1",
+            "claim": "과거 관찰(회차 구분): 10월 5일 참나무 청소년 자원봉사 출석부 첫 회차에 서명이 열여덟 명이었고 두 명은 서명을 빠뜨렸다.",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 참나무 청소년 자원봉사 출석부를 태블릿 입력으로 바꾼다. 지금까지의 종이 명단은 버리지 말고 상자에 보관한다.",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_3",
+            "claim": "과거 관찰(회차 구분): 10월 12일 참나무 청소년 자원봉사 출석부 회차에 태블릿 출석을 처음 받았고 스물한 명이 입력했다.",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 참나무 청소년 자원봉사 출석부는 종이 명단에 서명을 받는다. 명단은 활동마다 새로 출력한다.",
+            "evidence_refs": [
+              "cr2_9282c3126a72_o1"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_9282c3126a72_o2",
+          "cr2_9282c3126a72_o3",
+          "cr2_9282c3126a72_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_9282c3126a72_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "method_current",
+            "claim": "출석부는 태블릿 입력으로 받는다(10월 12일 종이 명단 서명에서 바꿈).",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o3"
+            ]
+          },
+          {
+            "fact_key": "keep_paper",
+            "claim": "지금까지의 종이 명단은 버리지 말고 상자에 보관한다.",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 첫 회차에 서명이 열여덟 명이었고 두 명은 서명을 빠뜨렸다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 회차에 태블릿 출석을 처음 받았고 스물한 명이 입력했다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_9282c3126a72_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "현재 출석은 종이 명단에 서명을 받는다.",
+            "evidence_refs": [
+              "cr2_9282c3126a72_o1"
+            ],
+            "reason": "o3가 태블릿 입력으로 바꿨다."
+          },
+          {
+            "claim": "종이 명단은 버려도 된다 또는 상자 보관을 마쳤다.",
+            "evidence_refs": [
+              "cr2_9282c3126a72_o3"
+            ],
+            "reason": "보관 지시만 있고 실행 기록은 없다(B2, DF4)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_9282c3126a72_o1",
+          "cr2_9282c3126a72_o2",
+          "cr2_9282c3126a72_o3",
+          "cr2_9282c3126a72_o4"
+        ],
+        "rationale": "o3가 방식을 바꾸고 종이 명단 보관을 현재 지시로 남겼다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9d80ee6afca1_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_9d80ee6afca1",
+        "family_id": "family_9d80ee6afca1",
+        "checkpoint_id": "cr2_9d80ee6afca1_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "물레방아 공구 도서관 대여의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_9d80ee6afca1",
+          "project_id": "project_9d80ee6afca1",
+          "subject_id": "subject_9d80ee6afca1_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_9d80ee6afca1_o1",
+            "type": "episodic",
+            "content": "물레방아 공구 도서관 대여 기간은 전동 드릴이 3일, 사다리가 7일이다. 연장은 한 번만 된다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_9d80ee6afca1",
+              "project_id": "project_9d80ee6afca1",
+              "subject_id": "subject_9d80ee6afca1_x"
+            },
+            "sha256": "46ce17682c788e9609ad0d6f7f2f5dfec86e3f0c81cafc499fc0dc6b2941d25f"
+          },
+          {
+            "evidence_id": "cr2_9d80ee6afca1_o2",
+            "type": "episodic",
+            "content": "10월 5일 물레방아 공구 도서관 대여 첫 회차에 전동 드릴 네 대가 모두 대여됐다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_9d80ee6afca1",
+              "project_id": "project_9d80ee6afca1",
+              "subject_id": "subject_9d80ee6afca1_x"
+            },
+            "sha256": "ffd0c6c50fbae8d917582f38464a43e6be45ec4b930bcb665506f9354b86aa71"
+          },
+          {
+            "evidence_id": "cr2_9d80ee6afca1_o3",
+            "type": "episodic",
+            "content": "물레방아 공구 도서관 대여 기간 정정: 사다리는 7일이 아니라 5일이다. 전동 드릴은 3일 그대로다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_9d80ee6afca1",
+              "project_id": "project_9d80ee6afca1",
+              "subject_id": "subject_9d80ee6afca1_x"
+            },
+            "sha256": "61922526619913c7f92498e6e0b9a55cceb0f19d7cfa5c96207f8e8a2b24b998"
+          },
+          {
+            "evidence_id": "cr2_9d80ee6afca1_o4",
+            "type": "episodic",
+            "content": "물레방아 공구 도서관 대여 연장을 한 번에서 두 번까지로 늘린다. 예약자가 있으면 연장하지 않는다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_9d80ee6afca1",
+              "project_id": "project_9d80ee6afca1",
+              "subject_id": "subject_9d80ee6afca1_x"
+            },
+            "sha256": "67e67276208e7f80c7088213dcb06999f6bdef951ba6bb856338b32efa244185"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_9d80ee6afca1_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1",
+            "claim": "과거 관찰(회차 구분): 10월 5일 물레방아 공구 도서관 대여 첫 회차에 전동 드릴 네 대가 모두 대여됐다.",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 물레방아 공구 도서관 대여 기간 정정: 사다리는 7일이 아니라 5일이다. 전동 드릴은 3일 그대로다.",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o3"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 물레방아 공구 도서관 대여 연장을 한 번에서 두 번까지로 늘린다. 예약자가 있으면 연장하지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 물레방아 공구 도서관 대여 기간은 전동 드릴이 3일, 사다리가 7일이다. 연장은 한 번만 된다.",
+            "evidence_refs": [
+              "cr2_9d80ee6afca1_o1"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_9d80ee6afca1_o2",
+          "cr2_9d80ee6afca1_o3",
+          "cr2_9d80ee6afca1_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_9d80ee6afca1_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "drill",
+            "claim": "전동 드릴 대여 기간은 3일이다.",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o1",
+              "cr2_9d80ee6afca1_o3"
+            ]
+          },
+          {
+            "fact_key": "ladder_current",
+            "claim": "사다리 대여 기간은 5일이다(7일에서 정정).",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o3"
+            ]
+          },
+          {
+            "fact_key": "extension_current",
+            "claim": "연장은 두 번까지 된다(한 번에서 늘림).",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o4"
+            ]
+          },
+          {
+            "fact_key": "reservation",
+            "claim": "예약자가 있으면 연장하지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o4"
+            ]
+          },
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 첫 회차에 전동 드릴 네 대가 모두 대여됐다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_9d80ee6afca1_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "사다리 대여 기간은 7일이다.",
+            "evidence_refs": [
+              "cr2_9d80ee6afca1_o1"
+            ],
+            "reason": "o3가 5일로 정정했다."
+          },
+          {
+            "claim": "연장은 한 번만 된다.",
+            "evidence_refs": [
+              "cr2_9d80ee6afca1_o1"
+            ],
+            "reason": "o4가 두 번까지로 늘렸다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_9d80ee6afca1_o1",
+          "cr2_9d80ee6afca1_o2",
+          "cr2_9d80ee6afca1_o3",
+          "cr2_9d80ee6afca1_o4"
+        ],
+        "rationale": "o3은 사다리 기간 정정, o4는 연장 횟수 변경과 예약 조건 추가다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_adf7c457ae36_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_adf7c457ae36",
+        "family_id": "family_adf7c457ae36",
+        "checkpoint_id": "cr2_adf7c457ae36_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "큰샘 문화센터 주차 안내의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_adf7c457ae36",
+          "project_id": "project_adf7c457ae36",
+          "subject_id": "subject_adf7c457ae36_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_adf7c457ae36_o1",
+            "type": "episodic",
+            "content": "큰샘 문화센터 주차 안내에서 강사 차량은 지하 2층 C구역에 댄다. 방문객은 지하 1층을 쓴다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_adf7c457ae36",
+              "project_id": "project_adf7c457ae36",
+              "subject_id": "subject_adf7c457ae36_x"
+            },
+            "sha256": "338050ad12f4acbe8c517402e458581b0bfe38e5a928e6edf988f8cad36ba4c2"
+          },
+          {
+            "evidence_id": "cr2_adf7c457ae36_o2",
+            "type": "episodic",
+            "content": "큰샘 문화센터 주차 안내의 무료 주차는 강좌 수강생에게 2시간이다. 초과 시간은 30분마다 1천 원이다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_adf7c457ae36",
+              "project_id": "project_adf7c457ae36",
+              "subject_id": "subject_adf7c457ae36_x"
+            },
+            "sha256": "2654c29cc436106561cb4d7ca7a4a6bab82a8c7fa126839c5bc05c70c176d69e"
+          },
+          {
+            "evidence_id": "cr2_adf7c457ae36_o3",
+            "type": "episodic",
+            "content": "큰샘 문화센터 주차 안내 정정: 강사 차량 구역은 C가 아니라 D다. C구역은 공사 중이다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_adf7c457ae36",
+              "project_id": "project_adf7c457ae36",
+              "subject_id": "subject_adf7c457ae36_x"
+            },
+            "sha256": "36d30cba7777620897816ae2066ed3c846acd9cdcb8c8a4fa255fcf514fa4626"
+          },
+          {
+            "evidence_id": "cr2_adf7c457ae36_o4",
+            "type": "episodic",
+            "content": "큰샘 문화센터 주차 안내에서 수강생 무료 주차를 2시간에서 3시간으로 늘린다. 초과 요금은 그대로다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_adf7c457ae36",
+              "project_id": "project_adf7c457ae36",
+              "subject_id": "subject_adf7c457ae36_x"
+            },
+            "sha256": "aa5885e0c8e8324646538dbc1cfb778855ad61738a007302de3a6d0391422935"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_adf7c457ae36_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 큰샘 문화센터 주차 안내에서 강사 차량은 지하 2층 C구역에 댄다. 방문객은 지하 1층을 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 큰샘 문화센터 주차 안내 정정: 강사 차량 구역은 C가 아니라 D다. C구역은 공사 중이다.",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o3"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 큰샘 문화센터 주차 안내에서 수강생 무료 주차를 2시간에서 3시간으로 늘린다. 초과 요금은 그대로다.",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 큰샘 문화센터 주차 안내의 무료 주차는 강좌 수강생에게 2시간이다. 초과 시간은 30분마다 1천 원이다.",
+            "evidence_refs": [
+              "cr2_adf7c457ae36_o2"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_adf7c457ae36_o1",
+          "cr2_adf7c457ae36_o3",
+          "cr2_adf7c457ae36_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_adf7c457ae36_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "instructor_current",
+            "claim": "강사 차량은 지하 2층 D구역에 댄다(C에서 정정, C구역은 공사 중).",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o1",
+              "cr2_adf7c457ae36_o3"
+            ]
+          },
+          {
+            "fact_key": "visitor",
+            "claim": "방문객은 지하 1층을 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o1"
+            ]
+          },
+          {
+            "fact_key": "free_current",
+            "claim": "강좌 수강생 무료 주차는 3시간이다(2시간에서 늘림).",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o4"
+            ]
+          },
+          {
+            "fact_key": "overage",
+            "claim": "초과 시간은 30분마다 1천 원이다.",
+            "supporting_evidence_refs": [
+              "cr2_adf7c457ae36_o2",
+              "cr2_adf7c457ae36_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "강사 차량은 C구역에 댄다.",
+            "evidence_refs": [
+              "cr2_adf7c457ae36_o1"
+            ],
+            "reason": "o3가 D구역으로 정정했다."
+          },
+          {
+            "claim": "수강생 무료 주차는 2시간이다.",
+            "evidence_refs": [
+              "cr2_adf7c457ae36_o2"
+            ],
+            "reason": "o4가 3시간으로 늘렸다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_adf7c457ae36_o1",
+          "cr2_adf7c457ae36_o2",
+          "cr2_adf7c457ae36_o3",
+          "cr2_adf7c457ae36_o4"
+        ],
+        "rationale": "o3은 강사 구역 정정, o4는 무료 시간 변경이다. 지하 2층과 초과 요금은 유지된다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ae95f66d90dc_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_ae95f66d90dc",
+        "family_id": "family_ae95f66d90dc",
+        "checkpoint_id": "cr2_ae95f66d90dc_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "푸른솔 동물보호소 산책 순번의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_ae95f66d90dc",
+          "project_id": "project_ae95f66d90dc",
+          "subject_id": "subject_ae95f66d90dc_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_ae95f66d90dc_o1",
+            "type": "episodic",
+            "content": "푸른솔 동물보호소 산책 순번에서 대형견은 봉사자 두 명이 함께 데리고 나간다. 소형견은 한 명이 두 마리까지 데려간다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_ae95f66d90dc",
+              "project_id": "project_ae95f66d90dc",
+              "subject_id": "subject_ae95f66d90dc_x"
+            },
+            "sha256": "7cc8cabe8578ec223a7c69bcbdbce97055e7bbf3afeb284e4f95e02a0977c7b2"
+          },
+          {
+            "evidence_id": "cr2_ae95f66d90dc_o2",
+            "type": "episodic",
+            "content": "푸른솔 동물보호소 산책 순번에서 예방접종을 마치지 않은 개는 보호소 마당 안에서만 걷게 한다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_ae95f66d90dc",
+              "project_id": "project_ae95f66d90dc",
+              "subject_id": "subject_ae95f66d90dc_x"
+            },
+            "sha256": "8c00e2a9e3039c9c1d603b4904759c8d2f8c6b6f06c09dc4edaabfb322909109"
+          },
+          {
+            "evidence_id": "cr2_ae95f66d90dc_o3",
+            "type": "episodic",
+            "content": "푸른솔 동물보호소 산책 순번에서 처음 온 봉사자는 소형견이라도 한 마리만 데려간다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_ae95f66d90dc",
+              "project_id": "project_ae95f66d90dc",
+              "subject_id": "subject_ae95f66d90dc_x"
+            },
+            "sha256": "851440604075e77de5a119e42bc66d9e0557b77d843bba7c2215c79a4dba5cad"
+          },
+          {
+            "evidence_id": "cr2_ae95f66d90dc_o4",
+            "type": "episodic",
+            "content": "10월 12일 푸른솔 동물보호소 산책 순번 회차에서 대형견 세 마리가 각각 봉사자 두 명과 나갔다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_ae95f66d90dc",
+              "project_id": "project_ae95f66d90dc",
+              "subject_id": "subject_ae95f66d90dc_x"
+            },
+            "sha256": "72a5add8a25e32ce48fd029ebb8131cf57ba3f7e585dc517c9c029a73de1257d"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_ae95f66d90dc_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 푸른솔 동물보호소 산책 순번에서 대형견은 봉사자 두 명이 함께 데리고 나간다. 소형견은 한 명이 두 마리까지 데려간다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 푸른솔 동물보호소 산책 순번에서 예방접종을 마치지 않은 개는 보호소 마당 안에서만 걷게 한다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 푸른솔 동물보호소 산책 순번에서 처음 온 봉사자는 소형견이라도 한 마리만 데려간다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_4",
+            "claim": "과거 관찰(회차 구분): 10월 12일 푸른솔 동물보호소 산책 순번 회차에서 대형견 세 마리가 각각 봉사자 두 명과 나갔다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_ae95f66d90dc_o1",
+          "cr2_ae95f66d90dc_o2",
+          "cr2_ae95f66d90dc_o3",
+          "cr2_ae95f66d90dc_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_ae95f66d90dc_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "large",
+            "claim": "대형견은 봉사자 두 명이 함께 데리고 나간다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o1"
+            ]
+          },
+          {
+            "fact_key": "small",
+            "claim": "소형견은 봉사자 한 명이 두 마리까지 데려간다(처음 온 봉사자는 예외).",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o1",
+              "cr2_ae95f66d90dc_o3"
+            ]
+          },
+          {
+            "fact_key": "newcomer",
+            "claim": "처음 온 봉사자는 소형견이라도 한 마리만 데려간다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o3"
+            ]
+          },
+          {
+            "fact_key": "unvaccinated",
+            "claim": "예방접종을 마치지 않은 개는 보호소 마당 안에서만 걷게 한다.",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 회차에서 대형견 세 마리가 각각 봉사자 두 명과 나갔다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_ae95f66d90dc_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "처음 온 봉사자도 소형견을 두 마리까지 데려간다.",
+            "evidence_refs": [
+              "cr2_ae95f66d90dc_o1"
+            ],
+            "reason": "o3의 처음 온 봉사자 조건을 지운 답이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_ae95f66d90dc_o1",
+          "cr2_ae95f66d90dc_o2",
+          "cr2_ae95f66d90dc_o3",
+          "cr2_ae95f66d90dc_o4"
+        ],
+        "rationale": "o3는 소형견 규칙에 처음 온 봉사자 조건을 더한다. 나머지 조건은 바뀌지 않았다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_b6f54e11c8a9_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_b6f54e11c8a9",
+        "family_id": "family_b6f54e11c8a9",
+        "checkpoint_id": "cr2_b6f54e11c8a9_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "남천 도서관 책 수선의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_b6f54e11c8a9",
+          "project_id": "project_b6f54e11c8a9",
+          "subject_id": "subject_b6f54e11c8a9_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_b6f54e11c8a9_o1",
+            "type": "episodic",
+            "content": "남천 도서관 책 수선에서 표지가 찢어진 책은 투명 보수 테이프를 쓴다. 페이지가 빠진 책에는 테이프를 쓰지 않는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_b6f54e11c8a9",
+              "project_id": "project_b6f54e11c8a9",
+              "subject_id": "subject_b6f54e11c8a9_x"
+            },
+            "sha256": "99898fd4b1b11ba744882e132401a2d376143cf0e1dc0016a3f5ca4dd5b673a5"
+          },
+          {
+            "evidence_id": "cr2_b6f54e11c8a9_o2",
+            "type": "episodic",
+            "content": "남천 도서관 책 수선의 페이지가 빠진 책은 실로 다시 꿰맨다. 꿰맨 책은 하루 동안 무거운 판 아래 둔다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_b6f54e11c8a9",
+              "project_id": "project_b6f54e11c8a9",
+              "subject_id": "subject_b6f54e11c8a9_x"
+            },
+            "sha256": "a68efa860b75eb16698468a3cff53d70c3ab6e0b5b3d92b3668e0030e1a1fe10"
+          },
+          {
+            "evidence_id": "cr2_b6f54e11c8a9_o3",
+            "type": "episodic",
+            "content": "남천 도서관 책 수선에서 아동 열람실 책은 표지가 찢어져도 테이프 대신 비닐 덮개를 씌운다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_b6f54e11c8a9",
+              "project_id": "project_b6f54e11c8a9",
+              "subject_id": "subject_b6f54e11c8a9_x"
+            },
+            "sha256": "ef87fd4978066c32179989eab3dd6d0edc4f90da2b58ba42c06df188ddedb69e"
+          },
+          {
+            "evidence_id": "cr2_b6f54e11c8a9_o4",
+            "type": "episodic",
+            "content": "10월 12일 남천 도서관 책 수선 회차에서 아동 열람실 책 다섯 권에 비닐 덮개를 씌웠다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_b6f54e11c8a9",
+              "project_id": "project_b6f54e11c8a9",
+              "subject_id": "subject_b6f54e11c8a9_x"
+            },
+            "sha256": "c31492f93c0c60026f623579c103b98fca4866711b78b0a31f004d36ead60158"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_b6f54e11c8a9_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 남천 도서관 책 수선에서 표지가 찢어진 책은 투명 보수 테이프를 쓴다. 페이지가 빠진 책에는 테이프를 쓰지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 남천 도서관 책 수선의 페이지가 빠진 책은 실로 다시 꿰맨다. 꿰맨 책은 하루 동안 무거운 판 아래 둔다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 남천 도서관 책 수선에서 아동 열람실 책은 표지가 찢어져도 테이프 대신 비닐 덮개를 씌운다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_4",
+            "claim": "과거 관찰(회차 구분): 10월 12일 남천 도서관 책 수선 회차에서 아동 열람실 책 다섯 권에 비닐 덮개를 씌웠다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_b6f54e11c8a9_o1",
+          "cr2_b6f54e11c8a9_o2",
+          "cr2_b6f54e11c8a9_o3",
+          "cr2_b6f54e11c8a9_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_b6f54e11c8a9_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "cover_tape",
+            "claim": "표지가 찢어진 책은 투명 보수 테이프를 쓴다(아동 열람실 책은 예외).",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o1",
+              "cr2_b6f54e11c8a9_o3"
+            ]
+          },
+          {
+            "fact_key": "child_cover",
+            "claim": "아동 열람실 책은 표지가 찢어져도 테이프 대신 비닐 덮개를 씌운다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o3"
+            ]
+          },
+          {
+            "fact_key": "page_no_tape",
+            "claim": "페이지가 빠진 책에는 테이프를 쓰지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o1"
+            ]
+          },
+          {
+            "fact_key": "page_sew",
+            "claim": "페이지가 빠진 책은 실로 다시 꿰매고, 꿰맨 책은 하루 동안 무거운 판 아래 둔다.",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 회차에서 아동 열람실 책 다섯 권에 비닐 덮개를 씌웠다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_b6f54e11c8a9_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "아동 열람실의 표지 찢어진 책에도 테이프를 쓴다.",
+            "evidence_refs": [
+              "cr2_b6f54e11c8a9_o1"
+            ],
+            "reason": "o3가 아동 열람실 책에 비닐 덮개 조건을 더했다."
+          },
+          {
+            "claim": "모든 책의 표지 수선을 비닐 덮개로 바꿨다.",
+            "evidence_refs": [
+              "cr2_b6f54e11c8a9_o3"
+            ],
+            "reason": "비닐 덮개는 아동 열람실 책 조건이다(B3)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_b6f54e11c8a9_o1",
+          "cr2_b6f54e11c8a9_o2",
+          "cr2_b6f54e11c8a9_o3",
+          "cr2_b6f54e11c8a9_o4"
+        ],
+        "rationale": "o3는 o1을 대체하지 않고 아동 열람실 책 조건을 더한다. o4는 그 조건을 따른 10월 12일 관찰이다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_bd50d0f24f2a_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_bd50d0f24f2a",
+        "family_id": "family_bd50d0f24f2a",
+        "checkpoint_id": "cr2_bd50d0f24f2a_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "동백 아파트 분리수거의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_bd50d0f24f2a",
+          "project_id": "project_bd50d0f24f2a",
+          "subject_id": "subject_bd50d0f24f2a_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_bd50d0f24f2a_o1",
+            "type": "episodic",
+            "content": "동백 아파트 분리수거 요일은 플라스틱이 화요일, 종이가 목요일이다. 수거함은 B동 앞에 둔다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_bd50d0f24f2a",
+              "project_id": "project_bd50d0f24f2a",
+              "subject_id": "subject_bd50d0f24f2a_x"
+            },
+            "sha256": "5e85a6b0c9c9cd526e5eea11ed34da8bcedb9b14d7c5d414e42fabf886ed3634"
+          },
+          {
+            "evidence_id": "cr2_bd50d0f24f2a_o2",
+            "type": "episodic",
+            "content": "10월 5일 동백 아파트 분리수거 첫 회차에 플라스틱 수거함이 화요일 오전에 가득 찼다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_bd50d0f24f2a",
+              "project_id": "project_bd50d0f24f2a",
+              "subject_id": "subject_bd50d0f24f2a_x"
+            },
+            "sha256": "d6c8c99ef247dd33db89b0a8ab39223fcee9078620489a078c41d850df823972"
+          },
+          {
+            "evidence_id": "cr2_bd50d0f24f2a_o3",
+            "type": "episodic",
+            "content": "동백 아파트 분리수거 요일을 바꾼다. 플라스틱은 화요일과 금요일 두 번 걷는다. 종이는 목요일 그대로다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_bd50d0f24f2a",
+              "project_id": "project_bd50d0f24f2a",
+              "subject_id": "subject_bd50d0f24f2a_x"
+            },
+            "sha256": "ff287d956688b5a9337d137ec87d3be7722d9d1dfa035ab505c58b60887e67eb"
+          },
+          {
+            "evidence_id": "cr2_bd50d0f24f2a_o4",
+            "type": "episodic",
+            "content": "동백 아파트 분리수거 수거함 위치를 B동 앞에서 지하 주차장 입구로 옮긴다. 요일은 그대로다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_bd50d0f24f2a",
+              "project_id": "project_bd50d0f24f2a",
+              "subject_id": "subject_bd50d0f24f2a_x"
+            },
+            "sha256": "92918f466588ac46bc0cde8ee94100b9b19a964507ec297e01cb3da10e7cce64"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_bd50d0f24f2a_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1",
+            "claim": "과거 관찰(회차 구분): 10월 5일 동백 아파트 분리수거 첫 회차에 플라스틱 수거함이 화요일 오전에 가득 찼다.",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 동백 아파트 분리수거 요일을 바꾼다. 플라스틱은 화요일과 금요일 두 번 걷는다. 종이는 목요일 그대로다.",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o3"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 동백 아파트 분리수거 수거함 위치를 B동 앞에서 지하 주차장 입구로 옮긴다. 요일은 그대로다.",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 동백 아파트 분리수거 요일은 플라스틱이 화요일, 종이가 목요일이다. 수거함은 B동 앞에 둔다.",
+            "evidence_refs": [
+              "cr2_bd50d0f24f2a_o1"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_bd50d0f24f2a_o2",
+          "cr2_bd50d0f24f2a_o3",
+          "cr2_bd50d0f24f2a_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_bd50d0f24f2a_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "plastic_current",
+            "claim": "플라스틱은 화요일과 금요일 두 번 걷는다(10월 12일 변경).",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o3"
+            ]
+          },
+          {
+            "fact_key": "paper",
+            "claim": "종이는 목요일에 걷는다.",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o1",
+              "cr2_bd50d0f24f2a_o3"
+            ]
+          },
+          {
+            "fact_key": "bin_location",
+            "claim": "수거함은 지하 주차장 입구에 둔다(B동 앞에서 옮김).",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o4"
+            ]
+          },
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 첫 회차에 플라스틱 수거함이 화요일 오전에 가득 찼다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_bd50d0f24f2a_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "플라스틱은 화요일에만 걷는다.",
+            "evidence_refs": [
+              "cr2_bd50d0f24f2a_o1"
+            ],
+            "reason": "o3가 금요일을 더했다."
+          },
+          {
+            "claim": "수거함은 B동 앞에 둔다.",
+            "evidence_refs": [
+              "cr2_bd50d0f24f2a_o1"
+            ],
+            "reason": "o4가 지하 주차장 입구로 옮겼다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_bd50d0f24f2a_o1",
+          "cr2_bd50d0f24f2a_o2",
+          "cr2_bd50d0f24f2a_o3",
+          "cr2_bd50d0f24f2a_o4"
+        ],
+        "rationale": "o3은 플라스틱 요일, o4는 수거함 위치를 바꿨다. 종이 요일은 유지된다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ce490e6605c4_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_ce490e6605c4",
+        "family_id": "family_ce490e6605c4",
+        "checkpoint_id": "cr2_ce490e6605c4_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "솔밭 캠핑장 장비 대여의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_ce490e6605c4",
+          "project_id": "project_ce490e6605c4",
+          "subject_id": "subject_ce490e6605c4_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_ce490e6605c4_o1",
+            "type": "episodic",
+            "content": "솔밭 캠핑장 장비 대여에서 4인용 텐트는 보증금 2만 원을 받는다. 2인용 텐트는 보증금 없이 빌려준다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_ce490e6605c4",
+              "project_id": "project_ce490e6605c4",
+              "subject_id": "subject_ce490e6605c4_x"
+            },
+            "sha256": "6313264f3678e94bc244f420ff64976a12f5768990838cdce5dc9fdfb9b30493"
+          },
+          {
+            "evidence_id": "cr2_ce490e6605c4_o2",
+            "type": "episodic",
+            "content": "솔밭 캠핑장 장비 대여의 침낭은 영하 예보가 있는 날에만 두꺼운 것을 내준다. 다른 날은 얇은 침낭을 내준다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_ce490e6605c4",
+              "project_id": "project_ce490e6605c4",
+              "subject_id": "subject_ce490e6605c4_x"
+            },
+            "sha256": "28e923e0e4ecff74bf12329a92cfd8be36c81914df84b3f97652a4b094cdf284"
+          },
+          {
+            "evidence_id": "cr2_ce490e6605c4_o3",
+            "type": "episodic",
+            "content": "솔밭 캠핑장 장비 대여에서 단체 예약 손님은 4인용 텐트 보증금을 1만 원으로 받는다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_ce490e6605c4",
+              "project_id": "project_ce490e6605c4",
+              "subject_id": "subject_ce490e6605c4_x"
+            },
+            "sha256": "4919fb8dc39beef95d852ff9bb81e33d517c0ee90f3f59b59a0cc8ee152ded35"
+          },
+          {
+            "evidence_id": "cr2_ce490e6605c4_o4",
+            "type": "episodic",
+            "content": "솔밭 캠핑장 장비 대여의 랜턴은 반납할 때 배터리 칸을 열어 본다. 배터리가 새면 보증금을 깎지 않고 기록만 한다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_ce490e6605c4",
+              "project_id": "project_ce490e6605c4",
+              "subject_id": "subject_ce490e6605c4_x"
+            },
+            "sha256": "4189c1b2f25f573ef55b535de357ee77330fb7fed7aaef5564e5164e8d8d6e30"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_ce490e6605c4_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 솔밭 캠핑장 장비 대여에서 4인용 텐트는 보증금 2만 원을 받는다. 2인용 텐트는 보증금 없이 빌려준다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 솔밭 캠핑장 장비 대여의 침낭은 영하 예보가 있는 날에만 두꺼운 것을 내준다. 다른 날은 얇은 침낭을 내준다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 솔밭 캠핑장 장비 대여에서 단체 예약 손님은 4인용 텐트 보증금을 1만 원으로 받는다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o3"
+            ]
+          },
+          {
+            "fact_key": "dir_4",
+            "claim": "질의 시점 현재 지침: 솔밭 캠핑장 장비 대여의 랜턴은 반납할 때 배터리 칸을 열어 본다. 배터리가 새면 보증금을 깎지 않고 기록만 한다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_ce490e6605c4_o1",
+          "cr2_ce490e6605c4_o2",
+          "cr2_ce490e6605c4_o3",
+          "cr2_ce490e6605c4_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_ce490e6605c4_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "tent4",
+            "claim": "4인용 텐트는 보증금 2만 원을 받는다(단체 예약 손님 제외).",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o1",
+              "cr2_ce490e6605c4_o3"
+            ]
+          },
+          {
+            "fact_key": "tent4_group",
+            "claim": "단체 예약 손님은 4인용 텐트 보증금을 1만 원으로 받는다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o3"
+            ]
+          },
+          {
+            "fact_key": "tent2",
+            "claim": "2인용 텐트는 보증금 없이 빌려준다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o1"
+            ]
+          },
+          {
+            "fact_key": "sleeping_bag",
+            "claim": "영하 예보가 있는 날에만 두꺼운 침낭을 내주고 다른 날은 얇은 침낭을 내준다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o2"
+            ]
+          },
+          {
+            "fact_key": "lantern",
+            "claim": "랜턴은 반납할 때 배터리 칸을 열어 보고, 배터리가 새면 보증금을 깎지 않고 기록만 한다.",
+            "supporting_evidence_refs": [
+              "cr2_ce490e6605c4_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "4인용 텐트 보증금은 누구에게나 1만 원이다.",
+            "evidence_refs": [
+              "cr2_ce490e6605c4_o3"
+            ],
+            "reason": "1만 원은 단체 예약 손님 조건이다(B3)."
+          },
+          {
+            "claim": "단체 예약 손님도 4인용 텐트 보증금 2만 원이다.",
+            "evidence_refs": [
+              "cr2_ce490e6605c4_o1"
+            ],
+            "reason": "o3의 단체 조건을 지운 답이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_ce490e6605c4_o1",
+          "cr2_ce490e6605c4_o2",
+          "cr2_ce490e6605c4_o3",
+          "cr2_ce490e6605c4_o4"
+        ],
+        "rationale": "o3는 단체 예약 조건을 더하고 o4는 랜턴 조건을 더한다. 정정은 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_cf4fc38cde9d_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_cf4fc38cde9d",
+        "family_id": "family_cf4fc38cde9d",
+        "checkpoint_id": "cr2_cf4fc38cde9d_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "진달래 공동육아 물품 장부의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_cf4fc38cde9d",
+          "project_id": "project_cf4fc38cde9d",
+          "subject_id": "subject_cf4fc38cde9d_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_cf4fc38cde9d_o1",
+            "type": "episodic",
+            "content": "진달래 공동육아 물품 장부에는 기부받은 장난감을 품목과 상태로 적는다. 장부는 표지가 초록색인 공책이다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_cf4fc38cde9d",
+              "project_id": "project_cf4fc38cde9d",
+              "subject_id": "subject_cf4fc38cde9d_x"
+            },
+            "sha256": "0ff56dc85f08c9294e658c89dfd16dcdaadfbacb69d1ba07f313126313e5881b"
+          },
+          {
+            "evidence_id": "cr2_cf4fc38cde9d_o2",
+            "type": "episodic",
+            "content": "10월 5일 진달래 공동육아 물품 장부 첫 회차에 블록 세트 두 개와 그림책 아홉 권이 적혔다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_cf4fc38cde9d",
+              "project_id": "project_cf4fc38cde9d",
+              "subject_id": "subject_cf4fc38cde9d_x"
+            },
+            "sha256": "82f21443fa571a796848b39952b2169f9b2f9279bd5d98dcf5504f037fd3b49a"
+          },
+          {
+            "evidence_id": "cr2_cf4fc38cde9d_o3",
+            "type": "episodic",
+            "content": "진달래 공동육아 물품 장부를 사진을 함께 붙이는 새 양식으로 바꾼다. 초록 공책은 새 양식 옆에 함께 둔다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_cf4fc38cde9d",
+              "project_id": "project_cf4fc38cde9d",
+              "subject_id": "subject_cf4fc38cde9d_x"
+            },
+            "sha256": "3108dff5ef531fa043cafff4bb296d29503460966e168bb4092989be098849dd"
+          },
+          {
+            "evidence_id": "cr2_cf4fc38cde9d_o4",
+            "type": "episodic",
+            "content": "10월 12일 진달래 공동육아 물품 장부 회차에 새 양식으로 장난감 여섯 개를 적었고 흐린 사진 두 장은 다시 찍었다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_cf4fc38cde9d",
+              "project_id": "project_cf4fc38cde9d",
+              "subject_id": "subject_cf4fc38cde9d_x"
+            },
+            "sha256": "1ceaa180c8487040f070c1ff722c9c9c42fddb1349f5a2d06311cb0709486c10"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_cf4fc38cde9d_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 진달래 공동육아 물품 장부에는 기부받은 장난감을 품목과 상태로 적는다. 장부는 표지가 초록색인 공책이다.",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2",
+            "claim": "과거 관찰(회차 구분): 10월 5일 진달래 공동육아 물품 장부 첫 회차에 블록 세트 두 개와 그림책 아홉 권이 적혔다.",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 진달래 공동육아 물품 장부를 사진을 함께 붙이는 새 양식으로 바꾼다. 초록 공책은 새 양식 옆에 함께 둔다.",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_4",
+            "claim": "과거 관찰(회차 구분): 10월 12일 진달래 공동육아 물품 장부 회차에 새 양식으로 장난감 여섯 개를 적었고 흐린 사진 두 장은 다시 찍었다.",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_cf4fc38cde9d_o1",
+          "cr2_cf4fc38cde9d_o2",
+          "cr2_cf4fc38cde9d_o3",
+          "cr2_cf4fc38cde9d_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_cf4fc38cde9d_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "form_current",
+            "claim": "물품 장부는 사진을 함께 붙이는 새 양식으로 쓴다(10월 12일 바꿈).",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o3"
+            ]
+          },
+          {
+            "fact_key": "content",
+            "claim": "기부받은 장난감을 품목과 상태로 적는다.",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o1"
+            ]
+          },
+          {
+            "fact_key": "keep_notebook",
+            "claim": "초록 공책은 새 양식 옆에 함께 둔다.",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 첫 회차에 블록 세트 두 개와 그림책 아홉 권이 적혔다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 회차에 새 양식으로 장난감 여섯 개를 적었고 흐린 사진 두 장은 다시 찍었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_cf4fc38cde9d_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "현재 장부는 초록 공책만 쓴다.",
+            "evidence_refs": [
+              "cr2_cf4fc38cde9d_o1"
+            ],
+            "reason": "o3가 새 양식으로 바꿨다."
+          },
+          {
+            "claim": "초록 공책은 치우거나 버린다.",
+            "evidence_refs": [
+              "cr2_cf4fc38cde9d_o3"
+            ],
+            "reason": "새 양식 옆에 함께 두라는 지시가 있다(B2)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_cf4fc38cde9d_o1",
+          "cr2_cf4fc38cde9d_o2",
+          "cr2_cf4fc38cde9d_o3",
+          "cr2_cf4fc38cde9d_o4"
+        ],
+        "rationale": "o3는 양식을 바꾸고 옛 공책 보존을 지시했다. 기록 항목은 언급하지 않아 유지된다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d0f71a26404d_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_d0f71a26404d",
+        "family_id": "family_d0f71a26404d",
+        "checkpoint_id": "cr2_d0f71a26404d_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "무지개 시장 상인회 회의록의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_d0f71a26404d",
+          "project_id": "project_d0f71a26404d",
+          "subject_id": "subject_d0f71a26404d_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_d0f71a26404d_o1",
+            "type": "episodic",
+            "content": "무지개 시장 상인회 회의록은 회의 다음 날까지 시장 공용 게시판 2번 칸에 붙인다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_d0f71a26404d",
+              "project_id": "project_d0f71a26404d",
+              "subject_id": "subject_d0f71a26404d_x"
+            },
+            "sha256": "8943dbea58805dc157634448f8ce698bb6a78b43bf0db7b249ab06214661f3fc"
+          },
+          {
+            "evidence_id": "cr2_d0f71a26404d_o2",
+            "type": "episodic",
+            "content": "무지개 시장 상인회 회의록에는 참석자 수와 결정 사항만 적는다. 발언자 이름은 적지 않는다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_d0f71a26404d",
+              "project_id": "project_d0f71a26404d",
+              "subject_id": "subject_d0f71a26404d_x"
+            },
+            "sha256": "2a7f0c01274b2d5d097889f9692843d5f57aaf9db24cbd3bb280f3e746b13414"
+          },
+          {
+            "evidence_id": "cr2_d0f71a26404d_o3",
+            "type": "episodic",
+            "content": "무지개 시장 주차장 청소는 매달 둘째 주 월요일에 한다. 상인회 회의록과는 관계없다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_d0f71a26404d",
+              "project_id": "project_d0f71a26404d",
+              "subject_id": "subject_d0f71a26404d_y"
+            },
+            "sha256": "cef3e070f79a06f519d3787c09fdc192fbc2de13d293265c160228ed8ab2cc39"
+          },
+          {
+            "evidence_id": "cr2_d0f71a26404d_o4",
+            "type": "episodic",
+            "content": "무지개 시장 주차장 청소 안내문은 공용 게시판 3번 칸에 붙이고 참석자 이름을 적는다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_d0f71a26404d",
+              "project_id": "project_d0f71a26404d",
+              "subject_id": "subject_d0f71a26404d_y"
+            },
+            "sha256": "cd122542f6b1640b21a1568fba49372037284fa51fea69ad0b3a822f84554e52"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_d0f71a26404d_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 무지개 시장 상인회 회의록은 회의 다음 날까지 시장 공용 게시판 2번 칸에 붙인다.",
+            "supporting_evidence_refs": [
+              "cr2_d0f71a26404d_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 무지개 시장 상인회 회의록에는 참석자 수와 결정 사항만 적는다. 발언자 이름은 적지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_d0f71a26404d_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "Y 작업을 X에 적용: 무지개 시장 주차장 청소는 매달 둘째 주 월요일에 한다. 상인회 회의록과는 관계없다.",
+            "evidence_refs": [
+              "cr2_d0f71a26404d_o3"
+            ],
+            "reason": "DF3"
+          },
+          {
+            "claim": "Y 작업을 X에 적용: 무지개 시장 주차장 청소 안내문은 공용 게시판 3번 칸에 붙이고 참석자 이름을 적는다.",
+            "evidence_refs": [
+              "cr2_d0f71a26404d_o4"
+            ],
+            "reason": "DF3"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_d0f71a26404d_o1",
+          "cr2_d0f71a26404d_o2"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_d0f71a26404d_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "posting",
+            "claim": "회의록은 회의 다음 날까지 시장 공용 게시판 2번 칸에 붙인다.",
+            "supporting_evidence_refs": [
+              "cr2_d0f71a26404d_o1"
+            ]
+          },
+          {
+            "fact_key": "content",
+            "claim": "회의록에는 참석자 수와 결정 사항만 적는다.",
+            "supporting_evidence_refs": [
+              "cr2_d0f71a26404d_o2"
+            ]
+          },
+          {
+            "fact_key": "no_names",
+            "claim": "발언자 이름은 적지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_d0f71a26404d_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "회의록은 게시판 3번 칸에 붙이거나 참석자 이름을 적는다.",
+            "evidence_refs": [
+              "cr2_d0f71a26404d_o4"
+            ],
+            "reason": "주차장 청소 안내문(별개 작업 Y)의 조건이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_d0f71a26404d_o1",
+          "cr2_d0f71a26404d_o2"
+        ],
+        "rationale": "o3, o4는 다른 subject(주차장 청소)다. 회의록 계약은 o1, o2만으로 정해진다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d3741b4c7805_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_d3741b4c7805",
+        "family_id": "family_d3741b4c7805",
+        "checkpoint_id": "cr2_d3741b4c7805_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "모래내 벼룩시장 부스 배치의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_d3741b4c7805",
+          "project_id": "project_d3741b4c7805",
+          "subject_id": "subject_d3741b4c7805_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_d3741b4c7805_o1",
+            "type": "episodic",
+            "content": "모래내 벼룩시장 부스 배치는 음식 부스를 입구 왼쪽에 두고 번호 1부터 6까지 붙인다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_d3741b4c7805",
+              "project_id": "project_d3741b4c7805",
+              "subject_id": "subject_d3741b4c7805_x"
+            },
+            "sha256": "2e79eaba6aee13717b724c22d339c3160477839c66f8cb6ebbb2a7332951b63b"
+          },
+          {
+            "evidence_id": "cr2_d3741b4c7805_o2",
+            "type": "episodic",
+            "content": "모래내 벼룩시장 부스 배치에서 옷 부스는 그늘이 있는 북쪽 벽을 따라 둔다. 부스 천막은 파란색이다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_d3741b4c7805",
+              "project_id": "project_d3741b4c7805",
+              "subject_id": "subject_d3741b4c7805_x"
+            },
+            "sha256": "063d5341db7c5cd38732e3a14f91f8dce9d8d17ccd632112b617f3f35f53673c"
+          },
+          {
+            "evidence_id": "cr2_d3741b4c7805_o3",
+            "type": "episodic",
+            "content": "모래내 벼룩시장 현수막 제작은 빨간 바탕에 흰 글씨로 한다. 이 작업은 부스 배치와 별개다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_d3741b4c7805",
+              "project_id": "project_d3741b4c7805",
+              "subject_id": "subject_d3741b4c7805_y"
+            },
+            "sha256": "f9c1ea812175720121f87496c1493eb74d1c2b6056a7c5837205f96353da959a"
+          },
+          {
+            "evidence_id": "cr2_d3741b4c7805_o4",
+            "type": "episodic",
+            "content": "모래내 벼룩시장 현수막 제작에서 번호 3이 적힌 현수막은 입구 오른쪽 기둥에 단다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_d3741b4c7805",
+              "project_id": "project_d3741b4c7805",
+              "subject_id": "subject_d3741b4c7805_y"
+            },
+            "sha256": "304e8fc10e9989d765122864ee8298181ef3f49aa00573271b9897d151f5f268"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_d3741b4c7805_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 모래내 벼룩시장 부스 배치는 음식 부스를 입구 왼쪽에 두고 번호 1부터 6까지 붙인다.",
+            "supporting_evidence_refs": [
+              "cr2_d3741b4c7805_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 모래내 벼룩시장 부스 배치에서 옷 부스는 그늘이 있는 북쪽 벽을 따라 둔다. 부스 천막은 파란색이다.",
+            "supporting_evidence_refs": [
+              "cr2_d3741b4c7805_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "Y 작업을 X에 적용: 모래내 벼룩시장 현수막 제작은 빨간 바탕에 흰 글씨로 한다. 이 작업은 부스 배치와 별개다.",
+            "evidence_refs": [
+              "cr2_d3741b4c7805_o3"
+            ],
+            "reason": "DF3"
+          },
+          {
+            "claim": "Y 작업을 X에 적용: 모래내 벼룩시장 현수막 제작에서 번호 3이 적힌 현수막은 입구 오른쪽 기둥에 단다.",
+            "evidence_refs": [
+              "cr2_d3741b4c7805_o4"
+            ],
+            "reason": "DF3"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_d3741b4c7805_o1",
+          "cr2_d3741b4c7805_o2"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_d3741b4c7805_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "food",
+            "claim": "음식 부스는 입구 왼쪽에 두고 번호 1부터 6까지 붙인다.",
+            "supporting_evidence_refs": [
+              "cr2_d3741b4c7805_o1"
+            ]
+          },
+          {
+            "fact_key": "clothes",
+            "claim": "옷 부스는 그늘이 있는 북쪽 벽을 따라 둔다.",
+            "supporting_evidence_refs": [
+              "cr2_d3741b4c7805_o2"
+            ]
+          },
+          {
+            "fact_key": "tent",
+            "claim": "부스 천막은 파란색이다.",
+            "supporting_evidence_refs": [
+              "cr2_d3741b4c7805_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "부스 배치에서 3번 부스를 입구 오른쪽 기둥에 두거나 천막을 빨간색으로 한다.",
+            "evidence_refs": [
+              "cr2_d3741b4c7805_o3",
+              "cr2_d3741b4c7805_o4"
+            ],
+            "reason": "현수막 제작(별개 작업 Y)의 조건이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_d3741b4c7805_o1",
+          "cr2_d3741b4c7805_o2"
+        ],
+        "rationale": "o3, o4는 다른 subject(현수막 제작)다. 부스 배치 계약은 o1, o2만으로 정해진다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d6328978bc46_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_d6328978bc46",
+        "family_id": "family_d6328978bc46",
+        "checkpoint_id": "cr2_d6328978bc46_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "해바라기 아동센터 간식 준비의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_d6328978bc46",
+          "project_id": "project_d6328978bc46",
+          "subject_id": "subject_d6328978bc46_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_d6328978bc46_o1",
+            "type": "episodic",
+            "content": "해바라기 아동센터 간식 준비는 오후 3시 30분에 차린다. 간식에 견과류는 쓰지 않는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_d6328978bc46",
+              "project_id": "project_d6328978bc46",
+              "subject_id": "subject_d6328978bc46_x"
+            },
+            "sha256": "a9a6d9abe8f9665c99dcdfdffe47b80d7f690c4ed58394838541b4e9b66b3d0e"
+          },
+          {
+            "evidence_id": "cr2_d6328978bc46_o2",
+            "type": "episodic",
+            "content": "해바라기 아동센터 간식 준비에서 과일은 두 가지를 낸다. 접시는 초록 접시 열두 개를 쓴다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_d6328978bc46",
+              "project_id": "project_d6328978bc46",
+              "subject_id": "subject_d6328978bc46_x"
+            },
+            "sha256": "532a0bda3549ebc3fc67b5f6da51826851b4b641f05fde0e17ee1859384c31a5"
+          },
+          {
+            "evidence_id": "cr2_d6328978bc46_o3",
+            "type": "episodic",
+            "content": "해바라기 아동센터 미술 재료 정리는 오후 4시에 한다. 간식 준비와는 다른 작업이다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_d6328978bc46",
+              "project_id": "project_d6328978bc46",
+              "subject_id": "subject_d6328978bc46_y"
+            },
+            "sha256": "e4b425a437424274af3d9ebd700e92cccbd5d471198b210fc0a70f6b65b2af7d"
+          },
+          {
+            "evidence_id": "cr2_d6328978bc46_o4",
+            "type": "episodic",
+            "content": "해바라기 아동센터 미술 재료 정리에서 견과류 껍질 공예 재료는 빨간 상자에 넣는다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_d6328978bc46",
+              "project_id": "project_d6328978bc46",
+              "subject_id": "subject_d6328978bc46_y"
+            },
+            "sha256": "94916085b6a31d99bcba1195c2d618fbe27e61a96b3db58124e7d51b0c022ed4"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_d6328978bc46_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 해바라기 아동센터 간식 준비는 오후 3시 30분에 차린다. 간식에 견과류는 쓰지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_d6328978bc46_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 해바라기 아동센터 간식 준비에서 과일은 두 가지를 낸다. 접시는 초록 접시 열두 개를 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_d6328978bc46_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "Y 작업을 X에 적용: 해바라기 아동센터 미술 재료 정리는 오후 4시에 한다. 간식 준비와는 다른 작업이다.",
+            "evidence_refs": [
+              "cr2_d6328978bc46_o3"
+            ],
+            "reason": "DF3"
+          },
+          {
+            "claim": "Y 작업을 X에 적용: 해바라기 아동센터 미술 재료 정리에서 견과류 껍질 공예 재료는 빨간 상자에 넣는다.",
+            "evidence_refs": [
+              "cr2_d6328978bc46_o4"
+            ],
+            "reason": "DF3"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_d6328978bc46_o1",
+          "cr2_d6328978bc46_o2"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_d6328978bc46_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "time",
+            "claim": "간식은 오후 3시 30분에 차린다.",
+            "supporting_evidence_refs": [
+              "cr2_d6328978bc46_o1"
+            ]
+          },
+          {
+            "fact_key": "no_nuts",
+            "claim": "간식에 견과류는 쓰지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_d6328978bc46_o1"
+            ]
+          },
+          {
+            "fact_key": "fruit",
+            "claim": "과일은 두 가지를 낸다.",
+            "supporting_evidence_refs": [
+              "cr2_d6328978bc46_o2"
+            ]
+          },
+          {
+            "fact_key": "plates",
+            "claim": "접시는 초록 접시 열두 개를 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_d6328978bc46_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "간식 준비에 견과류를 쓰거나 재료를 빨간 상자에 담는다.",
+            "evidence_refs": [
+              "cr2_d6328978bc46_o4"
+            ],
+            "reason": "견과류 껍질 공예 재료는 미술 재료 정리(별개 작업 Y)다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_d6328978bc46_o1",
+          "cr2_d6328978bc46_o2"
+        ],
+        "rationale": "o3, o4는 다른 subject(미술 재료 정리)다. 간식 준비 계약은 o1, o2만으로 정해진다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da6ae709f2a1_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_da6ae709f2a1",
+        "family_id": "family_da6ae709f2a1",
+        "checkpoint_id": "cr2_da6ae709f2a1_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "한빛 요양원 면회의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_da6ae709f2a1",
+          "project_id": "project_da6ae709f2a1",
+          "subject_id": "subject_da6ae709f2a1_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_da6ae709f2a1_o1",
+            "type": "episodic",
+            "content": "한빛 요양원 면회 시간은 평일 오후 2시부터 4시까지다. 면회객은 한 번에 두 명까지 들어간다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_da6ae709f2a1",
+              "project_id": "project_da6ae709f2a1",
+              "subject_id": "subject_da6ae709f2a1_x"
+            },
+            "sha256": "04c921c6095d867b3c913b6d77a2ed69482d2d96e0cd4c434a45ee5b7008270b"
+          },
+          {
+            "evidence_id": "cr2_da6ae709f2a1_o2",
+            "type": "episodic",
+            "content": "한빛 요양원 면회 시간은 주말에 오전 10시부터 12시까지다. 주말에도 두 명 제한은 같다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_da6ae709f2a1",
+              "project_id": "project_da6ae709f2a1",
+              "subject_id": "subject_da6ae709f2a1_x"
+            },
+            "sha256": "9b1101c27247007bf61d70d5a7e1ec343c43ae0b3efa331e0c7fc58e570ce3e4"
+          },
+          {
+            "evidence_id": "cr2_da6ae709f2a1_o3",
+            "type": "episodic",
+            "content": "한빛 요양원 면회 시간 변경: 평일은 오후 3시부터 5시까지로 늦춘다. 주말 시간은 바꾸지 않는다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_da6ae709f2a1",
+              "project_id": "project_da6ae709f2a1",
+              "subject_id": "subject_da6ae709f2a1_x"
+            },
+            "sha256": "d7238309d6165bdd00c31103f713225b8aff0a9da4681b2737b0ea70355bbb9b"
+          },
+          {
+            "evidence_id": "cr2_da6ae709f2a1_o4",
+            "type": "episodic",
+            "content": "10월 12일 한빛 요양원 면회 회차에 평일 면회객 일부가 3시 전에 와서 로비에서 기다렸다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_da6ae709f2a1",
+              "project_id": "project_da6ae709f2a1",
+              "subject_id": "subject_da6ae709f2a1_x"
+            },
+            "sha256": "af7447ad61cde4a59f639780e814221a7ae184495a4e4a7dbd3e3c4947a307f1"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_da6ae709f2a1_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 한빛 요양원 면회 시간은 주말에 오전 10시부터 12시까지다. 주말에도 두 명 제한은 같다.",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 한빛 요양원 면회 시간 변경: 평일은 오후 3시부터 5시까지로 늦춘다. 주말 시간은 바꾸지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_3",
+            "claim": "과거 관찰(회차 구분): 10월 12일 한빛 요양원 면회 회차에 평일 면회객 일부가 3시 전에 와서 로비에서 기다렸다.",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 한빛 요양원 면회 시간은 평일 오후 2시부터 4시까지다. 면회객은 한 번에 두 명까지 들어간다.",
+            "evidence_refs": [
+              "cr2_da6ae709f2a1_o1"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_da6ae709f2a1_o2",
+          "cr2_da6ae709f2a1_o3",
+          "cr2_da6ae709f2a1_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_da6ae709f2a1_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "weekday_current",
+            "claim": "평일 면회는 오후 3시부터 5시까지다(10월 12일 2시~4시에서 늦춤).",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o3"
+            ]
+          },
+          {
+            "fact_key": "weekend",
+            "claim": "주말 면회는 오전 10시부터 12시까지다(변경 없음).",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o2",
+              "cr2_da6ae709f2a1_o3"
+            ]
+          },
+          {
+            "fact_key": "limit",
+            "claim": "면회객은 평일과 주말 모두 한 번에 두 명까지 들어간다.",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o1",
+              "cr2_da6ae709f2a1_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 회차에 평일 면회객 일부가 3시 전에 와서 로비에서 기다렸다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_da6ae709f2a1_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "평일 면회는 오후 2시부터 4시까지다.",
+            "evidence_refs": [
+              "cr2_da6ae709f2a1_o1"
+            ],
+            "reason": "o3가 3시~5시로 바꿨다."
+          },
+          {
+            "claim": "주말 면회 시간도 늦췄다.",
+            "evidence_refs": [
+              "cr2_da6ae709f2a1_o3"
+            ],
+            "reason": "o3가 주말은 바꾸지 않는다고 명시한다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_da6ae709f2a1_o1",
+          "cr2_da6ae709f2a1_o2",
+          "cr2_da6ae709f2a1_o3",
+          "cr2_da6ae709f2a1_o4"
+        ],
+        "rationale": "o3는 평일 시간만 바꿨다. 인원 제한은 유지된다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da745e7d6bc9_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_da745e7d6bc9",
+        "family_id": "family_da745e7d6bc9",
+        "checkpoint_id": "cr2_da745e7d6bc9_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "윤슬 공유 주방 음식물 건조기의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_da745e7d6bc9",
+          "project_id": "project_da745e7d6bc9",
+          "subject_id": "subject_da745e7d6bc9_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_da745e7d6bc9_o1",
+            "type": "episodic",
+            "content": "윤슬 공유 주방 음식물 건조기 시험에서 채소 껍질 한 통은 6시간 만에 바싹 말랐다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_da745e7d6bc9",
+              "project_id": "project_da745e7d6bc9",
+              "subject_id": "subject_da745e7d6bc9_x"
+            },
+            "sha256": "4221960090e64f313e3331c10a08e883cb697066933ab2f0bb5d6050b6b2c3f0"
+          },
+          {
+            "evidence_id": "cr2_da745e7d6bc9_o2",
+            "type": "episodic",
+            "content": "윤슬 공유 주방 음식물 건조기 시험은 국물이 있는 음식물과 생선 뼈로는 하지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_da745e7d6bc9",
+              "project_id": "project_da745e7d6bc9",
+              "subject_id": "subject_da745e7d6bc9_x"
+            },
+            "sha256": "967a489b40cedb809e30a9d7ae023e6d0648d8b0847c929763da7fef4f2d2201"
+          },
+          {
+            "evidence_id": "cr2_da745e7d6bc9_o3",
+            "type": "episodic",
+            "content": "10월 12일 윤슬 공유 주방 음식물 건조기 시험에서 채소 껍질 두 번째 통도 6시간 안에 말랐고 냄새가 적었다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_da745e7d6bc9",
+              "project_id": "project_da745e7d6bc9",
+              "subject_id": "subject_da745e7d6bc9_x"
+            },
+            "sha256": "581c2974c24984f172ac37078e084db0729ac825d110f8427c45126d609048a9"
+          },
+          {
+            "evidence_id": "cr2_da745e7d6bc9_o4",
+            "type": "episodic",
+            "content": "윤슬 공유 주방 음식물 건조기에 모든 음식물을 넣자고 관리인이 제안했다. 회원 투표는 하지 않았다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_da745e7d6bc9",
+              "project_id": "project_da745e7d6bc9",
+              "subject_id": "subject_da745e7d6bc9_x"
+            },
+            "sha256": "8074de624a69e76532a4e50fdab3b8a3be6e4662737493eabe0928d211d2315c"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_da745e7d6bc9_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1",
+            "claim": "과거 관찰(회차 구분): 윤슬 공유 주방 음식물 건조기 시험에서 채소 껍질 한 통은 6시간 만에 바싹 말랐다.",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_2",
+            "claim": "과거 관찰(회차 구분): 윤슬 공유 주방 음식물 건조기 시험은 국물이 있는 음식물과 생선 뼈로는 하지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_3",
+            "claim": "과거 관찰(회차 구분): 10월 12일 윤슬 공유 주방 음식물 건조기 시험에서 채소 껍질 두 번째 통도 6시간 안에 말랐고 냄새가 적었다.",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o3"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "제안·미결을 현재 지침으로 단정: 윤슬 공유 주방 음식물 건조기에 모든 음식물을 넣자고 관리인이 제안했다. 회원 투표는 하지 않았다.",
+            "evidence_refs": [
+              "cr2_da745e7d6bc9_o4"
+            ],
+            "reason": "DF2"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_da745e7d6bc9_o1",
+          "cr2_da745e7d6bc9_o2",
+          "cr2_da745e7d6bc9_o3"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_da745e7d6bc9_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 기록: 시험에서 채소 껍질 한 통이 6시간 만에 바싹 말랐다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_scope",
+            "claim": "10월 5일 기록 기준 국물이 있는 음식물과 생선 뼈로는 시험하지 않았고, 이후 기록에도 이들 시험 결과가 없다(미확정 범위).",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 시험에서 채소 껍질 두 번째 통도 6시간 안에 말랐고 냄새가 적었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o3"
+            ]
+          },
+          {
+            "fact_key": "proposal",
+            "claim": "관리인이 모든 음식물을 넣자고 제안했으나 회원 투표는 하지 않았다. 승인된 지시가 아니다.",
+            "supporting_evidence_refs": [
+              "cr2_da745e7d6bc9_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "건조기에 모든 음식물을 넣어도 된다(현재 지침).",
+            "evidence_refs": [
+              "cr2_da745e7d6bc9_o4"
+            ],
+            "reason": "관리인 제안일 뿐 투표나 승인이 없다(DF2)."
+          },
+          {
+            "claim": "국물 음식물이나 생선 뼈도 건조기로 잘 마른다.",
+            "evidence_refs": [
+              "cr2_da745e7d6bc9_o1",
+              "cr2_da745e7d6bc9_o2",
+              "cr2_da745e7d6bc9_o3"
+            ],
+            "reason": "시험한 대상은 채소 껍질뿐이다(DF1, B3)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_da745e7d6bc9_o1",
+          "cr2_da745e7d6bc9_o2",
+          "cr2_da745e7d6bc9_o3",
+          "cr2_da745e7d6bc9_o4"
+        ],
+        "rationale": "현재 승인된 사용 지침은 원문에 없다. 채소 껍질 2회 관찰과 미시험 범위, 미승인 제안을 구분해 답하면 계약이 정해진다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_db5a4ec8eccc_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_db5a4ec8eccc",
+        "family_id": "family_db5a4ec8eccc",
+        "checkpoint_id": "cr2_db5a4ec8eccc_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "하늘채 자전거 정비반 체인 점검의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_db5a4ec8eccc",
+          "project_id": "project_db5a4ec8eccc",
+          "subject_id": "subject_db5a4ec8eccc_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_db5a4ec8eccc_o1",
+            "type": "episodic",
+            "content": "하늘채 자전거 정비반 체인 점검에서 산악자전거 체인에는 젖은 날씨용 윤활유를 바른다. 도로용 자전거 윤활유는 아직 정하지 않았다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_db5a4ec8eccc",
+              "project_id": "project_db5a4ec8eccc",
+              "subject_id": "subject_db5a4ec8eccc_x"
+            },
+            "sha256": "2b312b02218d0621b081e309068b55a266205fd6c7ca90253856d56cff0a28d0"
+          },
+          {
+            "evidence_id": "cr2_db5a4ec8eccc_o2",
+            "type": "episodic",
+            "content": "하늘채 자전거 정비반 체인 점검은 늘어남 측정값이 0.5를 넘으면 체인을 교체한다. 0.5 이하이면 세척만 한다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_db5a4ec8eccc",
+              "project_id": "project_db5a4ec8eccc",
+              "subject_id": "subject_db5a4ec8eccc_x"
+            },
+            "sha256": "33b4630d0edceacbd2b1fbeec1e73b23e19d6d66edba3c5c0519d5125f0246ab"
+          },
+          {
+            "evidence_id": "cr2_db5a4ec8eccc_o3",
+            "type": "episodic",
+            "content": "하늘채 자전거 정비반 체인 점검에서 도로용 자전거 체인에는 건조한 날씨용 윤활유를 바르기로 했다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_db5a4ec8eccc",
+              "project_id": "project_db5a4ec8eccc",
+              "subject_id": "subject_db5a4ec8eccc_x"
+            },
+            "sha256": "bef57f38792f40a5498e376ea1a829f4e93871df319a643394ebc45fcc28413d"
+          },
+          {
+            "evidence_id": "cr2_db5a4ec8eccc_o4",
+            "type": "episodic",
+            "content": "하늘채 자전거 정비반 체인 점검의 아동용 자전거는 측정 대신 눈으로 처짐을 보고, 처지면 정비사에게 넘긴다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_db5a4ec8eccc",
+              "project_id": "project_db5a4ec8eccc",
+              "subject_id": "subject_db5a4ec8eccc_x"
+            },
+            "sha256": "3eda8368bcab8f5aade32a50c5730d715a64a2201d1d596ded2c582d85fd3896"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_db5a4ec8eccc_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 하늘채 자전거 정비반 체인 점검은 늘어남 측정값이 0.5를 넘으면 체인을 교체한다. 0.5 이하이면 세척만 한다.",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 하늘채 자전거 정비반 체인 점검에서 도로용 자전거 체인에는 건조한 날씨용 윤활유를 바르기로 했다.",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o3"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 하늘채 자전거 정비반 체인 점검의 아동용 자전거는 측정 대신 눈으로 처짐을 보고, 처지면 정비사에게 넘긴다.",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "제안·미결을 현재 지침으로 단정: 하늘채 자전거 정비반 체인 점검에서 산악자전거 체인에는 젖은 날씨용 윤활유를 바른다. 도로용 자전거 윤활유는 아직 정하지 않았다.",
+            "evidence_refs": [
+              "cr2_db5a4ec8eccc_o1"
+            ],
+            "reason": "DF2"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_db5a4ec8eccc_o2",
+          "cr2_db5a4ec8eccc_o3",
+          "cr2_db5a4ec8eccc_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_db5a4ec8eccc_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "mtb",
+            "claim": "산악자전거 체인에는 젖은 날씨용 윤활유를 바른다.",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o1"
+            ]
+          },
+          {
+            "fact_key": "road",
+            "claim": "도로용 자전거 체인에는 건조한 날씨용 윤활유를 바른다(10월 12일 정함).",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o3"
+            ]
+          },
+          {
+            "fact_key": "stretch",
+            "claim": "늘어남 측정값이 0.5를 넘으면 체인을 교체하고 0.5 이하이면 세척만 한다.",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o2"
+            ]
+          },
+          {
+            "fact_key": "kids",
+            "claim": "아동용 자전거는 측정 대신 눈으로 처짐을 보고, 처지면 정비사에게 넘긴다.",
+            "supporting_evidence_refs": [
+              "cr2_db5a4ec8eccc_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "도로용 자전거 윤활유는 아직 정하지 않았다.",
+            "evidence_refs": [
+              "cr2_db5a4ec8eccc_o1"
+            ],
+            "reason": "o3에서 정했다. 미정은 10월 5일 시점 상태다."
+          },
+          {
+            "claim": "아동용 자전거도 0.5 측정 기준으로 교체를 판단한다.",
+            "evidence_refs": [
+              "cr2_db5a4ec8eccc_o2"
+            ],
+            "reason": "o4가 아동용은 측정 대신 육안 확인이라고 한다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_db5a4ec8eccc_o1",
+          "cr2_db5a4ec8eccc_o2",
+          "cr2_db5a4ec8eccc_o3",
+          "cr2_db5a4ec8eccc_o4"
+        ],
+        "rationale": "o3가 o1의 미정 항목을 확정했고 o4는 아동용 조건을 더했다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e14c985fef9c_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_e14c985fef9c",
+        "family_id": "family_e14c985fef9c",
+        "checkpoint_id": "cr2_e14c985fef9c_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "오름 등산 모임 지팡이 시험의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_e14c985fef9c",
+          "project_id": "project_e14c985fef9c",
+          "subject_id": "subject_e14c985fef9c_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_e14c985fef9c_o1",
+            "type": "episodic",
+            "content": "오름 등산 모임 지팡이 시험에서 하산 구간 한 번은 접이식 지팡이를 쓴 회원의 무릎 통증 보고가 없었다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e14c985fef9c",
+              "project_id": "project_e14c985fef9c",
+              "subject_id": "subject_e14c985fef9c_x"
+            },
+            "sha256": "790e95830eb1d94a33ef70fb23e1edb693c725b9a724300f990aa51a4a3e4a0c"
+          },
+          {
+            "evidence_id": "cr2_e14c985fef9c_o2",
+            "type": "episodic",
+            "content": "오름 등산 모임 지팡이 시험은 아직 오르막 구간과 눈 쌓인 길에서는 해 보지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e14c985fef9c",
+              "project_id": "project_e14c985fef9c",
+              "subject_id": "subject_e14c985fef9c_x"
+            },
+            "sha256": "f77a8bdc97609c79bf4b88adbdb52347d2d3ce7ff5183305feea43acfafa3b8b"
+          },
+          {
+            "evidence_id": "cr2_e14c985fef9c_o3",
+            "type": "episodic",
+            "content": "10월 12일 오름 등산 모임 지팡이 시험의 두 번째 하산에서는 지팡이를 쓴 회원 한 명이 손목이 아프다고 했다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e14c985fef9c",
+              "project_id": "project_e14c985fef9c",
+              "subject_id": "subject_e14c985fef9c_x"
+            },
+            "sha256": "de19b95381d6908a23e707c123e4aa2733bded26d453c5c054b10ba4380e1dee"
+          },
+          {
+            "evidence_id": "cr2_e14c985fef9c_o4",
+            "type": "episodic",
+            "content": "오름 등산 모임 지팡이 시험을 보고 총무가 모든 회원에게 지팡이를 사 주자고 제안했다. 아직 결정하지 않았다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e14c985fef9c",
+              "project_id": "project_e14c985fef9c",
+              "subject_id": "subject_e14c985fef9c_x"
+            },
+            "sha256": "f619a1bc75433da636793279305b2c0a649a1ce1160be0dd2b02b96dfff737bf"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_e14c985fef9c_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1",
+            "claim": "과거 관찰(회차 구분): 오름 등산 모임 지팡이 시험에서 하산 구간 한 번은 접이식 지팡이를 쓴 회원의 무릎 통증 보고가 없었다.",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 오름 등산 모임 지팡이 시험은 아직 오르막 구간과 눈 쌓인 길에서는 해 보지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_3",
+            "claim": "과거 관찰(회차 구분): 10월 12일 오름 등산 모임 지팡이 시험의 두 번째 하산에서는 지팡이를 쓴 회원 한 명이 손목이 아프다고 했다.",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o3"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "제안·미결을 현재 지침으로 단정: 오름 등산 모임 지팡이 시험을 보고 총무가 모든 회원에게 지팡이를 사 주자고 제안했다. 아직 결정하지 않았다.",
+            "evidence_refs": [
+              "cr2_e14c985fef9c_o4"
+            ],
+            "reason": "DF2"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e14c985fef9c_o1",
+          "cr2_e14c985fef9c_o2",
+          "cr2_e14c985fef9c_o3"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_e14c985fef9c_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 기록: 하산 구간 한 번에서 접이식 지팡이를 쓴 회원의 무릎 통증 보고가 없었다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o1"
+            ]
+          },
+          {
+            "fact_key": "untested_scope",
+            "claim": "10월 5일 기록 기준 오르막 구간과 눈 쌓인 길에서는 시험하지 않았고, 이후 기록에도 결과가 없다(미확정 범위).",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 두 번째 하산에서 지팡이를 쓴 회원 한 명이 손목이 아프다고 했다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o3"
+            ]
+          },
+          {
+            "fact_key": "proposal",
+            "claim": "총무가 모든 회원에게 지팡이를 사 주자고 제안했으나 아직 결정하지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_e14c985fef9c_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "모든 회원에게 지팡이를 사 주기로 했다.",
+            "evidence_refs": [
+              "cr2_e14c985fef9c_o4"
+            ],
+            "reason": "제안이며 미결정이다(DF2)."
+          },
+          {
+            "claim": "지팡이는 통증을 막는다 또는 하산에서 늘 안전하다.",
+            "evidence_refs": [
+              "cr2_e14c985fef9c_o1",
+              "cr2_e14c985fef9c_o3"
+            ],
+            "reason": "한 번의 무통증 보고를 일반화했고, 두 번째 하산은 손목 통증이 있었다(DF1)."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e14c985fef9c_o1",
+          "cr2_e14c985fef9c_o2",
+          "cr2_e14c985fef9c_o3",
+          "cr2_e14c985fef9c_o4"
+        ],
+        "rationale": "확정된 지침은 없다. 회차별 관찰 두 건(상반된 결과), 미시험 구간, 미결정 제안을 분리하면 답 계약이 정해진다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e404469d4273_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_e404469d4273",
+        "family_id": "family_e404469d4273",
+        "checkpoint_id": "cr2_e404469d4273_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "가람 청소년 오케스트라 악보 배부의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_e404469d4273",
+          "project_id": "project_e404469d4273",
+          "subject_id": "subject_e404469d4273_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_e404469d4273_o1",
+            "type": "episodic",
+            "content": "가람 청소년 오케스트라 악보 배부는 연주회 3주 전에 한다. 바이올린 파트는 2부를 받는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e404469d4273",
+              "project_id": "project_e404469d4273",
+              "subject_id": "subject_e404469d4273_x"
+            },
+            "sha256": "052370a023a5b72890c5f24f8b5ed0e33872b965bf404e31dc35ce3f5f899334"
+          },
+          {
+            "evidence_id": "cr2_e404469d4273_o2",
+            "type": "episodic",
+            "content": "가람 청소년 오케스트라 악보 배부에서 첼로 파트는 1부와 지휘자 메모가 적힌 사본을 함께 받는다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e404469d4273",
+              "project_id": "project_e404469d4273",
+              "subject_id": "subject_e404469d4273_x"
+            },
+            "sha256": "6cc438d63067b60ce04d17b6aa52e7973f4ea10dcc5a828a2ecd6c6517878428"
+          },
+          {
+            "evidence_id": "cr2_e404469d4273_o3",
+            "type": "episodic",
+            "content": "가람 청소년 오케스트라 악보 배부 시기를 연주회 3주 전에서 4주 전으로 앞당긴다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e404469d4273",
+              "project_id": "project_e404469d4273",
+              "subject_id": "subject_e404469d4273_x"
+            },
+            "sha256": "542bc4bdb33994f238cfadffa2843af5600e6daecf1a66a11b54e92d8e7fedb1"
+          },
+          {
+            "evidence_id": "cr2_e404469d4273_o4",
+            "type": "episodic",
+            "content": "10월 12일 가람 청소년 오케스트라 악보 배부 회차에서 바이올린 파트에 2부씩, 첼로 파트에 1부와 메모 사본을 나눴다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e404469d4273",
+              "project_id": "project_e404469d4273",
+              "subject_id": "subject_e404469d4273_x"
+            },
+            "sha256": "3dc78dfc68bfb11931554bea89a0f58342086c3d55a8061cc7612a73d0c36a5c"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_e404469d4273_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 가람 청소년 오케스트라 악보 배부에서 첼로 파트는 1부와 지휘자 메모가 적힌 사본을 함께 받는다.",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 가람 청소년 오케스트라 악보 배부 시기를 연주회 3주 전에서 4주 전으로 앞당긴다.",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_3",
+            "claim": "과거 관찰(회차 구분): 10월 12일 가람 청소년 오케스트라 악보 배부 회차에서 바이올린 파트에 2부씩, 첼로 파트에 1부와 메모 사본을 나눴다.",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 가람 청소년 오케스트라 악보 배부는 연주회 3주 전에 한다. 바이올린 파트는 2부를 받는다.",
+            "evidence_refs": [
+              "cr2_e404469d4273_o1"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e404469d4273_o2",
+          "cr2_e404469d4273_o3",
+          "cr2_e404469d4273_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_e404469d4273_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "timing_current",
+            "claim": "현재 악보 배부 시기는 연주회 4주 전이다(10월 12일 3주 전에서 앞당김).",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o3"
+            ]
+          },
+          {
+            "fact_key": "violin_copies",
+            "claim": "바이올린 파트는 2부를 받는다.",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o1"
+            ]
+          },
+          {
+            "fact_key": "cello_copies",
+            "claim": "첼로 파트는 1부와 지휘자 메모가 적힌 사본을 함께 받는다.",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o2"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 배부 회차에서 바이올린 파트에 2부씩, 첼로 파트에 1부와 메모 사본을 나눴다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_e404469d4273_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "현재 배부 시기는 연주회 3주 전이다.",
+            "evidence_refs": [
+              "cr2_e404469d4273_o1"
+            ],
+            "reason": "o3가 4주 전으로 바꿨다. 3주 전은 10월 5일 기록의 옛 값으로만 인용한다."
+          },
+          {
+            "claim": "10월 12일 회차가 연주회 4주 전에 열렸다.",
+            "evidence_refs": [
+              "cr2_e404469d4273_o4"
+            ],
+            "reason": "회차 시점과 연주회 날짜의 관계는 원문에 없다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e404469d4273_o1",
+          "cr2_e404469d4273_o2",
+          "cr2_e404469d4273_o3",
+          "cr2_e404469d4273_o4"
+        ],
+        "rationale": "o3가 배부 시기만 3주 전에서 4주 전으로 바꿨고 파트별 부수(o1, o2)는 언급하지 않아 유지된다. o4는 10월 12일 회차 관찰이다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e484b388077f_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_e484b388077f",
+        "family_id": "family_e484b388077f",
+        "checkpoint_id": "cr2_e484b388077f_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "강변 텃밭 퇴비장 뒤집기의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_e484b388077f",
+          "project_id": "project_e484b388077f",
+          "subject_id": "subject_e484b388077f_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_e484b388077f_o1",
+            "type": "episodic",
+            "content": "강변 텃밭 퇴비장 뒤집기는 매주 토요일에 한다. 1번 칸부터 시작해 번호 순서로 뒤집는다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e484b388077f",
+              "project_id": "project_e484b388077f",
+              "subject_id": "subject_e484b388077f_x"
+            },
+            "sha256": "51949650b6a74928008cad8111f1ba2b797e6f2458f987eff662230dad7710cb"
+          },
+          {
+            "evidence_id": "cr2_e484b388077f_o2",
+            "type": "episodic",
+            "content": "10월 5일 강변 텃밭 퇴비장 뒤집기 첫 회차에 1번 칸 온도가 55도였고 냄새가 나지 않았다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e484b388077f",
+              "project_id": "project_e484b388077f",
+              "subject_id": "subject_e484b388077f_x"
+            },
+            "sha256": "14aea4beda4deb77cf12a9122e370c822572053bdf7a9ab4da30211d0cac6d5f"
+          },
+          {
+            "evidence_id": "cr2_e484b388077f_o3",
+            "type": "episodic",
+            "content": "강변 텃밭 퇴비장 뒤집기 요일을 토요일에서 일요일로 바꾼다. 시작 칸은 그대로다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e484b388077f",
+              "project_id": "project_e484b388077f",
+              "subject_id": "subject_e484b388077f_x"
+            },
+            "sha256": "264a0f8182c7981de6fbedbeea543f76ffdd35a148d94be93573e8e12b5f14fe"
+          },
+          {
+            "evidence_id": "cr2_e484b388077f_o4",
+            "type": "episodic",
+            "content": "강변 텃밭 퇴비장 뒤집기 정정: 시작은 1번 칸이 아니라 가장 오래된 3번 칸부터다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e484b388077f",
+              "project_id": "project_e484b388077f",
+              "subject_id": "subject_e484b388077f_x"
+            },
+            "sha256": "eab10fdf903edb731cdb42a1b1d67cea8a678515b3603ceb1e32138c720aeac5"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_e484b388077f_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "obs_1",
+            "claim": "과거 관찰(회차 구분): 10월 5일 강변 텃밭 퇴비장 뒤집기 첫 회차에 1번 칸 온도가 55도였고 냄새가 나지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 강변 텃밭 퇴비장 뒤집기 요일을 토요일에서 일요일로 바꾼다. 시작 칸은 그대로다.",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o3"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 강변 텃밭 퇴비장 뒤집기 정정: 시작은 1번 칸이 아니라 가장 오래된 3번 칸부터다.",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대체된 옛 지침을 현재로 단정: 강변 텃밭 퇴비장 뒤집기는 매주 토요일에 한다. 1번 칸부터 시작해 번호 순서로 뒤집는다.",
+            "evidence_refs": [
+              "cr2_e484b388077f_o1"
+            ],
+            "reason": "후속 변경"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e484b388077f_o2",
+          "cr2_e484b388077f_o3",
+          "cr2_e484b388077f_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_e484b388077f_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "day_current",
+            "claim": "퇴비장 뒤집기는 매주 일요일에 한다(10월 12일 토요일에서 바꿈).",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o3"
+            ]
+          },
+          {
+            "fact_key": "start_current",
+            "claim": "시작 칸은 가장 오래된 3번 칸이다(1번 칸에서 정정).",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o4"
+            ]
+          },
+          {
+            "fact_key": "order",
+            "claim": "시작 칸 뒤에는 번호 순서로 뒤집는다.",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o1"
+            ]
+          },
+          {
+            "fact_key": "obs_1005",
+            "claim": "10월 5일 첫 회차에 1번 칸 온도가 55도였고 냄새가 나지 않았다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_e484b388077f_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "현재 뒤집기 요일은 토요일이다.",
+            "evidence_refs": [
+              "cr2_e484b388077f_o1"
+            ],
+            "reason": "o3가 일요일로 바꿨다."
+          },
+          {
+            "claim": "현재 1번 칸부터 시작한다.",
+            "evidence_refs": [
+              "cr2_e484b388077f_o1",
+              "cr2_e484b388077f_o3"
+            ],
+            "reason": "o3의 '시작 칸 그대로'를 o4가 3번 칸으로 정정했다. 1번 칸은 정정 전 값이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e484b388077f_o1",
+          "cr2_e484b388077f_o2",
+          "cr2_e484b388077f_o3",
+          "cr2_e484b388077f_o4"
+        ],
+        "rationale": "o4의 정정은 o3의 '시작 칸은 그대로'까지 덮어 3번 칸을 현재 값으로 만든다. o3을 근거에 넣은 이유는 요일 변경과 정정 순서다. o1의 번호 순서 진행은 철회되지 않아 유지된다. 3번 칸 다음이 4번인지, 끝 칸 뒤 1번, 2번으로 돌아가는지는 원문에 없어 미확정이다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e8509911972d_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_e8509911972d",
+        "family_id": "family_e8509911972d",
+        "checkpoint_id": "cr2_e8509911972d_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "별빛 공원 야간 순찰의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_e8509911972d",
+          "project_id": "project_e8509911972d",
+          "subject_id": "subject_e8509911972d_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_e8509911972d_o1",
+            "type": "episodic",
+            "content": "별빛 공원 야간 순찰은 밤 9시에 정문에서 출발해 호수 둘레를 돈다. 순찰 조끼는 주황색이다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e8509911972d",
+              "project_id": "project_e8509911972d",
+              "subject_id": "subject_e8509911972d_x"
+            },
+            "sha256": "056eccc680a24fe72999b4471d78f9ffae01fc46d37d808714d089252a14c953"
+          },
+          {
+            "evidence_id": "cr2_e8509911972d_o2",
+            "type": "episodic",
+            "content": "별빛 공원 야간 순찰에서 놀이터는 두 번째 바퀴에만 들른다. 순찰은 두 명이 한 조다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e8509911972d",
+              "project_id": "project_e8509911972d",
+              "subject_id": "subject_e8509911972d_x"
+            },
+            "sha256": "2dffffc45650f46cbd523bba6e9a18ff7e997e428b4d5ecbc19cdf0ac74e61bd"
+          },
+          {
+            "evidence_id": "cr2_e8509911972d_o3",
+            "type": "episodic",
+            "content": "별빛 공원 가로등 교체는 밤 10시에 호수 둘레부터 시작한다. 야간 순찰과는 별개 작업이다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_e8509911972d",
+              "project_id": "project_e8509911972d",
+              "subject_id": "subject_e8509911972d_y"
+            },
+            "sha256": "23a88bf5b7c35da670a70ecaee2ff4b119cd6dc789754a5340dad04a35d89565"
+          },
+          {
+            "evidence_id": "cr2_e8509911972d_o4",
+            "type": "episodic",
+            "content": "별빛 공원 가로등 교체 작업자는 노란 조끼를 입고 세 명이 한 조가 되어 움직인다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_e8509911972d",
+              "project_id": "project_e8509911972d",
+              "subject_id": "subject_e8509911972d_y"
+            },
+            "sha256": "23c950bf3d697a45a83f399e59be4b703bcd2c70e179c6288d05952d5c9c9ab0"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_e8509911972d_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 별빛 공원 야간 순찰은 밤 9시에 정문에서 출발해 호수 둘레를 돈다. 순찰 조끼는 주황색이다.",
+            "supporting_evidence_refs": [
+              "cr2_e8509911972d_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 별빛 공원 야간 순찰에서 놀이터는 두 번째 바퀴에만 들른다. 순찰은 두 명이 한 조다.",
+            "supporting_evidence_refs": [
+              "cr2_e8509911972d_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "Y 작업을 X에 적용: 별빛 공원 가로등 교체는 밤 10시에 호수 둘레부터 시작한다. 야간 순찰과는 별개 작업이다.",
+            "evidence_refs": [
+              "cr2_e8509911972d_o3"
+            ],
+            "reason": "DF3"
+          },
+          {
+            "claim": "Y 작업을 X에 적용: 별빛 공원 가로등 교체 작업자는 노란 조끼를 입고 세 명이 한 조가 되어 움직인다.",
+            "evidence_refs": [
+              "cr2_e8509911972d_o4"
+            ],
+            "reason": "DF3"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e8509911972d_o1",
+          "cr2_e8509911972d_o2"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_e8509911972d_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "start",
+            "claim": "야간 순찰은 밤 9시에 정문에서 출발해 호수 둘레를 돈다.",
+            "supporting_evidence_refs": [
+              "cr2_e8509911972d_o1"
+            ]
+          },
+          {
+            "fact_key": "vest",
+            "claim": "순찰 조끼는 주황색이다.",
+            "supporting_evidence_refs": [
+              "cr2_e8509911972d_o1"
+            ]
+          },
+          {
+            "fact_key": "playground",
+            "claim": "놀이터는 두 번째 바퀴에만 들른다.",
+            "supporting_evidence_refs": [
+              "cr2_e8509911972d_o2"
+            ]
+          },
+          {
+            "fact_key": "team",
+            "claim": "순찰은 두 명이 한 조다.",
+            "supporting_evidence_refs": [
+              "cr2_e8509911972d_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "야간 순찰은 노란 조끼를 입거나 세 명이 한 조다.",
+            "evidence_refs": [
+              "cr2_e8509911972d_o4"
+            ],
+            "reason": "가로등 교체(별개 작업 Y)의 조건이다."
+          },
+          {
+            "claim": "야간 순찰은 밤 10시에 시작한다.",
+            "evidence_refs": [
+              "cr2_e8509911972d_o3"
+            ],
+            "reason": "밤 10시는 가로등 교체 시작 시각이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_e8509911972d_o1",
+          "cr2_e8509911972d_o2"
+        ],
+        "rationale": "o3, o4는 다른 subject(가로등 교체)이며 원문도 별개 작업이라 밝힌다. 야간 순찰 계약은 o1, o2만으로 정해지고 변경 기록이 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ef728f684700_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_ef728f684700",
+        "family_id": "family_ef728f684700",
+        "checkpoint_id": "cr2_ef728f684700_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "갈대숲 탁구 교실 대진표의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_ef728f684700",
+          "project_id": "project_ef728f684700",
+          "subject_id": "subject_ef728f684700_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_ef728f684700_o1",
+            "type": "episodic",
+            "content": "갈대숲 탁구 교실 대진표는 실력 순서로 4개 조를 나눈다. 1조가 1번 탁구대를 쓴다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_ef728f684700",
+              "project_id": "project_ef728f684700",
+              "subject_id": "subject_ef728f684700_x"
+            },
+            "sha256": "6e3da78cd9ec28a6d9b7ddf5b7890af3256e1ce862ebd3115d769e239d100a5f"
+          },
+          {
+            "evidence_id": "cr2_ef728f684700_o2",
+            "type": "episodic",
+            "content": "갈대숲 탁구 교실 대진표에서 경기는 11점 3세트로 한다. 같은 조끼리 먼저 붙는다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_ef728f684700",
+              "project_id": "project_ef728f684700",
+              "subject_id": "subject_ef728f684700_x"
+            },
+            "sha256": "bc1d341d2ec91bbf8162d28a815a3d01ccae042ac31ca5220bee8065711e67ed"
+          },
+          {
+            "evidence_id": "cr2_ef728f684700_o3",
+            "type": "episodic",
+            "content": "갈대숲 탁구 교실 장비 구매에서 1번 탁구대용 네트를 새로 산다. 대진표와는 다른 일이다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_ef728f684700",
+              "project_id": "project_ef728f684700",
+              "subject_id": "subject_ef728f684700_y"
+            },
+            "sha256": "3f4ad9b3c5765e09a02fd4a8adadbff4a86eef67c63795867ba98cebcfd07c18"
+          },
+          {
+            "evidence_id": "cr2_ef728f684700_o4",
+            "type": "episodic",
+            "content": "갈대숲 탁구 교실 장비 구매 목록에서 공은 5세트 묶음으로 산다. 공 색은 흰색이다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_ef728f684700",
+              "project_id": "project_ef728f684700",
+              "subject_id": "subject_ef728f684700_y"
+            },
+            "sha256": "030a7644b1a8c3bdfc6407e334f719c3bd4a432db7984e5fcdc1ef233794f1c6"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_ef728f684700_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 갈대숲 탁구 교실 대진표는 실력 순서로 4개 조를 나눈다. 1조가 1번 탁구대를 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_ef728f684700_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 갈대숲 탁구 교실 대진표에서 경기는 11점 3세트로 한다. 같은 조끼리 먼저 붙는다.",
+            "supporting_evidence_refs": [
+              "cr2_ef728f684700_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "Y 작업을 X에 적용: 갈대숲 탁구 교실 장비 구매에서 1번 탁구대용 네트를 새로 산다. 대진표와는 다른 일이다.",
+            "evidence_refs": [
+              "cr2_ef728f684700_o3"
+            ],
+            "reason": "DF3"
+          },
+          {
+            "claim": "Y 작업을 X에 적용: 갈대숲 탁구 교실 장비 구매 목록에서 공은 5세트 묶음으로 산다. 공 색은 흰색이다.",
+            "evidence_refs": [
+              "cr2_ef728f684700_o4"
+            ],
+            "reason": "DF3"
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_ef728f684700_o1",
+          "cr2_ef728f684700_o2"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_ef728f684700_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "groups",
+            "claim": "대진표는 실력 순서로 4개 조를 나눈다.",
+            "supporting_evidence_refs": [
+              "cr2_ef728f684700_o1"
+            ]
+          },
+          {
+            "fact_key": "table",
+            "claim": "1조가 1번 탁구대를 쓴다.",
+            "supporting_evidence_refs": [
+              "cr2_ef728f684700_o1"
+            ]
+          },
+          {
+            "fact_key": "format",
+            "claim": "경기는 11점 3세트로 한다.",
+            "supporting_evidence_refs": [
+              "cr2_ef728f684700_o2"
+            ]
+          },
+          {
+            "fact_key": "order",
+            "claim": "같은 조끼리 먼저 붙는다.",
+            "supporting_evidence_refs": [
+              "cr2_ef728f684700_o2"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "대진표 조건으로 1번 탁구대 네트 교체나 공 5세트 구매가 정해졌다.",
+            "evidence_refs": [
+              "cr2_ef728f684700_o3",
+              "cr2_ef728f684700_o4"
+            ],
+            "reason": "장비 구매(별개 작업 Y)이며 원문이 대진표와 다르다고 밝힌다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_ef728f684700_o1",
+          "cr2_ef728f684700_o2"
+        ],
+        "rationale": "o3, o4는 다른 subject(장비 구매)다. 대진표 계약은 o1, o2만으로 정해지고 변경 기록이 없다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    },
+    {
+      "checkpoint_id": "cr2_f01483fe5435_t2",
+      "stage": 2,
+      "packet_case": {
+        "sequence_id": "cr2_f01483fe5435",
+        "family_id": "family_f01483fe5435",
+        "checkpoint_id": "cr2_f01483fe5435_t2",
+        "after_observation": 4,
+        "query_at": "2026-10-12T10:00:00Z",
+        "query": "청보리 주말농장 물 주기의 질의 시점 현재 지침, 회차별 관찰 기록, 미확정 범위를 정리하라. 대상, 조건, 시점, 관찰 회차를 구분하고 별개 작업을 섞지 말라.",
+        "scope": {
+          "owner_id": "owner_f01483fe5435",
+          "project_id": "project_f01483fe5435",
+          "subject_id": "subject_f01483fe5435_x"
+        },
+        "evidence": [
+          {
+            "evidence_id": "cr2_f01483fe5435_o1",
+            "type": "episodic",
+            "content": "청보리 주말농장 물 주기에서 상추 두둑은 이틀에 한 번 아침에 물을 준다. 비가 온 다음 날은 건너뛴다.",
+            "recorded_at": "2026-10-05T09:00:00Z",
+            "event_at": "2026-10-05T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_f01483fe5435",
+              "project_id": "project_f01483fe5435",
+              "subject_id": "subject_f01483fe5435_x"
+            },
+            "sha256": "448a4e2f59ad32746bc5105819d1b2ef66035f179cb418c6a0f291f169e890fe"
+          },
+          {
+            "evidence_id": "cr2_f01483fe5435_o2",
+            "type": "episodic",
+            "content": "청보리 주말농장 물 주기의 고추 두둑은 흙 겉면이 말랐을 때만 물을 준다. 겉면이 젖어 있으면 주지 않는다.",
+            "recorded_at": "2026-10-05T09:10:00Z",
+            "event_at": "2026-10-05T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_f01483fe5435",
+              "project_id": "project_f01483fe5435",
+              "subject_id": "subject_f01483fe5435_x"
+            },
+            "sha256": "c5dd83c4e81e5fbc3f39cd1c527a6ba4f26390395750a4e3ef36f33b6f70a769"
+          },
+          {
+            "evidence_id": "cr2_f01483fe5435_o3",
+            "type": "episodic",
+            "content": "청보리 주말농장 물 주기에서 새로 옮겨 심은 첫 주에는 상추와 고추 모두 매일 저녁 물을 준다.",
+            "recorded_at": "2026-10-12T09:00:00Z",
+            "event_at": "2026-10-12T09:00:00Z",
+            "scope": {
+              "owner_id": "owner_f01483fe5435",
+              "project_id": "project_f01483fe5435",
+              "subject_id": "subject_f01483fe5435_x"
+            },
+            "sha256": "49f156346b4fac499b6f66325cef45c210add1ebc1648cf4a303bb15500380f2"
+          },
+          {
+            "evidence_id": "cr2_f01483fe5435_o4",
+            "type": "episodic",
+            "content": "10월 12일 청보리 주말농장 물 주기 회차에서 고추 두둑 겉면이 젖어 있어 물을 주지 않았다.",
+            "recorded_at": "2026-10-12T09:10:00Z",
+            "event_at": "2026-10-12T09:10:00Z",
+            "scope": {
+              "owner_id": "owner_f01483fe5435",
+              "project_id": "project_f01483fe5435",
+              "subject_id": "subject_f01483fe5435_x"
+            },
+            "sha256": "7f33e5ae5afb7b2bd6706d9beb1eb9a364956c42bf18eabf107035dff683797d"
+          }
+        ]
+      },
+      "contract_a": {
+        "checkpoint_id": "cr2_f01483fe5435_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "dir_1",
+            "claim": "질의 시점 현재 지침: 청보리 주말농장 물 주기에서 상추 두둑은 이틀에 한 번 아침에 물을 준다. 비가 온 다음 날은 건너뛴다.",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o1"
+            ]
+          },
+          {
+            "fact_key": "dir_2",
+            "claim": "질의 시점 현재 지침: 청보리 주말농장 물 주기의 고추 두둑은 흙 겉면이 말랐을 때만 물을 준다. 겉면이 젖어 있으면 주지 않는다.",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o2"
+            ]
+          },
+          {
+            "fact_key": "dir_3",
+            "claim": "질의 시점 현재 지침: 청보리 주말농장 물 주기에서 새로 옮겨 심은 첫 주에는 상추와 고추 모두 매일 저녁 물을 준다.",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_4",
+            "claim": "과거 관찰(회차 구분): 10월 12일 청보리 주말농장 물 주기 회차에서 고추 두둑 겉면이 젖어 있어 물을 주지 않았다.",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [],
+        "relevant_evidence_refs": [
+          "cr2_f01483fe5435_o1",
+          "cr2_f01483fe5435_o2",
+          "cr2_f01483fe5435_o3",
+          "cr2_f01483fe5435_o4"
+        ],
+        "rationale": "subject_x만. 관찰은 과거 회차, 변경·정정·보존은 현재, 제안·Y 금지.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      },
+      "contract_b": {
+        "checkpoint_id": "cr2_f01483fe5435_t2",
+        "status": "resolved",
+        "required_facts": [
+          {
+            "fact_key": "lettuce",
+            "claim": "상추 두둑은 이틀에 한 번 아침에 물을 주고 비가 온 다음 날은 건너뛴다(옮겨 심은 첫 주 제외).",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o1",
+              "cr2_f01483fe5435_o3"
+            ]
+          },
+          {
+            "fact_key": "pepper",
+            "claim": "고추 두둑은 흙 겉면이 말랐을 때만 물을 주고 젖어 있으면 주지 않는다(옮겨 심은 첫 주 제외).",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o2",
+              "cr2_f01483fe5435_o3"
+            ]
+          },
+          {
+            "fact_key": "transplant",
+            "claim": "새로 옮겨 심은 첫 주에는 상추와 고추 모두 매일 저녁 물을 준다.",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o3"
+            ]
+          },
+          {
+            "fact_key": "obs_1012",
+            "claim": "10월 12일 회차에서 고추 두둑 겉면이 젖어 있어 물을 주지 않았다(과거 관찰).",
+            "supporting_evidence_refs": [
+              "cr2_f01483fe5435_o4"
+            ]
+          }
+        ],
+        "forbidden_claims": [
+          {
+            "claim": "옮겨 심은 첫 주에도 상추는 이틀에 한 번 아침에 준다.",
+            "evidence_refs": [
+              "cr2_f01483fe5435_o1"
+            ],
+            "reason": "o3의 첫 주 조건을 지운 답이다."
+          }
+        ],
+        "relevant_evidence_refs": [
+          "cr2_f01483fe5435_o1",
+          "cr2_f01483fe5435_o2",
+          "cr2_f01483fe5435_o3",
+          "cr2_f01483fe5435_o4"
+        ],
+        "rationale": "o3는 옮겨 심은 첫 주 조건을 더한다. o4는 고추 규칙이 적용된 관찰이다.",
+        "hold_reason": null,
+        "execution_evidence": "unmeasured"
+      }
+    }
+  ]
+}

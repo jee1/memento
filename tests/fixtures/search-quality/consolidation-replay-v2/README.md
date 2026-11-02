@@ -1,6 +1,6 @@
 # 수면 통합 재생 v2 (#1624)
 
-상태: **사전등록과 블라인드 판정 패킷 준비. gold 0건, A/B/D 미실행, 모델 호출 0회.**
+상태: **판정 6건 봉인, 조정 입력 준비. gold 0건, A/B/D 미실행, 모델 호출 0회.**
 
 A(통합 없음), B(묶기만), D(현행 Gemini 요약/병합) 비교에 쓰는 새 held-out 합성 test 가족이다. 다섯 층(conditional, correction, generalization, task_noise, source_preservation)에 층당 8시퀀스(dev 1, test 7), 관찰 240건, 시점 120건이다. 설계, 크기 근거, 판정 규칙은 [protocol.md](protocol.md)에 있다.
 
@@ -14,12 +14,23 @@ A(통합 없음), B(묶기만), D(현행 Gemini 요약/병합) 비교에 쓰는 
 | `reviewer-a/`, `reviewer-b/` | 시점별 `packet.json`, `rubric.md`, `answers.blank.json`. 시퀀스 순서만 다르다 |
 | [manifest.json](manifest.json) | 생성 파일과 원천의 SHA, seed, 배포 순서. **판정자 배포 금지** |
 
+판정 뒤 자산:
+
+| 파일 | 역할 |
+| --- | --- |
+| `adjudication/stage{1,2,3}-{a,b}-answers.sealed.json` | 원 판정 6건 봉인본(A 머슴1 Composer 2.5, B 머슴5 Claude Opus 5.5) |
+| `adjudication/seals/` | 판정 입력과 제출 SHA |
+| `adjudication/input/stage-N-part-M/` | 조정 입력 묶음 6개(20시점씩): 패킷 원문과 A/B 계약, rubric, 동등성 검사, `fact_alignment`가 있는 빈 양식. 판정자는 A/B로만 나온다 |
+
+조정 기록은 봉인 전에 `npx tsx scripts/build-consolidation-replay-v2-adjudication.ts --check <file> --bundle <묶음>`으로 형식, fact_key 대응, 탐침 구성, `contract_agreement`와 탐침 일치를 검사한다.
+
 구현자 정답 후보(`author-candidates.json`)는 만들지 않는다. 배포는 v1.1과 같다. 마름이 각 판정자에게 자기 reviewer의 stage-1 폴더 파일 3개만 주고, 두 제출을 봉인한 뒤 stage-2, 같은 절차 뒤 stage-3을 준다.
 
 재생성과 검증:
 
 ```bash
 npx tsx scripts/build-consolidation-replay-v2-panel.ts
+npx tsx scripts/build-consolidation-replay-v2-adjudication.ts
 npx vitest run tests/consolidation-replay-v2-fixture.spec.ts scripts/lib/consolidation-panel-decision.spec.ts
 ```
 

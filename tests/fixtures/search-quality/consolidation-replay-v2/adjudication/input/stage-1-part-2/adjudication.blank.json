@@ -1,0 +1,680 @@
+{
+  "adjudicator_id": null,
+  "model": null,
+  "adjudicated_at": null,
+  "label_source": "agent_panel",
+  "role": "contract_adjudication",
+  "bundle": "stage-1-part-2",
+  "stage": 1,
+  "input_sha256": "e1d193fad214709414075303603c92fbdb5e7cff459b1ccc639e68e36765a15e",
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "equivalence_sha256": "aacf2016282b42e758f46eb05be41fb1430d670fa013be051c41ffead7d43dc6",
+  "cases": [
+    {
+      "checkpoint_id": "cr2_9282c3126a72_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_9d80ee6afca1_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_adf7c457ae36_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_ae95f66d90dc_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_b6f54e11c8a9_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_bd50d0f24f2a_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_ce490e6605c4_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_cf4fc38cde9d_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_d0f71a26404d_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_d3741b4c7805_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_d6328978bc46_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_da6ae709f2a1_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_da745e7d6bc9_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_db5a4ec8eccc_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_e14c985fef9c_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_e404469d4273_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_e484b388077f_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_e8509911972d_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_ef728f684700_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    },
+    {
+      "checkpoint_id": "cr2_f01483fe5435_t1",
+      "contract_agreement": null,
+      "fact_alignment": [],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": null,
+          "verdict_b": null
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": null,
+          "verdict_b": null
+        }
+      ],
+      "boundaries_applied": [],
+      "rationale": null
+    }
+  ]
+}
