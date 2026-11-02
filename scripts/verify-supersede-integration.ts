@@ -15,6 +15,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { performance } from 'node:perf_hooks';
+import { parse as parseDotEnv } from 'dotenv';
 
 const { values: args } = parseArgs({
   options: {
@@ -28,7 +29,7 @@ if (!args.db) throw new Error('--db <copy.db> is required');
 const dbPath = realpathSync(resolve(args.db));
 const dotEnvDbPath = (dir: string) => {
   try {
-    return readFileSync(join(dir, '.env'), 'utf8').match(/^\s*DB_PATH\s*=\s*["']?([^"'#\r\n]*?)["']?\s*$/m)?.[1];
+    return parseDotEnv(readFileSync(join(dir, '.env'), 'utf8')).DB_PATH;
   } catch {
     return undefined;
   }
