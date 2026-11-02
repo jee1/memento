@@ -4,7 +4,7 @@
  */
 
 import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
-import type { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../embedding/index.js';
 import Database from 'better-sqlite3';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';

@@ -3,7 +3,7 @@ import { LIMITS } from '../../../shared/constants/relation-constants.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import type { RelationCandidate, RelationType } from '../../../shared/types/relation.js';
 import { MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
-import type { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import type { UnifiedEmbeddingService } from '../../embedding/index.js';
 import { recordSystemOneUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-systemone-attempt.js';
 import {
   clipRelationText,

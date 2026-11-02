@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Changed
+
+- 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, embedding 도메인 공개 index 로 cross-import 27건을 이전합니다 (#1610).
+
 ## [2.3.9] - 2026-11-02
 
 ### Changed

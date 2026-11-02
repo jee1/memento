@@ -59,6 +59,88 @@ const DOMAIN_DIRECTION_ALLOWLIST: readonly AllowlistEntry[] = [
 ];
 const FROZEN_DOMAIN_DIRECTION_ALLOWLIST_SIZE = 21;
 
+/**
+ * Frozen cross-domain internal imports (#1610 step 1).
+ * Other domains must import `domains/<b>/index.js` only; shrink via domain index PRs.
+ */
+const DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST: readonly AllowlistEntry[] = [
+  { path: 'domains/agent-integration/services/sqlite-hybrid-agent-context-source.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/anchor-manager.ts→domains/monitoring/services/error-logging-service.ts', rationale: 'legacy internal import; migrate to domains/monitoring/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/anchor-reanchor-service.ts→domains/monitoring/services/error-logging-service.ts', rationale: 'legacy internal import; migrate to domains/monitoring/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/monitoring/services/error-logging-service.ts', rationale: 'legacy internal import; migrate to domains/monitoring/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/relation/services/relation-graph.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/fallback-search-service.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/n-hop-linked-memory-service.ts→domains/relation/ports/relation-graph.port.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/n-hop-linked-memory-service.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/n-hop-search-service.ts→domains/relation/services/relation-graph.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/n-hop-search-service.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/anchor/services/anchor/vector-search-engine-types.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/consolidation/services/sleep-consolidation-service.ts→domains/telemetry/services/telemetry-service.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
+  { path: 'domains/consolidation/services/sleep-consolidation-service.ts→domains/telemetry/types/telemetry.types.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
+  { path: 'domains/consolidation/services/summarization-service.ts→domains/personal-agent/adapters/ollama-chat-llm-adapter.ts', rationale: 'legacy internal import; migrate to domains/personal-agent/index (#1610)' },
+  { path: 'domains/memory/introspection/introspection-healing-service.ts→domains/forgetting/repositories/forgetting-event-repository.ts', rationale: 'legacy internal import; migrate to domains/forgetting/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-envelope.ts→domains/search/ports/relevance-gate-port.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-envelope.ts→domains/telemetry/search-quality/index.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-neighbors-fetch.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-schema.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-schema.ts→domains/search/algorithms/search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-search-execution.ts→domains/telemetry/search-quality/index.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
+  { path: 'domains/memory/recall/recall-tool-types.ts→domains/search/ports/relevance-gate-port.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/remember/remember-tool-augmentation.ts→domains/relation/services/remember-relation-extraction.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/memory/remember/remember-tool-near-duplicate.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/services/knowledge-context-bundle-builder.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/services/memory-neighbor-service.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/tools/forget-tool.ts→domains/forgetting/repositories/forgetting-event-repository.ts', rationale: 'legacy internal import; migrate to domains/forgetting/index (#1610)' },
+  { path: 'domains/memory/tools/get-memory-neighbors-tool.ts→domains/search/algorithms/vector-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/memory/tools/wipe-memory-tool.ts→domains/forgetting/repositories/forgetting-event-repository.ts', rationale: 'legacy internal import; migrate to domains/forgetting/index (#1610)' },
+  { path: 'domains/memory/tools/wipe-memory-tool.ts→domains/telemetry/services/audit-hash-chain-service.ts', rationale: 'legacy internal import; migrate to domains/telemetry/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/category-quality-aggregator.ts→domains/search/factories/hybrid-search.factory.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/quality-metrics-types.ts→domains/relation/services/relation-quality-validator.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/relation-metrics-collector.ts→domains/relation/services/relation-quality-validator.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/search-metrics-collector.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/search-metrics-collector.ts→domains/search/factories/hybrid-search.factory.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/vector-search-quality-metrics.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/vector-search-quality-metrics/report-search-results.ts→domains/search/algorithms/hybrid-result-ranker.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/monitoring/services/quality-assurance/vector-search-quality-metrics/report-search-results.ts→domains/search/algorithms/hybrid-search-engine.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/monitoring/tools/get-meta-memory-stats-tool.ts→domains/memory/introspection/meta-memory-service.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
+  { path: 'domains/personal-agent/adapters/tool-context-knowledge-context-adapter.ts→domains/memory/services/knowledge-context-bundle-builder.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
+  { path: 'domains/personal-agent/adapters/tool-context-knowledge-context-adapter.ts→domains/memory/utils/normalize-memory-types-for-item-search.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
+  { path: 'domains/personal-agent/adapters/tool-context-remember-persistence-adapter.ts→domains/memory/remember/remember-tool.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
+  { path: 'domains/personal-agent/mappers/knowledge-candidate-to-remember-params.ts→domains/memory/remember/remember-tool.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
+  { path: 'domains/personal-agent/ports/context-port.ts→domains/memory/services/knowledge-context-bundle-builder.ts', rationale: 'legacy internal import; migrate to domains/memory/index (#1610)' },
+  { path: 'domains/search/algorithms/hybrid-search-engine.ts→domains/relation/services/relation-graph.ts', rationale: 'legacy internal import; migrate to domains/relation/index (#1610)' },
+  { path: 'domains/telemetry/repositories/telemetry-search-quality-query.ts→domains/search/ports/relevance-gate-port.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/telemetry/search-quality/build-outcome-extra.ts→domains/search/algorithms/hybrid-search-types.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+  { path: 'domains/telemetry/search-quality/build-reranked-extra.ts→domains/search/ports/relevance-gate-port.ts', rationale: 'legacy internal import; migrate to domains/search/index (#1610)' },
+];
+const FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE = 50;
+
+function domainPublicIndexPath(domain: string): string {
+  return `domains/${domain}/index.ts`;
+}
+
+function collectCrossDomainInternalImportEdges(source: string, fromFile: string): string[] {
+  const fromDomain = fromFile.split('/')[1];
+  const edges: string[] = [];
+  for (const edge of collectModuleEdges(source)) {
+    const target = resolveRelativeImport(fromFile, edge.spec);
+    if (!target?.startsWith('domains/')) {
+      continue;
+    }
+    const toDomain = target.split('/')[1];
+    if (fromDomain === toDomain) {
+      continue;
+    }
+    if (target === domainPublicIndexPath(toDomain)) {
+      continue;
+    }
+    edges.push(`${fromFile}→${target}`);
+  }
+  return edges;
+}
+
 // Registration stays here until ToolContext contracts are separated from the composition root.
 const TOOLS_TO_DOMAIN_ALLOWLIST = [
   { path: 'tools/base-tool.ts', rationale: '실패 감지 훅 타입', targets: [
@@ -451,6 +533,40 @@ describe('dependency boundaries', () => {
     }
     expect(offenders, `new domain directions: ${offenders.join(', ')}`).toEqual([]);
     expect([...directions].sort()).toEqual([...allowed].sort());
+  });
+
+  it('freezes cross-domain imports to domain index public API with growth guard (#1610)', async () => {
+    expect(DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST).toHaveLength(
+      FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE,
+    );
+    const allowed = new Set(DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST.map((entry) => entry.path));
+    expect(allowed.size).toBe(FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE);
+    expect(DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST.every((entry) => entry.rationale.trim().length > 0)).toBe(true);
+
+    const actual = new Set<string>();
+    for (const file of await collectProductionTsFiles(domainsRoot)) {
+      for (const edge of collectCrossDomainInternalImportEdges(await readSource(file), file)) {
+        actual.add(edge);
+      }
+    }
+
+    const unexpected = [...actual].filter((edge) => !allowed.has(edge)).sort();
+    const stale = [...allowed].filter((edge) => !actual.has(edge)).sort();
+
+    expect(unexpected, `new cross-domain internal imports: ${unexpected.join(', ')}`).toEqual([]);
+    expect(stale, `allowlist stale entries: ${stale.join(', ')}`).toEqual([]);
+    expect([...actual].sort()).toEqual([...allowed].sort());
+  });
+
+  it('rejects new cross-domain internal imports outside the frozen allowlist (#1610)', () => {
+    const offenders = collectCrossDomainInternalImportEdges(
+      "import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';",
+      'domains/search/algorithms/probe.ts',
+    );
+    expect(offenders).toEqual([
+      'domains/search/algorithms/probe.ts→domains/embedding/services/memory-embedding-service.ts',
+    ]);
+    expect(DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST.some((entry) => entry.path === offenders[0])).toBe(false);
   });
 
   it('freezes tools→domain imports and permits only tool contracts from domain handlers (#1534)', async () => {

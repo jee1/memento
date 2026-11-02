@@ -2,7 +2,7 @@
  * 하이브리드 검색 — 벡터 검색 반환 형태 정규화 (배열 vs { results, query_embedding_providers })
  */
 
-import type { VectorSearchResult, SearchBySimilarityOutcome } from '../../embedding/services/memory-embedding-service.js';
+import type { VectorSearchResult, SearchBySimilarityOutcome } from '../../embedding/index.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 
 /** 테스트 목업(배열 반환)과 MemoryEmbeddingService(객체 반환) 모두 수용 */

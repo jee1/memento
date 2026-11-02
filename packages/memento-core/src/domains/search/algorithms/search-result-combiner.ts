@@ -6,7 +6,7 @@
  */
 
 import type { ISearchResultCombiner, HybridSearchResult } from './hybrid-search-types.js';
-import type { VectorSearchResult } from '../../embedding/services/memory-embedding-service.js';
+import type { VectorSearchResult } from '../../embedding/index.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 
 type HybridSearchResultWithAttribution = HybridSearchResult & {
