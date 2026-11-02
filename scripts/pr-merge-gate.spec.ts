@@ -32,6 +32,21 @@ describe("decide", () => {
     expect(decide(pr({ labels: [] })).action).toBe("wait");
   });
 
+  it("risk 라벨이 둘 이상이면 가장 높은 등급으로 판정", () => {
+    const d = decide(pr({ labels: ["risk:low", "risk:medium"] }));
+    expect(d.level).toBe("medium");
+    expect(d.action).toBe("needs");
+    expect(decide(pr({ labels: ["risk:medium", "risk:low"], body: "## 동작 설명\n무엇이 왜" })).action).toBe("merge");
+    expect(decide(pr({ labels: ["risk:low", "risk:high"] })).level).toBe("high");
+    expect(decide(pr({ labels: ["risk:high", "risk:low"] })).action).toBe("needs");
+  });
+
+  it("알 수 없는 risk 값이 섞이면 unknown 으로 대기", () => {
+    const d = decide(pr({ labels: ["risk:low", "risk:bogus"] }));
+    expect(d.level).toBe("unknown");
+    expect(d.action).toBe("wait");
+  });
+
   it("medium 은 `## 동작 설명` 절이 있어야 머지", () => {
     expect(decide(pr({ labels: ["risk:medium"] })).action).toBe("needs");
     expect(decide(pr({ labels: ["risk:medium"], body: "## 동작 설명\n무엇이 왜" })).action).toBe("merge");

@@ -3,10 +3,12 @@
  * PR 리스크 스코어 (0–100) — 리뷰 깊이 라우팅용 advisory 지표
  *
  * 보안 30 · 범위 20 · 파괴적 변경 20 · 테스트 누락 15 · DB 마이그레이션 15.
+ * 검색 경로(`domains/search/` 전체, 필터 SQL) 동작 코드 변경은 점수와 무관하게 최소 medium.
+ * 라벨은 올리기만 한다: 이미 붙은 더 높은 risk 라벨(수동 상향)은 점수가 낮아도 유지한다.
  * 차단하지 않는다. 머지 차단권은 lint·type-check·test 같은 결정론적 required check 에만 있다.
  *
  * 사용법:
- *   node scripts/pr-risk-score.ts [--base origin/main] [--head HEAD] [--title "<PR 제목>"] [--json]
+ *   node scripts/pr-risk-score.ts [--base origin/main] [--head HEAD] [--title "<PR 제목>"] [--labels "<현재 PR 라벨, 쉼표 구분>"] [--json]
  */
 import { execFileSync } from "node:child_process";
 import { isMain, parseArgs as parseCliArgs } from "./lib/cli-runtime.js";
@@ -30,6 +32,14 @@ export interface RiskResult {
   score: number;
   level: RiskLevel;
   factors: RiskFactor[];
+  /** 기존 라벨이 점수 등급보다 높아 유지됐을 때만 채운다 */
+  scoredLevel?: RiskLevel;
+}
+
+const LEVELS: RiskLevel[] = ["low", "medium", "high"];
+
+function maxLevel(a: RiskLevel, b: RiskLevel): RiskLevel {
+  return LEVELS.indexOf(a) >= LEVELS.indexOf(b) ? a : b;
 }
 
 const TEST_RE = /(\.(spec|test)\.[cm]?[jt]s$|\/__tests__\/|^tests\/)/;
@@ -41,6 +51,9 @@ const MIGRATION_RE = /(\/migrations\/|schema\.sql$)/;
 // 외부에 보이는 계약: MCP 도구 스키마, 클라이언트 SDK, 배포 설정
 const PUBLIC_SURFACE_RE =
   /(^packages\/memento-core\/src\/(tools|domains\/[^/]+\/tools)\/|^packages\/memento-client\/src\/|^docker-compose[^/]*\.yml$|^\.env\.example$|^config\/)/;
+// 검색 동작: 텍스트/벡터/하이브리드 질의, 랭킹, 필터 SQL. 점수에 안 잡혀도 최소 medium (#1619)
+const SEARCH_PATH_RE =
+  /(^packages\/memento-core\/src\/domains\/search\/|^packages\/memento-core\/src\/shared\/utils\/memory-filter-sql\.ts$)/;
 const BREAKING_TITLE_RE = /(^\w+(\([^)]*\))?!:|BREAKING)/;
 
 export function scoreRisk(files: ChangedFile[], title = ""): RiskResult {
@@ -110,10 +123,39 @@ export function scoreRisk(files: ChangedFile[], title = ""): RiskResult {
     reason: migrations.length > 0 ? migrations.join(", ") : "마이그레이션 없음",
   });
 
+  const searchHits = code
+    .filter((f) => SEARCH_PATH_RE.test(f.path))
+    .map((f) => f.path);
+  factors.push({
+    name: "검색 경로",
+    max: 0,
+    points: 0,
+    reason:
+      searchHits.length > 0
+        ? `최소 medium: ${searchHits.slice(0, 5).join(", ")}`
+        : "검색 경로 변경 없음",
+  });
+
   const score = factors.reduce((sum, f) => sum + f.points, 0);
-  const level: RiskLevel =
+  const scored: RiskLevel =
     score >= 60 ? "high" : score >= 30 ? "medium" : "low";
+  const level = searchHits.length > 0 ? maxLevel(scored, "medium") : scored;
   return { score, level, factors };
+}
+
+/** 이미 붙은 risk 라벨이 더 높으면 그 등급을 유지한다. 낮추려면 사람이 라벨을 직접 뗀다. */
+export function keepHigherLabel(
+  result: RiskResult,
+  labels: string[],
+): RiskResult {
+  const kept = labels
+    .filter((l) => l.startsWith("risk:"))
+    .map((l) => l.slice(5))
+    .filter((l): l is RiskLevel => (LEVELS as string[]).includes(l))
+    .reduce<RiskLevel>(maxLevel, result.level);
+  return kept === result.level
+    ? result
+    : { ...result, level: kept, scoredLevel: result.level };
 }
 
 const ROUTING: Record<RiskLevel, string> = {
@@ -125,12 +167,20 @@ const ROUTING: Record<RiskLevel, string> = {
 
 export function renderMarkdown(result: RiskResult): string {
   const rows = result.factors.map(
-    (f) => `| ${f.name} | ${f.points}/${f.max} | ${f.reason} |`,
+    (f) =>
+      `| ${f.name} | ${f.max === 0 ? "-" : `${f.points}/${f.max}`} | ${f.reason} |`,
   );
+  const kept = result.scoredLevel
+    ? [
+        `점수 등급은 ${result.scoredLevel} 이지만 이미 붙은 risk:${result.level} 라벨을 유지한다. 낮추려면 라벨을 직접 뗀다.`,
+        "",
+      ]
+    : [];
   return [
     `<!-- pr-risk-score -->`,
     `## PR 리스크: **${result.level}** (${result.score}/100)`,
     "",
+    ...kept,
     `> ${ROUTING[result.level]}`,
     "",
     "| 항목 | 점수 | 근거 |",
@@ -162,6 +212,7 @@ function main(): void {
       base: { type: "string", default: "origin/main" },
       head: { type: "string", default: "HEAD" },
       title: { type: "string", default: "" },
+      labels: { type: "string", default: "" },
       json: { type: "boolean", default: false },
     },
   });
@@ -172,7 +223,10 @@ function main(): void {
       encoding: "utf-8",
     },
   );
-  const result = scoreRisk(parseNumstat(numstat), String(values.title));
+  const result = keepHigherLabel(
+    scoreRisk(parseNumstat(numstat), String(values.title)),
+    String(values.labels).split(","),
+  );
   const markdown = renderMarkdown(result);
   console.log(values.json ? JSON.stringify({ ...result, markdown }) : markdown);
 }
