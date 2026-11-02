@@ -68,6 +68,7 @@
           <button type="button" id="dashboard-tab-ops-overview" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-overview" data-tab="ops-overview">운영 개요</button>
           <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
           <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+          <button type="button" id="dashboard-tab-supersede" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-supersede-candidates" data-tab="supersede">대체 후보</button>
           <button type="button" id="dashboard-tab-memory-finder" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-memory-finder" data-tab="memory-finder">기억 찾기</button>
           <button type="button" id="dashboard-tab-jobs" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-jobs" data-tab="jobs">배치 작업</button>
           <button type="button" id="dashboard-tab-settings" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-settings" data-tab="settings">설정</button>
@@ -1000,6 +1001,48 @@
         </div>
       </div>
     </div>
+    <div id="tab-supersede-candidates" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-supersede" aria-hidden="true">
+      <div class="review-candidates-layout sc-panel-layout">
+        <header class="review-candidates-header">
+          <div class="review-candidates-header-text">
+            <h2 class="review-candidates-title">대체 후보 승인</h2>
+            <p class="rc-intro">LLM 이 같은 범위의 옛/새 기억 쌍을 판정해 남긴 후보입니다. 승인하면 옛 기억의 읽기 경로가 새 기억으로 넘어갑니다(<code class="m-code-inline">superseded_by</code>). 거절하면 같은 쌍은 다시 목록에 뜨지 않습니다.</p>
+          </div>
+          <button type="button" id="sc-refresh-btn" class="m-button m-button--secondary">새로고침</button>
+        </header>
+        <div class="sc-filters m-panel">
+          <label>project_id <input type="text" id="sc-filter-project" class="m-input" autocomplete="off" /></label>
+          <label>상태
+            <select id="sc-filter-lifecycle" class="m-input">
+              <option value="">(미거절 전체)</option>
+              <option value="not_applied">미적용</option>
+              <option value="applied">적용됨</option>
+              <option value="restored">복원됨</option>
+              <option value="dismissed">거절됨</option>
+            </select>
+          </label>
+          <button type="button" id="sc-filter-apply" class="m-button m-button--secondary">필터 적용</button>
+        </div>
+        <p id="sc-status-line" class="review-candidates-status" aria-live="polite"></p>
+        <div class="review-candidates-body sc-body">
+          <div class="review-candidates-table-wrap m-table-wrap">
+            <table class="m-table m-table--dense" aria-label="대체 후보 목록">
+              <thead>
+                <tr>
+                  <th scope="col">상태</th>
+                  <th scope="col">판정</th>
+                  <th scope="col">project</th>
+                  <th scope="col">옛 본문</th>
+                  <th scope="col">새 본문</th>
+                </tr>
+              </thead>
+              <tbody id="sc-table-body"></tbody>
+            </table>
+          </div>
+          <div id="sc-detail" class="sc-detail m-panel" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
     <div id="tab-settings" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-settings" aria-hidden="true">
       <div class="settings-layout">
         <header class="settings-header">
@@ -1246,6 +1289,8 @@
   <script src="/static/js/jobs-panel-render.js"></script>
   <script src="/static/js/jobs-panel-fetch.js"></script>
   <script src="/static/js/jobs-panel.js"></script>
+  <script src="/static/js/supersede-candidates-panel-shared.js"></script>
+  <script src="/static/js/supersede-candidates-panel.js"></script>
   <script src="/static/js/settings-panel-shared.js"></script>
   <script src="/static/js/settings-panel-render.js"></script>
   <script src="/static/js/settings-panel.js"></script>

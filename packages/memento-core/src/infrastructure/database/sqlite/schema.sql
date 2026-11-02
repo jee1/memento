@@ -862,6 +862,7 @@ CREATE TABLE IF NOT EXISTS memory_supersede_candidate (
   input_hash             TEXT NOT NULL UNIQUE,
   llm_logical_request_id TEXT,
   created_at             TEXT NOT NULL,
+  dismissed_at           TEXT,
   FOREIGN KEY (old_memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
   FOREIGN KEY (new_memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
 );
@@ -873,7 +874,7 @@ CREATE INDEX IF NOT EXISTS idx_memory_supersede_candidate_new
 -- Supersede audit events (migration 060, Issue #1551): 기억이 지워져도 남도록 FK 를 걸지 않는다
 CREATE TABLE IF NOT EXISTS memory_supersede_event (
   id                 TEXT PRIMARY KEY,
-  action             TEXT NOT NULL CHECK (action IN ('applied', 'restored')),
+  action             TEXT NOT NULL CHECK (action IN ('applied', 'restored', 'dismissed')),
   old_memory_id      TEXT NOT NULL,
   new_memory_id      TEXT NOT NULL,
   candidate_id       TEXT,

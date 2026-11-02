@@ -151,6 +151,10 @@ export class SupersedeCandidateService {
         summary.skippedDuplicate += 1;
         continue;
       }
+      if (this.repository.hasDismissedPair(old.id, next.id)) {
+        summary.skippedDuplicate += 1;
+        continue;
+      }
       if (attempts >= maxPairs) {
         break;
       }

@@ -19,6 +19,7 @@ const APPLICABLE_VERDICTS: ReadonlySet<SupersedeVerdict> = new Set(['confirmed',
 
 export type SupersedeApplyRejection =
   | 'candidate_not_found'
+  | 'candidate_dismissed'
   | 'verdict_not_applicable'
   | 'memory_not_found'
   | 'memory_deleted'
@@ -69,6 +70,9 @@ function applyInTransaction(
   const candidate = repository.findCandidateById(input.candidateId);
   if (!candidate) {
     return reject('candidate_not_found');
+  }
+  if (candidate.dismissedAt) {
+    return reject('candidate_dismissed');
   }
   if (!APPLICABLE_VERDICTS.has(candidate.verdict)) {
     return reject('verdict_not_applicable');
@@ -154,6 +158,47 @@ export function restoreSupersededMemory(
         newContentSha256: next ? sha256Hex(next.content) : null,
       });
       return { kind: 'restored', eventId };
+    })
+    .immediate();
+}
+
+export type SupersedeDismissOutcome =
+  | { kind: 'dismissed'; eventId: string }
+  | { kind: 'rejected'; reason: 'candidate_not_found' | 'already_dismissed' | 'already_applied' };
+
+export function dismissSupersedeCandidate(
+  db: Database.Database,
+  input: { candidateId: string; actor: string; reason?: string | null },
+): SupersedeDismissOutcome {
+  const repository = new SupersedeCandidateRepository(db);
+  return db
+    .transaction((): SupersedeDismissOutcome => {
+      const candidate = repository.findCandidateById(input.candidateId);
+      if (!candidate) {
+        return { kind: 'rejected', reason: 'candidate_not_found' };
+      }
+      if (candidate.dismissedAt) {
+        return { kind: 'rejected', reason: 'already_dismissed' };
+      }
+      const old = findSupersedeApplyMemory(db, candidate.oldMemoryId);
+      if (old?.supersededBy === candidate.newMemoryId) {
+        return { kind: 'rejected', reason: 'already_applied' };
+      }
+      const dismissedAt = new Date().toISOString();
+      if (!repository.markDismissed(input.candidateId, dismissedAt)) {
+        return { kind: 'rejected', reason: 'already_dismissed' };
+      }
+      const eventId = repository.insertEvent({
+        action: 'dismissed',
+        oldMemoryId: candidate.oldMemoryId,
+        newMemoryId: candidate.newMemoryId,
+        candidateId: candidate.id,
+        actor: input.actor,
+        reason: input.reason ?? null,
+        oldContentSha256: candidate.oldContentSha256,
+        newContentSha256: candidate.newContentSha256,
+      });
+      return { kind: 'dismissed', eventId };
     })
     .immediate();
 }

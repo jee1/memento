@@ -11,6 +11,7 @@
 
 ### Added
 
+- Admin `GET /admin/memory/supersede-candidates` 로 대체 후보 목록(판정·project·lifecycle 필터, 페이지)을 조회하고, 대시보드 「대체 후보」 탭에서 old/new 미리보기·승인·복원·거절을 처리합니다. 거절은 `dismissed_at` 과 `memory_supersede_event` `dismissed` 감사(migration 065)로 남기며 같은 입력 해시 재스캔을 막습니다. `SUPERSEDE_APPLY_ENABLED=false` 이면 UI 와 apply/restore 가 403 이고 거절만 가능합니다 (#1618).
 - 개발: `scripts/verify-supersede-integration.ts` 는 운영 DB 사본에서 대체 승인과 복원을 걸고 읽기 경로별 대체된 기억 노출, 범위 유출, 역사 조회, 복원 뒤 원상태, live 포인터 0개와 N개의 지연과 실행 계획을 잽니다. 사본에 후보가 없으면 2B 짝짓기를 LLM 없이 돌려 판정만 합성합니다 (#1614).
 
 ### Changed
@@ -18,6 +19,10 @@
 - 검색: 대체 포인터만 있는 무필터 벡터 검색(KNN, hybrid, 임베딩 fallback)이 임베딩 전체를 KNN 전에 나열하지 않습니다. 포인터가 숨기는 임베딩 행 수만큼 KNN 을 더 깊게 판 뒤 바깥에서 걸러 현재 기억 top-K 를 유지합니다. 운영 DB 사본(12,763건, 포인터 5건)에서 무필터 KNN p95 비율이 2.55→1.05, hybrid 1회 1.39→1.00 이 됐습니다. `bench-supersede-off.ts` 가 켜진 상태 p95 비율 1.3 이하를 단언합니다 (#1615).
 - 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, cross-import 74건(embedding 27건, search 25건, 나머지 22건)을 공개 index 로 옮겨 allowlist 를 77→3 으로 줄였습니다. 남은 3 edge 는 구체 `RelationGraph` import 로 `relation/services/relation-graph.js` 고정 목록 검사 대상입니다 (#1610, #1611, #1612, #1613).
 - 개발: `PR Risk` 워크플로가 이미 붙은 더 높은 risk 라벨(수동 상향)을 점수로 낮추지 않습니다. 코멘트에 점수 등급과 유지된 라벨을 함께 적고, 낮추려면 라벨을 직접 뗍니다. 검색 경로(`domains/search/` 전체, `shared/utils/memory-filter-sql.ts`)의 동작 코드 변경은 점수와 무관하게 최소 medium 입니다. 사람이 risk 라벨을 바꾸면 워크플로가 다시 돌고, 머지 게이트는 risk 라벨이 둘 이상이면 가장 높은 등급을 씁니다 (#1619).
+
+### Fixed
+
+- Admin 대체 후보: 목록 렌더링을 `textContent` 로 바꾸고, 거절한 `(old_memory_id, new_memory_id)` 쌍은 모델·입력 해시가 바뀌어도 재스캔하지 않습니다. 대시보드는 `mementoAdminFetch` 를 쓰고 거절 사유를 필수로 받으며, `SUPERSEDE_APPLY_ENABLED=false` 이면 복원 버튼도 비활성화합니다. migration 065 `down` 은 `dismissed` 감사 행을 지우지 않습니다 (#1618, PR #1621).
 
 ## [2.3.9] - 2026-11-02
 

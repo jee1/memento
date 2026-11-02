@@ -882,6 +882,30 @@ Content-Type: application/json
 - `400`: selector 누락·중복 또는 값 형식 오류
 - `500`: DB 미연결 또는 상태 변경 실패
 
+##### 대체 후보 목록·거절 (#1618)
+
+대시보드 세션이 필요합니다(`401` `SESSION_REQUIRED`).
+
+```http
+GET /admin/memory/supersede-candidates?verdict=confirmed&project_id=proj&lifecycle_status=not_applied&page_size=25&page=1
+```
+
+- `verdict` (선택): `confirmed` \| `pending` \| `compatible`. 생략 시 `confirmed` 와 `pending` 만.
+- `project_id` (선택): 프로젝트 id. `null` 이면 project 없는 후보만.
+- `lifecycle_status` (선택): `not_applied` \| `applied` \| `restored` \| `dismissed`. 생략 시 거절(`dismissed_at`) 후보는 제외.
+- `page_size`: `25` \| `50`. `page` 는 `page_size` 와 함께.
+
+각 행에 old/new id·본문 앞 200자·유형·project·판정·LLM provider/model·`judged_at`·`lifecycle_status`·`supersede_apply_enabled`(현재 프로세스의 `SUPERSEDE_APPLY_ENABLED`)가 포함됩니다.
+
+```http
+POST /admin/memory/supersede-candidates/:id/dismiss
+Content-Type: application/json
+
+{ "reason": "동일 주제 유지" }
+```
+
+`SUPERSEDE_APPLY_ENABLED` 와 무관하게 동작합니다. `dismissed_at` 을 기록하고 `memory_supersede_event` 에 `dismissed` 사건을 남깁니다. 이미 적용된 후보는 `409` `already_applied`.
+
 ##### 대체 후보 승인과 복원 (#1551)
 
 `SUPERSEDE_APPLY_ENABLED=true` 일 때만 동작합니다. 기본은 꺼짐이며 꺼져 있으면 두 endpoint 모두 `403`(`code: SUPERSEDE_APPLY_DISABLED`)을 돌려주고 아무것도 쓰지 않습니다. 모든 읽기 경로의 현재성·역사 조회·성능 검증(#1552)을 마치기 전에는 켜지 않습니다.
