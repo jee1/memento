@@ -10,7 +10,7 @@ import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchO
 import { DatabaseValidationError, AnchorNotFoundError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
-import type { RelationGraph } from '../../../relation/index.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { NHopSearchService, type NHopSearchResult } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';

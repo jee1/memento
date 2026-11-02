@@ -8,7 +8,11 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const srcRoot = path.resolve(currentDir, '..', '..');
 const domainsRoot = path.join(srcRoot, 'domains');
 const sharedRoot = path.join(srcRoot, 'shared');
-const ALLOWED_CONCRETE_RELATION_GRAPH_IMPORTS = [] as const;
+const ALLOWED_CONCRETE_RELATION_GRAPH_IMPORTS = [
+  'domains/anchor/services/anchor/anchor-search-service.ts',
+  'domains/anchor/services/anchor/n-hop-search-service.ts',
+  'domains/search/algorithms/hybrid-search-engine.ts',
+] as const;
 
 /**
  * Frozen layer-boundary allowlist (#749).
@@ -59,8 +63,21 @@ const FROZEN_DOMAIN_DIRECTION_ALLOWLIST_SIZE = 21;
  * Frozen cross-domain internal imports (#1610 step 1).
  * Other domains must import `domains/<b>/index.js` only; shrink via domain index PRs.
  */
-const DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST: readonly AllowlistEntry[] = [] as const;
-const FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE = 0;
+const DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST: readonly AllowlistEntry[] = [
+  {
+    path: 'domains/anchor/services/anchor/anchor-search-service.ts→domains/relation/services/relation-graph.ts',
+    rationale: '구체 RelationGraph import; relation/index 경유 시 concrete allowlist 검사 우회 (#1613)',
+  },
+  {
+    path: 'domains/anchor/services/anchor/n-hop-search-service.ts→domains/relation/services/relation-graph.ts',
+    rationale: '구체 RelationGraph import; relation/index 경유 시 concrete allowlist 검사 우회 (#1613)',
+  },
+  {
+    path: 'domains/search/algorithms/hybrid-search-engine.ts→domains/relation/services/relation-graph.ts',
+    rationale: '구체 RelationGraph import; relation/index 경유 시 concrete allowlist 검사 우회 (#1613)',
+  },
+] as const;
+const FROZEN_DOMAIN_CROSS_DOMAIN_INTERNAL_IMPORT_ALLOWLIST_SIZE = 3;
 
 function domainPublicIndexPath(domain: string): string {
   return `domains/${domain}/index.ts`;

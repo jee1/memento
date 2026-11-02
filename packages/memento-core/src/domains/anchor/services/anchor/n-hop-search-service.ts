@@ -6,7 +6,7 @@
 import type Database from 'better-sqlite3';
 import type { VectorSearchEngine } from '../../../search/index.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
-import type { RelationGraph } from '../../../relation/index.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { isInitializableVectorSearchEngine } from './vector-search-engine-types.js';
 import { getRelationTypeBoost, NHopLinkedMemoryService } from './n-hop-linked-memory-service.js';
 import type { LinkedMemorySummary } from './n-hop-linked-memory-service.js';
