@@ -13,6 +13,7 @@
 
 - Admin `GET /admin/memory/supersede-candidates` 로 대체 후보 목록(판정·project·lifecycle 필터, 페이지)을 조회하고, 대시보드 「대체 후보」 탭에서 old/new 미리보기·승인·복원·거절을 처리합니다. 거절은 `dismissed_at` 과 `memory_supersede_event` `dismissed` 감사(migration 065)로 남기며 같은 입력 해시 재스캔을 막습니다. `SUPERSEDE_APPLY_ENABLED=false` 이면 UI 와 apply/restore 가 403 이고 거절만 가능합니다 (#1618).
 - 개발: `scripts/verify-supersede-integration.ts` 는 운영 DB 사본에서 대체 승인과 복원을 걸고 읽기 경로별 대체된 기억 노출, 범위 유출, 역사 조회, 복원 뒤 원상태, live 포인터 0개와 N개의 지연과 실행 계획을 잽니다. 사본에 후보가 없으면 2B 짝짓기를 LLM 없이 돌려 판정만 합성합니다 (#1614).
+- 개발: 수면 통합 재생 rubric v1.1(`tests/fixtures/search-quality/consolidation-replay-v1.1/`)을 추가합니다. v1 의 작업 잡음과 원본 보존 12시퀀스 36시점을 경계 B1~B4 와 기본 금지 주장 DF1~DF5 를 사전등록한 rubric 으로 두 판정자에게 다시 판정받고 서로 다른 공급사 조정자 두 명의 교집합으로 합산했습니다. 계약 gold 23/36(작업 잡음 17/18, 원본 보존 6/18), complete 5/12 입니다. dev 재주석이며 A/B/D 채택 근거가 아닙니다. 생성기와 합산기(`scripts/build-consolidation-replay-v11-panel.ts`, `build-consolidation-replay-v11-adjudication.ts`, `aggregate-consolidation-replay-v11-panel.ts`)는 모델을 호출하지 않습니다 (#1574).
 
 ### Changed
 
