@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function installRoutes(page: Page): Promise<void> {
+  // 세션 probe(/api/anchors/map)가 200 이어야 session-only 탭이 보인다.
+  await page.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
   await page.route('**/admin/**', (route) => {
     const url = route.request().url();
     if (url.includes('/admin/memory/supersede-candidates?') && route.request().method() === 'GET') {
