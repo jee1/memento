@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ADJ_INPUT_DIR, buildV11Adjudication } from '../scripts/build-consolidation-replay-v11-adjudication.js';
 import { V11_DIR, buildV11Panel } from '../scripts/build-consolidation-replay-v11-panel.js';
 
 const v1Dir = join(process.cwd(), 'tests/fixtures/search-quality/consolidation-replay-v1');
@@ -83,6 +84,36 @@ describe('consolidation-replay-v1.1 panel fixture (#1574)', () => {
       for (const leak of [...v1Hashes, 'task_noise', 'source_preservation', 'test_candidate', 'v1_split']) {
         expect(body.includes(leak), `${path} contains ${leak}`).toBe(false);
       }
+    }
+  });
+
+  it('sealed submissions match their seals, inputs, and packets', () => {
+    for (const stage of [1, 2, 3]) {
+      for (const reviewer of ['a', 'b']) {
+        const base = `adjudication/seals/stage${stage}-${reviewer}`;
+        const raw = text(join(dir, `adjudication/stage${stage}-${reviewer}-answers.sealed.json`));
+        expect(sha(raw)).toBe(text(join(dir, `${base}-submission.sha256`)).split(/\s+/)[0]);
+        const inputs = Object.fromEntries(text(join(dir, `${base}-input.sha256`)).trim().split('\n').map(l => l.split(/\s+/).reverse()));
+        const folder = `${reviewer === 'a' ? 'reviewer-a' : 'reviewer-b'}/stage-${stage}`;
+        for (const file of ['packet.json', 'rubric.md', 'answers.blank.json']) {
+          expect(inputs[file], `${base} ${file}`).toBe(sha(text(join(dir, folder, file))));
+        }
+        const submission = JSON.parse(raw);
+        expect(submission.packet_sha256).toBe(inputs['packet.json']);
+        expect(submission.answers.map((a: any) => a.checkpoint_id)).toEqual(read(`${folder}/packet.json`).cases.map((c: any) => c.checkpoint_id));
+      }
+    }
+  });
+
+  it('adjudication input is exactly what its builder produces and names judges only as A and B', () => {
+    const generated = buildV11Adjudication();
+    for (const [path, body] of generated) {
+      expect(text(join(dir, ADJ_INPUT_DIR, path)), path).toBe(body);
+    }
+    const input = generated.get('adjudication-input.json')!;
+    expect(JSON.parse(input).cases).toHaveLength(36);
+    for (const leak of ['reviewer_id', '"model"', 'judged_at', 'author-candidates', 'split', 'v1_stratum', ...idMap.sequences.map((s: any) => s.v1_sequence_id)]) {
+      expect(input.includes(leak), `input contains ${leak}`).toBe(false);
     }
   });
 

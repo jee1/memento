@@ -1,0 +1,466 @@
+{
+  "reviewer_id": "mseum1",
+  "model": "composer-2.5",
+  "judged_at": "2026-11-02T13:31:00Z",
+  "label_source": "agent_panel",
+  "rubric_version": "consolidation-replay-v1.1",
+  "stage": 2,
+  "packet_sha256": "d448cc4ee733503c36ac92140e9521f8df421e7ea49ffa9be1b8c6cfdc081b76",
+  "rubric_sha256": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+  "answers": [
+    {
+      "checkpoint_id": "cr11_c0217c739478_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_token_set_size",
+          "claim": "질의 시점(2026-10-12T10:00:00Z) 우담 게임 토큰 작업 X의 현재 지침은 둥근 토큰 세 개를 한 세트로 묶는 것이다.",
+          "supporting_evidence_refs": ["cr11_c0217c739478_o1", "cr11_c0217c739478_o2"]
+        },
+        {
+          "fact_key": "x_pre_start_number_check",
+          "claim": "X는 시작 전에 각 토큰의 번호를 대조한다(2026-10-05 관찰 1·2에서 확인, 질의 시점에도 유효).",
+          "supporting_evidence_refs": ["cr11_c0217c739478_o1", "cr11_c0217c739478_o2"]
+        },
+        {
+          "fact_key": "x_purple_string",
+          "claim": "X에서 끈은 보라색이다.",
+          "supporting_evidence_refs": ["cr11_c0217c739478_o1", "cr11_c0217c739478_o2"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "게임 토큰 X에 사각 판 다섯 개·흰 끈(조명 연습 Y) 수량·끈 규칙을 적용한다.",
+          "evidence_refs": ["cr11_c0217c739478_o3", "cr11_c0217c739478_o4"],
+          "reason": "Y는 subject_y 별개 작업이며 o3가 X 수량 규칙이 아님을 명시(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": ["cr11_c0217c739478_o1", "cr11_c0217c739478_o2"],
+      "rationale": "query_at 기준 X(subject_x) 지침은 10-05 관찰 1·2(o1/o2)만으로 확정된다. 10-12 관찰 3·4(o3/o4)는 Y 분리 확인용이며 X 계약 변경 아님. 미확정 범위 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_27de0e7f2605_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_nameplate_target",
+          "claim": "은재 조형물 명찰 작업 X는 모형 J의 명찰을 받침 앞면에 붙인다.",
+          "supporting_evidence_refs": ["cr11_27de0e7f2605_o1", "cr11_27de0e7f2605_o2"]
+        },
+        {
+          "fact_key": "x_gray_letters",
+          "claim": "X 명찰 글자는 회색이다.",
+          "supporting_evidence_refs": ["cr11_27de0e7f2605_o1", "cr11_27de0e7f2605_o2"]
+        },
+        {
+          "fact_key": "x_id_check_first",
+          "claim": "X는 식별번호를 먼저 대조한다. 일지 순서는 식별번호 대조→회색 글자 명찰→받침 앞면(o2, 2026-10-05 관찰).",
+          "supporting_evidence_refs": ["cr11_27de0e7f2605_o1", "cr11_27de0e7f2605_o2"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "우편 상자 Y의 뒷면·녹색 주소표 규칙을 모형 J 명찰 X에 적용하거나 명찰 위치를 바꾼다.",
+          "evidence_refs": ["cr11_27de0e7f2605_o3", "cr11_27de0e7f2605_o4"],
+          "reason": "Y는 조형물 X와 무관하며 o4가 명찰 위치 변경 아님을 명시(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": ["cr11_27de0e7f2605_o1", "cr11_27de0e7f2605_o2"],
+      "rationale": "X 현재 지침은 o1/o2(10-05). o3/o4는 Y와 X 분리 근거만. 질의 시점 X 미확정 항목 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_df96b2fa9fbb_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_sample_storage",
+          "claim": "고운 직물 견본 정리 X는 줄무늬 견본을 서랍 D에 넣는다.",
+          "supporting_evidence_refs": ["cr11_df96b2fa9fbb_o1", "cr11_df96b2fa9fbb_o2"]
+        },
+        {
+          "fact_key": "x_material_label_first",
+          "claim": "X는 재질표를 먼저 붙인다.",
+          "supporting_evidence_refs": ["cr11_df96b2fa9fbb_o1", "cr11_df96b2fa9fbb_o2"]
+        },
+        {
+          "fact_key": "x_length_15cm",
+          "claim": "X에서 길이는 15센티미터로 맞춘다.",
+          "supporting_evidence_refs": ["cr11_df96b2fa9fbb_o1", "cr11_df96b2fa9fbb_o2"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "포스터 통 Y(선반 E, 60센티미터, 날짜표) 규칙을 직물 견본 X에 적용한다.",
+          "evidence_refs": ["cr11_df96b2fa9fbb_o3", "cr11_df96b2fa9fbb_o4"],
+          "reason": "o4가 X에 적용하지 않음을 명시, DF3."
+        }
+      ],
+      "relevant_evidence_refs": ["cr11_df96b2fa9fbb_o1", "cr11_df96b2fa9fbb_o2"],
+      "rationale": "X 지침은 10-05 o1/o2로 고정. 10-12 o3/o4는 Y 분리. 미확정 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_9ddea18fe2f8_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_grid_order",
+          "claim": "호담 별지도 작업 X는 북쪽 격자부터 별표를 붙인다.",
+          "supporting_evidence_refs": ["cr11_9ddea18fe2f8_o1", "cr11_9ddea18fe2f8_o2"]
+        },
+        {
+          "fact_key": "x_silver_star",
+          "claim": "X 별표의 기본 색은 은색이다.",
+          "supporting_evidence_refs": ["cr11_9ddea18fe2f8_o1", "cr11_9ddea18fe2f8_o2"]
+        },
+        {
+          "fact_key": "x_coordinate_check_first",
+          "claim": "X는 격자 좌표를 먼저 확인한다(좌표 확인 뒤 북쪽 격자·은색 별표, o2).",
+          "supporting_evidence_refs": ["cr11_9ddea18fe2f8_o1", "cr11_9ddea18fe2f8_o2"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "화분 꾸미기 Y(남쪽 선반, 노란 장식표)를 별지도 X의 격자·별표 색 지침으로 적용한다.",
+          "evidence_refs": ["cr11_9ddea18fe2f8_o3", "cr11_9ddea18fe2f8_o4"],
+          "reason": "o4가 X 격자·별표 색 변경 공지가 아님을 명시(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": ["cr11_9ddea18fe2f8_o1", "cr11_9ddea18fe2f8_o2"],
+      "rationale": "X는 o1/o2만 관련 근거. o3/o4는 Y 금지 근거. 질의 시점 계약 명확.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_456cd0d7e3d5_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_prefold_edition_check",
+          "claim": "예담 종이 모형 보존 X는 접기 전에 도면 판본을 확인한다. 두 단계가 끝나기 전에는 첫 접기를 하지 않는다(o1, 2026-10-05 관찰 1).",
+          "supporting_evidence_refs": ["cr11_456cd0d7e3d5_o1", "cr11_456cd0d7e3d5_o2"]
+        },
+        {
+          "fact_key": "x_prefold_front_back",
+          "claim": "X는 접기 전에 시트의 앞뒷면을 맞춘다. 도면 번호만 맞춰서는 절차가 끝나지 않는다(o2).",
+          "supporting_evidence_refs": ["cr11_456cd0d7e3d5_o1", "cr11_456cd0d7e3d5_o2"]
+        },
+        {
+          "fact_key": "x_star_below_finished",
+          "claim": "2026-10-12 관찰 3(o3) 질의 시점 현재 지침에 완성품 아래 별표를 찍는 항목이 추가됐으며, 기존 접기 전 두 단계(판본 확인·앞뒷면 맞춤)는 유지한다.",
+          "supporting_evidence_refs": ["cr11_456cd0d7e3d5_o3"]
+        },
+        {
+          "fact_key": "x_o4_memo_scope",
+          "claim": "2026-10-12 관찰 4(o4) 휴대 메모는 완성품 별표만 적었고, 승인 원본의 판본 확인·앞뒷면 맞춤을 대체하지 않는다(관찰 사실, 현재 지시 폐지 아님).",
+          "supporting_evidence_refs": ["cr11_456cd0d7e3d5_o4"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "완성품 별표만으로 접기 전 판본 확인·앞뒷면 맞춤 의무가 없어졌다.",
+          "evidence_refs": ["cr11_456cd0d7e3d5_o3", "cr11_456cd0d7e3d5_o4"],
+          "reason": "o3가 두 단계 유지, o4가 메모가 대체하지 않음을 명시."
+        },
+        {
+          "claim": "도면 번호 대조만으로 접기 전 절차가 완료됐다.",
+          "evidence_refs": ["cr11_456cd0d7e3d5_o2"],
+          "reason": "o2가 앞뒷면 맞춤 없이는 절차 미완을 명시."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr11_456cd0d7e3d5_o1",
+        "cr11_456cd0d7e3d5_o2",
+        "cr11_456cd0d7e3d5_o3",
+        "cr11_456cd0d7e3d5_o4"
+      ],
+      "rationale": "10-05 o1/o2는 접기 전 2단계. 10-12 o3가 별표 추가+유지. o4는 축약 메모 관찰. 질의 시점 현재 계약=2단계+별표. 실행 여부는 unmeasured.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_16fa75d4486b_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_dual_number_check",
+          "claim": "나린 표본 상자 보존 X는 상자번호와 봉인번호를 각각 대조한다. 두 번호가 맞기 전에는 뚜껑을 열지 않는다(o1, 10-05).",
+          "supporting_evidence_refs": ["cr11_16fa75d4486b_o1", "cr11_16fa75d4486b_o2"]
+        },
+        {
+          "fact_key": "x_separate_check_fields",
+          "claim": "점검표는 상자번호 확인과 봉인번호 확인을 별도 칸으로 유지하며 하나의 번호로 다른 번호를 추정하지 않는다(o2).",
+          "supporting_evidence_refs": ["cr11_16fa75d4486b_o2"]
+        },
+        {
+          "fact_key": "x_blue_corner_added",
+          "claim": "2026-10-12 o3 질의 시점 현재 지침에 파란 모서리 표식이 추가됐고, 두 번호 선행 대조를 모서리 표식으로 대체하지 않는다.",
+          "supporting_evidence_refs": ["cr11_16fa75d4486b_o3"]
+        },
+        {
+          "fact_key": "x_o4_memo_scope",
+          "claim": "o4 한 줄 메모는 파란 모서리만 적혔고, 승인 원본의 두 번호 대조 의무는 그대로다.",
+          "supporting_evidence_refs": ["cr11_16fa75d4486b_o4"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "파란 모서리 표식만 있으면 상자·봉인 번호 대조 없이 뚜껑을 연다.",
+          "evidence_refs": ["cr11_16fa75d4486b_o3", "cr11_16fa75d4486b_o4"],
+          "reason": "o3/o4가 대체·폐지 아님을 명시."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr11_16fa75d4486b_o1",
+        "cr11_16fa75d4486b_o2",
+        "cr11_16fa75d4486b_o3",
+        "cr11_16fa75d4486b_o4"
+      ],
+      "rationale": "기본 2번호 대조(o1/o2) + o3 추가 표식. o4는 메모 내용 관찰. 현재 계약 확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_871957bb3f00_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_plate_number_check",
+          "claim": "보담 목판 인쇄 보존 X는 판을 놓기 전에 판번호를 확인한다(o1).",
+          "supporting_evidence_refs": ["cr11_871957bb3f00_o1", "cr11_871957bb3f00_o2"]
+        },
+        {
+          "fact_key": "x_waste_first_sheet",
+          "claim": "X는 첫 시트를 폐지로 시험하며 판번호 확인과 폐지 시험 두 조건을 생략하지 않는다(o1/o2).",
+          "supporting_evidence_refs": ["cr11_871957bb3f00_o1", "cr11_871957bb3f00_o2"]
+        },
+        {
+          "fact_key": "x_orange_handle_mark",
+          "claim": "2026-10-12 o3 손잡이 표식을 주황색으로 추가했고, 판번호 확인과 폐지 시험은 계속 필수다.",
+          "supporting_evidence_refs": ["cr11_871957bb3f00_o3"]
+        },
+        {
+          "fact_key": "x_o4_memo_scope",
+          "claim": "o4 인수 메모는 손잡이 표식만 적혔고, 원본 작업표의 판번호 확인·폐지 시험을 폐지한 메모가 아니다.",
+          "supporting_evidence_refs": ["cr11_871957bb3f00_o4"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "주황 손잡이 표식만으로 판번호 확인·폐지 첫 시트 시험이 면제된다.",
+          "evidence_refs": ["cr11_871957bb3f00_o3", "cr11_871957bb3f00_o4"],
+          "reason": "o3/o4 명시적 유지·비폐지."
+        },
+        {
+          "claim": "한 조건만 적힌 메모가 전체 절차를 대체했다.",
+          "evidence_refs": ["cr11_871957bb3f00_o2"],
+          "reason": "o2 관찰 사실, DF4/부분 대체 금지."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr11_871957bb3f00_o1",
+        "cr11_871957bb3f00_o2",
+        "cr11_871957bb3f00_o3",
+        "cr11_871957bb3f00_o4"
+      ],
+      "rationale": "10-05 이중 조건 + 10-12 표식 추가. o2/o4는 메모 범위 관찰. 미확정 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_571b9d5b7c90_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_dual_id_check",
+          "claim": "해담 소리통 보존 X는 시작 전에 통 식별자와 녹음 세션 식별자를 따로 확인하며, 둘이 작업표와 맞아야 시험을 시작한다(o1).",
+          "supporting_evidence_refs": ["cr11_571b9d5b7c90_o1", "cr11_571b9d5b7c90_o2"]
+        },
+        {
+          "fact_key": "x_no_id_substitution",
+          "claim": "일지는 통·세션 식별자를 각각 적으며 하나를 다른 하나로 대신 쓰지 않는다(o2).",
+          "supporting_evidence_refs": ["cr11_571b9d5b7c90_o2"]
+        },
+        {
+          "fact_key": "x_green_dot_added",
+          "claim": "2026-10-12 o3 뚜껑 옆 초록 점 표식 추가, 두 식별자 선행 확인은 계속 필요하다.",
+          "supporting_evidence_refs": ["cr11_571b9d5b7c90_o3"]
+        },
+        {
+          "fact_key": "x_o4_memo_scope",
+          "claim": "o4 축약 메모는 초록 점만 언급했고, 원본 통·세션 식별자 대조를 폐지한 문서가 아니다.",
+          "supporting_evidence_refs": ["cr11_571b9d5b7c90_o4"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "초록 점 표식만으로 통·세션 식별자 대조 없이 시험을 시작한다.",
+          "evidence_refs": ["cr11_571b9d5b7c90_o3", "cr11_571b9d5b7c90_o4"],
+          "reason": "o3/o4가 대조 유지·비폐지 명시."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr11_571b9d5b7c90_o1",
+        "cr11_571b9d5b7c90_o2",
+        "cr11_571b9d5b7c90_o3",
+        "cr11_571b9d5b7c90_o4"
+      ],
+      "rationale": "이중 식별자 + 초록 점 추가. 질의 시점 계약 명확.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_8a0b07330161_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_triangle_box_animals",
+          "claim": "온새 카드 분류 X는 동물 카드를 세모 상자에 넣는다.",
+          "supporting_evidence_refs": ["cr11_8a0b07330161_o1", "cr11_8a0b07330161_o2"]
+        },
+        {
+          "fact_key": "x_back_dots",
+          "claim": "X는 카드 뒷면의 점 개수를 확인한다.",
+          "supporting_evidence_refs": ["cr11_8a0b07330161_o1", "cr11_8a0b07330161_o2"]
+        },
+        {
+          "fact_key": "x_pencil_notation",
+          "claim": "X에서 숫자 표기는 연필로 한다.",
+          "supporting_evidence_refs": ["cr11_8a0b07330161_o1", "cr11_8a0b07330161_o2"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "천 조각 Y(네모 상자, 앞면 색, 빨간 펜) 규칙을 동물 카드 X에 적용하거나 작업표를 합친다.",
+          "evidence_refs": ["cr11_8a0b07330161_o3", "cr11_8a0b07330161_o4"],
+          "reason": "o3/o4가 카드 X 규칙이 아님·합치지 않음(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": ["cr11_8a0b07330161_o1", "cr11_8a0b07330161_o2"],
+      "rationale": "X는 o1/o2. o3/o4는 Y 금지용. 미확정 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_a95723cc58d3_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_dual_code_check",
+          "claim": "초담 활자함 보존 X는 활자 코드와 서랍 코드를 모두 대조한 뒤 활자를 넣으며, 모양이 닮아도 코드 대조를 건너뛰지 않는다(o1).",
+          "supporting_evidence_refs": ["cr11_a95723cc58d3_o1", "cr11_a95723cc58d3_o2"]
+        },
+        {
+          "fact_key": "x_separate_code_items",
+          "claim": "기록은 활자 코드 확인과 서랍 코드 확인을 별도 항목으로 남긴다(o2).",
+          "supporting_evidence_refs": ["cr11_a95723cc58d3_o2"]
+        },
+        {
+          "fact_key": "x_white_line_handle",
+          "claim": "2026-10-12 o3 손잡이 흰 줄 표시 추가, 활자·서랍 코드 대조 의무는 변하지 않았다.",
+          "supporting_evidence_refs": ["cr11_a95723cc58d3_o3"]
+        },
+        {
+          "fact_key": "x_o4_memo_scope",
+          "claim": "o4 간단 메모는 손잡이 흰 줄만 적었고, 원본 절차 코드 대조를 이 메모로 대체하지 않는다.",
+          "supporting_evidence_refs": ["cr11_a95723cc58d3_o4"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "손잡이 흰 줄만으로 활자·서랍 코드 대조를 생략한다.",
+          "evidence_refs": ["cr11_a95723cc58d3_o3", "cr11_a95723cc58d3_o4"],
+          "reason": "o3/o4 유지·비대체 명시."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr11_a95723cc58d3_o1",
+        "cr11_a95723cc58d3_o2",
+        "cr11_a95723cc58d3_o3",
+        "cr11_a95723cc58d3_o4"
+      ],
+      "rationale": "코드 이중 대조 + 표시 추가. 질의 시점 계약 확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_3a8233755941_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_white_cloth_scene",
+          "claim": "아솔 그림자극 준비 X 첫 장면은 흰 천 뒤에서 시작한다.",
+          "supporting_evidence_refs": ["cr11_3a8233755941_o1", "cr11_3a8233755941_o2"]
+        },
+        {
+          "fact_key": "x_light_line_a",
+          "claim": "X에서 광원은 표시선 A에 놓는다.",
+          "supporting_evidence_refs": ["cr11_3a8233755941_o1", "cr11_3a8233755941_o2"]
+        },
+        {
+          "fact_key": "x_puppet_from_left",
+          "claim": "X에서 인형은 왼쪽에서 넣는다.",
+          "supporting_evidence_refs": ["cr11_3a8233755941_o1", "cr11_3a8233755941_o2"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "간식 배치 Y(검은 쟁반, 오른쪽 탁자)를 그림자극 X의 흰 천·인형 진입 방향 지침으로 적용한다.",
+          "evidence_refs": ["cr11_3a8233755941_o3", "cr11_3a8233755941_o4"],
+          "reason": "o4가 X 장면 정정 지시가 아님(DF3)."
+        }
+      ],
+      "relevant_evidence_refs": ["cr11_3a8233755941_o1", "cr11_3a8233755941_o2"],
+      "rationale": "X는 10-05 o1/o2. o3/o4 Y 분리. 미확정 없음.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    },
+    {
+      "checkpoint_id": "cr11_73bd9d54ff7c_t2",
+      "status": "resolved",
+      "required_facts": [
+        {
+          "fact_key": "x_groove_direction",
+          "claim": "라온 퍼즐 부품 보존 X는 조립 전에 홈 방향을 확인한다.",
+          "supporting_evidence_refs": ["cr11_73bd9d54ff7c_o1", "cr11_73bd9d54ff7c_o2"]
+        },
+        {
+          "fact_key": "x_missing_count",
+          "claim": "X는 조립 전에 누락 부품 수를 세며, 두 확인을 마친 뒤에만 조립한다. 방향만 맞는다고 부품이 모두 있다고 판단하지 않는다(o2).",
+          "supporting_evidence_refs": ["cr11_73bd9d54ff7c_o1", "cr11_73bd9d54ff7c_o2"]
+        },
+        {
+          "fact_key": "x_red_stand_align",
+          "claim": "2026-10-12 o3 완성판 받침을 붉은색으로 맞추는 지시 추가, 조립 전 두 확인은 변하지 않았다.",
+          "supporting_evidence_refs": ["cr11_73bd9d54ff7c_o3"]
+        },
+        {
+          "fact_key": "x_o4_memo_scope",
+          "claim": "o4 빠른 전달 메모는 붉은 받침만 언급했고, 홈 방향·누락 수 확인을 없애는 변경서가 아니다.",
+          "supporting_evidence_refs": ["cr11_73bd9d54ff7c_o4"]
+        }
+      ],
+      "forbidden_claims": [
+        {
+          "claim": "붉은 받침 맞춤만으로 홈 방향·누락 수 확인 없이 조립한다.",
+          "evidence_refs": ["cr11_73bd9d54ff7c_o3", "cr11_73bd9d54ff7c_o4"],
+          "reason": "o3/o4가 조립 전 확인 유지 명시."
+        }
+      ],
+      "relevant_evidence_refs": [
+        "cr11_73bd9d54ff7c_o1",
+        "cr11_73bd9d54ff7c_o2",
+        "cr11_73bd9d54ff7c_o3",
+        "cr11_73bd9d54ff7c_o4"
+      ],
+      "rationale": "조립 전 이중 확인 + 붉은 받침 추가. o4 메모 범위는 관찰. 계약 확정.",
+      "hold_reason": null,
+      "execution_evidence": "unmeasured"
+    }
+  ]
+}
