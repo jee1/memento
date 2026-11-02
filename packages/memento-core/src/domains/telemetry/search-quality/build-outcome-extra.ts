@@ -1,4 +1,4 @@
-import type { HybridLaneMs } from '../../search/algorithms/hybrid-search-types.js';
+import type { HybridLaneMs } from '../../search/index.js';
 import { SEARCH_QUALITY_EXTRA_KEYS } from './extra-keys.js';
 
 type OutcomeSearchResult = {

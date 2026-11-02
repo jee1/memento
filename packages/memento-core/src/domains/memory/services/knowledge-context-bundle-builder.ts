@@ -8,7 +8,7 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { isFullMemoryItemTypeSet } from '../../../shared/utils/type-guards.js';
-import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
+import type { HybridSearchEngine, HybridSearchResult } from '../../search/index.js';
 import { overlayWorkRecordDisplay } from '../remember/work-record.js';
 
 export interface KnowledgeContextBundleBuilderDeps {

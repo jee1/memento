@@ -9,7 +9,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { callerMemoryScope, filterCallerOwnedIds } from '../../../tools/caller-scope.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../../search/index.js';
 import { MemoryEmbeddingService } from '../../embedding/index.js';
 import { MemoryNotFoundError } from '../services/memory-neighbor-service.js';
 

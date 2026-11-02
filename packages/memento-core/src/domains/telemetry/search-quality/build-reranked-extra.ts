@@ -1,4 +1,4 @@
-import type { RelevanceGateOutcome } from '../../search/ports/relevance-gate-port.js';
+import type { RelevanceGateOutcome } from '../../search/index.js';
 import { SEARCH_QUALITY_EXTRA_KEYS } from './extra-keys.js';
 
 export function rejectionGateTelemetryExtra(
