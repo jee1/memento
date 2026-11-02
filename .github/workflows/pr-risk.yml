@@ -30,7 +30,9 @@ jobs:
           TITLE: ${{ github.event.pull_request.title }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          node scripts/pr-risk-score.ts --base "$BASE_SHA" --head HEAD --title "$TITLE" --json > risk.json
+          # 이벤트 payload 라벨은 낡을 수 있어 현재 라벨을 다시 읽는다. 점수는 라벨을 올리기만 한다.
+          labels=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
+          node scripts/pr-risk-score.ts --base "$BASE_SHA" --head HEAD --title "$TITLE" --labels "$labels" --json > risk.json
           level=$(jq -r .level risk.json)
           jq -r .markdown risk.json > risk.md
           for l in low medium high; do
