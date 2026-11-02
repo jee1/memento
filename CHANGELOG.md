@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- 개발: `scripts/verify-supersede-integration.ts` 는 운영 DB 사본에서 대체 승인과 복원을 걸고 읽기 경로별 대체된 기억 노출, 범위 유출, 역사 조회, 복원 뒤 원상태, live 포인터 0개와 N개의 지연과 실행 계획을 잽니다. 사본에 후보가 없으면 2B 짝짓기를 LLM 없이 돌려 판정만 합성합니다 (#1614).
+
 ### Changed
 
 - 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, cross-import 74건(embedding 27건, search 25건, 나머지 22건)을 공개 index 로 옮겨 allowlist 를 77→3 으로 줄였습니다. 남은 3 edge 는 구체 `RelationGraph` import 로 `relation/services/relation-graph.js` 고정 목록 검사 대상입니다 (#1610, #1611, #1612, #1613).
