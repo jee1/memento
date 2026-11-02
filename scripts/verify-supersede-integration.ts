@@ -9,9 +9,10 @@
  * Usage: npx tsx scripts/verify-supersede-integration.ts --db <copy.db> [--approve 5] [--scan-pairs 40] [--lookback-days 7]
  */
 import assert from 'node:assert/strict';
-import { realpathSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { performance } from 'node:perf_hooks';
 
@@ -25,8 +26,25 @@ const { values: args } = parseArgs({
 });
 if (!args.db) throw new Error('--db <copy.db> is required');
 const dbPath = realpathSync(resolve(args.db));
-for (const live of [join(homedir(), '.memento/data/memory.db'), process.env.DB_PATH?.replace(/^~/, homedir())]) {
-  if (live && dbPath === (() => { try { return realpathSync(live); } catch { return null; } })()) {
+const dotEnvDbPath = (dir: string) => {
+  try {
+    return readFileSync(join(dir, '.env'), 'utf8').match(/^\s*DB_PATH\s*=\s*["']?([^"'#\r\n]*?)["']?\s*$/m)?.[1];
+  } catch {
+    return undefined;
+  }
+};
+// Compared by device and inode, so a hard link or symlink to a live database is refused too.
+const target = statSync(dbPath);
+for (const live of [
+  join(homedir(), '.memento/data/memory.db'),
+  join(homedir(), '.memento/memory.db'),
+  process.env.DB_PATH,
+  dotEnvDbPath(process.cwd()),
+  dotEnvDbPath(join(dirname(fileURLToPath(import.meta.url)), '..')),
+]) {
+  if (!live) continue;
+  const stat = statSync(live.replace(/^~(?=$|\/)/, homedir()), { throwIfNoEntry: false });
+  if (stat && stat.dev === target.dev && stat.ino === target.ino) {
     throw new Error(`Refusing to run against the live database ${live}; pass a copy`);
   }
 }
@@ -173,12 +191,9 @@ const probes: Record<string, Probe> = {
     : idsIn(json(await new GetRelationsTool().handle(scoped(pair, view, { memory_id: pair.relationRoot, limit: 1000, include_superseded: view === 'history' }), context(pair, view) as never)), pair),
   relation_bfs: async (pair, view) => pair.relationRoot === null || view !== 'current' ? null
     : (await new RelationGraphTraversal(db).getRelatedMemories(pair.relationRoot, { maxHops: 2 })).map(row => row.memory_id),
-  neighbors: async (pair, view) => {
-    if (view === 'history') return null;
-    const result = await new GetMemoryNeighborsTool().handle(scoped(pair, view, { memory_id: pair.newId, limit: 20 }), context(pair, view) as never)
-      .then(json, (error: Error) => { if (/not found|찾을 수 없습니다/.test(error.message)) return null; throw error; });
-    return result === null ? [] : [pair.newId, ...idsIn(result.neighbors, pair)];
-  },
+  // new 가 seed 라 응답에 new 는 없다. old 가 이웃으로 나오는지만 센다. 타 project 는 seed 부터 거부돼 old 유출을 잴 수 없다.
+  neighbors: async (pair, view) => view !== 'current' ? null
+    : idsIn(json(await new GetMemoryNeighborsTool().handle(scoped(pair, view, { memory_id: pair.newId, limit: 20 }), context(pair, view) as never)).neighbors, pair),
   anchor: async (pair, view) => view !== 'current' ? null
     : [(await anchors.anchorManager.getAnchor(anchorAgent(pair), 'A') as { memory_id?: string } | null)?.memory_id ?? ''],
   consolidation_candidates: async (pair, view) => pair.type !== 'episodic' || view !== 'current' ? null
@@ -237,6 +252,7 @@ pairs.forEach((pair, i) => {
       if (view === 'foreign') expect(!b.old && !b.new && !a.old && !a.new && !r.old && !r.new, `pair ${i} ${name} scope leak`);
       if (view === 'current' && b.old) expect(!a.old, `pair ${i} ${name} stale exposure`);
       if (view === 'current' && b.new && (name !== 'relation_bfs' || pair.newAdjacentToRoot)) expect(a.new, `pair ${i} ${name} lost fresh`);
+      if (view === 'current' && name.startsWith('recall_')) expect(a.count >= Math.min(K, b.count), `pair ${i} ${name} top-K not refilled (${b.count}→${a.count})`);
       if (view === 'history' && b.old) expect(a.old, `pair ${i} ${name} history lost`);
       expect(r.old === b.old && r.new === b.new, `pair ${i} ${name} ${view} not restored`);
     }
@@ -300,7 +316,11 @@ const perf = {
 
 const summary = Object.fromEntries(Object.keys(probes).map(name => {
   const cells = (phase: Phase, view: View) => matrix[phase].map(row => row[name]![view]);
-  const count = (phase: Phase, view: View, test: (cell: NonNullable<Cell>) => boolean) => cells(phase, view).filter(cell => cell && test(cell)).length;
+  /** null 은 그 칸을 어느 쌍에서도 재지 않았다는 뜻이다. 0 과 구분한다. */
+  const count = (phase: Phase, view: View, test: (cell: NonNullable<Cell>) => boolean) => {
+    const measured = cells(phase, view).filter((cell): cell is NonNullable<Cell> => cell !== null);
+    return measured.length === 0 ? null : measured.filter(test).length;
+  };
   return [name, {
     pairsApplicable: cells('before', 'current').filter(Boolean).length,
     oldVisibleBefore: count('before', 'current', cell => cell.old),
@@ -308,7 +328,9 @@ const summary = Object.fromEntries(Object.keys(probes).map(name => {
     newVisibleBefore: count('before', 'current', cell => cell.new),
     newVisibleAfterApply: count('applied', 'current', cell => cell.new),
     historyOldAfterApply: count('applied', 'history', cell => cell.old),
-    foreignLeaks: (['before', 'applied', 'restored'] as const).reduce((sum, phase) => sum + count(phase, 'foreign', cell => cell.old || cell.new), 0),
+    foreignLeaks: (['before', 'applied', 'restored'] as const)
+      .map(phase => count(phase, 'foreign', cell => cell.old || cell.new))
+      .reduce<number | null>((sum, value) => value === null ? sum : (sum ?? 0) + value, null),
     oldVisibleAfterRestore: count('restored', 'current', cell => cell.old),
   }];
 }));
