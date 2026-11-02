@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { aggregateV2Panel } from '../scripts/aggregate-consolidation-replay-v2-panel.js';
 import { ADJ_INPUT_DIR, buildV2Adjudication, checkV2Adjudication } from '../scripts/build-consolidation-replay-v2-adjudication.js';
 import { STRATA, V2_DIR, buildV2Panel, queryFor } from '../scripts/build-consolidation-replay-v2-panel.js';
 
@@ -208,5 +209,35 @@ describe('consolidation-replay-v2 adjudication input (#1624)', () => {
       skipped.cases[1].probes = skipped.cases[1].probes.filter((p: any) => p.target !== 'a1');
       expect(checkV2Adjudication(inputRaw, JSON.stringify(skipped))).toEqual([`${skipped.cases[1].checkpoint_id}: needs exactly one P_omit per fact_alignment row`]);
     });
+  });
+});
+
+describe('consolidation-replay-v2 panel result (#1624)', () => {
+  const { pins, result } = aggregateV2Panel();
+  const inputs = new Map(['1', '2', '3'].flatMap(stage => ['1', '2'].flatMap(part =>
+    JSON.parse(text(join(dir, ADJ_INPUT_DIR, `stage-${stage}-part-${part}/adjudication-input.json`))).cases.map((c: any) => [c.checkpoint_id, c]))));
+
+  it('committed panel result and pins are the aggregation of the sealed adjudications', () => {
+    expect(read('panel-result.json')).toEqual(result);
+    expect(read('adjudication/source-pins.json')).toEqual(pins);
+    expect(Object.keys(pins)).toHaveLength(12);
+  });
+
+  it('gold needs both judges resolved and both adjudicators true; evidence freezes only on gold with equal sets', () => {
+    for (const d of result.decisions) {
+      const c = inputs.get(d.checkpoint_id);
+      const resolved = c.contract_a.status === 'resolved' && c.contract_b.status === 'resolved';
+      expect(d.contract_gold).toBe(resolved && d.adjudicator_approvals.every(Boolean));
+      const same = [...new Set<string>(c.contract_a.relevant_evidence_refs)].sort().join() === [...new Set<string>(c.contract_b.relevant_evidence_refs)].sort().join();
+      expect(d.relevant_evidence_agreement).toBe(same);
+      expect(d.relevant_evidence_refs === null).toBe(!(d.contract_gold && same));
+    }
+    expect(result.decisions.some(d => d.contract_gold && !d.relevant_evidence_agreement)).toBe(true);
+  });
+
+  it('reports G1 on gold alone against the registered floor', () => {
+    const perStratum = result.strata.map(s => s.test_complete_sequences);
+    expect(result.summary.g1_gold_only.passes).toBe(result.summary.test_complete_sequences >= 16 && perStratum.every(n => n >= 2));
+    expect(result.strata.map(s => s.test_planned_sequences)).toEqual([7, 7, 7, 7, 7]);
   });
 });

@@ -1,6 +1,6 @@
 # 수면 통합 재생 v2 (#1624)
 
-상태: **판정 6건 봉인, 조정 입력 준비. gold 0건, A/B/D 미실행, 모델 호출 0회.**
+상태: **agent_panel 계약 gold 86/120, test complete 10/35. 사전등록 관문 G1 미달로 `inconclusive`, A/B/D 미실행, 모델 호출 0회.** 결과와 해석은 [보고서](../../../../docs/reports/2026-11-03-issue-1624-consolidation-replay-v2-panel.md).
 
 A(통합 없음), B(묶기만), D(현행 Gemini 요약/병합) 비교에 쓰는 새 held-out 합성 test 가족이다. 다섯 층(conditional, correction, generalization, task_noise, source_preservation)에 층당 8시퀀스(dev 1, test 7), 관찰 240건, 시점 120건이다. 설계, 크기 근거, 판정 규칙은 [protocol.md](protocol.md)에 있다.
 
@@ -21,6 +21,8 @@ A(통합 없음), B(묶기만), D(현행 Gemini 요약/병합) 비교에 쓰는 
 | `adjudication/stage{1,2,3}-{a,b}-answers.sealed.json` | 원 판정 6건 봉인본(A 머슴1 Composer 2.5, B 머슴5 Claude Opus 5.5) |
 | `adjudication/seals/` | 판정 입력과 제출 SHA |
 | `adjudication/input/stage-N-part-M/` | 조정 입력 묶음 6개(20시점씩): 패킷 원문과 A/B 계약, rubric, 동등성 검사, `fact_alignment`가 있는 빈 양식. 판정자는 A/B로만 나온다 |
+| `adjudication/adj-{1,2}-stage-N-part-M.sealed.json`, `adjudication/seals/adj-*.sha256` | 조정 봉인본 12건(adj-1 GPT-6.1-Sol high, adj-2 Claude Sonnet 5.5) |
+| [panel-result.json](panel-result.json), `adjudication/source-pins.json` | 합산 결과. gold, 관련 근거 동결, 층/split coverage, G1 gold 단계 판정 |
 
 조정 기록은 봉인 전에 `npx tsx scripts/build-consolidation-replay-v2-adjudication.ts --check <file> --bundle <묶음>`으로 형식, fact_key 대응, 탐침 구성, `contract_agreement`와 탐침 일치를 검사한다.
 
@@ -31,6 +33,7 @@ A(통합 없음), B(묶기만), D(현행 Gemini 요약/병합) 비교에 쓰는 
 ```bash
 npx tsx scripts/build-consolidation-replay-v2-panel.ts
 npx tsx scripts/build-consolidation-replay-v2-adjudication.ts
+npx tsx scripts/aggregate-consolidation-replay-v2-panel.ts
 npx vitest run tests/consolidation-replay-v2-fixture.spec.ts scripts/lib/consolidation-panel-decision.spec.ts
 ```
 
