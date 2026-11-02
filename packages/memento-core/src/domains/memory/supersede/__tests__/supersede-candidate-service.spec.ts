@@ -168,6 +168,51 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(result.pairsConsidered).toBe(2);
   });
 
+  describe('출처 (#1622)', () => {
+    const USER = { tool: 'remember', caller: 'user' };
+    const CONSOLIDATION = { tool: 'sleep-consolidation', caller: 'system' };
+    const LEGACY_CONSOLIDATION = { tool: 'sleep-consolidation', context: { merge_resummarize: true } };
+    const directive = '(2026-10-18) 모든 개발 건은 poteto-mode 로 진행한다. 착수 전 ~/.claude/skills/poteto-mode/SKILL.md 를 끝까지 읽는다.';
+    const summary =
+      'poteto 개발은 playbooks/ 의 플레이북 단계를 따른다. 2026-10-24 기준 Codex 환경에 ~/.codex/skills/poteto-mode 가 설치되었다.';
+
+    const pairedOldIds = async () => {
+      const port = fakeChatPort(() => judgeReply('confirmed', '경로가 바뀌었다'));
+      const result = await service(port).scan({ runId: 'run-1' });
+      return { oldIds: candidates().map((c) => c.old_memory_id), calls: port.calls.length, result };
+    };
+
+    it.each([
+      ['caller=system', CONSOLIDATION],
+      ['caller 없는 merge_resummarize', LEGACY_CONSOLIDATION],
+    ])('consolidation 요약(%s)은 사용자가 남긴 지침과 짝짓지 않는다', async (_name, originSource) => {
+      insertSeedMemory(db, { id: 'directive', content: directive, createdAt: OLD_AT, originSource: USER });
+      insertSeedMemory(db, { id: 'summary', content: summary, createdAt: NEW_AT, vec: [0.9, 0.1, 0], originSource });
+
+      const { oldIds, calls, result } = await pairedOldIds();
+
+      expect(oldIds).toEqual([]);
+      expect(calls).toBe(0);
+      expect(result.pairsConsidered).toBe(0);
+    });
+
+    it('사용자 기억이 요약을, 요약이 요약이나 출처 미상 기억을 대체하는 쌍은 판정한다', async () => {
+      insertSeedMemory(db, { id: 'old-summary', content: summary, createdAt: isoDaysAgo(12), originSource: CONSOLIDATION });
+      insertSeedMemory(db, { id: 'old-unknown', content: '출처 없는 옛 기억', createdAt: isoDaysAgo(11) });
+      insertSeedMemory(db, { id: 'new-user', content: directive, createdAt: isoDaysAgo(2), vec: [0.9, 0.1, 0], originSource: USER });
+      insertSeedMemory(db, { id: 'new-summary', content: `${summary} 갱신`, createdAt: NEW_AT, vec: [0.95, 0.05, 0], originSource: CONSOLIDATION });
+
+      await service(fakeChatPort(() => judgeReply('compatible'))).scan({ runId: 'run-1' });
+
+      expect(candidates().map((c) => [c.old_memory_id, c.new_memory_id])).toEqual([
+        ['old-summary', 'new-summary'],
+        ['old-summary', 'new-user'],
+        ['old-unknown', 'new-summary'],
+        ['old-unknown', 'new-user'],
+      ]);
+    });
+  });
+
   it('임베딩이 없는 기억은 쌍에서 빼고 개수를 보고한다', async () => {
     insertSeedMemory(db, { id: 'old', content: 'old', createdAt: OLD_AT, vec: null });
     insertSeedMemory(db, { id: 'new', content: 'new', createdAt: NEW_AT });

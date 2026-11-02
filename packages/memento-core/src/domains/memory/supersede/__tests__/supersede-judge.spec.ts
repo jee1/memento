@@ -49,8 +49,29 @@ describe('judgeSupersedePair (#1548)', () => {
     expect(user!.content.match(/<<</g)).toHaveLength(4);
   });
 
+  it('같은 주제라도 다른 도구, 에이전트, 환경, 대상에 대한 설명은 compatible 로 두라고 지시한다 (#1622)', async () => {
+    const directive = {
+      ...old,
+      content: '모든 개발 건은 poteto-mode 로 진행한다. 착수 전 ~/.claude/skills/poteto-mode/SKILL.md 를 읽는다.',
+    };
+    const codexSummary = {
+      ...next,
+      content: '2026-10-24 기준 Codex 환경에 ~/.codex/skills/poteto-mode 가 설치되어 독립적인 개발 환경이 구성되었다.',
+    };
+    const port = fakeChatPort(() => judgeReply('compatible', '다른 환경이다'));
+    await judgeSupersedePair(port, 'm', directive, codexSummary);
+
+    const [system, user] = port.calls[0]!.messages;
+    const compatibleRule = system!.content.split('\n').find((line) => line.startsWith('- compatible:'));
+    for (const word of ['도구', '에이전트', '환경', '대상']) {
+      expect(compatibleRule).toContain(word);
+    }
+    expect(user!.content).toContain('~/.claude/skills/poteto-mode');
+    expect(user!.content).toContain('~/.codex/skills/poteto-mode');
+  });
+
   it('프롬프트 버전은 프롬프트 해시를 담는다', () => {
-    expect(SUPERSEDE_PROMPT_VERSION).toMatch(/^supersede-v1-[0-9a-f]{12}$/);
+    expect(SUPERSEDE_PROMPT_VERSION).toMatch(/^supersede-v2-[0-9a-f]{12}$/);
   });
 
   it('evidence_quote 는 새 기억 본문의 원문 부분 문자열일 때만 남긴다', async () => {

@@ -136,6 +136,28 @@ export interface SupersedeScopeMemoryRow {
   isRecent: boolean;
   embedding: number[];
   embeddingModel: string | null;
+  origin: MemoryOrigin;
+}
+
+/** 누가 만든 기억인가. `{}` 처럼 출처가 없는 옛 기억은 unknown 이다. */
+export type MemoryOrigin = 'user' | 'consolidation' | 'unknown';
+
+/** consolidation-repository 처럼 tool 로 요약을 알아본다. 옛 merge_resummarize 요약에는 caller 가 없다. */
+function parseMemoryOrigin(originSource: string | null): MemoryOrigin {
+  let origin: unknown;
+  try {
+    origin = JSON.parse(originSource ?? '{}');
+  } catch {
+    return 'unknown';
+  }
+  if (origin === null || typeof origin !== 'object') {
+    return 'unknown';
+  }
+  const { tool, caller } = origin as { tool?: unknown; caller?: unknown };
+  if (tool === 'sleep-consolidation') {
+    return 'consolidation';
+  }
+  return caller === 'user' ? 'user' : 'unknown';
 }
 
 export interface SupersedeScopeMemories {
@@ -276,7 +298,8 @@ export function findSupersedeScopeMemories(
          julianday(mi.created_at) AS createdJd,
          julianday(mi.created_at) >= julianday('now') - ? AS isRecent,
          me.embedding AS embedding,
-         me.model AS embeddingModel
+         me.model AS embeddingModel,
+         mi.origin_source AS originSource
        FROM memory_item mi
        LEFT JOIN memory_embedding me
          ON me.memory_id = mi.id
@@ -291,18 +314,22 @@ export function findSupersedeScopeMemories(
          AND julianday(mi.created_at) IS NOT NULL`,
     )
     .all(lookbackDays) as Array<
-    Omit<SupersedeScopeMemoryRow, 'embedding' | 'isRecent'> & { embedding: Buffer | null; isRecent: number }
+    Omit<SupersedeScopeMemoryRow, 'embedding' | 'isRecent' | 'origin'> & {
+      embedding: Buffer | null;
+      isRecent: number;
+      originSource: string | null;
+    }
   >;
 
   const memories: SupersedeScopeMemoryRow[] = [];
   let withoutEmbedding = 0;
-  for (const row of rows) {
+  for (const { originSource, ...row } of rows) {
     const embedding = embeddingColumnToNumbers(row.embedding);
     if (!embedding) {
       withoutEmbedding += 1;
       continue;
     }
-    memories.push({ ...row, embedding, isRecent: row.isRecent === 1 });
+    memories.push({ ...row, embedding, isRecent: row.isRecent === 1, origin: parseMemoryOrigin(originSource) });
   }
   return { memories, withoutEmbedding };
 }
