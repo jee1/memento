@@ -43,7 +43,7 @@ function mulberry32(seed: number) {
   };
 }
 
-function shuffled<T>(items: T[], seed: number): T[] {
+export function shuffled<T>(items: T[], seed: number): T[] {
   const out = [...items];
   const random = mulberry32(seed);
   for (let i = out.length - 1; i > 0; i -= 1) {

@@ -1,0 +1,247 @@
+{
+  "unit": "whole_sequence_family",
+  "seed": 1624,
+  "rule": "shuffle all 40 sequences with the seed; the first sequence of each stratum is dev, the rest test",
+  "assignments": [
+    {
+      "sequence_id": "cr2_b6f54e11c8a9",
+      "family_id": "family_b6f54e11c8a9",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_db5a4ec8eccc",
+      "family_id": "family_db5a4ec8eccc",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_ce490e6605c4",
+      "family_id": "family_ce490e6605c4",
+      "stratum": "conditional",
+      "split": "dev"
+    },
+    {
+      "sequence_id": "cr2_2e8ce95d0324",
+      "family_id": "family_2e8ce95d0324",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_f01483fe5435",
+      "family_id": "family_f01483fe5435",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_88a3a2553755",
+      "family_id": "family_88a3a2553755",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_1af94e4d743d",
+      "family_id": "family_1af94e4d743d",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_ae95f66d90dc",
+      "family_id": "family_ae95f66d90dc",
+      "stratum": "conditional",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_bd50d0f24f2a",
+      "family_id": "family_bd50d0f24f2a",
+      "stratum": "correction",
+      "split": "dev"
+    },
+    {
+      "sequence_id": "cr2_adf7c457ae36",
+      "family_id": "family_adf7c457ae36",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_501830241ceb",
+      "family_id": "family_501830241ceb",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_2b4e7d165d4a",
+      "family_id": "family_2b4e7d165d4a",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_da6ae709f2a1",
+      "family_id": "family_da6ae709f2a1",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_9d80ee6afca1",
+      "family_id": "family_9d80ee6afca1",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_e404469d4273",
+      "family_id": "family_e404469d4273",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_e484b388077f",
+      "family_id": "family_e484b388077f",
+      "stratum": "correction",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_09734b74dcd2",
+      "family_id": "family_09734b74dcd2",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_e14c985fef9c",
+      "family_id": "family_e14c985fef9c",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_6fe9f88e61a3",
+      "family_id": "family_6fe9f88e61a3",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_80dde188a3da",
+      "family_id": "family_80dde188a3da",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_8b78b9db9f3a",
+      "family_id": "family_8b78b9db9f3a",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_67871557b105",
+      "family_id": "family_67871557b105",
+      "stratum": "generalization",
+      "split": "dev"
+    },
+    {
+      "sequence_id": "cr2_da745e7d6bc9",
+      "family_id": "family_da745e7d6bc9",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_547ab5fe47f6",
+      "family_id": "family_547ab5fe47f6",
+      "stratum": "generalization",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_d3741b4c7805",
+      "family_id": "family_d3741b4c7805",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_31d53c1662d6",
+      "family_id": "family_31d53c1662d6",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_d6328978bc46",
+      "family_id": "family_d6328978bc46",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_e8509911972d",
+      "family_id": "family_e8509911972d",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_ef728f684700",
+      "family_id": "family_ef728f684700",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_d0f71a26404d",
+      "family_id": "family_d0f71a26404d",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_81538441219f",
+      "family_id": "family_81538441219f",
+      "stratum": "task_noise",
+      "split": "dev"
+    },
+    {
+      "sequence_id": "cr2_2bb6e01c1d00",
+      "family_id": "family_2bb6e01c1d00",
+      "stratum": "task_noise",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_9282c3126a72",
+      "family_id": "family_9282c3126a72",
+      "stratum": "source_preservation",
+      "split": "dev"
+    },
+    {
+      "sequence_id": "cr2_26090b384cbc",
+      "family_id": "family_26090b384cbc",
+      "stratum": "source_preservation",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_58b13c8d3bb1",
+      "family_id": "family_58b13c8d3bb1",
+      "stratum": "source_preservation",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_5f005a76924e",
+      "family_id": "family_5f005a76924e",
+      "stratum": "source_preservation",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_7ac29410d9c4",
+      "family_id": "family_7ac29410d9c4",
+      "stratum": "source_preservation",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_51bb92b6fe47",
+      "family_id": "family_51bb92b6fe47",
+      "stratum": "source_preservation",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_84a8da463af3",
+      "family_id": "family_84a8da463af3",
+      "stratum": "source_preservation",
+      "split": "test"
+    },
+    {
+      "sequence_id": "cr2_cf4fc38cde9d",
+      "family_id": "family_cf4fc38cde9d",
+      "stratum": "source_preservation",
+      "split": "test"
+    }
+  ]
+}
