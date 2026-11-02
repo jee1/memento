@@ -47,13 +47,16 @@ function regionAfterOuterMiJoin(sql: string): string {
 function captureHybridSql(
   textQuery: string | undefined,
   scope: VectorSearchScope = emptyScope,
-  activeSupersedePointers = false,
+  hiddenEmbeddingRows: number | null = null,
 ): string {
   let captured = '';
   const db = {
     prepare: (sql: string) => {
       captured = sql;
-      return { all: vi.fn().mockReturnValue([]), get: () => activeSupersedePointers ? { found: 1 } : undefined };
+      return {
+        all: vi.fn().mockReturnValue([]),
+        get: () => hiddenEmbeddingRows === null ? undefined : { found: 1, hidden: hiddenEmbeddingRows },
+      };
     }
   } as unknown as Database.Database;
 
@@ -70,14 +73,17 @@ function captureHybridSql(
 }
 
 describe('executeHybridQuery SQL contract (#811 US5)', () => {
-  it('zero live pointers preserve unscoped hybrid SQL; existing live pointers filter before LIMIT (#1552)', () => {
+  it('zero live pointers preserve unscoped hybrid SQL; live pointers filter after a deeper KNN (#1552, #1615)', () => {
     for (const query of [undefined, 'query']) {
       const unscoped = captureHybridSql(query);
       expect(unscoped).not.toMatch(/rowid IN \(/i);
       expect(unscoped).not.toContain('superseded_by');
-      const scoped = captureHybridSql(query, {}, true);
-      expect(scoped).toMatch(/rowid IN \(/i);
-      expect(scoped).toContain('scoped_mi.superseded_by');
+      const current = captureHybridSql(query, {}, 3);
+      expect(current).not.toMatch(/rowid IN \(/i);
+      expect(current).toContain('mi.superseded_by');
+      const fallback = captureHybridSql(query, {}, 5000);
+      expect(fallback).toMatch(/rowid IN \(/i);
+      expect(fallback).toContain('scoped_mi.superseded_by');
     }
   });
   it('텍스트 하이브리드 SELECT는 vector_distance를 노출하고 1-distance 변환을 SELECT에 두지 않는다', () => {

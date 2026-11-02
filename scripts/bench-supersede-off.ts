@@ -58,6 +58,40 @@ const reviewPlan = plan(unscoped);
 const probePlan = db.prepare('EXPLAIN QUERY PLAN ' + probeSql).all() as Array<{ detail: string }>;
 assert.deepEqual(reviewPlan, legacyPlan);
 assert.ok(probePlan.some(row => row.detail.includes('idx_memory_item_superseded_by')), 'Probe must use the partial index');
-process.stdout.write(JSON.stringify({rows:5000,dimensions:384,limit:10,flag:'off',livePointers:0,warmup:20,samples:100,timingBoundary:'prepare + SQL, review includes fresh indexed probe; round-robin',timings,p95Ratio:ratio,maxP95Ratio:1.15,probePlan,legacyPlan,stage1Plan:plan(stage1),reviewPlan},null,2)+'\n');
+
+// #1615: live pointers alone keep unscoped KNN off the every-embedding rowid IN path.
+const MAX_ON_P95_RATIO = 1.3;
+const livePointerIds = ['m1', 'm2', 'm3', 'm4', 'm5'];
+const setPointers = (on: boolean) => db.prepare(`UPDATE memory_item SET superseded_by = ? WHERE id IN (${livePointerIds.map(() => '?').join(',')})`)
+ .run(on ? 'm0' : null, ...livePointerIds);
+const realKnn = (target: typeof db) => executeKnnQuery({ db: target, effectiveQueryVector: vector,
+ runtimeContext: { provider: 'minilm', tableName: 'memory_item_vec_minilm', modelFilter: 'bench', expectedDimensions: 384, actualStoredDimensions: 384, targetDimensions: 384 },
+ scope: {}, options: { limit: 10, threshold: 0, includeContent: true } });
+const onSamples = { off: [] as number[], on: [] as number[] };
+for (let i=0; i<120; i++) for (const state of (i % 2 ? ['on', 'off'] : ['off', 'on']) as Array<'off' | 'on'>) {
+ setPointers(state === 'on');
+ const t=performance.now(); const rows = realKnn(db);
+ if (state === 'on') assert.ok(!rows.some(row => livePointerIds.includes(row.memory_id)), 'Live pointers must hide replaced rows');
+ if (i>=20) onSamples[state].push(performance.now()-t);
+}
+const p95 = (times: number[]) => [...times].sort((a,b)=>a-b)[95]!;
+const onRatio = p95(onSamples.on) / p95(onSamples.off);
+setPointers(true);
+const onStatements: Array<{ sql: string; params: unknown[] }> = [];
+realKnn({ prepare(sql: string) {
+ const statement = db.prepare(sql);
+ const record = (run: (...params: unknown[]) => unknown) => (...params: unknown[]) => { onStatements.push({ sql, params }); return run(...params); };
+ return { get: record((...params) => statement.get(...params)), all: record((...params) => statement.all(...params)) };
+} } as never);
+const onPlans = onStatements.map(({ sql, params }) => (db.prepare('EXPLAIN QUERY PLAN ' + sql).all(...params) as Array<{ detail: string }>).map(row => row.detail));
+setPointers(false);
+const hiddenCountPlan = onPlans.find((_, index) => onStatements[index]!.sql.includes('AS hidden'))!;
+const knnOnPlan = onPlans.at(-1)!;
+assert.ok(hiddenCountPlan[0]?.includes('idx_memory_item_superseded_by'), 'Hidden-row count must start from the partial index');
+assert.ok(!knnOnPlan.some(detail => detail.includes('scoped_me')), 'Live pointers alone must not enumerate embeddings before KNN');
+
+process.stdout.write(JSON.stringify({rows:5000,dimensions:384,limit:10,flag:'off',livePointers:0,warmup:20,samples:100,timingBoundary:'prepare + SQL, review includes fresh indexed probe; round-robin',timings,p95Ratio:ratio,maxP95Ratio:1.15,probePlan,legacyPlan,stage1Plan:plan(stage1),reviewPlan,
+ livePointersOn:{livePointers:livePointerIds.length,timingBoundary:'executeKnnQuery incl. probe and hidden-row count; round-robin',off_p95_ms:p95(onSamples.off),on_p95_ms:p95(onSamples.on),p95Ratio:onRatio,maxP95Ratio:MAX_ON_P95_RATIO,hiddenCountPlan,knnOnPlan}},null,2)+'\n');
 db.close();
 assert.ok(ratio <= 1.15, `Off/zero-pointer p95 ratio ${ratio.toFixed(3)} exceeds 1.15`);
+assert.ok(onRatio <= MAX_ON_P95_RATIO, `Live-pointer p95 ratio ${onRatio.toFixed(3)} exceeds ${MAX_ON_P95_RATIO}`);

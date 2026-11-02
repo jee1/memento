@@ -179,10 +179,49 @@ export function buildMemoryFilterSql(
   return out;
 }
 
-/** Whether request filters or live replacement pointers require pre-KNN candidate filtering. */
-export function hasMemoryFilter(filters: MemorySearchFilters | undefined, currentState = false): boolean {
-  const { clauses } = buildMemoryFilterSql(filters, { itemAlias: 'm', currentState });
-  return clauses.length > 0;
+/** sqlite-vec rejects a KNN k above this. */
+const VEC0_K_MAX = 4096;
+
+export interface KnnCandidatePlan {
+  /** Live pointers exist, so current-state SQL applies before or after KNN. */
+  currentState: boolean;
+  /** Narrow KNN candidates with rowid IN before KNN. */
+  scoped: boolean;
+  /** KNN k or LIMIT. */
+  depth: number;
+}
+
+/**
+ * Request filters narrow KNN with rowid IN. When live pointers are the only filter (#1615),
+ * enumerating every embedding costs O(corpus) per query; instead KNN digs deeper by the
+ * embedding rows those pointers hide, so the outer WHERE can drop them and still leave
+ * `prefetch` fresh rows (sparse fresh top-K, #1552).
+ */
+export function planKnnCandidates(
+  db: Database.Database,
+  filters: MemorySearchFilters | undefined,
+  provider: string,
+  prefetch: number,
+): KnnCandidatePlan {
+  const currentState = hasActiveSupersedePointers(db);
+  if (buildMemoryFilterSql(filters, { itemAlias: 'm', currentState: false }).clauses.length > 0) {
+    return { currentState, scoped: true, depth: prefetch };
+  }
+  // History reads keep replaced rows, so nothing is hidden and KNN needs no extra depth.
+  if (!currentState || filters?.include_superseded === true) {
+    return { currentState, scoped: false, depth: prefetch };
+  }
+  // CROSS JOIN pins memory_item outer so the partial index drives; a plain JOIN lets SQLite
+  // scan every embedding of the provider, the O(corpus) cost this plan exists to avoid.
+  const row = db.prepare(`SELECT COUNT(*) AS hidden FROM memory_item mi
+    CROSS JOIN memory_embedding me ON me.memory_id = mi.id
+    WHERE mi.superseded_by IS NOT NULL
+      AND ${supersedeByActiveTargetSql('mi')}
+      AND me.embedding_provider = ?`).get(provider) as { hidden: number } | undefined;
+  const depth = prefetch + (row?.hidden ?? 0);
+  return depth <= VEC0_K_MAX
+    ? { currentState, scoped: false, depth }
+    : { currentState, scoped: true, depth: prefetch };
 }
 
 /** Filter both relation endpoints before ordering, pagination or BFS expansion. */

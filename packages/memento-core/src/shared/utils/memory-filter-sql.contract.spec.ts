@@ -6,7 +6,8 @@ import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { getAppliedRecallFilters } from '../../domains/memory/recall/recall-tool-filters.js';
 import type { MemorySearchFilters } from '../types/search.types.js';
-import { buildMemoryFilterSql, hasMemoryFilter } from './memory-filter-sql.js';
+import { setupTestDatabase } from '../../test/helpers/test-database.js';
+import { buildMemoryFilterSql, planKnnCandidates } from './memory-filter-sql.js';
 
 const SAMPLE_VALUES: Record<string, unknown> = {
   type: ['semantic'],
@@ -109,12 +110,9 @@ describe('current state SQL (#1552)', () => {
       expect(ids(db)).toEqual(['c', 'dangling', 'foreign']);
       expect(ids(db, {})).toEqual(ids(db));
       expect(ids(db, { owner_id: 'owner-a', project_id: 'project-a' })).toEqual(['c', 'dangling']);
-      expect(hasMemoryFilter(undefined)).toBe(false);
-      expect(hasMemoryFilter({})).toBe(false);
-      expect(hasMemoryFilter(undefined, true)).toBe(true);
-      expect(hasMemoryFilter({}, true)).toBe(true);
     } finally { db.close(); }
   });
+
 
   it('direct target soft/hard deletion revives only its predecessor', () => {
     const db = fixture();
@@ -133,6 +131,38 @@ describe('current state SQL (#1552)', () => {
       expect(ids(db)).toEqual(['a', 'b', 'c', 'dangling', 'foreign']);
       expect(ids(db, { owner_id: 'owner-a', project_id: 'project-a' }))
         .toEqual(['a', 'b', 'c', 'dangling']);
+    } finally { db.close(); }
+  });
+});
+
+describe('KNN candidate plan (#1615)', () => {
+  it('digs deeper by the embedding rows live pointers hide instead of scoping every candidate', async () => {
+    const db = await setupTestDatabase();
+    try {
+      db.exec(`INSERT INTO memory_item (id, type, content, project_id) VALUES
+          ('a', 'semantic', 'a', 'p'), ('b', 'semantic', 'b', 'p'), ('c', 'semantic', 'c', 'p'), ('dangling', 'semantic', 'd', 'p');
+        UPDATE memory_item SET superseded_by = 'b' WHERE id = 'a';
+        UPDATE memory_item SET superseded_by = 'c' WHERE id = 'b';
+        UPDATE memory_item SET superseded_by = 'missing' WHERE id = 'dangling';`);
+      const embedding = db.prepare(`INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions)
+        VALUES (?, ?, ?, ?, 2, 2)`);
+      for (const [id, provider, projection] of [['a', 'minilm', 'native'], ['a', 'minilm', 'window:1'], ['a', 'tfidf', 'native'],
+        ['b', 'minilm', 'native'], ['c', 'minilm', 'native'], ['dangling', 'minilm', 'native']]) {
+        embedding.run(id, provider, projection, Buffer.from(new Float32Array([1, 0]).buffer));
+      }
+      expect(planKnnCandidates(db, {}, 'minilm', 100)).toEqual({ currentState: true, scoped: false, depth: 103 });
+      expect(planKnnCandidates(db, undefined, 'tfidf', 100)).toEqual({ currentState: true, scoped: false, depth: 101 });
+      expect(planKnnCandidates(db, { project_id: 'p' }, 'minilm', 100)).toEqual({ currentState: true, scoped: true, depth: 100 });
+      expect(planKnnCandidates(db, {}, 'minilm', 4094)).toEqual({ currentState: true, scoped: true, depth: 4094 });
+      expect(planKnnCandidates(db, { include_superseded: true }, 'minilm', 4094)).toEqual({ currentState: true, scoped: false, depth: 4094 });
+
+      const statements: string[] = [];
+      planKnnCandidates({ prepare: (sql: string) => { statements.push(sql); return db.prepare(sql); } } as never, {}, 'minilm', 100);
+      const countPlan = db.prepare(`EXPLAIN QUERY PLAN ${statements.at(-1)!}`).all('minilm') as Array<{ detail: string }>;
+      expect(countPlan[0]?.detail).toContain('idx_memory_item_superseded_by');
+
+      db.exec('UPDATE memory_item SET superseded_by = NULL');
+      expect(planKnnCandidates(db, {}, 'minilm', 100)).toEqual({ currentState: false, scoped: false, depth: 100 });
     } finally { db.close(); }
   });
 });

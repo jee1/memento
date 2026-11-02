@@ -7,7 +7,7 @@ import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/memory.types.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../../shared/config/vector-search.config.js';
-import { hasActiveSupersedePointers, hasMemoryFilter } from '../../../../shared/utils/memory-filter-sql.js';
+import { planKnnCandidates } from '../../../../shared/utils/memory-filter-sql.js';
 import { mapKnnResults } from './vector-search-result-mapper.js';
 import { buildOuterWhereSql, buildScopedCandidateSql } from './vector-search-scope.js';
 import type {
@@ -29,10 +29,8 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
   const { db, effectiveQueryVector, runtimeContext, scope, options } = params;
   const { tableName, provider, modelFilter } = runtimeContext;
   const { limit } = options;
-  const prefetchLimit = resolveVectorPrefetchLimit(limit);
-
-  const currentState = hasActiveSupersedePointers(db);
-  const hasScopedCandidates = hasMemoryFilter(scope, currentState);
+  const { currentState, scoped: hasScopedCandidates, depth: prefetchLimit } =
+    planKnnCandidates(db, scope, provider, resolveVectorPrefetchLimit(limit));
   // #1386: scope already applied in rowid IN (buildScopedCandidateSql). Repeating it in
   // outer WHERE lets SQLite drive from memory_item and re-run vec0 KNN per in-scope row.
   const outerWhere = hasScopedCandidates
