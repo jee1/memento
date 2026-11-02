@@ -1,0 +1,570 @@
+{
+  "fixture_version": "consolidation-replay-v1.1",
+  "rename_rule": "cr_<h> -> cr11_<sha256(\"consolidation-replay-v1.1:\" + v1 sequence_id)[0:12]>, same hash in family/owner/project/subject/checkpoint/evidence ids",
+  "sequences": [
+    {
+      "sequence_id": "cr11_9ddea18fe2f8",
+      "v1_sequence_id": "cr_9bd884941ba5",
+      "v1_stratum": "task_noise",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_9ddea18fe2f8_t1",
+          "v1_checkpoint_id": "cr_9bd884941ba5_t1"
+        },
+        {
+          "checkpoint_id": "cr11_9ddea18fe2f8_t2",
+          "v1_checkpoint_id": "cr_9bd884941ba5_t2"
+        },
+        {
+          "checkpoint_id": "cr11_9ddea18fe2f8_t3",
+          "v1_checkpoint_id": "cr_9bd884941ba5_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_9ddea18fe2f8_o1",
+          "v1_evidence_id": "cr_9bd884941ba5_o1"
+        },
+        {
+          "evidence_id": "cr11_9ddea18fe2f8_o2",
+          "v1_evidence_id": "cr_9bd884941ba5_o2"
+        },
+        {
+          "evidence_id": "cr11_9ddea18fe2f8_o3",
+          "v1_evidence_id": "cr_9bd884941ba5_o3"
+        },
+        {
+          "evidence_id": "cr11_9ddea18fe2f8_o4",
+          "v1_evidence_id": "cr_9bd884941ba5_o4"
+        },
+        {
+          "evidence_id": "cr11_9ddea18fe2f8_o5",
+          "v1_evidence_id": "cr_9bd884941ba5_o5"
+        },
+        {
+          "evidence_id": "cr11_9ddea18fe2f8_o6",
+          "v1_evidence_id": "cr_9bd884941ba5_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_8a0b07330161",
+      "v1_sequence_id": "cr_1f3e4823215b",
+      "v1_stratum": "task_noise",
+      "v1_split": "dev",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_8a0b07330161_t1",
+          "v1_checkpoint_id": "cr_1f3e4823215b_t1"
+        },
+        {
+          "checkpoint_id": "cr11_8a0b07330161_t2",
+          "v1_checkpoint_id": "cr_1f3e4823215b_t2"
+        },
+        {
+          "checkpoint_id": "cr11_8a0b07330161_t3",
+          "v1_checkpoint_id": "cr_1f3e4823215b_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_8a0b07330161_o1",
+          "v1_evidence_id": "cr_1f3e4823215b_o1"
+        },
+        {
+          "evidence_id": "cr11_8a0b07330161_o2",
+          "v1_evidence_id": "cr_1f3e4823215b_o2"
+        },
+        {
+          "evidence_id": "cr11_8a0b07330161_o3",
+          "v1_evidence_id": "cr_1f3e4823215b_o3"
+        },
+        {
+          "evidence_id": "cr11_8a0b07330161_o4",
+          "v1_evidence_id": "cr_1f3e4823215b_o4"
+        },
+        {
+          "evidence_id": "cr11_8a0b07330161_o5",
+          "v1_evidence_id": "cr_1f3e4823215b_o5"
+        },
+        {
+          "evidence_id": "cr11_8a0b07330161_o6",
+          "v1_evidence_id": "cr_1f3e4823215b_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_3a8233755941",
+      "v1_sequence_id": "cr_b5417ab0076e",
+      "v1_stratum": "task_noise",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_3a8233755941_t1",
+          "v1_checkpoint_id": "cr_b5417ab0076e_t1"
+        },
+        {
+          "checkpoint_id": "cr11_3a8233755941_t2",
+          "v1_checkpoint_id": "cr_b5417ab0076e_t2"
+        },
+        {
+          "checkpoint_id": "cr11_3a8233755941_t3",
+          "v1_checkpoint_id": "cr_b5417ab0076e_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_3a8233755941_o1",
+          "v1_evidence_id": "cr_b5417ab0076e_o1"
+        },
+        {
+          "evidence_id": "cr11_3a8233755941_o2",
+          "v1_evidence_id": "cr_b5417ab0076e_o2"
+        },
+        {
+          "evidence_id": "cr11_3a8233755941_o3",
+          "v1_evidence_id": "cr_b5417ab0076e_o3"
+        },
+        {
+          "evidence_id": "cr11_3a8233755941_o4",
+          "v1_evidence_id": "cr_b5417ab0076e_o4"
+        },
+        {
+          "evidence_id": "cr11_3a8233755941_o5",
+          "v1_evidence_id": "cr_b5417ab0076e_o5"
+        },
+        {
+          "evidence_id": "cr11_3a8233755941_o6",
+          "v1_evidence_id": "cr_b5417ab0076e_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_df96b2fa9fbb",
+      "v1_sequence_id": "cr_2703804c1441",
+      "v1_stratum": "task_noise",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_df96b2fa9fbb_t1",
+          "v1_checkpoint_id": "cr_2703804c1441_t1"
+        },
+        {
+          "checkpoint_id": "cr11_df96b2fa9fbb_t2",
+          "v1_checkpoint_id": "cr_2703804c1441_t2"
+        },
+        {
+          "checkpoint_id": "cr11_df96b2fa9fbb_t3",
+          "v1_checkpoint_id": "cr_2703804c1441_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_df96b2fa9fbb_o1",
+          "v1_evidence_id": "cr_2703804c1441_o1"
+        },
+        {
+          "evidence_id": "cr11_df96b2fa9fbb_o2",
+          "v1_evidence_id": "cr_2703804c1441_o2"
+        },
+        {
+          "evidence_id": "cr11_df96b2fa9fbb_o3",
+          "v1_evidence_id": "cr_2703804c1441_o3"
+        },
+        {
+          "evidence_id": "cr11_df96b2fa9fbb_o4",
+          "v1_evidence_id": "cr_2703804c1441_o4"
+        },
+        {
+          "evidence_id": "cr11_df96b2fa9fbb_o5",
+          "v1_evidence_id": "cr_2703804c1441_o5"
+        },
+        {
+          "evidence_id": "cr11_df96b2fa9fbb_o6",
+          "v1_evidence_id": "cr_2703804c1441_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_27de0e7f2605",
+      "v1_sequence_id": "cr_02ed2463abff",
+      "v1_stratum": "task_noise",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_27de0e7f2605_t1",
+          "v1_checkpoint_id": "cr_02ed2463abff_t1"
+        },
+        {
+          "checkpoint_id": "cr11_27de0e7f2605_t2",
+          "v1_checkpoint_id": "cr_02ed2463abff_t2"
+        },
+        {
+          "checkpoint_id": "cr11_27de0e7f2605_t3",
+          "v1_checkpoint_id": "cr_02ed2463abff_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_27de0e7f2605_o1",
+          "v1_evidence_id": "cr_02ed2463abff_o1"
+        },
+        {
+          "evidence_id": "cr11_27de0e7f2605_o2",
+          "v1_evidence_id": "cr_02ed2463abff_o2"
+        },
+        {
+          "evidence_id": "cr11_27de0e7f2605_o3",
+          "v1_evidence_id": "cr_02ed2463abff_o3"
+        },
+        {
+          "evidence_id": "cr11_27de0e7f2605_o4",
+          "v1_evidence_id": "cr_02ed2463abff_o4"
+        },
+        {
+          "evidence_id": "cr11_27de0e7f2605_o5",
+          "v1_evidence_id": "cr_02ed2463abff_o5"
+        },
+        {
+          "evidence_id": "cr11_27de0e7f2605_o6",
+          "v1_evidence_id": "cr_02ed2463abff_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_c0217c739478",
+      "v1_sequence_id": "cr_c66f61b183ea",
+      "v1_stratum": "task_noise",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_c0217c739478_t1",
+          "v1_checkpoint_id": "cr_c66f61b183ea_t1"
+        },
+        {
+          "checkpoint_id": "cr11_c0217c739478_t2",
+          "v1_checkpoint_id": "cr_c66f61b183ea_t2"
+        },
+        {
+          "checkpoint_id": "cr11_c0217c739478_t3",
+          "v1_checkpoint_id": "cr_c66f61b183ea_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_c0217c739478_o1",
+          "v1_evidence_id": "cr_c66f61b183ea_o1"
+        },
+        {
+          "evidence_id": "cr11_c0217c739478_o2",
+          "v1_evidence_id": "cr_c66f61b183ea_o2"
+        },
+        {
+          "evidence_id": "cr11_c0217c739478_o3",
+          "v1_evidence_id": "cr_c66f61b183ea_o3"
+        },
+        {
+          "evidence_id": "cr11_c0217c739478_o4",
+          "v1_evidence_id": "cr_c66f61b183ea_o4"
+        },
+        {
+          "evidence_id": "cr11_c0217c739478_o5",
+          "v1_evidence_id": "cr_c66f61b183ea_o5"
+        },
+        {
+          "evidence_id": "cr11_c0217c739478_o6",
+          "v1_evidence_id": "cr_c66f61b183ea_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_871957bb3f00",
+      "v1_sequence_id": "cr_7d41de362ce0",
+      "v1_stratum": "source_preservation",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_871957bb3f00_t1",
+          "v1_checkpoint_id": "cr_7d41de362ce0_t1"
+        },
+        {
+          "checkpoint_id": "cr11_871957bb3f00_t2",
+          "v1_checkpoint_id": "cr_7d41de362ce0_t2"
+        },
+        {
+          "checkpoint_id": "cr11_871957bb3f00_t3",
+          "v1_checkpoint_id": "cr_7d41de362ce0_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_871957bb3f00_o1",
+          "v1_evidence_id": "cr_7d41de362ce0_o1"
+        },
+        {
+          "evidence_id": "cr11_871957bb3f00_o2",
+          "v1_evidence_id": "cr_7d41de362ce0_o2"
+        },
+        {
+          "evidence_id": "cr11_871957bb3f00_o3",
+          "v1_evidence_id": "cr_7d41de362ce0_o3"
+        },
+        {
+          "evidence_id": "cr11_871957bb3f00_o4",
+          "v1_evidence_id": "cr_7d41de362ce0_o4"
+        },
+        {
+          "evidence_id": "cr11_871957bb3f00_o5",
+          "v1_evidence_id": "cr_7d41de362ce0_o5"
+        },
+        {
+          "evidence_id": "cr11_871957bb3f00_o6",
+          "v1_evidence_id": "cr_7d41de362ce0_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_16fa75d4486b",
+      "v1_sequence_id": "cr_8dd0ef55898a",
+      "v1_stratum": "source_preservation",
+      "v1_split": "dev",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_16fa75d4486b_t1",
+          "v1_checkpoint_id": "cr_8dd0ef55898a_t1"
+        },
+        {
+          "checkpoint_id": "cr11_16fa75d4486b_t2",
+          "v1_checkpoint_id": "cr_8dd0ef55898a_t2"
+        },
+        {
+          "checkpoint_id": "cr11_16fa75d4486b_t3",
+          "v1_checkpoint_id": "cr_8dd0ef55898a_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_16fa75d4486b_o1",
+          "v1_evidence_id": "cr_8dd0ef55898a_o1"
+        },
+        {
+          "evidence_id": "cr11_16fa75d4486b_o2",
+          "v1_evidence_id": "cr_8dd0ef55898a_o2"
+        },
+        {
+          "evidence_id": "cr11_16fa75d4486b_o3",
+          "v1_evidence_id": "cr_8dd0ef55898a_o3"
+        },
+        {
+          "evidence_id": "cr11_16fa75d4486b_o4",
+          "v1_evidence_id": "cr_8dd0ef55898a_o4"
+        },
+        {
+          "evidence_id": "cr11_16fa75d4486b_o5",
+          "v1_evidence_id": "cr_8dd0ef55898a_o5"
+        },
+        {
+          "evidence_id": "cr11_16fa75d4486b_o6",
+          "v1_evidence_id": "cr_8dd0ef55898a_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_73bd9d54ff7c",
+      "v1_sequence_id": "cr_6b7dc6c6eb04",
+      "v1_stratum": "source_preservation",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_73bd9d54ff7c_t1",
+          "v1_checkpoint_id": "cr_6b7dc6c6eb04_t1"
+        },
+        {
+          "checkpoint_id": "cr11_73bd9d54ff7c_t2",
+          "v1_checkpoint_id": "cr_6b7dc6c6eb04_t2"
+        },
+        {
+          "checkpoint_id": "cr11_73bd9d54ff7c_t3",
+          "v1_checkpoint_id": "cr_6b7dc6c6eb04_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_73bd9d54ff7c_o1",
+          "v1_evidence_id": "cr_6b7dc6c6eb04_o1"
+        },
+        {
+          "evidence_id": "cr11_73bd9d54ff7c_o2",
+          "v1_evidence_id": "cr_6b7dc6c6eb04_o2"
+        },
+        {
+          "evidence_id": "cr11_73bd9d54ff7c_o3",
+          "v1_evidence_id": "cr_6b7dc6c6eb04_o3"
+        },
+        {
+          "evidence_id": "cr11_73bd9d54ff7c_o4",
+          "v1_evidence_id": "cr_6b7dc6c6eb04_o4"
+        },
+        {
+          "evidence_id": "cr11_73bd9d54ff7c_o5",
+          "v1_evidence_id": "cr_6b7dc6c6eb04_o5"
+        },
+        {
+          "evidence_id": "cr11_73bd9d54ff7c_o6",
+          "v1_evidence_id": "cr_6b7dc6c6eb04_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_456cd0d7e3d5",
+      "v1_sequence_id": "cr_668798d106b4",
+      "v1_stratum": "source_preservation",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_456cd0d7e3d5_t1",
+          "v1_checkpoint_id": "cr_668798d106b4_t1"
+        },
+        {
+          "checkpoint_id": "cr11_456cd0d7e3d5_t2",
+          "v1_checkpoint_id": "cr_668798d106b4_t2"
+        },
+        {
+          "checkpoint_id": "cr11_456cd0d7e3d5_t3",
+          "v1_checkpoint_id": "cr_668798d106b4_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_456cd0d7e3d5_o1",
+          "v1_evidence_id": "cr_668798d106b4_o1"
+        },
+        {
+          "evidence_id": "cr11_456cd0d7e3d5_o2",
+          "v1_evidence_id": "cr_668798d106b4_o2"
+        },
+        {
+          "evidence_id": "cr11_456cd0d7e3d5_o3",
+          "v1_evidence_id": "cr_668798d106b4_o3"
+        },
+        {
+          "evidence_id": "cr11_456cd0d7e3d5_o4",
+          "v1_evidence_id": "cr_668798d106b4_o4"
+        },
+        {
+          "evidence_id": "cr11_456cd0d7e3d5_o5",
+          "v1_evidence_id": "cr_668798d106b4_o5"
+        },
+        {
+          "evidence_id": "cr11_456cd0d7e3d5_o6",
+          "v1_evidence_id": "cr_668798d106b4_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_571b9d5b7c90",
+      "v1_sequence_id": "cr_215a7f41a363",
+      "v1_stratum": "source_preservation",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_571b9d5b7c90_t1",
+          "v1_checkpoint_id": "cr_215a7f41a363_t1"
+        },
+        {
+          "checkpoint_id": "cr11_571b9d5b7c90_t2",
+          "v1_checkpoint_id": "cr_215a7f41a363_t2"
+        },
+        {
+          "checkpoint_id": "cr11_571b9d5b7c90_t3",
+          "v1_checkpoint_id": "cr_215a7f41a363_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_571b9d5b7c90_o1",
+          "v1_evidence_id": "cr_215a7f41a363_o1"
+        },
+        {
+          "evidence_id": "cr11_571b9d5b7c90_o2",
+          "v1_evidence_id": "cr_215a7f41a363_o2"
+        },
+        {
+          "evidence_id": "cr11_571b9d5b7c90_o3",
+          "v1_evidence_id": "cr_215a7f41a363_o3"
+        },
+        {
+          "evidence_id": "cr11_571b9d5b7c90_o4",
+          "v1_evidence_id": "cr_215a7f41a363_o4"
+        },
+        {
+          "evidence_id": "cr11_571b9d5b7c90_o5",
+          "v1_evidence_id": "cr_215a7f41a363_o5"
+        },
+        {
+          "evidence_id": "cr11_571b9d5b7c90_o6",
+          "v1_evidence_id": "cr_215a7f41a363_o6"
+        }
+      ]
+    },
+    {
+      "sequence_id": "cr11_a95723cc58d3",
+      "v1_sequence_id": "cr_ad8d7cf4c0a6",
+      "v1_stratum": "source_preservation",
+      "v1_split": "test_candidate",
+      "v1_1_split": "dev",
+      "checkpoints": [
+        {
+          "checkpoint_id": "cr11_a95723cc58d3_t1",
+          "v1_checkpoint_id": "cr_ad8d7cf4c0a6_t1"
+        },
+        {
+          "checkpoint_id": "cr11_a95723cc58d3_t2",
+          "v1_checkpoint_id": "cr_ad8d7cf4c0a6_t2"
+        },
+        {
+          "checkpoint_id": "cr11_a95723cc58d3_t3",
+          "v1_checkpoint_id": "cr_ad8d7cf4c0a6_t3"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "cr11_a95723cc58d3_o1",
+          "v1_evidence_id": "cr_ad8d7cf4c0a6_o1"
+        },
+        {
+          "evidence_id": "cr11_a95723cc58d3_o2",
+          "v1_evidence_id": "cr_ad8d7cf4c0a6_o2"
+        },
+        {
+          "evidence_id": "cr11_a95723cc58d3_o3",
+          "v1_evidence_id": "cr_ad8d7cf4c0a6_o3"
+        },
+        {
+          "evidence_id": "cr11_a95723cc58d3_o4",
+          "v1_evidence_id": "cr_ad8d7cf4c0a6_o4"
+        },
+        {
+          "evidence_id": "cr11_a95723cc58d3_o5",
+          "v1_evidence_id": "cr_ad8d7cf4c0a6_o5"
+        },
+        {
+          "evidence_id": "cr11_a95723cc58d3_o6",
+          "v1_evidence_id": "cr_ad8d7cf4c0a6_o6"
+        }
+      ]
+    }
+  ]
+}

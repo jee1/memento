@@ -1,0 +1,56 @@
+{
+  "fixture_version": "consolidation-replay-v1.1",
+  "status": "pending_panel",
+  "gold_count": 0,
+  "system_calls": 0,
+  "seeds": {
+    "reviewer-a": 1574,
+    "reviewer-b": 4751
+  },
+  "sources": {
+    "tests/fixtures/search-quality/consolidation-replay-v1/sequences.json": "be5dd6390578882a2fe76302049c53faa4c3c2649287ffc74c823c3ace984069",
+    "tests/fixtures/search-quality/consolidation-replay-v1/split.json": "df32c32ef9ad4ce197111eda3d7df4f4c98e0b49e39f4bcb355758ee8dfdc1f3",
+    "protocol.md": "5ea92f3d5aaeeaaad6f7681b298a0350f676fe414d72bfae4ec8293bd0c41541",
+    "rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "registration.json": "178fb46129de869e24e659016c912b000b0855b65fc9937337aaf5798b2628e4"
+  },
+  "files": {
+    "id-map.json": "115104cd88aa6ac43376b1f60e311ba8dc1403d840bf8b37f10e0c937bf4fdef",
+    "reviewer-a/stage-1/answers.blank.json": "0c5e5b2d66119d6bf95bdee26e6e0a7608ab63fe3ee3299fbe6933120fd518f3",
+    "reviewer-a/stage-1/packet.json": "0142bf4f7ac00d47ccb71078675db698f2264a701959001bbc05a31aefac9151",
+    "reviewer-a/stage-1/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "reviewer-a/stage-2/answers.blank.json": "c434787d2e03c4b4de9b7cae03aca79aa15aa910037f258f0043acb44b28bab9",
+    "reviewer-a/stage-2/packet.json": "d448cc4ee733503c36ac92140e9521f8df421e7ea49ffa9be1b8c6cfdc081b76",
+    "reviewer-a/stage-2/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "reviewer-a/stage-3/answers.blank.json": "2ac5f8275e101e49dae704520aea7434882ba94bcc9899114328b456b0cbe5c1",
+    "reviewer-a/stage-3/packet.json": "16c90adab53256317e1fcc66fe3fd0af1560e5209087c2b8d3daa93cd3ffe872",
+    "reviewer-a/stage-3/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "reviewer-b/stage-1/answers.blank.json": "9962d2925c8f0f8ab3a2688cd5e5f80044301d5254914ff3a15e4fa0088aa982",
+    "reviewer-b/stage-1/packet.json": "149f8071702743e577972a15ea6789c276319cd9b0b79b4a7c48c593abf73b98",
+    "reviewer-b/stage-1/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "reviewer-b/stage-2/answers.blank.json": "679414c9dbad898b2607d3b24971619ba244130717a7030559e4e3a00f67cbb5",
+    "reviewer-b/stage-2/packet.json": "565c80d21cfed236cec25a2d0c295ad6201a1cb2591945304cb4a987694b212a",
+    "reviewer-b/stage-2/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "reviewer-b/stage-3/answers.blank.json": "4b7875a7a829d596e46a480297f905dcfcdc6c2a47bd51a80afe8dedc00e2b6f",
+    "reviewer-b/stage-3/packet.json": "3082668295e810eb9bff525dd7e13713b275893384caa75e556f62bbedb94c4b",
+    "reviewer-b/stage-3/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3"
+  },
+  "dispatch_order": [
+    "stage-1",
+    "seal-submissions",
+    "stage-2",
+    "seal-submissions",
+    "stage-3",
+    "seal-submissions"
+  ],
+  "do_not_distribute": [
+    "parent directory",
+    "other reviewer",
+    "future stages",
+    "id-map.json",
+    "manifest.json",
+    "protocol.md",
+    "registration.json",
+    "consolidation-replay-v1/"
+  ]
+}
