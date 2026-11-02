@@ -21,20 +21,6 @@ import { dashboardSessionIdentity } from '../../middleware/session-auth.middlewa
 
 const MAX_REASON_CHARS = 1000;
 const NOT_FOUND_REASONS = new Set(['candidate_not_found', 'memory_not_found']);
-const CONFLICT_REASONS = new Set([
-  'verdict_not_applicable',
-  'memory_deleted',
-  'scope_mismatch',
-  'input_changed',
-  'cycle',
-  'already_superseded',
-  'dangling_pointer',
-  'pointer_changed',
-  'not_superseded',
-  'candidate_dismissed',
-  'already_dismissed',
-  'already_applied',
-]);
 const SUPERSEDE_VERDICTS = ['confirmed', 'pending', 'compatible'] as const;
 
 function parseReason(body: unknown): { reason: string | null } | { error: string } {
@@ -43,6 +29,18 @@ function parseReason(body: unknown): { reason: string | null } | { error: string
     return { error: `reason must be a string up to ${MAX_REASON_CHARS} chars` };
   }
   return { reason: typeof reason === 'string' ? reason : null };
+}
+
+function parseDismissReason(body: unknown): { reason: string } | { error: string } {
+  const parsed = parseReason(body);
+  if ('error' in parsed) {
+    return parsed;
+  }
+  const trimmed = parsed.reason?.trim() ?? '';
+  if (!trimmed) {
+    return { error: 'reason is required' };
+  }
+  return { reason: trimmed };
 }
 
 function rejectIfDisabled(res: Response): boolean {
@@ -58,9 +56,6 @@ function sendOutcome(res: Response, outcome: { kind: string; reason?: string }) 
     return res.json({ ok: true, outcome });
   }
   const status = NOT_FOUND_REASONS.has(outcome.reason ?? '') ? 404 : 409;
-  if (CONFLICT_REASONS.has(outcome.reason ?? '')) {
-    return res.status(status).json({ error: 'Supersede request rejected', code: outcome.reason });
-  }
   return res.status(status).json({ error: 'Supersede request rejected', code: outcome.reason });
 }
 
@@ -241,7 +236,7 @@ export function registerAdminMemorySupersedeRoutes(router: Router, db: Database.
       if (!uuidValidate(candidateId)) {
         return res.status(400).json({ error: 'Invalid candidate id' });
       }
-      const body = parseReason(req.body);
+      const body = parseDismissReason(req.body);
       if ('error' in body) {
         return res.status(400).json(body);
       }

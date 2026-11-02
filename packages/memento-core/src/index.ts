@@ -131,10 +131,7 @@ export type {
   SupersedeDismissOutcome,
 } from './domains/memory/supersede/supersede-apply-service.js';
 export { querySupersedeCandidates } from './domains/memory/supersede/supersede-candidate-list-service.js';
-export {
-  SUPERSEDE_CANDIDATE_LIFECYCLE_STATUSES,
-  SUPERSEDE_LIST_DEFAULT_VERDICTS,
-} from './domains/memory/supersede/supersede-candidate-list.types.js';
+export { SUPERSEDE_CANDIDATE_LIFECYCLE_STATUSES } from './domains/memory/supersede/supersede-candidate-list.types.js';
 export type {
   QuerySupersedeCandidatesInput,
   SupersedeCandidateFiltersApplied,

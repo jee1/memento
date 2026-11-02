@@ -18,6 +18,10 @@
 
 - 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, cross-import 74건(embedding 27건, search 25건, 나머지 22건)을 공개 index 로 옮겨 allowlist 를 77→3 으로 줄였습니다. 남은 3 edge 는 구체 `RelationGraph` import 로 `relation/services/relation-graph.js` 고정 목록 검사 대상입니다 (#1610, #1611, #1612, #1613).
 
+### Fixed
+
+- Admin 대체 후보: 목록 렌더링을 `textContent` 로 바꾸고, 거절한 `(old_memory_id, new_memory_id)` 쌍은 모델·입력 해시가 바뀌어도 재스캔하지 않습니다. 대시보드는 `mementoAdminFetch` 를 쓰고 거절 사유를 필수로 받으며, `SUPERSEDE_APPLY_ENABLED=false` 이면 복원 버튼도 비활성화합니다. migration 065 `down` 은 `dismissed` 감사 행을 지우지 않습니다 (#1618, PR #1621).
+
 ## [2.3.9] - 2026-11-02
 
 ### Changed

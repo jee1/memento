@@ -6,9 +6,9 @@ import type {
 } from './supersede-candidate-list.types.js';
 import { SUPERSEDE_LIST_DEFAULT_VERDICTS } from './supersede-candidate-list.types.js';
 
-export const SUPERSEDE_CONTENT_PREVIEW_CHARS = 200;
+const SUPERSEDE_CONTENT_PREVIEW_CHARS = 200;
 
-export const SUPERSEDE_LIFECYCLE_STATUS_EXPR = `CASE
+const SUPERSEDE_LIFECYCLE_STATUS_EXPR = `CASE
   WHEN c.dismissed_at IS NOT NULL THEN 'dismissed'
   WHEN m_old.superseded_by = c.new_memory_id THEN 'applied'
   WHEN m_old.superseded_by IS NULL AND EXISTS (

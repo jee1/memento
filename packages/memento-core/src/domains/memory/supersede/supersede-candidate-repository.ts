@@ -58,6 +58,17 @@ export class SupersedeCandidateRepository {
     );
   }
 
+  hasDismissedPair(oldMemoryId: string, newMemoryId: string): boolean {
+    return (
+      this.db
+        .prepare(
+          `SELECT 1 FROM memory_supersede_candidate
+           WHERE old_memory_id = ? AND new_memory_id = ? AND dismissed_at IS NOT NULL`,
+        )
+        .get(oldMemoryId, newMemoryId) !== undefined
+    );
+  }
+
   /** 같은 input_hash 가 이미 있으면 아무것도 쓰지 않는다. */
   insertCandidate(candidate: SupersedeCandidateInsert): void {
     this.db

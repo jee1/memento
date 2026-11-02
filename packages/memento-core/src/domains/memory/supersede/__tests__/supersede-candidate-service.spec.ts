@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SUPERSEDE_PROMPT_VERSION } from '../supersede-judge.js';
+import { dismissSupersedeCandidate } from '../supersede-apply-service.js';
 import { SupersedeCandidateService } from '../supersede-candidate-service.js';
 import {
   closeSupersedeTestDb,
@@ -126,6 +127,23 @@ describe('SupersedeCandidateService (#1548)', () => {
 
     expect(port.calls).toHaveLength(2);
     expect(candidates()).toHaveLength(2);
+  });
+
+  it('거절한 (old,new) 쌍은 모델이 바뀌어도 다시 후보로 만들지 않는다', async () => {
+    seedPair();
+    const portA = fakeChatPort(() => judgeReply('confirmed', '층이 바뀌었다'));
+    await new SupersedeCandidateService({ db, port: portA, model: 'model-a' }).scan({ runId: 'run-1' });
+    const [row] = candidates();
+    dismissSupersedeCandidate(db, { candidateId: row!.id, actor: 'op', reason: '아님' });
+
+    const portB = fakeChatPort(() => judgeReply('confirmed', '층이 바뀌었다'));
+    const second = await new SupersedeCandidateService({ db, port: portB, model: 'model-b' }).scan({
+      runId: 'run-2',
+    });
+
+    expect(second).toMatchObject({ judged: 0, skippedDuplicate: 1 });
+    expect(candidates()).toHaveLength(1);
+    expect(portB.calls).toHaveLength(0);
   });
 
   it('owner, project, privacy_scope, type, 임베딩 모델이 다르거나 cosine 이 0.65 미만이면 쌍으로 만들지 않는다', async () => {

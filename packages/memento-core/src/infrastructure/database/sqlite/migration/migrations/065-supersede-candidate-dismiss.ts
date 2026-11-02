@@ -69,34 +69,6 @@ export class SupersedeCandidateDismissMigration implements Migration {
       if (hasColumn(db, 'memory_supersede_candidate', 'dismissed_at')) {
         db.exec('ALTER TABLE memory_supersede_candidate DROP COLUMN dismissed_at');
       }
-      const table = db
-        .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'memory_supersede_event'`)
-        .get() as { sql: string } | undefined;
-      if (table?.sql.includes("'dismissed'")) {
-        db.exec(`
-          CREATE TABLE memory_supersede_event_legacy (
-            id                 TEXT PRIMARY KEY,
-            action             TEXT NOT NULL CHECK (action IN ('applied', 'restored')),
-            old_memory_id      TEXT NOT NULL,
-            new_memory_id      TEXT NOT NULL,
-            candidate_id       TEXT,
-            actor              TEXT NOT NULL,
-            reason             TEXT,
-            old_content_sha256 TEXT NOT NULL,
-            new_content_sha256 TEXT,
-            created_at         TEXT NOT NULL
-          );
-          INSERT INTO memory_supersede_event_legacy
-            SELECT id, action, old_memory_id, new_memory_id, candidate_id, actor, reason,
-                   old_content_sha256, new_content_sha256, created_at
-            FROM memory_supersede_event
-            WHERE action != 'dismissed';
-          DROP TABLE memory_supersede_event;
-          ALTER TABLE memory_supersede_event_legacy RENAME TO memory_supersede_event;
-          CREATE INDEX IF NOT EXISTS idx_memory_supersede_event_old
-            ON memory_supersede_event(old_memory_id);
-        `);
-      }
     })();
     const ver = db
       .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='memento_schema_version'`)

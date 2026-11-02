@@ -68,7 +68,8 @@
     }
     const applyBtn = wrap.querySelector('.sc-btn-apply');
     applyBtn.disabled = applyBlocked || row.lifecycle_status === 'dismissed' || row.lifecycle_status === 'applied';
-    wrap.querySelector('.sc-btn-restore').disabled = row.lifecycle_status !== 'applied';
+    const restoreBtn = wrap.querySelector('.sc-btn-restore');
+    restoreBtn.disabled = applyBlocked || row.lifecycle_status !== 'applied';
     wrap.querySelector('.sc-btn-dismiss').disabled =
       row.lifecycle_status === 'dismissed' || row.lifecycle_status === 'applied';
     applyBtn.addEventListener('click', function () {
@@ -78,7 +79,15 @@
       void postRestore(row);
     });
     wrap.querySelector('.sc-btn-dismiss').addEventListener('click', function () {
-      void postAction('dismiss', row.id);
+      const reason = window.prompt('거절 사유를 입력하세요:');
+      if (reason === null) {
+        return;
+      }
+      if (!reason.trim()) {
+        setStatus('사유를 입력하세요.');
+        return;
+      }
+      void postAction('dismiss', row.id, reason.trim());
     });
     detail.appendChild(wrap);
   }
@@ -97,12 +106,23 @@
       if (row.id === state.selectedId) {
         tr.classList.add('sc-row-selected');
       }
-      tr.innerHTML =
-        '<td>' + (S.lifecycleLabel[row.lifecycle_status] || row.lifecycle_status) + '</td>' +
-        '<td>' + row.verdict + '</td>' +
-        '<td>' + (row.project_id || '—') + '</td>' +
-        '<td class="sc-cell-preview">' + row.old_content_preview + '</td>' +
-        '<td class="sc-cell-preview">' + row.new_content_preview + '</td>';
+      const tdStatus = document.createElement('td');
+      tdStatus.textContent = S.lifecycleLabel[row.lifecycle_status] || row.lifecycle_status;
+      const tdVerdict = document.createElement('td');
+      tdVerdict.textContent = row.verdict;
+      const tdProject = document.createElement('td');
+      tdProject.textContent = row.project_id || '—';
+      const tdOld = document.createElement('td');
+      tdOld.className = 'sc-cell-preview';
+      tdOld.textContent = row.old_content_preview;
+      const tdNew = document.createElement('td');
+      tdNew.className = 'sc-cell-preview';
+      tdNew.textContent = row.new_content_preview;
+      tr.appendChild(tdStatus);
+      tr.appendChild(tdVerdict);
+      tr.appendChild(tdProject);
+      tr.appendChild(tdOld);
+      tr.appendChild(tdNew);
       tr.addEventListener('click', function () {
         state.selectedId = row.id;
         renderList();
@@ -123,7 +143,7 @@
     }
   }
 
-  async function postAction(action, id) {
+  async function postAction(action, id, reason) {
     if (state.inFlight) {
       return;
     }
@@ -132,7 +152,7 @@
       const response = await ns.apiFetch('/admin/memory/supersede-candidates/' + encodeURIComponent(id) + '/' + action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'dashboard' }),
+        body: JSON.stringify({ reason: reason || 'dashboard' }),
       });
       const data = await response.json().catch(function () {
         return {};

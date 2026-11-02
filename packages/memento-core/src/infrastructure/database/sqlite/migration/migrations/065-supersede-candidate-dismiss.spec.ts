@@ -41,4 +41,26 @@ describe('065-supersede-candidate-dismiss', () => {
     ).toEqual({ dismissed_at: '2026-11-02T00:00:00.000Z' });
     db.close();
   });
+
+  it('down keeps dismissed audit events', async () => {
+    const db = seededDb();
+    await new MemorySupersedeCandidateMigration().up(db);
+    await new MemorySupersedePointerMigration().up(db);
+    const migration = new SupersedeCandidateDismissMigration();
+    await migration.up(db);
+
+    db.prepare(
+      `INSERT INTO memory_supersede_event (
+         id, action, old_memory_id, new_memory_id, candidate_id, actor, reason,
+         old_content_sha256, new_content_sha256, created_at
+       ) VALUES ('e-dismiss', 'dismissed', 'old', 'new', NULL, 'op', 'no', 'a', 'b', '2026-11-02T00:00:00.000Z')`,
+    ).run();
+
+    await migration.down(db);
+
+    expect(
+      db.prepare(`SELECT COUNT(*) AS c FROM memory_supersede_event WHERE action = 'dismissed'`).get(),
+    ).toEqual({ c: 1 });
+    db.close();
+  });
 });

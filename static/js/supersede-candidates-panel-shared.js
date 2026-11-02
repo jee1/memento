@@ -40,7 +40,8 @@
   };
 
   ns.apiFetch = function (path, options) {
-    return fetch(path, Object.assign({ credentials: 'same-origin' }, options || {}));
+    const doFetch = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    return doFetch(path, Object.assign({ credentials: 'same-origin' }, options || {}));
   };
 
   ns.buildListUrl = function () {

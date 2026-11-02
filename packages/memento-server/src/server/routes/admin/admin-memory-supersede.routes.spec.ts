@@ -198,4 +198,9 @@ describe('admin supersede approval routes (#1551)', () => {
     });
     expect(parseSupersedeCandidateListQuery({ verdict: 'nope' })).toMatchObject({ status: 400 });
   });
+
+  it('rejects dismiss when reason is empty', async () => {
+    const res = await post(`/memory/supersede-candidates/${candidateId}/dismiss`, { reason: '   ' });
+    expect(res.status).toBe(400);
+  });
 });
