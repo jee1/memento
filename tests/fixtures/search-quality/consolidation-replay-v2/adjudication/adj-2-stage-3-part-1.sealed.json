@@ -1,0 +1,2545 @@
+{
+  "adjudicator_id": "adj-2",
+  "model": "claude-sonnet-5-5",
+  "adjudicated_at": "2026-11-02T15:40:50Z",
+  "label_source": "agent_panel",
+  "role": "contract_adjudication",
+  "bundle": "stage-3-part-1",
+  "stage": 3,
+  "input_sha256": "4bc94164c6da3f2973af2c6a8c6aabeca85cb1faf5d8aea5e63687c960890480",
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "equivalence_sha256": "aacf2016282b42e758f46eb05be41fb1430d670fa013be051c41ffead7d43dc6",
+  "cases": [
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "current_middle",
+            "others_undecided"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2"
+          ],
+          "b": [
+            "obs_1005_middle"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005_untested"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_middle"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_high"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2"
+      ],
+      "rationale": "모든 탐침에서 A와 B 판정이 같다. A cur_1은 B의 current_middle과 others_undecided를 합친 항목이고 관찰 4건은 일대일이다. 초등/고등 반 확대와 전체 반 일반화 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "age2_1pm",
+            "age4_optional"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "picnic_age2"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "blanket_friday",
+            "blanket_cold"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "cur_4"
+          ],
+          "b": [
+            "age4_room_b",
+            "room_b_full"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "cur_5"
+          ],
+          "b": [
+            "age3_winter"
+          ]
+        },
+        {
+          "row": "r6",
+          "a": [
+            "obs_6"
+          ],
+          "b": [
+            "obs_1012"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r6",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다. A의 합친 항목을 B가 둘로 나눴을 뿐 내용이 같다. 가을 학기 만 3세 반 1시 단정과 소풍 날 전 반 연기 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "categories_15",
+            "binder_keep"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "time_low_tide"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "no_merge"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1005_pet"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1012_first_revised",
+            "obs_1012_net"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B2",
+        "B5",
+        "DF4"
+      ],
+      "rationale": "모든 탐침에서 같다. 바인더 원본 보관은 양쪽 모두 필수 사실이다(B2). B의 괄호 속 기존 값은 맥락 표기라 필수 내용을 늘리지 않는다. 옛 값 현재 단정과 회차 합산 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "frame_black_metal",
+            "frame_40"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2",
+            "cur_4"
+          ],
+          "b": [
+            "label_name",
+            "label_place",
+            "label_date"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "label_wall"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1012_12",
+            "obs_1012_crack"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF4",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다. 이름표 이름/장소/날짜는 A가 두 항목에 장소를 중복해 담아 한 행으로 묶었다. 금 간 액자 교체 단정(B.fc4)은 원문에 없는 실행이라 A에서도 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t3",
+      "contract_agreement": false,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "time"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "music_2",
+            "knee_arm_only"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "duration_30",
+            "last10_standing"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1019_count",
+            "obs_1019_music"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "fail",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B1",
+        "DF3",
+        "DF5"
+      ],
+      "rationale": "갈린다. A cur_1은 오전 10시에 더해 의자에 앉아서 하는 동작만 쓴다를 현재 필수 사실로 요구하지만 B에는 대응 항목이 없고 B.fc2는 체조 전체를 의자 동작만으로 단정하는 것을 금지한다. P_B는 A에서 실패하고 P_A는 B에서 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "soprano_left"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "alto_right"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "accomp_three",
+            "no_accomp_two"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "cur_4"
+          ],
+          "b": [
+            "tall_back"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "cur_5"
+          ],
+          "b": [
+            "solo_front"
+          ]
+        },
+        {
+          "row": "r6",
+          "a": [
+            "obs_6"
+          ],
+          "b": [
+            "obs_1019_two",
+            "obs_1019_soprano"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r6",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다. A에는 사례 고유 금지가 없지만 B의 금지 주장 셋은 모두 A 필수 사실과 충돌하거나 DF5라 A에서도 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "wet_discard"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "kids_bottom",
+            "door_yellow"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "day_friday"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1019_wet3",
+            "obs_1019_full"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B1",
+        "B5",
+        "DF3"
+      ],
+      "rationale": "모든 탐침에서 같다. 게시판 정리(별개 작업 y) 내용은 양쪽 모두 필수 사실이 아니고 적용 단정은 DF3으로 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "location_4km"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "cups_reusable",
+            "cups_wash"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3",
+            "cur_4"
+          ],
+          "b": [
+            "arrive_1h",
+            "water_two_cups"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1012_arrive",
+            "obs_1012_water"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF1",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다고 본다. A cur_3의 40분 전 도착은 cur_4(1시간 전으로 앞당김)와 A.fc2(40분 현재 단정 금지) 때문에 이전 값으로만 읽힌다. B는 같은 값을 기존 40분과 10월 12일 관찰로 담는다. 도착과 물 계산을 한 행으로 묶었다. 공사 종료 후 복귀 단정은 DF5로 양쪽 실패."
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "shared_doc",
+            "manuscript_keep"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "line_dates"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "act1_frozen",
+            "act2_3_only"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1005"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1012_act2",
+            "obs_1012_old_lines"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B2",
+        "B5",
+        "DF4",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다. 원고 묶음 보관은 양쪽 모두 필수 사실이다(B2). 빨간 펜 현재 방식, 1막 재수정, 묶음 폐기 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "current_novel",
+            "science_new_cards"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2"
+          ],
+          "b": [
+            "obs_1005_novel"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005_untested"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_similar"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_science"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B4",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF4"
+      ],
+      "rationale": "모든 탐침에서 같다. 새 카드 완성 단정(DF4), 시 모임 확대(DF5), 효과 확인(DF1), 기존 카드 유지(DF2) 모두 양쪽 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "scan_list",
+            "keep_original"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "envelope_no"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "unknown_place"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1005_30",
+            "obs_1005_6unknown"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1012_20",
+            "obs_1012_smudge"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B2",
+        "B5",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다. 원본 봉투 보관은 양쪽 모두 필수 사실이다(B2). 원본 폐기, 장소 추측, 연필 기재 현재 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t3",
+      "contract_agreement": false,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "electronic",
+            "hand_ledger_safe"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [],
+          "b": [
+            "name_amount"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "erased_unknown"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_first_row",
+            "obs_1012_erased"
+          ]
+        },
+        {
+          "row": "r6",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_six"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r6",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B2",
+        "B5"
+      ],
+      "rationale": "갈린다. B의 name_amount(시약을 쓸 때마다 이름과 사용량을 적는다)는 10월 5일 지시가 바뀌지 않은 채 남는 현재 필수 사실인데 A에는 대응 항목이 없다. r2를 뺀 답과 P_A는 A에서 통과하고 B에서 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "current_market_cover",
+            "others_undecided"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2"
+          ],
+          "b": [
+            "obs_1005_market"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005_untested"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_wet"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_hospital"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2"
+      ],
+      "rationale": "모든 탐침에서 같다. A cur_1은 B의 current_market_cover와 others_undecided를 합친 항목이다. 모든 정류장 확정, 병원 앞 유지, 효과 확인 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "current_cold_nonmilk",
+            "full_undecided"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2"
+          ],
+          "b": [
+            "obs_1005_americano"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005_untested"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_milk"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_greentea"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2"
+      ],
+      "rationale": "모든 탐침에서 같다. 전체 음료 확정, 우유 음료 사용, 뜨거운 음료 문제없음 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t3",
+      "contract_agreement": false,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "metal_plate",
+            "wood_keep"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [],
+          "b": [
+            "names"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "planted_year",
+            "stake_1m"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_metal10",
+            "obs_1012_wood10"
+          ]
+        },
+        {
+          "row": "r6",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_typo"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r6",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B2",
+        "B5"
+      ],
+      "rationale": "갈린다. B의 names(이름표에 학명과 우리말 이름을 쓴다)는 바뀌지 않고 남은 현재 필수 사실인데 A에는 대응 항목이 없다. r2를 뺀 답과 P_A는 A에서 통과하고 B에서 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t3",
+      "contract_agreement": false,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "current_two_classes",
+            "expansion_undecided"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2"
+          ],
+          "b": [
+            "obs_1005_drop"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005_untested"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_rise"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_forced"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF2"
+      ],
+      "rationale": "갈린다. A.fc1(1학년 1반 시험이 확정된 현재 지침)은 A 자신의 cur_1(1학년 1반에서 이어 간다)과 같은 말이라, 이를 단정한 답을 A는 금지 주장으로 실패시키고 B는 current_two_classes와 일치해 통과시킨다."
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "start_north",
+            "gloves_white"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "plastic_blue",
+            "glass_box"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "start_630"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1019_bags",
+            "obs_1019_glass"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B1",
+        "B5",
+        "DF3"
+      ],
+      "rationale": "모든 탐침에서 같다. A cur_1과 cur_3이 시작 장소를 중복해 담아 B의 start_north와 묶었다. 안전요원 교대(별개 작업 y) 규칙 적용과 7시 시작 단정은 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t3",
+      "contract_agreement": false,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "meter",
+            "strips_keep"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [],
+          "b": [
+            "monday"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "notebook_continue",
+            "notebook_first_page"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_68",
+            "obs_1012_strip"
+          ]
+        },
+        {
+          "row": "r6",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_none"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "pass",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r6",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B2",
+        "B5"
+      ],
+      "rationale": "갈린다. B의 monday(수질 기록은 매주 월요일에 물을 떠서 한다)는 바뀌지 않고 남은 현재 필수 사실인데 A에는 대응 항목이 없다. r2를 뺀 답과 P_A는 A에서 통과하고 B에서 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "over30_60",
+            "under30_90"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "cur_2"
+          ],
+          "b": [
+            "gk_reflex_20",
+            "field_pass"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "cur_3"
+          ],
+          "b": [
+            "matchday_eve_45"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "cur_4"
+          ],
+          "b": [
+            "turf_rubber",
+            "natural_free"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "cur_5"
+          ],
+          "b": [
+            "gk_eve_10"
+          ]
+        },
+        {
+          "row": "r6",
+          "a": [
+            "obs_6"
+          ],
+          "b": [
+            "obs_1019"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r6",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF5"
+      ],
+      "rationale": "모든 탐침에서 같다. A에는 사례 고유 금지가 없지만 B의 금지 주장 셋은 A 필수 사실과 충돌해 A에서도 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t3",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "cur_1"
+          ],
+          "b": [
+            "current_cotton_only",
+            "wool_work_existing"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2"
+          ],
+          "b": [
+            "obs_1005_cotton"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "obs_3"
+          ],
+          "b": [
+            "obs_1005_untested"
+          ]
+        },
+        {
+          "row": "r4",
+          "a": [
+            "obs_4"
+          ],
+          "b": [
+            "obs_1012_wool"
+          ]
+        },
+        {
+          "row": "r5",
+          "a": [
+            "obs_5"
+          ],
+          "b": [
+            "obs_1019_oil"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r4",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r5",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2"
+      ],
+      "rationale": "모든 탐침에서 같다. 모든 세탁물 확정과 울/작업복 친환경 세제 사용 단정은 양쪽 모두 실패한다."
+    }
+  ]
+}

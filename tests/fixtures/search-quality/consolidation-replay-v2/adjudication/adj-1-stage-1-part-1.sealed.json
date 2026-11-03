@@ -1,0 +1,1454 @@
+{
+  "adjudicator_id": "adj-1",
+  "model": "GPT-6 (Codex)",
+  "adjudicated_at": "2026-11-02T15:27:33Z",
+  "label_source": "agent_panel",
+  "role": "contract_adjudication",
+  "bundle": "stage-1-part-1",
+  "stage": 1,
+  "input_sha256": "c1a7a92b45424f5bdca23c4fba718fd942e515b2032e2ae80a1cfa17054e2d2b",
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "equivalence_sha256": "aacf2016282b42e758f46eb05be41fb1430d670fa013be051c41ffead7d43dc6",
+  "cases": [
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "obs_middle"
+          ],
+          "b": [
+            "trial_middle_less_late"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_not_done"
+          ],
+          "b": [
+            "untested_elementary",
+            "untested_high"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "중학생 반 한 곳의 시험 관찰과 초등·고등학생 반 미시험 범위가 같다. 전 학년 적용·효과 일반화·전체 도입 확정은 명시 여부와 무관하게 공통 미시험 조건 및 DF1·DF2·DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_age2_4"
+          ],
+          "b": [
+            "age2_nap_1pm",
+            "age4_optional"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_picnic"
+          ],
+          "b": [
+            "picnic_age2_delay",
+            "picnic_others_normal"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "DF5"
+      ],
+      "rationale": "만 2세·만 4세 지침과 소풍 날 예외가 각 행에서 같다. B의 금지 주장은 양쪽의 명시된 배타 조건을 뒤집거나 적용 대상을 늘리는 지시여서 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_survey"
+          ],
+          "b": [
+            "ten_categories_count",
+            "survey_2h_after_high_tide"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2025-10-05_r1"
+          ],
+          "b": [
+            "round1_pet_43_most"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF1",
+        "DF5"
+      ],
+      "rationale": "조사 방식·시각을 합친 A 항목은 B 두 항목에, 첫 회차 페트병 관찰은 서로 대응한다. 관찰 일반화와 조사 시각을 바꾼 지시는 공통 DF1·DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_frame"
+          ],
+          "b": [
+            "frame_40cm_white_wood",
+            "name_tag_below"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_nameplate"
+          ],
+          "b": [
+            "tag_name_place",
+            "tag_no_date"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "DF5"
+      ],
+      "rationale": "액자·이름표 위치와 이름표 내용·날짜 제외가 각각 대응한다. 날짜를 적는다는 단정은 양쪽의 날짜 제외 조건을 위반하며 원문 밖 지시를 더하므로 금지 목록 차이가 판정을 바꾸지 않는다."
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_session"
+          ],
+          "b": [
+            "time_duration",
+            "seated_only"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_music_knee"
+          ],
+          "b": [
+            "music_album2",
+            "knee_surgery_arms_only"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "DF5"
+      ],
+      "rationale": "시간·의자 동작 제한과 음악·수술자 제한의 내용이 같다. 서서 하는 동작과 수술자의 다리 동작을 허용한다는 주장은 공통 배타 조건 및 DF5에 걸린다."
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_soprano"
+          ],
+          "b": [
+            "soprano_stage_left"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_alto"
+          ],
+          "b": [
+            "alto_undecided"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "guideline_rows"
+          ],
+          "b": [
+            "accompanist_three_rows",
+            "no_accompanist_two_rows"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "DF5"
+      ],
+      "rationale": "소프라노 위치, 알토 미확정, 반주자 유무별 줄 배치가 같다. 알토 확정과 반주자 없는 날에도 세 줄이라는 단정은 공통 미확정·조건부 지침 및 DF5로 양쪽 모두 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_wed"
+          ],
+          "b": [
+            "wed_tidy",
+            "wet_books_discard"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_shelves"
+          ],
+          "b": [
+            "kids_books_bottom2",
+            "door_yellow"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF5"
+      ],
+      "rationale": "수요일 정리·젖은 책 폐기와 아동 도서 위치·노란 문 상태가 각각 대응한다. 젖은 책을 다시 넣는 지시는 양쪽의 폐기 지침과 충돌하고 원문 밖 정책이므로 DF5로도 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_location"
+          ],
+          "b": [
+            "station_5km",
+            "paper_cups"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_duty"
+          ],
+          "b": [
+            "duty_arrive_40min",
+            "water_two_cups_pp"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "DF5"
+      ],
+      "rationale": "급수대 위치·컵 종류와 당번 도착 시각·물 계산량이 각각 대응한다. 다회용 컵 사용을 현재 지시로 단정하면 공통 종이컵 지침과 충돌하고 DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_edit"
+          ],
+          "b": [
+            "director_red_pen",
+            "fold_corner"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2025-10-05_r1"
+          ],
+          "b": [
+            "round1_act1_12_lines"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B4",
+        "B5",
+        "DF4"
+      ],
+      "rationale": "수정·모서리 접기 지침과 첫 회차 1막 열두 줄 수정 관찰이 같다. B.fc1의 모서리 접기 완료는 지시를 실행 기록으로 바꾸므로 A에도 DF4가 적용된다."
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "obs_novel"
+          ],
+          "b": [
+            "trial_novel_more_speakers"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_not_done"
+          ],
+          "b": [
+            "untested_science_poetry"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "소설 모임 한 번의 관찰과 과학책·시 모임 미사용 범위가 같다. 전체 적용, 효과 일반화, 전체 도입 결정은 공통 범위 조건과 DF1·DF2·DF5로 모두 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_label"
+          ],
+          "b": [
+            "write_year_place_pencil",
+            "unknown_date_blank"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2025-10-05_r1"
+          ],
+          "b": [
+            "round1_30_photos",
+            "round1_6_unknown_place"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B4",
+        "B5",
+        "DF4",
+        "DF5"
+      ],
+      "rationale": "연필 기재·날짜 미상 시 공란 지침과 첫 회차 서른 장·여섯 장 장소 불명 관찰이 각각 대응한다. 장소 공란 지시나 처리 완료를 더하는 주장은 DF5·DF4에, 전부 장소 확인 단정은 공통 장소 불명 관찰에 걸린다."
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_log"
+          ],
+          "b": [
+            "log_name_amount_by_hand"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2025-10-05_r1"
+          ],
+          "b": [
+            "round1_vinegar_200ml",
+            "round1_baking_soda_50g"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF5"
+      ],
+      "rationale": "손으로 이름·사용량을 적는 지침과 첫 회차 두 시약의 사용 기록이 같다. 전산 기록을 현재 방식으로 단정하는 탐침은 공통 수기 지침과 충돌하고 DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "obs_market_stop"
+          ],
+          "b": [
+            "trial_market_fewer_calls"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_not_posted"
+          ],
+          "b": [
+            "untested_school_hospital"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "시장 앞 한 곳의 시험 관찰과 학교·병원 앞 미부착 범위가 같다. 전 정류장 부착·효과 일반화·도입 확정은 공통 미부착 조건 및 DF1·DF2·DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "obs_ice_americano"
+          ],
+          "b": [
+            "trial_iced_americano_30min"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_not_tested"
+          ],
+          "b": [
+            "untested_milk_hot"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "아이스 아메리카노 한 잔의 30분 관찰과 우유·뜨거운 음료 미시험 범위가 같다. 모든 음료로 효과를 확장하거나 전면 도입을 확정하는 주장은 양쪽에 공통 적용되는 DF1·DF2·DF5로 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_sign"
+          ],
+          "b": [
+            "tag_sci_korean_names",
+            "tag_on_stake_1m"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2025-10-05_r1"
+          ],
+          "b": [
+            "round1_zelkova_3_erased"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "이름표 재질·표기·설치 지침과 첫 회차 느티나무 세 개의 손상 관찰이 같다. 항상 선명함·전체 손상 일반화와 새 대응 지시 단정은 공통 관찰 및 DF1·DF2·DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "obs_3-2"
+          ],
+          "b": [
+            "trial_3_2_reduced"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_not_done"
+          ],
+          "b": [
+            "untested_other_classes"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "3학년 2반 한 곳의 해당 주 관찰과 다른 3학년·저학년 반 미시험 범위가 같다. 전반 적용·전교 효과·전교 지침 도입 단정은 공통 범위 조건 및 DF1·DF2·DF5로 양쪽 모두 실패한다."
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_start"
+          ],
+          "b": [
+            "start_7am_north"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_gloves"
+          ],
+          "b": [
+            "white_cotton_gloves"
+          ]
+        },
+        {
+          "row": "r3",
+          "a": [
+            "guideline_sort"
+          ],
+          "b": [
+            "plastic_blue_sack",
+            "glass_separate_box"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r3",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "DF5"
+      ],
+      "rationale": "시작 시각·장소, 장갑, 분리 수거 지침이 같다. 유리를 플라스틱과 같은 자루에 넣는 지시는 공통 분리 조건을 뒤집는 원문 밖 정책이므로 DF5가 양쪽에 적용된다."
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_procedure"
+          ],
+          "b": [
+            "weekly_monday_ph_strip",
+            "record_in_notebook"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "obs_2025-10-05_r1"
+          ],
+          "b": [
+            "round1_lightgreen_ph7"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF5"
+      ],
+      "rationale": "A의 시험지 산도 확인은 B의 물을 떠 시험지 색으로 확인한다는 절차와 같은 내용이며 공책 기록도 포함한다. 첫 회차 연두색·약 7 관찰도 같고, 항상 7 또는 음용 안전 확정은 DF1·DF5로 모두 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "guideline_duration"
+          ],
+          "b": [
+            "over30_60min",
+            "le30_90min"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "guideline_gk"
+          ],
+          "b": [
+            "gk_reflex_first20",
+            "field_passing_first20"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "DF5"
+      ],
+      "rationale": "기온별 훈련 시간과 첫 20분 선수 역할별 훈련을 합친 A 항목은 각각 B 두 항목과 대응한다. 기온과 무관한 고정 시간 단정은 공통 조건을 없애는 원문 밖 지침이므로 DF5로 배제된다."
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t1",
+      "contract_agreement": true,
+      "fact_alignment": [
+        {
+          "row": "r1",
+          "a": [
+            "obs_cotton"
+          ],
+          "b": [
+            "trial_cotton_shirt_equal"
+          ]
+        },
+        {
+          "row": "r2",
+          "a": [
+            "scope_not_tested"
+          ],
+          "b": [
+            "untested_wool_oil"
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe": "P_A",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_B",
+          "target": null,
+          "verdict_a": "pass",
+          "verdict_b": "pass"
+        },
+        {
+          "probe": "P_assert",
+          "target": "A.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_assert",
+          "target": "B.fc2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r1",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        },
+        {
+          "probe": "P_omit",
+          "target": "r2",
+          "verdict_a": "fail",
+          "verdict_b": "fail"
+        }
+      ],
+      "boundaries_applied": [
+        "B3",
+        "B5",
+        "DF1",
+        "DF2",
+        "DF5"
+      ],
+      "rationale": "면 셔츠 한 벌의 시험 관찰과 울·기름 얼룩 작업복 미시험 범위가 같다. 전체 섬유·얼룩 효과 일반화와 세제 전환 결정 단정은 DF1·DF2·DF5로 양쪽 모두 배제된다."
+    }
+  ]
+}

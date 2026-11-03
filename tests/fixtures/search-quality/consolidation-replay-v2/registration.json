@@ -1,0 +1,148 @@
+{
+  "fixture_version": "consolidation-replay-v2",
+  "status": "registered_before_inputs",
+  "registered_at": "2026-11-02T14:39:32+00:00",
+  "base_commit": "8b7bd03026f60fb021e3f2ffaec4642034ac2ba5",
+  "protocol_sha256": "d73d4ca56af55543127d127ca663b8afaac552b6f3f29e831126e96a2f47f2f8",
+  "rubric_sha256": "511d5eb66ab6cc76f3b6e1065f6b71af454479b2c0a05175a10fa3ec6b7ac423",
+  "inherited_sha256": {
+    "consolidation-replay-v1/protocol.md": "2051e3b9f8a3db312a5b80214c8f1fb875ddd83461163ad982609f0968f32a5b",
+    "consolidation-replay-v1.1/rubric.md": "955dc4093c19a5df26b0c7ae43a7034950ef62e45c28750fb67712b95ccd06a3",
+    "consolidation-replay-v1.1/protocol.md": "5ea92f3d5aaeeaaad6f7681b298a0350f676fe414d72bfae4ec8293bd0c41541"
+  },
+  "design": {
+    "strata": [
+      "conditional",
+      "correction",
+      "generalization",
+      "task_noise",
+      "source_preservation"
+    ],
+    "sequences_per_stratum": {
+      "dev": 1,
+      "test": 7
+    },
+    "sequences": 40,
+    "observations": 240,
+    "checkpoints": 120,
+    "split_seed": 1624,
+    "reviewer_seeds": {
+      "reviewer-a": 1624,
+      "reviewer-b": 4261
+    },
+    "observation_chars": [
+      45,
+      95
+    ]
+  },
+  "power": {
+    "test": "one-sided exact McNemar (binomial on discordant pairs, p=0.5), alpha=0.05, unit=sequence",
+    "mde": {
+      "p10": 0.3,
+      "p01": 0.0
+    },
+    "paired_n_for_80pct_at_mde": 21,
+    "expected_complete_rate": {
+      "conditional": 0.8,
+      "correction": 0.4,
+      "generalization": 0.8,
+      "task_noise": 0.83,
+      "source_preservation": 0.5,
+      "mean": 0.667
+    },
+    "expected_paired_n": 23.3,
+    "coverage_floor_paired_n": 16,
+    "coverage_floor_per_stratum": 2,
+    "power_by_paired_n": {
+      "15": {
+        "p10=0.3,p01=0.0": 0.485,
+        "p10=0.3,p01=0.05": 0.293,
+        "p10=0.35,p01=0.05": 0.41,
+        "p10=0.25,p01=0.0": 0.314
+      },
+      "16": {
+        "p10=0.3,p01=0.0": 0.55,
+        "p10=0.3,p01=0.05": 0.328,
+        "p10=0.35,p01=0.05": 0.45,
+        "p10=0.25,p01=0.0": 0.37
+      },
+      "21": {
+        "p10=0.3,p01=0.0": 0.802,
+        "p10=0.3,p01=0.05": 0.481,
+        "p10=0.35,p01=0.05": 0.614,
+        "p10=0.25,p01=0.0": 0.633
+      },
+      "23": {
+        "p10=0.3,p01=0.0": 0.864,
+        "p10=0.3,p01=0.05": 0.533,
+        "p10=0.35,p01=0.05": 0.668,
+        "p10=0.25,p01=0.0": 0.717
+      },
+      "25": {
+        "p10=0.3,p01=0.0": 0.91,
+        "p10=0.3,p01=0.05": 0.582,
+        "p10=0.35,p01=0.05": 0.716,
+        "p10=0.25,p01=0.0": 0.786
+      },
+      "35": {
+        "p10=0.3,p01=0.0": 0.991,
+        "p10=0.3,p01=0.05": 0.774,
+        "p10=0.35,p01=0.05": 0.882,
+        "p10=0.25,p01=0.0": 0.959
+      }
+    },
+    "caveat": "Exact multinomial calculation under the stated p10/p01; expected complete rates are prior guesses from v1/v1.1 with different judges and rubric."
+  },
+  "gemini_logical_calls_max": {
+    "per_sequence": 5,
+    "dev": 25,
+    "test": 175,
+    "total": 200
+  },
+  "excluded_subject_names": [
+    "가온 직조 폭 설정",
+    "고운 직물 견본 정리",
+    "나린 표본 상자 보존",
+    "누리 렌즈 측정",
+    "다솜 모종 분무 간격",
+    "도담 소품 포장",
+    "라온 퍼즐 부품 보존",
+    "마노 수조 적응 실험",
+    "별하 망원경 정렬 순서",
+    "보담 목판 인쇄 보존",
+    "새미 판화 압력 기록",
+    "서린 천 염색 관찰",
+    "솔무 종이 접기 시험",
+    "아람 녹음 파일 규칙",
+    "아솔 그림자극 준비",
+    "여울 연습 무대 음향",
+    "예담 종이 모형 보존",
+    "온빛 센서 부착 관찰",
+    "온새 카드 분류 작업",
+    "우담 게임 토큰 작업",
+    "은재 조형물 명찰 작업",
+    "이랑 도장 잉크 배합",
+    "자분 공방 유약 시험",
+    "초담 활자함 보존",
+    "푸름 제본 접착 시험",
+    "하람 번들 생성 비교",
+    "한울 음향 반사 모형",
+    "해담 소리통 보존",
+    "해솔 필름 스캔 비교",
+    "호담 별지도 작업"
+  ],
+  "excluded_rubric_example_tasks": [
+    "온실 토마토 모종",
+    "사무실 화분",
+    "제과 반죽과 레시피 카드",
+    "식빵 발효",
+    "오븐 온도 보정",
+    "수영장 레인 점검"
+  ],
+  "author": "머슴2 (Claude Opus 5.5)",
+  "author_prior_exposure": "v1 adjudicator (2026-10-31), v1.1 rubric author and aggregator (2026-11-02). Session reading list is in protocol.md 알려진 한계.",
+  "author_candidates": false,
+  "gold_count": 0,
+  "system_calls": 0,
+  "amendments": []
+}

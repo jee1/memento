@@ -1,0 +1,5120 @@
+{
+  "fixture_version": "consolidation-replay-v2",
+  "label_source": "agent_panel",
+  "human_gold": false,
+  "held_out_test": true,
+  "adjudicators": [
+    {
+      "id": "adj-1",
+      "models": [
+        "GPT-6 (Codex)",
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "id": "adj-2",
+      "models": [
+        "claude-sonnet-5-5"
+      ]
+    }
+  ],
+  "sources": {
+    "adjudication/adj-1-stage-1-part-1.sealed.json": "e6499f4784df30872a441efd231f6977df84360644300463c0f55a9c17a715da",
+    "adjudication/adj-2-stage-1-part-1.sealed.json": "35aa55d97fde7a81d3495dae10569b8ba31ad15acff769e3a2b3f7f22e37979a",
+    "adjudication/adj-1-stage-1-part-2.sealed.json": "a5fe900e8c449f4d3f130e2acb00561aeff237e4d14000e7ca290dbf093a6999",
+    "adjudication/adj-2-stage-1-part-2.sealed.json": "916c9da73c66286bd5e3cbb6d69c65b6b33a92cc6f0b486a0854a6d88d9f0dff",
+    "adjudication/adj-1-stage-2-part-1.sealed.json": "7fa1e45b9d9a7078568d05d60e2b8c15b291b0fa2890f279b99fd3afa4fb81dd",
+    "adjudication/adj-2-stage-2-part-1.sealed.json": "e1291ec8622828f45409fbfa2da2d403e312b73e8647a16c3f6df2a0a8548b3f",
+    "adjudication/adj-1-stage-2-part-2.sealed.json": "e94c5b61bbcf41c8a0032d75c0ae910b867755da6334a32175420b953a788921",
+    "adjudication/adj-2-stage-2-part-2.sealed.json": "69ed635151545d540228dc2cd7388336354a77eb42d0b9c10416aa2b3ecddad3",
+    "adjudication/adj-1-stage-3-part-1.sealed.json": "3428b2b95b255bdfe3df686934dacaca94a03fc04cfab9bb8e2201dd48b4fe92",
+    "adjudication/adj-2-stage-3-part-1.sealed.json": "d79fdb55c1729975d4c38f1450e1fd52806eda422d773529ba16c3575bb9151c",
+    "adjudication/adj-1-stage-3-part-2.sealed.json": "c5cb2cd1eeefad5ed4911d52e0dc9fe380dc746bbb4260093eaa86832cc6f7b3",
+    "adjudication/adj-2-stage-3-part-2.sealed.json": "464be2d76b388d3cb7f9396991ddbf03c35e1792d3220542c455439ec1f639dc"
+  },
+  "summary": {
+    "checkpoints": 120,
+    "contract_gold": 86,
+    "held": 34,
+    "adjudicator_true": {
+      "adj-1": 89,
+      "adj-2": 88
+    },
+    "adjudicators_split": 5,
+    "relevant_evidence_agreement": 78,
+    "retrieval_gold": 69,
+    "stage_gold": [
+      {
+        "stage": 1,
+        "gold": 40,
+        "planned": 40
+      },
+      {
+        "stage": 2,
+        "gold": 18,
+        "planned": 40
+      },
+      {
+        "stage": 3,
+        "gold": 28,
+        "planned": 40
+      }
+    ],
+    "test_complete_sequences": 10,
+    "test_planned_sequences": 35,
+    "g1_gold_only": {
+      "min_paired": 16,
+      "min_per_stratum": 2,
+      "passes": false,
+      "note": "Upper bound for G1: output-panel holds can only remove pairs."
+    }
+  },
+  "strata": [
+    {
+      "stratum": "conditional",
+      "checkpoints": 24,
+      "contract_gold": 22,
+      "test_complete_sequences": 5,
+      "test_planned_sequences": 7,
+      "dev_complete_sequences": 1
+    },
+    {
+      "stratum": "correction",
+      "checkpoints": 24,
+      "contract_gold": 13,
+      "test_complete_sequences": 0,
+      "test_planned_sequences": 7,
+      "dev_complete_sequences": 1
+    },
+    {
+      "stratum": "generalization",
+      "checkpoints": 24,
+      "contract_gold": 15,
+      "test_complete_sequences": 0,
+      "test_planned_sequences": 7,
+      "dev_complete_sequences": 0
+    },
+    {
+      "stratum": "task_noise",
+      "checkpoints": 24,
+      "contract_gold": 22,
+      "test_complete_sequences": 5,
+      "test_planned_sequences": 7,
+      "dev_complete_sequences": 1
+    },
+    {
+      "stratum": "source_preservation",
+      "checkpoints": 24,
+      "contract_gold": 14,
+      "test_complete_sequences": 0,
+      "test_planned_sequences": 7,
+      "dev_complete_sequences": 1
+    }
+  ],
+  "sequences": [
+    {
+      "sequence_id": "cr2_b6f54e11c8a9",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_db5a4ec8eccc",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_db5a4ec8eccc_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_ce490e6605c4",
+      "stratum": "conditional",
+      "split": "dev",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_2e8ce95d0324",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_2e8ce95d0324_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_f01483fe5435",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_88a3a2553755",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_1af94e4d743d",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_ae95f66d90dc",
+      "stratum": "conditional",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_bd50d0f24f2a",
+      "stratum": "correction",
+      "split": "dev",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_adf7c457ae36",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_adf7c457ae36_t2",
+        "cr2_adf7c457ae36_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_501830241ceb",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_501830241ceb_t2",
+        "cr2_501830241ceb_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_2b4e7d165d4a",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_2b4e7d165d4a_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_da6ae709f2a1",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_da6ae709f2a1_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_9d80ee6afca1",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_9d80ee6afca1_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_e404469d4273",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_e404469d4273_t2",
+        "cr2_e404469d4273_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_e484b388077f",
+      "stratum": "correction",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_e484b388077f_t2",
+        "cr2_e484b388077f_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_09734b74dcd2",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_09734b74dcd2_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_e14c985fef9c",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_e14c985fef9c_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_6fe9f88e61a3",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_6fe9f88e61a3_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_80dde188a3da",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_80dde188a3da_t2",
+        "cr2_80dde188a3da_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_8b78b9db9f3a",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_8b78b9db9f3a_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_67871557b105",
+      "stratum": "generalization",
+      "split": "dev",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_67871557b105_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_da745e7d6bc9",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_da745e7d6bc9_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_547ab5fe47f6",
+      "stratum": "generalization",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_547ab5fe47f6_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_d3741b4c7805",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_31d53c1662d6",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_d6328978bc46",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_d6328978bc46_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_e8509911972d",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_ef728f684700",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_d0f71a26404d",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_81538441219f",
+      "stratum": "task_noise",
+      "split": "dev",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_2bb6e01c1d00",
+      "stratum": "task_noise",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_2bb6e01c1d00_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_9282c3126a72",
+      "stratum": "source_preservation",
+      "split": "dev",
+      "complete": true,
+      "held_checkpoints": []
+    },
+    {
+      "sequence_id": "cr2_26090b384cbc",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_26090b384cbc_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_58b13c8d3bb1",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_58b13c8d3bb1_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_5f005a76924e",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_5f005a76924e_t2",
+        "cr2_5f005a76924e_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_7ac29410d9c4",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_7ac29410d9c4_t2",
+        "cr2_7ac29410d9c4_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_51bb92b6fe47",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_51bb92b6fe47_t2"
+      ]
+    },
+    {
+      "sequence_id": "cr2_84a8da463af3",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_84a8da463af3_t2",
+        "cr2_84a8da463af3_t3"
+      ]
+    },
+    {
+      "sequence_id": "cr2_cf4fc38cde9d",
+      "stratum": "source_preservation",
+      "split": "test",
+      "complete": false,
+      "held_checkpoints": [
+        "cr2_cf4fc38cde9d_t3"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t1",
+      "sequence_id": "cr2_09734b74dcd2",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_09734b74dcd2_o1",
+        "cr2_09734b74dcd2_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t1",
+      "sequence_id": "cr2_1af94e4d743d",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_1af94e4d743d_o1",
+        "cr2_1af94e4d743d_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t1",
+      "sequence_id": "cr2_26090b384cbc",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_26090b384cbc_o1",
+        "cr2_26090b384cbc_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t1",
+      "sequence_id": "cr2_2b4e7d165d4a",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_2b4e7d165d4a_o1",
+        "cr2_2b4e7d165d4a_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t1",
+      "sequence_id": "cr2_2bb6e01c1d00",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_2bb6e01c1d00_o1",
+        "cr2_2bb6e01c1d00_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t1",
+      "sequence_id": "cr2_2e8ce95d0324",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_2e8ce95d0324_o1",
+        "cr2_2e8ce95d0324_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t1",
+      "sequence_id": "cr2_31d53c1662d6",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_31d53c1662d6_o1",
+        "cr2_31d53c1662d6_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t1",
+      "sequence_id": "cr2_501830241ceb",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_501830241ceb_o1",
+        "cr2_501830241ceb_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t1",
+      "sequence_id": "cr2_51bb92b6fe47",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_51bb92b6fe47_o1",
+        "cr2_51bb92b6fe47_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B4",
+          "B5",
+          "DF4"
+        ],
+        "adj-2": [
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t1",
+      "sequence_id": "cr2_547ab5fe47f6",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_547ab5fe47f6_o1",
+        "cr2_547ab5fe47f6_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t1",
+      "sequence_id": "cr2_58b13c8d3bb1",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_58b13c8d3bb1_o1",
+        "cr2_58b13c8d3bb1_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B4",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t1",
+      "sequence_id": "cr2_5f005a76924e",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_5f005a76924e_o1",
+        "cr2_5f005a76924e_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t1",
+      "sequence_id": "cr2_67871557b105",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "dev",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_67871557b105_o1",
+        "cr2_67871557b105_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t1",
+      "sequence_id": "cr2_6fe9f88e61a3",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_6fe9f88e61a3_o1",
+        "cr2_6fe9f88e61a3_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t1",
+      "sequence_id": "cr2_7ac29410d9c4",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_7ac29410d9c4_o1",
+        "cr2_7ac29410d9c4_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t1",
+      "sequence_id": "cr2_80dde188a3da",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_80dde188a3da_o1",
+        "cr2_80dde188a3da_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t1",
+      "sequence_id": "cr2_81538441219f",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "dev",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_81538441219f_o1",
+        "cr2_81538441219f_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t1",
+      "sequence_id": "cr2_84a8da463af3",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_84a8da463af3_o1",
+        "cr2_84a8da463af3_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t1",
+      "sequence_id": "cr2_88a3a2553755",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_88a3a2553755_o1",
+        "cr2_88a3a2553755_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t1",
+      "sequence_id": "cr2_8b78b9db9f3a",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_8b78b9db9f3a_o1",
+        "cr2_8b78b9db9f3a_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9282c3126a72_t1",
+      "sequence_id": "cr2_9282c3126a72",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "dev",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_9282c3126a72_o1",
+        "cr2_9282c3126a72_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9d80ee6afca1_t1",
+      "sequence_id": "cr2_9d80ee6afca1",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_9d80ee6afca1_o1",
+        "cr2_9d80ee6afca1_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_adf7c457ae36_t1",
+      "sequence_id": "cr2_adf7c457ae36",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_adf7c457ae36_o1",
+        "cr2_adf7c457ae36_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ae95f66d90dc_t1",
+      "sequence_id": "cr2_ae95f66d90dc",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ae95f66d90dc_o1",
+        "cr2_ae95f66d90dc_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_b6f54e11c8a9_t1",
+      "sequence_id": "cr2_b6f54e11c8a9",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_b6f54e11c8a9_o1",
+        "cr2_b6f54e11c8a9_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_bd50d0f24f2a_t1",
+      "sequence_id": "cr2_bd50d0f24f2a",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "dev",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_bd50d0f24f2a_o1",
+        "cr2_bd50d0f24f2a_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ce490e6605c4_t1",
+      "sequence_id": "cr2_ce490e6605c4",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "dev",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ce490e6605c4_o1",
+        "cr2_ce490e6605c4_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_cf4fc38cde9d_t1",
+      "sequence_id": "cr2_cf4fc38cde9d",
+      "stage": 1,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_cf4fc38cde9d_o1",
+        "cr2_cf4fc38cde9d_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF4",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d0f71a26404d_t1",
+      "sequence_id": "cr2_d0f71a26404d",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d0f71a26404d_o1",
+        "cr2_d0f71a26404d_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d3741b4c7805_t1",
+      "sequence_id": "cr2_d3741b4c7805",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d3741b4c7805_o1",
+        "cr2_d3741b4c7805_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d6328978bc46_t1",
+      "sequence_id": "cr2_d6328978bc46",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d6328978bc46_o1",
+        "cr2_d6328978bc46_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da6ae709f2a1_t1",
+      "sequence_id": "cr2_da6ae709f2a1",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_da6ae709f2a1_o1",
+        "cr2_da6ae709f2a1_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da745e7d6bc9_t1",
+      "sequence_id": "cr2_da745e7d6bc9",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_da745e7d6bc9_o1",
+        "cr2_da745e7d6bc9_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_db5a4ec8eccc_t1",
+      "sequence_id": "cr2_db5a4ec8eccc",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_db5a4ec8eccc_o1",
+        "cr2_db5a4ec8eccc_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e14c985fef9c_t1",
+      "sequence_id": "cr2_e14c985fef9c",
+      "stage": 1,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_e14c985fef9c_o1",
+        "cr2_e14c985fef9c_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e404469d4273_t1",
+      "sequence_id": "cr2_e404469d4273",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_e404469d4273_o1",
+        "cr2_e404469d4273_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e484b388077f_t1",
+      "sequence_id": "cr2_e484b388077f",
+      "stage": 1,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_e484b388077f_o1",
+        "cr2_e484b388077f_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e8509911972d_t1",
+      "sequence_id": "cr2_e8509911972d",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_e8509911972d_o1",
+        "cr2_e8509911972d_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ef728f684700_t1",
+      "sequence_id": "cr2_ef728f684700",
+      "stage": 1,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ef728f684700_o1",
+        "cr2_ef728f684700_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": []
+      }
+    },
+    {
+      "checkpoint_id": "cr2_f01483fe5435_t1",
+      "sequence_id": "cr2_f01483fe5435",
+      "stage": 1,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-1-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_f01483fe5435_o1",
+        "cr2_f01483fe5435_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t2",
+      "sequence_id": "cr2_09734b74dcd2",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "B3",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t2",
+      "sequence_id": "cr2_1af94e4d743d",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_1af94e4d743d_o1",
+        "cr2_1af94e4d743d_o2",
+        "cr2_1af94e4d743d_o3",
+        "cr2_1af94e4d743d_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t2",
+      "sequence_id": "cr2_26090b384cbc",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t2",
+      "sequence_id": "cr2_2b4e7d165d4a",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t2",
+      "sequence_id": "cr2_2bb6e01c1d00",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_2bb6e01c1d00_o1",
+        "cr2_2bb6e01c1d00_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B3",
+          "DF3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t2",
+      "sequence_id": "cr2_2e8ce95d0324",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "DF2",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t2",
+      "sequence_id": "cr2_31d53c1662d6",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_31d53c1662d6_o1",
+        "cr2_31d53c1662d6_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t2",
+      "sequence_id": "cr2_501830241ceb",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "B4",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t2",
+      "sequence_id": "cr2_51bb92b6fe47",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B4",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t2",
+      "sequence_id": "cr2_547ab5fe47f6",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "B3",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t2",
+      "sequence_id": "cr2_58b13c8d3bb1",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B4",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B4",
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t2",
+      "sequence_id": "cr2_5f005a76924e",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 5
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B4",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B4",
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t2",
+      "sequence_id": "cr2_67871557b105",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "dev",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "B3",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t2",
+      "sequence_id": "cr2_6fe9f88e61a3",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "B3",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t2",
+      "sequence_id": "cr2_7ac29410d9c4",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B3",
+          "B5",
+          "B4",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF1",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t2",
+      "sequence_id": "cr2_80dde188a3da",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF4"
+        ],
+        "adj-2": [
+          "B5",
+          "B3",
+          "DF1",
+          "DF2",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t2",
+      "sequence_id": "cr2_81538441219f",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "dev",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_81538441219f_o1",
+        "cr2_81538441219f_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t2",
+      "sequence_id": "cr2_84a8da463af3",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 3
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B4",
+          "B5",
+          "DF1",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t2",
+      "sequence_id": "cr2_88a3a2553755",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_88a3a2553755_o1",
+        "cr2_88a3a2553755_o2",
+        "cr2_88a3a2553755_o3",
+        "cr2_88a3a2553755_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t2",
+      "sequence_id": "cr2_8b78b9db9f3a",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "B3",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9282c3126a72_t2",
+      "sequence_id": "cr2_9282c3126a72",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "dev",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B4",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF2",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9d80ee6afca1_t2",
+      "sequence_id": "cr2_9d80ee6afca1",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_adf7c457ae36_t2",
+      "sequence_id": "cr2_adf7c457ae36",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ae95f66d90dc_t2",
+      "sequence_id": "cr2_ae95f66d90dc",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ae95f66d90dc_o1",
+        "cr2_ae95f66d90dc_o2",
+        "cr2_ae95f66d90dc_o3",
+        "cr2_ae95f66d90dc_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_b6f54e11c8a9_t2",
+      "sequence_id": "cr2_b6f54e11c8a9",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_b6f54e11c8a9_o1",
+        "cr2_b6f54e11c8a9_o2",
+        "cr2_b6f54e11c8a9_o3",
+        "cr2_b6f54e11c8a9_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_bd50d0f24f2a_t2",
+      "sequence_id": "cr2_bd50d0f24f2a",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "dev",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ce490e6605c4_t2",
+      "sequence_id": "cr2_ce490e6605c4",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "dev",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ce490e6605c4_o1",
+        "cr2_ce490e6605c4_o2",
+        "cr2_ce490e6605c4_o3",
+        "cr2_ce490e6605c4_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_cf4fc38cde9d_t2",
+      "sequence_id": "cr2_cf4fc38cde9d",
+      "stage": 2,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_cf4fc38cde9d_o1",
+        "cr2_cf4fc38cde9d_o2",
+        "cr2_cf4fc38cde9d_o3",
+        "cr2_cf4fc38cde9d_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B4",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d0f71a26404d_t2",
+      "sequence_id": "cr2_d0f71a26404d",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d0f71a26404d_o1",
+        "cr2_d0f71a26404d_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d3741b4c7805_t2",
+      "sequence_id": "cr2_d3741b4c7805",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d3741b4c7805_o1",
+        "cr2_d3741b4c7805_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d6328978bc46_t2",
+      "sequence_id": "cr2_d6328978bc46",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d6328978bc46_o1",
+        "cr2_d6328978bc46_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da6ae709f2a1_t2",
+      "sequence_id": "cr2_da6ae709f2a1",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 1
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da745e7d6bc9_t2",
+      "sequence_id": "cr2_da745e7d6bc9",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_db5a4ec8eccc_t2",
+      "sequence_id": "cr2_db5a4ec8eccc",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e14c985fef9c_t2",
+      "sequence_id": "cr2_e14c985fef9c",
+      "stage": 2,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e404469d4273_t2",
+      "sequence_id": "cr2_e404469d4273",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 1
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e484b388077f_t2",
+      "sequence_id": "cr2_e484b388077f",
+      "stage": 2,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e8509911972d_t2",
+      "sequence_id": "cr2_e8509911972d",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_e8509911972d_o1",
+        "cr2_e8509911972d_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ef728f684700_t2",
+      "sequence_id": "cr2_ef728f684700",
+      "stage": 2,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ef728f684700_o1",
+        "cr2_ef728f684700_o2"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_f01483fe5435_t2",
+      "sequence_id": "cr2_f01483fe5435",
+      "stage": 2,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-2-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_f01483fe5435_o1",
+        "cr2_f01483fe5435_o2",
+        "cr2_f01483fe5435_o3",
+        "cr2_f01483fe5435_o4"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_09734b74dcd2_t3",
+      "sequence_id": "cr2_09734b74dcd2",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_1af94e4d743d_t3",
+      "sequence_id": "cr2_1af94e4d743d",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_1af94e4d743d_o1",
+        "cr2_1af94e4d743d_o2",
+        "cr2_1af94e4d743d_o3",
+        "cr2_1af94e4d743d_o4",
+        "cr2_1af94e4d743d_o5",
+        "cr2_1af94e4d743d_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B4",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_26090b384cbc_t3",
+      "sequence_id": "cr2_26090b384cbc",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2b4e7d165d4a_t3",
+      "sequence_id": "cr2_2b4e7d165d4a",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF4",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2bb6e01c1d00_t3",
+      "sequence_id": "cr2_2bb6e01c1d00",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 3
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B3",
+          "B5",
+          "DF3"
+        ],
+        "adj-2": [
+          "B3",
+          "B1",
+          "DF3",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_2e8ce95d0324_t3",
+      "sequence_id": "cr2_2e8ce95d0324",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_2e8ce95d0324_o1",
+        "cr2_2e8ce95d0324_o2",
+        "cr2_2e8ce95d0324_o3",
+        "cr2_2e8ce95d0324_o4",
+        "cr2_2e8ce95d0324_o5",
+        "cr2_2e8ce95d0324_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_31d53c1662d6_t3",
+      "sequence_id": "cr2_31d53c1662d6",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_31d53c1662d6_o1",
+        "cr2_31d53c1662d6_o2",
+        "cr2_31d53c1662d6_o5",
+        "cr2_31d53c1662d6_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B5",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "B5",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_501830241ceb_t3",
+      "sequence_id": "cr2_501830241ceb",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        false,
+        true
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_51bb92b6fe47_t3",
+      "sequence_id": "cr2_51bb92b6fe47",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B3",
+          "B5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF4",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_547ab5fe47f6_t3",
+      "sequence_id": "cr2_547ab5fe47f6",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B4",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B4",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_58b13c8d3bb1_t3",
+      "sequence_id": "cr2_58b13c8d3bb1",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_5f005a76924e_t3",
+      "sequence_id": "cr2_5f005a76924e",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_67871557b105_t3",
+      "sequence_id": "cr2_67871557b105",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "dev",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_6fe9f88e61a3_t3",
+      "sequence_id": "cr2_6fe9f88e61a3",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_7ac29410d9c4_t3",
+      "sequence_id": "cr2_7ac29410d9c4",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5",
+          "DF4"
+        ],
+        "adj-2": [
+          "B2",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_80dde188a3da_t3",
+      "sequence_id": "cr2_80dde188a3da",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 1
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_81538441219f_t3",
+      "sequence_id": "cr2_81538441219f",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "dev",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_81538441219f_o1",
+        "cr2_81538441219f_o2",
+        "cr2_81538441219f_o5",
+        "cr2_81538441219f_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B5",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "B5",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_84a8da463af3_t3",
+      "sequence_id": "cr2_84a8da463af3",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_88a3a2553755_t3",
+      "sequence_id": "cr2_88a3a2553755",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_88a3a2553755_o1",
+        "cr2_88a3a2553755_o2",
+        "cr2_88a3a2553755_o3",
+        "cr2_88a3a2553755_o4",
+        "cr2_88a3a2553755_o5",
+        "cr2_88a3a2553755_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_8b78b9db9f3a_t3",
+      "sequence_id": "cr2_8b78b9db9f3a",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-1",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9282c3126a72_t3",
+      "sequence_id": "cr2_9282c3126a72",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "dev",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5",
+          "DF1",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B2",
+          "B5",
+          "DF1"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_9d80ee6afca1_t3",
+      "sequence_id": "cr2_9d80ee6afca1",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 4
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1"
+        ],
+        "adj-2": [
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_adf7c457ae36_t3",
+      "sequence_id": "cr2_adf7c457ae36",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 1
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ae95f66d90dc_t3",
+      "sequence_id": "cr2_ae95f66d90dc",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ae95f66d90dc_o1",
+        "cr2_ae95f66d90dc_o2",
+        "cr2_ae95f66d90dc_o3",
+        "cr2_ae95f66d90dc_o4",
+        "cr2_ae95f66d90dc_o5",
+        "cr2_ae95f66d90dc_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_b6f54e11c8a9_t3",
+      "sequence_id": "cr2_b6f54e11c8a9",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_b6f54e11c8a9_o1",
+        "cr2_b6f54e11c8a9_o2",
+        "cr2_b6f54e11c8a9_o3",
+        "cr2_b6f54e11c8a9_o4",
+        "cr2_b6f54e11c8a9_o5",
+        "cr2_b6f54e11c8a9_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF4",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_bd50d0f24f2a_t3",
+      "sequence_id": "cr2_bd50d0f24f2a",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "dev",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ce490e6605c4_t3",
+      "sequence_id": "cr2_ce490e6605c4",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "dev",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ce490e6605c4_o1",
+        "cr2_ce490e6605c4_o2",
+        "cr2_ce490e6605c4_o3",
+        "cr2_ce490e6605c4_o4",
+        "cr2_ce490e6605c4_o5",
+        "cr2_ce490e6605c4_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B3",
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_cf4fc38cde9d_t3",
+      "sequence_id": "cr2_cf4fc38cde9d",
+      "stage": 3,
+      "stratum": "source_preservation",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B2",
+          "B5",
+          "DF4"
+        ],
+        "adj-2": [
+          "B2",
+          "B5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d0f71a26404d_t3",
+      "sequence_id": "cr2_d0f71a26404d",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d0f71a26404d_o1",
+        "cr2_d0f71a26404d_o2",
+        "cr2_d0f71a26404d_o5",
+        "cr2_d0f71a26404d_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B5",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "B5",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d3741b4c7805_t3",
+      "sequence_id": "cr2_d3741b4c7805",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_d3741b4c7805_o1",
+        "cr2_d3741b4c7805_o2",
+        "cr2_d3741b4c7805_o5",
+        "cr2_d3741b4c7805_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 3,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B3",
+          "B5",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "B5",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_d6328978bc46_t3",
+      "sequence_id": "cr2_d6328978bc46",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        false,
+        true
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B5",
+          "DF1",
+          "DF3",
+          "DF4"
+        ],
+        "adj-2": [
+          "B1",
+          "B5",
+          "DF3",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da6ae709f2a1_t3",
+      "sequence_id": "cr2_da6ae709f2a1",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_da745e7d6bc9_t3",
+      "sequence_id": "cr2_da745e7d6bc9",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_db5a4ec8eccc_t3",
+      "sequence_id": "cr2_db5a4ec8eccc",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_db5a4ec8eccc_o1",
+        "cr2_db5a4ec8eccc_o2",
+        "cr2_db5a4ec8eccc_o3",
+        "cr2_db5a4ec8eccc_o4",
+        "cr2_db5a4ec8eccc_o5",
+        "cr2_db5a4ec8eccc_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e14c985fef9c_t3",
+      "sequence_id": "cr2_e14c985fef9c",
+      "stage": 3,
+      "stratum": "generalization",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 5,
+        "adj-2": 5
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF1",
+          "DF2",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e404469d4273_t3",
+      "sequence_id": "cr2_e404469d4273",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 1,
+        "adj-2": 3
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B5",
+          "DF2",
+          "DF4"
+        ],
+        "adj-2": [
+          "B4",
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e484b388077f_t3",
+      "sequence_id": "cr2_e484b388077f",
+      "stage": 3,
+      "stratum": "correction",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        false,
+        false
+      ],
+      "contract_gold": false,
+      "relevant_evidence_agreement": false,
+      "relevant_evidence_refs": null,
+      "hold_reasons": [
+        "adj-1_contract_agreement_false",
+        "adj-2_contract_agreement_false"
+      ],
+      "divergent_probes": {
+        "adj-1": 2,
+        "adj-2": 2
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF4"
+        ],
+        "adj-2": [
+          "B4",
+          "B5",
+          "DF4"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_e8509911972d_t3",
+      "sequence_id": "cr2_e8509911972d",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_e8509911972d_o1",
+        "cr2_e8509911972d_o2",
+        "cr2_e8509911972d_o5",
+        "cr2_e8509911972d_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 4
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B3",
+          "B5",
+          "DF3",
+          "DF4"
+        ],
+        "adj-2": [
+          "B1",
+          "B4",
+          "B5",
+          "DF3",
+          "DF5"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_ef728f684700_t3",
+      "sequence_id": "cr2_ef728f684700",
+      "stage": 3,
+      "stratum": "task_noise",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_ef728f684700_o1",
+        "cr2_ef728f684700_o2",
+        "cr2_ef728f684700_o5",
+        "cr2_ef728f684700_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 4,
+        "adj-2": 3
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B1",
+          "B3",
+          "B5",
+          "DF3"
+        ],
+        "adj-2": [
+          "B1",
+          "B5",
+          "DF3"
+        ]
+      }
+    },
+    {
+      "checkpoint_id": "cr2_f01483fe5435_t3",
+      "sequence_id": "cr2_f01483fe5435",
+      "stage": 3,
+      "stratum": "conditional",
+      "split": "test",
+      "bundle": "stage-3-part-2",
+      "adjudicator_approvals": [
+        true,
+        true
+      ],
+      "contract_gold": true,
+      "relevant_evidence_agreement": true,
+      "relevant_evidence_refs": [
+        "cr2_f01483fe5435_o1",
+        "cr2_f01483fe5435_o2",
+        "cr2_f01483fe5435_o3",
+        "cr2_f01483fe5435_o4",
+        "cr2_f01483fe5435_o5",
+        "cr2_f01483fe5435_o6"
+      ],
+      "hold_reasons": [],
+      "divergent_probes": {
+        "adj-1": 0,
+        "adj-2": 0
+      },
+      "alignment_rows": {
+        "adj-1": 6,
+        "adj-2": 6
+      },
+      "boundaries_applied": {
+        "adj-1": [
+          "B3",
+          "B5",
+          "DF1",
+          "DF5"
+        ],
+        "adj-2": [
+          "B5",
+          "DF5"
+        ]
+      }
+    }
+  ],
+  "system_calls": 0
+}

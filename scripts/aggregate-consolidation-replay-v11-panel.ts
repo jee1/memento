@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { ADJ_INPUT_DIR } from './build-consolidation-replay-v11-adjudication.js';
 import { V11_DIR } from './build-consolidation-replay-v11-panel.js';
 import { isMain } from './lib/cli-runtime.js';
+import { decideCheckpoint } from './lib/consolidation-panel-decision.js';
 
 const V1_DIR = 'tests/fixtures/search-quality/consolidation-replay-v1';
 const ADJUDICATORS = ['adj-1', 'adj-2'] as const;
@@ -37,12 +38,11 @@ type Probe = Adjudication['cases'][number]['probes'][number];
 
 interface InputCase {
   checkpoint_id: string; stage: number;
-  contract_a: { relevant_evidence_refs: string[] }; contract_b: { relevant_evidence_refs: string[] };
+  contract_a: { status: string; relevant_evidence_refs: string[] }; contract_b: { status: string; relevant_evidence_refs: string[] };
 }
 
 const sha = (data: string) => createHash('sha256').update(data).digest('hex');
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
-const sortedSet = (refs: string[]) => [...new Set(refs)].sort();
 
 /**
  * P_omit that passes both contracts: the adjudicator read the omitted fact as still implied by the other contract's items.
@@ -86,11 +86,10 @@ export function aggregateV11Panel(root = process.cwd()) {
     const { sequence, v1Id } = where.get(c.checkpoint_id)!;
     const rows = adjudications.map(a => a.byId.get(c.checkpoint_id));
     if (rows.some(r => !r)) throw new Error(`${c.checkpoint_id} lacks an adjudication`);
-    const approvals = rows.map(r => r!.contract_agreement);
-    const gold = approvals.every(Boolean);
-    const aRefs = sortedSet(c.contract_a.relevant_evidence_refs);
-    const bRefs = sortedSet(c.contract_b.relevant_evidence_refs);
-    const sameRefs = json(aRefs) === json(bRefs);
+    const decision = decideCheckpoint(c.checkpoint_id, { a: c.contract_a, b: c.contract_b },
+      adjudications.map((a, i) => ({ adjudicator: a.name, ...rows[i]! })));
+    const approvals = decision.adjudicator_approvals;
+    const gold = decision.contract_gold;
     const v1Decision = v1.get(v1Id);
     if (!v1Decision) throw new Error(`v1 decision missing for ${v1Id}`);
     return {
@@ -98,8 +97,8 @@ export function aggregateV11Panel(root = process.cwd()) {
       stage: c.stage, stratum: sequence.v1_stratum,
       adjudicator_approvals: approvals, contract_gold: gold,
       hold_reasons: gold ? [] : adjudications.filter((_, i) => !approvals[i]).map(a => `${a.name}_contract_agreement_false`),
-      relevant_evidence_agreement: sameRefs,
-      relevant_evidence_refs: gold && sameRefs ? aRefs : null,
+      relevant_evidence_agreement: decision.relevant_evidence_agreement,
+      relevant_evidence_refs: decision.relevant_evidence_refs,
       contracts: gold ? Object.fromEntries(['a', 'b'].map(who => [who, {
         submission: `adjudication/stage${c.stage}-${who}-answers.sealed.json`, checkpoint_id: c.checkpoint_id,
       }])) : null,
