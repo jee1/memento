@@ -20,6 +20,7 @@ import { SummarizationService } from './summarization-service.js';
 import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 import type { ClusterJudgePair, IClusterJudge } from './cluster-judge.js';
 import { getClusterJudgeThreshold } from '../../../shared/config/cluster-judge-config.js';
+import { getConsolidationMode } from '../../../shared/config/consolidation-mode-config.js';
 import type { TelemetryService } from '../../telemetry/index.js';
 import type { Outcome } from '../../telemetry/index.js';
 
@@ -49,6 +50,7 @@ function newSemanticId(): string {
 
 const REL_EXTRACTED_FROM: RelationType = 'extracted_from';
 const REL_SUPPORTED_BY: RelationType = 'supported_by';
+const REL_REFERENCES: RelationType = 'REFERENCES';
 
 function getMergeSimilarityThreshold(): number {
   const raw = process.env.CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD;
@@ -204,9 +206,11 @@ export class SleepConsolidationService {
 
     const started = Date.now();
     const runAt = new Date().toISOString();
+    const consolidationMode = getConsolidationMode();
     const result: SleepConsolidationRunResult = {
       runAt,
       durationMs: 0,
+      consolidationMode,
       clustersFound: 0,
       clustersProcessed: 0,
       clustersSkipped: 0,
@@ -260,153 +264,21 @@ export class SleepConsolidationService {
             continue;
           }
 
-          const summary = await this.summarization.summarizeCluster({
-            clusterEpisodes: episodes
-          });
-
-          if (summary.ok === false) {
-            result.clustersSkipped++;
-            result.errors.push({
-              clusterId,
-              error: `deferred:${summary.reason}`
-            });
-            if (summary.reason === 'quota_exceeded') {
-              stopRemainingClusters = true;
-              result.stoppedDueToQuota = true;
-            }
+          if (consolidationMode === 'link') {
+            await this.processLinkCluster(cluster, result);
             continue;
           }
 
-          const summaryText = summary.content;
-          const method = summary.method;
-
-          const mergeTarget = await this.findMergeTarget(clusterId, cluster.ownerId, summaryText);
-
-          if (mergeTarget) {
-            const merged = await this.summarization.summarizeMergeForConsolidation({
-              existingSemanticContent: mergeTarget.content,
-              clusterEpisodes: episodes
-            });
-            if (merged.ok && merged.content.trim()) {
-              const newOrigin = mergeOriginSourceJson(mergeTarget.originSource, cluster.episodicIds);
-              await DatabaseUtils.runTransaction(this.db, async () => {
-                this.repo.updateSemanticMemory({
-                  id: mergeTarget!.id,
-                  content: merged.content.trim(),
-                  originSourceJson: newOrigin
-                });
-                for (const eid of cluster.episodicIds) {
-                  await this.addRelationIfAbsent(
-                    mergeTarget!.id,
-                    eid,
-                    REL_EXTRACTED_FROM,
-                    { confidence: 0.75, allowCyclic: true }
-                  );
-                  await this.addRelationIfAbsent(
-                    eid,
-                    mergeTarget!.id,
-                    REL_SUPPORTED_BY,
-                    { confidence: 0.75, allowCyclic: true }
-                  );
-                }
-                this.repo.markEpisodicsConsolidated(cluster.episodicIds);
-              });
-              const semanticType: MemoryType = 'semantic';
-              const storedEmbM = await this.memoryEmbedding.createAndStoreEmbedding(
-                this.db,
-                mergeTarget.id,
-                merged.content.trim(),
-                semanticType
-              );
-              if (!storedEmbM) {
-                result.errors.push({
-                  clusterId,
-                  error:
-                    'Semantic embedding not stored — hybrid vector recall may miss this consolidated memory'
-                });
-              }
-              result.clustersProcessed++;
-              result.semanticsMerged++;
-              result.episodicsConsolidated += cluster.episodicIds.length;
-              continue;
-            }
-            result.clustersSkipped++;
-            const mergeDeferReason =
-              merged.ok === false ? merged.reason : 'empty_response';
-            result.errors.push({
-              clusterId,
-              error: `deferred:${mergeDeferReason}`
-            });
-            if (merged.ok === false && merged.reason === 'quota_exceeded') {
-              stopRemainingClusters = true;
-              result.stoppedDueToQuota = true;
-            }
-            continue;
-          }
-
-          const semanticId = newSemanticId();
-          const threshold = this.clustering.getSimilarityThreshold();
-          const originSource = {
-            tool: 'sleep-consolidation',
-            caller: 'system',
-            timestamp: new Date().toISOString(),
-            context: {
-              source_episodic_ids: cluster.episodicIds,
-              cluster_size: cluster.episodicIds.length,
-              similarity_threshold: threshold,
-              summarization_method: method
-            }
-          };
-
-          await DatabaseUtils.runTransaction(this.db, async () => {
-            this.repo.insertSemanticMemory({
-              id: semanticId,
-              content: summaryText,
-              importance: 0.55,
-              originSourceJson: JSON.stringify(originSource),
-              ownerId: cluster.ownerId,
-              privacyScope: 'private'
-            });
-
-            for (const eid of cluster.episodicIds) {
-              // data-model: semantic ─[extracted_from]→ episodic, episodic ─[supported_by]→ semantic
-              await this.addRelationIfAbsent(
-                semanticId,
-                eid,
-                REL_EXTRACTED_FROM,
-                { confidence: 0.75, allowCyclic: true }
-              );
-              await this.addRelationIfAbsent(
-                eid,
-                semanticId,
-                REL_SUPPORTED_BY,
-                { confidence: 0.75, allowCyclic: true }
-              );
-            }
-
-            this.repo.markEpisodicsConsolidated(cluster.episodicIds);
-          });
-
-          // 임베딩은 트랜잭션 밖: DB 커밋 후 실패 시 시맨틱 행·is_consolidated는 유지되고 벡터만 비는 경우가 있다.
-          // 운영: `/admin/embeddings/migrate` 등 기존 백필 경로로 재시도하거나, run 결과 errors에 기록된 클러스터를 조사.
-          const semanticType: MemoryType = 'semantic';
-          const storedEmb = await this.memoryEmbedding.createAndStoreEmbedding(
-            this.db,
-            semanticId,
-            summaryText,
-            semanticType
+          const quotaStop = await this.processSummarizeCluster(
+            cluster,
+            clusterId,
+            episodes,
+            result
           );
-          if (!storedEmb) {
-            result.errors.push({
-              clusterId,
-              error:
-                'Semantic embedding not stored — hybrid vector recall may miss this consolidated memory'
-            });
+          if (quotaStop) {
+            stopRemainingClusters = true;
+            result.stoppedDueToQuota = true;
           }
-
-          result.clustersProcessed++;
-          result.semanticsCreated++;
-          result.episodicsConsolidated += cluster.episodicIds.length;
         } catch (e) {
           result.clustersSkipped++;
           result.errors.push({
@@ -431,6 +303,7 @@ export class SleepConsolidationService {
         outcome,
         latencyMs: result.durationMs,
         extraData: {
+          consolidation_mode: consolidationMode,
           clusters_found: result.clustersFound,
           clusters_processed: result.clustersProcessed,
           semantics_created: result.semanticsCreated,
@@ -441,6 +314,186 @@ export class SleepConsolidationService {
       });
       this.activeRun = null;
       release();
+    }
+  }
+
+  /**
+   * summarize 모드(D): LLM 요약·시맨틱 생성/병합. true 이면 quota 로 남은 클러스터 중단.
+   */
+  private async processSummarizeCluster(
+    cluster: ConsolidationCluster,
+    clusterId: string,
+    episodes: EpisodicCandidateRow[],
+    result: SleepConsolidationRunResult
+  ): Promise<boolean> {
+    const summary = await this.summarization.summarizeCluster({
+      clusterEpisodes: episodes
+    });
+
+    if (summary.ok === false) {
+      result.clustersSkipped++;
+      result.errors.push({
+        clusterId,
+        error: `deferred:${summary.reason}`
+      });
+      return summary.reason === 'quota_exceeded';
+    }
+
+    const summaryText = summary.content;
+    const method = summary.method;
+
+    const mergeTarget = await this.findMergeTarget(clusterId, cluster.ownerId, summaryText);
+
+    if (mergeTarget) {
+      const merged = await this.summarization.summarizeMergeForConsolidation({
+        existingSemanticContent: mergeTarget.content,
+        clusterEpisodes: episodes
+      });
+      if (merged.ok && merged.content.trim()) {
+        const newOrigin = mergeOriginSourceJson(mergeTarget.originSource, cluster.episodicIds);
+        await DatabaseUtils.runTransaction(this.db, async () => {
+          this.repo.updateSemanticMemory({
+            id: mergeTarget!.id,
+            content: merged.content.trim(),
+            originSourceJson: newOrigin
+          });
+          for (const eid of cluster.episodicIds) {
+            await this.addRelationIfAbsent(
+              mergeTarget!.id,
+              eid,
+              REL_EXTRACTED_FROM,
+              { confidence: 0.75, allowCyclic: true }
+            );
+            await this.addRelationIfAbsent(
+              eid,
+              mergeTarget!.id,
+              REL_SUPPORTED_BY,
+              { confidence: 0.75, allowCyclic: true }
+            );
+          }
+          this.repo.markEpisodicsConsolidated(cluster.episodicIds);
+        });
+        const semanticType: MemoryType = 'semantic';
+        const storedEmbM = await this.memoryEmbedding.createAndStoreEmbedding(
+          this.db,
+          mergeTarget.id,
+          merged.content.trim(),
+          semanticType
+        );
+        if (!storedEmbM) {
+          result.errors.push({
+            clusterId,
+            error:
+              'Semantic embedding not stored — hybrid vector recall may miss this consolidated memory'
+          });
+        }
+        result.clustersProcessed++;
+        result.semanticsMerged++;
+        result.episodicsConsolidated += cluster.episodicIds.length;
+        return false;
+      }
+      result.clustersSkipped++;
+      const mergeDeferReason = merged.ok === false ? merged.reason : 'empty_response';
+      result.errors.push({
+        clusterId,
+        error: `deferred:${mergeDeferReason}`
+      });
+      return merged.ok === false && merged.reason === 'quota_exceeded';
+    }
+
+    const semanticId = newSemanticId();
+    const threshold = this.clustering.getSimilarityThreshold();
+    const originSource = {
+      tool: 'sleep-consolidation',
+      caller: 'system',
+      timestamp: new Date().toISOString(),
+      context: {
+        source_episodic_ids: cluster.episodicIds,
+        cluster_size: cluster.episodicIds.length,
+        similarity_threshold: threshold,
+        summarization_method: method
+      }
+    };
+
+    await DatabaseUtils.runTransaction(this.db, async () => {
+      this.repo.insertSemanticMemory({
+        id: semanticId,
+        content: summaryText,
+        importance: 0.55,
+        originSourceJson: JSON.stringify(originSource),
+        ownerId: cluster.ownerId,
+        privacyScope: 'private'
+      });
+
+      for (const eid of cluster.episodicIds) {
+        await this.addRelationIfAbsent(
+          semanticId,
+          eid,
+          REL_EXTRACTED_FROM,
+          { confidence: 0.75, allowCyclic: true }
+        );
+        await this.addRelationIfAbsent(
+          eid,
+          semanticId,
+          REL_SUPPORTED_BY,
+          { confidence: 0.75, allowCyclic: true }
+        );
+      }
+
+      this.repo.markEpisodicsConsolidated(cluster.episodicIds);
+    });
+
+    const semanticType: MemoryType = 'semantic';
+    const storedEmb = await this.memoryEmbedding.createAndStoreEmbedding(
+      this.db,
+      semanticId,
+      summaryText,
+      semanticType
+    );
+    if (!storedEmb) {
+      result.errors.push({
+        clusterId,
+        error:
+          'Semantic embedding not stored — hybrid vector recall may miss this consolidated memory'
+      });
+    }
+
+    result.clustersProcessed++;
+    result.semanticsCreated++;
+    result.episodicsConsolidated += cluster.episodicIds.length;
+    return false;
+  }
+
+  /**
+   * #1627 link 모드: 대표 episodic 과 멤버를 REFERENCES 로만 묶고 is_consolidated 만 표시한다.
+   */
+  private async processLinkCluster(
+    cluster: ConsolidationCluster,
+    result: SleepConsolidationRunResult
+  ): Promise<void> {
+    const clusterId = `cluster-${cluster.representativeId}`;
+    const repId = cluster.representativeId;
+    try {
+      await DatabaseUtils.runTransaction(this.db, async () => {
+        for (const memberId of cluster.episodicIds) {
+          if (memberId === repId) {
+            continue;
+          }
+          await this.addRelationIfAbsent(memberId, repId, REL_REFERENCES, {
+            confidence: 0.75,
+            allowCyclic: true
+          });
+        }
+        this.repo.markEpisodicsConsolidatedFlagOnly(cluster.episodicIds);
+      });
+      result.clustersProcessed++;
+      result.episodicsConsolidated += cluster.episodicIds.length;
+    } catch (e) {
+      result.clustersSkipped++;
+      result.errors.push({
+        clusterId,
+        error: e instanceof Error ? e.message : String(e)
+      });
     }
   }
 

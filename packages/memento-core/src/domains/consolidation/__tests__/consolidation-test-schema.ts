@@ -76,6 +76,7 @@ export function applyConsolidationTestSchema(db: Database.Database): void {
     INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
     VALUES
       ('extracted_from', 'Structural', 'extracted', '["episodic","semantic"]', 0.7, 1.1),
-      ('supported_by', 'Structural', 'supported', '["episodic","semantic"]', 0.7, 1.1);
+      ('supported_by', 'Structural', 'supported', '["episodic","semantic"]', 0.7, 1.1),
+      ('REFERENCES', 'Semantic', 'references', '["working","episodic","semantic","procedural"]', 0.7, 0.8);
   `);
 }

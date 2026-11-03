@@ -127,6 +127,16 @@ describe('ConsolidationRepository', () => {
     expect(row.importance).toBeLessThanOrEqual(0.1);
   });
 
+  it('markEpisodicsConsolidatedFlagOnly sets flag without capping importance', () => {
+    DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('e2', 'episodic', 'y', 0.9, datetime('now'))`);
+    repo.markEpisodicsConsolidatedFlagOnly(['e2']);
+    const row = DatabaseUtils.get(db, 'SELECT is_consolidated, importance FROM memory_item WHERE id = ?', [
+      'e2'
+    ]) as { is_consolidated: number; importance: number };
+    expect(Boolean(row.is_consolidated)).toBe(true);
+    expect(row.importance).toBe(0.9);
+  });
+
   it('insertSemanticMemory writes created_at in ISO format', () => {
     repo.insertSemanticMemory({
       id: 's-new',

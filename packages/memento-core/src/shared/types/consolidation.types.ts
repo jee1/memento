@@ -2,6 +2,10 @@
  * Sleep consolidation (005) — 런타임/응답 타입 (DB 테이블 아님)
  */
 
+import type { ConsolidationMode } from '../config/consolidation-mode-config.js';
+
+export type { ConsolidationMode };
+
 export interface ConsolidationCluster {
   ownerId: string | null;
   episodicIds: string[];
@@ -12,6 +16,8 @@ export interface ConsolidationCluster {
 export interface SleepConsolidationRunResult {
   runAt: string;
   durationMs: number;
+  /** summarize | link (#1627) */
+  consolidationMode?: ConsolidationMode;
   clustersFound: number;
   clustersProcessed: number;
   clustersSkipped: number;
