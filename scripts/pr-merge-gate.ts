@@ -32,6 +32,8 @@ export const AUTHOR_MODEL_MARKER_RE = /<!--\s*author-model=([^\s>]+)\s*-->/;
 const AGENT_REVIEW_LINE_RE =
   /^\s*<!--\s*agent-review\s+sha=([a-f0-9]+)\s+verdict=(approve|changes)\s+findings=(\d+)\/(\d+)\/(\d+)\s+round=(\d+)(?:\s+model=([^\s>]+))?\s*-->\s*$/i;
 
+const CODEX_REVIEW_LINE_RE = /^\s*<!--\s*codex-review\s+sha=([a-f0-9]+)\s*-->\s*$/i;
+
 export interface AgentReviewMarker {
   sha: string;
   verdict: "approve" | "changes";
@@ -178,8 +180,23 @@ export function isDifferentModelFamily(authorModel: string, reviewerModel: strin
   return author !== reviewer;
 }
 
-export function hasHeadCodexReview(comments: GateComment[], headSha: string): boolean {
-  return comments.some((c) => c.body.includes(codexMarker(headSha)));
+/** 저장소 소유자 코멘트 줄 머리의 codex-review 마커(코멘트당 1개)만 인정한다. */
+export function hasHeadCodexReview(
+  comments: GateComment[],
+  headSha: string,
+  repoOwnerLogin: string,
+): boolean {
+  const owner = repoOwnerLogin.toLowerCase();
+  for (const comment of comments) {
+    if (comment.authorLogin.toLowerCase() !== owner) continue;
+    for (const line of comment.body.split("\n")) {
+      const match = line.match(CODEX_REVIEW_LINE_RE);
+      if (match) {
+        return match[1] === headSha;
+      }
+    }
+  }
+  return false;
 }
 
 export function highHeadReviewOk(
@@ -188,7 +205,7 @@ export function highHeadReviewOk(
   repoOwnerLogin: string,
   authorModel?: string,
 ): boolean {
-  if (hasHeadCodexReview(comments, headSha)) return true;
+  if (hasHeadCodexReview(comments, headSha, repoOwnerLogin)) return true;
   if (!authorModel || modelFamily(authorModel) === undefined) return false;
   const markers = parseTrustedAgentReviewMarkers(comments, repoOwnerLogin);
   return lastMarkersPerModelOnHead(markers, headSha).some(
@@ -201,7 +218,7 @@ export function highHeadReviewOk(
 
 export function reviewOverflowReason(prNumber?: string): string {
   const n = prNumber ?? "<번호>";
-  return `조치 필요 — 3회 초과, 접근 재검토 (사용자가 계속하라고 하면 \`! node scripts/pr-merge-gate.ts ${n} --allow-review-overflow\`)`;
+  return `조치 필요 — 3회 초과, 접근 재검토 (사용자가 계속하라고 하면 \`! node scripts/pr-merge-gate.ts ${n} --merge --allow-review-overflow\`)`;
 }
 
 const RISK_ORDER = ["low", "medium", "high"];

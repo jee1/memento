@@ -7,6 +7,7 @@ import {
   countAgentReviewMarkers,
   decide,
   hasHeadAgentApprove,
+  hasHeadCodexReview,
   highHeadReviewOk,
   isDifferentModelFamily,
   lastMarkersPerModelOnHead,
@@ -136,7 +137,9 @@ describe("decide", () => {
     const blocked = decide(pr({ comments: four }));
     expect(blocked.action).toBe("needs");
     expect(blocked.reasons[0]).toContain("3회 초과");
-    expect(blocked.reasons[0]).toContain("! node scripts/pr-merge-gate.ts 1633 --allow-review-overflow");
+    expect(blocked.reasons[0]).toContain(
+      "! node scripts/pr-merge-gate.ts 1633 --merge --allow-review-overflow",
+    );
     expect(
       decide(
         pr({
@@ -229,6 +232,20 @@ describe("decide", () => {
     );
   });
 
+  it("authorModel 누락 + 다른 계열 head approve + 승인 라벨은 needs", () => {
+    const cross = { comments: [headApprove(HEAD, "gemini-4-argon-medium")] };
+    expect(
+      decide(
+        pr({
+          labels: ["risk:high", APPROVAL_LABEL],
+          authorModel: undefined,
+          body: "## Summary\n(no author-model marker)",
+          ...cross,
+        }),
+      ).action,
+    ).toBe("needs");
+  });
+
   it("high 에서 같은 계열 approve 뒤 다른 계열 approve 면 통과", () => {
     const high = {
       labels: ["risk:high", APPROVAL_LABEL],
@@ -263,6 +280,20 @@ describe("hasHeadAgentApprove", () => {
   });
 });
 
+describe("hasHeadCodexReview", () => {
+  it("저장소 소유자 줄 머리 codex 마커만 인정 (--codex-review 형식)", () => {
+    const trusted = gateComment(`${codexMarker(HEAD)}\n## Codex review`);
+    expect(hasHeadCodexReview([trusted], HEAD, OWNER)).toBe(true);
+    expect(hasHeadCodexReview([gateComment(`> ${codexMarker(HEAD)}`)], HEAD, OWNER)).toBe(false);
+    expect(hasHeadCodexReview([gateComment(codexMarker(HEAD), "dependabot")], HEAD, OWNER)).toBe(
+      false,
+    );
+    expect(hasHeadCodexReview([gateComment(`${codexMarker("deadbeef")}\n`)], HEAD, OWNER)).toBe(
+      false,
+    );
+  });
+});
+
 describe("highHeadReviewOk", () => {
   it("find 대신 any cross-family effective approve", () => {
     const comments = [
@@ -290,7 +321,30 @@ describe("regression mutations (broken helper vs correct)", () => {
     expect(highHeadReviewOk(comments, HEAD, OWNER, "composer-2.5")).toBe(false);
   });
 
-  it("상한 >=5 변이는 4개 마커를 통과시킨다", () => {
+  it("authorModel 누락 차단 변이는 cross approve + 라벨을 잘못 통과시킨다", () => {
+    const comments = [headApprove(HEAD, "gemini-4-argon-medium")];
+    const markers = parseTrustedAgentReviewMarkers(comments, OWNER);
+    const brokenHighOk = lastMarkersPerModelOnHead(markers, HEAD).some(
+      (m) =>
+        m.verdict === "approve" &&
+        m.model !== undefined &&
+        isDifferentModelFamily("composer-2.5", m.model),
+    );
+    expect(brokenHighOk).toBe(true);
+    expect(highHeadReviewOk(comments, HEAD, OWNER, undefined)).toBe(false);
+    expect(
+      decide(
+        pr({
+          labels: ["risk:high", APPROVAL_LABEL],
+          authorModel: undefined,
+          body: "## Summary",
+          comments,
+        }),
+      ).action,
+    ).toBe("needs");
+  });
+
+  it("상한 >=4 변이는 4개 마커를 통과시키고 >=5 변이는 3개를 막는다", () => {
     const mk = (round: number) =>
       gateComment(
         agentReviewMarker({
@@ -301,11 +355,16 @@ describe("regression mutations (broken helper vs correct)", () => {
           model: "grok-4.7-high-fast",
         }),
       );
-    const comments = [mk(1), mk(2), mk(3), mk(4), headApprove()];
-    expect(countAgentReviewMarkers(comments, OWNER)).toBe(5);
-    const brokenPass = countAgentReviewMarkers(comments, OWNER) >= 5;
-    expect(brokenPass).toBe(true);
-    expect(decide(pr({ comments })).action).toBe("needs");
+    const three = [mk(1), mk(2), headApprove()];
+    expect(countAgentReviewMarkers(three, OWNER)).toBe(3);
+    expect(decide(pr({ comments: three })).action).toBe("merge");
+    expect(countAgentReviewMarkers(three, OWNER) >= 4).toBe(false);
+
+    const four = [mk(1), mk(2), mk(3), headApprove()];
+    expect(countAgentReviewMarkers(four, OWNER)).toBe(4);
+    expect(decide(pr({ comments: four })).action).toBe("needs");
+    expect(countAgentReviewMarkers(four, OWNER) >= 4).toBe(true);
+    expect(countAgentReviewMarkers(four, OWNER) >= 5).toBe(false);
   });
 
   it("모델 비교 제거 변이는 unknown reviewer 를 통과시킨다", () => {
@@ -334,9 +393,10 @@ describe("lastMarkersPerModelOnHead", () => {
 });
 
 describe("reviewOverflowReason", () => {
-  it("PR 번호를 넣은 overflow 안내", () => {
+  it("PR 번호와 --merge 가 들어간 overflow 안내", () => {
     expect(reviewOverflowReason("1633")).toContain("1633");
-    expect(reviewOverflowReason("1633")).not.toContain("--merge");
+    expect(reviewOverflowReason("1633")).toContain("--merge");
+    expect(reviewOverflowReason("1633")).toContain("--allow-review-overflow");
   });
 });
 
