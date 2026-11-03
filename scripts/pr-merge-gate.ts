@@ -85,7 +85,19 @@ export function parseAuthorModel(body: string): string | undefined {
   return body.match(AUTHOR_MODEL_MARKER_RE)?.[1];
 }
 
-/** 코멘트 줄 머리의 agent-review 마커 1개만 파싱한다. */
+export function commentFirstLine(body: string): string {
+  return body.split("\n")[0] ?? "";
+}
+
+/** 인용·펜스·들여쓰기 코드 예시 줄은 마커로 세지 않는다. */
+export function isExcludedMarkerLine(line: string): boolean {
+  if (/^\s*```/.test(line)) return true;
+  if (/^(?: {4}|\t)/.test(line)) return true;
+  if (/^>\s/.test(line)) return true;
+  return false;
+}
+
+/** 코멘트 첫 줄의 agent-review 마커 1개만 파싱한다. */
 export function parseAgentReviewMarkerLine(line: string): AgentReviewMarker | undefined {
   const match = line.match(AGENT_REVIEW_LINE_RE);
   if (!match) return undefined;
@@ -98,7 +110,13 @@ export function parseAgentReviewMarkerLine(line: string): AgentReviewMarker | un
   };
 }
 
-/** 저장소 소유자 코멘트에서만, 줄 머리 마커 1개씩 수집한다. */
+export function parseAgentReviewMarkerFromCommentFirstLine(body: string): AgentReviewMarker | undefined {
+  const line = commentFirstLine(body);
+  if (isExcludedMarkerLine(line)) return undefined;
+  return parseAgentReviewMarkerLine(line);
+}
+
+/** 저장소 소유자 코멘트에서만, 첫 줄 마커 1개씩 수집한다. */
 export function parseTrustedAgentReviewMarkers(
   comments: GateComment[],
   repoOwnerLogin: string,
@@ -107,13 +125,8 @@ export function parseTrustedAgentReviewMarkers(
   const out: AgentReviewMarker[] = [];
   for (const comment of comments) {
     if (comment.authorLogin.toLowerCase() !== owner) continue;
-    for (const line of comment.body.split("\n")) {
-      const marker = parseAgentReviewMarkerLine(line);
-      if (marker) {
-        out.push(marker);
-        break;
-      }
-    }
+    const marker = parseAgentReviewMarkerFromCommentFirstLine(comment.body);
+    if (marker) out.push(marker);
   }
   return out;
 }
@@ -134,7 +147,7 @@ export function lastMarkersPerModelOnHead(
   const byModel = new Map<string, AgentReviewMarker>();
   for (const marker of markers) {
     if (marker.sha !== headSha) continue;
-    const key = marker.model ?? "";
+    const key = (marker.model ?? "").toLowerCase();
     byModel.set(key, marker);
   }
   return [...byModel.values()];
@@ -180,7 +193,7 @@ export function isDifferentModelFamily(authorModel: string, reviewerModel: strin
   return author !== reviewer;
 }
 
-/** 저장소 소유자 코멘트 줄 머리의 codex-review 마커(코멘트당 1개)만 인정한다. */
+/** 저장소 소유자 코멘트 첫 줄의 codex-review 마커(코멘트당 1개)만 인정한다. */
 export function hasHeadCodexReview(
   comments: GateComment[],
   headSha: string,
@@ -189,13 +202,10 @@ export function hasHeadCodexReview(
   const owner = repoOwnerLogin.toLowerCase();
   for (const comment of comments) {
     if (comment.authorLogin.toLowerCase() !== owner) continue;
-    for (const line of comment.body.split("\n")) {
-      const match = line.match(CODEX_REVIEW_LINE_RE);
-      if (match) {
-        if (match[1] === headSha) return true;
-        break;
-      }
-    }
+    const line = commentFirstLine(comment.body);
+    if (isExcludedMarkerLine(line)) continue;
+    const match = line.match(CODEX_REVIEW_LINE_RE);
+    if (match && match[1] === headSha) return true;
   }
   return false;
 }

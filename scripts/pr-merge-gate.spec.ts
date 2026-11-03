@@ -73,7 +73,7 @@ describe("modelFamily", () => {
 });
 
 describe("parseTrustedAgentReviewMarkers", () => {
-  it("외부 작성자·인용 줄·코멘트당 1개만 인정", () => {
+  it("외부 작성자·인용·첫 줄 아님·코드 블록 예시·코멘트당 1개만 인정", () => {
     const marker = agentReviewMarker({
       sha: HEAD,
       verdict: "approve",
@@ -84,13 +84,68 @@ describe("parseTrustedAgentReviewMarkers", () => {
     const external = gateComment(marker, "dependabot");
     const quoted = gateComment(`> ${marker}`);
     const twoInOne = gateComment(`${marker}\n${marker.replace("round=1", "round=2")}`);
+    const notFirstLine = gateComment(`## Agent review\n${marker}`);
+    const fencedExample = gateComment(
+      "```markdown\n" + marker + "\n```",
+    );
+    const indentedExample = gateComment(`    ${marker}`);
     expect(parseTrustedAgentReviewMarkers([external], OWNER)).toHaveLength(0);
     expect(parseTrustedAgentReviewMarkers([quoted], OWNER)).toHaveLength(0);
     expect(parseTrustedAgentReviewMarkers([twoInOne], OWNER)).toHaveLength(1);
+    expect(parseTrustedAgentReviewMarkers([notFirstLine], OWNER)).toHaveLength(0);
+    expect(parseTrustedAgentReviewMarkers([fencedExample], OWNER)).toHaveLength(0);
+    expect(parseTrustedAgentReviewMarkers([indentedExample], OWNER)).toHaveLength(0);
   });
 });
 
 describe("decide", () => {
+  it("코드 블록 안 approve 마커만 있으면 head approve 없음(needs)", () => {
+    const marker = agentReviewMarker({
+      sha: HEAD,
+      verdict: "approve",
+      findings: { i: 0, n: 0, p: 0 },
+      round: 1,
+      model: "grok-4.7-high-fast",
+    });
+    const comments = [gateComment("```\n" + marker + "\n```")];
+    expect(decide(pr({ comments })).action).toBe("needs");
+  });
+
+  it("첫 줄이 아닌 approve 마커는 무시", () => {
+    const marker = agentReviewMarker({
+      sha: HEAD,
+      verdict: "approve",
+      findings: { i: 0, n: 0, p: 0 },
+      round: 1,
+      model: "grok-4.7-high-fast",
+    });
+    expect(decide(pr({ comments: [gateComment("note\n" + marker)] })).action).toBe("needs");
+  });
+
+  it("model 대소문자만 다른 마지막 마커는 같은 리뷰어로 본다", () => {
+    const comments = [
+      gateComment(
+        agentReviewMarker({
+          sha: HEAD,
+          verdict: "approve",
+          findings: { i: 0, n: 0, p: 0 },
+          round: 1,
+          model: "gpt-5.5",
+        }),
+      ),
+      gateComment(
+        agentReviewMarker({
+          sha: HEAD,
+          verdict: "changes",
+          findings: { i: 1, n: 0, p: 0 },
+          round: 2,
+          model: "GPT-5.5",
+        }),
+      ),
+    ];
+    expect(decide(pr({ comments })).action).toBe("needs");
+  });
+
   it("low 는 head approve 마커(마지막 마커)가 있어야 머지", () => {
     expect(decide(pr()).action).toBe("needs");
     expect(decide(pr({ comments: [headApprove()] })).action).toBe("merge");
@@ -281,7 +336,7 @@ describe("hasHeadAgentApprove", () => {
 });
 
 describe("hasHeadCodexReview", () => {
-  it("저장소 소유자 줄 머리 codex 마커만 인정 (--codex-review 형식)", () => {
+  it("저장소 소유자 코멘트 첫 줄 codex 마커만 인정 (--codex-review 형식)", () => {
     const trusted = gateComment(`${codexMarker(HEAD)}\n## Codex review`);
     expect(hasHeadCodexReview([trusted], HEAD, OWNER)).toBe(true);
     expect(hasHeadCodexReview([gateComment(`> ${codexMarker(HEAD)}`)], HEAD, OWNER)).toBe(false);
@@ -291,6 +346,9 @@ describe("hasHeadCodexReview", () => {
     expect(hasHeadCodexReview([gateComment(`${codexMarker("deadbeef")}\n`)], HEAD, OWNER)).toBe(
       false,
     );
+    expect(
+      hasHeadCodexReview([gateComment(`## Codex review\n${codexMarker(HEAD)}`)], HEAD, OWNER),
+    ).toBe(false);
   });
 
   it("여러 코멘트 중 head codex 마커가 뒤에 있으면 true, 옛 sha만 있으면 false", () => {
@@ -389,12 +447,60 @@ describe("regression mutations (broken helper vs correct)", () => {
     expect(isDifferentModelFamily(author, reviewer)).toBe(false);
     expect(highHeadReviewOk(comments, HEAD, OWNER, author)).toBe(false);
   });
+
+  it("첫 줄만 스캔 변이는 본문 두 번째 줄 마커를 잘못 인정한다", () => {
+    const marker = agentReviewMarker({
+      sha: HEAD,
+      verdict: "approve",
+      findings: { i: 0, n: 0, p: 0 },
+      round: 1,
+      model: "grok-4.7-high-fast",
+    });
+    const comments = [gateComment("intro\n" + marker)];
+    const brokenScanAllLines = comments.flatMap((c) =>
+      c.body.split("\n").flatMap((line) => {
+        const m = parseTrustedAgentReviewMarkers([gateComment(line)], OWNER);
+        return m;
+      }),
+    );
+    expect(brokenScanAllLines.some((m) => m.sha === HEAD)).toBe(true);
+    expect(hasHeadAgentApprove(comments, HEAD, OWNER)).toBe(false);
+  });
+
+  it("model 키 대소문자 미접기 변이는 GPT approve 뒤 changes 를 놓친다", () => {
+    const comments = [
+      headApprove(HEAD, "gpt-5.5"),
+      headChanges(HEAD, "GPT-5.5", 2),
+    ];
+    const markers = parseTrustedAgentReviewMarkers(comments, OWNER);
+    const brokenKeys = new Map<string, (typeof markers)[0]>();
+    for (const m of markers) {
+      if (m.sha !== HEAD) continue;
+      brokenKeys.set(m.model ?? "", m);
+    }
+    expect(brokenKeys.get("gpt-5.5")!.verdict).toBe("approve");
+    expect(brokenKeys.get("GPT-5.5")!.verdict).toBe("changes");
+    expect(hasHeadAgentApprove(comments, HEAD, OWNER)).toBe(false);
+  });
 });
 
 describe("lastMarkersPerModelOnHead", () => {
   it("같은 model 키의 마지막 마커만 남긴다", () => {
     const markers = parseTrustedAgentReviewMarkers(
       [headApprove(HEAD, "m1"), headChanges(HEAD, "m1", 2)],
+      OWNER,
+    );
+    const last = lastMarkersPerModelOnHead(markers, HEAD);
+    expect(last).toHaveLength(1);
+    expect(last[0]!.verdict).toBe("changes");
+  });
+
+  it("model 키는 소문자로 접는다", () => {
+    const markers = parseTrustedAgentReviewMarkers(
+      [
+        headApprove(HEAD, "gpt-5.5"),
+        headChanges(HEAD, "GPT-5.5", 2),
+      ],
       OWNER,
     );
     const last = lastMarkersPerModelOnHead(markers, HEAD);
