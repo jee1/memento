@@ -2,7 +2,7 @@
 /**
  * PR 머지 게이트 — `PR Risk` 라벨(scripts/pr-risk-score.ts)에 따라 머지 여부를 결정론으로 정한다.
  *
- *   low    : 필수 체크 + 현재 head 의 agent-review approve 마커
+ *   low    : 필수 체크 + 현재 head 의 agent-review approve 마커(리뷰어 모델별 마지막 마커)
  *   medium : low 조건 + PR 본문 `## 동작 설명`
  *   high   : 현재 head 리뷰(Codex 마커 또는 다른 모델 계열 agent-review approve) + 사람 `approved:human` 라벨
  *
@@ -23,13 +23,14 @@ import { execFileSync } from "node:child_process";
 import { isMain, parseArgs as parseCliArgs } from "./lib/cli-runtime.js";
 
 export const EXPLANATION_HEADING_RE = /^##\s*동작 설명\s*$/m;
+// ponytail: 승인 라벨은 head sha 와 묶지 않는다 — 승인 후 push 를 막으려면 라벨 이벤트 시각과 마지막 커밋 시각을 비교
 export const APPROVAL_LABEL = "approved:human";
 export const CODEX_MARKER_PREFIX = "<!-- codex-review sha=";
 export const AGENT_REVIEW_MARKER_PREFIX = "<!-- agent-review ";
 export const AUTHOR_MODEL_MARKER_RE = /<!--\s*author-model=([^\s>]+)\s*-->/;
 
-const AGENT_REVIEW_MARKER_RE =
-  /<!--\s*agent-review\s+sha=([a-f0-9]+)\s+verdict=(approve|changes)\s+findings=(\d+)\/(\d+)\/(\d+)\s+round=(\d+)(?:\s+model=([^\s>]+))?\s*-->/i;
+const AGENT_REVIEW_LINE_RE =
+  /^\s*<!--\s*agent-review\s+sha=([a-f0-9]+)\s+verdict=(approve|changes)\s+findings=(\d+)\/(\d+)\/(\d+)\s+round=(\d+)(?:\s+model=([^\s>]+))?\s*-->\s*$/i;
 
 export interface AgentReviewMarker {
   sha: string;
@@ -39,16 +40,23 @@ export interface AgentReviewMarker {
   model?: string;
 }
 
+export interface GateComment {
+  body: string;
+  authorLogin: string;
+}
+
 export interface GateInput {
   state: string;
   mergeStateStatus: string;
   headRefOid: string;
   labels: string[];
   body: string;
-  comments: string[];
+  comments: GateComment[];
   checks: { name: string; bucket: string }[];
+  repoOwnerLogin: string;
   authorModel?: string;
   allowReviewOverflow?: boolean;
+  prNumber?: string;
 }
 
 export type GateDecision =
@@ -75,70 +83,130 @@ export function parseAuthorModel(body: string): string | undefined {
   return body.match(AUTHOR_MODEL_MARKER_RE)?.[1];
 }
 
-export function parseAgentReviewMarkers(comments: string[]): AgentReviewMarker[] {
+/** 코멘트 줄 머리의 agent-review 마커 1개만 파싱한다. */
+export function parseAgentReviewMarkerLine(line: string): AgentReviewMarker | undefined {
+  const match = line.match(AGENT_REVIEW_LINE_RE);
+  if (!match) return undefined;
+  return {
+    sha: match[1]!,
+    verdict: match[2]!.toLowerCase() as "approve" | "changes",
+    findings: { i: Number(match[3]), n: Number(match[4]), p: Number(match[5]) },
+    round: Number(match[6]),
+    model: match[7],
+  };
+}
+
+/** 저장소 소유자 코멘트에서만, 줄 머리 마커 1개씩 수집한다. */
+export function parseTrustedAgentReviewMarkers(
+  comments: GateComment[],
+  repoOwnerLogin: string,
+): AgentReviewMarker[] {
+  const owner = repoOwnerLogin.toLowerCase();
   const out: AgentReviewMarker[] = [];
   for (const comment of comments) {
-    for (const match of comment.matchAll(new RegExp(AGENT_REVIEW_MARKER_RE.source, "gi"))) {
-      out.push({
-        sha: match[1]!,
-        verdict: match[2]!.toLowerCase() as "approve" | "changes",
-        findings: { i: Number(match[3]), n: Number(match[4]), p: Number(match[5]) },
-        round: Number(match[6]),
-        model: match[7],
-      });
+    if (comment.authorLogin.toLowerCase() !== owner) continue;
+    for (const line of comment.body.split("\n")) {
+      const marker = parseAgentReviewMarkerLine(line);
+      if (marker) {
+        out.push(marker);
+        break;
+      }
     }
   }
   return out;
 }
 
-export function countAgentReviewMarkers(comments: string[]): number {
-  return parseAgentReviewMarkers(comments).length;
+export function parseAgentReviewMarkers(comments: GateComment[], repoOwnerLogin: string): AgentReviewMarker[] {
+  return parseTrustedAgentReviewMarkers(comments, repoOwnerLogin);
 }
 
-export function hasHeadAgentApprove(comments: string[], headSha: string): boolean {
-  return parseAgentReviewMarkers(comments).some((m) => m.sha === headSha && m.verdict === "approve");
+export function countAgentReviewMarkers(comments: GateComment[], repoOwnerLogin: string): number {
+  return parseTrustedAgentReviewMarkers(comments, repoOwnerLogin).length;
 }
 
-export function lastApprovedSha(comments: string[]): string | undefined {
-  const approved = parseAgentReviewMarkers(comments).filter((m) => m.verdict === "approve");
+/** head sha 별 리뷰어 model 키마다 마지막 마커만 남긴다. */
+export function lastMarkersPerModelOnHead(
+  markers: AgentReviewMarker[],
+  headSha: string,
+): AgentReviewMarker[] {
+  const byModel = new Map<string, AgentReviewMarker>();
+  for (const marker of markers) {
+    if (marker.sha !== headSha) continue;
+    const key = marker.model ?? "";
+    byModel.set(key, marker);
+  }
+  return [...byModel.values()];
+}
+
+export function hasHeadAgentApprove(
+  comments: GateComment[],
+  headSha: string,
+  repoOwnerLogin: string,
+): boolean {
+  const markers = parseTrustedAgentReviewMarkers(comments, repoOwnerLogin);
+  return lastMarkersPerModelOnHead(markers, headSha).some((m) => m.verdict === "approve");
+}
+
+export function lastApprovedSha(comments: GateComment[], repoOwnerLogin: string): string | undefined {
+  const approved = parseTrustedAgentReviewMarkers(comments, repoOwnerLogin).filter(
+    (m) => m.verdict === "approve",
+  );
   return approved.length > 0 ? approved[approved.length - 1]!.sha : undefined;
 }
 
-/** 모델 id 를 거친 계열 키로 접는다(high 교차 리뷰용). */
-export function modelFamily(model: string): string {
+/** 모델 id 를 거친 계열 키로 접는다(high 교차 리뷰용). 알 수 없으면 undefined(fail-closed). */
+export function modelFamily(model: string): string | undefined {
   const id = model.toLowerCase();
-  if (id.includes("claude")) return "claude";
-  if (id.includes("composer")) return "composer";
-  if (id.includes("grok")) return "grok";
-  if (id.includes("gemini")) return "gemini";
-  if (id.includes("codex") || id.startsWith("gpt") || id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4"))
-    return "openai";
-  return id.split(/[-_.]/)[0] ?? id;
+  if (
+    /^(opus|sonnet|haiku|fable)([-_.]|$)/.test(id) ||
+    id.startsWith("claude-") ||
+    id === "claude" ||
+    id.includes("claude")
+  ) {
+    return "claude";
+  }
+  if (id.includes("composer") || id.includes("cursor")) return "cursor";
+  if (id.includes("gpt") || id.includes("codex") || id.includes("sol") || id.includes("luna")) return "openai";
+  if (id.includes("gemini")) return "google";
+  return undefined;
 }
 
 export function isDifferentModelFamily(authorModel: string, reviewerModel: string): boolean {
-  return modelFamily(authorModel) !== modelFamily(reviewerModel);
+  const author = modelFamily(authorModel);
+  const reviewer = modelFamily(reviewerModel);
+  if (author === undefined || reviewer === undefined) return false;
+  return author !== reviewer;
 }
 
-export function hasHeadCodexReview(comments: string[], headSha: string): boolean {
-  return comments.some((c) => c.includes(codexMarker(headSha)));
+export function hasHeadCodexReview(comments: GateComment[], headSha: string): boolean {
+  return comments.some((c) => c.body.includes(codexMarker(headSha)));
 }
 
-export function highHeadReviewOk(comments: string[], headSha: string, authorModel?: string): boolean {
+export function highHeadReviewOk(
+  comments: GateComment[],
+  headSha: string,
+  repoOwnerLogin: string,
+  authorModel?: string,
+): boolean {
   if (hasHeadCodexReview(comments, headSha)) return true;
-  const headApprove = parseAgentReviewMarkers(comments).find(
-    (m) => m.sha === headSha && m.verdict === "approve",
+  if (!authorModel || modelFamily(authorModel) === undefined) return false;
+  const markers = parseTrustedAgentReviewMarkers(comments, repoOwnerLogin);
+  return lastMarkersPerModelOnHead(markers, headSha).some(
+    (m) =>
+      m.verdict === "approve" &&
+      m.model !== undefined &&
+      isDifferentModelFamily(authorModel, m.model),
   );
-  if (!headApprove?.model) return false;
-  if (!authorModel) return false;
-  return isDifferentModelFamily(authorModel, headApprove.model);
 }
 
-const REVIEW_OVERFLOW_REASON =
-  "조치 필요 — 3회 초과, 접근 재검토 (사용자가 계속하라고 하면 `node scripts/pr-merge-gate.ts <PR> --merge --allow-review-overflow`)";
+export function reviewOverflowReason(prNumber?: string): string {
+  const n = prNumber ?? "<번호>";
+  return `조치 필요 — 3회 초과, 접근 재검토 (사용자가 계속하라고 하면 \`! node scripts/pr-merge-gate.ts ${n} --allow-review-overflow\`)`;
+}
 
 const RISK_ORDER = ["low", "medium", "high"];
 
+// 수동 상향 직후 워크플로가 정리하기 전에는 risk 라벨이 둘 이상일 수 있다 — 가장 높은 등급을 쓴다. 모르는 값이 섞이면 unknown(대기).
 export function highestRiskLevel(labels: string[]): string {
   const levels = labels.filter((l) => l.startsWith("risk:")).map((l) => l.slice(5));
   if (levels.length === 0 || levels.some((l) => !RISK_ORDER.includes(l))) return "unknown";
@@ -147,7 +215,9 @@ export function highestRiskLevel(labels: string[]): string {
 
 function reviewRoundBlock(pr: GateInput): string | undefined {
   if (pr.allowReviewOverflow) return undefined;
-  if (countAgentReviewMarkers(pr.comments) >= 4) return REVIEW_OVERFLOW_REASON;
+  if (countAgentReviewMarkers(pr.comments, pr.repoOwnerLogin) >= 4) {
+    return reviewOverflowReason(pr.prNumber);
+  }
   return undefined;
 }
 
@@ -176,7 +246,7 @@ export function decide(pr: GateInput): GateDecision {
   if (roundBlock) return { action: "needs", level, reasons: [roundBlock] };
 
   if (level === "low") {
-    return hasHeadAgentApprove(pr.comments, pr.headRefOid)
+    return hasHeadAgentApprove(pr.comments, pr.headRefOid, pr.repoOwnerLogin)
       ? { action: "merge", level, reasons: ["low — 필수 체크 + head approve"] }
       : { action: "needs", level, reasons: [headApproveReason("low")] };
   }
@@ -188,7 +258,9 @@ export function decide(pr: GateInput): GateDecision {
         "medium — diff 를 읽고 PR 본문에 `## 동작 설명` 절(무엇이 왜 이렇게 동작하는지)을 추가",
       );
     }
-    if (!hasHeadAgentApprove(pr.comments, pr.headRefOid)) reasons.push(headApproveReason("medium"));
+    if (!hasHeadAgentApprove(pr.comments, pr.headRefOid, pr.repoOwnerLogin)) {
+      reasons.push(headApproveReason("medium"));
+    }
     return reasons.length === 0
       ? { action: "merge", level, reasons: ["medium — 동작 설명 + head approve"] }
       : { action: "needs", level, reasons };
@@ -196,12 +268,12 @@ export function decide(pr: GateInput): GateDecision {
 
   if (level === "high") {
     const reasons: string[] = [];
-    if (!highHeadReviewOk(pr.comments, pr.headRefOid, pr.authorModel)) {
+    if (!highHeadReviewOk(pr.comments, pr.headRefOid, pr.repoOwnerLogin, pr.authorModel)) {
       if (!pr.authorModel) {
         reasons.push(
           "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 다른 모델 계열의 agent-review approve 또는 Codex 리뷰가 필요",
         );
-      } else if (hasHeadAgentApprove(pr.comments, pr.headRefOid)) {
+      } else if (hasHeadAgentApprove(pr.comments, pr.headRefOid, pr.repoOwnerLogin)) {
         reasons.push(
           "high — head agent-review 가 작성자와 같은 모델 계열: 다른 계열 리뷰어로 `--post-review approve` 또는 Codex `--codex-review`",
         );
@@ -239,6 +311,7 @@ type RollupItem = {
 
 const FAIL_STATES = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"]);
 
+/** CheckRun(status·conclusion)·StatusContext(state)를 pass·fail·pending 으로 접는다. */
 export function bucketOf(item: RollupItem): string {
   if (item.__typename === "StatusContext") {
     const state = item.state ?? "";
@@ -250,9 +323,14 @@ export function bucketOf(item: RollupItem): string {
 }
 
 function loadPr(pr: string): GateInput & { baseRefName: string } {
+  // `gh pr checks --json` 은 gh 버전에 따라 없다 — statusCheckRollup 을 쓴다
+  const repoOwnerLogin = gh(["repo", "view", "--json", "owner", "-q", ".owner.login"]).trim();
   const view = JSON.parse(
     gh([
-      "pr", "view", pr, "--json",
+      "pr",
+      "view",
+      pr,
+      "--json",
       "state,mergeStateStatus,headRefOid,baseRefName,labels,body,comments,statusCheckRollup",
     ]),
   ) as {
@@ -262,7 +340,7 @@ function loadPr(pr: string): GateInput & { baseRefName: string } {
     baseRefName: string;
     labels: { name: string }[];
     body: string;
-    comments: { body: string }[];
+    comments: { body: string; author: { login: string } }[];
     statusCheckRollup: RollupItem[];
   };
   const body = view.body ?? "";
@@ -273,9 +351,11 @@ function loadPr(pr: string): GateInput & { baseRefName: string } {
     baseRefName: view.baseRefName,
     labels: view.labels.map((l) => l.name),
     body,
-    comments: view.comments.map((c) => c.body),
+    comments: view.comments.map((c) => ({ body: c.body, authorLogin: c.author.login })),
     checks: view.statusCheckRollup.map((c) => ({ name: c.name ?? c.context ?? "?", bucket: bucketOf(c) })),
+    repoOwnerLogin,
     authorModel: parseAuthorModel(body),
+    prNumber: pr,
   };
 }
 
@@ -294,9 +374,11 @@ function runPostReview(
 ): void {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
   if (head !== data.headRefOid) {
-    throw new Error(`현재 체크아웃 ${head.slice(0, 8)} 이 PR head ${data.headRefOid.slice(0, 8)} 와 다르다 — PR worktree 에서 실행`);
+    throw new Error(
+      `현재 체크아웃 ${head.slice(0, 8)} 이 PR head ${data.headRefOid.slice(0, 8)} 와 다르다 — PR worktree 에서 실행`,
+    );
   }
-  const round = countAgentReviewMarkers(data.comments) + 1;
+  const round = countAgentReviewMarkers(data.comments, data.repoOwnerLogin) + 1;
   const marker = agentReviewMarker({
     sha: data.headRefOid,
     verdict,
@@ -313,7 +395,7 @@ function runPostReview(
   ].join("\n");
   gh(["pr", "comment", pr, "--body-file", "-"], body);
 
-  const prev = lastApprovedSha(data.comments);
+  const prev = lastApprovedSha(data.comments, data.repoOwnerLogin);
   if (prev && prev !== data.headRefOid) {
     console.log(`재리뷰 diff: git diff ${prev}..${data.headRefOid}`);
   } else {
@@ -325,7 +407,9 @@ function runPostReview(
 function runCodexReview(pr: string, data: GateInput & { baseRefName: string }): void {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
   if (head !== data.headRefOid) {
-    throw new Error(`현재 체크아웃 ${head.slice(0, 8)} 이 PR head ${data.headRefOid.slice(0, 8)} 와 다르다 — PR worktree 에서 실행`);
+    throw new Error(
+      `현재 체크아웃 ${head.slice(0, 8)} 이 PR head ${data.headRefOid.slice(0, 8)} 와 다르다 — PR worktree 에서 실행`,
+    );
   }
   execFileSync("git", ["fetch", "-q", "origin", data.baseRefName]);
   const review = execFileSync("codex", ["review", "--base", `origin/${data.baseRefName}`], {
@@ -333,7 +417,12 @@ function runCodexReview(pr: string, data: GateInput & { baseRefName: string }): 
     maxBuffer: 32 * 1024 * 1024,
     stdio: ["ignore", "pipe", "inherit"],
   });
-  const body = [codexMarker(data.headRefOid), `## Codex review (\`${data.headRefOid.slice(0, 8)}\`)`, "", review.trim()].join("\n");
+  const body = [
+    codexMarker(data.headRefOid),
+    `## Codex review (\`${data.headRefOid.slice(0, 8)}\`)`,
+    "",
+    review.trim(),
+  ].join("\n");
   gh(["pr", "comment", pr, "--body-file", "-"], body);
   console.log(review.trim());
 }
@@ -390,8 +479,16 @@ function main(): void {
   if (values.merge) {
     const repo = gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]).trim();
     const sha = gh([
-      "api", "-X", "PUT", `repos/${repo}/pulls/${pr}/merge`,
-      "-f", "merge_method=squash", "-f", `sha=${data.headRefOid}`, "-q", ".sha",
+      "api",
+      "-X",
+      "PUT",
+      `repos/${repo}/pulls/${pr}/merge`,
+      "-f",
+      "merge_method=squash",
+      "-f",
+      `sha=${data.headRefOid}`,
+      "-q",
+      ".sha",
     ]).trim();
     console.log(`merged ${sha}`);
   }
