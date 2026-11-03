@@ -192,7 +192,8 @@ export function hasHeadCodexReview(
     for (const line of comment.body.split("\n")) {
       const match = line.match(CODEX_REVIEW_LINE_RE);
       if (match) {
-        return match[1] === headSha;
+        if (match[1] === headSha) return true;
+        break;
       }
     }
   }

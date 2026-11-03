@@ -292,6 +292,17 @@ describe("hasHeadCodexReview", () => {
       false,
     );
   });
+
+  it("여러 코멘트 중 head codex 마커가 뒤에 있으면 true, 옛 sha만 있으면 false", () => {
+    const oldOnly = [gateComment(`${codexMarker("deadbeef")}\n`)];
+    expect(hasHeadCodexReview(oldOnly, HEAD, OWNER)).toBe(false);
+
+    const oldThenHead = [
+      gateComment(`${codexMarker("deadbeef")}\n`),
+      gateComment(`${codexMarker(HEAD)}\n## Codex review`),
+    ];
+    expect(hasHeadCodexReview(oldThenHead, HEAD, OWNER)).toBe(true);
+  });
 });
 
 describe("highHeadReviewOk", () => {
