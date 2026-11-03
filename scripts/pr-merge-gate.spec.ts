@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { APPROVAL_LABEL, bucketOf, codexMarker, decide, type GateInput } from "./pr-merge-gate.js";
+import {
+  APPROVAL_LABEL,
+  agentReviewMarker,
+  bucketOf,
+  codexMarker,
+  decide,
+  hasHeadAgentApprove,
+  type GateInput,
+} from "./pr-merge-gate.js";
 
 const pr = (overrides: Partial<GateInput> = {}): GateInput => ({
   state: "OPEN",
@@ -12,9 +20,49 @@ const pr = (overrides: Partial<GateInput> = {}): GateInput => ({
   ...overrides,
 });
 
+const headApprove = (sha = "abc123", model = "grok-4.7-high-fast") =>
+  agentReviewMarker({
+    sha,
+    verdict: "approve",
+    findings: { i: 0, n: 0, p: 0 },
+    round: 1,
+    model,
+  });
+
 describe("decide", () => {
-  it("low 는 필수 체크 통과면 머지", () => {
-    expect(decide(pr()).action).toBe("merge");
+  it("low 는 head approve 마커가 있어야 머지", () => {
+    expect(decide(pr()).action).toBe("needs");
+    expect(decide(pr({ comments: [headApprove()] })).action).toBe("merge");
+  });
+
+  it("head 마커 없음과 이전 sha 마커만 있으면 조치 필요", () => {
+    expect(decide(pr({ labels: ["risk:low"] })).reasons.some((r) => r.includes("head"))).toBe(true);
+    expect(
+      decide(pr({ labels: ["risk:low"], comments: [headApprove("old999")] })).action,
+    ).toBe("needs");
+  });
+
+  it("agent-review 마커 4개면 3회 초과로 멈춘다", () => {
+    const comments = [1, 2, 3, 4].map((round) =>
+      agentReviewMarker({
+        sha: "abc123",
+        verdict: "changes",
+        findings: { i: 0, n: 0, p: 0 },
+        round,
+        model: "grok-4.7-high-fast",
+      }),
+    );
+    const d = decide(pr({ comments: [...comments, headApprove()] }));
+    expect(d.action).toBe("needs");
+    expect(d.reasons[0]).toContain("3회 초과");
+    expect(
+      decide(
+        pr({
+          comments: [...comments, headApprove()],
+          allowReviewOverflow: true,
+        }),
+      ).action,
+    ).toBe("merge");
   });
 
   it("체크가 진행 중이거나 CLEAN 이 아니면 대기", () => {
@@ -36,7 +84,15 @@ describe("decide", () => {
     const d = decide(pr({ labels: ["risk:low", "risk:medium"] }));
     expect(d.level).toBe("medium");
     expect(d.action).toBe("needs");
-    expect(decide(pr({ labels: ["risk:medium", "risk:low"], body: "## 동작 설명\n무엇이 왜" })).action).toBe("merge");
+    expect(
+      decide(
+        pr({
+          labels: ["risk:medium", "risk:low"],
+          body: "## 동작 설명\n무엇이 왜",
+          comments: [headApprove()],
+        }),
+      ).action,
+    ).toBe("merge");
     expect(decide(pr({ labels: ["risk:low", "risk:high"] })).level).toBe("high");
     expect(decide(pr({ labels: ["risk:high", "risk:low"] })).action).toBe("needs");
   });
@@ -47,22 +103,36 @@ describe("decide", () => {
     expect(d.action).toBe("wait");
   });
 
-  it("medium 은 `## 동작 설명` 절이 있어야 머지", () => {
-    expect(decide(pr({ labels: ["risk:medium"] })).action).toBe("needs");
-    expect(decide(pr({ labels: ["risk:medium"], body: "## 동작 설명\n무엇이 왜" })).action).toBe("merge");
+  it("medium 은 `## 동작 설명` 절과 head approve 가 있어야 머지", () => {
+    expect(decide(pr({ labels: ["risk:medium"], comments: [headApprove()] })).action).toBe("needs");
+    expect(
+      decide(pr({ labels: ["risk:medium"], body: "## 동작 설명\n무엇이 왜", comments: [headApprove()] })).action,
+    ).toBe("merge");
   });
 
-  it("high 는 현재 head 의 Codex 리뷰와 사용자 승인 라벨이 모두 있어야 머지", () => {
-    const high = { labels: ["risk:high"] };
-    expect(decide(pr(high)).reasons).toHaveLength(2);
+  it("high 는 head 의 다른 모델 approve 또는 Codex 와 사용자 승인 라벨이 있어야 머지", () => {
+    const high = { labels: ["risk:high"], authorModel: "composer-2.5" };
+    expect(decide(pr(high)).reasons.length).toBeGreaterThanOrEqual(2);
 
-    // 예전 head 에 대한 리뷰는 인정하지 않는다
     const staleReview = { comments: [codexMarker("old999")] };
     expect(decide(pr({ ...high, ...staleReview, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe("needs");
 
-    const reviewed = { comments: [`${codexMarker("abc123")}\n## Codex review`] };
-    expect(decide(pr({ ...high, ...reviewed })).action).toBe("needs");
-    expect(decide(pr({ ...reviewed, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe("merge");
+    const sameModel = { comments: [headApprove("abc123", "composer-2.5")] };
+    expect(decide(pr({ ...high, ...sameModel, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe("needs");
+
+    const crossModel = { comments: [headApprove("abc123", "grok-4.7-high-fast")] };
+    expect(decide(pr({ ...high, ...crossModel })).action).toBe("needs");
+    expect(decide(pr({ ...high, ...crossModel, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe("merge");
+
+    const codex = { comments: [`${codexMarker("abc123")}\n## Codex review`] };
+    expect(decide(pr({ ...high, ...codex, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe("merge");
+  });
+});
+
+describe("hasHeadAgentApprove", () => {
+  it("head sha 와 verdict approve 만 인정", () => {
+    expect(hasHeadAgentApprove([headApprove("abc123")], "abc123")).toBe(true);
+    expect(hasHeadAgentApprove([headApprove("old")], "abc123")).toBe(false);
   });
 });
 

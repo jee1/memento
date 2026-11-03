@@ -102,9 +102,10 @@ AI 가 짠 코드를 사람이 다 읽지 못하는 만큼, 리뷰를 두 단계
 1. **Pre-PR (로컬)** — git `pre-push` 훅이 `lint`·`type-check` 를 돌립니다. Claude Code 훅과 달리 Codex·Cursor·수동 push 에도 걸립니다. 저장소마다 한 번 설치하면 모든 worktree 가 공유합니다. 우회는 `git push --no-verify`.
 2. **Post-PR (CI)** — main 보호 규칙의 required check(`lint-typecheck`·`test-*`·`Security Check`)가 통과해야 머지됩니다. `PR Risk` 워크플로는 0–100 리스크 점수(보안 30·범위 20·파괴적 변경 20·테스트 누락 15·DB 마이그레이션 15)로 `risk:low|medium|high` 라벨과 코멘트를 답니다. 검색 경로(`domains/search/` 전체, `shared/utils/memory-filter-sql.ts`)의 동작 코드 변경은 점수와 무관하게 최소 medium 입니다. 사람이 `risk:*` 라벨을 달거나 떼면(`labeled`/`unlabeled`) 워크플로가 다시 돌아, 점수 등급보다 높은 라벨은 유지하고 낮은 라벨은 뗍니다. 낮추려면 높은 라벨을 직접 뗍니다. 정리 전 짧은 틈에 라벨이 둘 이상이면 머지 게이트는 가장 높은 등급을 씁니다. 점수 자체는 CI 를 막지 않습니다. 대신 에이전트의 머지는 아래 머지 게이트가 결정합니다.
 3. **머지 게이트 (에이전트)** — 에이전트는 머지 API 를 직접 부르지 않고 `node scripts/pr-merge-gate.ts <PR> --merge` 로만 머지합니다. `.claude/settings.json` 의 `scripts/claude-hooks/merge-guard.sh` 가 `gh pr merge`·`pulls/<N>/merge` 직접 호출과 `approved:human` 라벨 조작을 막습니다. 훅은 명령 문자열에 라벨 이름이 있기만 해도 막으므로 `grep` 에도 그 문자열을 쓰지 않습니다. 게이트 규칙:
-   - `risk:low` — 필수 체크 통과면 머지.
-   - `risk:medium` — PR 본문에 `## 동작 설명` 절(무엇이 왜 이렇게 동작하는지, diff 를 직접 읽고 작성)이 있어야 머지.
-   - `risk:high` — ① PR head worktree 에서 `node scripts/pr-merge-gate.ts <PR> --codex-review` 로 Codex 리뷰를 코멘트로 남기고(현재 head 기준, 새 push 후엔 다시), ② `explain-diff-html` 스킬로 변경 설명을 만들어 Codex 지적과 함께 사용자에게 보여주고, ③ 사용자가 GitHub 화면이나 `! gh api -X POST repos/jee1/memento/issues/<PR>/labels -f 'labels[]=approved:human'` 로 승인 라벨을 직접 단 뒤 머지(`gh pr edit` 은 Projects classic GraphQL 에러로 실패한다). 승인 라벨은 head 와 묶이지 않으므로 승인 뒤 push 가 있었다면 사용자가 라벨을 다시 확인한다.
+   - 공통 — PR 코멘트의 `agent-review` 마커는 현재 head sha 에 `verdict=approve` 가 있어야 머지합니다. 마커·코멘트 본문에는 건수와 판정만(지적 상세 금지). 마커가 4개면 3회 초과로 멈춥니다(사용자가 계속하라고 하면 `--allow-review-overflow`). 리뷰 남기기: `node scripts/pr-merge-gate.ts <PR> --post-review approve --findings I/N/P --model <리뷰 모델>`.
+   - `risk:low` — 필수 체크 + head approve 마커.
+   - `risk:medium` — low 조건 + PR 본문 `## 동작 설명` 절.
+   - `risk:high` — head 리뷰(Codex `<!-- codex-review sha=` 마커 과도기 인정, 또는 PR 본문 `<!-- author-model=... -->` 대비 다른 모델 계열의 agent-review approve) + 사용자가 직접 단 승인 라벨. Codex 경로: `node scripts/pr-merge-gate.ts <PR> --codex-review` (선택, 11/7 이후 agent-review 권장).
    - 종료 코드: 0 머지 가능(머지함) · 2 조치 필요 · 3 대기.
 
 같은 리뷰 지적이 반복되면 코멘트로 남기지 말고 `scripts/check-*.ts --ci` 같은 정적 검사로 승격해 CI 에 붙입니다.
