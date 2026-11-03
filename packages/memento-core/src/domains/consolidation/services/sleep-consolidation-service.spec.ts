@@ -885,6 +885,41 @@ describe('SleepConsolidationService', () => {
   describe('#1627: CONSOLIDATION_MODE=link', () => {
     const emb = [1, 0, 0, 0];
 
+    function linkServiceWithSpies() {
+      const summarization = new SummarizationService();
+      const summarizeCluster = vi
+        .spyOn(summarization, 'summarizeCluster')
+        .mockRejectedValue(new Error('LLM must not run in link mode'));
+      const summarizeMerge = vi.spyOn(summarization, 'summarizeMergeForConsolidation');
+      const findMergeTarget = vi.spyOn(
+        SleepConsolidationService.prototype as unknown as {
+          findMergeTarget: (...args: unknown[]) => Promise<unknown>;
+        },
+        'findMergeTarget'
+      );
+      const createAndStoreEmbedding = vi.spyOn(
+        MemoryEmbeddingService.prototype,
+        'createAndStoreEmbedding'
+      );
+      return {
+        summarization,
+        summarizeCluster,
+        summarizeMerge,
+        findMergeTarget,
+        createAndStoreEmbedding,
+        async run(owner = 'agent-x') {
+          const { createRelationGraph } = await import(
+            '../../../infrastructure/relation-graph-factory.js'
+          );
+          const svc = new SleepConsolidationService(db, {
+            summarizationService: summarization,
+            relationGraph: createRelationGraph(db)
+          });
+          return svc.run({ ownerIdFilter: owner });
+        }
+      };
+    }
+
     it('links cluster with REFERENCES, preserves importance and memory count, no LLM', async () => {
       vi.stubEnv('CONSOLIDATION_MODE', 'link');
       insertEpisodic(db, 'e_high', { owner: 'agent-x', importance: 0.9, content: 'alpha' });
@@ -897,23 +932,13 @@ describe('SleepConsolidationService', () => {
         `SELECT COUNT(*) AS c FROM memory_item`
       ) as { c: number };
 
-      const summarization = new SummarizationService();
-      const summarizeCluster = vi
-        .spyOn(summarization, 'summarizeCluster')
-        .mockRejectedValue(new Error('LLM must not run in link mode'));
-      const mergeSpy = vi.spyOn(summarization, 'summarizeMergeForConsolidation');
+      const spies = linkServiceWithSpies();
+      const result = await spies.run();
 
-      const { createRelationGraph } = await import(
-        '../../../infrastructure/relation-graph-factory.js'
-      );
-      const svc = new SleepConsolidationService(db, {
-        summarizationService: summarization,
-        relationGraph: createRelationGraph(db)
-      });
-      const result = await svc.run({ ownerIdFilter: 'agent-x' });
-
-      expect(summarizeCluster).not.toHaveBeenCalled();
-      expect(mergeSpy).not.toHaveBeenCalled();
+      expect(spies.summarizeCluster).not.toHaveBeenCalled();
+      expect(spies.summarizeMerge).not.toHaveBeenCalled();
+      expect(spies.findMergeTarget).not.toHaveBeenCalled();
+      expect(spies.createAndStoreEmbedding).not.toHaveBeenCalled();
       expect(result.consolidationMode).toBe('link');
       expect(result.semanticsCreated).toBe(0);
       expect(result.semanticsMerged).toBe(0);
@@ -935,10 +960,73 @@ describe('SleepConsolidationService', () => {
       ) as Array<{ source_id: string; target_id: string; relation_type: string }>;
       expect(rel).toEqual([{ source_id: 'e_low', target_id: 'e_high', relation_type: 'REFERENCES' }]);
 
-      const second = await svc.run({ ownerIdFilter: 'agent-x' });
+      const second = await spies.run();
       expect(second.clustersFound).toBe(0);
       expect(second.clustersProcessed).toBe(0);
       expect(second.semanticsCreated).toBe(0);
+    });
+
+    it('links three-member cluster to importance-max representative', async () => {
+      vi.stubEnv('CONSOLIDATION_MODE', 'link');
+      insertEpisodic(db, 'e_a', { owner: 'agent-x', importance: 0.3, content: 'a' });
+      insertEpisodic(db, 'e_b', { owner: 'agent-x', importance: 0.9, content: 'b' });
+      insertEpisodic(db, 'e_c', { owner: 'agent-x', importance: 0.5, content: 'c' });
+      for (const id of ['e_a', 'e_b', 'e_c']) {
+        insertEmbedding(db, id, emb);
+      }
+
+      const spies = linkServiceWithSpies();
+      const result = await spies.run();
+      expect(result.clustersProcessed).toBe(1);
+      expect(result.episodicsConsolidated).toBe(3);
+
+      const rel = DatabaseUtils.all(
+        db,
+        `SELECT source_id, target_id FROM memory_relation WHERE relation_type = 'REFERENCES' ORDER BY source_id`
+      ) as Array<{ source_id: string; target_id: string }>;
+      expect(rel).toEqual([
+        { source_id: 'e_a', target_id: 'e_b' },
+        { source_id: 'e_c', target_id: 'e_b' }
+      ]);
+    });
+
+    it('picks cluster seed as representative when importance ties (members sorted by id)', async () => {
+      vi.stubEnv('CONSOLIDATION_MODE', 'link');
+      insertEpisodic(db, 'e_tie_a', { owner: 'agent-x', importance: 0.6, content: 'a' });
+      insertEpisodic(db, 'e_tie_b', { owner: 'agent-x', importance: 0.6, content: 'b' });
+      insertEmbedding(db, 'e_tie_a', emb);
+      insertEmbedding(db, 'e_tie_b', emb);
+
+      const spies = linkServiceWithSpies();
+      await spies.run();
+
+      const rel = DatabaseUtils.all(
+        db,
+        `SELECT source_id, target_id FROM memory_relation WHERE relation_type = 'REFERENCES'`
+      ) as Array<{ source_id: string; target_id: string }>;
+      expect(rel).toEqual([{ source_id: 'e_tie_b', target_id: 'e_tie_a' }]);
+    });
+
+    it('does not duplicate REFERENCES when link run twice on the same cluster', async () => {
+      vi.stubEnv('CONSOLIDATION_MODE', 'link');
+      insertEpisodic(db, 'e_dup_a', { owner: 'agent-x', importance: 0.8, content: 'a' });
+      insertEpisodic(db, 'e_dup_b', { owner: 'agent-x', importance: 0.2, content: 'b' });
+      insertEmbedding(db, 'e_dup_a', emb);
+      insertEmbedding(db, 'e_dup_b', emb);
+
+      const spies = linkServiceWithSpies();
+      await spies.run();
+      DatabaseUtils.run(
+        db,
+        `UPDATE memory_item SET is_consolidated = 0 WHERE id IN ('e_dup_a', 'e_dup_b')`
+      );
+      await spies.run();
+
+      const relCount = DatabaseUtils.get(
+        db,
+        `SELECT COUNT(*) AS c FROM memory_relation WHERE relation_type = 'REFERENCES'`
+      ) as { c: number };
+      expect(relCount.c).toBe(1);
     });
   });
 });

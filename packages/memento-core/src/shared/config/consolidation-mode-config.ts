@@ -4,8 +4,6 @@
 
 export type ConsolidationMode = 'summarize' | 'link';
 
-const VALID: ConsolidationMode[] = ['summarize', 'link'];
-
 let warnedInvalid = false;
 
 export function getConsolidationMode(): ConsolidationMode {
@@ -23,10 +21,6 @@ export function getConsolidationMode(): ConsolidationMode {
     );
   }
   return 'summarize';
-}
-
-export function isValidConsolidationMode(value: string): value is ConsolidationMode {
-  return (VALID as string[]).includes(value);
 }
 
 /** 테스트에서 경고 1회 상태를 초기화한다. */

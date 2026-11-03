@@ -66,11 +66,7 @@ export class ClusteringService {
 
       let rep = members[0]!;
       for (const m of members) {
-        if (
-          m.row.importance > rep.row.importance ||
-          (m.row.importance === rep.row.importance &&
-            m.row.id.localeCompare(rep.row.id) < 0)
-        ) {
+        if (m.row.importance > rep.row.importance) {
           rep = m;
         }
       }
