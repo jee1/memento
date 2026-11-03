@@ -881,4 +881,64 @@ describe('SleepConsolidationService', () => {
       expect(result.stoppedDueToQuota).toBeFalsy();
     });
   });
+
+  describe('#1627: CONSOLIDATION_MODE=link', () => {
+    const emb = [1, 0, 0, 0];
+
+    it('links cluster with REFERENCES, preserves importance and memory count, no LLM', async () => {
+      vi.stubEnv('CONSOLIDATION_MODE', 'link');
+      insertEpisodic(db, 'e_high', { owner: 'agent-x', importance: 0.9, content: 'alpha' });
+      insertEpisodic(db, 'e_low', { owner: 'agent-x', importance: 0.4, content: 'beta' });
+      insertEmbedding(db, 'e_high', emb);
+      insertEmbedding(db, 'e_low', emb);
+
+      const beforeCount = DatabaseUtils.get(
+        db,
+        `SELECT COUNT(*) AS c FROM memory_item`
+      ) as { c: number };
+
+      const summarization = new SummarizationService();
+      const summarizeCluster = vi
+        .spyOn(summarization, 'summarizeCluster')
+        .mockRejectedValue(new Error('LLM must not run in link mode'));
+      const mergeSpy = vi.spyOn(summarization, 'summarizeMergeForConsolidation');
+
+      const { createRelationGraph } = await import(
+        '../../../infrastructure/relation-graph-factory.js'
+      );
+      const svc = new SleepConsolidationService(db, {
+        summarizationService: summarization,
+        relationGraph: createRelationGraph(db)
+      });
+      const result = await svc.run({ ownerIdFilter: 'agent-x' });
+
+      expect(summarizeCluster).not.toHaveBeenCalled();
+      expect(mergeSpy).not.toHaveBeenCalled();
+      expect(result.consolidationMode).toBe('link');
+      expect(result.semanticsCreated).toBe(0);
+      expect(result.semanticsMerged).toBe(0);
+      expect(result.clustersProcessed).toBe(1);
+      expect(result.episodicsConsolidated).toBe(2);
+
+      const afterCount = DatabaseUtils.get(
+        db,
+        `SELECT COUNT(*) AS c FROM memory_item`
+      ) as { c: number };
+      expect(afterCount.c).toBe(beforeCount.c);
+
+      expect(episodicImportance(db, 'e_high')).toBe(0.9);
+      expect(episodicImportance(db, 'e_low')).toBe(0.4);
+
+      const rel = DatabaseUtils.all(
+        db,
+        `SELECT source_id, target_id, relation_type FROM memory_relation WHERE relation_type = 'REFERENCES'`
+      ) as Array<{ source_id: string; target_id: string; relation_type: string }>;
+      expect(rel).toEqual([{ source_id: 'e_low', target_id: 'e_high', relation_type: 'REFERENCES' }]);
+
+      const second = await svc.run({ ownerIdFilter: 'agent-x' });
+      expect(second.clustersFound).toBe(0);
+      expect(second.clustersProcessed).toBe(0);
+      expect(second.semanticsCreated).toBe(0);
+    });
+  });
 });

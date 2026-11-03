@@ -262,4 +262,22 @@ export class ConsolidationRepository {
       [importanceCap, ...memoryIds]
     );
   }
+
+  /** link 모드: importance 를 바꾸지 않고 재처리만 막는다. */
+  markEpisodicsConsolidatedFlagOnly(memoryIds: string[]): void {
+    if (memoryIds.length === 0) {
+      return;
+    }
+    const placeholders = memoryIds.map(() => '?').join(',');
+    DatabaseUtils.run(
+      this.db,
+      `
+      UPDATE memory_item
+      SET is_consolidated = 1
+      WHERE id IN (${placeholders})
+        AND type = 'episodic'
+    `,
+      memoryIds
+    );
+  }
 }
