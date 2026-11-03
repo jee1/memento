@@ -16,6 +16,7 @@
 - 개발: `scripts/verify-supersede-integration.ts` 는 운영 DB 사본에서 대체 승인과 복원을 걸고 읽기 경로별 대체된 기억 노출, 범위 유출, 역사 조회, 복원 뒤 원상태, live 포인터 0개와 N개의 지연과 실행 계획을 잽니다. 사본에 후보가 없으면 2B 짝짓기를 LLM 없이 돌려 판정만 합성합니다 (#1614).
 - 개발: 수면 통합 재생 rubric v1.1(`tests/fixtures/search-quality/consolidation-replay-v1.1/`)을 추가합니다. v1 의 작업 잡음과 원본 보존 12시퀀스 36시점을 경계 B1~B4 와 기본 금지 주장 DF1~DF5 를 사전등록한 rubric 으로 두 판정자에게 다시 판정받고 서로 다른 공급사 조정자 두 명의 교집합으로 합산했습니다. 계약 gold 23/36(작업 잡음 17/18, 원본 보존 6/18), complete 5/12 입니다. dev 재주석이며 A/B/D 채택 근거가 아닙니다. 생성기와 합산기(`scripts/build-consolidation-replay-v11-panel.ts`, `build-consolidation-replay-v11-adjudication.ts`, `aggregate-consolidation-replay-v11-panel.ts`)는 모델을 호출하지 않습니다 (#1574).
 - 개발: A/B/D 비교용 새 합성 test 가족 `consolidation-replay-v2`(`tests/fixtures/search-quality/consolidation-replay-v2/`)를 사전등록합니다. 다섯 층 40시퀀스(층당 dev 1, test 7), 120시점의 블라인드 판정 패킷이며 rubric v2 는 v1.1 에 과거 회차 관찰(B5)과 `P_omit` 정의를 더했습니다. 판정 합산 규칙(근거 집합이 갈릴 때의 동결, `contract_agreement` 와 탐침 일치 검사)은 `scripts/lib/consolidation-panel-decision.ts` 로 옮겨 v1.1 합산기도 같이 씁니다. 두 판정자와 서로 다른 공급사 조정자 두 명의 합산 결과 계약 gold 86/120, test complete 10/35 로 사전등록 관문(짝 16, 층별 2)을 넘지 못해 `inconclusive` 이며 A/B/D 는 실행하지 않았습니다(`scripts/aggregate-consolidation-replay-v2-panel.ts`, 보고서 `docs/reports/2026-11-03-issue-1624-consolidation-replay-v2-panel.md`). 모델 호출 0회입니다 (#1624).
+- 문서: 저장소 루트 `REVIEW.md` 에 영역별 실패 유형(근거 이슈 번호 포함), 리뷰 제외 경로, Nit 상한, 리뷰 결과 형식(발견 건수, Important/Nit/Pre-existing, 검증 증거 판독 표)을 둡니다. `AGENTS.md` 문서 표에서 가리킵니다 (#1629, #1630).
 
 ### Changed
 

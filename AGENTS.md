@@ -10,6 +10,7 @@
 | [search-ranking.md](./docs/agents/search-ranking.md) | 랭킹 공식 |
 | [DEVELOPMENT_RULES.md](./DEVELOPMENT_RULES.md) | 코딩 표준 |
 | [GLOSSARY.md](./GLOSSARY.md) | 도메인 용어 |
+| [REVIEW.md](./REVIEW.md) | 리뷰 실패 유형, 결과 형식 |
 | [memento-cli-for-ai.md](./docs/guides/ko/memento-cli-for-ai.md) | CLI 명령·연동 |
 | [docs/skills/memento-cli-for-ai/SKILL.md](./docs/skills/memento-cli-for-ai/SKILL.md) | CLI 전용 에이전트 워크플로 (#112) |
 
