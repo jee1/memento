@@ -15,6 +15,9 @@ deny() {
 if grep -qE 'approved:human' <<<"$cmd"; then
   deny "approved:human 라벨은 사용자만 단다. high PR 은 Codex 리뷰·explain-diff 요약을 보여주고 사용자 승인을 요청할 것."
 fi
+if grep -qF -e '--allow-review-overflow' <<<"$cmd"; then
+  deny "3회 상한 넘기기는 사용자만 한다. 사용자에게 '! node scripts/pr-merge-gate.ts <번호> --merge --allow-review-overflow' 실행을 요청할 것."
+fi
 if grep -qE 'gh[[:space:]]+pr[[:space:]]+merge|pulls/[0-9]+/merge' <<<"$cmd"; then
   deny "PR 을 직접 머지하지 말고 'node scripts/pr-merge-gate.ts <PR> --merge' 를 쓸 것 (risk 라벨별 머지 규칙 — docs/agents/commands.md)."
 fi
