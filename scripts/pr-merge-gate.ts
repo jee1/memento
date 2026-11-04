@@ -347,8 +347,19 @@ export function checkKey(item: Pick<RollupItem, "workflowName" | "name" | "conte
 }
 
 export function isCancelledRollup(item: RollupItem): boolean {
-  if (item.__typename === "StatusContext") return item.state === "CANCELLED";
   return item.status === "COMPLETED" && item.conclusion === "CANCELLED";
+}
+
+function isSubstituteRollup(item: RollupItem): boolean {
+  return !isCancelledRollup(item) && item.conclusion !== "SKIPPED";
+}
+
+/** rollup → decide() 가 쓰는 check 목록. loadPr 과 스펙이 같은 변환을 쓴다. */
+export function checksFromRollup(items: RollupItem[]): { name: string; bucket: string }[] {
+  return filterDuplicateCancelledRollup(items).map((c) => ({
+    name: c.name ?? c.context ?? "?",
+    bucket: bucketOf(c),
+  }));
 }
 
 /** 같은 workflow·이름의 비취소 실행이 있으면 취소된 중복만 판정에서 뺀다. 취소만 있으면 그대로 둔다. */
@@ -362,8 +373,8 @@ export function filterDuplicateCancelledRollup(items: RollupItem[]): RollupItem[
   }
   const out: RollupItem[] = [];
   for (const group of byKey.values()) {
-    const hasNonCancelled = group.some((i) => !isCancelledRollup(i));
-    if (hasNonCancelled) {
+    const hasSubstitute = group.some((i) => isSubstituteRollup(i));
+    if (hasSubstitute) {
       out.push(...group.filter((i) => !isCancelledRollup(i)));
     } else {
       out.push(...group);
@@ -413,10 +424,7 @@ function loadPr(pr: string): GateInput & { baseRefName: string } {
     labels: view.labels.map((l) => l.name),
     body,
     comments: view.comments.map((c) => ({ body: c.body, authorLogin: c.author.login })),
-    checks: filterDuplicateCancelledRollup(view.statusCheckRollup ?? []).map((c) => ({
-      name: c.name ?? c.context ?? "?",
-      bucket: bucketOf(c),
-    })),
+    checks: checksFromRollup(view.statusCheckRollup ?? []),
     repoOwnerLogin,
     authorModel: parseAuthorModel(body),
     prNumber: pr,

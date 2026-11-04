@@ -7,6 +7,7 @@ import {
   codexMarker,
   countAgentReviewMarkers,
   decide,
+  checksFromRollup,
   filterDuplicateCancelledRollup,
   hasHeadAgentApprove,
   hasHeadCodexReview,
@@ -553,12 +554,6 @@ const rollupRun = (
   conclusion,
 });
 
-const checksFromRollup = (items: ReturnType<typeof rollupRun>[]) =>
-  filterDuplicateCancelledRollup(items).map((c) => ({
-    name: c.name ?? "?",
-    bucket: bucketOf(c),
-  }));
-
 describe("filterDuplicateCancelledRollup", () => {
   it("checkKey 는 workflowName 과 name 을 묶는다", () => {
     expect(checkKey({ workflowName: "PR Risk", name: "score" })).toBe("PR Risk:score");
@@ -581,6 +576,15 @@ describe("filterDuplicateCancelledRollup", () => {
   it("(취소만) → needs", () => {
     const checks = checksFromRollup([rollupRun("score", "PR Risk", "CANCELLED")]);
     expect(checks).toHaveLength(1);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("needs");
+  });
+
+  it("(취소 + SKIPPED) → needs", () => {
+    const checks = checksFromRollup([
+      rollupRun("score", "PR Risk", "CANCELLED"),
+      rollupRun("score", "PR Risk", "SKIPPED"),
+    ]);
+    expect(checks).toHaveLength(2);
     expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("needs");
   });
 
