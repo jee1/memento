@@ -3,12 +3,16 @@ import {
   APPROVAL_LABEL,
   agentReviewMarker,
   bucketOf,
+  checkKey,
   codexMarker,
   countAgentReviewMarkers,
   decide,
+  checksFromRollup,
+  filterDuplicateCancelledRollup,
   hasHeadAgentApprove,
   hasHeadCodexReview,
   highHeadReviewOk,
+  isCancelledRollup,
   isDifferentModelFamily,
   lastMarkersPerModelOnHead,
   modelFamily,
@@ -529,7 +533,96 @@ describe("bucketOf", () => {
     expect(bucketOf({ __typename: "CheckRun", status: "COMPLETED", conclusion: "FAILURE" })).toBe(
       "fail",
     );
+    expect(bucketOf({ __typename: "CheckRun", status: "COMPLETED", conclusion: "CANCELLED" })).toBe(
+      "fail",
+    );
     expect(bucketOf({ __typename: "StatusContext", state: "PENDING" })).toBe("pending");
     expect(bucketOf({ __typename: "StatusContext", state: "ERROR" })).toBe("fail");
+  });
+});
+
+const rollupRun = (
+  name: string,
+  workflowName: string,
+  conclusion: string,
+  status: string = "COMPLETED",
+) => ({
+  __typename: "CheckRun" as const,
+  name,
+  workflowName,
+  status,
+  conclusion,
+});
+
+describe("filterDuplicateCancelledRollup", () => {
+  it("checkKey 는 workflowName 과 name 을 묶는다", () => {
+    expect(checkKey({ workflowName: "PR Risk", name: "score" })).toBe("PR Risk:score");
+  });
+
+  it("isCancelledRollup 은 CANCELLED 만 본다", () => {
+    expect(isCancelledRollup(rollupRun("score", "PR Risk", "CANCELLED"))).toBe(true);
+    expect(isCancelledRollup(rollupRun("score", "PR Risk", "SKIPPED"))).toBe(false);
+  });
+
+  it("(취소 + 성공) → 통과", () => {
+    const checks = checksFromRollup([
+      rollupRun("score", "PR Risk", "CANCELLED"),
+      rollupRun("score", "PR Risk", "SUCCESS"),
+    ]);
+    expect(checks).toEqual([{ name: "score", bucket: "pass" }]);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("merge");
+  });
+
+  it("(취소만) → needs", () => {
+    const checks = checksFromRollup([rollupRun("score", "PR Risk", "CANCELLED")]);
+    expect(checks).toHaveLength(1);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("needs");
+  });
+
+  it("(취소 + SKIPPED) → needs", () => {
+    const checks = checksFromRollup([
+      rollupRun("score", "PR Risk", "CANCELLED"),
+      rollupRun("score", "PR Risk", "SKIPPED"),
+    ]);
+    expect(checks).toHaveLength(2);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("needs");
+  });
+
+  it("(취소 + 진행 중) → wait", () => {
+    const checks = checksFromRollup([
+      rollupRun("score", "PR Risk", "CANCELLED"),
+      rollupRun("score", "PR Risk", "SUCCESS", "IN_PROGRESS"),
+    ]);
+    expect(checks.some((c) => c.bucket === "pending")).toBe(true);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("wait");
+  });
+
+  it("(실패 + 성공) → needs", () => {
+    const checks = checksFromRollup([
+      rollupRun("score", "PR Risk", "FAILURE"),
+      rollupRun("score", "PR Risk", "SUCCESS"),
+    ]);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("needs");
+  });
+
+  it("다른 workflow 의 같은 이름(취소 + 성공) → needs", () => {
+    const checks = checksFromRollup([
+      rollupRun("score", "Other WF", "CANCELLED"),
+      rollupRun("score", "PR Risk", "SUCCESS"),
+    ]);
+    expect(checks).toHaveLength(2);
+    expect(decide(pr({ checks, comments: [headApprove()] })).action).toBe("needs");
+  });
+
+  it("필터를 건너뛰면 취소+성공이 needs 로 잘못 막힌다 (회귀)", () => {
+    const items = [
+      rollupRun("score", "PR Risk", "CANCELLED"),
+      rollupRun("score", "PR Risk", "SUCCESS"),
+    ];
+    const unfiltered = items.map((c) => ({ name: c.name, bucket: bucketOf(c) }));
+    expect(decide(pr({ checks: unfiltered, comments: [headApprove()] })).action).toBe("needs");
+    expect(decide(pr({ checks: checksFromRollup(items), comments: [headApprove()] })).action).toBe(
+      "merge",
+    );
   });
 });

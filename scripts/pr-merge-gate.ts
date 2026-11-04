@@ -328,16 +328,60 @@ function gh(args: string[], input?: string): string {
   return execFileSync("gh", args, { encoding: "utf-8", input, maxBuffer: 32 * 1024 * 1024 });
 }
 
-type RollupItem = {
+export type RollupItem = {
   __typename: string;
   name?: string;
   context?: string;
+  workflowName?: string;
   status?: string;
   conclusion?: string;
   state?: string;
 };
 
 const FAIL_STATES = new Set(["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"]);
+
+export function checkKey(item: Pick<RollupItem, "workflowName" | "name" | "context">): string {
+  const wf = item.workflowName ?? "";
+  const n = item.name ?? item.context ?? "?";
+  return `${wf}:${n}`;
+}
+
+export function isCancelledRollup(item: RollupItem): boolean {
+  return item.status === "COMPLETED" && item.conclusion === "CANCELLED";
+}
+
+function isSubstituteRollup(item: RollupItem): boolean {
+  return !isCancelledRollup(item) && item.conclusion !== "SKIPPED";
+}
+
+/** rollup → decide() 가 쓰는 check 목록. loadPr 과 스펙이 같은 변환을 쓴다. */
+export function checksFromRollup(items: RollupItem[]): { name: string; bucket: string }[] {
+  return filterDuplicateCancelledRollup(items).map((c) => ({
+    name: c.name ?? c.context ?? "?",
+    bucket: bucketOf(c),
+  }));
+}
+
+/** 같은 workflow·이름의 비취소 실행이 있으면 취소된 중복만 판정에서 뺀다. 취소만 있으면 그대로 둔다. */
+export function filterDuplicateCancelledRollup(items: RollupItem[]): RollupItem[] {
+  const byKey = new Map<string, RollupItem[]>();
+  for (const item of items) {
+    const key = checkKey(item);
+    const group = byKey.get(key) ?? [];
+    group.push(item);
+    byKey.set(key, group);
+  }
+  const out: RollupItem[] = [];
+  for (const group of byKey.values()) {
+    const hasSubstitute = group.some((i) => isSubstituteRollup(i));
+    if (hasSubstitute) {
+      out.push(...group.filter((i) => !isCancelledRollup(i)));
+    } else {
+      out.push(...group);
+    }
+  }
+  return out;
+}
 
 /** CheckRun(status·conclusion)·StatusContext(state)를 pass·fail·pending 으로 접는다. */
 export function bucketOf(item: RollupItem): string {
@@ -380,7 +424,7 @@ function loadPr(pr: string): GateInput & { baseRefName: string } {
     labels: view.labels.map((l) => l.name),
     body,
     comments: view.comments.map((c) => ({ body: c.body, authorLogin: c.author.login })),
-    checks: view.statusCheckRollup.map((c) => ({ name: c.name ?? c.context ?? "?", bucket: bucketOf(c) })),
+    checks: checksFromRollup(view.statusCheckRollup ?? []),
     repoOwnerLogin,
     authorModel: parseAuthorModel(body),
     prNumber: pr,
