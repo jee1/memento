@@ -241,19 +241,6 @@ export function getCachedConfig<T>(key: string, loader: () => T): T {
 }
 
 /**
- * 설정 캐시를 초기화합니다 (테스트용).
- * 
- * @param key 특정 키만 초기화 (지정하지 않으면 전체 초기화)
- */
-export function clearConfigCache(key?: string): void {
-  if (key) {
-    configCache.delete(key);
-  } else {
-    configCache.clear();
-  }
-}
-
-/**
  * 접두사가 일치하는 캐시 키를 모두 제거합니다 (테스트·프로필별 캐시 정리용).
  */
 export function clearConfigCacheByPrefix(prefix: string): void {

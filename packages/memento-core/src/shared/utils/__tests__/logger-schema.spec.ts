@@ -2,46 +2,17 @@
  * 로깅 스키마 검증 테스트
  * 
  * MCP 스펙 준수:
- * - notifications/message 형식 준수
  * - 공통 필드(agentId, slot, memoryId, traceId) 포함
  * - PII 마스킹 자동 적용
- * - Rate limiting 지원
- * - 컨텍스트 포함
+ * - LOG_LEVEL 필터
  * 
  * 참조:
  * - MCP 스펙: https://spec.modelcontextprotocol.io/specification/server/#logging
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { logger } from '../logger.js';
-import { mcpLogger } from '../mcp-logger.js';
+import { logger, type LogMetadataSchema } from '../logger.js';
 import { PIIMasker } from '../pii-masker.js';
-
-/**
- * 로깅 메타데이터 스키마 인터페이스
- * MCP 스펙 준수: 공통 필드 포함
- */
-export interface LogMetadataSchema {
-  // 공통 컨텍스트 필드
-  agentId?: string;
-  slot?: 'A' | 'B' | 'C';
-  memoryId?: string;
-  traceId?: string;
-  requestId?: string;
-  
-  // 추가 컨텍스트 정보
-  [key: string]: unknown;
-}
-
-/**
- * MCP 로깅 메시지 형식 검증
- * MCP 스펙: notifications/message 형식
- */
-interface MCPLoggingMessage {
-  level: 'debug' | 'info' | 'warning' | 'error';
-  logger: string;
-  data: string | { message: string; [key: string]: unknown };
-}
 
 describe('로깅 스키마 검증 (MCP 스펙 준수)', () => {
   beforeEach(() => {
@@ -78,33 +49,6 @@ describe('로깅 스키마 검증 (MCP 스펙 준수)', () => {
       stderrSpy.mockRestore();
     });
 
-    it('MCP notifications/message 형식 준수 검증', async () => {
-      // Given: MCP Logger에 Server 인스턴스 설정
-      const mockServer = {
-        sendLoggingMessage: vi.fn().mockResolvedValue(undefined)
-      };
-      mcpLogger.setServer(mockServer as any);
-
-      // When: MCP 프로토콜 로그 전송
-      await mcpLogger.logMCPProtocol('info', '테스트 메시지', {
-        agentId: 'default',
-        memoryId: 'mem_123'
-      });
-
-      // Then: MCP 스펙 형식 준수 확인
-      expect(mockServer.sendLoggingMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          level: 'info',
-          logger: 'mcp-protocol',
-          data: expect.objectContaining({
-            message: '테스트 메시지',
-            agentId: 'default',
-            memoryId: 'mem_123'
-          })
-        })
-      );
-    });
-
     it('PII 마스킹 자동 적용 검증', () => {
       // Given: PII가 포함된 메시지와 메타데이터
       const message = 'User email: user@example.com logged in';
@@ -133,68 +77,6 @@ describe('로깅 스키마 검증 (MCP 스펙 준수)', () => {
       // TODO: logger.ts에서 PIIMasker.maskObject를 사용하도록 개선 필요
 
       stderrSpy.mockRestore();
-    });
-
-    it('Rate limiting 지원 검증 (기본 구현)', () => {
-      // Given: Rate limiting이 구현되어야 함 (현재는 기본 구현)
-      // When: 연속적인 로그 호출
-      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      
-      for (let i = 0; i < 10; i++) {
-        logger.info(`테스트 메시지 ${i}`, { index: i });
-      }
-
-      // Then: 모든 로그가 전송되었는지 확인 (Rate limiting 미구현 상태)
-      // TODO: Rate limiting 구현 후 검증 로직 추가
-      expect(stderrSpy).toHaveBeenCalledTimes(10);
-
-      stderrSpy.mockRestore();
-    });
-
-    it('컨텍스트 포함 검증 (agentId, slot, memoryId, traceId)', () => {
-      // Given: 컨텍스트 정보 포함
-      const metadata: LogMetadataSchema = {
-        agentId: 'default',
-        slot: 'A',
-        memoryId: 'mem_123',
-        traceId: 'trace_456'
-      };
-
-      // When: 로깅 호출 (stderr.write를 spy)
-      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      logger.info('컨텍스트 포함 테스트', metadata);
-
-      // Then: 모든 컨텍스트 필드가 포함되었는지 확인
-      const logCall = stderrSpy.mock.calls[0]?.[0];
-      expect(logCall).toBeDefined();
-      
-      // JSON 직렬화 후 확인
-      const logString = String(logCall);
-      expect(logString).toContain('agentId');
-      expect(logString).toContain('slot');
-      expect(logString).toContain('memoryId');
-      expect(logString).toContain('traceId');
-
-      stderrSpy.mockRestore();
-    });
-
-    it('일관된 logger 이름 사용 검증', async () => {
-      // Given: MCP Logger에 Server 인스턴스 설정
-      const mockServer = {
-        sendLoggingMessage: vi.fn().mockResolvedValue(undefined)
-      };
-      mcpLogger.setServer(mockServer as any);
-
-      // When: 다양한 로그 레벨로 전송
-      await mcpLogger.logMCPProtocol('info', '테스트', {});
-      await mcpLogger.logMCPProtocol('warn', '경고', {});
-      await mcpLogger.logMCPProtocol('error', '에러', {});
-
-      // Then: 일관된 logger 이름 사용 확인
-      expect(mockServer.sendLoggingMessage).toHaveBeenCalledTimes(3);
-      mockServer.sendLoggingMessage.mock.calls.forEach((call) => {
-        expect(call[0]).toHaveProperty('logger', 'mcp-protocol');
-      });
     });
 
     it('로그 레벨 필터링 검증', () => {

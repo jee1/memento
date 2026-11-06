@@ -25,6 +25,7 @@
 - 개발: `PR Risk` 워크플로가 이미 붙은 더 높은 risk 라벨(수동 상향)을 점수로 낮추지 않습니다. 코멘트에 점수 등급과 유지된 라벨을 함께 적고, 낮추려면 라벨을 직접 뗍니다. 검색 경로(`domains/search/` 전체, `shared/utils/memory-filter-sql.ts`)의 동작 코드 변경은 점수와 무관하게 최소 medium 입니다. 사람이 risk 라벨을 바꾸면 워크플로가 다시 돌고, 머지 게이트는 risk 라벨이 둘 이상이면 가장 높은 등급을 씁니다 (#1619).
 - 개발: `scripts/pr-merge-gate.ts` 가 low/medium/high 공통으로 현재 head 의 `agent-review` approve(리뷰어 모델별 마지막 마커, 저장소 소유자 코멘트 줄 머리만)를 요구하고, 마커 4개(3회 초과)면 멈춥니다. high 는 줄 머리 Codex 마커(과도기, 소유자 코멘트만) 또는 `author-model` 과 다른 알려진 모델 계열 approve 와 사용자 승인 라벨을 요구합니다. overflow 재개는 `! … --merge --allow-review-overflow`(사용자 직접). Claude Code 훅이 `--allow-review-overflow` 를 막습니다 (#1631, #1633).
 - 개발: 낮은 가치 테스트 정리(단언 없는 placeholder, 대상 미호출, 중복, 이름과 다른 테스트).
+- 개발: 테스트 감사 2회차 운영 코드 정리. 운영 호출처가 없는 `scripts/simple-update-wrapper.ts`, `scripts/simple-migrate-wrapper.ts`, `clearConfigCache`, core `mcpLogger` 스텁의 `setServer`/`logMCPProtocol` 과 그것만 보거나 다른 테스트와 겹치던 테스트를 지웁니다.
 
 ### Fixed
 
