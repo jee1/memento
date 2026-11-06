@@ -96,6 +96,7 @@ const CANDIDATE = {
   new_content_preview: NEW_CONTENT.slice(0, 200),
   old_memory_id: 'mem_old',
   new_memory_id: 'mem_new',
+  old_superseded_by: null as string | null,
   rationale: XSS_PAYLOAD,
   provider: 'gemini',
   model: 'm',
@@ -122,8 +123,18 @@ function createHarness(
   }
   const tbody = elements.get('sc-table-body')!;
   const detail = elements.get('sc-detail')!;
-  const fetchMock = vi.fn(async (url: string) => {
-    if (url.startsWith('/admin/memory/items/')) {
+  const restoreBodies: string[] = [];
+  const fetchMock = vi.fn(async (url: string, init?: { body?: string }) => {
+    if (url.includes('/supersede/restore')) {
+      if (init?.body) {
+        restoreBodies.push(init.body);
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    }
+    if (url.includes('/supersede-candidates/') && url.endsWith('/apply')) {
+      return { ok: true, status: 200, json: async () => ({}) };
+    }
+    if (url.startsWith('/admin/memory/items/') && !url.includes('/supersede')) {
       return loadMemory(decodeURIComponent(url.split('/').at(-1)!));
     }
     return {
@@ -154,6 +165,7 @@ function createHarness(
     detail,
     elements,
     fetchMock,
+    restoreBodies,
     sandbox,
     init: async () => {
       (sandbox.initSupersedeCandidatesPanel as () => void)();
@@ -242,6 +254,8 @@ describe('supersede candidates dashboard panel (#1618)', () => {
     { supersede_apply_enabled: false },
     { lifecycle_status: 'applied' },
     { lifecycle_status: 'dismissed' },
+    { lifecycle_status: 'target_deleted' },
+    { lifecycle_status: 'dangling_pointer' },
   ])('preserves existing apply restrictions after loading: %j', async (overrides) => {
     const page = createHarness(undefined, [{ ...CANDIDATE, ...overrides }]);
     await page.init();
@@ -266,5 +280,38 @@ describe('supersede candidates dashboard panel (#1618)', () => {
       '다른 후보 전체 본문', '다른 후보 전체 본문',
     ]);
     expect(page.detail.querySelector('.sc-btn-apply')!.disabled).toBe(false);
+  });
+
+  it('#1645 I1: blocks apply for compatible verdict after bodies load', async () => {
+    const page = createHarness(undefined, [{ ...CANDIDATE, verdict: 'compatible' }]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-btn-apply')!.disabled).toBe(true);
+    const hint = page.detail.descendants().find((el) => el.classes.has('sc-apply-hint'));
+    expect(hint && !hint.classes.has('hidden')).toBe(true);
+    expect(hint?.textContent).toContain('비승인');
+  });
+
+  it('#1645 I1: dangling restore sends expected_new_memory_id from old_superseded_by', async () => {
+    const page = createHarness(undefined, [
+      {
+        ...CANDIDATE,
+        lifecycle_status: 'dangling_pointer',
+        old_superseded_by: 'mem_gone',
+        new_memory_id: 'mem_list_new',
+      },
+    ]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-btn-restore')!.disabled).toBe(false);
+    expect(page.detail.querySelector('.sc-btn-dismiss')!.disabled).toBe(false);
+    page.detail.querySelector('.sc-btn-restore')!.listeners.click![0]!();
+    await flushPromises();
+    expect(page.restoreBodies.some((b) => b.includes('"expected_new_memory_id":"mem_gone"'))).toBe(true);
+  });
+
+  it('#1645 N: blocks dismiss for target_deleted (restore first)', async () => {
+    const page = createHarness(undefined, [{ ...CANDIDATE, lifecycle_status: 'target_deleted', old_superseded_by: 'mem_B' }]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-btn-dismiss')!.disabled).toBe(true);
+    expect(page.detail.querySelector('.sc-btn-restore')!.disabled).toBe(false);
   });
 });

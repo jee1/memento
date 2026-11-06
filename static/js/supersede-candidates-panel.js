@@ -12,6 +12,52 @@
   const state = ns.state;
   const S = ns.S;
 
+  function isVerdictApplicable(verdict) {
+    return verdict === 'confirmed' || verdict === 'pending';
+  }
+
+  function restoreExpectedNewId(row) {
+    return row.old_superseded_by != null && row.old_superseded_by !== '' ? row.old_superseded_by : row.new_memory_id;
+  }
+
+  function setApplyRestoreDismissState(row, wrap) {
+    const applyBlocked = !row.supersede_apply_enabled;
+    const verdictOk = isVerdictApplicable(row.verdict);
+    const needsRestoreFirst =
+      row.lifecycle_status === 'target_deleted' || row.lifecycle_status === 'dangling_pointer';
+    const hint = wrap.querySelector('.sc-apply-hint');
+    hint.textContent = '';
+    hint.classList.add('hidden');
+    if (applyBlocked) {
+      hint.textContent = S.applyDisabled;
+      hint.classList.remove('hidden');
+    } else if (!verdictOk) {
+      hint.textContent = S.verdictNotApplicable;
+      hint.classList.remove('hidden');
+    } else if (needsRestoreFirst) {
+      hint.textContent = S.lifecycleRestoreFirst;
+      hint.classList.remove('hidden');
+    }
+    const applyBtn = wrap.querySelector('.sc-btn-apply');
+    applyBtn.disabled =
+      applyBlocked ||
+      row.lifecycle_status === 'dismissed' ||
+      row.lifecycle_status === 'applied' ||
+      row.lifecycle_status === 'target_deleted' ||
+      row.lifecycle_status === 'dangling_pointer' ||
+      !verdictOk;
+    const restoreBtn = wrap.querySelector('.sc-btn-restore');
+    const restoreAllowed =
+      row.lifecycle_status === 'applied' ||
+      row.lifecycle_status === 'target_deleted' ||
+      row.lifecycle_status === 'dangling_pointer';
+    restoreBtn.disabled = applyBlocked || !restoreAllowed;
+    wrap.querySelector('.sc-btn-dismiss').disabled =
+      row.lifecycle_status === 'dismissed' ||
+      row.lifecycle_status === 'applied' ||
+      row.lifecycle_status === 'target_deleted';
+  }
+
   function selectedCandidate() {
     return state.candidates.find(function (c) {
       return c.id === state.selectedId;
@@ -40,7 +86,6 @@
       detail.textContent = S.selectRow;
       return;
     }
-    const applyBlocked = !row.supersede_apply_enabled;
     const wrap = document.createElement('div');
     wrap.className = 'sc-detail-grid';
     wrap.innerHTML =
@@ -60,17 +105,8 @@
     wrap.querySelector('.sc-rationale').textContent = row.rationale;
     wrap.querySelector('.sc-judge').textContent =
       row.provider + ' / ' + row.model + ' · ' + row.judged_at + ' · ' + (S.lifecycleLabel[row.lifecycle_status] || row.lifecycle_status);
-    const hint = wrap.querySelector('.sc-apply-hint');
-    if (applyBlocked) {
-      hint.textContent = S.applyDisabled;
-      hint.classList.remove('hidden');
-    }
+    setApplyRestoreDismissState(row, wrap);
     const applyBtn = wrap.querySelector('.sc-btn-apply');
-    applyBtn.disabled = applyBlocked || row.lifecycle_status === 'dismissed' || row.lifecycle_status === 'applied';
-    const restoreBtn = wrap.querySelector('.sc-btn-restore');
-    restoreBtn.disabled = applyBlocked || row.lifecycle_status !== 'applied';
-    wrap.querySelector('.sc-btn-dismiss').disabled =
-      row.lifecycle_status === 'dismissed' || row.lifecycle_status === 'applied';
     applyBtn.addEventListener('click', function () {
       void postAction('apply', row.id);
     });
@@ -94,7 +130,6 @@
 
   async function loadDetailContents(row, wrap) {
     const applyBtn = wrap.querySelector('.sc-btn-apply');
-    const applyBlocked = applyBtn.disabled;
     const status = wrap.querySelector('.sc-content-status');
     applyBtn.disabled = true;
     status.textContent = '전체 본문을 불러오는 중…';
@@ -115,7 +150,7 @@
         bodies[index].textContent = content;
       });
       status.textContent = '';
-      applyBtn.disabled = applyBlocked;
+      setApplyRestoreDismissState(row, wrap);
     } catch {
       status.textContent = '전체 본문을 불러오지 못해 승인할 수 없습니다. 기억이 삭제되었거나 조회에 실패했습니다. 새로고침 후 다시 확인하세요.';
     }
@@ -208,7 +243,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            expected_new_memory_id: row.new_memory_id,
+            expected_new_memory_id: restoreExpectedNewId(row),
             reason: 'dashboard',
           }),
         },

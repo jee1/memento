@@ -777,10 +777,10 @@ GET /admin/memory/supersede-candidates?verdict=confirmed&project_id=proj&lifecyc
 
 - `verdict` (optional): `confirmed` | `pending` | `compatible`. Default: `confirmed` and `pending`.
 - `project_id` (optional): project id. Use `null` for candidates with no project.
-- `lifecycle_status` (optional): `not_applied` | `applied` | `restored` | `dismissed`. Default list excludes dismissed rows (`dismissed_at` set).
+- `lifecycle_status` (optional): `not_applied` | `applied` | `target_deleted` | `dangling_pointer` | `restored` | `dismissed`. Default list excludes dismissed rows (`dismissed_at` set).
 - `page_size`: `25` | `50`. `page` requires `page_size`.
 
-Each row includes old/new ids, 200-char content previews, type, project, verdict, LLM provider/model, `judged_at`, `lifecycle_status`, and `supersede_apply_enabled` for the current process.
+Each row includes old/new ids, the old row's current `old_superseded_by` pointer, 200-char content previews, type, project, verdict, LLM provider/model, `judged_at`, `lifecycle_status`, and `supersede_apply_enabled` for the current process.
 
 ```http
 POST /admin/memory/supersede-candidates/:id/dismiss
