@@ -256,6 +256,7 @@ describe('supersede candidates dashboard panel (#1618)', () => {
     { lifecycle_status: 'dismissed' },
     { lifecycle_status: 'target_deleted' },
     { lifecycle_status: 'dangling_pointer' },
+    { old_superseded_by: 'mem_other_target', new_memory_id: 'mem_new' },
   ])('preserves existing apply restrictions after loading: %j', async (overrides) => {
     const page = createHarness(undefined, [{ ...CANDIDATE, ...overrides }]);
     await page.init();
@@ -308,10 +309,28 @@ describe('supersede candidates dashboard panel (#1618)', () => {
     expect(page.restoreBodies.some((b) => b.includes('"expected_new_memory_id":"mem_gone"'))).toBe(true);
   });
 
-  it('#1645 N: blocks dismiss for target_deleted (restore first)', async () => {
+  it('#1646: target_deleted hint says dismiss after restore; dismiss stays enabled', async () => {
     const page = createHarness(undefined, [{ ...CANDIDATE, lifecycle_status: 'target_deleted', old_superseded_by: 'mem_B' }]);
     await page.init();
-    expect(page.detail.querySelector('.sc-btn-dismiss')!.disabled).toBe(true);
+    const hint = page.detail.descendants().find((el) => el.classes.has('sc-apply-hint'));
+    expect(hint?.textContent).toContain('거절');
+    expect(hint?.textContent).not.toContain('승인하세요');
+    expect(page.detail.querySelector('.sc-btn-dismiss')!.disabled).toBe(false);
     expect(page.detail.querySelector('.sc-btn-restore')!.disabled).toBe(false);
+  });
+
+  it('#1646: not_applied row with old_superseded_by pointing elsewhere blocks apply', async () => {
+    const page = createHarness(undefined, [
+      {
+        ...CANDIDATE,
+        lifecycle_status: 'not_applied',
+        old_superseded_by: 'mem_live_target',
+        new_memory_id: 'mem_other_new',
+      },
+    ]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-btn-apply')!.disabled).toBe(true);
+    const hint = page.detail.descendants().find((el) => el.classes.has('sc-apply-hint'));
+    expect(hint?.textContent).toContain('이미 다른 대상');
   });
 });

@@ -23,8 +23,12 @@
   function setApplyRestoreDismissState(row, wrap) {
     const applyBlocked = !row.supersede_apply_enabled;
     const verdictOk = isVerdictApplicable(row.verdict);
-    const needsRestoreFirst =
-      row.lifecycle_status === 'target_deleted' || row.lifecycle_status === 'dangling_pointer';
+    const oldS = row.old_superseded_by;
+    const supersededElsewhere =
+      row.lifecycle_status === 'not_applied' &&
+      oldS != null &&
+      oldS !== '' &&
+      oldS !== row.new_memory_id;
     const hint = wrap.querySelector('.sc-apply-hint');
     hint.textContent = '';
     hint.classList.add('hidden');
@@ -34,8 +38,14 @@
     } else if (!verdictOk) {
       hint.textContent = S.verdictNotApplicable;
       hint.classList.remove('hidden');
-    } else if (needsRestoreFirst) {
-      hint.textContent = S.lifecycleRestoreFirst;
+    } else if (supersededElsewhere) {
+      hint.textContent = S.alreadySupersededBlocked;
+      hint.classList.remove('hidden');
+    } else if (row.lifecycle_status === 'dangling_pointer') {
+      hint.textContent = S.danglingPointerRestoreFirst;
+      hint.classList.remove('hidden');
+    } else if (row.lifecycle_status === 'target_deleted') {
+      hint.textContent = S.targetDeletedApplyHint;
       hint.classList.remove('hidden');
     }
     const applyBtn = wrap.querySelector('.sc-btn-apply');
@@ -45,6 +55,7 @@
       row.lifecycle_status === 'applied' ||
       row.lifecycle_status === 'target_deleted' ||
       row.lifecycle_status === 'dangling_pointer' ||
+      supersededElsewhere ||
       !verdictOk;
     const restoreBtn = wrap.querySelector('.sc-btn-restore');
     const restoreAllowed =
@@ -53,9 +64,7 @@
       row.lifecycle_status === 'dangling_pointer';
     restoreBtn.disabled = applyBlocked || !restoreAllowed;
     wrap.querySelector('.sc-btn-dismiss').disabled =
-      row.lifecycle_status === 'dismissed' ||
-      row.lifecycle_status === 'applied' ||
-      row.lifecycle_status === 'target_deleted';
+      row.lifecycle_status === 'dismissed' || row.lifecycle_status === 'applied';
   }
 
   function selectedCandidate() {
