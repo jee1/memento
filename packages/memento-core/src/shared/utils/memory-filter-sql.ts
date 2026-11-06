@@ -15,7 +15,7 @@ function toIsoTimestampParam(value: string): string {
 type MemoryItemSqlAlias = 'm' | 'mi' | 'scoped_m' | 'scoped_mi';
 
 /** #1551/#1552: direct live target only; deleting it revives its predecessor. */
-export function supersedeByActiveTargetSql(a: MemoryItemSqlAlias): string {
+export function supersedeByActiveTargetSql(a: MemoryItemSqlAlias | 'm_old'): string {
   return `(${a}.superseded_by IS NOT NULL AND EXISTS (
     SELECT 1 FROM memory_item supersede_target
     WHERE

@@ -8,6 +8,9 @@
     loadFailed: '대체 후보 목록을 불러오지 못했습니다.',
     empty: '표시할 후보가 없습니다.',
     applyDisabled: 'SUPERSEDE_APPLY_ENABLED 가 꺼져 있어 승인할 수 없습니다.',
+    verdictNotApplicable: 'compatible 등 비승인 판정(confirmed·pending 만 승인)은 서버에서 거절됩니다.',
+    lifecycleRestoreFirst:
+      '대상 기억이 삭제되었거나 포인터가 꼬였습니다. 먼저 되돌리기(restore)로 옛 기억 포인터를 정리한 뒤 승인하세요.',
     selectRow: '목록에서 후보를 선택하세요.',
     actionFailed: function (code) {
       return code ? '요청 실패: ' + code : '요청 실패';
@@ -15,6 +18,8 @@
     lifecycleLabel: {
       not_applied: '미적용',
       applied: '적용됨',
+      target_deleted: '대상 삭제(옛 기억 노출)',
+      dangling_pointer: '댕글링 포인터',
       restored: '복원됨',
       dismissed: '거절됨',
     },

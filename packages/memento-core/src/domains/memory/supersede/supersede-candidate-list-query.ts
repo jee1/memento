@@ -5,12 +5,16 @@ import type {
   SupersedeCandidateLifecycleStatus,
 } from './supersede-candidate-list.types.js';
 import { SUPERSEDE_LIST_DEFAULT_VERDICTS } from './supersede-candidate-list.types.js';
+import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 
 const SUPERSEDE_CONTENT_PREVIEW_CHARS = 200;
 
+/** 읽기 경로 supersedeByActiveTargetSql 과 동일: 살아 있는 target 만 applied (#1638). */
 const SUPERSEDE_LIFECYCLE_STATUS_EXPR = `CASE
   WHEN c.dismissed_at IS NOT NULL THEN 'dismissed'
-  WHEN m_old.superseded_by = c.new_memory_id THEN 'applied'
+  WHEN ${supersedeByActiveTargetSql('m_old')} AND m_old.superseded_by = c.new_memory_id THEN 'applied'
+  WHEN m_old.superseded_by = c.new_memory_id AND COALESCE(m_new.is_deleted, 0) != 0 THEN 'target_deleted'
+  WHEN m_old.superseded_by IS NOT NULL AND NOT (${supersedeByActiveTargetSql('m_old')}) THEN 'dangling_pointer'
   WHEN m_old.superseded_by IS NULL AND EXISTS (
     SELECT 1 FROM memory_supersede_event e_applied
     WHERE e_applied.candidate_id = c.id AND e_applied.action = 'applied'
@@ -96,6 +100,7 @@ export function buildSupersedeCandidateSelectSql(
       c.memory_type,
       c.old_memory_id,
       c.new_memory_id,
+      m_old.superseded_by AS old_superseded_by,
       c.rationale,
       c.provider,
       c.model,
@@ -121,6 +126,7 @@ export function mapSupersedeCandidateListRow(
     id: String(row.id),
     verdict: row.verdict as SupersedeVerdict,
     lifecycle_status: row.lifecycle_status as SupersedeCandidateLifecycleStatus,
+    old_superseded_by: row.old_superseded_by == null ? null : String(row.old_superseded_by),
     project_id: row.project_id == null ? null : String(row.project_id),
     memory_type: String(row.memory_type),
     old_memory_id: String(row.old_memory_id),

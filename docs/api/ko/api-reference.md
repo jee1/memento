@@ -892,10 +892,10 @@ GET /admin/memory/supersede-candidates?verdict=confirmed&project_id=proj&lifecyc
 
 - `verdict` (선택): `confirmed` \| `pending` \| `compatible`. 생략 시 `confirmed` 와 `pending` 만.
 - `project_id` (선택): 프로젝트 id. `null` 이면 project 없는 후보만.
-- `lifecycle_status` (선택): `not_applied` \| `applied` \| `restored` \| `dismissed`. 생략 시 거절(`dismissed_at`) 후보는 제외.
+- `lifecycle_status` (선택): `not_applied` \| `applied` \| `target_deleted` \| `dangling_pointer` \| `restored` \| `dismissed`. 생략 시 거절(`dismissed_at`) 후보는 제외.
 - `page_size`: `25` \| `50`. `page` 는 `page_size` 와 함께.
 
-각 행에 old/new id·본문 앞 200자·유형·project·판정·LLM provider/model·`judged_at`·`lifecycle_status`·`supersede_apply_enabled`(현재 프로세스의 `SUPERSEDE_APPLY_ENABLED`)가 포함됩니다.
+각 행에 old/new id·옛 기억의 현재 `old_superseded_by` 포인터·본문 앞 200자·유형·project·판정·LLM provider/model·`judged_at`·`lifecycle_status`·`supersede_apply_enabled`(현재 프로세스의 `SUPERSEDE_APPLY_ENABLED`)가 포함됩니다.
 
 대시보드 상세 화면은 `GET /admin/memory/items/:memory_id`로 옛 기억과 새 기억의 전체 본문을 가져옵니다. 긴 본문은 각 본문 영역을 스크롤해 읽습니다. 두 본문을 모두 불러오기 전에는 승인을 막습니다. 기억 삭제·네트워크 오류 등으로 조회에 실패하면 승인 버튼을 끄고 이유를 표시합니다. 새로고침으로 다시 조회합니다.
 

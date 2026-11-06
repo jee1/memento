@@ -3,6 +3,8 @@ import type { SupersedeVerdict } from './supersede-judge.js';
 export const SUPERSEDE_CANDIDATE_LIFECYCLE_STATUSES = [
   'not_applied',
   'applied',
+  'target_deleted',
+  'dangling_pointer',
   'restored',
   'dismissed',
 ] as const;
@@ -29,6 +31,8 @@ export interface SupersedeCandidateListItem {
   id: string;
   verdict: SupersedeVerdict;
   lifecycle_status: SupersedeCandidateLifecycleStatus;
+  /** 현재 옛 기억 행의 superseded_by. 복원 API 의 expected_new_memory_id 와 맞춘다. */
+  old_superseded_by: string | null;
   project_id: string | null;
   memory_type: string;
   old_memory_id: string;
