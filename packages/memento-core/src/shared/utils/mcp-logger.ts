@@ -35,12 +35,6 @@ function safeStderrWrite(chunk: string): void {
 }
 
 class MCPLoggerStub {
-  private _server: { sendLoggingMessage?: (msg: unknown) => Promise<void> } | null = null;
-
-  setServer(server: { sendLoggingMessage?: (msg: unknown) => Promise<void> } | null): void {
-    this._server = server;
-  }
-
   logServer(level: LogLevel, message: string, data?: Record<string, unknown>): void {
     if (!shouldLog(level)) return;
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
@@ -55,15 +49,6 @@ class MCPLoggerStub {
     safeStderrWrite(logMessage);
   }
 
-  async logMCPProtocol(level: LogLevel, message: string, data?: Record<string, unknown>): Promise<void> {
-    if (this._server?.sendLoggingMessage) {
-      await this._server.sendLoggingMessage({
-        level,
-        logger: 'mcp-protocol',
-        data: { message, ...data }
-      });
-    }
-  }
 }
 
 export const mcpLogger = new MCPLoggerStub();
