@@ -32,6 +32,7 @@
 - Admin 대체 후보: 목록 렌더링을 `textContent` 로 바꾸고, 거절한 `(old_memory_id, new_memory_id)` 쌍은 모델·입력 해시가 바뀌어도 재스캔하지 않습니다. 대시보드는 `mementoAdminFetch` 를 쓰고 거절 사유를 필수로 받으며, `SUPERSEDE_APPLY_ENABLED=false` 이면 복원 버튼도 비활성화합니다. migration 065 `down` 은 `dismissed` 감사 행을 지우지 않습니다 (#1618, PR #1621).
 - 개발: `scripts/pr-merge-gate.ts` 가 같은 head 의 취소된 중복 CI 실행(`cancel-in-progress`)을, 같은 `workflowName`·job 이름의 비취소·비 SKIPPED 실행이 있을 때만 판정에서 제외합니다. 취소만 남으면 기존처럼 실패로 봅니다 (#1634).
 - 대체 후보: Sleep consolidation 요약이 사용자가 남긴 기억을 대체하는 쌍을 짝짓기에서 뺍니다(`origin_source.tool = 'sleep-consolidation'` 인 새 기억과 `caller = 'user'` 인 옛 기억). 사용자 기억이 요약을 대체하는 쌍과 요약끼리의 쌍은 그대로 판정합니다. 판정 프롬프트(`supersede-v2-*`)는 같은 주제라도 다른 도구, 에이전트, 환경, 대상을 설명하면 `compatible` 로 둡니다. 운영 DB 사본 재생에서 user→요약 쌍 21건이 0건이 되고, 2026-11-02 거절한 confirmed 오판정 2건이 후보에서 빠집니다 (#1622).
+- Admin 대체 후보: 상세 화면에서 기존 단건 API로 old/new 전체 본문을 표시합니다. 두 본문을 모두 불러오기 전과 조회 실패 시 승인을 막고 이유를 표시합니다 (#1636).
 
 ## [2.3.9] - 2026-11-02
 
