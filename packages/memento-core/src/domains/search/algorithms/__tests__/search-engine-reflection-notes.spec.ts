@@ -197,6 +197,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(result).toBeDefined();
         expect(result.items).toBeDefined();
         expect(Array.isArray(result.items)).toBe(true);
+        expect(result.items.some((item) => item.id === 'proc_1' || item.id === 'proc_2')).toBe(true);
       });
 
       it('Given: 마이그레이션 상태가 pending일 때, When: reflection_notes 검색하면, Then: LIKE 쿼리 사용', async () => {

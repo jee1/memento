@@ -83,34 +83,16 @@ describe('RetryManager', () => {
         .mockRejectedValueOnce(new Error('Error 1'))
         .mockRejectedValueOnce(new Error('Error 2'))
         .mockResolvedValueOnce('success');
-
-      const callTimes: number[] = [];
-      const originalFn = fn;
-      fn.mockImplementation(async () => {
-        callTimes.push(Date.now());
-        return originalFn();
-      });
+      const onRetry = vi.fn();
 
       // When: retry 호출
-      const promise = retryManager.retry(fn);
-      
-      // 첫 번째 재시도 대기 (100ms)
-      await vi.advanceTimersByTimeAsync(100);
-      
-      // 두 번째 재시도 대기 (200ms)
-      await vi.advanceTimersByTimeAsync(200);
-      
+      const promise = retryManager.retry(fn, { onRetry });
+      await vi.advanceTimersByTimeAsync(300);
       await promise;
 
-      // Then: 지수 백오프가 적용되었는지 확인
+      // Then: 지수 백오프 100ms, 200ms
       expect(fn).toHaveBeenCalledTimes(3);
-      if (callTimes.length >= 2) {
-        const delay1 = callTimes[1] - callTimes[0];
-        const delay2 = callTimes[2] - callTimes[1];
-        // 지수 백오프: 100ms, 200ms
-        expect(delay1).toBeGreaterThanOrEqual(100);
-        expect(delay2).toBeGreaterThanOrEqual(200);
-      }
+      expect(onRetry.mock.calls.map(c => c[2])).toEqual([100, 200]);
     });
 
     it('재시도 조건 함수로 특정 에러만 재시도', async () => {
@@ -199,23 +181,16 @@ describe('RetryManager', () => {
       const fn = vi.fn()
         .mockRejectedValueOnce(new Error('Error'))
         .mockResolvedValueOnce('success');
-
-      const callTimes: number[] = [];
-      const originalFn = fn;
-      fn.mockImplementation(async () => {
-        callTimes.push(Date.now());
-        return originalFn();
-      });
+      const onRetry = vi.fn();
 
       // When: 커스텀 baseDelay 50ms
-      const promise = retryManager.retry(fn, { baseDelay: 50 });
-      
+      const promise = retryManager.retry(fn, { baseDelay: 50, onRetry });
       await vi.advanceTimersByTimeAsync(50);
-      
       await promise;
 
       // Then: 커스텀 delay가 적용됨
       expect(fn).toHaveBeenCalledTimes(2);
+      expect(onRetry.mock.calls.map(c => c[2])).toEqual([50]);
     });
   });
 });

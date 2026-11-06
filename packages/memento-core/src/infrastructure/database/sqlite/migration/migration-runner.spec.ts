@@ -141,12 +141,38 @@ describe('MigrationRunner', () => {
       expect(result.endTime).toBeInstanceOf(Date);
     });
 
-    it('마이그레이션 전 검증을 수행해야 함', async () => {
-      // When: 마이그레이션 실행 (validate=true, createBackup=false)
-      const result = await runner.runMigration(testMigration, { validate: true, createBackup: false });
+    it('마이그레이션 전 검증이 실패하면 up 을 실행하지 않아야 함', async () => {
+      // Given: validateBefore 가 실패하는 마이그레이션
+      const up = vi.fn();
+      const migration: Migration = {
+        ...testMigrationWithUp(up),
+        async validateBefore() {
+          throw new Error('before failed');
+        },
+      };
 
-      // Then: 검증이 수행되고 성공해야 함
-      expect(result.success).toBe(true);
+      // When: 마이그레이션 실행 (validate=true, createBackup=false)
+      const result = await runner.runMigration(migration, { validate: true, createBackup: false });
+
+      // Then: 실패하고 up 은 호출되지 않아야 함
+      expect(result.success).toBe(false);
+      expect(up).not.toHaveBeenCalled();
+    });
+
+    it('마이그레이션 후 검증이 실패하면 실패해야 함', async () => {
+      // Given: validateAfter 가 실패하는 마이그레이션
+      const migration: Migration = {
+        ...testMigrationWithUp(vi.fn()),
+        async validateAfter() {
+          throw new Error('after failed');
+        },
+      };
+
+      // When: 마이그레이션 실행 (validate=true, createBackup=false)
+      const result = await runner.runMigration(migration, { validate: true, createBackup: false });
+
+      // Then: 실패해야 함
+      expect(result.success).toBe(false);
     });
 
     it('마이그레이션 후 검증을 수행해야 함', async () => {
