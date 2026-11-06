@@ -64,7 +64,9 @@
       row.lifecycle_status === 'dangling_pointer';
     restoreBtn.disabled = applyBlocked || !restoreAllowed;
     wrap.querySelector('.sc-btn-dismiss').disabled =
-      row.lifecycle_status === 'dismissed' || row.lifecycle_status === 'applied';
+      row.lifecycle_status === 'dismissed' ||
+      row.lifecycle_status === 'applied' ||
+      row.lifecycle_status === 'target_deleted';
   }
 
   function selectedCandidate() {
