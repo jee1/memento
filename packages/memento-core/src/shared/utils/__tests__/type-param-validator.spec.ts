@@ -24,6 +24,7 @@ describe('Type Param Validator', () => {
           const result = validateTypeParam(type, 'test-tool');
           expect(result.isValid).toBe(true);
           expect(result.defaultType).toBe(type.toLowerCase());
+          expect(result.message).toBeUndefined();
         });
       });
 
@@ -98,7 +99,9 @@ describe('Type Param Validator', () => {
 
         expect(result.isValid).toBe(false);
         expect(result.message).toContain('필수');
-        expect(result.message).toContain('working');
+        for (const type of ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault']) {
+          expect(result.message).toContain(type);
+        }
       });
 
       it('should include tool name in error message', () => {

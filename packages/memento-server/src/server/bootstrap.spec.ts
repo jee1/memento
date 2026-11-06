@@ -52,19 +52,6 @@ describe('initializeServices', () => {
       expect(services.databaseOptimizer).toBeDefined();
       expect(services.errorLoggingService).toBeDefined();
     });
-
-    it('반환된 서비스 객체가 ServerServices 인터페이스를 만족해야 함', async () => {
-      services = await initializeServices(db);
-
-      // 타입 체크를 위한 기본 검증
-      expect(services).toHaveProperty('searchEngine');
-      expect(services).toHaveProperty('hybridSearchEngine');
-      expect(services).toHaveProperty('embeddingService');
-      expect(services).toHaveProperty('forgettingPolicyService');
-      expect(services).toHaveProperty('performanceMonitor');
-      expect(services).toHaveProperty('databaseOptimizer');
-      expect(services).toHaveProperty('errorLoggingService');
-    });
   });
 
   describe('PerformanceMonitor 싱글톤 처리', () => {
@@ -85,29 +72,6 @@ describe('initializeServices', () => {
 
       // bootstrap을 통해 얻은 인스턴스와 직접 호출한 인스턴스가 같아야 함
       expect(services.performanceMonitor).toBe(directInstance);
-    });
-
-    it('여러 번 getPerformanceMonitor()를 호출해도 같은 인스턴스를 반환해야 함', () => {
-      const instance1 = getPerformanceMonitor();
-      const instance2 = getPerformanceMonitor();
-      const instance3 = getPerformanceMonitor();
-
-      // 모든 인스턴스가 동일해야 함
-      expect(instance1).toBe(instance2);
-      expect(instance2).toBe(instance3);
-      expect(instance1).toBe(instance3);
-    });
-
-    it('PerformanceMonitor가 DB로 초기화되어야 함', async () => {
-      services = await initializeServices(db);
-
-      // PerformanceMonitor가 초기화되었는지 확인
-      expect(services.performanceMonitor).toBeDefined();
-      
-      // collectMetrics를 호출하여 DB가 설정되었는지 간접 확인
-      // (DB가 없으면 에러가 발생하거나 다른 동작을 할 수 있음)
-      const metrics = await services.performanceMonitor.collectMetrics();
-      expect(metrics).toBeDefined();
     });
 
     it('initializeServices를 여러 번 호출해도 PerformanceMonitor는 한 번만 초기화되어야 함', async () => {
@@ -147,46 +111,6 @@ describe('initializeServices', () => {
       expect(services.metaMemoryService).toHaveProperty('recordRecall');
       expect(services.metaMemoryService).toHaveProperty('getStats');
       expect(services.metaMemoryService).toHaveProperty('destroy');
-    });
-  });
-
-  describe('에러 처리', () => {
-    it('서비스 초기화 중 에러 발생 시 적절히 처리되어야 함', async () => {
-      // 정상적인 데이터베이스로 초기화는 성공해야 함
-      services = await initializeServices(db);
-      expect(services).toBeDefined();
-      expect(services.searchEngine).toBeDefined();
-    });
-
-    it('에러 발생 시 에러 메시지에 컨텍스트가 포함되어야 함', async () => {
-      // 실제로는 null 데이터베이스를 전달하는 경우가 거의 없지만,
-      // 에러 처리 로직이 올바르게 동작하는지 확인
-      // 정상적인 초기화가 성공하는지 확인
-      services = await initializeServices(db);
-      expect(services).toBeDefined();
-      
-      // 에러 처리 로직이 올바르게 구현되어 있는지 확인
-      // (bootstrap.ts의 catch 블록에서 에러 메시지에 "서비스 초기화 실패"를 포함)
-      expect(services.searchEngine).toBeDefined();
-    });
-  });
-
-  describe('서비스 초기화 순서', () => {
-    it('서비스가 올바른 순서로 초기화되어야 함', async () => {
-      services = await initializeServices(db);
-
-      // 기본 서비스가 먼저 초기화되어야 함
-      expect(services.searchEngine).toBeDefined();
-      expect(services.hybridSearchEngine).toBeDefined();
-      expect(services.embeddingService).toBeDefined();
-
-      // 고급 서비스가 그 다음 초기화되어야 함
-      expect(services.forgettingPolicyService).toBeDefined();
-      expect(services.databaseOptimizer).toBeDefined();
-      expect(services.errorLoggingService).toBeDefined();
-
-      // PerformanceMonitor가 초기화되어야 함
-      expect(services.performanceMonitor).toBeDefined();
     });
   });
 

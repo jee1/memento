@@ -18,28 +18,6 @@ describe('임베딩 제공자 RetryManager 사용', () => {
   });
 
   describe('2.4.1 RetryManager 적용 테스트', () => {
-    it('OpenAI 임베딩 서비스가 RetryManager를 사용하여 API 호출 재시도', async () => {
-      // Given: OpenAI 임베딩 서비스와 RetryManager
-      // OpenAI 임베딩 서비스는 RetryManager.retry를 사용하여 embeddings.create() 호출을 래핑해야 함
-      
-      // When: API 호출이 실패 후 성공하는 경우
-      // Then: RetryManager가 재시도를 수행하고 최종적으로 성공
-      
-      // Note: 실제 구현 후 구체적인 테스트 작성
-      expect(true).toBe(true); // Placeholder
-    });
-
-    it('Gemini 임베딩 서비스가 RetryManager를 사용하여 API 호출 재시도', async () => {
-      // Given: Gemini 임베딩 서비스와 RetryManager
-      // Gemini 임베딩 서비스는 RetryManager.retry를 사용하여 models.embedContent() 호출을 래핑해야 함
-      
-      // When: API 호출이 실패 후 성공하는 경우
-      // Then: RetryManager가 재시도를 수행하고 최종적으로 성공
-      
-      // Note: 실제 구현 후 구체적인 테스트 작성
-      expect(true).toBe(true); // Placeholder
-    });
-
     it('재시도 옵션 설정 파일에서 embedding_api 설정 로드', () => {
       // Given: 재시도 옵션 설정 파일
       const retryOptions = getRetryOptions();
