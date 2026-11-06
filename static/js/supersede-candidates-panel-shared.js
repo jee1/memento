@@ -9,8 +9,12 @@
     empty: '표시할 후보가 없습니다.',
     applyDisabled: 'SUPERSEDE_APPLY_ENABLED 가 꺼져 있어 승인할 수 없습니다.',
     verdictNotApplicable: 'compatible 등 비승인 판정(confirmed·pending 만 승인)은 서버에서 거절됩니다.',
-    lifecycleRestoreFirst:
-      '대상 기억이 삭제되었거나 포인터가 꼬였습니다. 먼저 되돌리기(restore)로 옛 기억 포인터를 정리한 뒤 승인하세요.',
+    alreadySupersededBlocked:
+      '옛 기억이 이미 다른 대상으로 대체되었습니다. 추가 승인은 서버에서 거절됩니다. 필요하면 되돌린 뒤 거절하세요.',
+    targetDeletedApplyHint:
+      '새 기억(대상)이 소프트 삭제되었습니다. 먼저 되돌린 뒤 거절하세요. 되돌리기(restore)로 옛 기억 포인터를 정리하면 거절할 수 있습니다. 승인은 복구되기 전까지 서버에서 거절됩니다.',
+    danglingPointerRestoreFirst:
+      '댕글링 포인터입니다. 먼저 되돌리기(restore)로 옛 기억 포인터를 정리한 뒤 승인하세요.',
     selectRow: '목록에서 후보를 선택하세요.',
     actionFailed: function (code) {
       return code ? '요청 실패: ' + code : '요청 실패';

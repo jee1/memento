@@ -256,6 +256,7 @@ describe('supersede candidates dashboard panel (#1618)', () => {
     { lifecycle_status: 'dismissed' },
     { lifecycle_status: 'target_deleted' },
     { lifecycle_status: 'dangling_pointer' },
+    { old_superseded_by: 'mem_other_target', new_memory_id: 'mem_new' },
   ])('preserves existing apply restrictions after loading: %j', async (overrides) => {
     const page = createHarness(undefined, [{ ...CANDIDATE, ...overrides }]);
     await page.init();
@@ -308,10 +309,35 @@ describe('supersede candidates dashboard panel (#1618)', () => {
     expect(page.restoreBodies.some((b) => b.includes('"expected_new_memory_id":"mem_gone"'))).toBe(true);
   });
 
-  it('#1645 N: blocks dismiss for target_deleted (restore first)', async () => {
-    const page = createHarness(undefined, [{ ...CANDIDATE, lifecycle_status: 'target_deleted', old_superseded_by: 'mem_B' }]);
+  it('#1647 I1: target_deleted keeps dismiss disabled until restore; hint names order', async () => {
+    const page = createHarness(undefined, [{ ...CANDIDATE, lifecycle_status: 'target_deleted', old_superseded_by: 'mem_new' }]);
     await page.init();
+    const hint = page.detail.descendants().find((el) => el.classes.has('sc-apply-hint'));
+    expect(hint?.textContent).toContain('먼저 되돌린 뒤 거절하세요');
+    expect(hint?.textContent).toContain('복구되기 전까지 서버에서 거절');
+    expect(shared).toContain('먼저 되돌린 뒤 거절하세요');
     expect(page.detail.querySelector('.sc-btn-dismiss')!.disabled).toBe(true);
     expect(page.detail.querySelector('.sc-btn-restore')!.disabled).toBe(false);
+  });
+
+  it('#1647 I1: restored row enables dismiss after pointer cleared', async () => {
+    const page = createHarness(undefined, [{ ...CANDIDATE, lifecycle_status: 'restored', old_superseded_by: null }]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-btn-dismiss')!.disabled).toBe(false);
+  });
+
+  it('#1646: not_applied row with old_superseded_by pointing elsewhere blocks apply', async () => {
+    const page = createHarness(undefined, [
+      {
+        ...CANDIDATE,
+        lifecycle_status: 'not_applied',
+        old_superseded_by: 'mem_live_target',
+        new_memory_id: 'mem_other_new',
+      },
+    ]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-btn-apply')!.disabled).toBe(true);
+    const hint = page.detail.descendants().find((el) => el.classes.has('sc-apply-hint'));
+    expect(hint?.textContent).toContain('이미 다른 대상');
   });
 });

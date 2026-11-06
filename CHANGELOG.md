@@ -32,6 +32,7 @@
 
 - Admin 대체 후보: 목록의 `lifecycle_status` 가 읽기 경로와 같게 live target 기준으로 계산되고(`target_deleted`, `dangling_pointer`), 행에 `old_superseded_by` 를 실어 댕글링 포인터를 restore 로 정리할 수 있습니다. `compatible` 등 비승인 판정은 UI 에서 승인을 막습니다 (#1637, #1638).
 - Admin 대체 후보: `target_deleted`/`dangling_pointer` 행은 서버(`memory_deleted`/`dangling_pointer` 거부)와 같게 승인을 막고 되돌리기 안내를 표시하며, 댕글링에서 거절은 허용합니다. VM 패널 스펙에 상세 DOM·restore 요청 본문·호환 판정 차단 회귀를 넣었습니다 (#1645).
+- Admin 대체 후보: `target_deleted` 는 `dismissSupersedeCandidate` 가 `already_applied` 로 막는 구간과 맞추어 거절 버튼을 비활성화하고, 되돌린 뒤 거절 안내 문구로 안내합니다. `old_superseded_by` 가 이 행의 새 기억과 다를 때는 `already_superseded` 와 같게 승인을 막습니다 (#1646, #1647 리뷰).
 - Admin 대체 후보: 목록 렌더링을 `textContent` 로 바꾸고, 거절한 `(old_memory_id, new_memory_id)` 쌍은 모델·입력 해시가 바뀌어도 재스캔하지 않습니다. 대시보드는 `mementoAdminFetch` 를 쓰고 거절 사유를 필수로 받으며, `SUPERSEDE_APPLY_ENABLED=false` 이면 복원 버튼도 비활성화합니다. migration 065 `down` 은 `dismissed` 감사 행을 지우지 않습니다 (#1618, PR #1621).
 - 개발: `scripts/pr-merge-gate.ts` 가 같은 head 의 취소된 중복 CI 실행(`cancel-in-progress`)을, 같은 `workflowName`·job 이름의 비취소·비 SKIPPED 실행이 있을 때만 판정에서 제외합니다. 취소만 남으면 기존처럼 실패로 봅니다 (#1634).
 - 대체 후보: Sleep consolidation 요약이 사용자가 남긴 기억을 대체하는 쌍을 짝짓기에서 뺍니다(`origin_source.tool = 'sleep-consolidation'` 인 새 기억과 `caller = 'user'` 인 옛 기억). 사용자 기억이 요약을 대체하는 쌍과 요약끼리의 쌍은 그대로 판정합니다. 판정 프롬프트(`supersede-v2-*`)는 같은 주제라도 다른 도구, 에이전트, 환경, 대상을 설명하면 `compatible` 로 둡니다. 운영 DB 사본 재생에서 user→요약 쌍 21건이 0건이 되고, 2026-11-02 거절한 confirmed 오판정 2건이 후보에서 빠집니다 (#1622).
