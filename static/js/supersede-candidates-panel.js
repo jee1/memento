@@ -47,6 +47,7 @@
       '<div class="sc-detail-col"><h3 class="m-panel__subtitle">옛 기억</h3><p class="sc-memory-id"></p><pre class="sc-preview"></pre></div>' +
       '<div class="sc-detail-col"><h3 class="m-panel__subtitle">새 기억</h3><p class="sc-memory-id"></p><pre class="sc-preview"></pre></div>' +
       '<div class="sc-detail-meta"><p class="sc-rationale"></p><p class="sc-judge"></p></div>' +
+      '<p class="sc-content-status" role="status"></p>' +
       '<p class="sc-apply-hint hidden"></p>' +
       '<div class="sc-detail-actions">' +
       '<button type="button" class="m-button sc-btn-apply">승인(apply)</button>' +
@@ -55,9 +56,7 @@
       '</div>';
     const cols = wrap.querySelectorAll('.sc-detail-col');
     cols[0].querySelector('.sc-memory-id').textContent = row.old_memory_id;
-    cols[0].querySelector('.sc-preview').textContent = row.old_content_preview;
     cols[1].querySelector('.sc-memory-id').textContent = row.new_memory_id;
-    cols[1].querySelector('.sc-preview').textContent = row.new_content_preview;
     wrap.querySelector('.sc-rationale').textContent = row.rationale;
     wrap.querySelector('.sc-judge').textContent =
       row.provider + ' / ' + row.model + ' · ' + row.judged_at + ' · ' + (S.lifecycleLabel[row.lifecycle_status] || row.lifecycle_status);
@@ -90,6 +89,36 @@
       void postAction('dismiss', row.id, reason.trim());
     });
     detail.appendChild(wrap);
+    void loadDetailContents(row, wrap);
+  }
+
+  async function loadDetailContents(row, wrap) {
+    const applyBtn = wrap.querySelector('.sc-btn-apply');
+    const applyBlocked = applyBtn.disabled;
+    const status = wrap.querySelector('.sc-content-status');
+    applyBtn.disabled = true;
+    status.textContent = '전체 본문을 불러오는 중…';
+    try {
+      const contents = await Promise.all([row.old_memory_id, row.new_memory_id].map(async function (id) {
+        const response = await ns.apiFetch('/admin/memory/items/' + encodeURIComponent(id));
+        if (!response.ok) {
+          throw new Error('Memory body request failed');
+        }
+        const data = await response.json();
+        if (!data.memory || typeof data.memory.content !== 'string') {
+          throw new Error('Memory body is missing');
+        }
+        return data.memory.content;
+      }));
+      const bodies = wrap.querySelectorAll('.sc-preview');
+      contents.forEach(function (content, index) {
+        bodies[index].textContent = content;
+      });
+      status.textContent = '';
+      applyBtn.disabled = applyBlocked;
+    } catch {
+      status.textContent = '전체 본문을 불러오지 못해 승인할 수 없습니다. 기억이 삭제되었거나 조회에 실패했습니다. 새로고침 후 다시 확인하세요.';
+    }
   }
 
   function renderList() {
