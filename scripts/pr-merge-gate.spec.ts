@@ -8,6 +8,9 @@ import {
   countAgentReviewMarkers,
   decide,
   checksFromRollup,
+  countDroppedCancelledDuplicates,
+  loadWithUnknownRetry,
+  UNKNOWN_RETRY_ATTEMPTS,
   filterDuplicateCancelledRollup,
   hasHeadAgentApprove,
   hasHeadCodexReview,
@@ -552,6 +555,63 @@ const rollupRun = (
   workflowName,
   status,
   conclusion,
+});
+
+describe("UNSTABLE / UNKNOWN (#1648)", () => {
+  const dup = [rollupRun("score", "PR Risk", "CANCELLED"), rollupRun("score", "PR Risk", "SUCCESS")];
+  const unstable = (items: ReturnType<typeof rollupRun>[]) =>
+    decide(
+      pr({
+        mergeStateStatus: "UNSTABLE",
+        checks: checksFromRollup(items),
+        droppedCancelledDuplicates: countDroppedCancelledDuplicates(items),
+        comments: [headApprove()],
+      }),
+    );
+
+  it("취소 중복을 걸러냈으면 UNSTABLE 이어도 머지 진행", () => {
+    expect(unstable(dup).action).toBe("merge");
+  });
+
+  it("걸러낸 중복 없이 UNSTABLE 이면 wait", () => {
+    expect(unstable([rollupRun("score", "PR Risk", "SUCCESS")]).action).toBe("wait");
+  });
+
+  it("취소 중복이 있어도 비필수 체크 실패면 needs", () => {
+    expect(unstable([...dup, rollupRun("lint", "CI", "FAILURE")]).action).toBe("needs");
+  });
+
+  it("취소 중복이 있어도 다른 체크가 진행 중이면 wait", () => {
+    expect(unstable([...dup, rollupRun("lint", "CI", "SUCCESS", "IN_PROGRESS")]).action).toBe("wait");
+  });
+
+  it("취소 중복이 있어도 BLOCKED 는 wait", () => {
+    const d = decide(
+      pr({ mergeStateStatus: "BLOCKED", checks: checksFromRollup(dup), droppedCancelledDuplicates: 1 }),
+    );
+    expect(d.action).toBe("wait");
+  });
+
+  it("UNKNOWN 뒤 CLEAN 이면 재조회로 진행", () => {
+    const seq = ["UNKNOWN", "UNKNOWN", "CLEAN"];
+    let calls = 0;
+    const got = loadWithUnknownRetry(() => ({ mergeStateStatus: seq[calls++] }), () => {});
+    expect(got.mergeStateStatus).toBe("CLEAN");
+    expect(calls).toBe(3);
+  });
+
+  it("계속 UNKNOWN 이면 상한에서 멈춘다", () => {
+    let calls = 0;
+    const got = loadWithUnknownRetry(() => (calls++, { mergeStateStatus: "UNKNOWN" }), () => {});
+    expect(got.mergeStateStatus).toBe("UNKNOWN");
+    expect(calls).toBe(UNKNOWN_RETRY_ATTEMPTS);
+  });
+
+  it("UNKNOWN 이 아니면 재조회하지 않는다", () => {
+    let calls = 0;
+    loadWithUnknownRetry(() => (calls++, { mergeStateStatus: "UNSTABLE" }), () => {});
+    expect(calls).toBe(1);
+  });
 });
 
 describe("filterDuplicateCancelledRollup", () => {
