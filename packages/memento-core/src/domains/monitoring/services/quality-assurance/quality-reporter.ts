@@ -382,6 +382,16 @@ export class QualityReporter {
       const rows = enrichedLatestMetrics.filter(m => m.metric_namespace === ns);
       markLegacyUnknownLatestRows(rows, this.recorder.isLegacyUnknownMetric(payload));
       if (rows.length === 0 && !payload) {
+        // QUALITY_NAMESPACES 기대 목록은 측정 이력이 없어도 리포트에 남긴다 (#1661).
+        namespaceStatus.push({
+          namespace: ns,
+          status: 'unmeasured',
+          metrics_count: 0,
+          passed_count: 0,
+          failed_count: 0,
+          no_threshold_count: 0,
+          unmeasured_count: 0,
+        });
         continue;
       }
       const countOf = (status: ReportStatus) => rows.filter(m => m.status === status).length;

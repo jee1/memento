@@ -59,6 +59,8 @@ env: [commands.md — remember dedup](./commands.md#remember-near-duplicate-730)
 
 저신뢰·고실패 기억은 `recall` 응답의 `introspection_hint`나 `get_introspection_summary`(MCP)로 알 수 있지만, 정리는 자동이 아닙니다. 운영자가 **주기적으로** `POST /admin/introspection/heal`을 호출해(기본 dry-run으로 분류 결과를 먼저 검토한 뒤 `dry_run: false`로 apply) 스캔 결과를 re-embed·demote·soft-delete·review 4가지 액션으로 분류·실행합니다. **에이전트는 이 엔드포인트를 스스로 호출하지 않습니다** — 대량 삭제·importance 변경을 막기 위해 MCP 도구로는 등록되어 있지 않고 HTTP admin API로만 노출됩니다.
 
+`avg_confidence` 는 누적 평균이다. confidence 식을 고쳐도 저장된 값은 다음 recall 한 번에 새 식으로 바뀌지 않는다. 배포 직후 hint 저신뢰 건수가 그대로여도 정상이다. 운영 DB 를 직접 고치지 말고, 리셋이 필요하면 재측정/`recall_count` 리셋 스크립트를 별도 이슈로 둔다 (#1661).
+
 절차·env 플래그·curl 예시: [commands.md — Introspection 치유](./commands.md#introspection-치유-728)
 
 ## 코드 탐색 — Serena 심볼 우선

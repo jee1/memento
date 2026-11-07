@@ -355,7 +355,8 @@ describe('MetaMemoryService', () => {
       }
       const lowRatio = confidences.filter((c) => c < 0.5).length / confidences.length;
       expect(Math.max(...confidences)).toBeGreaterThan(0.5);
-      expect(lowRatio).toBeLessThan(0.7);
+      // Uniform final 0.44–0.69, vector 0 → ~46% below 0.5. Cap 0.55 catches 0.6·f+0.1·v regression (#1661).
+      expect(lowRatio).toBeLessThan(0.55);
     });
 
     it('given: consolidation_score와 vectorScore가 없을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {

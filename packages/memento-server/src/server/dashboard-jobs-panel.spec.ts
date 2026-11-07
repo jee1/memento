@@ -887,6 +887,76 @@ describe('dashboard jobs panel (#832)', () => {
     });
   });
 
+  it('timeline success cell shows details.deferred_count (#1661)', async () => {
+    const h = createJobsHarness({
+      fetchImpl: async (url: string) => {
+        if (String(url).includes('/admin/batch/stats')) {
+          return {
+            ok: true,
+            json: async () => ({
+              schedulerRunning: true,
+              readOnly: false,
+              health: {
+                memoryUsage: 10,
+                runningJobs: 0,
+                queueSize: 0,
+                errorRate: 0,
+                uptime: 1000,
+                uptimeHuman: '1초',
+              },
+              jobs: [
+                {
+                  name: 'sleep_consolidation_batch',
+                  intervalMs: 3600000,
+                  enabled: true,
+                  paused: false,
+                  lastExecution: null,
+                  totalExecutions: 1,
+                  errorCount: 0,
+                  errorRate: 0,
+                  isRunning: false,
+                },
+              ],
+              queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
+              timestamp: '2026-09-06T08:00:00.000Z',
+            }),
+          };
+        }
+        if (String(url).includes('/admin/batch/run-history')) {
+          return { ok: true, json: async () => ({ entries: [], limit: 50 }) };
+        }
+        if (String(url).includes('/admin/batch/runs')) {
+          return {
+            ok: true,
+            json: async () => ({
+              runs: [
+                {
+                  id: 'jr_deferred',
+                  jobName: 'sleep_consolidation_batch',
+                  trigger: 'schedule',
+                  startedAt: '2026-09-06T00:00:00.000Z',
+                  endedAt: '2026-09-06T00:00:01.000Z',
+                  success: true,
+                  durationMs: 1000,
+                  details: { deferred_count: 3 },
+                },
+              ],
+              limit: 50,
+            }),
+          };
+        }
+        return { ok: false, json: async () => ({}) };
+      },
+    });
+    await h.init();
+
+    const timelineRows = h.elements['jobs-timeline-tbody'].children as Array<Record<string, any>>;
+    const deferredRow = timelineRows.find((r) => r.dataset && r.dataset.runId === 'jr_deferred');
+    expect(deferredRow).toBeTruthy();
+    const outcomeCell = deferredRow!.children[5] as { textContent?: string };
+    expect(outcomeCell.textContent).toBe('성공 (미룸 3건)');
+  });
+
   it('readOnly stats hide schedule row menus and timeline retry buttons (#1152)', async () => {
     const h = createJobsHarness({
       fetchImpl: async (url: string) => {

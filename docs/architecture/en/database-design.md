@@ -74,6 +74,8 @@ Persistent context anchors. Slots A/B/C per agent (`owner_id`). Restored automat
 
 Per-memory recall statistics: `recall_count`, `success_count`, `failure_count`, `avg_confidence`. Fed by `MetaMemoryService` and read by `MetaMemoryIntrospectionService`.
 
+`avg_confidence` is a **cumulative mean** updated as `(avg·n + new)/(n+1)` on each recall (`MetaMemoryService.updateAvgConfidence`). Changing `calculateConfidence` (for example the #1651 weight fix) does **not** rewrite stored rows. After a formula change, old low values stay mixed in, so `introspection_hint` low-confidence counts fall only after many re-recalls. Do not patch production DB rows by hand. If a reset is needed, treat it as a separate remeasure or `recall_count` reset script (#1661).
+
 ### `kg_triple`
 
 > **Removed (#1237, 2026-10-03)** — Migration `050-drop-triple-schema` drops the `kg_triple` table and `memory_item.triple_extracted*` columns. Fresh installs use `schema.sql` without triple schema (#1230, #1235).

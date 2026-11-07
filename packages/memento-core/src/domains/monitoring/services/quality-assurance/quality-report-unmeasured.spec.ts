@@ -73,10 +73,22 @@ describe('일일 품질 리포트 미측정·죽은 지표·임계값 없음 (#1
 
     const search = report.summary.namespace_status.find(ns => ns.namespace === 'search');
     expect(search?.status).toBe('unmeasured');
-    expect(report.summary.overall_status).not.toBe('pass');
+    // unmeasured severity 변이(STATUS_SEVERITY.unmeasured=-1)를 잡으려면 overall 을 직접 고정 (#1661).
+    expect(report.summary.overall_status).toBe('unmeasured');
     const searchRows = report.latest_metrics.filter(m => m.metric_namespace === 'search');
     expect(searchRows.length).toBeGreaterThan(0);
     expect(searchRows.every(m => m.status === 'unmeasured')).toBe(true);
+  });
+
+  it('측정 기록이 한 번도 없는 QUALITY_NAMESPACES 도 unmeasured 로 남긴다 (#1661)', async () => {
+    const report = await new QualityReporter(db).collectReportData();
+
+    for (const ns of ['search', 'relation', 'storage'] as const) {
+      const entry = report.summary.namespace_status.find(row => row.namespace === ns);
+      expect(entry, ns).toBeDefined();
+      expect(entry?.status).toBe('unmeasured');
+    }
+    expect(report.summary.overall_status).toBe('unmeasured');
   });
 
   it('제거된 consolidation 지표는 측정 뒤 quality_metrics 와 리포트에서 사라진다', async () => {
