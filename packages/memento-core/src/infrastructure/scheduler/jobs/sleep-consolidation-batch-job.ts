@@ -30,9 +30,17 @@ export class SleepConsolidationBatchJob {
 
     try {
       const runResult = await this.deps.sleepConsolidationService.run({});
+      const deferredErrors = runResult.errors.filter(e => e.error.startsWith('deferred:'));
+      const hardErrors = runResult.errors.filter(e => !e.error.startsWith('deferred:'));
       result.success = true;
       result.processed = runResult.clustersProcessed;
-      result.details = runResult;
+      // Quota deferrals stay out of BatchJobResult.errors so job_run.error_count
+      // counts exceptions only; deferred_count rides details_json via #1559 mapping (#1652).
+      result.errors = hardErrors.map(e => `${e.clusterId}: ${e.error}`);
+      result.details = {
+        ...runResult,
+        deferred_count: deferredErrors.length,
+      };
 
       const fl = this.deps.fileLogger;
       if (fl) {
