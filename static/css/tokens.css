@@ -142,7 +142,10 @@
   --color-agent-state-used-bg: var(--color-anchor-c-bg);
   --color-agent-state-used-text: var(--color-anchor-c-stroke);
 
-  /* Spacing (#1660: denser scale + layout/control sizes; keep computed values) */
+  /* Spacing (#1660: denser scale from prior literals; keep computed values).
+     Order is ascending by computed px at root 16px. Names are historical
+     (4xs>3xs>2xs is inverted vs T-shirt scale) — do not rename without a
+     call-site sweep. sm-* / md-* / lg-* suffixes are between named steps. */
   --spacing-2xs: 0.125rem; /* 2px */
   --spacing-3xs: 0.15rem;  /* 2.4px */
   --spacing-4xs: 0.2rem;   /* 3.2px */
@@ -161,6 +164,7 @@
   --spacing-lg-sm: 1.25rem; /* 20px */
   --spacing-lg: 1.5rem;    /* 24px */
   --spacing-xl: 2rem;      /* 32px */
+  /* Absolute px steps: rem scale (2xs) follows root font; keep separate. */
   --spacing-px-2: 2px;
   --spacing-px-10: 10px;
 
@@ -170,7 +174,9 @@
   --spacing-em-sm: 0.35em;
   --spacing-em-md: 0.5em;
 
-  /* Control / layout sizes (#1660) */
+  /* Control / layout sizes (#1660).
+     --size-icon-sm/md/lg match --spacing-sm/lg/xl numerically but size=* is
+     for box dimensions; spacing=* is for gap/margin/padding — keep both. */
   --size-hairline: 1px;
   --size-touch: 44px;
   --size-control-sm: 28px;

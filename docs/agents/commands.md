@@ -83,6 +83,8 @@ npm run type-check   # 타입 체크
 npm run test:ci:core # core 검색·메모리 테스트
 ```
 
+대시보드 CSS 간격 패리티(#1660): `node scripts/css-spacing-parity.mjs capture --out .local/css-parity/after.json [--viewport 1440x1100|390x844]` 후 `diff --before … --after …` (Chrome은 `PLAYWRIGHT_CHROME`/`CHROME_PATH`, 없으면 Playwright 기본 브라우저).
+
 커밋 전 `lint`, `type-check`, `test` 통과는 필수입니다.
 
 benchmark-v3 macro_category 정의는 [benchmark-macro-categories.md](../reference/ko/benchmark-macro-categories.md)에 정리되어 있습니다.

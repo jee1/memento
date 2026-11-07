@@ -1089,7 +1089,6 @@ circle.em-dot:focus-visible {
 .rc-filter-field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2xs);
   min-width: var(--layout-track-7);
   font-size: var(--font-size-sm);
 }
@@ -2195,8 +2194,8 @@ circle.em-dot:focus-visible {
 .jobs-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md, var(--spacing-md));
-  padding: var(--spacing-md, var(--spacing-md));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
 }
 
 .jobs-header {
@@ -2204,7 +2203,7 @@ circle.em-dot:focus-visible {
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--spacing-sm, var(--spacing-md-sm));
+  gap: var(--spacing-sm);
 }
 
 .jobs-title {
@@ -2262,7 +2261,7 @@ circle.em-dot:focus-visible {
 }
 
 .jobs-schedule__desc {
-  margin-top: var(--spacing-2xs, var(--spacing-xs));
+  margin-top: var(--spacing-xs);
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-muted, #6b7280);
   font-weight: normal;

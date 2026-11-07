@@ -824,6 +824,19 @@ describe('static design contracts', () => {
     expect(section).toContain('height: var(--size-sparkline-height)');
   });
 
+  it('issue #1660 tokens.css locks layout size token values', () => {
+    const tokensSource = readStaticFile('static/css/tokens.css');
+    // Call sites assert var(--size-*), so token values must stay pinned here.
+    expect(tokensSource).toMatch(/--size-touch:\s*44px;/);
+    expect(tokensSource).toMatch(/--size-nav-rail:\s*232px;/);
+    expect(tokensSource).toMatch(/--size-sparkline-width:\s*90px;/);
+    expect(tokensSource).toMatch(/--size-sparkline-height:\s*20px;/);
+    expect(tokensSource).toMatch(/--size-panel-min:\s*200px;/);
+    expect(tokensSource).toMatch(/--size-control-sm:\s*28px;/);
+    expect(tokensSource).toMatch(/--spacing-2xs:\s*0\.125rem;/);
+    expect(tokensSource).toMatch(/--spacing-xs:\s*0\.25rem;/);
+  });
+
   it('issue #1147 every @media uses one of the three --bp-* token values', () => {
     const tokensSource = readStaticFile('static/css/tokens.css');
     const bpMatches = [...tokensSource.matchAll(/--bp-([a-z]+):\s*([\d.]+)rem;/g)];
