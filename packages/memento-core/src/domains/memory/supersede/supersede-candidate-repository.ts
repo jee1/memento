@@ -58,14 +58,22 @@ export class SupersedeCandidateRepository {
     );
   }
 
-  hasDismissedPair(oldMemoryId: string, newMemoryId: string): boolean {
+  /** 거절은 그 내용(sha256)에 묶인다. 내용이 같으면 provider/model/prompt 만 바뀌어도 다시 묻지 않는다. */
+  hasDismissedPair(
+    oldMemoryId: string,
+    newMemoryId: string,
+    oldContentSha256: string,
+    newContentSha256: string,
+  ): boolean {
     return (
       this.db
         .prepare(
           `SELECT 1 FROM memory_supersede_candidate
-           WHERE old_memory_id = ? AND new_memory_id = ? AND dismissed_at IS NOT NULL`,
+           WHERE old_memory_id = ? AND new_memory_id = ?
+             AND old_content_sha256 = ? AND new_content_sha256 = ?
+             AND dismissed_at IS NOT NULL`,
         )
-        .get(oldMemoryId, newMemoryId) !== undefined
+        .get(oldMemoryId, newMemoryId, oldContentSha256, newContentSha256) !== undefined
     );
   }
 

@@ -38,6 +38,8 @@ export interface SupersedeScanSummary {
   pairsConsidered: number;
   judged: number;
   skippedDuplicate: number;
+  /** 거절 당시와 같은 old/new 내용 해시인 쌍. */
+  skippedDismissed: number;
   skippedNoEmbedding: number;
   failed: number;
   byVerdict: Record<SupersedeVerdict, number>;
@@ -123,6 +125,7 @@ export class SupersedeCandidateService {
       pairsConsidered: 0,
       judged: 0,
       skippedDuplicate: 0,
+      skippedDismissed: 0,
       skippedNoEmbedding: 0,
       failed: 0,
       byVerdict: { confirmed: 0, pending: 0, compatible: 0 },
@@ -156,11 +159,13 @@ export class SupersedeCandidateService {
         old: oldScoped,
         next: nextScoped,
       });
-      if (this.repository.hasInputHash(inputHash)) {
-        summary.skippedDuplicate += 1;
+      const oldContentSha256 = sha256Hex(old.content);
+      const newContentSha256 = sha256Hex(next.content);
+      if (this.repository.hasDismissedPair(old.id, next.id, oldContentSha256, newContentSha256)) {
+        summary.skippedDismissed += 1;
         continue;
       }
-      if (this.repository.hasDismissedPair(old.id, next.id)) {
+      if (this.repository.hasInputHash(inputHash)) {
         summary.skippedDuplicate += 1;
         continue;
       }
@@ -184,8 +189,8 @@ export class SupersedeCandidateService {
             verdict: judgment.verdict,
             rationale: judgment.rationale,
             evidenceQuote: judgment.evidenceQuote,
-            oldContentSha256: sha256Hex(old.content),
-            newContentSha256: sha256Hex(next.content),
+            oldContentSha256,
+            newContentSha256,
             provider: port.provider,
             model,
             promptVersion: SUPERSEDE_PROMPT_VERSION,

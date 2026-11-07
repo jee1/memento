@@ -32,6 +32,7 @@
 
 ### Fixed
 
+- 대체 후보 스캔: 거절은 거절 당시 old/new 내용 sha256 에 묶인다. 내용이 같으면 model·prompt 만 바뀌어도 다시 판정하지 않고, 내용이 바뀌면 다시 판정한다. 스캔 요약에 `skippedDismissed` 를 따로 센다 (#1665).
 - test/docs: #1656–#1659 리뷰 비차단 6건. `avg_confidence` 누적 평균 문서화, ops-like 저신뢰 비율 상한 0.55, 품질 리포트 overall/`QUALITY_NAMESPACES` 빈 namespace `unmeasured` 단언, Jobs 타임라인에 `deferred_count` 표시, `minQueryChars` 9/10 리터럴 단언 (#1661).
 - batch: Sleep consolidation quota 미룸(`deferred:quota_exceeded` 등)을 `job_run.details_json.deferred_count` 로 남기고, 예외만 `error_count` 에 셉니다. 미룸만 있으면 실행은 계속 성공입니다 (#1652).
 - meta-memory: `calculateConfidence` 가중치를 `0.9·final_score + 0.1·vectorScore` 로 맞춰 상한이 1.0 이 되게 합니다. consolidation 가중 제거 뒤 남았던 `0.6·final + 0.1·vector`(상한 0.7)는 임계 0.5 와 겹쳐 recall 된 기억의 거의 전부가 저신뢰로 잡혔습니다. hint 문구만 쓰는 지표이며 리뷰 후보·망각 경로는 그대로입니다 (#1651).
