@@ -142,12 +142,71 @@
   --color-agent-state-used-bg: var(--color-anchor-c-bg);
   --color-agent-state-used-text: var(--color-anchor-c-stroke);
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;  /* 4px */
-  --spacing-sm: 0.5rem;   /* 8px */
-  --spacing-md: 1rem;     /* 16px */
-  --spacing-lg: 1.5rem;   /* 24px */
-  --spacing-xl: 2rem;     /* 32px */
+  /* Spacing (#1660: denser scale + layout/control sizes; keep computed values) */
+  --spacing-2xs: 0.125rem; /* 2px */
+  --spacing-3xs: 0.15rem;  /* 2.4px */
+  --spacing-4xs: 0.2rem;   /* 3.2px */
+  --spacing-xs: 0.25rem;   /* 4px */
+  --spacing-sm-2xs: 0.35rem; /* 5.6px */
+  --spacing-sm-xs: 0.4rem; /* 6.4px */
+  --spacing-sm-tight: 0.45rem; /* 7.2px */
+  --spacing-sm: 0.5rem;    /* 8px */
+  --spacing-sm-plus: 0.6rem; /* 9.6px */
+  --spacing-sm-lg: 0.65rem; /* 10.4px */
+  --spacing-md-sm: 0.75rem; /* 12px */
+  --spacing-md-tight: 0.85rem; /* 13.6px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-md-plus: 1.1rem; /* 17.6px */
+  --spacing-md-lg: 1.2rem; /* 19.2px */
+  --spacing-lg-sm: 1.25rem; /* 20px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+  --spacing-px-2: 2px;
+  --spacing-px-10: 10px;
+
+  /* Relative (em) rhythm — stays font-relative */
+  --spacing-em-2xs: 0.1em;
+  --spacing-em-xs: 0.25em;
+  --spacing-em-sm: 0.35em;
+  --spacing-em-md: 0.5em;
+
+  /* Control / layout sizes (#1660) */
+  --size-hairline: 1px;
+  --size-touch: 44px;
+  --size-control-sm: 28px;
+  --size-icon-em: 0.6em;
+  --size-icon-sm: 0.5rem;
+  --size-icon-md: 1.5rem;
+  --size-icon-lg: 2rem;
+  --size-icon-px-16: 16px;
+  --size-sparkline-width: 90px;
+  --size-sparkline-height: 20px;
+  --size-ops-sev-col: 6.5rem;
+  --size-ops-action-col: 9.5rem;
+  --size-nav-rail: 232px;
+  --size-panel-auth: 300px;
+  --size-drawer: 320px;
+  --size-preview-min: 360px;
+  --size-panel-min: 200px;
+  --size-dialog-max: 380px;
+  --size-code-max: 520px;
+
+  /* Layout tracks (minmax / flex basis / max-height rem) */
+  --layout-track-7: 7rem;
+  --layout-track-8: 8rem;
+  --layout-track-10: 10rem;
+  --layout-track-11: 11rem;
+  --layout-track-12: 12rem;
+  --layout-track-14: 14rem;
+  --layout-track-18: 18rem;
+  --layout-track-20: 20rem;
+  --layout-track-22: 22rem;
+  --layout-track-24: 24rem;
+  --layout-track-28: 28rem;
+  --layout-track-32: 32rem;
+  --layout-track-36: 36rem;
+  --layout-track-40: 40rem;
+  --layout-track-48: 48rem;
 
   /* Border Radius */
   --radius-sm: 4px;

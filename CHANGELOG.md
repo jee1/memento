@@ -20,6 +20,7 @@
 
 ### Changed
 
+- Admin 대시보드: `static/css` 간격·레이아웃 직접 값(padding/gap/radius/width 등)을 `tokens.css` 토큰으로 옮깁니다. 화면 계산값은 동일합니다 (#1660).
 - 개발: 테스트 감사 2회차 테스트 정리. RetryManager 백오프 테스트가 `onRetry` delay 로 지수 백오프를 단언하고, 마이그레이션 `validateBefore`/`validateAfter` 실패를 각각 테스트합니다. 중복과 동어반복 spec 3개를 지웁니다.
 - 검색: 대체 포인터만 있는 무필터 벡터 검색(KNN, hybrid, 임베딩 fallback)이 임베딩 전체를 KNN 전에 나열하지 않습니다. 포인터가 숨기는 임베딩 행 수만큼 KNN 을 더 깊게 판 뒤 바깥에서 걸러 현재 기억 top-K 를 유지합니다. 운영 DB 사본(12,763건, 포인터 5건)에서 무필터 KNN p95 비율이 2.55→1.05, hybrid 1회 1.39→1.00 이 됐습니다. `bench-supersede-off.ts` 가 켜진 상태 p95 비율 1.3 이하를 단언합니다 (#1615).
 - 개발: 도메인 간 import 는 대상 도메인 `index.ts` 공개 API 로만 허용하는 architecture 검사를 추가하고, cross-import 74건(embedding 27건, search 25건, 나머지 22건)을 공개 index 로 옮겨 allowlist 를 77→3 으로 줄였습니다. 남은 3 edge 는 구체 `RelationGraph` import 로 `relation/services/relation-graph.js` 고정 목록 검사 대상입니다 (#1610, #1611, #1612, #1613).

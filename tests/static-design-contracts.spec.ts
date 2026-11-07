@@ -446,7 +446,7 @@ describe('static design contracts', () => {
     expect(dashboardSource).not.toMatch(/\.m-toolbar-more:hover/);
     expect(componentsSource).not.toMatch(/\.m-toolbar-more:hover/);
 
-    expect(cssSource).toMatch(/#anchor-map\s*\{[^}]*min-height:\s*200px;/s);
+    expect(cssSource).toMatch(/#anchor-map\s*\{[^}]*min-height:\s*var\(--size-panel-min\);/s);
   });
 
   it('issue #1023 chrome carries no brand gradient, indigo literal, or forked mono stack', () => {
@@ -680,7 +680,7 @@ describe('static design contracts', () => {
     expect(deltaBadBody).toContain('--color-state-crit-text');
 
     const sparklineBody = ruleBody(componentsSource, '.m-sparkline');
-    expect(sparklineBody).toContain('height: 28px');
+    expect(sparklineBody).toContain('height: var(--size-control-sm)');
     expect(componentsSource).toContain('.m-sparkline polyline {');
     expect(componentsSource).toContain('.m-sparkline rect {');
 
@@ -760,7 +760,7 @@ describe('static design contracts', () => {
     expect(html).not.toContain('aria-current');
 
     const navRailBody = ruleBody(componentsCss, '.m-nav-rail');
-    expect(navRailBody).toContain('width: 232px');
+    expect(navRailBody).toContain('width: var(--size-nav-rail)');
 
     const activeBody = ruleBody(componentsCss, '.m-tab-btn.active');
     expect(activeBody).toContain('var(--color-accent-weak)');
@@ -773,7 +773,7 @@ describe('static design contracts', () => {
     expect(componentsCss).toContain('.m-session-chip {');
 
     expect(dashboardCss).toContain('@media (min-width: 80rem)');
-    expect(dashboardCss).toContain('grid-template-columns: 232px minmax(0, 1fr)');
+    expect(dashboardCss).toContain('grid-template-columns: var(--size-nav-rail) minmax(0, 1fr)');
     const mobileRailAt = dashboardCss.indexOf('@media (max-width: 79.99rem) {\n  .m-nav-rail {');
     const mobileTabBarAt = dashboardCss.indexOf('.m-nav-rail .m-tab-bar {');
     expect(mobileRailAt).toBeGreaterThanOrEqual(0);
@@ -820,8 +820,8 @@ describe('static design contracts', () => {
     );
     expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(section).toContain('.ops-row__trend .m-sparkline');
-    expect(section).toContain('width: 90px');
-    expect(section).toContain('height: 20px');
+    expect(section).toContain('width: var(--size-sparkline-width)');
+    expect(section).toContain('height: var(--size-sparkline-height)');
   });
 
   it('issue #1147 every @media uses one of the three --bp-* token values', () => {
@@ -878,14 +878,14 @@ describe('static design contracts', () => {
     expect(groupKeys).toEqual(chipKeys);
 
     expect(componentsCss).toMatch(/\.m-nav-compact \{\s*display: none;\s*\}/);
-    expect(componentsCss).toMatch(/\.m-nav-compact__menu \{[^}]*width: 44px;[^}]*height: 44px;/s);
-    expect(componentsCss).toMatch(/\.m-nav-chip \{[^}]*min-height: 44px;/s);
+    expect(componentsCss).toMatch(/\.m-nav-compact__menu \{[^}]*width: var\(--size-touch\);[^}]*height: var\(--size-touch\);/s);
+    expect(componentsCss).toMatch(/\.m-nav-chip \{[^}]*min-height: var\(--size-touch\);/s);
 
     const phoneRailAt = dashboardCss.indexOf('@media (max-width: 30rem) {\n  .m-nav-rail {');
     const phoneBlock = extractAtMediaBlock(dashboardCss.slice(phoneRailAt), '(max-width: 30rem)');
     expect(phoneBlock).toMatch(/\.m-nav-compact \{[^}]*display: flex;/s);
     expect(phoneBlock).toMatch(/\.m-nav-rail:not\(\.is-expanded\) \.m-tab-bar \{\s*display: none;/);
-    expect(phoneBlock).toMatch(/\.m-nav-rail \.m-tab-btn \{[^}]*min-height: 44px;/s);
+    expect(phoneBlock).toMatch(/\.m-nav-rail \.m-tab-btn \{[^}]*min-height: var\(--size-touch\);/s);
 
     expect(tabsJs).toContain("navToggle.setAttribute('aria-expanded'");
     expect(tabsJs).toContain("chip.setAttribute('aria-pressed'");
@@ -908,8 +908,8 @@ describe('static design contracts', () => {
     const block = extractAtMediaBlock(dashboardCss.slice(at), '(max-width: 30rem)');
     expect(block).toMatch(/\.m-table:not\(#rc-table\) td\[data-label\]::before \{[^}]*content: attr\(data-label\);/s);
     expect(block).toMatch(/\.m-stat-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-    expect(block).toMatch(/\.oo-list__item \{[^}]*min-height: 44px;/s);
-    expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: 44px;\s*min-height: 44px;/);
+    expect(block).toMatch(/\.oo-list__item \{[^}]*min-height: var\(--size-touch\);/s);
+    expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: var\(--size-touch\);\s*min-height: var\(--size-touch\);/);
     expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b(?![-\w])/);
   });
 
