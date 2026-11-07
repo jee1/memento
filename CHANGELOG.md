@@ -30,11 +30,8 @@
 
 ### Fixed
 
-<<<<<<< HEAD
-- meta-memory: `calculateConfidence` 가중치를 `0.9·final_score + 0.1·vectorScore` 로 맞춰 상한이 1.0 이 되게 합니다. consolidation 가중 제거 뒤 남았던 `0.6·final + 0.1·vector`(상한 0.7)는 임계 0.5 와 겹쳐 recall 된 기억의 거의 전부가 저신뢰로 잡혔습니다. hint 문구만 쓰는 지표이며 리뷰 후보·망각 경로는 그대로입니다 (#1651).
-=======
 - batch: Sleep consolidation quota 미룸(`deferred:quota_exceeded` 등)을 `job_run.details_json.deferred_count` 로 남기고, 예외만 `error_count` 에 셉니다. 미룸만 있으면 실행은 계속 성공입니다 (#1652).
->>>>>>> 19175d10 (fix(batch): persist consolidation quota deferrals as deferred_count (#1652))
+- meta-memory: `calculateConfidence` 가중치를 `0.9·final_score + 0.1·vectorScore` 로 맞춰 상한이 1.0 이 되게 합니다. consolidation 가중 제거 뒤 남았던 `0.6·final + 0.1·vector`(상한 0.7)는 임계 0.5 와 겹쳐 recall 된 기억의 거의 전부가 저신뢰로 잡혔습니다. hint 문구만 쓰는 지표이며 리뷰 후보·망각 경로는 그대로입니다 (#1651).
 - Admin 대체 후보: 목록의 `lifecycle_status` 가 읽기 경로와 같게 live target 기준으로 계산되고(`target_deleted`, `dangling_pointer`), 행에 `old_superseded_by` 를 실어 댕글링 포인터를 restore 로 정리할 수 있습니다. `compatible` 등 비승인 판정은 UI 에서 승인을 막습니다 (#1637, #1638).
 - Admin 대체 후보: `target_deleted`/`dangling_pointer` 행은 서버(`memory_deleted`/`dangling_pointer` 거부)와 같게 승인을 막고 되돌리기 안내를 표시하며, 댕글링에서 거절은 허용합니다. VM 패널 스펙에 상세 DOM·restore 요청 본문·호환 판정 차단 회귀를 넣었습니다 (#1645).
 - Admin 대체 후보: `target_deleted` 는 `dismissSupersedeCandidate` 가 `already_applied` 로 막는 구간과 맞추어 거절 버튼을 비활성화하고, 되돌린 뒤 거절 안내 문구로 안내합니다. `old_superseded_by` 가 이 행의 새 기억과 다를 때는 `already_superseded` 와 같게 승인을 막습니다 (#1646, #1647 리뷰).
