@@ -205,10 +205,10 @@ describe('MetaMemoryService', () => {
           type: 'episodic',
           importance: 0.8,
           created_at: '2024-01-01T00:00:00.000Z',
-          final_score: 0.8, // 0.6 * 0.8 = 0.48
-          consolidation_score: 0.7, // 0.3 * 0.7 = 0.21
+          final_score: 0.8, // 0.9 * 0.8 = 0.72
+          consolidation_score: 0.7, // ignored
           vectorScore: 0.9 // 0.1 * 0.9 = 0.09
-          // 예상 confidence: 0.48 + 0.21 + 0.09 = 0.78
+          // 예상 confidence: 0.72 + 0.09 = 0.81
         }
       ];
 
@@ -219,7 +219,7 @@ describe('MetaMemoryService', () => {
       await service.destroy(); // flush 확인
 
       const stats = await service.getStatsById('mem_confidence');
-      const expectedConfidence = 0.6 * 0.8 + 0.1 * 0.9;
+      const expectedConfidence = 0.9 * 0.8 + 0.1 * 0.9;
       expect(stats.avg_confidence).toBeCloseTo(expectedConfidence, 5);
     });
   });
@@ -239,7 +239,7 @@ describe('MetaMemoryService', () => {
 
       const confidence = service.calculateConfidence(item);
 
-      expect(confidence).toBeCloseTo(0.32, 5);
+      expect(confidence).toBeCloseTo(0.9 * 0.5 + 0.1 * 0.2, 5);
     });
 
     it('given: final_score와 vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: 가중 평균이 올바르게 계산되어야 함', () => {
@@ -255,9 +255,9 @@ describe('MetaMemoryService', () => {
 
       const confidence = service.calculateConfidence(item);
 
-      const expected = 0.6 * 0.8 + 0.1 * 0.9;
+      const expected = 0.9 * 0.8 + 0.1 * 0.9;
       expect(confidence).toBeCloseTo(expected, 5);
-      expect(confidence).toBeCloseTo(0.57, 5);
+      expect(confidence).toBeCloseTo(0.81, 5);
     });
 
     it('given: final_score만 있을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {
@@ -274,8 +274,8 @@ describe('MetaMemoryService', () => {
       // When: calculateConfidence 호출
       const confidence = service.calculateConfidence(item);
 
-      // Then: final_score만 사용하여 계산 (0.6 * 0.5 = 0.3)
-      expect(confidence).toBeCloseTo(0.3, 5);
+      // Then: vector 없으면 0.9 * final_score
+      expect(confidence).toBeCloseTo(0.45, 5);
     });
 
     it('given: finalScore (camelCase)가 있을 때, when: calculateConfidence를 호출하면, then: finalScore를 사용하여 계산되어야 함', () => {
@@ -292,8 +292,8 @@ describe('MetaMemoryService', () => {
       // When: calculateConfidence 호출
       const confidence = service.calculateConfidence(item);
 
-      // Then: finalScore를 사용하여 계산 (0.6 * 0.6 = 0.36)
-      expect(confidence).toBeCloseTo(0.36, 5);
+      // Then: finalScore를 사용하여 계산 (0.9 * 0.6 = 0.54)
+      expect(confidence).toBeCloseTo(0.54, 5);
     });
 
     it('given: 점수가 모두 0일 때, when: calculateConfidence를 호출하면, then: 0을 반환해야 함', () => {
@@ -332,7 +332,30 @@ describe('MetaMemoryService', () => {
       // When: calculateConfidence 호출
       const confidence = service.calculateConfidence(item);
 
-      expect(confidence).toBeCloseTo(0.7, 5);
+      expect(confidence).toBeCloseTo(1.0, 5);
+    });
+
+    it('#1651: ops-like final_score band must not mark ~99% as low confidence', () => {
+      // Ops 2026-11-07: recalled final_score roughly 0.44–0.69; vector often absent.
+      // Old 0.6·f+0.1·v capped at 0.7 so every sample stayed under threshold 0.5.
+      const confidences: number[] = [];
+      for (let i = 0; i < 100; i++) {
+        const final_score = 0.44 + ((0.69 - 0.44) * i) / 99;
+        confidences.push(
+          service.calculateConfidence({
+            memory_id: `mem_ops_${i}`,
+            content: 'ops-like',
+            type: 'episodic',
+            importance: 0.5,
+            created_at: '2024-01-01T00:00:00.000Z',
+            final_score,
+            vectorScore: 0
+          } as RecallResultItem)
+        );
+      }
+      const lowRatio = confidences.filter((c) => c < 0.5).length / confidences.length;
+      expect(Math.max(...confidences)).toBeGreaterThan(0.5);
+      expect(lowRatio).toBeLessThan(0.7);
     });
 
     it('given: consolidation_score와 vectorScore가 없을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {
@@ -350,8 +373,8 @@ describe('MetaMemoryService', () => {
       // When: calculateConfidence 호출
       const confidence = service.calculateConfidence(item);
 
-      // Then: final_score만 사용하여 계산 (0.6 * 0.75 = 0.45)
-      expect(confidence).toBeCloseTo(0.45, 5);
+      // Then: final_score만 사용하여 계산 (0.9 * 0.75 = 0.675)
+      expect(confidence).toBeCloseTo(0.675, 5);
     });
   });
 
