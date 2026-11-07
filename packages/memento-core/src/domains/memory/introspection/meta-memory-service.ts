@@ -207,7 +207,11 @@ export class MetaMemoryService {
 
   /**
    * Confidence 점수 계산
-   * 
+   *
+   * consolidation 가중(0.3)이 빠진 뒤에도 합이 1이 되도록 final 에 흡수한다
+   * (`0.9·final + 0.1·vector`). 예전 `0.6·final + 0.1·vector` 는 상한 0.7 이라
+   * 임계 0.5 와 맞물려 recall 된 기억의 거의 전부가 저신뢰로 잡혔다 (#1651).
+   *
    * @param item 검색 결과 항목
    * @returns confidence 점수 (0.0 ~ 1.0)
    */
@@ -218,7 +222,7 @@ export class MetaMemoryService {
     const rawVector = (item as Record<string, unknown>).vectorScore;
     const vectorScore = typeof rawVector === 'number' ? rawVector : Number(rawVector ?? 0);
 
-    return 0.6 * finalScore + 0.1 * vectorScore;
+    return 0.9 * finalScore + 0.1 * vectorScore;
   }
 
   /**
