@@ -30,6 +30,11 @@
       return '오류 ' + n + '건';
     },
     stateOk: '정상',
+    runSuccess: '성공',
+    runFailed: '실패',
+    runDeferred: function (n) {
+      return '미룸 ' + n + '건';
+    },
     kpiRunning: '실행 중',
     kpiRunningNote: '지금 실행 중인 작업',
     kpiFailed: '실패 실행',
@@ -155,6 +160,17 @@
       return { variant: 'warn', label: ns.S.stateErrors(job.errorCount) };
     }
     return { variant: 'ok', label: ns.S.stateOk };
+  };
+
+  /** job_run.details_json.deferred_count (quota 미룸) — errorCount 와 별도 (#1652/#1661). */
+  ns.formatRunOutcome = function (run) {
+    const base = run.success ? ns.S.runSuccess : ns.S.runFailed;
+    const details = run && run.details && typeof run.details === 'object' ? run.details : null;
+    const deferred = details ? Number(details.deferred_count) : NaN;
+    if (!Number.isFinite(deferred) || deferred <= 0) {
+      return base;
+    }
+    return base + ' (' + ns.S.runDeferred(deferred) + ')';
   };
 
   ns.renderDrawerHeader = function () {

@@ -224,7 +224,7 @@
       appendCell(row, ns.formatIso(run.startedAt));
       appendCell(row, ns.formatIso(run.endedAt));
       appendCell(row, ns.formatNumber(run.durationMs));
-      appendCell(row, run.success ? '성공' : '실패');
+      appendCell(row, ns.formatRunOutcome(run));
       const actions = document.createElement('td');
       if (!ns.state.readOnly && run.success === false && run.jobName) {
         const btn = document.createElement('button');

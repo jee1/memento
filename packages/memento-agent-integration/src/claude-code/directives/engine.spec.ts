@@ -130,8 +130,10 @@ describe('runDirectives', () => {
   });
 
   it('skips recall for a trim-boundary short prompt but recalls at minQueryChars', async () => {
-    const short = `  ${'x'.repeat(DIRECTIVE_POLICY.minQueryChars - 1)}  `;
-    const exact = `  ${'x'.repeat(DIRECTIVE_POLICY.minQueryChars)}  `;
+    // Literals pin the shipped floor (10). Relative-only asserts survive minQueryChars 9/11 drift (#1661).
+    expect(DIRECTIVE_POLICY.minQueryChars).toBe(10);
+    const short = `  ${'x'.repeat(9)}  `;
+    const exact = `  ${'x'.repeat(10)}  `;
     const shortRecall = recallOf(['c1', 'x']);
     const exactRecall = recallOf(['c1', 'x']);
 

@@ -226,8 +226,12 @@ export class MetaMemoryService {
   }
 
   /**
-   * 평균 confidence 점수 업데이트 (누적 평균 계산)
-   * 
+   * 평균 confidence 점수 업데이트 (누적 평균).
+   * `(avg·n + c)/(n+1)` 이라 calculateConfidence 식을 바꿔도 저장된 avg_confidence 는
+   * 한 번의 recall 로 새 값에 덮이지 않는다. 옛 낮은 값이 섞인 채 여러 번 재recall 되어야
+   * hint 의 저신뢰 건수가 내려간다. 운영 DB 일괄 수정은 하지 말고, 필요하면 재측정
+   * 스크립트나 recall_count 리셋 후 재수집을 별도 이슈로 다룬다 (#1661).
+   *
    * @param currentAvg 현재 평균 confidence
    * @param currentCount 현재 recall_count
    * @param newConfidence 새로운 confidence 점수

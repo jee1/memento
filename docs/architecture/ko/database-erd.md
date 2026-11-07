@@ -150,6 +150,7 @@ erDiagram
     real avg_confidence
     string last_recalled_at
   }
+  %% avg_confidence = 누적 평균 (avg·n+c)/(n+1). 식 변경만으로 저장된 값은 한 번에 갱신되지 않음 (#1661).
 
   memory_item ||--o{ memory_item_tag : "태그 소속"
   memory_tag ||--o{ memory_item_tag : "태그 적용"
