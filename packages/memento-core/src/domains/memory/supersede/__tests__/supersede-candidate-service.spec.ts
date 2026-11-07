@@ -129,7 +129,7 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(candidates()).toHaveLength(2);
   });
 
-  it('거절한 (old,new) 쌍은 모델이 바뀌어도 다시 후보로 만들지 않는다', async () => {
+  it('거절한 (old,new) 쌍은 내용이 같으면 모델만 바뀌어도 다시 후보로 만들지 않고 skippedDismissed 로 센다', async () => {
     seedPair();
     const portA = fakeChatPort(() => judgeReply('confirmed', '층이 바뀌었다'));
     await new SupersedeCandidateService({ db, port: portA, model: 'model-a' }).scan({ runId: 'run-1' });
@@ -141,9 +141,37 @@ describe('SupersedeCandidateService (#1548)', () => {
       runId: 'run-2',
     });
 
-    expect(second).toMatchObject({ judged: 0, skippedDuplicate: 1 });
+    expect(second).toMatchObject({ judged: 0, skippedDismissed: 1, skippedDuplicate: 0 });
     expect(candidates()).toHaveLength(1);
     expect(portB.calls).toHaveLength(0);
+  });
+
+  it('거절 뒤 old 또는 new 내용이 바뀌면 다시 판정하고, 내용이 같으면 건너뛴다 (#1665)', async () => {
+    seedPair();
+    const port = fakeChatPort(() => judgeReply('confirmed', '층이 바뀌었다'));
+    const svc = service(port);
+    await svc.scan({ runId: 'run-1' });
+    dismissSupersedeCandidate(db, { candidateId: candidates()[0]!.id, actor: 'op', reason: '아님' });
+
+    const sameContent = await svc.scan({ runId: 'run-2' });
+    expect(sameContent).toMatchObject({ judged: 0, skippedDismissed: 1, skippedDuplicate: 0 });
+    expect(port.calls).toHaveLength(1);
+
+    db.prepare(`UPDATE memory_item SET content = ? WHERE id = 'old'`).run('회의실은 2층이다.');
+    const afterOldChange = await svc.scan({ runId: 'run-3' });
+    expect(afterOldChange).toMatchObject({ judged: 1, skippedDismissed: 0 });
+    expect(port.calls).toHaveLength(2);
+    expect(candidates()).toHaveLength(2);
+
+    const openId = (
+      db.prepare('SELECT id FROM memory_supersede_candidate WHERE dismissed_at IS NULL').get() as { id: string }
+    ).id;
+    dismissSupersedeCandidate(db, { candidateId: openId, actor: 'op', reason: '또 아님' });
+    db.prepare(`UPDATE memory_item SET content = ? WHERE id = 'new'`).run('회의실을 5층으로 옮겼다.');
+    const afterNewChange = await svc.scan({ runId: 'run-4' });
+    expect(afterNewChange).toMatchObject({ judged: 1, skippedDismissed: 0 });
+    expect(port.calls).toHaveLength(3);
+    expect(candidates()).toHaveLength(3);
   });
 
   it('owner, project, privacy_scope, type, 임베딩 모델이 다르거나 cosine 이 0.65 미만이면 쌍으로 만들지 않는다', async () => {
