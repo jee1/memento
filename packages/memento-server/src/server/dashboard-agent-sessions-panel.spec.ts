@@ -305,7 +305,7 @@ describe('agent sessions dashboard panel (#460)', () => {
   it('keeps hidden auth forms invisible and mobile map controls reachable (#883)', () => {
     expect(dashboardCss).toContain('[hidden] {');
     expect(dashboardCss).toContain('display: none !important;');
-    expect(dashboardCss).toContain('min-height: 200px;');
+    expect(dashboardCss).toContain('min-height: var(--size-panel-min);');
     expect(dashboardCss).toMatch(/\.m-nav-rail \.m-tab-bar\s*\{[^}]*overflow-x:\s*auto;/s);
   });
 

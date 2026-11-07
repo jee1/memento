@@ -158,8 +158,8 @@
 .m-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.35em;
-  padding: 0.2rem 0.5rem;
+  gap: var(--spacing-em-sm);
+  padding: var(--spacing-4xs) var(--spacing-sm);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -174,8 +174,8 @@
 .m-badge--ok::before {
   content: '';
   flex: none;
-  width: 0.6em;
-  height: 0.6em;
+  width: var(--size-icon-em);
+  height: var(--size-icon-em);
   background: currentColor;
   border-radius: 50%;
 }
@@ -188,8 +188,8 @@
 .m-badge--warn::before {
   content: '';
   flex: none;
-  width: 0.6em;
-  height: 0.6em;
+  width: var(--size-icon-em);
+  height: var(--size-icon-em);
   background: currentColor;
   border-radius: 0;
 }
@@ -202,8 +202,8 @@
 .m-badge--crit::before {
   content: '';
   flex: none;
-  width: 0.6em;
-  height: 0.6em;
+  width: var(--size-icon-em);
+  height: var(--size-icon-em);
   background: currentColor;
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
@@ -216,8 +216,8 @@
 .m-badge--idle::before {
   content: '';
   flex: none;
-  width: 0.6em;
-  height: 0.6em;
+  width: var(--size-icon-em);
+  height: var(--size-icon-em);
   background: transparent;
   border: 0.12em solid currentColor;
   border-radius: 50%;
@@ -228,7 +228,7 @@
 .m-nav-rail {
   display: flex;
   flex-direction: column;
-  width: 232px;
+  width: var(--size-nav-rail);
   min-height: 0;
   background: var(--color-bg-card);
   border-right: 1px solid var(--color-border-light);
@@ -248,7 +248,7 @@
 .m-nav-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--spacing-px-2);
 }
 
 .m-nav-group + .m-nav-group {
@@ -308,8 +308,8 @@
 
 .m-session-chip__dot {
   flex: none;
-  width: 0.5rem;
-  height: 0.5rem;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
   border-radius: 50%;
   background: var(--color-success);
 }
@@ -328,8 +328,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: var(--size-touch);
+  height: var(--size-touch);
   padding: 0;
   border: 0;
   border-radius: var(--radius-md);
@@ -346,7 +346,7 @@
 .m-nav-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--size-touch);
   padding: 0 var(--spacing-md);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-full);
@@ -433,7 +433,7 @@
 
 .m-about__list {
   margin: 0;
-  padding-left: 1.25rem;
+  padding-left: var(--spacing-lg-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-relaxed, 1.45);
@@ -530,7 +530,7 @@
 /* --- Metrics (#1024) --- */
 .m-metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--layout-track-10), 1fr));
   gap: var(--spacing-sm);
 }
 
@@ -548,7 +548,7 @@
 }
 
 .m-metric__value {
-  margin: 0.125rem 0 0 0;
+  margin: var(--spacing-2xs) 0 0 0;
   font-size: var(--font-size-base);
   font-weight: 600;
 }
@@ -562,7 +562,7 @@
 /* --- KPI stat tile (#1143). .m-metric stays for dense in-table use. --- */
 .m-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--layout-track-12), 1fr));
   gap: var(--spacing-sm);
 }
 
@@ -602,7 +602,7 @@
    The text carries the sign (e.g. "+12"), so direction is never color-only. */
 .m-stat__delta {
   align-self: flex-start;
-  padding: 0.1em 0.5em;
+  padding: var(--spacing-em-2xs) var(--spacing-em-md);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   font-family: var(--font-numeric);
@@ -625,7 +625,7 @@
 .m-sparkline {
   display: block;
   width: 100%;
-  height: 28px;
+  height: var(--size-control-sm);
   color: var(--color-brand-primary);
   overflow: visible;
 }

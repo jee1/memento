@@ -58,8 +58,8 @@ body {
 }
 
 .dashboard-auth-panel {
-  min-width: min(100%, 28rem);
-  max-width: 32rem;
+  min-width: min(100%, var(--layout-track-28));
+  max-width: var(--layout-track-32);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-lg);
   background: var(--color-dashboard-auth-panel-bg);
@@ -80,12 +80,12 @@ body {
 }
 
 .dashboard-auth-input {
-  flex: 1 1 12rem;
+  flex: 1 1 var(--layout-track-12);
   min-width: 0;
 }
 
 .dashboard-auth-message {
-  min-height: 1.25rem;
+  min-height: var(--spacing-lg-sm);
   margin-top: var(--spacing-xs);
   font-size: var(--font-size-xs);
   color: var(--color-header-text-muted);
@@ -140,7 +140,7 @@ body {
 }
 
 .anchor-map-toolbar__checkbox {
-  margin-right: 0.25rem;
+  margin-right: var(--spacing-xs);
 }
 
 .anchor-map-toolbar__interval {
@@ -174,7 +174,7 @@ body {
   flex-direction: column;
   gap: var(--spacing-xs);
   /* 240px 은 결과 한 건 반쯤만 보여줬다 — 사이드바 높이에 맞춰 늘린다 (issue 874) */
-  max-height: min(60vh, 520px);
+  max-height: min(60vh, var(--size-code-max));
   overflow-y: auto;
 }
 
@@ -232,7 +232,7 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 300px;
+  width: var(--size-panel-auth);
   background-color: var(--color-bg-card);
   border-right: 1px solid var(--color-border-light);
   overflow-y: auto;
@@ -335,7 +335,7 @@ body {
 /* Map Container */
 .map-container {
   flex: 1;
-  min-height: 200px;
+  min-height: var(--size-panel-min);
   position: relative;
   background-color: var(--color-bg-card);
   overflow: hidden;
@@ -344,7 +344,7 @@ body {
 #anchor-map {
   width: 100%;
   height: 100%;
-  min-height: 200px;
+  min-height: var(--size-panel-min);
 }
 
 /* 앵커가 없는 agent 를 골랐을 때 지도 영역에 남기는 안내문 */
@@ -394,8 +394,8 @@ body {
 }
 
 .legend-color {
-  width: 16px;
-  height: 16px;
+  width: var(--size-icon-px-16);
+  height: var(--size-icon-px-16);
   border-radius: var(--radius-full);
   border: 2px solid;
 }
@@ -578,7 +578,7 @@ body {
 @media (min-width: 80rem) {
   .dashboard-container {
     display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
+    grid-template-columns: var(--size-nav-rail) minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr);
   }
 
@@ -693,14 +693,14 @@ body {
 
   .m-nav-rail .m-tab-btn {
     width: 100%;
-    min-height: 44px;
+    min-height: var(--size-touch);
   }
 }
 
 .m-tab-badge {
   display: inline-block;
   margin-left: var(--spacing-xs);
-  min-width: 1.1rem;
+  min-width: var(--spacing-md-plus);
   padding: 0 var(--spacing-xs);
   border-radius: var(--radius-full);
   background: var(--color-warning);
@@ -765,7 +765,7 @@ body {
 }
 
 .em-problem-memory-list {
-  max-height: 14rem;
+  max-height: var(--layout-track-14);
   overflow: auto;
   margin: 0;
   padding: 0;
@@ -825,7 +825,7 @@ body {
 }
 
 .em-cluster-summary span {
-  padding: 0.2rem 0.45rem;
+  padding: var(--spacing-4xs) var(--spacing-sm-tight);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
 }
@@ -839,7 +839,7 @@ circle.em-dot:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
+  gap: var(--spacing-md-sm) var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border-light);
@@ -854,14 +854,14 @@ circle.em-dot:focus-visible {
 
 .em-controls select,
 .em-controls input[type='number'] {
-  padding: 0.35rem 0.5rem;
+  padding: var(--spacing-sm-2xs) var(--spacing-sm);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
 }
 
 .em-color-legend {
   margin: 0;
-  padding: 0.5rem 1rem 0.75rem;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md-sm);
   font-size: var(--font-size-xs);
   line-height: 1.45;
   color: var(--color-text-muted);
@@ -882,7 +882,7 @@ circle.em-dot:focus-visible {
 
 #em-error .em-retry-btn {
   margin-top: var(--spacing-sm);
-  padding: 0.35rem 0.75rem;
+  padding: var(--spacing-sm-2xs) var(--spacing-md-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-status-error-border);
   background: var(--color-bg-card);
@@ -903,7 +903,7 @@ circle.em-dot:focus-visible {
 .embedding-scatter-wrap {
   flex: 1;
   min-width: 0;
-  min-height: 360px;
+  min-height: var(--size-preview-min);
   background: var(--color-bg-card);
   border-top: 1px solid var(--color-border-light);
 }
@@ -914,7 +914,7 @@ circle.em-dot:focus-visible {
 
 .em-side-panel {
   width: 0;
-  max-width: 380px;
+  max-width: var(--size-dialog-max);
   overflow: hidden;
   background: var(--color-bg-card);
   border-left: 1px solid var(--color-border-light);
@@ -924,7 +924,7 @@ circle.em-dot:focus-visible {
 }
 
 .em-side-panel.open {
-  width: min(380px, 42vw);
+  width: min(var(--size-dialog-max), 42vw);
   overflow: auto;
   padding: var(--spacing-sm) var(--spacing-md);
 }
@@ -944,8 +944,8 @@ circle.em-dot:focus-visible {
 #em-panel-close {
   border: none;
   background: var(--color-bg-main);
-  width: 2rem;
-  height: 2rem;
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
   border-radius: var(--radius-sm);
   font-size: 1.25rem;
   line-height: 1;
@@ -982,7 +982,7 @@ circle.em-dot:focus-visible {
 }
 
 .review-candidates-header-text {
-  flex: 1 1 20rem;
+  flex: 1 1 var(--layout-track-20);
   min-width: 0;
 }
 
@@ -1026,7 +1026,7 @@ circle.em-dot:focus-visible {
 }
 
 .rc-health-table-scroll {
-  max-height: 14rem;
+  max-height: var(--layout-track-14);
 }
 
 /* Review queue optional OS notifications (#275) */
@@ -1046,7 +1046,7 @@ circle.em-dot:focus-visible {
 
 .rc-notify-prompt__text {
   margin: 0;
-  flex: 1 1 12rem;
+  flex: 1 1 var(--layout-track-12);
   min-width: 0;
   line-height: var(--line-height-relaxed, 1.45);
 }
@@ -1064,7 +1064,7 @@ circle.em-dot:focus-visible {
   right: var(--spacing-md);
   bottom: var(--spacing-md);
   z-index: var(--z-index-tooltip);
-  max-width: min(22rem, calc(100vw - 2 * var(--spacing-md)));
+  max-width: min(var(--layout-track-22), calc(100vw - 2 * var(--spacing-md)));
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
@@ -1089,14 +1089,13 @@ circle.em-dot:focus-visible {
 .rc-filter-field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2xs);
-  min-width: 7rem;
+  min-width: var(--layout-track-7);
   font-size: var(--font-size-sm);
 }
 
 .rc-filter-field--grow {
-  flex: 1 1 12rem;
-  min-width: 10rem;
+  flex: 1 1 var(--layout-track-12);
+  min-width: var(--layout-track-10);
 }
 
 .rc-filter-label {
@@ -1153,7 +1152,7 @@ circle.em-dot:focus-visible {
 }
 
     .rc-bulk-count {
-      margin-left: 0.25em;
+      margin-left: var(--spacing-em-xs);
       font-family: var(--font-numeric);
       font-variant-numeric: tabular-nums;
     }
@@ -1196,7 +1195,7 @@ circle.em-dot:focus-visible {
 .rc-cell-reason {
   white-space: pre-wrap;
   word-break: break-word;
-  max-width: 36rem;
+  max-width: var(--layout-track-36);
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
@@ -1205,7 +1204,7 @@ circle.em-dot:focus-visible {
 
 .review-candidates-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(12rem, 28rem);
+  grid-template-columns: minmax(0, 1fr) minmax(var(--layout-track-12), var(--layout-track-28));
   gap: var(--spacing-md);
   flex: 1;
   min-height: 0;
@@ -1229,7 +1228,7 @@ circle.em-dot:focus-visible {
   }
 
   .rc-preview-aside {
-    max-height: min(24rem, 50vh);
+    max-height: min(var(--layout-track-24), 50vh);
   }
 }
 
@@ -1297,7 +1296,7 @@ circle.em-dot:focus-visible {
 }
 
 .rc-preview-dl dd {
-  margin: 0.125rem 0 0;
+  margin: var(--spacing-2xs) 0 0;
   color: var(--color-text-main);
 }
 
@@ -1346,7 +1345,7 @@ circle.em-dot:focus-visible {
 /* Memory evolution demo shell (#340) */
 .med-memory-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--layout-track-14), 1fr));
   gap: var(--spacing-md);
 }
 
@@ -1420,7 +1419,7 @@ circle.em-dot:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
+  gap: var(--spacing-md-sm) var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-card);
   border: 1px solid var(--color-tab-border);
@@ -1436,8 +1435,8 @@ circle.em-dot:focus-visible {
 }
 
 .med-controls select {
-  min-width: 12rem;
-  padding: 0.35rem 0.5rem;
+  min-width: var(--layout-track-12);
+  padding: var(--spacing-sm-2xs) var(--spacing-sm);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
   background: var(--color-bg-main);
@@ -1467,7 +1466,7 @@ circle.em-dot:focus-visible {
 
 .med-intro {
   margin: 0;
-  max-width: 48rem;
+  max-width: var(--layout-track-48);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed, 1.45);
@@ -1544,16 +1543,16 @@ circle.em-dot:focus-visible {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 0;
-  padding: 2px;
+  padding: var(--spacing-px-2);
   border: 1px solid var(--color-tab-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-main);
 }
 
 .med-point-segment__btn {
-  padding: 0.4rem 0.85rem;
+  padding: var(--spacing-sm-xs) var(--spacing-md-tight);
   border: none;
-  border-radius: calc(var(--radius-md) - 2px);
+  border-radius: calc(var(--radius-md) - var(--spacing-px-2));
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
@@ -1593,12 +1592,12 @@ circle.em-dot:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--spacing-sm-2xs);
   margin-bottom: var(--spacing-xs);
 }
 
 .med-comparison-stage {
-  padding: 0.15rem 0.5rem;
+  padding: var(--spacing-3xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
   font-weight: 500;
   color: var(--color-text-muted);
@@ -1635,8 +1634,8 @@ circle.em-dot:focus-visible {
 .med-stat-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
+  gap: var(--spacing-sm-2xs);
+  padding: var(--spacing-xs) var(--spacing-sm-plus);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   line-height: 1.3;
@@ -1690,8 +1689,8 @@ circle.em-dot:focus-visible {
 
 .visually-hidden {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: var(--size-hairline);
+  height: var(--size-hairline);
   padding: 0;
   margin: -1px;
   overflow: hidden;
@@ -1723,7 +1722,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-consolidation-flow__from {
-  padding: 0.2rem 0.65rem;
+  padding: var(--spacing-4xs) var(--spacing-sm-lg);
   border-radius: var(--radius-sm);
   background: var(--color-anchor-c-bg);
   color: var(--color-anchor-c-stroke);
@@ -1736,7 +1735,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-consolidation-flow__to {
-  padding: 0.2rem 0.65rem;
+  padding: var(--spacing-4xs) var(--spacing-sm-lg);
   border-radius: var(--radius-sm);
   background: rgba(16, 185, 129, 0.12);
   color: var(--color-success);
@@ -1767,8 +1766,8 @@ circle.em-dot:focus-visible {
 
 .med-episodic-source__index {
   flex: 0 0 auto;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1788,7 +1787,7 @@ circle.em-dot:focus-visible {
   display: block;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--spacing-xs);
 }
 
 .med-episodic-source__summary {
@@ -1810,7 +1809,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-semantic-result-card__meta {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--spacing-sm-2xs);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
@@ -1824,7 +1823,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-semantic-result-card__explanation {
-  margin: 0.5rem 0 0;
+  margin: var(--spacing-sm) 0 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-main);
   line-height: 1.45;
@@ -1850,7 +1849,7 @@ circle.em-dot:focus-visible {
 }
 
 .med-search-comparison__heading {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--spacing-sm-2xs);
   font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -1937,7 +1936,7 @@ circle.em-dot:focus-visible {
 
 .as-session-column,
 .as-detail-card {
-  max-height: 40rem;
+  max-height: var(--layout-track-40);
   overflow: auto;
 }
 
@@ -1993,7 +1992,7 @@ circle.em-dot:focus-visible {
 
 .as-detail-list div {
   display: grid;
-  grid-template-columns: 7rem 1fr;
+  grid-template-columns: var(--layout-track-7) 1fr;
   gap: var(--spacing-sm);
 }
 
@@ -2101,14 +2100,14 @@ circle.em-dot:focus-visible {
 }
 
 .as-provenance-form #as-provenance-id {
-  flex: 1 1 10rem;
+  flex: 1 1 var(--layout-track-10);
   min-width: 0;
 }
 
 /* #1153: session list / timeline / detail */
 .as-workspace {
   display: grid;
-  grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 1.4fr) minmax(18rem, 1fr);
+  grid-template-columns: minmax(var(--layout-track-14), 0.8fr) minmax(0, 1.4fr) minmax(var(--layout-track-18), 1fr);
   gap: var(--spacing-md);
   align-items: start;
 }
@@ -2133,7 +2132,7 @@ circle.em-dot:focus-visible {
 
 @media (max-width: 79.99rem) {
   .as-workspace {
-    grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr);
+    grid-template-columns: minmax(var(--layout-track-14), 1fr) minmax(0, 2fr);
   }
 
   .as-detail-card {
@@ -2175,7 +2174,7 @@ circle.em-dot:focus-visible {
 }
 
 .as-transcript-input {
-  min-height: 12rem;
+  min-height: var(--layout-track-12);
   resize: vertical;
   font-family: var(--font-family-mono);
 }
@@ -2195,8 +2194,8 @@ circle.em-dot:focus-visible {
 .jobs-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md, 1rem);
-  padding: var(--spacing-md, 1rem);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
 }
 
 .jobs-header {
@@ -2204,11 +2203,11 @@ circle.em-dot:focus-visible {
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--spacing-sm, 0.75rem);
+  gap: var(--spacing-sm);
 }
 
 .jobs-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--spacing-sm-2xs);
   font-size: var(--font-size-lg, 1.25rem);
   color: var(--color-text-main);
 }
@@ -2226,18 +2225,18 @@ circle.em-dot:focus-visible {
 
 
 .jobs-section h3 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-base);
   color: var(--color-text-main);
 }
 
 .jobs-table-wrap {
-  max-height: 28rem;
+  max-height: var(--layout-track-28);
 }
 
 .jobs-retry-btn {
   font-size: var(--font-size-sm, 0.875rem);
-  padding: 0.25rem 0.5rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 /* #1152: schedule table + detail drawer */
@@ -2262,7 +2261,7 @@ circle.em-dot:focus-visible {
 }
 
 .jobs-schedule__desc {
-  margin-top: var(--spacing-2xs, 0.25rem);
+  margin-top: var(--spacing-xs);
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-muted, #6b7280);
   font-weight: normal;
@@ -2378,8 +2377,8 @@ circle.em-dot:focus-visible {
 }
 
 .ops-strip__dot {
-  width: 0.5rem;
-  height: 0.5rem;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
   border-radius: var(--radius-full);
   background: var(--color-memory-neutral);
   flex: 0 0 auto;
@@ -2407,7 +2406,7 @@ circle.em-dot:focus-visible {
 }
 
 .ops-strip__toggle {
-  min-height: 44px;
+  min-height: var(--size-touch);
   flex: 0 0 auto;
 }
 
@@ -2420,7 +2419,7 @@ circle.em-dot:focus-visible {
 /* Memory inspector (#1025) — native details so the narrow layout gets a
    collapsible card for free; no JS toggle. */
 .memory-inspector {
-  width: 320px;
+  width: var(--size-drawer);
   flex: 0 0 auto;
   background: var(--color-bg-card);
   border-left: 1px solid var(--color-border-light);
@@ -2435,7 +2434,7 @@ circle.em-dot:focus-visible {
   background: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border-light);
   cursor: pointer;
-  min-height: 44px;
+  min-height: var(--size-touch);
   display: flex;
   align-items: center;
 }
@@ -2462,7 +2461,7 @@ circle.em-dot:focus-visible {
 }
 
 .memory-inspector__footer .m-button {
-  min-height: 44px;
+  min-height: var(--size-touch);
 }
 
 @media (max-width: 48rem) {
@@ -2477,23 +2476,23 @@ circle.em-dot:focus-visible {
 
 /* #897: 진단 지표는 기본 접힘. 첫 화면은 후보 목록과 미리보기가 차지한다. */
 .rc-diagnostics {
-  margin-block: 12px;
+  margin-block: var(--spacing-md-sm);
 }
 .rc-diagnostics__summary {
   cursor: pointer;
   font-weight: 600;
-  padding: 8px 0;
+  padding: var(--spacing-sm) 0;
 }
 
 /* #897: 숫자만 있으면 운영자가 좋은지 나쁜지 모른다. 판정과 다음 행동을 같이 낸다. */
 .rc-queue-verdict {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: baseline;
-  padding: 10px 12px;
-  margin-block-end: 12px;
-  border-radius: 6px;
+  padding: var(--spacing-px-10) var(--spacing-md-sm);
+  margin-block-end: var(--spacing-md-sm);
+  border-radius: var(--radius-md);
   border-inline-start: 4px solid currentColor;
 }
 .rc-queue-verdict--healthy { color: #1a7f4b; }
@@ -2530,7 +2529,7 @@ circle.em-dot:focus-visible {
   .review-candidates-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 }
 
@@ -2559,7 +2558,7 @@ circle.em-dot:focus-visible {
 
 .oo-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--layout-track-18), 1fr));
   gap: var(--spacing-md);
 }
 
@@ -2622,6 +2621,7 @@ circle.em-dot:focus-visible {
 .m-sparkline .oo-type--working { fill: var(--color-memory-working); }
 
 /* Ops status rows (#1146) */
+/* issue 1660: .ops-status-layout|header|card|title stay markup-only structural hooks (no visual rules). */
 .ops-status-rows {
   list-style: none;
   margin: 0;
@@ -2630,7 +2630,7 @@ circle.em-dot:focus-visible {
 
 .ops-row {
   display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr) auto 90px 9.5rem;
+  grid-template-columns: var(--size-ops-sev-col) minmax(0, 1fr) auto var(--size-sparkline-width) var(--size-ops-action-col);
   align-items: center;
   gap: var(--spacing-sm) var(--spacing-md);
   padding: var(--spacing-sm) 0;
@@ -2665,8 +2665,8 @@ circle.em-dot:focus-visible {
 }
 
 .ops-row__trend .m-sparkline {
-  width: 90px;
-  height: 20px;
+  width: var(--size-sparkline-width);
+  height: var(--size-sparkline-height);
 }
 
 .ops-row__link {
@@ -2696,8 +2696,8 @@ circle.em-dot:focus-visible {
 @media (max-width: 30rem) {
   .m-table:not(#rc-table) thead {
     position: absolute;
-    width: 1px;
-    height: 1px;
+    width: var(--size-hairline);
+    height: var(--size-hairline);
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
@@ -2722,7 +2722,7 @@ circle.em-dot:focus-visible {
     justify-content: space-between;
     align-items: baseline;
     gap: var(--spacing-sm);
-    padding: 2px 0;
+    padding: var(--spacing-px-2) 0;
     border-bottom: none;
     text-align: right;
     overflow-wrap: anywhere;
@@ -2746,8 +2746,8 @@ circle.em-dot:focus-visible {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     column-gap: var(--spacing-sm);
-    row-gap: 2px;
-    min-height: 44px;
+    row-gap: var(--spacing-px-2);
+    min-height: var(--size-touch);
   }
 
   .oo-list__item > .m-badge {
@@ -2759,8 +2759,8 @@ circle.em-dot:focus-visible {
   }
 
   .dashboard-container :is(button, select, summary, textarea, input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='range'])) {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--size-touch);
+    min-height: var(--size-touch);
   }
 
   .dashboard-container label:has(> input[type='checkbox']),
@@ -2768,12 +2768,12 @@ circle.em-dot:focus-visible {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-xs);
-    min-height: 44px;
+    min-height: var(--size-touch);
   }
 
   #rc-table .rc-cell-select {
-    min-width: 44px;
-    height: 44px;
+    min-width: var(--size-touch);
+    height: var(--size-touch);
   }
 }
 
@@ -2797,7 +2797,7 @@ circle.em-dot:focus-visible {
 }
 
 .memory-finder-form .m-input {
-  flex: 1 1 18rem;
+  flex: 1 1 var(--layout-track-18);
   min-width: 0;
 }
 
@@ -2812,7 +2812,7 @@ circle.em-dot:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  min-height: 44px;
+  min-height: var(--size-touch);
   cursor: pointer;
 }
 
@@ -2831,7 +2831,7 @@ circle.em-dot:focus-visible {
   align-items: flex-start;
   gap: var(--spacing-xs);
   width: 100%;
-  min-height: 44px;
+  min-height: var(--size-touch);
   padding: var(--spacing-sm);
   border: 1px solid var(--color-tab-border);
   border-radius: var(--radius-sm);
@@ -2877,7 +2877,7 @@ circle.em-dot:focus-visible {
 }
 
 .settings-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--spacing-sm-2xs);
   font-size: var(--font-size-lg);
   color: var(--color-text-main);
 }
@@ -2897,7 +2897,7 @@ circle.em-dot:focus-visible {
 }
 
 .settings-table-wrap {
-  max-height: 32rem;
+  max-height: var(--layout-track-32);
 }
 
 .settings-key,
@@ -2911,7 +2911,7 @@ circle.em-dot:focus-visible {
 }
 
 .settings-edit {
-  min-width: 11rem;
+  min-width: var(--layout-track-11);
 }
 
 .settings-edit .settings-input {
@@ -2933,7 +2933,7 @@ circle.em-dot:focus-visible {
 
 .settings-readonly {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--layout-track-18), 1fr));
   gap: var(--spacing-xs) var(--spacing-md);
   margin: 0;
 }
@@ -2951,7 +2951,7 @@ circle.em-dot:focus-visible {
 }
 
 .settings-dialog {
-  width: min(32rem, 92vw);
+  width: min(var(--layout-track-32), 92vw);
   padding: var(--spacing-md);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
@@ -3026,7 +3026,7 @@ circle.em-dot:focus-visible {
 }
 
 .ranking-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--spacing-sm-2xs);
   font-size: var(--font-size-lg);
   color: var(--color-text-main);
 }
@@ -3052,7 +3052,7 @@ circle.em-dot:focus-visible {
 }
 
 .ranking-table-wrap {
-  max-height: 24rem;
+  max-height: var(--layout-track-24);
 }
 
 .ranking-key {
@@ -3065,7 +3065,7 @@ circle.em-dot:focus-visible {
 }
 
 .ranking-edit {
-  min-width: 8rem;
+  min-width: var(--layout-track-8);
 }
 
 .ranking-edit .ranking-input {
@@ -3079,7 +3079,7 @@ circle.em-dot:focus-visible {
 
 .ranking-changes {
   margin: 0 0 var(--spacing-sm);
-  padding-left: 1.2rem;
+  padding-left: var(--spacing-md-lg);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
@@ -3110,7 +3110,7 @@ circle.em-dot:focus-visible {
 }
 
 .ranking-dialog {
-  width: min(32rem, 92vw);
+  width: min(var(--layout-track-32), 92vw);
   padding: var(--spacing-md);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
@@ -3157,7 +3157,7 @@ circle.em-dot:focus-visible {
 }
 
 .sc-cell-preview {
-  max-width: 14rem;
+  max-width: var(--layout-track-14);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3175,7 +3175,7 @@ circle.em-dot:focus-visible {
 
 .sc-detail-col .sc-preview {
   white-space: pre-wrap;
-  max-height: 12rem;
+  max-height: var(--layout-track-12);
   overflow: auto;
   margin: 0;
   font-size: var(--font-size-sm, 0.875rem);
