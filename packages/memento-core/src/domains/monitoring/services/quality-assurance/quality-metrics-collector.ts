@@ -23,6 +23,9 @@ import { StorageMetricsCollector } from './storage-metrics-collector.js';
 import { CategoryQualityAggregator } from './category-quality-aggregator.js';
 import type { RepositoryProvider } from '../../../../shared/ports/repository-provider.port.js';
 
+/** 측정·리포트 대상 namespace. 여기에 없는 namespace 의 quality_metrics 행은 제거된 지표로 본다. */
+export const QUALITY_NAMESPACES = ['search', 'relation', 'storage'] as const;
+
 export class QualityMetricsCollector {
   private readonly searchCollector: SearchMetricsCollector;
   private readonly relationCollector: RelationMetricsCollector;
@@ -59,11 +62,7 @@ export class QualityMetricsCollector {
   }
 
   async collectAllMetrics(context: string = 'default'): Promise<CollectedMetrics[]> {
-    return Promise.all([
-      this.collectSearchMetrics(context),
-      this.collectRelationMetrics(context),
-      this.collectStorageMetrics(context),
-    ]);
+    return Promise.all(QUALITY_NAMESPACES.map(ns => this.collectMetricsByNamespace(ns, context)));
   }
 
   async collectMetricsByNamespace(

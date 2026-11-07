@@ -15,7 +15,7 @@
 import Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
 import { QualityEvaluator,type QualityEvaluationResult } from './quality-evaluator.js';
-import { QualityMetricsCollector,type CollectedMetrics } from './quality-metrics-collector.js';
+import { QualityMetricsCollector, QUALITY_NAMESPACES, type CollectedMetrics } from './quality-metrics-collector.js';
 import { QualityRecorder,type MeasurementType } from './quality-recorder.js';
 import { QualityReporter,type ReportOptions } from './quality-reporter.js';
 import { QualityThresholdManager } from './quality-threshold-manager.js';
@@ -167,6 +167,7 @@ export class QualityAssuranceService {
           evaluationResults,
           { measurement_type, context }
         );
+        this.recorder.removeRetiredNamespaces(QUALITY_NAMESPACES);
       }
 
       // 6. 경고 로그 기록

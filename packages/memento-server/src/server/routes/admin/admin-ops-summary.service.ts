@@ -162,7 +162,9 @@ async function buildQualitySection(
         unmeasured += 1;
       } else if (state === 'measured') {
         measured += 1;
-        evaluable += 1;
+        if (metric.status !== 'no_threshold') {
+          evaluable += 1;
+        }
       } else if (state) {
         unmeasured += 1;
       } else {
