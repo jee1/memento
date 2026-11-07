@@ -55,6 +55,8 @@ export interface GateInput {
   body: string;
   comments: GateComment[];
   checks: { name: string; bucket: string }[];
+  /** rollup 에서 판정 전에 걸러낸 취소 중복 실행 수. UNSTABLE 이 이것 때문인지 가린다. */
+  droppedCancelledDuplicates?: number;
   repoOwnerLogin: string;
   authorModel?: string;
   allowReviewOverflow?: boolean;
@@ -266,7 +268,10 @@ export function decide(pr: GateInput): GateDecision {
   if (pending.length > 0) {
     return { action: "wait", level, reasons: [`체크 진행 중 ${pending.length}개`] };
   }
-  if (pr.mergeStateStatus !== "CLEAN") {
+  // GitHub 는 취소 중복을 포함해 UNSTABLE 을 준다. 위에서 fail/cancel/pending 이 없음을 확인했으므로 걸러낸 중복이 있을 때만 통과.
+  const unstableFromCancelledDuplicates =
+    pr.mergeStateStatus === "UNSTABLE" && (pr.droppedCancelledDuplicates ?? 0) > 0;
+  if (pr.mergeStateStatus !== "CLEAN" && !unstableFromCancelledDuplicates) {
     return { action: "wait", level, reasons: [`mergeStateStatus=${pr.mergeStateStatus}`] };
   }
 
@@ -362,6 +367,10 @@ export function checksFromRollup(items: RollupItem[]): { name: string; bucket: s
   }));
 }
 
+export function countDroppedCancelledDuplicates(items: RollupItem[]): number {
+  return items.length - filterDuplicateCancelledRollup(items).length;
+}
+
 /** 같은 workflow·이름의 비취소 실행이 있으면 취소된 중복만 판정에서 뺀다. 취소만 있으면 그대로 둔다. */
 export function filterDuplicateCancelledRollup(items: RollupItem[]): RollupItem[] {
   const byKey = new Map<string, RollupItem[]>();
@@ -394,7 +403,31 @@ export function bucketOf(item: RollupItem): string {
   return FAIL_STATES.has(item.conclusion ?? "") ? "fail" : "pass";
 }
 
+export const UNKNOWN_RETRY_ATTEMPTS = 4;
+export const UNKNOWN_RETRY_INTERVAL_MS = 3000;
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** 다른 PR 머지 직후 GitHub 가 잠시 주는 UNKNOWN 은 상수 횟수만큼 다시 조회한다. */
+export function loadWithUnknownRetry<T extends { mergeStateStatus: string }>(
+  load: () => T,
+  sleep: (ms: number) => void = sleepSync,
+): T {
+  let data = load();
+  for (let i = 1; i < UNKNOWN_RETRY_ATTEMPTS && data.mergeStateStatus === "UNKNOWN"; i++) {
+    sleep(UNKNOWN_RETRY_INTERVAL_MS);
+    data = load();
+  }
+  return data;
+}
+
 function loadPr(pr: string): GateInput & { baseRefName: string } {
+  return loadWithUnknownRetry(() => loadPrOnce(pr));
+}
+
+function loadPrOnce(pr: string): GateInput & { baseRefName: string } {
   // `gh pr checks --json` 은 gh 버전에 따라 없다 — statusCheckRollup 을 쓴다
   const repoOwnerLogin = gh(["repo", "view", "--json", "owner", "-q", ".owner.login"]).trim();
   const view = JSON.parse(
@@ -425,6 +458,7 @@ function loadPr(pr: string): GateInput & { baseRefName: string } {
     body,
     comments: view.comments.map((c) => ({ body: c.body, authorLogin: c.author.login })),
     checks: checksFromRollup(view.statusCheckRollup ?? []),
+    droppedCancelledDuplicates: countDroppedCancelledDuplicates(view.statusCheckRollup ?? []),
     repoOwnerLogin,
     authorModel: parseAuthorModel(body),
     prNumber: pr,
