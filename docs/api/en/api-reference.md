@@ -780,7 +780,7 @@ GET /admin/memory/supersede-candidates?verdict=confirmed&project_id=proj&lifecyc
 - `lifecycle_status` (optional): `not_applied` | `applied` | `target_deleted` | `dangling_pointer` | `restored` | `dismissed`. Default list excludes dismissed rows (`dismissed_at` set).
 - `page_size`: `25` | `50`. `page` requires `page_size`.
 
-Each row includes old/new ids, the old row's current `old_superseded_by` pointer, 200-char content previews, type, project, verdict, LLM provider/model, `judged_at`, `lifecycle_status`, and `supersede_apply_enabled` for the current process.
+Each row includes old/new ids, the old row's current `old_superseded_by` pointer, 200-char content previews, type, project, verdict, `rationale`, `evidence_quote` (LLM citation; `null` when absent), LLM provider/model, `judged_at`, `lifecycle_status`, and `supersede_apply_enabled` for the current process. The dashboard detail view shows `evidence_quote` as text and displays “인용 근거 없음” when the value is missing (#1640).
 
 ```http
 POST /admin/memory/supersede-candidates/:id/dismiss

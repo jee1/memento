@@ -40,6 +40,7 @@ export interface SupersedeCandidateListItem {
   old_content_preview: string;
   new_content_preview: string;
   rationale: string;
+  evidence_quote: string | null;
   provider: string;
   model: string;
   judged_at: string;

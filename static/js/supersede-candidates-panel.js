@@ -102,7 +102,7 @@
     wrap.innerHTML =
       '<div class="sc-detail-col"><h3 class="m-panel__subtitle">옛 기억</h3><p class="sc-memory-id"></p><pre class="sc-preview"></pre></div>' +
       '<div class="sc-detail-col"><h3 class="m-panel__subtitle">새 기억</h3><p class="sc-memory-id"></p><pre class="sc-preview"></pre></div>' +
-      '<div class="sc-detail-meta"><p class="sc-rationale"></p><p class="sc-judge"></p></div>' +
+      '<div class="sc-detail-meta"><p class="sc-rationale"></p><p class="sc-evidence-quote"></p><p class="sc-judge"></p></div>' +
       '<p class="sc-content-status" role="status"></p>' +
       '<p class="sc-apply-hint hidden"></p>' +
       '<div class="sc-detail-actions">' +
@@ -114,6 +114,9 @@
     cols[0].querySelector('.sc-memory-id').textContent = row.old_memory_id;
     cols[1].querySelector('.sc-memory-id').textContent = row.new_memory_id;
     wrap.querySelector('.sc-rationale').textContent = row.rationale;
+    const quote = row.evidence_quote == null ? '' : String(row.evidence_quote);
+    wrap.querySelector('.sc-evidence-quote').textContent =
+      quote.trim() === '' ? S.evidenceQuoteMissing : quote;
     wrap.querySelector('.sc-judge').textContent =
       row.provider + ' / ' + row.model + ' · ' + row.judged_at + ' · ' + (S.lifecycleLabel[row.lifecycle_status] || row.lifecycle_status);
     setApplyRestoreDismissState(row, wrap);

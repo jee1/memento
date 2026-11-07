@@ -98,6 +98,7 @@ const CANDIDATE = {
   new_memory_id: 'mem_new',
   old_superseded_by: null as string | null,
   rationale: XSS_PAYLOAD,
+  evidence_quote: XSS_PAYLOAD,
   provider: 'gemini',
   model: 'm',
   judged_at: '2026-11-01',
@@ -211,6 +212,21 @@ describe('supersede candidates dashboard panel (#1618)', () => {
     expect(page.fetchMock.mock.calls.map(([url]) => url)).toContain('/admin/memory/items/mem_new');
     expect(page.detail.descendants().some((node) => node.tag === 'img')).toBe(false);
     expect(page.sandbox.__sc_xss).toBeUndefined();
+  });
+
+  it('#1640: shows evidence_quote as textContent without interpreting HTML', async () => {
+    const page = createHarness();
+    await page.init();
+    const quoteEl = page.detail.querySelector('.sc-evidence-quote')!;
+    expect(quoteEl.textContent).toBe(XSS_PAYLOAD);
+    expect(quoteEl.descendants().some((node) => node.tag === 'img')).toBe(false);
+    expect(page.sandbox.__sc_xss).toBeUndefined();
+  });
+
+  it.each([null, '', '   '])('#1640: shows missing evidence label when quote is %j', async (quote) => {
+    const page = createHarness(undefined, [{ ...CANDIDATE, evidence_quote: quote }]);
+    await page.init();
+    expect(page.detail.querySelector('.sc-evidence-quote')!.textContent).toBe('인용 근거 없음');
   });
 
   it('blocks approval until both memory bodies finish loading', async () => {
