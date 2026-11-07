@@ -64,7 +64,7 @@ export interface OpsSummaryQualityTrend {
   unmeasured_metric_count: number;
   evaluable_metric_count: number;
   history_sample_count: number;
-  overall_status: 'pass' | 'warning' | 'fail' | null;
+  overall_status: 'pass' | 'warning' | 'fail' | 'no_threshold' | 'unmeasured' | null;
   note?: string;
 }
 

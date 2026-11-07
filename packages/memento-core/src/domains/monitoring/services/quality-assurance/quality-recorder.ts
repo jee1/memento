@@ -264,6 +264,19 @@ export class QualityRecorder {
   }
 
   /**
+   * 더는 측정하지 않는 namespace 의 최신 지표 행을 지운다 (예: v2.0.0 에서 제거된 consolidation).
+   * 지우지 않으면 마지막 측정값이 매일 리포트에 다시 집계된다 (#1650).
+   */
+  removeRetiredNamespaces(liveNamespaces: readonly string[]): number {
+    const placeholders = liveNamespaces.map(() => '?').join(', ');
+    return DatabaseUtils.run(
+      this.db,
+      `DELETE FROM quality_metrics WHERE metric_namespace NOT IN (${placeholders})`,
+      [...liveNamespaces]
+    ).changes;
+  }
+
+  /**
    * 최근 측정 이력의 metrics JSON 페이로드 (리포트 표시용)
    */
   getLatestMeasurementPayload(

@@ -39,6 +39,7 @@
 - 대체 후보: Sleep consolidation 요약이 사용자가 남긴 기억을 대체하는 쌍을 짝짓기에서 뺍니다(`origin_source.tool = 'sleep-consolidation'` 인 새 기억과 `caller = 'user'` 인 옛 기억). 사용자 기억이 요약을 대체하는 쌍과 요약끼리의 쌍은 그대로 판정합니다. 판정 프롬프트(`supersede-v2-*`)는 같은 주제라도 다른 도구, 에이전트, 환경, 대상을 설명하면 `compatible` 로 둡니다. 운영 DB 사본 재생에서 user→요약 쌍 21건이 0건이 되고, 2026-11-02 거절한 confirmed 오판정 2건이 후보에서 빠집니다 (#1622).
 - Admin 대체 후보: 상세 화면에서 기존 단건 API로 old/new 전체 본문을 표시합니다. 두 본문을 모두 불러오기 전과 조회 실패 시 승인을 막고 이유를 표시합니다 (#1636).
 - 개발: `scripts/pr-merge-gate.ts` 가 취소된 중복 CI 실행을 걸러냈을 때만 `mergeStateStatus=UNSTABLE` 을 통과시키고(비필수 체크 실패로 생긴 `UNSTABLE` 은 그대로 대기), 다른 PR 머지 직후의 `UNKNOWN` 은 3초 간격 최대 4회 다시 조회합니다 (#1648).
+- 품질 리포트: 일일 리포트가 정답셋 없는 search 를 빼고 `pass` 로 집계하던 문제를 고칩니다. 미측정 namespace 와 지표는 `unmeasured`, 임계값이 없는 지표는 `no_threshold` 로 `summary.overall_status`, `namespace_status`, `latest_metrics` 에 드러나고(`pass` 는 임계값을 통과한 지표만), v2.0.0 에서 제거된 consolidation 지표 행은 품질 측정 때 `quality_metrics` 에서 지웁니다. `summary` 에 `no_threshold_metrics`, `unmeasured_metrics` 를 추가했습니다 (#1650).
 
 ## [2.3.9] - 2026-11-02
 

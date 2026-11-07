@@ -13,6 +13,7 @@
 
 import Database from 'better-sqlite3';
 import { QualityRecorder } from './quality-recorder.js';
+import { QUALITY_NAMESPACES } from './quality-metrics-collector.js';
 import { QualityThresholdManager } from './quality-threshold-manager.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -69,6 +70,27 @@ export interface ReportOptions {
 }
 
 /**
+ * 리포트 판정. pass 는 임계값이 있고 통과한 경우만 쓴다.
+ * 임계값이 없으면 no_threshold, 측정하지 못했으면 unmeasured 다 (#1650).
+ */
+export type ReportStatus = 'pass' | 'warning' | 'fail' | 'no_threshold' | 'unmeasured';
+
+const STATUS_SEVERITY: Record<ReportStatus, number> = {
+  pass: 0,
+  no_threshold: 1,
+  unmeasured: 2,
+  warning: 3,
+  fail: 4,
+};
+
+function worstStatus(statuses: readonly ReportStatus[]): ReportStatus {
+  return statuses.reduce<ReportStatus>(
+    (worst, status) => (STATUS_SEVERITY[status] > STATUS_SEVERITY[worst] ? status : worst),
+    statuses[0] ?? 'unmeasured'
+  );
+}
+
+/**
  * 리포트 데이터 구조
  */
 export interface QualityReport {
@@ -87,23 +109,25 @@ export interface QualityReport {
    */
   summary: {
     /**
-     * 전체 상태: 'pass', 'warning', 'fail'
+     * 전체 상태. 네임스페이스 상태 중 가장 나쁜 것 (fail > warning > unmeasured > no_threshold > pass)
      */
-    overall_status: 'pass' | 'warning' | 'fail';
+    overall_status: ReportStatus;
 
     /**
      * 네임스페이스별 상태
      */
     namespace_status: Array<{
       namespace: string;
-      status: 'pass' | 'warning' | 'fail';
+      status: ReportStatus;
       metrics_count: number;
       passed_count: number;
       failed_count: number;
+      no_threshold_count: number;
+      unmeasured_count: number;
     }>;
 
     /**
-     * 총 지표 수
+     * 총 지표 수 (미측정 포함)
      */
     total_metrics: number;
 
@@ -121,6 +145,16 @@ export interface QualityReport {
      * 경고 지표 수
      */
     warning_metrics: number;
+
+    /**
+     * 임계값이 없어 판정하지 못한 지표 수
+     */
+    no_threshold_metrics: number;
+
+    /**
+     * 측정하지 못한 지표 수
+     */
+    unmeasured_metrics: number;
   };
 
   /**
@@ -132,7 +166,7 @@ export interface QualityReport {
     context: string;
     metric_value: number | null;
     measured_at: string;
-    status: 'pass' | 'warning' | 'fail';
+    status: ReportStatus;
     threshold_value: number | null;
     threshold_type: 'min' | 'max' | null;
     measurement_state?: QualityMetricState;
@@ -176,9 +210,10 @@ function buildMeasuredLatestRows(
     const threshold = thresholdMap.get(
       `${metric.metric_namespace}.${metric.metric_key}.${metric.context}`
     ) ?? null;
+    const dbStatus = metric.status as 'pass' | 'warning' | 'fail';
     return {
       ...metric,
-      status: metric.status as 'pass' | 'warning' | 'fail',
+      status: dbStatus === 'pass' && !threshold ? 'no_threshold' : dbStatus,
       threshold_type: threshold?.threshold_type ?? null,
       measurement_state: QUALITY_METRIC_STATE.MEASURED,
     };
@@ -213,7 +248,7 @@ function appendUnmeasuredLatestRows(
       context,
       metric_value: null,
       measured_at: typeof payload?.measured_at === 'string' ? payload.measured_at : now,
-      status: 'warning',
+      status: 'unmeasured',
       threshold_value: null,
       threshold_type: null,
       measurement_state: state,
@@ -222,13 +257,14 @@ function appendUnmeasuredLatestRows(
   }
 }
 
-function markLegacyUnknownLatestRows(enriched: LatestMetricRow[], isLegacy: boolean): void {
+function markLegacyUnknownLatestRows(rows: LatestMetricRow[], isLegacy: boolean): void {
   if (!isLegacy) {
     return;
   }
-  for (const metric of enriched) {
+  for (const metric of rows) {
     if (metric.metric_value === 0 && metric.measurement_state === QUALITY_METRIC_STATE.MEASURED) {
       metric.measurement_state = QUALITY_METRIC_STATE.UNKNOWN_LEGACY;
+      metric.status = 'unmeasured';
     }
   }
 }
@@ -302,55 +338,6 @@ export class QualityReporter {
       }
     }
 
-    // 4. 네임스페이스별 상태 집계
-    const namespaceStatusMap = new Map<string, {
-      namespace: string;
-      status: 'pass' | 'warning' | 'fail';
-      metrics_count: number;
-      passed_count: number;
-      failed_count: number;
-    }>();
-
-    for (const metric of latestMetrics) {
-      const ns = metric.metric_namespace;
-      if (!namespaceStatusMap.has(ns)) {
-        namespaceStatusMap.set(ns, {
-          namespace: ns,
-          status: 'pass',
-          metrics_count: 0,
-          passed_count: 0,
-          failed_count: 0
-        });
-      }
-
-      const status = namespaceStatusMap.get(ns)!;
-      status.metrics_count++;
-      if (metric.status === 'pass') {
-        status.passed_count++;
-      } else if (metric.status === 'fail') {
-        status.failed_count++;
-        status.status = 'fail';
-      } else if (metric.status === 'warning' && status.status === 'pass') {
-        status.status = 'warning';
-      }
-    }
-
-    const namespaceStatus = Array.from(namespaceStatusMap.values());
-
-    // 5. 전체 상태 결정
-    let overallStatus: 'pass' | 'warning' | 'fail' = 'pass';
-    if (namespaceStatus.some(ns => ns.status === 'fail')) {
-      overallStatus = 'fail';
-    } else if (namespaceStatus.some(ns => ns.status === 'warning')) {
-      overallStatus = 'warning';
-    }
-
-    // 5. 전체 통계 계산
-    const totalMetrics = latestMetrics.length;
-    const passedMetrics = latestMetrics.filter(m => m.status === 'pass').length;
-    const failedMetrics = latestMetrics.filter(m => m.status === 'fail').length;
-    const warningMetrics = latestMetrics.filter(m => m.status === 'warning').length;
-
     // 6. 측정 이력 조회
     const history = this.recorder.getMeasurementHistory(namespace, context, from, to, historyLimit);
 
@@ -382,14 +369,37 @@ export class QualityReporter {
       return h;
     });
 
-    // 8. 최신 지표에 threshold_type·미측정 상태 반영
+    // 8. 최신 지표에 threshold_type·미측정 상태 반영 (네임스페이스마다 자기 최신 측정 기준)
     const enrichedLatestMetrics = buildMeasuredLatestRows(latestMetrics, thresholdMap);
-    const latestPayload = this.recorder.getLatestMeasurementPayload(namespace, context);
-    appendUnmeasuredLatestRows(enrichedLatestMetrics, latestPayload, namespace, context, now);
-    markLegacyUnknownLatestRows(
-      enrichedLatestMetrics,
-      this.recorder.isLegacyUnknownMetric(latestPayload)
-    );
+    const namespaces = new Set<string>(namespace ? [namespace] : QUALITY_NAMESPACES);
+    for (const metric of latestMetrics) {
+      namespaces.add(metric.metric_namespace);
+    }
+    const namespaceStatus: QualityReport['summary']['namespace_status'] = [];
+    for (const ns of namespaces) {
+      const payload = this.recorder.getLatestMeasurementPayload(ns, context);
+      appendUnmeasuredLatestRows(enrichedLatestMetrics, payload, ns, context, now);
+      const rows = enrichedLatestMetrics.filter(m => m.metric_namespace === ns);
+      markLegacyUnknownLatestRows(rows, this.recorder.isLegacyUnknownMetric(payload));
+      if (rows.length === 0 && !payload) {
+        continue;
+      }
+      const countOf = (status: ReportStatus) => rows.filter(m => m.status === status).length;
+      namespaceStatus.push({
+        namespace: ns,
+        status: worstStatus(rows.map(m => m.status)),
+        metrics_count: rows.length,
+        passed_count: countOf('pass'),
+        failed_count: countOf('fail'),
+        no_threshold_count: countOf('no_threshold'),
+        unmeasured_count: countOf('unmeasured'),
+      });
+    }
+
+    // 9. 전체 상태·통계
+    const overallStatus = worstStatus(namespaceStatus.map(ns => ns.status));
+    const countOverall = (status: ReportStatus) =>
+      enrichedLatestMetrics.filter(m => m.status === status).length;
 
     return {
       generated_at: now,
@@ -397,10 +407,12 @@ export class QualityReporter {
       summary: {
         overall_status: overallStatus,
         namespace_status: namespaceStatus,
-        total_metrics: totalMetrics,
-        passed_metrics: passedMetrics,
-        failed_metrics: failedMetrics,
-        warning_metrics: warningMetrics
+        total_metrics: enrichedLatestMetrics.length,
+        passed_metrics: countOverall('pass'),
+        failed_metrics: countOverall('fail'),
+        warning_metrics: countOverall('warning'),
+        no_threshold_metrics: countOverall('no_threshold'),
+        unmeasured_metrics: countOverall('unmeasured'),
       },
       latest_metrics: enrichedLatestMetrics,
       warnings,

@@ -21,7 +21,9 @@ export function generateMarkdownReport(reportData: QualityReport): string {
   const statusEmoji = {
     pass: '✅',
     warning: '⚠️',
-    fail: '❌'
+    fail: '❌',
+    no_threshold: '➖',
+    unmeasured: '❔'
   };
 
   let markdown = `# Quality Assurance Report\n\n`;
@@ -36,14 +38,16 @@ export function generateMarkdownReport(reportData: QualityReport): string {
   markdown += `| **총 지표 수** | ${summary.total_metrics} |\n`;
   markdown += `| **통과 지표** | ${summary.passed_metrics} |\n`;
   markdown += `| **실패 지표** | ${summary.failed_metrics} |\n`;
-  markdown += `| **경고 지표** | ${summary.warning_metrics} |\n\n`;
+  markdown += `| **경고 지표** | ${summary.warning_metrics} |\n`;
+  markdown += `| **임계값 없음 지표** | ${summary.no_threshold_metrics} |\n`;
+  markdown += `| **미측정 지표** | ${summary.unmeasured_metrics} |\n\n`;
 
   if (summary.namespace_status.length > 0) {
     markdown += `## 네임스페이스별 상태\n\n`;
-    markdown += `| 네임스페이스 | 상태 | 지표 수 | 통과 | 실패 |\n`;
-    markdown += `|-------------|------|---------|------|------|\n`;
+    markdown += `| 네임스페이스 | 상태 | 지표 수 | 통과 | 실패 | 임계값 없음 | 미측정 |\n`;
+    markdown += `|-------------|------|---------|------|------|------------|--------|\n`;
     for (const ns of summary.namespace_status) {
-      markdown += `| **${ns.namespace}** | ${statusEmoji[ns.status]} ${ns.status.toUpperCase()} | ${ns.metrics_count} | ${ns.passed_count} | ${ns.failed_count} |\n`;
+      markdown += `| **${ns.namespace}** | ${statusEmoji[ns.status]} ${ns.status.toUpperCase()} | ${ns.metrics_count} | ${ns.passed_count} | ${ns.failed_count} | ${ns.no_threshold_count} | ${ns.unmeasured_count} |\n`;
     }
     markdown += `\n`;
   }
@@ -100,26 +104,30 @@ export function generateHtmlReport(reportData: QualityReport): string {
   const statusClass = {
     pass: 'status-pass',
     warning: 'status-warning',
-    fail: 'status-fail'
+    fail: 'status-fail',
+    no_threshold: 'status-warning',
+    unmeasured: 'status-warning'
   };
   const statusText = {
     pass: 'PASS',
     warning: 'WARNING',
-    fail: 'FAIL'
+    fail: 'FAIL',
+    no_threshold: 'NO_THRESHOLD',
+    unmeasured: 'UNMEASURED'
   };
 
   const safeQualityRowClass = (status: string): string => {
     const k = status.toLowerCase();
-    if (k === 'pass' || k === 'warning' || k === 'fail') {
+    if (k === 'pass' || k === 'warning' || k === 'fail' || k === 'no_threshold' || k === 'unmeasured') {
       return statusClass[k];
     }
     return 'status-warning';
   };
   const safeQualityLabel = (status: string): string => {
     const k = status.toLowerCase();
-    if (k === 'pass') return statusText.pass;
-    if (k === 'warning') return statusText.warning;
-    if (k === 'fail') return statusText.fail;
+    if (k === 'pass' || k === 'warning' || k === 'fail' || k === 'no_threshold' || k === 'unmeasured') {
+      return statusText[k];
+    }
     return escapeHtml(status);
   };
   const safeHistoryRowClass = (status: string): string => {
@@ -247,6 +255,14 @@ export function generateHtmlReport(reportData: QualityReport): string {
           <td><strong>경고 지표</strong></td>
           <td>${escapeHtml(summary.warning_metrics)}</td>
         </tr>
+        <tr>
+          <td><strong>임계값 없음 지표</strong></td>
+          <td>${escapeHtml(summary.no_threshold_metrics)}</td>
+        </tr>
+        <tr>
+          <td><strong>미측정 지표</strong></td>
+          <td>${escapeHtml(summary.unmeasured_metrics)}</td>
+        </tr>
       </table>
     </div>`;
 
@@ -260,6 +276,8 @@ export function generateHtmlReport(reportData: QualityReport): string {
         <th>지표 수</th>
         <th>통과</th>
         <th>실패</th>
+        <th>임계값 없음</th>
+        <th>미측정</th>
       </tr>`;
     for (const ns of summary.namespace_status) {
       html += `
@@ -269,6 +287,8 @@ export function generateHtmlReport(reportData: QualityReport): string {
         <td>${escapeHtml(ns.metrics_count)}</td>
         <td>${escapeHtml(ns.passed_count)}</td>
         <td>${escapeHtml(ns.failed_count)}</td>
+        <td>${escapeHtml(ns.no_threshold_count)}</td>
+        <td>${escapeHtml(ns.unmeasured_count)}</td>
       </tr>`;
     }
     html += `
