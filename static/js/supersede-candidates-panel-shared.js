@@ -16,6 +16,7 @@
     danglingPointerRestoreFirst:
       '댕글링 포인터입니다. 먼저 되돌리기(restore)로 옛 기억 포인터를 정리한 뒤 승인하세요.',
     selectRow: '목록에서 후보를 선택하세요.',
+    evidenceQuoteMissing: '인용 근거 없음',
     actionFailed: function (code) {
       return code ? '요청 실패: ' + code : '요청 실패';
     },

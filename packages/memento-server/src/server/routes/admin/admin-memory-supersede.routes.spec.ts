@@ -177,6 +177,7 @@ describe('admin supersede approval routes (#1551)', () => {
       id: candidateId,
       old_memory_id: 'mem_A',
       new_memory_id: 'mem_B',
+      evidence_quote: null,
       supersede_apply_enabled: false,
     });
 
@@ -189,6 +190,43 @@ describe('admin supersede approval routes (#1551)', () => {
 
     const after = await get('/memory/supersede-candidates?page_size=25&page=1');
     expect((await after.json()).candidates).toHaveLength(0);
+  });
+
+  it('#1640: list includes evidence_quote and normalizes blank to null', async () => {
+    const quotedId = randomUUID();
+    const blankId = randomUUID();
+    insertSeedMemory(db, { id: 'mem_Q1', content: 'Q1', createdAt: isoDaysAgo(20) });
+    insertSeedMemory(db, { id: 'mem_Q2', content: 'Q2', createdAt: isoDaysAgo(10) });
+    insertSeedMemory(db, { id: 'mem_B1', content: 'B1', createdAt: isoDaysAgo(20) });
+    insertSeedMemory(db, { id: 'mem_B2', content: 'B2', createdAt: isoDaysAgo(10) });
+    db.prepare(
+      `INSERT INTO memory_supersede_candidate (
+         id, old_memory_id, new_memory_id, owner_id, project_id, privacy_scope, memory_type, verdict,
+         rationale, evidence_quote, old_content_sha256, new_content_sha256, provider, model,
+         prompt_version, input_hash, llm_logical_request_id, created_at
+       ) VALUES (?, 'mem_Q1', 'mem_Q2', NULL, NULL, 'private', 'semantic', 'confirmed', '근거',
+                 '옛 본문 인용', ?, ?, 'gemini', 'm', 'v', ?, NULL, '2026-11-02T00:00:00.000Z')`,
+    ).run(quotedId, sha256('Q1'), sha256('Q2'), quotedId);
+    db.prepare(
+      `INSERT INTO memory_supersede_candidate (
+         id, old_memory_id, new_memory_id, owner_id, project_id, privacy_scope, memory_type, verdict,
+         rationale, evidence_quote, old_content_sha256, new_content_sha256, provider, model,
+         prompt_version, input_hash, llm_logical_request_id, created_at
+       ) VALUES (?, 'mem_B1', 'mem_B2', NULL, NULL, 'private', 'semantic', 'pending', '근거',
+                 '   ', ?, ?, 'gemini', 'm', 'v', ?, NULL, '2026-11-03T00:00:00.000Z')`,
+    ).run(blankId, sha256('B1'), sha256('B2'), blankId);
+
+    const list = await get('/memory/supersede-candidates?page_size=25&page=1');
+    expect(list.status).toBe(200);
+    const byId = Object.fromEntries(
+      ((await list.json()).candidates as Array<{ id: string; evidence_quote: string | null }>).map((row) => [
+        row.id,
+        row.evidence_quote,
+      ]),
+    );
+    expect(byId[quotedId]).toBe('옛 본문 인용');
+    expect(byId[blankId]).toBeNull();
+    expect(byId[candidateId]).toBeNull();
   });
 
   it('parses list query params', () => {

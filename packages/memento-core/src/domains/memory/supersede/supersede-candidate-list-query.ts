@@ -102,6 +102,7 @@ export function buildSupersedeCandidateSelectSql(
       c.new_memory_id,
       m_old.superseded_by AS old_superseded_by,
       c.rationale,
+      c.evidence_quote,
       c.provider,
       c.model,
       c.created_at AS judged_at,
@@ -134,6 +135,10 @@ export function mapSupersedeCandidateListRow(
     old_content_preview: preview(row.old_content),
     new_content_preview: preview(row.new_content),
     rationale: String(row.rationale),
+    evidence_quote:
+      row.evidence_quote == null || String(row.evidence_quote).trim() === ''
+        ? null
+        : String(row.evidence_quote),
     provider: String(row.provider),
     model: String(row.model),
     judged_at: String(row.judged_at),
