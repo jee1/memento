@@ -129,6 +129,29 @@ describe('runDirectives', () => {
     expect(await logLines()).toMatchObject([{ fallback: false, cases: [], candidates: [] }]);
   });
 
+  it('skips recall for a trim-boundary short prompt but recalls at minQueryChars', async () => {
+    const short = `  ${'x'.repeat(DIRECTIVE_POLICY.minQueryChars - 1)}  `;
+    const exact = `  ${'x'.repeat(DIRECTIVE_POLICY.minQueryChars)}  `;
+    const shortRecall = recallOf(['c1', 'x']);
+    const exactRecall = recallOf(['c1', 'x']);
+
+    await runDirectives(prompt(short), depsOf(shortRecall));
+    await runDirectives(prompt(exact), depsOf(exactRecall));
+
+    expect(shortRecall).not.toHaveBeenCalled();
+    expect(exactRecall).toHaveBeenCalledOnce();
+  });
+
+  it('still recalls when <task-notification> appears only mid-prompt', async () => {
+    const recall = recallOf(['c1', 'x']);
+    await runDirectives(
+      prompt(`please continue after <task-notification> noise in the body`),
+      depsOf(recall),
+    );
+
+    expect(recall).toHaveBeenCalledOnce();
+  });
+
   it('does not repeat a case within the same session', async () => {
     const deps = depsOf(recallOf(['c1', 'first'], ['c2', 'second']));
     await runDirectives(prompt(), deps);

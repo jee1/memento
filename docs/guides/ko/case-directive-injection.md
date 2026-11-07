@@ -8,6 +8,7 @@
 
 1. 호스트가 프롬프트를 보내면 훅이 `memento hook claude-code` / `memento hook codex` / `memento hook cursor` 를 실행합니다.
 2. 훅은 프롬프트 앞 500자로 후보를 고릅니다(최대 15개). 후보는 memento 서버 `case` 기억이거나, `MEMENTO_DIRECTIVES_CASES_DIR` 마크다운 폴더입니다.
+   `<task-notification>` 으로 시작하는 백그라운드 작업 알림과 양끝 trim 뒤 10자 미만 프롬프트(인사, `진행해줘` 같은 짧은 발화)는 후보를 찾지 않습니다. pinned 지침과 로그 한 줄은 그대로 남습니다.
 3. 300자를 넘는 case 는 건너뛰고, 이 세션에서 이미 넣은 case 도 뺍니다. 남은 것을 순위대로 최대 5개, 본문 합계 4,500 bytes 까지 고릅니다.
 4. 고정 지침 파일(pinned)이 있으면 맨 앞에 붙입니다.
 5. `live` 모드면 호스트 스키마로 컨텍스트를 넘깁니다. Claude Code와 Codex는 `hookSpecificOutput.additionalContext`, Cursor(`beforeSubmitPrompt`)는 `additional_context` + `continue: true` 입니다. `shadow` 모드면 넘기지 않고 로그만 씁니다.

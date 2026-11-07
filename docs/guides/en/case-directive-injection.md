@@ -8,6 +8,7 @@ Korean documentation: [case-directive-injection.md (KO)](../ko/case-directive-in
 
 1. When the host submits a prompt, the hook runs `memento hook claude-code`, `memento hook codex`, or `memento hook cursor`.
 2. The hook picks up to 15 candidates from the first 500 characters of the prompt. Candidates come from memento server `case` memories or from the `MEMENTO_DIRECTIVES_CASES_DIR` markdown folder.
+   Background task notifications (prompts starting with `<task-notification>`) and prompts under 10 characters after trimming (greetings, "go on") skip candidate lookup. Pinned directives and the log line still apply.
 3. It skips cases longer than 300 characters and cases already injected in this session. It then takes the rest in rank order, up to 5 cases and 4,500 bytes of case text.
 4. If a pinned directives file exists, its text goes first.
 5. In `live` mode the hook returns host-shaped stdout. Claude Code and Codex use `hookSpecificOutput.additionalContext`. Cursor (`beforeSubmitPrompt`) uses `additional_context` plus `continue: true`. In `shadow` mode it returns nothing and only writes the log.
