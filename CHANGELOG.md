@@ -41,6 +41,7 @@
 - Admin 대체 후보: 상세 화면에서 기존 단건 API로 old/new 전체 본문을 표시합니다. 두 본문을 모두 불러오기 전과 조회 실패 시 승인을 막고 이유를 표시합니다 (#1636).
 - 개발: `scripts/pr-merge-gate.ts` 가 취소된 중복 CI 실행을 걸러냈을 때만 `mergeStateStatus=UNSTABLE` 을 통과시키고(비필수 체크 실패로 생긴 `UNSTABLE` 은 그대로 대기), 다른 PR 머지 직후의 `UNKNOWN` 은 3초 간격 최대 4회 다시 조회합니다 (#1648).
 - 품질 리포트: 일일 리포트가 정답셋 없는 search 를 빼고 `pass` 로 집계하던 문제를 고칩니다. 미측정 namespace 와 지표는 `unmeasured`, 임계값이 없는 지표는 `no_threshold` 로 `summary.overall_status`, `namespace_status`, `latest_metrics` 에 드러나고(`pass` 는 임계값을 통과한 지표만), v2.0.0 에서 제거된 consolidation 지표 행은 품질 측정 때 `quality_metrics` 에서 지웁니다. `summary` 에 `no_threshold_metrics`, `unmeasured_metrics` 를 추가했습니다 (#1650).
+- case 지침 훅: `<task-notification>` 백그라운드 작업 알림과 양끝 trim 뒤 10자 미만 프롬프트(인사, `진행상황 알려줘` 같은 짧은 발화)는 case recall 을 부르지 않습니다. 2026-11-06~07 shadow 로그 140건 중 63건(알림 39, 짧은 발화 24)이 해당하며, 그중 case 가 선택된 호출은 0건이었습니다 (#1653).
 
 ## [2.3.9] - 2026-11-02
 

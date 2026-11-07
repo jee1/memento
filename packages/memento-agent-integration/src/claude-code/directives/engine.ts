@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { appendLine, readInContext } from './log.js';
 import {
   clipCodePoints,
+  codePointLength,
   DIRECTIVE_POLICY,
   makeInjId,
   parseRecallItems,
@@ -90,7 +91,9 @@ async function run(input: DirectiveRunInput, deps: DirectiveDeps): Promise<strin
     if (!recall) throw new Error('SERVER_UNAVAILABLE');
     const query = clipCodePoints(input.prompt, DIRECTIVE_POLICY.queryMaxChars);
     const fetchCandidates = async (): Promise<CaseCandidate[]> => {
-      if (!query.trim()) return [];
+      // Claude Code 는 백그라운드 작업 알림도 프롬프트로 넘긴다. 짧은 발화는 shadow 로그에서 case 를 고른 적이 없다 (#1653).
+      if (query.trimStart().startsWith('<task-notification>')) return [];
+      if (codePointLength(query.trim()) < DIRECTIVE_POLICY.minQueryChars) return [];
       const raw = await recall(
         { query, type: 'semantic', tags: [DIRECTIVE_POLICY.caseTag], limit: DIRECTIVE_POLICY.recallLimit },
         AbortSignal.timeout(DIRECTIVE_POLICY.recallTimeoutMs),

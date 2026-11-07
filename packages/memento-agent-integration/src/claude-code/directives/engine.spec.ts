@@ -117,6 +117,41 @@ describe('runDirectives', () => {
     expect(Array.from(request.query)).toHaveLength(DIRECTIVE_POLICY.queryMaxChars);
   });
 
+  it.each([
+    ['a task notification', '<task-notification>\n<task-id>b1</task-id>\n<status>completed</status>\n<summary>Background command "Wait for CI" completed (exit code 0)</summary>\n</task-notification>'],
+    ['a greeting', '안녕'],
+    ['a short instruction', '진행상황 알려줘'],
+  ])('does not recall for %s', async (_label, text) => {
+    const recall = recallOf(['c1', 'x']);
+    await runDirectives(prompt(text), depsOf(recall));
+
+    expect(recall).not.toHaveBeenCalled();
+    expect(await logLines()).toMatchObject([{ fallback: false, cases: [], candidates: [] }]);
+  });
+
+  it('skips recall for a trim-boundary short prompt but recalls at minQueryChars', async () => {
+    const short = `  ${'x'.repeat(DIRECTIVE_POLICY.minQueryChars - 1)}  `;
+    const exact = `  ${'x'.repeat(DIRECTIVE_POLICY.minQueryChars)}  `;
+    const shortRecall = recallOf(['c1', 'x']);
+    const exactRecall = recallOf(['c1', 'x']);
+
+    await runDirectives(prompt(short), depsOf(shortRecall));
+    await runDirectives(prompt(exact), depsOf(exactRecall));
+
+    expect(shortRecall).not.toHaveBeenCalled();
+    expect(exactRecall).toHaveBeenCalledOnce();
+  });
+
+  it('still recalls when <task-notification> appears only mid-prompt', async () => {
+    const recall = recallOf(['c1', 'x']);
+    await runDirectives(
+      prompt(`please continue after <task-notification> noise in the body`),
+      depsOf(recall),
+    );
+
+    expect(recall).toHaveBeenCalledOnce();
+  });
+
   it('does not repeat a case within the same session', async () => {
     const deps = depsOf(recallOf(['c1', 'first'], ['c2', 'second']));
     await runDirectives(prompt(), deps);

@@ -12,6 +12,7 @@ export const DIRECTIVE_POLICY = {
   caseTag: 'case',
   minFinalScore: 0.5,
   caseMaxChars: 300,
+  minQueryChars: 10,
   queryMaxChars: 500,
   recallLimit: 15,
   maxCases: 5,
