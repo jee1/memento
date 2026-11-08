@@ -151,4 +151,107 @@ describe('llm usage retry instrumentation (#1546)', () => {
     expect(row.usage_unknown).toBe(1);
     expect(global.fetch).toHaveBeenCalled();
   });
+
+  it('ollama summarization success records one attempt with adapter tokens (#1672)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: { content: '  ollama summary  ' },
+        prompt_eval_count: 11,
+        eval_count: 7,
+      }),
+      text: async () => '',
+    }) as typeof fetch;
+
+    const svc = new SummarizationService({
+      llmProvider: 'ollama',
+      llmProviderOverrides: { consolidation: 'ollama' },
+      llmModelOverrides: {},
+      openaiLlmModel: 'gpt-4o-mini',
+      geminiLlmModel: 'gemini-2.0-flash',
+      ollamaModel: 'llama3',
+      ollamaBaseUrl: 'http://ollama.test:11434',
+    });
+    const out = await svc.summarizeCluster({
+      clusterEpisodes: [episodicRow('1', 'episode body')],
+    });
+    expect(out.ok).toBe(true);
+
+    const rows = db
+      .prepare(
+        `SELECT outcome, input_tokens AS inputTokens, output_tokens AS outputTokens
+         FROM llm_usage_attempt ORDER BY attempt_index ASC`,
+      )
+      .all() as Array<{ outcome: string; inputTokens: number | null; outputTokens: number | null }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ outcome: 'success', inputTokens: 11, outputTokens: 7 });
+  });
+
+  it('ollama empty response keeps one success attempt and defers (#1672)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: { content: '   ' },
+        prompt_eval_count: 3,
+        eval_count: 0,
+      }),
+      text: async () => '',
+    }) as typeof fetch;
+
+    const svc = new SummarizationService({
+      llmProvider: 'ollama',
+      llmProviderOverrides: { consolidation: 'ollama' },
+      llmModelOverrides: {},
+      openaiLlmModel: 'gpt-4o-mini',
+      geminiLlmModel: 'gemini-2.0-flash',
+      ollamaModel: 'llama3',
+      ollamaBaseUrl: 'http://ollama.test:11434',
+    });
+    const out = await svc.summarizeCluster({
+      clusterEpisodes: [episodicRow('1', 'episode body')],
+    });
+    expect(out.ok).toBe(false);
+    if (!out.ok) {
+      expect(out.reason).toBe('empty_response');
+    }
+
+    const attempts = db
+      .prepare(`SELECT outcome FROM llm_usage_attempt ORDER BY attempt_index ASC`)
+      .all() as Array<{ outcome: string }>;
+    expect(attempts).toEqual([{ outcome: 'success' }]);
+
+    const logical = db
+      .prepare(`SELECT final_path AS finalPath, final_reason AS finalReason FROM llm_usage_logical`)
+      .get() as { finalPath: string; finalReason: string | null };
+    expect(logical).toMatchObject({ finalPath: 'deferred', finalReason: 'empty_response' });
+  });
+
+  it('ollama HTTP failure records one attempt (#1672)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+      text: async () => 'down',
+    }) as typeof fetch;
+
+    const svc = new SummarizationService({
+      llmProvider: 'ollama',
+      llmProviderOverrides: { consolidation: 'ollama' },
+      llmModelOverrides: {},
+      openaiLlmModel: 'gpt-4o-mini',
+      geminiLlmModel: 'gemini-2.0-flash',
+      ollamaModel: 'llama3',
+      ollamaBaseUrl: 'http://ollama.test:11434',
+    });
+    const out = await svc.summarizeCluster({
+      clusterEpisodes: [episodicRow('1', 'episode body')],
+    });
+    expect(out.ok).toBe(false);
+
+    const rows = db
+      .prepare(`SELECT outcome, failure_reason AS failureReason FROM llm_usage_attempt`)
+      .all() as Array<{ outcome: string; failureReason: string | null }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ outcome: 'failure', failureReason: 'http_503' });
+  });
 });
