@@ -245,35 +245,14 @@ export class SummarizationService {
       baseUrl: this.llmConfig.ollamaBaseUrl,
       model,
     });
-    const startedAt = Date.now();
     const result = await adapter.complete([
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ]);
-    const latencyMs = Math.max(0, Date.now() - startedAt);
     const text = result.content.trim();
     if (text) {
-      recordLlmUsageAttempt({
-        provider: 'ollama',
-        model,
-        outcome: 'success',
-        attemptCoverage: 'unknown',
-        inputTokens: 'unknown',
-        outputTokens: 'unknown',
-        latencyMs,
-      });
       return { ok: true, content: text, method: 'llm' };
     }
-    recordLlmUsageAttempt({
-      provider: 'ollama',
-      model,
-      outcome: 'failure',
-      failureReason: 'empty_response',
-      attemptCoverage: 'unknown',
-      inputTokens: 'unknown',
-      outputTokens: 'unknown',
-      latencyMs,
-    });
     return this.defer('empty_response');
   }
 
