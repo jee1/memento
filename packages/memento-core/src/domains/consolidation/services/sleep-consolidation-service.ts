@@ -167,13 +167,15 @@ export class SleepConsolidationService {
     }
 
     if (mergeTarget && this.clusterJudge) {
-      const [score] = await this.clusterJudge.scorePairs([{ a: summaryText, b: mergeTarget.content }]);
+      const [judged] = await this.clusterJudge.scorePairs([{ a: summaryText, b: mergeTarget.content }]);
+      const score = judged?.score;
       const accepted = typeof score === 'number' && score >= getClusterJudgeThreshold();
       mcpLogger.logServer('info', 'Consolidation judge: merge target', {
         clusterId,
         mergeTargetId: mergeTarget.id,
         score: Number.isFinite(score) ? score : null,
-        accepted
+        accepted,
+        cacheHit: judged?.cacheHit ?? false
       });
       if (!accepted) {
         mergeTarget = null;
@@ -566,7 +568,8 @@ export class SleepConsolidationService {
       const [seedId, ...memberIds] = cluster.episodicIds;
       const kept = [seedId!];
       for (const memberId of memberIds) {
-        const score = scores[k++];
+        const judged = scores[k++];
+        const score = judged?.score;
         const accepted = typeof score === 'number' && score >= threshold;
         if (accepted) {
           kept.push(memberId);
@@ -575,7 +578,8 @@ export class SleepConsolidationService {
           seedId,
           memberId,
           score: Number.isFinite(score) ? score : null,
-          accepted
+          accepted,
+          cacheHit: judged?.cacheHit ?? false
         });
       }
       if (kept.length < this.clustering.getMinClusterSize()) {

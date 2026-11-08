@@ -29,6 +29,7 @@
 - 개발: `scripts/pr-merge-gate.ts` 가 low/medium/high 공통으로 현재 head 의 `agent-review` approve(리뷰어 모델별 마지막 마커, 저장소 소유자 코멘트 줄 머리만)를 요구하고, 마커 4개(3회 초과)면 멈춥니다. high 는 줄 머리 Codex 마커(과도기, 소유자 코멘트만) 또는 `author-model` 과 다른 알려진 모델 계열 approve 와 사용자 승인 라벨을 요구합니다. overflow 재개는 `! … --merge --allow-review-overflow`(사용자 직접). Claude Code 훅이 `--allow-review-overflow` 를 막습니다 (#1631, #1633).
 - 개발: 낮은 가치 테스트 정리(단언 없는 placeholder, 대상 미호출, 중복, 이름과 다른 테스트).
 - 개발: 테스트 감사 2회차 운영 코드 정리. 운영 호출처가 없는 `scripts/simple-update-wrapper.ts`, `scripts/simple-migrate-wrapper.ts`, `clearConfigCache`, core `mcpLogger` 스텁의 `setServer`/`logMCPProtocol` 과 그것만 보거나 다른 테스트와 겹치던 테스트를 지웁니다.
+- consolidation: 클러스터 판정(`JevClusterJudge`)이 (seed 내용 sha256, member 내용 sha256, judge model, 프롬프트 버전) 키로 점수를 프로세스 메모리에 캐시합니다. 같은 내용의 쌍은 다음 run 에서 Jev 를 부르지 않고, 임계값은 캐시 뒤에 적용합니다. 실패, NaN 점수는 캐시하지 않고, 10,000쌍을 넘으면 가장 오래 안 쓴 쌍부터 버립니다. 재시작 뒤 첫 run 은 다시 판정합니다. `Consolidation judge:` 로그에 `cacheHit` 이 붙습니다 (#1668).
 
 ### Fixed
 
