@@ -55,8 +55,8 @@ export class JevRelevanceGate implements IRelevanceGatePort {
 
       const startedAt = Date.now();
       const result = await this.client.ask(state, questions, retryState);
-      recordSystemOneUsageAttempt(this.model, result);
-      const elapsedMs = Date.now() - startedAt;
+      const elapsedMs = Math.max(0, Date.now() - startedAt);
+      recordSystemOneUsageAttempt(this.model, result, elapsedMs);
 
       if (result.ok === true) {
         if (result.wafRetried) {

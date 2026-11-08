@@ -1,7 +1,10 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ILLMPort, LLMCompletionResult, LLMMessage } from '../ports/llm-port.js';
 import { PersonalAgentLlmError } from '../errors/personal-agent-llm-error.js';
-import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import {
+  classifyLlmAttemptOutcome,
+  coerceUsageField,
+} from '../../../shared/services/llm-usage/llm-usage-classify.js';
 import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 export type GeminiChatLlmAdapterOptions = {
@@ -19,6 +22,7 @@ export class GeminiChatLlmAdapter implements ILLMPort {
   }
 
   async complete(messages: LLMMessage[]): Promise<LLMCompletionResult> {
+    const startedAt = Date.now();
     try {
       const system = messages.find((m) => m.role === 'system')?.content ?? '';
       const rest = messages.filter((m) => m.role !== 'system');
@@ -34,13 +38,15 @@ export class GeminiChatLlmAdapter implements ILLMPort {
       if (!text) {
         throw new Error('Gemini response is empty');
       }
+      const providerReported = result.usageMetadata != null;
       recordLlmUsageAttempt({
         provider: 'gemini',
         model: this.modelName,
         outcome: 'success',
         attemptCoverage: 'full',
-        inputTokens: 'unknown',
-        outputTokens: 'unknown',
+        inputTokens: coerceUsageField(result.usageMetadata?.promptTokenCount, providerReported),
+        outputTokens: coerceUsageField(result.usageMetadata?.candidatesTokenCount, providerReported),
+        latencyMs: Math.max(0, Date.now() - startedAt),
       });
       return {
         content: text,
@@ -59,6 +65,7 @@ export class GeminiChatLlmAdapter implements ILLMPort {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs: Math.max(0, Date.now() - startedAt),
       });
       throw new PersonalAgentLlmError({
         code: 'provider_runtime_failed',

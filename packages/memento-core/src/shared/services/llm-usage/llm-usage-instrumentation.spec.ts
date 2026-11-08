@@ -7,6 +7,7 @@ import { LlmUsageTelemetryMigration } from '../../../infrastructure/database/sql
 import { LlmUsageRepository } from './llm-usage-repository.js';
 import { recordLlmUsageAttempt, setLlmUsageRepository } from './llm-usage-recorder.js';
 import { runWithLlmUsageLogicalContext } from './llm-usage-logical-context.js';
+import { recordSystemOneUsageAttempt } from './llm-usage-systemone-attempt.js';
 
 function episodicRow(id: string, content: string) {
   return {
@@ -40,7 +41,7 @@ describe('llm usage retry instrumentation (#1546)', () => {
     const retryManager = new RetryManager({ maxAttempts: 3, baseDelay: 1 });
     let calls = 0;
     await runWithLlmUsageLogicalContext('relation_extraction', null, async () => {
-      await retryChatLlmCall(
+      const { latencyMs } = await retryChatLlmCall(
         retryManager,
         { provider: 'gemini', model: 'gemini-2.0-flash', transient: 'cloud' },
         async () => {
@@ -58,6 +59,7 @@ describe('llm usage retry instrumentation (#1546)', () => {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
     });
 
@@ -65,6 +67,59 @@ describe('llm usage retry instrumentation (#1546)', () => {
       .prepare(`SELECT outcome FROM llm_usage_attempt ORDER BY attempt_index ASC`)
       .all() as Array<{ outcome: string }>;
     expect(rows.map((r) => r.outcome)).toEqual(['rate_limited', 'rate_limited', 'success']);
+  });
+
+  it('records latency_ms as a non-negative number on failure and success attempts (#1669)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const retryManager = new RetryManager({ maxAttempts: 2, baseDelay: 1 });
+    let calls = 0;
+    try {
+      await runWithLlmUsageLogicalContext('relevance_gate', null, async () => {
+        const { latencyMs } = await retryChatLlmCall(
+          retryManager,
+          { provider: 'openai', model: 'gpt-4o-mini', transient: 'cloud' },
+          async () => {
+            calls += 1;
+            vi.advanceTimersByTime(12);
+            if (calls < 2) {
+              throw new Error('429 rate limit exceeded');
+            }
+            return 'ok';
+          },
+        );
+        recordLlmUsageAttempt({
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          outcome: 'success',
+          attemptCoverage: 'full',
+          inputTokens: 'unknown',
+          outputTokens: 'unknown',
+          latencyMs,
+        });
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const rows = db
+      .prepare(`SELECT outcome, latency_ms AS latencyMs FROM llm_usage_attempt ORDER BY attempt_index ASC`)
+      .all() as Array<{ outcome: string; latencyMs: number | null }>;
+    expect(rows.map((r) => r.outcome)).toEqual(['rate_limited', 'success']);
+    for (const row of rows) {
+      expect(typeof row.latencyMs).toBe('number');
+      expect(row.latencyMs).toBeGreaterThanOrEqual(0);
+    }
+
+    await runWithLlmUsageLogicalContext('cluster_judge', null, () => {
+      recordSystemOneUsageAttempt('jev-latest', { ok: true, noulById: new Map(), wafRetried: false }, 34);
+      return undefined;
+    });
+    const systemOne = db
+      .prepare(
+        `SELECT latency_ms AS latencyMs FROM llm_usage_attempt WHERE provider = 'typesafe' ORDER BY rowid DESC LIMIT 1`,
+      )
+      .get() as { latencyMs: number | null };
+    expect(systemOne.latencyMs).toBe(34);
   });
 
   it('records direct fetch 429 on summarization path', async () => {

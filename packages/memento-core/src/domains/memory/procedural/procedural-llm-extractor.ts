@@ -189,17 +189,22 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     const model = resolveLlmModel('openai', 'procedural', mementoConfig, {
       boundProvider: resolveBoundLlmProvider('procedural', this.initResult?.preferredProvider ?? null),
     });
+    let lastAttemptLatencyMs = 0;
     const res = await this.retryManager.retry(
       async () => {
+        const startedAt = Date.now();
         try {
-          return await client.chat.completions.create({
+          const completion = await client.chat.completions.create({
             model,
             messages: messages as OpenAI.ChatCompletionMessageParam[],
             temperature: 0.3,
             max_tokens: 1024,
             response_format: { type: 'json_object' }
           }, { timeout: timeoutMs });
+          lastAttemptLatencyMs = Math.max(0, Date.now() - startedAt);
+          return completion;
         } catch (error) {
+          lastAttemptLatencyMs = Math.max(0, Date.now() - startedAt);
           recordLlmUsageAttempt({
             provider: 'openai',
             model,
@@ -208,6 +213,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
             attemptCoverage: 'full',
             inputTokens: 'unknown',
             outputTokens: 'unknown',
+            latencyMs: lastAttemptLatencyMs,
           });
           throw error;
         }
@@ -231,6 +237,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
       attemptCoverage: 'full',
       inputTokens: coerceUsageField(res.usage?.prompt_tokens, providerReported),
       outputTokens: coerceUsageField(res.usage?.completion_tokens, providerReported),
+      latencyMs: lastAttemptLatencyMs,
     });
     return content;
   }
@@ -249,6 +256,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
         const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        const startedAt = Date.now();
         try {
           const gen = await client.models.generateContent({
             model,
@@ -256,13 +264,15 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
             config: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
           });
           const text = gen.text || '{}';
+          const providerReported = gen.usageMetadata != null;
           recordLlmUsageAttempt({
             provider: 'gemini',
             model,
             outcome: 'success',
             attemptCoverage: 'full',
-            inputTokens: 'unknown',
-            outputTokens: 'unknown',
+            inputTokens: coerceUsageField(gen.usageMetadata?.promptTokenCount, providerReported),
+            outputTokens: coerceUsageField(gen.usageMetadata?.candidatesTokenCount, providerReported),
+            latencyMs: Math.max(0, Date.now() - startedAt),
           });
           return text;
         } catch (error) {
@@ -274,6 +284,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
             attemptCoverage: 'full',
             inputTokens: 'unknown',
             outputTokens: 'unknown',
+            latencyMs: Math.max(0, Date.now() - startedAt),
           });
           throw error;
         } finally {
@@ -304,6 +315,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
 
     return await this.retryManager.retry(
       async () => {
+        const startedAt = Date.now();
         try {
           const response = await fetch(`${baseUrl}/api/generate`, {
             method: 'POST',
@@ -327,20 +339,28 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
               attemptCoverage: 'unknown',
               inputTokens: 'unknown',
               outputTokens: 'unknown',
+              latencyMs: Math.max(0, Date.now() - startedAt),
             });
             throw err;
           }
-          const payload = (await response.json()) as { response?: string };
+          const payload = (await response.json()) as {
+            response?: string;
+            prompt_eval_count?: number;
+            eval_count?: number;
+          };
           if (!payload.response) {
             throw new Error('Ollama 응답 내용 없음');
           }
+          const promptKnown = typeof payload.prompt_eval_count === 'number';
+          const completionKnown = typeof payload.eval_count === 'number';
           recordLlmUsageAttempt({
             provider: 'ollama',
             model,
             outcome: 'success',
             attemptCoverage: 'unknown',
-            inputTokens: 'unknown',
-            outputTokens: 'unknown',
+            inputTokens: promptKnown ? payload.prompt_eval_count! : 'unknown',
+            outputTokens: completionKnown ? payload.eval_count! : 'unknown',
+            latencyMs: Math.max(0, Date.now() - startedAt),
           });
           return payload.response;
         } catch (error) {
@@ -353,6 +373,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
               attemptCoverage: 'unknown',
               inputTokens: 'unknown',
               outputTokens: 'unknown',
+              latencyMs: Math.max(0, Date.now() - startedAt),
             });
           }
           throw error;

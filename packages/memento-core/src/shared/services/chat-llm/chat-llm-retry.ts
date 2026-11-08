@@ -27,15 +27,21 @@ export async function retryChatLlmCall<T>(
   retryManager: IRetryManager,
   context: ChatLlmRetryContext,
   call: () => Promise<T>,
-): Promise<T> {
+): Promise<{ value: T; latencyMs: number }> {
   const patterns = context.transient === 'cloud' ? CLOUD_TRANSIENT : LOCAL_TRANSIENT;
   const retryOptions = getRetryOptions();
   const attemptCoverage = context.attemptCoverage ?? 'full';
+  let lastAttemptLatencyMs = 0;
 
   const instrumentedCall = async (): Promise<T> => {
+    const startedAt = Date.now();
     try {
-      return await call();
+      const value = await call();
+      lastAttemptLatencyMs = Math.max(0, Date.now() - startedAt);
+      return value;
     } catch (error) {
+      const latencyMs = Math.max(0, Date.now() - startedAt);
+      lastAttemptLatencyMs = latencyMs;
       recordLlmUsageAttempt({
         provider: context.provider,
         model: context.model,
@@ -44,12 +50,13 @@ export async function retryChatLlmCall<T>(
         attemptCoverage,
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
       throw error;
     }
   };
 
-  return retryManager.retry(instrumentedCall, {
+  const value = await retryManager.retry(instrumentedCall, {
     maxAttempts: retryOptions.external_api.maxAttempts,
     baseDelay: retryOptions.external_api.baseDelay,
     shouldRetry: (error: Error) => {
@@ -66,4 +73,5 @@ export async function retryChatLlmCall<T>(
       });
     },
   });
+  return { value, latencyMs: lastAttemptLatencyMs };
 }

@@ -12,6 +12,8 @@ export type OllamaChatLlmAdapterOptions = {
 
 type OllamaChatResponseJson = {
   message?: { role?: string; content?: string };
+  prompt_eval_count?: number;
+  eval_count?: number;
 };
 
 export class OllamaChatLlmAdapter implements ILLMPort {
@@ -29,6 +31,7 @@ export class OllamaChatLlmAdapter implements ILLMPort {
   async complete(messages: LLMMessage[]): Promise<LLMCompletionResult> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const startedAt = Date.now();
     try {
       const res = await fetch(this.chatUrl, {
         method: 'POST',
@@ -51,6 +54,7 @@ export class OllamaChatLlmAdapter implements ILLMPort {
           attemptCoverage: 'unknown',
           inputTokens: 'unknown',
           outputTokens: 'unknown',
+          latencyMs: Math.max(0, Date.now() - startedAt),
         });
         throw new PersonalAgentLlmError({
           code: 'provider_runtime_failed',
@@ -70,13 +74,16 @@ export class OllamaChatLlmAdapter implements ILLMPort {
       }
 
       const text = body.message?.content ?? '';
+      const promptKnown = typeof body.prompt_eval_count === 'number';
+      const completionKnown = typeof body.eval_count === 'number';
       recordLlmUsageAttempt({
         provider: 'ollama',
         model: this.model,
         outcome: 'success',
         attemptCoverage: 'unknown',
-        inputTokens: 'unknown',
-        outputTokens: 'unknown',
+        inputTokens: promptKnown ? body.prompt_eval_count! : 'unknown',
+        outputTokens: completionKnown ? body.eval_count! : 'unknown',
+        latencyMs: Math.max(0, Date.now() - startedAt),
       });
       return {
         content: text,
@@ -98,6 +105,7 @@ export class OllamaChatLlmAdapter implements ILLMPort {
         attemptCoverage: 'unknown',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs: Math.max(0, Date.now() - startedAt),
       });
       throw new PersonalAgentLlmError({
         code: 'provider_runtime_failed',

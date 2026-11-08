@@ -42,8 +42,9 @@ export class OllamaChatLlm implements ChatLlmPort {
       }
 
       let response: Response;
+      let attemptLatencyMs = 0;
       try {
-        response = await retryChatLlmCall(
+        const retried = await retryChatLlmCall(
           this.retryManager,
           { provider: this.provider, model: request.model, transient: 'local' },
           () =>
@@ -54,6 +55,8 @@ export class OllamaChatLlm implements ChatLlmPort {
               signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             }),
         );
+        response = retried.value;
+        attemptLatencyMs = retried.latencyMs;
       } catch (fetchError) {
         logger.error('Ollama API fetch 실패', {
           error: fetchError instanceof Error ? fetchError.message : String(fetchError),
@@ -74,6 +77,7 @@ export class OllamaChatLlm implements ChatLlmPort {
           attemptCoverage: 'full',
           inputTokens: 'unknown',
           outputTokens: 'unknown',
+          latencyMs: attemptLatencyMs,
         });
         throw new Error(await this.describeHttpFailure(response, apiUrl, request.model));
       }
@@ -130,6 +134,7 @@ export class OllamaChatLlm implements ChatLlmPort {
         attemptCoverage: 'full',
         inputTokens: promptKnown ? (data.prompt_eval_count as number) : 'unknown',
         outputTokens: completionKnown ? (data.eval_count as number) : 'unknown',
+        latencyMs: attemptLatencyMs,
       });
 
       return {
