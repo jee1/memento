@@ -38,7 +38,7 @@ describe('JevClusterJudge', () => {
 
     const judge = new JevClusterJudge({ apiKey: 'key' });
     const pairs = Array.from({ length: 23 }, (_, i) => ({ a: `a${i}`, b: `b${i}` }));
-    const scores = await judge.scorePairs(pairs);
+    const scores = (await judge.scorePairs(pairs)).map(s => s.score);
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(scores).toHaveLength(23);
@@ -93,7 +93,7 @@ describe('JevClusterJudge', () => {
 
     const judge = new JevClusterJudge({ apiKey: 'key' });
     const pairs = Array.from({ length: 13 }, (_, i) => ({ a: `a${i}`, b: `b${i}` }));
-    const scores = await judge.scorePairs(pairs);
+    const scores = (await judge.scorePairs(pairs)).map(s => s.score);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(scores.slice(0, 10).every(s => Number.isNaN(s))).toBe(true);
@@ -104,7 +104,7 @@ describe('JevClusterJudge', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
 
     const judge = new JevClusterJudge({ apiKey: 'key' });
-    const scores = await judge.scorePairs([{ a: 'a', b: 'b' }]);
+    const scores = (await judge.scorePairs([{ a: 'a', b: 'b' }])).map(s => s.score);
     expect(scores).toEqual([Number.NaN]);
   });
 
@@ -121,9 +121,120 @@ describe('JevClusterJudge', () => {
     );
 
     const judge = new JevClusterJudge({ apiKey: 'key' });
-    const scores = await judge.scorePairs([{ a: 'a0', b: 'b0' }, { a: 'a1', b: 'b1' }]);
+    const scores = (await judge.scorePairs([{ a: 'a0', b: 'b0' }, { a: 'a1', b: 'b1' }])).map(s => s.score);
     expect(scores[0]).toBe(0.7);
     expect(Number.isNaN(scores[1])).toBe(true);
+  });
+});
+
+describe('#1668: JevClusterJudge score cache', () => {
+  function answeringFetch(score = 0.8) {
+    return vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { questions: Record<string, unknown> };
+      const answers: Record<string, { noul: number }> = {};
+      for (const key of Object.keys(body.questions)) {
+        answers[key] = { noul: score };
+      }
+      return jsonResponse(200, { answers });
+    });
+  }
+
+  function sentStates(fetchMock: ReturnType<typeof vi.fn>, call: number): string[] {
+    const init = fetchMock.mock.calls[call]![1] as RequestInit;
+    return Object.values((JSON.parse(String(init.body)) as { state: Record<string, string> }).state);
+  }
+
+  const pairs = [
+    { a: 'seed', b: 'member one' },
+    { a: 'seed', b: 'member two' }
+  ];
+
+  it('serves a repeated pair from cache without calling Jev', async () => {
+    const fetchMock = answeringFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const judge = new JevClusterJudge({ apiKey: 'key' });
+
+    const first = await judge.scorePairs(pairs);
+    const second = await judge.scorePairs(pairs);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(first).toEqual([
+      { score: 0.8, cacheHit: false },
+      { score: 0.8, cacheHit: false }
+    ]);
+    expect(second).toEqual([
+      { score: 0.8, cacheHit: true },
+      { score: 0.8, cacheHit: true }
+    ]);
+  });
+
+  it('re-judges only the pair whose content changed', async () => {
+    const fetchMock = answeringFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const judge = new JevClusterJudge({ apiKey: 'key' });
+
+    await judge.scorePairs(pairs);
+    const second = await judge.scorePairs([pairs[0]!, { a: 'seed', b: 'member two edited' }]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(sentStates(fetchMock, 1)).toEqual(['seed', 'member two edited']);
+    expect(second.map(s => s.cacheHit)).toEqual([true, false]);
+  });
+
+  it('re-judges when the judge model changes', async () => {
+    const fetchMock = answeringFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const scoreCache = new Map<string, number>();
+
+    await new JevClusterJudge({ apiKey: 'key', model: 'jev-a', scoreCache }).scorePairs(pairs);
+    const second = await new JevClusterJudge({ apiKey: 'key', model: 'jev-b', scoreCache }).scorePairs(pairs);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(second.every(s => !s.cacheHit)).toBe(true);
+  });
+
+  it('does not cache a failed or missing score', async () => {
+    let call = 0;
+    const ok = answeringFetch();
+    const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      call++;
+      if (call === 1) {
+        return jsonResponse(500, {});
+      }
+      if (call === 2) {
+        return jsonResponse(200, { answers: { q0: { noul: 0.7 } } });
+      }
+      return ok(url, init);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const judge = new JevClusterJudge({ apiKey: 'key' });
+
+    await judge.scorePairs(pairs);
+    const second = await judge.scorePairs(pairs);
+    const third = await judge.scorePairs(pairs);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(Number.isNaN(second[1]!.score)).toBe(true);
+    expect(sentStates(fetchMock, 2)).toEqual(['seed', 'member two']);
+    expect(third).toEqual([
+      { score: 0.7, cacheHit: true },
+      { score: 0.8, cacheHit: false }
+    ]);
+  });
+
+  it('evicts the least recently used pair past the size limit', async () => {
+    const fetchMock = answeringFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const judge = new JevClusterJudge({ apiKey: 'key', scoreCacheMaxEntries: 2 });
+    const p = (b: string) => ({ a: 'seed', b });
+
+    await judge.scorePairs([p('x'), p('y')]);
+    await judge.scorePairs([p('x')]);
+    await judge.scorePairs([p('z')]);
+    const result = await judge.scorePairs([p('x'), p('y'), p('z')]);
+
+    expect(result.map(s => s.cacheHit)).toEqual([true, false, true]);
+    expect(sentStates(fetchMock, fetchMock.mock.calls.length - 1)).toEqual(['seed', 'y']);
   });
 });
 

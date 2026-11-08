@@ -4,6 +4,7 @@ import { SleepConsolidationService } from './sleep-consolidation-service.js';
 import { ConsolidationRepository } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
+import { JevClusterJudge, type ClusterJudgePair } from './cluster-judge.js';
 import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-schema.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
@@ -480,6 +481,7 @@ describe('SleepConsolidationService', () => {
   describe('#1225: cluster judge', () => {
     const emb = [1, 0, 0, 0];
     const provider = 'tfidf';
+    const judged = (...scores: number[]) => scores.map(score => ({ score, cacheHit: false }));
 
     async function setupTripleCluster(extra?: {
       summarizationService?: SummarizationService;
@@ -510,7 +512,7 @@ describe('SleepConsolidationService', () => {
 
     it('J1: rejects a cluster member below threshold', async () => {
       const { svc, clusterJudge } = await setupTripleCluster();
-      clusterJudge.scorePairs.mockResolvedValue([0.9, 0.1]);
+      clusterJudge.scorePairs.mockResolvedValue(judged(0.9, 0.1));
 
       const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
       expect(result.clustersFound).toBe(1);
@@ -520,9 +522,36 @@ describe('SleepConsolidationService', () => {
       expect(pairs.every(p => p.a === 'topic seed body')).toBe(true);
     });
 
+    it('#1668: second run over unchanged clusters sends no pair to Jev', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+        const { state } = JSON.parse(String(init?.body)) as { state: Record<string, string> };
+        const answers = {
+          q0: { noul: state.b0 === 'topic member one' ? 0.9 : 0.1 },
+          q1: { noul: state.b1 === 'topic member one' ? 0.9 : 0.1 }
+        };
+        return new Response(JSON.stringify({ answers }), { status: 200 });
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      const jev = new JevClusterJudge({ apiKey: 'key' });
+      clusterJudge.scorePairs.mockImplementation((pairs: ClusterJudgePair[]) => jev.scorePairs(pairs));
+
+      try {
+        const first = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+        const second = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(clusterJudge.scorePairs).toHaveBeenCalledTimes(2);
+        expect(first.clustersFound).toBe(1);
+        expect(second.clustersFound).toBe(1);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
     it('J2: fail-closed when judge returns NaN', async () => {
       const { svc, clusterJudge } = await setupTripleCluster();
-      clusterJudge.scorePairs.mockResolvedValue([Number.NaN, Number.NaN]);
+      clusterJudge.scorePairs.mockResolvedValue(judged(Number.NaN, Number.NaN));
 
       const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
       expect(result.clustersFound).toBe(0);
@@ -534,7 +563,7 @@ describe('SleepConsolidationService', () => {
       const summarization = new SummarizationService();
       vi.spyOn(summarization, 'summarizeCluster').mockResolvedValue(llmSummary('topic summary'));
       const { svc, clusterJudge } = await setupTripleCluster({ summarizationService: summarization });
-      clusterJudge.scorePairs.mockResolvedValue([0.9, 0.1]);
+      clusterJudge.scorePairs.mockResolvedValue(judged(0.9, 0.1));
 
       const result = await svc.run({ ownerIdFilter: 'agent-x' });
       expect(result.episodicsConsolidated).toBe(2);
@@ -609,9 +638,9 @@ describe('SleepConsolidationService', () => {
       const clusterJudge = {
         scorePairs: vi.fn().mockImplementation(async (pairs: Array<{ a: string; b: string }>) => {
           if (pairs.length === 1 && pairs[0]!.b === 'base') {
-            return [0.2];
+            return judged(0.2);
           }
-          return pairs.map(() => 0.9);
+          return judged(...pairs.map(() => 0.9));
         })
       };
       const { svc } = await setupMergeScenario(clusterJudge);
@@ -630,9 +659,9 @@ describe('SleepConsolidationService', () => {
       const clusterJudge = {
         scorePairs: vi.fn().mockImplementation(async (pairs: Array<{ a: string; b: string }>) => {
           if (pairs.length === 1 && pairs[0]!.b === 'base') {
-            return [0.9];
+            return judged(0.9);
           }
-          return pairs.map(() => 0.9);
+          return judged(...pairs.map(() => 0.9));
         })
       };
       const { svc } = await setupMergeScenario(clusterJudge);
