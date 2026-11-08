@@ -135,6 +135,7 @@ export class JevClusterJudge implements IClusterJudge {
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const startedAt = Date.now();
     try {
       const res = await fetch(this.baseUrl, {
         method: 'POST',
@@ -142,6 +143,7 @@ export class JevClusterJudge implements IClusterJudge {
         body: JSON.stringify({ model: this.model, state, questions }),
         signal: controller.signal
       });
+      const latencyMs = Math.max(0, Date.now() - startedAt);
       if (!res.ok) {
         recordLlmUsageAttempt({
           provider: 'typesafe',
@@ -151,6 +153,7 @@ export class JevClusterJudge implements IClusterJudge {
           attemptCoverage: 'full',
           inputTokens: 'unknown',
           outputTokens: 'unknown',
+          latencyMs,
         });
         logger.warn(`Consolidation judge: request failed (status ${res.status}, pairs ${batch.length})`);
         return batch.map(() => Number.NaN);
@@ -162,6 +165,7 @@ export class JevClusterJudge implements IClusterJudge {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
       const data = (await res.json()) as { answers?: Record<string, { noul?: unknown }> };
       return batch.map((_, k) => {
@@ -169,6 +173,7 @@ export class JevClusterJudge implements IClusterJudge {
         return typeof noul === 'number' ? noul : Number.NaN;
       });
     } catch (error) {
+      const latencyMs = Math.max(0, Date.now() - startedAt);
       const message = error instanceof Error ? error.message : String(error);
       recordLlmUsageAttempt({
         provider: 'typesafe',
@@ -178,6 +183,7 @@ export class JevClusterJudge implements IClusterJudge {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
       logger.warn(`Consolidation judge: ${message} (pairs ${batch.length})`);
       return batch.map(() => Number.NaN);

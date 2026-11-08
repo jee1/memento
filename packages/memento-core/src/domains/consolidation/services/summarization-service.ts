@@ -114,6 +114,7 @@ export class SummarizationService {
     const model = resolveLlmModel('openai', 'consolidation', undefined, {
       boundProvider: 'openai',
     });
+    const startedAt = Date.now();
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -129,6 +130,7 @@ export class SummarizationService {
         temperature: 0.3
       })
     });
+    const latencyMs = Math.max(0, Date.now() - startedAt);
     if (!res.ok) {
       recordLlmUsageAttempt({
         provider: 'openai',
@@ -138,6 +140,7 @@ export class SummarizationService {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
       return this.defer(deferFromHttpStatus(res.status));
     }
@@ -155,6 +158,7 @@ export class SummarizationService {
         attemptCoverage: 'full',
         inputTokens: coerceUsageField(payload.usage?.prompt_tokens, providerReported),
         outputTokens: coerceUsageField(payload.usage?.completion_tokens, providerReported),
+        latencyMs,
       });
       return { ok: true, content: text, method: 'llm' };
     }
@@ -166,6 +170,7 @@ export class SummarizationService {
       attemptCoverage: 'full',
       inputTokens: 'unknown',
       outputTokens: 'unknown',
+      latencyMs,
     });
     return this.defer('empty_response');
   }
@@ -179,6 +184,7 @@ export class SummarizationService {
       boundProvider: 'gemini',
     });
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+    const startedAt = Date.now();
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -186,6 +192,7 @@ export class SummarizationService {
         contents: [{ parts: [{ text: prompt }] }]
       })
     });
+    const latencyMs = Math.max(0, Date.now() - startedAt);
     if (!res.ok) {
       recordLlmUsageAttempt({
         provider: 'gemini',
@@ -195,6 +202,7 @@ export class SummarizationService {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
       return this.defer(deferFromHttpStatus(res.status));
     }
@@ -212,6 +220,7 @@ export class SummarizationService {
         attemptCoverage: 'full',
         inputTokens: coerceUsageField(payload.usageMetadata?.promptTokenCount, providerReported),
         outputTokens: coerceUsageField(payload.usageMetadata?.candidatesTokenCount, providerReported),
+        latencyMs,
       });
       return { ok: true, content: text, method: 'llm' };
     }
@@ -223,6 +232,7 @@ export class SummarizationService {
       attemptCoverage: 'full',
       inputTokens: 'unknown',
       outputTokens: 'unknown',
+      latencyMs,
     });
     return this.defer('empty_response');
   }
@@ -235,10 +245,12 @@ export class SummarizationService {
       baseUrl: this.llmConfig.ollamaBaseUrl,
       model,
     });
+    const startedAt = Date.now();
     const result = await adapter.complete([
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ]);
+    const latencyMs = Math.max(0, Date.now() - startedAt);
     const text = result.content.trim();
     if (text) {
       recordLlmUsageAttempt({
@@ -248,6 +260,7 @@ export class SummarizationService {
         attemptCoverage: 'unknown',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs,
       });
       return { ok: true, content: text, method: 'llm' };
     }
@@ -259,6 +272,7 @@ export class SummarizationService {
       attemptCoverage: 'unknown',
       inputTokens: 'unknown',
       outputTokens: 'unknown',
+      latencyMs,
     });
     return this.defer('empty_response');
   }

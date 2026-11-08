@@ -26,7 +26,7 @@ export class OpenAiChatLlm implements ChatLlmPort {
   ) {}
 
   async complete(request: ChatLlmRequest): Promise<ChatLlmResult> {
-    const response = await retryChatLlmCall(
+    const { value: response, latencyMs } = await retryChatLlmCall(
       this.retryManager,
       { provider: this.provider, model: request.model, transient: 'cloud', attemptCoverage: 'partial' },
       () =>
@@ -56,6 +56,7 @@ export class OpenAiChatLlm implements ChatLlmPort {
       attemptCoverage: 'partial',
       inputTokens: promptTokens,
       outputTokens: completionTokens,
+      latencyMs,
     });
 
     return {

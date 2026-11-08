@@ -104,6 +104,7 @@ export class JevRelationJudge {
         state[`t${index}`] = memory.content;
       });
 
+      const relevanceStartedAt = Date.now();
       const relevance = await this.client.ask(
         state,
         pool.map((_, index) => ({
@@ -111,7 +112,7 @@ export class JevRelationJudge {
           instructions: fill(RELEVANCE_QUESTION, `t${index}`),
         })),
       );
-      recordSystemOneUsageAttempt(this.model, relevance);
+      recordSystemOneUsageAttempt(this.model, relevance, Math.max(0, Date.now() - relevanceStartedAt));
       if (relevance.ok === false) {
         return { ok: false, reason: relevance.reason };
       }
@@ -132,6 +133,7 @@ export class JevRelationJudge {
         return { ok: true, candidates: [] };
       }
 
+      const typedStartedAt = Date.now();
       const typed = await this.client.ask(
         state,
         survivors.flatMap(({ index }) => types.map((type) => ({
@@ -139,7 +141,7 @@ export class JevRelationJudge {
           instructions: fill(TYPE_QUESTION[type], `t${index}`),
         }))),
       );
-      recordSystemOneUsageAttempt(this.model, typed);
+      recordSystemOneUsageAttempt(this.model, typed, Math.max(0, Date.now() - typedStartedAt));
       if (typed.ok === false) {
         return { ok: false, reason: typed.reason };
       }

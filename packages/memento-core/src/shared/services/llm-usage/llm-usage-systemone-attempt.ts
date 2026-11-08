@@ -10,7 +10,11 @@ function outcomeFromSystemOneFailure(reason: SystemOneFailureReason): LlmAttempt
 }
 
 /** TypeSafe System One 호출 1회분 attempt (#1546). */
-export function recordSystemOneUsageAttempt(model: string, result: SystemOneResult): void {
+export function recordSystemOneUsageAttempt(
+  model: string,
+  result: SystemOneResult,
+  latencyMs: number,
+): void {
   const attemptCoverage = result.wafRetried ? 'partial' : 'full';
   if (result.ok === true) {
     recordLlmUsageAttempt({
@@ -20,6 +24,7 @@ export function recordSystemOneUsageAttempt(model: string, result: SystemOneResu
       attemptCoverage,
       inputTokens: 'unknown',
       outputTokens: 'unknown',
+      latencyMs,
     });
     return;
   }
@@ -31,5 +36,6 @@ export function recordSystemOneUsageAttempt(model: string, result: SystemOneResu
     attemptCoverage,
     inputTokens: 'unknown',
     outputTokens: 'unknown',
+    latencyMs,
   });
 }

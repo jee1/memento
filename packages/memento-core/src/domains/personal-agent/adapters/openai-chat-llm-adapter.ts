@@ -1,7 +1,10 @@
 import OpenAI from 'openai';
 import type { ILLMPort, LLMCompletionResult, LLMMessage } from '../ports/llm-port.js';
 import { PersonalAgentLlmError } from '../errors/personal-agent-llm-error.js';
-import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import {
+  classifyLlmAttemptOutcome,
+  coerceUsageField,
+} from '../../../shared/services/llm-usage/llm-usage-classify.js';
 import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 
 export type OpenAiChatLlmAdapterOptions = {
@@ -20,6 +23,7 @@ export class OpenAiChatLlmAdapter implements ILLMPort {
   }
 
   async complete(messages: LLMMessage[]): Promise<LLMCompletionResult> {
+    const startedAt = Date.now();
     try {
       const completion = await this.client.chat.completions.create({
         model: this.model,
@@ -27,13 +31,15 @@ export class OpenAiChatLlmAdapter implements ILLMPort {
       });
       const raw = completion.choices[0]?.message?.content;
       const text = raw === null || raw === undefined ? '' : raw;
+      const providerReported = completion.usage != null;
       recordLlmUsageAttempt({
         provider: 'openai',
         model: this.model,
         outcome: 'success',
         attemptCoverage: 'full',
-        inputTokens: 'unknown',
-        outputTokens: 'unknown',
+        inputTokens: coerceUsageField(completion.usage?.prompt_tokens, providerReported),
+        outputTokens: coerceUsageField(completion.usage?.completion_tokens, providerReported),
+        latencyMs: Math.max(0, Date.now() - startedAt),
       });
       return {
         content: text,
@@ -53,6 +59,7 @@ export class OpenAiChatLlmAdapter implements ILLMPort {
         attemptCoverage: 'full',
         inputTokens: 'unknown',
         outputTokens: 'unknown',
+        latencyMs: Math.max(0, Date.now() - startedAt),
       });
       throw new PersonalAgentLlmError({
         code: 'provider_runtime_failed',
