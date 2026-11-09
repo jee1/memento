@@ -9,6 +9,10 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+### Added
+
+- remember 가 기존 행을 replace 또는 incremental 로 고치고 본문이 바뀌면 `memory.write.inplace_updated` 한 건을 `telemetry_events` 에 남긴다. `extra_data` 는 `memory_id`, `update_mode`, 이전 본문 sha256, 다음 본문 sha256 이고 본문은 넣지 않는다 (#1676).
+
 ## [2.3.10] - 2026-11-09
 
 ### Added
