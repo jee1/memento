@@ -477,6 +477,40 @@ function buildResultSimilarityWarning(draft: WriteDraft): SimilarityWarning | un
   return undefined;
 }
 
+function sha256Utf8(text: string): string {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function recordInPlaceUpdateEvent(
+  context: ToolContext,
+  draft: WriteDraft,
+  id: string,
+): void {
+  const previous = draft.existingMemory;
+  const updateMode = draft.params.update_mode;
+  const nextContent = draft.params.content;
+  if (!isInPlaceUpdate(previous, updateMode) || !previous || nextContent == null) return;
+
+  const beforeContentSha256 = sha256Utf8(previous.content);
+  const afterContentSha256 = sha256Utf8(nextContent);
+  if (beforeContentSha256 === afterContentSha256) return;
+
+  try {
+    context.services.telemetryService?.record({
+      eventType: 'memory.write.inplace_updated',
+      outcome: 'success',
+      extraData: {
+        memory_id: id,
+        update_mode: updateMode,
+        before_content_sha256: beforeContentSha256,
+        after_content_sha256: afterContentSha256,
+      },
+    });
+  } catch {
+    // record() 가 동기로 던져도 커밋된 갱신 결과는 유지한다. insert 실패는 TelemetryService 가 삼킨다.
+  }
+}
+
 function recordWriteCompleted(
   context: ToolContext,
   ctx: MemoryItemContext,
@@ -561,6 +595,8 @@ export async function handleMemoryItem(
     finalReflectionNotes,
     host,
   );
+
+  recordInPlaceUpdateEvent(context, draft, id);
 
   launchBackgroundAugmentation(
     {

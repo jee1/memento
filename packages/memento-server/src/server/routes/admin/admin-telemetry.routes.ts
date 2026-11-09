@@ -173,6 +173,7 @@ function getTelemetryEvents(db: Database.Database | null, serverServices: Server
         'memory.search.failed',
         'memory.write.requested',
         'memory.write.completed',
+        'memory.write.inplace_updated',
         'memory.feedback.positive',
         'memory.feedback.negative',
         'consolidation.performed',
