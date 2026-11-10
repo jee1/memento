@@ -19,6 +19,8 @@ export const MANIFEST_PATHS = [
   'packages/memento-core/package.json',
   'packages/memento-server/package.json',
   'plugins/memento/.mcp.json',
+  // 플러그인 version 이 그대로면 Claude Code 가 갱신으로 보지 않아 .mcp.json 의 새 서버 버전이 사용자에게 안 나간다.
+  'plugins/memento/.claude-plugin/plugin.json',
 ] as const;
 
 export interface ManifestVersion {

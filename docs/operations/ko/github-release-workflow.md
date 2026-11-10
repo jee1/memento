@@ -156,6 +156,7 @@ git push origin v1.7.3
 - `packages/memento-core/package.json`
 - `packages/memento-server/package.json`
 - `plugins/memento/.mcp.json` (`args`의 `memento-mcp-server@<version>`)
+- `plugins/memento/.claude-plugin/plugin.json` (`version`. 그대로면 플러그인 사용자에게 갱신이 안 나간다)
 
 서로 다르거나 태그와 다르면 릴리스 워크플로가 `E_VERSION_MISMATCH` 로 실패합니다.
 

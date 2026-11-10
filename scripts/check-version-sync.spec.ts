@@ -48,13 +48,13 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('checkVersionSync', () => {
-  it('네 대상의 버전이 같을 때 위반이 0건이다', () => {
+  it('다섯 대상의 버전이 같을 때 위반이 0건이다', () => {
     for (const file of MANIFEST_PATHS) {
       writeTarget(file, '1.0.0');
     }
     const result = checkVersionSync(root, MANIFEST_PATHS);
     expect(result.violations).toHaveLength(0);
-    expect(result.manifests).toHaveLength(4);
+    expect(result.manifests).toHaveLength(5);
   });
 
   it('매니페스트 버전 중 하나가 다를 때 위반이 보고된다', () => {
@@ -63,11 +63,12 @@ describe('checkVersionSync', () => {
     }
     writeTarget('packages/memento-server/package.json', '1.1.0');
     const result = checkVersionSync(root, MANIFEST_PATHS);
-    expect(result.violations).toHaveLength(4);
+    expect(result.violations).toHaveLength(5);
     expect(result.violations.map((entry) => entry.version)).toEqual([
       '1.0.0',
       '1.0.0',
       '1.1.0',
+      '1.0.0',
       '1.0.0',
     ]);
   });
@@ -78,13 +79,26 @@ describe('checkVersionSync', () => {
     }
     writeTarget('plugins/memento/.mcp.json', '0.9.0');
     const result = checkVersionSync(root, MANIFEST_PATHS);
-    expect(result.violations).toHaveLength(4);
+    expect(result.violations).toHaveLength(5);
     expect(result.violations.map((entry) => entry.version)).toEqual([
       '1.0.0',
       '1.0.0',
       '1.0.0',
       '0.9.0',
+      '1.0.0',
     ]);
+  });
+
+  it('plugin.json version 만 그대로면 위반이 보고된다', () => {
+    for (const file of MANIFEST_PATHS) {
+      writeTarget(file, '2.3.10');
+    }
+    writeTarget('plugins/memento/.claude-plugin/plugin.json', '0.1.2');
+    const result = checkVersionSync(root, MANIFEST_PATHS);
+    expect(result.violations).toHaveLength(5);
+    expect(result.violations.find((v) => v.file === 'plugins/memento/.claude-plugin/plugin.json')?.version).toBe(
+      '0.1.2',
+    );
   });
 
   it('plugins/memento/.mcp.json 이 latest 로 설정되어 있으면 불일치로 위반 보고된다', () => {
@@ -93,7 +107,7 @@ describe('checkVersionSync', () => {
     }
     writeTarget('plugins/memento/.mcp.json', 'latest');
     const result = checkVersionSync(root, MANIFEST_PATHS);
-    expect(result.violations).toHaveLength(4);
+    expect(result.violations).toHaveLength(5);
     expect(result.violations.find((v) => v.file === 'plugins/memento/.mcp.json')?.version).toBe('latest');
   });
 });

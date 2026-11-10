@@ -13,6 +13,10 @@
 
 - remember 가 기존 행을 replace 또는 incremental 로 고치고 본문이 바뀌면 `memory.write.inplace_updated` 한 건을 `telemetry_events` 에 남긴다. `extra_data` 는 `memory_id`, `update_mode`, 이전 본문 sha256, 다음 본문 sha256 이고 본문은 넣지 않는다 (#1676).
 
+### Fixed
+
+- Claude Code 플러그인 `plugins/memento/.claude-plugin/plugin.json` 의 `version` 이 0.1.2 에 머물러 2.3.x 릴리스의 서버 버전이 플러그인 사용자에게 갱신으로 나가지 않았다. 서버 버전(2.3.10)으로 맞추고 `scripts/check-version-sync.ts` 가 이 파일도 같은 버전인지 검사한다.
+
 ## [2.3.10] - 2026-11-09
 
 ### Added
