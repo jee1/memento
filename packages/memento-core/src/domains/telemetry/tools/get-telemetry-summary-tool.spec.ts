@@ -287,6 +287,16 @@ describe('GetTelemetrySummaryTool', () => {
     });
   });
 
+  it('12) gate_drift 는 전역 범위 요약에만 싣는다', async () => {
+    const db = await createGateDriftDb();
+    const summary = new TelemetryService(new TelemetryRepository(db)).getRejectionGateDrift();
+    const scoped = await tool.handle({}, makeContext({ ownerId: 'agent-123', rejectionGateDrift: summary }));
+    expect(JSON.parse(scoped.content[0].text).search_quality).not.toHaveProperty('gate_drift');
+    const global = await tool.handle({}, makeContext({ rejectionGateDrift: summary }));
+    expect(JSON.parse(global.content[0].text).search_quality.gate_drift.active_baseline).toMatchObject({ id: 2 });
+    db.close();
+  });
+
   it('11) search_quality.gate_drift 는 최신 드리프트 판정과 활성 기준을 싣는다', async () => {
     const db = await createGateDriftDb();
     const empty = await tool.handle({}, makeContext({ rejectionGateDrift: new TelemetryService(new TelemetryRepository(db)).getRejectionGateDrift() }));
