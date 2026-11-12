@@ -5,6 +5,8 @@
  * 기각 게이트 임계값을 잰 조건의 append-only 기록이다. 활성 기준은 MAX(id) 행이고,
  * 참조 분포를 채우는 일도 UPDATE 가 아니라 값을 복사한 새 행을 덧붙인다.
  * 시드는 기존 DB 에만 들어간다(신규 DB 는 schema.sql 로 만들어 빈 테이블로 시작한다).
+ * 시드 참조 창은 측정일(10/18) 뒤 첫 주가 아니라 ISO 45 다. 10/25 부터 지침 훅 질의가 운영 트래픽을 바꿔
+ * 그 전 주는 지금의 트래픽을 대표하지 못한다(설계 변경 b).
  */
 
 import type Database from 'better-sqlite3';
@@ -58,11 +60,11 @@ export class RejectionGateBaselineMigration implements Migration {
           reference_window_start, reference_window_end, reference_decided_n,
           reference_rejection_rate, reference_knee_mass, captured_at)
        VALUES (?, 0.4, 11121, ?, 'jev-latest', '#1387 라벨 팩', 'measurement',
-               '2026-10-18T00:00:00.000Z', '2026-10-25T00:00:00.000Z', 503, ?, ?, ?)`,
+               '2026-11-02T00:00:00.000Z', '2026-11-09T00:00:00.000Z', 621, ?, ?, ?)`,
     );
     const capturedAt = new Date().toISOString();
-    seed.run(1, '2026-10-18T00:00:00.000Z', 104 / 503, 36 / 503, capturedAt);
-    seed.run(2, '2026-11-09T00:00:00.000Z', 104 / 503, 36 / 503, capturedAt);
+    seed.run(1, '2026-10-18T00:00:00.000Z', 313 / 621, 75 / 621, capturedAt);
+    seed.run(2, '2026-11-09T00:00:00.000Z', 313 / 621, 75 / 621, capturedAt);
   }
 
   async down(db: Database.Database): Promise<void> {

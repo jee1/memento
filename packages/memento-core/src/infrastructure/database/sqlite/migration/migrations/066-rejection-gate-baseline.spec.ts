@@ -43,13 +43,13 @@ describe('066-rejection-gate-baseline', () => {
       judge_model: 'jev-latest',
       label_set_id: '#1387 라벨 팩',
       source: 'measurement',
-      reference_window_start: '2026-10-18T00:00:00.000Z',
-      reference_window_end: '2026-10-25T00:00:00.000Z',
-      reference_decided_n: 503,
+      reference_window_start: '2026-11-02T00:00:00.000Z',
+      reference_window_end: '2026-11-09T00:00:00.000Z',
+      reference_decided_n: 621,
     });
-    expect(rows[0].reference_rejection_rate).toBeCloseTo(104 / 503, 10);
-    expect(rows[0].reference_knee_mass).toBeCloseTo(36 / 503, 10);
-    expect(rows[1]).toMatchObject({ id: 2, measured_at: '2026-11-09T00:00:00.000Z', reference_decided_n: 503 });
+    expect(rows[0].reference_rejection_rate).toBeCloseTo(313 / 621, 10);
+    expect(rows[0].reference_knee_mass).toBeCloseTo(75 / 621, 10);
+    expect(rows[1]).toMatchObject({ id: 2, measured_at: '2026-11-09T00:00:00.000Z', reference_decided_n: 621 });
     expect(rows[1].reference_rejection_rate).toBe(rows[0].reference_rejection_rate);
     db.close();
   });

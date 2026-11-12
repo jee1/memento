@@ -72,8 +72,8 @@ describe('runRejectionGateDriftCheck (#1681)', () => {
   it('warns that a re-measurement is due when the weekly rate leaves the band', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-11-10T09:00:00.000Z'));
-    insertRerankedEvents(db, '2026-11-03T12:00:00.000Z', 'rejected', 313, 0.1);
-    insertRerankedEvents(db, '2026-11-03T12:00:00.000Z', 'passed', 308, 0.9);
+    insertRerankedEvents(db, '2026-11-03T12:00:00.000Z', 'rejected', 200, 0.1);
+    insertRerankedEvents(db, '2026-11-03T12:00:00.000Z', 'passed', 421, 0.9);
 
     const result = await runRejectionGateDriftCheck(context(db));
 
