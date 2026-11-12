@@ -242,6 +242,48 @@ describe('TelemetryRepository', () => {
     });
   });
 
+  it('memory.injection.item_filtered 는 recall 기각률 집계에 섞이지 않는다 (#1682)', () => {
+    repo.insertEventSync({
+      eventType: 'memory.search.reranked',
+      requestId: 'r-passed',
+      ownerId: 'inj-o',
+      outcome: 'success',
+      extraData: { rejection_gate_verdict: 'passed', rejection_gate_top_score: 0.9 },
+    });
+    repo.insertEventSync({
+      eventType: 'memory.search.reranked',
+      requestId: 'r-rejected',
+      ownerId: 'inj-o',
+      outcome: 'success',
+      extraData: { rejection_gate_verdict: 'rejected', rejection_gate_top_score: 0.05 },
+    });
+    const before = repo.querySearchQuality('24h', 'inj-o');
+    expect(before).toMatchObject({ rejection_rate: 1 / 2, rejection_decided_count: 2 });
+
+    repo.insertEventSync({
+      eventType: 'memory.injection.item_filtered',
+      requestId: 'inj-1',
+      ownerId: 'inj-o',
+      outcome: 'success',
+      extraData: {
+        rejection_gate_verdict: 'rejected',
+        rejection_gate_top_score: 0.01,
+        item_filter_threshold: 0.5,
+        item_filter_kept: 0,
+        item_filter_dropped: 5,
+        item_filter_empty: true,
+      },
+    });
+
+    expect(repo.querySearchQuality('24h', 'inj-o')).toMatchObject({
+      rejection_rate: before.rejection_rate,
+      rejection_decided_count: before.rejection_decided_count,
+      fail_open_count: before.fail_open_count,
+      search_count: before.search_count,
+      selected_count: before.selected_count,
+    });
+  });
+
   it('hasPriorWriteCompletedWithContentHash는 동일 owner·해시·기간 내 완료 이벤트를 본다', () => {
     const since = new Date(Date.now() - 3600_000).toISOString();
     const hash = 'abcd1234ef567890';

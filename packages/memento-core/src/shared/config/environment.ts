@@ -7,7 +7,11 @@
 import os from 'os';
 import path from 'path';
 import packageJson from '../../../package.json' with { type: 'json' };
-import { DEFAULT_GEMINI_LLM_MODEL, DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
+import {
+  DEFAULT_GEMINI_LLM_MODEL,
+  DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN,
+  DEFAULT_RELEVANCE_GATE_THRESHOLD,
+} from './constants.js';
 
 /** PERF_ALERT_REARM_MS 단일 소스 (#697). ENV_DEFAULTS·resolveValidatedNumber fallback이 여기만 참조. */
 export const PERF_ALERT_REARM_MS_DEFAULT = 1_800_000;
@@ -35,6 +39,7 @@ const ENV_DEFAULTS: Record<string, string> = {
   SEARCH_REJECTION_GATE_TIMEOUT_MS: '1500',
   SEARCH_REJECTION_GATE_DOC_CHARS: '300',
   SEARCH_REJECTION_GATE_ON_ERROR: 'open',
+  MEMORY_INJECTION_ITEM_SCORE_MIN: String(DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN),
   TYPESAFE_MODEL: 'jev-latest',
   MEMENTO_AUTO_SET_ANCHOR_DEFAULT: 'true',
   // WAL 체크포인트 스케줄러 설정
