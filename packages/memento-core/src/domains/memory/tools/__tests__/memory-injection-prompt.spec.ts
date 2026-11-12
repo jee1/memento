@@ -633,6 +633,111 @@ describe('MemoryInjectionPrompt', () => {
         mementoConfig.autoSetAnchorDefault = prevAnchor;
       }
     });
+
+    it.each([
+      {
+        label: '게이트 off',
+        itemScoreMin: 0.5,
+        rejection_gate: { verdict: 'off' as const, top_score: null, unscored: 0 },
+        expectedExtra: { rejection_gate_verdict: 'off', rejection_gate_top_score: null },
+      },
+      {
+        label: '게이트 fail_open',
+        itemScoreMin: 0.5,
+        rejection_gate: { verdict: 'fail_open' as const, top_score: null, unscored: 2 },
+        expectedExtra: { rejection_gate_verdict: 'fail_open', rejection_gate_top_score: null },
+      },
+      {
+        label: '게이트 rejected',
+        itemScoreMin: 0.5,
+        rejection_gate: { verdict: 'rejected' as const, top_score: 0.2, unscored: 0 },
+        expectedExtra: { rejection_gate_verdict: 'rejected', rejection_gate_top_score: 0.2 },
+      },
+      {
+        label: '설정 0',
+        itemScoreMin: 0,
+        rejection_gate: { verdict: 'passed' as const, top_score: 0.9, unscored: 0 },
+        expectedExtra: { rejection_gate_verdict: 'passed', rejection_gate_top_score: 0.9 },
+      },
+    ])(
+      'applied:false ($label) 에서도 memory.injection.item_filtered 를 1회 발행한다',
+      async ({ itemScoreMin, rejection_gate, expectedExtra }) => {
+        const record = vi.fn();
+        const ranked = [
+          {
+            id: 'a',
+            content: 'applied false 경로 본문 a',
+            type: 'semantic',
+            importance: 0.9,
+            created_at: '2026-01-01T00:00:00.000Z',
+            pinned: false,
+            textScore: 1,
+            vectorScore: 0,
+            finalScore: 1,
+            recall_reason: 'stub',
+          },
+          {
+            id: 'b',
+            content: 'applied false 경로 본문 b',
+            type: 'semantic',
+            importance: 0.8,
+            created_at: '2026-01-01T00:00:00.000Z',
+            pinned: false,
+            textScore: 0.8,
+            vectorScore: 0,
+            finalScore: 0.8,
+            recall_reason: 'stub',
+          },
+        ];
+        context.services.hybridSearchEngine = {
+          search: vi.fn(async () => ({
+            items: ranked,
+            total_count: ranked.length,
+            query_time: 1,
+            union_count: ranked.length,
+            reranked_count: ranked.length,
+            rejection_gate,
+            gate_item_scores: [
+              { id: 'a', score: 0.9 },
+              { id: 'b', score: 0.1 },
+            ],
+          })),
+        } as any;
+        context.services.telemetryService = { record } as any;
+
+        const prevMin = mementoConfig.memoryInjectionItemScoreMin;
+        const prevAnchor = mementoConfig.autoSetAnchorDefault;
+        mementoConfig.memoryInjectionItemScoreMin = itemScoreMin;
+        mementoConfig.autoSetAnchorDefault = false;
+        try {
+          const result = await tool.handle({ query: `applied false ${rejection_gate.verdict}` }, context);
+          const payload = JSON.parse(result.content?.[0]?.text ?? '{}');
+          expect(payload.item_filter).toMatchObject({
+            applied: false,
+            threshold: itemScoreMin,
+            scored: 0,
+            kept: 2,
+            dropped: 0,
+          });
+          expect(payload.memories_used).toBe(2);
+          expect(record).toHaveBeenCalledTimes(1);
+          expect(record.mock.calls[0]?.[0]).toMatchObject({
+            eventType: 'memory.injection.item_filtered',
+            outcome: 'success',
+            extraData: {
+              ...expectedExtra,
+              item_filter_threshold: itemScoreMin,
+              item_filter_kept: 2,
+              item_filter_dropped: 0,
+              item_filter_empty: false,
+            },
+          });
+        } finally {
+          mementoConfig.memoryInjectionItemScoreMin = prevMin;
+          mementoConfig.autoSetAnchorDefault = prevAnchor;
+        }
+      },
+    );
   });
 
   describe('도구 메타데이터', () => {

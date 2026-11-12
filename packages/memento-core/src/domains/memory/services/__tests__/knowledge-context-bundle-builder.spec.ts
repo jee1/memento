@@ -255,6 +255,42 @@ describe('ToolContextKnowledgeContextAdapter', () => {
     expect(typeof bundle.tokenEstimate).toBe('number');
     expect(bundle.contextSummary).toBeDefined();
   });
+
+  it('itemScoreMin 을 넘기지 않아 개인 지식 경로에 항목 필터를 적용하지 않는다 (#1682)', async () => {
+    const ranked = [
+      stubSearchHit({ id: 'hi', content: '개인지식 고점수', finalScore: 0.9 }),
+      stubSearchHit({ id: 'lo', content: '개인지식 저점수', finalScore: 0.8 }),
+    ];
+    const search = vi.fn(async () => ({
+      items: ranked,
+      total_count: ranked.length,
+      query_time: 1,
+      union_count: ranked.length,
+      reranked_count: ranked.length,
+      rejection_gate: { verdict: 'passed' as const, top_score: 0.9, unscored: 0 },
+      gate_item_scores: [
+        { id: 'hi', score: 0.9 },
+        { id: 'lo', score: 0.1 },
+      ],
+    }));
+    context.services.hybridSearchEngine = { search } as unknown as HybridSearchEngine;
+
+    const withFilter = await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: context.services.hybridSearchEngine },
+      { query: '개인지식', maxMemories: 5, tokenBudget: 2000, itemScoreMin: 0.5 },
+    );
+    expect(withFilter.itemCount).toBe(1);
+    expect(withFilter.itemFilter?.applied).toBe(true);
+
+    const adapter = new ToolContextKnowledgeContextAdapter(context);
+    const viaAdapter = await adapter.buildContext({
+      userMessage: '개인지식',
+      maxMemories: 5,
+      tokenBudget: 2000,
+    });
+    expect(viaAdapter.itemCount).toBe(2);
+    expect(viaAdapter.itemFilter?.applied).toBe(false);
+  });
 });
 
 describe('buildKnowledgeContextBundle content 중복 제거 (#1137)', () => {
