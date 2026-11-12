@@ -29,6 +29,8 @@ export const BATCH_SCHEDULER_JOB_DESCRIPTIONS: Readonly<Record<string, string>> 
     '활성 memory_item 대비 native embedding 누락, content_hash 불일치, 현재 provider 미일치 행 재생성',
   supersede_candidate_scan:
     '최근 기억과 같은 범위의 옛 기억 쌍을 LLM 으로 확정/확인 대기/양립으로 분류해 후보 테이블에만 기록 (기억은 바꾸지 않음, SUPERSEDE_CANDIDATE_SCAN_ENABLED=true 일 때만)',
+  rejection_gate_drift_check:
+    '기각 게이트 주간 기각률 밴드와 활성 기억 규모를 기준 기록과 비교해 드리프트 판정을 텔레메트리에 기록 (LLM 호출 없음, 임계값은 바꾸지 않고 재측정 알림만, SEARCH_REJECTION_GATE 가 off 면 건너뜀)',
 };
 
 export function resolveBatchSchedulerJobDescription(jobName: string): string | null {

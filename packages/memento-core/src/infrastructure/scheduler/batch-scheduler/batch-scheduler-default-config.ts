@@ -80,6 +80,7 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
       n => n >= 60_000,
       '최솟값 60000'
     ),
+    rejectionGateDriftCheckInterval: DAY_MS,
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,

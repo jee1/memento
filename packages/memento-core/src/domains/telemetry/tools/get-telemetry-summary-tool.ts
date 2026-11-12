@@ -56,6 +56,7 @@ export class GetTelemetrySummaryTool extends BaseTool {
       }
 
       const searchResult = telemetryService.getSearchQuality(period, ownerId);
+      const gateDrift = telemetryService.getRejectionGateDrift();
       const memoryResult = telemetryService.getMemoryQuality(period, ownerId);
       const consolidationQuality = telemetryService.getConsolidationQuality(period, ownerId);
       const feedbackQuality = telemetryService.getFeedbackQuality(period, ownerId);
@@ -87,6 +88,10 @@ export class GetTelemetrySummaryTool extends BaseTool {
           rejection_rate: searchResult.rejection_rate,
           rejection_decided_count: searchResult.rejection_decided_count,
           fail_open_count: searchResult.fail_open_count,
+          gate_drift: {
+            latest_verdict: gateDrift.latest_verdict,
+            active_baseline: gateDrift.active_baseline,
+          },
         },
         memory_quality: {
           total_memories: memoryResult.total_memories,

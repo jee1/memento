@@ -33,6 +33,7 @@ function createFakeContext(
     embeddingReconciliationInterval: 86_400_000,
     supersedeCandidateScanInterval: 86_400_000,
     supersedeCandidateScanEnabled: false,
+    rejectionGateDriftCheckInterval: 86_400_000,
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,
@@ -75,6 +76,7 @@ function createFakeContext(
     runAnchorAutoRefresh: vi.fn(),
     runEmbeddingReconciliation: vi.fn(),
     runSupersedeCandidateScan: vi.fn(),
+    runRejectionGateDriftCheck: vi.fn(),
     ...overrides,
   };
 
@@ -156,5 +158,23 @@ describe('batch-recurring-schedules wrappers (#1264)', () => {
     const job = scheduleJob.mock.calls.find(call => call[0] === 'supersede_candidate_scan')?.[2] as () => Promise<unknown>;
     await job();
     expect(runSupersedeCandidateScan).toHaveBeenCalledOnce();
+  });
+
+  it('기각 게이트 드리프트 점검은 flag 없이 설정 주기로 항상 예약한다 (#1681)', async () => {
+    const scheduleJob = vi.fn();
+    const runRejectionGateDriftCheck = vi.fn().mockResolvedValue({ success: true });
+    const { ctx } = createFakeContext({ scheduleJob, runRejectionGateDriftCheck });
+
+    registerAllRecurringJobs(ctx);
+    expect(scheduleJob).toHaveBeenCalledWith(
+      'rejection_gate_drift_check',
+      ctx.config.rejectionGateDriftCheckInterval,
+      expect.any(Function),
+      9
+    );
+
+    const job = scheduleJob.mock.calls.find(call => call[0] === 'rejection_gate_drift_check')?.[2] as () => Promise<unknown>;
+    await job();
+    expect(runRejectionGateDriftCheck).toHaveBeenCalledOnce();
   });
 });

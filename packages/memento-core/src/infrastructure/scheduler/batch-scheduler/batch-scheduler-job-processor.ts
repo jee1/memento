@@ -33,7 +33,8 @@ export function createBatchSchedulerJobRunnerCallbacks(source: BatchSchedulerCon
     runJobRunCleanupBatch: () => runners.runJobRunCleanupBatch(),
     runAnchorAutoRefresh: () => runners.runAnchorAutoRefresh(),
     runEmbeddingReconciliation: () => runners.runEmbeddingReconciliation(),
-    runSupersedeCandidateScan: () => runners.runSupersedeCandidateScan()
+    runSupersedeCandidateScan: () => runners.runSupersedeCandidateScan(),
+    runRejectionGateDriftCheck: () => runners.runRejectionGateDriftCheck()
   };
 }
 

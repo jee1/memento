@@ -63,6 +63,7 @@ export interface BatchSchedulerRecurringContextSource extends BatchSchedulerCont
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
   runEmbeddingReconciliation: () => Promise<BatchJobResult>;
   runSupersedeCandidateScan: () => Promise<BatchJobResult>;
+  runRejectionGateDriftCheck: () => Promise<BatchJobResult>;
 }
 
 function createMutableJobRef<T>(
@@ -147,6 +148,7 @@ export function buildBatchRecurringScheduleContext(
     runJobRunCleanupBatch: () => source.runJobRunCleanupBatch(),
     runAnchorAutoRefresh: () => source.runAnchorAutoRefresh(),
     runEmbeddingReconciliation: () => source.runEmbeddingReconciliation(),
-    runSupersedeCandidateScan: () => source.runSupersedeCandidateScan()
+    runSupersedeCandidateScan: () => source.runSupersedeCandidateScan(),
+    runRejectionGateDriftCheck: () => source.runRejectionGateDriftCheck()
   };
 }

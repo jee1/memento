@@ -183,7 +183,8 @@ export class BatchScheduler implements IBatchScheduler {
       runJobRunCleanupBatch: () => this.runJobRunCleanupBatch(),
       runAnchorAutoRefresh: () => this.runAnchorAutoRefresh(),
       runEmbeddingReconciliation: () => this.runEmbeddingReconciliation(),
-      runSupersedeCandidateScan: () => this.runSupersedeCandidateScan()
+      runSupersedeCandidateScan: () => this.runSupersedeCandidateScan(),
+      runRejectionGateDriftCheck: () => this.runRejectionGateDriftCheck()
     };
   }
 
@@ -388,6 +389,10 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runSupersedeCandidateScan(): Promise<BatchJobResult> {
     return this.getJobRunners().runSupersedeCandidateScan();
+  }
+
+  private async runRejectionGateDriftCheck(): Promise<BatchJobResult> {
+    return this.getJobRunners().runRejectionGateDriftCheck();
   }
 
   private log(message: string, data?: unknown, level: 'info' | 'warn' | 'error' = 'info'): void {

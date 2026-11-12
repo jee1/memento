@@ -27,6 +27,7 @@ export interface BatchRecurringScheduleContext {
   runAnchorAutoRefresh: () => Promise<BatchJobResult>;
   runEmbeddingReconciliation: () => Promise<BatchJobResult>;
   runSupersedeCandidateScan: () => Promise<BatchJobResult>;
+  runRejectionGateDriftCheck: () => Promise<BatchJobResult>;
 }
 
 export function scheduleCleanupJob(ctx: BatchRecurringScheduleContext): void {
@@ -202,12 +203,22 @@ export function scheduleSupersedeCandidateScan(ctx: BatchRecurringScheduleContex
   );
 }
 
+export function scheduleRejectionGateDriftCheck(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'rejection_gate_drift_check',
+    ctx.config.rejectionGateDriftCheckInterval,
+    () => ctx.runRejectionGateDriftCheck(),
+    9
+  );
+}
+
 export function registerAllRecurringJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleCoreMaintenanceJobs(ctx);
   scheduleConsolidationRelationAndLogJobs(ctx);
   scheduleAugmentationAndTelemetryJobs(ctx);
   scheduleMetaMemoryAndReviewJobs(ctx);
   scheduleEmbeddingReconciliation(ctx);
+  scheduleRejectionGateDriftCheck(ctx);
   if (ctx.config.supersedeCandidateScanEnabled) {
     scheduleSupersedeCandidateScan(ctx);
   } else {

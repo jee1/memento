@@ -131,6 +131,7 @@ const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
   job_run_cleanup_batch: 'jobRunCleanupInterval',
   anchor_auto_refresh: 'anchorAutoRefreshInterval',
   supersede_candidate_scan: 'supersedeCandidateScanInterval',
+  rejection_gate_drift_check: 'rejectionGateDriftCheckInterval',
 };
 
 function resolveJobIntervalMs(name: string, config: Record<string, unknown>): number | null {

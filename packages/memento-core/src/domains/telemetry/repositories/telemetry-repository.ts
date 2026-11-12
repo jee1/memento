@@ -17,6 +17,8 @@ import {
   queryMemoryQuality
 } from './telemetry-memory-quality-query.js';
 import { querySearchQuality } from './telemetry-search-quality-query.js';
+import { queryRejectionGateDriftSummary } from '../gate-drift/baseline-store.js';
+import type { RejectionGateDriftSummary } from '../gate-drift/types.js';
 import { queryFeedbackQuality } from './telemetry-feedback-quality-query.js';
 import { querySystemMetrics } from './telemetry-system-metrics-query.js';
 import { rolling24hCutoffIso } from './telemetry-repository-utils.js';
@@ -235,6 +237,10 @@ export class TelemetryRepository {
 
   querySearchQuality(period: TelemetryPeriod, ownerId?: string | null): SearchQualityResult {
     return querySearchQuality(this.db, period, ownerId);
+  }
+
+  queryRejectionGateDriftSummary(): RejectionGateDriftSummary {
+    return queryRejectionGateDriftSummary(this.db);
   }
 
   queryMemoryQuality(period: TelemetryPeriod, ownerId?: string | null): MemoryQualityResult {

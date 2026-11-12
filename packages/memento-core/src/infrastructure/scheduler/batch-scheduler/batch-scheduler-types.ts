@@ -36,6 +36,8 @@ export interface BatchJobConfig {
   /** Issue #1548: supersede 후보 판정 배치. 기본 off — LLM 을 호출하므로 명시적으로 켠다. */
   supersedeCandidateScanEnabled: boolean;
   supersedeCandidateScanInterval: number;
+  /** Issue #1681: 기각 게이트 드리프트 점검 주기. LLM 호출이 없어 켜고 끄는 플래그가 없다. */
+  rejectionGateDriftCheckInterval: number;
 
   maxBatchSize: number;
   enableLogging: boolean;
