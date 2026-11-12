@@ -38,7 +38,7 @@ C4Component
         Component(metaMem, "Meta Memory / Introspection", "introspection/", "MetaMemoryService, IntrospectionScanCache, heal 후보")
         Component(telemetry, "Telemetry Service", "domains/telemetry/", "owner/agent 컨텍스트·search/feedback 품질 텔레메트리")
         Component(monitoring, "Monitoring Stack", "domains/monitoring/", "PerformanceMonitor, FailureDetector, ReflexionWorker, ErrorLogging")
-        Component(batch, "Batch Scheduler", "infrastructure/scheduler/", "13종 배치: cleanup, sleep_consolidation_batch, embedding_reconciliation, …")
+        Component(batch, "Batch Scheduler", "infrastructure/scheduler/", "15종 배치: cleanup, sleep_consolidation_batch, embedding_reconciliation, rejection_gate_drift_check, …")
         Component(repos, "Repository Layer", "infrastructure/database/repositories/", "memory·vector·telemetry·anchor stores")
         Component(dbInfra, "DB Infrastructure", "infrastructure/database/", "WAL checkpoint, lock monitor, write coalescing, migrations")
     }

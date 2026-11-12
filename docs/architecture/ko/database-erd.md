@@ -195,6 +195,7 @@ erDiagram
 | meta_memory_stats | 마이그레이션 011 | memory_id → memory_item |
 | telemetry_events | 마이그레이션 027 | 없음 (도구 호출 이벤트 로그) |
 | telemetry_daily_metrics | 마이그레이션 028 | 없음 (일별 집계) |
+| rejection_gate_baseline | 마이그레이션 066 | 없음 (기각 게이트 기준 기록, append-only) |
 | triple_extraction 컬럼 | 마이그레이션 030 | memory_item 컬럼 추가 (triple_extracted_status 등) |
 | soft_delete 컬럼 | 마이그레이션 031 | memory_item 컬럼 추가 (is_deleted, deleted_at) |
 | project_id 컬럼 | 마이그레이션 032 | memory_item.project_id 추가 |

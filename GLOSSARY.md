@@ -72,6 +72,14 @@ _Avoid_: combined search
 `search_local`이 탐색 기준점으로 삼는 A, B, C 슬롯.
 _Avoid_: pin, bookmark
 
+**Rejection gate (기각 게이트)**:
+검색 후보의 최고 점수가 임계값보다 낮으면 질의를 기각해 결과 0건으로 돌려주는 판정 단계. 판정은 rejected, passed, fail_open, off 넷이고, 기각률 분모는 rejected와 passed만 센다.
+_Avoid_: relevance filter, rejection filter
+
+**Gate baseline (기준 기록)**:
+기각 게이트 임계값과 그것을 잰 조건(N, 날짜, judge 모델, 라벨 세트, 참조 분포)의 append-only 기록. 활성 기준은 가장 큰 id 의 행이다. 드리프트 판정은 이 기록과 지금을 비교해 재측정이 필요하다고 알릴 뿐 임계값을 바꾸지 않는다.
+_Avoid_: threshold history, calibration
+
 ## 지침 주입
 
 **Case**:

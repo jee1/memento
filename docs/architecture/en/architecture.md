@@ -112,6 +112,14 @@ Three monitoring layers:
 
 Tracks tool calls and memory access patterns. `TelemetryService` isolates context per `owner_id`/`agent_id` to provide per-agent usage statistics. Queryable via the `get_telemetry_summary` tool or the HTTP admin API.
 
+The `rejection_gate_drift_check` job records whether the rejection gate threshold still holds as a `memory.search.gate_drift` event (`extra_data`). The verdict fields are:
+
+- `alert`: true when `scale.alert` is true or `band.outcome` is `alert`. It signals that a re-measurement is due and never changes the threshold.
+- `scale`: `alert` when the active memory count (`n_items`) reaches twice the active baseline N (`baseline_n_items`).
+- `band.outcome`: `ok` when last ISO week's rejection rate sits within the reference rate ± `max(3 sigma, knee mass)`, `alert` when outside. `insufficient_n` when the week has fewer than 100 decided queries, `reference_pending` when the active baseline has no reference distribution yet.
+
+Baselines accumulate in the append-only `rejection_gate_baseline` table (migration 066). `search_quality.gate_drift` in `get_telemetry_summary` shows the latest verdict and the active baseline.
+
 ---
 
 ## MCP Tools
@@ -139,6 +147,7 @@ Do not hard-code tool counts here. Canonical registration and default exposure (
 | `job_run_cleanup_batch` | 24 hours | Purge old `job_run` rows |
 | `anchor_auto_refresh` | 6 hours | Refresh anchors (`ANCHOR_AUTO_REFRESH_ENABLED`) |
 | `embedding_reconciliation` | 24 hours | Rebuild missing or stale embeddings |
+| `rejection_gate_drift_check` | 24 hours | Record the rejection gate drift verdict as a `memory.search.gate_drift` event (no LLM call; skipped while the gate is off) |
 
 Pass these exact names as `jobType` to `/admin/batch/run`; any other name returns 400 `Invalid or unknown jobType`. The registered list lives in `infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.ts` and the default intervals in `batch-scheduler-default-config.ts`.
 
@@ -160,6 +169,7 @@ Key tables:
 | `anchor` | Persisted context anchors (migration 004) |
 | `meta_memory_stats` | Per-memory recall success/failure statistics |
 | `telemetry_events` / `telemetry_daily_metrics` | Telemetry data (migration 027–028) |
+| `rejection_gate_baseline` | Append-only record of the conditions under which the rejection gate threshold was measured (migration 066) |
 | `memory_review_candidate` | Spaced-repetition review queue (migration 033) |
 | `kg_triple` | Deduplicated Knowledge Graph triples extracted from episodic memories (migration 018) |
 
