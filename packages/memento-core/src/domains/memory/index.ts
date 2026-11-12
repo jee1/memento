@@ -13,3 +13,5 @@ export { normalizeMemoryTypesForHybridItemSearch } from './utils/normalize-memor
 
 export { RememberTool } from './remember/remember-tool.js';
 export type { RememberParams } from './remember/remember-tool.js';
+
+export { countActiveMemoryItems } from './repositories/memory-item-repository.js';

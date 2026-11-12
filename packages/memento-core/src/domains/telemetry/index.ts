@@ -22,3 +22,15 @@ export {
   recallOutcomeStageExtra,
   rejectionGateTelemetryExtra,
 } from './search-quality/index.js';
+
+export {
+  captureRejectionGateBaselineIfChanged,
+  checkRejectionGateDrift,
+  recordRejectionGateDriftVerdict,
+} from './gate-drift/index.js';
+export type {
+  ActiveItemCounter,
+  RejectionGateBaseline,
+  RejectionGateDriftSummary,
+  RejectionGateDriftVerdict,
+} from './gate-drift/index.js';
