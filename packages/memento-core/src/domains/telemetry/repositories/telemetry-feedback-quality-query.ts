@@ -41,7 +41,7 @@ export function queryFeedbackQuality(
     .get(params) as { c: number };
 
   // 채택 갭 관측 (Issue #729): feedback_event에 request_id가 없어 recall 1건↔feedback 1건을
-  // 정확히 매칭할 수는 없다 — memory.search.requested(memory_injection 포함) 총량 대비
+  // 정확히 매칭할 수는 없다 — memory.search.requested(recall 경로만 발행) 총량 대비
   // helpful/not_helpful 총량의 대략 비율로 "미피드백 recall 비율"을 근사한다.
   const recallRow = db
     .prepare(

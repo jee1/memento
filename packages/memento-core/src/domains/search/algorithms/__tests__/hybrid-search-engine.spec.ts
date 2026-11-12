@@ -2759,6 +2759,40 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       expect(out.total_count).toBe(2);
     });
 
+    it('게이트 통과 시 최상위에 gate_item_scores 를 싣고 항목에는 붙이지 않는다 (#1682)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);
+      const gate: IRelevanceGatePort = {
+        score: vi.fn().mockResolvedValue([0.9, Number.NaN]),
+      };
+      hybridSearchEngine.setRejectionGate(gate);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      expect(out.gate_item_scores).toEqual([
+        { id: 'm1', score: 0.9 },
+        { id: 'm2', score: null },
+      ]);
+      expect(out.rejection_gate).toEqual({
+        verdict: 'passed',
+        top_score: 0.9,
+        unscored: 1,
+      });
+      expect(out.items[0]).not.toHaveProperty('gate_score');
+      expect(out.items[0]).not.toHaveProperty('gate_item_scores');
+    });
+
+    it('게이트 미부착이면 gate_item_scores 가 없다 (#1682)', async () => {
+      setupCommonMocks();
+      stubRanked(hybridSearchEngine, [fakeItem('m1', 'a')]);
+      hybridSearchEngine.setRejectionGate(null);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: '김치찌개 끓이는 법', limit: 10 });
+
+      expect(out.gate_item_scores).toBeUndefined();
+      expect(out.rejection_gate).toEqual({ verdict: 'off', top_score: null, unscored: 0 });
+    });
+
     it('게이트를 붙이지 않으면 결과가 그대로다 — 현행 동작 불변', async () => {
       setupCommonMocks();
       stubRanked(hybridSearchEngine, [fakeItem('m1', 'a'), fakeItem('m2', 'b')]);

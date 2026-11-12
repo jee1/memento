@@ -414,3 +414,105 @@ describe('buildKnowledgeContextBundle 순위 출처 (#1177)', () => {
     expect(bundle.topMemoryId).toBe('score_high');
   });
 });
+
+describe('buildKnowledgeContextBundle 항목 필터 (#1682)', () => {
+  let db: Database.Database;
+
+  beforeEach(async () => {
+    db = await setupTestDatabase();
+  });
+
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
+  });
+
+  function stubEngineWithGate(
+    ranked: HybridSearchResult[],
+    gate: {
+      rejection_gate: { verdict: 'passed' | 'off' | 'fail_open' | 'rejected'; top_score: number | null; unscored: number };
+      gate_item_scores: Array<{ id: string; score: number | null }>;
+    },
+  ): { engine: HybridSearchEngine; search: ReturnType<typeof vi.fn> } {
+    const search = vi.fn(async (_db: Database.Database, query: { limit?: number }) => ({
+      items: ranked.slice(0, query.limit ?? 10),
+      total_count: ranked.length,
+      query_time: 1,
+      union_count: ranked.length,
+      reranked_count: ranked.length,
+      rejection_gate: gate.rejection_gate,
+      gate_item_scores: gate.gate_item_scores,
+    }));
+    return { engine: { search } as unknown as HybridSearchEngine, search };
+  }
+
+  it('필터가 항목을 줄여도 범위 질의의 search 호출 횟수는 필터 끔과 같다', async () => {
+    const ranked = Array.from({ length: 30 }, (_, i) =>
+      stubSearchHit({
+        id: `m${i}`,
+        content: `내용 ${i}`,
+        project_id: 'proj-a',
+        finalScore: 1 - i * 0.01,
+      }),
+    );
+    const scores = ranked.slice(0, 10).map((item, i) => ({
+      id: item.id,
+      score: i === 0 ? 0.9 : 0.1,
+    }));
+    const gate = {
+      rejection_gate: { verdict: 'passed' as const, top_score: 0.9, unscored: 0 },
+      gate_item_scores: scores,
+    };
+
+    const off = stubEngineWithGate(ranked, gate);
+    await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: off.engine },
+      { query: '범위', projectId: 'proj-a', maxMemories: 5, tokenBudget: 4000 },
+    );
+
+    const on = stubEngineWithGate(ranked, gate);
+    const filtered = await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: on.engine },
+      {
+        query: '범위',
+        projectId: 'proj-a',
+        maxMemories: 5,
+        tokenBudget: 4000,
+        itemScoreMin: 0.5,
+      },
+    );
+
+    expect(on.search.mock.calls.length).toBe(off.search.mock.calls.length);
+    expect(filtered.itemFilter?.applied).toBe(true);
+    expect(filtered.itemCount).toBe(1);
+  });
+
+  it('모두 탈락하면 itemFilter.kept 가 0 이고 빈 문구를 낸다', async () => {
+    const ranked = [
+      stubSearchHit({ id: 'low1', content: '낮음1', finalScore: 0.9 }),
+      stubSearchHit({ id: 'low2', content: '낮음2', finalScore: 0.8 }),
+    ];
+    const { engine } = stubEngineWithGate(ranked, {
+      rejection_gate: { verdict: 'passed', top_score: 0.45, unscored: 0 },
+      gate_item_scores: [
+        { id: 'low1', score: 0.45 },
+        { id: 'low2', score: 0.4 },
+      ],
+    });
+
+    const bundle = await buildKnowledgeContextBundle(
+      { db, hybridSearchEngine: engine },
+      { query: '빈주입', maxMemories: 5, tokenBudget: 2000, itemScoreMin: 0.5 },
+    );
+
+    expect(bundle.itemCount).toBe(0);
+    expect(bundle.promptText).toContain('관련 기억을 찾을 수 없습니다');
+    expect(bundle.itemFilter).toEqual({
+      applied: true,
+      threshold: 0.5,
+      scored: 2,
+      kept: 0,
+      dropped: 2,
+    });
+  });
+});
+

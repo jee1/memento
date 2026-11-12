@@ -179,6 +179,12 @@ export const HYBRID_SEARCH = {
  */
 export const DEFAULT_RELEVANCE_GATE_THRESHOLD = 0.4;
 
+/**
+ * #1682 memory_injection 항목 필터 기본 임계값 (`MEMORY_INJECTION_ITEM_SCORE_MIN`).
+ * 게이트가 top-10 에 매긴 항목 점수 중 이 값 이상만 주입한다. 0 이면 끈다.
+ * #1680 1단계 측정(검증 29질의)에서 임계 0.5 를 골랐다.
+ */
+export const DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN = 0.5;
 
 /**
  * #1407 Gemini LLM 기본 모델 (`GEMINI_LLM_MODEL`, personal agent `MEMENTO_PERSONAL_AGENT_GEMINI_MODEL`).

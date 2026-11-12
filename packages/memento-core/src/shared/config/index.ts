@@ -22,7 +22,10 @@ import {
   warnInvalidRelationExtractionOverride,
 } from './relation-extraction-seat.js';
 import { resolveApiTokens } from './api-tokens.js';
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from './constants.js';
+import {
+  DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN,
+  DEFAULT_RELEVANCE_GATE_THRESHOLD,
+} from './constants.js';
 import {
   providerDimensionDefaults,
   resolveNumber,
@@ -102,6 +105,19 @@ export function resolveRejectionGateThreshold(): number {
 }
 
 /**
+ * #1682 memory_injection 항목 점수 하한. 0 이면 필터 끔.
+ * resolveNumber 는 parseInt 라 0.5 가 잘린다 — parseFloat 필수.
+ */
+export function resolveMemoryInjectionItemScoreMin(): number {
+  const raw = resolveString('MEMORY_INJECTION_ITEM_SCORE_MIN');
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    return DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN;
+  }
+  return parsed;
+}
+
+/**
  * #1125 게이트 장애 시 정책 파싱. 모르는 값은 경고 후 'open' 으로 떨어뜨린다.
  * 기본이 'open' 인 이유: 'closed' 가 기본이면 WAF 가 막는 본문(코드펜스 + curl -s)을 가진
  * 기억이 자기 자신을 찾는 질의에서 영구히 0건이 된다.
@@ -157,6 +173,7 @@ export const mementoConfig: MementoConfig = {
   searchRejectionGateTimeoutMs: resolveNumber('SEARCH_REJECTION_GATE_TIMEOUT_MS'),
   searchRejectionGateDocChars: resolveNumber('SEARCH_REJECTION_GATE_DOC_CHARS'),
   searchRejectionGateOnError: resolveRejectionGateOnError(),
+  memoryInjectionItemScoreMin: resolveMemoryInjectionItemScoreMin(),
   typesafeApiKey: resolveOptionalString('TYPESAFE_API_KEY'),
   typesafeModel: resolveString('TYPESAFE_MODEL'),
 

@@ -1114,6 +1114,8 @@ interface SearchResource {
 
 Use before a task to gather context in one shot. The MCP **tool** `memory_injection` returns a token-budgeted summary of relevant memories; the schema below is for the same-named **prompt** (`getPrompt`) path. In practice, the tool call is more common.
 
+When the rejection gate is enabled, the tool keeps only gate top-10 item scores at or above `MEMORY_INJECTION_ITEM_SCORE_MIN` (default 0.5; 0 disables) (#1682). Top-level `item_filter` reports applied/kept/dropped. Empty injection caused by the filter is `item_filter.kept === 0 && item_filter.scored > 0`.
+
 #### Parameters
 
 ```typescript
@@ -1135,6 +1137,15 @@ interface MemoryInjectionPrompt {
     token_count: number;            // Actual token count used
     search_time: number;            // Search time
   };
+}
+
+// Extra fields on tools/call success payload (#1682)
+interface MemoryInjectionToolItemFilter {
+  applied: boolean;
+  threshold: number;
+  scored: number;
+  kept: number;
+  dropped: number;
 }
 ```
 

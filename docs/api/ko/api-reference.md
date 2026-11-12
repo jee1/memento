@@ -1244,6 +1244,8 @@ interface SearchResource {
 
 작업 전 맥락을 한 덩어리로 모을 때 씁니다. MCP **도구** `memory_injection`은 토큰 예산 안에서 관련 기억 요약을 반환하고, 아래 스키마는 동일 이름의 **프롬프트**(`getPrompt`) 호출 예시입니다. 실무에서는 도구 호출이 더 흔합니다.
 
+기각 게이트가 켜진 배포에서는 도구가 게이트 top-10 항목 점수 중 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5, 0이면 끔) 이상만 주입한다(#1682). 결과 최상위 `item_filter`로 적용 여부와 kept/dropped를 본다. 빈 주입이 필터 때문인지는 `item_filter.kept === 0 && item_filter.scored > 0`으로 구분한다.
+
 #### 파라미터
 
 ```typescript
@@ -1265,6 +1267,15 @@ interface MemoryInjectionPrompt {
     token_count: number;            // 실제 사용된 토큰 수
     search_time: number;            // 검색 소요 시간
   };
+}
+
+// 도구(tools/call) 성공 본문 추가 필드 (#1682)
+interface MemoryInjectionToolItemFilter {
+  applied: boolean;
+  threshold: number;
+  scored: number;
+  kept: number;
+  dropped: number;
 }
 ```
 

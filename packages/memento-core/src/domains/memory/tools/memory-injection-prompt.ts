@@ -9,7 +9,11 @@ import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import { CommonSchemas, type ToolContext, type ToolResult } from '../../../tools/types.js';
-import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundle-builder.js';
+import {
+  buildKnowledgeContextBundle,
+  type ItemFilterMeta,
+  type KnowledgeContextBundle,
+} from '../services/knowledge-context-bundle-builder.js';
 import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
 import { handleAutoSetAnchor } from '../recall/recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from '../recall/recall-tool-host.js';
@@ -19,6 +23,41 @@ import type Database from 'better-sqlite3';
 
 /** 프로젝트 인계 브리프 태그 (#1271) */
 const PROJECT_BRIEF_TAG = 'project-brief';
+
+function resolveItemFilter(bundle: KnowledgeContextBundle): ItemFilterMeta {
+  return bundle.itemFilter ?? {
+    applied: false,
+    threshold: mementoConfig.memoryInjectionItemScoreMin,
+    scored: 0,
+    kept: bundle.itemCount,
+    dropped: 0,
+  };
+}
+
+function recordItemFilteredTelemetry(input: {
+  telemetryService: ToolContext['services']['telemetryService'];
+  bundle: KnowledgeContextBundle;
+  itemFilter: ItemFilterMeta;
+  ownerId: string | string[] | undefined;
+  startedAt: number;
+}): void {
+  const gate = input.bundle.rejectionGate;
+  const owner = input.ownerId;
+  input.telemetryService?.record({
+    eventType: 'memory.injection.item_filtered',
+    outcome: input.bundle.itemCount === 0 ? 'empty' : 'success',
+    latencyMs: Date.now() - input.startedAt,
+    ownerId: Array.isArray(owner) ? (owner[0] ?? null) : (owner ?? null),
+    extraData: {
+      rejection_gate_verdict: gate?.verdict ?? null,
+      rejection_gate_top_score: gate?.top_score ?? null,
+      item_filter_threshold: input.itemFilter.threshold,
+      item_filter_kept: input.itemFilter.kept,
+      item_filter_dropped: input.itemFilter.dropped,
+      item_filter_empty: input.itemFilter.kept === 0 && input.itemFilter.scored > 0,
+    },
+  });
+}
 
 // core 목록 페이로드 상한(toolset.spec.ts) 때문에 짧게 둔다
 const INCLUDE_PROJECT_BRIEF_DESCRIPTION =
@@ -165,6 +204,7 @@ export class MemoryInjectionPrompt extends BaseTool {
       }
 
       const memoryTypesForBundle = normalizeMemoryTypesForHybridItemSearch(memory_types);
+      const injectionStartedAt = Date.now();
 
       const bundle = await buildKnowledgeContextBundle(
         {
@@ -178,12 +218,22 @@ export class MemoryInjectionPrompt extends BaseTool {
           memoryTypes: memoryTypesForBundle,
           projectId: project_id,
           ownerId: owner_id,
+          itemScoreMin: mementoConfig.memoryInjectionItemScoreMin,
         },
       );
 
       logger.info('Memory Injection 완료', {
         memoryCount: bundle.itemCount,
         tokenCount: bundle.tokenEstimate,
+      });
+
+      const itemFilter = resolveItemFilter(bundle);
+      recordItemFilteredTelemetry({
+        telemetryService: context.services.telemetryService,
+        bundle,
+        itemFilter,
+        ownerId: owner_id,
+        startedAt: injectionStartedAt,
       });
 
       if (
@@ -232,6 +282,7 @@ export class MemoryInjectionPrompt extends BaseTool {
         memories_used: bundle.itemCount,
         token_estimate: bundle.tokenEstimate,
         query: bundle.query,
+        item_filter: itemFilter,
         ...(brief ? {
           project_brief: {
             memory_id: brief.id,

@@ -92,6 +92,11 @@ export interface MementoConfig {
   searchRejectionGate: 'off' | 'typesafe' | 'ollama';
   /** 기각 임계값. 이 값 미만이면 질의를 기각한다 (실수) */
   searchRejectionGateThreshold: number;
+  /**
+   * #1682 memory_injection 항목 점수 하한 (0~1).
+   * 게이트 통과 뒤 top-10 항목 점수가 이 값 미만이면 주입에서 뺀다. 0 이면 필터 끔.
+   */
+  memoryInjectionItemScoreMin: number;
   /** 게이트 호출 타임아웃 (ms) */
   searchRejectionGateTimeoutMs: number;
   /** 게이트에 넘길 후보 본문 최대 길이 (문자) */
