@@ -5,12 +5,18 @@ import { RejectionGateBaselineMigration } from '../../../../infrastructure/datab
 import { TelemetryEventsMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/027-telemetry-events.js';
 import { TelemetryDailyMetricsMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/028-telemetry-daily-metrics.js';
 
-/** 기본은 마이그레이션 066 을 돌려 기존 DB 처럼 시드 두 행을 둔다. `freshInstall` 은 schema.sql 의 빈 테이블만 둔다. */
-export async function createGateDriftDb(options: { freshInstall?: boolean } = {}): Promise<Database.Database> {
+/**
+ * 기본은 마이그레이션 066 을 돌려 기존 DB 처럼 시드 두 행을 둔다. `freshInstall` 은 schema.sql 의 빈 테이블만 둔다.
+ * 시드 참조는 마이그레이션 시점의 텔레메트리로 계산하므로 참조 창 이벤트는 `beforeMigration` 에서 넣는다.
+ */
+export async function createGateDriftDb(
+  options: { freshInstall?: boolean; beforeMigration?: (db: Database.Database) => void } = {},
+): Promise<Database.Database> {
   const db = new Database(':memory:');
   db.exec('CREATE TABLE memory_item (id TEXT PRIMARY KEY, is_deleted INTEGER DEFAULT 0)');
   await new TelemetryEventsMigration().up(db);
   await new TelemetryDailyMetricsMigration().up(db);
+  options.beforeMigration?.(db);
   if (options.freshInstall) {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- resolveSchemaPath 는 고정 경로(schema.sql)만 돌려준다.
     const statements = readFileSync(resolveSchemaPath(), 'utf8').match(

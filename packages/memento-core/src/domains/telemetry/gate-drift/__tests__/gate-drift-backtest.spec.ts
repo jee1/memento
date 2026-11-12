@@ -5,28 +5,28 @@ import { checkRejectionGateDrift } from '../gate-drift-monitor.js';
 import { createGateDriftDb, insertRerankedEvents } from './gate-drift-test-support.js';
 
 /**
- * #1681 백테스트 재현(설계 변경 b). 시드 참조는 ISO 45 창(기각률 313/621, 무릎 질량 75/621)이다.
- * ISO 45, 46 의 decided 건수와 기각 건수는 이슈 표의 값이고 이벤트는 합성이다. ISO 44 는 참조 창 앞이라 판정하지 않는다.
+ * #1681 백테스트 재현(설계 변경 b). 마이그레이션이 시드 참조를 ISO 45 창의 텔레메트리로 계산한다.
+ * 이 배포 DB 의 그 창은 기각률 313/621, 무릎 질량 75/621 이다. ISO 45, 46 의 건수는 이슈 표의 값이고 이벤트는 합성이다. ISO 44 는 참조 창 앞이라 판정하지 않는다.
  * ISO 47, 48 은 이슈 표에 없는 가상 주다. 47 은 무릎 질량이 넓힌 하한 바로 위라 반폭을 3 시그마만으로 바꾸면 alert 로 뒤집힌다.
  */
 describe('gate drift backtest on the seeded baseline', () => {
   let db: Database.Database;
 
-  const week = (mondayIso: string, decided: number, rejected: number) => {
-    insertRerankedEvents(db, mondayIso, 'rejected', rejected, 0.1);
-    insertRerankedEvents(db, mondayIso, 'passed', decided - rejected, 0.9);
-    insertRerankedEvents(db, mondayIso, 'fail_open', 40, null);
-    insertRerankedEvents(db, mondayIso, 'off', 12, null);
+  const week = (target: Database.Database, mondayIso: string, decided: number, rejected: number, knee = 0) => {
+    insertRerankedEvents(target, mondayIso, 'rejected', rejected, 0.1);
+    insertRerankedEvents(target, mondayIso, 'passed', knee, 0.45);
+    insertRerankedEvents(target, mondayIso, 'passed', decided - rejected - knee, 0.9);
+    insertRerankedEvents(target, mondayIso, 'fail_open', 40, null);
+    insertRerankedEvents(target, mondayIso, 'off', 12, null);
   };
 
   const judge = (nowIso: string) => checkRejectionGateDrift(db, new Date(nowIso), countActiveMemoryItems)!;
 
   beforeEach(async () => {
-    db = await createGateDriftDb();
-    week('2026-11-03T12:00:00.000Z', 621, 313);
-    week('2026-11-10T12:00:00.000Z', 78, 30);
-    week('2026-11-17T12:00:00.000Z', 621, 242);
-    week('2026-11-24T12:00:00.000Z', 621, 200);
+    db = await createGateDriftDb({ beforeMigration: (target) => week(target, '2026-11-03T12:00:00.000Z', 621, 313, 75) });
+    week(db, '2026-11-10T12:00:00.000Z', 78, 30);
+    week(db, '2026-11-17T12:00:00.000Z', 621, 242);
+    week(db, '2026-11-24T12:00:00.000Z', 621, 200);
   });
 
   afterEach(() => db.close());

@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { RejectionGateBaselineMigration } from './066-rejection-gate-baseline.js';
+import {
+  queryRejectionGateKneeMass,
+  queryRejectionGateRate,
+} from '../../../../../domains/telemetry/repositories/telemetry-search-quality-query.js';
+import { TelemetryEventsMigration } from './027-telemetry-events.js';
+import { RejectionGateBaselineMigration, SEED_REFERENCE_WINDOW } from './066-rejection-gate-baseline.js';
 
 const schemaSql = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'schema.sql'),
@@ -25,7 +30,73 @@ function insertPartialReference(db: Database.Database): void {
   ).run();
 }
 
+let eventSeq = 0;
+
+function insertReranked(db: Database.Database, createdAt: string, verdict: string, count: number, topScore: number | null): void {
+  const insert = db.prepare(
+    `INSERT INTO telemetry_events (id, event_type, request_id, owner_id, outcome, extra_data, created_at)
+     VALUES (?, 'memory.search.reranked', ?, NULL, 'success', ?, ?)`,
+  );
+  const extra = JSON.stringify({ rejection_gate_verdict: verdict, rejection_gate_top_score: topScore });
+  for (let i = 0; i < count; i += 1) {
+    eventSeq += 1;
+    insert.run(`e${eventSeq}`, `r${eventSeq}`, extra, createdAt);
+  }
+}
+
+async function dbWithTelemetry(fill: (db: Database.Database) => void): Promise<Database.Database> {
+  const db = new Database(':memory:');
+  await new TelemetryEventsMigration().up(db);
+  fill(db);
+  await new RejectionGateBaselineMigration().up(db);
+  return db;
+}
+
+const seedRows = (db: Database.Database) =>
+  db.prepare('SELECT * FROM rejection_gate_baseline ORDER BY id').all() as Array<Record<string, unknown>>;
+
 describe('066-rejection-gate-baseline', () => {
+  it('computes the seed reference from local telemetry with the monitor aggregation rules', async () => {
+    const inWindow = '2026-11-04T12:00:00.000Z';
+    const db = await dbWithTelemetry((d) => {
+      insertReranked(d, SEED_REFERENCE_WINDOW.start, 'rejected', 40, 0.1);
+      insertReranked(d, inWindow, 'passed', 30, 0.4);
+      insertReranked(d, inWindow, 'passed', 20, 0.49);
+      insertReranked(d, inWindow, 'passed', 25, 0.5);
+      insertReranked(d, inWindow, 'passed', 10, 0.9);
+      insertReranked(d, inWindow, 'fail_open', 7, null);
+      insertReranked(d, inWindow, 'off', 5, null);
+      insertReranked(d, SEED_REFERENCE_WINDOW.end, 'rejected', 50, 0.1);
+      insertReranked(d, '2026-11-01T23:59:59.999Z', 'rejected', 50, 0.1);
+    });
+
+    const rate = queryRejectionGateRate(db, SEED_REFERENCE_WINDOW);
+    const knee = queryRejectionGateKneeMass(db, SEED_REFERENCE_WINDOW, 0.4, 0.1);
+    expect(rate.rejection_decided_count).toBe(125);
+    for (const row of seedRows(db)) {
+      expect(row).toMatchObject({
+        reference_window_start: SEED_REFERENCE_WINDOW.start,
+        reference_window_end: SEED_REFERENCE_WINDOW.end,
+        reference_decided_n: rate.rejection_decided_count,
+      });
+      expect(row.reference_rejection_rate).toBe(rate.rejection_rate);
+      expect(row.reference_knee_mass).toBe(knee);
+    }
+    expect(knee).toBeCloseTo(50 / 125, 10);
+    db.close();
+  });
+
+  it('leaves the seed reference empty when the window has fewer than 100 decided queries', async () => {
+    const db = await dbWithTelemetry((d) => {
+      insertReranked(d, '2026-11-04T12:00:00.000Z', 'passed', 99, 0.9);
+      insertReranked(d, '2026-11-04T12:00:00.000Z', 'fail_open', 50, null);
+    });
+    for (const row of seedRows(db)) {
+      expect(row).toMatchObject({ reference_window_start: null, reference_decided_n: null, reference_knee_mass: null });
+    }
+    db.close();
+  });
+
   it('seeds the two 0.40 measurements and stays the same when run twice', async () => {
     const db = new Database(':memory:');
     const migration = new RejectionGateBaselineMigration();
@@ -33,7 +104,7 @@ describe('066-rejection-gate-baseline', () => {
     await migration.up(db);
     await migration.validateAfter(db);
 
-    const rows = db.prepare('SELECT * FROM rejection_gate_baseline ORDER BY id').all() as Array<Record<string, unknown>>;
+    const rows = seedRows(db);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       id: 1,
@@ -43,14 +114,9 @@ describe('066-rejection-gate-baseline', () => {
       judge_model: 'jev-latest',
       label_set_id: '#1387 라벨 팩',
       source: 'measurement',
-      reference_window_start: '2026-11-02T00:00:00.000Z',
-      reference_window_end: '2026-11-09T00:00:00.000Z',
-      reference_decided_n: 621,
+      reference_window_start: null,
     });
-    expect(rows[0].reference_rejection_rate).toBeCloseTo(313 / 621, 10);
-    expect(rows[0].reference_knee_mass).toBeCloseTo(75 / 621, 10);
-    expect(rows[1]).toMatchObject({ id: 2, measured_at: '2026-11-09T00:00:00.000Z', reference_decided_n: 621 });
-    expect(rows[1].reference_rejection_rate).toBe(rows[0].reference_rejection_rate);
+    expect(rows[1]).toMatchObject({ id: 2, measured_at: '2026-11-09T00:00:00.000Z', reference_window_start: null });
     db.close();
   });
 

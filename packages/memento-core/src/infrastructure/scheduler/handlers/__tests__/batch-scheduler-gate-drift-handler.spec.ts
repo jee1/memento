@@ -22,7 +22,13 @@ describe('runRejectionGateDriftCheck (#1681)', () => {
   let db: Database.Database;
 
   beforeEach(async () => {
-    db = await createGateDriftDb();
+    db = await createGateDriftDb({
+      beforeMigration: (target) => {
+        insertRerankedEvents(target, '2026-11-03T12:00:00.000Z', 'rejected', 313, 0.1);
+        insertRerankedEvents(target, '2026-11-03T12:00:00.000Z', 'passed', 75, 0.45);
+        insertRerankedEvents(target, '2026-11-03T12:00:00.000Z', 'passed', 233, 0.9);
+      },
+    });
     mementoConfig.searchRejectionGate = 'typesafe';
     mementoConfig.typesafeApiKey = 'test-key';
   });
@@ -71,9 +77,9 @@ describe('runRejectionGateDriftCheck (#1681)', () => {
 
   it('warns that a re-measurement is due when the weekly rate leaves the band', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-10T09:00:00.000Z'));
-    insertRerankedEvents(db, '2026-11-03T12:00:00.000Z', 'rejected', 200, 0.1);
-    insertRerankedEvents(db, '2026-11-03T12:00:00.000Z', 'passed', 421, 0.9);
+    vi.setSystemTime(new Date('2026-11-17T09:00:00.000Z'));
+    insertRerankedEvents(db, '2026-11-10T12:00:00.000Z', 'rejected', 200, 0.1);
+    insertRerankedEvents(db, '2026-11-10T12:00:00.000Z', 'passed', 421, 0.9);
 
     const result = await runRejectionGateDriftCheck(context(db));
 

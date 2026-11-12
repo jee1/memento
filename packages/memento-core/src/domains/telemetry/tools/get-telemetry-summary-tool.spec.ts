@@ -300,7 +300,7 @@ describe('GetTelemetrySummaryTool', () => {
     const result = await tool.handle({}, makeContext({ rejectionGateDrift: summary }));
     const gateDrift = JSON.parse(result.content[0].text).search_quality.gate_drift;
     expect(gateDrift.latest_verdict).toEqual(verdict);
-    expect(gateDrift.latest_verdict.band.outcome).toBe('insufficient_n');
+    expect(gateDrift.latest_verdict.band.outcome).toBe('reference_pending');
     expect(gateDrift.active_baseline.id).toBe(2);
     db.close();
   });
