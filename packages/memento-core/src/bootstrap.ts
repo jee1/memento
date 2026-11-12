@@ -82,8 +82,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       forgettingPolicyService,
       databaseOptimizer,
     } = createSearchEmbeddingAndOptimizerServices(db, repositories);
-    const { wireSettingRuntimeReapply } = await import('./bootstrap/setting-runtime-apply-wiring.js');
-    wireSettingRuntimeReapply(hybridSearchEngine);
+    const { wireSettingRuntimeReapply, captureBaselineWithoutThrowing } = await import('./bootstrap/setting-runtime-apply-wiring.js');
+    wireSettingRuntimeReapply(hybridSearchEngine, db);
+    captureBaselineWithoutThrowing(db, 'startup');
     const errorLoggingService = new ErrorLoggingService();
     const { vectorSearchEngine, anchorManager, anchorSearchService } = await createAnchorStack(
       db,

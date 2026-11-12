@@ -9,6 +9,7 @@ export type EventType =
   | 'memory.search.selected'
   | 'memory.search.empty'
   | 'memory.search.failed'
+  | 'memory.search.gate_drift'
   | 'memory.injection.item_filtered'
   | 'memory.write.requested'
   | 'memory.write.completed'

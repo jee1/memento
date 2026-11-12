@@ -8,7 +8,12 @@ import { GetTelemetrySummaryTool } from './get-telemetry-summary-tool.js';
 import { PerformanceMonitor } from '../../monitoring/services/performance-monitor.js';
 import { executePerformanceAlerts } from '../../monitoring/tools/performance-alerts.js';
 import type { ToolContext } from '../../../tools/types.js';
-import type { TelemetryService } from '../services/telemetry-service.js';
+import { TelemetryService } from '../services/telemetry-service.js';
+import { TelemetryRepository } from '../repositories/telemetry-repository.js';
+import { countActiveMemoryItems } from '../../memory/index.js';
+import { checkRejectionGateDrift, recordRejectionGateDriftVerdict } from '../gate-drift/index.js';
+import { createGateDriftDb } from '../gate-drift/__tests__/gate-drift-test-support.js';
+import type { RejectionGateDriftSummary } from '../gate-drift/types.js';
 import type {
   SearchQualityResult,
   MemoryQualityResult,
@@ -92,6 +97,7 @@ function makeContext(
     getMemoryQualityImpl: (...args: unknown[]) => MemoryQualityResult;
     getConsolidationQualityImpl: (...args: unknown[]) => ConsolidationQualityResult;
     getFeedbackQualityImpl: (...args: unknown[]) => FeedbackQualityResult;
+    rejectionGateDrift: RejectionGateDriftSummary;
   }> = {}
 ): ToolContext {
   const {
@@ -102,6 +108,7 @@ function makeContext(
     getMemoryQualityImpl,
     getConsolidationQualityImpl,
     getFeedbackQualityImpl,
+    rejectionGateDrift = { latest_verdict: null, active_baseline: null },
   } = overrides;
 
   const mockTelemetryService = {
@@ -115,6 +122,7 @@ function makeContext(
     getConsolidationQuality: getConsolidationQualityImpl
       ? vi.fn().mockImplementation(getConsolidationQualityImpl)
       : vi.fn().mockReturnValue(makeConsolidationQuality()),
+    getRejectionGateDrift: vi.fn().mockReturnValue(rejectionGateDrift),
     getFeedbackQuality: getFeedbackQualityImpl
       ? vi.fn().mockImplementation(getFeedbackQualityImpl)
       : vi.fn().mockReturnValue(makeFeedbackQuality()),
@@ -278,4 +286,33 @@ describe('GetTelemetrySummaryTool', () => {
       }],
     });
   });
+
+  it('12) gate_drift 는 전역 범위 요약에만 싣는다', async () => {
+    const db = await createGateDriftDb();
+    const summary = new TelemetryService(new TelemetryRepository(db)).getRejectionGateDrift();
+    const scoped = await tool.handle({}, makeContext({ ownerId: 'agent-123', rejectionGateDrift: summary }));
+    expect(JSON.parse(scoped.content[0].text).search_quality).not.toHaveProperty('gate_drift');
+    const global = await tool.handle({}, makeContext({ rejectionGateDrift: summary }));
+    expect(JSON.parse(global.content[0].text).search_quality.gate_drift.active_baseline).toMatchObject({ id: 2 });
+    db.close();
+  });
+
+  it('11) search_quality.gate_drift 는 최신 드리프트 판정과 활성 기준을 싣는다', async () => {
+    const db = await createGateDriftDb();
+    const empty = await tool.handle({}, makeContext({ rejectionGateDrift: new TelemetryService(new TelemetryRepository(db)).getRejectionGateDrift() }));
+    const before = JSON.parse(empty.content[0].text).search_quality.gate_drift;
+    expect(before.latest_verdict).toBeNull();
+    expect(before.active_baseline).toMatchObject({ id: 2, threshold: 0.4, n_items: 11121 });
+
+    const verdict = checkRejectionGateDrift(db, new Date('2026-11-17T00:00:00.000Z'), countActiveMemoryItems)!;
+    recordRejectionGateDriftVerdict(db, verdict);
+    const summary = new TelemetryService(new TelemetryRepository(db)).getRejectionGateDrift();
+    const result = await tool.handle({}, makeContext({ rejectionGateDrift: summary }));
+    const gateDrift = JSON.parse(result.content[0].text).search_quality.gate_drift;
+    expect(gateDrift.latest_verdict).toEqual(verdict);
+    expect(gateDrift.latest_verdict.band.outcome).toBe('reference_pending');
+    expect(gateDrift.active_baseline.id).toBe(2);
+    db.close();
+  });
 });
+

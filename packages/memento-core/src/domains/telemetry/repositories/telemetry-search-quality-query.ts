@@ -36,29 +36,42 @@ function avgCandidateCountForPeriod(
   return row.a;
 }
 
-function queryRejectionGateRate(
-  db: Database.Database,
-  params: Record<string, unknown>,
-  ownerClause: string,
-): {
+/** `[start, end)` 창. end 를 생략하면 start 이후 전부. ownerId 를 생략하면 전체 owner. */
+export interface RejectionGateWindow {
+  start: string;
+  end?: string;
+  ownerId?: string | null;
+}
+
+export interface RejectionGateRate {
   rejection_rate: number | null;
   rejection_decided_count: number;
   fail_open_count: number;
-} {
-  const verdictPath = `$.${SEARCH_QUALITY_EXTRA_KEYS.rejection_gate_verdict}`;
-  const decidedList = REJECTION_GATE_DECIDED_VERDICTS.map((verdict) => `'${verdict}'`).join(', ');
+  rejected_count: number;
+}
+
+const DECIDED_VERDICTS_JSON = JSON.stringify(REJECTION_GATE_DECIDED_VERDICTS);
+const VERDICT_PATH = `$.${SEARCH_QUALITY_EXTRA_KEYS.rejection_gate_verdict}`;
+const TOP_SCORE_PATH = `$.${SEARCH_QUALITY_EXTRA_KEYS.rejection_gate_top_score}`;
+
+function windowParams(window: RejectionGateWindow): Record<string, unknown> {
+  return { start: window.start, end: window.end ?? null, owner: window.ownerId ?? null };
+}
+
+export function queryRejectionGateRate(db: Database.Database, window: RejectionGateWindow): RejectionGateRate {
   const row = db
     .prepare(
       `SELECT
-         SUM(CASE WHEN json_extract(extra_data, '${verdictPath}') = 'rejected' THEN 1 ELSE 0 END) AS rejected_n,
-         SUM(CASE WHEN json_extract(extra_data, '${verdictPath}') IN (${decidedList}) THEN 1 ELSE 0 END) AS decided_n,
-         SUM(CASE WHEN json_extract(extra_data, '${verdictPath}') = 'fail_open' THEN 1 ELSE 0 END) AS fail_open_n
+         SUM(CASE WHEN json_extract(extra_data, @verdictPath) = 'rejected' THEN 1 ELSE 0 END) AS rejected_n,
+         SUM(CASE WHEN json_extract(extra_data, @verdictPath) IN (SELECT value FROM json_each(@decided)) THEN 1 ELSE 0 END) AS decided_n,
+         SUM(CASE WHEN json_extract(extra_data, @verdictPath) = 'fail_open' THEN 1 ELSE 0 END) AS fail_open_n
        FROM telemetry_events
        WHERE event_type = 'memory.search.reranked'
-         AND created_at >= @cutoff
-         ${ownerClause}`
+         AND created_at >= @start
+         AND (@end IS NULL OR created_at < @end)
+         AND (@owner IS NULL OR owner_id = @owner)`
     )
-    .get(params) as {
+    .get({ ...windowParams(window), verdictPath: VERDICT_PATH, decided: DECIDED_VERDICTS_JSON }) as {
       rejected_n: number | null;
       decided_n: number | null;
       fail_open_n: number | null;
@@ -69,7 +82,40 @@ function queryRejectionGateRate(
     rejection_rate: decided > 0 ? rejected / decided : null,
     rejection_decided_count: decided,
     fail_open_count: row?.fail_open_n ?? 0,
+    rejected_count: rejected,
   };
+}
+
+/** 판정된 질의 중 top_score 가 임계값 바로 위 `[threshold, threshold + width)` 에 놓인 비율. 판정이 없으면 null. */
+export function queryRejectionGateKneeMass(
+  db: Database.Database,
+  window: RejectionGateWindow,
+  threshold: number,
+  width: number
+): number | null {
+  const row = db
+    .prepare(
+      `SELECT
+         SUM(CASE WHEN json_extract(extra_data, @verdictPath) IN (SELECT value FROM json_each(@decided)) THEN 1 ELSE 0 END) AS decided_n,
+         SUM(CASE WHEN json_extract(extra_data, @verdictPath) IN (SELECT value FROM json_each(@decided))
+                   AND json_extract(extra_data, @topScorePath) >= @kneeLow
+                   AND json_extract(extra_data, @topScorePath) < @kneeHigh THEN 1 ELSE 0 END) AS knee_n
+       FROM telemetry_events
+       WHERE event_type = 'memory.search.reranked'
+         AND created_at >= @start
+         AND (@end IS NULL OR created_at < @end)
+         AND (@owner IS NULL OR owner_id = @owner)`
+    )
+    .get({
+      ...windowParams(window),
+      verdictPath: VERDICT_PATH,
+      topScorePath: TOP_SCORE_PATH,
+      decided: DECIDED_VERDICTS_JSON,
+      kneeLow: threshold,
+      kneeHigh: threshold + width,
+    }) as { decided_n: number | null; knee_n: number | null } | undefined;
+  const decided = row?.decided_n ?? 0;
+  return decided > 0 ? (row?.knee_n ?? 0) / decided : null;
 }
 
 export function querySearchQuality(
@@ -205,6 +251,8 @@ export function querySearchQuality(
     avgCand = avgCandidateCountForPeriod(db, cutoff, ownerId);
   }
 
+  const gate = queryRejectionGateRate(db, { start: cutoff, ownerId });
+
   return {
     period,
     owner_id: ownerId ?? null,
@@ -220,7 +268,9 @@ export function querySearchQuality(
     reranked_count: funnel.reranked_count ?? 0,
     selected_count: selectedCount,
     ranking_versions: rankingRows.map(row => row.version),
-    ...queryRejectionGateRate(db, params, ownerClause),
+    rejection_rate: gate.rejection_rate,
+    rejection_decided_count: gate.rejection_decided_count,
+    fail_open_count: gate.fail_open_count,
     timestamp: now
   };
 }

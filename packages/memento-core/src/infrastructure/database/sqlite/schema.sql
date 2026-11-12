@@ -974,6 +974,39 @@ BEGIN
   SELECT RAISE(ABORT, 'ranking_weight_proposal is append-only');
 END;
 
+-- Rejection gate baseline (migration 066, Issue #1681): 임계값을 잰 조건의 append-only 기록. 시드는 마이그레이션에서만 넣는다
+CREATE TABLE IF NOT EXISTS rejection_gate_baseline (
+  id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+  threshold                REAL    NOT NULL CHECK (threshold >= 0 AND threshold <= 1),
+  n_items                  INTEGER NOT NULL CHECK (n_items >= 0),
+  measured_at              TEXT    NOT NULL,
+  judge_model              TEXT    NOT NULL,
+  label_set_id             TEXT,
+  source                   TEXT    NOT NULL CHECK (source IN ('measurement', 'setting_change', 'startup', 'reference_fill')),
+  reference_window_start   TEXT,
+  reference_window_end     TEXT,
+  reference_decided_n      INTEGER,
+  reference_rejection_rate REAL,
+  reference_knee_mass      REAL,
+  captured_at              TEXT    NOT NULL,
+  CHECK (
+    (reference_window_start IS NULL AND reference_window_end IS NULL AND reference_decided_n IS NULL
+      AND reference_rejection_rate IS NULL AND reference_knee_mass IS NULL)
+    OR (reference_window_start IS NOT NULL AND reference_window_end IS NOT NULL AND reference_decided_n IS NOT NULL
+      AND reference_rejection_rate IS NOT NULL AND reference_knee_mass IS NOT NULL)
+  )
+);
+CREATE TRIGGER IF NOT EXISTS rejection_gate_baseline_prevent_update
+BEFORE UPDATE ON rejection_gate_baseline
+BEGIN
+  SELECT RAISE(ABORT, 'rejection_gate_baseline is append-only');
+END;
+CREATE TRIGGER IF NOT EXISTS rejection_gate_baseline_prevent_delete
+BEFORE DELETE ON rejection_gate_baseline
+BEGIN
+  SELECT RAISE(ABORT, 'rejection_gate_baseline is append-only');
+END;
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

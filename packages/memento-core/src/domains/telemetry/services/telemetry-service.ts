@@ -22,6 +22,7 @@ import type {
   TelemetryEventRow,
   TelemetryPeriod
 } from '../types/telemetry.types.js';
+import type { RejectionGateDriftSummary } from '../gate-drift/types.js';
 import { logger } from '../../../shared/utils/logger.js';
 
 interface TelemetryContext {
@@ -89,6 +90,10 @@ export class TelemetryService {
 
   getSearchQuality(period: TelemetryPeriod, ownerId?: string | null): SearchQualityResult {
     return this.repository.querySearchQuality(period, ownerId);
+  }
+
+  getRejectionGateDrift(): RejectionGateDriftSummary {
+    return this.repository.queryRejectionGateDriftSummary();
   }
 
   getMemoryQuality(period: TelemetryPeriod, ownerId?: string | null): MemoryQualityResult {

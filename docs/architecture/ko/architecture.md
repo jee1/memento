@@ -114,6 +114,14 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 
 도구 호출과 메모리 접근 패턴을 추적한다. `TelemetryService`가 `owner_id`/`agent_id` 기반으로 컨텍스트를 격리하여 에이전트별 사용 통계를 제공한다. `get_telemetry_summary` 도구로 조회하고, HTTP 관리 API로도 접근 가능하다.
 
+`rejection_gate_drift_check` 배치는 기각 게이트 임계값이 아직 맞는지 `memory.search.gate_drift` 이벤트(`extra_data`)로 남긴다. 판정 필드는 다음과 같다.
+
+- `alert`: `scale.alert` 이거나 `band.outcome` 이 `alert` 이면 true. 재측정이 필요하다는 신호이며 임계값을 바꾸지 않는다.
+- `scale`: 활성 기억 수(`n_items`)가 활성 기준 N(`baseline_n_items`)의 2배 이상이면 `alert`. 빈 DB 에서 캡처한 기준(N 0)이면 `status` 가 `disabled_zero_baseline` 이고 이 규칙을 그 기준 동안 끈다(평소 `active`).
+- `band.outcome`: 지난 ISO 주의 기각률이 참조 기각률 ± `max(3 시그마, 무릎 질량)` 안이면 `ok`, 밖이면 `alert`. 주 decided 가 100건 미만이면 `insufficient_n`, 활성 기준의 참조 분포가 아직 없으면 `reference_pending`. `band.reference_window_closed` 가 false 면 참조 창(측정 시각부터 7일)이 아직 열려 있고, true 인데 `reference_pending` 이면 창이 decided 100건 미만으로 닫혀 그 기준 동안 참조가 채워지지 않는다.
+
+기준은 `rejection_gate_baseline` 테이블(migration 066, append-only)에 쌓이고 `get_telemetry_summary` 의 `search_quality.gate_drift` 가 최신 판정과 활성 기준을 보여 준다. 기준과 판정은 전역 값이라 `gate_drift` 는 owner 범위가 아닌 전역 범위 요약에만 실린다.
+
 ---
 
 ## MCP 도구 목록
@@ -141,6 +149,7 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 | `job_run_cleanup_batch` | 24시간 | 오래된 `job_run` 기록 정리 |
 | `anchor_auto_refresh` | 6시간 | 앵커 자동 갱신 (`ANCHOR_AUTO_REFRESH_ENABLED`) |
 | `embedding_reconciliation` | 24시간 | 누락·낡은 임베딩 재생성 |
+| `rejection_gate_drift_check` | 24시간 | 기각 게이트 드리프트 판정을 `memory.search.gate_drift` 이벤트로 기록 (LLM 호출 없음, 게이트가 off 면 건너뜀) |
 
 `/admin/batch/run` 의 `jobType` 에는 위 이름을 그대로 쓴다. 다른 이름은 400 `Invalid or unknown jobType` 이다. 등록 목록은 `infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.ts`, 기본 주기는 `batch-scheduler-default-config.ts` 가 원본이다.
 
@@ -159,6 +168,7 @@ Memento는 현재 **SQLite(better-sqlite3)** 단일 스토리지를 사용한다
 - **`anchor`**: 앵커 영구 저장 (migration 004).
 - **`meta_memory_stats`**: 기억별 리콜 성공/실패 통계.
 - **`telemetry_events` / `telemetry_daily_metrics`**: 텔레메트리 데이터.
+- **`rejection_gate_baseline`**: 기각 게이트 임계값을 잰 조건의 append-only 기록 (migration 066).
 - **`memory_review_candidate`**: 복습 후보 목록.
 - **`kg_triple`**: 기억에서 추출된 Knowledge Graph Triple (중복 제거 포함).
 

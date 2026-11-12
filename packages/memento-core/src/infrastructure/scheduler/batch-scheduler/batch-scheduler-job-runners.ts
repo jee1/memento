@@ -18,6 +18,7 @@ import {
 } from '../handlers/batch-scheduler-sleep-telemetry-handlers.js';
 import { runAnchorAutoRefresh } from '../handlers/batch-scheduler-anchor-handlers.js';
 import { runEmbeddingReconciliation } from '../handlers/batch-scheduler-embedding-handlers.js';
+import { runRejectionGateDriftCheck } from '../handlers/batch-scheduler-gate-drift-handlers.js';
 import { runSupersedeCandidateScan } from '../handlers/batch-scheduler-supersede-handlers.js';
 import {
   buildBatchSchedulerRunContext,
@@ -43,6 +44,7 @@ export const REGISTERED_MANUAL_BATCH_JOB_TYPES = [
   'anchor_auto_refresh',
   'embedding_reconciliation',
   'supersede_candidate_scan',
+  'rejection_gate_drift_check',
 ] as const;
 
 export type ManualBatchSchedulerJobType = (typeof REGISTERED_MANUAL_BATCH_JOB_TYPES)[number];
@@ -69,7 +71,8 @@ export function createBatchSchedulerJobRunners(source: BatchSchedulerContextSour
     runJobRunCleanupBatch: () => runJobRunCleanupBatch(ctx()),
     runAnchorAutoRefresh: () => runAnchorAutoRefresh(ctx()),
     runEmbeddingReconciliation: () => runEmbeddingReconciliation(ctx()),
-    runSupersedeCandidateScan: () => runSupersedeCandidateScan(ctx())
+    runSupersedeCandidateScan: () => runSupersedeCandidateScan(ctx()),
+    runRejectionGateDriftCheck: () => runRejectionGateDriftCheck(ctx())
   };
 }
 
@@ -111,6 +114,8 @@ function dispatchManualJob(
       return runners.runEmbeddingReconciliation();
     case 'supersede_candidate_scan':
       return runners.runSupersedeCandidateScan();
+    case 'rejection_gate_drift_check':
+      return runners.runRejectionGateDriftCheck();
     default:
       throw new Error(`Unknown job type: ${jobType satisfies never}`);
   }

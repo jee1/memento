@@ -4,6 +4,7 @@ import type { BatchSchedulerLogMethod } from '../handlers/batch-scheduler-run-co
 import {
   scheduleAnchorAutoRefresh,
   scheduleEmbeddingReconciliation,
+  scheduleRejectionGateDriftCheck,
   scheduleSupersedeCandidateScan,
   scheduleCleanupJob,
   scheduleForgettingEventCleanup,
@@ -93,7 +94,8 @@ function buildRestartHandlers(): Record<string, RestartHandler> {
     job_run_cleanup_batch: scheduleJobRunCleanup,
     anchor_auto_refresh: scheduleAnchorAutoRefresh,
     embedding_reconciliation: scheduleEmbeddingReconciliation,
-    supersede_candidate_scan: scheduleSupersedeCandidateScan
+    supersede_candidate_scan: scheduleSupersedeCandidateScan,
+    rejection_gate_drift_check: scheduleRejectionGateDriftCheck
   };
 }
 

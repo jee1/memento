@@ -171,6 +171,7 @@ function getTelemetryEvents(db: Database.Database | null, serverServices: Server
         'memory.search.selected',
         'memory.search.empty',
         'memory.search.failed',
+        'memory.search.gate_drift',
         'memory.write.requested',
         'memory.write.completed',
         'memory.write.inplace_updated',
