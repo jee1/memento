@@ -11,6 +11,7 @@
 
 ### Added
 
+- `memory_injection` 이 기각 게이트 top-10 항목 점수 중 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5, 0이면 끔) 이상만 주입하고, 결과 최상위 `item_filter` 와 텔레메트리 `memory.injection.item_filtered` 를 남긴다. `recall` 응답 형태는 바꾸지 않는다 (#1682).
 - remember 가 기존 행을 replace 또는 incremental 로 고치고 본문이 바뀌면 `memory.write.inplace_updated` 한 건을 `telemetry_events` 에 남긴다. `extra_data` 는 `memory_id`, `update_mode`, 이전 본문 sha256, 다음 본문 sha256 이고 본문은 넣지 않는다 (#1676).
 
 ### Fixed

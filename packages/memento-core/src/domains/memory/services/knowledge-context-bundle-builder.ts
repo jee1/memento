@@ -8,8 +8,19 @@ import type { MemoryType } from '../../../shared/types/memory.types.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { isFullMemoryItemTypeSet } from '../../../shared/utils/type-guards.js';
-import type { HybridSearchEngine, HybridSearchResult } from '../../search/index.js';
+import type {
+  HybridSearchEngine,
+  HybridSearchResult,
+  RelevanceGateOutcome,
+} from '../../search/index.js';
 import { overlayWorkRecordDisplay } from '../remember/work-record.js';
+import {
+  buildItemFilterMeta,
+  type GateItemScore,
+  type ItemFilterMeta,
+} from './injection-item-filter.js';
+
+export type { ItemFilterMeta } from './injection-item-filter.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
@@ -24,6 +35,11 @@ export interface KnowledgeContextBundleParams {
   memoryTypes?: MemoryType[];
   projectId?: string;
   ownerId?: string | string[];
+  /**
+   * #1682 memory_injection 전용. 미지정 또는 ≤0 이면 항목 필터 끔.
+   * 개인 지식 Agent 경로는 넘기지 않는다.
+   */
+  itemScoreMin?: number;
 }
 
 export interface KnowledgeContextBundle {
@@ -37,6 +53,10 @@ export interface KnowledgeContextBundle {
   query: string;
   /** 하이브리드 검색 1위 기억 ID (앵커 자동 설정용) */
   topMemoryId?: string;
+  /** #1682 항목 필터 결과. memory_injection 이 응답 최상위에 싣는다. */
+  itemFilter?: ItemFilterMeta;
+  /** 텔레메트리용: 마지막 검색의 게이트 판정 */
+  rejectionGate?: RelevanceGateOutcome;
 }
 
 function estimateTokens(text: string): number {
@@ -222,6 +242,7 @@ export async function buildKnowledgeContextBundle(
     memoryTypes: filteredMemoryTypes,
     projectId,
     ownerId,
+    itemScoreMin,
   } = params;
 
   const finalMemoryTypes: MemoryType[] | undefined =
@@ -250,6 +271,8 @@ export async function buildKnowledgeContextBundle(
   let memories: HybridSearchResult[];
   let excludedDuplicateEarly: number;
   let tfidfEmitted = false;
+  let lastRejectionGate: RelevanceGateOutcome | undefined;
+  let lastGateItemScores: GateItemScore[] | undefined;
 
   // #811: 조기 필터 + adaptive overfetch — 고정 *2/*6 shortlist+사후필터만으로는 고비율 손상 시 예산 고갈.
   for (;;) {
@@ -260,6 +283,9 @@ export async function buildKnowledgeContextBundle(
       vectorWeight: 0.7,
       textWeight: 0.3,
     });
+
+    lastRejectionGate = searchResult.rejection_gate;
+    lastGateItemScores = searchResult.gate_item_scores;
 
     if (!tfidfEmitted) {
       emitTfidfFallbackWarningIfNeeded(
@@ -311,6 +337,16 @@ export async function buildKnowledgeContextBundle(
     });
   }
 
+  // #1682 항목 필터는 재검색 루프 뒤. 루프 안에 넣으면 재검색과 게이트 호출만 늘고 항목은 안 는다.
+  const filtered = buildItemFilterMeta({
+    itemScoreMin,
+    rejectionGate: lastRejectionGate,
+    memoriesBefore: memories,
+    gateItemScores: lastGateItemScores,
+  });
+  memories = filtered.memories;
+  const itemFilter = filtered.itemFilter;
+
   logger.debug('[knowledge-context-bundle] 검색된 기억', { count: memories.length });
 
   if (memories.length === 0) {
@@ -321,6 +357,8 @@ export async function buildKnowledgeContextBundle(
       tokenEstimate: 0,
       contextSummary: '관련 기억 0건',
       query,
+      itemFilter,
+      rejectionGate: lastRejectionGate,
     };
   }
 
@@ -349,5 +387,7 @@ export async function buildKnowledgeContextBundle(
     contextSummary,
     query,
     topMemoryId: summary[0]?.id,
+    itemFilter,
+    rejectionGate: lastRejectionGate,
   };
 }

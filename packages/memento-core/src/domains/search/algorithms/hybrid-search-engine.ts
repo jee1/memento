@@ -146,6 +146,8 @@ export class HybridSearchEngine {
     vector_count?: number;
     fallback_used?: boolean;
     rejection_gate?: RelevanceGateOutcome;
+    /** #1682 게이트가 채점한 top-10 (id, score). NaN 은 null. 게이트를 탄 경우만. */
+    gate_item_scores?: Array<{ id: string; score: number | null }>;
     stage_ms: HybridLaneMs;
     query_embedding_providers?: EmbeddingProvider[];
     union_count: number;
@@ -209,6 +211,8 @@ export class HybridSearchEngine {
       // #1191 게이트 판정을 응답에도 싣는다. 미부착이면 'off', 후보 0건이라 안 탔으면 없음.
       let rejectionGateOutcome: RelevanceGateOutcome | undefined = this.rejectionGate ? undefined : { verdict: 'off', top_score: null, unscored: 0 };
       let gateMs: number | undefined;
+      // #1682 memory_injection 항목 필터용. 게이트를 탄 경우에만 채운다(recall 항목에는 붙이지 않음).
+      let gateItemScores: Array<{ id: string; score: number | null }> | undefined;
       // #1095 기각 게이트: 후보 최고 점수가 임계값 미만이면 질의 전체를 기각한다.
       // finalResults 를 재할당하므로 아래 logData·finalIds·return 이 모두 자동으로 따라간다.
       if (this.rejectionGate && finalResults.length > 0) {
@@ -230,6 +234,10 @@ export class HybridSearchEngine {
         const gateScorePairs = gateCandidates.map((item, index) => ({
           id: item.id,
           score: gateScores[index] ?? Number.NaN,
+        }));
+        gateItemScores = gateScorePairs.map((pair) => ({
+          id: pair.id,
+          score: Number.isFinite(pair.score) ? pair.score : null,
         }));
         rejectionGateOutcome = {
           verdict: verdict.rejected ? 'rejected' : verdict.topScore === null ? 'fail_open' : 'passed',
@@ -295,6 +303,7 @@ export class HybridSearchEngine {
         reranked_count: finalResults.length,
         fallback_used: vectorOut.fallback_used,
         ...(rejectionGateOutcome ? { rejection_gate: rejectionGateOutcome } : {}),
+        ...(gateItemScores ? { gate_item_scores: gateItemScores } : {}),
         stage_ms: {
           text_ms: textOut.text_ms,
           ...(vectorOut.embedding_ms !== undefined ? { embedding_ms: vectorOut.embedding_ms } : {}),

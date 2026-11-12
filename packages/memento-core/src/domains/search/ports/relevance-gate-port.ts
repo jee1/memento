@@ -55,8 +55,9 @@ export { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../../shared/config/constan
 type RelevanceGateOnError = 'open' | 'closed';
 
 /**
- * 게이트는 질의 단위로만 판정한다. 후보별 필터링은 하지 않는다.
- * 2026-09-23 실측은 top1 기준 질의 단위 기각만 검증했고 후보별 드롭은 미검증이다.
+ * 게이트 판정(`judgeRelevanceGate`)은 질의 단위다. 후보별 점수는 응답
+ * `gate_item_scores` 로 넘기고, `memory_injection` 항목 필터(#1682)가 쓴다.
+ * #1680 1단계는 후보별 필터(임계 0.5)로 주입 항목 무관 비율을 쟀다.
  */
 export function judgeRelevanceGate(
   scores: number[],

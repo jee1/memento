@@ -90,7 +90,7 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 ## 주입 경로의 순위 출처 (Issue #1177)
 
-`memory_injection`과 개인 지식 Agent가 공유하는 `buildKnowledgeContextBundle`은 하이브리드 엔진이 매긴 `finalScore` 순서를 **그대로** 씁니다. 요약 단계에서 raw `importance` 컬럼을 더해 재정렬하지 않고, 중복 그룹의 대표도 `finalScore`로만 고릅니다.
+`memory_injection`과 개인 지식 Agent가 공유하는 `buildKnowledgeContextBundle`은 하이브리드 엔진이 매긴 `finalScore` 순서를 **그대로** 씁니다. 요약 단계에서 raw `importance` 컬럼을 더해 재정렬하지 않고, 중복 그룹의 대표도 `finalScore`로만 고릅니다. 기각 게이트가 켜진 배포에서 `memory_injection`만 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5)으로 게이트 top-10 항목 점수를 한 번 더 거른다(#1682). 개인 지식 Agent 경로에는 적용하지 않는다.
 
 `finalScore`는 이미 `γ·importance`를 포함하고 그 importance는 `[importance_signal].scale`로 압축됩니다(#1082). 공식 바깥에서 raw importance를 계수 1.0으로 한 번 더 더하면 그 압축이 무효가 됩니다 — 운영 코퍼스 10,535건 실측에서 `finalScore` 실현 폭은 0.068인데 raw `importance` 폭은 0.55로 **8배**라, 순서를 importance가 정하고 `finalScore`는 타이브레이커로 전락합니다.
 

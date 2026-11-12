@@ -5,9 +5,13 @@
  * mementoConfig 를 부팅 때와 같은 파서로 다시 계산한다. 비밀값, 인프라, 임베딩 모델은 표에 두지 않는다.
  */
 import type { MementoConfig } from '../../shared/types/memory.types.js';
-import { DEFAULT_RELEVANCE_GATE_THRESHOLD } from '../../shared/config/constants.js';
+import {
+  DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN,
+  DEFAULT_RELEVANCE_GATE_THRESHOLD,
+} from '../../shared/config/constants.js';
 import {
   mementoConfig,
+  resolveMemoryInjectionItemScoreMin,
   resolveProceduralExtractionStrategy,
   resolveRejectionGateOnError,
   resolveRejectionGateProvider,
@@ -84,6 +88,21 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
       mementoConfig.searchRejectionGateThreshold = resolveRejectionGateThreshold();
     },
     current: () => String(mementoConfig.searchRejectionGateThreshold),
+  },
+  {
+    key: 'MEMORY_INJECTION_ITEM_SCORE_MIN',
+    description:
+      'memory_injection 이 게이트 top-10 항목 점수 중 이 값 이상만 주입한다(0~1). 0 이면 항목 필터를 끈다.',
+    kind: 'number',
+    range: { min: 0, max: 1 },
+    defaultValue: String(DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN),
+    defaultSource: 'shared/config/constants.ts DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN',
+    apply: 'immediate',
+    risk: 'medium',
+    refresh: () => {
+      mementoConfig.memoryInjectionItemScoreMin = resolveMemoryInjectionItemScoreMin();
+    },
+    current: () => String(mementoConfig.memoryInjectionItemScoreMin),
   },
   {
     key: 'SEARCH_REJECTION_GATE_ON_ERROR',
