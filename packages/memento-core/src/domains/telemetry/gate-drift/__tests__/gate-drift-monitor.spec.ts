@@ -185,8 +185,18 @@ describe('reference fill and scale rule', () => {
     seedWindow(99);
     const verdict = checkRejectionGateDrift(db, new Date('2026-11-20T00:00:00.000Z'), countActiveMemoryItems);
     expect(baselineCount(db)).toBe(3);
-    expect(verdict?.band.outcome).toBe('reference_pending');
+    expect(verdict?.band).toMatchObject({ outcome: 'reference_pending', reference_window_closed: true });
     expect(verdict?.alert).toBe(false);
+  });
+
+  it('tells a reference window that is still open apart from one that closed short', () => {
+    captureRejectionGateBaselineIfChanged(db, 'setting_change', countActiveMemoryItems, measuredAt);
+    seedWindow(100);
+    const open = checkRejectionGateDrift(db, new Date('2026-11-18T00:00:00.000Z'), countActiveMemoryItems);
+    expect(open?.band).toMatchObject({ outcome: 'reference_pending', reference_window_closed: false });
+    const filled = checkRejectionGateDrift(db, new Date('2026-11-20T00:00:00.000Z'), countActiveMemoryItems);
+    expect(filled?.band.reference_window_closed).toBe(true);
+    expect(filled?.band.outcome).not.toBe('reference_pending');
   });
 
   it('raises the scale alert at twice the baseline item count and not one item below', () => {
@@ -197,6 +207,7 @@ describe('reference fill and scale rule', () => {
     expect(checkRejectionGateDrift(db, now, countActiveMemoryItems)?.scale).toEqual({
       n_items: 2 * baselineN - 1,
       baseline_n_items: baselineN,
+      status: 'active',
       alert: false,
     });
 
@@ -204,6 +215,16 @@ describe('reference fill and scale rule', () => {
     const verdict = checkRejectionGateDrift(db, now, countActiveMemoryItems);
     expect(verdict?.scale.alert).toBe(true);
     expect(verdict?.alert).toBe(true);
+  });
+
+  it('turns the scale rule off for a baseline captured on an empty install', async () => {
+    const fresh = await createGateDriftDb({ freshInstall: true });
+    captureRejectionGateBaselineIfChanged(fresh, 'startup', countActiveMemoryItems, measuredAt);
+    seedActiveMemoryItems(fresh, 50);
+    const verdict = checkRejectionGateDrift(fresh, measuredAt, countActiveMemoryItems);
+    expect(verdict?.scale).toEqual({ n_items: 50, baseline_n_items: 0, status: 'disabled_zero_baseline', alert: false });
+    expect(verdict?.alert).toBe(false);
+    fresh.close();
   });
 
   it('reports no verdict when there is no baseline', async () => {

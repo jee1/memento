@@ -115,8 +115,8 @@ Tracks tool calls and memory access patterns. `TelemetryService` isolates contex
 The `rejection_gate_drift_check` job records whether the rejection gate threshold still holds as a `memory.search.gate_drift` event (`extra_data`). The verdict fields are:
 
 - `alert`: true when `scale.alert` is true or `band.outcome` is `alert`. It signals that a re-measurement is due and never changes the threshold.
-- `scale`: `alert` when the active memory count (`n_items`) reaches twice the active baseline N (`baseline_n_items`).
-- `band.outcome`: `ok` when last ISO week's rejection rate sits within the reference rate ± `max(3 sigma, knee mass)`, `alert` when outside. `insufficient_n` when the week has fewer than 100 decided queries, `reference_pending` when the active baseline has no reference distribution yet.
+- `scale`: `alert` when the active memory count (`n_items`) reaches twice the active baseline N (`baseline_n_items`). A baseline captured on an empty database (N 0) reports `status` `disabled_zero_baseline` and turns this rule off while that baseline is active (otherwise `active`).
+- `band.outcome`: `ok` when last ISO week's rejection rate sits within the reference rate ± `max(3 sigma, knee mass)`, `alert` when outside. `insufficient_n` when the week has fewer than 100 decided queries, `reference_pending` when the active baseline has no reference distribution yet. `band.reference_window_closed` is false while the reference window (7 days from the measurement time) is still open; true with `reference_pending` means the window closed with fewer than 100 decided queries and the reference stays empty for that baseline.
 
 Baselines accumulate in the append-only `rejection_gate_baseline` table (migration 066). `search_quality.gate_drift` in `get_telemetry_summary` shows the latest verdict and the active baseline.
 

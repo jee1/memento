@@ -27,12 +27,15 @@ export type RejectionGateBaseline = {
 
 export type RejectionBandOutcome = 'ok' | 'alert' | 'insufficient_n' | 'reference_pending';
 
+export type RejectionScaleStatus = 'active' | 'disabled_zero_baseline';
+
 export type RejectionGateDriftVerdict = {
   checked_at: string;
   baseline_id: number;
   threshold: number;
   alert: boolean;
-  scale: { n_items: number; baseline_n_items: number; alert: boolean };
+  /** disabled_zero_baseline: 빈 DB 에서 캡처한 기준(n_items 0)이라 규칙 (a) 를 이 기준 동안 끈다 */
+  scale: { n_items: number; baseline_n_items: number; status: RejectionScaleStatus; alert: boolean };
   band: {
     week_start: string;
     week_end: string;
@@ -43,6 +46,8 @@ export type RejectionGateDriftVerdict = {
     lower: number | null;
     upper: number | null;
     outcome: RejectionBandOutcome;
+    /** 활성 기준의 참조 창이 닫혔는가. false 면 reference_pending 은 일시적이고, true 인데 참조가 없으면 영구다 */
+    reference_window_closed: boolean;
   };
 };
 

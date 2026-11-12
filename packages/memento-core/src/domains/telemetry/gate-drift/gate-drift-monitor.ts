@@ -93,9 +93,13 @@ export function captureRejectionGateBaselineIfChanged(
   });
 }
 
+const referenceWindowEndMs = (baseline: RejectionGateBaseline): number =>
+  Date.parse(baseline.measured_at) + REFERENCE_WINDOW_MS;
+
 /**
  * 새 임계값 기준은 측정 시각부터 7일의 실제 판정 분포를 참조로 삼는다. 창이 닫히고 decided 가 충분할 때 한 번만
- * 값을 복사한 새 행으로 채운다. 부족하면 채우지 않고 다음 실행이 다시 본다.
+ * 값을 복사한 새 행으로 채운다. 창은 측정 시각에 고정이라 닫힌 뒤 decided 가 부족하면 이 기준이 활성인 동안
+ * 다시 실행해도 채워지지 않는다. 판정의 band.reference_window_closed 가 이 상태를 창이 열린 상태와 가른다.
  */
 export function fillReferenceIfDue(
   db: Database.Database,
@@ -103,9 +107,9 @@ export function fillReferenceIfDue(
   now: Date,
 ): RejectionGateBaseline {
   if (active.reference !== null) return active;
-  const startMs = Date.parse(active.measured_at);
-  if (now.getTime() < startMs + REFERENCE_WINDOW_MS) return active;
-  const window = { start: active.measured_at, end: new Date(startMs + REFERENCE_WINDOW_MS).toISOString() };
+  const endMs = referenceWindowEndMs(active);
+  if (now.getTime() < endMs) return active;
+  const window = { start: active.measured_at, end: new Date(endMs).toISOString() };
   const rate = queryRejectionGateRate(db, window);
   if (rate.rejection_decided_count < MIN_DECIDED_N || rate.rejection_rate === null) return active;
   const knee = queryRejectionGateKneeMass(db, window, active.threshold, KNEE_WIDTH) ?? 0;
@@ -133,8 +137,9 @@ export function checkRejectionGateDrift(
   const baseline = fillReferenceIfDue(db, loaded, now);
 
   const nItems = countActiveItems(db);
-  // 빈 DB 에서 잰 기준(n_items 0)은 비교할 규모가 없다. 0 배는 항상 참이라 상시 알림이 되므로 제외한다.
-  const scaleAlert = baseline.n_items > 0 && nItems >= SCALE_ALERT_RATIO * baseline.n_items;
+  // 빈 DB 에서 잰 기준(n_items 0)은 비교할 규모가 없다. 0 배는 항상 참이라 상시 알림이 되므로 이 기준 동안 끈다.
+  const scaleStatus = baseline.n_items > 0 ? 'active' : 'disabled_zero_baseline';
+  const scaleAlert = scaleStatus === 'active' && nItems >= SCALE_ALERT_RATIO * baseline.n_items;
 
   const week = lastCompletedIsoWeek(now);
   const weekly = queryRejectionGateRate(db, { start: week.start, end: week.end });
@@ -145,7 +150,7 @@ export function checkRejectionGateDrift(
     baseline_id: baseline.id,
     threshold: baseline.threshold,
     alert: scaleAlert || judged.outcome === 'alert',
-    scale: { n_items: nItems, baseline_n_items: baseline.n_items, alert: scaleAlert },
+    scale: { n_items: nItems, baseline_n_items: baseline.n_items, status: scaleStatus, alert: scaleAlert },
     band: {
       week_start: week.start,
       week_end: week.end,
@@ -156,6 +161,7 @@ export function checkRejectionGateDrift(
       lower: judged.lower,
       upper: judged.upper,
       outcome: judged.outcome,
+      reference_window_closed: baseline.reference !== null || now.getTime() >= referenceWindowEndMs(baseline),
     },
   };
 }

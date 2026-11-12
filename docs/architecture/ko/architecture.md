@@ -117,8 +117,8 @@ A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 �
 `rejection_gate_drift_check` 배치는 기각 게이트 임계값이 아직 맞는지 `memory.search.gate_drift` 이벤트(`extra_data`)로 남긴다. 판정 필드는 다음과 같다.
 
 - `alert`: `scale.alert` 이거나 `band.outcome` 이 `alert` 이면 true. 재측정이 필요하다는 신호이며 임계값을 바꾸지 않는다.
-- `scale`: 활성 기억 수(`n_items`)가 활성 기준 N(`baseline_n_items`)의 2배 이상이면 `alert`.
-- `band.outcome`: 지난 ISO 주의 기각률이 참조 기각률 ± `max(3 시그마, 무릎 질량)` 안이면 `ok`, 밖이면 `alert`. 주 decided 가 100건 미만이면 `insufficient_n`, 활성 기준의 참조 분포가 아직 없으면 `reference_pending`.
+- `scale`: 활성 기억 수(`n_items`)가 활성 기준 N(`baseline_n_items`)의 2배 이상이면 `alert`. 빈 DB 에서 캡처한 기준(N 0)이면 `status` 가 `disabled_zero_baseline` 이고 이 규칙을 그 기준 동안 끈다(평소 `active`).
+- `band.outcome`: 지난 ISO 주의 기각률이 참조 기각률 ± `max(3 시그마, 무릎 질량)` 안이면 `ok`, 밖이면 `alert`. 주 decided 가 100건 미만이면 `insufficient_n`, 활성 기준의 참조 분포가 아직 없으면 `reference_pending`. `band.reference_window_closed` 가 false 면 참조 창(측정 시각부터 7일)이 아직 열려 있고, true 인데 `reference_pending` 이면 창이 decided 100건 미만으로 닫혀 그 기준 동안 참조가 채워지지 않는다.
 
 기준은 `rejection_gate_baseline` 테이블(migration 066, append-only)에 쌓이고 `get_telemetry_summary` 의 `search_quality.gate_drift` 가 최신 판정과 활성 기준을 보여 준다.
 
