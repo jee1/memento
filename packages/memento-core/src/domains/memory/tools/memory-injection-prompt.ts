@@ -19,6 +19,7 @@ import { handleAutoSetAnchor } from '../recall/recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from '../recall/recall-tool-host.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
+import { rejectionGateTelemetryExtra } from '../../telemetry/index.js';
 import type Database from 'better-sqlite3';
 
 /** 프로젝트 인계 브리프 태그 (#1271) */
@@ -49,8 +50,7 @@ function recordItemFilteredTelemetry(input: {
     latencyMs: Date.now() - input.startedAt,
     ownerId: Array.isArray(owner) ? (owner[0] ?? null) : (owner ?? null),
     extraData: {
-      rejection_gate_verdict: gate?.verdict ?? null,
-      rejection_gate_top_score: gate?.top_score ?? null,
+      ...rejectionGateTelemetryExtra(gate),
       item_filter_threshold: input.itemFilter.threshold,
       item_filter_kept: input.itemFilter.kept,
       item_filter_dropped: input.itemFilter.dropped,
@@ -176,6 +176,7 @@ export class MemoryInjectionPrompt extends BaseTool {
       owner_id,
       include_project_brief = false
     } = MemoryInjectionSchema.parse(params);
+    const injectionStartedAt = Date.now();
 
     try {
       logger.info('Memory Injection 시작', {
@@ -204,7 +205,6 @@ export class MemoryInjectionPrompt extends BaseTool {
       }
 
       const memoryTypesForBundle = normalizeMemoryTypesForHybridItemSearch(memory_types);
-      const injectionStartedAt = Date.now();
 
       const bundle = await buildKnowledgeContextBundle(
         {
@@ -228,13 +228,6 @@ export class MemoryInjectionPrompt extends BaseTool {
       });
 
       const itemFilter = resolveItemFilter(bundle);
-      recordItemFilteredTelemetry({
-        telemetryService: context.services.telemetryService,
-        bundle,
-        itemFilter,
-        ownerId: owner_id,
-        startedAt: injectionStartedAt,
-      });
 
       if (
         mementoConfig.autoSetAnchorDefault
@@ -276,6 +269,14 @@ export class MemoryInjectionPrompt extends BaseTool {
           ? `# 프로젝트 브리프 — ${label}\n\n${brief.content}\n\n---\n\n${message}`
           : `${message}\n\n> ${label} 있음 — 필요 시 memory_injection(include_project_brief: true) 또는 recall`;
       }
+
+      recordItemFilteredTelemetry({
+        telemetryService: context.services.telemetryService,
+        bundle,
+        itemFilter,
+        ownerId: owner_id,
+        startedAt: injectionStartedAt,
+      });
 
       return this.createSuccessResult({
         message,

@@ -337,7 +337,7 @@ export async function buildKnowledgeContextBundle(
     });
   }
 
-  // #1682 항목 필터는 재검색 루프 뒤. 루프 안에 넣으면 재검색·게이트 호출만 늘고 항목은 안 는다.
+  // #1682 항목 필터는 재검색 루프 뒤. 루프 안에 넣으면 재검색과 게이트 호출만 늘고 항목은 안 는다.
   const filtered = buildItemFilterMeta({
     itemScoreMin,
     rejectionGate: lastRejectionGate,
