@@ -101,6 +101,7 @@ test.describe('Anchor Map pinning (real d3)', () => {
     test.setTimeout(120_000);
 
     await page.goto('/dashboard');
+    await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
     // Let force simulation place nodes before dragging.
     await page.waitForTimeout(800);

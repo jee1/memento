@@ -88,6 +88,7 @@ test.describe('Anchor Map drag refresh deferral (issue 948)', () => {
     test.setTimeout(120_000);
 
     await page.goto('/dashboard');
+    await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
     await page.waitForTimeout(800);
 
