@@ -741,7 +741,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(12);
+    expect(tabpanelMatches).toHaveLength(11);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();

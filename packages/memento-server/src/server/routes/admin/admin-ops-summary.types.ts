@@ -74,6 +74,7 @@ export type OpsSummarySeverity = 'ok' | 'warn' | 'crit' | null;
 /**
  * One signal in a zone. `window` is the aggregation period for this value
  * (request `period`, or 30d when sourced from admin_status).
+ * null window = point-in-time / "현재" snapshot (e.g. disk size, #1704).
  * Developer `source` strings are intentionally omitted.
  */
 export interface OpsSummaryZoneItem {
@@ -82,13 +83,13 @@ export interface OpsSummaryZoneItem {
   unit: string | null;
   severity: OpsSummarySeverity;
   as_of: string | null;
-  window: OpsSummaryTimeWindow;
+  window: OpsSummaryTimeWindow | null;
 }
 
 /**
  * First-screen zones for GET /admin/ops/summary (#1698).
  * Additive only — existing questions.* / admin_status stay unchanged.
- * - system_ok: process/DB, scheduler, batch fails, paused/overdue jobs, versions, auth_denied
+ * - system_ok: process/DB, scheduler, batch fails, paused/overdue jobs, versions, auth_denied, migration backup, DB/WAL size
  * - doing_work: injection item filter, feedback, search empty split, gate drift, LLM, relation extraction
  * - needs_action: review queue, supersede pending, embedding problems
  */
