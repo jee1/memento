@@ -402,7 +402,6 @@ describe('dashboard memory finder panel (#1118)', () => {
 
     const signedOut = createAuthTabsHarness('');
     signedOut.maybeActivateTabForAuth('signed-out');
-    expect(signedOut.activateTab).toHaveBeenCalledTimes(1);
-    expect(signedOut.activateTab).toHaveBeenCalledWith('evolution-demo');
+    expect(signedOut.activateTab).not.toHaveBeenCalled();
   });
 });

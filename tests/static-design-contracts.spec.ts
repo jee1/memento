@@ -749,7 +749,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(11);
+    expect(tabpanelMatches).toHaveLength(10);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();
@@ -882,7 +882,7 @@ describe('static design contracts', () => {
 
     const chipKeys = [...html.matchAll(/class="m-nav-chip[^"]*" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
     const groupKeys = [...html.matchAll(/class="m-nav-group[^"]*" role="presentation" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
-    expect(chipKeys).toEqual(['spatial', 'ops', 'learn']);
+    expect(chipKeys).toEqual(['spatial', 'ops']);
     expect(groupKeys).toEqual(chipKeys);
 
     expect(componentsCss).toMatch(/\.m-nav-compact \{\s*display: none;\s*\}/);
@@ -922,7 +922,7 @@ describe('static design contracts', () => {
   });
 
   it('issue #1149 panel states use only the shared .m-empty/.m-loading/.m-error components', () => {
-    const LOCAL = ['rc-banner', 'as-banner', 'no-data', 'em-error', 'em-loading', 'med-empty', 'med-loading', 'med-error'];
+    const LOCAL = ['rc-banner', 'as-banner', 'no-data', 'em-error', 'em-loading'];
     const html = readStaticFile('static/dashboard.html');
     const classAttrs = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(/\s+/)).flat();
     const css = readStaticFile('static/css/dashboard.css') + readStaticFile('static/css/components.css');
@@ -934,10 +934,10 @@ describe('static design contracts', () => {
       expect(js, name).not.toMatch(new RegExp(`['"\\s]${name}['"\\s]`));
     }
     const expected: Record<string, string> = {
-      'rc-loading': 'm-loading', 'em-loading': 'm-loading', 'med-loading': 'm-loading',
-      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty', 'med-empty': 'm-empty',
+      'rc-loading': 'm-loading', 'em-loading': 'm-loading',
+      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty',
       'rc-error': 'm-error', 'rc-health-error': 'm-error', 'rc-batch-history-error': 'm-error', 'ops-status-error': 'm-error',
-      'em-error': 'm-error', 'em-health-error': 'm-error', 'med-error': 'm-error',
+      'em-error': 'm-error', 'em-health-error': 'm-error',
     };
     for (const [id, cls] of Object.entries(expected)) {
       expect(html, id).toMatch(new RegExp(`id="${id}" class="[^"]*\\b${cls}\\b`));
@@ -968,10 +968,10 @@ describe('static design contracts', () => {
     const html = readStaticFile('static/dashboard.html');
     const visible = html.replace(/<!--[\s\S]*?-->/g, '');
     expect(visible.match(/#\d{3,4}\b/g) ?? []).toEqual([]);
-    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro', 'med-intro']) {
+    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro']) {
       expect(html, cls).toMatch(new RegExp(`<div class="m-about__body">\\s*<p class="${cls}"`));
     }
-    expect(html.match(/<details class="m-about">/g)).toHaveLength(4);
+    expect(html.match(/<details class="m-about">/g)).toHaveLength(3);
     // irreversible-action explanations stay next to their buttons, outside any disclosure
     for (const cls of ['rc-action-effect-note', 'rc-bulk-effect-note']) {
       const at = html.indexOf(`class="${cls}"`);
@@ -989,7 +989,7 @@ describe('static design contracts', () => {
 
   it('issue #1152 jobs tab is one schedule table plus a three-tab drawer; selection is shown once', () => {
     const html = readStaticFile('static/dashboard.html');
-    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-evolution-demo"'));
+    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-supersede-candidates"'));
     expect(jobs).not.toContain('id="jobs-actions"');
     expect(jobs).not.toMatch(/id="jobs-(timeline|logs)-selected"/);
     const drawer = jobs.slice(jobs.indexOf('<aside id="jobs-drawer"'), jobs.indexOf('</aside>'));

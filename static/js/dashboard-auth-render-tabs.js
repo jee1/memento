@@ -28,6 +28,6 @@
       tabs.activateTab('anchor');
       return;
     }
-    tabs.activateTab('evolution-demo');
+    // #1703: signed-out shows login chrome only; do not activate a tab
   };
 })(typeof window !== 'undefined' ? window : globalThis);

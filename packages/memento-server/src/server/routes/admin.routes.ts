@@ -20,7 +20,6 @@ import { registerAdminBatchRoutes } from './admin/admin-batch.routes.js';
 import { registerAdminRuntimePerformanceRoutes } from './admin/admin-runtime-performance.routes.js';
 import { registerAdminToolRoutes } from './admin/admin-tools.routes.js';
 import { registerAdminProjectMemoryRoutes } from './admin/admin-project-memory.routes.js';
-import { registerAdminEvolutionDemoRoutes } from './admin/admin-evolution-demo.routes.js';
 import { registerAdminForgettingRoutes } from './admin/admin-forgetting.routes.js';
 import { registerAdminExportRoutes } from './admin/admin-export.routes.js';
 import { registerAdminStatusRoutes } from './admin/admin-status.routes.js';
@@ -52,7 +51,6 @@ export function createAdminRouter(
   registerAdminTelemetryRoutes(router, db, serverServices);
   registerAdminGraphRoute(router, db);
   registerAdminEmbeddingMapRoute(router, db);
-  registerAdminEvolutionDemoRoutes(router);
   registerAdminExportRoutes(router, db, serverServices);
   registerAdminForgettingRoutes(router, db);
 

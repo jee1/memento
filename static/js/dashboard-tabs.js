@@ -1,5 +1,5 @@
 /**
- * Dashboard Anchor / Embedding / Memory Graph / Evolution demo 탭 전환
+ * Dashboard 탭 전환 (앵커 / 임베딩 / 그래프 / 운영 …)
  * CSP(script-src에 unsafe-inline 없음) 대응: 인라인 스크립트 대신 외부 파일로 로드
  *
  * WAI-ARIA Tabs - Manual activation:
