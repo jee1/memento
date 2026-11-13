@@ -6,17 +6,20 @@ afterEach(() => {
 });
 
 describe('LLM_PROVIDER_RELATION_EXTRACTION config load', () => {
-  it('stores jev on the seat and leaves llmProviderOverrides unset', async () => {
-    vi.resetModules();
-    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    vi.stubEnv('LLM_PROVIDER_RELATION_EXTRACTION', 'jev');
-    const { mementoConfig } = await import('../index.js');
+  it.each(['typesafe', ' Typesafe ', 'jev', 'JEV'])(
+    'stores the typesafe seat for %j and leaves llmProviderOverrides unset',
+    async (value) => {
+      vi.resetModules();
+      const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.stubEnv('LLM_PROVIDER_RELATION_EXTRACTION', value);
+      const { mementoConfig } = await import('../index.js');
 
-    expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'jev' });
-    expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
-    expect(stderr).not.toHaveBeenCalled();
-    stderr.mockRestore();
-  });
+      expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'typesafe' });
+      expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
+      expect(stderr).not.toHaveBeenCalled();
+      stderr.mockRestore();
+    },
+  );
 
   it('copies a chat override into llmProviderOverrides', async () => {
     vi.resetModules();

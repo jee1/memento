@@ -12,8 +12,11 @@ describe('parseRelationExtractionOverride', () => {
     expect(parseRelationExtractionOverride('  ')).toEqual({ kind: 'unset' });
   });
 
-  it('accepts jev and chat tokens', () => {
-    expect(parseRelationExtractionOverride(' JEV ')).toEqual({ kind: 'jev' });
+  it('accepts typesafe, its legacy alias jev, and chat tokens', () => {
+    expect(parseRelationExtractionOverride('typesafe')).toEqual({ kind: 'typesafe' });
+    expect(parseRelationExtractionOverride(' Typesafe ')).toEqual({ kind: 'typesafe' });
+    expect(parseRelationExtractionOverride('jev')).toEqual({ kind: 'typesafe' });
+    expect(parseRelationExtractionOverride(' JEV ')).toEqual({ kind: 'typesafe' });
     expect(parseRelationExtractionOverride(' OpenAI ')).toEqual({ kind: 'chat', provider: 'openai' });
     expect(parseRelationExtractionOverride('auto')).toEqual({ kind: 'chat', provider: 'auto' });
   });
@@ -27,11 +30,11 @@ describe('parseRelationExtractionOverride', () => {
 });
 
 describe('resolveRelationExtractionSeat', () => {
-  it('does not read the global provider when the override is jev', () => {
+  it('does not read the global provider when the override is typesafe', () => {
     expect(resolveRelationExtractionSeat({
       llmProvider: 'openai',
-      relationExtractionOverride: { kind: 'jev' },
-    })).toEqual({ kind: 'jev' });
+      relationExtractionOverride: { kind: 'typesafe' },
+    })).toEqual({ kind: 'typesafe' });
   });
 
   it('uses the chat override and otherwise the global provider', () => {
@@ -51,14 +54,14 @@ describe('resolveRelationExtractionSeat', () => {
 });
 
 describe('warnInvalidRelationExtractionOverride', () => {
-  it('warns once for an invalid token and stays quiet for jev', () => {
+  it('warns once for an invalid token and stays quiet for typesafe', () => {
     const warnedKeys = new Set<string>();
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const invalid = parseRelationExtractionOverride('anthropic');
 
     warnInvalidRelationExtractionOverride(invalid, warnedKeys);
     warnInvalidRelationExtractionOverride(invalid, warnedKeys);
-    warnInvalidRelationExtractionOverride({ kind: 'jev' }, warnedKeys);
+    warnInvalidRelationExtractionOverride({ kind: 'typesafe' }, warnedKeys);
 
     expect(stderr).toHaveBeenCalledTimes(1);
     expect(String(stderr.mock.calls[0]?.[0])).toContain('[CONFIG WARN]');

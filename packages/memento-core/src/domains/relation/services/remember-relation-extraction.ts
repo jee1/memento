@@ -90,7 +90,7 @@ function getOrCreateJevJudge(apiKey: string, model: string): JevRelationJudge {
 
 /**
  * Remember's configured relation engine. Never throws.
- * A jev seat does not construct a chat extractor and does not fall back to one.
+ * A typesafe seat does not construct a chat extractor and does not fall back to one.
  */
 export async function extractForRemember(
   source: MemoryItem,
@@ -103,7 +103,7 @@ export async function extractForRemember(
   },
 ): Promise<RememberRelationOutcome> {
   const seat = resolveRelationExtractionSeat(config);
-  if (seat.kind === 'jev') {
+  if (seat.kind === 'typesafe') {
     if (!hasTypesafeKey(config.typesafeApiKey)) {
       return { status: 'unavailable' };
     }

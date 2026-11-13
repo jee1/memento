@@ -164,7 +164,7 @@ const SETTINGS: Setting[] = [
   base({
     key: 'LLM_PROVIDER_RELATION_EXTRACTION',
     kind: 'enum',
-    allowed: ['jev', 'openai', 'gemini', 'ollama', 'auto'],
+    allowed: ['typesafe', 'openai', 'gemini', 'ollama', 'auto'],
     value: null,
     default_value: null,
     override: { ...OVERRIDE, value: 'openai' },

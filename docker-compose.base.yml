@@ -34,6 +34,7 @@ x-default-environment: &default-environment
   SEARCH_REJECTION_GATE_ON_ERROR: ${SEARCH_REJECTION_GATE_ON_ERROR:-open}
   # memory_injection 항목 필터 (#1682). 0 이면 끔.
   MEMORY_INJECTION_ITEM_SCORE_MIN: ${MEMORY_INJECTION_ITEM_SCORE_MIN:-0.5}
+  # 제공자 typesafe 의 키와 모델(jev-latest 가 모델 이름이다). 옛 LLM_PROVIDER_RELATION_EXTRACTION=jev 는 typesafe 의 별칭이다.
   TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
   TYPESAFE_MODEL: ${TYPESAFE_MODEL:-jev-latest}
   # .env 의 programmatic 인증 값을 컨테이너에 주입한다 (#1115).

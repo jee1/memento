@@ -277,7 +277,7 @@ describe('runRelationExtraction (Issue #711)', () => {
   });
 
   it('Jev만 있으면 method jev 로 저장하고 챗 추출기를 부르지 않는다', async () => {
-    mementoConfig.relationExtractionOverride = { kind: 'jev' };
+    mementoConfig.relationExtractionOverride = { kind: 'typesafe' };
     mementoConfig.typesafeApiKey = 'typesafe-key';
     mementoConfig.typesafeModel = 'jev-latest';
     vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailableAsync').mockResolvedValue(false);
@@ -308,7 +308,7 @@ describe('runRelationExtraction (Issue #711)', () => {
   });
 
   it('Jev 장애는 경고만 남기고 저장하지 않는다', async () => {
-    mementoConfig.relationExtractionOverride = { kind: 'jev' };
+    mementoConfig.relationExtractionOverride = { kind: 'typesafe' };
     mementoConfig.typesafeApiKey = 'typesafe-key';
     globalThis.fetch = vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
 
