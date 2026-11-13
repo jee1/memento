@@ -62,9 +62,18 @@ function relationExtractionValue(override: MementoConfig['relationExtractionOver
 }
 const boolean = ['true', 'false'] as const;
 
+function typesafeKeyMissing(): boolean {
+  return (mementoConfig.typesafeApiKey ?? '').trim() === '';
+}
+
 function gateInactiveReason(): string | null {
   const gate = mementoConfig.searchRejectionGate;
-  if (gate === 'typesafe') return null;
+  if (gate === 'typesafe') {
+    // createRelevanceGate 는 키가 비면 게이트를 만들지 않는다
+    return typesafeKeyMissing()
+      ? '적용 안 됨: SEARCH_REJECTION_GATE 가 typesafe 인데 TYPESAFE_API_KEY 가 비어 게이트가 만들어지지 않는다'
+      : null;
+  }
   return gate === 'off'
     ? '적용 안 됨: SEARCH_REJECTION_GATE 가 off 다'
     : `적용 안 됨: SEARCH_REJECTION_GATE 가 ${gate} 라 게이트가 만들어지지 않는다`;
@@ -154,7 +163,13 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     risk: 'low',
     refresh: readsEnvDirectly,
     current: () => String(getClusterJudgeThreshold()),
-    inactiveReason: () => (isClusterJudgeEnabled() ? null : '적용 안 됨: CONSOLIDATION_JUDGE 가 off 다'),
+    inactiveReason: () => {
+      if (!isClusterJudgeEnabled()) return '적용 안 됨: CONSOLIDATION_JUDGE 가 off 다';
+      // createClusterJudge 는 키가 비면 판정기를 만들지 않는다
+      return typesafeKeyMissing()
+        ? '적용 안 됨: CONSOLIDATION_JUDGE 가 typesafe 인데 TYPESAFE_API_KEY 가 비어 판정기가 만들어지지 않는다'
+        : null;
+    },
   },
   {
     key: 'LLM_PROVIDER_RELATION_EXTRACTION',
@@ -187,7 +202,9 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     },
     current: () => mementoConfig.llmModelOverrides.relation_extraction ?? null,
     inactiveReason: () =>
-      mementoConfig.relationExtractionOverride.kind === 'jev' ? '적용 안 됨: 제공자가 jev 라 TYPESAFE_MODEL 을 쓴다' : null,
+      mementoConfig.relationExtractionOverride.kind === 'jev'
+        ? '적용 안 됨: 제공자가 typesafe(옛 값 jev)라 모델은 TYPESAFE_MODEL 을 쓴다'
+        : null,
   },
   {
     key: 'SUPERSEDE_CANDIDATE_SCAN_ENABLED',

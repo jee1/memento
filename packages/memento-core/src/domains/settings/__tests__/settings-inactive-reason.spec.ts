@@ -9,7 +9,9 @@ const savedEnv = new Map<string, string | undefined>();
 
 async function load() {
   vi.resetModules();
-  return import('../settings-registry.js');
+  const registry = await import('../settings-registry.js');
+  const { mementoConfig } = await import('../../../shared/config/index.js');
+  return { ...registry, setApiKey: (key: string) => { mementoConfig.typesafeApiKey = key; } };
 }
 
 /** 상위 스위치 env 를 바꾸고 그 키의 refresh 를 돌린 뒤, 종속 키의 inactiveReason 을 읽는다. */
@@ -46,6 +48,7 @@ describe('settings inactive reason (#1685)', () => {
     'MEMORY_INJECTION_ITEM_SCORE_MIN',
   ])('%s is inactive while the rejection gate is off or ollama, active with typesafe', async (dependent) => {
     const registry = await load();
+    registry.setApiKey('k');
     const reason = (gate: string) =>
       reasonAfter(registry, { SEARCH_REJECTION_GATE: gate }, 'SEARCH_REJECTION_GATE', dependent);
     expect(reason('off')).toContain('SEARCH_REJECTION_GATE 가 off 다');
@@ -56,11 +59,34 @@ describe('settings inactive reason (#1685)', () => {
 
   it('CONSOLIDATION_JUDGE_THRESHOLD is inactive while the judge is off, active with typesafe', async () => {
     const registry = await load();
+    registry.setApiKey('k');
     const reason = (judge: string) =>
-      reasonAfter(registry, { CONSOLIDATION_JUDGE: judge }, 'CONSOLIDATION_JUDGE', 'CONSOLIDATION_JUDGE_THRESHOLD');
+      reasonAfter(
+        registry,
+        { CONSOLIDATION_JUDGE: judge },
+        'CONSOLIDATION_JUDGE',
+        'CONSOLIDATION_JUDGE_THRESHOLD',
+      );
     expect(reason('off')).toContain('CONSOLIDATION_JUDGE 가 off 다');
     expect(reason('typesafe')).toBeNull();
     expect(reason('off')).not.toBeNull();
+  });
+
+  it('typesafe without TYPESAFE_API_KEY is inactive: the gate and the judge are never built (#1685 review)', async () => {
+    const registry = await load();
+    const gate = (key: string) => {
+      registry.setApiKey(key);
+      return reasonAfter(registry, { SEARCH_REJECTION_GATE: 'typesafe' }, 'SEARCH_REJECTION_GATE', 'SEARCH_REJECTION_GATE_THRESHOLD');
+    };
+    expect(gate('')).toContain('TYPESAFE_API_KEY');
+    expect(gate('   ')).toContain('TYPESAFE_API_KEY');
+    expect(gate('k')).toBeNull();
+    const judge = (key: string) => {
+      registry.setApiKey(key);
+      return reasonAfter(registry, { CONSOLIDATION_JUDGE: 'typesafe' }, 'CONSOLIDATION_JUDGE', 'CONSOLIDATION_JUDGE_THRESHOLD');
+    };
+    expect(judge('')).toContain('TYPESAFE_API_KEY');
+    expect(judge('k')).toBeNull();
   });
 
   it('LLM_MODEL_RELATION_EXTRACTION is inactive under jev, active under chat providers or unset', async () => {
@@ -75,6 +101,7 @@ describe('settings inactive reason (#1685)', () => {
       );
     };
     expect(reason('jev')).toContain('TYPESAFE_MODEL');
+    expect(reason('jev')).toContain('typesafe');
     for (const provider of ['openai', 'gemini', 'ollama', 'auto']) {
       expect(reason(provider), provider).toBeNull();
     }
