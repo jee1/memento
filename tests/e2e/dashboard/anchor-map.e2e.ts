@@ -271,6 +271,7 @@ test.describe('Anchor Map dashboard', () => {
     });
 
     await page.goto('/dashboard');
+    await page.locator('#dashboard-tab-anchor').click();
 
     await expect(page.locator('#anchor-list .anchor-item')).toHaveCount(3);
     await expect(page.locator('#anchor-list .slot-a')).toContainText('Slot A');
@@ -340,6 +341,7 @@ test.describe('Anchor Map dashboard', () => {
     });
 
     await page.goto('/dashboard');
+    await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map .map-empty-message')).toHaveCount(1);
 
     failMap = true;

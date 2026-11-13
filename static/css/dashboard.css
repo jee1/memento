@@ -587,7 +587,7 @@ body {
   .dashboard-container {
     display: grid;
     grid-template-columns: var(--size-nav-rail) minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .dashboard-container > * {
@@ -603,12 +603,8 @@ body {
     grid-row: 1;
   }
 
-  .dashboard-container > .ops-strip {
-    grid-row: 2;
-  }
-
   .dashboard-container > .tab-panel {
-    grid-row: 3;
+    grid-row: 2;
   }
 }
 
@@ -1508,74 +1504,6 @@ circle.em-dot:focus-visible {
   }
 }
 
-/* Ops status strip (#1025) — secondary chrome under the tab bar */
-.ops-strip {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-bg-card);
-  font-size: var(--font-size-xs);
-}
-
-.ops-strip__metrics {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
-.ops-strip__metric {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  white-space: nowrap;
-}
-
-.ops-strip__dot {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  border-radius: var(--radius-full);
-  background: var(--color-memory-neutral);
-  flex: 0 0 auto;
-}
-
-.ops-strip__dot--ok {
-  background: var(--color-status-success);
-}
-
-.ops-strip__dot--degraded {
-  background: var(--color-status-warning);
-}
-
-.ops-strip__dot--unavailable {
-  background: var(--color-memory-neutral);
-}
-
-.ops-strip__label {
-  color: var(--color-text-muted);
-}
-
-.ops-strip__value {
-  font-family: var(--font-family-mono);
-  color: var(--color-text-main);
-}
-
-.ops-strip__toggle {
-  min-height: var(--size-touch);
-  flex: 0 0 auto;
-}
-
-@media (max-width: 30rem) {
-  .ops-strip__metrics {
-    gap: var(--spacing-sm);
-  }
-}
-
 /* Memory inspector (#1025) — native details so the narrow layout gets a
    collapsible card for free; no JS toggle. */
 .memory-inspector {
@@ -1780,8 +1708,24 @@ circle.em-dot:focus-visible {
 .m-sparkline .oo-type--procedural { fill: var(--color-memory-procedural); }
 .m-sparkline .oo-type--working { fill: var(--color-memory-working); }
 
-/* Ops status rows (#1146) */
-/* issue 1660: .ops-status-layout|header|card|title stay markup-only structural hooks (no visual rules). */
+/* Ops status zones (#1699) */
+.ops-status-zones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.ops-status-fetch-fail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  grid-column: 1 / -1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
 .ops-status-rows {
   list-style: none;
   margin: 0;
@@ -1790,7 +1734,7 @@ circle.em-dot:focus-visible {
 
 .ops-row {
   display: grid;
-  grid-template-columns: var(--size-ops-sev-col) minmax(0, 1fr) auto var(--size-sparkline-width) var(--size-ops-action-col);
+  grid-template-columns: var(--size-ops-sev-col) minmax(0, 1fr) auto auto var(--size-ops-action-col);
   align-items: center;
   gap: var(--spacing-sm) var(--spacing-md);
   padding: var(--spacing-sm) 0;
@@ -1820,13 +1764,11 @@ circle.em-dot:focus-visible {
   color: var(--color-text-main);
 }
 
-.ops-row__trend {
+.ops-row__window {
   grid-column: 4;
-}
-
-.ops-row__trend .m-sparkline {
-  width: var(--size-sparkline-width);
-  height: var(--size-sparkline-height);
+  justify-self: end;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .ops-row__link {
@@ -1839,12 +1781,18 @@ circle.em-dot:focus-visible {
   color: var(--color-text-main);
 }
 
+@media (max-width: 79.99rem) {
+  .ops-status-zones {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 30rem) {
   .ops-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .ops-row__trend,
+  .ops-row__window,
   .ops-row__link {
     grid-column: 1 / -1;
     justify-self: start;

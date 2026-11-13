@@ -49,7 +49,14 @@
       const newHeight = container.node().getBoundingClientRect().height;
       state.svg.attr('width', newWidth).attr('height', newHeight);
       state.simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
-      if (state.layoutMode === 'auto') state.simulation.alpha(1).restart();
+      // 앵커 탭이 숨겨진 채 만들어지면 처음 측정이 0 이라 x, y 인력의 목표도 0 이다. 크기가 바뀔 때 같이 옮긴다 (issue 1699).
+      state.simulation.force('x', d3.forceX(newWidth / 2).strength(0.15));
+      state.simulation.force('y', d3.forceY(newHeight / 2).strength(0.15));
+      if (state.layoutMode === 'auto') {
+        // 앵커 고리는 렌더 때 잰 svg 크기로 정해진다. 숨긴 탭에서 만들어졌으면 0 기준이라 크기가 바뀔 때 다시 놓는다 (issue 1699).
+        if (state.nodes && state.nodes.length) ns.layoutNodesByHop();
+        state.simulation.alpha(1).restart();
+      }
       else if (state.redrawTick) state.redrawTick();
     });
 

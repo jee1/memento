@@ -93,10 +93,14 @@ test.describe('Memory finder dashboard (#1118)', () => {
     await expect(page.locator('#mf-empty')).toBeHidden();
   });
 
-  test('default tab stays anchor when no memory_id deep link', async ({ page }) => {
+  test('default tab stays ops-status when no memory_id deep link', async ({ page }) => {
     await page.goto('/dashboard');
 
-    await expect(page.locator('#dashboard-tab-anchor')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#dashboard-tab-ops-status')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#dashboard-tab-ops-status')).toHaveAttribute('tabindex', '0');
+    await expect(page.locator('#dashboard-tab-anchor')).toHaveAttribute('tabindex', '-1');
+    await expect(page.locator('.m-nav-chip[data-nav-group="ops"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.m-nav-chip[data-nav-group="spatial"]')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('#tab-memory-finder')).toBeHidden();
   });
 

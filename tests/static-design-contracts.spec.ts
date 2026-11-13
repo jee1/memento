@@ -487,25 +487,17 @@ describe('static design contracts', () => {
     expect(html).not.toContain('rc-health-metric');
   });
 
-  it('issue #1025 ops strip reuses /admin/status and degrades quietly', () => {
+  it('issue #1699 ops strip is gone; status tab owns the first-screen zones', () => {
     const html = readStaticFile('static/dashboard.html');
     const cssSource = readStaticFile('static/css/dashboard.css');
-    const stripSource = readStaticFile('static/js/ops-strip.js');
+    const panelSource = readStaticFile('static/js/ops-status-panel.js');
 
-    // session-gated chrome, but never hidden by a class nothing removes
-    expect(html).toContain('id="ops-strip"');
-    expect(html).toMatch(/id="ops-strip"[^>]*class="ops-strip session-only"/);
-    expect(cssSource).toContain('.ops-strip {');
-
-    // the four labels stay the words the 상태 tab already uses (#1048 lexicon)
-    for (const label of ['임베딩 문제', '검토 대기', '실패 실행', '지금']) {
-      expect(html).toContain('<span class="ops-strip__label">' + label + '</span>');
-    }
-
-    // no new endpoint, no polling, no console, and failures fall back to dashes
-    expect(stripSource).toContain("'/admin/status'");
-    expect(stripSource).not.toContain('setInterval');
-    expect(stripSource).not.toContain('console.');
+    expect(html).not.toContain('ops-strip');
+    expect(cssSource).not.toContain('.ops-strip');
+    expect(html).toContain('id="ops-status-zones"');
+    expect(html).toMatch(/id="dashboard-tab-ops-status"[^>]*\bactive\b/);
+    expect(panelSource).toContain('/admin/ops/summary?period=7d');
+    expect(panelSource).not.toContain('setInterval');
   });
 
   it('issue #1025 memory detail lives in its own inspector, not the left rail', () => {
@@ -798,7 +790,7 @@ describe('static design contracts', () => {
   it('issue #1145 ops overview styles use tokens only', () => {
     const dashboardCss = readStaticFile('static/css/dashboard.css');
     const marker = '/* Ops overview tab (#1145) */';
-    const nextMarker = '/* Ops status rows (#1146) */';
+    const nextMarker = '/* Ops status zones (#1699) */';
     const start = dashboardCss.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = dashboardCss.indexOf(nextMarker, start);
@@ -807,9 +799,9 @@ describe('static design contracts', () => {
     expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 
-  it('issue #1146 ops status row styles use tokens only', () => {
+  it('issue #1699 ops status zone styles use tokens only', () => {
     const dashboardCss = readStaticFile('static/css/dashboard.css');
-    const marker = '/* Ops status rows (#1146) */';
+    const marker = '/* Ops status zones (#1699) */';
     const start = dashboardCss.indexOf(marker);
     expect(start).toBeGreaterThanOrEqual(0);
     const phoneLayoutMarker = '/* Phone layout (#1147)';
@@ -819,9 +811,9 @@ describe('static design contracts', () => {
       phoneLayoutAt < 0 ? undefined : phoneLayoutAt,
     );
     expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    expect(section).toContain('.ops-row__trend .m-sparkline');
-    expect(section).toContain('width: var(--size-sparkline-width)');
-    expect(section).toContain('height: var(--size-sparkline-height)');
+    expect(section).toContain('.ops-status-zones');
+    expect(section).toContain('.ops-row__window');
+    expect(section).not.toContain('.ops-row__trend');
   });
 
   it('issue #1660 tokens.css locks layout size token values', () => {
@@ -977,6 +969,18 @@ describe('static design contracts', () => {
     expect(initJs).toContain('__MEMENTO_DASHBOARD_TAB_INIT__');
   });
 
+  it('issue #1699 default tab: markup active tab drives initial roving tabindex, chips and signed-in landing', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+    const authTabsJs = readStaticFile('static/js/dashboard-auth-render-tabs.js');
+
+    expect(html).toMatch(/id="dashboard-tab-ops-status"[^>]*class="[^"]*\bactive\b/);
+    expect(html).not.toMatch(/id="dashboard-tab-anchor"[^>]*class="[^"]*\bactive\b/);
+    expect(tabsJs).toContain(".m-tab-btn.active[data-tab]");
+    expect(tabsJs).not.toContain("syncNavChips('anchor')");
+    expect(authTabsJs).toContain("tabs.activateTab('ops-status')");
+  });
+
   it('issue #1147 phone layout: table cards, 2-up KPIs, 2-line list rows and 44px targets', () => {
     const html = readStaticFile('static/dashboard.html');
     const dashboardCss = readStaticFile('static/css/dashboard.css');
@@ -1117,7 +1121,7 @@ describe('static design contracts', () => {
     expect(dashboardHtml).toContain('<h1>Memento 대시보드</h1>');
     expect(dashboardHtml).not.toMatch(/<h1>[^\n]*🎯/);
     expect(dashboardCss).toContain("data-auth-state='signed-in'");
-    expect(authTabsJs).toContain("activateTab('anchor')");
+    expect(authTabsJs).toContain("activateTab('ops-status')");
     expect(authTabsJs).not.toContain("activateTab('review')");
   });
 });

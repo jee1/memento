@@ -1,32 +1,70 @@
 /**
- * Ops status panel — read-only manual refresh (#1048).
+ * Ops status panel — first-screen zones from /admin/ops/summary (#1699).
+ * Renders zones generically; severity colors come only from the server.
  */
 (function (global) {
   'use strict';
 
   const ns = (global.__MEMENTO_OPS_STATUS_PANEL__ = global.__MEMENTO_OPS_STATUS_PANEL__ || {});
+  const doc = global.document;
 
-  // Korean UI strings (#1146). Code references S.* only; edit text here, not in the logic below.
   const S = {
-    severity: {
-      ok: '정상',
-      warn: '주의',
-      crit: '위험',
-      info: '참고',
-      unknown: '확인 불가',
-    },
-    trendImpact: function (days, failedDays) {
-      return '최근 ' + days + '일 일별 배치 영향 시간 추이 — 실패가 있던 날 ' + failedDays + '일';
-    },
-    trendNetflow: function (samples, min, max) {
-      return '최근 표본 ' + samples + '개의 순유입 추이 — 최소 ' + min + ', 최대 ' + max;
+    severity: { ok: '정상', warn: '주의', crit: '위험' },
+    fetchFail: '요청 실패',
+    windowNow: '현재',
+    zoneTitles: {
+      system_ok: '정상인가',
+      doing_work: '제 일을 하고 있나',
+      needs_action: '손댈 것',
     },
   };
 
+  const ZONE_ORDER = ['system_ok', 'doing_work', 'needs_action'];
 
-  ns.STATUS_URL = '/admin/status';
-  ns.SUMMARY_URL = '/admin/ops/summary?period=24h';
+  const LABELS = {
+    process_database: '프로세스/DB',
+    scheduler_running: '스케줄러',
+    batch_failed_run_count: '배치 실패',
+    paused_job_count: '일시정지된 잡',
+    job_interval_overdue_count: '주기 초과 잡',
+    server_version: '서버 버전',
+    schema_version: '마이그레이션 버전',
+    auth_denied_count: '인증 실패',
+    migration_backup: '마이그레이션 백업',
+    migration_backup_file_count: '마이그레이션 백업 파일 수',
+    db_size_mb: 'DB 크기',
+    wal_size_mb: 'WAL 크기',
+    injection_item_filtered_events: '주입(항목 필터) 횟수',
+    item_filter_kept: '항목 필터 남김',
+    item_filter_dropped: '항목 필터 탈락',
+    item_filter_empty: '항목 필터 전부 걸러짐',
+    injection_empty: '빈 주입',
+    feedback_positive_count: '피드백 긍정',
+    feedback_negative_count: '피드백 부정',
+    search_query_count: '검색 요청',
+    search_empty_rejected: '검색 빈 결과(거부)',
+    search_empty_no_result: '검색 빈 결과(결과 없음)',
+    gate_drift_alert: '게이트 드리프트',
+    relation_extraction_failures: '관계 추출 실패',
+    review_pending_total: '검토 대기',
+    review_last_human_decision_at: '마지막 사람 결정',
+    review_net_flow_1h: '검토 순유입 (1h)',
+    supersede_pending_count: '대체 후보 대기',
+    embedding_problem_count: '임베딩 문제',
+  };
 
+  const LINKS = {
+    batch_failed_run_count: { tab: 'jobs', label: '배치 작업 보기' },
+    paused_job_count: { tab: 'jobs', label: '배치 작업 보기' },
+    job_interval_overdue_count: { tab: 'jobs', label: '배치 작업 보기' },
+    review_pending_total: { tab: 'review', label: '검토 대기열 보기' },
+    review_last_human_decision_at: { tab: 'review', label: '검토 대기열 보기' },
+    review_net_flow_1h: { tab: 'review', label: '검토 대기열 보기' },
+    supersede_pending_count: { tab: 'supersede', label: '대체 후보 보기' },
+    embedding_problem_count: { tab: 'embedding', label: '임베딩 상태 보기' },
+  };
+
+  ns.SUMMARY_URL = '/admin/ops/summary?period=7d';
   ns.state = ns.state || {
     wired: false,
     lastSnapshot: null,
@@ -34,7 +72,7 @@
   };
 
   ns.$ = function (id) {
-    return document.getElementById(id);
+    return doc.getElementById(id);
   };
 
   ns.setHidden = function (element, hidden) {
@@ -42,13 +80,6 @@
       return;
     }
     element.classList.toggle('hidden', hidden);
-  };
-
-  ns.setText = function (id, value) {
-    const el = ns.$(id);
-    if (el) {
-      el.textContent = value;
-    }
   };
 
   ns.setLoading = function (loading) {
@@ -69,312 +100,203 @@
     }
   };
 
-  const DAY_MS = 86400000;
-  const SPARK_W = 90;
-  const SPARK_H = 20;
-  const ROW_KEYS = [
-    'process-uptime', 'scheduler', 'scheduler-uptime', 'database', 'version',
-    'batch-failed', 'batch-impact', 'batch-success', 'batch-last-failed', 'batch-now',
-    'review-pending', 'review-netflow', 'embedding',
-  ];
-  // severity kind -> badge modifier. info/unknown share the hollow idle shape; the text tells them apart.
-  const SEVERITY_BADGE = { ok: 'ok', warn: 'warn', crit: 'crit', info: 'idle', unknown: 'idle' };
-
-  function isOk(section) {
-    return Boolean(section) && section.status === 'ok';
-  }
-
-  /** #1146: one severity kind per row key: ok | warn | crit | info | unknown. */
-  ns.rowSeverities = function (data, nowMs) {
-    const d = data || {};
-    const proc = d.process || {};
-    const sched = d.scheduler || {};
-    const batch = d.batchImpact || {};
-    const review = d.review || {};
-    const emb = d.embedding || {};
-    const schedulerSev = !isOk(sched) ? 'unknown' : sched.running ? 'ok' : 'crit';
-    let lastFailed = 'unknown';
-    if (isOk(batch)) {
-      if (!batch.lastFailedAt) {
-        lastFailed = 'ok';
-      } else {
-        const t = Date.parse(String(batch.lastFailedAt));
-        lastFailed = Number.isFinite(t) && nowMs - t <= DAY_MS ? 'crit' : 'warn';
-      }
+  ns.labelForKey = function (key) {
+    if (LABELS[key]) {
+      return LABELS[key];
     }
-    return {
-      'process-uptime': isOk(proc) ? 'ok' : 'unknown',
-      scheduler: schedulerSev,
-      'scheduler-uptime': schedulerSev,
-      database: proc.database === 'connected' ? 'ok' : 'crit',
-      version: 'info',
-      'batch-failed': !isOk(batch) ? 'unknown' : batch.failedRunCount > 0 ? 'warn' : 'ok',
-      'batch-impact': !isOk(batch) ? 'unknown' : batch.durationMsSum > 0 ? 'warn' : 'ok',
-      'batch-success': isOk(batch) ? 'info' : 'unknown',
-      'batch-last-failed': lastFailed,
-      'batch-now': isOk(sched) ? 'info' : 'unknown',
-      'review-pending': isOk(review) ? 'info' : 'unknown',
-      'review-netflow': !isOk(review) ? 'unknown' : review.netFlow1h > 0 ? 'warn' : 'ok',
-      embedding: !isOk(emb) ? 'unknown' : emb.problemCount > 0 ? 'warn' : 'ok',
-    };
+    const llm = /^llm_(.+)_(attempts|other_failures|rate_limited)$/.exec(String(key));
+    if (llm) {
+      return llm[1] + ' / ' + llm[2];
+    }
+    return String(key);
   };
 
-  /**
-   * #1146: polyline points for a width x height box, or '' when there is no trend to draw
-   * (fewer than 2 points or any non-finite value). The baseline always includes 0.
-   */
-  ns.sparklinePoints = function (values, width, height) {
-    if (!Array.isArray(values) || values.length < 2) {
-      return '';
+  function formatRelativeAndAbsolute(iso) {
+    const date = new Date(String(iso));
+    if (Number.isNaN(date.getTime())) {
+      return String(iso);
     }
-    for (let i = 0; i < values.length; i++) {
-      if (typeof values[i] !== 'number' || !Number.isFinite(values[i])) {
-        return '';
-      }
+    const abs = date.toLocaleString();
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0) {
+      return abs;
     }
-    const lo = Math.min(0, Math.min.apply(null, values));
-    const hi = Math.max(0, Math.max.apply(null, values));
-    const step = width / (values.length - 1);
-    return values
-      .map(function (v, i) {
-        const y = hi === lo ? height / 2 : height - ((v - lo) / (hi - lo)) * height;
-        return (Math.round(i * step * 100) / 100) + ',' + (Math.round(y * 100) / 100);
-      })
-      .join(' ');
-  };
-
-  function setSeverity(key, kind) {
-    const badge = ns.$('ops-status-sev-' + key);
-    if (badge) {
-      badge.className = 'ops-row__sev m-badge m-badge--' + SEVERITY_BADGE[kind];
-      badge.textContent = S.severity[kind];
+    const days = Math.floor(diffMs / 86400000);
+    let rel;
+    if (days < 1) {
+      const hours = Math.floor(diffMs / 3600000);
+      rel = hours < 1 ? '방금' : hours + '시간 전';
+    } else if (days < 30) {
+      rel = days + '일 전';
+    } else {
+      rel = Math.floor(days / 30) + '개월 전';
     }
-    const row = ns.$('ops-status-row-' + key);
-    if (row) {
-      row.setAttribute('data-severity', kind);
-    }
-    const link = ns.$('ops-status-link-' + key);
-    if (link) {
-      ns.setHidden(link, kind !== 'warn' && kind !== 'crit');
-    }
+    return rel + ' / ' + abs;
   }
 
-  function renderSparkline(key, values, label) {
-    const host = ns.$('ops-status-trend-' + key);
+  ns.formatValue = function (item) {
+    const key = item && item.key;
+    const value = item && item.value;
+    if (value === null || value === undefined) {
+      return '—';
+    }
+    if (key === 'process_database') {
+      if (value === 'connected') {
+        return '연결됨';
+      }
+      if (value === 'disconnected') {
+        return '연결 안 됨';
+      }
+      return String(value);
+    }
+    if (key === 'scheduler_running') {
+      return value ? '실행 중' : '중지';
+    }
+    if (typeof value === 'boolean') {
+      return value ? '예' : '아니오';
+    }
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+      return formatRelativeAndAbsolute(value);
+    }
+    if (item.unit === 'MB' && typeof value === 'number') {
+      return value + ' MB';
+    }
+    return String(value);
+  };
+
+  ns.buildRow = function (item) {
+    const li = doc.createElement('li');
+    li.className = 'ops-row';
+    li.setAttribute('data-key', item.key);
+
+    const sev = item.severity;
+    const badge = doc.createElement('span');
+    if (sev === 'ok' || sev === 'warn' || sev === 'crit') {
+      li.setAttribute('data-severity', sev);
+      badge.className = 'ops-row__sev m-badge m-badge--' + sev;
+      badge.textContent = S.severity[sev];
+    } else {
+      badge.className = 'ops-row__sev';
+      badge.setAttribute('aria-hidden', 'true');
+    }
+    li.appendChild(badge);
+
+    const label = doc.createElement('span');
+    label.className = 'ops-row__label';
+    label.textContent = ns.labelForKey(item.key);
+    li.appendChild(label);
+
+    const value = doc.createElement('span');
+    value.className = 'ops-row__value';
+    value.textContent = ns.formatValue(item);
+    li.appendChild(value);
+
+    const windowEl = doc.createElement('span');
+    windowEl.className = 'ops-row__window';
+    windowEl.textContent = item.window && item.window.period ? String(item.window.period) : S.windowNow;
+    li.appendChild(windowEl);
+
+    const linkSpec = LINKS[item.key];
+    if (linkSpec && (sev === 'warn' || sev === 'crit')) {
+      const btn = doc.createElement('button');
+      btn.type = 'button';
+      btn.className = 'm-button m-button--ghost ops-row__link';
+      btn.setAttribute('data-ops-goto', linkSpec.tab);
+      btn.textContent = linkSpec.label;
+      btn.addEventListener('click', function () {
+        const tabs = global.__MEMENTO_DASHBOARD_TABS__;
+        if (tabs && typeof tabs.activateTab === 'function') {
+          tabs.activateTab(linkSpec.tab);
+        }
+      });
+      li.appendChild(btn);
+    }
+
+    return li;
+  };
+
+  ns.renderZones = function (zones, options) {
+    const host = ns.$('ops-status-zones');
     if (!host) {
       return;
     }
-    host.textContent = '';
-    const points = ns.sparklinePoints(values, SPARK_W, SPARK_H);
-    if (!points) {
-      return;
+    while (host.firstChild) {
+      host.removeChild(host.firstChild);
     }
-    const svgNs = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNs, 'svg');
-    svg.setAttribute('class', 'm-sparkline');
-    svg.setAttribute('viewBox', '0 0 ' + SPARK_W + ' ' + SPARK_H);
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', label);
-    const line = document.createElementNS(svgNs, 'polyline');
-    line.setAttribute('points', points);
-    svg.appendChild(line);
-    host.appendChild(svg);
-  }
 
-  function statusLabel(status) {
-    if (status === 'ok') {
-      return '정상';
-    }
-    if (status === 'degraded') {
-      return '일부 불가';
-    }
-    return '확인 불가';
-  }
-
-  function formatCount(value, status) {
-    if (status === 'degraded' || status === 'unavailable') {
-      return '—';
-    }
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return '—';
-    }
-    return String(value);
-  }
-
-  function formatText(value, status) {
-    if (status === 'degraded' || status === 'unavailable') {
-      return '—';
-    }
-    if (value === null || value === undefined || value === '') {
-      return '—';
-    }
-    return String(value);
-  }
-
-  function formatIso(value, status) {
-    if (status === 'degraded' || status === 'unavailable') {
-      return '—';
-    }
-    if (!value) {
-      return '—';
-    }
-    const date = new Date(String(value));
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
-  }
-
-  function renderScheduler(data) {
-    const status = data && data.status;
-    if (status === 'degraded' || status === 'unavailable') {
-      return '—';
-    }
-    return data && data.running ? '실행 중' : '중지';
-  }
-
-  function renderQueueNow(data) {
-    const status = data && data.status;
-    if (status === 'degraded' || status === 'unavailable') {
-      return '—';
-    }
-    const runningJobs = typeof data.runningJobs === 'number' ? data.runningJobs : 0;
-    const queueSize = typeof data.queueSize === 'number' ? data.queueSize : 0;
-    return '실행 중 ' + runningJobs + '건 · 대기 ' + queueSize + '건';
-  }
-
-  function renderEmbedding(data) {
-    const status = data && data.status;
-    if (status === 'degraded' || status === 'unavailable') {
-      return '—';
-    }
-    const provider = data && data.provider ? data.provider : '—';
-    const count = typeof data.problemCount === 'number' ? data.problemCount : 0;
-    return provider + ' · 문제 ' + count + '건';
-  }
-
-  ns.render = function (data) {
-    if (!data) {
+    if (options && options.fetchFailed) {
+      const banner = doc.createElement('div');
+      banner.id = 'ops-status-fetch-fail';
+      banner.className = 'ops-status-fetch-fail';
+      banner.setAttribute('data-severity', 'crit');
+      banner.setAttribute('role', 'alert');
+      const badge = doc.createElement('span');
+      badge.className = 'm-badge m-badge--crit';
+      badge.textContent = S.severity.crit;
+      const text = doc.createElement('span');
+      text.textContent = (options && options.message) || S.fetchFail;
+      banner.appendChild(badge);
+      banner.appendChild(text);
+      host.appendChild(banner);
       return;
     }
 
-    ns.setText('ops-status-process-uptime', formatText(data.process && data.process.uptimeHuman, 'ok'));
-    ns.setText('ops-status-scheduler', renderScheduler(data.scheduler));
-    ns.setText(
-      'ops-status-scheduler-uptime',
-      formatText(data.scheduler && data.scheduler.uptimeHuman, data.scheduler && data.scheduler.status),
-    );
-    ns.setText(
-      'ops-status-database',
-      data.process && data.process.database === 'connected' ? '연결됨' : '연결 안 됨',
-    );
-    ns.setText('ops-status-version', formatText(data.process && data.process.version, 'ok'));
-
-    const batch = data.batchImpact || {};
-    ns.setText('ops-status-batch-failed', formatCount(batch.failedRunCount, batch.status));
-    ns.setText('ops-status-batch-impact', formatText(batch.durationHuman, batch.status));
-    ns.setText('ops-status-batch-success', formatCount(batch.successRunCount, batch.status));
-    ns.setText('ops-status-batch-last-failed', formatIso(batch.lastFailedAt, batch.status));
-    ns.setText('ops-status-batch-now', renderQueueNow(data.scheduler));
-
-    const review = data.review || {};
-    ns.setText('ops-status-review-pending', formatCount(review.pendingTotal, review.status));
-    ns.setText('ops-status-review-netflow', formatCount(review.netFlow1h, review.status));
-
-    ns.setText('ops-status-embedding', renderEmbedding(data.embedding));
-
-    const systemCard = ns.$('ops-status-card-system');
-    const batchCard = ns.$('ops-status-card-batch');
-    const flowCard = ns.$('ops-status-card-flow');
-    if (systemCard) {
-      systemCard.setAttribute('data-status', statusLabel(data.process && data.process.status));
-    }
-    if (batchCard) {
-      batchCard.setAttribute('data-status', statusLabel(batch.status));
-    }
-    if (flowCard) {
-      const reviewStatus = review.status;
-      const embeddingStatus = data.embedding && data.embedding.status;
-      const flowStatus =
-        reviewStatus === 'degraded' || embeddingStatus === 'degraded'
-          ? '일부 불가'
-          : reviewStatus === 'unavailable' || embeddingStatus === 'unavailable'
-            ? '확인 불가'
-            : '정상';
-      flowCard.setAttribute('data-status', flowStatus);
+    if (!zones) {
+      return;
     }
 
-    const severities = ns.rowSeverities(data, Date.now());
-    ROW_KEYS.forEach(function (key) {
-      setSeverity(key, severities[key]);
+    ZONE_ORDER.forEach(function (zoneKey) {
+      const items = Array.isArray(zones[zoneKey]) ? zones[zoneKey] : [];
+      const card = doc.createElement('section');
+      card.className = 'ops-status-card m-panel';
+      card.setAttribute('data-zone', zoneKey);
+      card.setAttribute('aria-labelledby', 'ops-zone-heading-' + zoneKey);
+
+      const heading = doc.createElement('h3');
+      heading.id = 'ops-zone-heading-' + zoneKey;
+      heading.textContent = S.zoneTitles[zoneKey] || zoneKey;
+
+      const list = doc.createElement('ul');
+      list.className = 'ops-status-rows';
+      for (let i = 0; i < items.length; i++) {
+        list.appendChild(ns.buildRow(items[i]));
+      }
+
+      card.appendChild(heading);
+      card.appendChild(list);
+      host.appendChild(card);
     });
-
-    const daily = Array.isArray(batch.dailyDurationMs) ? batch.dailyDurationMs : [];
-    renderSparkline(
-      'batch-impact',
-      daily,
-      S.trendImpact(daily.length, daily.filter(function (ms) { return ms > 0; }).length),
-    );
-    const flowHistory = Array.isArray(review.netFlow1hHistory) ? review.netFlow1hHistory : [];
-    renderSparkline(
-      'review-netflow',
-      flowHistory,
-      flowHistory.length ? S.trendNetflow(flowHistory.length, Math.min.apply(null, flowHistory), Math.max.apply(null, flowHistory)) : '',
-    );
-  };
-
-  ns.renderSummary = function (data) {
-    const el = ns.$('ops-summary-body');
-    if (!el || !data || !data.questions) {
-      return;
-    }
-    const q = data.questions;
-    const lines = [
-      '기간 ' + data.window.period + ' (' + data.window.since + ' ~ ' + data.window.until + ')',
-      '[1 검색] ' + q.search_health.availability + ' · queries ' + String(q.search_health.search_query_count) + ' · failed events ' + String(q.search_health.search_failed_events),
-      '[2 배치] ' + q.batch_jobs.availability + ' · failed runs ' + String(q.batch_jobs.failed_run_count) + ' / sample ' + String(q.batch_jobs.failed_run_count + q.batch_jobs.success_run_count),
-      '[3 LLM] ' + q.llm_pressure.availability + (q.llm_pressure.reason ? ' · ' + q.llm_pressure.reason : ''),
-      '[4 품질] ' + q.quality_trend.availability + ' · measured ' + String(q.quality_trend.measured_metric_count) + ' · unmeasured ' + String(q.quality_trend.unmeasured_metric_count),
-    ];
-    el.textContent = lines.join('\n');
-    el.classList.remove('m-empty');
   };
 
   ns.refresh = async function () {
     const generation = ++ns.state.refreshGeneration;
     ns.setLoading(true);
     try {
-      const [statusResponse, summaryResponse] = await Promise.all([
-        global.fetch(ns.STATUS_URL, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        }),
-        global.fetch(ns.SUMMARY_URL, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        }),
-      ]);
-      if (!statusResponse.ok) {
-        throw new Error('HTTP ' + statusResponse.status + ' for ' + ns.STATUS_URL);
+      const response = await global.fetch(ns.SUMMARY_URL, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      });
+      if (!response.ok) {
+        throw new Error('HTTP ' + response.status + ' for ' + ns.SUMMARY_URL);
       }
-      const data = await statusResponse.json();
-      if (summaryResponse.ok) {
-        ns.renderSummary(await summaryResponse.json());
-      } else if (ns.$('ops-summary-body')) {
-        ns.$('ops-summary-body').textContent = '운영 요약 불러오지 못함 — HTTP ' + summaryResponse.status;
-      }
+      const data = await response.json();
       if (generation !== ns.state.refreshGeneration) {
         return;
       }
+      if (!data || typeof data.zones !== 'object' || data.zones === null) {
+        throw new Error('응답에 zones 가 없습니다');
+      }
       ns.state.lastSnapshot = data;
       ns.setError('');
-      ns.render(data);
+      ns.renderZones(data.zones);
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
       }
       const message = err && err.message ? String(err.message) : '운영 상태 새로고침 실패';
       ns.setError(message);
+      ns.renderZones(null, { fetchFailed: true, message: message });
     } finally {
       if (generation === ns.state.refreshGeneration) {
         ns.setLoading(false);
@@ -389,19 +311,6 @@
         void ns.refresh();
       });
     }
-    ROW_KEYS.forEach(function (key) {
-      const link = ns.$('ops-status-link-' + key);
-      if (!link) {
-        return;
-      }
-      link.addEventListener('click', function () {
-        const tab = link.getAttribute('data-ops-goto');
-        const tabs = global.__MEMENTO_DASHBOARD_TABS__;
-        if (tab && tabs && typeof tabs.activateTab === 'function') {
-          tabs.activateTab(tab);
-        }
-      });
-    });
   }
 
   function initOpsStatusPanel() {
@@ -411,8 +320,13 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initOpsStatusPanel);
+  global.initOpsStatusPanel = function () {
+    initOpsStatusPanel();
+    void ns.refresh();
+  };
+
+  if (doc.readyState === 'loading') {
+    doc.addEventListener('DOMContentLoaded', initOpsStatusPanel);
   } else {
     initOpsStatusPanel();
   }

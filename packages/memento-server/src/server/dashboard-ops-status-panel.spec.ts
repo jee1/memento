@@ -1,5 +1,5 @@
 /**
- * Dashboard Ops status panel smoke (#1048).
+ * Dashboard Ops status panel — zones first screen (#1699).
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -29,36 +29,76 @@ function createClassList() {
 
 type HarnessOptions = {
   fetchImpl?: (url: string) => Promise<unknown>;
+  fetchReject?: Error;
+  responseOk?: boolean;
+  responseStatus?: number;
 };
+
+function createElementMock(tag: string) {
+  const element: Record<string, unknown> = {
+    tagName: tag.toUpperCase(),
+    id: '',
+    className: '',
+    type: '',
+    textContent: '',
+    attributes: {} as Record<string, string>,
+    children: [] as unknown[],
+    classList: createClassList(),
+    style: {},
+    setAttribute(name: string, value: string) {
+      (this as { attributes: Record<string, string> }).attributes[name] = value;
+      if (name === 'id') {
+        (this as { id: string }).id = value;
+      }
+    },
+    getAttribute(name: string) {
+      return (this as { attributes: Record<string, string> }).attributes[name] ?? null;
+    },
+    appendChild(c: unknown) {
+      (this as { children: unknown[] }).children.push(c);
+      return c;
+    },
+    removeChild(c: unknown) {
+      const kids = (this as { children: unknown[] }).children;
+      const idx = kids.indexOf(c);
+      if (idx >= 0) {
+        kids.splice(idx, 1);
+      }
+      return c;
+    },
+    addEventListener: vi.fn(),
+  };
+  Object.defineProperty(element, 'firstChild', {
+    get() {
+      return (this as { children: unknown[] }).children[0] ?? null;
+    },
+  });
+  return element;
+}
 
 function createOpsStatusHarness(options: HarnessOptions = {}) {
   const elements: Record<string, any> = {};
   const buttonHandlers: Record<string, Array<() => void>> = {};
+  const zonesHost = createElementMock('div');
+  zonesHost.id = 'ops-status-zones';
+  elements['ops-status-zones'] = zonesHost;
 
   function el(id: string, extras: Record<string, unknown> = {}) {
     const element: Record<string, unknown> = {
       id,
       _textContent: '',
-      innerHTML: '',
-      attributes: {} as Record<string, string>,
-      children: [] as unknown[],
       className: '',
       classList: createClassList(),
+      attributes: {} as Record<string, string>,
+      children: [] as unknown[],
       get textContent() {
         return (this as { _textContent: string })._textContent;
       },
       set textContent(value: string) {
         (this as { _textContent: string })._textContent = value;
-        if (value === '') {
-          (this as { children: unknown[] }).children = [];
-        }
       },
       setAttribute(name: string, value: string) {
         (this as { attributes: Record<string, string> }).attributes[name] = value;
-      },
-      appendChild(c: unknown) {
-        (this as { children: unknown[] }).children.push(c);
-        return c;
       },
       addEventListener: vi.fn((event: string, handler: () => void) => {
         if (!buttonHandlers[id]) {
@@ -74,52 +114,9 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
     return element;
   }
 
-  [
-    'ops-status-refresh-btn',
-    'ops-status-loading',
-    'ops-status-error',
-    'ops-status-card-system',
-    'ops-status-card-batch',
-    'ops-status-card-flow',
-    'ops-status-process-uptime',
-    'ops-status-scheduler',
-    'ops-status-scheduler-uptime',
-    'ops-status-database',
-    'ops-status-version',
-    'ops-status-batch-failed',
-    'ops-status-batch-impact',
-    'ops-status-batch-success',
-    'ops-status-batch-last-failed',
-    'ops-status-batch-now',
-    'ops-status-review-pending',
-    'ops-status-review-netflow',
-    'ops-status-embedding',
-  ].forEach((id) => el(id));
-
-  const rowKeys = [
-    'process-uptime',
-    'scheduler',
-    'scheduler-uptime',
-    'database',
-    'version',
-    'batch-failed',
-    'batch-impact',
-    'batch-success',
-    'batch-last-failed',
-    'batch-now',
-    'review-pending',
-    'review-netflow',
-    'embedding',
-  ];
-  for (const key of rowKeys) {
-    el('ops-status-sev-' + key);
-    el('ops-status-row-' + key);
-  }
-  for (const key of ['scheduler', 'batch-failed', 'batch-last-failed', 'review-netflow', 'embedding']) {
-    el('ops-status-link-' + key, { classList: createClassList() });
-  }
-  el('ops-status-trend-batch-impact');
-  el('ops-status-trend-review-netflow');
+  el('ops-status-refresh-btn');
+  el('ops-status-loading');
+  el('ops-status-error');
 
   const fetchCalls: string[] = [];
   const sandbox: Record<string, unknown> = {
@@ -128,30 +125,26 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
       readyState: 'complete',
       addEventListener: vi.fn(),
       getElementById: (id: string) => elements[id] ?? null,
-      createElementNS: (_ns: string, tag: string) => ({
-        tag,
-        attributes: {} as Record<string, string>,
-        children: [] as unknown[],
-        setAttribute(n: string, v: string) {
-          this.attributes[n] = v;
-        },
-        appendChild(c: unknown) {
-          this.children.push(c);
-          return c;
-        },
-      }),
+      createElement: (tag: string) => createElementMock(tag),
     },
     fetch: vi.fn(async (url: string) => {
-      fetchCalls.push(url);
+      fetchCalls.push(String(url));
+      if (options.fetchReject) {
+        throw options.fetchReject;
+      }
+      const ok = options.responseOk !== false;
+      const status = options.responseStatus ?? (ok ? 200 : 500);
       if (options.fetchImpl) {
         const data = await options.fetchImpl(url);
         return {
-          ok: true,
+          ok,
+          status,
           json: async () => data,
         };
       }
       return {
-        ok: true,
+        ok,
+        status,
         json: async () => ({}),
       };
     }),
@@ -162,17 +155,18 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
   vm.runInContext(opsStatusPanelJs, sandbox);
 
   const ns = sandbox.__MEMENTO_OPS_STATUS_PANEL__ as {
-    STATUS_URL: string;
+    SUMMARY_URL: string;
     refresh: () => Promise<void>;
-    render: (data: unknown) => void;
-    rowSeverities: (data: unknown, nowMs: number) => Record<string, string>;
-    sparklinePoints: (values: unknown, width: number, height: number) => string;
+    renderZones: (zones: unknown, options?: unknown) => void;
+    labelForKey: (key: string) => string;
+    formatValue: (item: unknown) => string;
   };
 
   return {
     ns,
     elements,
     fetchCalls,
+    zonesHost,
     clickRefresh() {
       for (const handler of buttonHandlers['ops-status-refresh-btn'] || []) {
         handler();
@@ -181,11 +175,90 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
   };
 }
 
-describe('dashboard ops status panel', () => {
+function window7d() {
+  return {
+    period: '7d' as const,
+    since: '2026-11-06T00:00:00.000Z',
+    until: '2026-11-13T00:00:00.000Z',
+  };
+}
+
+function sampleZones() {
+  const w = window7d();
+  return {
+    system_ok: [
+      {
+        key: 'process_database',
+        value: 'connected',
+        unit: null,
+        severity: 'ok',
+        as_of: '2026-11-13T00:00:00.000Z',
+        window: { ...w, period: '30d' },
+      },
+      {
+        key: 'scheduler_running',
+        value: true,
+        unit: null,
+        severity: 'ok',
+        as_of: '2026-11-13T00:00:00.000Z',
+        window: { ...w, period: '30d' },
+      },
+    ],
+    doing_work: [
+      {
+        key: 'injection_empty',
+        value: 0,
+        unit: 'count',
+        severity: null,
+        as_of: null,
+        window: w,
+      },
+      {
+        key: 'llm_relation_extraction_attempts',
+        value: 10,
+        unit: 'count',
+        severity: null,
+        as_of: '2026-11-13T00:00:00.000Z',
+        window: w,
+      },
+    ],
+    needs_action: [
+      {
+        key: 'review_pending_total',
+        value: 500,
+        unit: 'count',
+        severity: 'warn',
+        as_of: '2026-06-16T00:00:00.000Z',
+        window: { ...w, period: '30d' },
+      },
+      {
+        key: 'embedding_problem_count',
+        value: 0,
+        unit: 'count',
+        severity: 'ok',
+        as_of: '2026-11-13T00:00:00.000Z',
+        window: { ...w, period: '30d' },
+      },
+    ],
+  };
+}
+
+describe('dashboard ops status panel (#1699)', () => {
   it('includes the ops status tab button and panel in dashboard.html', () => {
     expect(dashboardHtml).toContain('id="dashboard-tab-ops-status"');
     expect(dashboardHtml).toContain('id="tab-ops-status"');
     expect(dashboardHtml).toContain('data-tab="ops-status"');
+    expect(dashboardHtml).toContain('id="ops-status-zones"');
+  });
+
+  it('makes ops-status the default active tab in markup', () => {
+    expect(dashboardHtml).toMatch(
+      /id="dashboard-tab-ops-status"[^>]*class="[^"]*\bactive\b/,
+    );
+    expect(dashboardHtml).toMatch(/id="tab-ops-status"[^>]*class="[^"]*\bactive\b/);
+    expect(dashboardHtml).not.toMatch(/id="dashboard-tab-anchor"[^>]*class="[^"]*\bactive\b/);
+    expect(dashboardHtml).not.toContain('id="ops-strip"');
+    expect(dashboardHtml).not.toContain('ops-summary-body');
   });
 
   it('places the ops status tab before review in the Ops group', () => {
@@ -205,338 +278,170 @@ describe('dashboard ops status panel', () => {
     expect(reviewIndex).toBeGreaterThan(opsIndex);
   });
 
-  it('fetches /admin/status and renders server-formatted human durations without percent signs', async () => {
-    const mockResponse = {
-      timestamp: '2026-09-19T00:00:00.000Z',
-      windowDays: 30,
-      dataSince: '2026-09-01T00:00:00.000Z',
-      since: '2026-08-20T00:00:00.000Z',
-      process: {
-        status: 'ok',
-        uptimeMs: 3_600_000,
-        uptimeHuman: '1시간',
-        version: '1.0.0',
-        database: 'connected',
-      },
-      scheduler: {
-        status: 'ok',
-        running: true,
-        uptimeMs: 120_000,
-        uptimeHuman: '2분',
-        runningJobs: 1,
-        queueSize: 0,
-      },
-      batchImpact: {
-        status: 'ok',
-        since: '2026-08-20T00:00:00.000Z',
-        failedRunCount: 2,
-        durationMsSum: 720_000,
-        durationHuman: '약 12분',
-        successRunCount: 5,
-        lastFailedAt: '2026-09-18T00:00:00.000Z',
-      },
-      review: {
-        status: 'ok',
-        pendingTotal: 3,
-        netFlow1h: -1,
-      },
-      embedding: {
-        status: 'ok',
-        provider: 'minilm',
-        problemCount: 4,
-      },
-    };
-
-    const summaryMock = {
-      window: { period: '24h', since: '2026-08-20T00:00:00.000Z', until: '2026-09-19T00:00:00.000Z' },
-      questions: {
-        search_health: { availability: 'partial', search_query_count: 0, search_failed_events: 0 },
-        batch_jobs: { availability: 'measured', failed_run_count: 2, success_run_count: 10 },
-        llm_pressure: { availability: 'unmeasured', reason: 'not deployed' },
-        quality_trend: { availability: 'partial', measured_metric_count: 0, unmeasured_metric_count: 1 },
-      },
-    };
-
+  it('fetches /admin/ops/summary?period=7d and renders zone titles and windows', async () => {
     const harness = createOpsStatusHarness({
-      fetchImpl: async (url) => {
-        if (String(url).includes('/admin/ops/summary')) {
-          return summaryMock;
-        }
-        expect(url).toBe('/admin/status');
-        return mockResponse;
-      },
+      fetchImpl: async () => ({
+        window: window7d(),
+        zones: sampleZones(),
+        questions: {},
+      }),
     });
 
     await harness.ns.refresh();
 
-    expect(harness.fetchCalls).toContain('/admin/status');
-    expect(harness.fetchCalls.some((u) => String(u).includes('/admin/ops/summary'))).toBe(true);
-    expect(harness.elements['ops-status-process-uptime'].textContent).toBe('1시간');
-    expect(harness.elements['ops-status-scheduler'].textContent).toBe('실행 중');
-    expect(harness.elements['ops-status-scheduler-uptime'].textContent).toBe('2분');
-    expect(harness.elements['ops-status-batch-impact'].textContent).toBe('약 12분');
-    expect(harness.elements['ops-status-review-pending'].textContent).toBe('3');
-    expect(harness.elements['ops-status-embedding'].textContent).toBe('minilm · 문제 4건');
+    expect(harness.fetchCalls).toEqual(['/admin/ops/summary?period=7d']);
+    expect(harness.ns.SUMMARY_URL).toBe('/admin/ops/summary?period=7d');
 
-    const rendered = [
-      harness.elements['ops-status-process-uptime'].textContent,
-      harness.elements['ops-status-scheduler'].textContent,
-      harness.elements['ops-status-scheduler-uptime'].textContent,
-      harness.elements['ops-status-batch-impact'].textContent,
-      harness.elements['ops-status-review-pending'].textContent,
-      harness.elements['ops-status-review-netflow'].textContent,
-      harness.elements['ops-status-embedding'].textContent,
-    ].join(' ');
-    expect(rendered).not.toContain('%');
+    const cards = harness.zonesHost.children as Array<{
+      attributes: Record<string, string>;
+      children: Array<{ textContent?: string; children?: unknown[] }>;
+    }>;
+    expect(cards).toHaveLength(3);
+    expect(cards[0].attributes['data-zone']).toBe('system_ok');
+    expect(cards[1].attributes['data-zone']).toBe('doing_work');
+    expect(cards[2].attributes['data-zone']).toBe('needs_action');
+    expect(cards[0].children[0].textContent).toBe('정상인가');
+    expect(cards[1].children[0].textContent).toBe('제 일을 하고 있나');
+    expect(cards[2].children[0].textContent).toBe('손댈 것');
+
+    const systemRows = (cards[0].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
+    expect(systemRows[0].attributes['data-key']).toBe('process_database');
+    expect(systemRows[0].attributes['data-severity']).toBe('ok');
+    const windowText = systemRows[0].children.find((c) => c.className === 'ops-row__window');
+    expect(windowText?.textContent).toBe('30d');
+
+    const doingRows = (cards[1].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
+    expect(doingRows[0].attributes['data-severity']).toBeUndefined();
+    const nullSevBadge = doingRows[0].children.find((c) => c.className === 'ops-row__sev');
+    expect(nullSevBadge?.textContent ?? '').toBe('');
+
+    const actionRows = (cards[2].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
+    const pendingValue = actionRows[0].children.find((c) => c.className === 'ops-row__value');
+    expect(pendingValue?.textContent).toBe('500');
   });
 
-  it('labels process uptime and scheduler uptime separately with the agreed lexicon', async () => {
-    expect(dashboardHtml).toContain('프로세스 가동');
-    expect(dashboardHtml).toContain('스케줄러 가동');
-    expect(dashboardHtml).toContain('배치 영향 시간');
-    expect(dashboardHtml).toContain('운영 흐름');
-    expect(dashboardHtml).toContain('순유입 (1h)');
-    expect(dashboardHtml).toContain('지금');
-    expect(dashboardHtml).not.toContain('실패 소요 시간 합');
-    expect(dashboardHtml).not.toContain('검토 1시간 순변');
-
-    const mockResponse = {
-      timestamp: '2026-09-19T00:00:00.000Z',
-      windowDays: 30,
-      dataSince: '2026-09-01T00:00:00.000Z',
-      since: '2026-08-20T00:00:00.000Z',
-      process: {
-        status: 'ok',
-        uptimeMs: 302_400_000,
-        uptimeHuman: '3일 14시간',
-        version: '1.0.0',
-        database: 'connected',
-      },
-      scheduler: {
-        status: 'ok',
-        running: true,
-        uptimeMs: 302_400_000 - 7_200_000,
-        uptimeHuman: '3일 12시간',
-        runningJobs: 2,
-        queueSize: 1,
-      },
-      batchImpact: {
-        status: 'ok',
-        since: '2026-08-20T00:00:00.000Z',
-        failedRunCount: 0,
-        durationMsSum: 0,
-        durationHuman: '0초',
-        successRunCount: 0,
-        lastFailedAt: null,
-      },
-      review: {
-        status: 'ok',
-        pendingTotal: 0,
-        netFlow1h: 0,
-      },
-      embedding: {
-        status: 'ok',
-        provider: 'minilm',
-        problemCount: 0,
-      },
-    };
-
-    const harness = createOpsStatusHarness({
-      fetchImpl: async () => mockResponse,
+  it('renders unknown zone items without panel code changes (generic zones)', async () => {
+    const zones = sampleZones();
+    zones.system_ok.push({
+      key: 'custom_probe_signal',
+      value: 42,
+      unit: 'count',
+      severity: null,
+      as_of: null,
+      window: window7d(),
     });
+    const harness = createOpsStatusHarness({
+      fetchImpl: async () => ({ zones, window: window7d() }),
+    });
+    await harness.ns.refresh();
+    const cards = harness.zonesHost.children as Array<{
+      children: Array<{ children?: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }>;
+    }>;
+    const rows = cards[0].children[1].children as Array<{
+      attributes: Record<string, string>;
+      children: Array<{ className?: string; textContent?: string }>;
+    }>;
+    const probe = rows.find((r) => r.attributes['data-key'] === 'custom_probe_signal');
+    expect(probe).toBeTruthy();
+    const label = probe?.children.find((c) => c.className === 'ops-row__label');
+    const value = probe?.children.find((c) => c.className === 'ops-row__value');
+    expect(label?.textContent).toBe('custom_probe_signal');
+    expect(value?.textContent).toBe('42');
+  });
 
+  it('paints fetch failure as crit with a visible reason', async () => {
+    const harness = createOpsStatusHarness({
+      fetchReject: new Error('network down'),
+    });
+    await harness.ns.refresh();
+    expect(harness.elements['ops-status-error'].textContent).toContain('network down');
+    const banner = harness.zonesHost.children[0] as {
+      id: string;
+      attributes: Record<string, string>;
+      children: Array<{ className?: string; textContent?: string }>;
+    };
+    expect(banner.id).toBe('ops-status-fetch-fail');
+    expect(banner.attributes['data-severity']).toBe('crit');
+    expect(banner.children.some((c) => c.className === 'm-badge m-badge--crit')).toBe(true);
+    expect(banner.children.some((c) => String(c.textContent).includes('network down'))).toBe(true);
+  });
+
+  it('paints HTTP 5xx as fetch failure', async () => {
+    const harness = createOpsStatusHarness({
+      responseOk: false,
+      responseStatus: 503,
+      fetchImpl: async () => ({ error: 'unavailable' }),
+    });
+    await harness.ns.refresh();
+    expect(harness.elements['ops-status-error'].textContent).toContain('HTTP 503');
+    const banner = harness.zonesHost.children[0] as { attributes: Record<string, string> };
+    expect(banner.attributes['data-severity']).toBe('crit');
+  });
+
+  it('labels LLM feature metrics as attempts / other_failures / rate_limited', () => {
+    const harness = createOpsStatusHarness();
+    expect(harness.ns.labelForKey('llm_typesafe_attempts')).toBe('typesafe / attempts');
+    expect(harness.ns.labelForKey('llm_gemini_other_failures')).toBe('gemini / other_failures');
+    expect(harness.ns.labelForKey('llm_gemini_rate_limited')).toBe('gemini / rate_limited');
+  });
+
+  it('shows labels, MB unit and current window for the #1704 disk signals', async () => {
+    const zones = sampleZones();
+    zones.system_ok.push(
+      { key: 'migration_backup', value: '2026-11-01T00:00:00.000Z', unit: null, severity: null, as_of: null, window: null },
+      { key: 'migration_backup_file_count', value: 3, unit: 'count', severity: null, as_of: null, window: null },
+      { key: 'db_size_mb', value: 12.5, unit: 'MB', severity: null, as_of: null, window: null },
+      { key: 'wal_size_mb', value: null, unit: 'MB', severity: null, as_of: null, window: null },
+    );
+    const harness = createOpsStatusHarness({ fetchImpl: async () => ({ zones, window: window7d() }) });
     await harness.ns.refresh();
 
-    expect(harness.elements['ops-status-process-uptime'].textContent).toBe('3일 14시간');
-    expect(harness.elements['ops-status-scheduler-uptime'].textContent).toBe('3일 12시간');
-    expect(harness.elements['ops-status-batch-now'].textContent).toContain('2');
-    expect(harness.elements['ops-status-batch-now'].textContent).toContain('1');
+    const cards = harness.zonesHost.children as Array<{
+      children: Array<{ children?: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }>;
+    }>;
+    const rowOf = (key: string) => cards[0].children[1].children!.find((r) => r.attributes['data-key'] === key)!;
+    const text = (key: string, cls: string) => rowOf(key).children.find((c) => c.className === cls)?.textContent;
+
+    expect(text('migration_backup', 'ops-row__label')).toBe('마이그레이션 백업');
+    expect(text('migration_backup', 'ops-row__value')).toContain('2026');
+    expect(text('migration_backup_file_count', 'ops-row__label')).toBe('마이그레이션 백업 파일 수');
+    expect(text('migration_backup_file_count', 'ops-row__value')).toBe('3');
+    expect(text('db_size_mb', 'ops-row__label')).toBe('DB 크기');
+    expect(text('db_size_mb', 'ops-row__value')).toBe('12.5 MB');
+    expect(text('wal_size_mb', 'ops-row__label')).toBe('WAL 크기');
+    expect(text('wal_size_mb', 'ops-row__value')).toBe('—');
+    expect(text('db_size_mb', 'ops-row__window')).toBe('현재');
+    expect(rowOf('db_size_mb').attributes['data-severity']).toBeUndefined();
   });
 
-  const okStatusPayload = {
-    timestamp: '2026-09-19T00:00:00.000Z',
-    windowDays: 30,
-    dataSince: '2026-09-01T00:00:00.000Z',
-    since: '2026-08-20T00:00:00.000Z',
-    process: {
-      status: 'ok',
-      uptimeMs: 3_600_000,
-      uptimeHuman: '1시간',
-      version: '1.0.0',
-      database: 'connected',
-    },
-    scheduler: {
-      status: 'ok',
-      running: true,
-      uptimeMs: 120_000,
-      uptimeHuman: '2분',
-      runningJobs: 0,
-      queueSize: 0,
-    },
-    batchImpact: {
-      status: 'ok',
-      since: '2026-08-20T00:00:00.000Z',
-      failedRunCount: 0,
-      durationMsSum: 0,
-      durationHuman: '0초',
-      successRunCount: 0,
-      lastFailedAt: null,
-    },
-    review: {
-      status: 'ok',
-      pendingTotal: 0,
-      netFlow1h: 0,
-    },
-    embedding: {
-      status: 'ok',
-      provider: 'minilm',
-      problemCount: 0,
-    },
-  };
-
-  it('rowSeverities marks healthy snapshot rows ok or info (#1146)', () => {
-    const harness = createOpsStatusHarness();
-    const sev = harness.ns.rowSeverities(okStatusPayload, Date.now());
-    const infoKeys = ['version', 'batch-success', 'batch-now', 'review-pending'];
-    for (const key of Object.keys(sev)) {
-      if (infoKeys.includes(key)) {
-        expect(sev[key]).toBe('info');
-      } else {
-        expect(sev[key]).toBe('ok');
-      }
-    }
+  it('paints a 200 response without zones as fetch failure', async () => {
+    const harness = createOpsStatusHarness({ fetchImpl: async () => ({ window: window7d() }) });
+    await harness.ns.refresh();
+    expect(harness.elements['ops-status-error'].textContent).toContain('zones');
+    const banner = harness.zonesHost.children[0] as { attributes: Record<string, string> };
+    expect(banner.attributes['data-severity']).toBe('crit');
   });
 
-  it('rowSeverities applies boundary rules (#1146)', () => {
-    const harness = createOpsStatusHarness();
-    const now = Date.parse('2026-10-02T12:00:00.000Z');
-    const dayMs = 86_400_000;
-
-    const critLastFailed = structuredClone(okStatusPayload);
-    critLastFailed.batchImpact.lastFailedAt = new Date(now - dayMs).toISOString();
-    expect(harness.ns.rowSeverities(critLastFailed, now)['batch-last-failed']).toBe('crit');
-
-    const warnLastFailed = structuredClone(okStatusPayload);
-    warnLastFailed.batchImpact.lastFailedAt = new Date(now - dayMs - 1).toISOString();
-    expect(harness.ns.rowSeverities(warnLastFailed, now)['batch-last-failed']).toBe('warn');
-
-    const stoppedScheduler = structuredClone(okStatusPayload);
-    stoppedScheduler.scheduler.running = false;
-    const stoppedSev = harness.ns.rowSeverities(stoppedScheduler, now);
-    expect(stoppedSev.scheduler).toBe('crit');
-    expect(stoppedSev['scheduler-uptime']).toBe('crit');
-
-    const netFlowWarn = structuredClone(okStatusPayload);
-    netFlowWarn.review.netFlow1h = 1;
-    expect(harness.ns.rowSeverities(netFlowWarn, now)['review-netflow']).toBe('warn');
-
-    const netFlowOk = structuredClone(okStatusPayload);
-    netFlowOk.review.netFlow1h = -3;
-    expect(harness.ns.rowSeverities(netFlowOk, now)['review-netflow']).toBe('ok');
-
-    const batchFailedWarn = structuredClone(okStatusPayload);
-    batchFailedWarn.batchImpact.failedRunCount = 1;
-    expect(harness.ns.rowSeverities(batchFailedWarn, now)['batch-failed']).toBe('warn');
-
-    const embeddingWarn = structuredClone(okStatusPayload);
-    embeddingWarn.embedding.problemCount = 2;
-    expect(harness.ns.rowSeverities(embeddingWarn, now).embedding).toBe('warn');
-
-    const disconnected = structuredClone(okStatusPayload);
-    disconnected.process.database = 'disconnected';
-    expect(harness.ns.rowSeverities(disconnected, now).database).toBe('crit');
-
-    const degradedBatch = structuredClone(okStatusPayload);
-    degradedBatch.batchImpact.status = 'degraded';
-    const degradedSev = harness.ns.rowSeverities(degradedBatch, now);
-    expect(degradedSev['batch-failed']).toBe('unknown');
-    expect(degradedSev['batch-impact']).toBe('unknown');
-    expect(degradedSev['batch-success']).toBe('unknown');
-    expect(degradedSev['batch-last-failed']).toBe('unknown');
-  });
-
-  it('sparklinePoints normalizes series into svg coordinates (#1146)', () => {
-    const harness = createOpsStatusHarness();
-    expect(harness.ns.sparklinePoints([], 90, 20)).toBe('');
-    expect(harness.ns.sparklinePoints([5], 90, 20)).toBe('');
-    expect(harness.ns.sparklinePoints([1, NaN], 90, 20)).toBe('');
-    expect(harness.ns.sparklinePoints([0, 10], 90, 20)).toBe('0,20 90,0');
-    expect(harness.ns.sparklinePoints([0, 0, 0], 90, 20)).toBe('0,10 45,10 90,10');
-    expect(harness.ns.sparklinePoints([-5, 5], 90, 20)).toBe('0,20 90,0');
-    expect(harness.ns.sparklinePoints([0, 5, 10], 90, 20)).toBe('0,20 45,10 90,0');
-    // baseline always includes 0: an all-positive series does not stretch to the bottom
-    expect(harness.ns.sparklinePoints([5, 10], 90, 20)).toBe('0,10 90,0');
-    // and an all-negative series does not stretch to the top
-    expect(harness.ns.sparklinePoints([-10, -5], 90, 20)).toBe('0,20 90,10');
-  });
-
-  it('render draws sparklines and severity badges (#1146)', () => {
-    const harness = createOpsStatusHarness();
-    const daily = Array.from({ length: 30 }, () => 0);
-    daily[29] = 60_000;
-    const payload = structuredClone(okStatusPayload);
-    payload.batchImpact.failedRunCount = 1;
-    payload.batchImpact.durationMsSum = 60_000;
-    payload.batchImpact.durationHuman = '1분';
-    payload.batchImpact.dailyDurationMs = daily;
-    payload.review.netFlow1hHistory = [2, -1, 0];
-
-    harness.ns.render(payload);
-
-    const impactTrend = harness.elements['ops-status-trend-batch-impact'];
-    const netflowTrend = harness.elements['ops-status-trend-review-netflow'];
-    expect(impactTrend.children).toHaveLength(1);
-    expect(netflowTrend.children).toHaveLength(1);
-    expect((impactTrend.children[0] as { attributes: Record<string, string> }).attributes.class).toBe(
-      'm-sparkline',
+  it('has a label for every fixed zone key the server emits', () => {
+    const serverSource = readFileSync(
+      resolve(root, 'packages/memento-server/src/server/routes/admin/admin-ops-summary-zones.ts'),
+      'utf8',
     );
-    expect((netflowTrend.children[0] as { attributes: Record<string, string> }).attributes.class).toBe(
-      'm-sparkline',
-    );
-    expect(
-      (impactTrend.children[0] as { attributes: Record<string, string> }).attributes['aria-label'],
-    ).toBeTruthy();
-    expect(
-      (netflowTrend.children[0] as { attributes: Record<string, string> }).attributes['aria-label'],
-    ).toBeTruthy();
-
-    expect(harness.elements['ops-status-sev-batch-impact'].className).toContain('m-badge--warn');
-    expect(harness.elements['ops-status-link-batch-failed'].classList.contains('hidden')).toBe(false);
-  });
-
-  it('render clears sparklines when history is too short (#1146)', () => {
+    const keys = [...serverSource.matchAll(/\bitem\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]!);
+    expect(keys.length).toBeGreaterThan(20);
     const harness = createOpsStatusHarness();
-    const withSparklines = structuredClone(okStatusPayload);
-    withSparklines.batchImpact.dailyDurationMs = Array.from({ length: 30 }, () => 0);
-    withSparklines.batchImpact.dailyDurationMs[0] = 1;
-    withSparklines.review.netFlow1hHistory = [2, -1, 0];
-    harness.ns.render(withSparklines);
-    expect(harness.elements['ops-status-trend-batch-impact'].children).toHaveLength(1);
-    expect(harness.elements['ops-status-trend-review-netflow'].children).toHaveLength(1);
-
-    const emptyTrend = structuredClone(okStatusPayload);
-    emptyTrend.batchImpact.dailyDurationMs = [];
-    emptyTrend.review.netFlow1hHistory = [4];
-    harness.ns.render(emptyTrend);
-    expect(harness.elements['ops-status-trend-batch-impact'].children).toHaveLength(0);
-    expect(harness.elements['ops-status-trend-review-netflow'].children).toHaveLength(0);
-
-    harness.ns.render(withSparklines);
-    expect(harness.elements['ops-status-trend-batch-impact'].children).toHaveLength(1);
-    harness.ns.render(emptyTrend);
-    expect(harness.elements['ops-status-trend-batch-impact'].children).toHaveLength(0);
-    expect(harness.elements['ops-status-trend-review-netflow'].children).toHaveLength(0);
+    const unlabeled = keys.filter((key) => harness.ns.labelForKey(key) === key);
+    expect(unlabeled).toEqual([]);
   });
 
-  it('dashboard html and panel js satisfy #1146 row contract', () => {
-    expect(dashboardHtml).not.toContain('ops-status-dl');
-    expect(dashboardHtml).toContain('id="ops-status-trend-batch-impact"');
-    expect(dashboardHtml).toContain('id="ops-status-trend-review-netflow"');
-    expect(dashboardHtml).not.toContain('id="ops-status-trend-embedding"');
-
-    const tooltipNeedle = 'title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님"';
-    expect(dashboardHtml.split(tooltipNeedle).length - 1).toBe(2);
-
+  it('does not embed developer measured/unmeasured strings or client severity thresholds', () => {
+    expect(opsStatusPanelJs).not.toContain('measured');
+    expect(opsStatusPanelJs).not.toContain('unmeasured');
+    expect(opsStatusPanelJs).not.toContain('failed events');
+    expect(opsStatusPanelJs).not.toContain('queries ');
+    expect(opsStatusPanelJs).not.toContain('rowSeverities');
+    expect(opsStatusPanelJs).not.toContain('DAY_MS');
     expect(opsStatusPanelJs).not.toContain('innerHTML');
+    expect(opsStatusPanelJs).toContain("'/admin/ops/summary?period=7d'");
   });
 });

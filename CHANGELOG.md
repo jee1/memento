@@ -23,6 +23,7 @@
 
 ### Changed
 
+- Admin 대시보드 첫 화면을 「상태」 탭으로 바꾸고 `/admin/ops/summary?period=7d` 의 `zones` 세 구역(정상인가 / 제 일을 하고 있나 / 손댈 것)을 범용으로 그린다. 상단 ops-strip 과 개발자용 4질문 문자열을 제거한다. 색은 서버 `severity` 만 쓴다. 집계 창이 없는 항목은 「현재」로, `unit` 이 `MB` 인 값은 단위를 붙여 그리고, `zones` 가 없는 응답은 요청 실패(빨강)로 본다. 검토 대기는 서버가 상한을 주지 않으므로 숫자만 그린다 (#1699).
 - 관계 추출 제공자 설정 `LLM_PROVIDER_RELATION_EXTRACTION` 의 정본 값을 `jev` 에서 `typesafe` 로 바꾼다. 제공자는 typesafe, 모델은 jev 로 용어를 가른다(`GLOSSARY.md`). 옛 값 `jev` 는 별칭으로 계속 받아 `typesafe` 로 정규화한다: 옛 `.env`, 설정 화면 PUT, DB 에 저장된 옛 override 행 모두 그대로 동작하고 설정 화면에는 `typesafe` 로 보인다. `llm_usage_*` 의 provider 문자열, 관계 `method='jev'`, 마이그레이션 066 값, env 키 `TYPESAFE_*` 는 바꾸지 않는다 (#1687).
 - 설정에 남은 `[ranking_weights]` 의 옛 키(`delta`, `epsilon`, `zeta`, `consolidation` 등 알 수 없는 키)는 어떤 값이어도 기동을 깨지 않고, 로더가 버린 키 이름을 기동 때 `console.warn` 한 줄로 알린다. 버려진 키는 `ranking_version` 해시에도 섞이지 않는다. `ranking:preview --changes` 에 `delta`, `epsilon` 을 주면 `UNKNOWN_KNOB` 으로 거부된다 (#1694).
 - 절대 점수 0.5 와 비교하던 두 곳을 같은 식으로 내렸다: 지침 주입 훅 `DIRECTIVE_POLICY.minFinalScore` 와 메타 기억 통계 성공 판정 `isItemSuccess` 가 `0.5 − 0.10·ln2/10`(≈ 0.4931) 이상이다. 같은 후보가 같은 선택과 판정을 받는다. 메타 기억의 `avg_confidence`(0.9·final + 0.1·vector 의 누적 평균)는 약 0.0062 내려가 저신뢰, 고실패 판정과 heal 대상이 조금 늘 수 있다. 머지 뒤 첫 heal 은 dry-run 결과를 보고 실행한다 (#1694).
@@ -30,6 +31,7 @@
 
 ### Fixed
 
+- 대시보드 앵커 맵이 첫 화면이 아닐 때(숨긴 탭에서 만들어질 때) 앵커 고리와 중심 인력이 크기 0 기준(왼쪽 위 모서리)에 놓이던 문제를 고쳤다. 창 크기가 바뀌거나 탭이 열려 크기가 달라지면 고리와 인력 목표를 새 크기로 다시 놓는다. 상태 탭의 초기 roving tabindex 와 그룹 칩도 기본 활성 탭을 따른다 (#1699).
 - `GET /admin/ops/summary` `zones.system_ok.schema_version` 이 `MAX(version)` 문자열 최대(`"9.0"`)를 쓰던 것을 `readCurrentSchemaVersion` 으로 바꿔 실제 최신(`"66.0"`)을 낸다 (#1698).
 - Claude Code 플러그인 `plugins/memento/.claude-plugin/plugin.json` 의 `version` 이 0.1.2 에 머물러 2.3.x 릴리스의 서버 버전이 플러그인 사용자에게 갱신으로 나가지 않았다. 서버 버전(2.3.10)으로 맞추고 `scripts/check-version-sync.ts` 가 이 파일도 같은 버전인지 검사한다.
 - 의존성: hono 4.13.18, @hono/node-server 2.1.8 로 갱신한다(권고 GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w, GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v 해소).

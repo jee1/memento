@@ -193,13 +193,17 @@ GEMINI_API_KEY=your_key_here
 
 With semantic embeddings active, a search for "car" can match memories containing "vehicle," and a search for "programming" will surface memories about "coding."
 
+## HTTP dashboard — Status (first screen)
+
+After sign-in, `/dashboard` opens on the **Status** tab. Three zones (system OK / doing work / needs action) render `/admin/ops/summary` `zones`. Colors come only from server `severity`. Refresh is manual.
+
 ## HTTP dashboard — Anchor Map
 
 The **Anchor Map** tab on `/dashboard` shows slot A/B/C anchors and nearby memories. Memory nodes fill with the nearest membership color, fade with hop distance, and use a second-membership stroke when multi-owned. Slot letters appear in labels, hover text, and the detail panel. See [how to check anchor connections](./how-to-check-anchor-connections.md) for the `anchors` response field and color rules.
 
 ## HTTP dashboard — Memory Graph
 
-The Memory Graph tab on `/dashboard` (or `/graph`) shows memory and relation nodes. **Full load** requests up to 5,000 nodes. After the layout settles, the view fits the node bbox; the toolbar **Fit view** button runs the same fit again. The zoom floor can drop below `0.1` when the graph is large (`min(0.1, k_fit*0.8)`). Below `k < 0.4` node labels hide; circle hover tooltips still work. API parameters are in the KO [relation graph API](../../api/ko/relation-graph-api.md) `GET /admin/graph` section.
+The Memory Graph tab on `/dashboard` (or `/graph`) shows memory and relation nodes. **Full load** requests up to 5,000 nodes. After the layout settles, the view fits the node bbox twice (tick 100 and simulation end); the toolbar **Fit view** button runs the same fit again. The zoom floor can drop below `0.1` when the graph is large (`min(0.1, k_fit*0.8)`). Below `k < 0.4` node labels hide; circle hover tooltips still work. API parameters are in the KO [relation graph API](../../api/ko/relation-graph-api.md) `GET /admin/graph` section.
 
 ## HTTP dashboard — Jobs tab
 

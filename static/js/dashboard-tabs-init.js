@@ -116,15 +116,19 @@
       initOpsOverviewTab();
       return;
     }
+    if (name === 'ops-status') {
+      if (typeof global.initOpsStatusPanel === 'function') {
+        global.initOpsStatusPanel();
+      }
+      dispatchDashboardResize();
+      return;
+    }
     if (name === 'graph') {
       initGraphTab();
       return;
     }
     if (name === 'anchor') {
       dispatchDashboardResize();
-      if (global.__MEMENTO_OPS_STRIP__) {
-        global.__MEMENTO_OPS_STRIP__.load();
-      }
     }
   }
 

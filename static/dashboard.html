@@ -58,14 +58,14 @@
       <div id="dashboard-tablist" class="m-tab-bar" role="tablist" aria-orientation="vertical" aria-label="대시보드 보기 전환">
         <div class="m-nav-group session-only" role="presentation" data-nav-group="spatial">
           <span class="m-nav-group__label" aria-hidden="true">공간</span>
-          <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
+          <button type="button" id="dashboard-tab-anchor" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
           <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">임베딩 상태</button>
           <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">기억 그래프</button>
         </div>
         <div class="m-nav-group session-only" role="presentation" data-nav-group="ops">
           <span class="m-nav-group__label" aria-hidden="true">운영</span>
           <button type="button" id="dashboard-tab-ops-overview" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-overview" data-tab="ops-overview">운영 개요</button>
-          <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
+          <button type="button" id="dashboard-tab-ops-status" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-ops-status" data-tab="ops-status">상태</button>
           <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">검토 대기열 <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
           <button type="button" id="dashboard-tab-supersede" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-supersede-candidates" data-tab="supersede">대체 후보</button>
           <button type="button" id="dashboard-tab-memory-finder" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-memory-finder" data-tab="memory-finder">기억 찾기</button>
@@ -80,33 +80,7 @@
       </div>
     </nav>
 
-    <div id="ops-strip" class="ops-strip session-only" aria-label="운영 상태 요약">
-      <div id="ops-strip-metrics" class="ops-strip__metrics" aria-live="polite">
-        <span class="ops-strip__metric">
-          <span id="ops-strip-embedding-dot" class="ops-strip__dot" aria-hidden="true"></span>
-          <span class="ops-strip__label">임베딩 문제</span>
-          <span id="ops-strip-embedding" class="ops-strip__value">—</span>
-        </span>
-        <span class="ops-strip__metric">
-          <span id="ops-strip-review-dot" class="ops-strip__dot" aria-hidden="true"></span>
-          <span class="ops-strip__label">검토 대기</span>
-          <span id="ops-strip-review" class="ops-strip__value">—</span>
-        </span>
-        <span class="ops-strip__metric">
-          <span id="ops-strip-failed-dot" class="ops-strip__dot" aria-hidden="true"></span>
-          <span class="ops-strip__label">실패 실행</span>
-          <span id="ops-strip-failed" class="ops-strip__value">—</span>
-        </span>
-        <span class="ops-strip__metric">
-          <span id="ops-strip-now-dot" class="ops-strip__dot" aria-hidden="true"></span>
-          <span class="ops-strip__label">지금</span>
-          <span id="ops-strip-now" class="ops-strip__value">—</span>
-        </span>
-      </div>
-      <button type="button" id="ops-strip-toggle" class="m-button m-button--ghost ops-strip__toggle" aria-expanded="true" aria-controls="ops-strip-metrics">접기</button>
-    </div>
-
-    <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
+    <div id="tab-anchor-map" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="true">
       <div class="anchor-map-toolbar m-toolbar" aria-label="앵커 맵 컨트롤">
         <div class="m-toolbar-primary">
           <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">Agent ID:</label>
@@ -304,15 +278,15 @@
       </div>
     </div>
 
-    <div id="tab-ops-status" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-ops-status" aria-hidden="true">
+    <div id="tab-ops-status" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-ops-status" aria-hidden="false">
       <div class="ops-status-layout">
         <header class="ops-status-header">
           <div class="ops-status-header-text">
-            <h2 class="ops-status-title">운영 상태</h2>
+            <h2 class="ops-status-title">상태</h2>
             <details class="m-about">
               <summary class="m-about__summary">이건 뭔가요</summary>
               <div class="m-about__body">
-                <p class="ops-status-intro">서버·배치·검토·임베딩 상태를 한 화면에서 확인합니다. 수동 새로고침만 지원합니다.</p>
+                <p class="ops-status-intro">정상인가, 제 일을 하고 있나, 손댈 것을 한 화면에서 봅니다. 색은 서버가 계산한 경보만 쓰고, 새로고침은 수동입니다.</p>
               </div>
             </details>
           </div>
@@ -320,97 +294,7 @@
         </header>
         <div id="ops-status-loading" class="m-loading hidden" aria-live="polite">운영 상태 불러오는 중…</div>
         <div id="ops-status-error" class="m-error hidden" role="alert"></div>
-        <section id="ops-status-card-system" class="ops-status-card" aria-labelledby="ops-status-system-heading">
-          <h3 id="ops-status-system-heading">시스템</h3>
-          <ul class="ops-status-rows">
-            <li class="ops-row" id="ops-status-row-process-uptime">
-              <span id="ops-status-sev-process-uptime" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">프로세스 가동</span>
-              <span class="ops-row__value"><span id="ops-status-process-uptime">—</span></span>
-            </li>
-            <li class="ops-row" id="ops-status-row-scheduler">
-              <span id="ops-status-sev-scheduler" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">스케줄러</span>
-              <span class="ops-row__value"><span id="ops-status-scheduler">—</span></span>
-              <button type="button" id="ops-status-link-scheduler" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="jobs">배치 작업 보기</button>
-            </li>
-            <li class="ops-row" id="ops-status-row-scheduler-uptime">
-              <span id="ops-status-sev-scheduler-uptime" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">스케줄러 가동</span>
-              <span class="ops-row__value"><span id="ops-status-scheduler-uptime">—</span></span>
-            </li>
-            <li class="ops-row" id="ops-status-row-database">
-              <span id="ops-status-sev-database" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">데이터베이스</span>
-              <span class="ops-row__value"><span id="ops-status-database">—</span></span>
-            </li>
-            <li class="ops-row" id="ops-status-row-version">
-              <span id="ops-status-sev-version" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">버전</span>
-              <span class="ops-row__value"><span id="ops-status-version">—</span></span>
-            </li>
-          </ul>
-        </section>
-        <section id="ops-status-card-batch" class="ops-status-card" aria-labelledby="ops-status-batch-heading">
-          <h3 id="ops-status-batch-heading">배치 영향 <span class="ops-status-window">최근 30일</span></h3>
-          <ul class="ops-status-rows">
-            <li class="ops-row" id="ops-status-row-batch-failed">
-              <span id="ops-status-sev-batch-failed" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">실패 실행</span>
-              <span class="ops-row__value"><span id="ops-status-batch-failed">—</span></span>
-              <button type="button" id="ops-status-link-batch-failed" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="jobs">배치 작업 보기</button>
-            </li>
-            <li class="ops-row" id="ops-status-row-batch-impact">
-              <span id="ops-status-sev-batch-impact" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">배치 영향 시간</span>
-              <span class="ops-row__value"><span id="ops-status-batch-impact" title="실패한 배치 실행의 소요 시간 합 — 서비스 중단 시간이 아님">—</span></span>
-              <span id="ops-status-trend-batch-impact" class="ops-row__trend"></span>
-            </li>
-            <li class="ops-row" id="ops-status-row-batch-success">
-              <span id="ops-status-sev-batch-success" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">성공 실행</span>
-              <span class="ops-row__value"><span id="ops-status-batch-success">—</span></span>
-            </li>
-            <li class="ops-row" id="ops-status-row-batch-last-failed">
-              <span id="ops-status-sev-batch-last-failed" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">마지막 실패</span>
-              <span class="ops-row__value"><span id="ops-status-batch-last-failed">—</span></span>
-              <button type="button" id="ops-status-link-batch-last-failed" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="jobs">배치 작업 보기</button>
-            </li>
-            <li class="ops-row" id="ops-status-row-batch-now">
-              <span id="ops-status-sev-batch-now" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">지금</span>
-              <span class="ops-row__value"><span id="ops-status-batch-now">—</span></span>
-            </li>
-          </ul>
-        </section>
-        <section id="ops-status-card-flow" class="ops-status-card" aria-labelledby="ops-status-flow-heading">
-          <h3 id="ops-status-flow-heading">운영 흐름</h3>
-          <ul class="ops-status-rows">
-            <li class="ops-row" id="ops-status-row-review-pending">
-              <span id="ops-status-sev-review-pending" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">검토 대기</span>
-              <span class="ops-row__value"><span id="ops-status-review-pending">—</span></span>
-            </li>
-            <li class="ops-row" id="ops-status-row-review-netflow">
-              <span id="ops-status-sev-review-netflow" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">순유입 (1h)</span>
-              <span class="ops-row__value"><span id="ops-status-review-netflow">—</span></span>
-              <span id="ops-status-trend-review-netflow" class="ops-row__trend"></span>
-              <button type="button" id="ops-status-link-review-netflow" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="review">검토 대기열 보기</button>
-            </li>
-            <li class="ops-row" id="ops-status-row-embedding">
-              <span id="ops-status-sev-embedding" class="ops-row__sev m-badge m-badge--idle">—</span>
-              <span class="ops-row__label">임베딩 문제</span>
-              <span class="ops-row__value"><span id="ops-status-embedding">—</span></span>
-              <button type="button" id="ops-status-link-embedding" class="m-button m-button--ghost ops-row__link hidden" data-ops-goto="embedding">임베딩 상태 보기</button>
-            </li>
-          </ul>
-        </section>
-        <section id="ops-summary-card" class="ops-status-card" aria-labelledby="ops-summary-heading">
-          <h3 id="ops-summary-heading">운영 요약 (4질문)</h3>
-          <pre id="ops-summary-body" class="ops-summary-body m-empty">새로고침하면 검색·배치·LLM·품질 네 질문을 기간과 분모·미측정 상태와 함께 표시합니다.</pre>
-        </section>
+        <div id="ops-status-zones" class="ops-status-zones" aria-live="polite"></div>
       </div>
     </div>
 
@@ -973,7 +857,6 @@
   <script src="/static/js/memory-finder-panel.js"></script>
   <script src="/static/js/memory-finder-search.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
-  <script src="/static/js/ops-strip.js"></script>
   <script src="/static/js/ops-overview-panel.js"></script>
   <script src="/static/js/memory-inspector.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>
