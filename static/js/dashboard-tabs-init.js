@@ -83,13 +83,6 @@
     dispatchDashboardResize();
   }
 
-  function initRankingTab() {
-    if (typeof global.initRankingPanel === 'function') {
-      global.initRankingPanel();
-    }
-    dispatchDashboardResize();
-  }
-
   function initOpsOverviewTab() {
     if (typeof global.initOpsOverviewPanel === 'function') {
       global.initOpsOverviewPanel();
@@ -147,10 +140,6 @@
     }
     if (name === 'settings') {
       initSettingsTab();
-      return;
-    }
-    if (name === 'ranking') {
-      initRankingTab();
       return;
     }
     if (name === 'ops-overview') {

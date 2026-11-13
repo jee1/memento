@@ -22,6 +22,10 @@
 - Claude Code 플러그인 `plugins/memento/.claude-plugin/plugin.json` 의 `version` 이 0.1.2 에 머물러 2.3.x 릴리스의 서버 버전이 플러그인 사용자에게 갱신으로 나가지 않았다. 서버 버전(2.3.10)으로 맞추고 `scripts/check-version-sync.ts` 가 이 파일도 같은 버전인지 검사한다.
 - 의존성: hono 4.13.18, @hono/node-server 2.1.8 로 갱신한다(권고 GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w, GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v 해소).
 
+### Removed
+
+- 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).
+
 ## [2.3.10] - 2026-11-09
 
 ### Added
