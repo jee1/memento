@@ -18,9 +18,7 @@ function attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: number)
     relevance: map(bd.relevance),
     recency: map(bd.recency),
     importance: map(bd.importance),
-    usage: map(bd.usage),
     feedback: map(bd.feedback),
-    duplication_penalty: map(bd.duplication_penalty),
     total: displayTotal
   };
 }
@@ -146,9 +144,7 @@ function relevanceOnlyBreakdown(finalScore: number): ScoreBreakdown {
     relevance: { score: finalScore, pct: 0 },
     recency: zero,
     importance: zero,
-    usage: zero,
     feedback: zero,
-    duplication_penalty: zero,
     total: finalScore,
   };
 }

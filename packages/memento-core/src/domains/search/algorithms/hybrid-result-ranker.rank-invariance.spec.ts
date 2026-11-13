@@ -24,8 +24,6 @@ const TOML = `
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
-epsilon = 0.10
 theta = 0.10
 zeta_fb = 0.05
 
@@ -120,7 +118,9 @@ const query: HybridSearchQuery = {
   filters: { process_id: 'proc-1' },
 };
 
-// Pinned on the code before #1694 removed delta (usage) and epsilon (duplication_penalty).
+// Order and scores pinned on the code before #1694 removed delta (usage) and epsilon (duplication_penalty).
+// Every candidate carried the same constant usage term, so scores only shift by delta * min(1, ln2 / 10).
+const REMOVED_USAGE_TERM = (0.1 * Math.LN2) / 10;
 const EXPECTED_ORDER = [
   'cand-06',
   'cand-10',
@@ -147,7 +147,7 @@ const EXPECTED_ORDER = [
   'cand-11',
   'cand-07',
 ];
-const EXPECTED_SCORES = [
+const PINNED_SCORES = [
   0.8538277811363963,
   0.7229078487780398,
   0.6969945105470687,
@@ -173,6 +173,7 @@ const EXPECTED_SCORES = [
   0.18963562412988122,
   0.17572031766996216,
 ];
+const EXPECTED_SCORES = PINNED_SCORES.map((score) => score - REMOVED_USAGE_TERM);
 
 describe('HybridResultRanker rank invariance (#1694)', () => {
   let dir: string;

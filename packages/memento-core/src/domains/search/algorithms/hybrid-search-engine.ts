@@ -97,8 +97,6 @@ export class HybridSearchEngine {
       relevance: config.ranking_weights.alpha,
       recency: config.ranking_weights.beta,
       importance: config.ranking_weights.gamma,
-      usage: config.ranking_weights.delta,
-      duplication_penalty: config.ranking_weights.epsilon,
       zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
     });
     this.relationGraph = relationGraph || null;
@@ -416,8 +414,6 @@ export class HybridSearchEngine {
         alpha: config.ranking_weights.alpha,
         beta: config.ranking_weights.beta,
         gamma: config.ranking_weights.gamma,
-        delta: config.ranking_weights.delta,
-        epsilon: config.ranking_weights.epsilon,
       },
       adaptive_weights: {
         vectorWeight: weights.vectorWeight,

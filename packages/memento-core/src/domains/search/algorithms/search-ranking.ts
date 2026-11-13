@@ -8,14 +8,12 @@
 export type {
   RelevanceInput,
   SearchFeatures,
-  UsageMetrics,
 } from './search-ranking/search-ranking.types.js';
 
 import type {
   RelevanceInput,
   SearchFeatures,
   SearchRankingWeights,
-  UsageMetrics,
 } from './search-ranking/search-ranking.types.js';
 import {
   calculateFinalScore as computeFinalScore,
@@ -31,12 +29,8 @@ import { getRankingWeights } from '../../../shared/config/ranking-weights-loader
 import {
   applyImportanceSignalScale,
   applyRecencySignalScale,
-  calculateBatchUsage as computeBatchUsage,
-  calculateDuplicationPenalty as computeDuplicationPenalty,
   calculateImportance as computeImportance,
   calculateRecency as computeRecency,
-  calculateUsage as computeUsage,
-  calculateUsageSimple as computeUsageSimple,
   resolveUserImportanceForRanking,
 } from './search-ranking/search-ranking-signals.js';
 import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
@@ -83,26 +77,7 @@ export class SearchRanking {
     return applyImportanceSignalScale(raw, this.importanceScale);
   }
 
-  calculateUsage(metrics: UsageMetrics, batchMin?: number, batchMax?: number): number {
-    return computeUsage(metrics, batchMin, batchMax);
-  }
-
-  calculateBatchUsage(metricsList: UsageMetrics[]): { normalized: number[], min: number, max: number } {
-    return computeBatchUsage(metricsList);
-  }
-
-  calculateDuplicationPenalty(
-    candidateContent: string,
-    selectedContents: string[]
-  ): number {
-    return computeDuplicationPenalty(candidateContent, selectedContents);
-  }
-
   calculateRelevanceSimple(query: string, content: string, tags: string[] = []): number {
     return computeRelevanceSimple(query, content, tags);
-  }
-
-  calculateUsageSimple(lastAccessed?: Date): number {
-    return computeUsageSimple(lastAccessed);
   }
 }

@@ -2,7 +2,6 @@
  * 검색 랭킹 개별 신호(recency, importance, usage 등) 계산
  */
 
-import type { UsageMetrics } from './search-ranking.types.js';
 import { SEARCH_RANKING } from '../../../../shared/config/constants.js';
 import { daysBetween } from '../../../../shared/utils/date.js';
 
@@ -75,112 +74,6 @@ export function applyRelevanceSignalScale(rawRelevance: number, scale: number): 
   const clamped = Math.max(0, Math.min(1, rawRelevance));
   const s = Math.max(0, Math.min(SEARCH_RANKING.RELEVANCE_SIGNAL_SCALE_MAX, scale));
   return Math.max(0, Math.min(1, 0.5 + (clamped - 0.5) * s));
-}
-
-/**
- * 실제 사용 빈도를 반영하여 자주 참조되는 기억을 우선 제공합니다.
- * 로그 스케일을 사용하여 과도한 사용 빈도가 점수를 지배하지 않도록 균형을 맞춥니다.
- * 인용과 편집에 다른 가중치를 부여하여 사용 패턴의 차이를 반영합니다.
- */
-export function calculateUsage(metrics: UsageMetrics, batchMin?: number, batchMax?: number): number {
-  // 잘못된 입력으로 인한 오류를 방지하고 안정적인 점수 계산을 보장합니다.
-  if (!metrics) return 0;
-
-  const { viewCount, citeCount, editCount } = metrics;
-
-  // 로그 스케일을 사용하여 사용 빈도의 차이를 완화하고 균형잡힌 점수 분포를 생성합니다.
-  const rawUsage = Math.log(1 + viewCount) +
-                   2 * Math.log(1 + citeCount) +
-                   0.5 * Math.log(1 + editCount);
-
-  // 사용 기록이 없는 경우에도 기본 점수를 부여하여 완전히 배제되지 않도록 합니다.
-  if (rawUsage === 0) {
-    return 0.1; // 기본 사용성 점수를 제공하여 새로운 기억도 검색 결과에 포함될 수 있도록 합니다.
-  }
-
-  // 전체 배치의 최소/최대값을 기준으로 정규화하여 상대적 사용성을 정확히 반영합니다.
-  if (batchMin !== undefined && batchMax !== undefined) {
-    return normalize(rawUsage, batchMin, batchMax);
-  }
-
-  // 배치 정보가 없는 경우 개별적으로 정규화하여 안정적인 점수 범위를 보장합니다.
-  return Math.min(1.0, rawUsage / 10);
-}
-
-/**
- * 여러 메모리의 사용성을 일괄 계산하여 상대적 비교가 가능하도록 합니다.
- * 배치 단위 정규화를 통해 더 정확한 사용성 평가를 수행합니다.
- */
-export function calculateBatchUsage(metricsList: UsageMetrics[]): { normalized: number[], min: number, max: number } {
-  const rawUsages = metricsList.map(metrics => {
-    const { viewCount, citeCount, editCount } = metrics;
-    return Math.log(1 + viewCount) +
-           2 * Math.log(1 + citeCount) +
-           0.5 * Math.log(1 + editCount);
-  });
-
-  const min = Math.min(...rawUsages);
-  const max = Math.max(...rawUsages);
-
-  const normalized = rawUsages.map(usage =>
-    normalize(usage, min, max)
-  );
-
-  return { normalized, min, max };
-}
-
-/**
- * 유사한 내용의 중복 결과를 제거하여 검색 결과의 다양성을 확보합니다.
- * MMR(Maximal Marginal Relevance) 알고리즘을 구현하여 관련성과 다양성의 균형을 맞춥니다.
- */
-export function calculateDuplicationPenalty(
-  candidateContent: string,
-  selectedContents: string[]
-): number {
-  if (selectedContents.length === 0) return 0;
-
-  let maxSimilarity = 0;
-
-  for (const selectedContent of selectedContents) {
-    const similarity = calculateTextSimilarity(candidateContent, selectedContent);
-    maxSimilarity = Math.max(maxSimilarity, similarity);
-  }
-
-  return maxSimilarity;
-}
-
-/**
- * 기존 API와의 호환성을 유지하면서 간단한 사용성 계산을 제공합니다.
- * 마지막 접근 시간만을 사용하여 사용 빈도 데이터가 없는 경우에도 평가가 가능하도록 합니다.
- */
-export function calculateUsageSimple(lastAccessed?: Date): number {
-  if (!lastAccessed) return 0.1;
-
-  const daysSinceAccess = daysBetween(new Date(), lastAccessed);
-  return Math.exp(-daysSinceAccess / 30);
-}
-
-/**
- * 값을 0-1 범위로 정규화하여 다른 점수 지표와 일관된 비교가 가능하도록 합니다.
- * 최소/최대값이 같은 경우를 처리하여 안정적인 점수 계산을 보장합니다.
- */
-function normalize(value: number, min: number, max: number, epsilon: number = 1e-6): number {
-  if (max === min) return 0.5; // 모든 값이 같을 때 중간값을 반환하여 구분 불가능한 경우를 처리합니다.
-  return (value - min) / (max - min + epsilon);
-}
-
-/**
- * 두 텍스트 간의 집합 유사도를 계산하여 중복 여부를 판단합니다.
- * 자카드 유사도를 사용하여 단어 집합의 교집합과 합집합 비율로 유사성을 정량화합니다.
- */
-function calculateTextSimilarity(text1: string, text2: string): number {
-  const words1 = new Set(text1.toLowerCase().split(/\s+/));
-  const words2 = new Set(text2.toLowerCase().split(/\s+/));
-
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
-  const union = new Set([...words1, ...words2]);
-
-  return union.size > 0 ? intersection.size / union.size : 0;
 }
 
 /**

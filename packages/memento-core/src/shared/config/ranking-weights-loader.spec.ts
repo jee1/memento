@@ -51,8 +51,6 @@ describe('ranking-weights-loader', () => {
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
-epsilon = 0.10
 `;
       writeFileSync(tempConfigPath, validConfig, 'utf-8');
 
@@ -63,8 +61,6 @@ epsilon = 0.10
       expect(config.ranking_weights.alpha).toBe(0.45);
       expect(config.ranking_weights.beta).toBe(0.20);
       expect(config.ranking_weights.gamma).toBe(0.20);
-      expect(config.ranking_weights.delta).toBe(0.10);
-      expect(config.ranking_weights.epsilon).toBe(0.10);
     });
 
     it('should use default values when config file does not exist', () => {
@@ -78,8 +74,6 @@ epsilon = 0.10
       expect(config.ranking_weights.alpha).toBe(0.45);
       expect(config.ranking_weights.beta).toBe(0.20);
       expect(config.ranking_weights.gamma).toBe(0.20);
-      expect(config.ranking_weights.delta).toBe(0.10);
-      expect(config.ranking_weights.epsilon).toBe(0.10);
     });
 
     it('should merge partial config with defaults', () => {
@@ -96,8 +90,7 @@ alpha = 0.50
       expect(config.ranking_weights.alpha).toBe(0.50);
       expect(config.ranking_weights.beta).toBe(0.20); // 기본값
       expect(config.ranking_weights.gamma).toBe(0.20); // 기본값
-      expect(config.ranking_weights.delta).toBe(0.10); // 기본값
-      expect(config.ranking_weights.epsilon).toBe(0.10); // 기본값
+      expect(config.ranking_weights.theta).toBe(0.1); // 기본값
     });
 
     it('should throw error when weight value is out of range', () => {
@@ -106,9 +99,7 @@ alpha = 0.50
 alpha = 1.5
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 `;
       writeFileSync(tempConfigPath, invalidConfig, 'utf-8');
 
@@ -122,9 +113,7 @@ epsilon = 0.10
 alpha = -0.1
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 `;
       writeFileSync(tempConfigPath, invalidConfig, 'utf-8');
 
@@ -132,24 +121,100 @@ epsilon = 0.10
       expect(() => loadRankingWeights(tempConfigPath)).toThrow(/alpha.*최소값.*0/);
     });
 
-    it('ignores legacy zeta, consolidation, and [relation_weights] keys in TOML (#1245, #1244)', () => {
-      const legacyConfig = `[ranking_weights]
+    describe('남은 delta, epsilon 과 옛 키 (#1694, #1245, #1244)', () => {
+      const LEGACY_SECTION = `[ranking_weights]
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
-zeta = 0.15
-epsilon = 0.10
-consolidation = 0.35
+`;
+      const LEGACY_VALUES: Array<[string, string]> = [
+        ['정상 값', '0.10'],
+        ['범위 밖 값', '5'],
+        ['숫자가 아닌 값', '"x"'],
+      ];
+      let warnSpy: ReturnType<typeof vi.spyOn>;
+
+      beforeEach(() => {
+        warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      });
+
+      afterEach(() => {
+        warnSpy.mockRestore();
+        delete process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+      });
+
+      function writeLegacy(value: string): void {
+        writeFileSync(
+          tempConfigPath,
+          `${LEGACY_SECTION}delta = ${value}\nepsilon = ${value}\nzeta = 0.15\nconsolidation = 0.35
 
 [relation_weights]
 max_relations = 5
-`;
-      writeFileSync(tempConfigPath, legacyConfig, 'utf-8');
+`,
+          'utf-8'
+        );
+      }
 
-      const config = loadRankingWeights(tempConfigPath);
-      expect(config.ranking_weights.alpha).toBe(0.45);
-      expect(config.ranking_weights.epsilon).toBe(0.10);
+      it.each(LEGACY_VALUES)('경로를 직접 줘도 %s 의 delta, epsilon 으로 로드가 성공하고 알려진 키만 남는다', (_label, value) => {
+        writeLegacy(value);
+
+        const config = loadRankingWeights(tempConfigPath);
+
+        expect(Object.keys(config.ranking_weights).sort()).toEqual(['alpha', 'beta', 'gamma', 'theta', 'zeta_fb']);
+        expect(config.ranking_weights.alpha).toBe(0.45);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(String(warnSpy.mock.calls[0]?.[0])).toContain('delta, epsilon, zeta, consolidation');
+      });
+
+      it.each(LEGACY_VALUES)('MEMENTO_RANKING_WEIGHTS_PATH 경로에서 %s 의 delta, epsilon 으로 기동이 깨지지 않는다', (_label, value) => {
+        writeLegacy(value);
+        process.env.MEMENTO_RANKING_WEIGHTS_PATH = tempConfigPath;
+        resetRankingWeightsCache();
+
+        const config = getRankingWeights();
+
+        expect(config.ranking_weights.alpha).toBe(0.45);
+        expect(config.ranking_weights).not.toHaveProperty('delta');
+        expect(config.ranking_weights).not.toHaveProperty('epsilon');
+      });
+
+      it.each(LEGACY_VALUES)('저장소 기본 경로 config/ranking-weights.toml 에서 %s 의 delta, epsilon 으로 로드가 성공한다', (_label, value) => {
+        const root = join(tempDir, `ranking-root-${randomUUID()}`);
+        fs.mkdirSync(join(root, 'config'), { recursive: true });
+        const defaultPath = join(root, 'config', 'ranking-weights.toml');
+        writeLegacy(value);
+        fs.renameSync(tempConfigPath, defaultPath);
+        const findRootSpy = vi.spyOn(configLoaderUtils, 'findProjectRoot').mockReturnValue(root);
+        try {
+          const config = loadRankingWeights();
+          expect(config.ranking_weights).not.toHaveProperty('delta');
+          expect(config.ranking_weights.beta).toBe(0.20);
+        } finally {
+          findRootSpy.mockRestore();
+          fs.rmSync(root, { recursive: true, force: true });
+        }
+      });
+
+      it('ranking_weights 에 남은 키는 ranking_version 해시에 섞이지 않는다', () => {
+        writeFileSync(
+          tempConfigPath,
+          `${LEGACY_SECTION}delta = 0.10\nepsilon = 0.10\nzeta = 0.15\nconsolidation = 0.35\n`,
+          'utf-8'
+        );
+        const legacyVersion = getRankingVersion(tempConfigPath);
+        writeFileSync(tempConfigPath, LEGACY_SECTION, 'utf-8');
+        resetRankingWeightsCache();
+
+        expect(getRankingVersion(tempConfigPath)).toBe(legacyVersion);
+      });
+
+      it('알려진 키만 있으면 경고하지 않는다', () => {
+        writeFileSync(tempConfigPath, LEGACY_SECTION, 'utf-8');
+
+        loadRankingWeights(tempConfigPath);
+
+        expect(warnSpy).not.toHaveBeenCalled();
+      });
     });
 
     it('should throw error when config file is invalid TOML', () => {
@@ -207,9 +272,7 @@ alpha = 0.45
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -224,9 +287,7 @@ max_relations = 5
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -243,9 +304,7 @@ scale = 1.5
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -263,9 +322,7 @@ scale = 0.42
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -280,9 +337,7 @@ max_relations = 5
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -299,9 +354,7 @@ scale = 1.5
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -319,9 +372,7 @@ scale = 0.77
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -336,9 +387,7 @@ max_relations = 5
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -355,9 +404,7 @@ scale = 9
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -374,9 +421,7 @@ scale = "abc"
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -402,9 +447,7 @@ scale = 3.5
 alpha = 0.45
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 5
@@ -427,9 +470,7 @@ saturation_length = 123
 alpha = 0.50
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 10
@@ -447,9 +488,7 @@ max_relations = 10
 alpha = 0.60
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 15
@@ -467,9 +506,7 @@ max_relations = 15
 alpha = 0.50
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 10
@@ -486,9 +523,7 @@ max_relations = 10
 alpha = 0.60
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 15
@@ -509,9 +544,7 @@ max_relations = 15
 alpha = 0.11
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 10
@@ -524,9 +557,7 @@ max_relations = 10
 alpha = 0.46
 beta = 0.20
 gamma = 0.20
-delta = 0.10
 zeta = 0.15
-epsilon = 0.10
 
 [relation_weights]
 max_relations = 10

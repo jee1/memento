@@ -87,7 +87,7 @@ export class FallbackSearchService implements IFallbackSearchService {
       });
 
       // 쿼리 관련성이 없는 항목은 fallback 으로 채우지 않는다 (#873).
-      // finalScore 에는 recency 0.20 + importance 0.20 + usage 0.10 이 쿼리와 무관하게 실려서,
+      // finalScore 에는 recency 0.20 + importance 0.20 이 쿼리와 무관하게 실려서,
       // 벡터/텍스트 점수가 바닥이어도 0.46 같은 점수가 나온다(실측: 'zzzqqqxyz nonexistent' →
       // text 0 / vector 0.31 / final 0.46). 게다가 하이브리드 경로는 임계값 통과 후보가 모자라면
       // raw prefetch 로 채우므로(VECTOR_UNDERFILL_FILL, #789) 무관한 쿼리도 limit 을 다 채운다.
