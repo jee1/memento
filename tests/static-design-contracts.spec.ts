@@ -1006,4 +1006,41 @@ describe('static design contracts', () => {
     expect(readStaticFile('static/css/dashboard.css')).not.toMatch(/\.jobs-drawer__tab/);
     expect(html.match(/class="m-subtabs"/g)).toHaveLength(1);
   });
+
+  it('keeps hidden auth forms invisible (#883)', () => {
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    expect(dashboardCss).toContain('[hidden] {');
+    expect(dashboardCss).toContain('display: none !important;');
+  });
+
+  it('applies quiet header + P0 token/focus contracts (#965)', () => {
+    const tokensCss = readStaticFile('static/css/tokens.css');
+    const componentsCss = readStaticFile('static/css/components.css');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const dashboardHtml = readStaticFile('static/dashboard.html');
+    const authTabsJs = readStaticFile('static/js/dashboard-auth-render-tabs.js');
+
+    for (const token of [
+      '--color-status-warning',
+      '--color-status-success',
+      '--color-bg-hover',
+      '--color-bg-selected',
+      '--focus-ring-color',
+      '--color-header-bg',
+    ]) {
+      expect(tokensCss, token).toContain(token);
+    }
+    expect(componentsCss).toContain('--color-header-bg');
+    expect(componentsCss).not.toMatch(/\.m-header\s*\{[^}]*brand-gradient/s);
+    expect(componentsCss).toContain('.m-empty');
+    expect(componentsCss).toContain('.m-loading');
+    expect(componentsCss).toContain('.m-error');
+    expect(componentsCss).toContain(':focus-visible');
+    expect(componentsCss).not.toContain('.m-header .m-button--secondary');
+    expect(dashboardHtml).toContain('<h1>Memento 대시보드</h1>');
+    expect(dashboardHtml).not.toMatch(/<h1>[^\n]*🎯/);
+    expect(dashboardCss).toContain("data-auth-state='signed-in'");
+    expect(authTabsJs).toContain("activateTab('anchor')");
+    expect(authTabsJs).not.toContain("activateTab('review')");
+  });
 });

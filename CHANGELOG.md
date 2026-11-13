@@ -22,7 +22,7 @@
 
 ### Removed
 
-- 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
+- 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
 
 ## [2.3.10] - 2026-11-09
 

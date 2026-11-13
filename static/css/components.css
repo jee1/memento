@@ -439,7 +439,7 @@
   line-height: var(--line-height-relaxed, 1.45);
 }
 
-/* --- Sub-tabs (#1153): tabs inside a panel (jobs drawer, agent session detail) --- */
+/* --- Sub-tabs (#1153): tabs inside a panel (jobs drawer) --- */
 .m-subtabs {
   display: flex;
   flex-wrap: wrap;

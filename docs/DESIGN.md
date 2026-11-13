@@ -39,7 +39,7 @@
 - Primary personas:
   - **Memory operator** — debugs recall quality, anchors, embeddings.
   - **Ops maintainer** — watches Jobs, Review Queue, batch health.
-  - **Integrating developer** — inspects Agent Sessions / evolution demo for understanding.
+  - **Integrating developer** — inspects the evolution demo for understanding.
 - User jobs:
   - Sign in once → pick agent → explore Anchor Map / Graph.
   - Triage Review Queue with badge urgency.
@@ -55,7 +55,7 @@
 - Phone layout (`max-width: 30rem`, 390px canvas): `.m-table` rows become cards whose cells show their column header from `data-label` (`static/js/table-card-labels.js` copies `thead th` text, including rows rendered later); `#rc-table` is the one explicit exception and keeps the #897 horizontal scroll because its checkboxes live in the grid. KPI tiles (`.m-stat-grid`) go two-up, `.oo-list__item` rows are at least 44px with the title and meta on two lines, and every button, select, summary, text input and checkbox label is at least 44px (#1147).
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
-  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
+  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings) · 랭킹 가중치 (Ranking weights) · 기억 진화 데모
   - `/graph` standalone dark graph (session-gated)
 - Content hierarchy (target):
   1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
