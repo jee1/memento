@@ -871,7 +871,7 @@ describe('static design contracts', () => {
     const dashboardCss = readStaticFile('static/css/dashboard.css');
     const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
 
-    expect(html).toMatch(/<button type="button" id="dashboard-nav-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="dashboard-tablist"/);
+    expect(html).toMatch(/<button type="button" id="dashboard-nav-toggle"[^>]*\bsession-only\b[^>]*aria-expanded="false"[^>]*aria-controls="dashboard-tablist"/);
     expect(html).toContain('<div id="dashboard-tablist" class="m-tab-bar" role="tablist"');
 
     const navIdx = html.indexOf('<nav class="m-nav-rail"');
@@ -898,6 +898,83 @@ describe('static design contracts', () => {
     expect(tabsJs).toContain("navToggle.setAttribute('aria-expanded'");
     expect(tabsJs).toContain("chip.setAttribute('aria-pressed'");
     expect(tabsJs).toContain("e.key === 'Escape'");
+  });
+
+  it('issue #1703 signed-out chrome: every tab/panel/nav-toggle is session-only and CSS hides them', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const authTabsJs = readStaticFile('static/js/dashboard-auth-render-tabs.js');
+
+    const tabBtns = [...html.matchAll(/<button[^>]*class="([^"]*\bm-tab-btn\b[^"]*)"[^>]*>/g)].map((m) => m[1]);
+    expect(tabBtns.length).toBeGreaterThan(0);
+    for (const cls of tabBtns) {
+      expect(cls.split(/\s+/)).toContain('session-only');
+    }
+    const panels = [...html.matchAll(/<div[^>]*class="([^"]*\btab-panel\b[^"]*)"[^>]*>/g)].map((m) => m[1]);
+    expect(panels.length).toBeGreaterThan(0);
+    for (const cls of panels) {
+      expect(cls.split(/\s+/)).toContain('session-only');
+    }
+    expect(html).toMatch(/id="dashboard-nav-toggle"[^>]*\bsession-only\b/);
+    expect(dashboardCss).toContain(
+      ".dashboard-container[data-auth-state='signed-out'] .session-only",
+    );
+    expect(authTabsJs).toContain('signed-out shows login chrome only');
+    expect(authTabsJs).not.toMatch(/activateTab\(['"]evolution-demo['"]\)/);
+    expect(html).toContain('id="dashboard-auth-form"');
+    expect(html).toContain('id="dashboard-auth-message"');
+  });
+
+  it('issue #1703 remaining tabs: TAB_PANELS matches HTML and activateTab/runTabInit wiring', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const panelsJs = readStaticFile('static/js/dashboard-tabs-panels.js');
+    const initJs = readStaticFile('static/js/dashboard-tabs-init.js');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+
+    const panelEntries = [
+      ...panelsJs.matchAll(/\{\s*name:\s*'([^']+)',\s*id:\s*'([^']+)'\s*\}/g),
+    ].map((m) => ({ name: m[1], id: m[2] }));
+    expect(panelEntries).toHaveLength(10);
+    expect(panelEntries.map((p) => p.name)).toEqual([
+      'anchor',
+      'embedding',
+      'graph',
+      'ops-overview',
+      'ops-status',
+      'review',
+      'supersede',
+      'memory-finder',
+      'jobs',
+      'settings',
+    ]);
+
+    for (const { name, id } of panelEntries) {
+      expect(html).toMatch(new RegExp(`class="m-tab-btn[^"]*" role="tab"[^>]*data-tab="${name}"`));
+      expect(html).toMatch(new RegExp(`id="${id}" class="tab-panel`));
+      expect(html).toMatch(new RegExp(`aria-controls="${id}"[^>]*data-tab="${name}"|data-tab="${name}"[^>]*aria-controls="${id}"`));
+    }
+
+    const runTabInit = extractNamedFunction(initJs, 'runTabInit');
+    expect(runTabInit).toContain("name === 'embedding'");
+    expect(runTabInit).toContain("name === 'review'");
+    expect(runTabInit).toContain("name === 'supersede'");
+    expect(runTabInit).toContain("name === 'memory-finder'");
+    expect(runTabInit).toContain("name === 'jobs'");
+    expect(runTabInit).toContain("name === 'settings'");
+    expect(runTabInit).toContain("name === 'ops-overview'");
+    expect(runTabInit).toContain("name === 'graph'");
+    expect(runTabInit).toContain("name === 'anchor'");
+    expect(runTabInit).not.toContain('evolution-demo');
+
+    const activateTab = extractNamedFunction(tabsJs, 'activateTab');
+    expect(activateTab).toContain('panels.setTabButtonsActive(name)');
+    expect(activateTab).toContain('panels.setPanelVisibility(name)');
+    expect(activateTab).toContain('tabInit.runTabInit(name)');
+    expect(activateTab).toContain('syncNavChips(name)');
+    expect(tabsJs).toContain('__MEMENTO_DASHBOARD_TABS__');
+    expect(tabsJs).toContain('activateTab');
+    expect(panelsJs).toContain('__MEMENTO_DASHBOARD_TAB_PANELS__');
+    expect(initJs).toContain('__MEMENTO_DASHBOARD_TAB_INIT__');
   });
 
   it('issue #1147 phone layout: table cards, 2-up KPIs, 2-line list rows and 44px targets', () => {

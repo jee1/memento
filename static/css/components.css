@@ -244,7 +244,7 @@
   padding: var(--spacing-sm);
 }
 
-/* #967: visible Spatial / Ops / Learn group chrome (presentational; tabs stay tablist owned) */
+/* #967: visible Spatial / Ops group chrome (presentational; tabs stay tablist owned) */
 .m-nav-group {
   display: flex;
   flex-direction: column;
