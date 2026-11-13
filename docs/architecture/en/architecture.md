@@ -175,7 +175,7 @@ Key tables:
 
 Schema changes are managed by numbered migration scripts in `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/`. The canonical DDL source is `schema.sql`.
 
-PostgreSQL, Redis, and Kubernetes-based multi-tenant scaling are not yet implemented. They are on the future roadmap.
+PostgreSQL, Redis, and Kubernetes-based multi-tenant scaling is not implemented and was dropped from the plan by the 2026-11-13 direction decision ([DIRECTION.md](../../DIRECTION.md), Korean only). The earlier plan stays as history in [Memento-Milestones.md](../../reference/en/Memento-Milestones.md).
 
 ---
 

@@ -125,8 +125,7 @@ The **HTTP server splits browser-session and header-based trust**. `/auth/sessio
 ## Roadmap (short)
 
 - **M1 personal (current)**: local SQLite, MCP + HTTP admin API. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key).
-- **M2 team (planned)**: shared backend, API keys, Docker
-- **M3 org (planned)**: PostgreSQL + pgvector, JWT
+- The M2 team and M3 org plans (shared backend, PostgreSQL + pgvector, JWT) were dropped by the 2026-11-13 direction decision ([docs/DIRECTION.md](docs/DIRECTION.md), Korean only). The earlier plan stays as history in [Memento-Milestones](docs/reference/en/Memento-Milestones.md).
 
 ## Contributing · license · support
 

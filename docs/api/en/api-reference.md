@@ -1169,8 +1169,8 @@ const prompt = await client.getPrompt('memory_injection', {
 | `INVALID_INPUT` | Invalid input parameters |
 | `STORAGE_ERROR` | Storage error |
 | `SEARCH_ERROR` | Search error |
-| `AUTHENTICATION_ERROR` | Authentication error (M2+) |
-| `PERMISSION_DENIED` | Permission denied (M3+) |
+| `AUTHENTICATION_ERROR` | Authentication error |
+| `PERMISSION_DENIED` | Permission denied (reserved; per-user permissions were dropped from the plan on 2026-11-13) |
 | `RATE_LIMIT_EXCEEDED` | Request limit exceeded |
 | `INTERNAL_ERROR` | Internal server error |
 
@@ -1205,8 +1205,8 @@ interface ErrorResponse {
 
 - **Maximum memory size**: 10MB
 - **Search result limit**: 100 items
-- **Concurrent connections**: 100 (M1), 1000 (M3+)
-- **API request limit**: 1000/hour (M1), 10000/hour (M3+)
+- **Concurrent connections**: 100
+- **API request limit**: 1000/hour
 
 ## Version Management
 
