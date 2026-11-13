@@ -1,3 +1,5 @@
+> 이 문서는 이력이다. 현재 방향은 [docs/DIRECTION.md](../../DIRECTION.md) (2026-11-13).
+
 # Memento Goals
 
 ## 1. 목표 정리

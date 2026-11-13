@@ -65,7 +65,7 @@ AI 에이전트(LLM 기반)는 기본적으로 **무상태(stateless)** 입니�
 
 **제외 (현재)**
 
-- PostgreSQL / Redis / Kubernetes 멀티테넌트 (로드맵)
+- PostgreSQL / Redis / Kubernetes 멀티테넌트 (2026-11-13 방향 결정으로 계획에서 제외, 이력)
 - MCP Host 애플리케이션 자체 (Cursor, Claude Code 등)
 - LLM·임베딩 프로바이더 내부 구현
 
@@ -344,9 +344,9 @@ rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit �
 
 전체: [env-deployment-checklist.md](../../operations/ko/env-deployment-checklist.md)
 
-### 7.4 인프라 로드맵 (미구현)
+### 7.4 인프라 확장 (계획에서 제외)
 
-PostgreSQL, Redis, Kubernetes 멀티테넌트 — [architecture.md §데이터베이스](./architecture.md) 참조.
+PostgreSQL, Redis, Kubernetes 멀티테넌트는 2026-11-13 방향 결정으로 계획에서 제외했다 — [DIRECTION.md](../../DIRECTION.md). 이전 계획의 이력은 [architecture.md §데이터베이스](./architecture.md) 참조.
 
 ---
 
@@ -464,7 +464,7 @@ ADR 형식 요약. 상세 이슈·PR은 GitHub 참조.
 | 검색 정확도 vs 지연 | 하이브리드 + MMR; 벡터 ANN 근사 |
 | 저장 즉시성 vs 그래프 품질 | 즉시 INSERT, Triple 1h 배치 |
 | 도구 발견성 vs 컨텍스트 노이즈 | list 4개, call 22개 |
-| 단일 DB vs 수평 확장 | M1 SQLite; PG/K8s는 로드맵 |
+| 단일 DB vs 수평 확장 | SQLite 단일 DB 유지; PG/K8s는 계획에서 제외(2026-11-13) |
 
 ---
 
@@ -486,7 +486,6 @@ ADR 형식 요약. 상세 이슈·PR은 GitHub 참조.
 |------|------|------|
 | 전체 기술 부채 | GitHub #593 | |
 | @deprecated API | [core-deprecated-inventory.md](../core-deprecated-inventory.md) | 현재 활성 0건 |
-| PostgreSQL/K8s | 로드맵 | M3+ |
 | C4 Level 4 (Code) | 미문서화 | 도메인별 PR에서 다룸 |
 | deployment.mdc 일부 | Cursor rule | Node 24·실제 Dockerfile과 불일치 가능 — SSOT는 docker-deploy-procedure |
 

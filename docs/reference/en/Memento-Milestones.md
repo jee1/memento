@@ -1,3 +1,5 @@
+> 이 문서는 이력이다. 현재 방향은 [docs/DIRECTION.md](../../DIRECTION.md) (2026-11-13).
+
 # 📄 MCP Memory Server Design and Milestones Document
 
 Memento started as a **personal MCP memory server** (M1) and grows toward team and organization deployments with stronger storage and auth. This document records the original milestone ladder—SQLite MVP through Postgres and SSO—so you can see which capabilities belong to which stage and what is already shipped in the open-source tree.

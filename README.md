@@ -16,6 +16,8 @@ Memento는 그 인프라입니다. 단순 저장소가 아니라, 기억이 생�
 
 작업기억·일화기억·의미기억·절차기억은 `remember`의 `type`으로 구분합니다. 쓰인 기억은 강화되고, 쓸모없어진 기억은 망각 정책으로 정리됩니다. 비슷한 기억은 벡터로 연결되며, 핵심 맥락은 앵커로 다음 대화에 바로 복원됩니다.
 
+프로젝트 방향: [docs/DIRECTION.md](docs/DIRECTION.md)
+
 모노레포·패키지 구조·빌드 명령은 [AGENTS.md](AGENTS.md)를 참고해 주세요.
 
 ## 빠른 시작
@@ -126,8 +128,7 @@ const results = await client.callTool({
 ## 로드맵 (요약)
 
 - **M1 개인용 (현재)**: 로컬 SQLite, MCP + HTTP 관리 API. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구).
-- **M2 팀 (계획)**: 공유 백엔드, API Key, Docker
-- **M3 조직 (계획)**: PostgreSQL + pgvector, JWT
+- M2 팀, M3 조직(공유 백엔드, PostgreSQL + pgvector, JWT) 계획은 2026-11-13 방향 결정([docs/DIRECTION.md](docs/DIRECTION.md))으로 제외했다. 이전 계획은 [Memento-Milestones](docs/reference/ko/Memento-Milestones.md)에 이력으로 남아 있다.
 
 ## 기여 · 라이선스 · 지원
 
