@@ -156,6 +156,10 @@ gid 로 `~/.memento/backups` 에 출력합니다. 서버를 중지해도 이 오
 `~/.memento/data/backups` 에 쌓이며 컨테이너 소유입니다. 호스트의
 `npm run db:backup:cleanup` 은 그쪽을 정리하지 않습니다.
 
+서버가 만드는 백업은 마이그레이션 전용이고, 정기 백업은 호스트가 맡는다
+(`GET /admin/ops/summary` `zones.system_ok` 의 `migration_backup` 이 가리키는 것도
+이 마이그레이션 백업뿐이다).
+
 환경 변수 `DB_PATH`로 대상 DB를 바꿀 수 있습니다 (기본: `~/.memento/data/memory.db`). `~` 로 시작하는 경로는 홈 디렉터리로 확장됩니다(#962). 그래도 프로덕션에서는 절대 경로를 권장합니다 — 컨테이너·`sudo` 처럼 `HOME` 이 달라지는 환경에서는 `~` 가 다른 홈을 가리킵니다.
 
 `db:pre-docker-deploy` 는 검사 대상 경로와 `memory_item` 행 수를 `[pre-docker-deploy] target=... memory_item=...` 한 줄로 먼저 출력합니다. **행 수가 예상과 다르면 배포를 중단하십시오.**

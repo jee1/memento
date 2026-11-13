@@ -517,8 +517,67 @@ describe('ops summary zones (#1698)', () => {
       adminStatus,
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
-    expect(byKey(zones.system_ok, 'process_database').window.period).toBe('30d');
-    expect(byKey(zones.needs_action, 'embedding_problem_count').window.period).toBe('30d');
-    expect(byKey(zones.doing_work, 'item_filter_kept').window.period).toBe('24h');
+    expect(byKey(zones.system_ok, 'process_database').window!.period).toBe('30d');
+    expect(byKey(zones.needs_action, 'embedding_problem_count').window!.period).toBe('30d');
+    expect(byKey(zones.doing_work, 'item_filter_kept').window!.period).toBe('24h');
+  });
+
+  it('disk signals (#1704): migration backup + db/wal in system_ok, severity/window null', () => {
+    const adminStatus = buildAdminStatus(db);
+    const zones = buildOpsSummaryZones({
+      db,
+      serverServices: null,
+      window: WINDOW,
+      ownerId: null,
+      nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
+      adminStatus,
+      llmPressure: { availability: 'unmeasured', window: WINDOW },
+      diskSignals: {
+        migration_backup_latest_at: '2026-06-01T12:00:00.000Z',
+        migration_backup_file_count: 2,
+        db_size_mb: 12.5,
+        wal_size_mb: 0.5,
+      },
+    });
+    const backup = byKey(zones.system_ok, 'migration_backup');
+    expect(backup.value).toBe('2026-06-01T12:00:00.000Z');
+    expect(backup.severity).toBeNull();
+    expect(backup.window).toBeNull();
+    expect(byKey(zones.system_ok, 'migration_backup_file_count').value).toBe(2);
+    expect(byKey(zones.system_ok, 'db_size_mb')).toMatchObject({
+      value: 12.5,
+      unit: 'MB',
+      severity: null,
+      window: null,
+    });
+    expect(byKey(zones.system_ok, 'wal_size_mb')).toMatchObject({
+      value: 0.5,
+      unit: 'MB',
+      severity: null,
+      window: null,
+    });
+  });
+
+  it('disk signals (#1704): missing backups → null values, not omitted', () => {
+    const adminStatus = buildAdminStatus(db);
+    const zones = buildOpsSummaryZones({
+      db,
+      serverServices: null,
+      window: WINDOW,
+      ownerId: null,
+      nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
+      adminStatus,
+      llmPressure: { availability: 'unmeasured', window: WINDOW },
+      diskSignals: {
+        migration_backup_latest_at: null,
+        migration_backup_file_count: null,
+        db_size_mb: null,
+        wal_size_mb: null,
+      },
+    });
+    expect(byKey(zones.system_ok, 'migration_backup').value).toBeNull();
+    expect(byKey(zones.system_ok, 'migration_backup_file_count').value).toBeNull();
+    expect(byKey(zones.system_ok, 'db_size_mb').value).toBeNull();
+    expect(byKey(zones.system_ok, 'wal_size_mb').value).toBeNull();
   });
 });
