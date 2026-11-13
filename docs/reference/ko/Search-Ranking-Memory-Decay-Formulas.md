@@ -2,13 +2,15 @@
 
 ## 1) 최종 랭킹 점수
 
-$$S = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance} + \delta \cdot \text{usage} - \varepsilon \cdot \text{duplication\_penalty}$$
+$$S = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance}$$
 
-**기본 계수(M1 추천)**: $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$, $\delta=0.10$, $\varepsilon=0.15$
+> 이 문서가 처음 정의한 $\delta \cdot \text{usage}$, $\varepsilon \cdot \text{duplication\_penalty}$ 항은 순위에 영향이 없어 #1694 에서 검색 점수에서 제거했다. 5절과 6절은 설계 이력이고, 검색 코드에는 없다. 망각 점수(7절)의 usage 는 별개다.
 
-**의미**: 후보 m에 대해 관련성(relevance)과 최근성(recency), 중요도(importance), 사용성(usage)을 올리고, 중복(duplication_penalty)을 깎는다.
+**기본 계수(M1 추천)**: $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$
 
-**실무 팁**: 처음엔 위 기본값으로 시작 → A/B 테스트로 $\alpha$, $\beta$를 조정하고, 결과 다양성이 부족하면 $\varepsilon$를 키운다.
+**의미**: 후보 m에 대해 관련성(relevance)과 최근성(recency), 중요도(importance)를 올린다.
+
+**실무 팁**: 처음엔 위 기본값으로 시작 → A/B 테스트로 $\alpha$, $\beta$를 조정한다.
 
 ## 2) 관련성(relevance) 구성
 
@@ -85,7 +87,7 @@ $R$: 이미 현재 결과 리스트에 선정된 항목 집합
 
 **해석**: 새 후보 m이 기존 선정 결과와 가장 비슷한 정도를 패널티로 준다.
 
-결과 다양성이 부족하면 $\varepsilon$(최종식의 계수)를 키우거나, 아래의 MMR 후처리를 사용.
+결과 다양성이 부족하면 아래의 MMR 후처리를 사용.
 
 ### MMR 후처리(선택)
 
@@ -140,10 +142,10 @@ $$C = \text{TopN}_e(\text{ANN by sim}_e) \cup \text{TopN}_k(\text{BM25})$$
 (권장 $N_e=50$, $N_k=50$)
 
 ### Feature Compute
-각 $m \in C$에 대해 relevance, recency, importance, usage, duplication_penalty 계산
+각 $m \in C$에 대해 relevance, recency, importance 계산
 
 ### Primary Score
-$$S(m) = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance} + \delta \cdot \text{usage} - \varepsilon \cdot \text{duplication\_penalty}$$
+$$S(m) = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance}$$
 
 ### Diversification (선택)
 Greedy로 MMR 적용해 Top-K 생성
@@ -157,7 +159,7 @@ $S(m) \geq \theta_{\text{keep}}$만 유지 (예: $\theta_{\text{keep}}=0.35$)
 
 $$x_{\text{norm}} = \frac{x - \text{min\_batch}}{\text{max\_batch} - \text{min\_batch} + \varepsilon}$$
 
-예: usage, duplication_penalty, bm25_norm에 적용
+예: bm25_norm에 적용
 
 **장점**: 쿼리 편향, 컬렉션 편차를 줄여 점수 안정성↑
 
@@ -165,12 +167,10 @@ $$x_{\text{norm}} = \frac{x - \text{min\_batch}}{\text{max\_batch} - \text{min\_
 
 | 항목 | 값 |
 |------|-----|
-| **최종식** | $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$, $\delta=0.10$, $\varepsilon=0.15$ |
+| **최종식** | $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$ |
 | **relevance 가중** | $w_e=0.60$, $w_k=0.30$, $w_t=0.05$, $w_p=0.05$ |
 | **recency** | $\text{half\_life}(\text{working})=2$, $\text{episodic}=30$, $\text{semantic}=180$ |
 | **importance** | $\text{pinned}=+0.20$, $\text{type\_boost}(\text{semantic}=+0.10, \text{working}=-0.05)$ |
-| **usage** | log 기반, 배치 정규화 |
-| **duplication_penalty** | max sim to selected |
 | **망각** | $\theta_{\text{soft}}=0.6$, $\theta_{\text{hard}}=0.8$, TTL_soft/hard 위 표 참조 |
 | **리뷰** | $p_{\text{recall}}(t)=\exp(-t/\tau)$, 첫 1일→6일→가변 배수 |
 

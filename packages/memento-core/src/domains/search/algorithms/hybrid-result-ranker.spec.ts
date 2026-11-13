@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import type Database from 'better-sqlite3';
-import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { HybridResultRanker } from './hybrid-result-ranker.js';
@@ -304,24 +303,6 @@ describe('HybridResultRanker usage signal (#1181)', () => {
 
     expect(round2Order).toEqual(baselineOrder);
     expect(round2Order).toEqual(['a', 'b']);
-  });
-
-  it('uses the same usage value as the text lane (#1181)', async () => {
-    const items = await ranker().combineAndSortResults(
-      [],
-      [vectorHit('only', 0.8)],
-      VECTOR_HEAVY_WEIGHTS,
-      10,
-      stubDb,
-      false,
-      query,
-    );
-
-    const expectedUsage =
-      getRankingWeights().ranking_weights.delta *
-      new SearchRanking().calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 });
-
-    expect(items[0]?.score_breakdown?.usage?.score).toBeCloseTo(expectedUsage, 12);
   });
 });
 

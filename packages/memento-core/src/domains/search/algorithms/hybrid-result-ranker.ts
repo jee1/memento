@@ -205,9 +205,6 @@ export class HybridResultRanker {
       relevance: fusionRelevance,
       recency: this.calculateRecency(result.created_at),
       importance: this.ranking.calculateImportance(result.importance, Boolean(result.pinned), result.type),
-      // #1181: 두 레인이 같은 정의를 쓴다. 접근 시각은 사용 빈도가 아니고 검색이 스스로 갱신한다.
-      usage: this.ranking.calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 }),
-      duplication_penalty: 0,
       workflow_name_match: proceduralMatch?.workflow_name_match || false,
       skill_name_match: proceduralMatch?.skill_name_match || false,
       trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,

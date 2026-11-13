@@ -178,9 +178,7 @@ describeRecallTool("basics and search", () => {
       relevance: { score: 0.2, pct: 25 },
       recency: { score: 0.1, pct: 10 },
       importance: { score: 0.1, pct: 10 },
-      usage: { score: 0.05, pct: 5 },
       feedback: { score: 0.02, pct: 5 },
-      duplication_penalty: { score: -0.01, pct: 2 },
       total: 0.75,
     };
 

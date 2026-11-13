@@ -1,6 +1,6 @@
 # Search quality tuning guide
 
-Memento’s recall score blends relevance, recency, importance, usage, relations, feedback, and duplication penalties. When weights are off, good memories sink or stale ones float to the top. This guide explains the **autoresearch harness**: benchmark fixtures, ranking profiles under `config/ranking-profiles/`, and the npm scripts that compare and tune weights.
+Memento’s recall score blends relevance, recency, importance, process fit, and feedback. When weights are off, good memories sink or stale ones float to the top. This guide explains the **autoresearch harness**: benchmark fixtures, ranking profiles under `config/ranking-profiles/`, and the npm scripts that compare and tune weights.
 
 For the full walkthrough (Korean), see [search-quality-tuning.md (KO)](../ko/search-quality-tuning.md). Ranking formula details: [search-ranking.md](../../agents/search-ranking.md).
 
@@ -24,7 +24,7 @@ The harness splits into **compare → tune → report**. Use `npm run quality --
 
 | Knob | Sampling | Bounds |
 |------|----------|--------|
-| `ranking_weights.alpha`, `beta`, `gamma`, `delta`, `epsilon`, `theta`, `zeta_fb` | baseline x U[0.8, 1.2] | 0 to 1 (clamped) |
+| `ranking_weights.alpha`, `beta`, `gamma`, `theta`, `zeta_fb` | baseline x U[0.8, 1.2] | 0 to 1 (clamped) |
 | `relevance_signal.scale` | uniform | 0.5 to 3.0 |
 | `recency_signal.scale` | uniform | 0.05 to 1 |
 | `importance_signal.scale` | uniform | 0.05 to 1 |

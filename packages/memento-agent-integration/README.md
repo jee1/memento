@@ -51,7 +51,7 @@ Claude Code lifecycle을 막지 않도록 exit code 0을 반환한다.
 | `MEMENTO_CAPTURE` | `0`이면 lifecycle 캡처를 끈다 (기본: 1) |
 
 - case 는 `case` 태그를 단 semantic 기억이거나, 마크다운 폴더의 한 줄이다. 본문은 300자 이하로 둔다.
-- 유한한 숫자 `final_score`가 0.5 이상인 후보만 고른다. 점수가 없거나 잘못된 후보는 제외한다.
+- 유한한 숫자 `final_score`가 `0.5 − 0.10·ln2/10`(≈ 0.4931, #1694) 이상인 후보만 고른다. 점수가 없거나 잘못된 후보는 제외한다.
   로그의 `cases[].final_score`와 `candidates[{id, final_score}]`로 선택 결과와 전체 유효 후보의 점수를 확인한다.
 - `MEMENTO_DIRECTIVES_CASES_DIR` 이 있으면 로컬 `.md` 줄을 읽고, 없으면 `server.json` 포트로 `/mcp` `tools/call` recall 을 한 번 보낸다.
   서버 경로의 `MEMENTO_API_KEY`는 `MEMENTO_API_TOKENS`에 있는 토큰이어야 한다.

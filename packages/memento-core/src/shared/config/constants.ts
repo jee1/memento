@@ -16,8 +16,6 @@ export const SEARCH_RANKING = {
     relevance: 0.45,
     recency: 0.20,
     importance: 0.20,
-    usage: 0.10,
-    duplication_penalty: 0.10,
     process_attribute_fit: 0.1, // θ (Issue #91)
     zeta_fb: 0.05
   },

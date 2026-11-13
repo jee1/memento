@@ -7,8 +7,8 @@ Memento의 recall은 여러 신호를 가중합산하여 최종 점수를 결정
 recall의 최종 점수는 다음 공식으로 계산됩니다.
 
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage
-    + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+S = α·relevance + β·recency + γ·importance
+    + ζ_fb·(feedback_norm − 0.5)
 ```
 
 가중치 기본값은 `config/ranking-weights.toml`에 저장되어 있으며, 서버가 시작할 때 이 파일을 로드합니다. 서로 다른 가중치 조합은 `config/ranking-profiles/` 디렉터리에 프로파일 파일로 저장하여 비교할 수 있습니다.
@@ -75,7 +75,7 @@ npm run quality -- benchmark tune-weights -- \
 
 | knob | 샘플링 | 범위 |
 |------|--------|------|
-| `ranking_weights.alpha`, `beta`, `gamma`, `delta`, `epsilon`, `theta`, `zeta_fb` | baseline × U[0.8, 1.2] | 0 ~ 1 (clamp) |
+| `ranking_weights.alpha`, `beta`, `gamma`, `theta`, `zeta_fb` | baseline × U[0.8, 1.2] | 0 ~ 1 (clamp) |
 | `relevance_signal.scale` | 균등 | 0.5 ~ 3.0 |
 | `recency_signal.scale` | 균등 | 0.05 ~ 1 |
 | `importance_signal.scale` | 균등 | 0.05 ~ 1 |

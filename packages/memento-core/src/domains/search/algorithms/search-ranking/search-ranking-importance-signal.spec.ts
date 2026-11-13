@@ -62,16 +62,12 @@ describe('importance signal scale (#1082)', () => {
       relevance: 0.4,
       recency: 0.5,
       importance: ranking.calculateImportance(0.2, false, 'semantic'),
-      usage: 0.1,
-      duplication_penalty: 0,
       feedback_score: 0.5,
     });
     const high = ranking.calculateFinalScore({
       relevance: 0.4,
       recency: 0.5,
       importance: ranking.calculateImportance(0.9, false, 'semantic'),
-      usage: 0.1,
-      duplication_penalty: 0,
       feedback_score: 0.5,
     });
     expect(high).toBeGreaterThan(low);

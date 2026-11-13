@@ -16,9 +16,9 @@ Korean documentation: [case-directive-injection.md (KO)](../ko/case-directive-in
 
 If no candidate source is available or recall takes longer than 1.5 seconds, the output is empty and the log gets one `fallback:true` line. The hook always exits 0 and never blocks the host. All three hosts share the same selection, dedup, and log contract; only the stdout wrapper differs.
 
-The relevance floor is `DIRECTIVE_POLICY.minFinalScore`, initially `0.5`. Only candidates with a finite numeric `final_score` at or above this value are eligible. Missing or invalid scores are excluded. Session deduplication and the 300-character, 5-case, and 4,500-byte limits still apply.
+The relevance floor is `DIRECTIVE_POLICY.minFinalScore`, `0.5 − 0.10·ln2/10` (≈ 0.4931). The fusion score lost its constant usage term (0.10·ln2/10) in #1694, so the initial `0.5` moved down by the same amount and every candidate keeps the same selection. Only candidates with a finite numeric `final_score` at or above this value are eligible. Missing or invalid scores are excluded. Session deduplication and the 300-character, 5-case, and 4,500-byte limits still apply.
 
-The existing 61 shadow log lines (51 cases) contained no scores, so this initial floor could not be calibrated from their distribution. New logs include `candidates[{id, final_score}]` for all valid candidates, including those below the floor, to support later calibration.
+The existing 61 shadow log lines (51 cases) contained no scores, so this initial floor (not a measured value) could not be calibrated from their distribution. New logs include `candidates[{id, final_score}]` for all valid candidates, including those below the floor, to support later calibration.
 
 ## Requirements
 

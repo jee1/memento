@@ -74,14 +74,14 @@ When session ends/token limit exceeded, transition to **episodic** snapshot.
 Final score S:
 
 ```
-S = α * relevance + β * recency + γ * importance + δ * usage - ε * duplication_penalty
+S = α * relevance + β * recency + γ * importance
 ```
 
 - **relevance**: Cosine similarity (embedding) + keyword TF-IDF correction
 - **recency**: `exp(-λ * age_days)` (applying Ebbinghaus-type forgetting function; λ is domain-specific tuning) [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2657600/) +1
 - **importance**: Explicit/inferred ("user preferences, rules, long-term goals" get higher weights)
-- **usage**: Log scale of query/citation/reuse frequency
-- **duplication_penalty**: Deduction for similar items within clusters
+
+> The `δ * usage` and `ε * duplication_penalty` terms this document first defined had no effect on ranking and were removed from the search score in #1694. Add them back under new names if they return.
 
 ### 4.2 Forgetting/Spaced Repetition
 

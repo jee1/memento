@@ -21,8 +21,6 @@ export interface RankingWeights {
   alpha: number; // relevance 가중치
   beta: number; // recency 가중치
   gamma: number; // importance 가중치
-  delta: number; // usage 가중치
-  epsilon: number; // duplication_penalty 가중치
   theta?: number; // process_attribute_fit 가중치 (Issue #91, 기본 0.1)
   zeta_fb?: number; // 피드백 신호 가중치 (Recall Quality Feedback Loop, 기본 0.05)
 }
@@ -70,8 +68,6 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     alpha: 0.45,
     beta: 0.20,
     gamma: 0.20,
-    delta: 0.10,
-    epsilon: 0.10,
     theta: 0.1,
     zeta_fb: 0.05
   },
@@ -117,8 +113,6 @@ const RANKING_WEIGHTS_SCHEMA = {
   'ranking_weights.alpha': { type: 'number' as const, min: 0, max: 1 },
   'ranking_weights.beta': { type: 'number' as const, min: 0, max: 1 },
   'ranking_weights.gamma': { type: 'number' as const, min: 0, max: 1 },
-  'ranking_weights.delta': { type: 'number' as const, min: 0, max: 1 },
-  'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
   'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
   'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
   'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
@@ -135,8 +129,6 @@ function flattenRankingWeightsForValidation(config: RankingWeightsConfig): Recor
     'ranking_weights.alpha': config.ranking_weights.alpha,
     'ranking_weights.beta': config.ranking_weights.beta,
     'ranking_weights.gamma': config.ranking_weights.gamma,
-    'ranking_weights.delta': config.ranking_weights.delta,
-    'ranking_weights.epsilon': config.ranking_weights.epsilon,
     'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
     'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
     'vector_length_decay.characteristic_length':
@@ -182,6 +174,23 @@ function normalizeRankingWeightsSections(config: RankingWeightsConfig): void {
 }
 
 /**
+ * 지워진 가중치(delta, epsilon, zeta, consolidation 등)가 남은 TOML 도 기동은 깨지지 않는다.
+ * 알려진 키만 남겨 검증과 `ranking_version` 해시에서 빼고, 버린 키 이름을 한 줄로 알린다 (#1694).
+ */
+function dropUnknownRankingWeightKeys(config: RankingWeightsConfig): void {
+  const known = new Set(Object.keys(DEFAULT_CONFIG.ranking_weights));
+  const kept: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [key, value] of Object.entries(config.ranking_weights)) {
+    if (known.has(key)) kept[key] = value;
+    else dropped.push(key);
+  }
+  if (dropped.length === 0) return;
+  config.ranking_weights = kept as unknown as RankingWeights;
+  console.warn(`[ranking-weights] 알 수 없는 ranking_weights 키를 무시합니다: ${dropped.join(', ')}`);
+}
+
+/**
  * TOML 파일에서 검색 랭킹 가중치 설정을 로드합니다.
  * @param configPath TOML 설정 파일 경로 (기본값: config/ranking-weights.toml)
  * @returns 검색 랭킹 가중치 설정 객체
@@ -197,6 +206,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
     // 기본값과 병합
     const config = mergeWithDefaults(parsed as unknown as Record<string, unknown>, DEFAULT_CONFIG as unknown as Record<string, unknown>) as unknown as RankingWeightsConfig;
 
+    dropUnknownRankingWeightKeys(config);
     const flatConfig = flattenRankingWeightsForValidation(config);
     normalizeRankingWeightsSections(config);
 
@@ -234,8 +244,6 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
     { name: 'alpha', value: ranking_weights.alpha },
     { name: 'beta', value: ranking_weights.beta },
     { name: 'gamma', value: ranking_weights.gamma },
-    { name: 'delta', value: ranking_weights.delta },
-    { name: 'epsilon', value: ranking_weights.epsilon },
     { name: 'theta', value: theta },
     { name: 'zeta_fb', value: zetaFb }
   ];
