@@ -2,7 +2,7 @@
  * Job name → BatchSchedulerConfig interval field (#832, #1698).
  * Shared by admin-batch.routes and ops-summary zones so new jobs stay in sync.
  */
-export const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
+const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
   cleanup: 'cleanupInterval',
   monitoring: 'monitoringInterval',
   healthcheck: 'healthCheckInterval',
