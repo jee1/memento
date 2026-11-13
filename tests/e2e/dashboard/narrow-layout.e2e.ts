@@ -11,7 +11,6 @@ const TABS = [
   'review',
   'memory-finder',
   'jobs',
-  'agent-sessions',
   'evolution-demo',
 ];
 

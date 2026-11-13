@@ -193,6 +193,10 @@ GEMINI_API_KEY=your_key_here
 
 의미 기반 검색을 활용하면 "자동차"로 검색해도 "차량"이라는 단어가 들어간 기억을 찾을 수 있고, "프로그래밍"으로 검색하면 "코딩"과 관련된 기억도 반환됩니다.
 
+## HTTP 대시보드 — Memory Graph
+
+`/dashboard`의 Memory Graph 탭(또는 `/graph`)에서 기억·관계 노드를 본다. 「전체 로드」는 최대 5,000개까지 요청한다. 레이아웃이 안정되면 화면이 노드 bbox 에 맞춰지고, 툴바 **전체 보기**로 같은 맞춤을 다시 할 수 있다. 휠로 더 줄일 수 있는 하한은 그래프 크기에 따라 `0.1` 아래로 내려가기도 한다. 배율이 낮으면(`k < 0.4`) 노드 라벨만 숨고, 원에 마우스를 올리면 툴팁은 그대로 보인다. API 파라미터는 [관계 그래프 API](../../api/ko/relation-graph-api.md)의 `GET /admin/graph` 절을 본다.
+
 ## HTTP 대시보드 — 배치 작업 탭
 
 `npm run dev:http`로 HTTP 관리 서버를 켠 뒤 `/dashboard`에 로그인하면 **배치 작업** 탭에서 스케줄 표, 큐, durable 실행 이력을 볼 수 있습니다. **새로고침**을 누르면 `GET /admin/batch/stats`가 각 작업의 간격·상태와 함께 **`description`**(한글 역할 요약)을 내려주며, 스케줄 표 작업명 아래, 행 선택 시 오른쪽 드로어, 탭 상단 **이건 뭔가요** 목록이 같은 문자열을 씁니다. 설명 원본은 `@memento/core`의 `batch-scheduler-job-descriptions.ts` 한 곳입니다.

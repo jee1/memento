@@ -48,13 +48,6 @@
     dispatchDashboardResize();
   }
 
-  function initAgentSessionsTab() {
-    if (typeof global.initAgentSessionsPanel === 'function') {
-      global.initAgentSessionsPanel();
-    }
-    dispatchDashboardResize();
-  }
-
   function initJobsTab() {
     if (typeof global.initJobsPanel === 'function') {
       global.initJobsPanel();
@@ -124,10 +117,6 @@
     }
     if (name === 'supersede') {
       initSupersedeTab();
-      return;
-    }
-    if (name === 'agent-sessions') {
-      initAgentSessionsTab();
       return;
     }
     if (name === 'memory-finder') {

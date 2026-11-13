@@ -11,6 +11,7 @@
 
 ### Added
 
+- Admin 메모리 그래프에 「전체 보기」와 시뮬레이션 안정 뒤 자동 맞춤을 넣고, 배율 하한을 bbox 기반 `min(0.1, k_fit*0.8)` 로 갱신한다. 낮은 배율에서는 노드 라벨을 숨긴다 (#1689).
 - 문서: 프로젝트 방향 `docs/DIRECTION.md` 를 추가한다(주인 한 사람과 그 에이전트를 위한 작업 기억, 지표 세 개, 하지 않는 일). README, README.en, AGENTS 에서 링크하고, 이전 방향을 서술한 `docs/reference/{ko,en}/Memento-Goals.md`, `Memento-Milestones.md`, `docs/plans/1094-enterprise-memory-governance.md` 맨 위에 이력 배너를 붙인다. README, README.en 의 로드맵과 아키텍처 문서(`docs/architecture/{ko,en}/architecture.md`, `docs/architecture/ko/arc42.md`)의 M2 팀, M3 조직, PostgreSQL/Redis/Kubernetes 멀티테넌트 계획 서술은 「계획에서 제외」로 고친다.
 - `memory_injection` 이 기각 게이트 top-10 항목 점수 중 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5, 0이면 끔) 이상만 주입하고, 결과 최상위 `item_filter` 와 텔레메트리 `memory.injection.item_filtered` 를 남긴다. `recall` 응답 형태는 바꾸지 않는다 (#1682).
 - remember 가 기존 행을 replace 또는 incremental 로 고치고 본문이 바뀌면 `memory.write.inplace_updated` 한 건을 `telemetry_events` 에 남긴다. `extra_data` 는 `memory_id`, `update_mode`, 이전 본문 sha256, 다음 본문 sha256 이고 본문은 넣지 않는다 (#1676).
@@ -24,6 +25,7 @@
 
 ### Removed
 
+- 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
 - 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).
 
 ## [2.3.10] - 2026-11-09

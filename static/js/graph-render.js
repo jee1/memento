@@ -1,5 +1,5 @@
 /**
- * Memory Graph — D3 render (Issue 633).
+ * Memory Graph — D3 render (Issue 633, fit view issue 1689).
  */
 (function (global) {
   'use strict';
@@ -10,6 +10,7 @@
   }
 
   const state = ns.state;
+  const FIT_TICK_FALLBACK = 100;
 
   function getContainerSize() {
     const container = document.getElementById('graph-container');
@@ -42,24 +43,39 @@
       .attr('fill', 'context-stroke');
   }
 
+  function applyLabelVisibility(g, k) {
+    if (!g) {
+      return;
+    }
+    const hide = k < ns.GRAPH_LABEL_HIDE_K;
+    g.classed('labels-hidden', hide);
+  }
+
   function attachZoomAndClick(svg, g) {
     const { svgEl } = ns.dom;
-    svg.call(
-      d3
-        .zoom()
-        .scaleExtent([0.1, 4])
-        .on('zoom', (event) => {
-          g.attr('transform', event.transform);
-          if (event.sourceEvent && event.sourceEvent.type === 'click') {
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+        applyLabelVisibility(g, event.transform.k);
+        if (event.sourceEvent) {
+          state.userAdjustedZoom = true;
+          if (event.sourceEvent.type === 'click') {
             ns.closePanel();
           }
-        })
-    );
+        }
+      });
+    state.zoomBehavior = zoom;
+    state.svg = svg;
+    state.zoomLayer = g;
+    svg.call(zoom);
     svg.on('click', (event) => {
       if (event.target === svgEl || event.target.tagName === 'svg') {
         ns.closePanel();
       }
     });
+    return zoom;
   }
 
   function createRadiusScale() {
@@ -209,7 +225,73 @@
     };
   }
 
+  function applyFitTransform(fit, options) {
+    const zoom = state.zoomBehavior;
+    const svg = state.svg;
+    if (!zoom || !svg || !fit) {
+      return false;
+    }
+    zoom.scaleExtent([fit.scaleExtentMin, 4]);
+    const transform = d3.zoomIdentity.translate(fit.tx, fit.ty).scale(fit.k);
+    const animate = options && options.animate;
+    if (animate) {
+      svg.transition().duration(750).call(zoom.transform, transform);
+    } else {
+      svg.call(zoom.transform, transform);
+    }
+    return true;
+  }
+
+  function computeFitForCurrentView() {
+    if (!state.svg || !Array.isArray(state.lastGraphNodes)) {
+      return null;
+    }
+    const width = parseFloat(state.svg.attr('width'));
+    const height = parseFloat(state.svg.attr('height'));
+    return ns.computeGraphFitTransform(state.lastGraphNodes, {
+      width,
+      height,
+      padding: 60,
+      maxScale: 2,
+      minFloor: 0.1,
+    });
+  }
+
+  ns.fitGraphToView = function fitGraphToView(options) {
+    const fit = computeFitForCurrentView();
+    if (!fit) {
+      return false;
+    }
+    return applyFitTransform(fit, { animate: !(options && options.animate === false) });
+  };
+
   function bindSimulationTick(simulation, link, node) {
+    let tickCount = 0;
+    const fitFlags = { earlyFitDone: false, endFitDone: false };
+
+    function maybeAutoFit(stage) {
+      if (
+        !ns.shouldRunGraphAutoFitStage(stage, {
+          userAdjustedZoom: state.userAdjustedZoom,
+          earlyFitDone: fitFlags.earlyFitDone,
+          endFitDone: fitFlags.endFitDone,
+        })
+      ) {
+        return;
+      }
+      if (stage === 'early') {
+        fitFlags.earlyFitDone = true;
+      } else {
+        fitFlags.endFitDone = true;
+      }
+      const fit = computeFitForCurrentView();
+      if (!fit) {
+        return;
+      }
+      // Recompute transform + scaleExtent from current node bbox (final layout on end).
+      applyFitTransform(fit, { animate: false });
+    }
+
     simulation.on('tick', () => {
       link
         .attr('x1', (d) => d.source.x)
@@ -217,7 +299,12 @@
         .attr('x2', (d) => arrowTargetPoint(d.source, d.target).x)
         .attr('y2', (d) => arrowTargetPoint(d.source, d.target).y);
       node.attr('transform', (d) => `translate(${d.x},${d.y})`);
+      tickCount += 1;
+      if (tickCount === FIT_TICK_FALLBACK) {
+        maybeAutoFit('early');
+      }
     });
+    simulation.on('end', () => maybeAutoFit('end'));
   }
 
   ns.renderGraph = function renderGraph(nodes, edges) {
@@ -225,6 +312,7 @@
     const palette = ns.getGraphPalette();
     const { svg, g } = createSvgRoot(W, H);
     appendArrowMarker(svg);
+    state.userAdjustedZoom = false;
     attachZoomAndClick(svg, g);
 
     const rScale = createRadiusScale();
