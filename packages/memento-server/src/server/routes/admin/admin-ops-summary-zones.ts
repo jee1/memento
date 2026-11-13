@@ -8,11 +8,12 @@ import {
   getBatchScheduler,
   mementoConfig,
   querySupersedeCandidates,
+  readCurrentSchemaVersion,
 } from '@memento/core';
 import type { ServerServices } from '../../bootstrap.js';
+import { resolveJobIntervalMs } from './admin-batch-job-interval-keys.js';
 import type { buildAdminStatus } from './admin-status-service.js';
 import type {
-  OpsSummaryBatchJobs,
   OpsSummaryLlmPressure,
   OpsSummarySeverity,
   OpsSummaryTimeWindow,
@@ -21,28 +22,6 @@ import type {
 } from './admin-ops-summary.types.js';
 
 const DAY_MS = 86_400_000;
-
-/** Same map as admin-batch.routes resolveJobIntervalMs (avoid route↔zones import cycle). */
-const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
-  cleanup: 'cleanupInterval',
-  monitoring: 'monitoringInterval',
-  healthcheck: 'healthCheckInterval',
-  wal_checkpoint: 'walCheckpointInterval',
-  lock_monitor: 'lockMonitorInterval',
-  reflexion_cleanup: 'reflexionCleanupInterval',
-  reflexion_healthcheck: 'reflexionHealthCheckInterval',
-  log_rotation: 'logRotationInterval',
-  quality_measurement_batch: 'qualityMeasurementInterval',
-  meta_memory_introspection: 'metaMemoryIntrospectionInterval',
-  memory_review_candidates: 'memoryReviewCandidatesInterval',
-  sleep_consolidation_batch: 'sleepConsolidationInterval',
-  telemetry_cleanup_batch: 'telemetryCleanupInterval',
-  forgetting_event_cleanup_batch: 'forgettingEventCleanupInterval',
-  job_run_cleanup_batch: 'jobRunCleanupInterval',
-  anchor_auto_refresh: 'anchorAutoRefreshInterval',
-  supersede_candidate_scan: 'supersedeCandidateScanInterval',
-  rejection_gate_drift_check: 'rejectionGateDriftCheckInterval',
-};
 
 function item(
   key: string,
@@ -61,13 +40,6 @@ function adminStatusWindow(adminStatus: ReturnType<typeof buildAdminStatus>): Op
     since: adminStatus.since,
     until: adminStatus.timestamp,
   };
-}
-
-function resolveJobIntervalMs(name: string, config: Record<string, unknown>): number | null {
-  const key = JOB_INTERVAL_CONFIG_KEY[name];
-  if (!key) return null;
-  const value = config[key];
-  return typeof value === 'number' ? value : null;
 }
 
 function tableExists(db: Database.Database, name: string): boolean {
@@ -92,18 +64,6 @@ function countAuthDenied(db: Database.Database, window: OpsSummaryTimeWindow, ow
     )
     .get(window.since, window.until, ...owner.params) as { n: number } | undefined;
   return Number(row?.n ?? 0);
-}
-
-function readSchemaVersion(db: Database.Database): number | null {
-  if (!tableExists(db, 'memento_schema_version')) return null;
-  try {
-    const row = db.prepare(`SELECT MAX(version) AS v FROM memento_schema_version`).get() as
-      | { v: number | null }
-      | undefined;
-    return row?.v == null ? null : Number(row.v);
-  } catch {
-    return null;
-  }
 }
 
 function lastHumanReviewAt(db: Database.Database): string | null {
@@ -152,10 +112,8 @@ function countPausedAndOverdue(
       const intervalMs = resolveJobIntervalMs(job.name, config);
       if (intervalMs == null || intervalMs <= 0) continue;
       const lastOk = lastSuccessByJob.get(job.name);
-      if (!lastOk) {
-        overdueCount += 1;
-        continue;
-      }
+      // No success row yet: skip (new job / cleanup wipe) — do not treat as overdue.
+      if (!lastOk) continue;
       const elapsed = nowMs - Date.parse(lastOk);
       if (Number.isFinite(elapsed) && elapsed > intervalMs * 2) {
         overdueCount += 1;
@@ -353,7 +311,7 @@ function buildSystemOkZone(
       window,
     ),
     item('server_version', mementoConfig.serverVersion, null, null, generatedAt, window),
-    item('schema_version', db ? readSchemaVersion(db) : null, null, null, generatedAt, window),
+    item('schema_version', db ? readCurrentSchemaVersion(db) : null, null, null, generatedAt, window),
     item(
       'auth_denied_count',
       db ? countAuthDenied(db, window, ownerId) : 0,
@@ -536,10 +494,8 @@ export function buildOpsSummaryZones(input: {
   ownerId: string | null;
   nowMs: number;
   adminStatus: ReturnType<typeof buildAdminStatus>;
-  batchJobs: OpsSummaryBatchJobs;
   llmPressure: OpsSummaryLlmPressure;
 }): OpsSummaryZones {
-  void input.batchJobs;
   return {
     system_ok: buildSystemOkZone(input.db, input.window, input.ownerId, input.nowMs, input.adminStatus),
     doing_work: buildDoingWorkZone(

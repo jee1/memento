@@ -348,7 +348,6 @@ export async function buildOpsSummary(
     ownerId,
     nowMs,
     adminStatus,
-    batchJobs,
     llmPressure,
   });
 

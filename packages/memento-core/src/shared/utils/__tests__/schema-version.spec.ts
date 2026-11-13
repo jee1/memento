@@ -33,4 +33,22 @@ describe('readCurrentSchemaVersion (#1332)', () => {
     db.prepare('INSERT INTO memento_schema_version VALUES (?, ?, ?)').run('10.0', ts, '010');
     expect(readCurrentSchemaVersion(db)).toBe('10.0');
   });
+
+  it('prefers later applied_at when one-digit and two-digit versions coexist (#1698)', () => {
+    const db = new Database(':memory:');
+    db.exec(
+      'CREATE TABLE memento_schema_version (version TEXT PRIMARY KEY, applied_at TIMESTAMP, migration_name TEXT NOT NULL)',
+    );
+    db.prepare('INSERT INTO memento_schema_version VALUES (?, ?, ?)').run(
+      '9.0',
+      '2025-01-01 00:00:00',
+      '009',
+    );
+    db.prepare('INSERT INTO memento_schema_version VALUES (?, ?, ?)').run(
+      '66.0',
+      '2026-11-01 00:00:00',
+      '066',
+    );
+    expect(readCurrentSchemaVersion(db)).toBe('66.0');
+  });
 });

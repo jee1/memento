@@ -402,6 +402,7 @@ export type { SqliteHybridAgentContextSourceOptions } from './domains/agent-inte
 export type { RecallResultItem } from './domains/memory/recall/recall-tool.js';
 
 export { MEMENTO_LATEST_SCHEMA_VERSION } from './shared/constants/schema-version.js';
+export { readCurrentSchemaVersion } from './shared/utils/schema-version.js';
 export {
   exportMemoryJsonl,
   exportMemoryJsonlSync,

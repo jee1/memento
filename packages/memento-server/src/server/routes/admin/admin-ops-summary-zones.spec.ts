@@ -193,18 +193,85 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
       adminStatus,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 0,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
     expect(byKey(zones.doing_work, 'item_filter_empty').value).toBe(1);
     expect(byKey(zones.doing_work, 'injection_empty').value).toBe(1);
+  });
+
+  it('schema_version uses applied order, not lexicographic MAX ("9.0" vs "66.0")', () => {
+    db.exec(
+      `CREATE TABLE memento_schema_version (
+         version TEXT PRIMARY KEY,
+         applied_at TIMESTAMP,
+         migration_name TEXT NOT NULL
+       )`,
+    );
+    db.prepare('INSERT INTO memento_schema_version VALUES (?, ?, ?)').run(
+      '9.0',
+      '2025-01-01 00:00:00',
+      '009',
+    );
+    db.prepare('INSERT INTO memento_schema_version VALUES (?, ?, ?)').run(
+      '66.0',
+      '2026-11-01 00:00:00',
+      '066',
+    );
+    // Lexicographic MAX(version) would wrongly yield "9.0".
+    const lexMax = (
+      db.prepare('SELECT MAX(version) AS v FROM memento_schema_version').get() as { v: string }
+    ).v;
+    expect(lexMax).toBe('9.0');
+
+    const adminStatus = buildAdminStatus(db);
+    const zones = buildOpsSummaryZones({
+      db,
+      serverServices: null,
+      window: WINDOW,
+      ownerId: null,
+      nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
+      adminStatus,
+      llmPressure: { availability: 'unmeasured', window: WINDOW },
+    });
+    expect(byKey(zones.system_ok, 'schema_version').value).toBe('66.0');
+  });
+
+  it('job with no success row is not overdue', () => {
+    const scheduler = getBatchScheduler();
+    const detailedSpy = vi.spyOn(scheduler, 'getDetailedStats').mockReturnValue({
+      status: {
+        isRunning: true,
+        config: { walCheckpointInterval: 60_000 },
+      },
+      jobs: [{ name: 'wal_checkpoint', isRunning: false, errorCount: 0 }],
+      health: { runningJobs: 0, queueSize: 0, uptime: 0, memoryUsage: 0, errorRate: 0 },
+    } as ReturnType<typeof scheduler.getDetailedStats>);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS job_run (
+        id TEXT PRIMARY KEY,
+        job_name TEXT NOT NULL,
+        trigger TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        success INTEGER NOT NULL,
+        duration_ms INTEGER,
+        processed INTEGER,
+        error_count INTEGER,
+        details_json TEXT
+      );
+    `);
+    const adminStatus = buildAdminStatus(db);
+    const zones = buildOpsSummaryZones({
+      db,
+      serverServices: null,
+      window: WINDOW,
+      ownerId: null,
+      nowMs: Date.parse('2026-11-13T12:00:00.000Z'),
+      adminStatus,
+      llmPressure: { availability: 'unmeasured', window: WINDOW },
+    });
+    expect(byKey(zones.system_ok, 'job_interval_overdue_count').value).toBe(0);
+    detailedSpy.mockRestore();
   });
 
   it('severity: scheduler stopped is crit', () => {
@@ -221,14 +288,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
       adminStatus: stub,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 0,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
     expect(byKey(zones.system_ok, 'scheduler_running').severity).toBe('crit');
@@ -253,14 +312,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs,
       adminStatus: stub,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 1,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
     expect(byKey(zones.system_ok, 'batch_failed_run_count').severity).toBe('crit');
@@ -304,14 +355,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs,
       adminStatus,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 0,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
     expect(byKey(zones.system_ok, 'paused_job_count').value).toBe(1);
@@ -352,14 +395,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs,
       adminStatus: stub,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 0,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
     expect(byKey(zones.needs_action, 'review_pending_total').severity).toBe('warn');
@@ -386,14 +421,6 @@ describe('ops summary zones (#1698)', () => {
       getRejectionGateDrift,
     };
     const serverServices = { telemetryService: tel } as unknown as ServerServices;
-    const batchJobs = {
-      availability: 'measured' as const,
-      window: WINDOW,
-      failed_run_count: 0,
-      success_run_count: 0,
-      stuck_or_error_jobs: [],
-      recent_failed_runs: [],
-    };
     const llmPressure = { availability: 'unmeasured' as const, window: WINDOW };
 
     const alertZones = buildOpsSummaryZones({
@@ -403,7 +430,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs,
       adminStatus,
-      batchJobs,
       llmPressure,
     });
     expect(byKey(alertZones.doing_work, 'gate_drift_alert').severity).toBe('warn');
@@ -416,7 +442,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs,
       adminStatus,
-      batchJobs,
       llmPressure,
     });
     expect(byKey(clearZones.doing_work, 'gate_drift_alert').severity).toBe('ok');
@@ -429,7 +454,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: 'owner-a',
       nowMs,
       adminStatus,
-      batchJobs,
       llmPressure,
     });
     expect(byKey(scoped.doing_work, 'gate_drift_alert').value).toBeNull();
@@ -451,14 +475,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
       adminStatus,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 0,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: {
         availability: 'measured',
         window: WINDOW,
@@ -499,14 +515,6 @@ describe('ops summary zones (#1698)', () => {
       ownerId: null,
       nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
       adminStatus,
-      batchJobs: {
-        availability: 'measured',
-        window: WINDOW,
-        failed_run_count: 0,
-        success_run_count: 0,
-        stuck_or_error_jobs: [],
-        recent_failed_runs: [],
-      },
       llmPressure: { availability: 'unmeasured', window: WINDOW },
     });
     expect(byKey(zones.system_ok, 'process_database').window.period).toBe('30d');
