@@ -91,6 +91,11 @@ test.describe('Anchor Map drag refresh deferral (issue 948)', () => {
     await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
     await page.waitForTimeout(800);
+    await page.evaluate(() => {
+      const fit = (window as unknown as { fitAnchorMap?: () => void }).fitAnchorMap;
+      if (typeof fit === 'function') fit();
+    });
+    await page.waitForTimeout(200);
 
     await openToolbarMore(page);
     await page.locator('#refresh-interval-select').selectOption('5000');

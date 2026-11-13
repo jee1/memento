@@ -43,7 +43,11 @@ async function dragNodeById(page: Page, id: string, mapX: number, mapY: number) 
   }, id);
   if (index < 0) throw new Error('node not found: ' + id);
 
-  await page.locator('#anchor-map svg circle.node').nth(index).dragTo(page.locator('#anchor-map'), {
+  const node = page.locator('#anchor-map svg circle.node').nth(index);
+  await node.evaluate((el) => {
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+  });
+  await node.dragTo(page.locator('#anchor-map'), {
     targetPosition: { x: mapX, y: mapY },
     force: true,
   });
@@ -103,8 +107,13 @@ test.describe('Anchor Map pinning (real d3)', () => {
     await page.goto('/dashboard');
     await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
-    // Let force simulation place nodes before dragging.
+    // Let force simulation place nodes, then fit so drag targets stay in viewport (#1699).
     await page.waitForTimeout(800);
+    await page.evaluate(() => {
+      const fit = (window as unknown as { fitAnchorMap?: () => void }).fitAnchorMap;
+      if (typeof fit === 'function') fit();
+    });
+    await page.waitForTimeout(200);
 
     // E1 — drag mem-a near map-relative (600, 300)
     await dragNodeById(page, 'mem-a', 600, 300);
@@ -171,6 +180,11 @@ test.describe('Anchor Map pinning (real d3)', () => {
     await page.reload();
     await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
+    await page.evaluate(() => {
+      const fit = (window as unknown as { fitAnchorMap?: () => void }).fitAnchorMap;
+      if (typeof fit === 'function') fit();
+    });
+    await page.waitForTimeout(200);
     const storedAfterReload = await page.evaluate((key) => localStorage.getItem(key), LAYOUT_KEY);
     expect(storedAfterReload).toBe(storedBeforeReload);
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(1);
