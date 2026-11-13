@@ -24,7 +24,7 @@
 ## Product goals
 - Goals:
   - Let operators diagnose recall/anchor/embedding health quickly.
-  - Support review queue + batch jobs + agent session provenance without leaving admin HTTP.
+  - Support review queue + batch jobs without leaving admin HTTP.
   - Keep UI framework-free (vanilla CSS tokens + components).
 - Non-goals:
   - Public marketing site / consumer app visual language.
@@ -39,7 +39,7 @@
 - Primary personas:
   - **Memory operator** — debugs recall quality, anchors, embeddings.
   - **Ops maintainer** — watches Jobs, Review Queue, batch health.
-  - **Integrating developer** — inspects Agent Sessions / evolution demo for understanding.
+  - **Integrating developer** — inspects the evolution demo for understanding.
 - User jobs:
   - Sign in once → pick agent → explore Anchor Map / Graph.
   - Triage Review Queue with badge urgency.
@@ -55,7 +55,7 @@
 - Phone layout (`max-width: 30rem`, 390px canvas): `.m-table` rows become cards whose cells show their column header from `data-label` (`static/js/table-card-labels.js` copies `thead th` text, including rows rendered later); `#rc-table` is the one explicit exception and keeps the #897 horizontal scroll because its checkboxes live in the grid. KPI tiles (`.m-stat-grid`) go two-up, `.oo-list__item` rows are at least 44px with the title and meta on two lines, and every button, select, summary, text input and checkbox label is at least 44px (#1147).
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
-  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · Jobs · Agent Sessions · 기억 진화 데모
+  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings) · 랭킹 가중치 (Ranking weights) · 기억 진화 데모
   - `/graph` standalone dark graph (session-gated). After layout settles, auto-fit puts the node bbox in view; toolbar 「전체 보기」 re-runs the same fit; zoom floor follows `min(0.1, k_fit*0.8)`; labels hide below `k < 0.4` (#1689)
 - Content hierarchy (target):
   1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
@@ -88,7 +88,7 @@
   - `.m-empty`, `.m-loading`, `.m-error` (shared interaction states)
   - `.m-panel` (`__title` / `__subtitle` / `__note`), `.m-code-inline` (shared panel chrome; panels must not borrow another panel's classes #1150)
   - `.m-about` (`__summary` / `__body` / `__heading` / `__list`) — tab intro and data-source notes behind a disclosure so data comes first; irreversible-action explanations stay next to their buttons (#1151)
-  - `.m-subtabs` / `.m-subtab` — tabs inside a panel (jobs drawer, agent session detail); `aria-selected` styling (#1153)
+  - `.m-subtabs` / `.m-subtab` — tabs inside a panel (jobs drawer); `aria-selected` styling (#1153)
   - `.m-nav-group` or overflow “More” for tab IA
 - Variants and states: Document disabled/hover/focus on components; panels must not fork button styles.
 - Token/component ownership: Tokens in `tokens.css`; primitives in `components.css`; page/panel layout only in `dashboard.css` (or panel-scoped files if split later).
@@ -107,7 +107,7 @@
 
 ## Interaction states
 - Loading: Shared `.m-loading` only (`--color-status-loading-*`). Panel-local loading classes were removed in #1149.
-- Empty: Shared `.m-empty` only. A neutral "nothing to show yet" notice (e.g. agent sessions before a key is entered) is an empty state too.
+- Empty: Shared `.m-empty` only. A neutral "nothing to show yet" notice (e.g. a panel before its data is loaded) is an empty state too.
 - Error: Shared `.m-error`; keep `role="alert"` where the region already has it. Do not add panel-local state classes; add a modifier to the shared component instead.
 - Success: Inline confirmation; avoid toast spam except Review Queue OS notify opt-in.
 - Disabled: `.m-button:disabled` opacity 0.6; session-only tabs gated by auth state.

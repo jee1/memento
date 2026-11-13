@@ -23,6 +23,10 @@
 - Claude Code 플러그인 `plugins/memento/.claude-plugin/plugin.json` 의 `version` 이 0.1.2 에 머물러 2.3.x 릴리스의 서버 버전이 플러그인 사용자에게 갱신으로 나가지 않았다. 서버 버전(2.3.10)으로 맞추고 `scripts/check-version-sync.ts` 가 이 파일도 같은 버전인지 검사한다.
 - 의존성: hono 4.13.18, @hono/node-server 2.1.8 로 갱신한다(권고 GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w, GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v 해소).
 
+### Removed
+
+- 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
+
 ## [2.3.10] - 2026-11-09
 
 ### Added
