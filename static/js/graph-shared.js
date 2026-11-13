@@ -30,6 +30,29 @@
   ns.GRAPH_LABEL_HIDE_K = 0.4;
 
   /**
+   * Auto-fit stage gate (issue 1689). Early tick keeps a fast first frame;
+   * end re-fits after layout settles and refreshes scaleExtent from final bbox.
+   * User zoom/pan skips every remaining auto stage.
+   *
+   * @param {'early'|'end'} stage
+   * @param {{ userAdjustedZoom?: boolean, earlyFitDone?: boolean, endFitDone?: boolean }} flags
+   * @returns {boolean}
+   */
+  ns.shouldRunGraphAutoFitStage = function shouldRunGraphAutoFitStage(stage, flags) {
+    const state = flags || {};
+    if (state.userAdjustedZoom) {
+      return false;
+    }
+    if (stage === 'early') {
+      return !state.earlyFitDone;
+    }
+    if (stage === 'end') {
+      return !state.endFitDone;
+    }
+    return false;
+  };
+
+  /**
    * Pure bbox → zoom transform for the memory graph (issue 1689).
    * No DOM. Returns null when there are no placed nodes.
    *

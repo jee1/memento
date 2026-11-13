@@ -27,7 +27,13 @@ type ComputeFit = (
   }
 ) => FitResult | null;
 
+type ShouldRunAutoFit = (
+  stage: 'early' | 'end',
+  flags: { userAdjustedZoom?: boolean; earlyFitDone?: boolean; endFitDone?: boolean }
+) => boolean;
+
 let computeGraphFitTransform: ComputeFit;
+let shouldRunGraphAutoFitStage: ShouldRunAutoFit;
 
 function screenPoint(node: { x: number; y: number }, fit: FitResult) {
   return { x: node.x * fit.k + fit.tx, y: node.y * fit.k + fit.ty };
@@ -35,8 +41,9 @@ function screenPoint(node: { x: number; y: number }, fit: FitResult) {
 
 beforeAll(() => {
   new Function(readFileSync(join(process.cwd(), 'static/js/graph-shared.js'), 'utf-8'))();
-  computeGraphFitTransform = (globalThis as Record<string, any>).__MEMENTO_GRAPH__
-    .computeGraphFitTransform;
+  const graph = (globalThis as Record<string, any>).__MEMENTO_GRAPH__;
+  computeGraphFitTransform = graph.computeGraphFitTransform;
+  shouldRunGraphAutoFitStage = graph.shouldRunGraphAutoFitStage;
 });
 
 describe('issue #1689 computeGraphFitTransform', () => {
@@ -141,5 +148,84 @@ describe('issue #1689 computeGraphFitTransform', () => {
     }
     expect(tight.kFit).toBeGreaterThan(0.1);
     expect(tight.scaleExtentMin).toBe(0.1);
+  });
+
+  it('recomputes a lower scaleExtentMin when the bbox expands after early fit', () => {
+    const viewport = { width: 1000, height: 800, padding: 60, maxScale: 2, minFloor: 0.1 };
+    const early = computeGraphFitTransform(
+      [
+        { x: -5000, y: 0 },
+        { x: 5000, y: 0 },
+      ],
+      viewport
+    );
+    const settled = computeGraphFitTransform(
+      [
+        { x: -5250, y: 0 },
+        { x: 5250, y: 0 },
+      ],
+      viewport
+    );
+    expect(early).not.toBeNull();
+    expect(settled).not.toBeNull();
+    if (!early || !settled) {
+      return;
+    }
+    expect(settled.kFit).toBeLessThan(early.kFit);
+    expect(settled.scaleExtentMin).toBeLessThan(early.scaleExtentMin);
+    expect(settled.scaleExtentMin).toBe(Math.min(0.1, settled.kFit * 0.8));
+  });
+});
+
+describe('issue #1689 shouldRunGraphAutoFitStage', () => {
+  it('runs early then end when the user has not zoomed', () => {
+    expect(
+      shouldRunGraphAutoFitStage('early', {
+        userAdjustedZoom: false,
+        earlyFitDone: false,
+        endFitDone: false,
+      })
+    ).toBe(true);
+    expect(
+      shouldRunGraphAutoFitStage('end', {
+        userAdjustedZoom: false,
+        earlyFitDone: true,
+        endFitDone: false,
+      })
+    ).toBe(true);
+  });
+
+  it('skips every stage after the user zooms or pans', () => {
+    expect(
+      shouldRunGraphAutoFitStage('early', {
+        userAdjustedZoom: true,
+        earlyFitDone: false,
+        endFitDone: false,
+      })
+    ).toBe(false);
+    expect(
+      shouldRunGraphAutoFitStage('end', {
+        userAdjustedZoom: true,
+        earlyFitDone: true,
+        endFitDone: false,
+      })
+    ).toBe(false);
+  });
+
+  it('does not re-run a stage that already finished', () => {
+    expect(
+      shouldRunGraphAutoFitStage('early', {
+        userAdjustedZoom: false,
+        earlyFitDone: true,
+        endFitDone: false,
+      })
+    ).toBe(false);
+    expect(
+      shouldRunGraphAutoFitStage('end', {
+        userAdjustedZoom: false,
+        earlyFitDone: true,
+        endFitDone: true,
+      })
+    ).toBe(false);
   });
 });

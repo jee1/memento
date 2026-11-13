@@ -267,17 +267,28 @@
 
   function bindSimulationTick(simulation, link, node) {
     let tickCount = 0;
-    let autoFitDone = false;
+    const fitFlags = { earlyFitDone: false, endFitDone: false };
 
-    function maybeAutoFit() {
-      if (autoFitDone || state.userAdjustedZoom) {
+    function maybeAutoFit(stage) {
+      if (
+        !ns.shouldRunGraphAutoFitStage(stage, {
+          userAdjustedZoom: state.userAdjustedZoom,
+          earlyFitDone: fitFlags.earlyFitDone,
+          endFitDone: fitFlags.endFitDone,
+        })
+      ) {
         return;
       }
-      autoFitDone = true;
+      if (stage === 'early') {
+        fitFlags.earlyFitDone = true;
+      } else {
+        fitFlags.endFitDone = true;
+      }
       const fit = computeFitForCurrentView();
       if (!fit) {
         return;
       }
+      // Recompute transform + scaleExtent from current node bbox (final layout on end).
       applyFitTransform(fit, { animate: false });
     }
 
@@ -290,10 +301,10 @@
       node.attr('transform', (d) => `translate(${d.x},${d.y})`);
       tickCount += 1;
       if (tickCount === FIT_TICK_FALLBACK) {
-        maybeAutoFit();
+        maybeAutoFit('early');
       }
     });
-    simulation.on('end', maybeAutoFit);
+    simulation.on('end', () => maybeAutoFit('end'));
   }
 
   ns.renderGraph = function renderGraph(nodes, edges) {
