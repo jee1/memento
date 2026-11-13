@@ -43,6 +43,8 @@ export interface RuntimeSettingDefinition {
   readonly refresh: () => void;
   /** 코드가 지금 쓰는 값의 정규 문자열. env 가 비정규거나 무효여도 실제로 해석된 값을 돌려준다. null 은 상위 설정을 따름. */
   readonly current: () => string | null;
+  /** 지금 조합에서 코드가 이 값을 읽지 않으면 그 이유. 읽으면 null. 값을 지우거나 막지는 않는다. */
+  readonly inactiveReason?: () => string | null;
 }
 
 export interface ReadOnlySettingDefinition {
@@ -59,6 +61,14 @@ function relationExtractionValue(override: MementoConfig['relationExtractionOver
   return override.kind === 'jev' ? 'jev' : null;
 }
 const boolean = ['true', 'false'] as const;
+
+function gateInactiveReason(): string | null {
+  const gate = mementoConfig.searchRejectionGate;
+  if (gate === 'typesafe') return null;
+  return gate === 'off'
+    ? '적용 안 됨: SEARCH_REJECTION_GATE 가 off 다'
+    : `적용 안 됨: SEARCH_REJECTION_GATE 가 ${gate} 라 게이트가 만들어지지 않는다`;
+}
 
 const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
   {
@@ -88,6 +98,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
       mementoConfig.searchRejectionGateThreshold = resolveRejectionGateThreshold();
     },
     current: () => String(mementoConfig.searchRejectionGateThreshold),
+    inactiveReason: gateInactiveReason,
   },
   {
     key: 'MEMORY_INJECTION_ITEM_SCORE_MIN',
@@ -103,6 +114,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
       mementoConfig.memoryInjectionItemScoreMin = resolveMemoryInjectionItemScoreMin();
     },
     current: () => String(mementoConfig.memoryInjectionItemScoreMin),
+    inactiveReason: gateInactiveReason,
   },
   {
     key: 'SEARCH_REJECTION_GATE_ON_ERROR',
@@ -117,6 +129,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
       mementoConfig.searchRejectionGateOnError = resolveRejectionGateOnError();
     },
     current: () => mementoConfig.searchRejectionGateOnError,
+    inactiveReason: gateInactiveReason,
   },
   {
     key: 'CONSOLIDATION_JUDGE',
@@ -141,6 +154,7 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     risk: 'low',
     refresh: readsEnvDirectly,
     current: () => String(getClusterJudgeThreshold()),
+    inactiveReason: () => (isClusterJudgeEnabled() ? null : '적용 안 됨: CONSOLIDATION_JUDGE 가 off 다'),
   },
   {
     key: 'LLM_PROVIDER_RELATION_EXTRACTION',
@@ -172,6 +186,8 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
       mementoConfig.llmModelOverrides.relation_extraction = resolveOptionalString('LLM_MODEL_RELATION_EXTRACTION');
     },
     current: () => mementoConfig.llmModelOverrides.relation_extraction ?? null,
+    inactiveReason: () =>
+      mementoConfig.relationExtractionOverride.kind === 'jev' ? '적용 안 됨: 제공자가 jev 라 TYPESAFE_MODEL 을 쓴다' : null,
   },
   {
     key: 'SUPERSEDE_CANDIDATE_SCAN_ENABLED',

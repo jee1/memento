@@ -57,6 +57,8 @@ export interface RuntimeSettingView {
   pending_restart: boolean;
   /** 저장된 override 를 기동 때 적용하지 않은 이유. null 이면 적용됐거나 override 가 없다. */
   override_ignored_reason: string | null;
+  /** 지금 조합에서 코드가 이 값을 읽지 않는 이유(상위 스위치가 가린다). null 이면 적용 중이다. */
+  inactive_reason: string | null;
   /** 되돌리기 후 코드가 해석하는 실효값(override 적용 전 부팅 baseline). env 원문과 다를 수 있다. */
   revert_target_value: string | null;
   /** 이 키의 최신 감사 event. 한 번도 바꾼 적이 없으면 null. */
@@ -168,6 +170,7 @@ function toView(
       : null,
     pending_restart: definition.apply === 'restart' && baseline !== undefined && value !== baseline.boot,
     override_ignored_reason: ignoredReason,
+    inactive_reason: definition.inactiveReason?.() ?? null,
     revert_target_value: baseline?.revertBase ?? definition.defaultValue,
     last_change: lastChange,
   };

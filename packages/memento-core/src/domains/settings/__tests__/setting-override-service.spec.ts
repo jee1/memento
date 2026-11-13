@@ -114,6 +114,19 @@ describe('runtime setting override (#1582)', () => {
     expect(set('CONSOLIDATION_JUDGE_THRESHOLD', '0.01')).toMatchObject({ ok: true });
   });
 
+  it('adds inactive_reason to every listed setting and fills it only for masked keys (#1685)', async () => {
+    process.env.SEARCH_REJECTION_GATE = 'off';
+    process.env.LLM_PROVIDER_RELATION_EXTRACTION = 'jev';
+    const { listRuntimeSettings, SETTING_REGISTRY } = await load();
+    const { settings } = listRuntimeSettings(db);
+    expect(settings).toHaveLength(SETTING_REGISTRY.size);
+    const reasons = Object.fromEntries(settings.map((s) => [s.key, s.inactive_reason]));
+    expect(reasons.SEARCH_REJECTION_GATE_THRESHOLD).toContain('SEARCH_REJECTION_GATE');
+    expect(reasons.LLM_MODEL_RELATION_EXTRACTION).toContain('jev');
+    expect(reasons.SEARCH_REJECTION_GATE).toBeNull();
+    expect(reasons.MEMENTO_REMEMBER_DEDUP_MODE).toBeNull();
+  });
+
   it('offers every LLM_PROVIDER_RELATION_EXTRACTION value the config parser accepts', async () => {
     const { SETTING_REGISTRY } = await load();
     const { parseRelationExtractionOverride } = await import('../../../shared/config/relation-extraction-seat.js');

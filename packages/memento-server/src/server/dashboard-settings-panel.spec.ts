@@ -92,6 +92,7 @@ interface Setting {
   override: { value: string; updated_at: string; updated_by: string } | null;
   pending_restart: boolean;
   override_ignored_reason: string | null;
+  inactive_reason: string | null;
   revert_target_value: string | null;
   last_change: { action: string; actor: string; reason: string | null; created_at: string } | null;
 }
@@ -110,6 +111,7 @@ const base = (overrides: Partial<Setting> & Pick<Setting, 'key'>): Setting => ({
   override: null,
   pending_restart: false,
   override_ignored_reason: null,
+  inactive_reason: null,
   revert_target_value: null,
   last_change: null,
   ...overrides,
@@ -148,6 +150,7 @@ const SETTINGS: Setting[] = [
     default_value: '0.4',
     source: 'env',
     env_value: '0.55',
+    inactive_reason: '적용 안 됨: SEARCH_REJECTION_GATE 가 off 다',
   }),
   base({
     key: 'MEMENTO_REMEMBER_DEDUP_MODE',
@@ -330,6 +333,14 @@ describe('dashboard settings panel', () => {
       expect(ignored).toContain('저장됐지만 적용 안 됨');
       expect(ignored).toContain('OFFLINE_STRICT_LLM_OVERRIDE_FORBIDDEN');
       expect(page.row('SUPERSEDE_APPLY_ENABLED').textContent).not.toContain('적용 안 됨');
+    });
+
+    it('shows the inactive badge and reason only on rows the API marks inactive', () => {
+      const inactive = page.row('SEARCH_REJECTION_GATE_THRESHOLD').textContent;
+      expect(inactive).toContain('적용 안 됨');
+      expect(inactive).toContain('SEARCH_REJECTION_GATE 가 off 다');
+      expect(page.row('SEARCH_REJECTION_GATE').textContent).not.toContain('적용 안 됨');
+      expect(page.row('REFLEXION_OBSERVATION_ONLY').textContent).not.toContain('적용 안 됨');
     });
 
     it('offers a revert button only on rows with a DB override', () => {
