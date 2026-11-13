@@ -945,7 +945,7 @@ Content-Type: application/json
 
 ##### 런타임 설정 override (#1582, #1583)
 
-운영자가 코드 기본값과 `.env` 위에 DB override 를 얹어 조정 가능한 설정 12개를 바꿉니다. 실효값은 override, 기동 때 env(빈 문자열은 미설정), 코드 기본값 순입니다. 기존 `/admin` 인증을 그대로 쓰며 비밀값, 인프라, 임베딩 모델은 바꾸지 않습니다.
+운영자가 코드 기본값과 `.env` 위에 DB override 를 얹어 조정 가능한 설정 13개를 바꿉니다. 실효값은 override, 기동 때 env(빈 문자열은 미설정), 코드 기본값 순입니다. 기존 `/admin` 인증을 그대로 쓰며 비밀값, 인프라, 임베딩 모델은 바꾸지 않습니다.
 
 ```http
 GET /admin/settings

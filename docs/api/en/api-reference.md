@@ -828,7 +828,7 @@ Run `NODE_ENV=test npx tsx scripts/bench-supersede-off.ts` to assert the partial
 
 ##### Runtime setting overrides (#1582, #1583)
 
-An operator can layer a DB override over the code defaults and `.env` for 12 adjustable settings. The effective value is the override, then the startup env (an empty string counts as unset), then the code default. The existing `/admin` auth applies. Secrets, infrastructure and the embedding model stay read-only.
+An operator can layer a DB override over the code defaults and `.env` for 13 adjustable settings. The effective value is the override, then the startup env (an empty string counts as unset), then the code default. The existing `/admin` auth applies. Secrets, infrastructure and the embedding model stay read-only.
 
 ```http
 GET /admin/settings
