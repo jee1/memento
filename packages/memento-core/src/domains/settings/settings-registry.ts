@@ -20,6 +20,8 @@ import {
 import { getRawEnvValue, resolveBoolean, resolveOptionalString } from '../../shared/config/environment.js';
 import {
   parseRelationExtractionOverride,
+  RELATION_EXTRACTION_TYPESAFE,
+  RELATION_EXTRACTION_TYPESAFE_ALIAS,
   syncRelationExtractionProvider,
 } from '../../shared/config/relation-extraction-seat.js';
 import { parseRememberDedupMode } from '../../shared/utils/remember-dedup-config.js';
@@ -31,6 +33,8 @@ export interface RuntimeSettingDefinition {
   readonly description: string;
   readonly kind: 'enum' | 'number' | 'boolean' | 'string';
   readonly allowed?: readonly string[];
+  /** 옛 값 → 정본 값. 받아서 정본으로 바꿔 저장하고 `allowed` 에는 나타나지 않는다. */
+  readonly aliases?: Readonly<Record<string, string>>;
   readonly range?: { readonly min: number; readonly max: number; readonly minExclusive?: boolean };
   readonly pattern?: RegExp;
   /** 코드 기본값. null 이면 미설정일 때 상위 설정(전역 LLM_PROVIDER 등)을 따른다. */
@@ -58,7 +62,7 @@ const readsEnvDirectly = (): void => {};
 
 function relationExtractionValue(override: MementoConfig['relationExtractionOverride']): string | null {
   if (override.kind === 'chat') return override.provider;
-  return override.kind === 'jev' ? 'jev' : null;
+  return override.kind === 'typesafe' ? RELATION_EXTRACTION_TYPESAFE : null;
 }
 const boolean = ['true', 'false'] as const;
 
@@ -176,7 +180,8 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     description: '관계 추출에 쓰는 LLM 제공자를 고른다. 비우면 전역 LLM_PROVIDER 를 따른다.',
     kind: 'enum',
     // ponytail: chat 값 목록은 llm-provider-override.ts 와 같아야 하며 spec 이 파서와 대조한다.
-    allowed: ['jev', 'openai', 'gemini', 'ollama', 'auto'],
+    allowed: [RELATION_EXTRACTION_TYPESAFE, 'openai', 'gemini', 'ollama', 'auto'],
+    aliases: { [RELATION_EXTRACTION_TYPESAFE_ALIAS]: RELATION_EXTRACTION_TYPESAFE },
     defaultValue: null,
     defaultSource: '전역 LLM_PROVIDER',
     apply: 'immediate',
@@ -202,8 +207,8 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     },
     current: () => mementoConfig.llmModelOverrides.relation_extraction ?? null,
     inactiveReason: () =>
-      mementoConfig.relationExtractionOverride.kind === 'jev'
-        ? '적용 안 됨: 제공자가 typesafe(옛 값 jev)라 모델은 TYPESAFE_MODEL 을 쓴다'
+      mementoConfig.relationExtractionOverride.kind === 'typesafe'
+        ? '적용 안 됨: 제공자가 typesafe 라 모델은 TYPESAFE_MODEL(기본 jev-latest)을 쓴다'
         : null,
   },
   {
@@ -303,6 +308,11 @@ export const READ_ONLY_SETTINGS: readonly ReadOnlySettingDefinition[] = [
 
 const DECIMAL = /^\d+(?:\.\d+)?$/;
 
+/** 별칭이면 정본 값을, 아니면 받은 값을 그대로 돌려준다. */
+export function canonicalSettingValue(definition: RuntimeSettingDefinition, raw: string): string {
+  return definition.aliases?.[raw] ?? raw;
+}
+
 export type NormalizedSettingValue = { value: string } | { message: string };
 
 /** 저장할 정규 문자열을 돌려준다. 형식이 맞지 않으면 허용 범위를 담은 메시지를 돌려준다. */
@@ -312,8 +322,9 @@ export function normalizeSettingValue(definition: RuntimeSettingDefinition, raw:
     return refuse('value must be a string');
   }
   if (definition.allowed) {
-    return definition.allowed.includes(raw)
-      ? { value: raw }
+    const canonical = canonicalSettingValue(definition, raw);
+    return definition.allowed.includes(canonical)
+      ? { value: canonical }
       : refuse(`must be one of: ${definition.allowed.join(', ')}`);
   }
   if (definition.kind === 'number' && definition.range) {

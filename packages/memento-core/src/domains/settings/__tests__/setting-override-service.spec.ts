@@ -122,7 +122,7 @@ describe('runtime setting override (#1582)', () => {
     expect(settings).toHaveLength(SETTING_REGISTRY.size);
     const reasons = Object.fromEntries(settings.map((s) => [s.key, s.inactive_reason]));
     expect(reasons.SEARCH_REJECTION_GATE_THRESHOLD).toContain('SEARCH_REJECTION_GATE');
-    expect(reasons.LLM_MODEL_RELATION_EXTRACTION).toContain('jev');
+    expect(reasons.LLM_MODEL_RELATION_EXTRACTION).toContain('typesafe');
     expect(reasons.SEARCH_REJECTION_GATE).toBeNull();
     expect(reasons.MEMENTO_REMEMBER_DEDUP_MODE).toBeNull();
   });
@@ -130,9 +130,49 @@ describe('runtime setting override (#1582)', () => {
   it('offers every LLM_PROVIDER_RELATION_EXTRACTION value the config parser accepts', async () => {
     const { SETTING_REGISTRY } = await load();
     const { parseRelationExtractionOverride } = await import('../../../shared/config/relation-extraction-seat.js');
-    for (const value of SETTING_REGISTRY.get('LLM_PROVIDER_RELATION_EXTRACTION')!.allowed!) {
+    const definition = SETTING_REGISTRY.get('LLM_PROVIDER_RELATION_EXTRACTION')!;
+    for (const value of [...definition.allowed!, ...Object.keys(definition.aliases!)]) {
       expect(parseRelationExtractionOverride(value).kind, value).not.toBe('invalid');
     }
+    expect(definition.allowed).not.toContain('jev');
+    expect(definition.aliases).toEqual({ jev: 'typesafe' });
+  });
+
+  it('accepts the jev alias on PUT and stores typesafe (#1687)', async () => {
+    const { setRuntimeSettingOverride, mementoConfig } = await load();
+    const result = setRuntimeSettingOverride(db, {
+      key: 'LLM_PROVIDER_RELATION_EXTRACTION',
+      value: 'jev',
+      actor: 'session:a',
+      reason: '사유',
+    });
+    expect(result).toMatchObject({ ok: true, setting: { value: 'typesafe', override: { value: 'typesafe' } } });
+    expect(rows(db)).toEqual([expect.objectContaining({ key: 'LLM_PROVIDER_RELATION_EXTRACTION', value: 'typesafe' })]);
+    expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'typesafe' });
+    expect(setRuntimeSettingOverride(db, { key: 'LLM_PROVIDER_RELATION_EXTRACTION', value: 'Jev', actor: 'a', reason: '사유' }))
+      .toMatchObject({ ok: false, code: 'INVALID_VALUE' });
+  });
+
+  it('applies a stored jev row as typesafe and shows it as typesafe (#1687)', async () => {
+    const { applyStoredSettingOverrides, listRuntimeSettings, mementoConfig } = await load();
+    db.prepare(
+      "INSERT INTO setting_override (key, value, updated_at, updated_by) VALUES ('LLM_PROVIDER_RELATION_EXTRACTION', 'jev', '2026-11-01T00:00:00.000Z', 'session:a')",
+    ).run();
+    const warn = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    applyStoredSettingOverrides(db);
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+    expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'typesafe' });
+    const view = listRuntimeSettings(db).settings.find((s) => s.key === 'LLM_PROVIDER_RELATION_EXTRACTION')!;
+    expect(view).toMatchObject({
+      value: 'typesafe',
+      source: 'override',
+      override: { value: 'typesafe' },
+      override_ignored_reason: null,
+    });
+    expect(rows(db)).toEqual([expect.objectContaining({ value: 'jev' })]);
   });
 
   it('stores the override with its audit event and changes mementoConfig at once', async () => {
@@ -190,8 +230,8 @@ describe('runtime setting override (#1582)', () => {
     expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'chat', provider: 'ollama' });
     expect(mementoConfig.llmProviderOverrides.relation_extraction).toBe('ollama');
 
-    set('jev');
-    expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'jev' });
+    set('typesafe');
+    expect(mementoConfig.relationExtractionOverride).toEqual({ kind: 'typesafe' });
     expect(mementoConfig.llmProviderOverrides.relation_extraction).toBeUndefined();
 
     revertRuntimeSettingOverride(db, { key: 'LLM_PROVIDER_RELATION_EXTRACTION', actor: 'session:a', reason: '사유' });

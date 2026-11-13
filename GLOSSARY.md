@@ -112,6 +112,20 @@ _Avoid_: user, tenant(단독)
 `tools/list`에 기본으로 노출하는 도구 묶음(`recall`, `remember`, `memory_injection`, `feedback`).
 _Avoid_: default tools, basic tools
 
+## 외부 판정기
+
+**TypeSafe (typesafe, 제공자)**:
+기각 게이트, 공고화 클러스터 판정, 관계 추출에 판정을 맡기는 서비스 제공 브랜드. 이 제공자를 고르는 설정 값은 모두 `typesafe`다. 옛 값 `jev`는 별칭으로 계속 받는다.
+_Avoid_: jev(제공자를 가리킬 때), TypeSafe Jev
+
+**Jev (모델)**:
+TypeSafe 가 제공하는 판정 모델. 모델 이름(`jev-latest`)과 그 모델의 판정 결과를 가리킬 때만 쓴다.
+_Avoid_: typesafe(모델을 가리킬 때), 제공자
+
+**System One**:
+TypeSafe 의 noul 판정 API와 그 전송 클라이언트. 제공자도 모델도 아니고 둘 사이를 잇는 호출 경로다.
+_Avoid_: jev API
+
 ## 설정
 
 **Setting override**:

@@ -731,7 +731,7 @@ describe('RelationExtractor', () => {
     });
   });
 
-  describe('jev seat on the model arm', () => {
+  describe('typesafe seat on the model arm', () => {
     const saved = {
       override: mementoConfig.relationExtractionOverride,
       apiKey: mementoConfig.typesafeApiKey,
@@ -747,7 +747,7 @@ describe('RelationExtractor', () => {
     });
 
     function seatJev(): void {
-      mementoConfig.relationExtractionOverride = { kind: 'jev' };
+      mementoConfig.relationExtractionOverride = { kind: 'typesafe' };
       mementoConfig.typesafeApiKey = 'typesafe-key';
       mementoConfig.typesafeModel = 'jev-latest';
       mockLLMExtractor.isAvailable.mockReturnValue(false);

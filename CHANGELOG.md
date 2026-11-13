@@ -23,6 +23,7 @@
 ### Changed
 
 - Admin 대시보드 첫 화면을 「상태」 탭으로 바꾸고 `/admin/ops/summary?period=7d` 의 `zones` 세 구역(정상인가 / 제 일을 하고 있나 / 손댈 것)을 범용으로 그린다. 상단 ops-strip 과 개발자용 4질문 문자열을 제거한다. 색은 서버 `severity` 만 쓴다 (#1699).
+- 관계 추출 제공자 설정 `LLM_PROVIDER_RELATION_EXTRACTION` 의 정본 값을 `jev` 에서 `typesafe` 로 바꾼다. 제공자는 typesafe, 모델은 jev 로 용어를 가른다(`GLOSSARY.md`). 옛 값 `jev` 는 별칭으로 계속 받아 `typesafe` 로 정규화한다: 옛 `.env`, 설정 화면 PUT, DB 에 저장된 옛 override 행 모두 그대로 동작하고 설정 화면에는 `typesafe` 로 보인다. `llm_usage_*` 의 provider 문자열, 관계 `method='jev'`, 마이그레이션 066 값, env 키 `TYPESAFE_*` 는 바꾸지 않는다 (#1687).
 
 ### Fixed
 

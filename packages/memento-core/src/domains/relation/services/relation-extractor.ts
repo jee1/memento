@@ -71,10 +71,10 @@ export class RelationExtractor implements IRelationExtractor {
     const method = options?.method ?? 'hybrid';
     const minConfidence = options?.minConfidence ?? CONFIDENCE.MIN_RULE_BASED;
     const immediate = options?.immediate ?? false;
-    const jevSeat = resolveRelationExtractionSeat({
+    const typesafeSeat = resolveRelationExtractionSeat({
       llmProvider: mementoConfig.llmProvider,
       relationExtractionOverride: mementoConfig.relationExtractionOverride,
-    }).kind === 'jev';
+    }).kind === 'typesafe';
 
     // 타입별 관계 유형 필터링
     const applicableTypes = this.getApplicableRelationTypes(newMemory.type, options?.relationTypes);
@@ -83,8 +83,8 @@ export class RelationExtractor implements IRelationExtractor {
       return [];
     }
 
-    // 캐시 키는 엔진을 포함하지 않는다. jev 결과는 넣지 않는다.
-    if (immediate && !jevSeat) {
+    // 캐시 키는 엔진을 포함하지 않는다. typesafe(jev 모델) 결과는 넣지 않는다.
+    if (immediate && !typesafeSeat) {
       const cacheKey = this.generateCacheKey(newMemory.id, existingMemories.map(m => m.id), options);
       const cached = this.cache.get(cacheKey);
       if (cached) {
@@ -215,7 +215,7 @@ export class RelationExtractor implements IRelationExtractor {
   }
 
   /**
-   * Model arms only. A jev seat never calls chat availability or determineLlmProvider.
+   * Model arms only. A typesafe seat never calls chat availability or determineLlmProvider.
    * `seated: false` means the caller should keep the chat path.
    */
   private async jevArm(
@@ -230,7 +230,7 @@ export class RelationExtractor implements IRelationExtractor {
       llmProvider: mementoConfig.llmProvider,
       relationExtractionOverride: mementoConfig.relationExtractionOverride,
     });
-    if (seat.kind !== 'jev') {
+    if (seat.kind !== 'typesafe') {
       return { seated: false };
     }
     const apiKey = mementoConfig.typesafeApiKey?.trim();

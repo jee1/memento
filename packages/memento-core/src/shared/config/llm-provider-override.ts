@@ -2,7 +2,7 @@ import type { LLMProvider } from '../types/memory.types.js';
 
 const ALLOWED_LLM_PROVIDERS = new Set<LLMProvider>(['openai', 'gemini', 'ollama', 'auto']);
 
-/** Canonical lowercase chat token. `jev` is not a member. */
+/** Canonical lowercase chat token. `typesafe` is not a member (relation extraction only, see relation-extraction-seat.ts). */
 export function isChatLlmProvider(value: string): value is LLMProvider {
   return ALLOWED_LLM_PROVIDERS.has(value as LLMProvider);
 }

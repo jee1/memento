@@ -44,7 +44,7 @@ describe('extractForRemember', () => {
       [memory('old', '결과')],
       {
         llmProvider: 'openai',
-        relationExtractionOverride: { kind: 'jev' },
+        relationExtractionOverride: { kind: 'typesafe' },
         typesafeApiKey: 'typesafe-key',
         typesafeModel: 'jev-latest',
       },
@@ -72,7 +72,7 @@ describe('extractForRemember', () => {
       [memory('old', '결과')],
       {
         llmProvider: 'openai',
-        relationExtractionOverride: { kind: 'jev' },
+        relationExtractionOverride: { kind: 'typesafe' },
         typesafeApiKey: '  ',
         typesafeModel: 'jev-latest',
       },
@@ -88,7 +88,7 @@ describe('extractForRemember', () => {
       [memory('old', '결과')],
       {
         llmProvider: 'auto',
-        relationExtractionOverride: { kind: 'jev' },
+        relationExtractionOverride: { kind: 'typesafe' },
         typesafeApiKey: 'typesafe-key',
         typesafeModel: 'jev-latest',
       },
