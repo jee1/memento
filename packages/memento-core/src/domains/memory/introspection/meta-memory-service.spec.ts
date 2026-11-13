@@ -526,6 +526,20 @@ describe('MetaMemoryService', () => {
       expect(result).toBe(true);
     });
 
+    it('하한은 usage 항 제거 만큼 내려가 있다 (#1694): 0.4931 은 성공, 0.4930 은 실패', () => {
+      const item = (final_score: number): RecallResultItem => ({
+        memory_id: 'mem_test',
+        content: 'Test content',
+        type: 'episodic',
+        importance: 0.8,
+        created_at: '2024-01-01T00:00:00.000Z',
+        final_score,
+      });
+
+      expect(service.isItemSuccess(item(0.4931))).toBe(true);
+      expect(service.isItemSuccess(item(0.493))).toBe(false);
+    });
+
     it('given: final_score가 없을 때, when: isItemSuccess를 호출하면, then: false를 반환해야 함', () => {
       // Given: final_score가 없는 검색 결과 항목
       const item: RecallResultItem = {

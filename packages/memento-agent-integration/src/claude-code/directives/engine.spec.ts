@@ -82,15 +82,15 @@ describe('runDirectives', () => {
 
   it.each(['live', 'shadow'] as const)('filters low scores in %s mode and logs candidate scores', async (mode) => {
     const recall = vi.fn().mockResolvedValue({ items: [
-      { memory_id: 'low', content: 'unrelated', final_score: 0.4999 },
-      { memory_id: 'boundary', content: 'relevant', final_score: 0.5 },
+      { memory_id: 'low', content: 'unrelated', final_score: 0.4930 },
+      { memory_id: 'boundary', content: 'relevant', final_score: 0.4931 },
     ] });
     const stdout = await runDirectives(prompt(), depsOf(recall, mode));
     const [line] = await logLines();
     expect(line).toMatchObject({
       fallback: false,
-      cases: [{ id: 'boundary', final_score: 0.5 }],
-      candidates: [{ id: 'low', final_score: 0.4999 }, { id: 'boundary', final_score: 0.5 }],
+      cases: [{ id: 'boundary', final_score: 0.4931 }],
+      candidates: [{ id: 'low', final_score: 0.4930 }, { id: 'boundary', final_score: 0.4931 }],
     });
     expect(line!.cases).toHaveLength(1);
     expect(line!.context_text).not.toContain('unrelated');

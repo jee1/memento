@@ -197,12 +197,13 @@ export class MetaMemoryService {
    * 항목 성공/실패 판정
    * 
    * @param item 검색 결과 항목
-   * @returns 성공 여부 (final_score >= 0.5)
+   * @returns 성공 여부 (final_score >= 0.5 - 0.10·ln2/10)
    */
   isItemSuccess(item: RecallResultItem): boolean {
     const raw = item.final_score ?? (item as Record<string, unknown>).finalScore;
     const finalScore = typeof raw === 'number' ? raw : Number(raw ?? 0);
-    return finalScore >= 0.5;
+    // #1694: 융합 점수에서 usage 상수항(0.10·ln2/10)이 빠진 만큼 하한을 내려 같은 후보가 같은 판정을 받게 한다.
+    return finalScore >= 0.5 - (0.1 * Math.LN2) / 10;
   }
 
   /**
