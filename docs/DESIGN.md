@@ -73,7 +73,7 @@
 - Color:
   - Legacy (to retire from chrome): `--color-brand-gradient` full-bleed header (`#667eea`→`#764ba2`).
   - Target (**quiet admin**, decided): `.m-header` / dashboard chrome = `--color-bg-card` (or near-neutral) + `--color-border-light`; text `--color-text-main`; primary actions may keep a restrained accent token (redefine primary away from “AI purple” when tokens change — prefer slate/ink + one functional accent, e.g. info/anchor-c family, not purple gradient).
-  - Keep: memory-type colors; anchor A/B/C; graph dark specialized palette (dual theme decided as option A, #1026).
+  - Keep: memory-type colors; anchor A/B/C (`--color-anchor-*`); Anchor Map memory nodes reuse the nearest membership’s `--color-anchor-*` fill (farther hops lighter via `fill-opacity`) with a second-membership stroke when multi-owned, else `--color-memory-neutral*` (#1692); graph dark specialized palette (dual theme decided as option A, #1026).
   - Dark surfaces are scoped, not global: `.graph-view--embedded` redefines `--color-*-graph` to the light neutral tokens for the dashboard iframe. Add new graph chrome as a token, never as a literal, so that override keeps working.
 - Typography: `--font-family-base` system stack (admin OK). Hierarchy via `--font-size-*` + weight, not decorative fonts.
 - Spacing/layout rhythm: `--spacing-xs`…`--xl`; prefer token gaps over raw rem in new CSS.

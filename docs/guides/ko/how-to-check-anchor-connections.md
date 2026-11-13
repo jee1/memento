@@ -10,9 +10,9 @@ HTTP 서버가 실행 중이라면 대시보드에서 앵커 연결 관계를 �
 http://localhost:9001/dashboard
 ```
 
-대시보드에 접속한 뒤 "Load Map" 버튼을 클릭하면 앵커 노드와 연결된 메모리 노드들이 그래프로 표시됩니다. 앵커 노드는 슬롯별로 색상이 다릅니다. Slot A는 빨간색, Slot B는 주황색, Slot C는 파란색입니다.
+대시보드에 접속한 뒤 "Load Map" 버튼을 클릭하면 앵커 노드와 연결된 메모리 노드들이 그래프로 표시됩니다. 앵커 노드와 그 소속 기억은 슬롯별로 같은 색을 씁니다. Slot A는 빨간색, Slot B는 주황색, Slot C는 파란색입니다. 기억 노드는 가장 가까운 소속 앵커 색으로 채워지고, hop이 멀수록 옅어집니다. 두 앵커 이상에 걸치면 테두리가 두 번째 앵커 색이 됩니다. 색각에만 의존하지 않도록 라벨·상세·hover에 슬롯 문자(`A`/`B`/`C`)와 소속 목록이 함께 나옵니다. 어느 앵커에도 속하지 않는 노드는 회색입니다.
 
-그래프에서 노드를 클릭하면 사이드바에 해당 메모리의 상세 정보(Memory ID, 내용, 앵커로부터의 Hop 거리, 유사도 점수, 중요도, 생성 시간)가 표시됩니다. 왼쪽 사이드바의 "Anchors" 섹션에서는 현재 설정된 앵커 목록을 확인하고, 항목을 클릭하면 해당 앵커 노드로 이동할 수 있습니다.
+그래프에서 노드를 클릭하면 사이드바에 해당 메모리의 상세 정보(Memory ID, 내용, 소속 앵커, 앵커로부터의 Hop 거리, 유사도 점수, 중요도, 생성 시간)가 표시됩니다. 왼쪽 사이드바의 "Anchors" 섹션에서는 현재 설정된 앵커 목록을 확인하고, 항목을 클릭하면 해당 앵커 노드로 이동할 수 있습니다.
 
 검색어를 입력하고 슬롯을 선택한 뒤 "Search"를 클릭하면, 앵커 주변에서 검색어와 관련된 메모리들을 찾아 결과를 하이라이트합니다.
 
@@ -52,6 +52,10 @@ curl "http://localhost:9001/api/anchors/map?agent_id=default"
       "type": "memory",
       "content": "연결된 메모리 내용",
       "hop_distance": 1,
+      "anchors": [
+        { "slot": "A", "hop_distance": 1 },
+        { "slot": "C", "hop_distance": 2 }
+      ],
       "similarity": 0.85,
       "importance": 0.6
     }
@@ -68,7 +72,7 @@ curl "http://localhost:9001/api/anchors/map?agent_id=default"
 }
 ```
 
-`nodes`의 `type`이 `"anchor"`이면 앵커 메모리 자체, `"memory"`이면 앵커와 연결된 일반 메모리입니다. `hop_distance`는 앵커로부터의 연결 거리를 나타내며, `links`의 `type`이 `"hop"`이면 hop 거리 기반 연결, `"link"`이면 `memory_link` 테이블 기반 직접 연결입니다.
+`nodes`의 `type`이 `"anchor"`이면 앵커 메모리 자체, `"memory"`이면 앵커와 연결된 일반 메모리입니다. 기억 노드의 `anchors`는 이 기억을 도달한 슬롯별 `{ slot, hop_distance }` 목록입니다(정본). 기존 `hop_distance`는 첫 번째 앵커 기준 값이며 의미는 바꾸지 않습니다. `links`의 `type`이 `"hop"`이면 hop 거리 기반 연결, `"link"`이면 `memory_relation` 기반 직접 연결입니다.
 
 ### Search Local API
 

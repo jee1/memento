@@ -73,10 +73,19 @@
     ].join('');
   }
 
+  function formatMembershipLabel(node) {
+    const ranked = ns.rankAnchorMemberships(node && node.anchors);
+    if (ranked.length === 0) return '없음';
+    return ranked
+      .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '-hop)'; })
+      .join(', ');
+  }
+
   function buildMemoryDetailHtml(node) {
     const id = escapeHtml(node.id);
     const content = escapeHtml(node.content);
     const hopDistance = escapeHtml(node.hop_distance != null ? node.hop_distance : 'N/A');
+    const membership = escapeHtml(formatMembershipLabel(node));
     const similarity = node.similarity != null ? escapeHtml((node.similarity * 100).toFixed(1) + '%') : 'N/A';
     const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
     const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
@@ -84,6 +93,7 @@
       '<div class="memory-detail-item"><label>Type:</label><div class="value">Memory</div></div>',
       '<div class="memory-detail-item"><label>Memory ID:</label><div class="value">' + id + '</div></div>',
       '<div class="memory-detail-item"><label>Content:</label><div class="value">' + content + '</div></div>',
+      '<div class="memory-detail-item"><label>소속:</label><div class="value">' + membership + '</div></div>',
       '<div class="memory-detail-item"><label>Hop Distance:</label><div class="value">' + hopDistance + '</div></div>',
       '<div class="memory-detail-item"><label>Similarity:</label><div class="value">' + similarity + '</div></div>',
       '<div class="memory-detail-item"><label>Importance:</label><div class="value">' + importance + '</div></div>',
@@ -216,6 +226,19 @@
       .attr('stroke-width', function (d) { return d.type === 'hop' ? 2 : 1.5; });
   }
 
+  function paintForNode(d, palette) {
+    if (d.type === 'anchor' && d.slot && palette.slotColors[d.slot]) {
+      return {
+        fill: palette.slotColors[d.slot].fill,
+        stroke: palette.slotColors[d.slot].stroke,
+        fillOpacity: 1,
+        primarySlot: d.slot,
+        membershipLabel: '',
+      };
+    }
+    return ns.resolveMemoryNodePaint(d.anchors, palette);
+  }
+
   function buildNodeSelection(g, nodes, palette, simulation) {
     return g.append('g')
       .selectAll('circle')
@@ -225,15 +248,16 @@
       .attr('class', function (d) {
         let classes = 'node ' + d.type;
         if (d.type === 'anchor' && d.slot) classes += ' slot-' + d.slot.toLowerCase();
+        else {
+          const paint = paintForNode(d, palette);
+          if (paint.primarySlot) classes += ' slot-' + String(paint.primarySlot).toLowerCase();
+        }
         return classes;
       })
       .attr('r', function (d) { return d.radius; })
-      .attr('fill', function (d) {
-        return (d.type === 'anchor' && d.slot) ? palette.slotColors[d.slot].fill : palette.memoryFill;
-      })
-      .attr('stroke', function (d) {
-        return (d.type === 'anchor' && d.slot) ? palette.slotColors[d.slot].stroke : palette.memoryStroke;
-      })
+      .attr('fill', function (d) { return paintForNode(d, palette).fill; })
+      .attr('stroke', function (d) { return paintForNode(d, palette).stroke; })
+      .attr('fill-opacity', function (d) { return paintForNode(d, palette).fillOpacity; })
       .attr('stroke-width', function (d) { return d.type === 'anchor' ? 3 : 2; })
       .attr('stroke-dasharray', function (d) { return d.embedding_missing ? '5,3' : null; })
       .attr('opacity', function (d) { return d.embedding_missing ? 0.6 : 1.0; })
@@ -246,7 +270,11 @@
   function labelTextFor(d) {
     let text;
     if (d.type === 'anchor' && d.slot) text = '슬롯 ' + d.slot;
-    else text = d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
+    else {
+      const ranked = ns.rankAnchorMemberships(d.anchors);
+      const slotPrefix = ranked.length ? '[' + ranked[0].slot + '] ' : '';
+      text = slotPrefix + d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
+    }
     if (d.pinned) text += ' 📌';
     return text;
   }
@@ -257,7 +285,8 @@
       const warning = d.embedding_missing ? '\n⚠ 임베딩 없음 — 연결 메모리 검색 불가' : '';
       return '앵커 ' + d.slot + '\n' + d.content + warning + pinHint;
     }
-    return '기억\n' + d.content + '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
+    return '기억\n' + d.content + '\n소속: ' + formatMembershipLabel(d) +
+      '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
   }
 
   function applyPinVisual() {
@@ -381,6 +410,7 @@
       return;
     }
 
+    if (typeof ns.applyMapLegendCopy === 'function') ns.applyMapLegendCopy();
     state.mapData = ns.normalizeMapData(state.mapData);
     const mapData = state.mapData;
 

@@ -10,9 +10,9 @@ If the HTTP server is running, the dashboard provides a visual representation of
 http://localhost:9001/dashboard
 ```
 
-After opening the dashboard, click the "Load Map" button to render the anchor graph. Anchor nodes are color-coded by slot: Slot A appears in red, Slot B in orange, and Slot C in blue.
+After opening the dashboard, click the "Load Map" button to render the anchor graph. Anchor nodes and their member memories share a slot color: Slot A red, Slot B orange, Slot C blue. A memory node fills with its nearest membership color and fades as hop distance grows. When a memory belongs to two or more anchors, the stroke uses the second membership color. Slot letters (`A`/`B`/`C`) appear in labels, hover text, and the detail panel so color is not the only cue. Nodes with an empty `anchors` list stay gray.
 
-Clicking any node in the graph opens its details in the sidebar: Memory ID, content, hop distance from the anchor, similarity score, importance, and creation time. The left sidebar's "Anchors" section lists all currently set anchors; clicking one jumps to its node in the graph.
+Clicking any node in the graph opens its details in the sidebar: Memory ID, content, memberships, hop distance from the first-seen anchor, similarity score, importance, and creation time. The left sidebar's "Anchors" section lists all currently set anchors; clicking one jumps to its node in the graph.
 
 To search within the anchor neighborhood, enter a query, select a slot, and click "Search". Matching memories are highlighted in the graph with a pulse animation, and the view centers on the first result.
 
@@ -52,6 +52,10 @@ The response contains three arrays: `anchors` (the set anchors), `nodes` (all no
       "type": "memory",
       "content": "connected memory content",
       "hop_distance": 1,
+      "anchors": [
+        { "slot": "A", "hop_distance": 1 },
+        { "slot": "C", "hop_distance": 2 }
+      ],
       "similarity": 0.85,
       "importance": 0.6
     }
@@ -68,7 +72,7 @@ The response contains three arrays: `anchors` (the set anchors), `nodes` (all no
 }
 ```
 
-In `nodes`, a `type` of `"anchor"` means the anchor memory itself and `"memory"` means a connected memory. In `links`, `type: "hop"` indicates a hop-distance-based connection and `type: "link"` indicates a direct connection from the `memory_link` table.
+In `nodes`, a `type` of `"anchor"` means the anchor memory itself and `"memory"` means a connected memory. Memory nodes include `anchors`: the list of `{ slot, hop_distance }` memberships that reached the id (canonical). Legacy `hop_distance` stays the first-seen-anchor value. In `links`, `type: "hop"` indicates a hop-distance-based connection and `type: "link"` indicates a direct connection from `memory_relation`.
 
 ### Search Local API
 
