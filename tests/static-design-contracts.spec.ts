@@ -749,7 +749,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(13);
+    expect(tabpanelMatches).toHaveLength(12);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();
@@ -863,11 +863,6 @@ describe('static design contracts', () => {
     }
     expect(mediaCount).toBeGreaterThanOrEqual(12);
     expect([...used].sort((a, b) => b - a)).toEqual([80, 48, 30]);
-
-    // agent-sessions provenance form wraps on narrow detail column (#1153)
-    expect(readStaticFile('static/css/dashboard.css')).toMatch(
-      /\.as-provenance-form \{[^}]*flex-wrap: wrap;/s,
-    );
   });
 
   it('issue #1147 phone nav: menu button controls the tablist and chips map to nav groups', () => {
@@ -939,10 +934,10 @@ describe('static design contracts', () => {
       expect(js, name).not.toMatch(new RegExp(`['"\\s]${name}['"\\s]`));
     }
     const expected: Record<string, string> = {
-      'rc-loading': 'm-loading', 'as-loading': 'm-loading', 'em-loading': 'm-loading', 'med-loading': 'm-loading',
-      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty', 'as-empty': 'm-empty', 'as-status': 'm-empty', 'med-empty': 'm-empty',
+      'rc-loading': 'm-loading', 'em-loading': 'm-loading', 'med-loading': 'm-loading',
+      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty', 'med-empty': 'm-empty',
       'rc-error': 'm-error', 'rc-health-error': 'm-error', 'rc-batch-history-error': 'm-error', 'ops-status-error': 'm-error',
-      'as-error': 'm-error', 'em-error': 'm-error', 'em-health-error': 'm-error', 'med-error': 'm-error',
+      'em-error': 'm-error', 'em-health-error': 'm-error', 'med-error': 'm-error',
     };
     for (const [id, cls] of Object.entries(expected)) {
       expect(html, id).toMatch(new RegExp(`id="${id}" class="[^"]*\\b${cls}\\b`));
@@ -973,10 +968,10 @@ describe('static design contracts', () => {
     const html = readStaticFile('static/dashboard.html');
     const visible = html.replace(/<!--[\s\S]*?-->/g, '');
     expect(visible.match(/#\d{3,4}\b/g) ?? []).toEqual([]);
-    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro', 'as-intro', 'med-intro']) {
+    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro', 'med-intro']) {
       expect(html, cls).toMatch(new RegExp(`<div class="m-about__body">\\s*<p class="${cls}"`));
     }
-    expect(html.match(/<details class="m-about">/g)).toHaveLength(5);
+    expect(html.match(/<details class="m-about">/g)).toHaveLength(4);
     // irreversible-action explanations stay next to their buttons, outside any disclosure
     for (const cls of ['rc-action-effect-note', 'rc-bulk-effect-note']) {
       const at = html.indexOf(`class="${cls}"`);
@@ -994,7 +989,7 @@ describe('static design contracts', () => {
 
   it('issue #1152 jobs tab is one schedule table plus a three-tab drawer; selection is shown once', () => {
     const html = readStaticFile('static/dashboard.html');
-    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-agent-sessions"'));
+    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-evolution-demo"'));
     expect(jobs).not.toContain('id="jobs-actions"');
     expect(jobs).not.toMatch(/id="jobs-(timeline|logs)-selected"/);
     const drawer = jobs.slice(jobs.indexOf('<aside id="jobs-drawer"'), jobs.indexOf('</aside>'));
@@ -1007,32 +1002,8 @@ describe('static design contracts', () => {
     }
     expect(jobs.match(/<table /g)).toHaveLength(4);
     expect(jobs.slice(0, jobs.indexOf('<aside id="jobs-drawer"')).match(/<table /g)).toHaveLength(1);
-  });
-
-  it('issue #1153 agent sessions: .m-stat aggregate, one meaning per status label, 3-tab detail with the payload notice', () => {
-    const html = readStaticFile('static/dashboard.html');
-    const tab = html.slice(html.indexOf('id="tab-agent-sessions"'), html.indexOf('id="tab-evolution-demo"'));
-    expect(tab).not.toContain('class="as-aggregate"');
-    expect(tab).not.toContain('<article>');
-    expect(tab).toMatch(/id="as-aggregate" class="m-stat-grid"/);
-    expect(tab.match(/class="m-stat"/g)).toHaveLength(5);
-    for (const k of ['redacted', 'dropped', 'degraded']) expect(tab).toContain(`id="as-sev-${k}" class="m-badge`);
-    const label = (id: string) => (tab.match(new RegExp(`<label>([^<]*)<select id="${id}"`)) ?? [])[1]?.trim();
-    expect(label('as-session-status')).toBeTruthy();
-    expect(label('as-observation-status')).toBeTruthy();
-    expect(label('as-session-status')).not.toBe(label('as-observation-status'));
-    const aside = tab.slice(tab.indexOf('<aside class="as-detail-card"'), tab.indexOf('</aside>'));
-    for (const t of ['overview', 'injections', 'provenance']) {
-      expect(aside, t).toContain(`id="as-dtab-${t}"`);
-      expect(aside, t).toContain(`id="as-dpanel-${t}"`);
-    }
-    for (const id of ['as-session-detail', 'as-injections', 'as-provenance-form', 'as-provenance-results']) expect(aside, id).toContain(`id="${id}"`);
-    expect(aside).toContain('class="as-detail-notice"');
-    expect(aside.indexOf('class="as-detail-notice"')).toBeLessThan(aside.indexOf('role="tablist"'));
-    expect(tab).not.toContain('as-inspection-grid');
-    const components = readStaticFile('static/css/components.css');
-    expect(components).toMatch(/\.m-subtab:focus-visible/);
+    expect(readStaticFile('static/css/components.css')).toMatch(/\.m-subtab:focus-visible/);
     expect(readStaticFile('static/css/dashboard.css')).not.toMatch(/\.jobs-drawer__tab/);
-    expect(html.match(/class="m-subtabs"/g)).toHaveLength(2);
+    expect(html.match(/class="m-subtabs"/g)).toHaveLength(1);
   });
 });
