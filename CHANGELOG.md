@@ -11,6 +11,7 @@
 
 ### Added
 
+- Admin 메모리 그래프에 「전체 보기」와 시뮬레이션 안정 뒤 자동 맞춤을 넣고, 배율 하한을 bbox 기반 `min(0.1, k_fit*0.8)` 로 갱신한다. 낮은 배율에서는 노드 라벨을 숨긴다 (#1689).
 - `memory_injection` 이 기각 게이트 top-10 항목 점수 중 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5, 0이면 끔) 이상만 주입하고, 결과 최상위 `item_filter` 와 텔레메트리 `memory.injection.item_filtered` 를 남긴다. `recall` 응답 형태는 바꾸지 않는다 (#1682).
 - remember 가 기존 행을 replace 또는 incremental 로 고치고 본문이 바뀌면 `memory.write.inplace_updated` 한 건을 `telemetry_events` 에 남긴다. `extra_data` 는 `memory_id`, `update_mode`, 이전 본문 sha256, 다음 본문 sha256 이고 본문은 넣지 않는다 (#1676).
 - 기각 게이트 드리프트 모니터. `rejection_gate_baseline`(migration 066, append-only)에 임계값을 잰 조건(N, 날짜, judge 모델, 라벨 세트, 참조 분포)을 남기고, 기동과 임계값 변경 때 실효 임계값이 활성 기준과 다르면 행을 덧붙인다. 배치 `rejection_gate_drift_check`(일 1회, LLM 호출 없음)가 지난 ISO 주의 기각률이 참조 기각률 중심 `max(3 시그마, 무릎 질량)` 밴드를 벗어나거나 활성 기억이 기준 N 의 2배 이상이면 `memory.search.gate_drift` 이벤트에 alert 를 남긴다. alert 는 재측정 신호이며 임계값을 바꾸지 않는다. `get_telemetry_summary` 의 `search_quality.gate_drift` 가 최신 판정과 활성 기준을 보여 주며 전역 범위 요약에만 실린다. 기존 DB 의 시드 기준 참조는 그 DB 의 텔레메트리로 계산한다 (#1681).
