@@ -68,6 +68,36 @@ export interface OpsSummaryQualityTrend {
   note?: string;
 }
 
+/** Server-computed color for status-first zones (#1698). null = no threshold yet. */
+export type OpsSummarySeverity = 'ok' | 'warn' | 'crit' | null;
+
+/**
+ * One signal in a zone. `window` is the aggregation period for this value
+ * (request `period`, or 30d when sourced from admin_status).
+ * Developer `source` strings are intentionally omitted.
+ */
+export interface OpsSummaryZoneItem {
+  key: string;
+  value: number | string | boolean | null;
+  unit: string | null;
+  severity: OpsSummarySeverity;
+  as_of: string | null;
+  window: OpsSummaryTimeWindow;
+}
+
+/**
+ * First-screen zones for GET /admin/ops/summary (#1698).
+ * Additive only — existing questions.* / admin_status stay unchanged.
+ * - system_ok: process/DB, scheduler, batch fails, paused/overdue jobs, versions, auth_denied
+ * - doing_work: injection item filter, feedback, search empty split, gate drift, LLM, relation extraction
+ * - needs_action: review queue, supersede pending, embedding problems
+ */
+export interface OpsSummaryZones {
+  system_ok: OpsSummaryZoneItem[];
+  doing_work: OpsSummaryZoneItem[];
+  needs_action: OpsSummaryZoneItem[];
+}
+
 export interface OpsSummaryResponse {
   generated_at: string;
   window: OpsSummaryTimeWindow;
@@ -80,5 +110,9 @@ export interface OpsSummaryResponse {
     llm_pressure: OpsSummaryLlmPressure;
     quality_trend: OpsSummaryQualityTrend;
   };
+  /**
+   * Status-first zone signals (#1698). Additive; does not alter questions.* or admin_status.
+   */
+  zones: OpsSummaryZones;
   source_gets: string[];
 }

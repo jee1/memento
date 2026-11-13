@@ -30,6 +30,7 @@ import {
 } from '../../batch-run-history.js';
 import { broadcastReviewCandidatesChanged } from '../../review-candidates-changed-fanout.js';
 import { formatDurationHumanKo } from './admin-status-service.js';
+import { resolveJobIntervalMs } from './admin-batch-job-interval-keys.js';
 
 /** Issue #833: JobRunRow (snake_case, DB shape) → wire response shape (camelCase). */
 function toJobRunResponse(row: JobRunRow): Record<string, unknown> {
@@ -110,37 +111,6 @@ function rejectIfReadOnly(res: Response): boolean {
     code: 'ADMIN_JOBS_READ_ONLY',
   });
   return true;
-}
-
-/** Best-effort job name → config interval field (#832). Unknown → null. */
-const JOB_INTERVAL_CONFIG_KEY: Record<string, string> = {
-  cleanup: 'cleanupInterval',
-  monitoring: 'monitoringInterval',
-  healthcheck: 'healthCheckInterval',
-  wal_checkpoint: 'walCheckpointInterval',
-  lock_monitor: 'lockMonitorInterval',
-  reflexion_cleanup: 'reflexionCleanupInterval',
-  reflexion_healthcheck: 'reflexionHealthCheckInterval',
-  log_rotation: 'logRotationInterval',
-  quality_measurement_batch: 'qualityMeasurementInterval',
-  meta_memory_introspection: 'metaMemoryIntrospectionInterval',
-  memory_review_candidates: 'memoryReviewCandidatesInterval',
-  sleep_consolidation_batch: 'sleepConsolidationInterval',
-  telemetry_cleanup_batch: 'telemetryCleanupInterval',
-  forgetting_event_cleanup_batch: 'forgettingEventCleanupInterval',
-  job_run_cleanup_batch: 'jobRunCleanupInterval',
-  anchor_auto_refresh: 'anchorAutoRefreshInterval',
-  supersede_candidate_scan: 'supersedeCandidateScanInterval',
-  rejection_gate_drift_check: 'rejectionGateDriftCheckInterval',
-};
-
-function resolveJobIntervalMs(name: string, config: Record<string, unknown>): number | null {
-  const key = JOB_INTERVAL_CONFIG_KEY[name];
-  if (!key) {
-    return null;
-  }
-  const value = config[key];
-  return typeof value === 'number' ? value : null;
 }
 
 function respondInternalError(res: Response, logMessage: string, errorLabel: string, error: unknown): Response {

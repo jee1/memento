@@ -11,6 +11,7 @@
 
 ### Added
 
+- `GET /admin/ops/summary` 응답에 최상위 `zones`(system_ok / doing_work / needs_action) 를 추가한다. 기존 필드는 그대로 두고, 색(severity)은 서버가 계산한다. 검색 빈 결과는 기각 게이트 거부(`rejected`)와 결과 없음(`no_result`)으로 가른다 (#1698).
 - Admin 메모리 그래프에 「전체 보기」와 시뮬레이션 안정 뒤 자동 맞춤을 넣고, 배율 하한을 bbox 기반 `min(0.1, k_fit*0.8)` 로 갱신한다. 낮은 배율에서는 노드 라벨을 숨긴다 (#1689).
 - 문서: 프로젝트 방향 `docs/DIRECTION.md` 를 추가한다(주인 한 사람과 그 에이전트를 위한 작업 기억, 지표 세 개, 하지 않는 일). README, README.en, AGENTS 에서 링크하고, 이전 방향을 서술한 `docs/reference/{ko,en}/Memento-Goals.md`, `Memento-Milestones.md`, `docs/plans/1094-enterprise-memory-governance.md` 맨 위에 이력 배너를 붙인다. README, README.en 의 로드맵과 아키텍처 문서(`docs/architecture/{ko,en}/architecture.md`, `docs/architecture/ko/arc42.md`)의 M2 팀, M3 조직, PostgreSQL/Redis/Kubernetes 멀티테넌트 계획 서술은 「계획에서 제외」로 고친다.
 - `memory_injection` 이 기각 게이트 top-10 항목 점수 중 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5, 0이면 끔) 이상만 주입하고, 결과 최상위 `item_filter` 와 텔레메트리 `memory.injection.item_filtered` 를 남긴다. `recall` 응답 형태는 바꾸지 않는다 (#1682).
@@ -20,6 +21,7 @@
 
 ### Fixed
 
+- `GET /admin/ops/summary` `zones.system_ok.schema_version` 이 `MAX(version)` 문자열 최대(`"9.0"`)를 쓰던 것을 `readCurrentSchemaVersion` 으로 바꿔 실제 최신(`"66.0"`)을 낸다 (#1698).
 - Claude Code 플러그인 `plugins/memento/.claude-plugin/plugin.json` 의 `version` 이 0.1.2 에 머물러 2.3.x 릴리스의 서버 버전이 플러그인 사용자에게 갱신으로 나가지 않았다. 서버 버전(2.3.10)으로 맞추고 `scripts/check-version-sync.ts` 가 이 파일도 같은 버전인지 검사한다.
 - 의존성: hono 4.13.18, @hono/node-server 2.1.8 로 갱신한다(권고 GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w, GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v 해소).
 
