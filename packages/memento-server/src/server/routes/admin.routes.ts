@@ -10,7 +10,7 @@ import type { ServerServices } from '../bootstrap.js';
 import { registerAdminRelationRoutes } from './admin/admin-relations.routes.js';
 import { registerAdminTelemetryRoutes } from './admin/admin-telemetry.routes.js';
 import { registerAdminGraphRoute } from './admin/admin-graph.routes.js';
-import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.routes.js';
+import { registerAdminEmbeddingHealthRoute } from './admin/admin-embedding-health.routes.js';
 import { registerAdminStatsAndHealthRoutes } from './admin/admin-stats-and-health.routes.js';
 import { registerAdminMemoryReviewRoutes } from './admin/admin-memory-review.routes.js';
 import { registerAdminMemorySupersedeRoutes } from './admin/admin-memory-supersede.routes.js';
@@ -50,7 +50,7 @@ export function createAdminRouter(
 
   registerAdminTelemetryRoutes(router, db, serverServices);
   registerAdminGraphRoute(router, db);
-  registerAdminEmbeddingMapRoute(router, db);
+  registerAdminEmbeddingHealthRoute(router, db);
   registerAdminExportRoutes(router, db, serverServices);
   registerAdminForgettingRoutes(router, db);
 

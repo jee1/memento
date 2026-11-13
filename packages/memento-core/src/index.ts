@@ -163,7 +163,6 @@ export { RetryManager } from './shared/utils/retry-manager.js';
 export { getRetryOptions } from './shared/config/retry-options-loader.js';
 export {
   decodeFloat32Embedding,
-  embeddingColumnToNumbers,
   encodeFloat32Embedding,
 } from './shared/utils/embedding-serialization.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
@@ -213,7 +212,6 @@ export {
 export { RelationEngineSchemaMigration } from './infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 export {
   EmbeddingReindexService,
-  expectedDimensions,
 } from './domains/embedding/services/embedding-reindex-service.js';
 export { getEmbeddingModelFilter } from './shared/config/embedding-models.js';
 export type {
@@ -465,8 +463,6 @@ export type { VecCardinalityRow } from './infrastructure/database/sqlite/vec-sch
 export {
   listActiveMemoryIdAndContent,
   findAnchorMemorySummaryById,
-  countActiveMemoryItems,
-  listMemoryEmbeddingMapCandidates,
   queryMemoryGraphNodes,
   queryProjectMemoryStats,
   listProjectMemoryCleanupCandidates,
@@ -478,4 +474,3 @@ export {
   listRecentMemoryResourceIds,
   findMemoryResourceRowById,
 } from './domains/memory/repositories/memory-item-repository.js';
-export type { MemoryEmbeddingMapCandidateRow } from './domains/memory/repositories/memory-item-repository.js';

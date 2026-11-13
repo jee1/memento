@@ -36,19 +36,6 @@ export interface AnchorMemorySummaryRow {
   created_at: string;
 }
 
-export interface MemoryEmbeddingMapCandidateRow {
-  id: string;
-  content: string;
-  type: string;
-  importance: number | null;
-  created_at: string | null;
-  tags: string | null;
-  embedding: Buffer;
-  dim: number;
-  dimensions: number | null;
-  model: string | null;
-}
-
 export interface MemoryGraphNodeQueryFilter {
   types?: string[] | null;
   relation_types?: string[] | null;
@@ -359,36 +346,6 @@ export function countActiveMemoryItems(db: Database.Database): number {
     )
     .get() as { count?: number } | undefined;
   return Number(row?.count ?? 0);
-}
-
-export function listMemoryEmbeddingMapCandidates(
-  db: Database.Database,
-  provider: string,
-  limit: number,
-): MemoryEmbeddingMapCandidateRow[] {
-  return db
-    .prepare(
-      `SELECT
-         mi.id,
-         mi.content,
-         mi.type,
-         mi.importance,
-         mi.created_at,
-         mi.tags,
-         me.embedding,
-         me.dim,
-         me.dimensions,
-         me.model
-       FROM memory_item mi
-       INNER JOIN memory_embedding me
-         ON me.memory_id = mi.id
-        AND me.embedding_provider = ?
-        AND me.projection_type = 'native'
-       WHERE COALESCE(mi.is_deleted, 0) = 0
-       ORDER BY COALESCE(mi.importance, 0.5) DESC, datetime(mi.created_at) DESC
-       LIMIT ?`,
-    )
-    .all(provider, limit) as MemoryEmbeddingMapCandidateRow[];
 }
 
 export function queryMemoryGraphNodes(
