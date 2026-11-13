@@ -18,6 +18,7 @@
     applyRestart: '재기동 필요',
     pendingRestart: '재기동 대기',
     overrideIgnored: '저장됐지만 적용 안 됨',
+    inactive: '적용 안 됨',
     drift: '기본값과 다름',
     unset: '미설정',
     secretSet: '설정됨(값 가림)',
