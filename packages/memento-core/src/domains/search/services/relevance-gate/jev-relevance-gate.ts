@@ -1,5 +1,5 @@
 /**
- * TypeSafe Jev(System One) 기반 관련성 기각 게이트.
+ * TypeSafe 의 Jev 모델(System One) 기반 관련성 기각 게이트.
  * 검색 후보가 질의에 대한 유효한 맥락/답을 담고 있는지 P(true)를 배치 1회 호출로 판정한다.
  * #1095
  */

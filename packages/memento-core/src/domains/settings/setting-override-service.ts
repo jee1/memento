@@ -12,6 +12,7 @@ import type Database from 'better-sqlite3';
 import { mementoConfig } from '../../shared/config/index.js';
 import { validateConfiguration } from '../../shared/utils/configuration-validator.js';
 import {
+  canonicalSettingValue,
   normalizeSettingValue,
   READ_ONLY_SETTINGS,
   SETTING_REGISTRY,
@@ -166,7 +167,7 @@ function toView(
     default_source: definition.defaultSource,
     env_value: env,
     override: override
-      ? { value: override.value, updated_at: override.updated_at, updated_by: override.updated_by }
+      ? { value: canonicalSettingValue(definition, override.value), updated_at: override.updated_at, updated_by: override.updated_by }
       : null,
     pending_restart: definition.apply === 'restart' && baseline !== undefined && value !== baseline.boot,
     override_ignored_reason: ignoredReason,
@@ -402,13 +403,15 @@ export function applyStoredSettingOverrides(db: Database.Database): void {
   const rows = db.prepare('SELECT key, value, updated_at, updated_by FROM setting_override').all() as OverrideRow[];
   for (const row of rows) {
     const definition = SETTING_REGISTRY.get(row.key);
-    const normalized = definition ? normalizeSettingValue(definition, row.value) : null;
-    if (!definition || !normalized || 'message' in normalized || normalized.value !== row.value) {
+    // 저장된 별칭 값(옛 행)은 정본으로 읽는다. 행은 고치지 않는다.
+    const stored = definition ? canonicalSettingValue(definition, row.value) : row.value;
+    const normalized = definition ? normalizeSettingValue(definition, stored) : null;
+    if (!definition || !normalized || 'message' in normalized || normalized.value !== stored) {
       process.stderr.write(`[CONFIG WARN] setting_override ${row.key}="${row.value}" is not valid; ignoring it.\n`);
       ignoredOverrides.set(row.key, normalized && 'message' in normalized ? normalized.message : 'not a canonical value');
       continue;
     }
-    const rejected = applyEnvChecked(definition, row.value);
+    const rejected = applyEnvChecked(definition, stored);
     if (rejected) {
       process.stderr.write(`[CONFIG WARN] setting_override ${row.key}="${row.value}" is not allowed (${rejected}); ignoring it.\n`);
       ignoredOverrides.set(row.key, rejected);

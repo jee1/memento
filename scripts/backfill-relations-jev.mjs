@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console, security/detect-non-literal-fs-filename -- CLI reports progress and appends to the --state file it was given. */
 /**
- * Backfill relations for memories saved before the Jev seat existed.
+ * Backfill relations for memories saved before the typesafe seat existed.
  * Runs inside the server image (`scripts/backfill-relations-jev.sh`): the DB is owned by the container user.
  *
  * Each source is judged against the 100 newest memories of the same owner created before it,
@@ -30,8 +30,8 @@ const apply = values.apply;
 const limit = values.limit === undefined ? (apply ? Infinity : 5) : Number(values.limit);
 if (!Number.isFinite(limit) && limit !== Infinity) throw new Error(`--limit must be a number: ${values.limit}`);
 
-if (mementoConfig.relationExtractionOverride.kind !== 'jev') {
-  throw new Error('LLM_PROVIDER_RELATION_EXTRACTION must be jev');
+if (mementoConfig.relationExtractionOverride.kind !== 'typesafe') {
+  throw new Error('LLM_PROVIDER_RELATION_EXTRACTION must be typesafe (jev is accepted as an alias)');
 }
 
 const done = new Set(existsSync(values.state) ? readFileSync(values.state, 'utf8').split('\n').filter(Boolean) : []);

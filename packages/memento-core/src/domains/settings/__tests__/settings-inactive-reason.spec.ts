@@ -89,7 +89,7 @@ describe('settings inactive reason (#1685)', () => {
     expect(judge('k')).toBeNull();
   });
 
-  it('LLM_MODEL_RELATION_EXTRACTION is inactive under jev, active under chat providers or unset', async () => {
+  it('LLM_MODEL_RELATION_EXTRACTION is inactive under typesafe and its jev alias, active under chat providers or unset', async () => {
     const registry = await load();
     const reason = (provider: string | null) => {
       if (provider === null) delete process.env.LLM_PROVIDER_RELATION_EXTRACTION;
@@ -100,12 +100,13 @@ describe('settings inactive reason (#1685)', () => {
         'LLM_MODEL_RELATION_EXTRACTION',
       );
     };
-    expect(reason('jev')).toContain('TYPESAFE_MODEL');
-    expect(reason('jev')).toContain('typesafe');
+    expect(reason('typesafe')).toContain('TYPESAFE_MODEL');
+    expect(reason('typesafe')).toContain('typesafe');
+    expect(reason('jev')).toBe(reason('typesafe'));
     for (const provider of ['openai', 'gemini', 'ollama', 'auto']) {
       expect(reason(provider), provider).toBeNull();
     }
-    expect(reason('jev')).not.toBeNull();
+    expect(reason('typesafe')).not.toBeNull();
     expect(reason(null)).toBeNull();
   });
 

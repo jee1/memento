@@ -61,7 +61,7 @@ async function main(): Promise<void> {
   const sampleCount = Number(values.samples);
   const rounds = Number(values.rounds);
   const warmup = Number(values.warmup);
-  process.env.LLM_PROVIDER_RELATION_EXTRACTION = 'jev';
+  process.env.LLM_PROVIDER_RELATION_EXTRACTION = 'typesafe';
   process.env.TYPESAFE_API_KEY = 'bench-stub';
   const realFetch = globalThis.fetch;
   globalThis.fetch = (input, init) =>

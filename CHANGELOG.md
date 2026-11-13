@@ -20,6 +20,10 @@
 - 기각 게이트 드리프트 모니터. `rejection_gate_baseline`(migration 066, append-only)에 임계값을 잰 조건(N, 날짜, judge 모델, 라벨 세트, 참조 분포)을 남기고, 기동과 임계값 변경 때 실효 임계값이 활성 기준과 다르면 행을 덧붙인다. 배치 `rejection_gate_drift_check`(일 1회, LLM 호출 없음)가 지난 ISO 주의 기각률이 참조 기각률 중심 `max(3 시그마, 무릎 질량)` 밴드를 벗어나거나 활성 기억이 기준 N 의 2배 이상이면 `memory.search.gate_drift` 이벤트에 alert 를 남긴다. alert 는 재측정 신호이며 임계값을 바꾸지 않는다. `get_telemetry_summary` 의 `search_quality.gate_drift` 가 최신 판정과 활성 기준을 보여 주며 전역 범위 요약에만 실린다. 기존 DB 의 시드 기준 참조는 그 DB 의 텔레메트리로 계산한다 (#1681).
 - 관리자 설정 화면이 상위 스위치에 가려 코드가 읽지 않는 값(`LLM_MODEL_RELATION_EXTRACTION` 은 제공자 typesafe(옛 값 jev)일 때, 검색 기각 게이트 임계값 3개는 게이트 off/ollama 이거나 게이트가 typesafe 인데 `TYPESAFE_API_KEY` 가 비었을 때, `CONSOLIDATION_JUDGE_THRESHOLD` 는 판정기 off 이거나 판정기가 typesafe 인데 `TYPESAFE_API_KEY` 가 비었을 때)에 「적용 안 됨」 배지와 이유를 보이고, `GET /admin/settings` 항목에 `inactive_reason` 필드를 더한다. 값을 지우거나 막지 않는다 (#1685).
 
+### Changed
+
+- 관계 추출 제공자 설정 `LLM_PROVIDER_RELATION_EXTRACTION` 의 정본 값을 `jev` 에서 `typesafe` 로 바꾼다. 제공자는 typesafe, 모델은 jev 로 용어를 가른다(`GLOSSARY.md`). 옛 값 `jev` 는 별칭으로 계속 받아 `typesafe` 로 정규화한다: 옛 `.env`, 설정 화면 PUT, DB 에 저장된 옛 override 행 모두 그대로 동작하고 설정 화면에는 `typesafe` 로 보인다. `llm_usage_*` 의 provider 문자열, 관계 `method='jev'`, 마이그레이션 066 값, env 키 `TYPESAFE_*` 는 바꾸지 않는다 (#1687).
+
 ### Fixed
 
 - `GET /admin/ops/summary` `zones.system_ok.schema_version` 이 `MAX(version)` 문자열 최대(`"9.0"`)를 쓰던 것을 `readCurrentSchemaVersion` 으로 바꿔 실제 최신(`"66.0"`)을 낸다 (#1698).

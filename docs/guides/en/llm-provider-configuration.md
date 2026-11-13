@@ -91,17 +91,18 @@ For the three batch jobs — relation extraction, procedural extraction, and con
 
 ```bash
 # Per-job provider overrides (optional; unset/empty → global LLM_PROVIDER)
-LLM_PROVIDER_RELATION_EXTRACTION=     # openai | gemini | ollama | auto | jev
+LLM_PROVIDER_RELATION_EXTRACTION=     # openai | gemini | ollama | auto | typesafe
 LLM_PROVIDER_PROCEDURAL=
 LLM_PROVIDER_CONSOLIDATION=
 ```
 
 Behavior:
 
-- **Normalization**: trim + lowercase. Procedural and consolidation accept the same tokens as global `LLM_PROVIDER` (`openai`, `gemini`, `ollama`, `auto`). Relation extraction also accepts `jev`.
-- **jev**: scores relations with System One noul using `TYPESAFE_API_KEY` and does not fall back to a chat provider. `LLM_MODEL_RELATION_EXTRACTION` is not read. `jev` on the procedural or consolidation key still warns once and is ignored.
+- **Normalization**: trim + lowercase. Procedural and consolidation accept the same tokens as global `LLM_PROVIDER` (`openai`, `gemini`, `ollama`, `auto`). Relation extraction also accepts `typesafe`.
+- **typesafe**: scores relations with the TypeSafe provider's `jev` model (System One noul) using `TYPESAFE_API_KEY` and does not fall back to a chat provider. `LLM_MODEL_RELATION_EXTRACTION` is not read; the model is `TYPESAFE_MODEL`. `typesafe` on the procedural or consolidation key still warns once and is ignored.
+- **jev (alias)**: the old value `jev` is still accepted and means `typesafe`. The settings screen shows it as `typesafe`.
 - **Invalid values**: treated as unset for that job, with a one-time `[CONFIG WARN]` at config load/init. The process does not abort.
-- **Prefer-then-fallback**: a chat override is the job's preferred provider. Unavailability uses the existing fallback policy. `jev` does not enter that fallback.
+- **Prefer-then-fallback**: a chat override is the job's preferred provider. Unavailability uses the existing fallback policy. `typesafe` does not enter that fallback.
 - **Override equals global**: valid no-op (still used for model binding and Ollama readiness).
 - **Ollama readiness**: if any of the three overrides is `ollama`, initialization runs the Ollama connection check even when the global default is cloud.
 

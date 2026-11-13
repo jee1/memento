@@ -93,17 +93,18 @@ LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
 
 ```bash
 # 용도별 제공자 오버라이드 (선택사항; 미설정·빈 값 → 전역 LLM_PROVIDER)
-LLM_PROVIDER_RELATION_EXTRACTION=     # openai | gemini | ollama | auto | jev
+LLM_PROVIDER_RELATION_EXTRACTION=     # openai | gemini | ollama | auto | typesafe
 LLM_PROVIDER_PROCEDURAL=
 LLM_PROVIDER_CONSOLIDATION=
 ```
 
 동작 요약:
 
-- **정규화**: 앞뒤 공백 제거 후 소문자. 절차·공고화의 허용 토큰은 전역 `LLM_PROVIDER`와 같습니다(`openai` / `gemini` / `ollama` / `auto`). 관계 추출만 `jev`를 추가로 받습니다.
-- **jev**: `TYPESAFE_API_KEY`로 System One noul을 묻고 챗 제공자로 폴백하지 않습니다. `LLM_MODEL_RELATION_EXTRACTION`은 읽지 않습니다. 절차·공고화 키의 `jev`는 경고 후 무시합니다.
+- **정규화**: 앞뒤 공백 제거 후 소문자. 절차·공고화의 허용 토큰은 전역 `LLM_PROVIDER`와 같습니다(`openai` / `gemini` / `ollama` / `auto`). 관계 추출만 `typesafe`를 추가로 받습니다.
+- **typesafe**: `TYPESAFE_API_KEY`로 제공자 typesafe 의 모델 `jev`(System One noul)에게 묻고 챗 제공자로 폴백하지 않습니다. `LLM_MODEL_RELATION_EXTRACTION`은 읽지 않고 모델은 `TYPESAFE_MODEL`입니다. 절차·공고화 키의 `typesafe`는 경고 후 무시합니다.
+- **jev(별칭)**: 옛 값 `jev`도 계속 받으며 `typesafe`와 같습니다. 설정 화면에는 `typesafe`로 보입니다.
 - **잘못된 값**: 해당 용도 오버라이드를 무시하고 전역 경로를 쓰며, 설정 로드/초기화 시 `[CONFIG WARN]`을 **설정당 한 번** 남깁니다. 프로세스를 중단하지 않습니다.
-- **prefer-then-fallback**: 챗 오버라이드는 그 용도의 **선호** 제공자입니다. 사용 불가면 기존 폴백 정책을 따릅니다. `jev`는 이 폴백에 들어가지 않습니다.
+- **prefer-then-fallback**: 챗 오버라이드는 그 용도의 **선호** 제공자입니다. 사용 불가면 기존 폴백 정책을 따릅니다. `typesafe`는 이 폴백에 들어가지 않습니다.
 - **전역과 동일 값**: 유효한 no-op입니다 (바인딩·Ollama readiness에 그대로 쓰입니다).
 - **Ollama readiness**: 전역이 클라우드여도, 위 네 오버라이드 중 하나라도 `ollama`이면 초기화 시 Ollama 연결 검사를 수행합니다.
 

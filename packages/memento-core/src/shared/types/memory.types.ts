@@ -81,12 +81,12 @@ export interface MementoConfig {
   };
   /**
    * LLM_PROVIDER_RELATION_EXTRACTION 원문.
-   * jev 는 llmProviderOverrides 에 들어가지 않는다.
+   * typesafe(옛 값 jev 포함)는 llmProviderOverrides 에 들어가지 않는다.
    */
   relationExtractionOverride: RelationExtractionOverride;
   /**
    * #1095 검색 기각 게이트 provider.
-   * 'off' = 게이트 없음(기본, 현행 동작). 'typesafe' = TypeSafe Jev.
+   * 'off' = 게이트 없음(기본, 현행 동작). 'typesafe' = 제공자 TypeSafe(모델 jev).
    * 'ollama' = 향후 내부 모듈 교체 자리 — 아직 구현 없음.
    */
   searchRejectionGate: 'off' | 'typesafe' | 'ollama';
@@ -106,9 +106,9 @@ export interface MementoConfig {
    * 'open'(기본) = 통과. 'closed' = 기각.
    */
   searchRejectionGateOnError: 'open' | 'closed';
-  /** TypeSafe Jev API 키 (searchRejectionGate='typesafe' 일 때 필요) */
+  /** 제공자 TypeSafe API 키 (searchRejectionGate='typesafe' 일 때 필요) */
   typesafeApiKey: string | undefined;
-  /** TypeSafe Jev 모델명 */
+  /** TypeSafe 의 모델 이름(jev-latest) */
   typesafeModel: string;
   logLevel: string;
   mcpLogProtocol: boolean;

@@ -3,20 +3,24 @@ import { isChatLlmProvider } from './llm-provider-override.js';
 
 /**
  * Raw result of LLM_PROVIDER_RELATION_EXTRACTION only.
- * 'jev' is valid here and nowhere else.
+ * 'typesafe' is valid here and nowhere else. The legacy value 'jev' parses to the same kind.
  */
 export type RelationExtractionOverride =
   | { readonly kind: 'unset' }
   | { readonly kind: 'invalid'; readonly raw: string }
   | { readonly kind: 'chat'; readonly provider: LLMProvider }
-  | { readonly kind: 'jev' };
+  | { readonly kind: 'typesafe' };
 
 /** Resolved engine. Invalid and unset collapse to chat(global) inside the resolver. */
 export type RelationExtractionSeat =
   | { readonly kind: 'chat'; readonly provider: LLMProvider }
-  | { readonly kind: 'jev' };
+  | { readonly kind: 'typesafe' };
 
 const RELATION_EXTRACTION_ENV_KEY = 'LLM_PROVIDER_RELATION_EXTRACTION';
+
+/** 옛 값 jev 는 제공자 typesafe 의 별칭이다. jev 는 그 제공자의 모델 이름이다. */
+export const RELATION_EXTRACTION_TYPESAFE = 'typesafe';
+export const RELATION_EXTRACTION_TYPESAFE_ALIAS = 'jev';
 
 export function parseRelationExtractionOverride(raw: string | undefined): RelationExtractionOverride {
   if (raw === undefined) {
@@ -27,8 +31,8 @@ export function parseRelationExtractionOverride(raw: string | undefined): Relati
     return { kind: 'unset' };
   }
   const normalized = trimmed.toLowerCase();
-  if (normalized === 'jev') {
-    return { kind: 'jev' };
+  if (normalized === RELATION_EXTRACTION_TYPESAFE || normalized === RELATION_EXTRACTION_TYPESAFE_ALIAS) {
+    return { kind: 'typesafe' };
   }
   if (isChatLlmProvider(normalized)) {
     return { kind: 'chat', provider: normalized };
@@ -36,7 +40,7 @@ export function parseRelationExtractionOverride(raw: string | undefined): Relati
   return { kind: 'invalid', raw: trimmed };
 }
 
-/** chat 만 provider 맵에 둔다. jev, unset, invalid 는 키를 지워 전역 LLM_PROVIDER 를 따르게 한다. */
+/** chat 만 provider 맵에 둔다. typesafe, unset, invalid 는 키를 지워 전역 LLM_PROVIDER 를 따르게 한다. */
 export function syncRelationExtractionProvider(
   overrides: { relation_extraction?: LLMProvider },
   override: RelationExtractionOverride,
@@ -53,8 +57,8 @@ export function resolveRelationExtractionSeat(config: {
   readonly relationExtractionOverride: RelationExtractionOverride;
 }): RelationExtractionSeat {
   const override = config.relationExtractionOverride;
-  if (override.kind === 'jev') {
-    return { kind: 'jev' };
+  if (override.kind === 'typesafe') {
+    return { kind: 'typesafe' };
   }
   if (override.kind === 'chat') {
     return { kind: 'chat', provider: override.provider };
