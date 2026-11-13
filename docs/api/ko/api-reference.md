@@ -1299,8 +1299,8 @@ const prompt = await client.getPrompt('memory_injection', {
 | `INVALID_INPUT` | 잘못된 입력 파라미터 |
 | `STORAGE_ERROR` | 저장소 오류 |
 | `SEARCH_ERROR` | 검색 오류 |
-| `AUTHENTICATION_ERROR` | 인증 오류 (M2+) |
-| `PERMISSION_DENIED` | 권한 없음 (M3+) |
+| `AUTHENTICATION_ERROR` | 인증 오류 |
+| `PERMISSION_DENIED` | 권한 없음 (예약 코드. 사용자별 권한은 2026-11-13 방향 결정으로 계획에서 제외) |
 | `RATE_LIMIT_EXCEEDED` | 요청 한도 초과 |
 | `INTERNAL_ERROR` | 내부 서버 오류 |
 
@@ -1335,8 +1335,8 @@ interface ErrorResponse {
 
 - **최대 기억 크기**: 10MB
 - **검색 결과 제한**: 100개
-- **동시 연결 수**: 100개 (M1), 1000개 (M3+)
-- **API 요청 한도**: 1000회/시간 (M1), 10000회/시간 (M3+)
+- **동시 연결 수**: 100개
+- **API 요청 한도**: 1000회/시간
 
 ## 버전 관리
 

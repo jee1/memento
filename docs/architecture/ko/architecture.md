@@ -174,7 +174,7 @@ Memento는 현재 **SQLite(better-sqlite3)** 단일 스토리지를 사용한다
 
 스키마 변경은 `packages/memento-core/src/infrastructure/database/sqlite/migration/migrations/` 아래 번호 순으로 실행되는 마이그레이션으로 관리된다. 실행 가능한 DDL의 원본은 `schema.sql`이다.
 
-PostgreSQL, Redis, Kubernetes 기반 멀티테넌트 확장은 현재 구현되어 있지 않다. 향후 로드맵 항목이다.
+PostgreSQL, Redis, Kubernetes 기반 멀티테넌트 확장은 구현하지 않으며, 2026-11-13 방향 결정으로 계획에서도 제외했다([DIRECTION.md](../../DIRECTION.md)). 이전 계획은 [Memento-Milestones.md](../../reference/ko/Memento-Milestones.md)에 이력으로 남아 있다.
 
 ---
 

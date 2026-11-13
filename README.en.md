@@ -14,6 +14,8 @@ LLMs forget everything when a conversation ends — names, decisions, last week'
 
 Memento is that infrastructure. Not a dump of notes, but an **MCP-based memory operating system** where memories are created, classified, reinforced, and forgotten.
 
+Project direction (Korean only): [docs/DIRECTION.md](docs/DIRECTION.md)
+
 Working, episodic, semantic, and procedural memory map to `remember`'s `type`. Useful memories get stronger; stale ones are cleaned up. Similar memories link through vectors; anchors restore critical context in the next session.
 
 Monorepo layout, packages, and build commands live in [AGENTS.md](AGENTS.md).
@@ -123,8 +125,7 @@ The **HTTP server splits browser-session and header-based trust**. `/auth/sessio
 ## Roadmap (short)
 
 - **M1 personal (current)**: local SQLite, MCP + HTTP admin API. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key).
-- **M2 team (planned)**: shared backend, API keys, Docker
-- **M3 org (planned)**: PostgreSQL + pgvector, JWT
+- The M2 team and M3 org plans (shared backend, PostgreSQL + pgvector, JWT) were dropped by the 2026-11-13 direction decision ([docs/DIRECTION.md](docs/DIRECTION.md), Korean only). The earlier plan stays as history in [Memento-Milestones](docs/reference/en/Memento-Milestones.md).
 
 ## Contributing · license · support
 
