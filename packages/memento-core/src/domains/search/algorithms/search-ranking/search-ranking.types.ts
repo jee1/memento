@@ -6,8 +6,6 @@ export interface SearchFeatures {
   relevance: number;
   recency: number;
   importance: number;
-  usage: number;
-  duplication_penalty: number;
   // Procedural Memory Enhancement (v7.0) 필드
   workflow_name_match?: boolean; // workflow_name 매칭 여부
   skill_name_match?: boolean; // skill_name 매칭 여부
@@ -28,13 +26,6 @@ export interface BM25Result {
   normalizedScore: number;
 }
 
-export interface UsageMetrics {
-  viewCount: number;
-  citeCount: number;
-  editCount: number;
-  lastAccessed?: Date | undefined;
-}
-
 export interface RelevanceInput {
   query: string;
   content: string;
@@ -48,8 +39,6 @@ export interface SearchRankingWeights {
   relevance: number;    // α = 0.45
   recency: number;      // β = 0.20
   importance: number;   // γ = 0.20
-  usage: number;        // δ = 0.10
-  duplication_penalty: number; // ε = 0.10
   process_attribute_fit?: number; // θ = 0.1 (Issue #91, process 적합도 가중치)
   zeta_fb?: number; // 피드백 신호 가중치
 }

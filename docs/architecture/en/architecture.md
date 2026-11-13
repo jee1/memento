@@ -55,11 +55,11 @@ Hybrid search engine. FTS5 text search and vector search run in parallel; their 
 
 **Ranking formula** (`config/ranking-weights.toml`):
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage
+S = α·relevance + β·recency + γ·importance
   + ζ_fb·(feedback_norm − 0.5)
-  + θ·process_attribute_fit − ε·duplication_penalty
+  + θ·process_attribute_fit
 ```
-Weights: α=0.45, β=0.20, γ=0.20, δ=0.10, ζ_fb=0.05, θ=0.10, ε=0.10.
+Weights: α=0.45, β=0.20, γ=0.20, ζ_fb=0.05, θ=0.10.
 
 The `relevance` slot combines vector similarity (0.4), BM25 score (0.3), tag matching (0.2), and title hit (0.1). MMR (Maximal Marginal Relevance) then ensures result diversity.
 

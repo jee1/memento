@@ -10,7 +10,8 @@ import {
 
 export const DIRECTIVE_POLICY = {
   caseTag: 'case',
-  minFinalScore: 0.5,
+  // #1694: 융합 점수에서 usage 상수항(0.10·ln2/10)이 빠졌다. 같은 후보가 같은 선택을 받도록 하한도 그만큼 내렸다.
+  minFinalScore: 0.5 - (0.1 * Math.LN2) / 10,
   caseMaxChars: 300,
   minQueryChars: 10,
   queryMaxChars: 500,

@@ -74,11 +74,11 @@ Memento의 아키텍처는 "Functional Core, Structured Shell" 원칙을 따릅�
 recall과 하이브리드 검색의 최종 점수는 다음 공식으로 계산됩니다.
 
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage
-    + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+S = α·relevance + β·recency + γ·importance
+    + ζ_fb·(feedback_norm − 0.5)
 ```
 
-가중치 기본값(α=0.45, β=0.20, γ=0.20, δ=0.10 등)은 `config/ranking-weights.toml`에 있으며, 벤치마크 기반으로 조정할 수 있습니다(검색 품질 튜닝 가이드 참고).
+가중치 기본값(α=0.45, β=0.20, γ=0.20, ζ_fb=0.05 등)은 `config/ranking-weights.toml`에 있으며, 벤치마크 기반으로 조정할 수 있습니다(검색 품질 튜닝 가이드 참고).
 
 ## 빌드 시스템
 

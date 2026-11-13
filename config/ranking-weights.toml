@@ -1,8 +1,8 @@
 # 검색 랭킹 가중치 설정
 # 관계 추론 엔진의 검색 랭킹 공식에 사용되는 가중치 값들
 #
-# 랭킹 공식(요약): S = α·relevance + β·recency + γ·importance + δ·usage
-#   + ζ_fb·(feedback_norm − 0.5) + θ·process_attribute_fit − ε·duplication_penalty
+# 랭킹 공식(요약): S = α·relevance + β·recency + γ·importance
+#   + ζ_fb·(feedback_norm − 0.5) + θ·process_attribute_fit
 # (relevance 슬롯에 절차 부스트 등이 합산되는 경우는 구현·스펙 FR-008 참고)
 
 [ranking_weights]
@@ -14,12 +14,6 @@ beta = 0.20
 
 # importance: 중요도 점수 (importance_score 기반)
 gamma = 0.20
-
-# usage: 사용 빈도 점수 (access_count 기반)
-delta = 0.10
-
-# duplication_penalty: 중복 패널티 (중복 기억에 대한 감점)
-epsilon = 0.10
 
 # theta: 프로세스 속성 적합도(process_attribute_fit) 가중치 (Issue #91, ranking-profiles/default.toml과 동일)
 theta = 0.10
