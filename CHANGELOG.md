@@ -23,6 +23,9 @@
 ### Changed
 
 - 관계 추출 제공자 설정 `LLM_PROVIDER_RELATION_EXTRACTION` 의 정본 값을 `jev` 에서 `typesafe` 로 바꾼다. 제공자는 typesafe, 모델은 jev 로 용어를 가른다(`GLOSSARY.md`). 옛 값 `jev` 는 별칭으로 계속 받아 `typesafe` 로 정규화한다: 옛 `.env`, 설정 화면 PUT, DB 에 저장된 옛 override 행 모두 그대로 동작하고 설정 화면에는 `typesafe` 로 보인다. `llm_usage_*` 의 provider 문자열, 관계 `method='jev'`, 마이그레이션 066 값, env 키 `TYPESAFE_*` 는 바꾸지 않는다 (#1687).
+- 설정에 남은 `[ranking_weights]` 의 옛 키(`delta`, `epsilon`, `zeta`, `consolidation` 등 알 수 없는 키)는 어떤 값이어도 기동을 깨지 않고, 로더가 버린 키 이름을 기동 때 `console.warn` 한 줄로 알린다. 버려진 키는 `ranking_version` 해시에도 섞이지 않는다. `ranking:preview --changes` 에 `delta`, `epsilon` 을 주면 `UNKNOWN_KNOB` 으로 거부된다 (#1694).
+- 절대 점수 0.5 와 비교하던 두 곳을 같은 식으로 내렸다: 지침 주입 훅 `DIRECTIVE_POLICY.minFinalScore` 와 메타 기억 통계 성공 판정 `isItemSuccess` 가 `0.5 − 0.10·ln2/10`(≈ 0.4931) 이상이다. 같은 후보가 같은 선택과 판정을 받는다. 메타 기억의 `avg_confidence`(0.9·final + 0.1·vector 의 누적 평균)는 약 0.0062 내려가 저신뢰, 고실패 판정과 heal 대상이 조금 늘 수 있다. 머지 뒤 첫 heal 은 dry-run 결과를 보고 실행한다 (#1694).
+- `tune-weights` 후보는 같은 `--seed` 에서도 달라진다. `delta`, `epsilon` 이 탐색 순서 5, 6번째라 `alpha`, `beta`, `gamma` 는 같고 `theta` 부터 밀린다. 과거 tune 결과를 재현하려면 이 변경 이전 코드를 써야 한다 (#1694).
 
 ### Fixed
 
@@ -34,6 +37,8 @@
 
 - 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
 - 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).
+- 검색 랭킹에서 순위에 영향이 없던 두 항을 지웠다. `usage` 는 모든 후보에 같은 상수(`min(1, ln2/10)`)였고 `duplication_penalty` 는 융합 레인에서 0 고정이었다. `[ranking_weights].delta`, `.epsilon`, 두 knob(`ranking_weights.delta`, `.epsilon`), `calculateUsage`, `calculateBatchUsage`, `calculateUsageSimple`, `calculateDuplicationPenalty` 가 사라지고 `config/ranking-weights.toml`, `config/ranking-profiles/*.toml` 에서도 키를 지웠다. 순위는 그대로이고 최종 점수는 모든 후보에서 기본 `delta = 0.10` 기준 0.00693(= 0.10·ln2/10)만큼 내려간다(`feedback-heavy` 프로파일은 `delta = 0.08` 이라 0.00554). 새 `ranking_version` 해시가 생겨 텔레메트리 `ranking_versions` 에 옛 값과 새 값이 함께 보인다 (#1694).
+- **응답 계약 변경**: recall `include_score_breakdown` 응답과 `feedback` 스냅샷의 `score_breakdown` 에서 `usage`, `duplication_penalty` 필드를 뺐다(6슬롯 → relevance, recency, importance, feedback 4슬롯과 `total`). 옛 스냅샷은 그대로 둔다 (#1694).
 
 ## [2.3.10] - 2026-11-09
 

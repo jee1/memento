@@ -74,14 +74,14 @@ MCP는 Tools/Resources/Prompts를 표준으로 노출하고, 클라이언트(Cla
 최종 점수 S:
 
 ```
-S = α * relevance + β * recency + γ * importance + δ * usage - ε * duplication_penalty
+S = α * relevance + β * recency + γ * importance
 ```
 
 - **relevance**: 코사인 유사도(임베딩) + keyword TF-IDF 보정
 - **recency**: `exp(-λ * age_days)` (에빙하우스 계열 망각 함수를 응용; λ는 도메인별 튜닝) [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2657600/) +1
 - **importance**: 명시/추론("사용자 선호·규칙·장기목표"는 가중치↑)
-- **usage**: 조회·인용·재사용 빈도 로그 스케일
-- **duplication_penalty**: 군집 내 유사 항목 중복 감점
+
+> 이 문서가 처음 정의한 `δ * usage`, `ε * duplication_penalty` 항은 순위에 영향이 없어 #1694 에서 검색 점수에서 제거했다. 되살릴 때는 새 이름으로 추가한다.
 
 ### 4.2 망각·간격반복
 
