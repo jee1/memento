@@ -741,7 +741,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(11);
+    expect(tabpanelMatches).toHaveLength(10);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();
@@ -863,7 +863,7 @@ describe('static design contracts', () => {
     const dashboardCss = readStaticFile('static/css/dashboard.css');
     const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
 
-    expect(html).toMatch(/<button type="button" id="dashboard-nav-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="dashboard-tablist"/);
+    expect(html).toMatch(/<button type="button" id="dashboard-nav-toggle"[^>]*\bsession-only\b[^>]*aria-expanded="false"[^>]*aria-controls="dashboard-tablist"/);
     expect(html).toContain('<div id="dashboard-tablist" class="m-tab-bar" role="tablist"');
 
     const navIdx = html.indexOf('<nav class="m-nav-rail"');
@@ -874,7 +874,7 @@ describe('static design contracts', () => {
 
     const chipKeys = [...html.matchAll(/class="m-nav-chip[^"]*" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
     const groupKeys = [...html.matchAll(/class="m-nav-group[^"]*" role="presentation" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
-    expect(chipKeys).toEqual(['spatial', 'ops', 'learn']);
+    expect(chipKeys).toEqual(['spatial', 'ops']);
     expect(groupKeys).toEqual(chipKeys);
 
     expect(componentsCss).toMatch(/\.m-nav-compact \{\s*display: none;\s*\}/);
@@ -890,6 +890,95 @@ describe('static design contracts', () => {
     expect(tabsJs).toContain("navToggle.setAttribute('aria-expanded'");
     expect(tabsJs).toContain("chip.setAttribute('aria-pressed'");
     expect(tabsJs).toContain("e.key === 'Escape'");
+  });
+
+  it('issue #1703 signed-out chrome: every tab/panel/nav-toggle is session-only and CSS hides them', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const dashboardCss = readStaticFile('static/css/dashboard.css');
+    const authTabsJs = readStaticFile('static/js/dashboard-auth-render-tabs.js');
+
+    const tabBtns = [...html.matchAll(/<button[^>]*class="([^"]*\bm-tab-btn\b[^"]*)"[^>]*>/g)].map((m) => m[1]);
+    expect(tabBtns.length).toBeGreaterThan(0);
+    for (const cls of tabBtns) {
+      expect(cls.split(/\s+/)).toContain('session-only');
+    }
+    const panels = [...html.matchAll(/<div[^>]*class="([^"]*\btab-panel\b[^"]*)"[^>]*>/g)].map((m) => m[1]);
+    expect(panels.length).toBeGreaterThan(0);
+    for (const cls of panels) {
+      expect(cls.split(/\s+/)).toContain('session-only');
+    }
+    expect(html).toMatch(/id="dashboard-nav-toggle"[^>]*\bsession-only\b/);
+    expect(dashboardCss).toContain(
+      ".dashboard-container[data-auth-state='signed-out'] .session-only",
+    );
+    expect(authTabsJs).toContain('signed-out shows login chrome only');
+    expect(authTabsJs).not.toMatch(/activateTab\(['"]evolution-demo['"]\)/);
+    expect(html).toContain('id="dashboard-auth-form"');
+    expect(html).toContain('id="dashboard-auth-message"');
+  });
+
+  it('issue #1703 remaining tabs: TAB_PANELS matches HTML and activateTab/runTabInit wiring', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const panelsJs = readStaticFile('static/js/dashboard-tabs-panels.js');
+    const initJs = readStaticFile('static/js/dashboard-tabs-init.js');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+
+    const panelEntries = [
+      ...panelsJs.matchAll(/\{\s*name:\s*'([^']+)',\s*id:\s*'([^']+)'\s*\}/g),
+    ].map((m) => ({ name: m[1], id: m[2] }));
+    expect(panelEntries).toHaveLength(10);
+    expect(panelEntries.map((p) => p.name)).toEqual([
+      'anchor',
+      'embedding',
+      'graph',
+      'ops-overview',
+      'ops-status',
+      'review',
+      'supersede',
+      'memory-finder',
+      'jobs',
+      'settings',
+    ]);
+
+    for (const { name, id } of panelEntries) {
+      expect(html).toMatch(new RegExp(`class="m-tab-btn[^"]*" role="tab"[^>]*data-tab="${name}"`));
+      expect(html).toMatch(new RegExp(`id="${id}" class="tab-panel`));
+      expect(html).toMatch(new RegExp(`aria-controls="${id}"[^>]*data-tab="${name}"|data-tab="${name}"[^>]*aria-controls="${id}"`));
+    }
+
+    const runTabInit = extractNamedFunction(initJs, 'runTabInit');
+    expect(runTabInit).toContain("name === 'embedding'");
+    expect(runTabInit).toContain("name === 'review'");
+    expect(runTabInit).toContain("name === 'supersede'");
+    expect(runTabInit).toContain("name === 'memory-finder'");
+    expect(runTabInit).toContain("name === 'jobs'");
+    expect(runTabInit).toContain("name === 'settings'");
+    expect(runTabInit).toContain("name === 'ops-overview'");
+    expect(runTabInit).toContain("name === 'graph'");
+    expect(runTabInit).toContain("name === 'anchor'");
+    expect(runTabInit).not.toContain('evolution-demo');
+
+    const activateTab = extractNamedFunction(tabsJs, 'activateTab');
+    expect(activateTab).toContain('panels.setTabButtonsActive(name)');
+    expect(activateTab).toContain('panels.setPanelVisibility(name)');
+    expect(activateTab).toContain('tabInit.runTabInit(name)');
+    expect(activateTab).toContain('syncNavChips(name)');
+    expect(tabsJs).toContain('__MEMENTO_DASHBOARD_TABS__');
+    expect(tabsJs).toContain('activateTab');
+    expect(panelsJs).toContain('__MEMENTO_DASHBOARD_TAB_PANELS__');
+    expect(initJs).toContain('__MEMENTO_DASHBOARD_TAB_INIT__');
+  });
+
+  it('issue #1699 default tab: markup active tab drives initial roving tabindex, chips and signed-in landing', () => {
+    const html = readStaticFile('static/dashboard.html');
+    const tabsJs = readStaticFile('static/js/dashboard-tabs.js');
+    const authTabsJs = readStaticFile('static/js/dashboard-auth-render-tabs.js');
+
+    expect(html).toMatch(/id="dashboard-tab-ops-status"[^>]*class="[^"]*\bactive\b/);
+    expect(html).not.toMatch(/id="dashboard-tab-anchor"[^>]*class="[^"]*\bactive\b/);
+    expect(tabsJs).toContain(".m-tab-btn.active[data-tab]");
+    expect(tabsJs).not.toContain("syncNavChips('anchor')");
+    expect(authTabsJs).toContain("tabs.activateTab('ops-status')");
   });
 
   it('issue #1147 phone layout: table cards, 2-up KPIs, 2-line list rows and 44px targets', () => {
@@ -914,7 +1003,7 @@ describe('static design contracts', () => {
   });
 
   it('issue #1149 panel states use only the shared .m-empty/.m-loading/.m-error components', () => {
-    const LOCAL = ['rc-banner', 'as-banner', 'no-data', 'em-error', 'em-loading', 'med-empty', 'med-loading', 'med-error'];
+    const LOCAL = ['rc-banner', 'as-banner', 'no-data', 'em-error', 'em-loading'];
     const html = readStaticFile('static/dashboard.html');
     const classAttrs = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(/\s+/)).flat();
     const css = readStaticFile('static/css/dashboard.css') + readStaticFile('static/css/components.css');
@@ -926,10 +1015,10 @@ describe('static design contracts', () => {
       expect(js, name).not.toMatch(new RegExp(`['"\\s]${name}['"\\s]`));
     }
     const expected: Record<string, string> = {
-      'rc-loading': 'm-loading', 'em-loading': 'm-loading', 'med-loading': 'm-loading',
-      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty', 'med-empty': 'm-empty',
+      'rc-loading': 'm-loading', 'em-loading': 'm-loading',
+      'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty',
       'rc-error': 'm-error', 'rc-health-error': 'm-error', 'rc-batch-history-error': 'm-error', 'ops-status-error': 'm-error',
-      'em-error': 'm-error', 'em-health-error': 'm-error', 'med-error': 'm-error',
+      'em-error': 'm-error', 'em-health-error': 'm-error',
     };
     for (const [id, cls] of Object.entries(expected)) {
       expect(html, id).toMatch(new RegExp(`id="${id}" class="[^"]*\\b${cls}\\b`));
@@ -960,10 +1049,10 @@ describe('static design contracts', () => {
     const html = readStaticFile('static/dashboard.html');
     const visible = html.replace(/<!--[\s\S]*?-->/g, '');
     expect(visible.match(/#\d{3,4}\b/g) ?? []).toEqual([]);
-    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro', 'med-intro']) {
+    for (const cls of ['ops-status-intro', 'rc-intro', 'jobs-intro']) {
       expect(html, cls).toMatch(new RegExp(`<div class="m-about__body">\\s*<p class="${cls}"`));
     }
-    expect(html.match(/<details class="m-about">/g)).toHaveLength(4);
+    expect(html.match(/<details class="m-about">/g)).toHaveLength(3);
     // irreversible-action explanations stay next to their buttons, outside any disclosure
     for (const cls of ['rc-action-effect-note', 'rc-bulk-effect-note']) {
       const at = html.indexOf(`class="${cls}"`);
@@ -981,7 +1070,7 @@ describe('static design contracts', () => {
 
   it('issue #1152 jobs tab is one schedule table plus a three-tab drawer; selection is shown once', () => {
     const html = readStaticFile('static/dashboard.html');
-    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-evolution-demo"'));
+    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-supersede-candidates"'));
     expect(jobs).not.toContain('id="jobs-actions"');
     expect(jobs).not.toMatch(/id="jobs-(timeline|logs)-selected"/);
     const drawer = jobs.slice(jobs.indexOf('<aside id="jobs-drawer"'), jobs.indexOf('</aside>'));

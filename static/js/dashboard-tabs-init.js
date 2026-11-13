@@ -19,21 +19,6 @@
     });
   }
 
-  function initEvolutionDemo() {
-    const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
-    if (!shell) {
-      return;
-    }
-    if (typeof shell.initPanel === 'function') {
-      shell.initPanel();
-    } else if (typeof shell.refresh === 'function') {
-      shell.refresh();
-    } else if (typeof shell.init === 'function') {
-      shell.init();
-    }
-    dispatchDashboardResize();
-  }
-
   function initEmbeddingTab() {
     if (typeof global.initEmbeddingMap === 'function') {
       global.initEmbeddingMap();
@@ -103,10 +88,6 @@
   }
 
   function runTabInit(name) {
-    if (name === 'evolution-demo') {
-      initEvolutionDemo();
-      return;
-    }
     if (name === 'embedding') {
       initEmbeddingTab();
       return;

@@ -11,7 +11,6 @@ const TABS = [
   'review',
   'memory-finder',
   'jobs',
-  'evolution-demo',
 ];
 
 test.describe('dashboard narrow layout (#1147)', () => {
