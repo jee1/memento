@@ -169,6 +169,7 @@ test.describe('Anchor Map pinning (real d3)', () => {
     const storedBeforeReload = await page.evaluate((key) => localStorage.getItem(key), LAYOUT_KEY);
     expect(storedBeforeReload).toBeTruthy();
     await page.reload();
+    await page.locator('#dashboard-tab-anchor').click();
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);
     const storedAfterReload = await page.evaluate((key) => localStorage.getItem(key), LAYOUT_KEY);
     expect(storedAfterReload).toBe(storedBeforeReload);
