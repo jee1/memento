@@ -11,6 +11,7 @@
 
 ### Added
 
+- `GET /admin/ops/summary` 응답에 최상위 `zones`(system_ok / doing_work / needs_action) 를 추가한다. 기존 필드는 그대로 두고, 색(severity)은 서버가 계산한다. 검색 빈 결과는 기각 게이트 거부(`rejected`)와 결과 없음(`no_result`)으로 가른다 (#1698).
 - 문서: 프로젝트 방향 `docs/DIRECTION.md` 를 추가한다(주인 한 사람과 그 에이전트를 위한 작업 기억, 지표 세 개, 하지 않는 일). README, README.en, AGENTS 에서 링크하고, 이전 방향을 서술한 `docs/reference/{ko,en}/Memento-Goals.md`, `Memento-Milestones.md`, `docs/plans/1094-enterprise-memory-governance.md` 맨 위에 이력 배너를 붙인다. README, README.en 의 로드맵과 아키텍처 문서(`docs/architecture/{ko,en}/architecture.md`, `docs/architecture/ko/arc42.md`)의 M2 팀, M3 조직, PostgreSQL/Redis/Kubernetes 멀티테넌트 계획 서술은 「계획에서 제외」로 고친다.
 - `memory_injection` 이 기각 게이트 top-10 항목 점수 중 `MEMORY_INJECTION_ITEM_SCORE_MIN`(기본 0.5, 0이면 끔) 이상만 주입하고, 결과 최상위 `item_filter` 와 텔레메트리 `memory.injection.item_filtered` 를 남긴다. `recall` 응답 형태는 바꾸지 않는다 (#1682).
 - remember 가 기존 행을 replace 또는 incremental 로 고치고 본문이 바뀌면 `memory.write.inplace_updated` 한 건을 `telemetry_events` 에 남긴다. `extra_data` 는 `memory_id`, `update_mode`, 이전 본문 sha256, 다음 본문 sha256 이고 본문은 넣지 않는다 (#1676).

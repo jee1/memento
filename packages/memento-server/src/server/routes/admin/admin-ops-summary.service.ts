@@ -18,6 +18,7 @@ import type {
   OpsSummaryResponse,
   OpsSummaryTimeWindow,
 } from './admin-ops-summary.types.js';
+import { buildOpsSummaryZones } from './admin-ops-summary-zones.js';
 
 const PERIOD_MS: Record<TelemetryPeriod, number> = {
   '24h': 86_400_000,
@@ -340,6 +341,17 @@ export async function buildOpsSummary(
     sourceGets.push('/admin/telemetry/llm-usage');
   }
 
+  const zones = buildOpsSummaryZones({
+    db,
+    serverServices,
+    window,
+    ownerId,
+    nowMs,
+    adminStatus,
+    batchJobs,
+    llmPressure,
+  });
+
   return {
     generated_at: new Date(nowMs).toISOString(),
     window,
@@ -351,6 +363,7 @@ export async function buildOpsSummary(
       llm_pressure: llmPressure,
       quality_trend: qualityTrend,
     },
+    zones,
     source_gets: sourceGets,
   };
 }
