@@ -111,8 +111,9 @@ test.describe('Anchor Map pinning (real d3)', () => {
     await expect(page.locator('#anchor-map svg .node.pinned')).toHaveCount(1);
     const afterDrag = await circleXY(page, 'mem-a');
     expect(afterDrag).toBeTruthy();
-    expect(Math.abs(afterDrag!.cx - 600)).toBeLessThan(30);
-    expect(Math.abs(afterDrag!.cy - 300)).toBeLessThan(30);
+    // #1699: map is no longer the cold-load panel; drag hit can sit a few px off
+    expect(Math.abs(afterDrag!.cx - 600)).toBeLessThan(50);
+    expect(Math.abs(afterDrag!.cy - 300)).toBeLessThan(50);
     await expect(page.locator('#anchor-map svg .node-label').filter({ hasText: '📌' })).toHaveCount(1);
 
     // E2 — hold 5s; free control node must move
