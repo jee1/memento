@@ -28,6 +28,7 @@
 ### Removed
 
 - 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
+- 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).
 
 ## [2.3.10] - 2026-11-09
 

@@ -1,5 +1,5 @@
 /**
- * 랭킹 가중치 knob 스펙. tune-weights 탐색과 대시보드 제안(#1584)이 같은 범위를 쓴다.
+ * 랭킹 가중치 knob 스펙. tune-weights 탐색과 ranking:preview 가 같은 범위를 쓴다.
  */
 
 import type { RankingWeightsConfig } from './ranking-weights-loader.js';

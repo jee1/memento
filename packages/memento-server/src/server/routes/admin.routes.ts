@@ -15,7 +15,6 @@ import { registerAdminStatsAndHealthRoutes } from './admin/admin-stats-and-healt
 import { registerAdminMemoryReviewRoutes } from './admin/admin-memory-review.routes.js';
 import { registerAdminMemorySupersedeRoutes } from './admin/admin-memory-supersede.routes.js';
 import { registerAdminSettingsRoutes } from './admin/admin-settings.routes.js';
-import { registerAdminRankingRoutes } from './admin/admin-ranking.routes.js';
 import { registerAdminMemorySearchRoutes } from './admin/admin-memory-search.routes.js';
 import { registerAdminBatchRoutes } from './admin/admin-batch.routes.js';
 import { registerAdminRuntimePerformanceRoutes } from './admin/admin-runtime-performance.routes.js';
@@ -42,7 +41,6 @@ export function createAdminRouter(
   registerAdminMemoryReviewRoutes(router, db);
   registerAdminMemorySupersedeRoutes(router, db);
   registerAdminSettingsRoutes(router, db);
-  registerAdminRankingRoutes(router, db);
   registerAdminMemorySearchRoutes(router, db, serverServices);
   registerAdminBatchRoutes(router, db, serverServices);
   registerAdminRuntimePerformanceRoutes(router);

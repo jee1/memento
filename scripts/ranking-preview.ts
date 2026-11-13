@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 랭킹 가중치 제안 미리보기 (#1584)
+ * 랭킹 가중치 변경 미리보기 (#1584)
  *
  * 사용: npm run ranking:preview -- --changes '{"relevance_signal.scale":2.2}'
  *

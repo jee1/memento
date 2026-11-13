@@ -16,7 +16,6 @@
     { name: 'memory-finder', id: 'tab-memory-finder' },
     { name: 'jobs', id: 'tab-jobs' },
     { name: 'settings', id: 'tab-settings' },
-    { name: 'ranking', id: 'tab-ranking' },
   ];
 
   function getPanel(name) {
