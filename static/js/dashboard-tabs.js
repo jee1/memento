@@ -157,12 +157,12 @@
     });
   });
 
-  const initial = document.querySelector('.m-tab-btn[data-tab="anchor"]');
+  // 기본 탭은 마크업의 active 하나가 정한다 (#1699). 초기 roving tabindex 와 그룹 칩도 그 탭을 따른다.
+  const initial = document.querySelector('.m-tab-btn.active[data-tab]');
   if (initial) {
     setRovingTabindex(initial);
+    syncNavChips(initial.getAttribute('data-tab'));
   }
-
-  syncNavChips('anchor');
 
   global.__MEMENTO_DASHBOARD_TABS__ = {
     activateTab: activateTab,

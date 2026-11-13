@@ -97,6 +97,10 @@ test.describe('Memory finder dashboard (#1118)', () => {
     await page.goto('/dashboard');
 
     await expect(page.locator('#dashboard-tab-ops-status')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#dashboard-tab-ops-status')).toHaveAttribute('tabindex', '0');
+    await expect(page.locator('#dashboard-tab-anchor')).toHaveAttribute('tabindex', '-1');
+    await expect(page.locator('.m-nav-chip[data-nav-group="ops"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.m-nav-chip[data-nav-group="spatial"]')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('#tab-memory-finder')).toBeHidden();
   });
 

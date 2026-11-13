@@ -108,7 +108,8 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(tabsJs).toContain('__MEMENTO_DASHBOARD_TABS__');
     expect(tabsJs).toContain('activateTab');
     expect(tabsJs).toContain('__MEMENTO_EVOLUTION_DEMO_SHELL__');
-    expect(tabsJs).toContain("data-tab=\"anchor\"");
+    expect(tabsJs).toContain('.m-tab-btn.active[data-tab]');
+    expect(tabsJs).not.toContain("syncNavChips('anchor')");
   });
 
   it('memory-evolution-demo-shell.js fetches admin evolution demo APIs', () => {

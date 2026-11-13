@@ -317,7 +317,7 @@ describe('dashboard ops status panel (#1699)', () => {
 
     const actionRows = (cards[2].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
     const pendingValue = actionRows[0].children.find((c) => c.className === 'ops-row__value');
-    expect(pendingValue?.textContent).toBe('500/500 (상한)');
+    expect(pendingValue?.textContent).toBe('500');
   });
 
   it('renders unknown zone items without panel code changes (generic zones)', async () => {
@@ -383,6 +383,55 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(harness.ns.labelForKey('llm_typesafe_attempts')).toBe('typesafe / attempts');
     expect(harness.ns.labelForKey('llm_gemini_other_failures')).toBe('gemini / other_failures');
     expect(harness.ns.labelForKey('llm_gemini_rate_limited')).toBe('gemini / rate_limited');
+  });
+
+  it('shows labels, MB unit and current window for the #1704 disk signals', async () => {
+    const zones = sampleZones();
+    zones.system_ok.push(
+      { key: 'migration_backup', value: '2026-11-01T00:00:00.000Z', unit: null, severity: null, as_of: null, window: null },
+      { key: 'migration_backup_file_count', value: 3, unit: 'count', severity: null, as_of: null, window: null },
+      { key: 'db_size_mb', value: 12.5, unit: 'MB', severity: null, as_of: null, window: null },
+      { key: 'wal_size_mb', value: null, unit: 'MB', severity: null, as_of: null, window: null },
+    );
+    const harness = createOpsStatusHarness({ fetchImpl: async () => ({ zones, window: window7d() }) });
+    await harness.ns.refresh();
+
+    const cards = harness.zonesHost.children as Array<{
+      children: Array<{ children?: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }>;
+    }>;
+    const rowOf = (key: string) => cards[0].children[1].children!.find((r) => r.attributes['data-key'] === key)!;
+    const text = (key: string, cls: string) => rowOf(key).children.find((c) => c.className === cls)?.textContent;
+
+    expect(text('migration_backup', 'ops-row__label')).toBe('마이그레이션 백업');
+    expect(text('migration_backup', 'ops-row__value')).toContain('2026');
+    expect(text('migration_backup_file_count', 'ops-row__label')).toBe('마이그레이션 백업 파일 수');
+    expect(text('migration_backup_file_count', 'ops-row__value')).toBe('3');
+    expect(text('db_size_mb', 'ops-row__label')).toBe('DB 크기');
+    expect(text('db_size_mb', 'ops-row__value')).toBe('12.5 MB');
+    expect(text('wal_size_mb', 'ops-row__label')).toBe('WAL 크기');
+    expect(text('wal_size_mb', 'ops-row__value')).toBe('—');
+    expect(text('db_size_mb', 'ops-row__window')).toBe('현재');
+    expect(rowOf('db_size_mb').attributes['data-severity']).toBeUndefined();
+  });
+
+  it('paints a 200 response without zones as fetch failure', async () => {
+    const harness = createOpsStatusHarness({ fetchImpl: async () => ({ window: window7d() }) });
+    await harness.ns.refresh();
+    expect(harness.elements['ops-status-error'].textContent).toContain('zones');
+    const banner = harness.zonesHost.children[0] as { attributes: Record<string, string> };
+    expect(banner.attributes['data-severity']).toBe('crit');
+  });
+
+  it('has a label for every fixed zone key the server emits', () => {
+    const serverSource = readFileSync(
+      resolve(root, 'packages/memento-server/src/server/routes/admin/admin-ops-summary-zones.ts'),
+      'utf8',
+    );
+    const keys = [...serverSource.matchAll(/\bitem\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]!);
+    expect(keys.length).toBeGreaterThan(20);
+    const harness = createOpsStatusHarness();
+    const unlabeled = keys.filter((key) => harness.ns.labelForKey(key) === key);
+    expect(unlabeled).toEqual([]);
   });
 
   it('does not embed developer measured/unmeasured strings or client severity thresholds', () => {

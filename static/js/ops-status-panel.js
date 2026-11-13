@@ -11,6 +11,7 @@
   const S = {
     severity: { ok: '정상', warn: '주의', crit: '위험' },
     fetchFail: '요청 실패',
+    windowNow: '현재',
     zoneTitles: {
       system_ok: '정상인가',
       doing_work: '제 일을 하고 있나',
@@ -19,7 +20,6 @@
   };
 
   const ZONE_ORDER = ['system_ok', 'doing_work', 'needs_action'];
-  const REVIEW_PENDING_CAP = 500;
 
   const LABELS = {
     process_database: '프로세스/DB',
@@ -30,6 +30,10 @@
     server_version: '서버 버전',
     schema_version: '마이그레이션 버전',
     auth_denied_count: '인증 실패',
+    migration_backup: '마이그레이션 백업',
+    migration_backup_file_count: '마이그레이션 백업 파일 수',
+    db_size_mb: 'DB 크기',
+    wal_size_mb: 'WAL 크기',
     injection_item_filtered_events: '주입(항목 필터) 횟수',
     item_filter_kept: '항목 필터 남김',
     item_filter_dropped: '항목 필터 탈락',
@@ -136,9 +140,6 @@
     if (value === null || value === undefined) {
       return '—';
     }
-    if (key === 'review_pending_total' && typeof value === 'number') {
-      return value + '/' + REVIEW_PENDING_CAP + ' (상한)';
-    }
     if (key === 'process_database') {
       if (value === 'connected') {
         return '연결됨';
@@ -156,6 +157,9 @@
     }
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
       return formatRelativeAndAbsolute(value);
+    }
+    if (item.unit === 'MB' && typeof value === 'number') {
+      return value + ' MB';
     }
     return String(value);
   };
@@ -189,7 +193,7 @@
 
     const windowEl = doc.createElement('span');
     windowEl.className = 'ops-row__window';
-    windowEl.textContent = item.window && item.window.period ? String(item.window.period) : '';
+    windowEl.textContent = item.window && item.window.period ? String(item.window.period) : S.windowNow;
     li.appendChild(windowEl);
 
     const linkSpec = LINKS[item.key];
@@ -279,6 +283,9 @@
       const data = await response.json();
       if (generation !== ns.state.refreshGeneration) {
         return;
+      }
+      if (!data || typeof data.zones !== 'object' || data.zones === null) {
+        throw new Error('응답에 zones 가 없습니다');
       }
       ns.state.lastSnapshot = data;
       ns.setError('');
