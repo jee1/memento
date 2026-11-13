@@ -53,7 +53,6 @@ Memento를 다른 앱이나 에이전트에 붙일 때는, **무엇을 호출할
 | MCP 서버 사용 지침 | [mcp-server-instructions.md](guides/ko/mcp-server-instructions.md) | [mcp-server-instructions.md](guides/en/mcp-server-instructions.md) |
 | SDD 워크플로 | [sdd-workflow.md](guides/ko/sdd-workflow.md) | — |
 | 개인 지식 에이전트 (CLI·HTTP) | [personal-knowledge-agent-mvp.md](guides/ko/personal-knowledge-agent-mvp.md) | [personal-knowledge-agent-mvp.md](guides/en/personal-knowledge-agent-mvp.md) |
-| 기억 진화 데모 (시드·운영) | [evolution-demo.md](ko/evolution-demo.md) | — |
 
 ---
 

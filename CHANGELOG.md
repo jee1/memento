@@ -39,6 +39,7 @@
 - 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).
 - 검색 랭킹에서 순위에 영향이 없던 두 항을 지웠다. `usage` 는 모든 후보에 같은 상수(`min(1, ln2/10)`)였고 `duplication_penalty` 는 융합 레인에서 0 고정이었다. `[ranking_weights].delta`, `.epsilon`, 두 knob(`ranking_weights.delta`, `.epsilon`), `calculateUsage`, `calculateBatchUsage`, `calculateUsageSimple`, `calculateDuplicationPenalty` 가 사라지고 `config/ranking-weights.toml`, `config/ranking-profiles/*.toml` 에서도 키를 지웠다. 순위는 그대로이고 최종 점수는 모든 후보에서 기본 `delta = 0.10` 기준 0.00693(= 0.10·ln2/10)만큼 내려간다(`feedback-heavy` 프로파일은 `delta = 0.08` 이라 0.00554). 새 `ranking_version` 해시가 생겨 텔레메트리 `ranking_versions` 에 옛 값과 새 값이 함께 보인다 (#1694).
 - **응답 계약 변경**: recall `include_score_breakdown` 응답과 `feedback` 스냅샷의 `score_breakdown` 에서 `usage`, `duplication_penalty` 필드를 뺐다(6슬롯 → relevance, recency, importance, feedback 4슬롯과 `total`). 옛 스냅샷은 그대로 둔다 (#1694).
+- 대시보드 「기억 진화 데모」 탭과 `GET /admin/evolution-demo/*` 라우트, 전용 정적 셸, `docs/ko/evolution-demo.md` 를 지웠다. 데이터는 고정 시나리오 fixture 뿐이라 시스템 상태를 말하지 않았다. 로그아웃 상태에서는 탭을 활성화하지 않고 로그인 안내만 보인다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1703).
 
 ## [2.3.10] - 2026-11-09
 

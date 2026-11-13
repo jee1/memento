@@ -30,8 +30,6 @@
       internal.render.updateStatusLabel(elements, nextState);
       internal.render.setMessage(elements, message, nextState === 'signed-out' ? 'error' : 'neutral');
       internal.render.maybeActivateTabForAuth(nextState);
-      const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
-      if (shell && typeof shell.onAuthStateChanged === 'function') shell.onAuthStateChanged(nextState);
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

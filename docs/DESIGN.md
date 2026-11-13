@@ -39,27 +39,27 @@
 - Primary personas:
   - **Memory operator** — debugs recall quality, anchors, embeddings.
   - **Ops maintainer** — watches Jobs, Review Queue, batch health.
-  - **Integrating developer** — inspects the evolution demo for understanding.
+  - **Integrating developer** — inspects Anchor Map / Graph for understanding.
 - User jobs:
   - Sign in once → pick agent → explore Anchor Map / Graph.
   - Triage Review Queue with badge urgency.
   - Pause/run jobs (when not `ADMIN_JOBS_READ_ONLY`).
-  - Explain memory evolution to stakeholders (demo tab).
 - Key contexts of use: Local/loopback or internal network desktop browser; occasional narrow laptop; not primary mobile app.
 
 ## Information architecture
 > **Current state.** This section describes what is deployed today. Adding or removing a tab or route means updating it in the same PR.
 - Primary navigation: Left nav rail (`.m-nav-rail`, 232px) from 80rem (1280px); below that it falls back to a horizontal, scrollable tab bar.
 - Breakpoints: exactly three, declared as reference tokens in `static/css/tokens.css` — `--bp-lg: 80rem` (rail ↔ tab bar), `--bp-md: 48rem` (columns stack), `--bp-sm: 30rem` (phone). Every `@media` uses one of them (`max-width: 79.99rem` for just below lg); a contract test rejects any other value (#1147). The rail wraps the `.m-tab-bar` `role="tablist"` with `aria-orientation="vertical"`: buttons keep `role="tab"` / `aria-selected` / `aria-controls` and their ids (panels' `aria-labelledby` unchanged); `aria-current` is not used because tabs switch in-page panels. Arrow Up/Down and Left/Right move focus, Enter/Space activates (#1144).
-- Phone nav (`max-width: 30rem`): the rail collapses to `.m-nav-compact` — a 44px menu button (`#dashboard-nav-toggle`, `aria-expanded`, `aria-controls="dashboard-tablist"`) that reveals the full tab list, plus one chip per group (`data-nav-group` spatial/ops/learn) that activates the group's first tab and shows the current group with `aria-pressed`. Choosing a tab collapses the list and returns focus to the menu button; Escape also collapses it (#1147).
+- Phone nav (`max-width: 30rem`): the rail collapses to `.m-nav-compact` — a 44px menu button (`#dashboard-nav-toggle`, `aria-expanded`, `aria-controls="dashboard-tablist"`) that reveals the full tab list, plus one chip per group (`data-nav-group` spatial/ops) that activates the group's first tab and shows the current group with `aria-pressed`. Choosing a tab collapses the list and returns focus to the menu button; Escape also collapses it (#1147).
 - Phone layout (`max-width: 30rem`, 390px canvas): `.m-table` rows become cards whose cells show their column header from `data-label` (`static/js/table-card-labels.js` copies `thead th` text, including rows rendered later); `#rc-table` is the one explicit exception and keeps the #897 horizontal scroll because its checkboxes live in the grid. KPI tiles (`.m-stat-grid`) go two-up, `.oo-list__item` rows are at least 44px with the title and meta on two lines, and every button, select, summary, text input and checkbox label is at least 44px (#1147).
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
+- Signed-out: no tab buttons or panels visible (all `.m-tab-btn` / `.tab-panel` / `#dashboard-nav-toggle` are `session-only`); login form and auth message only. Desktop may still show the empty 232px nav rail (#1703).
 - Core routes/screens:
-  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings) · 기억 진화 데모
+  - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings)
   - `/graph` standalone dark graph (session-gated). After layout settles, auto-fit puts the node bbox in view; toolbar 「전체 보기」 re-runs the same fit; zoom floor follows `min(0.1, k_fit*0.8)`; labels hide below `k < 0.4` (#1689)
 - Content hierarchy (target):
   1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
-  2. Task groups (Spatial · Ops · Learn) rather than a flat peer list
+  2. Task groups (Spatial · Ops) rather than a flat peer list
   3. Per-tab primary canvas + secondary inspector
   4. Advanced/layout controls behind disclosure
 
@@ -136,7 +136,7 @@
 5. Ensure default active tab remains / restores **Anchor Map** (already default in HTML — guard any auth-restore path that changes tab).
 
 ### P1 — IA & density (medium risk)
-1. Group tabs: **Spatial** (Anchor, Embedding, Graph) · **Ops** (Review, Jobs, Sessions) · **Learn** (Evolution demo) via grouped nav or overflow. (#967)
+1. Group tabs: **Spatial** (Anchor, Embedding, Graph) · **Ops** (Review, Jobs, …) via grouped nav or overflow. (#967; Learn group removed #1703)
 2. Anchor Map toolbar: primary row = Agent + Search + Slot + Search/Clear; secondary = Refresh/Fit/layout/auto-refresh under “More” / details. (#968)
 3. KO-first chrome pass (tabs, auth, toolbars, empty/error); update string specs. (#969)
 
@@ -150,7 +150,7 @@
 - [x] Brand → **quiet admin** (2026-09-12)
 - [x] Locale → **KO-first** (2026-09-12)
 - [x] Default landing tab → **Anchor Map** (2026-09-12)
-- [x] Tab IA → **Spatial / Ops / Learn** grouped nav (#967); toolbar More (#968) (2026-09-12)
+- [x] Tab IA → **Spatial / Ops** grouped nav (#967; Learn removed #1703); toolbar More (#968) (2026-09-12)
 - [x] Dual theme → **keep the split (option A)** (2026-09-19, #1026). `/graph` is a specialized dark canvas; `/dashboard` stays light. The `--color-graph-*` block is the sanctioned second palette, not drift.
   - Mechanism: `.graph-view--embedded` (`static/graph.html`) already redefines the graph tokens to the light neutral tokens at a scope root, so the embedded canvas and the standalone page share one stylesheet with two palettes. A future unified theme would reuse this same scope-root technique, not replace it.
   - Revisit when: someone asks for a dark dashboard, or a third surface needs the same palette. Until then the migration cost (semantic-token migration of `dashboard.css`, dark memory-type palette validation, theme toggle + persistence, `/graph` chrome spec updates) buys nothing.

@@ -5,7 +5,6 @@
   'use strict';
 
   const TAB_PANELS = [
-    { name: 'evolution-demo', id: 'tab-evolution-demo' },
     { name: 'anchor', id: 'tab-anchor-map' },
     { name: 'embedding', id: 'tab-embedding-map' },
     { name: 'graph', id: 'tab-graph' },
