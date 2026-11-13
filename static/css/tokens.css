@@ -125,22 +125,6 @@
   --color-button-secondary-on-light-text: var(--color-text-main);
   --color-button-secondary-on-light-border: var(--color-border-light);
   --color-button-secondary-on-light-hover: var(--color-tab-surface);
-  /* Agent timeline is a categorical palette, not chrome: these keep the
-     pre-#1023 hues so the validated event separation is unchanged. */
-  --color-agent-event-prompt: #667eea;
-  --color-agent-event-tool: var(--color-info);
-  --color-agent-event-result: var(--color-success);
-  --color-agent-event-error: var(--color-error);
-  --color-agent-event-response: #764ba2;
-  --color-agent-event-lifecycle: var(--color-memory-neutral-stroke);
-  --color-agent-state-redacted-bg: var(--color-status-loading-bg);
-  --color-agent-state-redacted-text: var(--color-status-loading-text);
-  --color-agent-state-dropped-bg: var(--color-status-error-bg);
-  --color-agent-state-dropped-text: var(--color-status-error-text);
-  --color-agent-state-degraded-bg: var(--color-anchor-b-bg);
-  --color-agent-state-degraded-text: var(--color-anchor-b-stroke);
-  --color-agent-state-used-bg: var(--color-anchor-c-bg);
-  --color-agent-state-used-text: var(--color-anchor-c-stroke);
 
   /* Spacing (#1660: denser scale from prior literals; keep computed values).
      Order is ascending by computed px at root 16px. Names are historical

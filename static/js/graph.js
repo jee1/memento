@@ -14,8 +14,8 @@
   ns.bindDomRefs();
 
   const {
-    impSlider, impVal, applyBtn, resetBtn, searchInput, searchBtn, detailPanel, svgEl, orphanToggle,
-    localModeToggle, localDepthSelect,
+    impSlider, impVal, applyBtn, resetBtn, fitViewBtn, searchInput, searchBtn, detailPanel, svgEl,
+    orphanToggle, localModeToggle, localDepthSelect,
   } = ns.dom;
 
   state.localMode = Boolean(localModeToggle.checked);
@@ -85,6 +85,12 @@
     orphanToggle.checked = false;
     ns.loadGraph('/admin/graph');
   });
+
+  if (fitViewBtn) {
+    fitViewBtn.addEventListener('click', () => {
+      ns.fitGraphToView();
+    });
+  }
 
   document.addEventListener('click', (event) => {
     if (!detailPanel.contains(event.target) && !svgEl.contains(event.target)) {

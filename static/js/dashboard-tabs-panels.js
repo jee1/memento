@@ -15,7 +15,6 @@
     { name: 'supersede', id: 'tab-supersede-candidates' },
     { name: 'memory-finder', id: 'tab-memory-finder' },
     { name: 'jobs', id: 'tab-jobs' },
-    { name: 'agent-sessions', id: 'tab-agent-sessions' },
     { name: 'settings', id: 'tab-settings' },
     { name: 'ranking', id: 'tab-ranking' },
   ];
