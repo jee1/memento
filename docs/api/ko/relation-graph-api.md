@@ -45,6 +45,19 @@ HTTP Admin API는 `/admin/relations/*` 라우트를 사용합니다.
 
     두 필터는 서로를 대체하지 않습니다. `exclude_orphans=true` 로 뽑아도 짝이 `limit` 밖이면 그 노드는 여전히 화면에서 degree=0 으로 보이므로, Phase 1 토글은 그대로 쓸모가 있습니다.
 
+    ### 클라이언트 맞춤·라벨 (이슈 #1689)
+
+    서버 응답과 표시 상한(최대 5,000)은 그대로다. `/graph`(대시보드 Memory Graph iframe 포함) 쪽에서만 다음을 한다.
+
+    | 동작 | 설명 |
+    |---|---|
+    | 자동 맞춤 | force 시뮬레이션이 안정된 뒤(또는 tick 100 폴백) 노드 bbox 를 뷰포트에 한 번 맞춘다. 사용자가 이미 휠/드래그로 줌·이동했으면 건너뛴다 |
+    | 「전체 보기」 | 툴바 버튼으로 같은 맞춤을 즉시 다시 적용한다 |
+    | 배율 하한 | bbox 기반 `k_fit` 으로 `scaleExtent` 하한을 `min(0.1, k_fit*0.8)` 로 갱신한다. 확대 상한은 4, 맞춤 시 배율 상한은 2 |
+    | 라벨 숨김 | 배율 `k < 0.4` 이면 노드 텍스트 라벨을 숨긴다. hover 툴팁은 그대로다 |
+
+    순수 계산은 `static/js/graph-shared.js` 의 `computeGraphFitTransform` 이다. 앵커 맵 `fitToNodes` 와 별개 IIFE 다.
+
 ## 랭킹 가중치 ζ (제거됨)
 
 v2.0.0(#1245)에서 관계 부스트 항 `ζ·relation_weight` 와 `[ranking_weights].zeta`·`[relation_weights]` 설정을 제거했습니다. 관계는 더 이상 검색 순위에 영향을 주지 않습니다. 남은 TOML 키는 무시됩니다. 경위: [search-ranking.md](../../agents/search-ranking.md)

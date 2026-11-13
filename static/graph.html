@@ -470,6 +470,11 @@
       user-select: none;
     }
 
+    /* Low zoom: hide labels so 5,000 texts do not stay painted (issue 1689). */
+    .labels-hidden .node text {
+      display: none;
+    }
+
     /* 엣지 스타일 */
     .link {
       stroke-opacity: 0.55;
@@ -645,6 +650,12 @@
     </div>
     <button id="apply-btn" class="graph-session-only graph-action-button m-button m-button--primary">필터 적용</button>
     <button id="reset-btn" class="graph-session-only graph-action-button m-button m-button--secondary">초기화</button>
+    <button
+      id="fit-view-btn"
+      class="graph-session-only graph-action-button m-button m-button--secondary"
+      type="button"
+      title="모든 노드가 화면에 들어오도록 배율과 위치를 맞춥니다"
+    >전체 보기</button>
     <div class="header-spacer"></div>
     <section class="graph-auth-panel" aria-label="Graph session">
       <form id="graph-auth-form" class="graph-auth-form">

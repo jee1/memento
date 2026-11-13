@@ -56,7 +56,7 @@
 - Default landing: **Anchor Map** tab active after sign-in (and on cold load when session already valid). Do not auto-switch to Review Queue on badge alone.
 - Core routes/screens:
   - `/dashboard` tabs: Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · 상태 · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings) · 랭킹 가중치 (Ranking weights) · 기억 진화 데모
-  - `/graph` standalone dark graph (session-gated)
+  - `/graph` standalone dark graph (session-gated). After layout settles, auto-fit puts the node bbox in view; toolbar 「전체 보기」 re-runs the same fit; zoom floor follows `min(0.1, k_fit*0.8)`; labels hide below `k < 0.4` (#1689)
 - Content hierarchy (target):
   1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
   2. Task groups (Spatial · Ops · Learn) rather than a flat peer list

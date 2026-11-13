@@ -20,6 +20,96 @@
     localMode: false,
     localFocusId: null,
     localDepth: 2,
+    zoomBehavior: null,
+    svg: null,
+    zoomLayer: null,
+    userAdjustedZoom: false,
+  };
+
+  /** Zoom scale below which node labels are hidden (issue 1689). */
+  ns.GRAPH_LABEL_HIDE_K = 0.4;
+
+  /**
+   * Auto-fit stage gate (issue 1689). Early tick keeps a fast first frame;
+   * end re-fits after layout settles and refreshes scaleExtent from final bbox.
+   * User zoom/pan skips every remaining auto stage.
+   *
+   * @param {'early'|'end'} stage
+   * @param {{ userAdjustedZoom?: boolean, earlyFitDone?: boolean, endFitDone?: boolean }} flags
+   * @returns {boolean}
+   */
+  ns.shouldRunGraphAutoFitStage = function shouldRunGraphAutoFitStage(stage, flags) {
+    const state = flags || {};
+    if (state.userAdjustedZoom) {
+      return false;
+    }
+    if (stage === 'early') {
+      return !state.earlyFitDone;
+    }
+    if (stage === 'end') {
+      return !state.endFitDone;
+    }
+    return false;
+  };
+
+  /**
+   * Pure bbox → zoom transform for the memory graph (issue 1689).
+   * No DOM. Returns null when there are no placed nodes.
+   *
+   * @param {Array<{x?: number, y?: number}>} nodes
+   * @param {{ width: number, height: number, padding?: number, maxScale?: number, minFloor?: number }} viewport
+   * @returns {{ k: number, tx: number, ty: number, scaleExtentMin: number, kFit: number } | null}
+   */
+  ns.computeGraphFitTransform = function computeGraphFitTransform(nodes, viewport) {
+    const width = Number(viewport && viewport.width);
+    const height = Number(viewport && viewport.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+    const padding = viewport.padding != null ? Number(viewport.padding) : 60;
+    const maxScale = viewport.maxScale != null ? Number(viewport.maxScale) : 2;
+    const minFloor = viewport.minFloor != null ? Number(viewport.minFloor) : 0.1;
+    const pad = Number.isFinite(padding) ? padding : 60;
+    const cap = Number.isFinite(maxScale) && maxScale > 0 ? maxScale : 2;
+    const floor = Number.isFinite(minFloor) && minFloor > 0 ? minFloor : 0.1;
+
+    const list = Array.isArray(nodes) ? nodes : [];
+    const placed = list.filter(
+      (node) =>
+        node &&
+        Number.isFinite(node.x) &&
+        Number.isFinite(node.y)
+    );
+    if (placed.length === 0) {
+      return null;
+    }
+
+    let minX = placed[0].x;
+    let maxX = placed[0].x;
+    let minY = placed[0].y;
+    let maxY = placed[0].y;
+    for (let i = 1; i < placed.length; i += 1) {
+      const x = placed[i].x;
+      const y = placed[i].y;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+
+    const spanX = Math.max(maxX - minX, 1) + pad * 2;
+    const spanY = Math.max(maxY - minY, 1) + pad * 2;
+    const kFit = Math.min(width / spanX, height / spanY, cap);
+    const scaleExtentMin = Math.min(floor, kFit * 0.8);
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    return {
+      k: kFit,
+      kFit,
+      tx: width / 2 - centerX * kFit,
+      ty: height / 2 - centerY * kFit,
+      scaleExtentMin,
+    };
   };
 
   ns.readGraphToken = function readGraphToken(name, fallback = '') {
@@ -198,6 +288,7 @@
       impVal: document.getElementById('importance-val'),
       applyBtn: document.getElementById('apply-btn'),
       resetBtn: document.getElementById('reset-btn'),
+      fitViewBtn: document.getElementById('fit-view-btn'),
       searchInput: document.getElementById('graph-search'),
       searchBtn: document.getElementById('search-btn'),
       matchBadge: document.getElementById('graph-match-badge'),
