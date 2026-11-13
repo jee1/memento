@@ -1,3 +1,5 @@
+> 이 문서는 이력이다. 현재 방향은 [docs/DIRECTION.md](../DIRECTION.md) (2026-11-13).
+
 # Enterprise memory governance plan
 
 This plan implements enterprise memory governance for Issue #1094.

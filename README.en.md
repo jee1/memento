@@ -14,6 +14,8 @@ LLMs forget everything when a conversation ends — names, decisions, last week'
 
 Memento is that infrastructure. Not a dump of notes, but an **MCP-based memory operating system** where memories are created, classified, reinforced, and forgotten.
 
+Project direction (Korean only): [docs/DIRECTION.md](docs/DIRECTION.md)
+
 Working, episodic, semantic, and procedural memory map to `remember`'s `type`. Useful memories get stronger; stale ones are cleaned up. Similar memories link through vectors; anchors restore critical context in the next session.
 
 Monorepo layout, packages, and build commands live in [AGENTS.md](AGENTS.md).

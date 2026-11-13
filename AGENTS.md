@@ -2,6 +2,8 @@
 
 이 파일은 Memento 저장소에서 일하는 **사람과 AI 에이전트**가 공통으로 참조하는 진입점입니다. 패키지 구조·npm 명령·MCP 워크플로 같은 상세는 [docs/agents/](./docs/agents/README.md)로 나뉘어 있고, **코딩 행동 지침(§4)** 은 여기에만 둡니다. `CLAUDE.md`·`GEMINI.md`도 이 문서를 가리킵니다.
 
+프로젝트 방향: [docs/DIRECTION.md](./docs/DIRECTION.md)
+
 | 문서 | 내용 |
 |------|------|
 | [architecture.md](./docs/agents/architecture.md) | 패키지·도메인 |
