@@ -52,10 +52,10 @@
 - Breakpoints: exactly three, declared as reference tokens in `static/css/tokens.css` — `--bp-lg: 80rem` (rail ↔ tab bar), `--bp-md: 48rem` (columns stack), `--bp-sm: 30rem` (phone). Every `@media` uses one of them (`max-width: 79.99rem` for just below lg); a contract test rejects any other value (#1147). The rail wraps the `.m-tab-bar` `role="tablist"` with `aria-orientation="vertical"`: buttons keep `role="tab"` / `aria-selected` / `aria-controls` and their ids (panels' `aria-labelledby` unchanged); `aria-current` is not used because tabs switch in-page panels. Arrow Up/Down and Left/Right move focus, Enter/Space activates (#1144).
 - Phone nav (`max-width: 30rem`): the rail collapses to `.m-nav-compact` — a 44px menu button (`#dashboard-nav-toggle`, `aria-expanded`, `aria-controls="dashboard-tablist"`) that reveals the full tab list, plus one chip per group (`data-nav-group` spatial/ops) that activates the group's first tab and shows the current group with `aria-pressed`. Choosing a tab collapses the list and returns focus to the menu button; Escape also collapses it (#1147).
 - Phone layout (`max-width: 30rem`, 390px canvas): `.m-table` rows become cards whose cells show their column header from `data-label` (`static/js/table-card-labels.js` copies `thead th` text, including rows rendered later); `#rc-table` is the one explicit exception and keeps the #897 horizontal scroll because its checkboxes live in the grid. KPI tiles (`.m-stat-grid`) go two-up, `.oo-list__item` rows are at least 44px with the title and meta on two lines, and every button, select, summary, text input and checkbox label is at least 44px (#1147).
-- Default landing: **상태** tab active after sign-in (and on cold load when session already valid). Three zone cards answer 「정상인가 / 제 일을 하고 있나 / 손댈 것」 from `zones`; the ops strip is removed (#1699). Do not auto-switch to Review Queue on badge alone.
+- Default landing: **상태** tab active after sign-in (and on cold load when session already valid). Three zone cards answer 「정상인가 / 제 일을 하고 있나 / 손댈 것」 from `zones`; the ops strip is removed (#1699). Below them the embedding health card (provider picker, problem count, per-kind detail) calls `GET /admin/embedding-health` directly, the one exception to "the screen reads `zones` only"; the Embedding Health tab and the semantic-space scatter are gone (#1701). Do not auto-switch to Review Queue on badge alone.
 - Signed-out: no tab buttons or panels visible (all `.m-tab-btn` / `.tab-panel` / `#dashboard-nav-toggle` are `session-only`); login form and auth message only. Desktop may still show the empty 232px nav rail (#1703).
 - Core routes/screens:
-  - `/dashboard` tabs: 상태 (first screen) · Anchor Map · Embedding Health · Memory Graph · 운영 개요 (Ops overview, #1145) · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings)
+  - `/dashboard` tabs in nav order: 공간 = Anchor Map · Memory Graph; 운영 = 운영 개요 (Ops overview, #1145) · 상태 (first screen) · Review Queue · 대체 후보 (Supersede candidates) · 기억 찾기 (Memory finder) · Jobs · 설정 (Settings)
   - `/graph` standalone dark graph (session-gated). After layout settles, auto-fit runs twice (tick 100 and simulation end) so the node bbox is in view; toolbar 「전체 보기」 re-runs the same fit; zoom floor follows `min(0.1, k_fit*0.8)`; labels hide below `k < 0.4` (#1689)
 - Content hierarchy (target):
   1. Session chrome: header auth panel only when signed out (or to show an auth message); signed-in state is the `.m-session-chip` at the rail bottom (#1144)
@@ -122,7 +122,7 @@
 ## Implementation constraints
 - Framework/styling system: Vanilla JS + CSS custom properties; no React/Tailwind for admin UI.
 - Design-token constraints: No new hex in panel CSS; add missing tokens (`--color-status-warning`, `--color-bg-hover`, `--color-bg-selected`, focus ring) before using them.
-- Performance constraints: D3 maps / UMAP scatter — keep chrome light; avoid heavy CSS filters.
+- Performance constraints: D3 anchor map and force graph — keep chrome light; avoid heavy CSS filters.
 - Compatibility constraints: Modern evergreen browsers; Node admin server serves `static/`.
 - Test/screenshot expectations: Server string/contract specs (`dashboard-*.spec.ts`); layout-auth contract min map height ≥200px; visual changes may need string updates for labels/IA.
 
