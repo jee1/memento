@@ -57,11 +57,11 @@ AI 에이전트는 기본적으로 무상태(stateless)다. 대화가 끝나면 
 
 **랭킹 공식** (`config/ranking-weights.toml`):
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage
+S = α·relevance + β·recency + γ·importance
   + ζ_fb·(feedback_norm − 0.5)
-  + θ·process_attribute_fit − ε·duplication_penalty
+  + θ·process_attribute_fit
 ```
-가중치: α=0.45, β=0.20, γ=0.20, δ=0.10, ζ_fb=0.05, θ=0.10, ε=0.10.
+가중치: α=0.45, β=0.20, γ=0.20, ζ_fb=0.05, θ=0.10.
 
 `relevance` 슬롯에는 벡터 유사도(0.4), BM25 점수(0.3), 태그 매칭(0.2), 제목 히트(0.1)가 합산된다. 마지막으로 MMR(Maximal Marginal Relevance)이 결과 다양성을 조절한다.
 

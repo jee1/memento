@@ -40,10 +40,10 @@ describe('parseRecallItems', () => {
 describe('selectCases', () => {
   it('excludes scores below the floor, including zero, and accepts the exact boundary', () => {
     const plan = selectCases([
-      cand('low', 'irrelevant', 0.4999),
+      cand('low', 'irrelevant', 0.493),
       cand('zero', 'irrelevant', 0),
-      cand('boundary', 'relevant', 0.5),
-      cand('above', 'relevant', 0.5001),
+      cand('boundary', 'relevant', DIRECTIVE_POLICY.minFinalScore),
+      cand('above', 'relevant', 0.4932),
     ], none);
     expect(plan.chosen.map((c) => c.id)).toEqual(['boundary', 'above']);
     expect(plan.skipped).toEqual([]);

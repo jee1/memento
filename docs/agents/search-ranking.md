@@ -3,12 +3,12 @@
 Memento의 검색 결과 정렬은 아래 가중합 공식으로 점수를 계산합니다. 가중치는 `config/ranking-weights.toml`에서 읽어 옵니다.
 
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage
-  + ζ_fb·(feedback_norm − 0.5) + θ·process_attribute_fit − ε·duplication_penalty
+S = α·relevance + β·recency + γ·importance
+  + ζ_fb·(feedback_norm − 0.5) + θ·process_attribute_fit
   + procedural_boost
 ```
 
-가중합 뒤에 `calculateFinalScore`가 `procedural_boost`와 `θ·process_attribute_fit`를 더한다(`search-ranking-composite.ts`). `θ` 기본은 `ranking-weights.toml`의 `theta = 0.10`이고, `process_attribute_fit`가 없으면 그 항은 0이다. `α`(0.45)·`β`(0.20)·`γ`(0.20)·`δ`(0.10)·`ζ_fb`(0.05)·`ε`(0.10)은 toml과 같다.
+가중합 뒤에 `calculateFinalScore`가 `procedural_boost`와 `θ·process_attribute_fit`를 더한다(`search-ranking-composite.ts`). `θ` 기본은 `ranking-weights.toml`의 `theta = 0.10`이고, `process_attribute_fit`가 없으면 그 항은 0이다. `α`(0.45)·`β`(0.20)·`γ`(0.20)·`ζ_fb`(0.05)는 toml과 같다.
 
 검색 품질 튜닝 방법은 [recall-performance-tuning.md](../guides/ko/recall-performance-tuning.md)에서 다룹니다.
 
@@ -26,7 +26,7 @@ vec 인덱스 적재량을 점검할 때는 raw provider 행 수와 1:1로 비�
 
 SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값은 **음수일 수 있습니다**. 빈 쿼리·LIKE fallback SQL은 `0 as fts_rank`를 쓰므로 `0`은 BM25 없음(lexical relevance)입니다.
 
-텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank / T))`로 (0, 1) relevance에 올려 **그 값을 레인 `score`로 그대로** 넘깁니다(Issue [#1393](https://github.com/jee1/memento/issues/1393)). BM25가 없으면 lexical relevance만 씁니다. recency·importance·usage·feedback·dup는 융합(`HybridResultRanker`)에서 한 번만 가중합합니다. 예전에 레인이 `(0.7·bm25 + 0.3·composite)×factBoost`를 `textScore`로 넘기면 융합에서 recency·importance가 이중 반영되고 `textScore`가 1을 넘었습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다. `text_lane_score: relevance_only`는 `getRankingVersion()` 해시에 포함됩니다.
+텍스트 후보 SQL은 `ORDER BY fts_rank ASC, m.created_at DESC LIMIT ?`입니다. `applyRanking`은 유한이고 0이 아닌 rank를 `1 / (1 + exp(rank / T))`로 (0, 1) relevance에 올려 **그 값을 레인 `score`로 그대로** 넘깁니다(Issue [#1393](https://github.com/jee1/memento/issues/1393)). BM25가 없으면 lexical relevance만 씁니다. recency·importance·feedback는 융합(`HybridResultRanker`)에서 한 번만 가중합합니다. 예전에 레인이 `(0.7·bm25 + 0.3·composite)×factBoost`를 `textScore`로 넘기면 융합에서 recency·importance가 이중 반영되고 `textScore`가 1을 넘었습니다. `ftsRank > 0`만 BM25로 보거나 raw rank를 `ftsRank * 0.7`로 섞으면 음수 매치가 빠지거나 점수가 뒤집힙니다. `text_lane_score: relevance_only`는 `getRankingVersion()` 해시에 포함됩니다.
 
 시그모이드에는 온도 `T`가 들어갑니다(`1 / (1 + exp(rank / T))`, Issue [#1079](https://github.com/jee1/memento/issues/1079)). `T`는 `config/ranking-weights.toml`의 `[fts_relevance].temperature`(기본 10)이며 `getRankingVersion()` 해시에 포함됩니다. `T = 1`이면 시그모이드의 변곡점이 `rank = 0`에 놓이는데 그 값은 "BM25 없음" 센티넬이라 실제로는 나오지 않습니다. 실측 rank 구간(-19.8 ~ -2.4)이 전부 포화 꼬리에 들어가 동적 범위가 0.083으로 뭉개지고, BM25 순위 전체가 importance 항보다 7.7배 약해져 결과 순서가 사실상 질의 독립이 됩니다. `T = 8~12`가 평탄역이라 10을 씁니다.
 
@@ -56,17 +56,17 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다. forgetting 도메인의 자체 `calculateRecency`는 이 경로와 별개입니다.
 
-## Usage 신호 (Issue #1181)
+## usage 항과 duplication_penalty 항 (제거, Issue #1181·#1694)
 
-`usage` 는 **실제 사용 빈도를 재지 않습니다. 두 레인 모두 같은 상수입니다.** 텍스트 레인(`search-engine-ranking.ts`)과 융합 레인(`hybrid-result-ranker.ts`)이 똑같이 `calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 })`(≈ 0.069)를 씁니다. 사용 빈도 컬럼 `view_count`·`cite_count`·`edit_count` 는 쓰는 코드가 없어 운영 전 행이 0 입니다.
+예전 공식은 `δ·usage − ε·duplication_penalty` 두 항을 더 가졌습니다. 둘 다 순위를 바꾸지 못했습니다. `usage` 는 모든 후보에 같은 상수 `min(1, ln2/10)`(≈ 0.069)였고(#1181 이전에는 마지막 접근 시각을 읽어 질의와 무관한 배치 시각이거나 반환된 기억이 다음 질의에서 더 가산받는 자기강화 루프였습니다), `duplication_penalty` 는 융합 레인에서 0 고정이었습니다. 사용 빈도 컬럼 `view_count`·`cite_count`·`edit_count` 도 쓰는 코드가 없습니다.
 
-#1181 이전 융합 레인은 마지막 접근 시각을 `exp(−days/30)` 로 읽었고, 그 값은 사용 빈도가 아니었습니다. 텍스트 레인에서 온 후보는 옛 `last_accessed` 컬럼(망각 리뷰 배치가 한 번에 수천 건씩 갱신)을, 벡터 전용 후보는 `last_accessed_at`(`recall`·`memory_injection` 이 반환 후보마다 now 로 갱신)을 읽었습니다. 앞은 질의와 무관한 배치 시각이고, 뒤는 한 번 반환된 기억이 다음 질의에서 최대 `δ × 0.9 = 0.09` 를 더 받는 자기강화 루프입니다.
+#1694 에서 두 항, `[ranking_weights].delta`·`.epsilon`, 두 knob, `calculateUsage`·`calculateDuplicationPenalty` 와 `score_breakdown` 의 `usage`·`duplication_penalty` 필드를 지웠습니다. 순서는 그대로이고 절대 점수는 기본 `delta = 0.10` 기준으로 모든 후보에서 0.00693(= 0.10·ln2/10) 내려갑니다. 절대값 0.5 와 비교하는 두 곳(지침 주입 훅 `directives/select.ts` 의 `minFinalScore`, 메타 기억 `meta-memory-service.ts` 의 `isItemSuccess`)은 같은 식으로 하한을 내렸습니다.
 
-실제 사용 신호가 생기면 두 레인을 함께 그 신호로 바꾸십시오. 한 레인만 바꾸면 정의가 다시 갈라집니다.
+실제 사용 빈도나 중복 감점을 되살릴 때는 `delta`·`epsilon` 이름을 다시 쓰지 말고 새 이름으로 추가하십시오. 옛 TOML 에 남은 `delta = 0.10` 이 조용히 되살아납니다. 되살릴 때는 두 레인이 같은 신호를 쓰게 하십시오.
 
 ## Consolidation 블렌드 (제거, Issue #1184·#1244)
 
-`α` 항의 relevance 는 순수 관련성입니다. 예전에는 `(1 − w)·relevance + w·consolidation_score` 로 섞였고, `consolidation_score` 를 `recall`·`memory_injection` 이 반환한 후보마다 다시 기록해 한 번 반환된 기억이 다음 질의에서 가산을 받는 자기강화 루프가 생겼습니다(운영 실측: 1회 호출 뒤 top-10 전원 0.28 → 0.6225). #1184 에서 `w` 기본값을 0 으로 내렸고, v2.0.0(#1244)에서 블렌드·점수 계산·배치 잡·`CONSOLIDATION_SCORE_ENABLED`·`consolidation_score`/`g_value` 컬럼을 모두 제거했습니다. TOML 에 남은 `[ranking_weights].consolidation` 키는 무시됩니다.
+`α` 항의 relevance 는 순수 관련성입니다. 예전에는 `(1 − w)·relevance + w·consolidation_score` 로 섞였고, `consolidation_score` 를 `recall`·`memory_injection` 이 반환한 후보마다 다시 기록해 한 번 반환된 기억이 다음 질의에서 가산을 받는 자기강화 루프가 생겼습니다(운영 실측: 1회 호출 뒤 top-10 전원 0.28 → 0.6225). #1184 에서 `w` 기본값을 0 으로 내렸고, v2.0.0(#1244)에서 블렌드·점수 계산·배치 잡·`CONSOLIDATION_SCORE_ENABLED`·`consolidation_score`/`g_value` 컬럼을 모두 제거했습니다. TOML 에 남은 `[ranking_weights].consolidation` 키는 기동 때 경고 한 줄과 함께 버려집니다(#1694 이후 `delta`, `epsilon`, `zeta` 도 같습니다).
 
 ## Relation 가중치 (제거, Issue #1185·#1245)
 
@@ -98,7 +98,7 @@ importance를 순위에 더 반영하려면 `γ`나 `[importance_signal].scale`�
 
 ## Hybrid fusion relevance (Issue #788)
 
-combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/usage/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.
+combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.
 
 ## Hybrid vector threshold and under-fill (Issue #789)
 

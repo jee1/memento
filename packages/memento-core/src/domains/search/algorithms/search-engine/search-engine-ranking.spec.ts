@@ -169,8 +169,6 @@ describe('text lane score for fusion handoff (#1393)', () => {
       relevance: lexical,
       recency: ranking.calculateRecency(new Date(createdAt)),
       importance: ranking.calculateImportance(1, true, 'semantic'),
-      usage: ranking.calculateUsage({ viewCount: 1, citeCount: 0, editCount: 0 }),
-      duplication_penalty: ranking.calculateDuplicationPenalty(content, []),
       feedback_score: 0.5,
     });
     const items = applyRanking(

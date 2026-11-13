@@ -74,11 +74,11 @@ Memento follows the "Functional Core, Structured Shell" principle. Domain logic 
 The final score for recall and hybrid search is computed with the following formula.
 
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage
-    + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+S = α·relevance + β·recency + γ·importance
+    + ζ_fb·(feedback_norm − 0.5)
 ```
 
-Default weights (α=0.45, β=0.20, γ=0.20, δ=0.10, and so on) are stored in `config/ranking-weights.toml` and can be adjusted through the benchmark-based tuning process described in the search quality tuning guide.
+Default weights (α=0.45, β=0.20, γ=0.20, ζ_fb=0.05, and so on) are stored in `config/ranking-weights.toml` and can be adjusted through the benchmark-based tuning process described in the search quality tuning guide.
 
 ## Build System
 

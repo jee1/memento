@@ -33,7 +33,7 @@ export function parseTemplateFields(text: string): TemplateFields | null {
   return fields;
 }
 
-/** `calculateTextSimilarity` 와 같은 공백 토큰 자카드. 검색 랭킹의 duplication_penalty 입력이다. */
+/** 공백 토큰 자카드 유사도. */
 export function jaccardTokens(left: string, right: string): number {
   const words1 = new Set(left.toLowerCase().split(/\s+/).filter(Boolean));
   const words2 = new Set(right.toLowerCase().split(/\s+/).filter(Boolean));

@@ -15,15 +15,13 @@ export interface ScoreComponent {
 
 export interface ScoreBreakdown {
   /**
-   * “관련성 계열” 복합 슬롯: α·relevance(통합 점수 블렌딩 포함) + 관계 가중 + 절차 부스트 + 프로세스 적합도.
+   * “관련성 계열” 복합 슬롯: α·relevance + 절차 부스트 + 프로세스 적합도.
    * `pct`는 |total| 대비 비율(FR-008 / spec 004 contracts §1).
    */
   relevance: ScoreComponent;
   recency: ScoreComponent;
   importance: ScoreComponent;
-  usage: ScoreComponent;
   feedback: ScoreComponent;
-  duplication_penalty: ScoreComponent;
   total: number;
 }
 

@@ -8,8 +8,6 @@ export type KnobKey =
   | 'ranking_weights.alpha'
   | 'ranking_weights.beta'
   | 'ranking_weights.gamma'
-  | 'ranking_weights.delta'
-  | 'ranking_weights.epsilon'
   | 'ranking_weights.theta'
   | 'ranking_weights.zeta_fb'
   | 'relevance_signal.scale'
@@ -32,8 +30,6 @@ export const TUNABLE_KNOBS: Record<KnobKey, KnobSpec> = {
   'ranking_weights.alpha': WEIGHT,
   'ranking_weights.beta': WEIGHT,
   'ranking_weights.gamma': WEIGHT,
-  'ranking_weights.delta': WEIGHT,
-  'ranking_weights.epsilon': WEIGHT,
   'ranking_weights.theta': WEIGHT,
   'ranking_weights.zeta_fb': WEIGHT,
   'relevance_signal.scale': { sample: 'uniform', min: 0.5, max: 3.0 },

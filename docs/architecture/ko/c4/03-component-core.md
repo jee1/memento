@@ -137,9 +137,9 @@ executeTool(name, params, context)
 **랭킹 공식** (`config/ranking-weights.toml`):
 
 ```text
-S = α·relevance + β·recency + γ·importance + δ·usage
+S = α·relevance + β·recency + γ·importance
   + ζ_fb·(feedback_norm − 0.5)
-  + θ·process_attribute_fit − ε·duplication_penalty
+  + θ·process_attribute_fit
 ```
 
 상세: [search-ranking.md](../../../agents/search-ranking.md).

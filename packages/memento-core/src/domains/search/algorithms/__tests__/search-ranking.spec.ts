@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics } from '../search-ranking.js';
+import { SearchRanking, type SearchFeatures, type RelevanceInput } from '../search-ranking.js';
 import { sigmoidNormalizedNet } from '../../../../shared/ports/feedback-repository.interface.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 
@@ -25,14 +25,12 @@ describe('SearchRanking', () => {
         relevance: 0.8,
         recency: 0.6,
         importance: 0.7,
-        usage: 0.5,
-        duplication_penalty: 0.2
       };
 
       const score = ranking.calculateFinalScore(features);
       
-      // 기본 가중치: relevance(0.45) + recency(0.2) + importance(0.2) + usage(0.1) - duplication(0.1)
-      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+      // 기본 가중치: relevance(0.45) + recency(0.2) + importance(0.2)
+      const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
       expect(score).toBeCloseTo(expected, 3);
     });
 
@@ -41,13 +39,11 @@ describe('SearchRanking', () => {
         relevance: 1.0,
         recency: 1.0,
         importance: 1.0,
-        usage: 1.0,
-        duplication_penalty: 0.0
       };
 
       const score = ranking.calculateFinalScore(features);
-      // 기본 가중치 합: 0.45 + 0.2 + 0.2 + 0.1 = 0.95 (최대값)
-      const expected = 0.45 * 1.0 + 0.2 * 1.0 + 0.2 * 1.0 + 0.1 * 1.0;
+      // 기본 가중치 합: 0.45 + 0.2 + 0.2 = 0.85 (최대값)
+      const expected = 0.45 * 1.0 + 0.2 * 1.0 + 0.2 * 1.0;
       expect(score).toBeCloseTo(expected, 3);
     });
 
@@ -56,13 +52,10 @@ describe('SearchRanking', () => {
         relevance: 0.0,
         recency: 0.0,
         importance: 0.0,
-        usage: 0.0,
-        duplication_penalty: 1.0
       };
 
       const score = ranking.calculateFinalScore(features);
-      // 중복 패널티만 적용: -0.1 * 1.0 = -0.1
-      expect(score).toBeCloseTo(-0.1, 3);
+      expect(score).toBeCloseTo(0, 3);
     });
 
     it('사용자 정의 가중치로 점수 계산', () => {
@@ -70,8 +63,6 @@ describe('SearchRanking', () => {
         relevance: 0.6,
         recency: 0.2,
         importance: 0.1,
-        usage: 0.1,
-        duplication_penalty: 0.1,
         zeta_fb: 0,
       });
 
@@ -79,12 +70,10 @@ describe('SearchRanking', () => {
         relevance: 0.8,
         recency: 0.6,
         importance: 0.7,
-        usage: 0.5,
-        duplication_penalty: 0.2
       };
 
       const score = customRanking.calculateFinalScore(features);
-      const expected = 0.6 * 0.8 + 0.2 * 0.6 + 0.1 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+      const expected = 0.6 * 0.8 + 0.2 * 0.6 + 0.1 * 0.7;
       expect(score).toBeCloseTo(expected, 3);
     });
   });
@@ -236,100 +225,6 @@ describe('SearchRanking', () => {
     });
   });
 
-  describe('calculateUsage', () => {
-    it('기본 사용성 계산', () => {
-      const metrics: UsageMetrics = {
-        viewCount: 10,
-        citeCount: 5,
-        editCount: 2
-      };
-
-      const usage = ranking.calculateUsage(metrics);
-      
-      expect(usage).toBeGreaterThan(0);
-      expect(usage).toBeLessThanOrEqual(1);
-    });
-
-    it('높은 사용성 메트릭', () => {
-      const metrics: UsageMetrics = {
-        viewCount: 100,
-        citeCount: 50,
-        editCount: 20
-      };
-
-      const usage = ranking.calculateUsage(metrics);
-      
-      expect(usage).toBeGreaterThan(0.5);
-    });
-
-    it('배치 정규화 테스트', () => {
-      const metrics1: UsageMetrics = { viewCount: 1, citeCount: 0, editCount: 0 };
-      const metrics2: UsageMetrics = { viewCount: 100, citeCount: 50, editCount: 20 };
-      
-      const batchResult = ranking.calculateBatchUsage([metrics1, metrics2]);
-      
-      expect(batchResult.normalized).toHaveLength(2);
-      expect(batchResult.normalized[0]).toBeLessThan(batchResult.normalized[1]);
-      expect(batchResult.min).toBeLessThan(batchResult.max);
-    });
-
-    it('빈 메트릭 처리', () => {
-      const metrics: UsageMetrics = {
-        viewCount: 0,
-        citeCount: 0,
-        editCount: 0
-      };
-
-      const usage = ranking.calculateUsage(metrics);
-      
-      // 기본 사용성 점수 제공
-      expect(usage).toBeGreaterThan(0);
-    });
-
-    it('lastAccessed 기반 사용성', () => {
-      const metrics: UsageMetrics = {
-        viewCount: 0,
-        citeCount: 0,
-        editCount: 0,
-        lastAccessed: new Date(Date.now() - DAY_MS) // 1일 전
-      };
-
-      const usage = ranking.calculateUsage(metrics);
-      
-      expect(usage).toBeGreaterThan(0);
-    });
-  });
-
-  describe('calculateDuplicationPenalty', () => {
-    it('중복 없는 콘텐츠', () => {
-      const penalty = ranking.calculateDuplicationPenalty(
-        'unique content',
-        []
-      );
-      
-      expect(penalty).toBe(0);
-    });
-
-    it('중복된 콘텐츠', () => {
-      const penalty = ranking.calculateDuplicationPenalty(
-        'similar content',
-        ['similar content', 'other content']
-      );
-      
-      expect(penalty).toBeGreaterThan(0);
-      expect(penalty).toBeLessThanOrEqual(1);
-    });
-
-    it('완전히 동일한 콘텐츠', () => {
-      const penalty = ranking.calculateDuplicationPenalty(
-        'exact content',
-        ['exact content']
-      );
-      
-      expect(penalty).toBe(1.0);
-    });
-  });
-
   describe('하위 호환성 메서드', () => {
     it('calculateRelevanceSimple', () => {
       const relevance = ranking.calculateRelevanceSimple(
@@ -342,19 +237,6 @@ describe('SearchRanking', () => {
       expect(relevance).toBeLessThanOrEqual(1);
     });
 
-    it('calculateUsageSimple', () => {
-      const recentDate = new Date(Date.now() - DAY_MS);
-      const usage = ranking.calculateUsageSimple(recentDate);
-      
-      expect(usage).toBeGreaterThan(0);
-      expect(usage).toBeLessThanOrEqual(1);
-    });
-
-    it('calculateUsageSimple with undefined date', () => {
-      const usage = ranking.calculateUsageSimple(undefined);
-      
-      expect(usage).toBe(0.1); // 기본값
-    });
   });
 
   describe('엣지 케이스', () => {
@@ -448,32 +330,11 @@ describe('SearchRanking', () => {
   });
 
   describe('성능 테스트', () => {
-    it('대량 데이터 처리 성능', () => {
-      const startTime = Date.now();
-      
-      // 1000개의 메트릭으로 배치 처리
-      const metricsList = Array.from({ length: 1000 }, (_, i) => ({
-        viewCount: i,
-        citeCount: i / 2,
-        editCount: i / 4
-      }));
-      
-      const batchResult = ranking.calculateBatchUsage(metricsList);
-      
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      
-      expect(batchResult.normalized).toHaveLength(1000);
-      expect(duration).toBeLessThan(1000); // 1초 이내
-    });
-
     it('반복 계산 성능', () => {
       const features: SearchFeatures = {
         relevance: 0.8,
         recency: 0.6,
         importance: 0.7,
-        usage: 0.5,
-        duplication_penalty: 0.2
       };
 
       const startTime = Date.now();
@@ -498,8 +359,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           workflow_name_match: true
         };
 
@@ -516,8 +375,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           skill_name_match: true
         };
 
@@ -534,8 +391,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           trigger_conditions_match: true
         };
 
@@ -552,8 +407,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           workflow_name_match: true,
           skill_name_match: true,
           trigger_conditions_match: true
@@ -572,8 +425,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2
         };
 
         // When: procedural memory boost 계산
@@ -591,8 +442,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           workflow_name_match: true
         };
 
@@ -600,7 +449,7 @@ describe('SearchRanking', () => {
         const score = ranking.calculateFinalScore(features);
 
         // Then: 기본 점수 + 0.1 부스트
-        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
         expect(score).toBeCloseTo(baseScore + 0.1, 3);
       });
 
@@ -610,8 +459,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           skill_name_match: true
         };
 
@@ -619,7 +466,7 @@ describe('SearchRanking', () => {
         const score = ranking.calculateFinalScore(features);
 
         // Then: 기본 점수 + 0.1 부스트
-        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
         expect(score).toBeCloseTo(baseScore + 0.1, 3);
       });
 
@@ -629,8 +476,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           trigger_conditions_match: true
         };
 
@@ -638,7 +483,7 @@ describe('SearchRanking', () => {
         const score = ranking.calculateFinalScore(features);
 
         // Then: 기본 점수 + 0.15 부스트
-        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
         expect(score).toBeCloseTo(baseScore + 0.15, 3);
       });
 
@@ -647,8 +492,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           workflow_name_match: true,
           skill_name_match: true
         };
@@ -656,7 +499,7 @@ describe('SearchRanking', () => {
         const customRanking = new SearchRanking({ zeta_fb: 0 });
         const score = customRanking.calculateFinalScore(features);
 
-        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
         expect(score).toBeCloseTo(baseScore + 0.2, 3);
       });
     });
@@ -668,12 +511,10 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
           process_attribute_fit: 0.8
         };
         const score = rankingWithFit.calculateFinalScore(features);
-        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
         expect(score).toBeCloseTo(baseScore + 0.1 * 0.8, 3);
       });
 
@@ -682,11 +523,9 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2
         };
         const score = ranking.calculateFinalScore(features);
-        const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7;
         expect(score).toBeCloseTo(expected, 3);
       });
     });
@@ -698,8 +537,6 @@ describe('SearchRanking', () => {
           relevance: 0.8,
           recency: 0.6,
           importance: 0.7,
-          usage: 0.5,
-          duplication_penalty: 0.2,
         };
         const low = r.calculateFinalScore({ ...base, feedback_score: 0.5 });
         const high = r.calculateFinalScore({ ...base, feedback_score: 1.0 });
@@ -712,8 +549,6 @@ describe('SearchRanking', () => {
           relevance: 0.5,
           recency: 0.5,
           importance: 0.5,
-          usage: 0.5,
-          duplication_penalty: 0,
         };
         const n0 = r.calculateFinalScore({ ...base, feedback_score: sigmoidNormalizedNet(0) });
         const n1 = r.calculateFinalScore({ ...base, feedback_score: sigmoidNormalizedNet(1) });
@@ -731,8 +566,6 @@ describe('SearchRanking', () => {
         relevance: 0.8,
         recency: 0.6,
         importance: 0.7,
-        usage: 0.5,
-        duplication_penalty: 0.2,
         feedback_score: 0.5,
       };
       expect(r.calculateFinalScoreAndBreakdown(f).breakdown).toBeUndefined();
@@ -745,18 +578,17 @@ describe('SearchRanking', () => {
         relevance: 0.8,
         recency: 0.6,
         importance: 0.7,
-        usage: 0.5,
-        duplication_penalty: 0.2,
         feedback_score: 0.6,
       };
       const out = r.calculateFinalScoreAndBreakdown(f, { includeBreakdown: true });
       expect(out.breakdown).toBeDefined();
       expect(out.breakdown?.feedback).toBeDefined();
       expect(out.breakdown?.total).toBeCloseTo(out.score, 5);
-      const slots = ['relevance', 'recency', 'importance', 'usage', 'feedback', 'duplication_penalty'] as const;
+      const slots = ['relevance', 'recency', 'importance', 'feedback'] as const;
       for (const k of slots) {
         expect(Number.isInteger(out.breakdown![k].pct)).toBe(true);
       }
+      expect(Object.keys(out.breakdown!).sort()).toEqual(['feedback', 'importance', 'recency', 'relevance', 'total']);
     });
 
     it('breakdown 계산은 단일 호출에서 100ms 이내 (SC-003)', () => {
@@ -765,8 +597,6 @@ describe('SearchRanking', () => {
         relevance: 0.8,
         recency: 0.6,
         importance: 0.7,
-        usage: 0.5,
-        duplication_penalty: 0.2,
       };
       const t0 = performance.now();
       r.calculateFinalScoreAndBreakdown(f, { includeBreakdown: true });

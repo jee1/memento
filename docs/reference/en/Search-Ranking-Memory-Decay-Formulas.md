@@ -2,13 +2,15 @@
 
 ## 1) Final Ranking Score
 
-$$S = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance} + \delta \cdot \text{usage} - \varepsilon \cdot \text{duplication\_penalty}$$
+$$S = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance}$$
 
-**Default coefficients (M1 recommended)**: $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$, $\delta=0.10$, $\varepsilon=0.15$
+> The $\delta \cdot \text{usage}$ and $\varepsilon \cdot \text{duplication\_penalty}$ terms this document first defined had no effect on ranking and were removed from the search score in #1694. Sections 5 and 6 are design history and do not exist in the search code. The usage in the forgetting score (section 7) is separate.
 
-**Meaning**: For candidate m, boost relevance, recency, importance, and usage, while reducing duplication penalty.
+**Default coefficients (M1 recommended)**: $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$
 
-**Practical tip**: Start with the above default values → adjust $\alpha$, $\beta$ through A/B testing, and increase $\varepsilon$ if result diversity is insufficient.
+**Meaning**: For candidate m, boost relevance, recency, and importance.
+
+**Practical tip**: Start with the above default values → adjust $\alpha$, $\beta$ through A/B testing.
 
 ## 2) Relevance Composition
 
@@ -85,7 +87,7 @@ $R$: Set of items already selected in current result list
 
 **Interpretation**: Give penalty as the degree of similarity between new candidate m and most similar existing selected result.
 
-If result diversity is insufficient, increase $\varepsilon$ (coefficient in final formula) or use MMR post-processing below.
+If result diversity is insufficient, use MMR post-processing below.
 
 ### MMR Post-processing (Optional)
 
@@ -140,10 +142,10 @@ $$C = \text{TopN}_e(\text{ANN by sim}_e) \cup \text{TopN}_k(\text{BM25})$$
 (Recommended $N_e=50$, $N_k=50$)
 
 ### Feature Compute
-Calculate relevance, recency, importance, usage, duplication_penalty for each $m \in C$
+Calculate relevance, recency, importance for each $m \in C$
 
 ### Primary Score
-$$S(m) = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance} + \delta \cdot \text{usage} - \varepsilon \cdot \text{duplication\_penalty}$$
+$$S(m) = \alpha \cdot \text{relevance} + \beta \cdot \text{recency} + \gamma \cdot \text{importance}$$
 
 ### Diversification (Optional)
 Apply MMR greedily to generate Top-K
@@ -157,7 +159,7 @@ Maintaining [0,1] scale for all partial scores makes combination easy. Recommend
 
 $$x_{\text{norm}} = \frac{x - \text{min\_batch}}{\text{max\_batch} - \text{min\_batch} + \varepsilon}$$
 
-Example: Apply to usage, duplication_penalty, bm25_norm
+Example: Apply to bm25_norm
 
 **Advantage**: Reduces query bias and collection deviation to increase score stability↑
 
@@ -165,12 +167,10 @@ Example: Apply to usage, duplication_penalty, bm25_norm
 
 | Item | Value |
 |------|-------|
-| **Final formula** | $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$, $\delta=0.10$, $\varepsilon=0.15$ |
+| **Final formula** | $\alpha=0.50$, $\beta=0.20$, $\gamma=0.20$ |
 | **relevance weights** | $w_e=0.60$, $w_k=0.30$, $w_t=0.05$, $w_p=0.05$ |
 | **recency** | $\text{half\_life}(\text{working})=2$, $\text{episodic}=30$, $\text{semantic}=180$ |
 | **importance** | $\text{pinned}=+0.20$, $\text{type\_boost}(\text{semantic}=+0.10, \text{working}=-0.05)$ |
-| **usage** | log-based, batch normalization |
-| **duplication_penalty** | max sim to selected |
 | **forgetting** | $\theta_{\text{soft}}=0.6$, $\theta_{\text{hard}}=0.8$, TTL_soft/hard see table above |
 | **review** | $p_{\text{recall}}(t)=\exp(-t/\tau)$, first 1day→6days→variable multiplier |
 

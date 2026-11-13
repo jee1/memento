@@ -21,8 +21,6 @@ export function resolveSearchRankingWeights(weights?: Partial<SearchRankingWeigh
     relevance: configWeights.ranking_weights.alpha ?? defaultWeights.relevance,
     recency: configWeights.ranking_weights.beta ?? defaultWeights.recency,
     importance: configWeights.ranking_weights.gamma ?? defaultWeights.importance,
-    usage: configWeights.ranking_weights.delta ?? defaultWeights.usage,
-    duplication_penalty: configWeights.ranking_weights.epsilon ?? defaultWeights.duplication_penalty,
     process_attribute_fit: configWeights.ranking_weights.theta ?? defaultWeights.process_attribute_fit,
     zeta_fb: configWeights.ranking_weights.zeta_fb ?? defaultWeights.zeta_fb,
     ...weights
@@ -56,7 +54,7 @@ export function calculateProceduralMemoryBoost(features: SearchFeatures): number
 
 /**
  * 단일 지표만으로는 검색 결과의 품질을 정확히 평가할 수 없으므로, 여러 지표를 가중 평균하여 종합적인 평가를 수행합니다.
- * 관련성, 최근성, 중요도, 사용성, 관계 가중치를 결합하고 중복 패널티를 적용하여 사용자에게 가장 유용한 결과를 우선 제공합니다.
+ * 관련성, 최근성, 중요도, 피드백을 결합하여 사용자에게 가장 유용한 결과를 우선 제공합니다.
  *
  * Procedural Memory 특화 가중치가 제공되면 최종 점수에 부스트를 추가합니다.
  */
@@ -71,8 +69,6 @@ export function calculateFinalScore(features: SearchFeatures, weights: SearchRan
   const finalScore = weights.relevance * relevanceScore +
                     weights.recency * features.recency +
                     weights.importance * features.importance +
-                    weights.usage * features.usage -
-                    weights.duplication_penalty * features.duplication_penalty +
                     feedbackTerm;
 
   // Procedural Memory 특화 가중치 부스트 적용
@@ -89,7 +85,7 @@ export function calculateFinalScore(features: SearchFeatures, weights: SearchRan
 /**
  * 최종 점수와 (옵션) 점수 구성 요소. breakdown은 include_score_breakdown 경로에서만 계산.
  *
- * FR-008 6슬롯 고정: `breakdown.relevance`의 score·pct는 순수 α·relevance(블렌딩 후)만이 아니라,
+ * FR-008 4슬롯 고정: `breakdown.relevance`의 score·pct는 순수 α·relevance(블렌딩 후)만이 아니라,
  * 동일 슬롯에 procedural_boost·process_attribute_fit 기여까지 합산한다
  * (`ScoreBreakdown.relevance`, `contracts/mcp-tools.md` §1 `relevance` 슬롯).
  */
@@ -112,8 +108,6 @@ export function calculateFinalScoreAndBreakdown(
   const cRel = w.relevance * relevanceScore;
   const cRec = w.recency * features.recency;
   const cImp = w.importance * features.importance;
-  const cUsage = w.usage * features.usage;
-  const cDup = -w.duplication_penalty * features.duplication_penalty;
   const cFb = zetaFb * (feedbackNorm - 0.5);
 
   const proceduralBoost = calculateProceduralMemoryBoost(features);
@@ -123,7 +117,7 @@ export function calculateFinalScoreAndBreakdown(
       ? processFitWeight * features.process_attribute_fit
       : 0;
 
-  /** FR-008 6슬롯: 절차·process_fit은 별도 필드 없이 relevance 슬롯에 합산(spec 004). */
+  /** FR-008 4슬롯: 절차·process_fit은 별도 필드 없이 relevance 슬롯에 합산(spec 004). */
   const relevanceBucket = cRel + proceduralBoost + processFit;
   /** FR-008: 각 항 기여값을 최종 점수(|total|) 대비 백분율로 표시; `pct`는 계약상 정수(반올림, contracts §1). */
   const totalAbs = Math.abs(score) < 1e-12 ? 1e-12 : Math.abs(score);
@@ -133,9 +127,7 @@ export function calculateFinalScoreAndBreakdown(
     relevance: { score: relevanceBucket, pct: pct(relevanceBucket) },
     recency: { score: cRec, pct: pct(cRec) },
     importance: { score: cImp, pct: pct(cImp) },
-    usage: { score: cUsage, pct: pct(cUsage) },
     feedback: { score: cFb, pct: pct(cFb) },
-    duplication_penalty: { score: cDup, pct: pct(cDup) },
     total: score
   };
 

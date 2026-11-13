@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe('benchmark reference clock', () => {
-  it('keeps seeded timestamps and production recency/usage identical across host dates', async () => {
+  it('keeps seeded timestamps and production recency identical across host dates', async () => {
     vi.stubEnv('EMBEDDING_PROVIDER', 'tfidf');
     const dir = mkdtempSync(join(tmpdir(), 'benchmark-clock-'));
     writeFileSync(join(dir, 'corpus.jsonl'), Array.from({ length: 8 }, (_, i) => JSON.stringify({
@@ -39,7 +39,6 @@ describe('benchmark reference clock', () => {
             return rows.map((row) => ({
               ...row,
               recency: ranking.calculateRecency(new Date(row.created_at)),
-              usage: ranking.calculateUsageSimple(row.last_accessed_at ? new Date(row.last_accessed_at) : undefined),
             }));
           } finally {
             seeded.close();
