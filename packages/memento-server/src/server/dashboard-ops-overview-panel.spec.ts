@@ -166,8 +166,8 @@ describe('Dashboard Ops overview panel (#1145)', () => {
     expect(dashboardHtml).toContain('/static/js/ops-overview-panel.js');
     expect(tabsPanelsJs).toContain("'ops-overview'");
     expect(tabsInitJs).toContain('initOpsOverviewPanel');
-    expect(dashboardHtml).toContain('id="dashboard-tab-anchor" class="m-tab-btn active session-only"');
-    expect(authTabsJs).toContain("activateTab('anchor')");
+    expect(dashboardHtml).toContain('id="dashboard-tab-ops-status" class="m-tab-btn active session-only"');
+    expect(authTabsJs).toContain("activateTab('ops-status')");
   });
 
   it('panel source uses shared primitives and keeps Korean inside S only', () => {

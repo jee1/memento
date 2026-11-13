@@ -398,7 +398,7 @@ describe('dashboard memory finder panel (#1118)', () => {
     const signedIn = createAuthTabsHarness('');
     signedIn.maybeActivateTabForAuth('signed-in');
     expect(signedIn.activateTab).toHaveBeenCalledTimes(1);
-    expect(signedIn.activateTab).toHaveBeenCalledWith('anchor');
+    expect(signedIn.activateTab).toHaveBeenCalledWith('ops-status');
 
     const signedOut = createAuthTabsHarness('');
     signedOut.maybeActivateTabForAuth('signed-out');

@@ -87,12 +87,12 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(dashboardHtml).toContain('role="tablist"');
   });
 
-  it('tab bar: anchor default active; evolution demo last without session-only', () => {
+  it('tab bar: ops-status default active; evolution demo last without session-only', () => {
     expect(dashboardHtml).not.toContain('class="m-tab-bar session-only"');
-    expect(dashboardHtml).toContain('id="dashboard-tab-anchor" class="m-tab-btn active session-only"');
+    expect(dashboardHtml).toContain('id="dashboard-tab-ops-status" class="m-tab-btn active session-only"');
     expect(dashboardHtml).toContain('id="dashboard-tab-evolution-demo" class="m-tab-btn"');
     expect(dashboardHtml).not.toContain('id="dashboard-tab-evolution-demo" class="m-tab-btn active"');
-    expect(dashboardHtml).toContain('id="tab-anchor-map" class="tab-panel active session-only"');
+    expect(dashboardHtml).toContain('id="tab-ops-status" class="tab-panel active session-only"');
     expect(dashboardHtml).toContain('id="tab-evolution-demo" class="tab-panel"');
     expect(dashboardHtml).not.toMatch(/id="tab-evolution-demo"[^>]*session-only/);
     const evolutionTabIndex = dashboardHtml.indexOf('id="dashboard-tab-evolution-demo"');
@@ -150,7 +150,7 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
   it('dashboard-auth.js activates evolution-demo when signed out', () => {
     expect(authJs).toContain('maybeActivateTabForAuth');
     expect(authJs).toContain("tabs.activateTab('evolution-demo')");
-    expect(authJs).toContain("tabs.activateTab('anchor')");
+    expect(authJs).toContain("tabs.activateTab('ops-status')");
   });
 
   it('dashboard.css defines med-* layout and controls using design tokens', () => {

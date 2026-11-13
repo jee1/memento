@@ -19,13 +19,13 @@
     const tabs = global.__MEMENTO_DASHBOARD_TABS__;
     if (!tabs || typeof tabs.activateTab !== 'function') return;
     if (nextState === 'signed-in') {
-      // #965: cold load / post-sign-in default = Anchor Map (badge alone must not jump to Review)
+      // #1699: cold load / post-sign-in default = 상태 (badge alone must not jump to Review)
       // #1118: ?memory_id=… deep link opens the memory finder instead of the default tab
       if (hasMemoryIdDeepLink()) {
         tabs.activateTab('memory-finder');
         return;
       }
-      tabs.activateTab('anchor');
+      tabs.activateTab('ops-status');
       return;
     }
     tabs.activateTab('evolution-demo');
