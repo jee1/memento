@@ -19,13 +19,6 @@
     });
   }
 
-  function initEmbeddingTab() {
-    if (typeof global.initEmbeddingMap === 'function') {
-      global.initEmbeddingMap();
-    }
-    dispatchDashboardResize();
-  }
-
   function initReviewTab() {
     if (typeof global.initReviewCandidatesPanel === 'function') {
       global.initReviewCandidatesPanel();
@@ -88,10 +81,6 @@
   }
 
   function runTabInit(name) {
-    if (name === 'embedding') {
-      initEmbeddingTab();
-      return;
-    }
     if (name === 'review') {
       initReviewTab();
       return;
@@ -119,6 +108,9 @@
     if (name === 'ops-status') {
       if (typeof global.initOpsStatusPanel === 'function') {
         global.initOpsStatusPanel();
+      }
+      if (typeof global.initEmbeddingHealthCard === 'function') {
+        global.initEmbeddingHealthCard();
       }
       dispatchDashboardResize();
       return;

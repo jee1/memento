@@ -4,7 +4,6 @@ import { expect, test } from '@playwright/test';
 // horizontal scroll, and every visible interactive control is at least 44px.
 const TABS = [
   'anchor',
-  'embedding',
   'graph',
   'ops-overview',
   'ops-status',
