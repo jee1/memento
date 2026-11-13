@@ -165,10 +165,63 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     const sharedNodes = result.nodes.filter(n => n.id === 'mem-shared');
     expect(sharedNodes).toHaveLength(1);
+    expect(sharedNodes[0]?.anchors).toEqual([
+      { slot: 'A', hop_distance: 1 },
+      { slot: 'B', hop_distance: 1 },
+    ]);
+    // Legacy hop_distance stays first-seen (slot A in anchorList order).
+    expect(sharedNodes[0]?.hop_distance).toBe(1);
 
     const slotEdges = result.links.filter(l => l.type === 'hop' && l.target === 'mem-shared');
     expect(slotEdges).toHaveLength(2);
     expect(slotEdges.map(l => l.source).sort()).toEqual(['anchor-a', 'anchor-b']);
+  });
+
+  it('#1692: accumulates anchors with distinct hop_distance per slot without changing first hop_distance', async () => {
+    insertMemory('anchor-a');
+    insertMemory('anchor-c');
+    insertMemory('mem-mid');
+    insertMemory('mem-shared');
+
+    const anchorManager = buildFakeAnchorManager(
+      [
+        { agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' },
+        { agent_id: 'default', slot: 'C', memory_id: 'anchor-c', created_at: 'now', updated_at: 'now' },
+      ],
+      {
+        A: [{ id: 'mem-shared', content: 'shared', type: 'episodic', hop_distance: 1, similarity: 0.8 }],
+        C: [
+          { id: 'mem-mid', content: 'mid', type: 'episodic', hop_distance: 1, similarity: 0.7 },
+          {
+            id: 'mem-shared',
+            content: 'shared',
+            type: 'episodic',
+            hop_distance: 2,
+            similarity: 0.5,
+            predecessor_id: 'mem-mid',
+          },
+        ],
+      }
+    );
+
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockResolvedValue(new Map()),
+    } as unknown as ServerServices['relationGraph'];
+
+    const result = await buildAnchorMapData(
+      db,
+      { anchorManager, relationGraph } as unknown as ServerServices,
+      'default',
+      {}
+    );
+
+    const shared = result.nodes.find(n => n.id === 'mem-shared');
+    expect(shared?.type).toBe('memory');
+    expect(shared?.hop_distance).toBe(1);
+    expect(shared?.anchors).toEqual([
+      { slot: 'A', hop_distance: 1 },
+      { slot: 'C', hop_distance: 2 },
+    ]);
   });
 
   it('builds relation-based edges via RelationGraph.getRelationsBatch with confidence as weight (memory_link not queried)', async () => {

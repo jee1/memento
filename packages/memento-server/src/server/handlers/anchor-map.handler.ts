@@ -15,12 +15,20 @@ export type AnchorMapSubscribers = Map<string, Map<WebSocket, CallerMemoryScope>
 /**
  * Anchor Map 노드 타입
  */
+/** Memory node membership in one or more anchor neighborhoods (#1692). */
+interface AnchorMapNodeMembership {
+  slot: 'A' | 'B' | 'C' | string;
+  hop_distance: number;
+}
+
 interface AnchorMapNode {
   id: string;
   type: 'anchor' | 'memory';
   slot?: string;
   content: string;
   hop_distance?: number;
+  /** Present on memory nodes: every slot that reached this id. Omitted on anchor nodes. */
+  anchors?: AnchorMapNodeMembership[];
   similarity?: number;
   importance?: number;
   created_at?: string;
@@ -225,6 +233,7 @@ async function buildNetworkNodesAndLinks(
   // 노드 dedup(메모리 id당 1개)과 별개로, slot→memory 엣지는 슬롯마다 생성한다
   // (같은 메모리가 slot A/B에 모두 잡히면 노드는 1개, 엣지는 2개)
   const nodeIds = new Set<string>();
+  const nodesById = new Map<string, AnchorMapNode>();
 
   // 각 앵커에 대해 처리
   for (const anchor of anchorList) {
@@ -235,14 +244,16 @@ async function buildNetworkNodesAndLinks(
 
     if (anchorMemory) {
       if (!nodeIds.has(anchor.memory_id)) {
-        nodes.push({
+        const anchorNode: AnchorMapNode = {
           id: anchor.memory_id,
           type: 'anchor',
           slot: anchor.slot,
           content: anchorMemory.content.substring(0, 100),
           importance: anchorMemory.importance,
           created_at: anchorMemory.created_at
-        });
+        };
+        nodes.push(anchorNode);
+        nodesById.set(anchor.memory_id, anchorNode);
         nodeIds.add(anchor.memory_id);
       }
 
@@ -257,7 +268,7 @@ async function buildNetworkNodesAndLinks(
           { limit: 50, ...(scope.owner_id ? { owner_id: scope.owner_id } : {}) }
         );
 
-        const anchorNode = nodes.find(n => n.id === anchor.memory_id);
+        const anchorNode = nodesById.get(anchor.memory_id);
         if (anchorNode && searchResult.anchor_info?.embedding_missing) {
           anchorNode.embedding_missing = true;
         }
@@ -272,17 +283,31 @@ async function buildNetworkNodesAndLinks(
         );
 
         for (const item of reachableItems) {
-          if (!nodeIds.has(item.id)) {
-            nodes.push({
+          let memoryNode = nodesById.get(item.id);
+          if (!memoryNode) {
+            memoryNode = {
               id: item.id,
               type: 'memory',
               content: item.content.substring(0, 100),
               hop_distance: item.hop_distance || 0,
+              anchors: [],
               similarity: item.similarity,
               importance: item.importance,
               created_at: item.created_at
-            });
+            };
+            nodes.push(memoryNode);
+            nodesById.set(item.id, memoryNode);
             nodeIds.add(item.id);
+          }
+          // Existing hop_distance stays first-seen; anchors accumulates every slot (#1692).
+          if (memoryNode.type === 'memory') {
+            const memberships = memoryNode.anchors ?? (memoryNode.anchors = []);
+            if (!memberships.some(entry => entry.slot === anchor.slot)) {
+              memberships.push({
+                slot: anchor.slot,
+                hop_distance: item.hop_distance || 0,
+              });
+            }
           }
         }
 
@@ -302,7 +327,7 @@ async function buildNetworkNodesAndLinks(
             slot: anchor.slot,
             anchorMemoryId: anchor.memory_id
           });
-          const anchorNode = nodes.find(n => n.id === anchor.memory_id);
+          const anchorNode = nodesById.get(anchor.memory_id);
           if (anchorNode) anchorNode.embedding_missing = true;
         } else {
           logger.error('Anchor search failed', {

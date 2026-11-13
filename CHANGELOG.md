@@ -11,6 +11,7 @@
 
 ### Added
 
+- Anchor Map 기억 노드 응답에 `anchors: [{ slot, hop_distance }]` 를 추가하고, 화면은 가장 가까운 소속 앵커 색으로 채우며 hop이 멀수록 옅게, 여러 앵커면 테두리를 두 번째 앵커 색으로 칠한다. 슬롯 문자·소속 문구·범례를 함께 맞춘다. 기존 `hop_distance` 의미는 그대로다 (#1692).
 - `GET /admin/ops/summary` `zones.system_ok` 에 마이그레이션 백업(최신 mtime·파일 수)과 DB/WAL 크기(MB) 신호를 추가한다. severity 는 null, window 는 null(현재 스냅샷). 새 설정·테이블 없음 (#1704).
 - `GET /admin/ops/summary` 응답에 최상위 `zones`(system_ok / doing_work / needs_action) 를 추가한다. 기존 필드는 그대로 두고, 색(severity)은 서버가 계산한다. 검색 빈 결과는 기각 게이트 거부(`rejected`)와 결과 없음(`no_result`)으로 가른다 (#1698).
 - Admin 메모리 그래프에 「전체 보기」와 시뮬레이션 안정 뒤 자동 맞춤을 넣고, 배율 하한을 bbox 기반 `min(0.1, k_fit*0.8)` 로 갱신한다. 낮은 배율에서는 노드 라벨을 숨긴다 (#1689).

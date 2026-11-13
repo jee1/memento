@@ -420,6 +420,14 @@ body {
   border-color: var(--color-memory-neutral);
 }
 
+.legend-note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  max-width: 14rem;
+  line-height: 1.35;
+}
+
 /* D3.js SVG 스타일 */
 .node {
   cursor: pointer;

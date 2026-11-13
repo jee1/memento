@@ -143,22 +143,23 @@
           <div id="anchor-map"></div>
           <div class="map-legend">
             <h3 title="맵 노드 색상과 의미입니다.">범례</h3>
-            <div class="legend-item" title="슬롯 A 앵커 — 1-hop 국소 검색 범위">
+            <div class="legend-item" title="슬롯 A 앵커와 그 기억 — 검색 범위 A=1-hop">
               <span class="legend-color anchor-a"></span>
-              <span>슬롯 A (1-hop)</span>
+              <span>슬롯 A 앵커와 그 기억</span>
             </div>
-            <div class="legend-item" title="슬롯 B 앵커 — 2-hop 국소 검색 범위">
+            <div class="legend-item" title="슬롯 B 앵커와 그 기억 — 검색 범위 B=2-hop">
               <span class="legend-color anchor-b"></span>
-              <span>슬롯 B (2-hop)</span>
+              <span>슬롯 B 앵커와 그 기억</span>
             </div>
-            <div class="legend-item" title="슬롯 C 앵커 — 3-hop 국소 검색 범위">
+            <div class="legend-item" title="슬롯 C 앵커와 그 기억 — 검색 범위 C=3-hop">
               <span class="legend-color anchor-c"></span>
-              <span>슬롯 C (3-hop)</span>
+              <span>슬롯 C 앵커와 그 기억</span>
             </div>
-            <div class="legend-item" title="앵커 주변 연결 메모리 노드">
+            <div class="legend-item" title="어느 앵커에도 속하지 않는 기억 노드">
               <span class="legend-color memory"></span>
-              <span>기억</span>
+              <span>앵커 없는 기억(회색)</span>
             </div>
+            <p class="legend-note">옅을수록 앵커에서 멀다. 테두리가 다른 색이면 그 앵커에도 속한다.</p>
           </div>
         </div>
         <details id="memory-inspector" class="memory-inspector" open>
