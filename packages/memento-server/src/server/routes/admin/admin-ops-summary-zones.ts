@@ -13,6 +13,7 @@ import {
 import type { ServerServices } from '../../bootstrap.js';
 import { resolveJobIntervalMs } from './admin-batch-job-interval-keys.js';
 import type { buildAdminStatus } from './admin-status-service.js';
+import { readOpsDiskSignals, type OpsDiskSignals } from './admin-ops-summary-disk-signals.js';
 import type {
   OpsSummaryLlmPressure,
   OpsSummarySeverity,
@@ -29,7 +30,7 @@ function item(
   unit: string | null,
   severity: OpsSummarySeverity,
   asOf: string | null,
-  window: OpsSummaryTimeWindow,
+  window: OpsSummaryTimeWindow | null,
 ): OpsSummaryZoneItem {
   return { key, value, unit, severity, as_of: asOf, window };
 }
@@ -265,6 +266,7 @@ function buildSystemOkZone(
   ownerId: string | null,
   nowMs: number,
   adminStatus: ReturnType<typeof buildAdminStatus>,
+  diskSignals: OpsDiskSignals,
 ): OpsSummaryZoneItem[] {
   const statusWindow = adminStatusWindow(adminStatus);
   const generatedAt = new Date(nowMs).toISOString();
@@ -320,6 +322,31 @@ function buildSystemOkZone(
       generatedAt,
       window,
     ),
+    ...buildDiskSignalItems(generatedAt, diskSignals),
+  ];
+}
+
+/** Migration backup + DB/WAL sizes (#1704). severity null; window null (= 현재). */
+function buildDiskSignalItems(generatedAt: string, disk: OpsDiskSignals): OpsSummaryZoneItem[] {
+  return [
+    item(
+      'migration_backup',
+      disk.migration_backup_latest_at,
+      null,
+      null,
+      disk.migration_backup_latest_at,
+      null,
+    ),
+    item(
+      'migration_backup_file_count',
+      disk.migration_backup_file_count,
+      'count',
+      null,
+      disk.migration_backup_latest_at,
+      null,
+    ),
+    item('db_size_mb', disk.db_size_mb, 'MB', null, generatedAt, null),
+    item('wal_size_mb', disk.wal_size_mb, 'MB', null, generatedAt, null),
   ];
 }
 
@@ -495,9 +522,19 @@ export function buildOpsSummaryZones(input: {
   nowMs: number;
   adminStatus: ReturnType<typeof buildAdminStatus>;
   llmPressure: OpsSummaryLlmPressure;
+  /** Override for tests; default reads dirname(dbPath)/backups + db/wal stat. */
+  diskSignals?: OpsDiskSignals;
 }): OpsSummaryZones {
+  const diskSignals = input.diskSignals ?? readOpsDiskSignals();
   return {
-    system_ok: buildSystemOkZone(input.db, input.window, input.ownerId, input.nowMs, input.adminStatus),
+    system_ok: buildSystemOkZone(
+      input.db,
+      input.window,
+      input.ownerId,
+      input.nowMs,
+      input.adminStatus,
+      diskSignals,
+    ),
     doing_work: buildDoingWorkZone(
       input.db,
       input.serverServices,
