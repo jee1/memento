@@ -82,7 +82,7 @@
       tr.dataset.due = dueRaw;
       const reasonDisplay = ns.formatReasonDisplay(reasonFull);
       const statusDisplay = ns.formatStatus(String(c.status ?? ''));
-      const dueDisplay = ns.formatDue(dueRaw);
+      const dueDisplay = ns.formatDueShort(dueRaw);
       tr.innerHTML =
         '<td class="rc-cell-select"><input type="checkbox" data-candidate-select="' +
         ns.escapeAttr(candidateId) +
@@ -104,10 +104,6 @@
         ns.escapeAttr(dueRaw) +
         '">' +
         ns.escapeHtml(dueDisplay) +
-        '</td><td class="rc-cell-mono rc-cell-id" title="' +
-        ns.escapeAttr(candidateId) +
-        '">' +
-        ns.escapeHtml(ns.truncateId(candidateId)) +
         '</td>';
       tbody.appendChild(tr);
     }
@@ -159,6 +155,7 @@
         selectedRow.dataset.reason,
         selectedRow.dataset.due,
         selectedRow.dataset.memoryId,
+        selectedRow.dataset.candidateId,
       );
       ns.syncReviewDismissButtons();
       return;

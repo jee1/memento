@@ -1072,41 +1072,65 @@ body {
   min-height: 0;
 }
 
-/* #1722: fixed layout + ellipsis IDs; never break-all (glyph wrap). */
+/* #1722: fixed layout via colgroup/th widths (td-only width is ignored under table-layout:fixed). */
 #rc-table {
   table-layout: fixed;
   width: 100%;
+}
+
+#rc-table col.rc-col-select,
+#rc-table th.rc-cell-select,
+#rc-table td.rc-cell-select {
+  width: 2.25rem;
+}
+
+#rc-table col.rc-col-priority,
+#rc-table th.rc-cell-priority,
+#rc-table td.rc-cell-priority {
+  width: 4rem;
+}
+
+#rc-table col.rc-col-status,
+#rc-table th.rc-cell-status,
+#rc-table td.rc-cell-status {
+  width: 4.5rem;
+}
+
+#rc-table col.rc-col-due,
+#rc-table th.rc-cell-due,
+#rc-table td.rc-cell-due {
+  width: 8rem;
+}
+
+#rc-table col.rc-col-id,
+#rc-table th.rc-cell-id,
+#rc-table td.rc-cell-id {
+  width: 6.5rem;
+}
+
+/* Remaining width goes to reason. Do not set display:-webkit-box on td (collapses the col). */
+#rc-table col.rc-col-reason,
+#rc-table th.rc-cell-reason {
+  width: auto;
 }
 
 .rc-cell-mono {
   font-family: var(--font-family-mono);
 }
 
-.rc-cell-select {
-  width: 2.25rem;
-  white-space: nowrap;
-}
-
-.rc-cell-priority {
-  width: 4.5rem;
-  white-space: nowrap;
-}
-
+.rc-cell-select,
+.rc-cell-priority,
 .rc-cell-status {
-  width: 4rem;
   white-space: nowrap;
 }
 
 .rc-cell-due {
-  width: 6.5rem;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  word-break: normal;
 }
 
 .rc-cell-id {
-  width: 8.5rem;
-  max-width: 8.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1117,10 +1141,7 @@ body {
   white-space: normal;
   overflow-wrap: break-word;
   word-break: normal;
-  max-width: none;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  max-height: 4.2em;
   overflow: hidden;
 }
 
@@ -1654,10 +1675,10 @@ body {
   }
 }
 
-/* Phone layout (#1147): 390px canvas. Tables become cards, KPI tiles go 2-up, list rows get two lines,
+/* Phone layout (#1147): 390px canvas. Tables become cards (#1722 includes #rc-table), KPI tiles go 2-up, list rows get two lines,
    and every interactive control is at least 44px. */
 @media (max-width: 30rem) {
-  .m-table:not(#rc-table) thead {
+  .m-table thead {
     position: absolute;
     width: var(--size-hairline);
     height: var(--size-hairline);
@@ -1666,21 +1687,21 @@ body {
     white-space: nowrap;
   }
 
-  .m-table:not(#rc-table),
-  .m-table:not(#rc-table) tbody,
-  .m-table:not(#rc-table) tr,
-  .m-table:not(#rc-table) td {
+  .m-table,
+  .m-table tbody,
+  .m-table tr,
+  .m-table td {
     display: block;
     width: 100%;
     box-sizing: border-box;
   }
 
-  .m-table:not(#rc-table) tr {
+  .m-table tr {
     padding: var(--spacing-xs) var(--spacing-sm);
     border-bottom: 1px solid var(--color-border-light);
   }
 
-  .m-table:not(#rc-table) td {
+  .m-table td {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -1688,16 +1709,41 @@ body {
     padding: var(--spacing-px-2) 0;
     border-bottom: none;
     text-align: right;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
-  .m-table:not(#rc-table) td[data-label]::before {
+  .m-table td[data-label]::before {
     content: attr(data-label);
     flex: none;
     max-width: 45%;
     color: var(--color-text-muted);
     font-size: var(--font-size-xs);
     text-align: left;
+  }
+
+  #rc-table col,
+  #rc-table th.rc-cell-select,
+  #rc-table td.rc-cell-select,
+  #rc-table th.rc-cell-priority,
+  #rc-table td.rc-cell-priority,
+  #rc-table th.rc-cell-status,
+  #rc-table td.rc-cell-status,
+  #rc-table th.rc-cell-due,
+  #rc-table td.rc-cell-due,
+  #rc-table th.rc-cell-id,
+  #rc-table td.rc-cell-id {
+    width: auto;
+  }
+
+  #rc-table td.rc-cell-id,
+  #rc-table td.rc-cell-due,
+  #rc-table td.rc-cell-reason {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    -webkit-line-clamp: unset;
+    display: flex;
   }
 
   .m-stat-grid {
@@ -1719,7 +1765,7 @@ body {
 
   #rc-table .rc-cell-select {
     min-width: var(--size-touch);
-    height: var(--size-touch);
+    min-height: var(--size-touch);
   }
 }
 

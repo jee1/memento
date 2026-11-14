@@ -292,7 +292,7 @@
         >
           <h3 class="m-panel__title">수동 배치 실행</h3>
           <p class="m-panel__note">
-            이 서버 프로세스의 최근 <code class="m-code-inline">POST /admin/batch/run</code> 호출
+            이 서버 프로세스에서 관리자가 수동으로 돌린 최근 배치 실행
             (메모리 내; 재시작 시 초기화).
           </p>
           <div id="rc-batch-history-error" class="m-error hidden" role="alert"></div>
@@ -409,10 +409,10 @@
                 <span class="rc-filter-label">기억 유형</span>
                 <select id="rc-filter-memory-type" class="m-select">
                   <option value="">전체</option>
-                  <option value="working">working</option>
-                  <option value="episodic">episodic</option>
-                  <option value="semantic">semantic</option>
-                  <option value="procedural">procedural</option>
+                  <option value="working">작업(working)</option>
+                  <option value="episodic">사건(episodic)</option>
+                  <option value="semantic">지식(semantic)</option>
+                  <option value="procedural">절차(procedural)</option>
                 </select>
               </label>
               <label class="rc-filter-field rc-filter-field--grow">
@@ -453,15 +453,22 @@
             </div>
             <div id="rc-table-wrap" class="review-candidates-table-wrap m-table-wrap hidden">
               <table id="rc-table" class="m-table">
+                <colgroup>
+                  <col class="rc-col-select" />
+                  <col class="rc-col-priority" />
+                  <col class="rc-col-id" />
+                  <col class="rc-col-status" />
+                  <col class="rc-col-reason" />
+                  <col class="rc-col-due" />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th scope="col" aria-label="후보 선택"></th>
-                    <th scope="col">우선순위</th>
-                    <th scope="col">기억 ID</th>
-                    <th scope="col">상태</th>
-                    <th scope="col">사유</th>
-                    <th scope="col">기한</th>
-                    <th scope="col">후보 ID</th>
+                    <th scope="col" class="rc-cell-select" aria-label="후보 선택"></th>
+                    <th scope="col" class="rc-cell-priority">우선순위</th>
+                    <th scope="col" class="rc-cell-id">기억 ID</th>
+                    <th scope="col" class="rc-cell-status">상태</th>
+                    <th scope="col" class="rc-cell-reason">사유</th>
+                    <th scope="col" class="rc-cell-due">기한</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -478,6 +485,7 @@
                   <div><dt>사유</dt><dd id="rc-preview-reason" class="rc-preview-reason-full"></dd></div>
                   <div><dt>기한</dt><dd id="rc-preview-due" class="rc-cell-mono"></dd></div>
                   <div><dt>기억 ID</dt><dd id="rc-preview-mid" class="rc-cell-mono rc-preview-id"></dd></div>
+                  <div><dt>후보 ID</dt><dd id="rc-preview-cid" class="rc-cell-mono rc-preview-id"></dd></div>
                 </dl>
                 <p id="rc-preview-memory-status" class="rc-preview-memory-status" aria-live="polite"></p>
                 <pre id="rc-preview-content" class="rc-preview-content"></pre>

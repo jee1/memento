@@ -1,15 +1,22 @@
 /**
- * Phone table cards (#1147): copy each column header into its body cells' data-label so the
+ * Phone table cards (#1147/#1722): copy each column header into body cells' data-label so the
  * max-width: 30rem layout in dashboard.css can render every row as a "header: value" card.
- * Rows rendered later are labelled too (MutationObserver). #rc-table is excluded on purpose:
- * it keeps the #897 horizontal scroll because its select-all and row checkboxes live in the grid.
+ * Includes #rc-table (7 equal fixed columns were unreadable at 390). Empty header → 「선택」.
+ * Rows rendered later are labelled too (MutationObserver).
  */
 (function (global) {
   'use strict';
 
   function labelTable(table) {
     const heads = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) {
-      return th.textContent.trim();
+      const text = th.textContent.trim();
+      if (text) {
+        return text;
+      }
+      if (th.getAttribute('aria-label')) {
+        return th.getAttribute('aria-label');
+      }
+      return '선택';
     });
     if (heads.length === 0) {
       return;
@@ -36,7 +43,7 @@
   }
 
   if (global.document) {
-    global.document.querySelectorAll('table.m-table:not(#rc-table)').forEach(watch);
+    global.document.querySelectorAll('table.m-table').forEach(watch);
   }
 
   global.__MEMENTO_TABLE_CARDS__ = { labelTable: labelTable };

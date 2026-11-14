@@ -158,17 +158,25 @@
       const tr = document.createElement('tr');
       const errPreview = String(r.errorsPreview || r.failureMessage || '');
       const errCell =
-        (Number(r.errorCount) > 0 || errPreview ? ns.escapeHtml(errPreview || '(see logs)') : '—') +
+        (Number(r.errorCount) > 0 || errPreview
+          ? ns.escapeHtml(errPreview || '(로그 참고)')
+          : '—') +
         (Number(r.warningCount) > 0
-          ? ' <span class="m-panel__note">(' + ns.escapeHtml(String(r.warningCount)) + ' warnings)</span>'
+          ? ' <span class="m-panel__note">(' +
+            ns.escapeHtml(String(r.warningCount)) +
+            ' 경고)</span>'
           : '');
+      const jobLabel =
+        typeof ns.formatBatchJobType === 'function'
+          ? ns.formatBatchJobType(String(r.jobType || ''))
+          : String(r.jobType || '');
       tr.innerHTML =
         '<td class="rc-cell-mono">' +
         ns.escapeHtml(ns.formatDue(r.completedAt)) +
         '</td><td class="rc-cell-mono">' +
-        ns.escapeHtml(String(r.jobType || '')) +
+        ns.escapeHtml(jobLabel) +
         '</td><td>' +
-        ns.escapeHtml(r.success === true ? 'yes' : r.success === false ? 'no' : '—') +
+        ns.escapeHtml(r.success === true ? '예' : r.success === false ? '아니오' : '—') +
         '</td><td class="rc-cell-mono">' +
         ns.escapeHtml(formatDurationMs(r.durationMs)) +
         '</td><td>' +

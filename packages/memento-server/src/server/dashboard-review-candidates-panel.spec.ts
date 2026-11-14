@@ -237,6 +237,7 @@ describe('dashboard review candidates panel (#252, #253)', () => {
         'rc-preview-reason',
         'rc-preview-due',
         'rc-preview-mid',
+        'rc-preview-cid',
         'rc-btn-review',
         'rc-btn-dismiss',
       ].map((id) => [id, element()]),
@@ -248,6 +249,7 @@ describe('dashboard review candidates panel (#252, #253)', () => {
         $: (id: string) => elements[id],
         setHidden: (el: any, hidden: boolean) => el.classList.toggle('hidden', hidden),
         formatDue: (value: string) => value,
+        formatDueShort: (value: string) => value,
         formatReasonDisplay: (value: string) => value,
         previewUrl: (memoryId: string) => '/memory/' + memoryId,
         adminFetch: () => (url: string) => responseFor(url.slice('/memory/'.length)),
@@ -561,6 +563,7 @@ describe('#897 review queue structure and refresh selection', () => {
       'rc-preview-reason',
       'rc-preview-due',
       'rc-preview-mid',
+      'rc-preview-cid',
       'rc-btn-review',
       'rc-btn-dismiss',
       'rc-filter-importance',
@@ -614,6 +617,7 @@ describe('#897 review queue structure and refresh selection', () => {
         formatStatus: (s: string) => s,
         formatReasonDisplay: (s: string) => s,
         formatDue: (v: string) => v,
+        formatDueShort: (v: string) => v,
         LIST_URL: '/admin/memory/review-candidates?status=pending',
         adminFetch: () => adminFetchSpy,
         showError: vi.fn(),
@@ -1206,6 +1210,8 @@ describe('review candidates panel display labels (#1722)', () => {
       formatStatus: (s: string) => string;
       formatReasonDisplay: (s: string) => string;
       formatDue: (s: string) => string;
+      formatDueShort: (s: string) => string;
+      formatBatchJobType: (s: string) => string;
       truncateId: (s: string) => string;
     };
   }
@@ -1220,7 +1226,7 @@ describe('review candidates panel display labels (#1722)', () => {
       ns.formatReasonDisplay(
         'eligible: importance=1.000>=0.4, stale=20d>=14d, anchor=last_recalled_at',
       ),
-    ).toBe('중요도 1.00, 기준 이상 · 미사용 20일 · 마지막 recall');
+    ).toBe('중요도 1.00, 기준 이상 · 미사용 20일 · 마지막 불러오기');
     expect(
       ns.formatReasonDisplay(
         'eligible: importance=0.300>=0.4, stale=5d>=14d, anchor=created_at_fallback',
@@ -1228,26 +1234,37 @@ describe('review candidates panel display labels (#1722)', () => {
     ).toBe('중요도 0.30, 기준 미달 · 미사용 5일 · 생성일(대체)');
   });
 
-  it('truncates IDs and formats due as one short line', () => {
+  it('keeps shared formatDue as locale datetime; short due is queue-only', () => {
     const ns = loadShared();
     const longId = 'mem_17627723051234567890abcdef';
     expect(ns.truncateId(longId)).toBe('mem_1762772305…');
-    expect(ns.truncateId(longId).includes('\n')).toBe(false);
+    const noonToday = new Date();
+    noonToday.setHours(12, 30, 0, 0);
+    const locale = noonToday.toLocaleString();
+    expect(ns.formatDue(noonToday.toISOString())).toBe(locale);
+    expect(ns.formatDue(noonToday.toISOString())).not.toBe('오늘');
     const tomorrow = new Date();
     tomorrow.setHours(12, 0, 0, 0);
     tomorrow.setDate(tomorrow.getDate() + 3);
-    expect(ns.formatDue(tomorrow.toISOString())).toBe('3일 남음');
+    expect(ns.formatDueShort(tomorrow.toISOString())).toBe('3일 남음');
     const past = new Date(2020, 0, 15, 12, 0, 0);
-    expect(ns.formatDue(past.toISOString())).toBe('2020-01-15');
+    expect(ns.formatDueShort(past.toISOString())).toBe('2020-01-15');
+    expect(ns.formatBatchJobType('memory_review_candidates')).toBe('검토 대기열 후보 선정');
   });
 
-  it('table chrome uses Korean headers and no batch job type key in copy', () => {
+  it('table chrome uses Korean headers, colgroup widths, and no batch job type key in copy', () => {
     expect(dashboardHtml).toContain('>기억 ID</th>');
-    expect(dashboardHtml).toContain('>후보 ID</th>');
     expect(dashboardHtml).toContain('<dt>기억 ID</dt>');
+    expect(dashboardHtml).toContain('<dt>후보 ID</dt>');
+    expect(dashboardHtml).toContain('id="rc-preview-cid"');
+    expect(dashboardHtml).toContain('colgroup');
+    expect(dashboardHtml).toContain('rc-col-due');
+    expect(dashboardHtml).toContain('class="rc-cell-due"');
+    expect(dashboardHtml).not.toContain('>후보 ID</th>');
     expect(dashboardHtml).not.toContain('>Memory ID</th>');
     expect(dashboardHtml).not.toContain('>Candidate ID</th>');
     expect(dashboardHtml).not.toContain('memory_review_candidates');
     expect(dashboardHtml).toContain('검토 대기열 후보 선정 배치');
+    expect(dashboardHtml).toContain('관리자가 수동으로 돌린 최근 배치 실행');
   });
 });

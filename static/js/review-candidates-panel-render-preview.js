@@ -71,11 +71,12 @@
     syncReviewDismissButtons();
   }
 
-  function setPreviewCandidateFields(priority, reason, due, memoryId) {
+  function setPreviewCandidateFields(priority, reason, due, memoryId, candidateId) {
     const p = $('rc-preview-priority');
     const r = $('rc-preview-reason');
     const d = $('rc-preview-due');
     const m = $('rc-preview-mid');
+    const c = $('rc-preview-cid');
     if (p) {
       p.textContent = String(priority ?? '');
     }
@@ -83,10 +84,18 @@
       r.textContent = ns.formatReasonDisplay(String(reason ?? ''));
     }
     if (d) {
-      d.textContent = ns.formatDue(due);
+      d.textContent = ns.formatDueShort(due);
     }
     if (m) {
       m.textContent = String(memoryId ?? '');
+    }
+    if (c) {
+      const fromArg = candidateId != null ? String(candidateId) : '';
+      const fromRow =
+        state.selectedRow && state.selectedRow.dataset.candidateId
+          ? String(state.selectedRow.dataset.candidateId)
+          : '';
+      c.textContent = fromArg || fromRow;
     }
   }
 
