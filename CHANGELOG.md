@@ -24,6 +24,8 @@
 
 ### Changed
 
+- 대시보드 「대체 후보」 탭을 「검토 대기열」 탭 안의 접이식 구역으로 옮겼다. 둘 다 사람이 승인하는 후보 큐다. 목록, 승인, 되돌리기, 거절 동작과 `/admin/memory/supersede-candidates*` 응답은 그대로이고, 구역을 펼칠 때 목록을 불러온다. 상태 탭 「대체 후보 대기」 행의 링크가 이 구역을 펼친다. 옮기면서 화면의 영어 키(`project_id`, `confirmed`, `pending`, `compatible`, `apply`, `restore`, `SUPERSEDE_APPLY_ENABLED`)를 한국어로 바꿨다 (#1700).
+- 대시보드 탭을 7개로 확정한다. 순서는 상태, 검토 대기열, 배치 작업, 기억 찾기, 앵커 맵, 기억 그래프, 설정이다. 모바일 그룹 칩은 「운영」, 「공간」 두 개이고 설정은 그룹 밖 마지막에 둔다 (#1700).
 - 상태 탭 요청이 실패하면 구역 영역의 실패 배너 한 곳에만 이유를 그린다. 같은 문구를 따로 그리던 `#ops-status-error` 를 지웠다 (#1699 후속).
 - Admin 대시보드 첫 화면을 「상태」 탭으로 바꾸고 `/admin/ops/summary?period=7d` 의 `zones` 세 구역(정상인가 / 제 일을 하고 있나 / 손댈 것)을 범용으로 그린다. 상단 ops-strip 과 개발자용 4질문 문자열을 제거한다. 색은 서버 `severity` 만 쓴다. 집계 창이 없는 항목은 「현재」로, `unit` 이 `MB` 인 값은 단위를 붙여 그리고, `zones` 가 없는 응답은 요청 실패(빨강)로 본다. 검토 대기는 서버가 상한을 주지 않으므로 숫자만 그린다 (#1699).
 - 관계 추출 제공자 설정 `LLM_PROVIDER_RELATION_EXTRACTION` 의 정본 값을 `jev` 에서 `typesafe` 로 바꾼다. 제공자는 typesafe, 모델은 jev 로 용어를 가른다(`GLOSSARY.md`). 옛 값 `jev` 는 별칭으로 계속 받아 `typesafe` 로 정규화한다: 옛 `.env`, 설정 화면 PUT, DB 에 저장된 옛 override 행 모두 그대로 동작하고 설정 화면에는 `typesafe` 로 보인다. `llm_usage_*` 의 provider 문자열, 관계 `method='jev'`, 마이그레이션 066 값, env 키 `TYPESAFE_*` 는 바꾸지 않는다 (#1687).
@@ -40,6 +42,7 @@
 
 ### Removed
 
+- 대시보드 「운영 개요」 탭과 전용 스크립트, 스타일을 지웠다. 카드가 모두 다른 탭으로 가는 링크뿐이라 새 정보가 없었고 「상태」 탭의 세 구역이 대신한다. `GET /admin/stats/forgetting` 은 문서에 적힌 관리자 API 라서 그대로 둔다 (#1700).
 - 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
 - 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).
 - 검색 랭킹에서 순위에 영향이 없던 두 항을 지웠다. `usage` 는 모든 후보에 같은 상수(`min(1, ln2/10)`)였고 `duplication_penalty` 는 융합 레인에서 0 고정이었다. `[ranking_weights].delta`, `.epsilon`, 두 knob(`ranking_weights.delta`, `.epsilon`), `calculateUsage`, `calculateBatchUsage`, `calculateUsageSimple`, `calculateDuplicationPenalty` 가 사라지고 `config/ranking-weights.toml`, `config/ranking-profiles/*.toml` 에서도 키를 지웠다. 순위는 그대로이고 최종 점수는 모든 후보에서 기본 `delta = 0.10` 기준 0.00693(= 0.10·ln2/10)만큼 내려간다(`feedback-heavy` 프로파일은 `delta = 0.08` 이라 0.00554). 새 `ranking_version` 해시가 생겨 텔레메트리 `ranking_versions` 에 옛 값과 새 값이 함께 보인다 (#1694).

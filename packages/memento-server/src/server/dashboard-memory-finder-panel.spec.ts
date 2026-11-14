@@ -179,8 +179,8 @@ describe('dashboard memory finder panel (#1118)', () => {
     const reviewIdx = dashboardHtml.indexOf('id="dashboard-tab-review"');
     const finderIdx = dashboardHtml.indexOf('id="dashboard-tab-memory-finder"');
     const jobsIdx = dashboardHtml.indexOf('id="dashboard-tab-jobs"');
-    expect(reviewIdx).toBeLessThan(finderIdx);
-    expect(finderIdx).toBeLessThan(jobsIdx);
+    expect(reviewIdx).toBeLessThan(jobsIdx);
+    expect(jobsIdx).toBeLessThan(finderIdx);
   });
 
   it('registers memory finder in tab panels and init hook', () => {

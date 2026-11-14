@@ -16,7 +16,7 @@ test.describe('dashboard signed-out chrome (#1703)', () => {
 
     await expect(page.locator('#dashboard-auth-form')).toBeVisible();
     await expect(page.locator('#dashboard-auth-message')).toBeVisible();
-    await expect(page.locator('.m-tab-btn')).toHaveCount(9);
+    await expect(page.locator('.m-tab-btn')).toHaveCount(7);
     await expect(page.locator('.m-tab-btn').filter({ visible: true })).toHaveCount(0);
     await expect(page.locator('.tab-panel').filter({ visible: true })).toHaveCount(0);
     await expect(page.locator('#dashboard-nav-toggle')).toBeHidden();

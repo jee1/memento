@@ -23,6 +23,9 @@
     if (typeof global.initReviewCandidatesPanel === 'function') {
       global.initReviewCandidatesPanel();
     }
+    if (typeof global.initSupersedeCandidatesPanel === 'function') {
+      global.initSupersedeCandidatesPanel();
+    }
     dispatchDashboardResize();
   }
 
@@ -40,23 +43,9 @@
     dispatchDashboardResize();
   }
 
-  function initSupersedeTab() {
-    if (typeof global.initSupersedeCandidatesPanel === 'function') {
-      global.initSupersedeCandidatesPanel();
-    }
-    dispatchDashboardResize();
-  }
-
   function initSettingsTab() {
     if (typeof global.initSettingsPanel === 'function') {
       global.initSettingsPanel();
-    }
-    dispatchDashboardResize();
-  }
-
-  function initOpsOverviewTab() {
-    if (typeof global.initOpsOverviewPanel === 'function') {
-      global.initOpsOverviewPanel();
     }
     dispatchDashboardResize();
   }
@@ -85,10 +74,6 @@
       initReviewTab();
       return;
     }
-    if (name === 'supersede') {
-      initSupersedeTab();
-      return;
-    }
     if (name === 'memory-finder') {
       initMemoryFinderTab();
       return;
@@ -99,10 +84,6 @@
     }
     if (name === 'settings') {
       initSettingsTab();
-      return;
-    }
-    if (name === 'ops-overview') {
-      initOpsOverviewTab();
       return;
     }
     if (name === 'ops-status') {
