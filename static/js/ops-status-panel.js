@@ -48,9 +48,23 @@
     relation_extraction_failures: '관계 추출 실패',
     review_pending_total: '검토 대기',
     review_last_human_decision_at: '마지막 사람 결정',
-    review_net_flow_1h: '검토 순유입 (1h)',
+    review_net_flow_1h: '검토 순유입 (1시간)',
     supersede_pending_count: '대체 후보 대기',
     embedding_problem_count: '임베딩 문제',
+  };
+
+  /** One-line gloss for rows whose name alone is opaque (#1716). */
+  const DESCRIPTIONS = {
+    injection_item_filtered_events: '주입 때 항목 점수 필터가 돌아간 횟수',
+    item_filter_kept: '주입 후보 중 점수 기준을 통과해 남긴 건수',
+    item_filter_dropped: '주입 후보 중 점수 기준으로 걸러진 건수',
+    item_filter_empty: '필터 후 남길 항목이 하나도 없었던 주입 횟수',
+    injection_empty: '검색·필터 결과가 비어 주입할 기억이 없었던 횟수',
+    gate_drift_alert: '검색 기각 게이트 임계값이 기준 분포에서 벗어났는지',
+    review_net_flow_1h: '최근 1시간 검토 대기 순증가(유입 − 처리)',
+    search_empty_rejected: '기각 게이트가 막아 빈 결과가 된 검색 횟수',
+    search_empty_no_result: '후보가 없어 빈 결과가 된 검색 횟수',
+    relation_extraction_failures: '관계 추출 LLM 호출이 실패한 횟수',
   };
 
   const LINKS = {
@@ -85,15 +99,92 @@
     ns.setHidden(ns.$('ops-status-loading'), !loading);
   };
 
+  const LLM_FEATURE_LABELS = {
+    agent_chat: '에이전트 채팅',
+    cluster_judge: '클러스터 판정',
+    consolidation_summarize: '증류 요약',
+    directive_recall: '지침 회상',
+    procedural_extraction: '절차 추출',
+    relation_extraction: '관계 추출',
+    relevance_gate: '관련성 게이트',
+    supersede_judge: '대체 판정',
+  };
+
+  const LLM_METRIC_LABELS = {
+    attempts: '시도',
+    other_failures: '기타 실패',
+    rate_limited: '호출 한도',
+  };
+
+  ns.ZONE_KEY_LABELS = LABELS;
+  ns.LLM_FEATURE_LABELS = LLM_FEATURE_LABELS;
+  ns.LLM_METRIC_LABELS = LLM_METRIC_LABELS;
+  ns.ROW_DESCRIPTIONS = DESCRIPTIONS;
+
+  ns.isKnownLabelKey = function (key) {
+    if (LABELS[key]) {
+      return true;
+    }
+    const llm = /^llm_(.+)_(attempts|other_failures|rate_limited)$/.exec(String(key));
+    return Boolean(llm && LLM_FEATURE_LABELS[llm[1]] && LLM_METRIC_LABELS[llm[2]]);
+  };
+
   ns.labelForKey = function (key) {
     if (LABELS[key]) {
       return LABELS[key];
     }
     const llm = /^llm_(.+)_(attempts|other_failures|rate_limited)$/.exec(String(key));
     if (llm) {
-      return llm[1] + ' / ' + llm[2];
+      const feature = LLM_FEATURE_LABELS[llm[1]] || '미등록 작업';
+      const metric = LLM_METRIC_LABELS[llm[2]] || '기타';
+      return feature + ' / ' + metric;
     }
-    return String(key);
+    return '미등록 항목';
+  };
+
+  ns.descriptionForKey = function (key) {
+    return DESCRIPTIONS[key] || '';
+  };
+
+  ns.formatWindowPeriod = function (period) {
+    if (!period) {
+      return S.windowNow;
+    }
+    const raw = String(period);
+    if (raw === '7d') {
+      return '최근 7일';
+    }
+    if (raw === '30d') {
+      return '최근 30일';
+    }
+    if (raw === '24h') {
+      return '최근 24시간';
+    }
+    const match = /^(\d+)([dh])$/.exec(raw);
+    if (match) {
+      return match[2] === 'd' ? '최근 ' + match[1] + '일' : '최근 ' + match[1] + '시간';
+    }
+    return S.windowNow;
+  };
+
+  ns.renderTermHelp = function () {
+    const host = ns.$('ops-status-term-list');
+    if (!host) {
+      return;
+    }
+    while (host.firstChild) {
+      host.removeChild(host.firstChild);
+    }
+    const keys = Object.keys(DESCRIPTIONS);
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const li = doc.createElement('li');
+      const name = doc.createElement('strong');
+      name.textContent = LABELS[key] || key;
+      li.appendChild(name);
+      li.appendChild(doc.createTextNode(' — ' + DESCRIPTIONS[key]));
+      host.appendChild(li);
+    }
   };
 
   function formatRelativeAndAbsolute(iso) {
@@ -169,17 +260,24 @@
     const label = doc.createElement('span');
     label.className = 'ops-row__label';
     label.textContent = ns.labelForKey(item.key);
+    const tip = ns.descriptionForKey(item.key);
+    if (tip) {
+      label.setAttribute('title', tip);
+    }
     li.appendChild(label);
+
+    const meta = doc.createElement('div');
+    meta.className = 'ops-row__meta';
 
     const value = doc.createElement('span');
     value.className = 'ops-row__value';
     value.textContent = ns.formatValue(item);
-    li.appendChild(value);
+    meta.appendChild(value);
 
     const windowEl = doc.createElement('span');
     windowEl.className = 'ops-row__window';
-    windowEl.textContent = item.window && item.window.period ? String(item.window.period) : S.windowNow;
-    li.appendChild(windowEl);
+    windowEl.textContent = ns.formatWindowPeriod(item.window && item.window.period);
+    meta.appendChild(windowEl);
 
     const linkSpec = LINKS[item.key];
     if (linkSpec && (sev === 'warn' || sev === 'crit' || (linkSpec.section && Number(item.value) > 0))) {
@@ -199,9 +297,10 @@
           section.scrollIntoView({ block: 'start' });
         }
       });
-      li.appendChild(btn);
+      meta.appendChild(btn);
     }
 
+    li.appendChild(meta);
     return li;
   };
 
@@ -279,6 +378,7 @@
       }
       ns.state.lastSnapshot = data;
       ns.renderZones(data.zones);
+      ns.renderTermHelp();
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
@@ -305,6 +405,7 @@
     if (!ns.state.wired) {
       ns.state.wired = true;
       wirePanel();
+      ns.renderTermHelp();
     }
   }
 

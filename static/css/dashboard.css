@@ -1506,8 +1506,15 @@ body {
 /* Ops status zones (#1699) */
 .ops-status-zones {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Single column at all widths: 3-col at lg made 1280 cards too narrow for date+period+action (issue 1716). */
+  grid-template-columns: 1fr;
   gap: var(--spacing-md);
+}
+
+@media (max-width: 79.99rem) {
+  .ops-status-zones {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ops-status-fetch-fail {
@@ -1529,11 +1536,14 @@ body {
 
 .ops-row {
   display: grid;
-  grid-template-columns: var(--size-ops-sev-col) minmax(0, 1fr) auto auto var(--size-ops-action-col);
-  align-items: center;
-  gap: var(--spacing-sm) var(--spacing-md);
+  /* Row1: sev + full-width name. Row2: value / period / action in .ops-row__meta. */
+  grid-template-columns: var(--size-ops-sev-col) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--spacing-md);
+  row-gap: var(--spacing-xs);
   padding: var(--spacing-sm) 0;
   border-top: 1px solid var(--color-border-light);
+  min-width: 0;
 }
 
 .ops-row:first-child {
@@ -1542,17 +1552,37 @@ body {
 
 .ops-row__sev {
   grid-column: 1;
+  grid-row: 1 / span 2;
   justify-self: start;
 }
 
 .ops-row__label {
   grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
   color: var(--color-text-muted);
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.ops-row__meta {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .ops-row__value {
-  grid-column: 3;
-  justify-self: end;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  white-space: nowrap;
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -1560,15 +1590,15 @@ body {
 }
 
 .ops-row__window {
-  grid-column: 4;
-  justify-self: end;
+  flex: 0 0 auto;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
+  white-space: nowrap;
 }
 
 .ops-row__link {
-  grid-column: 5;
-  justify-self: end;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .ops-row[data-severity='crit'] .ops-row__label,
@@ -1576,21 +1606,14 @@ body {
   color: var(--color-text-main);
 }
 
-@media (max-width: 79.99rem) {
-  .ops-status-zones {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 30rem) {
-  .ops-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+  .ops-row__meta {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .ops-row__window,
-  .ops-row__link {
-    grid-column: 1 / -1;
-    justify-self: start;
+  .ops-row__value {
+    white-space: normal;
   }
 }
 
