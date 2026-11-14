@@ -590,7 +590,13 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
         if (cs.textOverflow === 'ellipsis') return true;
         if (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') return true;
         const hasTitle = Boolean(el.getAttribute('title') || el.title);
-        if (!hasTitle) return false;
+        // jobs-schedule__desc uses max-height + overflow:hidden + title (no ellipsis token).
+        if (
+          hasTitle
+          && (cs.overflow === 'hidden' || cs.overflowY === 'hidden' || cs.overflowX === 'hidden')
+        ) {
+          return true;
+        }
         return false;
       }
 
