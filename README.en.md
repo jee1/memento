@@ -16,6 +16,8 @@ Memento is that infrastructure. Not a dump of notes, but an **MCP-based memory o
 
 Project direction (Korean only): [docs/DIRECTION.md](docs/DIRECTION.md)
 
+**Using Memento?** Leave one line in [Discussions](https://github.com/jee1/memento/discussions): which client and version you run. It lets us warn affected users before removing or changing a feature. Memento sends no usage data anywhere, so this post is the only way we learn it is in use.
+
 Working, episodic, semantic, and procedural memory map to `remember`'s `type`. Useful memories get stronger; stale ones are cleaned up. Similar memories link through vectors; anchors restore critical context in the next session.
 
 Monorepo layout, packages, and build commands live in [AGENTS.md](AGENTS.md).
