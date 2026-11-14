@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 쓰고 있다면 알려 주세요
+    url: https://github.com/jee1/memento/discussions
+    about: 어떤 클라이언트와 버전으로 쓰는지 한 줄 남겨 주세요. 기능을 지우거나 바꾸기 전에 알리는 데 씁니다.
